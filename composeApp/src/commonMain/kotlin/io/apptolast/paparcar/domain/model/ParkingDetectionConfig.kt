@@ -198,6 +198,20 @@ data class ParkingDetectionConfig(
      *  Default 4 minutes — enough for a slow GPS warm-up but not long enough to drain
      *  battery on false starts. */
     val maxNoMovementMs: Long = 4 * 60_000L,
+    /** [DET-ZOMBIE-PROBE-001] The no-movement budget for a session armed by a FAR-delivered
+     *  (stale-lane) geofence EXIT with UNVERIFIED evidence — the zombie-delivery profile.
+     *
+     *  Physics splits the two far-delivery cases: a REAL mid-drive exit is delivered far
+     *  because the car is MOVING — its very first credible fixes show driving speed (and
+     *  verified evidence usually seeds the session past this guard entirely). A ZOMBIE
+     *  delivery (OS held the event for hours and handed it over while the phone sits at
+     *  home) shows a stationary device from the first fix and can never satisfy the guard —
+     *  yet each one used to burn the full [maxNoMovementMs] of GPS (field 2026-07-24/25:
+     *  three 4.1-min `aborted_no_movement` sessions per device per night, 33–58 fixes each,
+     *  feeding the OEM's power-abuse scoring that then freezes the app harder). 75 s covers
+     *  a slow GPS warm-up plus margin for the first driving fix; any movement or verified
+     *  upgrade during the probe restores the full-session behaviour automatically. */
+    val staleExitNoMovementMs: Long = 75_000L,
 
     // ── DEPARTURE DETECTION ───────────────────────────────────────────────────
     /** Maximum time (ms) between an IN_VEHICLE_ENTER transition and a GEOFENCE_EXIT for
@@ -649,6 +663,9 @@ data class ParkingDetectionConfig(
         }
         require(maxNoMovementMs > 0) {
             "maxNoMovementMs must be > 0, was $maxNoMovementMs"
+        }
+        require(staleExitNoMovementMs in 1..maxNoMovementMs) {
+            "staleExitNoMovementMs must be in 1..maxNoMovementMs, was $staleExitNoMovementMs"
         }
         require(minimumDepartureSpeedKmh > 0) {
             "minimumDepartureSpeedKmh must be > 0, was $minimumDepartureSpeedKmh"

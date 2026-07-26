@@ -725,6 +725,82 @@ class CoordinatorParkingDetectorTest {
             assertEquals(0, env.parkingRepo.saveNewParkingSessionCallCount)
         }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // [DET-ZOMBIE-PROBE-001] Stale-delivered EXITs get the SHORT no-movement probe
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Test
+    fun should_abort_after_short_probe_when_stale_exit_delivery_never_moves() =
+        runTest(UnconfinedTestDispatcher()) {
+            // Zombie delivery: the OS hands over an hours-old EXIT while the phone sits at home.
+            // The session must fold at staleExitNoMovementMs (~75 s), not burn the full 4-min
+            // GPS window (field 2026-07-24/25: three 4.1-min zombie sessions per night). The
+            // budget shrinks but the outcome label stays aborted_no_movement (honest-close and
+            // diagnostics tooling key on it).
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations, staleExitDelivery = true) }
+
+            locations.emit(GpsPoint(40.0, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+            nowMs = config.staleExitNoMovementMs + 1_000L // well inside maxNoMovementMs
+            locations.emit(GpsPoint(40.0, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+
+            job.cancelAndJoin()
+
+            val ended = env.detectionLogger.events
+                .filterIsInstance<DetectionEvent.SessionEnded>().single()
+            assertEquals("aborted_no_movement", ended.outcome)
+            assertEquals(0, env.parkingRepo.saveNewParkingSessionCallCount)
+        }
+
+    @Test
+    fun should_not_abort_within_short_probe_when_stale_exit_delivery() =
+        runTest(UnconfinedTestDispatcher()) {
+            // The probe is a budget, not an instant kill: fixes inside the window keep the
+            // session alive so a slow GPS warm-up on a REAL mid-drive far delivery still gets
+            // its chance to show driving speed.
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations, staleExitDelivery = true) }
+
+            locations.emit(GpsPoint(40.0, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+            nowMs = config.staleExitNoMovementMs - 10_000L
+            locations.emit(GpsPoint(40.0, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+
+            assertTrue(
+                env.detectionLogger.events.filterIsInstance<DetectionEvent.SessionEnded>().isEmpty(),
+                "must not abort before the probe budget elapses",
+            )
+            job.cancelAndJoin()
+        }
+
+    @Test
+    fun should_escape_short_probe_when_driving_fix_arrives_within_it() =
+        runTest(UnconfinedTestDispatcher()) {
+            // A REAL mid-drive far delivery: the car is moving by construction, so a credible
+            // driving-speed fix lands within the probe. hasEverReachedDrivingSpeed flips and the
+            // session survives well past maxNoMovementMs — the probe never fires on real trips.
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations, staleExitDelivery = true) }
+
+            locations.emit(GpsPoint(40.0, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+            nowMs = 30_000L
+            locations.emit(GpsPoint(40.002, -3.7, accuracy = 5f, timestamp = 0L, speed = 10f))
+            nowMs = config.maxNoMovementMs + 60_000L
+            locations.emit(GpsPoint(40.004, -3.7, accuracy = 5f, timestamp = 0L, speed = 10f))
+
+            assertTrue(
+                env.detectionLogger.events.filterIsInstance<DetectionEvent.SessionEnded>()
+                    .none { it.outcome == "aborted_no_movement" },
+                "a session that showed driving must never fold as no-movement",
+            )
+            job.cancelAndJoin()
+        }
+
     @Test
     fun should_save_unattended_when_prompt_gets_no_response_within_timeout() =
         runTest(UnconfinedTestDispatcher()) {

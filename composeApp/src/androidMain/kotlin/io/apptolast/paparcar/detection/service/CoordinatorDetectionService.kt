@@ -549,6 +549,9 @@ class CoordinatorDetectionService : LifecycleService() {
                     detail,
                     trip = TripContext(session.location, session.vehicleId),
                     armEvidence = armEvidence,
+                    // [DET-ZOMBIE-PROBE-001] Far-delivered arm → short no-movement probe: a zombie
+                    // delivery (phone at home, hours late) aborts in ~75 s instead of 4 min of GPS.
+                    staleExitDelivery = staleExits.any { (staleId, _) -> staleId == id },
                 )
             }
             ParkingStrategy.BLUETOOTH, ParkingStrategy.NONE -> {
@@ -770,6 +773,9 @@ class CoordinatorDetectionService : LifecycleService() {
         /** [DET-G-05][DET-SOLID-001] Typed evidence behind this arm. GEOFENCE_EXIT passes the
          *  verifier's result; MANUAL passes [ArmEvidence.Manual] (the default). */
         armEvidence: ArmEvidence = ArmEvidence.Manual,
+        /** [DET-ZOMBIE-PROBE-001] Arm born from a FAR-delivered (stale-lane) EXIT — the
+         *  coordinator shrinks its no-movement budget to the zombie probe. */
+        staleExitDelivery: Boolean = false,
     ) {
         logArmTrigger(trigger, detail)
         PaparcarLogger.d(DIAG, "  ▶ startParkingDetection — launching coordinator (trigger=$trigger)")
@@ -847,6 +853,7 @@ class CoordinatorDetectionService : LifecycleService() {
                     // The nominating fence's vehicle (geofence exit identifies the car). Null for
                     // manual / AR-armed trips. [VEH-ACTIVE-FENCE-001]
                     nominatingVehicleId = trip?.departingVehicleId,
+                    staleExitDelivery = staleExitDelivery, // [DET-ZOMBIE-PROBE-001]
                 )
                 PaparcarLogger.d(DIAG, "    ✓ coordinator returned NORMALLY")
                 // [DET-HONEST-CLOSE-001] A silent abort must not lose a real drive-away: if the car

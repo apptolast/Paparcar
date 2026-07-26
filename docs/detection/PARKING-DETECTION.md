@@ -1336,3 +1336,22 @@ covers sync restores and confirm/clear races), or the banner's explicit "Descart
 (`persistPending = false`): its approximate pin/zone IS its durable trace, and a pending record
 would resurface as a ghost "car lost" banner after that session's normal release. Detail:
 `docs/backlog/det-nudge-persist-001.md`.
+
+### DET-ZOMBIE-PROBE-001 — short no-movement probe for stale-delivered EXITs (2026-07-25)
+
+**Why (field 2026-07-24/25).** Every zombie EXIT delivery (the OS holds the event for hours and
+hands it over with the phone parked at home) armed the coordinator and burned the full
+`maxNoMovementMs` — 4.1 min of GPS, 33–58 fixes — before folding `aborted_no_movement` (Oppo:
+22:25, 00:00 and 15:44; Samsung: 22:42). That guaranteed per-event cost feeds the OEM's
+power-abuse scoring, which freezes the app harder — the vicious circle the field test surfaced.
+
+**What.** *Physics splits the far-delivery cases: a real mid-drive exit is delivered far because
+the car is MOVING — its first credible fixes show driving speed (and verified evidence seeds the
+session past the guard entirely); a zombie delivery is stationary from the first fix and can
+never satisfy the guard.* Sessions armed from the stale (far-delivered) lane run the no-movement
+guard on `staleExitNoMovementMs` (75 s — GPS warm-up + margin) instead of 4 min
+(`CoordinatorParkingDetector.invoke(staleExitDelivery = true)`, flag born at the service's
+stale-lane arm). Same outcome label, honest-close and tooling untouched; boundary/manual/AR arms
+keep the full budget. Accepted residual: an unverified real far exit landing during a ≥75-s stop
+aborts the live session early — the departure worker's speed-sampled retries and the reconcile
+backfill still cover the release and the arrival pin. Detail: `docs/backlog/det-zombie-probe-001.md`.

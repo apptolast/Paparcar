@@ -378,6 +378,15 @@ class CoordinatorParkingDetector(
          *  or a nominated trip with a stale active flag still plants the pin on the right car. Null
          *  for manual / AR-armed trips with no nominating fence. [VEH-ACTIVE-FENCE-001] */
         nominatingVehicleId: String? = null,
+        /** [DET-ZOMBIE-PROBE-001] The arm came from a FAR-delivered (stale-lane) geofence EXIT.
+         *  Shrinks the no-movement budget to [ParkingDetectionConfig.staleExitNoMovementMs]: a
+         *  zombie delivery (event held for hours, handed over with the phone parked at home) can
+         *  never show driving and used to burn the full 4-min GPS window per delivery. A real
+         *  mid-drive far exit shows driving fixes immediately (the car is moving by construction)
+         *  and escapes the guard within the probe. Only meaningful for UNVERIFIED evidence —
+         *  verified arms seed [ParkingDetectionState.hasEverReachedDrivingSpeed] and never
+         *  consult this guard. */
+        staleExitDelivery: Boolean = false,
     ) = coroutineScope {
         val sessionJob = coroutineContext[kotlinx.coroutines.Job]
         val sessionStartMs = clock()
@@ -755,8 +764,17 @@ class CoordinatorParkingDetector(
                     }
 
                     // Spurious IN_VEHICLE_ENTER guard. [BUG-NEW-VEHICLE-DEFAULT]
-                    if (!state.hasEverReachedDrivingSpeed && (now - sessionStartMs) > config.maxNoMovementMs) {
-                        PaparcarLogger.d(DIAG, "  ⚑ maxNoMovementMs guard hit → completed=true (spurious IN_VEHICLE_ENTER)")
+                    // [DET-ZOMBIE-PROBE-001] A stale-delivered EXIT gets the SHORT probe: a real
+                    // mid-drive far delivery shows driving fixes within seconds, a zombie delivery
+                    // never will — no point burning the full window on a phone sitting at home.
+                    val noMovementBudgetMs =
+                        if (staleExitDelivery) config.staleExitNoMovementMs else config.maxNoMovementMs
+                    if (!state.hasEverReachedDrivingSpeed && (now - sessionStartMs) > noMovementBudgetMs) {
+                        PaparcarLogger.d(
+                            DIAG,
+                            "  ⚑ no-movement guard hit after ${noMovementBudgetMs}ms " +
+                                "(staleExitDelivery=$staleExitDelivery) → completed=true (spurious arm)",
+                        )
                         sessionOutcome = "aborted_no_movement"
                         completed = true
                         return@collect
