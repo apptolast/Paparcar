@@ -47,6 +47,11 @@ Los candados que refusaban el pin exacto ya no tiran el parking cuando la duda e
 - Tests: EvaluateHonestCloseUseCaseTest (verdicts + 3 casos nuevos), RunHonestCloseUseCaseTest (+restaurante), CoordinatorParkingDetectorTest (unpinned→zona, mute control), DetectionTraceReplayTest (Enamorados→zona).
 
 ## Pendiente
-- ⏳ Commit (esperando go-ahead), APK, field-test (repro: cena + caminata con Redmi; validar zona en vuelta a casa).
+- ✅ Commit 15b48a07 + APK instalado ambos móviles 26-07.
+- Field-test 26-07 (1ª noche): las piezas de este ticket funcionaron (silencio correcto por
+  `mute_counter` a las 20:32; el evento HONEST_CLOSE hizo el forense en minutos) pero apareció un
+  FP nuevo por otra clase de agujero — margen de 1 paso a 31.8 m sobre un pin MANUAL → fix en
+  `docs/backlog/det-walk-floor-001.md` (DET-WALK-FLOOR-001, rama encima de esta).
+- ⏳ Field-test de las zonas desatendidas y del cross-check frozen (no ejercitados el 26-07).
 - ⏳ UI del círculo de zona aproximada (heredado de DET-HONEST-CLOSE-001).
 - Idea diferida: copy de la card diferenciado para zonas ("zona aproximada — afina el punto").

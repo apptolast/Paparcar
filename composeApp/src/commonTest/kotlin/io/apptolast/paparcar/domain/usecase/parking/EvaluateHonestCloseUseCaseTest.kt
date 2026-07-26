@@ -23,17 +23,22 @@ import kotlin.test.assertTrue
  * [DET-FROZEN-COUNTER-001] The budget's authority depends on the counter being ALIVE. The Jerez
  * restaurant regression pins the frozen-counter case: the session's own step detector is the
  * liveness witness, and a cumulative delta below it proves the counter frozen → silence.
+ *
+ * [DET-WALK-FLOOR-001] The budget's authority also depends on there being enough DISTANCE for the
+ * count to mean anything, and no inference ever deposes a pin the USER asserted. The Glorieta FP
+ * (field 2026-07-26) pins both: a hand-placed pin released on a one-step margin over a 32 m walk.
  */
 class EvaluateHonestCloseUseCaseTest {
 
     private val useCase = EvaluateHonestCloseUseCase(ParkingDetectionConfig())
 
-    private fun pinAt(lat: Double, lon: Double, acc: Float = 12f) = UserParking(
+    private fun pinAt(lat: Double, lon: Double, acc: Float = 12f, reliability: Float? = null) = UserParking(
         id = "stale",
         vehicleId = "v-1",
         location = GpsPoint(lat, lon, accuracy = acc, timestamp = 0L, speed = 0f),
         geofenceId = "stale-fence",
         isActive = true,
+        detectionReliability = reliability,
     )
 
     private fun fixAt(lat: Double, lon: Double, acc: Float) =
@@ -201,6 +206,65 @@ class EvaluateHonestCloseUseCaseTest {
             sessionStepEvents = 0,
         )
         assertIs<HonestCloseDecision.ApproximateZone>(verdict.decision)
+    }
+
+    // ── [DET-WALK-FLOOR-001] Walk floor + user-asserted pin regression ───────────────────────────
+
+    @Test
+    fun should_stay_silent_when_the_body_displaced_too_little_for_the_budget_to_judge() {
+        // Glorieta FP (field 2026-07-26 20:28, Oppo), with an AUTO pin so the floor alone is on
+        // trial: pin 100.4 m from the abort (passes the pin-distance trip floor) but the BODY only
+        // displaced ~32 m since the seal — the budget demanded 18 steps and the live counter gave
+        // 16. A verdict that flips on a one-step margin is quantization noise, not ride proof.
+        val verdict = useCase(
+            stalePin = pinAt(36.604657, -6.230782, acc = 8f, reliability = 0.9f),
+            abortFix = fixAt(36.604041, -6.2299597, acc = 3.5f),
+            stepsSinceStalePin = 16L,
+            stepSealPoint = fixAt(36.60379, -6.23014, acc = 5f),
+            sessionStepEvents = 13,
+        )
+        assertEquals(
+            HonestCloseDecision.KeepSilent,
+            verdict.decision,
+            "a one-step budget margin over a 32 m walk must never testify a ride",
+        )
+        assertEquals(HonestCloseVerdict.REASON_WALK_TOO_SHORT, verdict.reason)
+        assertNotNull(verdict.walkDistanceMeters, "the trace must carry the displacement that was too short")
+    }
+
+    @Test
+    fun should_stay_silent_when_the_stale_pin_is_the_users_own_assertion() {
+        // Same abort, but the pin is the one the user HAND-PLACED 12 minutes earlier (reliability
+        // 1.0 is stamped by user confirmation only). The step budget is an inference; an inference
+        // never deposes an assertion — regardless of geometry.
+        val verdict = useCase(
+            stalePin = pinAt(36.604657, -6.230782, acc = 8f, reliability = 1.0f),
+            abortFix = fixAt(36.604041, -6.2299597, acc = 3.5f),
+            stepsSinceStalePin = 16L,
+            stepSealPoint = fixAt(36.60379, -6.23014, acc = 5f),
+            sessionStepEvents = 13,
+        )
+        assertEquals(
+            HonestCloseDecision.KeepSilent,
+            verdict.decision,
+            "a step-budget inference must never release a pin the user asserted",
+        )
+        assertEquals(HonestCloseVerdict.REASON_USER_ASSERTED_PIN, verdict.reason)
+    }
+
+    @Test
+    fun should_release_a_user_asserted_pin_when_the_session_itself_measured_driving() {
+        // The shield yields to MEASURED movement: a session that reached driving speed proves the
+        // car left even a hand-placed pin behind — assertion is outranked only by measurement.
+        val verdict = useCase(
+            stalePin = pinAt(36.6002, -6.2512, reliability = 1.0f),
+            abortFix = fixAt(36.5974, -6.2505, acc = 8f),
+            stepsSinceStalePin = null,
+            stepSealPoint = null,
+            sessionMaxSpeedMps = 9f,
+        )
+        assertIs<HonestCloseDecision.ApproximatePin>(verdict.decision)
+        assertEquals(HonestCloseVerdict.REASON_SESSION_MEASURED_DRIVING, verdict.reason)
     }
 
     @Test

@@ -1399,3 +1399,35 @@ the evaluator; frozen-counter orchestration in `RunHonestCloseUseCaseTest`; unpi
 egress-mismatch-zone (Enamorados replay) + mute-walk control in the coordinator suite. Full suite
 green (954). ⏳ Pending: device field-test; the approximate-zone circle UI remains pending from
 DET-HONEST-CLOSE-001.
+
+### DET-WALK-FLOOR-001 — the step budget needs distance to mean anything, and inference never deposes a user-asserted pin (2026-07-27)
+
+**Why (field 2026-07-26 20:28, Oppo/Glorieta Juan de Austria — first night on the
+DET-FROZEN-COUNTER build; full forensics in `docs/backlog/det-walk-floor-001.md`).** The user
+hand-placed a manual pin on the car from ~90 m away; 12 minutes later a false-ENTER abort ran the
+honest close. The new `HONEST_CLOSE` trace showed every number ("no mute zones" paid off on night
+one): pin→abort 100.4 m (passes the pin-distance trip floor), seal→abort **31.8 m**, required
+steps **17**, live cumulative delta **16** (liveness check passed, 16 ≥ 13 detector steps) →
+`trip_proven` on a ONE-STEP margin → the correct manual pin was released and re-planted 100 m
+away at the walker's position. Knock-on: the displaced geofence sat ~100 m from the real car for
+the next departure.
+
+**What — two admissibility gates in `EvaluateHonestCloseUseCase`, no new machinery.**
+- ***Walk floor.*** The budget shortfall only proves a ride when the budget is statistically
+  meaningful: if the SEAL-origin displacement is within the accuracy envelopes plus
+  `honestCloseMinTripMeters` (same bar the too-close guard applies to the pin), the required
+  count sits inside the counter's quantization noise → `KeepSilent(walk_too_short)`. The pin
+  distance and the body displacement diverge legitimately (a pin placed on the map from afar),
+  so the floor is checked on the budget's OWN origin — the DET-STEP-BUDGET-ORIGIN principle,
+  completed.
+- ***User-asserted pin shield.*** A stale pin with `detectionReliability ≥
+  reliabilityUserConfirmed` (stamped 1.0 only by hand-placement or the "yes, parked" tap; BT and
+  vehicle-exit sit strictly below by config invariant) is an ASSERTION, and the step budget is an
+  INFERENCE — inference never deposes assertion → `KeepSilent(user_asserted_pin)`. Only measured
+  driving (`session_measured_driving`, evaluated before the shield) may release such a pin; the
+  safety net remains the backstop if the car truly left.
+
+Both reasons flow through the existing `HonestCloseVerdict` → `HONEST_CLOSE` telemetry (string
+column, no wire change). Regression fixtures: Glorieta one-step-margin with an AUTO pin (floor on
+trial) and with the manual pin (shield on trial), plus a measured-driving release of a
+user-asserted pin (assertion is outranked only by measurement).

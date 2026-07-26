@@ -35,9 +35,11 @@ sealed interface HonestCloseDecision {
     data class ApproximateZone(val center: GpsPoint, val radiusMeters: Float) : HonestCloseDecision
 
     /** Rung 3 — no ride proof: the walk explains the distance (the car never moved), the
-     *  displacement is GPS wobble, the counter is mute or provably FROZEN, or there is no stale
-     *  pin to reason about. Stay silent, keep the old pin intact — nagging here would assert the
-     *  car is where the PEDESTRIAN is (BUG-WALK-DEPART-001). */
+     *  displacement is GPS wobble, the counter is mute or provably FROZEN, the body has not
+     *  displaced far enough since the seal for the budget to mean anything, the stale pin is the
+     *  USER's own assertion, or there is no stale pin to reason about. Stay silent, keep the old
+     *  pin intact — nagging here would assert the car is where the PEDESTRIAN is
+     *  (BUG-WALK-DEPART-001). */
     data object KeepSilent : HonestCloseDecision
 }
 
@@ -49,7 +51,8 @@ sealed interface HonestCloseDecision {
 data class HonestCloseVerdict(
     val decision: HonestCloseDecision,
     /** Why: "trip_proven" for pin/zone; for silence one of [REASON_NO_STALE_PIN], [REASON_TOO_CLOSE],
-     *  [REASON_MUTE_COUNTER], [REASON_FROZEN_COUNTER], [REASON_NO_SEAL_ORIGIN], [REASON_WALK_EXPLAINS]. */
+     *  [REASON_USER_ASSERTED_PIN], [REASON_MUTE_COUNTER], [REASON_FROZEN_COUNTER],
+     *  [REASON_NO_SEAL_ORIGIN], [REASON_WALK_EXPLAINS], [REASON_WALK_TOO_SHORT]. */
     val reason: String,
     /** Stale pin → abort fix, meters. Null when there is no stale pin. */
     val pinDistanceMeters: Double? = null,
@@ -68,6 +71,8 @@ data class HonestCloseVerdict(
         const val REASON_FROZEN_COUNTER = "frozen_counter"
         const val REASON_NO_SEAL_ORIGIN = "no_seal_origin"
         const val REASON_WALK_EXPLAINS = "walk_explains"
+        const val REASON_WALK_TOO_SHORT = "walk_too_short"
+        const val REASON_USER_ASSERTED_PIN = "user_asserted_pin"
         const val REASON_SESSION_MEASURED_DRIVING = "session_measured_driving"
     }
 }
@@ -104,6 +109,23 @@ data class HonestCloseVerdict(
  * detector steps + 0 driving fixes, cumulative delta ≈ 0 over a 150 m walk from the fresh pin —
  * the "ride" inference planted an approximate pin inside the restaurant and released the correct
  * pin planted 6 minutes earlier. The Oppo beside it, counter alive, stayed correctly silent.
+ *
+ * **User-asserted pin (inference never overrules assertion). [DET-WALK-FLOOR-001]** A pin whose
+ * reliability is [ParkingDetectionConfig.reliabilityUserConfirmed] was placed or confirmed BY THE
+ * USER — the strongest statement of where the car is that this system can hold. The step budget
+ * is an inference; an inference must never depose an assertion. Only measured driving (the
+ * session kinematics branch below) may release such a pin. Field 2026-07-26 20:28, Oppo/Glorieta:
+ * a hand-placed pin 12 minutes old, sitting exactly on the car, was released by a one-step budget
+ * margin and re-planted 100 m away at the walker's position.
+ *
+ * **Walk floor (the budget needs distance to mean anything). [DET-WALK-FLOOR-001]** The trip
+ * proof compares counted steps against the steps a displacement demands — a statistical
+ * inference whose signal grows with distance. Below the same accuracy-envelopes-plus-floor bar
+ * the too-close guard applies to the PIN, applied here to the SEAL-origin displacement, the
+ * required count sits within the counter's quantization noise and the verdict flips on a single
+ * step (Glorieta: 31.8 m → 17 required vs 16 counted). The two distances diverge legitimately —
+ * a pin placed on the map from afar puts the pin far while the body barely moved — so the floor
+ * must be checked on the budget's OWN origin, not only the pin's.
  *
  * **Session kinematics.** [sessionMaxSpeedMps] is measured movement — and measured movement
  * outranks every inference in this file: a session that reached driving speed PROVES the ride
@@ -178,6 +200,18 @@ class EvaluateHonestCloseUseCase(
             )
         }
 
+        // [DET-WALK-FLOOR-001] User-asserted pin: hand-placed or "yes, parked" — reliability is
+        // stamped reliabilityUserConfirmed by user confirmation only (BT and vehicle-exit sit
+        // strictly below it, enforced by config invariants). Everything past this line is
+        // INFERENCE, and inference never deposes assertion; only the measured driving above may
+        // release this pin. The safety net remains the backstop if the car truly left.
+        if ((pin.detectionReliability ?: 0f) >= config.reliabilityUserConfirmed) {
+            return HonestCloseVerdict(
+                HonestCloseDecision.KeepSilent, HonestCloseVerdict.REASON_USER_ASSERTED_PIN,
+                pinDistanceMeters = distanceMeters, stepsDelta = stepsSinceStalePin,
+            )
+        }
+
         // Mute counter → cannot prove a ride (nor rule out a long walk). Conservative silence;
         // the safety net's mute-counter proofs (AR boarding, pedestrian physics) are the backstop.
         val steps = stepsSinceStalePin
@@ -224,6 +258,20 @@ class EvaluateHonestCloseUseCase(
         if (walkExplainsIt) {
             return HonestCloseVerdict(
                 HonestCloseDecision.KeepSilent, HonestCloseVerdict.REASON_WALK_EXPLAINS,
+                pinDistanceMeters = distanceMeters, walkDistanceMeters = walkDistanceMeters,
+                stepsDelta = steps, requiredSteps = requiredSteps,
+            )
+        }
+
+        // [DET-WALK-FLOOR-001] The steps fell short of the budget — but a shortfall only proves a
+        // ride when the budget itself is meaningful. Same bar as the too-close guard, applied to
+        // the BODY's displacement: within the accuracy envelopes plus the minimum trip, the
+        // required count is quantization noise (Glorieta 2026-07-26: 16 counted vs 17 required
+        // over 31.8 m — one step from planting a pin on the pedestrian). No ride is provable
+        // from a walk this short; silence, the safety net backstops.
+        if (walkDistanceMeters <= origin.accuracy + abortFix.accuracy + config.honestCloseMinTripMeters) {
+            return HonestCloseVerdict(
+                HonestCloseDecision.KeepSilent, HonestCloseVerdict.REASON_WALK_TOO_SHORT,
                 pinDistanceMeters = distanceMeters, walkDistanceMeters = walkDistanceMeters,
                 stepsDelta = steps, requiredSteps = requiredSteps,
             )
