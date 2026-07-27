@@ -26,6 +26,10 @@ class DetectParkingDepartureUseCaseTest {
     private val speedAboveThreshold = config.minimumDepartureSpeedKmh + 1f
     private val speedBelowThreshold = config.minimumDepartureSpeedKmh - 1f
 
+    /** Stamped past the independence gap — a genuinely NEW sample, not the exit trigger's own
+     *  fix. Speed may only confirm on such a sample. [DET-DEPART-PROOF-001] */
+    private val independentTimestamp = exitTimestamp + config.departureProofMinGapMs
+
     /** A sampled fix. Defaults sit AT the parked car with good accuracy at exit time. */
     private fun fix(
         speedKmh: Float,
@@ -93,9 +97,72 @@ class DetectParkingDepartureUseCaseTest {
         val bus = FakeDepartureEventBus(initialTimestamp = null)
         val useCase = buildUseCase(repo = repo, bus = bus)
 
-        val result = useCase(geofenceId = activeSession.geofenceId!!, exitTimestampMs = exitTimestamp, currentFix = fix(speedAboveThreshold))
+        val result = useCase(
+            geofenceId = activeSession.geofenceId!!,
+            exitTimestampMs = exitTimestamp,
+            currentFix = fix(speedAboveThreshold, timestamp = independentTimestamp),
+        )
 
         assertIs<DepartureDecision.Confirmed>(result)
+    }
+
+    // ── [DET-DEPART-PROOF-001] Speed only confirms on a sample independent of the exit ─
+
+    @Test
+    fun `should not confirm when the credible driving speed is the exit trigger echo`() = runTest {
+        // Field 2026-07-27 18:30 (Oppo, at home, stationary): one indoor mirage fix (14 km/h,
+        // acc 21 m, 121 m away) fired the geofence EXIT, and 140 ms later the worker sampled the
+        // SAME cached fix — credible speed + credible accuracy — and published a phantom freed
+        // spot at the living room. A fix must never confirm the exit it itself fired.
+        val repo = FakeUserParkingRepository(activeSession)
+        val bus = FakeDepartureEventBus(initialTimestamp = null)
+        val useCase = buildUseCase(repo = repo, bus = bus)
+
+        val result = useCase(
+            geofenceId = activeSession.geofenceId!!,
+            exitTimestampMs = exitTimestamp,
+            currentFix = fix(speedAboveThreshold, timestamp = exitTimestamp),
+        )
+
+        val inconclusive = assertIs<DepartureDecision.Inconclusive>(result)
+        assertEquals(DetectParkingDepartureUseCase.REASON_EXIT_ECHO, inconclusive.reason)
+    }
+
+    @Test
+    fun `should not confirm on a sample just under the independence gap`() = runTest {
+        // A mirage BURST outlives the trigger fix by a few seconds (2026-07-27 14:56: credible
+        // Doppler still present 9 s after the burst opener) — the whole burst must fall inside
+        // the gap, not just the opening fix.
+        val repo = FakeUserParkingRepository(activeSession)
+        val bus = FakeDepartureEventBus(initialTimestamp = null)
+        val useCase = buildUseCase(repo = repo, bus = bus)
+
+        val result = useCase(
+            geofenceId = activeSession.geofenceId!!,
+            exitTimestampMs = exitTimestamp,
+            currentFix = fix(speedAboveThreshold, timestamp = independentTimestamp - 1L),
+        )
+
+        val inconclusive = assertIs<DepartureDecision.Inconclusive>(result)
+        assertEquals(DetectParkingDepartureUseCase.REASON_EXIT_ECHO, inconclusive.reason)
+    }
+
+    @Test
+    fun `should not tag exit echo when the non-independent sample is not credible driving`() = runTest {
+        // The breadcrumb marks REJECTED driving evidence only — a slow early sample is plain
+        // "no evidence yet", not an echo.
+        val repo = FakeUserParkingRepository(activeSession)
+        val bus = FakeDepartureEventBus(initialTimestamp = null)
+        val useCase = buildUseCase(repo = repo, bus = bus)
+
+        val result = useCase(
+            geofenceId = activeSession.geofenceId!!,
+            exitTimestampMs = exitTimestamp,
+            currentFix = fix(speedBelowThreshold, timestamp = exitTimestamp),
+        )
+
+        val inconclusive = assertIs<DepartureDecision.Inconclusive>(result)
+        assertEquals(null, inconclusive.reason)
     }
 
     @Test
@@ -123,7 +190,11 @@ class DetectParkingDepartureUseCaseTest {
         val bus = FakeDepartureEventBus(initialTimestamp = exitTimestamp - 60_000L)  // 1 min before exit
         val useCase = buildUseCase(repo = repo, bus = bus)
 
-        val result = useCase(geofenceId = activeSession.geofenceId!!, exitTimestampMs = exitTimestamp, currentFix = fix(speedAboveThreshold))
+        val result = useCase(
+            geofenceId = activeSession.geofenceId!!,
+            exitTimestampMs = exitTimestamp,
+            currentFix = fix(speedAboveThreshold, timestamp = independentTimestamp),
+        )
 
         assertIs<DepartureDecision.Confirmed>(result)
     }
@@ -237,7 +308,11 @@ class DetectParkingDepartureUseCaseTest {
         val bus = FakeDepartureEventBus(initialTimestamp = parkedAt - 60_000L)
         val useCase = buildUseCase(repo = repo, bus = bus)
 
-        val result = useCase(geofenceId = activeSession.geofenceId!!, exitTimestampMs = exitTimestamp, currentFix = fix(speedAboveThreshold))
+        val result = useCase(
+            geofenceId = activeSession.geofenceId!!,
+            exitTimestampMs = exitTimestamp,
+            currentFix = fix(speedAboveThreshold, timestamp = independentTimestamp),
+        )
 
         assertIs<DepartureDecision.Confirmed>(result)
     }

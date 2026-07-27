@@ -36,8 +36,16 @@ sealed class DepartureDecision {
      * the fall-through release a real spot (field 2026-07-09 11:55, Redmi). Only such a
      * boarding may authorise the attempts-exhausted fall-through (slow garage exits).
      * [DET-SESSION-BIRTH-001][DET-RIDE-PROOF-001]
+     *
+     * [reason] is a short telemetry breadcrumb for WHY this attempt stayed inconclusive when
+     * that is not obvious from the logged speed alone — `exit_echo` marks a sample at credible
+     * driving speed that was rejected for being the EXIT trigger's own fix (or its cache echo),
+     * not an independent measurement. [DET-DEPART-PROOF-001]
      */
-    data class Inconclusive(val admissibleBoarding: Boolean = false) : DepartureDecision()
+    data class Inconclusive(
+        val admissibleBoarding: Boolean = false,
+        val reason: String? = null,
+    ) : DepartureDecision()
 }
 
 /**
@@ -53,8 +61,10 @@ sealed class DepartureDecision {
  *    within [ParkingDetectionConfig.vehicleEnterWindowMs] of the geofence exit.
  *    This is the key discriminator between "drove away" and "went for a walk".
  * 4. **Speed** (optional) — when a GPS reading is available, speed must exceed
- *    [ParkingDetectionConfig.minimumDepartureSpeedKmh]. If speed is unavailable,
- *    this check is skipped when used as the primary signal.
+ *    [ParkingDetectionConfig.minimumDepartureSpeedKmh] with credible accuracy AND the sample
+ *    must postdate the exit by [ParkingDetectionConfig.departureProofMinGapMs]: one fix must
+ *    never both fire the EXIT and confirm the departure — an indoor mirage did exactly that
+ *    and published a phantom freed spot (field 2026-07-27). [DET-DEPART-PROOF-001]
  *
  * When signal 3 has not yet arrived and speed is insufficient, returns
  * [DepartureDecision.Inconclusive] instead of [DepartureDecision.Rejected] so
@@ -72,9 +82,13 @@ class DetectParkingDepartureUseCase(
     private val departureEventBus: DepartureEventBus,
     private val config: ParkingDetectionConfig,
 ) {
-    private companion object {
-        const val TAG = "DetectParkingDepartureUseCase"
-        const val KMH_PER_MPS = 3.6f
+    companion object {
+        private const val TAG = "DetectParkingDepartureUseCase"
+        private const val KMH_PER_MPS = 3.6f
+
+        /** [DepartureDecision.Inconclusive.reason]: credible driving speed rejected because the
+         *  sample is the exit trigger's own fix, not an independent one. [DET-DEPART-PROOF-001] */
+        const val REASON_EXIT_ECHO = "exit_echo"
     }
 
     /**
@@ -119,7 +133,31 @@ class DetectParkingDepartureUseCase(
             }
             admissible
         }
-        val speedConfirmsMovement = config.isCredibleDrivingSpeed(currentSpeedKmh, currentAccuracyM)
+        // [DET-DEPART-PROOF-001] Independence gate: the confirming speed sample must be a
+        // genuinely NEW measurement taken well after the exit event — one fix must never both
+        // FIRE the exit and "confirm" the departure. Field 2026-07-27 18:30 (Oppo, at home,
+        // stationary): a single indoor mirage (14 km/h, acc 21 m, 121 m away) broke the fence,
+        // and 140 ms later the worker's getOneLocation returned the SAME cached fix, which
+        // passed the credible-speed rule and published a phantom freed spot at the living room.
+        // A real driver is still at driving speed on the retry samples (~45 s), so the only cost
+        // is one extra retry; observed mirage bursts die within ~10 s and never survive the gap.
+        // Same invariant as the coordinator's drive proof: the corroboration is the track, not
+        // one Doppler sample. [DET-DRIVE-PROOF-001]
+        val speedIsIndependent = currentFix != null &&
+            currentFix.timestamp - exitTimestampMs >= config.departureProofMinGapMs
+        val credibleSpeed = config.isCredibleDrivingSpeed(currentSpeedKmh, currentAccuracyM)
+        val speedConfirmsMovement = credibleSpeed && speedIsIndependent
+        val inconclusiveReason = if (credibleSpeed && !speedIsIndependent) {
+            PaparcarLogger.w(
+                TAG,
+                "credible driving speed REJECTED as exit echo — fix.ts=${currentFix?.timestamp} " +
+                    "exit.ts=$exitTimestampMs gap=${currentFix?.timestamp?.minus(exitTimestampMs)}ms " +
+                    "< ${config.departureProofMinGapMs}ms [DET-DEPART-PROOF-001]",
+            )
+            REASON_EXIT_ECHO
+        } else {
+            null
+        }
 
         return if (vehicleEnteredAt != null) {
             // Signal 3: IN_VEHICLE_ENTER is present — validate the time window. STRICT ordering:
@@ -157,7 +195,7 @@ class DetectParkingDepartureUseCase(
                     fenceRadiusMeters = config.geofenceRadiusFor(session.sizeCategory, session.location.accuracy),
                     accuracyMeters = currentFix.accuracy,
                 )
-                DepartureDecision.Inconclusive(admissibleBoarding = admissible)
+                DepartureDecision.Inconclusive(admissibleBoarding = admissible, reason = inconclusiveReason)
             }
         } else {
             // Signal 3 not available (or inadmissible). Fall back to speed as sole discriminator.
@@ -166,7 +204,7 @@ class DetectParkingDepartureUseCase(
             if (speedConfirmsMovement) {
                 DepartureDecision.Confirmed
             } else {
-                DepartureDecision.Inconclusive(admissibleBoarding = false)
+                DepartureDecision.Inconclusive(admissibleBoarding = false, reason = inconclusiveReason)
             }
         }
     }

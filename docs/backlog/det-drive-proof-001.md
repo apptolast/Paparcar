@@ -1,6 +1,6 @@
 # DET-DRIVE-PROOF-001 — "conducción medida" exige hops corroborados, no un fix Doppler
 
-**Estado:** ✅ implementado 2026-07-27 en `bugfix/DET-DRIVE-PROOF-001` (encima de DET-WALK-FLOOR-001) · ⏳ commit / APK / field-test
+**Estado:** ✅ commit `15bf032c` 2026-07-27 en `bugfix/DET-DRIVE-PROOF-001` (encima de DET-WALK-FLOOR-001) · APK instalado en ambos móviles 27-07 · **✅ VALIDADO en campo 27-07 18:30**: nuevo espejismo en casa armó sesión y NO hubo pin — degradó a `PROMPT_SHOWN 0.55` (sesión `1785169816161`; el FP restante de ese evento es la publicación de plaza → `det-depart-proof-001.md`) · ⏳ merge del stack
 **Origen:** FP 2026-07-27 14:56 (Oppo, en casa, PARADO — sin salir a conducir), sesión `1785157018067`.
 
 ## Forense (telemetría pap-26, 110 eventos de la sesión)

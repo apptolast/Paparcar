@@ -140,6 +140,9 @@ class RunDepartureCheckUseCaseTest {
         val listener: RecordingListener = RecordingListener(),
         val logger: FakeDetectionEventLogger = FakeDetectionEventLogger(),
         val locationSource: FakeLocationDataSource = FakeLocationDataSource(),
+        // Fixed clock 1 min after the exit → departures are FRESH by default; the exit-echo
+        // replay overrides it to sit ON the exit moment. [DET-DEPART-PROOF-001]
+        val clockMs: Long = exitTimestamp + 60_000L,
     ) {
         val useCase = RunDepartureCheckUseCase(
             detectParkingDeparture = DetectParkingDepartureUseCase(
@@ -157,14 +160,14 @@ class RunDepartureCheckUseCaseTest {
                 geofenceService = FakeGeofenceManager(),
                 departureEventBus = bus,
             ),
-            getOneLocation = GetOneLocationUseCase(locationSource, nowMs = { exitTimestamp + 60_000L }),
+            getOneLocation = GetOneLocationUseCase(locationSource, nowMs = { clockMs }),
             departureEventBus = bus,
             departureConfirmationListener = listener,
             config = ParkingDetectionConfig(),
             detectionEventLogger = logger,
-            // Fixed clock 1 min after the exit → departures are FRESH by default; the staleness
-            // test overrides per-call timestamps instead. [DET-RECONCILE-001]
-            nowMs = { exitTimestamp + 60_000L },
+            // Fixed clock (default 1 min after the exit) → departures are FRESH by default; the
+            // staleness test overrides per-call timestamps instead. [DET-RECONCILE-001]
+            nowMs = { clockMs },
         )
     }
 
@@ -208,6 +211,32 @@ class RunDepartureCheckUseCaseTest {
 
         assertIs<DepartureCheckOutcome.Processed>(outcome)
         assertEquals(1, env.spotScheduler.scheduleCallCount, "freed spot published")
+    }
+
+    // ── [DET-DEPART-PROOF-001] The exit's own fix must never confirm the departure ─
+
+    @Test
+    fun should_not_publish_when_the_confirming_fix_is_the_exit_trigger_echo() = runTest {
+        // Field replay 2026-07-27 18:30 (Oppo, at home, stationary): one indoor mirage fix
+        // (14 km/h, acc 21 m) fired the EXIT; 140 ms later this seam sampled the SAME cached
+        // fix — credible speed, credible accuracy — and published a phantom freed spot at the
+        // living room. The attempt must retry (a real driver is still at speed 20 s later);
+        // the verdict carries the exit_echo breadcrumb for the field telemetry.
+        val env = Env(clockMs = exitTimestamp + 140L)
+        launch {
+            env.locationSource.emitBalanced(
+                GpsPoint(40.4009, -3.7, 21.5f, exitTimestamp, 4f), // 14.4 km/h, the trigger fix
+            )
+        }
+
+        val outcome = env.useCase("geo-1", exitTimestamp, attempt = 0)
+
+        assertIs<DepartureCheckOutcome.Retry>(outcome)
+        assertEquals(0, env.spotScheduler.scheduleCallCount, "no phantom spot published")
+        assertEquals(0, env.listener.notifyCount, "no live-session upgrade on an echo")
+        assertNotNull(env.repo.getActiveSession(), "the parked session must survive")
+        val verdict = env.logger.events.filterIsInstance<DetectionEvent.DepartureVerdict>().single()
+        assertEquals("Inconclusive(exit_echo)", verdict.verdict)
     }
 
     // ── [DET-RECONCILE-001] preconfirmed + freshness gate ─────────────────────

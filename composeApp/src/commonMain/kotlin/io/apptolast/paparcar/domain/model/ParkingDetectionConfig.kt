@@ -233,6 +233,15 @@ data class ParkingDetectionConfig(
     /** Minimum speed (km/h) that confirms the user is driving away. Speed check is skipped
      *  when GPS is unavailable. Default 10 km/h. */
     val minimumDepartureSpeedKmh: Float = 10f,
+    /** Minimum time (ms) a speed sample must POSTDATE the geofence-exit event to count as
+     *  independent departure corroboration. The EXIT trigger fix and the "confirming" speed fix
+     *  used to be allowed to be the same sample: an indoor GPS mirage (field 2026-07-27 18:30,
+     *  Oppo at home — one 14 km/h fix at 121 m) fired the EXIT and re-confirmed itself 140 ms
+     *  later, publishing a phantom freed spot at the user's living room. A real driver is still
+     *  at speed (or already far, for the AR fall-through) on the next genuinely new samples;
+     *  observed mirage bursts die within ~10 s, so 20 s buys 2× margin at the cost of one extra
+     *  worker retry (~45 s to publish). [DET-DEPART-PROOF-001] */
+    val departureProofMinGapMs: Long = 20_000L,
     /** Maximum age (ms) of the geofence exit for the freed spot to still be PUBLISHED to the
      *  community. A departure recovered later than this (offline device, queued worker — field
      *  incident 2026-07-06, Redmi: processed 5 h late) still clears the session and geofence,
@@ -692,6 +701,9 @@ data class ParkingDetectionConfig(
         }
         require(minimumDepartureSpeedKmh > 0) {
             "minimumDepartureSpeedKmh must be > 0, was $minimumDepartureSpeedKmh"
+        }
+        require(departureProofMinGapMs > 0) {
+            "departureProofMinGapMs must be > 0, was $departureProofMinGapMs"
         }
         require(strideMeters > 0f) {
             "strideMeters must be > 0, was $strideMeters"

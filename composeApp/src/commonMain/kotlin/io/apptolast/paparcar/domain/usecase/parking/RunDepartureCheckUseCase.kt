@@ -73,7 +73,15 @@ class RunDepartureCheckUseCase(
                 exitTimestampMs = exitTimestampMs,
                 currentFix = fix,
             )
-            PaparcarLogger.d(TAG, "attempt=$attempt geof=${geofenceId.take(8)} speed=${speedKmh}km/h acc=${fix?.accuracy}m → ${decision::class.simpleName}")
+            // [DET-DEPART-PROOF-001] Carry the inconclusive reason into the verdict label so the
+            // field telemetry distinguishes "no evidence yet" from "credible speed rejected as
+            // the exit's own echo" — the shape that published a phantom spot on 2026-07-27.
+            val verdictLabel = when {
+                decision is DepartureDecision.Inconclusive && decision.reason != null ->
+                    "Inconclusive(${decision.reason})"
+                else -> decision::class.simpleName ?: "UNKNOWN"
+            }
+            PaparcarLogger.d(TAG, "attempt=$attempt geof=${geofenceId.take(8)} speed=${speedKmh}km/h acc=${fix?.accuracy}m → $verdictLabel")
 
             // [DET-SOLID-001] Observability: every attempt's verdict, traced by geofenceId.
             runCatching {
@@ -81,7 +89,7 @@ class RunDepartureCheckUseCase(
                     DetectionEvent.DepartureVerdict(
                         sessionId = geofenceId,
                         timestampMs = Clock.System.now().toEpochMilliseconds(),
-                        verdict = decision::class.simpleName ?: "UNKNOWN",
+                        verdict = verdictLabel,
                         source = "worker",
                         attempt = attempt,
                         speedKmh = speedKmh,

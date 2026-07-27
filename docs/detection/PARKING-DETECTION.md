@@ -1469,3 +1469,32 @@ envelopes (~50 m real hops vs ~60 m of stacked noise) yet proves itself over 25-
 ~200 m. The Firestore session summary (`vmax`/`drivingFixes`) is computed from raw fixes in
 `FirestoreDetectionEventLogger` and still shows the mirage — forensics keep the glitch visible
 even though the algorithm no longer believes it.
+
+### DET-DEPART-PROOF-001 — the freed-spot release needs a fix INDEPENDENT of the EXIT (2026-07-27)
+
+**Why (field 2026-07-27 18:30, Oppo AT HOME again, stationary — session `1785169816161`; full
+forensics in `docs/backlog/det-depart-proof-001.md`).** The phantom pin from the 14:56 incident
+was still an active session with a live fence around the living room. A single indoor mirage fix
+(4 m/s = 14.4 km/h, acc 21.5 m, 121 m away) broke that fence; the departure check sampled the
+SAME cached fix 140 ms later, `isCredibleDrivingSpeed` passed (≥ 10 km/h, acc ≤ 50 m), and a
+**phantom freed spot was published to the community at the user's home** (conf 0.85 inherited
+from the phantom session, 2-h TTL). One fix both FIRED the exit and "confirmed" it. The
+detection side held: DET-DRIVE-PROOF-001 saw no corroborated driving and degraded to
+`PROMPT_SHOWN 0.55` — first field validation of that fix — but spot publication was the second
+authority still trusting a lone Doppler sample.
+
+**What — an independence gap on the confirming speed sample (`departureProofMinGapMs`, 20 s).**
+In `DetectParkingDepartureUseCase`, a credible driving-speed sample only counts as
+`speedConfirmsMovement` when its timestamp postdates the exit event by ≥ 20 s — i.e. it is a
+genuinely NEW measurement, not the trigger's cache echo. A real driver is still at speed on the
+worker's retry ladder (~15/45/105 s), so a real departure confirms one retry later (~45 s to
+publish); observed mirage bursts die within ~10 s (the 14:56 burst still carried credible
+Doppler at +9 s — 20 s buys 2× margin) and the stationary follow-up samples leave every attempt
+`Inconclusive` → `Dismissed`, nothing published, session intact. The gate sits in the ONE
+decision all non-preconfirmed release authorities converge on: boundary EXITs, stale EXITs, and
+the safety-net's `DispatchDeparture(preconfirmed=false)`. Preconfirmed dispatches (step-budget
+proof) carry their own physics and skip it. Rejected echoes stamp
+`DepartureVerdict = Inconclusive(exit_echo)` so field telemetry separates "no evidence yet"
+from "credible speed rejected as the exit's own fix". Pre-arm `verified_speed`
+(`VerifyDepartureEvidenceUseCase`) stays one-fix on purpose: arming is a nomination with no
+public side-effect, and the pin is guarded downstream by DET-DRIVE-PROOF-001.
