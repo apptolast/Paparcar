@@ -1431,3 +1431,41 @@ Both reasons flow through the existing `HonestCloseVerdict` → `HONEST_CLOSE` t
 column, no wire change). Regression fixtures: Glorieta one-step-margin with an AUTO pin (floor on
 trial) and with the manual pin (shield on trial), plus a measured-driving release of a
 user-asserted pin (assertion is outranked only by measurement).
+
+### DET-DRIVE-PROOF-001 — "measured driving" must be a TRACK, not a Doppler number (2026-07-27)
+
+**Why (field 2026-07-27 14:56, Oppo AT HOME, stationary indoors — session `1785157018067`; full
+forensics in `docs/backlog/det-drive-proof-001.md`).** A 10-second GPS mirage claimed 45 m/s
+(162 km/h) at declared accuracy 5 m from 216 m away, exited the geofence (arming with
+`dep=verified_speed` off the same phantom Doppler), and — because `maxSpeedMps` recorded ANY
+credible-accuracy fix — satisfied `sessionSawDriving` for the whole session on that single fix.
+Indoor drift then froze the anchor (the seeded arm let it pass as drive-entered), accumulated
+pedestrian-band "kinematic egress" fixes past the 18-m displacement floor, and at 15:04 the
+session **CONFIRMED `kinematic+egress` 0.85 with 1 step: a pin in the living room**. The
+kinematic path is deliberately exempt from the pedestrian ceiling and the step proof — its only
+defence is `sessionSawDriving`, and that gate was one fix wide. Three other false arms the same
+weekend all aborted correctly; the system only fell when the glitch carried *speed*.
+
+**What — the session speed statistic only turns on when the TRACK proves a drive
+(`CoordinatorParkingDetector.corroboratesDrive`).** `maxSpeedMps` stays ZERO until `driveProven`
+latches; then the accumulated credible peak (`pendingMaxSpeedMps`) promotes, so proven sessions
+report the same vmax as before. Proof is judged at every credible driving-speed fix against a
+look-back fix aged `driveProofWindowMinMs..MaxMs` (20–60 s): net displacement beyond both
+accuracy envelopes + the hop pathology margin, ≥ `minimumTripDistanceMeters` (150 m — trip
+ground, not drift), window rate ≤ `sustainedDepartureMaxRateMps` (cache teleports claim absurd
+rates), and **in-window progression** — every late-half fix must already sit ≥ 25 % of the
+displacement from the look-back position. The mirage signature is *flat-then-jump* (every
+in-window fix at home, all "movement" in the burst); a real drive progresses through its window.
+Everything downstream inherits without change: the evaluator's `sessionSawDriving` (kinematic
+gate + weak-evidence policy + scooter mismatch), the unattended-save `measuredDriving` gate, the
+honest-close zone, the persisted `tripMaxSpeedMps`, the enter-arm step veto. Arm seeding and
+session lifecycle (`hasEverReachedDrivingSpeed`) are untouched: the event NOMINATES, only
+corroborated movement CONFIRMS.
+
+**Why per-hop corroboration was rejected.** The replay harness vetoed the obvious design twice:
+Calle Gavia (a CORRECT detection) drives on ONE 36-s hop of 255 m — any per-hop Δt cap or
+hop-count floor kills it; the MIUI-starved Enamorados leg never escapes joint per-hop accuracy
+envelopes (~50 m real hops vs ~60 m of stacked noise) yet proves itself over 25-s windows of
+~200 m. The Firestore session summary (`vmax`/`drivingFixes`) is computed from raw fixes in
+`FirestoreDetectionEventLogger` and still shows the mirage — forensics keep the glitch visible
+even though the algorithm no longer believes it.

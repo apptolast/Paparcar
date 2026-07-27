@@ -411,6 +411,23 @@ data class ParkingDetectionConfig(
      *  (28.9 m vs 25.4 m at Camelias Δ1041.7) on the walk side. */
     val credibleDriveHopMarginMeters: Float = 10f,
 
+    // ── DRIVE PROOF (session "measured driving" statistic) [DET-DRIVE-PROOF-001] ──
+    /** Minimum age (ms) of the look-back fix a credible driving-speed fix is corroborated
+     *  against before it may feed `maxSpeedMps` — the statistic every confirm path reads as
+     *  "did this session measure driving?". The proof is the TRACK, not the fix: the position
+     *  must have covered `minimumTripDistanceMeters` of real ground across this window (beyond
+     *  both accuracy envelopes, at a sane rate, with the window's own fixes progressing — see
+     *  `CoordinatorParkingDetector.corroboratesDrive`). A 10-s Doppler mirage — 45 m/s at
+     *  claimed acc 5 m on a phone sitting INDOORS — has no window at all: that single fix used
+     *  to set maxSpeed for the whole session, unlock the kinematic confirm and pin the living
+     *  room (field 2026-07-27, the at-home FP). */
+    val driveProofWindowMinMs: Long = 20_000L,
+    /** Ceiling (ms) on the look-back window. Bounds the rate check (over hours any two points
+     *  "move" slowly) and keeps a pre-trip parked fix from serving as the anchor of a much
+     *  later burst. Sparse real streams live INSIDE this range: the correct Calle Gavia
+     *  detection's whole drive is one 36-s hop of 255 m (field 2026-07-04). */
+    val driveProofWindowMaxMs: Long = 60_000L,
+
     // ── HONEST CLOSE (session abort ladder) [DET-HONEST-CLOSE-001] ───────────
     /** Floor (meters) the abort position must be from the stale pin before the honest-close
      *  ladder treats the gap as a TRIP at all. Below it (plus both accuracy envelopes) the two
@@ -754,6 +771,12 @@ data class ParkingDetectionConfig(
         }
         require(credibleDriveHopMarginMeters >= 0f) {
             "credibleDriveHopMarginMeters must be >= 0, was $credibleDriveHopMarginMeters"
+        }
+        require(driveProofWindowMinMs > 0) {
+            "driveProofWindowMinMs must be > 0, was $driveProofWindowMinMs"
+        }
+        require(driveProofWindowMaxMs > driveProofWindowMinMs) {
+            "driveProofWindowMaxMs ($driveProofWindowMaxMs) must be > driveProofWindowMinMs ($driveProofWindowMinMs)"
         }
         require(honestCloseMinTripMeters > 0f) {
             "honestCloseMinTripMeters must be > 0, was $honestCloseMinTripMeters"

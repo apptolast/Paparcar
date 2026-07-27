@@ -1,6 +1,6 @@
 # DET-WALK-FLOOR-001 — suelo de distancia para el presupuesto de pasos + escudo del pin asertado por el usuario
 
-**Estado:** ✅ implementado 2026-07-27 en `feature/DET-WALK-FLOOR-001` (encima de DET-FROZEN-COUNTER-001) · suite prod verde · ⏳ commit / APK / field-test
+**Estado:** ✅ commit `797d2a70` 2026-07-27 en `feature/DET-WALK-FLOOR-001` (encima de DET-FROZEN-COUNTER-001) · suite prod verde · APK instalado en ambos móviles 27-07 · ⏳ field-test
 **Origen:** field-test 2026-07-26 tarde (glorieta Juan de Austria, Jerez) — primera noche con la build DET-FROZEN-COUNTER-001.
 
 ## Forense (telemetría pap-26, evento HONEST_CLOSE nuevo — el "sin zonas mudas" funcionó a la primera)

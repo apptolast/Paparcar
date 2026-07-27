@@ -815,7 +815,7 @@ class CoordinatorParkingDetectorTest {
 
             // Drive, then stop long enough for the slow path to reach Low → Notified (90 s gate
             // + 90 s lowNotifTimeout), then let the 15-min response window expire untouched.
-            locations.emit(GpsPoint(40.0, -3.7, accuracy = 5f, timestamp = 0L, speed = 6f))
+            emitCorroboratedDrive(locations)
             nowMs = 1_000L
             locations.emit(GpsPoint(40.001, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
             nowMs = 1_000L + config.slowPathGateMs + 5_000L
@@ -953,7 +953,7 @@ class CoordinatorParkingDetectorTest {
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
             val job = launch { env.coordinator.invoke(locations) }
 
-            locations.emit(GpsPoint(40.0, -3.7, accuracy = 5f, timestamp = 0L, speed = 6f)) // drive
+            emitCorroboratedDrive(locations) // drive
             val carLat = 40.001
             nowMs = 1_000L
             locations.emit(GpsPoint(carLat, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f)) // park
@@ -996,7 +996,7 @@ class CoordinatorParkingDetectorTest {
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
             val job = launch { env.coordinator.invoke(locations) }
 
-            locations.emit(GpsPoint(40.0, -3.7, accuracy = 5f, timestamp = 0L, speed = 6f)) // drive
+            emitCorroboratedDrive(locations) // drive
             val carLat = 40.001
             nowMs = 1_000L
             locations.emit(GpsPoint(carLat, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f)) // park
@@ -1072,7 +1072,7 @@ class CoordinatorParkingDetectorTest {
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
             val job = launch { env.coordinator.invoke(locations) }
 
-            locations.emit(GpsPoint(40.0, -3.7, accuracy = 5f, timestamp = 0L, speed = 6f)) // drive
+            emitCorroboratedDrive(locations) // drive
             val carLat = 40.001
             // Stopped fixes at HIGH_ACCURACY cadence: one to open the stop + anchorFreezeStableFixes
             // more. The freeze fires on the fix whose PRIOR stopped-fix count reaches the threshold.
@@ -1110,7 +1110,7 @@ class CoordinatorParkingDetectorTest {
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
             val job = launch { env.coordinator.invoke(locations) }
 
-            locations.emit(GpsPoint(40.0, -3.7, accuracy = 5f, timestamp = 0L, speed = 6f)) // drive
+            emitCorroboratedDrive(locations) // drive
             nowMs = 1_000L
             locations.emit(GpsPoint(40.001, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f)) // brief stop
             nowMs = 11_000L // 10 s — far below anchorFreezeStopMs
@@ -1159,7 +1159,7 @@ class CoordinatorParkingDetectorTest {
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
             val job = launch { env.coordinator.invoke(locations) }
 
-            locations.emit(GpsPoint(40.0, -3.7, accuracy = 5f, timestamp = 0L, speed = 6f)) // drive
+            emitCorroboratedDrive(locations) // drive
             nowMs = 10_000L
             locations.emit(GpsPoint(40.005, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f)) // park
             nowMs = 10_000L + config.slowPath5MinMs + 1_000L
@@ -1293,6 +1293,61 @@ class CoordinatorParkingDetectorTest {
 
             locations.emit(GpsPoint(40.005, -3.7, accuracy = 20f, timestamp = 0L, speed = 6f))
             assertTrue(env.coordinator.hasDetectedMovement, "credible fix keeps the normal path")
+
+            job.cancelAndJoin()
+        }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // DET-DRIVE-PROOF-001: a Doppler mirage is not measured driving
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Test
+    fun should_not_pin_when_a_doppler_mirage_is_the_only_measured_driving() =
+        runTest(UnconfinedTestDispatcher()) {
+            // Replay of the at-home FP (field 2026-07-27, Oppo session 1785157018067): phone
+            // INDOORS, a 10-s GPS mirage claims 45 m/s at acc 5 m from 216 m away, then every
+            // fix returns home at ~0 m/s. The lone credible spike set maxSpeed for the whole
+            // session (`sessionSawDriving`); indoor drift froze the anchor, accumulated
+            // pedestrian-band "kinematic egress" fixes past the displacement floor, and
+            // CONFIRMED kinematic+egress with 1 step — a pin in the living room. With drive
+            // proof the mirage corroborates nothing (fix #1 has no prev, #2 carries degraded
+            // accuracy, #3 claims 20 m/s while hopping 11 m) → no confirm path may open.
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch {
+                env.coordinator.invoke(
+                    locations,
+                    armEvidence = ArmEvidence.VerifiedBySpeed(speedKmh = 162f, accuracyM = 5f),
+                )
+            }
+
+            val homeLat = 40.0
+            // Mirage burst — the shape of the real trace, timestamps included.
+            locations.emit(GpsPoint(homeLat - 0.002, -3.7, accuracy = 5f, timestamp = 0L, speed = 45f))
+            nowMs = 5_000L
+            locations.emit(GpsPoint(homeLat - 0.004, -3.7, accuracy = 69f, timestamp = 5_000L, speed = 40.6f))
+            nowMs = 10_000L
+            locations.emit(GpsPoint(homeLat - 0.0039, -3.7, accuracy = 9f, timestamp = 10_000L, speed = 20.2f))
+            // Back home; the stop matures (the seeded verified arm lets the anchor freeze).
+            nowMs = 15_000L
+            locations.emit(GpsPoint(homeLat, -3.7, accuracy = 5f, timestamp = 15_000L, speed = 0f))
+            nowMs += config.anchorFreezeStopMs + 1_000L
+            locations.emit(GpsPoint(homeLat, -3.7, accuracy = 5f, timestamp = 15_500L, speed = 0f))
+            // Indoor drift in the pedestrian band, wandering past the egress displacement floor
+            // — exactly what read as a "kinematic egress walk" in the field.
+            var lat = homeLat
+            repeat(config.kinematicEgressMinWalkFixes + 2) {
+                lat += 0.0001
+                nowMs += 5_000L
+                locations.emit(GpsPoint(lat, -3.7, accuracy = 10f, timestamp = 0L, speed = 1.3f))
+            }
+
+            assertEquals(
+                0,
+                env.parkingRepo.saveNewParkingSessionCallCount,
+                "a Doppler mirage must never count as measured driving nor unlock the kinematic confirm [DET-DRIVE-PROOF-001]",
+            )
 
             job.cancelAndJoin()
         }
@@ -1976,6 +2031,32 @@ class CoordinatorParkingDetectorTest {
 
     private fun stationaryFix(lat: Double, lon: Double): GpsPoint =
         GpsPoint(latitude = lat, longitude = lon, accuracy = 5f, timestamp = 0L, speed = 0f)
+
+    /** [DET-DRIVE-PROOF-001] A drive the session speed statistic BELIEVES: a track with real
+     *  timestamps that covers a trip's worth of ground across the look-back window (a lone
+     *  speed-carrying fix no longer counts as measured driving — that was the at-home FP,
+     *  field 2026-07-27). Emits 6 fixes 5 s apart (≈ 278 m over 25 s, progressing), approaching
+     *  [toLat] from the south and ENDING at ([toLat], [lon]) so each test's downstream geometry
+     *  is untouched. */
+    private suspend fun emitCorroboratedDrive(
+        locations: MutableSharedFlow<GpsPoint>,
+        toLat: Double = 40.0,
+        lon: Double = -3.7,
+    ) {
+        val fixes = 6
+        val stepDeg = 0.0005 // ≈ 55 m per 5-s hop ≈ 11 m/s ground rate
+        repeat(fixes) { i ->
+            locations.emit(
+                GpsPoint(
+                    latitude = toLat - stepDeg * (fixes - 1 - i),
+                    longitude = lon,
+                    accuracy = 5f,
+                    timestamp = i * 5_000L,
+                    speed = 11f,
+                )
+            )
+        }
+    }
 
     private data class TestEnv(
         val coordinator: CoordinatorParkingDetector,

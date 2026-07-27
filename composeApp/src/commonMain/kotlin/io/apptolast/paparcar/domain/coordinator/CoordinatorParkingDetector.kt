@@ -258,7 +258,24 @@ class CoordinatorParkingDetector(
         val stepCount: Int = 0,
         // ── SESSION TELEMETRY (BUG-SCOOTER-001) ───────────────────────────────
         val sessionStartMs: Long? = null,
+        /** Session peak of credible driving speed, but ZERO until [driveProven] latches — this
+         *  is the statistic every confirm path reads as "did this session measure driving?"
+         *  (evaluator `sessionSawDriving`, the unattended save gate, honest-close, the persisted
+         *  `tripMaxSpeedMps`). A single Doppler mirage (45 m/s at claimed acc 5 m, phone
+         *  indoors) used to set it for the whole session, unlock the kinematic confirm and pin
+         *  the living room (field 2026-07-27). [DET-DRIVE-PROOF-001] */
         val maxSpeedMps: Float = 0f,
+        /** [DET-DRIVE-PROOF-001] Peak credible-accuracy speed observed so far — the pre-proof
+         *  accumulator [maxSpeedMps] promotes from the moment the TRACK proves a drive, so a
+         *  proven session reports the same vmax it always did. */
+        val pendingMaxSpeedMps: Float = 0f,
+        /** [DET-DRIVE-PROOF-001] TRUE once the track corroborated a drive (see
+         *  [corroboratesDrive]): real ground covered across a bounded look-back window, not a
+         *  fix's bare Doppler claim. Latched for the session. */
+        val driveProven: Boolean = false,
+        /** [DET-DRIVE-PROOF-001] Recent fixes (bounded ring) — the look-back candidates and
+         *  in-window witnesses [corroboratesDrive] judges the current fix against. */
+        val recentFixes: List<GpsPoint> = emptyList(),
         /** [DET-STEP-SPEED-GATE-001] Speed (m/s) of the most recent GPS fix. Distinguishes the
          *  egress WALK (person, ~1.4 m/s) from a stop-and-go TRAFFIC crawl (car): with an anchor
          *  set, steps only count while this is below driving speed, so a phone bouncing in traffic
@@ -654,15 +671,36 @@ class CoordinatorParkingDetector(
                         if (hasJustMoved) {
                             PaparcarLogger.d(DIAG, "  ✓ hasEverMoved → true (speed≥${config.minimumTripSpeedMps}, dist≥${config.minimumTripDistanceMeters}m, actual=${distFromOrigin}m)")
                         }
+                        // [DET-DRIVE-PROOF-001] The session speed statistic only turns on once
+                        // the TRACK proves a drive: real ground covered across a bounded
+                        // look-back window, judged by corroboratesDrive. A lone mirage — 45 m/s
+                        // at claimed acc 5 m on a phone sitting indoors — set maxSpeed for the
+                        // whole session, satisfied `sessionSawDriving`, and the kinematic path
+                        // pinned the living room (field 2026-07-27). Arm seeding and session
+                        // lifecycle (hasEverReachedDrivingSpeed) are deliberately untouched:
+                        // the event nominates, only corroborated movement CONFIRMS.
+                        val newPendingMax =
+                            if (location.speed > s.pendingMaxSpeedMps && credibleSpeedFix) location.speed
+                            else s.pendingMaxSpeedMps
+                        val driveProven = s.driveProven || (credibleSpeedFix &&
+                                location.speed >= config.minimumTripSpeedMps &&
+                                corroboratesDrive(s.recentFixes, location))
+                        if (driveProven && !s.driveProven) {
+                            PaparcarLogger.d(DIAG, "  ✓ drive PROVEN by track — session speed statistic unlocked (pendingMax=${newPendingMax}m/s) [DET-DRIVE-PROOF-001]")
+                        }
                         s.copy(
                             sessionOrigin = s.sessionOrigin ?: location,
                             hasEverReachedDrivingSpeed = s.hasEverReachedDrivingSpeed || hasJustReachedSpeed,
                             hasEverMoved = s.hasEverMoved || hasJustMoved,
                             sessionStartMs = s.sessionStartMs ?: now,
                             // maxSpeed feeds the mismatch guard AND the weak-evidence policy
-                            // ("did this session witness driving?") — an indoor Doppler spike with
-                            // degraded accuracy must not count as driving. [ANCHOR-LOCK-001]
-                            maxSpeedMps = if (location.speed > s.maxSpeedMps && credibleSpeedFix) location.speed else s.maxSpeedMps,
+                            // ("did this session witness driving?") — an indoor Doppler spike,
+                            // whatever accuracy it claims, must not count as driving.
+                            // [ANCHOR-LOCK-001][DET-DRIVE-PROOF-001]
+                            maxSpeedMps = if (driveProven) newPendingMax else 0f,
+                            pendingMaxSpeedMps = newPendingMax,
+                            driveProven = driveProven,
+                            recentFixes = pruneRecentFixes(s.recentFixes, location),
                             // [DET-STEP-SPEED-GATE-001] Track the last fix speed so the step gate can
                             // veto phantom steps while the car crawls in traffic (anchor still set).
                             lastSpeedMps = location.speed,
@@ -1720,6 +1758,50 @@ class CoordinatorParkingDetector(
         return d / dtSeconds >= config.clearBestStopSpeedMps
     }
 
+    /** [DET-DRIVE-PROOF-001] Track-level corroboration for the session's "measured driving"
+     *  statistic. TRUE when the position PROVABLY covered a trip's worth of ground ending at
+     *  the current (credible, driving-speed) fix: judged against a look-back fix aged
+     *  [ParkingDetectionConfig.driveProofWindowMinMs]..[driveProofWindowMaxMs], the net
+     *  displacement must escape both accuracy envelopes (plus the [isCorroboratedVehicleHop]
+     *  pathology margin), reach [ParkingDetectionConfig.minimumTripDistanceMeters], stay under
+     *  [ParkingDetectionConfig.sustainedDepartureMaxRateMps] (cache teleports claim absurd
+     *  rates), and the window's own late-half fixes must have LEFT the look-back position — a
+     *  real drive progresses through its window, while a mirage is flat-then-jump (the phone
+     *  sat at home for every in-window fix and "moved" only at the burst; field 2026-07-27).
+     *  Field-calibrated on both correct traces: Calle Gavia's whole drive is ONE 36-s hop of
+     *  255 m with no in-window witnesses (sparse stream — passes), and the MIUI-starved
+     *  Enamorados leg proves itself across 25-s windows of ~200 m even though NO single hop
+     *  ever escapes its joint accuracy envelopes. The at-home mirage has no window at all: its
+     *  burst died 10 s into the session. */
+    private fun corroboratesDrive(history: List<GpsPoint>, curr: GpsPoint): Boolean {
+        val eligible = history.filter {
+            (curr.timestamp - it.timestamp) in config.driveProofWindowMinMs..config.driveProofWindowMaxMs
+        }
+        return eligible.any { anchor ->
+            val d = io.apptolast.paparcar.domain.util.haversineMeters(
+                anchor.latitude, anchor.longitude,
+                curr.latitude, curr.longitude,
+            )
+            val dtSeconds = (curr.timestamp - anchor.timestamp) / 1000.0
+            val midTs = anchor.timestamp + (curr.timestamp - anchor.timestamp) / 2
+            d > anchor.accuracy + curr.accuracy + config.credibleDriveHopMarginMeters &&
+                d >= config.minimumTripDistanceMeters &&
+                d / dtSeconds <= config.sustainedDepartureMaxRateMps &&
+                history.filter { it.timestamp in (midTs + 1) until curr.timestamp }.all {
+                    io.apptolast.paparcar.domain.util.haversineMeters(
+                        anchor.latitude, anchor.longitude,
+                        it.latitude, it.longitude,
+                    ) >= d * DRIVE_PROOF_PROGRESS_FRACTION
+                }
+        }
+    }
+
+    /** [DET-DRIVE-PROOF-001] Bounded ring behind [corroboratesDrive]: keeps fixes young enough
+     *  to serve a future look-back window, hard-capped so a hot stream cannot grow the state. */
+    private fun pruneRecentFixes(history: List<GpsPoint>, curr: GpsPoint): List<GpsPoint> =
+        (history.filter { curr.timestamp - it.timestamp <= config.driveProofWindowMaxMs + DRIVE_PROOF_PRUNE_SLACK_MS } + curr)
+            .takeLast(DRIVE_PROOF_MAX_RECENT_FIXES)
+
     /** [DET-ANCHOR-EGRESS-001] The egress must be BORN at the anchor — the ceiling the
      *  displacement gate never had (it only checks a floor, and at 1.11 km from the anchor it is
      *  trivially satisfied). TRUE while the recorded egress birth ([ParkingDetectionState.egressOriginFix])
@@ -2188,6 +2270,19 @@ class CoordinatorParkingDetector(
     private companion object {
         const val TAG = "CoordinatorParkingDetector"
         const val DIAG = "PARKDIAG/Coord"
+
+        /** [DET-DRIVE-PROOF-001] Fraction of the window displacement every LATE-half in-window
+         *  fix must already sit from the look-back position — the flat-then-jump mirage keeps
+         *  its late fixes AT the origin, a real drive has long left it. Kept permissive so a
+         *  mid-window red light never vetoes an honest drive. */
+        const val DRIVE_PROOF_PROGRESS_FRACTION = 0.25f
+
+        /** [DET-DRIVE-PROOF-001] Extra retention beyond the max look-back window, so a fix can
+         *  still anchor a window that opens a few fixes later. */
+        const val DRIVE_PROOF_PRUNE_SLACK_MS = 30_000L
+
+        /** [DET-DRIVE-PROOF-001] Hard cap on the recent-fix ring. */
+        const val DRIVE_PROOF_MAX_RECENT_FIXES = 48
 
         /** Score shown on the confirmation prompt when an auto-confirm is degraded by the
          *  repark-plausibility guard — Medium-band so the copy asks rather than asserts. [DET-SOLID-001] */
