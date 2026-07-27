@@ -910,6 +910,45 @@ class CoordinatorParkingDetector(
                         // nudge deep-links straight into marking the real spot.
                         val measuredDriving = state.maxSpeedMps >= config.minimumTripSpeedMps
                         if (!measuredDriving) {
+                            // [DET-NODRIVE-ZONE-001] An EXIT delivered kilometres late births the
+                            // session AT the destination: the trip's driving is already over, the
+                            // track can never corroborate it (driveProven stays false), and this
+                            // branch used to exit nudge-only — losing a real park (field
+                            // 2026-07-27 20:36, Redmi: MIUI sat on the EXIT for 4.1 km; 176 live
+                            // egress steps and an AR vehicle-exit ended in a nudge nobody needs).
+                            // The mirage that forged the no-drive rule (same day 14:56: indoor
+                            // drift, 1 step, no vehicular signal) IS separable: a LIVE counter
+                            // with egress-scale steps bounds the walk from the car, a real
+                            // displacement proves the body left the anchor, and an in-session
+                            // vehicular signal (AR vehicle-exit, or a credible raw driving fix
+                            // the track could not corroborate) ties that walk to a drive. All
+                            // three together earn an honest AREA at the anchor — never a pin,
+                            // and never anything for the mirage.
+                            val noDriveAnchor = state.bestStopLocation
+                            val anchorToCurrentMeters = noDriveAnchor?.let {
+                                io.apptolast.paparcar.domain.util.haversineMeters(
+                                    it.latitude, it.longitude, location.latitude, location.longitude,
+                                )
+                            } ?: 0.0
+                            val liveEgress = state.sessionSawSteps &&
+                                state.stepCount >= config.anchorLockEgressSteps &&
+                                anchorToCurrentMeters >= config.minEgressDisplacementMeters
+                            val vehicularSignal = state.vehicleExitConfirmed ||
+                                state.pendingMaxSpeedMps >= config.minimumTripSpeedMps
+                            if (noDriveAnchor != null && liveEgress && vehicularSignal) {
+                                PaparcarLogger.d(
+                                    DIAG,
+                                    "  ⑊ unattended timeout without PROVEN driving but live egress (steps=${state.stepCount} walked=${anchorToCurrentMeters.toInt()}m vehicleExit=${state.vehicleExitConfirmed} pendingMax=${state.pendingMaxSpeedMps}m/s) — approximate zone at the anchor [DET-NODRIVE-ZONE-001]"
+                                )
+                                val walkBoundMeters = maxOf(
+                                    anchorToCurrentMeters,
+                                    state.stepCount * config.anchorStrideMeters.toDouble(),
+                                )
+                                if (saveUnattendedZone("no_drive_egress", noDriveAnchor, walkBoundMeters, activeVehicleId, location, now)) {
+                                    completed = true
+                                    return@collect
+                                }
+                            }
                             PaparcarLogger.d(
                                 DIAG,
                                 "  ⑊ unattended timeout WITHOUT measured driving (maxSpeed=${state.maxSpeedMps}m/s < ${config.minimumTripSpeedMps}) — no pin; nudging user to mark the spot [DET-AR-FIRST-001]"

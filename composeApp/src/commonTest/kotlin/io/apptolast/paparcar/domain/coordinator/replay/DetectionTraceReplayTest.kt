@@ -472,6 +472,64 @@ class DetectionTraceReplayTest {
         }
 
     @Test
+    fun redmi_late_exit_home_001_no_drive_timeout_keeps_the_park_as_a_zone_at_the_locked_anchor() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-NODRIVE-ZONE-001 — the 2026-07-27 20:36 field FN, SOLVED] MIUI delivered the
+            // GEOFENCE_EXIT 4 110 m late: the session was born at the destination, its only
+            // "driving" a 3-fix burst (vmax 7.02 m/s) the track rightly never corroborates
+            // (DET-DRIVE-PROOF-001). 176 LIVE egress steps locked the kerb anchor, the AR
+            // vehicle-exit landed in-session, the prompt went unanswered — and the field build's
+            // no-drive timeout exited nudge-only, losing a REAL park. Now the conjunction (live
+            // egress-scale steps + real walked displacement + vehicular signal) keeps it as an
+            // honest AREA at the locked kerb anchor. The same-day mirage (1 step, no AR exit)
+            // still dies nudge-only — see the unit guards.
+            val replayer = DetectionTraceReplayer(TraceRedmiLateExitHome001.events)
+            val env = buildEnv(clock = { replayer.nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 700)
+            val job = launch {
+                env.coordinator.invoke(
+                    locations,
+                    armEvidence = ArmEvidence.VerifiedByVehicleEnter(enterToExitMs = 60_000L),
+                )
+            }
+
+            var arExitEmitted = false
+            replayer.replay(
+                emitFix = { fix ->
+                    // The field AR IN_VEHICLE→EXIT landed at Δ 108 227 (2 s after the degraded prompt).
+                    if (!arExitEmitted && fix.timestamp >= TraceRedmiLateExitHome001.AR_EXIT_AT) {
+                        arExitEmitted = true
+                        env.coordinator.onVehicleExit()
+                    }
+                    locations.emit(fix)
+                },
+                emitStep = { env.stepDetector.emitSteps(1) },
+            )
+            job.cancelAndJoin()
+
+            assertTrue(
+                env.detectionLogger.events.filterIsInstance<DetectionEvent.Decision>()
+                    .any { it.outcome == "CONFIRM_DEGRADED_PROMPT" },
+                "no corroborated driving — the confirm must degrade to a prompt first, as in the field",
+            )
+            assertEquals(1, env.parkingRepo.saveNewParkingSessionCallCount, "the park must be KEPT as a zone, not lost")
+            val saved = assertNotNull(env.parkingRepo.getActiveSession())
+            assertTrue(saved.isApproximate, "no proven driving may only yield an AREA, never an exact pin")
+            assertTrue(
+                saved.location.latitude in 36.60380..36.60395 &&
+                    saved.location.longitude in -6.23092..-6.23072,
+                "zone must center on the locked kerb anchor (~${TraceRedmiLateExitHome001.KERB_ANCHOR_LAT}," +
+                    "${TraceRedmiLateExitHome001.KERB_ANCHOR_LON}), not the house door " +
+                    "(${TraceRedmiLateExitHome001.HOUSE_LAT},${TraceRedmiLateExitHome001.HOUSE_LON}) " +
+                    "— was ${saved.location.latitude},${saved.location.longitude}",
+            )
+            assertEquals(0, env.notification.markParkingNudgeCallCount, "the saved-parking card is the ask — no extra nudge")
+            val ended = env.detectionLogger.events
+                .filterIsInstance<DetectionEvent.SessionEnded>().single()
+            assertEquals("confirmed_unattended_zone_no_drive_egress", ended.outcome)
+        }
+
+    @Test
     fun late_exit_on_foot_001_walk_away_exit_must_abort_silently_forever() =
         runTest(UnconfinedTestDispatcher()) {
             // [DET-HONEST-CLOSE-001 — PERMANENT GUARD, 2026-07-15 field] The fence EXIT was

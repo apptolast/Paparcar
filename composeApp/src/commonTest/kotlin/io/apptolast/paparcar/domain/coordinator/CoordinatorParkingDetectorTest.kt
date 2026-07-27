@@ -871,6 +871,122 @@ class CoordinatorParkingDetectorTest {
         }
 
     @Test
+    fun should_save_zone_when_no_drive_timeout_has_live_egress_and_vehicular_signal() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-NODRIVE-ZONE-001] An EXIT delivered kilometres late births the session at the
+            // destination (field 2026-07-27 20:36, Redmi): the only "driving" is a short raw
+            // burst the track can never corroborate, so the timeout used to exit nudge-only and
+            // a REAL park was lost. With a LIVE counter at egress scale, a real walked
+            // displacement off the anchor and an in-session vehicular signal, the honest exit is
+            // an approximate ZONE at the locked kerb anchor — never a pin, never a lost park.
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch {
+                env.coordinator.invoke(locations, armEvidence = ArmEvidence.VerifiedByVehicleEnter(30_000L))
+            }
+
+            // One credible raw driving fix — a single-sided burst `corroboratesDrive` never latches on.
+            locations.emit(GpsPoint(40.0, -3.7, accuracy = 12f, timestamp = 0L, speed = 7f))
+            nowMs = 10_000L
+            val kerbLat = 40.0005
+            locations.emit(GpsPoint(kerbLat, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f)) // kerb stop → anchor
+            env.stepDetector.emitSteps(12) // live egress steps at the kerb — the anchor LOCKS
+            env.coordinator.onVehicleExit() // AR IN_VEHICLE→EXIT, the in-session vehicular signal
+            nowMs = 40_000L
+            val homeLat = 40.0010 // ~55 m walk to the door
+            locations.emit(GpsPoint(homeLat, -3.7, accuracy = 8f, timestamp = 0L, speed = 0.5f))
+            assertEquals(1, env.notification.parkingConfirmationCallCount, "weak evidence must ask first")
+            assertEquals(0, env.parkingRepo.saveNewParkingSessionCallCount, "nothing saved while the prompt waits")
+
+            nowMs += config.confirmationResponseTimeoutMs + 1_000L
+            locations.emit(GpsPoint(homeLat, -3.7, accuracy = 8f, timestamp = 0L, speed = 0.1f))
+
+            job.cancelAndJoin()
+
+            assertEquals(1, env.parkingRepo.saveNewParkingSessionCallCount, "the park must be KEPT as a zone, not lost")
+            val saved = env.parkingRepo.getActiveSession()
+            assertNotNull(saved)
+            assertTrue(saved.isApproximate, "no proven driving may only yield an AREA, never an exact pin")
+            assertEquals(kerbLat, saved.location.latitude, 0.00005, "zone centers on the locked kerb anchor")
+            assertTrue(saved.zoneRadiusMeters!! >= config.honestCloseMinZoneRadiusMeters)
+            assertEquals(config.reliabilityUnattendedSave, saved.detectionReliability, "never community-published")
+            assertEquals(0, env.notification.markParkingNudgeCallCount, "the saved-parking card is the ask — no extra nudge")
+            val ended = env.detectionLogger.events
+                .filterIsInstance<DetectionEvent.SessionEnded>().single()
+            assertEquals("confirmed_unattended_zone_no_drive_egress", ended.outcome, "[DET-NODRIVE-ZONE-001]")
+        }
+
+    @Test
+    fun should_nudge_when_no_drive_timeout_lacks_egress_scale_steps() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-NODRIVE-ZONE-001 anti-resurrection] The same-day mirage (2026-07-27 14:56:
+            // indoor drift, ONE step, a 45 m/s Doppler burst the track never corroborated) must
+            // stay nudge-only: without egress-scale LIVE steps the walk from the "car" is
+            // unbounded and a zone would assert the car is somewhere it provably may not be.
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch {
+                env.coordinator.invoke(locations, armEvidence = ArmEvidence.VerifiedByVehicleEnter(30_000L))
+            }
+
+            locations.emit(GpsPoint(40.0, -3.7, accuracy = 5f, timestamp = 0L, speed = 45f)) // mirage burst
+            nowMs = 10_000L
+            locations.emit(GpsPoint(40.0002, -3.7, accuracy = 10f, timestamp = 0L, speed = 0f)) // drift stop → anchor
+            env.stepDetector.emitSteps(1) // the mirage's single step
+            nowMs = 60_000L
+            locations.emit(GpsPoint(40.0005, -3.7, accuracy = 12f, timestamp = 0L, speed = 0.8f)) // 33 m drift
+            nowMs += config.slowPath5MinMs + 1_000L
+            locations.emit(GpsPoint(40.0005, -3.7, accuracy = 10f, timestamp = 0L, speed = 0.1f))
+            assertEquals(1, env.notification.parkingConfirmationCallCount, "prompt must be shown")
+
+            nowMs += config.confirmationResponseTimeoutMs + 1_000L
+            locations.emit(GpsPoint(40.0005, -3.7, accuracy = 10f, timestamp = 0L, speed = 0.1f))
+
+            job.cancelAndJoin()
+
+            assertEquals(0, env.parkingRepo.saveNewParkingSessionCallCount, "the mirage must never resurrect as a zone")
+            assertEquals(1, env.notification.markParkingNudgeCallCount, "nudge-only stays the mirage's exit")
+            val ended = env.detectionLogger.events
+                .filterIsInstance<DetectionEvent.SessionEnded>().single()
+            assertEquals("aborted_unattended_no_drive", ended.outcome, "[DET-NODRIVE-ZONE-001]")
+        }
+
+    @Test
+    fun should_nudge_when_no_drive_timeout_has_no_vehicular_signal() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-NODRIVE-ZONE-001] Egress-scale steps alone are just a pedestrian: without an
+            // in-session vehicular signal (AR vehicle-exit or a credible raw driving fix) nothing
+            // ties the walk to a drive — a stale seeded arm plus a stroll must never plant a zone.
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch {
+                env.coordinator.invoke(locations, armEvidence = ArmEvidence.VerifiedByVehicleEnter(30_000L))
+            }
+
+            locations.emit(GpsPoint(40.0, -3.7, accuracy = 12f, timestamp = 0L, speed = 4f)) // sub-trip-speed roll
+            nowMs = 10_000L
+            locations.emit(GpsPoint(40.0005, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f)) // stop → anchor
+            env.stepDetector.emitSteps(12)
+            nowMs = 40_000L
+            locations.emit(GpsPoint(40.0010, -3.7, accuracy = 8f, timestamp = 0L, speed = 0.5f)) // ~55 m walk
+            assertEquals(1, env.notification.parkingConfirmationCallCount, "weak evidence must ask first")
+
+            nowMs += config.confirmationResponseTimeoutMs + 1_000L
+            locations.emit(GpsPoint(40.0010, -3.7, accuracy = 8f, timestamp = 0L, speed = 0.1f))
+
+            job.cancelAndJoin()
+
+            assertEquals(0, env.parkingRepo.saveNewParkingSessionCallCount, "a walk with no vehicular signal must never plant a zone")
+            assertEquals(1, env.notification.markParkingNudgeCallCount, "the user must be asked where the car is")
+            val ended = env.detectionLogger.events
+                .filterIsInstance<DetectionEvent.SessionEnded>().single()
+            assertEquals("aborted_unattended_no_drive", ended.outcome, "[DET-NODRIVE-ZONE-001]")
+        }
+
+    @Test
     fun should_keep_kerb_anchor_when_user_walks_away_immediately_after_parking() =
         runTest(UnconfinedTestDispatcher()) {
             // [DET-AR-FIRST-001 F3] The Camelias regression (field 2026-07-10 15:54): park, exit

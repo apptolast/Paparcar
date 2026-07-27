@@ -1385,7 +1385,9 @@ backfill still cover the release and the arrival pin. Detail: `docs/backlog/det-
   `egress_mismatch` (radius covers birth↔anchor; center follows counter liveness — live → egress
   birth, mute → frozen anchor), `walk_entered_anchor` (live counter: walked-in bound). Unbounded
   cases (mute-counter unpinned/walk-entered, `vehicular_egress`, `unattended_no_drive`) keep the
-  nudge-only exit — a zone that cannot promise to contain the car is a lie. Radius ∈
+  nudge-only exit — a zone that cannot promise to contain the car is a lie. (The no-drive case
+  later earned its own bounded lane behind a triple conjunction — see DET-NODRIVE-ZONE-001.)
+  Radius ∈
   [`honestCloseMinZoneRadiusMeters`, `unattendedZoneMaxRadiusMeters` 250 m]. Outcomes:
   `confirmed_unattended_zone_<reason>`, provenance `detectionPath = unattended_zone_<reason>`.
 - ***No mute zones in the trace.*** New `HONEST_CLOSE` diagnostics event (verdict, reason,
@@ -1498,3 +1500,41 @@ proof) carry their own physics and skip it. Rejected echoes stamp
 from "credible speed rejected as the exit's own fix". Pre-arm `verified_speed`
 (`VerifyDepartureEvidenceUseCase`) stays one-fix on purpose: arming is a nomination with no
 public side-effect, and the pin is guarded downstream by DET-DRIVE-PROOF-001.
+
+### DET-NODRIVE-ZONE-001 — a no-drive timeout with live, bounded egress keeps the park as a zone (2026-07-27)
+
+**Why (field 2026-07-27 20:36, Redmi — session `1785177396935`; full forensics in
+`docs/backlog/det-nodrive-zone-001.md`).** A real 4.3 km drive home from a just-confirmed park —
+and MIUI delivered the previous spot's GEOFENCE_EXIT **4 110 m late**, with the car already
+arriving. The session was born after the trip: its only "driving" was a 3-fix burst (vmax
+25 km/h, the final approach) that `corroboratesDrive` rightly never latches on (no look-back
+window exists — DET-DRIVE-PROOF-001, shipped the same day, doing its job). Steps+egress degraded
+to a prompt (correct, and it DID show — user-confirmed), the prompt went unanswered for the
+15-min window, and the timeout took the `unattended_no_drive` branch: nudge-only,
+`aborted_unattended_no_drive` — a REAL park lost with 176 live egress steps, an AR
+`IN_VEHICLE→EXIT` and a locked kerb anchor on the table. The same-morning mirage (14:56: indoor
+drift, ONE step, no AR exit) is what forged the nudge-only rule — but the two sessions are
+separable by evidence the branch never read.
+
+**What — extend the DET-FROZEN-COUNTER-001 bounded-zone ladder to the no-drive branch, behind a
+triple conjunction.** Before exiting nudge-only, the `unattended_no_drive` branch now attempts
+`saveUnattendedZone("no_drive_egress")` centered on the anchor iff ALL of:
+1. **anchor exists** (`bestStopLocation` — where the fixes settled before the first step);
+2. **live egress at human scale**: `sessionSawSteps` ∧ `stepCount ≥ anchorLockEgressSteps` ∧
+   walked displacement anchor→current ≥ `minEgressDisplacementMeters` (18 m) — a live counter
+   bounds the walk from the car, a real displacement proves the body left the anchor (the mirage
+   dies here: 1 step);
+3. **in-session vehicular signal**: `vehicleExitConfirmed` (AR vehicle-exit) ∨
+   `pendingMaxSpeedMps ≥ minimumTripSpeedMps` (a credible raw driving fix the track could not
+   corroborate) — something beyond the arm ties the walk to a drive (a stale seeded arm plus a
+   stroll dies here).
+Radius = max(anchor→current, steps × stride), clamped to
+[`honestCloseMinZoneRadiusMeters`, `unattendedZoneMaxRadiusMeters`] — the walk bound keeps the
+car inside the promise. Reliability `reliabilityUnattendedSave`, provenance
+`unattended_zone_no_drive_egress`, outcome `confirmed_unattended_zone_no_drive_egress`; any
+failed candado or failed save falls back to the existing nudge. Accepted residual (documented in
+the ticket): a bus/taxi ride home after a late EXIT passes the conjunction and plants a
+low-reliability zone at the drop-off — the saved-parking card is the ask and one tap corrects
+it; the alternative (nudge-only) provably loses real parks. Replay fixture
+`Trace_RedmiLateExitHome001` (1:1 from the 279 diagnostics events) pins the zone; unit guards
+pin the mirage and the no-vehicular-signal stroll to nudge-only.

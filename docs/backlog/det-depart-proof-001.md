@@ -1,6 +1,6 @@
 # DET-DEPART-PROOF-001 — la publicación de la plaza liberada exige un fix independiente del EXIT
 
-**Estado:** ⏳ implementado en `bugfix/DET-DEPART-PROOF-001` (encima de DET-DRIVE-PROOF-001) · esperando go-ahead de commit
+**Estado:** ✅ commit `d8e063a8` 2026-07-27 en `bugfix/DET-DEPART-PROOF-001` (encima de DET-DRIVE-PROOF-001) · APK instalado en ambos móviles 27-07 19:15 · ⏳ field-test / merge del stack
 **Origen:** FP 2026-07-27 18:30 (Oppo, en casa, PARADO — segunda tarde consecutiva), sesión `1785169816161`.
 
 ## Forense (telemetría pap-26)
