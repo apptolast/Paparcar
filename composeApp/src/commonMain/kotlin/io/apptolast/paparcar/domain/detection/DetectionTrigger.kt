@@ -24,4 +24,11 @@ enum class DetectionTrigger {
      *  privileged service lane. The LOW-latency nominator — the geofence EXIT arrives minutes
      *  late on OEMs; measured movement still confirms everything. */
     AR_VEHICLE_ENTER,
+
+    /** [DET-RESIDENT-FGS-001] The significant-motion sensor fired while the service was resident in
+     *  [ServicePresence.Sentry]. The weakest nominator — it cannot tell a walk from a drive — so it
+     *  arms with [ArmEvidence.Unverified] (every anti-walking guard active); only measured driving
+     *  confirms. Its value is immediacy + independence: it needs neither Play Services (which OEMs
+     *  starve) nor a WorkManager tick, and it lands on an already-live process. */
+    SIGNIFICANT_MOTION,
 }

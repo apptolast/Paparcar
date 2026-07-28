@@ -46,6 +46,28 @@ interface DetectionPhaseSink {
 }
 
 /**
+ * Coarse lifecycle of the Coordinator foreground service PROCESS — distinct from [isRunning], which
+ * only says whether a tracking JOB is in flight. [DET-RESIDENT-FGS-001]
+ *
+ * Today the service is [Dead] between parkings and [Active] only during the 4–15 min of a tracking
+ * session (wake-and-kill). The residency experiment adds [Sentry]: after a park, the service stays
+ * alive with the GPS OFF, so a subsequent departure trigger (geofence EXIT / AR ENTER / significant
+ * motion) lands on a LIVE foreground process instead of having to resurrect a dead one — the class
+ * of false-negative that OEM/Doze process-kills + the Android 12+ background-FGS-start restriction
+ * produce today. Gated behind an internal flag (default OFF) for F1.
+ */
+enum class ServicePresence {
+    /** No process, no FGS, no notification — the service is not running at all. */
+    Dead,
+
+    /** Alive and foreground but idle: GPS off, no tracking job — waiting to catch the next departure. */
+    Sentry,
+
+    /** A tracking job is in flight (GPS on, following a trip). */
+    Active,
+}
+
+/**
  * Read-only visibility into whether a detection tracking job is currently active and, when known,
  * the [TripContext] and [DetectionPhase] of the trip it is following.
  *
@@ -58,6 +80,10 @@ interface DetectionRuntimeState {
     /** True while a tracking job is running in the foreground service. */
     val isRunning: StateFlow<Boolean>
 
+    /** Coarse lifecycle of the service process itself. Defaults to [ServicePresence.Dead] so doubles
+     *  that don't exercise it need no change. [DET-RESIDENT-FGS-001] */
+    val presence: StateFlow<ServicePresence> get() = ALWAYS_DEAD
+
     /** The current trip's origin (departing vehicle + spot), or null when idle / origin unknown.
      *  Default no-op so test/preview doubles that don't exercise it need no change. [DEPART-CONSISTENCY-001] */
     val trip: StateFlow<TripContext?> get() = NO_TRIP
@@ -69,6 +95,7 @@ interface DetectionRuntimeState {
     private companion object {
         val NO_TRIP: StateFlow<TripContext?> = MutableStateFlow(null).asStateFlow()
         val ALWAYS_DRIVING: StateFlow<DetectionPhase> = MutableStateFlow(DetectionPhase.Driving).asStateFlow()
+        val ALWAYS_DEAD: StateFlow<ServicePresence> = MutableStateFlow(ServicePresence.Dead).asStateFlow()
     }
 }
 
@@ -88,6 +115,9 @@ class MutableDetectionRuntimeState : DetectionRuntimeState, DetectionPhaseSink {
     private val _phase = MutableStateFlow(DetectionPhase.Driving)
     override val phase: StateFlow<DetectionPhase> = _phase.asStateFlow()
 
+    private val _presence = MutableStateFlow(ServicePresence.Dead)
+    override val presence: StateFlow<ServicePresence> = _presence.asStateFlow()
+
     /** Called by the detection service when a tracking job starts (true) or ends (false). Every
      *  trip begins in-motion, so both edges reset the phase to [DetectionPhase.Driving] (a fresh trip
      *  never inherits a leftover "Candidate" from a prior one); ending also clears the trip context. */
@@ -97,6 +127,14 @@ class MutableDetectionRuntimeState : DetectionRuntimeState, DetectionPhaseSink {
         if (!running) {
             _trip.value = null
         }
+    }
+
+    /** Called by the detection service at its three lifecycle edges: [ServicePresence.Active] when a
+     *  tracking job launches, [ServicePresence.Sentry] when it degrades to the resident idle watcher,
+     *  [ServicePresence.Dead] when the service tears down. Independent of [setRunning] so entering
+     *  Sentry (job ended, process alive) is expressible. [DET-RESIDENT-FGS-001] */
+    fun setPresence(presence: ServicePresence) {
+        _presence.value = presence
     }
 
     /** Called by the detection service when arming with a known trip origin (e.g. geofence-exit).
@@ -119,8 +157,10 @@ class StaticDetectionRuntimeState(
     running: Boolean = false,
     trip: TripContext? = null,
     phase: DetectionPhase = DetectionPhase.Driving,
+    presence: ServicePresence = ServicePresence.Dead,
 ) : DetectionRuntimeState {
     override val isRunning: StateFlow<Boolean> = MutableStateFlow(running).asStateFlow()
     override val trip: StateFlow<TripContext?> = MutableStateFlow(trip).asStateFlow()
     override val phase: StateFlow<DetectionPhase> = MutableStateFlow(phase).asStateFlow()
+    override val presence: StateFlow<ServicePresence> = MutableStateFlow(presence).asStateFlow()
 }

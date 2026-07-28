@@ -52,7 +52,8 @@ val androidDetectionModule = module {
     single<DepartureEventBus> { DepartureEventBusImpl(androidContext()) }
 
     // --- Parked-session safety net: hardware wake-up trigger [DET-SIGMOTION-001] ---
-    single { SignificantMotionMonitor(androidContext(), get()) }
+    // Third arg: DetectionRuntimeState — SENTRY-resident triggers wake the live service directly. [DET-RESIDENT-FGS-001]
+    single { SignificantMotionMonitor(androidContext(), get(), get()) }
 
     // --- Trip trail: every one-shot fix becomes a persisted breadcrumb [DET-BREADCRUMBS-001] ---
     single<io.apptolast.paparcar.domain.detection.TripTrail> {

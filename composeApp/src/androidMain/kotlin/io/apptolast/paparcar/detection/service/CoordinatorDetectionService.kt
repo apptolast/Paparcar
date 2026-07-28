@@ -13,6 +13,7 @@ import androidx.work.WorkManager
 import com.google.android.gms.location.GeofencingEvent
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import io.apptolast.paparcar.BuildConfig
+import io.apptolast.paparcar.detection.SignificantMotionMonitor
 import io.apptolast.paparcar.detection.worker.DepartureDetectionWorker
 import io.apptolast.paparcar.detection.worker.ParkingSafetyNetWorker
 import io.apptolast.paparcar.domain.coordinator.CoordinatorParkingDetector
@@ -21,6 +22,9 @@ import io.apptolast.paparcar.domain.detection.DetectionTrigger
 import io.apptolast.paparcar.domain.detection.MutableDetectionRuntimeState
 import io.apptolast.paparcar.domain.detection.ParkingStrategy
 import io.apptolast.paparcar.domain.detection.ParkingStrategyResolver
+import io.apptolast.paparcar.domain.detection.PostDetectionLifecycle
+import io.apptolast.paparcar.domain.detection.ServicePresence
+import io.apptolast.paparcar.domain.detection.resolvePostDetectionLifecycle
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.detection.TripContext
 import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
@@ -87,6 +91,9 @@ class CoordinatorDetectionService : LifecycleService() {
     // away from + leave an approximate zone/pin + nudge, run at the abort from the live FGS.
     private val runHonestClose: RunHonestCloseUseCase by inject()
     private val detectionStepAnchors: DetectionStepAnchors by inject()
+    // [DET-RESIDENT-FGS-001] Armed when the service degrades to SENTRY so a departure that Play
+    // Services starves still wakes the (now live) process. Same singleton the safety-net worker syncs.
+    private val significantMotionMonitor: SignificantMotionMonitor by inject()
 
     // [REFACTOR: extract FGS lifecycle into ForegroundServiceController]
     private val fgs by lazy { ForegroundServiceController(this) }
@@ -139,7 +146,7 @@ class CoordinatorDetectionService : LifecycleService() {
                     // Same guard as Deliver: a throw here would kill the consumer loop and leave
                     // a zombie FGS — the teardown must never be the thing that breaks teardown.
                     is Command.DetectionEnded -> try {
-                        stopIfIdle("detection-ended", command.startId)
+                        resolveIdleEpilogue("detection-ended", command.startId)
                     } catch (e: CancellationException) {
                         throw e
                     } catch (e: Exception) {
@@ -213,6 +220,7 @@ class CoordinatorDetectionService : LifecycleService() {
     private suspend fun processIntent(intent: Intent, startId: Int) {
         when (val action = intent.action) {
             ACTION_START_TRACKING -> handleStartTracking()
+            ACTION_SENTRY_WAKE -> handleSentryWake() // [DET-RESIDENT-FGS-001]
             ACTION_GEOFENCE_EXIT -> handleGeofenceExit(intent)
             ACTION_AR_TRANSITION -> handleArTransition(intent) // [DET-AR-FIRST-001]
             ACTION_PARKING_CONFIRMED -> handleUserConfirmed()
@@ -238,7 +246,46 @@ class CoordinatorDetectionService : LifecycleService() {
             // epilogue below tears down if idle instead of leaving the FGS notification hanging.
             else -> PaparcarLogger.d(DIAG, "  ⊘ unhandled action=$action [DET-B-01]")
         }
-        stopIfIdle("post-${intent.action?.substringAfterLast('.') ?: "null"}", startId)
+        resolveIdleEpilogue("post-${intent.action?.substringAfterLast('.') ?: "null"}", startId)
+    }
+
+    /**
+     * [DET-RESIDENT-FGS-001] Direct SENTRY→ACTIVE wake from the significant-motion sensor. The
+     * monitor only routes here when the service is resident in [ServicePresence.Sentry], so this is
+     * NOT a background FGS start — the process is already foreground, and starting a live service
+     * re-delivers legally. This is the immediacy Q2 chose over the WorkManager tick: no Play
+     * Services, no 15-min latency.
+     *
+     * SigMotion cannot tell a walk from a drive, so it arms with [ArmEvidence.Unverified] — every
+     * anti-walking guard active, no seed. If it was just a walk past the car the coordinator's
+     * false-enter / no-movement aborts end it in ~75 s–4 min; a real drive-away is followed live to
+     * the next park. The parked session anchors the trip so Home binds to the right car.
+     */
+    private suspend fun handleSentryWake() {
+        // A tracking job already owns the service (a trigger raced in first) — the wake is redundant.
+        if (detectionJob?.isActive == true) {
+            PaparcarLogger.d(DIAG, "  ↻ SENTRY_WAKE ignored — detectionJob already active")
+            return
+        }
+        if (!guardPermissions("SENTRY_WAKE")) return
+        val sessions = runCatching { userParkingRepository.observeActiveSessions().firstOrNull().orEmpty() }
+            .getOrElse { emptyList() }
+        val activeVehicleId = runCatching { vehicleRepository.observeActiveVehicle().firstOrNull()?.id }.getOrNull()
+        val session = sessions.firstOrNull { it.vehicleId == activeVehicleId } ?: sessions.firstOrNull()
+        if (session == null) {
+            // Nothing parked to watch — the session was cleared elsewhere. The epilogue tears the
+            // (now purposeless) resident service down. [DET-RESIDENT-FGS-001]
+            PaparcarLogger.d(DIAG, "  ⊘ SENTRY_WAKE — no parked session; standing down")
+            return
+        }
+        PaparcarLogger.d(DIAG, "  → SENTRY_WAKE — significant motion on live process, arming Coordinator (Unverified) [DET-RESIDENT-FGS-001]")
+        cancelDetectionJob()
+        startParkingDetection(
+            DetectionTrigger.SIGNIFICANT_MOTION,
+            detail = "sentry-wake geof=${session.geofenceId?.take(8) ?: "?"}",
+            trip = TripContext(session.location, session.vehicleId),
+            armEvidence = ArmEvidence.Unverified,
+        )
     }
 
     private fun handleStartTracking() {
@@ -831,11 +878,65 @@ class CoordinatorDetectionService : LifecycleService() {
      * [DET-INTAKE-001] Stops the service only when (a) no detection job is running AND (b)
      * [startId] is still the newest start command delivered (`stopSelfResult` — the framework
      * vetoes stale stops, so a queued-but-unprocessed intent keeps the service alive).
+     *
+     * The "just stop, unconditionally-if-idle" epilogue for ERROR / edge paths (command failure,
+     * null-intent sticky restart). The normal idle epilogue goes through [resolveIdleEpilogue],
+     * which may keep the service resident in SENTRY. On error we never enter SENTRY — a failed
+     * command has no business leaving a resident process behind.
      */
     private fun stopIfIdle(reason: String, startId: Int) {
         if (detectionJob?.isActive == true) return
         val stopped = fgs.stopForegroundAndSelf(startId) // [FIX BUG-FGS-100][DET-INTAKE-001]
         PaparcarLogger.d(DIAG, "  stopIfIdle($reason) → stopSelfResult($startId)=$stopped")
+    }
+
+    /**
+     * [DET-RESIDENT-FGS-001] Normal end-of-command teardown decision: DIE (today's wake-and-kill)
+     * or stay resident in SENTRY. Preserves the [DET-INTAKE-001] guards exactly — a running job or a
+     * newer start command still keep the service alive — and only when genuinely idle consults
+     * [resolvePostDetectionLifecycle]. With the flag OFF (default) this is byte-for-byte [stopIfIdle].
+     *
+     * Suspend because the SENTRY branch needs to know whether anything is parked; both call sites
+     * (the intake consumer's DetectionEnded handler and the processIntent epilogue) already run in
+     * the serialized coroutine, so the repo read cannot race another command in.
+     */
+    private suspend fun resolveIdleEpilogue(reason: String, startId: Int) {
+        // (a) A running job owns the service — never tear down under it. Same guard as stopIfIdle.
+        if (detectionJob?.isActive == true) return
+        val hasParkedSession = runCatching {
+            userParkingRepository.observeActiveSessions().firstOrNull().orEmpty().isNotEmpty()
+        }.getOrDefault(false)
+        when (resolvePostDetectionLifecycle(sentryEnabled = SENTRY_ENABLED, hasParkedSession = hasParkedSession)) {
+            PostDetectionLifecycle.EnterSentry -> enterSentry(reason)
+            PostDetectionLifecycle.Stop -> {
+                // (b) stopSelfResult still lets a newer queued intent veto a stale stop.
+                val stopped = fgs.stopForegroundAndSelf(startId) // [FIX BUG-FGS-100][DET-INTAKE-001]
+                PaparcarLogger.d(DIAG, "  resolveIdleEpilogue($reason) → stop → stopSelfResult($startId)=$stopped")
+            }
+        }
+    }
+
+    /**
+     * [DET-RESIDENT-FGS-001] Degrade to the resident idle watcher instead of dying: keep the FGS
+     * notification, leave the GPS off (the tracking job already ended, so no location stream is
+     * running), and re-arm the significant-motion trigger + seed a safety-net pass — the same
+     * re-arm [onDestroy] does today, except the process now STAYS ALIVE, so a subsequent geofence
+     * EXIT / AR ENTER lands on a live foreground service (no dead-process resurrection, no
+     * Android 12+ background-FGS-start restriction). The transition back to ACTIVE is the ordinary
+     * trigger path (ACTION_GEOFENCE_EXIT / ACTION_AR_TRANSITION → startParkingDetection).
+     */
+    private fun enterSentry(reason: String) {
+        detectionRuntime.setPresence(ServicePresence.Sentry)
+        PaparcarLogger.d(DIAG, "  ⏾ enterSentry($reason) — resident, GPS off, re-arming departure wake [DET-RESIDENT-FGS-001]")
+        if (BuildConfig.DEBUG) notificationPort.showDebug("SENTRY: servicio residente (GPS off), vigilando salida")
+        runCatching { significantMotionMonitor.sync(shouldBeArmed = true) }
+            .onFailure { e -> PaparcarLogger.w(DIAG, "  ⚠ enterSentry sig-motion arm failed: ${e.message}") }
+        runCatching {
+            ParkingSafetyNetWorker.enqueueCheckNow(
+                WorkManager.getInstance(this),
+                source = ParkingSafetyNetWorker.SOURCE_DETECTION_END,
+            )
+        }.onFailure { e -> PaparcarLogger.w(DIAG, "  ⚠ enterSentry safety-net enqueue failed: ${e.message}") }
     }
 
     private fun startParkingDetection(
@@ -855,6 +956,9 @@ class CoordinatorDetectionService : LifecycleService() {
         // Set synchronously here (not inside the coroutine) so a superseded old job's finally — which
         // only flips the flag when it is still the current job — never races this to false.
         detectionRuntime.setRunning(true)
+        // [DET-RESIDENT-FGS-001] A tracking job is launching → ACTIVE (whether armed from Dead or woken
+        // from Sentry). Sentry re-arms significant-motion, harmless while a job runs; it self-disarms.
+        detectionRuntime.setPresence(ServicePresence.Active)
         // Publish the trip's origin AFTER setRunning(true) so the first Monitoring emission already
         // carries it. setRunning(true) does not touch the trip; setTrip(null) clears any stale origin
         // from a previous trip (manual start). Set after — never before cancelDetectionJob — so a
@@ -1059,6 +1163,7 @@ class CoordinatorDetectionService : LifecycleService() {
         PaparcarLogger.d(DIAG, "■ Service onDestroy — cancelling detectionJob")
         detectionJob?.cancel()
         detectionRuntime.setRunning(false) // [DET-READY-001c] service gone → detection idle
+        detectionRuntime.setPresence(ServicePresence.Dead) // [DET-RESIDENT-FGS-001] process gone
         // [FIX BUG-FGS-113: defensive safety net. Every primary teardown path is supposed
         //  to call fgs.stopForegroundAndSelf(), but if any future code path reaches onDestroy
         //  without first removing the FGS notification, do it now. Idempotent — calling
@@ -1080,11 +1185,24 @@ class CoordinatorDetectionService : LifecycleService() {
     }
 
     companion object {
+        /**
+         * [DET-RESIDENT-FGS-001] F1 internal kill-switch for the SENTRY residency experiment. OFF →
+         * the service dies between parkings exactly as today (wake-and-kill). ON → after a park it
+         * stays resident with the GPS off so a departure trigger lands on a live process. Kept a
+         * plain const (not a setting) for F1 — the tier/settings gating lands in F3. Flip to true
+         * only for the on-device A/B experiment.
+         */
+        private const val SENTRY_ENABLED = false
+
         /** m/s → km/h factor for the one-shot exit-speed sample. [DET-SOLID-001] */
         private const val KMH_PER_MPS = 3.6f
 
         const val ACTION_START_TRACKING = "io.apptolast.paparcar.ACTION_START_TRACKING"
         const val ACTION_STOP_TRACKING = "io.apptolast.paparcar.ACTION_STOP_TRACKING"
+        // [DET-RESIDENT-FGS-001] Significant-motion wake, delivered by SignificantMotionMonitor ONLY
+        // when the service is resident in SENTRY (already foreground → legal re-delivery). Arms a
+        // coordinator session with Unverified evidence; the WorkManager path is used from a dead process.
+        const val ACTION_SENTRY_WAKE = "io.apptolast.paparcar.ACTION_SENTRY_WAKE"
         // [DET-TIERS-001] Bluetooth arbitration override: the BT receiver decided a paired-car edge
         // must supersede the running coordinator session; the service aborts it. Reason is for the log.
         const val ACTION_BT_OVERRIDE = "io.apptolast.paparcar.ACTION_BT_OVERRIDE"

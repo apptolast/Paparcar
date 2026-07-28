@@ -1,13 +1,17 @@
 package io.apptolast.paparcar.detection
 
 import android.content.Context
+import android.content.Intent
 import android.hardware.Sensor
 import android.hardware.SensorManager
 import android.hardware.TriggerEvent
 import android.hardware.TriggerEventListener
 import androidx.work.WorkManager
 import io.apptolast.paparcar.BuildConfig
+import io.apptolast.paparcar.detection.service.CoordinatorDetectionService
 import io.apptolast.paparcar.detection.worker.ParkingSafetyNetWorker
+import io.apptolast.paparcar.domain.detection.DetectionRuntimeState
+import io.apptolast.paparcar.domain.detection.ServicePresence
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 
@@ -36,6 +40,10 @@ import io.apptolast.paparcar.domain.util.PaparcarLogger
 class SignificantMotionMonitor(
     private val context: Context,
     private val notificationPort: AppNotificationManager,
+    // [DET-RESIDENT-FGS-001] Read-only view of the service lifecycle: a trigger fired while the
+    // service is resident in SENTRY wakes the LIVE process directly (no WorkManager latency); from
+    // a dead process the sensor callback is not an FGS-start exemption, so the worker is the lane.
+    private val detectionRuntime: DetectionRuntimeState,
 ) {
 
     private val sensorManager: SensorManager? =
@@ -47,6 +55,30 @@ class SignificantMotionMonitor(
     private val listener = object : TriggerEventListener() {
         override fun onTrigger(event: TriggerEvent?) {
             synchronized(this@SignificantMotionMonitor) { armed = false }
+            // [DET-RESIDENT-FGS-001] When the service is resident in SENTRY the process is ALREADY
+            // foreground, so re-delivering a start intent is legal (not a background FGS start) and
+            // skips the WorkManager tick entirely — the immediacy win of residency. From any other
+            // presence (Dead: no process; Active: a job already runs) fall back to the durable,
+            // legal-from-dead worker lane exactly as before.
+            if (detectionRuntime.presence.value == ServicePresence.Sentry) {
+                PaparcarLogger.d(TAG, "▶ significant motion — SENTRY resident, direct wake [DET-RESIDENT-FGS-001]")
+                debugNotify("SIG-MOTION → wake directo (SENTRY)")
+                runCatching {
+                    context.startService(
+                        Intent(context, CoordinatorDetectionService::class.java)
+                            .setAction(CoordinatorDetectionService.ACTION_SENTRY_WAKE),
+                    )
+                }.onFailure { e ->
+                    // The process may have been killed between the presence read and startService;
+                    // fall back to the worker so the departure is never dropped.
+                    PaparcarLogger.w(TAG, "  ⚠ direct SENTRY wake failed (${e.message}) — worker fallback")
+                    ParkingSafetyNetWorker.enqueueCheckNow(
+                        WorkManager.getInstance(context),
+                        source = ParkingSafetyNetWorker.SOURCE_SIG_MOTION,
+                    )
+                }
+                return
+            }
             PaparcarLogger.d(TAG, "▶ significant motion — enqueueing safety-net check [DET-SIGMOTION-001]")
             debugNotify("SIG-MOTION disparado → chequeo safety-net")
             // A sensor callback is NOT an FGS-start exemption on Android 12+ — expedited work is
