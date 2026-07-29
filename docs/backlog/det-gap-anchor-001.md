@@ -1,9 +1,9 @@
 # DET-GAP-ANCHOR-001 — un ancla nacida ciega (tras hueco GPS) no merece un pin exacto: el ancla exige presenciar la llegada al reposo
 
-**Estado:** ✅ IMPLEMENTADO 2026-07-29 en `bugfix/DET-GAP-ANCHOR-001` (worktree
-`../Paparcar-gapanchor`, sobre master 6fad3ed3) — suite prod completa verde (971 tests; 5 nuevos:
-replay Redmi Av. Sanlúcar → prompt, control sin hueco → confirm normal, timeout desatendido →
-nudge, y 2 unitarios del evaluador). ⏳ commit (go-ahead), merge, APK, field-test.
+**Estado:** ✅ EN MASTER 2026-07-29 (`90693697`, merge FF + push; rama y worktree borrados;
+`feature/DET-RESIDENT-FGS-001` rebasada encima) — suite prod completa verde (971 tests; 5
+nuevos: replay Redmi Av. Sanlúcar → prompt, control sin hueco → confirm normal, timeout
+desatendido → nudge, y 2 unitarios del evaluador). ⏳ APK + field-test (trayecto nocturno Redmi).
 **Origen:** ticket 2026-07-27 (field-test 26-07, sesión `1785092508564`, pin 72 m off en casa de
 la hermana). Reactivado por el **FP 2026-07-29 05:24** (Redmi, uid `WZB7of…`, sesión
 `1785294055249`): pin en `36.6049,-6.2282` — un punto por el que se PASÓ conduciendo; el
