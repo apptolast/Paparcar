@@ -336,6 +336,18 @@ data class ParkingDetectionConfig(
      *  small on purpose: a slow final maneuver that exceeds it merely skips the freeze and
      *  degrades to the ask-the-user paths — a false negative, per the asymmetric-error rule. */
     val anchorFreezeMaxWalkFixes: Int = 3,
+    /** [DET-GAP-ANCHOR-001] Maximum wall-clock silence (ms) between a fix at REAL driving speed
+     *  (≥ [minimumTripSpeedMps]) and the fix that OPENS the stop the anchor binds to. Above it the
+     *  car's arrival at rest was never witnessed: the stream died mid-route, and the first fix
+     *  after the hole may be a drive-past point (a traffic-light touch, a stale OEM fix), not the
+     *  park. A stop entered through such a hole taints its anchor GAP-ENTERED — every proof may
+     *  hold (the user DID park and walk away), but not where that anchor says, so confirm degrades
+     *  to the ask-the-user paths and the unattended save to a nudge. Field 2026-07-29, Redmi
+     *  Av. Sanlúcar: last moving fix at 61 km/h, a 100-s hole, ONE speed-0 fix mid-route, then
+     *  nothing — steps+egress pinned 315 m before the real park. Normal in-drive cadence is 2–6 s
+     *  and urban tunnels stay well under this; MIUI's observed throttling holes (60–100 s) sit
+     *  above it. */
+    val anchorGapMaxFixGapMs: Long = 45_000L,
     /** [DET-CONFIRM-FRESHNESS-001] Moving fixes at ≥ [clearBestStopSpeedMps] whose position sits
      *  provably outside the anchor's accuracy envelopes, accumulated while the anchor is PINNED
      *  and the session's step counter is proven ALIVE yet counts NOTHING — after this many, the
@@ -743,6 +755,9 @@ data class ParkingDetectionConfig(
         }
         require(anchorFreezeMaxWalkFixes >= 0) {
             "anchorFreezeMaxWalkFixes must be >= 0, was $anchorFreezeMaxWalkFixes"
+        }
+        require(anchorGapMaxFixGapMs > 0) {
+            "anchorGapMaxFixGapMs must be > 0, was $anchorGapMaxFixGapMs"
         }
         require(frozenAnchorSteplessDepartureFixes > 0) {
             "frozenAnchorSteplessDepartureFixes must be > 0, was $frozenAnchorSteplessDepartureFixes"

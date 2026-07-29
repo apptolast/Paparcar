@@ -135,6 +135,7 @@ Both clauses must hold simultaneously. This kills spurious `IN_VEHICLE_ENTER` ev
 - **Stopped** (`speed < STOPPED_SPEED_THRESHOLD_MPS = 1 m/s`):
   - `stoppedSince` is set to `now` on the first such fix, then preserved.
   - Within `initialStopWindowMs = 30 s` of `stoppedSince`, fixes are accumulated into `stoppedFixes` (capped at 20) and `bestStopLocation` is updated whenever a fresh fix has *better* accuracy than the current best. **After 30 s the location is frozen** — see LOC-001 in §2.
+  - **[DET-GAP-ANCHOR-001]** If the fix that *opens* the stop arrived more than `anchorGapMaxFixGapMs = 45 s` after a `previousFix` still at real driving speed (≥ `minimumTripSpeedMps`), the stop is flagged `stopEnteredAfterGap`: the car's arrival at rest fell inside a GPS hole and this position may be a drive-past point. Any anchor bound to such a stop is stamped `anchorGapEnteredAtCapture` — silent confirm degrades to a prompt, the unattended save to a nudge, and a user "Sí" re-anchors at the user's current stop. Cleared with the anchor when real driving resumes.
 - **Moving** (`speed ≥ 1 m/s`):
   - `stoppedSince = null`, `stoppedFixes = emptyList()`.
   - If `speed ≥ clearBestStopSpeedMps = 2.5 m/s` **AND** `accuracy ≤ minGpsAccuracyForDriving = 50 m`, the coordinator treats the fix as evidence the vehicle is driving away again: `bestStopLocation`, `vehicleExitConfirmed`, `activityStillDetected`, and `highConfidenceReachedAt` are all cleared. The accuracy gate exists because hardware GPS hallucinates apparent-driving speed in noisy fixes — see LOC-002 in §2.
@@ -1538,3 +1539,27 @@ low-reliability zone at the drop-off — the saved-parking card is the ask and o
 it; the alternative (nudge-only) provably loses real parks. Replay fixture
 `Trace_RedmiLateExitHome001` (1:1 from the 279 diagnostics events) pins the zone; unit guards
 pin the mirage and the no-vehicular-signal stroll to nudge-only.
+
+### DET-GAP-ANCHOR-001 — the anchor needs a witnessed arrival at rest, not an orphan fix after a GPS hole (2026-07-29)
+
+**Why (field 2026-07-29 05:24, Redmi — session `1785294055249`; full forensics in
+`docs/backlog/det-gap-anchor-001.md`; first seen field 2026-07-26, 72 m error).** Driving home
+at night, the last moving fix (61 km/h, acc 44 m) was followed by a **100-s MIUI hole**, then
+ONE speed-0 fix mid-route — and nothing else. The stop opened on that orphan fix, the anchor
+bound to it, the egress walk home satisfied steps+egress, and a reliability-0.9 pin landed
+**315 m before the real park**, at a point the car merely drove past. The Oppo on the same trip
+(healthy stream, 64 driving fixes) pinned the real spot at 1.7 m accuracy — the only difference
+was the hole.
+
+**What — the symmetric twin of DET-DRIVE-PROOF-001: driving needs a corroborated track, and the
+ANCHOR needs a witnessed deceleration to rest.** A stop whose opening fix arrives >
+`anchorGapMaxFixGapMs` (45 s) after a `previousFix` still at ≥ `minimumTripSpeedMps` taints any
+anchor bound to it as GAP-ENTERED (speed-only on the pre-gap fix on purpose: Doppler stays
+credible at accuracies that would fail the driving-accuracy bar, and requiring accuracy would
+exempt exactly the degraded streams that produce the hole). Same class as the walk-entered
+taint: the proofs hold, the ANCHOR doesn't — `EvaluateParkingDecisionUseCase` degrades every
+auto-confirm path to `Prompt`; the unattended timeout exits **nudge-only**
+(`aborted_unattended_gap_anchor` — unlike walk-entered the forward error is unboundable, the car
+may have driven arbitrarily far into the hole, so no zone is honest); a user "Sí" anchors at
+the user's current stop. Normal cadence (stop opens ≤ 45 s after the last driving fix) is
+untouched — the control replay confirms silently exactly as before.

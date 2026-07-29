@@ -1,36 +1,75 @@
-# DET-GAP-ANCHOR-001 — un ancla nacida ciega (tras hueco GPS) o contradicha por el clúster de egress no merece un pin exacto
+# DET-GAP-ANCHOR-001 — un ancla nacida ciega (tras hueco GPS) no merece un pin exacto: el ancla exige presenciar la llegada al reposo
 
-**Estado:** 📋 ticket (2026-07-27) · sin rama · diferido — tocarlo requiere el ancla del coordinator (delicado); priorizar tras validar DET-WALK-FLOOR-001 en campo
-**Origen:** field-test 2026-07-26, Redmi, sesión `1785092508564` (casa de la hermana).
+**Estado:** ✅ IMPLEMENTADO 2026-07-29 en `bugfix/DET-GAP-ANCHOR-001` (worktree
+`../Paparcar-gapanchor`, sobre master 6fad3ed3) — suite prod completa verde (971 tests; 5 nuevos:
+replay Redmi Av. Sanlúcar → prompt, control sin hueco → confirm normal, timeout desatendido →
+nudge, y 2 unitarios del evaluador). ⏳ commit (go-ahead), merge, APK, field-test.
+**Origen:** ticket 2026-07-27 (field-test 26-07, sesión `1785092508564`, pin 72 m off en casa de
+la hermana). Reactivado por el **FP 2026-07-29 05:24** (Redmi, uid `WZB7of…`, sesión
+`1785294055249`): pin en `36.6049,-6.2282` — un punto por el que se PASÓ conduciendo; el
+aparcamiento real fue Calle la Angelita 3B, **315 m** más allá.
 
-## Forense
-- Viaje medido perfecto (vmax 109 km/h, 35 fixes de conducción). Entre **21:04:47 y 21:06:17 no
-  entró ningún fix (hueco de 90 s)** — exactamente la ventana en la que se aparcó.
-- El ancla se congeló en el PRIMER fix post-hueco (36.619899,-6.213826, acc 18.4) y el confirm
-  `steps+egress` (21:08:29) plantó el pin ahí.
-- Ese fix era rancio: el siguiente fix, 3 s después, estaba a **69 m** (salto imposible con 2
-  pasos dados), y el clúster estable de los 2 min de egress (36.62046,-6.21355, acc 7–21) coincide
-  con el coche real (verificado contra el pin manual del Oppo en el mismo sitio: 36.620468,-6.213442).
-- Error final del pin: **~72 m**. El usuario lo percibió como "no muy preciso".
+## Forense 29-07 (telemetría pap-26, eventos fix a fix)
 
-## Invariante propuesto
-*Un ancla solo merece pin EXACTO si su fix es coherente con lo que se midió justo después.*
-Dos señales de incoherencia, ambas baratas y ya presentes en el stream:
-1. **Nacida ciega**: el fix del ancla es el primero tras un hueco > N s desde el último fix en
-   movimiento — el momento de aparcar cayó dentro de la ventana ciega; la posición real del coche
-   nunca se muestreó.
-2. **Contradicha por el clúster**: los fixes durante los primeros pasos de egress forman un clúster
-   a una distancia del ancla que esos pasos no pueden explicar a pie (mismo lenguaje del
-   presupuesto: pasos × zancada).
+Vuelta nocturna casa-del-padre → casa, sesión armada por sentry-wake a las 05:00:55 local:
 
-Respuesta (en línea con la doctrina de duda ACOTADA de DET-FROZEN-COUNTER-001):
-- re-anclar al inicio del clúster de egress cuando el clúster es consistente (caso Redmi: habría
-  clavado el pin), o
-- degradar a ZONA con radio = discrepancia ancla↔clúster (o cota del hueco: distancia último-fix-
-  en-movimiento → ancla), nunca un punto exacto mentiroso.
+| hora local | evento |
+|---|---|
+| 05:18:13 | Último fix EN MOVIMIENTO: `36.6065,-6.2348`, 17 m/s (61 km/h), acc 44 m — a ~600 m del destino |
+| 05:18:13→05:19:53 | **Hueco de 100 s sin ningún fix** (throttling MIUI de madrugada) |
+| 05:19:53 | UN único fix: `36.6049,-6.2282`, acc 31 m, **speed 0** + ACTIVITY_TRANSITION en el mismo ms. Ningún fix más en toda la sesión |
+| ~05:19–05:24 | Aparca en Angelita (invisible), camina a casa → llegan pasos con el ancla ya clavada en el punto de paso |
+| 05:24:45 | `steps+egress` confirma con el ancla congelada en el fix huérfano → **pin FP rel 0.9 a ~315 m del coche** |
 
-## Alcance / riesgos
-- Toca `CoordinatorParkingDetector` (captura/lock del ancla, ANCHOR-LOCK / DET-ANCHOR-FREEZE) —
-  zona de alto riesgo de regresión; exige fixtures de replay (la sesión `1785092508564` es el
-  fixture natural) y revisar interacción con DET-CONFIRM-FRESHNESS-001.
-- NO tocar la mecánica del presupuesto ni el honest-close (eso es DET-WALK-FLOOR-001).
+El gate de frescura funcionó antes (DECISION `HOLD_STALE_DISCARDED` a las 05:16); el Oppo, con
+stream sano en el MISMO trayecto, clavó Angelita con acc 1,7 m (`confirmed_steps+egress`, 64/210
+driving fixes). La única diferencia: el hueco. Mismo mecanismo que el caso 26-07 (hueco de 90 s
+exactamente en la ventana de aparcar → ancla en un fix rancio, error 72 m).
+
+## Invariante implementado
+
+Simétrico de DET-DRIVE-PROOF-001 (la conducción exige track corroborado, no un fix Doppler
+suelto): **si el fix que ABRE la parada llega más de `anchorGapMaxFixGapMs` (45 s) después de un
+`previousFix` aún a velocidad real de conducción (≥ `minimumTripSpeedMps`), la deceleración
+ocurrió entera dentro del hueco** — ese fix puede ser un semáforo o un fix rancio del OEM en
+mitad de la ruta. Misma clase que el taint walk-entered ([DET-CREDIBLE-DRIVE-001]): *las pruebas
+aguantan, el ANCLA no — preguntar, nunca pinchar.* Solo velocidad en el fix pre-hueco a propósito
+(sin barra de precisión): el Doppler es creíble a precisiones que suspenderían
+`minGpsAccuracyForDriving`, y exigir precisión eximiría justo a los streams degradados que
+producen el hueco (el fix del campo: 17 m/s a 44 m).
+
+## Piezas
+
+1. `ParkingDetectionConfig.anchorGapMaxFixGapMs = 45_000L` (+ require). Cadencia normal 2–6 s,
+   túneles urbanos muy por debajo; los huecos MIUI observados (60–100 s) por encima.
+2. Estado del detector: `stopEnteredAfterGap` (flag de la parada, calculado al ABRIRSE) +
+   `anchorGapEnteredAtCapture` (sellado al (re)ligar el ancla a esa parada, como los sellos
+   walk-entered; los refinamientos de precisión de la misma parada lo conservan; se limpia con el
+   ancla al reanudar conducción real).
+3. `ParkingDecisionInput.anchorGapEntered` → en `EvaluateParkingDecisionUseCase` se suma a la
+   cláusula Prompt junto a `!egressBornAtAnchor || anchorWalkEntered`.
+4. Timeout desatendido: rama nueva ANTES de walk-entered → **nudge-only**
+   (`aborted_unattended_gap_anchor`, DECISION `UNATTENDED_GAP_ANCHOR_NUDGE`). A diferencia de
+   walk-entered el error hacia delante NO es acotable (el coche pudo seguir arbitrariamente lejos
+   dentro del hueco), así que ninguna zona es honesta.
+5. "Sí" del usuario: con ancla gap-entered ancla en la parada actual del usuario (`bestFix`),
+   igual que el caso egress-born-away de [DET-ANCHOR-EGRESS-001].
+
+## Alcance deliberadamente NO cubierto
+
+- **Re-anclar al clúster de egress** (la idea 2 del ticket original): asertar una posición
+  inferida contradice el fallo asimétrico — se degrada a prompt/nudge y el usuario marca. La
+  señal "clúster contradice al ancla" ya la cubre en parte `egressBornAtAnchor`
+  ([DET-ANCHOR-EGRESS-001]).
+- Cadencia normal intacta (control test): parada abierta ≤45 s tras el último fix de conducción →
+  confirm silencioso idéntico. Un hueco DENTRO de una parada ya abierta no taintéa (el reposo ya
+  estaba presenciado). Tests legados (timestamps=0) fuera del taint por construcción (delta ≤ 0).
+
+## Pendiente
+
+- [ ] Commit + merge a master (go-ahead del usuario) y rebase de `feature/DET-RESIDENT-FGS-001`.
+- [ ] APK y field-test: repetir trayecto nocturno con el Redmi; esperado: prompt/nudge en vez de
+      pin fantasma, y cero cambio en el Oppo.
+- [ ] Relacionado, NO cubierto aquí: acotar el GPS de la sesión desatendida sin conducción
+      (batería, ~45 min GPS/día en despertares falsos del sentry) y cerrar la sesión de
+      telemetría al colocar el pin (outcome NULL en la sesión del FP).

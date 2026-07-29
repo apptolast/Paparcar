@@ -34,11 +34,13 @@ class EvaluateParkingDecisionUseCaseTest {
         hasKinematicEgress: Boolean = false,
         lastSpeedMps: Float = 0f,
         egressExceedsWalkReach: Boolean = false,
+        anchorGapEntered: Boolean = false,
     ) = ParkingDecisionInput(
         stepCount, hasEgressDisplacement, hadVehicleExit,
         elapsedSinceHighMs, vehicleType, sessionDurationMs, maxSpeedKmh, evidenceLabel,
         hasKinematicEgress, lastSpeedMps,
         egressExceedsWalkReach = egressExceedsWalkReach,
+        anchorGapEntered = anchorGapEntered,
     )
 
     // ── Kinematic egress: GPS-measured walk from the frozen anchor [DET-KINEMATIC-EGRESS-001] ─
@@ -380,6 +382,35 @@ class EvaluateParkingDecisionUseCaseTest {
             ),
         )
         assertEquals(ParkingDecision.Inconclusive, decision)
+    }
+
+    // ── Gap-entered anchor: rest unwitnessed after a GPS hole [DET-GAP-ANCHOR-001] ──────────────
+
+    @Test
+    fun should_prompt_notPin_when_anchor_stop_opened_after_gps_hole() {
+        // Field 2026-07-29, Redmi Av. Sanlúcar: last moving fix at 61 km/h, a 100-s MIUI hole, one
+        // speed-0 fix mid-route, then the egress walk home — steps+egress all held, but the anchor
+        // was a drive-past point 315 m before the real park. The proofs stand, the ANCHOR doesn't:
+        // ask, never pin.
+        val decision = evaluate(
+            input(stepCount = 8, hasEgressDisplacement = true, anchorGapEntered = true),
+        )
+        assertEquals("steps+egress", assertIs<ParkingDecision.Prompt>(decision).pathLabel)
+    }
+
+    @Test
+    fun should_prompt_via_kinematics_too_when_anchor_is_gap_entered() {
+        // The kinematic path trusts the same anchor — a gap taint degrades it identically.
+        val decision = evaluate(
+            input(
+                stepCount = 0,
+                hasEgressDisplacement = true,
+                hasKinematicEgress = true,
+                maxSpeedKmh = 25f,
+                anchorGapEntered = true,
+            ),
+        )
+        assertEquals("kinematic+egress", assertIs<ParkingDecision.Prompt>(decision).pathLabel)
     }
 
     @Test

@@ -1706,6 +1706,106 @@ class CoordinatorParkingDetectorTest {
         }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // DET-GAP-ANCHOR-001: an anchor whose stop opened after a GPS hole never pins
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Test
+    fun should_prompt_notPin_when_anchor_stop_opens_after_gps_hole() =
+        runTest(UnconfinedTestDispatcher()) {
+            // Field 2026-07-29, Redmi Av. Sanlúcar: corroborated driving, then a 100-s MIUI hole,
+            // then ONE speed-0 fix mid-route — the stream never witnessed the car coming to rest,
+            // so that fix may be a drive-past point. The egress walk home then satisfied
+            // steps+egress and pinned 315 m before the real park. The proofs hold, the ANCHOR
+            // doesn't: ask, never pin.
+            val env = setup()
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            emitCorroboratedDrive(locations) // ends at 40.0, last fix t=25 s, 11 m/s
+            // 120-s hole, then a single stopped fix somewhere further up the route.
+            locations.emit(GpsPoint(40.010, -3.7, accuracy = 5f, timestamp = 145_000L, speed = 0f))
+            env.stepDetector.emitSteps(8)
+            locations.emit(GpsPoint(40.0103, -3.7, accuracy = 5f, timestamp = 150_000L, speed = 0f)) // egress ~33 m
+
+            assertEquals(
+                0,
+                env.parkingRepo.saveNewParkingSessionCallCount,
+                "a gap-entered anchor must never pin silently [DET-GAP-ANCHOR-001]",
+            )
+            assertEquals(
+                1,
+                env.notification.parkingConfirmationCallCount,
+                "the user must be asked instead — the proofs hold, the anchor doesn't",
+            )
+
+            // An explicit user "Sí" still saves (they answer near the car).
+            env.coordinator.onUserConfirmedParking()
+            locations.emit(GpsPoint(40.0103, -3.7, accuracy = 5f, timestamp = 155_000L, speed = 0f))
+            job.cancelAndJoin()
+            assertEquals(1, env.parkingRepo.saveNewParkingSessionCallCount, "user tap completes the save")
+        }
+
+    @Test
+    fun should_confirm_normally_when_stop_opens_within_the_gap_budget() =
+        runTest(UnconfinedTestDispatcher()) {
+            // Control replay with REAL timestamps at normal cadence: the destination stop opens
+            // 5 s after the last driving fix — no hole, no taint, silent steps+egress confirm.
+            val env = setup()
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            emitCorroboratedDrive(locations) // ends at 40.0, last fix t=25 s, 11 m/s
+            locations.emit(GpsPoint(40.0005, -3.7, accuracy = 5f, timestamp = 30_000L, speed = 0f))
+            env.stepDetector.emitSteps(8)
+            locations.emit(GpsPoint(40.0008, -3.7, accuracy = 5f, timestamp = 35_000L, speed = 0f)) // egress ~33 m
+
+            job.cancelAndJoin()
+
+            assertEquals(
+                1,
+                env.parkingRepo.saveNewParkingSessionCallCount,
+                "a stop entered at normal cadence confirms exactly as before [DET-GAP-ANCHOR-001 control]",
+            )
+            assertEquals(
+                40.0005,
+                env.parkingRepo.getActiveSession()?.location?.latitude ?: 0.0,
+                /* absoluteTolerance = */ 0.00001,
+                "confirmed location must be the parked-car anchor",
+            )
+        }
+
+    @Test
+    fun should_nudge_notPin_when_unattended_timeout_finds_gap_entered_anchor() =
+        runTest(UnconfinedTestDispatcher()) {
+            // The unanswered flavour of the same replay (the 05:24 prompt nobody saw): the forward
+            // error of a gap-entered anchor is unboundable — the car may have driven arbitrarily
+            // far into the hole — so no zone is honest either. Nudge, never pin.
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            emitCorroboratedDrive(locations)
+            nowMs = 145_000L
+            locations.emit(GpsPoint(40.010, -3.7, accuracy = 5f, timestamp = 145_000L, speed = 0f))
+            env.stepDetector.emitSteps(8)
+            nowMs = 150_000L
+            locations.emit(GpsPoint(40.0103, -3.7, accuracy = 5f, timestamp = 150_000L, speed = 0f))
+            assertEquals(1, env.notification.parkingConfirmationCallCount, "prompt must be shown")
+
+            nowMs += config.confirmationResponseTimeoutMs + 1_000L
+            locations.emit(GpsPoint(40.0103, -3.7, accuracy = 5f, timestamp = nowMs, speed = 0f))
+
+            job.cancelAndJoin()
+
+            assertEquals(0, env.parkingRepo.saveNewParkingSessionCallCount, "no pin at a rest the stream never witnessed")
+            assertEquals(1, env.notification.markParkingNudgeCallCount, "the user must be asked where the car is")
+            val ended = env.detectionLogger.events
+                .filterIsInstance<DetectionEvent.SessionEnded>().single()
+            assertEquals("aborted_unattended_gap_anchor", ended.outcome, "[DET-GAP-ANCHOR-001]")
+        }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // DET-C-02: post-confirm hold — errand re-anchor + finalize
     // ─────────────────────────────────────────────────────────────────────────
 

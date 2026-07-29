@@ -225,6 +225,21 @@ class CoordinatorParkingDetector(
          *  snapshot at capture so a counter that wakes late cannot retroactively soften a taint
          *  earned while it was silent. */
         val anchorSawStepsAtCapture: Boolean = false,
+        /** [DET-GAP-ANCHOR-001] `true` when the CURRENT stop was entered through a GPS hole: the
+         *  fix that opened it arrived more than [ParkingDetectionConfig.anchorGapMaxFixGapMs]
+         *  after a [previousFix] still at REAL driving speed. The car was last SEEN moving and
+         *  its arrival at rest was never witnessed — the stop's location may be a drive-past
+         *  point. Recomputed each time a stop opens; read at anchor (re)bind. */
+        val stopEnteredAfterGap: Boolean = false,
+        /** [DET-GAP-ANCHOR-001] [stopEnteredAfterGap] at the moment [bestStopLocation] was
+         *  (re)bound to its stop — the GAP-ENTERED taint. Like the walk-entered taint it
+         *  invalidates the ANCHOR, not the park: every proof may hold (the user did park and
+         *  walk away) but not where this anchor says, so silent confirm degrades to a prompt,
+         *  the unattended save to a nudge (the forward error is unboundable — the car may have
+         *  driven arbitrarily far into the hole), and a user "Sí" re-anchors at the user's
+         *  current stop. Field 2026-07-29, Redmi Av. Sanlúcar: a 100-s MIUI hole ended in one
+         *  speed-0 fix mid-route and steps+egress pinned 315 m before the real park. */
+        val anchorGapEnteredAtCapture: Boolean = false,
         /** [DET-CONFIRM-FRESHNESS-001] `true` once ANY step event arrived this session — the
          *  step sensor is ALIVE, so its silence during measured movement is evidence of the CAR
          *  (a mute sensor's silence is noise: Camelias-Oppo). Never reset within the session. */
@@ -866,12 +881,13 @@ class CoordinatorParkingDetector(
                     // [BUG-COORD-115] precedence: user-confirm always wins.
                     if (state.userConfirmedParking) {
                         PaparcarLogger.d(DIAG, "  ▶ USER-CONFIRMED path — entering confirmParking")
-                        // [DET-ANCHOR-EGRESS-001] A user "Sí" answers "did you park?", not "is the
-                        // anchor right": when the egress was born away from the pinned anchor, the
-                        // anchor belongs to an intermediate stop — anchor the save at the user's
-                        // current stop instead (they answer near the car; the frozen wrong anchor
-                        // may sit a kilometer out).
-                        val locationToConfirm = if (isEgressBornAtAnchor(state)) {
+                        // [DET-ANCHOR-EGRESS-001][DET-GAP-ANCHOR-001] A user "Sí" answers "did you
+                        // park?", not "is the anchor right": when the egress was born away from
+                        // the pinned anchor, or the anchor's stop opened through a GPS hole (rest
+                        // unwitnessed — possibly a drive-past point), the anchor is not the car —
+                        // anchor the save at the user's current stop instead (they answer near
+                        // the car; the wrong anchor may sit hundreds of meters out).
+                        val locationToConfirm = if (isEgressBornAtAnchor(state) && !state.anchorGapEnteredAtCapture) {
                             state.bestStopLocation ?: state.bestFix(location)
                         } else {
                             state.bestFix(location)
@@ -1048,6 +1064,28 @@ class CoordinatorParkingDetector(
                             completed = true
                             return@collect
                         }
+                        // [DET-GAP-ANCHOR-001] A GAP-ENTERED anchor was never seen coming to
+                        // rest: the stream died at driving speed and the anchor is merely the
+                        // first fix on the far side of the hole — possibly a drive-past point
+                        // (field 2026-07-29, Redmi Av. Sanlúcar: 100-s hole → one speed-0 fix
+                        // mid-route → pin 315 m before the real park). Unlike the walk-entered
+                        // case the error is UNBOUNDABLE forward (the car may have driven
+                        // arbitrarily far into the hole before resting), so no zone is honest —
+                        // the nudge is the only exit that never asserts a place we cannot know.
+                        if (state.anchorGapEnteredAtCapture) {
+                            PaparcarLogger.d(
+                                DIAG,
+                                "  ⑊ unattended timeout with GAP-ENTERED anchor — rest unwitnessed, forward error unboundable; nudging user to mark the spot [DET-GAP-ANCHOR-001]"
+                            )
+                            notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
+                            notificationPort.showMarkParkingNudge(source = "unattended_gap_anchor", vehicleId = activeVehicleId)
+                            sessionOutcome = "aborted_unattended_gap_anchor"
+                            logDetection { sid ->
+                                DetectionEvent.Decision(sid, now, outcome = "UNATTENDED_GAP_ANCHOR_NUDGE", pathLabel = "unattended_timeout", location = location)
+                            }
+                            completed = true
+                            return@collect
+                        }
                         // [DET-CREDIBLE-DRIVE-001] A WALK-ENTERED anchor is the pedestrian's
                         // standing spot, not the car's rest — pinning it exactly plants the pin
                         // wherever the user walked to (field 2026-07-15, Camelias-Oppo: the house
@@ -1178,6 +1216,7 @@ class CoordinatorParkingDetector(
                                 lastSpeedMps = state.lastSpeedMps,
                                 egressBornAtAnchor = isEgressBornAtAnchor(state),
                                 anchorWalkEntered = isAnchorWalkEntered(state),
+                                anchorGapEntered = state.anchorGapEnteredAtCapture,
                                 egressExceedsWalkReach = egressExceedsWalkReach(state, location),
                             )
                         )
@@ -1555,6 +1594,7 @@ class CoordinatorParkingDetector(
                 lastSpeedMps = state.lastSpeedMps,
                 egressBornAtAnchor = isEgressBornAtAnchor(state),
                 anchorWalkEntered = isAnchorWalkEntered(state),
+                anchorGapEntered = state.anchorGapEnteredAtCapture,
                 egressExceedsWalkReach = egressExceedsWalkReach(state, location),
             )
         )
@@ -1915,6 +1955,29 @@ class CoordinatorParkingDetector(
             _detectionState.update { s ->
                 val startedAt = s.stoppedSince ?: now
                 val withinInitialWindow = (now - startedAt) < config.initialStopWindowMs
+                // [DET-GAP-ANCHOR-001] A stop OPENING on the far side of a GPS hole: the previous
+                // processed fix was still at REAL driving speed and this one arrived more than
+                // anchorGapMaxFixGapMs later — the car's deceleration to rest happened entirely
+                // inside the hole, so this position may be a drive-past point (a light, a stale
+                // OEM fix), not the park. Speed-only on the pre-gap fix on purpose: Doppler speed
+                // stays credible at accuracies that would fail the driving-accuracy bar (the
+                // field fix: 17 m/s at 44 m), and requiring accuracy would exempt exactly the
+                // degraded streams that produce the hole.
+                val newStopGapEntered = if (s.stoppedSince == null) {
+                    s.previousFix != null &&
+                        s.previousFix.speed >= config.minimumTripSpeedMps &&
+                        (location.timestamp - s.previousFix.timestamp) > config.anchorGapMaxFixGapMs
+                } else {
+                    s.stopEnteredAfterGap
+                }
+                if (newStopGapEntered && s.stoppedSince == null) {
+                    PaparcarLogger.d(
+                        DIAG,
+                        "  ⚓⚠ stop opened after a ${location.timestamp - (s.previousFix?.timestamp ?: 0L)}ms GPS hole " +
+                            "with the car last seen DRIVING (${s.previousFix?.speed} m/s) — any anchor bound to this " +
+                            "stop is GAP-ENTERED: rest unwitnessed, no silent pin [DET-GAP-ANCHOR-001]"
+                    )
+                }
                 // Freeze bestStopLocation after the initial-stop window (default 30 s). [LOC-001]
                 // A PINNED anchor (locked by steps OR frozen by a matured end-of-drive stop) is
                 // never re-captured at a LATER stop: the car provably rests at the anchor, so a
@@ -1994,6 +2057,11 @@ class CoordinatorParkingDetector(
                         s.stepEventsSinceDriving else s.anchorStepEventsAtCapture,
                     anchorSawStepsAtCapture = if (anchorStopOfRecord != s.anchorCapturedAtStop)
                         s.sessionSawSteps else s.anchorSawStepsAtCapture,
+                    // [DET-GAP-ANCHOR-001] The gap taint binds with the anchor: stamped from the
+                    // stop's own opening flag, so same-stop accuracy refinements keep it.
+                    stopEnteredAfterGap = newStopGapEntered,
+                    anchorGapEnteredAtCapture = if (anchorStopOfRecord != s.anchorCapturedAtStop)
+                        newStopGapEntered else s.anchorGapEnteredAtCapture,
                     anchorFrozen = s.anchorFrozen || matured,
                     egressOriginFix = if (recordEgressBirth || refineEgressBirth) location else s.egressOriginFix,
                     egressOriginStepCount = if (recordEgressBirth) s.stepCount else s.egressOriginStepCount,
@@ -2152,6 +2220,10 @@ class CoordinatorParkingDetector(
                     bestStopLocation = if (shouldClearBestStop) null else it.bestStopLocation,
                     anchorCapturedAtStop = if (shouldClearBestStop) null else it.anchorCapturedAtStop,
                     anchorFrozen = if (shouldClearBestStop) false else it.anchorFrozen,
+                    // [DET-GAP-ANCHOR-001] The stop is over; its gap flag dies with it. The
+                    // anchor's stamped taint clears only with the anchor itself.
+                    stopEnteredAfterGap = false,
+                    anchorGapEnteredAtCapture = if (shouldClearBestStop) false else it.anchorGapEnteredAtCapture,
                     vehicleExitConfirmed = if (effectiveDriving) false else it.vehicleExitConfirmed,
                     consecutiveRepositionFixes = newConsecutive,
                     stepCount = if (effectiveDriving) 0 else it.stepCount,

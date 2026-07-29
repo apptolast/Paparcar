@@ -73,6 +73,15 @@ data class ParkingDecisionInput(
      *  steps+egress confirmed there. All proofs may hold — the user DID park — but not where this
      *  anchor says: ask, never pin. Defaults to false for legacy callers. */
     val anchorWalkEntered: Boolean = false,
+    /** [DET-GAP-ANCHOR-001] TRUE when the anchor bound to a stop that OPENED through a GPS hole:
+     *  the fix that started the stop arrived > `anchorGapMaxFixGapMs` after a fix still at real
+     *  driving speed. The car was last seen MOVING and its arrival at rest was never witnessed —
+     *  the anchor may be a drive-past point the stream happened to sample (field 2026-07-29,
+     *  Redmi Av. Sanlúcar: a 100-s MIUI hole ended in one speed-0 fix mid-route; the egress walk
+     *  home then satisfied steps+egress and pinned 315 m before the real park). Same class as
+     *  [anchorWalkEntered]: the proofs hold, the ANCHOR does not — ask, never pin. Defaults to
+     *  false for legacy callers. */
+    val anchorGapEntered: Boolean = false,
     /** [DET-EGRESS-PEDESTRIAN-CEILING-001] TRUE when the displacement from the anchor exceeds what a
      *  pedestrian egress could reach (`CoordinatorParkingDetector.egressExceedsWalkReach`: steps ×
      *  stride + both accuracy envelopes + a generous walk-reach floor): the distance can only have
@@ -187,11 +196,13 @@ class EvaluateParkingDecisionUseCase(private val config: ParkingDetectionConfig)
             else -> "vehicleExit+window+egress"
         }
         return when {
-            // [DET-ANCHOR-EGRESS-001][DET-CREDIBLE-DRIVE-001] An egress born away from the anchor,
-            // or an anchor captured at a walk-entered stop, invalidates the ANCHOR, not the park:
-            // every proof may hold and the user probably DID park — just not where the anchor
-            // says. Ask, never pin.
-            confirmNow && (weakEvidenceOnly || humanPowered || !input.egressBornAtAnchor || input.anchorWalkEntered) ->
+            // [DET-ANCHOR-EGRESS-001][DET-CREDIBLE-DRIVE-001][DET-GAP-ANCHOR-001] An egress born
+            // away from the anchor, an anchor captured at a walk-entered stop, or an anchor whose
+            // stop opened through a GPS hole (rest unwitnessed — the anchor may be a drive-past
+            // point) invalidates the ANCHOR, not the park: every proof may hold and the user
+            // probably DID park — just not where the anchor says. Ask, never pin.
+            confirmNow && (weakEvidenceOnly || humanPowered || !input.egressBornAtAnchor ||
+                input.anchorWalkEntered || input.anchorGapEntered) ->
                 ParkingDecision.Prompt(pathLabel)
             confirmNow -> ParkingDecision.Confirmed(
                 pathLabel = pathLabel,
