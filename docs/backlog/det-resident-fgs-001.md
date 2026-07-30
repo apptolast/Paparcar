@@ -1,10 +1,13 @@
 # DET-RESIDENT-FGS-001 — FGS residente en modo centinela (GPS apagado en reposo) para no perder salidas por re-arranque
 
-**Estado:** ✅ F1 COMPLETO 2026-07-28 en `feature/DET-RESIDENT-FGS-001` (desde master, tope
-`6fad3ed3`), detrás del flag interno `SENTRY_ENABLED = false` (cero cambio en producción). Incluye
-el callback directo del SigMotion. Suite prod completa verde + `compileMockDebugKotlinAndroid` verde
-+ test `SentryLifecycleDecisionTest` (4 casos). ⏳ F2/F3, y flip del flag para el experimento en
-device. Q1/Q2 decididas (ver abajo). SIN COMMIT (sin permiso).
+**Estado:** ✅ F1 COMPLETO y COMMITEADO en `feature/DET-RESIDENT-FGS-001` (rebasada sobre master
+`09b806e3` con GAP-ANCHOR-001): `9182ef42` (F1 + SigMotion directo) + `e49923c9` (2026-07-30, flip
+`SENTRY_ENABLED = true` — el sentry pasa a ser el estado de la rama tras dos field-tests). Suite
+prod completa verde + `compileMockDebugKotlinAndroid` verde + `SentryLifecycleDecisionTest` (4 casos).
+**Field-tests 28/29-07 (Rota) y 29/30-07 (El Puerto): 0 FN en ambos OEMs, Oppo revive tras muerte
+por batería, todo trigger disparó.** ⏳ F2/F3 (gating por tier/settings) antes de merge a master;
+pendiente acotar el GPS de sesiones desatendidas sin conducción (coste batería en despertares falsos).
+Q1/Q2 decididas (ver abajo).
 **Origen:** Pieza 1 del plan derivado del análisis decompilado de Driversnote
 (`project_det_driversnote_learnings_plan` en memoria; competidor = plugin Transistor
 `react-native-background-geolocation`). Ataca la subclase crónica de FN "OEM/Doze mató el
