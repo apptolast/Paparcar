@@ -1192,7 +1192,7 @@ class CoordinatorDetectionService : LifecycleService() {
          * plain const (not a setting) for F1 — the tier/settings gating lands in F3. Flip to true
          * only for the on-device A/B experiment.
          */
-        private const val SENTRY_ENABLED = false
+        private const val SENTRY_ENABLED = true
 
         /** m/s → km/h factor for the one-shot exit-speed sample. [DET-SOLID-001] */
         private const val KMH_PER_MPS = 3.6f
