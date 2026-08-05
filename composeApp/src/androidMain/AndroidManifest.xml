@@ -101,10 +101,17 @@
             android:value="${MAPS_API_KEY}" />
 
         <!-- BluetoothConnectionReceiver — ACL connect/disconnect events for BT parking detection.
-             android:permission guard ensures delivery only when BLUETOOTH_CONNECT is held. -->
+             MUST be exported: ACL broadcasts are sent by the Bluetooth stack process (uid
+             `bluetooth`, not `system`), which cannot deliver to non-exported components of
+             another app — exported="false" left this receiver permanently deaf and the whole
+             deterministic BT strategy dead. Safe to export: both ACL actions are protected
+             broadcasts (only the system/BT stack may send them), and the android:permission
+             guard additionally restricts senders to BLUETOOTH_CONNECT holders.
+             [DET-BT-RECEIVER-EXPORT-001] -->
         <receiver
             android:name=".bluetooth.BluetoothConnectionReceiver"
-            android:exported="false">
+            android:exported="true"
+            android:permission="android.permission.BLUETOOTH_CONNECT">
             <intent-filter>
                 <action android:name="android.bluetooth.device.action.ACL_CONNECTED" />
                 <action android:name="android.bluetooth.device.action.ACL_DISCONNECTED" />
