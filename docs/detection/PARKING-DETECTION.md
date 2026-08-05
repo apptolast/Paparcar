@@ -1616,3 +1616,29 @@ backfill without a prior resolution (the legit 2026-07-06 class). Residual: a ge
 arrival within 500 m AND 20 min of a resolved one defers too — bounded, and the nudge is
 already on screen for exactly that neighborhood. This closes the face DET-ARRIVAL-DOUBLE-PIN-001
 left open: that guard closed "both place"; this one closes "one vetoed, the other places".
+
+### DET-EXACT-HEARTBEAT-001 — exact-alarm polling net while parked (2026-07-30)
+
+**Why (Driversnote decompile + field).** Our reconciliation net wakes on events (AR / geofence /
+significant motion — all needing Play Services to deliver into a possibly-dead process) with the
+15-min WorkManager periodic as the only clock — and Doze batches that periodic into maintenance
+windows. The field FNs live exactly there: no event delivered, worker hours late. Driversnote's
+decompiled config runs a 300-s AlarmManager exact heartbeat with `SCHEDULE_EXACT_ALARM`: a
+notification-less tick that polls "did we move away from the anchor?" — their crutch for living
+without a resident FGS.
+
+**What — a TRIGGER, not a second brain.** `ExactHeartbeatScheduler` arms a one-shot
+`setExactAndAllowWhileIdle` (~5 min) whose receiver re-arms the chain and enqueues the standard
+`ParkingSafetyNetWorker.enqueueCheckNow(source="exact-alarm")` — the same evaluator, anchors,
+step-budget and pedestrian-physics proofs as every other source; waking never confirms anything.
+Lifecycle mirrors the significant-motion sync: every worker tick calls
+`ExactHeartbeatScheduler.sync(parkedAndIdle)` — arm/re-arm/disarm live in ONE place, self-heal
+through process kills, and the first arm after a park is seeded by the existing check-now mesh
+(detection-end / bt-park / app-start / boot) with zero new call sites. `SCHEDULE_EXACT_ALARM` is
+auto-granted up to targetSdk 32 and user-revocable 33+: the scheduler gates on
+`canScheduleExactAlarms()` and degrades to inexact `setAndAllowWhileIdle` (still Doze-piercing).
+The scheduled→fired delta is persisted per tick — THE per-device metric of real Doze stretch.
+Honest residual: force-stop (OEM deep-kill) cancels alarms like everything else; this net's
+terrain is Doze + cached-kill + starved Play Services, where the worker used to arrive late.
+Converts "AR never fired and the process was dead" from a lost departure into a ≤5-15 min delay —
+which DET-ROUTE-ORIGIN-001's backdated origin then hides from the drawn route entirely.

@@ -21,6 +21,7 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import io.apptolast.paparcar.BuildConfig
+import io.apptolast.paparcar.detection.ExactHeartbeatScheduler
 import io.apptolast.paparcar.detection.SignificantMotionMonitor
 import io.apptolast.paparcar.detection.PendingDetectionStore
 import io.apptolast.paparcar.domain.detection.DetectionRuntimeState
@@ -132,6 +133,11 @@ class ParkingSafetyNetWorker(
         // tick — this is also what re-arms it after a process kill or after it fired one-shot.
         val parkedAndIdle = sessions.isNotEmpty() && !detectionRuntime.isRunning.value
         runCatching { significantMotionMonitor.sync(shouldBeArmed = parkedAndIdle) }
+        // [DET-EXACT-HEARTBEAT-001] Same mirror for the exact-alarm polling net: every tick arms /
+        // re-arms / disarms it from this ONE place, so the chain self-heals through process kills
+        // and dies with the session. The existing check-now mesh (detection-end, app-start, boot)
+        // is what seeds the first arm after a park — no extra call sites.
+        runCatching { ExactHeartbeatScheduler.sync(appContext, shouldBeArmed = parkedAndIdle) }
 
         if (sessions.isEmpty()) {
             dismissPrompt()
@@ -663,6 +669,10 @@ class ParkingSafetyNetWorker(
         /** A BT-path park just confirmed — seal the fresh session's anchor immediately (the
          *  coordinator path gets this from its detection-end check). [DET-RETURN-ANCHOR-001] */
         const val SOURCE_BT_PARK = "bt-park"
+        /** Exact-alarm polling net tick (~5 min while parked) — pierces Doze where the 15-min
+         *  WorkManager periodic gets batched; catches departures whose AR/geofence/sig-motion
+         *  events were never delivered to a dead process. [DET-EXACT-HEARTBEAT-001] */
+        const val SOURCE_EXACT_ALARM = "exact-alarm"
 
         /** Min interval between "still parked?" prompts per geofence. Persisted to disk (see the
          *  prompt branch) so an OEM process kill can't reset it and re-nag on every app-start. */

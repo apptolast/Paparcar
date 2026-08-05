@@ -29,6 +29,11 @@
     <!-- Battery optimization — allows requesting exemption via system dialog [DOZE-001] -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
+    <!-- Exact-alarm polling net while parked (Doze-piercing safety-net trigger). Auto-granted up
+         to targetSdk 32; user-revocable "Alarms & reminders" special access from 33+ — the
+         scheduler gates on canScheduleExactAlarms() and degrades to inexact. [DET-EXACT-HEARTBEAT-001] -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+
     <!-- Attribution tag required by ActivityRecognition.getClient(createAttributionContext(...))
          to avoid "attributionTag not declared in manifest" AppOps leak. [FGS-004] -->
     <attribution android:tag="detection" android:label="@string/attribution_detection_label" />
@@ -118,6 +123,13 @@
              was swallowed". Decision-free. [DET-EXIT-WITNESS-001] -->
         <receiver
             android:name=".detection.receiver.GeofenceExitWitnessReceiver"
+            android:exported="false" />
+
+        <!-- ExactHeartbeatReceiver — exact-alarm tick of the parked polling net: enqueues the
+             standard safety-net check and re-arms the next tick. Explicit PendingIntent target,
+             no intent-filter. [DET-EXACT-HEARTBEAT-001] -->
+        <receiver
+            android:name=".detection.receiver.ExactHeartbeatReceiver"
             android:exported="false" />
 
         <!-- ParkingConfirmationReceiver — notification action buttons.
