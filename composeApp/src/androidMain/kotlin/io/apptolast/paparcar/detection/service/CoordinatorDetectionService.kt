@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.content.ContextCompat
+import androidx.core.content.edit
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import androidx.work.ExistingWorkPolicy
@@ -792,6 +793,34 @@ class CoordinatorDetectionService : LifecycleService() {
         }
     }
 
+    /**
+     * [DET-BACKFILL-TAINT-001] Persist the coordinator's ARRIVAL RESOLUTION when an unattended
+     * abort resolved this arrival as NUDGE-ONLY (GAP-ENTERED anchor: the rest was never witnessed,
+     * the forward error is unboundable, no place is honest — only the user can mark it). The
+     * resolution used to die with the session state, so one minute later the safety net's
+     * backfill chain re-decided the SAME arrival with less information and planted the pin the
+     * coordinator had just refused (field 2026-07-30 20:42, Redmi/Jerez). Stamped to the safety
+     * net's own prefs — it must survive the process death that separates this abort from the
+     * worker's wake; [ParkingBackfillWorker] reads it and defers the placement to the nudge.
+     */
+    private fun maybeStampArrivalResolution() {
+        if (parkingDetectionCoordinator.lastSessionOutcome != OUTCOME_ABORTED_UNATTENDED_GAP_ANCHOR) return
+        val fix = parkingDetectionCoordinator.lastSessionFix ?: return
+        runCatching {
+            getSharedPreferences(ParkingSafetyNetWorker.PREFS_NAME, MODE_PRIVATE).edit {
+                putLong(ParkingSafetyNetWorker.KEY_ARRIVAL_RESOLUTION_AT, System.currentTimeMillis())
+                putString(
+                    ParkingSafetyNetWorker.KEY_ARRIVAL_RESOLUTION_POS,
+                    "${fix.latitude},${fix.longitude}",
+                )
+            }
+            PaparcarLogger.d(
+                DIAG,
+                "  ⑊ arrival resolution stamped: nudge-only (gap anchor) at ${fix.latitude},${fix.longitude} — net backfill will defer [DET-BACKFILL-TAINT-001]"
+            )
+        }.onFailure { e -> PaparcarLogger.w(DIAG, "  ⚠ arrival-resolution stamp failed: ${e.message}") }
+    }
+
     /** Cancels the in-flight detection job (if any) and nulls the slot. Main-thread only. */
     private fun cancelDetectionJob() {
         detectionJob?.cancel()
@@ -903,7 +932,10 @@ class CoordinatorDetectionService : LifecycleService() {
                 // provably left its last pin, release it + leave an approximate mark + nudge — NOW,
                 // from the live FGS, not deferred to the Doze-held worker. NonCancellable so a
                 // supersede mid-release can't leave the stale pin half-cleared.
-                withContext(NonCancellable) { maybeRunHonestClose() }
+                withContext(NonCancellable) {
+                    maybeRunHonestClose()
+                    maybeStampArrivalResolution() // [DET-BACKFILL-TAINT-001]
+                }
             } catch (e: CancellationException) {
                 PaparcarLogger.d(DIAG, "    ✗ detection cancelled: ${e.message}")
                 throw e
@@ -1063,6 +1095,9 @@ class CoordinatorDetectionService : LifecycleService() {
         // not inline literals, at the one place the service reads them.
         private const val OUTCOME_ABORTED_FALSE_ENTER = "aborted_false_enter"
         private const val OUTCOME_ABORTED_NO_MOVEMENT = "aborted_no_movement"
+        // [DET-BACKFILL-TAINT-001] Unattended abort the coordinator resolved as NUDGE-ONLY (gap
+        // anchor: no place is honest) — stamped so the safety net's backfill defers to the nudge.
+        private const val OUTCOME_ABORTED_UNATTENDED_GAP_ANCHOR = "aborted_unattended_gap_anchor"
         // [DET-G-01] Geofence-exit delivered directly to the service via getForegroundService so
         // Play Services grants the privileged FGS start (the same getForegroundService mechanism the
         // AR IN_VEHICLE path used before AR was moved to a plain broadcast — BUG-FGS-001).

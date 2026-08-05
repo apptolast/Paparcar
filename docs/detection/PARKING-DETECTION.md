@@ -1589,3 +1589,30 @@ and `StepsSinceSeal` carries `sealedAtMs`. `EvaluateHonestCloseUseCase` takes `s
 (`session_measured_driving`) sits above the gate and is untouched — it needs no counter.
 Residual: a real EXIT delivered > 2 h late now stays silent instead of leaving a zone; the
 15-min safety net remains the declared backstop for that class (asymmetric-failure doctrine).
+
+### DET-BACKFILL-TAINT-001 — the safety net cannot re-decide an arrival the coordinator resolved as nudge-only (2026-08-04)
+
+**Why (field 2026-07-30 20:42, Redmi — session `1785434857650`, parkingHistory `57ea4afe`; full
+forensics in `docs/backlog/det-backfill-taint-001.md`).** A real trip to Jerez ended with a
+MIUI-holed stream → GAP-ANCHOR vetoed the pin: `aborted_unattended_gap_anchor`, nudge shown,
+NO pin — "the forward error is unboundable, no place is honest". One minute later the 15-min
+net's departure chain reached `ParkingBackfillWorker`, which only checks the live-session guard
+(`isRunning`, DET-ARRIVAL-DOUBLE-PIN-001) — the coordinator's RESOLUTION died with the session
+state — and it planted a `safety_net_backfill` 0.5 pin at the wake fix anyway. It landed right
+by luck (short hole); over a 2 km hole it lands 2 km wrong with the same confidence. Two
+deciders, one arrival; the second, blinder one contradicted the first.
+
+**What.** *An arrival the coordinator resolved (nudge-only, GAP-ENTERED anchor) cannot be
+re-decided by the safety net.* The service teardown stamps the resolution to the safety net's
+own prefs (`arrival_resolution_at` + `arrival_resolution_pos` — one slot, latest wins, survives
+process death) when the outcome is `aborted_unattended_gap_anchor`. `ParkingBackfillWorker`
+consults the pure `EvaluateBackfillDeferralUseCase` before placing: stamp fresh
+(`arrivalResolutionWindowMs`, 20 min — the field gap is ~1 min; the next trip's legit backfill
+at +37 min falls outside) AND fix within `arrivalResolutionMatchRadiusMeters` (500 m, same
+arrival) → skip placement, log `BACKFILL_DEFERRED_TO_NUDGE` (Decision event, system bucket).
+The nudge remains the honest exit and the Home CTA the manual path. Untouched: the departure
+chain (the OLD spot is still freed), the net's cure/reseal, the `isRunning` guard, and every
+backfill without a prior resolution (the legit 2026-07-06 class). Residual: a genuinely new
+arrival within 500 m AND 20 min of a resolved one defers too — bounded, and the nudge is
+already on screen for exactly that neighborhood. This closes the face DET-ARRIVAL-DOUBLE-PIN-001
+left open: that guard closed "both place"; this one closes "one vetoed, the other places".

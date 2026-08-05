@@ -149,6 +149,18 @@ data class ParkingDetectionConfig(
      *  more useful than marking nothing. Above it the position is too vague: better no mark than
      *  a wrong one. [DET-RECONCILE-001] */
     val backfillMaxSteps: Long = 150L,
+    /** [DET-BACKFILL-TAINT-001] How long the coordinator's nudge-only ARRIVAL RESOLUTION
+     *  (GAP-ENTERED anchor: "no place is honest, only the user can mark it") vetoes the safety
+     *  net's backfill placer for the SAME arrival. Short on purpose: the field gap between the
+     *  abort and the net's placing tick is ~1 min (2026-07-30 Jerez); the next real trip's legit
+     *  backfill must fall OUTSIDE (the second Jerez trip re-parked 37 min after the previous
+     *  resolution). */
+    val arrivalResolutionWindowMs: Long = 20 * 60 * 1_000L,
+    /** [DET-BACKFILL-TAINT-001] Radius (meters) within which a backfill fix counts as the SAME
+     *  arrival the coordinator resolved. Generous — after a nudge-only abort the body walks at
+     *  most a few hundred meters before the next net tick — but bounded so a genuinely new
+     *  arrival elsewhere places normally. */
+    val arrivalResolutionMatchRadiusMeters: Float = 500f,
     /** Step delta AT or BELOW which a cumulative-counter reading loses authority whenever the
      *  observed displacement was reachable on foot in the elapsed time. A frozen counter (field
      *  2026-07-09, Redmi: stuck at 307 all day while its own session step DETECTOR counted 157
@@ -746,6 +758,12 @@ data class ParkingDetectionConfig(
         }
         require(backfillMaxSteps in 1..maxBoardingSteps) {
             "backfillMaxSteps must be in 1..maxBoardingSteps, was $backfillMaxSteps"
+        }
+        require(arrivalResolutionWindowMs > 0L) {
+            "arrivalResolutionWindowMs must be > 0, was $arrivalResolutionWindowMs"
+        }
+        require(arrivalResolutionMatchRadiusMeters > 0f) {
+            "arrivalResolutionMatchRadiusMeters must be > 0, was $arrivalResolutionMatchRadiusMeters"
         }
         require(reparkPlausibilityWindowMs > 0) {
             "reparkPlausibilityWindowMs must be > 0, was $reparkPlausibilityWindowMs"

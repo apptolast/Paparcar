@@ -7,11 +7,14 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import io.apptolast.paparcar.domain.detection.DetectionRuntimeState
+import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
+import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.displayName
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
+import io.apptolast.paparcar.domain.usecase.parking.EvaluateBackfillDeferralUseCase
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlinx.coroutines.flow.firstOrNull
 import org.koin.core.component.KoinComponent
@@ -41,6 +44,8 @@ class ParkingBackfillWorker(
     private val vehicleRepository: VehicleRepository by inject()
     private val notificationPort: AppNotificationManager by inject()
     private val detectionRuntime: DetectionRuntimeState by inject()
+    private val evaluateBackfillDeferral: EvaluateBackfillDeferralUseCase by inject()
+    private val detectionEventLogger: DetectionEventLogger by inject()
 
     override suspend fun doWork(): Result {
         // [DET-ARRIVAL-DOUBLE-PIN-001] Exactly one pipeline may PLACE the arrival. This chained
@@ -65,12 +70,44 @@ class ParkingBackfillWorker(
         val accuracy = inputData.getFloat(KEY_ACCURACY, 50f)
         val fixTimestampMs = inputData.getLong(KEY_FIX_TIMESTAMP, System.currentTimeMillis())
         val reliability = inputData.getFloat(KEY_RELIABILITY, 0.5f)
+
+        // [DET-BACKFILL-TAINT-001] An arrival the coordinator already RESOLVED as nudge-only
+        // (GAP-ENTERED anchor: rest unwitnessed, forward error unboundable — no place is honest)
+        // must not be re-decided here with less information. The coordinator stamps that
+        // resolution to disk at the abort; while it is fresh and this fix matches the same
+        // arrival, the nudge stays the only exit (field 2026-07-30 20:42, Redmi/Jerez: this
+        // placement landed right by luck — over a 2 km hole it lands 2 km wrong with the same
+        // confidence). Only the PLACEMENT defers: the departure chain already freed the old spot.
+        val backfillFix = GpsPoint(lat, lon, accuracy, fixTimestampMs, 0f)
+        val resolution = readArrivalResolution()
+        if (evaluateBackfillDeferral(
+                backfillFix = backfillFix,
+                nowMs = System.currentTimeMillis(),
+                resolutionAtMs = resolution?.first,
+                resolutionPoint = resolution?.second,
+            )
+        ) {
+            PaparcarLogger.d(DIAG, "⊘ arrival already resolved nudge-only by the coordinator — deferring to the nudge, skipping placement [DET-BACKFILL-TAINT-001]")
+            runCatching {
+                detectionEventLogger.log(
+                    DetectionEvent.Decision(
+                        sessionId = SESSION_SYSTEM,
+                        timestampMs = System.currentTimeMillis(),
+                        outcome = OUTCOME_DEFERRED_TO_NUDGE,
+                        pathLabel = PATH_SAFETY_NET_BACKFILL,
+                        location = backfillFix,
+                    ),
+                )
+            }.onFailure { e -> PaparcarLogger.w(DIAG, "⚠ deferral trace log failed: ${e.message}") }
+            return Result.success()
+        }
+
         // The departed session's vehicle — the one that provably just moved.
         val vehicleId = inputData.getString(KEY_VEHICLE_ID)
             ?: vehicleRepository.observeActiveVehicle().firstOrNull()?.id
 
         val result = confirmParking(
-            location = GpsPoint(lat, lon, accuracy, fixTimestampMs, 0f),
+            location = backfillFix,
             detectionReliability = reliability,
             vehicleId = vehicleId,
             // [DET-PIN-PROVENANCE-001] Mark this pin as the safety-net's reconstructed backfill (no
@@ -104,12 +141,33 @@ class ParkingBackfillWorker(
         return Result.success()
     }
 
+    /** The coordinator's persisted nudge-only arrival resolution: (stampedAtMs, lastFix), or null
+     *  when none is on record / the stamp is unparseable. [DET-BACKFILL-TAINT-001] */
+    private fun readArrivalResolution(): Pair<Long, GpsPoint>? {
+        val prefs = applicationContext.getSharedPreferences(
+            ParkingSafetyNetWorker.PREFS_NAME,
+            Context.MODE_PRIVATE,
+        )
+        val atMs = prefs.getLong(ParkingSafetyNetWorker.KEY_ARRIVAL_RESOLUTION_AT, 0L)
+            .takeIf { it > 0L } ?: return null
+        val raw = prefs.getString(ParkingSafetyNetWorker.KEY_ARRIVAL_RESOLUTION_POS, null) ?: return null
+        val parts = raw.split(',')
+        val lat = parts.getOrNull(0)?.toDoubleOrNull() ?: return null
+        val lon = parts.getOrNull(1)?.toDoubleOrNull() ?: return null
+        return atMs to GpsPoint(latitude = lat, longitude = lon, accuracy = 0f, timestamp = atMs, speed = 0f)
+    }
+
     companion object {
         const val TAG = "ParkingBackfillWorker"
         private const val DIAG = "PARKDIAG/Backfill"
         /** Pin provenance path: the 15-min safety net reconstructed this arrival (no live session
          *  followed the trip — process was asleep). [DET-PIN-PROVENANCE-001] */
         private const val PATH_SAFETY_NET_BACKFILL = "safety_net_backfill"
+        /** [DET-BACKFILL-TAINT-001] Telemetry outcome when the placement defers to the
+         *  coordinator's nudge-only arrival resolution. */
+        private const val OUTCOME_DEFERRED_TO_NUDGE = "BACKFILL_DEFERRED_TO_NUDGE"
+        /** No live session owns this decision — same system bucket the kill heartbeat uses. */
+        private const val SESSION_SYSTEM = "system"
         private const val KEY_LAT = "lat"
         private const val KEY_LON = "lon"
         private const val KEY_ACCURACY = "accuracy"

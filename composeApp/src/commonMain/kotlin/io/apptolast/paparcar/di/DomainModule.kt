@@ -14,6 +14,7 @@ import io.apptolast.paparcar.domain.usecase.parking.CalculateParkingConfidenceUs
 import io.apptolast.paparcar.domain.usecase.parking.ClearParkNudgeUseCase
 import io.apptolast.paparcar.domain.usecase.parking.EvaluateParkingDecisionUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
+import io.apptolast.paparcar.domain.usecase.parking.EvaluateBackfillDeferralUseCase
 import io.apptolast.paparcar.domain.usecase.parking.EvaluateHonestCloseUseCase
 import io.apptolast.paparcar.domain.usecase.parking.RunHonestCloseUseCase
 import io.apptolast.paparcar.domain.coordinator.CoordinatorParkingDetector
@@ -105,6 +106,7 @@ val domainModule = module {
     factory { ClearParkNudgeUseCase(appPreferences = get(), notificationPort = get()) } // [DET-NUDGE-PERSIST-001]
     factory { VerifyDepartureEvidenceUseCase(departureEventBus = get(), config = get()) } // [DET-G-05]
     factory { EvaluateSafetyNetCheckUseCase(config = get()) } // [DET-SAFETY-NET-001]
+    factory { EvaluateBackfillDeferralUseCase(config = get()) } // [DET-BACKFILL-TAINT-001]
     factory { EvaluateGeofenceExitUseCase(config = get()) } // [AUDIT-A9-KMP-001]
     factory { EvaluateBtParkUseCase(config = get()) } // [DET-AUDIT-002 T2/T3]
     factory { EvaluateBtArbitrationUseCase() } // [DET-TIERS-001] BT-as-arbiter over the coordinator

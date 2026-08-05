@@ -694,6 +694,14 @@ class ParkingSafetyNetWorker(
          *  geofenceId. Disk-backed like the anchor: the conjunction may only be decidable ticks
          *  (or a process death) later. */
         private const val EXIT_KEY_PREFIX = "exit_delivered_"
+        /** [DET-BACKFILL-TAINT-001] The coordinator's latest NUDGE-ONLY arrival resolution
+         *  (gap-anchor abort): WHEN it was stamped + the arrival's last fix ("lat,lon"). One
+         *  slot, latest wins — it describes THE arrival in flight, not a geofence. Written by
+         *  `CoordinatorDetectionService` at the abort; read by [ParkingBackfillWorker], which
+         *  defers its placement to the nudge while the stamp is fresh and near. Expires by age
+         *  (`arrivalResolutionWindowMs`) — no per-geofence pruning. */
+        internal const val KEY_ARRIVAL_RESOLUTION_AT = "arrival_resolution_at"
+        internal const val KEY_ARRIVAL_RESOLUTION_POS = "arrival_resolution_pos"
         /** [DET-ANCHOR-FREEZE-001 F4] Last GMS re-registration per fence — the cure throttle's
          *  disk half (the in-process half is [curedFencesThisProcess]). */
         private const val CURE_KEY_PREFIX = "cure_registered_"
