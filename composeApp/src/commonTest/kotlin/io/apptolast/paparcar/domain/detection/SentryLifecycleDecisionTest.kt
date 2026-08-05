@@ -10,7 +10,7 @@ class SentryLifecycleDecisionTest {
         // [F3] Detection turned off in Settings → no residency, byte-for-byte wake-and-kill.
         assertEquals(
             PostDetectionLifecycle.Stop,
-            resolvePostDetectionLifecycle(autoDetectEnabled = false, hasParkedSession = true),
+            resolvePostDetectionLifecycle(autoDetectEnabled = false, hasParkedSession = true, strategy = ParkingStrategy.COORDINATOR),
         )
     }
 
@@ -18,7 +18,7 @@ class SentryLifecycleDecisionTest {
     fun should_stop_when_auto_detect_off_and_no_parked_session() {
         assertEquals(
             PostDetectionLifecycle.Stop,
-            resolvePostDetectionLifecycle(autoDetectEnabled = false, hasParkedSession = false),
+            resolvePostDetectionLifecycle(autoDetectEnabled = false, hasParkedSession = false, strategy = ParkingStrategy.COORDINATOR),
         )
     }
 
@@ -26,7 +26,7 @@ class SentryLifecycleDecisionTest {
     fun should_enter_sentry_when_auto_detect_on_and_parked_session_exists() {
         assertEquals(
             PostDetectionLifecycle.EnterSentry,
-            resolvePostDetectionLifecycle(autoDetectEnabled = true, hasParkedSession = true),
+            resolvePostDetectionLifecycle(autoDetectEnabled = true, hasParkedSession = true, strategy = ParkingStrategy.COORDINATOR),
         )
     }
 
@@ -36,7 +36,26 @@ class SentryLifecycleDecisionTest {
         // resident FGS with no purpose.
         assertEquals(
             PostDetectionLifecycle.Stop,
-            resolvePostDetectionLifecycle(autoDetectEnabled = true, hasParkedSession = false),
+            resolvePostDetectionLifecycle(autoDetectEnabled = true, hasParkedSession = false, strategy = ParkingStrategy.COORDINATOR),
+        )
+    }
+
+    @Test
+    fun should_stop_when_bluetooth_strategy_owns_detection() {
+        // [DET-STRATEGY-GATE-001] The deterministic ACL broadcast wakes the process by itself —
+        // residency under BLUETOOTH only burns battery and pins a permanent notification.
+        assertEquals(
+            PostDetectionLifecycle.Stop,
+            resolvePostDetectionLifecycle(autoDetectEnabled = true, hasParkedSession = true, strategy = ParkingStrategy.BLUETOOTH),
+        )
+    }
+
+    @Test
+    fun should_stop_when_strategy_is_none() {
+        // A scooter/bike fleet never parks — nothing for a resident watcher to catch.
+        assertEquals(
+            PostDetectionLifecycle.Stop,
+            resolvePostDetectionLifecycle(autoDetectEnabled = true, hasParkedSession = true, strategy = ParkingStrategy.NONE),
         )
     }
 

@@ -21,6 +21,7 @@ import io.apptolast.paparcar.detection.worker.ParkingSafetyNetWorker
 import io.apptolast.paparcar.domain.coordinator.CoordinatorParkingDetector
 import io.apptolast.paparcar.domain.detection.ArmEvidence
 import io.apptolast.paparcar.domain.detection.DetectionTrigger
+import io.apptolast.paparcar.domain.detection.coordinatorMayArm
 import io.apptolast.paparcar.domain.detection.MutableDetectionRuntimeState
 import io.apptolast.paparcar.domain.detection.ParkingStrategy
 import io.apptolast.paparcar.domain.detection.ParkingStrategyResolver
@@ -301,7 +302,7 @@ class CoordinatorDetectionService : LifecycleService() {
         )
     }
 
-    private fun handleStartTracking() {
+    private suspend fun handleStartTracking() {
         if (!guardPermissions("START_TRACKING")) return
         // [FIX BUG-SERVICE-109: stop relying on stale hasDetectedMovement across sessions]
         // Active-job check alone is the right idempotency guard — a session that has already
@@ -924,10 +925,16 @@ class CoordinatorDetectionService : LifecycleService() {
         val parkedSessions = runCatching {
             userParkingRepository.observeActiveSessions().firstOrNull().orEmpty()
         }.getOrElse { emptyList() }
+        // [DET-STRATEGY-GATE-001] Residency is strategy-aware: under BLUETOOTH the ACL broadcast
+        // wakes the process by itself (manifest receiver, FGS-from-bg exempt), so the resident
+        // watcher would only burn battery + pin a permanent notification. Resolved fresh on every
+        // epilogue, so pairing/unpairing BT or toggling the adapter self-corrects one cycle later.
+        val strategy = runCatching { strategyResolver.resolve() }.getOrDefault(ParkingStrategy.COORDINATOR)
         when (
             resolvePostDetectionLifecycle(
                 autoDetectEnabled = appPreferences.autoDetectParking, // [F3] Settings toggle IS the sentry gate
                 hasParkedSession = parkedSessions.isNotEmpty(),
+                strategy = strategy,
             )
         ) {
             PostDetectionLifecycle.EnterSentry ->
@@ -1083,7 +1090,7 @@ class CoordinatorDetectionService : LifecycleService() {
         }
     }
 
-    private fun startParkingDetection(
+    private suspend fun startParkingDetection(
         trigger: DetectionTrigger,
         detail: String? = null,
         trip: TripContext? = null,
@@ -1094,6 +1101,21 @@ class CoordinatorDetectionService : LifecycleService() {
          *  coordinator shrinks its no-movement budget to the zombie probe. */
         staleExitDelivery: Boolean = false,
     ) {
+        // [DET-STRATEGY-GATE-001] Single strategy choke point: EVERY automatic arm funnels through
+        // here (geofence EXIT, AR ENTER, sentry sig-motion), so this is the one place that asks
+        // whether the coordinator owns detection at all. Field 2026-08-01: only the EXIT lane
+        // checked, and the sentry/AR arms pinned the BT-paired Kamiq's trips on the primary Focus.
+        // MANUAL is exempt inside the rule (explicit user intent / safety-net arrival handoff).
+        if (trigger != DetectionTrigger.MANUAL) {
+            val strategy = strategyResolver.resolve()
+            if (!coordinatorMayArm(strategy, trigger)) {
+                PaparcarLogger.d(
+                    DIAG,
+                    "  ⊘ arm refused — strategy=$strategy owns detection; coordinator stands down (trigger=$trigger) [DET-STRATEGY-GATE-001]",
+                )
+                return
+            }
+        }
         logArmTrigger(trigger, detail)
         PaparcarLogger.d(DIAG, "  ▶ startParkingDetection — launching coordinator (trigger=$trigger)")
         closeSentryResidencyLedger(trigger)

@@ -40,6 +40,25 @@ enum class ParkingStrategy {
     COORDINATOR,
 }
 
+/**
+ * [DET-STRATEGY-GATE-001] Single admission rule for ARMING the probabilistic coordinator: may
+ * this trigger start a coordinator session under the resolved strategy?
+ *
+ * - [DetectionTrigger.MANUAL] is ALWAYS admitted — the user explicitly asked to track, and the
+ *   safety-net's arrival handoff rides the same action; if a BT-paired car then parks, the BT
+ *   disconnect arbitration supersedes the session anyway ([EvaluateBtArbitrationUseCase]).
+ * - Every automatic trigger (geofence EXIT, AR ENTER, significant motion) is admitted only when
+ *   the COORDINATOR strategy owns detection. Under BLUETOOTH the deterministic pipeline owns the
+ *   trip (field 2026-08-01: the sentry/AR lanes armed anyway and pinned the Kamiq's trips on the
+ *   primary Focus — the exact misattribution [ARCH-MONITORING-002] suppresses); under NONE the
+ *   vehicle type never parks.
+ *
+ * The service consults this in ONE choke point (`startParkingDetection`); the geofence-EXIT lane
+ * additionally short-circuits early with the same rule to skip its pre-arm work.
+ */
+fun coordinatorMayArm(strategy: ParkingStrategy, trigger: DetectionTrigger): Boolean =
+    trigger == DetectionTrigger.MANUAL || strategy == ParkingStrategy.COORDINATOR
+
 class ParkingStrategyResolver(
     private val vehicleRepository: VehicleRepository,
     private val bluetoothScanner: BluetoothScanner,

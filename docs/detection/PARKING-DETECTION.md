@@ -48,6 +48,24 @@ suspend fun resolve(): ParkingStrategy {
 
 The strategies never mix signals. BLUETOOTH and COORDINATOR converge on `ConfirmParkingUseCase`. NONE skips parking detection entirely — scooters and bikes are dismounted on the sidewalk and never liberate a parking spot. See BUG-SCOOTER-001 in §2.
 
+**The resolution is enforced in ONE choke point** [DET-STRATEGY-GATE-001]: every automatic arm of
+the coordinator (geofence EXIT, AR ENTER, sentry significant-motion) funnels through
+`CoordinatorDetectionService.startParkingDetection()`, which consults the pure rule
+`coordinatorMayArm(strategy, trigger)` (`ParkingStrategyResolver.kt`). Under BLUETOOTH or NONE the
+automatic arm is refused with a PARKDIAG trace; `MANUAL` (explicit user intent, and the
+safety-net's arrival handoff which rides the same action) is always admitted — if the parked car
+turns out to be the BT one, the disconnect arbitration supersedes the session
+(`EvaluateBtArbitrationUseCase`). The geofence-EXIT lane additionally short-circuits early to skip
+its pre-arm work. Before this gate only the EXIT lane checked, and the sentry/AR lanes armed
+anyway: field 2026-08-01, the BT-paired Kamiq's trips were pinned on the primary (non-BT) Focus.
+
+**SENTRY residency is strategy-aware** [DET-STRATEGY-GATE-001]: `resolvePostDetectionLifecycle`
+(`SentryLifecycleDecision.kt`) only keeps the service resident when COORDINATOR owns detection.
+Under BLUETOOTH the ACL broadcast wakes a dead process by itself (manifest receiver, exempt from
+the Android 12+ FGS-from-background restriction), so the resident watcher would only cost battery
+and a permanent notification. The strategy is re-resolved on every idle epilogue, so pairing or
+unpairing a BT device — or toggling the adapter — self-corrects one detection cycle later.
+
 ### 1.2 BluetoothDetectionStrategy (deterministic)
 
 **Runtime owner:** `BluetoothDetectionService` (`LifecycleService`, `START_NOT_STICKY`,

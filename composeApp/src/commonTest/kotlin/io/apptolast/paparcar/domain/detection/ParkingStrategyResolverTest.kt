@@ -124,6 +124,50 @@ class ParkingStrategyResolverTest {
         assertEquals(ParkingStrategy.COORDINATOR, resolver.resolve())
     }
 
+    // ── coordinatorMayArm [DET-STRATEGY-GATE-001] ─────────────────────────────
+
+    @Test
+    fun `admits every trigger when coordinator owns detection`() {
+        DetectionTrigger.entries.forEach { trigger ->
+            assertTrue(
+                coordinatorMayArm(ParkingStrategy.COORDINATOR, trigger),
+                "expected $trigger admitted under COORDINATOR",
+            )
+        }
+    }
+
+    @Test
+    fun `refuses automatic triggers when bluetooth owns detection`() {
+        DetectionTrigger.entries.filter { it != DetectionTrigger.MANUAL }.forEach { trigger ->
+            assertFalse(
+                coordinatorMayArm(ParkingStrategy.BLUETOOTH, trigger),
+                "expected $trigger refused under BLUETOOTH",
+            )
+        }
+    }
+
+    @Test
+    fun `refuses automatic triggers when strategy is none`() {
+        DetectionTrigger.entries.filter { it != DetectionTrigger.MANUAL }.forEach { trigger ->
+            assertFalse(
+                coordinatorMayArm(ParkingStrategy.NONE, trigger),
+                "expected $trigger refused under NONE",
+            )
+        }
+    }
+
+    @Test
+    fun `admits manual trigger under any strategy`() {
+        // Explicit user intent (and the safety-net arrival handoff) always wins; a BT-paired
+        // park is superseded later by the disconnect arbitration.
+        ParkingStrategy.entries.forEach { strategy ->
+            assertTrue(
+                coordinatorMayArm(strategy, DetectionTrigger.MANUAL),
+                "expected MANUAL admitted under $strategy",
+            )
+        }
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun vehicleWith(
