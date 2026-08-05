@@ -1,13 +1,17 @@
 # DET-RESIDENT-FGS-001 — FGS residente en modo centinela (GPS apagado en reposo) para no perder salidas por re-arranque
 
-**Estado:** ✅ F1 COMPLETO y COMMITEADO en `feature/DET-RESIDENT-FGS-001` (rebasada sobre master
+**Estado:** ✅ F1 + F2 COMPLETOS en `feature/DET-RESIDENT-FGS-001` (rebasada sobre master
 `09b806e3` con GAP-ANCHOR-001): `9182ef42` (F1 + SigMotion directo) + `e49923c9` (2026-07-30, flip
-`SENTRY_ENABLED = true` — el sentry pasa a ser el estado de la rama tras dos field-tests). Suite
-prod completa verde + `compileMockDebugKotlinAndroid` verde + `SentryLifecycleDecisionTest` (4 casos).
+`SENTRY_ENABLED = true` — el sentry pasa a ser el estado de la rama tras dos field-tests) + F2
+(2026-08-04, telemetría sentry — ver Fases abajo). Suite prod completa verde +
+`compileMockDebugKotlinAndroid` verde + `SentryLifecycleDecisionTest` (9 casos: 4 lifecycle F1 +
+5 kill-verdict F2).
 **Field-tests 28/29-07 (Rota) y 29/30-07 (El Puerto): 0 FN en ambos OEMs, Oppo revive tras muerte
-por batería, todo trigger disparó.** ⏳ F2/F3 (gating por tier/settings) antes de merge a master;
-pendiente acotar el GPS de sesiones desatendidas sin conducción (coste batería en despertares falsos).
-Q1/Q2 decididas (ver abajo).
+por batería, todo trigger disparó. Field 30-07 tarde (Redmi): MIUI mató el sentry tras la sesión
+21:19 y NADA lo revivió (deep-kill ≈ force-stop; palanca = autostart, no código) — exactamente el
+evento que la telemetría F2 hace visible como `sentry killed`.** ⏳ F3 (gating por tier/settings +
+notif centinela + Dev Catalog) antes de merge a master; pendiente acotar el GPS de sesiones
+desatendidas sin conducción (coste batería en despertares falsos). Q1/Q2 decididas (ver abajo).
 **Origen:** Pieza 1 del plan derivado del análisis decompilado de Driversnote
 (`project_det_driversnote_learnings_plan` en memoria; competidor = plugin Transistor
 `react-native-background-geolocation`). Ataca la subclase crónica de FN "OEM/Doze mató el
@@ -164,10 +168,11 @@ en Ajustes + Dev Catalog (galería/escenarios mock, regla `feedback_keep_dev_cat
   comparada con el histórico wake-and-kill. Objetivo: reducir la subclase "muerto + no re-arranca".
 - Batería: medir % consumido en 12 h aparcado en SENTRY (debe ser ~nulo si el gating de GPS funciona).
 
-## Telemetría
-- Nuevos eventos: `sentry_entered`, `sentry_woke` (con la señal que despertó: sigmotion/ar/geofence),
-  `sentry_killed` (detectado por gap del heartbeat al re-arrancar). Heartbeat de residencia reusa
-  `KEY_LAST_ALIVE_AT` de `ParkingSafetyNetWorker`.
+## Telemetría — ✅ implementada en F2 (2026-08-04)
+- Evento `DetectionEvent.Sentry` (wire `SENTRY`) con subevento `entered` / `woke` (señal = trigger
+  de armado, cualquier canal) / `killed` (gap del heartbeat + duración de la residencia). El kill se
+  detecta por el sello durable de `SentryResidenceStore` sobreviviendo al proceso, con el gap medido
+  contra `KEY_LAST_ALIVE_AT` de `ParkingSafetyNetWorker` (leído ANTES del re-stamp del tick).
 - `detectionPath` sin cambios (la confirmación no se toca); esto es lifecycle, no provenance de pin.
 
 ## Cuestiones abiertas — RESUELTAS 2026-07-28
@@ -191,7 +196,21 @@ en Ajustes + Dev Catalog (galería/escenarios mock, regla `feedback_keep_dev_cat
   hoy. `handleSentryWake` arma con `DetectionTrigger.SIGNIFICANT_MOTION` + `ArmEvidence.Unverified`
   (guardas anti-walking activos; solo conducción medida confirma); guarda job-activo y
   stand-down si no hay sesión aparcada.
-- **F2** — telemetría + heartbeat de residencia + resolución del tipo de FGS en SENTRY (§4).
+- **F2** ✅ COMPLETO (2026-08-04) — telemetría de residencia + detección de kill. Nuevo
+  `DetectionEvent.Sentry` (wire `SENTRY`, sessionId = geofenceId vigilado, convención fuera-de-sesión;
+  columnas DTO reutilizadas: señal→`source`, tiempo-en-SENTRY→`sessionAgeMs`): `entered` (razón del
+  epílogo como señal), `woke` (trigger de armado como señal — el punto único en
+  `startParkingDetection` ve TODOS los canales de despertar: SigMotion directo, GEOFENCE_EXIT, AR,
+  manual), `killed` (+ `gapMs` ventana a oscuras + `residencyMs`). **Sello de residencia durable**
+  (`SentryResidenceStore`, mismo prefs que el safety-net, slot único
+  `geofenceId|enteredAt|enteredElapsed`): se estampa en `enterSentry`, se limpia en toda salida
+  DELIBERADA (wake→ACTIVE, teardown idle/error) → un sello que sobrevive al proceso = prueba de que
+  el OS mató al vigilante. Veredicto puro compartido `resolveSentryKillVerdict` (commonMain, 5 tests)
+  en DOS carriles: tick periódico del worker (`detectSentryKill` ANTES del re-stamp del heartbeat →
+  `gapMs` real desde `KEY_LAST_ALIVE_AT`) y el propio arm del service (trigger que revive un proceso
+  muerto con sello puesto = kill presenciado en vivo). Reboot explica el sello inocentemente (clear
+  silencioso, misma regla que `BackgroundKillSuspected`). La resolución del tipo de FGS (§4) quedó
+  cerrada en Q1: mantener `LOCATION`. Telemetría silenciosa — regla "earn the ask" intacta.
 - **F3** — gating por tier + setting en Ajustes + notificación centinela (copy 9 locales) + Dev Catalog.
 - **F4** — (FUERA de esta rama) Pieza 2: ancla estacionaria pasiva-continua encima de SENTRY.
 

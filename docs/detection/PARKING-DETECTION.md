@@ -1706,3 +1706,34 @@ points > 60 m apart are filled by A* over the fetched OSM ways (joined at shared
 only when the road path is ≤ 3× the straight distance (no invented scenic detours); a
 disconnected/implausible graph keeps the honest straight chord. Pure commonMain, runs off the main
 thread inside the existing debounced pipeline.
+
+### DET-RESIDENT-FGS-001 — resident SENTRY FGS between parkings (F1 lifecycle, F2 telemetry) (2026-07-28 / 2026-08-04)
+
+**Why (chronic FN class; plan derived from the decompiled Driversnote/Transistor stack).** The
+service used to tie "detection active" to "process alive": after every park it died
+(`stopSelfResult`), and the departure watch fell to Play-Services-delivered events plus a one-shot
+significant-motion sensor that does NOT survive process death. When an OEM killed the cached
+process, Android 12+ forbids restarting an FGS from background — the departure trigger arrived
+and found nobody home (recurring Redmi/Oppo field FNs).
+
+**What (F1, flag `SENTRY_ENABLED`).** `ServicePresence { Dead, Sentry, Active }` on the runtime
+state; after a park the pure `resolvePostDetectionLifecycle` decides whether the service dies
+(today's behaviour, flag off / nothing parked) or degrades to **SENTRY**: alive and foreground,
+GPS off, significant-motion listener armed in-process. A motion trigger `startService`s the live
+process directly (`ACTION_SENTRY_WAKE`, no WorkManager latency; worker stays as fallback) and arms
+with `Unverified` evidence — the confirmation doctrine is untouched, this is lifecycle only.
+Confirmation doctrine, anchors and asymmetric failure are byte-identical. Field 28–30/07: 0 FN on
+both OEMs; MIUI deep-kill still defeats residency (≈ force-stop; the lever is autostart, not code).
+
+**What (F2, telemetry — 2026-08-04).** New `DetectionEvent.Sentry` (`SENTRY` wire type, sessionId =
+watched geofenceId): `entered` (epilogue reason as signal), `woke` (arm trigger as signal +
+time-in-SENTRY), `killed` (+ heartbeat-gap dark window and residency duration). Backed by a durable
+residency stamp (`SentryResidenceStore`, same prefs as the safety net): stamped on `enterSentry`,
+cleared on every DELIBERATE exit (wake to ACTIVE, idle/error teardown) — so a stamp that outlives
+the process is proof the OS killed the resident watcher. The pure `resolveSentryKillVerdict`
+(commonMain, tested) is shared by both detection lanes: the safety-net worker's periodic tick
+(measures the gap since the pre-stamp heartbeat, `KEY_LAST_ALIVE_AT`) and the service's own arm
+path (a trigger reviving a dead process with the stamp set witnesses the kill live). A reboot
+explains the stamp innocently (silent clear), same rule as `BackgroundKillSuspected`. Q1 resolved:
+SENTRY keeps `FOREGROUND_SERVICE_TYPE_LOCATION` (the type declares capability, not constant use).
+Pending F3: tier/settings gating + low-profile sentry notification (9 locales) + Dev Catalog.

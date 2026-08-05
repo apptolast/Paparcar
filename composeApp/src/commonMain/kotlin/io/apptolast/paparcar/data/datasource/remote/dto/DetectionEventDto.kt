@@ -114,6 +114,7 @@ fun DetectionEvent.typeName(): String = when (this) {
     is DetectionEvent.GeofenceRegistration -> "GEOFENCE_REGISTRATION"
     is DetectionEvent.BackgroundKillSuspected -> "BACKGROUND_KILL_SUSPECTED"
     is DetectionEvent.ForceStopConfirmed -> "FORCE_STOP_CONFIRMED"
+    is DetectionEvent.Sentry -> "SENTRY"
 }
 
 fun DetectionEvent.SessionStarted.toSessionDto(): DetectionSessionDto = DetectionSessionDto(
@@ -170,5 +171,8 @@ fun DetectionEvent.toDto(): DetectionEventDto {
         is DetectionEvent.GeofenceRegistration -> base.copy(success = success, radiusMeters = radiusMeters)
         is DetectionEvent.BackgroundKillSuspected -> base.copy(gapMs = gapMs)
         is DetectionEvent.ForceStopConfirmed -> base
+        // [DET-RESIDENT-FGS-001 · F2] Reuses existing columns on purpose (no serializer surface
+        // change): the waking/entering signal rides in `source`, time-in-SENTRY in `sessionAgeMs`.
+        is DetectionEvent.Sentry -> base.copy(event = event, source = signal, gapMs = gapMs, sessionAgeMs = residencyMs)
     }
 }

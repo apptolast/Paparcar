@@ -22,9 +22,12 @@ import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import io.apptolast.paparcar.BuildConfig
 import io.apptolast.paparcar.detection.ExactHeartbeatScheduler
+import io.apptolast.paparcar.detection.SentryResidenceStore
 import io.apptolast.paparcar.detection.SignificantMotionMonitor
 import io.apptolast.paparcar.detection.PendingDetectionStore
 import io.apptolast.paparcar.domain.detection.DetectionRuntimeState
+import io.apptolast.paparcar.domain.detection.SentryKillVerdict
+import io.apptolast.paparcar.domain.detection.resolveSentryKillVerdict
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
@@ -120,6 +123,9 @@ class ParkingSafetyNetWorker(
         // [OEM-KILL-001] Heartbeat: measure the gap since the previous safety-net run BEFORE
         // stamping the new one. An hours-long gap with a session active means the OEM froze
         // background execution for that whole window — surface it (telemetry + contextual fix ask).
+        // [DET-RESIDENT-FGS-001 · F2] The sentry-kill check reads the SAME pre-stamp heartbeat, so
+        // it must run before detectBackgroundKill re-stamps it.
+        detectSentryKill(source)
         detectBackgroundKill(sessions)
         detectConfirmedForceStop(sessions)
 
@@ -477,6 +483,50 @@ class ParkingSafetyNetWorker(
      * wired to a real harm signal, not to this gap. A reboot (elapsedRealtime went backwards)
      * explains the gap innocently — skip. Always re-stamps the heartbeat. [BATTERY-ASK-001]
      */
+    /**
+     * [DET-RESIDENT-FGS-001 · F2] Periodic lane of the sentry-kill detector: the service stamps a
+     * durable residency marker on enterSentry and clears it on every deliberate exit, so a stamp
+     * found here while the service is NOT resident means the OS killed the resident watcher.
+     * [resolveSentryKillVerdict] (pure, shared with the service's own re-arm lane) decides; a
+     * reboot explains the stamp innocently, same as [detectBackgroundKill]. Runs BEFORE the
+     * heartbeat re-stamp so `gapMs` measures the true dark window since the last safety-net run.
+     * SILENT telemetry — same "earn the ask" rule as the other kill signals.
+     */
+    private suspend fun detectSentryKill(source: String) {
+        runCatching {
+            val residency = SentryResidenceStore.read(appContext) ?: return
+            val rebootedSince = SystemClock.elapsedRealtime() < residency.enteredElapsedMs
+            when (
+                resolveSentryKillVerdict(
+                    residencyExpected = true,
+                    presence = detectionRuntime.presence.value,
+                    rebootedSince = rebootedSince,
+                )
+            ) {
+                SentryKillVerdict.None -> Unit
+                SentryKillVerdict.ClearStamp -> SentryResidenceStore.clear(appContext)
+                SentryKillVerdict.Killed -> {
+                    SentryResidenceStore.clear(appContext)
+                    val now = System.currentTimeMillis()
+                    val lastAliveAt = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                        .getLong(KEY_LAST_ALIVE_AT, 0L)
+                    val gapMs = (now - lastAliveAt).takeIf { lastAliveAt > 0L }
+                    PaparcarLogger.w(DIAG, "⚠ sentry residency stamp outlived the process (gap ${gapMs?.div(60_000)} min) — resident watcher killed [DET-RESIDENT-FGS-001]")
+                    detectionEventLogger.log(
+                        DetectionEvent.Sentry(
+                            sessionId = residency.geofenceId,
+                            timestampMs = now,
+                            event = DetectionEvent.Sentry.KILLED,
+                            signal = "safety-net:$source",
+                            gapMs = gapMs,
+                            residencyMs = now - residency.enteredAtMs,
+                        )
+                    )
+                }
+            }
+        }
+    }
+
     private suspend fun detectBackgroundKill(sessions: List<UserParking>) {
         runCatching {
             val prefs = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)

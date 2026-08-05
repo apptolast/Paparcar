@@ -29,3 +29,38 @@ fun resolvePostDetectionLifecycle(
     hasParkedSession: Boolean,
 ): PostDetectionLifecycle =
     if (sentryEnabled && hasParkedSession) PostDetectionLifecycle.EnterSentry else PostDetectionLifecycle.Stop
+
+/**
+ * [DET-RESIDENT-FGS-001 · F2] Pure verdict for a sentry-residency stamp found on disk. The service
+ * stamps "I am resident" on enterSentry and clears it on every DELIBERATE exit (SENTRY→ACTIVE wake,
+ * idle teardown), so a stamp that outlives the process without one of those exits is evidence the OS
+ * killed the resident watcher — unless a reboot explains it innocently (consistent with the
+ * BackgroundKillSuspected heuristic, which also skips reboots).
+ *
+ * Shared by BOTH detection lanes so they cannot diverge: the safety-net worker's periodic tick
+ * (which can also measure the heartbeat gap = the dark window) and the service's own arm path
+ * (a trigger reviving a dead process with the stamp still set IS the kill being witnessed live).
+ */
+sealed interface SentryKillVerdict {
+    /** No residency expected, or the sentry is alive and well — nothing to do. */
+    data object None : SentryKillVerdict
+
+    /** The residency ended innocently (reboot, or a live job missed the handoff) — clear the
+     *  stamp silently, log nothing. */
+    data object ClearStamp : SentryKillVerdict
+
+    /** The resident watcher died without a deliberate exit — log `sentry killed` + clear the stamp. */
+    data object Killed : SentryKillVerdict
+}
+
+fun resolveSentryKillVerdict(
+    residencyExpected: Boolean,
+    presence: ServicePresence,
+    rebootedSince: Boolean,
+): SentryKillVerdict = when {
+    !residencyExpected -> SentryKillVerdict.None
+    presence == ServicePresence.Sentry -> SentryKillVerdict.None
+    rebootedSince -> SentryKillVerdict.ClearStamp
+    presence == ServicePresence.Active -> SentryKillVerdict.ClearStamp
+    else -> SentryKillVerdict.Killed
+}

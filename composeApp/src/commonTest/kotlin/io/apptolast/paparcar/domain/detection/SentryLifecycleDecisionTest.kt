@@ -39,4 +39,72 @@ class SentryLifecycleDecisionTest {
             resolvePostDetectionLifecycle(sentryEnabled = true, hasParkedSession = false),
         )
     }
+
+    // ── resolveSentryKillVerdict [F2] ─────────────────────────────────────────
+
+    @Test
+    fun should_do_nothing_when_no_residency_stamp_exists() {
+        assertEquals(
+            SentryKillVerdict.None,
+            resolveSentryKillVerdict(
+                residencyExpected = false,
+                presence = ServicePresence.Dead,
+                rebootedSince = false,
+            ),
+        )
+    }
+
+    @Test
+    fun should_do_nothing_when_sentry_is_alive_and_resident() {
+        // The worker's periodic tick lands while the resident watcher is well — the stamp stays.
+        assertEquals(
+            SentryKillVerdict.None,
+            resolveSentryKillVerdict(
+                residencyExpected = true,
+                presence = ServicePresence.Sentry,
+                rebootedSince = false,
+            ),
+        )
+    }
+
+    @Test
+    fun should_clear_silently_when_a_reboot_explains_the_dead_residency() {
+        // Powering the phone off kills the sentry innocently — the boot receiver re-arms; no kill
+        // telemetry (consistent with BackgroundKillSuspected skipping reboots).
+        assertEquals(
+            SentryKillVerdict.ClearStamp,
+            resolveSentryKillVerdict(
+                residencyExpected = true,
+                presence = ServicePresence.Dead,
+                rebootedSince = true,
+            ),
+        )
+    }
+
+    @Test
+    fun should_clear_silently_when_a_tracking_job_missed_the_handoff() {
+        // Defensive: ACTIVE with the stamp still set means the wake path failed to clear it —
+        // the service is demonstrably alive, so it was no kill.
+        assertEquals(
+            SentryKillVerdict.ClearStamp,
+            resolveSentryKillVerdict(
+                residencyExpected = true,
+                presence = ServicePresence.Active,
+                rebootedSince = false,
+            ),
+        )
+    }
+
+    @Test
+    fun should_report_killed_when_the_stamp_outlived_a_dead_process() {
+        // The MIUI/ColorOS deep-kill signature: residency stamped, no deliberate exit, process dead.
+        assertEquals(
+            SentryKillVerdict.Killed,
+            resolveSentryKillVerdict(
+                residencyExpected = true,
+                presence = ServicePresence.Dead,
+                rebootedSince = false,
+            ),
+        )
+    }
 }

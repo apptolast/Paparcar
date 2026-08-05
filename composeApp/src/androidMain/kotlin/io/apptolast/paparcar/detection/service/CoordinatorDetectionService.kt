@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.SystemClock
 import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.lifecycle.LifecycleService
@@ -13,6 +14,7 @@ import androidx.work.WorkManager
 import com.google.android.gms.location.GeofencingEvent
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import io.apptolast.paparcar.BuildConfig
+import io.apptolast.paparcar.detection.SentryResidenceStore
 import io.apptolast.paparcar.detection.SignificantMotionMonitor
 import io.apptolast.paparcar.detection.worker.DepartureDetectionWorker
 import io.apptolast.paparcar.detection.worker.ParkingSafetyNetWorker
@@ -23,8 +25,10 @@ import io.apptolast.paparcar.domain.detection.MutableDetectionRuntimeState
 import io.apptolast.paparcar.domain.detection.ParkingStrategy
 import io.apptolast.paparcar.domain.detection.ParkingStrategyResolver
 import io.apptolast.paparcar.domain.detection.PostDetectionLifecycle
+import io.apptolast.paparcar.domain.detection.SentryKillVerdict
 import io.apptolast.paparcar.domain.detection.ServicePresence
 import io.apptolast.paparcar.domain.detection.resolvePostDetectionLifecycle
+import io.apptolast.paparcar.domain.detection.resolveSentryKillVerdict
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.detection.TripContext
 import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
@@ -886,6 +890,9 @@ class CoordinatorDetectionService : LifecycleService() {
      */
     private fun stopIfIdle(reason: String, startId: Int) {
         if (detectionJob?.isActive == true) return
+        // [DET-RESIDENT-FGS-001 · F2] Error-path teardown is still a DELIBERATE stop — drop any
+        // residency stamp so the kill detector never reads this as an OS kill.
+        SentryResidenceStore.clear(this)
         val stopped = fgs.stopForegroundAndSelf(startId) // [FIX BUG-FGS-100][DET-INTAKE-001]
         PaparcarLogger.d(DIAG, "  stopIfIdle($reason) → stopSelfResult($startId)=$stopped")
     }
@@ -903,12 +910,16 @@ class CoordinatorDetectionService : LifecycleService() {
     private suspend fun resolveIdleEpilogue(reason: String, startId: Int) {
         // (a) A running job owns the service — never tear down under it. Same guard as stopIfIdle.
         if (detectionJob?.isActive == true) return
-        val hasParkedSession = runCatching {
-            userParkingRepository.observeActiveSessions().firstOrNull().orEmpty().isNotEmpty()
-        }.getOrDefault(false)
-        when (resolvePostDetectionLifecycle(sentryEnabled = SENTRY_ENABLED, hasParkedSession = hasParkedSession)) {
-            PostDetectionLifecycle.EnterSentry -> enterSentry(reason)
+        val parkedSessions = runCatching {
+            userParkingRepository.observeActiveSessions().firstOrNull().orEmpty()
+        }.getOrElse { emptyList() }
+        when (resolvePostDetectionLifecycle(sentryEnabled = SENTRY_ENABLED, hasParkedSession = parkedSessions.isNotEmpty())) {
+            PostDetectionLifecycle.EnterSentry ->
+                enterSentry(reason, parkedSessions.firstNotNullOfOrNull { it.geofenceId })
             PostDetectionLifecycle.Stop -> {
+                // [DET-RESIDENT-FGS-001 · F2] Deliberate teardown — a residency (if any) ends HERE,
+                // not by a kill: drop the stamp so the kill detector never mistakes this for one.
+                SentryResidenceStore.clear(this)
                 // (b) stopSelfResult still lets a newer queued intent veto a stale stop.
                 val stopped = fgs.stopForegroundAndSelf(startId) // [FIX BUG-FGS-100][DET-INTAKE-001]
                 PaparcarLogger.d(DIAG, "  resolveIdleEpilogue($reason) → stop → stopSelfResult($startId)=$stopped")
@@ -925,8 +936,17 @@ class CoordinatorDetectionService : LifecycleService() {
      * Android 12+ background-FGS-start restriction). The transition back to ACTIVE is the ordinary
      * trigger path (ACTION_GEOFENCE_EXIT / ACTION_AR_TRANSITION → startParkingDetection).
      */
-    private fun enterSentry(reason: String) {
+    private fun enterSentry(reason: String, geofenceId: String?) {
         detectionRuntime.setPresence(ServicePresence.Sentry)
+        // [F2] Durable residency stamp + telemetry. The stamp is cleared on every deliberate exit
+        // (wake to ACTIVE, idle teardown), so one that outlives the process proves the OS killed the
+        // resident watcher — the kill detectors (worker tick + service re-arm) read it back.
+        val residency = SentryResidenceStore.stamp(
+            this, geofenceId,
+            enteredAtMs = System.currentTimeMillis(),
+            enteredElapsedMs = SystemClock.elapsedRealtime(),
+        )
+        logSentry(DetectionEvent.Sentry.ENTERED, signal = reason, sessionId = residency.geofenceId)
         PaparcarLogger.d(DIAG, "  ⏾ enterSentry($reason) — resident, GPS off, re-arming departure wake [DET-RESIDENT-FGS-001]")
         if (BuildConfig.DEBUG) notificationPort.showDebug("SENTRY: servicio residente (GPS off), vigilando salida")
         runCatching { significantMotionMonitor.sync(shouldBeArmed = true) }
@@ -937,6 +957,70 @@ class CoordinatorDetectionService : LifecycleService() {
                 source = ParkingSafetyNetWorker.SOURCE_DETECTION_END,
             )
         }.onFailure { e -> PaparcarLogger.w(DIAG, "  ⚠ enterSentry safety-net enqueue failed: ${e.message}") }
+    }
+
+    /**
+     * [DET-RESIDENT-FGS-001 · F2] Close the residency ledger as a tracking job launches, BEFORE the
+     * presence flips to ACTIVE. A live SENTRY handing the process over is a `woke` (the arm trigger
+     * is the waking signal — this one point sees ALL wake channels: direct SigMotion, geofence EXIT,
+     * AR ENTER, manual). A stamp found on a NON-resident start means the resident watcher died and
+     * this trigger revived a dead process — the same [resolveSentryKillVerdict] the safety-net
+     * worker runs on its periodic lane, witnessed live instead (no heartbeat gap to measure here).
+     */
+    private fun closeSentryResidencyLedger(trigger: DetectionTrigger) {
+        val residency = SentryResidenceStore.read(this)
+        val now = System.currentTimeMillis()
+        if (detectionRuntime.presence.value == ServicePresence.Sentry) {
+            SentryResidenceStore.clear(this)
+            logSentry(
+                DetectionEvent.Sentry.WOKE,
+                signal = trigger.name,
+                sessionId = residency?.geofenceId ?: SentryResidenceStore.FALLBACK_SESSION,
+                residencyMs = residency?.let { now - it.enteredAtMs },
+            )
+            return
+        }
+        if (residency == null) return
+        when (
+            resolveSentryKillVerdict(
+                residencyExpected = true,
+                presence = detectionRuntime.presence.value,
+                rebootedSince = SystemClock.elapsedRealtime() < residency.enteredElapsedMs,
+            )
+        ) {
+            SentryKillVerdict.Killed -> {
+                SentryResidenceStore.clear(this)
+                PaparcarLogger.w(DIAG, "  ⚠ sentry residency stamp outlived the process — resident watcher was killed; $trigger revived us [DET-RESIDENT-FGS-001]")
+                logSentry(
+                    DetectionEvent.Sentry.KILLED,
+                    signal = trigger.name,
+                    sessionId = residency.geofenceId,
+                    residencyMs = now - residency.enteredAtMs,
+                )
+            }
+            SentryKillVerdict.ClearStamp -> SentryResidenceStore.clear(this)
+            SentryKillVerdict.None -> Unit
+        }
+    }
+
+    /** [DET-RESIDENT-FGS-001 · F2] Fire-and-forget sentry lifecycle telemetry — same launch pattern
+     *  as [logArmTrigger] (`log` is suspend but never blocks). */
+    private fun logSentry(event: String, signal: String?, sessionId: String, gapMs: Long? = null, residencyMs: Long? = null) {
+        val now = System.currentTimeMillis()
+        lifecycleScope.launch {
+            runCatching {
+                detectionEventLogger.log(
+                    DetectionEvent.Sentry(
+                        sessionId = sessionId,
+                        timestampMs = now,
+                        event = event,
+                        signal = signal,
+                        gapMs = gapMs,
+                        residencyMs = residencyMs,
+                    ),
+                )
+            }.onFailure { e -> PaparcarLogger.w(DIAG, "  ⚠ sentry-event log failed: ${e.message}") }
+        }
     }
 
     private fun startParkingDetection(
@@ -952,6 +1036,7 @@ class CoordinatorDetectionService : LifecycleService() {
     ) {
         logArmTrigger(trigger, detail)
         PaparcarLogger.d(DIAG, "  ▶ startParkingDetection — launching coordinator (trigger=$trigger)")
+        closeSentryResidencyLedger(trigger)
         // [DET-READY-001c] Mark detection as actively running so the Home banner shows Monitoring.
         // Set synchronously here (not inside the coroutine) so a superseded old job's finally — which
         // only flips the flag when it is still the current job — never races this to false.

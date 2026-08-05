@@ -243,4 +243,28 @@ sealed interface DetectionEvent {
         override val timestampMs: Long,
         override val location: GpsPoint? = null,
     ) : DetectionEvent
+
+    /** [DET-RESIDENT-FGS-001] Resident-SENTRY lifecycle telemetry: the service [event]ed the
+     *  resident idle watcher ([ENTERED] after a park, with the epilogue reason as [signal]), handed
+     *  it over to a live tracking job ([WOKE], with the arm trigger as [signal]), or was found dead
+     *  ([KILLED] — the durable residency stamp outlived the process without a deliberate exit).
+     *  [gapMs] is the dark window since the last safety-net heartbeat when the kill was detected on
+     *  the periodic lane; [residencyMs] is time spent in SENTRY before the transition — the per-OEM
+     *  survival metric of the residency experiment. sessionId is the watched parking's geofenceId
+     *  (out-of-session convention above). */
+    data class Sentry(
+        override val sessionId: String,
+        override val timestampMs: Long,
+        val event: String,
+        val signal: String? = null,
+        val gapMs: Long? = null,
+        val residencyMs: Long? = null,
+        override val location: GpsPoint? = null,
+    ) : DetectionEvent {
+        companion object {
+            const val ENTERED = "entered"
+            const val WOKE = "woke"
+            const val KILLED = "killed"
+        }
+    }
 }
