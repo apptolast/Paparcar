@@ -62,4 +62,8 @@
     <string name="notif_action_ive_left">Ich bin weg</string>
     <string name="notif_background_kill_title">Dein Handy blockiert Paparcar</string>
     <string name="notif_background_kill_text">Das System hat die Parkerkennung im Hintergrund stundenlang pausiert. Tippe, um die App zu öffnen und es unter Einstellungen → Erkennung zu beheben.</string>
+    <string name="notif_sentry_title">Auto geparkt — wir achten auf deine Abfahrt</string>
+    <string name="notif_sentry_text">Wenn du losfährst, geben wir deinen Parkplatz für andere frei. Lautlos, minimaler Akkuverbrauch. In den Einstellungen abschaltbar.</string>
+    <string name="channel_sentry_name">Park-Überwachung</string>
+    <string name="channel_sentry_desc">Stille Benachrichtigung, während dein Auto geparkt ist</string>
 </resources>

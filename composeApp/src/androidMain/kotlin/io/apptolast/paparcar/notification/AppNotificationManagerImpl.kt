@@ -307,6 +307,30 @@ class AppNotificationManagerImpl(
     }
 
     /**
+     * [DET-RESIDENT-FGS-001 · F3] The sentry (resident watcher) FGS notification. Deliberately the
+     * quietest thing the OS allows: its own MIN-importance channel (no sound, no vibration, collapsed
+     * in the shade), copy in plain user language — what the app is doing for you and where to turn it
+     * off — never internal mechanics.
+     */
+    override fun buildSentryNotification(): Notification =
+        NotificationCompat.Builder(context, SENTRY_CHANNEL_ID)
+            .setContentTitle(context.getString(R.string.notif_sentry_title))
+            .setContentText(context.getString(R.string.notif_sentry_text))
+            .setStyle(
+                NotificationCompat.BigTextStyle()
+                    .bigText(context.getString(R.string.notif_sentry_text)),
+            )
+            .setSmallIcon(R.drawable.ic_notification_logo)
+            .setCategory(Notification.CATEGORY_SERVICE)
+            .setContentIntent(buildOpenAppIntent(RC_DETECTION))
+            .setOngoing(true)
+            .setShowWhen(false)
+            .setSilent(true)
+            .setPriority(NotificationCompat.PRIORITY_MIN)
+            .setColor(COLOR_DETECTION)
+            .build()
+
+    /**
      * PendingIntent that brings MainActivity to the foreground.
      * Uses SINGLE_TOP + CLEAR_TOP so the existing instance is reused,
      * not stacked on top of itself.
@@ -384,8 +408,20 @@ class AppNotificationManagerImpl(
         ).apply {
             description = context.getString(R.string.channel_debug_desc)
         }
+        // [DET-RESIDENT-FGS-001 · F3] Separate MIN-importance channel so the resident watch can be
+        // silenced/minimised independently of the active-detection notification.
+        val sentryChannel = NotificationChannel(
+            SENTRY_CHANNEL_ID,
+            context.getString(R.string.channel_sentry_name),
+            NotificationManager.IMPORTANCE_MIN,
+        ).apply {
+            description = context.getString(R.string.channel_sentry_desc)
+            enableLights(false)
+            enableVibration(false)
+            setShowBadge(false)
+        }
         notificationManager.createNotificationChannels(
-            listOf(detectionChannel, uploadChannel, actionChannel, debugChannel)
+            listOf(detectionChannel, uploadChannel, actionChannel, debugChannel, sentryChannel)
         )
     }
 
@@ -394,6 +430,7 @@ class AppNotificationManagerImpl(
         const val UPLOAD_CHANNEL_ID = "upload_channel"
         const val ACTION_CHANNEL_ID = "action_channel"
         const val DEBUG_CHANNEL_ID = "debug_channel"
+        const val SENTRY_CHANNEL_ID = "sentry_channel" // [DET-RESIDENT-FGS-001 · F3]
 
         // PendingIntent request codes — must be unique across the app
         private const val RC_DETECTION = 10

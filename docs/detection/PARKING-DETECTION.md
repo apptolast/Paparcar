@@ -1736,4 +1736,17 @@ the process is proof the OS killed the resident watcher. The pure `resolveSentry
 path (a trigger reviving a dead process with the stamp set witnesses the kill live). A reboot
 explains the stamp innocently (silent clear), same rule as `BackgroundKillSuspected`. Q1 resolved:
 SENTRY keeps `FOREGROUND_SERVICE_TYPE_LOCATION` (the type declares capability, not constant use).
-Pending F3: tier/settings gating + low-profile sentry notification (9 locales) + Dev Catalog.
+
+**What (F3, product gating — 2026-08-06).** *The sentry has NO switch of its own* (user decision):
+residency is HOW detection stays ready, so the existing Settings auto-detect toggle governs it —
+`resolveIdleEpilogue` reads `AppPreferences.autoDetectParking` at the fork (the F1/F2
+`SENTRY_ENABLED` experiment const is gone), and deliberately NO tier gating: the ASSISTED tiers
+(no BT receiver to revive a dead process) are exactly where residency saves departures, and its
+cost is one silent notification. While resident, `watchSentryPreconditions` observes the toggle
+and the active sessions; either going false routes through the ordinary serialized STOP command
+(same intake, same epilogue re-reads both facts) — so "turn detection off" or "free my spot"
+tears the resident watcher down immediately, stamp cleared as the deliberate exit it is. The FGS
+notification swaps in SENTRY to a low-profile one (own `sentry_channel`, IMPORTANCE_MIN, silent,
+no badge; plain-language copy in 9 locales — what the app does for you + where to turn it off,
+never internals); the next wake's promote swaps the active-detection one back. Dev Catalog: no
+change needed — no new screen/state/routing (system notification + existing toggle only).

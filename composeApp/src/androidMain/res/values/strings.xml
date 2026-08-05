@@ -66,4 +66,8 @@
     <string name="channel_action_desc">Asks you to confirm whether you have parked</string>
     <string name="channel_debug_name">Debug</string>
     <string name="channel_debug_desc">Debug messages — development builds only</string>
+    <string name="notif_sentry_title">Car parked — we\'re watching for your departure</string>
+    <string name="notif_sentry_text">When you drive off we\'ll free your spot for others. Quiet, minimal battery. Turn off in Settings.</string>
+    <string name="channel_sentry_name">Parked watch</string>
+    <string name="channel_sentry_desc">Silent notification shown while your car is parked</string>
 </resources>

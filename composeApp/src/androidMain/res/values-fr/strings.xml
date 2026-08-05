@@ -62,4 +62,8 @@
     <string name="notif_action_ive_left">Je suis parti</string>
     <string name="notif_background_kill_title">Votre téléphone bloque Paparcar</string>
     <string name="notif_background_kill_text">Le système a suspendu la détection de stationnement en arrière-plan pendant des heures. Touchez pour ouvrir l\'appli et corriger dans Réglages → Détection.</string>
+    <string name="notif_sentry_title">Voiture garée — attentifs à votre départ</string>
+    <string name="notif_sentry_text">Quand vous partirez, nous libérerons votre place pour les autres. Silencieux, batterie minimale. Désactivable dans les Réglages.</string>
+    <string name="channel_sentry_name">Veille stationnement</string>
+    <string name="channel_sentry_desc">Notification silencieuse pendant que votre voiture est garée</string>
 </resources>

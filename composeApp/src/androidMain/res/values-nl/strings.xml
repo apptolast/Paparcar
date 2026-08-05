@@ -62,4 +62,8 @@
     <string name="notif_action_ive_left">Ik ben weg</string>
     <string name="notif_background_kill_title">Je telefoon blokkeert Paparcar</string>
     <string name="notif_background_kill_text">Het systeem heeft de parkeerdetectie urenlang op de achtergrond gepauzeerd. Tik om de app te openen en dit op te lossen in Instellingen → Detectie.</string>
+    <string name="notif_sentry_title">Auto geparkeerd — we letten op je vertrek</string>
+    <string name="notif_sentry_text">Als je wegrijdt, geven we je plek vrij voor anderen. Stil, minimaal batterijgebruik. Uit te zetten in Instellingen.</string>
+    <string name="channel_sentry_name">Parkeerwacht</string>
+    <string name="channel_sentry_desc">Stille melding terwijl je auto geparkeerd staat</string>
 </resources>

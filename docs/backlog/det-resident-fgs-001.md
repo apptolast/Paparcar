@@ -1,17 +1,17 @@
 # DET-RESIDENT-FGS-001 — FGS residente en modo centinela (GPS apagado en reposo) para no perder salidas por re-arranque
 
-**Estado:** ✅ F1 + F2 COMPLETOS en `feature/DET-RESIDENT-FGS-001` (rebasada sobre master
-`09b806e3` con GAP-ANCHOR-001): `9182ef42` (F1 + SigMotion directo) + `e49923c9` (2026-07-30, flip
-`SENTRY_ENABLED = true` — el sentry pasa a ser el estado de la rama tras dos field-tests) + F2
-(2026-08-04, telemetría sentry — ver Fases abajo). Suite prod completa verde +
-`compileMockDebugKotlinAndroid` verde + `SentryLifecycleDecisionTest` (9 casos: 4 lifecycle F1 +
-5 kill-verdict F2).
+**Estado:** ✅ F1 + F2 + F3 COMPLETOS en `feature/DET-RESIDENT-FGS-001` (rebasada 2026-08-05 sobre
+master `c415e36b`, que ya incluye TRIP-WITNESS/BACKFILL-TAINT/EXACT-HEARTBEAT/JAM-WINDOW/
+ROUTE-ORIGIN): F1 + SigMotion directo, F2 telemetría (2026-08-04), F3 gating producto (2026-08-06,
+ver Fases abajo). Suite prod completa verde + `assembleMockDebug` verde + `SentryLifecycleDecisionTest`
+(9 casos). **✅ EN MASTER** (mergeada FF 2026-08-06 tras completar F3, go del user; fases F1/F2/F3
+conservadas como commits). ⏳ Pendiente: APK de campo nuevo + field-test del paquete completo.
 **Field-tests 28/29-07 (Rota) y 29/30-07 (El Puerto): 0 FN en ambos OEMs, Oppo revive tras muerte
 por batería, todo trigger disparó. Field 30-07 tarde (Redmi): MIUI mató el sentry tras la sesión
 21:19 y NADA lo revivió (deep-kill ≈ force-stop; palanca = autostart, no código) — exactamente el
-evento que la telemetría F2 hace visible como `sentry killed`.** ⏳ F3 (gating por tier/settings +
-notif centinela + Dev Catalog) antes de merge a master; pendiente acotar el GPS de sesiones
-desatendidas sin conducción (coste batería en despertares falsos). Q1/Q2 decididas (ver abajo).
+evento que la telemetría F2 hace visible como `sentry killed`.** F3 ✅ 2026-08-06 (ver Fases);
+pendiente acotar el GPS de sesiones desatendidas sin conducción (coste batería en despertares
+falsos). Q1/Q2 decididas (ver abajo).
 **Origen:** Pieza 1 del plan derivado del análisis decompilado de Driversnote
 (`project_det_driversnote_learnings_plan` en memoria; competidor = plugin Transistor
 `react-native-background-geolocation`). Ataca la subclase crónica de FN "OEM/Doze mató el
@@ -211,7 +211,24 @@ en Ajustes + Dev Catalog (galería/escenarios mock, regla `feedback_keep_dev_cat
   muerto con sello puesto = kill presenciado en vivo). Reboot explica el sello inocentemente (clear
   silencioso, misma regla que `BackgroundKillSuspected`). La resolución del tipo de FGS (§4) quedó
   cerrada en Q1: mantener `LOCATION`. Telemetría silenciosa — regla "earn the ask" intacta.
-- **F3** — gating por tier + setting en Ajustes + notificación centinela (copy 9 locales) + Dev Catalog.
+- **F3** ✅ COMPLETO (2026-08-06) — gating de producto, con una decisión del user que SIMPLIFICA la
+  spec original (§6): **el centinela NO tiene interruptor propio** — el toggle de auto-detección de
+  Ajustes lo gobierna ("una idea, un interruptor"; un 2º toggle expondría mecánica interna y crearía
+  el estado absurdo detección-sí-centinela-no). Y **sin gating por tier**, invirtiendo la propuesta
+  original: los tiers ASISTIDOS (sin receiver BT que reviva un proceso muerto) son justo donde la
+  residencia salva salidas; su coste es una notificación silenciosa. Implementación: (a)
+  `resolvePostDetectionLifecycle(autoDetectEnabled, hasParkedSession)` — el const `SENTRY_ENABLED`
+  eliminado, `resolveIdleEpilogue` lee `AppPreferences.autoDetectParking`; (b)
+  `watchSentryPreconditions()` en SENTRY observa toggle + sesiones activas y ante cualquier caída
+  se auto-envía el STOP serializado (mismo intake/epílogo → teardown deliberado, sello limpiado) —
+  cubre "apagar detección en Ajustes" y "liberar la plaza desde Home" con el FGS residente; (c)
+  notificación centinela real: `buildSentryNotification()` en canal propio `sentry_channel`
+  (IMPORTANCE_MIN, silenciosa, sin badge), copy en llano causa+consecuencia+remedio en 9 locales
+  (`notif_sentry_title/text`, `channel_sentry_name/desc`), swap in-place al entrar en SENTRY y
+  vuelta a la de detección activa en el siguiente promote; (d) Dev Catalog: sin cambios — no hay
+  pantalla/estado/routing nuevo (solo notificación de sistema + toggle existente).
+  Tarea aparte creada: `det-stop-button-001.md` (botón de usuario para PARAR una detección en
+  curso — pendiente de definir; no confundir con este gating).
 - **F4** — (FUERA de esta rama) Pieza 2: ancla estacionaria pasiva-continua encima de SENTRY.
 
 ## Ficheros previstos

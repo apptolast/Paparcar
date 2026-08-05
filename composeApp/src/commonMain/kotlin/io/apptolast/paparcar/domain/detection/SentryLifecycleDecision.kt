@@ -6,15 +6,17 @@ package io.apptolast.paparcar.domain.detection
  * [ServicePresence.Sentry] (GPS off, waiting to catch the next departure on a live process).
  *
  * Kept as a pure function in commonMain so the (Android-only, race-fix-laden) service reads its fate
- * from one tested place instead of inlining the branch. F1 gates SENTRY on two things only:
- *  - `sentryEnabled` — the internal experiment flag (default OFF → always [PostDetectionLifecycle.Stop],
- *    i.e. byte-for-byte today's behaviour), and
+ * from one tested place instead of inlining the branch. SENTRY is gated on two things only:
+ *  - `autoDetectEnabled` — the user's Settings auto-detect toggle. F3 decision (2026-08-06, user):
+ *    the sentry has NO switch of its own — residency is HOW detection stays ready, so the existing
+ *    detection toggle governs it. During F1/F2 this input was an internal experiment flag.
  *  - `hasParkedSession` — residency is pointless with nothing parked to watch (after a revert / with
  *    no active session, DIE so we never leave a resident FGS with no purpose).
  *
- * Tier gating (only the "automatic" tier stays resident) is deliberately NOT here yet — it lands in
- * F3 with the settings + notification work. Keeping it out of F1 means the flag alone controls the
- * blast radius during the device experiment.
+ * Deliberately NOT tier-gated: the sentry costs a silent minimum-importance notification and near-zero
+ * battery on every tier, and the ASSISTED tiers (no BT receiver to revive a dead process) are exactly
+ * where residency saves departures. Who wants no permanent notification turns detection off — one
+ * concept, one switch.
  */
 enum class PostDetectionLifecycle {
     /** Tear the service down — `stopSelfResult` + onDestroy, exactly as today. */
@@ -25,10 +27,10 @@ enum class PostDetectionLifecycle {
 }
 
 fun resolvePostDetectionLifecycle(
-    sentryEnabled: Boolean,
+    autoDetectEnabled: Boolean,
     hasParkedSession: Boolean,
 ): PostDetectionLifecycle =
-    if (sentryEnabled && hasParkedSession) PostDetectionLifecycle.EnterSentry else PostDetectionLifecycle.Stop
+    if (autoDetectEnabled && hasParkedSession) PostDetectionLifecycle.EnterSentry else PostDetectionLifecycle.Stop
 
 /**
  * [DET-RESIDENT-FGS-001 · F2] Pure verdict for a sentry-residency stamp found on disk. The service

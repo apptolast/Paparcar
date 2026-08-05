@@ -62,4 +62,8 @@
     <string name="notif_action_ive_left">Sono uscito</string>
     <string name="notif_background_kill_title">Il tuo telefono sta bloccando Paparcar</string>
     <string name="notif_background_kill_text">Il sistema ha sospeso per ore il rilevamento del parcheggio in background. Tocca per aprire l\'app e risolvere in Impostazioni → Rilevamento.</string>
+    <string name="notif_sentry_title">Auto parcheggiata — attenti alla tua partenza</string>
+    <string name="notif_sentry_text">Quando riparti libereremo il tuo posto per gli altri. Silenziosa, batteria minima. Si disattiva nelle Impostazioni.</string>
+    <string name="channel_sentry_name">Sorveglianza parcheggio</string>
+    <string name="channel_sentry_desc">Notifica silenziosa mentre la tua auto è parcheggiata</string>
 </resources>

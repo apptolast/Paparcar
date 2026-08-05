@@ -28,6 +28,7 @@ import io.apptolast.paparcar.domain.detection.PostDetectionLifecycle
 import io.apptolast.paparcar.domain.detection.SentryKillVerdict
 import io.apptolast.paparcar.domain.detection.ServicePresence
 import io.apptolast.paparcar.domain.detection.resolvePostDetectionLifecycle
+import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.detection.resolveSentryKillVerdict
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.detection.TripContext
@@ -62,6 +63,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -98,6 +101,9 @@ class CoordinatorDetectionService : LifecycleService() {
     // [DET-RESIDENT-FGS-001] Armed when the service degrades to SENTRY so a departure that Play
     // Services starves still wakes the (now live) process. Same singleton the safety-net worker syncs.
     private val significantMotionMonitor: SignificantMotionMonitor by inject()
+    // [DET-RESIDENT-FGS-001 · F3] The Settings auto-detect toggle governs residency — the sentry has
+    // no switch of its own (user decision 2026-08-06: one concept, one switch).
+    private val appPreferences: AppPreferences by inject()
 
     // [REFACTOR: extract FGS lifecycle into ForegroundServiceController]
     private val fgs by lazy { ForegroundServiceController(this) }
@@ -105,6 +111,9 @@ class CoordinatorDetectionService : LifecycleService() {
     // Main-thread-only — lifecycleScope's default dispatcher is Main.immediate. @Volatile is
     // belt-and-braces against potential cross-thread reads from diagnostic code. [audit C-2]
     @Volatile private var detectionJob: Job? = null
+
+    /** [DET-RESIDENT-FGS-001 · F3] Alive only while resident in SENTRY — see [watchSentryPreconditions]. */
+    private var sentryWatchJob: Job? = null
 
     /**
      * [DET-INTAKE-001] The service receives many independent trigger intents (AR ENTER decision
@@ -892,6 +901,8 @@ class CoordinatorDetectionService : LifecycleService() {
         if (detectionJob?.isActive == true) return
         // [DET-RESIDENT-FGS-001 · F2] Error-path teardown is still a DELIBERATE stop — drop any
         // residency stamp so the kill detector never reads this as an OS kill.
+        sentryWatchJob?.cancel()
+        sentryWatchJob = null
         SentryResidenceStore.clear(this)
         val stopped = fgs.stopForegroundAndSelf(startId) // [FIX BUG-FGS-100][DET-INTAKE-001]
         PaparcarLogger.d(DIAG, "  stopIfIdle($reason) → stopSelfResult($startId)=$stopped")
@@ -913,12 +924,19 @@ class CoordinatorDetectionService : LifecycleService() {
         val parkedSessions = runCatching {
             userParkingRepository.observeActiveSessions().firstOrNull().orEmpty()
         }.getOrElse { emptyList() }
-        when (resolvePostDetectionLifecycle(sentryEnabled = SENTRY_ENABLED, hasParkedSession = parkedSessions.isNotEmpty())) {
+        when (
+            resolvePostDetectionLifecycle(
+                autoDetectEnabled = appPreferences.autoDetectParking, // [F3] Settings toggle IS the sentry gate
+                hasParkedSession = parkedSessions.isNotEmpty(),
+            )
+        ) {
             PostDetectionLifecycle.EnterSentry ->
                 enterSentry(reason, parkedSessions.firstNotNullOfOrNull { it.geofenceId })
             PostDetectionLifecycle.Stop -> {
                 // [DET-RESIDENT-FGS-001 · F2] Deliberate teardown — a residency (if any) ends HERE,
                 // not by a kill: drop the stamp so the kill detector never mistakes this for one.
+                sentryWatchJob?.cancel()
+                sentryWatchJob = null
                 SentryResidenceStore.clear(this)
                 // (b) stopSelfResult still lets a newer queued intent veto a stale stop.
                 val stopped = fgs.stopForegroundAndSelf(startId) // [FIX BUG-FGS-100][DET-INTAKE-001]
@@ -949,6 +967,16 @@ class CoordinatorDetectionService : LifecycleService() {
         logSentry(DetectionEvent.Sentry.ENTERED, signal = reason, sessionId = residency.geofenceId)
         PaparcarLogger.d(DIAG, "  ⏾ enterSentry($reason) — resident, GPS off, re-arming departure wake [DET-RESIDENT-FGS-001]")
         if (BuildConfig.DEBUG) notificationPort.showDebug("SENTRY: servicio residente (GPS off), vigilando salida")
+        // [F3] Swap the FGS notification for the low-profile sentry one (own MIN-importance silent
+        // channel, plain-language copy). startForeground with the same id replaces it in place; the
+        // next wake's promote (every onStartCommand) swaps the active-detection one back.
+        runCatching {
+            fgs.promote(
+                notificationId = AppNotificationManager.DETECTION_NOTIFICATION_ID,
+                notification = foregroundNotificationProvider.buildSentryNotification(),
+                withLocationPermission = hasRequiredPermissions(),
+            )
+        }.onFailure { e -> PaparcarLogger.w(DIAG, "  ⚠ enterSentry notification swap failed: ${e.message}") }
         runCatching { significantMotionMonitor.sync(shouldBeArmed = true) }
             .onFailure { e -> PaparcarLogger.w(DIAG, "  ⚠ enterSentry sig-motion arm failed: ${e.message}") }
         runCatching {
@@ -957,6 +985,35 @@ class CoordinatorDetectionService : LifecycleService() {
                 source = ParkingSafetyNetWorker.SOURCE_DETECTION_END,
             )
         }.onFailure { e -> PaparcarLogger.w(DIAG, "  ⚠ enterSentry safety-net enqueue failed: ${e.message}") }
+        watchSentryPreconditions()
+    }
+
+    /**
+     * [DET-RESIDENT-FGS-001 · F3] While resident, watch the two facts that justify residency — the
+     * Settings auto-detect toggle and the existence of a parked session. Either going false ends the
+     * watch through the ordinary serialized STOP command (same intake, same epilogue, which re-reads
+     * both facts and resolves Stop) — so "turn detection off in Settings" or "free my spot from Home"
+     * tears the resident watcher down within the same second, with the residency stamp cleared as the
+     * deliberate exit it is. The job is cancelled on every exit from SENTRY (wake or teardown).
+     */
+    private fun watchSentryPreconditions() {
+        sentryWatchJob?.cancel()
+        sentryWatchJob = lifecycleScope.launch {
+            combine(
+                appPreferences.observeAutoDetectParking(),
+                userParkingRepository.observeActiveSessions(),
+            ) { enabled, sessions -> enabled && sessions.isNotEmpty() }
+                .distinctUntilChanged()
+                .collect { residencyStillWanted ->
+                    if (!residencyStillWanted && detectionRuntime.presence.value == ServicePresence.Sentry) {
+                        PaparcarLogger.d(DIAG, "  ⏻ sentry stand-down (detection off or nothing parked) → STOP_TRACKING")
+                        startService(
+                            Intent(this@CoordinatorDetectionService, CoordinatorDetectionService::class.java)
+                                .setAction(ACTION_STOP_TRACKING),
+                        )
+                    }
+                }
+        }
     }
 
     /**
@@ -968,6 +1025,9 @@ class CoordinatorDetectionService : LifecycleService() {
      * worker runs on its periodic lane, witnessed live instead (no heartbeat gap to measure here).
      */
     private fun closeSentryResidencyLedger(trigger: DetectionTrigger) {
+        // [F3] Leaving SENTRY (whatever the destination) ends the precondition watch.
+        sentryWatchJob?.cancel()
+        sentryWatchJob = null
         val residency = SentryResidenceStore.read(this)
         val now = System.currentTimeMillis()
         if (detectionRuntime.presence.value == ServicePresence.Sentry) {
@@ -1270,14 +1330,9 @@ class CoordinatorDetectionService : LifecycleService() {
     }
 
     companion object {
-        /**
-         * [DET-RESIDENT-FGS-001] F1 internal kill-switch for the SENTRY residency experiment. OFF →
-         * the service dies between parkings exactly as today (wake-and-kill). ON → after a park it
-         * stays resident with the GPS off so a departure trigger lands on a live process. Kept a
-         * plain const (not a setting) for F1 — the tier/settings gating lands in F3. Flip to true
-         * only for the on-device A/B experiment.
-         */
-        private const val SENTRY_ENABLED = true
+        // [DET-RESIDENT-FGS-001 · F3] The F1/F2 SENTRY_ENABLED experiment const is gone: residency is
+        // now governed at runtime by the Settings auto-detect toggle (resolveIdleEpilogue reads
+        // AppPreferences.autoDetectParking) — the sentry has no switch of its own.
 
         /** m/s → km/h factor for the one-shot exit-speed sample. [DET-SOLID-001] */
         private const val KMH_PER_MPS = 3.6f
