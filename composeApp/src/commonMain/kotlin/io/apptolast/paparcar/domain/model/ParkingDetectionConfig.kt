@@ -224,6 +224,24 @@ data class ParkingDetectionConfig(
      *  a slow GPS warm-up plus margin for the first driving fix; any movement or verified
      *  upgrade during the probe restores the full-session behaviour automatically. */
     val staleExitNoMovementMs: Long = 75_000L,
+    /** [DET-JAM-WINDOW-001] RECENT displacement (metres, measured across [jamCreepWindowMs]) that
+     *  distinguishes a TRAFFIC-JAM CRAWL from everything else at the [maxNoMovementMs] check. A
+     *  car creeping through a jam or a stop-go light KEEPS advancing tens of metres per window
+     *  without ever reaching [minimumTripSpeedMps]. Recency is the discriminator: a pedestrian who
+     *  walked away and came to rest shows displacement-from-origin but ZERO recent creep
+     *  (replay `Trace_LateExitOnFoot001`: 42 m walk tail, then 3.5 min at rest — must stay a
+     *  silent fold), and a zombie arm at home never leaves GPS noise (< ~20 m). */
+    val jamCreepMinMeters: Float = 30f,
+    /** [DET-JAM-WINDOW-001] Window (ms) over which recent creep is measured. 2 min: long enough
+     *  that stop-go traffic keeps qualifying between crawls, short enough that a walker at rest
+     *  or a car genuinely parked stops qualifying within a couple of minutes. */
+    val jamCreepWindowMs: Long = 2 * 60_000L,
+    /** [DET-JAM-WINDOW-001] Extended no-movement ceiling granted ONLY while recent creep persists
+     *  — the spirit of Driversnote's 10-min stopTimeout, scoped to the one case where the extra
+     *  GPS is justified by measured evidence of a crawl. Stationary spurious arms keep folding at
+     *  [maxNoMovementMs] (or the 75-s zombie probe) and a crawl that stops folds ~one window
+     *  later, so the OEM power-abuse profile of false starts is unchanged (field 2026-07-24/25). */
+    val jamExtendedNoMovementMs: Long = 10 * 60_000L,
 
     // ── DEPARTURE DETECTION ───────────────────────────────────────────────────
     /** Maximum time (ms) between an IN_VEHICLE_ENTER transition and a GEOFENCE_EXIT for
@@ -728,6 +746,15 @@ data class ParkingDetectionConfig(
         }
         require(staleExitNoMovementMs in 1..maxNoMovementMs) {
             "staleExitNoMovementMs must be in 1..maxNoMovementMs, was $staleExitNoMovementMs"
+        }
+        require(jamCreepMinMeters > 0f) {
+            "jamCreepMinMeters must be > 0, was $jamCreepMinMeters"
+        }
+        require(jamCreepWindowMs > 0) {
+            "jamCreepWindowMs must be > 0, was $jamCreepWindowMs"
+        }
+        require(jamExtendedNoMovementMs >= maxNoMovementMs) {
+            "jamExtendedNoMovementMs must be >= maxNoMovementMs, was $jamExtendedNoMovementMs"
         }
         require(minimumDepartureSpeedKmh > 0) {
             "minimumDepartureSpeedKmh must be > 0, was $minimumDepartureSpeedKmh"

@@ -466,6 +466,12 @@ class CoordinatorParkingDetector(
 
         var completed = false
         var locationCount = 0
+        // [DET-JAM-WINDOW-001] Whether this session earned the extended no-movement budget by
+        // measured recent creep — logged once, and folds under the distinct jam outcome label.
+        var jamExtensionLogged = false
+        // [DET-JAM-WINDOW-001] Rolling window of credible pre-drive fixes; recent creep = the
+        // displacement between its oldest and newest entries. Session-scoped, cleared with invoke.
+        val creepWindow = ArrayDeque<Pair<Long, GpsPoint>>()
 
         // [DET-LOG-04] Edge-detect the AR signals so each transition is logged once (not on every
         // subsequent fix). Reset to false when the signal clears (driving away), so a re-entry logs again.
@@ -838,17 +844,64 @@ class CoordinatorParkingDetector(
                     // [DET-ZOMBIE-PROBE-001] A stale-delivered EXIT gets the SHORT probe: a real
                     // mid-drive far delivery shows driving fixes within seconds, a zombie delivery
                     // never will — no point burning the full window on a phone sitting at home.
+                    // [DET-JAM-WINDOW-001] A TRAFFIC-JAM CRAWL is neither: the car leaves the spot
+                    // but creeps below driving speed past the 4-min budget (a long light, a jam at
+                    // the exit), and the silent fold lost the whole trip's coverage. Measured creep
+                    // (displacement ≥ jamCreepMinMeters from the session origin) buys the session
+                    // the extended budget — a stationary spurious arm shows only GPS noise and
+                    // keeps folding at the standard budget, so the OEM power profile of false
+                    // starts is unchanged. Stale-lane zombies never get the extension.
+                    if (!state.hasEverReachedDrivingSpeed) {
+                        if (location.accuracy <= JAM_CREEP_MAX_ACCURACY_M) creepWindow.addLast(now to location)
+                        while (creepWindow.isNotEmpty() && now - creepWindow.first().first > config.jamCreepWindowMs) {
+                            creepWindow.removeFirst()
+                        }
+                    }
                     val noMovementBudgetMs =
                         if (staleExitDelivery) config.staleExitNoMovementMs else config.maxNoMovementMs
                     if (!state.hasEverReachedDrivingSpeed && (now - sessionStartMs) > noMovementBudgetMs) {
-                        PaparcarLogger.d(
-                            DIAG,
-                            "  ⚑ no-movement guard hit after ${noMovementBudgetMs}ms " +
-                                "(staleExitDelivery=$staleExitDelivery) → completed=true (spurious arm)",
-                        )
-                        sessionOutcome = "aborted_no_movement"
-                        completed = true
-                        return@collect
+                        val recentCreepMeters = if (creepWindow.size >= 2) {
+                            val oldest = creepWindow.first().second
+                            val newest = creepWindow.last().second
+                            io.apptolast.paparcar.domain.util.haversineMeters(
+                                oldest.latitude, oldest.longitude, newest.latitude, newest.longitude,
+                            )
+                        } else 0.0
+                        val jamCrawl = !staleExitDelivery && recentCreepMeters >= config.jamCreepMinMeters
+                        if (jamCrawl && (now - sessionStartMs) <= config.jamExtendedNoMovementMs) {
+                            if (!jamExtensionLogged) {
+                                jamExtensionLogged = true
+                                PaparcarLogger.d(
+                                    DIAG,
+                                    "  ⏲ no-movement budget EXTENDED — recent creep ${recentCreepMeters.toInt()}m " +
+                                        "in ${config.jamCreepWindowMs}ms without driving speed (jam/stop-go " +
+                                        "crawl) → watching until ${config.jamExtendedNoMovementMs}ms [DET-JAM-WINDOW-001]",
+                                )
+                            }
+                        } else {
+                            PaparcarLogger.d(
+                                DIAG,
+                                "  ⚑ no-movement guard hit after ${now - sessionStartMs}ms " +
+                                    "(budget=${noMovementBudgetMs}ms staleExitDelivery=$staleExitDelivery " +
+                                    "recentCreep=${recentCreepMeters.toInt()}m jamExtended=$jamExtensionLogged) → completed=true",
+                            )
+                            // Distinct outcome + telemetry when the extension ran: field data sizes
+                            // this cohort (jam that never cleared? crawl into a re-park?) before
+                            // deciding whether it deserves a nudge. [DET-JAM-WINDOW-001]
+                            sessionOutcome = if (jamExtensionLogged) "aborted_no_movement_jam" else "aborted_no_movement"
+                            if (jamExtensionLogged) {
+                                logDetection { sid ->
+                                    DetectionEvent.Decision(
+                                        sid, now,
+                                        outcome = "NO_MOVEMENT_JAM_FOLD",
+                                        pathLabel = "recentCreep=${recentCreepMeters.toInt()}m rawMax=${state.pendingMaxSpeedMps}mps",
+                                        location = location,
+                                    )
+                                }
+                            }
+                            completed = true
+                            return@collect
+                        }
                     }
 
                     // Lock vehicleId on first driving-speed fix. [BUG-NEW-VEHICLE-DEFAULT] [BUG-SHORT-TRIP]
@@ -2381,6 +2434,11 @@ class CoordinatorParkingDetector(
     private companion object {
         const val TAG = "CoordinatorParkingDetector"
         const val DIAG = "PARKDIAG/Coord"
+
+        /** [DET-JAM-WINDOW-001] Fixes worse than this never enter the creep window — a multipath
+         *  teleport (acc 100+) at home must not fabricate the recent-creep that buys the extended
+         *  no-movement budget. */
+        const val JAM_CREEP_MAX_ACCURACY_M = 50f
 
         /** [DET-DRIVE-PROOF-001] Fraction of the window displacement every LATE-half in-window
          *  fix must already sit from the look-back position — the flat-then-jump mirage keeps

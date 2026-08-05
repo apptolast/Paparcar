@@ -1642,3 +1642,34 @@ Honest residual: force-stop (OEM deep-kill) cancels alarms like everything else;
 terrain is Doze + cached-kill + starved Play Services, where the worker used to arrive late.
 Converts "AR never fired and the process was dead" from a lost departure into a ≤5-15 min delay —
 which DET-ROUTE-ORIGIN-001's backdated origin then hides from the drawn route entirely.
+
+### DET-JAM-WINDOW-001 — recent creep extends the no-movement budget; a jam at the exit no longer folds the session (2026-07-30)
+
+**Why (piece 3 of the Driversnote plan).** `maxNoMovementMs` (4 min) silently folds any session
+that never reaches driving speed — correct against spurious arms (ghost AR at home, zombie
+EXITs), but it also killed the innocent cohort: leaving the spot into stop-go traffic or a long
+red light, crawling below 18 km/h past the 4-min mark. The post-drive half of "abort→prompt"
+already exists (DET-NODRIVE-ZONE / DET-GAP-ANCHOR unattended paths); this covers the PRE-drive
+hole.
+
+**What — RECENT creep is the discriminator.** A rolling 2-min window of credible fixes
+(accuracy ≤ 50 m) measures displacement oldest→newest. A jam KEEPS advancing ≥ 30 m per window;
+a walker who came to rest (replay `Trace_LateExitOnFoot001`: 42 m walk tail, then 3.5 min still
+— the fixture that killed the naive origin-displacement design) and a zombie arm at home both
+show ~zero recent creep. Recent creep at the 4-min check extends the watch to 10 min
+(Driversnote's stopTimeout spirit); the creep stopping folds it ~one window later; the 10-min
+ceiling folds with the distinct outcome `aborted_no_movement_jam` + a `NO_MOVEMENT_JAM_FOLD`
+decision event so field data can size the cohort before deciding whether it deserves a nudge
+(deliberately NO prompt in v1 — never nag a driver mid-jam, never resurrect the nightly
+spurious-arm nag of 2026-07-24/25). The stale/zombie 75-s probe NEVER extends. Watching longer
+confirms nothing — the confirmation ladder is untouched.
+
+### DET-DRIVE-FILTER-001 — driving distanceFilter CLOSED by analysis (2026-07-30)
+
+Driversnote can mute GPS at stops because their stop detection is Motion-API-based. Ours is the
+deliberate inverse: HIGH_ACCURACY 5-s fixes while slow/stopped ARE the parking detector
+(Candidate opening, anchor capture, kinematic egress), and in BALANCED (>18 km/h, 30-s beats
+covering >150 m) a 20-m filter suppresses nothing. A distance filter would blind the stop
+transition itself — the intended wins are already delivered elsewhere (SENTRY GPS-off parked,
+MapTrail decimation + street-routed matcher for the trace, DET-JAM-WINDOW-001 for jams). Reopen
+only if stop detection ever moves off GPS.

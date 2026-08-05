@@ -726,6 +726,111 @@ class CoordinatorParkingDetectorTest {
         }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // [DET-JAM-WINDOW-001] Measured creep buys the extended no-movement budget
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Test
+    fun should_extend_no_movement_budget_when_creeping_through_a_jam() =
+        runTest(UnconfinedTestDispatcher()) {
+            // Left the spot but stuck in stop-go traffic: ~55 m of RECENT crawl below driving
+            // speed at the 4-min check must keep the session alive instead of folding it silently.
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            locations.emit(GpsPoint(40.0, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+            nowMs = config.maxNoMovementMs - 10_000L
+            locations.emit(GpsPoint(40.0, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+            // 55 m crawled since the fix 11 s ago — recent creep, guard must extend.
+            nowMs = config.maxNoMovementMs + 1_000L
+            locations.emit(GpsPoint(40.0005, -3.7, accuracy = 5f, timestamp = 0L, speed = 2f))
+            // Still creeping within each window — stays alive deep into the extended budget.
+            nowMs = config.maxNoMovementMs + 100_000L
+            locations.emit(GpsPoint(40.0010, -3.7, accuracy = 5f, timestamp = 0L, speed = 2f))
+
+            assertTrue(
+                env.detectionLogger.events.filterIsInstance<DetectionEvent.SessionEnded>().isEmpty(),
+                "a measured recent crawl must not fold at the standard budget",
+            )
+            job.cancelAndJoin()
+        }
+
+    @Test
+    fun should_fold_with_the_jam_outcome_when_the_extended_budget_expires_without_driving() =
+        runTest(UnconfinedTestDispatcher()) {
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            locations.emit(GpsPoint(40.0, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+            // Crawling ~55 m per beat, each beat inside the creep window, past the standard budget…
+            var lat = 40.0
+            var t = config.maxNoMovementMs - 10_000L
+            while (t <= config.jamExtendedNoMovementMs) {
+                nowMs = t
+                locations.emit(GpsPoint(lat, -3.7, accuracy = 5f, timestamp = 0L, speed = 2f))
+                lat += 0.0005
+                t += 100_000L
+            }
+            // …until the extended ceiling: still creeping, still never drove — fold, jam label.
+            nowMs = config.jamExtendedNoMovementMs + 1_000L
+            locations.emit(GpsPoint(lat, -3.7, accuracy = 5f, timestamp = 0L, speed = 2f))
+
+            job.cancelAndJoin()
+
+            // Distinct label so field telemetry can size the cohort (jam that never cleared vs
+            // crawl into a re-park) before deciding whether it deserves a nudge; no pin, no save.
+            val ended = env.detectionLogger.events
+                .filterIsInstance<DetectionEvent.SessionEnded>().single()
+            assertEquals("aborted_no_movement_jam", ended.outcome)
+            assertEquals(0, env.parkingRepo.saveNewParkingSessionCallCount)
+        }
+
+    @Test
+    fun should_not_extend_the_budget_for_stationary_gps_noise() =
+        runTest(UnconfinedTestDispatcher()) {
+            // A zombie/batched arm at home: ~11 m of GPS noise is not creep — the standard
+            // 4-min fold (and its OEM power profile) must stay exactly as it was.
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            locations.emit(GpsPoint(40.0, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+            nowMs = config.maxNoMovementMs + 1_000L
+            locations.emit(GpsPoint(40.0001, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+
+            job.cancelAndJoin()
+
+            val ended = env.detectionLogger.events
+                .filterIsInstance<DetectionEvent.SessionEnded>().single()
+            assertEquals("aborted_no_movement", ended.outcome)
+        }
+
+    @Test
+    fun should_never_extend_the_stale_lane_probe_even_with_creep() =
+        runTest(UnconfinedTestDispatcher()) {
+            // The zombie probe's whole point is folding fast on stale deliveries — displacement
+            // on a stale arm is untrustworthy (the phone may have travelled since the event).
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations, staleExitDelivery = true) }
+
+            locations.emit(GpsPoint(40.0, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+            nowMs = config.staleExitNoMovementMs + 1_000L
+            locations.emit(GpsPoint(40.001, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+
+            job.cancelAndJoin()
+
+            val ended = env.detectionLogger.events
+                .filterIsInstance<DetectionEvent.SessionEnded>().single()
+            assertEquals("aborted_no_movement", ended.outcome)
+        }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // [DET-ZOMBIE-PROBE-001] Stale-delivered EXITs get the SHORT no-movement probe
     // ─────────────────────────────────────────────────────────────────────────
 
