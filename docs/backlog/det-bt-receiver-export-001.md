@@ -1,7 +1,7 @@
 # DET-BT-RECEIVER-EXPORT-001 — El receiver ACL Bluetooth nunca recibió un evento (exported=false)
 
-> **Estado:** fix aplicado en rama `bugfix/DET-BT-RECEIVER-EXPORT-001` (worktree `../Paparcar-btreceiver`), 2026-08-06.
-> Staged, sin commit. ⏳ Pendiente: APK + validación en device (reconectar BT emparejado → ver `▶ BT` en parkdiag).
+> **Estado:** ✅ EN MASTER e2531a10 (2026-08-06, rebase + ff-only). APK de integración (field/2026-07-30-integration + cherry-pick) INSTALADO en Oppo y Redmi 06-08.
+> ⏳ Pendiente: validación en device (cascos → "no vehicle paired"; Kamiq → matched) + field-test pin `path=bt`.
 
 ## Síntoma (field 2026-08-01 y 03, Oppo, Skoda Kamiq)
 

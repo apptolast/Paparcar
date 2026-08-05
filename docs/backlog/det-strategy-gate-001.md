@@ -1,9 +1,10 @@
 # DET-STRATEGY-GATE-001 — La estrategia se decide en UN punto: con Bluetooth, el Coordinator no arma y el centinela no se queda residente
 
-> **Estado:** implementado en rama `feature/DET-STRATEGY-GATE-001` (worktree `../Paparcar-strategygate`),
-> basada en `feature/DET-RESIDENT-FGS-001` (ebf47c81), 2026-08-06. Staged sin commit; tests verdes.
-> **Orden de aterrizaje obligatorio:** DESPUÉS de validar en campo DET-BT-RECEIVER-EXPORT-001
-> (con el receiver BT aún muerto, este gate convierte el bug en FN silencioso total).
+> **Estado:** ✅ EN MASTER 75614053 (2026-08-06, rebasado sobre F3 cab6e703 + ff-only; firma
+> combinada `resolvePostDetectionLifecycle(autoDetectEnabled, hasParkedSession, strategy)`).
+> ⚠️ NO está en el APK de campo instalado el 06-08 (solo lleva el fix del receiver, a propósito):
+> el próximo APK de campo desde master lo incluirá — generarlo SOLO tras validar en device
+> DET-BT-RECEIVER-EXPORT-001 (con el receiver BT muerto, este gate = FN silencioso total).
 > "Gate" = puerta única de admisión: una función pura que decide si un trigger puede armar.
 
 ## Problema (field 2026-08-01 → 04, Oppo + Skoda Kamiq BT)
