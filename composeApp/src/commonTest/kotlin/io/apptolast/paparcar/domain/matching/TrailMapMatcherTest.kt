@@ -40,4 +40,51 @@ class TrailMapMatcherTest {
         val trail = listOf(gp(36.6, -6.23), gp(36.601, -6.231))
         assertEquals(trail, TrailMapMatcher.snap(trail, emptyList()))
     }
+
+    // ── v2 — long gaps routed along the road graph [DET-ROUTE-ORIGIN-001] ──────────
+
+    @Test
+    fun `should fill a long gap by routing through the street corner instead of a straight chord`() {
+        // L-shaped streets sharing the corner node (36.6000, -6.2300): one east-west, one north-south.
+        val eastWest = RoadWay(listOf(gp(36.6000, -6.2400), gp(36.6000, -6.2300)))
+        val northSouth = RoadWay(listOf(gp(36.6000, -6.2300), gp(36.6100, -6.2300)))
+        // Trip woke ~1.4 km from the parked spot: one point near each far end of the L.
+        val trail = listOf(gp(36.60005, -6.2398), gp(36.6098, -6.23005))
+
+        val matched = TrailMapMatcher.snap(trail, listOf(eastWest, northSouth))
+
+        // The gap is filled through the road graph — the corner vertex must be on the drawn path.
+        assertTrue(matched.size > 2, "expected routed vertices inserted, got ${matched.size} points")
+        assertTrue(
+            matched.any { it.latitude == 36.6000 && it.longitude == -6.2300 },
+            "expected the street corner on the filled path",
+        )
+        // Endpoints preserved (snapped onto their streets).
+        assertTrue(haversineMeters(matched.first().latitude, matched.first().longitude, 36.6000, -6.2398) < 2.0)
+        assertTrue(haversineMeters(matched.last().latitude, matched.last().longitude, 36.6098, -6.2300) < 2.0)
+    }
+
+    @Test
+    fun `should keep the straight chord when the roads are disconnected`() {
+        // Two short streets with no shared node — no road path exists between them.
+        val a = RoadWay(listOf(gp(36.6000, -6.2400), gp(36.6000, -6.2390)))
+        val b = RoadWay(listOf(gp(36.6100, -6.2300), gp(36.6100, -6.2290)))
+        val trail = listOf(gp(36.60005, -6.2398), gp(36.60995, -6.2295))
+
+        val matched = TrailMapMatcher.snap(trail, listOf(a, b))
+
+        // Honest fallback: no invented route, just the two snapped points (a straight chord).
+        assertEquals(2, matched.size)
+    }
+
+    @Test
+    fun `should not route between consecutive points closer than the gap threshold`() {
+        val road = RoadWay(listOf(gp(36.6000, -6.2400), gp(36.6000, -6.2300)))
+        // Two points ~27 m apart along the road — dense driving fixes, no routing needed.
+        val trail = listOf(gp(36.60005, -6.2350), gp(36.60005, -6.2347))
+
+        val matched = TrailMapMatcher.snap(trail, listOf(road))
+
+        assertEquals(2, matched.size)
+    }
 }

@@ -201,10 +201,10 @@ class HomeTripControllerTest {
         assertEquals(listOf(TripUpdate.IDLE), updates)
     }
 
-    // ── Departure origin = where detection started taking fixes [DRIVE-PUCK-NATIVE-001] ──
+    // ── Backdated trip origin — route born at the parked spot [DET-ROUTE-ORIGIN-001] ──
 
     @Test
-    fun `should_use_the_first_driving_fix_as_the_departure_origin`() = runTest {
+    fun `should_use_the_first_driving_fix_as_the_departure_origin_when_no_parked_spot_is_known`() = runTest {
         startController()
 
         // departingVehicleId null also exercises monitoredVehicle() strategy resolution.
@@ -219,18 +219,54 @@ class HomeTripControllerTest {
     }
 
     @Test
-    fun `should_ignore_the_service_departure_point_and_never_invent_a_parking_chord`() = runTest {
+    fun `should_seed_the_trail_with_the_parked_spot_and_use_it_as_the_departure_origin`() = runTest {
         startController()
-        val serviceDeparture = gps(50.0, 60.0) // the parking/geofence origin the service resolved
+        // The departing session's parked location, ~1.1 km from where detection woke mid-trip.
+        val parkedSpot = gps(40.01, -3.0)
 
-        readiness.emit(monitoring(departurePoint = serviceDeparture))
+        readiness.emit(monitoring(departurePoint = parkedSpot))
+        location.emitUi(uiLoc(40.0, -3.0)) // first LIVE fix — detection woke late
+        location.emitUi(uiLoc(40.001, -3.001))
+
+        // The route is born at the parking spot: seed + the measured fixes, origin = the spot.
+        val update = updates.last()
+        assertEquals(40.01, update.departurePoint?.latitude)
+        assertEquals(-3.0, update.departurePoint?.longitude)
+        assertEquals(3, update.trail.size)
+        assertEquals(40.01, update.trail.first().latitude)
+        // The seed lives only in the assembled TripUpdate — the puck stays on the live fix.
+        assertEquals(40.001, update.puck?.latitude)
+    }
+
+    @Test
+    fun `should_reject_a_parked_spot_beyond_the_plausibility_ceiling_and_fall_back_to_the_first_fix`() = runTest {
+        startController()
+        val staleSession = gps(50.0, 60.0) // thousands of km away — a stale/unreleased session
+
+        readiness.emit(monitoring(departurePoint = staleSession))
         location.emitUi(uiLoc(40.0, -3.0))
 
-        // Origin is the first measured fix, NOT the service/parking point — and the trail is not
-        // prefixed with a fabricated parking→first-fix segment (just the one measured fix).
+        // Better a short route than an invented one: no seed, origin = first measured fix.
         val update = updates.last()
         assertEquals(40.0, update.departurePoint?.latitude)
         assertEquals(-3.0, update.departurePoint?.longitude)
         assertEquals(1, update.trail.size)
+    }
+
+    @Test
+    fun `should_seed_the_origin_only_once_per_trip_even_if_the_trip_context_changes_mid_trip`() = runTest {
+        startController()
+
+        readiness.emit(monitoring(departurePoint = gps(40.01, -3.0)))
+        location.emitUi(uiLoc(40.0, -3.0))
+        // A superseding session mid-trip republishes Monitoring with a different origin — the
+        // already-drawn route must not be rewritten.
+        readiness.emit(monitoring(departurePoint = gps(40.02, -3.02)))
+        location.emitUi(uiLoc(40.001, -3.001))
+
+        val update = updates.last()
+        assertEquals(40.01, update.trail.first().latitude)
+        assertEquals(40.01, update.departurePoint?.latitude)
+        assertEquals(3, update.trail.size) // original seed + 2 measured fixes, no second seed
     }
 }

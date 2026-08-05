@@ -14,6 +14,7 @@ import io.apptolast.paparcar.domain.places.RoadNetworkDataSource
 import io.apptolast.paparcar.domain.places.RoadWay
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.util.PaparcarLogger
+import io.apptolast.paparcar.domain.util.haversineMeters
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -209,23 +210,49 @@ class HomeTripController(
                     send(current)
                 } else {
                     // Extend the breadcrumb only while driving — a frozen car (Candidate) contributes no
-                    // new points, so the pedestrian walk is never drawn as the car's route. Anchor the
-                    // origin dot to the departing vehicle's spot: prefer the service-resolved departure
-                    // point (on Monitoring), fall back to the last seen parking location. [DEPART-CONSISTENCY-001]
+                    // new points, so the pedestrian walk is never drawn as the car's route. A NEW trip
+                    // (empty trail) is seeded with the departing session's parked location when the
+                    // service resolved one, so the route is drawn from the spot the car actually left
+                    // even when detection woke mid-trip; the map-matcher snaps the parking→first-fix
+                    // gap onto streets. [DET-ROUTE-ORIGIN-001]
                     val newTrail = if (puck.phase == DetectionPhase.Candidate) {
                         current.trail
                     } else {
-                        MapTrail.append(current.trail, GpsPoint(puck.latitude, puck.longitude, puck.accuracy, 0L, 0f))
+                        val base = if (current.trail.isEmpty()) {
+                            backdatedOrigin(pair?.first?.departurePoint, puck)?.let(::listOf).orEmpty()
+                        } else {
+                            current.trail
+                        }
+                        MapTrail.append(base, GpsPoint(puck.latitude, puck.longitude, puck.accuracy, 0L, 0f))
                     }
-                    // The trip's origin is where detection STARTED taking fixes — the first real driving
-                    // fix — NOT the last parking spot. We don't fabricate a parking→first-fix chord; the
-                    // trail is exactly the measured fixes. [DRIVE-PUCK-NATIVE-001]
+                    // The trip's origin: the seeded parking spot when present, else the first measured
+                    // fix (first trip ever / manual start / rejected seed). [DET-ROUTE-ORIGIN-001]
                     val depart = newTrail.firstOrNull()
                     trailForMatching.value = newTrail
                     current = TripUpdate(puck = puck, trail = newTrail, matchedTrail = current.matchedTrail, departurePoint = depart)
                     send(current)
                 }
             }
+    }
+
+    /**
+     * The trip's backdated origin: the departing session's parked location (resolved by the service
+     * from the geofence-exit/AR/sentry session and carried on [DetectionReadiness.Monitoring]), or
+     * null when unknown or implausibly far from the live fix (stale session — better a short route
+     * than an invented one). PRESENTATION-ONLY by construction: this synthetic point exists solely in
+     * the assembled [TripUpdate]; the detection evidence pipeline reads measured fixes upstream and
+     * never sees it. [DET-ROUTE-ORIGIN-001]
+     */
+    private fun backdatedOrigin(parkedAt: GpsPoint?, fix: DrivingPuck): GpsPoint? {
+        parkedAt ?: return null
+        val gapMeters = haversineMeters(parkedAt.latitude, parkedAt.longitude, fix.latitude, fix.longitude)
+        if (gapMeters > MAX_BACKDATED_ORIGIN_METERS) {
+            PaparcarLogger.w(tag, "backdated origin rejected — ${gapMeters.toInt()} m from live fix (stale session?)")
+            return null
+        }
+        // The gap is THE metric of how late detection woke — worth surfacing per trip. [DET-ROUTE-ORIGIN-001]
+        PaparcarLogger.i(tag, "trip origin backdated to parked spot — woke ${gapMeters.toInt()} m into the trip")
+        return parkedAt
     }
 
     /** Lat/lon bounding box of [points] padded by [marginDeg] degrees on every side. */
@@ -267,5 +294,9 @@ class HomeTripController(
         const val MAP_MATCH_DEBOUNCE_MS = 2500L
         const val MIN_MATCH_POINTS = 3
         const val ROADS_FETCH_MARGIN_DEG = 0.004 // ~400 m around the trip bbox [ROUTE-SNAP-001]
+
+        // Plausibility ceiling for seeding the trail with the parked-spot origin: beyond this the
+        // session is presumed stale and the trip falls back to first-fix origin. [DET-ROUTE-ORIGIN-001]
+        const val MAX_BACKDATED_ORIGIN_METERS = 5_000.0
     }
 }

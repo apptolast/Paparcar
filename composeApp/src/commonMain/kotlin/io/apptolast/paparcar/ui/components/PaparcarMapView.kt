@@ -259,8 +259,9 @@ private const val MARKER_MY_CAR          = "my_car"
 private const val MARKER_MY_CAR_DIM      = "my_car_dim"
 private const val MARKER_MY_CAR_SELECTED = "my_car_selected"
 private const val MARKER_DEPARTURE       = "departure" // trip origin (blue dot) during a trip [DEPART-CONSISTENCY-001]
-// Trip breadcrumb polyline width (screen px in Google Maps). [TRIP-TRAIL-001]
-private const val TRIP_TRAIL_WIDTH = 14f
+// Trip breadcrumb polyline width (screen px in Google Maps). Navigation-app weight: thick enough
+// that residual GPS jitter reads as a confident line, not noise. [TRIP-TRAIL-001] [DET-ROUTE-ORIGIN-001]
+private const val TRIP_TRAIL_WIDTH = 20f
 /** The trip trail redraws at most this often — a growing trail doesn't recompose the map per fix. */
 private const val TRAIL_SAMPLE_MS = 500L
 // Interpolated points inserted per original span when smoothing the trail. Higher = rounder curves,

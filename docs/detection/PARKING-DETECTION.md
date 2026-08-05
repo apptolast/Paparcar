@@ -1673,3 +1673,36 @@ covering >150 m) a 20-m filter suppresses nothing. A distance filter would blind
 transition itself — the intended wins are already delivered elsewhere (SENTRY GPS-off parked,
 MapTrail decimation + street-routed matcher for the trace, DET-JAM-WINDOW-001 for jams). Reopen
 only if stop detection ever moves off GPS.
+
+### DET-ROUTE-ORIGIN-001 — the trip's route is born at the parked spot, not at the first live fix (2026-07-30)
+
+**Why (user field observation 2026-07-30 + Driversnote/Transistor analysis).** When detection
+wakes mid-trip (AR/geofence latency, dead process), Home drew the route from wherever fixes
+started appearing — trips visually born 0.5–4 km from the real departure. Driversnote solves
+this without waking earlier: the trip origin is **backdated** to the stored stationary anchor
+and the gap is map-matched onto streets. We hold a better anchor than they do: the departing
+session's CONFIRMED parked location, already resolved by the service into `TripContext`
+(geofence-exit / AR-enter / sentry-wake all pass `session.location`) and carried to the UI on
+`DetectionReadiness.Monitoring.departurePoint` — Home just ignored it for the trail.
+
+**What — presentation-only seeding in `HomeTripController`.** A NEW trip (empty trail) with a
+service-resolved `departurePoint` prepends it as the trail's first point; `TripUpdate.departurePoint`
+keeps being `trail.firstOrNull()`, which now IS the parked spot. The existing ROUTE-SNAP-001
+map-matcher snaps the parking→first-fix chord onto streets. Plausibility ceiling
+`MAX_BACKDATED_ORIGIN_METERS` (5 km): beyond it the session is presumed stale and the trip falls
+back to first-fix origin (better a short route than an invented one). The seed is injected ONCE
+per trip (a mid-trip supersede never rewrites the drawn route) and exists ONLY in the assembled
+`TripUpdate`: the decision pipeline (`EvaluateParkingDecisionUseCase`, step budgets, egress,
+`TripTrailImpl` forensics) reads measured fixes upstream and is untouched — zero detection-side
+code changed. The wake-lateness gap (anchor→first-fix meters) is logged per trip: it is THE
+metric of how late we woke. Cosmetic rider: trail polyline width 14→20 px (navigation-app
+weight; residual jitter reads as a confident line). Inverts the DRIVE-PUCK-NATIVE-001 "origin =
+first measured fix" test lock, with the map-matcher + ceiling making the chord honest.
+
+**v2 rider — the gap is ROUTED along streets, not chorded.** `TrailMapMatcher` v1 snapped each
+point to the nearest road but drew a straight chord between distant points — the backdated
+parking→first-fix stretch (and OEM GPS holes) would cut across blocks. v2: consecutive snapped
+points > 60 m apart are filled by A* over the fetched OSM ways (joined at shared nodes), accepted
+only when the road path is ≤ 3× the straight distance (no invented scenic detours); a
+disconnected/implausible graph keeps the honest straight chord. Pure commonMain, runs off the main
+thread inside the existing debounced pipeline.
