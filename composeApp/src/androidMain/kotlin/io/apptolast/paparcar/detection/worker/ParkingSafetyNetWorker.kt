@@ -572,9 +572,10 @@ class ParkingSafetyNetWorker(
     ) {
         prefs.edit {
             putLong(ANCHOR_STEPS_KEY_PREFIX + geofenceId, steps)
-            // Zero-point + its position are one seal — same-origin contract shared with
-            // AndroidDetectionStepAnchors. [DET-STEP-BUDGET-ORIGIN-001]
+            // Zero-point + its position + its timestamp are one seal — same-origin contract
+            // shared with AndroidDetectionStepAnchors. [DET-STEP-BUDGET-ORIGIN-001][DET-TRIP-WITNESS-001]
             putString(ANCHOR_SEAL_POS_KEY_PREFIX + geofenceId, "${sealFix.latitude},${sealFix.longitude}")
+            putLong(ANCHOR_SEAL_AT_KEY_PREFIX + geofenceId, System.currentTimeMillis())
         }
     }
 
@@ -584,6 +585,7 @@ class ParkingSafetyNetWorker(
         prefs.edit {
             remove(ANCHOR_STEPS_KEY_PREFIX + geofenceId)
             remove(ANCHOR_SEAL_POS_KEY_PREFIX + geofenceId)
+            remove(ANCHOR_SEAL_AT_KEY_PREFIX + geofenceId)
         }
     }
 
@@ -599,6 +601,7 @@ class ParkingSafetyNetWorker(
         val stale = prefs.all.keys.filter { key ->
             when {
                 key.startsWith(ANCHOR_SEAL_POS_KEY_PREFIX) -> key.removePrefix(ANCHOR_SEAL_POS_KEY_PREFIX) !in liveGeofenceIds
+                key.startsWith(ANCHOR_SEAL_AT_KEY_PREFIX) -> key.removePrefix(ANCHOR_SEAL_AT_KEY_PREFIX) !in liveGeofenceIds
                 key.startsWith(ANCHOR_STEPS_KEY_PREFIX) -> key.removePrefix(ANCHOR_STEPS_KEY_PREFIX) !in liveGeofenceIds
                 key.startsWith(ANCHOR_KEY_PREFIX) -> key.removePrefix(ANCHOR_KEY_PREFIX) !in liveGeofenceIds
                 key.startsWith(PROMPT_KEY_PREFIX) -> key.removePrefix(PROMPT_KEY_PREFIX) !in liveGeofenceIds
@@ -683,6 +686,10 @@ class ParkingSafetyNetWorker(
          *  sealed — the origin any walked-vs-rode displacement must be measured from. Written
          *  atomically with ANCHOR_STEPS; also shares the `anchor_` prefix → prune first. */
         internal const val ANCHOR_SEAL_POS_KEY_PREFIX = "anchor_seal_pos_"
+        /** [DET-TRIP-WITNESS-001] Epoch ms when the steps zero-point was sealed — the budget
+         *  expires with age (honestCloseMaxSealAgeMs). Written atomically with ANCHOR_STEPS;
+         *  also shares the `anchor_` prefix → prune first. */
+        internal const val ANCHOR_SEAL_AT_KEY_PREFIX = "anchor_seal_at_"
         /** [DET-CONJUNCTION-001] Delivery timestamp of a far-delivered geofence EXIT, keyed by
          *  geofenceId. Disk-backed like the anchor: the conjunction may only be decidable ticks
          *  (or a process death) later. */

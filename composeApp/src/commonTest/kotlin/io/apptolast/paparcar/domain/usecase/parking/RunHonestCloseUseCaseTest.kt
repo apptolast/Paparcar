@@ -31,6 +31,11 @@ class RunHonestCloseUseCaseTest {
 
     private val config = ParkingDetectionConfig()
 
+    private companion object {
+        /** A seal minutes old — the shape of every legit close. [DET-TRIP-WITNESS-001] */
+        const val FRESH_SEAL_AGE_MS = 10 * 60 * 1_000L
+    }
+
     private class Fixture(
         // The stale pin's real location differs per scenario: Melgarejo for the driven hop, Rosa
         // (where the CAR still is) for the walked-away return.
@@ -81,6 +86,7 @@ class RunHonestCloseUseCaseTest {
             vehicleId = "v-1",
             abortFix = GpsPoint(36.5974, -6.2505, accuracy = 60f, timestamp = 1_000L, speed = 0f),
             stepsSinceStalePin = 23L,
+            sealAgeMs = FRESH_SEAL_AGE_MS,
             // Sealed beside the Melgarejo pin — same origin as the pin distance. [DET-STEP-BUDGET-ORIGIN-001]
             stepSealPoint = GpsPoint(36.6002, -6.2512, accuracy = 10f, timestamp = 0L, speed = 0f),
         )
@@ -109,6 +115,7 @@ class RunHonestCloseUseCaseTest {
             vehicleId = "v-1",
             abortFix = GpsPoint(36.6088, -6.2843, accuracy = 3f, timestamp = 1_000L, speed = 0f),
             stepsSinceStalePin = 1099L,
+            sealAgeMs = FRESH_SEAL_AGE_MS,
             stepSealPoint = GpsPoint(36.6054, -6.2727, accuracy = 10f, timestamp = 0L, speed = 0f),
         )
 
@@ -134,6 +141,7 @@ class RunHonestCloseUseCaseTest {
             vehicleId = "v-1",
             abortFix = GpsPoint(36.70078, -6.10972, accuracy = 10f, timestamp = 1_000L, speed = 0f),
             stepsSinceStalePin = 2L,
+            sealAgeMs = FRESH_SEAL_AGE_MS,
             stepSealPoint = GpsPoint(36.69944, -6.10992, accuracy = 10f, timestamp = 0L, speed = 0f),
             sessionStepEvents = 8,
         )
@@ -149,6 +157,34 @@ class RunHonestCloseUseCaseTest {
     }
 
     @Test
+    fun exit_echo_hours_later_stays_fully_silent_and_keeps_the_correct_pin() = runTest {
+        // Glorieta home FP (field 2026-07-30 17:53, Redmi): 16 h after the real Angelita park, a
+        // MIUI EXIT echo hit the phone sitting at home. Cumulative delta 0 (frozen through the
+        // night), session witnessed 0 steps → the frozen-counter cross-check was blind and the
+        // old ladder proved a "trip", released the Angelita pin and planted an approximate pin
+        // ON THE HOME ("Glorieta Juan de Austria", doc 00d513ed). The seal-age gate must keep it
+        // silent. [DET-TRIP-WITNESS-001]
+        val f = Fixture(stalePinLat = 36.60583, stalePinLon = -6.23159, staleGeofence = "angelita-fence")
+        val outcome = f.useCase(
+            vehicleId = "v-1",
+            abortFix = GpsPoint(36.60387, -6.23029, accuracy = 16f, timestamp = 1_000L, speed = 0f),
+            stepsSinceStalePin = 0L,
+            sealAgeMs = 16 * 60 * 60 * 1_000L,
+            stepSealPoint = GpsPoint(36.60583, -6.23159, accuracy = 5f, timestamp = 0L, speed = 0f),
+            sessionStepEvents = 0,
+        )
+
+        assertNull(outcome.outcomeLabel, "a stale step delta must never testify a ride")
+        assertEquals(HonestCloseVerdict.REASON_STALE_SEAL, outcome.verdict.reason)
+        assertNotNull(
+            f.parkingRepo.getActiveSessionByGeofence("angelita-fence"),
+            "the correct pin must survive — the car is still at Angelita",
+        )
+        assertEquals(0, f.notification.markParkingNudgeCallCount, "no nudge on a silent close")
+        assertEquals(0, f.parkingRepo.saveNewParkingSessionCallCount, "nothing saved")
+    }
+
+    @Test
     fun driven_with_a_pin_grade_fix_drops_an_approximate_pin_not_a_zone() = runTest {
         val f = Fixture()
         // Trip proven (10 steps ≪ ~300 m) AND a pin-grade fix (acc 8) → rung 1: a soft POINT.
@@ -156,6 +192,7 @@ class RunHonestCloseUseCaseTest {
             vehicleId = "v-1",
             abortFix = GpsPoint(36.6029, -6.2512, accuracy = 8f, timestamp = 1_000L, speed = 0f),
             stepsSinceStalePin = 10L,
+            sealAgeMs = FRESH_SEAL_AGE_MS,
             stepSealPoint = GpsPoint(36.6002, -6.2512, accuracy = 10f, timestamp = 0L, speed = 0f),
         )
 

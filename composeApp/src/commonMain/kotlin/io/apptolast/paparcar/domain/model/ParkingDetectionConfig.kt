@@ -459,6 +459,12 @@ data class ParkingDetectionConfig(
      *  the artifact reads as an AREA, never a deceptively precise dot — the honest "somewhere
      *  here" the doctrine demands when no pin-grade anchor exists. */
     val honestCloseMinZoneRadiusMeters: Float = 60f,
+    /** [DET-TRIP-WITNESS-001] Ceiling (ms) on the age of the step seal before the honest-close
+     *  ladder refuses the walked-vs-rode verdict. The legit closes the ladder exists for
+     *  (Camelias hop 2026-07-14, D2 return 2026-07-15) abort MINUTES after the real trip; a delta
+     *  spanning hours (sleep, process deaths, MIUI batching) can read ≈0 over a real walk and
+     *  fake a "proven trip" (field 2026-07-30: 16 h seal + EXIT echo re-planted the pin at home). */
+    val honestCloseMaxSealAgeMs: Long = 2 * 60 * 60 * 1_000L,
     /** [DET-FROZEN-COUNTER-001] Ceiling (meters) on the radius of an unattended-timeout
      *  approximate zone. The radius grows to cover the distance between the two evidence points
      *  the guard disagreed about (anchor vs egress birth / current fix); past this ceiling the
@@ -810,6 +816,9 @@ data class ParkingDetectionConfig(
         }
         require(honestCloseMinZoneRadiusMeters > 0f) {
             "honestCloseMinZoneRadiusMeters must be > 0, was $honestCloseMinZoneRadiusMeters"
+        }
+        require(honestCloseMaxSealAgeMs > 0L) {
+            "honestCloseMaxSealAgeMs must be > 0, was $honestCloseMaxSealAgeMs"
         }
         require(unattendedZoneMaxRadiusMeters >= honestCloseMinZoneRadiusMeters) {
             "unattendedZoneMaxRadiusMeters must be >= honestCloseMinZoneRadiusMeters, was $unattendedZoneMaxRadiusMeters"

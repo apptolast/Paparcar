@@ -741,9 +741,13 @@ class CoordinatorDetectionService : LifecycleService() {
         // a ride and the ladder planted an approximate pin over the correct 6-minute-old one.
         val sessionStepEvents = parkingDetectionCoordinator.lastSessionStepEvents
         val sessionMaxSpeedMps = parkingDetectionCoordinator.lastSessionMaxSpeedMps
+        // [DET-TRIP-WITNESS-001] The budget expires: the ladder refuses a delta whose seal is
+        // hours old (or undated — legacy seal), the exact shape of the 30-07 EXIT-echo FP.
+        val sealAgeMs = budget?.sealedAtMs?.let { System.currentTimeMillis() - it }
         val result = runCatching {
             runHonestClose(
                 vehicleId, abortFix, budget?.steps, budget?.sealPoint,
+                sealAgeMs = sealAgeMs,
                 sessionStepEvents = sessionStepEvents,
                 sessionMaxSpeedMps = sessionMaxSpeedMps,
             )

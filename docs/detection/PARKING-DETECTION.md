@@ -1563,3 +1563,29 @@ auto-confirm path to `Prompt`; the unattended timeout exits **nudge-only**
 may have driven arbitrarily far into the hole, so no zone is honest); a user "Sí" anchors at
 the user's current stop. Normal cadence (stop opens ≤ 45 s after the last driving fix) is
 untouched — the control replay confirms silently exactly as before.
+
+### DET-TRIP-WITNESS-001 — the honest-close step budget EXPIRES: a stale seal cannot prove a trip (2026-08-04)
+
+**Why (field 2026-07-30 17:53, Redmi — session `1785426554477`, parkingHistory `00d513ed`; full
+forensics in `docs/backlog/det-trip-witness-001.md`).** 16 hours after the real Angelita park
+(01:47), MIUI delivered an **EXIT echo** of that fence to a phone sitting at HOME. The session
+measured nothing (25 fixes at rest, 0 steps, 0 driving) and aborted `no_movement` — but the
+honest close then read the cumulative counter's delta since the seal as **0 over last night's
+~200 m walk home** (frozen through sleep + process deaths) and, with `sessionStepEvents = 0`,
+the DET-FROZEN-COUNTER liveness cross-check had **no witness**. "198 m without steps" became
+`trip_proven`: the correct pin was released and an approximate pin planted on the user's home.
+The night before (29-07 23:49) the SAME stimulus stayed silent because that session witnessed
+7 detector steps → `frozen_counter`; the opener was the witness going blind, not any code change.
+
+**What.** *The step budget is only interpretable within a window where the cumulative counter is
+trustworthy — and a trip is never provable from a delta spanning hours.* The seal is now a
+(counter, position, **moment**) triple: both sealers (`AndroidDetectionStepAnchors.seal`, the
+safety-net cure's `writeAnchorSteps`) stamp `anchor_seal_at_<id>` atomically with the baseline,
+and `StepsSinceSeal` carries `sealedAtMs`. `EvaluateHonestCloseUseCase` takes `sealAgeMs`
+(no default — every caller states it) and refuses the whole step-budget inference with
+`KeepSilent`/`stale_seal` when the age exceeds `honestCloseMaxSealAgeMs` (2 h) **or is unknown**
+(legacy undated seal — indistinguishable from old). The legit closes the ladder exists for
+(Camelias hop, D2 return) all abort MINUTES after their real trip; measured session driving
+(`session_measured_driving`) sits above the gate and is untouched — it needs no counter.
+Residual: a real EXIT delivered > 2 h late now stays silent instead of leaving a zone; the
+15-min safety net remains the declared backstop for that class (asymmetric-failure doctrine).

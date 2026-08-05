@@ -55,6 +55,10 @@ class RunHonestCloseUseCase(
      * @param stepSealPoint      WHERE the body was when the step baseline was sealed, or null when
      *                           the seal has no position — the budget's origin, without which the
      *                           ladder refuses the walked-vs-rode verdict. [DET-STEP-BUDGET-ORIGIN-001]
+     * @param sealAgeMs          HOW LONG AGO the baseline was sealed, or null when the seal has no
+     *                           timestamp — past [ParkingDetectionConfig.honestCloseMaxSealAgeMs]
+     *                           (or unknown) the ladder refuses the step-budget verdict.
+     *                           [DET-TRIP-WITNESS-001]
      * @param sessionStepEvents  Steps the aborting session's own step DETECTOR counted — the
      *                           cumulative counter's liveness witness. [DET-FROZEN-COUNTER-001]
      * @param sessionMaxSpeedMps Max GPS speed (m/s) the aborting session measured — measured
@@ -65,6 +69,7 @@ class RunHonestCloseUseCase(
         abortFix: GpsPoint,
         stepsSinceStalePin: Long?,
         stepSealPoint: GpsPoint?,
+        sealAgeMs: Long?,
         sessionStepEvents: Int = 0,
         sessionMaxSpeedMps: Float = 0f,
     ): HonestCloseResult {
@@ -72,6 +77,7 @@ class RunHonestCloseUseCase(
 
         val verdict = evaluateHonestClose(
             stalePin, abortFix, stepsSinceStalePin, stepSealPoint,
+            sealAgeMs = sealAgeMs,
             sessionStepEvents = sessionStepEvents,
             sessionMaxSpeedMps = sessionMaxSpeedMps,
         )

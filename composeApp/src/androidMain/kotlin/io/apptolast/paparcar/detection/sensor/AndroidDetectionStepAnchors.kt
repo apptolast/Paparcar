@@ -35,14 +35,19 @@ class AndroidDetectionStepAnchors(
     private fun posKey(geofenceId: String) =
         ParkingSafetyNetWorker.ANCHOR_SEAL_POS_KEY_PREFIX + geofenceId
 
+    private fun atKey(geofenceId: String) =
+        ParkingSafetyNetWorker.ANCHOR_SEAL_AT_KEY_PREFIX + geofenceId
+
     override suspend fun seal(geofenceId: String, sealPoint: GpsPoint?) {
         // Mute counter → no baseline to seal; the budget then reads null and the ladder stays
         // silent (asymmetric: better a late safety-net prompt than a wrong zone).
         val current = stepCounterSource.currentCumulativeSteps() ?: return
         prefs().edit {
             putLong(key(geofenceId), current)
-            // Same edit as the steps so the pair can never diverge: either both from this seal,
-            // or a null position that makes consumers refuse the verdict. [DET-STEP-BUDGET-ORIGIN-001]
+            // Same edit as the steps so the trio can never diverge: either all from this seal,
+            // or a null position/timestamp that makes consumers refuse the verdict.
+            // [DET-STEP-BUDGET-ORIGIN-001][DET-TRIP-WITNESS-001]
+            putLong(atKey(geofenceId), System.currentTimeMillis())
             if (sealPoint != null) {
                 putString(posKey(geofenceId), "${sealPoint.latitude},${sealPoint.longitude}")
             } else {
@@ -56,7 +61,13 @@ class AndroidDetectionStepAnchors(
         val current = stepCounterSource.currentCumulativeSteps() ?: return null
         // A reboot resets the hardware counter below the baseline → delta unknown, never a verdict.
         val delta = (current - baseline).takeIf { it >= 0L } ?: return null
-        return StepsSinceSeal(steps = delta, sealPoint = readSealPoint(geofenceId))
+        return StepsSinceSeal(
+            steps = delta,
+            sealPoint = readSealPoint(geofenceId),
+            // Legacy seal without a timestamp reads back null → consumers treat the budget as
+            // expired rather than guess its age. [DET-TRIP-WITNESS-001]
+            sealedAtMs = prefs().getLong(atKey(geofenceId), 0L).takeIf { it > 0L },
+        )
     }
 
     private fun readSealPoint(geofenceId: String): GpsPoint? {

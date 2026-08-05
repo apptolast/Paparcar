@@ -32,6 +32,12 @@ class EvaluateHonestCloseUseCaseTest {
 
     private val useCase = EvaluateHonestCloseUseCase(ParkingDetectionConfig())
 
+    private companion object {
+        /** A seal minutes old — the shape of every legit close (they abort MINUTES after the
+         *  real trip); keeps the seal-age gate out of the way of the other regressions. */
+        const val FRESH_SEAL_AGE_MS = 10 * 60 * 1_000L
+    }
+
     private fun pinAt(lat: Double, lon: Double, acc: Float = 12f, reliability: Float? = null) = UserParking(
         id = "stale",
         vehicleId = "v-1",
@@ -54,6 +60,7 @@ class EvaluateHonestCloseUseCaseTest {
             stalePin = pinAt(36.6002, -6.2512),
             abortFix = fixAt(36.5974, -6.2505, acc = 60f),
             stepsSinceStalePin = 23L,
+            sealAgeMs = FRESH_SEAL_AGE_MS,
             stepSealPoint = fixAt(36.6002, -6.2512, acc = 10f),
         )
         val zone = assertIs<HonestCloseDecision.ApproximateZone>(verdict.decision)
@@ -71,6 +78,7 @@ class EvaluateHonestCloseUseCaseTest {
             stalePin = pinAt(36.6054, -6.2727),
             abortFix = fixAt(36.6088, -6.2843, acc = 3f),
             stepsSinceStalePin = 1099L,
+            sealAgeMs = FRESH_SEAL_AGE_MS,
             stepSealPoint = fixAt(36.6054, -6.2727, acc = 10f),
         )
         assertEquals(HonestCloseDecision.KeepSilent, verdict.decision, "a walk must never release the pin")
@@ -85,6 +93,7 @@ class EvaluateHonestCloseUseCaseTest {
             stalePin = pinAt(36.6000, -6.2500),
             abortFix = fixAt(36.6027, -6.2500, acc = 8f),
             stepsSinceStalePin = 15L,
+            sealAgeMs = FRESH_SEAL_AGE_MS,
             stepSealPoint = fixAt(36.6000, -6.2500, acc = 10f),
         )
         val pin = assertIs<HonestCloseDecision.ApproximatePin>(verdict.decision)
@@ -99,6 +108,7 @@ class EvaluateHonestCloseUseCaseTest {
             stalePin = pinAt(36.6002, -6.2512),
             abortFix = fixAt(36.5974, -6.2505, acc = 60f),
             stepsSinceStalePin = null,
+            sealAgeMs = FRESH_SEAL_AGE_MS,
             stepSealPoint = fixAt(36.6002, -6.2512, acc = 10f),
         )
         assertEquals(HonestCloseDecision.KeepSilent, verdict.decision)
@@ -113,6 +123,7 @@ class EvaluateHonestCloseUseCaseTest {
             stalePin = pinAt(36.6000, -6.2500, acc = 12f),
             abortFix = fixAt(36.60027, -6.2500, acc = 10f),
             stepsSinceStalePin = 3L,
+            sealAgeMs = FRESH_SEAL_AGE_MS,
             stepSealPoint = fixAt(36.6000, -6.2500, acc = 10f),
         )
         assertEquals(HonestCloseDecision.KeepSilent, verdict.decision)
@@ -125,6 +136,7 @@ class EvaluateHonestCloseUseCaseTest {
             stalePin = null,
             abortFix = fixAt(36.5974, -6.2505, acc = 8f),
             stepsSinceStalePin = 5L,
+            sealAgeMs = FRESH_SEAL_AGE_MS,
             stepSealPoint = fixAt(36.5974, -6.2505, acc = 8f),
         )
         assertEquals(HonestCloseDecision.KeepSilent, verdict.decision)
@@ -145,6 +157,7 @@ class EvaluateHonestCloseUseCaseTest {
             stalePin = pinAt(36.6057922, -6.2315528, acc = 5f),
             abortFix = fixAt(36.6038644, -6.2302701, acc = 15f),
             stepsSinceStalePin = 110L,
+            sealAgeMs = FRESH_SEAL_AGE_MS,
             stepSealPoint = fixAt(36.604539, -6.230719, acc = 10f),
         )
         assertEquals(
@@ -164,6 +177,7 @@ class EvaluateHonestCloseUseCaseTest {
             abortFix = fixAt(36.5974, -6.2505, acc = 8f),
             stepsSinceStalePin = 23L,
             stepSealPoint = null,
+            sealAgeMs = FRESH_SEAL_AGE_MS,
         )
         assertEquals(HonestCloseDecision.KeepSilent, verdict.decision)
         assertEquals(HonestCloseVerdict.REASON_NO_SEAL_ORIGIN, verdict.reason)
@@ -183,6 +197,7 @@ class EvaluateHonestCloseUseCaseTest {
             stalePin = pinAt(36.69944, -6.10992, acc = 10f),
             abortFix = fixAt(36.70078, -6.10972, acc = 10f),
             stepsSinceStalePin = 2L,
+            sealAgeMs = FRESH_SEAL_AGE_MS,
             stepSealPoint = fixAt(36.69944, -6.10992, acc = 10f),
             sessionStepEvents = 8,
         )
@@ -202,6 +217,7 @@ class EvaluateHonestCloseUseCaseTest {
             stalePin = pinAt(36.6002, -6.2512),
             abortFix = fixAt(36.5974, -6.2505, acc = 60f),
             stepsSinceStalePin = 23L,
+            sealAgeMs = FRESH_SEAL_AGE_MS,
             stepSealPoint = fixAt(36.6002, -6.2512, acc = 10f),
             sessionStepEvents = 0,
         )
@@ -220,6 +236,7 @@ class EvaluateHonestCloseUseCaseTest {
             stalePin = pinAt(36.604657, -6.230782, acc = 8f, reliability = 0.9f),
             abortFix = fixAt(36.604041, -6.2299597, acc = 3.5f),
             stepsSinceStalePin = 16L,
+            sealAgeMs = FRESH_SEAL_AGE_MS,
             stepSealPoint = fixAt(36.60379, -6.23014, acc = 5f),
             sessionStepEvents = 13,
         )
@@ -241,6 +258,7 @@ class EvaluateHonestCloseUseCaseTest {
             stalePin = pinAt(36.604657, -6.230782, acc = 8f, reliability = 1.0f),
             abortFix = fixAt(36.604041, -6.2299597, acc = 3.5f),
             stepsSinceStalePin = 16L,
+            sealAgeMs = FRESH_SEAL_AGE_MS,
             stepSealPoint = fixAt(36.60379, -6.23014, acc = 5f),
             sessionStepEvents = 13,
         )
@@ -261,10 +279,82 @@ class EvaluateHonestCloseUseCaseTest {
             abortFix = fixAt(36.5974, -6.2505, acc = 8f),
             stepsSinceStalePin = null,
             stepSealPoint = null,
+            sealAgeMs = null,
             sessionMaxSpeedMps = 9f,
         )
         assertIs<HonestCloseDecision.ApproximatePin>(verdict.decision)
         assertEquals(HonestCloseVerdict.REASON_SESSION_MEASURED_DRIVING, verdict.reason)
+    }
+
+    // ── [DET-TRIP-WITNESS-001] Seal-age regression ───────────────────────────────────────────────
+
+    @Test
+    fun should_stay_silent_when_the_seal_is_hours_old_even_with_no_session_witness() {
+        // Glorieta home FP (field 2026-07-30 17:53, Redmi): MIUI delivered an EXIT echo of the
+        // Angelita fence to a phone sitting at HOME since the previous night. The 16-hour-old
+        // seal's cumulative delta read 0 (frozen through sleep + process deaths) and the aborting
+        // session witnessed 0 steps (nobody moved) — so the frozen-counter cross-check was blind
+        // and "198 m without steps" became a proven trip: the correct pin was released and an
+        // approximate pin planted on the user's home. The budget EXPIRES: a seal this old refuses
+        // the verdict outright, witness or no witness.
+        val verdict = useCase(
+            stalePin = pinAt(36.60583, -6.23159, acc = 5f, reliability = 0.9f),
+            abortFix = fixAt(36.60387, -6.23029, acc = 16f),
+            stepsSinceStalePin = 0L,
+            stepSealPoint = fixAt(36.60583, -6.23159, acc = 5f),
+            sealAgeMs = 16 * 60 * 60 * 1_000L,
+            sessionStepEvents = 0,
+        )
+        assertEquals(
+            HonestCloseDecision.KeepSilent,
+            verdict.decision,
+            "a 16-hour-old step delta must never testify a ride",
+        )
+        assertEquals(HonestCloseVerdict.REASON_STALE_SEAL, verdict.reason)
+    }
+
+    @Test
+    fun should_stay_silent_when_the_seal_age_is_just_over_the_ceiling() {
+        // Camelias geometry (trip otherwise provable) with the seal one ms past the ceiling —
+        // the boundary is the ceiling itself, inclusive on the fresh side.
+        val verdict = useCase(
+            stalePin = pinAt(36.6002, -6.2512),
+            abortFix = fixAt(36.5974, -6.2505, acc = 60f),
+            stepsSinceStalePin = 23L,
+            stepSealPoint = fixAt(36.6002, -6.2512, acc = 10f),
+            sealAgeMs = ParkingDetectionConfig().honestCloseMaxSealAgeMs + 1L,
+        )
+        assertEquals(HonestCloseDecision.KeepSilent, verdict.decision)
+        assertEquals(HonestCloseVerdict.REASON_STALE_SEAL, verdict.reason)
+    }
+
+    @Test
+    fun should_still_prove_the_trip_when_the_seal_age_is_at_the_ceiling() {
+        // Same geometry with the seal exactly AT the ceiling → the budget still testifies.
+        val verdict = useCase(
+            stalePin = pinAt(36.6002, -6.2512),
+            abortFix = fixAt(36.5974, -6.2505, acc = 60f),
+            stepsSinceStalePin = 23L,
+            stepSealPoint = fixAt(36.6002, -6.2512, acc = 10f),
+            sealAgeMs = ParkingDetectionConfig().honestCloseMaxSealAgeMs,
+        )
+        assertIs<HonestCloseDecision.ApproximateZone>(verdict.decision)
+        assertEquals(HonestCloseVerdict.REASON_TRIP_PROVEN, verdict.reason)
+    }
+
+    @Test
+    fun should_stay_silent_when_the_seal_has_no_timestamp() {
+        // Legacy seal (steps + position, no timestamp): unknown age is indistinguishable from old
+        // — refuse rather than guess. The safety net remains the backstop.
+        val verdict = useCase(
+            stalePin = pinAt(36.6002, -6.2512),
+            abortFix = fixAt(36.5974, -6.2505, acc = 60f),
+            stepsSinceStalePin = 23L,
+            stepSealPoint = fixAt(36.6002, -6.2512, acc = 10f),
+            sealAgeMs = null,
+        )
+        assertEquals(HonestCloseDecision.KeepSilent, verdict.decision)
+        assertEquals(HonestCloseVerdict.REASON_STALE_SEAL, verdict.reason)
     }
 
     @Test
@@ -277,6 +367,7 @@ class EvaluateHonestCloseUseCaseTest {
             abortFix = fixAt(36.5974, -6.2505, acc = 8f),
             stepsSinceStalePin = null,
             stepSealPoint = null,
+            sealAgeMs = null,
             sessionMaxSpeedMps = 9f,
         )
         assertIs<HonestCloseDecision.ApproximatePin>(verdict.decision)

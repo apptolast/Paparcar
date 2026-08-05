@@ -51,8 +51,9 @@ sealed interface HonestCloseDecision {
 data class HonestCloseVerdict(
     val decision: HonestCloseDecision,
     /** Why: "trip_proven" for pin/zone; for silence one of [REASON_NO_STALE_PIN], [REASON_TOO_CLOSE],
-     *  [REASON_USER_ASSERTED_PIN], [REASON_MUTE_COUNTER], [REASON_FROZEN_COUNTER],
-     *  [REASON_NO_SEAL_ORIGIN], [REASON_WALK_EXPLAINS], [REASON_WALK_TOO_SHORT]. */
+     *  [REASON_USER_ASSERTED_PIN], [REASON_STALE_SEAL], [REASON_MUTE_COUNTER],
+     *  [REASON_FROZEN_COUNTER], [REASON_NO_SEAL_ORIGIN], [REASON_WALK_EXPLAINS],
+     *  [REASON_WALK_TOO_SHORT]. */
     val reason: String,
     /** Stale pin → abort fix, meters. Null when there is no stale pin. */
     val pinDistanceMeters: Double? = null,
@@ -67,6 +68,7 @@ data class HonestCloseVerdict(
         const val REASON_TRIP_PROVEN = "trip_proven"
         const val REASON_NO_STALE_PIN = "no_stale_pin"
         const val REASON_TOO_CLOSE = "too_close"
+        const val REASON_STALE_SEAL = "stale_seal"
         const val REASON_MUTE_COUNTER = "mute_counter"
         const val REASON_FROZEN_COUNTER = "frozen_counter"
         const val REASON_NO_SEAL_ORIGIN = "no_seal_origin"
@@ -110,6 +112,19 @@ data class HonestCloseVerdict(
  * the "ride" inference planted an approximate pin inside the restaurant and released the correct
  * pin planted 6 minutes earlier. The Oppo beside it, counter alive, stayed correctly silent.
  *
+ * **Stale seal (the budget expires). [DET-TRIP-WITNESS-001]** The step budget compares TWO
+ * positions through ONE cumulative counter — it is only interpretable while that counter is
+ * trustworthy across the whole span. A seal stamped hours ago has lived through sleep, process
+ * deaths and MIUI batching; its delta can arrive frozen at ≈0 with no session witness to expose
+ * it (the [sessionStepEvents] cross-check needs the aborting session itself to have SEEN steps).
+ * Field 2026-07-30 17:53, Redmi/Glorieta: a geofence-EXIT echo hit a phone sitting at HOME, the
+ * 16-hour-old seal's delta read 0 over last night's 200 m walk, and "198 m without steps" became
+ * a "proven trip" — the correct pin was released and re-planted on the user's sofa. The legit
+ * closes this ladder exists for (Camelias hop, D2 return) all abort MINUTES after their real
+ * trip; past [ParkingDetectionConfig.honestCloseMaxSealAgeMs] the budget is noise, so the ladder
+ * refuses the verdict (measured driving above is untouched — it needs no counter). A null age
+ * (legacy seal without a timestamp) is indistinguishable from an old one → same refusal.
+ *
  * **User-asserted pin (inference never overrules assertion). [DET-WALK-FLOOR-001]** A pin whose
  * reliability is [ParkingDetectionConfig.reliabilityUserConfirmed] was placed or confirmed BY THE
  * USER — the strongest statement of where the car is that this system can hold. The step budget
@@ -150,6 +165,11 @@ class EvaluateHonestCloseUseCase(
      *                        budget is only comparable against a displacement measured FROM THIS
      *                        POINT: the counter zeroed at the seal position, so steps can only
      *                        explain distance walked from there. [DET-STEP-BUDGET-ORIGIN-001]
+     * @param sealAgeMs       HOW LONG AGO the step baseline was sealed, or null when the seal
+     *                        recorded no timestamp (legacy seal). Past
+     *                        [ParkingDetectionConfig.honestCloseMaxSealAgeMs] (or unknown) the
+     *                        cumulative delta is no longer interpretable and the ladder refuses
+     *                        the step-budget verdict. [DET-TRIP-WITNESS-001]
      * @param sessionStepEvents Steps the aborting session's own wakeup step DETECTOR counted —
      *                        the liveness witness for the cumulative counter. 0 = no witness
      *                        (the cross-check stays out of the way). [DET-FROZEN-COUNTER-001]
@@ -161,6 +181,7 @@ class EvaluateHonestCloseUseCase(
         abortFix: GpsPoint,
         stepsSinceStalePin: Long?,
         stepSealPoint: GpsPoint?,
+        sealAgeMs: Long?,
         sessionStepEvents: Int = 0,
         sessionMaxSpeedMps: Float = 0f,
     ): HonestCloseVerdict {
@@ -208,6 +229,19 @@ class EvaluateHonestCloseUseCase(
         if ((pin.detectionReliability ?: 0f) >= config.reliabilityUserConfirmed) {
             return HonestCloseVerdict(
                 HonestCloseDecision.KeepSilent, HonestCloseVerdict.REASON_USER_ASSERTED_PIN,
+                pinDistanceMeters = distanceMeters, stepsDelta = stepsSinceStalePin,
+            )
+        }
+
+        // [DET-TRIP-WITNESS-001] Everything below is the STEP-BUDGET inference, and the budget
+        // expires: a delta spanning hours of sleep / process deaths / MIUI batching can read ≈0
+        // over a real walk with no session witness to expose it — exactly the false "ride proof"
+        // that re-planted the Glorieta pin on the user's home (field 2026-07-30, 16 h seal, EXIT
+        // echo). Unknown age (legacy seal) is indistinguishable from old. Refuse the verdict;
+        // the safety net remains the backstop for a genuinely late real departure.
+        if (sealAgeMs == null || sealAgeMs > config.honestCloseMaxSealAgeMs) {
+            return HonestCloseVerdict(
+                HonestCloseDecision.KeepSilent, HonestCloseVerdict.REASON_STALE_SEAL,
                 pinDistanceMeters = distanceMeters, stepsDelta = stepsSinceStalePin,
             )
         }

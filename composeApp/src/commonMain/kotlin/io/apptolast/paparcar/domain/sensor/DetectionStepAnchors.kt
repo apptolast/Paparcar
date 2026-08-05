@@ -42,8 +42,12 @@ interface DetectionStepAnchors {
 
 /** A step-budget answer: [steps] walked since the seal, measured from [sealPoint] (null when the
  *  seal recorded no position — consumers must then refuse a walked-vs-rode verdict rather than
- *  compare against a displacement with a different origin). [DET-STEP-BUDGET-ORIGIN-001] */
+ *  compare against a displacement with a different origin). [DET-STEP-BUDGET-ORIGIN-001]
+ *  [sealedAtMs] is WHEN the baseline was sealed (epoch ms; null for legacy seals without a
+ *  timestamp) — the budget expires with age, so consumers must refuse a verdict whose delta
+ *  spans hours of sleep / process deaths / counter batching. [DET-TRIP-WITNESS-001] */
 data class StepsSinceSeal(
     val steps: Long,
     val sealPoint: GpsPoint?,
+    val sealedAtMs: Long? = null,
 )
