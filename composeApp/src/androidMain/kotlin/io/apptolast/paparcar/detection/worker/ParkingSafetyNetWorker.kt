@@ -148,19 +148,19 @@ class ParkingSafetyNetWorker(
         if (sessions.isEmpty()) {
             dismissPrompt()
             // No debug notif on the eternal periodic no-op — it would live in the shade forever.
-            if (source != SOURCE_PERIODIC) debugNotify("SafetyNet[$source]: sin sesión activa — nada que vigilar")
+            if (source != SOURCE_PERIODIC) debugNotify("Red de seguridad [$source]: no hay plaza aparcada → nada que vigilar")
             return Result.success()
         }
         // Mid-trip: a live coordinator session owns the situation; a repark also self-heals the
         // old session (replaceActiveSession per vehicle). Don't second-guess it.
         if (detectionRuntime.isRunning.value) {
             PaparcarLogger.d(DIAG, "■ detection running — skipping check")
-            debugNotify("SafetyNet[$source]: detección en curso — skip")
+            debugNotify("Red de seguridad [$source]: la detección ya está trabajando este viaje → no interfiero")
             return Result.success()
         }
         if (!hasLocationPermission()) {
             PaparcarLogger.w(DIAG, "■ no location permission — skipping check")
-            debugNotify("SafetyNet[$source]: sin permiso de ubicación — skip")
+            debugNotify("Red de seguridad [$source]: SIN permiso de ubicación → no puedo comprobar tu plaza (revisa permisos en Ajustes)")
             return Result.success()
         }
 
@@ -172,7 +172,7 @@ class ParkingSafetyNetWorker(
         val fix = runCatching { getOneLocation(maxAgeMs = config.freshFixMaxAgeMs) }.getOrNull()
         if (fix == null) {
             PaparcarLogger.d(DIAG, "■ no fresh fix within timeout — nothing to evaluate this tick")
-            debugNotify("SafetyNet[$source]: sin fix fresco en 15 s — nada que evaluar")
+            debugNotify("Red de seguridad [$source]: el GPS no dio posición fresca en 15 s → sin datos esta vez; el siguiente tick lo reintenta")
             return Result.success()
         }
 
@@ -283,7 +283,7 @@ class ParkingSafetyNetWorker(
                         sessionAgeMs = now - session.location.timestamp,
                     )
                     if (!mustReregister) {
-                        debugLines += "geof=$geofTag d=${distanceM}m DENTRO(r=${action.radiusMeters.toInt()}m) → ancla resellada (cura throttled, hace ${(now - lastCureAt) / 60_000}min)"
+                        debugLines += "geof=$geofTag: sigues junto al coche (d=${distanceM}m, radio ${action.radiusMeters.toInt()}m) → resello la referencia de pasos; la valla se re-registró hace ${(now - lastCureAt) / 60_000}min, no toca aún"
                     } else {
                         prefs.edit { putLong(CURE_KEY_PREFIX + action.geofenceId, now) }
                         PaparcarLogger.d(DIAG, "▶ inside fence — re-registering geofence=${action.geofenceId} (cure, steps@anchor=${cumulativeSteps ?: "?"})")
@@ -304,7 +304,7 @@ class ParkingSafetyNetWorker(
                                 )
                             )
                         }
-                        debugLines += "geof=$geofTag d=${distanceM}m DENTRO(r=${action.radiusMeters.toInt()}m) → fence curada${if (result.isFailure) " ✗FALLO" else ""}"
+                        debugLines += "geof=$geofTag: sigues junto al coche (d=${distanceM}m, radio ${action.radiusMeters.toInt()}m) → re-registro la valla por si el sistema la borró${if (result.isFailure) " ✗FALLÓ el re-registro" else ""}"
                     }
                 }
 
@@ -384,8 +384,8 @@ class ParkingSafetyNetWorker(
                         fixSpeedKmh = fix.speed * KMH_PER_MPS,
                         now = now,
                     )
-                    debugLines += "geof=$geofTag d=${distanceM}m LEJOS+evidencia → SALIDA despachada" +
-                        if (action.preconfirmed) " (step-budget ${stepsSinceAnchor ?: "?"} pasos)" else ""
+                    debugLines += "geof=$geofTag: LEJOS del coche (d=${distanceM}m) y CON pruebas de viaje → proceso tu salida, la plaza se libera" +
+                        if (action.preconfirmed) " (avalada por ${stepsSinceAnchor ?: "?"} pasos desde el coche)" else ""
                 }
 
                 is SafetyNetAction.PromptStillParked -> {
@@ -405,11 +405,11 @@ class ParkingSafetyNetWorker(
                         )
                         logVerdict(action.geofenceId, verdict = "safety_net_prompt", source = source, fixSpeedKmh = fix.speed * KMH_PER_MPS, now = now)
                     }
-                    debugLines += "geof=$geofTag d=${distanceM}m LEJOS sin evidencia → prompt${if (throttled) " (throttled)" else ""}"
+                    debugLines += "geof=$geofTag: LEJOS del coche (d=${distanceM}m) pero SIN pruebas de viaje → te pregunto '¿sigues aparcado?' en vez de liberar${if (throttled) " (pregunta reciente, no repito)" else ""}"
                 }
 
                 SafetyNetAction.None -> {
-                    debugLines += "geof=$geofTag d=${distanceM}m → anillo ambiguo, solo fix"
+                    debugLines += "geof=$geofTag: distancia ambigua (d=${distanceM}m, ni junto al coche ni claramente lejos) → solo apunto la posición, no decido nada"
                 }
             }
         }
@@ -420,7 +420,7 @@ class ParkingSafetyNetWorker(
         // File-visible mirror of the debug notification: the notification shade rotates, the
         // parkdiag capture is what field forensics actually reads.
         PaparcarLogger.d(DIAG, "[$source] ${debugLines.joinToString(" · ")}")
-        debugNotify("SafetyNet[$source]: ${debugLines.joinToString(" · ")}")
+        debugNotify("Red de seguridad [$source]: ${debugLines.joinToString(" · ")}")
 
         return Result.success()
     }

@@ -434,7 +434,7 @@ class CoordinatorDetectionService : LifecycleService() {
         for (id in decision.orphanGeofenceIds) {
             PaparcarLogger.w(DIAG, "  ✗ GEOFENCE_EXIT orphan geof=$id — removing")
             if (BuildConfig.DEBUG) {
-                notificationPort.showDebug("GEOFENCE_EXIT HUÉRFANA geof=${id.take(8)} → limpio, no armo")
+                notificationPort.showDebug("Valla huérfana (geof=${id.take(8)}): llegó un aviso de salida de una plaza que ya no existe → borro esa valla y NO arranco detección")
             }
             runCatching { geofenceService.removeGeofence(id) }
             runCatching { detectionEventLogger.log(DetectionEvent.OrphanCleaned(sessionId = id, timestampMs = now)) }
@@ -479,7 +479,7 @@ class CoordinatorDetectionService : LifecycleService() {
             }
             PaparcarLogger.w(DIAG, "  ⚑ GEOFENCE_EXIT delivered FAR from fence ($detail) — no instant authority; live re-check + reconcile record [DET-RIDE-PROOF-001]")
             if (BuildConfig.DEBUG) {
-                notificationPort.showDebug("EXIT lejano ($detail) → re-check en vivo + conjunción")
+                notificationPort.showDebug("Aviso de salida entregado LEJOS de la plaza ($detail): huele a entrega retrasada del sistema → compruebo ahora tu velocidad real; la plaza NO se libera todavía")
             }
             for ((id, _) in staleExits) {
                 ParkingSafetyNetWorker.recordStaleExitDelivery(this@CoordinatorDetectionService, id, now)
@@ -973,7 +973,7 @@ class CoordinatorDetectionService : LifecycleService() {
         )
         logSentry(DetectionEvent.Sentry.ENTERED, signal = reason, sessionId = residency.geofenceId)
         PaparcarLogger.d(DIAG, "  ⏾ enterSentry($reason) — resident, GPS off, re-arming departure wake [DET-RESIDENT-FGS-001]")
-        if (BuildConfig.DEBUG) notificationPort.showDebug("SENTRY: servicio residente (GPS off), vigilando salida")
+        if (BuildConfig.DEBUG) notificationPort.showDebug("Modo CENTINELA: coche aparcado y detección terminada → quedo residente con GPS apagado, esperando; cuando el coche se mueva verás 'Detección ARRANCADA'")
         // [F3] Swap the FGS notification for the low-profile sentry one (own MIN-importance silent
         // channel, plain-language copy). startForeground with the same id replaces it in place; the
         // next wake's promote (every onStartCommand) swaps the active-detection one back.
@@ -1212,7 +1212,7 @@ class CoordinatorDetectionService : LifecycleService() {
                 throw e
             } catch (e: Exception) {
                 PaparcarLogger.e(DIAG, "    ✗ detection error", e)
-                notificationPort.showDebug("Detection error: ${e.message}")
+                notificationPort.showDebug("ERROR en la detección (${e.message}): la sesión se aborta SIN pin → la red de seguridad periódica sigue vigilando tu plaza")
             } finally {
                 // [DET-NEVER-SILENT-001] This job reached a terminal (confirm / abort / supersede) →
                 // stop its heartbeat and clear its pending. ONLY a process death skips this finally,
@@ -1281,7 +1281,15 @@ class CoordinatorDetectionService : LifecycleService() {
             }.onFailure { e -> PaparcarLogger.w(DIAG, "  ⚠ detection-event log failed: ${e.message}") }
         }
         if (BuildConfig.DEBUG) {
-            val msg = "Coordinator armado por: ${trigger.name}" + (detail?.let { " · $it" } ?: "")
+            val cause = when (trigger) {
+                DetectionTrigger.GEOFENCE_EXIT -> "saliste de la valla de tu plaza"
+                DetectionTrigger.MANUAL -> "pulsaste 'Estoy conduciendo'"
+                DetectionTrigger.AR_VEHICLE_ENTER -> "el móvil te ve subiendo a tu coche"
+                DetectionTrigger.SIGNIFICANT_MOTION -> "el sensor de movimiento saltó estando de centinela"
+            }
+            val msg = "Detección ARRANCADA (${trigger.name}): $cause" +
+                (detail?.let { " · $it" } ?: "") +
+                " → mido el viaje; solo la conducción medida confirmará una plaza"
             notificationPort.showDebug(msg)
         }
     }

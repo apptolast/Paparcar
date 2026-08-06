@@ -234,6 +234,9 @@ class AppNotificationManagerImpl(
         val notification = NotificationCompat.Builder(context, DEBUG_CHANNEL_ID)
             .setContentTitle(context.getString(R.string.notif_debug_title))
             .setContentText(message)
+            // Debug messages are full sentences (state + cause + what to expect) — BigText so the
+            // field tester can read them whole on expand instead of a truncated single line.
+            .setStyle(NotificationCompat.BigTextStyle().bigText(message))
             .setSmallIcon(R.drawable.ic_notification_debug)
             .setColor(COLOR_DEBUG)
             .setCategory(NotificationCompat.CATEGORY_STATUS)

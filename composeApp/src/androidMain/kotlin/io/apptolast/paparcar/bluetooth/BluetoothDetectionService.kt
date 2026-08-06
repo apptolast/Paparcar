@@ -160,7 +160,7 @@ class BluetoothDetectionService : LifecycleService() {
                 throw e
             } catch (e: Exception) {
                 PaparcarLogger.e(DIAG, "  ✗ detection error", e)
-                notificationPort.showDebug("BT detection error: ${e.message}")
+                notificationPort.showDebug("ERROR en la detección Bluetooth (${e.message}): la sesión se aborta SIN pin → el próximo evento del coche (conectar/desconectar) vuelve a intentarlo")
             } finally {
                 // [FIX BT-BUG-101] Race guard: skip teardown when this job has been
                 // superseded by a newer detection job (e.g. a new BT_DISCONNECTED arrived

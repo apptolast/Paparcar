@@ -62,7 +62,7 @@ class SignificantMotionMonitor(
             // legal-from-dead worker lane exactly as before.
             if (detectionRuntime.presence.value == ServicePresence.Sentry) {
                 PaparcarLogger.d(TAG, "▶ significant motion — SENTRY resident, direct wake [DET-RESIDENT-FGS-001]")
-                debugNotify("SIG-MOTION → wake directo (SENTRY)")
+                debugNotify("Sensor de movimiento: el móvil se ha movido y el centinela está vivo → arranco la detección al instante (siguiente aviso: 'Detección ARRANCADA')")
                 runCatching {
                     context.startService(
                         Intent(context, CoordinatorDetectionService::class.java)
@@ -80,7 +80,7 @@ class SignificantMotionMonitor(
                 return
             }
             PaparcarLogger.d(TAG, "▶ significant motion — enqueueing safety-net check [DET-SIGMOTION-001]")
-            debugNotify("SIG-MOTION disparado → chequeo safety-net")
+            debugNotify("Sensor de movimiento: el móvil se ha movido (sin centinela vivo) → pido a la red de seguridad que compruebe si te estás alejando del coche")
             // A sensor callback is NOT an FGS-start exemption on Android 12+ — expedited work is
             // the legal fast lane from here.
             ParkingSafetyNetWorker.enqueueCheckNow(
@@ -103,13 +103,19 @@ class SignificantMotionMonitor(
             shouldBeArmed && !armed -> {
                 armed = sensorManager.requestTriggerSensor(listener, sensor)
                 PaparcarLogger.d(TAG, "sync → armed=$armed")
-                debugNotify(if (armed) "SIG-MOTION armado (aparcado, detección idle)" else "SIG-MOTION ✗ no se pudo armar")
+                debugNotify(
+                    if (armed) {
+                        "Sensor de movimiento ARMADO: coche aparcado y detección en reposo → un movimiento fuerte del móvil disparará una comprobación"
+                    } else {
+                        "Sensor de movimiento NO se pudo armar → tu salida dependerá de valla/AR y de la red de seguridad periódica"
+                    },
+                )
             }
             !shouldBeArmed && armed -> {
                 runCatching { sensorManager.cancelTriggerSensor(listener, sensor) }
                 armed = false
                 PaparcarLogger.d(TAG, "sync → disarmed")
-                debugNotify("SIG-MOTION desarmado (sin sesión o detección en curso)")
+                debugNotify("Sensor de movimiento DESARMADO: no hay plaza aparcada o la detección ya está trabajando — no hace falta vigilar")
             }
         }
     }
