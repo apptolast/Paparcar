@@ -4,6 +4,7 @@ import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.places.RoadWay
 import io.apptolast.paparcar.domain.util.haversineMeters
 import kotlin.math.PI
+import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.roundToLong
 
@@ -22,13 +23,32 @@ import kotlin.math.roundToLong
  * it is plausibly a drive ([MAX_DETOUR_FACTOR] × the straight distance); a disconnected or
  * implausible graph keeps the honest straight chord. [DET-ROUTE-ORIGIN-001]
  *
- * Residual v1 limitation: per-point snapping below the gap threshold can still jump between
- * parallel roads for a single noisy fix; dense driving fixes make this visually negligible.
+ * v3: snapping is continuity-aware (a small Viterbi over per-way candidates) instead of
+ * independently nearest-road per fix, so a noisy fix is pulled onto the street the trip is actually
+ * following rather than jumping to a parallel road; and short off-road spikes (1–2 fixes with no
+ * street nearby between on-road neighbours) are DROPPED so a single bad fix can't bend the line.
+ * Long off-road runs (car park, rural track) and off-road trail ends are kept raw — the line stays
+ * honest where there genuinely is no street. [ROUTE-LINE-CLEAN-001]
  */
 object TrailMapMatcher {
 
-    /** Beyond this distance to the nearest road, keep the raw fix (don't snap to a far/wrong road). */
-    const val MAX_SNAP_METERS = 30.0
+    /** Beyond this distance to the nearest road a fix is off-road: no snap candidate. Urban
+     *  multipath routinely pushes fixes 30–60 m off the street, so the radius covers that; the
+     *  continuity term is what keeps a far candidate from grabbing a wrong parallel street.
+     *  [ROUTE-LINE-CLEAN-001] */
+    const val MAX_SNAP_METERS = 60.0
+
+    /** Weight of the continuity term vs the fix→street distance: penalises snapped moves that
+     *  stretch or shrink the MEASURED movement between fixes (a jump to a parallel street adds
+     *  distance the GPS never travelled; following the real street through a corner doesn't). */
+    const val TRANSITION_WEIGHT = 2.0
+
+    /** At most this many candidate streets per fix feed the Viterbi (nearest first). */
+    const val MAX_CANDIDATE_WAYS = 6
+
+    /** Off-road runs up to this long between on-road neighbours are spikes → dropped. Longer runs
+     *  are a real off-road stretch → kept raw. */
+    const val MAX_OUTLIER_RUN = 2
 
     /** Consecutive snapped points farther apart than this get routed along the road graph. */
     const val GAP_FILL_MIN_METERS = 60.0
@@ -45,20 +65,83 @@ object TrailMapMatcher {
 
     fun snap(points: List<GpsPoint>, roads: List<RoadWay>): List<GpsPoint> {
         if (roads.isEmpty() || points.size < 2) return points
-        val snapped = points.map { snapPoint(it, roads) }
-        return fillGapsAlongRoads(snapped, roads)
+        val snapped = snapWithContinuity(points, roads)
+        val cleaned = dropShortOffRoadSpikes(points, snapped)
+        return fillGapsAlongRoads(cleaned, roads)
     }
 
-    private fun snapPoint(p: GpsPoint, roads: List<RoadWay>): GpsPoint {
+    // ── v3 — continuity-aware snapping + spike dropping [ROUTE-LINE-CLEAN-001] ────────────────────
+
+    /** One possible on-street position for a fix: the best projection onto one way. */
+    private class Candidate(val lat: Double, val lon: Double, val emissionMeters: Double)
+
+    /**
+     * Snapped position per input point, null = off-road (no street within [MAX_SNAP_METERS]).
+     *
+     * A tiny Viterbi: per point, the candidates are its best projection onto each nearby way; the
+     * chosen path minimises Σ (fix→street distance + [TRANSITION_WEIGHT] × |snapped step − measured
+     * step|). The second term is what a wrong parallel street can't fake — jumping sideways adds
+     * travel the GPS never measured, while following the real street (even around a corner shared
+     * by two ways) matches the measured step closely.
+     */
+    private fun snapWithContinuity(points: List<GpsPoint>, roads: List<RoadWay>): Array<GpsPoint?> {
+        val candidates = points.map { candidatesFor(it, roads) }
+        val result = arrayOfNulls<GpsPoint>(points.size)
+        // The DP runs over the subsequence of points that have on-street candidates; off-road
+        // points neither constrain nor break the chain.
+        val onRoad = points.indices.filter { candidates[it].isNotEmpty() }
+        if (onRoad.isEmpty()) return result
+
+        val costs = Array(onRoad.size) { DoubleArray(candidates[onRoad[it]].size) }
+        val back = Array(onRoad.size) { IntArray(candidates[onRoad[it]].size) { -1 } }
+        for (c in candidates[onRoad[0]].indices) {
+            costs[0][c] = candidates[onRoad[0]][c].emissionMeters
+        }
+        for (s in 1 until onRoad.size) {
+            val i = onRoad[s]
+            val j = onRoad[s - 1]
+            val measuredStep = haversineMeters(
+                points[j].latitude, points[j].longitude,
+                points[i].latitude, points[i].longitude,
+            )
+            for (c in candidates[i].indices) {
+                var bestCost = Double.MAX_VALUE
+                var bestPrev = -1
+                for (pc in candidates[j].indices) {
+                    val snappedStep = haversineMeters(
+                        candidates[j][pc].lat, candidates[j][pc].lon,
+                        candidates[i][c].lat, candidates[i][c].lon,
+                    )
+                    val cost = costs[s - 1][pc] + TRANSITION_WEIGHT * abs(snappedStep - measuredStep)
+                    if (cost < bestCost) {
+                        bestCost = cost
+                        bestPrev = pc
+                    }
+                }
+                costs[s][c] = bestCost + candidates[i][c].emissionMeters
+                back[s][c] = bestPrev
+            }
+        }
+
+        var choice = costs.last().indices.minBy { costs.last()[it] }
+        for (s in onRoad.size - 1 downTo 0) {
+            val i = onRoad[s]
+            val cand = candidates[i][choice]
+            result[i] = points[i].copy(latitude = cand.lat, longitude = cand.lon)
+            choice = back[s][choice]
+        }
+        return result
+    }
+
+    /** Best projection of [p] onto each way within [MAX_SNAP_METERS], nearest [MAX_CANDIDATE_WAYS]. */
+    private fun candidatesFor(p: GpsPoint, roads: List<RoadWay>): List<Candidate> {
         // Local equirectangular scale: longitude degrees shrink by cos(lat) so planar distances are
         // ~isotropic over the small bbox of one trip. Roads are nearby, so one cosLat is enough.
         val cosLat = cos(p.latitude * PI / 180.0)
-        var bestLat = 0.0
-        var bestLon = 0.0
-        var bestDist = MAX_SNAP_METERS
-        var found = false
+        val found = ArrayList<Candidate>()
         for (way in roads) {
             val v = way.points
+            var best: Candidate? = null
             for (i in 0 until v.size - 1) {
                 val (lat, lon) = projectOntoSegment(
                     p.latitude, p.longitude,
@@ -67,15 +150,42 @@ object TrailMapMatcher {
                     cosLat,
                 )
                 val d = haversineMeters(p.latitude, p.longitude, lat, lon)
-                if (d < bestDist) {
-                    bestDist = d
-                    bestLat = lat
-                    bestLon = lon
-                    found = true
+                if (d <= MAX_SNAP_METERS && d < (best?.emissionMeters ?: Double.MAX_VALUE)) {
+                    best = Candidate(lat, lon, d)
                 }
             }
+            best?.let(found::add)
         }
-        return if (found) p.copy(latitude = bestLat, longitude = bestLon) else p
+        found.sortBy { it.emissionMeters }
+        return if (found.size > MAX_CANDIDATE_WAYS) found.subList(0, MAX_CANDIDATE_WAYS) else found
+    }
+
+    /**
+     * Merges the snapped positions back into one trail, dropping short off-road runs
+     * (≤ [MAX_OUTLIER_RUN]) BETWEEN on-road neighbours — those are GPS spikes, and the gap-fill
+     * routes the resulting hole along streets when it's long. Off-road runs at the trail ends (the
+     * backdated origin can sit in a car park) and longer runs are kept raw: there really is no
+     * street there and inventing one would lie.
+     */
+    private fun dropShortOffRoadSpikes(raw: List<GpsPoint>, snapped: Array<GpsPoint?>): List<GpsPoint> {
+        val out = ArrayList<GpsPoint>(raw.size)
+        var i = 0
+        while (i < raw.size) {
+            val onRoad = snapped[i]
+            if (onRoad != null) {
+                out.add(onRoad)
+                i++
+                continue
+            }
+            var end = i
+            while (end < raw.size && snapped[end] == null) end++
+            val isInteriorSpike = i > 0 && end < raw.size && (end - i) <= MAX_OUTLIER_RUN
+            if (!isInteriorSpike) {
+                for (k in i until end) out.add(raw[k])
+            }
+            i = end
+        }
+        return out
     }
 
     /** Closest point (lat, lon) on segment a→b to point p, in the local planar frame. */

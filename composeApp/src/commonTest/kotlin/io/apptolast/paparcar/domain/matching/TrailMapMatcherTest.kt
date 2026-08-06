@@ -87,4 +87,78 @@ class TrailMapMatcherTest {
 
         assertEquals(2, matched.size)
     }
+
+    // ── v3 — continuity-aware snapping + spike dropping [ROUTE-LINE-CLEAN-001] ──────
+
+    @Test
+    fun `should drop a single off-road spike between on-road fixes`() {
+        val road = RoadWay(listOf(gp(36.6000, -6.2400), gp(36.6000, -6.2300)))
+        // Driving along the road with one fix ~110 m north (beyond MAX_SNAP_METERS) mid-trail.
+        val trail = listOf(
+            gp(36.60003, -6.2360),
+            gp(36.60004, -6.2355),
+            gp(36.6010, -6.2352), // the spike
+            gp(36.60003, -6.2349),
+            gp(36.60004, -6.2345),
+        )
+
+        val matched = TrailMapMatcher.snap(trail, listOf(road))
+
+        assertEquals(4, matched.size, "expected the spike dropped")
+        matched.forEach { p ->
+            val offset = haversineMeters(p.latitude, p.longitude, 36.6000, p.longitude)
+            assertTrue(offset < 1.0, "expected every drawn point on the road, one is ${offset}m off")
+        }
+    }
+
+    @Test
+    fun `should keep a long off-road run raw`() {
+        val road = RoadWay(listOf(gp(36.6000, -6.2400), gp(36.6000, -6.2300)))
+        // Three consecutive fixes far north of any street (a car park / open ground) — beyond
+        // MAX_OUTLIER_RUN, so this is a real off-road stretch, not a spike.
+        val offRoad = listOf(gp(36.6010, -6.2356), gp(36.6011, -6.2352), gp(36.6010, -6.2348))
+        val trail = listOf(gp(36.60003, -6.2360)) + offRoad + listOf(gp(36.60003, -6.2344))
+
+        val matched = TrailMapMatcher.snap(trail, listOf(road))
+
+        offRoad.forEach { p ->
+            assertTrue(matched.contains(p), "expected the off-road stretch kept raw")
+        }
+    }
+
+    @Test
+    fun `should keep an off-road trail origin raw`() {
+        val road = RoadWay(listOf(gp(36.6000, -6.2400), gp(36.6000, -6.2300)))
+        // The backdated origin sits ~110 m off the street (car park); it must survive as-is.
+        val origin = gp(36.6010, -6.2360)
+        val trail = listOf(origin, gp(36.60003, -6.2355), gp(36.60004, -6.2350))
+
+        val matched = TrailMapMatcher.snap(trail, listOf(road))
+
+        assertEquals(origin, matched.first())
+    }
+
+    @Test
+    fun `should keep a noisy fix on the followed street instead of jumping to a parallel one`() {
+        // Two parallel east-west streets ~40 m apart.
+        val followed = RoadWay(listOf(gp(36.6000, -6.2400), gp(36.6000, -6.2300)))
+        val parallel = RoadWay(listOf(gp(36.60036, -6.2400), gp(36.60036, -6.2300)))
+        // Trail hugs the southern street except one noisy fix ~22 m north — NEARER the parallel
+        // street (~14 m), which naive per-point snapping would jump to.
+        val trail = listOf(
+            gp(36.60005, -6.2360),
+            gp(36.60005, -6.2355),
+            gp(36.60020, -6.2350), // noisy — nearest street is the parallel one
+            gp(36.60005, -6.2345),
+            gp(36.60005, -6.2340),
+        )
+
+        val matched = TrailMapMatcher.snap(trail, listOf(followed, parallel))
+
+        assertEquals(5, matched.size)
+        matched.forEach { p ->
+            val offset = haversineMeters(p.latitude, p.longitude, 36.6000, p.longitude)
+            assertTrue(offset < 1.0, "expected every fix on the followed street, one is ${offset}m off it")
+        }
+    }
 }

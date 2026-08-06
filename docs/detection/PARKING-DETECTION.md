@@ -1734,6 +1734,24 @@ only when the road path is ≤ 3× the straight distance (no invented scenic det
 disconnected/implausible graph keeps the honest straight chord. Pure commonMain, runs off the main
 thread inside the existing debounced pipeline.
 
+### ROUTE-LINE-CLEAN-001 — noisy fixes are corrected onto the followed street, spikes dropped (2026-08-06)
+
+**Why (user field screenshots 2026-07-30, taken WITH v1 active).** The drawn route still wobbled
+off the street: v1's per-point nearest-road snap kept any fix > 30 m from a road raw (a visible
+spike bending the line) and could flip a single noisy fix onto a parallel street. Visual-only
+noise, but it reads as a broken route.
+
+**What — `TrailMapMatcher` v3, same single seam.** (a) Snapping is continuity-aware: a small
+Viterbi over per-way candidates (≤ 6 nearest ways within `MAX_SNAP_METERS`, raised 30→60 m for
+urban multipath) minimises fix→street distance + `TRANSITION_WEIGHT` × |snapped step − measured
+step| — a parallel street adds travel the GPS never measured, so the trip stays on the street it
+is actually following, while a genuine corner (shared node, snapped step ≈ measured step) costs
+nothing. (b) Off-road runs of ≤ `MAX_OUTLIER_RUN` (2) fixes between on-road neighbours are
+DROPPED — the existing v2 gap-fill routes the hole along streets when it is long. Off-road trail
+ends (backdated origin in a car park) and longer runs are kept raw: no street there, inventing one
+would lie. Cosmetic rider: trail polyline width 20→28 px. Pure commonMain; the drawing pipeline,
+decimation and detection evidence are untouched.
+
 ### DET-RESIDENT-FGS-001 — resident SENTRY FGS between parkings (F1 lifecycle, F2 telemetry) (2026-07-28 / 2026-08-04)
 
 **Why (chronic FN class; plan derived from the decompiled Driversnote/Transistor stack).** The
