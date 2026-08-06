@@ -1,7 +1,7 @@
 # ROUTE-LINE-CLEAN-001 — La línea de la ruta sin ruido: fixes desviados se corrigen a la calle (y línea más gruesa)
 
-**Estado:** ✅ IMPLEMENTADO 2026-08-06 en `feature/ROUTE-LINE-CLEAN-001-noise-free-trail`,
-pendiente commit + device/field-test.
+**Estado:** ✅ EN MASTER `b9d76a33` (ff-only 2026-08-07, rama borrada); ⏳ field-test con el APK
+de campo entregado el 06-08 (master + este ticket — el primer APK con todo el paquete de agosto).
 
 ## El problema (capturas del user, 30-07 20:17)
 
