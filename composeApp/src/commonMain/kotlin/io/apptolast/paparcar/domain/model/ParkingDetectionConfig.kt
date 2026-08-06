@@ -634,6 +634,14 @@ data class ParkingDetectionConfig(
      *  because the MAC-address binding makes a real disconnect + walk unambiguous — the
      *  "neighbour's identical car" case is impossible. [DET-F-01, was BluetoothParkingDetector literal] */
     val reliabilityBluetooth: Float = 0.95f,
+    /** Reliability score assigned when the BT walk-away watch EXPIRES with a pin-grade STATIONARY
+     *  candidate still standing: the paired car's disconnect + a stationary fix that stayed put for
+     *  the whole [btWalkAwayTimeoutMs] is a real park (home/short-walk case — the user went inside
+     *  without ever covering 30 m, field 2026-08-06 01:46). Only the walk corroboration is missing,
+     *  so it sits below [reliabilityBluetooth] at the [reliabilityKinematicEgress] tier; the OWN
+     *  session must not be lost to a guard that protects community trust. Any vehicle-rate
+     *  displacement during the watch still aborts with no save. [DET-BT-TIMEOUT-SAVE-001] */
+    val reliabilityBluetoothTimeoutSave: Float = 0.85f,
     /** Reliability score assigned when the confirmation prompt times out UNANSWERED and the
      *  session is saved anyway. [DET-RECONCILE-001] Asymmetry of costs: the prompt only shows
      *  after a real trip + stop + vehicle-exit signal, so the parking almost certainly happened;
@@ -925,6 +933,11 @@ data class ParkingDetectionConfig(
         require(reliabilityBluetooth in reliabilityVehicleExit..reliabilityUserConfirmed) {
             "reliabilityBluetooth ($reliabilityBluetooth) must be in [reliabilityVehicleExit=$reliabilityVehicleExit, " +
                 "reliabilityUserConfirmed=$reliabilityUserConfirmed] — BT is deterministic, stronger than AR-exit"
+        }
+        require(reliabilityBluetoothTimeoutSave in reliabilityUnattendedSave..reliabilityBluetooth) {
+            "reliabilityBluetoothTimeoutSave ($reliabilityBluetoothTimeoutSave) must be in " +
+                "[reliabilityUnattendedSave=$reliabilityUnattendedSave, reliabilityBluetooth=$reliabilityBluetooth] — " +
+                "missing walk corroboration can only lower the full BT confirm, never below an unattended save"
         }
         require(minStepsToConfirm >= 1) {
             "minStepsToConfirm must be >= 1, was $minStepsToConfirm"

@@ -79,6 +79,15 @@ unpairing a BT device — or toggling the adapter — self-corrects one detectio
 2. **GPS fix** — sample the location stream until `accuracy ≤ GPS_ACCURACY_THRESHOLD_M = 50 m`, or `GPS_SAMPLE_TIMEOUT_MS = 60 s` elapses. The first fix that meets the accuracy bar is the candidate parking location.
 3. **Walking confirmation** — keep watching GPS until the user has moved `≥ DISTANCE_THRESHOLD_M = 30 m` from the candidate fix. This rules out "BT dropped while still in the car" cases (passenger left, head-unit died, etc.).
 4. **Confirm** — `confirmParking(candidateFix, config.reliabilityBluetooth = 0.95f)`. [DET-F-01]
+5. **Timeout-save** [DET-BT-TIMEOUT-SAVE-001] — if the walk-away watch expires
+   (`btWalkAwayTimeoutMs = 15 min`) with the stationary pin-grade candidate still standing, the
+   OWN session is saved anyway at `reliabilityBluetoothTimeoutSave = 0.85f`, provenance
+   `bt_timeout`. This is the home-park case (field 2026-08-06 01:46: parked at home, went inside,
+   never covered 30 m — the abort lost the user's "where is my car", a regression vs the
+   coordinator which confirms home parks via steps+egress). Safe because nothing community-facing
+   publishes at confirm time (spots publish at departure), and a mid-drive BT drop cannot reach
+   the timeout: a driving candidate never passes step 2, and vehicle-rate displacement during the
+   watch aborts with no save. A garage park with no usable GPS still aborts (no candidate).
 
 Abort-on-reconnect (BT-005): when `ACTION_ACL_CONNECTED` arrives, the Receiver starts the Service with `ACTION_BT_CONNECTED`. The Service calls `detectionJob?.cancel()` — the suspend function receives `CancellationException` at the active suspension point (`delay` or `Flow.first`) and exits cooperatively. The detector itself carries no cancellation flag.
 

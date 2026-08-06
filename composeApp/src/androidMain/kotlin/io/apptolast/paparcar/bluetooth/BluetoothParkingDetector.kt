@@ -121,8 +121,34 @@ class BluetoothParkingDetector(
             }
         }
         if (walkSettled == null) {
-            PaparcarLogger.w(TAG, "Walk-away watch expired after ${config.btWalkAwayTimeoutMs / 60_000} min — aborting cleanly (garage / no usable GPS) [DET-AUDIT-002 T4]")
-            logRemote(sessionId = vehicleId, verdict = "bt_walkaway_timeout", fix = parkingFix)
+            // [DET-BT-TIMEOUT-SAVE-001] The watch expired with the STATIONARY pin-grade candidate
+            // still standing: the car really parked and the user simply never covered 30 m (home
+            // park, went straight inside — field 2026-08-06 01:46, Kamiq). Losing the OWN session
+            // here was a regression vs the coordinator (which confirms home parks via steps+egress):
+            // the walk-away guards COMMUNITY trust, not the user's private "where is my car".
+            // Save the session at the reduced no-walk reliability; nothing community-facing is
+            // published at confirm time (spots publish at departure, with their own guards).
+            // A mid-drive BT drop cannot reach here: vehicle-rate displacement during the watch
+            // aborts below, and a driving candidate never became [BtParkVerdict.CandidateAccepted].
+            PaparcarLogger.w(TAG, "Walk-away watch expired after ${config.btWalkAwayTimeoutMs / 60_000} min — saving own session without walk corroboration [DET-BT-TIMEOUT-SAVE-001]")
+            confirmParking(
+                parkingFix,
+                config.reliabilityBluetoothTimeoutSave,
+                vehicleId = vehicleId,
+                detectionPath = PATH_BLUETOOTH_TIMEOUT,
+                // The user stayed within the walk-away radius for the whole watch, so the pin IS
+                // an honest body position (±30 m) — unlike the egress-confirm case that bans
+                // sealing at the pin. [DET-STEP-BUDGET-ORIGIN-001]
+                sealPoint = parkingFix,
+            )
+                .onSuccess { saved ->
+                    logRemote(sessionId = saved.id, verdict = "bt_timeout_save", fix = parkingFix)
+                    notificationPort.showParkingSaved(saved.location.latitude, saved.location.longitude)
+                }
+                .onFailure { e ->
+                    PaparcarLogger.e(TAG, "Failed to confirm timeout-save parking", e)
+                    logRemote(sessionId = vehicleId, verdict = "bt_timeout_save_refused")
+                }
             return
         }
         if (walkAborted) {
@@ -180,6 +206,11 @@ class BluetoothParkingDetector(
 
         /** Pin provenance path for the deterministic Bluetooth strategy. [DET-PIN-PROVENANCE-001] */
         const val PATH_BLUETOOTH = "bt"
+
+        /** Provenance path for a BT park saved on walk-away TIMEOUT (stationary candidate, no 30 m
+         *  walk — the home-park case). Distinct so field forensics can tell the two apart at a
+         *  glance. [DET-BT-TIMEOUT-SAVE-001] */
+        const val PATH_BLUETOOTH_TIMEOUT = "bt_timeout"
 
         /** BT-005: Grace window before acting on disconnect (brief stop / oscillation debounce). */
         const val BT_DISCONNECT_DEBOUNCE_MS = 30_000L
