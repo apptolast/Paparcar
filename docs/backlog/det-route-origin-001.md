@@ -1,7 +1,8 @@
 # DET-ROUTE-ORIGIN-001 — Origen del viaje retrodatado al último parking (la ruta nace en la plaza, no en el primer fix)
 
-**Estado:** ✅ IMPLEMENTADO 2026-07-30 en `feature/DET-ROUTE-ORIGIN-001-backdated-trip-origin`
-(worktree `../Paparcar-routeorigin`), pendiente commit + device/field-test. MÁS SIMPLE que la spec:
+**Estado:** ✅ EN MASTER `c415e36b` (merge squash lineal 2026-08-05, rama y worktree borrados);
+⏳ device/field-test (los APKs de campo instalados son anteriores a este master — regenerar).
+MÁS SIMPLE que la spec:
 el canal ya existía — el service ya resuelve `TripContext(session.location, vehicleId)` en
 GEOFENCE_EXIT / AR ENTER / sentry-wake y llega como `Monitoring.departurePoint`; solo
 `HomeTripController` lo ignoraba (`departurePoint = trail.firstOrNull()`). Cambios: seed del trail
