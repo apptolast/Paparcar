@@ -1752,6 +1752,32 @@ ends (backdated origin in a car park) and longer runs are kept raw: no street th
 would lie. Cosmetic rider: trail polyline width 20→28 px. Pure commonMain; the drawing pipeline,
 decimation and detection evidence are untouched.
 
+### ROUTE-LINE-PRO-001 — the drawn line is the street geometry of the most likely route (2026-08-07)
+
+**Why.** v1–v3 corrected the FIXES and joined them with chords — the line was still "fixed-up GPS
+points". The industry standard (OSRM `match`, Valhalla/Meili, Newson & Krumm 2009) instead decides
+the most likely ROUTE along the road graph and draws the road's own geometry. The visible
+difference is every bend: two fixes either side of a corner used to be joined by a straight cut
+across the block (v2's gap-fill only routed holes > 60 m); now the line turns AT the corner,
+always, because every transition between matched points is routed.
+
+**What — `TrailMapMatcher` v4, full HMM, same single seam.** Trail points are decimated to
+`MATCH_SPACING_METERS` (25 m — a transition only discriminates streets when the measured step is
+large vs GPS noise; the routed geometry restores the skipped detail). Per measurement the
+candidates are its projections onto road edges within `MAX_SNAP_METERS` (60 m, max 4, 5 m dedupe);
+Viterbi minimises Gaussian emission (`EMISSION_SIGMA_METERS` 10 — urban phone traces) plus the
+Newson–Krumm transition |routed − straight| / `TRANSITION_BETA_METERS` (3, Valhalla's default),
+with real bounded-Dijkstra routing over the `RoadGraph` (ways joined at shared OSM nodes; bound =
+3× straight + 120 m slack; one Dijkstra per previous-layer edge endpoint shared across pairs). The
+output concatenates the winning road paths, so the line follows bends and roundabouts even when
+every fix is metres off the street, and a parallel street connected only at the far ends demands
+an absurd detour for a small measured step — the transition kills it where nearest-distance would
+not. Viterbi being global, each re-match self-corrects earlier stretches. Honesty rules unchanged:
+off-road fixes stay raw (interior runs ≤ 2 dropped as spikes), an implausible/disconnected route
+breaks the HMM into an honest straight chord. Supersedes v1 (per-point snap), v2 (A* gap-fill —
+routing is now inherent) and v3 (straight-line-transition Viterbi). Pure commonMain; pipeline,
+decimation and detection evidence untouched.
+
 ### DET-RESIDENT-FGS-001 — resident SENTRY FGS between parkings (F1 lifecycle, F2 telemetry) (2026-07-28 / 2026-08-04)
 
 **Why (chronic FN class; plan derived from the decompiled Driversnote/Transistor stack).** The

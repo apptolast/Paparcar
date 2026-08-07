@@ -41,7 +41,8 @@ class TrailMapMatcherTest {
         assertEquals(trail, TrailMapMatcher.snap(trail, emptyList()))
     }
 
-    // ── v2 — long gaps routed along the road graph [DET-ROUTE-ORIGIN-001] ──────────
+    // ── Routed transitions — the drawn line is road geometry, not chords ────────────
+    // Born as v2 gap-fill [DET-ROUTE-ORIGIN-001]; in v4 every transition is routed.
 
     @Test
     fun `should fill a long gap by routing through the street corner instead of a straight chord`() {
@@ -78,9 +79,9 @@ class TrailMapMatcherTest {
     }
 
     @Test
-    fun `should not route between consecutive points closer than the gap threshold`() {
+    fun `should not invent vertices between points on the same straight street`() {
         val road = RoadWay(listOf(gp(36.6000, -6.2400), gp(36.6000, -6.2300)))
-        // Two points ~27 m apart along the road — dense driving fixes, no routing needed.
+        // Two points ~27 m apart on one straight edge — the route between them IS the edge.
         val trail = listOf(gp(36.60005, -6.2350), gp(36.60005, -6.2347))
 
         val matched = TrailMapMatcher.snap(trail, listOf(road))
@@ -88,7 +89,46 @@ class TrailMapMatcherTest {
         assertEquals(2, matched.size)
     }
 
-    // ── v3 — continuity-aware snapping + spike dropping [ROUTE-LINE-CLEAN-001] ──────
+    @Test
+    fun `should draw the street corner between two short-distance fixes on a bend`() {
+        // L-shaped streets sharing the corner node (36.6000, -6.2300). One fix ~40 m before the
+        // corner, one ~40 m after it — a step the v2 gap-fill (60 m threshold) never routed. v4
+        // routes every transition, so the drawn line turns AT the corner instead of cutting it.
+        val eastWest = RoadWay(listOf(gp(36.6000, -6.2400), gp(36.6000, -6.2300)))
+        val northSouth = RoadWay(listOf(gp(36.6000, -6.2300), gp(36.6100, -6.2300)))
+        val trail = listOf(gp(36.60002, -6.23045), gp(36.60036, -6.23002))
+
+        val matched = TrailMapMatcher.snap(trail, listOf(eastWest, northSouth))
+
+        assertTrue(
+            matched.any { it.latitude == 36.6000 && it.longitude == -6.2300 },
+            "expected the corner vertex on the drawn line, got ${matched.size} points",
+        )
+    }
+
+    @Test
+    fun `should decimate dense fixes and still draw the whole street stretch`() {
+        val road = RoadWay(listOf(gp(36.6000, -6.2400), gp(36.6000, -6.2300)))
+        // A fix every ~9 m with alternating ~9 m jitter across the street — far denser than
+        // MATCH_SPACING_METERS. Matching runs on the decimated skeleton; the drawn line still
+        // covers the stretch and sits on the street.
+        val trail = (0..10).map { i ->
+            gp(if (i % 2 == 0) 36.60008 else 36.59992, -6.2360 + i * 0.0001)
+        }
+
+        val matched = TrailMapMatcher.snap(trail, listOf(road))
+
+        assertTrue(matched.size < trail.size, "expected decimation, got ${matched.size} points")
+        matched.forEach { p ->
+            val offset = haversineMeters(p.latitude, p.longitude, 36.6000, p.longitude)
+            assertTrue(offset < 1.0, "expected the drawn line on the street, a point is ${offset}m off")
+        }
+        // The stretch endpoints survive decimation.
+        assertTrue(haversineMeters(matched.first().latitude, matched.first().longitude, 36.6000, -6.2360) < 2.0)
+        assertTrue(haversineMeters(matched.last().latitude, matched.last().longitude, 36.6000, -6.2350) < 2.0)
+    }
+
+    // ── Honesty — off-road fixes and parallel streets [ROUTE-LINE-CLEAN-001] ────────
 
     @Test
     fun `should drop a single off-road spike between on-road fixes`() {
@@ -159,6 +199,33 @@ class TrailMapMatcherTest {
         matched.forEach { p ->
             val offset = haversineMeters(p.latitude, p.longitude, 36.6000, p.longitude)
             assertTrue(offset < 1.0, "expected every fix on the followed street, one is ${offset}m off it")
+        }
+    }
+
+    @Test
+    fun `should keep a noisy fix on the followed street even when the parallel street is connected`() {
+        // Same parallel-street trap, but now cross streets CONNECT the two at both ends — the
+        // parallel candidate is reachable along the graph, just via an absurd ~900 m detour for a
+        // ~48 m measured step. The HMM transition kills it where pure nearest-distance would not.
+        // [ROUTE-LINE-PRO-001]
+        val followed = RoadWay(listOf(gp(36.6000, -6.2400), gp(36.6000, -6.2300)))
+        val parallel = RoadWay(listOf(gp(36.60036, -6.2400), gp(36.60036, -6.2300)))
+        val crossWest = RoadWay(listOf(gp(36.6000, -6.2400), gp(36.60036, -6.2400)))
+        val crossEast = RoadWay(listOf(gp(36.6000, -6.2300), gp(36.60036, -6.2300)))
+        val trail = listOf(
+            gp(36.60005, -6.2360),
+            gp(36.60005, -6.2355),
+            gp(36.60020, -6.2350), // noisy — nearest street is the parallel one
+            gp(36.60005, -6.2345),
+            gp(36.60005, -6.2340),
+        )
+
+        val matched = TrailMapMatcher.snap(trail, listOf(followed, parallel, crossWest, crossEast))
+
+        assertEquals(5, matched.size)
+        matched.forEach { p ->
+            val offset = haversineMeters(p.latitude, p.longitude, 36.6000, p.longitude)
+            assertTrue(offset < 1.0, "expected the drawn line on the followed street, a point is ${offset}m off it")
         }
     }
 }
