@@ -1,8 +1,11 @@
 # UX-PARKED-STATE-001 — Replantear el estado "vehículo aparcado" (peek, liberar, re-aparcar)
 
-> **Estado**: ANÁLISIS + PROPUESTA (pendiente de decisiones del user, §4).
+> **Estado**: ✅ IMPLEMENTADO EN MASTER (`d575d83b`, squash de UX-PARK-FLOW-001, 07-08). Decisiones §4
+> resueltas con el user. Diseño final = editar entra a colocar pin y se decide al confirmar
+> (corregir / he aparcado en otro sitio / borrar), NO menú ⋮ — ver §2.4b. PENDIENTE FIELD/DEVICE:
+> el sheet de edición (3 botones) + diálogo de borrado no se han visto en móvil (revisar vía mock
+> release → Dev Catalog → galería "edit parking"). Huérfano por limpiar: `home_add_parking_confirm_edit`.
 > Hijo de UX-PARK-FLOW-001. Nace de la revisión en device del 06-08 y del feedback del user 07-08.
-> Rama `feature/UX-PARK-FLOW-001-park-flow-redesign`, sobre master @ b16a56bc.
 
 ## 1. AS-IS — qué muestra hoy el peek de sesión aparcada (`ParkingPeek.kt`)
 
