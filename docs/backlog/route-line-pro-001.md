@@ -1,7 +1,8 @@
 # ROUTE-LINE-PRO-001 — La línea de la ruta ES la geometría de la calle (HMM Newson–Krumm)
 
-**Estado:** 🔨 implementado en rama `feature/ROUTE-LINE-PRO-001-street-geometry-line`; 13/13 tests
-matcher + suite prod + compile mock verdes; ⏳ pendiente commit + device/field-test.
+**Estado:** ✅ EN MASTER `4cabe9d8` (ff-only 2026-08-07, rama borrada); 13/13 tests matcher +
+suite prod + compile mock verdes; ⏳ device/field-test (el APK de campo del 06-08 lleva la v3 —
+regenerar desde master para probar la v4).
 
 ## El salto conceptual respecto a v3
 
