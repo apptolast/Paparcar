@@ -29,7 +29,9 @@ import androidx.room.RoomDatabaseConstructor
     // for remote provenance diagnostics (MIGRATION_12_13). [DET-PIN-PROVENANCE-001]
     // v14: parking_sessions gains zoneRadiusMeters — the honest-close approximate-zone radius,
     // local-only, null = exact point (MIGRATION_13_14). [DET-HONEST-CLOSE-001]
-    version = 14,
+    // v15: parking_sessions gains spotType — the parking origin (auto / manual / home), synced so the
+    // history detail screen shows the real detection method (MIGRATION_14_15). [HISTORY-DETAIL-001]
+    version = 15,
 )
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase : RoomDatabase() {

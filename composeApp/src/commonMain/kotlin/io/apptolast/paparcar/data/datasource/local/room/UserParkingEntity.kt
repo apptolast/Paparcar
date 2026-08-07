@@ -30,6 +30,10 @@ data class UserParkingEntity(
     val sizeCategory: String? = null,
     // CarbodyType enum name (e.g. "HATCHBACK_MEDIUM") — passed to the published Spot for the body badge
     val carbodyType: String? = null,
+    // SpotType enum name (e.g. "MANUAL_REPORT") — how this parking was originated (auto detection /
+    // manual report / home geofence). Drives the detection-method label in the history detail screen.
+    // Null on legacy rows written before v15 → read as AUTO_DETECTED. Synced to Firestore. [HISTORY-DETAIL-001]
+    val spotType: String? = null,
     // Non-null when parked inside a private zone — DepartureDetectionWorker skips Spot publication
     val privateZoneId: String? = null,
     // Max GPS speed (m/s) observed during the detection session that confirmed this park.

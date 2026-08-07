@@ -53,6 +53,10 @@ import io.apptolast.paparcar.presentation.home.sections.sheet.components.HomeDet
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.HomePeekHandle
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.SpotFitRow
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.homeSheetItems
+import io.apptolast.paparcar.domain.model.SpotType
+import io.apptolast.paparcar.domain.model.UserParking
+import io.apptolast.paparcar.domain.model.Vehicle
+import io.apptolast.paparcar.presentation.map.HistoryDetailSheet
 import io.apptolast.paparcar.presentation.onboarding.OnboardingScreen
 import io.apptolast.paparcar.presentation.permissions.PermissionsContent
 import io.apptolast.paparcar.presentation.permissions.PermissionsState
@@ -142,6 +146,30 @@ private fun history(state: HistoryState) {
     )
 }
 
+// History detail sheet — map-free surface, bottom-anchored like on the real screen. Showcases the
+// real detection label (auto/manual/home), the real vehicle pictogram + the prev/next stepper. [HISTORY-DETAIL-001]
+@Composable
+private fun parkingDetailSheet(
+    session: UserParking,
+    vehicle: Vehicle,
+    hasPrevious: Boolean = true,
+    hasNext: Boolean = true,
+) {
+    Box(Modifier.fillMaxSize()) {
+        HistoryDetailSheet(
+            session = session,
+            vehicle = vehicle,
+            isActive = session.isActive,
+            hasPrevious = hasPrevious,
+            hasNext = hasNext,
+            onPrevious = {},
+            onNext = {},
+            onNavigate = { _, _ -> },
+            modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(),
+        )
+    }
+}
+
 // SpotFit outcomes derived from computeSpotFit(spot, vehicle): same body = OPTIMAL,
 // car ≤ spot length = FITS, car > spot = DOES_NOT_FIT, spot without size = UNKNOWN.
 private fun fitSpot(size: VehicleSize?, carbody: CarbodyType? = null) =
@@ -177,6 +205,51 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             },
             Variant("Conexión restablecida (Restored · verde, ~2,5s)") {
                 Column(Modifier.fillMaxSize()) { ConnectivityBanner(ConnectivityBannerPhase.Restored) }
+            },
+        ),
+    ),
+    ScreenGroup(
+        "Detalle de aparcamiento histórico",
+        listOf(
+            // Detection label reads the REAL origin (was hard-stuck on "automática"); icon is the real
+            // vehicle body shape (was a generic car); stepper walks the whole history. [HISTORY-DETAIL-001]
+            Variant("Auto-detectado · coche") {
+                parkingDetailSheet(
+                    session = FakeData.endedSessions[1].copy(spotType = SpotType.AUTO_DETECTED),
+                    vehicle = FakeData.vehicleSedan,
+                )
+            },
+            Variant("Reporte manual · coche") {
+                parkingDetailSheet(
+                    session = FakeData.endedSessions[0].copy(spotType = SpotType.MANUAL_REPORT),
+                    vehicle = FakeData.vehicleSedan,
+                )
+            },
+            Variant("Geocerca de casa · furgoneta") {
+                parkingDetailSheet(
+                    session = FakeData.endedSessions[2].copy(spotType = SpotType.HOME_GEOFENCE),
+                    vehicle = FakeData.vehicleVan,
+                )
+            },
+            Variant("Moto · manual") {
+                parkingDetailSheet(
+                    session = FakeData.endedSessions[3].copy(spotType = SpotType.MANUAL_REPORT),
+                    vehicle = FakeData.vehicleMoto,
+                )
+            },
+            Variant("Sesión activa · sin anterior (primero)") {
+                parkingDetailSheet(
+                    session = FakeData.activeSession.copy(spotType = SpotType.AUTO_DETECTED),
+                    vehicle = FakeData.vehicleSedan,
+                    hasPrevious = false,
+                )
+            },
+            Variant("Último del historial · sin siguiente") {
+                parkingDetailSheet(
+                    session = FakeData.endedSessions.last().copy(spotType = SpotType.AUTO_DETECTED),
+                    vehicle = FakeData.vehicleVan,
+                    hasNext = false,
+                )
             },
         ),
     ),

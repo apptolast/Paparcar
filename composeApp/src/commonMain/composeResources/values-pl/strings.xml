@@ -161,6 +161,8 @@
     <string name="parking_detail_section_label">Historia parkowania</string>
     <string name="parking_detail_active_section_label">Aktywne parkowanie</string>
     <string name="parking_detail_navigate_action">Nawiguj do tego miejsca</string>
+    <string name="parking_detail_prev">Poprzednie parkowanie</string>
+    <string name="parking_detail_next">Następne parkowanie</string>
     <string name="parking_detail_no_address">Nieznana lokalizacja</string>
     <string name="parking_detail_detection_auto">Wykryto automatycznie</string>
     <string name="parking_detail_detection_manual">Zgłoszenie ręczne</string>

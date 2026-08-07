@@ -166,3 +166,17 @@ val MIGRATION_13_14 = object : Migration(13, 14) {
     }
 }
 
+/**
+ * v14 → v15: add spotType to parking_sessions — the origin of the parking (AUTO_DETECTED /
+ * MANUAL_REPORT / HOME_GEOFENCE) so the history detail screen shows the real detection method
+ * instead of always "automatic". Nullable TEXT, additive/non-destructive; existing rows read null
+ * and map to AUTO_DETECTED (the pre-v15 implicit default). [HISTORY-DETAIL-001]
+ */
+val MIGRATION_14_15 = object : Migration(14, 15) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL(
+            "ALTER TABLE parking_sessions ADD COLUMN spotType TEXT"
+        )
+    }
+}
+

@@ -170,6 +170,7 @@ class RemoteUserProfileDataSourceImpl(
                 detectionReliability = runCatching { get<Double?>(FIELD_DETECTION_RELIABILITY)?.toFloat() }.getOrNull(),
                 sizeCategory = get<String?>(FIELD_SIZE_CATEGORY),
                 carbodyType = get<String?>(FIELD_CARBODY_TYPE),
+                spotType = runCatching { get<String?>(FIELD_SPOT_TYPE) }.getOrNull(),
                 armEvidence = runCatching { get<String?>(FIELD_ARM_EVIDENCE) }.getOrNull(),
                 detectionPath = runCatching { get<String?>(FIELD_DETECTION_PATH) }.getOrNull(),
                 updatedAt = getLongCompat(FIELD_UPDATED_AT),
@@ -222,6 +223,8 @@ class RemoteUserProfileDataSourceImpl(
         const val FIELD_ADDRESS = "address"
         const val FIELD_PLACE_INFO = "placeInfo"
         const val FIELD_DETECTION_RELIABILITY = "detectionReliability"
+        // Parking origin (auto / manual / home) — drives the history detail detection label. [HISTORY-DETAIL-001]
+        const val FIELD_SPOT_TYPE = "spotType"
         // Pin provenance — the ARM trigger + the confirmation PATH that placed the parking.
         // [DET-PIN-PROVENANCE-001]
         const val FIELD_ARM_EVIDENCE = "armEvidence"

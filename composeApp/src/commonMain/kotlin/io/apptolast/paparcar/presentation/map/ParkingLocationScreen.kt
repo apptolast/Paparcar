@@ -16,12 +16,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import io.apptolast.paparcar.domain.model.VehicleSize
-import io.apptolast.paparcar.ui.icons.icon
 import androidx.compose.material.icons.rounded.Bolt
+import androidx.compose.material.icons.rounded.ChevronLeft
+import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.EditLocationAlt
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Navigation
@@ -53,13 +52,15 @@ import io.apptolast.paparcar.presentation.vehicles.MONTH_SHORT_RES
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.UserParking
+import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.presentation.util.locationDisplayText
 import io.apptolast.paparcar.presentation.util.rememberOpenExternalNavigation
 import io.apptolast.paparcar.ui.components.PapFooterButton
 import io.apptolast.paparcar.ui.components.PapFooterButtonStyle
-import io.apptolast.paparcar.ui.components.PapSectionHeader
+import io.apptolast.paparcar.ui.components.PapSectionHeaderRow
 import io.apptolast.paparcar.ui.components.PaparcarMapConfig
 import io.apptolast.paparcar.ui.components.PaparcarMapView
+import io.apptolast.paparcar.ui.components.VehicleGlyph
 import io.apptolast.paparcar.ui.theme.PapShapes
 import io.apptolast.paparcar.ui.theme.PaparcarType
 import kotlinx.datetime.TimeZone
@@ -73,7 +74,9 @@ import paparcar.composeapp.generated.resources.parking_detail_detection_auto
 import paparcar.composeapp.generated.resources.parking_detail_detection_home
 import paparcar.composeapp.generated.resources.parking_detail_detection_manual
 import paparcar.composeapp.generated.resources.parking_detail_navigate_action
+import paparcar.composeapp.generated.resources.parking_detail_next
 import paparcar.composeapp.generated.resources.parking_detail_no_address
+import paparcar.composeapp.generated.resources.parking_detail_prev
 import paparcar.composeapp.generated.resources.parking_detail_section_label
 import kotlin.time.Instant
 
@@ -93,16 +96,23 @@ fun HistoryParkingDetailScreen(
         }
     }
 
-    val cameraTarget = remember(initialFocus) {
-        mutableStateOf(
-            initialFocus?.let { (lat, lon) -> CameraTarget(lat = lat, lon = lon, zoom = 16f) }
-        )
-    }
-
     val parkingGpsPoint = remember(initialFocus) {
         initialFocus?.let { (lat, lon) ->
             GpsPoint(lat, lon, accuracy = 0f, timestamp = 0L, speed = 0f)
         }
+    }
+
+    // Camera + marker follow the focused session so the prev/next stepper recenters the map on each
+    // step. Seeded from the nav-arg coords for the first frame, before the session resolves. [HISTORY-DETAIL-001]
+    var cameraTarget by remember {
+        mutableStateOf(initialFocus?.let { (lat, lon) -> CameraTarget(lat = lat, lon = lon, zoom = 16f) })
+    }
+    var cameraToken by remember { mutableIntStateOf(0) }
+    val focusedSession = state.focusedSession
+    LaunchedEffect(focusedSession?.id) {
+        val loc = focusedSession?.location ?: return@LaunchedEffect
+        cameraToken += 1
+        cameraTarget = CameraTarget(lat = loc.latitude, lon = loc.longitude, zoom = 16f, token = cameraToken)
     }
 
     val density = LocalDensity.current
@@ -114,11 +124,13 @@ fun HistoryParkingDetailScreen(
             config = PaparcarMapConfig(showFreeSpotOverlays = false),
             spots = emptyList(),
             userLocation = state.userLocation,
-            parkingLocation = parkingGpsPoint ?: state.userParking?.location,
-            parkingVehicleSize = state.focusedSession?.sizeCategory,
-            parkingIsActive = state.focusedSession?.isActive == true,
+            parkingLocation = focusedSession?.location ?: parkingGpsPoint ?: state.userParking?.location,
+            parkingVehicleSize = focusedSession?.sizeCategory ?: state.focusedVehicle?.sizeCategory,
+            parkingVehicleCarbody = focusedSession?.carbodyType ?: state.focusedVehicle?.carbodyType,
+            parkingVehicleColor = state.focusedVehicle?.color,
+            parkingIsActive = focusedSession?.isActive == true,
             onSpotClick = {},
-            cameraTarget = cameraTarget.value,
+            cameraTarget = cameraTarget,
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .layout { measurable, constraints ->
@@ -140,8 +152,13 @@ fun HistoryParkingDetailScreen(
         )
 
         HistoryDetailSheet(
-            session = state.focusedSession,
-            isActive = state.focusedSession?.isActive == true,
+            session = focusedSession,
+            vehicle = state.focusedVehicle,
+            isActive = focusedSession?.isActive == true,
+            hasPrevious = state.hasPrevious,
+            hasNext = state.hasNext,
+            onPrevious = { viewModel.handleIntent(ParkingLocationIntent.FocusPrevious) },
+            onNext = { viewModel.handleIntent(ParkingLocationIntent.FocusNext) },
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
@@ -152,7 +169,7 @@ fun HistoryParkingDetailScreen(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Floating back button — pill-shaped surface with back arrow
+// Floating back button — pill-shaped surface with back arrow, over the map top-left
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -180,10 +197,20 @@ private fun FloatingBackButton(onClick: () -> Unit, modifier: Modifier = Modifie
 // Detail sheet — non-draggable card anchored at the bottom
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * The bottom detail card of the history map. Extracted as `internal` (map-free, pure inputs) so the
+ * Dev Catalog gallery + previews can render the detection-label / vehicle-icon / stepper variants
+ * without a live map. [HISTORY-DETAIL-001]
+ */
 @Composable
-private fun HistoryDetailSheet(
+internal fun HistoryDetailSheet(
     session: UserParking?,
+    vehicle: Vehicle?,
     isActive: Boolean,
+    hasPrevious: Boolean,
+    hasNext: Boolean,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit,
     onNavigate: (lat: Double, lon: Double) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -209,11 +236,31 @@ private fun HistoryDetailSheet(
             } else {
                 stringResource(Res.string.parking_detail_section_label)
             }
-            PapSectionHeader(title = sectionLabel)
+            // Pager-style stepper: previous ‹ to the LEFT of the title, next › to the RIGHT, so the
+            // whole history reads like a paged card. [HISTORY-DETAIL-001]
+            PapSectionHeaderRow(
+                title = sectionLabel,
+                leading = {
+                    StepperButton(
+                        icon = Icons.Rounded.ChevronLeft,
+                        contentDescription = stringResource(Res.string.parking_detail_prev),
+                        enabled = hasPrevious,
+                        onClick = onPrevious,
+                    )
+                },
+                trailing = {
+                    StepperButton(
+                        icon = Icons.Rounded.ChevronRight,
+                        contentDescription = stringResource(Res.string.parking_detail_next),
+                        enabled = hasNext,
+                        onClick = onNext,
+                    )
+                },
+            )
 
             Spacer(Modifier.height(SECTION_GAP.dp))
 
-            AddressHeroRow(session = session, isActive = isActive)
+            AddressHeroRow(session = session, vehicle = vehicle)
 
             if (session != null) {
                 Spacer(Modifier.height(META_ROW_GAP.dp))
@@ -258,7 +305,7 @@ private fun DragPill(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun AddressHeroRow(session: UserParking?, isActive: Boolean) {
+private fun AddressHeroRow(session: UserParking?, vehicle: Vehicle?) {
     val cs = MaterialTheme.colorScheme
     val noAddress = stringResource(Res.string.parking_detail_no_address)
 
@@ -278,27 +325,31 @@ private fun AddressHeroRow(session: UserParking?, isActive: Boolean) {
                 ?.let { "$city, $it" } ?: city
         }
 
-    val iconBg = if (isActive) cs.primaryContainer else cs.surfaceVariant
-    val iconTint = if (isActive) cs.primary else cs.onSurfaceVariant
-    val vehicleIcon = (session?.sizeCategory ?: VehicleSize.MEDIUM_SUV).icon
+    // Real vehicle: body shape from the session (captured at park time), falling back to the
+    // registered vehicle; colour only lives on the vehicle. [HISTORY-DETAIL-001]
+    val carbody = session?.carbodyType ?: vehicle?.carbodyType
+    val size = session?.sizeCategory ?: vehicle?.sizeCategory
 
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(HERO_GAP.dp),
     ) {
+        // Home's lead-tile treatment: the full-colour vehicle pictogram (VehicleGlyph) on a quiet
+        // rounded tile — same subject + sizing as the Home sheet so both surfaces read consistently.
+        // Status reads through the meta-row accent, not the tile (INACTIVE-OPAQUE doctrine). [HISTORY-DETAIL-001]
         Box(
             modifier = Modifier
-                .size(HERO_ICON_BOX_DP.dp)
-                .clip(RoundedCornerShape(HERO_ICON_CORNER_DP.dp))
-                .background(iconBg),
+                .size(HERO_TILE_DP.dp)
+                .clip(PapShapes.cardSmall)
+                .background(cs.surfaceContainerHigh),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(
-                imageVector = vehicleIcon,
-                contentDescription = null,
-                tint = iconTint,
-                modifier = Modifier.size(HERO_ICON_DP.dp),
+            VehicleGlyph(
+                carbody = carbody,
+                size = size,
+                glyphSize = HERO_GLYPH_DP.dp,
+                color = vehicle?.color,
             )
         }
 
@@ -398,6 +449,37 @@ private fun MetaRow(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Stepper button — one circular chevron; a pair flanks the header title (prev ‹ / next ›)
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun StepperButton(
+    icon: ImageVector,
+    contentDescription: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    val cs = MaterialTheme.colorScheme
+    Surface(
+        onClick = onClick,
+        enabled = enabled,
+        shape = CircleShape,
+        color = cs.surfaceVariant.copy(
+            alpha = if (enabled) STEPPER_BG_ALPHA else STEPPER_BG_DISABLED_ALPHA,
+        ),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = cs.onSurfaceVariant.copy(alpha = if (enabled) 1f else STEPPER_DISABLED_ALPHA),
+            modifier = Modifier
+                .padding(STEPPER_PADDING.dp)
+                .size(STEPPER_ICON_DP.dp),
+        )
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Tokens
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -412,20 +494,29 @@ private const val SHEET_VERT_PAD = 16
 private const val PILL_WIDTH = 32
 private const val PILL_HEIGHT = 4
 private const val PILL_ALPHA = 0.12f
-private const val PILL_BOTTOM_GAP = 12
+private const val PILL_BOTTOM_GAP = 10
 
-private const val SECTION_GAP = 14
+// Tight eyebrow→content gap so the "APARCAMIENTO HISTÓRICO" label reads as this card's eyebrow, not a
+// detached section header — the address stays the visual subject. [HISTORY-DETAIL-001]
+private const val SECTION_GAP = 6
 private const val META_ROW_GAP = 10
-private const val ACTION_TOP_GAP = 20
+private const val ACTION_TOP_GAP = 18
 
 private const val HERO_GAP = 12
-private const val HERO_ICON_BOX_DP = 44
-private const val HERO_ICON_CORNER_DP = 10
-private const val HERO_ICON_DP = 22
+// Home's lead-tile sizing (PapSheet LEAD_TILE_DP / LEAD_GLYPH_DP) so the vehicle reads the same on
+// both surfaces. [HISTORY-DETAIL-001]
+private const val HERO_TILE_DP = 46
+private const val HERO_GLYPH_DP = 38
 
 private const val META_ICON_DP = 18
 private const val META_ICON_GAP = 8
 private const val META_TEXT_ALPHA = 0.70f
 private const val SECONDARY_ALPHA = 0.55f
+
+private const val STEPPER_ICON_DP = 22
+private const val STEPPER_PADDING = 6
+private const val STEPPER_BG_ALPHA = 0.6f
+private const val STEPPER_BG_DISABLED_ALPHA = 0.3f
+private const val STEPPER_DISABLED_ALPHA = 0.35f
 
 private val MAP_BOTTOM_BLEED = 20.dp

@@ -213,6 +213,8 @@
     <string name="parking_detail_section_label">Aparcamiento histórico</string>
     <string name="parking_detail_active_section_label">Aparcamiento actual</string>
     <string name="parking_detail_navigate_action">Navegar a esta ubicación</string>
+    <string name="parking_detail_prev">Aparcamiento anterior</string>
+    <string name="parking_detail_next">Aparcamiento siguiente</string>
     <string name="parking_detail_no_address">Ubicación desconocida</string>
     <string name="parking_detail_detection_auto">Detección automática</string>
     <string name="parking_detail_detection_manual">Aviso manual</string>

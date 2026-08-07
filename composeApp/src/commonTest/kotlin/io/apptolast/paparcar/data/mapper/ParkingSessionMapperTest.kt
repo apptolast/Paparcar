@@ -8,6 +8,7 @@ import io.apptolast.paparcar.domain.model.AddressInfo
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.PlaceCategory
 import io.apptolast.paparcar.domain.model.PlaceInfo
+import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.UserParking
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -325,6 +326,53 @@ class ParkingSessionMapperTest {
     fun `legacy pin with no provenance maps to null detectionPath`() {
         assertNull(baseParking.toParkingHistoryDto().detectionPath)
         assertNull(baseEntity.toDomain().detectionPath)
+    }
+
+    // ── spotType round-trip (detection method) [HISTORY-DETAIL-001] ──────────
+
+    @Test
+    fun `legacy row with null spotType maps to AUTO_DETECTED`() {
+        // Rows written before v15 have no spotType column value → the pre-v15 implicit default.
+        assertEquals(SpotType.AUTO_DETECTED, baseEntity.toDomain().spotType)
+    }
+
+    @Test
+    fun `entity toDomain reads persisted spotType`() {
+        val entity = baseEntity.copy(spotType = "MANUAL_REPORT")
+        assertEquals(SpotType.MANUAL_REPORT, entity.toDomain().spotType)
+    }
+
+    @Test
+    fun `entity toDomain falls back to AUTO_DETECTED for unknown spotType`() {
+        val entity = baseEntity.copy(spotType = "NONSENSE")
+        assertEquals(SpotType.AUTO_DETECTED, entity.toDomain().spotType)
+    }
+
+    @Test
+    fun `parking toEntity persists spotType name`() {
+        val parking = baseParking.copy(spotType = SpotType.MANUAL_REPORT)
+        assertEquals("MANUAL_REPORT", parking.toEntity().spotType)
+    }
+
+    @Test
+    fun `parking toParkingHistoryDto persists spotType name`() {
+        val parking = baseParking.copy(spotType = SpotType.HOME_GEOFENCE)
+        assertEquals("HOME_GEOFENCE", parking.toParkingHistoryDto().spotType)
+    }
+
+    @Test
+    fun `dto toEntity preserves spotType`() {
+        val dto = ParkingHistoryDto(id = "s1", latitude = 40.0, longitude = -3.0, spotType = "MANUAL_REPORT")
+        assertEquals("MANUAL_REPORT", dto.toEntity().spotType)
+    }
+
+    @Test
+    fun `parking round-trips spotType through dto and entity`() {
+        // Full Firestore round-trip: domain → dto (write) → entity (read after sync) → domain.
+        // Regression: spotType used to be dropped, so history always showed AUTO_DETECTED.
+        val original = baseParking.copy(spotType = SpotType.MANUAL_REPORT)
+        val restored = original.toParkingHistoryDto().toEntity().toDomain()
+        assertEquals(SpotType.MANUAL_REPORT, restored.spotType)
     }
 
     // ── Shared helpers ────────────────────────────────────────────────────────

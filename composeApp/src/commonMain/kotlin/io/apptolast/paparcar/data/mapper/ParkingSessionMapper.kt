@@ -10,6 +10,7 @@ import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.PlaceCategory
 import io.apptolast.paparcar.domain.model.PlaceInfo
 import io.apptolast.paparcar.domain.model.Spot
+import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.VehicleSize
 
@@ -34,6 +35,8 @@ fun UserParkingEntity.toDomain(): UserParking = UserParking(
     detectionReliability = detectionReliability,
     sizeCategory = sizeCategory.toEnumOrNull<VehicleSize>(),
     carbodyType = carbodyType.toEnumOrNull<CarbodyType>(),
+    // Legacy rows (null) predate v15 → the pre-v15 implicit default was AUTO_DETECTED. [HISTORY-DETAIL-001]
+    spotType = spotType.toEnumOrDefault(SpotType.AUTO_DETECTED),
     privateZoneId = privateZoneId,
     tripMaxSpeedMps = tripMaxSpeedMps,
     armEvidence = armEvidence,
@@ -86,6 +89,7 @@ fun UserParking.toEntity(updatedAt: Long = 0, pendingSync: Boolean = false): Use
     detectionReliability = detectionReliability,
     sizeCategory = sizeCategory?.name,
     carbodyType = carbodyType?.name,
+    spotType = spotType.name,
     privateZoneId = privateZoneId,
     // tripMaxSpeedMps: local-only (feeds the repark guard, never synced). armEvidence + detectionPath
     // ARE synced to Firestore for remote provenance diagnostics. [DET-SOLID-001][DET-PIN-PROVENANCE-001]
@@ -131,6 +135,7 @@ fun UserParking.toParkingHistoryDto(updatedAt: Long = 0L) = ParkingHistoryDto(
     detectionReliability = detectionReliability,
     sizeCategory = sizeCategory?.name,
     carbodyType = carbodyType?.name,
+    spotType = spotType.name,
     // Provenance: the ARM trigger + the confirmation PATH that placed this pin — mirrored so a
     // remote diagnostic can attribute a parking to its trigger. [DET-PIN-PROVENANCE-001]
     armEvidence = armEvidence,
@@ -161,6 +166,7 @@ fun ParkingHistoryDto.toEntity() = UserParkingEntity(
     detectionReliability = detectionReliability,
     sizeCategory = sizeCategory,
     carbodyType = carbodyType,
+    spotType = spotType,
     // Provenance now round-trips through Firestore (armEvidence + detectionPath); an inbound pin
     // keeps who/what placed it. tripMaxSpeedMps stays local-only → null here. [DET-PIN-PROVENANCE-001]
     armEvidence = armEvidence,

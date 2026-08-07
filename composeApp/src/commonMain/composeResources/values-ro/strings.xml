@@ -157,6 +157,8 @@
     <string name="parking_detail_section_label">Parcare istorică</string>
     <string name="parking_detail_active_section_label">Parcare actuală</string>
     <string name="parking_detail_navigate_action">Navighează la această locație</string>
+    <string name="parking_detail_prev">Parcarea anterioară</string>
+    <string name="parking_detail_next">Parcarea următoare</string>
     <string name="parking_detail_no_address">Locație necunoscută</string>
     <string name="parking_detail_detection_auto">Detectat automat</string>
     <string name="parking_detail_detection_manual">Raport manual</string>

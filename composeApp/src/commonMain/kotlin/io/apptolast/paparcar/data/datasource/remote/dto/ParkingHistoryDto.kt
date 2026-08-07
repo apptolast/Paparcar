@@ -21,6 +21,9 @@ data class ParkingHistoryDto(
     val sizeCategory: String? = null,
     /** [CarbodyType] enum name captured at park time. Null for non-CAR or unknown. */
     val carbodyType: String? = null,
+    /** [SpotType] enum name — the parking origin (AUTO_DETECTED / MANUAL_REPORT / HOME_GEOFENCE).
+     *  Null on legacy docs → read as AUTO_DETECTED. Drives the history detail detection label. [HISTORY-DETAIL-001] */
+    val spotType: String? = null,
     /** Arm-evidence label of the confirming session ("speed" / "vehicle_enter" / "manual" / …) — the
      *  ARM trigger. Half of the pin provenance. Null for legacy / non-session pins. [DET-PIN-PROVENANCE-001] */
     val armEvidence: String? = null,
