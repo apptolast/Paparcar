@@ -33,6 +33,16 @@ class MockScenario {
      *  tier=Producer — no battery exemption — and vehicles without BT). [DET-RELIABILITY-001] */
     val aggressiveOem = MutableStateFlow(false)
 
+    /** Seeds an ACTIVE parking session for the ACTIVE vehicle (Seat León), so the real Home
+     *  reaches the parked/watching state: "Vigilando" story line, parked-car card, ParkingPeek,
+     *  release dialog — the whole own-parking loop. [UX-PARKED-STATE-001] */
+    val ownParkedSession = MutableStateFlow(false)
+
+    /** Gives the ACTIVE vehicle a paired-Bluetooth identity (the fake scanner is always on), so
+     *  the strategy resolves BLUETOOTH and the story shows the BT-armed watching line.
+     *  [UX-PARKED-STATE-001] */
+    val activeVehicleBluetooth = MutableStateFlow(false)
+
     fun reset() {
         session.value = Session.LoggedInWithVehicles
         onboardingCompleted.value = true
@@ -40,5 +50,7 @@ class MockScenario {
         gpsEnabled.value = true
         online.value = true
         aggressiveOem.value = false
+        ownParkedSession.value = false
+        activeVehicleBluetooth.value = false
     }
 }

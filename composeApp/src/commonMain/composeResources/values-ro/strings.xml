@@ -2,6 +2,7 @@
 <resources>
     <!-- HomeScreen -->
     <string name="home_search_placeholder">Caută o zonă, stradă…</string>
+    <string name="home_search_no_results">Niciun rezultat pentru această căutare</string>
     <string name="home_stats_free_spots_badge">%1$d libere</string>
     <string name="home_peek_no_spots">Niciun loc în apropiere</string>
     <!-- PapSheet counter lead tile unit. [UI-SHEET-001] -->
@@ -12,9 +13,15 @@
     <string name="home_vehicle_chip_status_candidate">Parcare…</string>
     <string name="home_parking_release">Eliberează locul</string>
     <!-- PapSheet actions + browse header. [UI-SHEET-001] -->
-    <string name="home_parking_leave_release">Plec · Îmi eliberez locul</string>
+    <string name="home_parking_leave_release">Plec</string>
     <string name="home_parking_edit_menu_cd">Editează locația parcării</string>
     <string name="home_parking_menu_delete">Șterge înregistrarea</string>
+    <!-- Edit-parking confirm choices: correct this pin vs. re-park elsewhere. [UX-PARKED-STATE-001] -->
+    <string name="home_parking_menu_correct">Corectează locația</string>
+    <string name="home_parking_menu_repark">Am parcat în altă parte</string>
+    <!-- Delete-record confirmation (destructive). [UX-PARKED-STATE-001] -->
+    <string name="home_parking_delete_confirm_title">Ștergi această parcare?</string>
+    <string name="home_parking_delete_confirm_body">Elimină înregistrarea. Locul nu va fi partajat cu comunitatea.</string>
     <string name="home_parking_edit_dialog_title">Editează parcarea</string>
     <string name="home_parking_edit_dialog_body">Mută pinul la locul corect sau șterge această înregistrare.</string>
     <string name="home_spot_still_there">Mai este?</string>
@@ -24,7 +31,7 @@
     <string name="home_browse_parked_ago">Parcat acum %1$s</string>
     <string name="home_browse_hint_swipe_report">Glisează ↑ pentru a anunța un loc</string>
     <string name="home_navigate_to_spot">Indicații</string>
-    <string name="home_navigate_to_vehicle">Navighează către vehicul</string>
+    <string name="home_navigate_to_vehicle">Traseu</string>
     <string name="home_feed_nearby">În apropierea ta</string>
     <plurals name="home_feed_nearby_with_count">
         <item quantity="one">%1$d loc liber în apropierea ta</item>
@@ -37,6 +44,7 @@
     <string name="home_release_dialog_message">Distribuie locul către șoferii din apropiere sau șterge-l fără să-l distribui.</string>
     <!-- Consequence line: leaving means detection re-arms for the next parking. [VEH-ACTIVE-FENCE-001] -->
     <string name="home_release_dialog_detection_active">Vom începe să detectăm următoarea ta parcare.</string>
+    <string name="home_release_dialog_detection_unavailable">Nu vom putea detecta singuri următoarea ta parcare.</string>
     <string name="home_release_dialog_detection_inactive">%1$s devine mașina ta activă, așa că vom detecta următoarea ta parcare.</string>
     <string name="home_release_dialog_publish">Publică locul</string>
     <string name="home_release_dialog_delete_only">Doar șterge</string>
@@ -196,6 +204,7 @@
     <string name="error_load_session">Nu s-a putut încărca sesiunea de parcare</string>
     <string name="error_release_parking">Nu s-a putut elibera locul de parcare</string>
     <string name="error_gps_unavailable">Se așteaptă semnalul GPS…</string>
+    <string name="error_search_failed">Căutarea nu funcționează momentan. Verifică conexiunea și încearcă din nou</string>
     <string name="error_bootstrap_offline_title">Fără conexiune la internet</string>
     <string name="error_bootstrap_offline_body">Paparcar are nevoie de o conexiune pentru a-ți încărca datele. Verifică rețeaua și încearcă din nou.</string>
     <string name="error_bootstrap_retry">Reîncearcă</string>
@@ -324,8 +333,9 @@
 
     <!-- ConfirmationBottomSheet -->
     <string name="confirmation_sheet_title">Parcare detectată</string>
-    <string name="confirmation_sheet_confirm">Publică locul</string>
-    <string name="confirmation_sheet_withdraw">Nu acum</string>
+    <string name="confirmation_sheet_confirm">Da, am parcat</string>
+    <string name="confirmation_sheet_withdraw">Nu, nu am parcat</string>
+    <string name="confirmation_sheet_autoconfirm_in">Se confirmă automat în %1$s</string>
     <string name="settings_section_map">Hartă</string>
     <string name="settings_distance_unit">Unități imperiale</string>
     <string name="settings_distance_unit_desc">Afișează distanțele în mile și picioare</string>
@@ -347,6 +357,7 @@
 
     <!-- ConfirmationBottomSheet (detectare parcare) -->
     <string name="confirmation_sheet_question">Ai parcat aici?</string>
+    <string name="confirmation_sheet_question_vehicle">Ai parcat %1$s?</string>
     <string name="confirmation_sheet_method_bt">Detectat prin Bluetooth · acum %1$s</string>
     <string name="confirmation_sheet_method_ar">Detectat automat · acum %1$s</string>
 
@@ -541,6 +552,13 @@
     <string name="home_det_stopped_action">Activează</string>
     <string name="home_det_awaiting_title">Unde e mașina?</string>
     <string name="home_det_awaiting_sub">Marchează locul și îl supraveghez</string>
+    <string name="home_det_watching_title">Supraveghem %1$s</string>
+    <string name="home_det_watching_parked_sub">Parcată — vom detecta când eliberezi locul</string>
+    <string name="home_det_watching_bt_sub">Parcarea se detectează singură prin Bluetooth-ul mașinii</string>
+    <string name="home_det_driving_title">Conduci %1$s</string>
+    <string name="home_det_driving_sub">Vom detecta unde parchezi</string>
+    <string name="home_det_candidate_title">Parchezi %1$s?</string>
+    <string name="home_det_candidate_sub">Confirmăm locul…</string>
     <string name="home_det_awaiting_cta_primary">Marchează locul</string>
     <string name="home_det_awaiting_cta_secondary">Conduc acum</string>
     <!-- Pending "where did you leave your car?" nudge row. [DET-NUDGE-PERSIST-001] -->

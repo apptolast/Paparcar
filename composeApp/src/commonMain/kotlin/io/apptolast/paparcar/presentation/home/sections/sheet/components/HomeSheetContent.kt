@@ -48,7 +48,8 @@ import io.apptolast.paparcar.domain.model.sortRank
 import io.apptolast.paparcar.presentation.home.HomeBrowseListSlice
 import io.apptolast.paparcar.presentation.home.HomeIntent
 import io.apptolast.paparcar.presentation.home.VehicleCard
-import io.apptolast.paparcar.presentation.home.model.rendersActionSurface
+import io.apptolast.paparcar.presentation.home.model.DetectionStory
+import io.apptolast.paparcar.presentation.home.model.resolveDetectionStory
 import io.apptolast.paparcar.presentation.home.sections.sheet.HomeSheetAction
 import io.apptolast.paparcar.ui.components.PapSectionHeader
 import org.jetbrains.compose.resources.pluralStringResource
@@ -92,17 +93,20 @@ internal fun LazyListScope.homeSheetItems(
     val showPersonalBlocks = slice.hasCorePermissions && vehicleCards.isNotEmpty()
     val showFilterBar = slice.hasCorePermissions && slice.hasAnySpots
 
-    // ── 0. Detection action surface — under the address header, above vehicles.
+    // ── 0. Detection story surface — under the address header, above vehicles.
+    // The ONE voice for "what is detection doing right now": loud action rows + discreet happy
+    // lines, resolved by a single testable projection. [UX-DETECTION-STORY-001]
     // Browse-only (hidden while a spot is selected) so it never shifts the spot-scroll index.
     // Also hosts the "where did you leave your car?" row when a nudge is pending. [DET-NUDGE-PERSIST-001]
-    if ((slice.detectionUiState.rendersActionSurface || slice.showParkNudge) && !isSpotSelected) {
+    val detectionStory = resolveDetectionStory(slice.detectionUiState, slice.drivingMeta, vehicleCards)
+    if ((detectionStory != DetectionStory.Hidden || slice.showParkNudge) && !isSpotSelected) {
         item("detection_surface") {
             // The car both cold-start CTAs are about: the active vehicle, or the first if none is
             // flagged. "Mark spot" parks it; "I'm driving" declares it active + arms. [VEH-ACTIVE-FENCE-001]
             val coldStartVehicleId = vehicleCards.firstOrNull { it.vehicle.isActive }?.vehicle?.id
                 ?: vehicleCards.firstOrNull()?.vehicle?.id
             HomeDetectionSurface(
-                state = slice.detectionUiState,
+                story = detectionStory,
                 onAddVehicle = { onAction(HomeSheetAction.AddVehicle) },
                 onOpenPermissions = { onAction(HomeSheetAction.OpenCorePermissions) },
                 onMarkSpot = {

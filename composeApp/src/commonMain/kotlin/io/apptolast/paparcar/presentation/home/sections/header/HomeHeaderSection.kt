@@ -88,6 +88,7 @@ internal fun HomeHeaderSection(
                 results = slice.searchResults,
                 isActive = slice.isSearchActive,
                 isSearching = slice.isSearching,
+                showNoResults = slice.searchNoResults,
                 onQueryChange = onSearchQueryChanged,
                 onResultClick = onSearchResultClick,
                 onClear = onSearchClear,

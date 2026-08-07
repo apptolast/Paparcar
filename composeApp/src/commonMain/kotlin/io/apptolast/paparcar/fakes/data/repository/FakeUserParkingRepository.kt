@@ -7,7 +7,7 @@ import io.apptolast.paparcar.domain.model.*
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
@@ -25,8 +25,28 @@ import kotlin.time.ExperimentalTime
  */
 class FakeUserParkingRepository(
     private val runtime: DetectionRuntimeState? = null,
+    private val scenario: io.apptolast.paparcar.fakes.MockScenario? = null,
 ) : UserParkingRepository {
     private val now = Clock.System.now().toEpochMilliseconds()
+
+    /** Seeded by the Dev Catalog "own parked session" lever: an ACTIVE session for the ACTIVE
+     *  vehicle, so the real Home reaches the watching/parked state. [UX-PARKED-STATE-001] */
+    private val ownParkedSeed = UserParking(
+        id = "parking_own_active",
+        userId = "mock_user_001",
+        vehicleId = "mock_vehicle_001",
+        location = GpsPoint(36.5915, -6.2285, 6f, now - 40 * 60_000L, 0f),
+        isActive = true,
+        spotType = SpotType.AUTO_DETECTED,
+        detectionReliability = 0.95f,
+        address = AddressInfo("Calle Luna, 18", "Puerto de Santa María", "Cádiz", "España", "ES"),
+    )
+
+    /** Sessions saved at runtime (manual mark / re-park) — the fake behaves like a repo. */
+    private val savedSessions = MutableStateFlow<List<UserParking>>(emptyList())
+
+    /** Ids released at runtime — releasing in the mock really frees the session. */
+    private val releasedIds = MutableStateFlow<Set<String>>(emptySet())
 
     private val mockSessions: List<UserParking> = buildList {
         // ── Active session ────────────────────────────────────────────────────
@@ -132,16 +152,39 @@ class FakeUserParkingRepository(
 
     private val _sessionsFlow = MutableStateFlow(mockSessions)
 
-    override suspend fun saveNewParkingSession(session: UserParking): Result<String?> = Result.success(null)
+    /** Base list + Dev-Catalog seed + runtime saves, with runtime releases applied. */
+    private fun allSessionsFlow(): Flow<List<UserParking>> {
+        val baseWithSeed = if (scenario == null) {
+            _sessionsFlow.map { it }
+        } else {
+            combine(_sessionsFlow, scenario.ownParkedSession) { list, own ->
+                if (own) list + ownParkedSeed else list
+            }
+        }
+        return combine(baseWithSeed, savedSessions, releasedIds) { base, saved, released ->
+            (base + saved).map { s -> if (s.id in released) s.copy(isActive = false) else s }
+        }
+    }
+
+    private fun currentSessions(): List<UserParking> {
+        val seed = if (scenario?.ownParkedSession?.value == true) listOf(ownParkedSeed) else emptyList()
+        return (mockSessions + seed + savedSessions.value)
+            .map { s -> if (s.id in releasedIds.value) s.copy(isActive = false) else s }
+    }
+
+    override suspend fun saveNewParkingSession(session: UserParking): Result<String?> {
+        savedSessions.value = savedSessions.value + session.copy(isActive = true)
+        return Result.success(session.id)
+    }
 
     override suspend fun getActiveSessionByGeofence(geofenceId: String): UserParking? =
-        mockSessions.find { it.isActive && it.geofenceId == geofenceId }
+        currentSessions().find { it.isActive && it.geofenceId == geofenceId }
 
     override suspend fun getActiveSessionByVehicle(vehicleId: String): UserParking? =
-        mockSessions.find { it.isActive && it.vehicleId == vehicleId }
+        currentSessions().find { it.isActive && it.vehicleId == vehicleId }
 
     override fun observeActiveSessions(): Flow<List<UserParking>> {
-        val active = _sessionsFlow.map { list -> list.filter { it.isActive } }
+        val active = allSessionsFlow().map { list -> list.filter { it.isActive } }
         val rt = runtime ?: return active
         // Sim fidelity: ALWAYS surface the parked session first, so a starting trip captures it as the
         // faded "departure point", THEN clear it while running so readiness can reach Monitoring (Parked
@@ -155,22 +198,27 @@ class FakeUserParkingRepository(
         }
     }
 
-    override fun observeAllSessions(): Flow<List<UserParking>> = _sessionsFlow.asStateFlow()
+    override fun observeAllSessions(): Flow<List<UserParking>> = allSessionsFlow()
 
     override fun observeSessionsByVehicle(vehicleId: String): Flow<List<UserParking>> =
-        _sessionsFlow.map { list -> list.filter { it.vehicleId == vehicleId } }
+        allSessionsFlow().map { list -> list.filter { it.vehicleId == vehicleId } }
 
     override suspend fun getSessionsPaged(limit: Int, offset: Int): List<UserParking> =
-        mockSessions.drop(offset).take(limit)
+        currentSessions().drop(offset).take(limit)
 
     override suspend fun getSessionsByVehiclePaged(vehicleId: String, limit: Int, offset: Int): List<UserParking> =
-        mockSessions
+        currentSessions()
             .filter { it.vehicleId == vehicleId && !it.isActive }
             .sortedByDescending { it.location.timestamp }
             .drop(offset)
             .take(limit)
 
-    override suspend fun clearActiveParkingSession(sessionId: String): Result<Unit> = Result.success(Unit)
+    override suspend fun clearActiveParkingSession(sessionId: String): Result<Unit> {
+        // Releasing really frees the session so the mock plays the whole loop: the parked card
+        // and the watching line drop, and the story returns to its cold-start row. [UX-PARKED-STATE-001]
+        releasedIds.value = releasedIds.value + sessionId
+        return Result.success(Unit)
+    }
 
     override suspend fun syncFromRemote(userId: String): Result<Unit> = Result.success(Unit)
 
@@ -183,7 +231,7 @@ class FakeUserParkingRepository(
     ): Result<Unit> = Result.success(Unit)
 
     override suspend fun updateParkingSessionPosition(id: String, location: GpsPoint): Result<UserParking> {
-        val session = mockSessions.find { it.id == id } ?: return Result.failure(Exception("Not found"))
+        val session = currentSessions().find { it.id == id } ?: return Result.failure(Exception("Not found"))
         return Result.success(session.copy(location = location))
     }
 

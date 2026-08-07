@@ -18,8 +18,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AddLocationAlt
 import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.LocationOff
+import androidx.compose.material.icons.rounded.LocationSearching
+import androidx.compose.material.icons.rounded.Navigation
 import androidx.compose.material.icons.rounded.NotListedLocation
 import androidx.compose.material.icons.rounded.SensorsOff
+import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -32,7 +35,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import io.apptolast.paparcar.presentation.home.model.DetectionUiState
+import io.apptolast.paparcar.presentation.home.model.DetectionStory
 import io.apptolast.paparcar.ui.theme.PapBorders
 import io.apptolast.paparcar.ui.theme.PapShapes
 import io.apptolast.paparcar.ui.theme.PaparcarType
@@ -42,36 +45,40 @@ import paparcar.composeapp.generated.resources.home_det_awaiting_cta_primary
 import paparcar.composeapp.generated.resources.home_det_awaiting_cta_secondary
 import paparcar.composeapp.generated.resources.home_det_awaiting_sub
 import paparcar.composeapp.generated.resources.home_det_awaiting_title
+import paparcar.composeapp.generated.resources.home_det_candidate_sub
+import paparcar.composeapp.generated.resources.home_det_candidate_title
 import paparcar.composeapp.generated.resources.home_det_core_cta
 import paparcar.composeapp.generated.resources.home_det_core_sub
 import paparcar.composeapp.generated.resources.home_det_core_title
+import paparcar.composeapp.generated.resources.home_det_driving_sub
+import paparcar.composeapp.generated.resources.home_det_driving_title
 import paparcar.composeapp.generated.resources.home_det_novehicle_cta
 import paparcar.composeapp.generated.resources.home_det_novehicle_sub
 import paparcar.composeapp.generated.resources.home_det_novehicle_title
 import paparcar.composeapp.generated.resources.home_det_producer_cta
 import paparcar.composeapp.generated.resources.home_det_producer_sub
 import paparcar.composeapp.generated.resources.home_det_producer_title
+import paparcar.composeapp.generated.resources.home_det_watching_bt_sub
+import paparcar.composeapp.generated.resources.home_det_watching_parked_sub
+import paparcar.composeapp.generated.resources.home_det_watching_title
 import paparcar.composeapp.generated.resources.home_nudge_cta
 import paparcar.composeapp.generated.resources.home_nudge_dismiss
 import paparcar.composeapp.generated.resources.home_nudge_sub
 import paparcar.composeapp.generated.resources.home_nudge_title
 
 /**
- * The Home **detection action surface** — a single accent-bar row that communicates the
- * automatic-detection state and offers the relevant action. [DET-READY-001h]
+ * The Home **detection story surface** — the single voice that answers "what is the app doing
+ * for me right now". [DET-READY-001h] [UX-DETECTION-STORY-001]
  *
- * Renders for the four action states only ([DetectionUiState.NoVehicle], [DetectionUiState.Inactive],
- * [DetectionUiState.BlockedCore], [DetectionUiState.AwaitingFirstPark]); [Parked] is owned by the existing parked-car card and
- * [Monitoring]/[Silent] render nothing here (Monitoring uses its own ephemeral pill).
- *
- * Prominence is **severity-adaptive**: a CORE block (the app barely works) is an error-toned,
- * filled, bordered row; the PRODUCER upsell and "add a car" are calmer amber tonal rows; the
- * cold-start prompt is an info-blue row with two actions. The single reusable row only changes
- * icon, copy, tone and CTAs by state.
+ * Renders the one [DetectionStory] resolved by `resolveDetectionStory`: the four action stories
+ * keep the loud accent-bar row (severity-adaptive: error-toned CORE block, calm amber upsells,
+ * info-blue cold start); [DetectionStory.Driving] and [DetectionStory.Watching] render a discreet
+ * one-line status — the happy path speaks instead of going mute. [DetectionStory.Hidden] renders
+ * nothing.
  */
 @Composable
 internal fun HomeDetectionSurface(
-    state: DetectionUiState,
+    story: DetectionStory,
     onAddVehicle: () -> Unit,
     onOpenPermissions: () -> Unit,
     onMarkSpot: () -> Unit,
@@ -96,8 +103,11 @@ internal fun HomeDetectionSurface(
     val amber = Tone(cs.secondary, cs.onSecondary, cs.secondaryContainer, cs.onSecondaryContainer, isError = false)
     val error = Tone(cs.error, cs.onError, cs.errorContainer, cs.onErrorContainer, isError = true)
     val info = Tone(cs.tertiary, cs.onTertiary, cs.tertiaryContainer, cs.onTertiaryContainer, isError = false)
+    // Happy-path stories: brand-green accent, same card skeleton, NO CTA — the sheet speaks in
+    // cards, so the story gets its box; the hierarchy comes from the missing button. [UX-PARKED-STATE-001]
+    val quiet = Tone(cs.primary, cs.onPrimary, cs.primaryContainer, cs.onPrimaryContainer, isError = false)
 
-    if (showParkNudge && state != DetectionUiState.BlockedCore) {
+    if (showParkNudge && story != DetectionStory.BlockedCore) {
         ActionRow(
             tone = amber,
             icon = Icons.Rounded.NotListedLocation,
@@ -112,8 +122,8 @@ internal fun HomeDetectionSurface(
         return
     }
 
-    when (state) {
-        DetectionUiState.NoVehicle -> ActionRow(
+    when (story) {
+        DetectionStory.NoVehicle -> ActionRow(
             tone = amber,
             icon = Icons.Rounded.DirectionsCar,
             title = stringResource(Res.string.home_det_novehicle_title),
@@ -125,7 +135,7 @@ internal fun HomeDetectionSurface(
 
         // One "activate detection" surface for both causes — Settings flag off OR producer
         // permissions missing. The single button asks for whatever is missing. [DET-TOGGLE-001]
-        DetectionUiState.Inactive -> ActionRow(
+        DetectionStory.Inactive -> ActionRow(
             tone = info,
             icon = Icons.Rounded.SensorsOff,
             title = stringResource(Res.string.home_det_producer_title),
@@ -135,7 +145,7 @@ internal fun HomeDetectionSurface(
             modifier = modifier,
         )
 
-        DetectionUiState.BlockedCore -> ActionRow(
+        DetectionStory.BlockedCore -> ActionRow(
             tone = error,
             icon = Icons.Rounded.LocationOff,
             title = stringResource(Res.string.home_det_core_title),
@@ -145,7 +155,7 @@ internal fun HomeDetectionSurface(
             modifier = modifier,
         )
 
-        DetectionUiState.AwaitingFirstPark -> ActionRow(
+        DetectionStory.AwaitingFirstPark -> ActionRow(
             tone = info,
             icon = Icons.Rounded.AddLocationAlt,
             title = stringResource(Res.string.home_det_awaiting_title),
@@ -157,10 +167,36 @@ internal fun HomeDetectionSurface(
             modifier = modifier,
         )
 
-        // No surface: Parked is the existing parked-car card; Monitoring is the pill; Silent is nothing.
-        DetectionUiState.Parked,
-        DetectionUiState.Monitoring,
-        DetectionUiState.Silent -> Unit
+        // Happy-path stories: same card skeleton as the action rows, quiet green tone, no CTA.
+        // [UX-DETECTION-STORY-001] [UX-PARKED-STATE-001]
+        is DetectionStory.Driving -> ActionRow(
+            tone = quiet,
+            icon = if (story.isCandidate) Icons.Rounded.LocationSearching else Icons.Rounded.Navigation,
+            title = stringResource(
+                if (story.isCandidate) Res.string.home_det_candidate_title else Res.string.home_det_driving_title,
+                story.vehicleName,
+            ),
+            subtitle = stringResource(
+                if (story.isCandidate) Res.string.home_det_candidate_sub else Res.string.home_det_driving_sub,
+            ),
+            primaryLabel = null,
+            onPrimary = {},
+            modifier = modifier,
+        )
+
+        is DetectionStory.Watching -> ActionRow(
+            tone = quiet,
+            icon = Icons.Rounded.Visibility,
+            title = stringResource(Res.string.home_det_watching_title, story.vehicleName),
+            subtitle = stringResource(
+                if (story.isParked) Res.string.home_det_watching_parked_sub else Res.string.home_det_watching_bt_sub,
+            ),
+            primaryLabel = null,
+            onPrimary = {},
+            modifier = modifier,
+        )
+
+        DetectionStory.Hidden -> Unit
     }
 }
 
@@ -179,7 +215,8 @@ private fun ActionRow(
     icon: ImageVector,
     title: String,
     subtitle: String,
-    primaryLabel: String,
+    /** Null = quiet story row: same card skeleton, no CTA. [UX-PARKED-STATE-001] */
+    primaryLabel: String?,
     onPrimary: () -> Unit,
     modifier: Modifier = Modifier,
     secondaryLabel: String? = null,
@@ -244,7 +281,7 @@ private fun ActionRow(
                     }
                     // Single-CTA states keep the button INLINE on the right (the subtitle wraps to two
                     // lines instead of truncating). Filled on error, tonal otherwise. [DET-READY-001h]
-                    if (secondaryLabel == null) {
+                    if (secondaryLabel == null && primaryLabel != null) {
                         CtaPill(
                             label = primaryLabel,
                             container = if (tone.isError) tone.accent else tone.container,
@@ -254,7 +291,7 @@ private fun ActionRow(
                     }
                 }
                 // Only the two-CTA cold-start stacks its actions full-width below (both need the room).
-                if (secondaryLabel != null) {
+                if (secondaryLabel != null && primaryLabel != null) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(CONTENT_GAP_SM_DP.dp),

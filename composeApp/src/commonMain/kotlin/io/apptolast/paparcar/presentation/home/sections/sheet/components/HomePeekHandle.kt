@@ -124,7 +124,7 @@ internal fun HomePeekHandle(
                         ParkingPeek(
                             parking = parking,
                             vehicle = slice.vehicles.firstOrNull { it.id == parking.vehicleId },
-                            userLocation = slice.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
+                            userGps = slice.userGpsPoint,
                             onIntent = onIntent,
                             onAction = onAction,
                         )

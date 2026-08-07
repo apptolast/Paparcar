@@ -15,11 +15,14 @@ import io.apptolast.paparcar.domain.permissions.PermissionTier
  *    switched off OR the producer permissions missing — into one [Inactive] "activate detection"
  *    state with a single button that asks for whatever is missing (flag + permissions). [DET-TOGGLE-001]
  *  - renames the Coordinator cold-start (`Ready` COORDINATOR) to [AwaitingFirstPark],
- *  - folds every "show nothing" case (Bluetooth armed, non-parking vehicle) into [Silent].
+ *  - keeps Bluetooth-armed as its own [ArmedBluetooth] (the story surface says it, discreetly)
+ *    and leaves only the true "nothing to say" case (non-parking vehicle) in [Silent].
+ *    [UX-DETECTION-STORY-001]
  *
  * Exactly one state is active at a time — precedence lives in the domain resolver, not here.
- * Only the four action states render a surface; [Parked] defers to the existing parked-car
- * card and [Silent] renders nothing.
+ * The surface shape per state is chosen by [resolveDetectionStory] ([DetectionStory]): the four
+ * action states render the loud row, [Parked]/[Monitoring]/[ArmedBluetooth] a discreet status
+ * line, and [Silent] nothing. [UX-DETECTION-STORY-001]
  */
 sealed interface DetectionUiState {
     /** No vehicle registered — nothing to detect. Action: add a car. */
@@ -48,7 +51,14 @@ sealed interface DetectionUiState {
      */
     data object AwaitingFirstPark : DetectionUiState
 
-    /** Detection does not apply or is fully automatic (non-parking vehicle, Bluetooth armed). No surface. */
+    /**
+     * Armed and waiting via the car's paired Bluetooth — fully automatic, nothing to ask. Split
+     * from [Silent] so the detection story can SAY it is covering the car instead of going mute.
+     * [UX-DETECTION-STORY-001]
+     */
+    data object ArmedBluetooth : DetectionUiState
+
+    /** Detection does not apply (non-parking vehicle). No surface. */
     data object Silent : DetectionUiState
 }
 
@@ -75,24 +85,19 @@ fun DetectionReadiness.toUiState(): DetectionUiState = when (this) {
     is DetectionReadiness.Monitoring -> DetectionUiState.Monitoring
 
     is DetectionReadiness.Ready ->
-        // Only the Coordinator cold-start needs a manual bootstrap. Bluetooth is fully automatic.
+        // Only the Coordinator cold-start needs a manual bootstrap. Bluetooth is fully automatic —
+        // but it still gets a voice (a discreet "watching" line), not silence. [UX-DETECTION-STORY-001]
         if (strategy == ParkingStrategy.COORDINATOR) DetectionUiState.AwaitingFirstPark
-        else DetectionUiState.Silent
+        else DetectionUiState.ArmedBluetooth
 }
-
-/** True for the four states that render the action surface row (`HomeDetectionSurface`). */
-val DetectionUiState.rendersActionSurface: Boolean
-    get() = this == DetectionUiState.NoVehicle ||
-        this == DetectionUiState.Inactive ||
-        this == DetectionUiState.BlockedCore ||
-        this == DetectionUiState.AwaitingFirstPark
 
 /** Detection is running or armed — a real "working" state that can be lost. Used to fire the
  *  in-app "detection stopped" snackbar only on a genuine working→stopped drop. [DET-TOGGLE-002] */
 val DetectionUiState.isDetectionWorking: Boolean
     get() = this == DetectionUiState.Monitoring ||
         this == DetectionUiState.Parked ||
-        this == DetectionUiState.AwaitingFirstPark
+        this == DetectionUiState.AwaitingFirstPark ||
+        this == DetectionUiState.ArmedBluetooth
 
 /** Detection has stopped but can be re-activated in one tap (off in Settings, or producer/core
  *  permissions missing). [DET-TOGGLE-002] */

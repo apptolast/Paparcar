@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.SearchOff
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -43,6 +44,7 @@ import io.apptolast.paparcar.domain.model.SearchResult
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_search_clear_cd
+import paparcar.composeapp.generated.resources.home_search_no_results
 import paparcar.composeapp.generated.resources.home_search_placeholder
 
 // Matches MapCircleFab's default shadow so the search bar reads as a peer of
@@ -59,11 +61,15 @@ internal fun HomeSearchBar(
     results: List<SearchResult>,
     isActive: Boolean,
     isSearching: Boolean,
+    showNoResults: Boolean,
     onQueryChange: (String) -> Unit,
     onResultClick: (SearchResult) -> Unit,
     onClear: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // The dropdown opens for results AND for the explicit "nothing found" row — an empty
+    // dropdown must never be ambiguous with a geocoder failure (that one shows a snackbar). [H3]
+    val dropdownVisible = results.isNotEmpty() || showNoResults
     // The GlassSurface's own Surface colour fades to ALPHA_INTERACTING while the
     // user pans the map. Fading the TextField via Modifier.alpha (a graphicsLayer)
     // creates a faint composite rectangle that flickers around the text during the
@@ -87,8 +93,8 @@ internal fun HomeSearchBar(
         GlassSurface(
             shape = RoundedCornerShape(
                 topStart = 28.dp, topEnd = 28.dp,
-                bottomStart = if (results.isEmpty()) 28.dp else 0.dp,
-                bottomEnd = if (results.isEmpty()) 28.dp else 0.dp,
+                bottomStart = if (dropdownVisible) 0.dp else 28.dp,
+                bottomEnd = if (dropdownVisible) 0.dp else 28.dp,
             ),
             shadowElevation = FLOATING_SHADOW_ELEVATION,
             modifier = Modifier.fillMaxWidth(),
@@ -143,7 +149,7 @@ internal fun HomeSearchBar(
         }
 
         // ── Results card ──────────────────────────────────────────────
-        if (results.isNotEmpty()) {
+        if (dropdownVisible) {
             GlassSurface(
                 shape = RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp),
                 colors = GlassDefaults.colors(
@@ -177,6 +183,27 @@ internal fun HomeSearchBar(
                                     overflow = TextOverflow.Ellipsis,
                                 )
                             }
+                        }
+                    }
+                    if (results.isEmpty() && showNoResults) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                        ) {
+                            Icon(
+                                Icons.Rounded.SearchOff,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(16.dp),
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Text(
+                                text = stringResource(Res.string.home_search_no_results),
+                                style = PaparcarType.current.caption,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
                     }
                 }

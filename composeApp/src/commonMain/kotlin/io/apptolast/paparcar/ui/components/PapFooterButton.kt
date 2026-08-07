@@ -115,7 +115,11 @@ fun PapFooterButton(
 }
 
 @Composable
-private fun FooterButtonContent(label: String, leadingIcon: ImageVector?, isLoading: Boolean) {
+private fun FooterButtonContent(
+    label: String,
+    leadingIcon: ImageVector?,
+    isLoading: Boolean,
+) {
     if (isLoading) {
         CircularProgressIndicator(
             modifier = Modifier.size(FOOTER_BUTTON_ICON_SIZE),

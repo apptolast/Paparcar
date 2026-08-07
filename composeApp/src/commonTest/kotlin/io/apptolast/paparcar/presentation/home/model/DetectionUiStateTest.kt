@@ -100,10 +100,11 @@ class DetectionUiStateTest {
     }
 
     @Test
-    fun should_mapSilent_when_readyBluetooth() {
-        // Bluetooth detection is fully automatic — no cold-start prompt needed.
+    fun should_mapArmedBluetooth_when_readyBluetooth() {
+        // Bluetooth detection is fully automatic — no cold-start prompt, but the story surface
+        // still says it is covering the car (discreet line). [UX-DETECTION-STORY-001]
         assertEquals(
-            DetectionUiState.Silent,
+            DetectionUiState.ArmedBluetooth,
             DetectionReadiness.Ready(ParkingStrategy.BLUETOOTH).toUiState(),
         )
     }

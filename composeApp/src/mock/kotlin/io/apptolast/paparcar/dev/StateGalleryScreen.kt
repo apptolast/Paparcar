@@ -44,9 +44,12 @@ import io.apptolast.paparcar.domain.preferences.ThemeMode
 import io.apptolast.paparcar.presentation.bluetooth.BluetoothConfigContent
 import io.apptolast.paparcar.presentation.bluetooth.BluetoothConfigState
 import io.apptolast.paparcar.domain.model.GpsPoint
+import io.apptolast.paparcar.domain.model.SearchResult
 import io.apptolast.paparcar.presentation.home.HomeMode
 import io.apptolast.paparcar.presentation.home.HomeState
-import io.apptolast.paparcar.presentation.home.model.DetectionUiState
+import io.apptolast.paparcar.presentation.home.sections.header.components.HomeSearchBar
+import io.apptolast.paparcar.ui.components.ConfirmationBottomSheet
+import io.apptolast.paparcar.presentation.home.model.DetectionStory
 import io.apptolast.paparcar.presentation.home.toBrowseListSlice
 import io.apptolast.paparcar.presentation.home.toPeekSlice
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.HomeDetectionSurface
@@ -105,9 +108,9 @@ private val sampleProfile = UserProfile(
 // (detection card / peek / SpotFit) on their own; the viewer hosts them
 // bottom-anchored (Placement.Surface) so they read like Home's sheet.
 @Composable
-private fun detectionSurface(state: DetectionUiState, showParkNudge: Boolean = false) {
+private fun detectionSurface(story: DetectionStory, showParkNudge: Boolean = false) {
     HomeDetectionSurface(
-        state = state,
+        story = story,
         onAddVehicle = {},
         onOpenPermissions = {},
         onMarkSpot = {},
@@ -119,6 +122,36 @@ private fun detectionSurface(state: DetectionUiState, showParkNudge: Boolean = f
 }
 
 private val sampleGps = GpsPoint(40.4165, -3.7030, 12f, 0L, 0f)
+
+private val sampleSearchResults = listOf(
+    SearchResult("Gran Vía, Madrid", 40.4203, -3.7058),
+    SearchResult("Gran Vía de les Corts Catalanes, Barcelona", 41.3809, 2.1677),
+)
+
+@Composable
+private fun searchBar(
+    results: List<SearchResult> = emptyList(),
+    isSearching: Boolean = false,
+    showNoResults: Boolean = false,
+) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .padding(16.dp),
+    ) {
+        HomeSearchBar(
+            query = "Gran Vía",
+            results = results,
+            isActive = true,
+            isSearching = isSearching,
+            showNoResults = showNoResults,
+            onQueryChange = {},
+            onResultClick = {},
+            onClear = {},
+        )
+    }
+}
 
 @Composable
 private fun peek(state: HomeState, showsZoneHeader: Boolean = false) =
@@ -186,14 +219,52 @@ private val galleryGroups: List<ScreenGroup> = listOf(
     ScreenGroup(
         "Home · detección",
         listOf(
-            Variant("Sin permiso CORE (BlockedCore)", Placement.Surface) { detectionSurface(DetectionUiState.BlockedCore) },
-            Variant("Detección inactiva — flag off o permisos (Inactive)", Placement.Surface) { detectionSurface(DetectionUiState.Inactive) },
-            Variant("Sin coche registrado (NoVehicle)", Placement.Surface) { detectionSurface(DetectionUiState.NoVehicle) },
-            Variant("Sin aparcar aún (AwaitingFirstPark)", Placement.Surface) { detectionSurface(DetectionUiState.AwaitingFirstPark) },
+            Variant("Sin permiso CORE (BlockedCore)", Placement.Surface) { detectionSurface(DetectionStory.BlockedCore) },
+            Variant("Detección inactiva — flag off o permisos (Inactive)", Placement.Surface) { detectionSurface(DetectionStory.Inactive) },
+            Variant("Sin coche registrado (NoVehicle)", Placement.Surface) { detectionSurface(DetectionStory.NoVehicle) },
+            Variant("Sin aparcar aún (AwaitingFirstPark)", Placement.Surface) { detectionSurface(DetectionStory.AwaitingFirstPark) },
+            // [UX-DETECTION-STORY-001] Relatos felices — línea discreta, sin card.
+            Variant("Vigilando (activo aparcado)", Placement.Surface) {
+                detectionSurface(DetectionStory.Watching("Škoda Kamiq", isParked = true, viaBluetooth = false))
+            },
+            Variant("Vigilando (BT armado, sin sesión)", Placement.Surface) {
+                detectionSurface(DetectionStory.Watching("Škoda Kamiq", isParked = false, viaBluetooth = true))
+            },
+            Variant("Conduciendo", Placement.Surface) {
+                detectionSurface(DetectionStory.Driving("Škoda Kamiq", isCandidate = false))
+            },
+            Variant("Aparcando… (candidate)", Placement.Surface) {
+                detectionSurface(DetectionStory.Driving("Škoda Kamiq", isCandidate = true))
+            },
             // [DET-NUDGE-PERSIST-001] Nudge pendiente "¿dónde has dejado el coche?" — la fila
             // sustituye a la del estado normal hasta que el usuario marca plaza o descarta.
             Variant("Nudge pendiente — ¿dónde has dejado el coche?", Placement.Surface) {
-                detectionSurface(DetectionUiState.Silent, showParkNudge = true)
+                detectionSurface(DetectionStory.Hidden, showParkNudge = true)
+            },
+        ),
+    ),
+    ScreenGroup(
+        "Home · búsqueda",
+        listOf(
+            Variant("Con resultados") { searchBar(results = sampleSearchResults) },
+            // [UX-PARK-FLOW-001 H3] Éxito con 0 resultados ≠ fallo del geocoder: fila explícita.
+            Variant("Sin resultados (fila explícita)") { searchBar(showNoResults = true) },
+            Variant("Buscando (spinner)") { searchBar(isSearching = true) },
+        ),
+    ),
+    ScreenGroup(
+        "Detección · confirmación",
+        listOf(
+            // [UX-PARK-FLOW-001 C5+C4] Auto-confirm con cuenta atrás visible (arranca en 4:00)
+            // y la MISMA voz que la notificación: pregunta con coche + "Sí, he aparcado".
+            Variant("Sheet ¿Has aparcado? + cuenta atrás") {
+                Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface))
+                ConfirmationBottomSheet(
+                    onConfirm = {},
+                    onDismiss = {},
+                    addressLine = "Calle de Alcalá, 12",
+                    vehicleName = "Škoda Kamiq",
+                )
             },
         ),
     ),
@@ -300,7 +371,7 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     ),
                 )
             },
-            Variant("PapSheet · parking seleccionado (Me voy + edit menu)", Placement.Surface) {
+            Variant("PapSheet · parking seleccionado (Me voy + Directions + editar)", Placement.Surface) {
                 peek(
                     HomeState(
                         vehicles = listOf(FakeData.vehicleSedan),
@@ -318,6 +389,19 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                         cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
                         vehicles = listOf(FakeData.vehicleSedan),
                         addingParkingVehicleId = FakeData.vehicleSedan.id,
+                    ),
+                )
+            },
+            // Edit mode = decide at confirm: Corregir ubicación / He aparcado en otro sitio /
+            // Borrar registro (rojo, con confirmación). [UX-PARKED-STATE-001]
+            Variant("PapSheet · edit parking (corregir / otro sitio / borrar)", Placement.Surface) {
+                peek(
+                    HomeState(
+                        mode = HomeMode.AddingParking,
+                        editingParkingId = FakeData.activeSession.id,
+                        activeSessions = listOf(FakeData.activeSession.copy(vehicleId = FakeData.vehicleSedan.id)),
+                        cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
+                        vehicles = listOf(FakeData.vehicleSedan),
                     ),
                 )
             },

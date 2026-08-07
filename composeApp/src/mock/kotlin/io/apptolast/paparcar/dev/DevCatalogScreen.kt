@@ -52,6 +52,8 @@ fun DevCatalogScreen(
     val gps by scenario.gpsEnabled.collectAsStateWithLifecycle()
     val online by scenario.online.collectAsStateWithLifecycle()
     val aggressiveOem by scenario.aggressiveOem.collectAsStateWithLifecycle()
+    val ownParked by scenario.ownParkedSession.collectAsStateWithLifecycle()
+    val activeBt by scenario.activeVehicleBluetooth.collectAsStateWithLifecycle()
     // Shared detection runtime — toggling it simulates an in-progress trip in the real Home (moving
     // driving puck + "Conduciendo" chip + camera follow), no real drive needed. [DRIVE-SIM-001]
     val runtime: MutableDetectionRuntimeState = koinInject()
@@ -102,6 +104,10 @@ fun DevCatalogScreen(
             SwitchRow("OEM agresivo (MIUI/ColorOS)", aggressiveOem) { scenario.aggressiveOem.value = it }
 
             SectionTitle("Simulación")
+            // Own-parking loop in the REAL graph: watching line + parked card + ParkingPeek +
+            // release dialog, all reachable without a real drive. [UX-PARKED-STATE-001]
+            SwitchRow("Sesión propia aparcada (vigilando)", ownParked) { scenario.ownParkedSession.value = it }
+            SwitchRow("BT emparejado en el coche activo", activeBt) { scenario.activeVehicleBluetooth.value = it }
             SwitchRow("Conduciendo (puck en movimiento en Home)", driving) { on ->
                 // Mirror a geofence-exit: stamp the trip's origin (route start) + the DEPARTING vehicle
                 // (mock_vehicle_002, deliberately NOT the active mock_vehicle_001) so Home's blue origin
@@ -165,6 +171,12 @@ fun DevCatalogScreen(
             }
             PresetButton("Home (todo OK)") {
                 scenario.reset(); onEnter()
+            }
+            PresetButton("Aparcado (vigilando)") {
+                scenario.reset(); scenario.ownParkedSession.value = true; onEnter()
+            }
+            PresetButton("Vigilando por Bluetooth (BT armado)") {
+                scenario.reset(); scenario.activeVehicleBluetooth.value = true; onEnter()
             }
 
             HorizontalDivider(Modifier.padding(vertical = 8.dp))

@@ -86,8 +86,13 @@ sealed class HomeIntent {
     ) : HomeIntent()
 
     data object ExitAddParkingMode : HomeIntent()
-    /** Confirm the parked-car position at the current camera centre (falls back to user GPS). */
-    data object ConfirmAddParking : HomeIntent()
+    /**
+     * Confirm the parked-car position at the current camera centre (falls back to user GPS).
+     * @param asNewSession from EDIT mode: `true` = "I parked somewhere else" → ignore the edited
+     *   session's id and create a NEW session for its vehicle (the model supersedes the old one
+     *   silently). `false` = correct THIS session's pin in place. [UX-PARKED-STATE-001]
+     */
+    data class ConfirmAddParking(val asNewSession: Boolean = false) : HomeIntent()
 
     // ── Zone management ───────────────────────────────────────────────────────
 

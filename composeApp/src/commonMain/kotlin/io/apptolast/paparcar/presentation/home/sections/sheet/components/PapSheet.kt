@@ -22,7 +22,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Campaign
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.EditLocationAlt
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -60,7 +59,6 @@ import paparcar.composeapp.generated.resources.home_counter_unit_free
 import paparcar.composeapp.generated.resources.home_parking_action_move_location
 import paparcar.composeapp.generated.resources.home_parking_edit_dialog_body
 import paparcar.composeapp.generated.resources.home_parking_edit_dialog_title
-import paparcar.composeapp.generated.resources.home_parking_edit_menu_cd
 import paparcar.composeapp.generated.resources.home_parking_menu_delete
 import paparcar.composeapp.generated.resources.home_peek_dismiss_cd
 import paparcar.composeapp.generated.resources.home_release_dialog_cancel
@@ -98,6 +96,10 @@ internal fun PapSheet(
     /** Overrides the tone colour — the reliability palette of a community spot. */
     eyebrowColor: Color? = null,
     subtitle: String? = null,
+    /** Modal-only escape hatch: peeks keep the fixed 1-line title (anchoring depends on the
+     *  reserved header height); a MODAL sheet whose title carries a vehicle name may pass 2 so
+     *  "¿Has aparcado el Škoda Kamiq?" doesn't truncate. [UX-PARK-FLOW-001 C4, device 06-08] */
+    titleMaxLines: Int = 1,
     trailing: PapSheetTrailing? = PapSheetTrailing.Dismiss,
     banner: (@Composable () -> Unit)? = null,
     meta: (@Composable ColumnScope.() -> Unit)? = null,
@@ -121,7 +123,7 @@ internal fun PapSheet(
             title = title,
             titleStyle = PaparcarType.current.cardTitle,
             titleWeight = FontWeight.SemiBold,
-            titleMaxLines = 1,
+            titleMaxLines = titleMaxLines,
             subtitle = subtitle,
             subtitleStyle = PaparcarType.current.caption,
             subtitleColor = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -376,29 +378,31 @@ internal fun PapSheetBanner(
 }
 
 /**
- * Slot-3 meta action — the 38dp circular edit icon-button (pin+pencil, green
- * outline). Opens the SAME pin-positioning sheet as manual add-parking, in
- * edit mode — where "Delete record" lives as the integrated destructive
- * action. No intermediate menu/dialog. ONLY for the user's own parking,
- * never on community spots. [UI-SHEET-004]
+ * Twin round icon-button for the meta-action row — a bare 38dp circle with a green
+ * outline and a primary-tinted glyph. Groups low-emphasis utilities (navigate to the
+ * car, edit the pin) side by side, so the full-width footer stays for the ONE loop
+ * action ("I'm leaving"). [contentDescription] replaces the visible label for
+ * accessibility. [UX-PARKED-STATE-001]
  */
 @Composable
-internal fun PapSheetEditButton(
-    onEdit: () -> Unit,
+internal fun PapSheetRoundIconButton(
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
 ) {
     Box(
         modifier = Modifier
-            .size(EDIT_BUTTON_DP.dp)
+            .size(SHEET_ICON_BUTTON_DP.dp)
             .clip(CircleShape)
             .border(BorderStroke(PapBorders.medium, greenOutline), CircleShape)
-            .clickable(onClick = onEdit),
+            .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
-            imageVector = Icons.Rounded.EditLocationAlt,
-            contentDescription = stringResource(Res.string.home_parking_edit_menu_cd),
+            imageVector = icon,
+            contentDescription = contentDescription,
             tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(EDIT_ICON_DP.dp),
+            modifier = Modifier.size(SHEET_ICON_GLYPH_DP.dp),
         )
     }
 }
@@ -467,8 +471,8 @@ private const val LEAD_GLYPH_DP = 38
 private const val LEAD_ICON_DP = 24
 private const val DISMISS_BUTTON_DP = 34
 private const val DISMISS_ICON_DP = 18
-private const val EDIT_BUTTON_DP = 38
-private const val EDIT_ICON_DP = 18
+private const val SHEET_ICON_BUTTON_DP = 38
+private const val SHEET_ICON_GLYPH_DP = 18
 private const val BANNER_BADGE_DP = 20
 private const val BANNER_ICON_DP = 13
 private const val BANNER_BADGE_BG_ALPHA = 0.18f

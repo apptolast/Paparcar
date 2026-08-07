@@ -8,6 +8,7 @@ import io.apptolast.paparcar.fakes.MockScenario
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 
 /**
@@ -65,19 +66,27 @@ class FakeVehicleRepository(private val scenario: MockScenario? = null) : Vehicl
 
     private val _vehiclesFlow = MutableStateFlow(mockVehicles)
 
-    /** Empty when the scenario simulates a freshly-registered account with no vehicle yet. */
+    /** The scenario list: empty for fresh accounts; the ACTIVE vehicle gains a paired-BT
+     *  identity when the Dev Catalog flips that lever. [UX-PARKED-STATE-001] */
+    private fun scenarioList(session: MockScenario.Session, activeBt: Boolean): List<Vehicle> =
+        when {
+            session != MockScenario.Session.LoggedInWithVehicles -> emptyList()
+            activeBt -> mockVehicles.map { v ->
+                if (v.isActive) v.copy(bluetoothDeviceId = ACTIVE_BT_MAC) else v
+            }
+            else -> mockVehicles
+        }
+
     private fun currentList(): List<Vehicle> =
-        if (scenario != null && scenario.session.value != MockScenario.Session.LoggedInWithVehicles) {
-            emptyList()
+        if (scenario != null) {
+            scenarioList(scenario.session.value, scenario.activeVehicleBluetooth.value)
         } else {
             mockVehicles
         }
 
     override fun observeVehicles(): Flow<List<Vehicle>> =
         if (scenario != null) {
-            scenario.session.map { s ->
-                if (s == MockScenario.Session.LoggedInWithVehicles) mockVehicles else emptyList()
-            }
+            combine(scenario.session, scenario.activeVehicleBluetooth) { s, bt -> scenarioList(s, bt) }
         } else {
             _vehiclesFlow.asStateFlow()
         }
@@ -109,4 +118,9 @@ class FakeVehicleRepository(private val scenario: MockScenario? = null) : Vehicl
     override suspend fun hasVehicles(userId: String): Boolean = currentList().isNotEmpty()
 
     override suspend fun pushPendingVehicles(): Result<Unit> = Result.success(Unit)
+
+    private companion object {
+        /** MAC the Dev Catalog "BT on the active vehicle" lever pins to the active car. */
+        const val ACTIVE_BT_MAC = "77:88:99:AA:BB:CC"
+    }
 }

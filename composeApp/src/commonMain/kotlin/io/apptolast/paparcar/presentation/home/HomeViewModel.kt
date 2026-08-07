@@ -291,6 +291,7 @@ class HomeViewModel(
                 isSearchActive = true,
                 searchResults = if (blank) emptyList() else searchResults,
                 isSearching = if (blank) false else isSearching,
+                searchNoResults = if (blank) false else searchNoResults,
             )
         }
         search.onQueryChanged(query)
@@ -392,7 +393,7 @@ class HomeViewModel(
                 )
             }
             is HomeIntent.ExitAddParkingMode -> updateState { clearedModeFields() }
-            is HomeIntent.ConfirmAddParking -> confirmAddParking()
+            is HomeIntent.ConfirmAddParking -> confirmAddParking(intent.asNewSession)
             else -> Unit
         }
     }
@@ -406,10 +407,17 @@ class HomeViewModel(
         }
     }
 
-    private fun confirmAddParking() {
+    private fun confirmAddParking(asNewSession: Boolean) {
         val current = state.value
         if (current.mode !is HomeMode.AddingParking || current.isSavingParking) return
         val (lat, lon) = current.pinCoordinates() ?: return reportPinMissing()
+        // Re-park ("I parked somewhere else") from edit mode: drop the edited session's id so a
+        // NEW session is created for the SAME vehicle — the model supersedes the old one on save.
+        // Correct-in-place keeps the id. [UX-PARKED-STATE-001]
+        val editedSessionVehicleId = current.editingParkingId
+            ?.let { id -> current.activeSessions.firstOrNull { it.id == id }?.vehicleId }
+        val editingParkingId = if (asNewSession) null else current.editingParkingId
+        val targetVehicleId = if (asNewSession) editedSessionVehicleId else current.addingParkingVehicleId
         // No connectivity gate: sessions are local-first (Room now, Firestore mirrored by
         // the WorkManager sync queue), same as the auto-detection confirm. [OFFLINE-PARK-001]
         updateState { copy(isSavingParking = true) }
@@ -418,8 +426,8 @@ class HomeViewModel(
                 lat = lat,
                 lon = lon,
                 accuracy = current.userGpsPoint?.accuracy ?: 0f,
-                editingParkingId = current.editingParkingId,
-                targetVehicleId = current.addingParkingVehicleId,
+                editingParkingId = editingParkingId,
+                targetVehicleId = targetVehicleId,
             )
                 .onSuccess { updateState { clearedModeFields().copy(isSavingParking = false) } }
                 .onFailure {
@@ -624,9 +632,19 @@ class HomeViewModel(
 
         search.updates.collectSafely("search") { update ->
             when (update) {
-                is SearchUpdate.Searching -> updateState { copy(isSearching = true) }
-                is SearchUpdate.Success -> updateState { copy(searchResults = update.results, isSearching = false) }
-                is SearchUpdate.Failure -> updateState { copy(searchResults = emptyList(), isSearching = false) }
+                is SearchUpdate.Searching -> updateState { copy(isSearching = true, searchNoResults = false) }
+                is SearchUpdate.Success -> updateState {
+                    copy(
+                        searchResults = update.results,
+                        isSearching = false,
+                        searchNoResults = update.results.isEmpty(),
+                    )
+                }
+                // A broken geocoder must not read like "nothing found": clear + say so. [H3]
+                is SearchUpdate.Failure -> {
+                    updateState { copy(searchResults = emptyList(), isSearching = false, searchNoResults = false) }
+                    sendEffect(HomeEffect.ShowError(PaparcarError.Location.SearchFailed))
+                }
             }
         }
 

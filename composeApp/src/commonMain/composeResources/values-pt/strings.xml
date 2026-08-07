@@ -2,6 +2,7 @@
 <resources>
     <!-- HomeScreen -->
     <string name="home_search_placeholder">Procure uma zona, rua…</string>
+    <string name="home_search_no_results">Sem resultados para essa pesquisa</string>
     <string name="home_stats_free_spots_badge">%1$d livres</string>
     <string name="home_peek_no_spots">Sem lugares por perto</string>
     <!-- PapSheet counter lead tile unit. [UI-SHEET-001] -->
@@ -12,9 +13,15 @@
     <string name="home_vehicle_chip_status_candidate">A estacionar…</string>
     <string name="home_parking_release">Libertar lugar</string>
     <!-- PapSheet actions + browse header. [UI-SHEET-001] -->
-    <string name="home_parking_leave_release">Vou sair · Liberto o meu lugar</string>
+    <string name="home_parking_leave_release">Vou-me embora</string>
     <string name="home_parking_edit_menu_cd">Editar localização do estacionamento</string>
     <string name="home_parking_menu_delete">Eliminar registo</string>
+    <!-- Edit-parking confirm choices: correct this pin vs. re-park elsewhere. [UX-PARKED-STATE-001] -->
+    <string name="home_parking_menu_correct">Corrigir localização</string>
+    <string name="home_parking_menu_repark">Estacionei noutro sítio</string>
+    <!-- Delete-record confirmation (destructive). [UX-PARKED-STATE-001] -->
+    <string name="home_parking_delete_confirm_title">Eliminar este estacionamento?</string>
+    <string name="home_parking_delete_confirm_body">Remove o registo. O lugar não será partilhado com a comunidade.</string>
     <string name="home_parking_edit_dialog_title">Editar estacionamento</string>
     <string name="home_parking_edit_dialog_body">Move o pin para o lugar certo ou elimina este registo de estacionamento.</string>
     <string name="home_spot_still_there">Ainda está?</string>
@@ -24,7 +31,7 @@
     <string name="home_browse_parked_ago">Estacionado há %1$s</string>
     <string name="home_browse_hint_swipe_report">Desliza ↑ para reportar um lugar</string>
     <string name="home_navigate_to_spot">Como chegar</string>
-    <string name="home_navigate_to_vehicle">Navegar até ao veículo</string>
+    <string name="home_navigate_to_vehicle">Direções</string>
     <string name="home_feed_nearby">Perto de si</string>
     <plurals name="home_feed_nearby_with_count">
         <item quantity="one">%1$d lugar livre perto de si</item>
@@ -37,6 +44,7 @@
     <string name="home_release_dialog_message">Partilha o teu lugar com os condutores próximos, ou apaga-o sem partilhar.</string>
     <!-- Consequence line: leaving means detection re-arms for the next parking. [VEH-ACTIVE-FENCE-001] -->
     <string name="home_release_dialog_detection_active">Vamos começar a detetar o teu próximo estacionamento.</string>
+    <string name="home_release_dialog_detection_unavailable">Não vamos conseguir detetar sozinhos o teu próximo estacionamento.</string>
     <string name="home_release_dialog_detection_inactive">%1$s passa a ser o teu carro ativo, por isso vamos detetar o teu próximo estacionamento.</string>
     <string name="home_release_dialog_publish">Publicar lugar</string>
     <string name="home_release_dialog_delete_only">Apenas apagar</string>
@@ -196,6 +204,7 @@
     <string name="error_load_session">Não foi possível carregar a sessão de estacionamento</string>
     <string name="error_release_parking">Não foi possível libertar o estacionamento</string>
     <string name="error_gps_unavailable">A aguardar sinal GPS…</string>
+    <string name="error_search_failed">A pesquisa não está a funcionar agora. Verifica a ligação e tenta novamente</string>
     <string name="error_bootstrap_offline_title">Sem ligação à internet</string>
     <string name="error_bootstrap_offline_body">O Paparcar precisa de ligação para carregar os teus dados. Verifica a rede e tenta novamente.</string>
     <string name="error_bootstrap_retry">Tentar novamente</string>
@@ -324,8 +333,9 @@
 
     <!-- ConfirmationBottomSheet -->
     <string name="confirmation_sheet_title">Estacionamento detetado</string>
-    <string name="confirmation_sheet_confirm">Publicar lugar</string>
-    <string name="confirmation_sheet_withdraw">Agora não</string>
+    <string name="confirmation_sheet_confirm">Sim, estacionei</string>
+    <string name="confirmation_sheet_withdraw">Não, não estacionei</string>
+    <string name="confirmation_sheet_autoconfirm_in">Confirma-se sozinha em %1$s</string>
     <string name="settings_section_map">Mapa</string>
     <string name="settings_distance_unit">Unidades imperiais</string>
     <string name="settings_distance_unit_desc">Mostrar distâncias em milhas e pés</string>
@@ -346,7 +356,8 @@
     <string name="bt_config_cd_back">Voltar</string>
 
     <!-- ConfirmationBottomSheet (deteção de estacionamento) -->
-    <string name="confirmation_sheet_question">Estacionou aqui?</string>
+    <string name="confirmation_sheet_question">Estacionaste aqui?</string>
+    <string name="confirmation_sheet_question_vehicle">Estacionaste o %1$s?</string>
     <string name="confirmation_sheet_method_bt">Detetado por Bluetooth · há %1$s</string>
     <string name="confirmation_sheet_method_ar">Detetado automaticamente · há %1$s</string>
 
@@ -537,6 +548,13 @@
     <string name="home_det_stopped_action">Ativar</string>
     <string name="home_det_awaiting_title">Onde está o seu carro?</string>
     <string name="home_det_awaiting_sub">Marque o local e eu vigio a saída</string>
+    <string name="home_det_watching_title">A vigiar o teu %1$s</string>
+    <string name="home_det_watching_parked_sub">Estacionado — vamos detetar quando deixares o lugar</string>
+    <string name="home_det_watching_bt_sub">O estacionamento deteta-se sozinho pelo Bluetooth do carro</string>
+    <string name="home_det_driving_title">A conduzir o teu %1$s</string>
+    <string name="home_det_driving_sub">Vamos detetar onde estacionas</string>
+    <string name="home_det_candidate_title">A estacionar o teu %1$s?</string>
+    <string name="home_det_candidate_sub">A confirmar o lugar…</string>
     <string name="home_det_awaiting_cta_primary">Marcar o meu lugar</string>
     <string name="home_det_awaiting_cta_secondary">Vou a conduzir</string>
     <!-- Pending "where did you leave your car?" nudge row. [DET-NUDGE-PERSIST-001] -->

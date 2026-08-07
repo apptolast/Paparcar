@@ -5,6 +5,9 @@ sealed class PaparcarError : Exception() {
     sealed class Location : PaparcarError() {
         data object PermissionDenied : Location()
         data object ProviderDisabled : Location()
+        /** The address search (geocoder) failed — distinct from a successful lookup with zero
+         *  results, so the UI can tell "nothing found" from "the search itself broke". [UX-PARK-FLOW-001 H3] */
+        data object SearchFailed : Location()
         data class Unknown(override val message: String) : Location()
     }
 

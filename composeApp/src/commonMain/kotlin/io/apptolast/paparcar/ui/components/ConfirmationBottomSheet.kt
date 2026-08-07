@@ -35,17 +35,21 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.style.TextAlign
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.PapSheet
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.PapSheetBanner
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.PapSheetEyebrowTone
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.PapSheetLead
+import io.apptolast.paparcar.ui.theme.PaparcarType
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.confirmation_sheet_autoconfirm_in
 import paparcar.composeapp.generated.resources.confirmation_sheet_confirm
 import paparcar.composeapp.generated.resources.confirmation_sheet_method_ar
 import paparcar.composeapp.generated.resources.confirmation_sheet_method_bt
 import paparcar.composeapp.generated.resources.confirmation_sheet_question
+import paparcar.composeapp.generated.resources.confirmation_sheet_question_vehicle
 import paparcar.composeapp.generated.resources.confirmation_sheet_title
 import paparcar.composeapp.generated.resources.confirmation_sheet_withdraw
 import paparcar.composeapp.generated.resources.home_address_unknown
@@ -59,9 +63,10 @@ private const val CONFIRMATION_TIMEOUT_SECONDS = 240 // 4 minutes — auto-publi
  * other "state" surface in Home (lead tile + eyebrow + close × + title +
  * banner + action footer). [UI-SHEET-001]
  *
- * The 4-minute countdown still runs silently and auto-publishes if the user
- * doesn't answer — the timer is intentionally hidden so the sheet doesn't
- * feel pushy.
+ * The 4-minute countdown auto-confirms if the user doesn't answer, and it is
+ * VISIBLE: silently publishing a spot the user never agreed to reads as the
+ * app acting behind their back. The caption under the actions says what will
+ * happen and when, so "do nothing" becomes an informed choice. [UX-PARK-FLOW-001 C5]
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,6 +76,9 @@ fun ConfirmationBottomSheet(
     addressLine: String? = null,
     detectionTimestampMs: Long? = null,
     bluetoothActive: Boolean = false,
+    /** Names the car in the question — same voice as the system notification ("Did you park
+     *  your Kamiq?"), so both surfaces for the same event speak identically. [UX-PARK-FLOW-001 C4] */
+    vehicleName: String? = null,
     modifier: Modifier = Modifier,
 ) {
     val sheetState = rememberModalBottomSheetState()
@@ -100,7 +108,13 @@ fun ConfirmationBottomSheet(
             lead = PapSheetLead.GenericIcon(icon = Icons.Rounded.DirectionsCar),
             eyebrow = stringResource(Res.string.confirmation_sheet_title),
             eyebrowTone = PapSheetEyebrowTone.Action,
-            title = stringResource(Res.string.confirmation_sheet_question),
+            title = if (vehicleName != null) {
+                stringResource(Res.string.confirmation_sheet_question_vehicle, vehicleName)
+            } else {
+                stringResource(Res.string.confirmation_sheet_question)
+            },
+            // Modal sheet (no peek anchoring): let long vehicle names wrap instead of truncating.
+            titleMaxLines = 2,
             onDismiss = onDismiss,
             modifier = Modifier.padding(bottom = SHEET_BOTTOM_DP.dp),
             banner = {
@@ -128,6 +142,17 @@ fun ConfirmationBottomSheet(
                     style = PapFooterButtonStyle.Outlined,
                     modifier = Modifier.fillMaxWidth(),
                 )
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = stringResource(
+                        Res.string.confirmation_sheet_autoconfirm_in,
+                        formatCountdown(secondsLeft),
+                    ),
+                    style = PaparcarType.current.caption,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             },
         )
     }
@@ -142,6 +167,13 @@ private fun detectionMethodLine(bluetoothActive: Boolean, timestampMs: Long?): S
     } else {
         stringResource(Res.string.confirmation_sheet_method_ar, ago)
     }
+}
+
+/** mm:ss for the visible auto-confirm countdown ("3:59"). */
+private fun formatCountdown(totalSeconds: Int): String {
+    val minutes = totalSeconds / SECONDS_PER_MINUTE.toInt()
+    val seconds = totalSeconds % SECONDS_PER_MINUTE.toInt()
+    return "$minutes:${seconds.toString().padStart(2, '0')}"
 }
 
 private fun compactAgo(timestampMs: Long): String? {

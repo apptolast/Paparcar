@@ -2,6 +2,7 @@
 <resources>
     <!-- HomeScreen -->
     <string name="home_search_placeholder">Search an area, street…</string>
+    <string name="home_search_no_results">No results for that search</string>
     <string name="home_stats_free_spots_badge">%1$d free</string>
     <string name="home_peek_no_spots">No spots nearby</string>
     <!-- PapSheet counter lead tile unit. [UI-SHEET-001] -->
@@ -45,10 +46,16 @@
     <string name="home_peek_spot_manual">Manual spot</string>
     <string name="home_parking_release">Release spot</string>
     <!-- Selected-parking primary CTA — leaving IS the community loop action. [UI-SHEET-001] -->
-    <string name="home_parking_leave_release">I&#8217;m leaving · Free my spot</string>
+    <string name="home_parking_leave_release">I’m leaving</string>
     <!-- Edit icon-button (pin+pencil) on the selected-parking meta block + its menu. [UI-SHEET-001] -->
     <string name="home_parking_edit_menu_cd">Edit parking location</string>
     <string name="home_parking_menu_delete">Delete record</string>
+    <!-- Edit-parking confirm choices: correct this pin vs. re-park elsewhere. [UX-PARKED-STATE-001] -->
+    <string name="home_parking_menu_correct">Correct location</string>
+    <string name="home_parking_menu_repark">I parked somewhere else</string>
+    <!-- Delete-record confirmation (destructive). [UX-PARKED-STATE-001] -->
+    <string name="home_parking_delete_confirm_title">Delete this parking?</string>
+    <string name="home_parking_delete_confirm_body">This removes the record. The spot won’t be shared with the community.</string>
     <!-- Edit-parking modal (move primary / delete destructive). [UI-SHEET-004] -->
     <string name="home_parking_edit_dialog_title">Edit parking</string>
     <string name="home_parking_edit_dialog_body">Move the pin to the right place, or delete this parking record.</string>
@@ -56,7 +63,7 @@
     <string name="home_spot_still_there">Still there?</string>
     <string name="home_spot_gone">It&#8217;s gone</string>
     <string name="home_navigate_to_spot">Directions</string>
-    <string name="home_navigate_to_vehicle">Navigate to vehicle</string>
+    <string name="home_navigate_to_vehicle">Directions</string>
     <string name="home_feed_nearby">Near you</string>
     <plurals name="home_feed_nearby_with_count">
         <item quantity="one">%1$d free spot near you</item>
@@ -74,6 +81,7 @@
     <string name="home_release_dialog_message">When you notify, other drivers get an alert and can arrive sooner.</string>
     <!-- Consequence line: leaving means detection re-arms for the next parking. [VEH-ACTIVE-FENCE-001] -->
     <string name="home_release_dialog_detection_active">We\'ll start detecting your next parking.</string>
+    <string name="home_release_dialog_detection_unavailable">We won’t be able to detect your next parking on our own.</string>
     <string name="home_release_dialog_detection_inactive">%1$s becomes your active car, so we\'ll detect your next parking.</string>
     <string name="home_release_dialog_publish">Release and notify</string>
     <string name="home_release_dialog_delete_only">Just release</string>
@@ -240,6 +248,7 @@
     <string name="error_load_session">Couldn\'t load parking session</string>
     <string name="error_release_parking">Couldn\'t release parking</string>
     <string name="error_gps_unavailable">Waiting for GPS fix…</string>
+    <string name="error_search_failed">Search is not working right now. Check your connection and try again</string>
     <string name="error_bootstrap_offline_title">No internet connection</string>
     <string name="error_bootstrap_offline_body">Paparcar needs a connection to load your data. Check your network and try again.</string>
     <string name="error_bootstrap_retry">Retry</string>
@@ -483,10 +492,12 @@
 
     <!-- ConfirmationBottomSheet (auto-parking detection) -->
     <string name="confirmation_sheet_title">Parking detected</string>
-    <string name="confirmation_sheet_confirm">Yes, confirm</string>
-    <string name="confirmation_sheet_withdraw">No, ignore</string>
+    <string name="confirmation_sheet_confirm">Yes, I parked</string>
+    <string name="confirmation_sheet_withdraw">No, I didn’t park</string>
+    <string name="confirmation_sheet_autoconfirm_in">Will confirm on its own in %1$s</string>
     <!-- Refreshed copy for the detection sheet (v1 design) -->
     <string name="confirmation_sheet_question">Did you park here?</string>
+    <string name="confirmation_sheet_question_vehicle">Did you park your %1$s?</string>
     <string name="confirmation_sheet_method_bt">Detected by Bluetooth · %1$s ago</string>
     <string name="confirmation_sheet_method_ar">Auto-detected · %1$s ago</string>
     <string name="settings_section_map">Map</string>
@@ -610,6 +621,13 @@
     <string name="home_det_stopped_action">Turn on</string>
     <string name="home_det_awaiting_title">Where is your car?</string>
     <string name="home_det_awaiting_sub">Mark the spot and I will watch it</string>
+    <string name="home_det_watching_title">Watching your %1$s</string>
+    <string name="home_det_watching_parked_sub">Parked — we’ll notice when you leave the spot</string>
+    <string name="home_det_watching_bt_sub">Parking detects itself via your car’s Bluetooth</string>
+    <string name="home_det_driving_title">Driving your %1$s</string>
+    <string name="home_det_driving_sub">We’ll detect where you park</string>
+    <string name="home_det_candidate_title">Parking your %1$s?</string>
+    <string name="home_det_candidate_sub">Confirming the spot…</string>
     <string name="home_det_awaiting_cta_primary">Mark my spot</string>
     <string name="home_det_awaiting_cta_secondary">I am driving</string>
     <!-- Pending "where did you leave your car?" nudge row. [DET-NUDGE-PERSIST-001] -->

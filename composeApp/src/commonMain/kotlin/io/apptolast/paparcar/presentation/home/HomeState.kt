@@ -115,6 +115,9 @@ data class HomeState(
     val searchResults: List<SearchResult> = emptyList(),
     val isSearchActive: Boolean = false,
     val isSearching: Boolean = false,
+    /** The last search finished fine but found nothing — drives the "no results" row under the
+     *  bar, so an empty dropdown never reads the same as a geocoder failure. [UX-PARK-FLOW-001 H3] */
+    val searchNoResults: Boolean = false,
 
     // ── Detection ─────────────────────────────────────────────────────────────
 

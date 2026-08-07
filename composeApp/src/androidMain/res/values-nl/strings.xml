@@ -8,9 +8,9 @@
     <string name="notif_detection_explainer">Ik detecteer automatisch wanneer je parkeert om je plaats vrij te geven aan de community. Minimaal batterijverbruik.</string>
 
     <!-- Melding: bevestiging van parkeren -->
-    <string name="notif_confirmation_title">Heeft u geparkeerd?</string>
+    <string name="notif_confirmation_title">Heb je geparkeerd?</string>
     <string name="notif_confirmation_title_vehicle">Heb je jouw %1$s geparkeerd?</string>
-    <string name="notif_confirmation_text">Het lijkt erop dat u heeft geparkeerd. Zullen we de parkeerplaats bevestigen?</string>
+    <string name="notif_confirmation_text">Het lijkt erop dat je hebt geparkeerd. Zullen we de plek bevestigen?</string>
     <string name="notif_action_yes_parked">Ja, ik heb geparkeerd</string>
     <string name="notif_action_no_not_parked">Nee, ik heb niet geparkeerd</string>
 

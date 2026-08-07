@@ -2,6 +2,7 @@
 <resources>
     <!-- HomeScreen -->
     <string name="home_search_placeholder">Busca una zona, calle…</string>
+    <string name="home_search_no_results">Sin resultados para esa búsqueda</string>
     <string name="home_stats_free_spots_badge">%1$d libres</string>
     <string name="home_peek_no_spots">Sin plazas cerca</string>
     <!-- Unidad del contador del PapSheet. [UI-SHEET-001] -->
@@ -35,10 +36,16 @@
     <string name="home_peek_spot_manual">Plaza manual</string>
     <string name="home_parking_release">Liberar plaza</string>
     <!-- CTA primario del parking seleccionado — irse ES la acción del loop comunitario. [UI-SHEET-001] -->
-    <string name="home_parking_leave_release">Me voy · Libero mi plaza</string>
+    <string name="home_parking_leave_release">Me voy</string>
     <!-- Icon-button editar (pin+lápiz) del bloque meta + su menú. [UI-SHEET-001] -->
     <string name="home_parking_edit_menu_cd">Editar ubicación del aparcamiento</string>
     <string name="home_parking_menu_delete">Eliminar registro</string>
+    <!-- Edit-parking confirm choices: correct this pin vs. re-park elsewhere. [UX-PARKED-STATE-001] -->
+    <string name="home_parking_menu_correct">Corregir ubicación</string>
+    <string name="home_parking_menu_repark">He aparcado en otro sitio</string>
+    <!-- Delete-record confirmation (destructive). [UX-PARKED-STATE-001] -->
+    <string name="home_parking_delete_confirm_title">¿Borrar este aparcamiento?</string>
+    <string name="home_parking_delete_confirm_body">Se elimina el registro. La plaza no se compartirá con la comunidad.</string>
     <!-- Modal de modificar aparcamiento (mover primario / eliminar destructivo). [UI-SHEET-004] -->
     <string name="home_parking_edit_dialog_title">Modificar aparcamiento</string>
     <string name="home_parking_edit_dialog_body">Mueve el pin al lugar correcto o elimina este registro de aparcamiento.</string>
@@ -46,7 +53,7 @@
     <string name="home_spot_still_there">¿Aún está?</string>
     <string name="home_spot_gone">Se fue</string>
     <string name="home_navigate_to_spot">Cómo llegar</string>
-    <string name="home_navigate_to_vehicle">Navegar al vehículo</string>
+    <string name="home_navigate_to_vehicle">Cómo llegar</string>
     <string name="home_feed_nearby">Cerca de ti</string>
     <plurals name="home_feed_nearby_with_count">
         <item quantity="one">%1$d plaza libre cerca de ti</item>
@@ -64,6 +71,7 @@
     <string name="home_release_dialog_message">Cuando avisas, otros conductores reciben la notificación y pueden llegar antes.</string>
     <!-- Consequence line: leaving means detection re-arms for the next parking. [VEH-ACTIVE-FENCE-001] -->
     <string name="home_release_dialog_detection_active">Empezaremos a detectar tu próximo aparcamiento.</string>
+    <string name="home_release_dialog_detection_unavailable">No podremos detectar tu próximo aparcamiento por nuestra cuenta.</string>
     <string name="home_release_dialog_detection_inactive">%1$s pasará a ser tu coche activo, así que detectaremos tu próximo aparcamiento.</string>
     <string name="home_release_dialog_publish">Liberar y avisar</string>
     <string name="home_release_dialog_delete_only">Solo liberar</string>
@@ -281,6 +289,7 @@
     <string name="error_load_session">No se pudo cargar la sesión de aparcamiento</string>
     <string name="error_release_parking">No se pudo liberar el aparcamiento</string>
     <string name="error_gps_unavailable">Esperando señal GPS…</string>
+    <string name="error_search_failed">La búsqueda no funciona ahora mismo. Revisa tu conexión e inténtalo de nuevo</string>
     <string name="error_bootstrap_offline_title">Sin conexión a internet</string>
     <string name="error_bootstrap_offline_body">Paparcar necesita conexión para cargar tus datos. Comprueba tu red e inténtalo de nuevo.</string>
     <string name="error_bootstrap_retry">Reintentar</string>
@@ -459,10 +468,12 @@
 
     <!-- ConfirmationBottomSheet (detección automática) -->
     <string name="confirmation_sheet_title">Detectamos un aparcamiento</string>
-    <string name="confirmation_sheet_confirm">Sí, confirmar</string>
-    <string name="confirmation_sheet_withdraw">No, ignorar</string>
+    <string name="confirmation_sheet_confirm">Sí, he aparcado</string>
+    <string name="confirmation_sheet_withdraw">No, no he aparcado</string>
+    <string name="confirmation_sheet_autoconfirm_in">Se confirmará sola en %1$s</string>
     <!-- Copy refrescada para el sheet de detección (diseño v1) -->
     <string name="confirmation_sheet_question">¿Has aparcado aquí?</string>
+    <string name="confirmation_sheet_question_vehicle">¿Has aparcado el %1$s?</string>
     <string name="confirmation_sheet_method_bt">Detección por Bluetooth · hace %1$s</string>
     <string name="confirmation_sheet_method_ar">Detección automática · hace %1$s</string>
     <string name="settings_section_map">Mapa</string>
@@ -572,6 +583,13 @@
     <string name="home_det_stopped_action">Activar</string>
     <string name="home_det_awaiting_title">¿Dónde está tu coche?</string>
     <string name="home_det_awaiting_sub">Marca el sitio y vigilo la salida</string>
+    <string name="home_det_watching_title">Vigilando tu %1$s</string>
+    <string name="home_det_watching_parked_sub">Aparcado — detectaremos cuándo dejas la plaza</string>
+    <string name="home_det_watching_bt_sub">El aparcamiento se detecta solo por el Bluetooth del coche</string>
+    <string name="home_det_driving_title">Conduciendo tu %1$s</string>
+    <string name="home_det_driving_sub">Detectaremos dónde aparcas</string>
+    <string name="home_det_candidate_title">¿Aparcando tu %1$s?</string>
+    <string name="home_det_candidate_sub">Confirmando la plaza…</string>
     <string name="home_det_awaiting_cta_primary">Marcar mi sitio</string>
     <string name="home_det_awaiting_cta_secondary">Voy conduciendo</string>
     <!-- Pending "where did you leave your car?" nudge row. [DET-NUDGE-PERSIST-001] -->

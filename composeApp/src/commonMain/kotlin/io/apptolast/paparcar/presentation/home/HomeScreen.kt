@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 import io.apptolast.paparcar.domain.error.PaparcarError
+import io.apptolast.paparcar.presentation.home.model.isDetectionStopped
 import io.apptolast.paparcar.domain.model.DrivingPuck
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.UserParking
@@ -84,12 +85,14 @@ import paparcar.composeapp.generated.resources.error_load_session
 import paparcar.composeapp.generated.resources.error_load_spots
 import paparcar.composeapp.generated.resources.error_parking_save_failed
 import paparcar.composeapp.generated.resources.error_release_parking
+import paparcar.composeapp.generated.resources.error_search_failed
 import paparcar.composeapp.generated.resources.error_unknown
 import paparcar.composeapp.generated.resources.home_det_enabled_confirm
 import paparcar.composeapp.generated.resources.home_det_stopped_action
 import paparcar.composeapp.generated.resources.home_det_stopped_msg
 import paparcar.composeapp.generated.resources.home_release_dialog_detection_active
 import paparcar.composeapp.generated.resources.home_release_dialog_detection_inactive
+import paparcar.composeapp.generated.resources.home_release_dialog_detection_unavailable
 import paparcar.composeapp.generated.resources.home_spot_reported
 import paparcar.composeapp.generated.resources.home_spot_signal_sent
 import paparcar.composeapp.generated.resources.home_test_spot_sent
@@ -152,6 +155,7 @@ fun HomeScreen(
     val msgErrorReleaseParking = stringResource(Res.string.error_release_parking)
     val msgErrorGpsUnavailable = stringResource(Res.string.error_gps_unavailable)
     val msgErrorParkingSaveFailed = stringResource(Res.string.error_parking_save_failed)
+    val msgErrorSearchFailed = stringResource(Res.string.error_search_failed)
     val msgSpotReported = stringResource(Res.string.home_spot_reported)
     val msgTestSpotSent = stringResource(Res.string.home_test_spot_sent)
     val msgSpotSignalSent = stringResource(Res.string.home_spot_signal_sent)
@@ -171,6 +175,7 @@ fun HomeScreen(
                 is HomeEffect.ShowError -> {
                     val msg = when (effect.error) {
                         is PaparcarError.Location.ProviderDisabled -> msgErrorGpsUnavailable
+                        is PaparcarError.Location.SearchFailed -> msgErrorSearchFailed
                         is PaparcarError.Database.WriteError -> msgErrorReleaseParking
                         is PaparcarError.Parking.ReleaseFailed -> msgErrorReleaseParking
                         is PaparcarError.Network.Unknown -> msgErrorLoadSpots
@@ -232,6 +237,9 @@ fun HomeScreen(
             onDismiss = { viewModel.handleIntent(HomeIntent.DismissConfirmation) },
             addressLine = state.cameraAddressAndPlace?.displayLine,
             detectionTimestampMs = pending.timestamp,
+            // Same car the notification names (active vehicle) — one voice per event. [C4]
+            vehicleName = state.vehicles.firstOrNull { it.isActive }
+                ?.displayName(fallback = "")?.takeIf { it.isNotBlank() },
         )
     }
 }
@@ -351,6 +359,9 @@ private fun HomeContent(
                 sessionId = releaseTargetSessionId,
                 vehicleName = releaseVehicle?.displayName(fallback = "")?.takeIf { it.isNotBlank() },
                 vehicleIsActive = releaseVehicle?.isActive != false,
+                // Off/blocked detection can't honour the "we'll watch your next parking" promise —
+                // the note says so honestly; the story surface in Home asks for the fix. [UX-PARKED-STATE-001]
+                detectionAvailable = !state.detectionUiState.isDetectionStopped,
                 onIntent = onIntent,
                 onDismiss = { showReleaseDialog = false },
             )
@@ -748,6 +759,7 @@ private fun HomeReleaseDialogHost(
     sessionId: String?,
     vehicleName: String?,
     vehicleIsActive: Boolean,
+    detectionAvailable: Boolean,
     onIntent: (HomeIntent) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -758,11 +770,16 @@ private fun HomeReleaseDialogHost(
         onIntent(HomeIntent.ReleaseParking(sessionId = sessionId, publishSpot = publishSpot))
     }
     // Leaving re-arms detection. If this car wasn't the active one, releasing IS the declaration
-    // that you drive it (the VM makes it active), so the copy says so. [VEH-ACTIVE-FENCE-001]
-    val detectionNote = if (!vehicleIsActive && vehicleName != null) {
-        stringResource(Res.string.home_release_dialog_detection_inactive, vehicleName)
-    } else {
-        stringResource(Res.string.home_release_dialog_detection_active)
+    // that you drive it (the VM makes it active), so the copy says so. When detection is off or
+    // blocked the promise would be a lie — the note says so instead, and Home's story surface
+    // offers the fix after the release. [VEH-ACTIVE-FENCE-001] [UX-PARKED-STATE-001]
+    val detectionNote = when {
+        !detectionAvailable ->
+            stringResource(Res.string.home_release_dialog_detection_unavailable)
+        !vehicleIsActive && vehicleName != null ->
+            stringResource(Res.string.home_release_dialog_detection_inactive, vehicleName)
+        else ->
+            stringResource(Res.string.home_release_dialog_detection_active)
     }
     HomeReleaseDialog(
         isLoading = isReleasing,

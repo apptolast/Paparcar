@@ -80,7 +80,13 @@ internal fun HomeState.applyNewSpots(spots: List<Spot>): HomeState {
 
 /** Wipes every search-related field. Used by SelectSearchResult + ClearSearch. */
 internal fun HomeState.resetSearch(): HomeState =
-    copy(searchQuery = "", searchResults = emptyList(), isSearchActive = false, isSearching = false)
+    copy(
+        searchQuery = "",
+        searchResults = emptyList(),
+        isSearchActive = false,
+        isSearching = false,
+        searchNoResults = false,
+    )
 
 /**
  * The settled pin-mode coordinate, or null when the active mode never captured

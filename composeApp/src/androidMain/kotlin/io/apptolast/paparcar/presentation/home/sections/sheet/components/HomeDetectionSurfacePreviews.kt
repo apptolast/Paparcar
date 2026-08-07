@@ -12,14 +12,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import io.apptolast.paparcar.presentation.home.model.DetectionUiState
+import io.apptolast.paparcar.presentation.home.model.DetectionStory
 import io.apptolast.paparcar.ui.theme.PaparcarTheme
 
-private val actionStates = listOf(
-    "BlockedCore" to DetectionUiState.BlockedCore,
-    "Inactive" to DetectionUiState.Inactive,
-    "NoVehicle" to DetectionUiState.NoVehicle,
-    "AwaitingFirstPark" to DetectionUiState.AwaitingFirstPark,
+// One entry per story the surface can tell — action rows + discreet happy lines.
+// [UX-DETECTION-STORY-001]
+private val stories = listOf(
+    "BlockedCore" to DetectionStory.BlockedCore,
+    "Inactive" to DetectionStory.Inactive,
+    "NoVehicle" to DetectionStory.NoVehicle,
+    "AwaitingFirstPark" to DetectionStory.AwaitingFirstPark,
+    "Watching · parked" to DetectionStory.Watching("Škoda Kamiq", isParked = true, viaBluetooth = false),
+    "Watching · BT armed" to DetectionStory.Watching("Škoda Kamiq", isParked = false, viaBluetooth = true),
+    "Driving" to DetectionStory.Driving("Škoda Kamiq", isCandidate = false),
+    "Candidate" to DetectionStory.Driving("Škoda Kamiq", isCandidate = true),
 )
 
 @Composable
@@ -31,10 +37,10 @@ private fun Gallery() {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        actionStates.forEach { (label, state) ->
+        stories.forEach { (label, story) ->
             Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             HomeDetectionSurface(
-                state = state,
+                story = story,
                 onAddVehicle = {},
                 onOpenPermissions = {},
                 onMarkSpot = {},
@@ -46,7 +52,7 @@ private fun Gallery() {
         // [DET-NUDGE-PERSIST-001] Pending "where did you leave your car?" row.
         Text("ParkNudge", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         HomeDetectionSurface(
-            state = DetectionUiState.Silent,
+            story = DetectionStory.Hidden,
             onAddVehicle = {},
             onOpenPermissions = {},
             onMarkSpot = {},
@@ -57,10 +63,10 @@ private fun Gallery() {
     }
 }
 
-@Preview(name = "Detection surface · Dark", showBackground = true, heightDp = 560, uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Preview(name = "Detection story · Dark", showBackground = true, heightDp = 900, uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 private fun DetectionSurfaceDark() = PaparcarTheme(darkTheme = true) { Gallery() }
 
-@Preview(name = "Detection surface · Light", showBackground = true, heightDp = 560)
+@Preview(name = "Detection story · Light", showBackground = true, heightDp = 900)
 @Composable
 private fun DetectionSurfaceLight() = PaparcarTheme(darkTheme = false) { Gallery() }

@@ -102,7 +102,11 @@ val mockModule = module {
     single<AuthRepository> { FakeAuthRepository(get()) }
     single<VehicleRepository> { FakeVehicleRepository(get()) }
     // Runtime-aware: while the driving sim runs, report no active session so readiness reaches Monitoring. [DRIVE-SIM-001]
-    single<UserParkingRepository> { FakeUserParkingRepository(get<io.apptolast.paparcar.domain.detection.DetectionRuntimeState>()) }
+    // Scenario-aware: the "own parked session" lever seeds an active session for the ACTIVE
+    // vehicle so Home reaches the watching/parked state. [UX-PARKED-STATE-001]
+    single<UserParkingRepository> {
+        FakeUserParkingRepository(get<io.apptolast.paparcar.domain.detection.DetectionRuntimeState>(), get<MockScenario>())
+    }
     single<UserProfileRepository> { FakeUserProfileRepository() }
     single<ZoneRepository> { FakeZoneRepository() }
     single<AddressAndPlaceRepository> { AddressAndPlaceRepositoryImpl(get(), get(), get()) }

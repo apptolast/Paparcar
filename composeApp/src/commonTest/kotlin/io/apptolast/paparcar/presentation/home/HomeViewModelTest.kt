@@ -79,6 +79,7 @@ class HomeViewModelTest {
     private lateinit var zoneRepo: FakeZoneRepository
     private lateinit var manualParkingDetection: io.apptolast.paparcar.fakes.data.repository.FakeManualParkingDetection
     private lateinit var uiLocationLogger: io.apptolast.paparcar.fakes.FakeUiLocationLogger
+    private lateinit var geocoderFake: FakeGeocoderDataSource
     private lateinit var vm: HomeViewModel
 
     private fun buildVm(initialMapType: String = "TERRAIN", foreground: Boolean = true): HomeViewModel {
@@ -86,7 +87,8 @@ class HomeViewModelTest {
         manualParkingDetection = io.apptolast.paparcar.fakes.data.repository.FakeManualParkingDetection()
         val addressAndPlaceRepo = FakeAddressAndPlaceRepository()
         val getAddressAndPlace = GetAddressAndPlaceUseCase(repository = addressAndPlaceRepo)
-        val searchAddress = SearchAddressUseCase(FakeGeocoderDataSource())
+        geocoderFake = FakeGeocoderDataSource()
+        val searchAddress = SearchAddressUseCase(geocoderFake)
         val observeNearbySpots = ObserveNearbySpotsUseCase(spotRepo)
         val sendSpotSignal = SendSpotSignalUseCase(spotRepo)
         val reportSpotReleased = ReportSpotReleasedUseCase(reportScheduler, getAddressAndPlace, FakeAuthRepository(initialSession = null))
@@ -409,7 +411,7 @@ class HomeViewModelTest {
     fun `should_emit_ShowError_on_ConfirmAddParking_when_no_GPS`() = runTest {
         vm.handleIntent(HomeIntent.EnterAddParkingMode(initialGps = null))
         vm.effect.test {
-            vm.handleIntent(HomeIntent.ConfirmAddParking)
+            vm.handleIntent(HomeIntent.ConfirmAddParking())
             assertIs<HomeEffect.ShowError>(awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
@@ -432,10 +434,60 @@ class HomeViewModelTest {
         locationDataSource.emitHighAccuracy(location)
 
         vm.handleIntent(HomeIntent.EnterAddParkingMode(initialGps = location))
-        vm.handleIntent(HomeIntent.ConfirmAddParking)
+        vm.handleIntent(HomeIntent.ConfirmAddParking())
 
         assertEquals(1, parkingRepo.saveNewParkingSessionCallCount)
         assertIs<HomeMode.Browse>(vm.state.value.mode)
+    }
+
+    // ── ConfirmAddParking from EDIT: correct-in-place vs re-park ───────────────
+    // From the edit sheet the user decides at confirm: "Correct location" moves THIS
+    // session's pin; "I parked somewhere else" creates a NEW session for the same
+    // vehicle (the model supersedes the old one). [UX-PARKED-STATE-001]
+
+    @Test
+    fun `should_move_session_on_ConfirmAddParking_from_edit_when_not_asNewSession`() = runTest(testDispatcher) {
+        val session = UserParking(
+            id = "session-1", userId = "user-123", vehicleId = "veh-1",
+            location = location, isActive = true,
+        )
+        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(session))
+        vm = buildVm()
+        advanceUntilIdle()
+
+        vm.handleIntent(HomeIntent.EnterAddParkingMode(initialGps = location, editingParkingId = session.id))
+        vm.handleIntent(HomeIntent.ConfirmAddParking(asNewSession = false))
+        advanceUntilIdle()
+
+        // Correct = move the same session in place, never a second session.
+        assertEquals(1, parkingRepo.updateParkingSessionPositionCallCount)
+        assertEquals(0, parkingRepo.saveNewParkingSessionCallCount)
+    }
+
+    @Test
+    fun `should_create_new_session_on_ConfirmAddParking_from_edit_when_asNewSession`() = runTest(testDispatcher) {
+        val session = UserParking(
+            id = "session-1", userId = "user-123", vehicleId = "veh-1",
+            location = location, isActive = true,
+        )
+        vehicleRepo.saveVehicle(
+            Vehicle(
+                id = "veh-1", userId = "user-123", brand = "Ford", model = "Focus",
+                sizeCategory = io.apptolast.paparcar.domain.model.VehicleSize.MEDIUM_SUV,
+                vehicleType = io.apptolast.paparcar.domain.model.VehicleType.CAR, isActive = true,
+            ),
+        )
+        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(session))
+        vm = buildVm()
+        advanceUntilIdle()
+
+        vm.handleIntent(HomeIntent.EnterAddParkingMode(initialGps = location, editingParkingId = session.id))
+        vm.handleIntent(HomeIntent.ConfirmAddParking(asNewSession = true))
+        advanceUntilIdle()
+
+        // Re-park = a NEW session for the same vehicle; the pin of the old one is never moved.
+        assertEquals(1, parkingRepo.saveNewParkingSessionCallCount)
+        assertEquals(0, parkingRepo.updateParkingSessionPositionCallCount)
     }
 
     // ── ReleaseParking ────────────────────────────────────────────────────────
@@ -594,6 +646,37 @@ class HomeViewModelTest {
         assertEquals("", vm.state.value.searchQuery)
         assertEquals(emptyList(), vm.state.value.searchResults)
         assertEquals(false, vm.state.value.isSearchActive)
+        assertEquals(false, vm.state.value.searchNoResults)
+    }
+
+    @Test
+    fun `should_flag_searchNoResults_when_a_search_succeeds_empty`() = runTest {
+        geocoderFake.searchResults = Result.success(emptyList())
+        vm.handleIntent(HomeIntent.SearchQueryChanged("Nowhere Street 999"))
+        advanceUntilIdle()
+        assertEquals(true, vm.state.value.searchNoResults)
+        assertEquals(emptyList(), vm.state.value.searchResults)
+
+        // Blanking the query dismisses the "no results" row.
+        vm.handleIntent(HomeIntent.SearchQueryChanged(""))
+        assertEquals(false, vm.state.value.searchNoResults)
+    }
+
+    @Test
+    fun `should_emit_ShowError_and_not_flag_noResults_when_the_search_fails`() = runTest {
+        geocoderFake.searchResults = Result.failure(RuntimeException("geocoder down"))
+        vm.effect.test {
+            vm.handleIntent(HomeIntent.SearchQueryChanged("Madrid"))
+            advanceUntilIdle()
+            val effect = awaitItem()
+            assertIs<HomeEffect.ShowError>(effect)
+            assertIs<io.apptolast.paparcar.domain.error.PaparcarError.Location.SearchFailed>(effect.error)
+            cancelAndIgnoreRemainingEvents()
+        }
+        // A broken geocoder must not read like "nothing found". [UX-PARK-FLOW-001 H3]
+        assertEquals(false, vm.state.value.searchNoResults)
+        assertEquals(emptyList(), vm.state.value.searchResults)
+        assertEquals(false, vm.state.value.isSearching)
     }
 
     // ── SetSizeFilter ─────────────────────────────────────────────────────────

@@ -2,6 +2,7 @@
 <resources>
     <!-- HomeScreen -->
     <string name="home_search_placeholder">Zone, Straße suchen…</string>
+    <string name="home_search_no_results">Keine Treffer für diese Suche</string>
     <string name="home_stats_free_spots_badge">%1$d frei</string>
     <string name="home_peek_no_spots">Keine Plätze in der Nähe</string>
     <!-- PapSheet counter lead tile unit. [UI-SHEET-001] -->
@@ -12,9 +13,15 @@
     <string name="home_vehicle_chip_status_candidate">Parken…</string>
     <string name="home_parking_release">Stellplatz freigeben</string>
     <!-- PapSheet actions + browse header. [UI-SHEET-001] -->
-    <string name="home_parking_leave_release">Ich fahre los · Platz freigeben</string>
+    <string name="home_parking_leave_release">Ich fahre los</string>
     <string name="home_parking_edit_menu_cd">Parkposition bearbeiten</string>
     <string name="home_parking_menu_delete">Eintrag löschen</string>
+    <!-- Edit-parking confirm choices: correct this pin vs. re-park elsewhere. [UX-PARKED-STATE-001] -->
+    <string name="home_parking_menu_correct">Standort korrigieren</string>
+    <string name="home_parking_menu_repark">Woanders geparkt</string>
+    <!-- Delete-record confirmation (destructive). [UX-PARKED-STATE-001] -->
+    <string name="home_parking_delete_confirm_title">Dieses Parken löschen?</string>
+    <string name="home_parking_delete_confirm_body">Der Eintrag wird entfernt. Der Platz wird nicht mit der Community geteilt.</string>
     <string name="home_parking_edit_dialog_title">Parken bearbeiten</string>
     <string name="home_parking_edit_dialog_body">Verschiebe den Pin an die richtige Stelle oder lösche diesen Eintrag.</string>
     <string name="home_spot_still_there">Noch frei?</string>
@@ -24,7 +31,7 @@
     <string name="home_browse_parked_ago">Geparkt vor %1$s</string>
     <string name="home_browse_hint_swipe_report">Wische ↑, um einen Platz zu melden</string>
     <string name="home_navigate_to_spot">Route</string>
-    <string name="home_navigate_to_vehicle">Zum Fahrzeug navigieren</string>
+    <string name="home_navigate_to_vehicle">Route</string>
     <string name="home_feed_nearby">In deiner Nähe</string>
     <plurals name="home_feed_nearby_with_count">
         <item quantity="one">%1$d freier Stellplatz in deiner Nähe</item>
@@ -37,6 +44,7 @@
     <string name="home_release_dialog_message">Teile deinen Stellplatz mit Fahrern in der Nähe oder lösche ihn, ohne zu teilen.</string>
     <!-- Consequence line: leaving means detection re-arms for the next parking. [VEH-ACTIVE-FENCE-001] -->
     <string name="home_release_dialog_detection_active">Wir beginnen, deinen nächsten Parkvorgang zu erkennen.</string>
+    <string name="home_release_dialog_detection_unavailable">Wir können dein nächstes Parken nicht von selbst erkennen.</string>
     <string name="home_release_dialog_detection_inactive">%1$s wird dein aktives Auto, also erkennen wir deinen nächsten Parkvorgang.</string>
     <string name="home_release_dialog_publish">Stellplatz teilen</string>
     <string name="home_release_dialog_delete_only">Nur löschen</string>
@@ -196,6 +204,7 @@
     <string name="error_load_session">Parksitzung konnte nicht geladen werden</string>
     <string name="error_release_parking">Stellplatz konnte nicht freigegeben werden</string>
     <string name="error_gps_unavailable">Warte auf GPS-Signal…</string>
+    <string name="error_search_failed">Die Suche funktioniert gerade nicht. Prüfe deine Verbindung und versuche es erneut</string>
     <string name="error_bootstrap_offline_title">Keine Internetverbindung</string>
     <string name="error_bootstrap_offline_body">Paparcar benötigt eine Verbindung, um deine Daten zu laden. Überprüfe dein Netzwerk und versuche es erneut.</string>
     <string name="error_bootstrap_retry">Erneut versuchen</string>
@@ -324,8 +333,9 @@
 
     <!-- ConfirmationBottomSheet -->
     <string name="confirmation_sheet_title">Parkplatz erkannt</string>
-    <string name="confirmation_sheet_confirm">Platz veröffentlichen</string>
-    <string name="confirmation_sheet_withdraw">Nicht jetzt</string>
+    <string name="confirmation_sheet_confirm">Ja, ich habe geparkt</string>
+    <string name="confirmation_sheet_withdraw">Nein, ich habe nicht geparkt</string>
+    <string name="confirmation_sheet_autoconfirm_in">Wird in %1$s automatisch bestätigt</string>
     <string name="settings_section_map">Karte</string>
     <string name="settings_distance_unit">Imperiale Einheiten</string>
     <string name="settings_distance_unit_desc">Entfernungen in Meilen und Fuß anzeigen</string>
@@ -347,6 +357,7 @@
 
     <!-- ConfirmationBottomSheet (Parkerkennung) -->
     <string name="confirmation_sheet_question">Hast du hier geparkt?</string>
+    <string name="confirmation_sheet_question_vehicle">Hast du deinen %1$s geparkt?</string>
     <string name="confirmation_sheet_method_bt">Per Bluetooth erkannt · vor %1$s</string>
     <string name="confirmation_sheet_method_ar">Automatisch erkannt · vor %1$s</string>
 
@@ -537,6 +548,13 @@
     <string name="home_det_stopped_action">Aktivieren</string>
     <string name="home_det_awaiting_title">Wo ist dein Auto?</string>
     <string name="home_det_awaiting_sub">Markiere den Platz, ich beobachte ihn</string>
+    <string name="home_det_watching_title">Wir passen auf deinen %1$s auf</string>
+    <string name="home_det_watching_parked_sub">Geparkt — wir erkennen, wenn du den Platz verlässt</string>
+    <string name="home_det_watching_bt_sub">Parken wird automatisch über das Bluetooth des Autos erkannt</string>
+    <string name="home_det_driving_title">Unterwegs mit deinem %1$s</string>
+    <string name="home_det_driving_sub">Wir erkennen, wo du parkst</string>
+    <string name="home_det_candidate_title">Parkst du deinen %1$s?</string>
+    <string name="home_det_candidate_sub">Platz wird bestätigt…</string>
     <string name="home_det_awaiting_cta_primary">Platz markieren</string>
     <string name="home_det_awaiting_cta_secondary">Ich fahre gerade</string>
     <!-- Pending "where did you leave your car?" nudge row. [DET-NUDGE-PERSIST-001] -->

@@ -17,7 +17,9 @@ sealed interface SearchUpdate {
     /** The debounce settled and the geocoder request is in flight — drives the loading spinner. */
     data object Searching : SearchUpdate
     data class Success(val results: List<SearchResult>) : SearchUpdate
-    /** The lookup failed — the UI clears the results and stops the spinner. */
+    /** The lookup failed — the VM clears the results, stops the spinner and surfaces the error
+     *  (snackbar via [io.apptolast.paparcar.domain.error.PaparcarError.Location.SearchFailed]),
+     *  so a broken geocoder is distinguishable from a zero-result search. [UX-PARK-FLOW-001 H3] */
     data object Failure : SearchUpdate
 }
 
@@ -47,7 +49,10 @@ class HomeSearchController(
             emit(
                 searchAddress(query).fold(
                     onSuccess = { results -> SearchUpdate.Success(results) },
-                    onFailure = { SearchUpdate.Failure },
+                    onFailure = { e ->
+                        PaparcarLogger.w(tag, "Address search failed for query", e)
+                        SearchUpdate.Failure
+                    },
                 ),
             )
         }

@@ -4,10 +4,15 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AddLocationAlt
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.EditLocationAlt
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.UserParking
@@ -18,6 +23,8 @@ import io.apptolast.paparcar.presentation.home.sections.sheet.components.PapShee
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.PapSheetBanner
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.PapSheetEyebrowTone
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.PapSheetLead
+import io.apptolast.paparcar.ui.components.PapAlertDialog
+import io.apptolast.paparcar.ui.components.PapDialogAccent
 import io.apptolast.paparcar.ui.components.PapFooterButton
 import io.apptolast.paparcar.ui.components.PapFooterButtonStyle
 import io.apptolast.paparcar.ui.icons.PaparcarIcons
@@ -25,13 +32,17 @@ import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_add_parking_cancel_cd
 import paparcar.composeapp.generated.resources.home_add_parking_confirm_create
-import paparcar.composeapp.generated.resources.home_add_parking_confirm_edit
 import paparcar.composeapp.generated.resources.home_add_parking_header_label_create
 import paparcar.composeapp.generated.resources.home_add_parking_header_label_edit
 import paparcar.composeapp.generated.resources.home_add_parking_helper_primary_create
 import paparcar.composeapp.generated.resources.home_add_parking_helper_primary_edit
 import paparcar.composeapp.generated.resources.home_add_parking_helper_secondary
+import paparcar.composeapp.generated.resources.home_parking_delete_confirm_body
+import paparcar.composeapp.generated.resources.home_parking_delete_confirm_title
+import paparcar.composeapp.generated.resources.home_parking_menu_correct
 import paparcar.composeapp.generated.resources.home_parking_menu_delete
+import paparcar.composeapp.generated.resources.home_parking_menu_repark
+import paparcar.composeapp.generated.resources.home_release_dialog_cancel
 import paparcar.composeapp.generated.resources.home_vehicle_fallback_name
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -66,8 +77,10 @@ internal fun AddingParkingPeek(
     } else {
         stringResource(Res.string.home_add_parking_helper_primary_create)
     }
+    // In EDIT the primary confirm CORRECTS this session's pin (same session); "I parked somewhere
+    // else" is the sibling that re-parks. In CREATE it just parks the car. [UX-PARKED-STATE-001]
     val ctaLabel = if (isEditing) {
-        stringResource(Res.string.home_add_parking_confirm_edit)
+        stringResource(Res.string.home_parking_menu_correct)
     } else {
         stringResource(Res.string.home_add_parking_confirm_create)
     }
@@ -75,6 +88,8 @@ internal fun AddingParkingPeek(
     // unreferenced-string regression early. PapSheet.onDismiss is the close
     // affordance — the CD is read by accessibility for that button.
     @Suppress("UnusedExpression") stringResource(Res.string.home_add_parking_cancel_cd)
+
+    var confirmingDelete by remember { mutableStateOf(false) }
 
     // Show the actual car (carbody glyph) being parked, not a generic DirectionsCar so the user
     // recognises the vehicle. The car stays full-colour/opaque regardless of monitoring state — that
@@ -97,11 +112,12 @@ internal fun AddingParkingPeek(
             )
         },
         actions = {
+            // Primary confirm. CREATE → parks the car; EDIT → corrects THIS session's pin in place.
             PapFooterButton(
                 label = ctaLabel,
                 leadingIcon = if (isEditing) Icons.Rounded.EditLocationAlt
                               else PaparcarIcons.VehicleCar,
-                onClick = { onIntent(HomeIntent.ConfirmAddParking) },
+                onClick = { onIntent(HomeIntent.ConfirmAddParking(asNewSession = false)) },
                 style = PapFooterButtonStyle.Filled,
                 enabled = !isSaving && !isCameraMoving,
                 isLoading = isSaving,
@@ -109,23 +125,24 @@ internal fun AddingParkingPeek(
             )
             if (isEditing) {
                 Spacer(Modifier.height(8.dp))
-                // Editing an existing record also offers deleting it — the one
-                // sanctioned destructive red. Aimed at the session BEING EDITED;
-                // exits edit mode after. [UI-SHEET-004]
+                // Same tool, different meaning: the pin was fine but the CAR actually moved → a
+                // NEW session for the same vehicle (the model supersedes the old one on save).
+                // Decided HERE, with the pin already placed, instead of guessing up front. [UX-PARKED-STATE-001]
+                PapFooterButton(
+                    label = stringResource(Res.string.home_parking_menu_repark),
+                    leadingIcon = Icons.Rounded.AddLocationAlt,
+                    onClick = { onIntent(HomeIntent.ConfirmAddParking(asNewSession = true)) },
+                    style = PapFooterButtonStyle.Outlined,
+                    enabled = !isSaving && !isCameraMoving,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(8.dp))
+                // Delete record — the one sanctioned destructive red, behind a confirm since it is
+                // one tap away and irreversible. Acts on the session being edited. [UI-SHEET-004]
                 PapFooterButton(
                     label = stringResource(Res.string.home_parking_menu_delete),
                     leadingIcon = Icons.Rounded.Delete,
-                    onClick = {
-                        deleteTarget?.let { p ->
-                            onIntent(
-                                HomeIntent.ReleaseParking(
-                                    sessionId = p.id,
-                                    publishSpot = false,
-                                ),
-                            )
-                        }
-                        onIntent(HomeIntent.ExitAddParkingMode)
-                    },
+                    onClick = { confirmingDelete = true },
                     style = PapFooterButtonStyle.Outlined,
                     containerColor = MaterialTheme.colorScheme.error,
                     contentColor = MaterialTheme.colorScheme.error,
@@ -135,4 +152,24 @@ internal fun AddingParkingPeek(
             }
         },
     )
+
+    if (confirmingDelete) {
+        PapAlertDialog(
+            onDismiss = { confirmingDelete = false },
+            accent = PapDialogAccent.Destructive,
+            icon = Icons.Rounded.Delete,
+            title = stringResource(Res.string.home_parking_delete_confirm_title),
+            body = stringResource(Res.string.home_parking_delete_confirm_body),
+            primaryLabel = stringResource(Res.string.home_parking_menu_delete),
+            primaryLeadingIcon = Icons.Rounded.Delete,
+            onPrimary = {
+                confirmingDelete = false
+                deleteTarget?.let { p ->
+                    onIntent(HomeIntent.ReleaseParking(sessionId = p.id, publishSpot = false))
+                }
+                onIntent(HomeIntent.ExitAddParkingMode)
+            },
+            cancelLabel = stringResource(Res.string.home_release_dialog_cancel),
+        )
+    }
 }

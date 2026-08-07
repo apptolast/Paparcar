@@ -2,6 +2,7 @@
 <resources>
     <!-- HomeScreen -->
     <string name="home_search_placeholder">Zoek een gebied, straat…</string>
+    <string name="home_search_no_results">Geen resultaten voor deze zoekopdracht</string>
     <string name="home_stats_free_spots_badge">%1$d vrij</string>
     <string name="home_peek_no_spots">Geen plekken in de buurt</string>
     <!-- PapSheet counter lead tile unit. [UI-SHEET-001] -->
@@ -12,9 +13,15 @@
     <string name="home_vehicle_chip_status_candidate">Parkeren…</string>
     <string name="home_parking_release">Parkeerplaats vrijgeven</string>
     <!-- PapSheet actions + browse header. [UI-SHEET-001] -->
-    <string name="home_parking_leave_release">Ik vertrek · Ik geef mijn plek vrij</string>
+    <string name="home_parking_leave_release">Ik vertrek</string>
     <string name="home_parking_edit_menu_cd">Parkeerlocatie bewerken</string>
     <string name="home_parking_menu_delete">Registratie verwijderen</string>
+    <!-- Edit-parking confirm choices: correct this pin vs. re-park elsewhere. [UX-PARKED-STATE-001] -->
+    <string name="home_parking_menu_correct">Locatie corrigeren</string>
+    <string name="home_parking_menu_repark">Ergens anders geparkeerd</string>
+    <!-- Delete-record confirmation (destructive). [UX-PARKED-STATE-001] -->
+    <string name="home_parking_delete_confirm_title">Deze parkeerplek verwijderen?</string>
+    <string name="home_parking_delete_confirm_body">Dit verwijdert de registratie. De plek wordt niet met de community gedeeld.</string>
     <string name="home_parking_edit_dialog_title">Parkeren bewerken</string>
     <string name="home_parking_edit_dialog_body">Verplaats de pin naar de juiste plek of verwijder deze registratie.</string>
     <string name="home_spot_still_there">Nog vrij?</string>
@@ -24,7 +31,7 @@
     <string name="home_browse_parked_ago">Geparkeerd %1$s geleden</string>
     <string name="home_browse_hint_swipe_report">Veeg ↑ om een plek te melden</string>
     <string name="home_navigate_to_spot">Route</string>
-    <string name="home_navigate_to_vehicle">Navigeer naar voertuig</string>
+    <string name="home_navigate_to_vehicle">Route</string>
     <string name="home_feed_nearby">In uw buurt</string>
     <plurals name="home_feed_nearby_with_count">
         <item quantity="one">%1$d vrije parkeerplaats in uw buurt</item>
@@ -37,6 +44,7 @@
     <string name="home_release_dialog_message">Deel je plek met bestuurders in de buurt, of verwijder hem zonder te delen.</string>
     <!-- Consequence line: leaving means detection re-arms for the next parking. [VEH-ACTIVE-FENCE-001] -->
     <string name="home_release_dialog_detection_active">We beginnen je volgende parkeerplek te detecteren.</string>
+    <string name="home_release_dialog_detection_unavailable">We kunnen je volgende parkeeractie niet zelf detecteren.</string>
     <string name="home_release_dialog_detection_inactive">%1$s wordt je actieve auto, dus we detecteren je volgende parkeerplek.</string>
     <string name="home_release_dialog_publish">Plek publiceren</string>
     <string name="home_release_dialog_delete_only">Alleen verwijderen</string>
@@ -196,6 +204,7 @@
     <string name="error_load_session">Kon parkeersessie niet laden</string>
     <string name="error_release_parking">Kon parkeerplaats niet vrijgeven</string>
     <string name="error_gps_unavailable">Wachten op GPS-signaal…</string>
+    <string name="error_search_failed">Zoeken werkt momenteel niet. Controleer je verbinding en probeer het opnieuw</string>
     <string name="error_bootstrap_offline_title">Geen internetverbinding</string>
     <string name="error_bootstrap_offline_body">Paparcar heeft een verbinding nodig om je gegevens te laden. Controleer je netwerk en probeer het opnieuw.</string>
     <string name="error_bootstrap_retry">Opnieuw proberen</string>
@@ -324,8 +333,9 @@
 
     <!-- ConfirmationBottomSheet -->
     <string name="confirmation_sheet_title">Parkeerplaats gedetecteerd</string>
-    <string name="confirmation_sheet_confirm">Plaats publiceren</string>
-    <string name="confirmation_sheet_withdraw">Nu niet</string>
+    <string name="confirmation_sheet_confirm">Ja, ik heb geparkeerd</string>
+    <string name="confirmation_sheet_withdraw">Nee, ik heb niet geparkeerd</string>
+    <string name="confirmation_sheet_autoconfirm_in">Wordt over %1$s automatisch bevestigd</string>
     <string name="settings_section_map">Kaart</string>
     <string name="settings_distance_unit">Imperiale eenheden</string>
     <string name="settings_distance_unit_desc">Toon afstanden in mijlen en voet</string>
@@ -347,6 +357,7 @@
 
     <!-- ConfirmationBottomSheet (parkeerdetectie) -->
     <string name="confirmation_sheet_question">Heb je hier geparkeerd?</string>
+    <string name="confirmation_sheet_question_vehicle">Heb je je %1$s geparkeerd?</string>
     <string name="confirmation_sheet_method_bt">Gedetecteerd via Bluetooth · %1$s geleden</string>
     <string name="confirmation_sheet_method_ar">Automatisch gedetecteerd · %1$s geleden</string>
 
@@ -537,6 +548,13 @@
     <string name="home_det_stopped_action">Inschakelen</string>
     <string name="home_det_awaiting_title">Waar staat je auto?</string>
     <string name="home_det_awaiting_sub">Markeer de plek, ik houd hem in de gaten</string>
+    <string name="home_det_watching_title">We letten op je %1$s</string>
+    <string name="home_det_watching_parked_sub">Geparkeerd — we merken het wanneer je de plek verlaat</string>
+    <string name="home_det_watching_bt_sub">Parkeren wordt automatisch herkend via de Bluetooth van je auto</string>
+    <string name="home_det_driving_title">Onderweg met je %1$s</string>
+    <string name="home_det_driving_sub">We detecteren waar je parkeert</string>
+    <string name="home_det_candidate_title">Parkeer je je %1$s?</string>
+    <string name="home_det_candidate_sub">Plek wordt bevestigd…</string>
     <string name="home_det_awaiting_cta_primary">Plek markeren</string>
     <string name="home_det_awaiting_cta_secondary">Ik rij nu</string>
     <!-- Pending "where did you leave your car?" nudge row. [DET-NUDGE-PERSIST-001] -->
