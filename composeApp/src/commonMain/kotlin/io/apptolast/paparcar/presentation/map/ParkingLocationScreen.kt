@@ -550,13 +550,16 @@ private const val SHEET_VERT_PAD = 16
 private const val PILL_WIDTH = 32
 private const val PILL_HEIGHT = 4
 private const val PILL_ALPHA = 0.12f
-private const val PILL_BOTTOM_GAP = 10
+// Tight pill→header gap: the whole eyebrow block (pill + stepper header) stays compact so the
+// parking info doesn't get pushed down the card — the address is the subject, not the chrome.
+private const val PILL_BOTTOM_GAP = 4
 
-// Tight eyebrow→content gap so the "APARCAMIENTO HISTÓRICO" label reads as this card's eyebrow, not a
-// detached section header — the address stays the visual subject. [HISTORY-DETAIL-001]
-private const val SECTION_GAP = 6
+// Eyebrow→content gap: enough air under the (compact, muted) header for the address block to read
+// as the card's protagonist — the hierarchy lives in the CONTENT's breathing room, not in the
+// chrome's height. [HISTORY-DETAIL-001][ROUTE-QUALITY-001]
+private const val SECTION_GAP = 9
 private const val META_ROW_GAP = 10
-private const val ACTION_TOP_GAP = 18
+private const val ACTION_TOP_GAP = 30
 
 private const val HERO_GAP = 12
 // Home's lead-tile sizing (PapSheet LEAD_TILE_DP / LEAD_GLYPH_DP) so the vehicle reads the same on
@@ -569,8 +572,10 @@ private const val META_ICON_GAP = 8
 private const val META_TEXT_ALPHA = 0.70f
 private const val SECONDARY_ALPHA = 0.55f
 
+// Compact steppers (32 dp circle): they are pager chrome, not primary actions — a taller row here
+// pushes the whole card's content down and hands the eyebrow the visual hierarchy.
 private const val STEPPER_ICON_DP = 22
-private const val STEPPER_PADDING = 6
+private const val STEPPER_PADDING = 5
 private const val STEPPER_BG_ALPHA = 0.6f
 private const val STEPPER_BG_DISABLED_ALPHA = 0.3f
 private const val STEPPER_DISABLED_ALPHA = 0.35f
