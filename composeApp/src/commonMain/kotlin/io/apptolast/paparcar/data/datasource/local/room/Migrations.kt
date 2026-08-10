@@ -194,3 +194,17 @@ val MIGRATION_15_16 = object : Migration(15, 16) {
     }
 }
 
+/**
+ * v16 → v17: add routeSnapped to parking_sessions — whether routePolyline is the FINAL on-road
+ * (map-matched) line vs the raw fixes still awaiting the one-time snap by the post-park worker.
+ * Boolean stored as INTEGER NOT NULL DEFAULT 0 (Room maps Boolean→INTEGER); existing rows read 0
+ * (raw / no route). Additive, non-destructive. [DET-ROUTE-SNAP-STORE-001]
+ */
+val MIGRATION_16_17 = object : Migration(16, 17) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL(
+            "ALTER TABLE parking_sessions ADD COLUMN routeSnapped INTEGER NOT NULL DEFAULT 0"
+        )
+    }
+}
+

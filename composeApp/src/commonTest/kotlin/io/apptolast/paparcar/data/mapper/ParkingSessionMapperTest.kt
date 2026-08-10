@@ -175,6 +175,36 @@ class ParkingSessionMapperTest {
         assertEquals("Madrid", entity.addressCity)
     }
 
+    // ── driven route round-trip [DET-ROUTE-TRACK-001][DET-ROUTE-SNAP-STORE-001] ──
+
+    @Test
+    fun `routePolyline and routeSnapped round-trip through every mapper`() {
+        val parking = baseParking.copy(routePolyline = "_p~iF~ps|U", routeSnapped = true)
+
+        val entity = parking.toEntity()
+        assertEquals("_p~iF~ps|U", entity.routePolyline)
+        assertEquals(true, entity.routeSnapped)
+
+        val backToDomain = entity.toDomain()
+        assertEquals("_p~iF~ps|U", backToDomain.routePolyline)
+        assertEquals(true, backToDomain.routeSnapped)
+
+        val dto = parking.toParkingHistoryDto()
+        assertEquals("_p~iF~ps|U", dto.routePolyline)
+        assertEquals(true, dto.routeSnapped)
+
+        val fromDto = dto.toEntity()
+        assertEquals("_p~iF~ps|U", fromDto.routePolyline)
+        assertEquals(true, fromDto.routeSnapped)
+    }
+
+    @Test
+    fun `no route defaults to null polyline and unsnapped`() {
+        assertNull(baseParking.toEntity().routePolyline)
+        assertEquals(false, baseParking.toEntity().routeSnapped)
+        assertEquals(false, baseParking.toParkingHistoryDto().routeSnapped)
+    }
+
     // ── detectionReliability round-trip ──────────────────────────────────────
 
     @Test

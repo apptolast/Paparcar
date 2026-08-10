@@ -166,6 +166,7 @@
     <string name="parking_detail_active_section_label">Huidig parkeren</string>
     <string name="parking_detail_navigate_action">Navigeer naar deze locatie</string>
     <string name="parking_detail_prev">Vorige parkeerplaats</string>
+    <string name="parking_detail_route_recalculating">Route wordt herberekend…</string>
     <string name="parking_detail_next">Volgende parkeerplaats</string>
     <string name="parking_detail_no_address">Onbekende locatie</string>
     <string name="parking_detail_detection_auto">Automatisch gedetecteerd</string>

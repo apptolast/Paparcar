@@ -183,6 +183,9 @@ class FakeUserParkingRepository(
     override suspend fun getActiveSessionByVehicle(vehicleId: String): UserParking? =
         currentSessions().find { it.isActive && it.vehicleId == vehicleId }
 
+    override suspend fun getSessionById(id: String): UserParking? =
+        currentSessions().find { it.id == id }
+
     override fun observeActiveSessions(): Flow<List<UserParking>> {
         val active = allSessionsFlow().map { list -> list.filter { it.isActive } }
         val rt = runtime ?: return active
@@ -234,6 +237,12 @@ class FakeUserParkingRepository(
         val session = currentSessions().find { it.id == id } ?: return Result.failure(Exception("Not found"))
         return Result.success(session.copy(location = location))
     }
+
+    override suspend fun updateParkingSessionRoute(
+        id: String,
+        routePolyline: String?,
+        snapped: Boolean,
+    ): Result<Unit> = Result.success(Unit)
 
     override suspend fun deleteAllData(userId: String): Result<Unit> = Result.success(Unit)
 }

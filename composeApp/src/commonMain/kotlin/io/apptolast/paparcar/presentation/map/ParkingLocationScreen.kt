@@ -25,6 +25,7 @@ import androidx.compose.material.icons.rounded.EditLocationAlt
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Navigation
 import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -78,6 +79,7 @@ import paparcar.composeapp.generated.resources.parking_detail_navigate_action
 import paparcar.composeapp.generated.resources.parking_detail_next
 import paparcar.composeapp.generated.resources.parking_detail_no_address
 import paparcar.composeapp.generated.resources.parking_detail_prev
+import paparcar.composeapp.generated.resources.parking_detail_route_recalculating
 import paparcar.composeapp.generated.resources.parking_detail_section_label
 import kotlin.time.Instant
 
@@ -120,11 +122,14 @@ fun HistoryParkingDetailScreen(
     var sheetHeightPx by remember { mutableIntStateOf(0) }
     val mapBleedPx = with(density) { MAP_BOTTOM_BLEED.toPx() }
 
-    // The trip that led to this parking (from the previous park), decoded from the stored polyline and
-    // drawn as the route line — the same blue polyline Home draws live. Empty for legacy / BT parks.
-    // [DET-ROUTE-TRACK-001]
-    val routeTrail = remember(focusedSession?.routePolyline) {
-        mutableStateOf(PolylineCodec.decode(focusedSession?.routePolyline))
+    // The trip that led to this parking, drawn ONLY once it is the final on-road line (routeSnapped).
+    // While the post-park worker is still snapping the raw fixes, the line is withheld and a
+    // "recalculating" chip is shown instead — we never draw the jagged raw trace. Empty for legacy /
+    // BT parks (no route). [DET-ROUTE-TRACK-001][DET-ROUTE-SNAP-STORE-001]
+    val routeSnapped = focusedSession?.routeSnapped == true
+    val routeRecalculating = !routeSnapped && !focusedSession?.routePolyline.isNullOrEmpty()
+    val routeTrail = remember(focusedSession?.routePolyline, routeSnapped) {
+        mutableStateOf(if (routeSnapped) PolylineCodec.decode(focusedSession?.routePolyline) else emptyList())
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -151,6 +156,37 @@ fun HistoryParkingDetailScreen(
                     layout(placeable.width, heightPx) { placeable.place(0, 0) }
                 },
         )
+
+        // While the driven route is still being snapped onto streets by the post-park worker, show a
+        // small "recalculating" chip instead of the raw line. [DET-ROUTE-SNAP-STORE-001]
+        if (routeRecalculating) {
+            Surface(
+                color = MaterialTheme.colorScheme.surface,
+                shape = CircleShape,
+                shadowElevation = 3.dp,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .statusBarsPadding()
+                    .padding(top = 8.dp),
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                ) {
+                    CircularProgressIndicator(
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(14.dp),
+                    )
+                    Text(
+                        text = stringResource(Res.string.parking_detail_route_recalculating),
+                        style = PaparcarType.current.label,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+            }
+        }
 
         FloatingBackButton(
             onClick = onNavigateBack,

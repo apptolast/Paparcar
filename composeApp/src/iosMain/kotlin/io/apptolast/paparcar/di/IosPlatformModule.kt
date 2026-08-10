@@ -19,6 +19,7 @@ import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_12_13
 import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_13_14
 import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_14_15
 import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_15_16
+import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_16_17
 import io.apptolast.paparcar.domain.bluetooth.BluetoothScanner
 import io.apptolast.paparcar.diagnostics.IosDeviceInfoProvider
 import io.apptolast.paparcar.domain.connectivity.ConnectivityObserver
@@ -54,7 +55,7 @@ val iosPlatformModule = module {
             .addMigrations(
                 MIGRATION_2_3, MIGRATION_3_4, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8,
                 MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13,
-                MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16,
+                MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17,
             )
             .fallbackToDestructiveMigration(dropAllTables = true)
             .build()

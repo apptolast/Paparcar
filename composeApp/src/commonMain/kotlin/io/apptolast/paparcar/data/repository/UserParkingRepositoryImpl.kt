@@ -60,6 +60,9 @@ class UserParkingRepositoryImpl(
     override suspend fun getActiveSessionByVehicle(vehicleId: String): UserParking? =
         dao.getActiveByVehicle(vehicleId)?.toDomain()
 
+    override suspend fun getSessionById(id: String): UserParking? =
+        dao.getById(id)?.toDomain()
+
     override fun observeActiveSessions(): Flow<List<UserParking>> =
         dao.observeActive().map { list -> list.map { it.toDomain() } }
 
@@ -188,5 +191,26 @@ class UserParkingRepositoryImpl(
             ?: error("No parking session with id=$id")
         parkingSyncScheduler.enqueueSaveNewParkingSession(updated, previousSessionId = null)
         updated
+    }
+
+    /**
+     * Room update of the driven route + snapped flag. Firestore reconciliation via a full
+     * [ParkingSyncScheduler.enqueueSaveNewParkingSession] (previousSessionId = null) — same in-place
+     * mutation pattern as the position edit, so the snapped polyline reaches the remote mirror.
+     * [DET-ROUTE-SNAP-STORE-001]
+     */
+    override suspend fun updateParkingSessionRoute(
+        id: String,
+        routePolyline: String?,
+        snapped: Boolean,
+    ): Result<Unit> = runCatching {
+        dao.updateRoute(
+            id = id,
+            routePolyline = routePolyline,
+            routeSnapped = snapped,
+            now = Clock.System.now().toEpochMilliseconds(),
+        )
+        val updated = dao.getById(id)?.toDomain() ?: error("No parking session with id=$id")
+        parkingSyncScheduler.enqueueSaveNewParkingSession(updated, previousSessionId = null)
     }
 }

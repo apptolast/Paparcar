@@ -53,6 +53,9 @@ data class UserParkingEntity(
     // Driven route to this parking as a Google-encoded polyline (one compact TEXT column, ~hundreds
     // of bytes/trip). Synced to Firestore. Null on legacy rows / BT parks. [DET-ROUTE-TRACK-001]
     val routePolyline: String? = null,
+    // Whether routePolyline is the FINAL on-road (map-matched) line vs raw fixes awaiting the one-time
+    // snap. false + non-null polyline = "recalculating". Synced. [DET-ROUTE-SNAP-STORE-001]
+    val routeSnapped: Boolean = false,
     // Epoch-ms of the last LOCAL mutation of this row (save / clear-active / move / enrich). Drives
     // the inbound-sync Last-Write-Wins merge so a stale remote snapshot can't resurrect an ended
     // session or clobber an offline edit. Local is authoritative. [SYNC-RECONCILE-USERPARKING-001]

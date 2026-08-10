@@ -67,6 +67,12 @@ data class UserParking(
      *  (legacy rows, BT parks — BT wakes at the destination and never tracks the drive). Rendered as
      *  a polyline in the history detail. [DET-ROUTE-TRACK-001] */
     val routePolyline: String? = null,
+    /** Whether [routePolyline] is the FINAL on-road line (map-matched, ready to draw) rather than the
+     *  raw fixes still awaiting the one-time snap. false + a non-null [routePolyline] = "recalculating"
+     *  (the post-park worker hasn't snapped it onto streets yet); true = draw it as-is. Legacy / BT
+     *  rows (null polyline) stay false and simply have no route. Snapped ONCE by the enrichment worker,
+     *  never re-computed on display. [DET-ROUTE-SNAP-STORE-001] */
+    val routeSnapped: Boolean = false,
 ) {
     /** True when this session is an approximate AREA rather than an exact point — the single
      *  source of truth is [zoneRadiusMeters] (an area intrinsically has a radius; a boolean

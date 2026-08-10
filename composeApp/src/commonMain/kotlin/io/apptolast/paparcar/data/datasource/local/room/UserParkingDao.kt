@@ -163,4 +163,19 @@ interface UserParkingDao {
 
     @Query("SELECT * FROM parking_sessions WHERE id = :id LIMIT 1")
     suspend fun getById(id: String): UserParkingEntity?
+
+    /**
+     * Writes the driven route + its snapped flag onto a session (the post-park worker's one-time
+     * snap, or the initial raw store). Stamps updatedAt + pendingSync so the change reaches Firestore
+     * via the reconcile. [DET-ROUTE-SNAP-STORE-001]
+     */
+    @Query("""
+        UPDATE parking_sessions SET
+            routePolyline = :routePolyline,
+            routeSnapped  = :routeSnapped,
+            updatedAt     = :now,
+            pendingSync   = 1
+        WHERE id = :id
+    """)
+    suspend fun updateRoute(id: String, routePolyline: String?, routeSnapped: Boolean, now: Long)
 }

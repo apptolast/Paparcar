@@ -54,6 +54,26 @@ class FakeUserParkingRepository(
     override suspend fun getActiveSessionByVehicle(vehicleId: String): UserParking? =
         sessions.firstOrNull { it.isActive && it.vehicleId == vehicleId }
 
+    override suspend fun getSessionById(id: String): UserParking? =
+        sessions.firstOrNull { it.id == id }
+
+    var updateRouteCallCount = 0
+        private set
+
+    override suspend fun updateParkingSessionRoute(
+        id: String,
+        routePolyline: String?,
+        snapped: Boolean,
+    ): Result<Unit> {
+        updateRouteCallCount++
+        val idx = sessions.indexOfFirst { it.id == id }
+        if (idx >= 0) {
+            sessions[idx] = sessions[idx].copy(routePolyline = routePolyline, routeSnapped = snapped)
+            _sessionsFlow.value = sessions.toList()
+        }
+        return Result.success(Unit)
+    }
+
     /**
      * Test-only convenience — returns the first active session regardless of geofence.
      * Mirrors the legacy single-active assumption used by pre-multi-parking tests.

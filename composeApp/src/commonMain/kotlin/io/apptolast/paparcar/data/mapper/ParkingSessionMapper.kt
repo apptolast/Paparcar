@@ -43,6 +43,7 @@ fun UserParkingEntity.toDomain(): UserParking = UserParking(
     detectionPath = detectionPath,
     zoneRadiusMeters = zoneRadiusMeters,
     routePolyline = routePolyline,
+    routeSnapped = routeSnapped,
 )
 
 private fun UserParkingEntity.addressOrNull(): AddressInfo? =
@@ -102,6 +103,7 @@ fun UserParking.toEntity(updatedAt: Long = 0, pendingSync: Boolean = false): Use
     zoneRadiusMeters = zoneRadiusMeters,
     // The driven route round-trips Room and syncs to Firestore. [DET-ROUTE-TRACK-001]
     routePolyline = routePolyline,
+    routeSnapped = routeSnapped,
     updatedAt = updatedAt,
     pendingSync = pendingSync,
 )
@@ -145,6 +147,7 @@ fun UserParking.toParkingHistoryDto(updatedAt: Long = 0L) = ParkingHistoryDto(
     detectionPath = detectionPath,
     // The driven route travels to Firestore so the trip renders in history on any device. [DET-ROUTE-TRACK-001]
     routePolyline = routePolyline,
+    routeSnapped = routeSnapped,
     updatedAt = updatedAt,
 )
 
@@ -178,6 +181,7 @@ fun ParkingHistoryDto.toEntity() = UserParkingEntity(
     detectionPath = detectionPath,
     // The driven route comes back from Firestore so a new device renders the trip. [DET-ROUTE-TRACK-001]
     routePolyline = routePolyline,
+    routeSnapped = routeSnapped,
     // A row coming FROM Firestore is by definition already synced → pendingSync=false. Its
     // updatedAt carries the remote edit time for the LWW merge. [SYNC-RECONCILE-USERPARKING-001]
     updatedAt = updatedAt,

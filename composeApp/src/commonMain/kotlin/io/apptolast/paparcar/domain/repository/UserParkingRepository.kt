@@ -19,6 +19,9 @@ interface UserParkingRepository : UserScopedRepository, RemoteSyncable {
     /** Returns the currently-active session for [vehicleId], or null. Feeds the
      *  repark-plausibility guard in ConfirmParkingUseCase. [DET-SOLID-001] */
     suspend fun getActiveSessionByVehicle(vehicleId: String): UserParking?
+    /** Returns the session with [id], or null. Used by the post-park worker to read the raw route it
+     *  is about to snap. [DET-ROUTE-SNAP-STORE-001] */
+    suspend fun getSessionById(id: String): UserParking?
     /** Reactive stream of all currently-active sessions (0..N, one per parked vehicle). */
     fun observeActiveSessions(): Flow<List<UserParking>>
     fun observeAllSessions(): Flow<List<UserParking>>
@@ -66,6 +69,17 @@ interface UserParkingRepository : UserScopedRepository, RemoteSyncable {
         id: String,
         location: GpsPoint,
     ): Result<UserParking>
+
+    /**
+     * Writes the driven [routePolyline] + [snapped] flag onto session [id] and schedules Firestore
+     * reconciliation. Called by the post-park worker when it snaps the raw route onto streets (once),
+     * so the history draws the on-road line without re-computing. [DET-ROUTE-SNAP-STORE-001]
+     */
+    suspend fun updateParkingSessionRoute(
+        id: String,
+        routePolyline: String?,
+        snapped: Boolean,
+    ): Result<Unit>
 
     /** Deletes all local parking sessions for [userId]. Called during account deletion. */
     override suspend fun deleteAllData(userId: String): Result<Unit>

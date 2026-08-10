@@ -166,6 +166,7 @@
     <string name="parking_detail_active_section_label">Stationnement actuel</string>
     <string name="parking_detail_navigate_action">Naviguer vers cet emplacement</string>
     <string name="parking_detail_prev">Stationnement précédent</string>
+    <string name="parking_detail_route_recalculating">Recalcul de l'itinéraire…</string>
     <string name="parking_detail_next">Stationnement suivant</string>
     <string name="parking_detail_no_address">Emplacement inconnu</string>
     <string name="parking_detail_detection_auto">Détection automatique</string>

@@ -34,6 +34,9 @@ data class ParkingHistoryDto(
      *  string synced so the trip renders in history on any device. Null on legacy / BT docs.
      *  [DET-ROUTE-TRACK-001] */
     val routePolyline: String? = null,
+    /** Whether [routePolyline] is the final on-road line (true) or raw fixes still being snapped
+     *  (false). Synced so a new device knows to draw vs show "recalculating". [DET-ROUTE-SNAP-STORE-001] */
+    val routeSnapped: Boolean = false,
     /** Epoch-ms of the local edit this document mirrors. Stamped on every write so the inbound-sync
      *  Last-Write-Wins merge can tell when the server has caught up with a pending local edit.
      *  Legacy docs read 0 → always lose to a real local timestamp. [SYNC-RECONCILE-USERPARKING-001] */

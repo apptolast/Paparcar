@@ -176,6 +176,9 @@ class RemoteUserProfileDataSourceImpl(
                 // The driven route (encoded polyline) — read back so a new device renders the trip.
                 // Defensive: absent on legacy docs written before DET-ROUTE-TRACK-001. [DET-ROUTE-TRACK-001]
                 routePolyline = runCatching { get<String?>(FIELD_ROUTE_POLYLINE) }.getOrNull(),
+                // Whether that route is the final on-road line. Defensive: legacy docs default false
+                // (raw/absent → history treats null polyline as "no route"). [DET-ROUTE-SNAP-STORE-001]
+                routeSnapped = runCatching { get<Boolean?>(FIELD_ROUTE_SNAPPED) }.getOrNull() ?: false,
                 updatedAt = getLongCompat(FIELD_UPDATED_AT),
             )
         }.getOrElse { e ->
@@ -233,5 +236,6 @@ class RemoteUserProfileDataSourceImpl(
         const val FIELD_ARM_EVIDENCE = "armEvidence"
         const val FIELD_DETECTION_PATH = "detectionPath"
         const val FIELD_ROUTE_POLYLINE = "routePolyline"
+        const val FIELD_ROUTE_SNAPPED = "routeSnapped"
     }
 }
