@@ -26,6 +26,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -659,6 +660,16 @@ fun PaparcarMapView(
 ) {
     val isReadOnly = config.interactionMode == MapInteractionMode.READ_ONLY
 
+    // The observable State params below are read ONLY in isolated long-lived scopes (Unit-keyed
+    // collectors, key-less deriveds) so the map body doesn't recompose per fix. A caller may hand a
+    // NEW State INSTANCE on recomposition (history detail builds a fresh state when its focused
+    // session resolves); a captured first-composition reference silently freezes on the old, empty
+    // state — the saved route never appeared. These wrappers keep the reference current without
+    // restarting the scopes. [UI-HISTORY-ROUTE-DRAW-001]
+    val currentDrivingPuck by rememberUpdatedState(drivingPuck)
+    val currentTripTrail by rememberUpdatedState(tripTrail)
+    val currentMatchedTrail by rememberUpdatedState(matchedTrail)
+    val currentDeparturePoint by rememberUpdatedState(departurePoint)
 
     // Read the fix-rate puck ONLY in isolated scopes so the map body doesn't recompose per fix:
     //  · metadata (carbody/size/colour/phase) via a derived snapshot → recomposes only when it changes;
@@ -667,20 +678,20 @@ fun PaparcarMapView(
     // [DRIVE-PUCK-NATIVE-001]
     val puckMeta by remember {
         derivedStateOf {
-            drivingPuck.value?.let { PuckMeta(it.carbodyType, it.sizeCategory, it.color, it.phase, it.vehicleId) }
+            currentDrivingPuck.value?.let { PuckMeta(it.carbodyType, it.sizeCategory, it.color, it.phase, it.vehicleId) }
         }
     }
     val puckPositionState = remember { mutableStateOf(Coordinates(0.0, 0.0)) }
     val puckRotationState = remember { mutableStateOf(0f) }
     LaunchedEffect(Unit) {
-        snapshotFlow { drivingPuck.value }.collect { p ->
+        snapshotFlow { currentDrivingPuck.value }.collect { p ->
             p?.let {
                 puckPositionState.value = Coordinates(it.latitude, it.longitude)
                 it.bearingDegrees?.let { b -> puckRotationState.value = b }
             }
         }
     }
-    val departure by remember { derivedStateOf { departurePoint.value } }
+    val departure by remember { derivedStateOf { currentDeparturePoint.value } }
 
     // ── Clustering ───────────────────────────────────────────────────────────
     var currentZoom by remember { mutableStateOf(ZOOM_DEFAULT) }
@@ -1187,7 +1198,7 @@ fun PaparcarMapView(
     // ~2 Hz from the trail, not per fix, which keeps pans smooth. [DRIVE-PUCK-NATIVE-001] [ROUTE-SNAP-001]
     val tripPolylines = remember { mutableStateOf<List<Polyline>>(emptyList()) }
     LaunchedEffect(Unit) {
-        snapshotFlow { Triple(matchedTrail.value, tripTrail.value, departurePoint.value) }
+        snapshotFlow { Triple(currentMatchedTrail.value, currentTripTrail.value, currentDeparturePoint.value) }
             .sample(TRAIL_SAMPLE_MS)
             .collect { (matched, raw, dep) ->
                 tripPolylines.value = if (matched.size >= 2) {
