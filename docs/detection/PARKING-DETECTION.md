@@ -73,6 +73,33 @@ the Android 12+ FGS-from-background restriction), so the resident watcher would 
 and a permanent notification. The strategy is re-resolved on every idle epilogue, so pairing or
 unpairing a BT device — or toggling the adapter — self-corrects one detection cycle later.
 
+**Mid-session BT edges are arbitrated by the pure `EvaluateBtArbitrationUseCase`** [DET-TIERS-001]
+[DET-BT-WRONG-CAR-ABORT-001]: the receiver evaluates every ACL edge from an OWN paired car against
+the running coordinator session and the service executes any non-NoOp verdict as an abort. BT never
+scores — it overrides. The session's `coordinatorVehicleId` (the geofence-exit nominator) is a
+HYPOTHESIS: the fence only proves the PHONE left the area, not that THAT car moved, and the phone
+can only be in one car. Truth table:
+
+| edge | session car vs BT car | phase | verdict |
+|---|---|---|---|
+| DISCONNECT | same / unknown | any | `SupersedeWithBluetooth` — user left the car; BT confirms deterministically |
+| DISCONNECT | **different own car** | any | `SupersedeWithBluetooth` — the park belongs to the BT car; a coordinator pin would be a misattributed duplicate |
+| CONNECT | same / unknown | Candidate | `VetoReturnToVehicle` — user is back in; discard the tentative pin |
+| CONNECT | same / unknown | Driving | `NoOp` — reconnect is consistent with the trip |
+| CONNECT | **different own car** | Driving | `YieldToConnectedCar` — the phone is provably in the other car; abort before any pin forms (BT owns detection while connected) |
+| CONNECT | **different own car** | Candidate | `NoOp` — the pending pin was earned with measured pre-connect evidence (park car A, walk to car B); boarding B refutes the future, not the past |
+
+Before DET-BT-WRONG-CAR-ABORT-001 the different-car rows were all NoOp ("an edge from car A never
+vetoes a trip following car B"), which was correct against the neighbour's identical car (unknown
+MACs never reach the arbiter) but wrong against the user's OWN other car. Field 2026-08-10 (Oppo,
+parkdiag.log): manual Focus park at home → its geofence EXIT armed the coordinator with
+`vehicleId locked: Focus` while the user drove the Kamiq, BT enabled mid-drive (CONNECT 19:44:18 →
+NoOp), Kamiq DISCONNECT at destination 19:49:19 → NoOp by the old vehicle guard → BT pinned the
+Kamiq 19:50:29 AND the coordinator's 120 s errand-hold finalized a phantom Focus pin 19:51:44,
+replacing the Focus's real home session. The same evening's return trip proved the mechanism: the
+coordinator re-armed with `nominator=null`, so the unknown-origin path let the DISCONNECT supersede
+and a single BT pin resulted.
+
 ### 1.2 BluetoothDetectionStrategy (deterministic)
 
 **Runtime owner:** `BluetoothDetectionService` (`LifecycleService`, `START_NOT_STICKY`,
