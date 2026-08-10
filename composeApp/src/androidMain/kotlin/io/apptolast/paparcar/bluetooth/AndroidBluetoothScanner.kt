@@ -39,6 +39,16 @@ class AndroidBluetoothScanner(private val context: Context) : BluetoothScanner {
         }.getOrElse { emptyList() }
     }
 
+    /**
+     * [DET-BT-CONNECTED-NOT-PAIRED-001] Connection ground truth from [BtConnectionStore], which the
+     * manifest ACL receiver keeps current on every connect/disconnect edge (across process kills, via
+     * SharedPreferences — a live profile-proxy poll is async and can't answer synchronously here).
+     */
+    override fun isConnectedToPairedCar(pairedVehicleIds: Set<String>): Boolean {
+        if (pairedVehicleIds.isEmpty()) return false
+        return BtConnectionStore.connectedVehicleIds(context).any { it in pairedVehicleIds }
+    }
+
     private fun Int.toBluetoothDeviceType(): BluetoothDeviceType = when (this) {
         BluetoothDevice.DEVICE_TYPE_CLASSIC -> BluetoothDeviceType.CLASSIC
         BluetoothDevice.DEVICE_TYPE_LE -> BluetoothDeviceType.LE

@@ -48,4 +48,9 @@ class IosBluetoothScanner : BluetoothScanner {
     override fun isBluetoothEnabled(): Boolean = central.state == CBManagerStatePoweredOn
 
     override fun getBondedDevices(): List<BluetoothDeviceInfo> = emptyList()
+
+    // iOS does not expose Classic (HFP/A2DP) car-connection state to third-party apps; the BT
+    // strategy is Android-only for now, so the resolver always falls back to COORDINATOR on iOS.
+    // [DET-BT-CONNECTED-NOT-PAIRED-001]
+    override fun isConnectedToPairedCar(pairedVehicleIds: Set<String>): Boolean = false
 }

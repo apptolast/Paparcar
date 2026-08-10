@@ -39,11 +39,39 @@ class ParkingStrategyResolverTest {
     // ── BT strategy case ──────────────────────────────────────────────────────
 
     @Test
-    fun `resolves to BT strategy when vehicle has BT config and BT is enabled`() = runTest {
-        val vehicle = vehicleWith(bluetoothDeviceId = "AA:BB:CC:DD:EE:FF")
-        val resolver = buildResolver(defaultVehicle = vehicle, btEnabled = true)
+    fun `resolves to BT strategy when vehicle has BT config, BT enabled AND connected`() = runTest {
+        // [DET-BT-CONNECTED-NOT-PAIRED-001] Connected to the paired car → BLUETOOTH owns detection.
+        val vehicle = vehicleWith(id = "v-1", bluetoothDeviceId = "AA:BB:CC:DD:EE:FF")
+        val resolver = buildResolver(defaultVehicle = vehicle, btEnabled = true, connectedVehicleIds = setOf("v-1"))
         assertEquals(ParkingStrategy.BLUETOOTH, resolver.resolve())
         assertFalse(resolver.shouldUseCoordinator())
+    }
+
+    // ── DET-BT-CONNECTED-NOT-PAIRED-001 — paired but NOT connected → Coordinator ──────────────
+
+    @Test
+    fun `resolves to coordinator when BT car is paired and enabled but NOT connected`() = runTest {
+        // The core fix: a BT car sitting paired-at-home must NOT hijack the strategy. You're driving
+        // it right now only if the phone is CONNECTED to it — otherwise the Coordinator runs.
+        val vehicle = vehicleWith(id = "v-1", bluetoothDeviceId = "AA:BB:CC:DD:EE:FF")
+        val resolver = buildResolver(defaultVehicle = vehicle, btEnabled = true, connectedVehicleIds = emptySet())
+        assertEquals(ParkingStrategy.COORDINATOR, resolver.resolve())
+        assertTrue(resolver.shouldUseCoordinator())
+    }
+
+    @Test
+    fun `resolves to coordinator for active non-BT car while BT car is paired but not connected`() = runTest {
+        // The real field scenario (08-08): active Focus (no BT) + Kamiq paired (BT) but not connected
+        // → drive the Focus → COORDINATOR must own it (was wrongly BLUETOOTH → total miss).
+        val focus = vehicleWith(id = "v-focus", bluetoothDeviceId = null, isActive = true)
+        val kamiq = vehicleWith(id = "v-kamiq", bluetoothDeviceId = "AA:BB:CC:DD:EE:FF", isActive = false)
+        val resolver = buildResolver(
+            defaultVehicle = focus,
+            extras = listOf(kamiq),
+            btEnabled = true,
+            connectedVehicleIds = emptySet(),
+        )
+        assertEquals(ParkingStrategy.COORDINATOR, resolver.resolve())
     }
 
     // ── ARCH-MONITORING-002 — BT supersedes regardless of isActive ────────────
@@ -56,16 +84,21 @@ class ParkingStrategyResolverTest {
         // double-confirm when the user actually drives the secondary.
         val primary = vehicleWith(id = "v-primary", bluetoothDeviceId = null, isActive = true)
         val secondary = vehicleWith(id = "v-secondary", bluetoothDeviceId = "AA:BB:CC:DD:EE:FF", isActive = false)
-        val resolver = buildResolver(defaultVehicle = primary, extras = listOf(secondary), btEnabled = true)
+        val resolver = buildResolver(
+            defaultVehicle = primary,
+            extras = listOf(secondary),
+            btEnabled = true,
+            connectedVehicleIds = setOf("v-secondary"),
+        )
         assertEquals(ParkingStrategy.BLUETOOTH, resolver.resolve())
     }
 
     @Test
     fun `resolves to BT when single vehicle has BT but is not marked active`() = runTest {
         // Post BUG-NEW-VEHICLE-DEFAULT: new vehicles no longer auto-set isActive=true.
-        // A user pairing BT on a non-primary vehicle still routes through BT.
-        val btOnly = vehicleWith(bluetoothDeviceId = "AA:BB:CC:DD:EE:FF", isActive = false)
-        val resolver = buildResolver(defaultVehicle = btOnly, btEnabled = true)
+        // A user pairing BT on a non-primary vehicle still routes through BT when connected.
+        val btOnly = vehicleWith(id = "v-1", bluetoothDeviceId = "AA:BB:CC:DD:EE:FF", isActive = false)
+        val resolver = buildResolver(defaultVehicle = btOnly, btEnabled = true, connectedVehicleIds = setOf("v-1"))
         assertEquals(ParkingStrategy.BLUETOOTH, resolver.resolve())
     }
 
@@ -85,7 +118,12 @@ class ParkingStrategyResolverTest {
             type = VehicleType.CAR,
             isActive = false,
         )
-        val resolver = buildResolver(defaultVehicle = scooterPrimary, extras = listOf(carBt), btEnabled = true)
+        val resolver = buildResolver(
+            defaultVehicle = scooterPrimary,
+            extras = listOf(carBt),
+            btEnabled = true,
+            connectedVehicleIds = setOf("v-car"),
+        )
         assertEquals(ParkingStrategy.BLUETOOTH, resolver.resolve())
     }
 
@@ -188,8 +226,12 @@ class ParkingStrategyResolverTest {
         defaultVehicle: Vehicle?,
         extras: List<Vehicle> = emptyList(),
         btEnabled: Boolean,
+        connectedVehicleIds: Set<String> = emptySet(),
     ) = ParkingStrategyResolver(
         vehicleRepository = FakeVehicleRepository(defaultVehicle = defaultVehicle, extraVehicles = extras),
-        bluetoothScanner = FakeBluetoothScanner(bluetoothEnabled = btEnabled),
+        bluetoothScanner = FakeBluetoothScanner(
+            bluetoothEnabled = btEnabled,
+            connectedVehicleIds = connectedVehicleIds,
+        ),
     )
 }

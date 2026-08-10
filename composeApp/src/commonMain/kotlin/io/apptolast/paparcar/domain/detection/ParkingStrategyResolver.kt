@@ -9,16 +9,18 @@ import kotlinx.coroutines.flow.first
 /**
  * Which automatic-detection pipeline (if any) should own the current driving session.
  *
- * Resolution honours the **BT-supersedes** invariant: any vehicle paired with a BT
- * device routes through the deterministic BT-disconnect pipeline, regardless of
- * which vehicle the user marked as primary (`isActive`). This decouples "primary
- * vehicle for identity fallbacks" from "vehicle the Coordinator monitors".
+ * Resolution honours the **BT-owns-when-connected** invariant: BLUETOOTH is chosen only while the
+ * phone is CONNECTED to a paired car (the ACL link is the ground truth of "I'm driving THIS car"),
+ * regardless of which vehicle the user marked as primary (`isActive`). A car that is only paired
+ * (sitting at home) no longer hijacks the strategy — driving a different, non-BT car resolves to
+ * COORDINATOR. This decouples "primary vehicle for identity fallbacks" from "vehicle detection is
+ * following right now". [DET-BT-CONNECTED-NOT-PAIRED-001]
  *
  * Resolution order (first match wins):
  * | Condition                                                      | Resolved   |
  * |----------------------------------------------------------------|------------|
  * | Primary vehicle type ∈ {SCOOTER, BIKE}                         | NONE       |
- * | Any vehicle has bluetoothDeviceId AND BT enabled               | BLUETOOTH  |
+ * | CONNECTED to a paired car (bluetoothDeviceId, BT enabled, ACL up)| BLUETOOTH |
  * | Primary vehicle exists (and is not SCOOTER/BIKE)               | COORDINATOR|
  * | No primary vehicle                                              | COORDINATOR|
  *
@@ -26,10 +28,12 @@ import kotlinx.coroutines.flow.first
  * we skip parking detection entirely — scooters and bikes are dismounted on the
  * sidewalk and never liberate a parking spot. [BUG-SCOOTER-001]
  *
- * Note: when BLUETOOTH wins, Coordinator is suppressed even if the primary vehicle
- * has no BT pairing. Rationale: the BT receiver already covers the BT-paired
- * vehicle(s) independently, and running Coordinator in parallel risks attributing
- * a BT-vehicle trip to the (non-BT) primary. [ARCH-MONITORING-002]
+ * Note: when BLUETOOTH wins (connected to the car), Coordinator is suppressed even if the primary
+ * vehicle has no BT pairing. Rationale: the BT receiver already covers the connected car
+ * independently, and running Coordinator in parallel risks attributing that trip to the (non-BT)
+ * primary. Once DISCONNECTED, the strategy falls back to COORDINATOR — safe because the Coordinator
+ * demands measured driving to pin (a walk away from the car aborts) and a mid-session BT edge is
+ * arbitrated by [EvaluateBtArbitrationUseCase]. [ARCH-MONITORING-002]
  */
 enum class ParkingStrategy {
     /** No detection — vehicle type doesn't occupy parking spots. */
@@ -76,15 +80,21 @@ class ParkingStrategyResolver(
      * adapter state at call time so toggling Bluetooth flips ownership cleanly. [DET-READY-001b]
      */
     fun strategyFor(vehicles: List<Vehicle>): ParkingStrategy {
-        // BT wins first and independently of which vehicle is primary: a BT-paired
-        // car in the fleet is detected by the receiver regardless of `isActive`.
-        // SCOOTER/BIKE never count even if they somehow have a BT pairing.
-        val hasAnyBtPaired = vehicles.any { it.isBtPairedAndParks() }
-        if (hasAnyBtPaired && bluetoothScanner.isBluetoothEnabled()) {
+        // [DET-BT-CONNECTED-NOT-PAIRED-001] BT owns detection only while the phone is CONNECTED to a
+        // paired car — that connection is the ground truth of "I'm driving THIS car". Merely being
+        // paired-and-enabled no longer hijacks the strategy: driving a DIFFERENT, non-BT car (with a
+        // BT car sitting paired at home) now correctly resolves to COORDINATOR, whose resident FGS
+        // watches that car. The BT car is still fully covered — its ACL disconnect is caught by the
+        // manifest receiver independently of this resolver. SCOOTER/BIKE never count.
+        val btPairedVehicleIds = vehicles.filter { it.isBtPairedAndParks() }.map { it.id }.toSet()
+        if (btPairedVehicleIds.isNotEmpty() &&
+            bluetoothScanner.isBluetoothEnabled() &&
+            bluetoothScanner.isConnectedToPairedCar(btPairedVehicleIds)
+        ) {
             return ParkingStrategy.BLUETOOTH
         }
 
-        // No BT path active. Coordinator monitors the primary; if the primary is a
+        // No CONNECTED BT car. Coordinator monitors the primary; if the primary is a
         // type that never parks, suppress detection entirely. With no primary at
         // all, fall through to COORDINATOR (legacy "no vehicle" behaviour).
         val primary = vehicles.firstOrNull { it.isActive } ?: vehicles.firstOrNull()

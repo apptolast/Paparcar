@@ -18,10 +18,12 @@ Paparcar detects the moment a user parks their car so it can publish the freshly
 
 | Strategy | Trigger | Reliability | When |
 |---|---|---|---|
-| **BluetoothDetectionStrategy** | Car BT disconnects → debounce → GPS fix → user walks ≥ 30 m | 0.95 (deterministic) | User has paired BT with their car AND BT is on |
-| **CoordinatorDetectionStrategy** | Activity Recognition + GPS stream → confidence scoring | 0.75 / 0.90 / 1.00 (probabilistic) | Everyone else — no BT, BT off, or no paired device |
+| **BluetoothDetectionStrategy** | Car BT disconnects → debounce → GPS fix → user walks ≥ 30 m | 0.95 (deterministic) | The phone is currently **CONNECTED** to the paired car (you're driving THAT car) |
+| **CoordinatorDetectionStrategy** | Activity Recognition + GPS stream → confidence scoring | 0.75 / 0.90 / 1.00 (probabilistic) | Everyone else — no BT, BT off, no paired device, **or driving a different car not currently connected** |
 
-The choice is made in `ParkingStrategyResolver` and honours the **BT-supersedes** invariant: any vehicle in the fleet with a paired BT device routes through BLUETOOTH, decoupling "primary vehicle for identity fallbacks" (`isActive`) from "vehicle the Coordinator monitors" (derived). See ARCH-MONITORING-002 in §2.
+The choice is made in `ParkingStrategyResolver` and honours the **BT-owns-when-connected** invariant [DET-BT-CONNECTED-NOT-PAIRED-001]: BLUETOOTH is chosen only while the phone is **connected** (ACL link up) to a paired car — the ground truth of "I'm driving THIS car". A car that is merely paired-and-enabled (sitting at home while you drive a different, non-BT car) no longer hijacks the strategy: that resolves to COORDINATOR, whose resident FGS watches the car you're actually in. This decouples "primary vehicle for identity fallbacks" (`isActive`) from "vehicle detection is following right now" (the connected car). See ARCH-MONITORING-002 in §2.
+
+> **History.** Until 2026-08-08 BLUETOOTH was chosen on mere pairing + adapter-on (`hasAnyBtPaired && isBluetoothEnabled()`). Field 08-08 (Málaga): with the Kamiq paired (BT) and the Focus active (no BT), driving the **Focus** resolved to BLUETOOTH → Coordinator suppressed, and the BT pipeline waited for the Kamiq's disconnect that never came → **the Focus was never detected**. Fixed by gating on live connection.
 
 ```kotlin
 enum class ParkingStrategy { NONE, BLUETOOTH, COORDINATOR }
@@ -29,11 +31,14 @@ enum class ParkingStrategy { NONE, BLUETOOTH, COORDINATOR }
 suspend fun resolve(): ParkingStrategy {
     val vehicles = vehicleRepository.observeVehicles().first()
 
-    // BT wins independently of which vehicle is primary.
-    val hasAnyBtPaired = vehicles.any {
-        it.bluetoothDeviceId != null && it.vehicleType !in NON_PARKING_TYPES
-    }
-    if (hasAnyBtPaired && bluetoothScanner.isBluetoothEnabled()) {
+    // BT owns detection only while CONNECTED to a paired car — not merely paired. [DET-BT-CONNECTED-NOT-PAIRED-001]
+    val btPairedVehicleIds = vehicles
+        .filter { it.bluetoothDeviceId != null && it.vehicleType !in NON_PARKING_TYPES }
+        .map { it.id }.toSet()
+    if (btPairedVehicleIds.isNotEmpty() &&
+        bluetoothScanner.isBluetoothEnabled() &&
+        bluetoothScanner.isConnectedToPairedCar(btPairedVehicleIds)   // ← live ACL connection
+    ) {
         return ParkingStrategy.BLUETOOTH
     }
 
@@ -45,6 +50,8 @@ suspend fun resolve(): ParkingStrategy {
     return ParkingStrategy.COORDINATOR
 }
 ```
+
+Connection state is ground truth from `BtConnectionStore` (SharedPreferences), which the manifest `BluetoothConnectionReceiver` keeps current on every ACL connect/disconnect edge — it fires across the OEM process kills, so this survives where a live async profile-proxy poll could not. Safe because the BT car's own disconnect is caught by that receiver **independently of this resolver**; once disconnected the strategy falls back to COORDINATOR, which demands measured driving to pin (a walk from the car aborts) and whose mid-session BT edges are arbitrated by `EvaluateBtArbitrationUseCase`.
 
 The strategies never mix signals. BLUETOOTH and COORDINATOR converge on `ConfirmParkingUseCase`. NONE skips parking detection entirely — scooters and bikes are dismounted on the sidewalk and never liberate a parking spot. See BUG-SCOOTER-001 in §2.
 

@@ -18,4 +18,14 @@ interface BluetoothScanner {
      * Returns an empty list if Bluetooth is disabled or the permission is missing.
      */
     fun getBondedDevices(): List<BluetoothDeviceInfo>
+
+    /**
+     * True when the phone is currently CONNECTED (ACL link up) to the paired car of at least one of
+     * [pairedVehicleIds] — not merely bonded. This is what hands detection to the deterministic
+     * Bluetooth pipeline: only a connected car means "I'm driving THIS car", so the probabilistic
+     * Coordinator is suppressed. A car that is only paired-and-enabled (you're driving a different,
+     * non-BT car) must NOT hijack the strategy — the Coordinator + resident FGS handle that car.
+     * [DET-BT-CONNECTED-NOT-PAIRED-001]
+     */
+    fun isConnectedToPairedCar(pairedVehicleIds: Set<String>): Boolean
 }

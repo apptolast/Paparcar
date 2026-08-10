@@ -28,9 +28,33 @@ object BtConnectionStore {
     fun lastConnectedAt(context: Context, vehicleId: String): Long? =
         prefs(context).getLong(KEY_PREFIX + vehicleId, 0L).takeIf { it > 0L }
 
+    // ── Live connection STATE (which paired cars are connected right now) ──────────────────────────
+    // [DET-BT-CONNECTED-NOT-PAIRED-001] The strategy resolver reads this to let BLUETOOTH own
+    // detection ONLY while actually connected to a paired car — merely having one paired no longer
+    // hijacks the strategy when you drive a different, non-BT car. Driven by the ACL receiver's
+    // connect/disconnect edges (a manifest receiver → fires across the OEM process kills, same
+    // rationale as the identity stamp above), so this is our own ground truth, not a live poll.
+
+    /** Mark [vehicleId]'s paired device as currently connected. Called on ACL_CONNECTED. */
+    fun markConnected(context: Context, vehicleId: String) {
+        val next = connectedVehicleIds(context) + vehicleId
+        prefs(context).edit { putStringSet(KEY_CONNECTED_SET, next) }
+    }
+
+    /** Mark [vehicleId]'s paired device as no longer connected. Called on ACL_DISCONNECTED. */
+    fun markDisconnected(context: Context, vehicleId: String) {
+        val next = connectedVehicleIds(context) - vehicleId
+        prefs(context).edit { putStringSet(KEY_CONNECTED_SET, next) }
+    }
+
+    /** The vehicleIds whose paired car is connected right now (per the last ACL edge). */
+    fun connectedVehicleIds(context: Context): Set<String> =
+        prefs(context).getStringSet(KEY_CONNECTED_SET, emptySet()).orEmpty().toSet()
+
     private fun prefs(context: Context) =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     private const val PREFS_NAME = "bt_identity"
     private const val KEY_PREFIX = "bt_connected_"
+    private const val KEY_CONNECTED_SET = "bt_connected_now"
 }

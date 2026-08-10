@@ -178,6 +178,10 @@ class FakeAppPreferences(private val scenario: MockScenario? = null) : AppPrefer
 class FakeBluetoothScanner : BluetoothScanner {
     override fun isBluetoothEnabled(): Boolean = true
     override fun getBondedDevices(): List<BluetoothDeviceInfo> = emptyList()
+    // Mock treats a BT-paired car as connected, so the scenario's BT story keeps resolving BLUETOOTH.
+    // The mock only assigns a bluetoothDeviceId when the BT scenario is on, so a non-empty set ⟺ BT on.
+    // [DET-BT-CONNECTED-NOT-PAIRED-001]
+    override fun isConnectedToPairedCar(pairedVehicleIds: Set<String>): Boolean = pairedVehicleIds.isNotEmpty()
 }
 
 /**

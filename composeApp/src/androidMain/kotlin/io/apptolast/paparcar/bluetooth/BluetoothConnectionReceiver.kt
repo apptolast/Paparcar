@@ -131,6 +131,10 @@ class BluetoothConnectionReceiver : BroadcastReceiver(), KoinComponent {
 
                 when (action) {
                     BluetoothDevice.ACTION_ACL_DISCONNECTED -> {
+                        // [DET-BT-CONNECTED-NOT-PAIRED-001] Car no longer connected → clear the live
+                        // connection state the strategy resolver reads, so detection falls back to the
+                        // Coordinator for the next (possibly non-BT) car.
+                        BtConnectionStore.markDisconnected(context, pairedVehicle.id)
                         val serviceIntent = Intent(context, BluetoothDetectionService::class.java).apply {
                             this.action = BluetoothDetectionService.ACTION_BT_DISCONNECTED
                             putExtra(BluetoothDetectionService.EXTRA_DEVICE_ADDRESS, deviceAddress)
@@ -144,6 +148,9 @@ class BluetoothConnectionReceiver : BroadcastReceiver(), KoinComponent {
                         // a departure for a BT-paired vehicle. Disk-backed (survives the process
                         // kills the net wakes across); keyed by vehicleId, the join the net has.
                         BtConnectionStore.recordConnected(context, pairedVehicle.id, System.currentTimeMillis())
+                        // [DET-BT-CONNECTED-NOT-PAIRED-001] Connected to THIS car → BLUETOOTH owns
+                        // detection now; the resolver reads this live state to suppress the Coordinator.
+                        BtConnectionStore.markConnected(context, pairedVehicle.id)
 
                         // startService (not foreground) — work is instant (cancel + stopSelf).
                         // If the detection Service is already running as FGS, onStartCommand
