@@ -43,6 +43,12 @@ class MockScenario {
      *  [UX-PARKED-STATE-001] */
     val activeVehicleBluetooth = MutableStateFlow(false)
 
+    /** The resident SENTRY foreground service is alive (genuinely watching). With a Coordinator car
+     *  parked this drives the HONEST watch badge: true → "Vigilando tu sitio"; false → "Vigilancia
+     *  detenida" (the OEM killed the watcher). The Dev Catalog mirrors it onto the runtime presence.
+     *  [DET-WATCH-HONEST-001] */
+    val sentryAlive = MutableStateFlow(true)
+
     fun reset() {
         session.value = Session.LoggedInWithVehicles
         onboardingCompleted.value = true
@@ -52,5 +58,6 @@ class MockScenario {
         aggressiveOem.value = false
         ownParkedSession.value = false
         activeVehicleBluetooth.value = false
+        sentryAlive.value = true
     }
 }

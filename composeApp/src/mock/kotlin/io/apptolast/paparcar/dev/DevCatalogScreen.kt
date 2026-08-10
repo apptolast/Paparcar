@@ -31,6 +31,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.PlayArrow
 import io.apptolast.paparcar.domain.detection.MutableDetectionRuntimeState
+import io.apptolast.paparcar.domain.detection.ServicePresence
 import io.apptolast.paparcar.fakes.MockScenario
 import org.koin.compose.koinInject
 
@@ -54,6 +55,7 @@ fun DevCatalogScreen(
     val aggressiveOem by scenario.aggressiveOem.collectAsStateWithLifecycle()
     val ownParked by scenario.ownParkedSession.collectAsStateWithLifecycle()
     val activeBt by scenario.activeVehicleBluetooth.collectAsStateWithLifecycle()
+    val sentryAlive by scenario.sentryAlive.collectAsStateWithLifecycle()
     // Shared detection runtime — toggling it simulates an in-progress trip in the real Home (moving
     // driving puck + "Conduciendo" chip + camera follow), no real drive needed. [DRIVE-SIM-001]
     val runtime: MutableDetectionRuntimeState = koinInject()
@@ -106,7 +108,18 @@ fun DevCatalogScreen(
             SectionTitle("Simulación")
             // Own-parking loop in the REAL graph: watching line + parked card + ParkingPeek +
             // release dialog, all reachable without a real drive. [UX-PARKED-STATE-001]
-            SwitchRow("Sesión propia aparcada (vigilando)", ownParked) { scenario.ownParkedSession.value = it }
+            SwitchRow("Sesión propia aparcada (vigilando)", ownParked) { on ->
+                scenario.ownParkedSession.value = on
+                // [DET-WATCH-HONEST-001] Parked + sentry alive → the badge honestly reads "Vigilando".
+                runtime.setPresence(if (on && scenario.sentryAlive.value) ServicePresence.Sentry else ServicePresence.Dead)
+            }
+            // [DET-WATCH-HONEST-001] Kill the resident watcher (simulate the OEM) → badge flips to
+            // "Vigilancia detenida" on a parked Coordinator car. Combine with OEM agresivo + tier≠All for
+            // the "frágil" variant (alive but at risk).
+            SwitchRow("Centinela vivo (FGS activo)", sentryAlive) { on ->
+                scenario.sentryAlive.value = on
+                runtime.setPresence(if (on && scenario.ownParkedSession.value) ServicePresence.Sentry else ServicePresence.Dead)
+            }
             SwitchRow("BT emparejado en el coche activo", activeBt) { scenario.activeVehicleBluetooth.value = it }
             SwitchRow("Conduciendo (puck en movimiento en Home)", driving) { on ->
                 // Mirror a geofence-exit: stamp the trip's origin (route start) + the DEPARTING vehicle
@@ -173,7 +186,20 @@ fun DevCatalogScreen(
                 scenario.reset(); onEnter()
             }
             PresetButton("Aparcado (vigilando)") {
-                scenario.reset(); scenario.ownParkedSession.value = true; onEnter()
+                scenario.reset(); scenario.ownParkedSession.value = true
+                runtime.setPresence(ServicePresence.Sentry); onEnter()
+            }
+            // [DET-WATCH-HONEST-001] The OEM killed the resident watcher → honest "Vigilancia detenida".
+            PresetButton("Aparcado · vigilancia detenida (FGS muerto)") {
+                scenario.reset(); scenario.ownParkedSession.value = true; scenario.sentryAlive.value = false
+                runtime.setPresence(ServicePresence.Dead); onEnter()
+            }
+            // Parked + alive but fragile (aggressive OEM, no battery exemption) → "Vigilando · puede detenerse".
+            PresetButton("Aparcado · frágil (OEM agresivo, sin exención)") {
+                scenario.reset(); scenario.ownParkedSession.value = true
+                scenario.aggressiveOem.value = true
+                scenario.permissionTier.value = MockScenario.PermissionTier.Producer
+                runtime.setPresence(ServicePresence.Sentry); onEnter()
             }
             PresetButton("Vigilando por Bluetooth (BT armado)") {
                 scenario.reset(); scenario.activeVehicleBluetooth.value = true; onEnter()

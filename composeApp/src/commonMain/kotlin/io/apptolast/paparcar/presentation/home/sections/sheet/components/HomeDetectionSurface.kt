@@ -216,6 +216,7 @@ internal fun HomeDetectionSurface(
                 subtitle = stringResource(Res.string.home_det_watching_fragile_sub),
                 primaryLabel = stringResource(Res.string.home_det_watching_fortify_cta),
                 onPrimary = onRequestBatteryExemption,
+                primaryStacksBelow = true,
                 modifier = modifier,
             )
 
@@ -226,6 +227,7 @@ internal fun HomeDetectionSurface(
                 subtitle = stringResource(Res.string.home_det_watch_interrupted_sub),
                 primaryLabel = stringResource(Res.string.home_det_watch_interrupted_cta),
                 onPrimary = onRequestBatteryExemption,
+                primaryStacksBelow = true,
                 modifier = modifier,
             )
         }
@@ -255,6 +257,10 @@ private fun ActionRow(
     modifier: Modifier = Modifier,
     secondaryLabel: String? = null,
     onSecondary: () -> Unit = {},
+    /** Single-CTA stories that stack the button FULL-WIDTH below (title + subtitle keep the full row
+     *  width, never truncate) — for the alert watch rows whose copy + car name won't fit inline.
+     *  [DET-WATCH-HONEST-001] */
+    primaryStacksBelow: Boolean = false,
 ) {
     val cardColor = if (tone.isError) tone.container else MaterialTheme.colorScheme.surfaceContainerHigh
     // Error: a stronger accent-tinted border (urgent). Otherwise the SAME neutral card border the
@@ -302,7 +308,7 @@ private fun ActionRow(
                             style = PaparcarType.current.rowTitle,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
+                            maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                         )
                         Text(
@@ -315,7 +321,7 @@ private fun ActionRow(
                     }
                     // Single-CTA states keep the button INLINE on the right (the subtitle wraps to two
                     // lines instead of truncating). Filled on error, tonal otherwise. [DET-READY-001h]
-                    if (secondaryLabel == null && primaryLabel != null) {
+                    if (secondaryLabel == null && primaryLabel != null && !primaryStacksBelow) {
                         CtaPill(
                             label = primaryLabel,
                             container = if (tone.isError) tone.accent else tone.container,
@@ -323,6 +329,18 @@ private fun ActionRow(
                             onClick = onPrimary,
                         )
                     }
+                }
+                // Single CTA stacked full-width below → title + subtitle got the full row width above.
+                // For the alert watch rows (fragile / interrupted). [DET-WATCH-HONEST-001]
+                if (secondaryLabel == null && primaryLabel != null && primaryStacksBelow) {
+                    CtaPill(
+                        label = primaryLabel,
+                        container = if (tone.isError) tone.accent else tone.container,
+                        content = if (tone.isError) tone.onAccent else tone.onContainer,
+                        onClick = onPrimary,
+                        modifier = Modifier.fillMaxWidth(),
+                        fillWidth = true,
+                    )
                 }
                 // Only the two-CTA cold-start stacks its actions full-width below (both need the room).
                 if (secondaryLabel != null && primaryLabel != null) {

@@ -138,9 +138,6 @@ fun HomeScreen(
     // (reuses its disclosure + escalation) and to vehicle registration respectively.
     onActivateDetection: (focus: String) -> Unit = {},
     onAddVehicle: () -> Unit = {},
-    // [DET-BATTERY-EXEMPTION-NUDGE-001] Platform seam to launch the OS battery-optimization exemption
-    // request (and the OEM foreground/autostart page). Provided by the Android host; no-op elsewhere.
-    onRequestBatteryExemption: () -> Unit = {},
     viewModel: HomeViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateLifecycleAware()
@@ -209,8 +206,8 @@ fun HomeScreen(
                 // Flag enabled but permissions still needed → open the permissions screen so the one
                 // "activate detection" tap brings detection fully online. [DET-TOGGLE-001]
                 is HomeEffect.OpenDetectionPermissions -> onActivateDetection(effect.focus)
-                // [DET-BATTERY-EXEMPTION-NUDGE-001] Launch the OS exemption request via the platform seam.
-                HomeEffect.RequestBatteryOptimizationExemption -> onRequestBatteryExemption()
+                // [DET-WATCH-HONEST-001] Launch the OS battery-optimization exemption dialog (expect/actual).
+                HomeEffect.RequestBatteryOptimizationExemption -> requestIgnoreBatteryOptimizations()
                 HomeEffect.RequestLocationPermission -> {}
                 // MoveCameraTo needs the HomeUiController which lives inside
                 // HomeContent; a dedicated collector down there handles it.
