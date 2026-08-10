@@ -551,6 +551,11 @@
     <string name="home_det_watching_title">We letten op je %1$s</string>
     <string name="home_det_watching_parked_sub">Geparkeerd — we merken het wanneer je de plek verlaat</string>
     <string name="home_det_watching_bt_sub">Parkeren wordt automatisch herkend via de Bluetooth van je auto</string>
+    <string name="home_det_watching_fragile_sub">Je telefoon stopt mogelijk met bewaken. Zet het aan zodat het niet mislukt.</string>
+    <string name="home_det_watching_fortify_cta">Aanzetten</string>
+    <string name="home_det_watch_interrupted_title">Bewaking gestopt voor je %1$s</string>
+    <string name="home_det_watch_interrupted_sub">Je telefoon stopte de detectie. Heractiveer zodat je de plek niet verliest.</string>
+    <string name="home_det_watch_interrupted_cta">Heractiveren</string>
     <string name="home_det_driving_title">Onderweg met je %1$s</string>
     <string name="home_det_driving_sub">We detecteren waar je parkeert</string>
     <string name="home_det_candidate_title">Parkeer je je %1$s?</string>

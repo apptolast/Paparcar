@@ -551,6 +551,11 @@
     <string name="home_det_watching_title">A vigiar o teu %1$s</string>
     <string name="home_det_watching_parked_sub">Estacionado — vamos detetar quando deixares o lugar</string>
     <string name="home_det_watching_bt_sub">O estacionamento deteta-se sozinho pelo Bluetooth do carro</string>
+    <string name="home_det_watching_fragile_sub">O teu telemóvel pode parar de vigiar. Ativa para não falhar.</string>
+    <string name="home_det_watching_fortify_cta">Ativar</string>
+    <string name="home_det_watch_interrupted_title">Vigilância parada do teu %1$s</string>
+    <string name="home_det_watch_interrupted_sub">O teu telemóvel parou a deteção. Reativa para não perder o lugar.</string>
+    <string name="home_det_watch_interrupted_cta">Reativar</string>
     <string name="home_det_driving_title">A conduzir o teu %1$s</string>
     <string name="home_det_driving_sub">Vamos detetar onde estacionas</string>
     <string name="home_det_candidate_title">A estacionar o teu %1$s?</string>

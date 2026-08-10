@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.presentation.home.model.DetectionStory
+import io.apptolast.paparcar.presentation.home.model.ParkedWatchBadge
 import io.apptolast.paparcar.ui.theme.PaparcarTheme
 
 // One entry per story the surface can tell — action rows + discreet happy lines.
@@ -23,6 +24,13 @@ private val stories = listOf(
     "NoVehicle" to DetectionStory.NoVehicle,
     "AwaitingFirstPark" to DetectionStory.AwaitingFirstPark,
     "Watching · parked" to DetectionStory.Watching("Škoda Kamiq", isParked = true, viaBluetooth = false),
+    // [DET-WATCH-HONEST-001] Honest watch health: fragile (warns) + interrupted (OS killed the FGS).
+    "Watching · fragile" to DetectionStory.Watching(
+        "Škoda Kamiq", isParked = true, viaBluetooth = false, watchBadge = ParkedWatchBadge.WATCHING_FRAGILE,
+    ),
+    "Watching · interrupted" to DetectionStory.Watching(
+        "Škoda Kamiq", isParked = true, viaBluetooth = false, watchBadge = ParkedWatchBadge.WATCH_INTERRUPTED,
+    ),
     "Watching · BT armed" to DetectionStory.Watching("Škoda Kamiq", isParked = false, viaBluetooth = true),
     "Driving" to DetectionStory.Driving("Škoda Kamiq", isCandidate = false),
     "Candidate" to DetectionStory.Driving("Škoda Kamiq", isCandidate = true),

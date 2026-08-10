@@ -13,6 +13,7 @@ import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.Zone
 import io.apptolast.paparcar.domain.detection.shouldShowParkNudgeBanner
 import io.apptolast.paparcar.presentation.home.model.DetectionUiState
+import io.apptolast.paparcar.presentation.home.model.ParkedWatchBadge
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HomeSlices — per-section projections of [HomeState]. [HOME-ATOMIZE-001 F1]
@@ -129,6 +130,9 @@ data class HomePeekSlice(
 @Immutable
 data class HomeBrowseListSlice(
     val detectionUiState: DetectionUiState,
+    /** Honest watch health for the parked/awaiting state — drives the truthful "Vigilando tu sitio"
+     *  vs fragile/interrupted line. Null outside the parked context. [DET-WATCH-HONEST-001] */
+    val parkedWatchBadge: ParkedWatchBadge?,
     /** Show the "where did you leave your car?" action row — an unanswered nudge with no active
      *  session resolving it. [DET-NUDGE-PERSIST-001] */
     val showParkNudge: Boolean,
@@ -210,6 +214,7 @@ internal fun HomeState.toPeekSlice() = HomePeekSlice(
 
 internal fun HomeState.toBrowseListSlice() = HomeBrowseListSlice(
     detectionUiState = detectionUiState,
+    parkedWatchBadge = parkedWatchBadge,
     showParkNudge = shouldShowParkNudgeBanner(pendingParkNudge, activeSessions),
     parkNudgeVehicleId = pendingParkNudge?.vehicleId,
     hasCorePermissions = hasCorePermissions,

@@ -624,6 +624,11 @@
     <string name="home_det_watching_title">Watching your %1$s</string>
     <string name="home_det_watching_parked_sub">Parked — we’ll notice when you leave the spot</string>
     <string name="home_det_watching_bt_sub">Parking detects itself via your car’s Bluetooth</string>
+    <string name="home_det_watching_fragile_sub">Your phone may stop watching. Turn it on so it doesn’t fail.</string>
+    <string name="home_det_watching_fortify_cta">Turn on</string>
+    <string name="home_det_watch_interrupted_title">Watch stopped for your %1$s</string>
+    <string name="home_det_watch_interrupted_sub">Your phone stopped detection. Reactivate it so you don’t lose the spot.</string>
+    <string name="home_det_watch_interrupted_cta">Reactivate</string>
     <string name="home_det_driving_title">Driving your %1$s</string>
     <string name="home_det_driving_sub">We’ll detect where you park</string>
     <string name="home_det_candidate_title">Parking your %1$s?</string>

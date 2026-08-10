@@ -23,4 +23,9 @@ sealed class HomeEffect {
     /** Detection just dropped from a working state into a stopped one (turned off in Settings, or a
      *  producer/core permission revoked) — show a snackbar with one-tap re-activation. [DET-TOGGLE-002] */
     data object DetectionStopped : HomeEffect()
+
+    /** "Activate now" on the battery nudge — the screen launches the system battery-optimization
+     *  exemption request (and, on aggressive OEMs, the manufacturer's foreground/autostart settings
+     *  page). [DET-BATTERY-EXEMPTION-NUDGE-001] */
+    data object RequestBatteryOptimizationExemption : HomeEffect()
 }

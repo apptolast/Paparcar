@@ -55,6 +55,11 @@ sealed class HomeIntent {
      *  (independent of permissions). [DET-TOGGLE-001] */
     data object EnableAutoDetection : HomeIntent()
 
+    /** "Activate now" on the battery nudge — request the OS battery-optimization exemption (and the
+     *  OEM foreground/autostart page) so the detection service survives on aggressive OEMs.
+     *  [DET-BATTERY-EXEMPTION-NUDGE-001] */
+    data object RequestBatteryExemption : HomeIntent()
+
     /** Explicitly dismiss the "where did you leave your car?" row — the user declines to mark;
      *  clears the durable nudge record AND its tray notification. [DET-NUDGE-PERSIST-001] */
     data object DismissParkNudge : HomeIntent()

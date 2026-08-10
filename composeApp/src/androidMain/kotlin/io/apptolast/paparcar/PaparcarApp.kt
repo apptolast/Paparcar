@@ -2,11 +2,16 @@ package io.apptolast.paparcar
 
 import android.Manifest
 import android.app.Application
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
 import androidx.work.WorkManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import com.apptolast.customlogin.appContext
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
@@ -17,6 +22,10 @@ import io.apptolast.paparcar.detection.worker.FirstParkNudgeWorker
 import io.apptolast.paparcar.detection.worker.GeofenceJanitorWorker
 import io.apptolast.paparcar.detection.worker.ParkingSafetyNetWorker
 import io.apptolast.paparcar.detection.worker.RegisterActivityTransitionsWorker
+import io.apptolast.paparcar.detection.service.CoordinatorDetectionService
+import io.apptolast.paparcar.domain.detection.ParkingStrategy
+import io.apptolast.paparcar.domain.detection.ParkingStrategyResolver
+import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.di.androidDetectionModule
 import io.apptolast.paparcar.di.androidPlatformModule
 import io.apptolast.paparcar.di.dataModule
@@ -100,6 +109,44 @@ class PaparcarApp : Application() {
         // Daily cold-start nudge for users who enabled detection but never parked with it. Fires at
         // most a few throttled reminders and self-disables after the first park. [DET-TOGGLE-002]
         FirstParkNudgeWorker.enqueueKeep(workManager)
+
+        // [DET-WATCH-HONEST-001] Self-heal the resident SENTRY foreground service: an OEM deep-kill
+        // drops the departure watcher while a car stays parked, and a background worker cannot legally
+        // restart a foreground service on Android 12+. A manual app-open IS a legal (foreground) moment,
+        // so rebuild the watcher here — making "Vigilando tu sitio" true again instead of a silent lie.
+        resumeSentryIfCoordinatorParked()
+    }
+
+    /**
+     * Restart the resident SENTRY foreground service when a Coordinator-strategy car is parked but the
+     * watcher is not alive (the OEM killed it). Gated so it never flashes an FGS notification when
+     * there is nothing to watch: only fires with an active parked session AND the Coordinator strategy
+     * (Bluetooth cars are covered by the ACL receiver; NONE never parks). The service's own idle
+     * epilogue makes the final sentry-vs-stop decision. [DET-WATCH-HONEST-001]
+     */
+    private fun resumeSentryIfCoordinatorParked() {
+        val parkingRepository = get<UserParkingRepository>()
+        val strategyResolver = get<ParkingStrategyResolver>()
+        CoroutineScope(Dispatchers.Default).launch {
+            val hasParkedSession = runCatching {
+                parkingRepository.observeActiveSessions().first().isNotEmpty()
+            }.getOrDefault(false)
+            if (!hasParkedSession) return@launch
+            val strategy = runCatching { strategyResolver.resolve() }.getOrDefault(ParkingStrategy.COORDINATOR)
+            if (strategy != ParkingStrategy.COORDINATOR) return@launch
+            runCatching {
+                ContextCompat.startForegroundService(
+                    this@PaparcarApp,
+                    Intent(this@PaparcarApp, CoordinatorDetectionService::class.java)
+                        .setAction(CoordinatorDetectionService.ACTION_RESUME_SENTRY),
+                )
+            }.onFailure {
+                // Process cold-started in the BACKGROUND (a worker tick, not a user launch) → an
+                // FGS-from-background start is blocked; the safety-net worker + significant-motion
+                // trigger keep the watch, so this is a safe skip, not a lost session. [DET-WATCH-HONEST-001]
+                Napier.w("resume-sentry FGS start skipped (background start): ${it.message}", tag = "PaparcarApp")
+            }
+        }
     }
 
     private fun hasActivityRecognitionPermission(): Boolean =

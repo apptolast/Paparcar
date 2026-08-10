@@ -23,6 +23,7 @@ import androidx.compose.material.icons.rounded.Navigation
 import androidx.compose.material.icons.rounded.NotListedLocation
 import androidx.compose.material.icons.rounded.SensorsOff
 import androidx.compose.material.icons.rounded.Visibility
+import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -36,6 +37,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.presentation.home.model.DetectionStory
+import io.apptolast.paparcar.presentation.home.model.ParkedWatchBadge
 import io.apptolast.paparcar.ui.theme.PapBorders
 import io.apptolast.paparcar.ui.theme.PapShapes
 import io.apptolast.paparcar.ui.theme.PaparcarType
@@ -58,7 +60,12 @@ import paparcar.composeapp.generated.resources.home_det_novehicle_title
 import paparcar.composeapp.generated.resources.home_det_producer_cta
 import paparcar.composeapp.generated.resources.home_det_producer_sub
 import paparcar.composeapp.generated.resources.home_det_producer_title
+import paparcar.composeapp.generated.resources.home_det_watch_interrupted_cta
+import paparcar.composeapp.generated.resources.home_det_watch_interrupted_sub
+import paparcar.composeapp.generated.resources.home_det_watch_interrupted_title
 import paparcar.composeapp.generated.resources.home_det_watching_bt_sub
+import paparcar.composeapp.generated.resources.home_det_watching_fortify_cta
+import paparcar.composeapp.generated.resources.home_det_watching_fragile_sub
 import paparcar.composeapp.generated.resources.home_det_watching_parked_sub
 import paparcar.composeapp.generated.resources.home_det_watching_title
 import paparcar.composeapp.generated.resources.home_nudge_cta
@@ -98,6 +105,9 @@ internal fun HomeDetectionSurface(
     showParkNudge: Boolean = false,
     onMarkNudgeSpot: () -> Unit = {},
     onDismissNudge: () -> Unit = {},
+    /** Fire the battery-optimization exemption request from the fragile / interrupted watch rows.
+     *  [DET-WATCH-HONEST-001] [DET-BATTERY-EXEMPTION-NUDGE-001] */
+    onRequestBatteryExemption: () -> Unit = {},
 ) {
     val cs = MaterialTheme.colorScheme
     val amber = Tone(cs.secondary, cs.onSecondary, cs.secondaryContainer, cs.onSecondaryContainer, isError = false)
@@ -184,17 +194,41 @@ internal fun HomeDetectionSurface(
             modifier = modifier,
         )
 
-        is DetectionStory.Watching -> ActionRow(
-            tone = quiet,
-            icon = Icons.Rounded.Visibility,
-            title = stringResource(Res.string.home_det_watching_title, story.vehicleName),
-            subtitle = stringResource(
-                if (story.isParked) Res.string.home_det_watching_parked_sub else Res.string.home_det_watching_bt_sub,
-            ),
-            primaryLabel = null,
-            onPrimary = {},
-            modifier = modifier,
-        )
+        // Honest watch line: green + no CTA only when the watch is genuinely live; amber warning with
+        // an "activate" CTA when fragile; error "reactivate" when the OS killed it. [DET-WATCH-HONEST-001]
+        is DetectionStory.Watching -> when (story.watchBadge) {
+            ParkedWatchBadge.WATCHING, ParkedWatchBadge.PARK_MY_VEHICLE -> ActionRow(
+                tone = quiet,
+                icon = Icons.Rounded.Visibility,
+                title = stringResource(Res.string.home_det_watching_title, story.vehicleName),
+                subtitle = stringResource(
+                    if (story.isParked) Res.string.home_det_watching_parked_sub else Res.string.home_det_watching_bt_sub,
+                ),
+                primaryLabel = null,
+                onPrimary = {},
+                modifier = modifier,
+            )
+
+            ParkedWatchBadge.WATCHING_FRAGILE -> ActionRow(
+                tone = amber,
+                icon = Icons.Rounded.Visibility,
+                title = stringResource(Res.string.home_det_watching_title, story.vehicleName),
+                subtitle = stringResource(Res.string.home_det_watching_fragile_sub),
+                primaryLabel = stringResource(Res.string.home_det_watching_fortify_cta),
+                onPrimary = onRequestBatteryExemption,
+                modifier = modifier,
+            )
+
+            ParkedWatchBadge.WATCH_INTERRUPTED -> ActionRow(
+                tone = error,
+                icon = Icons.Rounded.VisibilityOff,
+                title = stringResource(Res.string.home_det_watch_interrupted_title, story.vehicleName),
+                subtitle = stringResource(Res.string.home_det_watch_interrupted_sub),
+                primaryLabel = stringResource(Res.string.home_det_watch_interrupted_cta),
+                onPrimary = onRequestBatteryExemption,
+                modifier = modifier,
+            )
+        }
 
         DetectionStory.Hidden -> Unit
     }

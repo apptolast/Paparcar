@@ -555,6 +555,11 @@
     <string name="home_det_watching_title">Supraveghem %1$s</string>
     <string name="home_det_watching_parked_sub">Parcată — vom detecta când eliberezi locul</string>
     <string name="home_det_watching_bt_sub">Parcarea se detectează singură prin Bluetooth-ul mașinii</string>
+    <string name="home_det_watching_fragile_sub">Telefonul poate opri supravegherea. Activează ca să nu eșueze.</string>
+    <string name="home_det_watching_fortify_cta">Activează</string>
+    <string name="home_det_watch_interrupted_title">Supraveghere oprită pentru %1$s</string>
+    <string name="home_det_watch_interrupted_sub">Telefonul a oprit detecția. Reactiveaz-o ca să nu pierzi locul.</string>
+    <string name="home_det_watch_interrupted_cta">Reactivează</string>
     <string name="home_det_driving_title">Conduci %1$s</string>
     <string name="home_det_driving_sub">Vom detecta unde parchezi</string>
     <string name="home_det_candidate_title">Parchezi %1$s?</string>

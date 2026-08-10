@@ -50,6 +50,7 @@ import io.apptolast.paparcar.presentation.home.HomeState
 import io.apptolast.paparcar.presentation.home.sections.header.components.HomeSearchBar
 import io.apptolast.paparcar.ui.components.ConfirmationBottomSheet
 import io.apptolast.paparcar.presentation.home.model.DetectionStory
+import io.apptolast.paparcar.presentation.home.model.ParkedWatchBadge
 import io.apptolast.paparcar.presentation.home.toBrowseListSlice
 import io.apptolast.paparcar.presentation.home.toPeekSlice
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.HomeDetectionSurface
@@ -226,6 +227,23 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             // [UX-DETECTION-STORY-001] Relatos felices — línea discreta, sin card.
             Variant("Vigilando (activo aparcado)", Placement.Surface) {
                 detectionSurface(DetectionStory.Watching("Škoda Kamiq", isParked = true, viaBluetooth = false))
+            },
+            // [DET-WATCH-HONEST-001] Honesto: frágil (avisa) e interrumpido (el OS mató la FGS).
+            Variant("Vigilando FRÁGIL (sin exención batería)", Placement.Surface) {
+                detectionSurface(
+                    DetectionStory.Watching(
+                        "Škoda Kamiq", isParked = true, viaBluetooth = false,
+                        watchBadge = ParkedWatchBadge.WATCHING_FRAGILE,
+                    ),
+                )
+            },
+            Variant("Vigilancia DETENIDA (FGS muerto por el sistema)", Placement.Surface) {
+                detectionSurface(
+                    DetectionStory.Watching(
+                        "Škoda Kamiq", isParked = true, viaBluetooth = false,
+                        watchBadge = ParkedWatchBadge.WATCH_INTERRUPTED,
+                    ),
+                )
             },
             Variant("Vigilando (BT armado, sin sesión)", Placement.Surface) {
                 detectionSurface(DetectionStory.Watching("Škoda Kamiq", isParked = false, viaBluetooth = true))

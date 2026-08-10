@@ -5,6 +5,7 @@ import io.apptolast.paparcar.isDebugBuild
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.connectivity.ConnectivityObserver
 import io.apptolast.paparcar.domain.connectivity.ConnectivityStatus
+import io.apptolast.paparcar.domain.detection.DetectionRuntimeState
 import io.apptolast.paparcar.domain.detection.ManualParkingDetection
 import io.apptolast.paparcar.domain.diagnostics.UiLocationLogger
 import io.apptolast.paparcar.domain.diagnostics.UiLocationSample
@@ -15,7 +16,9 @@ import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.repository.ZoneRepository
+import io.apptolast.paparcar.domain.model.DetectionReliabilityLevel
 import io.apptolast.paparcar.domain.usecase.detection.ObserveDetectionReadinessUseCase
+import io.apptolast.paparcar.domain.usecase.detection.ObserveDetectionReliabilityUseCase
 import io.apptolast.paparcar.domain.detection.shouldShowParkNudgeBanner
 import io.apptolast.paparcar.domain.usecase.parking.ClearParkNudgeUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ObserveParkedVehiclesUseCase
@@ -64,6 +67,8 @@ class HomeViewModel(
     private val activityRecognitionManager: ActivityRecognitionManager,
     private val connectivityObserver: ConnectivityObserver,
     private val observeDetectionReadiness: ObserveDetectionReadinessUseCase,
+    private val observeDetectionReliability: ObserveDetectionReliabilityUseCase,
+    private val detectionRuntime: DetectionRuntimeState,
     private val reportManualSpot: ReportManualSpotUseCase,
     private val reportSpotReleased: ReportSpotReleasedUseCase,
     private val sendSpotSignal: SendSpotSignalUseCase,
@@ -132,6 +137,8 @@ class HomeViewModel(
         subscribeMapFocusEvents()
         subscribeStartAddParkingRequests()
         subscribeDetectionReadiness()
+        subscribeDetectionReliability()
+        subscribeServicePresence()
         subscribeParkNudge()
     }
 
@@ -216,6 +223,7 @@ class HomeViewModel(
             // Detection controls
             is HomeIntent.StartDrivingDetection,
             is HomeIntent.EnableAutoDetection,
+            is HomeIntent.RequestBatteryExemption,
             is HomeIntent.DismissParkNudge,
             -> handleDetectionIntent(intent)
         }
@@ -583,6 +591,11 @@ class HomeViewModel(
             // (durable record + tray notification). The state field clears via the observe flow.
             is HomeIntent.DismissParkNudge -> clearParkNudge()
 
+            // [DET-BATTERY-EXEMPTION-NUDGE-001] "Activate now" on the battery nudge → fire the system
+            // exemption request (and, on aggressive OEMs, the manufacturer's foreground/autostart page).
+            // The screen handles the effect; the nudge clears itself once the reliability flow re-emits.
+            is HomeIntent.RequestBatteryExemption -> sendEffect(HomeEffect.RequestBatteryOptimizationExemption)
+
             else -> Unit
         }
     }
@@ -801,6 +814,41 @@ class HomeViewModel(
                 if (wasWorking && readiness.toUiState().isDetectionStopped) {
                     sendEffect(HomeEffect.DetectionStopped)
                 }
+            }
+    }
+
+    /**
+     * [DET-BATTERY-EXEMPTION-NUDGE-001] Surface the "detection can fail on your phone" nudge in Home
+     * when — and only when — detection is actually working but its background survival is fragile:
+     * reliability [DetectionReliabilityLevel.REDUCED] already encodes the exact trap (no Bluetooth
+     * pairing + no battery exemption + aggressive OEM). A Bluetooth-paired car never hits REDUCED, so
+     * the nudge stays silent for the strategy that doesn't need the exemption. Gated on the detection
+     * actually being ON so it never competes with the "activate detection" readiness banner.
+     */
+    private fun subscribeDetectionReliability() {
+        combine(
+            observeDetectionReadiness(),
+            observeDetectionReliability(),
+        ) { readiness, reliability ->
+            readiness.toUiState().isDetectionWorking &&
+                reliability.level == DetectionReliabilityLevel.REDUCED
+        }
+            .distinctUntilChanged()
+            .collectSafely("batteryNudge") { show ->
+                updateState { copy(showBatteryOptimizationNudge = show) }
+            }
+    }
+
+    /**
+     * [DET-WATCH-HONEST-001] The real foreground-service lifecycle → state, so the parked watch badge
+     * tells the truth: "Vigilando tu sitio" only when the service is genuinely resident/active, and the
+     * "watch interrupted" / battery corrective when it is not.
+     */
+    private fun subscribeServicePresence() {
+        // presence is a StateFlow (already conflated/distinct) — no distinctUntilChanged needed.
+        detectionRuntime.presence
+            .collectSafely("servicePresence") { presence ->
+                updateState { copy(servicePresence = presence) }
             }
     }
 

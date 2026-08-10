@@ -39,11 +39,16 @@ sealed interface DetectionStory {
      * vehicle earns this story: it is the one the Coordinator works for (strategy gate
      * [DET-STRATEGY-GATE-001]); other cars never claim to be "watched". [isParked] = a fence is
      * watching its session; [viaBluetooth] = armed by the car's paired Bluetooth instead.
+     *
+     * [watchBadge] makes the line HONEST: it only reads "Vigilando tu sitio" when the watch is
+     * genuinely live ([ParkedWatchBadge.WATCHING]); a fragile setup warns, and a killed foreground
+     * service degrades to a "reactivate" ask instead of a green lie. [DET-WATCH-HONEST-001]
      */
     data class Watching(
         val vehicleName: String,
         val isParked: Boolean,
         val viaBluetooth: Boolean,
+        val watchBadge: ParkedWatchBadge = ParkedWatchBadge.WATCHING,
     ) : DetectionStory
 
     /** Nothing to say (non-parking vehicle, or no resolvable vehicle to talk about). */
@@ -58,6 +63,10 @@ fun resolveDetectionStory(
     uiState: DetectionUiState,
     drivingMeta: DrivingMeta?,
     vehicleCards: List<VehicleCard>,
+    // Honest watch health for the parked case — WATCHING when genuinely live, else fragile/interrupted.
+    // Null (default) keeps the healthy "Vigilando" line, so callers that don't wire it don't regress.
+    // [DET-WATCH-HONEST-001]
+    parkedWatchBadge: ParkedWatchBadge? = null,
 ): DetectionStory {
     val activeCard = vehicleCards.firstOrNull { it.vehicle.isActive }
 
@@ -73,11 +82,11 @@ fun resolveDetectionStory(
         )
     }
 
-    fun watchingStory(isParked: Boolean, viaBluetooth: Boolean): DetectionStory {
+    fun watchingStory(isParked: Boolean, viaBluetooth: Boolean, badge: ParkedWatchBadge): DetectionStory {
         // Watching names the ACTIVE vehicle ONLY — never a ranked or first-of-list fallback.
         val name = activeCard?.vehicle?.displayName()?.takeIf { it.isNotBlank() }
             ?: return DetectionStory.Hidden
-        return DetectionStory.Watching(name, isParked = isParked, viaBluetooth = viaBluetooth)
+        return DetectionStory.Watching(name, isParked = isParked, viaBluetooth = viaBluetooth, watchBadge = badge)
     }
 
     return when (uiState) {
@@ -86,8 +95,12 @@ fun resolveDetectionStory(
         DetectionUiState.Inactive -> DetectionStory.Inactive
         DetectionUiState.AwaitingFirstPark -> DetectionStory.AwaitingFirstPark
         DetectionUiState.Monitoring -> drivingStory()
-        DetectionUiState.Parked -> watchingStory(isParked = true, viaBluetooth = false)
-        DetectionUiState.ArmedBluetooth -> watchingStory(isParked = false, viaBluetooth = true)
+        // Honest: the parked line reflects whether the watch is really live. [DET-WATCH-HONEST-001]
+        DetectionUiState.Parked ->
+            watchingStory(isParked = true, viaBluetooth = false, badge = parkedWatchBadge ?: ParkedWatchBadge.WATCHING)
+        // Bluetooth-armed is always covered by the receiver — honestly healthy.
+        DetectionUiState.ArmedBluetooth ->
+            watchingStory(isParked = false, viaBluetooth = true, badge = ParkedWatchBadge.WATCHING)
         DetectionUiState.Silent -> DetectionStory.Hidden
     }
 }

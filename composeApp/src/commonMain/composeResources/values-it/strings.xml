@@ -551,6 +551,11 @@
     <string name="home_det_watching_title">Vigiliamo la tua %1$s</string>
     <string name="home_det_watching_parked_sub">Parcheggiata — rileveremo quando liberi il posto</string>
     <string name="home_det_watching_bt_sub">Il parcheggio si rileva da solo tramite il Bluetooth dell’auto</string>
+    <string name="home_det_watching_fragile_sub">Il telefono potrebbe smettere di controllare. Attivalo per non fallire.</string>
+    <string name="home_det_watching_fortify_cta">Attiva</string>
+    <string name="home_det_watch_interrupted_title">Controllo interrotto per la tua %1$s</string>
+    <string name="home_det_watch_interrupted_sub">Il telefono ha fermato il rilevamento. Riattivalo per non perdere il posto.</string>
+    <string name="home_det_watch_interrupted_cta">Riattiva</string>
     <string name="home_det_driving_title">Alla guida della tua %1$s</string>
     <string name="home_det_driving_sub">Rileveremo dove parcheggi</string>
     <string name="home_det_candidate_title">Stai parcheggiando la tua %1$s?</string>

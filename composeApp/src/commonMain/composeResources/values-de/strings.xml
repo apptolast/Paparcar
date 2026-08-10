@@ -551,6 +551,11 @@
     <string name="home_det_watching_title">Wir passen auf deinen %1$s auf</string>
     <string name="home_det_watching_parked_sub">Geparkt — wir erkennen, wenn du den Platz verlässt</string>
     <string name="home_det_watching_bt_sub">Parken wird automatisch über das Bluetooth des Autos erkannt</string>
+    <string name="home_det_watching_fragile_sub">Dein Handy überwacht evtl. nicht mehr. Aktiviere es, damit nichts ausfällt.</string>
+    <string name="home_det_watching_fortify_cta">Aktivieren</string>
+    <string name="home_det_watch_interrupted_title">Überwachung für dein %1$s gestoppt</string>
+    <string name="home_det_watch_interrupted_sub">Dein Handy hat die Erkennung gestoppt. Reaktiviere sie, damit du den Platz nicht verlierst.</string>
+    <string name="home_det_watch_interrupted_cta">Reaktivieren</string>
     <string name="home_det_driving_title">Unterwegs mit deinem %1$s</string>
     <string name="home_det_driving_sub">Wir erkennen, wo du parkst</string>
     <string name="home_det_candidate_title">Parkst du deinen %1$s?</string>

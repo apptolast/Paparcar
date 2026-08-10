@@ -3,10 +3,13 @@ package io.apptolast.paparcar.presentation.home
 import androidx.compose.runtime.Immutable
 import com.swmansion.kmpmaps.core.MapType
 import io.apptolast.paparcar.domain.detection.PendingParkNudge
+import io.apptolast.paparcar.domain.detection.ServicePresence
 import io.apptolast.paparcar.domain.model.DetectionReadiness
 import io.apptolast.paparcar.domain.model.DrivingPuck
 import io.apptolast.paparcar.domain.model.DisabledReason
 import io.apptolast.paparcar.presentation.home.model.DetectionUiState
+import io.apptolast.paparcar.presentation.home.model.ParkedWatchBadge
+import io.apptolast.paparcar.presentation.home.model.resolveParkedWatchBadge
 import io.apptolast.paparcar.presentation.home.model.toUiState
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.AddressAndPlace
@@ -138,6 +141,24 @@ data class HomeState(
      */
     val pendingParkNudge: PendingParkNudge? = null,
 
+    /**
+     * True when automatic detection is ON but its background survival is fragile on this device —
+     * no Bluetooth-paired car, no battery-optimization exemption, and an aggressive OEM (the
+     * reliability [io.apptolast.paparcar.domain.model.DetectionReliabilityLevel.REDUCED] case).
+     * Drives the persistent Home nudge that re-requests the battery exemption. A Bluetooth car never
+     * reaches REDUCED, so this stays false for the strategy that doesn't need it.
+     * [DET-BATTERY-EXEMPTION-NUDGE-001]
+     */
+    val showBatteryOptimizationNudge: Boolean = false,
+
+    /**
+     * Real lifecycle of the Coordinator foreground service — [ServicePresence.Sentry]/[ServicePresence.Active]
+     * mean the departure watch is genuinely live; [ServicePresence.Dead] means it was killed or never
+     * (re)started. Drives the honest watch badge so "Vigilando tu sitio" never claims to watch a spot
+     * the OS stopped watching. [DET-WATCH-HONEST-001]
+     */
+    val servicePresence: ServicePresence = ServicePresence.Dead,
+
     // ── Mode ──────────────────────────────────────────────────────────────────
 
     val mode: HomeMode = HomeMode.Browse,
@@ -218,6 +239,24 @@ data class HomeState(
     /** Presentation projection of [detectionReadiness] for the Home detection surface. [DET-READY-001h] */
     val detectionUiState: DetectionUiState
         get() = detectionReadiness.toUiState()
+
+    /**
+     * Honest status badge for the parked/active vehicle's departure watch — real, not aspirational.
+     * Only meaningful in the parked / awaiting-first-park context (the other detection states own
+     * their own surfaces); null elsewhere. [DET-WATCH-HONEST-001]
+     */
+    val parkedWatchBadge: ParkedWatchBadge?
+        get() = when (detectionUiState) {
+            DetectionUiState.Parked, DetectionUiState.AwaitingFirstPark -> resolveParkedWatchBadge(
+                hasParkedSession = userParking != null,
+                isBluetoothCovered = userParking?.vehicleId
+                    ?.let { id -> vehicles.firstOrNull { it.id == id }?.bluetoothDeviceId != null }
+                    ?: false,
+                presence = servicePresence,
+                isReliabilityReduced = showBatteryOptimizationNudge,
+            )
+            else -> null
+        }
 }
 
 /**

@@ -551,6 +551,11 @@
     <string name="home_det_watching_title">On veille sur ta %1$s</string>
     <string name="home_det_watching_parked_sub">Garée — nous détecterons quand tu libères la place</string>
     <string name="home_det_watching_bt_sub">Le stationnement se détecte tout seul via le Bluetooth de la voiture</string>
+    <string name="home_det_watching_fragile_sub">Ton téléphone peut cesser de surveiller. Active-le pour que ça ne rate pas.</string>
+    <string name="home_det_watching_fortify_cta">Activer</string>
+    <string name="home_det_watch_interrupted_title">Surveillance arrêtée pour ta %1$s</string>
+    <string name="home_det_watch_interrupted_sub">Ton téléphone a arrêté la détection. Réactive-la pour ne pas perdre la place.</string>
+    <string name="home_det_watch_interrupted_cta">Réactiver</string>
     <string name="home_det_driving_title">Au volant de ta %1$s</string>
     <string name="home_det_driving_sub">Nous détecterons où tu te gares</string>
     <string name="home_det_candidate_title">Tu gares ta %1$s ?</string>

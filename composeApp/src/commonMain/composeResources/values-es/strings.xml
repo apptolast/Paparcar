@@ -586,6 +586,11 @@
     <string name="home_det_watching_title">Vigilando tu %1$s</string>
     <string name="home_det_watching_parked_sub">Aparcado — detectaremos cuándo dejas la plaza</string>
     <string name="home_det_watching_bt_sub">El aparcamiento se detecta solo por el Bluetooth del coche</string>
+    <string name="home_det_watching_fragile_sub">Tu móvil puede dejar de vigilar. Actívalo para que no falle.</string>
+    <string name="home_det_watching_fortify_cta">Activar</string>
+    <string name="home_det_watch_interrupted_title">Vigilancia detenida de tu %1$s</string>
+    <string name="home_det_watch_interrupted_sub">Tu móvil detuvo la detección. Reactívala para no perder la plaza.</string>
+    <string name="home_det_watch_interrupted_cta">Reactivar</string>
     <string name="home_det_driving_title">Conduciendo tu %1$s</string>
     <string name="home_det_driving_sub">Detectaremos dónde aparcas</string>
     <string name="home_det_candidate_title">¿Aparcando tu %1$s?</string>

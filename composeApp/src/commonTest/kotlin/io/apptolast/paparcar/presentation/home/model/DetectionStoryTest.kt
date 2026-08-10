@@ -108,6 +108,42 @@ class DetectionStoryTest {
     }
 
     @Test
+    fun should_carry_fragile_watch_badge_when_setup_is_fragile() {
+        // [DET-WATCH-HONEST-001] The parked line stays "watching" but warns + offers the exemption.
+        val story = resolveDetectionStory(
+            uiState = DetectionUiState.Parked,
+            drivingMeta = null,
+            vehicleCards = listOf(activeParkedCard),
+            parkedWatchBadge = ParkedWatchBadge.WATCHING_FRAGILE,
+        )
+        assertEquals(
+            DetectionStory.Watching(
+                vehicleName = "Skoda Kamiq", isParked = true, viaBluetooth = false,
+                watchBadge = ParkedWatchBadge.WATCHING_FRAGILE,
+            ),
+            story,
+        )
+    }
+
+    @Test
+    fun should_carry_interrupted_watch_badge_when_service_dead() {
+        // [DET-WATCH-HONEST-001] The OS killed the watcher → degrade to a "reactivate" ask, not a lie.
+        val story = resolveDetectionStory(
+            uiState = DetectionUiState.Parked,
+            drivingMeta = null,
+            vehicleCards = listOf(activeParkedCard),
+            parkedWatchBadge = ParkedWatchBadge.WATCH_INTERRUPTED,
+        )
+        assertEquals(
+            DetectionStory.Watching(
+                vehicleName = "Skoda Kamiq", isParked = true, viaBluetooth = false,
+                watchBadge = ParkedWatchBadge.WATCH_INTERRUPTED,
+            ),
+            story,
+        )
+    }
+
+    @Test
     fun should_hide_watching_when_no_vehicle_is_active() {
         // Watching names the ACTIVE vehicle ONLY — no ranked/first fallback (user decision:
         // it is the one the Coordinator works for). Without an active car, better silence

@@ -98,7 +98,9 @@ internal fun LazyListScope.homeSheetItems(
     // lines, resolved by a single testable projection. [UX-DETECTION-STORY-001]
     // Browse-only (hidden while a spot is selected) so it never shifts the spot-scroll index.
     // Also hosts the "where did you leave your car?" row when a nudge is pending. [DET-NUDGE-PERSIST-001]
-    val detectionStory = resolveDetectionStory(slice.detectionUiState, slice.drivingMeta, vehicleCards)
+    val detectionStory = resolveDetectionStory(
+        slice.detectionUiState, slice.drivingMeta, vehicleCards, slice.parkedWatchBadge,
+    )
     if ((detectionStory != DetectionStory.Hidden || slice.showParkNudge) && !isSpotSelected) {
         item("detection_surface") {
             // The car both cold-start CTAs are about: the active vehicle, or the first if none is
@@ -121,6 +123,8 @@ internal fun LazyListScope.homeSheetItems(
                 // [DET-G-01b] "I'm driving" declares THIS car and arms detection for it. [VEH-ACTIVE-FENCE-001]
                 onStartDrivingDetection = { onIntent(HomeIntent.StartDrivingDetection(vehicleId = coldStartVehicleId)) },
                 onActivateDetection = { onIntent(HomeIntent.EnableAutoDetection) }, // [DET-TOGGLE-001]
+                // Fragile / interrupted watch → request the battery exemption. [DET-WATCH-HONEST-001]
+                onRequestBatteryExemption = { onIntent(HomeIntent.RequestBatteryExemption) },
                 allowDrivingDetection = true, // show both cold-start CTAs (mark spot + I'm driving)
                 showParkNudge = slice.showParkNudge,
                 onMarkNudgeSpot = {

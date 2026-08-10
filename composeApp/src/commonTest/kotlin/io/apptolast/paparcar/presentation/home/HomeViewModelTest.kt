@@ -12,7 +12,9 @@ import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.Vehicle
+import io.apptolast.paparcar.domain.usecase.detection.EvaluateDetectionReliabilityUseCase
 import io.apptolast.paparcar.domain.usecase.detection.ObserveDetectionReadinessUseCase
+import io.apptolast.paparcar.domain.usecase.detection.ObserveDetectionReliabilityUseCase
 import io.apptolast.paparcar.domain.usecase.location.GetAddressAndPlaceUseCase
 import io.apptolast.paparcar.domain.usecase.location.SearchAddressUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
@@ -37,6 +39,7 @@ import io.apptolast.paparcar.fakes.FakeBluetoothScanner
 import io.apptolast.paparcar.fakes.FakeConnectivityObserver
 import io.apptolast.paparcar.fakes.FakeGeocoderDataSource
 import io.apptolast.paparcar.fakes.FakeGeofenceManager
+import io.apptolast.paparcar.fakes.FakeOemBackgroundReliabilityManager
 import io.apptolast.paparcar.fakes.FakeAddressAndPlaceRepository
 import io.apptolast.paparcar.fakes.FakeLocationDataSource
 import io.apptolast.paparcar.fakes.FakeParkingEnrichmentScheduler
@@ -137,10 +140,19 @@ class HomeViewModelTest {
             notificationPort = FakeAppNotificationManager(),
             manualParkingDetection = manualParkingDetection,
         )
+        val observeDetectionReliability = ObserveDetectionReliabilityUseCase(
+            vehicleRepository = vehicleRepo,
+            permissionManager = permissions,
+            oemBackgroundReliabilityManager = FakeOemBackgroundReliabilityManager(),
+            strategyResolver = ParkingStrategyResolver(vehicleRepo, FakeBluetoothScanner(bluetoothEnabled = false)),
+            evaluateDetectionReliability = EvaluateDetectionReliabilityUseCase(),
+        )
         return HomeViewModel(
             permissionManager = permissions,
             locationDataSource = locationDataSource,
             observeDetectionReadiness = observeDetectionReadiness,
+            observeDetectionReliability = observeDetectionReliability,
+            detectionRuntime = StaticDetectionRuntimeState(),
             reportManualSpot = ReportManualSpotUseCase(reportSpotReleased, vehicleRepo),
             reportSpotReleased = reportSpotReleased,
             activityRecognitionManager = activityRecognition,
