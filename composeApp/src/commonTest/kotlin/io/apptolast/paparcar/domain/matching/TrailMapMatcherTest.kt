@@ -237,4 +237,79 @@ class TrailMapMatcherTest {
             assertTrue(offset < 1.0, "expected the drawn line on the followed street, a point is ${offset}m off it")
         }
     }
+
+    @Test
+    fun `should keep a straight stretch on the main road instead of a parallel service way`() {
+        // Field 2026-08-10 (CA-603): a school drop-off loop runs ~20 m parallel to the main road,
+        // CONNECTED at both ends — routable, near-identical length, so the transition term can't
+        // discriminate. Drifted fixes sit NEARER the service way; only the minor-way emission
+        // handicap keeps the line on the real road. [ROUTE-QUALITY-001]
+        val main = RoadWay(listOf(gp(36.6000, -6.2400), gp(36.6000, -6.2300)))
+        val serviceLoop = RoadWay(listOf(gp(36.60018, -6.2400), gp(36.60018, -6.2300)), isMinor = true)
+        val joinWest = RoadWay(listOf(gp(36.6000, -6.2400), gp(36.60018, -6.2400)), isMinor = true)
+        val joinEast = RoadWay(listOf(gp(36.6000, -6.2300), gp(36.60018, -6.2300)), isMinor = true)
+        // Every mid fix drifts ~13 m north of the main road → only ~7 m from the service loop.
+        val trail = listOf(
+            gp(36.60012, -6.2360),
+            gp(36.60012, -6.2355),
+            gp(36.60012, -6.2350),
+            gp(36.60012, -6.2345),
+            gp(36.60012, -6.2340),
+        )
+
+        val matched = TrailMapMatcher.snap(trail, listOf(main, serviceLoop, joinWest, joinEast))
+
+        assertTrue(matched.isNotEmpty())
+        matched.forEach { p ->
+            val offset = haversineMeters(p.latitude, p.longitude, 36.6000, p.longitude)
+            assertTrue(offset < 1.0, "expected the drawn line on the MAIN road, a point is ${offset}m off it")
+        }
+    }
+
+    @Test
+    fun `should still match a service way when the trail is genuinely on it`() {
+        // A fuel-station forecourt / parking aisle ~67 m from the main road: the fixes are ON the
+        // aisle, the main road's emission is hopeless — the handicap must not exile a real
+        // service-way stretch. [ROUTE-QUALITY-001]
+        val main = RoadWay(listOf(gp(36.6000, -6.2400), gp(36.6000, -6.2300)))
+        val aisle = RoadWay(listOf(gp(36.6006, -6.2400), gp(36.6006, -6.2300)), isMinor = true)
+        val trail = listOf(
+            gp(36.6006, -6.2360),
+            gp(36.6006, -6.2355),
+            gp(36.6006, -6.2350),
+        )
+
+        val matched = TrailMapMatcher.snap(trail, listOf(main, aisle))
+
+        assertTrue(matched.isNotEmpty())
+        matched.forEach { p ->
+            val offset = haversineMeters(p.latitude, p.longitude, 36.6006, p.longitude)
+            assertTrue(offset < 1.0, "expected the drawn line on the AISLE, a point is ${offset}m off it")
+        }
+    }
+
+    @Test
+    fun `should not tax a shared segment when a major way overlaps a service way`() {
+        // The same physical segment fetched twice (a service way overlapping the main road, e.g.
+        // dual mapping): the major way must upgrade the shared edge so the handicap never taxes a
+        // stretch that is also a real road — regardless of fetch order. [ROUTE-QUALITY-001]
+        val asService = RoadWay(listOf(gp(36.6000, -6.2400), gp(36.6000, -6.2300)), isMinor = true)
+        val asMain = RoadWay(listOf(gp(36.6000, -6.2400), gp(36.6000, -6.2300)))
+        val parallel = RoadWay(listOf(gp(36.60018, -6.2400), gp(36.60018, -6.2300)))
+        // Fixes drift toward the parallel plain road; if the shared edge kept its minor tax the
+        // parallel one would win.
+        val trail = listOf(
+            gp(36.60006, -6.2360),
+            gp(36.60006, -6.2350),
+            gp(36.60006, -6.2340),
+        )
+
+        val matched = TrailMapMatcher.snap(trail, listOf(asService, asMain, parallel))
+
+        assertTrue(matched.isNotEmpty())
+        matched.forEach { p ->
+            val offset = haversineMeters(p.latitude, p.longitude, 36.6000, p.longitude)
+            assertTrue(offset < 1.0, "expected the upgraded shared edge to win, a point is ${offset}m off it")
+        }
+    }
 }

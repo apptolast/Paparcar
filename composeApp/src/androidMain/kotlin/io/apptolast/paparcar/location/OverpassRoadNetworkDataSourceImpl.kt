@@ -34,7 +34,12 @@ class OverpassRoadNetworkDataSourceImpl : RoadNetworkDataSource {
                 .mapNotNull { el ->
                     val geom = el.geometry ?: return@mapNotNull null
                     if (geom.size < 2) return@mapNotNull null
-                    RoadWay(geom.map { GpsPoint(it.lat, it.lon, 0f, 0L, 0f) })
+                    RoadWay(
+                        points = geom.map { GpsPoint(it.lat, it.lon, 0f, 0L, 0f) },
+                        // Service ways (parking aisles, driveways, drop-off loops) stay matchable but
+                        // handicapped so they never steal a straight main-road stretch. [ROUTE-QUALITY-001]
+                        isMinor = el.tags?.get(TAG_HIGHWAY) == HIGHWAY_SERVICE,
+                    )
                 }
         }
     }
@@ -43,9 +48,11 @@ class OverpassRoadNetworkDataSourceImpl : RoadNetworkDataSource {
         // bbox order is (south, west, north, east). Only drivable highway classes, excluding
         // footways/cycleways/paths so the trail never snaps onto a pedestrian way.
         val bbox = "$minLat,$minLon,$maxLat,$maxLon"
+        // `out tags geom` (vs plain `out geom`) also returns each way's tags, so the highway class
+        // survives into [RoadWay.isMinor] for the matcher's minor-way handicap. [ROUTE-QUALITY-001]
         return "[out:json][timeout:$QUERY_TIMEOUT_S];" +
             "way[\"highway\"~\"^($DRIVABLE)$\"]($bbox);" +
-            "out geom;"
+            "out tags geom;"
     }
 
     private fun postOverpass(query: String): String? {
@@ -73,6 +80,7 @@ class OverpassRoadNetworkDataSourceImpl : RoadNetworkDataSource {
     private data class OverpassWay(
         val type: String = "",
         val geometry: List<Geom>? = null,
+        val tags: Map<String, String>? = null,
     )
 
     @Serializable
@@ -83,6 +91,8 @@ class OverpassRoadNetworkDataSourceImpl : RoadNetworkDataSource {
         const val QUERY_TIMEOUT_S = 20
         const val CONNECT_TIMEOUT_MS = 6_000
         const val READ_TIMEOUT_MS = 15_000
+        const val TAG_HIGHWAY = "highway"
+        const val HIGHWAY_SERVICE = "service"
         const val DRIVABLE =
             "motorway|trunk|primary|secondary|tertiary|unclassified|residential|living_street|service" +
                 "|motorway_link|trunk_link|primary_link|secondary_link|tertiary_link"

@@ -131,6 +131,12 @@ fun HistoryParkingDetailScreen(
     val routeTrail = remember(focusedSession?.routePolyline, routeSnapped) {
         mutableStateOf(if (routeSnapped) PolylineCodec.decode(focusedSession?.routePolyline) else emptyList())
     }
+    // Origin vertex — the same departure dot Home draws on a live trip, here on the stored route's
+    // first point, so the line visibly STARTS somewhere instead of reading as cut off. Null when
+    // there is no drawable route (no marker). [ROUTE-QUALITY-001]
+    val routeStart = remember(focusedSession?.routePolyline, routeSnapped) {
+        mutableStateOf(routeTrail.value.firstOrNull())
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         PaparcarMapView(
@@ -138,6 +144,7 @@ fun HistoryParkingDetailScreen(
             spots = emptyList(),
             userLocation = state.userLocation,
             tripTrail = routeTrail,
+            departurePoint = routeStart,
             parkingLocation = focusedSession?.location ?: parkingGpsPoint ?: state.userParking?.location,
             parkingVehicleSize = focusedSession?.sizeCategory ?: state.focusedVehicle?.sizeCategory,
             parkingVehicleCarbody = focusedSession?.carbodyType ?: state.focusedVehicle?.carbodyType,
@@ -282,9 +289,13 @@ internal fun HistoryDetailSheet(
                 stringResource(Res.string.parking_detail_section_label)
             }
             // Pager-style stepper: previous ‹ to the LEFT of the title, next › to the RIGHT, so the
-            // whole history reads like a paged card. [HISTORY-DETAIL-001]
+            // whole history reads like a paged card. Title truly centred between the chevrons and
+            // demoted to outline — it is a pager eyebrow, not this card's protagonist (the address
+            // hero below is). [HISTORY-DETAIL-001][ROUTE-QUALITY-001]
             PapSectionHeaderRow(
                 title = sectionLabel,
+                color = cs.outline,
+                centerTitle = true,
                 leading = {
                     StepperButton(
                         icon = Icons.Rounded.ChevronLeft,

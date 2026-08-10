@@ -47,6 +47,10 @@ fun PapSectionHeaderRow(
     title: String,
     modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    /** Center the title between the slots (pager-style headers) instead of anchoring it to the
+     *  leading slot. With equal-width slots on both sides the title sits on the row's optical
+     *  centre. [ROUTE-QUALITY-001] */
+    centerTitle: Boolean = false,
     leading: (@Composable () -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
 ) {
@@ -56,13 +60,15 @@ fun PapSectionHeaderRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         leading?.invoke()
+        if (centerTitle) Spacer(Modifier.weight(1f))
         Text(
             text = title.uppercase(),
             style = PaparcarType.current.sectionHeader,
             color = color,
         )
+        if (centerTitle) Spacer(Modifier.weight(1f))
         if (trailing != null) {
-            Spacer(Modifier.weight(1f))
+            if (!centerTitle) Spacer(Modifier.weight(1f))
             trailing()
         }
     }

@@ -51,9 +51,11 @@ object TrailMapMatcher {
      *  discarded — the industry range is 100–200 m (Valhalla 50–100, Barefoot/Newson-Krumm 200). */
     const val MAX_SNAP_METERS = 120.0
 
-    /** Wider search for the trip's two endpoints only. The backdated origin can be a parked spot set
+    /** Wider search for the trip's ORIGIN only (index 0). The seeded origin can be a parked spot set
      *  back from the road (a car park, a driveway) further than [MAX_SNAP_METERS]; snapping it onto
-     *  the nearest street lets the line START on the road rather than dropping the origin. */
+     *  the nearest street lets the line START on the road rather than dropping the origin. The final
+     *  fix deliberately keeps the normal radius: widening it would drag a genuinely off-road trail
+     *  (rural, missing OSM) onto a distant road instead of returning it raw. */
     const val ORIGIN_SNAP_METERS = 300.0
 
     /** Trail points are decimated to this spacing before matching: a transition discriminates
@@ -82,6 +84,15 @@ object TrailMapMatcher {
      *  scenic detour. The slack keeps short steps routable through a corner. */
     const val MAX_DETOUR_FACTOR = 3.0
     const val DETOUR_SLACK_METERS = 120.0
+
+    /** Emission handicap for candidates on a minor way ([RoadWay.isMinor] — `highway=service`:
+     *  parking aisles, driveways, school drop-off loops). Worth ≈ a 30 m distance disadvantage
+     *  (0.5·(30/σ)²), so a service road running parallel a few metres from the real road can never
+     *  steal a straight stretch on emission noise alone, while a fix genuinely deep inside a car
+     *  park (main road ≥ 40–50 m away) still matches the aisle it is on. A class weight is what
+     *  Newson–Krumm implementations use instead of excluding these ways outright — excluding them
+     *  would chord over every trip that starts or ends in a forecourt. [ROUTE-QUALITY-001] */
+    const val MINOR_WAY_EMISSION_PENALTY = 4.5
 
     fun snap(points: List<GpsPoint>, roads: List<RoadWay>): List<GpsPoint> {
         if (roads.isEmpty() || points.size < 2) return points
@@ -219,10 +230,14 @@ object TrailMapMatcher {
         internal val lon: Double,
         internal val distMeters: Double,
         internal val alongFromU: Double,
+        internal val isMinor: Boolean,
     ) {
         internal fun emissionCost(): Double {
             val z = distMeters / EMISSION_SIGMA_METERS
-            return 0.5 * z * z
+            val base = 0.5 * z * z
+            // Class weight: minor (service) ways only win when the fix is clearly ON them, never a
+            // parallel steal on emission noise. [ROUTE-QUALITY-001]
+            return if (isMinor) base + MINOR_WAY_EMISSION_PENALTY else base
         }
     }
 
@@ -239,6 +254,7 @@ object TrailMapMatcher {
         private val edgeU: IntArray,
         private val edgeV: IntArray,
         private val edgeLen: DoubleArray,
+        private val edgeMinor: BooleanArray,
         private val adjacency: Array<IntArray>, // node → incident edge indices
     ) {
         val isEmpty: Boolean get() = edgeU.isEmpty()
@@ -264,10 +280,12 @@ object TrailMapMatcher {
                 )
                 val d = haversineMeters(p.latitude, p.longitude, lat, lon)
                 if (d <= maxSnapMeters) {
-                    found.add(Candidate(e, lat, lon, d, t * edgeLen[e]))
+                    found.add(Candidate(e, lat, lon, d, t * edgeLen[e], edgeMinor[e]))
                 }
             }
-            found.sortBy { it.distMeters }
+            // Penalty-aware order: in a dense forecourt several service segments would otherwise
+            // crowd the nearby main road out of the top-N by raw distance. [ROUTE-QUALITY-001]
+            found.sortBy { it.emissionCost() }
             val kept = ArrayList<Candidate>()
             for (cand in found) {
                 if (kept.size == MAX_CANDIDATES_PER_POINT) break
@@ -367,10 +385,11 @@ object TrailMapMatcher {
                 val lats = ArrayList<Double>()
                 val lons = ArrayList<Double>()
                 val incident = ArrayList<MutableList<Int>>()
-                val edgeKeys = HashSet<Long>()
+                val edgeByKey = HashMap<Long, Int>()
                 val edgeU = ArrayList<Int>()
                 val edgeV = ArrayList<Int>()
                 val edgeLen = ArrayList<Double>()
+                val edgeMinor = ArrayList<Boolean>()
 
                 fun nodeOf(p: GpsPoint): Int {
                     // ±90e6 / ±180e6 µdeg both fit in 32 bits — pack lat high, lon low, collision-free.
@@ -390,11 +409,20 @@ object TrailMapMatcher {
                         val b = nodeOf(way.points[i + 1])
                         if (a == b) continue
                         val key = (minOf(a, b).toLong() shl 32) or maxOf(a, b).toLong()
-                        if (!edgeKeys.add(key)) continue // overlapping ways: one edge is enough
+                        val existing = edgeByKey[key]
+                        if (existing != null) {
+                            // Overlapping ways: one edge is enough — but a major way sharing the
+                            // segment upgrades it, so the minor handicap never taxes a stretch that
+                            // is also a real road. [ROUTE-QUALITY-001]
+                            if (!way.isMinor) edgeMinor[existing] = false
+                            continue
+                        }
                         val e = edgeU.size
+                        edgeByKey[key] = e
                         edgeU.add(a)
                         edgeV.add(b)
                         edgeLen.add(haversineMeters(lats[a], lons[a], lats[b], lons[b]))
+                        edgeMinor.add(way.isMinor)
                         incident[a].add(e)
                         incident[b].add(e)
                     }
@@ -405,6 +433,7 @@ object TrailMapMatcher {
                     edgeU.toIntArray(),
                     edgeV.toIntArray(),
                     edgeLen.toDoubleArray(),
+                    edgeMinor.toBooleanArray(),
                     Array(incident.size) { incident[it].toIntArray() },
                 )
             }

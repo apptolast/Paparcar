@@ -626,4 +626,60 @@ class ConfirmParkingUseCaseTest {
         assertNotNull(saved)
         assertNull(saved.routePolyline)
     }
+
+    // ── Route origin seed [ROUTE-QUALITY-001] ───────────────────────────────────
+
+    private fun freshRoute(now: Long) = listOf(
+        GpsPoint(40.4160, -3.7040, 5f, now - 120_000, 0f),
+        GpsPoint(40.4165, -3.7038, 5f, now - 60_000, 0f),
+        GpsPoint(40.4167, -3.7037, 5f, now - 2_000, 0f),
+    )
+
+    @Test
+    fun `should prepend the previous parking as the route origin`() = runTest {
+        // The store's first element is the first fix AFTER arming — typically hundreds of metres
+        // into the drive. The trip's true origin is the vehicle's still-active previous parking.
+        val now = Clock.System.now().toEpochMilliseconds()
+        val route = freshRoute(now)
+        val previous = recentActiveSession(lat = 40.4115, lon = -3.7040) // ~500 m before the first fix
+        val useCase = buildUseCase(
+            repo = FakeUserParkingRepository(initialSession = previous),
+            routeStore = FakeDrivingRouteStore(initial = route),
+        )
+
+        val saved = useCase(location, detectionReliability = 0.9f, sealPoint = null).getOrNull()
+        assertNotNull(saved)
+        assertEquals(PolylineCodec.encode(listOf(previous.location) + route), saved.routePolyline)
+    }
+
+    @Test
+    fun `should not prepend an origin further than the plausibility ceiling`() = runTest {
+        // A previous parking across town (stale session) is another story — never stretch the line.
+        val now = Clock.System.now().toEpochMilliseconds()
+        val route = freshRoute(now)
+        val previous = recentActiveSession(lat = 40.3600, lon = -3.7040) // ~6 km away
+        val useCase = buildUseCase(
+            repo = FakeUserParkingRepository(initialSession = previous),
+            routeStore = FakeDrivingRouteStore(initial = route),
+        )
+
+        val saved = useCase(location, detectionReliability = 0.9f, sealPoint = null).getOrNull()
+        assertNotNull(saved)
+        assertEquals(PolylineCodec.encode(route), saved.routePolyline)
+    }
+
+    @Test
+    fun `should not prepend an origin that is effectively the first fix already`() = runTest {
+        val now = Clock.System.now().toEpochMilliseconds()
+        val route = freshRoute(now)
+        val previous = recentActiveSession(lat = 40.4160, lon = -3.7040) // same spot as the first fix
+        val useCase = buildUseCase(
+            repo = FakeUserParkingRepository(initialSession = previous),
+            routeStore = FakeDrivingRouteStore(initial = route),
+        )
+
+        val saved = useCase(location, detectionReliability = 0.9f, sealPoint = null).getOrNull()
+        assertNotNull(saved)
+        assertEquals(PolylineCodec.encode(route), saved.routePolyline)
+    }
 }

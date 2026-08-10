@@ -214,7 +214,14 @@ class ConfirmParkingUseCase(
         // fix is recent belongs to THIS trip — a stale one lingering from a previous aborted trip
         // (the store is cleared on confirm, not on abort) must not be attached to this park. BT parks
         // never tracked a drive, so their store is empty → no route (the honest result).
-        val routePolyline = encodeFreshRoute(nowMs = gpsPoint.timestamp)
+        // [ROUTE-QUALITY-001] The trip's true ORIGIN is this vehicle's still-active previous parking
+        // — the store's first element is only the first fix the tracker saw after arming, typically
+        // already hundreds of metres into the drive (field 2026-08-10: the stored line began on the
+        // A-491, ~500 m past the real spot). Prepend it, plausibility-capped, so the stored route
+        // starts where the car actually left from (the polyline carries lat/lon only — the origin's
+        // old timestamp is irrelevant).
+        val routeOrigin = userParkingRepository.getActiveSessionByVehicle(resolvedVehicleId)?.location
+        val routePolyline = encodeFreshRoute(nowMs = gpsPoint.timestamp, origin = routeOrigin)
 
         val session = UserParking(
             id = sessionId,
@@ -338,7 +345,7 @@ class ConfirmParkingUseCase(
      * [nowMs] — a route whose newest fix is older than that is a leftover from a previous aborted
      * trip, not the drive that just ended here. [DET-ROUTE-TRACK-001]
      */
-    private fun encodeFreshRoute(nowMs: Long): String? {
+    private fun encodeFreshRoute(nowMs: Long, origin: GpsPoint? = null): String? {
         val points = drivingRouteStore?.points().orEmpty()
         val last = points.lastOrNull() ?: return null
         val fresh = points.size >= 2 && last.timestamp > 0L && (nowMs - last.timestamp) in 0..ROUTE_FRESHNESS_MS
@@ -348,7 +355,23 @@ class ConfirmParkingUseCase(
             }
             return null
         }
-        return PolylineCodec.encode(points).ifEmpty { null }
+        // [ROUTE-QUALITY-001] Prepend the previous parking as the trip's true origin. Plausibility
+        // mirrors Home's live prepend: an origin further than the ceiling from the first tracked fix
+        // belongs to some other story (stale session, cross-town restart) — never stretch the line
+        // to it. Within a stone's throw of the first fix it adds nothing.
+        val first = points.first()
+        val seeded = if (origin != null) {
+            val gapM = haversineMeters(origin.latitude, origin.longitude, first.latitude, first.longitude)
+            if (gapM in MIN_ORIGIN_PREPEND_METERS..MAX_ORIGIN_PREPEND_METERS) {
+                PaparcarLogger.d(DIAG, "  route origin seeded from previous parking (${gapM.toInt()}m before first fix) [ROUTE-QUALITY-001]")
+                listOf(origin) + points
+            } else {
+                points
+            }
+        } else {
+            points
+        }
+        return PolylineCodec.encode(seeded).ifEmpty { null }
     }
 
     private companion object {
@@ -359,5 +382,12 @@ class ConfirmParkingUseCase(
          *  (leftover from a previous aborted drive) → not attached. A real arrival's last fix is
          *  seconds old; the ceiling only rejects stale carry-over. [DET-ROUTE-TRACK-001] */
         const val ROUTE_FRESHNESS_MS = 30 * 60_000L
+
+        /** Origin-prepend plausibility window [ROUTE-QUALITY-001]: below the floor the previous
+         *  parking is effectively the first fix already (nothing to add); above the ceiling it is
+         *  another story entirely (stale session, restart across town) — mirrors Home's live
+         *  backdated-origin ceiling (MAX_BACKDATED_ORIGIN_METERS). */
+        const val MIN_ORIGIN_PREPEND_METERS = 15.0
+        const val MAX_ORIGIN_PREPEND_METERS = 5_000.0
     }
 }

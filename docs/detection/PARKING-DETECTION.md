@@ -1812,6 +1812,37 @@ breaks the HMM into an honest straight chord. Supersedes v1 (per-point snap), v2
 routing is now inherent) and v3 (straight-line-transition Viterbi). Pure commonMain; pipeline,
 decimation and detection evidence untouched.
 
+### ROUTE-QUALITY-001 — the stored route starts at the real origin; service ways never steal the line (2026-08-11)
+
+**Why (field 2026-08-10, Redmi/Coordinator).** Three visible defects in the stored history route:
+(a) the line began on the A-491 ~500 m past the real departure — the store's first element is only
+the first fix the tracker saw after arming (first fixes also arrive with 50–70 m accuracy and are
+dropped by the matcher); (b) on a straight CA-603 stretch the line bulged onto a parallel school
+drop-off loop — `highway=service` ways were fetched as candidates with NO tags and NO class weight,
+indistinguishable from the main road (a connected parallel loop has near-identical routed length,
+so the transition term is ~0 and flattened emission noise decided); (c) the line started mid-map
+with no marker, reading as cut off.
+
+**What.**
+- **Origin seed** (`ConfirmParkingUseCase.encodeFreshRoute`): the vehicle's still-active previous
+  parking is prepended to the stored polyline as the trip's true origin, plausibility-capped
+  (15 m – 5 km vs the first tracked fix, mirroring Home's live backdated-origin ceiling). The
+  polyline carries lat/lon only, so the origin's old timestamp is irrelevant; the matcher's
+  `ORIGIN_SNAP_METERS` (300 m, index 0 only) then routes the line from the real spot.
+- **Minor-way handicap** (`TrailMapMatcher` + `OverpassRoadNetworkDataSourceImpl`): the Overpass
+  query now returns tags (`out tags geom`), `RoadWay.isMinor` marks `highway=service`, and minor
+  candidates pay `MINOR_WAY_EMISSION_PENALTY` (4.5 ≈ a 30 m emission handicap) — a parallel service
+  way can no longer win on noise, while a trail genuinely on an aisle/forecourt (main road ≥ 40–50 m
+  away) still matches it. Candidates are ordered by penalized cost (not raw distance) so dense
+  forecourt segments don't crowd the main road out of the top-4, and a major way sharing a segment
+  upgrades the edge (no tax on dual-mapped stretches). Service ways stay IN the graph — excluding
+  them would chord over every trip that starts or ends in a forecourt.
+- **Origin vertex** (`ParkingLocationScreen`): history detail passes the route's first point as
+  `departurePoint`, reusing Home's departure-dot marker, so the line visibly starts somewhere.
+
+Pure commonMain except the Overpass query change; detection evidence untouched. The snap remains
+once-and-stored — routes snapped before this ticket keep their old geometry.
+
 ### DET-RESIDENT-FGS-001 — resident SENTRY FGS between parkings (F1 lifecycle, F2 telemetry) (2026-07-28 / 2026-08-04)
 
 **Why (chronic FN class; plan derived from the decompiled Driversnote/Transistor stack).** The
