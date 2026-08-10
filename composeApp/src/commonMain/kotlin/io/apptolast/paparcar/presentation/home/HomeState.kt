@@ -211,6 +211,12 @@ data class HomeState(
     val editingParkingId: String? = null,
     /** Vehicle the new session is created for. Null → default vehicle. [MULTI-PARKING-001] */
     val addingParkingVehicleId: String? = null,
+    /**
+     * True when this pin mode was entered from a DETECTION nudge ("Marcar mi plaza" notification /
+     * sheet row): the confirmed pin keeps detection provenance (`AUTO_DETECTED`, path `nudge`)
+     * instead of being stamped a manual report. [DET-NUDGE-PIN-PROVENANCE-001]
+     */
+    val addingParkingFromDetectionNudge: Boolean = false,
 
 ) {
     // ── Computed properties ───────────────────────────────────────────────────

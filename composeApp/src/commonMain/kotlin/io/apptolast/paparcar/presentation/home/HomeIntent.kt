@@ -88,6 +88,9 @@ sealed class HomeIntent {
         val initialGps: GpsPoint?,
         val editingParkingId: String? = null,
         val targetVehicleId: String? = null,
+        /** True when a DETECTION nudge opened this pin mode — the confirmed pin keeps detection
+         *  provenance instead of being stamped a manual report. [DET-NUDGE-PIN-PROVENANCE-001] */
+        val fromDetectionNudge: Boolean = false,
     ) : HomeIntent()
 
     data object ExitAddParkingMode : HomeIntent()

@@ -10,6 +10,7 @@ import io.apptolast.paparcar.domain.detection.StaticDetectionRuntimeState
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.Spot
+import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.usecase.detection.EvaluateDetectionReliabilityUseCase
@@ -50,6 +51,7 @@ import io.apptolast.paparcar.fakes.FakeUserParkingRepository
 import io.apptolast.paparcar.fakes.FakeVehicleRepository
 import io.apptolast.paparcar.fakes.FakeZoneRepository
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -452,6 +454,30 @@ class HomeViewModelTest {
 
         assertEquals(1, parkingRepo.saveNewParkingSessionCallCount)
         assertIs<HomeMode.Browse>(vm.state.value.mode)
+    }
+
+    @Test
+    fun `should_keep_detection_provenance_on_ConfirmAddParking_when_entered_from_detection_nudge`() = runTest(testDispatcher) {
+        // The nudge ("Marcar mi plaza") is a DETECTION-nominated ask — the pin the user confirms
+        // must keep detection provenance so the freed spot later publishes as AUTO_DETECTED
+        // instead of a 15-min manual report. [DET-NUDGE-PIN-PROVENANCE-001]
+        vehicleRepo.saveVehicle(
+            io.apptolast.paparcar.domain.model.Vehicle(
+                id = "v1", userId = "mock_user_001", brand = "Ford", model = "Focus",
+                sizeCategory = io.apptolast.paparcar.domain.model.VehicleSize.MEDIUM_SUV,
+                vehicleType = io.apptolast.paparcar.domain.model.VehicleType.CAR, isActive = true,
+            ),
+        )
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+
+        vm.handleIntent(HomeIntent.EnterAddParkingMode(initialGps = location, fromDetectionNudge = true))
+        vm.handleIntent(HomeIntent.ConfirmAddParking())
+        advanceUntilIdle()
+
+        val saved = parkingRepo.observeActiveSessions().first().single()
+        assertEquals(SpotType.AUTO_DETECTED, saved.spotType)
+        assertEquals("nudge", saved.detectionPath)
     }
 
     // ── ConfirmAddParking from EDIT: correct-in-place vs re-park ───────────────

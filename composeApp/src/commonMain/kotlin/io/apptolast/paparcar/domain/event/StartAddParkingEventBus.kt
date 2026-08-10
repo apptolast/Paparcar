@@ -4,8 +4,8 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 
 /**
- * One-shot signal asking Home to enter manual "add parking" mode, raised by the cold-start nudge
- * notification ("Marcar mi plaza" / tap). [DET-TOGGLE-002]
+ * One-shot signal asking Home to enter "add parking" pin mode, raised by the nudge
+ * notifications ("Marcar mi plaza" / tap). [DET-TOGGLE-002]
  *
  * Unlike [MapFocusEventBus] (a `SharedFlow` with `replay = 0`, which drops emissions made while no
  * collector is active), this uses a CONFLATED [Channel]: the nudge almost always opens the app from
@@ -14,10 +14,18 @@ import kotlinx.coroutines.flow.receiveAsFlow
  * not re-delivered to a later subscriber, so re-entering Home will not re-trigger the mode.
  */
 class StartAddParkingEventBus {
-    private val _requests = Channel<Unit>(Channel.CONFLATED)
+    private val _requests = Channel<StartAddParkingRequest>(Channel.CONFLATED)
     val requests = _requests.receiveAsFlow()
 
-    fun request() {
-        _requests.trySend(Unit)
+    fun request(fromDetectionNudge: Boolean) {
+        _requests.trySend(StartAddParkingRequest(fromDetectionNudge))
     }
 }
+
+/**
+ * @param fromDetectionNudge true when the ask originated from a DETECTION nudge (the coordinator
+ *   detected a trip but could not place the car — `showMarkParkingNudge`): the confirmed pin keeps
+ *   detection provenance (`AUTO_DETECTED`, path `nudge`). False for user-initiated asks (first-park
+ *   onboarding nudge) → plain manual pin. [DET-NUDGE-PIN-PROVENANCE-001]
+ */
+data class StartAddParkingRequest(val fromDetectionNudge: Boolean)

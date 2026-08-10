@@ -192,8 +192,9 @@ class AppNotificationManagerImpl(
     override fun showFirstParkNudge() {
         // Low-priority, gentle nudge on the UPLOAD channel (DEFAULT importance). Tap AND the action
         // both deep-link straight into manual add-parking mode (not just Home), matching the
-        // "Marcar mi plaza" promise. [DET-TOGGLE-002]
-        val addParkingIntent = buildAddParkingIntent(RC_FIRST_PARK_NUDGE)
+        // "Marcar mi plaza" promise. [DET-TOGGLE-002] No detection event nominated this ask —
+        // the confirmed pin is a plain manual report. [DET-NUDGE-PIN-PROVENANCE-001]
+        val addParkingIntent = buildAddParkingIntent(RC_FIRST_PARK_NUDGE, fromDetection = false)
         val notification = NotificationCompat.Builder(context, UPLOAD_CHANNEL_ID)
             .setContentTitle(context.getString(R.string.notif_first_park_nudge_title))
             .setContentText(context.getString(R.string.notif_first_park_nudge_text))
@@ -261,9 +262,10 @@ class AppNotificationManagerImpl(
         }
         // [DET-AR-FIRST-001] A detection session detected movement but could not place the car
         // (no measured driving) — HIGH-importance ACTION channel: the user is about to lose
-        // their parking record if they ignore it. Tap and action both deep-link into manual
-        // add-parking mode, same promise as the cold-start nudge.
-        val addParkingIntent = buildAddParkingIntent(RC_MARK_PARKING_NUDGE)
+        // their parking record if they ignore it. Tap and action both deep-link into
+        // add-parking pin mode, same promise as the cold-start nudge. DETECTION nominated this
+        // ask, so the confirmed pin keeps detection provenance. [DET-NUDGE-PIN-PROVENANCE-001]
+        val addParkingIntent = buildAddParkingIntent(RC_MARK_PARKING_NUDGE, fromDetection = true)
         val notification = NotificationCompat.Builder(context, ACTION_CHANNEL_ID)
             .setContentTitle(context.getString(R.string.notif_mark_parking_title))
             .setContentText(context.getString(R.string.notif_mark_parking_text))
@@ -365,17 +367,21 @@ class AppNotificationManagerImpl(
         )
 
     /**
-     * PendingIntent that opens MainActivity and asks Home to enter manual add-parking mode.
+     * PendingIntent that opens MainActivity and asks Home to enter add-parking pin mode.
      * The flag is passed as an extra and consumed by [MainActivity] (onCreate for cold start,
      * onNewIntent when already running). [DET-TOGGLE-002]
+     *
+     * @param fromDetection true when a DETECTION nudge raised this ask — the confirmed pin then
+     *   keeps detection provenance (`AUTO_DETECTED`, path `nudge`). [DET-NUDGE-PIN-PROVENANCE-001]
      */
-    private fun buildAddParkingIntent(requestCode: Int): PendingIntent =
+    private fun buildAddParkingIntent(requestCode: Int, fromDetection: Boolean): PendingIntent =
         PendingIntent.getActivity(
             context,
             requestCode,
             Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
                 putExtra(MainActivity.EXTRA_START_ADD_PARKING, true)
+                putExtra(MainActivity.EXTRA_ADD_PARKING_FROM_DETECTION, fromDetection)
             },
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )

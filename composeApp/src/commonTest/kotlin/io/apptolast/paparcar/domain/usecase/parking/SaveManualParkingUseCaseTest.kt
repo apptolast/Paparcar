@@ -2,6 +2,7 @@ package io.apptolast.paparcar.domain.usecase.parking
 
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
+import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.VehicleSize
@@ -116,6 +117,52 @@ class SaveManualParkingUseCaseTest {
         assertEquals(1, parkingRepo.observeActiveSessions().first().size)
         assertEquals(1, notifications.parkingSpotSavedCallCount)
         assertEquals(1, detection.stopCallCount)
+    }
+
+    @Test
+    fun should_stamp_manual_report_when_placing_a_spontaneous_pin() = runTest {
+        val parkingRepo = FakeUserParkingRepository()
+        val (useCase, _, _) = build(parkingRepo)
+
+        val result = useCase(lat = 40.0, lon = -3.0, accuracy = 12f)
+
+        assertTrue(result.isSuccess)
+        val session = parkingRepo.observeActiveSessions().first().single()
+        assertEquals(SpotType.MANUAL_REPORT, session.spotType)
+        assertEquals("manual", session.detectionPath)
+    }
+
+    @Test
+    fun should_keep_detection_provenance_when_pin_answers_a_detection_nudge() = runTest {
+        // Detection nominated the park (nudge) and the user confirmed the pin: the session keeps
+        // detection provenance so the freed spot later publishes as AUTO_DETECTED, not a 15-min
+        // manual report. [DET-NUDGE-PIN-PROVENANCE-001]
+        val parkingRepo = FakeUserParkingRepository()
+        val (useCase, notifications, detection) = build(parkingRepo)
+
+        val result = useCase(lat = 40.0, lon = -3.0, accuracy = 12f, fromDetectionNudge = true)
+
+        assertTrue(result.isSuccess)
+        val session = parkingRepo.observeActiveSessions().first().single()
+        assertEquals(SpotType.AUTO_DETECTED, session.spotType)
+        assertEquals("nudge", session.detectionPath)
+        assertEquals(1.0f, session.detectionReliability)
+        // Same CREATE side-effects as any user-confirmed pin.
+        assertEquals(1, notifications.parkingSpotSavedCallCount)
+        assertEquals(1, detection.stopCallCount)
+    }
+
+    @Test
+    fun should_stamp_user_path_when_confirming_a_detected_parking() = runTest {
+        val parkingRepo = FakeUserParkingRepository()
+        val (useCase, _, _) = build(parkingRepo)
+
+        val result = useCase.confirmDetected(location)
+
+        assertTrue(result.isSuccess)
+        val session = parkingRepo.observeActiveSessions().first().single()
+        assertEquals(SpotType.AUTO_DETECTED, session.spotType)
+        assertEquals("user", session.detectionPath)
     }
 
     @Test

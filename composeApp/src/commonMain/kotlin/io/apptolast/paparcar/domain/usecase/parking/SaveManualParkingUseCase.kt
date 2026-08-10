@@ -35,6 +35,11 @@ class SaveManualParkingUseCase(
      * @param editingParkingId non-null when MOVING an existing session; [targetVehicleId]
      *   is ignored in that case. [MULTI-PARKING-001]
      * @param targetVehicleId the vehicle a NEW session is created for; null → default vehicle.
+     * @param fromDetectionNudge true when a DETECTION nudge ("Marcar mi plaza" notification /
+     *   sheet row) opened this pin mode: detection nominated the park, the user confirmed it —
+     *   the session keeps detection provenance (`AUTO_DETECTED`, path `nudge`) so the freed spot
+     *   later publishes as auto (2 h TTL) instead of a 15-min manual report.
+     *   [DET-NUDGE-PIN-PROVENANCE-001]
      */
     suspend operator fun invoke(
         lat: Double,
@@ -42,6 +47,7 @@ class SaveManualParkingUseCase(
         accuracy: Float,
         editingParkingId: String? = null,
         targetVehicleId: String? = null,
+        fromDetectionNudge: Boolean = false,
     ): Result<Unit> = save(
         gps = GpsPoint(
             latitude = lat,
@@ -50,18 +56,20 @@ class SaveManualParkingUseCase(
             timestamp = Clock.System.now().toEpochMilliseconds(),
             speed = 0f,
         ),
-        spotType = SpotType.MANUAL_REPORT,
+        spotType = if (fromDetectionNudge) SpotType.AUTO_DETECTED else SpotType.MANUAL_REPORT,
+        detectionPath = if (fromDetectionNudge) PATH_NUDGE else PATH_MANUAL,
         editingParkingId = editingParkingId,
         targetVehicleId = targetVehicleId,
     )
 
     /** Detection-prompt confirm: the detected fix IS the pin (always a create). */
     suspend fun confirmDetected(gps: GpsPoint): Result<Unit> =
-        save(gps, SpotType.AUTO_DETECTED, editingParkingId = null, targetVehicleId = null)
+        save(gps, SpotType.AUTO_DETECTED, detectionPath = PATH_USER, editingParkingId = null, targetVehicleId = null)
 
     private suspend fun save(
         gps: GpsPoint,
         spotType: SpotType,
+        detectionPath: String,
         editingParkingId: String?,
         targetVehicleId: String?,
     ): Result<Unit> = if (editingParkingId != null) {
@@ -72,9 +80,10 @@ class SaveManualParkingUseCase(
             USER_CONFIRMED_RELIABILITY,
             spotType,
             vehicleId = targetVehicleId,
-            // [DET-PIN-PROVENANCE-001] Hand-placed pin ("manual") vs the user tapping "Sí" on a
-            // detection prompt ("user") — both are user ground truth, distinguished by spotType.
-            detectionPath = if (spotType == SpotType.MANUAL_REPORT) PATH_MANUAL else PATH_USER,
+            // [DET-PIN-PROVENANCE-001] Hand-placed pin ("manual") vs "Sí" on the detection prompt
+            // ("user") vs pin placed answering a detection nudge ("nudge") — all three are user
+            // ground truth; spotType + path record who nominated the park.
+            detectionPath = detectionPath,
             // A hand-placed pin is marked with the user standing at/near it; the pin doubles as
             // the body's position within map-drag noise. [DET-STEP-BUDGET-ORIGIN-001]
             sealPoint = gps,
@@ -89,8 +98,9 @@ class SaveManualParkingUseCase(
     private companion object {
         // A pin the user placed/confirmed by hand is ground truth.
         const val USER_CONFIRMED_RELIABILITY = 1.0f
-        // Pin provenance paths. [DET-PIN-PROVENANCE-001]
+        // Pin provenance paths. [DET-PIN-PROVENANCE-001][DET-NUDGE-PIN-PROVENANCE-001]
         const val PATH_MANUAL = "manual"
         const val PATH_USER = "user"
+        const val PATH_NUDGE = "nudge"
     }
 }

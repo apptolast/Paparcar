@@ -129,11 +129,14 @@ internal fun LazyListScope.homeSheetItems(
                 showParkNudge = slice.showParkNudge,
                 onMarkNudgeSpot = {
                     // Same promise as the notification's "Marcar mi plaza": straight into
-                    // AddingParking for the nudged vehicle. [DET-NUDGE-PERSIST-001]
+                    // AddingParking for the nudged vehicle. [DET-NUDGE-PERSIST-001] The row only
+                    // exists because DETECTION nominated a park it could not place — the confirmed
+                    // pin keeps detection provenance. [DET-NUDGE-PIN-PROVENANCE-001]
                     onIntent(
                         HomeIntent.EnterAddParkingMode(
                             initialGps = slice.userGpsPoint,
                             targetVehicleId = slice.parkNudgeVehicleId ?: coldStartVehicleId,
+                            fromDetectionNudge = true,
                         ),
                     )
                 },

@@ -398,6 +398,7 @@ class HomeViewModel(
                     pinCameraLon = intent.initialGps?.longitude,
                     editingParkingId = intent.editingParkingId,
                     addingParkingVehicleId = intent.targetVehicleId,
+                    addingParkingFromDetectionNudge = intent.fromDetectionNudge,
                 )
             }
             is HomeIntent.ExitAddParkingMode -> updateState { clearedModeFields() }
@@ -436,6 +437,9 @@ class HomeViewModel(
                 accuracy = current.userGpsPoint?.accuracy ?: 0f,
                 editingParkingId = editingParkingId,
                 targetVehicleId = targetVehicleId,
+                // Detection-nudge entry keeps detection provenance on the confirmed pin; only
+                // meaningful on CREATE — a move keeps the session's own type. [DET-NUDGE-PIN-PROVENANCE-001]
+                fromDetectionNudge = current.addingParkingFromDetectionNudge,
             )
                 .onSuccess { updateState { clearedModeFields().copy(isSavingParking = false) } }
                 .onFailure {
@@ -787,7 +791,7 @@ class HomeViewModel(
      *  arrives. [DET-TOGGLE-002] */
     private fun subscribeStartAddParkingRequests() {
         startAddParkingEventBus.requests
-            .collectSafely("startAddParking") {
+            .collectSafely("startAddParking") { request ->
                 val vehicles = state.map { it.vehicles }.first { it.isNotEmpty() }
                 val markVehicleId = vehicles.firstOrNull { it.isActive }?.id
                     ?: vehicles.firstOrNull()?.id
@@ -795,6 +799,9 @@ class HomeViewModel(
                     HomeIntent.EnterAddParkingMode(
                         initialGps = state.value.userGpsPoint,
                         targetVehicleId = markVehicleId,
+                        // A detection-nominated nudge keeps detection provenance on the
+                        // confirmed pin. [DET-NUDGE-PIN-PROVENANCE-001]
+                        fromDetectionNudge = request.fromDetectionNudge,
                     ),
                 )
             }

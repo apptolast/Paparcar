@@ -157,11 +157,14 @@ class MainActivity : ComponentActivity() {
         val lon = intent?.getDoubleExtra(EXTRA_FOCUS_LON, Double.NaN)?.takeIf { !it.isNaN() }
         if (lat != null && lon != null) mapFocusEventBus.focusAt(lat, lon)
 
-        // Cold-start nudge notification → drop straight into manual add-parking mode. The bus
+        // Cold-start nudge notification → drop straight into add-parking pin mode. The bus
         // (CONFLATED Channel) buffers this until Home subscribes, so it survives launch from a
-        // killed process. [DET-TOGGLE-002]
+        // killed process. [DET-TOGGLE-002] The origin travels along so a DETECTION nudge keeps
+        // detection provenance on the confirmed pin. [DET-NUDGE-PIN-PROVENANCE-001]
         if (intent?.getBooleanExtra(EXTRA_START_ADD_PARKING, false) == true) {
-            startAddParkingEventBus.request()
+            startAddParkingEventBus.request(
+                fromDetectionNudge = intent.getBooleanExtra(EXTRA_ADD_PARKING_FROM_DETECTION, false),
+            )
         }
     }
 
@@ -169,5 +172,6 @@ class MainActivity : ComponentActivity() {
         const val EXTRA_FOCUS_LAT = "extra_focus_lat"
         const val EXTRA_FOCUS_LON = "extra_focus_lon"
         const val EXTRA_START_ADD_PARKING = "extra_start_add_parking"
+        const val EXTRA_ADD_PARKING_FROM_DETECTION = "extra_add_parking_from_detection"
     }
 }

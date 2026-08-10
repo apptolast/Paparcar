@@ -1828,3 +1828,34 @@ notification swaps in SENTRY to a low-profile one (own `sentry_channel`, IMPORTA
 no badge; plain-language copy in 9 locales — what the app does for you + where to turn it off,
 never internals); the next wake's promote swaps the active-detection one back. Dev Catalog: no
 change needed — no new screen/state/routing (system notification + existing toggle only).
+
+### DET-NUDGE-PIN-PROVENANCE-001 — a pin confirmed from a DETECTION nudge keeps detection provenance (2026-08-10)
+
+**Why (field 2026-08-05/08, Arcos + Cañada del Real Tesoro).** When detection nominates a park but
+cannot place it, it degrades to the nudge ("Marcar mi plaza" notification / the sheet's pending-nudge
+row) per the asymmetric-failure doctrine. Answering the nudge lands in the shared pin mode
+(`EnterAddParkingMode` → `SaveManualParkingUseCase`), which stamped EVERY pin
+`MANUAL_REPORT` + `detectionPath="manual"`. Consequence downstream: the freed spot published at
+departure inherits the session's `spotType`, so every nudge-assisted park sold the community a
+"Manual" spot with the 15-min manual TTL instead of the 2-h auto one (Firestore sessions `296b1018`,
+`bc10cc94`). Asymmetry: the in-app detection prompt "Sí, he aparcado" (`confirmDetected`) already
+stamped `AUTO_DETECTED` + path `user`.
+
+**What.** The pin mode's ORIGIN travels with the entry and the use case stamps by origin — one
+invariant, no downstream guards:
+- `StartAddParkingRequest(fromDetectionNudge)` on the bus; `AppNotificationManagerImpl` marks it
+  per notification: `showMarkParkingNudge` (coordinator unattended / honest-close / safety-net
+  watchdog) → `true`; `showFirstParkNudge` (onboarding, no detection event) → `false`. New
+  `MainActivity.EXTRA_ADD_PARKING_FROM_DETECTION` carries it through the PendingIntent.
+- `HomeIntent.EnterAddParkingMode.fromDetectionNudge` (default false) → mode-scoped
+  `HomeState.addingParkingFromDetectionNudge` (cleared in `clearedModeFields()`); the sheet's
+  pending-nudge row (`onMarkNudgeSpot`) passes `true`. Cold-start "mark my spot" CTA, the vehicle
+  card "Aparcar" pill and the edit pencil stay manual/unchanged.
+- `SaveManualParkingUseCase(fromDetectionNudge)`: nudge → `AUTO_DETECTED` + `detectionPath="nudge"`;
+  spontaneous pin → `MANUAL_REPORT` + `"manual"` as before. Reliability stays 1.0 (user ground
+  truth) and the pin stays the `sealPoint` [DET-STEP-BUDGET-ORIGIN-001]. Provenance vocabulary is
+  now `manual` / `user` / `nudge` [DET-PIN-PROVENANCE-001].
+
+Detection decisions are untouched — this is provenance + community-spot classification only.
+⏳ Pending: field-test (answer a nudge, verify `spotType=AUTO_DETECTED`, `detectionPath=nudge`, and
+an AUTO spot with 2-h TTL at departure).
