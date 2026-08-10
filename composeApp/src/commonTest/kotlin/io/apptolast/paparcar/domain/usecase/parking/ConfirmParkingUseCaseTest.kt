@@ -16,12 +16,17 @@ import io.apptolast.paparcar.fakes.FakeZoneRepository
 import io.apptolast.paparcar.fakes.FakeUserParkingRepository
 import io.apptolast.paparcar.fakes.FakeVehicleRepository
 import io.apptolast.paparcar.domain.error.PaparcarError
+import io.apptolast.paparcar.domain.detection.DrivingRouteStore
+import io.apptolast.paparcar.domain.util.PolylineCodec
+import io.apptolast.paparcar.fakes.FakeDrivingRouteStore
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Clock
 
 class ConfirmParkingUseCaseTest {
 
@@ -566,6 +571,7 @@ class ConfirmParkingUseCaseTest {
         config: ParkingDetectionConfig = ParkingDetectionConfig(),
         bus: FakeDepartureEventBus = FakeDepartureEventBus(),
         scheduler: io.apptolast.paparcar.domain.service.ParkingSyncScheduler? = null,
+        routeStore: DrivingRouteStore? = null,
     ) = ConfirmParkingUseCase(
         userParkingRepository = repo,
         vehicleRepository = vehicles,
@@ -576,5 +582,48 @@ class ConfirmParkingUseCaseTest {
         config = config,
         departureEventBus = bus,
         parkingSyncScheduler = scheduler,
+        drivingRouteStore = routeStore,
     )
+
+    // ── Driven route snapshot [DET-ROUTE-TRACK-001] ─────────────────────────────
+
+    @Test
+    fun `should snapshot the recorded route onto the saved parking and clear the store`() = runTest {
+        val now = Clock.System.now().toEpochMilliseconds()
+        val route = listOf(
+            GpsPoint(40.4160, -3.7040, 5f, now - 120_000, 0f),
+            GpsPoint(40.4165, -3.7038, 5f, now - 60_000, 0f),
+            GpsPoint(40.4167, -3.7037, 5f, now - 2_000, 0f),
+        )
+        val store = FakeDrivingRouteStore(initial = route)
+        val useCase = buildUseCase(routeStore = store)
+
+        val saved = useCase(location, detectionReliability = 0.9f, sealPoint = null).getOrNull()
+        assertNotNull(saved)
+        assertEquals(PolylineCodec.encode(route), saved.routePolyline)
+        assertTrue(store.points().isEmpty(), "the live route store must be cleared after the snapshot")
+    }
+
+    @Test
+    fun `should not attach a stale route left over from a previous aborted trip`() = runTest {
+        val old = Clock.System.now().toEpochMilliseconds() - 60 * 60_000L // 1 h ago
+        val stale = listOf(
+            GpsPoint(40.0, -3.0, 5f, old, 0f),
+            GpsPoint(40.001, -3.0, 5f, old + 1_000, 0f),
+        )
+        val useCase = buildUseCase(routeStore = FakeDrivingRouteStore(initial = stale))
+
+        val saved = useCase(location, detectionReliability = 0.9f, sealPoint = null).getOrNull()
+        assertNotNull(saved)
+        assertNull(saved.routePolyline)
+    }
+
+    @Test
+    fun `should save with no route when the store is empty (BT park - no drive tracked)`() = runTest {
+        val useCase = buildUseCase(routeStore = FakeDrivingRouteStore())
+
+        val saved = useCase(location, detectionReliability = 0.95f, sealPoint = null).getOrNull()
+        assertNotNull(saved)
+        assertNull(saved.routePolyline)
+    }
 }

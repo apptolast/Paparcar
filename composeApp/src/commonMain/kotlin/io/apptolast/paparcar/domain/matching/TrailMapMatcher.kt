@@ -26,21 +26,35 @@ import kotlin.math.roundToLong
  * the graph, so it can never steal a noisy fix. Because Viterbi is global, newly arrived fixes can
  * re-decide earlier stretches: each re-match self-corrects the whole drawn line.
  *
- * Honesty rules (asymmetric failure applied to the visual):
- * - No road within [MAX_SNAP_METERS] → the fix is off-road: interior runs up to [MAX_OUTLIER_RUN]
- *   are dropped as spikes; longer runs and trail ends (the backdated origin can sit in a car park)
- *   are kept RAW — there is no street there and drawing one would lie.
- * - No plausible road path between consecutive candidates ([MAX_DETOUR_FACTOR] × straight +
- *   [DETOUR_SLACK_METERS], or a disconnected graph) → HMM break: the matched stretches are joined
- *   by an honest straight chord instead of an invented detour.
+ * The drawn line ALWAYS follows the street (v5 — [ROUTE-LINE-ONROAD-001]): an off-road fix (no road
+ * within [MAX_SNAP_METERS]) is never drawn RAW. It is dropped from the match entirely, and the routed
+ * transition between the on-road candidates that BRACKET it bridges the gap along the streets — so a
+ * multipath fix that drifted into a building, or the backdated origin sitting in a car park, never
+ * pulls the line off the asphalt. The trip's endpoints get a wider search ([ORIGIN_SNAP_METERS]) so
+ * the backdated parking origin still snaps onto the nearest street and the line starts on the road.
+ *
+ * The only non-street segment left is the honest break: when NO plausible road path exists between two
+ * consecutive on-road candidates ([MAX_DETOUR_FACTOR] × straight + [DETOUR_SLACK_METERS], or a
+ * disconnected graph) the Viterbi breaks and the two matched stretches are joined by a straight chord
+ * — but between two ON-ROAD points, never out to a GPS spike. If the whole trail has no road nearby
+ * (rural, missing OSM data) the raw trail is returned unchanged: there is genuinely no street to draw.
  *
  * Supersedes v1 (independent nearest-road snap), v2 (A* gap-fill — now inherent, every transition
- * is routed) and v3 (straight-line-transition Viterbi). See docs/backlog/route-line-pro-001.md.
+ * is routed), v3 (straight-line-transition Viterbi) and v4 (routed geometry but raw off-road runs).
+ * See docs/backlog/route-line-pro-001.md and docs/backlog/route-line-onroad-001.md.
  */
 object TrailMapMatcher {
 
-    /** Beyond this fix→street distance there is no candidate: the fix is off-road. */
-    const val MAX_SNAP_METERS = 60.0
+    /** Beyond this fix→street distance there is no candidate: the fix is off-road (dropped, then the
+     *  routed transition bridges over it). Widened from v4's 60 m to cover urban-canyon multipath
+     *  (30–50 m NLOS error) so a noisy-but-on-a-street fix still finds its road instead of being
+     *  discarded — the industry range is 100–200 m (Valhalla 50–100, Barefoot/Newson-Krumm 200). */
+    const val MAX_SNAP_METERS = 120.0
+
+    /** Wider search for the trip's two endpoints only. The backdated origin can be a parked spot set
+     *  back from the road (a car park, a driveway) further than [MAX_SNAP_METERS]; snapping it onto
+     *  the nearest street lets the line START on the road rather than dropping the origin. */
+    const val ORIGIN_SNAP_METERS = 300.0
 
     /** Trail points are decimated to this spacing before matching: a transition discriminates
      *  streets only when the measured step is large vs GPS noise, and the routed geometry between
@@ -69,16 +83,27 @@ object TrailMapMatcher {
     const val MAX_DETOUR_FACTOR = 3.0
     const val DETOUR_SLACK_METERS = 120.0
 
-    /** Off-road runs up to this long between on-road neighbours are spikes → dropped. */
-    const val MAX_OUTLIER_RUN = 2
-
     fun snap(points: List<GpsPoint>, roads: List<RoadWay>): List<GpsPoint> {
         if (roads.isEmpty() || points.size < 2) return points
         val graph = RoadGraph.build(roads)
         if (graph.isEmpty) return points
         val measurements = decimate(points)
-        val layers = measurements.map { graph.candidatesFor(it) }
-        return decode(measurements, layers, graph)
+        // The origin searches wider so a backdated parked spot set back from the road (a car park, a
+        // driveway) still snaps onto the nearest street and the line STARTS on the road. Interior and
+        // final fixes use the normal radius. [ROUTE-LINE-ONROAD-001]
+        val layers = measurements.mapIndexed { i, m ->
+            val radius = if (i == 0) ORIGIN_SNAP_METERS else MAX_SNAP_METERS
+            graph.candidatesFor(m, radius)
+        }
+        // Off-road fixes carry no street and are NEVER drawn raw: drop them and let the routed
+        // transition between the on-road candidates that bracket them bridge the gap along the
+        // streets. Only when fewer than two fixes touch any road is there nothing to match honestly
+        // (rural / missing OSM) → keep the raw trail. [ROUTE-LINE-ONROAD-001]
+        val onRoad = measurements.indices.filter { layers[it].isNotEmpty() }
+        if (onRoad.size < 2) return points
+        val keptMs = onRoad.map { measurements[it] }
+        val keptLayers = onRoad.map { layers[it] }
+        return decode(keptMs, keptLayers, graph)
     }
 
     /** Keeps points ≥ [MATCH_SPACING_METERS] apart — always the first and the last. */
@@ -95,24 +120,14 @@ object TrailMapMatcher {
     }
 
     /**
-     * Walks the measurement sequence emitting matched street geometry, raw off-road stretches and
-     * honest chords at HMM breaks.
+     * Walks the on-road measurement sequence (off-road fixes already dropped) emitting matched street
+     * geometry, with an honest road-to-road chord wherever the Viterbi breaks (no routable path).
      */
     private fun decode(ms: List<GpsPoint>, layers: List<List<Candidate>>, graph: RoadGraph): List<GpsPoint> {
         val out = ArrayList<GpsPoint>()
         var i = 0
         while (i < ms.size) {
-            if (layers[i].isEmpty()) {
-                var end = i
-                while (end < ms.size && layers[end].isEmpty()) end++
-                val isInteriorSpike = i > 0 && end < ms.size && (end - i) <= MAX_OUTLIER_RUN
-                if (!isInteriorSpike) {
-                    for (k in i until end) addPoint(out, ms[k])
-                }
-                i = end
-            } else {
-                i = decodeSegment(ms, layers, graph, i, out)
-            }
+            i = decodeSegment(ms, layers, graph, i, out)
         }
         return out
     }
@@ -231,8 +246,9 @@ object TrailMapMatcher {
         internal fun latOf(node: Int): Double = lats[node]
         internal fun lonOf(node: Int): Double = lons[node]
 
-        /** Projections of [p] onto nearby edges: best per approach, deduped, nearest first. */
-        internal fun candidatesFor(p: GpsPoint): List<Candidate> {
+        /** Projections of [p] onto edges within [maxSnapMeters]: best per approach, deduped,
+         *  nearest first. */
+        internal fun candidatesFor(p: GpsPoint, maxSnapMeters: Double = MAX_SNAP_METERS): List<Candidate> {
             // Local equirectangular scale: longitude degrees shrink by cos(lat) so planar
             // distances are ~isotropic over the small bbox of one trip.
             val cosLat = cos(p.latitude * PI / 180.0)
@@ -247,7 +263,7 @@ object TrailMapMatcher {
                     cosLat,
                 )
                 val d = haversineMeters(p.latitude, p.longitude, lat, lon)
-                if (d <= MAX_SNAP_METERS) {
+                if (d <= maxSnapMeters) {
                     found.add(Candidate(e, lat, lon, d, t * edgeLen[e]))
                 }
             }

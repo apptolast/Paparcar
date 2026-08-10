@@ -127,6 +127,8 @@ val domainModule = module {
             // Android-only (no iOS impl yet) — getOrNull so other platforms bind null and the
             // honest-close budget simply stays unsealed there. [DET-HONEST-CLOSE-001]
             detectionStepAnchors = getOrNull(),
+            // Android-only route store — getOrNull so iOS binds null (no route snapshot). [DET-ROUTE-TRACK-001]
+            drivingRouteStore = getOrNull(),
         )
     }
     // [DET-HONEST-CLOSE-001] Honest-close ladder: pure evaluator + orchestration.

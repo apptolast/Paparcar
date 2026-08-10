@@ -42,6 +42,7 @@ fun UserParkingEntity.toDomain(): UserParking = UserParking(
     armEvidence = armEvidence,
     detectionPath = detectionPath,
     zoneRadiusMeters = zoneRadiusMeters,
+    routePolyline = routePolyline,
 )
 
 private fun UserParkingEntity.addressOrNull(): AddressInfo? =
@@ -99,6 +100,8 @@ fun UserParking.toEntity(updatedAt: Long = 0, pendingSync: Boolean = false): Use
     // zoneRadiusMeters: local-only honest-close artifact — round-trips Room, never synced (an
     // unrefined approximate zone stays on the device that detected it). [DET-HONEST-CLOSE-001]
     zoneRadiusMeters = zoneRadiusMeters,
+    // The driven route round-trips Room and syncs to Firestore. [DET-ROUTE-TRACK-001]
+    routePolyline = routePolyline,
     updatedAt = updatedAt,
     pendingSync = pendingSync,
 )
@@ -140,6 +143,8 @@ fun UserParking.toParkingHistoryDto(updatedAt: Long = 0L) = ParkingHistoryDto(
     // remote diagnostic can attribute a parking to its trigger. [DET-PIN-PROVENANCE-001]
     armEvidence = armEvidence,
     detectionPath = detectionPath,
+    // The driven route travels to Firestore so the trip renders in history on any device. [DET-ROUTE-TRACK-001]
+    routePolyline = routePolyline,
     updatedAt = updatedAt,
 )
 
@@ -171,6 +176,8 @@ fun ParkingHistoryDto.toEntity() = UserParkingEntity(
     // keeps who/what placed it. tripMaxSpeedMps stays local-only → null here. [DET-PIN-PROVENANCE-001]
     armEvidence = armEvidence,
     detectionPath = detectionPath,
+    // The driven route comes back from Firestore so a new device renders the trip. [DET-ROUTE-TRACK-001]
+    routePolyline = routePolyline,
     // A row coming FROM Firestore is by definition already synced → pendingSync=false. Its
     // updatedAt carries the remote edit time for the LWW merge. [SYNC-RECONCILE-USERPARKING-001]
     updatedAt = updatedAt,

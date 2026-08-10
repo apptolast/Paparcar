@@ -67,6 +67,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.android.ext.android.inject
@@ -91,6 +92,10 @@ class CoordinatorDetectionService : LifecycleService() {
     // bus decide whether the exit has vehicle evidence before the coordinator is seeded.
     private val verifyDepartureEvidence: VerifyDepartureEvidenceUseCase by inject()
     private val getOneLocation: GetOneLocationUseCase by inject()
+    // Dense tracked route persisted so Home redraws the real trip after background / cold-start,
+    // instead of reconstructing it from the parked spot. Fed from the tracking stream below,
+    // cleared when the trip terminates. [DET-ROUTE-TRACK-001]
+    private val drivingRouteStore: io.apptolast.paparcar.domain.detection.DrivingRouteStore by inject()
     private val detectionConfig: ParkingDetectionConfig by inject()
     // [DET-AR-FIRST-001] Arm ladder for the AR ENTER decision lane.
     private val evaluateArEnterArm: EvaluateArEnterArmUseCase by inject()
@@ -235,6 +240,11 @@ class CoordinatorDetectionService : LifecycleService() {
         when (val action = intent.action) {
             ACTION_START_TRACKING -> handleStartTracking()
             ACTION_SENTRY_WAKE -> handleSentryWake() // [DET-RESIDENT-FGS-001]
+            // [DET-WATCH-HONEST-001] App-launch self-heal: an OEM kill drops the resident watcher while
+            // a car stays parked; a manual app-open is a legal (foreground) moment to rebuild it. No work
+            // of its own — the epilogue below re-enters SENTRY iff a Coordinator car is parked and
+            // auto-detect is on, else stops. Makes "Vigilando tu sitio" true again instead of a silent lie.
+            ACTION_RESUME_SENTRY -> PaparcarLogger.d(DIAG, "  → RESUME_SENTRY (app launch) — epilogue decides sentry vs stop [DET-WATCH-HONEST-001]")
             ACTION_GEOFENCE_EXIT -> handleGeofenceExit(intent)
             ACTION_AR_TRANSITION -> handleArTransition(intent) // [DET-AR-FIRST-001]
             ACTION_PARKING_CONFIRMED -> handleUserConfirmed()
@@ -1191,7 +1201,10 @@ class CoordinatorDetectionService : LifecycleService() {
                 // with the legacy guards; DepartureDetectionWorker upgrades the live session on
                 // late evidence via DepartureConfirmationListener.
                 parkingDetectionCoordinator(
-                    observeAdaptiveLocation(),
+                    // Tap the tracking stream to persist the dense driving route (same fixes the
+                    // coordinator consumes → zero extra battery). Survives background / process
+                    // death so Home redraws the REAL trip, not a reconstruction. [DET-ROUTE-TRACK-001]
+                    observeAdaptiveLocation().onEach { drivingRouteStore.append(it) },
                     armEvidence = armEvidence,
                     // The nominating fence's vehicle (geofence exit identifies the car). Null for
                     // manual / AR-armed trips. [VEH-ACTIVE-FENCE-001]
@@ -1227,6 +1240,12 @@ class CoordinatorDetectionService : LifecycleService() {
                 if (detectionJob === thisJob) {
                     // [DET-READY-001c] This job is the current one and is ending → detection idle.
                     detectionRuntime.setRunning(false)
+                    // [DET-ROUTE-TRACK-001] The recorded route is NOT cleared here. This finally runs
+                    // on any terminal — including a spurious/late job end mid-trip (Doze, an OEM
+                    // freeze, a stop misread as an end) that a fresh arm then continues. Clearing here
+                    // wiped the in-progress route so a re-entry redrew a straight line from the parked
+                    // spot (field 2026-08-09). The route is instead cleared at CONFIRM (route consumed
+                    // onto the parking) with a genuine-new-trip gap-reset as the safety net.
                     // [DET-ENDED-VETO-RACE-001] DetectionEnded is NOT sent from here. A send from
                     // inside the still-active job resumes the intake consumer INLINE within the
                     // trySend (Main.immediate on the same thread), so stopIfIdle ran while this
@@ -1373,6 +1392,10 @@ class CoordinatorDetectionService : LifecycleService() {
         // when the service is resident in SENTRY (already foreground → legal re-delivery). Arms a
         // coordinator session with Unverified evidence; the WorkManager path is used from a dead process.
         const val ACTION_SENTRY_WAKE = "io.apptolast.paparcar.ACTION_SENTRY_WAKE"
+        // [DET-WATCH-HONEST-001] App-launch self-heal: rebuild the resident SENTRY watcher an OEM kill
+        // dropped while a car stayed parked. Fired from PaparcarApp.onCreate (foreground → legal FGS
+        // start); the idle epilogue re-enters SENTRY iff a Coordinator car is parked, else stops.
+        const val ACTION_RESUME_SENTRY = "io.apptolast.paparcar.ACTION_RESUME_SENTRY"
         // [DET-TIERS-001] Bluetooth arbitration override: the BT receiver decided a paired-car edge
         // must supersede the running coordinator session; the service aborts it. Reason is for the log.
         const val ACTION_BT_OVERRIDE = "io.apptolast.paparcar.ACTION_BT_OVERRIDE"

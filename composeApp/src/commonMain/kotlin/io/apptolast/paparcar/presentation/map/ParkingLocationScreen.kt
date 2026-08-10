@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.presentation.util.collectAsStateLifecycleAware
 import io.apptolast.paparcar.presentation.vehicles.MONTH_SHORT_RES
 import io.apptolast.paparcar.domain.model.GpsPoint
+import io.apptolast.paparcar.domain.util.PolylineCodec
 import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.Vehicle
@@ -119,11 +120,19 @@ fun HistoryParkingDetailScreen(
     var sheetHeightPx by remember { mutableIntStateOf(0) }
     val mapBleedPx = with(density) { MAP_BOTTOM_BLEED.toPx() }
 
+    // The trip that led to this parking (from the previous park), decoded from the stored polyline and
+    // drawn as the route line — the same blue polyline Home draws live. Empty for legacy / BT parks.
+    // [DET-ROUTE-TRACK-001]
+    val routeTrail = remember(focusedSession?.routePolyline) {
+        mutableStateOf(PolylineCodec.decode(focusedSession?.routePolyline))
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         PaparcarMapView(
             config = PaparcarMapConfig(showFreeSpotOverlays = false),
             spots = emptyList(),
             userLocation = state.userLocation,
+            tripTrail = routeTrail,
             parkingLocation = focusedSession?.location ?: parkingGpsPoint ?: state.userParking?.location,
             parkingVehicleSize = focusedSession?.sizeCategory ?: state.focusedVehicle?.sizeCategory,
             parkingVehicleCarbody = focusedSession?.carbodyType ?: state.focusedVehicle?.carbodyType,

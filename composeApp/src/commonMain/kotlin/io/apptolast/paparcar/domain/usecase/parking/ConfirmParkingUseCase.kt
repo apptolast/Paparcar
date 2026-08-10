@@ -4,6 +4,7 @@ package io.apptolast.paparcar.domain.usecase.parking
 
 import com.apptolast.customlogin.domain.AuthRepository
 import io.apptolast.paparcar.domain.detection.ArmEvidence
+import io.apptolast.paparcar.domain.detection.DrivingRouteStore
 import io.apptolast.paparcar.domain.detection.VehicleFenceOwnershipPolicy
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
@@ -19,6 +20,7 @@ import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.repository.ZoneRepository
 import io.apptolast.paparcar.domain.sensor.DetectionStepAnchors
+import io.apptolast.paparcar.domain.util.PolylineCodec
 import io.apptolast.paparcar.domain.util.haversineMeters
 import io.apptolast.paparcar.domain.service.DepartureEventBus
 import io.apptolast.paparcar.domain.service.GeofenceManager
@@ -61,6 +63,10 @@ class ConfirmParkingUseCase(
     // 2-min hop beats the worker's first tick. Nullable for test doubles / platforms without a
     // step counter. [DET-HONEST-CLOSE-001]
     private val detectionStepAnchors: DetectionStepAnchors? = null,
+    // Optional: the dense route the service recorded on the drive to this park. Snapshotted onto the
+    // saved parking (local + remote) and cleared here so the next trip starts fresh. Nullable for
+    // test doubles / platforms without a route store. [DET-ROUTE-TRACK-001]
+    private val drivingRouteStore: DrivingRouteStore? = null,
 ) {
 
     /**
@@ -203,6 +209,13 @@ class ConfirmParkingUseCase(
         if (location.accuracy > POOR_ACCURACY_WARN_METERS) {
             PaparcarLogger.w(DIAG, "  ⚠ poor GPS accuracy=${location.accuracy}m (threshold=${POOR_ACCURACY_WARN_METERS}m) — spot position may be imprecise, geofence will be padded")
         }
+        // [DET-ROUTE-TRACK-001] Snapshot the driven route the service recorded on the way here onto
+        // this parking, encoded compactly (local + remote). Freshness-gated: only a route whose last
+        // fix is recent belongs to THIS trip — a stale one lingering from a previous aborted trip
+        // (the store is cleared on confirm, not on abort) must not be attached to this park. BT parks
+        // never tracked a drive, so their store is empty → no route (the honest result).
+        val routePolyline = encodeFreshRoute(nowMs = gpsPoint.timestamp)
+
         val session = UserParking(
             id = sessionId,
             userId = userId,
@@ -219,6 +232,7 @@ class ConfirmParkingUseCase(
             armEvidence = armEvidence,
             detectionPath = detectionPath,
             zoneRadiusMeters = zoneRadiusMeters,
+            routePolyline = routePolyline,
         )
 
         PaparcarLogger.d(DIAG, "  → saveNewParkingSession BEFORE sessionId=$sessionId")
@@ -228,6 +242,12 @@ class ConfirmParkingUseCase(
             PaparcarLogger.e(DIAG, "  ✗ saveNewParkingSession failed", saved.exceptionOrNull())
             return Result.failure(PaparcarError.Parking.SaveFailed)
         }
+
+        // [DET-ROUTE-TRACK-001] The route is now durable on the parking → clear the live store so the
+        // NEXT trip starts fresh. Cleared here (route consumed) rather than on abort, so a spurious
+        // job end mid-trip can't wipe an in-progress route the user is still driving.
+        runCatching { drivingRouteStore?.clear() }
+            .onFailure { e -> PaparcarLogger.w(DIAG, "  ⚠ route store clear failed (continuing): ${e.message}") }
 
         // Re-parking before the previous session ended (no confirmed departure) clears the old Room
         // row but would otherwise leave its geofence registered in Play Services (NEVER_EXPIRE) as an
@@ -312,8 +332,32 @@ class ConfirmParkingUseCase(
         return Result.success(session)
     }
 
+    /**
+     * The recorded driving route as an encoded polyline, or null when there is none fresh enough to
+     * belong to this trip. Requires ≥2 points and a last fix within [ROUTE_FRESHNESS_MS] of
+     * [nowMs] — a route whose newest fix is older than that is a leftover from a previous aborted
+     * trip, not the drive that just ended here. [DET-ROUTE-TRACK-001]
+     */
+    private fun encodeFreshRoute(nowMs: Long): String? {
+        val points = drivingRouteStore?.points().orEmpty()
+        val last = points.lastOrNull() ?: return null
+        val fresh = points.size >= 2 && last.timestamp > 0L && (nowMs - last.timestamp) in 0..ROUTE_FRESHNESS_MS
+        if (!fresh) {
+            if (points.isNotEmpty()) {
+                PaparcarLogger.d(DIAG, "  route store not fresh (${points.size} pts, last ${(nowMs - last.timestamp) / 1000}s old) — no route attached")
+            }
+            return null
+        }
+        return PolylineCodec.encode(points).ifEmpty { null }
+    }
+
     private companion object {
         const val DIAG = "PARKDIAG/Confirm"
         const val POOR_ACCURACY_WARN_METERS = 50f
+
+        /** A recorded route whose newest fix is older than this at confirm time predates this trip
+         *  (leftover from a previous aborted drive) → not attached. A real arrival's last fix is
+         *  seconds old; the ceiling only rejects stale carry-over. [DET-ROUTE-TRACK-001] */
+        const val ROUTE_FRESHNESS_MS = 30 * 60_000L
     }
 }

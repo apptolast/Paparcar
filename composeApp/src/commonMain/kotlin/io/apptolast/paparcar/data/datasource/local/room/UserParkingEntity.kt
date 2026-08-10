@@ -50,6 +50,9 @@ data class UserParkingEntity(
     // confirm" mark that stays on the device that detected it until the user refines it to an exact
     // point. [DET-HONEST-CLOSE-001]
     val zoneRadiusMeters: Float? = null,
+    // Driven route to this parking as a Google-encoded polyline (one compact TEXT column, ~hundreds
+    // of bytes/trip). Synced to Firestore. Null on legacy rows / BT parks. [DET-ROUTE-TRACK-001]
+    val routePolyline: String? = null,
     // Epoch-ms of the last LOCAL mutation of this row (save / clear-active / move / enrich). Drives
     // the inbound-sync Last-Write-Wins merge so a stale remote snapshot can't resurrect an ended
     // session or clobber an offline edit. Local is authoritative. [SYNC-RECONCILE-USERPARKING-001]

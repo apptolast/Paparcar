@@ -159,6 +159,8 @@ class HomeViewModelTest {
                 locationDataSource = locationDataSource,
                 roadNetworkDataSource = null,
                 vehicleRepository = vehicleRepo,
+                userParkingRepository = parkingRepo,
+                drivingRouteStore = null,
                 permissionManager = permissions,
             ),
             search = HomeSearchController(searchAddress),

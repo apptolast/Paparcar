@@ -60,6 +60,13 @@ data class UserParking(
      *  unrefined "please confirm" mark: it stays on the device that detected it until the user
      *  refines it to an exact point (which then syncs normally). [DET-HONEST-CLOSE-001] */
     val zoneRadiusMeters: Float? = null,
+    /** The driven route that led to THIS parking — the trip from the previous park to here — as a
+     *  Google-encoded polyline (lat/lon, [io.apptolast.paparcar.domain.util.PolylineCodec]). One
+     *  compact string (~hundreds of bytes for a whole trip) so per-parking route storage grows the
+     *  DB linearly and cheaply. Synced to Firestore (local + remote). Null/blank = no route recorded
+     *  (legacy rows, BT parks — BT wakes at the destination and never tracks the drive). Rendered as
+     *  a polyline in the history detail. [DET-ROUTE-TRACK-001] */
+    val routePolyline: String? = null,
 ) {
     /** True when this session is an approximate AREA rather than an exact point — the single
      *  source of truth is [zoneRadiusMeters] (an area intrinsically has a radius; a boolean

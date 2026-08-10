@@ -1,4 +1,4 @@
-@file:OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+@file:OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class, kotlin.time.ExperimentalTime::class)
 
 package io.apptolast.paparcar.presentation.home
 
@@ -8,10 +8,13 @@ import io.apptolast.paparcar.domain.location.UserLocationUi
 import io.apptolast.paparcar.domain.model.CarbodyType
 import io.apptolast.paparcar.domain.model.DetectionReadiness
 import io.apptolast.paparcar.domain.model.GpsPoint
+import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.VehicleSize
+import io.apptolast.paparcar.fakes.FakeDrivingRouteStore
 import io.apptolast.paparcar.fakes.FakeLocationDataSource
 import io.apptolast.paparcar.fakes.FakePermissionManager
+import io.apptolast.paparcar.fakes.FakeUserParkingRepository
 import io.apptolast.paparcar.fakes.FakeVehicleRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -28,6 +31,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 /**
  * Unit tests for [HomeTripController] — the driving-puck pipeline that previously lived buried in
@@ -48,6 +52,8 @@ class HomeTripControllerTest {
     private lateinit var location: FakeLocationDataSource
     private lateinit var permissions: FakePermissionManager
     private lateinit var vehicleRepo: FakeVehicleRepository
+    private lateinit var parkingRepo: FakeUserParkingRepository
+    private var routeStore: FakeDrivingRouteStore? = null
     private val readiness = MutableSharedFlow<DetectionReadiness>(extraBufferCapacity = 64)
 
     /** Every emission of the collected updates flow, in order. */
@@ -68,6 +74,8 @@ class HomeTripControllerTest {
         location = FakeLocationDataSource()
         permissions = FakePermissionManager()
         vehicleRepo = FakeVehicleRepository(defaultVehicle = vehicle)
+        parkingRepo = FakeUserParkingRepository()
+        routeStore = null
         updates.clear()
     }
 
@@ -84,6 +92,8 @@ class HomeTripControllerTest {
             locationDataSource = location,
             roadNetworkDataSource = null,
             vehicleRepository = vehicleRepo,
+            userParkingRepository = parkingRepo,
+            drivingRouteStore = routeStore,
             permissionManager = permissions,
         )
         scope.launch { controller.updates.collect { updates.add(it) } }
@@ -104,6 +114,11 @@ class HomeTripControllerTest {
         UserLocationUi(latitude = lat, longitude = lon, accuracy = 5f, speed = 1f, bearingDegrees = bearing)
 
     private fun gps(lat: Double, lon: Double) = GpsPoint(lat, lon, 0f, 0L, 0f)
+
+    /** A recorded fix stamped NOW so it passes the freshness guard (production fixes carry a real
+     *  wall-clock timestamp; a route older than the guard is treated as a leftover). */
+    private fun freshGps(lat: Double, lon: Double) =
+        GpsPoint(lat, lon, 0f, kotlin.time.Clock.System.now().toEpochMilliseconds(), 0f)
 
     // ── Driving puck ──────────────────────────────────────────────────────────
 
@@ -236,6 +251,85 @@ class HomeTripControllerTest {
         assertEquals(40.01, update.trail.first().latitude)
         // The seed lives only in the assembled TripUpdate — the puck stays on the live fix.
         assertEquals(40.001, update.puck?.latitude)
+    }
+
+    // ── Real recorded route restored on cold restart [DET-ROUTE-TRACK-001] ──
+
+    @Test
+    fun `should_restore_the_recorded_driving_route_on_a_fresh_trail_and_prepend_the_parked_origin`() = runTest {
+        // Cold restart mid-trip: the service recorded the real driven path to disk before the app
+        // reopened. The line must be that real route (not a reconstruction), starting at the parked
+        // spot the car left.
+        val recorded = listOf(freshGps(40.011, -3.0), freshGps(40.012, -3.0), freshGps(40.013, -3.0))
+        routeStore = FakeDrivingRouteStore(initial = recorded)
+        startController()
+
+        readiness.emit(monitoring(departurePoint = gps(40.010, -3.0)))
+        location.emitUi(uiLoc(40.014, -3.0)) // first live fix after reopening
+
+        val update = updates.last()
+        // Origin = the parked spot, then the real recorded route, then the live fix.
+        assertEquals(40.010, update.departurePoint?.latitude)
+        assertEquals(40.010, update.trail.first().latitude)
+        recorded.forEach { p -> assertTrue(update.trail.any { it.latitude == p.latitude }, "recorded point ${p.latitude} must be in the drawn route") }
+        assertEquals(40.014, update.trail.last().latitude)
+        assertEquals(5, update.trail.size) // origin + 3 recorded + live fix
+    }
+
+    @Test
+    fun `should_restore_the_recorded_route_even_without_a_known_parked_origin`() = runTest {
+        // Manual / AR arm: no parked session, no departure point. The recorded route alone still
+        // draws the real trip.
+        val recorded = listOf(freshGps(40.011, -3.0), freshGps(40.012, -3.0))
+        routeStore = FakeDrivingRouteStore(initial = recorded)
+        startController()
+
+        readiness.emit(monitoring(departurePoint = null, departingVehicleId = null))
+        location.emitUi(uiLoc(40.013, -3.0))
+
+        val update = updates.last()
+        assertEquals(40.011, update.trail.first().latitude) // route starts at the first recorded fix
+        assertEquals(3, update.trail.size) // 2 recorded + live fix, no synthetic origin
+    }
+
+    // ── Origin survives a process death mid-trip — re-resolved from Room [DET-ROUTE-ORIGIN-002] ──
+
+    @Test
+    fun `should_seed_the_origin_from_the_parked_session_in_Room_when_the_service_lost_the_departure_point`() = runTest {
+        // Cold restart mid-trip: the OEM killed the process, so Monitoring carries NO departure point,
+        // but the vehicle's parked session is still in Room ~1.1 km back. The route must be born there,
+        // not at wherever the app reopened.
+        parkingRepo = FakeUserParkingRepository(
+            initialSession = UserParking(id = "p1", vehicleId = "veh-1", location = gps(40.01, -3.0)),
+        )
+        startController()
+
+        readiness.emit(monitoring(departurePoint = null))
+        location.emitUi(uiLoc(40.0, -3.0)) // first LIVE fix after reopening the app
+        location.emitUi(uiLoc(40.001, -3.001))
+
+        val update = updates.last()
+        assertEquals(40.01, update.departurePoint?.latitude)
+        assertEquals(-3.0, update.departurePoint?.longitude)
+        assertEquals(3, update.trail.size)
+        assertEquals(40.01, update.trail.first().latitude)
+    }
+
+    @Test
+    fun `should_not_seed_from_another_vehicles_parked_session`() = runTest {
+        // Multi-car: the parked session in Room belongs to a DIFFERENT vehicle than the one driving.
+        // Never seed from another car's spot — better the honest first-fix origin. [DET-ROUTE-ORIGIN-002]
+        parkingRepo = FakeUserParkingRepository(
+            initialSession = UserParking(id = "p2", vehicleId = "veh-OTHER", location = gps(40.01, -3.0)),
+        )
+        startController()
+
+        readiness.emit(monitoring(departurePoint = null, departingVehicleId = "veh-1"))
+        location.emitUi(uiLoc(40.0, -3.0))
+
+        val update = updates.last()
+        assertEquals(40.0, update.departurePoint?.latitude) // first fix, NOT the other car's spot
+        assertEquals(1, update.trail.size)
     }
 
     @Test

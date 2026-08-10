@@ -34,6 +34,9 @@ val presentationModule = module {
             locationDataSource = get(),
             roadNetworkDataSource = getOrNull(),
             vehicleRepository = get(),
+            userParkingRepository = get(),
+            // Android-only durable route store; iOS leaves it null → parked-spot seed is the fallback.
+            drivingRouteStore = getOrNull(),
             permissionManager = get(),
         )
     }

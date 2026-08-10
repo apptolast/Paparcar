@@ -1,6 +1,9 @@
+@file:OptIn(kotlin.time.ExperimentalTime::class)
+
 package io.apptolast.paparcar.presentation.home
 
 import io.apptolast.paparcar.domain.detection.DetectionPhase
+import io.apptolast.paparcar.domain.detection.DrivingRouteStore
 import io.apptolast.paparcar.domain.detection.ParkingStrategy
 import io.apptolast.paparcar.domain.location.LocationDataSource
 import io.apptolast.paparcar.domain.location.UserLocationUi
@@ -8,10 +11,12 @@ import io.apptolast.paparcar.domain.matching.TrailMapMatcher
 import io.apptolast.paparcar.domain.model.DetectionReadiness
 import io.apptolast.paparcar.domain.model.DrivingPuck
 import io.apptolast.paparcar.domain.model.GpsPoint
+import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.permissions.PermissionManager
 import io.apptolast.paparcar.domain.places.RoadNetworkDataSource
 import io.apptolast.paparcar.domain.places.RoadWay
+import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import io.apptolast.paparcar.domain.util.haversineMeters
@@ -31,6 +36,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Everything the live trip contributes to Home's state, emitted as ONE atomic value so the map never
@@ -80,6 +86,16 @@ class HomeTripController(
     // now) skip matching gracefully and keep the raw/smoothed trail. [ROUTE-SNAP-001]
     private val roadNetworkDataSource: RoadNetworkDataSource?,
     private val vehicleRepository: VehicleRepository,
+    // The active parked sessions (0..N, one per parked vehicle). The trip's origin is re-resolved
+    // from here when the service's in-memory departure point was lost to a process death mid-trip,
+    // so the route is drawn from the spot the car actually left even after a cold app restart —
+    // never from wherever the app happened to reopen. [DET-ROUTE-ORIGIN-002]
+    private val userParkingRepository: UserParkingRepository,
+    // The dense driving route the detection service records durably while tracking. Restored on a
+    // fresh trail so the drawn line is the REAL trip — surviving background / cold-start mid-trip —
+    // instead of a shortest-path reconstruction. Nullable: iOS has no platform store yet, and the
+    // parked-spot seed remains the fallback. [DET-ROUTE-TRACK-001]
+    private val drivingRouteStore: DrivingRouteStore?,
     private val permissionManager: PermissionManager,
     private val tag: String = TAG,
 ) {
@@ -108,8 +124,17 @@ class HomeTripController(
         var cachedRoads: List<RoadWay> = emptyList()
         var cachedRoadsBbox: Bbox? = null
 
+        // The vehicle's currently-parked sessions — the durable, offline-first fallback for the trip
+        // origin. The service publishes the departure point in memory at arm time, but a process
+        // death mid-trip (aggressive OEM kill) wipes it; Room still holds the parked spot, so the
+        // route origin survives a cold restart. [DET-ROUTE-ORIGIN-002]
+        var activeSessions = emptyList<UserParking>()
+
         launch {
             vehicleRepository.observeVehicles().collect { vehicles = it }
+        }
+        launch {
+            userParkingRepository.observeActiveSessions().collect { activeSessions = it }
         }
 
         // ── Map-matching pipeline ─────────────────────────────────────────────────
@@ -118,7 +143,7 @@ class HomeTripController(
         roadNetworkDataSource?.let { roadSource ->
             launch {
                 trailForMatching
-                    .debounce(MAP_MATCH_DEBOUNCE_MS)
+                    .debounce(MAP_MATCH_DEBOUNCE_MS.milliseconds)
                     .onEach { trail ->
                         if (trail.size < MIN_MATCH_POINTS) {
                             if (current.matchedTrail.isNotEmpty()) {
@@ -219,7 +244,24 @@ class HomeTripController(
                         current.trail
                     } else {
                         val base = if (current.trail.isEmpty()) {
-                            backdatedOrigin(pair?.first?.departurePoint, puck)?.let(::listOf).orEmpty()
+                            // A fresh trail (first fix / cold restart mid-trip). Rebuild the route
+                            // from the durable sources so it is the REAL trip, not a reconstruction:
+                            //  1. the parked spot as the backdated origin (service departure point, or
+                            //     the vehicle's active session from Room — survives a process death),
+                            //  2. the dense route the service recorded while tracking, restored from
+                            //     disk so background / cold-start doesn't lose the driven path.
+                            // The origin is prepended so the line still starts at the spot the car
+                            // left; the map-matcher snaps the origin→first-recorded gap onto streets.
+                            // Empty store (iOS / first trip) → just the seeded origin (the fallback).
+                            // [DET-ROUTE-ORIGIN-002] [DET-ROUTE-TRACK-001]
+                            val originHint = pair?.first?.departurePoint
+                                ?: parkedOriginFor(puck.vehicleId, activeSessions)
+                            val origin = backdatedOrigin(originHint, puck)
+                            val recorded = freshRecordedRoute()
+                            buildList {
+                                origin?.let { add(it) }
+                                addAll(recorded)
+                            }
                         } else {
                             current.trail
                         }
@@ -243,6 +285,33 @@ class HomeTripController(
      * the assembled [TripUpdate]; the detection evidence pipeline reads measured fixes upstream and
      * never sees it. [DET-ROUTE-ORIGIN-001]
      */
+    /**
+     * The parked spot to backdate the trip origin to when the service's in-memory departure point is
+     * gone (process death mid-trip). Reads the vehicle's active session from Room — durable and
+     * offline-first. Matches the departing vehicle by id; falls back to the sole active session only
+     * when the puck's vehicle is unresolved and exactly one car is parked (the single-car case).
+     * Never guesses among multiple parked cars — better no seed than another car's spot. The 5 km
+     * plausibility ceiling is applied by the caller via [backdatedOrigin]. [DET-ROUTE-ORIGIN-002]
+     */
+    /**
+     * The service-recorded route, but only when it belongs to the CURRENT trip: its newest fix must
+     * be recent. The store is cleared at confirm, so between trips it is empty; but an aborted trip
+     * leaves its route until a genuine-new-trip gap-reset, and that stale route must not be drawn on
+     * the next trip. A real in-progress trip's last fix is seconds/minutes old. [DET-ROUTE-TRACK-001]
+     */
+    private fun freshRecordedRoute(): List<GpsPoint> {
+        val points = drivingRouteStore?.points().orEmpty()
+        val last = points.lastOrNull() ?: return emptyList()
+        val ageMs = kotlin.time.Clock.System.now().toEpochMilliseconds() - last.timestamp
+        return if (last.timestamp > 0L && ageMs in 0..RECORDED_ROUTE_FRESHNESS_MS) points else emptyList()
+    }
+
+    private fun parkedOriginFor(vehicleId: String?, sessions: List<UserParking>): GpsPoint? {
+        val byVehicle = vehicleId?.let { vid -> sessions.firstOrNull { it.vehicleId == vid } }
+        val session = byVehicle ?: sessions.singleOrNull()?.takeIf { vehicleId == null }
+        return session?.location
+    }
+
     private fun backdatedOrigin(parkedAt: GpsPoint?, fix: DrivingPuck): GpsPoint? {
         parkedAt ?: return null
         val gapMeters = haversineMeters(parkedAt.latitude, parkedAt.longitude, fix.latitude, fix.longitude)
@@ -298,5 +367,9 @@ class HomeTripController(
         // Plausibility ceiling for seeding the trail with the parked-spot origin: beyond this the
         // session is presumed stale and the trip falls back to first-fix origin. [DET-ROUTE-ORIGIN-001]
         const val MAX_BACKDATED_ORIGIN_METERS = 5_000.0
+
+        // A recorded route whose newest fix is older than this predates the current trip (leftover
+        // from a previous aborted drive) and must not be restored onto the live line. [DET-ROUTE-TRACK-001]
+        const val RECORDED_ROUTE_FRESHNESS_MS = 30 * 60_000L
     }
 }

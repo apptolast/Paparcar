@@ -180,3 +180,17 @@ val MIGRATION_14_15 = object : Migration(14, 15) {
     }
 }
 
+/**
+ * v15 → v16: add routePolyline to parking_sessions — the driven route that led to the parking, as a
+ * Google-encoded polyline string. Rendered in the history detail and synced to Firestore. Nullable
+ * TEXT, additive/non-destructive; existing rows read null (no route recorded pre-v16).
+ * [DET-ROUTE-TRACK-001]
+ */
+val MIGRATION_15_16 = object : Migration(15, 16) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL(
+            "ALTER TABLE parking_sessions ADD COLUMN routePolyline TEXT"
+        )
+    }
+}
+

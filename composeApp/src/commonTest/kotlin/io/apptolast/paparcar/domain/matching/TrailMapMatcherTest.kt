@@ -128,23 +128,24 @@ class TrailMapMatcherTest {
         assertTrue(haversineMeters(matched.last().latitude, matched.last().longitude, 36.6000, -6.2350) < 2.0)
     }
 
-    // ── Honesty — off-road fixes and parallel streets [ROUTE-LINE-CLEAN-001] ────────
+    // ── Always on the road — off-road fixes are dropped & bridged, never drawn [ROUTE-LINE-ONROAD-001] ──
 
     @Test
-    fun `should drop a single off-road spike between on-road fixes`() {
+    fun `should drop an off-road spike and keep the drawn line on the road`() {
         val road = RoadWay(listOf(gp(36.6000, -6.2400), gp(36.6000, -6.2300)))
-        // Driving along the road with one fix ~110 m north (beyond MAX_SNAP_METERS) mid-trail.
+        // Driving along the road with one fix ~220 m north (well beyond MAX_SNAP_METERS) mid-trail:
+        // a GPS spike into open ground. It carries no street, so it is dropped and the on-road fixes
+        // either side are bridged along the road — the line never darts north to the spike.
         val trail = listOf(
             gp(36.60003, -6.2360),
             gp(36.60004, -6.2355),
-            gp(36.6010, -6.2352), // the spike
+            gp(36.6020, -6.2352), // the spike — ~220 m off any street
             gp(36.60003, -6.2349),
             gp(36.60004, -6.2345),
         )
 
         val matched = TrailMapMatcher.snap(trail, listOf(road))
 
-        assertEquals(4, matched.size, "expected the spike dropped")
         matched.forEach { p ->
             val offset = haversineMeters(p.latitude, p.longitude, 36.6000, p.longitude)
             assertTrue(offset < 1.0, "expected every drawn point on the road, one is ${offset}m off")
@@ -152,30 +153,38 @@ class TrailMapMatcherTest {
     }
 
     @Test
-    fun `should keep a long off-road run raw`() {
+    fun `should drop a long off-road run and bridge it along the road, never drawing it raw`() {
         val road = RoadWay(listOf(gp(36.6000, -6.2400), gp(36.6000, -6.2300)))
-        // Three consecutive fixes far north of any street (a car park / open ground) — beyond
-        // MAX_OUTLIER_RUN, so this is a real off-road stretch, not a spike.
-        val offRoad = listOf(gp(36.6010, -6.2356), gp(36.6011, -6.2352), gp(36.6010, -6.2348))
+        // Three consecutive fixes far north of any street (open ground) — a real off-road stretch.
+        // v5 never draws these raw: they are dropped and the gap is bridged along the road.
+        val offRoad = listOf(gp(36.6020, -6.2356), gp(36.6021, -6.2352), gp(36.6020, -6.2348))
         val trail = listOf(gp(36.60003, -6.2360)) + offRoad + listOf(gp(36.60003, -6.2344))
 
         val matched = TrailMapMatcher.snap(trail, listOf(road))
 
         offRoad.forEach { p ->
-            assertTrue(matched.contains(p), "expected the off-road stretch kept raw")
+            assertTrue(!matched.contains(p), "expected the off-road stretch dropped, never drawn raw")
+        }
+        matched.forEach { p ->
+            val offset = haversineMeters(p.latitude, p.longitude, 36.6000, p.longitude)
+            assertTrue(offset < 1.0, "expected every drawn point on the road, one is ${offset}m off")
         }
     }
 
     @Test
-    fun `should keep an off-road trail origin raw`() {
+    fun `should snap a backdated origin set back from the road onto the street`() {
         val road = RoadWay(listOf(gp(36.6000, -6.2400), gp(36.6000, -6.2300)))
-        // The backdated origin sits ~110 m off the street (car park); it must survive as-is.
-        val origin = gp(36.6010, -6.2360)
+        // The backdated origin sits ~170 m off the street (a car park) — beyond MAX_SNAP_METERS but
+        // within ORIGIN_SNAP_METERS, so the origin snaps onto the nearest road and the line starts
+        // ON the road instead of darting out to the car park.
+        val origin = gp(36.60153, -6.2360)
         val trail = listOf(origin, gp(36.60003, -6.2355), gp(36.60004, -6.2350))
 
         val matched = TrailMapMatcher.snap(trail, listOf(road))
 
-        assertEquals(origin, matched.first())
+        val originOffset = haversineMeters(matched.first().latitude, matched.first().longitude, 36.6000, matched.first().longitude)
+        assertTrue(originOffset < 1.0, "expected the origin snapped onto the road, it is ${originOffset}m off")
+        assertTrue(matched.first() != origin, "expected the origin snapped, not kept raw")
     }
 
     @Test

@@ -31,7 +31,9 @@ import androidx.room.RoomDatabaseConstructor
     // local-only, null = exact point (MIGRATION_13_14). [DET-HONEST-CLOSE-001]
     // v15: parking_sessions gains spotType — the parking origin (auto / manual / home), synced so the
     // history detail screen shows the real detection method (MIGRATION_14_15). [HISTORY-DETAIL-001]
-    version = 15,
+    // v16: parking_sessions gains routePolyline — the driven route to the parking (Google-encoded
+    // polyline), rendered in history detail and synced to Firestore (MIGRATION_15_16). [DET-ROUTE-TRACK-001]
+    version = 16,
 )
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase : RoomDatabase() {

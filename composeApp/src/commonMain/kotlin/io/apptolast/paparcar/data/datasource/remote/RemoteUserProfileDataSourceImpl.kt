@@ -173,6 +173,9 @@ class RemoteUserProfileDataSourceImpl(
                 spotType = runCatching { get<String?>(FIELD_SPOT_TYPE) }.getOrNull(),
                 armEvidence = runCatching { get<String?>(FIELD_ARM_EVIDENCE) }.getOrNull(),
                 detectionPath = runCatching { get<String?>(FIELD_DETECTION_PATH) }.getOrNull(),
+                // The driven route (encoded polyline) — read back so a new device renders the trip.
+                // Defensive: absent on legacy docs written before DET-ROUTE-TRACK-001. [DET-ROUTE-TRACK-001]
+                routePolyline = runCatching { get<String?>(FIELD_ROUTE_POLYLINE) }.getOrNull(),
                 updatedAt = getLongCompat(FIELD_UPDATED_AT),
             )
         }.getOrElse { e ->
@@ -229,5 +232,6 @@ class RemoteUserProfileDataSourceImpl(
         // [DET-PIN-PROVENANCE-001]
         const val FIELD_ARM_EVIDENCE = "armEvidence"
         const val FIELD_DETECTION_PATH = "detectionPath"
+        const val FIELD_ROUTE_POLYLINE = "routePolyline"
     }
 }

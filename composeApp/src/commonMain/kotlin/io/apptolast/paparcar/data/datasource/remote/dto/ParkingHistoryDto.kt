@@ -30,6 +30,10 @@ data class ParkingHistoryDto(
     /** Confirmation PATH that placed this pin ("steps+egress" / "safety_net_backfill" / "bt" / … ) —
      *  which trigger put the parking. The other half of provenance. Null for legacy pins. [DET-PIN-PROVENANCE-001] */
     val detectionPath: String? = null,
+    /** The driven route that led to this parking as a Google-encoded polyline (lat/lon). One compact
+     *  string synced so the trip renders in history on any device. Null on legacy / BT docs.
+     *  [DET-ROUTE-TRACK-001] */
+    val routePolyline: String? = null,
     /** Epoch-ms of the local edit this document mirrors. Stamped on every write so the inbound-sync
      *  Last-Write-Wins merge can tell when the server has caught up with a pending local edit.
      *  Legacy docs read 0 → always lose to a real local timestamp. [SYNC-RECONCILE-USERPARKING-001] */
