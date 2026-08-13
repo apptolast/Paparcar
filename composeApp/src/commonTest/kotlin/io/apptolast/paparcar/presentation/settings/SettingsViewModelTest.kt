@@ -7,6 +7,7 @@ import io.apptolast.paparcar.domain.permissions.AppPermissionState
 import io.apptolast.paparcar.domain.permissions.RequiredPermission
 import io.apptolast.paparcar.presentation.permissions.PermissionsFocus
 import io.apptolast.paparcar.domain.detection.ParkingStrategyResolver
+import io.apptolast.paparcar.domain.model.DeviceCapabilities
 import io.apptolast.paparcar.domain.usecase.detection.EvaluateDetectionReliabilityUseCase
 import io.apptolast.paparcar.domain.usecase.detection.ObserveDetectionReliabilityUseCase
 import io.apptolast.paparcar.domain.usecase.user.DeleteAccountUseCase
@@ -82,7 +83,9 @@ class SettingsViewModelTest {
             permissionManager = customPermissions,
             oemBackgroundReliabilityManager = FakeOemBackgroundReliabilityManager(),
             strategyResolver = ParkingStrategyResolver(customVehicles, FakeBluetoothScanner()),
-            evaluateDetectionReliability = EvaluateDetectionReliabilityUseCase(),
+            evaluateDetectionReliability = EvaluateDetectionReliabilityUseCase(
+                capabilities = DeviceCapabilities(supportsBtStrategy = true, supportsBatteryExemption = true),
+            ),
         )
         return SettingsViewModel(customPrefs, auth, profile, useCase, customPermissions, customVehicles, observeReliability)
     }

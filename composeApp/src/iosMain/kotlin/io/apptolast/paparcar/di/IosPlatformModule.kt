@@ -27,6 +27,7 @@ import io.apptolast.paparcar.domain.bluetooth.BluetoothScanner
 import io.apptolast.paparcar.diagnostics.IosDeviceInfoProvider
 import io.apptolast.paparcar.domain.connectivity.ConnectivityObserver
 import io.apptolast.paparcar.domain.diagnostics.DeviceInfoProvider
+import io.apptolast.paparcar.domain.model.DeviceCapabilities
 import io.apptolast.paparcar.domain.location.LocationDataSource
 import io.apptolast.paparcar.domain.geocoder.GeocoderDataSource
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
@@ -81,6 +82,11 @@ val iosPlatformModule = module {
     single<PermissionManager> { IosPermissionManagerImpl() }
     // OEM autostart whitelist — no iOS equivalent, stub always reports "not required"
     single<OemBackgroundReliabilityManager> { IosOemBackgroundReliabilityManagerImpl() }
+
+    // Platform capabilities — iOS offers NEITHER reliability remedy: BT Classic ACL events are
+    // invisible to third-party apps and no battery-exemption concept exists. Tier ceiling =
+    // ASSISTED; the evaluator reads both legs as N/A (no issues, no impossible CTAs). [IOS-F0-03]
+    single { DeviceCapabilities(supportsBtStrategy = false, supportsBatteryExemption = false) }
 
     // Preferences — real iOS implementation (NSUserDefaults)
     single<AppPreferences> { IosAppPreferences() }

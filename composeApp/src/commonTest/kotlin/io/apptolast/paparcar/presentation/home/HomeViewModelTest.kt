@@ -15,6 +15,7 @@ import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.Vehicle
+import io.apptolast.paparcar.domain.model.DeviceCapabilities
 import io.apptolast.paparcar.domain.usecase.detection.EvaluateDetectionReliabilityUseCase
 import io.apptolast.paparcar.domain.usecase.detection.ObserveDetectionReadinessUseCase
 import io.apptolast.paparcar.domain.usecase.detection.ObserveDetectionReliabilityUseCase
@@ -151,7 +152,9 @@ class HomeViewModelTest {
             permissionManager = permissions,
             oemBackgroundReliabilityManager = FakeOemBackgroundReliabilityManager(),
             strategyResolver = ParkingStrategyResolver(vehicleRepo, FakeBluetoothScanner(bluetoothEnabled = false)),
-            evaluateDetectionReliability = EvaluateDetectionReliabilityUseCase(),
+            evaluateDetectionReliability = EvaluateDetectionReliabilityUseCase(
+                capabilities = DeviceCapabilities(supportsBtStrategy = true, supportsBatteryExemption = true),
+            ),
         )
         return HomeViewModel(
             permissionManager = permissions,

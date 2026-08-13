@@ -23,6 +23,7 @@ import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_17_18
 import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_18_19
 import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_19_20
 import io.apptolast.paparcar.domain.location.LocationDataSource
+import io.apptolast.paparcar.domain.model.DeviceCapabilities
 import io.apptolast.paparcar.domain.geocoder.GeocoderDataSource
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.places.PlacesDataSource
@@ -89,6 +90,10 @@ val androidPlatformModule = module {
     // Permissions
     single<PermissionManager> { PermissionManagerImpl(androidContext()) }
     single<OemBackgroundReliabilityManager> { OemBackgroundReliabilityManagerImpl(androidContext()) }
+
+    // Platform capabilities — Android offers both reliability remedies: the manifest ACL
+    // receiver (BT strategy) and ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS. [IOS-F0-03]
+    single { DeviceCapabilities(supportsBtStrategy = true, supportsBatteryExemption = true) }
 
     // Preferences
     single<AppPreferences> { AndroidDataStoreAppPreferences(androidContext()) }

@@ -269,8 +269,10 @@ val domainModule = module {
         )
     }
 
-    // Detection reliability — single evaluator every surface reads [DET-RELIABILITY-001]
-    factory { EvaluateDetectionReliabilityUseCase() }
+    // Detection reliability — single evaluator every surface reads [DET-RELIABILITY-001].
+    // DeviceCapabilities comes from each platform module (Android true/true, iOS false/false)
+    // so unsupported legs read N/A instead of nagging impossible fixes. [IOS-F0-03]
+    factory { EvaluateDetectionReliabilityUseCase(capabilities = get()) }
     factory {
         ObserveDetectionReliabilityUseCase(
             vehicleRepository = get(),
