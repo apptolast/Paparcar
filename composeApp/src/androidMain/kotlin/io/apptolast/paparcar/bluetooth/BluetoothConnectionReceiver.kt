@@ -37,8 +37,13 @@ import org.koin.core.component.inject
  * - [BluetoothDevice.ACTION_ACL_CONNECTED]    → `startService(ACTION_BT_CONNECTED)` (instant work,
  *   no foreground needed — the Service cancels the pending job and stops itself immediately)
  *
- * Registered in AndroidManifest with `exported=false` and a BLUETOOTH_CONNECT permission guard
- * so that the system only delivers events when the app holds the permission.
+ * Registered in AndroidManifest with `exported="true"` and a BLUETOOTH_CONNECT permission guard.
+ * The `true` is LOAD-BEARING — do not "fix" it to false: ACL broadcasts are sent by the
+ * Bluetooth stack process (uid `bluetooth`, not `system`), which cannot deliver to non-exported
+ * components of another app. `exported="false"` leaves this receiver permanently deaf and the
+ * whole deterministic BT strategy dead. Exporting is safe: both ACL actions are protected
+ * broadcasts (only the system/BT stack may send them) and the permission guard restricts
+ * senders to BLUETOOTH_CONNECT holders. See [DET-BT-RECEIVER-EXPORT-001] in AndroidManifest.xml.
  *
  * **Refactor 2026-06-08 [BT-BUG-102 + BT-BUG-106]:**
  *  - Per-delivery [CoroutineScope] instead of an instance field. The previous design
