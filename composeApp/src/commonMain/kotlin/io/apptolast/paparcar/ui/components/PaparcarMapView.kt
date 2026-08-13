@@ -260,6 +260,7 @@ private const val MARKER_MY_CAR          = "my_car"
 private const val MARKER_MY_CAR_DIM      = "my_car_dim"
 private const val MARKER_MY_CAR_SELECTED = "my_car_selected"
 private const val MARKER_DEPARTURE       = "departure" // trip origin (blue dot) during a trip [DEPART-CONSISTENCY-001]
+private const val MARKER_ARRIVAL         = "arrival"   // stored route's end (same dot) at the parked car [ROUTE-END-AT-CAR-001]
 // Trip breadcrumb polyline width (screen px in Google Maps). Navigation-app weight: thick enough
 // that residual GPS jitter reads as a confident line, not noise. 20→28 on user feedback — on the
 // ~3× density field phones 28 px ≈ 9 dp, about Google Maps' own route weight. [TRIP-TRAIL-001]
@@ -597,6 +598,13 @@ fun PaparcarMapView(
     /** Faded "departure" point — where the car left from, shown while a trip runs. [TRIP-TRAIL-001] */
     departurePoint: State<GpsPoint?> = EMPTY_DEPARTURE_STATE,
     /**
+     * End vertex of a STORED route — the departure dot's mirror on the polyline's last point, tight
+     * against the parked-car marker, so the line terminates cleanly instead of dying in an abrupt
+     * cut. Only for saved routes (history detail); a LIVE trip's end is the moving puck, so live
+     * callers leave this empty. [ROUTE-END-AT-CAR-001]
+     */
+    arrivalPoint: State<GpsPoint?> = EMPTY_DEPARTURE_STATE,
+    /**
      * When true (camera is following the trip), the driving puck is drawn as a CENTERED overlay rather
      * than a moving marker. kmpmaps keys markers by hashCode (incl. coordinates), so a marker that moves
      * every GPS frame is torn down + recreated each frame → flicker. Centered + camera-follow is the
@@ -670,6 +678,7 @@ fun PaparcarMapView(
     val currentTripTrail by rememberUpdatedState(tripTrail)
     val currentMatchedTrail by rememberUpdatedState(matchedTrail)
     val currentDeparturePoint by rememberUpdatedState(departurePoint)
+    val currentArrivalPoint by rememberUpdatedState(arrivalPoint)
 
     // Read the fix-rate puck ONLY in isolated scopes so the map body doesn't recompose per fix:
     //  · metadata (carbody/size/colour/phase) via a derived snapshot → recomposes only when it changes;
@@ -692,6 +701,7 @@ fun PaparcarMapView(
         }
     }
     val departure by remember { derivedStateOf { currentDeparturePoint.value } }
+    val arrival by remember { derivedStateOf { currentArrivalPoint.value } }
 
     // ── Clustering ───────────────────────────────────────────────────────────
     var currentZoom by remember { mutableStateOf(ZOOM_DEFAULT) }
@@ -757,7 +767,7 @@ fun PaparcarMapView(
     // bitmap by contentId. [MAP-MARKERS-DIM-002]
     val markers = remember(
         clusters, parkingLocation, parkedVehicles, selectedSpotId, selectedSessionId, zones, dimSpots,
-        departure,
+        departure, arrival,
     ) {
         buildList {
             // Zone markers — added FIRST (lowest zIndex) so spot/parking markers
@@ -860,6 +870,18 @@ fun PaparcarMapView(
                     ),
                 )
             }
+            // Stored route's end — the origin dot's mirror on the last vertex, tight against the
+            // parked-car marker, so the line terminates instead of cutting off. [ROUTE-END-AT-CAR-001]
+            arrival?.let { ap ->
+                add(
+                    Marker(
+                        coordinates = Coordinates(ap.latitude, ap.longitude),
+                        title = null,
+                        contentId = MARKER_ARRIVAL,
+                        androidMarkerOptions = DEPARTURE_MARKER_OPTIONS,
+                    ),
+                )
+            }
             // The driving puck is NOT added here. It moves every frame (interpolated between GPS
             // fixes), so it lives outside this memoised list as its own native Marker with a stable
             // [Marker.id] + native rotation — see [drivingPuckMarker] below. The fork keys markers by
@@ -922,6 +944,11 @@ fun PaparcarMapView(
             // Departure point: a small blue dot with a white halo — a clean "you left from here"
             // origin where the breadcrumb trail starts. [DEPART-CONSISTENCY-001] [TRIP-TRAIL-001]
             put(MARKER_DEPARTURE) { _ ->
+                DepartureDotMarker()
+            }
+            // Route end vertex: deliberately the SAME dot as the origin — both ends of the stored
+            // line share one visual language (white ring, drive-blue fill). [ROUTE-END-AT-CAR-001]
+            put(MARKER_ARRIVAL) { _ ->
                 DepartureDotMarker()
             }
             // User-location "you" dot — one stable bitmap, no per-fix churn. [DRIVE-PUCK-NATIVE-001]

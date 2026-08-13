@@ -23,6 +23,14 @@ object DrivingRoute {
      *  on trip end, covering the rare case where a process death skipped that clear. */
     const val NEW_TRIP_GAP_MS = 20 * 60_000L
 
+    /** The parking anchor is appended as the route's final vertex only when the last driven fix
+     *  stops short of it by at least the floor (below it the line already ends at the car within
+     *  decimation noise) and by at most the ceiling (a farther anchor belongs to another story —
+     *  never stretch the line to it). Mirrors the origin-prepend plausibility window
+     *  (`MIN/MAX_ORIGIN_PREPEND_METERS` in ConfirmParkingUseCase). [ROUTE-END-AT-CAR-001] */
+    const val MIN_ANCHOR_APPEND_METERS = 15.0
+    const val MAX_ANCHOR_APPEND_METERS = 5_000.0
+
     /**
      * Returns the route after adding [point]. Returns [current] unchanged (same reference) when the
      * fix is decimated away, so a caller can skip persisting on no-op ticks.
@@ -37,5 +45,27 @@ object DrivingRoute {
         val moved = haversineMeters(last.latitude, last.longitude, point.latitude, point.longitude)
         if (moved < MIN_POINT_DISTANCE_M) return current
         return (current + point).takeLast(MAX_POINTS)
+    }
+
+    /**
+     * The stored route is the DRIVING route — invariant: it ends at the parking anchor, never at
+     * the pedestrian. The store keeps sampling while the user walks away from the parked car with
+     * GPS still live (egress proof, hold window), so the raw buffer carries a pedestrian tail past
+     * the spot. [anchor] is the pin being saved, whose fix timestamp is the measured end of
+     * driving (the stop `bestStopLocation` was captured at): every fix recorded after it is the
+     * walk, not the drive — dropped. The anchor itself then becomes the final vertex when the
+     * remaining line stops short of it (plausibility-windowed), so the polyline terminates at the
+     * car. An anchor without a real timestamp (synthetic callers) trims nothing — the append alone
+     * still ends the line at the pin. [ROUTE-END-AT-CAR-001]
+     */
+    fun endAtAnchor(points: List<GpsPoint>, anchor: GpsPoint): List<GpsPoint> {
+        val driven = if (anchor.timestamp > 0L) {
+            points.takeWhile { it.timestamp <= anchor.timestamp }
+        } else {
+            points
+        }
+        val last = driven.lastOrNull() ?: return driven
+        val gapM = haversineMeters(last.latitude, last.longitude, anchor.latitude, anchor.longitude)
+        return if (gapM in MIN_ANCHOR_APPEND_METERS..MAX_ANCHOR_APPEND_METERS) driven + anchor else driven
     }
 }

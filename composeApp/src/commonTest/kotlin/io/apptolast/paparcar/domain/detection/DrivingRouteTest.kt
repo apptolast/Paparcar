@@ -40,6 +40,43 @@ class DrivingRouteTest {
         assertEquals(41.0, afterGap.first().latitude)
     }
 
+    // ── endAtAnchor [ROUTE-END-AT-CAR-001] ───────────────────────────────────
+
+    @Test
+    fun `should drop fixes recorded after the anchor and end at the anchor when a walk tail follows the stop`() {
+        val drive = listOf(p(40.0, -3.0, 1_000L), p(40.001, -3.0, 5_000L), p(40.002, -3.0, 9_000L))
+        val walk = listOf(p(40.0025, -3.0002, 15_000L), p(40.003, -3.0004, 20_000L))
+        val anchor = p(40.0023, -3.0, 10_000L) // ~33 m past the last driven fix
+
+        val out = DrivingRoute.endAtAnchor(drive + walk, anchor)
+
+        assertEquals(drive + anchor, out)
+    }
+
+    @Test
+    fun `should keep the route intact when no fixes follow the anchor and the line already ends at it`() {
+        val drive = listOf(p(40.0, -3.0, 1_000L), p(40.001, -3.0, 5_000L), p(40.002, -3.0, 9_000L))
+        val anchor = p(40.00205, -3.0, 10_000L) // ~6 m from the last fix — below the append floor
+
+        assertEquals(drive, DrivingRoute.endAtAnchor(drive, anchor))
+    }
+
+    @Test
+    fun `should not stretch the line to an anchor beyond the plausibility ceiling`() {
+        val drive = listOf(p(40.0, -3.0, 1_000L), p(40.001, -3.0, 5_000L))
+        val anchor = p(40.1, -3.0, 6_000L) // ~11 km away — another story, never stretch
+
+        assertEquals(drive, DrivingRoute.endAtAnchor(drive, anchor))
+    }
+
+    @Test
+    fun `should trim nothing but still cap the line when the anchor carries no timestamp`() {
+        val drive = listOf(p(40.0, -3.0, 1_000L), p(40.001, -3.0, 5_000L))
+        val anchor = p(40.0013, -3.0, 0L) // synthetic caller, ~33 m past the end
+
+        assertEquals(drive + anchor, DrivingRoute.endAtAnchor(drive, anchor))
+    }
+
     @Test
     fun `should cap the route to MAX_POINTS, dropping the oldest`() {
         var route = emptyList<GpsPoint>()

@@ -137,6 +137,11 @@ fun HistoryParkingDetailScreen(
     val routeStart = remember(focusedSession?.routePolyline, routeSnapped) {
         mutableStateOf(routeTrail.value.firstOrNull())
     }
+    // End vertex — the origin dot's mirror on the stored route's LAST point, tight against the
+    // parked-car marker, so the line terminates cleanly instead of an abrupt cut. [ROUTE-END-AT-CAR-001]
+    val routeEnd = remember(focusedSession?.routePolyline, routeSnapped) {
+        mutableStateOf(routeTrail.value.lastOrNull())
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         PaparcarMapView(
@@ -145,6 +150,7 @@ fun HistoryParkingDetailScreen(
             userLocation = state.userLocation,
             tripTrail = routeTrail,
             departurePoint = routeStart,
+            arrivalPoint = routeEnd,
             parkingLocation = focusedSession?.location ?: parkingGpsPoint ?: state.userParking?.location,
             parkingVehicleSize = focusedSession?.sizeCategory ?: state.focusedVehicle?.sizeCategory,
             parkingVehicleCarbody = focusedSession?.carbodyType ?: state.focusedVehicle?.carbodyType,

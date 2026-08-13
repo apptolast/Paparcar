@@ -668,6 +668,70 @@ class ConfirmParkingUseCaseTest {
         assertEquals(PolylineCodec.encode(route), saved.routePolyline)
     }
 
+    // ── Route ends at the car [ROUTE-END-AT-CAR-001] ────────────────────────────
+
+    /** Driven fixes ending at the stop; the anchor's fix timestamp marks the end of driving. */
+    private fun drivenLeg(now: Long) = listOf(
+        GpsPoint(40.4160, -3.7040, 5f, now - 120_000, 0f),
+        GpsPoint(40.4165, -3.7038, 5f, now - 60_000, 0f),
+        GpsPoint(40.4167, -3.7037, 5f, now - 30_000, 0f),
+    )
+
+    /** Pedestrian fixes the store kept sampling AFTER the stop (GPS live during egress). */
+    private fun walkTail(now: Long) = listOf(
+        GpsPoint(40.4170, -3.7030, 5f, now - 20_000, 0f),
+        GpsPoint(40.4174, -3.7024, 5f, now - 2_000, 0f),
+    )
+
+    @Test
+    fun `should drop the pedestrian tail after the stop and end the polyline at the parking anchor`() = runTest {
+        // Field 2026-08-13 17:33, Calle Mar de Alborán: the stored line continued past the car,
+        // following the user's walk after parking. The anchor's fix timestamp is the measured end
+        // of driving — everything after it is the walk, and the pin caps the line.
+        val now = Clock.System.now().toEpochMilliseconds()
+        val drive = drivenLeg(now)
+        val anchor = GpsPoint(40.41675, -3.70335, 8f, now - 30_000, 0f) // ~30 m past the last driven fix
+        val useCase = buildUseCase(routeStore = FakeDrivingRouteStore(initial = drive + walkTail(now)))
+
+        val saved = useCase(anchor, detectionReliability = 0.9f, sealPoint = null).getOrNull()
+
+        assertNotNull(saved)
+        assertEquals(PolylineCodec.encode(drive + anchor), saved.routePolyline)
+    }
+
+    @Test
+    fun `should keep a route without a pedestrian tail intact`() = runTest {
+        val now = Clock.System.now().toEpochMilliseconds()
+        val route = freshRoute(now)
+        // Pin within the append floor of the last fix, stamped after the drive → nothing to trim,
+        // nothing to append.
+        val anchor = GpsPoint(40.416775, -3.703790, 8f, now - 1_000, 0f)
+        val useCase = buildUseCase(routeStore = FakeDrivingRouteStore(initial = route))
+
+        val saved = useCase(anchor, detectionReliability = 0.9f, sealPoint = null).getOrNull()
+
+        assertNotNull(saved)
+        assertEquals(PolylineCodec.encode(route), saved.routePolyline)
+    }
+
+    @Test
+    fun `should still seed the origin when the pedestrian tail is trimmed`() = runTest {
+        // Tail trim must not regress ROUTE-QUALITY-001: the previous parking still opens the line.
+        val now = Clock.System.now().toEpochMilliseconds()
+        val drive = drivenLeg(now)
+        val anchor = GpsPoint(40.41675, -3.70335, 8f, now - 30_000, 0f)
+        val previous = recentActiveSession(lat = 40.4115, lon = -3.7040) // ~500 m before the first fix
+        val useCase = buildUseCase(
+            repo = FakeUserParkingRepository(initialSession = previous),
+            routeStore = FakeDrivingRouteStore(initial = drive + walkTail(now)),
+        )
+
+        val saved = useCase(anchor, detectionReliability = 0.9f, sealPoint = null).getOrNull()
+
+        assertNotNull(saved)
+        assertEquals(PolylineCodec.encode(listOf(previous.location) + drive + anchor), saved.routePolyline)
+    }
+
     @Test
     fun `should not prepend an origin that is effectively the first fix already`() = runTest {
         val now = Clock.System.now().toEpochMilliseconds()

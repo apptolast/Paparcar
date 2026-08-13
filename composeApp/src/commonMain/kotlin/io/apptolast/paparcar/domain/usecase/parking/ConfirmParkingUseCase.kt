@@ -4,6 +4,7 @@ package io.apptolast.paparcar.domain.usecase.parking
 
 import com.apptolast.customlogin.domain.AuthRepository
 import io.apptolast.paparcar.domain.detection.ArmEvidence
+import io.apptolast.paparcar.domain.detection.DrivingRoute
 import io.apptolast.paparcar.domain.detection.DrivingRouteStore
 import io.apptolast.paparcar.domain.detection.VehicleFenceOwnershipPolicy
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
@@ -220,8 +221,11 @@ class ConfirmParkingUseCase(
         // A-491, ~500 m past the real spot). Prepend it, plausibility-capped, so the stored route
         // starts where the car actually left from (the polyline carries lat/lon only — the origin's
         // old timestamp is irrelevant).
+        // [ROUTE-END-AT-CAR-001] The route is the DRIVING route and must END at the pin: the store
+        // keeps sampling while the user walks away with GPS live, so the raw buffer is trimmed to
+        // the anchor's fix (the measured end of driving) and capped with the pin as final vertex.
         val routeOrigin = userParkingRepository.getActiveSessionByVehicle(resolvedVehicleId)?.location
-        val routePolyline = encodeFreshRoute(nowMs = gpsPoint.timestamp, origin = routeOrigin)
+        val routePolyline = encodeFreshRoute(nowMs = gpsPoint.timestamp, origin = routeOrigin, anchor = location)
 
         val session = UserParking(
             id = sessionId,
@@ -344,16 +348,24 @@ class ConfirmParkingUseCase(
      * belong to this trip. Requires ≥2 points and a last fix within [ROUTE_FRESHNESS_MS] of
      * [nowMs] — a route whose newest fix is older than that is a leftover from a previous aborted
      * trip, not the drive that just ended here. [DET-ROUTE-TRACK-001]
+     *
+     * [ROUTE-END-AT-CAR-001] The stored line is trimmed to [anchor] (the pin being saved): fixes
+     * the store recorded after the anchor's fix are the user's walk away from the parked car, not
+     * the drive, and the anchor caps the line as its final vertex — see [DrivingRoute.endAtAnchor].
      */
-    private fun encodeFreshRoute(nowMs: Long, origin: GpsPoint? = null): String? {
-        val points = drivingRouteStore?.points().orEmpty()
-        val last = points.lastOrNull() ?: return null
-        val fresh = points.size >= 2 && last.timestamp > 0L && (nowMs - last.timestamp) in 0..ROUTE_FRESHNESS_MS
+    private fun encodeFreshRoute(nowMs: Long, origin: GpsPoint?, anchor: GpsPoint): String? {
+        val recorded = drivingRouteStore?.points().orEmpty()
+        val lastRecorded = recorded.lastOrNull() ?: return null
+        val fresh = recorded.size >= 2 && lastRecorded.timestamp > 0L &&
+            (nowMs - lastRecorded.timestamp) in 0..ROUTE_FRESHNESS_MS
         if (!fresh) {
-            if (points.isNotEmpty()) {
-                PaparcarLogger.d(DIAG, "  route store not fresh (${points.size} pts, last ${(nowMs - last.timestamp) / 1000}s old) — no route attached")
-            }
+            PaparcarLogger.d(DIAG, "  route store not fresh (${recorded.size} pts, last ${(nowMs - lastRecorded.timestamp) / 1000}s old) — no route attached")
             return null
+        }
+        val points = DrivingRoute.endAtAnchor(recorded, anchor)
+        if (points.size < 2) return null
+        if (points.size != recorded.size) {
+            PaparcarLogger.d(DIAG, "  route tail trimmed to the parking anchor (${recorded.size} → ${points.size} pts) [ROUTE-END-AT-CAR-001]")
         }
         // [ROUTE-QUALITY-001] Prepend the previous parking as the trip's true origin. Plausibility
         // mirrors Home's live prepend: an origin further than the ceiling from the first tracked fix

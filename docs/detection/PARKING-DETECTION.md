@@ -1870,6 +1870,39 @@ with no marker, reading as cut off.
 Pure commonMain except the Overpass query change; detection evidence untouched. The snap remains
 once-and-stored — routes snapped before this ticket keep their old geometry.
 
+### ROUTE-END-AT-CAR-001 — the stored route ends at the parking anchor, never at the pedestrian (2026-08-13)
+
+**Why (field 2026-08-13 17:33, Calle Mar de Alborán, Coordinator; mirror case Ebro 2026-08-11
+21:43 with the anchor left BEHIND the polyline's end).** The pin was correct but the stored line
+continued PAST the car, following the user's walk after parking: the `DrivingRouteStore` keeps
+receiving fixes while GPS stays live during the egress (step proof, hold window), and
+`encodeFreshRoute` encoded the whole buffer — the pedestrian tail then went through the worker's
+map-match like any other stretch. The final cut was also abrupt: no terminating vertex mark
+(the origin has had one since ROUTE-QUALITY-001).
+
+**Invariant.** The routePolyline is the DRIVING route: it ends at the parking anchor. Fixes
+recorded after the measured end of driving are the walk, not the trip, and never belong to the line.
+
+**What.**
+- **Tail trim** (`DrivingRoute.endAtAnchor`, applied in `ConfirmParkingUseCase.encodeFreshRoute`
+  BEFORE encoding — and therefore before the one-time snap): fixes whose timestamp is later than
+  the anchor fix's are dropped, and the anchor is appended as the final vertex when the remaining
+  line stops short of it (plausibility window 15 m – 5 km, `MIN/MAX_ANCHOR_APPEND_METERS`,
+  mirroring the origin prepend). The anchor is the `location` every confirm path passes — for the
+  Coordinator that is `bestStopLocation`/the refined pin, whose fix timestamp IS the measured end
+  of driving (the stop the anchor was captured/frozen at, ANCHOR-LOCK/DET-ANCHOR-FREEZE). No new
+  heuristics: a "last driving-speed fix" cut was rejected because it would eat the slow final
+  approach. A user-stamped pin (manual/nudge/"Sí") carries timestamp = now → nothing trims, but
+  the append still caps the line at the pin. Freshness stays evaluated on the RAW buffer's last
+  fix; the origin prepend and the matcher are untouched.
+- **End vertex** (`PaparcarMapView.arrivalPoint` + `ParkingLocationScreen`): the stored route's
+  last vertex gets the SAME dot as the origin (white ring, drive-blue fill), tight against the
+  parked-car marker, so the line terminates instead of dying in a cut. Saved routes only — a live
+  trip's end is the moving puck.
+
+Pure commonMain; detection evidence untouched. Acts at confirm time — routes stored before this
+ticket keep their tails.
+
 ### DET-RESIDENT-FGS-001 — resident SENTRY FGS between parkings (F1 lifecycle, F2 telemetry) (2026-07-28 / 2026-08-04)
 
 **Why (chronic FN class; plan derived from the decompiled Driversnote/Transistor stack).** The

@@ -289,7 +289,8 @@ private const val LOC_HALO_ALPHA = 0.16f
  * The trip's origin: a small blue dot with a white halo, marking exactly where the departing vehicle
  * left from — the point the breadcrumb trail starts at. Center-anchored on the map so the dot sits on
  * the coordinate. Replaces the old faded-car departure badge: the origin is now just the clear dot.
- * [DEPART-CONSISTENCY-001] [TRIP-TRAIL-001]
+ * Also caps a STORED route's final vertex at the parked car — both ends of the line deliberately
+ * share this one visual language. [DEPART-CONSISTENCY-001] [TRIP-TRAIL-001] [ROUTE-END-AT-CAR-001]
  */
 @Composable
 fun DepartureDotMarker(modifier: Modifier = Modifier) {
