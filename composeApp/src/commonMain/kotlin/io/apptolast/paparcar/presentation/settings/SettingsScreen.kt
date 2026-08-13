@@ -1,13 +1,10 @@
 package io.apptolast.paparcar.presentation.settings
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -45,7 +42,6 @@ import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Map
-import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Sensors
 import androidx.compose.material.icons.rounded.SensorsOff
 import androidx.compose.material.icons.rounded.Warning
@@ -68,7 +64,6 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -150,12 +145,6 @@ import paparcar.composeapp.generated.resources.settings_language
 import paparcar.composeapp.generated.resources.settings_language_auto
 import paparcar.composeapp.generated.resources.settings_language_desc
 import paparcar.composeapp.generated.resources.settings_licenses
-import paparcar.composeapp.generated.resources.settings_notif_parking
-import paparcar.composeapp.generated.resources.settings_notif_parking_desc
-import paparcar.composeapp.generated.resources.settings_notif_spot
-import paparcar.composeapp.generated.resources.settings_notif_spot_desc
-import paparcar.composeapp.generated.resources.settings_notifications_subtitle
-import paparcar.composeapp.generated.resources.settings_notifications_title
 import paparcar.composeapp.generated.resources.settings_privacy
 import paparcar.composeapp.generated.resources.settings_profile_delete_account
 import paparcar.composeapp.generated.resources.settings_profile_logout
@@ -164,7 +153,6 @@ import paparcar.composeapp.generated.resources.settings_section_about
 import paparcar.composeapp.generated.resources.settings_section_appearance
 import paparcar.composeapp.generated.resources.settings_section_detection
 import paparcar.composeapp.generated.resources.settings_section_map
-import paparcar.composeapp.generated.resources.settings_section_notifications
 import paparcar.composeapp.generated.resources.settings_theme_mode
 import paparcar.composeapp.generated.resources.settings_theme_mode_dark
 import paparcar.composeapp.generated.resources.settings_theme_mode_desc
@@ -319,25 +307,6 @@ internal fun SettingsContent(
                 item { DetectionSectionCard(state = state, onIntent = onIntent) }
 
                 // ── 3 · Notifications (master + grouped subs) ───────────────────
-                item { SectionHeaderMuted(stringResource(Res.string.settings_section_notifications)) }
-                item {
-                    // Master = ON when either sub is ON. derivedStateOf so the card only recomposes
-                    // when the boolean actually flips (not on every other state field change).
-                    val masterOn by remember(state.notifyParkingDetected, state.notifySpotFreed) {
-                        derivedStateOf { state.notifyParkingDetected || state.notifySpotFreed }
-                    }
-                    NotificationsGroupCard(
-                        masterOn = masterOn,
-                        onMasterChange = { onIntent(SettingsIntent.ToggleMasterNotifications(it)) },
-                        parkingOn = state.notifyParkingDetected,
-                        onParkingChange = { onIntent(SettingsIntent.ToggleParkingDetectedNotif(it)) },
-                        // "Parking detected" only fires from auto-detection — dim + lock it when OFF.
-                        parkingEnabled = state.autoDetectParking,
-                        spotOn = state.notifySpotFreed,
-                        onSpotChange = { onIntent(SettingsIntent.ToggleSpotFreedNotif(it)) },
-                    )
-                }
-
                 // ── 4 · Appearance (theme + language) ────────────────────────────
                 item { SectionHeaderMuted(stringResource(Res.string.settings_section_appearance)) }
                 item {
@@ -917,90 +886,6 @@ private fun LanguageDropdownRow(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Notifications group card — master + subs
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Composable
-private fun NotificationsGroupCard(
-    masterOn: Boolean,
-    onMasterChange: (Boolean) -> Unit,
-    parkingOn: Boolean,
-    onParkingChange: (Boolean) -> Unit,
-    parkingEnabled: Boolean,
-    spotOn: Boolean,
-    onSpotChange: (Boolean) -> Unit,
-) {
-    PapOutlinedCard(modifier = Modifier.fillMaxWidth()) {
-        Column {
-            PapListItem(
-                leading = { PapIconTile(icon = Icons.Rounded.Notifications) },
-                title = stringResource(Res.string.settings_notifications_title),
-                subtitle = stringResource(Res.string.settings_notifications_subtitle),
-                subtitleColor = settingsSubtitleColor(),
-                trailing = { Switch(checked = masterOn, onCheckedChange = onMasterChange) },
-            )
-            // Accordion: sub-toggles grow/collapse from the top edge under the master
-            // switch instead of snapping in. [MOTION-POLISH-001]
-            AnimatedVisibility(
-                visible = masterOn,
-                enter = expandVertically(PapMotion.medium(), expandFrom = Alignment.Top) + fadeIn(PapMotion.medium()),
-                exit = shrinkVertically(PapMotion.medium(), shrinkTowards = Alignment.Top) + fadeOut(PapMotion.medium()),
-            ) {
-                Column {
-                    PapDivider()
-                    SubNotifRow(
-                        label = stringResource(Res.string.settings_notif_parking),
-                        description = stringResource(Res.string.settings_notif_parking_desc),
-                        checked = parkingOn,
-                        onCheckedChange = onParkingChange,
-                        // "Parking detected" is produced by auto-detection — dim + lock while OFF.
-                        enabled = parkingEnabled,
-                    )
-                    PapDivider()
-                    SubNotifRow(
-                        label = stringResource(Res.string.settings_notif_spot),
-                        description = stringResource(Res.string.settings_notif_spot_desc),
-                        checked = spotOn,
-                        onCheckedChange = onSpotChange,
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun SubNotifRow(
-    label: String,
-    description: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-    enabled: Boolean = true,
-) {
-    val cs = MaterialTheme.colorScheme
-    val contentAlpha = if (enabled) 1f else DISABLED_ROW_ALPHA
-    Row(
-        modifier = Modifier.padding(start = SUB_NOTIF_INDENT_DP.dp, end = 16.dp, top = 12.dp, bottom = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                label,
-                style = PaparcarType.current.caption,
-                fontWeight = FontWeight.SemiBold,
-                color = cs.onSurface.copy(alpha = contentAlpha),
-            )
-            Text(
-                description,
-                style = PaparcarType.current.label,
-                color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA_STRONG * contentAlpha),
-            )
-        }
-        Switch(checked = checked && enabled, onCheckedChange = onCheckedChange, enabled = enabled)
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Danger zone
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -1136,14 +1021,9 @@ private const val AVATAR_DP = 56
 
 private const val THEME_PREVIEW_RATIO = 0.85f
 
-/** Sub-notification rows align their text with the parent row's text column:
- *  16 (card padding) + 40 (PapIconTile default) + 14 (row gap). */
-private const val SUB_NOTIF_INDENT_DP = 16 + 40 + 14
-
 private const val SUBTITLE_ALPHA = 0.55f
 private const val SUBTITLE_ALPHA_STRONG = 0.5f
 private const val CHEVRON_DIM_ALPHA = 0.3f
-private const val DISABLED_ROW_ALPHA = 0.38f
 private const val DANGER_BG_ALPHA = 0.15f
 private const val DANGER_BORDER_ALPHA = 0.7f
 private const val DANGER_SUBTITLE_ALPHA = 0.6f

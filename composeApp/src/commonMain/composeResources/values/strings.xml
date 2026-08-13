@@ -353,19 +353,12 @@
     <string name="settings_detection_battery_desc">Prevents Android background delays</string>
     <string name="settings_detection_configured">Configured</string>
     <string name="settings_detection_setup">Set up</string>
-    <string name="settings_section_notifications">Notifications</string>
-    <string name="settings_notif_parking">Parking detected</string>
-    <string name="settings_notif_parking_desc">Alert when a parking spot is saved</string>
-    <string name="settings_notif_spot">Spot available nearby</string>
-    <string name="settings_notif_spot_desc">Alert when a spot is freed near you</string>
     <string name="settings_section_about">About</string>
     <string name="settings_version">Version</string>
     <string name="settings_privacy">Privacy policy</string>
     <string name="settings_licenses">Open source licenses</string>
     <string name="settings_contact">Contact</string>
     <!-- Settings v2 — refactored UI -->
-    <string name="settings_notifications_title">Notifications</string>
-    <string name="settings_notifications_subtitle">Receive app alerts</string>
     <string name="settings_danger_zone">Danger zone</string>
     <string name="settings_danger_zone_subtitle">Irreversible actions</string>
     <!-- Profile card: "Member since MAY 2025" — %1$s = month short name uppercase, %2$d = year -->

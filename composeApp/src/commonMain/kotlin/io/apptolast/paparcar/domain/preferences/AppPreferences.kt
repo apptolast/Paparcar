@@ -42,12 +42,6 @@ interface AppPreferences {
     fun setPendingParkNudge(nudge: PendingParkNudge)
     fun clearPendingParkNudge()
 
-    val notifyParkingDetected: Boolean
-    fun setNotifyParkingDetected(enabled: Boolean)
-
-    val notifySpotFreed: Boolean
-    fun setNotifySpotFreed(enabled: Boolean)
-
     val themeMode: ThemeMode
     fun setThemeMode(mode: ThemeMode)
 

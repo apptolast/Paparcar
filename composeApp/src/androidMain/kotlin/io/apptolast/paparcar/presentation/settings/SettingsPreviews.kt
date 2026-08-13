@@ -56,7 +56,6 @@ private fun SettingsSatelliteImperialPreview() {
             state = SettingsState(
                 userProfile = loggedInProfile,
                 autoDetectParking = false,
-                notifyParkingDetected = false,
             ),
             themeMode = ThemeMode.DARK,
             imperialUnits = true,

@@ -198,11 +198,6 @@
     <string name="settings_section_detection">Detectie</string>
     <string name="settings_auto_detect">Automatische parkeerdetectie</string>
     <string name="settings_auto_detect_desc">Parkeerplaats automatisch opslaan</string>
-    <string name="settings_section_notifications">Meldingen</string>
-    <string name="settings_notif_parking">Parkeren gedetecteerd</string>
-    <string name="settings_notif_parking_desc">Melding wanneer een parkeerplaats wordt opgeslagen</string>
-    <string name="settings_notif_spot">Parkeerplaats beschikbaar in de buurt</string>
-    <string name="settings_notif_spot_desc">Melding wanneer een parkeerplaats vrij komt in uw buurt</string>
     <string name="settings_section_about">Over</string>
     <string name="settings_version">Versie</string>
     <string name="settings_privacy">Privacybeleid</string>
@@ -450,8 +445,6 @@
     <string name="settings_language_auto">Systeemstandaard</string>
     <string name="settings_contact">Contact</string>
     <!-- Settings v2 — UI refactor -->
-    <string name="settings_notifications_title">Meldingen</string>
-    <string name="settings_notifications_subtitle">App-meldingen ontvangen</string>
     <string name="settings_danger_zone">Gevarenzone</string>
     <string name="settings_danger_zone_subtitle">Onomkeerbare acties</string>
     <string name="settings_profile_member_since">Lid sinds %1$s %2$d</string>

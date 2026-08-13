@@ -146,15 +146,9 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
 
     // ── Notifications ────────────────────────────────────────────────────────
 
-    override val notifyParkingDetected: Boolean
-        get() = get(Keys.NOTIFY_PARKING_DETECTED, true)
 
-    override fun setNotifyParkingDetected(enabled: Boolean) = set(Keys.NOTIFY_PARKING_DETECTED, enabled)
 
-    override val notifySpotFreed: Boolean
-        get() = get(Keys.NOTIFY_SPOT_FREED, true)
 
-    override fun setNotifySpotFreed(enabled: Boolean) = set(Keys.NOTIFY_SPOT_FREED, enabled)
 
     // ── Theme ────────────────────────────────────────────────────────────────
 
@@ -200,8 +194,6 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
         val PENDING_NUDGE_CREATED_AT = longPreferencesKey("pending_park_nudge_created_at")
         val PENDING_NUDGE_SOURCE     = stringPreferencesKey("pending_park_nudge_source")
         val PENDING_NUDGE_VEHICLE_ID = stringPreferencesKey("pending_park_nudge_vehicle_id")
-        val NOTIFY_PARKING_DETECTED = booleanPreferencesKey("notify_parking_detected")
-        val NOTIFY_SPOT_FREED       = booleanPreferencesKey("notify_spot_freed")
         val THEME_MODE              = stringPreferencesKey("theme_mode")
         val USE_IMPERIAL_UNITS      = booleanPreferencesKey("use_imperial_units")
         val DEFAULT_MAP_TYPE        = stringPreferencesKey("default_map_type")

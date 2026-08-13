@@ -198,11 +198,6 @@
     <string name="settings_section_detection">Erkennung</string>
     <string name="settings_auto_detect">Automatische Parkerkennung</string>
     <string name="settings_auto_detect_desc">Parkplatz automatisch speichern</string>
-    <string name="settings_section_notifications">Benachrichtigungen</string>
-    <string name="settings_notif_parking">Parken erkannt</string>
-    <string name="settings_notif_parking_desc">Benachrichtigung, wenn ein Parkplatz gespeichert wird</string>
-    <string name="settings_notif_spot">Stellplatz in der Nähe verfügbar</string>
-    <string name="settings_notif_spot_desc">Benachrichtigung, wenn ein Stellplatz in deiner Nähe frei wird</string>
     <string name="settings_section_about">Über uns</string>
     <string name="settings_version">Version</string>
     <string name="settings_privacy">Datenschutzrichtlinie</string>
@@ -450,8 +445,6 @@
     <string name="settings_language_auto">Systemstandard</string>
     <string name="settings_contact">Kontakt</string>
     <!-- Settings v2 — UI Refactor -->
-    <string name="settings_notifications_title">Benachrichtigungen</string>
-    <string name="settings_notifications_subtitle">App-Benachrichtigungen erhalten</string>
     <string name="settings_danger_zone">Gefahrenzone</string>
     <string name="settings_danger_zone_subtitle">Unwiderrufliche Aktionen</string>
     <string name="settings_profile_member_since">Mitglied seit %1$s %2$d</string>

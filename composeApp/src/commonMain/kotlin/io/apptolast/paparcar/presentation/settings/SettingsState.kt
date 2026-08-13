@@ -7,8 +7,6 @@ import io.apptolast.paparcar.domain.permissions.RequiredPermission
 data class SettingsState(
     val userProfile: UserProfile? = null,
     val autoDetectParking: Boolean = true,
-    val notifyParkingDetected: Boolean = true,
-    val notifySpotFreed: Boolean = true,
     val appVersion: String = "1.0.0",
     val showDeleteAccountConfirmation: Boolean = false,
     val isDeletingAccount: Boolean = false,

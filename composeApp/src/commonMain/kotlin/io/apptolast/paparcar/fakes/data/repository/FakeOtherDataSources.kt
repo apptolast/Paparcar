@@ -150,13 +150,7 @@ class FakeAppPreferences(private val scenario: MockScenario? = null) : AppPrefer
     override fun setPendingParkNudge(nudge: PendingParkNudge) { _pendingParkNudge.value = nudge }
     override fun clearPendingParkNudge() { _pendingParkNudge.value = null }
 
-    private val _notifyParkingDetected = MutableStateFlow(true)
-    override val notifyParkingDetected: Boolean get() = _notifyParkingDetected.value
-    override fun setNotifyParkingDetected(enabled: Boolean) { _notifyParkingDetected.value = enabled }
 
-    private val _notifySpotFreed = MutableStateFlow(true)
-    override val notifySpotFreed: Boolean get() = _notifySpotFreed.value
-    override fun setNotifySpotFreed(enabled: Boolean) { _notifySpotFreed.value = enabled }
 
     private val _themeMode = MutableStateFlow(ThemeMode.SYSTEM)
     override val themeMode: ThemeMode get() = _themeMode.value

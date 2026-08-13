@@ -198,11 +198,6 @@
     <string name="settings_section_detection">Detecție</string>
     <string name="settings_auto_detect">Detecție automată parcare</string>
     <string name="settings_auto_detect_desc">Salvează automat locul de parcare</string>
-    <string name="settings_section_notifications">Notificări</string>
-    <string name="settings_notif_parking">Parcare detectată</string>
-    <string name="settings_notif_parking_desc">Alertă când un loc de parcare este salvat</string>
-    <string name="settings_notif_spot">Loc disponibil în apropiere</string>
-    <string name="settings_notif_spot_desc">Alertă când un loc se eliberează în apropierea ta</string>
     <string name="settings_section_about">Despre</string>
     <string name="settings_version">Versiune</string>
     <string name="settings_privacy">Politică de confidențialitate</string>
@@ -450,8 +445,6 @@
     <string name="settings_language_auto">Implicit din sistem</string>
     <string name="settings_contact">Contact</string>
     <!-- Settings v2 — refactor UI -->
-    <string name="settings_notifications_title">Notificări</string>
-    <string name="settings_notifications_subtitle">Primește alerte ale aplicației</string>
     <string name="settings_danger_zone">Zonă de pericol</string>
     <string name="settings_danger_zone_subtitle">Acțiuni ireversibile</string>
     <string name="settings_profile_member_since">Membru din %1$s %2$d</string>

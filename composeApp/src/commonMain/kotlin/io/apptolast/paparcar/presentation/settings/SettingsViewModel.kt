@@ -102,8 +102,6 @@ class SettingsViewModel(
         updateState {
             copy(
                 autoDetectParking = prefs.autoDetectParking,
-                notifyParkingDetected = prefs.notifyParkingDetected,
-                notifySpotFreed = prefs.notifySpotFreed,
                 appVersion = platformAppVersion,
             )
         }
@@ -126,24 +124,6 @@ class SettingsViewModel(
                 updateState { copy(autoDetectParking = intent.enabled) }
                 // Confirm a turn-OFF at the point of action with a one-tap undo. [DET-TOGGLE-002]
                 if (!intent.enabled) sendEffect(SettingsEffect.DetectionTurnedOff)
-            }
-            is SettingsIntent.ToggleParkingDetectedNotif -> {
-                prefs.setNotifyParkingDetected(intent.enabled)
-                updateState { copy(notifyParkingDetected = intent.enabled) }
-            }
-            is SettingsIntent.ToggleSpotFreedNotif -> {
-                prefs.setNotifySpotFreed(intent.enabled)
-                updateState { copy(notifySpotFreed = intent.enabled) }
-            }
-            is SettingsIntent.ToggleMasterNotifications -> {
-                prefs.setNotifyParkingDetected(intent.enabled)
-                prefs.setNotifySpotFreed(intent.enabled)
-                updateState {
-                    copy(
-                        notifyParkingDetected = intent.enabled,
-                        notifySpotFreed = intent.enabled,
-                    )
-                }
             }
             is SettingsIntent.NavigateToVehicles ->
                 sendEffect(SettingsEffect.NavigateToVehicles)

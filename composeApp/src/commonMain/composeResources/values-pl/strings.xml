@@ -202,11 +202,6 @@
     <string name="settings_section_detection">Wykrywanie</string>
     <string name="settings_auto_detect">Automatyczne wykrywanie parkowania</string>
     <string name="settings_auto_detect_desc">Automatycznie zapisz swoje miejsce parkingowe</string>
-    <string name="settings_section_notifications">Powiadomienia</string>
-    <string name="settings_notif_parking">Wykryto parkowanie</string>
-    <string name="settings_notif_parking_desc">Powiadomienie gdy miejsce parkingowe zostanie zapisane</string>
-    <string name="settings_notif_spot">Dostępne miejsce w pobliżu</string>
-    <string name="settings_notif_spot_desc">Powiadomienie gdy miejsce zwolni się w pobliżu</string>
     <string name="settings_section_about">O aplikacji</string>
     <string name="settings_version">Wersja</string>
     <string name="settings_privacy">Polityka prywatności</string>
@@ -454,8 +449,6 @@
     <string name="settings_language_auto">Domyślny systemu</string>
     <string name="settings_contact">Kontakt</string>
     <!-- Settings v2 — refactor UI -->
-    <string name="settings_notifications_title">Powiadomienia</string>
-    <string name="settings_notifications_subtitle">Otrzymuj alerty aplikacji</string>
     <string name="settings_danger_zone">Strefa zagrożenia</string>
     <string name="settings_danger_zone_subtitle">Działania nieodwracalne</string>
     <string name="settings_profile_member_since">Członek od %1$s %2$d</string>

@@ -2,10 +2,6 @@ package io.apptolast.paparcar.presentation.settings
 
 sealed class SettingsIntent {
     data class ToggleAutoDetect(val enabled: Boolean) : SettingsIntent()
-    data class ToggleParkingDetectedNotif(val enabled: Boolean) : SettingsIntent()
-    data class ToggleSpotFreedNotif(val enabled: Boolean) : SettingsIntent()
-    /** Master switch — toggles every sub-notification at once. */
-    data class ToggleMasterNotifications(val enabled: Boolean) : SettingsIntent()
     data object NavigateToVehicles : SettingsIntent()
     /** "Fix" on the detection health row — jump to the permissions flow focused on what's missing. */
     data object FixDetectionPermissions : SettingsIntent()

@@ -18,8 +18,6 @@ private const val KEY_HAS_CONFIRMED_FIRST_PARK = "has_confirmed_first_park"
 private const val KEY_PENDING_NUDGE_CREATED_AT = "pending_park_nudge_created_at"
 private const val KEY_PENDING_NUDGE_SOURCE = "pending_park_nudge_source"
 private const val KEY_PENDING_NUDGE_VEHICLE_ID = "pending_park_nudge_vehicle_id"
-private const val KEY_NOTIFY_PARKING_DETECTED = "notify_parking_detected"
-private const val KEY_NOTIFY_SPOT_FREED = "notify_spot_freed"
 private const val KEY_DARK_MODE_ENABLED = "dark_mode_enabled"
 private const val KEY_THEME_MODE = "theme_mode"
 private const val KEY_USE_IMPERIAL_UNITS = "use_imperial_units"
@@ -126,22 +124,6 @@ class IosAppPreferences : AppPreferences {
         userDefaults.removeObjectForKey(KEY_PENDING_NUDGE_SOURCE)
         userDefaults.removeObjectForKey(KEY_PENDING_NUDGE_VEHICLE_ID)
         pendingParkNudgeFlow.value = null
-    }
-
-    override val notifyParkingDetected: Boolean
-        get() = if (userDefaults.objectForKey(KEY_NOTIFY_PARKING_DETECTED) == null) true
-                else userDefaults.boolForKey(KEY_NOTIFY_PARKING_DETECTED)
-
-    override fun setNotifyParkingDetected(enabled: Boolean) {
-        userDefaults.setBool(enabled, forKey = KEY_NOTIFY_PARKING_DETECTED)
-    }
-
-    override val notifySpotFreed: Boolean
-        get() = if (userDefaults.objectForKey(KEY_NOTIFY_SPOT_FREED) == null) true
-                else userDefaults.boolForKey(KEY_NOTIFY_SPOT_FREED)
-
-    override fun setNotifySpotFreed(enabled: Boolean) {
-        userDefaults.setBool(enabled, forKey = KEY_NOTIFY_SPOT_FREED)
     }
 
     override val themeMode: ThemeMode

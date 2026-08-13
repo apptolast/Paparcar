@@ -198,11 +198,6 @@
     <string name="settings_section_detection">Deteção</string>
     <string name="settings_auto_detect">Deteção automática de estacionamento</string>
     <string name="settings_auto_detect_desc">Guardar automaticamente o lugar de estacionamento</string>
-    <string name="settings_section_notifications">Notificações</string>
-    <string name="settings_notif_parking">Estacionamento detetado</string>
-    <string name="settings_notif_parking_desc">Alerta quando um lugar de estacionamento é guardado</string>
-    <string name="settings_notif_spot">Lugar disponível próximo</string>
-    <string name="settings_notif_spot_desc">Alerta quando um lugar fica livre perto de si</string>
     <string name="settings_section_about">Acerca de</string>
     <string name="settings_version">Versão</string>
     <string name="settings_privacy">Política de privacidade</string>
@@ -450,8 +445,6 @@
     <string name="settings_language_auto">Predefinição do sistema</string>
     <string name="settings_contact">Contacto</string>
     <!-- Settings v2 — refactor de UI -->
-    <string name="settings_notifications_title">Notificações</string>
-    <string name="settings_notifications_subtitle">Receber alertas da app</string>
     <string name="settings_danger_zone">Zona de perigo</string>
     <string name="settings_danger_zone_subtitle">Ações irreversíveis</string>
     <string name="settings_profile_member_since">Membro desde %1$s %2$d</string>

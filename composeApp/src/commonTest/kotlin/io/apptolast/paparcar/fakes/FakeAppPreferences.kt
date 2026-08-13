@@ -9,8 +9,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 class FakeAppPreferences(
     initialCompleted: Boolean = false,
     initialAutoDetect: Boolean = true,
-    initialNotifyParking: Boolean = true,
-    initialNotifySpot: Boolean = true,
     initialThemeMode: ThemeMode = ThemeMode.SYSTEM,
     initialUseImperialUnits: Boolean = false,
     initialDefaultMapType: String = "TERRAIN",
@@ -57,13 +55,7 @@ class FakeAppPreferences(
     override fun setPendingParkNudge(nudge: PendingParkNudge) { pendingParkNudge.value = nudge }
     override fun clearPendingParkNudge() { pendingParkNudge.value = null }
 
-    private var _notifyParkingDetected = initialNotifyParking
-    override val notifyParkingDetected: Boolean get() = _notifyParkingDetected
-    override fun setNotifyParkingDetected(enabled: Boolean) { _notifyParkingDetected = enabled }
 
-    private var _notifySpotFreed = initialNotifySpot
-    override val notifySpotFreed: Boolean get() = _notifySpotFreed
-    override fun setNotifySpotFreed(enabled: Boolean) { _notifySpotFreed = enabled }
 
     private var _themeMode = initialThemeMode
     override val themeMode: ThemeMode get() = _themeMode
