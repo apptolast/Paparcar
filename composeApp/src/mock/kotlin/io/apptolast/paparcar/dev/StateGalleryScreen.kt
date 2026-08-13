@@ -248,8 +248,12 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             Variant("Vigilando (BT armado, sin sesión)", Placement.Surface) {
                 detectionSurface(DetectionStory.Watching("Škoda Kamiq", isParked = false, viaBluetooth = true))
             },
-            Variant("Conduciendo", Placement.Surface) {
+            Variant("Conduciendo (detección activa → verde)", Placement.Surface) {
                 detectionSurface(DetectionStory.Driving("Škoda Kamiq", isCandidate = false))
+            },
+            // [UI-COLOR-DOCTRINE-001] La fila viste el color del MÉTODO del coche: BT → azul.
+            Variant("Conduciendo (BT → azul)", Placement.Surface) {
+                detectionSurface(DetectionStory.Driving("Škoda Kamiq", isCandidate = false, viaBluetooth = true))
             },
             Variant("Aparcando… (candidate)", Placement.Surface) {
                 detectionSurface(DetectionStory.Driving("Škoda Kamiq", isCandidate = true))
@@ -499,7 +503,7 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     ),
                 )
             },
-            // Single vehicle → full-width HomeVehicleCard: identity + status pin + size chip, and a
+            // Single vehicle → full-width HomeVehicleCard: identity + watch badge + size chip, and a
             // footer with the parked address (location icon + "Aparcado en …" + chevron). [HOME-VEH-REFINE-001]
             Variant("Sheet · 1 coche aparcado (card + dirección)") {
                 sheet(
@@ -512,17 +516,19 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     ),
                 )
             },
-            // 2+ vehicles → compact chips. Status ICON before the name (green active / blue BT / grey
-            // inactive); foot = address (parked) or the "Sin marcar" glyph. Spots stay visible. [HOME-VEH-REFINE-001]
+            // 2+ vehicles → compact chips. Azul calmado = mi coche vigilado (glifo BT o radar +
+            // borde); azul vivo + halo = conduciendo; gris = sin vigilar. El pie es el ACENTO:
+            // direccion en azul calmado (aparcado) o "Sin marcar" gris. Las plazas siguen siendo
+            // las unicas verdes. [HOME-VEH-REFINE-001] [UI-COLOR-DOCTRINE-001]
             Variant("Sheet · chips mixtos (aparcado + sin marcar)") {
                 sheet(
                     HomeState(
                         hasCorePermissions = true,
                         userGpsPoint = sampleGps,
                         vehicles = listOf(
-                            FakeData.vehicleSedan,   // activo + aparcado → icono verde + dirección
-                            FakeData.vehicleCorolla, // BT + sin marcar → icono azul + "Sin marcar"
-                            FakeData.vehicleMoto,    // inactivo + aparcado → icono gris + dirección
+                            FakeData.vehicleSedan,   // asistido + aparcado → glifo radar azul + direccion azul
+                            FakeData.vehicleCorolla, // BT + sin marcar → glifo BT azul + "Sin marcar" gris
+                            FakeData.vehicleMoto,    // sin vigilar + aparcado → todo gris + direccion
                         ),
                         activeSessions = listOf(
                             FakeData.activeSession.copy(vehicleId = FakeData.vehicleSedan.id),
@@ -532,17 +538,17 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     ),
                 )
             },
-            // All unmarked → every chip shows the "Sin marcar" glyph across the three status colours.
+            // All unmarked → every chip shows the "Sin marcar" glyph across the three watch tiers.
             Variant("Sheet · chips sin marcar (BT + activo/inactivo)") {
                 sheet(
                     HomeState(
                         hasCorePermissions = true,
                         userGpsPoint = sampleGps,
                         vehicles = listOf(
-                            FakeData.vehicleSedan,   // activo, sin BT → icono verde
-                            FakeData.vehicleCorolla, // BT → icono azul
-                            FakeData.vehicleMoto,    // inactivo, sin BT → icono gris
-                            FakeData.vehicleVan,     // BT → icono azul
+                            FakeData.vehicleSedan,   // asistido → glifo radar azul + borde azul
+                            FakeData.vehicleCorolla, // BT → glifo BT azul + borde azul
+                            FakeData.vehicleMoto,    // sin vigilar → glifo hueco gris + borde neutro
+                            FakeData.vehicleVan,     // BT → glifo BT azul + borde azul
                         ),
                         nearbySpots = FakeData.nearbySpots,
                     ),

@@ -14,7 +14,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -51,6 +54,10 @@ fun PapListItem(
     subtitleMaxLines: Int = Int.MAX_VALUE,
     overlineColor: Color = MaterialTheme.colorScheme.primary,
     overlineStyle: TextStyle = PaparcarType.current.badge,
+    /** Substring of [overline] to tint with [overlineHighlightColor] — the vehicle NAME wears its
+     *  identity colour while the state words stay in [overlineColor]. [UI-COLOR-DOCTRINE-001] */
+    overlineHighlight: String? = null,
+    overlineHighlightColor: Color = overlineColor,
     contentPadding: PaddingValues = PaddingValues(horizontal = ROW_H_PAD_DP.dp, vertical = ROW_V_PAD_DP.dp),
     gap: Dp = ROW_GAP_DP.dp,
 ) {
@@ -63,7 +70,11 @@ fun PapListItem(
         Column(modifier = Modifier.weight(1f)) {
             if (overline != null) {
                 Text(
-                    text = overline.uppercase(),
+                    text = annotatedWithHighlight(
+                        text = overline.uppercase(),
+                        highlight = overlineHighlight?.uppercase(),
+                        highlightColor = overlineHighlightColor,
+                    ),
                     style = overlineStyle,
                     color = overlineColor,
                     maxLines = 1,
@@ -91,6 +102,22 @@ fun PapListItem(
             }
         }
         trailing?.invoke()
+    }
+}
+
+/** Builds the text with [highlight] tinted in [highlightColor]; the rest inherits the Text colour.
+ *  First occurrence only — an eyebrow names one vehicle. [UI-COLOR-DOCTRINE-001] */
+internal fun annotatedWithHighlight(
+    text: String,
+    highlight: String?,
+    highlightColor: Color,
+): AnnotatedString {
+    if (highlight.isNullOrBlank()) return AnnotatedString(text)
+    val start = text.indexOf(highlight)
+    if (start < 0) return AnnotatedString(text)
+    return buildAnnotatedString {
+        append(text)
+        addStyle(SpanStyle(color = highlightColor), start, start + highlight.length)
     }
 }
 

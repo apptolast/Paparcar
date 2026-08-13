@@ -61,10 +61,12 @@ import kotlin.math.absoluteValue
 import io.apptolast.paparcar.domain.model.CarbodyType
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.VehicleColor
-import io.apptolast.paparcar.domain.model.VehicleMonitoringStatus
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.displayName
 import io.apptolast.paparcar.domain.model.monitoringStatus
+import io.apptolast.paparcar.ui.theme.VehicleWatch
+import io.apptolast.paparcar.ui.theme.vehicleIdentityColor
+import io.apptolast.paparcar.ui.theme.watch
 import io.apptolast.paparcar.ui.components.PapAlertDialog
 import io.apptolast.paparcar.ui.components.chips.PaparcarAddChip
 import io.apptolast.paparcar.ui.theme.PapBorders
@@ -358,21 +360,23 @@ private fun VehicleTabPill(vehicle: Vehicle, selected: Boolean, onClick: () -> U
     val tabName = vehicle.displayName(
         fallback = stringResource(Res.string.my_car_unnamed_vehicle),
     )
-    val bg = if (selected) cs.primary.copy(alpha = SELECTED_FILL_ALPHA) else cs.surfaceContainerHigh
-    val fg = if (selected) cs.primary else cs.onSurface
-    // Status by a single coloured dot — green = actively detected, blue = detected via Bluetooth,
-    // no dot = inactive. Colour is the whole message; no separate BT glyph, no method text.
-    // [HOME-VEH-REFINE-001]
-    val monitoring = vehicle.monitoringStatus()
+    // The selected pill wears ITS vehicle's identity colour — the watch method (green = active
+    // detection, blue = BT, grey = unwatched), same colour as the name everywhere else.
+    // [UI-COLOR-DOCTRINE-001]
+    val watch = vehicle.monitoringStatus().watch()
+    val accent = vehicleIdentityColor(watch)
+    val bg = if (selected) accent.copy(alpha = SELECTED_FILL_ALPHA) else cs.surfaceContainerHigh
+    // Name stays onSurface — the fill/border and the watch dot already carry the identity colour.
+    val fg = cs.onSurface
 
     Surface(
         onClick = onClick,
         modifier = Modifier.height(TAB_HEIGHT_DP.dp),
         shape = RoundedCornerShape(PILL_RADIUS_DP.dp),
         color = bg,
-        // Selected = tonal fill + MUTED primary border (the design's green-line), honouring the
-        // "no neon-primary border on selected" contract this pill previously violated. [UI-REGRESSION]
-        border = if (selected) BorderStroke(PapBorders.strong, cs.primary.copy(alpha = SELECTED_BORDER_ALPHA))
+        // Selected = tonal fill + MUTED accent border, honouring the "no neon border on selected"
+        // contract this pill previously violated. [UI-REGRESSION]
+        border = if (selected) BorderStroke(PapBorders.strong, accent.copy(alpha = SELECTED_BORDER_ALPHA))
         else BorderStroke(PapBorders.thin, cs.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA)),
     ) {
         Row(
@@ -396,21 +400,19 @@ private fun VehicleTabPill(vehicle: Vehicle, selected: Boolean, onClick: () -> U
                 color = fg,
                 maxLines = 1,
             )
-            VehicleStatusDot(status = monitoring)
+            VehicleWatchDot(watch = watch)
         }
     }
 }
 
-/** Small status dot — green (active) / blue (Bluetooth) / absent (inactive). Mirrors the Home chip
- *  and map-marker status language so the selector reads the same everywhere. [HOME-VEH-REFINE-001] */
+/** Small watch dot — the vehicle's identity colour (green = active detection, blue = BT) when
+ *  monitored, absent when it is not. The selector pill has no room for a border or a glyph, so the
+ *  dot carries the method alone; it reads the same single resolver as every other surface.
+ *  [HOME-VEH-REFINE-001] [UI-COLOR-DOCTRINE-001] */
 @Composable
-private fun VehicleStatusDot(status: VehicleMonitoringStatus) {
-    val cs = MaterialTheme.colorScheme
-    val color = when (status) {
-        is VehicleMonitoringStatus.Bluetooth -> cs.tertiary
-        VehicleMonitoringStatus.Active       -> cs.primary
-        VehicleMonitoringStatus.Inactive     -> return // no dot for inactive
-    }
+private fun VehicleWatchDot(watch: VehicleWatch) {
+    if (watch == VehicleWatch.Off) return // no dot for an unwatched vehicle
+    val color = vehicleIdentityColor(watch)
     val cd = stringResource(Res.string.vehicle_status_active_cd)
     Box(
         modifier = Modifier

@@ -43,7 +43,6 @@
     <string name="home_peek_spot_high">Free reliable spot</string>
     <string name="home_peek_spot_medium">Medium spot</string>
     <string name="home_peek_spot_low">Low spot</string>
-    <string name="home_peek_spot_manual">Manual spot</string>
     <string name="home_parking_release">Release spot</string>
     <!-- Selected-parking primary CTA — leaving IS the community loop action. [UI-SHEET-001] -->
     <string name="home_parking_leave_release">I’m leaving</string>
@@ -93,7 +92,6 @@
     <string name="home_spot_reliability_high">Reliable</string>
     <string name="home_spot_reliability_medium">Medium</string>
     <string name="home_spot_reliability_low">Low</string>
-    <string name="home_spot_reliability_manual">Manual</string>
 
     <!-- OnboardingScreen -->
     <string name="onboarding_page1_title">Welcome to Paparcar</string>

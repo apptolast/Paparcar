@@ -49,6 +49,7 @@ import io.apptolast.paparcar.presentation.util.distanceMeters
 import io.apptolast.paparcar.presentation.util.distanceString
 import io.apptolast.paparcar.presentation.util.driveTimeString
 import io.apptolast.paparcar.presentation.util.locationDisplayText
+import io.apptolast.paparcar.presentation.util.isManualReport
 import io.apptolast.paparcar.presentation.util.toReliabilityUiState
 import io.apptolast.paparcar.ui.components.EnRouteIndicator
 import io.apptolast.paparcar.ui.components.PapEmptyStateCard
@@ -68,7 +69,6 @@ import paparcar.composeapp.generated.resources.home_report_fab_cd
 import paparcar.composeapp.generated.resources.home_report_subtitle
 import paparcar.composeapp.generated.resources.home_spot_reliability_high
 import paparcar.composeapp.generated.resources.home_spot_reliability_low
-import paparcar.composeapp.generated.resources.home_spot_reliability_manual
 import paparcar.composeapp.generated.resources.home_spot_reliability_medium
 
 /**
@@ -76,7 +76,7 @@ import paparcar.composeapp.generated.resources.home_spot_reliability_medium
  *
  *  - 3dp left selection indicator (primary) so the row keeps its neutral fill.
  *  - Circular "P" badge whose colour mirrors the map marker tier
- *    (HIGH=primary, MEDIUM=secondary, LOW=error, MANUAL=tertiary).
+ *    (HIGH=green, MEDIUM=amber, LOW=red; manual provenance = person badge on the puck).
  *  - Meta row: UPPERCASE reliability label + distance + drive time.
  */
 @Composable
@@ -151,6 +151,7 @@ private fun SpotRowContent(
         SpotPuckIcon(
             reliability = spot.toReliabilityUiState(),
             enRouteCount = spot.enRouteCount,
+            isManual = spot.isManualReport,
             modifier = Modifier.size(BADGE_DP.dp),
         )
 
@@ -243,7 +244,6 @@ private fun SpotReliabilityUiState.palette(): ReliabilityPalette {
         SpotReliabilityUiState.HIGH   -> stringResource(Res.string.home_spot_reliability_high)
         SpotReliabilityUiState.MEDIUM -> stringResource(Res.string.home_spot_reliability_medium)
         SpotReliabilityUiState.LOW    -> stringResource(Res.string.home_spot_reliability_low)
-        SpotReliabilityUiState.MANUAL -> stringResource(Res.string.home_spot_reliability_manual)
     }
     return ReliabilityPalette(sc.bg, sc.on, label)
 }

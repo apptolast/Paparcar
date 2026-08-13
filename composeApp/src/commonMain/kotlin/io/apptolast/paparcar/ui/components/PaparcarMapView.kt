@@ -72,9 +72,10 @@ import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.Zone
 import io.apptolast.paparcar.presentation.map.CameraTarget
 import io.apptolast.paparcar.presentation.util.SpotReliabilityUiState
+import io.apptolast.paparcar.presentation.util.isManualReport
 import io.apptolast.paparcar.presentation.util.toReliabilityUiState
 import io.apptolast.paparcar.presentation.util.zoneIconFor
-import io.apptolast.paparcar.ui.theme.PapDriveBlue
+import io.apptolast.paparcar.ui.theme.PapLiveMap
 import io.apptolast.paparcar.ui.theme.PapGreen
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.sample
@@ -365,6 +366,7 @@ private fun freeSpotContentId(
     selected: Boolean,
     dim: Boolean,
     enRouteCount: Int = 0,
+    manual: Boolean = false,
 ): String {
     val state = when {
         selected -> "sel"
@@ -374,10 +376,12 @@ private fun freeSpotContentId(
     // En-route overrides the tier colour (blue "reserved") so its key encodes
     // the count bucket instead of the tier; the cache stores one bitmap per
     // (bucket × state) rather than per (tier × state). [BOLT-MARKERS-001]
-    return if (enRouteCount > 0) {
-        "${MARKER_FREE_SPOT_PREFIX}er${enRouteCount.coerceAtMost(EN_ROUTE_BUCKET_MAX)}_$state"
-    } else {
-        "${MARKER_FREE_SPOT_PREFIX}${tier.name.lowercase()}_$state"
+    // Manual provenance adds the person badge, so it needs its own bitmap per
+    // (tier × state) — encoded as an "m" segment. [UI-COLOR-DOCTRINE-001 F5]
+    return when {
+        enRouteCount > 0 -> "${MARKER_FREE_SPOT_PREFIX}er${enRouteCount.coerceAtMost(EN_ROUTE_BUCKET_MAX)}_$state"
+        manual -> "${MARKER_FREE_SPOT_PREFIX}${tier.name.lowercase()}_m_$state"
+        else -> "${MARKER_FREE_SPOT_PREFIX}${tier.name.lowercase()}_$state"
     }
 }
 
@@ -839,6 +843,7 @@ fun PaparcarMapView(
                         selected = selected,
                         dim = dimSpots,
                         enRouteCount = spot.enRouteCount,
+                        manual = spot.isManualReport,
                     )
                     add(
                         Marker(
@@ -955,18 +960,21 @@ fun PaparcarMapView(
             put(MARKER_USER_DOT) { _ ->
                 UserLocationDot()
             }
-            // ── Free-spot bitmaps — 12 cached variants (4 tiers × nrm/dim/sel) ──
-            // Each (tier, state) pair gets its own contentId so kmpmaps caches a distinct
-            // bitmap and the on-map color matches the peek modal badge. [MAP-MARKERS-RELIABILITY-001]
+            // ── Free-spot bitmaps — 18 cached variants (3 tiers × auto/manual × nrm/dim/sel) ──
+            // Each (tier, manual, state) triple gets its own contentId so kmpmaps caches a distinct
+            // bitmap and the on-map colour matches the peek modal badge. Manual provenance = the
+            // person badge over the same freshness tier. [MAP-MARKERS-RELIABILITY-001] [F5]
             SpotReliabilityUiState.entries.forEach { tier ->
-                put(freeSpotContentId(tier, selected = false, dim = false)) { _ ->
-                    FreeSpotWithOverlays(reliability = tier, selected = false)
-                }
-                put(freeSpotContentId(tier, selected = false, dim = true)) { _ ->
-                    DimWrapper { FreeSpotWithOverlays(reliability = tier, selected = false) }
-                }
-                put(freeSpotContentId(tier, selected = true, dim = false)) { _ ->
-                    FreeSpotWithOverlays(reliability = tier, selected = true)
+                listOf(false, true).forEach { manual ->
+                    put(freeSpotContentId(tier, selected = false, dim = false, manual = manual)) { _ ->
+                        FreeSpotWithOverlays(reliability = tier, selected = false, isManual = manual)
+                    }
+                    put(freeSpotContentId(tier, selected = false, dim = true, manual = manual)) { _ ->
+                        DimWrapper { FreeSpotWithOverlays(reliability = tier, selected = false, isManual = manual) }
+                    }
+                    put(freeSpotContentId(tier, selected = true, dim = false, manual = manual)) { _ ->
+                        FreeSpotWithOverlays(reliability = tier, selected = true, isManual = manual)
+                    }
                 }
             }
             // ── En-route ("reserved") pills — one bitmap per present count bucket ──
@@ -1196,11 +1204,12 @@ fun PaparcarMapView(
     // that appears once saved (no Web-Mercator Canvas approximation that drifts from
     // Google's geodesic circle). [ZONE-AREA-001]
     val zoneRingPrimary = MaterialTheme.colorScheme.primary
-    val zoneRingTertiary = MaterialTheme.colorScheme.tertiary
+    // Private zone = neutral ring (the lock on the label is the category glyph). [F6]
+    val zoneRingPrivate = MaterialTheme.colorScheme.outline
     val zoneRingStrokePx = with(LocalDensity.current) { ZONE_CIRCLE_STROKE_DP.dp.toPx() }
     val zoneRingDimFactor = if (dimSpots) ZONE_CIRCLE_DIM_FACTOR else 1f
     fun zoneCircle(lat: Double, lon: Double, radius: Float, isPrivate: Boolean, dim: Float): Circle {
-        val base = if (isPrivate) zoneRingTertiary else zoneRingPrimary
+        val base = if (isPrivate) zoneRingPrivate else zoneRingPrimary
         return Circle(
             center = Coordinates(lat, lon),
             radius = radius,
@@ -1233,7 +1242,7 @@ fun PaparcarMapView(
                     listOf(Polyline(
                         coordinates = matched.map { Coordinates(it.latitude, it.longitude) },
                         width = TRIP_TRAIL_WIDTH,
-                        lineColor = PapDriveBlue,
+                        lineColor = PapLiveMap,
                     ))
                 } else {
                     val coords = buildList {
@@ -1241,7 +1250,7 @@ fun PaparcarMapView(
                         raw.forEach { add(Coordinates(it.latitude, it.longitude)) }
                     }
                     if (coords.size < 2) emptyList()
-                    else listOf(Polyline(coordinates = smoothTrail(coords), width = TRIP_TRAIL_WIDTH, lineColor = PapDriveBlue))
+                    else listOf(Polyline(coordinates = smoothTrail(coords), width = TRIP_TRAIL_WIDTH, lineColor = PapLiveMap))
                 }
             }
     }
@@ -1720,8 +1729,9 @@ private fun FreeSpotWithOverlays(
     reliability: SpotReliabilityUiState = SpotReliabilityUiState.HIGH,
     selected: Boolean = false,
     enRouteCount: Int = 0,
+    isManual: Boolean = false,
 ) {
-    FreeSpotMarker(reliability = reliability, selected = selected, enRouteCount = enRouteCount)
+    FreeSpotMarker(reliability = reliability, selected = selected, enRouteCount = enRouteCount, isManual = isManual)
 }
 
 

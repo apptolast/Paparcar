@@ -387,7 +387,6 @@
     <string name="home_peek_spot_high">Vrije betrouwbare plek</string>
     <string name="home_peek_spot_medium">Gemiddelde plek</string>
     <string name="home_peek_spot_low">Lage plek</string>
-    <string name="home_peek_spot_manual">Handmatige plek</string>
 
     <!-- ReportPeekRow (vrije plek melden) -->
     <string name="home_report_header_label">Vrije plek melden</string>
@@ -410,7 +409,6 @@
     <string name="home_spot_reliability_high">Betrouwbaar</string>
     <string name="home_spot_reliability_medium">Gemiddeld</string>
     <string name="home_spot_reliability_low">Laag</string>
-    <string name="home_spot_reliability_manual">Handmatig</string>
 
     <!-- AddingZonePeekRow (nieuwe vaste zone) -->
     <string name="home_zone_edit_header_label">Zone bewerken</string>

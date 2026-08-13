@@ -33,7 +33,6 @@
     <string name="home_peek_spot_high">Plaza libre fiable</string>
     <string name="home_peek_spot_medium">Plaza media</string>
     <string name="home_peek_spot_low">Plaza baja</string>
-    <string name="home_peek_spot_manual">Plaza manual</string>
     <string name="home_parking_release">Liberar plaza</string>
     <!-- CTA primario del parking seleccionado — irse ES la acción del loop comunitario. [UI-SHEET-001] -->
     <string name="home_parking_leave_release">Me voy</string>
@@ -83,7 +82,6 @@
     <string name="home_spot_reliability_high">Fiable</string>
     <string name="home_spot_reliability_medium">Media</string>
     <string name="home_spot_reliability_low">Baja</string>
-    <string name="home_spot_reliability_manual">Manual</string>
 
     <!-- OnboardingScreen -->
     <string name="onboarding_page1_title">Bienvenido a Paparcar</string>

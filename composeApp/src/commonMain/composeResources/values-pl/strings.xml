@@ -391,7 +391,6 @@
     <string name="home_peek_spot_high">Wolne wiarygodne miejsce</string>
     <string name="home_peek_spot_medium">Średnie miejsce</string>
     <string name="home_peek_spot_low">Niska wiarygodność</string>
-    <string name="home_peek_spot_manual">Miejsce ręczne</string>
 
     <!-- ReportPeekRow (zgłoś wolne miejsce) -->
     <string name="home_report_header_label">Zgłoś wolne miejsce</string>
@@ -414,7 +413,6 @@
     <string name="home_spot_reliability_high">Wiarygodne</string>
     <string name="home_spot_reliability_medium">Średnie</string>
     <string name="home_spot_reliability_low">Niskie</string>
-    <string name="home_spot_reliability_manual">Ręczne</string>
 
     <!-- AddingZonePeekRow (nowa stała strefa) -->
     <string name="home_zone_edit_header_label">Edytuj strefę</string>

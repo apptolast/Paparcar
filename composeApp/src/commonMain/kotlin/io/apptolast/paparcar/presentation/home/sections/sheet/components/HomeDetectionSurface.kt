@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.presentation.home.model.DetectionStory
 import io.apptolast.paparcar.presentation.home.model.ParkedWatchBadge
 import io.apptolast.paparcar.ui.theme.PapBorders
+import io.apptolast.paparcar.ui.theme.papCarBlue
 import io.apptolast.paparcar.ui.theme.PapShapes
 import io.apptolast.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
@@ -112,10 +113,14 @@ internal fun HomeDetectionSurface(
     val cs = MaterialTheme.colorScheme
     val amber = Tone(cs.secondary, cs.onSecondary, cs.secondaryContainer, cs.onSecondaryContainer, isError = false)
     val error = Tone(cs.error, cs.onError, cs.errorContainer, cs.onErrorContainer, isError = true)
-    val info = Tone(cs.tertiary, cs.onTertiary, cs.tertiaryContainer, cs.onTertiaryContainer, isError = false)
-    // Happy-path stories: brand-green accent, same card skeleton, NO CTA — the sheet speaks in
-    // cards, so the story gets its box; the hierarchy comes from the missing button. [UX-PARKED-STATE-001]
-    val quiet = Tone(cs.primary, cs.onPrimary, cs.primaryContainer, cs.onPrimaryContainer, isError = false)
+    // Colour = WHO is watching. Set-up rows speak as the app → brand green. Rows about a specific
+    // vehicle wear that vehicle's identity colour (green = active detection, blue = Bluetooth) —
+    // the same colour its name wears in the chip and the garage. Tonal container = accent at low
+    // alpha, same language as the watch badge. [UI-COLOR-DOCTRINE-001]
+    val brand = Tone(cs.primary, cs.onPrimary, cs.primary.copy(alpha = INFO_CONTAINER_ALPHA), cs.primary, isError = false)
+    val carBlue = papCarBlue
+    val bluetooth = Tone(carBlue, cs.surface, carBlue.copy(alpha = INFO_CONTAINER_ALPHA), carBlue, isError = false)
+    fun methodTone(viaBluetooth: Boolean) = if (viaBluetooth) bluetooth else brand
 
     if (showParkNudge && story != DetectionStory.BlockedCore) {
         ActionRow(
@@ -146,7 +151,7 @@ internal fun HomeDetectionSurface(
         // One "activate detection" surface for both causes — Settings flag off OR producer
         // permissions missing. The single button asks for whatever is missing. [DET-TOGGLE-001]
         DetectionStory.Inactive -> ActionRow(
-            tone = info,
+            tone = brand,
             icon = Icons.Rounded.SensorsOff,
             title = stringResource(Res.string.home_det_producer_title),
             subtitle = stringResource(Res.string.home_det_producer_sub),
@@ -166,7 +171,7 @@ internal fun HomeDetectionSurface(
         )
 
         DetectionStory.AwaitingFirstPark -> ActionRow(
-            tone = info,
+            tone = brand,
             icon = Icons.Rounded.AddLocationAlt,
             title = stringResource(Res.string.home_det_awaiting_title),
             subtitle = stringResource(Res.string.home_det_awaiting_sub),
@@ -177,10 +182,11 @@ internal fun HomeDetectionSurface(
             modifier = modifier,
         )
 
-        // Happy-path stories: same card skeleton as the action rows, quiet green tone, no CTA.
-        // [UX-DETECTION-STORY-001] [UX-PARKED-STATE-001]
+        // Happy-path stories: same card skeleton as the action rows, no CTA. The row wears the trip
+        // vehicle's identity colour; motion is the radar halo on the chip, not a new hue.
+        // [UX-DETECTION-STORY-001] [UI-COLOR-DOCTRINE-001]
         is DetectionStory.Driving -> ActionRow(
-            tone = quiet,
+            tone = methodTone(story.viaBluetooth),
             icon = if (story.isCandidate) Icons.Rounded.LocationSearching else Icons.Rounded.Navigation,
             title = stringResource(
                 if (story.isCandidate) Res.string.home_det_candidate_title else Res.string.home_det_driving_title,
@@ -194,11 +200,12 @@ internal fun HomeDetectionSurface(
             modifier = modifier,
         )
 
-        // Honest watch line: green + no CTA only when the watch is genuinely live; amber warning with
-        // an "activate" CTA when fragile; error "reactivate" when the OS killed it. [DET-WATCH-HONEST-001]
+        // Honest watch line: the vehicle's identity colour + no CTA only when the watch is genuinely
+        // live; amber warning with an "activate" CTA when fragile; error "reactivate" when the OS
+        // killed it. [DET-WATCH-HONEST-001] [UI-COLOR-DOCTRINE-001]
         is DetectionStory.Watching -> when (story.watchBadge) {
             ParkedWatchBadge.WATCHING, ParkedWatchBadge.PARK_MY_VEHICLE -> ActionRow(
-                tone = quiet,
+                tone = methodTone(story.viaBluetooth),
                 icon = Icons.Rounded.Visibility,
                 title = stringResource(Res.string.home_det_watching_title, story.vehicleName),
                 subtitle = stringResource(
@@ -435,3 +442,5 @@ private const val CTA_HEIGHT_DP = 40
 private const val CTA_PADDING_DP = 16
 private const val BORDER_DP = 1
 private const val ERROR_BORDER_ALPHA = 0.6f
+// Tonal container for the car-blue info tone — accent at low alpha, same language as the watch badge.
+private const val INFO_CONTAINER_ALPHA = 0.16f

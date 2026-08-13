@@ -37,6 +37,7 @@ import io.apptolast.paparcar.presentation.home.sections.sheet.components.PapShee
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.PapSheetLead
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.SpotFitRow
 import io.apptolast.paparcar.presentation.util.distanceMeters
+import io.apptolast.paparcar.presentation.util.isManualReport
 import io.apptolast.paparcar.presentation.util.toReliabilityUiState
 import io.apptolast.paparcar.ui.components.PapDivider
 import io.apptolast.paparcar.ui.components.PapFooterButton
@@ -91,6 +92,7 @@ internal fun SpotPeek(
     PapSheet(
         lead = PapSheetLead.CommunitySpot(
             reliability = reliabilityLevel,
+            isManual = spot.isManualReport,
             enRouteCount = spot.enRouteCount,
         ),
         eyebrow = palette.label,

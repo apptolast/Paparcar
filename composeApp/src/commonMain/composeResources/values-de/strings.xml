@@ -387,7 +387,6 @@
     <string name="home_peek_spot_high">Freier zuverlässiger Stellplatz</string>
     <string name="home_peek_spot_medium">Mittlerer Stellplatz</string>
     <string name="home_peek_spot_low">Niedriger Stellplatz</string>
-    <string name="home_peek_spot_manual">Manueller Stellplatz</string>
 
     <!-- ReportPeekRow (freien Stellplatz melden) -->
     <string name="home_report_header_label">Freien Stellplatz melden</string>
@@ -410,7 +409,6 @@
     <string name="home_spot_reliability_high">Zuverlässig</string>
     <string name="home_spot_reliability_medium">Mittel</string>
     <string name="home_spot_reliability_low">Niedrig</string>
-    <string name="home_spot_reliability_manual">Manuell</string>
 
     <!-- AddingZonePeekRow (neue habituelle Zone) -->
     <string name="home_zone_edit_header_label">Zone bearbeiten</string>

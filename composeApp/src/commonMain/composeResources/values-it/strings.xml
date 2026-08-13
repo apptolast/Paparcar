@@ -387,7 +387,6 @@
     <string name="home_peek_spot_high">Posto libero affidabile</string>
     <string name="home_peek_spot_medium">Posto medio</string>
     <string name="home_peek_spot_low">Posto basso</string>
-    <string name="home_peek_spot_manual">Posto manuale</string>
 
     <!-- ReportPeekRow (segnalazione posto libero) -->
     <string name="home_report_header_label">Segnala posto libero</string>
@@ -410,7 +409,6 @@
     <string name="home_spot_reliability_high">Affidabile</string>
     <string name="home_spot_reliability_medium">Media</string>
     <string name="home_spot_reliability_low">Bassa</string>
-    <string name="home_spot_reliability_manual">Manuale</string>
 
     <!-- AddingZonePeekRow (nuova zona abituale) -->
     <string name="home_zone_edit_header_label">Modifica zona</string>

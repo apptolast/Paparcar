@@ -66,8 +66,8 @@ import io.apptolast.paparcar.presentation.util.SpotReliabilityUiState
 import io.apptolast.paparcar.ui.icons.PaparcarIcons
 import io.apptolast.paparcar.ui.icons.icon
 import io.apptolast.paparcar.ui.theme.PapBlueLight
-import io.apptolast.paparcar.ui.theme.PapDriveBlue
 import io.apptolast.paparcar.ui.theme.PapGreenLight
+import io.apptolast.paparcar.ui.theme.PapLiveMap
 import io.apptolast.paparcar.ui.theme.PapInk
 import io.apptolast.paparcar.ui.theme.PapOutlineVariantLight
 import io.apptolast.paparcar.ui.theme.rememberOutfitFontFamily
@@ -96,7 +96,7 @@ private object MarkerColors {
     val PlateAmberDk  = Color(0xFFD97706)
     val PlateOnAmber  = Color(0xFF1C0900)
 
-    // Zone marker is now a theme-tinted centre label (primary / tertiary), so it
+    // Zone marker is now a theme-tinted centre label (primary / neutral+lock for private), so it
     // carries no hardcoded palette here. [ZONE-AREA-001]
 
     // MyVehicle fallback teardrop (ParkingLocationScreen) — kept separate
@@ -130,16 +130,16 @@ private const val GROUND_SHADOW_ALPHA = 0.35f
  * the design viewBox `104 × 88` scaled into [TAG_MARKER_W]; the bitmap is anchored bottom-centre so
  * the dome base pins the coordinate.
  *
- * **State lives in the tag border**, not by recolouring or dimming the car: green = parked/active,
- * blue = Bluetooth, grey = inactive (monitoring stopped). The carbody stays fully opaque/full-colour
- * in every state — it's identity, not status — so an inactive car never reads as "fading away".
- * **Selection** flips the border to the theme's max-contrast `onSurface` (white on dark, black on
- * light) — unified across every marker — and thickens it. The default border is the state colour
- * (no white-by-default). [MAP-ICONS-V2]
+ * **State lives in the tag border**, not by recolouring or dimming the car: the frame wears the
+ * vehicle's identity colour — its watch METHOD (green = active detection, blue = Bluetooth,
+ * grey = unwatched) — matching the name/chip/ficha everywhere else. The carbody stays fully
+ * opaque/full-colour in every state — it's identity, not status — so an inactive car never reads
+ * as "fading away". [MAP-ICONS-V2] [UI-COLOR-DOCTRINE-001]
  *
  * @param selected when true the border becomes onSurface + thicker to signal selection.
  * @param isActive when false the tag border + position dot grey out (monitoring stopped); the car
  *   itself stays opaque.
+ * @param isBluetoothPaired Bluetooth-watched vehicle — the frame reads blue instead of green.
  */
 @Composable
 fun VehicleBadgeMarker(
@@ -154,21 +154,16 @@ fun VehicleBadgeMarker(
     contentAlpha: Float = 1f,
     originDot: Boolean = false,
 ) {
-    // Bluetooth supersedes monitoring state (matches Vehicle.monitoringStatus): a BT car always reads
-    // blue; a non-BT car is green when its monitoring is active, grey when inactive. [MAP-ICONS-V2]
-    val tone = when {
-        isBluetoothPaired -> VehicleBadgeTone.Bluetooth
-        !isActive -> VehicleBadgeTone.Inactive
-        else -> VehicleBadgeTone.Parked
-    }
-    // State colour = the tag border by default; identity colours stay brand-fixed in both themes.
-    val stateColor = when (tone) {
-        VehicleBadgeTone.Bluetooth -> PapBlueLight
-        VehicleBadgeTone.Inactive  -> PapOutlineVariantLight
-        else                       -> PapGreenLight
-    }
+    // Method-coloured frame, fixed light-theme tones (markers float over map tiles, not surfaces):
+    // BT blue wins (matches Vehicle.monitoringStatus), then active green, grey when unwatched.
+    // Selection flips to max-contrast onSurface + thicker. [UI-COLOR-DOCTRINE-001]
     val onSurface = MaterialTheme.colorScheme.onSurface
-    val borderColor = if (selected) onSurface else stateColor
+    val borderColor = when {
+        selected -> onSurface
+        isBluetoothPaired -> PapBlueLight
+        isActive -> PapGreenLight
+        else -> PapOutlineVariantLight
+    }
     // Theme-aware tag fill: white in light, near-black ink in dark — the original look. The full-colour
     // car pops on it in both themes. Detect dark by theme luminance (not isSystemInDarkTheme, which can
     // disagree with the resolved app theme). [MAP-ICONS-V2]
@@ -199,7 +194,7 @@ fun VehicleBadgeMarker(
             val dotCenter = Offset(52f * s, TAG_DOT_CY * s)
             if (originDot) {
                 drawCircle(color = Color.White, radius = TAG_DOT_R * s * ORIGIN_DOT_HALO_SCALE, center = dotCenter)
-                drawCircle(color = PapDriveBlue, radius = TAG_DOT_R * s * ORIGIN_DOT_SCALE, center = dotCenter)
+                drawCircle(color = PapLiveMap, radius = TAG_DOT_R * s * ORIGIN_DOT_SCALE, center = dotCenter)
             } else {
                 drawCircle(color = borderColor, radius = TAG_DOT_R * s, center = dotCenter)
             }
@@ -265,7 +260,7 @@ fun LocationActiveMarker(
 ) {
     Box(modifier.size(LOC_ACTIVE_DIAM), contentAlignment = Alignment.Center) {
         Canvas(Modifier.matchParentSize()) {
-            drawCircle(color = LOC_HALO_BLUE, alpha = LOC_HALO_ALPHA, radius = this.size.minDimension / 2f)
+            drawCircle(color = PapLiveMap, alpha = LOC_HALO_ALPHA, radius = this.size.minDimension / 2f)
         }
         VehicleTopdownIcon(
             carbody = carbody,
@@ -280,7 +275,6 @@ fun LocationActiveMarker(
 
 private val LOC_ACTIVE_DIAM = 54.dp
 private val LOC_ACTIVE_CAR  = 38.dp
-private val LOC_HALO_BLUE   = Color(0xFF2F6BFF) // matches the design's location halo / en-route blue
 private const val LOC_HALO_ALPHA = 0.16f
 
 // ─── Marker 1d — Trip origin dot (DepartureDotMarker) ────────────────────────
@@ -298,7 +292,7 @@ fun DepartureDotMarker(modifier: Modifier = Modifier) {
         Canvas(Modifier.matchParentSize()) {
             val r = size.minDimension / 2f
             drawCircle(color = Color.White, radius = r)
-            drawCircle(color = PapDriveBlue, radius = r * DEPARTURE_DOT_INNER_SCALE)
+            drawCircle(color = PapLiveMap, radius = r * DEPARTURE_DOT_INNER_SCALE)
         }
     }
 }
@@ -484,12 +478,12 @@ private val MY_VEHICLE_H = 55.dp
 
 /** Bolt-green spot palette — fixed brand tones (independent of [MaterialTheme]). */
 // Brand tier colours — kept fixed across themes (neutrals invert via `paper`/`ink`). [BOLT-MARKERS-001]
+// The en-route tone is NOT here: "someone is moving toward this spot" is the same semantic as the
+// driving car and the trip trail, so it reads the shared [PapLiveMap]. [UI-COLOR-DOCTRINE-001]
 private object SpotPalette {
     val Green       = Color(0xFF009F5E) // libre · fresca
     val Amber       = Color(0xFFE08200) // libre · enfriándose
     val Red         = Color(0xFFE0322F) // libre · caduca ya
-    val ManualBlue  = Color(0xFF0057CA) // reporte manual
-    val EnRouteBlue = Color(0xFF2F6BFF) // reservada · en ruta
     val Paper       = Color(0xFFFFFFFF) // fixed white — ring / "P" / TTL ring / badge discs
     val Ink         = Color(0xFF0E1A2E) // fixed dark — contact shadow / en-route pill
 }
@@ -506,23 +500,27 @@ private data class SpotTierVisual(
 // Ring length is static per tier (no live TTL timestamp wired to the marker
 // layer yet — animated countdown deferred). Fractions mirror the reference
 // SVGs (full / ~½ / minimal). [BOLT-MARKERS-001]
-private fun SpotReliabilityUiState.tierVisual(): SpotTierVisual = when (this) {
-    SpotReliabilityUiState.HIGH   -> SpotTierVisual(SpotPalette.Green,      ringFraction = 1f,    clockBadge = false, personBadge = false)
-    SpotReliabilityUiState.MEDIUM -> SpotTierVisual(SpotPalette.Amber,      ringFraction = 0.5f,  clockBadge = true,  personBadge = false)
-    SpotReliabilityUiState.LOW    -> SpotTierVisual(SpotPalette.Red,        ringFraction = 0.16f, clockBadge = true,  personBadge = false)
-    SpotReliabilityUiState.MANUAL -> SpotTierVisual(SpotPalette.ManualBlue, ringFraction = null,  clockBadge = false, personBadge = true)
-}
+//
+// [isManual] is PROVENANCE, orthogonal to the freshness tier: it swaps the badge slot for the
+// person glyph (one badge slot — the eyewitness mark outranks the clock) and keeps the tier's
+// colour and TTL ring, which the old flat-blue MANUAL tier used to lose. [UI-COLOR-DOCTRINE-001 F5]
+private fun SpotReliabilityUiState.tierVisual(isManual: Boolean = false): SpotTierVisual = when (this) {
+    SpotReliabilityUiState.HIGH   -> SpotTierVisual(SpotPalette.Green, ringFraction = 1f,    clockBadge = false, personBadge = false)
+    SpotReliabilityUiState.MEDIUM -> SpotTierVisual(SpotPalette.Amber, ringFraction = 0.5f,  clockBadge = true,  personBadge = false)
+    SpotReliabilityUiState.LOW    -> SpotTierVisual(SpotPalette.Red,   ringFraction = 0.16f, clockBadge = true,  personBadge = false)
+}.let { if (isManual) it.copy(clockBadge = false, personBadge = true) else it }
 
 /**
  * Free-spot marker — Bolt-green teardrop pin. Colour + freshness ring + badge
  * encode the reliability tier so the on-map marker matches the peek modal.
  * [BOLT-MARKERS-001]
  *
- * @param reliability tier driving colour/ring/badge. Defaults to [SpotReliabilityUiState.HIGH].
+ * @param reliability freshness tier driving colour/ring. Defaults to [SpotReliabilityUiState.HIGH].
  * @param selected when true an extra white outer outline marks the selection
  *   (the live pulse ring is drawn separately by [PaparcarMapView]).
  * @param enRouteCount when > 0 the pin renders the blue "reserved · en route"
  *   state with a people pill carrying the count, overriding the tier colour.
+ * @param isManual eyewitness report — person badge over the freshness tier. [UI-COLOR-DOCTRINE-001 F5]
  */
 @Composable
 fun FreeSpotMarker(
@@ -530,6 +528,7 @@ fun FreeSpotMarker(
     reliability: SpotReliabilityUiState = SpotReliabilityUiState.HIGH,
     selected: Boolean = false,
     enRouteCount: Int = 0,
+    isManual: Boolean = false,
 ) {
     val outfit = rememberOutfitFontFamily()
     val measurer = rememberTextMeasurer()
@@ -549,7 +548,7 @@ fun FreeSpotMarker(
 
     // Spot pucks float above the map tiles, so their neutrals stay FIXED (not theme-inverted): the
     // white ring / "P" / TTL ring / badge discs are always white, the contact shadow + en-route pill
-    // always dark. Only the brand tier colour (green/amber/red/blue) carries meaning. [MAP-ICONS-V2]
+    // always dark. Only the freshness tier colour (green/amber/red) carries meaning. [MAP-ICONS-V2]
     val paper = SpotPalette.Paper
     val ink = SpotPalette.Ink
     val pPath = remember { PathParser().parsePathString(SPOT_P_PATH).toPath() }
@@ -559,7 +558,7 @@ fun FreeSpotMarker(
         if (enRouteCount > 0) {
             drawEnRoutePin(s, enRouteCount, selected, measurer, countStyle, pPath, paper, ink)
         } else {
-            drawTierPin(s, reliability.tierVisual(), selected, pPath, paper, ink)
+            drawTierPin(s, reliability.tierVisual(isManual), selected, pPath, paper, ink)
         }
     }
 }
@@ -579,14 +578,15 @@ fun SpotPuckIcon(
     modifier: Modifier = Modifier,
     enRouteCount: Int = 0,
     selected: Boolean = false,
+    isManual: Boolean = false,
 ) {
     val paper = SpotPalette.Paper
     val ink = SpotPalette.Ink
     val pPath = remember { PathParser().parsePathString(SPOT_P_PATH).toPath() }
     val visual = if (enRouteCount > 0) {
-        SpotTierVisual(SpotPalette.EnRouteBlue, ringFraction = null, clockBadge = false, personBadge = false)
+        SpotTierVisual(PapLiveMap, ringFraction = null, clockBadge = false, personBadge = false)
     } else {
-        reliability.tierVisual()
+        reliability.tierVisual(isManual)
     }
     Canvas(modifier) {
         val s = size.minDimension / SPOT_VIEWBOX_W
@@ -723,16 +723,16 @@ private fun DrawScope.drawEnRoutePin(
     ink: Color,
 ) {
     drawSpotShadow(s, ink)
-    drawSpotDot(s, SpotPalette.EnRouteBlue)
+    drawSpotDot(s, PapLiveMap)
     // Dashed outer orbit (centre 36,34 r29)
     drawCircle(
-        SpotPalette.EnRouteBlue,
+        PapLiveMap,
         radius = 29f * s,
         center = Offset(36f * s, 34f * s),
         style = Stroke(2.4f * s, pathEffect = PathEffect.dashPathEffect(floatArrayOf(4f * s, 5f * s))),
     )
     // Inner blue puck (r25) inside the dashed orbit
-    drawPuckBody(s, SpotPalette.EnRouteBlue, selected, paper, ink, radius = 25f)
+    drawPuckBody(s, PapLiveMap, selected, paper, ink, radius = 25f)
     drawPFredoka(s, pPath, paper)
 
     // People pill — right-anchored at x=68 so it widens leftward for "9+". The pill uses `ink`
@@ -778,7 +778,8 @@ private const val SPOT_PUCK_CENTER_Y = 34f // puck circle centre Y (viewBox unit
  *
  * @param name zone display name; shown next to the icon, ellipsised if long.
  * @param icon the zone's chosen preset icon (resolved from `zone.iconKey`).
- * @param isPrivate when true the chip tints to `tertiary` and shows a small lock.
+ * @param isPrivate when true the chip goes NEUTRAL and shows a small lock — private is a
+ *   category, and a category is the glyph's job (tertiary is retired). [UI-COLOR-DOCTRINE-001 F6]
  */
 @Composable
 fun ZoneMarker(
@@ -787,7 +788,7 @@ fun ZoneMarker(
     modifier: Modifier = Modifier,
     isPrivate: Boolean = false,
 ) {
-    val zoneColor = if (isPrivate) MaterialTheme.colorScheme.tertiary
+    val zoneColor = if (isPrivate) MaterialTheme.colorScheme.onSurfaceVariant
                     else           MaterialTheme.colorScheme.primary
     val paper = MaterialTheme.colorScheme.surface
     val ink = MaterialTheme.colorScheme.onSurface
@@ -986,7 +987,7 @@ fun ReportCenterPin(
     modifier: Modifier = Modifier,
 ) {
     LiftedCenterPin(cameraMoving, groundInset = SPOT_PIN_GROUND_INSET, modifier = modifier) {
-        FreeSpotMarker(reliability = SpotReliabilityUiState.MANUAL)
+        FreeSpotMarker(isManual = true)
     }
 }
 

@@ -21,7 +21,10 @@ import io.apptolast.paparcar.domain.model.displayName
 import io.apptolast.paparcar.presentation.home.HomeIntent
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.PapSheet
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.PapSheetBanner
-import io.apptolast.paparcar.presentation.home.sections.sheet.components.PapSheetEyebrowTone
+import io.apptolast.paparcar.domain.model.monitoringStatus
+import io.apptolast.paparcar.ui.theme.VehicleWatch
+import io.apptolast.paparcar.ui.theme.vehicleIdentityColor
+import io.apptolast.paparcar.ui.theme.watch
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.PapSheetLead
 import io.apptolast.paparcar.ui.components.PapAlertDialog
 import io.apptolast.paparcar.ui.components.PapDialogAccent
@@ -102,7 +105,9 @@ internal fun AddingParkingPeek(
             loading = targetVehicle == null,
         ),
         eyebrow = headerLabel,
-        eyebrowTone = PapSheetEyebrowTone.Action,
+        // The eyebrow IS the vehicle name → it wears the car's identity colour (watch method),
+        // not the generic action green. [UI-COLOR-DOCTRINE-001]
+        eyebrowColor = vehicleIdentityColor(targetVehicle?.monitoringStatus()?.watch() ?: VehicleWatch.Off),
         title = title,
         onDismiss = { onIntent(HomeIntent.ExitAddParkingMode) },
         banner = {

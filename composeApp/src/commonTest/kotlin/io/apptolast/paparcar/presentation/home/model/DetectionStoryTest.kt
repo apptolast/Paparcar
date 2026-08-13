@@ -16,15 +16,21 @@ import kotlin.test.assertEquals
  */
 class DetectionStoryTest {
 
-    private fun vehicle(id: String, isActive: Boolean = false, brand: String = "Skoda", model: String = "Kamiq") =
-        Vehicle(
-            id = id,
-            userId = "user-1",
-            brand = brand,
-            model = model,
-            sizeCategory = VehicleSize.MEDIUM_SUV,
-            isActive = isActive,
-        )
+    private fun vehicle(
+        id: String,
+        isActive: Boolean = false,
+        brand: String = "Skoda",
+        model: String = "Kamiq",
+        bluetoothDeviceId: String? = null,
+    ) = Vehicle(
+        id = id,
+        userId = "user-1",
+        brand = brand,
+        model = model,
+        sizeCategory = VehicleSize.MEDIUM_SUV,
+        isActive = isActive,
+        bluetoothDeviceId = bluetoothDeviceId,
+    )
 
     private fun session(vehicleId: String) = UserParking(
         id = "s-$vehicleId",
@@ -96,13 +102,34 @@ class DetectionStoryTest {
 
     @Test
     fun should_watch_via_bluetooth_when_bt_armed() {
+        // viaBluetooth is read off the VEHICLE (its watch method owns the identity colour), not
+        // hardcoded per state. [UI-COLOR-DOCTRINE-001]
+        val btCard = VehicleCard(vehicle("v-active", isActive = true, bluetoothDeviceId = "AA:BB"), session = null)
         val story = resolveDetectionStory(
             uiState = DetectionUiState.ArmedBluetooth,
             drivingMeta = null,
-            vehicleCards = listOf(activeCard, otherCard),
+            vehicleCards = listOf(btCard, otherCard),
         )
         assertEquals(
             DetectionStory.Watching(vehicleName = "Skoda Kamiq", isParked = false, viaBluetooth = true),
+            story,
+        )
+    }
+
+    @Test
+    fun should_colour_the_driving_story_with_the_trip_vehicles_bt_method() {
+        // A BT-watched car driving keeps its blue identity in the detection row. [UI-COLOR-DOCTRINE-001]
+        val btOther = VehicleCard(
+            vehicle("v-other", brand = "Seat", model = "Ibiza", bluetoothDeviceId = "AA:BB"),
+            session = null,
+        )
+        val story = resolveDetectionStory(
+            uiState = DetectionUiState.Monitoring,
+            drivingMeta = DrivingMeta(vehicleId = "v-other", phase = DetectionPhase.Driving),
+            vehicleCards = listOf(activeCard, btOther),
+        )
+        assertEquals(
+            DetectionStory.Driving(vehicleName = "Seat Ibiza", isCandidate = false, viaBluetooth = true),
             story,
         )
     }

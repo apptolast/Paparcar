@@ -17,7 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.presentation.util.MapCircleFab
-import io.apptolast.paparcar.ui.theme.PapDriveBlue
+import io.apptolast.paparcar.ui.theme.PapLiveMap
 import io.apptolast.paparcar.ui.theme.PapMotion
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -81,7 +81,8 @@ internal fun HomeMapFabColumn(
         // otherwise it recenters on GPS. Replaces the old floating "Following your trip" pill. [DET-STATUS-SHEET-001]
         MapCircleFab(
             icon = Icons.Rounded.MyLocation,
-            iconTint = if (followsCar) PapDriveBlue else Color.Unspecified,
+            // Following the LIVE car — the map-movement blue, same as the puck it chases.
+            iconTint = if (followsCar) PapLiveMap else Color.Unspecified,
             onClick = onMyLocation,
             contentDescription = stringResource(Res.string.map_cd_my_location),
         )

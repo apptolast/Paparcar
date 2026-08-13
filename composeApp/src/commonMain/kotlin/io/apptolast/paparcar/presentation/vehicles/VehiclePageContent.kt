@@ -38,7 +38,8 @@ import io.apptolast.paparcar.domain.model.VehicleWithStats
 import io.apptolast.paparcar.domain.model.monitoringStatus
 import io.apptolast.paparcar.presentation.util.compactRelativeTimeText
 import io.apptolast.paparcar.ui.components.VehicleIdentityHeader
-import io.apptolast.paparcar.ui.components.vehicleStatusBorderColor
+import io.apptolast.paparcar.ui.theme.vehicleChassisBorder
+import io.apptolast.paparcar.ui.theme.watch
 import io.apptolast.paparcar.ui.theme.PapBorders
 import io.apptolast.paparcar.ui.theme.PaparcarType
 import io.apptolast.paparcar.ui.theme.PapShapes
@@ -104,9 +105,10 @@ private fun VehicleHeroCard(
             .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
         shape = PapShapes.cardLarge,
         color = cs.surfaceContainerHigh,
-        // The frame reads the state — muted status accent (green/blue) or neutral when inactive,
-        // same border language as the Home chips. [HOME-VEH-REFINE-001]
-        border = BorderStroke(PapBorders.thin, vehicleStatusBorderColor(monitoring)),
+        // The frame says "this car is watched" — one calm my-car blue for both tiers (WHICH tier
+        // is the glyph's job), neutral when unwatched. Same border language as the Home chips.
+        // [UI-COLOR-DOCTRINE-001]
+        border = BorderStroke(PapBorders.thin, vehicleChassisBorder(monitoring.watch())),
     ) {
         Column {
             // Shared identity anatomy (tile glyph + name + size chip + status pin) — single source
@@ -203,6 +205,7 @@ private fun StatCell(
     modifier: Modifier = Modifier,
 ) {
     val cs = MaterialTheme.colorScheme
+    // Stats are app furniture, not vehicle identity → brand green, like the rest of the chrome.
     val accent = if (muted) cs.onSurfaceVariant else cs.primary
     val valueColor = if (muted) cs.onSurfaceVariant else cs.onSurface
     Column(

@@ -51,7 +51,7 @@ internal fun ReportPeek(
         lead = PapSheetLead.Announce,
         eyebrow = stringResource(Res.string.home_report_header_label),
         // Manual report = blue, mirroring the manual-spot tint on the map. [UI-SHEET-001]
-        eyebrowTone = PapSheetEyebrowTone.Manual,
+        eyebrowTone = PapSheetEyebrowTone.Action,
         title = title,
         onDismiss = { onIntent(HomeIntent.ExitReportMode) },
         banner = {

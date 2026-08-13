@@ -8,6 +8,7 @@ import io.apptolast.paparcar.domain.model.AddressAndPlace
 import io.apptolast.paparcar.domain.model.PlaceCategory
 import io.apptolast.paparcar.domain.model.PlaceInfo
 import io.apptolast.paparcar.domain.model.Spot
+import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.VehicleSize
@@ -233,6 +234,19 @@ internal object FakeData {
             confidence = 0.45f,
             enRouteCount = 0,
             sizeCategory = VehicleSize.LARGE_SEDAN,
+        ),
+        // Eyewitness manual report — exercises the person-badge puck (freshness colour + TTL ring
+        // + person glyph, no colour of its own). [UI-COLOR-DOCTRINE-001 F5]
+        Spot(
+            id = "sp_5_manual",
+            location = gps(agoMs = 2 * 60_000L, lat = 40.4185, lon = -3.7075),
+            reportedBy = "user_5",
+            type = SpotType.MANUAL_REPORT,
+            address = addrStreet,
+            placeInfo = null,
+            confidence = 1f,
+            enRouteCount = 0,
+            sizeCategory = VehicleSize.MEDIUM_SUV,
         ),
     )
 

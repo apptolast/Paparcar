@@ -95,6 +95,10 @@ internal fun PapSheet(
     eyebrowTone: PapSheetEyebrowTone = PapSheetEyebrowTone.Neutral,
     /** Overrides the tone colour — the reliability palette of a community spot. */
     eyebrowColor: Color? = null,
+    /** Substring of [eyebrow] (the vehicle NAME) tinted with [eyebrowHighlightColor]; the state
+     *  words around it keep the base eyebrow colour. [UI-COLOR-DOCTRINE-001] */
+    eyebrowHighlight: String? = null,
+    eyebrowHighlightColor: Color? = null,
     subtitle: String? = null,
     /** Modal-only escape hatch: peeks keep the fixed 1-line title (anchoring depends on the
      *  reserved header height); a MODAL sheet whose title carries a vehicle name may pass 2 so
@@ -120,6 +124,8 @@ internal fun PapSheet(
             overline = eyebrow,
             overlineColor = eyebrowColor ?: eyebrowTone.color(),
             overlineStyle = PaparcarType.current.eyebrow,
+            overlineHighlight = eyebrowHighlight,
+            overlineHighlightColor = eyebrowHighlightColor ?: (eyebrowColor ?: eyebrowTone.color()),
             title = title,
             titleStyle = PaparcarType.current.cardTitle,
             titleWeight = FontWeight.SemiBold,
@@ -210,6 +216,8 @@ internal sealed interface PapSheetLead {
     data class CommunitySpot(
         val reliability: SpotReliabilityUiState,
         val enRouteCount: Int = 0,
+        /** Eyewitness report — person badge over the freshness tier. [UI-COLOR-DOCTRINE-001 F5] */
+        val isManual: Boolean = false,
     ) : PapSheetLead
 
     /** Reporting a free spot — megaphone on the action-green tile. */
@@ -219,13 +227,14 @@ internal sealed interface PapSheetLead {
     data class GenericIcon(val icon: ImageVector) : PapSheetLead
 }
 
-/** Eyebrow tint: green = own action/vehicle, blue = manual report, muted = neutral context. */
-internal enum class PapSheetEyebrowTone { Action, Manual, Neutral }
+/** Eyebrow tint: green = own action, muted = neutral context. (The old blue "Manual" tone died
+ *  with the tertiary retirement — reporting a spot IS an action, and a report's provenance is the
+ *  person badge's job, not a colour's.) [UI-COLOR-DOCTRINE-001 F6] */
+internal enum class PapSheetEyebrowTone { Action, Neutral }
 
 @Composable
 private fun PapSheetEyebrowTone.color(): Color = when (this) {
     PapSheetEyebrowTone.Action -> MaterialTheme.colorScheme.primary
-    PapSheetEyebrowTone.Manual -> MaterialTheme.colorScheme.tertiary
     PapSheetEyebrowTone.Neutral -> MaterialTheme.colorScheme.onSurfaceVariant
 }
 
@@ -283,6 +292,7 @@ private fun PapSheetLeadTile(lead: PapSheetLead) {
             SpotPuckIcon(
                 reliability = lead.reliability,
                 enRouteCount = lead.enRouteCount,
+                isManual = lead.isManual,
                 modifier = Modifier.size(LEAD_TILE_DP.dp),
             )
 

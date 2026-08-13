@@ -22,6 +22,8 @@ import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.displayName
 import io.apptolast.paparcar.domain.model.monitoringStatus
 import io.apptolast.paparcar.ui.theme.PaparcarType
+import io.apptolast.paparcar.ui.theme.vehicleIdentityColor
+import io.apptolast.paparcar.ui.theme.watch
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.my_car_unnamed_vehicle
@@ -36,7 +38,7 @@ import paparcar.composeapp.generated.resources.my_car_unnamed_vehicle
  *                 Sedán · Mediano  (quiet metadata, no chips)
  * ```
  *
- * ONE badge per card: the dynamic monitoring state ([VehicleStatusBadge]) is the only boxed element,
+ * ONE badge per card: the watch tier ([VehicleWatchBadge]) is the only boxed element,
  * riding the name line. The static description (carbody · size) drops to a quiet subtitle so it never
  * competes with the status — the boring attribute no longer wears a container. [CARD-ONE-BADGE-001]
  *
@@ -55,7 +57,10 @@ fun VehicleIdentityHeader(
     showSize: Boolean = true,
     trailing: (@Composable () -> Unit)? = null,
 ) {
-    val monitoring = vehicle.monitoringStatus()
+    val watch = vehicle.monitoringStatus().watch()
+    // The vehicle's identity colour — its watch method — paints the NAME itself.
+    // [UI-COLOR-DOCTRINE-001]
+    val identity = vehicleIdentityColor(watch)
     val cs = MaterialTheme.colorScheme
 
     Row(
@@ -69,7 +74,7 @@ fun VehicleIdentityHeader(
                 .background(cs.surfaceContainerHighest),
             contentAlignment = Alignment.Center,
         ) {
-            if (isDriving) DrivingRadarHalo(diameter = GLYPH_DP.dp)
+            if (isDriving) DrivingRadarHalo(diameter = GLYPH_DP.dp, color = identity)
             VehicleGlyph(
                 carbody = vehicle.carbodyType,
                 size = vehicle.sizeCategory,
@@ -81,6 +86,8 @@ fun VehicleIdentityHeader(
         Column(modifier = Modifier.weight(1f)) {
             // Name line — title takes the width, the single status badge rides its right edge.
             Row(verticalAlignment = Alignment.CenterVertically) {
+                // Name stays onSurface — the watch badge beside it already wears the identity
+                // colour; tinting both is over-information. [UI-COLOR-DOCTRINE-001]
                 Text(
                     text = vehicle.displayName(fallback = stringResource(Res.string.my_car_unnamed_vehicle)),
                     style = PaparcarType.current.cardTitle,
@@ -90,7 +97,7 @@ fun VehicleIdentityHeader(
                     modifier = Modifier.weight(1f, fill = false),
                 )
                 Spacer(Modifier.width(META_GAP_DP.dp))
-                VehicleStatusBadge(status = monitoring, label = vehicleStatusPinLabel(monitoring))
+                VehicleWatchBadge(watch = watch, label = vehicleWatchPinLabel(watch))
             }
             // Quiet descriptive subtitle (carbody · size) — no chips. Detail-screen only.
             if (showSize) {

@@ -387,7 +387,6 @@
     <string name="home_peek_spot_high">Lugar livre fiável</string>
     <string name="home_peek_spot_medium">Lugar médio</string>
     <string name="home_peek_spot_low">Lugar baixo</string>
-    <string name="home_peek_spot_manual">Lugar manual</string>
 
     <!-- ReportPeekRow (avisar lugar livre) -->
     <string name="home_report_header_label">Avisar lugar livre</string>
@@ -410,7 +409,6 @@
     <string name="home_spot_reliability_high">Fiável</string>
     <string name="home_spot_reliability_medium">Média</string>
     <string name="home_spot_reliability_low">Baixa</string>
-    <string name="home_spot_reliability_manual">Manual</string>
 
     <!-- AddingZonePeekRow (nova zona habitual) -->
     <string name="home_zone_edit_header_label">Editar zona</string>

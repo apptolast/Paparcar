@@ -42,7 +42,6 @@ import paparcar.composeapp.generated.resources.home_address_unknown
 import paparcar.composeapp.generated.resources.home_peek_spot_expires
 import paparcar.composeapp.generated.resources.home_peek_spot_high
 import paparcar.composeapp.generated.resources.home_peek_spot_low
-import paparcar.composeapp.generated.resources.home_peek_spot_manual
 import paparcar.composeapp.generated.resources.home_peek_spot_medium
 import paparcar.composeapp.generated.resources.home_peek_spot_reliability_label
 import paparcar.composeapp.generated.resources.home_vehicle_fallback_name
@@ -183,7 +182,6 @@ internal fun SpotReliabilityUiState.peekPalette(): SpotPeekPalette {
         SpotReliabilityUiState.HIGH   -> stringResource(Res.string.home_peek_spot_high)
         SpotReliabilityUiState.MEDIUM -> stringResource(Res.string.home_peek_spot_medium)
         SpotReliabilityUiState.LOW    -> stringResource(Res.string.home_peek_spot_low)
-        SpotReliabilityUiState.MANUAL -> stringResource(Res.string.home_peek_spot_manual)
     }
     return SpotPeekPalette(sc.bg, sc.on, label)
 }

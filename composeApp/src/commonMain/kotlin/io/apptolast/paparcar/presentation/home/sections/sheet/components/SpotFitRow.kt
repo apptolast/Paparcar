@@ -101,7 +101,7 @@ private fun FitPill(
                 vehicle?.carbodyType?.label() ?: spot.carbodyType?.label() ?: "",
             ),
         )
-        // Neutral (not blue): tertiary is reserved for Bluetooth/info, and FITS is a spatial verdict.
+        // Neutral (not blue): blue is the my-car story, and FITS is a spatial verdict.
         // A muted check still reads positive without competing with OPTIMAL's green. [UI-REGRESSION]
         SpotFit.FITS -> PillVisual(
             icon = Icons.Rounded.CheckCircle,

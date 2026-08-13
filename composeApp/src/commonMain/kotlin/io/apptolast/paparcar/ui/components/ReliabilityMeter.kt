@@ -31,13 +31,11 @@ import kotlin.math.roundToInt
  * marcadores y badges, para que mapa, lista y ficha lean igual. Ver regla de iconos en CLAUDE.md.
  *
  * Segmentos rellenos:
- *  - [SpotReliabilityUiState.HIGH]   → 5 (verde)
+ *  - [SpotReliabilityUiState.HIGH]   → 5 (verde — incluye reportes manuales: testigo = confianza 1.0)
  *  - [SpotReliabilityUiState.MEDIUM] → 3 (ámbar)
  *  - [SpotReliabilityUiState.LOW]    → 1 (rojo)
- *  - [SpotReliabilityUiState.MANUAL] → 5 (azul, atestiguado por usuario; ignora [pct])
  *
  * @param pct Si se aporta (0..1), afina el nº de segmentos rellenos en vez del default por nivel.
- *            No aplica a MANUAL.
  */
 @Composable
 fun ReliabilityMeter(
@@ -86,16 +84,13 @@ fun ReliabilityMeter(
     }
 }
 
-private fun filledSegments(level: SpotReliabilityUiState, pct: Float?): Int = when (level) {
-    SpotReliabilityUiState.MANUAL -> SEGMENT_COUNT
-    else -> pct
-        ?.let { (it * SEGMENT_COUNT).roundToInt().coerceIn(1, SEGMENT_COUNT) }
-        ?: when (level) {
-            SpotReliabilityUiState.HIGH   -> HIGH_SEGMENTS
-            SpotReliabilityUiState.MEDIUM -> MEDIUM_SEGMENTS
-            else                          -> LOW_SEGMENTS
-        }
-}
+private fun filledSegments(level: SpotReliabilityUiState, pct: Float?): Int = pct
+    ?.let { (it * SEGMENT_COUNT).roundToInt().coerceIn(1, SEGMENT_COUNT) }
+    ?: when (level) {
+        SpotReliabilityUiState.HIGH   -> HIGH_SEGMENTS
+        SpotReliabilityUiState.MEDIUM -> MEDIUM_SEGMENTS
+        SpotReliabilityUiState.LOW    -> LOW_SEGMENTS
+    }
 
 private const val SEGMENT_COUNT = 5
 private const val HIGH_SEGMENTS = 5

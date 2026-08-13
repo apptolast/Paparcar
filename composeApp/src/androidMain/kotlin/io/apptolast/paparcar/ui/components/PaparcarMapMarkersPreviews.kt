@@ -64,7 +64,7 @@ private fun MarkersShowcase() {
             FreeSpotMarker(reliability = SpotReliabilityUiState.HIGH)
             FreeSpotMarker(reliability = SpotReliabilityUiState.MEDIUM)
             FreeSpotMarker(reliability = SpotReliabilityUiState.LOW)
-            FreeSpotMarker(reliability = SpotReliabilityUiState.MANUAL)
+            FreeSpotMarker(isManual = true)
             FreeSpotMarker(reliability = SpotReliabilityUiState.HIGH, selected = true)
         }
 

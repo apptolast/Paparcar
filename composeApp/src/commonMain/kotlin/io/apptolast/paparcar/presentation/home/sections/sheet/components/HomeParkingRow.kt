@@ -42,11 +42,11 @@ import io.apptolast.paparcar.ui.components.DrivingRadarHalo
 import io.apptolast.paparcar.ui.components.UnmarkedParkingIcon
 import io.apptolast.paparcar.ui.components.VehicleGlyph
 import io.apptolast.paparcar.ui.components.VehicleIdentityHeader
-import io.apptolast.paparcar.ui.components.VehicleStatusLeadingIcon
-import io.apptolast.paparcar.ui.components.vehicleStatusAccent
-import io.apptolast.paparcar.ui.components.vehicleStatusBorderColor
-import io.apptolast.paparcar.ui.theme.PapBorders
-import io.apptolast.paparcar.ui.theme.PapDriveBlue
+import io.apptolast.paparcar.ui.components.VehicleWatchLeadingIcon
+import io.apptolast.paparcar.ui.components.rememberDrivingStatePulse
+import io.apptolast.paparcar.ui.theme.vehicleChassisBorder
+import io.apptolast.paparcar.ui.theme.vehicleIdentityColor
+import io.apptolast.paparcar.ui.theme.watch
 import io.apptolast.paparcar.ui.theme.PapShapes
 import io.apptolast.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
@@ -62,11 +62,12 @@ import paparcar.composeapp.generated.resources.home_vehicle_fallback_name
 
 /**
  * Compact vehicle chip in the Home vehicles LazyRow (2+ vehicles). A vertical card: an identity row
- * (car glyph + **status icon before the name** — green = active, blue = Bluetooth, grey = inactive)
- * over a parking row. The parking row is the actionable fact: **parked → location icon + address**
- * (max 2 lines), **not marked → the "not marked" glyph**. No method label, no corner badge. The
- * border colour mirrors the parked state. Tapping transforms the sheet to the vehicle's state.
- * [HOME-VEH-REFINE-001] [HOME-CARDS-001]
+ * (car glyph + **watch glyph + name in the identity colour** — green = active detection, blue = BT,
+ * grey = unwatched) over a parking row. The parking row is the actionable fact: **parked →
+ * location icon + address** (max 2 lines), **not marked → the "not marked" glyph**; driving shows
+ * the pulsing neutral state words. No method label, no corner badge. The border carries the same
+ * identity colour, dimmed. Tapping transforms the sheet to the vehicle's state.
+ * [HOME-VEH-REFINE-001] [HOME-CARDS-001] [UI-COLOR-DOCTRINE-001]
  */
 @Composable
 internal fun HomeVehicleChip(
@@ -80,7 +81,10 @@ internal fun HomeVehicleChip(
     val vehicle = card.vehicle
     val session = card.session
     val cs = MaterialTheme.colorScheme
-    val monitoring = vehicle.monitoringStatus()
+    val watch = vehicle.monitoringStatus().watch()
+    // The vehicle's ONE colour: its watch method (green = active detection, blue = BT, grey = off).
+    // The state below never re-colours it. [UI-COLOR-DOCTRINE-001]
+    val accent = vehicleIdentityColor(watch)
     val vehicleName = vehicle.displayName(fallback = stringResource(Res.string.home_vehicle_fallback_name))
 
     Surface(
@@ -88,9 +92,10 @@ internal fun HomeVehicleChip(
         // Adaptive width so the name breathes without truncating in the horizontal strip.
         modifier = modifier.widthIn(min = CHIP_MIN_WIDTH_DP.dp, max = CHIP_MAX_WIDTH_DP.dp),
         shape = PapShapes.cardSmall,
+        // A trip in motion thickens the frame to the full identity colour — more energy, same hue.
         border = BorderStroke(
             if (isDriving) DRIVING_BORDER_DP.dp else BORDER_DP.dp,
-            vehicleStatusBorderColor(monitoring, isDriving),
+            if (isDriving) accent else vehicleChassisBorder(watch),
         ),
         color = cs.surfaceContainerHigh,
     ) {
@@ -102,7 +107,7 @@ internal fun HomeVehicleChip(
                 horizontalArrangement = Arrangement.spacedBy(CHIP_TOP_GAP_DP.dp),
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    if (isDriving) DrivingRadarHalo(diameter = ICON_BOX_DP.dp)
+                    if (isDriving) DrivingRadarHalo(diameter = ICON_BOX_DP.dp, color = accent)
                     VehicleGlyph(
                         carbody = vehicle.carbodyType,
                         size = vehicle.sizeCategory,
@@ -110,10 +115,9 @@ internal fun HomeVehicleChip(
                         color = vehicle.color,
                     )
                 }
-                VehicleStatusLeadingIcon(
-                    status = monitoring,
-                    tint = if (isDriving) PapDriveBlue else vehicleStatusAccent(monitoring),
-                )
+                // The watch glyph carries the identity colour; the name stays onSurface — tinting
+                // both is over-information. [UI-COLOR-DOCTRINE-001]
+                VehicleWatchLeadingIcon(watch = watch)
                 Text(
                     vehicleName,
                     style = PaparcarType.current.rowTitle,
@@ -136,6 +140,8 @@ internal fun HomeVehicleChip(
                 horizontalArrangement = Arrangement.spacedBy(FOOT_GAP_DP.dp),
             ) {
                 when {
+                    // State machine = neutral text; its liveness is the breathing pulse, not a hue.
+                    // [UI-COLOR-DOCTRINE-001]
                     isDriving -> Text(
                         text = stringResource(
                             if (isCandidate) Res.string.home_vehicle_chip_status_candidate
@@ -143,14 +149,14 @@ internal fun HomeVehicleChip(
                         ),
                         style = PaparcarType.current.label,
                         fontWeight = FontWeight.SemiBold,
-                        color = if (isCandidate) cs.primary else PapDriveBlue,
+                        color = cs.onSurface.copy(alpha = rememberDrivingStatePulse()),
                         maxLines = 1,
                     )
                     session != null -> {
                         Icon(
                             imageVector = Icons.Rounded.LocationOn,
                             contentDescription = null,
-                            tint = vehicleStatusAccent(monitoring),
+                            tint = accent,
                             modifier = Modifier.size(FOOT_ICON_DP.dp),
                         )
                         Text(
@@ -166,7 +172,7 @@ internal fun HomeVehicleChip(
                         )
                     }
                     else -> {
-                        UnmarkedParkingIcon(tint = cs.onSurfaceVariant)
+                        UnmarkedParkingIcon(tint = accent)
                         Text(
                             text = stringResource(Res.string.home_vehicle_chip_unmarked),
                             style = PaparcarType.current.caption,
@@ -199,8 +205,9 @@ internal fun HomeVehicleCard(
     val vehicle = card.vehicle
     val session = card.session
     val cs = MaterialTheme.colorScheme
-    val monitoring = vehicle.monitoringStatus()
-    val accent = if (isDriving) PapDriveBlue else vehicleStatusAccent(monitoring)
+    val watch = vehicle.monitoringStatus().watch()
+    // Identity colour = watch method; the state below stays neutral. [UI-COLOR-DOCTRINE-001]
+    val accent = vehicleIdentityColor(watch)
 
     Surface(
         onClick = onClick,
@@ -208,7 +215,7 @@ internal fun HomeVehicleCard(
         shape = PapShapes.cardLarge,
         border = BorderStroke(
             if (isDriving) DRIVING_BORDER_DP.dp else BORDER_DP.dp,
-            vehicleStatusBorderColor(monitoring, isDriving),
+            if (isDriving) accent else vehicleChassisBorder(watch),
         ),
         color = cs.surfaceContainerHigh,
     ) {
@@ -252,6 +259,7 @@ internal fun HomeVehicleCard(
                 }
                 Column(modifier = Modifier.weight(1f)) {
                     when {
+                        // Neutral state words with the driving breath. [UI-COLOR-DOCTRINE-001]
                         isDriving -> Text(
                             text = stringResource(
                                 if (isCandidate) Res.string.home_vehicle_chip_status_candidate
@@ -259,7 +267,7 @@ internal fun HomeVehicleCard(
                             ),
                             style = PaparcarType.current.body,
                             fontWeight = FontWeight.SemiBold,
-                            color = if (isCandidate) cs.primary else PapDriveBlue,
+                            color = cs.onSurface.copy(alpha = rememberDrivingStatePulse()),
                             maxLines = 1,
                         )
                         session != null -> {

@@ -1,7 +1,9 @@
 package io.apptolast.paparcar.presentation.home.model
 
 import io.apptolast.paparcar.domain.detection.DetectionPhase
+import io.apptolast.paparcar.domain.model.VehicleMonitoringStatus
 import io.apptolast.paparcar.domain.model.displayName
+import io.apptolast.paparcar.domain.model.monitoringStatus
 import io.apptolast.paparcar.presentation.home.DrivingMeta
 import io.apptolast.paparcar.presentation.home.VehicleCard
 
@@ -31,8 +33,14 @@ sealed interface DetectionStory {
     /** Coordinator cold-start — mark your spot or declare "I'm driving". Action row. */
     data object AwaitingFirstPark : DetectionStory
 
-    /** A trip is being followed right now. [isCandidate] = stopped, confirming the spot. */
-    data class Driving(val vehicleName: String, val isCandidate: Boolean) : DetectionStory
+    /** A trip is being followed right now. [isCandidate] = stopped, confirming the spot.
+     *  [viaBluetooth] = the trip vehicle's watch method, so the row wears its identity colour.
+     *  [UI-COLOR-DOCTRINE-001] */
+    data class Driving(
+        val vehicleName: String,
+        val isCandidate: Boolean,
+        val viaBluetooth: Boolean = false,
+    ) : DetectionStory
 
     /**
      * Discreet happy line — detection is armed and covering the ACTIVE vehicle. Only the active
@@ -72,21 +80,29 @@ fun resolveDetectionStory(
 
     fun drivingStory(): DetectionStory {
         // Name the trip's own vehicle when the detector resolved it; fall back to the active one.
-        val name = vehicleCards.firstOrNull { it.vehicle.id == drivingMeta?.vehicleId }
-            ?.vehicle?.displayName()?.takeIf { it.isNotBlank() }
-            ?: activeCard?.vehicle?.displayName()?.takeIf { it.isNotBlank() }
+        val card = vehicleCards.firstOrNull { it.vehicle.id == drivingMeta?.vehicleId } ?: activeCard
+        val name = card?.vehicle?.displayName()?.takeIf { it.isNotBlank() }
             ?: return DetectionStory.Hidden
         return DetectionStory.Driving(
             vehicleName = name,
             isCandidate = drivingMeta?.phase == DetectionPhase.Candidate,
+            viaBluetooth = card.vehicle.monitoringStatus() is VehicleMonitoringStatus.Bluetooth,
         )
     }
 
-    fun watchingStory(isParked: Boolean, viaBluetooth: Boolean, badge: ParkedWatchBadge): DetectionStory {
+    fun watchingStory(isParked: Boolean, badge: ParkedWatchBadge): DetectionStory {
         // Watching names the ACTIVE vehicle ONLY — never a ranked or first-of-list fallback.
-        val name = activeCard?.vehicle?.displayName()?.takeIf { it.isNotBlank() }
+        val card = activeCard ?: return DetectionStory.Hidden
+        val name = card.vehicle.displayName()?.takeIf { it.isNotBlank() }
             ?: return DetectionStory.Hidden
-        return DetectionStory.Watching(name, isParked = isParked, viaBluetooth = viaBluetooth, watchBadge = badge)
+        // The method is read off the vehicle itself so the row's identity colour can never disagree
+        // with the garage. [UI-COLOR-DOCTRINE-001]
+        return DetectionStory.Watching(
+            name,
+            isParked = isParked,
+            viaBluetooth = card.vehicle.monitoringStatus() is VehicleMonitoringStatus.Bluetooth,
+            watchBadge = badge,
+        )
     }
 
     return when (uiState) {
@@ -97,10 +113,10 @@ fun resolveDetectionStory(
         DetectionUiState.Monitoring -> drivingStory()
         // Honest: the parked line reflects whether the watch is really live. [DET-WATCH-HONEST-001]
         DetectionUiState.Parked ->
-            watchingStory(isParked = true, viaBluetooth = false, badge = parkedWatchBadge ?: ParkedWatchBadge.WATCHING)
+            watchingStory(isParked = true, badge = parkedWatchBadge ?: ParkedWatchBadge.WATCHING)
         // Bluetooth-armed is always covered by the receiver — honestly healthy.
         DetectionUiState.ArmedBluetooth ->
-            watchingStory(isParked = false, viaBluetooth = true, badge = ParkedWatchBadge.WATCHING)
+            watchingStory(isParked = false, badge = ParkedWatchBadge.WATCHING)
         DetectionUiState.Silent -> DetectionStory.Hidden
     }
 }

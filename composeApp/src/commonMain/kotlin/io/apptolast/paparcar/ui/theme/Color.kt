@@ -45,14 +45,29 @@ val PapRed           = Color(0xFFFF5252)   // urgent / low TTL / error
 val PapRedMuted      = Color(0xFF3D1010)   // red container dark
 val PapOnRed         = Color(0xFF1C0606)
 
-// Spot reliability: MANUAL (manual reports)
-val PapBlue          = Color(0xFF5B9EFF)   // manual report — info / neutral
-val PapBlueMuted     = Color(0xFF0F1F3D)   // blue container dark
+// ⛔ Framework `tertiary` slot backing ONLY — the tertiary role is RETIRED [UI-COLOR-DOCTRINE-001 F6].
+// These tokens exist solely so the MaterialTheme scheme slots hold sane values (same hue family as
+// papCarBlue, so anything a framework component paints with tertiary blends into the my-car blue).
+// Feature code must never read `colorScheme.tertiary*` — enforced by ColorGuardrailTest.
+val PapBlue          = Color(0xFF5B9EFF)
+val PapBlueMuted     = Color(0xFF0F1F3D)
 val PapOnBlue        = Color(0xFF061021)
 
-// Live "driving / en-route" blue — matches the driving puck halo + en-route spot pin (0xFF2F6BFF).
-// Fixed brand tone (not theme-inverted) so the "Driving" chip reads identical to its map marker.
-val PapDriveBlue     = Color(0xFF2F6BFF)
+// ── Live — MOVEMENT ON THE MAP, fixed across themes. [UI-COLOR-DOCTRINE-001] ──────────────────
+// One meaning, map-only: the trip trail, the trip-origin dot, the "reserved · someone en route"
+// spot, and the follow-car FAB tint. Markers and polylines sit on street/satellite imagery, not on
+// our surface, so this tone never theme-inverts. Replaces PapDriveBlue + SpotPalette.EnRouteBlue +
+// LOC_HALO_BLUE. In the UI, movement is told by ANIMATION in the vehicle's identity colour — there
+// is no "driving blue" accent anymore.
+val PapLiveMap       = Color(0xFF2F6BFF)   // trail, origin dot, en-route pin, follow FAB — fixed
+
+// ── Car blue — the BLUETOOTH-watched vehicle's identity colour. ───────────────────────────────
+// A vehicle's colour is its WATCH METHOD (green = active detection, blue = BT, grey = off) and it
+// never changes with state; [papCarBlue] is the blue leg, resolved via
+// `VehicleIdentity.vehicleIdentityColor`. Values keep the old "BT blue" the user already reads as
+// their BT-tracked car. [UI-COLOR-DOCTRINE-001]
+val PapCarBlueDark   = Color(0xFF5B9EFF)   // BT identity on dark surfaces — 7.0:1 on PapInk
+val PapCarBlueLight  = Color(0xFF0057CA)   // BT identity on light surfaces — 6.5:1 on white
 
 // ── Light theme counterparts ──────────────────────────────────────────────────
 
@@ -91,5 +106,19 @@ val PapBlueContainerLight = Color(0xFFD8E2FF)
  *  Same luminance probe as `SpotStateColors.stateColors()`. [UI-SHEET-001] */
 val greenOutline: Color
     @Composable get() =
-        if (MaterialTheme.colorScheme.surface.luminance() < 0.5f) PapGreenOutline
+        if (MaterialTheme.colorScheme.surface.luminance() < SURFACE_DARK_LUMINANCE) PapGreenOutline
         else PapGreenOutlineLight
+
+/**
+ * Theme-aware **Bluetooth identity** accent — the colour of a BT-watched vehicle's name, glyph,
+ * badge and border. Never for community spots, never for a state, never for anything that is not
+ * the user's own BT-watched vehicle. Resolve through `vehicleIdentityColor`, not directly.
+ * [UI-COLOR-DOCTRINE-001]
+ */
+val papCarBlue: Color
+    @Composable get() =
+        if (MaterialTheme.colorScheme.surface.luminance() < SURFACE_DARK_LUMINANCE) PapCarBlueDark
+        else PapCarBlueLight
+
+/** Luminance below which a surface counts as "dark" for picking a theme variant. */
+internal const val SURFACE_DARK_LUMINANCE = 0.5f

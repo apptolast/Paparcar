@@ -8,6 +8,7 @@ import androidx.compose.material.icons.rounded.Directions
 import androidx.compose.material.icons.rounded.EditLocationAlt
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.TimeToLeave
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,8 +25,10 @@ import io.apptolast.paparcar.presentation.home.sections.sheet.components.PapShee
 import io.apptolast.paparcar.presentation.util.distanceMeters
 import io.apptolast.paparcar.ui.components.PapFooterButton
 import io.apptolast.paparcar.ui.components.PapFooterButtonStyle
-import io.apptolast.paparcar.ui.components.vehicleBadgeAccent
-import io.apptolast.paparcar.ui.components.vehicleBadgeTone
+import io.apptolast.paparcar.domain.model.monitoringStatus
+import io.apptolast.paparcar.ui.theme.VehicleWatch
+import io.apptolast.paparcar.ui.theme.vehicleIdentityColor
+import io.apptolast.paparcar.ui.theme.watch
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_navigate_to_vehicle
@@ -57,13 +60,10 @@ internal fun ParkingPeek(
         lat = parking.location.latitude,
         lon = parking.location.longitude,
     )
-    // Unified semantic tone — a parked car is green (or blue if BT), same as its map marker. [DET-READY-001k]
-    val tone = vehicleBadgeTone(
-        isParked = true,
-        isBluetoothPaired = vehicle?.bluetoothDeviceId != null,
-        isActive = true,
-    )
-    val accentColor = vehicleBadgeAccent(tone)
+    // The peek's accent is the vehicle's identity colour — its watch method (green = active
+    // detection, blue = BT, grey = unwatched). "Parked" is state and stays neutral text.
+    // [UI-COLOR-DOCTRINE-001]
+    val accentColor = vehicleIdentityColor(vehicle?.monitoringStatus()?.watch() ?: VehicleWatch.Off)
     val vehicleName = vehicleSummary(vehicle)
     val headerLabel = if (vehicleName != null) {
         stringResource(Res.string.home_peek_vehicle_parked_label, vehicleName)
@@ -79,8 +79,11 @@ internal fun ParkingPeek(
             loading = vehicle == null,
         ),
         eyebrow = headerLabel,
-        // Green when parked, drive-blue when BT-paired — same tone as its map marker. [DET-READY-001k]
-        eyebrowColor = accentColor,
+        // Only the NAME wears the identity colour (watch method); the state words around it stay
+        // neutral — "TOYOTA COROLLA (verde/azul) · APARCADO (onSurface)". [UI-COLOR-DOCTRINE-001]
+        eyebrowColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        eyebrowHighlight = vehicleName,
+        eyebrowHighlightColor = accentColor,
         title = title,
         onDismiss = { onIntent(HomeIntent.SelectItem(null)) },
         meta = {

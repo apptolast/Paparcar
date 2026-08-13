@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.sp
 import io.apptolast.paparcar.ui.components.PapFooterButton
 import io.apptolast.paparcar.ui.components.PapFooterButtonStyle
 import io.apptolast.paparcar.ui.theme.PaparcarTheme
+import io.apptolast.paparcar.ui.theme.papCarBlue
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared mock building blocks
@@ -163,7 +164,7 @@ private fun CompatRow(text: String) {
 
 @Composable
 private fun CurrentSpotModal() {
-    val accent = MaterialTheme.colorScheme.tertiary
+    val accent = papCarBlue
     MockPeekCard(
         label = "High",
         title = "Calle Serrano, 41",
@@ -239,7 +240,7 @@ private fun CurrentParkingModal() {
 
 @Composable
 private fun ProposedSpotModal() {
-    val accent = MaterialTheme.colorScheme.tertiary
+    val accent = papCarBlue
     MockPeekCard(
         label = "High",
         title = "Calle Serrano, 41",

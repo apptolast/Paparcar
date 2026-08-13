@@ -387,7 +387,6 @@
     <string name="home_peek_spot_high">Loc liber de încredere</string>
     <string name="home_peek_spot_medium">Loc cu fiabilitate medie</string>
     <string name="home_peek_spot_low">Loc cu fiabilitate scăzută</string>
-    <string name="home_peek_spot_manual">Loc manual</string>
 
     <!-- ReportPeekRow (raportare loc liber) -->
     <string name="home_report_header_label">Raportează loc liber</string>
@@ -410,7 +409,6 @@
     <string name="home_spot_reliability_high">De încredere</string>
     <string name="home_spot_reliability_medium">Medie</string>
     <string name="home_spot_reliability_low">Scăzută</string>
-    <string name="home_spot_reliability_manual">Manual</string>
 
     <!-- AddingZonePeekRow (zonă obișnuită nouă) -->
     <string name="home_zone_edit_header_label">Editare zonă</string>

@@ -22,6 +22,7 @@ import io.apptolast.paparcar.domain.model.AddressAndPlace
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.Vehicle
+import io.apptolast.paparcar.domain.model.monitoringStatus
 import io.apptolast.paparcar.presentation.home.DrivingMeta
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.PapSheet
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.PapSheetEyebrowTone
@@ -29,7 +30,9 @@ import io.apptolast.paparcar.presentation.home.sections.sheet.components.PapShee
 import io.apptolast.paparcar.presentation.util.compactRelativeTimeText
 import io.apptolast.paparcar.presentation.util.distanceMeters
 import io.apptolast.paparcar.presentation.util.distanceString
-import io.apptolast.paparcar.ui.theme.PapDriveBlue
+import io.apptolast.paparcar.ui.theme.VehicleWatch
+import io.apptolast.paparcar.ui.theme.vehicleIdentityColor
+import io.apptolast.paparcar.ui.theme.watch
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_address_unknown
@@ -104,7 +107,11 @@ internal fun BrowsePeek(
                 loading = parkingVehicle == null,
             ),
             eyebrow = eyebrow,
-            eyebrowTone = PapSheetEyebrowTone.Action,
+            // Only the NAME wears the vehicle's identity colour; "· APARCADO" is state and stays
+            // neutral. [UI-COLOR-DOCTRINE-001]
+            eyebrowColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            eyebrowHighlight = vehicleName,
+            eyebrowHighlightColor = vehicleIdentityColor(parkingVehicle?.monitoringStatus()?.watch() ?: VehicleWatch.Off),
             title = title,
             subtitle = subtitle,
             // No free-spots pill in the collapsed peek: the count already reads once the sheet is
@@ -145,8 +152,11 @@ internal fun BrowsePeek(
                 loading = drivingVehicle == null,
             ),
             eyebrow = stringResource(Res.string.home_peek_vehicle_status, vehicleName, phaseWord),
-            // En-route blue while driving, brand green once stopping (candidate) — mirrors the map language.
-            eyebrowColor = if (isCandidate) MaterialTheme.colorScheme.primary else PapDriveBlue,
+            // Only the NAME wears the identity colour (watch method); the phase word ("EN RUTA" /
+            // "APARCANDO…") is state and stays neutral. [UI-COLOR-DOCTRINE-001]
+            eyebrowColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            eyebrowHighlight = vehicleName,
+            eyebrowHighlightColor = vehicleIdentityColor(drivingVehicle?.monitoringStatus()?.watch() ?: VehicleWatch.Off),
             title = title,
             subtitle = secondaryLine,
             // No free-spots pill here either — it duplicates the count shown in the expanded sheet.

@@ -100,11 +100,38 @@ Fuente de verdad = `ui/theme/PaparcarType.kt` (18 roles). Se lee `PaparcarType.c
 - **PROHIBIDO** en `presentation/` y `ui/components/`: (a) `fontSize`/`letterSpacing` inline en un `Text`; (b) `MaterialTheme.typography.*` — usa un rol; si falta un tamaño, añade/ajusta un rol en `PaparcarType`; (c) construir familias directamente (`rememberXxxFontFamily()`/`FontFamily(...)`) fuera de `ui/theme`. Enforced por `TypographyGuardrailTest` (Konsist). Excepciones allowlisted: canvas/`TextMeasurer` de marcadores de mapa + chrome tokenizado (bottom-nav, banner, action bar).
 - `MaterialTheme.typography.*` es solo la base MD3 del framework (definida en `Typography.kt`); la app **siempre** habla con `PaparcarType`.
 
-### ⛔ Color de acción — verde primario, rojo solo alerta
-- **Verde de marca = primario.** Todo CTA normal usa `primary`.
-- **Rojo (`error`/`PapRed`) RESERVADO** a: bloqueante de permisos, acción destructiva (borrar),
-  error de formulario, y estado "baja/caduca" (fiabilidad LOW, TTL crítico/expirado). NUNCA rojo
-  para un CTA que no sea alerta real.
+### ⛔ Color — identidad por MÉTODO, estado en texto [UI-COLOR-DOCTRINE-001]
+Fuente de verdad: `docs/design/COLOR-SYSTEM.md`. Los valores viven en `ui/theme/Color.kt`; el
+**significado** lo manda el doc.
+
+> *La app es VERDE (marca). El color del NOMBRE de un coche dice CÓMO se le vigila. El estado
+> (aparcado / en ruta / sin aparcar) se ESCRIBE en `onSurface` y se anima — nunca se tiñe.*
+
+**Los canales:**
+- 🟢 **Verde primario** = marca y acción (CTAs, links, nav, spinners) — el tema de siempre — y
+  además la identidad del vehículo con **detección activa** (Coordinator/asistida).
+- 🔵 **Azul (`papCarBlue`)** = vehículo vigilado por **Bluetooth**. `PapLiveMap` (azul mapa) queda
+  solo para elementos de mapa en movimiento: traza del viaje, punto de origen, spot en-route.
+- ⚪ **Gris** = vehículo sin vigilancia.
+- ⬛ **Estado en `onSurface`**: "APARCADO / EN RUTA / SIN APARCAR" es texto neutro; en ruta se
+  anima (pulso `rememberDrivingStatePulse` + halo radar en el color de identidad), nunca cambia de hue.
+- 🟢🟡🔴+🔵 **Spots**: rampa de frescura verde/ámbar/rojo + azul en-route; manual = badge persona
+  sobre su tier. Rampa EXCLUSIVA de la caducidad de plazas. `PapRed` NUNCA en un CTA normal.
+- 🚗 **Multicolor** = QUÉ coche es (glifo ilustrado). Jamás mezclado con estado.
+
+**Glifos de método**: BT = marca Bluetooth; detección activa = radar/geocerca (`Icons.Rounded.Radar`);
+sin vigilar = anillo hueco. El GLIFO (y borde/badge/punto) lleva el color; el nombre queda en
+`onSurface` (teñir ambos = sobreinformación). Solo donde no hay glifo (eyebrow del peek) el nombre
+viste el color y el estado queda neutro.
+
+**Un solo resolver** (`ui/theme/VehicleIdentity.kt` → `vehicleIdentityColor(watch)`): nombre, glifo,
+badge, borde (dimmed) y marcador de mapa leen TODOS ahí. El marcador de mapa usa los twins fijos
+(`PapGreenLight`/`PapBlueLight`) porque flota sobre tiles.
+
+**PROHIBIDO** en `presentation/` y `ui/components/`: (a) `colorScheme.tertiary` (retirado; zona
+privada = outline + candado); (b) teñir el estado del vehículo con un color (el estado es texto);
+(c) declarar `Color(0x…)` literal — los valores viven en `ui/theme/`. Todo token nuevo en
+`Color.kt` exige su fila (con historia única) en el doc. Enforced por `ColorGuardrailTest` (Konsist).
 
 ### ⛔ Strings — NUNCA hardcoded
 - Todo texto visible al usuario va en `composeResources/values/strings.xml`

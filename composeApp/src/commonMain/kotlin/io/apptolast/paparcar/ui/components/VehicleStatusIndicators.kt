@@ -8,7 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Bluetooth
 import androidx.compose.material.icons.rounded.RadioButtonUnchecked
-import androidx.compose.material.icons.rounded.TripOrigin
+import androidx.compose.material.icons.rounded.Radar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -19,9 +19,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
-import io.apptolast.paparcar.domain.model.VehicleMonitoringStatus
-import io.apptolast.paparcar.ui.theme.PapBorders
-import io.apptolast.paparcar.ui.theme.PapDriveBlue
+import io.apptolast.paparcar.ui.theme.VehicleWatch
+import io.apptolast.paparcar.ui.theme.vehicleIdentityColor
 import io.apptolast.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -30,62 +29,38 @@ import paparcar.composeapp.generated.resources.vehicle_card_detection_bt
 import paparcar.composeapp.generated.resources.vehicle_status_active
 
 /**
- * Shared status language for the vehicle chip / card / ficha. The monitoring state is carried by an
- * ICON (or a marker + label) whose COLOUR is the whole message — green = actively detected, blue =
- * detected via Bluetooth (same priority as active, just a different method), grey = inactive. No
- * method text ("Geofence", BT device id) is ever shown; the colour + glyph already says it.
- * [HOME-VEH-REFINE-001]
+ * Shared CHASSIS language for the vehicle chip / card / ficha: how this car is watched, drawn as a
+ * glyph before the name plus the card border, both in the vehicle's identity colour
+ * ([vehicleIdentityColor]: green = active detection, blue = Bluetooth, grey = unwatched).
+ *
+ * The colour is deliberately the METHOD, never the state — what a car is *doing* is plain
+ * `onSurface` text (plus animation while driving). No method text ("Geofence", BT device id) is
+ * ever shown; the glyph already says which tier. [HOME-VEH-REFINE-001] [UI-COLOR-DOCTRINE-001]
  */
 
-/** Accent colour for a monitoring status. Green (active) / blue (Bluetooth) / grey (inactive). */
+/** Localized pin label for a watch tier ("Active" / "Bluetooth" / "Inactive"). */
 @Composable
-fun vehicleStatusAccent(status: VehicleMonitoringStatus): Color = when (status) {
-    is VehicleMonitoringStatus.Bluetooth -> MaterialTheme.colorScheme.tertiary
-    VehicleMonitoringStatus.Active       -> MaterialTheme.colorScheme.primary
-    VehicleMonitoringStatus.Inactive     -> MaterialTheme.colorScheme.onSurfaceVariant
-}
-
-/** Localized pin label for a monitoring status ("Active" / "Bluetooth" / "Inactive"). */
-@Composable
-fun vehicleStatusPinLabel(status: VehicleMonitoringStatus): String = when (status) {
-    is VehicleMonitoringStatus.Bluetooth -> stringResource(Res.string.vehicle_card_detection_bt)
-    VehicleMonitoringStatus.Active       -> stringResource(Res.string.vehicle_status_active)
-    VehicleMonitoringStatus.Inactive     -> stringResource(Res.string.home_vehicle_status_inactive)
+fun vehicleWatchPinLabel(watch: VehicleWatch): String = when (watch) {
+    VehicleWatch.Bluetooth -> stringResource(Res.string.vehicle_card_detection_bt)
+    VehicleWatch.Assisted  -> stringResource(Res.string.vehicle_status_active)
+    VehicleWatch.Off       -> stringResource(Res.string.home_vehicle_status_inactive)
 }
 
 /**
- * Card border colour encoding the vehicle's state — the design's muted "green-line"/"blue-line":
- * the status accent dimmed so it frames the card without going neon. Inactive stays neutral;
- * a live trip overrides with the en-route blue. Shared by the ficha, the Home chips and the
- * single-vehicle card so the border speaks the same language everywhere. [HOME-VEH-REFINE-001]
+ * The watch glyph shown immediately before the vehicle name. Placed inline (not as a corner badge,
+ * which collides with the illustrative car glyph): the Bluetooth mark for the deterministic tier,
+ * a radar (geofence sweep) for the assisted tier, a hollow ring for unwatched.
  */
 @Composable
-fun vehicleStatusBorderColor(
-    status: VehicleMonitoringStatus,
-    isDriving: Boolean = false,
-    neutral: Color = MaterialTheme.colorScheme.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA),
-): Color = when {
-    isDriving -> PapDriveBlue
-    status is VehicleMonitoringStatus.Bluetooth -> MaterialTheme.colorScheme.tertiary.copy(alpha = STATUS_BORDER_ALPHA)
-    status is VehicleMonitoringStatus.Active -> MaterialTheme.colorScheme.primary.copy(alpha = STATUS_BORDER_ALPHA)
-    else -> neutral
-}
-
-/**
- * The status glyph shown immediately before the vehicle name in the compact Home chip. Placed inline
- * (not as a corner badge, which collides with the illustrative car glyph): a filled target for Active
- * (evokes "being tracked"), the Bluetooth mark for BT, a hollow ring for Inactive. Colour = state.
- */
-@Composable
-fun VehicleStatusLeadingIcon(
-    status: VehicleMonitoringStatus,
+fun VehicleWatchLeadingIcon(
+    watch: VehicleWatch,
     modifier: Modifier = Modifier,
-    tint: Color = vehicleStatusAccent(status),
+    tint: Color = vehicleIdentityColor(watch),
 ) {
-    val icon = when (status) {
-        is VehicleMonitoringStatus.Bluetooth -> Icons.Rounded.Bluetooth
-        VehicleMonitoringStatus.Active       -> Icons.Rounded.TripOrigin
-        VehicleMonitoringStatus.Inactive     -> Icons.Rounded.RadioButtonUnchecked
+    val icon = when (watch) {
+        VehicleWatch.Bluetooth -> Icons.Rounded.Bluetooth
+        VehicleWatch.Assisted  -> Icons.Rounded.Radar
+        VehicleWatch.Off       -> Icons.Rounded.RadioButtonUnchecked
     }
     Icon(
         imageVector = icon,
@@ -96,23 +71,23 @@ fun VehicleStatusLeadingIcon(
 }
 
 /**
- * THE single status badge for a vehicle card — a tonal pill (icon + short uppercase label) tinted by
- * the monitoring accent (green = active, blue = Bluetooth, grey = inactive). It is deliberately the
- * ONLY boxed element on the card row: the dynamic, decision-relevant state earns the container, while
- * static description (carbody · size) drops to quiet subtitle text beside it. Tonal fill (accent at
- * low alpha), never the neon accent — same muted language as the card border. [CARD-ONE-BADGE-001]
+ * THE single watch badge for a vehicle card — a tonal pill (icon + short uppercase label) tinted by
+ * the vehicle's identity colour (method). It is deliberately the ONLY boxed element on the card row:
+ * the decision-relevant fact earns the container, while static description (carbody · size) drops to
+ * quiet subtitle text beside it. Tonal fill (identity colour at low alpha), never the full accent —
+ * same muted language as the card border. [CARD-ONE-BADGE-001]
  */
 @Composable
-fun VehicleStatusBadge(
-    status: VehicleMonitoringStatus,
+fun VehicleWatchBadge(
+    watch: VehicleWatch,
     label: String,
     modifier: Modifier = Modifier,
 ) {
-    val accent = vehicleStatusAccent(status)
-    val icon = when (status) {
-        is VehicleMonitoringStatus.Bluetooth -> Icons.Rounded.Bluetooth
-        VehicleMonitoringStatus.Active       -> Icons.Rounded.TripOrigin
-        VehicleMonitoringStatus.Inactive     -> Icons.Rounded.RadioButtonUnchecked
+    val accent = vehicleIdentityColor(watch)
+    val icon = when (watch) {
+        VehicleWatch.Bluetooth -> Icons.Rounded.Bluetooth
+        VehicleWatch.Assisted  -> Icons.Rounded.Radar
+        VehicleWatch.Off       -> Icons.Rounded.RadioButtonUnchecked
     }
     PapBadge(
         label = label.uppercase(),
@@ -161,12 +136,13 @@ fun UnmarkedParkingIcon(
 }
 
 /**
- * Pulsing "radar" halo behind a car glyph while a trip is being detected — two en-route-blue rings
- * expanding outward and fading, half a period out of phase. Contained within [diameter] so it never
- * shifts the layout; reads as "this car is live / in motion". [CHIP-DRIVING-001]
+ * Pulsing "radar" halo behind a car glyph while a trip is being detected — two rings in the
+ * vehicle's identity colour expanding outward and fading, half a period out of phase. Contained
+ * within [diameter] so it never shifts the layout; motion (not a different hue) is what says
+ * "this car is live / in motion". [CHIP-DRIVING-001] [UI-COLOR-DOCTRINE-001]
  */
 @Composable
-fun DrivingRadarHalo(diameter: androidx.compose.ui.unit.Dp) {
+fun DrivingRadarHalo(diameter: androidx.compose.ui.unit.Dp, color: Color) {
     val transition = androidx.compose.animation.core.rememberInfiniteTransition(label = "driving_radar")
     val progress by transition.animateFloat(
         initialValue = 0f,
@@ -185,7 +161,7 @@ fun DrivingRadarHalo(diameter: androidx.compose.ui.unit.Dp) {
         val stroke = RADAR_STROKE.toPx()
         listOf(progress, (progress + RADAR_PHASE_OFFSET) % 1f).forEach { p ->
             drawCircle(
-                color = PapDriveBlue.copy(alpha = (1f - p) * RADAR_MAX_ALPHA),
+                color = color.copy(alpha = (1f - p) * RADAR_MAX_ALPHA),
                 radius = maxR * (RADAR_MIN_FRACTION + p * (1f - RADAR_MIN_FRACTION)),
                 style = Stroke(width = stroke),
             )
@@ -193,9 +169,35 @@ fun DrivingRadarHalo(diameter: androidx.compose.ui.unit.Dp) {
     }
 }
 
+/**
+ * Breathing alpha for the *state* words while a trip is in motion ("En ruta" / "Aparcando…") —
+ * the state machine never wears colour ([UI-COLOR-DOCTRINE-001]), so its liveness is told by this
+ * slow pulse instead. Apply to the state `Text`'s colour: `onSurface.copy(alpha = pulse)`.
+ */
+@Composable
+fun rememberDrivingStatePulse(): Float {
+    val transition = androidx.compose.animation.core.rememberInfiniteTransition(label = "state_pulse")
+    val alpha by transition.animateFloat(
+        initialValue = 1f,
+        targetValue = STATE_PULSE_MIN_ALPHA,
+        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+            animation = androidx.compose.animation.core.tween(
+                STATE_PULSE_PERIOD_MS,
+                easing = androidx.compose.animation.core.FastOutSlowInEasing,
+            ),
+            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse,
+        ),
+        label = "state_pulse_alpha",
+    )
+    return alpha
+}
+
 private const val STATUS_ICON_DP = 16
-private const val STATUS_BORDER_ALPHA = 0.45f // muted "green-line" frame, never the neon accent
-private const val STATUS_BADGE_BG_ALPHA = 0.14f // tonal fill for the single status badge, not neon
+private const val STATUS_BADGE_BG_ALPHA = 0.14f // tonal fill for the single watch badge, not neon
+
+// Breathing pulse for the driving-state words. [UI-COLOR-DOCTRINE-001]
+private const val STATE_PULSE_PERIOD_MS = 900
+private const val STATE_PULSE_MIN_ALPHA = 0.4f
 
 // Driving "radar" halo animation tuning. [CHIP-DRIVING-001]
 private const val RADAR_PERIOD_MS = 1600

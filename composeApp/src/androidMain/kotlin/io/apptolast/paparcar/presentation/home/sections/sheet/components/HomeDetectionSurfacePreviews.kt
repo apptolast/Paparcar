@@ -33,6 +33,7 @@ private val stories = listOf(
     ),
     "Watching · BT armed" to DetectionStory.Watching("Škoda Kamiq", isParked = false, viaBluetooth = true),
     "Driving" to DetectionStory.Driving("Škoda Kamiq", isCandidate = false),
+    "Driving · BT" to DetectionStory.Driving("Škoda Kamiq", isCandidate = false, viaBluetooth = true),
     "Candidate" to DetectionStory.Driving("Škoda Kamiq", isCandidate = true),
 )
 
