@@ -38,6 +38,12 @@ class IosGeofenceManagerImpl(
     private val geofenceEventBus: GeofenceEventBus,
 ) : GeofenceManager {
 
+    /** [IOS-F0-04, decisión 6] Apple's practical CLCircularRegion minimum: below ~100 m exits
+     *  are delivered late or not at all (GPS noise floor). Contract-visible so callers sizing
+     *  fences (`geofenceRadiusFor`, 60–200 m) can read the effective floor — this used to be a
+     *  silent private clamp. */
+    override val minRadiusMeters: Float = 100f
+
     private val manager = CLLocationManager()
 
     private val delegate = object : NSObject(), CLLocationManagerDelegateProtocol {
@@ -76,7 +82,7 @@ class IosGeofenceManagerImpl(
         radiusMeters: Float,
     ): Result<Unit> = withContext(Dispatchers.Main) {
         runCatching {
-            val effectiveRadius = radiusMeters.toDouble().coerceAtLeast(MIN_RADIUS_M)
+            val effectiveRadius = radiusMeters.coerceAtLeast(minRadiusMeters).toDouble()
             val region = CLCircularRegion(
                 center = CLLocationCoordinate2DMake(latitude, longitude),
                 radius = effectiveRadius,
@@ -111,12 +117,6 @@ class IosGeofenceManagerImpl(
     private fun nowMillis(): Long = (NSDate().timeIntervalSince1970 * MILLIS_PER_SECOND).toLong()
 
     private companion object {
-        /**
-         * Practical minimum radius for CLCircularRegion. Apple recommends ≥100 m to
-         * stay above device GPS noise floor; Android-side default is 80 m which we
-         * round up to keep the iOS path within spec.
-         */
-        const val MIN_RADIUS_M = 100.0
         const val MILLIS_PER_SECOND = 1_000.0
     }
 }

@@ -4,7 +4,7 @@ import com.google.android.gms.location.ActivityRecognition
 import com.google.android.gms.location.LocationServices
 import io.apptolast.paparcar.detection.ActivityRecognitionManagerImpl
 import io.apptolast.paparcar.detection.DepartureEventBusImpl
-import io.apptolast.paparcar.detection.GeofenceEventBusImpl
+import io.apptolast.paparcar.detection.SharedFlowGeofenceEventBus
 import io.apptolast.paparcar.detection.GeofenceManagerImpl
 import io.apptolast.paparcar.detection.SignificantMotionMonitor
 import io.apptolast.paparcar.detection.WorkManagerParkingEnrichmentScheduler
@@ -45,7 +45,7 @@ val androidDetectionModule = module {
 
     // --- Geofence ---
     single { LocationServices.getGeofencingClient(androidContext()) }
-    single<GeofenceEventBus> { GeofenceEventBusImpl() }
+    single<GeofenceEventBus> { SharedFlowGeofenceEventBus() }
     single<GeofenceManager> { GeofenceManagerImpl(androidContext(), get(), get()) }
 
     // --- Departure Detection ---

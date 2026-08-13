@@ -9,7 +9,7 @@ import io.apptolast.paparcar.domain.service.ParkingEnrichmentScheduler
 import io.apptolast.paparcar.domain.service.ParkingSyncScheduler
 import io.apptolast.paparcar.detection.IosActivityRecognitionManagerImpl
 import io.apptolast.paparcar.detection.IosDepartureEventBusImpl
-import io.apptolast.paparcar.detection.IosGeofenceEventBusImpl
+import io.apptolast.paparcar.detection.SharedFlowGeofenceEventBus
 import io.apptolast.paparcar.detection.IosGeofenceManagerImpl
 import io.apptolast.paparcar.detection.IosParkingEnrichmentScheduler
 import io.apptolast.paparcar.detection.IosParkingSyncScheduler
@@ -21,7 +21,7 @@ import org.koin.dsl.module
 val iosDetectionModule = module {
     single<ActivityRecognitionManager> { IosActivityRecognitionManagerImpl(get(), get()) }
     single<StepDetectorSource> { IosStepDetectorSource() }
-    single<GeofenceEventBus> { IosGeofenceEventBusImpl() }
+    single<GeofenceEventBus> { SharedFlowGeofenceEventBus() }
     single<GeofenceManager> { IosGeofenceManagerImpl(get()) }
     single<DepartureEventBus> { IosDepartureEventBusImpl() }
     single<ParkingEnrichmentScheduler> { IosParkingEnrichmentScheduler(get(), get()) }
