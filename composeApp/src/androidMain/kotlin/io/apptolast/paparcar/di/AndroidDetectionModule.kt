@@ -43,6 +43,18 @@ val androidDetectionModule = module {
     // from the moment of parking (not the safety net's first tick) [DET-HONEST-CLOSE-001] ---
     single<DetectionStepAnchors> { AndroidDetectionStepAnchors(get(), androidContext()) }
 
+    // --- Side-record ports: thin wrappers over the existing parking_safety_net prefs (same
+    // keys, same formats) — the common contracts iOS reconstruction reads. [IOS-F0-06] ---
+    single<io.apptolast.paparcar.domain.detection.PendingArmRecords> {
+        io.apptolast.paparcar.detection.AndroidPendingArmRecords(androidContext())
+    }
+    single<io.apptolast.paparcar.domain.detection.ExitDeliveryRecords> {
+        io.apptolast.paparcar.detection.AndroidExitDeliveryRecords(androidContext())
+    }
+    single<io.apptolast.paparcar.domain.detection.ArrivalResolutionRecord> {
+        io.apptolast.paparcar.detection.AndroidArrivalResolutionRecord(androidContext())
+    }
+
     // --- Geofence ---
     single { LocationServices.getGeofencingClient(androidContext()) }
     single<GeofenceEventBus> { SharedFlowGeofenceEventBus() }

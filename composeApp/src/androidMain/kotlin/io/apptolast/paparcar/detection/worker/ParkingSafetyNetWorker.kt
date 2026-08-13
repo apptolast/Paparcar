@@ -824,7 +824,9 @@ class ParkingSafetyNetWorker(
         /** [DET-CONJUNCTION-001] Delivery timestamp of a far-delivered geofence EXIT, keyed by
          *  geofenceId. Disk-backed like the anchor: the conjunction may only be decidable ticks
          *  (or a process death) later. */
-        private const val EXIT_KEY_PREFIX = "exit_delivered_"
+        /** internal (not private) so [io.apptolast.paparcar.detection.AndroidExitDeliveryRecords]
+         *  wraps the SAME key instead of duplicating it. [IOS-F0-06] */
+        internal const val EXIT_KEY_PREFIX = "exit_delivered_"
         /** [DET-BACKFILL-TAINT-001] The coordinator's latest NUDGE-ONLY arrival resolution
          *  (gap-anchor abort): WHEN it was stamped + the arrival's last fix ("lat,lon"). One
          *  slot, latest wins — it describes THE arrival in flight, not a geofence. Written by

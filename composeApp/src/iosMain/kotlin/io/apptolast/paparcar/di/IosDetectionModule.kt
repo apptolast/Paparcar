@@ -38,4 +38,19 @@ val iosDetectionModule = module {
     single<io.apptolast.paparcar.domain.detection.DepartureWatchResumer> {
         io.apptolast.paparcar.detection.IosDepartureWatchResumerImpl()
     }
+
+    // [IOS-F0-06] Side-record ports (NSUserDefaults) + step-seal skeleton — the F1 orchestrator's
+    // durable memory for wake-and-query reconstruction.
+    single<io.apptolast.paparcar.domain.detection.PendingArmRecords> {
+        io.apptolast.paparcar.detection.IosPendingArmRecords()
+    }
+    single<io.apptolast.paparcar.domain.detection.ExitDeliveryRecords> {
+        io.apptolast.paparcar.detection.IosExitDeliveryRecords()
+    }
+    single<io.apptolast.paparcar.domain.detection.ArrivalResolutionRecord> {
+        io.apptolast.paparcar.detection.IosArrivalResolutionRecord()
+    }
+    single<io.apptolast.paparcar.domain.sensor.DetectionStepAnchors> {
+        io.apptolast.paparcar.detection.sensor.IosDetectionStepAnchors()
+    }
 }
