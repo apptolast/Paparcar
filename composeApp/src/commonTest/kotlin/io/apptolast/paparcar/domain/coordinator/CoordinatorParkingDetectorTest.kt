@@ -170,6 +170,41 @@ class CoordinatorParkingDetectorTest {
             assertEquals(VehicleSize.VAN_HIGH, saved.sizeCategory)
         }
 
+    @Test
+    fun should_attribute_the_park_to_the_active_vehicle_when_the_nominator_is_bt_paired() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-BT-OWNERSHIP-001] Field replay 2026-08-11: the user drove the ACTIVE Focus (v-1)
+            // all day, but the parked Kamiq's fence (BT-paired, inactive) nominated every arm, and
+            // the old nominator-always-wins lock stamped all 8 parks on the Kamiq — each confirm
+            // re-fencing the Kamiq and re-arming the chain. A BT-paired vehicle's identity is the
+            // MAC, never a fence: the lock must veto the nominator and attribute to the active car.
+            val env = setup(
+                extraVehicles = listOf(
+                    Vehicle(
+                        id = "v-kamiq",
+                        userId = "user-1",
+                        sizeCategory = VehicleSize.VAN_HIGH,
+                        bluetoothDeviceId = "AA:BB:CC:DD:EE:FF",
+                    ),
+                ),
+            )
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations, nominatingVehicleId = "v-kamiq") }
+
+            locations.emit(stationaryFix(lat = 40.0, lon = -3.7))
+            locations.emit(GpsPoint(40.002, -3.7, accuracy = 5f, timestamp = 0L, speed = 10f))
+            env.coordinator.onUserConfirmedParking()
+            locations.emit(stationaryFix(lat = 40.002, lon = -3.7))
+
+            job.cancelAndJoin()
+
+            val saved = env.parkingRepo.getActiveSession()
+            assertNotNull(saved, "active session should be persisted")
+            assertEquals("v-1", saved.vehicleId, "BT-paired nominator must be vetoed — park belongs to the active vehicle")
+            // End-to-end proof: ConfirmParking resolved the ACTIVE vehicle (its SUV size), not the Kamiq's VAN.
+            assertEquals(VehicleSize.MEDIUM_SUV, saved.sizeCategory)
+        }
+
     // ─────────────────────────────────────────────────────────────────────────
     // DET-LOG-03: coordinator emits a diagnostics session trace
     // ─────────────────────────────────────────────────────────────────────────

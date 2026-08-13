@@ -43,9 +43,24 @@ object VehicleFenceOwnershipPolicy {
      * armed by a geofence exit (the fence that fired identifies the car), else the current active
      * vehicle. Fixes attribution planting the pin on whatever ranked active when the running trip
      * already knew its nominator. [CoordinatorParkingDetector:682]
+     *
+     * [DET-BT-OWNERSHIP-001] A Bluetooth-paired nominator is VETOED: a vehicle with a
+     * `bluetoothDeviceId` belongs exclusively to the Bluetooth strategy — its identity is only ever
+     * established by the MAC (ACL connect/disconnect), never by a fence. A geofence exit only
+     * proves the PHONE left the area, not that THAT car moved (field 2026-08-11: a parked Kamiq's
+     * fence nominated it for 8 Focus trips, each confirm re-fencing the Kamiq and re-arming the
+     * chain). Arming is untouched — any fence may still wake the coordinator; only the ATTRIBUTION
+     * falls back to the active vehicle (the coordinator IS the active vehicle's strategy). When the
+     * active vehicle is itself the BT-paired nominator the fallback lands on the same id — a
+     * deliberate decision: the user explicitly declared that car, and a possibly-redundant pin
+     * beats a lost parking.
      */
-    fun resolveSessionVehicleId(nominatingVehicleId: String?, activeVehicleId: String?): String? =
-        nominatingVehicleId ?: activeVehicleId
+    fun resolveSessionVehicleId(
+        nominatingVehicleId: String?,
+        nominatingVehicleIsBtPaired: Boolean,
+        activeVehicleId: String?,
+    ): String? =
+        nominatingVehicleId.takeUnless { nominatingVehicleIsBtPaired } ?: activeVehicleId
 }
 
 /** A vehicle that owns (or would own) a fence, paired with its session's geofenceId (== sessionId,

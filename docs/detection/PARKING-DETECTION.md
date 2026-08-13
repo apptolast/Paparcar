@@ -100,6 +100,32 @@ replacing the Focus's real home session. The same evening's return trip proved t
 coordinator re-armed with `nominator=null`, so the unknown-origin path let the DISCONNECT supersede
 and a single BT pin resulted.
 
+**Session attribution at the vehicleId lock is BT-aware** [DET-BT-OWNERSHIP-001]: when the
+coordinator locks the session's vehicle on the first driving-speed fix, the pure
+`VehicleFenceOwnershipPolicy.resolveSessionVehicleId(nominatingVehicleId, nominatingVehicleIsBtPaired,
+activeVehicleId)` decides the owner:
+
+1. A **non-BT nominator wins over the active vehicle** — the fence that fired identifies the car
+   [VEH-ACTIVE-FENCE-001].
+2. A **BT-paired nominator is VETOED** → attribution falls back to the ACTIVE vehicle. A vehicle
+   with a `bluetoothDeviceId` belongs exclusively to the Bluetooth strategy: its identity is only
+   ever established by the MAC (ACL edges), never by a fence — the fence only proves the PHONE
+   left. The coordinator is the ACTIVE vehicle's strategy. Log provenance:
+   `✓ vehicleId locked: <active> (nominator=<btCar> vetoed: bt-owned)`.
+3. **No nominator** → active vehicle. **Nothing resolvable** (e.g. BT nominator vetoed and no
+   active vehicle) → the session aborts (`aborted_no_vehicle`) — better a false negative than a
+   misattributed pin.
+
+Field 2026-08-11 (Firestore diagnostics): the user drove the ACTIVE Focus all day, but a 10-08 BT
+trip had left a parked **Kamiq** session with a live fence; every arm nominated the Kamiq via
+`TripContext(session.location, session.vehicleId)`, the old `nominating ?: active` lock stamped all
+**8 coordinator parks on the Kamiq**, and each confirm re-fenced the Kamiq and re-armed the chain —
+a self-feeding misattribution loop. Deliberate scope decisions: **arming is untouched** (any fence
+or sentry may wake the coordinator — the nominator keeps travelling as a hypothesis, which the BT
+arbitration above consumes); an **active vehicle that is itself BT-paired keeps its attribution**
+(the veto falls back onto the same id — explicit user declaration; a possibly-redundant pin beats a
+lost parking); the positive BT arbitration (`EvaluateBtArbitrationUseCase`) is unchanged.
+
 ### 1.2 BluetoothDetectionStrategy (deterministic)
 
 **Runtime owner:** `BluetoothDetectionService` (`LifecycleService`, `START_NOT_STICKY`,

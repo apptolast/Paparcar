@@ -910,25 +910,45 @@ class CoordinatorParkingDetector(
                         // Attribute to the NOMINATING fence's vehicle (the geofence exit that armed
                         // this trip identifies the car), else the current active vehicle. Stops the
                         // pin landing on whatever ranked active. [VEH-ACTIVE-FENCE-001]
+                        // A BT-paired nominator is vetoed by the policy — that identity belongs to
+                        // the Bluetooth strategy alone; its fence only proves the phone left.
+                        // [DET-BT-OWNERSHIP-001]
+                        val nominatorVehicle = when {
+                            nominatingVehicleId == null -> null
+                            nominatingVehicleId == active?.id -> active
+                            else -> vehicleRepository.observeVehicles().first()
+                                .firstOrNull { it.id == nominatingVehicleId }
+                        }
+                        val nominatorIsBtPaired = nominatorVehicle?.bluetoothDeviceId != null
                         val resolvedId = VehicleFenceOwnershipPolicy.resolveSessionVehicleId(
                             nominatingVehicleId = nominatingVehicleId,
+                            nominatingVehicleIsBtPaired = nominatorIsBtPaired,
                             activeVehicleId = active?.id,
                         )
+                        val nominatorVetoed = nominatingVehicleId != null && resolvedId != nominatingVehicleId
                         if (resolvedId == null) {
-                            PaparcarLogger.w(DIAG, "  ✗ hasEverReachedDrivingSpeed but no vehicle to attribute — abort session")
+                            PaparcarLogger.w(
+                                DIAG,
+                                "  ✗ hasEverReachedDrivingSpeed but no vehicle to attribute — abort session" +
+                                    if (nominatorVetoed) " (nominator=$nominatingVehicleId vetoed: bt-owned, no active vehicle)" else "",
+                            )
                             sessionOutcome = "aborted_no_vehicle"
                             completed = true
                             return@collect
                         }
                         activeVehicleId = resolvedId
                         // Vehicle type: the resolved vehicle's. Cheap when it IS the active one; a
-                        // differing nominator is looked up in the user's vehicle list (no userId needed).
+                        // differing nominator was already looked up in the user's vehicle list.
                         activeVehicleType = if (resolvedId == active?.id) {
                             active.vehicleType
                         } else {
-                            vehicleRepository.observeVehicles().first().firstOrNull { it.id == resolvedId }?.vehicleType
+                            nominatorVehicle?.vehicleType
                         }
-                        PaparcarLogger.d(DIAG, "  ✓ vehicleId locked: $activeVehicleId type=$activeVehicleType (nominator=$nominatingVehicleId)")
+                        PaparcarLogger.d(
+                            DIAG,
+                            "  ✓ vehicleId locked: $activeVehicleId type=$activeVehicleType (nominator=$nominatingVehicleId" +
+                                (if (nominatorVetoed) " vetoed: bt-owned" else "") + ")",
+                        )
                     }
 
                     // [BUG-COORD-115] precedence: user-confirm always wins.

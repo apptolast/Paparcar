@@ -68,10 +68,12 @@ class VehicleFenceOwnershipPolicyTest {
 
     @Test
     fun `attribution prefers the nominating fence's vehicle`() {
+        // [VEH-ACTIVE-FENCE-001] A non-BT nominator still wins over the active vehicle.
         assertEquals(
             "veh-nominator",
             VehicleFenceOwnershipPolicy.resolveSessionVehicleId(
                 nominatingVehicleId = "veh-nominator",
+                nominatingVehicleIsBtPaired = false,
                 activeVehicleId = "veh-active",
             ),
         )
@@ -83,6 +85,7 @@ class VehicleFenceOwnershipPolicyTest {
             "veh-active",
             VehicleFenceOwnershipPolicy.resolveSessionVehicleId(
                 nominatingVehicleId = null,
+                nominatingVehicleIsBtPaired = false,
                 activeVehicleId = "veh-active",
             ),
         )
@@ -92,7 +95,55 @@ class VehicleFenceOwnershipPolicyTest {
     fun `attribution is null when neither a nominator nor an active vehicle exists`() {
         assertEquals(
             null,
-            VehicleFenceOwnershipPolicy.resolveSessionVehicleId(nominatingVehicleId = null, activeVehicleId = null),
+            VehicleFenceOwnershipPolicy.resolveSessionVehicleId(
+                nominatingVehicleId = null,
+                nominatingVehicleIsBtPaired = false,
+                activeVehicleId = null,
+            ),
+        )
+    }
+
+    @Test
+    fun should_veto_a_bt_paired_nominator_and_attribute_to_the_active_vehicle() {
+        // [DET-BT-OWNERSHIP-001] Field 2026-08-11: the parked Kamiq's fence (BT-paired, inactive)
+        // nominated it for every Focus trip. A BT-paired vehicle's identity is the MAC, never a
+        // fence — the coordinator must attribute to the ACTIVE vehicle instead.
+        assertEquals(
+            "veh-active",
+            VehicleFenceOwnershipPolicy.resolveSessionVehicleId(
+                nominatingVehicleId = "veh-bt-kamiq",
+                nominatingVehicleIsBtPaired = true,
+                activeVehicleId = "veh-active",
+            ),
+        )
+    }
+
+    @Test
+    fun should_return_null_when_bt_paired_nominator_is_vetoed_and_no_active_vehicle_exists() {
+        // [DET-BT-OWNERSHIP-001] With the BT nominator vetoed and nobody active there is no honest
+        // owner — the caller aborts the session rather than guessing.
+        assertEquals(
+            null,
+            VehicleFenceOwnershipPolicy.resolveSessionVehicleId(
+                nominatingVehicleId = "veh-bt-kamiq",
+                nominatingVehicleIsBtPaired = true,
+                activeVehicleId = null,
+            ),
+        )
+    }
+
+    @Test
+    fun should_keep_attribution_when_the_bt_paired_nominator_is_itself_the_active_vehicle() {
+        // [DET-BT-OWNERSHIP-001] Deliberate decision: the veto falls back to the active vehicle,
+        // so an active BT-paired car keeps its own attribution (explicit user declaration; a
+        // possibly-redundant pin beats a lost parking).
+        assertEquals(
+            "veh-bt-active",
+            VehicleFenceOwnershipPolicy.resolveSessionVehicleId(
+                nominatingVehicleId = "veh-bt-active",
+                nominatingVehicleIsBtPaired = true,
+                activeVehicleId = "veh-bt-active",
+            ),
         )
     }
 }
