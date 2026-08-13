@@ -12,13 +12,19 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.LocalParking
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -76,7 +82,22 @@ import io.apptolast.paparcar.presentation.vehicles.HistoryFilter
 import io.apptolast.paparcar.presentation.vehicles.HistoryState
 import io.apptolast.paparcar.presentation.vehicles.VehiclesContent
 import io.apptolast.paparcar.presentation.vehicles.VehiclesState
+import com.apptolast.customlogin.domain.model.IdentityProvider
+import com.apptolast.customlogin.presentation.screens.components.DefaultAuthContainer
+import com.apptolast.customlogin.presentation.slots.defaultslots.DefaultDivider
+import io.apptolast.paparcar.domain.model.ZoneIcon
+import io.apptolast.paparcar.presentation.util.SpotReliabilityUiState
+import io.apptolast.paparcar.presentation.util.zoneIconFor
+import io.apptolast.paparcar.ui.auth.paparcarAuthSlots
 import io.apptolast.paparcar.ui.components.ConnectivityBanner
+import io.apptolast.paparcar.ui.components.FreeSpotClusterMarker
+import io.apptolast.paparcar.ui.components.FreeSpotMarker
+import io.apptolast.paparcar.ui.components.LicensePlateMarker
+import io.apptolast.paparcar.ui.components.MyVehicleMarker
+import io.apptolast.paparcar.ui.components.ParkingCenterPin
+import io.apptolast.paparcar.ui.components.ReportCenterPin
+import io.apptolast.paparcar.ui.components.ZoneCenterPin
+import io.apptolast.paparcar.ui.components.ZoneMarker
 import io.apptolast.paparcar.ui.theme.PaparcarTheme
 
 /**
@@ -214,6 +235,130 @@ private fun fitVehicle(size: VehicleSize, carbody: CarbodyType? = null) =
 @Composable
 private fun spotFit(spot: io.apptolast.paparcar.domain.model.Spot, vehicle: io.apptolast.paparcar.domain.model.Vehicle) =
     SpotFitRow(spot = spot, vehicle = vehicle)
+
+// Login (BaseLogin slots) — mirrors PaparcarAuthSlotsPreviews: renders the REAL Paparcar slots
+// inside the library's container, driven by a static state (no ViewModel, no OAuth).
+@Composable
+private fun loginScreen(
+    email: String = "",
+    password: String = "",
+    emailError: String? = null,
+    passwordError: String? = null,
+    isLoading: Boolean = false,
+) {
+    val slots = paparcarAuthSlots().login
+    val isFormValid = email.isNotBlank() && password.isNotBlank()
+    Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
+        DefaultAuthContainer(
+            modifier = Modifier,
+            verticalArrangement = slots.layoutVerticalArrangement,
+        ) {
+            slots.header()
+            Spacer(Modifier.height(16.dp))
+            slots.emailField(email, {}, emailError, !isLoading)
+            Spacer(Modifier.height(8.dp))
+            slots.passwordField(password, {}, passwordError, !isLoading)
+            slots.forgotPasswordLink {}
+            Spacer(Modifier.height(16.dp))
+            slots.submitButton({}, isLoading, isFormValid && !isLoading, "Iniciar sesión")
+            slots.socialProviders?.let { social ->
+                DefaultDivider("O")
+                social(listOf(IdentityProvider.Google, IdentityProvider.Apple), null) {}
+                Spacer(Modifier.height(8.dp))
+            }
+            slots.registerLink {}
+        }
+    }
+}
+
+// Map markers off-tiles — mirrors PaparcarMapMarkersPreviews' showcase so marker rendering
+// (freshness ramp, en-route blue, clusters, zones, centre pins) can be eyeballed on-device.
+@Composable
+private fun markersShowcase() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface)
+            .verticalScroll(rememberScrollState())
+            .statusBarsPadding()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp),
+    ) {
+        Spacer(Modifier.height(40.dp)) // clears the "← Lista" control row
+        MarkerSectionLabel("LicensePlate — sin matrícula · con matrícula · seleccionado")
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            LicensePlateMarker()
+            LicensePlateMarker(plateText = "1234ABC")
+            LicensePlateMarker(plateText = "1234ABC", selected = true)
+        }
+        MarkerSectionLabel("MyVehicle — normal · seleccionado")
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            MyVehicleMarker()
+            MyVehicleMarker(selected = true)
+        }
+        MarkerSectionLabel("FreeSpot — HIGH · MEDIUM · LOW · MANUAL · seleccionado")
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Bottom) {
+            FreeSpotMarker(reliability = SpotReliabilityUiState.HIGH)
+            FreeSpotMarker(reliability = SpotReliabilityUiState.MEDIUM)
+            FreeSpotMarker(reliability = SpotReliabilityUiState.LOW)
+            FreeSpotMarker(isManual = true)
+            FreeSpotMarker(reliability = SpotReliabilityUiState.HIGH, selected = true)
+        }
+        MarkerSectionLabel("FreeSpot · en route — 2 · 5 · 9+ · seleccionado")
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Bottom) {
+            FreeSpotMarker(enRouteCount = 2)
+            FreeSpotMarker(enRouteCount = 5)
+            FreeSpotMarker(enRouteCount = 12)
+            FreeSpotMarker(enRouteCount = 5, selected = true)
+        }
+        MarkerSectionLabel("Cluster — 3 · 12 · 99+")
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            FreeSpotClusterMarker(count = 3)
+            FreeSpotClusterMarker(count = 12)
+            FreeSpotClusterMarker(count = 250)
+        }
+        MarkerSectionLabel("Zona — pública · privada · nombre largo")
+        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            ZoneMarker(name = "Casa", icon = zoneIconFor(ZoneIcon.HOME))
+            ZoneMarker(name = "Trabajo", icon = zoneIconFor(ZoneIcon.WORK), isPrivate = true)
+            ZoneMarker(name = "Gimnasio del barrio", icon = zoneIconFor(ZoneIcon.GYM))
+        }
+        MarkerSectionLabel("Pin central · Report (reposo · elevado)")
+        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+            CenterPinSlot { ReportCenterPin(cameraMoving = false) }
+            CenterPinSlot { ReportCenterPin(cameraMoving = true) }
+        }
+        MarkerSectionLabel("Pin central · Parking (reposo · elevado)")
+        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+            CenterPinSlot { ParkingCenterPin(cameraMoving = false) }
+            CenterPinSlot { ParkingCenterPin(cameraMoving = true) }
+        }
+        MarkerSectionLabel("Pin central · Zona (reposo · elevado)")
+        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+            CenterPinSlot { ZoneCenterPin(icon = Icons.Rounded.LocalParking, cameraMoving = false) }
+            CenterPinSlot { ZoneCenterPin(icon = Icons.Rounded.LocalParking, cameraMoving = true) }
+        }
+        Spacer(Modifier.height(24.dp))
+    }
+}
+
+@Composable
+private fun CenterPinSlot(content: @Composable () -> Unit) {
+    Box(
+        modifier = Modifier.size(width = 64.dp, height = 96.dp),
+        contentAlignment = Alignment.Center,
+    ) { content() }
+}
+
+@Composable
+private fun MarkerSectionLabel(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelMedium,
+        fontWeight = FontWeight.SemiBold,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
 
 // Recipes mirror the existing *Previews.kt so the gallery shows the same curated states on-device.
 private val galleryGroups: List<ScreenGroup> = listOf(
@@ -807,6 +952,22 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     onRequestPermissions = {},
                 )
             },
+            Variant("Autostart + batería pendiente") {
+                PermissionsContent(
+                    state = PermissionsState(
+                        hasFineLocation = true,
+                        hasBackgroundLocation = true,
+                        hasActivityRecognition = true,
+                        hasNotifications = true,
+                        isLocationServicesEnabled = true,
+                        // Autostart card visible while the battery exemption is still pending —
+                        // the early-onboarding OEM state (previews' "autostart + battery pending").
+                        isBatteryOptimizationExempt = false,
+                        showAutostartCard = true,
+                    ),
+                    onRequestPermissions = {},
+                )
+            },
             Variant("Fiabilidad REDUCED (callout honesto)") {
                 PermissionsContent(
                     state = PermissionsState(
@@ -943,6 +1104,30 @@ private val galleryGroups: List<ScreenGroup> = listOf(
         "Onboarding",
         listOf(
             Variant("Onboarding") { OnboardingScreen(onComplete = {}) },
+        ),
+    ),
+    ScreenGroup(
+        "Login (BaseLogin)",
+        listOf(
+            Variant("Vacío") { loginScreen() },
+            Variant("Con datos") { loginScreen(email = "ana@paparcar.io", password = "MiPassword123") },
+            Variant("Errores de validación") {
+                loginScreen(
+                    email = "no-es-un-email",
+                    password = "123",
+                    emailError = "Formato de email no válido",
+                    passwordError = "Mínimo 8 caracteres",
+                )
+            },
+            Variant("Cargando") {
+                loginScreen(email = "ana@paparcar.io", password = "MiPassword123", isLoading = true)
+            },
+        ),
+    ),
+    ScreenGroup(
+        "Mapa · marcadores",
+        listOf(
+            Variant("Showcase completo (sin tiles)") { markersShowcase() },
         ),
     ),
 )
