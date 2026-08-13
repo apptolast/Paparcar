@@ -250,8 +250,10 @@ sealed interface DetectionEvent {
      *  ([KILLED] — the durable residency stamp outlived the process without a deliberate exit).
      *  [gapMs] is the dark window since the last safety-net heartbeat when the kill was detected on
      *  the periodic lane; [residencyMs] is time spent in SENTRY before the transition — the per-OEM
-     *  survival metric of the residency experiment. sessionId is the watched parking's geofenceId
-     *  (out-of-session convention above). */
+     *  survival metric of the residency experiment. [WAKE_COOLDOWN] marks the walking-abort storm
+     *  damper engaging ([signal] carries streak + quiet period) — the field explanation for why
+     *  the arm-session cadence suddenly stops. [DET-SENTRY-COOLDOWN-001] sessionId is the watched
+     *  parking's geofenceId (out-of-session convention above). */
     data class Sentry(
         override val sessionId: String,
         override val timestampMs: Long,
@@ -265,6 +267,7 @@ sealed interface DetectionEvent {
             const val ENTERED = "entered"
             const val WOKE = "woke"
             const val KILLED = "killed"
+            const val WAKE_COOLDOWN = "wake_cooldown"
         }
     }
 }

@@ -90,6 +90,28 @@ class SignificantMotionMonitor(
         }
     }
 
+    /** [DET-SENTRY-COOLDOWN-001] elapsedRealtime deadline before which [sync] refuses to re-arm.
+     *  Lives HERE, not in any caller, because three independent mirrors call [sync] (the service's
+     *  enterSentry, the safety-net worker tick, the exact heartbeat) — a cooldown any of them could
+     *  bypass would not be a cooldown. In-memory only: a process death resets it, and with it the
+     *  storm state it damps — acceptable, the storm needs a live resident process to exist. */
+    private var rearmBlockedUntilElapsedMs = 0L
+
+    /** [DET-SENTRY-COOLDOWN-001] Applies (cooldownMs > 0) or clears (== 0) the re-arm quiet
+     *  period. Called by the service teardown after folding the ended session into the
+     *  walking-abort streak (`nextSentryWakeAbortStreak`/`sentryWakeRearmCooldownMs`). */
+    @Synchronized
+    fun applyRearmCooldown(cooldownMs: Long) {
+        rearmBlockedUntilElapsedMs = if (cooldownMs > 0) {
+            android.os.SystemClock.elapsedRealtime() + cooldownMs
+        } else {
+            0L
+        }
+        if (cooldownMs > 0) {
+            PaparcarLogger.d(TAG, "re-arm cooldown for ${cooldownMs / 1000}s — walking-abort storm damper [DET-SENTRY-COOLDOWN-001]")
+        }
+    }
+
     /** Idempotently arms (parked + detection idle) or disarms (anything else) the trigger. */
     @Synchronized
     fun sync(shouldBeArmed: Boolean) {
@@ -97,6 +119,15 @@ class SignificantMotionMonitor(
         val sensor = sensor ?: run {
             // Distinguish "device has no sensor" from "sync never ran" in field captures.
             if (shouldBeArmed) PaparcarLogger.d(TAG, "sync → wanted armed but NO significant-motion hardware")
+            return
+        }
+        // [DET-SENTRY-COOLDOWN-001] Quiet period after a walking-abort storm: refuse to re-arm
+        // (the geofence EXIT / AR / safety-net lanes keep watching); the next mirror tick past the
+        // deadline arms normally. Disarm requests are always honored.
+        val cooldownLeftMs = rearmBlockedUntilElapsedMs - android.os.SystemClock.elapsedRealtime()
+        if (shouldBeArmed && !armed && cooldownLeftMs > 0) {
+            PaparcarLogger.d(TAG, "sync → arm SUPPRESSED, cooldown ${cooldownLeftMs / 1000}s left [DET-SENTRY-COOLDOWN-001]")
+            debugNotify("Sensor de movimiento en PAUSA ${cooldownLeftMs / 1000}s: varios paseos seguidos lo despertaron sin que hubiera viaje — valla/AR y red de seguridad siguen vigilando")
             return
         }
         when {

@@ -479,6 +479,27 @@ data class ParkingDetectionConfig(
      *  detection's whole drive is one 36-s hop of 255 m (field 2026-07-04). */
     val driveProofWindowMaxMs: Long = 60_000L,
 
+    // ── SENTRY-WAKE COOLDOWN (walking-abort storm damper) [DET-SENTRY-COOLDOWN-001] ──
+    /** Consecutive sentry-wake sessions ending in a walking abort (`aborted_false_enter` /
+     *  `aborted_no_movement`) before the significant-motion trigger stops re-arming instantly.
+     *  The sensor cannot tell a walk from a drive, so a walk past the parked car re-fires it on
+     *  every stride: field 2026-08-13 logged one armed-and-aborted session every ~18 s for over
+     *  an hour (≈130 sessions) during a single walk — battery burn, telemetry flood, and each
+     *  wake is a fresh lottery ticket for a first-fix Doppler mirage to fake a drive. The first
+     *  wakes of a genuine departure must still be evaluated immediately, so the damper only
+     *  engages after this many refuted nominations in a row. */
+    val sentryWakeAbortStreakForCooldown: Int = 3,
+    /** Base quiet period (ms) once the streak threshold is reached; doubles per further walking
+     *  abort up to [sentryWakeCooldownMaxMs]. During the quiet period only the significant-motion
+     *  NOMINATOR sleeps — the geofence EXIT (PendingIntent, works from a dead process), the AR
+     *  ENTER lane and the periodic safety net keep watching, so a real departure mid-cooldown is
+     *  still caught; only the immediacy lane rests. */
+    val sentryWakeCooldownBaseMs: Long = 3 * 60_000L,
+    /** Ceiling (ms) on the escalated quiet period. Matched to the safety-net cadences (exact
+     *  heartbeat ~5 min, periodic worker 15 min) that re-mirror the sensor state anyway — a
+     *  longer cooldown would be a lie, the mirrors would re-arm through it. */
+    val sentryWakeCooldownMaxMs: Long = 15 * 60_000L,
+
     // ── HONEST CLOSE (session abort ladder) [DET-HONEST-CLOSE-001] ───────────
     /** Floor (meters) the abort position must be from the stale pin before the honest-close
      *  ladder treats the gap as a TRIP at all. Below it (plus both accuracy envelopes) the two
@@ -887,6 +908,15 @@ data class ParkingDetectionConfig(
         }
         require(enterArmStepVetoMs >= 0) {
             "enterArmStepVetoMs must be >= 0 (0 = disabled), was $enterArmStepVetoMs"
+        }
+        require(sentryWakeAbortStreakForCooldown >= 1) {
+            "sentryWakeAbortStreakForCooldown must be >= 1, was $sentryWakeAbortStreakForCooldown"
+        }
+        require(sentryWakeCooldownBaseMs > 0) {
+            "sentryWakeCooldownBaseMs must be > 0, was $sentryWakeCooldownBaseMs"
+        }
+        require(sentryWakeCooldownMaxMs >= sentryWakeCooldownBaseMs) {
+            "sentryWakeCooldownMaxMs ($sentryWakeCooldownMaxMs) must be >= sentryWakeCooldownBaseMs ($sentryWakeCooldownBaseMs)"
         }
         require(anchorStrideMeters > 0f) {
             "anchorStrideMeters must be > 0, was $anchorStrideMeters"

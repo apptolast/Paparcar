@@ -28,7 +28,9 @@ import io.apptolast.paparcar.domain.detection.ParkingStrategyResolver
 import io.apptolast.paparcar.domain.detection.PostDetectionLifecycle
 import io.apptolast.paparcar.domain.detection.SentryKillVerdict
 import io.apptolast.paparcar.domain.detection.ServicePresence
+import io.apptolast.paparcar.domain.detection.nextSentryWakeAbortStreak
 import io.apptolast.paparcar.domain.detection.resolvePostDetectionLifecycle
+import io.apptolast.paparcar.domain.detection.sentryWakeRearmCooldownMs
 import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.detection.resolveSentryKillVerdict
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
@@ -144,6 +146,17 @@ class CoordinatorDetectionService : LifecycleService() {
 
     /** Most recent startId delivered — captured by [Command.DetectionEnded] senders. */
     @Volatile private var lastStartId = 0
+
+    /** [DET-SENTRY-COOLDOWN-001] Trigger of the most recently ARMED session. Consumed (nulled) by
+     *  [resolveIdleEpilogue] when it folds the ended session's outcome into the walking-abort
+     *  streak — the null-out guarantees one fold per session even though the epilogue has two call
+     *  sites. In-memory on purpose: the streak damps a storm that only exists on a live resident
+     *  process. */
+    private var lastEndedArmTrigger: DetectionTrigger? = null
+
+    /** [DET-SENTRY-COOLDOWN-001] Consecutive sentry-wake sessions refuted as walking aborts —
+     *  input to `sentryWakeRearmCooldownMs`, reset by any other ended session. */
+    private var sentryWakeAbortStreak = 0
 
     override fun onCreate() {
         super.onCreate()
@@ -935,6 +948,33 @@ class CoordinatorDetectionService : LifecycleService() {
         val parkedSessions = runCatching {
             userParkingRepository.observeActiveSessions().firstOrNull().orEmpty()
         }.getOrElse { emptyList() }
+        // [DET-SENTRY-COOLDOWN-001] Fold the just-ended session into the walking-abort streak and
+        // hand the resulting quiet period to the monitor BEFORE enterSentry tries to re-arm. A
+        // sentry-wake refuted as a walking abort extends the streak; anything else resets it —
+        // the pure policy lives in commonMain (SentryWakeCooldown.kt). Field 2026-08-13: one
+        // wake-abort cycle every ~18 s for over an hour while the user simply walked.
+        val endedTrigger = lastEndedArmTrigger
+        if (endedTrigger != null) {
+            lastEndedArmTrigger = null
+            sentryWakeAbortStreak = nextSentryWakeAbortStreak(
+                previousStreak = sentryWakeAbortStreak,
+                armedBySentryWake = endedTrigger == DetectionTrigger.SIGNIFICANT_MOTION,
+                sessionOutcome = parkingDetectionCoordinator.lastSessionOutcome,
+            )
+            val cooldownMs = sentryWakeRearmCooldownMs(sentryWakeAbortStreak, detectionConfig)
+            runCatching { significantMotionMonitor.applyRearmCooldown(cooldownMs) }
+            if (cooldownMs > 0) {
+                PaparcarLogger.d(
+                    DIAG,
+                    "  ⏸ sentry-wake abort streak=$sentryWakeAbortStreak → re-arm cooldown ${cooldownMs / 1000}s [DET-SENTRY-COOLDOWN-001]",
+                )
+                logSentry(
+                    DetectionEvent.Sentry.WAKE_COOLDOWN,
+                    signal = "streak=$sentryWakeAbortStreak cooldown=${cooldownMs / 1000}s",
+                    sessionId = parkedSessions.firstNotNullOfOrNull { it.geofenceId } ?: "-",
+                )
+            }
+        }
         // [DET-STRATEGY-GATE-001] Residency is strategy-aware: under BLUETOOTH the ACL broadcast
         // wakes the process by itself (manifest receiver, FGS-from-bg exempt), so the resident
         // watcher would only burn battery + pin a permanent notification. Resolved fresh on every
@@ -1127,6 +1167,10 @@ class CoordinatorDetectionService : LifecycleService() {
             }
         }
         logArmTrigger(trigger, detail)
+        // [DET-SENTRY-COOLDOWN-001] Remember what armed this session; the teardown epilogue folds
+        // its outcome into the sentry-wake abort streak. A supersede simply overwrites — only the
+        // surviving job's end reaches the epilogue.
+        lastEndedArmTrigger = trigger
         PaparcarLogger.d(DIAG, "  ▶ startParkingDetection — launching coordinator (trigger=$trigger)")
         closeSentryResidencyLedger(trigger)
         // [DET-READY-001c] Mark detection as actively running so the Home banner shows Monitoring.
@@ -1402,10 +1446,12 @@ class CoordinatorDetectionService : LifecycleService() {
         const val EXTRA_BT_OVERRIDE_REASON = "io.apptolast.paparcar.EXTRA_BT_OVERRIDE_REASON"
 
         // [DET-HONEST-CLOSE-001] Terminal outcome labels that trigger the honest-close ladder —
-        // mirror the coordinator's abort labels (the two SILENT aborts). Kept as named constants,
-        // not inline literals, at the one place the service reads them.
-        private const val OUTCOME_ABORTED_FALSE_ENTER = "aborted_false_enter"
-        private const val OUTCOME_ABORTED_NO_MOVEMENT = "aborted_no_movement"
+        // the two SILENT aborts. Shared with the sentry-wake cooldown reducer, so they live in
+        // commonMain (`DetectionSessionOutcomes`) rather than as per-class literals.
+        private const val OUTCOME_ABORTED_FALSE_ENTER =
+            io.apptolast.paparcar.domain.detection.DetectionSessionOutcomes.ABORTED_FALSE_ENTER
+        private const val OUTCOME_ABORTED_NO_MOVEMENT =
+            io.apptolast.paparcar.domain.detection.DetectionSessionOutcomes.ABORTED_NO_MOVEMENT
         // [DET-BACKFILL-TAINT-001] Unattended abort the coordinator resolved as NUDGE-ONLY (gap
         // anchor: no place is honest) — stamped so the safety net's backfill defers to the nudge.
         private const val OUTCOME_ABORTED_UNATTENDED_GAP_ANCHOR = "aborted_unattended_gap_anchor"

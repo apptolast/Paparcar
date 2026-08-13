@@ -2029,3 +2029,26 @@ the statistic within seconds and keeps the silent confirm; the rare legit no-pro
 one tap — the asymmetric failure the doctrine demands. `enter_at_car` deliberately stays out (its
 own arm ladder already ties boarding to the own car); if the field shows the same hole there, the
 same one-line move closes it. Spec: `docs/backlog/det-unverified-confirm-001.md`.
+
+### DET-SENTRY-COOLDOWN-001 — repeated walking-refuted sentry wakes cool the sensor re-arm down (2026-08-14)
+
+**Same field day:** with the service resident in SENTRY, a walk near the parked car re-fired the
+significant-motion trigger on every stride — one armed-and-refuted session every **~18 s for over
+an hour** (≈130 `aborted_false_enter` sessions). Battery burn, telemetry flood, and every wake was
+a fresh lottery ticket for the first-fix mirage above.
+
+**Fix.** A storm damper whose POLICY is pure commonMain (`SentryWakeCooldown.kt`):
+`nextSentryWakeAbortStreak` counts CONSECUTIVE sentry-wake sessions refuted as walking aborts
+(`aborted_false_enter`/`aborted_no_movement`, shared labels in `DetectionSessionOutcomes`; any
+other ended session resets), and `sentryWakeRearmCooldownMs` maps the streak to a quiet period —
+0 below `sentryWakeAbortStreakForCooldown` (3: a real departure's first wakes are never delayed),
+then 3 min doubling per further refuted wake, capped at 15 min. The deadline is ENFORCED inside
+`SignificantMotionMonitor` because three independent mirrors call `sync()` (service epilogue,
+safety-net tick, exact heartbeat) — the first mirror past the deadline re-arms on its own. The
+service folds each ended session into the streak in `resolveIdleEpilogue` (consume-once
+`lastEndedArmTrigger`) and logs a `SENTRY wake_cooldown` telemetry event with streak + duration.
+Detection contract preserved: only the significant-motion NOMINATOR sleeps — geofence EXIT
+(PendingIntent, works from a dead process), the AR ENTER lane and the periodic safety net keep
+watching, so a real departure mid-cooldown loses only the immediacy lane. State is in-memory by
+design: the storm needs a live resident process to exist, and a process death resets both.
+Spec: `docs/backlog/det-sentry-cooldown-001.md`.
