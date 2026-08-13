@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- [IOS-F0-07] API 26-30 twin of backup_rules.xml — same exclusions, same rationale.
+     Keep both files in sync when adding a detection prefs file. -->
+<full-backup-content>
+    <exclude domain="sharedpref" path="parking_safety_net.xml" />
+    <exclude domain="sharedpref" path="trip_trail.xml" />
+    <exclude domain="sharedpref" path="driving_route.xml" />
+    <exclude domain="sharedpref" path="departure_event_bus.xml" />
+    <exclude domain="sharedpref" path="exact_heartbeat.xml" />
+    <exclude domain="sharedpref" path="bt_identity.xml" />
+</full-backup-content>
