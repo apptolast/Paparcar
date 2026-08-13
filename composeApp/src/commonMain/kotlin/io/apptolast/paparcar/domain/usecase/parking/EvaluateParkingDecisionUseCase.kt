@@ -176,9 +176,18 @@ class EvaluateParkingDecisionUseCase(private val config: ParkingDetectionConfig)
         // prompt the policy already chose (field incident 2026-07-04: the late upgrade silently
         // saved a park the user had been ASKED about and never answered). A session that
         // witnessed real driving confirms silently regardless.
+        // [DET-UNVERIFIED-CONFIRM-001] `self_observed` is weaker still: NOTHING external vouched
+        // for a drive — the session's own stream is the only witness, so without `sessionSawDriving`
+        // (drive-proof gated) there is no witness at all. It was missing from this set, so a
+        // sentry-wake arm whose FIRST cold-start fix carried a Doppler mirage (24.8 km/h at claimed
+        // acc 2.9 m, phone in a pocket at the parked car) flipped `hasEverReachedDrivingSpeed`,
+        // disarmed the anti-walking aborts, and 270 walking steps + egress silently re-pinned 7 m
+        // from the previous park (field 2026-08-13, Calle Góndola). Doctrine: the event nominates,
+        // only MEASURED movement confirms — no proven drive, no silent pin. Ask instead.
         val weakLabels = setOf(
             io.apptolast.paparcar.domain.detection.ArmEvidence.LABEL_VERIFIED_ENTER,
             io.apptolast.paparcar.domain.detection.ArmEvidence.LABEL_VERIFIED_LATE,
+            io.apptolast.paparcar.domain.detection.ArmEvidence.LABEL_SELF_OBSERVED,
         )
         val weakEvidenceOnly = config.autoConfirmRequiresStrongEvidence &&
             input.evidenceLabel in weakLabels &&

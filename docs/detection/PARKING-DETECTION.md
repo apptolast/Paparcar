@@ -2008,3 +2008,24 @@ Everything else is byte-identical: answers near the stop, gap-entered anchors, s
 stop anchor, and the whole born-at-anchor branch. The USER-CONFIRMED log line now carries
 `stopDistance`/`birthDistance`/`gapEntered` and which witness won (provenance is mandatory).
 Full spec + invariants in `docs/backlog/det-confirm-anchor-001.md`.
+
+### DET-UNVERIFIED-CONFIRM-001 — a self-observed arm with no proven drive never confirms silently (2026-08-14)
+
+**Field FP 2026-08-13 20:56 (Oppo, Calle Góndola):** the user left home ON FOOT and detection
+confirmed a fresh parking ~7 m from the previous one, deactivating it. Session `1786647238401`:
+a sentry-wake arm (`ArmEvidence.Unverified` → `self_observed`), whose FIRST cold-start fix
+carried a Doppler mirage — **24.8 km/h at claimed acc 2.9 m** with the phone in a pocket at the
+parked car. That single fix passed `credibleSpeedFix` and flipped `hasEverReachedDrivingSpeed`
+(deliberately outside DET-DRIVE-PROOF-001's gate), which disarmed the anti-walking aborts; 270
+walking steps + egress ≥ 18 m then confirmed `steps+egress` at reliability 0.9. The drive proof
+itself held (`driveProven=false`, `maxSpeedKmh=0`) — but the weak-evidence policy only listed
+`verified_enter`/`verified_late`, so `self_observed` confirmed silently without it ever being
+consulted. The repark guard was out of range (10-min window; the previous park was 2 h 37 m old).
+
+**Fix.** `ArmEvidence.LABEL_SELF_OBSERVED` joins `weakLabels` in `EvaluateParkingDecisionUseCase`:
+an arm with NO external witness whose own stream never proved a drive (`sessionSawDriving=false`,
+the drive-proof-gated statistic) degrades every auto-confirm to a **Prompt**. A real trip unlocks
+the statistic within seconds and keeps the silent confirm; the rare legit no-proof short hop costs
+one tap — the asymmetric failure the doctrine demands. `enter_at_car` deliberately stays out (its
+own arm ladder already ties boarding to the own car); if the field shows the same hole there, the
+same one-line move closes it. Spec: `docs/backlog/det-unverified-confirm-001.md`.

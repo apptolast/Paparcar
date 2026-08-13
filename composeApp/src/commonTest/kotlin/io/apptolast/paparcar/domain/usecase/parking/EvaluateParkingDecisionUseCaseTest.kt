@@ -190,6 +190,40 @@ class EvaluateParkingDecisionUseCaseTest {
         assertIs<ParkingDecision.Confirmed>(decision)
     }
 
+    @Test
+    fun should_prompt_when_self_observed_arm_and_session_never_drove() {
+        // [DET-UNVERIFIED-CONFIRM-001] Field 2026-08-13 (Calle Góndola): sentry-wake arm
+        // (self_observed), the FIRST cold-start fix carried a Doppler mirage (24.8 km/h at claimed
+        // acc 2.9 m) that disarmed the anti-walking aborts, then 270 walking steps + egress
+        // silently re-pinned 7 m from the previous park. The drive-proof-gated speed statistic
+        // stayed 0: nothing external vouched for a drive and the stream never proved one — the
+        // save must ask, never pin.
+        val decision = evaluate(
+            input(
+                stepCount = 270,
+                hasEgressDisplacement = true,
+                maxSpeedKmh = 0f,
+                evidenceLabel = io.apptolast.paparcar.domain.detection.ArmEvidence.LABEL_SELF_OBSERVED,
+            )
+        )
+        assertEquals("steps+egress", assertIs<ParkingDecision.Prompt>(decision).pathLabel)
+    }
+
+    @Test
+    fun should_confirm_when_self_observed_arm_but_session_measured_driving() {
+        // Same arm evidence with a PROVEN drive (drive-proof unlocked the speed statistic): the
+        // session itself is a valid witness → the ordinary silent steps+egress confirm stands.
+        val decision = evaluate(
+            input(
+                stepCount = 8,
+                hasEgressDisplacement = true,
+                maxSpeedKmh = 30f,
+                evidenceLabel = io.apptolast.paparcar.domain.detection.ArmEvidence.LABEL_SELF_OBSERVED,
+            )
+        )
+        assertIs<ParkingDecision.Confirmed>(decision)
+    }
+
     // ── Human-powered opt-out [DET-SOLID-001 C2] ────────────────────────────────
 
     @Test
