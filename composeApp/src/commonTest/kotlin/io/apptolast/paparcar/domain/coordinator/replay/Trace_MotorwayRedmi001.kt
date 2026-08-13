@@ -1,5 +1,7 @@
 package io.apptolast.paparcar.domain.coordinator.replay
 
+import io.apptolast.paparcar.domain.coordinator.ingestion.TraceEvent
+
 /**
  * [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001] Field trace of the **102-minute session that never
  * ended** (2026-08-20 16:21Z, Firestore `diagnostics/WZB7.../sessions/1787242874932`, Redmi
@@ -31,7 +33,8 @@ val TRACE_MOTORWAY_REDMI_001: List<TraceEvent> = buildList {
     fun fix(dtMs: Long, lat: Double, lon: Double, acc: Float, speed: Float) =
         add(TraceEvent(t0 + dtMs, TraceEvent.Kind.FIX, lat, lon, acc, speed))
     fun step(dtMs: Long) = add(TraceEvent(t0 + dtMs, TraceEvent.Kind.STEP))
-    fun vehicleExit(dtMs: Long) = add(TraceEvent(t0 + dtMs, TraceEvent.Kind.VEHICLE_EXIT))
+    fun vehicleExit(dtMs: Long) =
+        add(TraceEvent(t0 + dtMs, TraceEvent.Kind.ACTIVITY, activity = TraceEvent.Activity.VEHICLE_EXIT))
     fix(0, 36.6116141, -6.2803143, 6.816999912261963f, 0.0f)
     fix(2255, 36.6115683, -6.2802167, 9.819999694824219f, 5.25f)
     fix(4608, 36.6114259, -6.2801126, 7.236000061035156f, 6.449999809265137f)

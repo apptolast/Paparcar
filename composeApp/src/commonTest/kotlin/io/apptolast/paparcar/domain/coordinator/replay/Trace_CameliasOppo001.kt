@@ -1,5 +1,7 @@
 ﻿package io.apptolast.paparcar.domain.coordinator.replay
 
+import io.apptolast.paparcar.domain.coordinator.ingestion.TraceEvent
+
 /**
  * [DET-ANCHOR-EGRESS-001 · Rule A][DET-CREDIBLE-DRIVE-001] Field trace of the **in-house pin**
  * (2026-07-15 16:11Z, Firestore `diagnostics/fiyp.../sessions/1784131860665`, Oppo CPH2371,

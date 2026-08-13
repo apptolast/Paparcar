@@ -1,5 +1,7 @@
 package io.apptolast.paparcar.domain.coordinator.replay
 
+import io.apptolast.paparcar.domain.coordinator.ingestion.TraceEvent
+
 /**
  * [DET-SOLID-001][C4] Field trace of **BUG-REPARK-WALK-001** (2026-07-03 22:13–22:16Z,
  * El Puerto de Santa María — Firestore `diagnostics/fiyp…/sessions/1783116798598`).

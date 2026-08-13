@@ -1,5 +1,7 @@
 ﻿package io.apptolast.paparcar.domain.coordinator.replay
 
+import io.apptolast.paparcar.domain.coordinator.ingestion.TraceEvent
+
 /**
  * [DET-CREDIBLE-DRIVE-001] Field trace of the **false walk-entered taint** at Calle Galeote 31
  * (2026-07-16 19:45Z, Firestore `diagnostics/fiyp.../sessions/1784231113765`, Oppo CPH2371,

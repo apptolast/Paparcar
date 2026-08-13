@@ -1,5 +1,7 @@
 package io.apptolast.paparcar.domain.coordinator.replay
 
+import io.apptolast.paparcar.domain.coordinator.ingestion.TraceEvent
+
 /**
  * [DET-HONEST-CLOSE-001] Field trace of the **short-hop false negative** at Calle Camelias
  * (2026-07-14 19:19Z, Firestore `diagnostics/WZB7…/sessions/1784056795594`, Redmi Note 11).
