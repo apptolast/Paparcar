@@ -28,6 +28,16 @@ import io.apptolast.paparcar.domain.util.PaparcarLogger
  * Permission: `SCHEDULE_EXACT_ALARM` is auto-granted up to targetSdk 32 and a user-revocable
  * special access from 33+. [canScheduleExact] gates every arm; without it the net degrades to
  * `setAndAllowWhileIdle` (inexact, still Doze-piercing) — degradation, never breakage.
+ *
+ * **Field reality + accepted design [IOS-F0-09, decisión 2026-08-13]:** with targetSdk 36 the
+ * special access is DENIED by default, so on real installs `exact=false` is the NORMAL case and
+ * this net effectively runs the inexact allow-while-idle variant (OS-batched, still fires in
+ * Doze). That is ACCEPTED: no permission-request UI will be added for it — the ask isn't worth
+ * the friction when the 15-min safety-net periodic remains the floor and the evaluator demands
+ * the same proofs regardless of when it wakes. "Exact" in these names describes the capability
+ * CEILING when the user grants the special access, never a field guarantee — no consumer may
+ * assume the 5-min cadence. (Deliberately not renamed: the receiver is a manifest component and
+ * the `exact_heartbeat` prefs file is pinned by the backup rules.)
  */
 object ExactHeartbeatScheduler {
 

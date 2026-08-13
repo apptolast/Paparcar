@@ -1880,6 +1880,12 @@ terrain is Doze + cached-kill + starved Play Services, where the worker used to 
 Converts "AR never fired and the process was dead" from a lost departure into a ≤5-15 min delay —
 which DET-ROUTE-ORIGIN-001's backdated origin then hides from the drawn route entirely.
 
+**Update 2026-08-13 [IOS-F0-09].** With targetSdk 36 the special access is denied by default, so
+in the field the net normally runs the INEXACT allow-while-idle variant. Accepted by decision:
+no permission-request UI (the "CTA special-access" piece of the original spec is discarded);
+"exact" names the capability ceiling, not a guarantee, and no consumer may assume the 5-min
+cadence — the 15-min periodic is the contractual floor.
+
 ### DET-JAM-WINDOW-001 — recent creep extends the no-movement budget; a jam at the exit no longer folds the session (2026-07-30)
 
 **Why (piece 3 of the Driversnote plan).** `maxNoMovementMs` (4 min) silently folds any session
