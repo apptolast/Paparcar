@@ -1946,6 +1946,240 @@ class CoordinatorParkingDetectorTest {
         }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // DET-CONFIRM-ANCHOR-001: a late user "Sí" anchors at the car, not the user
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /** Shared fixture: corroborated drive → witnessed stop at 40.0005 (no gap, frozen by time)
+     *  → poor-accuracy walk (mute-ish counter: 2 steps fire mid-walk, so the egress birth is
+     *  recorded ~222 m from the anchor → egress-born-AWAY → the user-confirm else branch). */
+    private suspend fun driveParkAndWalkAwayWithLateBirth(
+        env: TestEnv,
+        locations: MutableSharedFlow<GpsPoint>,
+        advanceClock: (Long) -> Unit,
+    ) {
+        emitCorroboratedDrive(locations) // ends at 40.0, last fix t=25 s, 11 m/s
+        // Witnessed stop: opens 5 s after the last driving fix (no gap) and matures past
+        // anchorFreezeStopMs → anchor FROZEN at 40.0005.
+        advanceClock(30_000L)
+        locations.emit(GpsPoint(40.0005, -3.7, accuracy = 5f, timestamp = 30_000L, speed = 0f))
+        advanceClock(95_000L)
+        locations.emit(GpsPoint(40.0005, -3.7, accuracy = 6f, timestamp = 95_000L, speed = 0f))
+        // Walk away on a degraded stream (accuracy 60 > minGpsAccuracyForDriving): no kinematic
+        // egress fix ever counts, so no birth is recorded near the car.
+        advanceClock(100_000L)
+        locations.emit(GpsPoint(40.0009, -3.7, accuracy = 60f, timestamp = 100_000L, speed = 1.3f))
+        advanceClock(105_000L)
+        locations.emit(GpsPoint(40.0013, -3.7, accuracy = 60f, timestamp = 105_000L, speed = 1.3f))
+        advanceClock(110_000L)
+        locations.emit(GpsPoint(40.0017, -3.7, accuracy = 60f, timestamp = 110_000L, speed = 1.3f))
+        advanceClock(115_000L)
+        locations.emit(GpsPoint(40.0021, -3.7, accuracy = 60f, timestamp = 115_000L, speed = 1.3f))
+        // The counter finally delivers 2 steps mid-walk → the next fix records the egress birth
+        // ~222 m from the anchor (past the 150 m born-at-anchor floor).
+        env.stepDetector.emitSteps(2)
+        advanceClock(120_000L)
+        locations.emit(GpsPoint(40.0025, -3.7, accuracy = 60f, timestamp = 120_000L, speed = 1.3f))
+    }
+
+    @Test
+    fun should_anchor_at_witnessed_stop_when_user_confirms_far_from_it() =
+        runTest(UnconfinedTestDispatcher()) {
+            // Field 2026-08-11 16:08: measured driving came to rest (witnessed stop), mute step
+            // counter (2 steps), and the user answered "Sí" AFTER walking to their destination —
+            // the pin planted at the destination, not where the drive ended. A "Sí" far from
+            // both car witnesses must anchor at the witnessed stop. [DET-CONFIRM-ANCHOR-001]
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            driveParkAndWalkAwayWithLateBirth(env, locations) { nowMs = it }
+            // Keep walking well past the birth, then answer at the destination — ~444 m from the
+            // stop and ~222 m from the birth, far from BOTH car witnesses.
+            nowMs = 125_000L
+            locations.emit(GpsPoint(40.0031, -3.7, accuracy = 60f, timestamp = 125_000L, speed = 1.3f))
+            nowMs = 130_000L
+            locations.emit(GpsPoint(40.0038, -3.7, accuracy = 60f, timestamp = 130_000L, speed = 1.3f))
+            env.coordinator.onUserConfirmedParking()
+            nowMs = 140_000L
+            locations.emit(GpsPoint(40.0045, -3.7, accuracy = 8f, timestamp = 140_000L, speed = 0f))
+
+            job.cancelAndJoin()
+
+            assertEquals(1, env.parkingRepo.saveNewParkingSessionCallCount, "user tap must save exactly once")
+            val saved = env.parkingRepo.getActiveSession()
+            assertNotNull(saved)
+            assertEquals(
+                40.0005,
+                saved.location.latitude,
+                /* absoluteTolerance = */ 0.00001,
+                "a late 'Sí' far from every car witness must anchor at the witnessed stop, not the pedestrian [DET-CONFIRM-ANCHOR-001]",
+            )
+            assertEquals(
+                config.reliabilityUserConfirmed,
+                saved.detectionReliability ?: 0f,
+                /* absoluteTolerance = */ 0.0001f,
+                "re-anchoring must not change the user-confirmed reliability",
+            )
+        }
+
+    @Test
+    fun should_keep_current_fix_when_user_confirms_near_the_witnessed_stop() =
+        runTest(UnconfinedTestDispatcher()) {
+            // Same egress-born-away session, but the user answers back within the near-car radius
+            // of the stop — today's behavior (anchor at the user's stop) must be untouched.
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            driveParkAndWalkAwayWithLateBirth(env, locations) { nowMs = it }
+            // Walk back towards the car and answer ~33 m from the stop (≤ 100 m).
+            nowMs = 125_000L
+            locations.emit(GpsPoint(40.0018, -3.7, accuracy = 60f, timestamp = 125_000L, speed = 1.3f))
+            nowMs = 130_000L
+            locations.emit(GpsPoint(40.0012, -3.7, accuracy = 60f, timestamp = 130_000L, speed = 1.3f))
+            env.coordinator.onUserConfirmedParking()
+            nowMs = 140_000L
+            locations.emit(GpsPoint(40.0008, -3.7, accuracy = 8f, timestamp = 140_000L, speed = 0f))
+
+            job.cancelAndJoin()
+
+            assertEquals(
+                40.0008,
+                env.parkingRepo.getActiveSession()?.location?.latitude ?: 0.0,
+                /* absoluteTolerance = */ 0.00001,
+                "answering near the stop must keep today's behavior (the user's current stop) [DET-CONFIRM-ANCHOR-001]",
+            )
+        }
+
+    @Test
+    fun should_keep_current_fix_when_user_confirms_near_the_egress_birth() =
+        runTest(UnconfinedTestDispatcher()) {
+            // Enamorados guard (field 2026-07-15): with an egress born AWAY the anchor may be an
+            // intermediate stop (a light 1.11 km back) and the BIRTH is where the car is. A "Sí"
+            // answered near the birth must keep today's behavior (the user's current stop) — the
+            // witnessed-stop re-anchor only wins far from BOTH car witnesses.
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            driveParkAndWalkAwayWithLateBirth(env, locations) { nowMs = it }
+            // Answer right next to the recorded birth (~233 m from the stop, ~11 m from the birth).
+            env.coordinator.onUserConfirmedParking()
+            nowMs = 140_000L
+            locations.emit(GpsPoint(40.0026, -3.7, accuracy = 8f, timestamp = 140_000L, speed = 0f))
+
+            job.cancelAndJoin()
+
+            assertEquals(
+                40.0026,
+                env.parkingRepo.getActiveSession()?.location?.latitude ?: 0.0,
+                /* absoluteTolerance = */ 0.00001,
+                "answering near the egress birth must keep the user's current stop — the birth may be the car [DET-CONFIRM-ANCHOR-001]",
+            )
+        }
+
+    @Test
+    fun should_keep_current_fix_when_user_confirms_far_but_anchor_is_gap_entered() =
+        runTest(UnconfinedTestDispatcher()) {
+            // A gap-entered anchor may be a drive-past point with UNBOUNDABLE forward error
+            // (field 2026-07-29, Av. Sanlúcar) — it must never win the user-confirm re-anchor,
+            // however far the user answered from it. [DET-GAP-ANCHOR-001]
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            emitCorroboratedDrive(locations) // ends at 40.0, last fix t=25 s, 11 m/s
+            // 120-s hole → the stop at 40.010 is gap-entered.
+            nowMs = 145_000L
+            locations.emit(GpsPoint(40.010, -3.7, accuracy = 5f, timestamp = 145_000L, speed = 0f))
+            env.stepDetector.emitSteps(8)
+            nowMs = 150_000L
+            locations.emit(GpsPoint(40.0103, -3.7, accuracy = 5f, timestamp = 150_000L, speed = 0f))
+            // Walk on well past the near-car radius and answer there.
+            nowMs = 155_000L
+            locations.emit(GpsPoint(40.0110, -3.7, accuracy = 5f, timestamp = 155_000L, speed = 1.3f))
+            nowMs = 160_000L
+            locations.emit(GpsPoint(40.0125, -3.7, accuracy = 5f, timestamp = 160_000L, speed = 1.3f))
+            env.coordinator.onUserConfirmedParking()
+            nowMs = 165_000L
+            locations.emit(GpsPoint(40.0130, -3.7, accuracy = 8f, timestamp = 165_000L, speed = 0f))
+
+            job.cancelAndJoin()
+
+            assertEquals(
+                40.0130,
+                env.parkingRepo.getActiveSession()?.location?.latitude ?: 0.0,
+                /* absoluteTolerance = */ 0.00001,
+                "a gap-entered anchor must never win the re-anchor — the user's current stop is the only honest witness",
+            )
+        }
+
+    @Test
+    fun should_anchor_at_current_fix_when_no_stop_was_witnessed() =
+        runTest(UnconfinedTestDispatcher()) {
+            // No bestStopLocation at all (still driving when the user taps "Sí"): the current
+            // fix remains the only anchor available — unchanged behavior.
+            val env = setup()
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            emitCorroboratedDrive(locations)
+            env.coordinator.onUserConfirmedParking()
+            locations.emit(GpsPoint(40.003, -3.7, accuracy = 5f, timestamp = 30_000L, speed = 10f))
+
+            job.cancelAndJoin()
+
+            assertEquals(
+                40.003,
+                env.parkingRepo.getActiveSession()?.location?.latitude ?: 0.0,
+                /* absoluteTolerance = */ 0.00001,
+                "without a witnessed stop the current fix is the only anchor available",
+            )
+        }
+
+    @Test
+    fun should_anchor_at_stop_when_egress_born_at_anchor_and_user_confirms_far() =
+        runTest(UnconfinedTestDispatcher()) {
+            // The egress-born-AT-anchor branch is untouched: birth recorded at the car, user
+            // answers far away → the pin was and stays the stop anchor.
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            emitCorroboratedDrive(locations)
+            nowMs = 30_000L
+            locations.emit(GpsPoint(40.0005, -3.7, accuracy = 5f, timestamp = 30_000L, speed = 0f))
+            nowMs = 95_000L
+            locations.emit(GpsPoint(40.0005, -3.7, accuracy = 6f, timestamp = 95_000L, speed = 0f))
+            // 2 steps AT the car (below the auto-confirm bar) → birth recorded at the anchor.
+            env.stepDetector.emitSteps(2)
+            nowMs = 100_000L
+            locations.emit(GpsPoint(40.00052, -3.7, accuracy = 6f, timestamp = 100_000L, speed = 0f))
+            // Degraded walk far away, then the late answer.
+            nowMs = 115_000L
+            locations.emit(GpsPoint(40.0015, -3.7, accuracy = 60f, timestamp = 115_000L, speed = 1.3f))
+            nowMs = 130_000L
+            locations.emit(GpsPoint(40.0030, -3.7, accuracy = 60f, timestamp = 130_000L, speed = 1.3f))
+            env.coordinator.onUserConfirmedParking()
+            nowMs = 140_000L
+            locations.emit(GpsPoint(40.0045, -3.7, accuracy = 8f, timestamp = 140_000L, speed = 0f))
+
+            job.cancelAndJoin()
+
+            assertEquals(
+                40.0005,
+                env.parkingRepo.getActiveSession()?.location?.latitude ?: 0.0,
+                /* absoluteTolerance = */ 0.00001,
+                "egress born at the anchor keeps anchoring the 'Sí' at the stop — branch untouched",
+            )
+        }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // DET-C-02: post-confirm hold — errand re-anchor + finalize
     // ─────────────────────────────────────────────────────────────────────────
 

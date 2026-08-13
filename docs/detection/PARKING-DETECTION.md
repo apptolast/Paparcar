@@ -222,7 +222,7 @@ Both clauses must hold simultaneously. This kills spurious `IN_VEHICLE_ENTER` ev
 - **Stopped** (`speed < STOPPED_SPEED_THRESHOLD_MPS = 1 m/s`):
   - `stoppedSince` is set to `now` on the first such fix, then preserved.
   - Within `initialStopWindowMs = 30 s` of `stoppedSince`, fixes are accumulated into `stoppedFixes` (capped at 20) and `bestStopLocation` is updated whenever a fresh fix has *better* accuracy than the current best. **After 30 s the location is frozen** — see LOC-001 in §2.
-  - **[DET-GAP-ANCHOR-001]** If the fix that *opens* the stop arrived more than `anchorGapMaxFixGapMs = 45 s` after a `previousFix` still at real driving speed (≥ `minimumTripSpeedMps`), the stop is flagged `stopEnteredAfterGap`: the car's arrival at rest fell inside a GPS hole and this position may be a drive-past point. Any anchor bound to such a stop is stamped `anchorGapEnteredAtCapture` — silent confirm degrades to a prompt, the unattended save to a nudge, and a user "Sí" re-anchors at the user's current stop. Cleared with the anchor when real driving resumes.
+  - **[DET-GAP-ANCHOR-001]** If the fix that *opens* the stop arrived more than `anchorGapMaxFixGapMs = 45 s` after a `previousFix` still at real driving speed (≥ `minimumTripSpeedMps`), the stop is flagged `stopEnteredAfterGap`: the car's arrival at rest fell inside a GPS hole and this position may be a drive-past point. Any anchor bound to such a stop is stamped `anchorGapEnteredAtCapture` — silent confirm degrades to a prompt, the unattended save to a nudge, and a user "Sí" re-anchors at the user's current stop (a gap-entered anchor never wins the user-confirm re-anchor either — see DET-CONFIRM-ANCHOR-001). Cleared with the anchor when real driving resumes.
 - **Moving** (`speed ≥ 1 m/s`):
   - `stoppedSince = null`, `stoppedFixes = emptyList()`.
   - If `speed ≥ clearBestStopSpeedMps = 2.5 m/s` **AND** `accuracy ≤ minGpsAccuracyForDriving = 50 m`, the coordinator treats the fix as evidence the vehicle is driving away again: `bestStopLocation`, `vehicleExitConfirmed`, `activityStillDetected`, and `highConfidenceReachedAt` are all cleared. The accuracy gate exists because hardware GPS hallucinates apparent-driving speed in noisy fixes — see LOC-002 in §2.
@@ -1648,8 +1648,9 @@ taint: the proofs hold, the ANCHOR doesn't — `EvaluateParkingDecisionUseCase` 
 auto-confirm path to `Prompt`; the unattended timeout exits **nudge-only**
 (`aborted_unattended_gap_anchor` — unlike walk-entered the forward error is unboundable, the car
 may have driven arbitrarily far into the hole, so no zone is honest); a user "Sí" anchors at
-the user's current stop. Normal cadence (stop opens ≤ 45 s after the last driving fix) is
-untouched — the control replay confirms silently exactly as before.
+the user's current stop (unconditionally — a gap-entered anchor is excluded from the
+DET-CONFIRM-ANCHOR-001 re-anchor). Normal cadence (stop opens ≤ 45 s after the last driving fix)
+is untouched — the control replay confirms silently exactly as before.
 
 ### DET-TRIP-WITNESS-001 — the honest-close step budget EXPIRES: a stale seal cannot prove a trip (2026-08-04)
 
@@ -1943,3 +1944,34 @@ invariant, no downstream guards:
 Detection decisions are untouched — this is provenance + community-spot classification only.
 ⏳ Pending: field-test (answer a nudge, verify `spotType=AUTO_DETECTED`, `detectionPath=nudge`, and
 an AUTO spot with 2-h TTL at departure).
+
+### DET-CONFIRM-ANCHOR-001 — a late user "Sí" anchors at the car, not at the user (2026-08-13)
+
+**Why (field 2026-08-11 16:08, Firestore + telemetry).** A Coordinator session with measured
+driving (32 driving fixes, vmax 55 km/h) came to rest at a witnessed stop; the step counter was
+essentially mute (2 steps), so the confirm degraded to a prompt. The user answered "Sí" AFTER
+having walked to their destination — and the pin planted at the pedestrian destination, not where
+the drive ended. Root cause: in the user-confirm branch of `CoordinatorParkingDetector`, when the
+session fell outside the born-at-anchor happy path (`!isEgressBornAtAnchor || gap-entered`), the
+save anchored at `state.bestFix(location)` — the user's CURRENT stop — on the assumption "they
+answer near the car". A late answer breaks that assumption: the current fix then IS the
+pedestrian, exactly what ANCHOR-LOCK/FREEZE forbids the pin to follow.
+
+**What — a bounded distance guard in the else branch only.** On a user "Sí" outside the
+born-at-anchor path, the save re-anchors at the WITNESSED stop (`bestStopLocation`, the frozen
+end of driving) when ALL of:
+- a stop anchor exists AND it is **not** gap-entered (`!anchorGapEnteredAtCapture` — a gap-born
+  anchor may be a drive-past point with unboundable forward error [DET-GAP-ANCHOR-001], so it
+  never wins this re-anchor);
+- the answer arrives more than `USER_CONFIRM_NEAR_CAR_MAX_METERS` (100 m — between the standard
+  near-car radii 80/120 m, under the 150 m egress-birth floor) from the stop anchor;
+- the answer is ALSO farther than that threshold from the recorded egress birth
+  (`egressOriginFix`). This last clause is the minimal adjustment that keeps
+  [DET-ANCHOR-EGRESS-001] intact: with an egress born AWAY, the birth — not the anchor — may be
+  where the car is (Enamorados: frozen at a light 1.11 km back, the user answering AT the car),
+  so an answer near the birth keeps today's behavior (the user's current stop).
+
+Everything else is byte-identical: answers near the stop, gap-entered anchors, sessions without a
+stop anchor, and the whole born-at-anchor branch. The USER-CONFIRMED log line now carries
+`stopDistance`/`birthDistance`/`gapEntered` and which witness won (provenance is mandatory).
+Full spec + invariants in `docs/backlog/det-confirm-anchor-001.md`.

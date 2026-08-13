@@ -963,7 +963,43 @@ class CoordinatorParkingDetector(
                         val locationToConfirm = if (isEgressBornAtAnchor(state) && !state.anchorGapEnteredAtCapture) {
                             state.bestStopLocation ?: state.bestFix(location)
                         } else {
-                            state.bestFix(location)
+                            // [DET-CONFIRM-ANCHOR-001] "They answer near the car" is an assumption,
+                            // not a fact: a late "Sí" arrives from wherever the walk ended, and the
+                            // current fix then IS the pedestrian's destination (field 2026-08-11
+                            // 16:08: 32 driving fixes came to rest, mute step counter, the user
+                            // answered after walking away and the pin planted at the destination).
+                            // When the stop was WITNESSED (anchor present and NOT gap-entered — a
+                            // gap-born anchor may be a drive-past point hundreds of meters out with
+                            // unboundable forward error, so it never wins here) and the answer
+                            // arrives far from BOTH the anchor and the egress birth, re-anchor at
+                            // the witnessed end of driving. Answering near the egress BIRTH keeps
+                            // today's behavior on purpose: a born-away egress means the birth, not
+                            // the anchor, is where the car is (field 2026-07-15, Enamorados: frozen
+                            // at a light 1.11 km back — the user's own stop is the right pin there).
+                            val witnessedStop = state.bestStopLocation
+                                ?.takeIf { !state.anchorGapEnteredAtCapture }
+                            val currentFix = state.bestFix(location)
+                            val stopDistanceMeters = witnessedStop?.let {
+                                io.apptolast.paparcar.domain.util.haversineMeters(
+                                    it.latitude, it.longitude, currentFix.latitude, currentFix.longitude,
+                                )
+                            }
+                            val birthDistanceMeters = state.egressOriginFix?.let {
+                                io.apptolast.paparcar.domain.util.haversineMeters(
+                                    it.latitude, it.longitude, currentFix.latitude, currentFix.longitude,
+                                )
+                            }
+                            val answeredFarFromCar = stopDistanceMeters != null &&
+                                stopDistanceMeters > USER_CONFIRM_NEAR_CAR_MAX_METERS &&
+                                (birthDistanceMeters == null || birthDistanceMeters > USER_CONFIRM_NEAR_CAR_MAX_METERS)
+                            PaparcarLogger.d(
+                                DIAG,
+                                "  ⚓ user-confirm anchor: stopDistance=${stopDistanceMeters?.toInt()}m " +
+                                    "birthDistance=${birthDistanceMeters?.toInt()}m " +
+                                    "gapEntered=${state.anchorGapEnteredAtCapture} " +
+                                    "→ ${if (answeredFarFromCar) "witnessed stop" else "current fix"} [DET-CONFIRM-ANCHOR-001]",
+                            )
+                            if (answeredFarFromCar) witnessedStop!! else currentFix
                         }
                         completed = runConfirm(
                             location = locationToConfirm,
@@ -2483,6 +2519,13 @@ class CoordinatorParkingDetector(
         /** [DET-AUDIT-002 T7] Extra wait past confirmHoldMs before the clock (not a fix) closes a
          *  starved hold — room for the settling fix of a healthy stream to win the race. */
         const val HOLD_WATCHDOG_MARGIN_MS = 30_000L
+
+        /** [DET-CONFIRM-ANCHOR-001] How far from a car witness (the witnessed stop anchor or the
+         *  egress birth) a user "Sí" may arrive and still count as "answered near the car".
+         *  Sized between the standard near-car radii (geofenceRadiusMeters 80 m,
+         *  geofenceRadiusVanMeters 120 m) and under egressBirthFloorMeters (150 m) — the scale
+         *  at which an honest near-car fix can still sit on a sparse stream. */
+        const val USER_CONFIRM_NEAR_CAR_MAX_METERS = 100.0
     }
 }
 
