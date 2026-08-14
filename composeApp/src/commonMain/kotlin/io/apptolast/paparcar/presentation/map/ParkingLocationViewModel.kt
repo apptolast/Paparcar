@@ -61,8 +61,10 @@ class ParkingLocationViewModel(
             is ParkingLocationIntent.SetFocusedSession ->
                 updateState { copy(focusedSessionId = intent.sessionId) }
 
-            ParkingLocationIntent.FocusPrevious -> stepFocus(-1)
-            ParkingLocationIntent.FocusNext -> stepFocus(+1)
+            // [orderedSessions] is newest-first, so stepping OLDER walks down the list (+1) and
+            // stepping NEWER walks up (-1). Chevrons read as a timeline: ‹ past, › toward today.
+            ParkingLocationIntent.FocusOlder -> stepFocus(+1)
+            ParkingLocationIntent.FocusNewer -> stepFocus(-1)
         }
     }
 

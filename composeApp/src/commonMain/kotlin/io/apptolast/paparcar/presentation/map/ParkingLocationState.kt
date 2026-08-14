@@ -27,12 +27,12 @@ data class ParkingLocationState(
     private val focusedIndex: Int
         get() = orderedSessions.indexOfFirst { it.id == focusedSessionId }
 
-    /** True while there is a more-recent entry to step back to. */
-    val hasPrevious: Boolean
+    /** True while there is a more-recent entry to step forward to (right › chevron). */
+    val hasNewer: Boolean
         get() = focusedIndex > 0
 
-    /** True while there is an older entry to step forward to. */
-    val hasNext: Boolean
+    /** True while there is an older entry to step back to (left ‹ chevron). */
+    val hasOlder: Boolean
         get() = focusedIndex in 0 until orderedSessions.lastIndex
 
     /** The registered vehicle that owns the focused session, or null if it was deleted / unresolved. */

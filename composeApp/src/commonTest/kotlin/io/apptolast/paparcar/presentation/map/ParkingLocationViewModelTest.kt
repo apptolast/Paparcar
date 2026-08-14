@@ -113,7 +113,7 @@ class ParkingLocationViewModelTest {
         }
     }
 
-    // ── Focus + prev/next stepper [HISTORY-DETAIL-001] ────────────────────────
+    // ── Focus + timeline stepper (‹ older / › newer) [HISTORY-DETAIL-002] ─────
 
     // Ordered most-recent → oldest: [newest(3000), middle(2000), oldest(1000)]
     private fun threeSessionVm() = buildVm(
@@ -135,47 +135,47 @@ class ParkingLocationViewModelTest {
     fun `should_expose_both_neighbours_when_focused_in_the_middle`() = runTest {
         val vm = threeSessionVm()
         vm.handleIntent(ParkingLocationIntent.SetFocusedSession("middle"))
-        assertTrue(vm.state.value.hasPrevious)
-        assertTrue(vm.state.value.hasNext)
+        assertTrue(vm.state.value.hasOlder)
+        assertTrue(vm.state.value.hasNewer)
     }
 
     @Test
-    fun `should_step_to_older_session_on_FocusNext`() = runTest {
+    fun `should_step_back_in_time_on_FocusOlder`() = runTest {
         val vm = threeSessionVm()
         vm.handleIntent(ParkingLocationIntent.SetFocusedSession("newest"))
-        vm.handleIntent(ParkingLocationIntent.FocusNext)
+        vm.handleIntent(ParkingLocationIntent.FocusOlder)
         assertEquals("middle", vm.state.value.focusedSession?.id)
     }
 
     @Test
-    fun `should_step_to_newer_session_on_FocusPrevious`() = runTest {
+    fun `should_step_toward_today_on_FocusNewer`() = runTest {
         val vm = threeSessionVm()
         vm.handleIntent(ParkingLocationIntent.SetFocusedSession("middle"))
-        vm.handleIntent(ParkingLocationIntent.FocusPrevious)
+        vm.handleIntent(ParkingLocationIntent.FocusNewer)
         assertEquals("newest", vm.state.value.focusedSession?.id)
     }
 
     @Test
-    fun `should_report_no_previous_at_the_newest_end`() = runTest {
+    fun `should_report_no_newer_at_the_most_recent_end`() = runTest {
         val vm = threeSessionVm()
         vm.handleIntent(ParkingLocationIntent.SetFocusedSession("newest"))
-        assertFalse(vm.state.value.hasPrevious)
-        assertTrue(vm.state.value.hasNext)
+        assertFalse(vm.state.value.hasNewer)
+        assertTrue(vm.state.value.hasOlder)
     }
 
     @Test
-    fun `should_report_no_next_at_the_oldest_end`() = runTest {
+    fun `should_report_no_older_at_the_oldest_end`() = runTest {
         val vm = threeSessionVm()
         vm.handleIntent(ParkingLocationIntent.SetFocusedSession("oldest"))
-        assertTrue(vm.state.value.hasPrevious)
-        assertFalse(vm.state.value.hasNext)
+        assertTrue(vm.state.value.hasNewer)
+        assertFalse(vm.state.value.hasOlder)
     }
 
     @Test
-    fun `should_clamp_FocusNext_at_the_oldest_end`() = runTest {
+    fun `should_clamp_FocusOlder_at_the_oldest_end`() = runTest {
         val vm = threeSessionVm()
         vm.handleIntent(ParkingLocationIntent.SetFocusedSession("oldest"))
-        vm.handleIntent(ParkingLocationIntent.FocusNext)
+        vm.handleIntent(ParkingLocationIntent.FocusOlder)
         assertEquals("oldest", vm.state.value.focusedSession?.id)
     }
 

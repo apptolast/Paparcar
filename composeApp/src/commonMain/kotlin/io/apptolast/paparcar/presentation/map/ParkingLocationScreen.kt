@@ -2,7 +2,14 @@
 
 package io.apptolast.paparcar.presentation.map
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -42,6 +49,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
@@ -63,6 +72,7 @@ import io.apptolast.paparcar.ui.components.PapSectionHeaderRow
 import io.apptolast.paparcar.ui.components.PaparcarMapConfig
 import io.apptolast.paparcar.ui.components.PaparcarMapView
 import io.apptolast.paparcar.ui.components.VehicleGlyph
+import io.apptolast.paparcar.ui.theme.PapMotion
 import io.apptolast.paparcar.ui.theme.PapShapes
 import io.apptolast.paparcar.ui.theme.PaparcarType
 import kotlinx.datetime.TimeZone
@@ -213,10 +223,10 @@ fun HistoryParkingDetailScreen(
             session = focusedSession,
             vehicle = state.focusedVehicle,
             isActive = focusedSession?.isActive == true,
-            hasPrevious = state.hasPrevious,
-            hasNext = state.hasNext,
-            onPrevious = { viewModel.handleIntent(ParkingLocationIntent.FocusPrevious) },
-            onNext = { viewModel.handleIntent(ParkingLocationIntent.FocusNext) },
+            hasOlder = state.hasOlder,
+            hasNewer = state.hasNewer,
+            onOlder = { viewModel.handleIntent(ParkingLocationIntent.FocusOlder) },
+            onNewer = { viewModel.handleIntent(ParkingLocationIntent.FocusNewer) },
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
@@ -265,17 +275,39 @@ internal fun HistoryDetailSheet(
     session: UserParking?,
     vehicle: Vehicle?,
     isActive: Boolean,
-    hasPrevious: Boolean,
-    hasNext: Boolean,
-    onPrevious: () -> Unit,
-    onNext: () -> Unit,
+    hasOlder: Boolean,
+    hasNewer: Boolean,
+    onOlder: () -> Unit,
+    onNewer: () -> Unit,
     onNavigate: (lat: Double, lon: Double) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val cs = MaterialTheme.colorScheme
 
+    // Swipe = the chevrons' gesture twin: dragging the card LEFT pulls the newer parking in from
+    // the right (same as ›), dragging RIGHT the older one (same as ‹) — the directional page-turn
+    // below plays the matching slide, so finger and motion agree. Trigger-on-release with a
+    // distance threshold; taps (CTA, chevrons) pass through untouched. rememberUpdatedState keeps
+    // the guards/callbacks fresh without restarting the gesture loop. [HISTORY-DETAIL-002]
+    val latestHasOlder by rememberUpdatedState(hasOlder)
+    val latestHasNewer by rememberUpdatedState(hasNewer)
+    val latestOnOlder by rememberUpdatedState(onOlder)
+    val latestOnNewer by rememberUpdatedState(onNewer)
+
     Surface(
-        modifier = modifier,
+        modifier = modifier.pointerInput(Unit) {
+            var dragged = 0f
+            detectHorizontalDragGestures(
+                onDragStart = { dragged = 0f },
+                onDragEnd = {
+                    val threshold = SWIPE_TRIGGER_DP.dp.toPx()
+                    when {
+                        dragged <= -threshold && latestHasNewer -> latestOnNewer()
+                        dragged >= threshold && latestHasOlder -> latestOnOlder()
+                    }
+                },
+            ) { _, dragAmount -> dragged += dragAmount }
+        },
         shape = PapShapes.sheet,
         color = cs.surfaceContainer,
         shadowElevation = SHEET_ELEVATION,
@@ -283,21 +315,23 @@ internal fun HistoryDetailSheet(
         Column(
             modifier = Modifier
                 .navigationBarsPadding()
-                .padding(horizontal = SHEET_HORIZ_PAD.dp, vertical = SHEET_VERT_PAD.dp),
+                .padding(
+                    start = SHEET_HORIZ_PAD.dp,
+                    end = SHEET_HORIZ_PAD.dp,
+                    top = SHEET_TOP_PAD.dp,
+                    bottom = SHEET_BOTTOM_PAD.dp,
+                ),
         ) {
-            DragPill(modifier = Modifier.align(Alignment.CenterHorizontally))
-
-            Spacer(Modifier.height(PILL_BOTTOM_GAP.dp))
-
             val sectionLabel = if (isActive) {
                 stringResource(Res.string.parking_detail_active_section_label)
             } else {
                 stringResource(Res.string.parking_detail_section_label)
             }
-            // Pager-style stepper: previous ‹ to the LEFT of the title, next › to the RIGHT, so the
-            // whole history reads like a paged card. Title truly centred between the chevrons and
-            // demoted to outline — it is a pager eyebrow, not this card's protagonist (the address
-            // hero below is). [HISTORY-DETAIL-001][ROUTE-QUALITY-001]
+            // Timeline stepper: the chevrons read as TIME, not list order — ‹ steps into the past
+            // (older parking), › steps toward today (newer). Opening the most recent entry leaves
+            // only ‹ active: "you can go back in time", which matches reality. Title truly centred
+            // between the chevrons and demoted to outline — it is a pager eyebrow, not this card's
+            // protagonist (the address hero below is). [HISTORY-DETAIL-002][ROUTE-QUALITY-001]
             PapSectionHeaderRow(
                 title = sectionLabel,
                 color = cs.outline,
@@ -306,29 +340,59 @@ internal fun HistoryDetailSheet(
                     StepperButton(
                         icon = Icons.Rounded.ChevronLeft,
                         contentDescription = stringResource(Res.string.parking_detail_prev),
-                        enabled = hasPrevious,
-                        onClick = onPrevious,
+                        enabled = hasOlder,
+                        onClick = onOlder,
                     )
                 },
                 trailing = {
                     StepperButton(
                         icon = Icons.Rounded.ChevronRight,
                         contentDescription = stringResource(Res.string.parking_detail_next),
-                        enabled = hasNext,
-                        onClick = onNext,
+                        enabled = hasNewer,
+                        onClick = onNewer,
                     )
                 },
             )
 
             Spacer(Modifier.height(SECTION_GAP.dp))
 
-            AddressHeroRow(session = session, vehicle = vehicle)
+            // Directional page-turn: stepping › (newer) slides the incoming parking in FROM THE
+            // RIGHT, ‹ (older) from the left — the motion itself teaches the timeline mapping
+            // (past ← → present) regardless of which convention the user expects. Transitions are
+            // keyed on the session ID (not the object) so a Firestore re-emit of the same session
+            // (late geocode, cosmetic drift) refreshes in place without re-triggering the slide
+            // [BUG-PEEK-JITTER-001]; the direction falls out of the two timestamps. The default
+            // SizeTransform clips the slide to the content box and animates height differences
+            // between entries. [HISTORY-DETAIL-002]
+            AnimatedContent(
+                targetState = session to vehicle,
+                contentKey = { (target, _) -> target?.id },
+                transitionSpec = {
+                    val toNewer = (targetState.first?.location?.timestamp ?: 0L) >
+                        (initialState.first?.location?.timestamp ?: 0L)
+                    val from = if (toNewer) 1 else -1
+                    ContentTransform(
+                        targetContentEnter = slideInHorizontally(PapMotion.emphasized()) { it * from } +
+                            fadeIn(PapMotion.emphasized()),
+                        initialContentExit = slideOutHorizontally(PapMotion.emphasized()) { -it * from } +
+                            fadeOut(PapMotion.emphasized()),
+                    )
+                },
+                label = "history_step",
+            ) { (shownSession, shownVehicle) ->
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    AddressHeroRow(session = shownSession, vehicle = shownVehicle)
 
-            if (session != null) {
-                Spacer(Modifier.height(META_ROW_GAP.dp))
-                DateTimeRow(timestampMs = session.location.timestamp, isActive = isActive)
-                Spacer(Modifier.height(META_ROW_GAP.dp))
-                DetectionRow(spotType = session.spotType, isActive = isActive)
+                    if (shownSession != null) {
+                        Spacer(Modifier.height(META_ROW_GAP.dp))
+                        DateTimeRow(
+                            timestampMs = shownSession.location.timestamp,
+                            isActive = shownSession.isActive,
+                        )
+                        Spacer(Modifier.height(META_ROW_GAP.dp))
+                        DetectionRow(spotType = shownSession.spotType, isActive = shownSession.isActive)
+                    }
+                }
             }
 
             Spacer(Modifier.height(ACTION_TOP_GAP.dp))
@@ -353,18 +417,6 @@ internal fun HistoryDetailSheet(
 // ─────────────────────────────────────────────────────────────────────────────
 // Sub-composables
 // ─────────────────────────────────────────────────────────────────────────────
-
-@Composable
-private fun DragPill(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .size(width = PILL_WIDTH.dp, height = PILL_HEIGHT.dp)
-            .background(
-                MaterialTheme.colorScheme.onSurface.copy(alpha = PILL_ALPHA),
-                CircleShape,
-            ),
-    )
-}
 
 @Composable
 private fun AddressHeroRow(session: UserParking?, vehicle: Vehicle?) {
@@ -551,21 +603,19 @@ private val BACK_BUTTON_ELEVATION = 4.dp
 
 private val SHEET_ELEVATION = 8.dp
 private const val SHEET_HORIZ_PAD = 20
-private const val SHEET_VERT_PAD = 16
-
-private const val PILL_WIDTH = 32
-private const val PILL_HEIGHT = 4
-private const val PILL_ALPHA = 0.12f
-// Tight pill→header gap: the whole eyebrow block (pill + stepper header) stays compact so the
-// parking info doesn't get pushed down the card — the address is the subject, not the chrome.
-private const val PILL_BOTTOM_GAP = 4
+// No drag pill: the sheet is a fixed card, so a pill would promise a drag that doesn't exist.
+// The header IS the top chrome — a slightly larger top inset gives it the air the pill used to
+// occupy. The bottom inset (on top of the nav-bar padding) keeps the CTA off the gesture area
+// so the card doesn't end flush against the screen edge. [HISTORY-DETAIL-002]
+private const val SHEET_TOP_PAD = 16
+private const val SHEET_BOTTOM_PAD = 20
 
 // Eyebrow→content gap: enough air under the (compact, muted) header for the address block to read
 // as the card's protagonist — the hierarchy lives in the CONTENT's breathing room, not in the
-// chrome's height. [HISTORY-DETAIL-001][ROUTE-QUALITY-001]
-private const val SECTION_GAP = 9
+// chrome's height. Rhythm sits on the 4dp grid. [HISTORY-DETAIL-002][ROUTE-QUALITY-001]
+private const val SECTION_GAP = 12
 private const val META_ROW_GAP = 10
-private const val ACTION_TOP_GAP = 30
+private const val ACTION_TOP_GAP = 24
 
 private const val HERO_GAP = 12
 // Home's lead-tile sizing (PapSheet LEAD_TILE_DP / LEAD_GLYPH_DP) so the vehicle reads the same on
@@ -577,6 +627,10 @@ private const val META_ICON_DP = 18
 private const val META_ICON_GAP = 8
 private const val META_TEXT_ALPHA = 0.70f
 private const val SECONDARY_ALPHA = 0.55f
+
+// Swipe distance that commits a page step. Comfortably above tap slop so scroll-ish micro-drags
+// never page, well below half the sheet width so the gesture stays effortless one-handed.
+private const val SWIPE_TRIGGER_DP = 64
 
 // Compact steppers (32 dp circle): they are pager chrome, not primary actions — a taller row here
 // pushes the whole card's content down and hands the eyebrow the visual hierarchy.

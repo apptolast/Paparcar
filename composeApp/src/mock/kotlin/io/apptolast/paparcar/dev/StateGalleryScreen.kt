@@ -202,23 +202,24 @@ private fun history(state: HistoryState) {
 }
 
 // History detail sheet — map-free surface, bottom-anchored like on the real screen. Showcases the
-// real detection label (auto/manual/home), the real vehicle pictogram + the prev/next stepper. [HISTORY-DETAIL-001]
+// real detection label (auto/manual/home), the real vehicle pictogram + the timeline stepper
+// (‹ older / › newer). [HISTORY-DETAIL-002]
 @Composable
 private fun parkingDetailSheet(
     session: UserParking,
     vehicle: Vehicle,
-    hasPrevious: Boolean = true,
-    hasNext: Boolean = true,
+    hasOlder: Boolean = true,
+    hasNewer: Boolean = true,
 ) {
     Box(Modifier.fillMaxSize()) {
         HistoryDetailSheet(
             session = session,
             vehicle = vehicle,
             isActive = session.isActive,
-            hasPrevious = hasPrevious,
-            hasNext = hasNext,
-            onPrevious = {},
-            onNext = {},
+            hasOlder = hasOlder,
+            hasNewer = hasNewer,
+            onOlder = {},
+            onNewer = {},
             onNavigate = { _, _ -> },
             modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(),
         )
@@ -475,18 +476,18 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     vehicle = FakeData.vehicleMoto,
                 )
             },
-            Variant("Sesión activa · sin anterior (primero)") {
+            Variant("Sesión activa · más reciente (solo ‹ activo)") {
                 parkingDetailSheet(
                     session = FakeData.activeSession.copy(spotType = SpotType.AUTO_DETECTED),
                     vehicle = FakeData.vehicleSedan,
-                    hasPrevious = false,
+                    hasNewer = false,
                 )
             },
-            Variant("Último del historial · sin siguiente") {
+            Variant("Más antiguo del historial (solo › activo)") {
                 parkingDetailSheet(
                     session = FakeData.endedSessions.last().copy(spotType = SpotType.AUTO_DETECTED),
                     vehicle = FakeData.vehicleVan,
-                    hasNext = false,
+                    hasOlder = false,
                 )
             },
         ),

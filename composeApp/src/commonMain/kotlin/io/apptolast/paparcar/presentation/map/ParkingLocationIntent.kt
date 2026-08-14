@@ -4,9 +4,9 @@ sealed class ParkingLocationIntent {
     data class OnSpotSelected(val spotId: String) : ParkingLocationIntent()
     data class SetFocusedSession(val sessionId: String) : ParkingLocationIntent()
 
-    /** Step to the more-recent history entry (in-screen stepper). [HISTORY-DETAIL-001] */
-    data object FocusPrevious : ParkingLocationIntent()
+    /** Step back in time to the OLDER history entry — the left ‹ chevron. [HISTORY-DETAIL-002] */
+    data object FocusOlder : ParkingLocationIntent()
 
-    /** Step to the older history entry (in-screen stepper). [HISTORY-DETAIL-001] */
-    data object FocusNext : ParkingLocationIntent()
+    /** Step forward in time to the NEWER history entry — the right › chevron. [HISTORY-DETAIL-002] */
+    data object FocusNewer : ParkingLocationIntent()
 }
