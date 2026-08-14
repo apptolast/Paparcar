@@ -2,6 +2,7 @@ package io.apptolast.paparcar.presentation.home
 
 import com.swmansion.kmpmaps.core.MapType
 import io.apptolast.paparcar.domain.model.GpsPoint
+import io.apptolast.paparcar.domain.model.ParkingReleaseReason
 import io.apptolast.paparcar.domain.model.SearchResult
 import io.apptolast.paparcar.domain.model.VehicleSize
 
@@ -70,12 +71,16 @@ sealed class HomeIntent {
      * Release the parking session identified by [sessionId] — the id of the card the
      * user tapped, never a ranked fallback. If no active session matches, the release
      * is a visible no-op (an inactive car's fence must not release the active car's
-     * spot). [publishSpot] = true also reports the freed plaza to the community.
-     * The release location is the session's own parking location. [VEH-ACTIVE-FENCE-001] [PEEK-ACTIONS-001]
+     * spot). The release location is the session's own parking location.
+     *
+     * [reason] says WHY the session closes and owns what follows — publishing the plaza and
+     * declaring the car active. It is required on purpose: "I'm leaving" and "this record was
+     * wrong" look identical from here, and only the first one declares which car you drive.
+     * [VEH-ACTIVE-FENCE-001] [PEEK-ACTIONS-001] [PARK-DELETE-NO-DECLARE-001]
      */
     data class ReleaseParking(
         val sessionId: String,
-        val publishSpot: Boolean = true,
+        val reason: ParkingReleaseReason,
     ) : HomeIntent()
 
     /**

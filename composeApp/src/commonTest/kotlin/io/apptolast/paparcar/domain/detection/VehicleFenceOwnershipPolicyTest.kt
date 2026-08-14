@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.domain.detection
 
+import io.apptolast.paparcar.domain.model.ParkingReleaseReason
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -143,6 +144,48 @@ class VehicleFenceOwnershipPolicyTest {
                 nominatingVehicleId = "veh-bt-active",
                 nominatingVehicleIsBtPaired = true,
                 activeVehicleId = "veh-bt-active",
+            ),
+        )
+    }
+
+    // ── [PARK-DELETE-NO-DECLARE-001] Releasing declares identity only for cars without one ──
+
+    @Test
+    fun should_declare_active_when_a_non_bt_car_departs() {
+        // The coordinator's car has no identity but the active flag — leaving in it IS the claim.
+        assertTrue(
+            VehicleFenceOwnershipPolicy.shouldDeclareActiveOnRelease(
+                reason = ParkingReleaseReason.DEPARTURE_PUBLISHED,
+                releasedVehicleIsBtPaired = false,
+            ),
+        )
+        assertTrue(
+            VehicleFenceOwnershipPolicy.shouldDeclareActiveOnRelease(
+                reason = ParkingReleaseReason.DEPARTURE_UNPUBLISHED,
+                releasedVehicleIsBtPaired = false,
+            ),
+        )
+    }
+
+    @Test
+    fun should_not_declare_active_when_the_departing_car_is_bt_paired() {
+        // Field 2026-08-14: leaving in the BT Kamiq stole the active flag (and the fences) from the
+        // Focus. The MAC already identifies the Kamiq; the flag is the Focus's only identity.
+        assertFalse(
+            VehicleFenceOwnershipPolicy.shouldDeclareActiveOnRelease(
+                reason = ParkingReleaseReason.DEPARTURE_PUBLISHED,
+                releasedVehicleIsBtPaired = true,
+            ),
+        )
+    }
+
+    @Test
+    fun should_not_declare_active_when_a_record_is_deleted() {
+        // Deleting a wrong record says the parking never happened — never who is driving.
+        assertFalse(
+            VehicleFenceOwnershipPolicy.shouldDeclareActiveOnRelease(
+                reason = ParkingReleaseReason.RECORD_DELETED,
+                releasedVehicleIsBtPaired = false,
             ),
         )
     }

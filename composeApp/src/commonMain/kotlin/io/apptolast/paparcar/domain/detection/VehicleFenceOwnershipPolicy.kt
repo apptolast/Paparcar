@@ -1,5 +1,7 @@
 package io.apptolast.paparcar.domain.detection
 
+import io.apptolast.paparcar.domain.model.ParkingReleaseReason
+
 /**
  * [VEH-ACTIVE-FENCE-001 piece 1] Pure decisions for "only the active vehicle owns an OS geofence".
  *
@@ -61,6 +63,25 @@ object VehicleFenceOwnershipPolicy {
         activeVehicleId: String?,
     ): String? =
         nominatingVehicleId.takeUnless { nominatingVehicleIsBtPaired } ?: activeVehicleId
+
+    /**
+     * Whether closing a parking session should be read as "I drive this car" and flip the active
+     * flag. [PARK-DELETE-NO-DECLARE-001]
+     *
+     * Two conditions, and the vehicle is as decisive as the motive:
+     *  1. It must be a DEPARTURE. Deleting a wrong record says the parking never happened, not who
+     *     is driving.
+     *  2. The car must NOT be Bluetooth-paired. The active flag is the identity declaration for cars
+     *     that have no other one — the same asymmetry [shouldOwnFence] and [resolveSessionVehicleId]
+     *     already encode. A BT-paired car's identity is its MAC, so declaring it active buys nothing
+     *     and COSTS the coordinator's car its only identity signal (and its fences, via the swap):
+     *     leaving in the BT Kamiq must not blind the watch on the Focus (field 2026-08-14).
+     *
+     * This vetoes only the INFERRED declaration. An explicit one — "make active" in Vehicles, "I'm
+     * driving this car" — is the user speaking and stands for any car, BT included.
+     */
+    fun shouldDeclareActiveOnRelease(reason: ParkingReleaseReason, releasedVehicleIsBtPaired: Boolean): Boolean =
+        reason.isDeparture && !releasedVehicleIsBtPaired
 }
 
 /** A vehicle that owns (or would own) a fence, paired with its session's geofenceId (== sessionId,

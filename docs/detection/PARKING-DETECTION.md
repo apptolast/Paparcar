@@ -2052,3 +2052,37 @@ Detection contract preserved: only the significant-motion NOMINATOR sleeps — g
 watching, so a real departure mid-cooldown loses only the immediacy lane. State is in-memory by
 design: the storm needs a live resident process to exist, and a process death resets both.
 Spec: `docs/backlog/det-sentry-cooldown-001.md`.
+
+### PARK-DELETE-NO-DECLARE-001 — deleting a parking record no longer declares that car active (2026-08-14)
+
+**Field report (14-08).** The user deleted the Kamiq's parking record from the edit sheet and the
+**Focus stopped being the active vehicle**. Detection cares: the active vehicle is the coordinator's
+attribution fallback (§ "Session attribution at the vehicleId lock", rule 3) and the owner of the
+registered fences (`SwapActiveVehicleFencesUseCase`) — so a stolen active flag silently moves the
+watch to a car the user isn't driving and strips the one they are.
+
+**Cause.** `HomeViewModel.releaseParking()` declared the session's vehicle active unconditionally.
+That is right for "I'm leaving in this car", but the same intent backed the edit sheet's **Delete
+record** button; its only parameter (`publishSpot`) described the consequence, not the motive, so a
+deletion was indistinguishable from a private departure.
+
+**Second half of the same bug: the car matters as much as the motive.** Even a *real* departure in
+the Kamiq shouldn't have touched the flag. The active vehicle is the identity declaration for cars
+that have **no other one** — the asymmetry `shouldOwnFence` (`activo || btPaired`) and
+`resolveSessionVehicleId` (BT nominator vetoed → falls back to the ACTIVE car, because *the
+coordinator is the active vehicle's strategy*) already encode. A BT-paired car is identified by its
+MAC, so making it active buys it nothing and costs the coordinator's car its only identity signal.
+
+**Fix.** `ParkingReleaseReason` (commonMain domain model) replaces the boolean: `publishesSpot` +
+`isDeparture` — `DEPARTURE_PUBLISHED`, `DEPARTURE_UNPUBLISHED`, `RECORD_DELETED` (publishes nothing,
+declares nothing, still removes the session's fence). The intent has no default, so a new call site
+must state its motive. The verdict itself composes motive and car in the policy that already owns
+this asymmetry: `VehicleFenceOwnershipPolicy.shouldDeclareActiveOnRelease(reason, isBtPaired) =
+reason.isDeparture && !isBtPaired`. Only the INFERRED declaration is vetoed — an explicit one ("make
+active" in Vehicles, "I'm driving this car") is the user speaking and stands for any car, BT
+included, exactly as DET-BT-OWNERSHIP-001 assumes when the active car is itself the BT nominator.
+The reason is stamped on `DetectionEvent.Released` (reusing the existing `reason` DTO column), so a
+replay can tell a deleted record from a departure the user chose not to share — both carry
+`published=false`. Doctrine: only the user declares which car they drive; a deletion says the
+parking never happened, and a BT car never needed declaring. Spec:
+`docs/backlog/park-delete-no-declare-001.md`.

@@ -6,6 +6,7 @@ import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
 import io.apptolast.paparcar.domain.model.AddressAndPlace
 import io.apptolast.paparcar.domain.model.GpsPoint
+import io.apptolast.paparcar.domain.model.ParkingReleaseReason
 import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
@@ -17,11 +18,10 @@ import kotlin.time.Clock
 /**
  * Releases the user's active parking session.
  *
- * When [publishSpot] is `true` (default), the freed parking is also published
- * to the community via a durable WorkManager job so it survives process death.
- * When `false`, only the local + remote session is cleared and no community
- * spot is reported — used by the "Just delete" path in the release dialog
- * when the user doesn't want to share. [PEEK-ACTIONS-001]
+ * [reason] says WHY the session is closing and owns the consequences: a departure that publishes
+ * reports the freed parking to the community via a durable WorkManager job so it survives process
+ * death; a departure the user keeps private, and a deleted record, only clear the local + remote
+ * session. [PEEK-ACTIONS-001] [PARK-DELETE-NO-DECLARE-001]
  *
  * Returns [Result.failure] if clearing the session fails. When publishing,
  * the spot report is enqueued first so the community spot is never lost even
@@ -37,9 +37,9 @@ class ReleaseActiveParkingSessionUseCase(
         lat: Double,
         lon: Double,
         currentSession: UserParking?,
-        publishSpot: Boolean = true,
+        reason: ParkingReleaseReason = ParkingReleaseReason.DEPARTURE_PUBLISHED,
     ): Result<Unit> {
-        if (publishSpot) {
+        if (reason.publishesSpot) {
             val spotId = currentSession?.id
                 ?: "manual_${Clock.System.now().toEpochMilliseconds()}"
             val spotType = currentSession?.spotType ?: SpotType.AUTO_DETECTED
@@ -71,13 +71,16 @@ class ReleaseActiveParkingSessionUseCase(
         val sessionId = currentSession?.id ?: return Result.success(Unit)
 
         // Release observability: who (implicit in the uid-namespaced diagnostics path), which
-        // session, and from where. Fire-and-forget — never blocks or fails the release. [VEH-ACTIVE-FENCE-001]
+        // session, from where — and WHY, so a replay can tell a departure from a deleted record
+        // instead of guessing from `published`. Fire-and-forget — never blocks or fails the
+        // release. [VEH-ACTIVE-FENCE-001] [PARK-DELETE-NO-DECLARE-001]
         val nowMs = Clock.System.now().toEpochMilliseconds()
         detectionEventLogger.log(
             DetectionEvent.Released(
                 sessionId = sessionId,
                 timestampMs = nowMs,
-                published = publishSpot,
+                published = reason.publishesSpot,
+                reason = reason,
                 location = GpsPoint(latitude = lat, longitude = lon, accuracy = 0f, timestamp = nowMs, speed = 0f),
             ),
         )

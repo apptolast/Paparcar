@@ -52,6 +52,7 @@ import io.apptolast.paparcar.domain.error.PaparcarError
 import io.apptolast.paparcar.presentation.home.model.isDetectionStopped
 import io.apptolast.paparcar.domain.model.DrivingPuck
 import io.apptolast.paparcar.domain.model.GpsPoint
+import io.apptolast.paparcar.domain.model.ParkingReleaseReason
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.displayName
 import io.apptolast.paparcar.presentation.home.sections.header.HomeHeaderSection
@@ -768,8 +769,10 @@ private fun HomeReleaseDialogHost(
     if (!visible || sessionId == null) return
     // The id came from the tapped peek. The VM resolves the session by id and derives the
     // release location from it — no coordinates or ranked fallback here. [VEH-ACTIVE-FENCE-001]
-    fun release(publishSpot: Boolean) {
-        onIntent(HomeIntent.ReleaseParking(sessionId = sessionId, publishSpot = publishSpot))
+    // Both buttons mean "I'm leaving in this car" — they differ only in whether the plaza is
+    // shared. That is why both declare the car active. [PARK-DELETE-NO-DECLARE-001]
+    fun release(reason: ParkingReleaseReason) {
+        onIntent(HomeIntent.ReleaseParking(sessionId = sessionId, reason = reason))
     }
     // Leaving re-arms detection. If this car wasn't the active one, releasing IS the declaration
     // that you drive it (the VM makes it active), so the copy says so. When detection is off or
@@ -786,8 +789,8 @@ private fun HomeReleaseDialogHost(
     HomeReleaseDialog(
         isLoading = isReleasing,
         onDismiss = { if (!isReleasing) onDismiss() },
-        onPublishSpot = { release(publishSpot = true) },
-        onDeleteOnly = { release(publishSpot = false) },
+        onPublishSpot = { release(ParkingReleaseReason.DEPARTURE_PUBLISHED) },
+        onDeleteOnly = { release(ParkingReleaseReason.DEPARTURE_UNPUBLISHED) },
         detectionNote = detectionNote,
     )
 }

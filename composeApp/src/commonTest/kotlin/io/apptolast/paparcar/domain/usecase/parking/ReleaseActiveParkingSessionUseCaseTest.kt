@@ -1,6 +1,7 @@
 package io.apptolast.paparcar.domain.usecase.parking
 
 import io.apptolast.paparcar.domain.model.GpsPoint
+import io.apptolast.paparcar.domain.model.ParkingReleaseReason
 import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.VehicleSize
@@ -16,6 +17,7 @@ import io.apptolast.paparcar.fakes.FakeUserParkingRepository
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -58,7 +60,7 @@ class ReleaseActiveParkingSessionUseCaseTest {
 
     @Test
     fun `should_log_a_Released_event_with_publish_flag_and_location`() = runTest {
-        useCase(lat = 40.5, lon = -3.6, currentSession = session(id = "sess-1"), publishSpot = true)
+        useCase(lat = 40.5, lon = -3.6, currentSession = session(id = "sess-1"), reason = ParkingReleaseReason.DEPARTURE_PUBLISHED)
 
         val released = eventLogger.events.filterIsInstance<DetectionEvent.Released>()
         assertEquals(1, released.size)
@@ -69,9 +71,20 @@ class ReleaseActiveParkingSessionUseCaseTest {
 
     @Test
     fun `should_not_log_a_Released_event_when_there_is_no_session`() = runTest {
-        useCase(lat = 40.5, lon = -3.6, currentSession = null, publishSpot = true)
+        useCase(lat = 40.5, lon = -3.6, currentSession = null, reason = ParkingReleaseReason.DEPARTURE_PUBLISHED)
 
         assertTrue(eventLogger.events.filterIsInstance<DetectionEvent.Released>().isEmpty())
+    }
+
+    @Test
+    fun `should_stamp_the_close_reason_on_the_Released_event`() = runTest {
+        // [PARK-DELETE-NO-DECLARE-001] A replay must tell a deleted record from a departure that
+        // simply chose not to share — both carry published=false.
+        useCase(lat = 40.5, lon = -3.6, currentSession = session(id = "sess-1"), reason = ParkingReleaseReason.RECORD_DELETED)
+
+        val released = eventLogger.events.filterIsInstance<DetectionEvent.Released>().single()
+        assertEquals(ParkingReleaseReason.RECORD_DELETED, released.reason)
+        assertFalse(released.published)
     }
 
     // ── [DET-AUDIT-002 T5/M4] The release must unregister the session's fence ─
@@ -85,9 +98,26 @@ class ReleaseActiveParkingSessionUseCaseTest {
 
     @Test
     fun `should_removeGeofence_alsoOnTheJustDeletePath`() = runTest {
-        useCase(40.416775, -3.703790, session(geofenceId = "geof-2"), publishSpot = false)
+        useCase(40.416775, -3.703790, session(geofenceId = "geof-2"), reason = ParkingReleaseReason.DEPARTURE_UNPUBLISHED)
 
         assertEquals(listOf("geof-2"), geofence.removedIds)
+    }
+
+    @Test
+    fun `should_removeGeofence_when_theRecordIsDeleted`() = runTest {
+        // Deleting a wrong record still has to take its fence down — the session is gone either way.
+        useCase(40.416775, -3.703790, session(geofenceId = "geof-3"), reason = ParkingReleaseReason.RECORD_DELETED)
+
+        assertEquals(listOf("geof-3"), geofence.removedIds)
+    }
+
+    // ── [PARK-DELETE-NO-DECLARE-001] Only a departure frees a plaza ──────────
+
+    @Test
+    fun `should_not_scheduleSpotReport_when_theRecordIsDeleted`() = runTest {
+        useCase(40.0, -3.0, session(), reason = ParkingReleaseReason.RECORD_DELETED)
+
+        assertEquals(0, scheduler.scheduleCallCount)
     }
 
     // ── Spot report is always enqueued ────────────────────────────────────────

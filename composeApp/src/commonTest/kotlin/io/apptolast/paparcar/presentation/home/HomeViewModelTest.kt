@@ -9,6 +9,7 @@ import io.apptolast.paparcar.domain.detection.ParkingStrategyResolver
 import io.apptolast.paparcar.domain.detection.StaticDetectionRuntimeState
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
+import io.apptolast.paparcar.domain.model.ParkingReleaseReason
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.UserParking
@@ -544,7 +545,7 @@ class HomeViewModelTest {
         parkingRepo = FakeUserParkingRepository(initialSessions = listOf(session))
         vm = buildVm()
         vm.effect.test {
-            vm.handleIntent(HomeIntent.ReleaseParking(sessionId = session.id))
+            vm.handleIntent(HomeIntent.ReleaseParking(sessionId = session.id, reason = ParkingReleaseReason.DEPARTURE_PUBLISHED))
             assertIs<HomeEffect.SpotReported>(awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
@@ -562,7 +563,7 @@ class HomeViewModelTest {
         parkingRepo = FakeUserParkingRepository(initialSessions = listOf(session))
         vm = buildVm()
         vm.handleIntent(HomeIntent.SelectItem(session.id))
-        vm.handleIntent(HomeIntent.ReleaseParking(sessionId = session.id))
+        vm.handleIntent(HomeIntent.ReleaseParking(sessionId = session.id, reason = ParkingReleaseReason.DEPARTURE_PUBLISHED))
         assertNull(vm.state.value.selectedItemId)
     }
 
@@ -882,7 +883,7 @@ class HomeViewModelTest {
         vm = buildVm()
 
         // The peek fires the tapped card's id — release targets THAT session explicitly.
-        vm.handleIntent(HomeIntent.ReleaseParking(sessionId = sessionB.id, publishSpot = false))
+        vm.handleIntent(HomeIntent.ReleaseParking(sessionId = sessionB.id, reason = ParkingReleaseReason.DEPARTURE_UNPUBLISHED))
 
         // sessionA must remain active; sessionB cleared.
         val activeAfter = vm.state.value.activeSessions.map { it.id }.toSet()
@@ -911,7 +912,7 @@ class HomeViewModelTest {
         vm = buildVm()
 
         vm.effect.test {
-            vm.handleIntent(HomeIntent.ReleaseParking(sessionId = "ghost-session", publishSpot = false))
+            vm.handleIntent(HomeIntent.ReleaseParking(sessionId = "ghost-session", reason = ParkingReleaseReason.DEPARTURE_UNPUBLISHED))
             val effect = awaitItem()
             assertIs<HomeEffect.ShowError>(effect)
             assertIs<io.apptolast.paparcar.domain.error.PaparcarError.Parking.ReleaseFailed>(effect.error)
@@ -942,10 +943,88 @@ class HomeViewModelTest {
         parkingRepo = FakeUserParkingRepository(initialSessions = listOf(session))
         vm = buildVm()
 
-        vm.handleIntent(HomeIntent.ReleaseParking(sessionId = "session-inactive", publishSpot = false))
+        vm.handleIntent(HomeIntent.ReleaseParking(sessionId = "session-inactive", reason = ParkingReleaseReason.DEPARTURE_UNPUBLISHED))
         advanceUntilIdle()
 
         assertEquals(listOf("veh-inactive"), vehicleRepo.setActiveCalls)
+    }
+
+    @Test
+    fun `should_keep_the_active_vehicle_when_the_released_car_is_bluetooth_paired`() = runTest {
+        // [PARK-DELETE-NO-DECLARE-001] [DET-BT-OWNERSHIP-001] The active flag is the identity of the
+        // car that has no other one. Leaving in the BT Kamiq (identified by its MAC) must not strip
+        // the coordinator-watched Focus of its flag — and of its fences via the swap.
+        val activeVeh = Vehicle(
+            id = "veh-focus", userId = "user-1", brand = "Ford", model = "Focus",
+            sizeCategory = io.apptolast.paparcar.domain.model.VehicleSize.MEDIUM_SUV,
+        )
+        val btVeh = Vehicle(
+            id = "veh-kamiq", userId = "user-1", brand = "Skoda", model = "Kamiq",
+            sizeCategory = io.apptolast.paparcar.domain.model.VehicleSize.MEDIUM_SUV,
+            bluetoothDeviceId = "AA:BB:CC:DD:EE:FF",
+        )
+        vehicleRepo = FakeVehicleRepository(defaultVehicle = activeVeh, extraVehicles = listOf(btVeh))
+        val session = UserParking(
+            id = "session-kamiq", userId = "user-1", vehicleId = "veh-kamiq",
+            location = location, isActive = true,
+        )
+        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(session))
+        vm = buildVm()
+        advanceUntilIdle()
+
+        vm.handleIntent(HomeIntent.ReleaseParking(sessionId = "session-kamiq", reason = ParkingReleaseReason.DEPARTURE_PUBLISHED))
+        advanceUntilIdle()
+
+        assertEquals(emptyList(), vehicleRepo.setActiveCalls)
+        assertEquals("veh-focus", vehicleRepo.observeActiveVehicle().first()?.id)
+        // The plaza is still published — only the identity claim is vetoed.
+        assertEquals(1, reportScheduler.scheduleCallCount)
+    }
+
+    // ── [PARK-DELETE-NO-DECLARE-001] Deleting a record declares nothing ───────
+
+    @Test
+    fun `should_keep_the_active_vehicle_when_deleting_another_cars_parking_record`() = runTest {
+        // Field report 14-08: deleting the Kamiq's parking record stole the active flag (and with it
+        // the geofences) from the Ford Focus. Deleting a wrong record says nothing about which car
+        // the user drives.
+        val activeVeh = Vehicle(
+            id = "veh-focus", userId = "user-1", brand = "Ford", model = "Focus",
+            sizeCategory = io.apptolast.paparcar.domain.model.VehicleSize.MEDIUM_SUV,
+        )
+        val otherVeh = Vehicle(
+            id = "veh-kamiq", userId = "user-1", brand = "Skoda", model = "Kamiq",
+            sizeCategory = io.apptolast.paparcar.domain.model.VehicleSize.MEDIUM_SUV,
+        )
+        vehicleRepo = FakeVehicleRepository(defaultVehicle = activeVeh, extraVehicles = listOf(otherVeh))
+        val session = UserParking(
+            id = "session-kamiq", userId = "user-1", vehicleId = "veh-kamiq",
+            location = location, isActive = true,
+        )
+        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(session))
+        vm = buildVm()
+
+        vm.handleIntent(HomeIntent.ReleaseParking(sessionId = "session-kamiq", reason = ParkingReleaseReason.RECORD_DELETED))
+        advanceUntilIdle()
+
+        assertEquals(emptyList(), vehicleRepo.setActiveCalls)
+        assertEquals("veh-focus", vehicleRepo.observeActiveVehicle().first()?.id)
+    }
+
+    @Test
+    fun `should_clear_the_session_without_reporting_a_spot_when_deleting_a_parking_record`() = runTest {
+        val session = UserParking(
+            id = "session-1", userId = "user-1", vehicleId = "veh-1",
+            location = location, isActive = true,
+        )
+        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(session))
+        vm = buildVm()
+
+        vm.handleIntent(HomeIntent.ReleaseParking(sessionId = "session-1", reason = ParkingReleaseReason.RECORD_DELETED))
+        advanceUntilIdle()
+
+        assertEquals(emptyList(), vm.state.value.activeSessions.map { it.id })
+        assertEquals(0, reportScheduler.scheduleCallCount)
     }
 
     // ── StartDrivingDetection — vehicle-scoped manual arming ──────────────────

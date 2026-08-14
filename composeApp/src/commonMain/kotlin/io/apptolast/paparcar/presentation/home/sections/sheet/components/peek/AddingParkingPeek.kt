@@ -15,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import io.apptolast.paparcar.domain.model.ParkingReleaseReason
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.displayName
@@ -170,7 +171,9 @@ internal fun AddingParkingPeek(
             onPrimary = {
                 confirmingDelete = false
                 deleteTarget?.let { p ->
-                    onIntent(HomeIntent.ReleaseParking(sessionId = p.id, publishSpot = false))
+                    // "This record was wrong", not "I'm leaving": it must not publish a plaza and
+                    // must not make this the car you drive. [PARK-DELETE-NO-DECLARE-001]
+                    onIntent(HomeIntent.ReleaseParking(sessionId = p.id, reason = ParkingReleaseReason.RECORD_DELETED))
                 }
                 onIntent(HomeIntent.ExitAddParkingMode)
             },

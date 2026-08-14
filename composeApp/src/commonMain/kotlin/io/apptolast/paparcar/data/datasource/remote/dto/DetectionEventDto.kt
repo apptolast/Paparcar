@@ -165,7 +165,9 @@ fun DetectionEvent.toDto(): DetectionEventDto {
         is DetectionEvent.DepartureVerdict -> base.copy(verdict = verdict, source = source, attempt = attempt, speedKmh = speedKmh, enterAgeMs = enterAgeMs)
         is DetectionEvent.DepartureProcessed -> base.copy(published = published, sessionCleared = sessionCleared)
         is DetectionEvent.Reverted -> base.copy(sessionAgeMs = sessionAgeMs)
-        is DetectionEvent.Released -> base.copy(published = published)
+        // [PARK-DELETE-NO-DECLARE-001] The close reason rides in the existing `reason` column (same
+        // one HonestClose uses) — no serializer surface change for a field that only adds provenance.
+        is DetectionEvent.Released -> base.copy(published = published, reason = reason.name)
         is DetectionEvent.OrphanCleaned -> base
         is DetectionEvent.SessionSuperseded -> base.copy(distanceMeters = distanceMeters, sessionAgeMs = ageMs)
         is DetectionEvent.GeofenceRegistration -> base.copy(success = success, radiusMeters = radiusMeters)

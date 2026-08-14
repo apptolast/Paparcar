@@ -7,6 +7,7 @@ import io.apptolast.paparcar.domain.connectivity.ConnectivityObserver
 import io.apptolast.paparcar.domain.connectivity.ConnectivityStatus
 import io.apptolast.paparcar.domain.detection.DetectionRuntimeState
 import io.apptolast.paparcar.domain.detection.ManualParkingDetection
+import io.apptolast.paparcar.domain.detection.VehicleFenceOwnershipPolicy
 import io.apptolast.paparcar.domain.diagnostics.UiLocationLogger
 import io.apptolast.paparcar.domain.diagnostics.UiLocationSample
 import io.apptolast.paparcar.domain.error.PaparcarError
@@ -17,6 +18,7 @@ import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.repository.ZoneRepository
 import io.apptolast.paparcar.domain.model.DetectionReliabilityLevel
+import io.apptolast.paparcar.domain.model.ParkingReleaseReason
 import io.apptolast.paparcar.domain.usecase.detection.ObserveDetectionReadinessUseCase
 import io.apptolast.paparcar.domain.usecase.detection.ObserveDetectionReliabilityUseCase
 import io.apptolast.paparcar.domain.detection.shouldShowParkNudgeBanner
@@ -390,7 +392,7 @@ class HomeViewModel(
             is HomeIntent.ShowParkingConfirmation -> updateState { copy(pendingParkingGps = intent.gps) }
             is HomeIntent.ConfirmDetectedParking -> confirmDetectedParking()
             is HomeIntent.DismissConfirmation -> updateState { copy(pendingParkingGps = null) }
-            is HomeIntent.ReleaseParking -> releaseParking(intent.sessionId, intent.publishSpot)
+            is HomeIntent.ReleaseParking -> releaseParking(intent.sessionId, intent.reason)
             is HomeIntent.EnterAddParkingMode -> updateState {
                 clearedModeFields().copy(
                     mode = HomeMode.AddingParking,
@@ -452,7 +454,7 @@ class HomeViewModel(
         }
     }
 
-    private fun releaseParking(sessionId: String, publishSpot: Boolean) {
+    private fun releaseParking(sessionId: String, reason: ParkingReleaseReason) {
         // Resolve the tapped card's session explicitly — no `?: userParking` fallback. With two
         // active sessions, ranking-first could release the wrong car's spot. [VEH-ACTIVE-FENCE-001]
         val target = state.value.activeSessions.firstOrNull { it.id == sessionId }
@@ -466,14 +468,24 @@ class HomeViewModel(
             // Leaving in this car IS the declaration that you drive it: declare it active (idempotent
             // when it already is) so detection + fences follow the right car. Same path as "I'm
             // driving"; the swap is handled inside DeclareActiveVehicle. [VEH-ACTIVE-FENCE-001]
+            //
+            // ...but only when the car has no identity of its own and the session really ended in a
+            // departure. Deleting a wrong record declares nothing, and a BT-paired car is already
+            // identified by its MAC — declaring it active would only strip the coordinator's car of
+            // its one identity signal. The policy owns both conditions; this obeys.
+            // [PARK-DELETE-NO-DECLARE-001] [DET-BT-OWNERSHIP-001]
             target.vehicleId?.let { vehicleId ->
-                declareActiveVehicle(vehicleId)
-                    .onFailure { e -> PaparcarLogger.w(TAG, "release: declareActiveVehicle($vehicleId) failed", e) }
+                val isBtPaired = state.value.vehicles
+                    .firstOrNull { it.id == vehicleId }?.bluetoothDeviceId != null
+                if (VehicleFenceOwnershipPolicy.shouldDeclareActiveOnRelease(reason, isBtPaired)) {
+                    declareActiveVehicle(vehicleId)
+                        .onFailure { e -> PaparcarLogger.w(TAG, "release: declareActiveVehicle($vehicleId) failed", e) }
+                }
             }
-            releaseSession(target.location.latitude, target.location.longitude, target, publishSpot)
+            releaseSession(target.location.latitude, target.location.longitude, target, reason)
                 .onSuccess {
                     updateState { copy(selectedItemId = null, isReleasingParking = false) }
-                    if (publishSpot) sendEffect(HomeEffect.SpotReported)
+                    if (reason.publishesSpot) sendEffect(HomeEffect.SpotReported)
                 }
                 .onFailure { e ->
                     updateState { copy(isReleasingParking = false) }
