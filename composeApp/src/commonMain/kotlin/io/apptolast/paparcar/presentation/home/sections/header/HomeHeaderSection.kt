@@ -66,7 +66,6 @@ internal fun HomeHeaderSection(
     onMapTypeSelected: (MapType) -> Unit,
     onSelectZone: (String) -> Unit,
     onAddZone: () -> Unit,
-    onDeleteZone: (String) -> Unit,
     onEditZone: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -111,7 +110,6 @@ internal fun HomeHeaderSection(
                     zones = slice.zones,
                     onSelectZone = onSelectZone,
                     onAddZone = onAddZone,
-                    onDeleteZone = onDeleteZone,
                     onEditZone = onEditZone,
                 )
             } else {
@@ -130,7 +128,6 @@ private fun HeaderZoneChips(
     zones: List<Zone>,
     onSelectZone: (String) -> Unit,
     onAddZone: () -> Unit,
-    onDeleteZone: (String) -> Unit,
     onEditZone: (String) -> Unit,
 ) {
     LazyRow(
@@ -147,8 +144,7 @@ private fun HeaderZoneChips(
                 label = zone.name,
                 iconKey = zone.iconKey,
                 onClick = remember(zone.id, onSelectZone) { { onSelectZone(zone.id) } },
-                onDelete = remember(zone.id, onDeleteZone) { { onDeleteZone(zone.id) } },
-                onLongPress = remember(zone.id, onEditZone) { { onEditZone(zone.id) } },
+                onEdit = remember(zone.id, onEditZone) { { onEditZone(zone.id) } },
             )
         }
         item("add_zone") {

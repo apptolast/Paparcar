@@ -325,14 +325,20 @@
     <string name="home_parking_action_move_location">Mover ubicación</string>
 
     <!-- Zonas en Home — lugares habituales -->
-    <string name="home_zone_name_placeholder">Nombre (ej. Casa, Trabajo)</string>
+    <string name="home_zone_name_placeholder">Ej. Casa, Trabajo</string>
     <string name="home_zone_save_action">Guardar zona</string>
     <string name="home_zone_private_label">Zona privada</string>
     <string name="home_zone_private_hint">La plaza no se compartirá al salir</string>
     <!-- Copy refrescada para la card de Nueva zona (diseño v1) -->
     <string name="home_zone_header_label">Nueva zona habitual</string>
     <string name="home_zone_edit_header_label">Editar zona</string>
-    <string name="home_zone_icon_section">Icono</string>
+    <string name="home_zone_helper_primary_create">Centra el mapa en tu zona habitual</string>
+    <string name="home_zone_helper_primary_edit">Mueve el mapa para recentrar la zona</string>
+    <string name="home_zone_helper_secondary">Ajusta el radio hasta que la cubra entera</string>
+    <string name="home_zone_name_dialog_title">Ponle nombre a la zona</string>
+    <string name="home_zone_name_dialog_body">Verás este nombre en su chip sobre el mapa.</string>
+    <string name="home_zone_delete_confirm_title">¿Eliminar esta zona?</string>
+    <string name="home_zone_delete_confirm_body">La zona desaparece del mapa. Tus aparcamientos y tu historial no cambian.</string>
     <string name="home_zone_radius_section">Radio</string>
     <string name="home_zone_radius_meters">%1$d m</string>
     <string name="home_header_add_zone">Añadir zona habitual</string>

@@ -226,7 +226,7 @@
     <string name="home_report_fab_cd">Vrije plek melden</string>
 
     <!-- Home Zones — vaste plekken -->
-    <string name="home_zone_name_placeholder">Naam (bv. Thuis, Werk)</string>
+    <string name="home_zone_name_placeholder">Bv. Thuis, Werk</string>
     <string name="home_zone_save_action">Zone opslaan</string>
     <string name="home_zone_private_label">Privézone</string>
     <string name="home_zone_private_hint">Plek wordt niet gedeeld als je vertrekt</string>
@@ -413,7 +413,13 @@
     <!-- AddingZonePeekRow (nieuwe vaste zone) -->
     <string name="home_zone_edit_header_label">Zone bewerken</string>
     <string name="home_zone_header_label">Nieuwe vaste zone</string>
-    <string name="home_zone_icon_section">Icoon</string>
+    <string name="home_zone_helper_primary_create">Centreer de kaart op je vaste gebied</string>
+    <string name="home_zone_helper_primary_edit">Verschuif de kaart om de zone opnieuw te centreren</string>
+    <string name="home_zone_helper_secondary">Pas de straal aan tot die het hele gebied dekt</string>
+    <string name="home_zone_name_dialog_title">Geef de zone een naam</string>
+    <string name="home_zone_name_dialog_body">Je ziet deze naam op de chip boven de kaart.</string>
+    <string name="home_zone_delete_confirm_title">Deze zone verwijderen?</string>
+    <string name="home_zone_delete_confirm_body">De zone verdwijnt van de kaart. Je parkeersessies en geschiedenis blijven ongewijzigd.</string>
     <string name="home_zone_radius_section">Straal</string>
     <string name="home_zone_radius_meters">%1$d m</string>
 

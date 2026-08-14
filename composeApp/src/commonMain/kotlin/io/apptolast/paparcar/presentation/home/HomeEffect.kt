@@ -12,8 +12,13 @@ sealed class HomeEffect {
     data object TestSpotSent : HomeEffect()
     data object RequestLocationPermission : HomeEffect()
     data object SpotSignalSent : HomeEffect()
-    /** Move the map camera to (lat, lon). Used by the zone-chip tap flow. */
-    data class MoveCameraTo(val lat: Double, val lon: Double) : HomeEffect()
+    /** Move the map camera to (lat, lon), framed for [frame]'s PURPOSE. The VM says what the
+     *  camera is for; the screen owns the zoom numbers. [UI-ZONE-MANAGE-001] */
+    data class MoveCameraTo(
+        val lat: Double,
+        val lon: Double,
+        val frame: CameraFrame = CameraFrame.Navigate,
+    ) : HomeEffect()
     data object ZoneSaved : HomeEffect()
     /** Auto-detection just re-enabled from the Home banner — confirm with a snackbar. [DET-TOGGLE-001] */
     data object DetectionEnabled : HomeEffect()
@@ -29,3 +34,12 @@ sealed class HomeEffect {
      *  page). [DET-BATTERY-EXEMPTION-NUDGE-001] */
     data object RequestBatteryOptimizationExemption : HomeEffect()
 }
+
+/**
+ * Why the camera is being moved — the screen turns each purpose into a zoom.
+ *
+ *  - [Navigate]: go look at a place (zone chip tap, recentre on GPS, search result).
+ *  - [ZoneEditing]: place or resize a zone — the whole circle must fit on screen, and a
+ *    zone's radius reaches 500 m, so the navigation zoom would crop it. [UI-ZONE-MANAGE-001]
+ */
+enum class CameraFrame { Navigate, ZoneEditing }

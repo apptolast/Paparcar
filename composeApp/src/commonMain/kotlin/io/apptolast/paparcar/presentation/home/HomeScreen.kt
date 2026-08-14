@@ -116,6 +116,14 @@ private const val MAP_INTERACTION_IDLE_DELAY_MS = 320L
 // animating to a tapped spot / "my location" / bounds fit.
 private const val PROGRAMMATIC_MOVE_GUARD_MS = 1100L
 
+// Zoom per camera PURPOSE (see CameraFrame) — the screen owns these numbers, the VM
+// only says what the move is for.
+//   · Navigate: land on a place with its street context (zone chip, search result, recentre).
+//   · ZoneEditing: a zone radius reaches 500 m, so its circle needs ~1 km of screen to read
+//     whole while it is being sized. [UI-ZONE-MANAGE-001]
+private const val NAVIGATE_ZOOM = 15f
+private const val ZONE_EDITING_ZOOM = 14f
+
 // Sheet snap geometry, transition effects and the snap spec live in
 // sections/sheet/HomeSheetPositioning.kt. [HOME-ATOMIZE-001 F2]
 
@@ -749,7 +757,11 @@ private fun HomeCameraEffects(
     LaunchedEffect(Unit) {
         effects.collect { effect ->
             if (effect is HomeEffect.MoveCameraTo) {
-                uiController.moveCamera(effect.lat, effect.lon, zoom = 15f)
+                val zoom = when (effect.frame) {
+                    CameraFrame.Navigate -> NAVIGATE_ZOOM
+                    CameraFrame.ZoneEditing -> ZONE_EDITING_ZOOM
+                }
+                uiController.moveCamera(effect.lat, effect.lon, zoom = zoom)
             }
         }
     }
@@ -820,7 +832,7 @@ private fun HomeFloatingHeader(
                 slice = slice,
                 onSearchQueryChanged = { onIntent(HomeIntent.SearchQueryChanged(it)) },
                 onSearchResultClick = { result ->
-                    uiController.moveCamera(result.lat, result.lon, zoom = 15f)
+                    uiController.moveCamera(result.lat, result.lon, zoom = NAVIGATE_ZOOM)
                     onIntent(HomeIntent.SelectSearchResult(result))
                 },
                 onSearchClear = { onIntent(HomeIntent.ClearSearch) },
@@ -834,7 +846,6 @@ private fun HomeFloatingHeader(
                         )
                     )
                 },
-                onDeleteZone = { id -> onIntent(HomeIntent.DeleteZone(id)) },
                 onEditZone = { id -> onIntent(HomeIntent.EnterEditZoneMode(id)) },
             )
         }

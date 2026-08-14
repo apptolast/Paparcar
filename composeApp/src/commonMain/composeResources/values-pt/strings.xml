@@ -226,7 +226,7 @@
     <string name="home_report_fab_cd">Reportar um lugar livre</string>
 
     <!-- Home Zones — locais habituais -->
-    <string name="home_zone_name_placeholder">Nome (ex. Casa, Trabalho)</string>
+    <string name="home_zone_name_placeholder">Ex. Casa, Trabalho</string>
     <string name="home_zone_save_action">Guardar zona</string>
     <string name="home_zone_private_label">Zona privada</string>
     <string name="home_zone_private_hint">A vaga não será partilhada quando saíres</string>
@@ -413,7 +413,13 @@
     <!-- AddingZonePeekRow (nova zona habitual) -->
     <string name="home_zone_edit_header_label">Editar zona</string>
     <string name="home_zone_header_label">Nova zona habitual</string>
-    <string name="home_zone_icon_section">Ícone</string>
+    <string name="home_zone_helper_primary_create">Centra o mapa na tua zona habitual</string>
+    <string name="home_zone_helper_primary_edit">Move o mapa para recentrar a zona</string>
+    <string name="home_zone_helper_secondary">Ajusta o raio até cobri-la toda</string>
+    <string name="home_zone_name_dialog_title">Dá um nome à zona</string>
+    <string name="home_zone_name_dialog_body">Vais ver este nome no chip dela sobre o mapa.</string>
+    <string name="home_zone_delete_confirm_title">Eliminar esta zona?</string>
+    <string name="home_zone_delete_confirm_body">A zona desaparece do mapa. Os teus estacionamentos e o histórico não mudam.</string>
     <string name="home_zone_radius_section">Raio</string>
     <string name="home_zone_radius_meters">%1$d m</string>
 

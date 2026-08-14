@@ -226,7 +226,7 @@
     <string name="home_report_fab_cd">Raporteaz&#x103; un loc liber</string>
 
     <!-- Home Zones — locuri obi&#x219;nuite -->
-    <string name="home_zone_name_placeholder">Nume (ex. Acas&#x103;, Munc&#x103;)</string>
+    <string name="home_zone_name_placeholder">Ex. Acas&#x103;, Munc&#x103;</string>
     <string name="home_zone_save_action">Salveaz&#x103; zona</string>
     <string name="home_zone_private_label">Zonă privată</string>
     <string name="home_zone_private_hint">Locul nu va fi distribuit când pleci</string>
@@ -413,7 +413,13 @@
     <!-- AddingZonePeekRow (zonă obișnuită nouă) -->
     <string name="home_zone_edit_header_label">Editare zonă</string>
     <string name="home_zone_header_label">Zonă obișnuită nouă</string>
-    <string name="home_zone_icon_section">Pictogramă</string>
+    <string name="home_zone_helper_primary_create">Centrează harta pe zona ta obișnuită</string>
+    <string name="home_zone_helper_primary_edit">Mută harta pentru a recentra zona</string>
+    <string name="home_zone_helper_secondary">Ajustează raza până acoperă toată zona</string>
+    <string name="home_zone_name_dialog_title">Dă un nume zonei</string>
+    <string name="home_zone_name_dialog_body">Vei vedea acest nume pe eticheta ei de pe hartă.</string>
+    <string name="home_zone_delete_confirm_title">Ștergi această zonă?</string>
+    <string name="home_zone_delete_confirm_body">Zona dispare de pe hartă. Parcările și istoricul tău rămân neschimbate.</string>
     <string name="home_zone_radius_section">Rază</string>
     <string name="home_zone_radius_meters">%1$d m</string>
 

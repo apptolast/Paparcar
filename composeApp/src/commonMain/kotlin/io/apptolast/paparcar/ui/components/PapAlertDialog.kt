@@ -9,6 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -79,6 +80,12 @@ enum class PapDialogAccent { Primary, Destructive }
  * @param cancelLabel non-null adds a text-only cancel as the third action.
  * @param isLoading replaces the primary label with a spinner and disables
  *                  all actions — use while an async confirm is in flight.
+ * @param content optional block between the body and the actions — the dialog's
+ *                only escape hatch, for a confirm that also CAPTURES something
+ *                (the zone name). A dialog with a form still is this molde, not
+ *                a parallel one. [UI-ZONE-MANAGE-001]
+ * @param primaryEnabled gates the primary action on that captured value (blank
+ *                       name → can't save). [isLoading] still disables everything.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -101,6 +108,8 @@ fun PapAlertDialog(
     secondaryAccent: PapDialogAccent? = null,
     cancelLabel: String? = null,
     isLoading: Boolean = false,
+    primaryEnabled: Boolean = true,
+    content: (@Composable ColumnScope.() -> Unit)? = null,
     /** Replaces the tinted [icon] hero with a custom composable (e.g. the real vehicle pictogram).
      *  When set, the hero circle uses a neutral container so a multi-colour glyph reads. [icon] is
      *  still required as the semantic fallback but is not drawn while this is non-null. */
@@ -173,6 +182,12 @@ fun PapAlertDialog(
                     textAlign = TextAlign.Center,
                 )
 
+                // ── Content (escape hatch: a confirm that captures a value) ─
+                if (content != null) {
+                    Spacer(Modifier.height(16.dp))
+                    content()
+                }
+
                 // ── Actions ───────────────────────────────────────────────
                 Spacer(Modifier.height(20.dp))
                 PrimaryAction(
@@ -182,6 +197,7 @@ fun PapAlertDialog(
                     accentColor = accentColor,
                     onAccent = onAccent,
                     isLoading = isLoading,
+                    enabled = primaryEnabled,
                 )
 
                 if (secondaryLabel != null && onSecondary != null) {
@@ -226,10 +242,11 @@ private fun PrimaryAction(
     accentColor: Color,
     onAccent: Color,
     isLoading: Boolean,
+    enabled: Boolean = true,
 ) {
     Button(
         onClick = onClick,
-        enabled = !isLoading,
+        enabled = enabled && !isLoading,
         modifier = Modifier
             .fillMaxWidth()
             .height(BUTTON_HEIGHT_DP.dp),

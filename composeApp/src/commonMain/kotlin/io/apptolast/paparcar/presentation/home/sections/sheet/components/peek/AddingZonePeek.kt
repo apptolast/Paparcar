@@ -17,6 +17,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Bookmark
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -26,10 +27,16 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
@@ -37,19 +44,30 @@ import io.apptolast.paparcar.domain.model.Zone
 import io.apptolast.paparcar.domain.model.ZoneIcon
 import io.apptolast.paparcar.presentation.home.HomeIntent
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.PapSheet
+import io.apptolast.paparcar.presentation.home.sections.sheet.components.PapSheetBanner
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.PapSheetEyebrowTone
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.PapSheetLead
 import io.apptolast.paparcar.presentation.util.zoneIconFor
+import io.apptolast.paparcar.ui.components.PapAlertDialog
 import io.apptolast.paparcar.ui.components.PapClearIconButton
+import io.apptolast.paparcar.ui.components.PapDialogAccent
 import io.apptolast.paparcar.ui.components.PapFooterButton
 import io.apptolast.paparcar.ui.components.PapFooterButtonStyle
 import io.apptolast.paparcar.ui.components.PapSectionHeader
 import io.apptolast.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.home_release_dialog_cancel
+import paparcar.composeapp.generated.resources.home_zone_action_delete
+import paparcar.composeapp.generated.resources.home_zone_delete_confirm_body
+import paparcar.composeapp.generated.resources.home_zone_delete_confirm_title
 import paparcar.composeapp.generated.resources.home_zone_edit_header_label
 import paparcar.composeapp.generated.resources.home_zone_header_label
-import paparcar.composeapp.generated.resources.home_zone_icon_section
+import paparcar.composeapp.generated.resources.home_zone_helper_primary_create
+import paparcar.composeapp.generated.resources.home_zone_helper_primary_edit
+import paparcar.composeapp.generated.resources.home_zone_helper_secondary
+import paparcar.composeapp.generated.resources.home_zone_name_dialog_body
+import paparcar.composeapp.generated.resources.home_zone_name_dialog_title
 import paparcar.composeapp.generated.resources.home_zone_name_placeholder
 import paparcar.composeapp.generated.resources.home_zone_private_hint
 import paparcar.composeapp.generated.resources.home_zone_private_label
@@ -60,6 +78,12 @@ import kotlin.math.roundToInt
 
 // ═════════════════════════════════════════════════════════════════════════════
 // AddingZonePeek — "Nueva zona habitual" (create + edit). [HOME-ATOMIZE-001 F3]
+//
+// Same anatomy as its siblings (report a spot / position a parking): a banner
+// telling you what the map is for, ONE row of choices, the settings, one filled
+// action — plus, in edit, the destructive escape behind a confirm. The name is
+// NOT here: it is the last decision, and it is asked in the confirm dialog once
+// the place and the radius are already set. [UI-ZONE-MANAGE-001]
 // ═════════════════════════════════════════════════════════════════════════════
 
 private const val ZONE_ICON_CHIP_DP = 40
@@ -72,9 +96,12 @@ internal data class ZonePeekForm(
     val iconKey: String,
     val radius: Float,
     val isPrivate: Boolean,
-    val isEditing: Boolean,
+    /** Non-null while an existing zone is being edited — it is also what "delete" acts on. */
+    val editingZoneId: String?,
     val isSaving: Boolean,
-)
+) {
+    val isEditing: Boolean get() = editingZoneId != null
+}
 
 @Composable
 internal fun AddingZonePeek(
@@ -88,26 +115,38 @@ internal fun AddingZonePeek(
     } else {
         stringResource(Res.string.home_zone_header_label)
     }
+    val helperPrimary = if (form.isEditing) {
+        stringResource(Res.string.home_zone_helper_primary_edit)
+    } else {
+        stringResource(Res.string.home_zone_helper_primary_create)
+    }
+
+    // Naming survives a failed save: the VM stays in AddingZone with the form intact,
+    // so the dialog is still up for the retry. [BUG-8]
+    var naming by remember { mutableStateOf(false) }
+    var confirmingDelete by remember { mutableStateOf(false) }
+
     PapSheet(
         lead = PapSheetLead.GenericIcon(icon = zoneIconFor(form.iconKey)),
         eyebrow = headerLabel,
         eyebrowTone = PapSheetEyebrowTone.Neutral,
         title = title,
         onDismiss = { onIntent(HomeIntent.ExitAddZoneMode) },
-        content = {
-            ZoneNameField(
-                name = form.name,
-                iconKey = form.iconKey,
-                onNameChange = { onIntent(HomeIntent.UpdateAddingZoneName(it)) },
+        banner = {
+            PapSheetBanner(
+                title = helperPrimary,
+                subtitle = stringResource(Res.string.home_zone_helper_secondary),
             )
-            Spacer(Modifier.height(12.dp))
-            PapSectionHeader(title = stringResource(Res.string.home_zone_icon_section))
-            Spacer(Modifier.height(6.dp))
+        },
+        // A row of icons IS the label — a "Icon" header above it only names what is
+        // already visible, and the space is worth more to the form. [UI-ZONE-MANAGE-001]
+        chips = {
             ZoneIconPickerRow(
                 selectedKey = form.iconKey,
                 onSelect = { onIntent(HomeIntent.UpdateAddingZoneIcon(it)) },
             )
-            Spacer(Modifier.height(14.dp))
+        },
+        content = {
             ZoneRadiusSlider(
                 radius = form.radius,
                 onRadiusChange = { onIntent(HomeIntent.SetZoneRadius(it)) },
@@ -123,44 +162,116 @@ internal fun AddingZonePeek(
             PapFooterButton(
                 label = stringResource(Res.string.home_zone_save_action),
                 leadingIcon = Icons.Rounded.Bookmark,
-                onClick = { onIntent(HomeIntent.ConfirmAddZone) },
+                onClick = { naming = true },
                 style = PapFooterButtonStyle.Filled,
-                enabled = form.name.isNotBlank() && !form.isSaving && !isCameraMoving,
+                // The pin has to be settled before the name is asked — a zone saved
+                // mid-fling lands wherever the camera happened to be.
+                enabled = !form.isSaving && !isCameraMoving,
                 isLoading = form.isSaving,
                 modifier = Modifier.fillMaxWidth(),
             )
+            if (form.isEditing) {
+                Spacer(Modifier.height(8.dp))
+                // The one sanctioned destructive red, behind a confirm — same contract as
+                // "delete record" in the parking modal. [UI-SHEET-004]
+                PapFooterButton(
+                    label = stringResource(Res.string.home_zone_action_delete),
+                    leadingIcon = Icons.Rounded.Delete,
+                    onClick = { confirmingDelete = true },
+                    style = PapFooterButtonStyle.Outlined,
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.error,
+                    enabled = !form.isSaving,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         },
     )
+
+    if (naming) {
+        ZoneNameDialog(
+            form = form,
+            onNameChange = { onIntent(HomeIntent.UpdateAddingZoneName(it)) },
+            onConfirm = { onIntent(HomeIntent.ConfirmAddZone) },
+            onDismiss = { if (!form.isSaving) naming = false },
+        )
+    }
+
+    if (confirmingDelete) {
+        PapAlertDialog(
+            onDismiss = { confirmingDelete = false },
+            accent = PapDialogAccent.Destructive,
+            icon = Icons.Rounded.Delete,
+            title = stringResource(Res.string.home_zone_delete_confirm_title),
+            body = stringResource(Res.string.home_zone_delete_confirm_body),
+            primaryLabel = stringResource(Res.string.home_zone_action_delete),
+            primaryLeadingIcon = Icons.Rounded.Delete,
+            onPrimary = {
+                confirmingDelete = false
+                // The VM closes this modal when the zone it is editing goes away.
+                form.editingZoneId?.let { onIntent(HomeIntent.DeleteZone(it)) }
+            },
+            cancelLabel = stringResource(Res.string.home_release_dialog_cancel),
+        )
+    }
 }
 
+/**
+ * The confirm step of saving a zone, which doubles as where the zone is NAMED —
+ * the last thing decided, once the place, the icon and the radius are set on the
+ * map behind it. The dialog owns the keyboard, so the sheet never has to grow a
+ * text field over the map. [UI-ZONE-MANAGE-001]
+ */
 @Composable
-private fun ZoneNameField(
-    name: String,
-    iconKey: String,
+private fun ZoneNameDialog(
+    form: ZonePeekForm,
     onNameChange: (String) -> Unit,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
 ) {
-    val focusManager = LocalFocusManager.current
-    OutlinedTextField(
-        value = name,
-        onValueChange = onNameChange,
-        placeholder = { Text(stringResource(Res.string.home_zone_name_placeholder)) },
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(
-            capitalization = KeyboardCapitalization.Sentences,
-            imeAction = ImeAction.Done,
-        ),
-        keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
-        leadingIcon = {
-            Icon(
-                imageVector = zoneIconFor(iconKey),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+    val focusRequester = remember { FocusRequester() }
+    LaunchedEffect(Unit) { focusRequester.requestFocus() }
+
+    PapAlertDialog(
+        onDismiss = onDismiss,
+        icon = zoneIconFor(form.iconKey),
+        title = stringResource(Res.string.home_zone_name_dialog_title),
+        body = stringResource(Res.string.home_zone_name_dialog_body),
+        primaryLabel = stringResource(Res.string.home_zone_save_action),
+        primaryLeadingIcon = Icons.Rounded.Bookmark,
+        onPrimary = onConfirm,
+        primaryEnabled = form.name.isNotBlank(),
+        isLoading = form.isSaving,
+        cancelLabel = stringResource(Res.string.home_release_dialog_cancel),
+        content = {
+            OutlinedTextField(
+                value = form.name,
+                onValueChange = onNameChange,
+                placeholder = { Text(stringResource(Res.string.home_zone_name_placeholder)) },
+                singleLine = true,
+                enabled = !form.isSaving,
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Sentences,
+                    imeAction = ImeAction.Done,
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = { if (form.name.isNotBlank() && !form.isSaving) onConfirm() },
+                ),
+                leadingIcon = {
+                    Icon(
+                        imageVector = zoneIconFor(form.iconKey),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                },
+                trailingIcon = if (form.name.isNotEmpty()) {
+                    { PapClearIconButton(onClick = { onNameChange("") }) }
+                } else null,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(focusRequester),
             )
         },
-        trailingIcon = if (name.isNotEmpty()) {
-            { PapClearIconButton(onClick = { onNameChange("") }) }
-        } else null,
-        modifier = Modifier.fillMaxWidth(),
     )
 }
 

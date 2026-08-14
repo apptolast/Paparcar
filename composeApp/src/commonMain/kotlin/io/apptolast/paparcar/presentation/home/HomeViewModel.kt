@@ -498,12 +498,17 @@ class HomeViewModel(
 
     private fun handleZoneIntent(intent: HomeIntent) {
         when (intent) {
-            is HomeIntent.EnterAddZoneMode -> updateState {
-                clearedModeFields().copy(
-                    mode = HomeMode.AddingZone,
-                    pinCameraLat = intent.lat,
-                    pinCameraLon = intent.lon,
-                )
+            is HomeIntent.EnterAddZoneMode -> {
+                updateState {
+                    clearedModeFields().copy(
+                        mode = HomeMode.AddingZone,
+                        pinCameraLat = intent.lat,
+                        pinCameraLon = intent.lon,
+                    )
+                }
+                // Same centre, wider frame: sizing a zone means seeing its whole circle,
+                // which the navigation zoom crops. [UI-ZONE-MANAGE-001]
+                sendEffect(HomeEffect.MoveCameraTo(intent.lat, intent.lon, CameraFrame.ZoneEditing))
             }
             is HomeIntent.ExitAddZoneMode -> updateState { clearedModeFields() }
             is HomeIntent.ConfirmAddZone -> confirmAddZone()
@@ -549,6 +554,9 @@ class HomeViewModel(
     private fun deleteZone(zoneId: String) {
         if (zoneId in state.value.deletingZoneIds) return
         updateState { copy(deletingZoneIds = deletingZoneIds + zoneId) }
+        // Deleting the zone you are editing leaves the modal editing a ghost — close it
+        // here, once, instead of asking every caller to remember. [UI-ZONE-MANAGE-001]
+        if (state.value.editingZoneId == zoneId) updateState { clearedModeFields() }
         viewModelScope.launch {
             zoneRepository.deleteZone(zoneId)
                 .onFailure { e -> sendEffect(HomeEffect.ShowError(PaparcarError.Database.WriteError(e.message ?: ""))) }
@@ -570,15 +578,16 @@ class HomeViewModel(
                 editingZoneId = zoneId,
             )
         }
-        sendEffect(HomeEffect.MoveCameraTo(zone.lat, zone.lon))
+        sendEffect(HomeEffect.MoveCameraTo(zone.lat, zone.lon, CameraFrame.ZoneEditing))
     }
 
     private fun selectZone(zoneId: String) {
         val zone = state.value.zones.find { it.id == zoneId } ?: return
         // A zone is a navigation shortcut, not a thing to "manage": fly the camera
         // there and stay in Browse so the spots at the zone are immediately visible.
-        // No selection state / management peek — edit is long-press on the chip,
-        // delete is the chip's ×. [ZONE-NOSEL-001]
+        // No selection state / management peek — managing it (icon, radius, privacy,
+        // name, delete) lives in its own modal, opened by the chip's pencil.
+        // [ZONE-NOSEL-001] [UI-ZONE-MANAGE-001]
         sendEffect(HomeEffect.MoveCameraTo(zone.lat, zone.lon))
     }
 

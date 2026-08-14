@@ -226,7 +226,7 @@
     <string name="home_report_fab_cd">Freien Stellplatz melden</string>
 
     <!-- Home Zones — gewohnte Orte -->
-    <string name="home_zone_name_placeholder">Name (z. B. Zuhause, Arbeit)</string>
+    <string name="home_zone_name_placeholder">z. B. Zuhause, Arbeit</string>
     <string name="home_zone_save_action">Zone speichern</string>
     <string name="home_zone_private_label">Private Zone</string>
     <string name="home_zone_private_hint">Platz wird beim Wegfahren nicht geteilt</string>
@@ -413,7 +413,13 @@
     <!-- AddingZonePeekRow (neue habituelle Zone) -->
     <string name="home_zone_edit_header_label">Zone bearbeiten</string>
     <string name="home_zone_header_label">Neue habituelle Zone</string>
-    <string name="home_zone_icon_section">Symbol</string>
+    <string name="home_zone_helper_primary_create">Zentriere die Karte auf dein gewohntes Gebiet</string>
+    <string name="home_zone_helper_primary_edit">Verschiebe die Karte, um die Zone neu zu zentrieren</string>
+    <string name="home_zone_helper_secondary">Passe den Radius an, bis er das ganze Gebiet abdeckt</string>
+    <string name="home_zone_name_dialog_title">Gib der Zone einen Namen</string>
+    <string name="home_zone_name_dialog_body">Diesen Namen siehst du auf ihrem Chip über der Karte.</string>
+    <string name="home_zone_delete_confirm_title">Diese Zone löschen?</string>
+    <string name="home_zone_delete_confirm_body">Die Zone verschwindet von der Karte. Deine Parkvorgänge und der Verlauf bleiben unverändert.</string>
     <string name="home_zone_radius_section">Radius</string>
     <string name="home_zone_radius_meters">%1$d m</string>
 

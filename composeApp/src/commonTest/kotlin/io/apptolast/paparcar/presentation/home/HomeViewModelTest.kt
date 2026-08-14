@@ -1162,6 +1162,85 @@ class HomeViewModelTest {
         assertEquals(true, s.addingZoneIsPrivate)
     }
 
+    // ── UI-ZONE-MANAGE-001 · zone framing + deleting the zone you are editing ──
+
+    @Test
+    fun `should_frame_the_camera_for_zone_editing_when_entering_add_zone_mode`() = runTest {
+        vm.effect.test {
+            vm.handleIntent(HomeIntent.EnterAddZoneMode(lat = 40.0, lon = -3.7))
+            val move = awaitItem()
+            assertIs<HomeEffect.MoveCameraTo>(move)
+            // A 500 m radius doesn't fit at the navigation zoom — the frame says so, the screen
+            // turns it into a number.
+            assertEquals(CameraFrame.ZoneEditing, move.frame)
+            assertEquals(40.0, move.lat)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `should_frame_the_camera_for_zone_editing_when_entering_edit_zone_mode`() = runTest {
+        zoneRepo.zones = listOf(
+            io.apptolast.paparcar.domain.model.Zone(
+                id = "z1", userId = "u1", name = "Trabajo", lat = 41.0, lon = -4.0,
+                iconKey = "work", createdAt = 0L,
+            ),
+        )
+        vm = buildVm()
+
+        vm.effect.test {
+            vm.handleIntent(HomeIntent.EnterEditZoneMode("z1"))
+            val move = awaitItem()
+            assertIs<HomeEffect.MoveCameraTo>(move)
+            assertEquals(CameraFrame.ZoneEditing, move.frame)
+            assertEquals(41.0, move.lat)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `should_leave_zone_mode_when_deleting_the_zone_being_edited`() = runTest {
+        zoneRepo.zones = listOf(
+            io.apptolast.paparcar.domain.model.Zone(
+                id = "z1", userId = "u1", name = "Casa", lat = 41.0, lon = -4.0,
+                iconKey = "home", createdAt = 0L,
+            ),
+        )
+        vm = buildVm()
+        vm.handleIntent(HomeIntent.EnterEditZoneMode("z1"))
+
+        vm.handleIntent(HomeIntent.DeleteZone("z1"))
+        advanceUntilIdle()
+
+        // The modal can't stay open editing a zone that no longer exists.
+        val s = vm.state.value
+        assertEquals(HomeMode.Browse, s.mode)
+        assertEquals(null, s.editingZoneId)
+    }
+
+    @Test
+    fun `should_stay_in_zone_mode_when_deleting_a_different_zone`() = runTest {
+        zoneRepo.zones = listOf(
+            io.apptolast.paparcar.domain.model.Zone(
+                id = "z1", userId = "u1", name = "Casa", lat = 41.0, lon = -4.0,
+                iconKey = "home", createdAt = 0L,
+            ),
+            io.apptolast.paparcar.domain.model.Zone(
+                id = "z2", userId = "u1", name = "Trabajo", lat = 41.1, lon = -4.1,
+                iconKey = "work", createdAt = 0L,
+            ),
+        )
+        vm = buildVm()
+        vm.handleIntent(HomeIntent.EnterEditZoneMode("z1"))
+
+        vm.handleIntent(HomeIntent.DeleteZone("z2"))
+        advanceUntilIdle()
+
+        val s = vm.state.value
+        assertEquals(HomeMode.AddingZone, s.mode)
+        assertEquals("z1", s.editingZoneId)
+    }
+
     @Test
     fun `should_emit_ShowError_when_confirmReportSpot_use_case_throws`() = runTest {
         reportScheduler.shouldThrow = true

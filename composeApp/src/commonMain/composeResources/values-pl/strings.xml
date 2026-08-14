@@ -230,7 +230,7 @@
     <string name="home_report_fab_cd">Zg&#x0142;o&#x015B; wolne miejsce</string>
 
     <!-- Home Zones — sta&#x0142;e miejsca -->
-    <string name="home_zone_name_placeholder">Nazwa (np. Dom, Praca)</string>
+    <string name="home_zone_name_placeholder">Np. Dom, Praca</string>
     <string name="home_zone_save_action">Zapisz stref&#x0119;</string>
     <string name="home_zone_private_label">Strefa prywatna</string>
     <string name="home_zone_private_hint">Miejsce nie zostanie udostępnione po wyjeździe</string>
@@ -417,7 +417,13 @@
     <!-- AddingZonePeekRow (nowa stała strefa) -->
     <string name="home_zone_edit_header_label">Edytuj strefę</string>
     <string name="home_zone_header_label">Nowa stała strefa</string>
-    <string name="home_zone_icon_section">Ikona</string>
+    <string name="home_zone_helper_primary_create">Wyśrodkuj mapę na swojej stałej strefie</string>
+    <string name="home_zone_helper_primary_edit">Przesuń mapę, aby wyśrodkować strefę</string>
+    <string name="home_zone_helper_secondary">Dopasuj promień, aż obejmie cały obszar</string>
+    <string name="home_zone_name_dialog_title">Nadaj nazwę strefie</string>
+    <string name="home_zone_name_dialog_body">Zobaczysz tę nazwę na jej chipie na mapie.</string>
+    <string name="home_zone_delete_confirm_title">Usunąć tę strefę?</string>
+    <string name="home_zone_delete_confirm_body">Strefa zniknie z mapy. Twoje parkowania i historia pozostaną bez zmian.</string>
     <string name="home_zone_radius_section">Promień</string>
     <string name="home_zone_radius_meters">%1$d m</string>
 

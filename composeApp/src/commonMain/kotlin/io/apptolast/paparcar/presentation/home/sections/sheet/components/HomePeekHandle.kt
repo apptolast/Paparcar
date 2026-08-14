@@ -144,7 +144,7 @@ internal fun HomePeekHandle(
                         iconKey = slice.addingZoneIconKey,
                         radius = slice.addingZoneRadius,
                         isPrivate = slice.addingZoneIsPrivate,
-                        isEditing = slice.editingZoneId != null,
+                        editingZoneId = slice.editingZoneId,
                         isSaving = slice.isSavingZone,
                     ),
                     isCameraMoving = slice.isCameraMoving,

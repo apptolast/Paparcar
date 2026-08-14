@@ -581,13 +581,29 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     ),
                 )
             },
-            // Zone form: name field + icon picker + radius slider + privacy toggle. [HOME-ATOMIZE-001 F3]
+            // Zone form: banner + icon picker + radius slider + privacy toggle. The NAME is not
+            // here — it is asked in the confirm dialog. [HOME-ATOMIZE-001 F3] [UI-ZONE-MANAGE-001]
             Variant("PapSheet · add zona (formulario)", Placement.Surface) {
                 peek(
                     HomeState(
                         mode = HomeMode.AddingZone,
                         cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
                         addingZoneName = "Casa",
+                    ),
+                )
+            },
+            // Edit mode = same form + the destructive escape (rojo, con confirmación), reached
+            // from the chip's pencil instead of the old × on the map. [UI-ZONE-MANAGE-001]
+            Variant("PapSheet · editar zona (con borrar)", Placement.Surface) {
+                peek(
+                    HomeState(
+                        mode = HomeMode.AddingZone,
+                        cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
+                        addingZoneName = "Casa",
+                        addingZoneIconKey = ZoneIcon.HOME,
+                        addingZoneRadius = 180f,
+                        addingZoneIsPrivate = true,
+                        editingZoneId = "zone-1",
                     ),
                 )
             },

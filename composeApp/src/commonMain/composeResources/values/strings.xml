@@ -286,14 +286,20 @@
     <string name="home_parking_action_move_location">Move location</string>
 
     <!-- Home Zones — habitual places -->
-    <string name="home_zone_name_placeholder">Name (e.g. Home, Work)</string>
+    <string name="home_zone_name_placeholder">e.g. Home, Work</string>
     <string name="home_zone_save_action">Save zone</string>
     <string name="home_zone_private_label">Private zone</string>
     <string name="home_zone_private_hint">Spot won\'t be shared when you leave</string>
     <!-- Refreshed copy for the new-zone peek card (v1 design) -->
     <string name="home_zone_header_label">New habitual zone</string>
     <string name="home_zone_edit_header_label">Edit zone</string>
-    <string name="home_zone_icon_section">Icon</string>
+    <string name="home_zone_helper_primary_create">Center the map on your usual area</string>
+    <string name="home_zone_helper_primary_edit">Move the map to re-center the zone</string>
+    <string name="home_zone_helper_secondary">Adjust the radius until it covers the whole area</string>
+    <string name="home_zone_name_dialog_title">Name this zone</string>
+    <string name="home_zone_name_dialog_body">You’ll see this name on its chip over the map.</string>
+    <string name="home_zone_delete_confirm_title">Delete this zone?</string>
+    <string name="home_zone_delete_confirm_body">The zone disappears from the map. Your parkings and history stay as they are.</string>
     <string name="home_zone_radius_section">Radius</string>
     <string name="home_zone_radius_meters">%1$d m</string>
     <string name="home_header_add_zone">Add habitual zone</string>

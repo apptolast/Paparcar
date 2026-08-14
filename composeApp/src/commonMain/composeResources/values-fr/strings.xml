@@ -226,7 +226,7 @@
     <string name="home_report_fab_cd">Signaler une place libre</string>
 
     <!-- Home Zones — lieux habituels -->
-    <string name="home_zone_name_placeholder">Nom (ex. Maison, Travail)</string>
+    <string name="home_zone_name_placeholder">Ex. Maison, Travail</string>
     <string name="home_zone_save_action">Enregistrer la zone</string>
     <string name="home_zone_private_label">Zone privée</string>
     <string name="home_zone_private_hint">La place ne sera pas partagée quand vous partez</string>
@@ -413,7 +413,13 @@
     <!-- AddingZonePeekRow (nouvelle zone habituelle) -->
     <string name="home_zone_edit_header_label">Modifier la zone</string>
     <string name="home_zone_header_label">Nouvelle zone habituelle</string>
-    <string name="home_zone_icon_section">Icône</string>
+    <string name="home_zone_helper_primary_create">Centre la carte sur ta zone habituelle</string>
+    <string name="home_zone_helper_primary_edit">Déplace la carte pour recentrer la zone</string>
+    <string name="home_zone_helper_secondary">Ajuste le rayon jusqu\'à la couvrir entièrement</string>
+    <string name="home_zone_name_dialog_title">Donne un nom à la zone</string>
+    <string name="home_zone_name_dialog_body">Tu verras ce nom sur sa puce au-dessus de la carte.</string>
+    <string name="home_zone_delete_confirm_title">Supprimer cette zone ?</string>
+    <string name="home_zone_delete_confirm_body">La zone disparaît de la carte. Tes stationnements et ton historique ne changent pas.</string>
     <string name="home_zone_radius_section">Rayon</string>
     <string name="home_zone_radius_meters">%1$d m</string>
 
