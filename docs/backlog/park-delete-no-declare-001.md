@@ -1,8 +1,8 @@
 # PARK-DELETE-NO-DECLARE-001 · Eliminar un registro de aparcamiento no debe declarar ese coche como activo
 
-**Estado:** 🟡 Implementado, SIN commitear · 1122 tests verdes (+9) · pendiente validar en device ·
-rama `bugfix/PARK-DELETE-NO-DECLARE-001-delete-record-keeps-active-vehicle` ·
-worktree `../Paparcar-park-delete-no-declare`
+**Estado:** ✅ Done · master `b9c3e46f` (squash, 14-08-2026) · 1122 tests verdes (+9) ·
+rama y worktree borrados · APK release `1.0.0-beta02` instalado en el Oppo (hash verificado) ·
+⏳ pendiente validar en campo
 
 ## Problema
 14-08-2026, reporte del user: **borra el aparcamiento activo del Škoda Kamiq y el Ford Focus deja de
