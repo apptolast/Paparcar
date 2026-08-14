@@ -1,6 +1,6 @@
 # UI-ZONE-MANAGE-001 · Gestionar la zona desde su modal: chip con lápiz, nombre al final, modal aligerado
 
-**Estado:** 🔵 En progreso · rama `feature/UI-ZONE-MANAGE-001-zone-chip-edit` · worktree `../Paparcar-zone-manage`
+**Estado:** ✅ Done · master `74b25b28` (ff-only, 14-08-2026, pusheado) · rama y worktree borrados
 
 ## Problema
 El chip de zona expone **borrar** (×) como única acción visible sobre el mapa: irreversible, a un
