@@ -1,5 +1,17 @@
 # Paparcar — CLAUDE.md
 
+## Cómo trabajamos — skills del proyecto (`.claude/skills/`)
+Antes de improvisar un flujo, invocar la skill que lo cubre:
+- **`nuevo-ticket`** — al empezar CUALQUIER tarea de código, al aparcar trabajo, o al mergear una
+  rama. Worktree aislado + `docs/backlog/<id>.md` + rama; cierre con rebase/squash y limpieza.
+- **`det-change`** — al tocar detección (estrategias, `Evaluate*UseCase`, config, workers,
+  geofence, mappers `UserParking`, guards DET-/LOC-/PARKING-/MAPPER-*).
+- **`field-test`** — ante un viaje real, un FP/FN o una petición de mirar diagnósticos.
+
+Reglas transversales que ninguna skill sustituye: **nunca commitear ni mergear sin permiso
+explícito de este turno**; **worktree nuevo por tarea** (las ramas NO aíslan el árbol);
+**sistemas, no parches** — el invariante se arregla en UN sitio y se barren todos sus consumidores.
+
 ## Proyecto
 Paparcar es una app KMP (Kotlin Multiplatform) de compartición de plazas de aparcamiento en tiempo real basada en comunidad. Android es la plataforma principal; iOS es target futuro. Cuando un usuario sale con el coche, la app detecta automáticamente el evento y publica la plaza recién liberada para que otros usuarios cercanos puedan encontrarla.
 
@@ -14,10 +26,12 @@ Paparcar es una app KMP (Kotlin Multiplatform) de compartición de plazas de apa
 - Backend: Firebase (GitLive KMP SDK 2.4.0) · firebase-bom 34.15.0
 - Auth: BaseLogin (librería propia, JitPack)
 - Async: Coroutines 1.11.0 + Flow · Serialization 1.11.0 · Datetime 0.8.0
-- Mapas: kmp-maps (SW Mansion) 0.9.1 — Google Maps (Android) / Apple Maps (iOS)
+- Mapas: kmp-maps (SW Mansion) 0.9.1 — ⚠️ **fork propio en mavenLocal** (PR #170 upstream)
 - Imágenes: Coil 3.5.0 + Ktor 3.5.1 (motor de red)
-- Logging: Napier 2.7.1
-- Monitoring: Firebase Crashlytics
+- Logging: Napier 2.7.1 · Monitoring: Firebase Crashlytics
+
+> El repo **no tiene `gradlew.bat`**: compilar SIEMPRE con la herramienta Bash (`./gradlew …`).
+> En PowerShell `.\gradlew` sale exit 0 **sin compilar nada**.
 
 ## Estructura
 ```
@@ -35,219 +49,178 @@ iosMain/     → (futuro) CLLocation, CMMotion, CoreBluetooth, BGTask wrappers
 
 ## Detección de aparcamiento — Dual Strategy
 
-> Reescrito 2026-07-13 tras el rediseño DET-SOLID/DET-AR-FIRST/DET-RECONCILE. El detalle vivo
-> está en `docs/detection/PARKING-DETECTION.md` y en los tickets `docs/backlog/det-*.md`.
+> Detalle vivo: `docs/detection/PARKING-DETECTION.md` (log cronológico de cada guard y por qué
+> existe) + tickets `docs/backlog/det-*.md`. Antes de tocar nada, skill **`det-change`**.
 
 **Doctrina rectora** (violarla es un bug):
-- *El evento NOMINA, solo el movimiento MEDIDO confirma.* Un EXIT de geocerca o un AR ENTER
-  solo despiertan/arman; ninguno confirma una plaza por sí mismo — hace falta conducción medida
-  en el stream (o pasos/egress inambiguos). Un evento re-entregado (Doze/OEM) nunca coloca un pin.
+- *El evento NOMINA, solo el movimiento MEDIDO confirma.* Un EXIT de geocerca o un AR ENTER solo
+  despiertan/arman; ninguno confirma una plaza por sí mismo — hace falta conducción medida en el
+  stream (o pasos/egress inambiguos). Un evento re-entregado (Doze/OEM) nunca coloca un pin.
 - *Fallo asimétrico: mejor falso negativo que falso positivo.* Ante la duda se PREGUNTA (nudge /
   prompt), nunca se planta una plaza fantasma. La fiabilidad se estampa en cada sesión.
+- *Todo trigger dispara SIEMPRE*, aunque llegue tarde, con verificación tardía. Un evento viejo
+  pierde autoridad directa (pasa al evaluador), nunca se descarta.
 
-Dos estrategias independientes, **NUNCA se mezclan** (no metas señales BT en el scoring del Coordinator):
+Dos estrategias independientes que **NUNCA se mezclan** — no metas señales BT en el scoring del
+Coordinator:
 
-### BluetoothDetectionStrategy (determinista)
-- BT disconnect del MAC emparejado → fix GPS → alejarse ≥30 m del coche → confirma (fiab alta).
-- Ligada a la MAC del coche (no al modelo): el "Toyota idéntico del vecino" es imposible.
-- Sin scoring, sin Activity Recognition. Es el nivel "automático" (ver DET-TIERS-001).
+- **BluetoothDetectionStrategy** (determinista, nivel "automático"): BT disconnect del MAC
+  emparejado → fix GPS → alejarse ≥30 m → confirma. Ligada a la MAC, no al modelo. Sin scoring ni
+  Activity Recognition.
+- **CoordinatorDetectionStrategy** (probabilístico, el "asistido"): arma con AR IN_VEHICLE ENTER
+  (AR-first, `getForegroundService`) o GEOFENCE_EXIT — la escalera `EvaluateArEnterArmUseCase` solo
+  arma si el embarque está atado al PROPIO coche (bus/taxi no arman). Confirma vía
+  `EvaluateParkingDecisionUseCase` (pasos+egress · egress cinemático por GPS · vehicle-exit+ventana),
+  todas exigiendo conducción medida; scoring HIGH por sí solo NO auto-confirma. El ancla se BLOQUEA
+  con pasos de egress o se CONGELA al final de la conducción, para que la caminata no arrastre el
+  pin. Red de seguridad: `ParkingSafetyNetWorker` + `EvaluateSafetyNetCheckUseCase` (worker 15 min +
+  sensor de movimiento) reconcilian salidas que el OS no entregó; nunca liberan por distancia sola.
 
-### CoordinatorDetectionStrategy (probabilístico) — el "asistido"
-- **Armado**: AR IN_VEHICLE ENTER (carril de decisión `getForegroundService`, AR-first, baja
-  latencia) **o** GEOFENCE_EXIT. La escalera de armado (`EvaluateArEnterArmUseCase`) solo arma si
-  el embarque está atado al PROPIO coche; bus/taxi no arman.
-- **Confirmación** (`EvaluateParkingDecisionUseCase`): pasos+egress, o egress cinemático medido
-  por GPS (contador de pasos mudo), o vehicle-exit+ventana+egress — **todas exigen conducción
-  medida**. El scoring HIGH por sí solo NO auto-confirma; evidencia débil (ENTER-only sin
-  conducción) degrada a prompt.
-- **Posición**: el ancla se BLOQUEA con pasos de egress o se CONGELA al final de la conducción
-  (`ANCHOR-LOCK`/`DET-ANCHOR-FREEZE`), de modo que la caminata del usuario no arrastra el pin.
-- **Red de seguridad** (`ParkingSafetyNetWorker` + `EvaluateSafetyNetCheckUseCase`): worker 15 min
-  + sensor de movimiento reconcilian salidas que el OS no entregó (presupuesto de pasos, conjunción
-  EXIT∧ENTER, física peatonal); nunca liberan por distancia sola.
-
-### Resolución
-`resolveStrategy(vehicle, isBluetoothEnabled)`: BT emparejado y activo → BluetoothDetectionStrategy;
-si no → CoordinatorDetectionStrategy.
-
-Ambas convergen en: **ConfirmParkingUseCase** → Room + Firestore + Geofence + Notification +
-WorkManager (geocoding). El servicio Android (`CoordinatorDetectionService`) serializa todos los
-triggers en un intake único [DET-INTAKE-001]; la DECISIÓN de cada trigger es un use case puro de
-commonMain (`EvaluateGeofenceExitUseCase`, `EvaluateArEnterArmUseCase`, …), el service solo hace
-I/O + side-effects.
+`resolveStrategy(vehicle, isBluetoothEnabled)`: BT emparejado y activo → BT; si no → Coordinator.
+Ambas convergen en **ConfirmParkingUseCase** → Room + Firestore + Geofence + Notification +
+WorkManager. `CoordinatorDetectionService` serializa todos los triggers en un intake único
+[DET-INTAKE-001] y solo hace I/O + side-effects: **la DECISIÓN vive en use cases puros de
+commonMain**. Todo pin persiste su `detectionPath` + `armEvidence` (provenance).
 
 ---
 
 ## REGLAS DE CÓDIGO OBLIGATORIAS
 
 ### ⛔ Iconos — sistema de 3 niveles
-Antes de añadir un icono, decide el nivel. Regla mental: *plumbing de UI → Material; concepto de Paparcar → vector propio.*
-- **Nivel 1 · Sistema → Material Symbols (Rounded).** Plumbing de UI: nav inferior, ajustes, buscar, cerrar/atrás, editar, chevron, calendario, filtros, capas. Familia **Rounded** (no Outlined) para casar con la tipografía redondeada (Outfit). `tint = onSurfaceVariant`.
-- **Nivel 2 · Iconos de UI → Material Symbols (Rounded) con `tint`.** Incluye POI/categorías (`Icons.Rounded.ShoppingCart`, etc.). NO creamos glifos custom. El mapeo `PlaceCategory → Icons.Rounded.*` vive en la capa de presentación (domain es Kotlin puro, sin `Icons`).
-- **Nivel 3 · Ilustración/marcadores → vector propio (relleno de marca, multicolor, NO tintar).** Hero, onboarding, empty states, marcadores, vehículos, fiabilidad.
-  - Si el SVG es VectorDrawable-compatible (solo `path`, sin dashes/filtros/text) → VectorDrawable en `composeResources/drawable/` (variante oscura con sufijo `_dark`).
-  - Si usa `stroke-dasharray`, nested-svg, filtros o texto → **dibujar en Compose Canvas** en commonMain (dash vía `PathEffect`, dark por parámetros). VectorDrawable NO soporta trazos discontinuos.
-- **Tema:** Nivel 1/2 se tintan con el color del tema; Nivel 3 trae su color (elige carpeta/variante `light`|`dark`).
+Regla mental: *plumbing de UI → Material; concepto de Paparcar → vector propio.*
+- **Nivel 1 · Sistema** → Material Symbols **Rounded** (no Outlined, para casar con Outfit): nav,
+  ajustes, buscar, cerrar/atrás, editar, chevron, calendario, filtros, capas. `tint = onSurfaceVariant`.
+- **Nivel 2 · Iconos de UI** → Material Symbols Rounded con `tint`. Incluye POI/categorías. NO
+  creamos glifos custom. El mapeo `PlaceCategory → Icons.Rounded.*` vive en presentación (domain
+  es Kotlin puro, sin `Icons`).
+- **Nivel 3 · Ilustración/marcadores** → vector propio, multicolor, **NO tintar**: hero, onboarding,
+  empty states, marcadores, vehículos, fiabilidad. SVG VectorDrawable-compatible (solo `path`) →
+  `composeResources/drawable/` con variante `_dark`. Si usa `stroke-dasharray`, nested-svg, filtros
+  o texto → **Compose Canvas** en commonMain (VectorDrawable NO soporta trazos discontinuos).
+- Nivel 1/2 se tintan con el tema; Nivel 3 trae su color.
 
 ### ⛔ Tipografía — sistema de roles (`PaparcarType`)
-La familia y el tamaño son propiedad del **ROL** del texto, no del widget. Nunca elijas fuente ni tamaño: elige rol.
-Fuente de verdad = `ui/theme/PaparcarType.kt` (18 roles). Se lee `PaparcarType.current.<rol>` (provisto en `PaparcarTheme`). Un `fontWeight`/`color` inline sobre el `Text` SÍ se permite (afinar peso/color); el rol da familia+tamaño+tracking.
-- **IDENTITY · Outfit**: `screenTitle`(=appBarTitle), `heroTitle`, `sectionTitle`(“Actividad”/“Historial”), `cardTitle`(nombre/calle), `rowTitle`(título pequeño de fila).
-- **STRUCTURE · Inter**: `sectionHeader` (**siempre vía `PapSectionHeader`**), `cta`(botones), `label`(chip/label pequeño).
-- **PROSE · Inter**: `subtitle`(16sp, subtítulos hero/onboarding), `body`, `caption`.
-- **DATA · Barlow Condensed**: `metadata` ("30 min · 75 m"), `badge`/pin ("ACTIVO", "3 LIBRES"), `sizeToken` ("MEDIANO"), `statNumber` (25sp), `distance`, `chartLabel`, `chartValue`.
-- Regla mental: *¿título? → Outfit. ¿Frase que se lee? → Inter. ¿Dato/token que se repite en filas o compite en horizontal con un nombre? → Barlow (rol DATA). ¿Dato protagonista de una card con todo el ancho para él (meta-rows del peek seleccionado)? → NO cumple la precondición DATA → Inter.* [PEEK-META-INTER-001]
-- **PROHIBIDO** en `presentation/` y `ui/components/`: (a) `fontSize`/`letterSpacing` inline en un `Text`; (b) `MaterialTheme.typography.*` — usa un rol; si falta un tamaño, añade/ajusta un rol en `PaparcarType`; (c) construir familias directamente (`rememberXxxFontFamily()`/`FontFamily(...)`) fuera de `ui/theme`. Enforced por `TypographyGuardrailTest` (Konsist). Excepciones allowlisted: canvas/`TextMeasurer` de marcadores de mapa + chrome tokenizado (bottom-nav, banner, action bar).
-- `MaterialTheme.typography.*` es solo la base MD3 del framework (definida en `Typography.kt`); la app **siempre** habla con `PaparcarType`.
+La familia y el tamaño son propiedad del **ROL**, no del widget. Nunca elijas fuente ni tamaño:
+elige rol. Fuente de verdad: `ui/theme/PaparcarType.kt` (18 roles), se lee
+`PaparcarType.current.<rol>`. `fontWeight`/`color` inline sobre el `Text` SÍ se permiten.
+- **IDENTITY · Outfit**: `screenTitle`(=appBarTitle), `heroTitle`, `sectionTitle`, `cardTitle`, `rowTitle`
+- **STRUCTURE · Inter**: `sectionHeader` (**siempre vía `PapSectionHeader`**), `cta`, `label`
+- **PROSE · Inter**: `subtitle`(16sp), `body`, `caption`
+- **DATA · Barlow Condensed**: `metadata`, `badge`, `sizeToken`, `statNumber`(25sp), `distance`, `chartLabel`, `chartValue`
+- Regla mental: *¿título? → Outfit. ¿Frase que se lee? → Inter. ¿Dato/token que se repite en filas
+  o compite en horizontal con un nombre? → Barlow. ¿Dato protagonista de una card con todo el ancho
+  para él (meta-rows del peek)? → NO cumple la precondición DATA → Inter.* [PEEK-META-INTER-001]
+- **PROHIBIDO** en `presentation/` y `ui/components/`: (a) `fontSize`/`letterSpacing` inline;
+  (b) `MaterialTheme.typography.*` — usa un rol, y si falta un tamaño añade/ajusta el rol;
+  (c) construir familias (`rememberXxxFontFamily()`/`FontFamily(...)`) fuera de `ui/theme`.
+  Enforced por `TypographyGuardrailTest` (Konsist). Allowlist: canvas/`TextMeasurer` de marcadores
+  de mapa + chrome tokenizado (bottom-nav, banner, action bar).
 
 ### ⛔ Color — identidad por MÉTODO, estado en texto [UI-COLOR-DOCTRINE-001]
-Fuente de verdad: `docs/design/COLOR-SYSTEM.md`. Los valores viven en `ui/theme/Color.kt`; el
-**significado** lo manda el doc.
+> Significado y tabla completa de tokens: **`docs/design/COLOR-SYSTEM.md`**. Valores en
+> `ui/theme/Color.kt`. Todo token nuevo exige su fila (con historia única) en el doc.
 
-> *La app es VERDE (marca). El color del NOMBRE de un coche dice CÓMO se le vigila. El estado
-> (aparcado / en ruta / sin aparcar) se ESCRIBE en `onSurface` y se anima — nunca se tiñe.*
+*La app es VERDE (marca). El color del NOMBRE de un coche dice CÓMO se le vigila. El estado
+(aparcado / en ruta / sin aparcar) se ESCRIBE en `onSurface` y se anima — nunca se tiñe.*
 
-**Los canales:**
-- 🟢 **Verde primario** = marca y acción (CTAs, links, nav, spinners) — el tema de siempre — y
-  además la identidad del vehículo con **detección activa** (Coordinator/asistida).
-- 🔵 **Azul (`papCarBlue`)** = vehículo vigilado por **Bluetooth**. `PapLiveMap` (azul mapa) queda
-  solo para elementos de mapa en movimiento: traza del viaje, punto de origen, spot en-route.
-- ⚪ **Gris** = vehículo sin vigilancia.
-- ⬛ **Estado en `onSurface`**: "APARCADO / EN RUTA / SIN APARCAR" es texto neutro; en ruta se
-  anima (pulso `rememberDrivingStatePulse` + halo radar en el color de identidad), nunca cambia de hue.
-- 🟢🟡🔴+🔵 **Spots**: rampa de frescura verde/ámbar/rojo + azul en-route; manual = badge persona
-  sobre su tier. Rampa EXCLUSIVA de la caducidad de plazas. `PapRed` NUNCA en un CTA normal.
-- 🚗 **Multicolor** = QUÉ coche es (glifo ilustrado). Jamás mezclado con estado.
-
-**Glifos de método**: BT = marca Bluetooth; detección activa = radar/geocerca (`Icons.Rounded.Radar`);
-sin vigilar = anillo hueco. El GLIFO (y borde/badge/punto) lleva el color; el nombre queda en
-`onSurface` (teñir ambos = sobreinformación). Solo donde no hay glifo (eyebrow del peek) el nombre
-viste el color y el estado queda neutro.
-
-**Un solo resolver** (`ui/theme/VehicleIdentity.kt` → `vehicleIdentityColor(watch)`): nombre, glifo,
-badge, borde (dimmed) y marcador de mapa leen TODOS ahí. El marcador de mapa usa los twins fijos
-(`PapGreenLight`/`PapBlueLight`) porque flota sobre tiles.
-
-**PROHIBIDO** en `presentation/` y `ui/components/`: (a) `colorScheme.tertiary` (retirado; zona
-privada = outline + candado); (b) teñir el estado del vehículo con un color (el estado es texto);
-(c) declarar `Color(0x…)` literal — los valores viven en `ui/theme/`. Todo token nuevo en
-`Color.kt` exige su fila (con historia única) en el doc. Enforced por `ColorGuardrailTest` (Konsist).
+- 🟢 verde = marca y acción (CTA, links, nav, spinners) + identidad de vehículo con detección activa
+- 🔵 `papCarBlue` = vehículo vigilado por Bluetooth · `PapLiveMap` solo para mapa en movimiento
+- ⚪ gris = vehículo sin vigilancia · ⬛ estado siempre en `onSurface` (animado, nunca teñido)
+- 🟢🟡🔴+🔵 spots: rampa de frescura **exclusiva** de la caducidad de plazas. `PapRed` NUNCA en un CTA
+- 🚗 multicolor = QUÉ coche es (glifo ilustrado), jamás mezclado con estado
+- El **glifo** (y borde/badge/punto) lleva el color; el nombre queda en `onSurface`. Excepción: el
+  eyebrow del peek, donde no hay glifo.
+- **Un solo resolver**: `ui/theme/VehicleIdentity.kt` → `vehicleIdentityColor(watch)`.
+- **PROHIBIDO** en `presentation/` y `ui/components/`: (a) `colorScheme.tertiary` (retirado; zona
+  privada = outline + candado); (b) teñir el estado del vehículo; (c) `Color(0x…)` literal.
+  Enforced por `ColorGuardrailTest` (Konsist).
 
 ### ⛔ Strings — NUNCA hardcoded
-- Todo texto visible al usuario va en `composeResources/values/strings.xml`
-- Usar `stringResource(Res.string.key)` en Compose
-- Convención de key: `feature_component_description`
-  - Ejemplo: `home_fab_report_spot`, `detection_parking_confirmation`
-- Idiomas soportados: EN (base), ES, IT, PT, FR + futuros P2
-- Cuando añadas un string, SIEMPRE añadirlo mínimo en EN y ES
-- Keys siempre en inglés: `spot_available` no `plaza_disponible`
+- Todo texto visible va en `composeResources/values/strings.xml` · `stringResource(Res.string.key)`
+- Key en inglés, convención `feature_component_description` (`home_fab_report_spot`)
+- **Todo string nuevo se añade a los 9 locales en la MISMA tarea**: `values` (EN base), `values-es`,
+  `-it`, `-pt`, `-fr`, `-de`, `-nl`, `-pl`, `-ro`. Si la traducción no está clara, poner el texto
+  inglés antes que omitir la key — Compose Resources **crashea** si falta en el locale activo.
 
 ### ⛔ Magic numbers — NUNCA inline
-- Las constantes van en `companion object` privado de la clase que las usa
-- Si se comparte entre 2+ clases → extraer a archivo config del módulo
-- Nombre descriptivo en UPPER_SNAKE_CASE
-- Ejemplo:
+Constantes en `companion object` privado de la clase que las usa, UPPER_SNAKE_CASE. Si la comparten
+2+ clases → fichero de config del módulo. Nunca en God Objects compartidos.
 ```kotlin
-// ✅ En GeofenceManager.kt
-private companion object {
-    const val GEOFENCE_RADIUS_METERS = 80f
-}
-
-// ✅ En CalculateParkingConfidenceUseCase.kt
-private companion object {
-    const val HIGH_CONFIDENCE_THRESHOLD = 0.75
-    const val MEDIUM_CONFIDENCE_THRESHOLD = 0.55
-}
-
-// ❌ NUNCA
-if (distance > 80f) { ... }
-if (score >= 0.75) { ... }
+private companion object { const val GEOFENCE_RADIUS_METERS = 80f }   // ✅
+if (distance > 80f) { ... }                                          // ❌
 ```
 
 ### Error handling
-- El estándar es `kotlin.Result<T>` (stdlib) — NO hay wrapper `AppResult` propio.
-- Operaciones one-shot (UseCase/repo) retornan `Result<T>` vía `runCatching`:
-```kotlin
-suspend operator fun invoke(...): Result<Unit> = runCatching { /* ... */ }
-```
-- Los `Flow` aíslan errores con `.catch { e -> ... }` para no matar el stream (la UI sigue sirviendo la cache).
-- Los errores de negocio que llegan a la UI se modelan con `PaparcarError` (sealed: `Location`, `Network`, `Database`, `Detection`, `Auth`, `Parking`, `Vehicle`) y se emiten vía `Effect.ShowError(PaparcarError)` → `when` en la pantalla → `SnackbarHost`.
+- Estándar `kotlin.Result<T>` (stdlib) — NO hay wrapper `AppResult`. One-shot vía `runCatching`.
+- Los `Flow` aíslan errores con `.catch { }` para no matar el stream (la UI sigue sirviendo cache).
+- Errores de negocio a la UI → `PaparcarError` (sealed: `Location`, `Network`, `Database`,
+  `Detection`, `Auth`, `Parking`, `Vehicle`) vía `Effect.ShowError(...)` → `when` → `SnackbarHost`.
+  Cero catch silenciosos.
 
 ### Testing
-- Toda UseCase nueva debe tener test unitario
-- Usar fakes sobre mocks: FakeAuthRepository, FakePermissionManager, FakeUserParkingRepository...
-- Naming: `should_expectedBehavior_when_condition`
+Toda UseCase nueva lleva test unitario. **Fakes sobre mocks** (`FakeAuthRepository`,
+`FakePermissionManager`, `FakeUserParkingRepository`…). Naming
+`should_expectedBehavior_when_condition`.
 
-### Commits — Conventional Commits
+### Commits y ramas — Conventional Commits
 ```
 feat(home): implement bottom sheet with nearby spots [HOME-002]
 fix(detection): geofence departure not triggering spot publish [FND-004]
 refactor(core): extract magic numbers to companion objects [FND-002]
-test(domain): add tests for ConfirmParkingUseCase [FND-007]
-chore(repo): remove build log files [FND-008]
-feat(i18n): add Italian translations [FND-001]
 ```
-
-### Ramas
-```
-feature/HOME-001-bottom-sheet
-bugfix/FND-004-geofence-departure
-refactor/FND-001-extract-strings
-experiment/UI-003-glass-ui
-chore/FND-008-repo-cleanup
-```
+Ramas: `feature/` · `bugfix/` · `refactor/` · `chore/` · `experiment/` + `<TICKET-ID>-<slug>`.
+El ID debe ser autoexplicativo. ⚠️ PS 5.1 rompe `git commit -m` con comillas → usar `-F <fichero>`.
 
 ### Cosas que NO hacer
-- No re-implementar filas "icono+título+subtítulo+trailing" a mano → `PapListItem` (fila) dentro de `PapOutlinedCard` (contenedor) + `PapIconTile` (icono en caja). Un solo esqueleto; leading/trailing son slots. [UI-LIST-ITEM-001]
-- No usar `HorizontalDivider`/`VerticalDivider` crudos en feature → `PapDivider`/`PapVerticalDivider` (fuente única, alpha en `PapBorders.HAIRLINE_DIVIDER_ALPHA`). Enforced por `DividerGuardrailTest`.
-- No usar `println` para logs → usar Logger con tag
+- No re-implementar filas "icono+título+subtítulo+trailing" → `PapListItem` dentro de
+  `PapOutlinedCard` + `PapIconTile`. Un solo esqueleto; leading/trailing son slots. [UI-LIST-ITEM-001]
+- No usar `HorizontalDivider`/`VerticalDivider` crudos → `PapDivider`/`PapVerticalDivider`
+  (alpha en `PapBorders.HAIRLINE_DIVIDER_ALPHA`). Enforced por `DividerGuardrailTest`.
+- No usar `println` para logs → Logger con tag
 - No usar wildcard imports (`import com.paparcar.*`)
 - No commitear archivos de build: logs, .kotlin/metadata, build/
-- No poner constantes en God Objects compartidos
 - No escribir strings en español en el código — EN es siempre la base
 - No mezclar señales Bluetooth dentro del Coordinator scoring
-- No crear pantallas sin sus correspondientes State/Intent/Effect sealed classes
-- No añadir pantalla/estado/flujo nuevo sin actualizar el sistema de pruebas mock (ver regla ⛔ abajo)
+- No crear pantallas sin sus State/Intent/Effect sealed classes
+- No añadir pantalla/estado/flujo nuevo sin actualizar el sistema de pruebas mock (⛔ abajo)
+- No copy al usuario con mecánica interna ni jerga inventada — causa + consecuencia + remedio
 
 ### ⛔ Sistema de pruebas mock (Dev Catalog) — mantener SIEMPRE en sync
-Existe un modo solo-mock (flavor `mock`, `src/mock/.../dev/`) para entrar a la app sin OAuth/Firebase
-y probar pantallas y estados en el dispositivo: **Dev Catalog** (launcher, `DevMainActivity` →
-`DevRoot`/`DevCatalogScreen`) con escenarios de sesión/permisos (`MockScenario` + fakes
-scenario-aware) y una **galería de estados** (`StateGalleryScreen`). Al implementar algo nuevo hay
-que actualizarlo en la MISMA tarea, o queda fuera del set probable:
-- **Pantalla nueva** → nuevo `ScreenGroup` en `StateGalleryScreen.kt` llamando a su `XxxContent(state=…)`
-  (espejar su `*Previews.kt`).
-- **Estado/variante nuevo** (loading/empty/error/modo) → añadir la variante a la galería; paridad con `*Previews.kt`.
-- **Condición que afecte routing** (sesión, permisos, onboarding, vehículo) → reflejar en `MockScenario`,
-  el fake que la lee, y un preset/control en `DevCatalogScreen.kt`.
-- Verificar `assembleMockDebug` (y no romper prod). Solo se toca `src/mock/` + fakes de `commonMain/fakes/`.
+Flavor `mock` (`src/mock/.../dev/`) para entrar sin OAuth/Firebase y probar pantallas y estados en
+device: **Dev Catalog** (`DevMainActivity` → `DevRoot`/`DevCatalogScreen`) con escenarios
+(`MockScenario` + fakes scenario-aware) y **galería de estados** (`StateGalleryScreen`). En la MISMA
+tarea, o queda fuera del set probable:
+- **Pantalla nueva** → `ScreenGroup` en `StateGalleryScreen.kt` llamando a su `XxxContent(state=…)`,
+  espejando su `*Previews.kt`.
+- **Estado/variante nuevo** (loading/empty/error/modo) → variante en la galería, paridad con `*Previews.kt`.
+- **Condición que afecte routing** (sesión, permisos, onboarding, vehículo) → `MockScenario` + el
+  fake que la lee + preset/control en `DevCatalogScreen.kt`.
+- Verificar `assembleMockDebug` sin romper prod. Solo se toca `src/mock/` + `commonMain/fakes/`.
 
 ## Modelos de datos clave
 - `Spot` — plaza comunitaria: location, type (AUTO_DETECTED/MANUAL_REPORT), status, confidence, sizeCategory, carbodyType, enRouteCount, TTL
-- `UserParking` — sesión propia: vehicleId, location, geofenceId, isActive, detectionMethod, sizeCategory, carbodyType
-- `Vehicle` — vehículo: brand, model, licensePlate?, bluetoothDeviceId?, isDefault, sizeCategory, carbodyType?
+- `UserParking` — sesión propia: vehicleId, location, geofenceId, isActive, detectionMethod, detectionPath, armEvidence, routePolyline, sizeCategory, carbodyType
+- `Vehicle` — brand, model, licensePlate?, bluetoothDeviceId?, isDefault, sizeCategory, carbodyType?
 - `UserProfile` — perfil Firebase: userId, email, displayName, photoUrl
 
 ### Categorización bidimensional de vehículos
-- `VehicleSize` (5 valores): MOTORCYCLE, MICRO_SMALL, MEDIUM_SUV, LARGE_SEDAN, VAN_HIGH — afecta longitud de la plaza y radio de geofence
-- `CarbodyType` (10 valores): HATCHBACK_SMALL, SUV_SMALL, HATCHBACK_MEDIUM, SUV_MEDIUM, SEDAN, FAMILY_LONG, SUV_LARGE, VAN_LIGHT, VAN_COMMERCIAL, PICKUP — afecta anchura, gálibo e identidad visual (icono en mapa, peek)
-- Inferencia automática `brand + model → CarbodyType` vía `VehicleCatalog.inferBodyType()` con fallback de patrones (regex `contains`) cuando no hay match exacto
-- Compatibilidad `SpotFit` (OPTIMAL / FITS / DOES_NOT_FIT / UNKNOWN) calculada con ambos ejes — ver `docs/architecture/VEHICLE-CATEGORIZATION.md`
+> Detalle: `docs/architecture/VEHICLE-CATEGORIZATION.md`
+- `VehicleSize` (5): MOTORCYCLE, MICRO_SMALL, MEDIUM_SUV, LARGE_SEDAN, VAN_HIGH — longitud de plaza y radio de geofence
+- `CarbodyType` (10): HATCHBACK_SMALL, SUV_SMALL, HATCHBACK_MEDIUM, SUV_MEDIUM, SEDAN, FAMILY_LONG, SUV_LARGE, VAN_LIGHT, VAN_COMMERCIAL, PICKUP — anchura, gálibo e identidad visual
+- Inferencia `brand + model → CarbodyType` vía `VehicleCatalog.inferBodyType()` con fallback regex
+- Compatibilidad `SpotFit` (OPTIMAL / FITS / DOES_NOT_FIT / UNKNOWN) con ambos ejes
 
 ## Navegación
 BottomNav con 3 destinos (`bottomNavItems` en `App.kt`):
-- **Home** — el AHORA: mapa, plazas libres en tiempo real, sesión activa, detección en curso
-- **Vehículos** — lo MÍO: garaje (pager por vehículo) + Historial de aparcamientos fusionado
+- **Home** — el AHORA: mapa, plazas libres, sesión activa, detección en curso
+- **Vehículos** — lo MÍO: garaje (pager) + Historial fusionado
 - **Ajustes** — configuración + salud de detección/permisos
 
 Regla editorial: si pasa AHORA → Home; si pasó o es mío-permanente → Vehículos; si configura → Ajustes.
-Futuro (post-lanzamiento, NO ahora): posible 4º tab Comunidad/Perfil (fiabilidad, contribuciones).
+Futuro (post-lanzamiento, NO ahora): posible 4º tab Comunidad/Perfil.
 
-Splash → Auth → VehicleRegistration → Onboarding → Permissions → Home
+`Splash → Auth → VehicleRegistration → Onboarding → Permissions → Home`
 
 ## i18n
-- Base: EN (siempre completo)
-- P0: ES
-- P1: IT, PT, FR
-- P2: DE, NL, PL, RO
-- Excluidos por complejidad UI: idiomas RTL (AR, HE) y glifos complejos (ZH, JA, KO, TH, HI)
+- Base EN (siempre completo) · P0 ES · P1 IT, PT, FR · P2 DE, NL, PL, RO — **los 9 se mantienen en sync**
+- Excluidos por complejidad UI: RTL (AR, HE) y glifos complejos (ZH, JA, KO, TH, HI)

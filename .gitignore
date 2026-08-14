@@ -749,7 +749,11 @@ build_log.txt
 *.klib
 GoogleService-Info.plist
 movement.sh
-.claude/
+# Config local de Claude Code — ignorada, EXCEPTO las skills del proyecto (son doctrina, no
+# config local). Ojo: debe ser `.claude/*` y no `.claude/`, porque git no desciende en un
+# directorio excluido y la negación no tendría efecto.
+.claude/*
+!.claude/skills/
 
 # Stray local junk accidentally swept by `git add -A` — never commit.
 firebase_help.txt
