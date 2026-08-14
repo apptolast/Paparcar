@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.PaddingValues
@@ -27,14 +28,11 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import io.apptolast.paparcar.presentation.util.collectAsStateLifecycleAware
@@ -64,6 +62,7 @@ import io.apptolast.paparcar.domain.model.VehicleColor
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.displayName
 import io.apptolast.paparcar.domain.model.monitoringStatus
+import io.apptolast.paparcar.ui.components.PapCollapsingTopBarScaffold
 import io.apptolast.paparcar.ui.theme.VehicleWatch
 import io.apptolast.paparcar.ui.theme.vehicleIdentityColor
 import io.apptolast.paparcar.ui.theme.watch
@@ -91,7 +90,8 @@ import paparcar.composeapp.generated.resources.vehicle_status_active_cd
 /**
  * VehiclesScreen (v1 redesign) — Vehicles + History fusionado.
  *
- *  - TopAppBar con tipografía appBarTitle (Outfit ExtraBold, headlineSmall + (-0.5)sp).
+ *  - Cabecera colapsable compartida (`PapCollapsingTopBarScaffold`): el título se retira al
+ *    scrollear y las pestañas quedan ancladas bajo la status bar. [UI-TOPBAR-COLLAPSE-001]
  *  - Tabs rediseñadas: pills custom con icono + nombre + dot si activo.
  *  - "+" trailing chip para añadir vehículo además del icon action en top bar.
  *  - Empty state con icono circular 120dp + display title + CTA grande.
@@ -136,42 +136,58 @@ internal fun VehiclesContent(
     onIntent: (VehiclesIntent) -> Unit = {},
     onShowExplainer: () -> Unit = {},
 ) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = stringResource(Res.string.my_car_title),
-                        style = PaparcarType.current.screenTitle,
-                    )
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                ),
-            )
-        },
+    val vehicles = state.vehicles
+    // El pager se iza aquí porque las pestañas viven en la cabecera (se retiran con el título) y
+    // necesitan la misma página que el pager del cuerpo. Cambiar de coche sigue siendo un swipe
+    // horizontal en cualquier punto de la página, así que la cabecera no tiene que sobrevivir.
+    val pagerState = rememberPagerState(
+        initialPage = state.selectedVehicleIndex,
+        pageCount = { vehicles.size },
+    )
+    val scope = rememberCoroutineScope()
+
+    PapCollapsingTopBarScaffold(
+        title = stringResource(Res.string.my_car_title),
         // Match Home's bottom-sheet tone so the page doesn't feel near-black.
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         snackbarHost = { SnackbarHost(snackbarHostState) },
-    ) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            when {
-                state.isLoading -> Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) { CircularProgressIndicator(color = MaterialTheme.colorScheme.primary) }
-
-                state.vehicles.isEmpty() -> EmptyVehicleState(
-                    modifier = Modifier.fillMaxSize(),
+        // La página nueva empieza arriba: la cabecera vuelve a desplegarse para que no quede un
+        // hueco donde estaba el título. [UI-TOPBAR-COLLAPSE-001]
+        expandKey = pagerState.settledPage,
+        subHeader = if (vehicles.isEmpty()) {
+            null
+        } else {
+            {
+                VehicleTabRow(
+                    vehicles = vehicles.map { it.vehicle },
+                    selectedIndex = pagerState.currentPage,
+                    onTabClick = { index ->
+                        onIntent(VehiclesIntent.SelectVehicle(index))
+                        scope.launch { pagerState.animateScrollToPage(index) }
+                    },
                     onAddVehicle = { onIntent(VehiclesIntent.AddVehicle) },
-                    onShowExplainer = onShowExplainer,
-                )
-
-                else -> VehiclesPager(
-                    state = state,
-                    onIntent = onIntent,
                 )
             }
+        },
+    ) { headerPadding ->
+        when {
+            state.isLoading -> Box(
+                modifier = Modifier.fillMaxSize().padding(headerPadding),
+                contentAlignment = Alignment.Center,
+            ) { CircularProgressIndicator(color = MaterialTheme.colorScheme.primary) }
+
+            vehicles.isEmpty() -> EmptyVehicleState(
+                modifier = Modifier.fillMaxSize().padding(headerPadding),
+                onAddVehicle = { onIntent(VehiclesIntent.AddVehicle) },
+                onShowExplainer = onShowExplainer,
+            )
+
+            else -> VehiclesPager(
+                state = state,
+                pagerState = pagerState,
+                contentPadding = headerPadding,
+                onIntent = onIntent,
+            )
         }
     }
 }
@@ -184,14 +200,11 @@ internal fun VehiclesContent(
 @Composable
 private fun VehiclesPager(
     state: VehiclesState,
+    pagerState: PagerState,
+    contentPadding: PaddingValues,
     onIntent: (VehiclesIntent) -> Unit,
 ) {
     val vehicles = state.vehicles
-    val pagerState = rememberPagerState(
-        initialPage = state.selectedVehicleIndex,
-        pageCount = { vehicles.size },
-    )
-    val scope = rememberCoroutineScope()
     // The vehicle whose set-active is awaiting confirmation. Non-null shows the consequence dialog;
     // making a car active is a declaration ("I drive this"), never a silent switch. [VEH-ACTIVE-FENCE-001]
     var pendingSetActive by remember { mutableStateOf<Vehicle?>(null) }
@@ -212,54 +225,44 @@ private fun VehiclesPager(
             .collect { page -> onIntent(VehiclesIntent.SelectVehicle(page)) }
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        VehicleTabRow(
-            vehicles = vehicles.map { it.vehicle },
-            selectedIndex = pagerState.currentPage,
-            onTabClick = { index ->
-                onIntent(VehiclesIntent.SelectVehicle(index))
-                scope.launch { pagerState.animateScrollToPage(index) }
+    HorizontalPager(
+        state = pagerState,
+        modifier = Modifier.fillMaxSize(),
+        key = { index -> vehicles.getOrElse(index) { vehicles.last() }.vehicle.id },
+    ) { page ->
+        // Defensive guard: during the recomposition where vehicles
+        // shrinks and the clamp above hasn't run yet, `page` may
+        // briefly point at an out-of-bounds index. Use the clamped
+        // page to read the slot so we never crash with IOOBE.
+        val safePage = page.coerceAtMost(vehicles.lastIndex)
+        val vehicleWithStats = vehicles[safePage]
+        // Each page reads its own vehicle's history from the cache directly.
+        // Using the shared state.historyState (derived from selectedVehicleIndex)
+        // would show the SELECTED vehicle's history on ALL visible pages during a
+        // pager slide animation, making the incoming page appear to have the wrong content.
+        val pageHistoryState = state.historyCache[vehicleWithStats.vehicle.id]
+            ?: HistoryState(isLoading = false)
+        // Carousel polish: the off-centre page eases out (alpha + scale) as you
+        // swipe, so the incoming vehicle "settles" into focus instead of a flat slide.
+        val pageOffset =
+            ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction)
+                .absoluteValue.coerceIn(0f, 1f)
+        Box(
+            modifier = Modifier.graphicsLayer {
+                alpha = PAGER_MIN_ALPHA + (1f - pageOffset) * (1f - PAGER_MIN_ALPHA)
+                val scale = PAGER_MIN_SCALE + (1f - pageOffset) * (1f - PAGER_MIN_SCALE)
+                scaleX = scale
+                scaleY = scale
             },
-            onAddVehicle = { onIntent(VehiclesIntent.AddVehicle) },
-        )
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier.weight(1f),
-            key = { index -> vehicles.getOrElse(index) { vehicles.last() }.vehicle.id },
-        ) { page ->
-            // Defensive guard: during the recomposition where vehicles
-            // shrinks and the clamp above hasn't run yet, `page` may
-            // briefly point at an out-of-bounds index. Use the clamped
-            // page to read the slot so we never crash with IOOBE.
-            val safePage = page.coerceAtMost(vehicles.lastIndex)
-            val vehicleWithStats = vehicles[safePage]
-            // Each page reads its own vehicle's history from the cache directly.
-            // Using the shared state.historyState (derived from selectedVehicleIndex)
-            // would show the SELECTED vehicle's history on ALL visible pages during a
-            // pager slide animation, making the incoming page appear to have the wrong content.
-            val pageHistoryState = state.historyCache[vehicleWithStats.vehicle.id]
-                ?: HistoryState(isLoading = false)
-            // Carousel polish: the off-centre page eases out (alpha + scale) as you
-            // swipe, so the incoming vehicle "settles" into focus instead of a flat slide.
-            val pageOffset =
-                ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction)
-                    .absoluteValue.coerceIn(0f, 1f)
-            Box(
-                modifier = Modifier.graphicsLayer {
-                    alpha = PAGER_MIN_ALPHA + (1f - pageOffset) * (1f - PAGER_MIN_ALPHA)
-                    val scale = PAGER_MIN_SCALE + (1f - pageOffset) * (1f - PAGER_MIN_SCALE)
-                    scaleX = scale
-                    scaleY = scale
-                },
-            ) {
-                VehiclePageContent(
-                    vehicleWithStats = vehicleWithStats,
-                    historyState = pageHistoryState,
-                    isSettingActive = state.settingActiveVehicleId == vehicleWithStats.vehicle.id,
-                    onRequestSetActive = { pendingSetActive = vehicleWithStats.vehicle },
-                    onIntent = onIntent,
-                )
-            }
+        ) {
+            VehiclePageContent(
+                vehicleWithStats = vehicleWithStats,
+                historyState = pageHistoryState,
+                isSettingActive = state.settingActiveVehicleId == vehicleWithStats.vehicle.id,
+                onRequestSetActive = { pendingSetActive = vehicleWithStats.vehicle },
+                contentPadding = contentPadding,
+                onIntent = onIntent,
+            )
         }
     }
 

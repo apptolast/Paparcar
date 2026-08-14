@@ -32,14 +32,11 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -60,6 +57,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.CarbodyType
 import io.apptolast.paparcar.presentation.vehicleregistration.data.VehicleCatalog
+import io.apptolast.paparcar.ui.components.PapCollapsingTopBarScaffold
 import io.apptolast.paparcar.ui.components.CarbodyInfoCard
 import io.apptolast.paparcar.ui.components.CarbodyManualPicker
 import io.apptolast.paparcar.ui.components.NonCarSizeBadge
@@ -234,29 +232,16 @@ internal fun VehicleRegistrationContent(
         else -> null
     }
 
-    Scaffold(
+    PapCollapsingTopBarScaffold(
+        title = stringResource(
+            if (isEditing) Res.string.vehicle_registration_edit_title
+            else Res.string.vehicle_registration_title,
+        ),
         containerColor = cs.surfaceContainer,
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = stringResource(
-                            if (isEditing) Res.string.vehicle_registration_edit_title
-                            else Res.string.vehicle_registration_title,
-                        ),
-                        style = PaparcarType.current.screenTitle,
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = { onIntent(VehicleRegistrationIntent.NavigateBack) }) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = null)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                    scrolledContainerColor = cs.surfaceContainer,
-                ),
-            )
+        navigationIcon = {
+            IconButton(onClick = { onIntent(VehicleRegistrationIntent.NavigateBack) }) {
+                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = null)
+            }
         },
         bottomBar = {
             VehicleRegistrationBottomBar(
@@ -271,8 +256,10 @@ internal fun VehicleRegistrationContent(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(rememberScrollState())
+                // El padding va DENTRO del scroll: el formulario arranca bajo el título y pasa por
+                // debajo de la cabecera al scrollear, no se recorta contra ella. [UI-TOPBAR-COLLAPSE-001]
+                .padding(padding),
             verticalArrangement = Arrangement.spacedBy(SECTION_SPACING),
         ) {
             Spacer(Modifier.height(CONTENT_TOP_SPACING))

@@ -57,13 +57,14 @@ internal fun VehiclePageContent(
     historyState: HistoryState,
     isSettingActive: Boolean,
     onRequestSetActive: () -> Unit,
+    contentPadding: PaddingValues,
     onIntent: (VehiclesIntent) -> Unit,
 ) {
     val vehicleId = vehicleWithStats.vehicle.id
 
     HistoryContent(
         state = historyState,
-        contentPadding = PaddingValues(0.dp),
+        contentPadding = contentPadding,
         onViewOnMap = { lat, lon, sessionId -> onIntent(VehiclesIntent.ViewOnMap(lat, lon, sessionId)) },
         onFilterSelected = { filter -> onIntent(VehiclesIntent.SetHistoryFilter(filter)) },
         modifier = Modifier.fillMaxSize(),

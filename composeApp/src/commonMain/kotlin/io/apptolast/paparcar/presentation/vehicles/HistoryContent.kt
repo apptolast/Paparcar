@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -33,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.presentation.vehicles.components.ActiveSectionHeader
@@ -154,13 +157,20 @@ internal fun HistoryContent(
             buildTimeline(allEnded, todayLabel, yesterdayLabel, monthNamesShort, dayFullLabels)
         }
 
-    Box(modifier = modifier.padding(contentPadding)) {
+    val layoutDirection = LocalLayoutDirection.current
+    // El padding del llamante entra como padding de CONTENIDO, no de layout: así la lista arranca
+    // bajo la cabecera pero puede pasar por debajo de ella al scrollear. [UI-TOPBAR-COLLAPSE-001]
+    val listPadding = PaddingValues(
+        top = contentPadding.calculateTopPadding() + if (header != null) 0.dp else LIST_V_PADDING,
+        bottom = contentPadding.calculateBottomPadding() + LIST_V_PADDING,
+        start = contentPadding.calculateStartPadding(layoutDirection),
+        end = contentPadding.calculateEndPadding(layoutDirection),
+    )
+
+    Box(modifier = modifier) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(
-                top = if (header != null) 0.dp else 8.dp,
-                bottom = 8.dp,
-            ),
+            contentPadding = listPadding,
         ) {
             if (state.isLoading) {
                 if (header != null) item(key = "header") { header() }
@@ -172,7 +182,14 @@ internal fun HistoryContent(
                     // Un único item a viewport completo: la hero card arriba y el bloque vacío
                     // centrado en el hueco restante con weight(1f), así queda encuadrado en el
                     // centro del espacio bajo la card (no del viewport entero). [empty-records]
-                    Column(modifier = Modifier.fillParentMaxSize()) {
+                    // fillParentMaxSize mide el viewport ENTERO (ignora el contentPadding), así que
+                    // se le descuenta la cabecera: si no, el bloque vacío quedaría medio hueco de
+                    // cabecera por debajo del centro real. [UI-TOPBAR-COLLAPSE-001]
+                    Column(
+                        modifier = Modifier
+                            .fillParentMaxSize()
+                            .padding(bottom = listPadding.calculateTopPadding()),
+                    ) {
                         header?.invoke()
                         Box(
                             modifier = Modifier.fillMaxWidth().weight(1f),
@@ -360,6 +377,9 @@ private const val SKELETON_ANIM_MS = PapMotion.Breathe
 private const val SKELETON_FILTER_COUNT = 4
 private const val SKELETON_ROW_COUNT = 3
 private const val SKELETON_ALPHA_MIN = 0.06f
+/** Holgura vertical de la lista con sus extremos. */
+private val LIST_V_PADDING = 8.dp
+
 private const val SKELETON_ALPHA_MAX = 0.18f
 private const val SKELETON_CHIP_ALPHA_FACTOR = 0.85f
 private const val SKELETON_HEADER_ALPHA_FACTOR = 0.7f

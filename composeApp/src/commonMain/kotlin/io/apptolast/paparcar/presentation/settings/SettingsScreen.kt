@@ -19,6 +19,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -56,7 +58,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -64,8 +65,6 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -80,8 +79,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -92,6 +91,7 @@ import io.apptolast.paparcar.domain.preferences.ThemeMode
 import io.apptolast.paparcar.presentation.permissions.PermissionsFocus
 import io.apptolast.paparcar.presentation.util.collectAsStateLifecycleAware
 import io.apptolast.paparcar.ui.components.PapAlertDialog
+import io.apptolast.paparcar.ui.components.PapCollapsingTopBarScaffold
 import io.apptolast.paparcar.ui.components.PapDialogAccent
 import io.apptolast.paparcar.ui.components.PapDivider
 import io.apptolast.paparcar.ui.components.PapIconTile
@@ -270,34 +270,24 @@ internal fun SettingsContent(
         )
     }
 
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val layoutDirection = LocalLayoutDirection.current
 
-    Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = stringResource(Res.string.settings_title),
-                        style = PaparcarType.current.screenTitle,
-                    )
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ),
-                scrollBehavior = scrollBehavior,
-            )
-        },
+    PapCollapsingTopBarScaffold(
+        title = stringResource(Res.string.settings_title),
         snackbarHost = { SnackbarHost(snackbarHostState) },
         // Match Home's bottom-sheet tone so the page doesn't feel near-black.
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
-    ) { innerPadding ->
+    ) { headerPadding ->
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            modifier = Modifier.fillMaxSize(),
+            // Padding de CONTENIDO (no del layout): la primera tarjeta arranca bajo el título y el
+            // resto pasa por debajo de la status bar al scrollear. [UI-TOPBAR-COLLAPSE-001]
+            contentPadding = PaddingValues(
+                top = headerPadding.calculateTopPadding() + CONTENT_V_PADDING,
+                bottom = headerPadding.calculateBottomPadding() + CONTENT_V_PADDING,
+                start = headerPadding.calculateStartPadding(layoutDirection) + CONTENT_H_PADDING,
+                end = headerPadding.calculateEndPadding(layoutDirection) + CONTENT_H_PADDING,
+            ),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             // ── 1 · Account (no section header — the card speaks for itself) ─
@@ -1114,6 +1104,10 @@ private fun settingsSubtitleColor(): Color =
 // ─────────────────────────────────────────────────────────────────────────────
 // Tokens
 // ─────────────────────────────────────────────────────────────────────────────
+
+/** Holgura del contenido con el borde de pantalla y con la cabecera/borde inferior. */
+private val CONTENT_H_PADDING = 16.dp
+private val CONTENT_V_PADDING = 8.dp
 
 private const val AVATAR_DP = 56
 

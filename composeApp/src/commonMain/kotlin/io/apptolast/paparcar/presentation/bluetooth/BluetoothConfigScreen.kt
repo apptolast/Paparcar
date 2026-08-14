@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.presentation.bluetooth
 
+import io.apptolast.paparcar.ui.components.PapCollapsingTopBarScaffold
 import io.apptolast.paparcar.ui.components.PapListItem
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,13 +30,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -45,7 +43,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -126,30 +123,16 @@ internal fun BluetoothConfigContent(
 ) {
     val cs = MaterialTheme.colorScheme
 
-    Scaffold(
+    PapCollapsingTopBarScaffold(
+        title = stringResource(Res.string.bt_config_title),
         containerColor = cs.surfaceContainer,
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = stringResource(Res.string.bt_config_title),
-                        style = PaparcarType.current.cardTitle,
-                        fontWeight = FontWeight.Bold,
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = { onIntent(BluetoothConfigIntent.NavigateBack) }) {
-                        Icon(
-                            Icons.AutoMirrored.Rounded.ArrowBack,
-                            contentDescription = stringResource(Res.string.bt_config_cd_back),
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                    scrolledContainerColor = cs.surfaceContainer,
-                ),
-            )
+        navigationIcon = {
+            IconButton(onClick = { onIntent(BluetoothConfigIntent.NavigateBack) }) {
+                Icon(
+                    Icons.AutoMirrored.Rounded.ArrowBack,
+                    contentDescription = stringResource(Res.string.bt_config_cd_back),
+                )
+            }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
@@ -193,10 +176,14 @@ internal fun BluetoothConfigContent(
             else -> LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(padding)
                     .padding(horizontal = SCREEN_H_PADDING),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(vertical = 12.dp),
+                // Padding de contenido: la lista arranca bajo el título y pasa por debajo de la
+                // cabecera al scrollear, en vez de recortarse contra ella. [UI-TOPBAR-COLLAPSE-001]
+                contentPadding = PaddingValues(
+                    top = padding.calculateTopPadding() + LIST_V_PADDING,
+                    bottom = padding.calculateBottomPadding() + LIST_V_PADDING,
+                ),
             ) {
                 item {
                     Text(
@@ -337,6 +324,7 @@ private fun BluetoothDeviceInfo.typeLabel(): String = when (type) {
 // ── Layout tokens ─────────────────────────────────────────────────────────────
 
 private val SCREEN_H_PADDING            = 16.dp
+private val LIST_V_PADDING              = 12.dp
 private val BOTTOM_BAR_SHADOW_ELEVATION = 8.dp
 private val BT_OFF_ICON_SIZE            = 64.dp
 private const val BT_STATE_ICON_ALPHA   = 0.4f
