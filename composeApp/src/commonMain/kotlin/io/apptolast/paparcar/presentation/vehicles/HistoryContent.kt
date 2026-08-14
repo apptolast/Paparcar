@@ -26,12 +26,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,8 +46,10 @@ import io.apptolast.paparcar.presentation.vehicles.components.EmptyHistoryState
 import io.apptolast.paparcar.presentation.vehicles.components.EndedSessionTimelineNode
 import io.apptolast.paparcar.presentation.vehicles.components.HistoryFilterBar
 import io.apptolast.paparcar.presentation.vehicles.components.ActivityCard
+import io.apptolast.paparcar.ui.components.PapScrollToTopButton
 import io.apptolast.paparcar.ui.theme.PapMotion
 import io.apptolast.paparcar.ui.theme.PaparcarType
+import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.number
@@ -132,6 +136,7 @@ internal fun HistoryContent(
     onFilterSelected: (HistoryFilter) -> Unit = {},
     modifier: Modifier = Modifier,
     header: (@Composable () -> Unit)? = null,
+    onScrolledToTop: () -> Unit = {},
 ) {
     val todayLabel = stringResource(Res.string.history_today)
     val yesterdayLabel = stringResource(Res.string.history_yesterday)
@@ -167,8 +172,12 @@ internal fun HistoryContent(
         end = contentPadding.calculateEndPadding(layoutDirection),
     )
 
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+
     Box(modifier = modifier) {
         LazyColumn(
+            state = listState,
             modifier = Modifier.fillMaxSize(),
             contentPadding = listPadding,
         ) {
@@ -289,6 +298,15 @@ internal fun HistoryContent(
                 }
             }
         }
+
+        PapScrollToTopButton(
+            listState = listState,
+            bottomPadding = contentPadding.calculateBottomPadding(),
+            onClick = {
+                scope.launch { listState.animateScrollToItem(0) }
+                onScrolledToTop()
+            },
+        )
     }
 }
 

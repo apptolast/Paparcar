@@ -625,4 +625,5 @@
     <string name="vehicle_status_active">Ativo</string>
     <string name="vehicle_status_active_cd">Deteção ativa</string>
     <string name="vehicle_status_inactive_cd">Deteção desativada</string>
+    <string name="common_scroll_to_top_cd">Voltar ao início</string>
 </resources>

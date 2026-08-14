@@ -631,4 +631,5 @@
     <string name="vehicle_status_active">Aktywny</string>
     <string name="vehicle_status_active_cd">Wykrywanie aktywne</string>
     <string name="vehicle_status_inactive_cd">Wykrywanie wyłączone</string>
+    <string name="common_scroll_to_top_cd">Do góry</string>
 </resources>

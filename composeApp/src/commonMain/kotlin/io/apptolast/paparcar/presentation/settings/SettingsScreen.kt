@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -69,8 +70,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -98,6 +101,7 @@ import io.apptolast.paparcar.ui.components.PapIconTile
 import io.apptolast.paparcar.ui.components.PapListItem
 import io.apptolast.paparcar.ui.components.PapOutlinedCard
 import io.apptolast.paparcar.ui.components.PapSectionHeader
+import io.apptolast.paparcar.ui.components.PapScrollToTopButton
 import io.apptolast.paparcar.ui.theme.PapBorders
 import io.apptolast.paparcar.ui.theme.PapCardLight
 import io.apptolast.paparcar.ui.theme.PapInk
@@ -107,6 +111,7 @@ import io.apptolast.paparcar.ui.theme.PapShapes
 import io.apptolast.paparcar.ui.theme.PapSurfaceLight
 import io.apptolast.paparcar.ui.theme.PaparcarType
 import io.apptolast.paparcar.ui.theme.outlineSubtle
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
@@ -271,143 +276,161 @@ internal fun SettingsContent(
     }
 
     val layoutDirection = LocalLayoutDirection.current
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+    // Un salto programático al principio no pasa por el nested scroll, así que la cabecera no se
+    // enteraría y quedaría retirada sobre una lista que ya está arriba. [UI-SCROLL-TO-TOP-001]
+    var expandHeader by remember { mutableIntStateOf(0) }
 
     PapCollapsingTopBarScaffold(
         title = stringResource(Res.string.settings_title),
         snackbarHost = { SnackbarHost(snackbarHostState) },
         // Match Home's bottom-sheet tone so the page doesn't feel near-black.
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        expandKey = expandHeader,
     ) { headerPadding ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            // Padding de CONTENIDO (no del layout): la primera tarjeta arranca bajo el título y el
-            // resto pasa por debajo de la status bar al scrollear. [UI-TOPBAR-COLLAPSE-001]
-            contentPadding = PaddingValues(
-                top = headerPadding.calculateTopPadding() + CONTENT_V_PADDING,
-                bottom = headerPadding.calculateBottomPadding() + CONTENT_V_PADDING,
-                start = headerPadding.calculateStartPadding(layoutDirection) + CONTENT_H_PADDING,
-                end = headerPadding.calculateEndPadding(layoutDirection) + CONTENT_H_PADDING,
-            ),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            // ── 1 · Account (no section header — the card speaks for itself) ─
-            item {
-                ProfileCardV2(
-                    displayName = state.userProfile?.displayName
-                        ?: stringResource(Res.string.settings_profile_name_placeholder),
-                    email = state.userProfile?.email,
-                    photoUrl = state.userProfile?.photoUrl,
-                    onLogout = { onIntent(SettingsIntent.Logout) },
-                )
-            }
-
-            // ── 2 · Detection & permissions (heart of the app → sits high) ───
-            item { SectionHeaderMuted(stringResource(Res.string.settings_section_detection)) }
-            item { DetectionSectionCard(state = state, onIntent = onIntent) }
-
-            // ── 3 · Notifications (master + grouped subs) ───────────────────
-            item { SectionHeaderMuted(stringResource(Res.string.settings_section_notifications)) }
-            item {
-                // Master = ON when either sub is ON. derivedStateOf so the card only recomposes
-                // when the boolean actually flips (not on every other state field change).
-                val masterOn by remember(state.notifyParkingDetected, state.notifySpotFreed) {
-                    derivedStateOf { state.notifyParkingDetected || state.notifySpotFreed }
-                }
-                NotificationsGroupCard(
-                    masterOn = masterOn,
-                    onMasterChange = { onIntent(SettingsIntent.ToggleMasterNotifications(it)) },
-                    parkingOn = state.notifyParkingDetected,
-                    onParkingChange = { onIntent(SettingsIntent.ToggleParkingDetectedNotif(it)) },
-                    // "Parking detected" only fires from auto-detection — dim + lock it when OFF.
-                    parkingEnabled = state.autoDetectParking,
-                    spotOn = state.notifySpotFreed,
-                    onSpotChange = { onIntent(SettingsIntent.ToggleSpotFreedNotif(it)) },
-                )
-            }
-
-            // ── 4 · Appearance (theme + language) ────────────────────────────
-            item { SectionHeaderMuted(stringResource(Res.string.settings_section_appearance)) }
-            item {
-                val autoLabel = stringResource(Res.string.settings_language_auto)
-                val languageOptions = remember(autoLabel) {
-                    linkedMapOf(
-                        "auto" to autoLabel,
-                        "en" to "English", "es" to "Español", "it" to "Italiano",
-                        "pt" to "Português", "fr" to "Français", "de" to "Deutsch",
-                        "nl" to "Nederlands", "pl" to "Polski", "ro" to "Română",
+        Box(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize(),
+                // Padding de CONTENIDO (no del layout): la primera tarjeta arranca bajo el título y el
+                // resto pasa por debajo de la status bar al scrollear. [UI-TOPBAR-COLLAPSE-001]
+                contentPadding = PaddingValues(
+                    top = headerPadding.calculateTopPadding() + CONTENT_V_PADDING,
+                    bottom = headerPadding.calculateBottomPadding() + CONTENT_V_PADDING,
+                    start = headerPadding.calculateStartPadding(layoutDirection) + CONTENT_H_PADDING,
+                    end = headerPadding.calculateEndPadding(layoutDirection) + CONTENT_H_PADDING,
+                ),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                // ── 1 · Account (no section header — the card speaks for itself) ─
+                item {
+                    ProfileCardV2(
+                        displayName = state.userProfile?.displayName
+                            ?: stringResource(Res.string.settings_profile_name_placeholder),
+                        email = state.userProfile?.email,
+                        photoUrl = state.userProfile?.photoUrl,
+                        onLogout = { onIntent(SettingsIntent.Logout) },
                     )
                 }
-                PapOutlinedCard(modifier = Modifier.fillMaxWidth()) {
-                    Column {
-                        ThemeBlock(selected = themeMode, onSelect = onSetThemeMode)
-                        PapDivider()
-                        LanguageDropdownRow(
-                            label = stringResource(Res.string.settings_language),
-                            description = stringResource(Res.string.settings_language_desc),
-                            options = languageOptions,
-                            selected = selectedLanguage,
-                            onSelect = onSetLanguage,
+
+                // ── 2 · Detection & permissions (heart of the app → sits high) ───
+                item { SectionHeaderMuted(stringResource(Res.string.settings_section_detection)) }
+                item { DetectionSectionCard(state = state, onIntent = onIntent) }
+
+                // ── 3 · Notifications (master + grouped subs) ───────────────────
+                item { SectionHeaderMuted(stringResource(Res.string.settings_section_notifications)) }
+                item {
+                    // Master = ON when either sub is ON. derivedStateOf so the card only recomposes
+                    // when the boolean actually flips (not on every other state field change).
+                    val masterOn by remember(state.notifyParkingDetected, state.notifySpotFreed) {
+                        derivedStateOf { state.notifyParkingDetected || state.notifySpotFreed }
+                    }
+                    NotificationsGroupCard(
+                        masterOn = masterOn,
+                        onMasterChange = { onIntent(SettingsIntent.ToggleMasterNotifications(it)) },
+                        parkingOn = state.notifyParkingDetected,
+                        onParkingChange = { onIntent(SettingsIntent.ToggleParkingDetectedNotif(it)) },
+                        // "Parking detected" only fires from auto-detection — dim + lock it when OFF.
+                        parkingEnabled = state.autoDetectParking,
+                        spotOn = state.notifySpotFreed,
+                        onSpotChange = { onIntent(SettingsIntent.ToggleSpotFreedNotif(it)) },
+                    )
+                }
+
+                // ── 4 · Appearance (theme + language) ────────────────────────────
+                item { SectionHeaderMuted(stringResource(Res.string.settings_section_appearance)) }
+                item {
+                    val autoLabel = stringResource(Res.string.settings_language_auto)
+                    val languageOptions = remember(autoLabel) {
+                        linkedMapOf(
+                            "auto" to autoLabel,
+                            "en" to "English", "es" to "Español", "it" to "Italiano",
+                            "pt" to "Português", "fr" to "Français", "de" to "Deutsch",
+                            "nl" to "Nederlands", "pl" to "Polski", "ro" to "Română",
+                        )
+                    }
+                    PapOutlinedCard(modifier = Modifier.fillMaxWidth()) {
+                        Column {
+                            ThemeBlock(selected = themeMode, onSelect = onSetThemeMode)
+                            PapDivider()
+                            LanguageDropdownRow(
+                                label = stringResource(Res.string.settings_language),
+                                description = stringResource(Res.string.settings_language_desc),
+                                options = languageOptions,
+                                selected = selectedLanguage,
+                                onSelect = onSetLanguage,
+                            )
+                        }
+                    }
+                }
+
+                // ── 5 · Map ──────────────────────────────────────────────────────
+                item { SectionHeaderMuted(stringResource(Res.string.settings_section_map)) }
+                item {
+                    PapOutlinedCard(modifier = Modifier.fillMaxWidth()) {
+                        SwitchRow(
+                            icon = Icons.Rounded.Map,
+                            label = stringResource(Res.string.settings_distance_unit),
+                            description = stringResource(Res.string.settings_distance_unit_desc),
+                            checked = imperialUnits,
+                            onCheckedChange = onToggleImperialUnits,
                         )
                     }
                 }
-            }
 
-            // ── 5 · Map ──────────────────────────────────────────────────────
-            item { SectionHeaderMuted(stringResource(Res.string.settings_section_map)) }
-            item {
-                PapOutlinedCard(modifier = Modifier.fillMaxWidth()) {
-                    SwitchRow(
-                        icon = Icons.Rounded.Map,
-                        label = stringResource(Res.string.settings_distance_unit),
-                        description = stringResource(Res.string.settings_distance_unit_desc),
-                        checked = imperialUnits,
-                        onCheckedChange = onToggleImperialUnits,
+                // ── 6 · About ────────────────────────────────────────────────────
+                item { SectionHeaderMuted(stringResource(Res.string.settings_section_about)) }
+                item {
+                    PapOutlinedCard(modifier = Modifier.fillMaxWidth()) {
+                        Column {
+                            InfoRow(
+                                icon = Icons.Rounded.Info,
+                                label = stringResource(Res.string.settings_version),
+                                value = state.appVersion,
+                            )
+                            PapDivider()
+                            NavRow(
+                                icon = Icons.Rounded.Lock,
+                                label = stringResource(Res.string.settings_privacy),
+                                onClick = { onIntent(SettingsIntent.OpenPrivacyPolicy) },
+                            )
+                            PapDivider()
+                            NavRow(
+                                icon = Icons.Rounded.Description,
+                                label = stringResource(Res.string.settings_licenses),
+                                onClick = { onIntent(SettingsIntent.OpenLicenses) },
+                            )
+                            PapDivider()
+                            NavRow(
+                                icon = Icons.Rounded.Email,
+                                label = stringResource(Res.string.settings_contact),
+                                onClick = { onIntent(SettingsIntent.OpenContact) },
+                            )
+                        }
+                    }
+                }
+
+                // ── 7 · Danger zone ──────────────────────────────────────────────
+                item { SectionHeaderDanger(stringResource(Res.string.settings_danger_zone)) }
+                item {
+                    DangerZoneCard(
+                        deleting = state.isDeletingAccount,
+                        subtitle = stringResource(Res.string.settings_danger_zone_subtitle),
+                        label = stringResource(Res.string.settings_profile_delete_account),
+                        onClick = { onIntent(SettingsIntent.RequestDeleteAccount) },
                     )
                 }
             }
 
-            // ── 6 · About ────────────────────────────────────────────────────
-            item { SectionHeaderMuted(stringResource(Res.string.settings_section_about)) }
-            item {
-                PapOutlinedCard(modifier = Modifier.fillMaxWidth()) {
-                    Column {
-                        InfoRow(
-                            icon = Icons.Rounded.Info,
-                            label = stringResource(Res.string.settings_version),
-                            value = state.appVersion,
-                        )
-                        PapDivider()
-                        NavRow(
-                            icon = Icons.Rounded.Lock,
-                            label = stringResource(Res.string.settings_privacy),
-                            onClick = { onIntent(SettingsIntent.OpenPrivacyPolicy) },
-                        )
-                        PapDivider()
-                        NavRow(
-                            icon = Icons.Rounded.Description,
-                            label = stringResource(Res.string.settings_licenses),
-                            onClick = { onIntent(SettingsIntent.OpenLicenses) },
-                        )
-                        PapDivider()
-                        NavRow(
-                            icon = Icons.Rounded.Email,
-                            label = stringResource(Res.string.settings_contact),
-                            onClick = { onIntent(SettingsIntent.OpenContact) },
-                        )
-                    }
-                }
-            }
-
-            // ── 7 · Danger zone ──────────────────────────────────────────────
-            item { SectionHeaderDanger(stringResource(Res.string.settings_danger_zone)) }
-            item {
-                DangerZoneCard(
-                    deleting = state.isDeletingAccount,
-                    subtitle = stringResource(Res.string.settings_danger_zone_subtitle),
-                    label = stringResource(Res.string.settings_profile_delete_account),
-                    onClick = { onIntent(SettingsIntent.RequestDeleteAccount) },
-                )
-            }
+            PapScrollToTopButton(
+                listState = listState,
+                bottomPadding = headerPadding.calculateBottomPadding(),
+                onClick = {
+                    scope.launch { listState.animateScrollToItem(0) }
+                    expandHeader++
+                },
+            )
         }
     }
 }

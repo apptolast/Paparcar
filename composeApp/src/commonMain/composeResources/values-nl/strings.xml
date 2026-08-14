@@ -625,4 +625,5 @@
     <string name="vehicle_status_active">Actief</string>
     <string name="vehicle_status_active_cd">Detectie actief</string>
     <string name="vehicle_status_inactive_cd">Detectie uit</string>
+    <string name="common_scroll_to_top_cd">Naar boven</string>
 </resources>

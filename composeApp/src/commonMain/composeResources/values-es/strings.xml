@@ -621,4 +621,5 @@
     <string name="vehicle_color_yellow">Amarillo</string>
     <string name="vehicle_color_gold">Oro</string>
     <string name="vehicle_color_brown">Marrón</string>
+    <string name="common_scroll_to_top_cd">Volver arriba</string>
 </resources>

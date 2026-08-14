@@ -37,6 +37,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import io.apptolast.paparcar.presentation.util.collectAsStateLifecycleAware
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -145,6 +146,9 @@ internal fun VehiclesContent(
         pageCount = { vehicles.size },
     )
     val scope = rememberCoroutineScope()
+    // Volver arriba de un salto no pasa por el nested scroll: hay que decirle a la cabecera que se
+    // despliegue o quedaria retirada sobre una lista ya en su inicio. [UI-SCROLL-TO-TOP-001]
+    var expandHeader by remember { mutableIntStateOf(0) }
 
     PapCollapsingTopBarScaffold(
         title = stringResource(Res.string.my_car_title),
@@ -153,7 +157,7 @@ internal fun VehiclesContent(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         // La página nueva empieza arriba: la cabecera vuelve a desplegarse para que no quede un
         // hueco donde estaba el título. [UI-TOPBAR-COLLAPSE-001]
-        expandKey = pagerState.settledPage,
+        expandKey = pagerState.settledPage to expandHeader,
         subHeader = if (vehicles.isEmpty()) {
             null
         } else {
@@ -186,6 +190,7 @@ internal fun VehiclesContent(
                 state = state,
                 pagerState = pagerState,
                 contentPadding = headerPadding,
+                onScrolledToTop = { expandHeader++ },
                 onIntent = onIntent,
             )
         }
@@ -202,6 +207,7 @@ private fun VehiclesPager(
     state: VehiclesState,
     pagerState: PagerState,
     contentPadding: PaddingValues,
+    onScrolledToTop: () -> Unit,
     onIntent: (VehiclesIntent) -> Unit,
 ) {
     val vehicles = state.vehicles
@@ -261,6 +267,7 @@ private fun VehiclesPager(
                 isSettingActive = state.settingActiveVehicleId == vehicleWithStats.vehicle.id,
                 onRequestSetActive = { pendingSetActive = vehicleWithStats.vehicle },
                 contentPadding = contentPadding,
+                onScrolledToTop = onScrolledToTop,
                 onIntent = onIntent,
             )
         }

@@ -625,4 +625,5 @@
     <string name="vehicle_status_active">Attivo</string>
     <string name="vehicle_status_active_cd">Rilevamento attivo</string>
     <string name="vehicle_status_inactive_cd">Rilevamento disattivato</string>
+    <string name="common_scroll_to_top_cd">Torna su</string>
 </resources>

@@ -58,6 +58,7 @@ internal fun VehiclePageContent(
     isSettingActive: Boolean,
     onRequestSetActive: () -> Unit,
     contentPadding: PaddingValues,
+    onScrolledToTop: () -> Unit,
     onIntent: (VehiclesIntent) -> Unit,
 ) {
     val vehicleId = vehicleWithStats.vehicle.id
@@ -67,6 +68,7 @@ internal fun VehiclePageContent(
         contentPadding = contentPadding,
         onViewOnMap = { lat, lon, sessionId -> onIntent(VehiclesIntent.ViewOnMap(lat, lon, sessionId)) },
         onFilterSelected = { filter -> onIntent(VehiclesIntent.SetHistoryFilter(filter)) },
+        onScrolledToTop = onScrolledToTop,
         modifier = Modifier.fillMaxSize(),
         header = {
             VehicleHeroCard(
