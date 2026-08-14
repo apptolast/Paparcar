@@ -9,7 +9,9 @@ import io.apptolast.paparcar.domain.model.SearchResult
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.Vehicle
+import io.apptolast.paparcar.domain.model.VehicleMonitoringStatus
 import io.apptolast.paparcar.domain.model.VehicleSize
+import io.apptolast.paparcar.domain.model.monitoringStatus
 import io.apptolast.paparcar.domain.model.Zone
 import io.apptolast.paparcar.domain.detection.shouldShowParkNudgeBanner
 import io.apptolast.paparcar.presentation.home.model.DetectionUiState
@@ -45,13 +47,20 @@ data class HomeHeaderSlice(
     val gpsAccuracy: Float?,
 )
 
-/** What the right-side camera FAB column sees — visibility booleans only; the
- *  tap actions read live coordinates via lambdas owned by HomeContent. */
+/** What the right-side camera FAB column sees — visibility booleans plus the
+ *  identity of the session it currently points at; the tap actions read live
+ *  coordinates via lambdas owned by HomeContent. */
 @Immutable
 data class HomeFabsSlice(
     val hasActiveParking: Boolean,
     val hasGpsFix: Boolean,
-    val isParkingSelected: Boolean,
+    /**
+     * How the SELECTED parked vehicle is watched, or null when no session is selected. The car FAB
+     * cycles between parked sessions [MULTI-PARKING-001], so its tint is the only cue for WHICH car
+     * the camera is on: it goes through the single identity resolver (blue = Bluetooth, green =
+     * active detection, grey = unwatched) instead of a flat brand green. [UI-FAB-CAR-IDENTITY-001]
+     */
+    val selectedParkingWatch: VehicleMonitoringStatus?,
 )
 
 /** What the map tile layer sees. [addParkingVehicle] is the vehicle being
@@ -169,7 +178,12 @@ internal fun HomeState.toHeaderSlice() = HomeHeaderSlice(
 internal fun HomeState.toFabsSlice() = HomeFabsSlice(
     hasActiveParking = userParking != null,
     hasGpsFix = userGpsPoint != null,
-    isParkingSelected = isParkingSelected,
+    // A selected session whose vehicle can no longer be found (delete race) still counts as
+    // selected — it just carries no watch to claim. [UI-FAB-CAR-IDENTITY-001]
+    selectedParkingWatch = selectedSession?.let { session ->
+        vehicles.firstOrNull { it.id == session.vehicleId }?.monitoringStatus()
+            ?: VehicleMonitoringStatus.Inactive
+    },
 )
 
 internal fun HomeState.toMapSlice() = HomeMapSlice(

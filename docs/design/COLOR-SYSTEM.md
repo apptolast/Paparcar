@@ -97,6 +97,13 @@ teñidos = sobreinformación). Excepción: donde no hay glifo de método (el eye
 "TOYOTA COROLLA · APARCADO"), el NOMBRE es quien viste el color y el estado queda neutro. El mismo
 coche jamás cambia de color al cambiar de estado.
 
+Un caso más sin glifo de método: el **FAB de coche** de la columna del mapa Home, que cicla entre
+las sesiones aparcadas — su icono lleva la identidad del coche SELECCIONADO (azul BT / verde activa
+/ gris sin vigilar) y queda `onSurface` mientras no hay ninguno seleccionado
+[UI-FAB-CAR-IDENTITY-001]. Ojo con su vecino: el FAB de `MyLocation` se tiñe `PapLiveMap` cuando
+sigue al coche en movimiento — eso es **movimiento sobre el mapa**, no identidad, y por eso es el
+azul de mapa y no `papCarBlue`.
+
 | Token | Dark | Light |
 |---|---|---|
 | `papCarBlue` (BT, theme-aware) | `#5B9EFF` (7.0:1 sobre `PapInk`) | `#0057CA` (6.5:1 sobre blanco) |

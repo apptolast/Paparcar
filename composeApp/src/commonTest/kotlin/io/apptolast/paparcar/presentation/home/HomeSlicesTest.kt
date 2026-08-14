@@ -4,6 +4,7 @@ import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.Vehicle
+import io.apptolast.paparcar.domain.model.VehicleMonitoringStatus
 import io.apptolast.paparcar.domain.model.VehicleSize
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -28,12 +29,18 @@ class HomeSlicesTest {
         sizeCategory = size,
     )
 
-    private fun vehicle(id: String) = Vehicle(
+    private fun vehicle(
+        id: String,
+        isActive: Boolean = false,
+        bluetoothDeviceId: String? = null,
+    ) = Vehicle(
         id = id,
         userId = "user-1",
         brand = "Toyota",
         model = "Corolla",
         sizeCategory = VehicleSize.MEDIUM_SUV,
+        isActive = isActive,
+        bluetoothDeviceId = bluetoothDeviceId,
     )
 
     private fun session(id: String, vehicleId: String) = UserParking(
@@ -195,15 +202,66 @@ class HomeSlicesTest {
         val bare = HomeState().toFabsSlice()
         assertFalse(bare.hasActiveParking)
         assertFalse(bare.hasGpsFix)
+        assertNull(bare.selectedParkingWatch)
 
         val full = HomeState(
+            vehicles = listOf(vehicle("veh-A", isActive = true)),
             activeSessions = listOf(session("s1", "veh-A")),
             userGpsPoint = gps,
             selectedItemId = "s1",
         ).toFabsSlice()
         assertTrue(full.hasActiveParking)
         assertTrue(full.hasGpsFix)
-        assertTrue(full.isParkingSelected)
+        assertEquals(VehicleMonitoringStatus.Active, full.selectedParkingWatch)
+    }
+
+    // The car FAB cycles between parked sessions, so its tint must name the SELECTED
+    // vehicle's watch method, not a flat brand green. [UI-FAB-CAR-IDENTITY-001]
+
+    @Test
+    fun should_project_bluetooth_watch_when_selected_session_belongs_to_a_bt_vehicle() {
+        val state = HomeState(
+            vehicles = listOf(
+                vehicle("veh-BT", bluetoothDeviceId = "AA:BB:CC:DD:EE:FF"),
+                vehicle("veh-A", isActive = true),
+            ),
+            activeSessions = listOf(session("s1", "veh-A"), session("s2", "veh-BT")),
+            selectedItemId = "s2",
+        )
+        assertEquals(
+            VehicleMonitoringStatus.Bluetooth("AA:BB:CC:DD:EE:FF"),
+            state.toFabsSlice().selectedParkingWatch,
+        )
+    }
+
+    @Test
+    fun should_project_inactive_watch_when_selected_session_belongs_to_an_unwatched_vehicle() {
+        val state = HomeState(
+            vehicles = listOf(vehicle("veh-B")),
+            activeSessions = listOf(session("s1", "veh-B")),
+            selectedItemId = "s1",
+        )
+        assertEquals(VehicleMonitoringStatus.Inactive, state.toFabsSlice().selectedParkingWatch)
+    }
+
+    @Test
+    fun should_project_inactive_watch_when_selected_session_has_no_matching_vehicle() {
+        val state = HomeState(
+            activeSessions = listOf(session("s1", "gone")),
+            selectedItemId = "s1",
+        )
+        assertEquals(VehicleMonitoringStatus.Inactive, state.toFabsSlice().selectedParkingWatch)
+    }
+
+    @Test
+    fun should_project_no_watch_when_selection_is_a_spot() {
+        val state = HomeState(
+            nearbySpots = listOf(spot("spot-1")),
+            vehicles = listOf(vehicle("veh-A", isActive = true)),
+            activeSessions = listOf(session("s1", "veh-A")),
+            selectedItemId = "spot-1",
+        )
+        assertNull(state.toFabsSlice().selectedParkingWatch)
     }
 
     @Test

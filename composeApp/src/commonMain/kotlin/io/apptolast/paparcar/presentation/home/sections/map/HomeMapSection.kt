@@ -143,7 +143,7 @@ internal fun HomeMapFabsLayer(
             HomeMapFabColumn(
                 hasActiveParking = slice.hasActiveParking,
                 hasGpsFix = slice.hasGpsFix,
-                isParkingSelected = slice.isParkingSelected,
+                selectedParkingWatch = slice.selectedParkingWatch,
                 // During a monitored trip the MyLocation FAB re-engages driver-follow instead of GPS. [DET-STATUS-SHEET-001]
                 followsCar = isDriving,
                 onMyLocation = onMyLocation,

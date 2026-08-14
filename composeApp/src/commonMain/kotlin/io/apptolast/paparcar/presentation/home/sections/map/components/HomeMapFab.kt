@@ -11,14 +11,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.MyLocation
 import androidx.compose.material.icons.rounded.Route
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import io.apptolast.paparcar.domain.model.VehicleMonitoringStatus
 import io.apptolast.paparcar.presentation.util.MapCircleFab
 import io.apptolast.paparcar.ui.theme.PapLiveMap
 import io.apptolast.paparcar.ui.theme.PapMotion
+import io.apptolast.paparcar.ui.theme.vehicleIdentityColor
+import io.apptolast.paparcar.ui.theme.watch
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.map_cd_go_to_car
@@ -27,7 +29,11 @@ import paparcar.composeapp.generated.resources.map_cd_my_location
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Right-side map control column — strictly "where am I" affordances:
-//   • Coche (only when a parking session is active) → recenters on the spot.
+//   • Coche (only when a parking session is active) → recenters on the spot. It
+//     cycles between parked sessions [MULTI-PARKING-001], so it wears the
+//     selected vehicle's IDENTITY colour (blue = Bluetooth, green = active
+//     detection, grey = unwatched) — the only cue for which car the camera
+//     landed on. Neutral while nothing is selected. [UI-FAB-CAR-IDENTITY-001]
 //   • Midpoint (only when both parking and GPS are known) → fits both in view
 //     so the user can see how to reach the car.
 //   • MyLocation → recenters on the live GPS position, OR — while detection is
@@ -41,7 +47,8 @@ import paparcar.composeapp.generated.resources.map_cd_my_location
 internal fun HomeMapFabColumn(
     hasActiveParking: Boolean,
     hasGpsFix: Boolean,
-    isParkingSelected: Boolean,
+    // How the selected parked vehicle is watched; null when no session is selected.
+    selectedParkingWatch: VehicleMonitoringStatus?,
     onMyLocation: () -> Unit,
     onParkedCar: () -> Unit,
     onMidpoint: () -> Unit,
@@ -60,8 +67,11 @@ internal fun HomeMapFabColumn(
         ) {
             MapCircleFab(
                 icon = Icons.Rounded.DirectionsCar,
-                // White by default; brand green only when this vehicle's parking is selected.
-                iconTint = if (isParkingSelected) MaterialTheme.colorScheme.primary else Color.Unspecified,
+                // Neutral by default; once a session is selected the FAB wears THAT car's identity
+                // colour, straight from the single resolver. [UI-FAB-CAR-IDENTITY-001]
+                iconTint = selectedParkingWatch
+                    ?.let { vehicleIdentityColor(it.watch()) }
+                    ?: Color.Unspecified,
                 onClick = onParkedCar,
                 contentDescription = stringResource(Res.string.map_cd_go_to_car),
             )
