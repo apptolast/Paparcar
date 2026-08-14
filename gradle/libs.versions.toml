@@ -84,9 +84,13 @@ coil = "3.5.0"
 ktor = "3.5.1"
 
 # ── Login Library ────────────────────────────────────────────────────────────
-# JitPack commit-hash build of feature/improve-custom-login-integration (host-integration fix).
-# TODO: switch to a release tag (e.g. 1.0.18) once the branch is merged + tagged.
-baselogin = "35a5e15fc4"
+# Release tag on JitPack (replaces the 35a5e15fc4 commit-hash build of
+# feature/improve-custom-login-integration — the host-integration fix shipped in 1.1.0).
+# ⚠️ El grupo lleva el nombre del repo capitalizado: `com.github.apptolast.BaseLogin`.
+# Con `com.github.apptolast` a secas JitPack resuelve igual pero devuelve un POM agregado sin
+# metadata de variantes y un metadata jar de KMP vacío → no falla al resolver, falla luego con
+# símbolos sin resolver. [DEPS-BASELOGIN-110]
+baselogin = "1.1.0"
 
 # ── Android-only ─────────────────────────────────────────────────────────────
 # play-services-location incluye Activity Recognition Transitions desde v17+

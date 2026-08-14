@@ -9,6 +9,9 @@
 /* Begin PBXBuildFile section */
 		D1E2F3A4B5C6D7E8F9A0B1C2 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = B1C2D3E4F5A6B7C8D9E0F1A2 /* FirebaseAuth */; };
 		E1F2A3B4C5D6E7F8A9B0C1D2 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = C1D2E3F4A5B6C7D8E9F0A1B2 /* FirebaseFirestore */; };
+		5E5F60718293A4B5C6D7E8F9 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 5B2C3D4E5F60718293A4B5C6 /* FirebaseCore */; };
+		5F60718293A4B5C6D7E8F9A0 /* FirebaseAppCheck in Frameworks */ = {isa = PBXBuildFile; productRef = 5C3D4E5F60718293A4B5C6D7 /* FirebaseAppCheck */; };
+		60718293A4B5C6D7E8F9A0B1 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 5D4E5F60718293A4B5C6D7E8 /* GoogleSignIn */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -46,8 +49,11 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5E5F60718293A4B5C6D7E8F9 /* FirebaseCore in Frameworks */,
 				D1E2F3A4B5C6D7E8F9A0B1C2 /* FirebaseAuth in Frameworks */,
 				E1F2A3B4C5D6E7F8A9B0C1D2 /* FirebaseFirestore in Frameworks */,
+				5F60718293A4B5C6D7E8F9A0 /* FirebaseAppCheck in Frameworks */,
+				60718293A4B5C6D7E8F9A0B1 /* GoogleSignIn in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -92,8 +98,11 @@
 			);
 			name = iosApp;
 			packageProductDependencies = (
+				5B2C3D4E5F60718293A4B5C6 /* FirebaseCore */,
 				B1C2D3E4F5A6B7C8D9E0F1A2 /* FirebaseAuth */,
 				C1D2E3F4A5B6C7D8E9F0A1B2 /* FirebaseFirestore */,
+				5C3D4E5F60718293A4B5C6D7 /* FirebaseAppCheck */,
+				5D4E5F60718293A4B5C6D7E8 /* GoogleSignIn */,
 			);
 			productName = iosApp;
 			productReference = 7EBFB4FBF0F544ECF1F52B8C /* Paparcar.app */;
@@ -125,6 +134,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				A1B2C3D4E5F6A7B8C9D0E1F2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				5A1B2C3D4E5F60718293A4B5 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = E7AB17C63DB430D104910F69 /* Products */;
@@ -388,8 +398,16 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
 			requirement = {
+				kind = upToNextMinorVersion;
+				minimumVersion = 11.8.0;
+			};
+		};
+		5A1B2C3D4E5F60718293A4B5 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
+			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 11.0.0;
+				minimumVersion = 9.0.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
@@ -404,6 +422,21 @@
 			isa = XCSwiftPackageProductDependency;
 			package = A1B2C3D4E5F6A7B8C9D0E1F2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseFirestore;
+		};
+		5B2C3D4E5F60718293A4B5C6 /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A1B2C3D4E5F6A7B8C9D0E1F2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+		5C3D4E5F60718293A4B5C6D7 /* FirebaseAppCheck */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A1B2C3D4E5F6A7B8C9D0E1F2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAppCheck;
+		};
+		5D4E5F60718293A4B5C6D7E8 /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5A1B2C3D4E5F60718293A4B5 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignIn;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
