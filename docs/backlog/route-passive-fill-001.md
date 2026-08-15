@@ -1,6 +1,6 @@
 # ROUTE-PASSIVE-FILL-001 · Tap pasivo de localización: heredar gratis los fixes de otras apps
 
-**Estado:** 🔵 En progreso · rama `feature/ROUTE-PASSIVE-FILL-001-passive-location-tap` · worktree `../Paparcar-passive-tap`
+**Estado:** ✅ Done · master `9625c0ed` (ff-only, 15-08-2026) · rama y worktree borrados · ⏳ field con nav app activa
 
 ## Problema
 Field 14-08: MIUI durmió el GPS de NUESTRA petición 7 minutos en plena conducción (Redmi, vuelta a
