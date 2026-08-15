@@ -1,6 +1,6 @@
 # ROUTE-GAP-HONEST-001 · Un agujero de datos GPS nunca se puentea en silencio: tramo inferido marcado + pregunta
 
-**Estado:** 🔵 En progreso · rama `feature/ROUTE-GAP-HONEST-001-inferred-gap-segments` · worktree `../Paparcar-route-gap`
+**Estado:** ✅ Done · master `a244d975` (ff-only, 15-08-2026) · rama y worktree borrados · ⏳ field
 
 ## Problema
 Field 14-08: el Redmi tuvo un agujero GPS de 7 min / 4,6 km en la vuelta a Valdelagrana y
