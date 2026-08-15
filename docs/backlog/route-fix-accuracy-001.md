@@ -1,6 +1,6 @@
 # ROUTE-FIX-ACCURACY-001 · Los fixes de mala precisión ensucian la ruta dibujada
 
-**Estado:** 🔵 En progreso · rama `bugfix/ROUTE-FIX-ACCURACY-001-route-accuracy-weighting` · worktree `../Paparcar-route-fix-accuracy`
+**Estado:** ✅ Done · master `214850cf` (ff-only tras rebase sobre `00450b83`, 15-08-2026) · rama y worktree borrados
 
 ## Problema
 Field 14-08 (El Puerto): las rutas guardadas hacen bucles y zigzags fuera de vía en tramo urbano
