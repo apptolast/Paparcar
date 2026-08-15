@@ -590,10 +590,12 @@ class ConfirmParkingUseCaseTest {
     @Test
     fun `should snapshot the recorded route onto the saved parking and clear the store`() = runTest {
         val now = Clock.System.now().toEpochMilliseconds()
+        // Spans ~470 m out-and-back, ending AT the anchor — above MIN_ROUTE_EXTENT_METERS without
+        // triggering the anchor append. [ROUTE-GAP-HONEST-001]
         val route = listOf(
             GpsPoint(40.4160, -3.7040, 5f, now - 120_000, 0f),
-            GpsPoint(40.4165, -3.7038, 5f, now - 60_000, 0f),
-            GpsPoint(40.4167, -3.7037, 5f, now - 2_000, 0f),
+            GpsPoint(40.4185, -3.7038, 5f, now - 60_000, 0f),
+            GpsPoint(40.41678, -3.70377, 5f, now - 2_000, 0f),
         )
         val store = FakeDrivingRouteStore(initial = route)
         val useCase = buildUseCase(routeStore = store)
@@ -627,12 +629,31 @@ class ConfirmParkingUseCaseTest {
         assertNull(saved.routePolyline)
     }
 
+    @Test
+    fun `should not attach a stub route shorter than a real drive`() = runTest {
+        // Field 2026-08-14 22:51: a safety-net backfill pin carried a 40 m 5-point "route" (the
+        // wake-up's own fixes) and drew a fake origin next to the pin. [ROUTE-GAP-HONEST-001]
+        val now = Clock.System.now().toEpochMilliseconds()
+        val stub = listOf(
+            GpsPoint(40.41600, -3.7040, 5f, now - 30_000, 0f),
+            GpsPoint(40.41615, -3.7041, 5f, now - 15_000, 0f),
+            GpsPoint(40.41630, -3.7042, 5f, now - 2_000, 0f),
+        )
+        val useCase = buildUseCase(routeStore = FakeDrivingRouteStore(initial = stub))
+
+        val saved = useCase(location, detectionReliability = 0.5f, sealPoint = null).getOrNull()
+        assertNotNull(saved)
+        assertNull(saved.routePolyline, "expected no route attached for a ~40 m stub")
+    }
+
     // ── Route origin seed [ROUTE-QUALITY-001] ───────────────────────────────────
 
+    // Spans ~470 m out-and-back, ending AT the test anchor — above MIN_ROUTE_EXTENT_METERS while
+    // keeping every origin-seed/anchor assertion untouched. [ROUTE-GAP-HONEST-001]
     private fun freshRoute(now: Long) = listOf(
         GpsPoint(40.4160, -3.7040, 5f, now - 120_000, 0f),
-        GpsPoint(40.4165, -3.7038, 5f, now - 60_000, 0f),
-        GpsPoint(40.4167, -3.7037, 5f, now - 2_000, 0f),
+        GpsPoint(40.4185, -3.7038, 5f, now - 60_000, 0f),
+        GpsPoint(40.41678, -3.70377, 5f, now - 2_000, 0f),
     )
 
     @Test
@@ -673,7 +694,7 @@ class ConfirmParkingUseCaseTest {
     /** Driven fixes ending at the stop; the anchor's fix timestamp marks the end of driving. */
     private fun drivenLeg(now: Long) = listOf(
         GpsPoint(40.4160, -3.7040, 5f, now - 120_000, 0f),
-        GpsPoint(40.4165, -3.7038, 5f, now - 60_000, 0f),
+        GpsPoint(40.4175, -3.7038, 5f, now - 60_000, 0f),
         GpsPoint(40.4167, -3.7037, 5f, now - 30_000, 0f),
     )
 

@@ -37,6 +37,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.runtime.Composable
@@ -59,6 +60,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.presentation.util.collectAsStateLifecycleAware
 import io.apptolast.paparcar.presentation.vehicles.MONTH_SHORT_RES
+import io.apptolast.paparcar.domain.matching.InferredRoute
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.util.PolylineCodec
 import io.apptolast.paparcar.domain.model.SpotType
@@ -66,6 +68,7 @@ import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.presentation.util.locationDisplayText
 import io.apptolast.paparcar.presentation.util.rememberOpenExternalNavigation
+import io.apptolast.paparcar.ui.components.GlassSurface
 import io.apptolast.paparcar.ui.components.PapFooterButton
 import io.apptolast.paparcar.ui.components.PapFooterButtonStyle
 import io.apptolast.paparcar.ui.components.PapSectionHeaderRow
@@ -89,6 +92,9 @@ import paparcar.composeapp.generated.resources.parking_detail_navigate_action
 import paparcar.composeapp.generated.resources.parking_detail_next
 import paparcar.composeapp.generated.resources.parking_detail_no_address
 import paparcar.composeapp.generated.resources.parking_detail_prev
+import paparcar.composeapp.generated.resources.parking_detail_route_inferred_no
+import paparcar.composeapp.generated.resources.parking_detail_route_inferred_question
+import paparcar.composeapp.generated.resources.parking_detail_route_inferred_yes
 import paparcar.composeapp.generated.resources.parking_detail_route_recalculating
 import paparcar.composeapp.generated.resources.parking_detail_section_label
 import kotlin.time.Instant
@@ -141,6 +147,25 @@ fun HistoryParkingDetailScreen(
     val routeTrail = remember(focusedSession?.routePolyline, routeSnapped) {
         mutableStateOf(if (routeSnapped) PolylineCodec.decode(focusedSession?.routePolyline) else emptyList())
     }
+    // Provenance-aware segments: measured stretches solid, road-inferred stretches (reconstructed
+    // data holes) dimmed until confirmed, dropped once rejected. [ROUTE-GAP-HONEST-001]
+    val routeSegments = remember(
+        focusedSession?.routePolyline,
+        focusedSession?.routeInferredSpans,
+        focusedSession?.routeInferredResolution,
+        routeSnapped,
+    ) {
+        mutableStateOf(
+            if (routeSnapped) {
+                InferredRoute.split(
+                    points = routeTrail.value,
+                    encoded = focusedSession?.routeInferredSpans,
+                    resolution = focusedSession?.routeInferredResolution,
+                )
+            } else emptyList()
+        )
+    }
+    val askInferredRoute = focusedSession?.hasPendingInferredRoute == true
     // Origin vertex — the same departure dot Home draws on a live trip, here on the stored route's
     // first point, so the line visibly STARTS somewhere instead of reading as cut off. Null when
     // there is no drawable route (no marker). [ROUTE-QUALITY-001]
@@ -159,6 +184,7 @@ fun HistoryParkingDetailScreen(
             spots = emptyList(),
             userLocation = state.userLocation,
             tripTrail = routeTrail,
+            tripSegments = routeSegments,
             departurePoint = routeStart,
             arrivalPoint = routeEnd,
             parkingLocation = focusedSession?.location ?: parkingGpsPoint ?: state.userParking?.location,
@@ -219,6 +245,23 @@ fun HistoryParkingDetailScreen(
                 .padding(start = 12.dp, top = 8.dp),
         )
 
+        // A stretch of this route was reconstructed over a GPS silence — ask the user to vouch for
+        // it (Sí = draw it like the measured line; No = cut it). Floating over the map → glass.
+        // [ROUTE-GAP-HONEST-001]
+        if (askInferredRoute && focusedSession != null) {
+            InferredRouteQuestionCard(
+                onAnswer = { confirmed ->
+                    viewModel.handleIntent(
+                        ParkingLocationIntent.ResolveInferredRoute(focusedSession.id, confirmed)
+                    )
+                },
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .statusBarsPadding()
+                    .padding(top = 56.dp, start = 24.dp, end = 24.dp),
+            )
+        }
+
         HistoryDetailSheet(
             session = focusedSession,
             vehicle = state.focusedVehicle,
@@ -239,6 +282,43 @@ fun HistoryParkingDetailScreen(
 // ─────────────────────────────────────────────────────────────────────────────
 // Floating back button — pill-shaped surface with back arrow, over the map top-left
 // ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun InferredRouteQuestionCard(
+    onAnswer: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    // Floating over the map → glass, per the map-chrome rule. The dimmed stretch on the map is the
+    // subject; the card only asks. [ROUTE-GAP-HONEST-001]
+    GlassSurface(modifier = modifier) {
+        Column(modifier = Modifier.padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 4.dp)) {
+            Text(
+                text = stringResource(Res.string.parking_detail_route_inferred_question),
+                style = PaparcarType.current.body,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Row(
+                horizontalArrangement = Arrangement.End,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                TextButton(onClick = { onAnswer(false) }) {
+                    Text(
+                        text = stringResource(Res.string.parking_detail_route_inferred_no),
+                        style = PaparcarType.current.cta,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                TextButton(onClick = { onAnswer(true) }) {
+                    Text(
+                        text = stringResource(Res.string.parking_detail_route_inferred_yes),
+                        style = PaparcarType.current.cta,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
+        }
+    }
+}
 
 @Composable
 private fun FloatingBackButton(onClick: () -> Unit, modifier: Modifier = Modifier) {

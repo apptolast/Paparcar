@@ -1,6 +1,7 @@
 package io.apptolast.paparcar.presentation.map
 
 import io.apptolast.paparcar.domain.error.PaparcarError
+import io.apptolast.paparcar.domain.model.RouteInferenceResolution
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.usecase.location.ObserveAdaptiveLocationUseCase
@@ -10,6 +11,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 
 class ParkingLocationViewModel(
     observeAdaptiveLocation: ObserveAdaptiveLocationUseCase,
@@ -65,6 +67,23 @@ class ParkingLocationViewModel(
             // stepping NEWER walks up (-1). Chevrons read as a timeline: ‹ past, › toward today.
             ParkingLocationIntent.FocusOlder -> stepFocus(+1)
             ParkingLocationIntent.FocusNewer -> stepFocus(-1)
+
+            // The user's verdict on a reconstructed stretch — persisted (and synced); the observed
+            // sessions flow re-renders the map with the answer applied. [ROUTE-GAP-HONEST-001]
+            is ParkingLocationIntent.ResolveInferredRoute -> viewModelScope.launch {
+                userParkingRepository
+                    .resolveInferredRoute(
+                        id = intent.sessionId,
+                        resolution = if (intent.confirmed) {
+                            RouteInferenceResolution.CONFIRMED
+                        } else {
+                            RouteInferenceResolution.REJECTED
+                        },
+                    )
+                    .onFailure { e ->
+                        sendEffect(ParkingLocationEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))
+                    }
+            }
         }
     }
 

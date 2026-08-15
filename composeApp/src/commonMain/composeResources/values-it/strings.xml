@@ -167,6 +167,9 @@
     <string name="parking_detail_navigate_action">Naviga verso questa posizione</string>
     <string name="parking_detail_prev">Parcheggio precedente</string>
     <string name="parking_detail_route_recalculating">Ricalcolo del percorso…</string>
+    <string name="parking_detail_route_inferred_question">Parte di questo percorso è stata ricostruita perché il segnale GPS si è perso lungo il tragitto. Sei passato di qui?</string>
+    <string name="parking_detail_route_inferred_yes">Sì</string>
+    <string name="parking_detail_route_inferred_no">No</string>
     <string name="parking_detail_next">Parcheggio successivo</string>
     <string name="parking_detail_no_address">Posizione sconosciuta</string>
     <string name="parking_detail_detection_auto">Rilevamento automatico</string>

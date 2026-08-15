@@ -37,6 +37,12 @@ data class ParkingHistoryDto(
     /** Whether [routePolyline] is the final on-road line (true) or raw fixes still being snapped
      *  (false). Synced so a new device knows to draw vs show "recalculating". [DET-ROUTE-SNAP-STORE-001] */
     val routeSnapped: Boolean = false,
+    /** Encoded provenance of the polyline's road-INFERRED stretches ("a:b" bridge / "a!" cut) when
+     *  the matcher reconstructed data holes. Null = fully measured. [ROUTE-GAP-HONEST-001] */
+    val routeInferredSpans: String? = null,
+    /** RouteInferenceResolution enum name ("CONFIRMED"/"REJECTED") — the user's verdict on the
+     *  inferred stretches; null while the question is pending. [ROUTE-GAP-HONEST-001] */
+    val routeInferredResolution: String? = null,
     /** Epoch-ms of the local edit this document mirrors. Stamped on every write so the inbound-sync
      *  Last-Write-Wins merge can tell when the server has caught up with a pending local edit.
      *  Legacy docs read 0 → always lose to a real local timestamp. [SYNC-RECONCILE-USERPARKING-001] */

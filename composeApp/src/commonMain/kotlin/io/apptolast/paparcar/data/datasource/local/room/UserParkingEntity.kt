@@ -56,6 +56,12 @@ data class UserParkingEntity(
     // Whether routePolyline is the FINAL on-road (map-matched) line vs raw fixes awaiting the one-time
     // snap. false + non-null polyline = "recalculating". Synced. [DET-ROUTE-SNAP-STORE-001]
     val routeSnapped: Boolean = false,
+    // Encoded provenance of the polyline's stretches ("a:b" inferred bridge / "a!" cut) when the
+    // matcher reconstructed data holes along the roads. Null = fully measured. Synced. [ROUTE-GAP-HONEST-001]
+    val routeInferredSpans: String? = null,
+    // RouteInferenceResolution enum name ("CONFIRMED"/"REJECTED") — the user's verdict on the inferred
+    // stretches; null while the question is pending. Synced. [ROUTE-GAP-HONEST-001]
+    val routeInferredResolution: String? = null,
     // Epoch-ms of the last LOCAL mutation of this row (save / clear-active / move / enrich). Drives
     // the inbound-sync Last-Write-Wins merge so a stale remote snapshot can't resurrect an ended
     // session or clobber an offline edit. Local is authoritative. [SYNC-RECONCILE-USERPARKING-001]

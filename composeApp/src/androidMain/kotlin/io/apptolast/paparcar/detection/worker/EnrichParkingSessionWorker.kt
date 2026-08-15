@@ -7,12 +7,15 @@ import androidx.work.OneTimeWorkRequest
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
+import io.apptolast.paparcar.domain.matching.InferredRoute
 import io.apptolast.paparcar.domain.matching.TrailMapMatcher
+import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.places.RoadNetworkDataSource
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.usecase.location.GetAddressAndPlaceUseCase
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import io.apptolast.paparcar.domain.util.PolylineCodec
+import io.apptolast.paparcar.domain.util.haversineMeters
 import kotlinx.coroutines.flow.catch
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -76,16 +79,19 @@ class EnrichParkingSessionWorker(
     }
 
     /**
-     * Snaps the session's raw route onto streets and stores it as the final on-road line, or returns
-     * false when the roads can't be fetched (offline → retry). Returns true when there is nothing to
-     * do (already snapped, no route, or a trivial route) — the trivial/degenerate case is marked final
-     * as-is so the UI stops waiting.
+     * Snaps the session's raw route onto streets and stores it as the final on-road line — with the
+     * provenance of any road-INFERRED stretches (data holes reconstructed along the streets) so the
+     * UI can dim them and ask [ROUTE-GAP-HONEST-001] — or returns false when the roads can't be
+     * fetched (offline → retry). Returns true when there is nothing to do (already snapped, no
+     * route, or a trivial route) — the trivial/degenerate case is marked final as-is so the UI
+     * stops waiting. A backfill pin with no recorded drive gets a fully-inferred pin-to-pin
+     * reconstruction instead of no route at all.
      */
     private suspend fun snapRoute(sessionId: String): Boolean {
         val session = userParkingRepository.getSessionById(sessionId) ?: return true
         if (session.routeSnapped) return true
         val encoded = session.routePolyline
-        if (encoded.isNullOrEmpty()) return true // BT / legacy — no drive recorded
+        if (encoded.isNullOrEmpty()) return inferBackfillRoute(session) // BT/legacy no-op; backfill reconstructs
         val raw = PolylineCodec.decode(encoded)
         if (raw.size < 2) {
             userParkingRepository.updateParkingSessionRoute(sessionId, encoded, snapped = true)
@@ -100,9 +106,63 @@ class EnrichParkingSessionWorker(
             maxLon = lons.max() + ROADS_BBOX_MARGIN_DEG,
         ).getOrNull().orEmpty()
         if (roads.isEmpty()) return false // couldn't fetch → retry with backoff
-        val snapped = TrailMapMatcher.snap(raw, roads)
-        userParkingRepository.updateParkingSessionRoute(sessionId, PolylineCodec.encode(snapped), snapped = true)
-        PaparcarLogger.d(TAG, "route snapped for $sessionId: ${raw.size} raw → ${snapped.size} on-road pts")
+        val matched = TrailMapMatcher.match(raw, roads)
+        val spans = InferredRoute.encode(matched.inferredSpans, matched.cuts)
+        userParkingRepository.updateParkingSessionRoute(
+            sessionId,
+            PolylineCodec.encode(matched.points),
+            snapped = true,
+            inferredSpans = spans,
+        )
+        PaparcarLogger.d(
+            TAG,
+            "route snapped for $sessionId: ${raw.size} raw → ${matched.points.size} on-road pts" +
+                (spans?.let { ", provenance=$it" } ?: ""),
+        )
+        return true
+    }
+
+    /**
+     * A safety-net backfill pin has NO recorded drive (the OS delivered the departure late; the net
+     * reconstructed the pin) — instead of leaving it routeless, reconstruct the trip pin-to-pin
+     * along the roads, stored FULLY inferred and pending the user's "did you drive this way?"
+     * verdict. Skipped (true, no route) when there is no plausible previous pin or the hop is
+     * trivial/too large; false only when the road fetch failed (retry). [ROUTE-GAP-HONEST-001]
+     */
+    private suspend fun inferBackfillRoute(session: UserParking): Boolean {
+        if (session.detectionPath != DETECTION_PATH_BACKFILL) return true
+        val vehicleId = session.vehicleId ?: return true
+        val previous = userParkingRepository.getPreviousSession(vehicleId, session.location.timestamp)
+            ?: return true
+        val hopMeters = haversineMeters(
+            previous.location.latitude, previous.location.longitude,
+            session.location.latitude, session.location.longitude,
+        )
+        if (hopMeters <= TrailMapMatcher.MAX_MEASURED_STEP_METERS ||
+            hopMeters > TrailMapMatcher.GAP_BRIDGE_CEILING_METERS
+        ) return true
+        // The plausible road route can bow sideways well past the two pins' bbox — widen the fetch
+        // with the hop scale.
+        val margin = ROADS_BBOX_MARGIN_DEG + (hopMeters / 2.0) / METERS_PER_DEGREE_LAT
+        val roads = roadNetworkDataSource.getRoads(
+            minLat = minOf(previous.location.latitude, session.location.latitude) - margin,
+            minLon = minOf(previous.location.longitude, session.location.longitude) - margin,
+            maxLat = maxOf(previous.location.latitude, session.location.latitude) + margin,
+            maxLon = maxOf(previous.location.longitude, session.location.longitude) + margin,
+        ).getOrNull().orEmpty()
+        if (roads.isEmpty()) return false // couldn't fetch → retry with backoff
+        val matched = TrailMapMatcher.match(listOf(previous.location, session.location), roads)
+        if (matched.inferredSpans.isEmpty()) return true // no plausible bridge — honestly no route
+        userParkingRepository.updateParkingSessionRoute(
+            session.id,
+            PolylineCodec.encode(matched.points),
+            snapped = true,
+            inferredSpans = InferredRoute.encode(matched.inferredSpans, matched.cuts),
+        )
+        PaparcarLogger.d(
+            TAG,
+            "backfill route inferred pin-to-pin for ${session.id}: ${hopMeters.toInt()}m hop → ${matched.points.size} pts (pending user verdict)",
+        )
         return true
     }
 
@@ -127,6 +187,13 @@ class EnrichParkingSessionWorker(
         // Pad the OSM road fetch ~400 m around the route bbox so the matcher has the streets just
         // outside the trace to snap onto. Mirrors the live fetch margin. [ROUTE-SNAP-001]
         private const val ROADS_BBOX_MARGIN_DEG = 0.004
+
+        // Confirmation PATH of a safety-net backfill pin — the only routeless pin whose trip is
+        // reconstructed pin-to-pin (marked inferred). [ROUTE-GAP-HONEST-001]
+        private const val DETECTION_PATH_BACKFILL = "safety_net_backfill"
+
+        // Meters per degree of latitude — scales the pin-to-pin road fetch margin with the hop.
+        private const val METERS_PER_DEGREE_LAT = 111_000.0
 
         fun buildRequest(sessionId: String, lat: Double, lon: Double): OneTimeWorkRequest =
             OneTimeWorkRequestBuilder<EnrichParkingSessionWorker>()

@@ -63,6 +63,7 @@ import com.swmansion.kmpmaps.core.MapUISettings
 import com.swmansion.kmpmaps.core.LiveMarker
 import com.swmansion.kmpmaps.core.Marker
 import io.apptolast.paparcar.domain.detection.DetectionPhase
+import io.apptolast.paparcar.domain.matching.RouteSegment
 import io.apptolast.paparcar.domain.model.CarbodyType
 import io.apptolast.paparcar.domain.model.DrivingPuck
 import io.apptolast.paparcar.domain.model.GpsPoint
@@ -456,6 +457,12 @@ private data class PuckMeta(
 private val EMPTY_PUCK_STATE: State<DrivingPuck?> = mutableStateOf(null)
 private val EMPTY_TRAIL_STATE: State<List<GpsPoint>> = mutableStateOf(emptyList())
 private val EMPTY_DEPARTURE_STATE: State<GpsPoint?> = mutableStateOf(null)
+private val EMPTY_SEGMENTS_STATE: State<List<RouteSegment>> = mutableStateOf(emptyList())
+
+// Inferred stretches of a stored route (data holes reconstructed along the streets) render dimmed
+// until the user vouches for them — visibly a guess, never passing as the measured line.
+// [ROUTE-GAP-HONEST-001]
+private const val INFERRED_ROUTE_ALPHA = 0.45f
 
 private fun lerpDouble(a: Double, b: Double, t: Float): Double = a + (b - a) * t
 
@@ -599,6 +606,13 @@ fun PaparcarMapView(
     tripTrail: State<List<GpsPoint>> = EMPTY_TRAIL_STATE,
     /** Trip trail snapped onto OSM streets; preferred over [tripTrail] when non-empty. [ROUTE-SNAP-001] */
     matchedTrail: State<List<GpsPoint>> = EMPTY_TRAIL_STATE,
+    /**
+     * A STORED route split by provenance — measured stretches solid, road-inferred stretches dimmed
+     * ([INFERRED_ROUTE_ALPHA]), separate segments never joined (a missing connector IS the honest
+     * cut). Wins over [tripTrail]/[matchedTrail] when non-empty; only the history detail passes it.
+     * [ROUTE-GAP-HONEST-001]
+     */
+    tripSegments: State<List<RouteSegment>> = EMPTY_SEGMENTS_STATE,
     /** Faded "departure" point — where the car left from, shown while a trip runs. [TRIP-TRAIL-001] */
     departurePoint: State<GpsPoint?> = EMPTY_DEPARTURE_STATE,
     /**
@@ -681,6 +695,7 @@ fun PaparcarMapView(
     val currentDrivingPuck by rememberUpdatedState(drivingPuck)
     val currentTripTrail by rememberUpdatedState(tripTrail)
     val currentMatchedTrail by rememberUpdatedState(matchedTrail)
+    val currentTripSegments by rememberUpdatedState(tripSegments)
     val currentDeparturePoint by rememberUpdatedState(departurePoint)
     val currentArrivalPoint by rememberUpdatedState(arrivalPoint)
 
@@ -1234,10 +1249,29 @@ fun PaparcarMapView(
     // ~2 Hz from the trail, not per fix, which keeps pans smooth. [DRIVE-PUCK-NATIVE-001] [ROUTE-SNAP-001]
     val tripPolylines = remember { mutableStateOf<List<Polyline>>(emptyList()) }
     LaunchedEffect(Unit) {
-        snapshotFlow { Triple(currentMatchedTrail.value, currentTripTrail.value, currentDeparturePoint.value) }
+        snapshotFlow {
+            listOf(currentTripSegments.value, currentMatchedTrail.value, currentTripTrail.value, currentDeparturePoint.value)
+        }
             .sample(TRAIL_SAMPLE_MS)
-            .collect { (matched, raw, dep) ->
-                tripPolylines.value = if (matched.size >= 2) {
+            .collect { (segmentsAny, matchedAny, rawAny, depAny) ->
+                @Suppress("UNCHECKED_CAST")
+                val segments = segmentsAny as List<RouteSegment>
+                @Suppress("UNCHECKED_CAST")
+                val matched = matchedAny as List<GpsPoint>
+                @Suppress("UNCHECKED_CAST")
+                val raw = rawAny as List<GpsPoint>
+                val dep = depAny as GpsPoint?
+                tripPolylines.value = if (segments.isNotEmpty()) {
+                    // Stored route with provenance: one native polyline per segment, measured solid
+                    // and inferred dimmed, deliberately NOT joined across cuts. [ROUTE-GAP-HONEST-001]
+                    segments.filter { it.points.size >= 2 }.map { segment ->
+                        Polyline(
+                            coordinates = segment.points.map { Coordinates(it.latitude, it.longitude) },
+                            width = TRIP_TRAIL_WIDTH,
+                            lineColor = if (segment.inferred) PapLiveMap.copy(alpha = INFERRED_ROUTE_ALPHA) else PapLiveMap,
+                        )
+                    }
+                } else if (matched.size >= 2) {
                     // Matched points are dense and already on the road — connect them directly (no spline).
                     listOf(Polyline(
                         coordinates = matched.map { Coordinates(it.latitude, it.longitude) },

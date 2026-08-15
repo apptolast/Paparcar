@@ -167,6 +167,9 @@
     <string name="parking_detail_navigate_action">Navighează la această locație</string>
     <string name="parking_detail_prev">Parcarea anterioară</string>
     <string name="parking_detail_route_recalculating">Se recalculează ruta…</string>
+    <string name="parking_detail_route_inferred_question">O parte din acest traseu a fost reconstruită deoarece semnalul GPS s-a pierdut pe drum. Ai trecut pe aici?</string>
+    <string name="parking_detail_route_inferred_yes">Da</string>
+    <string name="parking_detail_route_inferred_no">Nu</string>
     <string name="parking_detail_next">Parcarea următoare</string>
     <string name="parking_detail_no_address">Locație necunoscută</string>
     <string name="parking_detail_detection_auto">Detectat automat</string>

@@ -242,6 +242,15 @@ class FakeUserParkingRepository(
         id: String,
         routePolyline: String?,
         snapped: Boolean,
+        inferredSpans: String?,
+    ): Result<Unit> = Result.success(Unit)
+
+    override suspend fun getPreviousSession(vehicleId: String, beforeTimestamp: Long): UserParking? =
+        null
+
+    override suspend fun resolveInferredRoute(
+        id: String,
+        resolution: RouteInferenceResolution,
     ): Result<Unit> = Result.success(Unit)
 
     override suspend fun deleteAllData(userId: String): Result<Unit> = Result.success(Unit)

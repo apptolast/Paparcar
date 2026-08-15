@@ -208,3 +208,20 @@ val MIGRATION_16_17 = object : Migration(16, 17) {
     }
 }
 
+/**
+ * v17 → v18: add routeInferredSpans + routeInferredResolution to parking_sessions — the provenance
+ * of road-INFERRED stretches (data holes reconstructed along the streets) and the user's verdict on
+ * them ("did you drive this way?"). Both nullable TEXT, additive/non-destructive; existing rows read
+ * null (fully measured route / no question). [ROUTE-GAP-HONEST-001]
+ */
+val MIGRATION_17_18 = object : Migration(17, 18) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL(
+            "ALTER TABLE parking_sessions ADD COLUMN routeInferredSpans TEXT"
+        )
+        connection.execSQL(
+            "ALTER TABLE parking_sessions ADD COLUMN routeInferredResolution TEXT"
+        )
+    }
+}
+

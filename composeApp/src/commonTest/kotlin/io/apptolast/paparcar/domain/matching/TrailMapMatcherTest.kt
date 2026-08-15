@@ -288,6 +288,83 @@ class TrailMapMatcherTest {
         }
     }
 
+    // ── Data holes are never silently routed through [ROUTE-GAP-HONEST-001] ────────
+
+    private fun gpAt(lat: Double, lon: Double, ts: Long) = GpsPoint(lat, lon, 0f, ts, 0f)
+
+    @Test
+    fun `should mark the road bridge across a data hole as inferred instead of passing it off as measured`() {
+        // The field bug (14-08, Redmi Litoral): a 7-min GPS nap spanning kilometres was bridged
+        // with the shortest road corridor and drawn EXACTLY like the measured line. The bridge may
+        // still be drawn — but its span must be reported so the UI can dim it and ask.
+        val eastWest = RoadWay(listOf(gp(36.6000, -6.2400), gp(36.6000, -6.2300)))
+        val northSouth = RoadWay(listOf(gp(36.6000, -6.2300), gp(36.6100, -6.2300)))
+        // Two fixes ~1.4 km apart with 7 minutes of silence between them.
+        val trail = listOf(gpAt(36.60005, -6.2398, 0L), gpAt(36.6098, -6.23005, 7 * 60_000L))
+
+        val matched = TrailMapMatcher.match(trail, listOf(eastWest, northSouth))
+
+        assertTrue(matched.points.size > 2, "expected the hole bridged along the streets")
+        assertTrue(
+            matched.points.any { it.latitude == 36.6000 && it.longitude == -6.2300 },
+            "expected the street corner on the bridged path",
+        )
+        assertEquals(1, matched.inferredSpans.size, "expected the bridge REPORTED as inferred")
+        val span = matched.inferredSpans.single()
+        assertEquals(0, span.first, "expected the span to open on the measured anchor")
+        assertEquals(matched.points.lastIndex, span.last, "expected the span to close on the measured anchor")
+        assertTrue(matched.cuts.isEmpty())
+    }
+
+    @Test
+    fun `should keep a sparse highway step as an ordinary measured transition`() {
+        // 400 m between fixes 15 s apart is live highway sampling, NOT a hole — it must stay a
+        // plain routed transition with no inferred span and no cut.
+        val road = RoadWay(listOf(gp(36.6000, -6.2500), gp(36.6000, -6.2200)))
+        val trail = listOf(
+            gpAt(36.60003, -6.2460, 0L),
+            gpAt(36.60003, -6.2415, 15_000L), // ~400 m later
+            gpAt(36.60003, -6.2370, 30_000L),
+        )
+
+        val matched = TrailMapMatcher.match(trail, listOf(road))
+
+        assertTrue(matched.inferredSpans.isEmpty(), "expected no inferred span on live sparse sampling")
+        assertTrue(matched.cuts.isEmpty())
+        matched.points.forEach { p ->
+            val offset = haversineMeters(p.latitude, p.longitude, 36.6000, p.longitude)
+            assertTrue(offset < 1.0, "expected the sparse line on the street, a point is ${offset}m off")
+        }
+    }
+
+    @Test
+    fun `should cut instead of bridging a hole with no plausible road path`() {
+        // Two disconnected streets with a 7-min, ~1.4 km hole between their fixes: no road path
+        // exists, so the honest output is a CUT — the two stretches must never be joined.
+        val a = RoadWay(listOf(gp(36.6000, -6.2400), gp(36.6000, -6.2390)))
+        val b = RoadWay(listOf(gp(36.6100, -6.2300), gp(36.6100, -6.2290)))
+        val trail = listOf(gpAt(36.60005, -6.2398, 0L), gpAt(36.60995, -6.2295, 7 * 60_000L))
+
+        val matched = TrailMapMatcher.match(trail, listOf(a, b))
+
+        assertEquals(2, matched.points.size)
+        assertTrue(matched.inferredSpans.isEmpty(), "no plausible bridge → nothing inferred")
+        assertEquals(listOf(0), matched.cuts, "expected the line to CUT between the stretches")
+    }
+
+    @Test
+    fun `should cut instead of bridging a hole beyond the ceiling`() {
+        // A hole larger than GAP_BRIDGE_CEILING_METERS (~9 km along one straight road): the guess
+        // space is too large to ask about — cut, never a kilometres-long invention.
+        val road = RoadWay(listOf(gp(36.5500, -6.2400), gp(36.6400, -6.2400)))
+        val trail = listOf(gpAt(36.5505, -6.23995, 0L), gpAt(36.6395, -6.23995, 20 * 60_000L))
+
+        val matched = TrailMapMatcher.match(trail, listOf(road))
+
+        assertTrue(matched.inferredSpans.isEmpty(), "expected no bridge beyond the ceiling")
+        assertEquals(listOf(0), matched.cuts)
+    }
+
     // ── Per-measurement σ — imprecise fixes stop choosing the street [ROUTE-FIX-ACCURACY-001] ──
 
     @Test

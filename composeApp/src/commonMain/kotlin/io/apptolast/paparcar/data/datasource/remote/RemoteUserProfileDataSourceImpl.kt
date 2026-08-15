@@ -179,6 +179,10 @@ class RemoteUserProfileDataSourceImpl(
                 // Whether that route is the final on-road line. Defensive: legacy docs default false
                 // (raw/absent → history treats null polyline as "no route"). [DET-ROUTE-SNAP-STORE-001]
                 routeSnapped = runCatching { get<Boolean?>(FIELD_ROUTE_SNAPPED) }.getOrNull() ?: false,
+                // Provenance of road-inferred stretches + the user's verdict on them. Defensive:
+                // absent on docs written before ROUTE-GAP-HONEST-001. [ROUTE-GAP-HONEST-001]
+                routeInferredSpans = runCatching { get<String?>(FIELD_ROUTE_INFERRED_SPANS) }.getOrNull(),
+                routeInferredResolution = runCatching { get<String?>(FIELD_ROUTE_INFERRED_RESOLUTION) }.getOrNull(),
                 updatedAt = getLongCompat(FIELD_UPDATED_AT),
             )
         }.getOrElse { e ->
@@ -237,5 +241,8 @@ class RemoteUserProfileDataSourceImpl(
         const val FIELD_DETECTION_PATH = "detectionPath"
         const val FIELD_ROUTE_POLYLINE = "routePolyline"
         const val FIELD_ROUTE_SNAPPED = "routeSnapped"
+        // Inferred-stretch provenance + user verdict. [ROUTE-GAP-HONEST-001]
+        const val FIELD_ROUTE_INFERRED_SPANS = "routeInferredSpans"
+        const val FIELD_ROUTE_INFERRED_RESOLUTION = "routeInferredResolution"
     }
 }

@@ -73,7 +73,20 @@ data class UserParking(
      *  rows (null polyline) stay false and simply have no route. Snapped ONCE by the enrichment worker,
      *  never re-computed on display. [DET-ROUTE-SNAP-STORE-001] */
     val routeSnapped: Boolean = false,
+    /** Provenance of [routePolyline]'s stretches when the matcher reconstructed data holes along
+     *  the roads: encoded spans/cuts ([io.apptolast.paparcar.domain.matching.InferredRoute]).
+     *  Null = fully measured route (the common case). Synced. [ROUTE-GAP-HONEST-001] */
+    val routeInferredSpans: String? = null,
+    /** The user's verdict on the inferred stretches — null while the "did you drive this way?"
+     *  question is pending. Only meaningful when [routeInferredSpans] is non-null. Synced.
+     *  [ROUTE-GAP-HONEST-001] */
+    val routeInferredResolution: RouteInferenceResolution? = null,
 ) {
+    /** True when this route carries road-inferred stretches the user has not judged yet — the
+     *  detail screen asks. [ROUTE-GAP-HONEST-001] */
+    val hasPendingInferredRoute: Boolean
+        get() = routeSnapped && !routeInferredSpans.isNullOrBlank() && routeInferredResolution == null
+
     /** True when this session is an approximate AREA rather than an exact point — the single
      *  source of truth is [zoneRadiusMeters] (an area intrinsically has a radius; a boolean
      *  alongside it could contradict it). [DET-HONEST-CLOSE-001] */

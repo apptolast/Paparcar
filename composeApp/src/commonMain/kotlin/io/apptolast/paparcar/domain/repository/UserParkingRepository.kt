@@ -3,6 +3,7 @@ package io.apptolast.paparcar.domain.repository
 import io.apptolast.paparcar.domain.model.AddressInfo
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.PlaceInfo
+import io.apptolast.paparcar.domain.model.RouteInferenceResolution
 import io.apptolast.paparcar.domain.model.UserParking
 import kotlinx.coroutines.flow.Flow
 
@@ -79,6 +80,23 @@ interface UserParkingRepository : UserScopedRepository, RemoteSyncable {
         id: String,
         routePolyline: String?,
         snapped: Boolean,
+        inferredSpans: String? = null,
+    ): Result<Unit>
+
+    /**
+     * The vehicle's parking session right before [beforeTimestamp] — the origin of the trip that
+     * ended at the session in question. Null when there is none. [ROUTE-GAP-HONEST-001]
+     */
+    suspend fun getPreviousSession(vehicleId: String, beforeTimestamp: Long): UserParking?
+
+    /**
+     * Stores the user's verdict on a route's road-inferred stretches — the answer to the
+     * "did you drive this way?" question — and schedules Firestore reconciliation.
+     * [ROUTE-GAP-HONEST-001]
+     */
+    suspend fun resolveInferredRoute(
+        id: String,
+        resolution: RouteInferenceResolution,
     ): Result<Unit>
 
     /** Deletes all local parking sessions for [userId]. Called during account deletion. */

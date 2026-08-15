@@ -10,6 +10,7 @@ import io.apptolast.paparcar.data.mapper.toParkingHistoryDto
 import io.apptolast.paparcar.domain.model.AddressInfo
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.PlaceInfo
+import io.apptolast.paparcar.domain.model.RouteInferenceResolution
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.service.ParkingSyncScheduler
@@ -62,6 +63,9 @@ class UserParkingRepositoryImpl(
 
     override suspend fun getSessionById(id: String): UserParking? =
         dao.getById(id)?.toDomain()
+
+    override suspend fun getPreviousSession(vehicleId: String, beforeTimestamp: Long): UserParking? =
+        dao.getPreviousByVehicle(vehicleId, beforeTimestamp)?.toDomain()
 
     override fun observeActiveSessions(): Flow<List<UserParking>> =
         dao.observeActive().map { list -> list.map { it.toDomain() } }
@@ -203,11 +207,30 @@ class UserParkingRepositoryImpl(
         id: String,
         routePolyline: String?,
         snapped: Boolean,
+        inferredSpans: String?,
     ): Result<Unit> = runCatching {
         dao.updateRoute(
             id = id,
             routePolyline = routePolyline,
             routeSnapped = snapped,
+            routeInferredSpans = inferredSpans,
+            now = Clock.System.now().toEpochMilliseconds(),
+        )
+        val updated = dao.getById(id)?.toDomain() ?: error("No parking session with id=$id")
+        parkingSyncScheduler.enqueueSaveNewParkingSession(updated, previousSessionId = null)
+    }
+
+    /**
+     * Room update of the user's verdict on the route's inferred stretches, mirrored to Firestore
+     * with the same in-place mutation pattern as the route write. [ROUTE-GAP-HONEST-001]
+     */
+    override suspend fun resolveInferredRoute(
+        id: String,
+        resolution: RouteInferenceResolution,
+    ): Result<Unit> = runCatching {
+        dao.updateRouteResolution(
+            id = id,
+            resolution = resolution.name,
             now = Clock.System.now().toEpochMilliseconds(),
         )
         val updated = dao.getById(id)?.toDomain() ?: error("No parking session with id=$id")

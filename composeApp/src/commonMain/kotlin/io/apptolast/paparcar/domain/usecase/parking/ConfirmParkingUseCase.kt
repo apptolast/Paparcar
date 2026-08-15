@@ -383,6 +383,20 @@ class ConfirmParkingUseCase(
         } else {
             points
         }
+        // [ROUTE-GAP-HONEST-001] A "route" shorter than a real drive is the wake-up's own handful
+        // of fixes, not a trip (field 2026-08-14 22:51: a safety-net backfill pin carried a 40 m
+        // 5-point stub whose origin marker sat next to the destination). No measured drive → no
+        // route attached; the post-park worker may still reconstruct pin-to-pin, marked inferred.
+        val extentMeters = (1 until seeded.size).sumOf {
+            haversineMeters(
+                seeded[it - 1].latitude, seeded[it - 1].longitude,
+                seeded[it].latitude, seeded[it].longitude,
+            )
+        }
+        if (extentMeters < MIN_ROUTE_EXTENT_METERS) {
+            PaparcarLogger.d(DIAG, "  route too short to be a drive (${extentMeters.toInt()}m < ${MIN_ROUTE_EXTENT_METERS.toInt()}m) — no route attached [ROUTE-GAP-HONEST-001]")
+            return null
+        }
         return PolylineCodec.encode(seeded).ifEmpty { null }
     }
 
@@ -401,5 +415,10 @@ class ConfirmParkingUseCase(
          *  backdated-origin ceiling (MAX_BACKDATED_ORIGIN_METERS). */
         const val MIN_ORIGIN_PREPEND_METERS = 15.0
         const val MAX_ORIGIN_PREPEND_METERS = 5_000.0
+
+        /** A recorded route whose total length is below this is not a drive — it is the wake-up's
+         *  own fixes around the parked car (a backfill/sentry stub) and attaching it would draw a
+         *  fake origin next to the pin. [ROUTE-GAP-HONEST-001] */
+        const val MIN_ROUTE_EXTENT_METERS = 150.0
     }
 }

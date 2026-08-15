@@ -9,6 +9,7 @@ import io.apptolast.paparcar.domain.model.CarbodyType
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.PlaceCategory
 import io.apptolast.paparcar.domain.model.PlaceInfo
+import io.apptolast.paparcar.domain.model.RouteInferenceResolution
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.UserParking
@@ -44,6 +45,8 @@ fun UserParkingEntity.toDomain(): UserParking = UserParking(
     zoneRadiusMeters = zoneRadiusMeters,
     routePolyline = routePolyline,
     routeSnapped = routeSnapped,
+    routeInferredSpans = routeInferredSpans,
+    routeInferredResolution = routeInferredResolution.toEnumOrNull<RouteInferenceResolution>(),
 )
 
 private fun UserParkingEntity.addressOrNull(): AddressInfo? =
@@ -101,9 +104,12 @@ fun UserParking.toEntity(updatedAt: Long = 0, pendingSync: Boolean = false): Use
     // zoneRadiusMeters: local-only honest-close artifact — round-trips Room, never synced (an
     // unrefined approximate zone stays on the device that detected it). [DET-HONEST-CLOSE-001]
     zoneRadiusMeters = zoneRadiusMeters,
-    // The driven route round-trips Room and syncs to Firestore. [DET-ROUTE-TRACK-001]
+    // The driven route round-trips Room and syncs to Firestore; its inferred-stretch provenance and
+    // the user's verdict travel with it. [DET-ROUTE-TRACK-001][ROUTE-GAP-HONEST-001]
     routePolyline = routePolyline,
     routeSnapped = routeSnapped,
+    routeInferredSpans = routeInferredSpans,
+    routeInferredResolution = routeInferredResolution?.name,
     updatedAt = updatedAt,
     pendingSync = pendingSync,
 )
@@ -145,9 +151,12 @@ fun UserParking.toParkingHistoryDto(updatedAt: Long = 0L) = ParkingHistoryDto(
     // remote diagnostic can attribute a parking to its trigger. [DET-PIN-PROVENANCE-001]
     armEvidence = armEvidence,
     detectionPath = detectionPath,
-    // The driven route travels to Firestore so the trip renders in history on any device. [DET-ROUTE-TRACK-001]
+    // The driven route travels to Firestore so the trip renders in history on any device, with the
+    // inferred-stretch provenance + verdict. [DET-ROUTE-TRACK-001][ROUTE-GAP-HONEST-001]
     routePolyline = routePolyline,
     routeSnapped = routeSnapped,
+    routeInferredSpans = routeInferredSpans,
+    routeInferredResolution = routeInferredResolution?.name,
     updatedAt = updatedAt,
 )
 
@@ -179,9 +188,12 @@ fun ParkingHistoryDto.toEntity() = UserParkingEntity(
     // keeps who/what placed it. tripMaxSpeedMps stays local-only → null here. [DET-PIN-PROVENANCE-001]
     armEvidence = armEvidence,
     detectionPath = detectionPath,
-    // The driven route comes back from Firestore so a new device renders the trip. [DET-ROUTE-TRACK-001]
+    // The driven route comes back from Firestore so a new device renders the trip, with the
+    // inferred-stretch provenance + verdict. [DET-ROUTE-TRACK-001][ROUTE-GAP-HONEST-001]
     routePolyline = routePolyline,
     routeSnapped = routeSnapped,
+    routeInferredSpans = routeInferredSpans,
+    routeInferredResolution = routeInferredResolution,
     // A row coming FROM Firestore is by definition already synced → pendingSync=false. Its
     // updatedAt carries the remote edit time for the LWW merge. [SYNC-RECONCILE-USERPARKING-001]
     updatedAt = updatedAt,

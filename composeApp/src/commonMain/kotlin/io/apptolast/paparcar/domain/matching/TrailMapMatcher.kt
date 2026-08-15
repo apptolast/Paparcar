@@ -40,6 +40,13 @@ import kotlin.math.roundToLong
  * — but between two ON-ROAD points, never out to a GPS spike. If the whole trail has no road nearby
  * (rural, missing OSM data) the raw trail is returned unchanged: there is genuinely no street to draw.
  *
+ * v6 — DATA HOLES are never routed through as if they were data ([ROUTE-GAP-HONEST-001]): a measured
+ * step over [MAX_MEASURED_STEP_METERS] ends the Viterbi stretch, and the hole is reconstructed as the
+ * shortest road path SEPARATELY, reported in [MatchedRoute.inferredSpans] so the UI can render it as a
+ * guess and ask the user — or CUT ([MatchedRoute.cuts]) when the hole exceeds
+ * [GAP_BRIDGE_CEILING_METERS] or no plausible bridge exists. Use [match] for provenance; [snap] keeps
+ * the flat-points contract for the live trip.
+ *
  * Supersedes v1 (independent nearest-road snap), v2 (A* gap-fill — now inherent, every transition
  * is routed), v3 (straight-line-transition Viterbi) and v4 (routed geometry but raw off-road runs).
  * See docs/backlog/route-line-pro-001.md and docs/backlog/route-line-onroad-001.md.
@@ -93,6 +100,26 @@ object TrailMapMatcher {
     const val MAX_DETOUR_FACTOR = 3.0
     const val DETOUR_SLACK_METERS = 120.0
 
+    /** A measured step larger than this is a DATA-HOLE candidate, not a transition: the stream
+     *  went silent and NOTHING was measured in between, so the Viterbi must never route through it
+     *  as if it were data (field 2026-08-14: a 7-min GPS nap spanning 4.6 km was silently bridged
+     *  with the SHORTEST road corridor — kilometres of never-driven street, indistinguishable from
+     *  the measured line). Distance alone is not enough — see [isDataHole]: sparse highway fixes
+     *  legitimately step 300–700 m in seconds. The match breaks at a hole; it is then
+     *  reconstructed separately and MARKED inferred ([MatchedRoute.inferredSpans]) so the UI can
+     *  ask the user. [ROUTE-GAP-HONEST-001] */
+    const val MAX_MEASURED_STEP_METERS = 300.0
+
+    /** Wall-clock silence that turns a large step into a hole. A 700 m step in 20 s is continuous
+     *  highway measurement; the same step after a minute of silence is unmeasured ground.
+     *  [ROUTE-GAP-HONEST-001] */
+    const val MAX_MEASURED_SILENCE_MS = 60_000L
+
+    /** Ceiling on the hole size the reconstruction still bridges (marked inferred). Beyond it the
+     *  guess space is too large to be worth asking about — the line CUTS instead
+     *  ([MatchedRoute.cuts]), never a chord and never an invented tour. [ROUTE-GAP-HONEST-001] */
+    const val GAP_BRIDGE_CEILING_METERS = 8_000.0
+
     /** Emission handicap for candidates on a minor way ([RoadWay.isMinor] — `highway=service`:
      *  parking aisles, driveways, school drop-off loops). Worth ≈ a 30 m distance disadvantage
      *  (0.5·(30/σ)²), so a service road running parallel a few metres from the real road can never
@@ -102,10 +129,25 @@ object TrailMapMatcher {
      *  would chord over every trip that starts or ends in a forecourt. [ROUTE-QUALITY-001] */
     const val MINOR_WAY_EMISSION_PENALTY = 4.5
 
-    fun snap(points: List<GpsPoint>, roads: List<RoadWay>): List<GpsPoint> {
-        if (roads.isEmpty() || points.size < 2) return points
+    /** The matched line plus the provenance of every stretch. [ROUTE-GAP-HONEST-001]
+     *  - [inferredSpans]: index ranges into [points] whose sub-polyline is road-INFERRED bridging
+     *    of a data hole — drawn geometry, never measured. Each range includes its measured anchor
+     *    endpoints, so the rendered inferred segment connects visually to the measured ones.
+     *  - [cuts]: indices after which the line must BREAK when drawn — points[i] and points[i+1]
+     *    belong to different stretches with no plausible bridge between them. */
+    class MatchedRoute(
+        val points: List<GpsPoint>,
+        val inferredSpans: List<IntRange>,
+        val cuts: List<Int>,
+    )
+
+    /** Flat-points façade over [match] for callers that draw everything alike (the live trip). */
+    fun snap(points: List<GpsPoint>, roads: List<RoadWay>): List<GpsPoint> = match(points, roads).points
+
+    fun match(points: List<GpsPoint>, roads: List<RoadWay>): MatchedRoute {
+        if (roads.isEmpty() || points.size < 2) return MatchedRoute(points, emptyList(), emptyList())
         val graph = RoadGraph.build(roads)
-        if (graph.isEmpty) return points
+        if (graph.isEmpty) return MatchedRoute(points, emptyList(), emptyList())
         val measurements = decimate(points)
         // The origin searches wider so a backdated parked spot set back from the road (a car park, a
         // driveway) still snaps onto the nearest street and the line STARTS on the road. Interior and
@@ -119,7 +161,7 @@ object TrailMapMatcher {
         // streets. Only when fewer than two fixes touch any road is there nothing to match honestly
         // (rural / missing OSM) → keep the raw trail. [ROUTE-LINE-ONROAD-001]
         val onRoad = measurements.indices.filter { layers[it].isNotEmpty() }
-        if (onRoad.size < 2) return points
+        if (onRoad.size < 2) return MatchedRoute(points, emptyList(), emptyList())
         val keptMs = onRoad.map { measurements[it] }
         val keptLayers = onRoad.map { layers[it] }
         return decode(keptMs, keptLayers, graph)
@@ -163,30 +205,104 @@ object TrailMapMatcher {
     }
 
     /**
-     * Walks the on-road measurement sequence (off-road fixes already dropped) emitting matched street
-     * geometry, with an honest road-to-road chord wherever the Viterbi breaks (no routable path).
+     * Walks the on-road measurement sequence (off-road fixes already dropped) as a series of
+     * Viterbi STRETCHES, then joins them. A break on a short step (implausible path over ≤
+     * [MAX_MEASURED_STEP_METERS] — disconnected graph) keeps today's honest short chord. A break
+     * on a DATA HOLE (> [MAX_MEASURED_STEP_METERS]) is reconstructed along the roads and MARKED
+     * inferred, or CUT when no plausible bridge exists / the hole exceeds
+     * [GAP_BRIDGE_CEILING_METERS]. [ROUTE-GAP-HONEST-001]
      */
-    private fun decode(ms: List<GpsPoint>, layers: List<List<Candidate>>, graph: RoadGraph): List<GpsPoint> {
-        val out = ArrayList<GpsPoint>()
+    private fun decode(ms: List<GpsPoint>, layers: List<List<Candidate>>, graph: RoadGraph): MatchedRoute {
+        val stretches = ArrayList<Stretch>()
         var i = 0
         while (i < ms.size) {
-            i = decodeSegment(ms, layers, graph, i, out)
+            i = decodeSegment(ms, layers, graph, i, stretches)
         }
-        return out
+        val out = ArrayList<GpsPoint>()
+        val spans = ArrayList<IntRange>()
+        val cuts = ArrayList<Int>()
+        for ((k, stretch) in stretches.withIndex()) {
+            var bridgeStart = -1
+            if (k > 0 && out.isNotEmpty()) {
+                val prev = stretches[k - 1]
+                val holeMeters = haversineMeters(
+                    ms[prev.endMs].latitude, ms[prev.endMs].longitude,
+                    ms[stretch.startMs].latitude, ms[stretch.startMs].longitude,
+                )
+                if (isDataHole(ms[prev.endMs], ms[stretch.startMs], holeMeters)) {
+                    val bridge = if (holeMeters <= GAP_BRIDGE_CEILING_METERS) {
+                        bridgeAcrossHole(prev.last, stretch.first, holeMeters, graph, ms[prev.endMs])
+                    } else null
+                    if (bridge != null) {
+                        bridgeStart = out.size - 1 // the measured anchor the inferred span opens on
+                        bridge.forEach { addPoint(out, it) }
+                    } else {
+                        cuts.add(out.size - 1) // no plausible reconstruction → the line breaks here
+                    }
+                }
+                // holeMeters ≤ MAX_MEASURED_STEP: Viterbi broke over a short implausible path
+                // (disconnected roads) — keep the honest short road-to-road chord, unmarked.
+            }
+            val beforeAppend = out.size
+            stretch.points.forEach { addPoint(out, it) }
+            if (bridgeStart >= 0) {
+                spans.add(bridgeStart..minOf(beforeAppend, out.lastIndex))
+            }
+        }
+        return MatchedRoute(out, spans, cuts)
+    }
+
+    /** One decoded Viterbi stretch: its emitted street geometry plus the chosen boundary
+     *  candidates and the measurement indices it covers — what the join needs to reconstruct or
+     *  cut the holes between stretches. [ROUTE-GAP-HONEST-001] */
+    private class Stretch(
+        val points: List<GpsPoint>,
+        val first: Candidate,
+        val last: Candidate,
+        val startMs: Int,
+        val endMs: Int,
+    )
+
+    /** A DATA HOLE is a large step across genuine silence: beyond [MAX_MEASURED_STEP_METERS] AND
+     *  either more than [MAX_MEASURED_SILENCE_MS] of wall-clock between the fixes or no usable
+     *  timestamps at all (synthetic pin-to-pin callers). Sparse-but-live sampling (a 700 m highway
+     *  step in 20 s) is NOT a hole — it stays an ordinary routed transition. [ROUTE-GAP-HONEST-001] */
+    internal fun isDataHole(from: GpsPoint, to: GpsPoint, meters: Double): Boolean {
+        if (meters <= MAX_MEASURED_STEP_METERS) return false
+        val dtMs = to.timestamp - from.timestamp
+        return dtMs <= 0L || dtMs > MAX_MEASURED_SILENCE_MS
+    }
+
+    /** Shortest road path across a data hole, as drawable street vertices, or null when nothing
+     *  plausible exists within the detour bound (or the graph is disconnected there). The result
+     *  is GUESSED geometry — the caller marks it inferred, never measured. [ROUTE-GAP-HONEST-001] */
+    private fun bridgeAcrossHole(
+        from: Candidate,
+        to: Candidate,
+        holeMeters: Double,
+        graph: RoadGraph,
+        template: GpsPoint,
+    ): List<GpsPoint>? {
+        val bound = holeMeters * MAX_DETOUR_FACTOR + DETOUR_SLACK_METERS
+        val route = graph.route(from, to, bound, HashMap()) ?: return null
+        return route.nodeChain.map { node ->
+            template.copy(latitude = graph.latOf(node), longitude = graph.lonOf(node))
+        }
     }
 
     /**
      * Viterbi over consecutive layers starting at [start], until the trail ends, a layer is
-     * off-road, or no candidate is reachable along the roads (HMM break). Emits the winning
-     * candidate positions joined by their routed street vertices, and returns the index the next
-     * stretch starts at.
+     * off-road, a measured step exceeds [MAX_MEASURED_STEP_METERS] (a data hole — never routed
+     * through as if it were data, [ROUTE-GAP-HONEST-001]), or no candidate is reachable along the
+     * roads (HMM break). Appends the decoded [Stretch] and returns the index the next stretch
+     * starts at.
      */
     private fun decodeSegment(
         ms: List<GpsPoint>,
         layers: List<List<Candidate>>,
         graph: RoadGraph,
         start: Int,
-        out: ArrayList<GpsPoint>,
+        stretches: ArrayList<Stretch>,
     ): Int {
         var costs = DoubleArray(layers[start].size) { layers[start][it].emissionCost() }
         val backs = ArrayList<IntArray>()          // backs[s][c] = winning previous candidate into layer start+s+1
@@ -199,6 +315,7 @@ object TrailMapMatcher {
                 ms[end - 1].latitude, ms[end - 1].longitude,
                 ms[end].latitude, ms[end].longitude,
             )
+            if (isDataHole(ms[end - 1], ms[end], gc)) break // data hole — the stretch ends; decode() reconstructs or cuts
             val bound = gc * MAX_DETOUR_FACTOR + DETOUR_SLACK_METERS
             // One bounded Dijkstra per distinct edge endpoint of the previous layer, shared across
             // all candidate pairs of this transition.
@@ -235,6 +352,7 @@ object TrailMapMatcher {
             if (s > 0) c = backs[s - 1][c]
         }
         val opening = ms[start]
+        val out = ArrayList<GpsPoint>()
         addCandidate(out, layers[start][chosen[0]], opening)
         for (s in backs.indices) {
             paths[s][chosen[s + 1]]?.forEach { node ->
@@ -242,6 +360,15 @@ object TrailMapMatcher {
             }
             addCandidate(out, layers[start + s + 1][chosen[s + 1]], opening)
         }
+        stretches.add(
+            Stretch(
+                points = out,
+                first = layers[start][chosen[0]],
+                last = layers[start + backs.size][chosen[backs.size]],
+                startMs = start,
+                endMs = start + backs.size,
+            )
+        )
         return end
     }
 

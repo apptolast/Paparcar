@@ -35,7 +35,10 @@ import androidx.room.RoomDatabaseConstructor
     // polyline), rendered in history detail and synced to Firestore (MIGRATION_15_16). [DET-ROUTE-TRACK-001]
     // v17: parking_sessions gains routeSnapped — whether routePolyline is the final on-road line vs raw
     // fixes still awaiting the one-time snap (MIGRATION_16_17). [DET-ROUTE-SNAP-STORE-001]
-    version = 17,
+    // v18: parking_sessions gains routeInferredSpans + routeInferredResolution — provenance of
+    // road-inferred stretches (reconstructed data holes) and the user's verdict on them
+    // (MIGRATION_17_18). [ROUTE-GAP-HONEST-001]
+    version = 18,
 )
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase : RoomDatabase() {

@@ -164,6 +164,15 @@ interface UserParkingDao {
     @Query("SELECT * FROM parking_sessions WHERE id = :id LIMIT 1")
     suspend fun getById(id: String): UserParkingEntity?
 
+    /** The vehicle's parking right before [beforeTimestamp] — the origin of the trip that ended at
+     *  the session in question (feeds the pin-to-pin inferred route of a backfill pin).
+     *  [ROUTE-GAP-HONEST-001] */
+    @Query(
+        "SELECT * FROM parking_sessions WHERE vehicleId = :vehicleId AND timestamp < :beforeTimestamp " +
+            "ORDER BY timestamp DESC LIMIT 1"
+    )
+    suspend fun getPreviousByVehicle(vehicleId: String, beforeTimestamp: Long): UserParkingEntity?
+
     /**
      * Writes the driven route + its snapped flag onto a session (the post-park worker's one-time
      * snap, or the initial raw store). Stamps updatedAt + pendingSync so the change reaches Firestore
@@ -171,11 +180,32 @@ interface UserParkingDao {
      */
     @Query("""
         UPDATE parking_sessions SET
-            routePolyline = :routePolyline,
-            routeSnapped  = :routeSnapped,
-            updatedAt     = :now,
-            pendingSync   = 1
+            routePolyline           = :routePolyline,
+            routeSnapped            = :routeSnapped,
+            routeInferredSpans      = :routeInferredSpans,
+            routeInferredResolution = NULL,
+            updatedAt               = :now,
+            pendingSync             = 1
         WHERE id = :id
     """)
-    suspend fun updateRoute(id: String, routePolyline: String?, routeSnapped: Boolean, now: Long)
+    suspend fun updateRoute(
+        id: String,
+        routePolyline: String?,
+        routeSnapped: Boolean,
+        routeInferredSpans: String?,
+        now: Long,
+    )
+
+    /**
+     * Stores the user's verdict on a route's road-inferred stretches ("did you drive this way?").
+     * Stamps updatedAt + pendingSync so the answer reaches Firestore. [ROUTE-GAP-HONEST-001]
+     */
+    @Query("""
+        UPDATE parking_sessions SET
+            routeInferredResolution = :resolution,
+            updatedAt               = :now,
+            pendingSync             = 1
+        WHERE id = :id
+    """)
+    suspend fun updateRouteResolution(id: String, resolution: String?, now: Long)
 }

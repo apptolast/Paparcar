@@ -3,6 +3,7 @@ package io.apptolast.paparcar.fakes
 import io.apptolast.paparcar.domain.model.AddressInfo
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.PlaceInfo
+import io.apptolast.paparcar.domain.model.RouteInferenceResolution
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import kotlinx.coroutines.flow.Flow
@@ -64,11 +65,34 @@ class FakeUserParkingRepository(
         id: String,
         routePolyline: String?,
         snapped: Boolean,
+        inferredSpans: String?,
     ): Result<Unit> {
         updateRouteCallCount++
         val idx = sessions.indexOfFirst { it.id == id }
         if (idx >= 0) {
-            sessions[idx] = sessions[idx].copy(routePolyline = routePolyline, routeSnapped = snapped)
+            sessions[idx] = sessions[idx].copy(
+                routePolyline = routePolyline,
+                routeSnapped = snapped,
+                routeInferredSpans = inferredSpans,
+                routeInferredResolution = null,
+            )
+            _sessionsFlow.value = sessions.toList()
+        }
+        return Result.success(Unit)
+    }
+
+    override suspend fun getPreviousSession(vehicleId: String, beforeTimestamp: Long): UserParking? =
+        sessions
+            .filter { it.vehicleId == vehicleId && it.location.timestamp < beforeTimestamp }
+            .maxByOrNull { it.location.timestamp }
+
+    override suspend fun resolveInferredRoute(
+        id: String,
+        resolution: RouteInferenceResolution,
+    ): Result<Unit> {
+        val idx = sessions.indexOfFirst { it.id == id }
+        if (idx >= 0) {
+            sessions[idx] = sessions[idx].copy(routeInferredResolution = resolution)
             _sessionsFlow.value = sessions.toList()
         }
         return Result.success(Unit)
