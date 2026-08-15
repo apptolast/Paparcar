@@ -2134,3 +2134,42 @@ cause, consequence, remedy, no internals. 9 locales.
 **No new confirmation path**, so `detectionPath` / `armEvidence` are untouched: resuming the sentry
 rebuilds a WATCHER, it never confirms a parking. Doctrine intact — the event still only nominates,
 measured movement still confirms. Spec: `docs/backlog/det-watch-reactivate-001.md`.
+
+### DET-SHORT-HOP-PROOF-001 — a short hop proves its drive by DISPLACEMENT from the pin (2026-08-14)
+
+**Field report (14-08 ~23:00, Oppo, Ford Focus).** "Volví a donde estaba y no se puso" — the last
+parking of the night was never recorded. Session `1786740987649`: armed PUNCTUALLY on a
+`GEOFENCE_EXIT` 159 m from the car with VERIFIED evidence, ran 16.4 min, logged **303 fixes**, peaked
+at **30 km/h**, counted **104 steps** on arrival… and summarised `drive 3/303` →
+`aborted_unattended_no_drive` + a nudge nobody answered. The same physical trip WAS confirmed by the
+Redmi at 23:05, whose session came from the outbound leg and had already proven a drive at 73 km/h.
+
+**Cause — the only proof of driving we had is shaped for long, fast legs.** `corroboratesDrive`
+([DET-DRIVE-PROOF-001]) demands a credible driving-speed fix corroborated by a look-back fix aged
+20–60 s across which the position covered `minimumTripDistanceMeters` (150 m). A night hop of ~900 m
+through stop-and-go streets never holds 150 m inside any single 60-s window on a sparse stream, so
+`maxSpeedMps` stayed 0 — and `maxSpeedMps` is the statistic every confirm path reads as "did this
+session witness driving?". The trip was measured in full; the *shape* of the proof simply could not
+see it. A guard against a mirage had become a guard against a real drive.
+
+**Fix — a second, independent proof: measured ground covered, anchored to the PIN.**
+`EvaluateShortHopDriveProofUseCase` (pure, commonMain) unlocks the same statistic when the position
+sits, over `shortHopProofFixes` consecutive credible fixes, more than `shortHopProofFloorMeters`
+(400 m) from **the pin the car left**, beyond the fence radius and both accuracy envelopes, and
+beyond `isBeyondPedestrianReach` for the elapsed time — the same physics as [DET-RIDE-PROOF-001].
+Anchoring to the pin (never to the session's own first fix) is what makes the Doppler-mirage class
+impossible by construction: a phone drifting indoors next to its own pin measures ~0 m of
+displacement from it, whatever the chipset claims — had the anchor been the session's first fix, the
+2026-07-27 mirage would have used its own burst as the origin and called the trip home a "drive".
+
+**Doctrine intact.** The verified EXIT is still only a NOMINATION — required (an unverified arm proves
+nothing by displacement: a long walk or a bus shows the same geometry) and never sufficient. What
+CONFIRMS is measured, sustained, unwalkable ground. Every bound errs toward "not proven", and nothing
+here weakens the anchor-quality guards: the same field session, replayed with a hole before the stop,
+still refuses to pin (`aborted_unattended_gap_anchor`) — proving the drive says the car went
+somewhere, not that we know exactly where it stopped.
+
+**No new confirmation path**, so `detectionPath` / `armEvidence` are untouched: this unlocks the
+existing paths (the field session then ends `confirmed_unattended_timeout` instead of
+`aborted_unattended_no_drive`). Regression test replays the field shape and is verified RED without
+the fix. Spec: `docs/backlog/det-short-hop-proof-001.md`.

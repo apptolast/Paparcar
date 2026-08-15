@@ -15,6 +15,7 @@ import io.apptolast.paparcar.domain.model.displayName
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.sensor.StepDetectorSource
+import io.apptolast.paparcar.domain.usecase.detection.EvaluateShortHopDriveProofUseCase
 import io.apptolast.paparcar.domain.usecase.notification.NotifyParkingConfirmationUseCase
 import io.apptolast.paparcar.domain.usecase.parking.CalculateParkingConfidenceUseCase
 import io.apptolast.paparcar.domain.detection.ArmEvidence
@@ -112,6 +113,10 @@ class CoordinatorParkingDetector(
     /** Wall-clock source (epoch-ms). Injectable so the time-driven post-confirm hold [DET-C-02]
      *  can be unit-tested without sleeping. Defaults to the system clock. */
     private val clock: () -> Long = { Clock.System.now().toEpochMilliseconds() },
+    /** [DET-SHORT-HOP-PROOF-001] The displacement-based drive proof — pure, config-only, so it
+     *  defaults from [config] and needs no DI change or test-double churn. */
+    private val evaluateShortHopDriveProof: EvaluateShortHopDriveProofUseCase =
+        EvaluateShortHopDriveProofUseCase(config),
 ) : DepartureConfirmationListener {
     /**
      * Atomic snapshot of all mutable detection variables for a single session.
@@ -291,6 +296,11 @@ class CoordinatorParkingDetector(
         /** [DET-DRIVE-PROOF-001] Recent fixes (bounded ring) — the look-back candidates and
          *  in-window witnesses [corroboratesDrive] judges the current fix against. */
         val recentFixes: List<GpsPoint> = emptyList(),
+        /** [DET-SHORT-HOP-PROOF-001] Consecutive credible fixes so far sitting unambiguously away
+         *  from the pin the car left. A run of them proves a drive the SPEED-based proof cannot
+         *  see on a short stop-and-go hop; any fix that fails the geometry resets the run, so a
+         *  lone cache teleport never counts. */
+        val shortHopQualifyingFixes: Int = 0,
         /** [DET-STEP-SPEED-GATE-001] Speed (m/s) of the most recent GPS fix. Distinguishes the
          *  egress WALK (person, ~1.4 m/s) from a stop-and-go TRAFFIC crawl (car): with an anchor
          *  set, steps only count while this is below driving speed, so a phone bouncing in traffic
@@ -437,6 +447,14 @@ class CoordinatorParkingDetector(
          *  verified arms seed [ParkingDetectionState.hasEverReachedDrivingSpeed] and never
          *  consult this guard. */
         staleExitDelivery: Boolean = false,
+        /** [DET-SHORT-HOP-PROOF-001] The pin the car LEFT (the nominating fence's parked position).
+         *  Reference for the displacement-based drive proof — a position the car provably occupied,
+         *  which is exactly what makes the indoor-mirage class impossible. Null for manual / AR
+         *  arms with no origin pin: then only the speed-based proof applies. */
+        departureAnchor: GpsPoint? = null,
+        /** Radius of the fence the car left — the user could already have been anywhere inside it
+         *  when the clock started, so it counts in favour of "walkable". [DET-SHORT-HOP-PROOF-001] */
+        departureFenceRadiusMeters: Float = 0f,
     ) = coroutineScope {
         val sessionJob = coroutineContext[kotlinx.coroutines.Job]
         val sessionStartMs = clock()
@@ -703,11 +721,34 @@ class CoordinatorParkingDetector(
                         val newPendingMax =
                             if (location.speed > s.pendingMaxSpeedMps && credibleSpeedFix) location.speed
                             else s.pendingMaxSpeedMps
-                        val driveProven = s.driveProven || (credibleSpeedFix &&
+                        // [DET-SHORT-HOP-PROOF-001] Second, independent proof: measured DISPLACEMENT
+                        // from the pin the car left. A short stop-and-go hop never holds a
+                        // speed-window the [corroboratesDrive] shape can see (field 2026-08-14
+                        // 22:56: 900 m driven, `drive 3/303`, park lost) — but the ground it covered
+                        // is real, measured and unwalkable. Anchored to the PIN, never to the
+                        // session's own first fix, so the indoor-mirage class stays impossible.
+                        val shortHopRun =
+                            if (evaluateShortHopDriveProof.qualifies(
+                                    departureAnchor = departureAnchor,
+                                    fix = location,
+                                    fenceRadiusMeters = departureFenceRadiusMeters,
+                                    elapsedSinceArmMs = now - sessionStartMs,
+                                )
+                            ) s.shortHopQualifyingFixes + 1 else 0
+                        val shortHopProven = evaluateShortHopDriveProof(
+                            departureAnchor = departureAnchor,
+                            fix = location,
+                            verifiedDeparture = armEvidence.isVerifiedDeparture,
+                            fenceRadiusMeters = departureFenceRadiusMeters,
+                            elapsedSinceArmMs = now - sessionStartMs,
+                            consecutiveQualifyingFixes = shortHopRun,
+                        )
+                        val driveProven = s.driveProven || shortHopProven || (credibleSpeedFix &&
                                 location.speed >= config.minimumTripSpeedMps &&
                                 corroboratesDrive(s.recentFixes, location))
                         if (driveProven && !s.driveProven) {
-                            PaparcarLogger.d(DIAG, "  ✓ drive PROVEN by track — session speed statistic unlocked (pendingMax=${newPendingMax}m/s) [DET-DRIVE-PROOF-001]")
+                            val how = if (shortHopProven) "displacement from the pin [DET-SHORT-HOP-PROOF-001]" else "track [DET-DRIVE-PROOF-001]"
+                            PaparcarLogger.d(DIAG, "  ✓ drive PROVEN by $how — session speed statistic unlocked (pendingMax=${newPendingMax}m/s)")
                         }
                         s.copy(
                             sessionOrigin = s.sessionOrigin ?: location,
@@ -722,6 +763,7 @@ class CoordinatorParkingDetector(
                             pendingMaxSpeedMps = newPendingMax,
                             driveProven = driveProven,
                             recentFixes = pruneRecentFixes(s.recentFixes, location),
+                            shortHopQualifyingFixes = shortHopRun, // [DET-SHORT-HOP-PROOF-001]
                             // [DET-STEP-SPEED-GATE-001] Track the last fix speed so the step gate can
                             // veto phantom steps while the car crawls in traffic (anchor still set).
                             lastSpeedMps = location.speed,

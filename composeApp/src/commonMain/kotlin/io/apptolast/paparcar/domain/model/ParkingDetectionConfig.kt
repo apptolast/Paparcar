@@ -462,6 +462,18 @@ data class ParkingDetectionConfig(
      *  (28.9 m vs 25.4 m at Camelias Δ1041.7) on the walk side. */
     val credibleDriveHopMarginMeters: Float = 10f,
 
+    // ── SHORT-HOP DRIVE PROOF (drive proven by displacement) [DET-SHORT-HOP-PROOF-001] ──
+    /** Distance (meters) from the PIN THE CAR LEFT beyond which a credible fix may contribute to
+     *  proving a drive the speed-based proof could not see. Set well above the fence radius, any
+     *  observed GPS pathology and both accuracy envelopes: a short urban hop covers it in a couple
+     *  of minutes, while every indoor-drift / mirage class stays within metres of its own pin.
+     *  Field 2026-08-14 22:56: 900 m of real displacement went unproven and cost the park. */
+    val shortHopProofFloorMeters: Float = 400f,
+    /** Consecutive credible fixes that must satisfy the displacement test before the drive counts.
+     *  A single fix can be a cache teleport; three in a row cannot — and a real arrival keeps
+     *  producing them. */
+    val shortHopProofFixes: Int = 3,
+
     // ── DRIVE PROOF (session "measured driving" statistic) [DET-DRIVE-PROOF-001] ──
     /** Minimum age (ms) of the look-back fix a credible driving-speed fix is corroborated
      *  against before it may feed `maxSpeedMps` — the statistic every confirm path reads as
@@ -878,6 +890,12 @@ data class ParkingDetectionConfig(
         }
         require(credibleDriveHopMarginMeters >= 0f) {
             "credibleDriveHopMarginMeters must be >= 0, was $credibleDriveHopMarginMeters"
+        }
+        require(shortHopProofFloorMeters > sustainedDepartureFloorMeters) {
+            "shortHopProofFloorMeters ($shortHopProofFloorMeters) must be > sustainedDepartureFloorMeters ($sustainedDepartureFloorMeters)"
+        }
+        require(shortHopProofFixes > 1) {
+            "shortHopProofFixes must be > 1 (a single fix can be a cache teleport), was $shortHopProofFixes"
         }
         require(driveProofWindowMinMs > 0) {
             "driveProofWindowMinMs must be > 0, was $driveProofWindowMinMs"

@@ -1273,6 +1273,17 @@ class CoordinatorDetectionService : LifecycleService() {
                     // manual / AR-armed trips. [VEH-ACTIVE-FENCE-001]
                     nominatingVehicleId = trip?.departingVehicleId,
                     staleExitDelivery = staleExitDelivery, // [DET-ZOMBIE-PROBE-001]
+                    // [DET-SHORT-HOP-PROOF-001] The pin this trip LEFT — reference for the
+                    // displacement-based drive proof (a short stop-and-go hop never holds the
+                    // speed-window shape the track proof needs). Null on manual/AR arms with no
+                    // origin pin, and then only the speed proof applies.
+                    departureAnchor = trip?.departurePoint,
+                    departureFenceRadiusMeters = trip?.departurePoint?.let { anchor ->
+                        // Size unknown at this point (the TripContext carries position + vehicle id,
+                        // not the size snapshot) → the default radius, which is the LARGEST of the
+                        // common classes' bases; a wider radius only makes the proof stricter.
+                        detectionConfig.geofenceRadiusFor(sizeCategory = null, accuracyMeters = anchor.accuracy)
+                    } ?: 0f,
                 )
                 PaparcarLogger.d(DIAG, "    ✓ coordinator returned NORMALLY")
                 // [DET-HONEST-CLOSE-001] A silent abort must not lose a real drive-away: if the car
