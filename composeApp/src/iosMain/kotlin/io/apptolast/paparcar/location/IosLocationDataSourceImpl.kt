@@ -11,6 +11,7 @@ import kotlinx.coroutines.channels.ProducerScope
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOn
 import platform.CoreLocation.CLLocation
 import platform.CoreLocation.CLLocationAccuracy
@@ -33,6 +34,10 @@ class IosLocationDataSourceImpl : LocationDataSource {
         accuracy = kCLLocationAccuracyHundredMeters,
         distanceFilterMeters = BALANCED_DISTANCE_FILTER_M,
     )
+
+    // [ROUTE-PASSIVE-FILL-001] CoreLocation has no passive-piggyback provider — nothing to inherit
+    // from other apps on iOS, so the stream is silent by design.
+    override fun observePassiveLocation(): Flow<GpsPoint> = emptyFlow()
 
     override fun observeUiLocation(): Flow<UserLocationUi> = callbackFlow {
         val manager = CLLocationManager()

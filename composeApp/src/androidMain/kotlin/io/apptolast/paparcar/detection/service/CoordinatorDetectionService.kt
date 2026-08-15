@@ -66,6 +66,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.firstOrNull
@@ -98,6 +99,7 @@ class CoordinatorDetectionService : LifecycleService() {
     // instead of reconstructing it from the parked spot. Fed from the tracking stream below,
     // cleared when the trip terminates. [DET-ROUTE-TRACK-001]
     private val drivingRouteStore: io.apptolast.paparcar.domain.detection.DrivingRouteStore by inject()
+    private val locationDataSource: io.apptolast.paparcar.domain.location.LocationDataSource by inject() // [ROUTE-PASSIVE-FILL-001]
     private val detectionConfig: ParkingDetectionConfig by inject()
     // [DET-AR-FIRST-001] Arm ladder for the AR ENTER decision lane.
     private val evaluateArEnterArm: EvaluateArEnterArmUseCase by inject()
@@ -1219,6 +1221,19 @@ class CoordinatorDetectionService : LifecycleService() {
                 }
             }
 
+            // [ROUTE-PASSIVE-FILL-001] Passive piggyback tap: inherits, at zero battery cost, the
+            // fixes OTHER apps request (a navigation app running during the drive) and feeds them
+            // ONLY into the persisted route — when the OEM throttles OUR request (field 2026-08-14:
+            // 7-min MIUI GPS nap → a 4.6 km hole the matcher had to reconstruct), a live nav app
+            // keeps the recorded route dense. NEVER merged into the coordinator's stream: the
+            // detection decisions stay on their own measured stream. The route store's own
+            // accuracy gate + decimation absorb whatever quality arrives.
+            val passiveRouteTap = launch {
+                locationDataSource.observePassiveLocation()
+                    .catch { e -> PaparcarLogger.w(DIAG, "    ⚠ passive route tap failed: ${e.message}") }
+                    .collect { drivingRouteStore.append(it) }
+            }
+
             // [FIX BUG-SERVICE-108: pull vehicle name inside the detection job rather than in a
             //  parallel lifecycleScope.launch — same lifetime as the coordinator, no leak across
             //  flapping START_TRACKING events.]
@@ -1280,6 +1295,7 @@ class CoordinatorDetectionService : LifecycleService() {
                 // leaving the pending stale for the watchdog. Cleared for superseded jobs too (their
                 // armId is distinct from the replacement's), so a supersede never leaves a false pending.
                 heartbeat.cancel()
+                passiveRouteTap.cancel() // [ROUTE-PASSIVE-FILL-001] the piggyback listener dies with the session
                 io.apptolast.paparcar.detection.PendingDetectionStore.clear(applicationContext, armId)
                 // Skip teardown when this job has been superseded by a newer detection job
                 // (START_TRACKING / IN_VEHICLE_ENTER replacement). Stopping here would

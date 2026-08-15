@@ -10,6 +10,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flow
 import kotlin.math.PI
 import kotlin.math.atan2
@@ -52,6 +53,9 @@ class FakeLocationDataSource(
             delay(1.seconds)
         }
     }
+
+    // No other apps in the mock world → the passive piggyback stream stays silent. [ROUTE-PASSIVE-FILL-001]
+    override fun observePassiveLocation(): Flow<GpsPoint> = emptyFlow()
 
     override fun observeUiLocation(): Flow<UserLocationUi> {
         val rt = runtime ?: return staticUi()

@@ -18,6 +18,16 @@ interface LocationDataSource {
     fun observeUiLocation(): Flow<UserLocationUi>
 
     /**
+     * Fixes computed for OTHER apps, delivered at ZERO extra battery cost — no sampling of our own
+     * is ever triggered. While a navigation app runs during a drive, this stream stays dense even
+     * when the OEM throttles our own request (field 2026-08-14: a 7-min MIUI GPS nap left a 4.6 km
+     * hole in the recorded route). Silent when no other app is requesting location — never a
+     * substitute for the active stream, only an opportunistic densifier. Platforms without a
+     * passive provider (iOS) emit nothing. [ROUTE-PASSIVE-FILL-001]
+     */
+    fun observePassiveLocation(): Flow<GpsPoint>
+
+    /**
      * Returns the **last known** location WITHOUT starting active sampling, or null if none is
      * cached. Critical distinction vs [observeBalancedLocation]: an active location request feeds
      * fresh fixes to Play Services, which then re-evaluates any registered geofence against them —

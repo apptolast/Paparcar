@@ -4,6 +4,7 @@ import io.apptolast.paparcar.domain.location.LocationDataSource
 import io.apptolast.paparcar.domain.location.UserLocationUi
 import io.apptolast.paparcar.domain.model.GpsPoint
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.MutableSharedFlow
 
 class FakeLocationDataSource : LocationDataSource {
@@ -15,6 +16,7 @@ class FakeLocationDataSource : LocationDataSource {
     override fun observeBalancedLocation(): Flow<GpsPoint> = _balanced
     override fun observeHighAccuracyLocation(): Flow<GpsPoint> = _highAccuracy
     override fun observeUiLocation(): Flow<UserLocationUi> = _uiLocation
+    override fun observePassiveLocation(): Flow<GpsPoint> = emptyFlow()
 
     /** Settable cached fix returned by [getLastKnownLocation]; null by default. */
     var lastKnown: GpsPoint? = null
