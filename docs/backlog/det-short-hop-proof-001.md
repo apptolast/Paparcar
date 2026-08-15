@@ -1,6 +1,6 @@
 # DET-SHORT-HOP-PROOF-001 · Un salto corto prueba su conducción por DESPLAZAMIENTO desde el pin
 
-**Estado:** 🔵 En progreso · rama `bugfix/DET-SHORT-HOP-PROOF-001-displacement-drive-proof` · worktree `../Paparcar-short-hop`
+**Estado:** ✅ Done · master `94267552` (ff-only, 15-08-2026) · rama y worktree borrados · ⏳ field
 
 ## Problema
 Field 14-08 ~23:00 (Oppo, Ford Focus): "volví a donde estaba y no se puso". Sesión
