@@ -1,11 +1,11 @@
 # DET-WATCH-REACTIVATE-001 · El botón "Reactivar" de la vigilancia detenida no reactiva nada
 
-**Estado:** 🔵 En progreso · rama `bugfix/DET-WATCH-REACTIVATE-001-reactivate-cta` ·
-worktree `../Paparcar-watch-reactivate`
+**Estado:** ✅ Done · master `00450b83` (squash, 2026-08-15) · rama y worktree eliminados.
+⏳ Queda validar en device (ver *Estado de verificación*).
 
 **Rebase 2026-08-15:** sobre `master` = `1e94142f` (docs de UI-ZONE-MANAGE-001), sin conflictos.
-El único commit del ticket pasa de `7b6fddbd` a `460d004f`; el árbol no cambia (master solo traía
-docs), así que los 1143 tests verdes siguen siendo válidos.
+El único commit del ticket pasó de `7b6fddbd` a `460d004f`; el árbol no cambió (master solo traía
+docs), así que los 1143 tests verdes siguieron siendo válidos hasta el merge.
 
 ## Problema
 
