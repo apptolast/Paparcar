@@ -6,6 +6,7 @@ import app.cash.turbine.test
 import com.swmansion.kmpmaps.core.MapType
 import io.apptolast.paparcar.domain.connectivity.ConnectivityStatus
 import io.apptolast.paparcar.domain.detection.ParkingStrategyResolver
+import io.apptolast.paparcar.domain.error.PaparcarError
 import io.apptolast.paparcar.domain.detection.StaticDetectionRuntimeState
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
@@ -84,6 +85,7 @@ class HomeViewModelTest {
     private lateinit var reportScheduler: FakeReportSpotScheduler
     private lateinit var zoneRepo: FakeZoneRepository
     private lateinit var manualParkingDetection: io.apptolast.paparcar.fakes.data.repository.FakeManualParkingDetection
+    private lateinit var departureWatchResumer: io.apptolast.paparcar.fakes.data.repository.FakeDepartureWatchResumer
     private lateinit var uiLocationLogger: io.apptolast.paparcar.fakes.FakeUiLocationLogger
     private lateinit var geocoderFake: FakeGeocoderDataSource
     private lateinit var vm: HomeViewModel
@@ -91,6 +93,7 @@ class HomeViewModelTest {
     private fun buildVm(initialMapType: String = "TERRAIN", foreground: Boolean = true): HomeViewModel {
         prefs = FakeAppPreferences(initialDefaultMapType = initialMapType)
         manualParkingDetection = io.apptolast.paparcar.fakes.data.repository.FakeManualParkingDetection()
+        departureWatchResumer = io.apptolast.paparcar.fakes.data.repository.FakeDepartureWatchResumer()
         val addressAndPlaceRepo = FakeAddressAndPlaceRepository()
         val getAddressAndPlace = GetAddressAndPlaceUseCase(repository = addressAndPlaceRepo)
         geocoderFake = FakeGeocoderDataSource()
@@ -188,6 +191,7 @@ class HomeViewModelTest {
             mapFocusEventBus = MapFocusEventBus(),
             startAddParkingEventBus = StartAddParkingEventBus(),
             manualParkingDetection = manualParkingDetection,
+            departureWatchResumer = departureWatchResumer,
             uiLocationLogger = uiLocationLogger,
         ).also {
             // Default test fixture = map on screen, so the high-accuracy request is armed and location
@@ -1322,5 +1326,47 @@ class HomeViewModelTest {
         val s = vm.state.value
         assertEquals(HomeMode.AddingZone, s.mode)
         assertNull(s.selectedItemId)
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // [DET-WATCH-REACTIVATE-001] "Reactivate" on the interrupted-watch row
+    // ─────────────────────────────────────────────────────────────────────────────
+
+    @Test
+    fun `should_rebuild_the_departure_watch_when_the_user_taps_reactivate`() = runTest {
+        vm = buildVm()
+
+        vm.handleIntent(HomeIntent.ResumeWatch)
+        advanceUntilIdle()
+
+        // The bug this replaces: the CTA fired the battery-exemption request, which restarts nothing.
+        assertEquals(1, departureWatchResumer.resumeCallCount)
+        assertEquals("home-cta", departureWatchResumer.lastSource)
+        assertEquals(true, departureWatchResumer.lastForce, "an explicit tap must bypass the retry cooldown")
+    }
+
+    @Test
+    fun `should_not_show_an_error_when_the_watch_comes_back`() = runTest {
+        vm = buildVm()
+
+        vm.effect.test {
+            vm.handleIntent(HomeIntent.ResumeWatch)
+            // Success speaks for itself: the row becomes "watching" when presence flips. No snackbar.
+            expectNoEvents()
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `should_report_the_failure_when_the_watch_cannot_be_rebuilt`() = runTest {
+        vm = buildVm()
+        departureWatchResumer.resumeSucceeds = false
+
+        vm.effect.test {
+            vm.handleIntent(HomeIntent.ResumeWatch)
+            // A tap that achieves nothing must SAY so — the original complaint was a mute button.
+            assertEquals(HomeEffect.ShowError(PaparcarError.Detection.WatchResumeFailed), awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 }

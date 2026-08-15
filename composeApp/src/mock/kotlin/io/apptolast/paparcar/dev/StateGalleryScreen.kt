@@ -383,7 +383,9 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     ),
                 )
             },
-            Variant("Vigilancia DETENIDA (FGS muerto por el sistema)", Placement.Surface) {
+            // [DET-WATCH-REACTIVATE-001] Su CTA reactiva el vigilante (no pide batería): en el build
+            // mock el fake pasa la presencia a Sentry, así que la fila se cura sola al tocarla.
+            Variant("Vigilancia en PAUSA (el sistema paró el vigilante)", Placement.Surface) {
                 detectionSurface(
                     DetectionStory.Watching(
                         "Škoda Kamiq", isParked = true, viaBluetooth = false,

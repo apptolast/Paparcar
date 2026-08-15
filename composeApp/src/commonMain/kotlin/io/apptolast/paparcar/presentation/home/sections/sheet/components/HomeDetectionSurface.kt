@@ -106,9 +106,13 @@ internal fun HomeDetectionSurface(
     showParkNudge: Boolean = false,
     onMarkNudgeSpot: () -> Unit = {},
     onDismissNudge: () -> Unit = {},
-    /** Fire the battery-optimization exemption request from the fragile / interrupted watch rows.
-     *  [DET-WATCH-HONEST-001] [DET-BATTERY-EXEMPTION-NUDGE-001] */
+    /** Fire the battery-optimization exemption request from the FRAGILE watch row — the setup whose
+     *  problem the exemption actually solves. [DET-WATCH-HONEST-001] [DET-BATTERY-EXEMPTION-NUDGE-001] */
     onRequestBatteryExemption: () -> Unit = {},
+    /** Rebuild the departure watcher from the INTERRUPTED watch row. Deliberately NOT the exemption
+     *  request: this row means the watcher is dead, and a permission grant never restarts it.
+     *  [DET-WATCH-REACTIVATE-001] */
+    onResumeWatch: () -> Unit = {},
 ) {
     val cs = MaterialTheme.colorScheme
     val amber = Tone(cs.secondary, cs.onSecondary, cs.secondaryContainer, cs.onSecondaryContainer, isError = false)
@@ -202,7 +206,9 @@ internal fun HomeDetectionSurface(
 
         // Honest watch line: the vehicle's identity colour + no CTA only when the watch is genuinely
         // live; amber warning with an "activate" CTA when fragile; error "reactivate" when the OS
-        // killed it. [DET-WATCH-HONEST-001] [UI-COLOR-DOCTRINE-001]
+        // killed it. Each CTA pulls its OWN lever — the exemption fortifies a live-but-fragile watch,
+        // the resume rebuilds a dead one; they are not interchangeable.
+        // [DET-WATCH-HONEST-001] [DET-WATCH-REACTIVATE-001] [UI-COLOR-DOCTRINE-001]
         is DetectionStory.Watching -> when (story.watchBadge) {
             ParkedWatchBadge.WATCHING, ParkedWatchBadge.PARK_MY_VEHICLE -> ActionRow(
                 tone = methodTone(story.viaBluetooth),
@@ -233,7 +239,7 @@ internal fun HomeDetectionSurface(
                 title = stringResource(Res.string.home_det_watch_interrupted_title, story.vehicleName),
                 subtitle = stringResource(Res.string.home_det_watch_interrupted_sub),
                 primaryLabel = stringResource(Res.string.home_det_watch_interrupted_cta),
-                onPrimary = onRequestBatteryExemption,
+                onPrimary = onResumeWatch,
                 primaryStacksBelow = true,
                 modifier = modifier,
             )

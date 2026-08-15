@@ -66,6 +66,17 @@ val androidDetectionModule = module {
         io.apptolast.paparcar.detection.DrivingRouteStoreImpl(androidContext())
     }
 
+    // --- Departure-watch resurrection: rebuild the resident SENTRY watcher from a foreground moment
+    // (visible Activity / "Reactivate" tap). Same gate as the service's idle epilogue. [DET-WATCH-REACTIVATE-001] ---
+    single<io.apptolast.paparcar.domain.detection.DepartureWatchResumer> {
+        io.apptolast.paparcar.detection.DepartureWatchResumerImpl(
+            context = androidContext(),
+            userParkingRepository = get(),
+            strategyResolver = get(),
+            appPreferences = get(),
+        )
+    }
+
     // --- Manual detection start ("I'm driving" cold-start affordance) [DET-G-01b] ---
     single<io.apptolast.paparcar.domain.detection.ManualParkingDetection> {
         io.apptolast.paparcar.detection.ManualParkingDetectionImpl(androidContext())

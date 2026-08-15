@@ -2086,3 +2086,51 @@ replay can tell a deleted record from a departure the user chose not to share �
 `published=false`. Doctrine: only the user declares which car they drive; a deletion says the
 parking never happened, and a BT car never needed declaring. Spec:
 `docs/backlog/park-delete-no-declare-001.md`.
+
+### DET-WATCH-REACTIVATE-001 — the "Reactivate" CTA rebuilds the watcher instead of asking for a permission (2026-08-14)
+
+**Field report (14-08, Ford Focus, right after installing `prodDebug` over `prodRelease` — a clean
+install: Room wiped, login redone).** The red *"Vigilancia detenida de tu Ford Focus"* row appeared;
+its button opened the battery-exemption dialog; granting it left the row exactly where it was, and
+on the second tap the button did nothing at all.
+
+**Cause 1 — the CTA pulled the wrong lever.** `ParkedWatchBadge.WATCH_INTERRUPTED` is decided by ONE
+signal, `servicePresence == Dead` (the resident SENTRY watcher is gone). Its row was wired to
+`onRequestBatteryExemption`, i.e. `ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`, which starts no
+service — presence stayed `Dead`, so the row never cleared. And once the package IS whitelisted the
+system activity finishes immediately without showing a dialog, which is the "mute button" the user
+saw. One wiring error, both symptoms. The exemption belongs to `WATCHING_FRAGILE` (a live but
+killable watch), which does heal itself: `MainActivity.onResume` → `refreshPermissions` →
+reliability leaves REDUCED.
+
+**Cause 2 — the self-heal missed exactly this scenario.** `PaparcarApp.onCreate` →
+`resumeSentryIfCoordinatorParked()` read `observeActiveSessions().first()`: on a clean install Room
+is still empty while the Firestore sync lands, so it saw "nothing parked", returned early, and left
+the watch dead until the next process launch. It also ran before any Activity was resumed — the
+least foreground-eligible moment for an FGS start on Android 12+ — and swallowed the refusal in a
+`runCatching {}.onFailure`.
+
+**Fix — one invariant, one place.** *If the watcher SHOULD be live and presence is `Dead`, the app
+closes that gap the moment it has a legal foreground window.* The "should be live" half is not
+re-derived: it is `resolvePostDetectionLifecycle`, the same pure rule the service's idle epilogue
+applies, so the two can never disagree about whether the watcher must exist.
+`ObserveDepartureWatchGapUseCase` (commonMain) combines sessions + vehicles/strategy + the detection
+toggle + `presence` into that gap; `DepartureWatchResumer` (interface in commonMain, Android impl,
+iOS no-op) fires `ACTION_RESUME_SENTRY` with the same gate re-checked fresh, plus a 60 s cooldown on
+AUTOMATIC attempts only — an explicit tap always tries. Two senders, one path: `MainActivity`
+collecting the gap under `repeatOnLifecycle(STARTED)`, and `HomeIntent.ResumeWatch` from the row's
+CTA. Because it is a STREAM, the clean install heals itself the moment the sync delivers the session
+— the failure mode the one-shot read had. `EXTRA_RESUME_SOURCE` names the sender in the service log
+(`foreground-gap` / `home-cta`). A resume that gets refused now raises
+`PaparcarError.Detection.WatchResumeFailed` → snackbar, because a tap that achieves nothing must say
+so. `PaparcarApp`'s copy was deleted, not left alongside.
+
+**Copy.** *"Tu móvil detuvo la detección"* overstated the failure: geofence EXIT, AR ENTER, the
+15-min safety net and the exact heartbeat stay armed when the resident watcher dies — what is lost is
+immediacy, not detection. The row now reads (ES) *"Vigilancia inmediata en pausa de tu %1$s / Tu
+móvil la pausó. Seguimos comprobando en segundo plano, pero tu salida puede detectarse tarde."* —
+cause, consequence, remedy, no internals. 9 locales.
+
+**No new confirmation path**, so `detectionPath` / `armEvidence` are untouched: resuming the sentry
+rebuilds a WATCHER, it never confirms a parking. Doctrine intact — the event still only nominates,
+measured movement still confirms. Spec: `docs/backlog/det-watch-reactivate-001.md`.

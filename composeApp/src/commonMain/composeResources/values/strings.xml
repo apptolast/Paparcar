@@ -243,6 +243,7 @@
 
     <!-- Generic error messages -->
     <string name="error_unknown">Something went wrong</string>
+    <string name="error_watch_resume_failed">The watch could not be restarted. Try again in a moment.</string>
     <string name="error_load_spots">Couldn\'t load nearby spots</string>
     <string name="error_load_session">Couldn\'t load parking session</string>
     <string name="error_release_parking">Couldn\'t release parking</string>
@@ -631,8 +632,8 @@
     <string name="home_det_watching_bt_sub">Parking detects itself via your car’s Bluetooth</string>
     <string name="home_det_watching_fragile_sub">Your phone may stop watching. Turn it on so it doesn’t fail.</string>
     <string name="home_det_watching_fortify_cta">Turn on</string>
-    <string name="home_det_watch_interrupted_title">Watch stopped for your %1$s</string>
-    <string name="home_det_watch_interrupted_sub">Your phone stopped detection. Reactivate it so you don’t lose the spot.</string>
+    <string name="home_det_watch_interrupted_title">Instant watch paused for your %1$s</string>
+    <string name="home_det_watch_interrupted_sub">Your phone paused it. We keep checking in the background, but your departure could be spotted late.</string>
     <string name="home_det_watch_interrupted_cta">Reactivate</string>
     <string name="home_det_driving_title">Driving your %1$s</string>
     <string name="home_det_driving_sub">We’ll detect where you park</string>

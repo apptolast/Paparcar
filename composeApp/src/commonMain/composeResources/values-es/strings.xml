@@ -284,6 +284,7 @@
 
     <!-- Mensajes de error genéricos -->
     <string name="error_unknown">Algo fue mal</string>
+    <string name="error_watch_resume_failed">No se pudo reactivar la vigilancia. Inténtalo de nuevo en un momento.</string>
     <string name="error_load_spots">No se pudieron cargar los parkings cercanos</string>
     <string name="error_load_session">No se pudo cargar la sesión de aparcamiento</string>
     <string name="error_release_parking">No se pudo liberar el aparcamiento</string>
@@ -593,8 +594,8 @@
     <string name="home_det_watching_bt_sub">El aparcamiento se detecta solo por el Bluetooth del coche</string>
     <string name="home_det_watching_fragile_sub">Tu móvil puede dejar de vigilar. Actívalo para que no falle.</string>
     <string name="home_det_watching_fortify_cta">Activar</string>
-    <string name="home_det_watch_interrupted_title">Vigilancia detenida de tu %1$s</string>
-    <string name="home_det_watch_interrupted_sub">Tu móvil detuvo la detección. Reactívala para no perder la plaza.</string>
+    <string name="home_det_watch_interrupted_title">Vigilancia inmediata en pausa de tu %1$s</string>
+    <string name="home_det_watch_interrupted_sub">Tu móvil la pausó. Seguimos comprobando en segundo plano, pero tu salida puede detectarse tarde.</string>
     <string name="home_det_watch_interrupted_cta">Reactivar</string>
     <string name="home_det_driving_title">Conduciendo tu %1$s</string>
     <string name="home_det_driving_sub">Detectaremos dónde aparcas</string>

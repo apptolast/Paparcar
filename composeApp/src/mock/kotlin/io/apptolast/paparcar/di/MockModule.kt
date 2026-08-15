@@ -93,6 +93,11 @@ val mockModule = module {
         // Same shared runtime, so the Home "I'm driving" CTA starts the sim too. [DRIVE-SIM-001]
         io.apptolast.paparcar.fakes.data.repository.FakeManualParkingDetection(get<io.apptolast.paparcar.domain.detection.MutableDetectionRuntimeState>())
     }
+    single<io.apptolast.paparcar.domain.detection.DepartureWatchResumer> {
+        // Same shared runtime: tapping "Reactivate" on the interrupted-watch row flips presence to
+        // Sentry, so the row heals in the mock build like it does on device. [DET-WATCH-REACTIVATE-001]
+        io.apptolast.paparcar.fakes.data.repository.FakeDepartureWatchResumer(get<io.apptolast.paparcar.domain.detection.MutableDetectionRuntimeState>())
+    }
 
     // Session
     single<LocalSessionCache> { RoomLocalSessionCache(get()) }

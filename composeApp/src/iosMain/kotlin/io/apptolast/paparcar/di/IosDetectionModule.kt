@@ -30,4 +30,8 @@ val iosDetectionModule = module {
     single<io.apptolast.paparcar.domain.detection.ManualParkingDetection> {
         io.apptolast.paparcar.detection.IosManualParkingDetectionImpl()
     }
+    // No resident departure watcher on iOS yet — the resumer is a no-op. [DET-WATCH-REACTIVATE-001]
+    single<io.apptolast.paparcar.domain.detection.DepartureWatchResumer> {
+        io.apptolast.paparcar.detection.IosDepartureWatchResumerImpl()
+    }
 }

@@ -36,6 +36,7 @@ import io.apptolast.paparcar.domain.usecase.detection.EvaluateBtParkUseCase
 import io.apptolast.paparcar.domain.usecase.detection.EvaluateGeofenceExitUseCase
 import io.apptolast.paparcar.domain.usecase.detection.EvaluateDetectionReliabilityUseCase
 import io.apptolast.paparcar.domain.usecase.detection.EvaluateFirstParkNudgeUseCase
+import io.apptolast.paparcar.domain.usecase.detection.ObserveDepartureWatchGapUseCase
 import io.apptolast.paparcar.domain.usecase.detection.ObserveDetectionReadinessUseCase
 import io.apptolast.paparcar.domain.usecase.detection.ObserveDetectionReliabilityUseCase
 import org.koin.dsl.bind
@@ -250,6 +251,17 @@ val domainModule = module {
             oemBackgroundReliabilityManager = get(),
             strategyResolver = get(),
             evaluateDetectionReliability = get(),
+        )
+    }
+
+    // Departure-watch gap — "the watcher should be live but the service is dead" [DET-WATCH-REACTIVATE-001]
+    factory {
+        ObserveDepartureWatchGapUseCase(
+            userParkingRepository = get(),
+            vehicleRepository = get(),
+            strategyResolver = get(),
+            appPreferences = get(),
+            detectionRuntime = get(),
         )
     }
 

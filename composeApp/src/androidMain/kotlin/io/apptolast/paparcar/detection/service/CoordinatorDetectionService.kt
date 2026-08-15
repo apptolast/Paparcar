@@ -257,7 +257,11 @@ class CoordinatorDetectionService : LifecycleService() {
             // a car stays parked; a manual app-open is a legal (foreground) moment to rebuild it. No work
             // of its own — the epilogue below re-enters SENTRY iff a Coordinator car is parked and
             // auto-detect is on, else stops. Makes "Vigilando tu sitio" true again instead of a silent lie.
-            ACTION_RESUME_SENTRY -> PaparcarLogger.d(DIAG, "  → RESUME_SENTRY (app launch) — epilogue decides sentry vs stop [DET-WATCH-HONEST-001]")
+            ACTION_RESUME_SENTRY -> PaparcarLogger.d(
+                DIAG,
+                "  → RESUME_SENTRY (${intent.getStringExtra(EXTRA_RESUME_SOURCE) ?: "unknown"}) — " +
+                    "epilogue decides sentry vs stop [DET-WATCH-HONEST-001][DET-WATCH-REACTIVATE-001]",
+            )
             ACTION_GEOFENCE_EXIT -> handleGeofenceExit(intent)
             ACTION_AR_TRANSITION -> handleArTransition(intent) // [DET-AR-FIRST-001]
             ACTION_PARKING_CONFIRMED -> handleUserConfirmed()
@@ -1436,10 +1440,13 @@ class CoordinatorDetectionService : LifecycleService() {
         // when the service is resident in SENTRY (already foreground → legal re-delivery). Arms a
         // coordinator session with Unverified evidence; the WorkManager path is used from a dead process.
         const val ACTION_SENTRY_WAKE = "io.apptolast.paparcar.ACTION_SENTRY_WAKE"
-        // [DET-WATCH-HONEST-001] App-launch self-heal: rebuild the resident SENTRY watcher an OEM kill
-        // dropped while a car stayed parked. Fired from PaparcarApp.onCreate (foreground → legal FGS
-        // start); the idle epilogue re-enters SENTRY iff a Coordinator car is parked, else stops.
+        // [DET-WATCH-HONEST-001] Rebuild the resident SENTRY watcher an OEM kill dropped while a car
+        // stayed parked. The idle epilogue re-enters SENTRY iff a Coordinator car is parked, else stops.
+        // [DET-WATCH-REACTIVATE-001] Both senders go through DepartureWatchResumer, from a foreground
+        // moment (legal FGS start): the visible Activity noticing the gap, and the user's "Reactivate"
+        // tap. EXTRA_RESUME_SOURCE says which one, so a field log never has to guess.
         const val ACTION_RESUME_SENTRY = "io.apptolast.paparcar.ACTION_RESUME_SENTRY"
+        const val EXTRA_RESUME_SOURCE = "io.apptolast.paparcar.EXTRA_RESUME_SOURCE"
         // [DET-TIERS-001] Bluetooth arbitration override: the BT receiver decided a paired-car edge
         // must supersede the running coordinator session; the service aborts it. Reason is for the log.
         const val ACTION_BT_OVERRIDE = "io.apptolast.paparcar.ACTION_BT_OVERRIDE"

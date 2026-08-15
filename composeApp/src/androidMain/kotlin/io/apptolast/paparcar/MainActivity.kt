@@ -15,9 +15,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.core.content.ContextCompat
 import androidx.core.os.LocaleListCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.apptolast.customlogin.platform.ActivityHolder
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.connectivity.ConnectivityObserver
+import io.apptolast.paparcar.domain.detection.DepartureWatchResumer
+import io.apptolast.paparcar.domain.usecase.detection.ObserveDepartureWatchGapUseCase
 import io.apptolast.paparcar.domain.event.MapFocusEventBus
 import io.apptolast.paparcar.domain.event.StartAddParkingEventBus
 import io.apptolast.paparcar.domain.permissions.PermissionManager
@@ -28,9 +33,11 @@ import io.apptolast.paparcar.detection.worker.RegisterActivityTransitionsWorker
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 import org.koin.androidx.viewmodel.ext.android.viewModel
 import kotlin.getValue
@@ -43,6 +50,11 @@ class MainActivity : ComponentActivity() {
     private val appPreferences: AppPreferences by inject()
     private val mapFocusEventBus: MapFocusEventBus by inject()
     private val startAddParkingEventBus: StartAddParkingEventBus by inject()
+
+    // [DET-WATCH-REACTIVATE-001] Departure-watch gap: the watcher should be live but the service is
+    // dead. Closing it needs a foreground moment, which is exactly what this Activity being visible is.
+    private val observeDepartureWatchGap: ObserveDepartureWatchGapUseCase by inject()
+    private val departureWatchResumer: DepartureWatchResumer by inject()
 
     // Detects GPS toggled on/off from the quick-settings panel without leaving the app.
     // Registered dynamically (not in manifest) so it is scoped to the Activity lifecycle.
@@ -87,6 +99,7 @@ class MainActivity : ComponentActivity() {
 
         connectivityObserver.start()
         permissionManager.refreshPermissions()
+        closeDepartureWatchGapWhileVisible()
 
         setContent {
             App(
@@ -117,6 +130,29 @@ class MainActivity : ComponentActivity() {
                     }
                     .catch { e -> Log.e("Paparcar", "Error toggling detection arming", e) }
                     .launchIn(this)
+            }
+        }
+    }
+
+    /**
+     * [DET-WATCH-REACTIVATE-001] While this Activity is visible, keep the departure watcher alive:
+     * whenever the gap flow reports "a Coordinator car is parked, detection is on, and the service is
+     * dead", rebuild it. A background worker cannot legally start a foreground service on Android 12+,
+     * so a visible Activity is the app's reliable resurrection window.
+     *
+     * Scoped to STARTED (not `onCreate` alone) so it re-checks every time the app comes back to the
+     * foreground, and collected as a STREAM so a clean install heals by itself the moment the Firestore
+     * sync delivers the parked session — the one-shot read this replaces missed exactly that case.
+     */
+    private fun closeDepartureWatchGapWhileVisible() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                observeDepartureWatchGap()
+                    .filter { hasGap -> hasGap }
+                    // Never kill the collector on a repo hiccup: without the watcher the session still
+                    // has the safety net, but we want the next emission to get its chance.
+                    .catch { e -> Log.e("Paparcar", "Departure-watch gap stream failed", e) }
+                    .collect { departureWatchResumer.resume(source = "foreground-gap") }
             }
         }
     }

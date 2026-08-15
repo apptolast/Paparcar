@@ -27,6 +27,11 @@ sealed class PaparcarError : Exception() {
     sealed class Detection : PaparcarError() {
         data object ActivityRecognitionUnavailable : Detection()
         data object PermissionDenied : Detection()
+
+        /** The user asked to reactivate the departure watch and the platform refused to bring it
+         *  back (nothing to watch any more, or the foreground start was blocked). An explicit tap
+         *  must never look like a dead button. [DET-WATCH-REACTIVATE-001] */
+        data object WatchResumeFailed : Detection()
     }
 
     sealed class Auth : PaparcarError() {

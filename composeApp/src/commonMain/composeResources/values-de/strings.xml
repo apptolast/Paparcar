@@ -201,6 +201,7 @@
 
     <!-- Fehlermeldungen -->
     <string name="error_unknown">Etwas ist schiefgelaufen</string>
+    <string name="error_watch_resume_failed">Die Überwachung ließ sich nicht reaktivieren. Versuch es gleich noch einmal.</string>
     <string name="error_load_spots">Stellplätze in der Nähe konnten nicht geladen werden</string>
     <string name="error_load_session">Parksitzung konnte nicht geladen werden</string>
     <string name="error_release_parking">Stellplatz konnte nicht freigegeben werden</string>
@@ -558,8 +559,8 @@
     <string name="home_det_watching_bt_sub">Parken wird automatisch über das Bluetooth des Autos erkannt</string>
     <string name="home_det_watching_fragile_sub">Dein Handy überwacht evtl. nicht mehr. Aktiviere es, damit nichts ausfällt.</string>
     <string name="home_det_watching_fortify_cta">Aktivieren</string>
-    <string name="home_det_watch_interrupted_title">Überwachung für dein %1$s gestoppt</string>
-    <string name="home_det_watch_interrupted_sub">Dein Handy hat die Erkennung gestoppt. Reaktiviere sie, damit du den Platz nicht verlierst.</string>
+    <string name="home_det_watch_interrupted_title">Sofort-Überwachung für dein %1$s pausiert</string>
+    <string name="home_det_watch_interrupted_sub">Dein Handy hat sie pausiert. Wir prüfen weiter im Hintergrund, aber deine Ausfahrt wird vielleicht spät erkannt.</string>
     <string name="home_det_watch_interrupted_cta">Reaktivieren</string>
     <string name="home_det_driving_title">Unterwegs mit deinem %1$s</string>
     <string name="home_det_driving_sub">Wir erkennen, wo du parkst</string>

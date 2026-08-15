@@ -5,6 +5,7 @@ import io.apptolast.paparcar.isDebugBuild
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.connectivity.ConnectivityObserver
 import io.apptolast.paparcar.domain.connectivity.ConnectivityStatus
+import io.apptolast.paparcar.domain.detection.DepartureWatchResumer
 import io.apptolast.paparcar.domain.detection.DetectionRuntimeState
 import io.apptolast.paparcar.domain.detection.ManualParkingDetection
 import io.apptolast.paparcar.domain.detection.VehicleFenceOwnershipPolicy
@@ -90,6 +91,10 @@ class HomeViewModel(
     private val mapFocusEventBus: MapFocusEventBus,
     private val startAddParkingEventBus: StartAddParkingEventBus,
     private val manualParkingDetection: ManualParkingDetection,
+    // Rebuilds the resident departure watcher behind the "Reactivate" CTA of the interrupted-watch
+    // row — the same resumer the app uses to close a watch gap while it is foreground.
+    // [DET-WATCH-REACTIVATE-001]
+    private val departureWatchResumer: DepartureWatchResumer,
     // Feature controllers — self-contained pipeline owners built by Koin with their own use cases
     // (geocoding, live trip, debounced search, nearby spots). The VM only collects their update flows
     // into state and forwards commands; see subscribeControllerUpdates(). [HOMEVM-CTRL-002]
@@ -226,6 +231,7 @@ class HomeViewModel(
             is HomeIntent.StartDrivingDetection,
             is HomeIntent.EnableAutoDetection,
             is HomeIntent.RequestBatteryExemption,
+            is HomeIntent.ResumeWatch,
             is HomeIntent.DismissParkNudge,
             -> handleDetectionIntent(intent)
         }
@@ -620,6 +626,15 @@ class HomeViewModel(
             // exemption request (and, on aggressive OEMs, the manufacturer's foreground/autostart page).
             // The screen handles the effect; the nudge clears itself once the reliability flow re-emits.
             is HomeIntent.RequestBatteryExemption -> sendEffect(HomeEffect.RequestBatteryOptimizationExemption)
+
+            // [DET-WATCH-REACTIVATE-001] "Reactivate" on the interrupted-watch row → rebuild the
+            // watcher for real. Success needs no message: the service flips its presence to Sentry and
+            // the row becomes "watching" by itself. A refusal DOES need one — the whole bug being fixed
+            // here is a CTA that looked like it did nothing.
+            is HomeIntent.ResumeWatch -> viewModelScope.launch {
+                val resumed = departureWatchResumer.resume(source = "home-cta", force = true)
+                if (!resumed) sendEffect(HomeEffect.ShowError(PaparcarError.Detection.WatchResumeFailed))
+            }
 
             else -> Unit
         }

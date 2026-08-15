@@ -1,8 +1,10 @@
 package io.apptolast.paparcar.fakes.data.repository
 
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
+import io.apptolast.paparcar.domain.detection.DepartureWatchResumer
 import io.apptolast.paparcar.domain.detection.ManualParkingDetection
 import io.apptolast.paparcar.domain.detection.MutableDetectionRuntimeState
+import io.apptolast.paparcar.domain.detection.ServicePresence
 import io.apptolast.paparcar.domain.model.AddressInfo
 import io.apptolast.paparcar.domain.model.CarbodyType
 import io.apptolast.paparcar.domain.model.PlaceInfo
@@ -45,6 +47,34 @@ class FakeManualParkingDetection(
     override fun stop() {
         stopCallCount++
         runtime?.setRunning(false)
+    }
+}
+
+/**
+ * Mock "reactivate the departure watch": with no Coordinator service to resurrect, it flips the
+ * shared [runtime] presence to [io.apptolast.paparcar.domain.detection.ServicePresence.Sentry] so the
+ * interrupted-watch row heals in the gallery exactly as it does on device. [DET-WATCH-REACTIVATE-001]
+ *
+ * [resumeSucceeds] false reproduces the platform refusing the start — the case that must surface an
+ * error instead of a mute button.
+ */
+class FakeDepartureWatchResumer(
+    private val runtime: MutableDetectionRuntimeState? = null,
+    var resumeSucceeds: Boolean = true,
+) : DepartureWatchResumer {
+    var resumeCallCount = 0
+        private set
+    var lastSource: String? = null
+        private set
+    var lastForce: Boolean? = null
+        private set
+
+    override suspend fun resume(source: String, force: Boolean): Boolean {
+        resumeCallCount++
+        lastSource = source
+        lastForce = force
+        if (resumeSucceeds) runtime?.setPresence(ServicePresence.Sentry)
+        return resumeSucceeds
     }
 }
 

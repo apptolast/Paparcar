@@ -88,6 +88,7 @@ import paparcar.composeapp.generated.resources.error_parking_save_failed
 import paparcar.composeapp.generated.resources.error_release_parking
 import paparcar.composeapp.generated.resources.error_search_failed
 import paparcar.composeapp.generated.resources.error_unknown
+import paparcar.composeapp.generated.resources.error_watch_resume_failed
 import paparcar.composeapp.generated.resources.home_det_enabled_confirm
 import paparcar.composeapp.generated.resources.home_det_stopped_action
 import paparcar.composeapp.generated.resources.home_det_stopped_msg
@@ -165,6 +166,7 @@ fun HomeScreen(
     val msgErrorGpsUnavailable = stringResource(Res.string.error_gps_unavailable)
     val msgErrorParkingSaveFailed = stringResource(Res.string.error_parking_save_failed)
     val msgErrorSearchFailed = stringResource(Res.string.error_search_failed)
+    val msgErrorWatchResumeFailed = stringResource(Res.string.error_watch_resume_failed)
     val msgSpotReported = stringResource(Res.string.home_spot_reported)
     val msgTestSpotSent = stringResource(Res.string.home_test_spot_sent)
     val msgSpotSignalSent = stringResource(Res.string.home_spot_signal_sent)
@@ -190,6 +192,8 @@ fun HomeScreen(
                         is PaparcarError.Network.Unknown -> msgErrorLoadSpots
                         is PaparcarError.Database.Unknown -> msgErrorLoadSession
                         is PaparcarError.Parking.SaveFailed -> msgErrorParkingSaveFailed
+                        // [DET-WATCH-REACTIVATE-001] "Reactivate" could not bring the watcher back.
+                        is PaparcarError.Detection.WatchResumeFailed -> msgErrorWatchResumeFailed
                         else -> msgErrorUnknown
                     }
                     snackbarHostState.showSnackbar(msg)

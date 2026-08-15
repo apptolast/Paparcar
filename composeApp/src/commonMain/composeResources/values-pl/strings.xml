@@ -205,6 +205,7 @@
 
     <!-- Generic error messages -->
     <string name="error_unknown">Coś poszło nie tak</string>
+    <string name="error_watch_resume_failed">Nie udało się wznowić czuwania. Spróbuj ponownie za chwilę.</string>
     <string name="error_load_spots">Nie można załadować pobliskich miejsc</string>
     <string name="error_load_session">Nie można załadować sesji parkowania</string>
     <string name="error_release_parking">Nie można zwolnić miejsca parkingowego</string>
@@ -562,8 +563,8 @@
     <string name="home_det_watching_bt_sub">Parkowanie wykrywa się samo przez Bluetooth samochodu</string>
     <string name="home_det_watching_fragile_sub">Telefon może przestać czuwać. Włącz, aby nie zawiodło.</string>
     <string name="home_det_watching_fortify_cta">Włącz</string>
-    <string name="home_det_watch_interrupted_title">Czuwanie zatrzymane dla %1$s</string>
-    <string name="home_det_watch_interrupted_sub">Telefon zatrzymał wykrywanie. Włącz ponownie, aby nie stracić miejsca.</string>
+    <string name="home_det_watch_interrupted_title">Natychmiastowe czuwanie wstrzymane dla %1$s</string>
+    <string name="home_det_watch_interrupted_sub">Telefon je wstrzymał. Nadal sprawdzamy w tle, ale twój wyjazd może zostać wykryty z opóźnieniem.</string>
     <string name="home_det_watch_interrupted_cta">Włącz ponownie</string>
     <string name="home_det_driving_title">%1$s w trasie</string>
     <string name="home_det_driving_sub">Wykryjemy, gdzie zaparkujesz</string>

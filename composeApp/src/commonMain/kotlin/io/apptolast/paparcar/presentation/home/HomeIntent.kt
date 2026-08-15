@@ -61,6 +61,15 @@ sealed class HomeIntent {
      *  [DET-BATTERY-EXEMPTION-NUDGE-001] */
     data object RequestBatteryExemption : HomeIntent()
 
+    /**
+     * "Reactivate" on the interrupted-watch row — rebuild the departure watcher the OS killed. This
+     * used to fire [RequestBatteryExemption], which asks for a permission instead of restarting
+     * anything: the row never cleared, and once the exemption was granted the OS dialog stopped
+     * appearing, so the button went mute. The exemption belongs to the FRAGILE row, not this one.
+     * [DET-WATCH-REACTIVATE-001]
+     */
+    data object ResumeWatch : HomeIntent()
+
     /** Explicitly dismiss the "where did you leave your car?" row — the user declines to mark;
      *  clears the durable nudge record AND its tray notification. [DET-NUDGE-PERSIST-001] */
     data object DismissParkNudge : HomeIntent()

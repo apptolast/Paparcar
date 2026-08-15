@@ -201,6 +201,7 @@
 
     <!-- Messaggi di errore generici -->
     <string name="error_unknown">Qualcosa è andato storto</string>
+    <string name="error_watch_resume_failed">Non è stato possibile riattivare il controllo. Riprova tra un momento.</string>
     <string name="error_load_spots">Impossibile caricare i posti vicini</string>
     <string name="error_load_session">Impossibile caricare la sessione di parcheggio</string>
     <string name="error_release_parking">Impossibile liberare il parcheggio</string>
@@ -558,8 +559,8 @@
     <string name="home_det_watching_bt_sub">Il parcheggio si rileva da solo tramite il Bluetooth dell’auto</string>
     <string name="home_det_watching_fragile_sub">Il telefono potrebbe smettere di controllare. Attivalo per non fallire.</string>
     <string name="home_det_watching_fortify_cta">Attiva</string>
-    <string name="home_det_watch_interrupted_title">Controllo interrotto per la tua %1$s</string>
-    <string name="home_det_watch_interrupted_sub">Il telefono ha fermato il rilevamento. Riattivalo per non perdere il posto.</string>
+    <string name="home_det_watch_interrupted_title">Controllo immediato in pausa per la tua %1$s</string>
+    <string name="home_det_watch_interrupted_sub">Il telefono l'ha messo in pausa. Continuiamo a controllare in background, ma la tua partenza può essere rilevata in ritardo.</string>
     <string name="home_det_watch_interrupted_cta">Riattiva</string>
     <string name="home_det_driving_title">Alla guida della tua %1$s</string>
     <string name="home_det_driving_sub">Rileveremo dove parcheggi</string>

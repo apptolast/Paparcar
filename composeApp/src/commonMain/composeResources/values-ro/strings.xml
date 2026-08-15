@@ -201,6 +201,7 @@
 
     <!-- Generic error messages -->
     <string name="error_unknown">Ceva a mers greșit</string>
+    <string name="error_watch_resume_failed">Nu am putut reactiva supravegherea. Încearcă din nou într-un moment.</string>
     <string name="error_load_spots">Nu s-au putut încărca locurile din apropiere</string>
     <string name="error_load_session">Nu s-a putut încărca sesiunea de parcare</string>
     <string name="error_release_parking">Nu s-a putut elibera locul de parcare</string>
@@ -562,8 +563,8 @@
     <string name="home_det_watching_bt_sub">Parcarea se detectează singură prin Bluetooth-ul mașinii</string>
     <string name="home_det_watching_fragile_sub">Telefonul poate opri supravegherea. Activează ca să nu eșueze.</string>
     <string name="home_det_watching_fortify_cta">Activează</string>
-    <string name="home_det_watch_interrupted_title">Supraveghere oprită pentru %1$s</string>
-    <string name="home_det_watch_interrupted_sub">Telefonul a oprit detecția. Reactiveaz-o ca să nu pierzi locul.</string>
+    <string name="home_det_watch_interrupted_title">Supraveghere imediată pusă pe pauză pentru %1$s</string>
+    <string name="home_det_watch_interrupted_sub">Telefonul a pus-o pe pauză. Verificăm în continuare în fundal, dar plecarea ta poate fi detectată târziu.</string>
     <string name="home_det_watch_interrupted_cta">Reactivează</string>
     <string name="home_det_driving_title">Conduci %1$s</string>
     <string name="home_det_driving_sub">Vom detecta unde parchezi</string>

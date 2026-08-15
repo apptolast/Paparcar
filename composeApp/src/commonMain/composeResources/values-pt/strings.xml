@@ -201,6 +201,7 @@
 
     <!-- Mensagens de erro genéricas -->
     <string name="error_unknown">Algo correu mal</string>
+    <string name="error_watch_resume_failed">Não foi possível reativar a vigilância. Tenta de novo daqui a pouco.</string>
     <string name="error_load_spots">Não foi possível carregar os lugares próximos</string>
     <string name="error_load_session">Não foi possível carregar a sessão de estacionamento</string>
     <string name="error_release_parking">Não foi possível libertar o estacionamento</string>
@@ -558,8 +559,8 @@
     <string name="home_det_watching_bt_sub">O estacionamento deteta-se sozinho pelo Bluetooth do carro</string>
     <string name="home_det_watching_fragile_sub">O teu telemóvel pode parar de vigiar. Ativa para não falhar.</string>
     <string name="home_det_watching_fortify_cta">Ativar</string>
-    <string name="home_det_watch_interrupted_title">Vigilância parada do teu %1$s</string>
-    <string name="home_det_watch_interrupted_sub">O teu telemóvel parou a deteção. Reativa para não perder o lugar.</string>
+    <string name="home_det_watch_interrupted_title">Vigilância imediata em pausa do teu %1$s</string>
+    <string name="home_det_watch_interrupted_sub">O teu telemóvel pausou-a. Continuamos a verificar em segundo plano, mas a tua saída pode ser detetada tarde.</string>
     <string name="home_det_watch_interrupted_cta">Reativar</string>
     <string name="home_det_driving_title">A conduzir o teu %1$s</string>
     <string name="home_det_driving_sub">Vamos detetar onde estacionas</string>

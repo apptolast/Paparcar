@@ -201,6 +201,7 @@
 
     <!-- Generic error messages -->
     <string name="error_unknown">Er is iets misgegaan</string>
+    <string name="error_watch_resume_failed">De bewaking kon niet worden herstart. Probeer het zo nog eens.</string>
     <string name="error_load_spots">Kon parkeerplaatsen in de buurt niet laden</string>
     <string name="error_load_session">Kon parkeersessie niet laden</string>
     <string name="error_release_parking">Kon parkeerplaats niet vrijgeven</string>
@@ -558,8 +559,8 @@
     <string name="home_det_watching_bt_sub">Parkeren wordt automatisch herkend via de Bluetooth van je auto</string>
     <string name="home_det_watching_fragile_sub">Je telefoon stopt mogelijk met bewaken. Zet het aan zodat het niet mislukt.</string>
     <string name="home_det_watching_fortify_cta">Aanzetten</string>
-    <string name="home_det_watch_interrupted_title">Bewaking gestopt voor je %1$s</string>
-    <string name="home_det_watch_interrupted_sub">Je telefoon stopte de detectie. Heractiveer zodat je de plek niet verliest.</string>
+    <string name="home_det_watch_interrupted_title">Directe bewaking gepauzeerd voor je %1$s</string>
+    <string name="home_det_watch_interrupted_sub">Je telefoon pauzeerde die. We blijven op de achtergrond controleren, maar je vertrek kan laat worden opgemerkt.</string>
     <string name="home_det_watch_interrupted_cta">Heractiveren</string>
     <string name="home_det_driving_title">Onderweg met je %1$s</string>
     <string name="home_det_driving_sub">We detecteren waar je parkeert</string>
