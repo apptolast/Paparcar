@@ -17,6 +17,14 @@ object DrivingRoute {
      *  point count when the car crawls or idles, and smooths GPS jitter. */
     const val MIN_POINT_DISTANCE_M = 12.0
 
+    /** [ROUTE-FIX-ACCURACY-001] A fix this imprecise measures nothing drawable — rejected at ingest,
+     *  including as a trip's first point (a cold start must not seed a garbage origin; the true
+     *  origin is seeded from the previous parking at confirm). Field 2026-08-14: acc 98–157 m fixes
+     *  interleaved mid-stream bent the urban line into off-street loops. Fixes at or below the bound
+     *  all enter: the matcher weighs each by its own accuracy (per-point σ), so a mediocre fix still
+     *  anchors a stretch where it is the only data. */
+    const val HOPELESS_ACCURACY_METERS = 100f
+
     /** Silence longer than this since the last fix means the previous trip ended (the service stops
      *  sampling when detection terminates); the next fix starts a fresh route so a new trip never
      *  inherits the previous one's tail. A safety net beneath the explicit [DrivingRouteStore.clear]
@@ -36,6 +44,7 @@ object DrivingRoute {
      * fix is decimated away, so a caller can skip persisting on no-op ticks.
      */
     fun append(current: List<GpsPoint>, point: GpsPoint): List<GpsPoint> {
+        if (point.accuracy > HOPELESS_ACCURACY_METERS) return current // [ROUTE-FIX-ACCURACY-001]
         val last = current.lastOrNull() ?: return listOf(point)
         if (point.timestamp > 0L && last.timestamp > 0L &&
             point.timestamp - last.timestamp > NEW_TRIP_GAP_MS

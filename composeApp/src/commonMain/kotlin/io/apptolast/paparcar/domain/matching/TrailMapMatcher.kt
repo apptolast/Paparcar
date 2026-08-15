@@ -17,7 +17,8 @@ import kotlin.math.roundToLong
  * The professional insight: the drawn line is NOT the corrected fixes joined by chords — it is the
  * ROAD GEOMETRY of the most likely route. Per measurement the candidates are its projections onto
  * nearby road edges; Viterbi picks the candidate sequence minimising
- *   emission   — how far the street is from the fix (Gaussian, σ = [EMISSION_SIGMA_METERS])
+ *   emission   — how far the street is from the fix (Gaussian, σ per measurement from the fix's
+ *   own reported accuracy, floored at [EMISSION_SIGMA_METERS] — [ROUTE-FIX-ACCURACY-001])
  * + transition — |route distance ALONG the graph − straight-line distance| (exponential,
  *   β = [TRANSITION_BETA_METERS]),
  * and the output concatenates the actual shortest road paths between the chosen candidates. The
@@ -63,10 +64,17 @@ object TrailMapMatcher {
      *  matched points restores every street detail the decimation skipped. */
     const val MATCH_SPACING_METERS = 25.0
 
-    /** Newson–Krumm emission σ (GPS noise std-dev). Urban phone traces run noisier than the
+    /** Newson–Krumm emission σ FLOOR (GPS noise std-dev). Urban phone traces run noisier than the
      *  4.07 m of the original paper — 10 m keeps a 20–40 m multipath fix matchable without
-     *  flattening the preference for the near street. */
+     *  flattening the preference for the near street. Since [ROUTE-FIX-ACCURACY-001] this is the
+     *  floor of a PER-MEASUREMENT σ (see [sigmaFor]), not a global constant. */
     const val EMISSION_SIGMA_METERS = 10.0
+
+    /** Ceiling of the per-measurement σ: beyond it a worse reported accuracy adds no more
+     *  flattening (the emission is already near-flat across the whole snap radius), and route
+     *  ingest rejects fixes above this bound anyway (`DrivingRoute.HOPELESS_ACCURACY_METERS`) —
+     *  the ceiling only guards synthetic callers. [ROUTE-FIX-ACCURACY-001] */
+    const val SIGMA_CEILING_METERS = 100.0
 
     /** Newson–Krumm transition β: expected |route − straight| circuitousness per step (Valhalla's
      *  default is 3). Smaller = stricter about routes that detour vs the measured movement. */
@@ -117,14 +125,38 @@ object TrailMapMatcher {
         return decode(keptMs, keptLayers, graph)
     }
 
-    /** Keeps points ≥ [MATCH_SPACING_METERS] apart — always the first and the last. */
+    /**
+     * Per-measurement Newson–Krumm σ: the fix's own reported accuracy, floored at
+     * [EMISSION_SIGMA_METERS] (devices under-report) and capped at [SIGMA_CEILING_METERS];
+     * accuracy ≤ 0 means unknown → the floor. An imprecise fix thus carries a near-FLAT emission:
+     * it stops CHOOSING the street when sharper neighbours exist (the transition term decides),
+     * yet still anchors its stretch when it is the only data — the field alternative was a
+     * 150 m-error fix outvoting a routed straight and bending the line into off-street loops.
+     * The per-layer candidate RANKING is unaffected (every candidate of one fix shares its σ).
+     * [ROUTE-FIX-ACCURACY-001]
+     */
+    internal fun sigmaFor(p: GpsPoint): Double =
+        if (p.accuracy <= 0f) EMISSION_SIGMA_METERS
+        else p.accuracy.toDouble().coerceIn(EMISSION_SIGMA_METERS, SIGMA_CEILING_METERS)
+
+    /** Keeps points ≥ [MATCH_SPACING_METERS] apart — always the first and the last. Inside one
+     *  spacing bucket the SHARPEST measurement represents it, not the first one that arrived
+     *  (never the origin, and never when the swap would break the spacing to the previous kept
+     *  point). [ROUTE-FIX-ACCURACY-001] */
     private fun decimate(points: List<GpsPoint>): List<GpsPoint> {
         val kept = ArrayList<GpsPoint>(points.size)
         kept.add(points.first())
         for (i in 1 until points.size - 1) {
+            val p = points[i]
             val last = kept.last()
-            val d = haversineMeters(last.latitude, last.longitude, points[i].latitude, points[i].longitude)
-            if (d >= MATCH_SPACING_METERS) kept.add(points[i])
+            val d = haversineMeters(last.latitude, last.longitude, p.latitude, p.longitude)
+            if (d >= MATCH_SPACING_METERS) {
+                kept.add(p)
+            } else if (kept.size >= 2 && p.accuracy > 0f && last.accuracy > 0f && p.accuracy < last.accuracy) {
+                val prev = kept[kept.size - 2]
+                val fromPrev = haversineMeters(prev.latitude, prev.longitude, p.latitude, p.longitude)
+                if (fromPrev >= MATCH_SPACING_METERS) kept[kept.size - 1] = p
+            }
         }
         kept.add(points.last())
         return kept
@@ -223,7 +255,9 @@ object TrailMapMatcher {
         addPoint(out, opening.copy(latitude = c.lat, longitude = c.lon))
     }
 
-    /** One possible on-street position for a fix: its projection onto one road edge. */
+    /** One possible on-street position for a fix: its projection onto one road edge. Carries the
+     *  fix's per-measurement σ ([sigmaFor]) — shared by every candidate of the same fix, so it
+     *  flattens the fix's authority without reordering its own candidates. */
     class Candidate internal constructor(
         internal val edge: Int,
         internal val lat: Double,
@@ -231,12 +265,15 @@ object TrailMapMatcher {
         internal val distMeters: Double,
         internal val alongFromU: Double,
         internal val isMinor: Boolean,
+        internal val sigma: Double,
     ) {
         internal fun emissionCost(): Double {
-            val z = distMeters / EMISSION_SIGMA_METERS
+            val z = distMeters / sigma
             val base = 0.5 * z * z
             // Class weight: minor (service) ways only win when the fix is clearly ON them, never a
-            // parallel steal on emission noise. [ROUTE-QUALITY-001]
+            // parallel steal on emission noise. [ROUTE-QUALITY-001] Absolute on purpose: for an
+            // imprecise fix (large σ, flat distance term) it dominates — a fix that cannot
+            // discriminate streets should prefer the real road over a service way.
             return if (isMinor) base + MINOR_WAY_EMISSION_PENALTY else base
         }
     }
@@ -268,6 +305,7 @@ object TrailMapMatcher {
             // Local equirectangular scale: longitude degrees shrink by cos(lat) so planar
             // distances are ~isotropic over the small bbox of one trip.
             val cosLat = cos(p.latitude * PI / 180.0)
+            val sigma = sigmaFor(p)
             val found = ArrayList<Candidate>()
             for (e in edgeU.indices) {
                 val u = edgeU[e]
@@ -280,7 +318,7 @@ object TrailMapMatcher {
                 )
                 val d = haversineMeters(p.latitude, p.longitude, lat, lon)
                 if (d <= maxSnapMeters) {
-                    found.add(Candidate(e, lat, lon, d, t * edgeLen[e], edgeMinor[e]))
+                    found.add(Candidate(e, lat, lon, d, t * edgeLen[e], edgeMinor[e], sigma))
                 }
             }
             // Penalty-aware order: in a dense forecourt several service segments would otherwise

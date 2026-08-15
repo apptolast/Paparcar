@@ -40,6 +40,29 @@ class DrivingRouteTest {
         assertEquals(41.0, afterGap.first().latitude)
     }
 
+    // ── Hopeless-accuracy ingest gate [ROUTE-FIX-ACCURACY-001] ───────────────
+
+    @Test
+    fun `should reject a hopeless-accuracy fix, returning the same list reference`() {
+        val start = listOf(p(40.0, -3.0, 1_000L))
+        val junk = GpsPoint(40.001, -3.0, DrivingRoute.HOPELESS_ACCURACY_METERS + 1f, 6_000L, 0f)
+        val out = DrivingRoute.append(start, junk)
+        assertTrue(out === start, "expected the junk fix rejected without a disk write")
+    }
+
+    @Test
+    fun `should not seed a trip with a hopeless-accuracy fix`() {
+        val junk = GpsPoint(40.0, -3.0, 150f, 1_000L, 0f)
+        assertTrue(DrivingRoute.append(emptyList(), junk).isEmpty(), "expected no garbage origin seeded")
+    }
+
+    @Test
+    fun `should keep accepting fixes at the hopeless bound`() {
+        val start = listOf(p(40.0, -3.0, 1_000L))
+        val mediocre = GpsPoint(40.001, -3.0, DrivingRoute.HOPELESS_ACCURACY_METERS, 6_000L, 0f)
+        assertEquals(2, DrivingRoute.append(start, mediocre).size)
+    }
+
     // ── endAtAnchor [ROUTE-END-AT-CAR-001] ───────────────────────────────────
 
     @Test

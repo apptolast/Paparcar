@@ -9,7 +9,7 @@ import kotlin.test.assertTrue
 
 class TrailMapMatcherTest {
 
-    private fun gp(lat: Double, lon: Double) = GpsPoint(lat, lon, 0f, 0L, 0f)
+    private fun gp(lat: Double, lon: Double, accuracy: Float = 0f) = GpsPoint(lat, lon, accuracy, 0L, 0f)
 
     @Test
     fun `should snap a near point onto the road`() {
@@ -285,6 +285,79 @@ class TrailMapMatcherTest {
         matched.forEach { p ->
             val offset = haversineMeters(p.latitude, p.longitude, 36.6006, p.longitude)
             assertTrue(offset < 1.0, "expected the drawn line on the AISLE, a point is ${offset}m off it")
+        }
+    }
+
+    // ── Per-measurement σ — imprecise fixes stop choosing the street [ROUTE-FIX-ACCURACY-001] ──
+
+    @Test
+    fun `should keep an imprecise drifted run on the followed street instead of detouring to a parallel one`() {
+        // Field 2026-08-14 (centro, Federico Rubio / Palacios): a run of drifted fixes with POOR
+        // reported accuracy sat nearer a connected parallel street, and with a constant σ their
+        // collective emission outvoted the detour cost — the line looped off the followed street.
+        // With per-measurement σ the imprecise run carries a near-flat emission and the transition
+        // term keeps the line where the sharp fixes put it.
+        val followed = RoadWay(listOf(gp(36.6000, -6.2400), gp(36.6000, -6.2300)))
+        val parallel = RoadWay(listOf(gp(36.60045, -6.2400), gp(36.60045, -6.2300)))
+        val crossWest = RoadWay(listOf(gp(36.6000, -6.2356), gp(36.60045, -6.2356)))
+        val crossEast = RoadWay(listOf(gp(36.6000, -6.2344), gp(36.60045, -6.2344)))
+        val trail = listOf(
+            gp(36.60005, -6.2358, accuracy = 8f),
+            gp(36.60040, -6.2354, accuracy = 60f), // drifted run — ~44 m off the followed street,
+            gp(36.60040, -6.2350, accuracy = 60f), // ~6 m from the parallel one, but the fix
+            gp(36.60040, -6.2346, accuracy = 60f), // barely measured anything (acc 60 m)
+            gp(36.60005, -6.2342, accuracy = 8f),
+        )
+
+        val matched = TrailMapMatcher.snap(trail, listOf(followed, parallel, crossWest, crossEast))
+
+        assertTrue(matched.isNotEmpty())
+        matched.forEach { p ->
+            val offset = haversineMeters(p.latitude, p.longitude, 36.6000, p.longitude)
+            assertTrue(offset < 1.0, "expected the drawn line on the FOLLOWED street, a point is ${offset}m off it")
+        }
+    }
+
+    @Test
+    fun `should still draw the line when every fix is imprecise`() {
+        // A stretch where mediocre fixes are the ONLY data must still anchor a line — flattening
+        // their authority must never mean losing them (user rule, 2026-08-15: descartar vale con
+        // redundancia; con pocos fixes hay que conservar algo).
+        val road = RoadWay(listOf(gp(36.6000, -6.2400), gp(36.6000, -6.2300)))
+        val trail = listOf(
+            gp(36.60009, -6.2360, accuracy = 90f),
+            gp(36.60009, -6.2350, accuracy = 90f),
+            gp(36.60009, -6.2340, accuracy = 90f),
+        )
+
+        val matched = TrailMapMatcher.snap(trail, listOf(road))
+
+        assertTrue(matched.isNotEmpty(), "expected a line from imprecise-only fixes, got none")
+        matched.forEach { p ->
+            val offset = haversineMeters(p.latitude, p.longitude, 36.6000, p.longitude)
+            assertTrue(offset < 1.0, "expected the imprecise-only line on the street, a point is ${offset}m off")
+        }
+    }
+
+    @Test
+    fun `should let the sharper fix of a spacing bucket represent it in decimation`() {
+        // Two fixes land in the same ~25 m bucket: the first is mediocre (acc 40) and pulls toward
+        // a parallel street; the second is sharp (acc 5) and sits on the followed one. The bucket's
+        // representative must be the sharp measurement, not the first arrival.
+        val followed = RoadWay(listOf(gp(36.6000, -6.2400), gp(36.6000, -6.2300)))
+        val parallel = RoadWay(listOf(gp(36.60036, -6.2400), gp(36.60036, -6.2300)))
+        val trail = listOf(
+            gp(36.60005, -6.2360, accuracy = 5f),
+            gp(36.60028, -6.2352, accuracy = 40f), // mediocre — nearer the parallel street
+            gp(36.60005, -6.2351, accuracy = 5f),  // sharp, same bucket (~9 m away)
+            gp(36.60005, -6.2344, accuracy = 5f),
+        )
+
+        val matched = TrailMapMatcher.snap(trail, listOf(followed, parallel))
+
+        matched.forEach { p ->
+            val offset = haversineMeters(p.latitude, p.longitude, 36.6000, p.longitude)
+            assertTrue(offset < 1.0, "expected the sharp fix to represent its bucket, a point is ${offset}m off")
         }
     }
 
