@@ -11,6 +11,7 @@ import io.apptolast.paparcar.domain.repository.VehicleRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 
 /**
  * Emits `true` while there is a WATCH GAP: the departure watcher SHOULD be live (a Coordinator car is
@@ -49,4 +50,14 @@ class ObserveDepartureWatchGapUseCase(
                 strategy = strategyResolver.strategyFor(vehicles),
             ) == PostDetectionLifecycle.EnterSentry
     }.distinctUntilChanged()
+
+    /**
+     * The gap RIGHT NOW, for callers that act once instead of subscribing (the resumer's own guard).
+     *
+     * Suspends until every input has produced a real value — that is what [combine] does — so it can
+     * never answer "nothing is parked" just because Room had not been read yet. A caller that reads
+     * the repositories on its own instead would get exactly that stale answer, and would then
+     * disagree with the stream that woke it up. [DET-WATCH-RESUME-RACE-001]
+     */
+    suspend fun current(): Boolean = invoke().first()
 }

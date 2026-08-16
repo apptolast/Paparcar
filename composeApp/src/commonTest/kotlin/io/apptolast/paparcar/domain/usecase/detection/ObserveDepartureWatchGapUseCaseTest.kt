@@ -100,6 +100,49 @@ class ObserveDepartureWatchGapUseCaseTest {
         assertEquals(true, useCase().first())
     }
 
+    // ── current(): the one-shot read the resumer uses [DET-WATCH-RESUME-RACE-001] ──────────────
+
+    @Test
+    fun should_answerTheSameAsTheStream_when_readOnce() = runTest {
+        // The whole point of current(): the resumer must not be able to disagree with the stream that
+        // woke it up. On device it did — it re-derived the verdict from Room and answered "nothing
+        // parked" 100 ms after the stream had reported a gap (field 2026-08-16, Oppo).
+        val watching = buildUseCase()
+        assertEquals(watching().first(), watching.current())
+
+        val idle = buildUseCase(parked = false)
+        assertEquals(idle().first(), idle.current())
+    }
+
+    @Test
+    fun should_reportTheGap_when_readOnceWithACoordinatorCarParked() = runTest {
+        assertTrue(buildUseCase().current(), "a parked Coordinator car with a dead service IS a gap")
+    }
+
+    @Test
+    fun should_reportNoGap_when_readOnceWithNothingParked() = runTest {
+        assertFalse(buildUseCase(parked = false).current(), "no session, no watcher to rebuild")
+    }
+
+    @Test
+    fun should_reportNoGap_when_readOnceWithTheWatcherAlreadyResident() = runTest {
+        assertFalse(
+            buildUseCase(presence = ServicePresence.Sentry).current(),
+            "the watcher is alive — resuming it again would be a purposeless service start",
+        )
+    }
+
+    @Test
+    fun should_seeTheSession_when_readAfterTheSyncLands() = runTest {
+        val parkingRepo = FakeUserParkingRepository()
+        val useCase = buildUseCase(parkingRepository = parkingRepo)
+        assertFalse(useCase.current(), "nothing synced yet → nothing to watch")
+
+        parkingRepo.saveNewParkingSession(session())
+
+        assertTrue(useCase.current(), "the very next read must see the session the sync brought")
+    }
+
     // ── Fixtures ──────────────────────────────────────────────────────────────
 
     private fun buildUseCase(

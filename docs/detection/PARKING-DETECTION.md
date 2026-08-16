@@ -2303,3 +2303,33 @@ unnecessary: the weak-evidence policy already confirms silently once the session
 (`weakEvidenceOnly = … && !sessionSawDriving`). The regression test replays the field shape and is
 verified RED without the fix; the anti-resurrection test keeps the same geometry at pedestrian speed
 and still refuses to pin. Spec: `docs/backlog/det-unverified-arm-drive-proof-001.md`.
+
+### DET-WATCH-RESUME-RACE-001 — the resume guard asked the question twice and lost the race (2026-08-16)
+
+**Report.** Field 2026-08-16, Oppo, master APK, cold start with the screen locked:
+`resume(foreground-gap) declined — parked=false strategy=COORDINATOR`. Nothing but the MainActivity
+lane sends `foreground-gap`, and that lane only fires when `ObserveDepartureWatchGapUseCase` has just
+emitted `true` — so the stream saw a parked session and, 100 ms later, the resumer's own re-read did
+not. Second launch (unlocked): `→ RESUME_SENTRY dispatched`, sentry FGS up.
+
+**Root cause.** `DepartureWatchResumerImpl` re-derived the verdict from raw sources
+(`observeActiveSessions().first()` + strategy + preference) instead of asking the stream that woke
+it. A `first()` on a flow that has not delivered its first real value yet does not wait for the data;
+`runCatching{}.getOrDefault(false)` then wrote the same `parked=false` for "nothing is parked" and
+for "the read failed". Because the gap boolean does not change, `distinctUntilChanged` never
+re-emitted and nothing retried until the next `repeatOnLifecycle(STARTED)` — the watcher stayed dead
+for the whole app session. This is the very pattern DET-WATCH-REACTIVATE-001 removed from
+`PaparcarApp.onCreate`, left behind one layer down.
+
+**Fix.** One question, one answerer: the resumer now depends on `ObserveDepartureWatchGapUseCase`
+and calls its new `current()`, which is `invoke().first()` — a `combine`, so it suspends until every
+input has a real value and cannot answer "nothing parked" out of emptiness. A read that cannot
+complete inside `GATE_READ_TIMEOUT_MS` is reported as unknown, distinct from "no gap": an automatic
+attempt declines (asymmetric failure — never light a foreground service on a guess), while an
+explicit CTA tap dispatches anyway and lets the service epilogue apply `resolvePostDetectionLifecycle`
+as the last word. The log now separates `no watch gap` / `state unreadable` / `refused by the OS`.
+
+**Companion-fix risk.** None to the confirmation pipeline: this rebuilds a WATCHER, it never confirms
+a spot, so `detectionPath` and `armEvidence` are untouched. The residency rule itself is unchanged —
+still `resolvePostDetectionLifecycle`, still owned by the service epilogue. Spec:
+`docs/backlog/det-watch-resume-race-001.md`.

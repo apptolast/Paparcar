@@ -71,9 +71,7 @@ val androidDetectionModule = module {
     single<io.apptolast.paparcar.domain.detection.DepartureWatchResumer> {
         io.apptolast.paparcar.detection.DepartureWatchResumerImpl(
             context = androidContext(),
-            userParkingRepository = get(),
-            strategyResolver = get(),
-            appPreferences = get(),
+            observeDepartureWatchGap = get(),
         )
     }
 
