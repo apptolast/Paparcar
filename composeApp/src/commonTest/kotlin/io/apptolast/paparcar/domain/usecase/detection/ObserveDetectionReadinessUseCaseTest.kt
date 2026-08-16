@@ -4,6 +4,7 @@ import io.apptolast.paparcar.domain.detection.ParkingStrategy
 import io.apptolast.paparcar.domain.detection.ParkingStrategyResolver
 import io.apptolast.paparcar.domain.detection.DetectionPhase
 import io.apptolast.paparcar.domain.detection.StaticDetectionRuntimeState
+import io.apptolast.paparcar.domain.detection.TripContext
 import io.apptolast.paparcar.domain.model.DetectionReadiness
 import io.apptolast.paparcar.domain.model.DisabledReason
 import io.apptolast.paparcar.domain.model.GpsPoint
@@ -144,18 +145,89 @@ class ObserveDetectionReadinessUseCaseTest {
         assertTrue(RequiredPermission.FOREGROUND_LOCATION in blocked.missing)
     }
 
+    // ── Trip outranks ANOTHER car's parked session [DET-READY-TRIP-OVER-PARKED-001] ──
+
+    @Test
+    fun `should be Monitoring when a second car is parked and the tracked car already left`() = runTest {
+        // The user's field case: the BT car sits parked while the other car is being driven. Its
+        // session masked the trip, so Home never drew the puck, the route or the follow camera.
+        val driven = vehicle(type = VehicleType.CAR)
+        val parkedCar = otherVehicle()
+        val readiness = buildUseCase(
+            vehicle = driven,
+            extraVehicles = listOf(parkedCar),
+            permissions = allGranted(),
+            sessions = listOf(session(geofenceId = "gf-other", id = "s-other", vehicleId = parkedCar.id)),
+            running = true,
+            trip = TripContext(departurePoint = point(), departingVehicleId = driven.id),
+        ).invoke().first()
+        val monitoring = assertIs<DetectionReadiness.Monitoring>(readiness)
+        assertEquals(driven.id, monitoring.departingVehicleId)
+    }
+
+    @Test
+    fun `should stay Parked when the tracked car itself has not left yet`() = runTest {
+        // Armed at the car (AR ENTER waiting for ride proof): the session is still active, so no
+        // measured movement has proved a drive. The banner must not claim one.
+        val car = vehicle(type = VehicleType.CAR)
+        val readiness = buildUseCase(
+            vehicle = car,
+            permissions = allGranted(),
+            sessions = listOf(session(geofenceId = "gf-1", id = "s-1", vehicleId = car.id)),
+            running = true,
+            trip = TripContext(departurePoint = point(), departingVehicleId = car.id),
+        ).invoke().first()
+        val parked = assertIs<DetectionReadiness.Parked>(readiness)
+        assertEquals("s-1", parked.session.id)
+    }
+
+    @Test
+    fun `should stay Parked when a trip runs without a resolved departing vehicle`() = runTest {
+        // Manual arms carry no trip context — nothing to attribute, so the parked reading holds.
+        val car = vehicle(type = VehicleType.CAR)
+        val readiness = buildUseCase(
+            vehicle = car,
+            permissions = allGranted(),
+            sessions = listOf(session(geofenceId = "gf-1", id = "s-1", vehicleId = car.id)),
+            running = true,
+            trip = null,
+        ).invoke().first()
+        assertIs<DetectionReadiness.Parked>(readiness)
+    }
+
+    @Test
+    fun `should report the most recently parked session as the Parked payload`() = runTest {
+        // Same subject Home focuses on, so the watch badge describes the car the user is looking at.
+        val car = vehicle(type = VehicleType.CAR)
+        val other = otherVehicle()
+        val readiness = buildUseCase(
+            vehicle = car,
+            extraVehicles = listOf(other),
+            permissions = allGranted(),
+            sessions = listOf(
+                session(geofenceId = "gf-old", id = "s-old", vehicleId = car.id, parkedAt = 1_000L),
+                session(geofenceId = null, id = "s-new", vehicleId = other.id, parkedAt = 9_000L),
+            ),
+        ).invoke().first()
+        val parked = assertIs<DetectionReadiness.Parked>(readiness)
+        assertEquals("s-new", parked.session.id)
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun buildUseCase(
         vehicle: Vehicle?,
         permissions: io.apptolast.paparcar.domain.permissions.AppPermissionState = FakePermissionManager.allDenied(),
         session: UserParking? = null,
+        sessions: List<UserParking> = emptyList(),
+        extraVehicles: List<Vehicle> = emptyList(),
         running: Boolean = false,
         phase: DetectionPhase = DetectionPhase.Driving,
+        trip: TripContext? = null,
         autoDetect: Boolean = true,
     ): ObserveDetectionReadinessUseCase {
-        val vehicleRepo = FakeVehicleRepository(defaultVehicle = vehicle)
-        val parkingRepo = FakeUserParkingRepository(initialSession = session)
+        val vehicleRepo = FakeVehicleRepository(defaultVehicle = vehicle, extraVehicles = extraVehicles)
+        val parkingRepo = FakeUserParkingRepository(initialSession = session, initialSessions = sessions)
         val permissionManager = FakePermissionManager().apply { emit(permissions) }
         val resolver = ParkingStrategyResolver(
             vehicleRepository = vehicleRepo,
@@ -165,7 +237,7 @@ class ObserveDetectionReadinessUseCaseTest {
             vehicleRepository = vehicleRepo,
             userParkingRepository = parkingRepo,
             permissionManager = permissionManager,
-            detectionRuntime = StaticDetectionRuntimeState(running = running, phase = phase),
+            detectionRuntime = StaticDetectionRuntimeState(running = running, phase = phase, trip = trip),
             strategyResolver = resolver,
             appPreferences = FakeAppPreferences(initialAutoDetect = autoDetect),
         )
@@ -189,11 +261,27 @@ class ObserveDetectionReadinessUseCaseTest {
         isActive = true,
     )
 
-    private fun session(geofenceId: String?) = UserParking(
-        id = "s-1",
+    /** A second car in the fleet — the one left parked while the first is driven. */
+    private fun otherVehicle() = Vehicle(
+        id = "v-2",
         userId = "u-1",
-        vehicleId = "v-1",
-        location = GpsPoint(latitude = 40.0, longitude = -3.7, accuracy = 0f, timestamp = 0L, speed = 0f),
+        sizeCategory = VehicleSize.MEDIUM_SUV,
+        vehicleType = VehicleType.CAR,
+        isActive = false,
+    )
+
+    private fun point() = GpsPoint(latitude = 40.0, longitude = -3.7, accuracy = 0f, timestamp = 0L, speed = 0f)
+
+    private fun session(
+        geofenceId: String?,
+        id: String = "s-1",
+        vehicleId: String = "v-1",
+        parkedAt: Long = 0L,
+    ) = UserParking(
+        id = id,
+        userId = "u-1",
+        vehicleId = vehicleId,
+        location = point().copy(timestamp = parkedAt),
         geofenceId = geofenceId,
         isActive = true,
     )

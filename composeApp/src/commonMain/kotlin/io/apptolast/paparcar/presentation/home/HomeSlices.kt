@@ -117,7 +117,7 @@ data class HomePeekSlice(
     val editingParkingId: String?,
     val addingParkingVehicleId: String?,
 ) {
-    /** The preferred session — same rank-based resolution as [HomeState.userParking]. */
+    /** The preferred session — same recency-based resolution as [HomeState.userParking]. */
     val userParking: UserParking?
         get() = preferredSession(activeSessions, vehicles)
 

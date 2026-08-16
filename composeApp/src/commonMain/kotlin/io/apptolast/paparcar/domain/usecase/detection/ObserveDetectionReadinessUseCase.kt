@@ -9,6 +9,7 @@ import io.apptolast.paparcar.domain.model.DetectionReadiness
 import io.apptolast.paparcar.domain.model.DisabledReason
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.Vehicle
+import io.apptolast.paparcar.domain.model.preferredParkingSession
 import io.apptolast.paparcar.domain.permissions.AppPermissionState
 import io.apptolast.paparcar.domain.permissions.PermissionManager
 import io.apptolast.paparcar.domain.permissions.RequiredPermission
@@ -24,12 +25,15 @@ import kotlinx.coroutines.flow.combine
  * parking sessions, permission state and detection runtime into one [DetectionReadiness]
  * stream. [DET-READY-001b]
  *
- * Precedence (first match wins): **Disabled → Blocked → Parked → Monitoring → Ready**.
+ * Precedence (first match wins): **Disabled → Blocked → Monitoring → Parked → Ready**.
  * - Disabled before everything: no point asking for permissions when nothing can be detected.
  *   This also covers the user turning auto-detection OFF in Settings (TURNED_OFF) — if you disabled
  *   it, we surface "activate detection", not a permission nag. [DET-TOGGLE-001]
- * - Blocked before Parked: surface a broken permission even while a car is parked, so the user
- *   knows departure detection won't fire.
+ * - Blocked before everything else: surface a broken permission even while a car is parked, so the
+ *   user knows departure detection won't fire.
+ * - Monitoring before Parked, but ONLY for a trip whose own car has already left: another car
+ *   sitting parked says nothing about whether this one is driving, while the tracked car's own live
+ *   session means it has not measurably left yet. [DET-READY-TRIP-OVER-PARKED-001]
  */
 class ObserveDetectionReadinessUseCase(
     private val vehicleRepository: VehicleRepository,
@@ -88,10 +92,27 @@ class ObserveDetectionReadinessUseCase(
             return DetectionReadiness.Blocked(missing)
         }
 
-        // Any active session means the car is parked; prefer one with a geofence
-        // (the "watching for departure" signal) for the banner payload.
-        val parkedSession = sessions.firstOrNull { it.geofenceId != null } ?: sessions.firstOrNull()
-        if (parkedSession != null) {
+        // A tracked trip outranks the OTHER cars' parked sessions. Under multi-parking
+        // [MULTI-PARKING-001] a second car sitting parked used to mask the trip entirely: the
+        // banner stayed Parked, so Home never subscribed the live location stream and the whole
+        // trip surface (driving puck, breadcrumb, drawn route, driver-follow camera) stayed dark
+        // while detection itself worked and published the spot normally.
+        //
+        // Doctrine-safe because it asks about the TRACKED car, not about "any trip is running":
+        // an arm at the car (AR ENTER waiting for ride proof) leaves that car's session active, so
+        // it keeps reading Parked until the departure is CONFIRMED and its session cleared — the
+        // banner never claims a drive that measured movement has not proved. Manual arms carry no
+        // trip context, so they cannot attribute a car and keep the parked reading.
+        // [DET-READY-TRIP-OVER-PARKED-001]
+        val trackedVehicleId = trip?.departingVehicleId
+        val trackedCarStillParked = trackedVehicleId == null ||
+            sessions.any { it.vehicleId == trackedVehicleId }
+        val followingTrip = isRunning && !trackedCarStillParked
+
+        // The banner's parked payload is the SAME session Home focuses on, so the badge always
+        // describes the car the user is looking at. [UI-PREFERRED-SESSION-RECENCY-001]
+        val parkedSession = preferredParkingSession(sessions, vehicles)
+        if (parkedSession != null && !followingTrip) {
             return DetectionReadiness.Parked(parkedSession)
         }
 

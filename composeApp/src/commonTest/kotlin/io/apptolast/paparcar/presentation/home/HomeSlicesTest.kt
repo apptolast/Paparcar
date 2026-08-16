@@ -43,11 +43,11 @@ class HomeSlicesTest {
         bluetoothDeviceId = bluetoothDeviceId,
     )
 
-    private fun session(id: String, vehicleId: String) = UserParking(
+    private fun session(id: String, vehicleId: String, parkedAt: Long = 1_000L) = UserParking(
         id = id,
         userId = "user-1",
         vehicleId = vehicleId,
-        location = gps,
+        location = gps.copy(timestamp = parkedAt),
         isActive = true,
     )
 
@@ -122,17 +122,35 @@ class HomeSlicesTest {
         assertEquals("s1", peek.userParking?.id)
     }
 
-    // ── Preferred session (userParking) — BT > Active > Inactive ─────────────
+    // ── Preferred session (userParking) — most recent park wins ──────────────
+    // [UI-PREFERRED-SESSION-RECENCY-001]
 
     @Test
-    fun should_prefer_the_bt_vehicle_session_over_active_and_inactive_ones() {
+    fun should_prefer_the_most_recently_parked_session_over_the_bt_vehicles_older_one() {
+        val state = HomeState(
+            vehicles = listOf(
+                vehicle("veh-active").copy(isActive = true),
+                vehicle("veh-bt").copy(bluetoothDeviceId = "AA:BB"),
+            ),
+            // The BT car parked days ago; the active car is the one driven these days.
+            activeSessions = listOf(
+                session("s-bt", "veh-bt", parkedAt = 1_000L),
+                session("s-active", "veh-active", parkedAt = 2_000L),
+            ),
+        )
+        assertEquals("s-active", state.userParking?.id)
+        assertEquals("s-active", state.toPeekSlice().userParking?.id)
+    }
+
+    @Test
+    fun should_break_a_timestamp_tie_by_watch_rank_bt_first() {
         val state = HomeState(
             vehicles = listOf(
                 vehicle("veh-inactive"),
                 vehicle("veh-active").copy(isActive = true),
                 vehicle("veh-bt").copy(bluetoothDeviceId = "AA:BB"),
             ),
-            // The inactive vehicle's session comes FIRST in list order — it must not win.
+            // Same park instant — the best-watched car's session wins the tie.
             activeSessions = listOf(
                 session("s-inactive", "veh-inactive"),
                 session("s-active", "veh-active"),
@@ -140,23 +158,10 @@ class HomeSlicesTest {
             ),
         )
         assertEquals("s-bt", state.userParking?.id)
-        assertEquals("s-bt", state.toPeekSlice().userParking?.id)
     }
 
     @Test
-    fun should_prefer_the_active_vehicle_session_when_no_bt_session_exists() {
-        val state = HomeState(
-            vehicles = listOf(vehicle("veh-inactive"), vehicle("veh-active").copy(isActive = true)),
-            activeSessions = listOf(
-                session("s-inactive", "veh-inactive"),
-                session("s-active", "veh-active"),
-            ),
-        )
-        assertEquals("s-active", state.userParking?.id)
-    }
-
-    @Test
-    fun should_fall_back_to_first_session_when_ranks_tie() {
+    fun should_fall_back_to_first_session_when_timestamps_and_ranks_tie() {
         val state = HomeState(
             vehicles = listOf(vehicle("veh-a"), vehicle("veh-b")),
             activeSessions = listOf(session("s-a", "veh-a"), session("s-b", "veh-b")),

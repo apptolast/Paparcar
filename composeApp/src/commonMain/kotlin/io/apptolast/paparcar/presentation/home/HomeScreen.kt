@@ -725,17 +725,24 @@ private fun HomeCameraEffects(
         val gps = state.userGpsPoint ?: return@LaunchedEffect
         // Stateful initial focus: frame the parked car (with the user, if close), else centre on the
         // user so nearby free spots reveal around them. One-shot, inside the controller. [FOCUS-001]
+        // A live trip owns the camera (driver-follow below): framing a parked car first would open
+        // the map on the OTHER car and then snap away to the moving one. Centring on the user is
+        // already centring on the car being driven. [DET-READY-TRIP-OVER-PARKED-001]
         uiController.centerInitialFocus(
-            parking = state.userParking?.let { it.location.latitude to it.location.longitude },
+            parking = state.userParking
+                ?.takeIf { drivingPuck.value == null }
+                ?.let { it.location.latitude to it.location.longitude },
             selectedSpot = state.selectedSpot?.let { it.location.latitude to it.location.longitude },
             user = gps.latitude to gps.longitude,
         )
     }
 
     // Re-frame the car once if its session loads just after the first GPS fix (common race), unless
-    // the user already panned by hand — the controller enforces those guards. [FOCUS-002]
+    // the user already panned by hand or a trip is live — the controller enforces those guards.
+    // [FOCUS-002] [DET-READY-TRIP-OVER-PARKED-001]
     LaunchedEffect(state.userParking?.id) {
         val parking = state.userParking ?: return@LaunchedEffect
+        if (drivingPuck.value != null) return@LaunchedEffect
         uiController.refocusOnParkingArrival(
             parking = parking.location.latitude to parking.location.longitude,
             user = state.userGpsPoint?.let { it.latitude to it.longitude },

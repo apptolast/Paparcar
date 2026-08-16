@@ -190,13 +190,26 @@ class FakeUserParkingRepository(
         val active = allSessionsFlow().map { list -> list.filter { it.isActive } }
         val rt = runtime ?: return active
         // Sim fidelity: ALWAYS surface the parked session first, so a starting trip captures it as the
-        // faded "departure point", THEN clear it while running so readiness can reach Monitoring (Parked
-        // otherwise wins). Mirrors a real park → depart transition even when the toggle is flipped before
-        // entering the app. [DRIVE-SIM-001] [TRIP-TRAIL-001]
+        // faded "departure point", THEN release only the DEPARTING car's session while running —
+        // exactly what a confirmed departure does in production. The other cars stay parked, so the
+        // sim reproduces the multi-parking field case (one car driving, one still parked) instead of
+        // hiding it behind an empty list. Readiness reaches Monitoring on its own now that a trip
+        // outranks another car's parked session. [DRIVE-SIM-001] [TRIP-TRAIL-001]
+        // [DET-READY-TRIP-OVER-PARKED-001]
         return active.flatMapLatest { sessions ->
             flow {
                 emit(sessions)
-                emitAll(rt.isRunning.map { running -> if (running) emptyList() else sessions })
+                emitAll(
+                    combine(rt.isRunning, rt.trip) { running, trip ->
+                        when {
+                            !running -> sessions
+                            // No resolved origin (manual arm): fall back to clearing them all, the
+                            // single-car park→depart the sim modelled before.
+                            trip?.departingVehicleId == null -> emptyList()
+                            else -> sessions.filterNot { it.vehicleId == trip.departingVehicleId }
+                        }
+                    },
+                )
             }
         }
     }

@@ -12,7 +12,9 @@ import io.apptolast.paparcar.domain.permissions.RequiredPermission
  * two coexist. Replaces the thin `HomeState.allPermissionsGranted` boolean. [DET-READY-001b]
  *
  * Precedence when resolving (first match wins):
- * Disabled → Blocked → Parked → Monitoring → Ready.
+ * Disabled → Blocked → Monitoring → Parked → Ready.
+ * Monitoring outranks Parked only once the TRACKED car's own session is cleared — another car's
+ * parked session must not mask the trip in progress. [DET-READY-TRIP-OVER-PARKED-001]
  *
  *  - [Disabled]: detection does not apply (no vehicle, or active vehicle is a non-parking type).
  *  - [Blocked]: a required permission is missing — detection can't run until granted.

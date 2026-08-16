@@ -2173,3 +2173,72 @@ somewhere, not that we know exactly where it stopped.
 existing paths (the field session then ends `confirmed_unattended_timeout` instead of
 `aborted_unattended_no_drive`). Regression test replays the field shape and is verified RED without
 the fix. Spec: `docs/backlog/det-short-hop-proof-001.md`.
+
+### DET-READY-TRIP-OVER-PARKED-001 — a second parked car masked the whole live-trip surface (2026-08-15)
+
+**Field report (15-08, two cars registered: Škoda Kamiq with Bluetooth + Ford Focus without).**
+*"Estos días cuando me voy la detección va bien pero no se muestra correctamente en UI: se publica
+aparcamiento y eso, pero no aparece en ruta ni nada de eso."* Detection was doing its job — the spot
+was published, the pin landed, the route was persisted on the session — yet Home stayed visually
+idle for the entire drive: no driving puck, no breadcrumb, no snapped route line, no driver-follow
+camera, no "en ruta" story.
+
+**Cause — a single-session assumption that `MULTI-PARKING-001` invalidated and nobody swept.**
+`ObserveDetectionReadinessUseCase` resolved its precedence as *Disabled → Blocked → **Parked** →
+Monitoring → Ready*, with `Parked` triggered by **any** active session:
+
+```kotlin
+val parkedSession = sessions.firstOrNull { it.geofenceId != null } ?: sessions.firstOrNull()
+if (parkedSession != null) return DetectionReadiness.Parked(parkedSession)   // ← wins, always
+```
+
+Written when `UserParking`'s own KDoc still said *"only one session should be active at a time"*,
+that reads fine: you drive, your session is cleared at the confirmed departure, `sessions` empties,
+`Monitoring` follows. With two cars it collapses. Departing in the Focus clears **the Focus's**
+session, but the Kamiq stays parked — so `sessions` is never empty, `Parked` wins forever, and
+`Monitoring` becomes unreachable while any other car is parked.
+
+Everything downstream is gated on that one state. `HomeTripController` subscribes the heading-aware
+location stream **only** on `DetectionReadiness.Monitoring` (deliberately, to bound battery), so no
+`Monitoring` meant no fixes, no `DrivingPuck`, no trail to map-match, and — because driver-follow
+engages off `drivingPuck != null` — no camera follow either. The detection service itself never
+consulted this use case, which is exactly why detection kept working perfectly while its UI stayed
+dark. The single-car field tests could never reproduce it.
+
+Corroborating smell, already in the tree: the mock's `FakeUserParkingRepository` had to **hide** the
+parked session while the driving sim ran, commented *"so readiness can reach Monitoring (Parked
+otherwise wins)"*. The Dev Catalog was working around this bug rather than exposing it.
+
+**Fix — ask about the TRACKED car, not about "is anything parked".** Precedence becomes *Disabled →
+Blocked → **Monitoring** → Parked → Ready*, but `Monitoring` is claimed only once the car being
+followed has actually left:
+
+```kotlin
+val trackedVehicleId = trip?.departingVehicleId
+val trackedCarStillParked = trackedVehicleId == null || sessions.any { it.vehicleId == trackedVehicleId }
+val followingTrip = isRunning && !trackedCarStillParked
+```
+
+Doctrine holds — *the event nominates, measured movement confirms*. An arm **at** the car
+(`AR ENTER` waiting for ride proof) leaves that car's session active, so the banner keeps reading
+`Parked` and never claims a drive that no measured movement has proved; only a **confirmed**
+departure clears the session and unlocks `Monitoring`. All four automatic arm lanes (geofence EXIT,
+AR-enter-at-fence, AR-enter-with-broken-fence, sentry wake) already carry
+`TripContext(session.location, session.vehicleId)`, so attribution is reliable; manual arms carry no
+trip context and deliberately keep the parked reading rather than guess.
+
+**Swept with it — one resolver for "which parked car represents me".** Three places answered that
+question differently: Home ranked by watch status, this use case preferred *any session owning a
+geofence*, and history took Room's order. They now share `preferredParkingSession()` (domain, pure),
+which picks the **most recently parked** session with watch rank only as a tie-break
+[UI-PREFERRED-SESSION-RECENCY-001]. Preferring a geofence-owning session was dropped on purpose: it
+let the honest watch badge describe a car the user was not even looking at. Home's initial camera
+focus and its `FOCUS-002` re-frame now stand down while a puck is live, so the map no longer opens
+on the parked car and then snaps away to the moving one. The mock fake was made honest too — it
+releases only the **departing** vehicle's session, so the Dev Catalog reproduces the two-car case
+instead of hiding it.
+
+**No new confirmation path**, so `detectionPath` / `armEvidence` are untouched: this changes what
+Home *shows* about a trip, never what confirms a parking. No new strings — the "en ruta" story
+already existed and was simply never reached. Spec:
+`docs/backlog/det-ready-trip-over-parked-001.md`.
