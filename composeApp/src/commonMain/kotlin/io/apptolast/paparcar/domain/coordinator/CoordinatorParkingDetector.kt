@@ -15,6 +15,7 @@ import io.apptolast.paparcar.domain.model.displayName
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.sensor.StepDetectorSource
+import io.apptolast.paparcar.domain.usecase.detection.EvaluateMeasuredDepartureUseCase
 import io.apptolast.paparcar.domain.usecase.detection.EvaluateShortHopDriveProofUseCase
 import io.apptolast.paparcar.domain.usecase.notification.NotifyParkingConfirmationUseCase
 import io.apptolast.paparcar.domain.usecase.parking.CalculateParkingConfidenceUseCase
@@ -117,6 +118,10 @@ class CoordinatorParkingDetector(
      *  defaults from [config] and needs no DI change or test-double churn. */
     private val evaluateShortHopDriveProof: EvaluateShortHopDriveProofUseCase =
         EvaluateShortHopDriveProofUseCase(config),
+    /** [DET-UNVERIFIED-ARM-DRIVE-PROOF-001] The stream's own departure verdict — pure, config-only,
+     *  same defaulting rationale as the proof above. */
+    private val evaluateMeasuredDeparture: EvaluateMeasuredDepartureUseCase =
+        EvaluateMeasuredDepartureUseCase(config),
 ) : DepartureConfirmationListener {
     /**
      * Atomic snapshot of all mutable detection variables for a single session.
@@ -301,6 +306,15 @@ class CoordinatorParkingDetector(
          *  see on a short stop-and-go hop; any fix that fails the geometry resets the run, so a
          *  lone cache teleport never counts. */
         val shortHopQualifyingFixes: Int = 0,
+        /** [DET-UNVERIFIED-ARM-DRIVE-PROOF-001] TRUE once the car has PROVEN it left its pin —
+         *  the question [EvaluateShortHopDriveProofUseCase] asks before trusting a displacement
+         *  claim. Three sources, one meaning, latched for the session: verified arm evidence
+         *  ([ArmEvidence.isVerifiedDeparture]), the departure worker's post-arm upgrade
+         *  ([notifyDepartureConfirmed], [DET-G-05]) and the stream's own measured verdict
+         *  ([EvaluateMeasuredDepartureUseCase]). Modelling it as a property of the ARM event alone
+         *  cost two real parks on 2026-08-15: a sentry-wake arm (MIUI ate the EXIT) measured
+         *  25.6 km/h 1.1 km from the pin and the proof never even ran. */
+        val departureProven: Boolean = false,
         /** [DET-STEP-SPEED-GATE-001] Speed (m/s) of the most recent GPS fix. Distinguishes the
          *  egress WALK (person, ~1.4 m/s) from a stop-and-go TRAFFIC crawl (car): with an anchor
          *  set, steps only count while this is below driving speed, so a phone bouncing in traffic
@@ -406,6 +420,10 @@ class CoordinatorParkingDetector(
     override fun notifyDepartureConfirmed() {
         if (currentSessionId == null) return
         currentArmEvidence = ArmEvidence.LABEL_VERIFIED_LATE
+        // [DET-UNVERIFIED-ARM-DRIVE-PROOF-001] The late verdict also answers "did the car leave its
+        // pin?" — it used to change only the label, while the displacement proof kept reading the
+        // immutable arm parameter and never learned the departure had been confirmed.
+        _detectionState.update { it.copy(departureProven = true) }
         if (_detectionState.value.hasEverReachedDrivingSpeed) return
         _detectionState.update { it.copy(hasEverReachedDrivingSpeed = true) }
         PaparcarLogger.d(DIAG, "  ✓ departure confirmed post-arm → seed hasEverReachedDrivingSpeed=true [DET-G-05]")
@@ -474,7 +492,9 @@ class CoordinatorParkingDetector(
         // with no vehicle evidence (walking exit, spurious trigger) must abort on the step burst
         // instead of confirming a phantom park (BUG-REPark-WALK-001). [DET-SOLID-001]
         if (armEvidence.isVerifiedDeparture) {
-            _detectionState.update { it.copy(hasEverReachedDrivingSpeed = true) }
+            // [DET-UNVERIFIED-ARM-DRIVE-PROOF-001] departureProven is the same fact this seed rests
+            // on, held as session state so late and measured evidence can reach it too.
+            _detectionState.update { it.copy(hasEverReachedDrivingSpeed = true, departureProven = true) }
             PaparcarLogger.d(DIAG, "  ✓ ${armEvidence.persistLabel} → seed hasEverReachedDrivingSpeed=true (armed mid-trip; drive already happened) [DET-G-04]")
         }
         // Session provenance stamped on the confirmed park — the repark-plausibility guard in
@@ -735,10 +755,26 @@ class CoordinatorParkingDetector(
                                     elapsedSinceArmMs = now - sessionStartMs,
                                 )
                             ) s.shortHopQualifyingFixes + 1 else 0
+                        // [DET-UNVERIFIED-ARM-DRIVE-PROOF-001] "Did the car leave its pin?" is a fact
+                        // about the car, not a property of the event that armed us. The stream can
+                        // measure it: the same credible driving-speed fix the pre-arm verifier would
+                        // have called VerifiedBySpeed, sitting past the fence and beyond pedestrian
+                        // reach from the pin. Field 2026-08-15 21:26 (Redmi): MIUI ate the EXIT, a
+                        // sentry-wake armed self_observed, and 25.6 km/h at 1.1 km from home proved
+                        // nothing because the arm parameter said "unverified" — park lost.
+                        val departureProven = s.departureProven || evaluateMeasuredDeparture(
+                            departureAnchor = departureAnchor,
+                            fix = location,
+                            fenceRadiusMeters = departureFenceRadiusMeters,
+                            elapsedSinceArmMs = now - sessionStartMs,
+                        )
+                        if (departureProven && !s.departureProven) {
+                            PaparcarLogger.d(DIAG, "  ✓ departure PROVEN by the stream (speed=${location.speed}m/s acc=${location.accuracy}m, unwalkable from the pin) [DET-UNVERIFIED-ARM-DRIVE-PROOF-001]")
+                        }
                         val shortHopProven = evaluateShortHopDriveProof(
                             departureAnchor = departureAnchor,
                             fix = location,
-                            verifiedDeparture = armEvidence.isVerifiedDeparture,
+                            departureProven = departureProven,
                             fenceRadiusMeters = departureFenceRadiusMeters,
                             elapsedSinceArmMs = now - sessionStartMs,
                             consecutiveQualifyingFixes = shortHopRun,
@@ -764,6 +800,7 @@ class CoordinatorParkingDetector(
                             driveProven = driveProven,
                             recentFixes = pruneRecentFixes(s.recentFixes, location),
                             shortHopQualifyingFixes = shortHopRun, // [DET-SHORT-HOP-PROOF-001]
+                            departureProven = departureProven, // [DET-UNVERIFIED-ARM-DRIVE-PROOF-001]
                             // [DET-STEP-SPEED-GATE-001] Track the last fix speed so the step gate can
                             // veto phantom steps while the car crawls in traffic (anchor still set).
                             lastSpeedMps = location.speed,

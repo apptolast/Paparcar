@@ -54,6 +54,10 @@ class CoordinatorParkingDetectorTest {
     /** Resting latitude of the short-hop fixture (~900 m north of the pin). */
     private val SHORT_HOP_PARKED_LAT = 40.00815
 
+    /** [DET-UNVERIFIED-ARM-DRIVE-PROOF-001] Where the late-armed hop comes to rest — ~1.13 km from
+     *  the pin it left, the field distance of 2026-08-15. */
+    private val LATE_ARM_PARKED_LAT = 40.01015
+
     private val authSession = FakeAuthRepository.authenticatedSession(userId = "user-1")
     // confirmHoldMs = 0 → no post-confirm hold, so egress confirms fire immediately and these
     // deterministic tests stay synchronous. The hold itself is covered by dedicated tests below
@@ -1607,11 +1611,13 @@ class CoordinatorParkingDetectorTest {
         }
 
     @Test
-    fun should_not_prove_a_drive_by_displacement_when_the_arm_was_unverified() =
+    fun should_not_prove_a_drive_by_displacement_when_nothing_measured_a_departure() =
         runTest(UnconfinedTestDispatcher()) {
-            // Anti-resurrection: the SAME geometry on a SELF-OBSERVED arm proves nothing — the
-            // event only NOMINATES, and without external departure evidence a long walk or a bus
-            // ride shows the very same displacement. Doctrine: rather a false negative.
+            // Anti-resurrection: geometry ALONE still proves nothing. Same displacement, same
+            // unverified arm — but every fix reports pedestrian speed, so neither the arm nor the
+            // stream ever witnessed the car leaving. A long walk, a passenger ride and a sparse
+            // stream all draw this shape. Doctrine: rather a false negative.
+            // [DET-SHORT-HOP-PROOF-001][DET-UNVERIFIED-ARM-DRIVE-PROOF-001]
             var nowMs = 0L
             val env = setup(clock = { nowMs })
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
@@ -1625,7 +1631,7 @@ class CoordinatorParkingDetectorTest {
                 )
             }
 
-            driveSparseShortHop(locations) { nowMs = it }
+            driveSparseShortHop(locations, speedMps = 1.2f) { nowMs = it }
             nowMs += config.confirmationResponseTimeoutMs + 1_000L
             locations.emit(GpsPoint(SHORT_HOP_PARKED_LAT, -3.7, accuracy = 6f, timestamp = nowMs, speed = 0f))
             nowMs += config.confirmationResponseTimeoutMs + 1_000L
@@ -1636,8 +1642,55 @@ class CoordinatorParkingDetectorTest {
             assertEquals(
                 0,
                 env.parkingRepo.saveNewParkingSessionCallCount,
-                "displacement without verified departure evidence must never silently pin [DET-SHORT-HOP-PROOF-001]",
+                "displacement with no measured departure must never silently pin [DET-SHORT-HOP-PROOF-001]",
             )
+        }
+
+    @Test
+    fun should_keep_the_park_when_the_stream_itself_measured_the_departure_from_the_pin() =
+        runTest(UnconfinedTestDispatcher()) {
+            // Field 2026-08-15 21:26 (Redmi, session 1786821963745): MIUI never delivered the
+            // geofence EXIT, so a sentry-wake armed the session `self_observed` with the car already
+            // ~1.1 km from home. The stream caught only the drive's tail — three credible fixes at
+            // 25-30 km/h inside 10 s, far too short a span for any 20-60 s look-back window, so
+            // `corroboratesDrive` never latched. The displacement proof would have saved it, but it
+            // was gated on the ARM being verified, so it never ran: `aborted_unattended_no_drive`, a
+            // nudge nobody answered, and the park lost — followed by the return trip, which had no
+            // pin left to arm from. The other phone, whose EXIT arrived on time, pinned both.
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val pin = GpsPoint(40.0, -3.7, accuracy = 8f, timestamp = 0L, speed = 0f)
+            val job = launch {
+                env.coordinator.invoke(
+                    locations,
+                    armEvidence = ArmEvidence.Unverified,
+                    departureAnchor = pin,
+                    departureFenceRadiusMeters = 80f,
+                )
+            }
+
+            driveLateArmedHop(locations) { nowMs = it }
+            // Weak arrival evidence on purpose: the session can only end through the unattended
+            // timeout — the exact branch the field park died in.
+            nowMs += config.confirmationResponseTimeoutMs + 1_000L
+            locations.emit(GpsPoint(LATE_ARM_PARKED_LAT, -3.7, accuracy = 6f, timestamp = nowMs, speed = 0f))
+            nowMs += config.confirmationResponseTimeoutMs + 1_000L
+            locations.emit(GpsPoint(LATE_ARM_PARKED_LAT, -3.7, accuracy = 6f, timestamp = nowMs, speed = 0f))
+
+            job.cancelAndJoin()
+
+            assertEquals(
+                1,
+                env.parkingRepo.saveNewParkingSessionCallCount,
+                "the stream measured the departure the EXIT never reported — the park must survive [DET-UNVERIFIED-ARM-DRIVE-PROOF-001]",
+            )
+            val ended = env.detectionLogger.events.filterIsInstance<DetectionEvent.SessionEnded>().single()
+            assertTrue(
+                ended.outcome != "aborted_unattended_no_drive",
+                "the field FN outcome must be gone, was ${ended.outcome}",
+            )
+            assertEquals(0, env.notification.markParkingNudgeCallCount, "a proven drive never degrades to the mark-your-spot nudge")
         }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -2715,18 +2768,44 @@ class CoordinatorParkingDetectorTest {
      *  [DET-SHORT-HOP-PROOF-001] */
     private suspend fun driveSparseShortHop(
         locations: MutableSharedFlow<GpsPoint>,
+        /** Speed every rolling fix reports. Pedestrian values make the stream witness no departure
+         *  at all, leaving the bare geometry — the anti-resurrection shape.
+         *  [DET-UNVERIFIED-ARM-DRIVE-PROOF-001] */
+        speedMps: Float = 8.3f,
         advanceClock: (Long) -> Unit,
     ) {
-        locations.emit(GpsPoint(40.0, -3.7, accuracy = 10f, timestamp = 0L, speed = 8.3f))
+        locations.emit(GpsPoint(40.0, -3.7, accuracy = 10f, timestamp = 0L, speed = speedMps))
         advanceClock(90_000L)
-        locations.emit(GpsPoint(40.0040, -3.7, accuracy = 10f, timestamp = 90_000L, speed = 8.3f))
+        locations.emit(GpsPoint(40.0040, -3.7, accuracy = 10f, timestamp = 90_000L, speed = speedMps))
         advanceClock(180_000L)
-        locations.emit(GpsPoint(40.0081, -3.7, accuracy = 10f, timestamp = 180_000L, speed = 8.3f))
+        locations.emit(GpsPoint(40.0081, -3.7, accuracy = 10f, timestamp = 180_000L, speed = speedMps))
         // Final manoeuvre + arrival at rest, witnessed without a hole.
         advanceClock(200_000L)
         locations.emit(GpsPoint(SHORT_HOP_PARKED_LAT, -3.7, accuracy = 8f, timestamp = 200_000L, speed = 3f))
         advanceClock(215_000L)
         locations.emit(GpsPoint(SHORT_HOP_PARKED_LAT, -3.7, accuracy = 6f, timestamp = 215_000L, speed = 0f))
+    }
+
+    /** [DET-UNVERIFIED-ARM-DRIVE-PROOF-001] The LATE-ARMED hop of field 2026-08-15 21:26 (Redmi,
+     *  session 1786821963745): the EXIT never arrived, a sentry-wake armed the session with the car
+     *  already ~1.1 km out, and the stream saw only the drive's tail — three credible fixes at
+     *  25-30 km/h spanning 10 s. Deliberately too tight for `corroboratesDrive` (its look-back
+     *  window starts at 20 s), so only the displacement from the pin can prove this drive. */
+    private suspend fun driveLateArmedHop(
+        locations: MutableSharedFlow<GpsPoint>,
+        advanceClock: (Long) -> Unit,
+    ) {
+        advanceClock(25_000L)
+        locations.emit(GpsPoint(40.0098, -3.7, accuracy = 8.9f, timestamp = 25_000L, speed = 7.1f))
+        advanceClock(33_000L)
+        locations.emit(GpsPoint(40.0100, -3.7, accuracy = 23.4f, timestamp = 33_000L, speed = 8.2f))
+        advanceClock(35_000L)
+        locations.emit(GpsPoint(40.0101, -3.7, accuracy = 24.2f, timestamp = 35_000L, speed = 8.4f))
+        // Final manoeuvre + arrival at rest, witnessed without a hole.
+        advanceClock(60_000L)
+        locations.emit(GpsPoint(LATE_ARM_PARKED_LAT, -3.7, accuracy = 8f, timestamp = 60_000L, speed = 3f))
+        advanceClock(75_000L)
+        locations.emit(GpsPoint(LATE_ARM_PARKED_LAT, -3.7, accuracy = 6f, timestamp = 75_000L, speed = 0f))
     }
 
     /** [DET-DRIVE-PROOF-001] A drive the session speed statistic BELIEVES: a track with real

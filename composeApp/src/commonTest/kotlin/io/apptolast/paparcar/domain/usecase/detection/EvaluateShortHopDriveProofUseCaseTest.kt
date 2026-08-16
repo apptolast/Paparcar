@@ -40,9 +40,11 @@ class EvaluateShortHopDriveProofUseCaseTest {
     }
 
     @Test
-    fun `should not prove the drive on an unverified arm`() {
-        // The event NOMINATES: without verified departure evidence the displacement alone (a long
-        // walk, a bus, a passenger ride) must not unlock the drive statistic.
+    fun `should not prove the drive until the car has proven it left the pin`() {
+        // Leaving the pin NOMINATES: with no departure proof at all — neither verified arm
+        // evidence, nor a worker upgrade, nor the stream's own measurement
+        // [DET-UNVERIFIED-ARM-DRIVE-PROOF-001] — the displacement alone (a long walk, a bus, a
+        // passenger ride) must not unlock the drive statistic.
         assertFalse(proof(verified = false))
     }
 

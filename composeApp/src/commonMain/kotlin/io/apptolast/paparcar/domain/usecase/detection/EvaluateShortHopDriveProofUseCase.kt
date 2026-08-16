@@ -27,7 +27,7 @@ import io.apptolast.paparcar.domain.util.haversineMeters
  *    many phantom 45 m/s bursts the chipset reports. Anchoring to the session's first fix would
  *    have handed the mirage its own burst as the origin and called the return home a "drive".
  *
- * Doctrine: the EXIT event only NOMINATES (that is why [verifiedDeparture] is required but never
+ * Doctrine: leaving the pin only NOMINATES (that is why [departureProven] is required but never
  * sufficient); what CONFIRMS is measured ground covered — sustained across
  * [ParkingDetectionConfig.shortHopProofFixes] consecutive credible fixes, beyond
  * [ParkingDetectionConfig.shortHopProofFloorMeters], past the fence radius and both accuracy
@@ -42,7 +42,10 @@ class EvaluateShortHopDriveProofUseCase(
      * @param departureAnchor The pin the car left (the nominating fence's parked position). Null
      *   for manual / AR-armed trips with no origin pin → never proves anything.
      * @param fix The fix being processed.
-     * @param verifiedDeparture Whether the arm carried VERIFIED departure evidence.
+     * @param departureProven Whether the car has PROVEN it left [departureAnchor] — by verified arm
+     *   evidence, by the departure worker's post-arm upgrade, or by the session's own measurement
+     *   ([EvaluateMeasuredDepartureUseCase]). Required, never sufficient.
+     *   [DET-UNVERIFIED-ARM-DRIVE-PROOF-001]
      * @param fenceRadiusMeters Radius of the fence the car left — the user could already have been
      *   anywhere inside it when the clock started, so it counts in favour of "walkable".
      * @param elapsedSinceArmMs Wall-clock since the session armed.
@@ -52,12 +55,12 @@ class EvaluateShortHopDriveProofUseCase(
     operator fun invoke(
         departureAnchor: GpsPoint?,
         fix: GpsPoint,
-        verifiedDeparture: Boolean,
+        departureProven: Boolean,
         fenceRadiusMeters: Float,
         elapsedSinceArmMs: Long,
         consecutiveQualifyingFixes: Int,
     ): Boolean {
-        if (!verifiedDeparture) return false
+        if (!departureProven) return false
         if (consecutiveQualifyingFixes < config.shortHopProofFixes) return false
         if (!qualifies(departureAnchor, fix, fenceRadiusMeters, elapsedSinceArmMs)) return false
         return true

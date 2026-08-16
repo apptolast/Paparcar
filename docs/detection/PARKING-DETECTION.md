@@ -2242,3 +2242,64 @@ instead of hiding it.
 Home *shows* about a trip, never what confirms a parking. No new strings — the "en ruta" story
 already existed and was simply never reached. Spec:
 `docs/backlog/det-ready-trip-over-parked-001.md`.
+
+### DET-UNVERIFIED-ARM-DRIVE-PROOF-001 — the departure from the pin can be MEASURED, not only inherited from the arm (2026-08-16)
+
+**Field report (15-08, Redmi + Oppo on the same two trips).** *"Los últimos viajes no han saltado en
+el Redmi, en el Oppo sí."* The Oppo pinned both legs (`a6f6693d` 21:32Z outbound,
+`2eef76a6` 02:17Z return). The Redmi pinned neither — and the two misses are one cause.
+
+Outbound, session `1786821963745`: MIUI never delivered the geofence EXIT, so a sentry-wake
+(`ARM:SIGNIFICANT_MOTION geof=644635b4`) armed the session `self_observed` 74 s into the drive, with
+the car already 1.1 km from home. The stream then measured **25.6 km/h at 8.9 m accuracy** — and
+three more credible driving fixes inside 10 s — before the car parked. Outcome:
+`aborted_unattended_no_drive`, a nudge nobody answered, **a real park lost**. The return trip at
+02:11Z produced no session at all, which needs no OEM excuse: with no pin at the destination there is
+no fence to break, and the AR arm ladder opens with `session?.geofenceId ?: return NoSession`. The
+app was demonstrably alive at 21:59Z running its own timeout.
+
+**Cause — "verified departure" was modelled as a property of the ARM EVENT.** Both drive proofs read
+it that way, so the verdict depended on *when the fix arrived*, not on what it measured:
+
+- `corroboratesDrive` ([DET-DRIVE-PROOF-001]) missed by four seconds: its look-back window opens at
+  20 s and the session's oldest fix was 16 s old; the one fix that did fall inside the window
+  (21:26:46Z, 22 s) carried 87.7 m of accuracy. `maxSpeedMps` stayed 0.
+- `EvaluateShortHopDriveProofUseCase` ([DET-SHORT-HOP-PROOF-001]) had the answer — 3 consecutive
+  credible fixes >1 km from the pin, past the fence, both accuracy envelopes and pedestrian reach —
+  but opens with `if (!verifiedDeparture) return false`, reading the immutable arm parameter. **It
+  never ran.** The same line also silently ignored `notifyDepartureConfirmed()`: the departure
+  worker's post-arm upgrade ([DET-G-05]) changed the label and the proof never learned of it.
+
+The irony that names the bug: that 25.6 km/h fix at 8.9 m accuracy is exactly what
+`VerifyDepartureEvidenceUseCase` calls `VerifiedBySpeed` (`config.isCredibleDrivingSpeed`). Sampled
+by a punctual EXIT it would have armed the session verified; arriving 25 s later through the stream
+it counted as evidence of nothing.
+
+**Fix — one latched session fact, three sources.** `ParkingDetectionState.departureProven` answers
+"has the car proven it left this pin?", fed by verified arm evidence, by the worker's late upgrade,
+and now by `EvaluateMeasuredDepartureUseCase` (pure, commonMain), which requires the **same two facts
+a verified arm carries** — one from the fix, one from the EXIT event it replaces:
+
+- driving speed, credibly measured (`isCredibleDrivingSpeed` — the pre-arm verifier's own predicate);
+- ground covered from the PIN, past the fence, both accuracy envelopes and
+  `isBeyondPedestrianReach` since the arm — what the EXIT asserted for free by existing.
+
+Anchored to the pin, never to the session's own first fix: the 2026-07-27 indoor mirage (45 m/s at a
+claimed 5 m accuracy, phone parked at home) measures ~0 m of displacement from its own pin and is
+refused by construction. The pedestrian bound is what ties the drive to the user's OWN car rather
+than to a bus: boarding one 200 m away takes long enough on foot that legs already explain the
+distance by the time it reaches driving speed. A bus boarded *inside* your own fence still fools it —
+the same accepted envelope the geofence EXIT has always had.
+
+**Doctrine restored, not bent.** The old gate had the arm EVENT vetoing movement the stream had
+measured — the doctrine upside down. Nothing here lets an event confirm anything; it lets measurement
+answer a question only an event used to be allowed to answer. The blast radius is exactly one
+consumer: `departureProven` unlocks the displacement proof and nothing else, and it can only be
+earned above departure speed with credible accuracy outside the fence.
+
+**No relabeling, so `detectionPath` / `armEvidence` are untouched** — the pin still records
+`self_observed`, because nothing external vouched for anything; we measured it ourselves. It is also
+unnecessary: the weak-evidence policy already confirms silently once the session saw driving
+(`weakEvidenceOnly = … && !sessionSawDriving`). The regression test replays the field shape and is
+verified RED without the fix; the anti-resurrection test keeps the same geometry at pedestrian speed
+and still refuses to pin. Spec: `docs/backlog/det-unverified-arm-drive-proof-001.md`.
