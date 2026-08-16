@@ -1,8 +1,8 @@
 # DET-READY-TRIP-OVER-PARKED-001 · Un segundo coche aparcado tapaba toda la UI del viaje en vivo
 
-**Estado:** 🟡 Commiteado en rama, **sin mergear** · rama `bugfix/UI-PREFERRED-SESSION-RECENCY-001-preferred-session-recency` · worktree `../Paparcar-preferred-session`
+**Estado:** ✅ Done · master `c55ab8eb` (ff-only tras rebase, 16-08) · rama y worktree eliminados
 
-> ⚠️ Comparte un **commit único** con [UI-PREFERRED-SESSION-RECENCY-001](ui-preferred-session-recency-001.md):
+> Comparte un **commit único** con [UI-PREFERRED-SESSION-RECENCY-001](ui-preferred-session-recency-001.md):
 > este ticket nació de aquel y reutiliza su resolver, y se decidió cerrarlos en un solo squash.
 **Rebase 16-08 sobre master `4400a583`** (que ya traía ROUTE-PASSIVE-FILL-001 y
 DET-SHORT-HOP-PROOF-001): un único conflicto, en `docs/detection/PARKING-DETECTION.md`, porque los

@@ -1,6 +1,6 @@
 # UI-PREFERRED-SESSION-RECENCY-001 · La sesión preferida es la última aparcada, no la del coche BT
 
-**Estado:** 🟡 Commiteado en rama, **sin mergear** · rama `bugfix/UI-PREFERRED-SESSION-RECENCY-001-preferred-session-recency` · worktree `../Paparcar-preferred-session`
+**Estado:** ✅ Done · master `c55ab8eb` (ff-only tras rebase, 16-08) · rama y worktree eliminados
 
 Va en un **commit único** junto a [DET-READY-TRIP-OVER-PARKED-001](det-ready-trip-over-parked-001.md),
 ya **rebasado 16-08 sobre master `4400a583`** (único conflicto: la entrada del log de detección; ver
