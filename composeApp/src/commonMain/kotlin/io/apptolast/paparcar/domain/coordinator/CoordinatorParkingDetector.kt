@@ -1,5 +1,7 @@
 package io.apptolast.paparcar.domain.coordinator
 
+import io.apptolast.paparcar.domain.detection.ArmEvidence
+import io.apptolast.paparcar.domain.detection.DepartureConfirmationListener
 import io.apptolast.paparcar.domain.detection.DetectionPhase
 import io.apptolast.paparcar.domain.detection.DetectionPhaseSink
 import io.apptolast.paparcar.domain.detection.VehicleFenceOwnershipPolicy
@@ -19,13 +21,18 @@ import io.apptolast.paparcar.domain.usecase.detection.EvaluateMeasuredDepartureU
 import io.apptolast.paparcar.domain.usecase.detection.EvaluateShortHopDriveProofUseCase
 import io.apptolast.paparcar.domain.usecase.notification.NotifyParkingConfirmationUseCase
 import io.apptolast.paparcar.domain.usecase.parking.CalculateParkingConfidenceUseCase
-import io.apptolast.paparcar.domain.detection.ArmEvidence
-import io.apptolast.paparcar.domain.detection.DepartureConfirmationListener
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
 import io.apptolast.paparcar.domain.usecase.parking.EvaluateParkingDecisionUseCase
+import io.apptolast.paparcar.domain.usecase.parking.EvaluateUnattendedParkingSaveUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ParkingDecision
 import io.apptolast.paparcar.domain.usecase.parking.ParkingDecisionInput
+import io.apptolast.paparcar.domain.usecase.parking.UnattendedParkingSave
+import io.apptolast.paparcar.domain.usecase.parking.UnattendedSaveInput
+import io.apptolast.paparcar.domain.usecase.parking.UnattendedSaveReason
 import io.apptolast.paparcar.domain.util.PaparcarLogger
+import kotlin.concurrent.Volatile
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.coroutineScope
@@ -42,9 +49,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.concurrent.Volatile
-import kotlin.time.Clock
-import kotlin.time.ExperimentalTime
 
 /**
  * Orchestrates the parking-detection loop for a single driving session.
@@ -122,6 +126,10 @@ class CoordinatorParkingDetector(
      *  same defaulting rationale as the proof above. */
     private val evaluateMeasuredDeparture: EvaluateMeasuredDepartureUseCase =
         EvaluateMeasuredDepartureUseCase(config),
+    /** [DET-WALK-ENTERED-ANCHOR-ZONE-001] What the unattended timeout should do with the session —
+     *  pure, config-only, same defaulting rationale as the two proofs above. */
+    private val evaluateUnattendedParkingSave: EvaluateUnattendedParkingSaveUseCase =
+        EvaluateUnattendedParkingSaveUseCase(config),
 ) : DepartureConfirmationListener {
     /**
      * Atomic snapshot of all mutable detection variables for a single session.
@@ -235,6 +243,18 @@ class CoordinatorParkingDetector(
          *  snapshot at capture so a counter that wakes late cannot retroactively soften a taint
          *  earned while it was silent. */
         val anchorSawStepsAtCapture: Boolean = false,
+        /** [DET-WALK-ENTERED-ANCHOR-ZONE-001] First fix of the current walk-band run — the position
+         *  at which [walkFixesSinceDriving] left zero. Reset together with that odometer by any
+         *  resolved CAR movement, so it always marks where the "entered on foot" stretch began. */
+        val walkRunOriginFix: GpsPoint? = null,
+        /** [DET-WALK-ENTERED-ANCHOR-ZONE-001] Metres between [walkRunOriginFix] and
+         *  [bestStopLocation] at the moment the anchor (re)bound — a MEASURED bound on how far the
+         *  walk-in could have dragged the anchor. [anchorStepEventsAtCapture] bounds the same offset
+         *  but only speaks when the step counter is alive; this one is a GPS geometry and always
+         *  does. The unattended-timeout fallback used to demand the step witness and therefore lost
+         *  every park whose device had a mute counter (field 2026-08-16, Redmi: 25,6 min at 96,7
+         *  km/h, home reached, zero pins). Cleared with the anchor. */
+        val anchorWalkInSpanMeters: Double = 0.0,
         /** [DET-GAP-ANCHOR-001] `true` when the CURRENT stop was entered through a GPS hole: the
          *  fix that opened it arrived more than [ParkingDetectionConfig.anchorGapMaxFixGapMs]
          *  after a [previousFix] still at REAL driving speed. The car was last SEEN moving and
@@ -1104,260 +1124,94 @@ class CoordinatorParkingDetector(
                     // community-facing trusts it on its own. Session-end still runs (completed).
                     val promptShownAt = state.phase.promptShownAt
                     if (promptShownAt != null && (now - promptShownAt) > config.confirmationResponseTimeoutMs) {
-                        // [DET-AR-FIRST-001 F3] A pin needs MEASURED in-session driving or an
-                        // explicit user answer — seeded evidence is authority to RELEASE the old
-                        // spot (the departure pipeline's job), never to PLACE a new one. A session
-                        // armed after the trip ended follows the PEDESTRIAN: its anchor is
-                        // wherever the user's body stopped, and the unattended save planted that
-                        // as a parking (field 2026-07-10 19:34, Redmi: pin in the user's living
-                        // room, 15 min after an EXIT delivered 2.2 km late). Ask instead: the
-                        // nudge deep-links straight into marking the real spot.
-                        val measuredDriving = state.maxSpeedMps >= config.minimumTripSpeedMps
-                        if (!measuredDriving) {
-                            // [DET-NODRIVE-ZONE-001] An EXIT delivered kilometres late births the
-                            // session AT the destination: the trip's driving is already over, the
-                            // track can never corroborate it (driveProven stays false), and this
-                            // branch used to exit nudge-only — losing a real park (field
-                            // 2026-07-27 20:36, Redmi: MIUI sat on the EXIT for 4.1 km; 176 live
-                            // egress steps and an AR vehicle-exit ended in a nudge nobody needs).
-                            // The mirage that forged the no-drive rule (same day 14:56: indoor
-                            // drift, 1 step, no vehicular signal) IS separable: a LIVE counter
-                            // with egress-scale steps bounds the walk from the car, a real
-                            // displacement proves the body left the anchor, and an in-session
-                            // vehicular signal (AR vehicle-exit, or a credible raw driving fix
-                            // the track could not corroborate) ties that walk to a drive. All
-                            // three together earn an honest AREA at the anchor — never a pin,
-                            // and never anything for the mirage.
-                            val noDriveAnchor = state.bestStopLocation
-                            val anchorToCurrentMeters = noDriveAnchor?.let {
-                                io.apptolast.paparcar.domain.util.haversineMeters(
-                                    it.latitude, it.longitude, location.latitude, location.longitude,
-                                )
-                            } ?: 0.0
-                            val liveEgress = state.sessionSawSteps &&
-                                state.stepCount >= config.anchorLockEgressSteps &&
-                                anchorToCurrentMeters >= config.minEgressDisplacementMeters
-                            val vehicularSignal = state.vehicleExitConfirmed ||
-                                state.pendingMaxSpeedMps >= config.minimumTripSpeedMps
-                            if (noDriveAnchor != null && liveEgress && vehicularSignal) {
-                                PaparcarLogger.d(
-                                    DIAG,
-                                    "  ⑊ unattended timeout without PROVEN driving but live egress (steps=${state.stepCount} walked=${anchorToCurrentMeters.toInt()}m vehicleExit=${state.vehicleExitConfirmed} pendingMax=${state.pendingMaxSpeedMps}m/s) — approximate zone at the anchor [DET-NODRIVE-ZONE-001]"
-                                )
-                                val walkBoundMeters = maxOf(
-                                    anchorToCurrentMeters,
-                                    state.stepCount * config.anchorStrideMeters.toDouble(),
-                                )
-                                if (saveUnattendedZone("no_drive_egress", noDriveAnchor, walkBoundMeters, activeVehicleId, location, now)) {
+                        // [DET-WALK-ENTERED-ANCHOR-ZONE-001] The seven-way precedence that used to
+                        // live inline here (no-drive → unpinned → egress-mismatch → gap → walk-
+                        // entered → vehicular-egress → exact save) is now ONE pure verdict, so the
+                        // rule "a bounded doubt costs precision, never the park" exists in a single
+                        // place instead of being re-derived per branch — which is how the Redmi's
+                        // fully measured 25,6 min drive ended with no pin at all (field 2026-08-16,
+                        // session 1786918991116). This block keeps only the side effects.
+                        val verdict = evaluateUnattendedParkingSave(
+                            UnattendedSaveInput(
+                                maxSpeedMps = state.maxSpeedMps,
+                                pendingMaxSpeedMps = state.pendingMaxSpeedMps,
+                                anchor = state.bestStopLocation,
+                                currentFix = location,
+                                egressOriginFix = state.egressOriginFix,
+                                stepCount = state.stepCount,
+                                sessionSawSteps = state.sessionSawSteps,
+                                vehicleExitConfirmed = state.vehicleExitConfirmed,
+                                anchorPinned = isAnchorPinned(state),
+                                anchorGapEntered = state.anchorGapEnteredAtCapture,
+                                anchorWalkEntered = isAnchorWalkEntered(state),
+                                anchorStepEventsAtCapture = state.anchorStepEventsAtCapture,
+                                anchorWalkInSpanMeters = state.anchorWalkInSpanMeters,
+                                egressBornAtAnchor = isEgressBornAtAnchor(state),
+                                egressExceedsWalkReach = egressExceedsWalkReach(state, location),
+                                stoppedDurationMs = stoppedDuration,
+                            )
+                        )
+                        PaparcarLogger.d(
+                            DIAG,
+                            "  ⑊ no user response after ${now - promptShownAt}ms " +
+                                "(limit=${config.confirmationResponseTimeoutMs}ms) → $verdict " +
+                                "[maxSpeed=${state.maxSpeedMps}m/s pinned=${isAnchorPinned(state)} " +
+                                "walkEntered=${isAnchorWalkEntered(state)} walkFixes=${state.anchorWalkFixesAtCapture} " +
+                                "stepEvents=${state.anchorStepEventsAtCapture} sawSteps=${state.anchorSawStepsAtCapture} " +
+                                "walkInSpan=${state.anchorWalkInSpanMeters.toInt()}m stopped=${stoppedDuration}ms] " +
+                                "[DET-WALK-ENTERED-ANCHOR-ZONE-001]"
+                        )
+                        when (verdict) {
+                            is UnattendedParkingSave.SaveZone -> {
+                                if (saveUnattendedZone(
+                                        reason = verdict.reason,
+                                        center = verdict.center,
+                                        doubtMeters = verdict.doubtMeters,
+                                        vehicleId = activeVehicleId,
+                                        location = location,
+                                        now = now,
+                                    )
+                                ) {
                                     completed = true
                                     return@collect
                                 }
-                            }
-                            PaparcarLogger.d(
-                                DIAG,
-                                "  ⑊ unattended timeout WITHOUT measured driving (maxSpeed=${state.maxSpeedMps}m/s < ${config.minimumTripSpeedMps}) — no pin; nudging user to mark the spot [DET-AR-FIRST-001]"
-                            )
-                            notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
-                            notificationPort.showMarkParkingNudge(source = "unattended_no_drive", vehicleId = activeVehicleId)
-                            sessionOutcome = "aborted_unattended_no_drive"
-                            logDetection { sid ->
-                                DetectionEvent.Decision(sid, now, outcome = "UNATTENDED_NO_DRIVE_NUDGE", pathLabel = "unattended_timeout", location = location)
-                            }
-                            completed = true
-                            return@collect
-                        }
-                        // [DET-ANCHOR-FREEZE-001] An unattended save may only trust a PINNED
-                        // anchor as an exact point — a position the car provably rested at
-                        // (end-of-drive freeze) or that egress steps sealed. An unpinned anchor is
-                        // wherever the user's body last stood (field 2026-07-11, Redmi: the walk
-                        // home dragged it to the front door and the timeout planted a pin there).
-                        // [DET-FROZEN-COUNTER-001] But the session DID measure driving (the
-                        // measuredDriving gate above), so a real parking exists near the evidence:
-                        // save an honest AREA instead of losing the park to a nudge nobody sees
-                        // (field 2026-07-25/26, Redmi: 92 driving fixes, no saved parking). A zone
-                        // is only honest when the doubt is BOUNDABLE: with a LIVE counter the
-                        // steps since the last drive bound the whole walk from the car, so the
-                        // radius covers wherever it may rest. A mute counter leaves the walked
-                        // distance unknowable (regression: a 260 m mute walk would center a 60 m
-                        // zone at the front door) — that case keeps the nudge-only exit.
-                        if (!isAnchorPinned(state)) {
-                            PaparcarLogger.d(
-                                DIAG,
-                                "  ⑊ unattended timeout with UNPINNED anchor (frozen=${state.anchorFrozen} steps=${state.stepCount} sawSteps=${state.sessionSawSteps}) [DET-ANCHOR-FREEZE-001][DET-FROZEN-COUNTER-001]"
-                            )
-                            val center = state.bestStopLocation
-                            val anchorToCurrentMeters = center?.let {
-                                io.apptolast.paparcar.domain.util.haversineMeters(
-                                    it.latitude, it.longitude, location.latitude, location.longitude,
-                                )
-                            } ?: 0.0
-                            val walkBoundMeters = maxOf(
-                                anchorToCurrentMeters,
-                                state.stepCount * config.anchorStrideMeters.toDouble(),
-                            )
-                            if (center != null && state.sessionSawSteps &&
-                                saveUnattendedZone("unpinned_anchor", center, walkBoundMeters, activeVehicleId, location, now)
-                            ) {
+                                // The zone save degraded to yet another prompt or failed outright.
+                                // Fall back to the ask its own reason names, so the user still gets
+                                // the offer instead of silence.
+                                nudgeUnattended(verdict.reason, activeVehicleId, location, now)
                                 completed = true
                                 return@collect
                             }
-                            notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
-                            notificationPort.showMarkParkingNudge(source = "unattended_unpinned_anchor", vehicleId = activeVehicleId)
-                            sessionOutcome = "aborted_unattended_unpinned_anchor"
-                            logDetection { sid ->
-                                DetectionEvent.Decision(sid, now, outcome = "UNATTENDED_UNPINNED_NUDGE", pathLabel = "unattended_timeout", location = location)
-                            }
-                            completed = true
-                            return@collect
-                        }
-                        // [DET-ANCHOR-EGRESS-001] A pinned anchor whose egress was born somewhere
-                        // else is an intermediate-stop anchor (field 2026-07-15: frozen at a
-                        // traffic light 1.11 km before the real park). "Pinned" alone would
-                        // resurrect via this save the exact FP the decision path degraded to a
-                        // prompt. [DET-FROZEN-COUNTER-001] Save an honest AREA instead of losing
-                        // the park (field 2026-07-25/26 Redmi: this exact guard turned a fully-
-                        // measured 33-min drive home into a lost parking). WHO centers the zone
-                        // follows counter liveness: with a LIVE counter the egress birth was born
-                        // from counted steps — the walk provably started there, that's the car
-                        // (Enamorados: the real park, 1.11 km past the frozen light). With a MUTE
-                        // counter the "birth" is a kinematic guess along the walker's trail, so
-                        // the FROZEN anchor (the car's proven rest) is the better center. Either
-                        // way the radius covers the OTHER candidate, so the truth stays inside.
-                        if (!isEgressBornAtAnchor(state)) {
-                            PaparcarLogger.d(
-                                DIAG,
-                                "  ⑊ unattended timeout with egress born AWAY from the pinned anchor (sawSteps=${state.sessionSawSteps}) — approximate zone covering birth+anchor [DET-ANCHOR-EGRESS-001][DET-FROZEN-COUNTER-001]"
-                            )
-                            val birth = state.egressOriginFix
-                            val anchor = state.bestStopLocation
-                            val center = if (state.sessionSawSteps) birth ?: anchor else anchor ?: birth
-                            val birthToAnchorMeters = if (birth != null && anchor != null) {
-                                io.apptolast.paparcar.domain.util.haversineMeters(
-                                    birth.latitude, birth.longitude,
-                                    anchor.latitude, anchor.longitude,
-                                )
-                            } else 0.0
-                            if (center != null &&
-                                saveUnattendedZone("egress_mismatch", center, birthToAnchorMeters, activeVehicleId, location, now)
-                            ) {
+                            is UnattendedParkingSave.Ask -> {
+                                nudgeUnattended(verdict.reason, activeVehicleId, location, now, verdict.distanceMeters)
                                 completed = true
                                 return@collect
                             }
-                            notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
-                            notificationPort.showMarkParkingNudge(source = "unattended_egress_mismatch", vehicleId = activeVehicleId)
-                            sessionOutcome = "aborted_unattended_egress_mismatch"
-                            logDetection { sid ->
-                                DetectionEvent.Decision(sid, now, outcome = "UNATTENDED_EGRESS_MISMATCH_NUDGE", pathLabel = "unattended_timeout", location = location)
-                            }
-                            completed = true
-                            return@collect
-                        }
-                        // [DET-GAP-ANCHOR-001] A GAP-ENTERED anchor was never seen coming to
-                        // rest: the stream died at driving speed and the anchor is merely the
-                        // first fix on the far side of the hole — possibly a drive-past point
-                        // (field 2026-07-29, Redmi Av. Sanlúcar: 100-s hole → one speed-0 fix
-                        // mid-route → pin 315 m before the real park). Unlike the walk-entered
-                        // case the error is UNBOUNDABLE forward (the car may have driven
-                        // arbitrarily far into the hole before resting), so no zone is honest —
-                        // the nudge is the only exit that never asserts a place we cannot know.
-                        if (state.anchorGapEnteredAtCapture) {
-                            PaparcarLogger.d(
-                                DIAG,
-                                "  ⑊ unattended timeout with GAP-ENTERED anchor — rest unwitnessed, forward error unboundable; nudging user to mark the spot [DET-GAP-ANCHOR-001]"
-                            )
-                            notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
-                            notificationPort.showMarkParkingNudge(source = "unattended_gap_anchor", vehicleId = activeVehicleId)
-                            sessionOutcome = "aborted_unattended_gap_anchor"
-                            logDetection { sid ->
-                                DetectionEvent.Decision(sid, now, outcome = "UNATTENDED_GAP_ANCHOR_NUDGE", pathLabel = "unattended_timeout", location = location)
-                            }
-                            completed = true
-                            return@collect
-                        }
-                        // [DET-CREDIBLE-DRIVE-001] A WALK-ENTERED anchor is the pedestrian's
-                        // standing spot, not the car's rest — pinning it exactly plants the pin
-                        // wherever the user walked to (field 2026-07-15, Camelias-Oppo: the house
-                        // door, 37 m from the car). [DET-CONFIRM-FRESHNESS-001] The taint requires
-                        // step corroboration (see isAnchorWalkEntered): the car's own parking
-                        // maneuver spends the walk-fix budget with zero steps and used to refuse a
-                        // PERFECT anchor here (field 2026-07-23, Vista Hermosa — the FN's root).
-                        // [DET-FROZEN-COUNTER-001] A zone is only honest when the walked-in offset
-                        // is BOUNDABLE: with a live counter the steps counted into the stop bound
-                        // it (steps × stride — Camelias: 37 m, well inside the minimum radius);
-                        // with a mute counter the walk's length is unknowable and a zone around
-                        // the stand would assert the car is somewhere it may not be (regression
-                        // test: 260 m mute walk) — that case keeps the nudge-only exit.
-                        if (isAnchorWalkEntered(state)) {
-                            PaparcarLogger.d(
-                                DIAG,
-                                "  ⑊ unattended timeout with WALK-ENTERED anchor (walkFixesAtCapture=${state.anchorWalkFixesAtCapture} stepEventsAtCapture=${state.anchorStepEventsAtCapture} sawSteps=${state.anchorSawStepsAtCapture}) [DET-CREDIBLE-DRIVE-001][DET-FROZEN-COUNTER-001]"
-                            )
-                            val center = state.bestStopLocation
-                            val walkedInBoundMeters = state.anchorStepEventsAtCapture * config.anchorStrideMeters.toDouble()
-                            if (center != null && state.anchorSawStepsAtCapture &&
-                                saveUnattendedZone("walk_entered_anchor", center, walkedInBoundMeters, activeVehicleId, location, now)
-                            ) {
+                            UnattendedParkingSave.SaveExact -> {
+                                // [DET-RECONCILE-001] The prompt only shows after a real trip + stop
+                                // + vehicle-exit signal, and every anchor taint came back clean:
+                                // save at the pinned anchor with low reliability so nothing
+                                // community-facing trusts it on its own.
+                                notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
+                                val locationToConfirm = refinedParkLocation(state, location)
+                                val saved = runConfirm(
+                                    location = locationToConfirm,
+                                    reliability = config.reliabilityUnattendedSave,
+                                    vehicleId = activeVehicleId,
+                                    pathLabel = "unattended_timeout",
+                                )
+                                if (!saved) {
+                                    // Guard degraded the save to yet another prompt — but the user
+                                    // already ignored one for the full window; ending here (old
+                                    // abort) is the only non-looping exit. Dismiss the re-posted
+                                    // prompt so nothing dangles. [BUG-STUCK-SESSION]
+                                    notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
+                                    sessionOutcome = "aborted_response_timeout"
+                                }
                                 completed = true
                                 return@collect
                             }
-                            notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
-                            notificationPort.showMarkParkingNudge(source = "unattended_walk_entered_anchor", vehicleId = activeVehicleId)
-                            sessionOutcome = "aborted_unattended_walk_entered_anchor"
-                            logDetection { sid ->
-                                DetectionEvent.Decision(sid, now, outcome = "UNATTENDED_WALK_ENTERED_NUDGE", pathLabel = "unattended_timeout", location = location)
-                            }
-                            completed = true
-                            return@collect
                         }
-                        // [DET-CONFIRM-FRESHNESS-001] Evidence must still be TRUE at pin time:
-                        // during the 15-minute prompt window the car may have driven off (a
-                        // pick-up / errand stop whose confirm degraded to a prompt). If the
-                        // current fix sits beyond what the counted steps could walk from the
-                        // anchor, a VEHICLE covered that ground since the decision — the honest
-                        // exit is the nudge, never a pin at a spot the car provably left.
-                        if (egressExceedsWalkReach(state, location)) {
-                            PaparcarLogger.d(
-                                DIAG,
-                                "  ⑊ unattended timeout but the position OUTRAN the steps since the anchor (vehicle-scale displacement) — no pin; nudging user to mark the spot [DET-CONFIRM-FRESHNESS-001]"
-                            )
-                            notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
-                            notificationPort.showMarkParkingNudge(source = "unattended_vehicular_egress", vehicleId = activeVehicleId)
-                            sessionOutcome = "aborted_unattended_vehicular_egress"
-                            // [DET-FROZEN-COUNTER-001] Stamp HOW FAR the position outran the walk
-                            // budget — the number that used to live only in logcat.
-                            val outranMeters = state.bestStopLocation?.let {
-                                io.apptolast.paparcar.domain.util.haversineMeters(
-                                    it.latitude, it.longitude, location.latitude, location.longitude,
-                                )
-                            }
-                            logDetection { sid ->
-                                DetectionEvent.Decision(sid, now, outcome = "UNATTENDED_VEHICULAR_EGRESS_NUDGE", pathLabel = "unattended_timeout", distanceMeters = outranMeters, location = location)
-                            }
-                            completed = true
-                            return@collect
-                        }
-                        PaparcarLogger.d(
-                            DIAG,
-                            "  ⑊ no user response after ${now - promptShownAt}ms (limit=${config.confirmationResponseTimeoutMs}ms) — SAVING unattended at pinned anchor (reliability=${config.reliabilityUnattendedSave}) [DET-RECONCILE-001]"
-                        )
-                        notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
-                        val locationToConfirm = refinedParkLocation(state, location)
-                        val saved = runConfirm(
-                            location = locationToConfirm,
-                            reliability = config.reliabilityUnattendedSave,
-                            vehicleId = activeVehicleId,
-                            pathLabel = "unattended_timeout",
-                        )
-                        if (!saved) {
-                            // Guard degraded the save to yet another prompt — but the user already
-                            // ignored one for the full window; ending here (old abort) is the only
-                            // non-looping exit. Dismiss the re-posted prompt so nothing dangles.
-                            // [BUG-STUCK-SESSION]
-                            notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
-                            sessionOutcome = "aborted_response_timeout"
-                        }
-                        completed = true
-                        return@collect
                     }
 
                     // Candidate-phase decision tree.
@@ -1593,7 +1447,7 @@ class CoordinatorParkingDetector(
      *         the confirm degraded it — the caller falls back to the nudge-only exit.
      */
     private suspend fun saveUnattendedZone(
-        reason: String,
+        reason: UnattendedSaveReason,
         center: GpsPoint,
         doubtMeters: Double,
         vehicleId: String?,
@@ -1606,7 +1460,7 @@ class CoordinatorParkingDetector(
         )
         PaparcarLogger.d(
             DIAG,
-            "  ◯ unattended zone ($reason) — r=${radius}m (doubt=${doubtMeters.toInt()}m, centerAcc=${center.accuracy}) instead of losing the park [DET-FROZEN-COUNTER-001]"
+            "  ◯ unattended zone (${reason.key}) — r=${radius}m (doubt=${doubtMeters.toInt()}m, centerAcc=${center.accuracy}) instead of losing the park [DET-FROZEN-COUNTER-001]"
         )
         notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
         // runConfirm returns "session should end", not "saved" — a hard save failure also ends
@@ -1616,7 +1470,7 @@ class CoordinatorParkingDetector(
             location = center,
             reliability = config.reliabilityUnattendedSave,
             vehicleId = vehicleId,
-            pathLabel = "unattended_zone_$reason",
+            pathLabel = "unattended_zone_${reason.key}",
             zoneRadiusMeters = radius,
         )
         val savedOk = ended && sessionOutcome.startsWith("confirmed_")
@@ -1624,13 +1478,44 @@ class CoordinatorParkingDetector(
             DetectionEvent.Decision(
                 sid, now,
                 outcome = if (savedOk) "UNATTENDED_ZONE_SAVED" else "UNATTENDED_ZONE_SAVE_FAILED",
-                pathLabel = "unattended_zone_$reason",
+                pathLabel = "unattended_zone_${reason.key}",
                 distanceMeters = doubtMeters,
                 radiusMeters = radius,
                 location = location,
             )
         }
         return savedOk
+    }
+
+    /**
+     * [DET-WALK-ENTERED-ANCHOR-ZONE-001] The nudge-only exit of an unattended timeout: the session
+     * could not honestly place anything, so it ASKS. One place instead of six copies, and the three
+     * strings each reason emits (notification source, session outcome, trace label) travel together
+     * on [UnattendedSaveReason] so a future branch cannot invent a fourth spelling — the field
+     * traces are read by their exact wording.
+     *
+     * The copy the user actually sees lives in `showMarkParkingNudge`; nothing here leaks internal
+     * mechanics into it.
+     */
+    private suspend fun nudgeUnattended(
+        reason: UnattendedSaveReason,
+        vehicleId: String?,
+        location: GpsPoint,
+        now: Long,
+        distanceMeters: Double? = null,
+    ) {
+        notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
+        notificationPort.showMarkParkingNudge(source = reason.nudgeSource, vehicleId = vehicleId)
+        sessionOutcome = reason.abortedOutcome
+        logDetection { sid ->
+            DetectionEvent.Decision(
+                sid, now,
+                outcome = reason.decisionOutcome,
+                pathLabel = "unattended_timeout",
+                distanceMeters = distanceMeters,
+                location = location,
+            )
+        }
     }
 
     /**
@@ -2245,6 +2130,22 @@ class CoordinatorParkingDetector(
                         s.stepEventsSinceDriving else s.anchorStepEventsAtCapture,
                     anchorSawStepsAtCapture = if (anchorStopOfRecord != s.anchorCapturedAtStop)
                         s.sessionSawSteps else s.anchorSawStepsAtCapture,
+                    // [DET-WALK-ENTERED-ANCHOR-ZONE-001] …and the MEASURED size of that walk-in:
+                    // how far the run's first fix sits from the anchor it led to. Sealed at the same
+                    // instant as the two above so the three witnesses describe the same capture.
+                    anchorWalkInSpanMeters = if (anchorStopOfRecord != s.anchorCapturedAtStop) {
+                        val origin = s.walkRunOriginFix
+                        if (origin != null && newBestStop != null) {
+                            io.apptolast.paparcar.domain.util.haversineMeters(
+                                origin.latitude, origin.longitude,
+                                newBestStop.latitude, newBestStop.longitude,
+                            )
+                        } else {
+                            0.0
+                        }
+                    } else {
+                        s.anchorWalkInSpanMeters
+                    },
                     // [DET-GAP-ANCHOR-001] The gap taint binds with the anchor: stamped from the
                     // stop's own opening flag, so same-stop accuracy refinements keep it.
                     stopEnteredAfterGap = newStopGapEntered,
@@ -2419,6 +2320,15 @@ class CoordinatorParkingDetector(
                     // movement (driving verdict or reposition maneuver) zeroes it; anything else
                     // moving is pedestrian-band and counts.
                     walkFixesSinceDriving = if (effectiveDriving || isRepositionBurst) 0 else it.walkFixesSinceDriving + 1,
+                    // [DET-WALK-ENTERED-ANCHOR-ZONE-001] Where that odometer started counting. A
+                    // resolved CAR movement zeroes both; the first pedestrian-band fix after it
+                    // marks the origin, and later fixes of the same run leave it alone.
+                    walkRunOriginFix = when {
+                        effectiveDriving || isRepositionBurst -> null
+                        it.walkRunOriginFix == null -> location
+                        else -> it.walkRunOriginFix
+                    },
+                    anchorWalkInSpanMeters = if (shouldClearBestStop) 0.0 else it.anchorWalkInSpanMeters,
                     // [DET-CONFIRM-FRESHNESS-001] The raw step-event odometer travels with the
                     // walk-fix odometer: both measure "since the last resolved CAR movement".
                     stepEventsSinceDriving = if (effectiveDriving || isRepositionBurst) 0 else it.stepEventsSinceDriving,

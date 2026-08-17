@@ -2333,3 +2333,51 @@ as the last word. The log now separates `no watch gap` / `state unreadable` / `r
 a spot, so `detectionPath` and `armEvidence` are untouched. The residency rule itself is unchanged —
 still `resolvePostDetectionLifecycle`, still owned by the service epilogue. Spec:
 `docs/backlog/det-watch-resume-race-001.md`.
+
+### DET-WALK-ENTERED-ANCHOR-ZONE-001 — a doubtful anchor degrades the pin's PRECISION, it never deletes the park (2026-08-17)
+
+**Report.** Field 2026-08-16 22:23Z, Redmi, session `1786918991116`. A real 25,6 min drive home —
+peak 96,7 km/h, 47 driving fixes out of 266 — ended with **zero pins**. The trace shows
+`CONFIRM_DEGRADED_PROMPT (steps+egress)` at 22:33:42Z, an `IN_VEHICLE EXIT` at 22:34:00Z, and then
+`UNATTENDED_WALK_ENTERED_NUDGE` → `aborted_unattended_walk_entered_anchor` at 22:48. The user was
+left with the previous session (Calle Puerta del Mar) still active and no record of having driven
+home. `batteryUnrestricted=true`, `requiresOemBatteryFreeze=false`: no OS excuse.
+
+**Root cause.** One fact was charged twice. The slow arrival manoeuvre (final fixes already in the
+pedestrian speed band) spent the `anchorWalkFixesAtCapture` budget, so `isAnchorWalkEntered` tainted
+the anchor — and its `maneuverEntry` exemption, the one written *for* this exact case, is unreachable
+when the step counter is mute at capture (it requires `anchorSawStepsAtCapture == true`). The taint
+correctly degraded the silent confirm to a prompt. Nobody answered it. At the unattended timeout, the
+walk-entered branch then required **the same** `anchorSawStepsAtCapture` before it would save an
+honest zone, and bounded the doubt as `anchorStepEventsAtCapture × stride` — `0 × stride = 0 m` on a
+mute counter. The doubt closed the only remedy for the doubt, and the park died. The whole time the
+doubt *was* bounded: the walk-band fixes that raised the taint are recorded GPS positions, and the
+distance from the first of that run to the anchor measures the walk-in directly. We simply never
+read it.
+
+**Fix.** The invariant now lives in one place — `EvaluateUnattendedParkingSaveUseCase` (commonMain,
+pure), which absorbs the whole seven-way precedence the coordinator used to inline (no-drive →
+unpinned → egress-mismatch → gap → walk-entered → vehicular-egress → exact save) and returns
+`SaveExact` / `SaveZone(center, doubt)` / `Ask(reason)`. Stated positively: **once the session has
+proven driving and the car has settled into a sustained rest, a parking exists; the anchor taints
+choose the SHAPE of the record (exact point → bounded area), never whether there is one.** Losing a
+measured park stays legal only where the error is genuinely unbounded — a gap-entered anchor (the car
+may have driven arbitrarily far inside the hole) and a displacement that outran the steps (the car
+provably left). New session state `walkRunOriginFix` / `anchorWalkInSpanMeters` supplies the measured
+bound, and `sustainedStopForSaveMs` (5 min) makes the licence explicit rather than an accident of
+when the timeout happens to fire.
+
+The taint itself is deliberately **not** relaxed: making it require steps would resurrect the
+Camelias FP (2026-07-15, mute counter, anchor at the house door 37 m from the car). The taint was
+right; its consequence was wrong. The unpinned-anchor branch keeps its live-counter gate for the same
+reason — an unpinned anchor travels *with* the walker, so the GPS run that led into it bounds nothing
+(the 260 m mute-walk regression).
+
+**Companion-fix risk.** The extraction is faithful branch-for-branch, and the diagnostics vocabulary
+is now enum-carried (`UnattendedSaveReason`) precisely so it could not drift: two historical labels
+(`UNATTENDED_UNPINNED_NUDGE`, `UNATTENDED_WALK_ENTERED_NUDGE`) do not follow the naming pattern and
+are pinned by a test, because every saved Firestore trace is read by its exact wording. No new
+`detectionPath` value — `unattended_zone_walk_entered_anchor` already existed and simply becomes
+reachable on mute-counter hardware. No new strings, no new screen or state, so the 9 locales and the
+Dev Catalog are unaffected. 1205 tests green (1190 on master + 15 new); the field-shape regression is
+verified RED without the fix. Spec: `docs/backlog/det-walk-entered-anchor-zone-001.md`.

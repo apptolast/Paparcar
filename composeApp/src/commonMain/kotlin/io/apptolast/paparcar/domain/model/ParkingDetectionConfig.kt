@@ -534,6 +534,16 @@ data class ParkingDetectionConfig(
      *  "zone" would paint half a neighbourhood and stop meaning anything — the honest artifact
      *  is still saved at the cap, and the saved-parking card is the ask-to-refine. */
     val unattendedZoneMaxRadiusMeters: Float = 250f,
+    /** [DET-WALK-ENTERED-ANCHOR-ZONE-001] How long the car must have been at REST before a session
+     *  that already proved driving may downgrade a doubtful anchor to an approximate zone instead
+     *  of losing the park. The pair "measured driving + settled rest" is what makes the parking
+     *  itself unarguable — from there the anchor taints decide precision, not existence. Well under
+     *  the response timeout (the timeout fires with the car stopped for far longer), so in practice
+     *  it never blocks a real park; it exists so the rule is explicit and testable rather than an
+     *  accident of when the timeout happens to fire. Field 2026-08-16, Redmi session
+     *  `1786918991116`: 25,6 min at up to 96,7 km/h, home reached, anchor tainted by the slow
+     *  parking manoeuvre, mute step counter — and the park was thrown away. */
+    val sustainedStopForSaveMs: Long = 5 * 60_000L,
 
     // ── BLUETOOTH PATH [DET-AUDIT-002 T2/T4] ─────────────────────────────────
     /** Distance the user must WALK from the BT parking candidate before it auto-confirms.
@@ -914,6 +924,9 @@ data class ParkingDetectionConfig(
         }
         require(unattendedZoneMaxRadiusMeters >= honestCloseMinZoneRadiusMeters) {
             "unattendedZoneMaxRadiusMeters must be >= honestCloseMinZoneRadiusMeters, was $unattendedZoneMaxRadiusMeters"
+        }
+        require(sustainedStopForSaveMs > 0L) {
+            "sustainedStopForSaveMs must be > 0, was $sustainedStopForSaveMs"
         }
         require(btWalkAwayDistanceMeters > 0f) {
             "btWalkAwayDistanceMeters must be > 0, was $btWalkAwayDistanceMeters"
