@@ -21,6 +21,7 @@ enum class UnattendedSaveReason(val key: String, val decisionOutcome: String) {
     GAP_ANCHOR("gap_anchor", "UNATTENDED_GAP_ANCHOR_NUDGE"),
     WALK_ENTERED_ANCHOR("walk_entered_anchor", "UNATTENDED_WALK_ENTERED_NUDGE"),
     VEHICULAR_EGRESS("vehicular_egress", "UNATTENDED_VEHICULAR_EGRESS_NUDGE"),
+    HUMAN_POWERED("human_powered", "UNATTENDED_HUMAN_POWERED_NUDGE"),
     ;
 
     val nudgeSource: String get() = "unattended_$key"
@@ -100,6 +101,14 @@ data class UnattendedSaveInput(
     val egressExceedsWalkReach: Boolean,
     /** How long the car has been at rest at the moment of the verdict. */
     val stoppedDurationMs: Long,
+    /**
+     * [DET-BIKE-NOT-A-CAR-001] The movement this session measured was made under HUMAN power (see
+     * `domain/detection/isHumanPoweredRide`). Field 2026-08-16 11:08Z (Samsung): a 59-minute bike
+     * ride to Los Toruños landed HERE, not on any auto-confirm path — `unattended_zone_unpinned_
+     * anchor`, 4,8 km from a Mercedes that never moved. Vetoing only the confirm paths would have
+     * left the phantom exactly where it was.
+     */
+    val humanPoweredRide: Boolean = false,
 )
 
 /**
@@ -126,6 +135,12 @@ data class UnattendedSaveInput(
 class EvaluateUnattendedParkingSaveUseCase(private val config: ParkingDetectionConfig) {
 
     operator fun invoke(input: UnattendedSaveInput): UnattendedParkingSave {
+        // [DET-BIKE-NOT-A-CAR-001] First, because it is not a doubt about the anchor — it is
+        // evidence that the CAR never moved. Nothing may be recorded: no pin, no area. The old pin
+        // is still true and must stand. Every kinematic clause below would happily certify a
+        // bicycle, which is exactly how a beach path 4,8 km from the car became a parking.
+        if (input.humanPoweredRide) return UnattendedParkingSave.Ask(UnattendedSaveReason.HUMAN_POWERED)
+
         val anchor = input.anchor
         val anchorToCurrentMeters = anchor?.let {
             haversineMeters(it.latitude, it.longitude, input.currentFix.latitude, input.currentFix.longitude)

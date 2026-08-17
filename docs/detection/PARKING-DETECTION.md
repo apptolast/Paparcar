@@ -2432,3 +2432,48 @@ fix immediately before, its gate could no longer decide anything. It was deleted
 `departureProven` session field, its constructor and `invoke` parameters and the
 `notifyDepartureConfirmed()` line, with the two orphaned assertions ported rather than dropped. Net
 −18 lines in the coordinator. [DET-VERDICT-NOT-PREDICATE-001]
+### DET-BIKE-NOT-A-CAR-001 — a bicycle clears every "faster than a pedestrian" bar we own (2026-08-17)
+
+**Report.** Field 2026-08-16 11:08Z, Samsung SM-A536B (cardomfer), session `1786878499475`. A
+59-minute bike ride to Los Toruños was recorded as a car trip: `ARM:GEOFENCE_EXIT (d=352m acc=12m
+dep=verified_speed)`, `vmax 38 km/h`, `drive 58/904fix`, and it ended planting
+`unattended_zone_unpinned_anchor` (pin `6b142014`, `isActive=true`) at 36.5382,-6.2266 — a beach path
+**4,8 km** from the Mercedes, which had not moved. The real pin at Calle Toledo was closed.
+
+**Root cause.** Every kinematic threshold in the probabilistic lane is calibrated against a
+pedestrian, and a bicycle beats all of them: `minimumDepartureSpeedKmh` 10 km/h,
+`maxPedestrianSpeedMps` 2,5 m/s, `minimumTripSpeedMps` 5 m/s. The single existing guard,
+`EvaluateParkingDecisionUseCase`'s `humanPowered`, reads the REGISTERED VEHICLE PROFILE — which said
+`CAR`, correctly: the user owns a car, they were simply not in it. The profile answers "what do you
+drive", never "what are you on right now". Without a paired BT MAC there was no other signal in play,
+so bike and car were the same object to the whole lane.
+
+Android answers that question and we had never asked: `registerTransitions()` only ever requested
+`IN_VEHICLE`, while `ON_BICYCLE` sat unused in `ActivityRecognitionLabels`.
+
+**Fix.** `ON_BICYCLE` ENTER+EXIT joins the always-on EVIDENCE lane (the broadcast PendingIntent) —
+never the `getForegroundService` decision lane, so cycling can contradict the kinematics and can
+never arm anything or flash an FGS on a bike ride. The receiver stamps the coordinator with the TRUE
+transition time; `domain/detection/HumanPoweredRide.kt` — a pure top-level policy function, NOT a use
+case, because it is a predicate with no diagnostics vocabulary of its own shared by two verdicts
+[DET-VERDICT-NOT-PREDICATE-001] — turns the two stamps into an answer, superseding the ride when a LATER `IN_VEHICLE` ENTER exists (bike to the station, then
+drive) and expiring it after `humanPoweredRideMemoryMs`. The verdict widens the existing
+`humanPowered` seam from "profile" to "profile OR measured", so the auto-confirm paths degrade to a
+prompt exactly as a registered bike already did.
+
+**Companion-fix risk — the part that mattered.** The field FP did **not** come through an
+auto-confirm path; it came through the unattended timeout. Extending only `humanPowered` would have
+closed the wrong door and moved the phantom from a zone to… the same zone. The veto therefore also
+guards the timeout, where a human-powered ride now saves nothing at all — no pin, no area,
+`aborted_unattended_human_powered` + nudge — because the car genuinely did not move and the old pin
+must stand. Same corollary as DET-DRIVE-PROOF-001 → DET-DEPART-PROOF-001. The Bluetooth lane is
+untouched by construction: a bicycle carries no MAC. No new user-facing strings (nudge `source` is
+provenance, not copy), no new screen or state, so the 9 locales and the Dev Catalog are unaffected.
+1199 tests green (1190 on master + 9 new); the field-shape regression is verified RED without the
+fix. Spec: `docs/backlog/det-bike-not-a-car-001.md`.
+
+**Still open.** `VerifyDepartureEvidenceUseCase` seals `verified_speed` at 10 km/h, so the ride still
+declares the car departed and releases the real spot at the START of the ride. Vetoing there would
+keep the spot too, but AR arrives with up to ~2 min of latency while the departure verdict is
+immediate — deliberately left out of scope rather than rushed. Tracked in
+`docs/backlog/det-bike-departure-release-001.md`.

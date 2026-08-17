@@ -5,6 +5,7 @@ import io.apptolast.paparcar.domain.detection.DepartureConfirmationListener
 import io.apptolast.paparcar.domain.detection.DetectionPhase
 import io.apptolast.paparcar.domain.detection.DetectionPhaseSink
 import io.apptolast.paparcar.domain.detection.VehicleFenceOwnershipPolicy
+import io.apptolast.paparcar.domain.detection.isHumanPoweredRide
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
 import io.apptolast.paparcar.domain.error.PaparcarError
@@ -269,6 +270,17 @@ class CoordinatorParkingDetector(
          *  step sensor is ALIVE, so its silence during measured movement is evidence of the CAR
          *  (a mute sensor's silence is noise: Camelias-Oppo). Never reset within the session. */
         val sessionSawSteps: Boolean = false,
+        /** [DET-BIKE-NOT-A-CAR-001] True transition time of the last AR `ON_BICYCLE` ENTER seen by
+         *  this session, or null. A VETO input only — cycling can never arm or confirm anything,
+         *  it can only contradict the kinematics, which a bicycle satisfies as comfortably as a
+         *  car (field 2026-08-16, Samsung: 59 min at up to 38 km/h re-pinned the car 4,8 km away
+         *  on a beach path). */
+        val bicycleRideAtMs: Long? = null,
+        /** [DET-BIKE-NOT-A-CAR-001] True transition time of the last AR `IN_VEHICLE` ENTER. Cycling
+         *  to the station and then driving is a trip made BY CAR: the later boarding supersedes the
+         *  ride, which is why both are timestamps rather than booleans — AR delivers transitions
+         *  out of order relative to wall clock and only the true times are comparable. */
+        val vehicleRideAtMs: Long? = null,
         /** [DET-CONFIRM-FRESHNESS-001] Moving fixes at ≥ clearBestStopSpeedMps provably outside
          *  the PINNED anchor's accuracy envelopes while a LIVE step counter counted nothing.
          *  Any step event resets it; reaching
@@ -1123,6 +1135,7 @@ class CoordinatorParkingDetector(
                                 egressBornAtAnchor = isEgressBornAtAnchor(state),
                                 egressExceedsWalkReach = egressExceedsWalkReach(state, location),
                                 stoppedDurationMs = stoppedDuration,
+                                humanPoweredRide = humanPoweredRide(state, activeVehicleType, now),
                             )
                         )
                         PaparcarLogger.d(
@@ -1234,6 +1247,7 @@ class CoordinatorParkingDetector(
                                 anchorWalkEntered = isAnchorWalkEntered(state),
                                 anchorGapEntered = state.anchorGapEnteredAtCapture,
                                 egressExceedsWalkReach = egressExceedsWalkReach(state, location),
+                                humanPoweredRide = humanPoweredRide(state, activeVehicleType, now),
                             )
                         )
                         if (decision is ParkingDecision.Confirmed) {
@@ -1311,10 +1325,41 @@ class CoordinatorParkingDetector(
         PaparcarLogger.d(DIAG, "■ coordinator.invoke() EXITED — locationCount=$locationCount completed=$completed")
     }
 
+    /** [DET-BIKE-NOT-A-CAR-001] Whether this session's movement was human-powered — the profile
+     *  answer OR the measured one. Thin wrapper so both decision sites and the unattended timeout
+     *  ask the same pure evaluator with the same inputs. */
+    private fun humanPoweredRide(
+        s: ParkingDetectionState,
+        vehicleType: VehicleType?,
+        now: Long,
+    ): Boolean = isHumanPoweredRide(
+        vehicleType = vehicleType,
+        bicycleRideAtMs = s.bicycleRideAtMs,
+        vehicleRideAtMs = s.vehicleRideAtMs,
+        nowMs = now,
+        config = config,
+    )
+
     /** Signals that the `IN_VEHICLE → EXIT` transition was received. Thread-safe. */
     fun onVehicleExit() {
         PaparcarLogger.d(DIAG, "✱ onVehicleExit() called")
         _detectionState.update { it.copy(vehicleExitConfirmed = true) }
+    }
+
+    /** [DET-BIKE-NOT-A-CAR-001] An AR `ON_BICYCLE` ENTER, stamped with its TRUE transition time
+     *  (AR delivers up to ~2 min late). Records evidence; the verdict is
+     *  [EvaluateHumanPoweredRideUseCase]'s. Thread-safe. */
+    fun onHumanPoweredRide(atMs: Long) {
+        PaparcarLogger.d(DIAG, "✱ onHumanPoweredRide(at=$atMs) — cycling observed; automatic saves vetoed [DET-BIKE-NOT-A-CAR-001]")
+        _detectionState.update { it.copy(bicycleRideAtMs = atMs) }
+    }
+
+    /** [DET-BIKE-NOT-A-CAR-001] An AR `IN_VEHICLE` ENTER, stamped with its TRUE transition time.
+     *  Evidence only — arming remains exclusive to the geofence exit, the manual affordance and the
+     *  privileged AR decision lane. Its role here is to supersede an earlier cycling stamp.
+     *  Thread-safe. */
+    fun onVehicleRide(atMs: Long) {
+        _detectionState.update { it.copy(vehicleRideAtMs = atMs) }
     }
 
     /** User tapped "Yes, I parked". Dismisses the notification and marks confirmation. Thread-safe. */
@@ -1643,6 +1688,7 @@ class CoordinatorParkingDetector(
                 anchorWalkEntered = isAnchorWalkEntered(state),
                 anchorGapEntered = state.anchorGapEnteredAtCapture,
                 egressExceedsWalkReach = egressExceedsWalkReach(state, location),
+                humanPoweredRide = humanPoweredRide(state, activeVehicleType, now),
             )
         )
         PaparcarLogger.d(

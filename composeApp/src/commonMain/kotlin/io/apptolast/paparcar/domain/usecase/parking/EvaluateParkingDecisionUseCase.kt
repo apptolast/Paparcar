@@ -96,6 +96,12 @@ data class ParkingDecisionInput(
      *  rules out vehicle-scale distance. Vetoes the step- and window-based paths; the kinematic path
      *  stands on its own pedestrian-band fixes. Defaults to false for legacy callers. */
     val egressExceedsWalkReach: Boolean = false,
+    /** [DET-BIKE-NOT-A-CAR-001] The session's own movement was made under HUMAN power — AR reported
+     *  `ON_BICYCLE` and no later boarding superseded it (see `EvaluateHumanPoweredRideUseCase`).
+     *  [vehicleType] answers "what do you drive"; this answers "what are you on right now", and the
+     *  field FP of 2026-08-16 turned on the difference: a `CAR` profile on a bicycle re-pinned the
+     *  car 4,8 km away. Defaults to false for legacy callers. */
+    val humanPoweredRide: Boolean = false,
 )
 
 /**
@@ -197,7 +203,11 @@ class EvaluateParkingDecisionUseCase(private val config: ParkingDetectionConfig)
         // 18 km/h once (downhill, sprint) makes the whole session look like a car to every
         // speed-based signal, and the mismatch guard (CAR-only, ≥8 min) cannot help. Always ask.
         // MOTORCYCLE is a real motor vehicle with its own geofence — keeps auto-confirm.
-        val humanPowered = input.vehicleType == VehicleType.SCOOTER || input.vehicleType == VehicleType.BIKE
+        // [DET-BIKE-NOT-A-CAR-001] …and the same is true when the PROFILE says car but the RIDE was
+        // a bicycle. The profile is a property of the garage, not of this trip.
+        val humanPowered = input.vehicleType == VehicleType.SCOOTER ||
+            input.vehicleType == VehicleType.BIKE ||
+            input.humanPoweredRide
 
         val pathLabel = when {
             hasStepsProof -> "steps+egress"

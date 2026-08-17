@@ -81,7 +81,7 @@ class ActivityRecognitionManagerImpl(
 
     @SuppressLint("MissingPermission")
     override fun registerTransitions() {
-        PaparcarLogger.d(TAG, "▶ registerTransitions called (IN_VEHICLE ENTER+EXIT, always-on, indicator-only)")
+        PaparcarLogger.d(TAG, "▶ registerTransitions called (IN_VEHICLE + ON_BICYCLE ENTER+EXIT, always-on, indicator-only)")
         // Master gate: the user can switch auto-detection OFF from Settings — an intent flag
         // independent of permissions. Off → never arm (and clear any existing arming), so every
         // caller (MainActivity, BootCompletedReceiver, the periodic worker) respects it. [DET-TOGGLE-001]
@@ -115,11 +115,26 @@ class ActivityRecognitionManagerImpl(
                     .setActivityType(DetectedActivity.IN_VEHICLE)
                     .setActivityTransition(ActivityTransition.ACTIVITY_TRANSITION_EXIT)
                     .build(),
+                // [DET-BIKE-NOT-A-CAR-001] ON_BICYCLE joins the EVIDENCE lane only. Every kinematic
+                // threshold in the Coordinator is calibrated against a pedestrian, and a bicycle
+                // clears all of them, so without this the app cannot tell a ride from a drive
+                // (field 2026-08-16, Samsung: a 59-min ride to Los Toruños re-pinned the car 4,8 km
+                // away). It is registered on the broadcast PendingIntent, never on the
+                // getForegroundService decision lane: cycling must be able to CONTRADICT the
+                // kinematics and must never be able to arm anything or flash an FGS.
+                ActivityTransition.Builder()
+                    .setActivityType(DetectedActivity.ON_BICYCLE)
+                    .setActivityTransition(ActivityTransition.ACTIVITY_TRANSITION_ENTER)
+                    .build(),
+                ActivityTransition.Builder()
+                    .setActivityType(DetectedActivity.ON_BICYCLE)
+                    .setActivityTransition(ActivityTransition.ACTIVITY_TRANSITION_EXIT)
+                    .build(),
             ),
         )
 
         activityClient.requestActivityTransitionUpdates(transitionsRequest, vehicleTransitionsPendingIntent)
-            .addOnSuccessListener { PaparcarLogger.d(TAG, "  ✓ IN_VEHICLE ENTER+EXIT transitions registered (evidence lane)") }
+            .addOnSuccessListener { PaparcarLogger.d(TAG, "  ✓ IN_VEHICLE + ON_BICYCLE ENTER+EXIT transitions registered (evidence lane) [DET-BIKE-NOT-A-CAR-001]") }
             .addOnFailureListener { e ->
                 PaparcarLogger.e(TAG, "  ✗ Failed to register IN_VEHICLE transitions", e)
                 lastRegisteredAtMs = 0L // failed registration must not block the next attempt

@@ -552,6 +552,12 @@ data class ParkingDetectionConfig(
      *  `1786918991116`: 25,6 min at up to 96,7 km/h, home reached, anchor tainted by the slow
      *  parking manoeuvre, mute step counter — and the park was thrown away. */
     val sustainedStopForSaveMs: Long = 5 * 60_000L,
+    /** [DET-BIKE-NOT-A-CAR-001] How long an AR `ON_BICYCLE` ENTER keeps vetoing this session's
+     *  automatic saves. Generous on purpose — the field ride was 59 minutes and AR fires ENTER once
+     *  at the start, not continuously — but bounded, so a latch that survives a process restart or
+     *  a session boundary cannot silence detection for the rest of the day. A boarding recorded
+     *  AFTER the cycling supersedes it regardless of this window. */
+    val humanPoweredRideMemoryMs: Long = 3 * 60 * 60 * 1_000L,
 
     // ── BLUETOOTH PATH [DET-AUDIT-002 T2/T4] ─────────────────────────────────
     /** Distance the user must WALK from the BT parking candidate before it auto-confirms.
@@ -938,6 +944,9 @@ data class ParkingDetectionConfig(
         }
         require(sustainedStopForSaveMs > 0L) {
             "sustainedStopForSaveMs must be > 0, was $sustainedStopForSaveMs"
+        }
+        require(humanPoweredRideMemoryMs > 0L) {
+            "humanPoweredRideMemoryMs must be > 0, was $humanPoweredRideMemoryMs"
         }
         require(btWalkAwayDistanceMeters > 0f) {
             "btWalkAwayDistanceMeters must be > 0, was $btWalkAwayDistanceMeters"

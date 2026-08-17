@@ -46,6 +46,17 @@ class ActivityTransitionReceiver : BroadcastReceiver(), KoinComponent {
 
         result.transitionEvents.forEach { event ->
             PaparcarLogger.d(TAG, "  → ${activityLabel(event.activityType)} ${transitionLabel(event.transitionType)}")
+            // [DET-BIKE-NOT-A-CAR-001] Cycling is a VETO lane: it records that the movement this
+            // session is measuring was made under human power, and nothing else. No arming, no
+            // safety-net acceleration, no bus stamping — a bicycle is not a departure.
+            if (event.activityType == DetectedActivity.ON_BICYCLE) {
+                if (event.transitionType == ActivityTransition.ACTIVITY_TRANSITION_ENTER) {
+                    val trueEpochMs = elapsedNanosToEpochMs(event.elapsedRealTimeNanos)
+                    PaparcarLogger.d(TAG, "  ✓ ON_BICYCLE ENTER → human-powered ride recorded (trueTime=$trueEpochMs) [DET-BIKE-NOT-A-CAR-001]")
+                    coordinator.onHumanPoweredRide(trueEpochMs)
+                }
+                return@forEach
+            }
             if (event.activityType != DetectedActivity.IN_VEHICLE) return@forEach
             when (event.transitionType) {
                 ActivityTransition.ACTIVITY_TRANSITION_EXIT -> {
@@ -69,6 +80,9 @@ class ActivityTransitionReceiver : BroadcastReceiver(), KoinComponent {
                     val lagMs = System.currentTimeMillis() - trueEpochMs
                     PaparcarLogger.d(TAG, "  ✓ IN_VEHICLE ENTER → bus stamped (trueTime=$trueEpochMs, lag=${lagMs}ms) [DET-SOLID-001]")
                     departureEventBus.onVehicleEntered(trueEpochMs)
+                    // [DET-BIKE-NOT-A-CAR-001] A boarding SUPERSEDES an earlier cycling stamp:
+                    // riding to the station and then driving is a trip made by car.
+                    coordinator.onVehicleRide(trueEpochMs)
                     // [DET-AR-FIRST-001] The receiver-side escalation (fresh ENTER + recent far
                     // EXIT → app-side startForegroundService) moved to the DECISION lane: the
                     // same ENTER is also delivered straight to CoordinatorDetectionService via

@@ -1759,6 +1759,85 @@ class CoordinatorParkingDetectorTest {
             )
         }
 
+    @Test
+    fun should_not_save_anything_when_the_ride_was_human_powered() =
+        runTest(UnconfinedTestDispatcher()) {
+            // Field 2026-08-16 11:08Z (Samsung SM-A536B, session 1786878499475). A 59-minute
+            // bicycle ride to Los Toruños broke the car's own geofence at 352 m, was sealed
+            // `verified_speed` (38 km/h clears the 10 km/h bar effortlessly), and ended by planting
+            // `unattended_zone_unpinned_anchor` 4,8 km from a Mercedes that never moved. Note where
+            // it landed: NOT on an auto-confirm path but on the unattended timeout, which is why the
+            // veto has to cover both. [DET-BIKE-NOT-A-CAR-001]
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch {
+                env.coordinator.invoke(locations, armEvidence = ArmEvidence.VerifiedBySpeed(38f, 12f))
+            }
+
+            // Android's classifier says bicycle. Nothing else in the session can tell.
+            env.coordinator.onHumanPoweredRide(nowMs)
+            emitCorroboratedDrive(locations) // 38 km/h looks exactly like a car to every threshold
+            nowMs = 60_000L
+            locations.emit(GpsPoint(40.0005, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+            env.stepDetector.emitSteps(12)
+            env.coordinator.onVehicleExit()
+            nowMs = 90_000L
+            locations.emit(GpsPoint(40.0010, -3.7, accuracy = 8f, timestamp = 0L, speed = 0.5f))
+
+            assertEquals(
+                0,
+                env.parkingRepo.saveNewParkingSessionCallCount,
+                "a bicycle ride must never confirm silently [DET-BIKE-NOT-A-CAR-001]",
+            )
+
+            nowMs += config.confirmationResponseTimeoutMs + 1_000L
+            locations.emit(GpsPoint(40.0010, -3.7, accuracy = 8f, timestamp = 0L, speed = 0.1f))
+            nowMs += config.confirmationResponseTimeoutMs + 1_000L
+            locations.emit(GpsPoint(40.0010, -3.7, accuracy = 8f, timestamp = 0L, speed = 0.1f))
+
+            job.cancelAndJoin()
+
+            assertEquals(
+                0,
+                env.parkingRepo.saveNewParkingSessionCallCount,
+                "…and must not buy an approximate zone through the timeout either — the car never moved",
+            )
+            val ended = env.detectionLogger.events.filterIsInstance<DetectionEvent.SessionEnded>().single()
+            assertEquals("aborted_unattended_human_powered", ended.outcome)
+        }
+
+    @Test
+    fun should_still_save_when_a_boarding_superseded_the_cycling() {
+        // The counterpart: bike to the station, then drive. The trip IS a car trip and must pin.
+        runTest(UnconfinedTestDispatcher()) {
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch {
+                env.coordinator.invoke(locations, armEvidence = ArmEvidence.VerifiedBySpeed(38f, 12f))
+            }
+
+            env.coordinator.onHumanPoweredRide(nowMs)
+            env.coordinator.onVehicleRide(nowMs + 1) // the boarding that supersedes it
+            emitCorroboratedDrive(locations)
+            nowMs = 60_000L
+            locations.emit(GpsPoint(40.0005, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+            env.stepDetector.emitSteps(12)
+            env.coordinator.onVehicleExit()
+            nowMs = 90_000L
+            locations.emit(GpsPoint(40.0010, -3.7, accuracy = 8f, timestamp = 0L, speed = 0.5f))
+
+            job.cancelAndJoin()
+
+            assertEquals(
+                1,
+                env.parkingRepo.saveNewParkingSessionCallCount,
+                "cycling to the station then driving is a CAR trip [DET-BIKE-NOT-A-CAR-001]",
+            )
+        }
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // DET-DRIVE-PROOF-001: a Doppler mirage is not measured driving
     // ─────────────────────────────────────────────────────────────────────────
