@@ -775,6 +775,60 @@ break the clean `VehicleState` machine that guards `BUG-DETECT-ENTER-DEBOUNCE-00
 
 Full design rationale: `docs/refactors/BT-REFACTOR-FGS-001-bluetooth-detection-foreground-service.md`.
 
+### DET-GAP-ANCHOR-ZONE-001 — a GPS hole has a DURATION, so the doubt it creates is bounded (2026-08-17)
+
+**Commit:** pending · **Ticket:** `docs/backlog/det-gap-anchor-zone-001.md`
+
+**User report.** Same trip, same car, both phones: leaving Góndola around 14:00. The Oppo pinned
+Calle Bahía de Alcudia 4 at 14:54; the Redmi lost it.
+
+**Root cause.** The Redmi's session `1786970028118` armed on a `GEOFENCE_EXIT` MIUI delivered
+2.672 m late, and its stream carried **9 holes of 23–127 s in 15 minutes**. The last one — 126 s,
+entered at 42 km/h — opened the stop the anchor bound to, so the anchor was stamped GAP-ENTERED.
+That taint correctly degraded the silent confirm to a prompt (`CONFIRM_DEGRADED_PROMPT`, 12:54:42Z),
+nobody answered, and 15 minutes later the unattended timeout hit the one branch of
+`EvaluateUnattendedParkingSaveUseCase` that still returned `Ask` unconditionally. 36 minutes of
+measured driving at up to 50 km/h ended with no pin, 40 m from where the Oppo pinned the same trip.
+
+The branch's stated justification — *"the forward error is unboundable, the car may have driven
+arbitrarily far into the hole"* — does not survive the data. Two facts the Boolean threw away:
+
+1. **The hole has a duration.** Whatever the car did inside it, the phone can only have covered the
+   car→anchor offset *on foot*, so the offset is at most `hole × maxPedestrianSpeedMps`. A Boolean
+   cannot tell a 45-s hole from an hour; a duration can.
+2. **The drive-past hypothesis dies on a sustained rest.** The FP this branch was built for
+   (DET-GAP-ANCHOR-001, Av. Sanlúcar 2026-07-29) had the car driving ON after the artifact fix.
+   Here the phone sat still for 14,7 min at an anchor accurate to ~11 m.
+
+**Fix.** `stopEnteredAfterGap: Boolean` → `stopEnteredAfterGapMs: Long` and
+`anchorGapEnteredAtCapture: Boolean` → `anchorGapMsAtCapture: Long` (the Boolean survives as a
+derived property, so the fact and its magnitude cannot disagree). The `GAP_ANCHOR` branch becomes
+`zoneOrAsk` with `doubtMeters = hole × maxPedestrianSpeedMps` and `bounded = sustained rest`; the
+existing radius machinery caps it at `unattendedZoneMaxRadiusMeters` (250 m), whose own doctrine is
+"saved at the cap, and the parking card is the ask-to-refine". No new config constant.
+
+Also moved: `egressExceedsWalkReach` now outranks **both** anchor taints instead of sitting after
+them. It is not a precision doubt but evidence of ABSENCE — no radius is honest about a place the
+car provably left — so it belongs above every branch that draws a zone rather than being restated
+inside each. It was already shadowed by DET-WALK-ENTERED-ANCHOR-ZONE-001's walk-entered zone.
+
+**Companion-fix risk.** This is the third taint to trade an unconditional nudge for a bounded area
+(after DET-NODRIVE-ZONE-001 and DET-WALK-ENTERED-ANCHOR-ZONE-001), so the unattended timeout now
+saves *something* in most shapes. The two exits that still refuse are load-bearing and unchanged:
+no measured driving at all, and evidence the car left. A gap-born anchor that never settles still
+nudges — that clause is the whole reason Av. Sanlúcar cannot come back.
+
+**Deliberately not done.** Bounding the doubt with the step counter instead of the clock. It would
+have shrunk this session's 250 m zone to roughly the anchor's accuracy (`anchorStepEventsAtCapture`
+was 0 with a counter that proved alive 24 s later, at 353 steps), but during a MIUI hole the process
+may be frozen and whether the counter's delta surfaces afterwards is not verifiable from the trace.
+Getting it wrong plants a precise pin in a possibly wrong place — the exact FP class the taint
+exists for.
+
+**Files:** `EvaluateUnattendedParkingSaveUseCase` (branch + `anchorGapMs` input + hoisted
+precedence), `CoordinatorParkingDetector` (state fields, gap measurement, stamping, clearing,
+diagnostics line). 1217 tests; the field regression verified RED without the fix.
+
 ---
 
 ## 3. Open questions / future work

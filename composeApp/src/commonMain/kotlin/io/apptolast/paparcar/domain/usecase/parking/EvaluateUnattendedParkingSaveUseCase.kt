@@ -82,8 +82,15 @@ data class UnattendedSaveInput(
     val vehicleExitConfirmed: Boolean,
     /** LOCKED (egress steps) or FROZEN (matured end-of-drive stop). */
     val anchorPinned: Boolean,
-    /** The stop that bound the anchor opened through a GPS hole — forward error UNBOUNDABLE. */
-    val anchorGapEntered: Boolean,
+    /**
+     * [DET-GAP-ANCHOR-ZONE-001] Size of the GPS hole the anchor's stop opened through, in ms, or
+     * `0L` when the stop was witnessed normally. The MAGNITUDE, not the fact: a hole has a duration,
+     * and the phone can only have covered the car→anchor offset ON FOOT inside it, so the duration
+     * bounds that offset. The predecessor of this field was a Boolean, which could not tell a 45-s
+     * hole from an hour and therefore treated every gap-born anchor as unboundable — losing the
+     * Redmi's fully measured 25-min drive on field 2026-08-17 (session `1786970028118`).
+     */
+    val anchorGapMs: Long,
     /** The anchor was captured at a stop walk-band fixes led into. */
     val anchorWalkEntered: Boolean,
     /** Step events counted during that walk-in — a bound on the offset when the counter was ALIVE. */
@@ -219,12 +226,47 @@ class EvaluateUnattendedParkingSaveUseCase(private val config: ParkingDetectionC
             )
         }
 
+        // [DET-CONFIRM-FRESHNESS-001] Evidence must still be TRUE at pin time: during the prompt
+        // window the car may have driven off (a pick-up / errand stop). If the current fix sits
+        // beyond what the counted steps could walk from the anchor, a VEHICLE covered that ground
+        // since the decision — the honest exit is the nudge, never a pin at a spot the car
+        // provably left. This one is not a precision doubt; it is evidence of ABSENCE.
+        // [DET-GAP-ANCHOR-ZONE-001] Which is why it is tested HERE, above every branch that draws a
+        // zone, instead of after them: no radius is honest about a place the car has left, so the
+        // rule outranks all three precision doubts rather than being restated inside each. It used
+        // to sit last, where the walk-entered zone already shadowed it.
+        if (input.egressExceedsWalkReach) {
+            return UnattendedParkingSave.Ask(
+                reason = UnattendedSaveReason.VEHICULAR_EGRESS,
+                distanceMeters = anchorToCurrentMeters,
+            )
+        }
+
         // [DET-GAP-ANCHOR-001] A GAP-ENTERED anchor was never seen coming to rest: the stream died
-        // at driving speed and the anchor is merely the first fix on the far side of the hole. The
-        // error is UNBOUNDABLE FORWARD (the car may have driven arbitrarily far into the hole), so
-        // no zone is honest — the nudge is the only exit that never asserts a place we cannot know.
-        if (input.anchorGapEntered) {
-            return UnattendedParkingSave.Ask(UnattendedSaveReason.GAP_ANCHOR)
+        // at driving speed and the anchor is merely the first fix on the far side of the hole, so it
+        // may be a drive-past point (field 2026-07-29, Av. Sanlúcar: a 100-s MIUI hole ended in one
+        // speed-0 fix mid-route and the pin landed 315 m before the real park).
+        // [DET-GAP-ANCHOR-ZONE-001] The taint stands; losing the park over it does not. Two facts
+        // the old Boolean threw away bound this:
+        //  · The hole has a DURATION. Whatever the car did inside it, the phone can only have
+        //    covered the car→anchor offset ON FOOT, so that offset is at most the hole times
+        //    pedestrian pace. Deliberately conservative — it assumes the whole hole was spent
+        //    walking, which also assumes the car braked from driving speed instantly.
+        //  · The drive-past hypothesis dies on a SUSTAINED REST. A car passing a point does not
+        //    then rest there for minutes; Av. Sanlúcar resumed driving, which is exactly what this
+        //    condition separates. Rest also implies no re-measured driving, since real driving
+        //    clears the anchor and resets the stop clock.
+        // Field 2026-08-17, Redmi session `1786970028118`: a 126-s hole at 42 km/h, then 14,7 min
+        // at rest 40 m from where the Oppo pinned the same trip — and the park was thrown away.
+        if (input.anchorGapMs > 0L) {
+            val walkableInsideHole = input.anchorGapMs / MILLIS_PER_SECOND * config.maxPedestrianSpeedMps
+            val sustainedStop = input.stoppedDurationMs >= config.sustainedStopForSaveMs
+            return zoneOrAsk(
+                reason = UnattendedSaveReason.GAP_ANCHOR,
+                center = anchor,
+                doubtMeters = walkableInsideHole,
+                bounded = sustainedStop,
+            )
         }
 
         // [DET-CREDIBLE-DRIVE-001] A WALK-ENTERED anchor is the pedestrian's standing spot, not the
@@ -251,18 +293,6 @@ class EvaluateUnattendedParkingSaveUseCase(private val config: ParkingDetectionC
             )
         }
 
-        // [DET-CONFIRM-FRESHNESS-001] Evidence must still be TRUE at pin time: during the prompt
-        // window the car may have driven off (a pick-up / errand stop). If the current fix sits
-        // beyond what the counted steps could walk from the anchor, a VEHICLE covered that ground
-        // since the decision — the honest exit is the nudge, never a pin at a spot the car
-        // provably left. This one is not a precision doubt; it is evidence of absence.
-        if (input.egressExceedsWalkReach) {
-            return UnattendedParkingSave.Ask(
-                reason = UnattendedSaveReason.VEHICULAR_EGRESS,
-                distanceMeters = anchorToCurrentMeters,
-            )
-        }
-
         return UnattendedParkingSave.SaveExact
     }
 
@@ -282,4 +312,9 @@ class EvaluateUnattendedParkingSaveUseCase(private val config: ParkingDetectionC
         } else {
             UnattendedParkingSave.Ask(reason)
         }
+
+    private companion object {
+        /** [DET-GAP-ANCHOR-ZONE-001] The gap taint is measured in ms; pedestrian pace in m/s. */
+        const val MILLIS_PER_SECOND = 1_000.0
+    }
 }

@@ -2199,12 +2199,21 @@ class CoordinatorParkingDetectorTest {
             )
         }
 
+    /**
+     * [DET-GAP-ANCHOR-ZONE-001] The unanswered flavour of the same replay (the 05:24 prompt nobody
+     * saw). This used to assert "nudge, never pin", on the grounds that a gap-entered anchor's
+     * forward error is unboundable. Field 2026-08-17 (Redmi session `1786970028118`, Calle Bahía de
+     * Alcudia 4) refuted that: the hole has a DURATION, the phone can only have covered the
+     * car→anchor offset on foot inside it, and the car then sat still for 14,7 min. The park is now
+     * KEPT as an area sized by the hole; the taint costs precision, not the car.
+     *
+     * The FP this branch was built for (Av. Sanlúcar 2026-07-29) is separated by the sustained rest
+     * and is pinned in `EvaluateUnattendedParkingSaveUseCaseTest` — there the car drove ON, so no
+     * rest ever accrues and the verdict is still the nudge.
+     */
     @Test
-    fun should_nudge_notPin_when_unattended_timeout_finds_gap_entered_anchor() =
+    fun should_saveBoundedZone_when_unattended_timeout_finds_gap_entered_anchor_at_rest() =
         runTest(UnconfinedTestDispatcher()) {
-            // The unanswered flavour of the same replay (the 05:24 prompt nobody saw): the forward
-            // error of a gap-entered anchor is unboundable — the car may have driven arbitrarily
-            // far into the hole — so no zone is honest either. Nudge, never pin.
             var nowMs = 0L
             val env = setup(clock = { nowMs })
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
@@ -2223,11 +2232,21 @@ class CoordinatorParkingDetectorTest {
 
             job.cancelAndJoin()
 
-            assertEquals(0, env.parkingRepo.saveNewParkingSessionCallCount, "no pin at a rest the stream never witnessed")
-            assertEquals(1, env.notification.markParkingNudgeCallCount, "the user must be asked where the car is")
+            assertEquals(1, env.parkingRepo.saveNewParkingSessionCallCount, "the park must be KEPT as a zone, not lost")
+            val saved = env.parkingRepo.getActiveSession()
+            assertNotNull(saved)
+            assertTrue(saved.isApproximate, "a gap-born anchor may only yield an AREA, never an exact pin")
+            assertEquals(40.010, saved.location.latitude, 0.00005, "the zone centers on the gap-born anchor")
+            assertTrue(saved.zoneRadiusMeters!! >= config.honestCloseMinZoneRadiusMeters)
+            assertEquals(config.reliabilityUnattendedSave, saved.detectionReliability, "never community-published")
+            assertEquals(0, env.notification.markParkingNudgeCallCount, "the saved-parking card is the ask — no extra nudge")
             val ended = env.detectionLogger.events
                 .filterIsInstance<DetectionEvent.SessionEnded>().single()
-            assertEquals("aborted_unattended_gap_anchor", ended.outcome, "[DET-GAP-ANCHOR-001]")
+            assertEquals(
+                "confirmed_unattended_zone_gap_anchor",
+                ended.outcome,
+                "[DET-GAP-ANCHOR-001][DET-GAP-ANCHOR-ZONE-001]",
+            )
         }
 
     // ─────────────────────────────────────────────────────────────────────────

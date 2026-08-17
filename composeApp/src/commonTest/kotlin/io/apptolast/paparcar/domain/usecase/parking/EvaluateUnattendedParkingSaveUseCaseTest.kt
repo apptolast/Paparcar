@@ -44,7 +44,7 @@ class EvaluateUnattendedParkingSaveUseCaseTest {
         sessionSawSteps: Boolean = false,
         vehicleExitConfirmed: Boolean = true,
         anchorPinned: Boolean = true,
-        anchorGapEntered: Boolean = false,
+        anchorGapMs: Long = 0L,
         anchorWalkEntered: Boolean = false,
         anchorStepEventsAtCapture: Int = 0,
         anchorWalkInSpanMeters: Double = 0.0,
@@ -62,7 +62,7 @@ class EvaluateUnattendedParkingSaveUseCaseTest {
         sessionSawSteps = sessionSawSteps,
         vehicleExitConfirmed = vehicleExitConfirmed,
         anchorPinned = anchorPinned,
-        anchorGapEntered = anchorGapEntered,
+        anchorGapMs = anchorGapMs,
         anchorWalkEntered = anchorWalkEntered,
         anchorStepEventsAtCapture = anchorStepEventsAtCapture,
         anchorWalkInSpanMeters = anchorWalkInSpanMeters,
@@ -248,24 +248,85 @@ class EvaluateUnattendedParkingSaveUseCaseTest {
         assertEquals(birth, zone.center)
     }
 
-    /** [DET-GAP-ANCHOR-001] The forward error is UNBOUNDABLE — the car may have driven arbitrarily
-     *  far inside the hole. No zone is honest, whatever the ticket's licence says. */
-    @Test
-    fun should_ask_when_anchorWasEnteredThroughAGpsHole() {
-        val verdict = evaluate(input(anchorGapEntered = true, anchorWalkInSpanMeters = 42.0))
+    // ── The GAP-ENTERED anchor: a hole has a duration, so the doubt it creates has a bound ───
 
-        assertEquals(UnattendedParkingSave.Ask(UnattendedSaveReason.GAP_ANCHOR), verdict)
+    /**
+     * [DET-GAP-ANCHOR-ZONE-001] The second field regression, field 2026-08-17, Redmi session
+     * `1786970028118` (Calle Bahía de Alcudia 4). The trip was fully measured — 36 min, 50 km/h,
+     * 34 driving fixes — but MIUI tore 9 holes in the stream, and the last one (126 s, entered at
+     * 42 km/h) opened the stop the anchor bound to. The car then sat still for 14,7 min at an
+     * anchor accurate to ~11 m, 40 m from where the Oppo pinned the same trip on the same journey.
+     *
+     * RED before the fix: the branch returned `Ask` unconditionally on the Boolean taint, and the
+     * session ended `aborted_unattended_gap_anchor` with no pin at all.
+     */
+    @Test
+    fun should_saveBoundedZone_when_gapEnteredAnchorCameToASustainedRest() {
+        val verdict = evaluate(
+            input(
+                anchorGapMs = 126_000L,
+                stoppedDurationMs = 880_000L, // the 14,7 min the car sat still at the anchor
+            )
+        )
+
+        val zone = assertIs<UnattendedParkingSave.SaveZone>(verdict)
+        assertEquals(UnattendedSaveReason.GAP_ANCHOR, zone.reason)
+        assertEquals(anchor, zone.center, "the zone centres on the anchor the hole cast doubt on")
+        // 126 s of hole at pedestrian pace — everything the phone could have walked inside it.
+        assertEquals(126.0 * config.maxPedestrianSpeedMps, zone.doubtMeters, 0.5)
     }
 
-    /** The gap taint outranks the walk-entered one: both may hold, and only one of them is safe. */
+    /**
+     * [DET-GAP-ANCHOR-001] The FP the branch exists for stays dead: field 2026-07-29, Av. Sanlúcar,
+     * where a 100-s hole ended in a single speed-0 fix mid-route and the pin landed 315 m before
+     * the real park. Its signature is the absence of rest — the car drove ON — so without a
+     * sustained stop the verdict is still the nudge, and no radius is asserted.
+     */
     @Test
-    fun should_preferTheGapAsk_when_bothTaintsHold() {
+    fun should_ask_when_gapEnteredAnchorNeverSettled() {
         val verdict = evaluate(
-            input(anchorGapEntered = true, anchorWalkEntered = true, anchorWalkInSpanMeters = 42.0)
+            input(
+                anchorGapMs = 100_000L,
+                stoppedDurationMs = config.sustainedStopForSaveMs - 1,
+            )
         )
 
         assertEquals(UnattendedParkingSave.Ask(UnattendedSaveReason.GAP_ANCHOR), verdict)
     }
+
+    /** The bound is the hole itself, so a shorter hole buys a tighter zone. */
+    @Test
+    fun should_scaleTheDoubtWithTheHole_when_holesDiffer() {
+        val short = assertIs<UnattendedParkingSave.SaveZone>(evaluate(input(anchorGapMs = 46_000L)))
+        val long = assertIs<UnattendedParkingSave.SaveZone>(evaluate(input(anchorGapMs = 300_000L)))
+
+        assertTrue(
+            short.doubtMeters < long.doubtMeters,
+            "a 46-s hole must bound tighter than a 300-s one (${short.doubtMeters} vs ${long.doubtMeters})",
+        )
+    }
+
+    /** Nothing to centre an area on: the taint has a bound but no place to put it. */
+    @Test
+    fun should_ask_when_gapEnteredAndNoAnchorSurvives() {
+        val verdict = evaluate(input(anchorGapMs = 126_000L, anchor = null))
+
+        assertEquals(UnattendedParkingSave.Ask(UnattendedSaveReason.GAP_ANCHOR), verdict)
+    }
+
+    /** The gap taint still outranks the walk-entered one — both may hold, and the hole is the
+     *  larger of the two doubts, so it is the one that must size the area. */
+    @Test
+    fun should_preferTheGapBound_when_bothTaintsHold() {
+        val verdict = evaluate(
+            input(anchorGapMs = 126_000L, anchorWalkEntered = true, anchorWalkInSpanMeters = 42.0)
+        )
+
+        val zone = assertIs<UnattendedParkingSave.SaveZone>(verdict)
+        assertEquals(UnattendedSaveReason.GAP_ANCHOR, zone.reason)
+    }
+
+    // ── Evidence of ABSENCE outranks every precision doubt ────────────────────────────────────
 
     /** [DET-CONFIRM-FRESHNESS-001] Not a precision doubt — evidence the car LEFT. Never a zone. */
     @Test
@@ -277,6 +338,39 @@ class EvaluateUnattendedParkingSaveUseCaseTest {
         val ask = assertIs<UnattendedParkingSave.Ask>(verdict)
         assertEquals(UnattendedSaveReason.VEHICULAR_EGRESS, ask.reason)
         assertTrue((ask.distanceMeters ?: 0.0) > 500.0, "the outran distance is stamped for forensics")
+    }
+
+    /**
+     * [DET-GAP-ANCHOR-ZONE-001] The precedence this ticket moved. "The car provably left" is not a
+     * doubt about WHERE the anchor is, it is evidence there is nothing to record — so it outranks
+     * every branch that would draw a radius, rather than sitting after them where the two taint
+     * zones would shadow it.
+     */
+    @Test
+    fun should_askVehicularEgress_when_theCarLeftAGapEnteredAnchor() {
+        val verdict = evaluate(
+            input(
+                anchorGapMs = 126_000L,
+                egressExceedsWalkReach = true,
+                currentFix = fix(lat = 36.60000, lon = -6.27820),
+            )
+        )
+
+        assertEquals(UnattendedSaveReason.VEHICULAR_EGRESS, assertIs<UnattendedParkingSave.Ask>(verdict).reason)
+    }
+
+    @Test
+    fun should_askVehicularEgress_when_theCarLeftAWalkEnteredAnchor() {
+        val verdict = evaluate(
+            input(
+                anchorWalkEntered = true,
+                anchorWalkInSpanMeters = 42.0,
+                egressExceedsWalkReach = true,
+                currentFix = fix(lat = 36.60000, lon = -6.27820),
+            )
+        )
+
+        assertEquals(UnattendedSaveReason.VEHICULAR_EGRESS, assertIs<UnattendedParkingSave.Ask>(verdict).reason)
     }
 
     @Test
