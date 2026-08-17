@@ -2381,3 +2381,54 @@ are pinned by a test, because every saved Firestore trace is read by its exact w
 reachable on mute-counter hardware. No new strings, no new screen or state, so the 9 locales and the
 Dev Catalog are unaffected. 1205 tests green (1190 on master + 15 new); the field-shape regression is
 verified RED without the fix. Spec: `docs/backlog/det-walk-entered-anchor-zone-001.md`.
+### DET-SENTRY-ARM-PEDESTRIAN-CLOCK-001 — a fix that merely SITS far from the pin is not measured driving (2026-08-17)
+
+**Report.** Field 2026-08-16 23:52, Oppo, session `1786917152243`. The user walked ~990 m from the
+previous pin (Avenida de la Paz) to the seafront. A pin was planted **at the seafront**,
+`steps+egress`, reliability 0.9 — a place the car had never been. Session header: `drive 1/71fix ·
+vmax 42 km/h`, and that single fix is the whole of the "driving" this session ever measured.
+
+**Root cause.** The significant-motion sensor armed the session `self_observed` when the user was
+already a kilometre away on foot, so `elapsedSinceArmMs` started at zero with the entire walk
+already banked. `isBeyondPedestrianReach` then answered a question nobody had asked: it certified
+990 m "in 15 s" as unwalkable, which is true of the *clock* and false of the *journey*. That bound is
+only sound when the arm event fixes the moment the car left — a fence EXIT, a boarding, a BT
+disconnect all do; a sentry-wake, by construction, does not. On top of that,
+`EvaluateShortHopDriveProofUseCase.qualifies` tested only geometry, so three consecutive **stationary**
+fixes sitting at that distance satisfied the displacement proof. `driveProven` flipped, `maxSpeedMps`
+unlocked to the single 42 km/h Doppler spike a receiver emits while converging out of a cold start,
+`sessionSawDriving` went true — and with that the `self_observed` weak-evidence guard from
+DET-UNVERIFIED-CONFIRM-001 stood down and 220 walking steps confirmed silently. It is the 2026-08-13
+Calle Góndola walk-out FP arriving through a door DET-UNVERIFIED-ARM-DRIVE-PROOF-001 had just opened.
+
+**Fix.** The run that carries the displacement proof must MEASURE driving, fix by fix:
+`qualifies` now applies `isCredibleDrivingSpeed` — the same canonical predicate the pre-arm verifier
+uses — before any geometry. Distance from the pin says where the car has ended up; it never says
+this session watched it get there. A pedestrian cannot sustain ≥ `minimumDepartureSpeedKmh` across
+`shortHopProofFixes` consecutive credible fixes; a real hop produces nothing else, which is why both
+prior regressions stay green untouched (the 2026-08-14 verified hop reports 30 km/h throughout, and
+the 2026-08-15 late-armed Redmi tail reports 25–30 km/h).
+
+The consumer sweep found the same leak one branch further down: with every confirm path correctly
+refusing, the unattended timeout still bought an approximate zone through
+[DET-NODRIVE-ZONE-001]'s vehicular-signal limb, which accepted the raw speed PEAK — one sample, the
+spike itself. That limb now requires `rawDriveSignalMinFixes` (2) credible driving fixes;
+an AR vehicle-exit remains sufficient on its own, being external evidence rather than a sample.
+Closing only the door where it bit would have moved the FP from an exact pin to a 60 m circle.
+
+**Companion-fix risk.** The tightening is on the PROOF side, so it can only produce false negatives,
+never new pins — the doctrine's preferred direction. The pedestrian-reach clock itself is left
+as-is: with the speed requirement in place a walk can no longer reach the proof, and rewriting the
+clock would have broken the 2026-08-15 fixture, whose whole in-session displacement is ~39 m (the
+session caught only the drive's tail). That was the first design considered and it was wrong; the
+fixture is what disproved it. No new `detectionPath`, no strings, no screen or state — the 9 locales
+and the Dev Catalog are unaffected. 1203 tests green after the rebase onto master `8237c5c4`; both new
+regressions verified RED without the fix. The vehicular-signal hardening lives in
+`EvaluateUnattendedParkingSaveUseCase` (the chain became a pure verdict in DET-WALK-ENTERED-ANCHOR-ZONE-001). Spec: `docs/backlog/det-sentry-arm-pedestrian-clock-001.md`.
+
+**Consolidation it forced.** Adding the speed clause made `EvaluateMeasuredDepartureUseCase` a strict
+subset of `qualifies` with identical parameters — and since `departureProven` is computed on the same
+fix immediately before, its gate could no longer decide anything. It was deleted along with the
+`departureProven` session field, its constructor and `invoke` parameters and the
+`notifyDepartureConfirmed()` line, with the two orphaned assertions ported rather than dropped. Net
+−18 lines in the coordinator. [DET-VERDICT-NOT-PREDICATE-001]

@@ -60,6 +60,16 @@ data class UnattendedSaveInput(
     val maxSpeedMps: Float,
     /** Raw (un-corroborated) session peak — a vehicular HINT, never a proof on its own. */
     val pendingMaxSpeedMps: Float,
+    /**
+     * [DET-SENTRY-ARM-PEDESTRIAN-CLOCK-001] How many fixes this session saw at real driving speed
+     * with credible accuracy. [pendingMaxSpeedMps] is a PEAK — one sample — and a receiver
+     * converging out of a cold start emits exactly one: field 2026-08-16 23:52 (Oppo) reported
+     * 42 km/h at acc 11,5 m on the third fix with the user on foot for the entire session, and that
+     * one sample was enough to buy an approximate zone here after every confirm path had correctly
+     * refused. A count separates it from a drive the look-back window merely failed to corroborate,
+     * which is the case [DET-NODRIVE-ZONE-001] exists for.
+     */
+    val credibleDrivingFixes: Int,
     /** `bestStopLocation`: where the car is believed to rest. */
     val anchor: GpsPoint?,
     /** The fix being processed when the response timeout fired. */
@@ -135,8 +145,13 @@ class EvaluateUnattendedParkingSaveUseCase(private val config: ParkingDetectionC
             val liveEgress = input.sessionSawSteps &&
                 input.stepCount >= config.anchorLockEgressSteps &&
                 anchorToCurrentMeters >= config.minEgressDisplacementMeters
+            // [DET-SENTRY-ARM-PEDESTRIAN-CLOCK-001] An AR vehicle-exit is external evidence that a
+            // vehicle was involved. A raw speed PEAK is not — on its own it is one sample, and one
+            // sample is exactly what a cold-start Doppler spike produces. A drive this branch is
+            // meant to rescue still emits a run of them.
             val vehicularSignal = input.vehicleExitConfirmed ||
-                input.pendingMaxSpeedMps >= config.minimumTripSpeedMps
+                (input.pendingMaxSpeedMps >= config.minimumTripSpeedMps &&
+                    input.credibleDrivingFixes >= config.rawDriveSignalMinFixes)
             return if (anchor != null && liveEgress && vehicularSignal) {
                 UnattendedParkingSave.SaveZone(
                     reason = UnattendedSaveReason.NO_DRIVE_EGRESS,

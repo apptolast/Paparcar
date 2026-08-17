@@ -473,6 +473,14 @@ data class ParkingDetectionConfig(
      *  A single fix can be a cache teleport; three in a row cannot — and a real arrival keeps
      *  producing them. */
     val shortHopProofFixes: Int = 3,
+    /** [DET-SENTRY-ARM-PEDESTRIAN-CLOCK-001] Credible driving-speed fixes a session must have seen
+     *  before its raw speed PEAK counts as an in-session vehicular signal for the no-drive zone
+     *  fallback ([DET-NODRIVE-ZONE-001]). Two, not three: that branch already demands a live step
+     *  counter at egress scale and a real walked displacement, so this only has to separate "one
+     *  sample" from "a run". One sample is precisely what a GPS receiver emits as it converges out
+     *  of a cold start — field 2026-08-16 23:52 (Oppo): a single 42 km/h fix at acc 11.5 m, with
+     *  the user on foot for the entire session, bought an approximate zone at the seafront. */
+    val rawDriveSignalMinFixes: Int = 2,
 
     // ── DRIVE PROOF (session "measured driving" statistic) [DET-DRIVE-PROOF-001] ──
     /** Minimum age (ms) of the look-back fix a credible driving-speed fix is corroborated
@@ -903,6 +911,9 @@ data class ParkingDetectionConfig(
         }
         require(shortHopProofFloorMeters > sustainedDepartureFloorMeters) {
             "shortHopProofFloorMeters ($shortHopProofFloorMeters) must be > sustainedDepartureFloorMeters ($sustainedDepartureFloorMeters)"
+        }
+        require(rawDriveSignalMinFixes > 1) {
+            "rawDriveSignalMinFixes must be > 1 (one sample is a cold-start Doppler spike), was $rawDriveSignalMinFixes"
         }
         require(shortHopProofFixes > 1) {
             "shortHopProofFixes must be > 1 (a single fix can be a cache teleport), was $shortHopProofFixes"

@@ -36,6 +36,7 @@ class EvaluateUnattendedParkingSaveUseCaseTest {
     private fun input(
         maxSpeedMps: Float = drivingSpeed,
         pendingMaxSpeedMps: Float = drivingSpeed,
+        credibleDrivingFixes: Int = config.rawDriveSignalMinFixes,
         anchor: GpsPoint? = this.anchor,
         currentFix: GpsPoint = fix(),
         egressOriginFix: GpsPoint? = null,
@@ -53,6 +54,7 @@ class EvaluateUnattendedParkingSaveUseCaseTest {
     ) = UnattendedSaveInput(
         maxSpeedMps = maxSpeedMps,
         pendingMaxSpeedMps = pendingMaxSpeedMps,
+        credibleDrivingFixes = credibleDrivingFixes,
         anchor = anchor,
         currentFix = currentFix,
         egressOriginFix = egressOriginFix,
@@ -156,6 +158,48 @@ class EvaluateUnattendedParkingSaveUseCaseTest {
                 maxSpeedMps = 0f,
                 pendingMaxSpeedMps = drivingSpeed,
                 currentFix = fix(lat = 36.60600, lon = -6.27820), // ~270 m from the anchor
+                stepCount = config.anchorLockEgressSteps + 50,
+                sessionSawSteps = true,
+            )
+        )
+
+        val zone = assertIs<UnattendedParkingSave.SaveZone>(verdict)
+        assertEquals(UnattendedSaveReason.NO_DRIVE_EGRESS, zone.reason)
+    }
+
+    /**
+     * [DET-SENTRY-ARM-PEDESTRIAN-CLOCK-001] The raw speed PEAK is one sample, and a receiver
+     * converging out of a cold start emits exactly one. Field 2026-08-16 23:52 (Oppo): every confirm
+     * path correctly refused the walk-out, and then this limb sold it an approximate zone off that
+     * single 42 km/h fix. The hardening moved here when the chain became a pure verdict.
+     */
+    @Test
+    fun should_ask_when_theOnlyVehicularSignalIsASingleRawSpeedSpike() {
+        val verdict = evaluate(
+            input(
+                maxSpeedMps = 0f,
+                pendingMaxSpeedMps = drivingSpeed,
+                credibleDrivingFixes = 1,
+                vehicleExitConfirmed = false,
+                currentFix = fix(lat = 36.60600, lon = -6.27820),
+                stepCount = config.anchorLockEgressSteps + 50,
+                sessionSawSteps = true,
+            )
+        )
+
+        assertEquals(UnattendedParkingSave.Ask(UnattendedSaveReason.NO_DRIVE), verdict)
+    }
+
+    /** An AR vehicle-exit is external evidence, not a sample: it carries the branch on its own. */
+    @Test
+    fun should_saveZone_when_anArVehicleExitBacksTheNoDriveBranch() {
+        val verdict = evaluate(
+            input(
+                maxSpeedMps = 0f,
+                pendingMaxSpeedMps = 0f,
+                credibleDrivingFixes = 0,
+                vehicleExitConfirmed = true,
+                currentFix = fix(lat = 36.60600, lon = -6.27820),
                 stepCount = config.anchorLockEgressSteps + 50,
                 sessionSawSteps = true,
             )

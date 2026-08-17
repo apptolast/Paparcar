@@ -27,8 +27,7 @@ import io.apptolast.paparcar.domain.util.haversineMeters
  *    many phantom 45 m/s bursts the chipset reports. Anchoring to the session's first fix would
  *    have handed the mirage its own burst as the origin and called the return home a "drive".
  *
- * Doctrine: leaving the pin only NOMINATES (that is why [departureProven] is required but never
- * sufficient); what CONFIRMS is measured ground covered — sustained across
+ * Doctrine: leaving the pin only NOMINATES; what CONFIRMS is measured ground covered — sustained across
  * [ParkingDetectionConfig.shortHopProofFixes] consecutive credible fixes, beyond
  * [ParkingDetectionConfig.shortHopProofFloorMeters], past the fence radius and both accuracy
  * envelopes, and beyond what legs could have covered in the elapsed time. Asymmetric failure: every
@@ -38,14 +37,14 @@ class EvaluateShortHopDriveProofUseCase(
     private val config: ParkingDetectionConfig,
 ) {
 
+    private companion object {
+        const val KMH_PER_MPS = 3.6f
+    }
+
     /**
      * @param departureAnchor The pin the car left (the nominating fence's parked position). Null
      *   for manual / AR-armed trips with no origin pin → never proves anything.
      * @param fix The fix being processed.
-     * @param departureProven Whether the car has PROVEN it left [departureAnchor] — by verified arm
-     *   evidence, by the departure worker's post-arm upgrade, or by the session's own measurement
-     *   ([EvaluateMeasuredDepartureUseCase]). Required, never sufficient.
-     *   [DET-UNVERIFIED-ARM-DRIVE-PROOF-001]
      * @param fenceRadiusMeters Radius of the fence the car left — the user could already have been
      *   anywhere inside it when the clock started, so it counts in favour of "walkable".
      * @param elapsedSinceArmMs Wall-clock since the session armed.
@@ -55,12 +54,10 @@ class EvaluateShortHopDriveProofUseCase(
     operator fun invoke(
         departureAnchor: GpsPoint?,
         fix: GpsPoint,
-        departureProven: Boolean,
         fenceRadiusMeters: Float,
         elapsedSinceArmMs: Long,
         consecutiveQualifyingFixes: Int,
     ): Boolean {
-        if (!departureProven) return false
         if (consecutiveQualifyingFixes < config.shortHopProofFixes) return false
         if (!qualifies(departureAnchor, fix, fenceRadiusMeters, elapsedSinceArmMs)) return false
         return true
@@ -79,6 +76,22 @@ class EvaluateShortHopDriveProofUseCase(
         val anchor = departureAnchor ?: return false
         // A degraded fix measures nothing — the same credibility gate every drive decision uses.
         if (fix.accuracy > config.minGpsAccuracyForDriving) return false
+        // [DET-SENTRY-ARM-PEDESTRIAN-CLOCK-001] …and a fix that is merely FAR measures nothing
+        // either. Every other clause below is geometry against the pin, which answers "where has
+        // the car ended up?" — never "did THIS session watch it get there?". On an arm that bounds
+        // when the car left (a fence EXIT, a boarding) the two questions coincide, because the
+        // clock and the departure start together. On a sentry-wake they do not: the sensor can fire
+        // minutes or hours after the user walked off, so `elapsedSinceArmMs` starts at zero with a
+        // kilometre of WALKING already banked, and `isBeyondPedestrianReach` duly certifies it as
+        // unwalkable. Field 2026-08-16 23:52, Oppo session `1786917152243`: 990 m of pavement
+        // covered on foot from the previous pin, a sentry-wake arm, and three consecutive
+        // stationary fixes sitting at that distance handed the session a drive proof — which
+        // unlocked `maxSpeedMps` off a single 42 km/h cold-start Doppler spike, disarmed the
+        // `self_observed` weak-evidence guard, and let 220 walking steps plant a pin at the beach.
+        // The run that constitutes the proof must therefore MEASURE driving, fix by fix: the same
+        // canonical predicate the pre-arm verifier applies. A pedestrian cannot sustain it across
+        // `shortHopProofFixes` consecutive credible fixes; a real hop produces nothing else.
+        if (!config.isCredibleDrivingSpeed(fix.speed * KMH_PER_MPS, fix.accuracy)) return false
         val distance = haversineMeters(
             anchor.latitude, anchor.longitude,
             fix.latitude, fix.longitude,

@@ -1693,6 +1693,72 @@ class CoordinatorParkingDetectorTest {
             assertEquals(0, env.notification.markParkingNudgeCallCount, "a proven drive never degrades to the mark-your-spot nudge")
         }
 
+    @Test
+    fun should_not_pin_when_a_sentry_wake_arms_after_the_user_already_walked_away() =
+        runTest(UnconfinedTestDispatcher()) {
+            // Field 2026-08-16 23:52 (Oppo, session 1786917152243) — the FALSE POSITIVE that names
+            // DET-SENTRY-ARM-PEDESTRIAN-CLOCK-001. The user walked ~990 m from the previous pin to
+            // the seafront. The significant-motion sensor fired there, arming a session
+            // `self_observed` with the whole walk already banked, so `elapsedSinceArmMs` started at
+            // zero and `isBeyondPedestrianReach` read a kilometre covered "in 15 s". Three
+            // consecutive far-but-stationary fixes then satisfied the displacement proof, which
+            // unlocked `maxSpeedMps` off the single 42 km/h Doppler spike the receiver emits as it
+            // converges out of a cold start — and with `sessionSawDriving` true the `self_observed`
+            // weak-evidence guard stood down and 220 walking steps silently pinned the beach.
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val pin = GpsPoint(40.0, -3.7, accuracy = 8f, timestamp = 0L, speed = 0f)
+            val job = launch {
+                env.coordinator.invoke(
+                    locations,
+                    armEvidence = ArmEvidence.Unverified,
+                    departureAnchor = pin,
+                    departureFenceRadiusMeters = 80f,
+                )
+            }
+
+            // Cold start ~990 m from the pin: two coarse fixes, then the convergence spike.
+            val seafrontLat = 40.0089
+            locations.emit(GpsPoint(seafrontLat, -3.7, accuracy = 100f, timestamp = 0L, speed = 0f))
+            nowMs = 5_000L
+            locations.emit(GpsPoint(seafrontLat, -3.7, accuracy = 100f, timestamp = nowMs, speed = 0f))
+            nowMs = 10_000L
+            locations.emit(GpsPoint(seafrontLat, -3.7, accuracy = 11.5f, timestamp = nowMs, speed = 11.7f))
+            // …and from here on, a person on foot. Nothing else in the session ever moves faster.
+            nowMs = 13_000L
+            locations.emit(GpsPoint(seafrontLat, -3.7, accuracy = 20f, timestamp = nowMs, speed = 0.6f))
+            nowMs = 25_000L
+            locations.emit(GpsPoint(seafrontLat, -3.7, accuracy = 9f, timestamp = nowMs, speed = 0.3f))
+            env.stepDetector.emitSteps(220) // the walk along the promenade
+            nowMs = 190_000L
+            locations.emit(GpsPoint(40.00995, -3.7, accuracy = 4f, timestamp = nowMs, speed = 0.9f))
+
+            assertEquals(
+                0,
+                env.parkingRepo.saveNewParkingSessionCallCount,
+                "a walk-out must never confirm silently [DET-SENTRY-ARM-PEDESTRIAN-CLOCK-001]",
+            )
+
+            nowMs += config.confirmationResponseTimeoutMs + 1_000L
+            locations.emit(GpsPoint(40.00995, -3.7, accuracy = 4f, timestamp = nowMs, speed = 0.1f))
+            nowMs += config.confirmationResponseTimeoutMs + 1_000L
+            locations.emit(GpsPoint(40.00995, -3.7, accuracy = 4f, timestamp = nowMs, speed = 0.1f))
+
+            job.cancelAndJoin()
+
+            assertEquals(
+                0,
+                env.parkingRepo.saveNewParkingSessionCallCount,
+                "no measured driving anywhere in this session — nothing may be pinned",
+            )
+            val ended = env.detectionLogger.events.filterIsInstance<DetectionEvent.SessionEnded>().single()
+            assertTrue(
+                ended.outcome != "confirmed_steps+egress",
+                "the field FP outcome must be gone, was ${ended.outcome}",
+            )
+        }
+
     // ─────────────────────────────────────────────────────────────────────────
     // DET-DRIVE-PROOF-001: a Doppler mirage is not measured driving
     // ─────────────────────────────────────────────────────────────────────────
