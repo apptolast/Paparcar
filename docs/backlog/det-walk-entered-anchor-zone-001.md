@@ -1,6 +1,6 @@
 # DET-WALK-ENTERED-ANCHOR-ZONE-001 · un ancla dudosa degrada la PRECISIÓN del pin, nunca borra el aparcamiento
 
-**Estado:** 🔵 En progreso · rama `bugfix/DET-WALK-ENTERED-ANCHOR-ZONE-001-keep-park-on-sustained-stop` · worktree `../Paparcar-walk-entered-zone`
+**Estado:** ✅ **DONE — master `7bdb6a18`** (ff-only 17-08, sin pushear; rama + worktree borrados) · ⏳ pendiente validar en campo
 
 ## Problema
 
@@ -170,6 +170,11 @@ consecuencia.
   - `docs/detection/PARKING-DETECTION.md` actualizado (Sección 2).
   - Dev Catalog / strings / `detectionPath`: sin cambios — no hay pantalla, estado ni provenance
     nueva (`unattended_zone_walk_entered_anchor` ya existía; sólo pasa a ser alcanzable).
+- 2026-08-17 — **mergeado a master `7bdb6a18`** con `--ff-only` (no `--squash`: el árbol principal
+  tenía trabajo del user staged y un squash lo habría metido en el commit; la rama tenía un único
+  commit, así que el ff da el mismo "un ticket = un commit" sin tocar su index). APK firmado
+  `prodRelease` compilado, sha256 `6c44efa3db7edeb77eb06d1b7f485274236cecb242f839a2ed310b3102602e79`
+  — **sin instalar: no había ningún móvil conectado**.
 - ⚠️ **Solape conocido con DET-BIKE-NOT-A-CAR-001**: ese ticket veta exactamente esta cadena. Al
   cerrarse éste, aquél debe rebasar sobre master y meter su veto como rama temprana del evaluador,
   en vez de tocar el `when` del coordinator.
