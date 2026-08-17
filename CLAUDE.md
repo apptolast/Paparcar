@@ -146,6 +146,24 @@ elige rol. Fuente de verdad: `ui/theme/PaparcarType.kt` (18 roles), se lee
   `-it`, `-pt`, `-fr`, `-de`, `-nl`, `-pl`, `-ro`. Si la traducción no está clara, poner el texto
   inglés antes que omitir la key — Compose Resources **crashea** si falta en el locale activo.
 
+### ⛔ Un caso de uso por VEREDICTO, nunca por PREDICADO [DET-VERDICT-NOT-PREDICATE-001]
+Regla mental: *si su resultado no se puede citar en un diagnóstico, no es un caso de uso.*
+- Es **veredicto** si su resultado aparece en el vocabulario de diagnóstico (`detectionPath`,
+  `outcome`, `armEvidence`, `sessionOutcome`) o cambia lo que ve el usuario → **caso de uso propio**
+  en `domain/usecase/<área>/`, con su test unitario.
+- Es **predicado** si sólo alimenta a un veredicto → vive **dentro** de ese veredicto. Si lo comparten
+  2+ veredictos → función pura de nivel superior en `domain/detection/` (patrón ya establecido:
+  `SentryWakeCooldown.kt`, `SentryLifecycleDecision.kt`, `VehicleFenceOwnershipPolicy.kt`,
+  `HumanPoweredRide.kt`). Sigue siendo directamente testeable, sin ceremonia de clase inyectada.
+- **Un predicado NO se queda como método privado del coordinator sólo porque estuvieras editando ese
+  fichero.** Ese reflejo es lo que produjo a la vez 45 casos de uso y un `CoordinatorParkingDetector`
+  de 2.600 líneas con 11 predicados puros dentro — no son dos problemas opuestos, son el mismo.
+- **Arreglar un bug no justifica un caso de uso nuevo.** Lo normal es añadir una línea a un evaluador
+  que ya existe. Crear uno se justifica cuando hay lógica **inalcanzable para los tests** (p. ej. una
+  cadena que sólo se ejecuta tras un timeout de 15 min de reloj real).
+- Antes de crear uno: `ls domain/usecase/*/ | wc -l` y buscar si sus predicados ya viven en otro. Dos
+  evaluadores con los MISMOS parámetros donde uno es superconjunto del otro son un solo evaluador.
+
 ### ⛔ Magic numbers — NUNCA inline
 Constantes en `companion object` privado de la clase que las usa, UPPER_SNAKE_CASE. Si la comparten
 2+ clases → fichero de config del módulo. Nunca en God Objects compartidos.
