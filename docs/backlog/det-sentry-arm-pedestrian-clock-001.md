@@ -1,6 +1,6 @@
 # DET-SENTRY-ARM-PEDESTRIAN-CLOCK-001 · el reloj peatonal sólo vale si el arm acota cuándo salió el coche
 
-**Estado:** 🔵 Commiteado y rebasado sobre master `8237c5c4` · rama `bugfix/DET-SENTRY-ARM-PEDESTRIAN-CLOCK-001-in-session-ground` · worktree `../Paparcar-sentry-arm-clock`
+**Estado:** ✅ **DONE — master `6ae35526`** (ff-only 17-08, sin pushear; rama + worktree borrados) · ⏳ pendiente validar en campo
 
 ## Problema
 
@@ -189,3 +189,6 @@ consumidores.
     'credibleDrivingFixes'` en el builder que ticket 1 dejó en master) — arreglado, y añadidos 2 tests
     que cubren el limbo en su nueva casa (pico único → Ask · AR vehicle-exit → zona).
   - **1203 tests verdes**, prod + mock compilan. Backup en tag `prerebase/DET-SENTRY-ARM-PEDESTRIAN-CLOCK-001`.
+
+- 2026-08-17 — **mergeado a master `6ae35526`** con `--ff-only` (el árbol principal seguía con trabajo
+  del user staged). 1212 tests verdes en master con los tres tickets dentro.

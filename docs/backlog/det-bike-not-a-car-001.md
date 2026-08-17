@@ -1,6 +1,6 @@
 # DET-BIKE-NOT-A-CAR-001 · una bici supera todos los umbrales de "coche", y nadie la contradice
 
-**Estado:** 🔵 Commiteado y rebasado **sobre la rama del ticket 2** (stack 1→2→3) · rama `bugfix/DET-BIKE-NOT-A-CAR-001-ar-bicycle-veto` · worktree `../Paparcar-bike-not-car`
+**Estado:** ✅ **DONE — master `0e37d538`** (ff-only 17-08 tras el stack 1→2→3, sin pushear; rama + worktree borrados) · ⏳ pendiente validar en campo
 
 ## Problema
 
@@ -162,3 +162,6 @@ tratarlo como bug vivo.
 - ⏳ Pendiente: **confirmar qué build lleva el Samsung de Carlos** antes de tratar la sesión
   `1786873042480` (`aborted_unattended_no_drive` con 80 km/h y 44 fixes) como bug vivo — es la firma
   de `e9186a52`, ya cerrado en master.
+
+- 2026-08-17 — **mergeado a master `0e37d538`** con `--ff-only`, cerrando el stack. 1212 tests verdes
+  en master. Follow-up vivo sin código: [DET-BIKE-DEPARTURE-RELEASE-001](det-bike-departure-release-001.md).
