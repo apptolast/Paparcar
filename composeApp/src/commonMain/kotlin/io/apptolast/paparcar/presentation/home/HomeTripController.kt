@@ -247,7 +247,10 @@ class HomeTripController(
                             // A fresh trail (first fix / cold restart mid-trip). Rebuild the route
                             // from the durable sources so it is the REAL trip, not a reconstruction:
                             //  1. the parked spot as the backdated origin (service departure point, or
-                            //     the vehicle's active session from Room — survives a process death),
+                            //     the vehicle's active session from Room — survives a process death —
+                            //     or, when the verified departure already RELEASED that session
+                            //     mid-trip, the vehicle's most recent previous parking: the car
+                            //     still left from that pin [ROUTE-START-AT-CAR-001]),
                             //  2. the dense route the service recorded while tracking, restored from
                             //     disk so background / cold-start doesn't lose the driven path.
                             // The origin is prepended so the line still starts at the spot the car
@@ -256,6 +259,7 @@ class HomeTripController(
                             // [DET-ROUTE-ORIGIN-002] [DET-ROUTE-TRACK-001]
                             val originHint = pair?.first?.departurePoint
                                 ?: parkedOriginFor(puck.vehicleId, activeSessions)
+                                ?: previousParkedOriginFor(puck.vehicleId)
                             val origin = backdatedOrigin(originHint, puck)
                             val recorded = freshRecordedRoute()
                             buildList {
@@ -310,6 +314,23 @@ class HomeTripController(
         val byVehicle = vehicleId?.let { vid -> sessions.firstOrNull { it.vehicleId == vid } }
         val session = byVehicle ?: sessions.singleOrNull()?.takeIf { vehicleId == null }
         return session?.location
+    }
+
+    /**
+     * [ROUTE-START-AT-CAR-001] The origin when the vehicle's session is no longer ACTIVE: on a
+     * healthy trip the verified departure released the spot minutes after driving off, so a cold
+     * restart mid-trip finds no active session — but the car still left from its most recent pin.
+     * Vehicle-scoped only (never guesses among cars); the caller's 5 km plausibility ceiling
+     * ([backdatedOrigin]) rejects a stale cross-town pin.
+     */
+    private suspend fun previousParkedOriginFor(vehicleId: String?): GpsPoint? {
+        vehicleId ?: return null
+        return runCatching {
+            userParkingRepository.getPreviousSession(
+                vehicleId = vehicleId,
+                beforeTimestamp = kotlin.time.Clock.System.now().toEpochMilliseconds(),
+            )
+        }.getOrNull()?.location
     }
 
     private fun backdatedOrigin(parkedAt: GpsPoint?, fix: DrivingPuck): GpsPoint? {

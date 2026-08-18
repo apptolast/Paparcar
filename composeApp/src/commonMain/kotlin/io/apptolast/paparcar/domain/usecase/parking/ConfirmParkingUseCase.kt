@@ -215,16 +215,26 @@ class ConfirmParkingUseCase(
         // fix is recent belongs to THIS trip — a stale one lingering from a previous aborted trip
         // (the store is cleared on confirm, not on abort) must not be attached to this park. BT parks
         // never tracked a drive, so their store is empty → no route (the honest result).
-        // [ROUTE-QUALITY-001] The trip's true ORIGIN is this vehicle's still-active previous parking
-        // — the store's first element is only the first fix the tracker saw after arming, typically
+        // [ROUTE-QUALITY-001] The trip's true ORIGIN is this vehicle's previous parking — the
+        // store's first element is only the first fix the tracker saw after arming, typically
         // already hundreds of metres into the drive (field 2026-08-10: the stored line began on the
         // A-491, ~500 m past the real spot). Prepend it, plausibility-capped, so the stored route
         // starts where the car actually left from (the polyline carries lat/lon only — the origin's
         // old timestamp is irrelevant).
+        // [ROUTE-START-AT-CAR-001] "Previous parking" must NOT require the session to still be
+        // ACTIVE: on a healthy trip the verified departure released the spot (and deactivated the
+        // session) minutes after driving off, so an active-only lookup returns null at every
+        // properly-detected consecutive park and the seed only ever fired when departure detection
+        // had FAILED (field 2026-08-17 23:57: route born 130 m past the previous pin). The car does
+        // not move on its own — its most recent pin, active or released, is where this trip began;
+        // the plausibility cap below still rejects a stale cross-town origin.
         // [ROUTE-END-AT-CAR-001] The route is the DRIVING route and must END at the pin: the store
         // keeps sampling while the user walks away with GPS live, so the raw buffer is trimmed to
         // the anchor's fix (the measured end of driving) and capped with the pin as final vertex.
-        val routeOrigin = userParkingRepository.getActiveSessionByVehicle(resolvedVehicleId)?.location
+        val routeOrigin = (
+            userParkingRepository.getActiveSessionByVehicle(resolvedVehicleId)
+                ?: userParkingRepository.getPreviousSession(resolvedVehicleId, gpsPoint.timestamp)
+            )?.location
         val routePolyline = encodeFreshRoute(nowMs = gpsPoint.timestamp, origin = routeOrigin, anchor = location)
 
         val session = UserParking(

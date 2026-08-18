@@ -674,6 +674,25 @@ class ConfirmParkingUseCaseTest {
     }
 
     @Test
+    fun `should seed the origin from the released previous session when the departure already freed the spot`() = runTest {
+        // [ROUTE-START-AT-CAR-001] Field 2026-08-17 23:57 (Redmi): on a healthy trip the verified
+        // departure releases the previous session minutes after driving off, so an active-only
+        // lookup finds nothing at confirm time and the saved route was born ~130 m past the pin.
+        // The car still left from that pin — a released session seeds the origin all the same.
+        val now = Clock.System.now().toEpochMilliseconds()
+        val route = freshRoute(now)
+        val previous = recentActiveSession(lat = 40.4115, lon = -3.7040).copy(isActive = false)
+        val useCase = buildUseCase(
+            repo = FakeUserParkingRepository(initialSession = previous),
+            routeStore = FakeDrivingRouteStore(initial = route),
+        )
+
+        val saved = useCase(location, detectionReliability = 0.9f, sealPoint = null).getOrNull()
+        assertNotNull(saved)
+        assertEquals(PolylineCodec.encode(listOf(previous.location) + route), saved.routePolyline)
+    }
+
+    @Test
     fun `should not prepend an origin further than the plausibility ceiling`() = runTest {
         // A previous parking across town (stale session) is another story — never stretch the line.
         val now = Clock.System.now().toEpochMilliseconds()
