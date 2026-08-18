@@ -169,6 +169,46 @@ class HomeSlicesTest {
         assertEquals("s-a", state.userParking?.id)
     }
 
+    // ── Vehicles row order — driving > parked (by recency) > unparked ─────────
+    // [UI-BROWSE-DRIVING-OVER-PARKED-001]
+
+    @Test
+    fun should_float_the_driving_vehicle_first_even_when_another_car_is_parked() {
+        val parked = VehicleCard(vehicle("veh-parked"), session("s1", "veh-parked"))
+        val driving = VehicleCard(vehicle("veh-driving"), session = null)
+        val order = vehiclesRowOrder(listOf(parked, driving), drivingVehicleId = "veh-driving")
+        assertEquals(listOf("veh-driving", "veh-parked"), order.map { it.vehicle.id })
+    }
+
+    @Test
+    fun should_order_parked_cards_by_most_recent_park_not_list_order() {
+        // The OLD car is better watched (BT) and comes first in list order — recency must still win.
+        val oldBt = VehicleCard(
+            vehicle("veh-old", bluetoothDeviceId = "AA:BB"),
+            session("s-old", "veh-old", parkedAt = 1_000L),
+        )
+        val recent = VehicleCard(vehicle("veh-recent"), session("s-recent", "veh-recent", parkedAt = 2_000L))
+        val order = vehiclesRowOrder(listOf(oldBt, recent), drivingVehicleId = null)
+        assertEquals(listOf("veh-recent", "veh-old"), order.map { it.vehicle.id })
+    }
+
+    @Test
+    fun should_break_a_parked_timestamp_tie_by_watch_rank_matching_the_preferred_session() {
+        val plain = VehicleCard(vehicle("veh-plain"), session("s-plain", "veh-plain"))
+        val bt = VehicleCard(vehicle("veh-bt", bluetoothDeviceId = "AA:BB"), session("s-bt", "veh-bt"))
+        val order = vehiclesRowOrder(listOf(plain, bt), drivingVehicleId = null)
+        assertEquals(listOf("veh-bt", "veh-plain"), order.map { it.vehicle.id })
+    }
+
+    @Test
+    fun should_rank_unparked_cards_by_watch_after_every_parked_one() {
+        val unparkedBt = VehicleCard(vehicle("veh-bt", bluetoothDeviceId = "AA:BB"), session = null)
+        val unparkedPlain = VehicleCard(vehicle("veh-plain"), session = null)
+        val parked = VehicleCard(vehicle("veh-parked"), session("s1", "veh-parked"))
+        val order = vehiclesRowOrder(listOf(unparkedPlain, unparkedBt, parked), drivingVehicleId = null)
+        assertEquals(listOf("veh-parked", "veh-bt", "veh-plain"), order.map { it.vehicle.id })
+    }
+
     // ── Map slice: AddingParking vehicle resolution ───────────────────────────
 
     @Test

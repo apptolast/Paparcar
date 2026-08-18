@@ -21,11 +21,18 @@ package io.apptolast.paparcar.domain.model
 fun preferredParkingSession(
     activeSessions: List<UserParking>,
     vehicles: List<Vehicle>,
-): UserParking? = activeSessions.maxWithOrNull(
+): UserParking? = activeSessions.maxWithOrNull(parkedSessionPreference(vehicles))
+
+/**
+ * The preference behind [preferredParkingSession], exposed so every surface that ORDERS parked
+ * sessions (e.g. Home's vehicle chips row) ranks them with the same rule instead of re-deriving
+ * it. Greater = more preferred: most recent park first, watch rank only breaks timestamp ties.
+ * [UI-BROWSE-DRIVING-OVER-PARKED-001]
+ */
+fun parkedSessionPreference(vehicles: List<Vehicle>): Comparator<UserParking> =
     compareBy<UserParking> { it.location.timestamp }
         .thenByDescending { session ->
             vehicles.firstOrNull { it.id == session.vehicleId }
                 ?.monitoringStatus()?.sortRank()
                 ?: Int.MAX_VALUE
-        },
-)
+        }

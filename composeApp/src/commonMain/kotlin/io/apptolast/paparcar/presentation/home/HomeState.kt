@@ -21,7 +21,10 @@ import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.Zone
 import io.apptolast.paparcar.domain.model.ZoneIcon
+import io.apptolast.paparcar.domain.model.monitoringStatus
+import io.apptolast.paparcar.domain.model.parkedSessionPreference
 import io.apptolast.paparcar.domain.model.preferredParkingSession
+import io.apptolast.paparcar.domain.model.sortRank
 
 /**
  * Per-vehicle row used by the "TUS VEHÍCULOS" section.
@@ -275,3 +278,25 @@ internal fun preferredSession(
     activeSessions: List<UserParking>,
     vehicles: List<Vehicle>,
 ): UserParking? = preferredParkingSession(activeSessions, vehicles)
+
+/** The card whose trip is being detected RIGHT NOW (driving, not yet parked). [CHIP-DRIVING-001] */
+internal fun VehicleCard.isDriving(drivingVehicleId: String?): Boolean =
+    session == null && drivingVehicleId != null && vehicle.id == drivingVehicleId
+
+/**
+ * Order of the "TUS VEHÍCULOS" strip: the vehicle being actively monitored floats first (a live
+ * trip outranks any parked car), then parked cars by the SAME preference that picks the preferred
+ * session (most recent park first, watch rank only breaks ties — never Room's list order), then
+ * unparked cars by watch rank. [CHIP-DRIVING-001] [UI-BROWSE-DRIVING-OVER-PARKED-001]
+ */
+internal fun vehiclesRowOrder(
+    cards: List<VehicleCard>,
+    drivingVehicleId: String?,
+): List<VehicleCard> {
+    val parkedPreference = parkedSessionPreference(cards.map { it.vehicle })
+    return cards.sortedWith(
+        compareByDescending<VehicleCard> { it.isDriving(drivingVehicleId) }
+            .thenBy(nullsLast(parkedPreference.reversed())) { it.session }
+            .thenBy { it.vehicle.monitoringStatus().sortRank() },
+    )
+}

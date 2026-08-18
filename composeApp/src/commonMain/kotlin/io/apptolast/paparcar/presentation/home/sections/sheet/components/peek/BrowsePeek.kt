@@ -70,7 +70,54 @@ internal fun BrowsePeek(
     freeCount: Int,
     showZoneHeader: Boolean,
 ) {
-    // ── Subject = the parked car (collapsed peek only) ────────────────────────
+    // ── Subject = the car being driven RIGHT NOW (monitored trip) ─────────────
+    // Collapsed peek only. A live trip OUTRANKS any parked car — the vehicle being actively
+    // monitored is the one standing in for the user, same hierarchy the readiness already follows
+    // (Monitoring > Parked). The live phase reads in the eyebrow — EN RUTA while driving,
+    // APARCANDO… once it stops and the detector is confirming a spot — and the address follows the
+    // moving car via the camera geocode. This is where the removed floating "monitoring" pill's
+    // status now lives. [DET-STATUS-SHEET-001] [UI-BROWSE-DRIVING-OVER-PARKED-001]
+    if (drivingMeta != null && !showZoneHeader) {
+        val vehicleName = vehicleSummary(drivingVehicle) ?: stringResource(Res.string.home_vehicle_fallback_name)
+        val isCandidate = drivingMeta.phase == DetectionPhase.Candidate
+        // Reuse the already-translated phase words (same as the old pill / vehicle chip) so the eyebrow
+        // stays i18n-complete without new per-locale strings. [DET-STATUS-SHEET-001]
+        val phaseWord = stringResource(
+            if (isCandidate) Res.string.home_vehicle_chip_status_candidate
+            else Res.string.home_det_monitoring,
+        )
+        val title = cameraInfo?.placeInfo?.name
+            ?: cameraInfo?.displayLine?.takeIf { it.isNotBlank() }
+            ?: stringResource(Res.string.home_address_unknown)
+        val secondaryLine = if (cameraInfo?.placeInfo != null) {
+            cameraInfo.address.displayLine?.takeIf { it != cameraInfo.placeInfo.name }
+        } else {
+            listOfNotNull(cameraInfo?.address?.city, cameraInfo?.address?.region)
+                .joinToString(", ").takeIf { it.isNotEmpty() }
+        }
+        PapSheet(
+            lead = PapSheetLead.Vehicle(
+                carbody = drivingVehicle?.carbodyType,
+                size = drivingVehicle?.sizeCategory,
+                color = drivingVehicle?.color,
+                loading = drivingVehicle == null,
+            ),
+            eyebrow = stringResource(Res.string.home_peek_vehicle_status, vehicleName, phaseWord),
+            // Only the NAME wears the identity colour (watch method); the phase word ("EN RUTA" /
+            // "APARCANDO…") is state and stays neutral. [UI-COLOR-DOCTRINE-001]
+            eyebrowColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            eyebrowHighlight = vehicleName,
+            eyebrowHighlightColor = vehicleIdentityColor(drivingVehicle?.monitoringStatus()?.watch() ?: VehicleWatch.Off),
+            title = title,
+            subtitle = secondaryLine,
+            // No free-spots pill in the collapsed peek: the count already reads once the sheet is
+            // expanded (spots section header), so a trailing pill here just duplicates it.
+            trailing = null,
+        )
+        return
+    }
+
+    // ── Subject = the parked car (collapsed peek only, no live trip) ──────────
     // Title/sub come from THE SESSION — static. The camera must never drag your parked
     // car around ("one car parked in two places"). Expanded browse hands the header to
     // the zone below: the car's info lives in its TUS VEHÍCULOS card. [UI-SHEET-004]
@@ -116,50 +163,6 @@ internal fun BrowsePeek(
             subtitle = subtitle,
             // No free-spots pill in the collapsed peek: the count already reads once the sheet is
             // expanded (spots section header), so a trailing pill here just duplicates it.
-            trailing = null,
-        )
-        return
-    }
-
-    // ── Subject = the car being driven RIGHT NOW (monitored trip, no session yet) ─
-    // Collapsed peek only. The live phase reads in the eyebrow — EN RUTA while driving,
-    // APARCANDO… once it stops and the detector is confirming a spot — and the address follows the
-    // moving car via the camera geocode. This is where the removed floating "monitoring" pill's
-    // status now lives. [DET-STATUS-SHEET-001]
-    if (drivingMeta != null && !showZoneHeader) {
-        val vehicleName = vehicleSummary(drivingVehicle) ?: stringResource(Res.string.home_vehicle_fallback_name)
-        val isCandidate = drivingMeta.phase == DetectionPhase.Candidate
-        // Reuse the already-translated phase words (same as the old pill / vehicle chip) so the eyebrow
-        // stays i18n-complete without new per-locale strings. [DET-STATUS-SHEET-001]
-        val phaseWord = stringResource(
-            if (isCandidate) Res.string.home_vehicle_chip_status_candidate
-            else Res.string.home_det_monitoring,
-        )
-        val title = cameraInfo?.placeInfo?.name
-            ?: cameraInfo?.displayLine?.takeIf { it.isNotBlank() }
-            ?: stringResource(Res.string.home_address_unknown)
-        val secondaryLine = if (cameraInfo?.placeInfo != null) {
-            cameraInfo.address.displayLine?.takeIf { it != cameraInfo.placeInfo.name }
-        } else {
-            listOfNotNull(cameraInfo?.address?.city, cameraInfo?.address?.region)
-                .joinToString(", ").takeIf { it.isNotEmpty() }
-        }
-        PapSheet(
-            lead = PapSheetLead.Vehicle(
-                carbody = drivingVehicle?.carbodyType,
-                size = drivingVehicle?.sizeCategory,
-                color = drivingVehicle?.color,
-                loading = drivingVehicle == null,
-            ),
-            eyebrow = stringResource(Res.string.home_peek_vehicle_status, vehicleName, phaseWord),
-            // Only the NAME wears the identity colour (watch method); the phase word ("EN RUTA" /
-            // "APARCANDO…") is state and stays neutral. [UI-COLOR-DOCTRINE-001]
-            eyebrowColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            eyebrowHighlight = vehicleName,
-            eyebrowHighlightColor = vehicleIdentityColor(drivingVehicle?.monitoringStatus()?.watch() ?: VehicleWatch.Off),
-            title = title,
-            subtitle = secondaryLine,
-            // No free-spots pill here either — it duplicates the count shown in the expanded sheet.
             trailing = null,
         )
         return

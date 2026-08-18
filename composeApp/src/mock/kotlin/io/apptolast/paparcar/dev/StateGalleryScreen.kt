@@ -623,6 +623,24 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     ),
                 )
             },
+            // A live trip OUTRANKS a parked car as the peek subject: driving the Corolla while the
+            // sedan sits parked → the peek says "EN RUTA", not the sedan's parked header.
+            // [UI-BROWSE-DRIVING-OVER-PARKED-001]
+            Variant("Peek · en ruta gana al aparcado", Placement.Surface) {
+                peek(
+                    HomeState(
+                        cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
+                        vehicles = listOf(FakeData.vehicleSedan, FakeData.vehicleCorolla),
+                        activeSessions = listOf(FakeData.activeSession.copy(vehicleId = FakeData.vehicleSedan.id)),
+                        userGpsPoint = sampleGps,
+                        nearbySpots = FakeData.nearbySpots,
+                        drivingMeta = io.apptolast.paparcar.presentation.home.DrivingMeta(
+                            vehicleId = FakeData.vehicleCorolla.id,
+                            phase = io.apptolast.paparcar.domain.detection.DetectionPhase.Driving,
+                        ),
+                    ),
+                )
+            },
             Variant("Sheet · coche + spots") {
                 sheet(
                     HomeState(

@@ -43,11 +43,11 @@ import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.detection.DetectionPhase
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.VehicleSize
-import io.apptolast.paparcar.domain.model.monitoringStatus
-import io.apptolast.paparcar.domain.model.sortRank
 import io.apptolast.paparcar.presentation.home.HomeBrowseListSlice
 import io.apptolast.paparcar.presentation.home.HomeIntent
 import io.apptolast.paparcar.presentation.home.VehicleCard
+import io.apptolast.paparcar.presentation.home.isDriving
+import io.apptolast.paparcar.presentation.home.vehiclesRowOrder
 import io.apptolast.paparcar.presentation.home.model.DetectionStory
 import io.apptolast.paparcar.presentation.home.model.resolveDetectionStory
 import io.apptolast.paparcar.presentation.home.sections.sheet.HomeSheetAction
@@ -219,16 +219,13 @@ private fun LazyListScope.vehiclesSection(
     val userLocation = slice.userGpsPoint?.let { Pair(it.latitude, it.longitude) }
     // The vehicle whose trip is being detected RIGHT NOW (driving, not yet parked). [CHIP-DRIVING-001]
     val drivingVehicleId = slice.drivingMeta?.vehicleId
-    fun VehicleCard.isDriving() = session == null && vehicle.id == drivingVehicleId
+    fun VehicleCard.isDriving() = isDriving(drivingVehicleId)
     // The trip stopped and the user appears to be leaving the car — the chip flips to the candidate
     // ("Parking…") treatment. Only meaningful for the driving vehicle. [DET-PHASE-001]
     val isCandidatePhase = slice.drivingMeta?.phase == DetectionPhase.Candidate
-    // Live state floats first: driving → parked → monitoring config (BT, Active, Inactive).
-    val sorted = vehicleCards.sortedWith(
-        compareByDescending<VehicleCard> { it.isDriving() }
-            .thenByDescending { it.session != null }
-            .thenBy { it.vehicle.monitoringStatus().sortRank() }
-    )
+    // Live state floats first: driving → parked (most recent park first, same preference as the
+    // Browse peek subject) → monitoring config (BT, Active, Inactive). [UI-BROWSE-DRIVING-OVER-PARKED-001]
+    val sorted = vehiclesRowOrder(vehicleCards, drivingVehicleId)
 
     fun cardClick(card: VehicleCard): () -> Unit = {
         val session = card.session
