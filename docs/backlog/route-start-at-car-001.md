@@ -1,6 +1,6 @@
 # ROUTE-START-AT-CAR-001 · La ruta guardada debe EMPEZAR en el pin del que salió el coche
 
-**Estado:** 🟢 Código listo, sin commitear · rama `bugfix/ROUTE-START-AT-CAR-001-route-origin-previous-pin` · worktree `../Paparcar-route-start-at-car` · 1213 tests verdes · regresión verificada ROJA sin el fix
+**Estado:** ✅ Done · master `12b1969a` (ff-only tras rebase, 18-08-2026) · 1213 tests verdes · regresión verificada ROJA sin el fix · ⏳ validar en campo (la ruta del 2º aparcamiento debe nacer EN el pin del 1º)
 
 ## Problema
 Field 17-08 (Redmi, uid `WZB7…`): el pin de las 23:57 (`c6b19ee6`, Punta Bermeja, `steps+egress`)
