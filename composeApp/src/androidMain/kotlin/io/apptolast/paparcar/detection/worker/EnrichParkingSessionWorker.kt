@@ -84,14 +84,14 @@ class EnrichParkingSessionWorker(
      * UI can dim them and ask [ROUTE-GAP-HONEST-001] — or returns false when the roads can't be
      * fetched (offline → retry). Returns true when there is nothing to do (already snapped, no
      * route, or a trivial route) — the trivial/degenerate case is marked final as-is so the UI
-     * stops waiting. A backfill pin with no recorded drive gets a fully-inferred pin-to-pin
-     * reconstruction instead of no route at all.
+     * stops waiting. A routeless pin whose placement is trusted (safety-net backfill or user
+     * ground truth) gets a fully-inferred pin-to-pin reconstruction instead of no route at all.
      */
     private suspend fun snapRoute(sessionId: String): Boolean {
         val session = userParkingRepository.getSessionById(sessionId) ?: return true
         if (session.routeSnapped) return true
         val encoded = session.routePolyline
-        if (encoded.isNullOrEmpty()) return inferBackfillRoute(session) // BT/legacy no-op; backfill reconstructs
+        if (encoded.isNullOrEmpty()) return inferPinToPinRoute(session) // BT/legacy no-op; trusted pins reconstruct
         val raw = PolylineCodec.decode(encoded)
         if (raw.size < 2) {
             userParkingRepository.updateParkingSessionRoute(sessionId, encoded, snapped = true)
@@ -123,14 +123,19 @@ class EnrichParkingSessionWorker(
     }
 
     /**
-     * A safety-net backfill pin has NO recorded drive (the OS delivered the departure late; the net
-     * reconstructed the pin) — instead of leaving it routeless, reconstruct the trip pin-to-pin
-     * along the roads, stored FULLY inferred and pending the user's "did you drive this way?"
-     * verdict. Skipped (true, no route) when there is no plausible previous pin or the hop is
-     * trivial/too large; false only when the road fetch failed (retry). [ROUTE-GAP-HONEST-001]
+     * A pin with NO recorded drive but a TRUSTED placement — the safety net's reconciled backfill,
+     * or the user's own hand ("manual" / "user" prompt / "nudge" answer, reliability 1.0) —
+     * gets the trip reconstructed pin-to-pin along the roads instead of staying routeless, stored
+     * FULLY inferred and pending the user's "did you drive this way?" verdict (REJECTED erases it).
+     * Deliberately NOT eligible: "bt" (BT drives should get a MEASURED route — separate gap),
+     * unattended/approximate pins (a guessed route to a guessed pin stacks doubt on doubt), and
+     * measured coordinator paths (they carry a real route; a missing one means a trivial hop that
+     * the lower bound below rejects anyway). Skipped (true, no route) when there is no plausible
+     * previous pin or the hop is trivial/too large; false only when the road fetch failed (retry).
+     * [ROUTE-GAP-HONEST-001][ROUTE-MANUAL-PIN-INFERRED-001]
      */
-    private suspend fun inferBackfillRoute(session: UserParking): Boolean {
-        if (session.detectionPath != DETECTION_PATH_BACKFILL) return true
+    private suspend fun inferPinToPinRoute(session: UserParking): Boolean {
+        if (session.detectionPath !in PIN_TO_PIN_ELIGIBLE_PATHS) return true
         val vehicleId = session.vehicleId ?: return true
         val previous = userParkingRepository.getPreviousSession(vehicleId, session.location.timestamp)
             ?: return true
@@ -188,9 +193,12 @@ class EnrichParkingSessionWorker(
         // outside the trace to snap onto. Mirrors the live fetch margin. [ROUTE-SNAP-001]
         private const val ROADS_BBOX_MARGIN_DEG = 0.004
 
-        // Confirmation PATH of a safety-net backfill pin — the only routeless pin whose trip is
-        // reconstructed pin-to-pin (marked inferred). [ROUTE-GAP-HONEST-001]
-        private const val DETECTION_PATH_BACKFILL = "safety_net_backfill"
+        // Confirmation PATHs whose routeless pins get the pin-to-pin reconstruction (marked
+        // inferred, user verdict pending): the safety net's reconciled backfill plus the three
+        // user-ground-truth placements. Values mirror [DET-PIN-PROVENANCE-001]'s vocabulary
+        // (SaveManualParkingUseCase / ParkingBackfillWorker own the writes).
+        // [ROUTE-GAP-HONEST-001][ROUTE-MANUAL-PIN-INFERRED-001]
+        private val PIN_TO_PIN_ELIGIBLE_PATHS = setOf("safety_net_backfill", "manual", "user", "nudge")
 
         // Meters per degree of latitude — scales the pin-to-pin road fetch margin with the hop.
         private const val METERS_PER_DEGREE_LAT = 111_000.0

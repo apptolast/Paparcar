@@ -396,7 +396,8 @@ class ConfirmParkingUseCase(
         // [ROUTE-GAP-HONEST-001] A "route" shorter than a real drive is the wake-up's own handful
         // of fixes, not a trip (field 2026-08-14 22:51: a safety-net backfill pin carried a 40 m
         // 5-point stub whose origin marker sat next to the destination). No measured drive → no
-        // route attached; the post-park worker may still reconstruct pin-to-pin, marked inferred.
+        // route attached; the post-park worker reconstructs trusted routeless pins (backfill /
+        // manual / user / nudge) pin-to-pin, marked inferred. [ROUTE-MANUAL-PIN-INFERRED-001]
         val extentMeters = (1 until seeded.size).sumOf {
             haversineMeters(
                 seeded[it - 1].latitude, seeded[it - 1].longitude,
