@@ -1,7 +1,6 @@
 # DET-UNVERIFIED-ARM-DRIVE-PROOF-001 · La salida del pin se puede PROBAR midiendo, no solo heredarla del evento que armó
 
-**Estado:** 🟡 Implementado, sin commitear · rama
-`bugfix/DET-UNVERIFIED-ARM-DRIVE-PROOF-001-measured-departure` · worktree `../Paparcar-unverified-arm`
+**Estado:** ✅ Done · master `e9186a52` (ff-only, 16-08; rama y worktree borrados, sin pushear)
 · 1185 tests verdes · ⏳ APK a campo
 
 ## Problema

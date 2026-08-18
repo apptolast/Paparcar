@@ -9,6 +9,8 @@ Antes de improvisar un flujo, invocar la skill que lo cubre:
 - **`field-test`** — ante un viaje real, un FP/FN o una petición de mirar diagnósticos.
 - **`rebase-rama`** — al poner una rama al día sobre master ("rebasea", "¿qué ramas están
   desfasadas?", o ff-only fallido al cerrar). Inventario + elección + rebase desde SU worktree.
+- **`instalar-apk`** — es lo que significa **`/run`** aquí: `assembleProdDebug` + `install -r` en
+  TODOS los móviles conectados + verificación de sha256 en device + arranque. Nunca desinstalar.
 
 Reglas transversales que ninguna skill sustituye: **nunca commitear ni mergear sin permiso
 explícito de este turno**; **worktree nuevo por tarea** (las ramas NO aíslan el árbol);

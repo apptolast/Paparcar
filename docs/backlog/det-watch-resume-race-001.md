@@ -1,7 +1,12 @@
 # DET-WATCH-RESUME-RACE-001 · El resumidor vuelve a preguntar lo que el stream ya decidió, y pierde la carrera
 
-**Estado:** 🔵 En progreso · rama `bugfix/DET-WATCH-RESUME-RACE-001-resume-gate-race` ·
-worktree `../Paparcar-watch-resume-race`
+**Estado:** ✅ Done · master `96f948e9` (ff-only, 2026-08-16) · rama y worktree eliminados · sin pushear
+
+> **Rebase (16-08):** el commit `e6953387` se replicó como `96f948e9` sobre master. Conflicto único en
+> `docs/detection/PARKING-DETECTION.md`: los dos lados añadían entradas al final del log cronológico
+> (ambas se conservan, sin el `---` que no es la convención entre entradas). Master avanzó **durante**
+> el rebase — otra sesión mergeó DET-UNVERIFIED-ARM-DRIVE-PROOF-001 (`e9186a52`) — así que la base
+> real fue esa, no `150907a4`. Verificado ya rebasado: 1190 tests, 0 fallos.
 
 ## Problema
 
@@ -112,13 +117,27 @@ stream porque **es** el stream.
 ## Estado de verificación
 
 - ✅ `compileProdDebugKotlinAndroid`, `compileMockDebugKotlinAndroid`, `assembleMockDebug`
-- ✅ `testProdDebugUnitTest`: **1177 tests, 0 fallos** (5 nuevos sobre `current()`)
+- ✅ `testProdDebugUnitTest`: **1177 tests, 0 fallos** (5 nuevos sobre `current()`) · **1190 tras el
+  rebase**, contando los que trae DET-UNVERIFIED-ARM-DRIVE-PROOF-001
 - ✅ `testMockDebugUnitTest --tests "…domain.coordinator.*"`
 - ✅ `docs/detection/PARKING-DETECTION.md` con su entrada en el log cronológico
-- ⏳ **Pendiente: device.** Arranque en frío con el Kamiq/Focus aparcado y pantalla BLOQUEADA (es la
-  condición en la que salió el `declined`): el log debe traer `RESUME_SENTRY dispatched` y
-  `dumpsys activity services` el `CoordinatorDetectionService` con `isForeground=true`. Repetir sin
-  coche aparcado: ahí debe decir `declined — no watch gap to close`.
+- ✅ **Device, 16-08 (Oppo + Redmi, APK `96f948e9`, hash verificado en ambos):**
+
+  | Caso | Resultado |
+  |---|---|
+  | Oppo, arranque en frío con 2 sesiones activas | `resume(foreground-gap) → RESUME_SENTRY dispatched` a los 60 ms, `enterSentry`, `isForeground=true channel=sentry_channel` |
+  | Oppo, servicio muerto con la app en primer plano | resucitado en **58 ms** (`onDestroy` 19:23:24.354 → `dispatched` .412) — el lane reactivo cerrando el hueco solo |
+  | Oppo, segunda muerte dentro del minuto | `skipped — automatic retry cooling down` (el backstop, no la carrera) |
+  | Redmi, `active sessions=0` | ninguna línea y ningún FGS: sin hueco el lane ni pregunta |
+
+  Cero apariciones de `declined — parked=false`. **No reproducible por adb:** el caso con la pantalla
+  BLOQUEADA — el Oppo pide credencial, y con keyguard `MainActivity` no llega a `STARTED`, así que el
+  lane (`repeatOnLifecycle(STARTED)`) no corre por diseño. Lo que sí queda probado es el instante en
+  que ocurría la carrera: el primer `STARTED` tras arranque en frío. La variante con Room vacía y la
+  sesión llegando por sync no se puede forzar sin borrar datos → la cubre
+  `should_seeTheSession_when_readAfterTheSyncLands`.
+- ⚠️ Sin ver en device: `declined — no watch gap to close`. Solo se alcanza tocando el CTA sin nada
+  aparcado, y sin sesión la fila no se pinta. Cubierto por test.
 
 > Nota sobre los tests: que `current()` **espere** al primer valor real es semántica de `combine`, no
 > código nuestro; por eso los tests cubren el invariante que sí es nuestro — que `current()` y el

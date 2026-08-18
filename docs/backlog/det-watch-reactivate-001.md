@@ -1,7 +1,7 @@
 # DET-WATCH-REACTIVATE-001 · El botón "Reactivar" de la vigilancia detenida no reactiva nada
 
 **Estado:** ✅ Done · master `00450b83` (squash, 2026-08-15) · rama y worktree eliminados.
-⏳ Queda validar en device (ver *Estado de verificación*).
+✅ Validado en device el 2026-08-16, las dos mitades (ver *Estado de verificación*).
 
 **Rebase 2026-08-15:** sobre `master` = `1e94142f` (docs de UI-ZONE-MANAGE-001), sin conflictos.
 El único commit del ticket pasó de `7b6fddbd` a `460d004f`; el árbol no cambió (master solo traía
@@ -122,10 +122,17 @@ un momento foreground legal.*
   3 del intent del VM, y los 4 restantes por el fixture compartido)
 - ✅ `testMockDebugUnitTest --tests "…coordinator.*"`
 - ✅ `docs/detection/PARKING-DETECTION.md` con su entrada en el log cronológico
-- ⏳ **Pendiente: device.** Reproducir la fila en el Focus (Coordinator, sin BT) → tocar "Reactivar"
-  → la fila debe pasar sola a "Vigilando tu sitio", y el log debe traer
-  `RESUME_SENTRY (home-cta)`. Segundo caso: reinstalar limpio, iniciar sesión, esperar el sync → el
-  vigilante debe levantarse solo con `RESUME_SENTRY (foreground-gap)`.
+- ✅ **Device, 16-08 (Oppo, Ford Focus = Coordinator sin BT, APK `96f948e9`).** Tocar "Reactivar" →
+  `resume(home-cta) → RESUME_SENTRY dispatched` · `→ RESUME_SENTRY (home-cta) — epilogue decides
+  sentry vs stop` · `⏾ enterSentry(post-ACTION_RESUME_SENTRY)`, y **la fila cambió sola a "Vigilando
+  tu Ford Focus"**. El `dumpsys` confirma por qué el arranque es legal en Android 12+:
+  `infoAllowStartForeground=[… uidState: TOP … code:PROC_STATE_TOP]`. El lane automático
+  (`foreground-gap`) quedó validado el mismo día.
+- 📌 **Para reproducir la fila hace falta un truco**, y conviene saberlo antes de dar por rota la UI:
+  con la app en primer plano el lane automático cierra el hueco en ~60 ms, así que un solo
+  `am stopservice` nunca llega a pintar el CTA. Parando el servicio **dos veces seguidas**, la segunda
+  cae dentro de `AUTOMATIC_RETRY_COOLDOWN_MS` (`skipped — automatic retry cooling down`) y la fila se
+  queda visible. Que el CTA sea casi invisible en uso normal es el diseño funcionando, no un bug.
 
 ## Relacionados
 
