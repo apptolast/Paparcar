@@ -1,6 +1,6 @@
 # DET-CAR-REST-CLOCK-001 · la parada sostenida del veredicto desatendido es del COCHE y la atestigua el ancla, no el stop-tracker del teléfono
 
-**Estado:** 🔵 En progreso · rama `bugfix/DET-CAR-REST-CLOCK-001-anchor-rest-clock` · worktree `../Paparcar-car-rest-clock`
+**Estado:** ✅ **DONE — master `fbc83847`** (ff-only 19-08, sin pushear; rama + worktree borrados) · ⏳ pendiente validar en campo (llegada a casa con GPS indoor ruidoso + prompt ignorado → zona)
 
 ## Problema
 
