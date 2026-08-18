@@ -1,9 +1,8 @@
 # UI-BROWSE-DRIVING-OVER-PARKED-001 · El coche monitorizado gana al aparcado como sujeto de Browse
 
-**Estado:** 🟡 Código completo en stage, sin commitear (18-08) · rama
-`bugfix/UI-BROWSE-DRIVING-OVER-PARKED-001-driving-wins-focus` · worktree
-`../Paparcar-browse-driving` · 1221 tests verdes (4 nuevos) + `compileMockDebug` OK ·
-⏳ commit/merge con permiso + validar en campo
+**Estado:** ✅ Done · MASTER `3c2f5769` (ff-only tras rebase sobre `66c25d64`, 18-08, sin pushear;
+rama y worktree borrados) · 1222 tests verdes (4 nuevos) + `compileMockDebug` OK ·
+⏳ validar en campo (conducir el Focus con el Kamiq aparcado)
 
 ## Problema
 Field 17-08 (Chema→Balsa): conduciendo el Ford Focus con el Skoda Kamiq aparcado, el peek de
