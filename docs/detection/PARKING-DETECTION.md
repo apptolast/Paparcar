@@ -825,6 +825,47 @@ may be frozen and whether the counter's delta surfaces afterwards is not verifia
 Getting it wrong plants a precise pin in a possibly wrong place — the exact FP class the taint
 exists for.
 
+### DET-CAR-REST-CLOCK-001 — the sustained rest is the CAR's, witnessed by the anchor, never the phone's stop tracker (2026-08-19)
+
+**Commit:** pending · **Ticket:** `docs/backlog/det-car-rest-clock-001.md`
+
+**User report.** Third identical home-arrival FN in three days (after the 16-08 and 17-08 fixes
+above). Same trip, both phones, arriving at Góndola ~20:00 on 18-08: the Oppo confirmed
+`steps+egress` at 20:02; the Redmi measured 26,2 min of driving at up to 113 km/h, degraded to a
+prompt at 19:59:37 (walk-entered taint — correct), and at the 20:14:39 unattended timeout ended
+`aborted_unattended_walk_entered_anchor` with no pin and no zone. Session `1787075310656`.
+
+**Root cause.** The `SaveZone` licence introduced by DET-WALK-ENTERED-ANCHOR-ZONE-001 and reused by
+DET-GAP-ANCHOR-ZONE-001 read `sustainedStop` from `stoppedDurationMs` — the phone's stop tracker.
+That tracker accumulates only under `speed < 1 m/s` and resets on ANY fix at ≥ 1 m/s **with no
+accuracy gate** (`updateStopTracking`); indoor multipath that night emitted phantom 2–10 km/h
+speeds at 100–266 m accuracy, so the clock never exceeded ~15 s across the 15 minutes the car
+provably rested. The anchor itself is armoured against exactly that noise (a FROZEN anchor ignores
+walking-band speeds, ANCHOR-LOCK-001); the clock licensing its rescue was not. The 17-08 field
+passed only by luck — that night the indoor stream stayed under 1 m/s and the tracker reached
+14,7 min.
+
+Beneath the noise sits a semantic error: the input was documented as *"how long the car has been at
+rest"*, but after egress the phone follows the walker — even with clean GPS, parking and walking
+straight indoors leaves the tracker near zero at every timeout. The wrong witness, not just a noisy
+one.
+
+**Fix.** `UnattendedSaveInput.stoppedDurationMs` → `anchorRestMs`: ms since the PINNED anchor's
+stop opened (`now − anchorCapturedAtStop`), `0` without a pinned anchor. That stop was opened by
+the car halting, and only re-measured real driving clears the anchor, so the value is the car's
+rest by construction. Both `sustainedStopForSaveMs` consumers (GAP_ANCHOR, WALK_ENTERED_ANCHOR)
+sit behind the `anchorPinned` check, so the witness is always defined where it is read. The
+coordinator's timeout log now stamps both clocks (`carRest=` next to `stopped=`) so field traces
+can show them disagreeing.
+
+**Companion-fix risk.** The licence now survives the phone moving during the prompt window, so the
+guard against "the car drove off mid-prompt" carries more weight — it is unchanged and still
+outranks every zone branch: `egressExceedsWalkReach` (evidence of absence), plus real driving
+clearing the anchor (which zeroes `anchorRestMs` through `anchorCapturedAtStop`). A drive-past
+anchor still nudges: resumed measured driving clears it before any timeout can reward its age.
+`updateStopTracking` itself is deliberately untouched — the attended scoring it feeds runs
+pre-egress, where phone = car and the short clock is the honest one.
+
 **Files:** `EvaluateUnattendedParkingSaveUseCase` (branch + `anchorGapMs` input + hoisted
 precedence), `CoordinatorParkingDetector` (state fields, gap measurement, stamping, clearing,
 diagnostics line). 1217 tests; the field regression verified RED without the fix.

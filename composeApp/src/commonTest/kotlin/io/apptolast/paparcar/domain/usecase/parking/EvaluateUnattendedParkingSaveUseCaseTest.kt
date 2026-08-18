@@ -50,7 +50,7 @@ class EvaluateUnattendedParkingSaveUseCaseTest {
         anchorWalkInSpanMeters: Double = 0.0,
         egressBornAtAnchor: Boolean = true,
         egressExceedsWalkReach: Boolean = false,
-        stoppedDurationMs: Long = config.sustainedStopForSaveMs + 1,
+        anchorRestMs: Long = config.sustainedStopForSaveMs + 1,
     ) = UnattendedSaveInput(
         maxSpeedMps = maxSpeedMps,
         pendingMaxSpeedMps = pendingMaxSpeedMps,
@@ -68,7 +68,7 @@ class EvaluateUnattendedParkingSaveUseCaseTest {
         anchorWalkInSpanMeters = anchorWalkInSpanMeters,
         egressBornAtAnchor = egressBornAtAnchor,
         egressExceedsWalkReach = egressExceedsWalkReach,
-        stoppedDurationMs = stoppedDurationMs,
+        anchorRestMs = anchorRestMs,
     )
 
     // ── The field regression ─────────────────────────────────────────────────────────────────
@@ -133,11 +133,39 @@ class EvaluateUnattendedParkingSaveUseCaseTest {
             input(
                 anchorWalkEntered = true,
                 anchorWalkInSpanMeters = 42.0,
-                stoppedDurationMs = config.sustainedStopForSaveMs - 1,
+                anchorRestMs = config.sustainedStopForSaveMs - 1,
             )
         )
 
         assertEquals(UnattendedParkingSave.Ask(UnattendedSaveReason.WALK_ENTERED_ANCHOR), verdict)
+    }
+
+    /**
+     * Field 2026-08-18 ~20:00 (Calle Góndola), Redmi session `1787075310656` — the THIRD identical
+     * home-arrival FN, one layer deeper than the two this evaluator already fixed. 26,2 min and
+     * 113 km/h of measured driving, walk-entered pinned anchor with a measured walk-in span, prompt
+     * unanswered — and the zone was refused because the SUSTAINED-STOP witness was the phone's stop
+     * tracker, which indoor GPS noise (phantom 2–10 km/h at 100–266 m accuracy) reset every few
+     * fixes: ~15 s accumulated in the 15 minutes the car provably rested at the anchor.
+     *
+     * RED before the fix: the licence read the phone's clock, so the verdict was Ask and the
+     * session ended `aborted_unattended_walk_entered_anchor` with no pin and no zone.
+     */
+    @Test
+    fun should_saveBoundedZone_when_carRestsAtPinnedAnchorWhileThePhoneStopClockKeepsResetting() {
+        val verdict = evaluate(
+            input(
+                anchorWalkEntered = true,
+                anchorStepEventsAtCapture = 0,
+                anchorWalkInSpanMeters = 28.0,
+                // The car's clock, witnessed by the anchor's stop: ~15 min. The phone's stop
+                // tracker read ~10 s that night and is no longer consulted — that IS the fix.
+                anchorRestMs = 902_000L,
+            )
+        )
+
+        val zone = assertIs<UnattendedParkingSave.SaveZone>(verdict)
+        assertEquals(UnattendedSaveReason.WALK_ENTERED_ANCHOR, zone.reason)
     }
 
     // ── Precedence: the branches that must NOT have changed ──────────────────────────────────
@@ -265,7 +293,7 @@ class EvaluateUnattendedParkingSaveUseCaseTest {
         val verdict = evaluate(
             input(
                 anchorGapMs = 126_000L,
-                stoppedDurationMs = 880_000L, // the 14,7 min the car sat still at the anchor
+                anchorRestMs = 880_000L, // the 14,7 min the car sat still at the anchor
             )
         )
 
@@ -287,7 +315,7 @@ class EvaluateUnattendedParkingSaveUseCaseTest {
         val verdict = evaluate(
             input(
                 anchorGapMs = 100_000L,
-                stoppedDurationMs = config.sustainedStopForSaveMs - 1,
+                anchorRestMs = config.sustainedStopForSaveMs - 1,
             )
         )
 

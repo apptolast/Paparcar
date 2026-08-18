@@ -106,8 +106,19 @@ data class UnattendedSaveInput(
     val egressBornAtAnchor: Boolean,
     /** `egressExceedsWalkReach` — the position OUTRAN the steps: a vehicle covered that ground. */
     val egressExceedsWalkReach: Boolean,
-    /** How long the car has been at rest at the moment of the verdict. */
-    val stoppedDurationMs: Long,
+    /**
+     * [DET-CAR-REST-CLOCK-001] How long the CAR has provably been at rest: ms since the PINNED
+     * anchor's stop opened (`now - anchorCapturedAtStop`), `0` when no pinned anchor exists. The
+     * phone's own stop tracker is NOT a witness of the car after egress — it follows the walker,
+     * and a single walking-band Doppler whisper resets it with no accuracy gate. Field 2026-08-18
+     * ~20:00 (Calle Góndola), Redmi session `1787075310656`: 26,2 min of measured driving, then 15
+     * minutes of indoor GPS noise (phantom 2–10 km/h at 100–266 m) kept that tracker under 15 s
+     * while the car rested at the anchor the whole time, and the licence below read the wrong
+     * clock — third home-arrival FN in three days, each one layer deeper in the same well. A
+     * pinned anchor is the honest witness by construction: its stop was opened by the car coming
+     * to rest, and only re-measured real driving clears it.
+     */
+    val anchorRestMs: Long,
     /**
      * [DET-BIKE-NOT-A-CAR-001] The movement this session measured was made under HUMAN power (see
      * `domain/detection/isHumanPoweredRide`). Field 2026-08-16 11:08Z (Samsung): a 59-minute bike
@@ -259,8 +270,11 @@ class EvaluateUnattendedParkingSaveUseCase(private val config: ParkingDetectionC
         // Field 2026-08-17, Redmi session `1786970028118`: a 126-s hole at 42 km/h, then 14,7 min
         // at rest 40 m from where the Oppo pinned the same trip — and the park was thrown away.
         if (input.anchorGapMs > 0L) {
+            // [DET-CAR-REST-CLOCK-001] The rest is the ANCHOR's, not the phone's: the drive-past
+            // hypothesis is about the CAR resting, and the pedestrian wandering off (or indoor
+            // noise impersonating them) says nothing against it.
             val walkableInsideHole = input.anchorGapMs / MILLIS_PER_SECOND * config.maxPedestrianSpeedMps
-            val sustainedStop = input.stoppedDurationMs >= config.sustainedStopForSaveMs
+            val sustainedStop = input.anchorRestMs >= config.sustainedStopForSaveMs
             return zoneOrAsk(
                 reason = UnattendedSaveReason.GAP_ANCHOR,
                 center = anchor,
@@ -284,7 +298,9 @@ class EvaluateUnattendedParkingSaveUseCase(private val config: ParkingDetectionC
             // only cost precision. Unlike the unpinned case above, this anchor WAS witnessed at
             // rest — the taint is only about the walk-band run that led into the capture, and that
             // run has a measured origin whether or not the step counter ever spoke.
-            val sustainedStop = input.stoppedDurationMs >= config.sustainedStopForSaveMs
+            // [DET-CAR-REST-CLOCK-001] The rest that earns the licence is the CAR's, witnessed by
+            // the anchor's own stop — the phone's tracker follows the walker home and reads ~0.
+            val sustainedStop = input.anchorRestMs >= config.sustainedStopForSaveMs
             return zoneOrAsk(
                 reason = UnattendedSaveReason.WALK_ENTERED_ANCHOR,
                 center = anchor,

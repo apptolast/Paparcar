@@ -1128,6 +1128,17 @@ class CoordinatorParkingDetector(
                         // place instead of being re-derived per branch — which is how the Redmi's
                         // fully measured 25,6 min drive ended with no pin at all (field 2026-08-16,
                         // session 1786918991116). This block keeps only the side effects.
+                        // [DET-CAR-REST-CLOCK-001] The sustained rest the save licence needs is the
+                        // CAR's, and its witness is the pinned anchor's own stop: it was opened by
+                        // the car halting and only re-measured real driving clears it. The phone's
+                        // stop tracker is the wrong clock here — after egress it follows the
+                        // walker, and indoor GPS noise resets it with no accuracy gate (field
+                        // 2026-08-18 Góndola: ~15 s accumulated across 15 min of anchored rest).
+                        val anchorRestMs = if (isAnchorPinned(state)) {
+                            state.anchorCapturedAtStop?.let { now - it } ?: 0L
+                        } else {
+                            0L
+                        }
                         val verdict = evaluateUnattendedParkingSave(
                             UnattendedSaveInput(
                                 maxSpeedMps = state.maxSpeedMps,
@@ -1146,7 +1157,7 @@ class CoordinatorParkingDetector(
                                 anchorWalkInSpanMeters = state.anchorWalkInSpanMeters,
                                 egressBornAtAnchor = isEgressBornAtAnchor(state),
                                 egressExceedsWalkReach = egressExceedsWalkReach(state, location),
-                                stoppedDurationMs = stoppedDuration,
+                                anchorRestMs = anchorRestMs,
                                 humanPoweredRide = humanPoweredRide(state, activeVehicleType, now),
                             )
                         )
@@ -1157,7 +1168,8 @@ class CoordinatorParkingDetector(
                                 "[maxSpeed=${state.maxSpeedMps}m/s pinned=${isAnchorPinned(state)} " +
                                 "walkEntered=${isAnchorWalkEntered(state)} walkFixes=${state.anchorWalkFixesAtCapture} " +
                                 "stepEvents=${state.anchorStepEventsAtCapture} sawSteps=${state.anchorSawStepsAtCapture} " +
-                                "walkInSpan=${state.anchorWalkInSpanMeters.toInt()}m stopped=${stoppedDuration}ms " +
+                                "walkInSpan=${state.anchorWalkInSpanMeters.toInt()}m carRest=${anchorRestMs}ms " +
+                                "stopped=${stoppedDuration}ms " +
                                 "gapMs=${state.anchorGapMsAtCapture}] " +
                                 "[DET-WALK-ENTERED-ANCHOR-ZONE-001][DET-GAP-ANCHOR-ZONE-001]"
                         )
