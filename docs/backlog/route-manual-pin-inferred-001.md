@@ -1,6 +1,6 @@
 # ROUTE-MANUAL-PIN-INFERRED-001 · Un pin avalado por el usuario sin ruta medida recibe SIEMPRE la reconstrucción pin-a-pin
 
-**Estado:** 🔵 En progreso · rama `feature/ROUTE-MANUAL-PIN-INFERRED-001-manual-pin-inferred-route` · worktree `../Paparcar-manual-pin-route`
+**Estado:** ✅ Done · master `f6483ddc` (ff-only tras rebase sobre `e5cd2ad1`, 18-08-2026; rama y worktree borrados; sin pushear) · 1222 tests verdes · ⏳ validar en campo (pin manual tras detección perdida → ruta atenuada + pregunta)
 
 ## Problema
 
