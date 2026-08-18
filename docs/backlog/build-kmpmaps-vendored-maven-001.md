@@ -1,6 +1,6 @@
 # BUILD-KMPMAPS-VENDORED-MAVEN-001 · El fork de kmp-maps viaja DENTRO del repo, no en la máquina de nadie
 
-**Estado:** 🟡 Hecho, pendiente de commit/merge · rama `chore/BUILD-KMPMAPS-VENDORED-MAVEN-001-vendored-maven` · worktree `../Paparcar-vendored-maven`
+**Estado:** ✅ Done · master `00797fa9` (ff-only 2026-08-19; rama y worktree borrados)
 
 ## Ejecución (2026-08-19)
 - Fork republicado desde `../kmp-maps` (rama `paparcar/puck`, árbol limpio) con
