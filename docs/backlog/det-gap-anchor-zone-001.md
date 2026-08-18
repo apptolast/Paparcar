@@ -1,7 +1,8 @@
 # DET-GAP-ANCHOR-ZONE-001 · un agujero GPS tiene DURACIÓN, así que la duda que crea está acotada
 
-**Estado:** 🟡 Implementado, **sin commitear** · 1217 tests verdes · regresión verificada ROJA sin el
-fix · rama `bugfix/DET-GAP-ANCHOR-ZONE-001-gap-hole-bounded-zone` · worktree `../Paparcar-gap-anchor-zone`
+**Estado:** ✅ Done en código · master `645bb09e` (ff-only tras rebase, 18-08; rama y worktree
+eliminados) · 1217 tests verdes · regresión verificada ROJA sin el fix · **APK instalado y verificado
+por sha256 en los dos móviles el 18-08** · ⏳ **falta validarlo en campo**
 
 ## Problema
 
@@ -140,3 +141,7 @@ pasos es fiable a través de huecos, se aprieta en un follow-up.
   (hueco de 120 s + reposo largo) ES el caso de campo; era la conducta vieja lo que fijaba.
   El vocabulario de traza gana `confirmed_unattended_zone_gap_anchor` / `unattended_zone_gap_anchor`
   como `detectionPath` — instancia del patrón que ya introdujo T1, no una forma nueva.
+- 2026-08-18 — rebase sobre master (solo docs por debajo, sin conflictos): `070a97d4` → `645bb09e`,
+  árbol idéntico. ff-only a master. APK `prodDebug` sha `1e2b3f8d…54617` instalado con `install -r`
+  en Redmi `5f8991cb` y Oppo `LNRCMZ8H6HBITWNJ`; el sha256 leído **en device** coincide en los dos y
+  el `CoordinatorDetectionService` levanta en foreground en ambos. Queda el viaje.
