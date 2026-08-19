@@ -51,9 +51,9 @@ sealed interface HonestCloseDecision {
 data class HonestCloseVerdict(
     val decision: HonestCloseDecision,
     /** Why: "trip_proven" for pin/zone; for silence one of [REASON_NO_STALE_PIN], [REASON_TOO_CLOSE],
-     *  [REASON_USER_ASSERTED_PIN], [REASON_STALE_SEAL], [REASON_MUTE_COUNTER],
-     *  [REASON_FROZEN_COUNTER], [REASON_NO_SEAL_ORIGIN], [REASON_WALK_EXPLAINS],
-     *  [REASON_WALK_TOO_SHORT]. */
+     *  [REASON_USER_ASSERTED_PIN], [REASON_UNWITNESSED_DISPLACEMENT], [REASON_STALE_SEAL],
+     *  [REASON_MUTE_COUNTER], [REASON_FROZEN_COUNTER], [REASON_NO_SEAL_ORIGIN],
+     *  [REASON_WALK_EXPLAINS], [REASON_WALK_TOO_SHORT]. */
     val reason: String,
     /** Stale pin → abort fix, meters. Null when there is no stale pin. */
     val pinDistanceMeters: Double? = null,
@@ -63,9 +63,15 @@ data class HonestCloseVerdict(
     val stepsDelta: Long? = null,
     /** Steps the walk budget demanded to call it "walked" (walkDistance/stride × fraction). */
     val requiredSteps: Int? = null,
+    /** Last witnessed position → abort fix, meters. Null when no witness was available.
+     *  [DET-UNWITNESSED-DISPLACEMENT-001] */
+    val witnessDistanceMeters: Double? = null,
+    /** Age (ms) of that witness at the abort moment. Null when no witness was available. */
+    val witnessAgeMs: Long? = null,
 ) {
     companion object {
         const val REASON_TRIP_PROVEN = "trip_proven"
+        const val REASON_UNWITNESSED_DISPLACEMENT = "unwitnessed_displacement"
         const val REASON_NO_STALE_PIN = "no_stale_pin"
         const val REASON_TOO_CLOSE = "too_close"
         const val REASON_STALE_SEAL = "stale_seal"
@@ -142,6 +148,22 @@ data class HonestCloseVerdict(
  * a pin placed on the map from afar puts the pin far while the body barely moved — so the floor
  * must be checked on the budget's OWN origin, not only the pin's.
  *
+ * **Unwitnessed displacement (the abort fix itself can lie). [DET-UNWITNESSED-DISPLACEMENT-001]**
+ * Every inference below trusts the abort fix as "where the body is now" — but that fix is one
+ * wake's GPS cluster, and indoor multipath can teleport it kilometers with optimistic accuracy.
+ * The refutation is spatio-temporal: when the LAST independently witnessed position (previous
+ * wake's end fix, safety-net check, seal) sits so close in time that reaching the abort fix would
+ * have required an average speed above [ParkingDetectionConfig.honestCloseMaxImpliedTravelSpeedMps]
+ * door-to-door, the two witnesses contradict each other physically — and when witnesses disagree,
+ * NO fix is pin-grade: refuse the verdict. Field 2026-08-19 03:26, Oppo asleep at home: the phone
+ * was witnessed stationary at home 32 s before an abort fix 950 m away (implied ~107 km/h between
+ * two stationary observations, zero measured movement) — "trip_proven" planted a pin there, whose
+ * fence then saw the phone outside and cascaded a second approximate pin onto the user's home.
+ * The formula self-limits: with an old witness the time term dwarfs any real displacement, so the
+ * legit late closes (Camelias hop, D2 return — witness gaps of hours) pass untouched, and no
+ * separate freshness cap is needed. Measured driving above is untouched: a session that SAW the
+ * ride witnessed the displacement by definition.
+ *
  * **Session kinematics.** [sessionMaxSpeedMps] is measured movement — and measured movement
  * outranks every inference in this file: a session that reached driving speed PROVES the ride
  * directly, no step budget needed. For today's two triggering outcomes that branch is defensively
@@ -170,6 +192,13 @@ class EvaluateHonestCloseUseCase(
      *                        [ParkingDetectionConfig.honestCloseMaxSealAgeMs] (or unknown) the
      *                        cumulative delta is no longer interpretable and the ladder refuses
      *                        the step-budget verdict. [DET-TRIP-WITNESS-001]
+     * @param lastWitnessedFix The last position an INDEPENDENT earlier observation vouched for
+     *                        (previous wake's end fix / safety-net check / seal), or null when
+     *                        none is known. The abort fix must be spatio-temporally compatible
+     *                        with it before any inference may trust it.
+     *                        [DET-UNWITNESSED-DISPLACEMENT-001]
+     * @param witnessAgeMs    HOW LONG before the abort that witness was observed, or null when
+     *                        unknown (caller maps a negative elapsed — clock skew — to null).
      * @param sessionStepEvents Steps the aborting session's own wakeup step DETECTOR counted —
      *                        the liveness witness for the cumulative counter. 0 = no witness
      *                        (the cross-check stays out of the way). [DET-FROZEN-COUNTER-001]
@@ -182,6 +211,8 @@ class EvaluateHonestCloseUseCase(
         stepsSinceStalePin: Long?,
         stepSealPoint: GpsPoint?,
         sealAgeMs: Long?,
+        lastWitnessedFix: GpsPoint?,
+        witnessAgeMs: Long?,
         sessionStepEvents: Int = 0,
         sessionMaxSpeedMps: Float = 0f,
     ): HonestCloseVerdict {
@@ -231,6 +262,27 @@ class EvaluateHonestCloseUseCase(
                 HonestCloseDecision.KeepSilent, HonestCloseVerdict.REASON_USER_ASSERTED_PIN,
                 pinDistanceMeters = distanceMeters, stepsDelta = stepsSinceStalePin,
             )
+        }
+
+        // [DET-UNWITNESSED-DISPLACEMENT-001] Everything below trusts the abort fix as "where the
+        // body is now" — but the fix is one wake's GPS cluster and indoor multipath teleports.
+        // If reaching it from the last independently witnessed position would have needed an
+        // average speed no door-to-door drive achieves, the two witnesses contradict each other
+        // physically: no fix is pin-grade when witnesses disagree. Refuse the verdict; silence is
+        // right whichever endpoint was the mirage, and the safety net remains the backstop.
+        val witnessDistanceMeters = lastWitnessedFix?.let {
+            haversineMeters(it.latitude, it.longitude, abortFix.latitude, abortFix.longitude)
+        }
+        if (lastWitnessedFix != null && witnessDistanceMeters != null && witnessAgeMs != null) {
+            val plausibleMeters = lastWitnessedFix.accuracy + abortFix.accuracy +
+                (witnessAgeMs / 1000.0) * config.honestCloseMaxImpliedTravelSpeedMps
+            if (witnessDistanceMeters > plausibleMeters) {
+                return HonestCloseVerdict(
+                    HonestCloseDecision.KeepSilent, HonestCloseVerdict.REASON_UNWITNESSED_DISPLACEMENT,
+                    pinDistanceMeters = distanceMeters, stepsDelta = stepsSinceStalePin,
+                    witnessDistanceMeters = witnessDistanceMeters, witnessAgeMs = witnessAgeMs,
+                )
+            }
         }
 
         // [DET-TRIP-WITNESS-001] Everything below is the STEP-BUDGET inference, and the budget
@@ -323,6 +375,9 @@ class EvaluateHonestCloseUseCase(
             decision, HonestCloseVerdict.REASON_TRIP_PROVEN,
             pinDistanceMeters = distanceMeters, walkDistanceMeters = walkDistanceMeters,
             stepsDelta = steps, requiredSteps = requiredSteps,
+            // How close this legit trip came to the coherence ceiling — the field data that
+            // audits honestCloseMaxImpliedTravelSpeedMps. [DET-UNWITNESSED-DISPLACEMENT-001]
+            witnessDistanceMeters = witnessDistanceMeters, witnessAgeMs = witnessAgeMs,
         )
     }
 }

@@ -835,10 +835,18 @@ class CoordinatorDetectionService : LifecycleService() {
         // [DET-TRIP-WITNESS-001] The budget expires: the ladder refuses a delta whose seal is
         // hours old (or undated — legacy seal), the exact shape of the 30-07 EXIT-echo FP.
         val sealAgeMs = budget?.sealedAtMs?.let { System.currentTimeMillis() - it }
+        // [DET-UNWITNESSED-DISPLACEMENT-001] The last position an EARLIER wake vouched for (its
+        // end fix, or a safety-net check): the ladder refuses an abort fix the body could not
+        // have reached since then. Age measured to now — this abort just happened in this intake.
+        // A negative elapsed (clock skew) degrades to "no witness", never to a false refutation.
+        val witness = readLastWitnessedFix()
+        val witnessAgeMs = witness?.let { (System.currentTimeMillis() - it.second).takeIf { age -> age >= 0 } }
         val result = runCatching {
             runHonestClose(
                 vehicleId, abortFix, budget?.steps, budget?.sealPoint,
                 sealAgeMs = sealAgeMs,
+                lastWitnessedFix = witness?.first,
+                witnessAgeMs = witnessAgeMs,
                 sessionStepEvents = sessionStepEvents,
                 sessionMaxSpeedMps = sessionMaxSpeedMps,
             )
@@ -876,11 +884,48 @@ class CoordinatorDetectionService : LifecycleService() {
                         sessionStepEvents = sessionStepEvents,
                         sessionMaxSpeedKmh = sessionMaxSpeedMps * 3.6f,
                         radiusMeters = result.zoneRadiusMeters,
+                        witnessDistanceMeters = verdict.witnessDistanceMeters,
+                        witnessAgeMs = verdict.witnessAgeMs,
                         location = abortFix,
                     ),
                 )
             }.onFailure { e -> PaparcarLogger.w(DIAG, "  ⚠ honest-close trace log failed: ${e.message}") }
         }
+    }
+
+    /**
+     * [DET-UNWITNESSED-DISPLACEMENT-001] The last position an earlier wake vouched for, plus WHEN
+     * (epoch ms) — written by [stampLastWitnessedFix] and by the safety-net check. Null when no
+     * witness was ever stamped (fresh install) or the slot is unparseable.
+     */
+    private fun readLastWitnessedFix(): Pair<GpsPoint, Long>? {
+        val prefs = getSharedPreferences(ParkingSafetyNetWorker.PREFS_NAME, MODE_PRIVATE)
+        val pos = prefs.getString(ParkingSafetyNetWorker.KEY_LAST_WITNESSED_POS, null) ?: return null
+        val at = prefs.getLong(ParkingSafetyNetWorker.KEY_LAST_WITNESSED_AT, 0L)
+        if (at <= 0L) return null
+        val parts = pos.split(",")
+        val lat = parts.getOrNull(0)?.toDoubleOrNull() ?: return null
+        val lon = parts.getOrNull(1)?.toDoubleOrNull() ?: return null
+        val acc = prefs.getFloat(ParkingSafetyNetWorker.KEY_LAST_WITNESSED_ACC, 0f)
+        return GpsPoint(lat, lon, accuracy = acc, timestamp = at, speed = 0f) to at
+    }
+
+    /**
+     * [DET-UNWITNESSED-DISPLACEMENT-001] Every finished session's last fix becomes the NEXT
+     * wake's independent witness of where the body was. Stamped in the intake epilogue AFTER
+     * [maybeRunHonestClose] read the previous slot — order matters: a session must never witness
+     * for its own abort (its fixes and the abort fix are the same cluster). Same disk-backed slot
+     * the safety-net check refreshes; an OEM kill between wakes cannot blind the coherence gate.
+     */
+    private fun stampLastWitnessedFix() {
+        val fix = parkingDetectionCoordinator.lastSessionFix ?: return
+        runCatching {
+            getSharedPreferences(ParkingSafetyNetWorker.PREFS_NAME, MODE_PRIVATE).edit {
+                putString(ParkingSafetyNetWorker.KEY_LAST_WITNESSED_POS, "${fix.latitude},${fix.longitude}")
+                putFloat(ParkingSafetyNetWorker.KEY_LAST_WITNESSED_ACC, fix.accuracy)
+                putLong(ParkingSafetyNetWorker.KEY_LAST_WITNESSED_AT, System.currentTimeMillis())
+            }
+        }.onFailure { e -> PaparcarLogger.w(DIAG, "  ⚠ witness stamp failed: ${e.message}") }
     }
 
     /**
@@ -1293,6 +1338,9 @@ class CoordinatorDetectionService : LifecycleService() {
                 withContext(NonCancellable) {
                     maybeRunHonestClose()
                     maybeStampArrivalResolution() // [DET-BACKFILL-TAINT-001]
+                    // AFTER the honest close consumed the previous witness — a session never
+                    // witnesses for its own abort. [DET-UNWITNESSED-DISPLACEMENT-001]
+                    stampLastWitnessedFix()
                 }
             } catch (e: CancellationException) {
                 PaparcarLogger.d(DIAG, "    ✗ detection cancelled: ${e.message}")

@@ -91,6 +91,8 @@ data class DetectionEventDto(
     val walkDistanceMeters: Double? = null,
     val stepsDelta: Long? = null,
     val requiredSteps: Int? = null,
+    // Abort-fix coherence vs the last witnessed position [DET-UNWITNESSED-DISPLACEMENT-001]
+    val witnessDistanceMeters: Double? = null,
 )
 
 /** Canonical wire discriminator for each event subtype. */
@@ -161,6 +163,10 @@ fun DetectionEvent.toDto(): DetectionEventDto {
             stepCount = sessionStepEvents,
             speedKmh = sessionMaxSpeedKmh,
             radiusMeters = radiusMeters,
+            witnessDistanceMeters = witnessDistanceMeters,
+            // The witness's age rides the existing "how old" column on purpose (no serializer
+            // surface change) — same reuse the Sentry event applies. [DET-UNWITNESSED-DISPLACEMENT-001]
+            sessionAgeMs = witnessAgeMs,
         )
         is DetectionEvent.DepartureVerdict -> base.copy(verdict = verdict, source = source, attempt = attempt, speedKmh = speedKmh, enterAgeMs = enterAgeMs)
         is DetectionEvent.DepartureProcessed -> base.copy(published = published, sessionCleared = sessionCleared)

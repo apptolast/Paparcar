@@ -87,6 +87,8 @@ class RunHonestCloseUseCaseTest {
             abortFix = GpsPoint(36.5974, -6.2505, accuracy = 60f, timestamp = 1_000L, speed = 0f),
             stepsSinceStalePin = 23L,
             sealAgeMs = FRESH_SEAL_AGE_MS,
+            lastWitnessedFix = null,
+            witnessAgeMs = null,
             // Sealed beside the Melgarejo pin — same origin as the pin distance. [DET-STEP-BUDGET-ORIGIN-001]
             stepSealPoint = GpsPoint(36.6002, -6.2512, accuracy = 10f, timestamp = 0L, speed = 0f),
         )
@@ -116,6 +118,8 @@ class RunHonestCloseUseCaseTest {
             abortFix = GpsPoint(36.6088, -6.2843, accuracy = 3f, timestamp = 1_000L, speed = 0f),
             stepsSinceStalePin = 1099L,
             sealAgeMs = FRESH_SEAL_AGE_MS,
+            lastWitnessedFix = null,
+            witnessAgeMs = null,
             stepSealPoint = GpsPoint(36.6054, -6.2727, accuracy = 10f, timestamp = 0L, speed = 0f),
         )
 
@@ -142,6 +146,8 @@ class RunHonestCloseUseCaseTest {
             abortFix = GpsPoint(36.70078, -6.10972, accuracy = 10f, timestamp = 1_000L, speed = 0f),
             stepsSinceStalePin = 2L,
             sealAgeMs = FRESH_SEAL_AGE_MS,
+            lastWitnessedFix = null,
+            witnessAgeMs = null,
             stepSealPoint = GpsPoint(36.69944, -6.10992, accuracy = 10f, timestamp = 0L, speed = 0f),
             sessionStepEvents = 8,
         )
@@ -170,6 +176,8 @@ class RunHonestCloseUseCaseTest {
             abortFix = GpsPoint(36.60387, -6.23029, accuracy = 16f, timestamp = 1_000L, speed = 0f),
             stepsSinceStalePin = 0L,
             sealAgeMs = 16 * 60 * 60 * 1_000L,
+            lastWitnessedFix = null,
+            witnessAgeMs = null,
             stepSealPoint = GpsPoint(36.60583, -6.23159, accuracy = 5f, timestamp = 0L, speed = 0f),
             sessionStepEvents = 0,
         )
@@ -193,6 +201,8 @@ class RunHonestCloseUseCaseTest {
             abortFix = GpsPoint(36.6029, -6.2512, accuracy = 8f, timestamp = 1_000L, speed = 0f),
             stepsSinceStalePin = 10L,
             sealAgeMs = FRESH_SEAL_AGE_MS,
+            lastWitnessedFix = null,
+            witnessAgeMs = null,
             stepSealPoint = GpsPoint(36.6002, -6.2512, accuracy = 10f, timestamp = 0L, speed = 0f),
         )
 
@@ -202,5 +212,37 @@ class RunHonestCloseUseCaseTest {
         assertNotNull(saved)
         assertTrue(!saved.isApproximate, "a pin-grade honest close is an exact point, not an area")
         assertNull(saved.zoneRadiusMeters)
+    }
+
+    @Test
+    fun teleported_abort_fix_stays_fully_silent_and_keeps_the_correct_pin() = runTest {
+        // Cantarranas FP (field 2026-08-19 03:26, Oppo asleep at home): indoor multipath
+        // teleported the abort fix ~995 m from the phone witnessed stationary at home 32 s
+        // earlier. The old ladder proved a "trip" (delta 36 alive but ≪ 511 required), planted a
+        // pin at the mirage AND registered its fence — which instantly saw the phone 949 m
+        // outside and cascaded a SECOND approximate pin onto the user's home 33 min later. The
+        // coherence gate keeps everything silent, so the cascade's stimulus (the fence at the
+        // mirage) is never created. [DET-UNWITNESSED-DISPLACEMENT-001]
+        val f = Fixture(stalePinLat = 36.608515, stalePinLon = -6.27778, staleGeofence = "bermeja-fence")
+        val home = GpsPoint(36.60793, -6.27807, accuracy = 14f, timestamp = 0L, speed = 0f)
+        val outcome = f.useCase(
+            vehicleId = "v-1",
+            abortFix = GpsPoint(36.6164806, -6.2748436, accuracy = 7.016f, timestamp = 1_000L, speed = 0f),
+            stepsSinceStalePin = 36L,
+            sealAgeMs = FRESH_SEAL_AGE_MS,
+            lastWitnessedFix = home,
+            witnessAgeMs = 32_000L,
+            stepSealPoint = home,
+            sessionStepEvents = 13,
+        )
+
+        assertNull(outcome.outcomeLabel, "a teleported fix must never testify a ride")
+        assertEquals(HonestCloseVerdict.REASON_UNWITNESSED_DISPLACEMENT, outcome.verdict.reason)
+        assertNotNull(
+            f.parkingRepo.getActiveSessionByGeofence("bermeja-fence"),
+            "the correct pin must survive — the car never moved from La Bermeja",
+        )
+        assertEquals(0, f.notification.markParkingNudgeCallCount, "no nudge on a silent close")
+        assertEquals(0, f.parkingRepo.saveNewParkingSessionCallCount, "nothing saved — no fence, no cascade")
     }
 }

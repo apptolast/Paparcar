@@ -59,6 +59,12 @@ class RunHonestCloseUseCase(
      *                           timestamp — past [ParkingDetectionConfig.honestCloseMaxSealAgeMs]
      *                           (or unknown) the ladder refuses the step-budget verdict.
      *                           [DET-TRIP-WITNESS-001]
+     * @param lastWitnessedFix   The last position an INDEPENDENT earlier observation vouched for
+     *                           (previous wake's end fix / safety-net check), or null when none is
+     *                           known — the abort fix must be spatio-temporally compatible with it.
+     *                           [DET-UNWITNESSED-DISPLACEMENT-001]
+     * @param witnessAgeMs       HOW LONG before the abort that witness was observed, or null when
+     *                           unknown (caller maps a negative elapsed to null).
      * @param sessionStepEvents  Steps the aborting session's own step DETECTOR counted — the
      *                           cumulative counter's liveness witness. [DET-FROZEN-COUNTER-001]
      * @param sessionMaxSpeedMps Max GPS speed (m/s) the aborting session measured — measured
@@ -70,6 +76,8 @@ class RunHonestCloseUseCase(
         stepsSinceStalePin: Long?,
         stepSealPoint: GpsPoint?,
         sealAgeMs: Long?,
+        lastWitnessedFix: GpsPoint?,
+        witnessAgeMs: Long?,
         sessionStepEvents: Int = 0,
         sessionMaxSpeedMps: Float = 0f,
     ): HonestCloseResult {
@@ -78,6 +86,8 @@ class RunHonestCloseUseCase(
         val verdict = evaluateHonestClose(
             stalePin, abortFix, stepsSinceStalePin, stepSealPoint,
             sealAgeMs = sealAgeMs,
+            lastWitnessedFix = lastWitnessedFix,
+            witnessAgeMs = witnessAgeMs,
             sessionStepEvents = sessionStepEvents,
             sessionMaxSpeedMps = sessionMaxSpeedMps,
         )

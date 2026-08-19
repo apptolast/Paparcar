@@ -563,6 +563,15 @@ data class ParkingDetectionConfig(
      *  spanning hours (sleep, process deaths, MIUI batching) can read ≈0 over a real walk and
      *  fake a "proven trip" (field 2026-07-30: 16 h seal + EXIT echo re-planted the pin at home). */
     val honestCloseMaxSealAgeMs: Long = 2 * 60 * 60 * 1_000L,
+    /** [DET-UNWITNESSED-DISPLACEMENT-001] Ceiling (m/s) on the average speed the body would have
+     *  needed to reach the abort fix from the last independently witnessed position. Two recent
+     *  witnessed positions that disagree faster than any door-to-door drive (stationary → drive →
+     *  stationary, ~54 km/h average) prove one of them is a GPS mirage, so no fix is pin-grade and
+     *  the ladder refuses the verdict. Field 2026-08-19 03:26, Oppo asleep at home: indoor
+     *  multipath teleported the fix 950 m in 32 s (implied ~107 km/h, both endpoints stationary)
+     *  and "trip_proven" planted a pin there — then its fence saw the phone outside and cascaded
+     *  a second pin onto the user's home. A real 950 m hop takes ≥ 90 s door-to-door (~10 m/s). */
+    val honestCloseMaxImpliedTravelSpeedMps: Float = 15f,
     /** [DET-FROZEN-COUNTER-001] Ceiling (meters) on the radius of an unattended-timeout
      *  approximate zone. The radius grows to cover the distance between the two evidence points
      *  the guard disagreed about (anchor vs egress birth / current fix); past this ceiling the
@@ -982,6 +991,9 @@ data class ParkingDetectionConfig(
         }
         require(honestCloseMaxSealAgeMs > 0L) {
             "honestCloseMaxSealAgeMs must be > 0, was $honestCloseMaxSealAgeMs"
+        }
+        require(honestCloseMaxImpliedTravelSpeedMps > 0f) {
+            "honestCloseMaxImpliedTravelSpeedMps must be > 0, was $honestCloseMaxImpliedTravelSpeedMps"
         }
         require(unattendedZoneMaxRadiusMeters >= honestCloseMinZoneRadiusMeters) {
             "unattendedZoneMaxRadiusMeters must be >= honestCloseMinZoneRadiusMeters, was $unattendedZoneMaxRadiusMeters"

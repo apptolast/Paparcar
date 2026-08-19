@@ -193,6 +193,14 @@ class ParkingSafetyNetWorker(
         val btEnabled = runCatching { bluetoothScanner.isBluetoothEnabled() }.getOrDefault(false)
 
         val prefs = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        // [DET-UNWITNESSED-DISPLACEMENT-001] This fresh check fix is an independent witness of
+        // where the body is; the honest close holds the next abort fix to spatio-temporal
+        // coherence against it, so a teleporting GPS mirage can no longer "prove" a trip.
+        prefs.edit {
+            putString(KEY_LAST_WITNESSED_POS, "${fix.latitude},${fix.longitude}")
+            putFloat(KEY_LAST_WITNESSED_ACC, fix.accuracy)
+            putLong(KEY_LAST_WITNESSED_AT, now)
+        }
         // Drop anchors of geofences that no longer have an active session (departed / reverted).
         pruneStaleAnchors(prefs, sessions.mapNotNullTo(mutableSetOf()) { it.geofenceId })
 
@@ -762,6 +770,16 @@ class ParkingSafetyNetWorker(
          *  (`arrivalResolutionWindowMs`) — no per-geofence pruning. */
         internal const val KEY_ARRIVAL_RESOLUTION_AT = "arrival_resolution_at"
         internal const val KEY_ARRIVAL_RESOLUTION_POS = "arrival_resolution_pos"
+        /** [DET-UNWITNESSED-DISPLACEMENT-001] Last independently witnessed position of the BODY
+         *  ("lat,lon" + accuracy + epoch ms): the end fix of every detection session and every
+         *  safety-net check fix, latest wins. The honest close holds the next abort fix to
+         *  spatio-temporal coherence against it — an indoor-multipath fix that teleports 950 m in
+         *  32 s between two stationary observations can no longer "prove" a trip (field
+         *  2026-08-19 03:26). One slot, no per-geofence pruning: it describes the body, not a
+         *  fence. Disk-backed so an OEM kill between wakes cannot blind the check. */
+        internal const val KEY_LAST_WITNESSED_POS = "last_witnessed_pos"
+        internal const val KEY_LAST_WITNESSED_ACC = "last_witnessed_acc"
+        internal const val KEY_LAST_WITNESSED_AT = "last_witnessed_at"
         /** [DET-ANCHOR-FREEZE-001 F4] Last GMS re-registration per fence — the cure throttle's
          *  disk half (the in-process half is [curedFencesThisProcess]). */
         private const val CURE_KEY_PREFIX = "cure_registered_"

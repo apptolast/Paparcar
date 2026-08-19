@@ -872,6 +872,60 @@ diagnostics line). 1217 tests; the field regression verified RED without the fix
 
 ---
 
+### DET-UNWITNESSED-DISPLACEMENT-001 — a displacement no witness saw does not prove a trip (2026-08-19)
+
+**Commit:** pending · **Ticket:** `docs/backlog/det-unwitnessed-displacement-001.md`
+
+**User report.** Two chained FPs while the user SLEPT: "Cantarranas-2 4" at 05:26 and "Calle
+Góndola 7" at 05:59, with the car parked at La Bermeja since 00:58 and no driving until 10:15.
+Sessions `1787109972361` / `1787111857151`, pins `e34e70ad` / `70a0f146`, both
+`closed_approximate_pin` rel 0.5 (Oppo, uid `fiyp…`).
+
+**Root cause.** Indoor night multipath teleported the GPS ~950 m with optimistic accuracy (7 m).
+A sentry wake aborted `false_enter` in 12 s and the honest-close ladder reached `trip_proven`
+legitimately through every existing gate: not too close (923 m), no measured driving to outrank,
+pin not user-asserted (0.9), seal FRESH (the safety-net cure re-seals it on every wake beside the
+car, so `stale_seal` can never fire while sleeping next to the pin), counter alive (delta 36 ≥ 13
+session steps) yet ≪ 511 required → "ride". Nobody ever asked whether the ABORT FIX itself was
+real: the phone had been witnessed stationary AT HOME 32 s earlier — reaching the abort fix would
+have taken ~107 km/h between two stationary observations with zero measured movement. The pin then
+registered a fence at the mirage; the phone at home sat 949 m outside it → immediate GEOFENCE_EXIT
+at 03:57 → `aborted_no_movement` → second honest close with a fresh-but-poisoned seal (FP1 sealed
+at the mirage) → second approximate pin ON THE USER'S HOME. The cascade is deterministic once a
+pin exists where the body never was. This is the deferred "witnessed transit" flank documented in
+DET-TRIP-WITNESS-001 — and its literal form (require in-session measured movement) would kill the
+legit Camelias close, whose trip also ended before arming.
+
+**Fix.** Spatio-temporal coherence gate in `EvaluateHonestCloseUseCase` (one invariant, one
+place): the ladder receives the last independently witnessed position (`lastWitnessedFix` +
+`witnessAgeMs`) and refuses any inference verdict — `REASON_UNWITNESSED_DISPLACEMENT` — when the
+abort fix sits farther than `accuracy envelopes + age × honestCloseMaxImpliedTravelSpeedMps`
+(15 m/s ≈ 54 km/h average door-to-door between stationary observations; the 03:26 mirage implied
+30 m/s, a real 950 m hop ≥ 90 s ≈ 10 m/s). The formula self-limits: an hours-old witness allows
+kilometers, so Camelias/D2/Glorieta replays are untouched and no freshness cap exists. Measured
+driving is evaluated BEFORE the gate — a session that saw the ride witnessed the displacement by
+definition. The witness is one disk-backed slot (`last_witnessed_*` in the safety-net prefs,
+ANCHOR-PERSIST-001 pattern): stamped by every finished detection session's last fix in the intake
+epilogue AFTER the honest close consumed the previous value (a session never witnesses for its own
+abort) and refreshed by every safety-net check fix. FP2 needs no gate of its own: with FP1 silent
+there is no fence at the mirage, no EXIT, no second close — and a legit approximate save seals
+where the body really is, so the next wake reads `walk_too_short`.
+
+**Companion-fix risk.** A REAL drive whose abort fix lands far from a very fresh witness only goes
+silent if it averaged > 54 km/h door-to-door within that window — physically implausible urban
+door-to-door; if it ever happens, the safety net remains the declared backstop (asymmetric
+doctrine: bounded FN over FP). `witnessDistanceMeters`/`witnessAgeMs` are stamped into the
+`HONEST_CLOSE` trace on refusals AND on `trip_proven`, so the field audits how close legit trips
+come to the ceiling.
+
+**Files:** `EvaluateHonestCloseUseCase` (gate + reason + verdict fields),
+`ParkingDetectionConfig.honestCloseMaxImpliedTravelSpeedMps`, `RunHonestCloseUseCase`
+(pass-through), `CoordinatorDetectionService` (witness read/stamp), `ParkingSafetyNetWorker`
+(witness refresh + keys), `DetectionEvent.HonestClose` + `DetectionEventDto`
+(`witnessDistanceMeters`; age rides `sessionAgeMs`). 1228 tests.
+
+---
+
 ## 3. Open questions / future work
 
 - **GPS sampling boost during CANDIDATE (PARKING-001 Option B).** Switch the LocationDataSource to a 1 s `minUpdateIntervalMillis` request when entering the CANDIDATE phase, returning to 2 s on exit. Increases density of fixes that refine `bestStopLocation` within the new initial-stop window after a reposition burst. Adds the complexity of swapping the location source mid-session — hold off until A is validated in the field.

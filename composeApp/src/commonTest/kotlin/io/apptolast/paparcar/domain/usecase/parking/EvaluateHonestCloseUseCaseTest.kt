@@ -61,6 +61,8 @@ class EvaluateHonestCloseUseCaseTest {
             abortFix = fixAt(36.5974, -6.2505, acc = 60f),
             stepsSinceStalePin = 23L,
             sealAgeMs = FRESH_SEAL_AGE_MS,
+            lastWitnessedFix = null,
+            witnessAgeMs = null,
             stepSealPoint = fixAt(36.6002, -6.2512, acc = 10f),
         )
         val zone = assertIs<HonestCloseDecision.ApproximateZone>(verdict.decision)
@@ -79,6 +81,8 @@ class EvaluateHonestCloseUseCaseTest {
             abortFix = fixAt(36.6088, -6.2843, acc = 3f),
             stepsSinceStalePin = 1099L,
             sealAgeMs = FRESH_SEAL_AGE_MS,
+            lastWitnessedFix = null,
+            witnessAgeMs = null,
             stepSealPoint = fixAt(36.6054, -6.2727, acc = 10f),
         )
         assertEquals(HonestCloseDecision.KeepSilent, verdict.decision, "a walk must never release the pin")
@@ -94,6 +98,8 @@ class EvaluateHonestCloseUseCaseTest {
             abortFix = fixAt(36.6027, -6.2500, acc = 8f),
             stepsSinceStalePin = 15L,
             sealAgeMs = FRESH_SEAL_AGE_MS,
+            lastWitnessedFix = null,
+            witnessAgeMs = null,
             stepSealPoint = fixAt(36.6000, -6.2500, acc = 10f),
         )
         val pin = assertIs<HonestCloseDecision.ApproximatePin>(verdict.decision)
@@ -109,6 +115,8 @@ class EvaluateHonestCloseUseCaseTest {
             abortFix = fixAt(36.5974, -6.2505, acc = 60f),
             stepsSinceStalePin = null,
             sealAgeMs = FRESH_SEAL_AGE_MS,
+            lastWitnessedFix = null,
+            witnessAgeMs = null,
             stepSealPoint = fixAt(36.6002, -6.2512, acc = 10f),
         )
         assertEquals(HonestCloseDecision.KeepSilent, verdict.decision)
@@ -124,6 +132,8 @@ class EvaluateHonestCloseUseCaseTest {
             abortFix = fixAt(36.60027, -6.2500, acc = 10f),
             stepsSinceStalePin = 3L,
             sealAgeMs = FRESH_SEAL_AGE_MS,
+            lastWitnessedFix = null,
+            witnessAgeMs = null,
             stepSealPoint = fixAt(36.6000, -6.2500, acc = 10f),
         )
         assertEquals(HonestCloseDecision.KeepSilent, verdict.decision)
@@ -137,6 +147,8 @@ class EvaluateHonestCloseUseCaseTest {
             abortFix = fixAt(36.5974, -6.2505, acc = 8f),
             stepsSinceStalePin = 5L,
             sealAgeMs = FRESH_SEAL_AGE_MS,
+            lastWitnessedFix = null,
+            witnessAgeMs = null,
             stepSealPoint = fixAt(36.5974, -6.2505, acc = 8f),
         )
         assertEquals(HonestCloseDecision.KeepSilent, verdict.decision)
@@ -158,6 +170,8 @@ class EvaluateHonestCloseUseCaseTest {
             abortFix = fixAt(36.6038644, -6.2302701, acc = 15f),
             stepsSinceStalePin = 110L,
             sealAgeMs = FRESH_SEAL_AGE_MS,
+            lastWitnessedFix = null,
+            witnessAgeMs = null,
             stepSealPoint = fixAt(36.604539, -6.230719, acc = 10f),
         )
         assertEquals(
@@ -178,6 +192,8 @@ class EvaluateHonestCloseUseCaseTest {
             stepsSinceStalePin = 23L,
             stepSealPoint = null,
             sealAgeMs = FRESH_SEAL_AGE_MS,
+            lastWitnessedFix = null,
+            witnessAgeMs = null,
         )
         assertEquals(HonestCloseDecision.KeepSilent, verdict.decision)
         assertEquals(HonestCloseVerdict.REASON_NO_SEAL_ORIGIN, verdict.reason)
@@ -198,6 +214,8 @@ class EvaluateHonestCloseUseCaseTest {
             abortFix = fixAt(36.70078, -6.10972, acc = 10f),
             stepsSinceStalePin = 2L,
             sealAgeMs = FRESH_SEAL_AGE_MS,
+            lastWitnessedFix = null,
+            witnessAgeMs = null,
             stepSealPoint = fixAt(36.69944, -6.10992, acc = 10f),
             sessionStepEvents = 8,
         )
@@ -218,6 +236,8 @@ class EvaluateHonestCloseUseCaseTest {
             abortFix = fixAt(36.5974, -6.2505, acc = 60f),
             stepsSinceStalePin = 23L,
             sealAgeMs = FRESH_SEAL_AGE_MS,
+            lastWitnessedFix = null,
+            witnessAgeMs = null,
             stepSealPoint = fixAt(36.6002, -6.2512, acc = 10f),
             sessionStepEvents = 0,
         )
@@ -237,6 +257,8 @@ class EvaluateHonestCloseUseCaseTest {
             abortFix = fixAt(36.604041, -6.2299597, acc = 3.5f),
             stepsSinceStalePin = 16L,
             sealAgeMs = FRESH_SEAL_AGE_MS,
+            lastWitnessedFix = null,
+            witnessAgeMs = null,
             stepSealPoint = fixAt(36.60379, -6.23014, acc = 5f),
             sessionStepEvents = 13,
         )
@@ -259,6 +281,8 @@ class EvaluateHonestCloseUseCaseTest {
             abortFix = fixAt(36.604041, -6.2299597, acc = 3.5f),
             stepsSinceStalePin = 16L,
             sealAgeMs = FRESH_SEAL_AGE_MS,
+            lastWitnessedFix = null,
+            witnessAgeMs = null,
             stepSealPoint = fixAt(36.60379, -6.23014, acc = 5f),
             sessionStepEvents = 13,
         )
@@ -280,6 +304,8 @@ class EvaluateHonestCloseUseCaseTest {
             stepsSinceStalePin = null,
             stepSealPoint = null,
             sealAgeMs = null,
+            lastWitnessedFix = null,
+            witnessAgeMs = null,
             sessionMaxSpeedMps = 9f,
         )
         assertIs<HonestCloseDecision.ApproximatePin>(verdict.decision)
@@ -303,6 +329,8 @@ class EvaluateHonestCloseUseCaseTest {
             stepsSinceStalePin = 0L,
             stepSealPoint = fixAt(36.60583, -6.23159, acc = 5f),
             sealAgeMs = 16 * 60 * 60 * 1_000L,
+            lastWitnessedFix = null,
+            witnessAgeMs = null,
             sessionStepEvents = 0,
         )
         assertEquals(
@@ -323,6 +351,8 @@ class EvaluateHonestCloseUseCaseTest {
             stepsSinceStalePin = 23L,
             stepSealPoint = fixAt(36.6002, -6.2512, acc = 10f),
             sealAgeMs = ParkingDetectionConfig().honestCloseMaxSealAgeMs + 1L,
+            lastWitnessedFix = null,
+            witnessAgeMs = null,
         )
         assertEquals(HonestCloseDecision.KeepSilent, verdict.decision)
         assertEquals(HonestCloseVerdict.REASON_STALE_SEAL, verdict.reason)
@@ -337,6 +367,8 @@ class EvaluateHonestCloseUseCaseTest {
             stepsSinceStalePin = 23L,
             stepSealPoint = fixAt(36.6002, -6.2512, acc = 10f),
             sealAgeMs = ParkingDetectionConfig().honestCloseMaxSealAgeMs,
+            lastWitnessedFix = null,
+            witnessAgeMs = null,
         )
         assertIs<HonestCloseDecision.ApproximateZone>(verdict.decision)
         assertEquals(HonestCloseVerdict.REASON_TRIP_PROVEN, verdict.reason)
@@ -352,6 +384,8 @@ class EvaluateHonestCloseUseCaseTest {
             stepsSinceStalePin = 23L,
             stepSealPoint = fixAt(36.6002, -6.2512, acc = 10f),
             sealAgeMs = null,
+            lastWitnessedFix = null,
+            witnessAgeMs = null,
         )
         assertEquals(HonestCloseDecision.KeepSilent, verdict.decision)
         assertEquals(HonestCloseVerdict.REASON_STALE_SEAL, verdict.reason)
@@ -368,9 +402,101 @@ class EvaluateHonestCloseUseCaseTest {
             stepsSinceStalePin = null,
             stepSealPoint = null,
             sealAgeMs = null,
+            lastWitnessedFix = null,
+            witnessAgeMs = null,
             sessionMaxSpeedMps = 9f,
         )
         assertIs<HonestCloseDecision.ApproximatePin>(verdict.decision)
         assertEquals(HonestCloseVerdict.REASON_SESSION_MEASURED_DRIVING, verdict.reason)
+    }
+
+    // ── [DET-UNWITNESSED-DISPLACEMENT-001] Abort-fix coherence vs the last witnessed position ───
+
+    @Test
+    fun should_stay_silent_when_the_abort_fix_teleported_from_a_fresh_witness() {
+        // Cantarranas FP (field 2026-08-19 03:26, Oppo asleep at home): indoor multipath
+        // teleported the fix ~995 m with optimistic accuracy (7 m) while an independent wake had
+        // witnessed the phone stationary AT HOME 32 s earlier — implied ~107 km/h between two
+        // stationary observations, zero measured movement all night. Every other gate passed
+        // legitimately (seal cure-fresh at home, delta 36 alive ≥ 13 session steps, 36 ≪ 511
+        // required); only the witness contradiction exposes the mirage. Silence — whichever
+        // endpoint was the mirage, no fix is pin-grade when witnesses disagree.
+        val home = fixAt(36.60793, -6.27807, acc = 14f)
+        val verdict = useCase(
+            stalePin = pinAt(36.608515, -6.27778, acc = 2.2f, reliability = 0.9f),
+            abortFix = fixAt(36.6164806, -6.2748436, acc = 7.016f),
+            stepsSinceStalePin = 36L,
+            stepSealPoint = home,
+            sealAgeMs = FRESH_SEAL_AGE_MS,
+            lastWitnessedFix = home,
+            witnessAgeMs = 32_000L,
+            sessionStepEvents = 13,
+        )
+        assertEquals(
+            HonestCloseDecision.KeepSilent,
+            verdict.decision,
+            "a fix the body could not have reached must never prove a trip",
+        )
+        assertEquals(HonestCloseVerdict.REASON_UNWITNESSED_DISPLACEMENT, verdict.reason)
+        assertNotNull(verdict.witnessDistanceMeters, "the trace must carry the contradiction it refused")
+    }
+
+    @Test
+    fun should_prove_the_trip_when_the_witness_is_hours_old() {
+        // Same teleport geometry but the witness is 2 h stale — the time term dwarfs any real
+        // displacement, the gate is transparent (this is what keeps Camelias/D2-shaped late
+        // closes untouched), and the step budget testifies as before. The witness numbers are
+        // still stamped so the field audits how close legit trips come to the ceiling.
+        val home = fixAt(36.60793, -6.27807, acc = 14f)
+        val verdict = useCase(
+            stalePin = pinAt(36.608515, -6.27778, acc = 2.2f, reliability = 0.9f),
+            abortFix = fixAt(36.6164806, -6.2748436, acc = 7.016f),
+            stepsSinceStalePin = 36L,
+            stepSealPoint = home,
+            sealAgeMs = FRESH_SEAL_AGE_MS,
+            lastWitnessedFix = home,
+            witnessAgeMs = 2 * 60 * 60 * 1_000L,
+            sessionStepEvents = 13,
+        )
+        assertIs<HonestCloseDecision.ApproximatePin>(verdict.decision)
+        assertEquals(HonestCloseVerdict.REASON_TRIP_PROVEN, verdict.reason)
+        assertNotNull(verdict.witnessDistanceMeters)
+        assertNotNull(verdict.witnessAgeMs)
+    }
+
+    @Test
+    fun should_stay_silent_when_the_displacement_is_just_over_the_implied_speed_ceiling() {
+        // Envelope arithmetic at the boundary: accuracies 10+10 and 32 s × 15 m/s allow 500 m;
+        // ~523 m (0.00470° of latitude) is over → refused.
+        val witness = fixAt(36.60000, -6.25000, acc = 10f)
+        val verdict = useCase(
+            stalePin = pinAt(36.60000, -6.25000, acc = 2f),
+            abortFix = fixAt(36.60470, -6.25000, acc = 10f),
+            stepsSinceStalePin = 0L,
+            stepSealPoint = witness,
+            sealAgeMs = FRESH_SEAL_AGE_MS,
+            lastWitnessedFix = witness,
+            witnessAgeMs = 32_000L,
+        )
+        assertEquals(HonestCloseDecision.KeepSilent, verdict.decision)
+        assertEquals(HonestCloseVerdict.REASON_UNWITNESSED_DISPLACEMENT, verdict.reason)
+    }
+
+    @Test
+    fun should_prove_the_trip_when_the_displacement_sits_under_the_implied_speed_ceiling() {
+        // ~479 m (0.00430°) against the same 500 m allowance is physically reachable → the gate
+        // steps aside and the zero-step budget proves the ride as before.
+        val witness = fixAt(36.60000, -6.25000, acc = 10f)
+        val verdict = useCase(
+            stalePin = pinAt(36.60000, -6.25000, acc = 2f),
+            abortFix = fixAt(36.60430, -6.25000, acc = 10f),
+            stepsSinceStalePin = 0L,
+            stepSealPoint = witness,
+            sealAgeMs = FRESH_SEAL_AGE_MS,
+            lastWitnessedFix = witness,
+            witnessAgeMs = 32_000L,
+        )
+        assertIs<HonestCloseDecision.ApproximatePin>(verdict.decision)
+        assertEquals(HonestCloseVerdict.REASON_TRIP_PROVEN, verdict.reason)
     }
 }

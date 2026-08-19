@@ -146,6 +146,11 @@ sealed interface DetectionEvent {
         val sessionMaxSpeedKmh: Float? = null,
         /** Radius of the saved approximate zone, when the verdict opened one. */
         val radiusMeters: Float? = null,
+        /** Last witnessed position → abort fix, meters — the spatio-temporal coherence the abort
+         *  fix was held to (null = no witness available). [DET-UNWITNESSED-DISPLACEMENT-001] */
+        val witnessDistanceMeters: Double? = null,
+        /** Age (ms) of that witness at the abort moment. */
+        val witnessAgeMs: Long? = null,
         override val location: GpsPoint? = null,
     ) : DetectionEvent
 
