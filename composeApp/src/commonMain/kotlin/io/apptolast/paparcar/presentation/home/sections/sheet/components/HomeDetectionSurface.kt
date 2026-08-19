@@ -53,6 +53,7 @@ import paparcar.composeapp.generated.resources.home_det_candidate_title
 import paparcar.composeapp.generated.resources.home_det_core_cta
 import paparcar.composeapp.generated.resources.home_det_core_sub
 import paparcar.composeapp.generated.resources.home_det_core_title
+import paparcar.composeapp.generated.resources.home_det_driving_stop_cta
 import paparcar.composeapp.generated.resources.home_det_driving_sub
 import paparcar.composeapp.generated.resources.home_det_driving_title
 import paparcar.composeapp.generated.resources.home_det_novehicle_cta
@@ -93,6 +94,9 @@ internal fun HomeDetectionSurface(
     onStartDrivingDetection: () -> Unit,
     onActivateDetection: () -> Unit,
     modifier: Modifier = Modifier,
+    /** [DET-STOP-BUTTON-001] "Parar detección" on the live-trip row — the user's way out of a trip
+     *  they don't want followed. Default no-op so previews/callers that don't wire it don't break. */
+    onStopDetection: () -> Unit = {},
     /**
      * Whether the cold-start row offers the secondary "I'm driving" action. Off until the manual
      * Coordinator arming (DET-G-01b) exists — there is no infra to honour it yet. [DET-READY-001h]
@@ -186,9 +190,13 @@ internal fun HomeDetectionSurface(
             modifier = modifier,
         )
 
-        // Happy-path stories: same card skeleton as the action rows, no CTA. The row wears the trip
-        // vehicle's identity colour; motion is the radar halo on the chip, not a new hue.
+        // Happy-path story: same card skeleton as the action rows. The row wears the trip vehicle's
+        // identity colour; motion is the radar halo on the chip, not a new hue.
         // [UX-DETECTION-STORY-001] [UI-COLOR-DOCTRINE-001]
+        //
+        // Its single CTA is the way OUT of a trip the user doesn't want followed — the only state
+        // where stopping means anything, and the exact row that claims to be following them.
+        // [DET-STOP-BUTTON-001]
         is DetectionStory.Driving -> ActionRow(
             tone = methodTone(story.viaBluetooth),
             icon = if (story.isCandidate) Icons.Rounded.LocationSearching else Icons.Rounded.Navigation,
@@ -199,8 +207,13 @@ internal fun HomeDetectionSurface(
             subtitle = stringResource(
                 if (story.isCandidate) Res.string.home_det_candidate_sub else Res.string.home_det_driving_sub,
             ),
-            primaryLabel = null,
-            onPrimary = {},
+            primaryLabel = stringResource(Res.string.home_det_driving_stop_cta),
+            onPrimary = onStopDetection,
+            // Stacked full-width, not inline: this row's copy carries the CAR NAME, so an inline
+            // pill steals the width the title needs and wraps "Conduciendo tu Toyota Corolla" onto
+            // two lines (longer names then truncate). Same reason the alert watch rows stack.
+            // [DET-WATCH-HONEST-001]
+            primaryStacksBelow = true,
             modifier = modifier,
         )
 

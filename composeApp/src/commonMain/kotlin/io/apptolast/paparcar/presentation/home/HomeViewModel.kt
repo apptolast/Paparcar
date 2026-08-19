@@ -229,6 +229,7 @@ class HomeViewModel(
 
             // Detection controls
             is HomeIntent.StartDrivingDetection,
+            is HomeIntent.StopDetection,
             is HomeIntent.EnableAutoDetection,
             is HomeIntent.RequestBatteryExemption,
             is HomeIntent.ResumeWatch,
@@ -604,6 +605,14 @@ class HomeViewModel(
             // [DET-G-01b] "I'm driving" — start tracking now; the readiness flow flips to Monitoring
             // (the ephemeral pill) as the service marks itself running, which is the user's feedback.
             is HomeIntent.StartDrivingDetection -> startDrivingDetection(intent.vehicleId)
+
+            // [DET-STOP-BUTTON-001] "Parar detección" — the trip ends with no spot saved and no
+            // question asked. The row itself disappears as the service leaves Monitoring; the
+            // snackbar is what tells the user the silence is deliberate and how to come back.
+            is HomeIntent.StopDetection -> {
+                manualParkingDetection.stopByUser()
+                sendEffect(HomeEffect.TripDetectionStopped)
+            }
 
             // [DET-TOGGLE-001] Single "activate detection" action: flip the Settings flag on AND, if
             // the producer permissions are still missing, open the permissions screen — so one tap

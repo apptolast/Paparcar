@@ -123,6 +123,9 @@ internal fun LazyListScope.homeSheetItems(
                 // [DET-G-01b] "I'm driving" declares THIS car and arms detection for it. [VEH-ACTIVE-FENCE-001]
                 onStartDrivingDetection = { onIntent(HomeIntent.StartDrivingDetection(vehicleId = coldStartVehicleId)) },
                 onActivateDetection = { onIntent(HomeIntent.EnableAutoDetection) }, // [DET-TOGGLE-001]
+                // "Parar detección" on the live-trip row — ends THIS trip, leaves the feature on.
+                // [DET-STOP-BUTTON-001]
+                onStopDetection = { onIntent(HomeIntent.StopDetection) },
                 // Fragile watch → fortify it with the battery exemption. [DET-WATCH-HONEST-001]
                 onRequestBatteryExemption = { onIntent(HomeIntent.RequestBatteryExemption) },
                 // Interrupted watch → rebuild the watcher itself. [DET-WATCH-REACTIVATE-001]

@@ -567,6 +567,9 @@
     <string name="home_det_watch_interrupted_cta">Reativar</string>
     <string name="home_det_driving_title">A conduzir o teu %1$s</string>
     <string name="home_det_driving_sub">Vamos detetar onde estacionas</string>
+    <!-- [DET-STOP-BUTTON-001] -->
+    <string name="home_det_driving_stop_cta">Parar</string>
+    <string name="home_det_trip_stopped_msg">Deteção parada. Esta viagem não será guardada como lugar; toca em «Vou a conduzir» quando quiseres retomar.</string>
     <string name="home_det_candidate_title">A estacionar o teu %1$s?</string>
     <string name="home_det_candidate_sub">A confirmar o lugar…</string>
     <string name="home_det_awaiting_cta_primary">Marcar o meu lugar</string>

@@ -3,6 +3,7 @@ package io.apptolast.paparcar.domain.coordinator
 import io.apptolast.paparcar.domain.detection.ArmEvidence
 import io.apptolast.paparcar.domain.detection.DepartureConfirmationListener
 import io.apptolast.paparcar.domain.detection.DetectionPhase
+import io.apptolast.paparcar.domain.detection.DetectionSessionOutcomes
 import io.apptolast.paparcar.domain.detection.DetectionPhaseSink
 import io.apptolast.paparcar.domain.detection.VehicleFenceOwnershipPolicy
 import io.apptolast.paparcar.domain.detection.isHumanPoweredRide
@@ -1483,6 +1484,27 @@ class CoordinatorParkingDetector(
         PaparcarLogger.d(DIAG, "✱ onUserConfirmedParking() called")
         notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
         _detectionState.update { it.copy(userConfirmedParking = true) }
+    }
+
+    /**
+     * [DET-STOP-BUTTON-001] User tapped "Stop detection" on the live session (Home row or the
+     * service notification). The caller cancels the tracking job right after; this stamps the
+     * session's terminal outcome and — the part that makes the button honest — DROPS any held
+     * confirm.
+     *
+     * Without the drop, the `finally` of [invoke] would see a `pendingConfirm` with `completed ==
+     * false` and finalize it ("belt to the watchdog's braces", [DET-AUDIT-002 T7]): the button
+     * would plant exactly the pin the user just refused. A user stop leaves NO pin and NO prompt —
+     * the doctrine's asymmetric failure, requested by the only authority that outranks measured
+     * evidence.
+     *
+     * Thread-safe (single atomic state update, same as the other user signals).
+     */
+    fun onUserStoppedDetection() {
+        PaparcarLogger.d(DIAG, "✱ onUserStoppedDetection() — user stopped the live session; dropping any held confirm [DET-STOP-BUTTON-001]")
+        sessionOutcome = DetectionSessionOutcomes.STOPPED_BY_USER
+        notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
+        _detectionState.update { ParkingDetectionState() }
     }
 
     /** User dismissed the confirmation ("Keep driving"). Resets all heuristics. Thread-safe. */

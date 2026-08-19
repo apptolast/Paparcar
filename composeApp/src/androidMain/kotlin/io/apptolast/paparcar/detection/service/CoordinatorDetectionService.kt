@@ -16,12 +16,15 @@ import com.google.firebase.crashlytics.FirebaseCrashlytics
 import io.apptolast.paparcar.BuildConfig
 import io.apptolast.paparcar.detection.SentryResidenceStore
 import io.apptolast.paparcar.detection.SignificantMotionMonitor
+import io.apptolast.paparcar.detection.UserStopStore
 import io.apptolast.paparcar.detection.worker.DepartureDetectionWorker
 import io.apptolast.paparcar.detection.worker.ParkingSafetyNetWorker
 import io.apptolast.paparcar.domain.coordinator.CoordinatorParkingDetector
 import io.apptolast.paparcar.domain.detection.ArmEvidence
 import io.apptolast.paparcar.domain.detection.DetectionTrigger
 import io.apptolast.paparcar.domain.detection.coordinatorMayArm
+import io.apptolast.paparcar.domain.detection.isArmSuppressedByUserStop
+import io.apptolast.paparcar.domain.detection.userStopQuietPeriodRemainingMs
 import io.apptolast.paparcar.domain.detection.MutableDetectionRuntimeState
 import io.apptolast.paparcar.domain.detection.ParkingStrategy
 import io.apptolast.paparcar.domain.detection.ParkingStrategyResolver
@@ -275,6 +278,10 @@ class CoordinatorDetectionService : LifecycleService() {
                 PaparcarLogger.d(DIAG, "  → STOP_TRACKING — cancelling detection")
                 cancelDetectionJob()
             }
+            // [DET-STOP-BUTTON-001] The user pressed "Parar detección" on the live session. Distinct
+            // from STOP_TRACKING (an internal cancel): this one stamps the session's own terminal
+            // outcome, drops any held confirm so nothing is planted, and opens the quiet period.
+            ACTION_USER_STOP -> handleUserStop()
             // [DET-TIERS-001] Bluetooth arbitrated: a paired-car BT edge SUPERSEDES this
             // probabilistic session (disconnect → the BT path confirms deterministically; connect in
             // Candidate → the user is back in the car, veto the pending pin). Either way the
@@ -350,6 +357,37 @@ class CoordinatorDetectionService : LifecycleService() {
         parkingDetectionCoordinator.onUserConfirmedParking()
         // [FIX BUG-FGS-103] A confirm that arrives with no active job is a stale tap
         // (auto-confirm already wrote the spot) — the intake epilogue tears the FGS down.
+    }
+
+    /**
+     * [DET-STOP-BUTTON-001] "Parar detección" — from the Home row or the service notification.
+     *
+     * Three things, in this order: tell the coordinator (which stamps `stopped_by_user` and drops
+     * any held confirm BEFORE the cancellation reaches its finally, so the watchdog cannot finalize
+     * the pin the user just refused), open the quiet period, cancel the job. The intake epilogue
+     * then resolves the ordinary teardown — sentry if a car is still parked, stop otherwise:
+     * stopping a session is not turning the feature off.
+     *
+     * A tap with NO live session is a stale notification tap. It cancels nothing and — deliberately
+     * — opens no quiet period: muting the next real departure because of a leftover notification
+     * would be a false negative the user never asked for.
+     */
+    private fun handleUserStop() {
+        if (detectionJob?.isActive != true) {
+            PaparcarLogger.d(DIAG, "  ⊘ USER_STOP with no live session — stale tap, no quiet period [DET-STOP-BUTTON-001]")
+            notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
+            return
+        }
+        PaparcarLogger.d(DIAG, "  → USER_STOP — the user stopped the live session [DET-STOP-BUTTON-001]")
+        parkingDetectionCoordinator.onUserStoppedDetection()
+        UserStopStore.stamp(applicationContext, System.currentTimeMillis())
+        cancelDetectionJob()
+        if (BuildConfig.DEBUG) {
+            notificationPort.showDebug(
+                "Detección PARADA por ti: cierro el viaje sin guardar plaza y no haré caso a los " +
+                    "avisos automáticos durante ${detectionConfig.userStopQuietPeriodMs / 60_000} min",
+            )
+        }
     }
 
     private fun handleUserDenied() {
@@ -1207,6 +1245,27 @@ class CoordinatorDetectionService : LifecycleService() {
         // whether the coordinator owns detection at all. Field 2026-08-01: only the EXIT lane
         // checked, and the sentry/AR arms pinned the BT-paired Kamiq's trips on the primary Focus.
         // MANUAL is exempt inside the rule (explicit user intent / safety-net arrival handoff).
+        // [DET-STOP-BUTTON-001] The user's own veto outranks every automatic nominator. While the
+        // quiet period they opened by tapping "Parar detección" lasts, no AR ENTER / fence EXIT /
+        // motion wake may arm — without this the button is a lie: the same walk to the passenger
+        // seat re-fires AR seconds later and detection comes back on its own. MANUAL is the same
+        // user retracting, so it is never suppressed and CLEARS the stamp. Only ARMING sleeps: a
+        // fence EXIT delivered meanwhile still released the spot, upstream of this call.
+        val userStoppedAtMs = UserStopStore.read(applicationContext)
+        if (userStoppedAtMs != null) {
+            val now = System.currentTimeMillis()
+            if (isArmSuppressedByUserStop(trigger, userStoppedAtMs, now, detectionConfig)) {
+                val remainingMs = userStopQuietPeriodRemainingMs(userStoppedAtMs, now, detectionConfig)
+                PaparcarLogger.d(
+                    DIAG,
+                    "  ⊘ arm refused — the user stopped detection; ${remainingMs / 1000}s of quiet left (trigger=$trigger) [DET-STOP-BUTTON-001]",
+                )
+                logArmSuppressedByUserStop(trigger, remainingMs)
+                return
+            }
+            // Either MANUAL (explicit retraction) or the period lapsed — the stamp has no more work.
+            UserStopStore.clear(applicationContext)
+        }
         if (trigger != DetectionTrigger.MANUAL) {
             val strategy = strategyResolver.resolve()
             if (!coordinatorMayArm(strategy, trigger)) {
@@ -1406,6 +1465,34 @@ class CoordinatorDetectionService : LifecycleService() {
      *  - a **debug notification** (DEBUG builds only) so a field tester sees, on the device, whether
      *    a park was armed by GEOFENCE_EXIT, AR proximity, or the manual button.
      */
+    /**
+     * [DET-STOP-BUTTON-001] Remote trace of an arm the user's quiet period refused. Without it a
+     * field session where "detection never started" looks identical to an OEM-killed trigger — the
+     * exact confusion the provenance rule exists to prevent. Same fire-and-forget shape as
+     * [logArmTrigger], under its own synthetic id since there is no session to attach to.
+     */
+    private fun logArmSuppressedByUserStop(trigger: DetectionTrigger, remainingMs: Long) {
+        val now = System.currentTimeMillis()
+        lifecycleScope.launch {
+            runCatching {
+                detectionEventLogger.log(
+                    DetectionEvent.Decision(
+                        sessionId = "arm_$now",
+                        timestampMs = now,
+                        outcome = "ARM_SUPPRESSED_USER_STOP",
+                        pathLabel = "${trigger.name}(quiet=${remainingMs / 1000}s)",
+                    ),
+                )
+            }.onFailure { e -> PaparcarLogger.w(DIAG, "  ⚠ suppressed-arm log failed: ${e.message}") }
+        }
+        if (BuildConfig.DEBUG) {
+            notificationPort.showDebug(
+                "Detección NO arrancada: paraste la detección hace poco, así que ignoro los avisos " +
+                    "automáticos durante ${remainingMs / 60_000} min más. Pulsa 'Estoy conduciendo' si quieres volver ya",
+            )
+        }
+    }
+
     private fun logArmTrigger(trigger: DetectionTrigger, detail: String?) {
         runCatching {
             FirebaseCrashlytics.getInstance().setCustomKey("det_trigger", trigger.name)
@@ -1511,6 +1598,12 @@ class CoordinatorDetectionService : LifecycleService() {
 
         const val ACTION_START_TRACKING = "io.apptolast.paparcar.ACTION_START_TRACKING"
         const val ACTION_STOP_TRACKING = "io.apptolast.paparcar.ACTION_STOP_TRACKING"
+
+        /** [DET-STOP-BUTTON-001] The user pressed "Parar detección" on a live session (Home row or
+         *  the foreground-service notification). Never sent by the system — [ACTION_STOP_TRACKING]
+         *  stays the internal cancel; only THIS one stamps `stopped_by_user` and opens the quiet
+         *  period in which automatic nominators may not re-arm. */
+        const val ACTION_USER_STOP = "io.apptolast.paparcar.ACTION_USER_STOP"
         // [DET-RESIDENT-FGS-001] Significant-motion wake, delivered by SignificantMotionMonitor ONLY
         // when the service is resident in SENTRY (already foreground → legal re-delivery). Arms a
         // coordinator session with Unverified evidence; the WorkManager path is used from a dead process.

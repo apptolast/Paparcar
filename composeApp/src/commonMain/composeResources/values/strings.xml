@@ -640,6 +640,9 @@
     <string name="home_det_watch_interrupted_cta">Reactivate</string>
     <string name="home_det_driving_title">Driving your %1$s</string>
     <string name="home_det_driving_sub">We’ll detect where you park</string>
+    <!-- [DET-STOP-BUTTON-001] Way out of a trip the user does not want followed. -->
+    <string name="home_det_driving_stop_cta">Stop</string>
+    <string name="home_det_trip_stopped_msg">Detection stopped. This trip won’t be saved as a parking spot — tap “I am driving” whenever you want it back.</string>
     <string name="home_det_candidate_title">Parking your %1$s?</string>
     <string name="home_det_candidate_sub">Confirming the spot…</string>
     <string name="home_det_awaiting_cta_primary">Mark my spot</string>

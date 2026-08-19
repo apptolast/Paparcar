@@ -295,7 +295,18 @@ class AppNotificationManagerImpl(
         } else {
             context.getString(R.string.notif_detection_text)
         }
+        // [DET-STOP-BUTTON-001] The way out of a trip the user does not want followed, where they
+        // actually see it running: the phone is locked in a pocket, not showing Home. Routed through
+        // the same receiver as the other notification answers.
+        val stopPi = PendingIntent.getBroadcast(
+            context, RC_DETECTION_STOP,
+            Intent(ParkingConfirmationReceiver.ACTION_USER_STOP).apply {
+                setClass(context, ParkingConfirmationReceiver::class.java)
+            },
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
         return NotificationCompat.Builder(context, DETECTION_CHANNEL_ID)
+            .addAction(0, context.getString(R.string.notif_action_stop_detection), stopPi)
             .setContentTitle(context.getString(R.string.notif_detection_title))
             .setContentText(bodyText)
             .setStyle(
@@ -463,6 +474,8 @@ class AppNotificationManagerImpl(
         private const val RC_BACKGROUND_KILL = 208
         // [DET-AR-FIRST-001] "where did you leave your car?" nudge request code
         private const val RC_MARK_PARKING_NUDGE = 209
+        // [DET-STOP-BUTTON-001] "stop detection" action on the ongoing-detection notification
+        private const val RC_DETECTION_STOP = 210
 
         // Accent colors per notification type
         private val COLOR_DETECTION = Color.rgb(25, 118, 210)    // Blue   — GPS active

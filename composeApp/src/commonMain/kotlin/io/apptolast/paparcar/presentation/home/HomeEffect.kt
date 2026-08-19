@@ -29,6 +29,13 @@ sealed class HomeEffect {
      *  producer/core permission revoked) — show a snackbar with one-tap re-activation. [DET-TOGGLE-002] */
     data object DetectionStopped : HomeEffect()
 
+    /**
+     * The user stopped the TRIP being followed right now ("Parar detección"). Deliberately not
+     * [DetectionStopped]: the feature stays on and there is nothing to re-activate — this confirms
+     * that the silence was asked for, and says how to come back. [DET-STOP-BUTTON-001]
+     */
+    data object TripDetectionStopped : HomeEffect()
+
     /** "Activate now" on the battery nudge — the screen launches the system battery-optimization
      *  exemption request (and, on aggressive OEMs, the manufacturer's foreground/autostart settings
      *  page). [DET-BATTERY-EXEMPTION-NUDGE-001] */

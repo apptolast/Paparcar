@@ -2677,3 +2677,51 @@ and under-reading GPS) and leaning further on AR (the root failure is AR's absen
 No new detectionPath (the outcome is the existing Prompt), no strings, no Dev Catalog surface;
 `drivingBandMs` is derivable from the logged fix stream, so the remote trace stays sufficient.
 1231 tests green (1223 on master + 8 new). Spec: `docs/backlog/det-motor-proof-001.md`.
+
+### DET-STOP-BUTTON-001 — the user can stop a detection in progress, and the stop HOLDS (2026-08-19)
+
+**Report.** Not a field failure: a gap the user named on 2026-08-06 and specified on 2026-08-19.
+While a session is live (armed, measuring, evaluating a park) there was no way out. The only levers
+were the global Settings toggle — which kills the whole feature, not this trip — and waiting 4–15
+min for the session to resolve, prompt included. Riding as a passenger, boarding a bus with AR
+armed, or simply not wanting a trip followed had no answer.
+
+**Doctrine.** This completes the asymmetric-failure rule rather than bending it: the user is the
+highest authority in the system, so their veto outranks any measured evidence, and a stop is a
+false negative *requested*. "Every trigger always fires" survives with one explicit qualification —
+the silence that follows is opened by the USER (as the Settings toggle already does), it is
+bounded, and it suppresses ARMING only.
+
+**Fix.** Three seams, no new use case (the policy is shared by five callers, so it is a pure
+function next to `SentryWakeCooldown.kt`, per DET-VERDICT-NOT-PREDICATE-001):
+- **The command.** `ACTION_USER_STOP` in the service intake — distinct from `ACTION_STOP_TRACKING`
+  (the internal cancel used by the sentry stand-down and DET-MANUAL-CANCEL-001). It reaches
+  `CoordinatorParkingDetector.onUserStoppedDetection()`, which stamps the terminal outcome
+  `stopped_by_user` and **drops any held confirm**. That drop is what makes the button honest: a
+  plain cancellation would let the teardown watchdog (DET-AUDIT-002 T7) finalize the pending confirm
+  and plant exactly the pin the user just refused. A tap with no live session (stale notification)
+  cancels nothing and opens no quiet period.
+- **The quiet period.** `UserStopQuietPeriod.kt` (commonMain, pure) + `userStopQuietPeriodMs`
+  (15 min), enforced at the ONE gate every arm funnels through — `startParkingDetection`, beside the
+  strategy gate. Without it the button lies: the same walk to the passenger seat re-fires AR seconds
+  later and detection returns on its own. `MANUAL` is never suppressed and CLEARS the stamp — "I'm
+  driving" is the same user retracting. Suppressed arms are logged remotely
+  (`ARM_SUPPRESSED_USER_STOP`) so "detection never started" can never again be confused with an
+  OEM-killed trigger.
+- **The surfaces.** A CTA on the `DetectionStory.Driving` row (the row that claims to be following
+  you) and an action on the foreground-service notification (the phone is locked in a pocket — that
+  is where the user actually sees detection running), routed through the existing
+  `ParkingConfirmationReceiver`.
+
+**Scope, deliberately narrow.** Only arming sleeps. A geofence EXIT delivered during the quiet
+period still releases the spot (its dispatch runs upstream of the arm gate); the safety net keeps
+reconciling parked cars; the Bluetooth lane is untouched — separate rails, and it never produces the
+`Monitoring` state the button lives in. `stopped_by_user` resets the sentry-wake abort streak (it is
+not a refuted nomination), so the walking damper cannot escalate off the back of a user stop.
+
+**Companion-fix risk.** A user who stops and then genuinely departs within 15 min gets no automatic
+session — by design, and recoverable with one tap on "Estoy conduciendo"; the safety net still
+covers the previously parked car. No new `detectionPath` (nothing is ever confirmed down this
+path); 3 strings in the 9 locales; the Driving row's new CTA is already covered by the existing
+gallery/preview states. 1247 tests green (1236 on master + 11 new). Spec:
+`docs/backlog/det-stop-button-001.md`.

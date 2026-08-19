@@ -1071,6 +1071,21 @@ class HomeViewModelTest {
         assertEquals(1, manualParkingDetection.startCallCount)
     }
 
+    // ── StopDetection — the user's veto on the live trip [DET-STOP-BUTTON-001] ─
+
+    @Test
+    fun `should_stop_the_live_trip_by_user_command_when_StopDetection_is_handled`() = runTest {
+        vm = buildVm()
+
+        vm.handleIntent(HomeIntent.StopDetection)
+        advanceUntilIdle()
+
+        // The dedicated command, NOT the manual-park cancel: only this one stamps the outcome and
+        // opens the quiet period. [DET-MANUAL-CANCEL-001] keeps its own meaning.
+        assertEquals(1, manualParkingDetection.stopByUserCallCount)
+        assertEquals(0, manualParkingDetection.stopCallCount)
+    }
+
     // ─────────────────────────────────────────────────────────────────────────────
     // [F1] BUG-1..5 + F1-bis regression coverage — added 2026-06-10
     // ─────────────────────────────────────────────────────────────────────────────

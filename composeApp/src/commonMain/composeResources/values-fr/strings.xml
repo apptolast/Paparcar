@@ -567,6 +567,9 @@
     <string name="home_det_watch_interrupted_cta">Réactiver</string>
     <string name="home_det_driving_title">Au volant de ta %1$s</string>
     <string name="home_det_driving_sub">Nous détecterons où tu te gares</string>
+    <!-- [DET-STOP-BUTTON-001] -->
+    <string name="home_det_driving_stop_cta">Arrêter</string>
+    <string name="home_det_trip_stopped_msg">Détection arrêtée. Ce trajet ne sera pas enregistré comme place ; appuie sur «Je conduis» quand tu veux la relancer.</string>
     <string name="home_det_candidate_title">Tu gares ta %1$s ?</string>
     <string name="home_det_candidate_sub">Confirmation de la place…</string>
     <string name="home_det_awaiting_cta_primary">Marquer ma place</string>

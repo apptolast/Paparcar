@@ -52,6 +52,14 @@ sealed class HomeIntent {
      */
     data class StartDrivingDetection(val vehicleId: String?) : HomeIntent()
 
+    /**
+     * "Parar detección" on the live-trip row — the user says this trip is not theirs to follow.
+     * Ends the session without planting a spot and without asking, and stays quiet for a while so
+     * the automatic triggers do not restart it on their own. Not the Settings toggle: detection
+     * itself stays on. [DET-STOP-BUTTON-001]
+     */
+    data object StopDetection : HomeIntent()
+
     /** "Activate detection" from the Home banner — flips the Settings auto-detect flag back on
      *  (independent of permissions). [DET-TOGGLE-001] */
     data object EnableAutoDetection : HomeIntent()

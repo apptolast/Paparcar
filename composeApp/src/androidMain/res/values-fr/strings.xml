@@ -12,6 +12,8 @@
     <string name="notif_confirmation_title_vehicle">Tu as garé ta %1$s ?</string>
     <string name="notif_confirmation_text">On dirait que tu t’es garé. On confirme la place ?</string>
     <string name="notif_action_yes_parked">Oui, je me suis garé</string>
+    <!-- [DET-STOP-BUTTON-001] Way out of a trip the user does not want followed. -->
+    <string name="notif_action_stop_detection">Arrêter la détection</string>
     <string name="notif_action_no_not_parked">Non, je ne me suis pas garé</string>
 
     <!-- Notification : stationnement enregistré -->

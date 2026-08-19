@@ -49,10 +49,15 @@ class ParkingConfirmationReceiver : BroadcastReceiver() {
         const val ACTION_ACK = CoordinatorDetectionService.ACTION_PARKING_ACK
         const val ACTION_REVERT = CoordinatorDetectionService.ACTION_PARKING_REVERT
         const val ACTION_DEPARTURE_CONFIRMED = CoordinatorDetectionService.ACTION_DEPARTURE_CONFIRMED
+
+        /** [DET-STOP-BUTTON-001] "Parar detección" on the ongoing-detection notification. */
+        const val ACTION_USER_STOP = CoordinatorDetectionService.ACTION_USER_STOP
         const val EXTRA_PARKING_ID = CoordinatorDetectionService.EXTRA_PARKING_ID
         const val EXTRA_GEOFENCE_ID = CoordinatorDetectionService.EXTRA_GEOFENCE_ID
 
-        private val ROUTABLE_ACTIONS =
-            setOf(ACTION_CONFIRMED, ACTION_DENIED, ACTION_ACK, ACTION_REVERT, ACTION_DEPARTURE_CONFIRMED)
+        private val ROUTABLE_ACTIONS = setOf(
+            ACTION_CONFIRMED, ACTION_DENIED, ACTION_ACK, ACTION_REVERT, ACTION_DEPARTURE_CONFIRMED,
+            ACTION_USER_STOP,
+        )
     }
 }

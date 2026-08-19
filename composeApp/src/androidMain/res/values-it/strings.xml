@@ -12,6 +12,8 @@
     <string name="notif_confirmation_title_vehicle">Hai parcheggiato il %1$s?</string>
     <string name="notif_confirmation_text">Sembra che tu abbia parcheggiato. Vuoi confermare il posto?</string>
     <string name="notif_action_yes_parked">Sì, ho parcheggiato</string>
+    <!-- [DET-STOP-BUTTON-001] Way out of a trip the user does not want followed. -->
+    <string name="notif_action_stop_detection">Ferma il rilevamento</string>
     <string name="notif_action_no_not_parked">No, non ho parcheggiato</string>
 
     <!-- Notifica: parcheggio salvato -->

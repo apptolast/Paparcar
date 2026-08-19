@@ -29,4 +29,15 @@ class ManualParkingDetectionImpl(private val context: Context) : ManualParkingDe
         }
         context.startService(intent)
     }
+
+    // [DET-STOP-BUTTON-001] "Parar detección" on the Home row. Its own action, not STOP_TRACKING:
+    // this one stamps the `stopped_by_user` outcome, drops any held confirm and opens the quiet
+    // period. A plain startService is enough — the service is already in the foreground running the
+    // very session being stopped, so there is nothing to promote.
+    override fun stopByUser() {
+        val intent = Intent(context, CoordinatorDetectionService::class.java).apply {
+            action = CoordinatorDetectionService.ACTION_USER_STOP
+        }
+        context.startService(intent)
+    }
 }

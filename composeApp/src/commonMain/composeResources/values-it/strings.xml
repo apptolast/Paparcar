@@ -567,6 +567,9 @@
     <string name="home_det_watch_interrupted_cta">Riattiva</string>
     <string name="home_det_driving_title">Alla guida della tua %1$s</string>
     <string name="home_det_driving_sub">Rileveremo dove parcheggi</string>
+    <!-- [DET-STOP-BUTTON-001] -->
+    <string name="home_det_driving_stop_cta">Ferma</string>
+    <string name="home_det_trip_stopped_msg">Rilevamento fermato. Questo viaggio non verrà salvato come posto; tocca «Sto guidando» quando vuoi riprendere.</string>
     <string name="home_det_candidate_title">Stai parcheggiando la tua %1$s?</string>
     <string name="home_det_candidate_sub">Stiamo confermando il posto…</string>
     <string name="home_det_awaiting_cta_primary">Segna il posto</string>

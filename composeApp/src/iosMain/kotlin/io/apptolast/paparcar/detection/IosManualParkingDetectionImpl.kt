@@ -6,4 +6,5 @@ import io.apptolast.paparcar.domain.detection.ManualParkingDetection
 class IosManualParkingDetectionImpl : ManualParkingDetection {
     override fun start() = Unit
     override fun stop() = Unit
+    override fun stopByUser() = Unit // [DET-STOP-BUTTON-001]
 }

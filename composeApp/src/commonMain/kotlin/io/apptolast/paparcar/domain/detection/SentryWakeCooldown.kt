@@ -24,6 +24,12 @@ import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 object DetectionSessionOutcomes {
     const val ABORTED_FALSE_ENTER = "aborted_false_enter"
     const val ABORTED_NO_MOVEMENT = "aborted_no_movement"
+
+    /** [DET-STOP-BUTTON-001] The user tapped "Stop detection" on a live session. Deliberately NOT
+     *  one of the two walking aborts above: it is not a refuted nomination but the highest
+     *  authority in the system speaking, so it resets the sentry-wake streak like any other
+     *  non-abort ending. See `UserStopQuietPeriod.kt`. */
+    const val STOPPED_BY_USER = "stopped_by_user"
 }
 
 /**

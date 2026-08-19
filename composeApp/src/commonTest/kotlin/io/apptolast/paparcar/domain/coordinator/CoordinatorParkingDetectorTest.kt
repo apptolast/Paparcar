@@ -3000,6 +3000,70 @@ class CoordinatorParkingDetectorTest {
         }
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // [DET-STOP-BUTTON-001] "Parar detección" — the user's own veto
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Test
+    fun should_end_the_session_as_stopped_by_user_when_the_user_stops_detection() =
+        runTest(UnconfinedTestDispatcher()) {
+            val env = setup()
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            locations.emit(stationaryFix(lat = 40.0, lon = -3.7))
+            locations.emit(GpsPoint(40.002, -3.7, accuracy = 5f, timestamp = 0L, speed = 10f))
+
+            env.coordinator.onUserStoppedDetection()
+            job.cancelAndJoin()
+
+            val ended = env.detectionLogger.events
+                .filterIsInstance<DetectionEvent.SessionEnded>().single()
+            assertEquals("stopped_by_user", ended.outcome)
+            assertEquals("stopped_by_user", env.coordinator.lastSessionOutcome)
+            assertEquals(
+                0,
+                env.parkingRepo.saveNewParkingSessionCallCount,
+                "a user stop plants nothing",
+            )
+        }
+
+    @Test
+    fun should_not_plant_the_held_confirm_when_the_user_stops_detection() =
+        runTest(UnconfinedTestDispatcher()) {
+            // The case that makes the button honest: the user hits "Parar" while a confirm is HELD
+            // in the post-confirm window. Cancelling the job alone would let the finally's watchdog
+            // ([DET-AUDIT-002 T7]) finalize it — planting exactly the pin the user just refused.
+            val holdConfig = ParkingDetectionConfig(confirmHoldMs = 120_000L)
+            val env = setup(config = holdConfig)
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            locations.emit(stationaryFix(lat = 40.0, lon = -3.7))
+            locations.emit(GpsPoint(40.002, -3.7, accuracy = 5f, timestamp = 0L, speed = 10f))
+            locations.emit(GpsPoint(40.005, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+            env.stepDetector.emitSteps(8)
+            locations.emit(GpsPoint(40.0053, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f)) // egress ~33 m
+            assertEquals(
+                0,
+                env.parkingRepo.saveNewParkingSessionCallCount,
+                "precondition: the confirm is held, not yet saved",
+            )
+
+            env.coordinator.onUserStoppedDetection()
+            job.cancelAndJoin()
+
+            assertEquals(
+                0,
+                env.parkingRepo.saveNewParkingSessionCallCount,
+                "the held confirm must be dropped, not finalized by the teardown watchdog",
+            )
+            assertEquals(
+                "stopped_by_user",
+                env.detectionLogger.events.filterIsInstance<DetectionEvent.SessionEnded>().single().outcome,
+            )
+        }
+
     private data class TestEnv(
         val coordinator: CoordinatorParkingDetector,
         val parkingRepo: FakeUserParkingRepository,

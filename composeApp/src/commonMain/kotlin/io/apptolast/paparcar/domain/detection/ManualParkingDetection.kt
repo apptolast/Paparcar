@@ -20,4 +20,13 @@ interface ManualParkingDetection {
      * nothing is running (the service no-ops). [DET-MANUAL-CANCEL-001] No-op on iOS.
      */
     fun stop()
+
+    /**
+     * [DET-STOP-BUTTON-001] The user tapped "Stop detection" on the live session. Deliberately a
+     * separate command from [stop]: that one means "I already parked, here" (the manual pin owns
+     * the trip's ending); this one means "this trip is not mine — forget it". It ends the session
+     * with its own terminal outcome, plants nothing, and opens a quiet period in which the
+     * automatic nominators may not re-arm (`UserStopQuietPeriod.kt`). No-op on iOS.
+     */
+    fun stopByUser()
 }

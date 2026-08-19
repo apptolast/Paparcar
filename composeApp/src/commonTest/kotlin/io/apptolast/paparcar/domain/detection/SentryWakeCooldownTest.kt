@@ -72,6 +72,19 @@ class SentryWakeCooldownTest {
         assertEquals(0, streak)
     }
 
+    @Test
+    fun should_reset_streak_when_the_user_stopped_the_session() {
+        // [DET-STOP-BUTTON-001] A user stop is not a refuted nomination: the wake may well have
+        // been a real departure the user simply did not want followed. Its own quiet period already
+        // silences the sensor, so the walking damper must not also escalate off the back of it.
+        val streak = nextSentryWakeAbortStreak(
+            previousStreak = 5,
+            armedBySentryWake = true,
+            sessionOutcome = DetectionSessionOutcomes.STOPPED_BY_USER,
+        )
+        assertEquals(0, streak)
+    }
+
     // ── Cooldown mapping ────────────────────────────────────────────────────────
 
     @Test

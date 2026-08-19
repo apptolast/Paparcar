@@ -602,6 +602,9 @@
     <string name="home_det_watch_interrupted_cta">Reactivar</string>
     <string name="home_det_driving_title">Conduciendo tu %1$s</string>
     <string name="home_det_driving_sub">Detectaremos dónde aparcas</string>
+    <!-- [DET-STOP-BUTTON-001] -->
+    <string name="home_det_driving_stop_cta">Parar</string>
+    <string name="home_det_trip_stopped_msg">Detección parada. Este viaje no se guardará como plaza; pulsa «Voy conduciendo» cuando quieras volver.</string>
     <string name="home_det_candidate_title">¿Aparcando tu %1$s?</string>
     <string name="home_det_candidate_sub">Confirmando la plaza…</string>
     <string name="home_det_awaiting_cta_primary">Marcar mi sitio</string>

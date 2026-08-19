@@ -92,6 +92,7 @@ import paparcar.composeapp.generated.resources.error_watch_resume_failed
 import paparcar.composeapp.generated.resources.home_det_enabled_confirm
 import paparcar.composeapp.generated.resources.home_det_stopped_action
 import paparcar.composeapp.generated.resources.home_det_stopped_msg
+import paparcar.composeapp.generated.resources.home_det_trip_stopped_msg
 import paparcar.composeapp.generated.resources.home_release_dialog_detection_active
 import paparcar.composeapp.generated.resources.home_release_dialog_detection_inactive
 import paparcar.composeapp.generated.resources.home_release_dialog_detection_unavailable
@@ -173,6 +174,7 @@ fun HomeScreen(
     val msgZoneSaved = stringResource(Res.string.home_zone_saved_message)
     val msgDetectionEnabled = stringResource(Res.string.home_det_enabled_confirm)
     val msgDetectionStopped = stringResource(Res.string.home_det_stopped_msg)
+    val msgTripDetectionStopped = stringResource(Res.string.home_det_trip_stopped_msg)
     val msgDetectionStoppedAction = stringResource(Res.string.home_det_stopped_action)
 
     // Scope the high-accuracy user-location request to when this screen is actually on-screen: under
@@ -204,6 +206,10 @@ fun HomeScreen(
                 HomeEffect.SpotSignalSent -> snackbarHostState.showSnackbar(msgSpotSignalSent)
                 HomeEffect.ZoneSaved -> snackbarHostState.showSnackbar(msgZoneSaved)
                 HomeEffect.DetectionEnabled -> snackbarHostState.showSnackbar(msgDetectionEnabled)
+                // [DET-STOP-BUTTON-001] The user stopped THIS trip — plain confirmation, no action:
+                // there is nothing to re-enable (the feature is still on) and the copy already says
+                // how to come back.
+                HomeEffect.TripDetectionStopped -> snackbarHostState.showSnackbar(msgTripDetectionStopped)
                 // Detection dropped to a stopped state → snackbar with a one-tap re-activation that
                 // reuses the same EnableAutoDetection flow as the banner. [DET-TOGGLE-002]
                 HomeEffect.DetectionStopped -> {

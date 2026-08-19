@@ -38,6 +38,8 @@ class FakeManualParkingDetection(
         private set
     var stopCallCount = 0
         private set
+    var stopByUserCallCount = 0
+        private set
 
     override fun start() {
         startCallCount++
@@ -46,6 +48,13 @@ class FakeManualParkingDetection(
 
     override fun stop() {
         stopCallCount++
+        runtime?.setRunning(false)
+    }
+
+    /** [DET-STOP-BUTTON-001] Mock "Parar detección": same visible effect in the gallery (the trip
+     *  ends and Home leaves Monitoring), counted apart so tests can tell the two commands apart. */
+    override fun stopByUser() {
+        stopByUserCallCount++
         runtime?.setRunning(false)
     }
 }

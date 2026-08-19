@@ -571,6 +571,9 @@
     <string name="home_det_watch_interrupted_cta">Włącz ponownie</string>
     <string name="home_det_driving_title">%1$s w trasie</string>
     <string name="home_det_driving_sub">Wykryjemy, gdzie zaparkujesz</string>
+    <!-- [DET-STOP-BUTTON-001] -->
+    <string name="home_det_driving_stop_cta">Zatrzymaj</string>
+    <string name="home_det_trip_stopped_msg">Wykrywanie zatrzymane. Ta podróż nie zostanie zapisana jako miejsce — dotknij „Jadę”, gdy chcesz je wznowić.</string>
     <string name="home_det_candidate_title">Parkujesz %1$s?</string>
     <string name="home_det_candidate_sub">Potwierdzamy miejsce…</string>
     <string name="home_det_awaiting_cta_primary">Zaznacz miejsce</string>

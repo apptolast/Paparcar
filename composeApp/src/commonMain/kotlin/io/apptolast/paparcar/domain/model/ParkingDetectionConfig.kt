@@ -547,6 +547,16 @@ data class ParkingDetectionConfig(
      *  longer cooldown would be a lie, the mirrors would re-arm through it. */
     val sentryWakeCooldownMaxMs: Long = 15 * 60_000L,
 
+    // ── USER STOP (the "Stop detection" button) [DET-STOP-BUTTON-001] ────────
+    /** Quiet period (ms) after the user taps "Stop detection" on a live session, during which the
+     *  AUTOMATIC nominators (geofence EXIT, AR ENTER, significant motion) may not arm a new one.
+     *  Without it the button is a lie: the very walk that armed the session re-fires AR seconds
+     *  later and detection comes back on its own. 15 min covers the realistic reason to press it
+     *  (riding as a passenger, boarding a bus, a trip the user does not want followed) without
+     *  muting the day. The MANUAL trigger is never suppressed and clears the stamp — the same user
+     *  retracting. Only ARMING sleeps: a fence exit still releases the spot. */
+    val userStopQuietPeriodMs: Long = 15 * 60_000L,
+
     // ── HONEST CLOSE (session abort ladder) [DET-HONEST-CLOSE-001] ───────────
     /** Floor (meters) the abort position must be from the stale pin before the honest-close
      *  ladder treats the gap as a TRIP at all. Below it (plus both accuracy envelopes) the two
@@ -1021,6 +1031,9 @@ data class ParkingDetectionConfig(
         }
         require(sentryWakeCooldownBaseMs > 0) {
             "sentryWakeCooldownBaseMs must be > 0, was $sentryWakeCooldownBaseMs"
+        }
+        require(userStopQuietPeriodMs >= 0) {
+            "userStopQuietPeriodMs must be >= 0 (0 = disabled), was $userStopQuietPeriodMs"
         }
         require(sentryWakeCooldownMaxMs >= sentryWakeCooldownBaseMs) {
             "sentryWakeCooldownMaxMs ($sentryWakeCooldownMaxMs) must be >= sentryWakeCooldownBaseMs ($sentryWakeCooldownBaseMs)"

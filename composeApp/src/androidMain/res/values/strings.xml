@@ -12,6 +12,8 @@
     <string name="notif_confirmation_title_vehicle">Did you park your %1$s?</string>
     <string name="notif_confirmation_text">Looks like you parked. Shall we confirm the spot?</string>
     <string name="notif_action_yes_parked">Yes, I parked</string>
+    <!-- [DET-STOP-BUTTON-001] Way out of a trip the user does not want followed. -->
+    <string name="notif_action_stop_detection">Stop detection</string>
     <string name="notif_action_no_not_parked">No, I haven\'t parked</string>
 
     <!-- Notification: parking saved (user's own car) -->
