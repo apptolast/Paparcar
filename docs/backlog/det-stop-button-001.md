@@ -1,7 +1,10 @@
 # DET-STOP-BUTTON-001 · Botón de usuario "Parar detección" durante una detección EN CURSO
 
-**Estado:** 🔵 En progreso · rama `feature/DET-STOP-BUTTON-001-stop-detection` · worktree `../Paparcar-stop-button`
-(creada 2026-08-06, especificada y arrancada 2026-08-19)
+**Estado:** ✅ **Done** — master `1d8f7264` (ff-only 2026-08-20, tras rebase sobre la migración de
+kmp-maps a Maven Central). Rama y worktree borrados. 1247 tests verdes.
+(creada 2026-08-06, especificada y arrancada 2026-08-19, mergeada 2026-08-20)
+
+⏳ Lo único que queda es **validarlo conduciendo** (ver §Pendiente al final).
 
 ## Problema
 
