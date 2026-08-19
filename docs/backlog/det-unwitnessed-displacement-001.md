@@ -1,9 +1,8 @@
 # DET-UNWITNESSED-DISPLACEMENT-001 · un desplazamiento que ningún testigo presenció no prueba un viaje
 
-**Estado:** 🟡 IMPLEMENTADO 19-08 (sin commit — pendiente permiso) · rama
-`bugfix/DET-UNWITNESSED-DISPLACEMENT-001-honest-close-witnessed-displacement` · worktree
-`../Paparcar-unwitnessed-displacement` · 1228 tests verdes (+5) · mock compila · ⏳ APK + campo
-(noche indoor sin FP + hop corto real que siga plantando zona/pin)
+**Estado:** ✅ DONE — MASTER `bf92070c` (ff-only 19-08 tras rebase sobre DET-MOTOR-PROOF-001;
+rama + worktree borrados). 1236 tests verdes (+5 sobre los 1231 de master) · mock compila ·
+⏳ APK + campo (noche indoor sin FP + hop corto real que siga plantando zona/pin)
 
 ## Problema
 

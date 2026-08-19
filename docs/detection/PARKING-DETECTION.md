@@ -874,7 +874,7 @@ diagnostics line). 1217 tests; the field regression verified RED without the fix
 
 ### DET-UNWITNESSED-DISPLACEMENT-001 — a displacement no witness saw does not prove a trip (2026-08-19)
 
-**Commit:** pending · **Ticket:** `docs/backlog/det-unwitnessed-displacement-001.md`
+**Commit:** `bf92070c` · **Ticket:** `docs/backlog/det-unwitnessed-displacement-001.md`
 
 **User report.** Two chained FPs while the user SLEPT: "Cantarranas-2 4" at 05:26 and "Calle
 Góndola 7" at 05:59, with the car parked at La Bermeja since 00:58 and no driving until 10:15.
