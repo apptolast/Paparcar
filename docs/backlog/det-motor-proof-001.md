@@ -1,6 +1,6 @@
 # DET-MOTOR-PROOF-001 · "Conducción medida" = movimiento MOTORIZADO (sostenido + cadencia de pedaleo)
 
-**Estado:** 🔵 En progreso · rama `bugfix/DET-MOTOR-PROOF-001-motor-proof` · worktree `../Paparcar-motor-proof`
+**Estado:** ✅ Done · master `08b53548` (squash 19-08-2026) · rama y worktree borrados · ⏳ validación de campo
 
 ## Problema
 Field 2026-08-18 20:32 local, Oppo, sesión `1787077943062`: un paseo en bici de 6,1 min plantó el
