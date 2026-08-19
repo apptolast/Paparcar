@@ -30,6 +30,10 @@ class EvaluateParkingDecisionUseCaseTest {
         vehicleType: VehicleType? = VehicleType.CAR,
         sessionDurationMs: Long = 60_000L,
         maxSpeedKmh: Float = 60f,
+        // [DET-MOTOR-PROOF-001] `sessionSawDriving` reads sustained band time now, not the peak.
+        // Default derived from the peak so every pre-existing scenario keeps its intent: a test
+        // that gave the session a real driving peak meant "the stream witnessed the drive".
+        sustainedDrivingMs: Long = if (maxSpeedKmh >= 18f) 60_000L else 0L,
         evidenceLabel: String? = null,
         hasKinematicEgress: Boolean = false,
         lastSpeedMps: Float = 0f,
@@ -37,8 +41,8 @@ class EvaluateParkingDecisionUseCaseTest {
         anchorGapEntered: Boolean = false,
     ) = ParkingDecisionInput(
         stepCount, hasEgressDisplacement, hadVehicleExit,
-        elapsedSinceHighMs, vehicleType, sessionDurationMs, maxSpeedKmh, evidenceLabel,
-        hasKinematicEgress, lastSpeedMps,
+        elapsedSinceHighMs, vehicleType, sessionDurationMs, maxSpeedKmh, sustainedDrivingMs,
+        evidenceLabel, hasKinematicEgress, lastSpeedMps,
         egressExceedsWalkReach = egressExceedsWalkReach,
         anchorGapEntered = anchorGapEntered,
     )
@@ -222,6 +226,72 @@ class EvaluateParkingDecisionUseCaseTest {
             )
         )
         assertIs<ParkingDecision.Confirmed>(decision)
+    }
+
+    // ── Motor proof: sustained band time, not the peak [DET-MOTOR-PROOF-001] ────
+
+    @Test
+    fun should_prompt_when_weak_arm_and_driving_band_was_only_a_burst() {
+        // Field 2026-08-18 20:32 (Oppo, session 1787077943062): a 6-min bicycle ride touched
+        // 18,1 km/h on 2 of 124 fixes (~6 s in band) — the PEAK cleared the old threshold by
+        // 0,1 km/h and steps+egress pinned the bike rack in silence with the car 540 m away.
+        // Sustained band time is what a motor produces and a bicycle does not: same inputs now ask.
+        val decision = evaluate(
+            input(
+                stepCount = 116,
+                hasEgressDisplacement = true,
+                maxSpeedKmh = 18.1f,
+                sustainedDrivingMs = 6_000L,
+                sessionDurationMs = 6 * 60_000L,
+                evidenceLabel = io.apptolast.paparcar.domain.detection.ArmEvidence.LABEL_SELF_OBSERVED,
+            )
+        )
+        assertEquals("steps+egress", assertIs<ParkingDecision.Prompt>(decision).pathLabel)
+    }
+
+    @Test
+    fun should_confirm_when_weak_arm_but_band_held_across_one_sustained_hop() {
+        // The worst legitimate car trace on file (Calle Gavia, skeletal MIUI stream): the whole
+        // drive is ONE 36-s hop of 255 m. Sustained-band time must keep confirming it — the
+        // threshold separates bursts (bikes: seconds) from holds (cars: tens of seconds).
+        val decision = evaluate(
+            input(
+                stepCount = 8,
+                hasEgressDisplacement = true,
+                maxSpeedKmh = 25f,
+                sustainedDrivingMs = 36_000L,
+                evidenceLabel = io.apptolast.paparcar.domain.detection.ArmEvidence.LABEL_SELF_OBSERVED,
+            )
+        )
+        assertIs<ParkingDecision.Confirmed>(decision)
+    }
+
+    @Test
+    fun should_notConfirmViaKinematics_when_band_time_was_only_a_burst() {
+        // The kinematic confirm reads the same gate: a burst-only session (whatever its peak)
+        // has not witnessed a motor, so kinematics alone must keep asking.
+        val decision = evaluate(
+            input(
+                stepCount = 0,
+                hasEgressDisplacement = true,
+                hasKinematicEgress = true,
+                maxSpeedKmh = 25f,
+                sustainedDrivingMs = 6_000L,
+            )
+        )
+        assertIs<ParkingDecision.Inconclusive>(decision)
+    }
+
+    @Test
+    fun should_prompt_when_ride_was_human_powered_even_with_sustained_band() {
+        // [DET-MOTOR-PROOF-001] The pedal-cadence veto arrives through `humanPoweredRide`: a fast
+        // bicycle CAN hold the band (the 2026-08-16 ride peaked at 38 km/h for 59 min), so when
+        // the cadence signature spoke, no amount of band time may confirm silently.
+        val decision = evaluate(
+            input(stepCount = 8, hasEgressDisplacement = true, maxSpeedKmh = 38f)
+                .copy(humanPoweredRide = true)
+        )
+        assertEquals("steps+egress", assertIs<ParkingDecision.Prompt>(decision).pathLabel)
     }
 
     // ── Human-powered opt-out [DET-SOLID-001 C2] ────────────────────────────────

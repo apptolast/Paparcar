@@ -30,23 +30,50 @@ import io.apptolast.paparcar.domain.model.VehicleType
  * pin costs a car. And a bicycle carries no Bluetooth MAC, so the deterministic lane is untouched by
  * construction: the two strategies stay separate.
  *
+ * **Two sources, measured outranking remembered.** [DET-MOTOR-PROOF-001] AR is the classifier and
+ * it never classifies a SHORT ride: field 2026-08-18 20:32 (Oppo, session 1787077943062), a
+ * 6-minute bicycle ride produced ZERO AR events among the session's 316 and pinned the bike rack in
+ * silence with the car 540 m away. The session's own stream had the answer all along — the step
+ * detector ticked 16-20 times while GPS read 3,3-4,1 m/s. Walking at 4 m/s is impossible, and in a
+ * moving car the counter stays silent (its phantoms arrive as bursts of 1-3, or while parked): steps
+ * concurrent with above-pedestrian-ceiling fixes are a PEDALLING signature. So the kinematic source
+ * is judged FIRST — it is this session's measurement, while the AR stamps are a memory with a
+ * staleness window. Known cost, accepted: a bike→car trip in one session keeps the cadence latch
+ * (there is no kinematic "boarding" to supersede it, unlike the AR lane below) and degrades the
+ * final pin to a prompt — one tap, the direction asymmetric failure allows.
+ *
  * @param vehicleType The active vehicle's registered profile.
  * @param bicycleRideAtMs True transition time of the last AR `ON_BICYCLE` ENTER this session saw
  *   (epoch-ms), or null. AR reports the real transition moment, not the delivery one, so its ~2 min
  *   of latency does not shift the verdict.
  * @param vehicleRideAtMs True transition time of the last AR `IN_VEHICLE` ENTER, or null.
  * @param nowMs Wall clock.
+ * @param fastMotionStepEvents Session count of step events concurrent with a fresh, credible GPS
+ *   fix above the pedestrian ceiling (`egressStepMaxSpeedMps`). [DET-MOTOR-PROOF-001]
+ * @param fastMotionStepFixes Distinct fixes credited with at least one such step — one fix's burst
+ *   can be one pothole; the same signature across separate fixes is a rhythm.
  */
 fun isHumanPoweredRide(
     vehicleType: VehicleType?,
     bicycleRideAtMs: Long?,
     vehicleRideAtMs: Long?,
     nowMs: Long,
+    fastMotionStepEvents: Int = 0,
+    fastMotionStepFixes: Int = 0,
     config: ParkingDetectionConfig,
 ): Boolean {
     // [DET-SOLID-001][C2] The profile answer stands on its own and always did: a registered bike or
     // scooter never auto-confirms, whatever AR happens to think.
     if (vehicleType == VehicleType.SCOOTER || vehicleType == VehicleType.BIKE) return true
+
+    // [DET-MOTOR-PROOF-001] Pedal cadence — the kinematic source. Feet moving in rhythm WHILE the
+    // position travels above the pedestrian ceiling is muscle propelling the movement; measured
+    // this session, so it is not subject to the AR staleness/supersession rules below.
+    if (fastMotionStepEvents >= config.pedalCadenceMinStepEvents &&
+        fastMotionStepFixes >= config.pedalCadenceMinFixes
+    ) {
+        return true
+    }
 
     val bicycle = bicycleRideAtMs ?: return false
     // Stale evidence decides nothing. A ride this morning must not veto a drive this evening; the

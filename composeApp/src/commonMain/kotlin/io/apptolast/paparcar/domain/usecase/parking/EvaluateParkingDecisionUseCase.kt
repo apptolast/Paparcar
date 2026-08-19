@@ -42,8 +42,17 @@ data class ParkingDecisionInput(
     val vehicleType: VehicleType?,
     /** Session wall-clock duration (for the mismatch guard). */
     val sessionDurationMs: Long,
-    /** Session top speed in km/h (for the mismatch guard and the weak-evidence policy). */
+    /** Session top speed in km/h (for the mismatch guard — a CEILING on slow trips, never a
+     *  proof of motor). */
     val maxSpeedKmh: Float,
+    /** [DET-MOTOR-PROOF-001] Cumulative ms the session spent in the credible driving band across
+     *  consecutive in-band fixes, drive-proof-gated (zero until the track proved a drive) — see
+     *  `ParkingDetectionState.provenDrivingBandMs`. This is what `sessionSawDriving` reads now: a
+     *  PEAK cannot separate motor from muscle (a 6-min bicycle ride touched 18,1 km/h on ~6 s of
+     *  its 6 minutes and pinned the bike rack in silence, field 2026-08-18 20:32; the 2026-08-16
+     *  ride peaked at 38 km/h), while sustained band time separates clean — the worst legitimate
+     *  car trace on file (Calle Gavia, skeletal stream) still held one 36-s hop. */
+    val sustainedDrivingMs: Long = 0L,
     /** Arm-evidence persist label of the session (see [io.apptolast.paparcar.domain.detection.ArmEvidence]);
      *  null for legacy callers. Kept a flat string so the input stays replayable. [DET-SOLID-001] */
     val evidenceLabel: String? = null,
@@ -135,10 +144,14 @@ class EvaluateParkingDecisionUseCase(private val config: ParkingDetectionConfig)
             config.confirmationObservationWindowMs
         val windowElapsed = input.elapsedSinceHighMs >= window
 
-        // [DET-SOLID-001] The session's own stream witnessed real driving speed. Gates both the
+        // [DET-SOLID-001] The session's own stream witnessed real driving. Gates both the
         // weak-evidence policy below and the kinematic egress proof: a seeded arm whose stream
         // never measured the trip has no business confirming silently by ANY path.
-        val sessionSawDriving = input.maxSpeedKmh >= config.minimumTripSpeedMps * KMH_PER_MPS
+        // [DET-MOTOR-PROOF-001] "Witnessed driving" means witnessed a MOTOR: sustained time in
+        // the driving band, not the session peak — a bicycle clears any peak threshold a car
+        // must also clear (18,1 km/h for ~6 s pinned the bike rack, field 2026-08-18; 38 km/h
+        // on 2026-08-16), but cannot HOLD the band the way even the weakest car trace does.
+        val sessionSawDriving = input.sustainedDrivingMs >= config.sustainedDriveProofMs
 
         // [DET-KINEMATIC-EGRESS-001] GPS-measured walk away from the frozen end-of-drive anchor.
         // Steps outrank it (they fire earlier); this is the mute-counter peer. Requires measured
@@ -245,9 +258,5 @@ class EvaluateParkingDecisionUseCase(private val config: ParkingDetectionConfig)
             windowElapsed -> ParkingDecision.Rejected
             else -> ParkingDecision.Inconclusive
         }
-    }
-
-    private companion object {
-        const val KMH_PER_MPS = 3.6f
     }
 }

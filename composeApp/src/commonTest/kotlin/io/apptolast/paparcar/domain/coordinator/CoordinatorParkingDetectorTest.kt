@@ -2983,7 +2983,9 @@ class CoordinatorParkingDetectorTest {
         toLat: Double = 40.0,
         lon: Double = -3.7,
     ) {
-        val fixes = 6
+        // 8 fixes × 5 s = 35 s of in-band GPS time: enough to corroborate the drive AND to satisfy
+        // the sustained-drive clock (`sustainedDriveProofMs`, 30 s) [DET-MOTOR-PROOF-001].
+        val fixes = 8
         val stepDeg = 0.0005 // ≈ 55 m per 5-s hop ≈ 11 m/s ground rate
         repeat(fixes) { i ->
             locations.emit(

@@ -499,6 +499,33 @@ data class ParkingDetectionConfig(
      *  detection's whole drive is one 36-s hop of 255 m (field 2026-07-04). */
     val driveProofWindowMaxMs: Long = 60_000L,
 
+    // ── MOTOR PROOF ("measured driving" = MOTORIZED movement) [DET-MOTOR-PROOF-001] ──
+    /** Cumulative time (ms) the session must have spent in the credible driving band before its
+     *  stream counts as having witnessed a DRIVE (`sessionSawDriving` in the confirm evaluator —
+     *  the gate on the weak-evidence policy and the kinematic confirm). The statistic used to be
+     *  the session PEAK (`maxSpeedKmh ≥ 18`), and a peak cannot separate a motor from muscle: a
+     *  6-minute bicycle ride touched 18,1 km/h on 2 of 124 fixes (~6 s in band) and pinned the
+     *  bike rack in silence with the car 540 m away (field 2026-08-18 20:32, Oppo, session
+     *  1787077943062) — the 2026-08-16 ride even peaked at 38 km/h. Sustained time separates
+     *  clean: bikes hold the ≥18 km/h band in seconds-long bursts, while the worst legitimate
+     *  car trace on file (Calle Gavia, skeletal MIUI stream) still held it for one 36-s hop. */
+    val sustainedDriveProofMs: Long = 30_000L,
+    /** Step events concurrent with credible above-pedestrian-ceiling fixes (see
+     *  [egressStepMaxSpeedMps]) before the session's movement reads as PEDALLED — the kinematic
+     *  second source of `isHumanPoweredRide`, for the short rides AR never classifies (the
+     *  2026-08-18 FP: ZERO AR events in 6 minutes, while the step detector ticked 16-20 times at
+     *  3,3-4,1 m/s — a walking-impossible speed at which a car's counter stays silent; phantom
+     *  car steps arrive as bursts of 1-3). Threshold chosen well above burst noise and well below
+     *  the ride's observed cadence. */
+    val pedalCadenceMinStepEvents: Int = 12,
+    /** Distinct GPS fixes that must have witnessed at least one concurrent cadence step. Two:
+     *  a single fix's burst can be one pothole; the same signature across separate fixes is a
+     *  rhythm. */
+    val pedalCadenceMinFixes: Int = 2,
+    /** Freshness ceiling (ms) on the fix a cadence step is judged against. A stale fast fix
+     *  followed by a GPS starve must not label the user's WALK as pedalling. */
+    val pedalCadenceFixFreshnessMs: Long = 10_000L,
+
     // ── SENTRY-WAKE COOLDOWN (walking-abort storm damper) [DET-SENTRY-COOLDOWN-001] ──
     /** Consecutive sentry-wake sessions ending in a walking abort (`aborted_false_enter` /
      *  `aborted_no_movement`) before the significant-motion trigger stops re-arming instantly.
@@ -929,6 +956,23 @@ data class ParkingDetectionConfig(
         }
         require(driveProofWindowMaxMs > driveProofWindowMinMs) {
             "driveProofWindowMaxMs ($driveProofWindowMaxMs) must be > driveProofWindowMinMs ($driveProofWindowMinMs)"
+        }
+        require(sustainedDriveProofMs > 0L) {
+            "sustainedDriveProofMs must be > 0, was $sustainedDriveProofMs"
+        }
+        require(sustainedDriveProofMs <= driveProofWindowMaxMs) {
+            // A single in-band hop the drive-proof window already trusts (Calle Gavia: one 36-s
+            // hop is the whole drive) must be able to satisfy the sustained clock on its own.
+            "sustainedDriveProofMs ($sustainedDriveProofMs) must be <= driveProofWindowMaxMs ($driveProofWindowMaxMs)"
+        }
+        require(pedalCadenceMinStepEvents > 3) {
+            "pedalCadenceMinStepEvents must be > 3 (phantom car steps arrive as bursts of 1-3), was $pedalCadenceMinStepEvents"
+        }
+        require(pedalCadenceMinFixes > 1) {
+            "pedalCadenceMinFixes must be > 1 (one fix's burst can be one pothole), was $pedalCadenceMinFixes"
+        }
+        require(pedalCadenceFixFreshnessMs > 0L) {
+            "pedalCadenceFixFreshnessMs must be > 0, was $pedalCadenceFixFreshnessMs"
         }
         require(honestCloseMinTripMeters > 0f) {
             "honestCloseMinTripMeters must be > 0, was $honestCloseMinTripMeters"

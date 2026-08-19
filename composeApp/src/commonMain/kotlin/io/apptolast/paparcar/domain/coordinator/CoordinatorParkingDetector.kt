@@ -351,6 +351,37 @@ class CoordinatorParkingDetector(
          *  set, steps only count while this is below driving speed, so a phone bouncing in traffic
          *  cannot accumulate phantom steps. Field 2026-07-12 (FP Avenida de los Mástiles, in motion). */
         val lastSpeedMps: Float = 0f,
+        // ── MOTOR PROOF (DET-MOTOR-PROOF-001) ─────────────────────────────────
+        /** Cumulative ms spent in the credible driving band: gaps between SUCCESSIVE in-band
+         *  credible fixes (speed ≥ minimumTripSpeedMps, accuracy ≤ minGpsAccuracyForDriving),
+         *  credited only when the gap fits inside [ParkingDetectionConfig.driveProofWindowMaxMs] —
+         *  the same span the drive-proof shape already trusts to bridge (Calle Gavia's whole
+         *  legitimate drive is one 36-s in-band hop; urban accuracy degradation punches holes
+         *  through a real drive's band run, field Enamorados). A wider gap proves nothing and
+         *  credits NOTHING, so two isolated spikes minutes apart never sum. A lone spike has no
+         *  in-band peer at all and credits nothing either. Read through [provenDrivingBandMs] —
+         *  like [maxSpeedMps], the statistic is worth nothing until the track proves a drive. */
+        val drivingBandMs: Long = 0L,
+        /** GPS timestamp (epoch-ms) of the last credible in-band fix — the other endpoint of the
+         *  next band gap. GPS time, not wall clock: the trace replayer drives the clock from the
+         *  same stamps, so a recorded trace replays identically. */
+        val lastBandFixTimestampMs: Long = 0L,
+        /** Wall-clock (ms) when the last fix was PROCESSED — the freshness reference a concurrent
+         *  step event is judged against (step events carry no GPS timestamp of their own). */
+        val lastFixSeenAtMs: Long = 0L,
+        /** Whether the last fix's accuracy was credible (≤ minGpsAccuracyForDriving). */
+        val lastFixCredible: Boolean = false,
+        /** Step events concurrent with a fresh, credible fix ABOVE the pedestrian ceiling
+         *  (`egressStepMaxSpeedMps`) — feet moving in rhythm while the position travels faster
+         *  than any walk is the PEDALLING signature, the kinematic second source of
+         *  `isHumanPoweredRide` (field 2026-08-18 20:32: 16-20 such steps at 3,3-4,1 m/s in a
+         *  6-min ride AR never classified). Never reset mid-session: cadence is evidence about
+         *  the session's movement, and a car's phantom bursts (1-3 steps) stay under threshold. */
+        val fastMotionStepEvents: Int = 0,
+        /** Distinct fixes credited with ≥1 cadence step — one fix's burst can be one pothole. */
+        val fastMotionStepFixes: Int = 0,
+        /** Dedup marker: the [lastFixSeenAtMs] already credited to [fastMotionStepFixes]. */
+        val fastMotionCreditedFixAtMs: Long = 0L,
     ) {
         /** Returns the most GPS-accurate fix collected at the moment of stopping, or [fallback]. */
         fun bestFix(fallback: GpsPoint): GpsPoint =
@@ -358,6 +389,11 @@ class CoordinatorParkingDetector(
 
         /** Convenience accessor for the mismatch heuristic — km/h is the human-facing unit. */
         val maxSpeedKmh: Float get() = maxSpeedMps * 3.6f
+
+        /** [DET-MOTOR-PROOF-001] The sustained-drive statistic the evaluator's `sessionSawDriving`
+         *  reads, under the same promotion rule as [maxSpeedMps]: ZERO until the track proved a
+         *  drive [DET-DRIVE-PROOF-001], so an uncorroborated band run buys nothing. */
+        val provenDrivingBandMs: Long get() = if (driveProven) drivingBandMs else 0L
 
         /** Wall-clock duration since the first GPS fix, in ms; `0` if no fix has arrived yet. */
         fun sessionDurationMs(now: Long): Long = sessionStartMs?.let { now - it } ?: 0L
@@ -629,6 +665,7 @@ class CoordinatorParkingDetector(
                     // the whole walk into the house — the person/car discriminator and the
                     // steps+egress confirm both ran blind). Driving still flushes the anchor AND
                     // the count, so jam jiggle cannot accumulate across stops.
+                    val stepAtMs = clock()
                     val updated = _detectionState.updateAndGet { s ->
                         val shouldCount = !s.hasEverReachedDrivingSpeed ||
                             s.stoppedSince != null ||
@@ -639,6 +676,16 @@ class CoordinatorParkingDetector(
                             // (b) poisoned movementOutrunsSteps into holding the anchor mid-route →
                             // the in-motion false positive at Avenida de los Mástiles (field 2026-07-12).
                             (s.bestStopLocation != null && s.lastSpeedMps < config.egressStepMaxSpeedMps)
+                        // [DET-MOTOR-PROOF-001] Feet moving in rhythm while a fresh, credible fix
+                        // reads above the pedestrian ceiling: nobody WALKS at that speed, and a
+                        // car's counter stays silent while rolling — this step is a PEDAL stroke.
+                        // Counted on the raw event (independent of shouldCount, whose gates are
+                        // egress-walk semantics), judged against the fix snapshot the location
+                        // collector maintains.
+                        val cadenceStep = s.lastFixCredible &&
+                            s.lastSpeedMps >= config.egressStepMaxSpeedMps &&
+                            s.lastFixSeenAtMs > 0L &&
+                            stepAtMs - s.lastFixSeenAtMs <= config.pedalCadenceFixFreshnessMs
                         // [DET-CONFIRM-FRESHNESS-001] Every step event — counted or gated — proves
                         // the sensor is ALIVE, feeds the raw walk odometer, and interrupts any
                         // stepless-departure run: a person is moving their feet, so the pinned
@@ -647,8 +694,25 @@ class CoordinatorParkingDetector(
                             sessionSawSteps = true,
                             pinnedSteplessMovingFixes = 0,
                             stepEventsSinceDriving = s.stepEventsSinceDriving + 1,
+                            fastMotionStepEvents = s.fastMotionStepEvents + if (cadenceStep) 1 else 0,
+                            fastMotionStepFixes = s.fastMotionStepFixes +
+                                if (cadenceStep && s.lastFixSeenAtMs != s.fastMotionCreditedFixAtMs) 1 else 0,
+                            fastMotionCreditedFixAtMs =
+                                if (cadenceStep) s.lastFixSeenAtMs else s.fastMotionCreditedFixAtMs,
                         )
                         if (shouldCount) stepped.copy(stepCount = stepped.stepCount + 1) else stepped
+                    }
+                    // Edge-logged on the step that crosses the event threshold; a session whose
+                    // second distinct fix arrives later satisfies the verdict without this line.
+                    if (updated.fastMotionStepEvents == config.pedalCadenceMinStepEvents &&
+                        updated.fastMotionStepFixes >= config.pedalCadenceMinFixes
+                    ) {
+                        PaparcarLogger.d(
+                            DIAG,
+                            "  ♲ pedal cadence — ${updated.fastMotionStepEvents} steps concurrent with " +
+                                "${updated.fastMotionStepFixes} above-ceiling fixes → human-powered ride, " +
+                                "automatic saves degrade to a prompt [DET-MOTOR-PROOF-001]"
+                        )
                     }
                     if (!updated.hasEverReachedDrivingSpeed) {
                         PaparcarLogger.d(DIAG, "  ✦ step #${updated.stepCount} (pre-drive, false-ENTER candidate)")
@@ -803,6 +867,22 @@ class CoordinatorParkingDetector(
                             val how = if (shortHopProven) "displacement from the pin [DET-SHORT-HOP-PROOF-001]" else "track [DET-DRIVE-PROOF-001]"
                             PaparcarLogger.d(DIAG, "  ✓ drive PROVEN by $how — session speed statistic unlocked (pendingMax=${newPendingMax}m/s)")
                         }
+                        // [DET-MOTOR-PROOF-001] The sustained-drive clock: credit the gap between
+                        // SUCCESSIVE credible in-band fixes when it fits inside the span the
+                        // drive-proof shape already trusts (a real drive's band run is punched
+                        // through by urban accuracy holes — Enamorados — and a skeletal stream's
+                        // whole drive can be one 36-s hop — Calle Gavia). A wider gap proves
+                        // nothing and credits nothing; a lone spike has no in-band peer at all.
+                        val fixInBand = credibleSpeedFix && location.speed >= config.minimumTripSpeedMps
+                        val bandGapMs = location.timestamp - s.lastBandFixTimestampMs
+                        val bandDeltaMs = if (
+                            fixInBand && s.lastBandFixTimestampMs > 0L &&
+                            bandGapMs in 1..config.driveProofWindowMaxMs
+                        ) bandGapMs else 0L
+                        val newDrivingBandMs = s.drivingBandMs + bandDeltaMs
+                        if (newDrivingBandMs >= config.sustainedDriveProofMs && s.drivingBandMs < config.sustainedDriveProofMs) {
+                            PaparcarLogger.d(DIAG, "  ✓ sustained drive — ${newDrivingBandMs}ms accumulated in the driving band (≥${config.sustainedDriveProofMs}ms) [DET-MOTOR-PROOF-001]")
+                        }
                         s.copy(
                             sessionOrigin = s.sessionOrigin ?: location,
                             hasEverReachedDrivingSpeed = s.hasEverReachedDrivingSpeed || hasJustReachedSpeed,
@@ -821,6 +901,12 @@ class CoordinatorParkingDetector(
                             // [DET-STEP-SPEED-GATE-001] Track the last fix speed so the step gate can
                             // veto phantom steps while the car crawls in traffic (anchor still set).
                             lastSpeedMps = location.speed,
+                            // [DET-MOTOR-PROOF-001] The sustained-drive clock and the freshness /
+                            // credibility snapshot the concurrent-step cadence judge reads.
+                            drivingBandMs = newDrivingBandMs,
+                            lastBandFixTimestampMs = if (fixInBand) location.timestamp else s.lastBandFixTimestampMs,
+                            lastFixSeenAtMs = now,
+                            lastFixCredible = credibleSpeedFix,
                         )
                     }
                     PaparcarLogger.d(
@@ -1265,6 +1351,7 @@ class CoordinatorParkingDetector(
                                 vehicleType = activeVehicleType,
                                 sessionDurationMs = state.sessionDurationMs(now),
                                 maxSpeedKmh = state.maxSpeedKmh,
+                                sustainedDrivingMs = state.provenDrivingBandMs, // [DET-MOTOR-PROOF-001]
                                 evidenceLabel = currentArmEvidence,
                                 hasKinematicEgress = hasKinematicEgressSignal(state),
                                 lastSpeedMps = state.lastSpeedMps,
@@ -1362,6 +1449,10 @@ class CoordinatorParkingDetector(
         bicycleRideAtMs = s.bicycleRideAtMs,
         vehicleRideAtMs = s.vehicleRideAtMs,
         nowMs = now,
+        // [DET-MOTOR-PROOF-001] The kinematic source — pedal cadence measured by this session's
+        // own stream, for the short rides AR never classifies.
+        fastMotionStepEvents = s.fastMotionStepEvents,
+        fastMotionStepFixes = s.fastMotionStepFixes,
         config = config,
     )
 
@@ -1706,6 +1797,7 @@ class CoordinatorParkingDetector(
                 vehicleType = activeVehicleType,
                 sessionDurationMs = state.sessionDurationMs(now),
                 maxSpeedKmh = state.maxSpeedKmh,
+                sustainedDrivingMs = state.provenDrivingBandMs, // [DET-MOTOR-PROOF-001]
                 evidenceLabel = currentArmEvidence,
                 hasKinematicEgress = hasKinematicEgressSignal(state),
                 lastSpeedMps = state.lastSpeedMps,

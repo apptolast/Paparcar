@@ -17,7 +17,13 @@ class HumanPoweredRideTest {
         bicycleRideAtMs: Long?,
         vehicleRideAtMs: Long?,
         nowMs: Long,
-    ) = isHumanPoweredRide(vehicleType, bicycleRideAtMs, vehicleRideAtMs, nowMs, config)
+        fastMotionStepEvents: Int = 0,
+        fastMotionStepFixes: Int = 0,
+    ) = isHumanPoweredRide(
+        vehicleType, bicycleRideAtMs, vehicleRideAtMs, nowMs,
+        fastMotionStepEvents, fastMotionStepFixes,
+        config = config,
+    )
 
     private val now = 10_000_000L
 
@@ -86,5 +92,60 @@ class HumanPoweredRideTest {
     fun should_notVeto_when_theProfileIsAMotorcycle() {
         // A motorcycle is a real motor vehicle with its own geofence — it keeps auto-confirm.
         assertFalse(evaluate(VehicleType.MOTORCYCLE, bicycleRideAtMs = null, vehicleRideAtMs = null, nowMs = now))
+    }
+
+    // ── Pedal cadence — the kinematic second source [DET-MOTOR-PROOF-001] ──────────────────────
+
+    @Test
+    fun should_veto_when_pedalCadenceSpokeAndArStayedSilent() {
+        // Field 2026-08-18 20:32 (Oppo, session 1787077943062): a 6-minute ride produced ZERO AR
+        // events — and 16-20 steps concurrent with fixes at 3,3-4,1 m/s. Feet in rhythm while the
+        // position outruns any walk is pedalling, whatever AR failed to say.
+        assertTrue(
+            evaluate(
+                VehicleType.CAR, bicycleRideAtMs = null, vehicleRideAtMs = null, nowMs = now,
+                fastMotionStepEvents = 16, fastMotionStepFixes = 6,
+            ),
+            "the session's own stream measured the pedalling; AR silence must not undo it",
+        )
+    }
+
+    @Test
+    fun should_notVeto_when_cadenceStepsStayAtBurstScale() {
+        // A car's phantom steps arrive as bursts of 1-3 (pothole, pocket bounce) — under threshold.
+        assertFalse(
+            evaluate(
+                VehicleType.CAR, bicycleRideAtMs = null, vehicleRideAtMs = null, nowMs = now,
+                fastMotionStepEvents = config.pedalCadenceMinStepEvents - 1, fastMotionStepFixes = 6,
+            )
+        )
+    }
+
+    @Test
+    fun should_notVeto_when_allCadenceStepsLandedOnASingleFix() {
+        // One fix's burst can be one pothole; a rhythm needs the same signature on distinct fixes.
+        assertFalse(
+            evaluate(
+                VehicleType.CAR, bicycleRideAtMs = null, vehicleRideAtMs = null, nowMs = now,
+                fastMotionStepEvents = 20, fastMotionStepFixes = 1,
+            )
+        )
+    }
+
+    @Test
+    fun should_stillVeto_when_aLaterBoardingSupersededArButCadenceWasMeasured() {
+        // The AR supersession rule frees the AR stamp, not the measurement: cadence is this
+        // session's own stream. Known cost (bike→car in one session degrades to a prompt) — the
+        // direction asymmetric failure allows.
+        assertTrue(
+            evaluate(
+                VehicleType.CAR,
+                bicycleRideAtMs = now - 600_000L,
+                vehicleRideAtMs = now - 120_000L,
+                nowMs = now,
+                fastMotionStepEvents = 16,
+                fastMotionStepFixes = 4,
+            )
+        )
     }
 }

@@ -2572,3 +2572,54 @@ declares the car departed and releases the real spot at the START of the ride. V
 keep the spot too, but AR arrives with up to ~2 min of latency while the departure verdict is
 immediate — deliberately left out of scope rather than rushed. Tracked in
 `docs/backlog/det-bike-departure-release-001.md`.
+
+### DET-MOTOR-PROOF-001 — "measured driving" means a MOTOR was measured: sustained band time + pedal cadence (2026-08-19)
+
+**Report.** Field 2026-08-18 20:32 local, Oppo, session `1787077943062`. A 6,1-minute bicycle ride
+from the Góndola area home planted pin `aa0d7b1d` **silently** — `steps+egress`, reliability 0.9,
+`ARM:SIGNIFICANT_MOTION` with `self_observed` evidence — while the Kamiq sat untouched 540 m away
+(its pin `d41460a0` was deactivated by the repark). Four guards each missed by centimetres:
+`isHumanPoweredRide` needs AR and AR emitted **zero** events among the session's 316 (it never
+classifies a short ride); `sessionSawDriving` read the session PEAK and the bike touched 18,1 km/h
+on 2 of 124 fixes (~6 s in band), clearing the 18,0 bar by 0,1 km/h; the mismatch guard needs ≥8 min
+of session; the anchor taints were honestly clean.
+
+**Root cause — systemic.** Nothing in the lane asked "was this a MOTOR?". DET-DRIVE-PROOF-001
+proves real ground was covered at ≥18 km/h — which a bicycle produces without effort (the 08-16 ride
+peaked at 38 km/h with 58 driving fixes). And no PEAK threshold can ever separate the two, because
+any bar a car must clear (jam creep, under-reading GPS) a bike clears too. What separates them in
+the recorded traces is (1) **time in band**: bikes hold ≥18 km/h in seconds-long bursts, while even
+the worst legitimate car trace on file (Calle Gavia, skeletal MIUI stream) held one 36-s hop; and
+(2) **cadence**: the bike's step detector ticked 16-20 times concurrent with fixes at 3,3-4,1 m/s —
+nobody walks at 4 m/s, and a car's counter stays silent while rolling (its phantoms are bursts of
+1-3, or arrive while parked, Calle Abeto).
+
+**Fix.** Two changes, each in the seam that already owned the question:
+- `sessionSawDriving` (the weak-evidence and kinematic-confirm gate in
+  `EvaluateParkingDecisionUseCase`) now reads **sustained band time**, not the peak: the coordinator
+  accumulates `drivingBandMs` — gaps between successive credible in-band fixes, credited only when
+  the gap fits inside `driveProofWindowMaxMs` (the same span the drive-proof shape already trusts;
+  a wider gap credits nothing, so isolated spikes never sum, and a lone spike has no in-band peer at
+  all). Promoted exactly like `maxSpeedMps`: worth zero until `driveProven` (DET-DRIVE-PROOF-001).
+  Threshold `sustainedDriveProofMs` = 30 s (bike 18-08: ~4-6 s; Gavia: 36 s; Enamorados: ~58 s
+  despite urban accuracy holes punching through its band run).
+- `isHumanPoweredRide` gains a KINEMATIC second source, judged before the AR stamps: ≥
+  `pedalCadenceMinStepEvents` (12) step events concurrent with a fresh credible fix above the
+  pedestrian ceiling (`egressStepMaxSpeedMps`, 3,0 m/s — the same ceiling the egress step gate
+  already owns), across ≥ `pedalCadenceMinFixes` (2) distinct fixes. Measured outranks remembered:
+  a later AR `IN_VEHICLE` supersedes the AR bicycle stamp but not the measured cadence, so a
+  bike→car mixed trip in one session degrades to a prompt (one tap — the direction asymmetric
+  failure allows). The veto flows through the existing `humanPoweredRide` seam into BOTH verdicts
+  (candidate confirm and unattended save), always Prompt/nudge, never a discard.
+
+**Companion-fix risk.** A real short reposition (<30 s in band) on a WEAK arm
+(`verified_enter`/`verified_late`/`self_observed`) now prompts instead of confirming silently —
+doctrine-mandated direction (geofence-exit arms are strong and unaffected). Motorcycles: engine
+vibration could accrue phantom cadence → prompt; allowed direction, watch in field. The unattended
+lane's `measuredDriving` stays peak-based on purpose: a skeletal real drive under 30 s of band must
+keep its bounded-zone precision, and the bike that reaches that lane is already vetoed by cadence
+at the top of the verdict. Deliberately NOT done: raising `minimumTripSpeedMps` (breaks jam-creep
+and under-reading GPS) and leaning further on AR (the root failure is AR's absence on short rides).
+No new detectionPath (the outcome is the existing Prompt), no strings, no Dev Catalog surface;
+`drivingBandMs` is derivable from the logged fix stream, so the remote trace stays sufficient.
+1231 tests green (1223 on master + 8 new). Spec: `docs/backlog/det-motor-proof-001.md`.
