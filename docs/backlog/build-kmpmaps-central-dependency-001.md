@@ -1,7 +1,7 @@
 # BUILD-KMPMAPS-CENTRAL-DEPENDENCY-001 · el fork de kmp-maps se consume desde Maven Central, no desde un binario dentro del repo
 
-**Estado:** 🔵 En progreso · rama `chore/BUILD-KMPMAPS-CENTRAL-DEPENDENCY-001-drop-vendored-maven` ·
-worktree `../Paparcar-kmpmaps-central`
+**Estado:** ✅ Done · master `6db9bc7a` (ff-only 2026-08-19; rama y worktree borrados) ·
+⏳ pendiente de validar conduciendo
 
 ## Problema
 
