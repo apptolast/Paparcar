@@ -1,6 +1,11 @@
 # BUILD-KMPMAPS-VENDORED-MAVEN-001 · El fork de kmp-maps viaja DENTRO del repo, no en la máquina de nadie
 
-**Estado:** ✅ Done · master `00797fa9` (ff-only 2026-08-19; rama y worktree borrados)
+**Estado:** ✅ Done · master `00797fa9` (ff-only 2026-08-19; rama y worktree borrados) ·
+♻️ **SUPERADO el mismo día por [BUILD-KMPMAPS-CENTRAL-DEPENDENCY-001](build-kmpmaps-central-dependency-001.md)**:
+publicado el fork en Maven Central, el repo vendorizado que describe este doc dejó de tener razón de
+ser y se borró. Se conserva por su valor de arqueología — explica por qué el repo de la app llegó a
+alojar 11 MB de binarios y por qué JitPack no servía (reescribe el grupo y rompe el Gradle Module
+Metadata de KMP).
 
 ## Ejecución (2026-08-19)
 - Fork republicado desde `../kmp-maps` (rama `paparcar/puck`, árbol limpio) con

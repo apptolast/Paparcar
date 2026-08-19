@@ -66,9 +66,10 @@ firebase-appdistribution-plugin = "5.3.0"
 firebase-gitlive = "2.4.0"
 google-services = "4.5.0"
 
-# ── KMP Maps (Software Mansion) ──────────────────────────────────────────────
+# ── KMP Maps (fork propio de Software Mansion kmp-maps) ─────────────────────
 # Core: Google Maps en Android + Apple Maps en iOS (sin CocoaPods)
-# Fork vendorizado (third_party/maven) con marker de id estable — DRIVE-PUCK-NATIVE-001. Upstream: 0.9.1.
+# Fork con marker de id estable — DRIVE-PUCK-NATIVE-001. Upstream: 0.9.1, PR #170 sin mergear.
+# Publicado en Maven Central desde rndevelo/kmp-maps tag v0.9.1-puck4 [BUILD-KMPMAPS-CENTRAL-DEPENDENCY-001].
 kmp-maps = "0.9.1-puck4"
 
 # ── Logging — Napier ─────────────────────────────────────────────────────────
@@ -178,8 +179,9 @@ firebase-firestore = { module = "dev.gitlive:firebase-firestore", version.ref = 
 firebase-auth = { module = "dev.gitlive:firebase-auth", version.ref = "firebase-gitlive" }
 firebase-common = { module = "dev.gitlive:firebase-common", version.ref = "firebase-gitlive" }
 
-# ── KMP Maps (Software Mansion) ──────────────────────────────────────────────
-kmp-maps-core = { module = "com.swmansion.kmpmaps:core", version.ref = "kmp-maps" }
+# ── KMP Maps (fork propio) ───────────────────────────────────────────────────
+# El paquete del código sigue siendo com.swmansion.kmpmaps.core; solo cambian las coordenadas.
+kmp-maps-core = { module = "io.github.rndevelo.kmpmaps:core", version.ref = "kmp-maps" }
 
 # ── Logging — Napier (KMP) ───────────────────────────────────────────────────
 napier = { module = "io.github.aakira:napier", version.ref = "napier" }

@@ -758,5 +758,3 @@ movement.sh
 # Stray local junk accidentally swept by `git add -A` — never commit.
 firebase_help.txt
 parkdiag*.txt
-# Vendored Maven repo (kmp-maps fork) ships binaries on purpose. [BUILD-KMPMAPS-VENDORED-MAVEN-001]
-!third_party/maven/**
