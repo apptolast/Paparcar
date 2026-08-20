@@ -30,9 +30,11 @@ class ParkingLocationViewModel(
 
         // Whole history, most-recent → oldest. Re-sorted defensively so the prev/next stepper is
         // deterministic regardless of the source's ordering (Room already sorts; fakes may not).
+        // Observed unfiltered on purpose: the stepper's per-vehicle scope is DERIVED from the focused
+        // session in the state, so changing focus never re-subscribes. [HISTORY-DETAIL-VEHICLE-SCOPE-001]
         userParkingRepository.observeAllSessions()
             .map { sessions -> sessions.sortedByDescending { it.location.timestamp } }
-            .onEach { sessions -> updateState { copy(orderedSessions = sessions) } }
+            .onEach { sessions -> updateState { copy(allSessions = sessions) } }
             .catch { e -> PaparcarLogger.w(TAG, "observeAllSessions failed — prev/next unavailable", e) }
             .launchIn(viewModelScope)
 
@@ -87,7 +89,10 @@ class ParkingLocationViewModel(
         }
     }
 
-    /** Moves the focus by [delta] within [ParkingLocationState.orderedSessions], clamped to the ends. */
+    /**
+     * Moves the focus by [delta] within [ParkingLocationState.orderedSessions], clamped to the ends.
+     * That list is already scoped to the focused session's vehicle, so the step cannot leave the car.
+     */
     private fun stepFocus(delta: Int) {
         updateState {
             val index = orderedSessions.indexOfFirst { it.id == focusedSessionId }

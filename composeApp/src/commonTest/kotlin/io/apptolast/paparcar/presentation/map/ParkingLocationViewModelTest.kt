@@ -179,6 +179,88 @@ class ParkingLocationViewModelTest {
         assertEquals("oldest", vm.state.value.focusedSession?.id)
     }
 
+    // ── Per-vehicle scope of the stepper [HISTORY-DETAIL-VEHICLE-SCOPE-001] ───
+
+    /**
+     * Two cars whose parkings interleave in time — the exact shape that used to leak one car's
+     * history into the other's stepper:
+     *   kamiq-new(4000) · focus-new(3000) · kamiq-old(2000) · focus-old(1000)
+     */
+    private fun twoVehicleVm() = buildVm(
+        sessions = listOf(
+            sessionAt("focus-old", 1_000L, vehicleId = "focus"),
+            sessionAt("kamiq-old", 2_000L, vehicleId = "kamiq"),
+            sessionAt("focus-new", 3_000L, vehicleId = "focus"),
+            sessionAt("kamiq-new", 4_000L, vehicleId = "kamiq"),
+        ),
+    )
+
+    @Test
+    fun `should_scope_the_stepper_list_to_the_focused_vehicle`() = runTest {
+        val vm = twoVehicleVm()
+        vm.handleIntent(ParkingLocationIntent.SetFocusedSession("kamiq-new"))
+        assertEquals(listOf("kamiq-new", "kamiq-old"), vm.state.value.orderedSessions.map { it.id })
+    }
+
+    @Test
+    fun `should_skip_the_other_vehicle_when_stepping_older`() = runTest {
+        val vm = twoVehicleVm()
+        vm.handleIntent(ParkingLocationIntent.SetFocusedSession("kamiq-new"))
+        vm.handleIntent(ParkingLocationIntent.FocusOlder)
+        // focus-new(3000) sits in between, but it belongs to the other car.
+        assertEquals("kamiq-old", vm.state.value.focusedSession?.id)
+    }
+
+    @Test
+    fun `should_skip_the_other_vehicle_when_stepping_newer`() = runTest {
+        val vm = twoVehicleVm()
+        vm.handleIntent(ParkingLocationIntent.SetFocusedSession("focus-old"))
+        vm.handleIntent(ParkingLocationIntent.FocusNewer)
+        // kamiq-old(2000) sits in between, but it belongs to the other car.
+        assertEquals("focus-new", vm.state.value.focusedSession?.id)
+    }
+
+    @Test
+    fun `should_report_no_older_at_the_focused_vehicle_oldest_entry`() = runTest {
+        val vm = twoVehicleVm()
+        vm.handleIntent(ParkingLocationIntent.SetFocusedSession("kamiq-old"))
+        // focus-old(1000) is older in the global history, but not this car's.
+        assertFalse(vm.state.value.hasOlder)
+        assertTrue(vm.state.value.hasNewer)
+    }
+
+    @Test
+    fun `should_report_no_newer_at_the_focused_vehicle_most_recent_entry`() = runTest {
+        val vm = twoVehicleVm()
+        vm.handleIntent(ParkingLocationIntent.SetFocusedSession("focus-new"))
+        // kamiq-new(4000) is more recent in the global history, but not this car's.
+        assertFalse(vm.state.value.hasNewer)
+        assertTrue(vm.state.value.hasOlder)
+    }
+
+    @Test
+    fun `should_rescope_the_stepper_when_focus_moves_to_another_vehicle`() = runTest {
+        val vm = twoVehicleVm()
+        vm.handleIntent(ParkingLocationIntent.SetFocusedSession("kamiq-new"))
+        vm.handleIntent(ParkingLocationIntent.SetFocusedSession("focus-old"))
+        assertEquals(listOf("focus-new", "focus-old"), vm.state.value.orderedSessions.map { it.id })
+    }
+
+    @Test
+    fun `should_include_the_active_session_in_the_focused_vehicle_stepper`() = runTest {
+        // The user's call (20-08): the car parked RIGHT NOW is one more entry of its own timeline.
+        val vm = buildVm(
+            initialSession = sessionAt("kamiq-now", 5_000L, vehicleId = "kamiq").copy(isActive = true),
+            sessions = listOf(
+                sessionAt("kamiq-old", 2_000L, vehicleId = "kamiq"),
+                sessionAt("focus-new", 3_000L, vehicleId = "focus"),
+            ),
+        )
+        vm.handleIntent(ParkingLocationIntent.SetFocusedSession("kamiq-old"))
+        vm.handleIntent(ParkingLocationIntent.FocusNewer)
+        assertEquals("kamiq-now", vm.state.value.focusedSession?.id)
+    }
+
     @Test
     fun `should_resolve_focused_vehicle_for_the_icon`() = runTest {
         val vm = buildVm(

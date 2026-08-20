@@ -10,9 +10,9 @@ data class ParkingLocationState(
     val userLocation: GpsPoint? = null,
     val spots: List<Spot> = emptyList(),
     val userParking: UserParking? = null,
-    // Full parking history ordered most-recent → oldest. Backs the in-screen prev/next stepper so the
-    // user can walk the whole history without leaving the detail map. [HISTORY-DETAIL-001]
-    val orderedSessions: List<UserParking> = emptyList(),
+    // Full parking history ordered most-recent → oldest, ALL vehicles interleaved. Raw source only —
+    // the stepper never walks this list, it walks [orderedSessions]. [HISTORY-DETAIL-001]
+    val allSessions: List<UserParking> = emptyList(),
     // Registered vehicles — used to resolve the focused session's real body shape + paint colour for
     // the modal + map marker (UserParking has no colour of its own). [HISTORY-DETAIL-001]
     val vehicles: List<Vehicle> = emptyList(),
@@ -20,9 +20,29 @@ data class ParkingLocationState(
     // and prev/next recomputes deterministically against [orderedSessions]. [HISTORY-DETAIL-001]
     val focusedSessionId: String? = null,
 ) {
-    /** The parking currently shown in the detail sheet + map, resolved from [orderedSessions]. */
+    /**
+     * The parking currently shown in the detail sheet + map. Resolved against the FULL history so a
+     * deep-link lands on its session whatever vehicle owns it — that session is then what scopes
+     * [orderedSessions].
+     */
     val focusedSession: UserParking?
-        get() = orderedSessions.firstOrNull { it.id == focusedSessionId }
+        get() = allSessions.firstOrNull { it.id == focusedSessionId }
+
+    /**
+     * The stepper's universe: the focused session's OWN vehicle history, most-recent → oldest. The
+     * user reaches this screen from a per-vehicle timeline, so ‹/› must stay inside that vehicle
+     * instead of interleaving every car by timestamp. Scoped by the focused session's own
+     * `vehicleId`, so it holds for any entry point — no vehicle nav-arg needed.
+     * [HISTORY-DETAIL-VEHICLE-SCOPE-001]
+     *
+     * Deliberately NOT narrowed any further (user's call, 20-08-2026): the timeline's week/month
+     * filter does NOT carry over — inside the detail you may walk the vehicle's whole history — and
+     * the currently-active session counts as one more entry.
+     */
+    val orderedSessions: List<UserParking>
+        get() = focusedSession
+            ?.let { focused -> allSessions.filter { it.vehicleId == focused.vehicleId } }
+            ?: emptyList()
 
     private val focusedIndex: Int
         get() = orderedSessions.indexOfFirst { it.id == focusedSessionId }
