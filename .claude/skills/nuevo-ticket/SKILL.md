@@ -107,10 +107,12 @@ git merge-base --is-ancestor master <rama>   # ¿master avanzó?
 # si falla → rebase de la rama sobre master DESDE SU WORKTREE
 ```
 
-- **Por defecto: `git merge --squash <rama>` + commit manual.** Un ticket = un commit en master.
-- **Si la rama tiene >5 commits, o el diff >500 líneas, o hay unidades de trabajo separables** →
-  PARAR y preguntar: `--squash` (plano) / `--no-ff` (preserva) / `rebase + ff-only`.
-- Nunca mergear sin aprobación del user.
+- **SIEMPRE `git merge --squash <rama>` + commit manual**, con todos los commits de la tarea
+  colapsados en uno. Un ticket = un commit en master. **Sin excepciones por tamaño** — no se
+  pregunta entre `--squash` / `--no-ff` / `ff-only` (regla del user, 20-08-2026).
+- Aunque la rama tenga **un solo commit**, va por `--squash`, no por `ff-only`: el commit de master
+  lo redactamos en el merge, como resumen PR-grade de la tarea entera.
+- Nunca mergear sin aprobación del user. Esta sección dice CÓMO se mergea, no CUÁNDO.
 
 Mensaje de commit — Conventional Commits con el ticket entre corchetes:
 
