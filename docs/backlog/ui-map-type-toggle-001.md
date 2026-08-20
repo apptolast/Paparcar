@@ -1,9 +1,9 @@
 # UI-MAP-TYPE-TOGGLE-001 · El selector de mapa deja de ser un desplegable de 3 y pasa a un toggle de 2
 
-**Estado:** 🟢 Commiteado en la rama `refactor/UI-MAP-TYPE-TOGGLE-001-terrain-hybrid` (`52b86509`),
-**sin mergear a master** · worktree `../Paparcar-map-type-toggle` · 1249 tests verdes ·
-`prodDebug` + `mockDebug` compilan · APK `866bff02…c03d48` instalado en Redmi y Oppo · ⏳ probarlo
-en el móvil (fundido, pin que no parpadea, gesto durante la transición)
+**Estado:** ✅ Done — master `dedacabb` (squash 2026-08-20; rama y worktree borrados, **sin pushear**)
+· 1249 tests verdes · `prodDebug` + `mockDebug` compilan · APK `866bff02…c03d48` instalado en Redmi
+y Oppo · ⏳ único pendiente: mirarlo en mano (fundido, pin que no parpadea, gesto durante la
+transición)
 
 ## Problema
 El FAB de capas del header de Home abre un popup con una columna de 3 FABs (Terreno · Satélite ·
