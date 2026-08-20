@@ -950,15 +950,16 @@ class HomeViewModel(
     private fun geocodeUserLocation(lat: Double, lon: Double) = geocoder.geocodeUserLocation(lat, lon)
     private fun geocodeCameraLocation(lat: Double, lon: Double) = geocoder.geocodeCameraLocation(lat, lon)
 
+    // Raw satellite is no longer offered — the map toggle only flips terrain ⇄ hybrid.
+    // A preference stored before that change migrates to hybrid (same aerial imagery, plus
+    // street labels), so nobody is stranded on a style the toggle can't leave.
+    // [UI-MAP-TYPE-TOGGLE-001]
     private fun String.toMapType(): MapType = when (this) {
-        MAP_TYPE_SATELLITE -> MapType.SATELLITE
-        MAP_TYPE_HYBRID -> MapType.HYBRID
-        MAP_TYPE_TERRAIN -> MapType.TERRAIN
+        MAP_TYPE_HYBRID, MAP_TYPE_SATELLITE_LEGACY -> MapType.HYBRID
         else -> MapType.TERRAIN
     }
 
     private fun MapType.toPreferenceString(): String = when (this) {
-        MapType.SATELLITE -> MAP_TYPE_SATELLITE
         MapType.HYBRID -> MAP_TYPE_HYBRID
         else -> MAP_TYPE_TERRAIN
     }
@@ -981,7 +982,10 @@ class HomeViewModel(
 
         // Map type preference strings
         const val MAP_TYPE_TERRAIN = "TERRAIN"
-        const val MAP_TYPE_SATELLITE = "SATELLITE"
         const val MAP_TYPE_HYBRID = "HYBRID"
+
+        // Retired option, kept only to read (and migrate) preferences written before
+        // the map control became a two-way toggle. Never written back.
+        const val MAP_TYPE_SATELLITE_LEGACY = "SATELLITE"
     }
 }

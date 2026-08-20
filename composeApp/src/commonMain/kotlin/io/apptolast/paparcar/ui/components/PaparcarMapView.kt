@@ -389,6 +389,13 @@ private fun freeSpotContentId(
 // Alpha applied to dimmed markers — visible enough to deter duplicate
 // reports, subordinate enough that the centre pin dominates.
 private const val DIM_MARKER_ALPHA = 0.35f
+
+// Map-style dissolve: cover the tile-set swap, hold while the new tiles start
+// arriving, then reveal. The reveal is the slow half — that is what reads as a
+// transition instead of a blink. [UI-MAP-TYPE-TOGGLE-001]
+private const val STYLE_VEIL_IN_MS   = 100
+private const val STYLE_VEIL_HOLD_MS = 40L
+private const val STYLE_VEIL_OUT_MS  = 220
 private const val MARKER_CLUSTER     = "cluster"
 private const val MARKER_CLUSTER_DIM = "cluster_dim"
 
@@ -1349,6 +1356,24 @@ fun PaparcarMapView(
         } ?: emptyList()
     }
 
+    // ── Map-style dissolve ───────────────────────────────────────────────────
+    // The SDK replaces its whole tile set in one frame, so terrain → hybrid lands as a hard cut.
+    // There is a single native surface, so two maps can't be crossfaded; instead the swap happens
+    // UNDER a veil of the map's own background colour: fade in, switch the style while nothing is
+    // visible, hold a beat so the new tiles start arriving, fade out. The style handed to the map
+    // is therefore [renderedMapType], which trails [config] by the length of the fade-in.
+    // [UI-MAP-TYPE-TOGGLE-001]
+    var renderedMapType by remember { mutableStateOf(config.mapType) }
+    val styleVeil = remember { Animatable(0f) }
+    LaunchedEffect(config.mapType) {
+        if (config.mapType != renderedMapType) {
+            styleVeil.animateTo(1f, tween(STYLE_VEIL_IN_MS, easing = FastOutSlowInEasing))
+            renderedMapType = config.mapType
+            delay(STYLE_VEIL_HOLD_MS)
+            styleVeil.animateTo(0f, tween(STYLE_VEIL_OUT_MS, easing = FastOutSlowInEasing))
+        }
+    }
+
     Box(
         modifier = modifier.pointerInput(Unit) {
             // Observe-only (Initial pass, never consumed) press tracking — the map still pans; we only
@@ -1371,7 +1396,8 @@ fun PaparcarMapView(
                 isMyLocationEnabled = false,
                 isTrafficEnabled = false,
                 mapTheme = if (resolvedDark) MapTheme.DARK else MapTheme.LIGHT,
-                mapType = config.mapType,
+                // Trails config.mapType by one fade — see the dissolve above. [UI-MAP-TYPE-TOGGLE-001]
+                mapType = renderedMapType,
                 androidMapProperties = AndroidMapProperties(
                     mapStyleOptions = GoogleMapsMapStyleOptions(
                         if (resolvedDark) DARK_MAP_STYLE else LIGHT_MAP_STYLE
@@ -1466,6 +1492,17 @@ fun PaparcarMapView(
                     .background(backgroundColor),
             )
         }
+
+        // ── Style-swap veil ──────────────────────────────────────────────────
+        // Sits above the tiles but BELOW the centre pin/crosshair, so the pin stays put while the
+        // ground dissolves. Its alpha is read inside the graphicsLayer lambda (draw phase), never
+        // in composition, so the fade never recomposes the map. [UI-MAP-TYPE-TOGGLE-001]
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer { alpha = styleVeil.value }
+                .background(backgroundColor),
+        )
 
         // The brand user-location "you" dot is now a native Marker (see [allMarkers] / MARKER_USER_DOT),
         // not a Web Mercator Compose overlay — the fork's stable-id fix removed the flicker that overlay

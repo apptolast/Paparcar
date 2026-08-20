@@ -230,9 +230,16 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `should_apply_satellite_mapType_from_preferences`() = runTest {
+    fun `should_apply_hybrid_mapType_from_preferences`() = runTest {
+        val vmHybrid = buildVm(initialMapType = "HYBRID")
+        assertEquals(MapType.HYBRID, vmHybrid.state.value.mapType)
+    }
+
+    // Satellite was retired when the picker became a two-way toggle. [UI-MAP-TYPE-TOGGLE-001]
+    @Test
+    fun `should_migrate_legacy_satellite_preference_to_hybrid`() = runTest {
         val vmSat = buildVm(initialMapType = "SATELLITE")
-        assertEquals(MapType.SATELLITE, vmSat.state.value.mapType)
+        assertEquals(MapType.HYBRID, vmSat.state.value.mapType)
     }
 
     // ── Init — permissions + GPS chain ────────────────────────────────────────
@@ -644,8 +651,14 @@ class HomeViewModelTest {
 
     @Test
     fun `should_set_mapType_on_SetMapType`() = runTest {
-        vm.handleIntent(HomeIntent.SetMapType(MapType.SATELLITE))
-        assertEquals(MapType.SATELLITE, vm.state.value.mapType)
+        vm.handleIntent(HomeIntent.SetMapType(MapType.HYBRID))
+        assertEquals(MapType.HYBRID, vm.state.value.mapType)
+    }
+
+    @Test
+    fun `should_persist_hybrid_mapType_to_preferences_on_SetMapType`() = runTest {
+        vm.handleIntent(HomeIntent.SetMapType(MapType.HYBRID))
+        assertEquals("HYBRID", prefs.defaultMapType)
     }
 
     @Test
@@ -660,9 +673,9 @@ class HomeViewModelTest {
         // First SetMapType with same value as init — prefs should remain untouched
         assertEquals("TERRAIN", prefs.defaultMapType)
         // Verify by switching and switching back
-        vm.handleIntent(HomeIntent.SetMapType(MapType.SATELLITE))
+        vm.handleIntent(HomeIntent.SetMapType(MapType.HYBRID))
         val countAfterFirst = prefs.defaultMapType
-        vm.handleIntent(HomeIntent.SetMapType(MapType.SATELLITE))
+        vm.handleIntent(HomeIntent.SetMapType(MapType.HYBRID))
         // calling with same type should NOT change the prefs value (no second write)
         assertEquals(countAfterFirst, prefs.defaultMapType)
     }

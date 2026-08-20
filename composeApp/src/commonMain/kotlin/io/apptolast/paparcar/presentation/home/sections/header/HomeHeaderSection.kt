@@ -44,7 +44,7 @@ import io.apptolast.paparcar.domain.model.Zone
 import io.apptolast.paparcar.presentation.home.HomeHeaderSlice
 import io.apptolast.paparcar.presentation.home.sections.header.components.HomeGpsAccuracyBanner
 import io.apptolast.paparcar.presentation.home.sections.header.components.HomeSearchBar
-import io.apptolast.paparcar.presentation.home.sections.header.components.MapTypePicker
+import io.apptolast.paparcar.presentation.home.sections.header.components.MapTypeToggle
 import io.apptolast.paparcar.ui.theme.PapMotion
 import io.apptolast.paparcar.ui.theme.PaparcarType
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.ZoneChip
@@ -94,7 +94,7 @@ internal fun HomeHeaderSection(
                 modifier = Modifier.weight(1f),
             )
             Spacer(Modifier.width(8.dp))
-            MapTypePicker(
+            MapTypeToggle(
                 currentType = slice.mapType,
                 onTypeSelected = onMapTypeSelected,
             )

@@ -2,6 +2,13 @@
 
 > **Estado**: PENDIENTE — solo spec, sin código. Investigación 2026-07-14 (código + Google Maps
 > SDK + competencia). Al arrancar → rama `feature/MAP-TYPES-001-map-type-picker`.
+>
+> ⚠️ **Adelantado en parte por UI-MAP-TYPE-TOGGLE-001 (2026-08-20)**: el picker ya no es un popup
+> de 3 opciones sino un **toggle Terreno ⇄ Híbrido** (`MapTypeToggle.kt`); Satélite puro se retiró
+> — con eso queda cerrada la mitad del defecto 1. Lo que sigue vivo aquí es el **defecto 2** (el
+> mapa base debería ser `NORMAL` para que apliquen los estilos de marca, no `TERRAIN`) y el
+> renombrado editorial de los modos. Al retomarlo, la spec se rescribe sobre el toggle, no sobre
+> el popup borrado.
 
 ## Problema
 
