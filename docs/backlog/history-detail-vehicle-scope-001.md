@@ -1,8 +1,9 @@
 # HISTORY-DETAIL-VEHICLE-SCOPE-001 · El stepper ‹/› del detalle histórico recorre el historial DEL COCHE, no el global
 
-**Estado:** 🟡 Código hecho, SIN commitear · rama
-`bugfix/HISTORY-DETAIL-VEHICLE-SCOPE-001-per-vehicle-stepper` · worktree `../Paparcar-history-scope`
-· 1254 tests verdes (7 nuevos) · `compileMockDebug` + `compileProdDebug` OK
+**Estado:** ✅ **Done** · master `9e5ee273` (ff-only 20-08-2026 tras rebase sobre
+`0549f957` UI-MAP-TYPE-TOGGLE-001; rama + worktree borrados) · 1256 tests verdes (7 nuevos) ·
+`compileMockDebug` + `compileProdDebug` OK · ✅ **validado en device por el user** (APK
+`d97cfd3e498a3ee7…` en Oppo + Redmi)
 
 ## Problema
 
