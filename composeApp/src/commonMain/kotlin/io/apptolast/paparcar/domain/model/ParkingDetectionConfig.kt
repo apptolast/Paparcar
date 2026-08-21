@@ -569,6 +569,18 @@ data class ParkingDetectionConfig(
      *  heartbeat ~5 min, periodic worker 15 min) that re-mirror the sensor state anyway — a
      *  longer cooldown would be a lie, the mirrors would re-arm through it. */
     val sentryWakeCooldownMaxMs: Long = 15 * 60_000L,
+    /** [DET-COOLDOWN-MUST-NOT-BLIND-A-DRIVE-001] How long two walking aborts may be apart and
+     *  still count as "in a row". A storm is a CADENCE, not a tally: the 2026-08-13 event fired
+     *  every ~18 s for an hour, while the three aborts that blinded the Oppo on 2026-08-21 were
+     *  spread over 52 minutes (22:46:56, 22:59:48, 23:38:15) — three separate errands, read as one
+     *  storm, and the 180 s quiet period they earned covered the whole drive home. Past this gap
+     *  an abort starts a fresh streak instead of extending the old one.
+     *
+     *  10 min sits an order of magnitude above any real storm cadence and an order of magnitude
+     *  below the interval between a person's separate trips, so neither case is close to the edge.
+     *  It must stay BELOW [sentryWakeCooldownBaseMs] × 2 in spirit: a streak that can no longer
+     *  escalate faster than it decays is a damper that never escapes its own quiet period. */
+    val sentryWakeStreakDecayMs: Long = 10 * 60_000L,
 
     // ── USER STOP (the "Stop detection" button) [DET-STOP-BUTTON-001] ────────
     /** Quiet period (ms) after the user taps "Stop detection" on a live session, during which the
@@ -1133,6 +1145,14 @@ data class ParkingDetectionConfig(
         }
         require(sentryWakeCooldownMaxMs >= sentryWakeCooldownBaseMs) {
             "sentryWakeCooldownMaxMs ($sentryWakeCooldownMaxMs) must be >= sentryWakeCooldownBaseMs ($sentryWakeCooldownBaseMs)"
+        }
+        // [DET-COOLDOWN-MUST-NOT-BLIND-A-DRIVE-001] A decay shorter than the quiet period it gates
+        // makes the streak un-escalatable (every abort lands after the previous one has decayed, so
+        // it can never reach the threshold); one longer than the ceiling makes the decay unreachable
+        // and restores the tally the field data refuted. The window has to sit inside the escalation.
+        require(sentryWakeStreakDecayMs in sentryWakeCooldownBaseMs..sentryWakeCooldownMaxMs) {
+            "sentryWakeStreakDecayMs ($sentryWakeStreakDecayMs) must be within " +
+                "[$sentryWakeCooldownBaseMs, $sentryWakeCooldownMaxMs]"
         }
         require(anchorStrideMeters > 0f) {
             "anchorStrideMeters must be > 0, was $anchorStrideMeters"

@@ -25,6 +25,7 @@ import io.apptolast.paparcar.domain.detection.DepartureProof
 import io.apptolast.paparcar.domain.detection.DetectionTrigger
 import io.apptolast.paparcar.domain.detection.coordinatorMayArm
 import io.apptolast.paparcar.domain.detection.isArmSuppressedByUserStop
+import io.apptolast.paparcar.domain.detection.isInsideAnyOwnedFence
 import io.apptolast.paparcar.domain.detection.userStopQuietPeriodRemainingMs
 import io.apptolast.paparcar.domain.detection.MutableDetectionRuntimeState
 import io.apptolast.paparcar.domain.detection.ParkingStrategy
@@ -163,6 +164,13 @@ class CoordinatorDetectionService : LifecycleService() {
     /** [DET-SENTRY-COOLDOWN-001] Consecutive sentry-wake sessions refuted as walking aborts —
      *  input to `sentryWakeRearmCooldownMs`, reset by any other ended session. */
     private var sentryWakeAbortStreak = 0
+
+    /** [DET-COOLDOWN-MUST-NOT-BLIND-A-DRIVE-001] When the streak's previous walking abort happened
+     *  (epoch ms), or null when there is none to be "in a row" with. A storm is a cadence, so the
+     *  fold needs the gap, not just the tally: the three aborts that blinded the Oppo on 2026-08-21
+     *  were 52 minutes apart. In-memory alongside the streak it dates — both damp a storm that only
+     *  exists on a live resident process. */
+    private var lastSentryWakeAbortAtMs: Long? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -1071,12 +1079,37 @@ class CoordinatorDetectionService : LifecycleService() {
         val endedTrigger = lastEndedArmTrigger
         if (endedTrigger != null) {
             lastEndedArmTrigger = null
+            val nowMs = System.currentTimeMillis()
+            // [DET-COOLDOWN-MUST-NOT-BLIND-A-DRIVE-001] The gap since the streak's previous abort:
+            // "in a row" is a claim about time and it is now measured. Clock skew (a negative
+            // elapsed) degrades to "no predecessor", which starts a fresh streak — never to a
+            // spuriously tight cadence.
+            val msSinceLastAbort = lastSentryWakeAbortAtMs
+                ?.let { nowMs - it }
+                ?.takeIf { it >= 0 }
             sentryWakeAbortStreak = nextSentryWakeAbortStreak(
                 previousStreak = sentryWakeAbortStreak,
                 armedBySentryWake = endedTrigger == DetectionTrigger.SIGNIFICANT_MOTION,
                 sessionOutcome = parkingDetectionCoordinator.lastSessionOutcome,
+                msSinceLastAbort = msSinceLastAbort,
+                config = detectionConfig,
             )
-            val cooldownMs = sentryWakeRearmCooldownMs(sentryWakeAbortStreak, detectionConfig)
+            lastSentryWakeAbortAtMs = if (sentryWakeAbortStreak > 0) nowMs else null
+            // [DET-COOLDOWN-MUST-NOT-BLIND-A-DRIVE-001] The damper may only silence this nominator
+            // while ANOTHER one is still able to catch a departure. The parked car's fence is that
+            // other one — and a fence can only fire an EXIT while the phone is still inside it.
+            // Field 2026-08-21 22:12, Redmi: 389 m outside its only fence, EXIT already consumed,
+            // and the 180 s quiet period swallowed the whole drive to Covirán.
+            val insideOwnedFence = isInsideAnyOwnedFence(
+                fix = parkingDetectionCoordinator.lastSessionFix,
+                parkedSessions = parkedSessions,
+                config = detectionConfig,
+            )
+            val cooldownMs = sentryWakeRearmCooldownMs(
+                abortStreak = sentryWakeAbortStreak,
+                hasFenceThatCanStillFire = insideOwnedFence,
+                config = detectionConfig,
+            )
             runCatching { significantMotionMonitor.applyRearmCooldown(cooldownMs) }
             if (cooldownMs > 0) {
                 PaparcarLogger.d(
@@ -1087,6 +1120,14 @@ class CoordinatorDetectionService : LifecycleService() {
                     DetectionEvent.Sentry.WAKE_COOLDOWN,
                     signal = "streak=$sentryWakeAbortStreak cooldown=${cooldownMs / 1000}s",
                     sessionId = parkedSessions.firstNotNullOfOrNull { it.geofenceId } ?: "-",
+                )
+            } else if (sentryWakeAbortStreak >= detectionConfig.sentryWakeAbortStreakForCooldown) {
+                // The streak EARNED a quiet period and the fence gate refused it — the one line
+                // that makes "why is this phone still awake" answerable from parkdiag alone.
+                PaparcarLogger.d(
+                    DIAG,
+                    "  ⏵ sentry-wake abort streak=$sentryWakeAbortStreak but no fence can still fire an EXIT " +
+                        "— staying awake, this sensor is the last watcher [DET-COOLDOWN-MUST-NOT-BLIND-A-DRIVE-001]",
                 )
             }
         }

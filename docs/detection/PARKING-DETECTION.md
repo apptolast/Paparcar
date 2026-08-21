@@ -999,6 +999,74 @@ signature — is indistinguishable from an absent one in any scan.
 
 ---
 
+### DET-COOLDOWN-MUST-NOT-BLIND-A-DRIVE-001 — the storm damper may not silence the LAST nominator
+
+**Commit:** pending. **Field:** 2026-08-21 night, Oppo + Redmi, same two trips.
+
+**User report.** "El Oppo saltó y aparcó bien en Covirán a las 22:21, pero el Redmi no puso nada.
+Luego volvimos a casa y el coche se ha puesto justo donde estoy yo ahora en mi casa, no donde me he
+bajado."
+
+**Root cause — one chain, two losses.** Walking TO the car trips `BUG-FALSE-ENTER-WALKING` (8
+pedestrian steps before driving speed), which ends the session; three of those in a row earn a
+`DET-SENTRY-COOLDOWN-001` quiet period; the quiet period turns the significant-motion sensor off,
+and the drive happens inside it.
+
+- **Redmi, 22:12:00 → 22:15:38.** `GEOFENCE_EXIT` had arrived FAR (`d=398 m`, no instant authority)
+  at 22:10:38 and aborted on 11 steps; three more sentry wakes aborted at 22:10:58 / 22:11:20 /
+  22:11:53 → 180 s cooldown. The whole drive to Covirán fit inside it. First fix after re-arm:
+  22:15:41, already parked, `d=966 m`. **Zero pins.**
+- **Oppo, 23:38:55 → 23:46:38.** Abort on 14 steps → 180 s cooldown → the 988 m drive home ran with
+  the phone blind for 7 min 43 s. The honest close later planted `closed_approximate_pin` inside the
+  user's house instead of at the drop-off point.
+
+**The premise nobody checked.** `SentryWakeCooldown.kt` licensed itself to sleep the sensor with a
+comment: *"the geofence EXIT, the AR ENTER lane and the periodic safety net keep watching"*. It was
+never an input, and that night it was false three ways at once. The Covirán fence never delivered its
+EXIT; the Redmi's had already been consumed and the phone was 389 m **outside** it, so no fence could
+ever fire again; AR delivered `ON_BICYCLE`, never `IN_VEHICLE`; and on the Oppo the 5-minute exact
+heartbeat had been dead since 18:28, leaving only the 15-minute worker — checks at 23:15:21 →
+23:46:38, one grid cell swallowing the entire trip.
+
+**Fix — the two premises become inputs, both pure, both in `SentryWakeCooldown.kt`.**
+
+1. **A storm is a CADENCE, not a tally.** `nextSentryWakeAbortStreak` now takes `msSinceLastAbort`;
+   past `sentryWakeStreakDecayMs` (10 min) an abort starts a fresh streak instead of extending the
+   old one. The 08-13 storm fired every ~18 s; the three aborts that blinded the Oppo were spread
+   across 52 minutes (22:46:56 · 22:59:48 · 23:38:15) — three errands read as one storm.
+2. **Silencing the last watcher is going blind.** `sentryWakeRearmCooldownMs` now takes
+   `hasFenceThatCanStillFire`, answered by the new predicate `isInsideAnyOwnedFence` — a geofence can
+   only emit an EXIT while the phone is still INSIDE it, measured with the SAME
+   `config.geofenceRadiusFor` the fence was registered with, padded by the fix's own accuracy.
+   Outside every owned fence the damper stands down whatever the streak.
+
+**Why the fix is two things and not one.** Each incident is cured by a different half, and the tests
+say so: the Oppo's aborts were 39 min apart but 11 m from its pin (only the decay saves it), the
+Redmi's were 25 s apart but 389 m outside its fence (only the fence gate saves it). The 08-13 storm —
+18 s cadence, 36 m inside a 109 m fence — satisfies neither escape hatch and keeps damping.
+
+**Unknown position fails OPEN.** A null abort fix answers `false` (no cooldown). The asymmetry runs
+that way here: a damper that fails open costs a handful of wake-ups, one that fails closed costs a
+parking spot.
+
+**Companion-fix risk.** Both gates only ever REMOVE quiet periods, so the exposure is battery and the
+`aborted_false_enter` telemetry rate, never a new false positive path — nothing downstream of the
+damper changes, and every confirm still demands measured driving. The residual hole is deliberate: 3
+rapid aborts INSIDE a fence that then fails to deliver its EXIT is still blind. The cure is to make
+the wake CHEAP rather than suppressed (one fix, escalate to a full session only above the pedestrian
+ceiling) — deferred to its own ticket rather than smuggled in here.
+
+**No provenance change.** No new confirmation path, no new `detectionPath`/`armEvidence`, no user
+copy. One new diagnostic line when a streak earns a quiet period and the fence gate refuses it, so
+"why is this phone still awake" is answerable from `parkdiag` alone.
+
+**Files:** `SentryWakeCooldown.kt` (`msSinceLastAbort`, `isInsideAnyOwnedFence`,
+`hasFenceThatCanStillFire`), `ParkingDetectionConfig` (`sentryWakeStreakDecayMs` + require),
+`CoordinatorDetectionService.resolveIdleEpilogue` (the single call site, plus
+`lastSentryWakeAbortAtMs`). 1347 tests.
+
+---
+
 ## 3. Open questions / future work
 
 - **GPS sampling boost during CANDIDATE (PARKING-001 Option B).** Switch the LocationDataSource to a 1 s `minUpdateIntervalMillis` request when entering the CANDIDATE phase, returning to 2 s on exit. Increases density of fixes that refine `bestStopLocation` within the new initial-stop window after a reposition burst. Adds the complexity of swapping the location source mid-session — hold off until A is validated in the field.
