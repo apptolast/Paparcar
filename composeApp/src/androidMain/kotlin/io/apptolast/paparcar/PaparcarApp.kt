@@ -10,9 +10,8 @@ import androidx.work.WorkManager
 import com.apptolast.customlogin.appContext
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
-import com.apptolast.customlogin.config.GoogleSignInConfig
-import com.apptolast.customlogin.di.LoginLibraryConfig
 import com.apptolast.customlogin.di.initLoginKoin
+import io.apptolast.paparcar.di.paparcarLoginConfig
 import io.apptolast.paparcar.detection.worker.FirstParkNudgeWorker
 import io.apptolast.paparcar.detection.worker.GeofenceJanitorWorker
 import io.apptolast.paparcar.detection.worker.ParkingSafetyNetWorker
@@ -39,11 +38,10 @@ class PaparcarApp : Application() {
             Napier.d("GOOGLE_WEB_CLIENT_ID = '${BuildConfig.GOOGLE_WEB_CLIENT_ID}'", tag = "PaparcarApp")
         }
 
-        val loginConfig = LoginLibraryConfig(
-            googleSignInConfig = GoogleSignInConfig(
-                webClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID,
-            ),
-        )
+        // What Paparcar offers is declared in ONE place, shared with iOS and with the previews +
+        // Dev Catalog gallery. Never inline a LoginLibraryConfig here: its flags default to
+        // enabled and would put unsupported methods on the screen. [AUTH-PROVIDERS-EXPLICIT-001]
+        val loginConfig = paparcarLoginConfig(googleWebClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID)
 
         initLoginKoin(config = loginConfig) {
             androidContext(this@PaparcarApp)

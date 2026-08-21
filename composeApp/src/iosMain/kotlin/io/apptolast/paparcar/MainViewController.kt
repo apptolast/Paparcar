@@ -3,12 +3,12 @@
 package io.apptolast.paparcar
 
 import androidx.compose.ui.window.ComposeUIViewController
-import com.apptolast.customlogin.di.LoginLibraryConfig
 import com.apptolast.customlogin.di.initLoginKoin
 import io.apptolast.paparcar.di.dataModule
 import io.apptolast.paparcar.di.domainModule
 import io.apptolast.paparcar.di.iosDetectionModule
 import io.apptolast.paparcar.di.iosPlatformModule
+import io.apptolast.paparcar.di.paparcarLoginConfig
 import io.apptolast.paparcar.di.presentationModule
 import io.apptolast.paparcar.notification.IosNotificationActionHandler
 import org.koin.mp.KoinPlatform
@@ -34,7 +34,10 @@ private fun initKoin() {
     // Android. Without this, resolving anything that depends on AuthRepository crashes at launch.
     // Email/password + magic-link work out of the box; Google/Apple sign-in on iOS additionally
     // require provider config here plus native OAuth setup (Info.plist URL scheme + plist client id).
-    initLoginKoin(config = LoginLibraryConfig()) {
+    // Same offer builder as Android. Without it the default config leaves iOS showing a lone SMS
+    // button — a method we do not support, and whose Swift handlers are not installed either, so it
+    // would be a dead button. Google arrives with IOS-SOCIAL-LOGIN-001. [AUTH-PROVIDERS-EXPLICIT-001]
+    initLoginKoin(config = paparcarLoginConfig(googleWebClientId = null)) {
         modules(
             presentationModule,
             domainModule,

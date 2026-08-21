@@ -2,6 +2,8 @@ package io.apptolast.paparcar.fakes.data.repository
 
 import com.apptolast.customlogin.domain.AuthRepository
 import com.apptolast.customlogin.domain.model.*
+import io.apptolast.paparcar.di.paparcarLoginConfig
+import io.apptolast.paparcar.di.paparcarSocialProviders
 import io.apptolast.paparcar.fakes.MockScenario
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,6 +15,8 @@ import kotlinx.coroutines.flow.map
  * [MockScenario.session] (so the Dev Catalog can exercise the login flow). When null the
  * fake keeps its original always-signed-in behaviour — used by tests and the default mock boot.
  */
+private const val MOCK_GOOGLE_WEB_CLIENT_ID = "mock.apps.googleusercontent.com"
+
 class FakeAuthRepository(private val scenario: MockScenario? = null) : AuthRepository {
     private val mockUser = UserSession(
         userId = "mock_user_001",
@@ -80,7 +84,11 @@ class FakeAuthRepository(private val scenario: MockScenario? = null) : AuthRepos
     override suspend fun reauthenticate(credentials: Credentials): AuthResult =
         AuthResult.Success(mockUser)
 
-    override fun getAvailableProviders(): List<IdentityProvider> = emptyList()
+    // Mirrors production instead of an empty list: with emptyList() the mock login screen showed no
+    // social buttons at all, so the Dev Catalog could not be used to check the real offer — which is
+    // exactly what this fake exists for. [AUTH-PROVIDERS-EXPLICIT-001]
+    override fun getAvailableProviders(): List<IdentityProvider> =
+        paparcarSocialProviders(paparcarLoginConfig(MOCK_GOOGLE_WEB_CLIENT_ID))
 
     override suspend fun sendPhoneOtp(phoneNumber: String): PhoneAuthResult =
         PhoneAuthResult.CodeSent("mock_verification_id")
