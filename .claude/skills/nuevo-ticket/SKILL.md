@@ -112,6 +112,11 @@ git merge-base --is-ancestor master <rama>   # ¿master avanzó?
   pregunta entre `--squash` / `--no-ff` / `ff-only` (regla del user, 20-08-2026).
 - Aunque la rama tenga **un solo commit**, va por `--squash`, no por `ff-only`: el commit de master
   lo redactamos en el merge, como resumen PR-grade de la tarea entera.
+- **El doc entra en ESE mismo commit** — nunca un `docs(backlog): close…` aparte (regla del user,
+  21-08-2026). Un ticket = **un** commit en master, código y doc juntos. Antes de mergear: marcar
+  `docs/backlog/<ticket>.md` como ✅ Done, hacer el `--squash`, y commitear todo de una vez.
+  - Consecuencia asumida: el doc **no puede citar su propio hash**, porque no existe hasta después.
+    Se cierra sin hash; **el hash vive en `MEMORY.md`**, que es donde se consulta de verdad.
 - Nunca mergear sin aprobación del user. Esta sección dice CÓMO se mergea, no CUÁNDO.
 
 Mensaje de commit — Conventional Commits con el ticket entre corchetes:
@@ -129,7 +134,8 @@ git worktree remove ../Paparcar-<tarea>
 git branch -d <rama>
 ```
 
-- Marcar el doc `docs/backlog/<ticket>.md` como **✅ Done** con el hash del commit.
+- El doc `docs/backlog/<ticket>.md` ya se marcó **✅ Done** ANTES del squash (C.2) y viajó dentro de
+  ese commit — aquí no queda nada que tocar en él, y **no lleva hash** por construcción.
 - **Actualizar la memoria**: la línea de `MEMORY.md` pasa a ✅ master (+ hash), y editar las
   memorias antiguas que listaban esto como pendiente. No dejar pendientes zombis, y no recitar
   "pendiente" de entradas viejas sin contrastar contra `git log`.
