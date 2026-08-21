@@ -128,6 +128,14 @@ sealed interface DetectionEvent {
         val distanceMeters: Double? = null,
         val radiusMeters: Float? = null,
         override val location: GpsPoint? = null,
+        /** [DET-PROMPT-STATES-ITS-REASON-001] WHY the verdict came out this way, when the outcome
+         *  string alone cannot say. Six distinct causes degrade a confirm into `CONFIRM_DEGRADED_
+         *  PROMPT`, and a trace that only carries the outcome cannot tell them apart — field
+         *  2026-08-20 lost a parking spot to a veto nobody could name afterwards. Rides the existing
+         *  `reason` column (`HonestClose`, `Released`, `GeofenceRegistration` already use it), so
+         *  there is no serializer surface change, and the `outcome` string stays as it always was:
+         *  renaming it would break every saved trace that quotes it. */
+        val reason: String? = null,
     ) : DetectionEvent
 
     /** [DET-FROZEN-COUNTER-001] The honest-close ladder ran after a silent abort: its [verdict]

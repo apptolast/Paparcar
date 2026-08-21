@@ -61,4 +61,42 @@ class DetectionEventDtoTest {
             DetectionEvent.ActivityTransition("s", 0L, "ON_BICYCLE", "ENTER").typeName(),
         )
     }
+
+    @Test
+    fun should_carryThePromptCause_when_mappingADegradedConfirm() {
+        // [DET-PROMPT-STATES-ITS-REASON-001] The point of the ticket: the cause has to survive
+        // serialization, because the remote trace is the only place it can be read after the fact —
+        // logcat rotates and nobody drives cabled to a PC.
+        val dto = DetectionEvent.Decision(
+            sessionId = "s-1",
+            timestampMs = 1_000L,
+            outcome = "CONFIRM_DEGRADED_PROMPT",
+            pathLabel = "steps+egress",
+            location = fix,
+            reason = "human_powered",
+        ).toDto()
+
+        assertEquals("DECISION", dto.type)
+        assertEquals(
+            "CONFIRM_DEGRADED_PROMPT",
+            dto.outcome,
+            "the outcome string every saved trace quotes must NOT change",
+        )
+        assertEquals("steps+egress", dto.pathLabel, "the path axis stays independent of the cause")
+        assertEquals("human_powered", dto.reason, "the cause rides the existing reason column")
+    }
+
+    @Test
+    fun should_leaveTheReasonNull_when_theDecisionHasNoCauseToName() {
+        // Confirms, rejections and the band-crossing marker carry no cause: the column stays empty
+        // rather than inventing one.
+        val dto = DetectionEvent.Decision(
+            sessionId = "s-1",
+            timestampMs = 1_000L,
+            outcome = "MOTOR_WITNESSED",
+            pathLabel = "motorBand=628700ms",
+        ).toDto()
+
+        assertNull(dto.reason)
+    }
 }

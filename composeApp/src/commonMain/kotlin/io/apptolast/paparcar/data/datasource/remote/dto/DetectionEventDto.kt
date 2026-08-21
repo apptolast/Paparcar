@@ -156,7 +156,11 @@ fun DetectionEvent.toDto(): DetectionEventDto {
         is DetectionEvent.LocationFix -> base.copy(stoppedDurationMs = stoppedDurationMs)
         is DetectionEvent.Step -> base.copy(stepCount = stepCount, stopped = stopped)
         is DetectionEvent.Candidate -> base.copy(action = action, phase = phase)
-        is DetectionEvent.Decision -> base.copy(outcome = outcome, pathLabel = pathLabel, confidence = confidence, distanceMeters = distanceMeters, radiusMeters = radiusMeters)
+        // [DET-PROMPT-STATES-ITS-REASON-001] The verdict's cause rides the existing `reason` column
+        // (same one HonestClose/Released/GeofenceRegistration use) so the six producers of
+        // `CONFIRM_DEGRADED_PROMPT` become groupable — no serializer surface change, and the
+        // `outcome` string every saved trace quotes is left alone.
+        is DetectionEvent.Decision -> base.copy(outcome = outcome, pathLabel = pathLabel, confidence = confidence, distanceMeters = distanceMeters, radiusMeters = radiusMeters, reason = reason)
         is DetectionEvent.HonestClose -> base.copy(
             verdict = verdict,
             reason = reason,

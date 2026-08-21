@@ -15,13 +15,52 @@ import io.apptolast.paparcar.domain.model.VehicleType
  *                    candidate (likely a queue / traffic stop).
  * - [Inconclusive] — keep the candidate open; the window has not elapsed and no proof has arrived.
  */
+/**
+ * WHY a confirm degraded into a question. [DET-PROMPT-STATES-ITS-REASON-001]
+ *
+ * A second axis, orthogonal to `pathLabel`: the path says HOW the park was proven, this says why
+ * that proof was not trusted enough to save silently. Six causes shared one string
+ * (`CONFIRM_DEGRADED_PROMPT`) until field 2026-08-20 23:56 (Oppo, session `1787263007358`), where a
+ * 63 km/h drive saved nothing and two of its three verdicts were unattributable — the case only
+ * closed because the THIRD, the unattended timeout, names its cause through [UnattendedSaveReason].
+ * This is that enum's sibling, deliberately the same shape so both families of trace read alike.
+ *
+ * [key] rides the diagnostics `reason` column — the one `HonestClose`, `Released` and
+ * `GeofenceRegistration` already use. The `outcome` string stays `CONFIRM_DEGRADED_PROMPT` on
+ * purpose: renaming it would silently break every saved trace and every memory note that quotes it,
+ * the same reason [UnattendedSaveReason] refused to rename two of its historical labels.
+ */
+enum class PromptReason(val key: String) {
+    /** The arm's only vehicle proof was an AR ENTER (falsifiable by bus/taxi) and the session's own
+     *  stream never witnessed driving. [DET-SOLID-001][DET-UNVERIFIED-CONFIRM-001] */
+    WEAK_EVIDENCE("weak_evidence"),
+
+    /** Profile says bike/scooter, or the ride measured as human-powered. [DET-BIKE-NOT-A-CAR-001] */
+    HUMAN_POWERED("human_powered"),
+
+    /** The egress was born away from the anchor: the park is probably real, the ANCHOR is not.
+     *  [DET-ANCHOR-EGRESS-001] */
+    EGRESS_NOT_AT_ANCHOR("egress_not_at_anchor"),
+
+    /** The anchor was captured at a stop the user walked into. [DET-CREDIBLE-DRIVE-001] */
+    ANCHOR_WALK_ENTERED("anchor_walk_entered"),
+
+    /** The anchor's stop opened through a GPS hole — the rest was never witnessed.
+     *  [DET-GAP-ANCHOR-001] */
+    ANCHOR_GAP_ENTERED("anchor_gap_entered"),
+
+    /** The repark guard refused the save: it would relocate a fresh nearby park without the session
+     *  ever seeing driving. [DET-SOLID-001] */
+    IMPLAUSIBLE_REPARK("implausible_repark"),
+}
+
 sealed interface ParkingDecision {
     data class Confirmed(val pathLabel: String, val reliability: Float) : ParkingDecision
     data object Rejected : ParkingDecision
     data object Inconclusive : ParkingDecision
-    /** All confirm conditions hold, but the arm evidence is too weak to save silently
-     *  (ENTER-only, falsifiable by bus/taxi) — ask the user instead. [DET-SOLID-001] */
-    data class Prompt(val pathLabel: String) : ParkingDecision
+    /** All confirm conditions hold, but something makes the save untrustworthy enough to ask instead
+     *  — [reason] says which of the six. [DET-SOLID-001][DET-PROMPT-STATES-ITS-REASON-001] */
+    data class Prompt(val pathLabel: String, val reason: PromptReason) : ParkingDecision
 
     /**
      * [DET-HUMAN-POWERED-EARLY-CLOSE-001] TERMINAL: the movement was made under human power and
@@ -256,15 +295,31 @@ class EvaluateParkingDecisionUseCase(private val config: ParkingDetectionConfig)
             hasKinematicProof -> "kinematic+egress"
             else -> "vehicleExit+window+egress"
         }
+
+        // [DET-ANCHOR-EGRESS-001][DET-CREDIBLE-DRIVE-001][DET-GAP-ANCHOR-001] An egress born away
+        // from the anchor, an anchor captured at a walk-entered stop, or an anchor whose stop opened
+        // through a GPS hole (rest unwitnessed — the anchor may be a drive-past point) invalidates
+        // the ANCHOR, not the park: every proof may hold and the user probably DID park — just not
+        // where the anchor says. Ask, never pin.
+        //
+        // [DET-PROMPT-STATES-ITS-REASON-001] This was one `||` and the five causes reached the trace
+        // as a single anonymous `CONFIRM_DEGRADED_PROMPT`. Now it is an ORDERED first-match, so the
+        // label is deterministic when several hold at once: two sessions of the same shape must
+        // always report the same reason or the telemetry cannot be grouped. The order runs from the
+        // claim about the WHOLE RIDE (nothing about this trip was a car) through the claim about the
+        // ARM, down to the three that only doubt the anchor's position — widest doubt first, because
+        // that is the one worth acting on.
+        val promptReason: PromptReason? = when {
+            humanPowered -> PromptReason.HUMAN_POWERED
+            weakEvidenceOnly -> PromptReason.WEAK_EVIDENCE
+            !input.egressBornAtAnchor -> PromptReason.EGRESS_NOT_AT_ANCHOR
+            input.anchorWalkEntered -> PromptReason.ANCHOR_WALK_ENTERED
+            input.anchorGapEntered -> PromptReason.ANCHOR_GAP_ENTERED
+            else -> null
+        }
+
         return when {
-            // [DET-ANCHOR-EGRESS-001][DET-CREDIBLE-DRIVE-001][DET-GAP-ANCHOR-001] An egress born
-            // away from the anchor, an anchor captured at a walk-entered stop, or an anchor whose
-            // stop opened through a GPS hole (rest unwitnessed — the anchor may be a drive-past
-            // point) invalidates the ANCHOR, not the park: every proof may hold and the user
-            // probably DID park — just not where the anchor says. Ask, never pin.
-            confirmNow && (weakEvidenceOnly || humanPowered || !input.egressBornAtAnchor ||
-                input.anchorWalkEntered || input.anchorGapEntered) ->
-                ParkingDecision.Prompt(pathLabel)
+            confirmNow && promptReason != null -> ParkingDecision.Prompt(pathLabel, promptReason)
             confirmNow -> ParkingDecision.Confirmed(
                 pathLabel = pathLabel,
                 reliability = if (pathLabel == "kinematic+egress") {

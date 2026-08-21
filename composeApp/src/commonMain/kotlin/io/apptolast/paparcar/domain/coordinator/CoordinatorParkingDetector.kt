@@ -30,6 +30,7 @@ import io.apptolast.paparcar.domain.usecase.parking.FinalizeDeducedDepartureUseC
 import io.apptolast.paparcar.domain.usecase.parking.RetractDeducedDepartureUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ParkingDecision
 import io.apptolast.paparcar.domain.usecase.parking.ParkingDecisionInput
+import io.apptolast.paparcar.domain.usecase.parking.PromptReason
 import io.apptolast.paparcar.domain.usecase.parking.UnattendedParkingSave
 import io.apptolast.paparcar.domain.usecase.parking.UnattendedSaveInput
 import io.apptolast.paparcar.domain.usecase.parking.UnattendedSaveReason
@@ -1515,7 +1516,7 @@ class CoordinatorParkingDetector(
                             return@collect
                         }
                         if (decision is ParkingDecision.Prompt) {
-                            degradeToPrompt(decision.pathLabel, location, now)
+                            degradeToPrompt(decision.pathLabel, decision.reason, location, now)
                             return@collect
                         }
                         PaparcarLogger.d(
@@ -1917,7 +1918,13 @@ class CoordinatorParkingDetector(
                             it.copy(pendingConfirm = null, phase = ConfirmationPhase.Notified(shownAt = nowMs()))
                         }
                         logDetection { sid ->
-                            DetectionEvent.Decision(sid, nowMs(), outcome = "CONFIRM_DEGRADED_PROMPT", pathLabel = pathLabel, location = location)
+                            DetectionEvent.Decision(
+                                sid, nowMs(), outcome = "CONFIRM_DEGRADED_PROMPT", pathLabel = pathLabel,
+                                // [DET-PROMPT-STATES-ITS-REASON-001] The SIXTH producer, and the only
+                                // one outside the evaluator: it degrades on a rejected save, not on a
+                                // doubted proof, and it read identically in the trace until now.
+                                location = location, reason = PromptReason.IMPLAUSIBLE_REPARK.key,
+                            )
                         }
                         sessionShouldEnd = false
                         return@onFailure
@@ -2019,7 +2026,7 @@ class CoordinatorParkingDetector(
                 false
             }
             is ParkingDecision.Prompt -> {
-                degradeToPrompt(decision.pathLabel, location, now)
+                degradeToPrompt(decision.pathLabel, decision.reason, location, now)
                 false
             }
             // [DET-HUMAN-POWERED-EARLY-CLOSE-001] Terminal: nothing this candidate (or any next one
@@ -2041,8 +2048,16 @@ class CoordinatorParkingDetector(
      * feeds the response-timeout), a "Sí" flows through the user-confirm precedence (reliability
      * 1.0, every guard bypassed), and silence aborts at `confirmationResponseTimeoutMs`.
      */
-    private suspend fun degradeToPrompt(pathLabel: String, location: GpsPoint, now: Long) {
-        PaparcarLogger.d(DIAG, "  ？ weak-evidence confirm ($pathLabel) → degrading to user prompt [DET-SOLID-001]")
+    private suspend fun degradeToPrompt(
+        pathLabel: String,
+        // [DET-PROMPT-STATES-ITS-REASON-001] WHICH of the six causes degraded this confirm. Not
+        // defaulted: every caller knows its own reason, and a default would quietly resurrect the
+        // anonymous prompt this ticket exists to remove.
+        reason: PromptReason,
+        location: GpsPoint,
+        now: Long,
+    ) {
+        PaparcarLogger.d(DIAG, "  ？ confirm degraded to user prompt ($pathLabel, reason=${reason.key}) [DET-SOLID-001][DET-PROMPT-STATES-ITS-REASON-001]")
         val alreadyPrompted = _detectionState.value.phase.promptShownAt != null
         if (!alreadyPrompted) {
             val vehicleName = runCatching {
@@ -2056,7 +2071,10 @@ class CoordinatorParkingDetector(
             PaparcarLogger.d(DIAG, "  ▶ weak-evidence prompt notification POSTED (score=$WEAK_EVIDENCE_PROMPT_SCORE, vehicle=$vehicleName) [DET-AR-FIRST-001]")
             _detectionState.update { it.copy(phase = ConfirmationPhase.Notified(shownAt = now)) }
             logDetection { sid ->
-                DetectionEvent.Decision(sid, now, outcome = "CONFIRM_DEGRADED_PROMPT", pathLabel = pathLabel, location = location)
+                DetectionEvent.Decision(
+                    sid, now, outcome = "CONFIRM_DEGRADED_PROMPT", pathLabel = pathLabel,
+                    location = location, reason = reason.key,
+                )
             }
         }
     }

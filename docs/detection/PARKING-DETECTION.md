@@ -3075,3 +3075,38 @@ The Bluetooth lane is untouched by construction — a bicycle carries no MAC. No
 screen or state, so the 9 locales and the Dev Catalog are unaffected. 1 300 tests green; the §B
 regression is verified RED without the fix. Spec:
 `docs/backlog/det-motorway-trip-judged-bicycle-001.md`.
+
+---
+
+## 2026-08-21 · A prompt that never said why it was asking [DET-PROMPT-STATES-ITS-REASON-001]
+
+Six different causes degraded a confirm into a question, and all six wrote the same
+`CONFIRM_DEGRADED_PROMPT` into the trace: five collapsed into one `||` in
+`EvaluateParkingDecisionUseCase` (weak arm evidence, human-powered ride, egress not born at the
+anchor, walk-entered anchor, gap-entered anchor) plus the `ImplausibleRepark` degrade in the
+coordinator's confirm-failure handler. `pathLabel` records HOW the park was proven; nothing recorded
+why that proof was not trusted.
+
+Field 2026-08-20 23:56 (Oppo, session `1787263007358`) is the bill: a 36-minute drive that peaked at
+63,3 km/h, stopped, and walked 175 steps away saved nothing, and two of its three verdicts were
+unattributable. The case only closed because the THIRD — the unattended timeout — names its cause
+through `UnattendedSaveReason`. That enum already lived in the same file and had solved this exact
+problem for the other lane; the candidate/confirm lane had never learned to speak it.
+
+**`PromptReason` is its sibling**, deliberately the same shape, and the `outcome` string is left
+alone. Renaming it to `CONFIRM_DEGRADED_<CAUSE>` would have invalidated every saved trace and every
+memory note that quotes it — the same reason `UnattendedSaveReason` refused to rename two of its own
+historical labels. Instead the cause rides the existing `reason` column, already used by
+`HonestClose`, `Released` and `GeofenceRegistration`: no serializer surface change, and the proof
+that nothing broke is that the 1 312 pre-existing tests stayed green without touching one assertion.
+Putting it in `pathLabel` was rejected for the opposite reason — that field is compared by equality,
+so polluting it would have broken one axis to fix the other.
+
+The five-way `||` becomes an ORDERED first-match, because with several causes true at once the label
+has to be deterministic or the telemetry cannot be grouped. The order runs widest-doubt-first:
+`HUMAN_POWERED` (a claim about the whole ride) outranks `WEAK_EVIDENCE` (a claim about the arm),
+which outranks the three that only doubt where the anchor sits. `degradeToPrompt` takes the reason
+with **no default** — a default would quietly resurrect the anonymous prompt this exists to remove.
+
+1 322 tests green (1 312 + 10): one per cause, the tie-break, key uniqueness, and DTO parity in both
+directions. Spec: `docs/backlog/det-prompt-states-its-reason-001.md`.

@@ -39,12 +39,20 @@ class EvaluateParkingDecisionUseCaseTest {
         lastSpeedMps: Float = 0f,
         egressExceedsWalkReach: Boolean = false,
         anchorGapEntered: Boolean = false,
+        // [DET-PROMPT-STATES-ITS-REASON-001] The three remaining prompt causes, needed to prove each
+        // one reaches the trace under its OWN name.
+        egressBornAtAnchor: Boolean = true,
+        anchorWalkEntered: Boolean = false,
+        humanPoweredRide: Boolean = false,
     ) = ParkingDecisionInput(
         stepCount, hasEgressDisplacement, hadVehicleExit,
         elapsedSinceHighMs, vehicleType, sessionDurationMs, maxSpeedKmh, sustainedDrivingMs,
         evidenceLabel, hasKinematicEgress, lastSpeedMps,
         egressExceedsWalkReach = egressExceedsWalkReach,
         anchorGapEntered = anchorGapEntered,
+        egressBornAtAnchor = egressBornAtAnchor,
+        anchorWalkEntered = anchorWalkEntered,
+        humanPoweredRide = humanPoweredRide,
     )
 
     // ── Kinematic egress: GPS-measured walk from the frozen anchor [DET-KINEMATIC-EGRESS-001] ─
@@ -614,5 +622,134 @@ class EvaluateParkingDecisionUseCaseTest {
             ),
         )
         assertIs<ParkingDecision.Confirmed>(decision)
+    }
+
+    // ── Every prompt names its cause [DET-PROMPT-STATES-ITS-REASON-001] ───────────────────────
+    //
+    // Field 2026-08-20 23:56 (Oppo, session 1787263007358): a 63 km/h drive saved nothing and two of
+    // its three verdicts were `CONFIRM_DEGRADED_PROMPT` with no way to tell WHICH of five causes
+    // fired. The case only closed because the third verdict — the unattended timeout — names its
+    // cause. `pathLabel` says how the park was proven; these say why it was not trusted.
+
+    /** A confirm that would otherwise be silent, so each test below flips exactly one cause. */
+    private fun confirmableInput(
+        egressBornAtAnchor: Boolean = true,
+        anchorWalkEntered: Boolean = false,
+        anchorGapEntered: Boolean = false,
+        humanPoweredRide: Boolean = false,
+        evidenceLabel: String? = io.apptolast.paparcar.domain.detection.ArmEvidence.LABEL_VERIFIED_SPEED,
+        maxSpeedKmh: Float = 60f,
+    ) = input(
+        stepCount = 8,
+        hasEgressDisplacement = true,
+        maxSpeedKmh = maxSpeedKmh,
+        evidenceLabel = evidenceLabel,
+        egressBornAtAnchor = egressBornAtAnchor,
+        anchorWalkEntered = anchorWalkEntered,
+        anchorGapEntered = anchorGapEntered,
+        humanPoweredRide = humanPoweredRide,
+    )
+
+    @Test
+    fun should_name_the_cause_when_the_ride_was_human_powered() {
+        val decision = evaluate(confirmableInput(humanPoweredRide = true))
+        assertEquals(PromptReason.HUMAN_POWERED, assertIs<ParkingDecision.Prompt>(decision).reason)
+    }
+
+    @Test
+    fun should_name_the_cause_when_the_profile_is_a_bicycle() {
+        // The profile lane reaches the same reason as the measured one: both say "not a car".
+        val decision = evaluate(
+            input(
+                stepCount = 8,
+                hasEgressDisplacement = true,
+                vehicleType = VehicleType.BIKE,
+                maxSpeedKmh = 60f,
+                evidenceLabel = io.apptolast.paparcar.domain.detection.ArmEvidence.LABEL_VERIFIED_SPEED,
+            ),
+        )
+        assertEquals(PromptReason.HUMAN_POWERED, assertIs<ParkingDecision.Prompt>(decision).reason)
+    }
+
+    @Test
+    fun should_name_the_cause_when_the_arm_is_weak_and_nothing_witnessed_a_drive() {
+        val decision = evaluate(
+            confirmableInput(
+                evidenceLabel = io.apptolast.paparcar.domain.detection.ArmEvidence.LABEL_SELF_OBSERVED,
+                maxSpeedKmh = 0f,
+            ),
+        )
+        assertEquals(PromptReason.WEAK_EVIDENCE, assertIs<ParkingDecision.Prompt>(decision).reason)
+    }
+
+    @Test
+    fun should_name_the_cause_when_the_egress_was_not_born_at_the_anchor() {
+        val decision = evaluate(confirmableInput(egressBornAtAnchor = false))
+        assertEquals(
+            PromptReason.EGRESS_NOT_AT_ANCHOR,
+            assertIs<ParkingDecision.Prompt>(decision).reason,
+        )
+    }
+
+    @Test
+    fun should_name_the_cause_when_the_anchor_was_walk_entered() {
+        val decision = evaluate(confirmableInput(anchorWalkEntered = true))
+        assertEquals(
+            PromptReason.ANCHOR_WALK_ENTERED,
+            assertIs<ParkingDecision.Prompt>(decision).reason,
+        )
+    }
+
+    @Test
+    fun should_name_the_cause_when_the_anchor_stop_opened_through_a_gps_hole() {
+        val decision = evaluate(confirmableInput(anchorGapEntered = true))
+        assertEquals(
+            PromptReason.ANCHOR_GAP_ENTERED,
+            assertIs<ParkingDecision.Prompt>(decision).reason,
+        )
+    }
+
+    @Test
+    fun should_report_the_widest_doubt_first_when_several_causes_hold_at_once() {
+        // Determinism is the point: the same shape must always report the same reason or the
+        // telemetry cannot be grouped. Human-powered is a claim about the WHOLE RIDE, so it outranks
+        // a weak arm, which in turn outranks the three that only doubt where the anchor sits.
+        assertEquals(
+            PromptReason.HUMAN_POWERED,
+            assertIs<ParkingDecision.Prompt>(
+                evaluate(
+                    confirmableInput(
+                        humanPoweredRide = true,
+                        egressBornAtAnchor = false,
+                        anchorWalkEntered = true,
+                        anchorGapEntered = true,
+                        evidenceLabel = io.apptolast.paparcar.domain.detection.ArmEvidence.LABEL_SELF_OBSERVED,
+                        maxSpeedKmh = 0f,
+                    ),
+                ),
+            ).reason,
+        )
+        assertEquals(
+            PromptReason.WEAK_EVIDENCE,
+            assertIs<ParkingDecision.Prompt>(
+                evaluate(
+                    confirmableInput(
+                        egressBornAtAnchor = false,
+                        anchorWalkEntered = true,
+                        evidenceLabel = io.apptolast.paparcar.domain.detection.ArmEvidence.LABEL_SELF_OBSERVED,
+                        maxSpeedKmh = 0f,
+                    ),
+                ),
+            ).reason,
+        )
+    }
+
+    @Test
+    fun should_keep_every_cause_distinguishable_in_the_trace() {
+        // The whole defect in one assertion: six producers, six different strings. If two ever
+        // collapse again, a field trace stops being attributable.
+        val keys = PromptReason.entries.map { it.key }
+        assertEquals(keys.size, keys.toSet().size, "two causes share a trace key: $keys")
+        assertTrue(keys.none { it.isBlank() }, "an empty key is an anonymous prompt again")
     }
 }
