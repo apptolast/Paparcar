@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.sp
 import io.apptolast.paparcar.domain.model.CarbodyType
 import io.apptolast.paparcar.domain.model.VehicleColor
 import io.apptolast.paparcar.domain.model.VehicleSize
+import io.apptolast.paparcar.ui.components.DrivingRadarHalo
 import io.apptolast.paparcar.ui.components.PapAlertDialog
 import io.apptolast.paparcar.ui.components.PapDialogAccent
 import io.apptolast.paparcar.ui.components.PapListItem
@@ -205,6 +206,11 @@ internal sealed interface PapSheetLead {
         val size: VehicleSize?,
         val color: VehicleColor? = null,
         val loading: Boolean = false,
+        /** Non-null ⇒ this car's trip is running RIGHT NOW: the tile breathes the radar halo in
+         *  this colour, the same motion the vehicle chip already shows. Pass the vehicle's identity
+         *  colour, resolved at the call site by the one resolver (`vehicleIdentityColor`) — the tile
+         *  never re-derives it. Null (default) ⇒ a still tile. [UI-PEEK-DRIVING-HAS-NO-MOTION-001] */
+        val drivingHaloColor: Color? = null,
     ) : PapSheetLead
 
     /** Free-spot counter — digit + unit. Green with n>0, amber with 0. */
@@ -253,13 +259,20 @@ private fun PapSheetLeadTile(lead: PapSheetLead) {
                 // fallback car (the tile would otherwise show a wrong default for one frame). [UI-VEHICLE-ICON-SKELETON-001]
                 PapShimmerBox(modifier = Modifier.size(LEAD_GLYPH_DP.dp), shape = CircleShape)
             } else {
-                // Full-colour brand illustration (level-3) — never tinted. [INACTIVE-OPAQUE-001]
-                VehicleGlyph(
-                    carbody = lead.carbody,
-                    size = lead.size,
-                    glyphSize = LEAD_GLYPH_DP.dp,
-                    color = lead.color,
-                )
+                Box(contentAlignment = Alignment.Center) {
+                    // A running trip breathes the SAME halo as the vehicle chip's identity row, at
+                    // the same glyph-to-halo proportion — one motion vocabulary across both
+                    // surfaces. Contained in the glyph box, so the tile never resizes.
+                    // [UI-PEEK-DRIVING-HAS-NO-MOTION-001] [UI-COLOR-DOCTRINE-001]
+                    lead.drivingHaloColor?.let { DrivingRadarHalo(diameter = LEAD_GLYPH_DP.dp, color = it) }
+                    // Full-colour brand illustration (level-3) — never tinted. [INACTIVE-OPAQUE-001]
+                    VehicleGlyph(
+                        carbody = lead.carbody,
+                        size = lead.size,
+                        glyphSize = LEAD_GLYPH_DP.dp,
+                        color = lead.color,
+                    )
+                }
             }
         }
 

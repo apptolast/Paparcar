@@ -16,6 +16,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.VehicleSize
+import io.apptolast.paparcar.domain.detection.DetectionPhase
+import io.apptolast.paparcar.presentation.home.DrivingMeta
 import io.apptolast.paparcar.presentation.home.HomeState
 import io.apptolast.paparcar.presentation.home.VehicleCard
 import io.apptolast.paparcar.presentation.home.toBrowseListSlice
@@ -186,6 +188,29 @@ private fun HomePeekHandleParkingSelectedLightPreview() {
                 userGpsPoint = GpsPoint(40.4165, -3.7030, 12f, Clock.System.now().toEpochMilliseconds(), 0f),
                 nearbySpots = FakeData.nearbySpots,
                 selectedItemId = FakeData.activeSessionSupermarket.id,
+            ).toPeekSlice(),
+        )
+    }
+}
+
+// El peek con un viaje EN CURSO: el tile lead respira el halo radar y las palabras de fase laten,
+// mientras el nombre del coche se queda quieto en su color de identidad. El movimiento sólo se ve
+// en preview interactiva o en device. [UI-PEEK-DRIVING-HAS-NO-MOTION-001]
+@Preview(name = "A — HomePeekHandle: en ruta (halo + pulso, oscuro)", showBackground = true,
+    uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Composable
+private fun HomePeekHandleDrivingDarkPreview() {
+    PaparcarTheme(darkTheme = true) {
+        HomePeekHandle(
+            slice = HomeState(
+                vehicles = listOf(FakeData.vehicleSedan),
+                userGpsPoint = GpsPoint(40.4165, -3.7030, 12f, Clock.System.now().toEpochMilliseconds(), 0f),
+                nearbySpots = FakeData.nearbySpots,
+                cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
+                drivingMeta = DrivingMeta(
+                    vehicleId = FakeData.vehicleSedan.id,
+                    phase = DetectionPhase.Driving,
+                ),
             ).toPeekSlice(),
         )
     }

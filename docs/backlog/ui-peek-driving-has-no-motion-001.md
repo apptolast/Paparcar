@@ -1,6 +1,6 @@
 # UI-PEEK-DRIVING-HAS-NO-MOTION-001 · el mismo viaje se ve vivo en el chip y muerto en el peek
 
-**Estado:** 🔵 Abierto — sin rama. Detectado al cerrar [UI-CHIP-ROUTE-GLYPH-001].
+**Estado:** ✅ Done — en master (squash 22-08-2026). Detectado al cerrar [UI-CHIP-ROUTE-GLYPH-001].
 
 ## Problema
 
@@ -28,15 +28,23 @@ hueco de icono, y el eyebrow *aparcado* tampoco lleva pin.
 
 Lo que toca es la pareja que ya usa el chip, aplicada a la anatomía del peek:
 
-1. `PapSheetLead.Vehicle` gana un `isDriving: Boolean = false` → `PapSheetLeadTile` pinta
-   `DrivingRadarHalo` tras el pictograma, exactamente como la fila de identidad del chip.
-2. La palabra de fase del eyebrow late con `rememberDrivingStatePulse()`. Ojo: hoy el eyebrow es UN
-   `Text` con `overlineHighlight` para teñir el nombre; el pulso hay que aplicarlo sólo al tramo de
-   la fase, así que probablemente exija que `PapListItem` acepte alfa por tramo — o partir el
-   eyebrow en dos spans de `AnnotatedString` con alfas distintas.
+1. `PapSheetLead.Vehicle` gana **`drivingHaloColor: Color? = null`** → `PapSheetLeadTile` pinta
+   `DrivingRadarHalo` tras el pictograma, exactamente como la fila de identidad del chip y con la
+   misma proporción glifo↔halo (38 dp sobre tile de 46). No es un `isDriving: Boolean`: el tile
+   necesitaría entonces re-derivar el color del método, y el doctrina exige **un solo resolver**
+   (`vehicleIdentityColor`), que ya se ejecuta en el call site para el highlight del eyebrow. Pasar
+   el color resuelto dice a la vez "está vivo" y "de qué color", sin duplicar la regla.
+2. La palabra de fase del eyebrow late con `rememberDrivingStatePulse()`.
 
-Coste real: toca la API de `PapSheet`, que usan browse, parking seleccionado, spot seleccionado,
-add-parking, add-spot y zona. Por eso NO entró en el ticket del glifo.
+**Corrección al plan original**: se estimó que (2) exigiría alfa por tramo en `PapListItem` o
+partir el eyebrow en dos spans. **No hace falta nada de eso.** El eyebrow ya pinta el nombre con un
+span de color OPACO (`overlineHighlightColor`) sobre un color base (`overlineColor`); basta con
+aplicar el pulso al **color base** y el span del nombre lo sobrescribe. El resultado es justo el
+pedido: laten "· EN RUTA" / "· APARCANDO…", el nombre no parpadea. Cero cambios en `PapListItem`.
+
+Coste real, ya medido: **una** propiedad nueva con default en `PapSheetLead.Vehicle` y dos líneas
+en `BrowsePeek`. Los otros 3 call sites de `Vehicle` (`AddingParkingPeek`, `ParkingPeek`, y la rama
+*aparcado* del propio `BrowsePeek`) se quedan con el default → siguen quietos.
 
 ## Criterio de éxito
 
@@ -48,7 +56,22 @@ add-parking, add-spot y zona. Por eso NO entró en el ticket del glifo.
 - Variante en la galería mock para el peek en ruta (ya existe "Peek · en ruta gana al aparcado" →
   sirve de banco de pruebas).
 
-## Consumidores a auditar cuando se haga
+## Consumidores auditados
 
-Todos los `PapSheet(...)` con `lead = PapSheetLead.Vehicle(...)`: `BrowsePeek` (rama driving y rama
-parked), y las hojas de parking seleccionado / edit parking. Sólo la rama driving debe animarse.
+`grep "PapSheetLead.Vehicle("` → 4 call sites:
+
+| Call site | Estado | Veredicto |
+|---|---|---|
+| `BrowsePeek` rama **driving** | viaje en curso | **cerrado** — recibe `drivingHaloColor` + pulso |
+| `BrowsePeek` rama **parked** | coche aparcado | **exento** — default null, sigue quieto |
+| `ParkingPeek` | parking seleccionado | **exento** — default null |
+| `AddingParkingPeek` | marcando plaza | **exento** — default null |
+
+## Verificación
+
+- `compileProdDebugKotlinAndroid` + `compileMockDebugKotlinAndroid` ✅
+- Altura del header intacta: el halo vive DENTRO del `Box` del glifo (38 dp), el tile sigue midiendo
+  46 dp y `papSheetHeaderReservedHeight()` no cambia → el divisor del peek no se mueve.
+  [BUG-PEEK-DIVIDER-ALIGN]
+- Banco de pruebas: galería mock `Peek · en ruta gana al aparcado` (ya existía) + preview nueva
+  `HomePeekHandle: en ruta (halo + pulso, oscuro)`.

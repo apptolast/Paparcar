@@ -30,6 +30,7 @@ import io.apptolast.paparcar.presentation.home.sections.sheet.components.PapShee
 import io.apptolast.paparcar.presentation.util.compactRelativeTimeText
 import io.apptolast.paparcar.presentation.util.distanceMeters
 import io.apptolast.paparcar.presentation.util.distanceString
+import io.apptolast.paparcar.ui.components.rememberDrivingStatePulse
 import io.apptolast.paparcar.ui.theme.VehicleWatch
 import io.apptolast.paparcar.ui.theme.vehicleIdentityColor
 import io.apptolast.paparcar.ui.theme.watch
@@ -95,19 +96,27 @@ internal fun BrowsePeek(
             listOfNotNull(cameraInfo?.address?.city, cameraInfo?.address?.region)
                 .joinToString(", ").takeIf { it.isNotEmpty() }
         }
+        val identity = vehicleIdentityColor(drivingVehicle?.monitoringStatus()?.watch() ?: VehicleWatch.Off)
         PapSheet(
             lead = PapSheetLead.Vehicle(
                 carbody = drivingVehicle?.carbodyType,
                 size = drivingVehicle?.sizeCategory,
                 color = drivingVehicle?.color,
                 loading = drivingVehicle == null,
+                // The trip is live, so the tile breathes — the same halo the vehicle chip shows one
+                // surface below. Without it the same trip looked alive in the chip and dead here.
+                // [UI-PEEK-DRIVING-HAS-NO-MOTION-001]
+                drivingHaloColor = identity,
             ),
             eyebrow = stringResource(Res.string.home_peek_vehicle_status, vehicleName, phaseWord),
             // Only the NAME wears the identity colour (watch method); the phase word ("EN RUTA" /
-            // "APARCANDO…") is state and stays neutral. [UI-COLOR-DOCTRINE-001]
-            eyebrowColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            // "APARCANDO…") is state and stays neutral — and, being state in motion, it BREATHES.
+            // The pulse rides the base eyebrow colour, so it reaches the phase words while the
+            // name's own span keeps its opaque identity colour: no new API, and the vehicle never
+            // blinks. [UI-COLOR-DOCTRINE-001] [UI-PEEK-DRIVING-HAS-NO-MOTION-001]
+            eyebrowColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = rememberDrivingStatePulse()),
             eyebrowHighlight = vehicleName,
-            eyebrowHighlightColor = vehicleIdentityColor(drivingVehicle?.monitoringStatus()?.watch() ?: VehicleWatch.Off),
+            eyebrowHighlightColor = identity,
             title = title,
             subtitle = secondaryLine,
             // No free-spots pill in the collapsed peek: the count already reads once the sheet is
