@@ -182,6 +182,7 @@ internal fun HomePeekHandle(
                         parkingVehicle = parking?.let { p -> slice.vehicles.firstOrNull { it.id == p.vehicleId } },
                         drivingMeta = slice.drivingMeta,
                         drivingVehicle = slice.drivingMeta?.let { m -> slice.vehicles.firstOrNull { it.id == m.vehicleId } },
+                        isAwaitingAnswer = slice.isAwaitingAnswer, // [DET-ASK-STATE-001]
                         cameraInfo = slice.cameraAddressAndPlace,
                         userGpsPoint = slice.userGpsPoint,
                         freeCount = slice.freeCount,

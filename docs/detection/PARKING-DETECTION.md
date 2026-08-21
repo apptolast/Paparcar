@@ -3310,3 +3310,93 @@ with **no default** — a default would quietly resurrect the anonymous prompt t
 
 1 322 tests green (1 312 + 10): one per cause, the tie-break, key uniqueness, and DTO parity in both
 directions. Spec: `docs/backlog/det-prompt-states-its-reason-001.md`.
+
+### DET-ASK-STATE-001 — the question is app STATE, not just a notification (2026-08-21)
+
+**User report.** Field 2026-07-25/26: the prompt at 00:35 and the nudge at 00:50 existed only as
+system notifications. The user opened the app inside the 15-minute response window and Home told
+them "following your trip" — the one thing they could do was invisible, so the window timed out and
+the verdict degraded. Restated as a design note the same day: *"it should belong to the same flow of
+states"*.
+
+**Root cause.** Three detection surfaces arbitrated in three different places. `DetectionUiState`
+had its precedence in `resolveDetectionStory`; the mark-parking nudge was arbitrated by an `if`
+inside the composable, i.e. OUTSIDE the very precedence that function's doc declares; and the prompt
+had no in-app surface at all — it lived as `ConfirmationPhase.Notified` inside the coordinator plus
+a tray notification. Doctrine says "when in doubt, ASK". Asking through a channel the user is not
+looking at is not asking.
+
+**Fix — the channel was already a single slot; nobody had read it that way.** The prompt lives on
+`PARKING_CONFIRMATION_NOTIFICATION_ID`, and that id admits exactly two verbs: `showParkingConfirmation`
+opens the question, and anything else on it (`dismiss`, or the `showParkingSavedConfirm` morph into
+"parked + revert") closes it. So the window is open **iff the last operation on that channel was the
+prompt post**. Persisting that fact in the notification adapter — the same choke point where
+[DET-NUDGE-PERSIST-001] persists the nudge — makes three sites carry the whole lifecycle, and the
+three post sites, eleven `dismiss` sites and one morph site converge for free. **The coordinator was
+not touched.**
+
+The spec written in July proposed the opposite: a `promptWindow` StateFlow on `DetectionRuntime`,
+signalled from the coordinator, opened in the four lanes that log `PROMPT_SHOWN` and closed in five
+places by hand. That is a list to keep in sync; this is an invariant. It was discarded on
+implementation and the reasoning is recorded in the ticket.
+
+**Getting rid of the notification is not an answer.** Two ways of making the tray card disappear
+reach no code of ours, deliberately: swiping it (there is no `setDeleteIntent` on this channel) and
+tapping it (`setAutoCancel(true)` removes it while the tap opens the app). In both the slot stays
+written and the row keeps asking — and the tap case is the ticket's MAIN path: the user lands in
+Home with the question still owed, which on 2026-07-25 is exactly what did not happen. A future
+delete-intent that cleared the window would read as tidy-up and would delete the feature; a Konsist
+guardrail now forbids it. A process kill mid-window behaves the same way and is equally correct, the
+notification having survived the kill with working buttons.
+
+**The only close without an answer is the deadline.** Visibility is a pure function,
+`isPromptWindowOpen(window, now, timeoutMs)`, with `timeoutMs = confirmationResponseTimeoutMs` — the
+prompt's OWN deadline, not a second number. Past it the coordinator has already run
+`evaluateUnattendedParkingSave` and emitted its verdict (an unattended save at low reliability, or a
+degrade to the mark-parking nudge — which then takes over the same row as `PendingAsk`), so the row
+would be offering an answer nobody is listening for. A negative age (clock moved backwards) reads
+CLOSED, the same distrust of the device clock the evaluators apply. No ticker is needed: the
+un-signalled cases happen while the app is not in the foreground, so testing the clock as the state
+re-emits is enough.
+
+**Precedence back in one place.** `resolveDetectionStory` gains `AwaitingAnswer` and `PendingAsk`,
+and the composable's `if` is deleted. The chain is BlockedCore → AwaitingAnswer → PendingAsk → the
+rest: a CORE block still wins (with location off neither answer can be acted on), then the two
+things the app is WAITING ON THE USER for outrank everything it merely wants to TELL them, and a
+live question with a deadline outranks a deadline-less one. `DetectionReadiness` was deliberately
+NOT extended — a pending ask is not a readiness, it is an action owed on a session, which is why
+the nudge never lived there either.
+
+**Answering in-app is the same event.** The row's two buttons go through
+`ManualParkingDetection.answerPrompt(parked)` → `ACTION_PARKING_CONFIRMED` / `ACTION_PARKING_DENIED`
+→ the intake [DET-INTAKE-001] → `onUserConfirmedParking()` / `onUserDeniedParking()`. Those hooks
+already dismiss the notification, so answering in the app closes the tray card AND the durable
+window with no extra line, and answering twice is idempotent. Consequence accepted on purpose: the
+two surfaces are **indistinguishable in telemetry**, because they are the same verdict from the same
+authority. A field test proves the in-app path by never touching the shade and watching the tray
+card morph on its own.
+
+**No new `detectionPath`.** Nothing new confirms a parking here; an existing verdict merely became
+reachable from a second surface. The pin's provenance is whatever the answered lane already stamps.
+
+**The sheet opens itself, once per question.** A pending question animates the sheet to the same
+anchor a tap opens it to, so the row — the first item — is fully on screen; leaving the user to
+discover it and drag would be the same "we asked where you were not looking" the ticket exists to
+end. The effect is keyed on the question's own `shownAtMs`, not on a boolean: dragging the sheet
+back down must STICK, because postponing is a legitimate answer to something with fifteen minutes on
+it, and a re-firing auto-open would trap the user under a row they already dismissed. In pin modes
+the geometry caps that anchor at peek, so it degrades to a no-op instead of hijacking them.
+
+**The closed sheet keeps its own voice.** The peek's phase eyebrow gains a third word: with a
+question open it reads "¿Has aparcado?" instead of "APARCANDO…", which at that exact moment reads as
+"sit back, I'm working". The answer stays one drag away in the expanded row — the peek says there IS
+something to answer, it does not grow a second pair of buttons. `AwaitingAnswer` is also the only
+story rendered while a spot is selected: the rest stay hidden so they never shift the spot-scroll
+index, but it is the only one with a deadline.
+
+1 355 tests green (1 322 + 33): the expiry verdict including the swipe, backwards-clock and
+process-death cases; the full precedence table, including the nudge rule that had never been tested
+because it lived in a composable; the two answers not collapsing into one command; and a Konsist
+guardrail asserting that every function posting on the confirmation channel also moves the window,
+and that nothing outside the adapters cancels a notification directly. Spec:
+`docs/backlog/det-ask-state-001.md`.

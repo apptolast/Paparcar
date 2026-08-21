@@ -1,6 +1,7 @@
 package io.apptolast.paparcar.fakes
 
 import io.apptolast.paparcar.domain.detection.PendingParkNudge
+import io.apptolast.paparcar.domain.detection.PendingPromptWindow
 import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.preferences.ThemeMode
 import kotlinx.coroutines.flow.Flow
@@ -56,6 +57,12 @@ class FakeAppPreferences(
     override fun observePendingParkNudge(): Flow<PendingParkNudge?> = pendingParkNudge
     override fun setPendingParkNudge(nudge: PendingParkNudge) { pendingParkNudge.value = nudge }
     override fun clearPendingParkNudge() { pendingParkNudge.value = null }
+
+    // [DET-ASK-STATE-001]
+    val pendingPromptWindow = MutableStateFlow<PendingPromptWindow?>(null)
+    override fun observePendingPromptWindow(): Flow<PendingPromptWindow?> = pendingPromptWindow
+    override fun setPendingPromptWindow(window: PendingPromptWindow) { pendingPromptWindow.value = window }
+    override fun clearPendingPromptWindow() { pendingPromptWindow.value = null }
 
     private var _notifyParkingDetected = initialNotifyParking
     override val notifyParkingDetected: Boolean get() = _notifyParkingDetected

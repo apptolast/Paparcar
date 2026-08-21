@@ -48,7 +48,7 @@ val presentationModule = module {
         HomeViewModel(
             get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(),
             get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(),
-            get(), get(), get(), get(), get(),
+            get(), get(), get(), get(), get(), get(),
         )
     }
     viewModelOf(::ParkingLocationViewModel)

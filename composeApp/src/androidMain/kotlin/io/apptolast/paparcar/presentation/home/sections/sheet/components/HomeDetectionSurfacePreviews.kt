@@ -20,6 +20,11 @@ import io.apptolast.paparcar.ui.theme.PaparcarTheme
 // [UX-DETECTION-STORY-001]
 private val stories = listOf(
     "BlockedCore" to DetectionStory.BlockedCore,
+    // [DET-ASK-STATE-001] The open question, named and generic — both wordings ship.
+    "AwaitingAnswer · vehicle" to DetectionStory.AwaitingAnswer("Škoda Kamiq"),
+    "AwaitingAnswer · generic" to DetectionStory.AwaitingAnswer(null),
+    // [DET-NUDGE-PERSIST-001] Pending "where did you leave your car?" row.
+    "PendingAsk" to DetectionStory.PendingAsk,
     "Inactive" to DetectionStory.Inactive,
     "NoVehicle" to DetectionStory.NoVehicle,
     "AwaitingFirstPark" to DetectionStory.AwaitingFirstPark,
@@ -58,17 +63,6 @@ private fun Gallery() {
                 allowDrivingDetection = true, // preview shows the full two-CTA cold-start layout
             )
         }
-        // [DET-NUDGE-PERSIST-001] Pending "where did you leave your car?" row.
-        Text("ParkNudge", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        HomeDetectionSurface(
-            story = DetectionStory.Hidden,
-            onAddVehicle = {},
-            onOpenPermissions = {},
-            onMarkSpot = {},
-            onStartDrivingDetection = {},
-            onActivateDetection = {},
-            showParkNudge = true,
-        )
     }
 }
 

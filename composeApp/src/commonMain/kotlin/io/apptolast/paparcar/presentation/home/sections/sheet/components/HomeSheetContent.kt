@@ -97,12 +97,17 @@ internal fun LazyListScope.homeSheetItems(
     // ── 0. Detection story surface — under the address header, above vehicles.
     // The ONE voice for "what is detection doing right now": loud action rows + discreet happy
     // lines, resolved by a single testable projection. [UX-DETECTION-STORY-001]
-    // Browse-only (hidden while a spot is selected) so it never shifts the spot-scroll index.
-    // Also hosts the "where did you leave your car?" row when a nudge is pending. [DET-NUDGE-PERSIST-001]
+    // Browse-only (hidden while a spot is selected) so it never shifts the spot-scroll index — with
+    // ONE exception: the live "did you park?" question, the only story with a deadline. Losing it
+    // behind a tapped spot is exactly the invisibility this ticket fixes. [DET-ASK-STATE-001]
+    // Both pending questions (prompt and nudge) are resolved by the projection, not arbitrated here.
     val detectionStory = resolveDetectionStory(
         slice.detectionUiState, slice.drivingMeta, vehicleCards, slice.parkedWatchBadge,
+        promptWindow = slice.promptWindow,
+        showParkNudge = slice.showParkNudge,
     )
-    if ((detectionStory != DetectionStory.Hidden || slice.showParkNudge) && !isSpotSelected) {
+    val isLiveQuestion = detectionStory is DetectionStory.AwaitingAnswer
+    if (detectionStory != DetectionStory.Hidden && (!isSpotSelected || isLiveQuestion)) {
         item("detection_surface") {
             // The car both cold-start CTAs are about: the active vehicle, or the first if none is
             // flagged. "Mark spot" parks it; "I'm driving" declares it active + arms. [VEH-ACTIVE-FENCE-001]
@@ -132,7 +137,9 @@ internal fun LazyListScope.homeSheetItems(
                 // Interrupted watch → rebuild the watcher itself. [DET-WATCH-REACTIVATE-001]
                 onResumeWatch = { onIntent(HomeIntent.ResumeWatch) },
                 allowDrivingDetection = true, // show both cold-start CTAs (mark spot + I'm driving)
-                showParkNudge = slice.showParkNudge,
+                // [DET-ASK-STATE-001] The same two commands the notification's buttons send.
+                onAnswerParked = { onIntent(HomeIntent.AnswerParkingPrompt(parked = true)) },
+                onAnswerStillDriving = { onIntent(HomeIntent.AnswerParkingPrompt(parked = false)) },
                 onMarkNudgeSpot = {
                     // Same promise as the notification's "Marcar mi plaza": straight into
                     // AddingParking for the nudged vehicle. [DET-NUDGE-PERSIST-001] The row only

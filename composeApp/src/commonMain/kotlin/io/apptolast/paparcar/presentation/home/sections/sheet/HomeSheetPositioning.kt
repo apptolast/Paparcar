@@ -227,6 +227,13 @@ internal fun SheetTransitionEffects(
     isParkingSelected: Boolean,
     spotListExpanded: Boolean,
     navProgressState: MutableFloatState,
+    /**
+     * [DET-ASK-STATE-001] Identity of the open "did you park?" question (its post timestamp), or
+     * null when there is none. Used as the KEY of the auto-open effect, not as a boolean: the sheet
+     * opens once per QUESTION, so dragging it back down does not spring it open again, and a second
+     * question later still gets its own opening.
+     */
+    promptShownAtMs: Long? = null,
 ) {
     val peekOffsetPx = positioning.peekOffsetPx
     val peekSnapTolerancePx = with(LocalDensity.current) { PEEK_LAYOUT_SNAP_TOLERANCE.toPx() }
@@ -309,6 +316,25 @@ internal fun SheetTransitionEffects(
         } else if (!sheetOffsetPx.isRunning && sheetOffsetPx.value >= peekOffsetPx) {
             sheetOffsetPx.snapTo(peekOffsetPx)
             restingPeekAnchor = peekOffsetPx
+        }
+    }
+
+    // [DET-ASK-STATE-001] A pending question opens the sheet by itself, to the same anchor a tap
+    // opens it to — the row is the first item, so at this anchor it is fully on screen with room to
+    // spare, and it is a REAL anchor, so the sheet still drags and snaps normally afterwards.
+    //
+    // Doing it here rather than leaving it to the peek eyebrow: the answer is the one thing the app
+    // needs and it has a deadline, so making the user discover it and drag is the same
+    // "we asked somewhere you weren't looking" that the ticket exists to end.
+    //
+    // Keyed by the question's OWN timestamp, so it fires once per question. Dragging the sheet back
+    // down must stick — an auto-open that re-fires would trap the user under a row they already
+    // chose to postpone, and postponing is a legitimate answer to a question with 15 minutes on it.
+    // In pin modes / with an item selected the geometry caps `expandedOffsetPx` at peek, so this
+    // resolves to a no-op instead of hijacking those surfaces.
+    LaunchedEffect(promptShownAtMs) {
+        if (promptShownAtMs != null) {
+            sheetOffsetPx.animateTo(positioning.expandedOffsetPx, SheetSnapSpec)
         }
     }
 

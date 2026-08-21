@@ -1,6 +1,7 @@
 package io.apptolast.paparcar.presentation.home.model
 
 import io.apptolast.paparcar.domain.detection.DetectionPhase
+import io.apptolast.paparcar.domain.detection.PendingPromptWindow
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.Vehicle
@@ -190,4 +191,88 @@ class DetectionStoryTest {
             resolveDetectionStory(DetectionUiState.Silent, null, listOf(activeCard)),
         )
     }
+
+    // ── The two pending questions. [DET-ASK-STATE-001] ───────────────────────
+
+    @Test
+    fun should_ask_the_open_question_over_the_live_trip() {
+        // The field bug: with a prompt posted, Home narrated "following your trip" and the one
+        // thing the user could do was invisible.
+        val story = resolveDetectionStory(
+            uiState = DetectionUiState.Monitoring,
+            drivingMeta = DrivingMeta(vehicleId = "v-active", phase = DetectionPhase.Candidate),
+            vehicleCards = listOf(activeCard),
+            promptWindow = window("Škoda Kamiq"),
+        )
+        assertEquals(DetectionStory.AwaitingAnswer("Škoda Kamiq"), story)
+    }
+
+    @Test
+    fun should_word_the_question_exactly_as_the_notification_did() {
+        // The row repeats the name the notification used — including its ABSENCE, which is the
+        // generic wording, not a chance to guess a car the tray never named.
+        assertEquals(
+            DetectionStory.AwaitingAnswer(null),
+            resolveDetectionStory(
+                DetectionUiState.Monitoring, null, listOf(activeCard), promptWindow = window(null),
+            ),
+        )
+    }
+
+    @Test
+    fun should_ask_the_open_question_over_the_pending_nudge() {
+        // A live question with a deadline outranks a deadline-less one.
+        val story = resolveDetectionStory(
+            uiState = DetectionUiState.AwaitingFirstPark,
+            drivingMeta = null,
+            vehicleCards = listOf(activeCard),
+            promptWindow = window("Škoda Kamiq"),
+            showParkNudge = true,
+        )
+        assertEquals(DetectionStory.AwaitingAnswer("Škoda Kamiq"), story)
+    }
+
+    @Test
+    fun should_show_the_nudge_over_every_state_the_app_merely_narrates() {
+        // Was an `if` inside the composable until this ticket — untested, and outside the
+        // precedence this function declares.
+        listOf(
+            DetectionUiState.NoVehicle,
+            DetectionUiState.Inactive,
+            DetectionUiState.AwaitingFirstPark,
+            DetectionUiState.Monitoring,
+            DetectionUiState.Parked,
+            DetectionUiState.ArmedBluetooth,
+            DetectionUiState.Silent,
+        ).forEach { state ->
+            assertEquals(
+                DetectionStory.PendingAsk,
+                resolveDetectionStory(state, null, listOf(activeParkedCard), showParkNudge = true),
+                "the pending nudge must outrank $state",
+            )
+        }
+    }
+
+    @Test
+    fun should_block_on_core_permission_over_both_questions() {
+        // Neither answer can be acted on with location off, and the app barely works.
+        assertEquals(
+            DetectionStory.BlockedCore,
+            resolveDetectionStory(
+                DetectionUiState.BlockedCore, null, listOf(activeCard),
+                promptWindow = window("Škoda Kamiq"), showParkNudge = true,
+            ),
+        )
+    }
+
+    @Test
+    fun should_keep_telling_the_ordinary_story_when_nothing_is_pending() {
+        // Guard against the questions leaking into the happy path: no window, no nudge, no change.
+        assertEquals(
+            DetectionStory.Watching("Skoda Kamiq", isParked = true, viaBluetooth = false),
+            resolveDetectionStory(DetectionUiState.Parked, null, listOf(activeParkedCard)),
+        )
+    }
+
+    private fun window(vehicleName: String?) = PendingPromptWindow(shownAtMs = 1L, vehicleName = vehicleName)
 }

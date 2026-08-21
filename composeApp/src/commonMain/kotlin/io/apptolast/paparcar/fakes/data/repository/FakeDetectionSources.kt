@@ -58,6 +58,18 @@ class FakeManualParkingDetection(
         stopByUserCallCount++
         runtime?.setRunning(false)
     }
+
+    /** [DET-ASK-STATE-001] Mock answer to the "did you park?" row. In the gallery both answers end
+     *  the trip (there is no coordinator to keep following it); the recorded answers let tests
+     *  assert WHICH one the row sent. */
+    override fun answerPrompt(parked: Boolean) {
+        promptAnswers += parked
+        runtime?.setRunning(false)
+    }
+
+    /** Every answer the row has sent, in order — so a test can prove the two buttons are not wired
+     *  to the same command. */
+    val promptAnswers = mutableListOf<Boolean>()
 }
 
 /**

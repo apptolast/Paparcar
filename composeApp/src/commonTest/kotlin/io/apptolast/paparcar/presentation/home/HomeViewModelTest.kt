@@ -64,7 +64,10 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.time.Clock
+import io.apptolast.paparcar.domain.detection.PendingPromptWindow
 import kotlin.test.assertTrue
 
 class HomeViewModelTest {
@@ -169,6 +172,8 @@ class HomeViewModelTest {
             declareActiveVehicle = declareActiveVehicle,
             appPreferences = prefs,
             clearParkNudge = io.apptolast.paparcar.domain.usecase.parking.ClearParkNudgeUseCase(prefs, FakeAppNotificationManager()),
+            // [DET-ASK-STATE-001] Read for one number: how long a posted question stays answerable.
+            detectionConfig = io.apptolast.paparcar.domain.model.ParkingDetectionConfig(),
             // Feature controllers — built with the same fakes the VM uses, mirroring the Koin
             // factories in PresentationModule. [HOMEVM-CTRL-002]
             geocoder = HomeGeocodingController(getAddressAndPlace),
@@ -1097,6 +1102,73 @@ class HomeViewModelTest {
         // opens the quiet period. [DET-MANUAL-CANCEL-001] keeps its own meaning.
         assertEquals(1, manualParkingDetection.stopByUserCallCount)
         assertEquals(0, manualParkingDetection.stopCallCount)
+    }
+
+    // ── The in-app "did you park?" question [DET-ASK-STATE-001] ───────────────
+
+    @Test
+    fun `should_surface_the_open_question_when_a_prompt_was_posted`() = runTest {
+        vm = buildVm()
+
+        prefs.pendingPromptWindow.value = PendingPromptWindow(
+            shownAtMs = Clock.System.now().toEpochMilliseconds(),
+            vehicleName = "Škoda Kamiq",
+        )
+        advanceUntilIdle()
+
+        assertEquals("Škoda Kamiq", vm.state.value.promptWindow?.vehicleName)
+    }
+
+    @Test
+    fun `should_not_surface_a_question_whose_response_window_has_passed`() = runTest {
+        // The swipe / process-death case: the slot is still written because nothing called dismiss.
+        vm = buildVm()
+        val timeout = io.apptolast.paparcar.domain.model.ParkingDetectionConfig().confirmationResponseTimeoutMs
+
+        prefs.pendingPromptWindow.value = PendingPromptWindow(
+            shownAtMs = Clock.System.now().toEpochMilliseconds() - timeout - 1_000L,
+        )
+        advanceUntilIdle()
+
+        assertNull(vm.state.value.promptWindow)
+    }
+
+    @Test
+    fun `should_send_the_confirm_command_when_the_row_answers_yes`() = runTest {
+        vm = buildVm()
+
+        vm.handleIntent(HomeIntent.AnswerParkingPrompt(parked = true))
+        advanceUntilIdle()
+
+        assertEquals(listOf(true), manualParkingDetection.promptAnswers)
+        // The row answers the QUESTION; it never doubles as the trip veto. [DET-STOP-BUTTON-001]
+        assertEquals(0, manualParkingDetection.stopByUserCallCount)
+    }
+
+    @Test
+    fun `should_send_the_deny_command_when_the_row_answers_still_driving`() = runTest {
+        vm = buildVm()
+
+        vm.handleIntent(HomeIntent.AnswerParkingPrompt(parked = false))
+        advanceUntilIdle()
+
+        // The two buttons must not collapse into one command — the whole point of asking.
+        assertEquals(listOf(false), manualParkingDetection.promptAnswers)
+    }
+
+    @Test
+    fun `should_clear_the_question_when_the_notification_channel_closes_it`() = runTest {
+        // Answering in the TRAY dismisses the notification, which clears the slot. The row must
+        // disappear through that same flow — no second bookkeeping path in the app.
+        vm = buildVm()
+        prefs.pendingPromptWindow.value = PendingPromptWindow(Clock.System.now().toEpochMilliseconds())
+        advanceUntilIdle()
+        assertNotNull(vm.state.value.promptWindow)
+
+        prefs.clearPendingPromptWindow()
+        advanceUntilIdle()
+
+        assertNull(vm.state.value.promptWindow)
     }
 
     // ─────────────────────────────────────────────────────────────────────────────

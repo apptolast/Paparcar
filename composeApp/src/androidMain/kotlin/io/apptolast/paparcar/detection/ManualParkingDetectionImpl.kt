@@ -40,4 +40,19 @@ class ManualParkingDetectionImpl(private val context: Context) : ManualParkingDe
         }
         context.startService(intent)
     }
+
+    // [DET-ASK-STATE-001] Answering the question from the Home row fires the very actions the
+    // notification's two buttons fire — one intake, one set of coordinator hooks, one dismissal.
+    // A plain startService is enough: the question only exists while the service is already in the
+    // foreground running the session being asked about.
+    override fun answerPrompt(parked: Boolean) {
+        val intent = Intent(context, CoordinatorDetectionService::class.java).apply {
+            action = if (parked) {
+                CoordinatorDetectionService.ACTION_PARKING_CONFIRMED
+            } else {
+                CoordinatorDetectionService.ACTION_PARKING_DENIED
+            }
+        }
+        context.startService(intent)
+    }
 }

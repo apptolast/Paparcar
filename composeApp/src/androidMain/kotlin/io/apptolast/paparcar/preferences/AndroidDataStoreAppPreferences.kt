@@ -12,6 +12,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import io.apptolast.paparcar.domain.detection.PendingParkNudge
+import io.apptolast.paparcar.domain.detection.PendingPromptWindow
 import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.preferences.ThemeMode
 import kotlinx.coroutines.CoroutineScope
@@ -144,6 +145,42 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
         }
     }
 
+    // ── Open "did you park?" question. [DET-ASK-STATE-001] ───────────────────
+
+    override fun observePendingPromptWindow(): Flow<PendingPromptWindow?> =
+        store.data.map { it.toPendingPromptWindow() }.distinctUntilChanged()
+
+    override fun setPendingPromptWindow(window: PendingPromptWindow) {
+        snapshot = snapshot.toMutablePreferences().apply { writePromptWindow(window) }
+        scope.launch { store.edit { it.writePromptWindow(window) } }
+    }
+
+    override fun clearPendingPromptWindow() {
+        snapshot = snapshot.toMutablePreferences().apply { writePromptWindow(null) }
+        scope.launch { store.edit { it.writePromptWindow(null) } }
+    }
+
+    private fun Preferences.toPendingPromptWindow(): PendingPromptWindow? {
+        val shownAt = this[Keys.PENDING_PROMPT_SHOWN_AT] ?: return null
+        return PendingPromptWindow(
+            shownAtMs = shownAt,
+            vehicleName = this[Keys.PENDING_PROMPT_VEHICLE_NAME],
+        )
+    }
+
+    // Named apart from the nudge's `write` on purpose: two nullable overloads make `write(null)`
+    // ambiguous, and the compiler is right — "clear the slot" has to say WHICH slot.
+    private fun MutablePreferences.writePromptWindow(window: PendingPromptWindow?) {
+        if (window == null) {
+            remove(Keys.PENDING_PROMPT_SHOWN_AT)
+            remove(Keys.PENDING_PROMPT_VEHICLE_NAME)
+        } else {
+            this[Keys.PENDING_PROMPT_SHOWN_AT] = window.shownAtMs
+            window.vehicleName?.let { this[Keys.PENDING_PROMPT_VEHICLE_NAME] = it }
+                ?: remove(Keys.PENDING_PROMPT_VEHICLE_NAME)
+        }
+    }
+
     // ── Notifications ────────────────────────────────────────────────────────
 
     override val notifyParkingDetected: Boolean
@@ -200,6 +237,8 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
         val PENDING_NUDGE_CREATED_AT = longPreferencesKey("pending_park_nudge_created_at")
         val PENDING_NUDGE_SOURCE     = stringPreferencesKey("pending_park_nudge_source")
         val PENDING_NUDGE_VEHICLE_ID = stringPreferencesKey("pending_park_nudge_vehicle_id")
+        val PENDING_PROMPT_SHOWN_AT  = longPreferencesKey("pending_prompt_window_shown_at")
+        val PENDING_PROMPT_VEHICLE_NAME = stringPreferencesKey("pending_prompt_window_vehicle_name")
         val NOTIFY_PARKING_DETECTED = booleanPreferencesKey("notify_parking_detected")
         val NOTIFY_SPOT_FREED       = booleanPreferencesKey("notify_spot_freed")
         val THEME_MODE              = stringPreferencesKey("theme_mode")

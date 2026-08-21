@@ -12,6 +12,7 @@ import io.apptolast.paparcar.MainActivity
 import io.apptolast.paparcar.R
 import io.apptolast.paparcar.detection.receiver.ParkingConfirmationReceiver
 import io.apptolast.paparcar.domain.detection.PendingParkNudge
+import io.apptolast.paparcar.domain.detection.PendingPromptWindow
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.preferences.AppPreferences
 
@@ -38,6 +39,15 @@ class AppNotificationManagerImpl(
     }
 
     override fun showParkingConfirmation(score: Float, vehicleName: String?) {
+        // [DET-ASK-STATE-001] Persist FIRST: this is the ONLY place the question is opened, so the
+        // in-app row is written from the same call that words the tray notification — they cannot
+        // drift. Never let a persist failure suppress the proven notification ask (same rule as the
+        // nudge). The window closes itself in `dismiss` / `showParkingSavedConfirm` below.
+        runCatching {
+            appPreferences.setPendingPromptWindow(
+                PendingPromptWindow(shownAtMs = System.currentTimeMillis(), vehicleName = vehicleName),
+            )
+        }
         val confirmedPi = PendingIntent.getBroadcast(
             context, RC_CONFIRM_YES,
             Intent(ParkingConfirmationReceiver.ACTION_CONFIRMED).apply {
@@ -103,6 +113,10 @@ class AppNotificationManagerImpl(
         latitude: Double,
         longitude: Double,
     ) {
+        // [DET-ASK-STATE-001] This card MORPHS the prompt at the same notification id: whatever the
+        // question was, it is now answered ("parked — revert?"). Closing the window here is what
+        // makes "the last op on this channel decides" true for the morph path too.
+        runCatching { appPreferences.clearPendingPromptWindow() }
         val ackPi = PendingIntent.getBroadcast(
             context, RC_SAVED_ACK,
             Intent(ParkingConfirmationReceiver.ACTION_ACK).apply {
@@ -284,6 +298,14 @@ class AppNotificationManagerImpl(
     }
 
     override fun dismiss(notificationId: Int) {
+        // [DET-ASK-STATE-001] The single close point. Every way the question ends — the user answers
+        // (from the tray OR the Home row: both hooks dismiss), an auto-confirm lands, the response
+        // window times out, the user stops detection, a revert runs, or the session's `finally`
+        // tears down — reaches the notification through here. Fifteen call sites converge for free,
+        // and none of them had to learn about the persisted window.
+        if (notificationId == AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID) {
+            runCatching { appPreferences.clearPendingPromptWindow() }
+        }
         notificationManager.cancel(notificationId)
     }
 

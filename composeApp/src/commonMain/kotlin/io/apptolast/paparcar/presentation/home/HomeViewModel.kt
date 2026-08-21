@@ -19,9 +19,11 @@ import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.repository.ZoneRepository
 import io.apptolast.paparcar.domain.model.DetectionReliabilityLevel
+import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.ParkingReleaseReason
 import io.apptolast.paparcar.domain.usecase.detection.ObserveDetectionReadinessUseCase
 import io.apptolast.paparcar.domain.usecase.detection.ObserveDetectionReliabilityUseCase
+import io.apptolast.paparcar.domain.detection.isPromptWindowOpen
 import io.apptolast.paparcar.domain.detection.shouldShowParkNudgeBanner
 import io.apptolast.paparcar.domain.usecase.parking.ClearParkNudgeUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ObserveParkedVehiclesUseCase
@@ -88,6 +90,10 @@ class HomeViewModel(
     // Resolves the pending "where did you leave your car?" nudge (record + tray notification) —
     // from the banner's explicit dismiss and from the reactive janitor. [DET-NUDGE-PERSIST-001]
     private val clearParkNudge: ClearParkNudgeUseCase,
+    // [DET-ASK-STATE-001] Read for ONE number: how long a posted "did you park?" question stays
+    // answerable. Taken from the detector's own config rather than restated here, so the row can
+    // never outlive the window the coordinator is still honouring.
+    private val detectionConfig: ParkingDetectionConfig,
     private val mapFocusEventBus: MapFocusEventBus,
     private val startAddParkingEventBus: StartAddParkingEventBus,
     private val manualParkingDetection: ManualParkingDetection,
@@ -147,6 +153,30 @@ class HomeViewModel(
         subscribeDetectionReliability()
         subscribeServicePresence()
         subscribeParkNudge()
+        subscribePromptWindow()
+    }
+
+    /**
+     * [DET-ASK-STATE-001] The open "did you park?" question → state.
+     *
+     * The record is written and cleared by the notification adapter at the two verbs of the
+     * confirmation channel, so this only has to decide whether what is stored is still ANSWERABLE.
+     * No ticker: the two closes that never reach us (the user swipes the notification away; the OS
+     * kills the process mid-window) both happen while the app is not in the foreground, so testing
+     * the clock as the state re-emits is enough — and the ordinary closes arrive as a `null` from
+     * the flow itself, which is what makes the row disappear the instant the user answers in the
+     * tray.
+     */
+    private fun subscribePromptWindow() {
+        appPreferences.observePendingPromptWindow()
+            .collectSafely("pendingPromptWindow") { window ->
+                val open = isPromptWindowOpen(
+                    window = window,
+                    nowMs = Clock.System.now().toEpochMilliseconds(),
+                    timeoutMs = detectionConfig.confirmationResponseTimeoutMs,
+                )
+                updateState { copy(promptWindow = window.takeIf { open }) }
+            }
     }
 
     /**
@@ -229,6 +259,7 @@ class HomeViewModel(
 
             // Detection controls
             is HomeIntent.StartDrivingDetection,
+            is HomeIntent.AnswerParkingPrompt,
             is HomeIntent.StopDetection,
             is HomeIntent.EnableAutoDetection,
             is HomeIntent.RequestBatteryExemption,
@@ -613,6 +644,12 @@ class HomeViewModel(
                 manualParkingDetection.stopByUser()
                 sendEffect(HomeEffect.TripDetectionStopped)
             }
+
+            // [DET-ASK-STATE-001] The user answered the question from the Home row. Nothing is
+            // written here: the answer takes the same route as the notification's buttons, and the
+            // coordinator hook behind it dismisses the notification — which is what clears the
+            // durable window and makes the row disappear, through the same flow, for both surfaces.
+            is HomeIntent.AnswerParkingPrompt -> manualParkingDetection.answerPrompt(intent.parked)
 
             // [DET-TOGGLE-001] Single "activate detection" action: flip the Settings flag on AND, if
             // the producer permissions are still missing, open the permissions screen — so one tap

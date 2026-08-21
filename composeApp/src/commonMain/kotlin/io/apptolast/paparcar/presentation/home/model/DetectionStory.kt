@@ -1,6 +1,7 @@
 package io.apptolast.paparcar.presentation.home.model
 
 import io.apptolast.paparcar.domain.detection.DetectionPhase
+import io.apptolast.paparcar.domain.detection.PendingPromptWindow
 import io.apptolast.paparcar.domain.model.VehicleMonitoringStatus
 import io.apptolast.paparcar.domain.model.displayName
 import io.apptolast.paparcar.domain.model.monitoringStatus
@@ -13,16 +14,42 @@ import io.apptolast.paparcar.presentation.home.VehicleCard
  * [UX-DETECTION-STORY-001, cures C6/H5 of UX-PARK-FLOW-001]
  *
  * Exactly one story at a time, resolved by [resolveDetectionStory] with a fixed precedence
- * (urgent → quiet): [BlockedCore] → [NoVehicle] → [Inactive] → [AwaitingFirstPark] → [Driving] →
- * [Watching] → [Hidden]. The four action stories keep the loud accent-bar row; [Driving] and
- * [Watching] render a discreet one-line status (no card) so the happy path finally has a voice.
+ * (urgent → quiet): [BlockedCore] → [AwaitingAnswer] → [PendingAsk] → [NoVehicle] → [Inactive] →
+ * [AwaitingFirstPark] → [Driving] → [Watching] → [Hidden]. The action stories keep the loud
+ * accent-bar row; [Driving] and [Watching] render a discreet one-line status (no card) so the happy
+ * path finally has a voice.
  *
- * The collapsed peek keeps its own phase eyebrow ("EN RUTA"/"APARCANDO…") — that is the voice of
- * the CLOSED sheet; this story is the voice of the OPEN sheet. Same translated words, no drift.
+ * [DET-ASK-STATE-001] The two stories where the app is WAITING ON THE USER — [AwaitingAnswer] and
+ * [PendingAsk] — sit at the top together, and both are resolved HERE. Until this ticket the nudge
+ * was arbitrated by an `if` inside the composable, i.e. outside the very precedence this doc
+ * declares: the chain said one thing and the surface did another, and only one of the two was
+ * testable. One question, one place.
+ *
+ * The collapsed peek keeps its own phase eyebrow ("EN RUTA"/"APARCANDO…"/"¿HAS APARCADO?") — that
+ * is the voice of the CLOSED sheet; this story is the voice of the OPEN sheet. Same translated
+ * words, no drift.
  */
 sealed interface DetectionStory {
     /** CORE permission missing — the app barely works. Loud, error-toned action row. */
     data object BlockedCore : DetectionStory
+
+    /**
+     * [DET-ASK-STATE-001] A "did you park?" question is posted and still answerable. The row asks it
+     * in-app with the same two answers as the tray notification, so a user who opens Paparcar during
+     * the window can resolve it without ever going to the shade — the case that silently timed out
+     * on 2026-07-25.
+     *
+     * [vehicleName] is carried verbatim from the notification that posted it (null = the generic
+     * wording), so the two surfaces can never word the same question differently.
+     */
+    data class AwaitingAnswer(val vehicleName: String?) : DetectionStory
+
+    /**
+     * [DET-NUDGE-PERSIST-001] An unanswered "where did you leave your car?" nudge. A lost parking
+     * record outranks every upsell and every happy line; only a CORE block (where the app barely
+     * works) and a LIVE question with a deadline still beat it.
+     */
+    data object PendingAsk : DetectionStory
 
     /** No vehicle registered — nothing to detect. Action row. */
     data object NoVehicle : DetectionStory
@@ -75,6 +102,12 @@ fun resolveDetectionStory(
     // Null (default) keeps the healthy "Vigilando" line, so callers that don't wire it don't regress.
     // [DET-WATCH-HONEST-001]
     parkedWatchBadge: ParkedWatchBadge? = null,
+    /** [DET-ASK-STATE-001] The open "did you park?" question, or null when there is none to answer.
+     *  Already filtered for expiry by `isPromptWindowOpen` upstream — this function decides
+     *  precedence, not whether a clock has run out. */
+    promptWindow: PendingPromptWindow? = null,
+    /** [DET-NUDGE-PERSIST-001] An unanswered "where did you leave your car?" nudge is pending. */
+    showParkNudge: Boolean = false,
 ): DetectionStory {
     val activeCard = vehicleCards.firstOrNull { it.vehicle.isActive }
 
@@ -104,6 +137,14 @@ fun resolveDetectionStory(
             watchBadge = badge,
         )
     }
+
+    // A CORE block comes first even over the questions: with location off, neither answer can be
+    // acted on and the app barely works. Below it, the two things the app is WAITING ON THE USER for
+    // outrank everything the app wants to TELL the user — and a live question with a deadline
+    // outranks a stale one. [DET-ASK-STATE-001]
+    if (uiState == DetectionUiState.BlockedCore) return DetectionStory.BlockedCore
+    if (promptWindow != null) return DetectionStory.AwaitingAnswer(promptWindow.vehicleName)
+    if (showParkNudge) return DetectionStory.PendingAsk
 
     return when (uiState) {
         DetectionUiState.BlockedCore -> DetectionStory.BlockedCore

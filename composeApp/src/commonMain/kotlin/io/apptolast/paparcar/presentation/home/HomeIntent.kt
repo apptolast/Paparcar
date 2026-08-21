@@ -62,6 +62,15 @@ sealed class HomeIntent {
      */
     data object StopDetection : HomeIntent()
 
+    /**
+     * [DET-ASK-STATE-001] The user answered the in-app "did you park?" row. Sent to the very
+     * commands the tray notification's two buttons send, so answering here and answering there are
+     * the same event as far as detection is concerned.
+     *
+     * @param parked true = "yes, I parked"; false = "no, still driving".
+     */
+    data class AnswerParkingPrompt(val parked: Boolean) : HomeIntent()
+
     /** "Activate detection" from the Home banner — flips the Settings auto-detect flag back on
      *  (independent of permissions). [DET-TOGGLE-001] */
     data object EnableAutoDetection : HomeIntent()

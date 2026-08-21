@@ -48,6 +48,11 @@ import paparcar.composeapp.generated.resources.home_det_awaiting_cta_primary
 import paparcar.composeapp.generated.resources.home_det_awaiting_cta_secondary
 import paparcar.composeapp.generated.resources.home_det_awaiting_sub
 import paparcar.composeapp.generated.resources.home_det_awaiting_title
+import paparcar.composeapp.generated.resources.home_det_ask_cta_no
+import paparcar.composeapp.generated.resources.home_det_ask_cta_yes
+import paparcar.composeapp.generated.resources.home_det_ask_sub
+import paparcar.composeapp.generated.resources.home_det_ask_title
+import paparcar.composeapp.generated.resources.home_det_ask_title_vehicle
 import paparcar.composeapp.generated.resources.home_det_candidate_sub
 import paparcar.composeapp.generated.resources.home_det_candidate_title
 import paparcar.composeapp.generated.resources.home_det_core_cta
@@ -79,11 +84,15 @@ import paparcar.composeapp.generated.resources.home_nudge_title
  * The Home **detection story surface** — the single voice that answers "what is the app doing
  * for me right now". [DET-READY-001h] [UX-DETECTION-STORY-001]
  *
- * Renders the one [DetectionStory] resolved by `resolveDetectionStory`: the four action stories
- * keep the loud accent-bar row (severity-adaptive: error-toned CORE block, calm amber upsells,
- * info-blue cold start); [DetectionStory.Driving] and [DetectionStory.Watching] render a discreet
- * one-line status — the happy path speaks instead of going mute. [DetectionStory.Hidden] renders
- * nothing.
+ * Renders the one [DetectionStory] resolved by `resolveDetectionStory`: the action stories keep the
+ * loud accent-bar row (severity-adaptive: error-toned CORE block, calm amber upsells, brand-green
+ * questions and cold start); [DetectionStory.Driving] and [DetectionStory.Watching] render a
+ * discreet one-line status — the happy path speaks instead of going mute. [DetectionStory.Hidden]
+ * renders nothing.
+ *
+ * This composable renders; it does NOT arbitrate. Which story wins — including the two pending
+ * questions, [DetectionStory.AwaitingAnswer] and [DetectionStory.PendingAsk] — is decided by the
+ * pure projection, so the precedence lives in one testable place. [DET-ASK-STATE-001]
  */
 @Composable
 internal fun HomeDetectionSurface(
@@ -102,14 +111,15 @@ internal fun HomeDetectionSurface(
      * Coordinator arming (DET-G-01b) exists — there is no infra to honour it yet. [DET-READY-001h]
      */
     allowDrivingDetection: Boolean = false,
-    /**
-     * [DET-NUDGE-PERSIST-001] An unanswered "where did you leave your car?" nudge is pending —
-     * render its row INSTEAD of the regular state row (a lost parking record outranks upsells;
-     * only a CORE permission block, where the app barely works, still wins).
-     */
-    showParkNudge: Boolean = false,
+    /** [DET-NUDGE-PERSIST-001] Resolve the pending "where did you leave your car?" nudge. Whether
+     *  the nudge row shows at all is decided by `resolveDetectionStory`, not here. */
     onMarkNudgeSpot: () -> Unit = {},
     onDismissNudge: () -> Unit = {},
+    /** [DET-ASK-STATE-001] The two answers to the "did you park?" row — the same pair of commands
+     *  the tray notification's buttons send. Default no-ops so previews/callers that don't wire them
+     *  don't break. */
+    onAnswerParked: () -> Unit = {},
+    onAnswerStillDriving: () -> Unit = {},
     /** Fire the battery-optimization exemption request from the FRAGILE watch row — the setup whose
      *  problem the exemption actually solves. [DET-WATCH-HONEST-001] [DET-BATTERY-EXEMPTION-NUDGE-001] */
     onRequestBatteryExemption: () -> Unit = {},
@@ -130,8 +140,32 @@ internal fun HomeDetectionSurface(
     val bluetooth = Tone(carBlue, cs.surface, carBlue.copy(alpha = INFO_CONTAINER_ALPHA), carBlue, isError = false)
     fun methodTone(viaBluetooth: Boolean) = if (viaBluetooth) bluetooth else brand
 
-    if (showParkNudge && story != DetectionStory.BlockedCore) {
-        ActionRow(
+    when (story) {
+        // [DET-ASK-STATE-001] The question the app is waiting on, asked in-app with the SAME two
+        // answers as the tray notification. Brand green, not amber: nothing has failed — detection
+        // is doing its job and simply cannot tell on its own, which is the doctrine's asymmetric
+        // failure working as designed. The wording comes from the notification that posted it, so
+        // the two surfaces cannot drift.
+        is DetectionStory.AwaitingAnswer -> ActionRow(
+            tone = brand,
+            // The car, not a parking "P": this row is about the vehicle Paparcar is following, and
+            // the app's whole visual vocabulary for "your car" is the car glyph. A P would be the
+            // first place in the app where parking is drawn as signage.
+            icon = Icons.Rounded.DirectionsCar,
+            title = story.vehicleName
+                ?.let { stringResource(Res.string.home_det_ask_title_vehicle, it) }
+                ?: stringResource(Res.string.home_det_ask_title),
+            subtitle = stringResource(Res.string.home_det_ask_sub),
+            primaryLabel = stringResource(Res.string.home_det_ask_cta_yes),
+            onPrimary = onAnswerParked,
+            secondaryLabel = stringResource(Res.string.home_det_ask_cta_no),
+            onSecondary = onAnswerStillDriving,
+            secondaryIsDecline = true,
+            modifier = modifier,
+        )
+
+        // [DET-NUDGE-PERSIST-001] The older, deadline-less ask: a parking record we could not place.
+        DetectionStory.PendingAsk -> ActionRow(
             tone = amber,
             icon = Icons.Rounded.NotListedLocation,
             title = stringResource(Res.string.home_nudge_title),
@@ -142,10 +176,7 @@ internal fun HomeDetectionSurface(
             onSecondary = onDismissNudge,
             modifier = modifier,
         )
-        return
-    }
 
-    when (story) {
         DetectionStory.NoVehicle -> ActionRow(
             tone = amber,
             icon = Icons.Rounded.DirectionsCar,
@@ -287,6 +318,15 @@ private fun ActionRow(
      *  width, never truncate) — for the alert watch rows whose copy + car name won't fit inline.
      *  [DET-WATCH-HONEST-001] */
     primaryStacksBelow: Boolean = false,
+    /**
+     * The secondary CTA is the NEGATIVE ANSWER to the title's question, not a second action — so it
+     * drops the accent tint and reads as the quiet way out. [DET-ASK-STATE-001]
+     *
+     * Off by default because the other two-CTA row (the cold start: "mark my spot" / "I'm driving")
+     * offers two real actions, and there the shared tone is right — neither is a refusal of the
+     * other. This flag names the SEMANTICS, not the colour: only a yes/no answer sets it.
+     */
+    secondaryIsDecline: Boolean = false,
 ) {
     val cardColor = if (tone.isError) tone.container else MaterialTheme.colorScheme.surfaceContainerHigh
     // Error: a stronger accent-tinted border (urgent). Otherwise the SAME neutral card border the
@@ -376,8 +416,18 @@ private fun ActionRow(
                     ) {
                         CtaPill(
                             label = secondaryLabel,
-                            container = tone.container,
-                            content = tone.onContainer,
+                            // A refusal wears no brand colour: green is action, and declining is
+                            // not the action we are offering. [UI-COLOR-DOCTRINE-001]
+                            container = if (secondaryIsDecline) {
+                                MaterialTheme.colorScheme.surfaceContainerHighest
+                            } else {
+                                tone.container
+                            },
+                            content = if (secondaryIsDecline) {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            } else {
+                                tone.onContainer
+                            },
                             onClick = onSecondary,
                             modifier = Modifier.weight(1f),
                             fillWidth = true,

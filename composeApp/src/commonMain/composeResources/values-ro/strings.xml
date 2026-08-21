@@ -581,6 +581,13 @@
     <string name="home_det_candidate_sub">Confirmăm locul…</string>
     <string name="home_det_awaiting_cta_primary">Marchează locul</string>
     <string name="home_det_awaiting_cta_secondary">Conduc acum</string>
+    <!-- [DET-ASK-STATE-001] -->
+    <string name="home_det_ask_title">Ai parcat?</string>
+    <string name="home_det_ask_title_vehicle">Ai parcat %1$s?</string>
+    <string name="home_det_ask_sub">Salvez locul și îl public când pleci</string>
+    <string name="home_det_ask_cta_yes">Da, am parcat</string>
+    <string name="home_det_ask_cta_no">Încă nu</string>
+    <string name="home_det_ask_eyebrow">Ai parcat?</string>
     <!-- Pending "where did you leave your car?" nudge row. [DET-NUDGE-PERSIST-001] -->
     <string name="home_nudge_title">Unde ți-ai lăsat mașina?</string>
     <string name="home_nudge_sub">Nu am putut stabili locul tău de parcare. Marchează-l ca să nu-l pierzi.</string>

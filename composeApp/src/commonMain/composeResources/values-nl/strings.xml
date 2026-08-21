@@ -577,6 +577,13 @@
     <string name="home_det_candidate_sub">Plek wordt bevestigd…</string>
     <string name="home_det_awaiting_cta_primary">Plek markeren</string>
     <string name="home_det_awaiting_cta_secondary">Ik rij nu</string>
+    <!-- [DET-ASK-STATE-001] -->
+    <string name="home_det_ask_title">Heb je geparkeerd?</string>
+    <string name="home_det_ask_title_vehicle">Heb je je %1$s geparkeerd?</string>
+    <string name="home_det_ask_sub">Ik bewaar de plek en publiceer hem als je wegrijdt</string>
+    <string name="home_det_ask_cta_yes">Ja, geparkeerd</string>
+    <string name="home_det_ask_cta_no">Nog niet</string>
+    <string name="home_det_ask_eyebrow">Heb je geparkeerd?</string>
     <!-- Pending "where did you leave your car?" nudge row. [DET-NUDGE-PERSIST-001] -->
     <string name="home_nudge_title">Waar heb je je auto achtergelaten?</string>
     <string name="home_nudge_sub">We konden je parkeerplek niet vastleggen. Markeer hem zodat je hem niet kwijtraakt.</string>

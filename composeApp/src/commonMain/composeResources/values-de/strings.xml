@@ -577,6 +577,13 @@
     <string name="home_det_candidate_sub">Platz wird bestätigt…</string>
     <string name="home_det_awaiting_cta_primary">Platz markieren</string>
     <string name="home_det_awaiting_cta_secondary">Ich fahre gerade</string>
+    <!-- [DET-ASK-STATE-001] -->
+    <string name="home_det_ask_title">Hast du geparkt?</string>
+    <string name="home_det_ask_title_vehicle">Hast du deinen %1$s geparkt?</string>
+    <string name="home_det_ask_sub">Ich merke mir den Platz und gebe ihn frei, wenn du losfährst</string>
+    <string name="home_det_ask_cta_yes">Ja, geparkt</string>
+    <string name="home_det_ask_cta_no">Noch nicht</string>
+    <string name="home_det_ask_eyebrow">Hast du geparkt?</string>
     <!-- Pending "where did you leave your car?" nudge row. [DET-NUDGE-PERSIST-001] -->
     <string name="home_nudge_title">Wo hast du dein Auto abgestellt?</string>
     <string name="home_nudge_sub">Wir konnten deinen Parkplatz nicht festhalten. Markiere ihn, damit er nicht verloren geht.</string>

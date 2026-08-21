@@ -1,6 +1,7 @@
 package io.apptolast.paparcar.ios.preferences
 
 import io.apptolast.paparcar.domain.detection.PendingParkNudge
+import io.apptolast.paparcar.domain.detection.PendingPromptWindow
 import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.preferences.ThemeMode
 import kotlinx.coroutines.flow.Flow
@@ -18,6 +19,8 @@ private const val KEY_HAS_CONFIRMED_FIRST_PARK = "has_confirmed_first_park"
 private const val KEY_PENDING_NUDGE_CREATED_AT = "pending_park_nudge_created_at"
 private const val KEY_PENDING_NUDGE_SOURCE = "pending_park_nudge_source"
 private const val KEY_PENDING_NUDGE_VEHICLE_ID = "pending_park_nudge_vehicle_id"
+private const val KEY_PENDING_PROMPT_SHOWN_AT = "pending_prompt_window_shown_at"
+private const val KEY_PENDING_PROMPT_VEHICLE_NAME = "pending_prompt_window_vehicle_name"
 private const val KEY_NOTIFY_PARKING_DETECTED = "notify_parking_detected"
 private const val KEY_NOTIFY_SPOT_FREED = "notify_spot_freed"
 private const val KEY_DARK_MODE_ENABLED = "dark_mode_enabled"
@@ -126,6 +129,34 @@ class IosAppPreferences : AppPreferences {
         userDefaults.removeObjectForKey(KEY_PENDING_NUDGE_SOURCE)
         userDefaults.removeObjectForKey(KEY_PENDING_NUDGE_VEHICLE_ID)
         pendingParkNudgeFlow.value = null
+    }
+
+    // ── Open "did you park?" question. [DET-ASK-STATE-001] ───────────────────
+
+    private fun storedPendingPromptWindow(): PendingPromptWindow? {
+        if (userDefaults.objectForKey(KEY_PENDING_PROMPT_SHOWN_AT) == null) return null
+        return PendingPromptWindow(
+            shownAtMs = userDefaults.integerForKey(KEY_PENDING_PROMPT_SHOWN_AT),
+            vehicleName = userDefaults.stringForKey(KEY_PENDING_PROMPT_VEHICLE_NAME),
+        )
+    }
+
+    private val pendingPromptWindowFlow = MutableStateFlow(storedPendingPromptWindow())
+
+    override fun observePendingPromptWindow(): Flow<PendingPromptWindow?> = pendingPromptWindowFlow.asStateFlow()
+
+    override fun setPendingPromptWindow(window: PendingPromptWindow) {
+        userDefaults.setInteger(window.shownAtMs, forKey = KEY_PENDING_PROMPT_SHOWN_AT)
+        window.vehicleName
+            ?.let { userDefaults.setObject(it, forKey = KEY_PENDING_PROMPT_VEHICLE_NAME) }
+            ?: userDefaults.removeObjectForKey(KEY_PENDING_PROMPT_VEHICLE_NAME)
+        pendingPromptWindowFlow.value = window
+    }
+
+    override fun clearPendingPromptWindow() {
+        userDefaults.removeObjectForKey(KEY_PENDING_PROMPT_SHOWN_AT)
+        userDefaults.removeObjectForKey(KEY_PENDING_PROMPT_VEHICLE_NAME)
+        pendingPromptWindowFlow.value = null
     }
 
     override val notifyParkingDetected: Boolean

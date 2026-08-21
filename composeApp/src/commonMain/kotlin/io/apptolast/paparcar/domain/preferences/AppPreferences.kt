@@ -1,6 +1,7 @@
 package io.apptolast.paparcar.domain.preferences
 
 import io.apptolast.paparcar.domain.detection.PendingParkNudge
+import io.apptolast.paparcar.domain.detection.PendingPromptWindow
 import kotlinx.coroutines.flow.Flow
 
 interface AppPreferences {
@@ -41,6 +42,15 @@ interface AppPreferences {
     fun observePendingParkNudge(): Flow<PendingParkNudge?>
     fun setPendingParkNudge(nudge: PendingParkNudge)
     fun clearPendingParkNudge()
+
+    // ── Open "did you park?" question. [DET-ASK-STATE-001] ──
+    /** The prompt currently posted on the confirmation notification channel, or null. Single slot:
+     *  that channel only ever holds one question. Written and cleared by the notification adapter at
+     *  the same two verbs that post and close the notification, so the in-app row and the tray can
+     *  never disagree about whether there is something to answer. */
+    fun observePendingPromptWindow(): Flow<PendingPromptWindow?>
+    fun setPendingPromptWindow(window: PendingPromptWindow)
+    fun clearPendingPromptWindow()
 
     val notifyParkingDetected: Boolean
     fun setNotifyParkingDetected(enabled: Boolean)

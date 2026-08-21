@@ -132,7 +132,7 @@ private val sampleProfile = UserProfile(
 // (detection card / peek / SpotFit) on their own; the viewer hosts them
 // bottom-anchored (Placement.Surface) so they read like Home's sheet.
 @Composable
-private fun detectionSurface(story: DetectionStory, showParkNudge: Boolean = false) {
+private fun detectionSurface(story: DetectionStory) {
     HomeDetectionSurface(
         story = story,
         onAddVehicle = {},
@@ -141,7 +141,6 @@ private fun detectionSurface(story: DetectionStory, showParkNudge: Boolean = fal
         onStartDrivingDetection = {},
         onActivateDetection = {},
         allowDrivingDetection = true,
-        showParkNudge = showParkNudge,
     )
 }
 
@@ -411,7 +410,15 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             // [DET-NUDGE-PERSIST-001] Nudge pendiente "¿dónde has dejado el coche?" — la fila
             // sustituye a la del estado normal hasta que el usuario marca plaza o descarta.
             Variant("Nudge pendiente — ¿dónde has dejado el coche?", Placement.Surface) {
-                detectionSurface(DetectionStory.Hidden, showParkNudge = true)
+                detectionSurface(DetectionStory.PendingAsk)
+            },
+            // [DET-ASK-STATE-001] La pregunta viva: manda sobre todo salvo el bloqueo de ubicación,
+            // y sus dos botones son los mismos comandos que los de la notificación.
+            Variant("¿Has aparcado? — con coche (AwaitingAnswer)", Placement.Surface) {
+                detectionSurface(DetectionStory.AwaitingAnswer("Škoda Kamiq"))
+            },
+            Variant("¿Has aparcado? — sin nombre de coche", Placement.Surface) {
+                detectionSurface(DetectionStory.AwaitingAnswer(null))
             },
         ),
     ),

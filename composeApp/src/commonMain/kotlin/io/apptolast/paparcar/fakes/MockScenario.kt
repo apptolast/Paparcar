@@ -49,6 +49,13 @@ class MockScenario {
      *  [DET-WATCH-HONEST-001] */
     val sentryAlive = MutableStateFlow(true)
 
+    /** [DET-ASK-STATE-001] Opens a "did you park?" question, as if the detector had just posted the
+     *  prompt. Combine with the driving runtime to see what the field case actually looked like:
+     *  a live trip whose sheet asks instead of narrating. The fake preferences serve it as a
+     *  [io.apptolast.paparcar.domain.detection.PendingPromptWindow] stamped NOW, so it is inside
+     *  the response window and the row renders. */
+    val promptOpen = MutableStateFlow(false)
+
     fun reset() {
         session.value = Session.LoggedInWithVehicles
         onboardingCompleted.value = true
@@ -59,5 +66,6 @@ class MockScenario {
         ownParkedSession.value = false
         activeVehicleBluetooth.value = false
         sentryAlive.value = true
+        promptOpen.value = false
     }
 }

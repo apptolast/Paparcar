@@ -29,4 +29,21 @@ interface ManualParkingDetection {
      * automatic nominators may not re-arm (`UserStopQuietPeriod.kt`). No-op on iOS.
      */
     fun stopByUser()
+
+    /**
+     * [DET-ASK-STATE-001] The user answered the "did you park?" question **from the Home row**
+     * instead of the tray notification.
+     *
+     * Deliberately routed through the SAME service actions the notification's buttons fire
+     * (`ACTION_PARKING_CONFIRMED` / `ACTION_PARKING_DENIED`), not through a second path into the
+     * coordinator: the intake serialises both [DET-INTAKE-001], so answering twice — once in the
+     * app, once in the tray — is idempotent, and the coordinator hooks behind them already dismiss
+     * the notification, which is what closes the window everywhere at once.
+     *
+     * A tap with no live session is a stale answer; the service's existing epilogue handles it.
+     * No-op on iOS.
+     *
+     * @param parked true = "yes, I parked", false = "no, still driving".
+     */
+    fun answerPrompt(parked: Boolean)
 }

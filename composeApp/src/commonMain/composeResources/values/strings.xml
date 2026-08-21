@@ -650,6 +650,14 @@
     <string name="home_det_candidate_sub">Confirming the spot…</string>
     <string name="home_det_awaiting_cta_primary">Mark my spot</string>
     <string name="home_det_awaiting_cta_secondary">I am driving</string>
+    <!-- [DET-ASK-STATE-001] The "did you park?" question, asked in-app. Titles mirror the tray
+         notification word for word (notif_confirmation_title*) so the two surfaces never diverge. -->
+    <string name="home_det_ask_title">Did you park?</string>
+    <string name="home_det_ask_title_vehicle">Did you park your %1$s?</string>
+    <string name="home_det_ask_sub">I save the spot and publish it when you leave</string>
+    <string name="home_det_ask_cta_yes">Yes, I parked</string>
+    <string name="home_det_ask_cta_no">Not yet</string>
+    <string name="home_det_ask_eyebrow">Did you park?</string>
     <!-- Pending "where did you leave your car?" nudge row. [DET-NUDGE-PERSIST-001] -->
     <string name="home_nudge_title">Where did you leave your car?</string>
     <string name="home_nudge_sub">We could not pin your parking spot. Mark it so you do not lose it.</string>

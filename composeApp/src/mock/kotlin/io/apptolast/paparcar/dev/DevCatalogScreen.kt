@@ -204,6 +204,13 @@ fun DevCatalogScreen(
             PresetButton("Vigilando por Bluetooth (BT armado)") {
                 scenario.reset(); scenario.activeVehicleBluetooth.value = true; onEnter()
             }
+            // [DET-ASK-STATE-001] Reproduce el caso de campo del 25-07: viaje en curso + prompt
+            // posteado. Antes el sheet decía "siguiendo tu viaje" y la pregunta solo existía en la
+            // bandeja; ahora Home la hace, con sus dos respuestas.
+            PresetButton("¿Has aparcado? — pregunta abierta durante un viaje") {
+                scenario.reset(); scenario.promptOpen.value = true
+                runtime.setRunning(true); onEnter()
+            }
 
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
             SectionTitle("Galería de estados por pantalla")

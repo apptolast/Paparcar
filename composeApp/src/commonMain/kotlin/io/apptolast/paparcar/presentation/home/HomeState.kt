@@ -3,6 +3,7 @@ package io.apptolast.paparcar.presentation.home
 import androidx.compose.runtime.Immutable
 import com.swmansion.kmpmaps.core.MapType
 import io.apptolast.paparcar.domain.detection.PendingParkNudge
+import io.apptolast.paparcar.domain.detection.PendingPromptWindow
 import io.apptolast.paparcar.domain.detection.ServicePresence
 import io.apptolast.paparcar.domain.model.DetectionReadiness
 import io.apptolast.paparcar.domain.model.DrivingPuck
@@ -145,6 +146,16 @@ data class HomeState(
      * not survive being slept through. [DET-NUDGE-PERSIST-001]
      */
     val pendingParkNudge: PendingParkNudge? = null,
+
+    /**
+     * [DET-ASK-STATE-001] The "did you park?" question currently posted and STILL ANSWERABLE, or
+     * null. Already filtered for expiry by the ViewModel (which owns the clock), so every consumer
+     * downstream can read "not null" as "there is something to answer right now".
+     *
+     * Rendered as the top action row so a user who opens the app during the window can resolve it
+     * without going to the notification shade — the case that silently timed out on 2026-07-25.
+     */
+    val promptWindow: PendingPromptWindow? = null,
 
     /**
      * True when automatic detection is ON but its background survival is fragile on this device —

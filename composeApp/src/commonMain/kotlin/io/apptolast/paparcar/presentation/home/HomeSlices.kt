@@ -14,6 +14,7 @@ import io.apptolast.paparcar.domain.model.VehicleMonitoringStatus
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.monitoringStatus
 import io.apptolast.paparcar.domain.model.Zone
+import io.apptolast.paparcar.domain.detection.PendingPromptWindow
 import io.apptolast.paparcar.domain.detection.shouldShowParkNudgeBanner
 import io.apptolast.paparcar.presentation.home.model.DetectionUiState
 import io.apptolast.paparcar.presentation.home.model.ParkedWatchBadge
@@ -100,6 +101,9 @@ data class HomePeekSlice(
     val vehicles: List<Vehicle>,
     val userGpsPoint: GpsPoint?,
     val drivingMeta: DrivingMeta?,
+    /** [DET-ASK-STATE-001] True while a "did you park?" question is open — the CLOSED sheet says so
+     *  in its phase eyebrow, which is the peek's existing voice for the live trip. */
+    val isAwaitingAnswer: Boolean,
     val cameraAddressAndPlace: AddressAndPlace?,
     val isCameraMoving: Boolean,
     val isCameraGeocoding: Boolean,
@@ -148,6 +152,8 @@ data class HomeBrowseListSlice(
     /** Show the "where did you leave your car?" action row — an unanswered nudge with no active
      *  session resolving it. [DET-NUDGE-PERSIST-001] */
     val showParkNudge: Boolean,
+    /** [DET-ASK-STATE-001] The open, still-answerable "did you park?" question, or null. */
+    val promptWindow: PendingPromptWindow?,
     /** Vehicle the pending nudge asks about (pre-targets the mark-spot flow), or null. */
     val parkNudgeVehicleId: String?,
     val hasCorePermissions: Boolean,
@@ -219,6 +225,7 @@ internal fun HomeState.toPeekSlice() = HomePeekSlice(
     vehicles = vehicles,
     userGpsPoint = userGpsPoint,
     drivingMeta = drivingMeta,
+    isAwaitingAnswer = promptWindow != null,
     cameraAddressAndPlace = cameraAddressAndPlace,
     isCameraMoving = isCameraMoving,
     isCameraGeocoding = isCameraGeocoding,
@@ -240,6 +247,7 @@ internal fun HomeState.toBrowseListSlice() = HomeBrowseListSlice(
     parkedWatchBadge = parkedWatchBadge,
     showParkNudge = shouldShowParkNudgeBanner(pendingParkNudge, activeSessions),
     parkNudgeVehicleId = pendingParkNudge?.vehicleId,
+    promptWindow = promptWindow,
     hasCorePermissions = hasCorePermissions,
     isLoading = isLoading,
     sizeFilter = sizeFilter,

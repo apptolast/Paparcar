@@ -453,6 +453,8 @@ private fun HomeContent(
                     isParkingSelected = isParkingSelected,
                     spotListExpanded = spotListExpanded,
                     navProgressState = navProgressState,
+                    // [DET-ASK-STATE-001] The open question opens the sheet on its own, once.
+                    promptShownAtMs = state.promptWindow?.shownAtMs,
                 )
 
                 // Tap-toggle, programmatic expand and nested-scroll collapse — see [SheetMotion].

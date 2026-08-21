@@ -577,6 +577,13 @@
     <string name="home_det_candidate_sub">Confirmation de la place…</string>
     <string name="home_det_awaiting_cta_primary">Marquer ma place</string>
     <string name="home_det_awaiting_cta_secondary">Je conduis</string>
+    <!-- [DET-ASK-STATE-001] -->
+    <string name="home_det_ask_title">Tu t\'es garé ?</string>
+    <string name="home_det_ask_title_vehicle">Tu as garé ta %1$s ?</string>
+    <string name="home_det_ask_sub">J&apos;enregistre la place et je la publie quand tu pars</string>
+    <string name="home_det_ask_cta_yes">Oui, je suis garé</string>
+    <string name="home_det_ask_cta_no">Pas encore</string>
+    <string name="home_det_ask_eyebrow">Tu t\'es garé ?</string>
     <!-- Pending "where did you leave your car?" nudge row. [DET-NUDGE-PERSIST-001] -->
     <string name="home_nudge_title">Où avez-vous laissé votre voiture ?</string>
     <string name="home_nudge_sub">Impossible de fixer votre place. Marquez-la pour ne pas la perdre.</string>

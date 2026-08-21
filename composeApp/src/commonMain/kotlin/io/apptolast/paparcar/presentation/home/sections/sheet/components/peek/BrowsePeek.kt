@@ -41,6 +41,7 @@ import paparcar.composeapp.generated.resources.home_browse_eyebrow_zone
 import paparcar.composeapp.generated.resources.home_browse_hint_swipe_report
 import paparcar.composeapp.generated.resources.home_browse_parked_ago
 import paparcar.composeapp.generated.resources.home_browse_parked_meta
+import paparcar.composeapp.generated.resources.home_det_ask_eyebrow
 import paparcar.composeapp.generated.resources.home_det_monitoring
 import paparcar.composeapp.generated.resources.home_peek_car_parked_label
 import paparcar.composeapp.generated.resources.home_peek_vehicle_parked_label
@@ -66,6 +67,8 @@ internal fun BrowsePeek(
     parkingVehicle: Vehicle?,
     drivingMeta: DrivingMeta?,
     drivingVehicle: Vehicle?,
+    /** [DET-ASK-STATE-001] A "did you park?" question is open — the phase eyebrow asks it. */
+    isAwaitingAnswer: Boolean,
     cameraInfo: AddressAndPlace?,
     userGpsPoint: GpsPoint?,
     freeCount: Int,
@@ -83,9 +86,18 @@ internal fun BrowsePeek(
         val isCandidate = drivingMeta.phase == DetectionPhase.Candidate
         // Reuse the already-translated phase words (same as the old pill / vehicle chip) so the eyebrow
         // stays i18n-complete without new per-locale strings. [DET-STATUS-SHEET-001]
+        //
+        // [DET-ASK-STATE-001] An OPEN question outranks both phase words: while the sheet is closed
+        // this eyebrow is the only voice Home has, and "APARCANDO…" reads as "sit back, I'm working"
+        // at the exact moment the app is waiting on the user. The answer itself lives one drag away,
+        // in the row the expanded sheet renders — the peek's job is to say there IS something to
+        // answer, not to grow a third pair of buttons.
         val phaseWord = stringResource(
-            if (isCandidate) Res.string.home_vehicle_chip_status_candidate
-            else Res.string.home_det_monitoring,
+            when {
+                isAwaitingAnswer -> Res.string.home_det_ask_eyebrow
+                isCandidate -> Res.string.home_vehicle_chip_status_candidate
+                else -> Res.string.home_det_monitoring
+            },
         )
         val title = cameraInfo?.placeInfo?.name
             ?: cameraInfo?.displayLine?.takeIf { it.isNotBlank() }
