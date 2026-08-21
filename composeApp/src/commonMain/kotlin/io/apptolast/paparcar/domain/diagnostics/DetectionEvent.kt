@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.domain.diagnostics
 
+import io.apptolast.paparcar.domain.detection.GeofenceRegistrationFailure
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingReleaseReason
 
@@ -244,6 +245,13 @@ sealed interface DetectionEvent {
         val success: Boolean,
         val radiusMeters: Float? = null,
         override val location: GpsPoint? = null,
+        /** [DET-FENCE-REREGISTER-BY-CAUSE-001 §D] WHO asked for this registration ("cure",
+         *  "janitor") — the two lanes re-register the same fences for different reasons and with
+         *  different safeguards, and a remote trace that cannot tell them apart cannot say which
+         *  one is opening the INSIDE/OUTSIDE blind window. */
+        val source: String? = null,
+        /** [DET-FENCE-REREGISTER-BY-CAUSE-001 §D] Why it failed, when it did. Null on success. */
+        val failure: GeofenceRegistrationFailure? = null,
     ) : DetectionEvent
 
     /** The safety net woke up [gapMs] after its previous heartbeat — far beyond its cadence —

@@ -43,6 +43,14 @@ class GeofenceManagerImpl(
 
         geofencingClient.addGeofences(request, buildPendingIntent()).await()
 
+        // [DET-FENCE-REREGISTER-BY-CAUSE-001 §A] Record it HERE, where every registration path
+        // converges — the initial create on park, the location edit, the vehicle swap, and both
+        // restoration lanes. Recording at the call sites instead would mean four places to forget,
+        // and a fence created seconds ago would keep getting re-registered by the janitor (the
+        // 2026-07-12 Glorieta failure mode, where the blind window opened right before drive-off).
+        // Only reached when addGeofences actually resolved: a failure throws past this line.
+        FenceRegistrationLedger.recordSuccess(geofenceId, System.currentTimeMillis())
+
         registerAuxiliaryFences(geofenceId, latitude, longitude, radiusMeters)
     }
 
@@ -114,12 +122,16 @@ class GeofenceManagerImpl(
     }
 
     override suspend fun removeGeofence(geofenceId: String): Result<Unit> = runCatching {
+        // Forget it FIRST: if the removal throws we would rather re-register a fence that is
+        // already gone than skip one because of a stale ledger entry. [DET-FENCE-REREGISTER-BY-CAUSE-001]
+        FenceRegistrationLedger.forget(geofenceId)
         geofencingClient.removeGeofences(
             listOf(geofenceId, ENTER_ID_PREFIX + geofenceId, WITNESS_ID_PREFIX + geofenceId),
         ).await()
     }
 
     override suspend fun removeAllGeofences(): Result<Unit> = runCatching {
+        FenceRegistrationLedger.reset()
         // removeGeofences(PendingIntent) drops every geofence registered against this app's
         // PendingIntent — no need to enumerate ids (GMS exposes no list API). The same builder
         // resolves to the existing PendingIntent because it matches on action + request code.

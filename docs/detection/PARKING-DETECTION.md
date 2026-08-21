@@ -2899,3 +2899,83 @@ geofence removed) before anything proved a drive, so the car is un-pinned and as
 back. When DET-HANDOFF-NOT-MANUAL-001 §B lands, a human-powered ride should close SILENTLY — the old
 pin was never wrong. No new config constant, no strings, no Dev Catalog surface. 1252 tests green
 (1247 + 5). Spec: `docs/backlog/det-human-powered-early-close-001.md`.
+
+---
+
+### DET-FENCE-REREGISTER-BY-CAUSE-001 §D+§A — un registro de geocerca dice quién lo pidió y por qué falló (pending)
+
+**Field.** 2026-08-20, arranque de la app en el Redmi: `✗FALLÓ el re-registro` en rojo sobre una
+valla demostrablemente viva (su `geofence-enter` llegó 15 s después) — y **sin forma de saber por
+qué**. `GeofenceManagerImpl.createGeofence` envuelve todo en `runCatching`, el llamador leía sólo
+`result.isFailure`, y el `ApiException` de Play Services —que es la respuesta entera— se descartaba.
+El evento remoto llevaba `success: Boolean` y nada más. Incoherente con el propio código: las vallas
+auxiliares logueaban `it.message` y el janitor logueaba el throwable; la única cuyo fallo no se
+explicaba era **la principal, la del EXIT**.
+
+**§D · el motivo deja de perderse.** `GeofenceRegistrationFailure` (commonMain, puro y testeado)
+nombra los códigos de GMS —`NOT_AVAILABLE`, `TOO_MANY_GEOFENCES`, `TOO_MANY_PENDING_INTENTS`— y
+separa `PERMISSION_DENIED` de `UNKNOWN`, porque exigen arreglos opuestos. `DetectionEvent.
+GeofenceRegistration` gana `source` (`cure` / `janitor`) y `failure`, ambos sobre columnas que el DTO
+ya tenía. Y **el janitor emite evento de registro por primera vez**: era invisible en remoto siendo
+el carril que más veces dispara.
+
+**§A · medido, no supuesto.** Un solo arranque de app re-registró la MISMA valla **dos veces con 4,3
+s de diferencia** (`17:00:29.149` / `17:00:33.471`): `PaparcarApp` y el scheduler post-sync encolan
+ambos el janitor, y `ExistingWorkPolicy.REPLACE` no dedupe un trabajo que ya terminó. Como cada
+re-registro CON ÉXITO resetea el estado INSIDE/OUTSIDE de Play Services [DET-ANCHOR-FREEZE-001 F4],
+eso son dos ventanas ciegas por apertura. `FenceRegistrationPolicy` (puro) + `FenceRegistrationLedger`
+(en memoria) se saltan **sólo lo demostrablemente redundante**: lo que este mismo proceso registró
+hace nada. Un proceso nuevo no tiene registro y siempre registra — que es el caso force-stop. La
+anotación va dentro de `GeofenceManagerImpl`, por donde pasan todas las vías, y **sólo en éxito**: un
+intento fallido no dejó valla ni abrió ventana, luego no bloquea al siguiente.
+
+**⛔ Gate por distancia DESCARTADO.** La idea intuitiva —"no re-registres estando junto al coche,
+que es cuando la ventana ciega duele"— es peligrosa: tras un force-stop las vallas están BORRADAS y
+no hay forma de saberlo (no existe API de listado, ni dentro del proceso ni desde `adb`). Saltarse el
+registro por cercanía dejaría el coche **sin valla, permanentemente**, en vez de con una ventana
+ciega que se cierra sola. Un agujero temporal es mejor que uno permanente.
+
+**⛔ Verificado en device:** el boot sintético de Android 15 al salir del estado *stopped* **no nos
+cubre el force-stop**: los dos móviles de campo son API 33. `am force-stop` → `stopped=true`;
+`am start` → ningún `BOOT_COMPLETED`. En API < 35 el pase de arranque de app es la única
+recuperación, así que se queda.
+
+**Deliberadamente pendiente:** §B (curar por causa conocida, retirar el acelerador de 6 h) y el
+intervalo del suelo periódico. El orden del ticket es instrumentar ANTES de retirar red de seguridad,
+y hasta este cambio no había un solo dato. 1265 tests verdes. Spec:
+`docs/backlog/det-fence-reregister-by-cause-001.md`.
+
+---
+
+### DET-FENCE-REREGISTER-BY-CAUSE-001 §B — la cura repara por CAUSA; el reloj sólo cubre lo que no oímos (pending)
+
+**Antes.** El único disparador rápido de la cura era `clearCureThrottle`, que decía "el estado está
+envenenado" **borrando la clave del acelerador**. Una clave ausente significaba a la vez *envenenado*,
+*nunca curado* y *recién instalado*: tres situaciones con respuestas distintas, expresadas como la
+ausencia de un reloj. Todo lo demás colgaba de un intervalo ciego de 6 h.
+
+**Ahora.** `markFenceStatePoisoned` estampa la causa (`cure_poisoned_`, con su propia rama en el
+prune — `cure_registered_` no la casa). `shouldReregisterCure(statePoisoned)` la pone por delante de
+todo, **incluida la guarda de frescura de [DET-CURE-FRESH-001]**: esa guarda descansa en la
+suposición "una valla creada hace minutos está sana", y un EXIT descartado es la prueba de que la
+suposición es falsa para esa valla — y un EXIT falso puede caer dentro de sus 10 min (aparcas, te
+alejas, la deriva dispara, lo rechazamos). El sello lo **consume** la cura que repara: un
+envenenamiento compra una reparación, no un intento.
+
+**El bug original se evapora.** El sello del suelo se escribía ANTES de llamar a `createGeofence` y
+no se revertía, así que una cura fallida se compraba 6 h de silencio: el carril cuyo trabajo es
+restaurar vallas se callaba precisamente por haber fracasado restaurando una. Ahora **el suelo cuenta
+ÉXITOS, no intentos** — un registro que falla no cambió nada en Play Services, no abrió ninguna
+ventana ciega, y no gana ningún turno.
+
+**Lo que NO es causa, y por qué:** el ENTER de la valla gemela. Si la gemela dispara, GMS **vio** la
+vuelta y su estado es INSIDE — es evidencia de que la valla está SANA. Curar ahí abriría la ventana
+ciega para nada, con el usuario junto al coche y plausiblemente a punto de arrancar. Ese carril
+resella el ancla y nada más.
+
+**El intervalo de 6 h se queda donde estaba**, pero con su razón real escrita: no es "no curar
+demasiado" sino **"no nos hemos enterado de nada"** — cubre el único envenenamiento sin señal (GMS se
+come el EXIT andando y luego pierde el ENTER de vuelta por Doze). Es el único número que depende del
+dato, y la telemetría de §D lleva minutos corriendo: moverlo ahora por intuición es lo que este
+ticket existe para dejar de hacer. 1295 tests verdes. Spec:
+`docs/backlog/det-fence-reregister-by-cause-001.md` §B.

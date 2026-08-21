@@ -10,6 +10,11 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import io.apptolast.paparcar.data.datasource.local.room.AppDatabase
+import io.apptolast.paparcar.detection.FenceRegistrationLedger
+import io.apptolast.paparcar.detection.geofenceFailureDetail
+import io.apptolast.paparcar.detection.toGeofenceRegistrationFailure
+import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
+import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
 import io.apptolast.paparcar.domain.detection.VehicleFenceOwnershipPolicy
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.VehicleSize
@@ -42,6 +47,7 @@ class GeofenceJanitorWorker(
     private val db: AppDatabase by inject()
     private val geofenceManager: GeofenceManager by inject()
     private val config: ParkingDetectionConfig by inject()
+    private val detectionEventLogger: DetectionEventLogger by inject()
 
     override suspend fun doWork(): Result {
         PaparcarLogger.d(TAG, "▶ GeofenceJanitorWorker.doWork attempt=$runAttemptCount")
@@ -90,17 +96,48 @@ class GeofenceJanitorWorker(
             // (ConfirmParkingUseCase.geofenceRadiusFor), not the flat default — otherwise a restored
             // geofence drifts to a different exit sensitivity than the original. [SESSION-RESTORE-001]
             val size = session.sizeCategory?.let { runCatching { VehicleSize.valueOf(it) }.getOrNull() }
+            // [DET-FENCE-REREGISTER-BY-CAUSE-001 §A] Skip only what we can PROVE is redundant: a
+            // registration this same process already performed moments ago. Measured 2026-08-20:
+            // `PaparcarApp` and the post-sync scheduler both enqueue this worker on app start, and
+            // it ran twice 4.3 s apart — two INSIDE/OUTSIDE blind windows for one restoration.
+            // A fresh process always registers: that is the force-stop case and we cannot detect it.
+            val nowMs = System.currentTimeMillis()
+            if (!FenceRegistrationLedger.shouldRegister(geofenceId, nowMs, config.fenceRegisterDedupWindowMs)) {
+                PaparcarLogger.d(TAG, "  ⊘ skip re-register geof=$geofenceId — this process registered it moments ago [DET-FENCE-REREGISTER-BY-CAUSE-001]")
+                return@forEach
+            }
             val result = geofenceManager.createGeofence(
                 geofenceId = geofenceId,
                 latitude = session.latitude,
                 longitude = session.longitude,
                 radiusMeters = config.geofenceRadiusFor(size, session.accuracy),
             )
-            if (result.isFailure) {
-                PaparcarLogger.w(TAG, "  ⚠ failed to re-register geofence=$geofenceId", result.exceptionOrNull())
+            val cause = result.exceptionOrNull()
+            if (cause != null) {
+                PaparcarLogger.w(TAG, "  ⚠ failed to re-register geofence=$geofenceId: ${cause.geofenceFailureDetail()}", cause)
                 failures++
             } else {
+                // The ledger entry is written inside GeofenceManagerImpl, where every registration
+                // path converges — a failed attempt never reaches it, which is right: it left no
+                // fence behind and opened no blind window, so it must not block the next attempt.
                 PaparcarLogger.d(TAG, "  ✓ re-registered geofence=$geofenceId")
+            }
+            // [DET-FENCE-REREGISTER-BY-CAUSE-001 §D] This lane was invisible in remote telemetry —
+            // and it is the UNGATED one (no distance check, no fresh-fix check, no throttle), so it
+            // is the likelier source of the INSIDE/OUTSIDE blind window. Instrumenting it is the
+            // whole point of doing §D before touching the policy: we need to see how often it fires
+            // and on whose behalf before deciding what to keep.
+            runCatching {
+                detectionEventLogger.log(
+                    DetectionEvent.GeofenceRegistration(
+                        sessionId = geofenceId,
+                        timestampMs = System.currentTimeMillis(),
+                        success = cause == null,
+                        radiusMeters = config.geofenceRadiusFor(size, session.accuracy),
+                        source = REGISTRATION_SOURCE_JANITOR,
+                        failure = cause?.toGeofenceRegistrationFailure(),
+                    )
+                )
             }
         }
 
@@ -118,6 +155,9 @@ class GeofenceJanitorWorker(
 
     companion object {
         const val TAG = "GeofenceJanitorWorker"
+
+        /** [DET-FENCE-REREGISTER-BY-CAUSE-001 §D] Lane label for the registration event. */
+        internal const val REGISTRATION_SOURCE_JANITOR = "janitor"
         private const val INTERVAL_HOURS = 12L
         private const val MAX_RETRIES = 3
 

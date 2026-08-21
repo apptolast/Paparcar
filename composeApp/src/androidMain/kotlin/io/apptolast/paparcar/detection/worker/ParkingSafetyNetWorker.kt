@@ -22,6 +22,9 @@ import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import io.apptolast.paparcar.BuildConfig
 import io.apptolast.paparcar.detection.ExactHeartbeatScheduler
+import io.apptolast.paparcar.detection.FenceRegistrationLedger
+import io.apptolast.paparcar.detection.geofenceFailureDetail
+import io.apptolast.paparcar.detection.toGeofenceRegistrationFailure
 import io.apptolast.paparcar.detection.SentryResidenceStore
 import io.apptolast.paparcar.detection.SignificantMotionMonitor
 import io.apptolast.paparcar.detection.PendingDetectionStore
@@ -278,10 +281,18 @@ class ParkingSafetyNetWorker(
                     // dozens of times; on 2026-07-11 a cure landed ~40 s before drive-off and the
                     // departure was silent. The GMS registration is therefore throttled: once per
                     // process start (fences are wiped by force-stop/app-update — the case the
-                    // cure exists for), then at most every [ParkingDetectionConfig.cureReregisterMinIntervalMs]
-                    // plus immediately after a dismissed false EXIT poisons the state OUTSIDE
-                    // ([clearCureThrottle]). The ANCHOR write above is NOT throttled — its
-                    // freshness is what authorises far+evidence departures.
+                    // cure exists for), then at most every [ParkingDetectionConfig.cureReregisterMinIntervalMs].
+                    // The ANCHOR write above is NOT throttled — its freshness is what authorises
+                    // far+evidence departures.
+                    //
+                    // [DET-FENCE-REREGISTER-BY-CAUSE-001 §B] What changed: a POISONED stamp is
+                    // evidence, and evidence outranks every clock here. A dismissed false EXIT left
+                    // Play Services believing we are outside a fence it still holds, so that fence
+                    // exists and is useless — curing then is not a risk, it is the job. Everything
+                    // else in this block is the blind floor for the one poisoning we get no signal
+                    // for (GMS ate the walking EXIT and then missed the return ENTER in Doze).
+                    val poisonedAt = prefs.getLong(POISONED_KEY_PREFIX + action.geofenceId, 0L)
+                    val statePoisoned = poisonedAt > 0L
                     val lastCureAt = prefs.getLong(CURE_KEY_PREFIX + action.geofenceId, 0L)
                     val firstCureThisProcess = curedFencesThisProcess.add(action.geofenceId)
                     val mustReregister = evaluateSafetyNetCheck.shouldReregisterCure(
@@ -291,18 +302,57 @@ class ParkingSafetyNetWorker(
                         // [DET-CURE-FRESH-001] Age of the parked session: a fresh fence (manual pin
                         // seconds ago) must not re-register and open the blind window before drive-off.
                         sessionAgeMs = now - session.location.timestamp,
+                        statePoisoned = statePoisoned,
                     )
-                    if (!mustReregister) {
-                        debugLines += "geof=$geofTag: sigues junto al coche (d=${distanceM}m, radio ${action.radiusMeters.toInt()}m) → resello la referencia de pasos; la valla se re-registró hace ${(now - lastCureAt) / 60_000}min, no toca aún"
+                    // …and the shared ledger has the last word on redundancy, so the cure cannot
+                    // re-register a fence the janitor registered seconds ago — unless the state is
+                    // poisoned, in which case "it was registered a minute ago" is no argument: the
+                    // fence being there is exactly what is NOT the problem.
+                    val ledgerAgrees = FenceRegistrationLedger.shouldRegister(
+                        geofenceId = action.geofenceId,
+                        nowMs = now,
+                        dedupWindowMs = config.fenceRegisterDedupWindowMs,
+                        hasKnownCause = statePoisoned,
+                    )
+                    if (!mustReregister || !ledgerAgrees) {
+                        val why = if (!mustReregister) {
+                            "la valla se re-registró hace ${(now - lastCureAt) / 60_000}min, no toca aún"
+                        } else {
+                            "otra vía acaba de registrarla, no repito"
+                        }
+                        debugLines += "geof=$geofTag: sigues junto al coche (d=${distanceM}m, radio ${action.radiusMeters.toInt()}m) → resello la referencia de pasos; $why"
                     } else {
-                        prefs.edit { putLong(CURE_KEY_PREFIX + action.geofenceId, now) }
-                        PaparcarLogger.d(DIAG, "▶ inside fence — re-registering geofence=${action.geofenceId} (cure, steps@anchor=${cumulativeSteps ?: "?"})")
+                        val cureReason = if (statePoisoned) "poisoned ${(now - poisonedAt) / 1000}s ago" else "blind floor"
+                        PaparcarLogger.d(DIAG, "▶ inside fence — re-registering geofence=${action.geofenceId} ($cureReason, steps@anchor=${cumulativeSteps ?: "?"})")
                         val result = geofenceManager.createGeofence(
                             geofenceId = action.geofenceId,
                             latitude = session.location.latitude,
                             longitude = session.location.longitude,
                             radiusMeters = action.radiusMeters,
                         )
+                        // [DET-FENCE-REREGISTER-BY-CAUSE-001 §D] The throwable used to die right
+                        // here: the log said ✗ and the remote event said `false`, and the Play
+                        // Services status code — which is the whole answer — went in the bin.
+                        val failure = result.exceptionOrNull()?.also { e ->
+                            PaparcarLogger.w(DIAG, "  ⚠ cure re-register FAILED geof=${action.geofenceId}: ${e.geofenceFailureDetail()}", e)
+                        }
+                        // [DET-FENCE-REREGISTER-BY-CAUSE-001 §B/§C] The floor counts SUCCESSES, not
+                        // attempts. The stamp used to be written before the call and never rolled
+                        // back, so a failed cure bought itself six hours of silence — the lane whose
+                        // entire job is restoring a fence went quiet precisely because it had just
+                        // failed to restore one. A failed registration changed nothing in Play
+                        // Services: it opened no blind window, so it earns no quiet period.
+                        // The poison stamp is consumed only on success too, for the same reason:
+                        // one poisoning buys one REPAIR, not one attempt.
+                        if (failure == null) {
+                            prefs.edit {
+                                putLong(CURE_KEY_PREFIX + action.geofenceId, now)
+                                if (statePoisoned) remove(POISONED_KEY_PREFIX + action.geofenceId)
+                            }
+                        } else {
+                            // Let the next tick try again instead of inheriting a turn we never took.
+                            curedFencesThisProcess.remove(action.geofenceId)
+                        }
                         runCatching {
                             detectionEventLogger.log(
                                 DetectionEvent.GeofenceRegistration(
@@ -311,10 +361,13 @@ class ParkingSafetyNetWorker(
                                     success = result.isSuccess,
                                     radiusMeters = action.radiusMeters,
                                     location = fix,
+                                    source = REGISTRATION_SOURCE_CURE,
+                                    failure = failure?.toGeofenceRegistrationFailure(),
                                 )
                             )
                         }
-                        debugLines += "geof=$geofTag: sigues junto al coche (d=${distanceM}m, radio ${action.radiusMeters.toInt()}m) → re-registro la valla por si el sistema la borró${if (result.isFailure) " ✗FALLÓ el re-registro" else ""}"
+                        debugLines += "geof=$geofTag: sigues junto al coche (d=${distanceM}m, radio ${action.radiusMeters.toInt()}m) → re-registro la valla por si el sistema la borró" +
+                            (failure?.let { " ✗FALLÓ: ${it.toGeofenceRegistrationFailure().label}" } ?: "")
                     }
                 }
 
@@ -677,6 +730,10 @@ class ParkingSafetyNetWorker(
                 key.startsWith(PROMPT_KEY_PREFIX) -> key.removePrefix(PROMPT_KEY_PREFIX) !in liveGeofenceIds
                 key.startsWith(EXIT_KEY_PREFIX) -> key.removePrefix(EXIT_KEY_PREFIX) !in liveGeofenceIds
                 key.startsWith(CURE_KEY_PREFIX) -> key.removePrefix(CURE_KEY_PREFIX) !in liveGeofenceIds
+                // [DET-FENCE-REREGISTER-BY-CAUSE-001 §B] Its own branch: "cure_poisoned_" is NOT
+                // matched by the "cure_registered_" prefix above, so without this the stamp of a
+                // released session would outlive it forever.
+                key.startsWith(POISONED_KEY_PREFIX) -> key.removePrefix(POISONED_KEY_PREFIX) !in liveGeofenceIds
                 else -> false
             }
         }
@@ -789,22 +846,38 @@ class ParkingSafetyNetWorker(
         /** [DET-ANCHOR-FREEZE-001 F4] Last GMS re-registration per fence — the cure throttle's
          *  disk half (the in-process half is [curedFencesThisProcess]). */
         private const val CURE_KEY_PREFIX = "cure_registered_"
+
+        /** [DET-FENCE-REREGISTER-BY-CAUSE-001 §B] Epoch ms when a dismissed false EXIT left this
+         *  fence's INSIDE/OUTSIDE state poisoned. Written by [markFenceStatePoisoned], consumed by
+         *  the cure that repairs it — a cause, stamped, not a clock deleted. Pruned by its OWN
+         *  branch in [pruneStaleAnchors]: `cure_registered_` does not match it. */
+        private const val POISONED_KEY_PREFIX = "cure_poisoned_"
+
+        /** [DET-FENCE-REREGISTER-BY-CAUSE-001 §D] Which lane asked for a registration, so a
+         *  remote trace can tell the gated cure from the ungated janitor. */
+        internal const val REGISTRATION_SOURCE_CURE = "cure"
         /** Fences already re-registered by THIS process — a process start means force-stop/app
          *  update may have wiped GMS registrations, so the first cure after it always runs. */
         private val curedFencesThisProcess: MutableSet<String> =
             java.util.concurrent.ConcurrentHashMap.newKeySet()
 
         /**
-         * Voids the cure throttle for [geofenceId] so the NEXT tick inside re-registers
-         * immediately. Called when a delivered EXIT is dismissed as false (walking/GPS drift):
-         * that delivery left Play Services' state OUTSIDE — poisoned — and rebuilding it is the
-         * cure's founding purpose (field 2026-07-04, Calle Gavia). [DET-ANCHOR-FREEZE-001 F4]
+         * [DET-FENCE-REREGISTER-BY-CAUSE-001 §B] Records that Play Services' INSIDE/OUTSIDE state
+         * for [geofenceId] is POISONED: a delivered EXIT was judged false (walking / GPS drift), so
+         * GMS now believes the phone is outside a fence it is still holding, and the next real
+         * drive-away will produce nothing at all (field 2026-07-04, Calle Gavia).
+         *
+         * This replaces the old `clearCureThrottle`, which said the same thing by DELETING the
+         * throttle key. That was ambiguous by construction — an absent key means "poisoned" and
+         * "never cured" and "just installed", three situations that deserve different answers — and
+         * it expressed a cause as the absence of a clock. A stamp says it out loud, survives process
+         * death, and is CONSUMED by the cure that acts on it, so one poisoning buys exactly one
+         * re-registration.
          */
-        fun clearCureThrottle(context: Context, geofenceId: String) {
-            curedFencesThisProcess.remove(geofenceId)
+        fun markFenceStatePoisoned(context: Context, geofenceId: String) {
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 .edit()
-                .remove(CURE_KEY_PREFIX + geofenceId)
+                .putLong(POISONED_KEY_PREFIX + geofenceId, System.currentTimeMillis())
                 .apply()
         }
 

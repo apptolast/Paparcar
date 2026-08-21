@@ -44,10 +44,13 @@ class DepartureDetectionWorker(
             DepartureCheckOutcome.ProcessFailedRetry -> Result.retry()
             DepartureCheckOutcome.Dismissed -> {
                 // A delivered EXIT judged false (walking/GPS drift) leaves Play Services' fence
-                // state OUTSIDE — the next real drive-away would be silent. Void the safety-net
-                // cure throttle so its next tick inside re-registers immediately, rebuilding the
-                // state from a fresh fix. [DET-ANCHOR-FREEZE-001 F4]
-                ParkingSafetyNetWorker.clearCureThrottle(applicationContext, geofenceId)
+                // state OUTSIDE — the fence is still registered and the next real drive-away would
+                // be silent. Say so: the cure's next tick inside repairs it immediately, rebuilding
+                // the state from a fresh fix. [DET-ANCHOR-FREEZE-001 F4]
+                // [DET-FENCE-REREGISTER-BY-CAUSE-001 §B] This used to DELETE the cure's throttle
+                // key to say the same thing, which made a cause indistinguishable from "never cured"
+                // and from "freshly installed". Now it stamps the cause itself.
+                ParkingSafetyNetWorker.markFenceStatePoisoned(applicationContext, geofenceId)
                 Result.success()
             }
             DepartureCheckOutcome.Processed -> Result.success()

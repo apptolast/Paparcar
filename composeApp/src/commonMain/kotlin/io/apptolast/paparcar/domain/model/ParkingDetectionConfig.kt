@@ -616,12 +616,29 @@ data class ParkingDetectionConfig(
      *  park degrades to the coordinator/safety-net lanes, never to a stuck service. */
     val btWalkAwayTimeoutMs: Long = 15 * 60_000L,
 
+    /** [DET-FENCE-REREGISTER-BY-CAUSE-001 §A] How long a registration THIS process performed is
+     *  considered to still hold, so a second unconditional pass does not punch another
+     *  INSIDE/OUTSIDE blind window for nothing. Measured on the Oppo 2026-08-20: one app start
+     *  re-registered the same fence twice, 4.3 s apart (`PaparcarApp` + the post-sync scheduler both
+     *  enqueue the janitor; `REPLACE` does not dedupe a run that already finished). 5 min is far
+     *  above any such burst and far below every legitimate cause, so it drops the duplicates without
+     *  ever delaying a real restoration. A known cause (poisoned state) overrides it —
+     *  see [io.apptolast.paparcar.domain.detection.FenceRegistrationPolicy]. */
+    val fenceRegisterDedupWindowMs: Long = 5 * 60_000L,
+
     /** [DET-ANCHOR-FREEZE-001 F4] Minimum interval between OS re-registrations of a live parked
      *  fence by the safety-net cure. Re-registering resets the geofencing engine's inside/outside
      *  state — a blind window where a drive-away loses its EXIT — so it must be rare: the first
-     *  cure per process always runs (force-stop wipes registrations), then this interval. Long
-     *  enough that a parked evening no longer re-opens the window every 15-min tick, short enough
-     *  that a silent OS wipe is cured within the day. */
+     *  cure per process always runs (force-stop wipes registrations), then this interval.
+     *
+     *  [DET-FENCE-REREGISTER-BY-CAUSE-001 §B] Its honest justification is NOT "do not cure too
+     *  often" — the poisonings we can SEE are now repaired on the spot, cause first, no clock
+     *  involved. What is left for this interval is the one poisoning that emits no signal at all:
+     *  Play Services consumes the walking EXIT and then misses the return ENTER in Doze, so neither
+     *  the dismissal nor the twin fence ever fires and nothing tells us the fence went deaf. This is
+     *  the floor under **"we have not heard anything"**, and 6 h is a bet on how often that happens.
+     *  The `GEOFENCE_REGISTRATION` telemetry (§D) is what should settle the number; until there is
+     *  field data it stays where it was, because moving it on intuition is what §B set out to stop. */
     val cureReregisterMinIntervalMs: Long = 6 * 60 * 60 * 1_000L,
     /** [DET-CURE-FRESH-001] A session younger than this never triggers a cure RE-REGISTRATION: a
      *  fence created seconds ago (a manual pin, or a fresh auto-confirm) is healthy, so re-registering
@@ -929,6 +946,9 @@ data class ParkingDetectionConfig(
         }
         require(exitEnterPairWindowMs > 0) {
             "exitEnterPairWindowMs must be > 0, was $exitEnterPairWindowMs"
+        }
+        require(fenceRegisterDedupWindowMs > 0) {
+            "fenceRegisterDedupWindowMs must be > 0, was $fenceRegisterDedupWindowMs"
         }
         require(cureReregisterMinIntervalMs > 0) {
             "cureReregisterMinIntervalMs must be > 0, was $cureReregisterMinIntervalMs"

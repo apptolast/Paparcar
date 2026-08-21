@@ -78,8 +78,11 @@ class PaparcarApp : Application() {
             RegisterActivityTransitionsWorker.enqueueKeep(workManager)
         }
 
-        // Re-register geofences for active sessions every 12h. Geofences have a 24h TTL to
-        // prevent orphan accumulation after process kills; the janitor renews them in time. [GEOF-001]
+        // Restoration pass for the geofences of active sessions. NOT a TTL refresher: fences are
+        // registered NEVER_EXPIRE [GEOF-001], so there is nothing to renew — this periodic is the
+        // FLOOR under the causes we cannot detect (Play Services dropping fences on its own update,
+        // location toggled off and back on). The causes we CAN detect have their own hooks in
+        // BootCompletedReceiver. [DET-FENCE-REREGISTER-BY-CAUSE-001 §A]
         GeofenceJanitorWorker.enqueueKeep(workManager)
         // …and ONE unconditional restore pass right now: Play Services ERASES registered geofences
         // (it does not merely silence them) on force-stop — which is what OEM deep-kills amount

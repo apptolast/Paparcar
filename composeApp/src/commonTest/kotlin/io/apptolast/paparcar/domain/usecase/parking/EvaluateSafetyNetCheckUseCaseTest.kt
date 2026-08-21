@@ -573,6 +573,40 @@ class EvaluateSafetyNetCheckUseCaseTest {
         assertEquals(true, useCase.shouldReregisterCure(alreadyCuredThisProcess = false, lastCureAtMs = 0L, nowMs = nowMs, sessionAgeMs = config.cureSkipFreshSessionMs))
     }
 
+    @Test
+    fun should_cure_immediately_when_the_fence_state_is_known_to_be_poisoned() {
+        // [DET-FENCE-REREGISTER-BY-CAUSE-001 §B] A dismissed false EXIT is EVIDENCE that Play
+        // Services believes we are outside a fence it still holds — the next real drive-away
+        // produces nothing. That outranks the blind floor: waiting hours to repair a fence we KNOW
+        // is deaf is the opposite of what the lane is for.
+        val aged = config.cureSkipFreshSessionMs * 2
+        assertEquals(
+            false,
+            useCase.shouldReregisterCure(alreadyCuredThisProcess = true, lastCureAtMs = nowMs - 1_000L, nowMs = nowMs, sessionAgeMs = aged),
+        )
+        assertEquals(
+            true,
+            useCase.shouldReregisterCure(alreadyCuredThisProcess = true, lastCureAtMs = nowMs - 1_000L, nowMs = nowMs, sessionAgeMs = aged, statePoisoned = true),
+        )
+    }
+
+    @Test
+    fun should_let_a_poisoned_state_beat_the_freshness_guard() {
+        // The freshness guard rests on an ASSUMPTION — "a fence created minutes ago is healthy". A
+        // dismissed EXIT is proof that the assumption is false for this fence, and a false EXIT can
+        // land well inside the 10-min window (park, walk off, drift fires, we reject it). Evidence
+        // beats the assumption it contradicts, or the fence stays deaf for the whole session.
+        val fresh = config.cureSkipFreshSessionMs - 1
+        assertEquals(
+            false,
+            useCase.shouldReregisterCure(alreadyCuredThisProcess = false, lastCureAtMs = 0L, nowMs = nowMs, sessionAgeMs = fresh),
+        )
+        assertEquals(
+            true,
+            useCase.shouldReregisterCure(alreadyCuredThisProcess = false, lastCureAtMs = 0L, nowMs = nowMs, sessionAgeMs = fresh, statePoisoned = true),
+        )
+    }
+
     // ── [DET-ANCHOR-FREEZE-001] Ask-when-blind: the app is OPEN and no proof explains "far" ─
 
     @Test

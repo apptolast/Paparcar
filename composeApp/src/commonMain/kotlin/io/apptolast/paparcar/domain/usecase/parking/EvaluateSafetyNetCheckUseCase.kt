@@ -422,13 +422,36 @@ class EvaluateSafetyNetCheckUseCase(
      * would only open the blind window right when the user is about to drive off (Oppo manual park at
      * the Glorieta, field 2026-07-12). A restart-restored session keeps its original old timestamp, so
      * the janitor's post-restart repair still runs.
+     *
+     * ## [DET-FENCE-REREGISTER-BY-CAUSE-001 §B] Cause first, clock last
+     *
+     * [statePoisoned] is the one thing here that is EVIDENCE rather than a guess: a delivered EXIT
+     * that we judged false left Play Services believing the phone is outside, so the fence still
+     * exists and is useless — the next real drive-away produces nothing. When that is known, it
+     * outranks everything, including the freshness guard: "the fence was created minutes ago so it
+     * must be healthy" is an assumption, and the dismissed EXIT is proof that the assumption is
+     * false. Curing then is not a risk, it is the entire job.
+     *
+     * Everything below it is the BLIND FLOOR, and its honest justification is not "do not cure too
+     * often" — it is **"we have not heard anything"**. There is one poisoning path that emits no
+     * signal at all: GMS consumes the walking EXIT and then misses the return ENTER (Doze), so
+     * neither the dismissal nor the twin fence fires. The floor is the only cover for that case,
+     * and its interval is a bet on how often it happens — a bet the `GEOFENCE_REGISTRATION`
+     * telemetry from §D is meant to settle.
+     *
+     * Note what is deliberately NOT a cause: the return-anchor ENTER firing. If the twin fence
+     * fires, GMS SAW the return and its state is INSIDE — that is evidence the fence is HEALTHY,
+     * so re-registering on it would open the blind window for nothing, right when the user is next
+     * to the car and plausibly about to drive. That lane re-seals the anchor and nothing else.
      */
     fun shouldReregisterCure(
         alreadyCuredThisProcess: Boolean,
         lastCureAtMs: Long,
         nowMs: Long,
         sessionAgeMs: Long,
+        statePoisoned: Boolean = false,
     ): Boolean = when {
+        statePoisoned -> true
         sessionAgeMs < config.cureSkipFreshSessionMs -> false
         else -> !alreadyCuredThisProcess || nowMs - lastCureAtMs >= config.cureReregisterMinIntervalMs
     }

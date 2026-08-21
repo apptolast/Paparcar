@@ -180,7 +180,15 @@ fun DetectionEvent.toDto(): DetectionEventDto {
         is DetectionEvent.Released -> base.copy(published = published, reason = reason.name)
         is DetectionEvent.OrphanCleaned -> base
         is DetectionEvent.SessionSuperseded -> base.copy(distanceMeters = distanceMeters, sessionAgeMs = ageMs)
-        is DetectionEvent.GeofenceRegistration -> base.copy(success = success, radiusMeters = radiusMeters)
+        // [DET-FENCE-REREGISTER-BY-CAUSE-001 §D] The lane rides `source` and the failure reason rides
+        // `reason` — both columns already exist (Sentry and HonestClose/Released use them), so a
+        // registration failure becomes groupable in telemetry with no serializer surface change.
+        is DetectionEvent.GeofenceRegistration -> base.copy(
+            success = success,
+            radiusMeters = radiusMeters,
+            source = source,
+            reason = failure?.label,
+        )
         is DetectionEvent.BackgroundKillSuspected -> base.copy(gapMs = gapMs)
         is DetectionEvent.ForceStopConfirmed -> base
         // [DET-RESIDENT-FGS-001 · F2] Reuses existing columns on purpose (no serializer surface
