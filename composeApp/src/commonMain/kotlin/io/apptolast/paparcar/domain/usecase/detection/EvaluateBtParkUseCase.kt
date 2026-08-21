@@ -24,6 +24,26 @@ sealed interface BtParkVerdict {
 }
 
 /**
+ * What the connect→disconnect engagement with the paired car was SHAPED like.
+ * [DET-BT-DISCONNECT-WITHOUT-RIDE-001]
+ *
+ * A Bluetooth engagement proves the car came within radio range of the phone. That is PRESENCE,
+ * not driving — and the two are only the same thing when the phone was inside the car.
+ */
+sealed interface BtEngagement {
+    /** Long enough to be the end of a trip: the detector may go on to place a pin. */
+    data class Ride(val durationMs: Long) : BtEngagement
+
+    /** Too short to be a trip — the car came into range and left again (parked beside the phone by
+     *  someone else, or simply driven past). Nominates: ask, never place. */
+    data class ProximityOnly(val durationMs: Long) : BtEngagement
+
+    /** No connect on record, so the engagement cannot be sized at all. Treated as doubt, not as
+     *  permission. */
+    data object Unknown : BtEngagement
+}
+
+/**
  * Pure decision core of the Bluetooth detection path. [DET-AUDIT-002 T2/T3]
  *
  * Extracted from [the Android `BluetoothParkingDetector`] so the deterministic-path rules are
@@ -45,6 +65,39 @@ sealed interface BtParkVerdict {
  * Degraded-accuracy fixes can neither confirm nor abort: they are noise either way.
  */
 class EvaluateBtParkUseCase(private val config: ParkingDetectionConfig) {
+
+    /**
+     * Size the engagement that just ended, BEFORE any fix is sampled.
+     * [DET-BT-DISCONNECT-WITHOUT-RIDE-001]
+     *
+     * This is the gate the BT lane never had. Every other confirmation path in the app demands
+     * measured driving; this one demanded only that a paired MAC dropped, and then accepted the
+     * candidate fix *because the user was standing still* — the exact state of someone who has not
+     * driven anywhere. Field 2026-08-21 (Oppo + Kamiq): an 11.5 s engagement, the car brought home
+     * by a family member and switched off next to the phone, produced a 0.85 session with a
+     * geofence whose EXIT then armed the coordinator.
+     *
+     * Deliberately NOT a distance or speed test: at this instant nothing has been measured yet.
+     * Duration is the one thing already on disk (the manifest ACL receiver stamps it across OEM
+     * process kills), and it separates the two shapes cleanly — no key-turn handshake or drive-by
+     * lasts [ParkingDetectionConfig.btMinRideDurationMs], and no real trip lasts less.
+     *
+     * @param connectedAtMs epoch-ms of the matching `ACL_CONNECTED`, or null when none is on record.
+     * @param disconnectedAtMs epoch-ms of the `ACL_DISCONNECTED` being handled.
+     */
+    fun evaluateEngagement(connectedAtMs: Long?, disconnectedAtMs: Long): BtEngagement {
+        if (connectedAtMs == null) return BtEngagement.Unknown
+        val durationMs = disconnectedAtMs - connectedAtMs
+        // A connect stamped in the FUTURE (clock change between the two edges) sizes nothing, and
+        // neither does one so old it can only be a stamp the app missed the replacement for
+        // (OEM force-stop swallowing the CONNECT broadcast).
+        if (durationMs < 0 || durationMs > config.btMaxRideDurationMs) return BtEngagement.Unknown
+        return if (durationMs >= config.btMinRideDurationMs) {
+            BtEngagement.Ride(durationMs)
+        } else {
+            BtEngagement.ProximityOnly(durationMs)
+        }
+    }
 
     /** Classify one sampled fix while hunting for the parked-car candidate position. */
     fun evaluateCandidateFix(fix: GpsPoint): BtParkVerdict = when {

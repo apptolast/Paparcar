@@ -102,6 +102,58 @@ class EvaluateBtParkUseCaseTest {
         assertEquals(BtParkVerdict.KeepWaiting, verdict)
     }
 
+    // ── Engagement sizing [DET-BT-DISCONNECT-WITHOUT-RIDE-001] ────────────────────────────────
+
+    @Test
+    fun should_reportProximityOnly_when_engagementWasTheFieldCase() {
+        // Field 2026-08-21, Oppo + Kamiq: ACL CONNECT 14:08:40.2 → DISCONNECT 14:08:53.9. The car
+        // was brought home by a family member and switched off beside the phone; the lane placed a
+        // 0.85 pin with a geofence off this.
+        val verdict = useCase.evaluateEngagement(connectedAtMs = 0L, disconnectedAtMs = 13_700L)
+        assertEquals(BtEngagement.ProximityOnly(13_700L), verdict)
+    }
+
+    @Test
+    fun should_reportRide_when_engagementReachesTheMinimum() {
+        val verdict = useCase.evaluateEngagement(
+            connectedAtMs = 0L,
+            disconnectedAtMs = config.btMinRideDurationMs,
+        )
+        assertEquals(BtEngagement.Ride(config.btMinRideDurationMs), verdict)
+    }
+
+    @Test
+    fun should_reportProximityOnly_when_engagementIsOneMsShortOfTheMinimum() {
+        val verdict = useCase.evaluateEngagement(
+            connectedAtMs = 0L,
+            disconnectedAtMs = config.btMinRideDurationMs - 1,
+        )
+        assertEquals(BtEngagement.ProximityOnly(config.btMinRideDurationMs - 1), verdict)
+    }
+
+    @Test
+    fun should_reportUnknown_when_noConnectOnRecord() {
+        // Doubt, not permission: an unsized engagement asks instead of placing.
+        assertEquals(BtEngagement.Unknown, useCase.evaluateEngagement(connectedAtMs = null, disconnectedAtMs = 1_000L))
+    }
+
+    @Test
+    fun should_reportUnknown_when_connectStampSitsInTheFuture() {
+        // Clock change between the two edges — a negative duration sizes nothing.
+        assertEquals(BtEngagement.Unknown, useCase.evaluateEngagement(connectedAtMs = 5_000L, disconnectedAtMs = 1_000L))
+    }
+
+    @Test
+    fun should_reportUnknown_when_engagementExceedsTheRideCeiling() {
+        // An OEM force-stop can swallow the CONNECT broadcast; the surviving stale stamp would
+        // otherwise compute a multi-day "ride" and wave the old behaviour straight back in.
+        val verdict = useCase.evaluateEngagement(
+            connectedAtMs = 0L,
+            disconnectedAtMs = config.btMaxRideDurationMs + 1,
+        )
+        assertEquals(BtEngagement.Unknown, verdict)
+    }
+
     private companion object {
         const val BASE_LAT = 36.6024
         const val BASE_LON = -6.2766

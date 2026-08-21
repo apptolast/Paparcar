@@ -638,6 +638,22 @@ data class ParkingDetectionConfig(
      *  BUG-FGS-1xx class). On expiry the detector aborts cleanly with telemetry — a missed BT
      *  park degrades to the coordinator/safety-net lanes, never to a stuck service. */
     val btWalkAwayTimeoutMs: Long = 15 * 60_000L,
+    /** [DET-BT-DISCONNECT-WITHOUT-RIDE-001] Minimum time the paired car must stay CONNECTED for the
+     *  following disconnect to be read as the end of a ride. Below it the engagement is proximity:
+     *  the car came within Bluetooth range of the phone and left again, which proves PRESENCE but
+     *  not that the user drove anything. Field 2026-08-21 (Oppo + Kamiq): an 11.5 s A2DP engagement
+     *  — the car was brought home by a family member and switched off next to the phone — walked
+     *  the whole detector unopposed and confirmed a 0.85 parking session with a geofence. 90 s is
+     *  far above any drive-by or key-turn handshake and far below the shortest real trip, which
+     *  still has to start the engine, move and stop. */
+    val btMinRideDurationMs: Long = 90_000L,
+    /** [DET-BT-DISCONNECT-WITHOUT-RIDE-001] Ceiling above which an engagement is no longer
+     *  believable as a single ride and is treated as unmeasurable instead. The stamp it is
+     *  measured against is written by a manifest receiver, and an OEM force-stop makes the app
+     *  miss broadcasts until something reopens it: a lost CONNECT with a later DISCONNECT would
+     *  otherwise compute a multi-day "ride" and wave through exactly the confirmation this ticket
+     *  closes. 12 h is well past any real trip, so the ceiling only ever catches a stale stamp. */
+    val btMaxRideDurationMs: Long = 12 * 60 * 60 * 1_000L,
 
     /** [DET-FENCE-REREGISTER-BY-CAUSE-001 §A] How long a registration THIS process performed is
      *  considered to still hold, so a second unconditional pass does not punch another
@@ -1089,6 +1105,13 @@ data class ParkingDetectionConfig(
         }
         require(btWalkAwayDistanceMeters > 0f) {
             "btWalkAwayDistanceMeters must be > 0, was $btWalkAwayDistanceMeters"
+        }
+        require(btMinRideDurationMs > 0) {
+            "btMinRideDurationMs must be > 0, was $btMinRideDurationMs"
+        }
+        require(btMaxRideDurationMs > btMinRideDurationMs) {
+            "btMaxRideDurationMs ($btMaxRideDurationMs) must exceed btMinRideDurationMs " +
+                "($btMinRideDurationMs) — otherwise no engagement can ever be ride-shaped"
         }
         require(btWalkAwayTimeoutMs > 0) {
             "btWalkAwayTimeoutMs must be > 0, was $btWalkAwayTimeoutMs"

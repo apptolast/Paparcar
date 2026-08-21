@@ -1,10 +1,12 @@
 package io.apptolast.paparcar.bluetooth
 
+import io.apptolast.paparcar.domain.detection.ArmEvidence
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
+import io.apptolast.paparcar.domain.usecase.detection.BtEngagement
 import io.apptolast.paparcar.domain.usecase.detection.BtParkVerdict
 import io.apptolast.paparcar.domain.usecase.detection.EvaluateBtParkUseCase
 import io.apptolast.paparcar.domain.usecase.location.ObserveAdaptiveLocationUseCase
@@ -58,8 +60,29 @@ class BluetoothParkingDetector(
     private val detectionEventLogger: DetectionEventLogger? = null,
 ) {
 
-    suspend fun detectParking(deviceAddress: String, vehicleId: String) {
+    suspend fun detectParking(deviceAddress: String, vehicleId: String, connectedAtMs: Long?) {
         PaparcarLogger.d(TAG, "BT disconnected ($deviceAddress, vehicle=$vehicleId) — debouncing for reconnect check")
+
+        // [DET-BT-DISCONNECT-WITHOUT-RIDE-001] Was this the end of a RIDE, or just a car passing
+        // within radio range? Asked before the debounce so a proximity blip costs nothing: no FGS
+        // held for 15 minutes, no GPS stream, no pin. The engagement below could not confirm a
+        // parking anyway — it can only nominate one.
+        val engagement = evaluateBtPark.evaluateEngagement(connectedAtMs, System.currentTimeMillis())
+        if (engagement !is BtEngagement.Ride) {
+            val shape = when (engagement) {
+                is BtEngagement.ProximityOnly -> "proximity ${engagement.durationMs / 1000}s < ${config.btMinRideDurationMs / 1000}s"
+                else -> "no connect on record"
+            }
+            PaparcarLogger.w(TAG, "BT engagement was not a ride ($shape) — asking instead of placing [DET-BT-DISCONNECT-WITHOUT-RIDE-001]")
+            logRemote(sessionId = vehicleId, verdict = VERDICT_NO_RIDE_ASK)
+            // The car IS somewhere near — that is exactly what the engagement proves — but WHERE it
+            // ended up is the user's to say: the fix we could sample sits at the phone, and the
+            // phone was not in the car. The durable nudge survives being slept through and the
+            // confirmed pin keeps detection provenance. [DET-NUDGE-PERSIST-001]
+            notificationPort.showMarkParkingNudge(source = NUDGE_SOURCE_BT_NO_RIDE, vehicleId = vehicleId)
+            return
+        }
+        PaparcarLogger.d(TAG, "BT engagement ${engagement.durationMs / 1000}s — ride-shaped, continuing")
 
         // BT-005: wait before acting — brief stops and BT oscillation fire disconnect
         // events too. If BT reconnects, the Service cancels this coroutine here.
@@ -136,6 +159,9 @@ class BluetoothParkingDetector(
                 config.reliabilityBluetoothTimeoutSave,
                 vehicleId = vehicleId,
                 detectionPath = PATH_BLUETOOTH_TIMEOUT,
+                // [DET-BT-DISCONNECT-WITHOUT-RIDE-001] Stamp WHAT armed this BT session. The lane
+                // used to persist nothing, so a field pin could only be traced over a cable.
+                armEvidence = ArmEvidence.BtRide(engagement.durationMs).persistLabel,
                 // The user stayed within the walk-away radius for the whole watch, so the pin IS
                 // an honest body position (±30 m) — unlike the egress-confirm case that bans
                 // sealing at the pin. [DET-STEP-BUDGET-ORIGIN-001]
@@ -163,6 +189,8 @@ class BluetoothParkingDetector(
             config.reliabilityBluetooth,
             vehicleId = vehicleId,
             detectionPath = PATH_BLUETOOTH,
+            // [DET-BT-DISCONNECT-WITHOUT-RIDE-001] Same provenance stamp as the timeout-save branch.
+            armEvidence = ArmEvidence.BtRide(engagement.durationMs).persistLabel,
             // The fix that settled the walk-away IS where the body is at confirm (≥30 m from the
             // car already) — the honest origin for the step baseline. [DET-STEP-BUDGET-ORIGIN-001]
             sealPoint = walkSettled,
@@ -211,6 +239,13 @@ class BluetoothParkingDetector(
          *  walk — the home-park case). Distinct so field forensics can tell the two apart at a
          *  glance. [DET-BT-TIMEOUT-SAVE-001] */
         const val PATH_BLUETOOTH_TIMEOUT = "bt_timeout"
+
+        /** [DET-BT-DISCONNECT-WITHOUT-RIDE-001] Remote verdict for an engagement that proved
+         *  presence but not a ride: the lane asked instead of placing. */
+        const val VERDICT_NO_RIDE_ASK = "bt_no_ride_ask"
+
+        /** Nudge provenance so the diagnostics can tell this ask from the coordinator's. */
+        const val NUDGE_SOURCE_BT_NO_RIDE = "bt_no_ride"
 
         /** BT-005: Grace window before acting on disconnect (brief stop / oscillation debounce). */
         const val BT_DISCONNECT_DEBOUNCE_MS = 30_000L

@@ -145,7 +145,16 @@ class BluetoothDetectionService : LifecycleService() {
             }
 
             try {
-                detector.detectParking(deviceAddress, vehicleId)
+                // [DET-BT-DISCONNECT-WITHOUT-RIDE-001] The matching ACL_CONNECTED stamp, so the
+                // detector can size the engagement. Read here rather than inside the detector so
+                // the decision core stays free of Android Context. Null = no connect on record
+                // (process installed mid-engagement, prefs cleared) — the evaluator treats that
+                // as doubt, not as permission.
+                val connectedAtMs = BtConnectionStore.lastConnectedAt(
+                    this@BluetoothDetectionService,
+                    vehicleId,
+                )
+                detector.detectParking(deviceAddress, vehicleId, connectedAtMs)
                 PaparcarLogger.d(DIAG, "  ✓ detectParking returned normally")
                 // [DET-RETURN-ANCHOR-001] Seal the anchor for the just-confirmed session right
                 // away (the coordinator path gets this via its detection-end check): the user is

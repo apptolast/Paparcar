@@ -43,6 +43,14 @@ sealed interface ArmEvidence {
      *  a spurious ENTER beside the car costs one false-ENTER/no-movement abort. */
     data object BoardingAtCar : ArmEvidence
 
+    /** [DET-BT-DISCONNECT-WITHOUT-RIDE-001] The paired car stayed CONNECTED long enough
+     *  ([io.apptolast.paparcar.domain.model.ParkingDetectionConfig.btMinRideDurationMs]) for the
+     *  disconnect to be the end of a ride rather than a car passing within radio range. Not a
+     *  verified departure: it says the engagement was ride-shaped, not that driving was measured —
+     *  the walk-away (or its timeout) still decides. Carries the engagement so field forensics can
+     *  read the margin in Firestore instead of on a cable. */
+    data class BtRide(val engagementMs: Long) : ArmEvidence
+
     /** Whether this evidence proves the departure — seeds `hasEverReachedDrivingSpeed` so the
      *  coordinator does not re-litigate a drive its stream structurally cannot observe. */
     val isVerifiedDeparture: Boolean
@@ -57,6 +65,7 @@ sealed interface ArmEvidence {
             is Unverified -> LABEL_SELF_OBSERVED
             is BoardingAtCar -> LABEL_ENTER_AT_CAR
             is ArrivalHandoff -> LABEL_ARRIVAL_HANDOFF
+            is BtRide -> LABEL_BT_RIDE
         }
 
     companion object {
@@ -72,6 +81,10 @@ sealed interface ArmEvidence {
         /** [DET-HANDOFF-NOT-MANUAL-001] The safety net's arrival handoff: a DEDUCED departure, never
          *  a witnessed drive and never the user's own word. */
         const val LABEL_ARRIVAL_HANDOFF = "arrival_handoff"
+        /** [DET-BT-DISCONNECT-WITHOUT-RIDE-001] A ride-shaped Bluetooth engagement armed this BT
+         *  session. The BT lane used to stamp NOTHING, so a field pin could not be traced to its
+         *  trigger without pulling the device log over a cable. */
+        const val LABEL_BT_RIDE = "bt_ride"
 
         /** Labels that bypass the repark-plausibility guard: the drive was externally proven. */
         fun isVerifiedLabel(label: String?): Boolean =

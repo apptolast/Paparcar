@@ -135,6 +135,14 @@ lost parking); the positive BT arbitration (`EvaluateBtArbitrationUseCase`) is u
 
 `BluetoothParkingDetector.detectParking()` (suspend):
 
+0. **Engagement gate** [DET-BT-DISCONNECT-WITHOUT-RIDE-001] — size the connect→disconnect
+   engagement (`EvaluateBtParkUseCase.evaluateEngagement`, fed the `ACL_CONNECTED` stamp
+   `BtConnectionStore.lastConnectedAt` already keeps across OEM kills). Only a `Ride`
+   (`≥ btMinRideDurationMs = 90 s`, `≤ btMaxRideDurationMs = 12 h`) may go on to place a pin.
+   `ProximityOnly` (shorter) and `Unknown` (no stamp / clock jump / stale stamp) post
+   `showMarkParkingNudge` and return before the debounce — no FGS held, no GPS stream, no pin.
+   An engagement proves the car came within radio range of the phone, which is PRESENCE, not
+   driving; the two only coincide when the phone was inside the car.
 1. **Debounce** — `delay(BT_DISCONNECT_DEBOUNCE_MS = 30 s)`. Cancellable — if BT reconnects, the Service cancels the coroutine here before the delay returns (BT-005).
 2. **GPS fix** — sample the location stream until `accuracy ≤ GPS_ACCURACY_THRESHOLD_M = 50 m`, or `GPS_SAMPLE_TIMEOUT_MS = 60 s` elapses. The first fix that meets the accuracy bar is the candidate parking location.
 3. **Walking confirmation** — keep watching GPS until the user has moved `≥ DISTANCE_THRESHOLD_M = 30 m` from the candidate fix. This rules out "BT dropped while still in the car" cases (passenger left, head-unit died, etc.).
@@ -157,7 +165,9 @@ Abort-on-reconnect (BT-005): when `ACTION_ACL_CONNECTED` arrives, the Receiver s
 > `IN_VEHICLE_ENTER` (which detects real motion, not mere BT pairing) already covers BT users and is
 > the stronger signal, so the BT connect no longer touches the departure bus.
 
-This strategy has no scoring and no medium-confidence path: BT disconnect + GPS-anchored walk is treated as ground truth.
+This strategy has no scoring and no medium-confidence path: a ride-shaped BT engagement + GPS-anchored
+walk is treated as ground truth. What it is NOT allowed to treat as ground truth is the disconnect on
+its own — see step 0.
 
 ### 1.3 CoordinatorDetectionStrategy (probabilistic)
 
@@ -923,6 +933,69 @@ come to the ceiling.
 (pass-through), `CoordinatorDetectionService` (witness read/stamp), `ParkingSafetyNetWorker`
 (witness refresh + keys), `DetectionEvent.HonestClose` + `DetectionEventDto`
 (`witnessDistanceMeters`; age rides `sessionAgeMs`). 1228 tests.
+
+---
+
+### DET-BT-DISCONNECT-WITHOUT-RIDE-001 — a Bluetooth engagement proves PRESENCE, not driving
+
+**Commit:** pending. **Field:** 2026-08-21, Oppo + Skoda Kamiq.
+
+**User report.** "Tengo un aparcamiento guardado del Kamiq y llevo días sin conducirlo, y encima ese
+coche va por Bluetooth."
+
+**Root cause.** The BT lane never checked that the car had moved. It read one instant — the
+`ACL_DISCONNECTED` — and walked straight into debounce → GPS sample → walk-away watch → save. Worse,
+the chain was inverted: `evaluateCandidateFix` accepts a candidate **because the user is standing
+still**, which is precisely the state of someone who has not driven anywhere. It was the only
+confirmation path in the app with no measured-driving requirement of any kind.
+
+The field trace: `ACL CONNECT 14:08:40.2 → ACL DISCONNECT 14:08:53.9` — **13.7 s**, corroborated
+outside the app by `dumpsys bluetooth_manager` (the Kamiq's `A2dpStateMachine` holds 7 records, all
+of them that minute: `Connecting → CONNECTED` with SBC negotiated → `Disconnected` 11.5 s later; the
+other paired device has 86 records over the same days). The car had been brought home by a family
+member and switched off beside the phone. 15 minutes later the lane confirmed `bt_timeout` at 0.85
+with a 105 m geofence, whose `GEOFENCE_EXIT` then armed the coordinator when the user walked out.
+
+**What the evidence actually supports.** Not a false pin — the position was RIGHT, the car was
+there. What was false was the attribution. And the corollary the user raised is what shaped the fix:
+had he parked the Kamiq elsewhere yesterday, the app would still be showing yesterday's spot, so the
+engagement genuinely carries information. The engagement proves *the car came within radio range of
+the phone*; it cannot distinguish "parked beside me" from "driven past me", because the sampled fix
+sits at the PHONE and the phone was not in the car.
+
+**Fix.** A gate BEFORE the debounce, in the pure evaluator (`evaluateEngagement`): only an
+engagement of `[btMinRideDurationMs = 90 s, btMaxRideDurationMs = 12 h]` may place a pin. Anything
+shorter is `ProximityOnly`; a missing/negative/stale stamp is `Unknown`. Both nominate instead of
+confirming — `showMarkParkingNudge` asks the user where the car ended up, reusing the durable ask
+that already survives being slept through, and the answer becomes a user-grade pin. The duration is
+read from `BtConnectionStore.lastConnectedAt`, stamped since [DET-BT-IDENTITY-GATE-001] by a
+manifest receiver and therefore already surviving OEM process kills — the data was on disk all
+along, nobody read it.
+
+Deliberately not a distance/speed test: at that instant nothing has been measured yet. The gate sits
+in `evaluateCandidateFix`'s caller rather than in the timeout branch so it covers BOTH BT paths —
+with a 13 s engagement plus a 30 m walk to the bakery, the old code also pinned, at 0.95.
+
+**Ceiling rationale.** An OEM force-stop makes the app miss broadcasts until something reopens it. A
+lost CONNECT with a later DISCONNECT would compute a multi-day "ride" and wave the old behaviour
+straight back in — hence `btMaxRideDurationMs`.
+
+**Provenance.** The BT lane stamped NO `armEvidence` at all (the field pin carried `null`), so this
+diagnosis needed the device log over a cable. Both BT confirms now stamp
+`ArmEvidence.BtRide(engagementMs)` → `bt_ride`. New remote verdict `bt_no_ride_ask`; nudge source
+`bt_no_ride`.
+
+**Companion-fix risk.** The 90 s floor costs any genuine sub-90 s trip its automatic pin — moving
+the car a few doors down. That case degrades to the nudge, not to silence, so the session is
+recoverable with one tap. The remaining open edge is "driven past me" vs "parked beside me" for
+engagements ABOVE the floor; a permanence probe (is the MAC still visible two minutes later?) was
+considered and deferred, because a car whose module dies with the ignition — exactly this Kamiq's
+signature — is indistinguishable from an absent one in any scan.
+
+**Files:** `EvaluateBtParkUseCase` (`BtEngagement` + `evaluateEngagement`), `ArmEvidence`
+(`BtRide`/`LABEL_BT_RIDE`), `ParkingDetectionConfig` (`btMinRideDurationMs`,
+`btMaxRideDurationMs` + requires), `BluetoothParkingDetector` (gate, nudge, provenance stamps),
+`BluetoothDetectionService` (reads the stamp, keeps Context out of the decision core). 1333 tests.
 
 ---
 
