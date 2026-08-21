@@ -67,6 +67,9 @@ internal fun VehiclePageContent(
         state = historyState,
         contentPadding = contentPadding,
         onViewOnMap = { lat, lon, sessionId -> onIntent(VehiclesIntent.ViewOnMap(lat, lon, sessionId)) },
+        // This page IS one vehicle, so its timeline wears that vehicle's watch colour.
+        // [UI-HISTORY-IDENTITY-AND-SOURCE-001]
+        watch = vehicleWithStats.vehicle.monitoringStatus().watch(),
         onFilterSelected = { filter -> onIntent(VehiclesIntent.SetHistoryFilter(filter)) },
         onScrolledToTop = onScrolledToTop,
         modifier = Modifier.fillMaxSize(),

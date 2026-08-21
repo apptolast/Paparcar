@@ -179,6 +179,8 @@
     <string name="parking_detail_next">Nächster Parkplatz</string>
     <string name="parking_detail_no_address">Unbekannter Standort</string>
     <string name="parking_detail_detection_auto">Automatisch erkannt</string>
+    <string name="parking_detail_detection_bluetooth">Automatisch (Bluetooth)</string>
+    <string name="parking_detail_detection_assisted">Assistiert</string>
     <string name="parking_detail_detection_manual">Manuell gemeldet</string>
     <string name="parking_detail_detection_home">Private Zone</string>
     <string name="map_cd_midpoint">Mittelpunkt zwischen mir und dem Auto</string>

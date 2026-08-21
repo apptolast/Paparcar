@@ -101,6 +101,7 @@ import io.apptolast.paparcar.ui.components.ReportCenterPin
 import io.apptolast.paparcar.ui.components.ZoneCenterPin
 import io.apptolast.paparcar.ui.components.ZoneMarker
 import io.apptolast.paparcar.ui.theme.PaparcarTheme
+import io.apptolast.paparcar.ui.theme.VehicleWatch
 
 /**
  * How a variant should be presented in the viewer.
@@ -193,11 +194,12 @@ private fun sheet(state: HomeState) {
 }
 
 @Composable
-private fun history(state: HistoryState) {
+private fun history(state: HistoryState, watch: VehicleWatch = VehicleWatch.Assisted) {
     HistoryContent(
         state = state,
         contentPadding = PaddingValues(0.dp),
         onViewOnMap = { _, _, _ -> },
+        watch = watch,
         onFilterSelected = {},
     )
 }
@@ -463,9 +465,43 @@ private val galleryGroups: List<ScreenGroup> = listOf(
         listOf(
             // Detection label reads the REAL origin (was hard-stuck on "automática"); icon is the real
             // vehicle body shape (was a generic car); stepper walks the whole history. [HISTORY-DETAIL-001]
-            Variant("Auto-detectado · coche") {
+            //
+            // Las tres primeras son el par acento+fuente: el acento sale de la vigilancia del COCHE
+            // (azul BT / verde asistido) y el texto de la vía que puso ESE pin, leída de
+            // `detectionPath`. La legacy no afirma vía ninguna. [UI-HISTORY-IDENTITY-AND-SOURCE-001]
+            Variant("Activa · Bluetooth (azul)") {
                 parkingDetailSheet(
-                    session = FakeData.endedSessions[1].copy(spotType = SpotType.AUTO_DETECTED),
+                    session = FakeData.activeSession.copy(
+                        spotType = SpotType.AUTO_DETECTED,
+                        detectionPath = "bt",
+                    ),
+                    vehicle = FakeData.vehicleCorolla,
+                )
+            },
+            Variant("Activa · Asistido (verde)") {
+                parkingDetailSheet(
+                    session = FakeData.activeSession.copy(
+                        spotType = SpotType.AUTO_DETECTED,
+                        detectionPath = "steps=3 kinematicFixes=7",
+                    ),
+                    vehicle = FakeData.vehicleSedan,
+                )
+            },
+            Variant("Legacy sin provenance (no afirma vía)") {
+                parkingDetailSheet(
+                    session = FakeData.activeSession.copy(
+                        spotType = SpotType.AUTO_DETECTED,
+                        detectionPath = null,
+                    ),
+                    vehicle = FakeData.vehicleSedan,
+                )
+            },
+            Variant("Cerrada · asistida (apagada)") {
+                parkingDetailSheet(
+                    session = FakeData.endedSessions[1].copy(
+                        spotType = SpotType.AUTO_DETECTED,
+                        detectionPath = "vehicle-exit",
+                    ),
                     vehicle = FakeData.vehicleSedan,
                 )
             },
@@ -489,14 +525,20 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             },
             Variant("Sesión activa · más reciente (solo ‹ activo)") {
                 parkingDetailSheet(
-                    session = FakeData.activeSession.copy(spotType = SpotType.AUTO_DETECTED),
+                    session = FakeData.activeSession.copy(
+                        spotType = SpotType.AUTO_DETECTED,
+                        detectionPath = "unattended_timeout",
+                    ),
                     vehicle = FakeData.vehicleSedan,
                     hasNewer = false,
                 )
             },
             Variant("Más antiguo del historial (solo › activo)") {
                 parkingDetailSheet(
-                    session = FakeData.endedSessions.last().copy(spotType = SpotType.AUTO_DETECTED),
+                    session = FakeData.endedSessions.last().copy(
+                        spotType = SpotType.AUTO_DETECTED,
+                        detectionPath = "bt_timeout",
+                    ),
                     vehicle = FakeData.vehicleVan,
                     hasOlder = false,
                 )
@@ -839,8 +881,22 @@ private val galleryGroups: List<ScreenGroup> = listOf(
     ScreenGroup(
         "Historial",
         listOf(
-            Variant("Lista (con sesiones)") {
+            // El raíl, el punto pulsante y el wash de la sesión viva llevan la identidad del coche
+            // de esa página del pager — no un verde fijo. [UI-HISTORY-IDENTITY-AND-SOURCE-001]
+            Variant("Lista · coche asistido (verde)") {
                 history(HistoryState(sessions = FakeData.allSessions, filteredSessions = FakeData.allSessions))
+            },
+            Variant("Lista · coche Bluetooth (azul)") {
+                history(
+                    HistoryState(sessions = FakeData.allSessions, filteredSessions = FakeData.allSessions),
+                    watch = VehicleWatch.Bluetooth,
+                )
+            },
+            Variant("Lista · coche sin vigilancia (gris)") {
+                history(
+                    HistoryState(sessions = FakeData.allSessions, filteredSessions = FakeData.allSessions),
+                    watch = VehicleWatch.Off,
+                )
             },
             Variant("Filtro: esta semana") {
                 history(

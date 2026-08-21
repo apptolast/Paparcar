@@ -3,6 +3,7 @@ package io.apptolast.paparcar.ui.theme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import io.apptolast.paparcar.domain.model.VehicleMonitoringStatus
 
 /**
@@ -66,6 +67,38 @@ fun vehicleChassisBorder(
     VehicleWatch.Off -> neutral
     else -> vehicleIdentityColor(watch).copy(alpha = CHASSIS_WATCHED_ALPHA)
 }
+
+/**
+ * Solid container FILL for a card that IS one vehicle's live session — the "parked right now" card
+ * of the history timeline. The green leg is the scheme's own `primaryContainer`; the Bluetooth leg
+ * is its exact mirror one hue over, built from the same tokens the scheme uses for its blue slots.
+ * [UI-HISTORY-IDENTITY-AND-SOURCE-001]
+ *
+ * Deliberately NOT a translucent wash of [vehicleIdentityColor]: the live card has to read as
+ * FILLED at a glance, and one alpha cannot hold that over both surface ramps (user's call on
+ * device, 21-08-2026). Pair it with [onVehicleIdentityContainer], never with a raw `onSurface`.
+ */
+@Composable
+fun vehicleIdentityContainer(watch: VehicleWatch): Color = when (watch) {
+    VehicleWatch.Bluetooth -> if (isDarkSurface()) PapBlueMuted else PapBlueContainerLight
+    VehicleWatch.Assisted -> MaterialTheme.colorScheme.primaryContainer
+    VehicleWatch.Off -> MaterialTheme.colorScheme.surfaceContainerHigh
+}
+
+/** Content colour ON [vehicleIdentityContainer], mirroring the scheme's own container/on-container
+ *  pairing (dark: the vivid identity over its muted bed; light: the deep ink of that same hue). */
+@Composable
+fun onVehicleIdentityContainer(watch: VehicleWatch): Color = when (watch) {
+    VehicleWatch.Bluetooth -> if (isDarkSurface()) papCarBlue else PapOnBlue
+    VehicleWatch.Assisted -> MaterialTheme.colorScheme.onPrimaryContainer
+    VehicleWatch.Off -> MaterialTheme.colorScheme.onSurface
+}
+
+/** The same luminance probe the theme-aware tokens in `Color.kt` use — `isSystemInDarkTheme()` lies
+ *  when the theme is forced. */
+@Composable
+private fun isDarkSurface(): Boolean =
+    MaterialTheme.colorScheme.surface.luminance() < SURFACE_DARK_LUMINANCE
 
 /** Watched-card frame — the identity colour dimmed so it frames without shouting; full strength is
  *  reserved for the name, glyph and accents. */

@@ -25,12 +25,14 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Bluetooth
 import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.ChevronLeft
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.EditLocationAlt
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Navigation
+import androidx.compose.material.icons.rounded.Radar
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -61,11 +63,13 @@ import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.presentation.util.collectAsStateLifecycleAware
 import io.apptolast.paparcar.presentation.vehicles.MONTH_SHORT_RES
 import io.apptolast.paparcar.domain.matching.InferredRoute
+import io.apptolast.paparcar.domain.detection.ParkingDetectionSource
+import io.apptolast.paparcar.domain.detection.detectionSource
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.util.PolylineCodec
-import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.Vehicle
+import io.apptolast.paparcar.domain.model.monitoringStatus
 import io.apptolast.paparcar.presentation.util.locationDisplayText
 import io.apptolast.paparcar.presentation.util.rememberOpenExternalNavigation
 import io.apptolast.paparcar.ui.components.GlassSurface
@@ -78,6 +82,9 @@ import io.apptolast.paparcar.ui.components.VehicleGlyph
 import io.apptolast.paparcar.ui.theme.PapMotion
 import io.apptolast.paparcar.ui.theme.PapShapes
 import io.apptolast.paparcar.ui.theme.PaparcarType
+import io.apptolast.paparcar.ui.theme.VehicleWatch
+import io.apptolast.paparcar.ui.theme.vehicleIdentityColor
+import io.apptolast.paparcar.ui.theme.watch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringResource
@@ -85,7 +92,9 @@ import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.map_cd_back
 import paparcar.composeapp.generated.resources.parking_detail_active_section_label
+import paparcar.composeapp.generated.resources.parking_detail_detection_assisted
 import paparcar.composeapp.generated.resources.parking_detail_detection_auto
+import paparcar.composeapp.generated.resources.parking_detail_detection_bluetooth
 import paparcar.composeapp.generated.resources.parking_detail_detection_home
 import paparcar.composeapp.generated.resources.parking_detail_detection_manual
 import paparcar.composeapp.generated.resources.parking_detail_navigate_action
@@ -464,13 +473,19 @@ internal fun HistoryDetailSheet(
                     AddressHeroRow(session = shownSession, vehicle = shownVehicle)
 
                     if (shownSession != null) {
-                        Spacer(Modifier.height(META_ROW_GAP.dp))
-                        DateTimeRow(
-                            timestampMs = shownSession.location.timestamp,
-                            isActive = shownSession.isActive,
+                        // ONE accent for the whole card, and it is the vehicle's watch method — blue
+                        // for a BT-watched car, brand green for an assisted one, grey unwatched —
+                        // through the single resolver, exactly like Home and Vehículos. A closed
+                        // session keeps its muted tone: the accent marks what is LIVE.
+                        // [UI-COLOR-DOCTRINE-001][UI-HISTORY-IDENTITY-AND-SOURCE-001]
+                        val identity = vehicleIdentityColor(
+                            shownVehicle?.monitoringStatus()?.watch() ?: VehicleWatch.Off,
                         )
+                        val metaTint = if (shownSession.isActive) identity else cs.onSurfaceVariant
                         Spacer(Modifier.height(META_ROW_GAP.dp))
-                        DetectionRow(spotType = shownSession.spotType, isActive = shownSession.isActive)
+                        DateTimeRow(timestampMs = shownSession.location.timestamp, tint = metaTint)
+                        Spacer(Modifier.height(META_ROW_GAP.dp))
+                        DetectionRow(session = shownSession, tint = metaTint)
                     }
                 }
             }
@@ -570,9 +585,8 @@ private fun AddressHeroRow(session: UserParking?, vehicle: Vehicle?) {
 }
 
 @Composable
-private fun DateTimeRow(timestampMs: Long, isActive: Boolean) {
+private fun DateTimeRow(timestampMs: Long, tint: Color) {
     if (timestampMs <= 0L) return
-    val cs = MaterialTheme.colorScheme
     val dateTime = remember(timestampMs) {
         Instant.fromEpochMilliseconds(timestampMs)
             .toLocalDateTime(TimeZone.currentSystemDefault())
@@ -584,32 +598,29 @@ private fun DateTimeRow(timestampMs: Long, isActive: Boolean) {
     val monthStr = stringResource(MONTH_SHORT_RES[dateTime.month.ordinal])
     val dateStr = "${dateTime.day} $monthStr ${dateTime.year}"
 
-    MetaRow(
-        icon = Icons.Rounded.Schedule,
-        tint = if (isActive) cs.primary else cs.onSurfaceVariant,
-        text = "$dateStr · $timeStr",
-    )
+    MetaRow(icon = Icons.Rounded.Schedule, tint = tint, text = "$dateStr · $timeStr")
 }
 
+/**
+ * Who put this pin. The icon carries the STRATEGY (the same Bluetooth / Radar pair Home uses for a
+ * vehicle's watch tier) and the text carries the TIER NAME the user already reads on the Permissions
+ * card — so "auto-detected" stops hiding which of the two independent strategies actually fired.
+ * A legacy row without provenance keeps saying just "auto-detected": we don't invent a tier we can't
+ * prove. [UI-HISTORY-IDENTITY-AND-SOURCE-001][DET-PIN-PROVENANCE-001]
+ */
 @Composable
-private fun DetectionRow(spotType: SpotType, isActive: Boolean) {
-    val cs = MaterialTheme.colorScheme
-    val (icon, label, tint) = when (spotType) {
-        SpotType.AUTO_DETECTED -> Triple(
-            Icons.Rounded.Bolt,
-            stringResource(Res.string.parking_detail_detection_auto),
-            if (isActive) cs.primary else cs.onSurfaceVariant,
-        )
-        SpotType.MANUAL_REPORT -> Triple(
-            Icons.Rounded.EditLocationAlt,
-            stringResource(Res.string.parking_detail_detection_manual),
-            if (isActive) cs.secondary else cs.onSurfaceVariant,
-        )
-        SpotType.HOME_GEOFENCE -> Triple(
-            Icons.Rounded.Home,
-            stringResource(Res.string.parking_detail_detection_home),
-            if (isActive) cs.primary else cs.onSurfaceVariant,
-        )
+private fun DetectionRow(session: UserParking, tint: Color) {
+    val (icon, label) = when (session.detectionSource()) {
+        ParkingDetectionSource.Bluetooth ->
+            Icons.Rounded.Bluetooth to stringResource(Res.string.parking_detail_detection_bluetooth)
+        ParkingDetectionSource.Assisted ->
+            Icons.Rounded.Radar to stringResource(Res.string.parking_detail_detection_assisted)
+        ParkingDetectionSource.Unknown ->
+            Icons.Rounded.Bolt to stringResource(Res.string.parking_detail_detection_auto)
+        ParkingDetectionSource.Manual ->
+            Icons.Rounded.EditLocationAlt to stringResource(Res.string.parking_detail_detection_manual)
+        ParkingDetectionSource.PrivateZone ->
+            Icons.Rounded.Home to stringResource(Res.string.parking_detail_detection_home)
     }
     MetaRow(icon = icon, tint = tint, text = label)
 }

@@ -104,10 +104,18 @@ las sesiones aparcadas — su icono lleva la identidad del coche SELECCIONADO (a
 sigue al coche en movimiento — eso es **movimiento sobre el mapa**, no identidad, y por eso es el
 azul de mapa y no `papCarBlue`.
 
+El **historial también es superficie de coche**: el detalle de un aparcamiento (acento de sus filas
+meta mientras la sesión vive) y la timeline de Vehículos (puntos del raíl y relleno de la tarjeta
+viva) resuelven por el mismo `vehicleIdentityColor`. Se quedan en verde de marca lo que NO es el
+coche: el punto de la cabecera de día, el botón "ver en mapa" (es una acción) y la fila de stats de
+la hero card. Y el rótulo "APARCADO ACTUALMENTE" se queda NEUTRO — es estado, ver §3.1; sólo su
+punto pulsante lleva la identidad del coche. [UI-HISTORY-IDENTITY-AND-SOURCE-001]
+
 | Token | Dark | Light |
 |---|---|---|
 | `papCarBlue` (BT, theme-aware) | `#5B9EFF` (7.0:1 sobre `PapInk`) | `#0057CA` (6.5:1 sobre blanco) |
 | `PapLiveMap` (movimiento, fija solo-mapa) | `#2F6BFF` | `#2F6BFF` |
+| `vehicleIdentityContainer(watch)` / `onVehicleIdentityContainer(watch)` — relleno SÓLIDO de una tarjeta que ES un coche (la sesión viva del historial), y su color de contenido. Nace porque `primaryContainer` solo existe en verde: un coche BT anunciaba su sesión viva en el color del tier asistido. La pierna verde ES el `primaryContainer` del esquema; la azul es su espejo con los tokens que el esquema ya usa en sus slots azules. Se probó un wash traslúcido de la identidad y se descartó en device: la tarjeta viva tiene que leerse RELLENA. | `PapBlueMuted` + `papCarBlue` | `PapBlueContainerLight` + `PapOnBlue` |
 
 ### 3.1 El estado NUNCA tiñe — se escribe y se anima
 

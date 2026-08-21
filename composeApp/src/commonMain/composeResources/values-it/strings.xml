@@ -179,6 +179,8 @@
     <string name="parking_detail_next">Parcheggio successivo</string>
     <string name="parking_detail_no_address">Posizione sconosciuta</string>
     <string name="parking_detail_detection_auto">Rilevamento automatico</string>
+    <string name="parking_detail_detection_bluetooth">Automatico (Bluetooth)</string>
+    <string name="parking_detail_detection_assisted">Assistito</string>
     <string name="parking_detail_detection_manual">Segnalazione manuale</string>
     <string name="parking_detail_detection_home">Zona privata</string>
     <string name="map_cd_midpoint">Punto medio tra me e l\'auto</string>

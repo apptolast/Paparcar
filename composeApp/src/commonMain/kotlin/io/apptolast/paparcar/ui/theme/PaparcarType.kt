@@ -58,6 +58,16 @@ class PaparcarType(
     // ── STRUCTURE · Inter (neutral face — navigation of the layout) ─────────────────────────────
     /** Section header eyebrow — "TUS VEHÍCULOS", "ACTIVIDAD". Uppercased by `PapSectionHeader`. */
     val sectionHeader: TextStyle,
+    /** SUB-section header — a separator that opens a group INSIDE a section already headed by a
+     *  [sectionHeader]: the timeline's day rows ("HOY", "AYER", "VIERNES, 14 AGO 2026") under
+     *  "APARCADO ACTUALMENTE". Same Inter recipe as [sectionHeader], one step down in size and
+     *  weight so the hierarchy is legible without changing family. Reached via `PapSectionHeaderRow`
+     *  (`dense = true`), never by hand.
+     *
+     *  ⚠️ These day rows used to wear [badge] (Barlow). That was a family error: Barlow is DATA —
+     *  tokens that repeat inside a row or fight a name for horizontal space. A day separator is
+     *  neither; it is layout structure, and structure is Inter. [UI-HISTORY-IDENTITY-AND-SOURCE-001] */
+    val subsectionHeader: TextStyle,
     /** Sheet-header eyebrow — the small caps line ABOVE a title ("FORD FOCUS · APARCADO",
      *  "TU ZONA"). Smaller and wider-tracked than [sectionHeader]: it qualifies a title directly
      *  below it instead of opening a section, and carries a state tint. Uppercased by caller.
@@ -152,6 +162,10 @@ fun rememberPaparcarType(): PaparcarType {
         sectionHeader = TextStyle(
             fontFamily = inter, fontWeight = FontWeight.ExtraBold,
             fontSize = 12.sp, lineHeight = 16.sp, letterSpacing = 1.0.sp,
+        ),
+        subsectionHeader = TextStyle(
+            fontFamily = inter, fontWeight = FontWeight.Bold,
+            fontSize = 11.sp, lineHeight = 14.sp, letterSpacing = 1.0.sp,
         ),
         eyebrow = TextStyle(
             fontFamily = inter, fontWeight = FontWeight.Bold,

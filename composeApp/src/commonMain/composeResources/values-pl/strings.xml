@@ -183,6 +183,8 @@
     <string name="parking_detail_next">Następne parkowanie</string>
     <string name="parking_detail_no_address">Nieznana lokalizacja</string>
     <string name="parking_detail_detection_auto">Wykryto automatycznie</string>
+    <string name="parking_detail_detection_bluetooth">Automatyczny (Bluetooth)</string>
+    <string name="parking_detail_detection_assisted">Wspomagany</string>
     <string name="parking_detail_detection_manual">Zgłoszenie ręczne</string>
     <string name="parking_detail_detection_home">Strefa prywatna</string>
     <string name="map_cd_midpoint">Punkt środkowy między mną a samochodem</string>

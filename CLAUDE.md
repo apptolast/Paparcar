@@ -105,10 +105,12 @@ Regla mental: *plumbing de UI → Material; concepto de Paparcar → vector prop
 
 ### ⛔ Tipografía — sistema de roles (`PaparcarType`)
 La familia y el tamaño son propiedad del **ROL**, no del widget. Nunca elijas fuente ni tamaño:
-elige rol. Fuente de verdad: `ui/theme/PaparcarType.kt` (18 roles), se lee
+elige rol. Fuente de verdad: `ui/theme/PaparcarType.kt` (19 roles), se lee
 `PaparcarType.current.<rol>`. `fontWeight`/`color` inline sobre el `Text` SÍ se permiten.
 - **IDENTITY · Outfit**: `screenTitle`(=appBarTitle), `heroTitle`, `sectionTitle`, `cardTitle`, `rowTitle`
-- **STRUCTURE · Inter**: `sectionHeader` (**siempre vía `PapSectionHeader`**), `cta`, `label`
+- **STRUCTURE · Inter**: `sectionHeader` + `subsectionHeader` (**ambos SOLO vía `PapSectionHeader`**;
+  el sub es el separador de un grupo DENTRO de una sección ya encabezada — los días del historial —
+  y se pide con `dense = true`), `cta`, `label`
 - **PROSE · Inter**: `subtitle`(16sp), `body`, `caption`
 - **DATA · Barlow Condensed**: `metadata`, `badge`, `sizeToken`, `statNumber`(25sp), `distance`, `chartLabel`, `chartValue`
 - Regla mental: *¿título? → Outfit. ¿Frase que se lee? → Inter. ¿Dato/token que se repite en filas

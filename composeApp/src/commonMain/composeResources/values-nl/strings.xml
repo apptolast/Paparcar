@@ -179,6 +179,8 @@
     <string name="parking_detail_next">Volgende parkeerplaats</string>
     <string name="parking_detail_no_address">Onbekende locatie</string>
     <string name="parking_detail_detection_auto">Automatisch gedetecteerd</string>
+    <string name="parking_detail_detection_bluetooth">Automatisch (Bluetooth)</string>
+    <string name="parking_detail_detection_assisted">Geassisteerd</string>
     <string name="parking_detail_detection_manual">Handmatige melding</string>
     <string name="parking_detail_detection_home">Privézone</string>
     <string name="map_cd_midpoint">Middelpunt tussen mij en de auto</string>

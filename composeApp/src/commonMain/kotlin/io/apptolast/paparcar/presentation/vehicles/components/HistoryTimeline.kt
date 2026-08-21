@@ -35,8 +35,13 @@ import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.presentation.util.locationDisplayText
 import io.apptolast.paparcar.presentation.util.relativeTimeText
+import io.apptolast.paparcar.ui.components.PapSectionHeaderRow
 import io.apptolast.paparcar.ui.theme.PapBorders
 import io.apptolast.paparcar.ui.theme.PaparcarType
+import io.apptolast.paparcar.ui.theme.VehicleWatch
+import io.apptolast.paparcar.ui.theme.onVehicleIdentityContainer
+import io.apptolast.paparcar.ui.theme.vehicleIdentityColor
+import io.apptolast.paparcar.ui.theme.vehicleIdentityContainer
 import kotlinx.datetime.TimeZone
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -44,36 +49,48 @@ import paparcar.composeapp.generated.resources.history_view_map
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Instant
 
+/**
+ * Day separator inside the timeline — "HOY", "AYER", "VIERNES, 14 AGO 2026".
+ *
+ * It is a SUB-section header, not a data token: it opens a group under "APARCADO ACTUALMENTE"
+ * instead of repeating inside a row, so it wears the same Inter face as that header one step down
+ * (`dense`), through the same component. It used to wear the condensed `badge` role — Barlow is for
+ * DATA, and a date separator is layout structure. [UI-HISTORY-IDENTITY-AND-SOURCE-001]
+ */
 @Composable
 internal fun DayHeaderRow(label: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = DAY_HEADER_TOP_PAD_DP.dp, bottom = DAY_HEADER_BOTTOM_PAD_DP.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(DAY_HEADER_GAP_DP.dp),
-    ) {
-        Box(
-            modifier = Modifier
-                .size(DAY_HEADER_DOT_DP.dp)
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = DAY_HEADER_DOT_ALPHA), CircleShape)
-        )
-        Text(
-            // Uppercase day label = data token → condensed badge role, keeping its muted tone.
-            text = label.uppercase(),
-            style = PaparcarType.current.badge,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = DAY_HEADER_TEXT_ALPHA),
-        )
-    }
+    PapSectionHeaderRow(
+        title = label,
+        modifier = Modifier.padding(top = DAY_HEADER_TOP_PAD_DP.dp, bottom = DAY_HEADER_BOTTOM_PAD_DP.dp),
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = DAY_HEADER_TEXT_ALPHA),
+        dense = true,
+        leading = {
+            Box(
+                modifier = Modifier
+                    .size(DAY_HEADER_DOT_DP.dp)
+                    .background(
+                        MaterialTheme.colorScheme.primary.copy(alpha = DAY_HEADER_DOT_ALPHA),
+                        CircleShape,
+                    )
+            )
+        },
+    )
 }
 
+/**
+ * @param watch how the page's vehicle is monitored — the timeline belongs to ONE car (Vehículos is a
+ *   per-vehicle pager), so its rail and its live card carry that car's identity colour instead of a
+ *   fixed brand green. [UI-COLOR-DOCTRINE-001][UI-HISTORY-IDENTITY-AND-SOURCE-001]
+ */
 @Composable
 internal fun EndedSessionTimelineNode(
     session: UserParking,
     isLast: Boolean,
+    watch: VehicleWatch,
     isActive: Boolean = false,
     onViewOnMap: (lat: Double, lon: Double, sessionId: String) -> Unit,
 ) {
+    val identity = vehicleIdentityColor(watch)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -89,15 +106,12 @@ internal fun EndedSessionTimelineNode(
             // (card top padding + ~half a line ≈ DOT_CENTER_Y): spacer = center − dot radius.
             Spacer(Modifier.height(if (isActive) ACTIVE_DOT_TOP_SPACER_DP.dp else DOT_TOP_SPACER_DP.dp))
             if (isActive) {
-                PulsingDot(
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(ACTIVE_DOT_SIZE_DP.dp),
-                )
+                PulsingDot(color = identity, modifier = Modifier.size(ACTIVE_DOT_SIZE_DP.dp))
             } else {
                 Box(
                     Modifier
                         .size(DOT_SIZE_DP.dp)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = DOT_ALPHA), CircleShape)
+                        .background(identity.copy(alpha = DOT_ALPHA), CircleShape)
                 )
             }
             if (!isLast) {
@@ -115,6 +129,7 @@ internal fun EndedSessionTimelineNode(
         SessionCardContent(
             session = session,
             isActive = isActive,
+            watch = watch,
             onViewOnMap = onViewOnMap,
             modifier = Modifier
                 .weight(1f)
@@ -127,6 +142,7 @@ internal fun EndedSessionTimelineNode(
 private fun SessionCardContent(
     session: UserParking,
     isActive: Boolean,
+    watch: VehicleWatch,
     onViewOnMap: (lat: Double, lon: Double, sessionId: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -146,14 +162,18 @@ private fun SessionCardContent(
     val secondaryText = if (isActive) activeRelativeTime
         else session.address?.city?.let { "$it · $timeStr" } ?: timeStr
 
-    val textPrimary = if (isActive) cs.onPrimaryContainer else cs.onSurface
+    // The live card keeps the filled container it always had — only its HUE now follows the
+    // vehicle's watch, because `primaryContainer` exists in green alone and a BT-watched car was
+    // announcing itself in the assisted tier's colour. Container and content resolve as a pair.
+    // [UI-HISTORY-IDENTITY-AND-SOURCE-001]
+    val textPrimary = if (isActive) onVehicleIdentityContainer(watch) else cs.onSurface
     val textMuted = textPrimary.copy(alpha = if (isActive) ACTIVE_META_ALPHA else META_ALPHA)
 
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(CARD_CORNER_DP.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isActive) cs.primaryContainer else cs.surfaceContainerHigh,
+            containerColor = if (isActive) vehicleIdentityContainer(watch) else cs.surfaceContainerHigh,
         ),
     ) {
         Row(

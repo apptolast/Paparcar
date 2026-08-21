@@ -14,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -30,22 +31,23 @@ import paparcar.composeapp.generated.resources.history_empty_subtitle
 import paparcar.composeapp.generated.resources.history_empty_title
 
 /**
- * Active section header — primary-tinted variant of [PapSectionHeaderRow]
- * with a leading pulsing dot. Padding-top 12dp for clearer separation from
- * the timeline.
+ * Active section header — a NEUTRAL [PapSectionHeaderRow] with a leading pulsing dot. Padding-top
+ * 12dp for clearer separation from the timeline.
+ *
+ * "APARCADO ACTUALMENTE" is a STATE, and a state is written in neutral text and told by ANIMATION,
+ * never by a hue — so the label sits with every other section header while the dot pulses. Only the
+ * dot carries colour, and it carries the VEHICLE's ([accent]), matching the rail dot right below it.
+ * [UI-COLOR-DOCTRINE-001 §3.1][UI-HISTORY-IDENTITY-AND-SOURCE-001]
+ *
+ * @param accent the identity colour of the vehicle this timeline belongs to (blue = Bluetooth,
+ *   green = assisted, grey = unwatched), resolved by the caller through `vehicleIdentityColor`.
  */
 @Composable
-internal fun ActiveSectionHeader(text: String) {
+internal fun ActiveSectionHeader(text: String, accent: Color) {
     PapSectionHeaderRow(
         title = text,
-        color = MaterialTheme.colorScheme.primary,
         modifier = Modifier.padding(top = 12.dp, bottom = 4.dp),
-        leading = {
-            PulsingDot(
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(8.dp),
-            )
-        },
+        leading = { PulsingDot(color = accent, modifier = Modifier.size(8.dp)) },
     )
 }
 

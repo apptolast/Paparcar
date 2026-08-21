@@ -51,6 +51,12 @@ fun PapSectionHeaderRow(
      *  leading slot. With equal-width slots on both sides the title sits on the row's optical
      *  centre. [ROUTE-QUALITY-001] */
     centerTitle: Boolean = false,
+    /** A header that opens a group INSIDE a section this component already headed — the timeline's
+     *  day rows under "APARCADO ACTUALMENTE". Same face, one step down (`subsectionHeader`), so the
+     *  two levels are told apart by SIZE, not by swapping family. Keeping it here (instead of a
+     *  `style` param) is what makes "the header roles only ever leave this file" hold.
+     *  [UI-HISTORY-IDENTITY-AND-SOURCE-001] */
+    dense: Boolean = false,
     leading: (@Composable () -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
 ) {
@@ -63,7 +69,7 @@ fun PapSectionHeaderRow(
         if (centerTitle) Spacer(Modifier.weight(1f))
         Text(
             text = title.uppercase(),
-            style = PaparcarType.current.sectionHeader,
+            style = with(PaparcarType.current) { if (dense) subsectionHeader else sectionHeader },
             color = color,
         )
         if (centerTitle) Spacer(Modifier.weight(1f))
