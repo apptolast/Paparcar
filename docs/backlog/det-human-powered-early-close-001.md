@@ -1,7 +1,7 @@
 # DET-HUMAN-POWERED-EARLY-CLOSE-001 · El veredicto se emite cuando la evidencia está, no cuando expira un reloj
 
-**Estado:** 🟢 Código hecho, sin commitear · rama
-`bugfix/DET-HUMAN-POWERED-EARLY-CLOSE-001-verdict-not-clock` · worktree `../Paparcar-early-close`
+**Estado:** 🟢 ✅ DONE — master `16d3ea69` (squash 21-08, sin pushear).
+
 
 ## Problema
 

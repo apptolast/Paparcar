@@ -1,9 +1,7 @@
 # DET-FENCE-REREGISTER-BY-CAUSE-001 · Re-registrar una geocerca por CAUSA, no por reloj
 
-**Estado:** 🟡 §D, §A(dedup) y §B(causa) implementados · **sólo queda el NÚMERO del suelo**, que espera dato de campo
-· rama `bugfix/DET-FENCE-REREGISTER-BY-CAUSE-001-cause-not-clock` (`bd8a9e52`), **apilada sobre**
-DET-HUMAN-POWERED-EARLY-CLOSE-001 → DET-HANDOFF-NOT-MANUAL-001 → master `dd200b84`; sin pushear,
-sin mergear · worktree `../Paparcar-fence-cause` · **1293 tests verdes** sobre la pila entera
+**Estado:** 🟢 ✅ DONE (§D+§A+§B) — master `ef03cea6` (squash 21-08, sin pushear). ⏳ Pendiente SÓLO los dos números (suelo de la cura 6 h, periódico del janitor 12 h), que esperan la telemetría `GEOFENCE_REGISTRATION`.
+
 
 > ⚠️ La rama se apiló (no sale ya de master) porque su base traía Room **v18** y los móviles corren
 > **v20** por §B de DET-HANDOFF-NOT-MANUAL-001: instalarla sola habría sido un downgrade de esquema
