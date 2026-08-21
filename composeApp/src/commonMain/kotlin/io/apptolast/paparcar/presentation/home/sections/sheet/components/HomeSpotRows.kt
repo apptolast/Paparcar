@@ -41,6 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.Spot
+import io.apptolast.paparcar.domain.model.SpotStatus
 import io.apptolast.paparcar.ui.theme.PapShapes
 import io.apptolast.paparcar.ui.theme.PaparcarType
 import io.apptolast.paparcar.ui.theme.stateColors
@@ -70,6 +71,7 @@ import paparcar.composeapp.generated.resources.home_report_subtitle
 import paparcar.composeapp.generated.resources.home_spot_reliability_high
 import paparcar.composeapp.generated.resources.home_spot_reliability_low
 import paparcar.composeapp.generated.resources.home_spot_reliability_medium
+import paparcar.composeapp.generated.resources.home_spot_unconfirmed_badge
 
 /**
  * Spot row (v1 redesign).
@@ -197,6 +199,23 @@ private fun SpotRowContent(
                     style = type.metadata,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = SheetTokens.META_SEPARATOR_ALPHA),
                 )
+                // [DET-HANDOFF-NOT-MANUAL-001 §B.3] Reliability and confirmation are different
+                // axes: the tier says how much the community trusts the report, this says whether
+                // anything measured that the car actually left. In ink, never tinted — it is a
+                // state, and states are written. [UI-COLOR-DOCTRINE-001]
+                if (spot.status == SpotStatus.PROVISIONAL) {
+                    Text(
+                        stringResource(Res.string.home_spot_unconfirmed_badge).uppercase(),
+                        style = type.badge,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = META_MUTED_ALPHA),
+                        maxLines = 1,
+                    )
+                    Text(
+                        SheetTokens.META_SEPARATOR,
+                        style = type.metadata,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = SheetTokens.META_SEPARATOR_ALPHA),
+                    )
+                }
                 if (distanceM != null) {
                     Text(
                         distanceString(distanceM),

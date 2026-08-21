@@ -48,10 +48,14 @@ enum class ParkingStrategy {
  * [DET-STRATEGY-GATE-001] Single admission rule for ARMING the probabilistic coordinator: may
  * this trigger start a coordinator session under the resolved strategy?
  *
- * - [DetectionTrigger.MANUAL] is ALWAYS admitted — the user explicitly asked to track, and the
- *   safety-net's arrival handoff rides the same action; if a BT-paired car then parks, the BT
+ * - [DetectionTrigger.MANUAL] is ALWAYS admitted — and ONLY it: the user explicitly asked to track,
+ *   which outranks any strategy we resolved for them; if a BT-paired car then parks, the BT
  *   disconnect arbitration supersedes the session anyway ([EvaluateBtArbitrationUseCase]).
- * - Every automatic trigger (geofence EXIT, AR ENTER, significant motion) is admitted only when
+ *   [DET-HANDOFF-NOT-MANUAL-001] The safety net's arrival handoff used to ride this exemption by
+ *   reusing the MANUAL trigger — an AUTOMATIC arm entering through the door reserved for human
+ *   intent, which is precisely the bypass this gate exists to prevent. It now arrives as
+ *   [DetectionTrigger.ARRIVAL_HANDOFF] and is gated like every other automatic nominator.
+ * - Every automatic trigger (geofence EXIT, AR ENTER, significant motion, arrival handoff) is admitted only when
  *   the COORDINATOR strategy owns detection. Under BLUETOOTH the deterministic pipeline owns the
  *   trip (field 2026-08-01: the sentry/AR lanes armed anyway and pinned the Kamiq's trips on the
  *   primary Focus — the exact misattribution [ARCH-MONITORING-002] suppresses); under NONE the

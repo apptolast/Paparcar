@@ -12,6 +12,7 @@ import io.apptolast.paparcar.data.session.RoomLocalSessionCache
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.bluetooth.BluetoothScanner
 import io.apptolast.paparcar.domain.connectivity.ConnectivityObserver
+import io.apptolast.paparcar.domain.detection.ArrivalHandoffDetection
 import io.apptolast.paparcar.domain.detection.ManualParkingDetection
 import io.apptolast.paparcar.domain.geocoder.GeocoderDataSource
 import io.apptolast.paparcar.domain.location.LocationDataSource
@@ -43,6 +44,7 @@ import io.apptolast.paparcar.fakes.data.repository.FakeDepartureEventBus
 import io.apptolast.paparcar.fakes.data.repository.FakeGeocoderDataSource
 import io.apptolast.paparcar.fakes.data.repository.FakeGeofenceEventBus
 import io.apptolast.paparcar.fakes.data.repository.FakeGeofenceManager
+import io.apptolast.paparcar.fakes.data.repository.FakeArrivalHandoffDetection
 import io.apptolast.paparcar.fakes.data.repository.FakeManualParkingDetection
 import io.apptolast.paparcar.fakes.data.repository.FakeOemBackgroundReliabilityManager
 import io.apptolast.paparcar.fakes.data.repository.FakeParkingEnrichmentScheduler
@@ -80,6 +82,8 @@ val iosMockModule = module {
     single<ParkingSyncScheduler> { FakeParkingSyncScheduler() }
     single<ReportSpotScheduler> { FakeReportSpotScheduler() }
     single<ManualParkingDetection> { FakeManualParkingDetection() }
+    // [DET-HANDOFF-NOT-MANUAL-001] Separate port, separate fake.
+    single<ArrivalHandoffDetection> { FakeArrivalHandoffDetection() }
 
     // Session
     single<LocalSessionCache> { RoomLocalSessionCache(get()) }

@@ -10,6 +10,7 @@ package io.apptolast.paparcar.domain.model
  * - [carbodyType]  – body-shape of the vehicle that freed the spot; powers the "optimal" badge
  * - [enRouteCount] – users currently navigating here (community pressure signal)
  * - [expiresAt]    – epoch millis; 0 = no TTL set yet
+ * - [status]       – how well the departure behind it is proven, and whether it was withdrawn
  */
 data class Spot(
     val id: String,
@@ -28,4 +29,8 @@ data class Spot(
     val enRouteCount: Int = 0,
     /** Epoch millis when this spot expires. 0 = no TTL set. */
     val expiresAt: Long = 0L,
+    /** [DET-HANDOFF-NOT-MANUAL-001 §B.3] Confirmed / provisional / retracted. Defaults to
+     *  [SpotStatus.CONFIRMED] so every document written before this field existed reads as what it
+     *  was: a spot published on a witnessed departure. */
+    val status: SpotStatus = SpotStatus.CONFIRMED,
 )

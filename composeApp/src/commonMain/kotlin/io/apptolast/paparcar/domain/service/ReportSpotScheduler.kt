@@ -37,5 +37,12 @@ interface ReportSpotScheduler {
          *  the Firestore rules can authorise owner-only edits/deletes. Previously the display name
          *  was written here, which made `reportedBy == uid` false and blocked ALL deletes. */
         reportedBy: String? = null,
+        /** [DET-HANDOFF-NOT-MANUAL-001 §B] The departure behind this spot was DEDUCED, not measured
+         *  (see [io.apptolast.paparcar.domain.detection.DepartureProof]). Publishes at the same
+         *  speed — freshness is the whole value of a spot — but with
+         *  [io.apptolast.paparcar.domain.model.SpotTtlPolicy.PROVISIONAL_SPOT_TTL_MS] so a wrong
+         *  one expires in minutes instead of two hours. Re-publishing the same id with false once
+         *  the drive is proven promotes it to the full TTL (REPLACE policy, same doc). */
+        provisional: Boolean = false,
     )
 }

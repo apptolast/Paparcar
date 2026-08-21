@@ -61,6 +61,12 @@
     <!-- Community-spot signal pair — confirm it still exists / report it gone. [UI-SHEET-001] -->
     <string name="home_spot_still_there">Still there?</string>
     <string name="home_spot_gone">It&#8217;s gone</string>
+    <!-- [DET-HANDOFF-NOT-MANUAL-001 B.3] A spot published on a DEDUCED departure says so, and says it plainly when the report is withdrawn. -->
+    <string name="home_spot_unconfirmed_badge">Unconfirmed</string>
+    <string name="home_spot_unconfirmed_note">We haven&#8217;t confirmed yet that the car left. If you go, tell us whether the space is there.</string>
+    <string name="home_spot_retracted_eyebrow">Withdrawn</string>
+    <string name="home_spot_retracted_note">Whoever reported it didn&#8217;t leave after all, so this space isn&#8217;t free. Look for another one nearby.</string>
+    <string name="home_spot_retracted_action">See other spots</string>
     <string name="home_navigate_to_spot">Directions</string>
     <string name="home_navigate_to_vehicle">Directions</string>
     <string name="home_feed_nearby">Near you</string>

@@ -2,6 +2,7 @@ package io.apptolast.paparcar.presentation.home
 
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.Spot
+import io.apptolast.paparcar.domain.model.SpotStatus
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.VehicleMonitoringStatus
@@ -22,11 +23,16 @@ class HomeSlicesTest {
 
     private val gps = GpsPoint(latitude = 40.4165, longitude = -3.7030, accuracy = 10f, timestamp = 1_000L, speed = 0f)
 
-    private fun spot(id: String, size: VehicleSize? = null) = Spot(
+    private fun spot(
+        id: String,
+        size: VehicleSize? = null,
+        status: SpotStatus = SpotStatus.CONFIRMED,
+    ) = Spot(
         id = id,
         location = gps,
         reportedBy = "user-1",
         sizeCategory = size,
+        status = status,
     )
 
     private fun vehicle(
@@ -72,6 +78,48 @@ class HomeSlicesTest {
         )
         assertEquals(listOf("match", "unknown"), state.toBrowseListSlice().filteredSpots.map { it.id })
         assertEquals(2, state.toPeekSlice().freeCount)
+    }
+
+    // ── Spot status: what is on offer, and in what order [DET-HANDOFF-NOT-MANUAL-001 §B.3] ──
+
+    @Test
+    fun should_drop_a_retracted_spot_from_the_list_the_map_and_the_counter() {
+        val state = HomeState(nearbySpots = listOf(spot("live"), spot("withdrawn", status = SpotStatus.RETRACTED)))
+
+        assertEquals(listOf("live"), state.toBrowseListSlice().filteredSpots.map { it.id })
+        assertEquals(listOf("live"), state.toMapSlice().nearbySpots.map { it.id }, "no marker for a space we withdrew")
+        assertEquals(1, state.toPeekSlice().freeCount)
+    }
+
+    @Test
+    fun should_keep_a_retracted_spot_selectable_so_the_peek_can_explain_it() {
+        // The user had it open when it was withdrawn. Dropping it from nearbySpots would close the
+        // sheet under them with no explanation — the exact silence the retraction exists to avoid.
+        val state = HomeState(
+            nearbySpots = listOf(spot("withdrawn", status = SpotStatus.RETRACTED)),
+            selectedItemId = "withdrawn",
+        )
+
+        assertEquals("withdrawn", state.selectedSpot?.id)
+        assertEquals("withdrawn", state.toPeekSlice().selectedSpot?.id)
+        assertFalse(state.toBrowseListSlice().hasAnySpots, "…while nothing is actually on offer")
+    }
+
+    @Test
+    fun should_rank_an_unconfirmed_spot_below_every_confirmed_one() {
+        val state = HomeState(
+            nearbySpots = listOf(
+                spot("unconfirmed", status = SpotStatus.PROVISIONAL),
+                spot("confirmed-a"),
+                spot("confirmed-b"),
+            ),
+        )
+
+        assertEquals(
+            listOf("confirmed-a", "confirmed-b", "unconfirmed"),
+            state.toBrowseListSlice().filteredSpots.map { it.id },
+            "still offered — it is a real space — but last, and the confirmed order is untouched",
+        )
     }
 
     // ── Vehicle-card join ─────────────────────────────────────────────────────

@@ -228,6 +228,39 @@ class EvaluateParkingDecisionUseCaseTest {
         assertIs<ParkingDecision.Confirmed>(decision)
     }
 
+    @Test
+    fun should_prompt_when_arrival_handoff_arm_and_session_never_drove() {
+        // [DET-HANDOFF-NOT-MANUAL-001] Field 2026-08-19 22:32: the safety net deduced a departure
+        // (the phone had left the parked car's neighbourhood — on a BICYCLE) and handed the trip to
+        // live detection stamped `manual`, i.e. wearing the user's own word, which this policy
+        // trusts enough to save in silence. The handoff witnessed no drive: it must ask.
+        val decision = evaluate(
+            input(
+                stepCount = 102,
+                hasEgressDisplacement = true,
+                maxSpeedKmh = 0f,
+                evidenceLabel = io.apptolast.paparcar.domain.detection.ArmEvidence.LABEL_ARRIVAL_HANDOFF,
+            )
+        )
+        assertEquals("steps+egress", assertIs<ParkingDecision.Prompt>(decision).pathLabel)
+    }
+
+    @Test
+    fun should_confirm_when_arrival_handoff_arm_but_session_measured_driving() {
+        // The handoff is weak evidence, not a veto: once the session's own stream holds the driving
+        // band, the ordinary silent confirm stands — that is the normal case (the net was right and
+        // the user really drove away).
+        val decision = evaluate(
+            input(
+                stepCount = 8,
+                hasEgressDisplacement = true,
+                maxSpeedKmh = 30f,
+                evidenceLabel = io.apptolast.paparcar.domain.detection.ArmEvidence.LABEL_ARRIVAL_HANDOFF,
+            )
+        )
+        assertIs<ParkingDecision.Confirmed>(decision)
+    }
+
     // ── Motor proof: sustained band time, not the peak [DET-MOTOR-PROOF-001] ────
 
     @Test

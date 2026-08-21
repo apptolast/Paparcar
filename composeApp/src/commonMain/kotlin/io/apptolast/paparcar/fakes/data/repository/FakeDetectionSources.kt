@@ -1,6 +1,7 @@
 package io.apptolast.paparcar.fakes.data.repository
 
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
+import io.apptolast.paparcar.domain.detection.ArrivalHandoffDetection
 import io.apptolast.paparcar.domain.detection.DepartureWatchResumer
 import io.apptolast.paparcar.domain.detection.ManualParkingDetection
 import io.apptolast.paparcar.domain.detection.MutableDetectionRuntimeState
@@ -56,6 +57,23 @@ class FakeManualParkingDetection(
     override fun stopByUser() {
         stopByUserCallCount++
         runtime?.setRunning(false)
+    }
+}
+
+/**
+ * [DET-HANDOFF-NOT-MANUAL-001] Mock arrival handoff. Separate from [FakeManualParkingDetection] for
+ * the same reason the real ports are separate: a test that asserts "the user started this" must not
+ * pass because the safety net did.
+ */
+class FakeArrivalHandoffDetection(
+    private val runtime: MutableDetectionRuntimeState? = null,
+) : ArrivalHandoffDetection {
+    var startCallCount = 0
+        private set
+
+    override fun start() {
+        startCallCount++
+        runtime?.setRunning(true)
     }
 }
 
@@ -121,5 +139,5 @@ class FakeParkingSyncScheduler : ParkingSyncScheduler {
 }
 
 class FakeReportSpotScheduler : ReportSpotScheduler {
-    override fun enqueueReportSpot(spotId: String, lat: Double, lon: Double, address: AddressInfo?, placeInfo: PlaceInfo?, spotType: SpotType, confidence: Float, sizeCategory: VehicleSize?, carbodyType: CarbodyType?, reportedBy: String?) {}
+    override fun enqueueReportSpot(spotId: String, lat: Double, lon: Double, address: AddressInfo?, placeInfo: PlaceInfo?, spotType: SpotType, confidence: Float, sizeCategory: VehicleSize?, carbodyType: CarbodyType?, reportedBy: String?, provisional: Boolean) {}
 }

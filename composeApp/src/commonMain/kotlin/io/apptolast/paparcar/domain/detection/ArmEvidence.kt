@@ -27,6 +27,15 @@ sealed interface ArmEvidence {
      *  active; the departure worker may upgrade the live session when late evidence lands. */
     data object Unverified : ArmEvidence
 
+    /** [DET-HANDOFF-NOT-MANUAL-001] The safety net DEDUCED a departure (the phone left the parked
+     *  car's neighbourhood) and handed the rest of the trip to live detection
+     *  [DET-ARRIVAL-HANDOFF-001]. Nothing witnessed a drive — the deduction is about the PHONE, and
+     *  the phone can leave on foot, on a bicycle or in someone else's car (field 2026-08-19: a
+     *  bicycle ride). Weaker than [Manual] on purpose: it used to borrow that label and with it the
+     *  right to confirm silently. Anti-walking guards stay active and auto-confirm waits for
+     *  measured driving. */
+    data object ArrivalHandoff : ArmEvidence
+
     /** [DET-AR-FIRST-001] A FRESH AR `IN_VEHICLE_ENTER` whose fix sits INSIDE the parked car's
      *  own fence — the boarding moment, caught BEFORE any driving exists to measure. Arms the
      *  coordinator "waiting for ride proof": deliberately NOT a verified departure (no seed),
@@ -47,6 +56,7 @@ sealed interface ArmEvidence {
             is VerifiedByVehicleEnter -> LABEL_VERIFIED_ENTER
             is Unverified -> LABEL_SELF_OBSERVED
             is BoardingAtCar -> LABEL_ENTER_AT_CAR
+            is ArrivalHandoff -> LABEL_ARRIVAL_HANDOFF
         }
 
     companion object {
@@ -59,6 +69,9 @@ sealed interface ArmEvidence {
         const val LABEL_VERIFIED_LATE = "verified_late"
         /** No external verification — the coordinator's own stream is the only witness. */
         const val LABEL_SELF_OBSERVED = "self_observed"
+        /** [DET-HANDOFF-NOT-MANUAL-001] The safety net's arrival handoff: a DEDUCED departure, never
+         *  a witnessed drive and never the user's own word. */
+        const val LABEL_ARRIVAL_HANDOFF = "arrival_handoff"
 
         /** Labels that bypass the repark-plausibility guard: the drive was externally proven. */
         fun isVerifiedLabel(label: String?): Boolean =

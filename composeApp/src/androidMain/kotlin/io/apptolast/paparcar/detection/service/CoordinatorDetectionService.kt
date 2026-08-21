@@ -21,6 +21,7 @@ import io.apptolast.paparcar.detection.worker.DepartureDetectionWorker
 import io.apptolast.paparcar.detection.worker.ParkingSafetyNetWorker
 import io.apptolast.paparcar.domain.coordinator.CoordinatorParkingDetector
 import io.apptolast.paparcar.domain.detection.ArmEvidence
+import io.apptolast.paparcar.domain.detection.DepartureProof
 import io.apptolast.paparcar.domain.detection.DetectionTrigger
 import io.apptolast.paparcar.domain.detection.coordinatorMayArm
 import io.apptolast.paparcar.domain.detection.isArmSuppressedByUserStop
@@ -257,6 +258,7 @@ class CoordinatorDetectionService : LifecycleService() {
     private suspend fun processIntent(intent: Intent, startId: Int) {
         when (val action = intent.action) {
             ACTION_START_TRACKING -> handleStartTracking()
+            ACTION_ARRIVAL_HANDOFF -> handleArrivalHandoff() // [DET-HANDOFF-NOT-MANUAL-001]
             ACTION_SENTRY_WAKE -> handleSentryWake() // [DET-RESIDENT-FGS-001]
             // [DET-WATCH-HONEST-001] App-launch self-heal: an OEM kill drops the resident watcher while
             // a car stays parked; a manual app-open is a legal (foreground) moment to rebuild it. No work
@@ -352,6 +354,28 @@ class CoordinatorDetectionService : LifecycleService() {
         startParkingDetection(DetectionTrigger.MANUAL)
     }
 
+    /**
+     * [DET-HANDOFF-NOT-MANUAL-001] The safety net dispatched a departure and hands the rest of the
+     * trip to live detection [DET-ARRIVAL-HANDOFF-001]. Same work as [handleStartTracking], with
+     * the one difference that matters: it arms as ITSELF. Nothing here witnessed a drive — the net
+     * deduced one from where the PHONE is — so the arm is gated by the strategy resolver like every
+     * other automatic nominator and carries [ArmEvidence.ArrivalHandoff], which no auto-confirm
+     * path treats as strong.
+     */
+    private suspend fun handleArrivalHandoff() {
+        if (!guardPermissions("ARRIVAL_HANDOFF")) return
+        if (detectionJob?.isActive == true) {
+            PaparcarLogger.d(DIAG, "  ↻ ARRIVAL_HANDOFF ignored — detectionJob already active")
+            return
+        }
+        PaparcarLogger.d(DIAG, "  → ARRIVAL_HANDOFF — following the rest of the dispatched trip")
+        cancelDetectionJob()
+        startParkingDetection(
+            DetectionTrigger.ARRIVAL_HANDOFF,
+            armEvidence = ArmEvidence.ArrivalHandoff,
+        )
+    }
+
     private fun handleUserConfirmed() {
         PaparcarLogger.d(DIAG, "  → PARKING_CONFIRMED delivered to coordinator")
         parkingDetectionCoordinator.onUserConfirmedParking()
@@ -436,7 +460,9 @@ class CoordinatorDetectionService : LifecycleService() {
             return
         }
         PaparcarLogger.d(DIAG, "  → DEPARTURE_CONFIRMED (watchdog) geofenceId=$geofenceId")
-        runCatching { processConfirmedDeparture(geofenceId) }
+        // [DET-HANDOFF-NOT-MANUAL-001 §B] The user's own statement is the strongest evidence there
+        // is — stronger than any fix — so this commits the departure in full.
+        runCatching { processConfirmedDeparture(geofenceId, proof = DepartureProof.Witnessed) }
             .onFailure { e -> PaparcarLogger.e(DIAG, "    ✗ watchdog departure failed", e) }
         notificationPort.dismiss(AppNotificationManager.STILL_PARKED_NOTIFICATION_ID)
     }
@@ -1234,17 +1260,21 @@ class CoordinatorDetectionService : LifecycleService() {
         detail: String? = null,
         trip: TripContext? = null,
         /** [DET-G-05][DET-SOLID-001] Typed evidence behind this arm. GEOFENCE_EXIT passes the
-         *  verifier's result; MANUAL passes [ArmEvidence.Manual] (the default). */
+         *  verifier's result; MANUAL passes [ArmEvidence.Manual] (the default); the arrival handoff
+         *  passes [ArmEvidence.ArrivalHandoff]. [DET-HANDOFF-NOT-MANUAL-001] The default is only
+         *  correct for the button — every other lane must state its own evidence. */
         armEvidence: ArmEvidence = ArmEvidence.Manual,
         /** [DET-ZOMBIE-PROBE-001] Arm born from a FAR-delivered (stale-lane) EXIT — the
          *  coordinator shrinks its no-movement budget to the zombie probe. */
         staleExitDelivery: Boolean = false,
     ) {
         // [DET-STRATEGY-GATE-001] Single strategy choke point: EVERY automatic arm funnels through
-        // here (geofence EXIT, AR ENTER, sentry sig-motion), so this is the one place that asks
-        // whether the coordinator owns detection at all. Field 2026-08-01: only the EXIT lane
-        // checked, and the sentry/AR arms pinned the BT-paired Kamiq's trips on the primary Focus.
-        // MANUAL is exempt inside the rule (explicit user intent / safety-net arrival handoff).
+        // here (geofence EXIT, AR ENTER, sentry sig-motion, arrival handoff), so this is the one
+        // place that asks whether the coordinator owns detection at all. Field 2026-08-01: only the
+        // EXIT lane checked, and the sentry/AR arms pinned the BT-paired Kamiq's trips on the
+        // primary Focus. MANUAL — and ONLY manual — is exempt: explicit user intent outranks the
+        // strategy we resolved. [DET-HANDOFF-NOT-MANUAL-001] The safety-net handoff used to be
+        // exempt too, by borrowing this trigger; it is gated now.
         // [DET-STOP-BUTTON-001] The user's own veto outranks every automatic nominator. While the
         // quiet period they opened by tapping "Parar detección" lasts, no AR ENTER / fence EXIT /
         // motion wake may arm — without this the button is a lie: the same walk to the passenger
@@ -1515,6 +1545,9 @@ class CoordinatorDetectionService : LifecycleService() {
                 DetectionTrigger.MANUAL -> "pulsaste 'Estoy conduciendo'"
                 DetectionTrigger.AR_VEHICLE_ENTER -> "el móvil te ve subiendo a tu coche"
                 DetectionTrigger.SIGNIFICANT_MOTION -> "el sensor de movimiento saltó estando de centinela"
+                // [DET-HANDOFF-NOT-MANUAL-001] Ni "pulsaste" ni "tu coche salió": lo que se midió es
+                // que el TELÉFONO se alejó de la plaza vigilada.
+                DetectionTrigger.ARRIVAL_HANDOFF -> "el móvil se alejó de la plaza vigilada y la red de seguridad dio la salida por buena"
             }
             val msg = "Detección ARRANCADA (${trigger.name}): $cause" +
                 (detail?.let { " · $it" } ?: "") +
@@ -1604,6 +1637,11 @@ class CoordinatorDetectionService : LifecycleService() {
          *  stays the internal cancel; only THIS one stamps `stopped_by_user` and opens the quiet
          *  period in which automatic nominators may not re-arm. */
         const val ACTION_USER_STOP = "io.apptolast.paparcar.ACTION_USER_STOP"
+        // [DET-HANDOFF-NOT-MANUAL-001] The safety net's arrival handoff [DET-ARRIVAL-HANDOFF-001].
+        // It used to reuse ACTION_START_TRACKING, so an automatic arm was indistinguishable from the
+        // user's "I'm driving" — same trigger, same evidence, same strategy-gate exemption. One
+        // action per meaning: START_TRACKING is the button and nothing else.
+        const val ACTION_ARRIVAL_HANDOFF = "io.apptolast.paparcar.ACTION_ARRIVAL_HANDOFF"
         // [DET-RESIDENT-FGS-001] Significant-motion wake, delivered by SignificantMotionMonitor ONLY
         // when the service is resident in SENTRY (already foreground → legal re-delivery). Arms a
         // coordinator session with Unverified evidence; the WorkManager path is used from a dead process.

@@ -38,7 +38,11 @@ import androidx.room.RoomDatabaseConstructor
     // v18: parking_sessions gains routeInferredSpans + routeInferredResolution — provenance of
     // road-inferred stretches (reconstructed data holes) and the user's verdict on them
     // (MIGRATION_17_18). [ROUTE-GAP-HONEST-001]
-    version = 18,
+    // v19: parking_sessions gains provisionalDepartureAtMs — a DEDUCED departure that published the
+    // spot provisionally and kept the car, local-only (MIGRATION_18_19). [DET-HANDOFF-NOT-MANUAL-001 §B]
+    // v20: cached_spots gains status — CONFIRMED / PROVISIONAL / RETRACTED, so a withdrawn report
+    // can explain itself instead of silently vanishing (MIGRATION_19_20). [DET-HANDOFF-NOT-MANUAL-001 §B.3]
+    version = 20,
 )
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase : RoomDatabase() {

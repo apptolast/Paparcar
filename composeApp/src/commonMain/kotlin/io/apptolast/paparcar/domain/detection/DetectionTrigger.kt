@@ -16,8 +16,20 @@ enum class DetectionTrigger {
     /** The user left their OWN parked-car geofence (the decisive, anchored signal). */
     GEOFENCE_EXIT,
 
-    /** The user tapped "I'm driving" — the manual cold-start affordance. */
+    /** The user tapped "I'm driving" — the manual cold-start affordance. Nobody else may use this
+     *  value: it is read as EXPLICIT HUMAN INTENT (it is exempt from the strategy gate and its
+     *  evidence label counts as strong), so an automatic arm wearing it is a lie with
+     *  consequences. [DET-HANDOFF-NOT-MANUAL-001] */
     MANUAL,
+
+    /** [DET-HANDOFF-NOT-MANUAL-001] `ParkingSafetyNetWorker` dispatched a departure it DEDUCED (the
+     *  phone left the parked car's neighbourhood) and handed the rest of the trip to live detection
+     *  [DET-ARRIVAL-HANDOFF-001]. It used to ride [MANUAL] — the same intent as the button — so a
+     *  worker-born session was indistinguishable from "the user said so" in every diagnostic
+     *  (field 2026-08-19 22:32, a bicycle ride armed as `ARM:MANUAL` on both phones).
+     *  Nothing witnessed a drive here: the arm is admitted only where the coordinator owns
+     *  detection, and its evidence stays weak until the session measures driving itself. */
+    ARRIVAL_HANDOFF,
 
     /** [DET-AR-FIRST-001] A FRESH AR `IN_VEHICLE_ENTER` tied to the user's own car (boarding
      *  inside the fence, or conjunction with the fence's broken-EXIT record) delivered on the

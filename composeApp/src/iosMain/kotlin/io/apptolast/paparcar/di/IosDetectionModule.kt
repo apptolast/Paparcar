@@ -30,6 +30,10 @@ val iosDetectionModule = module {
     single<io.apptolast.paparcar.domain.detection.ManualParkingDetection> {
         io.apptolast.paparcar.detection.IosManualParkingDetectionImpl()
     }
+    // [DET-HANDOFF-NOT-MANUAL-001] No detection service on iOS yet — the handoff port is a no-op.
+    single<io.apptolast.paparcar.domain.detection.ArrivalHandoffDetection> {
+        io.apptolast.paparcar.detection.IosArrivalHandoffDetectionImpl()
+    }
     // No resident departure watcher on iOS yet — the resumer is a no-op. [DET-WATCH-REACTIVATE-001]
     single<io.apptolast.paparcar.domain.detection.DepartureWatchResumer> {
         io.apptolast.paparcar.detection.IosDepartureWatchResumerImpl()

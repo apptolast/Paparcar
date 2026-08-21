@@ -26,6 +26,12 @@
     <string name="home_parking_edit_dialog_body">Verplaats de pin naar de juiste plek of verwijder deze registratie.</string>
     <string name="home_spot_still_there">Nog vrij?</string>
     <string name="home_spot_gone">Al weg</string>
+    <!-- [DET-HANDOFF-NOT-MANUAL-001 B.3] A spot published on a DEDUCED departure says so, and says it plainly when the report is withdrawn. -->
+    <string name="home_spot_unconfirmed_badge">Onbevestigd</string>
+    <string name="home_spot_unconfirmed_note">We hebben nog niet bevestigd dat de auto is weggereden. Als u erheen gaat, laat ons weten of de plek vrij is.</string>
+    <string name="home_spot_retracted_eyebrow">Ingetrokken</string>
+    <string name="home_spot_retracted_note">Wie de plek meldde is uiteindelijk niet weggereden, dus de plek is niet vrij. Zoek een andere in de buurt.</string>
+    <string name="home_spot_retracted_action">Andere plekken bekijken</string>
     <string name="home_browse_eyebrow_zone">Jouw zone</string>
     <string name="home_browse_parked_meta">Geparkeerd %1$s geleden · %2$s van jou</string>
     <string name="home_browse_parked_ago">Geparkeerd %1$s geleden</string>

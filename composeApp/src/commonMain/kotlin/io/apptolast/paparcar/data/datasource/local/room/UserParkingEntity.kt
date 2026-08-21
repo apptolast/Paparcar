@@ -39,6 +39,10 @@ data class UserParkingEntity(
     // Max GPS speed (m/s) observed during the detection session that confirmed this park.
     // LOCAL-ONLY (not synced to Firestore) — feeds the repark-plausibility guard. [DET-SOLID-001]
     val tripMaxSpeedMps: Float? = null,
+    // [DET-HANDOFF-NOT-MANUAL-001 §B] Epoch-ms of a DEDUCED departure that published the spot
+    // provisionally and kept this session alive. LOCAL-ONLY (not synced): it coordinates the
+    // promote/expire decision on this device. Null = nothing pending.
+    val provisionalDepartureAtMs: Long? = null,
     // Arm evidence label of the confirming session (e.g. "speed", "vehicle_enter", "manual").
     // Now synced to Firestore for remote provenance diagnostics. [DET-SOLID-001][DET-PIN-PROVENANCE-001]
     val armEvidence: String? = null,

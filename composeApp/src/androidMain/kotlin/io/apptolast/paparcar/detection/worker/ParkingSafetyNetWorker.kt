@@ -98,7 +98,9 @@ class ParkingSafetyNetWorker(
     private val detectionEventLogger: DetectionEventLogger by inject()
     private val stepCounterSource: StepCounterSource by inject()
     private val config: ParkingDetectionConfig by inject()
-    private val manualParkingDetection: io.apptolast.paparcar.domain.detection.ManualParkingDetection by inject()
+    // [DET-HANDOFF-NOT-MANUAL-001] The handoff has its own port; the "I'm driving" one belongs to the
+    // user's button and to nobody else.
+    private val arrivalHandoffDetection: io.apptolast.paparcar.domain.detection.ArrivalHandoffDetection by inject()
     // [DET-BT-IDENTITY-GATE-001] Per-session BT-identity inputs for the evaluator's release veto.
     private val vehicleRepository: VehicleRepository by inject()
     private val bluetoothScanner: BluetoothScanner by inject()
@@ -366,8 +368,12 @@ class ParkingSafetyNetWorker(
                     // prompt asks the user to place it — a notification beats silence.
                     val backfillChained = action.preconfirmed && action.backfillBounded
                     if (!backfillChained) {
-                        runCatching { manualParkingDetection.start() }
-                            .onSuccess { PaparcarLogger.d(DIAG, "  → departure dispatched without backfill — tracking service started for the arrival") }
+                        // [DET-HANDOFF-NOT-MANUAL-001] Through the handoff's OWN port: this arm is
+                        // the net's deduction, not the user's word, and every downstream reader
+                        // (strategy gate, evidence strength, diagnostics, debug copy) must be able
+                        // to tell the two apart. It used to call the "I'm driving" port.
+                        runCatching { arrivalHandoffDetection.start() }
+                            .onSuccess { PaparcarLogger.d(DIAG, "  → departure dispatched without backfill — arrival handoff started for the rest of the trip") }
                             .onFailure { e ->
                                 PaparcarLogger.w(DIAG, "  ⊘ tracking service start denied (${e.message}) — asking the user via still-parked prompt")
                                 // This prompt must survive the end-of-run cleanup: without the

@@ -225,3 +225,33 @@ val MIGRATION_17_18 = object : Migration(17, 18) {
     }
 }
 
+
+/**
+ * v18 → v19: add provisionalDepartureAtMs to parking_sessions — the epoch-ms of a DEDUCED departure
+ * that published the community spot PROVISIONALLY (short TTL) and deliberately kept this session
+ * alive instead of releasing the car on an inference. Nullable INTEGER, additive/non-destructive;
+ * existing rows read null (nothing pending). Local-only: it coordinates promote-vs-expire on this
+ * device and is never synced. [DET-HANDOFF-NOT-MANUAL-001 §B]
+ */
+val MIGRATION_18_19 = object : Migration(18, 19) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL(
+            "ALTER TABLE parking_sessions ADD COLUMN provisionalDepartureAtMs INTEGER"
+        )
+    }
+}
+
+/**
+ * v19 → v20: add status to cached_spots — CONFIRMED / PROVISIONAL / RETRACTED. TEXT NOT NULL
+ * DEFAULT 'CONFIRMED', additive/non-destructive: every cached row predates the distinction and
+ * came from a witnessed departure, which is exactly what CONFIRMED means. The table is a pure
+ * mirror of Firestore, so a wrong default would self-correct on the next snapshot anyway — but a
+ * correct one keeps the offline-first first paint honest. [DET-HANDOFF-NOT-MANUAL-001 §B.3]
+ */
+val MIGRATION_19_20 = object : Migration(19, 20) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL(
+            "ALTER TABLE cached_spots ADD COLUMN status TEXT NOT NULL DEFAULT 'CONFIRMED'"
+        )
+    }
+}

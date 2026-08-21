@@ -7,6 +7,7 @@ import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkedVehicleSummary
 import io.apptolast.paparcar.domain.model.SearchResult
 import io.apptolast.paparcar.domain.model.Spot
+import io.apptolast.paparcar.domain.model.SpotStatus
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.VehicleMonitoringStatus
@@ -188,7 +189,10 @@ internal fun HomeState.toFabsSlice() = HomeFabsSlice(
 
 internal fun HomeState.toMapSlice() = HomeMapSlice(
     mapType = mapType,
-    nearbySpots = nearbySpots,
+    // [DET-HANDOFF-NOT-MANUAL-001 §B.3] A withdrawn spot has no marker: leaving a pin on the map
+    // for a space we no longer believe in is the exact failure the retraction exists to stop. The
+    // peek explains it; the map just stops offering it.
+    nearbySpots = nearbySpots.filter { it.status.isAvailable },
     userGpsPoint = userGpsPoint,
     parkingLocation = userParking?.location,
     addParkingVehicle = resolveAddParkingVehicle(),
@@ -235,7 +239,9 @@ internal fun HomeState.toBrowseListSlice() = HomeBrowseListSlice(
     isLoading = isLoading,
     sizeFilter = sizeFilter,
     filteredSpots = filteredNearbySpots(),
-    hasAnySpots = nearbySpots.isNotEmpty(),
+    // The filter bar and the empty state ask "is there anything on offer at all" — a withdrawn
+    // spot is not. [DET-HANDOFF-NOT-MANUAL-001 §B.3]
+    hasAnySpots = nearbySpots.any { it.status.isAvailable },
     vehicleCards = vehicles.map { v ->
         VehicleCard(vehicle = v, session = activeSessions.firstOrNull { it.vehicleId == v.id })
     },
@@ -247,10 +253,20 @@ internal fun HomeState.toBrowseListSlice() = HomeBrowseListSlice(
 /**
  * [HomeState.nearbySpots] after applying the size filter. Spots with a null
  * sizeCategory are always included (preserves legacy data with unknown sizes).
+ *
+ * [DET-HANDOFF-NOT-MANUAL-001 §B.3] Two more rules, both about how well the departure behind a spot
+ * is proven:
+ * - a WITHDRAWN spot is not on offer, so it never appears in this list. It deliberately stays in
+ *   [HomeState.nearbySpots] so a user who had it selected keeps the selection and gets told what
+ *   happened, instead of watching the sheet close under them.
+ * - an UNCONFIRMED one is offered, but last. [sortedBy] is stable, so within each group the
+ *   existing order survives untouched.
  */
 internal fun HomeState.filteredNearbySpots(): List<Spot> =
-    if (sizeFilter == null) nearbySpots
-    else nearbySpots.filter { it.sizeCategory == null || it.sizeCategory == sizeFilter }
+    nearbySpots
+        .filter { it.status.isAvailable }
+        .filter { sizeFilter == null || it.sizeCategory == null || it.sizeCategory == sizeFilter }
+        .sortedBy { it.status == SpotStatus.PROVISIONAL }
 
 /**
  * The vehicle an AddingParking session is being positioned FOR — edit resolves

@@ -80,6 +80,13 @@ val androidDetectionModule = module {
         io.apptolast.paparcar.detection.ManualParkingDetectionImpl(androidContext())
     }
 
+    // --- Arrival handoff start (safety net follows the rest of a dispatched trip).
+    // Its OWN port + service action so a worker-born session is never read as the user's
+    // "I'm driving". [DET-HANDOFF-NOT-MANUAL-001][DET-ARRIVAL-HANDOFF-001] ---
+    single<io.apptolast.paparcar.domain.detection.ArrivalHandoffDetection> {
+        io.apptolast.paparcar.detection.ArrivalHandoffDetectionImpl(androidContext())
+    }
+
     // --- Parking Enrichment ---
     single<ParkingEnrichmentScheduler> { WorkManagerParkingEnrichmentScheduler(androidContext()) }
 

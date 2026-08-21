@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.domain.usecase.parking
 
+import io.apptolast.paparcar.domain.detection.DepartureProof
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.UserParking
@@ -114,6 +115,62 @@ class ProcessConfirmedDepartureUseCaseTest {
         val event = logger.events.filterIsInstance<DetectionEvent.DepartureProcessed>().single()
         assertFalse(event.published)
         assertTrue(event.sessionCleared)
+    }
+
+    // ── [DET-HANDOFF-NOT-MANUAL-001 §B] A DEDUCED departure publishes, but takes nothing ──
+
+    @Test
+    fun should_publish_provisionally_and_keep_the_car_when_the_departure_was_only_deduced() = runTest {
+        // Field 2026-08-19 22:32: the safety net inferred a departure from the phone being far from
+        // the parked car. The user was on a bicycle. The old code published a 2-hour ghost spot AND
+        // released the session AND removed the geofence — three irreversible acts on a guess.
+        val repo = FakeUserParkingRepository(initialSession = activeSession())
+        val spotScheduler = FakeReportSpotScheduler()
+        val geofence = FakeGeofenceManager()
+        val useCase = buildUseCase(repo = repo, spotScheduler = spotScheduler, geofence = geofence)
+
+        val result = useCase("session-1", proof = DepartureProof.Deduced)
+
+        assertTrue(result.isSuccess)
+        // The spot still goes out AT ONCE — freshness is its entire value — but with a short life.
+        assertEquals(1, spotScheduler.scheduleCallCount)
+        assertEquals(true, spotScheduler.lastProvisional)
+        // …and nothing of the user's was given up.
+        assertTrue(repo.getActiveSessionByGeofence("session-1") != null, "the car stays parked")
+        assertEquals(emptyList(), geofence.removedIds, "its geofence stays armed for the real exit")
+        assertTrue(repo.provisionalDepartures["session-1"] != null, "the deduction is marked pending")
+    }
+
+    @Test
+    fun should_publish_a_deduced_departure_only_once() = runTest {
+        // The session now survives a deduction, so the 15-min safety net will deduce the same
+        // departure again while the user stays away. Re-publishing each time would blink a ghost
+        // spot on and off all afternoon; the first publication stands and its short TTL bounds it.
+        val repo = FakeUserParkingRepository(initialSession = activeSession())
+        val spotScheduler = FakeReportSpotScheduler()
+        val useCase = buildUseCase(repo = repo, spotScheduler = spotScheduler)
+
+        useCase("session-1", proof = DepartureProof.Deduced)
+        useCase("session-1", proof = DepartureProof.Deduced)
+
+        assertEquals(1, spotScheduler.scheduleCallCount, "one deduction, one publication")
+        assertTrue(repo.getActiveSessionByGeofence("session-1") != null)
+    }
+
+    @Test
+    fun should_still_commit_everything_when_the_departure_was_witnessed() = runTest {
+        // The measured case is untouched: a fresh fix at driving speed releases the car and the
+        // spot goes out with the normal lifetime.
+        val repo = FakeUserParkingRepository(initialSession = activeSession())
+        val spotScheduler = FakeReportSpotScheduler()
+        val geofence = FakeGeofenceManager()
+        val useCase = buildUseCase(repo = repo, spotScheduler = spotScheduler, geofence = geofence)
+
+        useCase("session-1", proof = DepartureProof.Witnessed)
+
+        assertEquals(false, spotScheduler.lastProvisional)
+        assertFalse(repo.getActiveSessionByGeofence("session-1") != null)
+        assertEquals(listOf("session-1"), geofence.removedIds)
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

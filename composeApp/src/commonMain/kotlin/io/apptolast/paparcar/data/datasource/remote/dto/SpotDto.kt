@@ -43,4 +43,11 @@ data class SpotDto(
     val countryCode: String? = null,
     val citySlug: String? = null,
     val geohash: String? = null,
-)
+    // [DET-HANDOFF-NOT-MANUAL-001 §B.3] CONFIRMED / PROVISIONAL / RETRACTED. The default keeps
+    // every pre-existing document reading as what it was: a witnessed departure.
+    val status: String = DEFAULT_SPOT_STATUS,
+) {
+    companion object {
+        const val DEFAULT_SPOT_STATUS = "CONFIRMED"
+    }
+}

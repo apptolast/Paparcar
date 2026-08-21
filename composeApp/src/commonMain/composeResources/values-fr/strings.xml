@@ -26,6 +26,12 @@
     <string name="home_parking_edit_dialog_body">Déplacez le pin au bon endroit ou supprimez cet enregistrement.</string>
     <string name="home_spot_still_there">Toujours là ?</string>
     <string name="home_spot_gone">Plus là</string>
+    <!-- [DET-HANDOFF-NOT-MANUAL-001 B.3] A spot published on a DEDUCED departure says so, and says it plainly when the report is withdrawn. -->
+    <string name="home_spot_unconfirmed_badge">Non confirmée</string>
+    <string name="home_spot_unconfirmed_note">Nous n'avons pas encore vérifié que la voiture est partie. Si vous y allez, dites-nous si la place est libre.</string>
+    <string name="home_spot_retracted_eyebrow">Retirée</string>
+    <string name="home_spot_retracted_note">La personne qui l'a signalée n'est finalement pas partie, la place n'est donc pas libre. Cherchez-en une autre à proximité.</string>
+    <string name="home_spot_retracted_action">Voir d'autres places</string>
     <string name="home_browse_eyebrow_zone">Votre zone</string>
     <string name="home_browse_parked_meta">Garé il y a %1$s · à %2$s de vous</string>
     <string name="home_browse_parked_ago">Garé il y a %1$s</string>

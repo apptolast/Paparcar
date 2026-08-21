@@ -251,8 +251,13 @@ class RunDepartureCheckUseCaseTest {
 
         assertIs<DepartureCheckOutcome.Processed>(outcome)
         assertEquals(1, env.listener.notifyCount)
-        assertNull(env.repo.getActiveSession(), "session cleared")
         assertEquals(1, env.spotScheduler.scheduleCallCount, "fresh recovered departure publishes")
+        // [DET-HANDOFF-NOT-MANUAL-001 §B] …provisionally: the reconcile INFERS the departure from
+        // where the phone is, which a bicycle satisfies just as well (field 2026-08-19). The spot
+        // goes out at once with a short TTL; the car is NOT given up until a drive is measured.
+        assertEquals(true, env.spotScheduler.lastProvisional, "deduced departure publishes provisionally")
+        assertNotNull(env.repo.getActiveSession(), "the car is not released on a deduction")
+        assertNotNull(env.repo.provisionalDepartures["geo-1"], "pending deduction is marked")
         val verdict = env.logger.events.filterIsInstance<DetectionEvent.DepartureVerdict>().single()
         assertEquals("Preconfirmed", verdict.verdict)
     }
@@ -301,7 +306,11 @@ class RunDepartureCheckUseCaseTest {
         )
 
         assertIs<DepartureCheckOutcome.Processed>(outcome)
-        assertNull(env.repo.getActiveSession(), "session cleared")
+        assertEquals(1, env.spotScheduler.scheduleCallCount, "the spot goes out immediately")
+        // [DET-HANDOFF-NOT-MANUAL-001 §B] An AR boarding beyond pedestrian reach is strong enough to
+        // advertise the spot, not to take the user's car: no speed was ever measured.
+        assertEquals(true, env.spotScheduler.lastProvisional)
+        assertNotNull(env.repo.getActiveSession(), "the car is not released on a boarding alone")
     }
 
     @Test
@@ -337,7 +346,12 @@ class RunDepartureCheckUseCaseTest {
         val outcome = env.useCase("geo-1", staleExitTimestamp, attempt = 0, preconfirmed = true)
 
         assertIs<DepartureCheckOutcome.Processed>(outcome)
-        assertNull(env.repo.getActiveSession(), "stale departure still clears the session")
         assertEquals(0, env.spotScheduler.scheduleCallCount, "no ghost spot published")
+        // [DET-HANDOFF-NOT-MANUAL-001 §B] The session no longer converges by being thrown away: a
+        // 5-hour-old DEDUCTION is not proof that the car moved, and an old pin the user can correct
+        // beats no pin at all. It is marked pending, so a measured drive (or a witnessed departure)
+        // finishes the job.
+        assertNotNull(env.repo.getActiveSession(), "a stale deduction does not take the car either")
+        assertNotNull(env.repo.provisionalDepartures["geo-1"], "pending deduction is marked")
     }
 }

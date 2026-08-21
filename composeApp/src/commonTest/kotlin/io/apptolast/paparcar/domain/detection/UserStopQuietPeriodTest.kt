@@ -16,7 +16,21 @@ class UserStopQuietPeriodTest {
         DetectionTrigger.GEOFENCE_EXIT,
         DetectionTrigger.AR_VEHICLE_ENTER,
         DetectionTrigger.SIGNIFICANT_MOTION,
+        // [DET-HANDOFF-NOT-MANUAL-001] The safety net's handoff used to borrow MANUAL, so it walked
+        // straight through this quiet period. It is a nominator like any other and sleeps with them.
+        DetectionTrigger.ARRIVAL_HANDOFF,
     )
+
+    @Test
+    fun should_leave_the_manual_trigger_as_the_one_and_only_exemption() {
+        // A guard against the next lane that gets added by borrowing MANUAL: if a new trigger shows
+        // up here unlisted, the quiet period silently stops covering it and the button lies again.
+        assertEquals(
+            DetectionTrigger.entries.size - 1,
+            automaticTriggers.size,
+            "every trigger except MANUAL must be listed above and suppressed",
+        )
+    }
 
     @Test
     fun should_suppress_every_automatic_trigger_when_the_quiet_period_is_running() {

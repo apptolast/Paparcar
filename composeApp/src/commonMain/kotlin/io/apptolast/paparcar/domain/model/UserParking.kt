@@ -44,6 +44,13 @@ data class UserParking(
      *  Local-only (never synced) — feeds the repark-plausibility guard: a replacement park whose
      *  session never reached driving speed is suspect. [DET-SOLID-001] */
     val tripMaxSpeedMps: Float? = null,
+    /** [DET-HANDOFF-NOT-MANUAL-001 §B] Epoch-ms when a DEDUCED departure published this session's
+     *  spot PROVISIONALLY and deliberately did NOT release the session (see
+     *  [io.apptolast.paparcar.domain.detection.DepartureProof]). The session stays alive — the car
+     *  is not given up on a deduction — and this marks that a promotion (drive proven → full TTL +
+     *  release) or an expiry (short TTL runs out) is outstanding. Local-only: it coordinates two
+     *  moments on THIS device, nothing remote reads it. Null when no deduced departure is pending. */
+    val provisionalDepartureAtMs: Long? = null,
     /** Arm-evidence label of the confirming session ("speed", "vehicle_enter", "unverified",
      *  "manual") — the ARM trigger. Synced to Firestore for remote diagnostics. [DET-SOLID-001] */
     val armEvidence: String? = null,

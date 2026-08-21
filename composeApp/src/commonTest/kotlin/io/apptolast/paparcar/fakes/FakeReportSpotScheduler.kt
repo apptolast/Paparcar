@@ -25,6 +25,11 @@ class FakeReportSpotScheduler : ReportSpotScheduler {
     /** When true, [enqueueReportSpot] throws to simulate a downstream failure. */
     var shouldThrow: Boolean = false
 
+    /** [DET-HANDOFF-NOT-MANUAL-001 §B] Whether the last publish went out as provisional (deduced
+     *  departure → short TTL). */
+    var lastProvisional: Boolean? = null
+        private set
+
     override fun enqueueReportSpot(
         spotId: String,
         lat: Double,
@@ -36,8 +41,10 @@ class FakeReportSpotScheduler : ReportSpotScheduler {
         sizeCategory: VehicleSize?,
         carbodyType: CarbodyType?,
         reportedBy: String?,
+        provisional: Boolean,
     ) {
         scheduleCallCount++
+        lastProvisional = provisional
         lastSpotId = spotId
         lastLat = lat
         lastLon = lon

@@ -3,6 +3,7 @@ package io.apptolast.paparcar.data.mapper
 import io.apptolast.paparcar.data.datasource.remote.dto.SpotDto
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.Spot
+import io.apptolast.paparcar.domain.model.SpotStatus
 import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.VehicleSize
 import kotlin.test.Test
@@ -108,6 +109,27 @@ class SpotDtoMapperTest {
         assertEquals("MANUAL_REPORT", buildSpot(type = SpotType.MANUAL_REPORT).toDto().type)
     }
 
+    // ── Status [DET-HANDOFF-NOT-MANUAL-001 §B.3] ──────────────────────────────
+
+    @Test
+    fun `status_should_surviveEveryHop_dto_domain_entity`() {
+        // The parity that matters: a status that drops anywhere on this path silently turns a
+        // withdrawn report back into an offer.
+        val dto = buildDto(status = "RETRACTED")
+
+        assertEquals(SpotStatus.RETRACTED, dto.toDomain().status, "wire → domain")
+        assertEquals("RETRACTED", buildSpot(status = SpotStatus.RETRACTED).toDto().status, "domain → wire")
+        assertEquals("RETRACTED", dto.toEntity().status, "wire → cache")
+        assertEquals(SpotStatus.RETRACTED, dto.toEntity().toDomain().status, "cache → domain")
+    }
+
+    @Test
+    fun `status_should_readAsConfirmed_for_everyDocumentWrittenBeforeTheFieldExisted`() {
+        // Those spots were published on witnessed departures, which is exactly what CONFIRMED means.
+        assertEquals(SpotStatus.CONFIRMED, buildDto().toDomain().status)
+        assertEquals(SpotStatus.CONFIRMED, buildDto(status = "SOMETHING_ELSE").toDomain().status)
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun buildDto(
@@ -116,6 +138,7 @@ class SpotDtoMapperTest {
         sizeCategory: String? = null,
         enRouteCount: Int = 0,
         expiresAt: Long = 0L,
+        status: String = "CONFIRMED",
     ) = SpotDto(
         id = "spot-test",
         latitude = 40.416775,
@@ -129,6 +152,7 @@ class SpotDtoMapperTest {
         sizeCategory = sizeCategory,
         enRouteCount = enRouteCount,
         expiresAt = expiresAt,
+        status = status,
     )
 
     private fun buildSpot(
@@ -137,6 +161,7 @@ class SpotDtoMapperTest {
         sizeCategory: VehicleSize? = null,
         enRouteCount: Int = 0,
         expiresAt: Long = 0L,
+        status: SpotStatus = SpotStatus.CONFIRMED,
     ) = Spot(
         id = "spot-test",
         location = GpsPoint(
@@ -152,5 +177,6 @@ class SpotDtoMapperTest {
         sizeCategory = sizeCategory,
         enRouteCount = enRouteCount,
         expiresAt = expiresAt,
+        status = status,
     )
 }

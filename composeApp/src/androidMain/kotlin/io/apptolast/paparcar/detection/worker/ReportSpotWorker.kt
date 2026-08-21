@@ -18,6 +18,7 @@ import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.PlaceCategory
 import io.apptolast.paparcar.domain.model.PlaceInfo
 import io.apptolast.paparcar.domain.model.Spot
+import io.apptolast.paparcar.domain.model.SpotStatus
 import io.apptolast.paparcar.domain.model.SpotTtlPolicy
 import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.VehicleSize
@@ -59,7 +60,10 @@ class ReportSpotWorker(
             ?.let { runCatching { VehicleSize.valueOf(it) }.getOrNull() }
         val carbodyType = inputData.getString(KEY_CARBODY_TYPE)
             ?.let { runCatching { CarbodyType.valueOf(it) }.getOrNull() }
-        val ttlMs = SpotTtlPolicy.ttlMsForType(spotType) // [AUDIT-ARCH-001 M13] shared with iOS
+        // [DET-HANDOFF-NOT-MANUAL-001 §B] A spot published on a DEDUCED departure lives minutes,
+        // not hours: the short TTL is the floor under a retraction that can always fail.
+        val provisional = inputData.getBoolean(KEY_PROVISIONAL, false)
+        val ttlMs = SpotTtlPolicy.ttlMsForType(spotType, provisional) // [AUDIT-ARCH-001 M13] shared with iOS
 
         // [SPOT-OFFLINE-TTL-001] The TTL is anchored to the RELEASE time (enqueue), not to delivery.
         // A push that spent hours queued offline (dead network, OEM-frozen WorkManager — field
@@ -89,6 +93,10 @@ class ReportSpotWorker(
             sizeCategory = sizeCategory,
             carbodyType = carbodyType,
             expiresAt = releasedAtMs + ttlMs,
+            // [DET-HANDOFF-NOT-MANUAL-001 §B.3] The spot says out loud how well its departure is
+            // proven, so the community UI can rank it honestly and a later promotion (or
+            // retraction) is a state change on this same document rather than a second spot.
+            status = if (provisional) SpotStatus.PROVISIONAL else SpotStatus.CONFIRMED,
         )
 
         return spotRepository.reportSpotReleased(spot).fold(
@@ -123,6 +131,7 @@ class ReportSpotWorker(
         private const val KEY_SIZE_CATEGORY = "size_category"
         private const val KEY_CARBODY_TYPE = "carbody_type"
         private const val KEY_REPORTED_BY = "reported_by"
+        private const val KEY_PROVISIONAL = "provisional"
 
         fun buildRequest(
             spotId: String,
@@ -135,6 +144,7 @@ class ReportSpotWorker(
             sizeCategory: VehicleSize? = null,
             carbodyType: CarbodyType? = null,
             reportedBy: String? = null,
+            provisional: Boolean = false,
         ): OneTimeWorkRequest =
             OneTimeWorkRequestBuilder<ReportSpotWorker>()
                 .setInputData(
@@ -155,6 +165,7 @@ class ReportSpotWorker(
                         KEY_SIZE_CATEGORY to sizeCategory?.name,
                         KEY_CARBODY_TYPE to carbodyType?.name,
                         KEY_REPORTED_BY to reportedBy,
+                        KEY_PROVISIONAL to provisional,
                     )
                 )
                 .setConstraints(

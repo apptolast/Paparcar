@@ -3,6 +3,7 @@
 package io.apptolast.paparcar.domain.usecase.parking
 
 import io.apptolast.paparcar.domain.detection.DepartureConfirmationListener
+import io.apptolast.paparcar.domain.detection.DepartureProof
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
@@ -60,6 +61,13 @@ class RunDepartureCheckUseCase(
         attempt: Int,
         preconfirmed: Boolean = false,
     ): DepartureCheckOutcome {
+        // [DET-HANDOFF-NOT-MANUAL-001 §B] How well this departure ends up being proven decides what
+        // may be COMMITTED — the spot always, the user's car only on measured driving. Starts at
+        // Deduced and is upgraded only by a fresh fix at credible driving speed: the
+        // parked-state reconcile (`preconfirmed`) infers from where the PHONE is, and the
+        // attempts-exhausted boarding fall-through rests on an AR ENTER, and both are equally
+        // satisfied by a bicycle (field 2026-08-19).
+        var proof = DepartureProof.Deduced
         if (!preconfirmed) {
             // Fresh fix only: this samples CURRENT speed — a cached fix answers "how fast was the
             // phone some minutes ago", which wastes attempts and skews the verdict. [DET-RECONCILE-001]
@@ -99,6 +107,10 @@ class RunDepartureCheckUseCase(
             }
 
             if (decision == DepartureDecision.Rejected) return DepartureCheckOutcome.Dismissed
+
+            // The only branch that MEASURED the car moving: a fresh fix at credible driving speed,
+            // independent of the exit's own echo. [DET-HANDOFF-NOT-MANUAL-001 §B]
+            if (decision == DepartureDecision.Confirmed) proof = DepartureProof.Witnessed
 
             if (decision is DepartureDecision.Inconclusive && attempt < MAX_INCONCLUSIVE_ATTEMPTS) {
                 return DepartureCheckOutcome.Retry
@@ -143,7 +155,7 @@ class RunDepartureCheckUseCase(
             PaparcarLogger.d(TAG, "stale departure (age=${exitAgeMs / 60_000}min) — clearing WITHOUT publishing (geof=${geofenceId.take(8)})")
         }
 
-        return processConfirmedDeparture(geofenceId, publishSpot = publishSpot).fold(
+        return processConfirmedDeparture(geofenceId, publishSpot = publishSpot, proof = proof).fold(
             onSuccess = { DepartureCheckOutcome.Processed },
             onFailure = { DepartureCheckOutcome.ProcessFailedRetry },
         )

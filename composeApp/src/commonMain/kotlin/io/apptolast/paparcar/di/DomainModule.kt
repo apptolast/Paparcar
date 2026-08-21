@@ -13,6 +13,8 @@ import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.usecase.parking.CalculateParkingConfidenceUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ClearParkNudgeUseCase
 import io.apptolast.paparcar.domain.usecase.parking.EvaluateParkingDecisionUseCase
+import io.apptolast.paparcar.domain.usecase.parking.FinalizeDeducedDepartureUseCase
+import io.apptolast.paparcar.domain.usecase.parking.RetractDeducedDepartureUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
 import io.apptolast.paparcar.domain.usecase.parking.EvaluateBackfillDeferralUseCase
 import io.apptolast.paparcar.domain.usecase.parking.EvaluateHonestCloseUseCase
@@ -155,6 +157,12 @@ val domainModule = module {
             detectionEventLogger = get(),
             evaluateParkingDecision = get(),
             phaseSink = get<MutableDetectionRuntimeState>(),
+            // [DET-HANDOFF-NOT-MANUAL-001 §B] The deduced departure's commit, deferred to the
+            // moment this session measures a drive.
+            finalizeDeducedDeparture = get(),
+            // [DET-HANDOFF-NOT-MANUAL-001 §B.3] …and its withdrawal, at the moment this session
+            // ends having measured none.
+            retractDeducedDeparture = get(),
         )
     }
 
@@ -172,6 +180,25 @@ val domainModule = module {
             userParkingRepository = get(),
             geofenceService = get(),
             notificationPort = get(),
+            detectionEventLogger = get(),
+        )
+    }
+    // [DET-HANDOFF-NOT-MANUAL-001 §B] Promotes a provisional spot + releases the car once a drive
+    // is measured — the other half of a deduced departure.
+    factory {
+        FinalizeDeducedDepartureUseCase(
+            userParkingRepository = get(),
+            reportSpotReleased = get(),
+            geofenceService = get(),
+            detectionEventLogger = get(),
+        )
+    }
+    // [DET-HANDOFF-NOT-MANUAL-001 §B.3] Withdraws that same provisional spot when the trip ends
+    // having measured no drive at all — the losing half of the same pair.
+    factory {
+        RetractDeducedDepartureUseCase(
+            userParkingRepository = get(),
+            spotRepository = get(),
             detectionEventLogger = get(),
         )
     }

@@ -10,6 +10,7 @@ import io.apptolast.paparcar.data.datasource.remote.dto.PlaceInfoDto
 import io.apptolast.paparcar.data.datasource.remote.dto.SpotDto
 import io.apptolast.paparcar.data.datasource.remote.dto.ZoneDto
 import io.apptolast.paparcar.data.geohash.geohashQueryBounds
+import io.apptolast.paparcar.domain.model.SpotStatus
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -49,6 +50,17 @@ class FirebaseDataSourceImpl(private val firestore: FirebaseFirestore) : Firebas
 
     override suspend fun deleteSpot(spotId: String) {
         spotsCollection.document(spotId).delete()
+    }
+
+    @Suppress("DEPRECATION")
+    override suspend fun retractSpot(spotId: String, expiresAt: Long) {
+        // A targeted update, not a set(): the retraction knows two things about the spot (it is
+        // withdrawn, and it dies soon) and has no business rewriting the address, the geohash or
+        // the community counters other users have been incrementing meanwhile.
+        spotsCollection.document(spotId).update(
+            FIELD_STATUS to SpotStatus.RETRACTED.name,
+            FIELD_EXPIRES_AT to expiresAt,
+        )
     }
 
     @Suppress("DEPRECATION")
@@ -135,6 +147,9 @@ class FirebaseDataSourceImpl(private val firestore: FirebaseFirestore) : Firebas
                 countryCode = get<String?>(FIELD_COUNTRY_CODE),
                 citySlug = get<String?>(FIELD_CITY_SLUG),
                 geohash = get<String?>(FIELD_GEOHASH),
+                // [DET-HANDOFF-NOT-MANUAL-001 §B.3] Missing on every document written before the
+                // field existed → CONFIRMED, which is what those departures were.
+                status = get<String?>(FIELD_STATUS) ?: SpotDto.DEFAULT_SPOT_STATUS,
             )
         }.getOrElse { e ->
             PaparcarLogger.e(TAG, "toSpotDto failed for doc=$id", e)
@@ -170,6 +185,7 @@ class FirebaseDataSourceImpl(private val firestore: FirebaseFirestore) : Firebas
         const val FIELD_COUNTRY_CODE = "countryCode"
         const val FIELD_CITY_SLUG = "citySlug"
         const val FIELD_GEOHASH = "geohash"
+        const val FIELD_STATUS = "status"
 
         // Zone fields
         const val FIELD_USER_ID = "userId"

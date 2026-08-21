@@ -35,4 +35,6 @@ data class SpotEntity(
     // Phase 7 — community signals
     val acceptCount: Int = 0,
     val rejectCount: Int = 0,
+    // [DET-HANDOFF-NOT-MANUAL-001 §B.3] CONFIRMED / PROVISIONAL / RETRACTED.
+    val status: String = "CONFIRMED",
 )

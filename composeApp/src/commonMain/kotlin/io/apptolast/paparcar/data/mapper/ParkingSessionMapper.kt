@@ -40,6 +40,7 @@ fun UserParkingEntity.toDomain(): UserParking = UserParking(
     spotType = spotType.toEnumOrDefault(SpotType.AUTO_DETECTED),
     privateZoneId = privateZoneId,
     tripMaxSpeedMps = tripMaxSpeedMps,
+    provisionalDepartureAtMs = provisionalDepartureAtMs,
     armEvidence = armEvidence,
     detectionPath = detectionPath,
     zoneRadiusMeters = zoneRadiusMeters,
@@ -99,6 +100,8 @@ fun UserParking.toEntity(updatedAt: Long = 0, pendingSync: Boolean = false): Use
     // tripMaxSpeedMps: local-only (feeds the repark guard, never synced). armEvidence + detectionPath
     // ARE synced to Firestore for remote provenance diagnostics. [DET-SOLID-001][DET-PIN-PROVENANCE-001]
     tripMaxSpeedMps = tripMaxSpeedMps,
+    // provisionalDepartureAtMs: local-only pending-deduced-departure marker. [DET-HANDOFF-NOT-MANUAL-001 §B]
+    provisionalDepartureAtMs = provisionalDepartureAtMs,
     armEvidence = armEvidence,
     detectionPath = detectionPath,
     // zoneRadiusMeters: local-only honest-close artifact — round-trips Room, never synced (an

@@ -13,6 +13,7 @@ import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.PlaceCategory
 import io.apptolast.paparcar.domain.model.PlaceInfo
 import io.apptolast.paparcar.domain.model.Spot
+import io.apptolast.paparcar.domain.model.SpotStatus
 import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.VehicleSize
 import kotlin.time.Clock
@@ -46,6 +47,7 @@ fun SpotDto.toDomain(): Spot = Spot(
     carbodyType = carbodyType.toEnumOrNull<CarbodyType>(),
     enRouteCount = enRouteCount.coerceAtLeast(0),
     expiresAt = expiresAt,
+    status = status.toEnumOrDefault(SpotStatus.CONFIRMED),
 )
 
 fun Spot.toDto(): SpotDto = SpotDto(
@@ -69,6 +71,7 @@ fun Spot.toDto(): SpotDto = SpotDto(
     carbodyType = carbodyType?.name,
     enRouteCount = enRouteCount,
     expiresAt = expiresAt,
+    status = status.name,
     // Note: acceptCount/rejectCount are NOT written back through Spot.toDto()
     // — signals are written via FirebaseDataSource.sendSpotSignal() with FieldValue.increment.
 )
@@ -99,6 +102,7 @@ fun SpotDto.toEntity(): SpotEntity = SpotEntity(
     expiresAt = expiresAt,
     acceptCount = acceptCount,
     rejectCount = rejectCount,
+    status = status,
 )
 
 fun SpotEntity.toDomain(): Spot = Spot(
@@ -130,6 +134,7 @@ fun SpotEntity.toDomain(): Spot = Spot(
     carbodyType = carbodyType.toEnumOrNull<CarbodyType>(),
     enRouteCount = enRouteCount.coerceAtLeast(0),
     expiresAt = expiresAt,
+    status = status.toEnumOrDefault(SpotStatus.CONFIRMED),
 )
 
 // ─── Confidence decay ─────────────────────────────────────────────────────────

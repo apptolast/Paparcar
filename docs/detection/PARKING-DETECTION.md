@@ -2725,3 +2725,132 @@ covers the previously parked car. No new `detectionPath` (nothing is ever confir
 path); 3 strings in the 9 locales; the Driving row's new CTA is already covered by the existing
 gallery/preview states. 1247 tests green (1236 on master + 11 new). Spec:
 `docs/backlog/det-stop-button-001.md`.
+
+---
+
+### DET-HANDOFF-NOT-MANUAL-001 — an automatic arm must not wear the user's word (2026-08-20)
+
+**Field.** 2026-08-19 22:32, bicycle ride, both phones. Two Coordinator sessions opened stamped
+`ARM:MANUAL` / `evidence=manual` while the user touched nothing (Oppo `1787171533976`, Redmi
+`1787171592952`; both ended `aborted_unattended_human_powered`, no pin). The arm came from
+`ParkingSafetyNetWorker`'s arrival handoff [DET-ARRIVAL-HANDOFF-001]: WorkManager shows the periodic
+net at 22:32 dispatching `DepartureDetectionWorker` → `ReportSpotWorker` +
+`ClearActiveParkingSessionWorker`, and then, having chained no backfill, calling
+`manualParkingDetection.start()`.
+
+**Root cause.** One door served two callers. `ACTION_START_TRACKING` was both the "I'm driving"
+button and the handoff, so the worker-born session arrived as `DetectionTrigger.MANUAL` with
+`ArmEvidence.Manual` (the parameter default). MANUAL is not a neutral label — three separate readers
+grant it privileges: `coordinatorMayArm` exempts it from the strategy gate (the ONLY exemption),
+`EvaluateParkingDecisionUseCase.weakLabels` treats `manual` as strong enough to save in silence, and
+the debug trace tells the field tester "pulsaste 'Estoy conduciendo'". A deduction about where the
+PHONE is — satisfied by a walk, a bicycle, or somebody else's car — was inheriting the authority of
+a human statement.
+
+**Fix.** Give the handoff its own identity end to end, and nothing else:
+- `DetectionTrigger.ARRIVAL_HANDOFF` + `ArmEvidence.ArrivalHandoff` (`arrival_handoff`), reached
+  through a port of its own (`ArrivalHandoffDetection` → `ACTION_ARRIVAL_HANDOFF`). One door per
+  meaning: `ManualParkingDetection`/`ACTION_START_TRACKING` is the button and nothing else.
+- The strategy gate stops exempting it: only MANUAL bypasses the resolved strategy, guarded by a
+  test that asserts the exemption list has exactly one member.
+- `weakLabels` gains `arrival_handoff`: without measured driving the session asks instead of
+  pinning silently — the same rule `self_observed` already lives under.
+- `shouldNudgeForStalePending` keeps nudging on it, for a reason of its own: by the time the handoff
+  arms, the departure has ALREADY been committed (spot published, session released, geofence
+  removed), so a pending that dies here costs the user the car exactly as a real departure would.
+
+**Not fixed here.** The bigger half of the ticket: the departure still commits (publish + release +
+`removeGeofence`) BEFORE anything proves a drive. That is `docs/backlog/det-handoff-not-manual-001.md`
+§B — car released only on proof, spot published immediately but classified (provisional + short TTL
+when the departure was merely deduced), retraction as a state. Its prerequisite is a FAST negative
+verdict (the 19-08 session took 29 min to conclude "this was a bicycle" because the verdict hung off
+the 15-min prompt timeout) → `DET-HUMAN-POWERED-EARLY-CLOSE-001`.
+
+Provenance labels are free strings in Room/Firestore, so no migration. No new detectionPath, no
+strings, no Dev Catalog surface (the only copy is the DEBUG arm notification, now honest: "el móvil
+se alejó de la plaza vigilada y la red de seguridad dio la salida por buena"). 1241 tests green
+(1236 on master + 5 new). Spec: `docs/backlog/det-handoff-not-manual-001.md`.
+
+### DET-HANDOFF-NOT-MANUAL-001 §B — una salida DEDUCIDA publica la plaza, pero no se lleva el coche (2026-08-20)
+
+**Field.** 2026-08-19 22:32 (both phones). The safety net inferred a departure from the PHONE having
+left the parked car's neighbourhood — the user was on a bicycle — and committed three irreversible
+things at once: published a 2-hour community spot, released the parking session, removed the
+geofence. Two cars that never moved were lost to their owner, two ghost spots were advertised to the
+community, and the next real departure lost its EXIT trigger.
+
+**Root cause.** Every confirmed departure ran the same block regardless of what had been observed.
+But the two commitments have OPPOSITE risk profiles: a free spot is worth minutes (its freshness is
+the whole product), while releasing the user's own session is worth nothing to anyone — nobody but
+its owner reads it — and costs that owner their car when the inference is wrong.
+
+**Fix — split them by proof.** New `DepartureProof` (`Witnessed` / `Deduced`), derived where the
+decision is made: only a fresh fix at credible driving speed is Witnessed; the parked-state reconcile
+(`preconfirmed`) and the attempts-exhausted AR-boarding fall-through are Deduced (a bicycle satisfies
+both).
+- **Deduced** → the spot goes out AT ONCE but provisional: `SpotTtlPolicy.PROVISIONAL_SPOT_TTL_MS`
+  (12 min). Session and geofence are KEPT, and the session is marked
+  (`provisionalDepartureAtMs`, Room v19, local-only). Publishing happens ONCE per pending deduction —
+  the 15-min net re-deduces while the user stays away, and re-publishing would blink a ghost on and
+  off all afternoon; re-dispatching is still allowed, since that is what keeps handing the trip to
+  live detection.
+- **Witnessed** → unchanged: full TTL, session released, geofence removed.
+- **The commit moves to the proof**: `FinalizeDeducedDepartureUseCase`, hooked one-shot to the
+  coordinator's `driveProven` latch, re-publishes the same spot id without `provisional` (same
+  document, full TTL) and only then clears the session and removes the geofence.
+- The watchdog "I've left" tap is explicitly Witnessed — the user's word outranks any fix.
+
+**When the drive is never proven** (the bicycle): there is nothing to undo, because nothing was
+taken. The provisional spot expires by itself, the car is still pinned where it was parked, and its
+geofence is still armed for the real departure. The short TTL is the FLOOR: an explicit retraction
+can always fail (process death, no network, OEM kill), so the lifetime itself has to be survivable.
+
+Deliberately deferred (§B.3/§B.5): explicit retraction + notifying `enRouteCount` + a "sin confirmar"
+treatment in the UI, and instrumenting the retracted-rate per departure class. 1248 tests green.
+Spec: `docs/backlog/det-handoff-not-manual-001.md` §B.
+
+---
+
+### DET-HANDOFF-NOT-MANUAL-001 §B.3 — a withdrawn spot is a STATE, not a silence (pending)
+
+**Where §B stopped.** A deduced departure published at full speed and kept the car, and when the trip
+never measured a drive the phantom simply *expired* — up to twelve more minutes on the map after the
+app already knew better. The TTL is a floor, not a verdict.
+
+**Fix — retract on the verdict, and say so out loud.** `SpotStatus` (`CONFIRMED` / `PROVISIONAL` /
+`RETRACTED`) rides the spot end to end: domain, Firestore document, Room cache (v20), both
+schedulers. A deduced departure publishes `PROVISIONAL`; `FinalizeDeducedDepartureUseCase`'s
+promotion rewrites the same document as `CONFIRMED` with the full TTL.
+
+`RetractDeducedDepartureUseCase` is the losing half, hooked to the coordinator's session-end block
+right where `finalizeDeducedDeparture` sits for the winning one: **this session is over and it never
+measured a drive**, so any departure deduced from this trip is refuted and its spot is withdrawn. It
+runs AFTER the held-confirm finalize on purpose — a park confirmed at the last moment replaces the
+pending session, and then there is nothing left to retract.
+
+**Why a state and not a delete.** A deleted document just stops arriving in the listener's snapshot:
+the marker vanishes mid-approach with no explanation, and the driver heading there learns the app
+lies. A retracted one keeps arriving for `SpotTtlPolicy.RETRACTION_GRACE_MS` (2 min) — long enough
+for the client that has it open to be told — and the existing expiry sweep prunes it afterwards.
+The write is a two-field `update` (status + expiry), never a `set`: a retraction has no business
+rewriting the address or the community counters other users have been incrementing.
+
+**What is deliberately NOT undone:** the `provisionalDepartureAtMs` marker stays. It doubles as the
+"this deduction already spent its one publication" guard from §B — clearing it would let the safety
+net re-deduce the same departure 15 min later and republish the same wrong guess. It also means a
+drive measured LATER still promotes the spot and releases the car through the ordinary path: a
+retraction withdraws a REPORT, it does not close the case.
+
+**UI.** Withdrawn spots leave the browse list, the map and the free counter, but stay resolvable as
+the *selected* spot so the peek can explain itself (eyebrow "Retirada", one honest sentence, and a
+single action back to the spots that do exist) instead of closing the sheet under the user.
+Unconfirmed ones keep the whole community loop — they are real offers — but carry a "SIN CONFIRMAR"
+token in the row and sort below every confirmed spot. New diagnostics event `SPOT_RETRACTED` (the
+app's own admission), which is the numerator §B.5 will divide by departure class.
+
+**Known gap, not deferred by choice:** "warn whoever was already driving there" cannot be built yet.
+`enRouteCount` is a bare counter with no per-user rows and, today, no writer at all — there is no
+record of WHO is heading to a spot and no channel to reach them. The notice therefore reaches only a
+user who has the spot open. Tracking en-route intent is its own ticket.
+
+1258 tests green. Spec: `docs/backlog/det-handoff-not-manual-001.md` §B.3.

@@ -63,6 +63,7 @@ import io.apptolast.paparcar.presentation.home.sections.sheet.components.HomeDet
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.HomePeekHandle
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.SpotFitRow
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.homeSheetItems
+import io.apptolast.paparcar.domain.model.SpotStatus
 import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.Vehicle
@@ -538,6 +539,31 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                         nearbySpots = FakeData.nearbySpots,
                         userGpsPoint = sampleGps,
                         selectedItemId = FakeData.nearbySpots.first().id,
+                    ),
+                )
+            },
+            // [DET-HANDOFF-NOT-MANUAL-001 §B.3] A spot published on a DEDUCED departure: still a
+            // real offer (full community loop), but it says it is unconfirmed and explains what
+            // the two signal buttons below are for.
+            Variant("PapSheet · spot sin confirmar (salida deducida)", Placement.Surface) {
+                val unconfirmed = FakeData.nearbySpots.first().copy(status = SpotStatus.PROVISIONAL)
+                peek(
+                    HomeState(
+                        nearbySpots = listOf(unconfirmed) + FakeData.nearbySpots.drop(1),
+                        userGpsPoint = sampleGps,
+                        selectedItemId = unconfirmed.id,
+                    ),
+                )
+            },
+            // …and the same spot after the trip proved no drive: withdrawn. No directions, no
+            // "still there?" — every one of those actions is about a space that exists.
+            Variant("PapSheet · spot retirado (la salida no ocurrió)", Placement.Surface) {
+                val retracted = FakeData.nearbySpots.first().copy(status = SpotStatus.RETRACTED)
+                peek(
+                    HomeState(
+                        nearbySpots = listOf(retracted) + FakeData.nearbySpots.drop(1),
+                        userGpsPoint = sampleGps,
+                        selectedItemId = retracted.id,
                     ),
                 )
             },

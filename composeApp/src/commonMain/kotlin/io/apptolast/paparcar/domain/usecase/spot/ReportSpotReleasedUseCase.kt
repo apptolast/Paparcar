@@ -44,6 +44,9 @@ class ReportSpotReleasedUseCase(
         sizeCategory: VehicleSize? = null,
         carbodyType: CarbodyType? = null,
         prefetched: AddressAndPlace? = null,
+        /** [DET-HANDOFF-NOT-MANUAL-001 §B] The departure behind this spot was deduced, not measured:
+         *  publish now (freshness is the value) but with the provisional lifetime. */
+        provisional: Boolean = false,
     ) {
         // [AUDIT-RULES-001 C4] The spot's identity is the reporter's UID, not their display name —
         // the Firestore rules key owner-only edit/delete off `reportedBy == request.auth.uid`.
@@ -74,6 +77,7 @@ class ReportSpotReleasedUseCase(
             sizeCategory = sizeCategory,
             carbodyType = carbodyType,
             reportedBy = reportedByUid,
+            provisional = provisional,
         )
     }
 

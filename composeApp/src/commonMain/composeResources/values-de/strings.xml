@@ -26,6 +26,12 @@
     <string name="home_parking_edit_dialog_body">Verschiebe den Pin an die richtige Stelle oder lösche diesen Eintrag.</string>
     <string name="home_spot_still_there">Noch frei?</string>
     <string name="home_spot_gone">Schon weg</string>
+    <!-- [DET-HANDOFF-NOT-MANUAL-001 B.3] A spot published on a DEDUCED departure says so, and says it plainly when the report is withdrawn. -->
+    <string name="home_spot_unconfirmed_badge">Unbestätigt</string>
+    <string name="home_spot_unconfirmed_note">Wir haben noch nicht bestätigt, dass das Auto weggefahren ist. Wenn du hinfährst, sag uns, ob der Platz frei ist.</string>
+    <string name="home_spot_retracted_eyebrow">Zurückgezogen</string>
+    <string name="home_spot_retracted_note">Wer sie gemeldet hat, ist am Ende doch nicht weggefahren, der Platz ist also nicht frei. Suche einen anderen in der Nähe.</string>
+    <string name="home_spot_retracted_action">Andere Plätze ansehen</string>
     <string name="home_browse_eyebrow_zone">Deine Zone</string>
     <string name="home_browse_parked_meta">Geparkt vor %1$s · %2$s entfernt</string>
     <string name="home_browse_parked_ago">Geparkt vor %1$s</string>

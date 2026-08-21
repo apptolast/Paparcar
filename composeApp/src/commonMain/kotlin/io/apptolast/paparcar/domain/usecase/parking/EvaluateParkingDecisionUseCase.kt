@@ -203,10 +203,17 @@ class EvaluateParkingDecisionUseCase(private val config: ParkingDetectionConfig)
         // disarmed the anti-walking aborts, and 270 walking steps + egress silently re-pinned 7 m
         // from the previous park (field 2026-08-13, Calle Góndola). Doctrine: the event nominates,
         // only MEASURED movement confirms — no proven drive, no silent pin. Ask instead.
+        // [DET-HANDOFF-NOT-MANUAL-001] `arrival_handoff` belongs in this set for the same reason
+        // `self_observed` does — and it is the label that exposed the hole. The safety net's handoff
+        // arms on a DEDUCED departure (the phone left the parked car's neighbourhood, which a walk
+        // or a bicycle satisfies just as well) and it used to arrive stamped `manual`, i.e. wearing
+        // the user's own word, which this policy trusts to save in silence. It never witnessed a
+        // drive: without `sessionSawDriving` it asks.
         val weakLabels = setOf(
             io.apptolast.paparcar.domain.detection.ArmEvidence.LABEL_VERIFIED_ENTER,
             io.apptolast.paparcar.domain.detection.ArmEvidence.LABEL_VERIFIED_LATE,
             io.apptolast.paparcar.domain.detection.ArmEvidence.LABEL_SELF_OBSERVED,
+            io.apptolast.paparcar.domain.detection.ArmEvidence.LABEL_ARRIVAL_HANDOFF,
         )
         val weakEvidenceOnly = config.autoConfirmRequiresStrongEvidence &&
             input.evidenceLabel in weakLabels &&

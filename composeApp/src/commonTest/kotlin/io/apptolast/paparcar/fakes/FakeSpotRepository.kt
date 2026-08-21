@@ -32,6 +32,15 @@ class FakeSpotRepository : SpotRepository {
         return reportResult
     }
 
+    /** [DET-HANDOFF-NOT-MANUAL-001 §B.3] Spot ids withdrawn through [retractSpot], in order. */
+    val retractedSpotIds = mutableListOf<String>()
+    var retractResult: Result<Unit> = Result.success(Unit)
+
+    override suspend fun retractSpot(spotId: String): Result<Unit> {
+        retractedSpotIds += spotId
+        return retractResult
+    }
+
     var signalCallCount = 0
         private set
     var lastSignalAccepted: Boolean? = null

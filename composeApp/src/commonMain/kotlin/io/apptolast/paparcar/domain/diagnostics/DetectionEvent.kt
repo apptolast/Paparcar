@@ -181,6 +181,21 @@ sealed interface DetectionEvent {
         override val location: GpsPoint? = null,
     ) : DetectionEvent
 
+    /**
+     * [DET-HANDOFF-NOT-MANUAL-001 §B.3] A provisionally-published spot was WITHDRAWN: the trip the
+     * departure had been deduced from ended without ever measuring a drive.
+     *
+     * The app's own admission that it published something it could not back up — the mirror image
+     * of [Reverted], and the numerator of the retracted-rate §B.5 uses to decide which classes of
+     * departure deserve to publish as confirmed. [sessionAgeMs] is how long the ghost was live.
+     */
+    data class SpotRetracted(
+        override val sessionId: String,
+        override val timestampMs: Long,
+        val sessionAgeMs: Long? = null,
+        override val location: GpsPoint? = null,
+    ) : DetectionEvent
+
     /** The user reverted a saved park [sessionAgeMs] after it was confirmed — a user-labelled
      *  FALSE POSITIVE, the highest-value signal detection telemetry can produce. */
     data class Reverted(

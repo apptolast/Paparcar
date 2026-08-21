@@ -123,6 +123,17 @@ class FakeUserParkingRepository(
      *  without mutating state. */
     var clearActiveParkingSessionResult: Result<Unit>? = null
 
+    /** [DET-HANDOFF-NOT-MANUAL-001 §B] Pending deduced departures written by
+     *  `markProvisionalDeparture`, and mirrored onto the stored session so lookups see it. */
+    val provisionalDepartures = mutableMapOf<String, Long?>()
+
+    override suspend fun markProvisionalDeparture(sessionId: String, atMs: Long?): Result<Unit> {
+        provisionalDepartures[sessionId] = atMs
+        sessions.replaceAll { if (it.id == sessionId) it.copy(provisionalDepartureAtMs = atMs) else it }
+        _sessionsFlow.value = sessions.toList()
+        return Result.success(Unit)
+    }
+
     override suspend fun clearActiveParkingSession(sessionId: String): Result<Unit> {
         clearActiveParkingSessionResult?.let { override ->
             if (override.isFailure) return override

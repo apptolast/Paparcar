@@ -17,6 +17,8 @@ class FakeFirebaseDataSource : FirebaseDataSource {
 
     override suspend fun deleteSpot(spotId: String) {}
 
+    override suspend fun retractSpot(spotId: String, expiresAt: Long) {}
+
     override suspend fun sendSpotSignal(spotId: String, accepted: Boolean) {}
 
     override suspend fun getZones(userId: String): List<ZoneDto> = emptyList()

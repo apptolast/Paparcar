@@ -19,6 +19,7 @@ import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Group
 import androidx.compose.material.icons.rounded.Navigation
 import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -30,6 +31,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.Spot
+import io.apptolast.paparcar.domain.model.SpotStatus
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.presentation.home.HomeIntent
 import io.apptolast.paparcar.presentation.home.sections.sheet.HomeSheetAction
@@ -52,7 +54,11 @@ import paparcar.composeapp.generated.resources.home_peek_spot_age_min
 import paparcar.composeapp.generated.resources.home_peek_spot_en_route
 import paparcar.composeapp.generated.resources.home_spot_gone
 import paparcar.composeapp.generated.resources.home_spot_peek_show_list
+import paparcar.composeapp.generated.resources.home_spot_retracted_action
+import paparcar.composeapp.generated.resources.home_spot_retracted_eyebrow
+import paparcar.composeapp.generated.resources.home_spot_retracted_note
 import paparcar.composeapp.generated.resources.home_spot_still_there
+import paparcar.composeapp.generated.resources.home_spot_unconfirmed_note
 
 // ═════════════════════════════════════════════════════════════════════════════
 // SpotPeek — selected community spot. [HOME-ATOMIZE-001 F3]
@@ -60,6 +66,7 @@ import paparcar.composeapp.generated.resources.home_spot_still_there
 
 private const val WALK_DISTANCE_THRESHOLD_M = 400f
 private const val TOGGLE_ROW_ALPHA = 0.55f
+private const val NOTE_ALPHA = 0.75f
 
 @Composable
 internal fun SpotPeek(
@@ -72,6 +79,12 @@ internal fun SpotPeek(
 ) {
     val reliabilityLevel = spot.toReliabilityUiState()
     val palette = reliabilityLevel.peekPalette()
+    // [DET-HANDOFF-NOT-MANUAL-001 §B.3] The spot was withdrawn while the user had it open. The
+    // marker is already gone from the map; this peek is the only place left that can say WHY, so
+    // it drops the whole community loop (directions, "still there?", "it's gone") — every one of
+    // those actions is about a space that exists — and says the one true thing instead.
+    val isRetracted = spot.status == SpotStatus.RETRACTED
+    val isUnconfirmed = spot.status == SpotStatus.PROVISIONAL
     val distM = userLocation?.let { (uLat, uLon) ->
         distanceMeters(uLat, uLon, spot.location.latitude, spot.location.longitude)
     }
@@ -95,73 +108,119 @@ internal fun SpotPeek(
             isManual = spot.isManualReport,
             enRouteCount = spot.enRouteCount,
         ),
-        eyebrow = palette.label,
+        eyebrow = if (isRetracted) stringResource(Res.string.home_spot_retracted_eyebrow) else palette.label,
         // Reliability tint also rides the eyebrow; the lead puck itself now carries the
         // tier colour/ring, matching the map marker and list row. [HOME-PUCK-001]
-        eyebrowColor = palette.badgeBg,
+        // A withdrawn spot has no reliability left to tint — the eyebrow states it in ink.
+        // [UI-COLOR-DOCTRINE-001]
+        eyebrowColor = if (isRetracted) MaterialTheme.colorScheme.onSurfaceVariant else palette.badgeBg,
         title = title,
         onDismiss = { onIntent(HomeIntent.SelectItem(null)) },
         meta = {
-            SpotFitRow(spot = spot, vehicle = activeVehicle)
-            DistanceRow(distanceM = distM, mode = travelMode, accentColor = palette.badgeBg)
-            if (spotAgeMin != null) {
-                SpotAgeRow(ageMinutes = spotAgeMin, accentColor = palette.badgeBg)
-            }
-            if (spot.enRouteCount > 0) {
-                SpotEnRouteRow(count = spot.enRouteCount, accentColor = palette.badgeBg)
+            if (isRetracted) {
+                // Fit, distance, age and en-route are all facts about a space to drive to. There
+                // isn't one. The address in the title is enough to know WHICH report this was.
+                DistanceRow(distanceM = distM, mode = travelMode, accentColor = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else {
+                SpotFitRow(spot = spot, vehicle = activeVehicle)
+                DistanceRow(distanceM = distM, mode = travelMode, accentColor = palette.badgeBg)
+                if (spotAgeMin != null) {
+                    SpotAgeRow(ageMinutes = spotAgeMin, accentColor = palette.badgeBg)
+                }
+                if (spot.enRouteCount > 0) {
+                    SpotEnRouteRow(count = spot.enRouteCount, accentColor = palette.badgeBg)
+                }
             }
         },
         content = {
-            FiabilityIndicator(level = reliabilityLevel, expiresInMin = ttlMinutes)
+            when {
+                isRetracted -> SpotNote(stringResource(Res.string.home_spot_retracted_note))
+                else -> {
+                    FiabilityIndicator(level = reliabilityLevel, expiresInMin = ttlMinutes)
+                    // [DET-HANDOFF-NOT-MANUAL-001 §B.3] Unconfirmed spots keep the full community
+                    // loop — they are real offers — but they say what they are, and the note points
+                    // at the two buttons right below, which are how an unconfirmed spot becomes a
+                    // known one.
+                    if (isUnconfirmed) {
+                        Spacer(Modifier.height(10.dp))
+                        SpotNote(stringResource(Res.string.home_spot_unconfirmed_note))
+                    }
+                }
+            }
             Spacer(Modifier.height(14.dp))
         },
         actions = {
-            // Primary = get there before it expires — THE community-loop action here.
-            PapFooterButton(
-                label = stringResource(Res.string.home_navigate_to_spot),
-                leadingIcon = Icons.Rounded.Navigation,
-                onClick = {
-                    onAction(
-                        HomeSheetAction.NavigateExternal(
-                            lat = spot.location.latitude,
-                            lon = spot.location.longitude,
-                            walking = false,
-                        ),
-                    )
-                },
-                style = PapFooterButtonStyle.Filled,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(Modifier.height(8.dp))
-            // Signal pair — community feedback, low emphasis (tonal twins). "Still there?"
-            // reinforces reliability and keeps the sheet open; "It's gone" rejects + dismisses.
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (isRetracted) {
+                // The only useful thing left: get the user back to the spots that DO exist.
                 PapFooterButton(
-                    label = stringResource(Res.string.home_spot_still_there),
-                    leadingIcon = Icons.Rounded.CheckCircle,
-                    onClick = { onIntent(HomeIntent.SendSpotSignal(spot.id, accepted = true)) },
-                    style = PapFooterButtonStyle.Tonal,
-                    modifier = Modifier.weight(1f),
+                    label = stringResource(Res.string.home_spot_retracted_action),
+                    leadingIcon = Icons.Rounded.Search,
+                    onClick = { onIntent(HomeIntent.SelectItem(null)) },
+                    style = PapFooterButtonStyle.Filled,
+                    modifier = Modifier.fillMaxWidth(),
                 )
+            } else {
+                // Primary = get there before it expires — THE community-loop action here.
                 PapFooterButton(
-                    label = stringResource(Res.string.home_spot_gone),
-                    leadingIcon = Icons.Rounded.Block,
+                    label = stringResource(Res.string.home_navigate_to_spot),
+                    leadingIcon = Icons.Rounded.Navigation,
                     onClick = {
-                        onIntent(HomeIntent.SendSpotSignal(spot.id, accepted = false))
-                        onIntent(HomeIntent.SelectItem(null))
+                        onAction(
+                            HomeSheetAction.NavigateExternal(
+                                lat = spot.location.latitude,
+                                lon = spot.location.longitude,
+                                walking = false,
+                            ),
+                        )
                     },
-                    style = PapFooterButtonStyle.Tonal,
-                    modifier = Modifier.weight(1f),
+                    style = PapFooterButtonStyle.Filled,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(8.dp))
+                // Signal pair — community feedback, low emphasis (tonal twins). "Still there?"
+                // reinforces reliability and keeps the sheet open; "It's gone" rejects + dismisses.
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    PapFooterButton(
+                        label = stringResource(Res.string.home_spot_still_there),
+                        leadingIcon = Icons.Rounded.CheckCircle,
+                        onClick = { onIntent(HomeIntent.SendSpotSignal(spot.id, accepted = true)) },
+                        style = PapFooterButtonStyle.Tonal,
+                        modifier = Modifier.weight(1f),
+                    )
+                    PapFooterButton(
+                        label = stringResource(Res.string.home_spot_gone),
+                        leadingIcon = Icons.Rounded.Block,
+                        onClick = {
+                            onIntent(HomeIntent.SendSpotSignal(spot.id, accepted = false))
+                            onIntent(HomeIntent.SelectItem(null))
+                        },
+                        style = PapFooterButtonStyle.Tonal,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                Spacer(Modifier.height(12.dp))
+                PapDivider()
+                SpotListToggleRow(
+                    expanded = spotListExpanded,
+                    label = stringResource(Res.string.home_spot_peek_show_list),
+                    onClick = { onAction(HomeSheetAction.ToggleSpotList) },
                 )
             }
-            Spacer(Modifier.height(12.dp))
-            PapDivider()
-            SpotListToggleRow(
-                expanded = spotListExpanded,
-                label = stringResource(Res.string.home_spot_peek_show_list),
-                onClick = { onAction(HomeSheetAction.ToggleSpotList) },
-            )
         },
+    )
+}
+
+/**
+ * [DET-HANDOFF-NOT-MANUAL-001 §B.3] A plain sentence in the peek body: what happened, what it means
+ * for you, what to do next. Prose, so Inter — and no tint, because it carries a state, not an
+ * identity. [UI-COLOR-DOCTRINE-001]
+ */
+@Composable
+private fun SpotNote(text: String) {
+    Text(
+        text = text,
+        style = PaparcarType.current.body,
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = NOTE_ALPHA),
     )
 }
 

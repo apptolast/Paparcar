@@ -26,6 +26,12 @@
     <string name="home_parking_edit_dialog_body">Mută pinul la locul corect sau șterge această înregistrare.</string>
     <string name="home_spot_still_there">Mai este?</string>
     <string name="home_spot_gone">A dispărut</string>
+    <!-- [DET-HANDOFF-NOT-MANUAL-001 B.3] A spot published on a DEDUCED departure says so, and says it plainly when the report is withdrawn. -->
+    <string name="home_spot_unconfirmed_badge">Neconfirmat</string>
+    <string name="home_spot_unconfirmed_note">Încă nu am confirmat că mașina a plecat. Dacă mergi acolo, spune-ne dacă locul este liber.</string>
+    <string name="home_spot_retracted_eyebrow">Retras</string>
+    <string name="home_spot_retracted_note">Cine l-a raportat nu a plecat până la urmă, așa că locul nu este liber. Caută altul în apropiere.</string>
+    <string name="home_spot_retracted_action">Vezi alte locuri</string>
     <string name="home_browse_eyebrow_zone">Zona ta</string>
     <string name="home_browse_parked_meta">Parcat acum %1$s · la %2$s de tine</string>
     <string name="home_browse_parked_ago">Parcat acum %1$s</string>

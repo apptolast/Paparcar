@@ -31,6 +31,13 @@ interface UserParkingRepository : UserScopedRepository, RemoteSyncable {
     suspend fun getSessionsByVehiclePaged(vehicleId: String, limit: Int, offset: Int): List<UserParking>
     /** Clears the active flag of the session with [sessionId] and schedules Firestore reconciliation. */
     suspend fun clearActiveParkingSession(sessionId: String): Result<Unit>
+
+    /**
+     * [DET-HANDOFF-NOT-MANUAL-001 §B] Records (or clears, with [atMs] = null) that a DEDUCED
+     * departure published this session's spot provisionally and left the session ALIVE. Local-only:
+     * the marker coordinates the promote-vs-expire decision on this device and is never synced.
+     */
+    suspend fun markProvisionalDeparture(sessionId: String, atMs: Long?): Result<Unit>
     /**
      * Downloads parking history from Firestore and merges it into Room with a Last-Write-Wins
      * reconcile: a pending local edit strictly newer than remote is preserved; otherwise remote

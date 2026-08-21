@@ -25,6 +25,8 @@ import io.apptolast.paparcar.domain.usecase.parking.CalculateParkingConfidenceUs
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
 import io.apptolast.paparcar.domain.usecase.parking.EvaluateParkingDecisionUseCase
 import io.apptolast.paparcar.domain.usecase.parking.EvaluateUnattendedParkingSaveUseCase
+import io.apptolast.paparcar.domain.usecase.parking.FinalizeDeducedDepartureUseCase
+import io.apptolast.paparcar.domain.usecase.parking.RetractDeducedDepartureUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ParkingDecision
 import io.apptolast.paparcar.domain.usecase.parking.ParkingDecisionInput
 import io.apptolast.paparcar.domain.usecase.parking.UnattendedParkingSave
@@ -127,6 +129,15 @@ class CoordinatorParkingDetector(
      *  pure, config-only, same defaulting rationale as the two proofs above. */
     private val evaluateUnattendedParkingSave: EvaluateUnattendedParkingSaveUseCase =
         EvaluateUnattendedParkingSaveUseCase(config),
+    /** [DET-HANDOFF-NOT-MANUAL-001 §B] Completes a departure that was only DEDUCED, at the instant
+     *  this session MEASURES a drive: the deduction is now proven, so the provisional spot is
+     *  promoted to the full TTL and the car is released — the commit moved from the guess to the
+     *  proof. Null in test doubles that do not exercise it. */
+    private val finalizeDeducedDeparture: FinalizeDeducedDepartureUseCase? = null,
+    /** [DET-HANDOFF-NOT-MANUAL-001 §B.3] The other half of the same pair: this session ENDED without
+     *  ever measuring a drive, so the departure it was deduced from is refuted and the spot it
+     *  published provisionally is withdrawn. Null in test doubles that do not exercise it. */
+    private val retractDeducedDeparture: RetractDeducedDepartureUseCase? = null,
 ) : DepartureConfirmationListener {
     /**
      * Atomic snapshot of all mutable detection variables for a single session.
@@ -627,6 +638,9 @@ class CoordinatorParkingDetector(
         // [BUG-NEW-VEHICLE-DEFAULT]
         var activeVehicleId: String? = null
         var activeVehicleType: VehicleType? = null
+        // [DET-HANDOFF-NOT-MANUAL-001 §B] One-shot: the first measured drive settles any departure
+        // this trip's arm was deduced from. Later fixes have nothing left to settle.
+        var deducedDepartureSettled = false
 
         // [REFACTOR-201: harden stepJob against StepDetectorSource exceptions [BUG-COORD-112].
         //  Previously an uncaught throwable from steps().collect would cascade up and cancel
@@ -910,6 +924,16 @@ class CoordinatorParkingDetector(
                             lastFixCredible = credibleSpeedFix,
                         )
                     }
+                    // [DET-HANDOFF-NOT-MANUAL-001 §B] The car moved, and now it is MEASURED: any
+                    // departure that was published on a mere deduction becomes real here — promote
+                    // the provisional spot, release the session, drop its geofence. Nothing was
+                    // taken from the user until this line.
+                    if (state.driveProven && !deducedDepartureSettled) {
+                        deducedDepartureSettled = true
+                        runCatching { finalizeDeducedDeparture?.invoke(activeVehicleId) }
+                            .onFailure { e -> PaparcarLogger.w(DIAG, "  ⚠ finalize deduced departure failed: ${e.message}") }
+                    }
+
                     PaparcarLogger.d(
                         DIAG,
                         "  state hasEverMoved=${state.hasEverMoved} hasEverReachedDrivingSpeed=${state.hasEverReachedDrivingSpeed} " +
@@ -1410,6 +1434,16 @@ class CoordinatorParkingDetector(
                     if (pending != null && !completed) {
                         PaparcarLogger.w(DIAG, "  ⚑ session ended with a HELD confirm — finalizing at the pinned location [DET-AUDIT-002 T7]")
                         completed = runConfirm(pending.location, pending.reliability, pending.vehicleId, pending.pathLabel)
+                    }
+                    // [DET-HANDOFF-NOT-MANUAL-001 §B.3] This session is over and it never measured a
+                    // drive (had it, the one-shot above would have settled the deduction already).
+                    // So a departure deduced from this trip is refuted: take the provisional spot
+                    // back instead of leaving it standing for the rest of its short TTL. Runs AFTER
+                    // the held-confirm finalize on purpose — a park confirmed just now replaces the
+                    // pending session, and then there is nothing left to retract.
+                    if (!deducedDepartureSettled) {
+                        runCatching { retractDeducedDeparture?.invoke() }
+                            .onFailure { e -> PaparcarLogger.w(DIAG, "  ⚠ retract of a refuted deduction failed: ${e.message}") }
                     }
                     // [DET-HONEST-CLOSE-001] Snapshot the terminal fix BEFORE reset() wipes the
                     // state — the caller (the detection service) reads it after invoke returns to

@@ -109,6 +109,7 @@ fun DetectionEvent.typeName(): String = when (this) {
     is DetectionEvent.HonestClose -> "HONEST_CLOSE"
     is DetectionEvent.DepartureVerdict -> "DEPARTURE_VERDICT"
     is DetectionEvent.DepartureProcessed -> "DEPARTURE_PROCESSED"
+    is DetectionEvent.SpotRetracted -> "SPOT_RETRACTED"
     is DetectionEvent.Reverted -> "REVERTED"
     is DetectionEvent.Released -> "RELEASED"
     is DetectionEvent.OrphanCleaned -> "ORPHAN_CLEANED"
@@ -170,6 +171,9 @@ fun DetectionEvent.toDto(): DetectionEventDto {
         )
         is DetectionEvent.DepartureVerdict -> base.copy(verdict = verdict, source = source, attempt = attempt, speedKmh = speedKmh, enterAgeMs = enterAgeMs)
         is DetectionEvent.DepartureProcessed -> base.copy(published = published, sessionCleared = sessionCleared)
+        // [DET-HANDOFF-NOT-MANUAL-001 §B.3] How long the withdrawn spot was live rides the existing
+        // "how old" column, same reuse as Reverted — no serializer surface change.
+        is DetectionEvent.SpotRetracted -> base.copy(sessionAgeMs = sessionAgeMs)
         is DetectionEvent.Reverted -> base.copy(sessionAgeMs = sessionAgeMs)
         // [PARK-DELETE-NO-DECLARE-001] The close reason rides in the existing `reason` column (same
         // one HonestClose uses) — no serializer surface change for a field that only adds provenance.

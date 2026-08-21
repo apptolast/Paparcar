@@ -196,14 +196,36 @@ class ParkingStrategyResolverTest {
 
     @Test
     fun `admits manual trigger under any strategy`() {
-        // Explicit user intent (and the safety-net arrival handoff) always wins; a BT-paired
-        // park is superseded later by the disconnect arbitration.
+        // Explicit user intent always wins; a BT-paired park is superseded later by the
+        // disconnect arbitration.
         ParkingStrategy.entries.forEach { strategy ->
             assertTrue(
                 coordinatorMayArm(strategy, DetectionTrigger.MANUAL),
                 "expected MANUAL admitted under $strategy",
             )
         }
+    }
+
+    @Test
+    fun `refuses the safety net arrival handoff unless the coordinator owns detection`() {
+        // [DET-HANDOFF-NOT-MANUAL-001] The handoff used to arm as MANUAL — an automatic trigger
+        // entering through the door reserved for human intent, so it inherited the exemption this
+        // gate exists to deny (field 2026-08-19 22:32: `ARM:MANUAL` with nobody touching a button).
+        // It is an automatic nominator like any other: only COORDINATOR may admit it.
+        assertTrue(coordinatorMayArm(ParkingStrategy.COORDINATOR, DetectionTrigger.ARRIVAL_HANDOFF))
+        assertFalse(coordinatorMayArm(ParkingStrategy.BLUETOOTH, DetectionTrigger.ARRIVAL_HANDOFF))
+        assertFalse(coordinatorMayArm(ParkingStrategy.NONE, DetectionTrigger.ARRIVAL_HANDOFF))
+    }
+
+    @Test
+    fun `manual is the only trigger exempt from the strategy gate`() {
+        // The exemption is a hole by design: keep it a hole of exactly ONE. Any new trigger that
+        // needs to bypass the resolved strategy must justify it here, not inherit it by reusing a
+        // label. [DET-HANDOFF-NOT-MANUAL-001]
+        val exempt = DetectionTrigger.entries.filter { trigger ->
+            coordinatorMayArm(ParkingStrategy.BLUETOOTH, trigger)
+        }
+        assertEquals(listOf(DetectionTrigger.MANUAL), exempt)
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

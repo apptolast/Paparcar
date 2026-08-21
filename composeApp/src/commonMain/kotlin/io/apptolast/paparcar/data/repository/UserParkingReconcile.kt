@@ -30,6 +30,9 @@ fun reconcileParkingSessions(
     onTakeRemote = { r, l ->
         r.copy(
             tripMaxSpeedMps = l?.tripMaxSpeedMps ?: r.tripMaxSpeedMps,
+            // [DET-HANDOFF-NOT-MANUAL-001 §B] Local-only marker: the remote never carries it, so a
+            // sync must not erase a pending deduced departure.
+            provisionalDepartureAtMs = l?.provisionalDepartureAtMs,
             armEvidence = l?.armEvidence ?: r.armEvidence,
             detectionPath = l?.detectionPath ?: r.detectionPath,
         )

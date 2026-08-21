@@ -93,6 +93,14 @@ class UserParkingRepositoryImpl(
         parkingSyncScheduler.enqueueClearActiveParkingSession(sessionId)
     }
 
+    /** [DET-HANDOFF-NOT-MANUAL-001 §B] Room-only write — no sync enqueue: the marker is a local
+     *  coordination flag between the deduced departure and the moment a drive is (or is not)
+     *  proven. Firestore never sees it, and a remote reconcile preserves it (see
+     *  [io.apptolast.paparcar.data.repository.reconcileParkingSession]). */
+    override suspend fun markProvisionalDeparture(sessionId: String, atMs: Long?): Result<Unit> = runCatching {
+        dao.setProvisionalDeparture(sessionId, atMs, Clock.System.now().toEpochMilliseconds())
+    }
+
     /**
      * Inbound sync with Last-Write-Wins reconcile — supersedes the SYNC-UP-GUARD-001 stopgap. Local
      * is authoritative: a pending local edit strictly newer than remote is preserved; otherwise the

@@ -62,6 +62,12 @@ interface UserParkingDao {
     @Query("UPDATE parking_sessions SET isActive = 0, updatedAt = :now, pendingSync = 1 WHERE id = :sessionId")
     suspend fun clearActiveById(sessionId: String, now: Long)
 
+    /** [DET-HANDOFF-NOT-MANUAL-001 §B] Marks (or clears, with null) a pending DEDUCED departure on a
+     *  session that stays ACTIVE: the spot went out provisionally and the car was not given up.
+     *  Local-only — `pendingSync` is deliberately untouched so this never travels to Firestore. */
+    @Query("UPDATE parking_sessions SET provisionalDepartureAtMs = :atMs, updatedAt = :now WHERE id = :sessionId")
+    suspend fun setProvisionalDeparture(sessionId: String, atMs: Long?, now: Long)
+
     @Query("UPDATE parking_sessions SET isActive = 0, updatedAt = :now, pendingSync = 1 WHERE isActive = 1 AND vehicleId = :vehicleId")
     suspend fun clearActiveByVehicle(vehicleId: String, now: Long)
 

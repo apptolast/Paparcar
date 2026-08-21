@@ -43,6 +43,13 @@ class FakeFirebaseDataSource : FirebaseDataSource {
         // No-op for now
     }
 
+    /** [DET-HANDOFF-NOT-MANUAL-001 §B.3] (spotId, new expiry) of every retraction, in order. */
+    val retractedSpots = mutableListOf<Pair<String, Long>>()
+
+    override suspend fun retractSpot(spotId: String, expiresAt: Long) {
+        retractedSpots += spotId to expiresAt
+    }
+
     override suspend fun sendSpotSignal(spotId: String, accepted: Boolean) {
         sendSpotSignalCallCount++
         lastSignal = spotId to accepted

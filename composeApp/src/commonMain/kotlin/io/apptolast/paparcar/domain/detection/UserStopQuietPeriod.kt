@@ -16,7 +16,10 @@ import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
  *  - Only ARMING sleeps. A geofence EXIT delivered during the quiet period still releases the spot;
  *    the safety net still reconciles parked cars; the Bluetooth lane is untouched (separate rails).
  *  - [DetectionTrigger.MANUAL] is never suppressed — "I'm driving" is the same user retracting the
- *    stop, and the service clears the stamp when it fires.
+ *    stop, and the service clears the stamp when it fires. It is the ONLY exemption:
+ *    [DetectionTrigger.ARRIVAL_HANDOFF] is an automatic nominator like any other and sleeps with
+ *    them. Until [DET-HANDOFF-NOT-MANUAL-001] the safety net's handoff *borrowed* MANUAL, so it
+ *    walked straight through this quiet period — the button was a lie for that lane too.
  *
  * Sibling of `SentryWakeCooldown.kt`: another quiet period, another cause, same shape — pure
  * policy in commonMain, enforced at the service's single arming gate. Neither steps on the other.

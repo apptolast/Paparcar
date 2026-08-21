@@ -19,6 +19,15 @@ class PendingNudgeDecisionTest {
     }
 
     @Test
+    fun arrival_handoff_always_nudges_because_the_departure_was_already_committed() {
+        // [DET-HANDOFF-NOT-MANUAL-001] Not because a drive was witnessed — nothing was — but
+        // because by the time this arm exists the safety net has already published the spot,
+        // released the session and removed the geofence. A pending that dies here leaves the user
+        // with no car and no watcher, exactly as a real departure would.
+        assertTrue(shouldNudgeForStalePending(DetectionTrigger.ARRIVAL_HANDOFF.name, sawDriving = false))
+    }
+
+    @Test
     fun ar_enter_nudges_only_when_the_trip_actually_drove() {
         // A bare boarding is falsifiable (bus/taxi) → no nudge; a boarding that reached the
         // park-evaluation phase drove for real → nudge.

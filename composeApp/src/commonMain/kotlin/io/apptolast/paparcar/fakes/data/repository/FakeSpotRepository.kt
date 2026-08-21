@@ -7,6 +7,7 @@ import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.PlaceCategory
 import io.apptolast.paparcar.domain.model.PlaceInfo
 import io.apptolast.paparcar.domain.model.Spot
+import io.apptolast.paparcar.domain.model.SpotStatus
 import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.repository.SpotRepository
@@ -71,6 +72,20 @@ class FakeSpotRepository : SpotRepository {
             placeInfo = PlaceInfo("Repsol Consistorio", PlaceCategory.FUEL),
             sizeCategory = VehicleSize.VAN_HIGH,
         ),
+        // [DET-HANDOFF-NOT-MANUAL-001 §B.3] A spot published on a DEDUCED departure: fresh and
+        // real-looking, but nothing measured says the car actually left. Exercises the unconfirmed
+        // treatment in the list, the peek and the ordering (it sorts below confirmed spots).
+        Spot(
+            id = "spot_mock_006",
+            location = GpsPoint(36.5928, -6.2295, 5f, initTime - 1 * 60_000L, 0f), // 1 min ago
+            reportedBy = "user_pqr",
+            type = SpotType.AUTO_DETECTED,
+            confidence = 0.7f,
+            enRouteCount = 0,
+            address = AddressInfo(street = "Calle Porvera 30", city = "Jerez de la Frontera", region = "Andalucía", country = "España"),
+            sizeCategory = VehicleSize.MEDIUM_SUV,
+            status = SpotStatus.PROVISIONAL,
+        ),
     )
 
     private val spotsFlow = MutableStateFlow(mockSpots)
@@ -80,6 +95,13 @@ class FakeSpotRepository : SpotRepository {
 
     override suspend fun reportSpotReleased(spot: Spot): Result<Unit> =
         Result.success(Unit)
+
+    override suspend fun retractSpot(spotId: String): Result<Unit> {
+        spotsFlow.value = spotsFlow.value.map { spot ->
+            if (spot.id == spotId) spot.copy(status = SpotStatus.RETRACTED) else spot
+        }
+        return Result.success(Unit)
+    }
 
     override suspend fun sendSpotSignal(spotId: String, accepted: Boolean): Result<Unit> =
         Result.success(Unit)

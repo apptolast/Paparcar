@@ -229,6 +229,14 @@ class FakeUserParkingRepository(
             .drop(offset)
             .take(limit)
 
+    /** [DET-HANDOFF-NOT-MANUAL-001 §B] Pending deduced departures, by session id. */
+    val provisionalDepartures = mutableMapOf<String, Long?>()
+
+    override suspend fun markProvisionalDeparture(sessionId: String, atMs: Long?): Result<Unit> {
+        provisionalDepartures[sessionId] = atMs
+        return Result.success(Unit)
+    }
+
     override suspend fun clearActiveParkingSession(sessionId: String): Result<Unit> {
         // Releasing really frees the session so the mock plays the whole loop: the parked card
         // and the watching line drop, and the story returns to its cold-start row. [UX-PARKED-STATE-001]

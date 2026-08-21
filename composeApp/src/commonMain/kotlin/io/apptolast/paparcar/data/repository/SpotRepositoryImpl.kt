@@ -9,6 +9,7 @@ import io.apptolast.paparcar.data.mapper.toDto
 import io.apptolast.paparcar.data.mapper.toEntity
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.Spot
+import io.apptolast.paparcar.domain.model.SpotTtlPolicy
 import io.apptolast.paparcar.domain.repository.SpotRepository
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import io.apptolast.paparcar.domain.util.boundingBox
@@ -119,6 +120,16 @@ class SpotRepositoryImpl(
         // marker. To HIDE a spot for everyone, delete it from Firestore
         // (firebaseDataSource.deleteSpot) and let the listener prune Room. [SPOT-FLICKER-001]
         firebaseDataSource.reportSpotReleased(spot.toDto())
+    }
+
+    override suspend fun retractSpot(spotId: String): Result<Unit> = runCatching {
+        // Same reasoning as reportSpotReleased: write to Firestore only and let the real-time
+        // listener carry the new status into Room. Touching the cache here would race the echo.
+        // [SPOT-FLICKER-001]
+        firebaseDataSource.retractSpot(
+            spotId = spotId,
+            expiresAt = Clock.System.now().toEpochMilliseconds() + SpotTtlPolicy.RETRACTION_GRACE_MS,
+        )
     }
 
     override suspend fun sendSpotSignal(spotId: String, accepted: Boolean): Result<Unit> =

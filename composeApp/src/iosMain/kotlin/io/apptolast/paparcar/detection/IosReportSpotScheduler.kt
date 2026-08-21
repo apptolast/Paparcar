@@ -7,6 +7,7 @@ import io.apptolast.paparcar.domain.model.CarbodyType
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.PlaceInfo
 import io.apptolast.paparcar.domain.model.Spot
+import io.apptolast.paparcar.domain.model.SpotStatus
 import io.apptolast.paparcar.domain.model.SpotTtlPolicy
 import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.VehicleSize
@@ -54,9 +55,11 @@ class IosReportSpotScheduler(
         sizeCategory: VehicleSize?,
         carbodyType: CarbodyType?,
         reportedBy: String?,
+        provisional: Boolean,
     ) {
         val nowMs = Clock.System.now().toEpochMilliseconds()
-        val expiresAt = nowMs + SpotTtlPolicy.ttlMsForType(spotType) // [AUDIT-ARCH-001 M13]
+        // [DET-HANDOFF-NOT-MANUAL-001 §B] A deduced departure buys a short lifetime, same as Android.
+        val expiresAt = nowMs + SpotTtlPolicy.ttlMsForType(spotType, provisional) // [AUDIT-ARCH-001 M13]
         val spot = Spot(
             id = spotId,
             location = GpsPoint(
@@ -74,6 +77,9 @@ class IosReportSpotScheduler(
             sizeCategory = sizeCategory,
             carbodyType = carbodyType,
             expiresAt = expiresAt,
+            // [DET-HANDOFF-NOT-MANUAL-001 §B.3] Same statement as Android: how well this
+            // departure is proven travels with the spot.
+            status = if (provisional) SpotStatus.PROVISIONAL else SpotStatus.CONFIRMED,
         )
 
         scope.launch { reportWithRetry(spot) }
