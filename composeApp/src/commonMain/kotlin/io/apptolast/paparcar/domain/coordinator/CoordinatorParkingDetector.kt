@@ -325,9 +325,17 @@ class CoordinatorParkingDetector(
          *    canonical "user has exited the car" signal that confirms parking inside the
          *    CANDIDATE phase OR via the EXIT+steps fast-confirm short-circuit.
          *
-         *  Reset to 0 on `isDriving` AND on CANDIDATE discard (BUG-COORD-105) so cross-stop
-         *  contamination cannot trigger an instant false confirm on the next stop. */
+         *  Reset to 0 on `isDriving` ONLY. A candidate discard used to zero it too (BUG-COORD-105);
+         *  it now moves [stepsAtLastDiscard] instead, because the counter is read by consumers that
+         *  need the whole truth (anchor lock, walk-reach ceilings, the unattended verdict) and not
+         *  just by the next confirm. [DET-EVIDENCE-MUST-NOT-LOWER-CONFIDENCE-001] */
         val stepCount: Int = 0,
+        /** [DET-EVIDENCE-MUST-NOT-LOWER-CONFIDENCE-001] Where [stepCount] stood when a candidate was
+         *  last discarded: the freshness line. Steps at or below it happened, and are still
+         *  testimony for every other reader, but they have spent their power to CONFIRM — a new
+         *  candidate must earn `minStepsToConfirm` above this mark. Cleared with [stepCount] by
+         *  measured driving, and by nothing else. */
+        val stepsAtLastDiscard: Int = 0,
         // ── SESSION TELEMETRY (BUG-SCOOTER-001) ───────────────────────────────
         val sessionStartMs: Long? = null,
         /** Session peak of credible driving speed, but ZERO until [driveProven] latches — this
@@ -407,6 +415,11 @@ class CoordinatorParkingDetector(
         /** GPS timestamp (epoch-ms) of the last credible in-MOTOR-band fix. */
         val lastMotorBandFixTimestampMs: Long = 0L,
     ) {
+        /** [DET-EVIDENCE-MUST-NOT-LOWER-CONFIDENCE-001] Steps that may still CONFIRM: those counted
+         *  since the last candidate discard. Every other reader wants [stepCount], the full count —
+         *  the difference between "this cannot confirm now" and "this never happened". */
+        val freshStepCount: Int get() = (stepCount - stepsAtLastDiscard).coerceAtLeast(0)
+
         /** Returns the most GPS-accurate fix collected at the moment of stopping, or [fallback]. */
         fun bestFix(fallback: GpsPoint): GpsPoint =
             stoppedFixes.minByOrNull { it.accuracy } ?: fallback
@@ -1482,7 +1495,9 @@ class CoordinatorParkingDetector(
                     // [DET-KINEMATIC-EGRESS-001] The kinematic egress signal is the mute-counter
                     // peer: the FROZEN anchor has watched a sustained quality walk away from it —
                     // the same evidence, measured by GPS instead of the step sensor.
-                    if (state.stepCount >= config.minStepsToConfirm || hasKinematicEgressSignal(state)) {
+                    // [DET-EVIDENCE-MUST-NOT-LOWER-CONFIDENCE-001] FRESH steps: a discarded
+                    // candidate's steps stay on the record but may not re-arm this lane.
+                    if (state.freshStepCount >= config.minStepsToConfirm || hasKinematicEgressSignal(state)) {
                         // elapsedSinceHighMs=0 → no observation window; the egress proofs are what
                         // confirm. The scooter mismatch guard still applies via the use case.
                         val decision = evaluateParkingDecision(
@@ -2015,11 +2030,25 @@ class CoordinatorParkingDetector(
                 // Window expired without the egress conjunction — discard. Phase falls back to
                 // Notified (preserving shownAt so the response-timeout still applies — the user can
                 // still tap the visible prompt). [FIX BUG-COORD-105][REFACTOR-200]
-                PaparcarLogger.d(DIAG, "  ⊘ CANDIDATE expired without egress proof — discarding [BUG-GARAGE-COLA-001]")
+                PaparcarLogger.d(
+                    DIAG,
+                    "  ⊘ CANDIDATE expired without egress proof — discarding, steps ${state.stepCount} " +
+                        "kept but no longer fresh [BUG-GARAGE-COLA-001][DET-EVIDENCE-MUST-NOT-LOWER-CONFIDENCE-001]"
+                )
                 _detectionState.update {
                     it.copy(
                         phase = ConfirmationPhase.Notified(phase.shownAt),
-                        stepCount = 0,
+                        // [DET-EVIDENCE-MUST-NOT-LOWER-CONFIDENCE-001] A VERDICT MAY NOT DESTROY A
+                        // MEASUREMENT. This used to be `stepCount = 0` — "the window expired, so
+                        // those steps were phantom jiggle, wipe them" — which is the right thing to
+                        // say to the NEXT candidate and the wrong thing to say to every other
+                        // reader: the anchor lock, the walk-reach ceilings and, above all, the
+                        // 15-minute unattended verdict that reads the same counter to justify
+                        // saving a zone. Those steps HAPPENED; what expired is their power to
+                        // confirm. So the count stands and the freshness line moves: a later
+                        // candidate must earn `minStepsToConfirm` NEW steps beyond this mark.
+                        // Only measured driving still zeroes both, exactly like `walkFixesSinceDriving`.
+                        stepsAtLastDiscard = it.stepCount,
                     )
                 }
                 logDetection { sid -> DetectionEvent.Candidate(sid, now, action = "DISCARDED", phase = "Candidate→Notified", location = location) }
@@ -2098,7 +2127,11 @@ class CoordinatorParkingDetector(
         hadVehicleExit: Boolean,
         restCertified: Boolean,
     ) = ParkingDecisionInput(
-        stepCount = state.stepCount,
+        // [DET-EVIDENCE-MUST-NOT-LOWER-CONFIDENCE-001] The confirm evaluator asks "may this pin
+        // NOW?", so it gets the FRESH count. The unattended verdict asks "did the user walk away
+        // from the car at all?" and keeps reading the full `stepCount` — same counter, two
+        // questions, and conflating them is what let a discard erase a real egress.
+        stepCount = state.freshStepCount,
         hasEgressDisplacement = hasEgressDisplacement(state, location),
         hadVehicleExit = hadVehicleExit,
         elapsedSinceHighMs = elapsedSinceHighMs,
@@ -2729,6 +2762,9 @@ class CoordinatorParkingDetector(
                     vehicleExitConfirmed = if (effectiveDriving) false else it.vehicleExitConfirmed,
                     consecutiveRepositionFixes = newConsecutive,
                     stepCount = if (effectiveDriving) 0 else it.stepCount,
+                    // [DET-EVIDENCE-MUST-NOT-LOWER-CONFIDENCE-001] The freshness line travels with
+                    // the counter it indexes: measured driving is the only thing that clears both.
+                    stepsAtLastDiscard = if (effectiveDriving) 0 else it.stepsAtLastDiscard,
                     // [DET-ANCHOR-FREEZE-001] The "entered on foot" odometer: a resolved CAR
                     // movement (driving verdict or reposition maneuver) zeroes it; anything else
                     // moving is pedestrian-band and counts.

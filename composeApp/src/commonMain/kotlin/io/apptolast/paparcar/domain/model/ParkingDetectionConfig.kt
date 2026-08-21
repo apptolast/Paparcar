@@ -11,20 +11,24 @@ package io.apptolast.paparcar.domain.model
  */
 data class ParkingDetectionConfig(
 
-    // ── FAST PATH ─────────────────────────────────────────────────────────────
-    /** Minimum stopped duration (ms) required to enter the fast path when an activity-exit event is present. */
+    // ── EARLY GATE (an AR vehicle exit shortens the wait) ─────────────────────
+    /** [DET-EVIDENCE-MUST-NOT-LOWER-CONFIDENCE-001] Stopped duration (ms) that is enough to start
+     *  scoring when an AR vehicle exit is in hand, instead of the full [slowPathGateMs]. This is
+     *  what buys the early prompt at a hospital entrance or a drop-off. It used to open a whole
+     *  separate scoring PATH that returned before the tiers were read; now it only moves the gate,
+     *  which is monotone — more evidence can make the score arrive sooner, never later. */
     val fastPathMinStoppedMs: Long = 30_000L,
-    /** Base confidence score granted by the activity-exit signal alone.
-     *  0.50 lets the fast path reach High (0.75) when both the speed bonus AND the
-     *  STILL + GPS-accuracy bonus are present, auto-confirming without requiring user
-     *  action. The maximum fast-path score is 0.65 (Medium) — the fast path opens the
-     *  user prompt, never an auto-confirm. [BUG-DETECT-310503] */
-    val fastPathBaseScore: Float = 0.50f,
-    /** Bonus added when speed is below [maxSpeedMps] in the fast path. */
-    val fastPathSpeedBonus: Float = 0.15f,
-    // [DET-SOLID-001 C1] fastPathAccuracyBonus removed: it was gated on the STILL signal, which
-    // was dropped long ago — the branch was unreachable and the fast path correctly tops out at
-    // Medium (prompt, never auto-confirm). [BUG-DETECT-310503]
+    /** [DET-EVIDENCE-MUST-NOT-LOWER-CONFIDENCE-001] Rest tier for a stop that cleared the shortened
+     *  gate but not [slowPathGateMs]: a stop measured in seconds, not minutes. Deliberately below
+     *  [slowPathBaseScore] — less rest is less evidence — and low enough that even with every bonus
+     *  it cannot reach [highConfidenceThreshold] (asserted in `init`): a brief stop opens the
+     *  prompt, never an auto-confirm. [BUG-DETECT-310503] */
+    val briefRestScore: Float = 0.35f,
+    /** [DET-EVIDENCE-MUST-NOT-LOWER-CONFIDENCE-001] Bonus for an AR `IN_VEHICLE` EXIT: external
+     *  evidence that the user physically left a vehicle. A BONUS, never a branch — as a branch it
+     *  used to make the same matured stop score 0,65 instead of 0,80, i.e. the strongest evidence
+     *  we own subtracted confidence and locked the CANDIDATE phase out of the session. */
+    val activityExitBonus: Float = 0.15f,
 
     // ── SLOW PATH ─────────────────────────────────────────────────────────────
     /** Minimum stopped duration (ms) before the slow path starts scoring (filters traffic lights). */
@@ -860,6 +864,31 @@ data class ParkingDetectionConfig(
         }
         require(slowPathGateMs > fastPathMinStoppedMs) {
             "slowPathGateMs ($slowPathGateMs) must be > fastPathMinStoppedMs ($fastPathMinStoppedMs)"
+        }
+        // [DET-EVIDENCE-MUST-NOT-LOWER-CONFIDENCE-001] The scoring invariants that carry BEHAVIOUR.
+        // They used to hold by arithmetic accident (0.50 + 0.15 < 0.75) with nothing to defend them,
+        // so a weight tweak could have turned a brief drop-off stop into a silent auto-confirm. The
+        // scorer is one additive sum now, which makes each ceiling a single expression worth asserting.
+        val allBonuses = speedBonus + accuracyBonus + activityExitBonus
+        require(briefRestScore < slowPathBaseScore) {
+            "briefRestScore ($briefRestScore) must be < slowPathBaseScore ($slowPathBaseScore) — " +
+                "a stop measured in seconds is less evidence than one measured in minutes"
+        }
+        require(briefRestScore + allBonuses < highConfidenceThreshold) {
+            "a brief stop must never reach High even with every bonus: briefRestScore " +
+                "($briefRestScore) + bonuses ($allBonuses) >= highConfidenceThreshold " +
+                "($highConfidenceThreshold). It opens the prompt, never an auto-confirm"
+        }
+        require(slowPath3MinScore + allBonuses < highConfidenceThreshold) {
+            "the 3-minute tier must never reach High even with every bonus: slowPath3MinScore " +
+                "($slowPath3MinScore) + bonuses ($allBonuses) >= highConfidenceThreshold " +
+                "($highConfidenceThreshold) — the candidate phase belongs to a MATURED rest"
+        }
+        require(slowPath5MinScore + activityExitBonus >= highConfidenceThreshold) {
+            "a matured rest witnessed by an AR vehicle exit MUST reach High: slowPath5MinScore " +
+                "($slowPath5MinScore) + activityExitBonus ($activityExitBonus) < " +
+                "highConfidenceThreshold ($highConfidenceThreshold). This is the field bug of " +
+                "2026-08-20: the session could not score, so it could not end"
         }
         require(geofenceRadiusMotoMeters > 0) {
             "geofenceRadiusMotoMeters must be > 0, was $geofenceRadiusMotoMeters"

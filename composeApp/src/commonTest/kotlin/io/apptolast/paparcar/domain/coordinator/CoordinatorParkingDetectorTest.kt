@@ -1947,6 +1947,77 @@ class CoordinatorParkingDetectorTest {
         }
 
     @Test
+    fun should_keep_the_egress_steps_on_the_record_when_a_candidate_is_discarded() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-EVIDENCE-MUST-NOT-LOWER-CONFIDENCE-001 · paso 1] A discarded candidate used to
+            // set `stepCount = 0`. That is the right answer to the NEXT confirm and the wrong
+            // answer to everyone else — above all to the 15-minute unattended verdict, which reads
+            // the same counter to decide whether an egress walk justifies keeping the park as a
+            // zone. Measured cost: replaying the 2026-07-27 field trace with the scorer cap lifted
+            // turned `confirmed_unattended_zone_no_drive_egress` into `aborted_unattended_no_drive`.
+            //
+            // Shape: the 2026-07-27 one. The fence EXIT arrives at the destination, so the only
+            // "driving" is a lone burst the track never corroborates — no proven drive means the
+            // verdict may not pin, only save an AREA, and only if an egress walk vouches for it.
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch {
+                env.coordinator.invoke(locations, armEvidence = ArmEvidence.VerifiedByVehicleEnter(60_000L))
+            }
+
+            locations.emit(stationaryFix(lat = 40.0, lon = -3.7))
+            // Two credible driving-speed fixes: enough for the raw vehicular signal the no-drive
+            // branch accepts, far too little for the track to corroborate a drive. Deliberately NO
+            // AR vehicle-exit here — it would cap the scorer at Medium and no candidate could ever
+            // open, which is the very bug this ticket's step 2 removes.
+            nowMs = 5_000L
+            locations.emit(GpsPoint(40.0004, -3.7, accuracy = 5f, timestamp = nowMs, speed = 7f))
+            nowMs = 7_000L
+            locations.emit(GpsPoint(40.00045, -3.7, accuracy = 5f, timestamp = nowMs, speed = 7f))
+            nowMs = 60_000L
+            locations.emit(GpsPoint(40.0005, -3.7, accuracy = 4f, timestamp = nowMs, speed = 0f))
+            env.stepDetector.emitSteps(12)        // the egress walk BEGINS, at the car
+
+            // The stop matures → High → CANDIDATE opens. The user has not moved away yet, so the
+            // observation window expires with no egress displacement → DISCARDED.
+            nowMs = 60_000L + config.slowPath5MinMs + 10_000L
+            locations.emit(GpsPoint(40.0005, -3.7, accuracy = 4f, timestamp = nowMs, speed = 0f))
+            nowMs += config.confirmationObservationWindowMs + 10_000L
+            locations.emit(GpsPoint(40.0005, -3.7, accuracy = 4f, timestamp = nowMs, speed = 0f))
+
+            assertTrue(
+                env.detectionLogger.events.filterIsInstance<DetectionEvent.Candidate>()
+                    .any { it.action == "DISCARDED" },
+                "the fixture must actually reach a discard",
+            )
+
+            // NOW the user finishes walking away — 28 m, and the counter under-logs it the way a
+            // real egress does (field Calle Gavia: 68 m on 8 logged steps).
+            nowMs += 30_000L
+            locations.emit(GpsPoint(40.00075, -3.7, accuracy = 4f, timestamp = nowMs, speed = 0.5f))
+            env.stepDetector.emitSteps(2)
+
+            // Nobody answers the prompt. The verdict reads the counter the discard used to wipe:
+            // 14 steps of real egress, not the 2 that arrived after it.
+            nowMs += config.confirmationResponseTimeoutMs + 1_000L
+            locations.emit(GpsPoint(40.00075, -3.7, accuracy = 4f, timestamp = nowMs, speed = 0f))
+
+            job.cancelAndJoin()
+
+            assertEquals(
+                1,
+                env.parkingRepo.saveNewParkingSessionCallCount,
+                "the egress walk happened — a discard says those steps cannot CONFIRM, not that they " +
+                    "never occurred, and the unattended verdict still needs them to keep the park",
+            )
+            assertTrue(
+                assertNotNull(env.parkingRepo.getActiveSession()).isApproximate,
+                "no proven driving may only yield an AREA, never an exact pin",
+            )
+        }
+
+    @Test
     fun should_close_the_session_even_when_an_ar_vehicle_exit_caps_the_scorer_at_medium() =
         runTest(UnconfinedTestDispatcher()) {
             // [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001 §B] The shape that hung for 102 minutes in the
