@@ -22,6 +22,20 @@ sealed interface ParkingDecision {
     /** All confirm conditions hold, but the arm evidence is too weak to save silently
      *  (ENTER-only, falsifiable by bus/taxi) — ask the user instead. [DET-SOLID-001] */
     data class Prompt(val pathLabel: String) : ParkingDecision
+
+    /**
+     * [DET-HUMAN-POWERED-EARLY-CLOSE-001] TERMINAL: the movement was made under human power and
+     * the stop has matured — this session can never produce a car park, so it ends NOW.
+     *
+     * Distinct from [Rejected], which discards one candidate and keeps the stop alive for the next
+     * one. A bicycle's next candidate is another bicycle's candidate: field 2026-08-19 22:32, the
+     * ride ended at home at 22:42 and the session then recycled CANDIDATE↔Notified three times
+     * (22:50 → 22:55 → 23:00, each discard zeroing `stepCount` so the loop could not have confirmed
+     * anything even in principle) until the 15-min response timeout finally read the SAME
+     * human-powered flag it had held all along. 19 minutes of foreground service + 2-5 s GPS to
+     * reach a verdict that was available at the first matured stop.
+     */
+    data object CloseHumanPowered : ParkingDecision
 }
 
 /**
@@ -111,6 +125,14 @@ data class ParkingDecisionInput(
      *  field FP of 2026-08-16 turned on the difference: a `CAR` profile on a bicycle re-pinned the
      *  car 4,8 km away. Defaults to false for legacy callers. */
     val humanPoweredRide: Boolean = false,
+    /** [DET-HUMAN-POWERED-EARLY-CLOSE-001] The confidence scorer has certified a SUSTAINED stop —
+     *  the caller is at (or entering) the CANDIDATE phase, which High confidence only grants after
+     *  the 5-minute stopped tier. It is the pure expression of "the ride is over", and the terminal
+     *  [ParkingDecision.CloseHumanPowered] needs it: without it, a cyclist pausing at a light with
+     *  a few steps counted would be closed mid-ride by the fast-confirm lane, which runs with
+     *  `elapsedSinceHighMs = 0` and no stop behind it. Defaults to false — a caller that has not
+     *  certified rest must not get the terminal verdict. */
+    val restCertified: Boolean = false,
 )
 
 /**
@@ -262,6 +284,14 @@ class EvaluateParkingDecisionUseCase(private val config: ParkingDetectionConfig)
             egressIsVehicular && !hasKinematicProof &&
                 input.stepCount >= config.minStepsToConfirm && input.hasEgressDisplacement ->
                 ParkingDecision.Rejected
+            // [DET-HUMAN-POWERED-EARLY-CLOSE-001] The ride was made under human power and the stop
+            // has matured: every branch above has already had its chance (a human-powered session
+            // WITH all the proofs asks — that is the Prompt above, unchanged), so what remains is a
+            // session that cannot ever confirm a car park. Emit the verdict now instead of idling
+            // until a clock the answer never depended on. Deliberately placed after the confirm
+            // branches and before [windowElapsed]: the observation window is a device for deciding
+            // undecided candidates, and this one is decided.
+            input.humanPoweredRide && input.restCertified -> ParkingDecision.CloseHumanPowered
             windowElapsed -> ParkingDecision.Rejected
             else -> ParkingDecision.Inconclusive
         }

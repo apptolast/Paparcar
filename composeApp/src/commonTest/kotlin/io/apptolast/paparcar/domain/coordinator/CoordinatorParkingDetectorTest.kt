@@ -1808,6 +1808,51 @@ class CoordinatorParkingDetectorTest {
         }
 
     @Test
+    fun should_close_the_session_at_the_matured_stop_when_the_ride_was_human_powered() =
+        runTest(UnconfinedTestDispatcher()) {
+            // Field 2026-08-19 22:32 (Oppo session 1787171533976, Redmi 1787171592952): a bicycle
+            // ride home, phone left on a table — no egress steps, so the candidate phase could
+            // never have confirmed anything. It did not: CANDIDATE opened and expired three times
+            // (22:50 → 22:55 → 23:00, each discard zeroing stepCount) until the 15-minute response
+            // timeout finally read the human-powered flag that had been true since the ride itself.
+            // 19 minutes of foreground service and 2-5 s GPS for a verdict available at the first
+            // matured stop. [DET-HUMAN-POWERED-EARLY-CLOSE-001]
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch {
+                env.coordinator.invoke(locations, armEvidence = ArmEvidence.Unverified)
+            }
+
+            env.coordinator.onHumanPoweredRide(nowMs)
+            emitCorroboratedDrive(locations) // a bicycle holds the band as well as a car does
+
+            // Home. The bike is left; the phone stops moving. No steps, no AR exit — nothing that
+            // could ever satisfy the egress conjunction.
+            nowMs = 60_000L
+            locations.emit(GpsPoint(40.0, -3.7, accuracy = 4f, timestamp = 0L, speed = 0f))
+            // The stop matures past the 5-minute tier: the only route to High confidence, and the
+            // measured fact that says "the ride is over".
+            nowMs += config.slowPath5MinMs + 30_000L
+            locations.emit(GpsPoint(40.0, -3.7, accuracy = 4f, timestamp = 0L, speed = 0f))
+
+            job.cancelAndJoin()
+
+            val ended = env.detectionLogger.events.filterIsInstance<DetectionEvent.SessionEnded>().single()
+            assertEquals(
+                "aborted_unattended_human_powered",
+                ended.outcome,
+                "the session must end at the matured stop, not at the response timeout",
+            )
+            assertEquals(0, env.parkingRepo.saveNewParkingSessionCallCount)
+            assertTrue(
+                env.detectionLogger.events.filterIsInstance<DetectionEvent.Decision>()
+                    .none { it.outcome == "PROMPT_SHOWN" },
+                "a ride known to be muscle-powered must never be asked '¿has aparcado?'",
+            )
+        }
+
+    @Test
     fun should_still_save_when_a_boarding_superseded_the_cycling() {
         // The counterpart: bike to the station, then drive. The trip IS a car trip and must pin.
         runTest(UnconfinedTestDispatcher()) {

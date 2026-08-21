@@ -2854,3 +2854,48 @@ record of WHO is heading to a spot and no channel to reach them. The notice ther
 user who has the spot open. Tracking en-route intent is its own ticket.
 
 1258 tests green. Spec: `docs/backlog/det-handoff-not-manual-001.md` §B.3.
+
+---
+
+### DET-HUMAN-POWERED-EARLY-CLOSE-001 — el veredicto se emite cuando la evidencia está, no cuando expira un reloj (2026-08-20)
+
+**Field.** 2026-08-19 22:32, bicycle ride home, both phones (Oppo `1787171533976`, Redmi
+`1787171592952`). Arrival 22:42:39, firm stop from 22:44:59 — and the session did not die until
+**23:01:30**: 19 minutes of foreground service and 2-5 s GPS after the trip was over. The trace:
+prompt at 22:46:30 (Low/Medium lane), then CANDIDATE opened and expired three times (22:50 → 22:55 →
+23:00, `steps=0/8 → Inconclusive` throughout), then `⑊ no user response after 900060ms →
+Ask(reason=HUMAN_POWERED)`.
+
+**Root cause.** `EvaluateUnattendedParkingSaveUseCase` answers `Ask(HUMAN_POWERED)` in its FIRST
+line — it needs no anchor, no clock, nothing. But that line only runs behind
+`promptShownAt + confirmationResponseTimeoutMs`. The verdict was fully determined from the ride
+itself (pedal cadence, DET-MOTOR-PROOF-001) and spent 15 minutes waiting for a timer it never
+depended on. Worse, the candidate loop it waited inside was structurally incapable of concluding
+anything else: every `Rejected` discard zeroes `stepCount`, so each new candidate was born without
+the egress steps that had already happened.
+
+**Fix — read the clock that already exists.** "Muscle-powered" alone is not enough (a cyclist at a
+traffic light is still riding); what turns it into "the ride is over" is a sustained stop — and the
+scorer already certifies exactly that: **High confidence has only one route, the 5-minute stopped
+tier** (`slowPath5MinMs`).
+- New terminal `ParkingDecision.CloseHumanPowered`, emitted when `humanPoweredRide && restCertified`,
+  placed after the confirm branches and before `windowElapsed` (the observation window decides
+  UNdecided candidates; this one is decided). A human-powered ride WITH all the proofs still degrades
+  to `Prompt` — the close never steals a one-tap save.
+- New pure input `restCertified`: the fast steps+egress lane passes false (it runs with no stop
+  behind it), so a cyclist pausing at a light with phantom steps is never closed mid-ride.
+- The coordinator asks the evaluator at the moment High is reached, BEFORE opening the candidate and
+  before notifying → a muscle-powered session never posts "¿has aparcado?". The Low/Medium prompt is
+  suppressed for it too, staying in `LowReached` (no `shownAt` claiming a prompt nobody saw), so if
+  an AR `IN_VEHICLE` supersedes the bicycle stamp the prompt fires normally on the next fix. The
+  candidate lane keeps the same terminal branch, because an AR `ON_BICYCLE` ENTER can be delivered up
+  to ~2 min late, with the candidate already open.
+- The three lanes now build the decision input through ONE `parkingDecisionInput(...)`.
+
+**Companion note.** The close reuses `UnattendedSaveReason.HUMAN_POWERED` (same nudge source, same
+`aborted_unattended_human_powered` outcome) so field comparisons still line up. That nudge is itself
+a symptom of a different bug: the departure was committed (spot published, session released,
+geofence removed) before anything proved a drive, so the car is un-pinned and asking is the only way
+back. When DET-HANDOFF-NOT-MANUAL-001 §B lands, a human-powered ride should close SILENTLY — the old
+pin was never wrong. No new config constant, no strings, no Dev Catalog surface. 1252 tests green
+(1247 + 5). Spec: `docs/backlog/det-human-powered-early-close-001.md`.

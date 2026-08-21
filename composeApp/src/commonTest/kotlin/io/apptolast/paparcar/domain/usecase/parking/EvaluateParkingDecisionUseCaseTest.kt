@@ -327,6 +327,57 @@ class EvaluateParkingDecisionUseCaseTest {
         assertEquals("steps+egress", assertIs<ParkingDecision.Prompt>(decision).pathLabel)
     }
 
+    // ── Early close: the verdict fires when the evidence is in [DET-HUMAN-POWERED-EARLY-CLOSE-001] ─
+
+    @Test
+    fun should_close_when_the_ride_was_human_powered_and_the_stop_matured() {
+        // Field 2026-08-19 22:32: a bicycle ride home with no egress steps. Every branch above has
+        // had its chance and none can ever fire on this session — so the answer is not "wait", it
+        // is "end". The old behaviour idled here (Inconclusive) through three 5-min candidate
+        // windows until a 15-min clock read this very same flag.
+        val decision = evaluate(
+            input(stepCount = 0, hasEgressDisplacement = false, maxSpeedKmh = 18f)
+                .copy(humanPoweredRide = true, restCertified = true)
+        )
+        assertIs<ParkingDecision.CloseHumanPowered>(decision)
+    }
+
+    @Test
+    fun should_not_close_a_human_powered_ride_before_a_stop_has_matured() {
+        // The fast steps+egress lane runs with no stop behind it (`restCertified = false`): a
+        // cyclist pausing at a light with a few phantom steps must not have the session closed
+        // mid-ride. Rest is the only thing that turns "muscle-powered" into "the ride is over".
+        val decision = evaluate(
+            input(stepCount = 0, hasEgressDisplacement = false, maxSpeedKmh = 18f)
+                .copy(humanPoweredRide = true, restCertified = false)
+        )
+        assertIs<ParkingDecision.Inconclusive>(decision)
+    }
+
+    @Test
+    fun should_keep_asking_rather_than_closing_when_a_human_powered_ride_has_all_the_proofs() {
+        // The close never steals a Prompt: with steps + egress the user is one tap from saving the
+        // park, which beats an early close that would make them place the pin by hand.
+        // [DET-BIKE-NOT-A-CAR-001] behaviour, unchanged.
+        val decision = evaluate(
+            input(stepCount = 8, hasEgressDisplacement = true, maxSpeedKmh = 38f)
+                .copy(humanPoweredRide = true, restCertified = true)
+        )
+        assertEquals("steps+egress", assertIs<ParkingDecision.Prompt>(decision).pathLabel)
+    }
+
+    @Test
+    fun should_not_close_a_motorised_session_at_a_matured_stop() {
+        // The terminal close is exclusive to human-powered rides: a car waiting at a matured stop
+        // keeps its observation window (Inconclusive → Rejected), which is how queue/traffic stops
+        // are told apart from parks.
+        val decision = evaluate(
+            input(stepCount = 0, hasEgressDisplacement = false, maxSpeedKmh = 60f)
+                .copy(restCertified = true)
+        )
+        assertIs<ParkingDecision.Inconclusive>(decision)
+    }
+
     // ── Human-powered opt-out [DET-SOLID-001 C2] ────────────────────────────────
 
     @Test

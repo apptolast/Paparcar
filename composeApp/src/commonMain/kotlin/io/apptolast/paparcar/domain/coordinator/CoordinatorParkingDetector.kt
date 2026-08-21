@@ -1368,23 +1368,18 @@ class CoordinatorParkingDetector(
                         // elapsedSinceHighMs=0 → no observation window; the egress proofs are what
                         // confirm. The scooter mismatch guard still applies via the use case.
                         val decision = evaluateParkingDecision(
-                            ParkingDecisionInput(
-                                stepCount = state.stepCount,
-                                hasEgressDisplacement = hasEgressDisplacement(state, location),
-                                hadVehicleExit = state.vehicleExitConfirmed,
+                            parkingDecisionInput(
+                                state = state,
+                                location = location,
+                                now = now,
+                                activeVehicleType = activeVehicleType,
                                 elapsedSinceHighMs = 0L,
-                                vehicleType = activeVehicleType,
-                                sessionDurationMs = state.sessionDurationMs(now),
-                                maxSpeedKmh = state.maxSpeedKmh,
-                                sustainedDrivingMs = state.provenDrivingBandMs, // [DET-MOTOR-PROOF-001]
-                                evidenceLabel = currentArmEvidence,
-                                hasKinematicEgress = hasKinematicEgressSignal(state),
-                                lastSpeedMps = state.lastSpeedMps,
-                                egressBornAtAnchor = isEgressBornAtAnchor(state),
-                                anchorWalkEntered = isAnchorWalkEntered(state),
-                                anchorGapEntered = state.anchorGapEnteredAtCapture,
-                                egressExceedsWalkReach = egressExceedsWalkReach(state, location),
-                                humanPoweredRide = humanPoweredRide(state, activeVehicleType, now),
+                                hadVehicleExit = state.vehicleExitConfirmed,
+                                // No stop has matured here — this lane runs on the egress proofs
+                                // alone, so it may not reach the terminal human-powered close: a
+                                // cyclist paused at a light must not be closed mid-ride.
+                                // [DET-HUMAN-POWERED-EARLY-CLOSE-001]
+                                restCertified = false,
                             )
                         )
                         if (decision is ParkingDecision.Confirmed) {
@@ -1412,7 +1407,13 @@ class CoordinatorParkingDetector(
                         )
                     }
 
-                    evaluateConfidence(location, stoppedDuration, state, now)
+                    // [DET-HUMAN-POWERED-EARLY-CLOSE-001] The scorer can now END the session: High
+                    // confidence certifies the sustained stop, and on a muscle-powered ride that is
+                    // the entire verdict — no candidate, no prompt, no 15-minute wait.
+                    if (evaluateConfidence(location, stoppedDuration, state, now, activeVehicleId, activeVehicleType)) {
+                        completed = true
+                        return@collect
+                    }
                 }
         } finally {
             stepJob.cancel()
@@ -1845,23 +1846,16 @@ class CoordinatorParkingDetector(
         // keeps the side effects (confirm, phase mutation, diagnostics).
         val elapsed = now - phase.highReachedAt
         val decision = evaluateParkingDecision(
-            ParkingDecisionInput(
-                stepCount = state.stepCount,
-                hasEgressDisplacement = hasEgress,
-                hadVehicleExit = phase.hadVehicleExit,
+            parkingDecisionInput(
+                state = state,
+                location = location,
+                now = now,
+                activeVehicleType = activeVehicleType,
                 elapsedSinceHighMs = elapsed,
-                vehicleType = activeVehicleType,
-                sessionDurationMs = state.sessionDurationMs(now),
-                maxSpeedKmh = state.maxSpeedKmh,
-                sustainedDrivingMs = state.provenDrivingBandMs, // [DET-MOTOR-PROOF-001]
-                evidenceLabel = currentArmEvidence,
-                hasKinematicEgress = hasKinematicEgressSignal(state),
-                lastSpeedMps = state.lastSpeedMps,
-                egressBornAtAnchor = isEgressBornAtAnchor(state),
-                anchorWalkEntered = isAnchorWalkEntered(state),
-                anchorGapEntered = state.anchorGapEnteredAtCapture,
-                egressExceedsWalkReach = egressExceedsWalkReach(state, location),
-                humanPoweredRide = humanPoweredRide(state, activeVehicleType, now),
+                hadVehicleExit = phase.hadVehicleExit,
+                // In the candidate phase by construction: High confidence only arrives after the
+                // sustained-stop tier. [DET-HUMAN-POWERED-EARLY-CLOSE-001]
+                restCertified = true,
             )
         )
         PaparcarLogger.d(
@@ -1900,6 +1894,14 @@ class CoordinatorParkingDetector(
                 degradeToPrompt(decision.pathLabel, location, now)
                 false
             }
+            // [DET-HUMAN-POWERED-EARLY-CLOSE-001] Terminal: nothing this candidate (or any next one
+            // on the same stop) could produce is a car park. Reached when the human-powered evidence
+            // lands AFTER the candidate opened — an AR `ON_BICYCLE` ENTER is delivered up to ~2 min
+            // late, so the stop can mature before the ride is known to have been muscle-powered.
+            ParkingDecision.CloseHumanPowered -> {
+                closeHumanPoweredRide(location, activeVehicleId, now)
+                true
+            }
             ParkingDecision.Inconclusive -> false
         }
     }
@@ -1929,6 +1931,70 @@ class CoordinatorParkingDetector(
                 DetectionEvent.Decision(sid, now, outcome = "CONFIRM_DEGRADED_PROMPT", pathLabel = pathLabel, location = location)
             }
         }
+    }
+
+    /**
+     * [DET-HUMAN-POWERED-EARLY-CLOSE-001] The ONE place that assembles the pure decision's inputs.
+     * Three lanes ask the same question (fast steps+egress confirm, the candidate phase, and the
+     * stop-matured check as High is reached) and each used to build the 16-field input by hand — a
+     * copy-paste triple where a signal added to one lane silently missed the others.
+     *
+     * Only three things genuinely differ per lane and they are the parameters: how long ago the
+     * candidate reached High, whether a vehicle-exit was seen at that moment, and whether a
+     * sustained stop has been certified.
+     */
+    private fun parkingDecisionInput(
+        state: ParkingDetectionState,
+        location: GpsPoint,
+        now: Long,
+        activeVehicleType: VehicleType?,
+        elapsedSinceHighMs: Long,
+        hadVehicleExit: Boolean,
+        restCertified: Boolean,
+    ) = ParkingDecisionInput(
+        stepCount = state.stepCount,
+        hasEgressDisplacement = hasEgressDisplacement(state, location),
+        hadVehicleExit = hadVehicleExit,
+        elapsedSinceHighMs = elapsedSinceHighMs,
+        vehicleType = activeVehicleType,
+        sessionDurationMs = state.sessionDurationMs(now),
+        maxSpeedKmh = state.maxSpeedKmh,
+        sustainedDrivingMs = state.provenDrivingBandMs, // [DET-MOTOR-PROOF-001]
+        evidenceLabel = currentArmEvidence,
+        hasKinematicEgress = hasKinematicEgressSignal(state),
+        lastSpeedMps = state.lastSpeedMps,
+        egressBornAtAnchor = isEgressBornAtAnchor(state),
+        anchorWalkEntered = isAnchorWalkEntered(state),
+        anchorGapEntered = state.anchorGapEnteredAtCapture,
+        egressExceedsWalkReach = egressExceedsWalkReach(state, location),
+        humanPoweredRide = humanPoweredRide(state, activeVehicleType, now),
+        restCertified = restCertified,
+    )
+
+    /**
+     * [DET-HUMAN-POWERED-EARLY-CLOSE-001] Terminal side effect of [ParkingDecision.CloseHumanPowered]:
+     * the same offer the unattended timeout used to make 15 minutes later, made the moment the
+     * verdict exists. Reuses [UnattendedSaveReason.HUMAN_POWERED] on purpose — one vocabulary in the
+     * trace (`aborted_unattended_human_powered`, `UNATTENDED_HUMAN_POWERED_NUDGE`), so a field
+     * comparison against every previous bicycle session still lines up.
+     *
+     * The nudge itself is a symptom of a bug this ticket does NOT fix: the departure was already
+     * committed (spot published, session released, geofence removed) before anything proved a
+     * drive, so the user's car is un-pinned and asking is the only way back. Once
+     * DET-HANDOFF-NOT-MANUAL-001 §B stops committing without proof, a human-powered ride should end
+     * SILENTLY — the old pin was never wrong.
+     */
+    private suspend fun closeHumanPoweredRide(
+        location: GpsPoint,
+        vehicleId: String?,
+        now: Long,
+    ) {
+        PaparcarLogger.d(
+            DIAG,
+            "  ⊘ human-powered ride at a matured stop — closing NOW instead of idling to the " +
+                "response timeout [DET-HUMAN-POWERED-EARLY-CLOSE-001]",
+        )
+        nudgeUnattended(UnattendedSaveReason.HUMAN_POWERED, vehicleId, location, now)
     }
 
     /** [ANCHOR-LOCK-001] Whether the park anchor is LOCKED: pedestrian steps were counted while
@@ -2559,13 +2625,19 @@ class CoordinatorParkingDetector(
      * On reaching [ParkingConfidence.High] for the first time, enters the [ConfirmationPhase.Candidate]
      * phase and always shows a confirmation notification (if not already shown). Does not
      * confirm immediately — the observation window in [invoke] handles auto-confirmation timing.
+     *
+     * @return true when the session must END here: High confidence is the moment a sustained stop
+     *   is certified, and for a human-powered ride that is the whole verdict
+     *   ([ParkingDecision.CloseHumanPowered]). [DET-HUMAN-POWERED-EARLY-CLOSE-001]
      */
     private suspend fun evaluateConfidence(
         location: GpsPoint,
         stoppedDuration: Long,
         state: ParkingDetectionState,
         now: Long,
-    ) {
+        activeVehicleId: String?,
+        activeVehicleType: VehicleType?,
+    ): Boolean {
         val signals = ParkingSignals(
             speed = location.speed,
             stoppedDurationMs = stoppedDuration,
@@ -2576,13 +2648,16 @@ class CoordinatorParkingDetector(
         PaparcarLogger.d(DIAG, "  ⚖ scoring=$confidence (signals: speed=${signals.speed} stopped=${signals.stoppedDurationMs}ms accuracy=${signals.gpsAccuracy} exit=${signals.activityExit})")
 
         // [REFACTOR-200] phase advancement via explicit transitions.
-        when (confidence) {
-            is ParkingConfidence.NotYet -> Unit
+        return when (confidence) {
+            is ParkingConfidence.NotYet -> false
 
             is ParkingConfidence.Low,
-            is ParkingConfidence.Medium -> advanceLowMedium(confidence, state, now)
+            is ParkingConfidence.Medium -> {
+                advanceLowMedium(confidence, state, now, humanPoweredRide(state, activeVehicleType, now))
+                false
+            }
 
-            is ParkingConfidence.High -> advanceHigh(confidence, state, now)
+            is ParkingConfidence.High -> advanceHigh(confidence, location, state, now, activeVehicleId, activeVehicleType)
         }
     }
 
@@ -2590,6 +2665,10 @@ class CoordinatorParkingDetector(
         confidence: ParkingConfidence,
         state: ParkingDetectionState,
         now: Long,
+        /** [DET-HUMAN-POWERED-EARLY-CLOSE-001] The ride was muscle-powered: "¿has aparcado?" is the
+         *  wrong question to put on screen, and the High tier a few minutes later ends the session
+         *  with the honest one. Asking anyway is what the 2026-08-19 bicycle session did at 22:46. */
+        humanPowered: Boolean,
     ) {
         when (val phase = state.phase) {
             is ConfirmationPhase.Idle -> {
@@ -2600,7 +2679,17 @@ class CoordinatorParkingDetector(
             is ConfirmationPhase.LowReached -> {
                 val hasExit = state.vehicleExitConfirmed
                 val timeoutReached = (now - phase.firstReachedAt) >= config.lowNotifTimeoutMs
-                if (hasExit || timeoutReached) {
+                if (humanPowered) {
+                    // [DET-HUMAN-POWERED-EARLY-CLOSE-001] Suppressed, not deferred: the phase stays
+                    // LowReached (no `shownAt` claiming a prompt nobody saw), so if the veto lifts —
+                    // an AR `IN_VEHICLE` ENTER superseding the bicycle stamp — the very next fix
+                    // shows the prompt normally, its timeout still measured from `firstReachedAt`.
+                    PaparcarLogger.d(
+                        DIAG,
+                        "  ⊘ Low/Medium notif suppressed — human-powered ride, the matured stop " +
+                            "will close the session instead [DET-HUMAN-POWERED-EARLY-CLOSE-001]",
+                    )
+                } else if (hasExit || timeoutReached) {
                     val reason = if (hasExit)
                         "exit=${state.vehicleExitConfirmed}"
                     else
@@ -2631,11 +2720,40 @@ class CoordinatorParkingDetector(
         }
     }
 
+    /**
+     * @return true when the session must END instead of opening (or re-opening) a candidate.
+     *   [DET-HUMAN-POWERED-EARLY-CLOSE-001]
+     */
     private suspend fun advanceHigh(
         confidence: ParkingConfidence,
+        location: GpsPoint,
         state: ParkingDetectionState,
         now: Long,
-    ) {
+        activeVehicleId: String?,
+        activeVehicleType: VehicleType?,
+    ): Boolean {
+        // [DET-HUMAN-POWERED-EARLY-CLOSE-001] High confidence IS the certified sustained stop (its
+        // only route is the 5-minute stopped tier), so this is the earliest instant at which "the
+        // ride is over" is a measured fact rather than a guess. Ask the one evaluator that owns the
+        // verdict — the coordinator must not re-derive it — and act only on the terminal answer;
+        // Confirmed/Prompt belong to the lanes that already handle them. Asking HERE is what keeps
+        // a muscle-powered session from ever posting "¿has aparcado?".
+        val decision = evaluateParkingDecision(
+            parkingDecisionInput(
+                state = state,
+                location = location,
+                now = now,
+                activeVehicleType = activeVehicleType,
+                elapsedSinceHighMs = 0L,
+                hadVehicleExit = state.vehicleExitConfirmed,
+                restCertified = true,
+            )
+        )
+        if (decision == ParkingDecision.CloseHumanPowered) {
+            closeHumanPoweredRide(location, activeVehicleId, now)
+            return true
+        }
+
         val newCandidate: (Long) -> ConfirmationPhase.Candidate = { shownAt ->
             ConfirmationPhase.Candidate(
                 highReachedAt = now,
@@ -2675,6 +2793,7 @@ class CoordinatorParkingDetector(
                 Unit
             }
         }
+        return false
     }
 
     private companion object {
