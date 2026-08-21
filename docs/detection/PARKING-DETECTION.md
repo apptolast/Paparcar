@@ -1067,6 +1067,65 @@ copy. One new diagnostic line when a streak earns a quiet period and the fence g
 
 ---
 
+### DET-CLOSE-ZONE-WHEN-THE-BODY-WALKED-001 — a fix's accuracy locates the BODY, not the car
+
+**Commit:** pending. **Field:** 2026-08-21 23:50:47, Oppo, session `1787348798966`.
+
+**User report.** "Se acaba de poner el vehículo justo donde estoy ahora en mi casa, no donde me he
+bajado del coche."
+
+**Root cause.** The honest close chose pin-vs-zone from `abortFix.accuracy` alone:
+
+```kotlin
+if (abortFix.accuracy <= config.minGpsAccuracyForDriving) ApproximatePin(abortFix) else ApproximateZone(…)
+```
+
+Two different quantities wear the same units. A fix's accuracy says how well we know where the
+PHONE is; the artifact answers where the CAR is. Between them sits the walk the person made after
+getting out — invisible to GPS quality, and the entire error. After a 7 min 43 s blind gap
+([DET-COOLDOWN-MUST-NOT-BLIND-A-DRIVE-001]) a 3,644 m fix planted the car INSIDE the user's house,
+~80 m from the kerb he had actually been dropped at. The pin was not imprecise; it was confident
+about the wrong thing.
+
+**Fix.** One `artifactFor(abortFix, steps)` replaces both copies of the decision (the `trip_proven`
+rung and the `session_measured_driving` rung carried the same duplicated code):
+
+```
+doubt = max(fix accuracy, counted steps × stride)
+doubt ≤ minGpsAccuracyForDriving (50 m) → PIN
+else                                     → ZONE of that radius, clamped to [60 m, 250 m]
+```
+
+**Why the steps are the right bound, and why it self-scales.** They are the only bound this
+evaluator holds on that walk, and they have exactly the right shape: an artifact rung is only
+REACHED because the steps fell far short of what the displacement demanded. So the doubt is small
+precisely when the abort followed the park closely and large precisely when it did not. Field case:
+206 × 0,75 m = 154 m — a zone that CONTAINS the car. The cases this ladder was built for (Camelias
+hop, D2 return) abort minutes after the real trip, count a handful of steps, and keep their pins:
+all 22 pre-existing tests pass without touching an assertion.
+
+Floor and ceiling are the unattended zone's own (`honestCloseMinZoneRadiusMeters` 60 m,
+`unattendedZoneMaxRadiusMeters` 250 m) — the same bargain [DET-GAP-ANCHOR-ZONE-001] struck for a
+GPS hole, which is the same doubt measured through a different witness. A mute counter offers no
+bound and falls back to the fix, unchanged.
+
+**Sweep.** Every other `minGpsAccuracyForDriving` comparison in the codebase asks "is this fix
+credible as a SPEED measurement", which is genuinely a fix-quality question — the honest close was
+the only place answering "where is the car" with it. Confirming precedent: the safety-net backfill
+already refuses to place a pin unless `trustedStepsSinceAnchor <= maxBoardingSteps`, i.e. it already
+bounds the walk before trusting a position.
+
+**Companion-fix risk.** The geofence radius still comes from `geofenceRadiusFor(size, accuracy)`, so
+a wide zone does NOT register a giant fence. Reliability stays 0.5 and the nudge still fires.
+
+**Known gap, deliberately not closed here.** `UserParking.zoneRadiusMeters` / `isApproximate` have
+no reader in `presentation/` or `ui/` — only tests. The distinction is honest in the data and in
+telemetry, but the user still sees an identical marker. → `UI-APPROXIMATE-PARKING-DRAWS-ITS-DOUBT-001`.
+
+**Files:** `EvaluateHonestCloseUseCase` (`artifactFor`, both rungs, rung KDoc). 1356 tests.
+
+---
+
 ## 3. Open questions / future work
 
 - **GPS sampling boost during CANDIDATE (PARKING-001 Option B).** Switch the LocationDataSource to a 1 s `minUpdateIntervalMillis` request when entering the CANDIDATE phase, returning to 2 s on exit. Increases density of fixes that refine `bestStopLocation` within the new initial-stop window after a reposition burst. Adds the complexity of swapping the location source mid-session — hold off until A is validated in the field.

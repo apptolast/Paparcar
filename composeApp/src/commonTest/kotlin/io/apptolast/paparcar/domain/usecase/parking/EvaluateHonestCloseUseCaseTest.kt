@@ -71,6 +71,93 @@ class EvaluateHonestCloseUseCaseTest {
         assertNotNull(verdict.requiredSteps, "the trace must carry the budget the walk failed")
     }
 
+    // ── The walk between the car and this fix [DET-CLOSE-ZONE-WHEN-THE-BODY-WALKED-001] ────────
+
+    @Test
+    fun should_open_a_zone_the_walk_wide_when_a_precise_fix_lands_far_from_the_car() {
+        // Field 2026-08-21 23:50, Oppo (session 1787348798966). Covirán → home after a 7 min 43 s
+        // blind gap: 991 m of pin distance, 206 counted steps against the 530 the walk demanded,
+        // and an abort fix precise to 3,6 m. The old rule read only that 3,6 and planted the car
+        // INSIDE the user's house, ~80 m from the kerb he had actually been dropped at.
+        //
+        // The fix was not imprecise — it was confident about the wrong thing. 206 × 0,75 m = 154 m
+        // of walking stands between that fix and the car, and that is what the artifact must say.
+        val verdict = useCase(
+            stalePin = pinAt(36.6143783, -6.2863817, acc = 2.25f),
+            abortFix = fixAt(36.6083588, -6.2781826, acc = 3.644f),
+            stepsSinceStalePin = 206L,
+            sealAgeMs = FRESH_SEAL_AGE_MS,
+            lastWitnessedFix = null,
+            witnessAgeMs = null,
+            stepSealPoint = fixAt(36.6143783, -6.2863817, acc = 2.25f),
+        )
+        val zone = assertIs<HonestCloseDecision.ApproximateZone>(
+            verdict.decision,
+            "a fix 154 m of walking away from the car is not a point",
+        )
+        assertEquals(HonestCloseVerdict.REASON_TRIP_PROVEN, verdict.reason)
+        assertEquals(206L * ParkingDetectionConfig().strideMeters, zone.radiusMeters)
+        assertTrue(
+            zone.radiusMeters >= 80f,
+            "the zone must reach the real drop-off point, ~80 m from where the body stood",
+        )
+    }
+
+    @Test
+    fun should_keep_the_pin_when_the_counted_walk_is_short_enough_to_be_pin_grade() {
+        // The shape every legit close has: the abort follows the park by minutes, so the counter
+        // has ticked a handful of times and the doubt it buys is smaller than a pin-grade fix's own
+        // error. Precision earned, not assumed — the Camelias/D2 cases keep exactly what they had.
+        val verdict = useCase(
+            stalePin = pinAt(36.6002, -6.2512),
+            abortFix = fixAt(36.5974, -6.2505, acc = 8f),
+            stepsSinceStalePin = 20L, // 15 m of walking — well inside pin-grade
+            sealAgeMs = FRESH_SEAL_AGE_MS,
+            lastWitnessedFix = null,
+            witnessAgeMs = null,
+            stepSealPoint = fixAt(36.6002, -6.2512, acc = 10f),
+        )
+        assertIs<HonestCloseDecision.ApproximatePin>(verdict.decision)
+        assertEquals(HonestCloseVerdict.REASON_TRIP_PROVEN, verdict.reason)
+    }
+
+    @Test
+    fun should_cap_the_zone_so_it_never_paints_half_a_neighbourhood() {
+        // A long blind gap with a big step budget would otherwise draw a kilometre-wide "area",
+        // which stops being an answer. Same ceiling the unattended zone uses; the artifact is still
+        // saved at the cap and the nudge is the ask-to-refine.
+        val config = ParkingDetectionConfig()
+        val verdict = useCase(
+            stalePin = pinAt(36.7000, -6.4000),
+            abortFix = fixAt(36.6083588, -6.2781826, acc = 4f),
+            stepsSinceStalePin = 4_000L, // 3 km of walking on paper
+            sealAgeMs = FRESH_SEAL_AGE_MS,
+            lastWitnessedFix = null,
+            witnessAgeMs = null,
+            stepSealPoint = fixAt(36.7000, -6.4000, acc = 10f),
+        )
+        val zone = assertIs<HonestCloseDecision.ApproximateZone>(verdict.decision)
+        assertEquals(config.unattendedZoneMaxRadiusMeters, zone.radiusMeters)
+    }
+
+    @Test
+    fun should_fall_back_to_the_fix_accuracy_when_the_counter_offers_no_bound() {
+        // Measured driving needs no counter, and a mute one has no walk to report: the artifact is
+        // decided by the fix alone, exactly as it always was.
+        val verdict = useCase(
+            stalePin = pinAt(36.6002, -6.2512, reliability = 1f),
+            abortFix = fixAt(36.5974, -6.2505, acc = 8f),
+            stepsSinceStalePin = null,
+            sealAgeMs = null,
+            lastWitnessedFix = null,
+            witnessAgeMs = null,
+            stepSealPoint = null,
+            sessionMaxSpeedMps = 12f,
+        )
+        assertIs<HonestCloseDecision.ApproximatePin>(verdict.decision)
+        assertEquals(HonestCloseVerdict.REASON_SESSION_MEASURED_DRIVING, verdict.reason)
+    }
+
     @Test
     fun should_stay_silent_when_the_walk_explains_the_distance() {
         // D2 return (field 2026-07-15): the user WALKED ~1.1 km from the still-parked car; the

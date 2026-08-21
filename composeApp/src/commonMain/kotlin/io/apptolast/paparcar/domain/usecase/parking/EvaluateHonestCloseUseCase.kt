@@ -25,13 +25,17 @@ import kotlin.math.ceil
  */
 sealed interface HonestCloseDecision {
 
-    /** Rung 1 — trip proven AND a pin-grade fix is in hand: release the stale pin and drop an
-     *  APPROXIMATE pin here (LOW reliability, never auto-published). A point, but a soft one. */
+    /** Rung 1 — trip proven AND the doubt about the CAR's position is pin-grade: release the stale
+     *  pin and drop an APPROXIMATE pin here (LOW reliability, never auto-published). A point, but a
+     *  soft one. [DET-CLOSE-ZONE-WHEN-THE-BODY-WALKED-001] "Pin-grade" is no longer about the fix's
+     *  accuracy alone — see [EvaluateHonestCloseUseCase.artifactFor]. */
     data class ApproximatePin(val location: GpsPoint) : HonestCloseDecision
 
-    /** Rung 2 — trip proven but NO pin-grade anchor (urban multipath at the new spot): release the
-     *  stale pin and open an APPROXIMATE ZONE — an AREA of [radiusMeters], never a deceptively
-     *  precise dot. The chain never breaks (the zone carries a fence); the prompt asks to refine. */
+    /** Rung 2 — trip proven but the car could be anywhere within [radiusMeters]: release the stale
+     *  pin and open an APPROXIMATE ZONE — an AREA, never a deceptively precise dot. The chain never
+     *  breaks (the zone carries a fence); the prompt asks to refine. The radius covers urban
+     *  multipath at the new spot AND, since [DET-CLOSE-ZONE-WHEN-THE-BODY-WALKED-001], the walk the
+     *  person made between leaving the car and this fix. */
     data class ApproximateZone(val center: GpsPoint, val radiusMeters: Float) : HonestCloseDecision
 
     /** Rung 3 — no ride proof: the walk explains the distance (the car never moved), the
@@ -238,16 +242,8 @@ class EvaluateHonestCloseUseCase(
         // inference needed — the strongest evidence this evaluator can receive. Unreachable from
         // today's two abort outcomes (see class KDoc); decisive for any future caller.
         if (sessionMaxSpeedMps >= config.minimumTripSpeedMps) {
-            val decision = if (abortFix.accuracy <= config.minGpsAccuracyForDriving) {
-                HonestCloseDecision.ApproximatePin(abortFix)
-            } else {
-                HonestCloseDecision.ApproximateZone(
-                    abortFix,
-                    maxOf(abortFix.accuracy, config.honestCloseMinZoneRadiusMeters),
-                )
-            }
             return HonestCloseVerdict(
-                decision, HonestCloseVerdict.REASON_SESSION_MEASURED_DRIVING,
+                artifactFor(abortFix, stepsSinceStalePin), HonestCloseVerdict.REASON_SESSION_MEASURED_DRIVING,
                 pinDistanceMeters = distanceMeters, stepsDelta = stepsSinceStalePin,
             )
         }
@@ -363,21 +359,61 @@ class EvaluateHonestCloseUseCase(
             )
         }
 
-        // Trip proven. A pin-grade fix (same bar the reconcile backfill trusts) earns a point;
-        // anything vaguer becomes an honest AREA rather than a precise lie.
-        val decision = if (abortFix.accuracy <= config.minGpsAccuracyForDriving) {
-            HonestCloseDecision.ApproximatePin(abortFix)
-        } else {
-            val radiusMeters = maxOf(abortFix.accuracy, config.honestCloseMinZoneRadiusMeters)
-            HonestCloseDecision.ApproximateZone(abortFix, radiusMeters)
-        }
+        // Trip proven. How precisely we may draw it is [artifactFor]'s question, not the fix's.
         return HonestCloseVerdict(
-            decision, HonestCloseVerdict.REASON_TRIP_PROVEN,
+            artifactFor(abortFix, steps), HonestCloseVerdict.REASON_TRIP_PROVEN,
             pinDistanceMeters = distanceMeters, walkDistanceMeters = walkDistanceMeters,
             stepsDelta = steps, requiredSteps = requiredSteps,
             // How close this legit trip came to the coherence ceiling — the field data that
             // audits honestCloseMaxImpliedTravelSpeedMps. [DET-UNWITNESSED-DISPLACEMENT-001]
             witnessDistanceMeters = witnessDistanceMeters, witnessAgeMs = witnessAgeMs,
         )
+    }
+
+    /**
+     * A point or an area, and how wide. [DET-CLOSE-ZONE-WHEN-THE-BODY-WALKED-001]
+     *
+     * **The two quantities this used to conflate.** The old rule read `abortFix.accuracy` alone: a
+     * 3,6 m fix earned a precise dot. But a fix's accuracy says how well we know where the PHONE
+     * is, and the artifact answers where the CAR is. Between the two sits the walk the person made
+     * after getting out — invisible to GPS quality, and the entire error. Field 2026-08-21 23:50,
+     * Oppo: after a 7 min 43 s blind gap, a 3,6 m fix planted the car inside the user's house,
+     * ~80 m from the kerb he had actually been dropped at. The pin was not imprecise; it was
+     * confident about the wrong thing.
+     *
+     * **The bound, and why it self-scales.** The only thing this evaluator holds on that walk is
+     * the step count, and it is exactly the right shape: a rung that draws an artifact is only
+     * REACHED because those steps fell far short of what the displacement demanded, so the doubt
+     * it produces is small precisely when the abort followed the park closely and large precisely
+     * when it did not. The 2026-08-21 close: 206 steps × 0,75 m = 154 m — a zone that contains the
+     * car, where the old answer was a 3,6 m lie. A clean abort minutes after a real park counts a
+     * handful of steps and still earns its pin, so the cases this ladder was built for (Camelias
+     * hop, D2 return) keep the precision they had.
+     *
+     * Same floor and ceiling as the unattended zone ([ParkingDetectionConfig.honestCloseMinZoneRadiusMeters],
+     * [ParkingDetectionConfig.unattendedZoneMaxRadiusMeters]): below the floor an "area" is a dot
+     * with extra steps, above the ceiling it paints half a neighbourhood and stops meaning
+     * anything. The artifact is still saved at the cap and the nudge is the ask-to-refine — same
+     * bargain [DET-GAP-ANCHOR-ZONE-001] struck for a GPS hole, which is the same doubt measured
+     * through a different witness.
+     *
+     * @param stepsSinceStalePin null when the counter is mute — no bound on offer, so the fix's own
+     *   accuracy decides exactly as before. The only rung that can arrive here with null steps is
+     *   the measured-driving one, which never depended on the counter.
+     */
+    private fun artifactFor(abortFix: GpsPoint, stepsSinceStalePin: Long?): HonestCloseDecision {
+        val walkedSinceCarMeters = (stepsSinceStalePin ?: 0L) * config.strideMeters
+        val doubtMeters = maxOf(abortFix.accuracy, walkedSinceCarMeters)
+        return if (doubtMeters <= config.minGpsAccuracyForDriving) {
+            HonestCloseDecision.ApproximatePin(abortFix)
+        } else {
+            HonestCloseDecision.ApproximateZone(
+                abortFix,
+                doubtMeters.coerceIn(
+                    config.honestCloseMinZoneRadiusMeters,
+                    config.unattendedZoneMaxRadiusMeters,
+                ),
+            )
+        }
     }
 }
