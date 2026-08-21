@@ -1,9 +1,9 @@
 # DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001 · Una etiqueta de AR no puede ganarle a 131 km/h medidos
 
-**Estado:** 🟢 §A + §B + §C hechos, **sin commitear** · rama
-`bugfix/DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001-cadence-ceiling` · worktree `../Paparcar-motorway-bike`
-· **base `22c2c513`** (la pila handoff + early-close, que es lo que corre en los móviles — no master)
-· ⏳ pendiente: APK a los dos móviles y el viaje
+**Estado:** ✅ **DONE — master `1c292ac8`** (squash 21-08, sin pushear; rama + worktree borrados)
+· 1312 tests verdes · APK con el fix instalado en el Redmi (sha `f5d02afd…`)
+· ⏳ pendiente: APK al Oppo (no estaba enchufado) y el viaje de campo
+· 🔗 secuela abierta: [DET-EVIDENCE-MUST-NOT-LOWER-CONFIDENCE-001](det-evidence-must-not-lower-confidence-001.md)
 
 ## Problema
 
