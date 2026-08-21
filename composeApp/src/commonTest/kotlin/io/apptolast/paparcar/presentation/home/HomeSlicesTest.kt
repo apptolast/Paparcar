@@ -57,6 +57,90 @@ class HomeSlicesTest {
         isActive = true,
     )
 
+    // ── The provisional spot and its own session [UI-PROVISIONAL-SPOT-IS-NOT-ITS-SESSION-001] ──
+    // A deduced departure publishes the freed spot under its SESSION's id and deliberately keeps
+    // the session alive [DET-HANDOFF-NOT-MANUAL-001 §B]. Field 2026-08-21 23:46: the two collided,
+    // the spot became unselectable, and the owner saw a free space on top of his own parked car.
+
+    /** The spot that a deduced departure publishes: same id, same place as the live session. */
+    private fun provisionalTwinOf(session: UserParking) = Spot(
+        id = session.id,
+        location = session.location,
+        reportedBy = "user-1",
+        status = SpotStatus.PROVISIONAL,
+    )
+
+    @Test
+    fun should_resolve_the_spot_when_a_spot_selection_shares_its_session_id() {
+        val mine = session("collision", "veh-A")
+        val state = HomeState(
+            activeSessions = listOf(mine),
+            nearbySpots = listOf(provisionalTwinOf(mine)),
+            selection = HomeSelection.Spot("collision"),
+        )
+
+        assertEquals("collision", state.selectedSpot?.id, "the spot must be reachable")
+        assertNull(state.selectedSession, "…and must not be shadowed by the session")
+        assertFalse(state.isParkingSelected)
+        // The peek slice mirrors HomeState — the two must never disagree about the kind.
+        assertEquals("collision", state.toPeekSlice().selectedSpot?.id)
+        assertNull(state.toPeekSlice().selectedSession)
+    }
+
+    @Test
+    fun should_resolve_the_session_when_a_parking_selection_shares_its_spot_id() {
+        val mine = session("collision", "veh-A")
+        val state = HomeState(
+            activeSessions = listOf(mine),
+            nearbySpots = listOf(provisionalTwinOf(mine)),
+            selection = HomeSelection.Parking("collision"),
+        )
+
+        assertEquals("collision", state.selectedSession?.id)
+        assertNull(state.selectedSpot, "the same id must not also resolve as a spot")
+        assertTrue(state.isParkingSelected)
+        assertEquals("collision", state.toPeekSlice().selectedSession?.id)
+        assertNull(state.toPeekSlice().selectedSpot)
+    }
+
+    @Test
+    fun should_not_offer_my_own_still_parked_car_as_a_free_spot() {
+        val mine = session("collision", "veh-A")
+        val state = HomeState(
+            activeSessions = listOf(mine),
+            nearbySpots = listOf(provisionalTwinOf(mine), spot("someone-else")),
+        )
+
+        assertEquals(listOf("someone-else"), state.filteredNearbySpots().map { it.id })
+        assertEquals(listOf("someone-else"), state.toMapSlice().nearbySpots.map { it.id })
+        assertEquals(1, state.toPeekSlice().freeCount, "the counter must not count my own car")
+    }
+
+    @Test
+    fun should_report_nothing_on_offer_when_the_only_spot_is_my_own_parked_car() {
+        val mine = session("collision", "veh-A")
+        val state = HomeState(
+            activeSessions = listOf(mine),
+            nearbySpots = listOf(provisionalTwinOf(mine)),
+        )
+
+        assertFalse(state.toBrowseListSlice().hasAnySpots)
+    }
+
+    @Test
+    fun should_offer_the_spot_again_once_its_session_is_released() {
+        // The promotion (a measured drive) or a witnessed departure clears the session; from that
+        // moment the space really is free and nothing needs undoing.
+        val mine = session("collision", "veh-A")
+        val released = HomeState(
+            activeSessions = emptyList(),
+            nearbySpots = listOf(provisionalTwinOf(mine)),
+        )
+
+        assertEquals(listOf("collision"), released.filteredNearbySpots().map { it.id })
+        assertTrue(released.toBrowseListSlice().hasAnySpots)
+    }
+
     // ── Size filter (browse list + peek freeCount) ────────────────────────────
 
     @Test
@@ -97,7 +181,7 @@ class HomeSlicesTest {
         // sheet under them with no explanation — the exact silence the retraction exists to avoid.
         val state = HomeState(
             nearbySpots = listOf(spot("withdrawn", status = SpotStatus.RETRACTED)),
-            selectedItemId = "withdrawn",
+            selection = HomeSelection.Spot("withdrawn"),
         )
 
         assertEquals("withdrawn", state.selectedSpot?.id)
@@ -148,7 +232,7 @@ class HomeSlicesTest {
         val state = HomeState(
             nearbySpots = listOf(spot("spot-1")),
             activeSessions = listOf(session("s1", "veh-A")),
-            selectedItemId = "spot-1",
+            selection = HomeSelection.Spot("spot-1"),
         )
         val peek = state.toPeekSlice()
         assertEquals("spot-1", peek.selectedSpot?.id)
@@ -161,7 +245,7 @@ class HomeSlicesTest {
         val state = HomeState(
             nearbySpots = listOf(spot("spot-1")),
             activeSessions = listOf(session("s1", "veh-A")),
-            selectedItemId = "s1",
+            selection = HomeSelection.Parking("s1"),
         )
         val peek = state.toPeekSlice()
         assertEquals("s1", peek.selectedSession?.id)
@@ -301,7 +385,7 @@ class HomeSlicesTest {
             vehicles = listOf(vehicle("veh-A", isActive = true)),
             activeSessions = listOf(session("s1", "veh-A")),
             userGpsPoint = gps,
-            selectedItemId = "s1",
+            selection = HomeSelection.Parking("s1"),
         ).toFabsSlice()
         assertTrue(full.hasActiveParking)
         assertTrue(full.hasGpsFix)
@@ -319,7 +403,7 @@ class HomeSlicesTest {
                 vehicle("veh-A", isActive = true),
             ),
             activeSessions = listOf(session("s1", "veh-A"), session("s2", "veh-BT")),
-            selectedItemId = "s2",
+            selection = HomeSelection.Parking("s2"),
         )
         assertEquals(
             VehicleMonitoringStatus.Bluetooth("AA:BB:CC:DD:EE:FF"),
@@ -332,7 +416,7 @@ class HomeSlicesTest {
         val state = HomeState(
             vehicles = listOf(vehicle("veh-B")),
             activeSessions = listOf(session("s1", "veh-B")),
-            selectedItemId = "s1",
+            selection = HomeSelection.Parking("s1"),
         )
         assertEquals(VehicleMonitoringStatus.Inactive, state.toFabsSlice().selectedParkingWatch)
     }
@@ -341,7 +425,7 @@ class HomeSlicesTest {
     fun should_project_inactive_watch_when_selected_session_has_no_matching_vehicle() {
         val state = HomeState(
             activeSessions = listOf(session("s1", "gone")),
-            selectedItemId = "s1",
+            selection = HomeSelection.Parking("s1"),
         )
         assertEquals(VehicleMonitoringStatus.Inactive, state.toFabsSlice().selectedParkingWatch)
     }
@@ -352,7 +436,7 @@ class HomeSlicesTest {
             nearbySpots = listOf(spot("spot-1")),
             vehicles = listOf(vehicle("veh-A", isActive = true)),
             activeSessions = listOf(session("s1", "veh-A")),
-            selectedItemId = "spot-1",
+            selection = HomeSelection.Spot("spot-1"),
         )
         assertNull(state.toFabsSlice().selectedParkingWatch)
     }

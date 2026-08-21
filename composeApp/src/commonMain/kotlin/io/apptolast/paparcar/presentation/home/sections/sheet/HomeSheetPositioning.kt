@@ -26,6 +26,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.presentation.home.HomeMode
+import io.apptolast.paparcar.presentation.home.HomeSelection
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.papSheetHeaderBandHeight
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -222,7 +223,7 @@ internal fun SheetTransitionEffects(
     positioning: SheetPositioning,
     sheetOffsetPx: Animatable<Float, AnimationVector1D>,
     mode: HomeMode,
-    selectedItemId: String?,
+    selection: HomeSelection?,
     isParkingSelected: Boolean,
     spotListExpanded: Boolean,
     navProgressState: MutableFloatState,
@@ -238,7 +239,7 @@ internal fun SheetTransitionEffects(
     // decide with the CURRENT selection/mode/geometry, not the ones captured at launch.
     val currentPeekOffset = rememberUpdatedState(peekOffsetPx)
     val currentResetToPeek = rememberUpdatedState(resetToPeek)
-    val currentSelectedItemId = rememberUpdatedState(selectedItemId)
+    val currentSelection = rememberUpdatedState(selection)
     val currentPositioning = rememberUpdatedState(positioning)
 
     // The peek anchor the sheet last RESTED at. Only the effects below advance it,
@@ -251,9 +252,9 @@ internal fun SheetTransitionEffects(
     // Intentional reset — a selection or mode CHANGE returns the sheet to peek
     // (full peek content visible). The user can then drag DOWN to minimized for
     // a header-only view. [SHEET-DRAG-001]
-    LaunchedEffect(selectedItemId, mode) {
+    LaunchedEffect(selection, mode) {
         val peek = currentPeekOffset.value
-        if (selectedItemId == null || resetToPeek) {
+        if (selection == null || resetToPeek) {
             val correction = (sheetOffsetPx.value - peek).absoluteValue
             // Snap (not animate) when: small layout correction OR sheet is already at
             // or below the new peek. The latter covers selection events where the peek
@@ -296,7 +297,7 @@ internal fun SheetTransitionEffects(
         if (isIntentionallyAbovePeek(reference, restingPeekAnchor, peekSnapTolerancePx, canExpandAbovePeek)) {
             return@LaunchedEffect
         }
-        if (currentSelectedItemId.value == null || currentResetToPeek.value) {
+        if (currentSelection.value == null || currentResetToPeek.value) {
             val correction = (sheetOffsetPx.value - peekOffsetPx).absoluteValue
             val sheetBelowNewPeek = sheetOffsetPx.value >= peekOffsetPx
             if (!sheetOffsetPx.isRunning && (correction < peekSnapTolerancePx || sheetBelowNewPeek)) {

@@ -34,7 +34,7 @@ sealed interface SpotsUpdate {
  *
  * Built by Koin with its own collaborators and exposed as a **cold** [updates] flow the ViewModel
  * collects (applying `applyNewSpots`, which also prunes the selection — that logic reads
- * `activeSessions`/`selectedItemId` so it stays in the VM). Commands ([updateQueryCenter], [recenter],
+ * `activeSessions`/`selection` so it stays in the VM). Commands ([updateQueryCenter], [recenter],
  * [maybeRecenterOnPan]) mutate the internal query centre.
  */
 @OptIn(ExperimentalCoroutinesApi::class, kotlin.time.ExperimentalTime::class)

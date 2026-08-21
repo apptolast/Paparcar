@@ -57,6 +57,10 @@ internal fun HomePeekHandle(
             PeekState.AddingParking(isEditing = slice.editingParkingId != null)
         slice.mode is HomeMode.Reporting -> PeekState.Reporting
         slice.mode is HomeMode.AddingZone -> PeekState.AddingZone
+        // [UI-PROVISIONAL-SPOT-IS-NOT-ITS-SESSION-001] These two are mutually exclusive BY
+        // CONSTRUCTION now (each resolves inside its own HomeSelection arm), so the order below is
+        // presentation, not arbitration. It used to be arbitration, and the session always won —
+        // which is how a spot sharing its session's id opened the car's peek.
         selectedSpot != null -> PeekState.SelectedSpot(selectedSpot.id)
         selectedSession != null -> PeekState.SelectedParking(selectedSession.id)
         else -> PeekState.Browse

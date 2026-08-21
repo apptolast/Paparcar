@@ -18,6 +18,7 @@ import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.detection.DetectionPhase
 import io.apptolast.paparcar.presentation.home.DrivingMeta
+import io.apptolast.paparcar.presentation.home.HomeSelection
 import io.apptolast.paparcar.presentation.home.HomeState
 import io.apptolast.paparcar.presentation.home.VehicleCard
 import io.apptolast.paparcar.presentation.home.toBrowseListSlice
@@ -141,7 +142,7 @@ private fun HomePeekHandleSpotSelectedDarkPreview() {
             slice = HomeState(
                 nearbySpots = FakeData.nearbySpots,
                 userGpsPoint = GpsPoint(40.4165, -3.7030, 12f, Clock.System.now().toEpochMilliseconds(), 0f),
-                selectedItemId = spot.id,
+                selection = HomeSelection.Spot(spot.id),
             ).toPeekSlice(),
         )
     }
@@ -156,7 +157,7 @@ private fun HomePeekHandleSpotSelectedLightPreview() {
             slice = HomeState(
                 nearbySpots = FakeData.nearbySpots,
                 userGpsPoint = GpsPoint(40.4165, -3.7030, 12f, Clock.System.now().toEpochMilliseconds(), 0f),
-                selectedItemId = spot.id,
+                selection = HomeSelection.Spot(spot.id),
             ).toPeekSlice(),
         )
     }
@@ -172,7 +173,7 @@ private fun HomePeekHandleParkingSelectedDarkPreview() {
                 activeSessions = listOf(FakeData.activeSession),
                 userGpsPoint = GpsPoint(40.4165, -3.7030, 12f, Clock.System.now().toEpochMilliseconds(), 0f),
                 nearbySpots = FakeData.nearbySpots,
-                selectedItemId = FakeData.activeSession.id,
+                selection = HomeSelection.Parking(FakeData.activeSession.id),
             ).toPeekSlice(),
         )
     }
@@ -187,7 +188,7 @@ private fun HomePeekHandleParkingSelectedLightPreview() {
                 activeSessions = listOf(FakeData.activeSessionSupermarket),
                 userGpsPoint = GpsPoint(40.4165, -3.7030, 12f, Clock.System.now().toEpochMilliseconds(), 0f),
                 nearbySpots = FakeData.nearbySpots,
-                selectedItemId = FakeData.activeSessionSupermarket.id,
+                selection = HomeSelection.Parking(FakeData.activeSessionSupermarket.id),
             ).toPeekSlice(),
         )
     }

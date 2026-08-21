@@ -324,7 +324,7 @@ class HomeViewModel(
                 }
             }
             is HomeIntent.SelectItem -> updateState {
-                clearedModeFields().copy(selectedItemId = intent.itemId)
+                clearedModeFields().copy(selection = intent.selection)
             }
             is HomeIntent.SetSizeFilter -> updateState { copy(sizeFilter = intent.size) }
             is HomeIntent.SendSpotSignal -> submitSpotSignal(intent.spotId, intent.accepted)
@@ -491,7 +491,7 @@ class HomeViewModel(
             }
             releaseSession(target.location.latitude, target.location.longitude, target, reason)
                 .onSuccess {
-                    updateState { copy(selectedItemId = null, isReleasingParking = false) }
+                    updateState { copy(selection = null, isReleasingParking = false) }
                     if (reason.publishesSpot) sendEffect(HomeEffect.SpotReported)
                 }
                 .onFailure { e ->

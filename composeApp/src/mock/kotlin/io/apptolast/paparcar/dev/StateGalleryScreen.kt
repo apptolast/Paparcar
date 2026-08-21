@@ -52,6 +52,7 @@ import io.apptolast.paparcar.presentation.bluetooth.BluetoothConfigState
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.SearchResult
 import io.apptolast.paparcar.presentation.home.HomeMode
+import io.apptolast.paparcar.presentation.home.HomeSelection
 import io.apptolast.paparcar.presentation.home.HomeState
 import io.apptolast.paparcar.presentation.home.sections.header.components.HomeSearchBar
 import io.apptolast.paparcar.ui.components.ConfirmationBottomSheet
@@ -538,7 +539,7 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     HomeState(
                         nearbySpots = FakeData.nearbySpots,
                         userGpsPoint = sampleGps,
-                        selectedItemId = FakeData.nearbySpots.first().id,
+                        selection = HomeSelection.Spot(FakeData.nearbySpots.first().id),
                     ),
                 )
             },
@@ -551,7 +552,7 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     HomeState(
                         nearbySpots = listOf(unconfirmed) + FakeData.nearbySpots.drop(1),
                         userGpsPoint = sampleGps,
-                        selectedItemId = unconfirmed.id,
+                        selection = HomeSelection.Spot(unconfirmed.id),
                     ),
                 )
             },
@@ -563,7 +564,28 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     HomeState(
                         nearbySpots = listOf(retracted) + FakeData.nearbySpots.drop(1),
                         userGpsPoint = sampleGps,
-                        selectedItemId = retracted.id,
+                        selection = HomeSelection.Spot(retracted.id),
+                    ),
+                )
+            },
+            // [UI-PROVISIONAL-SPOT-IS-NOT-ITS-SESSION-001] The exact state of field 2026-08-21
+            // 23:46: a deduced departure published the spot while KEEPING the session alive, and
+            // the spot reuses the session's id. The owner must see ONE thing — their car — not a
+            // free space offering the metre their own car is standing on. The counter reads one
+            // less than `nearbySpots` because this spot is not on offer to this viewer.
+            Variant("PapSheet · mi plaza provisional NO se me ofrece (salida deducida)", Placement.Surface) {
+                val mine = FakeData.activeSession.copy(vehicleId = FakeData.vehicleSedan.id)
+                val myTwin = FakeData.nearbySpots.first().copy(
+                    id = mine.id,
+                    location = mine.location,
+                    status = SpotStatus.PROVISIONAL,
+                )
+                peek(
+                    HomeState(
+                        vehicles = listOf(FakeData.vehicleSedan),
+                        activeSessions = listOf(mine),
+                        nearbySpots = listOf(myTwin) + FakeData.nearbySpots.drop(1),
+                        userGpsPoint = sampleGps,
                     ),
                 )
             },
@@ -574,7 +596,7 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                         activeSessions = listOf(FakeData.activeSession.copy(vehicleId = FakeData.vehicleSedan.id)),
                         userGpsPoint = sampleGps,
                         nearbySpots = FakeData.nearbySpots,
-                        selectedItemId = FakeData.activeSession.id,
+                        selection = HomeSelection.Parking(FakeData.activeSession.id),
                     ),
                 )
             },

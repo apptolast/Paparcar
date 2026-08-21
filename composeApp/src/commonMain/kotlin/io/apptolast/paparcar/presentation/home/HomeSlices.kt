@@ -96,7 +96,7 @@ data class HomePeekSlice(
     val freeCount: Int,
     val nearbySpots: List<Spot>,
     val activeSessions: List<UserParking>,
-    val selectedItemId: String?,
+    val selection: HomeSelection?,
     val vehicles: List<Vehicle>,
     val userGpsPoint: GpsPoint?,
     val drivingMeta: DrivingMeta?,
@@ -122,18 +122,20 @@ data class HomePeekSlice(
     val userParking: UserParking?
         get() = preferredSession(activeSessions, vehicles)
 
-    /** The session matching [selectedItemId], or null if the selection is a spot. */
+    /** The selected session, or null when the selection is a spot / stale. */
     val selectedSession: UserParking?
-        get() = selectedItemId?.let { id -> activeSessions.firstOrNull { it.id == id } }
+        get() = (selection as? HomeSelection.Parking)
+            ?.let { sel -> activeSessions.firstOrNull { it.id == sel.id } }
 
-    /** The selected community spot, or null if nothing/a parking session is selected. */
+    /** The selected community spot, or null when the selection is a session / stale.
+     *  [UI-PROVISIONAL-SPOT-IS-NOT-ITS-SESSION-001] Mirrors [HomeState.selectedSpot]: each side
+     *  resolves inside its OWN type, so a shared id no longer shadows the spot. */
     val selectedSpot: Spot?
-        get() = selectedItemId
-            ?.takeIf { id -> activeSessions.none { it.id == id } }
-            ?.let { id -> nearbySpots.firstOrNull { it.id == id } }
+        get() = (selection as? HomeSelection.Spot)
+            ?.let { sel -> nearbySpots.firstOrNull { it.id == sel.id } }
 
     val isParkingSelected: Boolean
-        get() = selectedItemId != null && activeSessions.any { it.id == selectedItemId }
+        get() = selectedSession != null
 }
 
 /** What the sheet's scrollable list (vehicles + spots feed + detection surface) sees. */
@@ -192,13 +194,16 @@ internal fun HomeState.toMapSlice() = HomeMapSlice(
     // [DET-HANDOFF-NOT-MANUAL-001 §B.3] A withdrawn spot has no marker: leaving a pin on the map
     // for a space we no longer believe in is the exact failure the retraction exists to stop. The
     // peek explains it; the map just stops offering it.
-    nearbySpots = nearbySpots.filter { it.status.isAvailable },
+    // [UI-PROVISIONAL-SPOT-IS-NOT-ITS-SESSION-001] …and neither does MY OWN car, published
+    // provisionally while its session is deliberately kept alive: two markers on one pixel, one of
+    // them offering the space the other one occupies.
+    nearbySpots = nearbySpots.filter { it.status.isAvailable }.filterNot { isMyOwnLiveSession(it) },
     userGpsPoint = userGpsPoint,
     parkingLocation = userParking?.location,
     addParkingVehicle = resolveAddParkingVehicle(),
     parkedVehicles = parkedVehicles,
     zones = zones,
-    isAnyItemSelected = selectedItemId != null,
+    isAnyItemSelected = selection != null,
     isLoading = isLoading,
     addingZoneRadius = addingZoneRadius,
     addingZoneIsPrivate = addingZoneIsPrivate,
@@ -210,7 +215,7 @@ internal fun HomeState.toPeekSlice() = HomePeekSlice(
     freeCount = filteredNearbySpots().size,
     nearbySpots = nearbySpots,
     activeSessions = activeSessions,
-    selectedItemId = selectedItemId,
+    selection = selection,
     vehicles = vehicles,
     userGpsPoint = userGpsPoint,
     drivingMeta = drivingMeta,
@@ -240,8 +245,9 @@ internal fun HomeState.toBrowseListSlice() = HomeBrowseListSlice(
     sizeFilter = sizeFilter,
     filteredSpots = filteredNearbySpots(),
     // The filter bar and the empty state ask "is there anything on offer at all" — a withdrawn
-    // spot is not. [DET-HANDOFF-NOT-MANUAL-001 §B.3]
-    hasAnySpots = nearbySpots.any { it.status.isAvailable },
+    // spot is not [DET-HANDOFF-NOT-MANUAL-001 §B.3], and neither is my own still-parked car
+    // [UI-PROVISIONAL-SPOT-IS-NOT-ITS-SESSION-001].
+    hasAnySpots = nearbySpots.any { it.status.isAvailable && !isMyOwnLiveSession(it) },
     vehicleCards = vehicles.map { v ->
         VehicleCard(vehicle = v, session = activeSessions.firstOrNull { it.vehicleId == v.id })
     },
@@ -265,8 +271,28 @@ internal fun HomeState.toBrowseListSlice() = HomeBrowseListSlice(
 internal fun HomeState.filteredNearbySpots(): List<Spot> =
     nearbySpots
         .filter { it.status.isAvailable }
+        .filterNot { isMyOwnLiveSession(it) }
         .filter { sizeFilter == null || it.sizeCategory == null || it.sizeCategory == sizeFilter }
         .sortedBy { it.status == SpotStatus.PROVISIONAL }
+
+/**
+ * Is this "free spot" actually MY OWN car, still parked?
+ * [UI-PROVISIONAL-SPOT-IS-NOT-ITS-SESSION-001]
+ *
+ * A deduced departure publishes the spot IMMEDIATELY (freshness is its whole value to a stranger)
+ * while deliberately KEEPING the session and its geofence, because nothing measured says the car
+ * moved [DET-HANDOFF-NOT-MANUAL-001 §B]. Correct for the community, nonsense for the owner: on
+ * 2026-08-21 23:46 the user watched his car and a free space sit on the same pixel for four minutes.
+ *
+ * "Not on offer" is the same reason a WITHDRAWN spot is filtered above — it is just scoped to one
+ * viewer instead of everyone. The publication and its short TTL are untouched.
+ *
+ * This is the ONE place that reads the spot↔session id reuse as a JOIN rather than as an identity.
+ * The reuse is deliberate (it makes a republish rewrite the same document instead of duplicating
+ * it); what was wrong was letting it decide the TYPE of a selection, and [HomeSelection] fixed that.
+ */
+internal fun HomeState.isMyOwnLiveSession(spot: Spot): Boolean =
+    activeSessions.any { it.id == spot.id }
 
 /**
  * The vehicle an AddingParking session is being positioned FOR — edit resolves

@@ -563,7 +563,7 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `should_clear_selectedItemId_on_ReleaseParking_success`() = runTest {
+    fun `should_clear_selection_on_ReleaseParking_success`() = runTest {
         val session = UserParking(
             id = "session-1",
             userId = "user-1",
@@ -573,24 +573,24 @@ class HomeViewModelTest {
         )
         parkingRepo = FakeUserParkingRepository(initialSessions = listOf(session))
         vm = buildVm()
-        vm.handleIntent(HomeIntent.SelectItem(session.id))
+        vm.handleIntent(HomeIntent.SelectItem(HomeSelection.Parking(session.id)))
         vm.handleIntent(HomeIntent.ReleaseParking(sessionId = session.id, reason = ParkingReleaseReason.DEPARTURE_PUBLISHED))
-        assertNull(vm.state.value.selectedItemId)
+        assertNull(vm.state.value.selection)
     }
 
     // ── SelectItem ────────────────────────────────────────────────────────────
 
     @Test
-    fun `should_set_selectedItemId_on_SelectItem`() = runTest {
-        vm.handleIntent(HomeIntent.SelectItem("spot-42"))
-        assertEquals("spot-42", vm.state.value.selectedItemId)
+    fun `should_set_selection_on_SelectItem`() = runTest {
+        vm.handleIntent(HomeIntent.SelectItem(HomeSelection.Spot("spot-42")))
+        assertEquals(HomeSelection.Spot("spot-42"), vm.state.value.selection)
     }
 
     @Test
-    fun `should_clear_selectedItemId_on_SelectItem_null`() = runTest {
-        vm.handleIntent(HomeIntent.SelectItem("spot-42"))
+    fun `should_clear_selection_on_SelectItem_null`() = runTest {
+        vm.handleIntent(HomeIntent.SelectItem(HomeSelection.Spot("spot-42")))
         vm.handleIntent(HomeIntent.SelectItem(null))
-        assertNull(vm.state.value.selectedItemId)
+        assertNull(vm.state.value.selection)
     }
 
     // ── Mode atomicity invariant ──────────────────────────────────────────────
@@ -604,11 +604,11 @@ class HomeViewModelTest {
         vm.handleIntent(HomeIntent.EnterAddParkingMode(initialGps = location))
         assertEquals(HomeMode.AddingParking, vm.state.value.mode)
 
-        vm.handleIntent(HomeIntent.SelectItem("spot-42"))
+        vm.handleIntent(HomeIntent.SelectItem(HomeSelection.Spot("spot-42")))
 
         val s = vm.state.value
         assertEquals(HomeMode.Browse, s.mode)
-        assertEquals("spot-42", s.selectedItemId)
+        assertEquals(HomeSelection.Spot("spot-42"), s.selection)
         assertNull(s.pinCameraLat)
         assertNull(s.pinCameraLon)
         assertNull(s.editingParkingId)
@@ -621,11 +621,11 @@ class HomeViewModelTest {
         vm.handleIntent(HomeIntent.SetReportingSize(io.apptolast.paparcar.domain.model.VehicleSize.MEDIUM_SUV))
         assertEquals(HomeMode.Reporting, vm.state.value.mode)
 
-        vm.handleIntent(HomeIntent.SelectItem("spot-42"))
+        vm.handleIntent(HomeIntent.SelectItem(HomeSelection.Spot("spot-42")))
 
         val s = vm.state.value
         assertEquals(HomeMode.Browse, s.mode)
-        assertEquals("spot-42", s.selectedItemId)
+        assertEquals(HomeSelection.Spot("spot-42"), s.selection)
         assertNull(s.reportingSize)
         assertNull(s.pinCameraLat)
     }
@@ -637,11 +637,11 @@ class HomeViewModelTest {
         vm.handleIntent(HomeIntent.SetZoneIsPrivate(true))
         assertEquals(HomeMode.AddingZone, vm.state.value.mode)
 
-        vm.handleIntent(HomeIntent.SelectItem("spot-42"))
+        vm.handleIntent(HomeIntent.SelectItem(HomeSelection.Spot("spot-42")))
 
         val s = vm.state.value
         assertEquals(HomeMode.Browse, s.mode)
-        assertEquals("spot-42", s.selectedItemId)
+        assertEquals(HomeSelection.Spot("spot-42"), s.selection)
         assertEquals("", s.addingZoneName)
         assertEquals(false, s.addingZoneIsPrivate)
         assertNull(s.editingZoneId)
@@ -793,24 +793,24 @@ class HomeViewModelTest {
         assertEquals(2, vm.state.value.nearbySpots.size)
     }
 
-    // ── selectedItemId deselected when spot disappears ────────────────────────
+    // ── selection deselected when spot disappears ────────────────────────
 
     @Test
-    fun `should_clear_selectedItemId_when_selected_spot_disappears_from_nearbySpots`() = runTest {
+    fun `should_clear_selection_when_selected_spot_disappears_from_nearbySpots`() = runTest {
         val spot = Spot(id = "s1", location = location, reportedBy = "u1", address = null, placeInfo = null)
         spotRepo.spots = listOf(spot)
         permissions.emit(FakePermissionManager.allGranted())
         locationDataSource.emitHighAccuracy(location)
 
-        vm.handleIntent(HomeIntent.SelectItem("s1"))
-        assertEquals("s1", vm.state.value.selectedItemId)
+        vm.handleIntent(HomeIntent.SelectItem(HomeSelection.Spot("s1")))
+        assertEquals(HomeSelection.Spot("s1"), vm.state.value.selection)
 
         spotRepo.spots = emptyList()
-        assertNull(vm.state.value.selectedItemId)
+        assertNull(vm.state.value.selection)
     }
 
     @Test
-    fun `should_keep_session_selectedItemId_when_spots_change`() = runTest {
+    fun `should_keep_session_selection_when_spots_change`() = runTest {
         val session = UserParking(
             id = "session-1",
             userId = "user-1",
@@ -826,10 +826,10 @@ class HomeViewModelTest {
         permissions.emit(FakePermissionManager.allGranted())
         locationDataSource.emitHighAccuracy(location)
 
-        vm.handleIntent(HomeIntent.SelectItem(session.id))
+        vm.handleIntent(HomeIntent.SelectItem(HomeSelection.Parking(session.id)))
         spotRepo.spots = emptyList()
 
-        assertEquals(session.id, vm.state.value.selectedItemId)
+        assertEquals(HomeSelection.Parking(session.id), vm.state.value.selection)
     }
 
     // ── Multi-vehicle vehicleCards projection ─────────────────────────────────
@@ -1343,9 +1343,9 @@ class HomeViewModelTest {
 
         // Pre-condition: an item (spot / parking) is selected.
         // Zones are no longer selectable — SelectZone just moves the camera — so the
-        // selection field exercised here is the unified [selectedItemId]. [ZONE-NOSEL-001]
-        vm.handleIntent(HomeIntent.SelectItem("item-1"))
-        assertEquals("item-1", vm.state.value.selectedItemId)
+        // selection field exercised here is the unified [selection]. [ZONE-NOSEL-001]
+        vm.handleIntent(HomeIntent.SelectItem(HomeSelection.Spot("item-1")))
+        assertEquals(HomeSelection.Spot("item-1"), vm.state.value.selection)
 
         // Entering an add-mode must clear any active selection: selection and the
         // add-modes (Reporting / AddingZone / AddingParking) are mutually exclusive.
@@ -1353,7 +1353,7 @@ class HomeViewModelTest {
 
         val s = vm.state.value
         assertEquals(HomeMode.AddingZone, s.mode)
-        assertNull(s.selectedItemId)
+        assertNull(s.selection)
     }
 
     // ─────────────────────────────────────────────────────────────────────────────

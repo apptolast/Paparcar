@@ -22,7 +22,9 @@ sealed class HomeIntent {
 
     data object LoadNearbySpots : HomeIntent()
     /** null clears the selection; a spot or session id sets it. */
-    data class SelectItem(val itemId: String?) : HomeIntent()
+    /** [UI-PROVISIONAL-SPOT-IS-NOT-ITS-SESSION-001] Carries WHAT was tapped, not just its id — the
+     *  kind is free at every tap site and a spot may legitimately share its session's id. */
+    data class SelectItem(val selection: HomeSelection?) : HomeIntent()
     /** null clears the active size filter; non-null restricts to that size. */
     data class SetSizeFilter(val size: VehicleSize?) : HomeIntent()
     /** "Still there" (accepted = true) / "Gone" (accepted = false) community signal. */

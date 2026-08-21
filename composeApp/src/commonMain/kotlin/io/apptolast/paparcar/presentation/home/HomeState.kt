@@ -101,10 +101,13 @@ data class HomeState(
     // ── Selection ─────────────────────────────────────────────────────────────
 
     /**
-     * ID of the selected item — either a spot or an active session ID.
-     * Both share the same UUID space so equality resolves the type. [MULTI-PARKING-001]
+     * What the user has tapped — a spot or one of their own sessions, TYPED. [MULTI-PARKING-001]
+     *
+     * [UI-PROVISIONAL-SPOT-IS-NOT-ITS-SESSION-001] It used to be a bare id whose kind was recovered
+     * by asking both lists, with the session winning ties. A freed spot deliberately reuses its
+     * session's id, so that tie is not a rare race — it is every deduced departure.
      */
-    val selectedItemId: String? = null,
+    val selection: HomeSelection? = null,
 
     // ── Map / camera ──────────────────────────────────────────────────────────
 
@@ -231,18 +234,20 @@ data class HomeState(
     val userParking: UserParking?
         get() = preferredSession(activeSessions, vehicles)
 
-    /** The session matching [selectedItemId], or null if the selection is a spot. [MULTI-PARKING-001] */
+    /** The selected session, or null when the selection is a spot / stale. [MULTI-PARKING-001] */
     val selectedSession: UserParking?
-        get() = selectedItemId?.let { id -> activeSessions.firstOrNull { it.id == id } }
+        get() = (selection as? HomeSelection.Parking)
+            ?.let { sel -> activeSessions.firstOrNull { it.id == sel.id } }
 
-    /** The selected community spot, or null if nothing is selected or a parking session is selected. */
+    /** The selected community spot, or null when the selection is a session / stale.
+     *  [UI-PROVISIONAL-SPOT-IS-NOT-ITS-SESSION-001] Each side now resolves inside its OWN type, so
+     *  a spot sharing its session's id is reachable instead of being shadowed by it. */
     val selectedSpot: Spot?
-        get() = selectedItemId
-            ?.takeIf { id -> activeSessions.none { it.id == id } }
-            ?.let { id -> nearbySpots.firstOrNull { it.id == id } }
+        get() = (selection as? HomeSelection.Spot)
+            ?.let { sel -> nearbySpots.firstOrNull { it.id == sel.id } }
 
     val isParkingSelected: Boolean
-        get() = selectedItemId != null && activeSessions.any { it.id == selectedItemId }
+        get() = selectedSession != null
 
     /** Presentation projection of [detectionReadiness] for the Home detection surface. [DET-READY-001h] */
     val detectionUiState: DetectionUiState

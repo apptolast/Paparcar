@@ -322,7 +322,9 @@ private fun HomeContent(
     val browseSlice = remember(state) { state.toBrowseListSlice() }
 
     val isParkingSelected = state.isParkingSelected
-    val selectedSpotId = state.selectedItemId?.takeIf { !isParkingSelected }
+    // [UI-PROVISIONAL-SPOT-IS-NOT-ITS-SESSION-001] The kind is carried, not inferred from which
+    // list happens to contain the id.
+    val selectedSpotId = (state.selection as? HomeSelection.Spot)?.id
     var spotListExpanded by remember(selectedSpotId) { mutableStateOf(false) }
     var showReleaseDialog by remember { mutableStateOf(false) }
     // The session the release dialog acts on — set from the peek that opened it, so the release
@@ -447,7 +449,7 @@ private fun HomeContent(
                     positioning = positioning,
                     sheetOffsetPx = sheetOffsetPx,
                     mode = state.mode,
-                    selectedItemId = state.selectedItemId,
+                    selection = state.selection,
                     isParkingSelected = isParkingSelected,
                     spotListExpanded = spotListExpanded,
                     navProgressState = navProgressState,
@@ -467,7 +469,7 @@ private fun HomeContent(
                 // are fine — this recomposes only when those fields change, which
                 // is far less frequent than drag frames.
                 val overlayVisible = sheetAtPeekLevel &&
-                    state.selectedItemId == null &&
+                    state.selection == null &&
                     state.mode is HomeMode.Browse
                 // Camera FABs (location / car / midpoint) remain reachable in any
                 // modal state — the user may want to jump to their car while reviewing
@@ -489,7 +491,7 @@ private fun HomeContent(
                 val onSpotMarkerClick: (String) -> Unit = remember(spotsById, uiController, motion) {
                     { spotId ->
                         spotsById[spotId]?.let { spot ->
-                            onIntent(HomeIntent.SelectItem(spotId))
+                            onIntent(HomeIntent.SelectItem(HomeSelection.Spot(spotId)))
                             uiController.moveCamera(spot.location.latitude, spot.location.longitude)
                             motion.animateToExpanded()
                         }
@@ -501,7 +503,7 @@ private fun HomeContent(
                 val onMyCarMarkerClick: (sessionId: String) -> Unit = remember(uiController, motion) {
                     { sessionId ->
                         currentActiveSessions.value.firstOrNull { it.id == sessionId }?.let { p ->
-                            onIntent(HomeIntent.SelectItem(p.id))
+                            onIntent(HomeIntent.SelectItem(HomeSelection.Parking(p.id)))
                             uiController.moveCamera(p.location.latitude, p.location.longitude)
                             motion.animateToExpanded()
                         }
@@ -547,11 +549,11 @@ private fun HomeContent(
                     departurePoint = trip.departurePoint,
                     selectedSpotId = selectedSpotId,
                     // Per-vehicle: only the matching marker renders selected. [MULTI-PARKING-001]
-                    selectedSessionId = state.selectedItemId.takeIf { isParkingSelected },
+                    selectedSessionId = (state.selection as? HomeSelection.Parking)?.id?.takeIf { isParkingSelected },
                     reportMode = isPinningMode,
                     cameraTarget = uiController.cameraTarget,
                     centerPin = centerPinKind,
-                    dimSpots = isPinningMode || state.selectedItemId != null,
+                    dimSpots = isPinningMode || state.selection != null,
                     onSpotClick = onSpotMarkerClick,
                     onMyCarClick = onMyCarMarkerClick,
                     onZoneClick = onZoneClick,

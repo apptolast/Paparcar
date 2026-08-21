@@ -45,6 +45,7 @@ import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.presentation.home.HomeBrowseListSlice
 import io.apptolast.paparcar.presentation.home.HomeIntent
+import io.apptolast.paparcar.presentation.home.HomeSelection
 import io.apptolast.paparcar.presentation.home.VehicleCard
 import io.apptolast.paparcar.presentation.home.isDriving
 import io.apptolast.paparcar.presentation.home.vehiclesRowOrder
@@ -234,7 +235,7 @@ private fun LazyListScope.vehiclesSection(
         val session = card.session
         if (session != null) {
             // Row with an active session — select it and fly the camera there.
-            onIntent(HomeIntent.SelectItem(session.id))
+            onIntent(HomeIntent.SelectItem(HomeSelection.Parking(session.id)))
             onAction(HomeSheetAction.MoveCamera(session.location.latitude, session.location.longitude))
         } else {
             // "Aparcar" pill — enter AddingParking pre-centred on the user's GPS and
@@ -341,7 +342,7 @@ private fun LazyListScope.spotsSection(
                     isSelected = spot.id == selectedSpotId,
                     onSelect = {
                         onAction(HomeSheetAction.MoveCamera(spot.location.latitude, spot.location.longitude))
-                        onIntent(HomeIntent.SelectItem(spot.id))
+                        onIntent(HomeIntent.SelectItem(HomeSelection.Spot(spot.id)))
                     },
                 )
                 if (index < filteredSpots.lastIndex) {

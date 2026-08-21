@@ -14,14 +14,14 @@ import io.apptolast.paparcar.domain.model.ZoneIcon
 
 // ── Mode invariant ────────────────────────────────────────────────────────────
 //
-// Selection (selectedItemId) and add-modes (Reporting / AddingZone /
+// Selection ([HomeState.selection]) and add-modes (Reporting / AddingZone /
 // AddingParking) are mutually exclusive:
-//   mode != Browse         ⇒  selectedItemId == null
-//   selectedItemId != null ⇒  mode == Browse
+//   mode != Browse      ⇒  selection == null
+//   selection != null   ⇒  mode == Browse
 //
 // Enforcement sites:
 //   • EnterReportMode / EnterAddParkingMode / EnterAddZoneMode / EnterEditZoneMode
-//     all clear `selectedItemId` on entry.
+//     all clear `selection` on entry.
 //   • SelectItem calls [clearedModeFields] before applying the new selection,
 //     so picking a marker silently exits any active add-mode. (selectZone only
 //     moves the camera — a zone is not a selection.)
@@ -34,20 +34,20 @@ import io.apptolast.paparcar.domain.model.ZoneIcon
  * Returns a copy of this state reset to [HomeMode.Browse], clearing every
  * field that is owned by a non-Browse mode (pin coords, camera-moving flag,
  * report/zone/parking form fields, editing IDs) AND the selection field
- * (selectedItemId). Callers that need to set a selection or re-enter a mode
+ * ([HomeState.selection]). Callers that need to set a selection or re-enter a mode
  * apply their fields via `.copy(...)` on top of this base.
  *
  * In-flight booleans (isReporting / isSavingZone / isSavingParking /
  * isReleasingParking) are intentionally left alone: they reflect a running
  * operation, not the user-facing mode.
  *
- * **Invariant enforced here:** `mode != Browse ⇒ selectedItemId == null`.
+ * **Invariant enforced here:** `mode != Browse ⇒ selection == null`.
  * Every Enter*Mode / SelectItem path goes through this helper so the
  * invariant cannot drift as new mode-scoped fields are added. [BUG-5]
  */
 internal fun HomeState.clearedModeFields(): HomeState = copy(
     mode = HomeMode.Browse,
-    selectedItemId = null,
+    selection = null,
     pinCameraLat = null,
     pinCameraLon = null,
     isCameraMoving = false,
@@ -69,13 +69,18 @@ internal fun HomeState.clearedModeFields(): HomeState = copy(
  * inlining it inside the flow operator. [A1]
  */
 internal fun HomeState.applyNewSpots(spots: List<Spot>): HomeState {
-    val cur = selectedItemId
-    val selectionStillValid = cur == null ||
-        activeSessions.any { it.id == cur } ||
-        spots.any { it.id == cur }
+    val cur = selection
+    // [UI-PROVISIONAL-SPOT-IS-NOT-ITS-SESSION-001] Each kind is checked against ITS OWN list. The
+    // old shape accepted a spot selection because a SESSION happened to share the id, which is how
+    // a selection could survive its own spot disappearing.
+    val selectionStillValid = when (cur) {
+        null -> true
+        is HomeSelection.Parking -> activeSessions.any { it.id == cur.id }
+        is HomeSelection.Spot -> spots.any { it.id == cur.id }
+    }
     return copy(
         nearbySpots = spots,
-        selectedItemId = if (selectionStillValid) cur else null,
+        selection = if (selectionStillValid) cur else null,
     )
 }
 
