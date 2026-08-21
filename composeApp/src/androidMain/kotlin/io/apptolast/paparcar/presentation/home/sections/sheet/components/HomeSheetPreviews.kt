@@ -307,6 +307,42 @@ private fun HomeVehicleChipStatesLightPreview() {
     }
 }
 
+// En ruta en las DOS anatomías a la vez (card de 1 coche + chip compacto), en oscuro: el pie deja
+// de enseñar el pin de aparcado y pinta la ruta que se dibuja sola. El trazo sólo se mueve en
+// preview interactiva o en device; el render estático deja ver el fantasma + la cabeza en el
+// origen. [UI-CHIP-ROUTE-GLYPH-001]
+@Preview(name = "A — En ruta: card + chip con glifo de ruta (oscuro)", showBackground = true,
+    uiMode = Configuration.UI_MODE_NIGHT_YES, widthDp = 420)
+@Composable
+private fun HomeDrivingRouteGlyphDarkPreview() {
+    PaparcarTheme(darkTheme = true) {
+        Column(
+            Modifier.padding(16.dp),
+            verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp),
+        ) {
+            HomeVehicleCard(
+                card = VehicleCard(vehicle = FakeData.vehicleSedan, session = null),
+                isDriving = true,
+                onClick = {},
+            )
+            Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                HomeVehicleChip(
+                    card = VehicleCard(vehicle = FakeData.vehicleCorolla, session = null),
+                    isDriving = true,
+                    onClick = {},
+                )
+                // Candidate phase: same glyph, the words swap to "Aparcando…".
+                HomeVehicleChip(
+                    card = VehicleCard(vehicle = FakeData.vehicleSedan, session = null),
+                    isDriving = true,
+                    isCandidate = true,
+                    onClick = {},
+                )
+            }
+        }
+    }
+}
+
 // ─── A — PapSectionHeader ─────────────────────────────────────────────────────
 
 @Preview(name = "A — PapSectionHeader (oscuro)", showBackground = true,

@@ -746,6 +746,26 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     ),
                 )
             },
+            // El estado que el pie del chip compacto no sabía contar: uno de los coches EN RUTA
+            // junto a otro aparcado. El que conduce cambia el pin de aparcado por la ruta que se
+            // dibuja sola; el aparcado no se entera. [UI-CHIP-ROUTE-GLYPH-001]
+            Variant("Sheet · chips 2+ con uno en ruta (glifo de ruta)") {
+                sheet(
+                    HomeState(
+                        hasCorePermissions = true,
+                        userGpsPoint = sampleGps,
+                        vehicles = listOf(FakeData.vehicleSedan, FakeData.vehicleCorolla),
+                        activeSessions = listOf(
+                            FakeData.activeSession.copy(vehicleId = FakeData.vehicleSedan.id),
+                        ),
+                        nearbySpots = FakeData.nearbySpots,
+                        drivingMeta = io.apptolast.paparcar.presentation.home.DrivingMeta(
+                            vehicleId = FakeData.vehicleCorolla.id,
+                            phase = io.apptolast.paparcar.domain.detection.DetectionPhase.Driving,
+                        ),
+                    ),
+                )
+            },
             // All unmarked → every chip shows the "Sin marcar" glyph across the three watch tiers.
             Variant("Sheet · chips sin marcar (BT + activo/inactivo)") {
                 sheet(

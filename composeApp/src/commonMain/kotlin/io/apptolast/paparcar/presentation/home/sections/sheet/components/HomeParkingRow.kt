@@ -39,6 +39,7 @@ import io.apptolast.paparcar.presentation.util.distanceMeters
 import io.apptolast.paparcar.presentation.util.distanceString
 import io.apptolast.paparcar.presentation.util.relativeTimeText
 import io.apptolast.paparcar.ui.components.DrivingRadarHalo
+import io.apptolast.paparcar.ui.components.DrivingRouteGlyph
 import io.apptolast.paparcar.ui.components.UnmarkedParkingIcon
 import io.apptolast.paparcar.ui.components.VehicleGlyph
 import io.apptolast.paparcar.ui.components.VehicleIdentityHeader
@@ -64,10 +65,11 @@ import paparcar.composeapp.generated.resources.home_vehicle_fallback_name
  * Compact vehicle chip in the Home vehicles LazyRow (2+ vehicles). A vertical card: an identity row
  * (car glyph + **watch glyph + name in the identity colour** — green = active detection, blue = BT,
  * grey = unwatched) over a parking row. The parking row is the actionable fact: **parked →
- * location icon + address** (max 2 lines), **not marked → the "not marked" glyph**; driving shows
- * the pulsing neutral state words. No method label, no corner badge. The border carries the same
- * identity colour, dimmed. Tapping transforms the sheet to the vehicle's state.
- * [HOME-VEH-REFINE-001] [HOME-CARDS-001] [UI-COLOR-DOCTRINE-001]
+ * location icon + address** (max 2 lines), **not marked → the "not marked" glyph**, **driving → a
+ * self-drawing route glyph + the pulsing neutral state words**. No method label, no corner badge.
+ * The border carries the same identity colour, dimmed. Tapping transforms the sheet to the
+ * vehicle's state.
+ * [HOME-VEH-REFINE-001] [HOME-CARDS-001] [UI-COLOR-DOCTRINE-001] [UI-CHIP-ROUTE-GLYPH-001]
  */
 @Composable
 internal fun HomeVehicleChip(
@@ -140,18 +142,23 @@ internal fun HomeVehicleChip(
                 horizontalArrangement = Arrangement.spacedBy(FOOT_GAP_DP.dp),
             ) {
                 when {
-                    // State machine = neutral text; its liveness is the breathing pulse, not a hue.
-                    // [UI-COLOR-DOCTRINE-001]
-                    isDriving -> Text(
-                        text = stringResource(
-                            if (isCandidate) Res.string.home_vehicle_chip_status_candidate
-                            else Res.string.home_det_monitoring,
-                        ),
-                        style = PaparcarType.current.label,
-                        fontWeight = FontWeight.SemiBold,
-                        color = cs.onSurface.copy(alpha = rememberDrivingStatePulse()),
-                        maxLines = 1,
-                    )
+                    // A trip keeps the icon+text anatomy of the other two states, but the icon is a
+                    // route drawing itself — never the location pin, which would claim a place the
+                    // trip hasn't reached. State machine = neutral text; its liveness is the
+                    // breathing pulse, not a hue. [UI-CHIP-ROUTE-GLYPH-001] [UI-COLOR-DOCTRINE-001]
+                    isDriving -> {
+                        DrivingRouteGlyph(color = accent, glyphSize = FOOT_ICON_DP.dp)
+                        Text(
+                            text = stringResource(
+                                if (isCandidate) Res.string.home_vehicle_chip_status_candidate
+                                else Res.string.home_det_monitoring,
+                            ),
+                            style = PaparcarType.current.label,
+                            fontWeight = FontWeight.SemiBold,
+                            color = cs.onSurface.copy(alpha = rememberDrivingStatePulse()),
+                            maxLines = 1,
+                        )
+                    }
                     session != null -> {
                         Icon(
                             imageVector = Icons.Rounded.LocationOn,
@@ -189,8 +196,9 @@ internal fun HomeVehicleChip(
 /**
  * Full-width single-vehicle card (exactly one registered vehicle). Roomier identity — big glyph,
  * name, a **text status pin + size chip** — over a footer that carries the **parked address**
- * (location icon + "Parked at …" + relative time / distance + chevron), or a mark-parking CTA when
- * the vehicle has no active session. [HOME-VEH-REFINE-001] [HOME-CARDS-001]
+ * (location icon + "Parked at …" + relative time / distance + chevron), the **self-drawing route
+ * glyph** while a trip runs, or a mark-parking CTA when the vehicle has no active session.
+ * [HOME-VEH-REFINE-001] [HOME-CARDS-001] [UI-CHIP-ROUTE-GLYPH-001]
  */
 @Composable
 internal fun HomeVehicleCard(
@@ -244,16 +252,22 @@ internal fun HomeVehicleCard(
                         .background(accent.copy(alpha = FOOT_ICON_BOX_ALPHA)),
                     contentAlignment = Alignment.Center,
                 ) {
+                    // Same priority order as the text beside it: a running trip outranks the parked
+                    // session, so the pin (a place) yields to the route (a journey) while driving.
+                    // [UI-CHIP-ROUTE-GLYPH-001]
                     Box(contentAlignment = Alignment.Center) {
-                        if (session != null || isDriving) {
-                            Icon(
+                        when {
+                            isDriving -> DrivingRouteGlyph(
+                                color = accent,
+                                glyphSize = CARD_FOOT_ICON_DP.dp,
+                            )
+                            session != null -> Icon(
                                 imageVector = Icons.Rounded.LocationOn,
                                 contentDescription = null,
                                 tint = accent,
                                 modifier = Modifier.size(CARD_FOOT_ICON_DP.dp),
                             )
-                        } else {
-                            UnmarkedParkingIcon(tint = accent)
+                            else -> UnmarkedParkingIcon(tint = accent)
                         }
                     }
                 }

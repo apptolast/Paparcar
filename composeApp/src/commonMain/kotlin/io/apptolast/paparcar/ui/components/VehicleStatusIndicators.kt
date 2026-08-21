@@ -13,6 +13,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -170,6 +171,74 @@ fun DrivingRadarHalo(diameter: androidx.compose.ui.unit.Dp, color: Color) {
 }
 
 /**
+ * Route glyph for the **state line of a vehicle chip while a trip is running** — a short S-shaped
+ * route that draws itself from origin to destination, a dot riding its head, over a faint ghost of
+ * the full path so the shape still reads on frame 0 (and in static previews). When the head lands,
+ * it restarts: the drawing IS the message, "something is running right now".
+ *
+ * It replaces the location pin in that slot: a pin is a *place*, and a trip in motion has no place
+ * yet. Drawn in Compose because neither Material nor a VectorDrawable can trim a stroke over time —
+ * same reason [UnmarkedParkingIcon] is a Canvas. Carries the vehicle's identity colour, exactly like
+ * the pin it stands in for; the state *words* beside it stay `onSurface` with their pulse.
+ * [UI-CHIP-ROUTE-GLYPH-001] [UI-COLOR-DOCTRINE-001]
+ */
+@Composable
+fun DrivingRouteGlyph(
+    color: Color,
+    modifier: Modifier = Modifier,
+    glyphSize: androidx.compose.ui.unit.Dp = ROUTE_GLYPH_DP.dp,
+) {
+    val transition = androidx.compose.animation.core.rememberInfiniteTransition(label = "driving_route")
+    val progress by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+            animation = androidx.compose.animation.core.tween(
+                ROUTE_DRAW_PERIOD_MS,
+                easing = androidx.compose.animation.core.FastOutSlowInEasing,
+            ),
+            repeatMode = androidx.compose.animation.core.RepeatMode.Restart,
+        ),
+        label = "driving_route_progress",
+    )
+    // Path objects are reused across frames — a glyph this small redrawing at 60 fps has no business
+    // allocating.
+    val routePath = remember { androidx.compose.ui.graphics.Path() }
+    val drawnPath = remember { androidx.compose.ui.graphics.Path() }
+    val measure = remember { androidx.compose.ui.graphics.PathMeasure() }
+
+    Canvas(modifier.size(glyphSize)) {
+        val w = size.width
+        val h = size.height
+        routePath.rewind()
+        // An S from bottom-left to top-right: two bends read as "a route", one reads as a swoosh.
+        routePath.moveTo(w * ROUTE_START_X, h * ROUTE_START_Y)
+        routePath.cubicTo(
+            w * ROUTE_START_X, h * ROUTE_C1_Y,
+            w * ROUTE_END_X, h * ROUTE_C2_Y,
+            w * ROUTE_END_X, h * ROUTE_END_Y,
+        )
+        measure.setPath(routePath, forceClosed = false)
+        val stroke = Stroke(width = ROUTE_STROKE.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round)
+
+        // Ghost of the whole route — keeps the glyph legible before the head gets there.
+        drawPath(routePath, color = color.copy(alpha = ROUTE_GHOST_ALPHA), style = stroke)
+
+        val travelled = measure.length * progress
+        drawnPath.rewind()
+        if (measure.getSegment(0f, travelled, drawnPath, startWithMoveTo = true)) {
+            drawPath(drawnPath, color = color, style = stroke)
+        }
+        // The head: what the eye actually tracks.
+        drawCircle(
+            color = color,
+            radius = ROUTE_HEAD_RADIUS.toPx(),
+            center = measure.getPosition(travelled),
+        )
+    }
+}
+
+/**
  * Breathing alpha for the *state* words while a trip is in motion ("En ruta" / "Aparcando…") —
  * the state machine never wears colour ([UI-COLOR-DOCTRINE-001]), so its liveness is told by this
  * slow pulse instead. Apply to the state `Text`'s colour: `onSurface.copy(alpha = pulse)`.
@@ -205,6 +274,23 @@ private const val RADAR_PHASE_OFFSET = 0.5f  // second ring half a cycle behind 
 private const val RADAR_MIN_FRACTION = 0.45f // rings start at 45% of the glyph radius, expand to full
 private const val RADAR_MAX_ALPHA = 0.45f
 private val RADAR_STROKE = 1.5.dp
+// Self-drawing route glyph for the "en route" state line. [UI-CHIP-ROUTE-GLYPH-001]
+private const val ROUTE_GLYPH_DP = 16
+private const val ROUTE_DRAW_PERIOD_MS = 1600
+// 0.22 vanished outright on surfaceContainerHigh in dark: the un-drawn path has to survive the
+// container it sits on, or the glyph blinks empty once per cycle. Measured on device. [UI-CHIP-ROUTE-GLYPH-001]
+private const val ROUTE_GHOST_ALPHA = 0.35f
+// 1.6 read lighter than the solid location pin of the chip beside it — same slot, same weight.
+private val ROUTE_STROKE = 1.8.dp
+private val ROUTE_HEAD_RADIUS = 1.9.dp
+// S-curve control points, as fractions of the glyph box: origin bottom-left → destination top-right.
+private const val ROUTE_START_X = 0.20f
+private const val ROUTE_START_Y = 0.84f
+private const val ROUTE_C1_Y = 0.42f
+private const val ROUTE_C2_Y = 0.58f
+private const val ROUTE_END_X = 0.80f
+private const val ROUTE_END_Y = 0.16f
+
 private const val UNMARKED_ICON_DP = 20
 private val UNMARKED_STROKE_DP = 1.5.dp
 private val UNMARKED_DASH_ON = 2.dp
