@@ -19,11 +19,18 @@ data class TraceEvent(
     val accuracy: Float = 0f,
     val speed: Float = 0f,
 ) {
-    enum class Kind { FIX, STEP }
+    /**
+     * [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001] The Activity-Recognition lane is part of the trace,
+     * not scenery: [VEHICLE_EXIT] is what routes the confidence scorer into its Medium-capped fast
+     * path, and [BICYCLE_ENTER] is the stamp that can veto a whole session as human-powered. A
+     * replay that drops them cannot reproduce either outcome.
+     */
+    enum class Kind { FIX, STEP, VEHICLE_EXIT, BICYCLE_ENTER }
 }
 
-/** Replays [events] in timestamp order: FIX → the location flow, STEP → the step source, with
- *  the injected clock advanced to each event's time BEFORE it is delivered. */
+/** Replays [events] in timestamp order: FIX → the location flow, STEP → the step source, AR
+ *  transitions → the detector's signal methods, with the injected clock advanced to each event's
+ *  time BEFORE it is delivered. */
 class DetectionTraceReplayer(private val events: List<TraceEvent>) {
 
     /** Current virtual time — wire this into the detector's `clock` lambda. */
@@ -33,6 +40,9 @@ class DetectionTraceReplayer(private val events: List<TraceEvent>) {
     suspend fun replay(
         emitFix: suspend (GpsPoint) -> Unit,
         emitStep: suspend () -> Unit,
+        // Defaulted: the fixtures recorded before the AR lane existed carry neither kind.
+        emitVehicleExit: suspend () -> Unit = {},
+        emitBicycleEnter: suspend (trueTimeMs: Long) -> Unit = {},
     ) {
         events.sortedBy { it.tMs }.forEach { event ->
             nowMs = event.tMs
@@ -47,6 +57,8 @@ class DetectionTraceReplayer(private val events: List<TraceEvent>) {
                     )
                 )
                 TraceEvent.Kind.STEP -> emitStep()
+                TraceEvent.Kind.VEHICLE_EXIT -> emitVehicleExit()
+                TraceEvent.Kind.BICYCLE_ENTER -> emitBicycleEnter(event.tMs)
             }
         }
     }

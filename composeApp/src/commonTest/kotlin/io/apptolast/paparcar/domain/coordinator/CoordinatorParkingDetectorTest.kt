@@ -7,6 +7,7 @@ import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.VehicleSize
+import io.apptolast.paparcar.domain.model.VehicleType
 import io.apptolast.paparcar.domain.usecase.notification.NotifyParkingConfirmationUseCase
 import io.apptolast.paparcar.domain.usecase.parking.CalculateParkingConfidenceUseCase
 import io.apptolast.paparcar.domain.usecase.parking.EvaluateParkingDecisionUseCase
@@ -68,6 +69,9 @@ class CoordinatorParkingDetectorTest {
         config: ParkingDetectionConfig = this.config,
         clock: () -> Long = { Clock.System.now().toEpochMilliseconds() },
         extraVehicles: List<Vehicle> = emptyList(),
+        /** [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001] The garage's answer to "what do you own" — the
+         *  one human-powered source no measurement overrides [DET-SOLID-001 C2]. */
+        defaultVehicleType: VehicleType = VehicleType.CAR,
     ): TestEnv {
         val auth = FakeAuthRepository(initialSession = authSession)
         val vehicleRepo = FakeVehicleRepository(
@@ -75,6 +79,7 @@ class CoordinatorParkingDetectorTest {
                 id = "v-1",
                 userId = "user-1",
                 sizeCategory = VehicleSize.MEDIUM_SUV,
+                vehicleType = defaultVehicleType,
             ),
             extraVehicles = extraVehicles,
         )
@@ -1777,11 +1782,16 @@ class CoordinatorParkingDetectorTest {
 
             // Android's classifier says bicycle. Nothing else in the session can tell.
             env.coordinator.onHumanPoweredRide(nowMs)
-            emitCorroboratedDrive(locations) // 38 km/h looks exactly like a car to every threshold
+            // A cyclist's band: it clears every threshold calibrated for a pedestrian, which is the
+            // whole danger, and stays where the field rides measured. [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001]
+            emitCorroboratedDrive(locations, speedMps = BICYCLE_SPEED_MPS)
             nowMs = 60_000L
             locations.emit(GpsPoint(40.0005, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
             env.stepDetector.emitSteps(12)
-            env.coordinator.onVehicleExit()
+            // [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001] No AR exit — the fixture used to inject one as
+            // a shortcut into the confirm path, but its own field source (session 1786878499475)
+            // recorded ZERO AR transitions, and an `IN_VEHICLE EXIT` now proves the boarding it
+            // followed. Asserting a bicycle while feeding it a vehicle exit tested nothing real.
             nowMs = 90_000L
             locations.emit(GpsPoint(40.0010, -3.7, accuracy = 8f, timestamp = 0L, speed = 0.5f))
 
@@ -1825,7 +1835,9 @@ class CoordinatorParkingDetectorTest {
             }
 
             env.coordinator.onHumanPoweredRide(nowMs)
-            emitCorroboratedDrive(locations) // a bicycle holds the band as well as a car does
+            // A bicycle holds the DRIVING band as well as a car does — it just cannot hold the
+            // motor band. [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001]
+            emitCorroboratedDrive(locations, speedMps = BICYCLE_SPEED_MPS)
 
             // Home. The bike is left; the phone stops moving. No steps, no AR exit — nothing that
             // could ever satisfy the egress conjunction.
@@ -1849,6 +1861,137 @@ class CoordinatorParkingDetectorTest {
                 env.detectionLogger.events.filterIsInstance<DetectionEvent.Decision>()
                     .none { it.outcome == "PROMPT_SHOWN" },
                 "a ride known to be muscle-powered must never be asked '¿has aparcado?'",
+            )
+        }
+
+    @Test
+    fun should_record_the_cycling_stamp_in_the_trace_with_how_stale_it_already_was() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001 §C] The 2026-08-20 session logged 1 476 events
+            // and not one named the `ON_BICYCLE` stamp that decided it — the veto was only
+            // reachable by elimination, days later. The AR EVIDENCE lane belongs in the trace, with
+            // the TRUE transition time it is arbitrated on (AR delivers up to ~2 min late).
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations, armEvidence = ArmEvidence.Unverified) }
+
+            env.coordinator.onHumanPoweredRide(atMs = -90_000L) // stamped 90 s before this fix
+            nowMs = 0L
+            locations.emit(stationaryFix(lat = 40.0, lon = -3.7))
+            // A second fix must not re-log the same stamp: this is an edge, not a heartbeat.
+            nowMs = 5_000L
+            locations.emit(stationaryFix(lat = 40.0, lon = -3.7))
+
+            job.cancelAndJoin()
+
+            val cycling = env.detectionLogger.events
+                .filterIsInstance<DetectionEvent.ActivityTransition>()
+                .filter { it.activity == "ON_BICYCLE" }
+            assertEquals(1, cycling.size, "edge-logged exactly once, was ${cycling.size}")
+            assertEquals("ENTER", cycling.single().transition)
+            assertEquals(
+                90_000L,
+                cycling.single().trueTimeAgeMs,
+                "the trace must carry how stale AR's answer already was",
+            )
+        }
+
+    @Test
+    fun should_record_the_pedal_cadence_latch_in_the_trace_even_when_its_second_fix_arrives_late() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001 §C] The OTHER source of the human-powered veto.
+            // With the AR lane now traced, a session vetoed by CADENCE still showed nothing at all,
+            // so the reader was back to inferring by elimination — the 2026-08-20 Oppo shape.
+            //
+            // The emission is deliberately the one the previous edge CONCEDED it would miss: the
+            // event count crosses the threshold while only ONE distinct fix has been credited, and
+            // the second fix (the half that completes the verdict) arrives afterwards. At that
+            // moment `events == pedalCadenceMinStepEvents` is already false, so an equality edge
+            // stays silent for a latch that is fully held.
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations, armEvidence = ArmEvidence.Unverified) }
+
+            // One credible fix inside the band a bicycle can occupy (≥ egressStepMaxSpeedMps and,
+            // since §A, < motorProofSpeedMps), then the whole burst against that single fix.
+            nowMs = 1_000L
+            locations.emit(GpsPoint(40.0, -3.7, accuracy = 6f, timestamp = 1_000L, speed = BICYCLE_SPEED_MPS))
+            nowMs = 2_000L
+            env.stepDetector.emitSteps(config.pedalCadenceMinStepEvents) // events = 12, fixes = 1
+
+            val beforeSecondFix = env.detectionLogger.events
+                .filterIsInstance<DetectionEvent.Decision>()
+                .count { it.outcome == "PEDAL_CADENCE_LATCHED" }
+            assertEquals(0, beforeSecondFix, "one fix is one pothole — the latch is not held yet")
+
+            // The second distinct fix, and the step that credits it: now both halves hold.
+            nowMs = 5_000L
+            locations.emit(GpsPoint(40.0004, -3.7, accuracy = 6f, timestamp = 5_000L, speed = BICYCLE_SPEED_MPS))
+            nowMs = 6_000L
+            env.stepDetector.emitSteps(1) // events = 13, fixes = 2
+            // Still pedalling: the marker is an edge, not a heartbeat.
+            env.stepDetector.emitSteps(5)
+
+            job.cancelAndJoin()
+
+            val latched = env.detectionLogger.events
+                .filterIsInstance<DetectionEvent.Decision>()
+                .filter { it.outcome == "PEDAL_CADENCE_LATCHED" }
+            assertEquals(1, latched.size, "edge-logged exactly once, was ${latched.size}")
+            assertTrue(
+                latched.single().pathLabel!!.contains("fixes=2"),
+                "the trace must carry the numbers the verdict weighed, was ${latched.single().pathLabel}",
+            )
+        }
+
+    @Test
+    fun should_close_the_session_even_when_an_ar_vehicle_exit_caps_the_scorer_at_medium() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001 §B] The shape that hung for 102 minutes in the
+            // field: a human-powered verdict (so the Low/Medium prompt is SUPPRESSED) plus an AR
+            // `IN_VEHICLE EXIT` (so `CalculateParkingConfidenceUseCase` takes its fast path and
+            // never scores above Medium). No prompt → no response timeout. No High → the early
+            // close could never be asked. No candidate → no verdict of any kind. The session had
+            // literally no way to end.
+            //
+            // The registered profile is the human-powered source on purpose: it is the one no
+            // measurement may overturn [DET-SOLID-001 C2], so this guard cannot be silently
+            // defused by §A's motor refutation the way an AR stamp now is.
+            var nowMs = 0L
+            val env = setup(clock = { nowMs }, defaultVehicleType = VehicleType.BIKE)
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch {
+                env.coordinator.invoke(locations, armEvidence = ArmEvidence.Unverified)
+            }
+
+            emitCorroboratedDrive(locations, speedMps = BICYCLE_SPEED_MPS)
+            nowMs = 60_000L
+            locations.emit(GpsPoint(40.0, -3.7, accuracy = 4f, timestamp = 0L, speed = 0f))
+            // AR says the rider got off — this is what caps the scorer at Medium forever.
+            env.coordinator.onVehicleExit(nowMs)
+            nowMs += config.fastPathMinStoppedMs + 5_000L
+            locations.emit(GpsPoint(40.0, -3.7, accuracy = 4f, timestamp = 0L, speed = 0f))
+
+            // The stop matures past the 5-minute rest the verdict needs. Pre-fix this fix changed
+            // nothing at all: Medium again, prompt suppressed again, session alive again.
+            nowMs = 60_000L + config.slowPath5MinMs + 10_000L
+            locations.emit(GpsPoint(40.0, -3.7, accuracy = 4f, timestamp = 0L, speed = 0f))
+
+            job.cancelAndJoin()
+
+            val ended = env.detectionLogger.events.filterIsInstance<DetectionEvent.SessionEnded>()
+            assertEquals(
+                listOf("aborted_unattended_human_powered"),
+                ended.map { it.outcome },
+                "a session whose prompt is suppressed MUST still reach its own verdict",
+            )
+            assertEquals(0, env.parkingRepo.saveNewParkingSessionCallCount)
+            assertTrue(
+                env.detectionLogger.events.filterIsInstance<DetectionEvent.Decision>()
+                    .none { it.outcome == "PROMPT_SHOWN" },
+                "and it must still never ask '¿has aparcado?'",
             )
         }
 
@@ -3023,15 +3166,30 @@ class CoordinatorParkingDetectorTest {
      *  field 2026-07-27). Emits 6 fixes 5 s apart (≈ 278 m over 25 s, progressing), approaching
      *  [toLat] from the south and ENDING at ([toLat], [lon]) so each test's downstream geometry
      *  is untouched. */
+    /** [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001] 6,5 m/s ≈ 23 km/h — a brisk cyclist, right where the
+     *  two real field rides of 2026-08-19 actually measured (credible peaks 17,6 and 21,3 km/h).
+     *  Above `minimumTripSpeedMps`, so it still clears every threshold calibrated for a pedestrian
+     *  — which is the whole reason a bicycle is dangerous to this detector — and far below the
+     *  motor band, so the veto it triggers is a veto the measurement agrees with. */
+    private val BICYCLE_SPEED_MPS = 6.5f
+
     private suspend fun emitCorroboratedDrive(
         locations: MutableSharedFlow<GpsPoint>,
         toLat: Double = 40.0,
         lon: Double = -3.7,
+        // [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001] The band the ride is made of. The default is a
+        // modest car; a BICYCLE test must pass [BICYCLE_SPEED_MPS], because the measured motor band
+        // now refutes a human-powered claim and a fixture pedalling at 39,6 km/h for 35 s would be
+        // asserting something the two real field rides never did (both measured ZERO ms above
+        // 40 km/h, with credible peaks of 17,6 and 21,3 km/h).
+        speedMps: Float = 11f,
     ) {
         // 8 fixes × 5 s = 35 s of in-band GPS time: enough to corroborate the drive AND to satisfy
         // the sustained-drive clock (`sustainedDriveProofMs`, 30 s) [DET-MOTOR-PROOF-001].
         val fixes = 8
-        val stepDeg = 0.0005 // ≈ 55 m per 5-s hop ≈ 11 m/s ground rate
+        // Ground rate must match the declared speed or `corroboratesDrive` sees a mirage:
+        // 1e-5 degrees of latitude ≈ 1,11 m, so 5 s at `speedMps` is speedMps * 5 / 111_000 deg.
+        val stepDeg = speedMps * 5.0 / 111_000.0
         repeat(fixes) { i ->
             locations.emit(
                 GpsPoint(
@@ -3039,7 +3197,7 @@ class CoordinatorParkingDetectorTest {
                     longitude = lon,
                     accuracy = 5f,
                     timestamp = i * 5_000L,
-                    speed = 11f,
+                    speed = speedMps,
                 )
             )
         }

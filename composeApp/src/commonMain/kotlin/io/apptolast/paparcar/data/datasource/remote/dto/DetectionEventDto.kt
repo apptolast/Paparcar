@@ -147,7 +147,10 @@ fun DetectionEvent.toDto(): DetectionEventDto {
     return when (this) {
         is DetectionEvent.SessionStarted -> base.copy(strategy = strategy, vehicleType = vehicleType, evidence = evidence)
         is DetectionEvent.SessionEnded -> base.copy(outcome = outcome)
-        is DetectionEvent.ActivityTransition -> base.copy(activity = activity, transition = transition)
+        // [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001] The AR staleness rides the existing `enterAgeMs`
+        // column — the same "how old was this transition" the departure lane already stores there.
+        is DetectionEvent.ActivityTransition ->
+            base.copy(activity = activity, transition = transition, enterAgeMs = trueTimeAgeMs)
         is DetectionEvent.Geofence -> base.copy(event = event, geofenceId = geofenceId)
         is DetectionEvent.Bluetooth -> base.copy(event = event, deviceAddress = deviceAddress)
         is DetectionEvent.LocationFix -> base.copy(stoppedDurationMs = stoppedDurationMs)

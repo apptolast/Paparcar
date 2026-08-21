@@ -19,9 +19,10 @@ class HumanPoweredRideTest {
         nowMs: Long,
         fastMotionStepEvents: Int = 0,
         fastMotionStepFixes: Int = 0,
+        sustainedMotorBandMs: Long = 0L,
     ) = isHumanPoweredRide(
         vehicleType, bicycleRideAtMs, vehicleRideAtMs, nowMs,
-        fastMotionStepEvents, fastMotionStepFixes,
+        fastMotionStepEvents, fastMotionStepFixes, sustainedMotorBandMs,
         config = config,
     )
 
@@ -146,6 +147,74 @@ class HumanPoweredRideTest {
                 fastMotionStepEvents = 16,
                 fastMotionStepFixes = 4,
             )
+        )
+    }
+
+    // ── [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001] measured motor refutes every claim ──────────
+
+    @Test
+    fun should_notVeto_when_theSessionHeldASpeedNoBicycleSustains() {
+        // Field 2026-08-20, Redmi session 1787242874932: 361 s held above 40 km/h, 131,4 km/h peak
+        // at 4,6 m accuracy — and one late AR `ON_BICYCLE` stamp took the session anyway. No pin,
+        // 102 minutes hung, and the car lost the geofence that would have caught the next trip.
+        assertFalse(
+            evaluate(
+                VehicleType.CAR,
+                bicycleRideAtMs = now - 60_000L,
+                vehicleRideAtMs = null,
+                nowMs = now,
+                sustainedMotorBandMs = 361_000L,
+            ),
+            "the event nominates, the measurement decides — a label cannot outvote 40+ km/h held",
+        )
+    }
+
+    @Test
+    fun should_notVeto_when_measuredMotorContradictsAMeasuredCadenceLatch() {
+        // The refutation covers the KINEMATIC source too, not just the AR stamp: whatever the
+        // step counter thought it saw, muscle does not hold this band.
+        assertFalse(
+            evaluate(
+                VehicleType.CAR,
+                bicycleRideAtMs = null,
+                vehicleRideAtMs = null,
+                nowMs = now,
+                fastMotionStepEvents = 40,
+                fastMotionStepFixes = 9,
+                sustainedMotorBandMs = 120_000L,
+            ),
+        )
+    }
+
+    @Test
+    fun should_stillVeto_when_aRealBicycleOnlyTouchesTheMotorBandInBursts() {
+        // The real rides of 2026-08-19 measured ZERO ms above 40 km/h on both phones (the Redmi's
+        // summary said `vmax 40 km/h`, but its best CREDIBLE fix was 21,3 — the peak is a rumour).
+        // A downhill sprint that brushes the band for a few seconds must change nothing.
+        assertTrue(
+            evaluate(
+                VehicleType.CAR,
+                bicycleRideAtMs = now - 60_000L,
+                vehicleRideAtMs = null,
+                nowMs = now,
+                sustainedMotorBandMs = config.sustainedDriveProofMs - 1,
+            ),
+            "brushing the band is not holding it",
+        )
+    }
+
+    @Test
+    fun should_notVeto_when_arWitnessedGettingOutOfAVehicleAfterTheCyclingStamp() {
+        // Nobody gets out of a vehicle they never got into. On a geofence-armed session the EXIT
+        // is often the only IN_VEHICLE transition AR delivers — the 2026-08-20 session had two and
+        // neither counted, because only ENTER was wired to supersede.
+        assertFalse(
+            evaluate(
+                VehicleType.CAR,
+                bicycleRideAtMs = now - 300_000L,
+                vehicleRideAtMs = now - 60_000L, // the EXIT, stamped with its true transition time
+                nowMs = now,
+            ),
         )
     }
 }

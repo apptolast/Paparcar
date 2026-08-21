@@ -46,8 +46,13 @@ import io.apptolast.paparcar.domain.model.VehicleType
  * @param bicycleRideAtMs True transition time of the last AR `ON_BICYCLE` ENTER this session saw
  *   (epoch-ms), or null. AR reports the real transition moment, not the delivery one, so its ~2 min
  *   of latency does not shift the verdict.
- * @param vehicleRideAtMs True transition time of the last AR `IN_VEHICLE` ENTER, or null.
+ * @param vehicleRideAtMs True transition time of the last AR evidence that the user was IN a
+ *   vehicle, or null. An `IN_VEHICLE` ENTER is the obvious one; an `IN_VEHICLE` EXIT counts too,
+ *   because nobody gets out of a vehicle they never got into — and on a geofence-armed session the
+ *   EXIT is often the only one AR delivers. [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001]
  * @param nowMs Wall clock.
+ * @param sustainedMotorBandMs Time this session HELD `motorProofSpeedMps` across credible
+ *   successive fixes. [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001]
  * @param fastMotionStepEvents Session count of step events concurrent with a fresh, credible GPS
  *   fix above the pedestrian ceiling (`egressStepMaxSpeedMps`). [DET-MOTOR-PROOF-001]
  * @param fastMotionStepFixes Distinct fixes credited with at least one such step — one fix's burst
@@ -60,11 +65,30 @@ fun isHumanPoweredRide(
     nowMs: Long,
     fastMotionStepEvents: Int = 0,
     fastMotionStepFixes: Int = 0,
+    sustainedMotorBandMs: Long = 0L,
     config: ParkingDetectionConfig,
 ): Boolean {
     // [DET-SOLID-001][C2] The profile answer stands on its own and always did: a registered bike or
     // scooter never auto-confirms, whatever AR happens to think.
     if (vehicleType == VehicleType.SCOOTER || vehicleType == VehicleType.BIKE) return true
+
+    // [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001] MEASURED MOTOR REFUTES EVERYTHING BELOW.
+    //
+    // The project's rectory doctrine — *the event NOMINATES, only measured movement CONFIRMS* —
+    // was written for the confirm side and quietly forgotten on the veto side: an Activity
+    // Recognition label could contradict the stream, while the stream could not contradict the
+    // label. Field 2026-08-20 (Redmi, session 1787242874932) is what that costs: a motorway drive
+    // that held 40+ km/h for 361 seconds, peaked at 131,4 km/h with 4,6 m of accuracy and ended
+    // with an AR `IN_VEHICLE EXIT` was judged a BICYCLE — because one `ON_BICYCLE` stamp happened
+    // to arrive after the boarding, and "the last label wins" was the whole arbitration. It saved
+    // nothing, hung for 102 minutes, and the car lost the geofence that would have caught the next
+    // trip.
+    //
+    // So the measurement gets the last word, wherever the claim came from — the AR stamp below AND
+    // the cadence latch above it. This is a REFUTATION, not a proof of driving: it never licenses a
+    // silent pin on its own (every confirm path still demands egress), it only stops muscle being
+    // asserted about a session that measurably had a motor in it.
+    if (sustainedMotorBandMs >= config.sustainedDriveProofMs) return false
 
     // [DET-MOTOR-PROOF-001] Pedal cadence — the kinematic source. Feet moving in rhythm WHILE the
     // position travels above the pedestrian ceiling is muscle propelling the movement; measured
@@ -82,6 +106,10 @@ fun isHumanPoweredRide(
     // Cycling to the station and then driving is a real trip made by car. The LAST boarding wins,
     // which is also why this reads timestamps rather than a boolean latch: AR delivers transitions
     // out of order relative to wall clock, and only the true transition times are comparable.
+    // [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001] "Boarding" now includes the AR `IN_VEHICLE` EXIT the
+    // caller stamps here: getting OUT of a vehicle proves getting into one, and on a session armed
+    // by a geofence exit the EXIT is frequently the only IN_VEHICLE transition AR ever delivers —
+    // the 2026-08-20 session had two of them and neither counted for anything.
     if (vehicleRideAtMs != null && vehicleRideAtMs >= bicycle) return false
     return true
 }

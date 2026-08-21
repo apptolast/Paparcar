@@ -61,7 +61,10 @@ class ActivityTransitionReceiver : BroadcastReceiver(), KoinComponent {
             when (event.transitionType) {
                 ActivityTransition.ACTIVITY_TRANSITION_EXIT -> {
                     // EXIT: a hint for a running coordinator; non-decisive (needs egress to confirm).
-                    coordinator.onVehicleExit()
+                    // [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001] Carries its TRUE transition time now,
+                    // not the delivery one — it doubles as proof of the boarding it followed, and
+                    // that only arbitrates against a cycling stamp if the two are comparable.
+                    coordinator.onVehicleExit(elapsedNanosToEpochMs(event.elapsedRealTimeNanos))
                     // And an ACCELERATOR of the reconcile, like ENTER below: "the user just left a
                     // vehicle" is THE moment a missed departure becomes decidable (the trip is
                     // over, evidence is at its freshest). Receivers keep running through the OEM

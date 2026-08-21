@@ -557,6 +557,82 @@ class DetectionTraceReplayTest {
             assertEquals("aborted_no_movement", ended.outcome, "field outcome reproduced")
         }
 
+    @Test
+    fun motorway_redmi_001_a_cycling_stamp_must_not_outrank_131_kmh_of_measured_driving() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001 — the 2026-08-20 field session] 102 minutes,
+            // 967 fixes, 109 in the driving band, 131,4 km/h peak at 4,6 m accuracy, and an AR
+            // `IN_VEHICLE EXIT` at the destination. The session still died judged HUMAN-POWERED,
+            // saving nothing, because a single AR `ON_BICYCLE` stamp — delivered mid-drive, after
+            // the boarding that armed the trip — outranked every measurement the stream made.
+            //
+            // The stamp is injected here because AR labels never reach the remote trace (the
+            // receiver only logs them to logcat); everything else is the field stream 1:1.
+            val replayer = DetectionTraceReplayer(TRACE_MOTORWAY_REDMI_001)
+            val env = buildEnv(clock = { replayer.nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 512)
+            val job = launch {
+                env.coordinator.invoke(
+                    locations,
+                    armEvidence = ArmEvidence.VerifiedByVehicleEnter(enterToExitMs = 60_000L),
+                )
+            }
+            // The boarding AR vouched for at arm time, then the cycling stamp 5 minutes into the
+            // motorway leg: by wall-clock order the bicycle is "the last word".
+            env.coordinator.onVehicleRide(TRACE_MOTORWAY_REDMI_001.first().tMs - 60_000L)
+            var cyclingStamped = false
+
+            replayer.replay(
+                emitFix = { fix ->
+                    if (!cyclingStamped && fix.timestamp - TRACE_MOTORWAY_REDMI_001.first().tMs >= 300_000L) {
+                        cyclingStamped = true
+                        env.coordinator.onHumanPoweredRide(fix.timestamp)
+                    }
+                    locations.emit(fix)
+                },
+                emitStep = { env.stepDetector.emitSteps(1) },
+                emitVehicleExit = { env.coordinator.onVehicleExit() },
+            )
+            job.cancelAndJoin()
+
+            assertEquals(
+                1, env.parkingRepo.saveNewParkingSessionCallCount,
+                "a motorway drive that ends parked must leave a pin — the field session left none",
+            )
+            val ended = env.detectionLogger.events.filterIsInstance<DetectionEvent.SessionEnded>()
+            assertTrue(
+                ended.isNotEmpty() && ended.single().outcome?.startsWith("confirmed_") == true,
+                "the session must reach a verdict of its own; field outcome was " +
+                    "'${ended.singleOrNull()?.outcome}' after 102 minutes",
+            )
+        }
+
+    @Test
+    fun motorway_redmi_001_without_the_cycling_stamp_the_same_stream_confirms_at_the_first_stop() =
+        runTest(UnconfinedTestDispatcher()) {
+            // Control for the test above — the stamp is the ONLY difference between the two runs,
+            // and it is what separated this trace from the Oppo's, which confirmed the same
+            // arrival at 0.9 one minute 54 seconds after the car stopped.
+            val replayer = DetectionTraceReplayer(TRACE_MOTORWAY_REDMI_001)
+            val env = buildEnv(clock = { replayer.nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 512)
+            val job = launch {
+                env.coordinator.invoke(
+                    locations,
+                    armEvidence = ArmEvidence.VerifiedByVehicleEnter(enterToExitMs = 60_000L),
+                )
+            }
+
+            replayer.replay(
+                emitFix = { locations.emit(it) },
+                emitStep = { env.stepDetector.emitSteps(1) },
+                emitVehicleExit = { env.coordinator.onVehicleExit() },
+            )
+            job.cancelAndJoin()
+
+            assertEquals(1, env.parkingRepo.saveNewParkingSessionCallCount, "the park is unambiguous")
+        }
+
     // ── Env ───────────────────────────────────────────────────────────────────
 
     private class Env(

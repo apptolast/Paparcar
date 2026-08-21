@@ -510,6 +510,25 @@ data class ParkingDetectionConfig(
      *  clean: bikes hold the ≥18 km/h band in seconds-long bursts, while the worst legitimate
      *  car trace on file (Calle Gavia, skeletal MIUI stream) still held it for one 36-s hop. */
     val sustainedDriveProofMs: Long = 30_000L,
+    /** [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001] The speed band no bicycle SUSTAINS — 11,1 m/s
+     *  (40 km/h). Held for [sustainedDriveProofMs] by credible successive fixes, it is a MOTOR,
+     *  measured by this session's own stream, and it refutes every human-powered claim made about
+     *  the session (an AR `ON_BICYCLE` stamp, a pedal-cadence latch) no matter when it arrived.
+     *
+     *  **Why the band and not the peak, again.** Field 2026-08-19, the real bicycle ride: the
+     *  Redmi's session summary reads `vmax 40 km/h`, but its best CREDIBLE fix was 21,3 km/h —
+     *  the 40 came from a fix with poor accuracy. The peak is a rumour; the band is a measurement.
+     *  Measured over the three field traces on file, the separation is not marginal:
+     *
+     *  | trace | time held ≥40 km/h |
+     *  |---|---|
+     *  | motorway drive judged a bicycle (2026-08-20) | **361,0 s** |
+     *  | real bicycle ride, Redmi (2026-08-19) | 0,0 s |
+     *  | real bicycle ride, Oppo (2026-08-19) | 0,0 s |
+     *
+     *  Deliberately ABOVE what a fast cyclist reaches downhill and BELOW any road a car holds, so
+     *  the guard only ever fires on movement muscle cannot produce. */
+    val motorProofSpeedMps: Float = 11.1f,
     /** Step events concurrent with credible above-pedestrian-ceiling fixes (see
      *  [egressStepMaxSpeedMps]) before the session's movement reads as PEDALLED — the kinematic
      *  second source of `isHumanPoweredRide`, for the short rides AR never classifies (the
@@ -1003,6 +1022,11 @@ data class ParkingDetectionConfig(
             // A single in-band hop the drive-proof window already trusts (Calle Gavia: one 36-s
             // hop is the whole drive) must be able to satisfy the sustained clock on its own.
             "sustainedDriveProofMs ($sustainedDriveProofMs) must be <= driveProofWindowMaxMs ($driveProofWindowMaxMs)"
+        }
+        require(motorProofSpeedMps > minimumTripSpeedMps) {
+            "motorProofSpeedMps ($motorProofSpeedMps) must be > minimumTripSpeedMps " +
+                "($minimumTripSpeedMps) — the motor band is the part of the driving band a " +
+                "bicycle cannot reach, so it can never sit at or below the driving band's floor"
         }
         require(pedalCadenceMinStepEvents > 3) {
             "pedalCadenceMinStepEvents must be > 3 (phantom car steps arrive as bursts of 1-3), was $pedalCadenceMinStepEvents"

@@ -2979,3 +2979,99 @@ come el EXIT andando y luego pierde el ENTER de vuelta por Doze). Es el único n
 dato, y la telemetría de §D lleva minutos corriendo: moverlo ahora por intuición es lo que este
 ticket existe para dejar de hacer. 1295 tests verdes. Spec:
 `docs/backlog/det-fence-reregister-by-cause-001.md` §B.
+---
+### DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001 — an AR label cannot outvote 131 km/h of measured driving (2026-08-20)
+
+**Field.** Redmi, session `1787242874932`. Three trips that day; the Oppo, in the same car on the
+same roads, pinned all three via `steps+egress` at 0.9. The Redmi pinned nothing, and by the third
+trip the car had no geofence left to nominate a departure — the spot was lost outright.
+
+One session ran for **102,4 minutes** and swallowed the first two trips. It measured 967 fixes, 109
+of them in the driving band, **131,4 km/h at 4,6 m of accuracy**, and AR delivered an `IN_VEHICLE
+EXIT` fifteen seconds after each arrival. It died `aborted_unattended_human_powered`: judged a
+**bicycle**. Between the first arrival (16:29:15Z) and the first verdict of any kind (17:48:32Z)
+the trace holds **79 minutes with 700+ fixes and not one decision, candidate or prompt**.
+
+**Reproduced 1:1** before a line was changed (`TRACE_MOTORWAY_REDMI_001`, all 1 470 fix/step/AR
+events). Two runs differing only in one injected `ON_BICYCLE` stamp: with it, 0 candidates, the same
+two decisions in the same order, the same outcome, 0 pins; without it, the park is saved. The stamp
+was the whole difference between losing the car and keeping it. The other two sources of
+`isHumanPoweredRide` were eliminated from the raw data first: the profile is `CAR`, and the pedal
+cadence reconstructed over the trace reached **6 events on 1 fix** against the 12-on-2 it needs — it
+never fired.
+
+**§A · Measured motor refutes every claim.** The rectory doctrine — *the event NOMINATES, only
+measured movement CONFIRMS* — was written for the confirm side and forgotten on the veto side: an
+AR label could contradict the stream while the stream could not contradict the label. Arbitration
+between the two labels was by wall-clock recency (`vehicleRideAtMs >= bicycle`), so a stamp
+delivered mid-motorway beat the boarding that armed the trip. Now:
+- **Motor band** (`motorProofSpeedMps` = 11,1 m/s ≈ 40 km/h) held for `sustainedDriveProofMs`
+  refutes any human-powered claim, AR stamp or cadence latch alike. Band, never peak: the real
+  bicycle ride of 2026-08-19 reported `vmax 40 km/h` in its summary while its best CREDIBLE fix was
+  21,3 km/h. Measured across the three field traces the separation is absolute — motorway **361,0 s**
+  in band, the two real rides **0,0 s**. It is a REFUTATION, never a proof of parking: no path
+  auto-confirms without egress, it only stops muscle being asserted about a session that measured a
+  motor. Deliberately not drive-proof-gated: doubting a veto costs a prompt, believing one cost a car.
+- **An `IN_VEHICLE` EXIT proves the boarding it followed**, so it feeds the same supersession as an
+  ENTER, with its true transition time and forward-only. On a geofence-armed session the EXIT is
+  frequently the only `IN_VEHICLE` transition AR ever delivers — this session had two, and neither
+  counted for anything.
+- **The cadence rule gains its ceiling.** It had a floor (3,0 m/s) and none above, so a phantom step
+  beside a 36 m/s fix counted as a pedal stroke at 131 km/h. Concurrency now only counts inside the
+  band a bicycle can occupy.
+
+**§B · A sustained rest is a MEASUREMENT, not a score.** DET-HUMAN-POWERED-EARLY-CLOSE-001 asked its
+close verdict inside `advanceHigh`, on the premise that High is the only certified sustained stop.
+That holds for the scorer's slow path — and the FAST path pre-empts it: with an activity exit and
+30 s stopped, `CalculateParkingConfidenceUseCase` returns Medium (0,65) and never reads the tiers, so
+High is unreachable for the rest of the session. Combined with the prompt suppression the same ticket
+introduced, such a session has no doors at all: no prompt → no response timeout, no High → no close,
+no candidate → no verdict. **That is the 79 minutes of silence**, and the strongest "I got out of the
+car" signal we own is what caused it. The certification now reads the stop clock directly
+(`stoppedDuration >= slowPath5MinMs` — the same number the tier used, no new knob), asked in
+`evaluateConfidence` before any tier dispatch; the duplicate in `advanceHigh` is gone, so the verdict
+lives in one place again.
+
+**§C · The AR evidence lane enters the trace.** The signal that decided the session left no mark —
+1 476 events, none naming the stamp; it was reachable only by elimination, days later. `ON_BICYCLE`
+and `IN_VEHICLE` ENTERs are now edge-logged as `ACTIVITY_TRANSITION` (no new event type), each
+carrying **how stale AR's answer already was** in the existing `enterAgeMs` column, because the
+verdict arbitrates on true transition times and a trace of delivery times cannot audit it. The edge
+markers start at zero on purpose, so a stamp INHERITED from before the session — the singleton state
+is only reset when a session ends — is logged on the first fix instead of vanishing. `MOTOR_WITNESSED`
+marks the band crossing, so a wrong refutation would be visible too.
+
+And the **cadence latch**, the veto's other source, which was still logcat-only: a session vetoed by
+cadence showed nothing at all, leaving the reader to infer it by elimination exactly as before. It
+now emits `PEDAL_CADENCE_LATCHED` with the step count, the distinct-fix count and the **band** that
+admitted them — §A changed what counts, so a later trace has to say which rule produced the latch.
+The marker also stops being an EQUALITY and becomes a latch: the old edge fired on the step that made
+the event count equal the threshold, and conceded in its own comment that a session whose second
+distinct fix arrives later satisfies the verdict with no line at all. A veto that can decide a
+session silently is the defect, so it is recorded the first time both halves hold.
+
+Field 2026-08-20 23:56 (Oppo, session `1787263007358`) is the second case of the same bug, on the
+other phone: a geofence-armed drive that peaked at 63,3 km/h, stopped, and walked 175 steps away had
+all three of its verdicts degraded by `isHumanPoweredRide` and saved nothing. The profile was ruled
+out from Firestore (all three vehicles are `CAR`), and **which of the two remaining sources fired was
+not recoverable** — neither left a trace, and the logcat ring had rotated. §A settles the outcome
+regardless of source: the motor-band clock over its 684 real fixes accumulates 628,7 s and crosses
+the 30 s refutation threshold 33,7 s into the session, nine minutes before the first degraded prompt.
+None of this is any use in logcat — nobody drives cabled to a PC; the destinations are the remote
+trace and `files/parkdiag.log`.
+
+**Collateral, deliberately out of scope.** Adding evidence LOWERS the score: the same 5-minute stop
+reads 0,90 (High) without an AR exit and 0,65 (Medium) with one, because the fast path returns before
+the tiers. Consequence, visible in telemetry: the CANDIDATE phase is unreachable once AR delivers an
+`IN_VEHICLE EXIT`, and with it the `windowElapsed && hadVehicleExit` confirm lane — `hadVehicleExit`
+is snapshotted at candidate entry, and entry needs a High the exit itself blocks. Of the 2026-08-20
+sessions: the Redmi's had 2 AR transitions and 0 candidates; both of the Oppo's confirmed ones had 0
+candidates (they confirmed through the fast lane); the two 2026-08-19 bicycle sessions had 0 AR
+transitions and 5 candidates each. Not a safety hole (those sessions still prompt through the
+Low/Medium lane and keep their 15-minute timeout), so it gets its own ticket rather than a fix
+smuggled inside a bugfix: **DET-EVIDENCE-MUST-NOT-LOWER-CONFIDENCE-001**, the fast path as a FLOOR.
+
+The Bluetooth lane is untouched by construction — a bicycle carries no MAC. No new strings, no new
+screen or state, so the 9 locales and the Dev Catalog are unaffected. 1 300 tests green; the §B
+regression is verified RED without the fix. Spec:
+`docs/backlog/det-motorway-trip-judged-bicycle-001.md`.

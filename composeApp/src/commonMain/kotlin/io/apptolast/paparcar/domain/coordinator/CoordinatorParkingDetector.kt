@@ -5,6 +5,7 @@ import io.apptolast.paparcar.domain.detection.DepartureConfirmationListener
 import io.apptolast.paparcar.domain.detection.DetectionPhase
 import io.apptolast.paparcar.domain.detection.DetectionSessionOutcomes
 import io.apptolast.paparcar.domain.detection.DetectionPhaseSink
+import io.apptolast.paparcar.domain.detection.creditSpeedBand
 import io.apptolast.paparcar.domain.detection.VehicleFenceOwnershipPolicy
 import io.apptolast.paparcar.domain.detection.isHumanPoweredRide
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
@@ -394,6 +395,16 @@ class CoordinatorParkingDetector(
         val fastMotionStepFixes: Int = 0,
         /** Dedup marker: the [lastFixSeenAtMs] already credited to [fastMotionStepFixes]. */
         val fastMotionCreditedFixAtMs: Long = 0L,
+        /** [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001] The same clock as [drivingBandMs], one band
+         *  higher (`motorProofSpeedMps`): time this session SUSTAINED a speed muscle cannot
+         *  produce. Deliberately NOT read through the drive-proof promotion the way
+         *  [provenDrivingBandMs] is — its job is to REFUTE a human-powered claim, never to buy a
+         *  silent pin, and the asymmetry runs the safe way: doubting the veto costs a prompt,
+         *  believing it cost a car (field 2026-08-20, 361 s held above 40 km/h and the session
+         *  still died judged a bicycle). */
+        val motorBandMs: Long = 0L,
+        /** GPS timestamp (epoch-ms) of the last credible in-MOTOR-band fix. */
+        val lastMotorBandFixTimestampMs: Long = 0L,
     ) {
         /** Returns the most GPS-accurate fix collected at the moment of stopping, or [fallback]. */
         fun bestFix(fallback: GpsPoint): GpsPoint =
@@ -593,6 +604,22 @@ class CoordinatorParkingDetector(
         // [DET-LOG-04] Edge-detect the AR signals so each transition is logged once (not on every
         // subsequent fix). Reset to false when the signal clears (driving away), so a re-entry logs again.
         var loggedVehicleExit = false
+        // [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001 §C] Edge markers for the AR EVIDENCE lane. Seeded
+        // to 0 (not to the current state) on purpose: a stamp INHERITED from before this session —
+        // the singleton state is only reset when a session ends, so a cycling stamp delivered
+        // between sessions rides into the next one — gets logged on the first fix, with its true
+        // age. That inheritance is invisible today and it is the hardest kind of veto to explain
+        // after the fact.
+        var loggedBicycleRideAtMs = 0L
+        var loggedVehicleRideAtMs = 0L
+        var loggedMotorWitnessed = false
+        // [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001 §C] The OTHER source of the human-powered veto. The
+        // AR lane above is now in the trace; the cadence latch was still logcat-only, and a trace
+        // that shows no cycling stamp and no cadence line leaves the reader inferring the veto by
+        // elimination — which is exactly how the 2026-08-20 Oppo session (63 km/h, three verdicts
+        // degraded) stayed unattributable. Owned by the step collector alone, so a plain flag is
+        // enough; the fix collector never touches it.
+        var loggedPedalCadence = false
 
         // [DET-LOG-03] Diagnostics session id claimed at entry (T8). Outcome defaults to "ended"
         // and is refined by the abort paths / runConfirm before the finally emits SessionEnded.
@@ -697,8 +724,14 @@ class CoordinatorParkingDetector(
                         // Counted on the raw event (independent of shouldCount, whose gates are
                         // egress-walk semantics), judged against the fix snapshot the location
                         // collector maintains.
+                        // [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001] …but only inside the band a
+                        // bicycle can actually occupy. The rule had a floor and no CEILING, so a
+                        // phantom step next to a 36 m/s motorway fix was counted as a pedal stroke
+                        // at 131 km/h. Above `motorProofSpeedMps` the concurrency proves the
+                        // opposite of pedalling, and the counter is just reading road vibration.
                         val cadenceStep = s.lastFixCredible &&
                             s.lastSpeedMps >= config.egressStepMaxSpeedMps &&
+                            s.lastSpeedMps < config.motorProofSpeedMps &&
                             s.lastFixSeenAtMs > 0L &&
                             stepAtMs - s.lastFixSeenAtMs <= config.pedalCadenceFixFreshnessMs
                         // [DET-CONFIRM-FRESHNESS-001] Every step event — counted or gated — proves
@@ -717,17 +750,36 @@ class CoordinatorParkingDetector(
                         )
                         if (shouldCount) stepped.copy(stepCount = stepped.stepCount + 1) else stepped
                     }
-                    // Edge-logged on the step that crosses the event threshold; a session whose
-                    // second distinct fix arrives later satisfies the verdict without this line.
-                    if (updated.fastMotionStepEvents == config.pedalCadenceMinStepEvents &&
+                    // [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001 §C] Edge-logged the first time the latch
+                    // actually HOLDS — both halves at once. The previous edge fired on the step that
+                    // made the event count equal the threshold, and its own comment conceded the
+                    // miss: a session whose second distinct fix arrives later satisfies the verdict
+                    // with no line at all. A veto that can decide a session silently is the defect,
+                    // so the marker is a latch, not an equality.
+                    if (!loggedPedalCadence &&
+                        updated.fastMotionStepEvents >= config.pedalCadenceMinStepEvents &&
                         updated.fastMotionStepFixes >= config.pedalCadenceMinFixes
                     ) {
+                        loggedPedalCadence = true
                         PaparcarLogger.d(
                             DIAG,
                             "  ♲ pedal cadence — ${updated.fastMotionStepEvents} steps concurrent with " +
                                 "${updated.fastMotionStepFixes} above-ceiling fixes → human-powered ride, " +
                                 "automatic saves degrade to a prompt [DET-MOTOR-PROOF-001]"
                         )
+                        // …and into the trace, not just logcat. A trail that only exists while the
+                        // phone is tethered to a PC is no trail at all: nobody drives cabled, and
+                        // the logcat ring had already rotated past this decision when it was first
+                        // investigated. The band is stamped too, because §A's ceiling changed what
+                        // counts and a later trace must show which rule produced the latch.
+                        logDetection { sid ->
+                            DetectionEvent.Decision(
+                                sid, nowMs(), outcome = "PEDAL_CADENCE_LATCHED",
+                                pathLabel = "steps=${updated.fastMotionStepEvents} " +
+                                    "fixes=${updated.fastMotionStepFixes} band=" +
+                                    "${config.egressStepMaxSpeedMps}-${config.motorProofSpeedMps}mps",
+                            )
+                        }
                     }
                     if (!updated.hasEverReachedDrivingSpeed) {
                         PaparcarLogger.d(DIAG, "  ✦ step #${updated.stepCount} (pre-drive, false-ENTER candidate)")
@@ -889,14 +941,30 @@ class CoordinatorParkingDetector(
                         // whole drive can be one 36-s hop — Calle Gavia). A wider gap proves
                         // nothing and credits nothing; a lone spike has no in-band peer at all.
                         val fixInBand = credibleSpeedFix && location.speed >= config.minimumTripSpeedMps
-                        val bandGapMs = location.timestamp - s.lastBandFixTimestampMs
-                        val bandDeltaMs = if (
-                            fixInBand && s.lastBandFixTimestampMs > 0L &&
-                            bandGapMs in 1..config.driveProofWindowMaxMs
-                        ) bandGapMs else 0L
-                        val newDrivingBandMs = s.drivingBandMs + bandDeltaMs
+                        val newDrivingBandMs = creditSpeedBand(
+                            accumulatedMs = s.drivingBandMs,
+                            lastInBandFixMs = s.lastBandFixTimestampMs,
+                            fixTimestampMs = location.timestamp,
+                            fixInBand = fixInBand,
+                            windowMaxMs = config.driveProofWindowMaxMs,
+                        )
                         if (newDrivingBandMs >= config.sustainedDriveProofMs && s.drivingBandMs < config.sustainedDriveProofMs) {
                             PaparcarLogger.d(DIAG, "  ✓ sustained drive — ${newDrivingBandMs}ms accumulated in the driving band (≥${config.sustainedDriveProofMs}ms) [DET-MOTOR-PROOF-001]")
+                        }
+                        // [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001] The same clock, one band higher:
+                        // the part of the driving band muscle cannot reach. Its only job is to
+                        // refute a human-powered claim, so it is NOT drive-proof-gated — a session
+                        // that holds 40 km/h for half a minute has settled the question by itself.
+                        val fixInMotorBand = credibleSpeedFix && location.speed >= config.motorProofSpeedMps
+                        val newMotorBandMs = creditSpeedBand(
+                            accumulatedMs = s.motorBandMs,
+                            lastInBandFixMs = s.lastMotorBandFixTimestampMs,
+                            fixTimestampMs = location.timestamp,
+                            fixInBand = fixInMotorBand,
+                            windowMaxMs = config.driveProofWindowMaxMs,
+                        )
+                        if (newMotorBandMs >= config.sustainedDriveProofMs && s.motorBandMs < config.sustainedDriveProofMs) {
+                            PaparcarLogger.d(DIAG, "  ✓ MOTOR witnessed — ${newMotorBandMs}ms held above ${config.motorProofSpeedMps} m/s; no bicycle claim can stand against this session [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001]")
                         }
                         s.copy(
                             sessionOrigin = s.sessionOrigin ?: location,
@@ -920,6 +988,9 @@ class CoordinatorParkingDetector(
                             // credibility snapshot the concurrent-step cadence judge reads.
                             drivingBandMs = newDrivingBandMs,
                             lastBandFixTimestampMs = if (fixInBand) location.timestamp else s.lastBandFixTimestampMs,
+                            motorBandMs = newMotorBandMs,
+                            lastMotorBandFixTimestampMs =
+                                if (fixInMotorBand) location.timestamp else s.lastMotorBandFixTimestampMs,
                             lastFixSeenAtMs = now,
                             lastFixCredible = credibleSpeedFix,
                         )
@@ -951,6 +1022,52 @@ class CoordinatorParkingDetector(
                         logDetection { sid -> DetectionEvent.ActivityTransition(sid, now, activity = "IN_VEHICLE", transition = "EXIT", location = location) }
                     } else if (!state.vehicleExitConfirmed) {
                         loggedVehicleExit = false
+                    }
+                    // [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001 §C] The AR EVIDENCE lane, edge-logged
+                    // the same way — because it was the only lane that could decide a session
+                    // without leaving a mark. The 2026-08-20 trace has 1 476 events and not one of
+                    // them names the `ON_BICYCLE` stamp that vetoed it: 66 minutes of silence that
+                    // could not be read from the data at all, only reconstructed by elimination.
+                    // Logged from the collector rather than the signal methods for the same reason
+                    // the EXIT is: those are non-suspend entry points called from a receiver, and
+                    // the edge belongs in the fix stream's order.
+                    state.bicycleRideAtMs?.let { stampedAt ->
+                        if (stampedAt != loggedBicycleRideAtMs) {
+                            loggedBicycleRideAtMs = stampedAt
+                            logDetection { sid ->
+                                DetectionEvent.ActivityTransition(
+                                    sid, now, activity = "ON_BICYCLE", transition = "ENTER",
+                                    location = location, trueTimeAgeMs = now - stampedAt,
+                                )
+                            }
+                        }
+                    }
+                    state.vehicleRideAtMs?.let { stampedAt ->
+                        if (stampedAt != loggedVehicleRideAtMs) {
+                            loggedVehicleRideAtMs = stampedAt
+                            // The counterpart: without it the trace shows a veto and no sign of the
+                            // boarding that should have superseded it — which is precisely the
+                            // comparison the verdict makes.
+                            logDetection { sid ->
+                                DetectionEvent.ActivityTransition(
+                                    sid, now, activity = "IN_VEHICLE", transition = "ENTER",
+                                    location = location, trueTimeAgeMs = now - stampedAt,
+                                )
+                            }
+                        }
+                    }
+                    // [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001 §A/§C] …and the refutation that now
+                    // outranks both, once, when it crosses. If the motor band ever refutes a ride
+                    // that really was muscle, this is the line that will say so.
+                    if (!loggedMotorWitnessed && state.motorBandMs >= config.sustainedDriveProofMs) {
+                        loggedMotorWitnessed = true
+                        logDetection { sid ->
+                            DetectionEvent.Decision(
+                                sid, now, outcome = "MOTOR_WITNESSED",
+                                pathLabel = "motorBand=${state.motorBandMs}ms ≥${config.motorProofSpeedMps}mps",
+                                location = location,
+                            )
+                        }
                     }
 
                     // [DET-C-02] Post-confirm hold. A tentative egress-confirm waits here to rule out
@@ -1489,13 +1606,24 @@ class CoordinatorParkingDetector(
         // own stream, for the short rides AR never classifies.
         fastMotionStepEvents = s.fastMotionStepEvents,
         fastMotionStepFixes = s.fastMotionStepFixes,
+        // [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001] …and the measurement that outranks both sources.
+        sustainedMotorBandMs = s.motorBandMs,
         config = config,
     )
 
     /** Signals that the `IN_VEHICLE → EXIT` transition was received. Thread-safe. */
-    fun onVehicleExit() {
-        PaparcarLogger.d(DIAG, "✱ onVehicleExit() called")
-        _detectionState.update { it.copy(vehicleExitConfirmed = true) }
+    fun onVehicleExit(atMs: Long = nowMs()) {
+        PaparcarLogger.d(DIAG, "✱ onVehicleExit(at=$atMs) called")
+        _detectionState.update {
+            it.copy(
+                vehicleExitConfirmed = true,
+                // [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001] An EXIT is also evidence of the BOARDING
+                // it must have followed, so it supersedes an earlier cycling stamp exactly like an
+                // ENTER does. Only forward: AR delivers transitions out of order, and an EXIT
+                // stamped older than a boarding we already know about would age the evidence.
+                vehicleRideAtMs = maxOf(it.vehicleRideAtMs ?: Long.MIN_VALUE, atMs),
+            )
+        }
     }
 
     /** [DET-BIKE-NOT-A-CAR-001] An AR `ON_BICYCLE` ENTER, stamped with its TRUE transition time
@@ -2626,9 +2754,9 @@ class CoordinatorParkingDetector(
      * phase and always shows a confirmation notification (if not already shown). Does not
      * confirm immediately — the observation window in [invoke] handles auto-confirmation timing.
      *
-     * @return true when the session must END here: High confidence is the moment a sustained stop
-     *   is certified, and for a human-powered ride that is the whole verdict
-     *   ([ParkingDecision.CloseHumanPowered]). [DET-HUMAN-POWERED-EARLY-CLOSE-001]
+     * @return true when the session must END here: a certified sustained stop is the moment a
+     *   human-powered ride's verdict is complete ([ParkingDecision.CloseHumanPowered]).
+     *   [DET-HUMAN-POWERED-EARLY-CLOSE-001][DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001]
      */
     private suspend fun evaluateConfidence(
         location: GpsPoint,
@@ -2638,6 +2766,40 @@ class CoordinatorParkingDetector(
         activeVehicleId: String?,
         activeVehicleType: VehicleType?,
     ): Boolean {
+        // [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001 §B] The sustained rest is a MEASUREMENT — read the
+        // clock, never infer it from the score.
+        //
+        // DET-HUMAN-POWERED-EARLY-CLOSE-001 asked this question inside `advanceHigh`, reasoning
+        // that "High IS the certified sustained stop, its only route is the 5-minute tier". That is
+        // true of the scorer's SLOW path — and the fast path pre-empts it: with an AR vehicle exit
+        // and 30 s stopped, `CalculateParkingConfidenceUseCase` returns Medium (0,65) and never
+        // looks at the tiers, so High becomes unreachable for the rest of the session. Since a
+        // human-powered ride also has its Low/Medium prompt SUPPRESSED, such a session had no
+        // prompt (no response timeout), no High (no close) and no candidate: nothing could ever end
+        // it. Field 2026-08-20: 102 minutes of foreground service and 967 fixes with one AR exit
+        // 15 seconds after parking, and the only exit it ever found was an unrelated walk clearing
+        // the egress floor 79 minutes later.
+        //
+        // The rest is certified by the same number the tier used (`slowPath5MinMs`) — no new clock,
+        // just read directly. Asked BEFORE the tier dispatch so every tier reaches it.
+        if (stoppedDuration >= config.slowPath5MinMs) {
+            val restVerdict = evaluateParkingDecision(
+                parkingDecisionInput(
+                    state = state,
+                    location = location,
+                    now = now,
+                    activeVehicleType = activeVehicleType,
+                    elapsedSinceHighMs = 0L,
+                    hadVehicleExit = state.vehicleExitConfirmed,
+                    restCertified = true,
+                )
+            )
+            if (restVerdict == ParkingDecision.CloseHumanPowered) {
+                closeHumanPoweredRide(location, activeVehicleId, now)
+                return true
+            }
+        }
+
         val signals = ParkingSignals(
             speed = location.speed,
             stoppedDurationMs = stoppedDuration,
@@ -2657,7 +2819,10 @@ class CoordinatorParkingDetector(
                 false
             }
 
-            is ParkingConfidence.High -> advanceHigh(confidence, location, state, now, activeVehicleId, activeVehicleType)
+            is ParkingConfidence.High -> {
+                advanceHigh(confidence, state, now)
+                false
+            }
         }
     }
 
@@ -2726,34 +2891,16 @@ class CoordinatorParkingDetector(
      */
     private suspend fun advanceHigh(
         confidence: ParkingConfidence,
-        location: GpsPoint,
         state: ParkingDetectionState,
         now: Long,
-        activeVehicleId: String?,
-        activeVehicleType: VehicleType?,
-    ): Boolean {
-        // [DET-HUMAN-POWERED-EARLY-CLOSE-001] High confidence IS the certified sustained stop (its
-        // only route is the 5-minute stopped tier), so this is the earliest instant at which "the
-        // ride is over" is a measured fact rather than a guess. Ask the one evaluator that owns the
-        // verdict — the coordinator must not re-derive it — and act only on the terminal answer;
-        // Confirmed/Prompt belong to the lanes that already handle them. Asking HERE is what keeps
-        // a muscle-powered session from ever posting "¿has aparcado?".
-        val decision = evaluateParkingDecision(
-            parkingDecisionInput(
-                state = state,
-                location = location,
-                now = now,
-                activeVehicleType = activeVehicleType,
-                elapsedSinceHighMs = 0L,
-                hadVehicleExit = state.vehicleExitConfirmed,
-                restCertified = true,
-            )
-        )
-        if (decision == ParkingDecision.CloseHumanPowered) {
-            closeHumanPoweredRide(location, activeVehicleId, now)
-            return true
-        }
-
+    ) {
+        // [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001 §B] The close question used to live HERE, on the
+        // premise that High is the only certified sustained stop. It is not — the scorer's fast
+        // path caps at Medium whenever AR delivered a vehicle exit, which made this the one door a
+        // suppressed-prompt session could never reach. It now lives in [evaluateConfidence], asked
+        // off the measured stop clock before any tier dispatch, so every route to a matured rest
+        // passes through it exactly once. A High reached through the slow path has stopped for
+        // `slowPath5MinMs` by construction, so nothing is lost by not re-asking here.
         val newCandidate: (Long) -> ConfirmationPhase.Candidate = { shownAt ->
             ConfirmationPhase.Candidate(
                 highReachedAt = now,
@@ -2793,7 +2940,6 @@ class CoordinatorParkingDetector(
                 Unit
             }
         }
-        return false
     }
 
     private companion object {

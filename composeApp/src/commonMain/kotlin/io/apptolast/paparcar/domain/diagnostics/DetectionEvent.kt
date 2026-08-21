@@ -61,6 +61,13 @@ sealed interface DetectionEvent {
         val activity: String,
         val transition: String,
         override val location: GpsPoint? = null,
+        /** [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001] How stale the transition already was when the
+         *  session noticed it. AR reports the TRUE transition moment and delivers it up to ~2 min
+         *  later, and that gap is not cosmetic: the human-powered verdict arbitrates cycling
+         *  against boarding by true time, so a trace that only carries delivery times cannot be
+         *  used to check the verdict afterwards. Rides the DTO's existing `enterAgeMs` column,
+         *  which already means exactly this for the departure lane — no serializer surface change. */
+        val trueTimeAgeMs: Long? = null,
     ) : DetectionEvent
 
     /** A geofence [event] (e.g. EXIT) or error for [geofenceId]. */

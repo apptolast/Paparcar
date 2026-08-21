@@ -42,6 +42,19 @@ def main() -> None:
                          float(field(doc, "accuracy") or 0), float(field(doc, "speed") or 0)))
         elif kind == "STEP":
             rows.append((t, "STEP", 0, 0, 0, 0))
+        elif kind == "ACTIVITY_TRANSITION":
+            # [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001] The AR lane rides in the fixture too: the
+            # vehicle-exit is what routes the scorer into its Medium-capped fast path, and the
+            # cycling stamp is what can veto a whole session — a replay that drops either cannot
+            # reproduce what the session actually did. Both are replayed at their TRUE transition
+            # time (delivery time minus the recorded staleness), because that is the clock the
+            # human-powered verdict arbitrates on.
+            activity, transition = field(doc, "activity"), field(doc, "transition")
+            true_t = t - int(field(doc, "enterAgeMs") or 0)
+            if activity == "IN_VEHICLE" and transition == "EXIT":
+                rows.append((t, "VEHICLE_EXIT", 0, 0, 0, 0))
+            elif activity == "ON_BICYCLE" and transition == "ENTER":
+                rows.append((true_t, "BICYCLE_ENTER", 0, 0, 0, 0))
     rows.sort(key=lambda r: r[0])
     if not rows:
         sys.exit("no LOCATION_FIX/STEP events found")
@@ -54,10 +67,16 @@ def main() -> None:
     print("    fun fix(dtMs: Long, lat: Double, lon: Double, acc: Float, speed: Float) =")
     print("        add(TraceEvent(t0 + dtMs, TraceEvent.Kind.FIX, lat, lon, acc, speed))")
     print("    fun step(dtMs: Long) = add(TraceEvent(t0 + dtMs, TraceEvent.Kind.STEP))")
+    print("    fun vehicleExit(dtMs: Long) = add(TraceEvent(t0 + dtMs, TraceEvent.Kind.VEHICLE_EXIT))")
+    print("    fun bicycleEnter(dtMs: Long) = add(TraceEvent(t0 + dtMs, TraceEvent.Kind.BICYCLE_ENTER))")
     for t, kind, lat, lon, acc, speed in rows:
         dt = t - t0
         if kind == "FIX":
             print(f"    fix({dt}, {lat}, {lon}, {acc}f, {speed}f)")
+        elif kind == "VEHICLE_EXIT":
+            print(f"    vehicleExit({dt})")
+        elif kind == "BICYCLE_ENTER":
+            print(f"    bicycleEnter({dt})")
         else:
             print(f"    step({dt})")
     print("}")
