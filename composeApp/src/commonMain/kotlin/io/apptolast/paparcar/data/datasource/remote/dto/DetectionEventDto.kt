@@ -30,6 +30,10 @@ data class DetectionSessionDto(
     val batteryUnrestricted: Boolean? = null,
     val requiresAutostart: Boolean? = null,
     val requiresOemBatteryFreeze: Boolean? = null,
+    // [DET-HEARTBEAT-MISS-IS-EVIDENCE-001] The 5-min exact-alarm lane has stopped being delivered on
+    // this device: the safety net is down to the 15-min periodic grid, and a trip lost inside one
+    // of those cells is attributable from here instead of from a cable.
+    val exactHeartbeatLaneDead: Boolean? = null,
     // Per-session rollup, patched on SESSION_ENDED [DIAG-READABLE-001]
     val endedAt: Long? = null,
     val maxSpeedKmh: Float? = null,

@@ -23,4 +23,7 @@ class IosDeviceInfoProvider : DeviceInfoProvider {
     override val isBatteryUnrestricted: Boolean = true
     override val requiresAutostartWhitelist: Boolean = false
     override val requiresOemBatteryFreezeExemption: Boolean = false
+
+    /** [DET-HEARTBEAT-MISS-IS-EVIDENCE-001] No exact-alarm lane on iOS — nothing to be dead. */
+    override val isExactHeartbeatLaneDead: Boolean = false
 }

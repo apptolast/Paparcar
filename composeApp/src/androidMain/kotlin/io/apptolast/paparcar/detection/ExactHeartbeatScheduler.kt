@@ -7,6 +7,9 @@ import android.content.Intent
 import android.os.Build
 import androidx.core.content.edit
 import io.apptolast.paparcar.detection.receiver.ExactHeartbeatReceiver
+import io.apptolast.paparcar.domain.detection.isExactHeartbeatLaneDead
+import io.apptolast.paparcar.domain.detection.nextExactHeartbeatMissStreak
+import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 
 /**
@@ -31,17 +34,24 @@ import io.apptolast.paparcar.domain.util.PaparcarLogger
  */
 object ExactHeartbeatScheduler {
 
-    fun sync(context: Context, shouldBeArmed: Boolean) {
+    fun sync(context: Context, shouldBeArmed: Boolean, config: ParkingDetectionConfig) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val wasArmed = prefs(context).getLong(KEY_NEXT_AT, 0L) > 0L
+        val previousNextAt = prefs(context).getLong(KEY_NEXT_AT, 0L).takeIf { it > 0L }
+        val wasArmed = previousNextAt != null
         if (!shouldBeArmed) {
             alarmManager.cancel(pendingIntent(context))
-            prefs(context).edit { remove(KEY_NEXT_AT) }
+            prefs(context).edit { remove(KEY_NEXT_AT); remove(KEY_MISS_STREAK) }
             if (wasArmed) PaparcarLogger.d(TAG, "⏰ exact net DISARMED — no parked session to watch")
             return
         }
+        val now = System.currentTimeMillis()
+        // [DET-HEARTBEAT-MISS-IS-EVIDENCE-001] Read the OUTGOING arm before overwriting it. A tick
+        // whose moment passed without the receiver coming back to push this forward is one the lane
+        // lost — the only place in the app where that fact is observable, since the measurement
+        // used to live inside the receiver that never runs.
+        recordTick(context, previousNextAt, now, config)
         val exact = canScheduleExact(alarmManager)
-        val triggerAt = System.currentTimeMillis() + INTERVAL_MS
+        val triggerAt = now + INTERVAL_MS
         val pi = pendingIntent(context)
         if (exact) {
             alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi)
@@ -59,6 +69,58 @@ object ExactHeartbeatScheduler {
     fun firedDelayMs(context: Context, nowMs: Long): Long? {
         val nextAt = prefs(context).getLong(KEY_NEXT_AT, 0L)
         return if (nextAt > 0L) nowMs - nextAt else null
+    }
+
+    /**
+     * [DET-HEARTBEAT-MISS-IS-EVIDENCE-001] Has this device's fast lane stopped working?
+     *
+     * `true` means the safety net has degraded to the 15-minute periodic grid alone. Stamped into
+     * every session header from here on, so a trip lost inside one of those 15-minute cells can be
+     * attributed from Firestore instead of from a cable and `dumpsys`.
+     */
+    fun isLaneDead(context: Context, config: ParkingDetectionConfig): Boolean =
+        isExactHeartbeatLaneDead(prefs(context).getInt(KEY_MISS_STREAK, 0), config)
+
+    /**
+     * [DET-HEARTBEAT-MISS-IS-EVIDENCE-001] A tick was actually delivered: the lane works here.
+     * Called from the receiver, which by definition only runs when it does.
+     */
+    fun markLaneAlive(context: Context, config: ParkingDetectionConfig) {
+        val before = prefs(context).getInt(KEY_MISS_STREAK, 0)
+        if (before == 0) return
+        prefs(context).edit { putInt(KEY_MISS_STREAK, 0) }
+        if (isExactHeartbeatLaneDead(before, config)) {
+            PaparcarLogger.d(TAG, "⏰ exact net RECOVERED after $before lost ticks [DET-HEARTBEAT-MISS-IS-EVIDENCE-001]")
+        }
+    }
+
+    /**
+     * Folds the outgoing arm into the lost-tick streak and announces the two transitions that
+     * matter. Called from [sync] only — one writer, so the streak cannot drift.
+     */
+    private fun recordTick(context: Context, previousNextAt: Long?, nowMs: Long, config: ParkingDetectionConfig) {
+        val before = prefs(context).getInt(KEY_MISS_STREAK, 0)
+        val after = nextExactHeartbeatMissStreak(before, previousNextAt, nowMs, config)
+        if (after == before) return
+        prefs(context).edit { putInt(KEY_MISS_STREAK, after) }
+        val wasDead = isExactHeartbeatLaneDead(before, config)
+        val isDead = isExactHeartbeatLaneDead(after, config)
+        when {
+            isDead && !wasDead -> PaparcarLogger.w(
+                TAG,
+                "⏰ exact net DEAD — $after ticks armed and never delivered; the safety net is down to " +
+                    "the 15-min periodic on this device [DET-HEARTBEAT-MISS-IS-EVIDENCE-001]",
+            )
+            wasDead && !isDead -> PaparcarLogger.d(
+                TAG,
+                "⏰ exact net RECOVERED — a tick came back [DET-HEARTBEAT-MISS-IS-EVIDENCE-001]",
+            )
+            after > before -> PaparcarLogger.d(
+                TAG,
+                "⏰ exact tick LOST (streak=$after, overdue ${(nowMs - (previousNextAt ?: nowMs)) / 1000}s) " +
+                    "[DET-HEARTBEAT-MISS-IS-EVIDENCE-001]",
+            )
+        }
     }
 
     fun canScheduleExact(alarmManager: AlarmManager): Boolean =
@@ -85,4 +147,9 @@ object ExactHeartbeatScheduler {
 
     private const val PREFS_NAME = "exact_heartbeat"
     private const val KEY_NEXT_AT = "next_at"
+
+    /** [DET-HEARTBEAT-MISS-IS-EVIDENCE-001] Consecutive armed ticks that never came back. Disk-backed
+     *  alongside the arm it judges, so an OEM process kill between ticks cannot reset the count and
+     *  hide a lane that has been dead for hours. */
+    private const val KEY_MISS_STREAK = "miss_streak"
 }

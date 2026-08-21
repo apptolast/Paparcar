@@ -159,6 +159,7 @@ class FirestoreDetectionEventLogger(
                     batteryUnrestricted = deviceInfo.isBatteryUnrestricted,
                     requiresAutostart = deviceInfo.requiresAutostartWhitelist,
                     requiresOemBatteryFreeze = deviceInfo.requiresOemBatteryFreezeExemption,
+                    exactHeartbeatLaneDead = deviceInfo.isExactHeartbeatLaneDead,
                 ),
             )
             is DetectionEvent.SessionEnded -> flushSession(sessionDoc, event)

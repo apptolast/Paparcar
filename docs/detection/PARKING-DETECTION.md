@@ -1126,6 +1126,62 @@ telemetry, but the user still sees an identical marker. → `UI-APPROXIMATE-PARK
 
 ---
 
+### DET-HEARTBEAT-MISS-IS-EVIDENCE-001 — a fast lane that stopped beating has to say so
+
+**Commit:** pending. **Field:** 2026-08-21/22, Oppo CPH2371 (ColorOS, Android 13).
+
+**Root cause.** The exact-alarm heartbeat is one-shot: each tick re-arms the next from inside its own
+receiver, and the 15-minute safety-net worker re-arms it unconditionally on every pass. That
+self-healing hides its own failure — a lane that never fires again is indistinguishable, from inside
+the app, from one firing perfectly. The punctuality metric that existed for this
+(`ExactHeartbeatScheduler.firedDelayMs`) is read INSIDE the receiver that never runs, so by
+construction the miss could not be observed.
+
+The Oppo's last `exact heartbeat fired` of the day is 18:28. From 22:41 the periodic worker ran on
+the dot every ~15 min for three hours (00:01:39 · 00:16:39 · 00:31:39 · 00:46:39 · 01:01:40 ·
+01:16:41 · 01:31:41), re-arming each pass, and not one tick came back. The Redmi beside it fired 34
+that day.
+
+**Not a misconfiguration.** Checked on the device at 01:43 with the problem live: process alive with
+the FGS running, standby bucket 5 (EXEMPTED), `SCHEDULE_EXACT_ALARM` granted (`exact=true` on every
+arm), `next_at` = 01:36:41 so the alarm WAS armed, and `dumpsys alarm` reporting 82 wakeups for the
+receiver with in-flight records piling up. The alarm fires, the system dispatches, `onReceive` never
+runs. That is the OS.
+
+**Why it is still our bug.** The contract accepts the OS as an excuse on one condition — *it must be
+detectable a posteriori*. It was not, and the practical cost is exact: on that Oppo the safety net
+had silently degraded to the 15-minute grid, which is the size of the hole the 7 min 43 s drive fell
+through that same night ([DET-COOLDOWN-MUST-NOT-BLIND-A-DRIVE-001]). Diagnosing it took a cable and
+`dumpsys`, because Firestore said nothing.
+
+**Fix — measurement only, no decision changes.** `sync` reads the OUTGOING arm before overwriting
+it; a tick whose moment passed without the receiver pushing the schedule forward is one the lane
+lost. Streak on disk beside the arm it judges (an OEM kill between ticks must not reset it), pure
+policy in `ExactHeartbeatHealth.kt`, `markLaneAlive` from the receiver (reaching it IS the proof the
+lane works), and `DeviceInfoProvider.isExactHeartbeatLaneDead` → `exactHeartbeatLaneDead` in every
+session header next to `requiresOemBatteryFreeze`. Measured live, never modelled by brand.
+
+**The number the test corrected.** The first draft set the grace to 20 min, reasoning that it had to
+clear the ~9-15 min Doze stretch. The Oppo replay test killed it: its arms were exactly 10 min stale
+at every periodic pass, so a 20-min grace would have reported a healthy lane through three hours of
+total silence. The correct reasoning is that ONE glance at a stale schedule cannot separate "lost"
+from "stretched and still pending", and no grace can — what separates them is TIME. So the grace
+stays at one interval (5 min) and the STREAK carries the verdict (3 passes ≈ 45 min with no
+delivery). A test now pins grace < (periodic − heartbeat) so nobody widens it back into blindness.
+
+**Deliberately NOT attempted here.** Repairing the lane (swapping `getBroadcast` for
+`getForegroundService`, the trick the AR lane already uses successfully) is a bet on ColorOS
+behaviour that cannot be validated without hours of field time, and shipping it with the telemetry
+would make it impossible to tell which change moved anything. Measure first, repair second →
+`DET-HEARTBEAT-LANE-REPAIR-001`.
+
+**Files:** `ExactHeartbeatHealth.kt` (new), `ExactHeartbeatScheduler` (`recordTick`, `markLaneAlive`,
+`isLaneDead`), `ExactHeartbeatReceiver`, `ParkingSafetyNetWorker` (call site), `DeviceInfoProvider`
++ the three implementations, `DetectionEventDto`, `FirestoreDetectionEventLogger`,
+`AndroidPlatformModule`, `ParkingDetectionConfig` (2 constants + requires). 1365 tests.
+
+---
+
 ## 3. Open questions / future work
 
 - **GPS sampling boost during CANDIDATE (PARKING-001 Option B).** Switch the LocationDataSource to a 1 s `minUpdateIntervalMillis` request when entering the CANDIDATE phase, returning to 2 s on exit. Increases density of fixes that refine `bestStopLocation` within the new initial-stop window after a reposition burst. Adds the complexity of swapping the location source mid-session — hold off until A is validated in the field.

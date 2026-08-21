@@ -582,6 +582,27 @@ data class ParkingDetectionConfig(
      *  escalate faster than it decays is a damper that never escapes its own quiet period. */
     val sentryWakeStreakDecayMs: Long = 10 * 60_000L,
 
+    // ── EXACT-HEARTBEAT HEALTH [DET-HEARTBEAT-MISS-IS-EVIDENCE-001] ──────────
+    /** How overdue an armed heartbeat tick may be, when the periodic worker looks at it, before it
+     *  counts as a suspected loss. One whole heartbeat interval past due.
+     *
+     *  Deliberately SHORT, and the reasoning matters: a stale schedule cannot distinguish "lost"
+     *  from "stretched by Doze and still pending" — `setExactAndAllowWhileIdle` legally slips to
+     *  ~9-15 min — and no threshold can, because both read identically at one glance. Widening the
+     *  grace past the periodic's own cadence does not buy certainty, it buys blindness: the 2026-08
+     *  Oppo's arms were exactly 10 min stale at every pass, so a 20-min grace would have reported a
+     *  perfectly healthy lane through three hours of total silence.
+     *
+     *  So the grace only filters a tick caught mid-flight, and [exactHeartbeatDeadAfterMisses] does
+     *  the discriminating: a stretched tick eventually lands and clears the streak, a lost one never
+     *  does. */
+    val exactHeartbeatMissGraceMs: Long = 5 * 60_000L,
+    /** Consecutive suspected losses before the lane is called DEAD and the session header says so.
+     *  At the periodic's ~15-min cadence this is ~45 min without a single delivery — far past any
+     *  legal Doze stretch, so a sleepy night blips to one or two and recovers, while the 2026-08-21
+     *  Oppo (three hours, zero ticks) crosses on the third pass. */
+    val exactHeartbeatDeadAfterMisses: Int = 3,
+
     // ── USER STOP (the "Stop detection" button) [DET-STOP-BUTTON-001] ────────
     /** Quiet period (ms) after the user taps "Stop detection" on a live session, during which the
      *  AUTOMATIC nominators (geofence EXIT, AR ENTER, significant motion) may not arm a new one.
@@ -1139,6 +1160,14 @@ data class ParkingDetectionConfig(
         }
         require(sentryWakeCooldownBaseMs > 0) {
             "sentryWakeCooldownBaseMs must be > 0, was $sentryWakeCooldownBaseMs"
+        }
+        // [DET-HEARTBEAT-MISS-IS-EVIDENCE-001] A grace below the Doze stretch would report a broken
+        // lane on every quiet night; a streak below 1 would report one on a single late tick.
+        require(exactHeartbeatMissGraceMs > 0L) {
+            "exactHeartbeatMissGraceMs must be > 0, was $exactHeartbeatMissGraceMs"
+        }
+        require(exactHeartbeatDeadAfterMisses >= 1) {
+            "exactHeartbeatDeadAfterMisses must be >= 1, was $exactHeartbeatDeadAfterMisses"
         }
         require(userStopQuietPeriodMs >= 0) {
             "userStopQuietPeriodMs must be >= 0 (0 = disabled), was $userStopQuietPeriodMs"

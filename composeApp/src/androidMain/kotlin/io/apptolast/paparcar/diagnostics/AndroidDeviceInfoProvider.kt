@@ -3,7 +3,9 @@ package io.apptolast.paparcar.diagnostics
 import android.content.Context
 import android.os.Build
 import android.os.PowerManager
+import io.apptolast.paparcar.detection.ExactHeartbeatScheduler
 import io.apptolast.paparcar.domain.diagnostics.DeviceInfoProvider
+import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.permissions.OemBackgroundReliabilityManager
 
 /**
@@ -14,6 +16,7 @@ import io.apptolast.paparcar.domain.permissions.OemBackgroundReliabilityManager
 class AndroidDeviceInfoProvider(
     private val context: Context,
     private val oemReliability: OemBackgroundReliabilityManager,
+    private val config: ParkingDetectionConfig,
 ) : DeviceInfoProvider {
 
     override val deviceModel: String = "${Build.MANUFACTURER} ${Build.MODEL}".trim()
@@ -34,6 +37,11 @@ class AndroidDeviceInfoProvider(
     override val requiresAutostartWhitelist: Boolean = oemReliability.requiresAutostartWhitelist
 
     override val requiresOemBatteryFreezeExemption: Boolean = oemReliability.requiresOemBatterySettings
+
+    // [DET-HEARTBEAT-MISS-IS-EVIDENCE-001] Measured, not modelled — and read live per access, like
+    // the battery exemption: a lane can die (or come back) between two sessions of the same day.
+    override val isExactHeartbeatLaneDead: Boolean
+        get() = runCatching { ExactHeartbeatScheduler.isLaneDead(context, config) }.getOrDefault(false)
 
     private companion object {
         const val UNKNOWN = "unknown"

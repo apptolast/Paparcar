@@ -100,5 +100,5 @@ val androidPlatformModule = module {
     single<ConnectivityObserver> { AndroidConnectivityObserver(androidContext()) }
 
     // Diagnostics — device identity stamped into detection traces [DIAG-READABLE-001]
-    single<DeviceInfoProvider> { AndroidDeviceInfoProvider(androidContext(), get()) }
+    single<DeviceInfoProvider> { AndroidDeviceInfoProvider(androidContext(), get(), get()) }
 }

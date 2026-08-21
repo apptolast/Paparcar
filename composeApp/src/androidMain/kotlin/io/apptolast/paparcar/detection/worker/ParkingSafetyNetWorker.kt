@@ -148,7 +148,7 @@ class ParkingSafetyNetWorker(
         // re-arms / disarms it from this ONE place, so the chain self-heals through process kills
         // and dies with the session. The existing check-now mesh (detection-end, app-start, boot)
         // is what seeds the first arm after a park — no extra call sites.
-        runCatching { ExactHeartbeatScheduler.sync(appContext, shouldBeArmed = parkedAndIdle) }
+        runCatching { ExactHeartbeatScheduler.sync(appContext, shouldBeArmed = parkedAndIdle, config = config) }
 
         if (sessions.isEmpty()) {
             dismissPrompt()
