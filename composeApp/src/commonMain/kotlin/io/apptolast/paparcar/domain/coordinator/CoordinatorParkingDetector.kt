@@ -2464,6 +2464,32 @@ class CoordinatorParkingDetector(
     private fun updateStopTracking(location: GpsPoint, now: Long): Long {
         return if (location.speed < config.stoppedSpeedThresholdMps) {
             _detectionState.update { s ->
+                // [DET-STOP-MUST-BE-STILL-IN-SPACE-001] A stop is a claim about POSITION, and the
+                // declared `speed` field is not position. Field 2026-08-22 Góndola: three fixes
+                // reporting 0.0 m/s, 122 m apart over 9.6 s (12.8 m/s of measured ground), matured
+                // the stop and froze the anchor in the side-street mouth — 70 m short of the spot,
+                // while the car was still rolling in. The same reasoning [DET-CREDIBLE-DRIVE-001]
+                // already refuses to trust declared Doppler for the mute band; a stop may not
+                // trust it either. Judged against the stop's OWN origin fix (never against the
+                // last driving fix — the fix that OPENS a stop is a hop by construction, and
+                // discarding it would starve a sparse stream of its only anchor), and it takes
+                // car-grade ground rate, so a 55-m GPS drift across a 60-s wait stays a stop.
+                val stopOrigin = s.stoppedFixes.firstOrNull()
+                val stillnessRefuted = stopOrigin != null && isCorroboratedVehicleHop(stopOrigin, location)
+                if (stillnessRefuted && stopOrigin != null) {
+                    val moved = io.apptolast.paparcar.domain.util.haversineMeters(
+                        stopOrigin.latitude, stopOrigin.longitude,
+                        location.latitude, location.longitude,
+                    )
+                    PaparcarLogger.d(
+                        DIAG,
+                        "  ⚓✗ stop REFUTED by its own track — ${moved.toInt()}m from the stop origin " +
+                            "in ${(location.timestamp - stopOrigin.timestamp) / 1000}s while reporting " +
+                            "${location.speed} m/s (envelopes ${stopOrigin.accuracy}+${location.accuracy}m); " +
+                            "the car was still moving — not evidence of rest " +
+                            "[DET-STOP-MUST-BE-STILL-IN-SPACE-001]"
+                    )
+                }
                 val startedAt = s.stoppedSince ?: now
                 val withinInitialWindow = (now - startedAt) < config.initialStopWindowMs
                 // [DET-GAP-ANCHOR-001] A stop OPENING on the far side of a GPS hole: the previous
@@ -2512,11 +2538,34 @@ class CoordinatorParkingDetector(
                 // counted step ends the privilege: from there the better fix may be the walking
                 // user, and the lock machinery takes over.
                 val sameStopPreEgress = s.anchorCapturedAtStop == startedAt && s.stepCount == 0
-                val mayCapture = !pinnedToOtherStop && (withinInitialWindow || sameStopPreEgress)
+                // [DET-STOP-MUST-BE-STILL-IN-SPACE-001] …and a fix the stop's own track refutes may
+                // not become the anchor either. This is the load-bearing half: the anchor is read
+                // from the raw fix here, NOT from `stoppedFixes`, so filtering that list alone would
+                // have left the Góndola side-street mouth as the pin (its 6.0 m beat the 10.8 m of
+                // the fix that opened the stop). Withholding capture is strictly SUBTRACTIVE — a
+                // refuted fix can only fail to become the anchor, never displace a good one.
+                val mayCapture = !pinnedToOtherStop && !stillnessRefuted &&
+                    (withinInitialWindow || sameStopPreEgress)
                 val newBestStop = when {
                     !mayCapture -> s.bestStopLocation
                     s.bestStopLocation == null || location.accuracy < s.bestStopLocation.accuracy -> location
                     else -> s.bestStopLocation
+                }
+                // [DET-STOP-MUST-BE-STILL-IN-SPACE-001] The refuted fix becomes the sole spatial
+                // ORIGIN the next fixes are measured against, and the quorum starts over from it.
+                // It is not evidence of REST: it cannot be the anchor this beat, and the freeze
+                // still needs a full quorum of fixes that agree with it.
+                //
+                // Only the origin advances — `stoppedSince` deliberately does NOT. Restarting the
+                // stop clock reopened `initialStopWindowMs` mid-stop, which let a re-capture happen
+                // where master would never have allowed one; both Enamorados replays (the starved
+                // MIUI stream whose anchor must stay disowned so the ceiling can prompt) caught it.
+                // A creeping stop keeps its clock; what it loses is the right to call itself proven.
+                val stoppedFixesNow = when {
+                    stillnessRefuted -> listOf(location)
+                    withinInitialWindow && s.stoppedFixes.size < config.maxStoppedFixes ->
+                        s.stoppedFixes + location
+                    else -> s.stoppedFixes
                 }
                 // [DET-ANCHOR-FREEZE-001] End-of-drive maturation. Three conditions, each load-
                 // bearing: measured driving happened; the ANCHOR belongs to THIS stop (freezing
@@ -2532,10 +2581,17 @@ class CoordinatorParkingDetector(
                 // stop rarely lasts 60 s before the user walks off, but N dense stopped fixes prove
                 // the car came to rest here. The other guards (drive-entered, this-stop) are unchanged.
                 val restProvenByTime = (now - startedAt) >= config.anchorFreezeStopMs
+                // The PRIOR count, not the one including this fix: the freeze fires on the fix whose
+                // predecessors already reached the quorum. Counting this one too moves the freeze a
+                // beat earlier and pins the Calle Gavia traffic stop (replay caught it).
                 val restProvenByFixes = s.stoppedFixes.size >= config.anchorFreezeStableFixes
                 val matured = !s.anchorFrozen && s.hasEverReachedDrivingSpeed &&
                     newBestStop != null && anchorStopOfRecord == startedAt &&
                     s.walkFixesSinceDriving <= config.anchorFreezeMaxWalkFixes &&
+                    // [DET-STOP-MUST-BE-STILL-IN-SPACE-001] Not on the very beat the track refutes:
+                    // this is what keeps the TIME path honest too, since a stop that opened 60 s ago
+                    // and has been creeping ever since would otherwise mature on the clock alone.
+                    !stillnessRefuted &&
                     (restProvenByTime || restProvenByFixes)
                 if (matured) {
                     val how = if (restProvenByTime) "time=${now - startedAt}ms" else "stableFixes=${s.stoppedFixes.size}"
@@ -2561,8 +2617,7 @@ class CoordinatorParkingDetector(
                     location.accuracy < s.egressOriginFix.accuracy
                 s.copy(
                     stoppedSince = startedAt,
-                    stoppedFixes = if (withinInitialWindow && s.stoppedFixes.size < config.maxStoppedFixes)
-                        s.stoppedFixes + location else s.stoppedFixes,
+                    stoppedFixes = stoppedFixesNow,
                     bestStopLocation = newBestStop,
                     anchorCapturedAtStop = anchorStopOfRecord,
                     // [DET-CREDIBLE-DRIVE-001] Stamp how much walking led into the anchor's stop

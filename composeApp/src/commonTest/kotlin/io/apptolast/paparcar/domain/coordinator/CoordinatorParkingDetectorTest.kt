@@ -1366,6 +1366,89 @@ class CoordinatorParkingDetectorTest {
         }
 
     @Test
+    fun should_not_freeze_anchor_when_the_stopped_fixes_keep_covering_ground() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-STOP-MUST-BE-STILL-IN-SPACE-001] Field 2026-08-22 (Oppo, Camelias→Góndola): three
+            // fixes DECLARING 0.0 m/s, 122 m apart across 9.6 s with 6–11 m envelopes, matured the
+            // stop and froze the anchor in the side-street mouth — the pin landed 70 m short of the
+            // spot while the car was still rolling in. Declared speed is not position: a stop whose
+            // own track covers car-grade ground is not a stop.
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            emitCorroboratedDrive(locations)
+            // The lying stretch: every fix says 0 m/s, each sits ~55 m past the last (0.0005 lat at this
+            // latitude ≈ 55.6 m) — far outside the joint 10+10 m envelopes plus the hop margin, at
+            // ~11 m/s of measured ground. Three of them, the freeze threshold, and none may count.
+            val mouthLat = 40.001
+            repeat(config.anchorFreezeStableFixes) {
+                nowMs += 5_000L
+                locations.emit(GpsPoint(mouthLat + 0.0005 * it, -3.7, accuracy = 10f, timestamp = nowMs, speed = 0f))
+            }
+            // The real spot, 55 m further on: a stop that holds its position, with better fixes.
+            val spotLat = mouthLat + 0.0005 * config.anchorFreezeStableFixes
+            repeat(config.anchorFreezeStableFixes + 1) {
+                nowMs += 5_000L
+                locations.emit(GpsPoint(spotLat, -3.7, accuracy = 5f, timestamp = nowMs, speed = 0f))
+            }
+            // Stepless walk away — kinematic egress confirms at whatever the anchor turned out to be.
+            var lat = spotLat
+            repeat(config.kinematicEgressMinWalkFixes) {
+                lat += 0.0001
+                nowMs += 5_000L
+                locations.emit(GpsPoint(lat, -3.7, accuracy = 10f, timestamp = nowMs, speed = 1.3f))
+            }
+
+            job.cancelAndJoin()
+
+            assertEquals(1, env.parkingRepo.saveNewParkingSessionCallCount, "the park must still be detected")
+            val saved = env.parkingRepo.getActiveSession()
+            assertNotNull(saved)
+            assertEquals(
+                spotLat, saved.location.latitude, 0.00005,
+                "the pin belongs at the stop that held its position, not at the first fix that merely claimed 0 m/s",
+            )
+        }
+
+    @Test
+    fun should_still_freeze_anchor_when_a_stopped_car_drifts_inside_its_accuracy_envelope() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-STOP-MUST-BE-STILL-IN-SPACE-001] The other side of the same bar: a genuinely
+            // parked car in an urban canyon wanders between fixes, and that must stay a stop. Field
+            // 2026-08-22 (Redmi, Camelias): 4–20 m of wander against 15–59 m envelopes froze
+            // correctly and the pin was right. Refutation takes BOTH disjoint envelopes and
+            // car-grade ground rate, so drift like this never trips it.
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            emitCorroboratedDrive(locations)
+            // ~11 m of wander per fix (0.0001 lat) against 30+30 m envelopes: inside the noise, and
+            // 2.2 m/s of ground — under the car-grade bar. A stop, and it must mature as one.
+            val carLat = 40.001
+            repeat(config.anchorFreezeStableFixes + 1) {
+                nowMs += 5_000L
+                locations.emit(GpsPoint(carLat + 0.0001 * it, -3.7, accuracy = 30f, timestamp = nowMs, speed = 0f))
+            }
+            var lat = carLat + 0.001
+            repeat(config.kinematicEgressMinWalkFixes) {
+                lat += 0.0001
+                nowMs += 5_000L
+                locations.emit(GpsPoint(lat, -3.7, accuracy = 10f, timestamp = nowMs, speed = 1.3f))
+            }
+
+            job.cancelAndJoin()
+
+            assertEquals(
+                1, env.parkingRepo.saveNewParkingSessionCallCount,
+                "GPS wander inside the accuracy envelopes must still mature the stop and confirm the park",
+            )
+        }
+
+    @Test
     fun should_save_approximate_zone_when_unattended_timeout_finds_an_unpinned_anchor() =
         runTest(UnconfinedTestDispatcher()) {
             // Measured driving happened, but no stop matured and no egress steps sealed anything:

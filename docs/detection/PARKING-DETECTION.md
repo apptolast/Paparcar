@@ -1182,6 +1182,49 @@ would make it impossible to tell which change moved anything. Measure first, rep
 
 ---
 
+### DET-STOP-MUST-BE-STILL-IN-SPACE-001 — a stop that covers 122 m is not a stop
+
+**Commit:** pending.
+
+**Field report (2026-08-22, Camelias → Góndola, Oppo).** *"El pin salió en la bocacalle por donde
+entré de la carretera, no donde aparqué — segundos antes del sitio real."* ~70 m short. The Redmi, on
+the same physical trip, was right.
+
+**Root cause.** The stop tracker decided rest from the fix's DECLARED `speed` field alone
+(`updateStopTracking`: `if (location.speed < stoppedSpeedThresholdMps)`), and
+`DET-SHORT-TRIP-FREEZE-001` froze the anchor once three such fixes accumulated. On the Góndola
+arrival three consecutive fixes declared `0.0 m/s` while sitting **54.8 m and 75.1 m apart** — 122.5 m
+of ground in 9.56 s, ~46 km/h — with 6–11 m accuracies, i.e. a displacement ten times the joint
+uncertainty. The car was still rolling off the road; the Doppler field lied. `stableFixes=3` counted
+them as proof of rest and froze the anchor in the side-street mouth. The declared `speed` had already
+been distrusted for the mute band by `DET-CREDIBLE-DRIVE-001`; the stop path never got the memo.
+
+**Aggravating factor (left alone on purpose).** Once frozen, only `minimumTripSpeedMps` (5.0 m/s)
+moves the anchor, and the final manoeuvre was 4.93 → 3.12 → 2.68 m/s — the first fix missed the bar by
+0.07 m/s. The existing escape hatch `frozenAnchorSteplessDepartureFixes` (4) also fell exactly one
+fix short (3 consecutive fixes ≥ 2.5 m/s). **Neither number was touched**: they guard the Camelias
+walk-back laundering, and a stop that never matures where it shouldn't needs no escape hatch.
+
+**Fix.** The stop measures its own spatial coherence against its ORIGIN fix, reusing the existing,
+field-calibrated `isCorroboratedVehicleHop` predicate (disjoint accuracy envelopes + a
+`credibleDriveHopMarginMeters` margin + car-grade ground rate) rather than inventing a second
+formula. A refuted fix (a) cannot become the anchor — `mayCapture` gains `!stillnessRefuted`, which is
+the load-bearing half, since the anchor is read from the raw fix and not from `stoppedFixes` — (b)
+does not join the freeze quorum, and (c) cannot mature the stop on that beat, which keeps the
+time-based path honest too. It becomes the new spatial origin so the reference never goes stale.
+
+**Accompanying-fix risk, caught by the replays.** Two drafts died against real traces and both
+lessons are load-bearing: counting the current fix in the freeze quorum moves the freeze one beat
+early and pins the `Trace_CalleGavia001` traffic stop; restarting `stoppedSince` on refutation
+reopens `initialStopWindowMs` mid-stop and lets a re-capture happen where master never would, which
+both `Enamorados001` replays caught (that starved MIUI stream's anchor must stay disowned so the
+ceiling can PROMPT). Only the spatial origin advances — never the stop clock.
+
+**Files:** `CoordinatorParkingDetector.kt` (`updateStopTracking`), 2 new tests in
+`CoordinatorParkingDetectorTest`. 1397 tests.
+
+---
+
 ## 3. Open questions / future work
 
 - **GPS sampling boost during CANDIDATE (PARKING-001 Option B).** Switch the LocationDataSource to a 1 s `minUpdateIntervalMillis` request when entering the CANDIDATE phase, returning to 2 s on exit. Increases density of fixes that refine `bestStopLocation` within the new initial-stop window after a reposition burst. Adds the complexity of swapping the location source mid-session — hold off until A is validated in the field.
