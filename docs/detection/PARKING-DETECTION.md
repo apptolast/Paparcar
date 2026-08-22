@@ -1225,6 +1225,42 @@ ceiling can PROMPT). Only the spatial origin advances — never the stop clock.
 
 ---
 
+### DET-CADENCE-CANNOT-ACCUSE-AFTER-EGRESS-001 — the walk away from the car is not pedalling
+
+**Commit:** pending.
+
+**Field report (2026-08-22, Góndola → Camelias, Redmi).** A car trip that peaked at **75 km/h with 57
+driving fixes** was judged a human-powered ride, degraded to a prompt, and the user's "Sí" then
+planted the pin inside the house.
+
+**Root cause.** The pedal-cadence source of the human-powered veto counts step events concurrent with
+a credible fix in the band `egressStepMaxSpeedMps`(3.0) ≤ v < `motorProofSpeedMps`(11.1). The band has
+a floor and (since `DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001 §A`) a ceiling, but **no notion of WHEN**.
+The latch fired 36 s AFTER the anchor froze, on steps the log itself labels `egress walk, anchor
+set`, against 4.27 m/s fixes produced by a noisy stream in a narrow street. The same signature means
+opposite things on either side of the anchor: during a ride it is muscle propelling the movement;
+after the car is parked it is simply the user walking away with bad GPS — the *expected* shape.
+
+The measured-motor refutation that should have caught it (`sustainedMotorBandMs >=
+sustainedDriveProofMs`) never reached its 30 s sustained bar above 40 km/h on that starved MIUI
+stream, despite the 75 km/h peak. The refutation exists and did not arrive; the latch did.
+
+**Fix.** `cadenceStep` gains `!isAnchorPinned(s)`. A step cannot be a pedal stroke while the anchor is
+pinned — pinned means the session already witnessed where the car came to rest, by matured stop or by
+egress steps. One condition, at the place where the evidence is COUNTED, so both readers of the veto
+(the CANDIDATE-phase confirm and `EvaluateUnattendedParkingSaveUseCase`) are cured at once.
+
+**Rejected alternatives.** Lowering `sustainedDriveProofMs` / `motorProofSpeedMps` so the motor
+refutation arrives on poor streams patches a symptom in numbers calibrated against two real bicycle
+traces, and would leave the veto firing on any egress with worse GPS. Raising
+`pedalCadenceMinStepEvents` only delays the same error — it latched at 12 steps, and a walk home
+produces a hundred.
+
+**Files:** `CoordinatorParkingDetector.kt` (`cadenceStep`), 1 new test. 1396 tests. The new test was
+verified to FAIL with the guard neutralised, so it is not a complacent test.
+
+---
+
 ## 3. Open questions / future work
 
 - **GPS sampling boost during CANDIDATE (PARKING-001 Option B).** Switch the LocationDataSource to a 1 s `minUpdateIntervalMillis` request when entering the CANDIDATE phase, returning to 2 s on exit. Increases density of fixes that refine `bestStopLocation` within the new initial-stop window after a reposition burst. Adds the complexity of swapping the location source mid-session — hold off until A is validated in the field.

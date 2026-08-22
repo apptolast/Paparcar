@@ -743,7 +743,20 @@ class CoordinatorParkingDetector(
                         // phantom step next to a 36 m/s motorway fix was counted as a pedal stroke
                         // at 131 km/h. Above `motorProofSpeedMps` the concurrency proves the
                         // opposite of pedalling, and the counter is just reading road vibration.
-                        val cadenceStep = s.lastFixCredible &&
+                        // [DET-CADENCE-CANNOT-ACCUSE-AFTER-EGRESS-001] …and only while the trip is
+                        // still a TRIP. The band has a ceiling and a floor, but it had no notion of
+                        // WHEN, and the same signature means opposite things on either side of the
+                        // anchor: once the anchor is pinned — matured stop or egress steps — the
+                        // session has already witnessed where the car came to rest, so feet moving
+                        // next to a fast fix are the user walking away on a noisy stream, which is
+                        // the EXPECTED shape of an egress rather than evidence of pedalling. Field
+                        // 2026-08-22 (Redmi, Góndola→Camelias): a 75 km/h car trip with 57 driving
+                        // fixes latched the cadence 36 s AFTER the anchor froze, on steps the log
+                        // itself labelled `egress walk, anchor set` against 4.27 m/s fixes in a
+                        // narrow street; the measured-motor refutation above never reached its
+                        // 30 s sustained bar on that starved stream, so nothing else caught it.
+                        val cadenceStep = !isAnchorPinned(s) &&
+                            s.lastFixCredible &&
                             s.lastSpeedMps >= config.egressStepMaxSpeedMps &&
                             s.lastSpeedMps < config.motorProofSpeedMps &&
                             s.lastFixSeenAtMs > 0L &&

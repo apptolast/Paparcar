@@ -2030,6 +2030,55 @@ class CoordinatorParkingDetectorTest {
         }
 
     @Test
+    fun should_not_latch_pedal_cadence_on_the_egress_walk_after_the_anchor_is_pinned() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-CADENCE-CANNOT-ACCUSE-AFTER-EGRESS-001] Field 2026-08-22 (Redmi,
+            // Góndola→Camelias): a 75 km/h car trip with 57 driving fixes was judged human-powered
+            // 36 s AFTER the anchor froze, on steps the log itself labelled `egress walk, anchor
+            // set` against 4.27 m/s fixes in a narrow street. Once the anchor is pinned the session
+            // has already witnessed the car at rest, so this signature is an egress walk on a noisy
+            // stream — the expected shape — and may not accuse anyone of pedalling.
+            //
+            // The speed is the field's own 4.3 m/s: above the cadence floor (egressStepMaxSpeedMps,
+            // 3.0) and below the bar that would legitimately unfreeze the anchor
+            // (minimumTripSpeedMps, 5.0). The pre-anchor half of this rule keeps its own test above.
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations, armEvidence = ArmEvidence.Unverified) }
+
+            emitCorroboratedDrive(locations)
+            val carLat = 40.001
+            repeat(config.anchorFreezeStableFixes + 1) {
+                nowMs += 5_000L
+                locations.emit(GpsPoint(carLat, -3.7, accuracy = 5f, timestamp = nowMs, speed = 0f))
+            }
+            var lat = carLat
+            repeat(4) {
+                lat += 0.0002
+                nowMs += 5_000L
+                locations.emit(GpsPoint(lat, -3.7, accuracy = 10f, timestamp = nowMs, speed = 4.3f))
+                nowMs += 500L
+                env.stepDetector.emitSteps(config.pedalCadenceMinStepEvents)
+            }
+
+            job.cancelAndJoin()
+
+            val latched = env.detectionLogger.events
+                .filterIsInstance<DetectionEvent.Decision>()
+                .filter { it.outcome == "PEDAL_CADENCE_LATCHED" }
+            assertTrue(
+                latched.isEmpty(),
+                "the egress walk must not be read as pedalling once the anchor is pinned, was $latched",
+            )
+            assertTrue(
+                env.detectionLogger.events.filterIsInstance<DetectionEvent.Decision>()
+                    .none { it.outcome == "CONFIRM_DEGRADED_PROMPT" && it.pathLabel?.contains("human_powered") == true },
+                "a car park must not be degraded to a prompt for a ride nobody pedalled",
+            )
+        }
+
+    @Test
     fun should_keep_the_egress_steps_on_the_record_when_a_candidate_is_discarded() =
         runTest(UnconfinedTestDispatcher()) {
             // [DET-EVIDENCE-MUST-NOT-LOWER-CONFIDENCE-001 · paso 1] A discarded candidate used to
