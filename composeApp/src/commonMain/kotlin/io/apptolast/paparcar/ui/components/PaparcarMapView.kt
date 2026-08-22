@@ -78,6 +78,9 @@ import io.apptolast.paparcar.presentation.util.toReliabilityUiState
 import io.apptolast.paparcar.presentation.util.zoneIconFor
 import io.apptolast.paparcar.ui.theme.PapLiveMap
 import io.apptolast.paparcar.ui.theme.PapGreen
+import io.apptolast.paparcar.ui.theme.PapBlueLight
+import io.apptolast.paparcar.ui.theme.PapGreenLight
+import io.apptolast.paparcar.ui.theme.PapOutlineVariantLight
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.sample
 import kotlinx.coroutines.launch
@@ -199,6 +202,15 @@ private const val ZONE_CIRCLE_STROKE_ALPHA  = 0.30f
 private const val ZONE_CIRCLE_STROKE_DP    = 2f
 // Saved-zone rings fade with the rest of the map when a pin/selection dims spots.
 private const val ZONE_CIRCLE_DIM_FACTOR   = 0.5f
+
+// ── Approximate-parking doubt ring ───────────────────────────────────────────
+// The area an honest close saved instead of a pin. Same native Circle as a saved zone (so it is
+// geodesically identical, not a Web-Mercator approximation), but read LOUDER than a zone: a zone is
+// background context the user drew, this is live information about where their own car actually is.
+// [UI-APPROXIMATE-PARKING-DRAWS-ITS-DOUBT-001]
+private const val DOUBT_CIRCLE_FILL_ALPHA   = 0.13f
+private const val DOUBT_CIRCLE_STROKE_ALPHA = 0.55f
+private const val DOUBT_CIRCLE_STROKE_DP    = 2.5f
 
 // ── Clustering degree thresholds ─────────────────────────────────────────────
 private const val CLUSTER_ZOOM_LEVEL_13   = 13f
@@ -1240,6 +1252,28 @@ fun PaparcarMapView(
             lineWidth = zoneRingStrokePx,
         )
     }
+    // Doubt rings for approximate sessions. The car's badge stays exactly where it is — the ring
+    // says "somewhere in here", it does not move the pin. Marker tones are fixed light-theme ones
+    // because markers float over map tiles, not over surfaces; the ring MUST use the same three so
+    // it reads as the same car's frame widened, not as a new colour. [UI-COLOR-DOCTRINE-001]
+    val doubtRingStrokePx = with(LocalDensity.current) { DOUBT_CIRCLE_STROKE_DP.dp.toPx() }
+    val doubtCircles = parkedVehicles.mapNotNull { v ->
+        val radius = v.zoneRadiusMeters ?: return@mapNotNull null
+        val base = when {
+            v.isBluetoothPaired -> PapBlueLight
+            v.isActive -> PapGreenLight
+            else -> PapOutlineVariantLight
+        }
+        val dim = if (dimSpots && v.sessionId != selectedSessionId) ZONE_CIRCLE_DIM_FACTOR else 1f
+        Circle(
+            center = Coordinates(v.location.latitude, v.location.longitude),
+            radius = radius,
+            color = base.copy(alpha = DOUBT_CIRCLE_FILL_ALPHA * dim),
+            lineColor = base.copy(alpha = DOUBT_CIRCLE_STROKE_ALPHA * dim),
+            lineWidth = doubtRingStrokePx,
+        )
+    }
+
     val zoneCircles = buildList {
         zones.forEach { add(zoneCircle(it.lat, it.lon, it.radiusMeters, it.isPrivate, zoneRingDimFactor)) }
         // Live preview while positioning a new/edited zone — identical native circle
@@ -1247,6 +1281,9 @@ fun PaparcarMapView(
         if (previewZoneLat != null && previewZoneLon != null) {
             add(zoneCircle(previewZoneLat, previewZoneLon, previewZoneRadius, previewZoneIsPrivate, 1f))
         }
+        // Doubt rings go LAST so they sit above saved-zone rings: if your car was left inside a zone
+        // you drew, the uncertainty about the car is the thing you need to read first.
+        addAll(doubtCircles)
     }
 
     // Live trip breadcrumb as a native polyline (en-route blue), rendered below the markers. Prefer the
@@ -1432,7 +1469,12 @@ fun PaparcarMapView(
                 // take native precedence over circle taps, so a tap that lands on a
                 // spot/vehicle puck inside the ring still selects that puck, not the
                 // zone — "spot gana". [ZONE-AREA-001]
+                // A doubt ring is centred exactly on its vehicle, so the same coords-keyed lookup
+                // the badge tap uses resolves it. Tapping the uncertainty selects the car it belongs
+                // to — the ring is part of that car, not a separate object.
+                // [UI-APPROXIMATE-PARKING-DRAWS-ITS-DOUBT-001]
                 zoneIdByCoords[circle.center]?.let(onZoneClick)
+                    ?: sessionIdByCoords[circle.center]?.let(onMyCarClick)
             },
             onCameraMove = { pos ->
                 // kmp-maps 0.9.1 made CameraPosition.coordinates nullable (it can be absent

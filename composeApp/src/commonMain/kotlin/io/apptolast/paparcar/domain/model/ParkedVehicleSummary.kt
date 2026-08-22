@@ -34,4 +34,14 @@ data class ParkedVehicleSummary(
      * non-BT cars: active → green, inactive → grey. BT-paired cars always read blue regardless.
      */
     val isActive: Boolean = true,
-)
+    /**
+     * Radius of the approximate zone this session was closed with, or null when the pin is exact.
+     * Mirrors [UserParking.zoneRadiusMeters] so the map can DRAW the doubt the domain already
+     * records — a 154 m area and a 3 m pin must not paint identically.
+     * [UI-APPROXIMATE-PARKING-DRAWS-ITS-DOUBT-001]
+     */
+    val zoneRadiusMeters: Float? = null,
+) {
+    /** True when this session is an AREA, not a point — same rule as [UserParking.isApproximate]. */
+    val isApproximate: Boolean get() = zoneRadiusMeters != null
+}

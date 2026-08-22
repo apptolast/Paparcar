@@ -56,6 +56,7 @@ fun DevCatalogScreen(
     val ownParked by scenario.ownParkedSession.collectAsStateWithLifecycle()
     val activeBt by scenario.activeVehicleBluetooth.collectAsStateWithLifecycle()
     val sentryAlive by scenario.sentryAlive.collectAsStateWithLifecycle()
+    val approximate by scenario.approximateParking.collectAsStateWithLifecycle()
     // Shared detection runtime — toggling it simulates an in-progress trip in the real Home (moving
     // driving puck + "Conduciendo" chip + camera follow), no real drive needed. [DRIVE-SIM-001]
     val runtime: MutableDetectionRuntimeState = koinInject()
@@ -119,6 +120,12 @@ fun DevCatalogScreen(
             SwitchRow("Centinela vivo (FGS activo)", sentryAlive) { on ->
                 scenario.sentryAlive.value = on
                 runtime.setPresence(if (on && scenario.ownParkedSession.value) ServicePresence.Sentry else ServicePresence.Dead)
+            }
+            // [UI-APPROXIMATE-PARKING-DRAWS-ITS-DOUBT-001] La sesión sembrada pasa a ser un ÁREA:
+            // anillo de duda alrededor del coche en el mapa + fila que lo explica en el peek.
+            // Necesita "Sesión propia aparcada" activado.
+            SwitchRow("Aparcamiento aproximado (zona, no pin)", approximate) {
+                scenario.approximateParking.value = it
             }
             SwitchRow("BT emparejado en el coche activo", activeBt) { scenario.activeVehicleBluetooth.value = it }
             SwitchRow("Conduciendo (puck en movimiento en Home)", driving) { on ->
@@ -187,6 +194,14 @@ fun DevCatalogScreen(
             }
             PresetButton("Aparcado (vigilando)") {
                 scenario.reset(); scenario.ownParkedSession.value = true
+                runtime.setPresence(ServicePresence.Sentry); onEnter()
+            }
+            // [UI-APPROXIMATE-PARKING-DRAWS-ITS-DOUBT-001] Cierre honesto: la sesión es un ÁREA de
+            // 154 m (la del caso real del 21-08). El mapa dibuja el anillo y el peek explica la duda,
+            // en vez de fingir un pin de 3 m.
+            PresetButton("Aparcado · aproximado (zona de 154 m)") {
+                scenario.reset(); scenario.ownParkedSession.value = true
+                scenario.approximateParking.value = true
                 runtime.setPresence(ServicePresence.Sentry); onEnter()
             }
             // [DET-WATCH-HONEST-001] The OEM killed the resident watcher → honest "Vigilancia detenida".

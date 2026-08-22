@@ -89,6 +89,10 @@ internal fun ParkingPeek(
         meta = {
             DistanceRow(distanceM = distM, mode = TravelMode.WALKING, accentColor = accentColor)
             ParkingDurationRow(timestampMs = parking.location.timestamp, accentColor = accentColor)
+            // Last row, and only when the session is an AREA: the distance above is measured to the
+            // centre of a circle we are not sure about, so the caveat has to follow it, not precede
+            // it. [UI-APPROXIMATE-PARKING-DRAWS-ITS-DOUBT-001]
+            ApproximateZoneRow(zoneRadiusMeters = parking.zoneRadiusMeters, accentColor = accentColor)
         },
         // Two twin round utilities, grouped on the meta row: navigate to the car (external
         // intent) and edit. Both low-emphasis — matching circles read as a pair — so the footer

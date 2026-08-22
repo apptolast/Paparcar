@@ -10,6 +10,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class ObserveParkedVehiclesUseCaseTest {
@@ -116,6 +118,31 @@ class ObserveParkedVehiclesUseCaseTest {
 
         assertEquals(0, result[0].stableRank) // a-vehicle
         assertEquals(1, result[1].stableRank) // b-vehicle
+    }
+
+    // ── Approximate zone [UI-APPROXIMATE-PARKING-DRAWS-ITS-DOUBT-001] ─────────
+
+    @Test
+    fun `should carry the zone radius to the map projection when the session is an area`() = runTest {
+        val session = activeSession("s-zone", vehicleA.id).copy(zoneRadiusMeters = 154f)
+        val parkingRepo = FakeUserParkingRepository(initialSession = session)
+        val useCase = buildUseCase(parking = parkingRepo, vehicles = FakeVehicleRepository(vehicleA))
+
+        val result = useCase().first().first()
+
+        assertEquals(154f, result.zoneRadiusMeters)
+        assertTrue(result.isApproximate, "a session saved as an AREA must project as approximate")
+    }
+
+    @Test
+    fun `should project an exact pin as not approximate`() = runTest {
+        val parkingRepo = FakeUserParkingRepository(initialSession = activeSession("s-pin", vehicleA.id))
+        val useCase = buildUseCase(parking = parkingRepo, vehicles = FakeVehicleRepository(vehicleA))
+
+        val result = useCase().first().first()
+
+        assertNull(result.zoneRadiusMeters)
+        assertFalse(result.isApproximate, "an exact pin must never be drawn as a doubt ring")
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

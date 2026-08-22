@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.DirectionsWalk
+import androidx.compose.material.icons.rounded.Adjust
 import androidx.compose.material.icons.rounded.Navigation
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -36,9 +37,11 @@ import io.apptolast.paparcar.ui.components.PapSectionHeader
 import io.apptolast.paparcar.ui.components.ReliabilityMeter
 import io.apptolast.paparcar.ui.theme.PaparcarType
 import io.apptolast.paparcar.ui.theme.stateColors
+import kotlin.math.roundToInt
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_address_unknown
+import paparcar.composeapp.generated.resources.home_peek_parking_approximate
 import paparcar.composeapp.generated.resources.home_peek_spot_expires
 import paparcar.composeapp.generated.resources.home_peek_spot_high
 import paparcar.composeapp.generated.resources.home_peek_spot_low
@@ -72,10 +75,12 @@ internal fun vehicleSummary(vehicle: Vehicle?): String? {
  * this molde so their visuals can't drift apart. [HOME-VEH-REFINE-001]
  */
 @Composable
-internal fun PeekMetaRow(icon: ImageVector, text: String, tint: Color) {
+internal fun PeekMetaRow(icon: ImageVector, text: String, tint: Color, maxLines: Int = 1) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
+        // A one-liner centres against its icon; a wrapped explanation (the approximate-zone row)
+        // has to hang from the top or the icon floats in the middle of the paragraph.
+        verticalAlignment = if (maxLines == 1) Alignment.CenterVertically else Alignment.Top,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Icon(
@@ -92,11 +97,30 @@ internal fun PeekMetaRow(icon: ImageVector, text: String, tint: Color) {
             style = PaparcarType.current.body,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = SheetTokens.META_VALUE_ALPHA),
-            maxLines = 1,
+            maxLines = maxLines,
             overflow = TextOverflow.Ellipsis,
         )
     }
 }
+
+/**
+ * The doubt row of an approximate session: the map draws the circle, this says what it means and
+ * what to do about it. Only shown when the session really is an area. Copy is cause + consequence
+ * + remedy with no internal mechanics — never "steps", "anchor" or "honest close".
+ * [UI-APPROXIMATE-PARKING-DRAWS-ITS-DOUBT-001]
+ */
+@Composable
+internal fun ApproximateZoneRow(zoneRadiusMeters: Float?, accentColor: Color) {
+    val radius = zoneRadiusMeters ?: return
+    PeekMetaRow(
+        icon = Icons.Rounded.Adjust,
+        text = stringResource(Res.string.home_peek_parking_approximate, radius.roundToInt()),
+        tint = accentColor,
+        maxLines = APPROXIMATE_ROW_MAX_LINES,
+    )
+}
+
+private const val APPROXIMATE_ROW_MAX_LINES = 3
 
 @Composable
 internal fun DistanceRow(distanceM: Float?, mode: TravelMode, accentColor: Color) {

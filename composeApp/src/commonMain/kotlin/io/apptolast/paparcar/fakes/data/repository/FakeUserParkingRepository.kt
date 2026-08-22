@@ -42,6 +42,15 @@ class FakeUserParkingRepository(
         address = AddressInfo("Calle Luna, 18", "Puerto de Santa María", "Cádiz", "España", "ES"),
     )
 
+    /**
+     * The seeded own session, exact or as an AREA. A real honest close saves a radius when it could
+     * not follow the end of the trip; 154 m is the figure the 21-08 field case actually produced,
+     * so the gallery shows a zone the size of a real one, not a decorative one.
+     * [UI-APPROXIMATE-PARKING-DRAWS-ITS-DOUBT-001]
+     */
+    private fun seedFor(approximate: Boolean): UserParking =
+        if (approximate) ownParkedSeed.copy(zoneRadiusMeters = APPROXIMATE_SEED_RADIUS_M) else ownParkedSeed
+
     /** Sessions saved at runtime (manual mark / re-park) — the fake behaves like a repo. */
     private val savedSessions = MutableStateFlow<List<UserParking>>(emptyList())
 
@@ -157,8 +166,8 @@ class FakeUserParkingRepository(
         val baseWithSeed = if (scenario == null) {
             _sessionsFlow.map { it }
         } else {
-            combine(_sessionsFlow, scenario.ownParkedSession) { list, own ->
-                if (own) list + ownParkedSeed else list
+            combine(_sessionsFlow, scenario.ownParkedSession, scenario.approximateParking) { list, own, approx ->
+                if (own) list + seedFor(approx) else list
             }
         }
         return combine(baseWithSeed, savedSessions, releasedIds) { base, saved, released ->
@@ -167,7 +176,11 @@ class FakeUserParkingRepository(
     }
 
     private fun currentSessions(): List<UserParking> {
-        val seed = if (scenario?.ownParkedSession?.value == true) listOf(ownParkedSeed) else emptyList()
+        val seed = if (scenario?.ownParkedSession?.value == true) {
+            listOf(seedFor(scenario.approximateParking.value))
+        } else {
+            emptyList()
+        }
         return (mockSessions + seed + savedSessions.value)
             .map { s -> if (s.id in releasedIds.value) s.copy(isActive = false) else s }
     }
@@ -275,4 +288,8 @@ class FakeUserParkingRepository(
     ): Result<Unit> = Result.success(Unit)
 
     override suspend fun deleteAllData(userId: String): Result<Unit> = Result.success(Unit)
+
+    private companion object {
+        const val APPROXIMATE_SEED_RADIUS_M = 154f
+    }
 }

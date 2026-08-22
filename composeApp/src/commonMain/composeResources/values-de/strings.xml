@@ -519,6 +519,7 @@
     <string name="home_peek_car_parked_label">Dein Auto ist geparkt</string>
     <string name="home_peek_parking_duration_hm">Vor %1$dh %2$dm geparkt</string>
     <string name="home_peek_parking_duration_min">Vor %1$d min geparkt</string>
+    <string name="home_peek_parking_approximate">Irgendwo im Umkreis von %1$d m: Wir haben das Ende der Fahrt verloren. Zum genauen Platzieren bearbeiten.</string>
     <string name="home_peek_spot_age_hour">Vor %1$d h gemeldet</string>
     <string name="home_peek_spot_age_min">Vor %1$d min gemeldet</string>
     <string name="home_peek_spot_compat_large">großes Auto</string>

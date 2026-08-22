@@ -42,6 +42,10 @@ class ObserveParkedVehiclesUseCase(
                     isBluetoothPaired = vehicle.bluetoothDeviceId != null,
                     color = vehicle.color,
                     isActive = vehicle.isActive,
+                    // The honest-close area travels to the map layer, so an approximate session can
+                    // draw its doubt instead of posing as an exact pin.
+                    // [UI-APPROXIMATE-PARKING-DRAWS-ITS-DOUBT-001]
+                    zoneRadiusMeters = session.zoneRadiusMeters,
                 )
             }
         }
