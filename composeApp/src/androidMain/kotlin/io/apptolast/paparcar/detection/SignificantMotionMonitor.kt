@@ -60,13 +60,32 @@ class SignificantMotionMonitor(
             // skips the WorkManager tick entirely — the immediacy win of residency. From any other
             // presence (Dead: no process; Active: a job already runs) fall back to the durable,
             // legal-from-dead worker lane exactly as before.
+            // [DET-CHEAP-WAKE-INSTEAD-OF-SILENCE-001] Inside a quiet period the wake is not skipped,
+            // it is made cheap: the service buys ONE fix and only escalates to a full session if
+            // that fix cannot be a walk. The flag is read here, at trigger time, so it reflects the
+            // quiet period as it stands NOW rather than when the sensor was armed.
+            val triageOnly = synchronized(this@SignificantMotionMonitor) { inQuietPeriod() }
             if (detectionRuntime.presence.value == ServicePresence.Sentry) {
-                PaparcarLogger.d(TAG, "▶ significant motion — SENTRY resident, direct wake [DET-RESIDENT-FGS-001]")
-                debugNotify("Sensor de movimiento: el móvil se ha movido y el centinela está vivo → arranco la detección al instante (siguiente aviso: 'Detección ARRANCADA')")
+                PaparcarLogger.d(
+                    TAG,
+                    if (triageOnly) {
+                        "▶ significant motion — SENTRY resident, CHEAP triage (quiet period) [DET-CHEAP-WAKE-INSTEAD-OF-SILENCE-001]"
+                    } else {
+                        "▶ significant motion — SENTRY resident, direct wake [DET-RESIDENT-FGS-001]"
+                    },
+                )
+                debugNotify(
+                    if (triageOnly) {
+                        "Sensor de movimiento: varios paseos seguidos lo despertaron sin viaje, así que compruebo con UNA sola lectura de posición antes de arrancar nada"
+                    } else {
+                        "Sensor de movimiento: el móvil se ha movido y el centinela está vivo → arranco la detección al instante (siguiente aviso: 'Detección ARRANCADA')"
+                    },
+                )
                 runCatching {
                     context.startService(
                         Intent(context, CoordinatorDetectionService::class.java)
-                            .setAction(CoordinatorDetectionService.ACTION_SENTRY_WAKE),
+                            .setAction(CoordinatorDetectionService.ACTION_SENTRY_WAKE)
+                            .putExtra(CoordinatorDetectionService.EXTRA_TRIAGE_ONLY, triageOnly),
                     )
                 }.onFailure { e ->
                     // The process may have been killed between the presence read and startService;
@@ -100,6 +119,12 @@ class SignificantMotionMonitor(
     /** [DET-SENTRY-COOLDOWN-001] Applies (cooldownMs > 0) or clears (== 0) the re-arm quiet
      *  period. Called by the service teardown after folding the ended session into the
      *  walking-abort streak (`nextSentryWakeAbortStreak`/`sentryWakeRearmCooldownMs`). */
+    /** [DET-CHEAP-WAKE-INSTEAD-OF-SILENCE-001] Is a quiet period running right now? Not a public
+     *  policy question — it only decides whether the NEXT trigger buys one fix or a whole session.
+     *  Callers must hold this monitor's lock (both call sites are `@Synchronized` / synchronized). */
+    private fun inQuietPeriod(): Boolean =
+        rearmBlockedUntilElapsedMs - android.os.SystemClock.elapsedRealtime() > 0
+
     @Synchronized
     fun applyRearmCooldown(cooldownMs: Long) {
         rearmBlockedUntilElapsedMs = if (cooldownMs > 0) {
@@ -121,14 +146,16 @@ class SignificantMotionMonitor(
             if (shouldBeArmed) PaparcarLogger.d(TAG, "sync → wanted armed but NO significant-motion hardware")
             return
         }
-        // [DET-SENTRY-COOLDOWN-001] Quiet period after a walking-abort storm: refuse to re-arm
-        // (the geofence EXIT / AR / safety-net lanes keep watching); the next mirror tick past the
-        // deadline arms normally. Disarm requests are always honored.
+        // [DET-CHEAP-WAKE-INSTEAD-OF-SILENCE-001] The quiet period NO LONGER suppresses the arm.
+        // It used to `return` here, leaving the cheapest nominator in the system switched off — and
+        // on 2026-08-22 the Redmi earned a quiet period from three aborts in 114 s and then drove at
+        // 75 km/h three minutes later, saved only because the fence happened to deliver its EXIT.
+        // The sensor stays armed; what the quiet period changes now is what a trigger BUYS
+        // ([inQuietPeriod] → one fix, not a session).
         val cooldownLeftMs = rearmBlockedUntilElapsedMs - android.os.SystemClock.elapsedRealtime()
         if (shouldBeArmed && !armed && cooldownLeftMs > 0) {
-            PaparcarLogger.d(TAG, "sync → arm SUPPRESSED, cooldown ${cooldownLeftMs / 1000}s left [DET-SENTRY-COOLDOWN-001]")
-            debugNotify("Sensor de movimiento en PAUSA ${cooldownLeftMs / 1000}s: varios paseos seguidos lo despertaron sin que hubiera viaje — valla/AR y red de seguridad siguen vigilando")
-            return
+            PaparcarLogger.d(TAG, "sync → arming in CHEAP-TRIAGE mode, quiet period ${cooldownLeftMs / 1000}s left [DET-CHEAP-WAKE-INSTEAD-OF-SILENCE-001]")
+            debugNotify("Sensor de movimiento en modo AHORRO ${cooldownLeftMs / 1000}s: varios paseos seguidos lo despertaron sin que hubiera viaje, así que cada aviso se comprobará con una sola lectura antes de arrancar nada")
         }
         when {
             shouldBeArmed && !armed -> {

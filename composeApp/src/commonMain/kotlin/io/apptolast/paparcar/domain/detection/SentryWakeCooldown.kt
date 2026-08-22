@@ -47,6 +47,22 @@ import io.apptolast.paparcar.domain.util.haversineMeters
  * Both incidents are covered — each by a different one of the two — and the storm the damper exists
  * for still damps: it fired every ~18 s from 36 m inside a 109 m fence, so it satisfies neither
  * escape hatch.
+ *
+ * **[DET-CHEAP-WAKE-INSTEAD-OF-SILENCE-001] What a quiet period MEANS changed — read this before
+ * reasoning about the numbers below.** A quiet period no longer switches the significant-motion
+ * sensor off. The sensor stays armed and a trigger inside the period buys a ONE-FIX triage
+ * (`SentryWakeTriage.kt`) instead of a full session. So the value these functions return is no
+ * longer "how long we stop looking"; it is "how long a look costs one fix instead of a session".
+ *
+ * Why the change: on 2026-08-22 the Redmi took three aborts in 114 s while walking INSIDE its fence
+ * and drove at 75 km/h three minutes later. Neither escape hatch applied — correctly, by their own
+ * terms — so the sensor slept exactly as designed, and only a `GEOFENCE_EXIT` saved the trip. The
+ * escape hatches make the damper safe when it can PROVE another lane is watching; the cheap lane
+ * makes it safe when it cannot.
+ *
+ * [sentryWakeRearmCooldownMs]'s fence gate survives the change and still means what it says: with
+ * the phone outside every fence, even a triage is too little — that wake goes straight to a full
+ * session.
  */
 
 /** Session outcome labels shared by the coordinator (producer), the service teardown and this
@@ -133,8 +149,9 @@ fun isInsideAnyOwnedFence(
 }
 
 /**
- * Quiet period (ms) the significant-motion trigger must respect before re-arming, given the
- * current walking-abort streak. `0` below the threshold (a genuine departure's first wakes are
+ * Quiet period (ms) during which a significant-motion trigger buys a one-fix triage instead of a
+ * full session ([DET-CHEAP-WAKE-INSTEAD-OF-SILENCE-001] — before that ticket, the period suppressed
+ * the re-arm outright), given the current walking-abort streak. `0` below the threshold (a genuine departure's first wakes are
  * never delayed); from the threshold on, the base cooldown doubling per further refuted wake,
  * capped at [ParkingDetectionConfig.sentryWakeCooldownMaxMs].
  *

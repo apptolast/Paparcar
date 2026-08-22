@@ -314,6 +314,13 @@ sealed interface DetectionEvent {
             const val WOKE = "woke"
             const val KILLED = "killed"
             const val WAKE_COOLDOWN = "wake_cooldown"
+
+            /** [DET-CHEAP-WAKE-INSTEAD-OF-SILENCE-001] A quiet-period wake that bought ONE fix
+             *  instead of a session. [signal] carries the verdict and what drove it (speed,
+             *  accuracy, inside/outside the fence) — so a field capture can tell "the sensor was
+             *  quiet because nothing happened" from "the sensor was off", which is exactly the
+             *  distinction the damper used to make unobservable. */
+            const val WAKE_TRIAGE = "wake_triage"
         }
     }
 }

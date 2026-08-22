@@ -25,7 +25,10 @@ import io.apptolast.paparcar.domain.detection.DepartureProof
 import io.apptolast.paparcar.domain.detection.DetectionTrigger
 import io.apptolast.paparcar.domain.detection.coordinatorMayArm
 import io.apptolast.paparcar.domain.detection.isArmSuppressedByUserStop
+import io.apptolast.paparcar.domain.detection.CheapWakeVerdict
+import io.apptolast.paparcar.domain.detection.cheapWakeVerdict
 import io.apptolast.paparcar.domain.detection.isInsideAnyOwnedFence
+import io.apptolast.paparcar.domain.detection.mayTriageSentryWake
 import io.apptolast.paparcar.domain.detection.userStopQuietPeriodRemainingMs
 import io.apptolast.paparcar.domain.detection.MutableDetectionRuntimeState
 import io.apptolast.paparcar.domain.detection.ParkingStrategy
@@ -172,6 +175,12 @@ class CoordinatorDetectionService : LifecycleService() {
      *  exists on a live resident process. */
     private var lastSentryWakeAbortAtMs: Long? = null
 
+    /** [DET-CHEAP-WAKE-INSTEAD-OF-SILENCE-001] When the last one-fix triage ran (epoch ms), or null
+     *  when none has. Feeds the cadence floor: significant motion re-fires every ~18 s during a
+     *  walk, so without it the cheap lane would swap an FGS bill for a fix bill. In-memory beside
+     *  the streak and the quiet period it belongs to — all three describe one live process. */
+    private var lastCheapWakeTriageAtMs: Long? = null
+
     override fun onCreate() {
         super.onCreate()
         PaparcarLogger.d(DIAG, "▶ Service onCreate")
@@ -267,7 +276,11 @@ class CoordinatorDetectionService : LifecycleService() {
         when (val action = intent.action) {
             ACTION_START_TRACKING -> handleStartTracking()
             ACTION_ARRIVAL_HANDOFF -> handleArrivalHandoff() // [DET-HANDOFF-NOT-MANUAL-001]
-            ACTION_SENTRY_WAKE -> handleSentryWake() // [DET-RESIDENT-FGS-001]
+            // [DET-RESIDENT-FGS-001] · [DET-CHEAP-WAKE-INSTEAD-OF-SILENCE-001] the extra says whether
+            // this wake may spend a whole session or only one fix.
+            ACTION_SENTRY_WAKE -> handleSentryWake(
+                triageOnly = intent.getBooleanExtra(EXTRA_TRIAGE_ONLY, false),
+            )
             // [DET-WATCH-HONEST-001] App-launch self-heal: an OEM kill drops the resident watcher while
             // a car stays parked; a manual app-open is a legal (foreground) moment to rebuild it. No work
             // of its own — the epilogue below re-enters SENTRY iff a Coordinator car is parked and
@@ -321,7 +334,7 @@ class CoordinatorDetectionService : LifecycleService() {
      * false-enter / no-movement aborts end it in ~75 s–4 min; a real drive-away is followed live to
      * the next park. The parked session anchors the trip so Home binds to the right car.
      */
-    private suspend fun handleSentryWake() {
+    private suspend fun handleSentryWake(triageOnly: Boolean = false) {
         // A tracking job already owns the service (a trigger raced in first) — the wake is redundant.
         if (detectionJob?.isActive == true) {
             PaparcarLogger.d(DIAG, "  ↻ SENTRY_WAKE ignored — detectionJob already active")
@@ -338,6 +351,11 @@ class CoordinatorDetectionService : LifecycleService() {
             PaparcarLogger.d(DIAG, "  ⊘ SENTRY_WAKE — no parked session; standing down")
             return
         }
+        // [DET-CHEAP-WAKE-INSTEAD-OF-SILENCE-001] Inside a quiet period this wake buys ONE fix, not
+        // a session. It escalates only when that fix cannot be a walk near the car; otherwise the
+        // process goes back to sleep having spent a fix instead of an FGS session with a GPS stream
+        // and two Firestore documents. The DECISION is the pure predicate; everything here is I/O.
+        if (triageOnly && !runCheapWakeTriage(sessions)) return
         PaparcarLogger.d(DIAG, "  → SENTRY_WAKE — significant motion on live process, arming Coordinator (Unverified) [DET-RESIDENT-FGS-001]")
         cancelDetectionJob()
         startParkingDetection(
@@ -346,6 +364,47 @@ class CoordinatorDetectionService : LifecycleService() {
             trip = TripContext(session.location, session.vehicleId),
             armEvidence = ArmEvidence.Unverified,
         )
+    }
+
+    /**
+     * [DET-CHEAP-WAKE-INSTEAD-OF-SILENCE-001] The cheap half of a sentry wake: buy one fix and ask
+     * the pure predicate whether it can still be a walk. Returns true to escalate into a real
+     * session, false to go back to sleep having spent a fix instead of a session.
+     *
+     * All the judgement is in [cheapWakeVerdict] / [mayTriageSentryWake]; this function is I/O and
+     * telemetry only, per the service's contract.
+     */
+    private suspend fun runCheapWakeTriage(sessions: List<UserParking>): Boolean {
+        val nowMs = System.currentTimeMillis()
+        // Clock skew degrades to "no predecessor", which ALLOWS the triage — never to a spuriously
+        // tight cadence that would drop it.
+        val msSinceLastTriage = lastCheapWakeTriageAtMs?.let { nowMs - it }?.takeIf { it >= 0 }
+        if (!mayTriageSentryWake(msSinceLastTriage, detectionConfig)) {
+            PaparcarLogger.d(
+                DIAG,
+                "  ⊘ cheap wake — triaged ${msSinceLastTriage?.div(1000)}s ago, under the " +
+                    "${detectionConfig.cheapWakeMinTriageIntervalMs / 1000}s floor [DET-CHEAP-WAKE-INSTEAD-OF-SILENCE-001]",
+            )
+            return false
+        }
+        lastCheapWakeTriageAtMs = nowMs
+        val fix = runCatching { getOneLocation(maxAgeMs = detectionConfig.freshFixMaxAgeMs) }.getOrNull()
+        val verdict = cheapWakeVerdict(fix, sessions, detectionConfig)
+        val signal = if (fix == null) {
+            "no fix"
+        } else {
+            "speed=${(fix.speed * 3.6f).toInt()}km/h acc=${fix.accuracy.toInt()}m"
+        }
+        PaparcarLogger.d(
+            DIAG,
+            "  ⏱ cheap wake triage → $verdict ($signal) [DET-CHEAP-WAKE-INSTEAD-OF-SILENCE-001]",
+        )
+        logSentry(
+            DetectionEvent.Sentry.WAKE_TRIAGE,
+            signal = "$verdict $signal",
+            sessionId = sessions.firstNotNullOfOrNull { it.geofenceId } ?: "-",
+        )
+        return verdict == CheapWakeVerdict.ESCALATE
     }
 
     private suspend fun handleStartTracking() {
@@ -1694,6 +1753,10 @@ class CoordinatorDetectionService : LifecycleService() {
         // tap. EXTRA_RESUME_SOURCE says which one, so a field log never has to guess.
         const val ACTION_RESUME_SENTRY = "io.apptolast.paparcar.ACTION_RESUME_SENTRY"
         const val EXTRA_RESUME_SOURCE = "io.apptolast.paparcar.EXTRA_RESUME_SOURCE"
+
+        /** [DET-CHEAP-WAKE-INSTEAD-OF-SILENCE-001] True when this sentry wake arrives during a quiet
+         *  period and may only spend ONE fix. Absent/false = the normal full-session wake. */
+        const val EXTRA_TRIAGE_ONLY = "io.apptolast.paparcar.EXTRA_TRIAGE_ONLY"
         // [DET-TIERS-001] Bluetooth arbitration override: the BT receiver decided a paired-car edge
         // must supersede the running coordinator session; the service aborts it. Reason is for the log.
         const val ACTION_BT_OVERRIDE = "io.apptolast.paparcar.ACTION_BT_OVERRIDE"

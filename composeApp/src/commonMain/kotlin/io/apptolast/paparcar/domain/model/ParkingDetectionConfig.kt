@@ -582,6 +582,17 @@ data class ParkingDetectionConfig(
      *  escalate faster than it decays is a damper that never escapes its own quiet period. */
     val sentryWakeStreakDecayMs: Long = 10 * 60_000L,
 
+    /** [DET-CHEAP-WAKE-INSTEAD-OF-SILENCE-001] Cadence floor between the ONE-FIX triages that
+     *  replace silence during a quiet period. Significant motion re-fires roughly every ~18 s while
+     *  someone walks, so an untimed triage would swap a bill for another bill; at 60 s the storm of
+     *  2026-08-13 costs ~60 fixes an hour instead of ~130 FGS sessions, and the sensor is never off.
+     *
+     *  A departure cannot hide inside the floor: 60 s is ~500 m at 30 km/h, a drive keeps shaking
+     *  the sensor, and crossing the fence is what the next triage reads. Kept well BELOW
+     *  [sentryWakeCooldownBaseMs] so a quiet period always contains several triages — one triage per
+     *  quiet period would be a coin flip, not a watch. */
+    val cheapWakeMinTriageIntervalMs: Long = 60_000L,
+
     // ── EXACT-HEARTBEAT HEALTH [DET-HEARTBEAT-MISS-IS-EVIDENCE-001] ──────────
     /** How overdue an armed heartbeat tick may be, when the periodic worker looks at it, before it
      *  counts as a suspected loss. One whole heartbeat interval past due.
@@ -1179,6 +1190,12 @@ data class ParkingDetectionConfig(
         // makes the streak un-escalatable (every abort lands after the previous one has decayed, so
         // it can never reach the threshold); one longer than the ceiling makes the decay unreachable
         // and restores the tally the field data refuted. The window has to sit inside the escalation.
+        // [DET-CHEAP-WAKE-INSTEAD-OF-SILENCE-001] A floor at or above the base quiet period would
+        // allow at most one triage per period — the watch would be a coin flip.
+        require(cheapWakeMinTriageIntervalMs in 1 until sentryWakeCooldownBaseMs) {
+            "cheapWakeMinTriageIntervalMs ($cheapWakeMinTriageIntervalMs) must be within " +
+                "[1, $sentryWakeCooldownBaseMs) — several triages must fit inside one quiet period"
+        }
         require(sentryWakeStreakDecayMs in sentryWakeCooldownBaseMs..sentryWakeCooldownMaxMs) {
             "sentryWakeStreakDecayMs ($sentryWakeStreakDecayMs) must be within " +
                 "[$sentryWakeCooldownBaseMs, $sentryWakeCooldownMaxMs]"

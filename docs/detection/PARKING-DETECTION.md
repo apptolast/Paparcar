@@ -1300,6 +1300,60 @@ saved by this path is now DRAWN as a doubt ring on the map instead of living onl
 
 ---
 
+### DET-CHEAP-WAKE-INSTEAD-OF-SILENCE-001 — a wake that costs too much is made cheaper, not silenced
+
+**Commit:** pending.
+
+**Field report (2026-08-22, Redmi, El Puerto).** Three sentry-wake sessions aborted as
+`aborted_false_enter` in **114 seconds** — 18:38:26, 18:39:39, 18:40:20 — all while walking inside
+the parked car's fence. A 75 km/h drive started at 18:43:59. The trip WAS caught, but by
+`GEOFENCE_EXIT` (d=255 m, `dep=verified_enter`), not by the sentry: the streak had earned a quiet
+period and the significant-motion sensor was switched off through the whole window.
+
+**Root cause — a framing error, not a bug.** `DET-SENTRY-COOLDOWN-001` answered the 2026-08-13 storm
+(≈130 armed-and-refuted sessions in an hour beside the car) by SUPPRESSING the re-arm. But what is
+expensive is not the sensor: `TYPE_SIGNIFICANT_MOTION` runs on the sensor hub and costs ~zero while
+armed. What is expensive is what a trigger UNLEASHES — an FGS session with a GPS stream, a session
+document and an arm document in Firestore, plus a fresh chance for a cold-start Doppler mirage. We
+were switching off the cheap thing to avoid paying for the expensive one.
+
+`DET-COOLDOWN-MUST-NOT-BLIND-A-DRIVE-001` added two escape hatches (streak decay, and standing down
+outside every fence). Both are correct and **neither applied here**: the aborts were far tighter than
+the 10-minute decay, and the phone was inside its own fence throughout. The hatches make the damper
+safe when it can PROVE another lane is watching. On 2026-08-22 nothing proved it — the fence simply
+happened to deliver.
+
+**Fix.** During a quiet period the sensor stays ARMED; what changes is what a trigger buys. It buys a
+**triage**: one fix, and an escalation to a real session only when that fix cannot be a pedestrian
+near their car. Two questions the project already knows how to ask, so no third notion of "driving"
+is introduced — `isCredibleDrivingSpeed` (speed AND accuracy, so a mirage buys no lottery ticket) and
+`isInsideAnyOwnedFence` inverted. A null fix ESCALATES: a triage that cannot see must not conclude
+"nothing happening". A cadence floor (`cheapWakeMinTriageIntervalMs` = 60 s) stops a walk that
+re-fires every ~18 s from trading one bill for another; it is kept below `sentryWakeCooldownBaseMs`
+so several triages always fit inside one quiet period.
+
+Cost on the 2026-08-13 storm: ~60 fixes an hour instead of ~130 FGS sessions — and never blind.
+
+**The triage is a FILTER, not a judge.** Replaying 2026-08-22 shows it plainly: the two aborts
+summarised `vmax 0km/h` stay quiet, while the one that read 14 km/h escalates, the real session runs,
+and the coordinator refutes it as `aborted_false_enter` exactly as it did in the field. The cheap
+lane saves the obvious cases and forwards the doubtful ones to the evaluator that is allowed to
+decide — the project's asymmetry, unchanged.
+
+**Observability.** `DetectionEvent.Sentry.WAKE_TRIAGE` records each triage with its verdict and what
+drove it. A field capture can now tell "the sensor was quiet because nothing happened" from "the
+sensor was off" — precisely the distinction the damper used to make unobservable.
+
+**Rejected alternative.** Shortening the quiet period, or lowering the streak threshold, trades one
+blind window for a smaller blind window; the 2026-08-21 losses happened inside 180 s. The axis was
+never the duration, it was the suppression.
+
+**Files:** `SentryWakeTriage.kt` (new, pure), `SentryWakeCooldown.kt` (doc — a quiet period no longer
+means silence), `ParkingDetectionConfig.kt`, `SignificantMotionMonitor.kt`,
+`CoordinatorDetectionService.kt`, `DetectionEvent.kt`, 13 new tests. 1414 tests.
+
+---
+
 ## 3. Open questions / future work
 
 - **GPS sampling boost during CANDIDATE (PARKING-001 Option B).** Switch the LocationDataSource to a 1 s `minUpdateIntervalMillis` request when entering the CANDIDATE phase, returning to 2 s on exit. Increases density of fixes that refine `bestStopLocation` within the new initial-stop window after a reposition burst. Adds the complexity of swapping the location source mid-session — hold off until A is validated in the field.
