@@ -273,7 +273,9 @@ class EvaluateUnattendedParkingSaveUseCase(private val config: ParkingDetectionC
             // [DET-CAR-REST-CLOCK-001] The rest is the ANCHOR's, not the phone's: the drive-past
             // hypothesis is about the CAR resting, and the pedestrian wandering off (or indoor
             // noise impersonating them) says nothing against it.
-            val walkableInsideHole = input.anchorGapMs / MILLIS_PER_SECOND * config.maxPedestrianSpeedMps
+            val walkableInsideHole = io.apptolast.paparcar.domain.detection.walkableInsideGapMeters(
+                input.anchorGapMs, config.maxPedestrianSpeedMps,
+            )
             val sustainedStop = input.anchorRestMs >= config.sustainedStopForSaveMs
             return zoneOrAsk(
                 reason = UnattendedSaveReason.GAP_ANCHOR,
@@ -329,8 +331,4 @@ class EvaluateUnattendedParkingSaveUseCase(private val config: ParkingDetectionC
             UnattendedParkingSave.Ask(reason)
         }
 
-    private companion object {
-        /** [DET-GAP-ANCHOR-ZONE-001] The gap taint is measured in ms; pedestrian pace in m/s. */
-        const val MILLIS_PER_SECOND = 1_000.0
-    }
 }

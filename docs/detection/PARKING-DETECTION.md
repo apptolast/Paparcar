@@ -1256,8 +1256,47 @@ traces, and would leave the veto firing on any egress with worse GPS. Raising
 `pedalCadenceMinStepEvents` only delays the same error — it latched at 12 steps, and a walk home
 produces a hundred.
 
-**Files:** `CoordinatorParkingDetector.kt` (`cadenceStep`), 1 new test. 1396 tests. The new test was
+**Files:** `CoordinatorParkingDetector.kt` (`cadenceStep`), 1 new test. 1398 tests. The new test was
 verified to FAIL with the guard neutralised, so it is not a complacent test.
+
+---
+
+### DET-USER-YES-IS-NOT-A-COORDINATE-001 — the answer proves the park, not the spot
+
+**Commit:** pending.
+
+**Correction to the field hypothesis.** This ticket was opened on 2026-08-22 claiming the `user` path
+stamps reliability 1.0 on badly-located pins. That premise was wrong and is recorded here so nobody
+re-derives it: `detectionReliability` is documented as *"probability that this is a genuine parking
+EVENT"* (`UserParking.kt:31`), not a positional confidence. A user's explicit "Sí" IS certainty about
+the event — 1.0 is correct and unchanged. The Redmi pin that prompted the investigation was 12 m off
+because that device measured 15.7 m of accuracy where the Oppo measured 2.8 m; that is GPS quality,
+not a logic defect, and what would have prevented it is
+`DET-CADENCE-CANNOT-ACCUSE-AFTER-EGRESS-001` stopping that trip from ever asking.
+
+**Root cause (the real one).** The user path reasons carefully about WHICH location to pin, and then
+pins an exact point unconditionally — including in the branch where it has just concluded it does not
+know. Its own comment discards a gap-born anchor as *"possibly a drive-past point hundreds of meters
+out with unboundable forward error"*, and the fallback fix was then saved with `zoneRadiusMeters =
+null`, so `UserParking.isApproximate` read `false`. Facing that identical situation the unattended
+timeout bounds the doubt by what a pedestrian could cover inside the hole and saves an AREA
+(`DET-GAP-ANCHOR-ZONE-001`). Same hole, same bound, two different honesties — the sweep corollary
+that already cost a session with `DET-DRIVE-PROOF-001` → `DET-DEPART-PROOF-001`.
+
+**Fix.** The user path inherits the same bound, via the same arithmetic: the hole-doubt expression is
+extracted to `domain/detection/GapDoubt.kt` (`walkableInsideGapMeters`) and the zone-radius formula to
+a single `approximateZoneRadius` helper, so the two paths cannot drift apart. A zone is saved only
+when the doubt or the fix accuracy exceeds `honestCloseMinZoneRadiusMeters` (60 m) — below the floor
+an area says less than the point, so every well-located pin stays exactly as it was. Reliability
+stays 1.0 in all cases.
+
+**Visibility.** `UI-APPROXIMATE-PARKING-DRAWS-ITS-DOUBT-001` landed in the same batch, so a zone
+saved by this path is now DRAWN as a doubt ring on the map instead of living only in Room/Firestore
+— the long-standing gap inherited from `DET-CLOSE-ZONE-WHEN-THE-BODY-WALKED-001` is closed.
+
+**Files:** `CoordinatorParkingDetector.kt` (user path + `approximateZoneRadius`), `GapDoubt.kt` (new),
+`EvaluateUnattendedParkingSaveUseCase.kt` (uses the shared bound, drops its duplicated constant),
+2 new tests. 1397 tests.
 
 ---
 

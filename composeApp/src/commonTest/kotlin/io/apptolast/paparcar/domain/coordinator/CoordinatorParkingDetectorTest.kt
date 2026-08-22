@@ -34,6 +34,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -2638,6 +2639,80 @@ class CoordinatorParkingDetectorTest {
                 ended.outcome,
                 "[DET-GAP-ANCHOR-001][DET-GAP-ANCHOR-ZONE-001]",
             )
+        }
+
+    @Test
+    fun should_saveBoundedZone_when_user_confirms_over_a_gap_entered_anchor() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-USER-YES-IS-NOT-A-COORDINATE-001] The answer settles WHETHER the user parked, not
+            // WHERE. This path already discards a gap-born anchor as "possibly a drive-past point
+            // hundreds of meters out" and then used to pin the fallback fix as an EXACT coordinate,
+            // recording the doubt nowhere — while the unattended timeout, facing the identical
+            // situation, bounds it and saves an area. Same hole, same bound, now the same honesty.
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            emitCorroboratedDrive(locations)
+            // The stop opens on the far side of a ~105 s hole with the car last seen driving.
+            nowMs = 145_000L
+            locations.emit(GpsPoint(40.010, -3.7, accuracy = 5f, timestamp = 145_000L, speed = 0f))
+            env.stepDetector.emitSteps(8)
+            nowMs = 150_000L
+            locations.emit(GpsPoint(40.0103, -3.7, accuracy = 5f, timestamp = 150_000L, speed = 0f))
+            assertEquals(1, env.notification.parkingConfirmationCallCount, "prompt must be shown")
+
+            // …and this time the user answers it.
+            env.coordinator.onUserConfirmedParking()
+            nowMs += 5_000L
+            locations.emit(GpsPoint(40.0103, -3.7, accuracy = 5f, timestamp = nowMs, speed = 0f))
+
+            job.cancelAndJoin()
+
+            assertEquals(1, env.parkingRepo.saveNewParkingSessionCallCount, "the user's yes must still save")
+            val saved = env.parkingRepo.getActiveSession()
+            assertNotNull(saved)
+            assertTrue(
+                saved.isApproximate,
+                "a yes over an anchor the path itself distrusted may not claim an exact coordinate",
+            )
+            assertTrue(
+                saved.zoneRadiusMeters!! >= config.honestCloseMinZoneRadiusMeters,
+                "the radius must cover the ground walkable inside the hole, was ${saved.zoneRadiusMeters}",
+            )
+            assertEquals(
+                config.reliabilityUserConfirmed, saved.detectionReliability,
+                "the EVENT is certain — the user said so; only its position is not",
+            )
+        }
+
+    @Test
+    fun should_keep_the_exact_pin_when_user_confirms_over_a_witnessed_anchor() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-USER-YES-IS-NOT-A-COORDINATE-001] The other side: when nothing declared the
+            // location doubtful, an area says LESS than the point does, so the point stands. This
+            // is what keeps the change from smearing every well-located pin into a 60 m blob —
+            // field 2026-08-22 (Redmi, 15.7 m fix) stays an exact pin on purpose.
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            driveParkAndWalkAwayWithLateBirth(env, locations) { nowMs = it }
+            env.coordinator.onUserConfirmedParking()
+            nowMs = 125_000L
+            locations.emit(GpsPoint(40.0025, -3.7, accuracy = 8f, timestamp = 125_000L, speed = 0f))
+
+            job.cancelAndJoin()
+
+            val saved = env.parkingRepo.getActiveSession()
+            assertNotNull(saved)
+            assertNull(
+                saved.zoneRadiusMeters,
+                "a witnessed anchor with a decent fix must stay an exact pin, was ${saved.zoneRadiusMeters}",
+            )
+            assertEquals(config.reliabilityUserConfirmed, saved.detectionReliability)
         }
 
     // ─────────────────────────────────────────────────────────────────────────

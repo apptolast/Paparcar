@@ -1352,11 +1352,45 @@ class CoordinatorParkingDetector(
                             )
                             if (answeredFarFromCar) witnessedStop!! else currentFix
                         }
+                        // [DET-USER-YES-IS-NOT-A-COORDINATE-001] The answer settles WHETHER the user
+                        // parked — `reliabilityUserConfirmed` (1.0) is right and stays. It settles
+                        // nothing about WHERE, and this path had one branch that pins an exact point
+                        // immediately after concluding it does not know: a gap-born anchor is
+                        // discarded here as "possibly a drive-past point hundreds of meters out",
+                        // and the fallback fix was then saved as an exact coordinate with the doubt
+                        // recorded nowhere. The unattended path already bounds that same doubt by
+                        // what a person could walk inside the hole [DET-GAP-ANCHOR-ZONE-001]; the
+                        // user path inherits the bound rather than a second opinion of it. The doubt
+                        // hangs on the HOLE, not on which fallback the branch above happened to
+                        // pick: when the stop was entered through one, every candidate position in
+                        // this path is downstream of the same unwitnessed arrival.
+                        //
+                        // Below the zone FLOOR an area says less than the point does, so the point
+                        // stands — this only stops the exact claim where it was already known to be
+                        // unsupportable, and leaves every well-located pin exactly as it was.
+                        val userDoubtMeters = io.apptolast.paparcar.domain.detection.walkableInsideGapMeters(
+                            state.anchorGapMsAtCapture, config.maxPedestrianSpeedMps,
+                        )
+                        val userZoneRadius = approximateZoneRadius(locationToConfirm, userDoubtMeters)
+                            .takeIf {
+                                maxOf(locationToConfirm.accuracy, userDoubtMeters.toFloat()) >
+                                    config.honestCloseMinZoneRadiusMeters
+                            }
+                        if (userZoneRadius != null) {
+                            PaparcarLogger.d(
+                                DIAG,
+                                "  ◯ user-confirm saved as a ZONE r=${userZoneRadius}m — the answer proves the " +
+                                    "park, not the spot (doubt=${userDoubtMeters.toInt()}m from a " +
+                                    "${state.anchorGapMsAtCapture}ms GPS hole, fixAcc=${locationToConfirm.accuracy}m) " +
+                                    "[DET-USER-YES-IS-NOT-A-COORDINATE-001]",
+                            )
+                        }
                         completed = runConfirm(
                             location = locationToConfirm,
                             reliability = config.reliabilityUserConfirmed,
                             vehicleId = activeVehicleId,
                             pathLabel = "user",
+                            zoneRadiusMeters = userZoneRadius,
                         )
                         PaparcarLogger.d(DIAG, "  ◀ USER-CONFIRMED path done — returning from collect")
                         return@collect
@@ -1795,6 +1829,17 @@ class CoordinatorParkingDetector(
      *         `confirmed_unattended_zone_<reason>`); false when the save failed or a guard inside
      *         the confirm degraded it — the caller falls back to the nudge-only exit.
      */
+    /** [DET-FROZEN-COUNTER-001][DET-USER-YES-IS-NOT-A-COORDINATE-001] The radius an approximate save
+     *  claims: never below the floor a zone needs to mean anything, never above the ceiling the
+     *  config asserts, and never smaller than either witness of the doubt — the centre's own
+     *  accuracy or the bound the caller measured. ONE formula, because two paths now save zones
+     *  (the unattended timeout and the user's "Sí" over an untrustworthy anchor) and a second copy
+     *  is how a radius gets fixed in one and forgotten in the other. */
+    private fun approximateZoneRadius(center: GpsPoint, doubtMeters: Double): Float = minOf(
+        config.unattendedZoneMaxRadiusMeters,
+        maxOf(config.honestCloseMinZoneRadiusMeters, center.accuracy, doubtMeters.toFloat()),
+    )
+
     private suspend fun saveUnattendedZone(
         reason: UnattendedSaveReason,
         center: GpsPoint,
@@ -1803,10 +1848,7 @@ class CoordinatorParkingDetector(
         location: GpsPoint,
         now: Long,
     ): Boolean {
-        val radius = minOf(
-            config.unattendedZoneMaxRadiusMeters,
-            maxOf(config.honestCloseMinZoneRadiusMeters, center.accuracy, doubtMeters.toFloat()),
-        )
+        val radius = approximateZoneRadius(center, doubtMeters)
         PaparcarLogger.d(
             DIAG,
             "  ◯ unattended zone (${reason.key}) — r=${radius}m (doubt=${doubtMeters.toInt()}m, centerAcc=${center.accuracy}) instead of losing the park [DET-FROZEN-COUNTER-001]"
