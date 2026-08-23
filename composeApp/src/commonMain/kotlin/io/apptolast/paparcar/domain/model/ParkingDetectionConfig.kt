@@ -1310,6 +1310,12 @@ data class ParkingDetectionConfig(
      *
      * A null accuracy passes only because callers that have a speed always have its fix's
      * accuracy too — the permissive branch keeps legacy call shapes valid, it is not a loophole.
+     *
+     * ⚠ This rule judges ONE sample on its own merits. It cannot tell a second opinion from the
+     * trigger echoing itself, and an indoor mirage passes it comfortably. Any caller using a fix to
+     * corroborate the very event that produced it must use
+     * [io.apptolast.paparcar.domain.detection.classifyDepartureSpeed], which adds the independence
+     * gate ([departureProofMinGapMs]). [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001]
      */
     fun isCredibleDrivingSpeed(speedKmh: Float?, accuracyMeters: Float?): Boolean =
         speedKmh != null && speedKmh >= minimumDepartureSpeedKmh &&

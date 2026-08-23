@@ -671,6 +671,107 @@ class CoordinatorParkingDetectorTest {
         }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001: the arm's seed is a hypothesis
+    // the departure worker adjudicates — and it may take it back
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Test
+    fun should_abort_the_walk_when_the_departure_the_arm_rested_on_is_dismissed() =
+        runTest(UnconfinedTestDispatcher()) {
+            // Field replay 2026-08-22 20:50 (Oppo, at home). An indoor GPS mirage broke the parked
+            // car's geofence and armed this session `verified_speed`, seeding it already-driving.
+            // Nothing ever moved: the departure worker sampled 0.9, 0.0 and 0.0 km/h and DISMISSED
+            // the departure — but the seed it had granted stayed, the anti-walking guards stayed
+            // down, and nine steps through the house confirmed a phantom park in the living room,
+            // replacing the correct pin. With the seed retracted the same burst must abort.
+            val env = setup()
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch {
+                env.coordinator.invoke(
+                    locations,
+                    armEvidence = ArmEvidence.VerifiedBySpeed(speedKmh = 36f, accuracyM = 5.5f),
+                    armingGeofenceId = "geo-1",
+                )
+            }
+
+            assertTrue(env.coordinator.hasDetectedMovement, "the arm seeds the session on trust")
+
+            env.coordinator.notifyDepartureDismissed("geo-1")
+
+            assertFalse(
+                env.coordinator.hasDetectedMovement,
+                "a refuted departure must take back the seed it lent",
+            )
+
+            // The same indoor walk that used to confirm.
+            locations.emit(GpsPoint(40.005, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+            env.stepDetector.emitSteps(9)
+            locations.emit(GpsPoint(40.0053, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+
+            job.cancelAndJoin()
+
+            assertEquals(
+                0,
+                env.parkingRepo.saveNewParkingSessionCallCount,
+                "no phantom park may be confirmed once the arm's evidence is refuted",
+            )
+        }
+
+    @Test
+    fun should_keep_the_seed_when_another_fence_departure_is_dismissed() =
+        runTest(UnconfinedTestDispatcher()) {
+            // The worker adjudicates ONE fence. A verdict about a different one says nothing about
+            // this session and must not disarm it.
+            val env = setup()
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch {
+                env.coordinator.invoke(
+                    locations,
+                    armEvidence = ArmEvidence.VerifiedBySpeed(speedKmh = 20f, accuracyM = 10f),
+                    armingGeofenceId = "geo-1",
+                )
+            }
+
+            env.coordinator.notifyDepartureDismissed("geo-2")
+
+            assertTrue(
+                env.coordinator.hasDetectedMovement,
+                "a foreign fence's verdict must not retract this arm's seed",
+            )
+
+            job.cancelAndJoin()
+        }
+
+    @Test
+    fun should_keep_the_seed_once_the_session_has_measured_a_drive_of_its_own() =
+        runTest(UnconfinedTestDispatcher()) {
+            // The dismissal refutes the EXIT, never the trip that followed it. Once this session's
+            // own track proves a drive, the seed is a measured fact and stops being retractable —
+            // a slow garage exit whose four speed samples all missed the departure threshold must
+            // not lose a drive its GPS stream witnessed.
+            val env = setup()
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch {
+                env.coordinator.invoke(
+                    locations,
+                    armEvidence = ArmEvidence.VerifiedBySpeed(speedKmh = 20f, accuracyM = 10f),
+                    armingGeofenceId = "geo-1",
+                )
+            }
+
+            emitCorroboratedDrive(locations)
+
+            env.coordinator.notifyDepartureDismissed("geo-1")
+
+            assertTrue(
+                env.coordinator.hasDetectedMovement,
+                "a drive this session MEASURED survives the exit's adjudication",
+            )
+
+            job.cancelAndJoin()
+        }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // DET-G-04: a GEOFENCE_EXIT-armed session is seeded already-driving
     // ─────────────────────────────────────────────────────────────────────────
 

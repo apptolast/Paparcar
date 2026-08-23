@@ -1,5 +1,7 @@
 package io.apptolast.paparcar.domain.usecase.parking
 
+import io.apptolast.paparcar.domain.detection.DepartureSpeedVerdict
+import io.apptolast.paparcar.domain.detection.classifyDepartureSpeed
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.UserParking
@@ -143,11 +145,19 @@ class DetectParkingDepartureUseCase(
         // is one extra retry; observed mirage bursts die within ~10 s and never survive the gap.
         // Same invariant as the coordinator's drive proof: the corroboration is the track, not
         // one Doppler sample. [DET-DRIVE-PROOF-001]
-        val speedIsIndependent = currentFix != null &&
-            currentFix.timestamp - exitTimestampMs >= config.departureProofMinGapMs
-        val credibleSpeed = config.isCredibleDrivingSpeed(currentSpeedKmh, currentAccuracyM)
-        val speedConfirmsMovement = credibleSpeed && speedIsIndependent
-        val inconclusiveReason = if (credibleSpeed && !speedIsIndependent) {
+        // [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001] The rule itself now lives in
+        // `classifyDepartureSpeed` — shared with the ARM lane, which used to carry an
+        // independence-blind copy and armed a session `verified_speed` on a fix this very
+        // evaluator was calling `exit_echo` 760 ms later (field 2026-08-22 20:50, Oppo).
+        val speedVerdict = classifyDepartureSpeed(
+            config = config,
+            speedKmh = currentSpeedKmh,
+            accuracyM = currentAccuracyM,
+            fixTimestampMs = currentFix?.timestamp,
+            eventTimestampMs = exitTimestampMs,
+        )
+        val speedConfirmsMovement = speedVerdict == DepartureSpeedVerdict.Independent
+        val inconclusiveReason = if (speedVerdict == DepartureSpeedVerdict.Echo) {
             PaparcarLogger.w(
                 TAG,
                 "credible driving speed REJECTED as exit echo — fix.ts=${currentFix?.timestamp} " +

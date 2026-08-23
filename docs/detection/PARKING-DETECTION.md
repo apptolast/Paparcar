@@ -3628,3 +3628,59 @@ because it lived in a composable; the two answers not collapsing into one comman
 guardrail asserting that every function posting on the confirmation channel also moves the window,
 and that nothing outside the adapters cancels a notification directly. Spec:
 `docs/backlog/det-ask-state-001.md`.
+
+### DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001 — one fix must never both fire an event and confirm it (pending)
+
+**User report.** Field 2026-08-22, Oppo: *"tenemos un falso positivo… justo después de aparcar
+correctamente en Frutos, se puso este dentro de la casa"*. The correct pin landed at 20:38:17
+(`ce3bb858…`, 36.60772,-6.2679683, `steps+egress`/`self_observed`). At 20:54:31 a second pin
+appeared 49 m away **inside the house** (`e17ee361…`, 36.6081233,-6.26774, `steps+egress`/
+**`verified_speed`**, reliability 0.9), replaced the correct one and deleted its geofence. The Redmi,
+riding the same trip, produced the correct pin and nothing else. Recovered from the device log
+(`files/parkdiag.log`); the phone died on battery that night before the session reached Firestore.
+
+**Root cause.** The independence gate of DET-DEPART-PROOF-001 (`departureProofMinGapMs`, 20 s) was
+wired into the departure WORKER only. The ARM lane — `VerifyDepartureEvidenceUseCase` — judged the
+same sample with `isCredibleDrivingSpeed` alone. So the two evaluators disagreed about one fix,
+760 ms apart:
+
+```
+20:50:37.809  OneFix: 36.6086317,-6.2678967  10.0 m/s (36 km/h)  acc 5.5 m  age 0s   ← indoor mirage
+20:50:37.829  GEOFENCE_EXIT — arming (d=101m, dep=verified_speed)
+20:50:38.264  ✓ verified_speed → seed hasEverReachedDrivingSpeed=true            [DET-G-04]
+20:50:38.603  Depart attempt=0  29.6 km/h → Inconclusive(exit_echo)              [DET-DEPART-PROOF-001]
+20:52:23      attempts exhausted, no admissible vehicle signal → DISMISSED
+20:52:26      ▶ steps+egress (steps=9) → fast confirm      ← guards still disarmed by the seed
+20:54:31      confirmParking → pin inside the house
+```
+
+The mirage class is the one DET-DEPART-PROOF-001 was written for (field 2026-07-27 18:30 — same
+phone, same house, 14 km/h at 121 m). Second half of the hole: `DepartureConfirmationListener`
+carried only `notifyDepartureConfirmed()`. Arm evidence is a hypothesis the worker adjudicates over
+~45 s, but the seed was irrevocable — the `Dismissed` at 20:52:23 could not take back what the arm
+had granted at 20:50:38.
+
+**Fix.** The rule moves out of the worker and into `domain/detection/DepartureSpeedProof.kt`
+(`classifyDepartureSpeed` → `Independent` / `Echo` / `NotDriving`), shared by both evaluators. Both
+arm call sites sample the fix at trigger time, so `VerifiedBySpeed` is now unreachable from them by
+construction: the seed arrives from measurement instead — the worker's ~15 s retry
+(`verified_late`), `DET-SHORT-HOP-PROOF-001`, or the session's own stream. And the port becomes
+two-way: `notifyDepartureDismissed(geofenceId)` retracts the seed, narrowly — only for the session
+that fence armed, and only while no measurement has backed it (`drivingSpeedOnArmTrustOnly`).
+
+**Replay.** `TRACE_HOUSE_MIRAGE_001` (51 fixes, 12 steps). Against the pre-fix code it ends
+`confirmed_steps+egress` with a saved phantom park; with the retraction it ends
+`aborted_false_enter` and saves nothing.
+
+**Accompanying-fix risk / what the replay refused to confirm.** The mirage did not stop at the
+trigger: the session's FIRST fix still carries 8.2 m/s at acc 5.6 m, and one such sample flips
+`hasEverReachedDrivingSpeed` through the STREAM lane too — disarming the false-ENTER guard even on
+an unverified arm. In that variant what prevents the pin is the arm LABEL (`self_observed` keeps
+the repark-plausibility guard in `ConfirmParkingUseCase` awake; verified labels bypass it), so a
+single guard stands between the mirage and the pin. Deliberately NOT widened here — raising
+`hasJustReachedSpeed` to a corroborated bar touches BUG-SHORT-TRIP semantics and needs the whole
+replay harness behind it. Tracked as **DET-LONE-SAMPLE-IS-NOT-A-DRIVE-001**
+(`docs/backlog/det-lone-sample-is-not-a-drive-001.md`), the hole DET-DRIVE-PROOF-001 left open on
+purpose.
+
+Spec: `docs/backlog/det-exit-fix-cannot-prove-its-own-exit-001.md`.

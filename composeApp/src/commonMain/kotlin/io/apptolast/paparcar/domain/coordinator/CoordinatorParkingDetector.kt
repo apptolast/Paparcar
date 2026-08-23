@@ -179,6 +179,13 @@ class CoordinatorParkingDetector(
          *  once, regardless of displacement from [sessionOrigin]. Enables short-trip detection
          *  ("circled the block"). [BUG-SHORT-TRIP] */
         val hasEverReachedDrivingSpeed: Boolean = false,
+        /** [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001] `true` while [hasEverReachedDrivingSpeed]
+         *  rests ONLY on the arm's evidence — granted on trust, never measured by this session.
+         *  Cleared the moment any measurement backs it (a credible in-band fix, the displacement
+         *  proof), and it is the flag that decides whether a DISMISSED departure may retract the
+         *  seed: the worker adjudicates the EXIT, so it may take back what the EXIT lent, and
+         *  nothing that the trip itself earned. */
+        val drivingSpeedOnArmTrustOnly: Boolean = false,
         /** `true` once both speed AND displacement thresholds have been crossed simultaneously.
          *  Used exclusively for the [maxNoMovementMs] guard against spurious IN_VEHICLE_ENTER. */
         val hasEverMoved: Boolean = false,
@@ -530,14 +537,53 @@ class CoordinatorParkingDetector(
     override fun notifyDepartureConfirmed() {
         if (currentSessionId == null) return
         currentArmEvidence = ArmEvidence.LABEL_VERIFIED_LATE
+        // The worker MEASURED this one (a fresh fix at driving speed, past the independence gap),
+        // so the seed is no longer on trust and can never be retracted afterwards.
+        // [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001]
+        _detectionState.update { it.copy(drivingSpeedOnArmTrustOnly = false) }
         if (_detectionState.value.hasEverReachedDrivingSpeed) return
         _detectionState.update { it.copy(hasEverReachedDrivingSpeed = true) }
         PaparcarLogger.d(DIAG, "  ✓ departure confirmed post-arm → seed hasEverReachedDrivingSpeed=true [DET-G-05]")
     }
 
+    /**
+     * [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001] The departure this session was armed on was
+     * REFUTED. Take back what the arm lent on trust — and nothing else.
+     *
+     * Three conditions, all necessary:
+     *  - a session is running (nothing to retract between sessions);
+     *  - it is the session THIS fence armed (a different fence's verdict says nothing about it);
+     *  - the seed is still unearned. Once any measurement has backed it, the drive is a fact of
+     *    this trip and the EXIT's adjudication cannot undo it.
+     *
+     * Retracting restores every anti-walking guard (false-ENTER abort, no-movement budget, the
+     * steps+egress gate) — which is precisely what the 2026-08-22 session needed: it had already
+     * counted 9 pedestrian steps indoors when this verdict landed.
+     */
+    override fun notifyDepartureDismissed(geofenceId: String) {
+        if (currentSessionId == null) return
+        if (currentArmGeofenceId != geofenceId) return
+        val state = _detectionState.value
+        if (!state.hasEverReachedDrivingSpeed || !state.drivingSpeedOnArmTrustOnly) return
+        _detectionState.update {
+            it.copy(hasEverReachedDrivingSpeed = false, drivingSpeedOnArmTrustOnly = false)
+        }
+        currentArmEvidence = ArmEvidence.LABEL_SELF_OBSERVED
+        PaparcarLogger.w(
+            DIAG,
+            "  ⤺ departure DISMISSED post-arm (geof=${geofenceId.take(8)}) — retracting the unearned " +
+                "seed; this session must measure the drive itself [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001]",
+        )
+    }
+
     /** Arm-evidence label of the in-flight session (see [ArmEvidence] label constants).
-     *  Set at [invoke] entry, upgraded by [notifyDepartureConfirmed]. [DET-SOLID-001] */
+     *  Set at [invoke] entry, upgraded by [notifyDepartureConfirmed], downgraded by
+     *  [notifyDepartureDismissed]. [DET-SOLID-001] */
     @Volatile private var currentArmEvidence: String = ArmEvidence.LABEL_SELF_OBSERVED
+
+    /** [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001] The fence whose EXIT armed the in-flight
+     *  session — the address a `Dismissed` verdict must match to retract anything. */
+    @Volatile private var currentArmGeofenceId: String? = null
 
     // ─────────────────────────────────────────────────────────────────────────
     // Public API
@@ -579,6 +625,11 @@ class CoordinatorParkingDetector(
         /** Radius of the fence the car left — the user could already have been anywhere inside it
          *  when the clock started, so it counts in favour of "walkable". [DET-SHORT-HOP-PROOF-001] */
         departureFenceRadiusMeters: Float = 0f,
+        /** [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001] The fence whose EXIT armed this session, so
+         *  a later `Dismissed` verdict from the departure worker can be matched to the arm it
+         *  refutes. Null for manual / sentry / handoff arms, which never borrowed a fence's word
+         *  and therefore have nothing to retract. */
+        armingGeofenceId: String? = null,
     ) = coroutineScope {
         val sessionJob = coroutineContext[kotlinx.coroutines.Job]
         val sessionStartMs = clock()
@@ -598,9 +649,15 @@ class CoordinatorParkingDetector(
         // with no vehicle evidence (walking exit, spurious trigger) must abort on the step burst
         // instead of confirming a phantom park (BUG-REPark-WALK-001). [DET-SOLID-001]
         if (armEvidence.isVerifiedDeparture) {
-            _detectionState.update { it.copy(hasEverReachedDrivingSpeed = true) }
+            // [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001] Flagged as GRANTED ON TRUST: nothing in
+            // this session has measured a drive yet. The flag clears on the first measurement and
+            // makes the seed retractable until then — the worker is still adjudicating this exit.
+            _detectionState.update {
+                it.copy(hasEverReachedDrivingSpeed = true, drivingSpeedOnArmTrustOnly = true)
+            }
             PaparcarLogger.d(DIAG, "  ✓ ${armEvidence.persistLabel} → seed hasEverReachedDrivingSpeed=true (armed mid-trip; drive already happened) [DET-G-04]")
         }
+        currentArmGeofenceId = armingGeofenceId
         // Session provenance stamped on the confirmed park — the repark-plausibility guard in
         // ConfirmParkingUseCase bypasses verified arms and interrogates self-observed ones.
         // Upgraded live by notifyDepartureConfirmed. [DET-SOLID-001]
@@ -996,6 +1053,13 @@ class CoordinatorParkingDetector(
                         s.copy(
                             sessionOrigin = s.sessionOrigin ?: location,
                             hasEverReachedDrivingSpeed = s.hasEverReachedDrivingSpeed || hasJustReachedSpeed,
+                            // [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001] The seed stops being "on
+                            // trust" the moment THIS session proves a drive — and the bar is
+                            // [driveProven] (corroborated track, or displacement from the pin), not
+                            // a lone in-band fix: a single mirage sample is exactly what granted
+                            // the seed in the first place, so it cannot also be what makes it
+                            // permanent. Below that bar the arm's word stays retractable.
+                            drivingSpeedOnArmTrustOnly = s.drivingSpeedOnArmTrustOnly && !driveProven,
                             hasEverMoved = s.hasEverMoved || hasJustMoved,
                             sessionStartMs = s.sessionStartMs ?: now,
                             // maxSpeed feeds the mismatch guard AND the weak-evidence policy
@@ -1639,6 +1703,9 @@ class CoordinatorParkingDetector(
                     // [DET-LOG-03] Close the diagnostics session before wiping state, then clear the id.
                     logDetection { sid -> DetectionEvent.SessionEnded(sid, nowMs(), sessionOutcome) }
                     currentSessionId = null
+                    // [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001] A late verdict for a fence whose
+                    // session is over addresses nobody.
+                    currentArmGeofenceId = null
                     reset()
                 } else {
                     PaparcarLogger.d(DIAG, "  ⊘ session $thisSessionId superseded — leaving the successor's state untouched [DET-AUDIT-002 T8]")

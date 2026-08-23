@@ -47,7 +47,10 @@ class RunDepartureCheckUseCaseTest {
 
     private class RecordingListener : DepartureConfirmationListener {
         var notifyCount = 0
+        /** [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001] Fences whose arm this run retracted. */
+        val dismissedGeofenceIds = mutableListOf<String>()
         override fun notifyDepartureConfirmed() { notifyCount++ }
+        override fun notifyDepartureDismissed(geofenceId: String) { dismissedGeofenceIds += geofenceId }
     }
 
     @Test
@@ -88,6 +91,27 @@ class RunDepartureCheckUseCaseTest {
         assertEquals(0, env.listener.notifyCount, "walking must NOT upgrade the live session")
         assertNotNull(env.repo.getActiveSession(), "the parked session must remain intact")
         assertEquals(0, env.spotScheduler.scheduleCallCount, "no phantom spot published")
+        // [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001] Field 2026-08-22 20:50 (Oppo): this exact
+        // verdict landed while a coordinator session sat seeded "already driving" by the same
+        // exit's mirage — and stayed seeded, because the port only carried good news. A refuted
+        // departure must reach the session it armed.
+        assertEquals(
+            listOf("geo-1"),
+            env.listener.dismissedGeofenceIds,
+            "a dismissed departure must retract the arm it granted",
+        )
+    }
+
+    @Test
+    fun should_retract_the_arm_when_the_departure_is_rejected_outright() = runTest {
+        // [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001] The other Dismissed exit: a definitive
+        // rejection (no session for this fence, or an ENTER from a previous trip). Same duty.
+        val env = Env(repo = FakeUserParkingRepository())
+
+        val outcome = env.useCase("geo-1", exitTimestamp, attempt = 0)
+
+        assertIs<DepartureCheckOutcome.Dismissed>(outcome)
+        assertEquals(listOf("geo-1"), env.listener.dismissedGeofenceIds)
     }
 
     @Test

@@ -19,12 +19,75 @@ class VerifyDepartureEvidenceUseCaseTest {
         VerifyDepartureEvidenceUseCase(departureEventBus = bus, config = config)
 
     @Test
-    fun `should verify by speed when at departure threshold with credible accuracy`() {
+    fun `should verify by speed when at departure threshold with credible accuracy and an independent sample`() {
         val useCase = buildUseCase()
 
-        val evidence = useCase(exitTimestamp, currentSpeedKmh = config.minimumDepartureSpeedKmh, currentAccuracyM = 20f)
+        val evidence = useCase(
+            exitTimestamp,
+            currentSpeedKmh = config.minimumDepartureSpeedKmh,
+            currentAccuracyM = 20f,
+            currentFixTimestampMs = exitTimestamp + config.departureProofMinGapMs,
+        )
 
         assertIs<ArmEvidence.VerifiedBySpeed>(evidence)
+    }
+
+    @Test
+    fun `should not verify by speed when the sample is the exit's own echo`() {
+        // [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001] Field 2026-08-22 20:50 (Oppo, indoors,
+        // phone stationary): ONE fix claiming 36 km/h at acc 5.5 m from a position 101 m away
+        // broke the parked car's geofence and, 20 ms later, was handed back as proof of the exit
+        // it had just caused. It armed `verified_speed`, seeded hasEverReachedDrivingSpeed and
+        // disarmed every anti-walking guard; the sibling worker called the SAME sample `exit_echo`
+        // 760 ms later and went on to DISMISS the departure. Four minutes afterwards the walk
+        // through the house confirmed a phantom park in the living room, replacing the correct pin
+        // and deleting its geofence. One fix must never both FIRE an event and CONFIRM it.
+        val useCase = buildUseCase(FakeDepartureEventBus(initialTimestamp = null))
+
+        val evidence = useCase(
+            exitTimestamp,
+            currentSpeedKmh = 36f,
+            currentAccuracyM = 5.5f,
+            currentFixTimestampMs = exitTimestamp + 20L,
+        )
+
+        assertIs<ArmEvidence.Unverified>(evidence)
+    }
+
+    @Test
+    fun `should not verify by speed when the sample carries no timestamp`() {
+        // Fail closed: a sample that cannot prove WHEN it was taken cannot prove independence.
+        // [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001]
+        val useCase = buildUseCase(FakeDepartureEventBus(initialTimestamp = null))
+
+        val evidence = useCase(
+            exitTimestamp,
+            currentSpeedKmh = 60f,
+            currentAccuracyM = 5f,
+            currentFixTimestampMs = null,
+        )
+
+        assertIs<ArmEvidence.Unverified>(evidence)
+    }
+
+    @Test
+    fun `should still consider the vehicleEnter ladder when the speed sample is an echo`() {
+        // The echo verdict must FALL THROUGH, not short-circuit: a mid-drive exit whose speed
+        // sample is contemporaneous can still be verified by a corroborated boarding.
+        // [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001]
+        val bus = FakeDepartureEventBus(initialTimestamp = exitTimestamp - 60_000L)
+        val useCase = buildUseCase(bus)
+
+        val evidence = useCase(
+            exitTimestamp,
+            currentSpeedKmh = 60f,
+            currentAccuracyM = 10f,
+            currentFixTimestampMs = exitTimestamp,
+            distanceFromCarMeters = 700.0,
+            fenceRadiusMeters = 100f,
+        )
+
+        assertIs<ArmEvidence.VerifiedByVehicleEnter>(evidence)
     }
 
     @Test

@@ -730,6 +730,10 @@ class CoordinatorDetectionService : LifecycleService() {
                     exitTimestampMs = now,
                     currentSpeedKmh = speedKmh,
                     currentAccuracyM = exitFix?.accuracy,
+                    // [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001] The sample's own clock: a fix
+                    // taken to HANDLE this exit cannot also corroborate it (indoor mirage, field
+                    // 2026-08-22 20:50). Real evidence lands via the departure worker's retry.
+                    currentFixTimestampMs = exitFix?.timestamp,
                     // A boarding that predates this parking is the inbound trip's — it must
                     // not label a walking exit "verified" (field 2026-07-08 18:52: a
                     // re-delivered ENTER seeded the coordinator and a phantom spot).
@@ -774,6 +778,9 @@ class CoordinatorDetectionService : LifecycleService() {
                     // [DET-ZOMBIE-PROBE-001] Far-delivered arm → short no-movement probe: a zombie
                     // delivery (phone at home, hours late) aborts in ~75 s instead of 4 min of GPS.
                     staleExitDelivery = staleExits.any { (staleId, _) -> staleId == id },
+                    // [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001] The departure worker enqueued
+                    // above adjudicates THIS fence; on `Dismissed` it retracts this arm's seed.
+                    armingGeofenceId = id,
                 )
             }
             ParkingStrategy.BLUETOOTH, ParkingStrategy.NONE -> {
@@ -901,6 +908,9 @@ class CoordinatorDetectionService : LifecycleService() {
                     exitTimestampMs = now,
                     currentSpeedKmh = speedKmh,
                     currentAccuracyM = fix?.accuracy,
+                    // [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001] Same rule as the EXIT lane: the
+                    // fix sampled to resolve this trigger is not independent proof of it.
+                    currentFixTimestampMs = fix?.timestamp,
                     sessionStartMs = session!!.location.timestamp,
                     distanceFromCarMeters = fix?.let {
                         haversineMeters(it.latitude, it.longitude, session.location.latitude, session.location.longitude)
@@ -923,6 +933,9 @@ class CoordinatorDetectionService : LifecycleService() {
                     detail,
                     trip = TripContext(session.location, session.vehicleId),
                     armEvidence = armEvidence,
+                    // [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001] Same fence the departure worker
+                    // enqueued just above — its verdict may retract this arm's seed.
+                    armingGeofenceId = decision.geofenceId,
                 )
             }
             ArEnterDecision.NoSession,
@@ -1367,6 +1380,11 @@ class CoordinatorDetectionService : LifecycleService() {
         /** [DET-ZOMBIE-PROBE-001] Arm born from a FAR-delivered (stale-lane) EXIT — the
          *  coordinator shrinks its no-movement budget to the zombie probe. */
         staleExitDelivery: Boolean = false,
+        /** [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001] The fence whose EXIT nominated this trip.
+         *  It is the address the departure worker's later verdict is delivered to: on `Dismissed`
+         *  the coordinator retracts the seed this arm was granted on trust. Null for lanes that
+         *  borrowed no fence's word (manual, sentry wake, arrival handoff). */
+        armingGeofenceId: String? = null,
     ) {
         // [DET-STRATEGY-GATE-001] Single strategy choke point: EVERY automatic arm funnels through
         // here (geofence EXIT, AR ENTER, sentry sig-motion, arrival handoff), so this is the one
@@ -1512,6 +1530,9 @@ class CoordinatorDetectionService : LifecycleService() {
                     // speed-window shape the track proof needs). Null on manual/AR arms with no
                     // origin pin, and then only the speed proof applies.
                     departureAnchor = trip?.departurePoint,
+                    // [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001] Whose word this arm is standing
+                    // on, so the departure worker's verdict can reach the session it refutes.
+                    armingGeofenceId = armingGeofenceId,
                     departureFenceRadiusMeters = trip?.departurePoint?.let { anchor ->
                         // Size unknown at this point (the TripContext carries position + vehicle id,
                         // not the size snapshot) → the default radius, which is the LARGEST of the

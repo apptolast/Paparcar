@@ -1,6 +1,8 @@
 package io.apptolast.paparcar.domain.usecase.parking
 
 import io.apptolast.paparcar.domain.detection.ArmEvidence
+import io.apptolast.paparcar.domain.detection.DepartureSpeedVerdict
+import io.apptolast.paparcar.domain.detection.classifyDepartureSpeed
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.service.DepartureEventBus
 import io.apptolast.paparcar.domain.util.PaparcarLogger
@@ -18,7 +20,17 @@ import io.apptolast.paparcar.domain.util.PaparcarLogger
  * Evidence, strongest first:
  * 1. [ArmEvidence.VerifiedBySpeed] — a fix at ≥ [ParkingDetectionConfig.minimumDepartureSpeedKmh]
  *    with credible accuracy (≤ [ParkingDetectionConfig.minGpsAccuracyForDriving]; a degraded fix
- *    can fake departure speed while walking). Covers the common mid-drive exit.
+ *    can fake departure speed while walking) **taken independently of the exit**
+ *    ([classifyDepartureSpeed]). The independence half was missing here while the sibling worker
+ *    lane had it, so the two evaluators judged the SAME fix differently: field 2026-08-22 20:50
+ *    (Oppo, indoors) — one 36 km/h mirage at 101 m armed `verified_speed` here and was labelled
+ *    `exit_echo` there 760 ms later, and the seed it planted confirmed a phantom park in the living
+ *    room. In practice both callers sample the fix at trigger time, so this branch is now
+ *    unreachable from them BY CONSTRUCTION and the seed arrives from measurement instead — the
+ *    worker's ~15 s retry ([ArmEvidence.LABEL_VERIFIED_LATE]), the displacement proof
+ *    (`DET-SHORT-HOP-PROOF-001`) or the session's own stream. The branch is kept (not deleted)
+ *    because the parameter admits a genuinely older event and the label is persisted on existing
+ *    pins. [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001]
  * 2. [ArmEvidence.VerifiedByVehicleEnter] — AR `IN_VEHICLE_ENTER` that PRECEDED the exit within
  *    [ParkingDetectionConfig.vehicleEnterWindowMs] AND whose displacement the physics corroborate
  *    ([ParkingDetectionConfig.isBeyondPedestrianReach]): the position must already have run away
@@ -45,6 +57,9 @@ class VerifyDepartureEvidenceUseCase(
      * @param exitTimestampMs  Epoch-ms of the geofence exit event.
      * @param currentSpeedKmh  Speed (km/h) sampled when handling the exit, or null if unavailable.
      * @param currentAccuracyM Horizontal accuracy (m) of that sample, or null if unavailable.
+     * @param currentFixTimestampMs Epoch-ms the sample was taken. A sample contemporaneous with
+     *        [exitTimestampMs] is the trigger echoing itself, never proof of it; null (no fix)
+     *        fails closed the same way. [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001]
      * @param sessionStartMs   Epoch-ms the exiting session began, or null when unknown. A boarding
      *        that PREDATES the session is the inbound trip's boarding (or an OEM re-delivery of
      *        it) — never evidence of leaving it (field 2026-07-08 18:52, Redmi: a 17-min-old
@@ -59,14 +74,37 @@ class VerifyDepartureEvidenceUseCase(
         exitTimestampMs: Long,
         currentSpeedKmh: Float?,
         currentAccuracyM: Float? = null,
+        currentFixTimestampMs: Long? = null,
         sessionStartMs: Long? = null,
         distanceFromCarMeters: Double? = null,
         fenceRadiusMeters: Float? = null,
     ): ArmEvidence {
-        val speedConfirms = config.isCredibleDrivingSpeed(currentSpeedKmh, currentAccuracyM)
-        if (speedConfirms) {
-            PaparcarLogger.d(TAG, "departure evidence: SPEED (speedKmh=$currentSpeedKmh acc=$currentAccuracyM)")
-            return ArmEvidence.VerifiedBySpeed(speedKmh = currentSpeedKmh!!, accuracyM = currentAccuracyM)
+        when (
+            classifyDepartureSpeed(
+                config = config,
+                speedKmh = currentSpeedKmh,
+                accuracyM = currentAccuracyM,
+                fixTimestampMs = currentFixTimestampMs,
+                eventTimestampMs = exitTimestampMs,
+            )
+        ) {
+            DepartureSpeedVerdict.Independent -> {
+                PaparcarLogger.d(TAG, "departure evidence: SPEED (speedKmh=$currentSpeedKmh acc=$currentAccuracyM)")
+                return ArmEvidence.VerifiedBySpeed(speedKmh = currentSpeedKmh!!, accuracyM = currentAccuracyM)
+            }
+            // Credible speed, but from the same instant the exit fired. It NOMINATES a drive and
+            // nothing more: fall through to the AR ladder, and on to Unverified. The anti-walking
+            // guards stay armed and the departure worker — which re-samples ~15 s later, past the
+            // gap — upgrades the live session when the drive is real.
+            // [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001]
+            DepartureSpeedVerdict.Echo -> PaparcarLogger.w(
+                TAG,
+                "credible driving speed NOT admissible as arm evidence — sample is the exit's own " +
+                    "echo (speedKmh=$currentSpeedKmh acc=$currentAccuracyM fix.ts=$currentFixTimestampMs " +
+                    "exit.ts=$exitTimestampMs gap=${currentFixTimestampMs?.minus(exitTimestampMs)}ms " +
+                    "< ${config.departureProofMinGapMs}ms) [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001]",
+            )
+            DepartureSpeedVerdict.NotDriving -> Unit
         }
 
         val enteredAt = departureEventBus.lastVehicleEnteredAt

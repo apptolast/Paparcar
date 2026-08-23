@@ -98,6 +98,106 @@ class DetectionTraceReplayTest {
         }
 
     @Test
+    fun house_mirage_001_indoor_burst_must_not_re_park_the_car_inside_the_house() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001] The 2026-08-22 20:50 incident (Oppo).
+            // Post-fix the arm is UNVERIFIED — the exit's own fix cannot corroborate the exit —
+            // and the departure worker DISMISSES the departure 105.6 s in, which retracts whatever
+            // trust the trigger had bought. What remains is 50 dead-still fixes and 12 indoor
+            // steps, and nothing in that may plant a pin. Pre-fix this exact trace confirmed a
+            // phantom park 49 m from the real one, replacing it and deleting its geofence.
+            val replayer = DetectionTraceReplayer(TRACE_HOUSE_MIRAGE_001)
+            val env = buildEnv(clock = { replayer.nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 256)
+            val job = launch {
+                env.coordinator.invoke(
+                    locations,
+                    armEvidence = ArmEvidence.Unverified,
+                    armingGeofenceId = "ce3bb858",
+                    departureAnchor = GpsPoint(
+                        HOUSE_MIRAGE_001_REAL_PIN_LAT,
+                        HOUSE_MIRAGE_001_REAL_PIN_LON,
+                        accuracy = 2.2f,
+                        timestamp = TRACE_HOUSE_MIRAGE_001.first().tMs - 12 * 60_000L,
+                        speed = 0f,
+                    ),
+                    departureFenceRadiusMeters = 83f,
+                )
+            }
+
+            var dismissalDelivered = false
+            replayer.replay(
+                emitFix = {
+                    // The worker's verdict lands mid-stream, exactly where the device log has it.
+                    if (!dismissalDelivered && replayer.nowMs >= HOUSE_MIRAGE_001_DISMISSED_AT_MS) {
+                        dismissalDelivered = true
+                        env.coordinator.notifyDepartureDismissed("ce3bb858")
+                    }
+                    locations.emit(it)
+                },
+                emitStep = { env.stepDetector.emitSteps(1) },
+            )
+            job.cancelAndJoin()
+
+            assertTrue(dismissalDelivered, "the trace must reach the worker's dismissal")
+            assertEquals(
+                0,
+                env.parkingRepo.saveNewParkingSessionCallCount,
+                "an indoor mirage must never re-park the car inside the house",
+            )
+            // ⚠ It ends `ended`, NOT `aborted_false_enter` — and the difference is worth reading.
+            // The mirage did not stop at the trigger: this session's FIRST fix still carries
+            // 8.2 m/s at acc 5.6 m, and one such sample is enough to flip
+            // `hasEverReachedDrivingSpeed` through the stream lane, which DISARMS the false-ENTER
+            // guard even on an unverified arm. What saves this run is the arm LABEL: `self_observed`
+            // keeps the repark-plausibility guard in `ConfirmParkingUseCase` awake, and verified
+            // labels bypass it. So honesty at the arm is load-bearing here on its own.
+            // The residual — a lone credible sample still moving the session lifecycle flag, the
+            // hole DET-DRIVE-PROOF-001 deliberately left open — is tracked as
+            // DET-LONE-SAMPLE-IS-NOT-A-DRIVE-001. Its replay lives right below.
+            val ended = env.detectionLogger.events
+                .filterIsInstance<DetectionEvent.SessionEnded>().single()
+            assertEquals("ended", ended.outcome, "no confirm, no prompt — the session just runs out")
+        }
+
+    @Test
+    fun house_mirage_001_a_verified_arm_label_is_what_the_retraction_takes_away() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001] The seed is the load-bearing half. Same
+            // trace, same dismissal — but armed the way the OLD verifier armed it, `verified_speed`
+            // on the exit's own echo. Without the retraction this is the exact run that planted the
+            // phantom pin; with it, the guard the seed had disarmed does its job.
+            val replayer = DetectionTraceReplayer(TRACE_HOUSE_MIRAGE_001)
+            val env = buildEnv(clock = { replayer.nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 256)
+            val job = launch {
+                env.coordinator.invoke(
+                    locations,
+                    armEvidence = ArmEvidence.VerifiedBySpeed(speedKmh = 36f, accuracyM = 5.5f),
+                    armingGeofenceId = "ce3bb858",
+                )
+            }
+
+            var dismissalDelivered = false
+            replayer.replay(
+                emitFix = {
+                    if (!dismissalDelivered && replayer.nowMs >= HOUSE_MIRAGE_001_DISMISSED_AT_MS) {
+                        dismissalDelivered = true
+                        env.coordinator.notifyDepartureDismissed("ce3bb858")
+                    }
+                    locations.emit(it)
+                },
+                emitStep = { env.stepDetector.emitSteps(1) },
+            )
+            job.cancelAndJoin()
+
+            assertEquals(0, env.parkingRepo.saveNewParkingSessionCallCount, "no phantom re-park")
+            val ended = env.detectionLogger.events
+                .filterIsInstance<DetectionEvent.SessionEnded>().single()
+            assertEquals("aborted_false_enter", ended.outcome)
+        }
+
+    @Test
     fun calle_gavia_001_correct_detection_still_anchors_at_calle_gavia() =
         runTest(UnconfinedTestDispatcher()) {
             // [ANCHOR-LOCK-001 regression guard] A CORRECT field detection: real drive, a traffic

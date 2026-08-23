@@ -106,7 +106,13 @@ class RunDepartureCheckUseCase(
                 )
             }
 
-            if (decision == DepartureDecision.Rejected) return DepartureCheckOutcome.Dismissed
+            // [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001] A refuted departure must also take back
+            // what its own arm was granted on trust. The live coordinator may be running seeded
+            // "already driving" by THIS exit's evidence, with every anti-walking guard disarmed.
+            if (decision == DepartureDecision.Rejected) {
+                departureConfirmationListener.notifyDepartureDismissed(geofenceId)
+                return DepartureCheckOutcome.Dismissed
+            }
 
             // The only branch that MEASURED the car moving: a fresh fix at credible driving speed,
             // independent of the exit's own echo. [DET-HANDOFF-NOT-MANUAL-001 §B]
@@ -124,6 +130,7 @@ class RunDepartureCheckUseCase(
             // dismiss. [BUG-WALK-DEPART-001][DET-SESSION-BIRTH-001]
             if (decision is DepartureDecision.Inconclusive && !decision.admissibleBoarding) {
                 PaparcarLogger.d(TAG, "attempts exhausted with no admissible vehicle signal — dismissed (geof=$geofenceId)")
+                departureConfirmationListener.notifyDepartureDismissed(geofenceId)
                 return DepartureCheckOutcome.Dismissed
             }
         } else {
