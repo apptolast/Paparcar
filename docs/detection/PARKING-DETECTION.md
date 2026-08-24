@@ -1618,6 +1618,37 @@ would be a behaviour change wearing a tidy-up's clothes.
 
 ---
 
+### DET-PHYSICS-HONEST-ZONE-RADIUS-001 — where the zone radius lives now
+
+**Commit:** pending · **Ticket:** `docs/backlog/det-physics-honest-zone-radius-001.md` · plan step
+P1.6.
+
+The radius of the area the app draws when it knows the car is parked but not exactly where. Two
+witnesses of the same doubt — the centre's own accuracy, and whatever bound the caller measured
+(metres walked since the counter's seal, or metres a person could cover inside a GPS hole) — take
+the larger, clamped between a floor and a ceiling. Below the floor an "area" is a dot with extra
+steps; above it, half a neighbourhood. At the ceiling the artifact is still **saved** and the nudge
+becomes the ask-to-refine, because losing the park entirely is the worse answer.
+
+Two spellings, one function: the coordinator's `minOf(ceiling, maxOf(floor, accuracy, doubt))` and
+the honest close's `coerceIn(floor, ceiling)` over a doubt that had already absorbed the accuracy.
+Now `domain/detection/physics/HonestZoneRadius.kt`, with a **sweep of >100 000 combinations**
+comparing both spellings so the claim is measured rather than asserted.
+
+⚠️ **Order of operations preserved deliberately**: the doubt narrows to `Float` *before* the
+comparisons, exactly as the coordinator did it, so the result is bit-identical rather than merely
+close. The KDoc says not to "clean this up" into a Double-domain max.
+
+**Why this is no longer a behaviour change.** `09 §14.5` classified it as one because the honest
+close used to save zones with no ceiling (bug #2). `f42e393b` added the clamp and `8bf6f02b`
+extracted the coordinator's helper, both for other reasons, leaving arithmetically identical
+duplication — one fewer risky step than the checkpoint counted.
+
+**Files:** `physics/HonestZoneRadius.kt` (new, pure), `CoordinatorParkingDetector.kt`,
+`EvaluateHonestCloseUseCase.kt`, 6 new tests. **1500 tests.**
+
+---
+
 ## 3. Open questions / future work
 
 - **GPS sampling boost during CANDIDATE (PARKING-001 Option B).** Switch the LocationDataSource to a 1 s `minUpdateIntervalMillis` request when entering the CANDIDATE phase, returning to 2 s on exit. Increases density of fixes that refine `bestStopLocation` within the new initial-stop window after a reposition burst. Adds the complexity of swapping the location source mid-session — hold off until A is validated in the field.

@@ -17,6 +17,7 @@ import io.apptolast.paparcar.domain.detection.physics.corroboratesDrive
 import io.apptolast.paparcar.domain.detection.physics.isCorroboratedVehicleHop
 import io.apptolast.paparcar.domain.detection.physics.pruneRecentFixes
 import io.apptolast.paparcar.domain.detection.physics.sustainedDepartureFromAnchor
+import io.apptolast.paparcar.domain.detection.physics.honestZoneRadius
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
 import io.apptolast.paparcar.domain.error.PaparcarError
@@ -1999,10 +2000,13 @@ class CoordinatorParkingDetector(
      *  accuracy or the bound the caller measured. ONE formula, because two paths now save zones
      *  (the unattended timeout and the user's "Sí" over an untrustworthy anchor) and a second copy
      *  is how a radius gets fixed in one and forgotten in the other. */
-    private fun approximateZoneRadius(center: GpsPoint, doubtMeters: Double): Float = minOf(
-        config.unattendedZoneMaxRadiusMeters,
-        maxOf(config.honestCloseMinZoneRadiusMeters, center.accuracy, doubtMeters.toFloat()),
-    )
+    private fun approximateZoneRadius(center: GpsPoint, doubtMeters: Double): Float =
+        honestZoneRadius(
+            centerAccuracyMeters = center.accuracy,
+            doubtMeters = doubtMeters,
+            floorMeters = config.honestCloseMinZoneRadiusMeters,
+            ceilingMeters = config.unattendedZoneMaxRadiusMeters,
+        )
 
     private suspend fun saveUnattendedZone(
         reason: UnattendedSaveReason,

@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.domain.usecase.parking
 
+import io.apptolast.paparcar.domain.detection.physics.honestZoneRadius
 import io.apptolast.paparcar.domain.detection.physics.requiredStepsToWalk
 import io.apptolast.paparcar.domain.detection.physics.walkExplainsDisplacement
 import io.apptolast.paparcar.domain.model.GpsPoint
@@ -413,9 +414,13 @@ class EvaluateHonestCloseUseCase(
         } else {
             HonestCloseDecision.ApproximateZone(
                 abortFix,
-                doubtMeters.coerceIn(
-                    config.honestCloseMinZoneRadiusMeters,
-                    config.unattendedZoneMaxRadiusMeters,
+                // Same clamp the coordinator's two zone paths use — the accuracy is already folded
+                // into `doubtMeters` above, so passing it again is a no-op on the max.
+                honestZoneRadius(
+                    centerAccuracyMeters = abortFix.accuracy,
+                    doubtMeters = doubtMeters.toDouble(),
+                    floorMeters = config.honestCloseMinZoneRadiusMeters,
+                    ceilingMeters = config.unattendedZoneMaxRadiusMeters,
                 ),
             )
         }
