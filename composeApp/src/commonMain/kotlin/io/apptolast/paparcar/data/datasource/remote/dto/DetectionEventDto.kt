@@ -109,6 +109,7 @@ fun DetectionEvent.typeName(): String = when (this) {
     is DetectionEvent.Bluetooth -> "BLUETOOTH"
     is DetectionEvent.LocationFix -> "LOCATION_FIX"
     is DetectionEvent.Step -> "STEP"
+    is DetectionEvent.Hold -> "HOLD"
     is DetectionEvent.Candidate -> "CANDIDATE"
     is DetectionEvent.Decision -> "DECISION"
     is DetectionEvent.HonestClose -> "HONEST_CLOSE"
@@ -166,6 +167,11 @@ fun DetectionEvent.toDto(): DetectionEventDto {
         is DetectionEvent.Bluetooth -> base.copy(event = event, deviceAddress = deviceAddress)
         is DetectionEvent.LocationFix -> base.copy(stoppedDurationMs = stoppedDurationMs)
         is DetectionEvent.Step -> base.copy(stepCount = stepCount, stopped = stopped)
+        // [DET-HOLD-BRANCHES-MUST-SPEAK-001] Same columns the CANDIDATE lifecycle already uses
+        // (`action`, `pathLabel`), with the duration on the existing "how old" column that
+        // SpotRetracted/Reverted/Sentry share — no serializer surface change.
+        is DetectionEvent.Hold ->
+            base.copy(action = action.name, pathLabel = pathLabel, sessionAgeMs = heldMs)
         is DetectionEvent.Candidate -> base.copy(action = action, phase = phase)
         // [DET-PROMPT-STATES-ITS-REASON-001] The verdict's cause rides the existing `reason` column
         // (same one HonestClose/Released/GeofenceRegistration use) so the six producers of

@@ -129,6 +129,25 @@ sealed interface DetectionEvent {
         override val location: GpsPoint? = null,
     ) : DetectionEvent
 
+    /**
+     * [DET-HOLD-BRANCHES-MUST-SPEAK-001] Post-confirm hold lifecycle [DET-C-02]: [action] is how the
+     * hold opened or ended, [heldMs] how long it had been holding, [pathLabel] the confirm path that
+     * opened it.
+     *
+     * Modelled on [Candidate] on purpose — the candidate phase already had exactly this shape, and
+     * the hold is the other place where a phase opens, waits, and resolves several different ways.
+     * Six of its seven exits used to be local-log only, which made the branches untestable: a
+     * neutralised branch produced byte-identical output.
+     */
+    data class Hold(
+        override val sessionId: String,
+        override val timestampMs: Long,
+        val action: io.apptolast.paparcar.domain.detection.HoldAction,
+        val heldMs: Long? = null,
+        val pathLabel: String? = null,
+        override val location: GpsPoint? = null,
+    ) : DetectionEvent
+
     /** Candidate-phase lifecycle: [action] (OPENED / DISCARDED / CONFIRMED) at the given [phase]. */
     data class Candidate(
         override val sessionId: String,

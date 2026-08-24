@@ -15,6 +15,7 @@ import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
 import io.apptolast.paparcar.fakes.FakeAppNotificationManager
 import io.apptolast.paparcar.fakes.FakeActivityRecognitionManager
 import io.apptolast.paparcar.domain.detection.ArmEvidence
+import io.apptolast.paparcar.domain.detection.HoldAction
 import io.apptolast.paparcar.fakes.FakeDepartureEventBus
 import io.apptolast.paparcar.fakes.FakeDetectionEventLogger
 import io.apptolast.paparcar.fakes.FakeAuthRepository
@@ -3305,9 +3306,11 @@ class CoordinatorParkingDetectorTest {
                 env.parkingRepo.saveNewParkingSessionCallCount,
                 "stale held confirm must be DISCARDED at settle, never pinned [DET-CONFIRM-FRESHNESS-001]",
             )
+            // [DET-HOLD-BRANCHES-MUST-SPEAK-001] Was an ad-hoc `Decision(outcome=HOLD_STALE_DISCARDED)`;
+            // it moved onto the typed hold lane so its six mute siblings became comparable to it.
             assertTrue(
-                env.detectionLogger.events.filterIsInstance<DetectionEvent.Decision>()
-                    .any { it.outcome == "HOLD_STALE_DISCARDED" },
+                env.detectionLogger.events.filterIsInstance<DetectionEvent.Hold>()
+                    .any { it.action == HoldAction.DISCARDED_STALE },
                 "the settle-time discard must be visible in forensics",
             )
         }

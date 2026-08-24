@@ -2,6 +2,7 @@
 
 package io.apptolast.paparcar.domain.coordinator
 
+import io.apptolast.paparcar.domain.detection.HoldAction
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
@@ -384,11 +385,63 @@ class StagePrecedenceCharacterizationTest {
             )
             val saved = env.parkingRepo.getActiveSession()
             assertNotNull(saved, "a park must be saved")
-            println("PROBE saved.lat=" + saved.location.latitude + " reliability=" + saved.detectionReliability)
             assertTrue(
                 saved.location.latitude > 40.010,
                 "the session kept detecting after the discard and pinned the FINAL spot " +
                     "(got ${saved.location.latitude}, the discarded kiosk stop was ~40.005)",
+            )
+        }
+
+    /**
+     * **Branch 1 (hold) outranks the steps+egress fast lane — the pair Fase 0 could not write.**
+     *
+     * `DET-CONFIRM-BRANCH-ORDER-MUST-BE-TESTABLE-001` set this scenario up and measured it as
+     * **not observable**: neutralising the hold's `return@collect` produced byte-identical output
+     * (same saves, same event census), so the pair was documented as unwritable and dropped. The
+     * cause was not the scenario — it was that the hold emitted nothing, so a second pass through
+     * the fast lane left no trace of itself.
+     *
+     * [DET-HOLD-BRANCHES-MUST-SPEAK-001] gives the hold a lifecycle event, and with it the pair
+     * becomes exactly one assertion: **the hold opens ONCE**. Under the opposite order the fix
+     * would fall through to the fast lane, call `beginConfirm` again, and restart the two-minute
+     * clock on a pin that had already earned its confirm — a park delayed, and in a starved stream
+     * a park lost.
+     */
+    @Test
+    fun should_swallow_the_fix_while_a_tentative_confirm_is_holding() =
+        runTest(UnconfinedTestDispatcher()) {
+            var nowMs = 1_000_000L
+            val config = ParkingDetectionConfig(confirmHoldMs = 120_000L)
+            val env = setup(config = config, clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            // Drive, stop, get out: the egress opens a tentative confirm on the parked car.
+            locations.emit(fix(lat = 40.0))
+            locations.emit(fix(lat = 40.002, speed = 10f))
+            locations.emit(fix(lat = 40.005))
+            env.stepDetector.emitSteps(8)
+            locations.emit(fix(lat = 40.0053)) // egress → tentative confirm → HELD
+
+            // Keep walking away with fresh steps: every one of these fixes satisfies the fast lane
+            // again (steps in hand, displacement growing). Only the hold's early return stops them
+            // from re-opening a confirm.
+            repeat(4) { i ->
+                nowMs += 10_000L
+                env.stepDetector.emitSteps(6)
+                locations.emit(fix(lat = 40.0056 + i * 0.0003))
+            }
+
+            job.cancelAndJoin()
+
+            val opens = env.detectionLogger.events
+                .filterIsInstance<DetectionEvent.Hold>()
+                .filter { it.action == HoldAction.OPENED }
+            assertEquals(
+                1,
+                opens.size,
+                "the hold must swallow every fix while it runs: a second OPENED means the fast lane " +
+                    "re-fired and restarted the 2-min clock on an already-earned pin",
             )
         }
 }

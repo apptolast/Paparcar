@@ -2,6 +2,7 @@ package io.apptolast.paparcar.data.mapper
 
 import io.apptolast.paparcar.data.datasource.remote.dto.toDto
 import io.apptolast.paparcar.data.datasource.remote.dto.typeName
+import io.apptolast.paparcar.domain.detection.HoldAction
 import io.apptolast.paparcar.domain.detection.TriggerDisposition
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.model.GpsPoint
@@ -149,5 +150,40 @@ class DetectionEventDtoTest {
         assertEquals("TRIGGER", event.typeName())
         assertNull(event.toDto().lat)
         assertNull(event.toDto().confidence)
+    }
+
+    // ── Hold lane [DET-HOLD-BRANCHES-MUST-SPEAK-001] ─────────────────────
+
+    @Test
+    fun should_carryActionAndDuration_when_mappingAHoldExit() {
+        val dto = DetectionEvent.Hold(
+            sessionId = "s-1",
+            timestampMs = 2_000L,
+            action = HoldAction.DISCARDED_DROVE_OFF,
+            heldMs = 47_000L,
+            pathLabel = "steps+egress",
+            location = fix,
+        ).toDto()
+
+        assertEquals("HOLD", dto.type)
+        assertEquals("DISCARDED_DROVE_OFF", dto.action, "the exit rides the action column")
+        assertEquals("steps+egress", dto.pathLabel)
+        assertEquals(47_000L, dto.sessionAgeMs, "the duration rides the how-old column")
+    }
+
+    /**
+     * An exit that serialized to a null action would be a hold whose fate is unreadable — which is
+     * the state this ticket exists to leave behind, reintroduced at the wire.
+     */
+    @Test
+    fun should_neverSerializeANullAction_when_anyHoldExitIsUsed() {
+        for (a in HoldAction.entries) {
+            val dto = DetectionEvent.Hold(
+                sessionId = "s-1",
+                timestampMs = 0L,
+                action = a,
+            ).toDto()
+            assertEquals(a.name, dto.action, a.name + " lost its action on the wire")
+        }
     }
 }

@@ -1399,6 +1399,51 @@ telemetry, the `LOCATION_FIX` replay-flag cut, and the BT strategy's missing ses
 
 ---
 
+### DET-HOLD-BRANCHES-MUST-SPEAK-001 — the hold says which way it went out
+
+**Commit:** pending · **Ticket:** `docs/backlog/det-hold-branches-must-speak-001.md` ·
+second delivery of proposal 3, and the one that motivated pulling it forward.
+
+**Report.** The post-confirm hold [DET-C-02] — the two minutes between "the egress proof says you
+parked" and planting the pin — has **seven ways out and six were local-log only**. A trace showed the
+confirm that eventually happened and nothing about the hold that produced it. Two of those exits
+(`STARVED`, `SESSION_ENDED`) **plant a pin with no fix to justify it**, which in forensics is exactly
+what "a spot appeared and I don't know why" looks like.
+
+**Root cause, and why it is not a comfort issue.** `DET-CONFIRM-BRANCH-ORDER-MUST-BE-TESTABLE-001`
+set out to pin the precedence of three hold branches and could write **none** of the three tests:
+neutralising a branch left the output byte-identical. A branch that emits nothing cannot be
+discriminated by any test — only by reading the source and hoping.
+
+**Fix.** `HoldAction` (pure enum) + `DetectionEvent.Hold` through a single door (`logHold`), modelled
+on the `Candidate` lifecycle that already had this shape. Two events per hold, not one per fix.
+Columns reused (`action`, `pathLabel`, `sessionAgeMs`).
+
+**What it unblocks, measured.** The `hold ↔ fast lane` pair, previously documented as unobservable,
+is now one assertion — *the hold opens ONCE*. Neutralising the hold's `return@collect` gives **5
+OPENED instead of 1**: without the early return the fast lane re-fires on every subsequent fix and
+restarts the two-minute clock each time.
+
+**Companion-fix risks avoided.** (1) The obvious "count the fixes the hold swallowed" would have
+meant mutating `PendingConfirm` — which the watchdog compares **by identity** behind a
+`distinctUntilChanged`, so it would have cancelled and restarted the watchdog on every fix. A real
+behaviour change smuggled inside a telemetry ticket; the counter was dropped. (2) `DROPPED_BY_USER`
+cannot be emitted where it happens (`onUserStoppedDetection` is not suspend and the coordinator owns
+no scope), so the dropped hold is remembered and emitted by the epilogue, with `reset()` clearing the
+field so a superseded session cannot inherit the note.
+
+**Wire change, declared:** `HOLD_STALE_DISCARDED` stops being a `Decision` and becomes
+`type=HOLD, action=DISCARDED_STALE`. Required so its mute sibling becomes comparable to it — one of
+them speaking and the other not is what made the two indistinguishable.
+
+**Zero behaviour change.** `STARVED` and `SESSION_ENDED` still plant the pin exactly as before; what
+is new is that they say so.
+
+**Files:** `HoldLifecycle.kt` (new, pure), `DetectionEvent.kt`, `DetectionEventDto.kt`,
+`CoordinatorParkingDetector.kt`, 5 new tests. **1454 tests.**
+
+---
+
 ## 3. Open questions / future work
 
 - **GPS sampling boost during CANDIDATE (PARKING-001 Option B).** Switch the LocationDataSource to a 1 s `minUpdateIntervalMillis` request when entering the CANDIDATE phase, returning to 2 s on exit. Increases density of fixes that refine `bestStopLocation` within the new initial-stop window after a reposition burst. Adds the complexity of swapping the location source mid-session — hold off until A is validated in the field.

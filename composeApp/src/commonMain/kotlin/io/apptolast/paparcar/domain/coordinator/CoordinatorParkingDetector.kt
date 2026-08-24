@@ -1,6 +1,7 @@
 package io.apptolast.paparcar.domain.coordinator
 
 import io.apptolast.paparcar.domain.detection.ArmEvidence
+import io.apptolast.paparcar.domain.detection.HoldAction
 import io.apptolast.paparcar.domain.detection.DepartureConfirmationListener
 import io.apptolast.paparcar.domain.detection.DetectionPhase
 import io.apptolast.paparcar.domain.detection.DetectionSessionOutcomes
@@ -478,6 +479,11 @@ class CoordinatorParkingDetector(
     /** [DET-HONEST-CLOSE-001] Snapshot of the last processed fix, captured in the finally BEFORE
      *  [reset] wipes the state, so it survives for the caller to read after [invoke] returns.
      *  Null between sessions / before the first fix. */
+    /** [DET-HOLD-BRANCHES-MUST-SPEAK-001] A held confirm the user's stop dropped. The entrypoint
+     *  is not suspend and the coordinator owns no scope, so the note is handed to the epilogue —
+     *  which is suspend and runs microseconds later, when the caller cancels the job. */
+    @Volatile private var heldConfirmDroppedByUser: PendingConfirm? = null
+
     @Volatile private var lastFinishedFix: GpsPoint? = null
 
     /** [DET-HONEST-CLOSE-001] The terminal outcome of the session that just finished — the same
@@ -513,6 +519,26 @@ class CoordinatorParkingDetector(
     private suspend fun logDetection(build: (sessionId: String) -> DetectionEvent) {
         val sid = currentSessionId ?: return
         detectionEventLogger.log(build(sid))
+    }
+
+    /**
+     * [DET-HOLD-BRANCHES-MUST-SPEAK-001] The single door the post-confirm hold [DET-C-02] speaks
+     * through. Every open and every exit goes here and nowhere else: the lane is only worth having
+     * if `type=HOLD` is the complete story of a hold, and that stops being true the moment a branch
+     * writes its own event.
+     *
+     * Two events per hold, not one per fix — the hold spans ~2 min of a 2 s stream, so a per-fix
+     * note would cost ~50 documents to say the same thing the exit says once.
+     */
+    private suspend fun logHold(
+        action: HoldAction,
+        heldMs: Long? = null,
+        pathLabel: String? = null,
+        location: GpsPoint? = null,
+    ) {
+        logDetection { sid ->
+            DetectionEvent.Hold(sid, nowMs(), action = action, heldMs = heldMs, pathLabel = pathLabel, location = location)
+        }
     }
 
     private fun nowMs(): Long = clock()
@@ -919,6 +945,15 @@ class CoordinatorParkingDetector(
                                 DIAG,
                                 "  ⚑ hold starved of fixes for ${config.confirmHoldMs + HOLD_WATCHDOG_MARGIN_MS}ms — finalizing the held confirm at the pinned location [DET-AUDIT-002 T7]"
                             )
+                            // [DET-HOLD-BRANCHES-MUST-SPEAK-001] A pin planted with NO fix to
+                            // re-validate it. Deliberate, but a trace has to say so — in forensics
+                            // this is what "a spot appeared and I don't know why" looks like.
+                            logHold(
+                                HoldAction.STARVED,
+                                heldMs = config.confirmHoldMs + HOLD_WATCHDOG_MARGIN_MS,
+                                pathLabel = pending.pathLabel,
+                                location = pending.location,
+                            )
                             completed = runConfirm(pending.location, pending.reliability, pending.vehicleId, pending.pathLabel)
                             if (completed) {
                                 // The collect loop is suspended on a starved stream — cancelling
@@ -1198,15 +1233,29 @@ class CoordinatorParkingDetector(
                                     "  ↩ tentative confirm STALE at settle — position outran the steps from the held pin (errand/pick-up stop), discarding and re-anchoring [DET-CONFIRM-FRESHNESS-001]"
                                 )
                                 _detectionState.update { it.copy(pendingConfirm = null) }
-                                logDetection { sid ->
-                                    DetectionEvent.Decision(sid, now, outcome = "HOLD_STALE_DISCARDED", pathLabel = pending.pathLabel, location = location)
-                                }
+                                // [DET-HOLD-BRANCHES-MUST-SPEAK-001] Was the lane's only member,
+                                // as an ad-hoc `Decision`. It joins the typed lane so that its
+                                // mute sibling below becomes comparable to it — one of them
+                                // speaking and the other not is exactly what made the two
+                                // impossible to tell apart from outside.
+                                logHold(
+                                    HoldAction.DISCARDED_STALE,
+                                    heldMs = heldMs,
+                                    pathLabel = pending.pathLabel,
+                                    location = location,
+                                )
                                 // Fall through and keep detecting toward the real park.
                             }
                             state.userConfirmedParking || heldMs >= config.confirmHoldMs -> {
                                 PaparcarLogger.d(
                                     DIAG,
                                     "  ✓ hold settled (held=${heldMs}ms, userYes=${state.userConfirmedParking}) — finalizing tentative confirm [DET-C-02]"
+                                )
+                                logHold(
+                                    HoldAction.SETTLED,
+                                    heldMs = heldMs,
+                                    pathLabel = if (state.userConfirmedParking) "user" else pending.pathLabel,
+                                    location = pending.location,
                                 )
                                 // A user "Sí" during the hold is the USER-CONFIRMED path (1.0,
                                 // every guard bypassed), not the auto path that opened the hold —
@@ -1226,6 +1275,12 @@ class CoordinatorParkingDetector(
                                     "  ↩ tentative confirm DISCARDED — drove off ${heldMs}ms into the hold (errand), re-anchoring [DET-C-02]"
                                 )
                                 _detectionState.update { it.copy(pendingConfirm = null) }
+                                logHold(
+                                    HoldAction.DISCARDED_DROVE_OFF,
+                                    heldMs = heldMs,
+                                    pathLabel = pending.pathLabel,
+                                    location = location,
+                                )
                                 // Fall through and keep detecting toward the real park. On a real
                                 // driving fix updateStopTracking already cleared anchor + steps; on
                                 // an ambiguous walking-band fix (unpinned anchor) it may have KEPT
@@ -1678,6 +1733,15 @@ class CoordinatorParkingDetector(
                     val pending = _detectionState.value.pendingConfirm
                     if (pending != null && !completed) {
                         PaparcarLogger.w(DIAG, "  ⚑ session ended with a HELD confirm — finalizing at the pinned location [DET-AUDIT-002 T7]")
+                        // [DET-HOLD-BRANCHES-MUST-SPEAK-001] The other pin planted with no fix
+                        // behind it. Emitted BEFORE runConfirm so the note survives even if the
+                        // save itself is what fails.
+                        logHold(
+                            HoldAction.SESSION_ENDED,
+                            heldMs = nowMs() - pending.confirmedAt,
+                            pathLabel = pending.pathLabel,
+                            location = pending.location,
+                        )
                         completed = runConfirm(pending.location, pending.reliability, pending.vehicleId, pending.pathLabel)
                     }
                     // [DET-HANDOFF-NOT-MANUAL-001 §B.3] This session is over and it never measured a
@@ -1701,6 +1765,15 @@ class CoordinatorParkingDetector(
                     lastFinishedStepEvents = _detectionState.value.stepCount
                     lastFinishedMaxSpeedMps = _detectionState.value.maxSpeedMps
                     // [DET-LOG-03] Close the diagnostics session before wiping state, then clear the id.
+                    heldConfirmDroppedByUser?.let { dropped ->
+                        logHold(
+                            HoldAction.DROPPED_BY_USER,
+                            heldMs = nowMs() - dropped.confirmedAt,
+                            pathLabel = dropped.pathLabel,
+                            location = dropped.location,
+                        )
+                    }
+                    heldConfirmDroppedByUser = null
                     logDetection { sid -> DetectionEvent.SessionEnded(sid, nowMs(), sessionOutcome) }
                     currentSessionId = null
                     // [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001] A late verdict for a fence whose
@@ -1797,6 +1870,10 @@ class CoordinatorParkingDetector(
         PaparcarLogger.d(DIAG, "✱ onUserStoppedDetection() — user stopped the live session; dropping any held confirm [DET-STOP-BUTTON-001]")
         sessionOutcome = DetectionSessionOutcomes.STOPPED_BY_USER
         notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
+        // [DET-HOLD-BRANCHES-MUST-SPEAK-001] Remember WHAT the stop dropped, before the state wipe
+        // makes it unknowable. Without this the trace shows a session that ended stopped_by_user and
+        // no way to tell whether the button cost the user a pin that was one fix from being planted.
+        heldConfirmDroppedByUser = _detectionState.value.pendingConfirm
         _detectionState.update { ParkingDetectionState() }
     }
 
@@ -1818,6 +1895,10 @@ class CoordinatorParkingDetector(
 
     private fun reset() {
         _detectionState.value = ParkingDetectionState()
+        // [DET-HOLD-BRANCHES-MUST-SPEAK-001] Belt for the superseded path: that epilogue skips the
+        // emit (it must not touch the successor's state), so without this the note would survive
+        // into the next session and be filed under an id it has nothing to do with.
+        heldConfirmDroppedByUser = null
     }
 
     /**
@@ -1877,6 +1958,11 @@ class CoordinatorParkingDetector(
             DIAG,
             "  ⏸ tentative confirm ($pathLabel) — holding ${config.confirmHoldMs}ms to rule out an errand stop [DET-C-02]"
         )
+        // [DET-HOLD-BRANCHES-MUST-SPEAK-001] The open is the load-bearing one for testability: a
+        // second OPENED in a trace is what distinguishes "the hold swallowed this fix" from "the
+        // fast lane re-fired and restarted the clock" — the pair
+        // DET-CONFIRM-BRANCH-ORDER-MUST-BE-TESTABLE-001 measured as unobservable.
+        logHold(HoldAction.OPENED, heldMs = 0L, pathLabel = pathLabel, location = location)
         return false
     }
 
