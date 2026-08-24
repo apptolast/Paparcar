@@ -12,6 +12,11 @@ import io.apptolast.paparcar.domain.detection.isHumanPoweredRide
 import io.apptolast.paparcar.domain.detection.physics.outrunsPedestrianReach
 import io.apptolast.paparcar.domain.detection.physics.isCredibleFixAccuracy
 import io.apptolast.paparcar.domain.detection.physics.isCredibleMovingFix
+import io.apptolast.paparcar.domain.detection.physics.DriveProofBounds
+import io.apptolast.paparcar.domain.detection.physics.corroboratesDrive
+import io.apptolast.paparcar.domain.detection.physics.isCorroboratedVehicleHop
+import io.apptolast.paparcar.domain.detection.physics.pruneRecentFixes
+import io.apptolast.paparcar.domain.detection.physics.sustainedDepartureFromAnchor
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
 import io.apptolast.paparcar.domain.error.PaparcarError
@@ -2525,24 +2530,25 @@ class CoordinatorParkingDetector(
     private fun isSustainedDepartureFromAnchor(s: ParkingDetectionState, current: GpsPoint, now: Long): Boolean {
         val anchor = s.bestStopLocation ?: return false
         val sinceMs = s.anchorCapturedAtStop ?: return false
-        if (current.speed < config.clearBestStopSpeedMps) return false
-        val elapsedSeconds = (now - sinceMs) / 1000.0
-        if (elapsedSeconds <= 0.0) return false
-        val d = io.apptolast.paparcar.domain.util.haversineMeters(
-            anchor.latitude, anchor.longitude,
-            current.latitude, current.longitude,
+        val departure = sustainedDepartureFromAnchor(
+            anchor = anchor,
+            anchorStoppedSinceMs = sinceMs,
+            fix = current,
+            nowMs = now,
+            movingBarMps = config.clearBestStopSpeedMps,
+            floorMeters = config.sustainedDepartureFloorMeters,
+            minRateMps = config.minimumTripSpeedMps,
+            maxRateMps = config.sustainedDepartureMaxRateMps,
+        ) ?: return false
+        // The geometry is pure now; the LOG stays here, firing at the same instant it always did and
+        // still carrying its numbers — the physics returns the MEASUREMENT rather than a boolean
+        // precisely so the line does not have to be reworded or moved. `parkdiag` is byte-identical.
+        PaparcarLogger.d(
+            DIAG,
+            "  ⇢ SUSTAINED DEPARTURE — position ran ${departure.distanceMeters.toInt()} m from the anchor at " +
+                "${(departure.rateMps * 10).toInt() / 10.0} m/s avg — credible drive by displacement [DET-CREDIBLE-DRIVE-001]"
         )
-        if (d <= anchor.accuracy + current.accuracy + config.sustainedDepartureFloorMeters) return false
-        val rate = d / elapsedSeconds
-        val sustained = rate >= config.minimumTripSpeedMps && rate <= config.sustainedDepartureMaxRateMps
-        if (sustained) {
-            PaparcarLogger.d(
-                DIAG,
-                "  ⇢ SUSTAINED DEPARTURE — position ran ${d.toInt()} m from the anchor at " +
-                    "${(rate * 10).toInt() / 10.0} m/s avg — credible drive by displacement [DET-CREDIBLE-DRIVE-001]"
-            )
-        }
-        return sustained
+        return true
     }
 
     /** [DET-CREDIBLE-DRIVE-001] Displacement corroboration for a MUTE-counter ambiguous-band
@@ -2554,17 +2560,13 @@ class CoordinatorParkingDetector(
      *  accuracy — the car rolling to the kerb), the Camelias walk-back recovery swing fails every
      *  hop (its envelopes balloon exactly when it "moves": best case 11.9 m against 14.1 m of
      *  noise) — so the drag-to-home laundering stays impossible. */
-    private fun isCorroboratedVehicleHop(prev: GpsPoint?, curr: GpsPoint): Boolean {
-        if (prev == null) return false
-        val dtSeconds = (curr.timestamp - prev.timestamp) / 1000.0
-        if (dtSeconds <= 0.0) return false
-        val d = io.apptolast.paparcar.domain.util.haversineMeters(
-            prev.latitude, prev.longitude,
-            curr.latitude, curr.longitude,
+    private fun isCorroboratedVehicleHop(prev: GpsPoint?, curr: GpsPoint): Boolean =
+        isCorroboratedVehicleHop(
+            prev = prev,
+            curr = curr,
+            hopMarginMeters = config.credibleDriveHopMarginMeters,
+            minRateMps = config.clearBestStopSpeedMps,
         )
-        if (d <= prev.accuracy + curr.accuracy + config.credibleDriveHopMarginMeters) return false
-        return d / dtSeconds >= config.clearBestStopSpeedMps
-    }
 
     /** [DET-DRIVE-PROOF-001] Track-level corroboration for the session's "measured driving"
      *  statistic. TRUE when the position PROVABLY covered a trip's worth of ground ending at
@@ -2581,34 +2583,27 @@ class CoordinatorParkingDetector(
      *  Enamorados leg proves itself across 25-s windows of ~200 m even though NO single hop
      *  ever escapes its joint accuracy envelopes. The at-home mirage has no window at all: its
      *  burst died 10 s into the session. */
-    private fun corroboratesDrive(history: List<GpsPoint>, curr: GpsPoint): Boolean {
-        val eligible = history.filter {
-            (curr.timestamp - it.timestamp) in config.driveProofWindowMinMs..config.driveProofWindowMaxMs
-        }
-        return eligible.any { anchor ->
-            val d = io.apptolast.paparcar.domain.util.haversineMeters(
-                anchor.latitude, anchor.longitude,
-                curr.latitude, curr.longitude,
-            )
-            val dtSeconds = (curr.timestamp - anchor.timestamp) / 1000.0
-            val midTs = anchor.timestamp + (curr.timestamp - anchor.timestamp) / 2
-            d > anchor.accuracy + curr.accuracy + config.credibleDriveHopMarginMeters &&
-                d >= config.minimumTripDistanceMeters &&
-                d / dtSeconds <= config.sustainedDepartureMaxRateMps &&
-                history.filter { it.timestamp in (midTs + 1) until curr.timestamp }.all {
-                    io.apptolast.paparcar.domain.util.haversineMeters(
-                        anchor.latitude, anchor.longitude,
-                        it.latitude, it.longitude,
-                    ) >= d * DRIVE_PROOF_PROGRESS_FRACTION
-                }
-        }
-    }
+    /** [DET-DRIVE-PROOF-001] The look-back window AND the ring's retention rule, in one object so
+     *  they cannot drift apart — a ring that forgets faster than the window looks back turns a real
+     *  drive into one that silently stops proving itself, with no error anywhere. */
+    private val driveProofBounds = DriveProofBounds(
+        windowMinMs = config.driveProofWindowMinMs,
+        windowMaxMs = config.driveProofWindowMaxMs,
+        hopMarginMeters = config.credibleDriveHopMarginMeters,
+        minDistanceMeters = config.minimumTripDistanceMeters,
+        maxRateMps = config.sustainedDepartureMaxRateMps,
+        progressFraction = DRIVE_PROOF_PROGRESS_FRACTION,
+        retentionSlackMs = DRIVE_PROOF_PRUNE_SLACK_MS,
+        maxRetainedFixes = DRIVE_PROOF_MAX_RECENT_FIXES,
+    )
+
+    private fun corroboratesDrive(history: List<GpsPoint>, curr: GpsPoint): Boolean =
+        corroboratesDrive(history, curr, driveProofBounds)
 
     /** [DET-DRIVE-PROOF-001] Bounded ring behind [corroboratesDrive]: keeps fixes young enough
      *  to serve a future look-back window, hard-capped so a hot stream cannot grow the state. */
     private fun pruneRecentFixes(history: List<GpsPoint>, curr: GpsPoint): List<GpsPoint> =
-        (history.filter { curr.timestamp - it.timestamp <= config.driveProofWindowMaxMs + DRIVE_PROOF_PRUNE_SLACK_MS } + curr)
-            .takeLast(DRIVE_PROOF_MAX_RECENT_FIXES)
+        pruneRecentFixes(history, curr, driveProofBounds)
 
     /** [DET-ANCHOR-EGRESS-001] The egress must be BORN at the anchor — the ceiling the
      *  displacement gate never had (it only checks a floor, and at 1.11 km from the anchor it is

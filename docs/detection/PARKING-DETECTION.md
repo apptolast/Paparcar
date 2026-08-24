@@ -1549,6 +1549,40 @@ comparison remains** in the coordinator. Suite passes without a single edited as
 
 ---
 
+### DET-PHYSICS-DRIVE-CORROBORATION-001 — where displacement corroboration lives now
+
+**Commit:** pending · **Ticket:** `docs/backlog/det-physics-drive-corroboration-001.md` · plan step
+P1.4, the first one marked **`L`**.
+
+Four functions that all exist for the same reason — *a single fix is not evidence*. Its `speed` is a
+claim and its `accuracy` is a claim, both made with equal confidence when the receiver is lost. What
+cannot be faked is ground actually covered between two positions. They now live in
+`domain/detection/physics/DriveCorroboration.kt`, and their three time scales stay deliberately
+separate: `isCorroboratedVehicleHop` (fix to fix), `sustainedDepartureFromAnchor` (the anchor's stop
+to now), `corroboratesDrive` (a bounded look-back window).
+
+**The `L` risk did not materialise, and the reason is worth keeping.** The plan flagged this step
+because `isSustainedDepartureFromAnchor` carries a `PaparcarLogger` inside, and warned the log would
+rise to the caller and change *when* a `parkdiag` line is emitted. It does not: the pure function
+returns the **measurement** (`SustainedDeparture(distance, rate)`) instead of a boolean, so the
+adapter logs at the same instant with the same numbers. `parkdiag` is byte-identical. Returning the
+measurement is exactly what lets the geometry become pure without the log having to move.
+
+**`DriveProofBounds` makes a coupling explicit.** `pruneRecentFixes` and `corroboratesDrive` share an
+invariant: the ring must keep fixes at least as old as the window looks back. Tune one number without
+the other and the window finds nothing to look back at — a real drive silently stops proving itself,
+with no error anywhere. The eight parameters travel in one object so that is something you must edit
+together rather than remember, and it has its own test.
+
+**Zero behaviour change**; suite passes without a single edited assert.
+
+**Files:** `physics/DriveCorroboration.kt` (new, pure), `CoordinatorParkingDetector.kt`, 14 new
+tests built on the traces these functions were calibrated against (Galeote's kerb roll must pass,
+Camelias' recovery swing must fail, the at-home mirage's flat-then-jump must be refused, Gavia's
+sparse single-hop drive must still prove itself). **1487 tests.**
+
+---
+
 ## 3. Open questions / future work
 
 - **GPS sampling boost during CANDIDATE (PARKING-001 Option B).** Switch the LocationDataSource to a 1 s `minUpdateIntervalMillis` request when entering the CANDIDATE phase, returning to 2 s on exit. Increases density of fixes that refine `bestStopLocation` within the new initial-stop window after a reposition burst. Adds the complexity of swapping the location source mid-session — hold off until A is validated in the field.
