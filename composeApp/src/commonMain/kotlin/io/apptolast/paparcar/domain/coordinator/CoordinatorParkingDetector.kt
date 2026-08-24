@@ -9,6 +9,7 @@ import io.apptolast.paparcar.domain.detection.DetectionPhaseSink
 import io.apptolast.paparcar.domain.detection.creditSpeedBand
 import io.apptolast.paparcar.domain.detection.VehicleFenceOwnershipPolicy
 import io.apptolast.paparcar.domain.detection.isHumanPoweredRide
+import io.apptolast.paparcar.domain.detection.physics.outrunsPedestrianReach
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
 import io.apptolast.paparcar.domain.error.PaparcarError
@@ -2437,13 +2438,13 @@ class CoordinatorParkingDetector(
      *  walk-away keeps pace with its own count (the counting gate feeds steps during the walk). */
     private fun movementOutrunsSteps(s: ParkingDetectionState, current: GpsPoint): Boolean {
         val anchor = s.bestStopLocation ?: return false
-        val d = io.apptolast.paparcar.domain.util.haversineMeters(
-            anchor.latitude, anchor.longitude,
-            current.latitude, current.longitude,
+        return outrunsPedestrianReach(
+            base = anchor,
+            fix = current,
+            steps = s.stepCount,
+            strideMeters = config.anchorStrideMeters,
+            floorMeters = config.minEgressDisplacementMeters,
         )
-        val walkReach = s.stepCount * config.anchorStrideMeters +
-            anchor.accuracy + current.accuracy + config.minEgressDisplacementMeters
-        return d > walkReach
     }
 
     /** [DET-CONFIRM-FRESHNESS-001] Settle-time freshness check for a held confirm: the current fix
@@ -2458,13 +2459,13 @@ class CoordinatorParkingDetector(
         s: ParkingDetectionState,
         current: GpsPoint,
     ): Boolean {
-        val d = io.apptolast.paparcar.domain.util.haversineMeters(
-            pending.location.latitude, pending.location.longitude,
-            current.latitude, current.longitude,
+        return outrunsPedestrianReach(
+            base = pending.location,
+            fix = current,
+            steps = s.stepCount,
+            strideMeters = config.anchorStrideMeters,
+            floorMeters = config.egressBirthFloorMeters,
         )
-        val walkReach = s.stepCount * config.anchorStrideMeters +
-            pending.location.accuracy + current.accuracy + config.egressBirthFloorMeters
-        return d > walkReach
     }
 
     /** [DET-CONFIRM-FRESHNESS-001] The fix sits provably OUTSIDE the anchor's accuracy envelopes
@@ -2473,11 +2474,15 @@ class CoordinatorParkingDetector(
      *  never escapes its own accuracy. */
     private fun escapesAnchorEnvelope(s: ParkingDetectionState, current: GpsPoint): Boolean {
         val anchor = s.bestStopLocation ?: return false
-        val d = io.apptolast.paparcar.domain.util.haversineMeters(
-            anchor.latitude, anchor.longitude,
-            current.latitude, current.longitude,
+        // The same envelope with NO step credit: this asks whether the position has measurably
+        // left the anchor at all, not whether a walker could have covered the gap.
+        return outrunsPedestrianReach(
+            base = anchor,
+            fix = current,
+            steps = 0,
+            strideMeters = config.anchorStrideMeters,
+            floorMeters = config.minEgressDisplacementMeters,
         )
-        return d > anchor.accuracy + current.accuracy + config.minEgressDisplacementMeters
     }
 
     /** [DET-EGRESS-PEDESTRIAN-CEILING-001] The CONFIRM counterpart of [movementOutrunsSteps]: TRUE
@@ -2492,13 +2497,13 @@ class CoordinatorParkingDetector(
      *  ceiling. */
     private fun egressExceedsWalkReach(s: ParkingDetectionState, current: GpsPoint): Boolean {
         val anchor = s.bestStopLocation ?: return false
-        val d = io.apptolast.paparcar.domain.util.haversineMeters(
-            anchor.latitude, anchor.longitude,
-            current.latitude, current.longitude,
+        return outrunsPedestrianReach(
+            base = anchor,
+            fix = current,
+            steps = s.stepCount,
+            strideMeters = config.anchorStrideMeters,
+            floorMeters = config.egressBirthFloorMeters,
         )
-        val walkReach = s.stepCount * config.anchorStrideMeters +
-            anchor.accuracy + current.accuracy + config.egressBirthFloorMeters
-        return d > walkReach
     }
 
     /** [DET-CREDIBLE-DRIVE-001] Displacement-corroborated driving: the position has RUN from the

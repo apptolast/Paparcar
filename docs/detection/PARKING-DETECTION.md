@@ -1480,6 +1480,39 @@ acceptance criterion.
 
 ---
 
+### DET-PHYSICS-PEDESTRIAN-REACH-001 — where the person/car envelope lives now
+
+**Commit:** pending · **Ticket:** `docs/backlog/det-physics-pedestrian-reach-001.md` · plan step P1.2.
+
+Another **move**, recorded for the same reason as P1.1: this document is where you look to find a
+guard's home.
+
+**The four guards are unchanged and all four still exist by name** —
+`movementOutrunsSteps` · `egressExceedsWalkReach` · `heldConfirmOutrunByVehicle` ·
+`escapesAnchorEnvelope` — each with its own KDoc and its own field incident (Calle Gavia's spurious
+steps · Calle Abeto 18-07's 26 phantom steps with the car 500 m away · Osborne/Abeto 23-24/07's hold
+settling with the car 570 m off · the stepless egress). What they share, `d > steps × stride +
+acc(base) + acc(fix) + floor`, was written out four times and is now
+`domain/detection/physics/PedestrianReach.kt`. The named four became three-line adapters.
+
+**Design note:** the pure function takes primitives and `GpsPoint`, nothing else. Moving the named
+four into `physics/` wholesale would have made that package depend on the coordinator's state, which
+is what it exists to avoid. `escapesAnchorEnvelope` enters as the **steps = 0** member: it asks
+whether the position left the envelope at all, not whether a walker could have covered it.
+
+**Boundary NOT crossed:** `ParkingDetectionConfig.isBeyondPedestrianReach` looks like family and is
+not — it builds its envelope from **time** (`maxPedestrianSpeed × elapsed`), not counted steps.
+Unifying the two needs its own proof (06 §3-b says so explicitly); the exclusion is written into the
+new function's KDoc. Same rule as P1.1's BT gate: **resemblance is not proof.**
+
+**Zero behaviour change**; suite passes without a single edited assert. The 13 `Trace_*` replays
+exercise these four predicates heavily and pass untouched — that is the strong check on this step.
+
+**Files:** `physics/PedestrianReach.kt` (new, pure), `CoordinatorParkingDetector.kt`, 6 new tests.
+**1465 tests.**
+
+---
+
 ## 3. Open questions / future work
 
 - **GPS sampling boost during CANDIDATE (PARKING-001 Option B).** Switch the LocationDataSource to a 1 s `minUpdateIntervalMillis` request when entering the CANDIDATE phase, returning to 2 s on exit. Increases density of fixes that refine `bestStopLocation` within the new initial-stop window after a reposition burst. Adds the complexity of swapping the location source mid-session — hold off until A is validated in the field.
