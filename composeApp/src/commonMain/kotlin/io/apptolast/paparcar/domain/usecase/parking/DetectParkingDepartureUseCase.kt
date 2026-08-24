@@ -2,6 +2,7 @@ package io.apptolast.paparcar.domain.usecase.parking
 
 import io.apptolast.paparcar.domain.detection.DepartureSpeedVerdict
 import io.apptolast.paparcar.domain.detection.classifyDepartureSpeed
+import io.apptolast.paparcar.domain.detection.physics.isAdmissibleEvidence
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.UserParking
@@ -129,7 +130,7 @@ class DetectParkingDepartureUseCase(
         // EXIT was "verified" by it and the correct parking was erased.
         val sessionStartMs = session.location.timestamp
         val vehicleEnteredAt = departureEventBus.lastVehicleEnteredAt?.takeIf { enteredAt ->
-            val admissible = enteredAt >= sessionStartMs
+            val admissible = isAdmissibleEvidence(enteredAt, sessionStartMs)
             if (!admissible) {
                 PaparcarLogger.w(TAG, "IN_VEHICLE_ENTER predates the session (enter=$enteredAt < sessionStart=$sessionStartMs) — not departure evidence, ignoring [DET-SESSION-BIRTH-001]")
             }

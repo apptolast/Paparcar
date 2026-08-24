@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.domain.usecase.detection
 
+import io.apptolast.paparcar.domain.detection.physics.isAdmissibleEvidence
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.UserParking
@@ -80,7 +81,7 @@ class EvaluateArEnterArmUseCase(private val config: ParkingDetectionConfig) {
 
         // A boarding that predates the session belongs to the trip that CREATED this parking
         // (or an OEM re-delivery of it) — never evidence of leaving it. [DET-SESSION-BIRTH-001]
-        if (enterTrueTimeMs < session.location.timestamp) return ArEnterDecision.StaleEnter
+        if (!isAdmissibleEvidence(enterTrueTimeMs, session.location.timestamp)) return ArEnterDecision.StaleEnter
 
         if (fix == null) return ArEnterDecision.NoFix
 

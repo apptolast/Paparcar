@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.domain.usecase.parking
 
+import io.apptolast.paparcar.domain.detection.physics.isAdmissibleEvidence
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.UserParking
@@ -156,8 +157,8 @@ class EvaluateSafetyNetCheckUseCase(
         // a walking exit 23 s after the park and erased a correct parking. ONE filter, applied
         // to every evidence source, kills the whole class.
         val sessionStartMs = session.location.timestamp
-        val boardingAtMs = lastVehicleEnteredAtMs?.takeIf { it >= sessionStartMs }
-        val exitAtMs = exitDeliveredAtMs?.takeIf { it >= sessionStartMs }
+        val boardingAtMs = lastVehicleEnteredAtMs?.takeIf { isAdmissibleEvidence(it, sessionStartMs) }
+        val exitAtMs = exitDeliveredAtMs?.takeIf { isAdmissibleEvidence(it, sessionStartMs) }
 
         // ── BT identity veto [DET-BT-IDENTITY-GATE-001] ─────────────────────────────────────────
         // When THIS vehicle is BT-paired and Bluetooth is on, the BLUETOOTH strategy owns its

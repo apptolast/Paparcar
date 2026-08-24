@@ -1444,6 +1444,42 @@ is new is that they say so.
 
 ---
 
+### DET-PHYSICS-EVIDENCE-ADMISSIBILITY-001 — where [DET-SESSION-BIRTH-001] lives now
+
+**Commit:** pending · **Ticket:** `docs/backlog/det-physics-evidence-admissibility-001.md` ·
+**first step of FASE 1** of the deep refactor (plan step P1.1).
+
+Not a fix — a **move**, recorded here because this document is where you look to find out where a
+guard lives and what failure mode it covers.
+
+**The guard is unchanged**: evidence older than the session describes the trip that CREATED the
+parking, so it can never prove departure FROM it (field 2026-07-08 18:52, Redmi: MIUI re-delivered
+the inbound drive's `IN_VEHICLE ENTER`, 17 min old, and it "verified" a walking exit 23 s after the
+park, erasing a correct parking).
+
+**What changed is that there is now one of it.** It lived as **five** hand-written comparisons across
+four use cases (the plan said four — the safety net has two, boarding and exit), one of them written
+inside-out (`<` + reject instead of `>=` + admit) and one with its own null semantics. They now all
+call `domain/detection/physics/EvidenceAdmissibility.kt`.
+
+**Deliberately NOT collapsed:** the BT identity gate in `EvaluateSafetyNetCheckUseCase`
+[DET-BT-IDENTITY-GATE-001] compares the same shape, asks a different question, and its null means
+the opposite. Merging it on resemblance would have changed behaviour. The exclusion is written into
+the new function's KDoc so a later pass does not try again.
+
+**Design note worth keeping:** the two nulls are opposite on purpose — absent evidence fails CLOSED
+(nothing to admit), unknown session birth fails OPEN (nothing can refute it). That is the project's
+asymmetric-failure principle applied to a predicate.
+
+**Zero behaviour change**; the suite passes without a single edited assert, which is Fase 1's
+acceptance criterion.
+
+**Files:** `physics/EvidenceAdmissibility.kt` (new, pure), `EvaluateArEnterArmUseCase.kt`,
+`DetectParkingDepartureUseCase.kt`, `EvaluateSafetyNetCheckUseCase.kt`,
+`VerifyDepartureEvidenceUseCase.kt`, 5 new tests. **1459 tests.**
+
+---
+
 ## 3. Open questions / future work
 
 - **GPS sampling boost during CANDIDATE (PARKING-001 Option B).** Switch the LocationDataSource to a 1 s `minUpdateIntervalMillis` request when entering the CANDIDATE phase, returning to 2 s on exit. Increases density of fixes that refine `bestStopLocation` within the new initial-stop window after a reposition burst. Adds the complexity of swapping the location source mid-session — hold off until A is validated in the field.

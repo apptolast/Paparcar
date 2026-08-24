@@ -3,6 +3,7 @@ package io.apptolast.paparcar.domain.usecase.parking
 import io.apptolast.paparcar.domain.detection.ArmEvidence
 import io.apptolast.paparcar.domain.detection.DepartureSpeedVerdict
 import io.apptolast.paparcar.domain.detection.classifyDepartureSpeed
+import io.apptolast.paparcar.domain.detection.physics.isAdmissibleEvidence
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.service.DepartureEventBus
 import io.apptolast.paparcar.domain.util.PaparcarLogger
@@ -108,7 +109,7 @@ class VerifyDepartureEvidenceUseCase(
         }
 
         val enteredAt = departureEventBus.lastVehicleEnteredAt
-            ?.takeIf { sessionStartMs == null || it >= sessionStartMs }
+            ?.takeIf { isAdmissibleEvidence(it, sessionStartMs) }
         val enterToExitMs = enteredAt?.let { exitTimestampMs - it }
         if (enterToExitMs != null && enterToExitMs in 0..config.vehicleEnterWindowMs) {
             // [DET-RIDE-PROOF-001] The ENTER is a nomination; the corroboration is displacement
