@@ -187,6 +187,15 @@ class EvaluateSafetyNetCheckUseCase(
 
         // Same size/accuracy-aware radius the geofence was registered with (SESSION-RESTORE-001),
         // so "inside" here means inside the REAL fence, not a flat default.
+        //
+        // ⚠️ Deliberately NOT `physics/isWithinFence`, which pads by the fix's own accuracy. This
+        // evaluator does not ask a binary inside/outside question — it runs a three-zone ladder, and
+        // its generosity already lives on the FAR gate right below (where "far" must hold even if
+        // the fix erred by its accuracy). Padding here too would push the two paddings into each
+        // other and eat the ambiguous ring between them, turning GPS-noise fixes into fence cures.
+        // The ring exists so neither answer is forced when the fix cannot support one. Whether this
+        // site SHOULD pad is a product question with its own trade-off — bug #9, its own ticket.
+        // [P1.7]
         val radiusMeters = config.geofenceRadiusFor(session.sizeCategory, session.location.accuracy)
         if (distanceMeters <= radiusMeters) {
             return SafetyNetAction.CureGeofence(geofenceId, radiusMeters)

@@ -1649,6 +1649,40 @@ duplication — one fewer risky step than the checkpoint counted.
 
 ---
 
+### DET-PHYSICS-FENCE-CONTAINMENT-001 — where fence containment lives now, and why one site differs
+
+**Commit:** pending · **Ticket:** `docs/backlog/det-physics-fence-containment-001.md` · plan step P1.7.
+
+*Could the body plausibly be AT this car?* — `d(fix, centre) <= radius + acc(fix)`. The padding by
+the fix's own accuracy is the point: a fix that could be off by 40 m and lands 30 m outside the ring
+has not shown the body is away from the car, only that the receiver is unsure. The asymmetry runs one
+way — a wrong "inside" costs a few extra wake-ups, a wrong "outside" costs a parking spot.
+
+Two callers wrote it by hand (the sentry damper's `isInsideAnyOwnedFence` and the AR-boarding
+evaluator) and now share `domain/detection/physics/FenceContainment.kt`.
+
+**The third site keeps its unpadded `d <= radius`, and that is the substance of this step.**
+`EvaluateSafetyNetCheckUseCase` does not ask a binary question — it runs a three-zone ladder (inside
+→ cure; `d - acc <= farThreshold` → do nothing; otherwise far → run the departure proofs) and **its
+generosity already lives on the far gate**. Padding the inside test too would push the two paddings
+into each other and eat the ambiguous ring between them, turning GPS-noise fixes into fence cures.
+With radii of ~80–130 m against a 300 m far threshold that ring is real and wide, and it exists so
+neither answer is forced when the fix cannot support one.
+
+Whether that site *should* pad is a product question with its own trade-off (bug #9) and gets its own
+ticket. What was missing was the paragraph: **without it, a reasoned asymmetry is indistinguishable
+from an oversight**, and the next person to notice has no way to tell which one they are looking at.
+It is now written both in the shared function's KDoc (where someone looks for the family) and at the
+unpadded site itself (where someone stumbles onto it).
+
+**Zero behaviour change**; suite passes without a single edited assert.
+
+**Files:** `physics/FenceContainment.kt` (new, pure), `SentryWakeCooldown.kt`,
+`EvaluateArEnterArmUseCase.kt`, `EvaluateSafetyNetCheckUseCase.kt` (comment only), 6 new tests.
+**1506 tests.**
+
+---
+
 ## 3. Open questions / future work
 
 - **GPS sampling boost during CANDIDATE (PARKING-001 Option B).** Switch the LocationDataSource to a 1 s `minUpdateIntervalMillis` request when entering the CANDIDATE phase, returning to 2 s on exit. Increases density of fixes that refine `bestStopLocation` within the new initial-stop window after a reposition burst. Adds the complexity of swapping the location source mid-session — hold off until A is validated in the field.

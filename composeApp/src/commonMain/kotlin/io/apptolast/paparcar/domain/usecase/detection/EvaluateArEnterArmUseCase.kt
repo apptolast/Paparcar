@@ -1,10 +1,10 @@
 package io.apptolast.paparcar.domain.usecase.detection
 
 import io.apptolast.paparcar.domain.detection.physics.isAdmissibleEvidence
+import io.apptolast.paparcar.domain.detection.physics.isWithinFence
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.UserParking
-import io.apptolast.paparcar.domain.util.haversineMeters
 
 /**
  * Decision for one FRESH AR `IN_VEHICLE_ENTER` delivered on the privileged service lane.
@@ -85,14 +85,10 @@ class EvaluateArEnterArmUseCase(private val config: ParkingDetectionConfig) {
 
         if (fix == null) return ArEnterDecision.NoFix
 
-        val distanceMeters = haversineMeters(
-            fix.latitude, fix.longitude,
-            session.location.latitude, session.location.longitude,
-        )
         val radiusMeters = config.geofenceRadiusFor(session.sizeCategory, session.location.accuracy)
 
         return when {
-            distanceMeters <= radiusMeters + fix.accuracy -> ArEnterDecision.ArmAtCar(geofenceId)
+            isWithinFence(fix, session.location, radiusMeters) -> ArEnterDecision.ArmAtCar(geofenceId)
             recentStaleExitRecorded -> ArEnterDecision.ArmMidTrip(geofenceId)
             else -> ArEnterDecision.TickOnly
         }

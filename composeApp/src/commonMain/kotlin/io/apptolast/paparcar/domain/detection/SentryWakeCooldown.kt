@@ -1,9 +1,9 @@
 package io.apptolast.paparcar.domain.detection
 
+import io.apptolast.paparcar.domain.detection.physics.isWithinFence
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.UserParking
-import io.apptolast.paparcar.domain.util.haversineMeters
 
 /**
  * [DET-SENTRY-COOLDOWN-001] Pure decisions for the sentry-wake storm damper.
@@ -139,12 +139,11 @@ fun isInsideAnyOwnedFence(
 ): Boolean {
     val here = fix ?: return false
     return parkedSessions.any { session ->
-        val radius = config.geofenceRadiusFor(session.sizeCategory, session.location.accuracy)
-        val distance = haversineMeters(
-            session.location.latitude, session.location.longitude,
-            here.latitude, here.longitude,
+        isWithinFence(
+            fix = here,
+            fenceCenter = session.location,
+            fenceRadiusMeters = config.geofenceRadiusFor(session.sizeCategory, session.location.accuracy),
         )
-        distance <= radius + here.accuracy
     }
 }
 
