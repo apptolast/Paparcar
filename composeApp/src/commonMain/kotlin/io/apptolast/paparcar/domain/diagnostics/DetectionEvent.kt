@@ -70,6 +70,29 @@ sealed interface DetectionEvent {
         val trueTimeAgeMs: Long? = null,
     ) : DetectionEvent
 
+    /**
+     * [DET-EVERY-TRIGGER-LEAVES-A-TRACE-001] A trigger reached the service and this is what became
+     * of it. One event per trigger, whatever its fate — the arms too, so the lane is uniform and a
+     * device's whole disposition histogram is one query (`type=TRIGGER` grouped by `outcome`).
+     *
+     * Before this, only the arms were observable and **every way of dying was mute in remote**
+     * (04 §2): a trip that never started looked the same whether the OEM ate the broadcast or a
+     * guard did its job correctly. [trigger] is the lane (`GEOFENCE_EXIT`, `AR_TRANSITION`,
+     * `SENTRY_WAKE`…), [disposition] the verdict, [detail] the free-form why.
+     *
+     * Filed under the daily ledger (`triggerLedgerSessionId`) so the events have a real parent
+     * document and the retention sweep can reach them.
+     */
+    data class Trigger(
+        override val sessionId: String,
+        override val timestampMs: Long,
+        val trigger: String,
+        val disposition: io.apptolast.paparcar.domain.detection.TriggerDisposition,
+        val detail: String? = null,
+        val geofenceId: String? = null,
+        override val location: GpsPoint? = null,
+    ) : DetectionEvent
+
     /** A geofence [event] (e.g. EXIT) or error for [geofenceId]. */
     data class Geofence(
         override val sessionId: String,

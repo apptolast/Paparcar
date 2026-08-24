@@ -104,6 +104,7 @@ fun DetectionEvent.typeName(): String = when (this) {
     is DetectionEvent.SessionStarted -> "SESSION_STARTED"
     is DetectionEvent.SessionEnded -> "SESSION_ENDED"
     is DetectionEvent.ActivityTransition -> "ACTIVITY_TRANSITION"
+    is DetectionEvent.Trigger -> "TRIGGER"
     is DetectionEvent.Geofence -> "GEOFENCE"
     is DetectionEvent.Bluetooth -> "BLUETOOTH"
     is DetectionEvent.LocationFix -> "LOCATION_FIX"
@@ -155,6 +156,12 @@ fun DetectionEvent.toDto(): DetectionEventDto {
         // column — the same "how old was this transition" the departure lane already stores there.
         is DetectionEvent.ActivityTransition ->
             base.copy(activity = activity, transition = transition, enterAgeMs = trueTimeAgeMs)
+        // [DET-EVERY-TRIGGER-LEAVES-A-TRACE-001] Rides existing columns on purpose (no serializer
+        // surface change): the lane in `event` — same column GEOFENCE and SENTRY use — the verdict
+        // in `outcome`, which is where SESSION_ENDED already keeps its verdict, and the free-form
+        // why in `reason`, the column DET-PROMPT-STATES-ITS-REASON-001 established for exactly this.
+        is DetectionEvent.Trigger ->
+            base.copy(event = trigger, outcome = disposition.name, reason = detail, geofenceId = geofenceId)
         is DetectionEvent.Geofence -> base.copy(event = event, geofenceId = geofenceId)
         is DetectionEvent.Bluetooth -> base.copy(event = event, deviceAddress = deviceAddress)
         is DetectionEvent.LocationFix -> base.copy(stoppedDurationMs = stoppedDurationMs)

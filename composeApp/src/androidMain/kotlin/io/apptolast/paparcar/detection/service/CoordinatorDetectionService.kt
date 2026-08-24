@@ -23,8 +23,10 @@ import io.apptolast.paparcar.domain.coordinator.CoordinatorParkingDetector
 import io.apptolast.paparcar.domain.detection.ArmEvidence
 import io.apptolast.paparcar.domain.detection.DepartureProof
 import io.apptolast.paparcar.domain.detection.DetectionTrigger
+import io.apptolast.paparcar.domain.detection.TriggerDisposition
 import io.apptolast.paparcar.domain.detection.coordinatorMayArm
 import io.apptolast.paparcar.domain.detection.isArmSuppressedByUserStop
+import io.apptolast.paparcar.domain.detection.triggerLedgerSessionId
 import io.apptolast.paparcar.domain.detection.CheapWakeVerdict
 import io.apptolast.paparcar.domain.detection.cheapWakeVerdict
 import io.apptolast.paparcar.domain.detection.isInsideAnyOwnedFence
@@ -576,6 +578,10 @@ class CoordinatorDetectionService : LifecycleService() {
                 failure is CancellationException -> throw failure
                 failure != null -> {
                     PaparcarLogger.w(DIAG, "  ⚠ GEOFENCE_EXIT session lookup FAILED geof=$id — skipping, NOT orphan (${failure.message})")
+                    // [DET-EVERY-TRIGGER-LEAVES-A-TRACE-001] An indeterminate lookup is precisely
+                    // the case that must never be read as "no session" (field 2026-07-11 00:38) —
+                    // and it was the one with no remote trace at all. (04 §2.6)
+                    logTrigger("GEOFENCE_EXIT", TriggerDisposition.LOOKUP_FAILED, geofenceId = id)
                     GeofenceExitLookup.LookupFailed(id)
                 }
                 result.getOrNull() == null -> GeofenceExitLookup.NoSession(id)
@@ -598,6 +604,10 @@ class CoordinatorDetectionService : LifecycleService() {
             }
             runCatching { geofenceService.removeGeofence(id) }
             runCatching { detectionEventLogger.log(DetectionEvent.OrphanCleaned(sessionId = id, timestampMs = now)) }
+            // [DET-EVERY-TRIGGER-LEAVES-A-TRACE-001] Two different facts, deliberately both kept:
+            // `OrphanCleaned` records the housekeeping (the fence was removed), this records that a
+            // trigger arrived and died here. Only the second one makes the lane's histogram add up.
+            logTrigger("GEOFENCE_EXIT", TriggerDisposition.ORPHAN, geofenceId = id)
         }
 
         // Every triggering fence was an orphan or a failed lookup → nothing real happened.
@@ -683,6 +693,9 @@ class CoordinatorDetectionService : LifecycleService() {
                         )
                     if (!supersede) {
                         PaparcarLogger.d(DIAG, "  ↻ GEOFENCE_EXIT — coordinator already running (same area); not re-arming [DET-AR-REARM-001]")
+                        // [DET-EVERY-TRIGGER-LEAVES-A-TRACE-001] The supersede half already traces
+                        // (`SessionSuperseded`); the suppression — correct behaviour — did not. (04 §2.3)
+                        logTrigger("GEOFENCE_EXIT", TriggerDisposition.SUPPRESSED_REARM, detail = "same_area")
                         return
                     }
                     val supersedeDist = haversineMeters(
@@ -840,6 +853,7 @@ class CoordinatorDetectionService : LifecycleService() {
                 )
             if (!supersede) {
                 PaparcarLogger.d(DIAG, "  ↻ AR_TRANSITION — coordinator already running (same area); not re-arming [DET-AR-REARM-001]")
+                logTrigger("AR_TRANSITION", TriggerDisposition.SUPPRESSED_REARM, detail = "same_area")
                 return
             }
             val supersedeDist = haversineMeters(
@@ -946,6 +960,14 @@ class CoordinatorDetectionService : LifecycleService() {
                 // NO stop here: the intake epilogue decides, and only when this command is
                 // still the newest — the 00:38 field EXIT died to a stop issued right here.
                 PaparcarLogger.d(DIAG, "  ⊘ AR ENTER not armable ($decision, lag=${lagMs}ms) — evaluator's call [DET-AR-FIRST-001]")
+                // [DET-EVERY-TRIGGER-LEAVES-A-TRACE-001] A correctly-discarded re-delivered ENTER
+                // left no evidence it had arrived — indistinguishable from an OEM-eaten one. The
+                // decision subtype rides `detail`, so the four causes stay apart. (04 §2.4)
+                logTrigger(
+                    "AR_TRANSITION",
+                    TriggerDisposition.NOT_ARMABLE,
+                    detail = "${decision::class.simpleName}(lag=${lagMs}ms)",
+                )
             }
         }
     }
@@ -1421,9 +1443,13 @@ class CoordinatorDetectionService : LifecycleService() {
                     DIAG,
                     "  ⊘ arm refused — strategy=$strategy owns detection; coordinator stands down (trigger=$trigger) [DET-STRATEGY-GATE-001]",
                 )
+                // [DET-EVERY-TRIGGER-LEAVES-A-TRACE-001] Field 2026-08-01 (the Kamiq's trips pinned
+                // on the Focus) had to be reconstructed because this refusal was mute. (04 §2.2)
+                logTrigger(trigger.name, TriggerDisposition.REFUSED_STRATEGY, detail = "owner=$strategy")
                 return
             }
         }
+        logTrigger(trigger.name, TriggerDisposition.ARMED, detail = detail, geofenceId = armingGeofenceId)
         logArmTrigger(trigger, detail)
         // [DET-SENTRY-COOLDOWN-001] Remember what armed this session; the teardown epilogue folds
         // its outcome into the sentry-wake abort streak. A supersede simply overwrites — only the
@@ -1617,25 +1643,55 @@ class CoordinatorDetectionService : LifecycleService() {
      *    a park was armed by GEOFENCE_EXIT, AR proximity, or the manual button.
      */
     /**
-     * [DET-STOP-BUTTON-001] Remote trace of an arm the user's quiet period refused. Without it a
-     * field session where "detection never started" looks identical to an OEM-killed trigger — the
-     * exact confusion the provenance rule exists to prevent. Same fire-and-forget shape as
-     * [logArmTrigger], under its own synthetic id since there is no session to attach to.
+     * [DET-EVERY-TRIGGER-LEAVES-A-TRACE-001] The single door every trigger's fate goes out of.
+     *
+     * Fire-and-forget, same shape as [logArmTrigger], and deliberately the ONLY place that builds a
+     * [DetectionEvent.Trigger]: the value of this lane is that `type=TRIGGER` grouped by `outcome`
+     * is a device's complete disposition histogram, and that only holds if no branch emits its own
+     * variant. Filed under the daily ledger so the events have a real parent document and the
+     * retention sweep can reach them — see `triggerLedgerSessionId`.
+     *
+     * Emitting is a side effect, which is why it lives in the service; the *vocabulary* is a pure
+     * domain enum, which is why the disposition is not a string literal at the call site.
      */
-    private fun logArmSuppressedByUserStop(trigger: DetectionTrigger, remainingMs: Long) {
+    private fun logTrigger(
+        trigger: String,
+        disposition: TriggerDisposition,
+        detail: String? = null,
+        geofenceId: String? = null,
+    ) {
         val now = System.currentTimeMillis()
         lifecycleScope.launch {
             runCatching {
                 detectionEventLogger.log(
-                    DetectionEvent.Decision(
-                        sessionId = "arm_$now",
+                    DetectionEvent.Trigger(
+                        sessionId = triggerLedgerSessionId(now),
                         timestampMs = now,
-                        outcome = "ARM_SUPPRESSED_USER_STOP",
-                        pathLabel = "${trigger.name}(quiet=${remainingMs / 1000}s)",
+                        trigger = trigger,
+                        disposition = disposition,
+                        detail = detail,
+                        geofenceId = geofenceId,
                     ),
                 )
-            }.onFailure { e -> PaparcarLogger.w(DIAG, "  ⚠ suppressed-arm log failed: ${e.message}") }
+            }.onFailure { e -> PaparcarLogger.w(DIAG, "  ⚠ trigger-disposition log failed: ${e.message}") }
         }
+    }
+
+    /**
+     * [DET-STOP-BUTTON-001] Remote trace of an arm the user's quiet period refused. Without it a
+     * field session where "detection never started" looks identical to an OEM-killed trigger — the
+     * exact confusion the provenance rule exists to prevent.
+     *
+     * [DET-EVERY-TRIGGER-LEAVES-A-TRACE-001] This was the lane's first member, emitted as an ad-hoc
+     * `Decision` under a per-event synthetic id. It rides the typed lane now, which also stops it
+     * leaking one uncollectable orphan session per suppression.
+     */
+    private fun logArmSuppressedByUserStop(trigger: DetectionTrigger, remainingMs: Long) {
+        logTrigger(
+            trigger = trigger.name,
+            disposition = TriggerDisposition.SUPPRESSED_USER_STOP,
+            detail = "quiet=${remainingMs / 1000}s",
+        )
         if (BuildConfig.DEBUG) {
             notificationPort.showDebug(
                 "Detección NO arrancada: paraste la detección hace poco, así que ignoro los avisos " +
@@ -1712,6 +1768,10 @@ class CoordinatorDetectionService : LifecycleService() {
     private fun guardPermissions(actionLabel: String): Boolean {
         if (hasRequiredPermissions()) return true
         PaparcarLogger.w(DIAG, "  ✗ $actionLabel aborted — missing location permission")
+        // [DET-EVERY-TRIGGER-LEAVES-A-TRACE-001] One emission here covers all five call sites: the
+        // guard is the choke point, so a revoked background-location permission stops being a
+        // logcat-only fact for every lane at once. (04 §2.5)
+        logTrigger(actionLabel, TriggerDisposition.REFUSED_PERMISSIONS)
         notificationPort.showPermissionRevoked()
         cancelDetectionJob()
         return false

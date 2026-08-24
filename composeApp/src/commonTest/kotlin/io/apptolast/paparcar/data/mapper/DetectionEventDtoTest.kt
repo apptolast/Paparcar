@@ -2,6 +2,7 @@ package io.apptolast.paparcar.data.mapper
 
 import io.apptolast.paparcar.data.datasource.remote.dto.toDto
 import io.apptolast.paparcar.data.datasource.remote.dto.typeName
+import io.apptolast.paparcar.domain.detection.TriggerDisposition
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.model.GpsPoint
 import kotlin.test.Test
@@ -98,5 +99,55 @@ class DetectionEventDtoTest {
         ).toDto()
 
         assertNull(dto.reason)
+    }
+
+    // ── Trigger lane [DET-EVERY-TRIGGER-LEAVES-A-TRACE-001] ────────────────
+
+    @Test
+    fun should_carryLaneVerdictAndReason_when_mappingATriggerDisposition() {
+        val dto = DetectionEvent.Trigger(
+            sessionId = "triggers_20687",
+            timestampMs = 1_787_349_600_000L,
+            trigger = "GEOFENCE_EXIT",
+            disposition = TriggerDisposition.REFUSED_STRATEGY,
+            detail = "owner=BLUETOOTH",
+            geofenceId = "a786c135",
+        ).toDto()
+
+        assertEquals("TRIGGER", dto.type)
+        assertEquals("GEOFENCE_EXIT", dto.event, "the lane rides the event column")
+        assertEquals("REFUSED_STRATEGY", dto.outcome, "the verdict rides the outcome column")
+        assertEquals("owner=BLUETOOTH", dto.reason, "the why rides the reason column")
+        assertEquals("a786c135", dto.geofenceId)
+    }
+
+    /**
+     * A disposition that reached Firestore as a null outcome would be a row nobody can group —
+     * the exact failure this ticket exists to remove, reintroduced at the wire.
+     */
+    @Test
+    fun should_neverSerializeANullVerdict_when_anyDispositionIsUsed() {
+        for (d in TriggerDisposition.entries) {
+            val dto = DetectionEvent.Trigger(
+                sessionId = "triggers_0",
+                timestampMs = 0L,
+                trigger = "AR_TRANSITION",
+                disposition = d,
+            ).toDto()
+            assertEquals(d.name, dto.outcome, d.name + " lost its verdict on the wire")
+        }
+    }
+
+    @Test
+    fun should_leaveNeighbourColumnsEmpty_when_aTriggerOwnsNoFix() {
+        val event = DetectionEvent.Trigger(
+            sessionId = "triggers_0",
+            timestampMs = 0L,
+            trigger = "SENTRY_WAKE",
+            disposition = TriggerDisposition.ARMED,
+        )
+        assertEquals("TRIGGER", event.typeName())
+        assertNull(event.toDto().lat)
+        assertNull(event.toDto().confidence)
     }
 }

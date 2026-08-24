@@ -1354,6 +1354,51 @@ means silence), `ParkingDetectionConfig.kt`, `SignificantMotionMonitor.kt`,
 
 ---
 
+### DET-EVERY-TRIGGER-LEAVES-A-TRACE-001 — every trigger leaves a trace, including the ones that die
+
+**Commit:** pending · **Ticket:** `docs/backlog/det-every-trigger-leaves-a-trace-001.md` ·
+first delivery of proposal 3 (`09 §14.3` / plan step P4.2), pulled forward.
+
+**Report.** Not a field incident — a hole in what the field can tell us. The doctrine says *every
+trigger fires ALWAYS*; until now that was only observable when it worked. An arm left a
+`SessionStarted`; **every way of dying was mute in remote** (`04 §2`). In a session where "detection
+never started", these were indistinguishable: the OEM ate the broadcast · the strategy gate stood
+the coordinator down (BT-paired car) · background location had been revoked · a re-arm guard did its
+job · the fence lookup failed indeterminately.
+
+**Root cause.** Provenance existed for pins (`DET-PIN-PROVENANCE-001`) but not one step earlier, for
+the trigger that produced — or failed to produce — them.
+
+**Fix.** `TriggerDisposition` (pure enum, `domain/detection/`) + `DetectionEvent.Trigger`, emitted
+through a **single door** (`logTrigger`) so `type=TRIGGER` grouped by `outcome` is a device's
+complete disposition histogram. Eight dispositions cover 04 §2.2–2.6 plus the arms themselves.
+Columns are reused (`event` / `outcome` / `reason`) — no serializer surface change.
+
+**Zero behaviour change.** Telemetry only; not one detection `if` was touched. That is what makes it
+safe to ship with field validation still pending.
+
+**Companion-fix risk — the interesting part.** Remote retention finds sessions by querying
+`startedAt`, and **only `SessionStarted` writes the parent document**. Events written under a session
+id that was never created are unreachable by that query and never deleted. The pre-existing
+`ARM_SUPPRESSED_USER_STOP` trace files under `arm_<timestamp>` and so **leaks one uncollectable
+orphan per suppression**; copying that shape for seven dispositions would have multiplied the leak by
+every refused trigger, forever — a telemetry ticket quietly creating a storage defect. The lane files
+into a **daily ledger** (`triggers_<day>`, real header written once per bucket per process) instead,
+which makes the whole lane collectable by the existing sweep and stops the pre-existing leak too.
+
+**Guard today.** `TriggerLaneGuardrailTest` (Konsist): no dead disposition (a constant nobody emits
+reads as "never happens" when it means "nobody wired it") and exactly one construction site.
+Verified discriminating by neutralisation.
+
+**Files:** `TriggerLedger.kt` (new, pure), `DetectionEvent.kt`, `DetectionEventDto.kt`,
+`FirestoreDetectionEventLogger.kt`, `CoordinatorDetectionService.kt`, 9 new tests. **1449 tests.**
+
+**Still open in proposal 3:** the coordinator's own mute branches (the three hold branches — the half
+that makes that zone testable), `PROMPT_ANSWERED`, the backfill result, jam-window *extension*
+telemetry, the `LOCATION_FIX` replay-flag cut, and the BT strategy's missing session (`04 §2.12`).
+
+---
+
 ## 3. Open questions / future work
 
 - **GPS sampling boost during CANDIDATE (PARKING-001 Option B).** Switch the LocationDataSource to a 1 s `minUpdateIntervalMillis` request when entering the CANDIDATE phase, returning to 2 s on exit. Increases density of fixes that refine `bestStopLocation` within the new initial-stop window after a reposition burst. Adds the complexity of swapping the location source mid-session — hold off until A is validated in the field.

@@ -4,8 +4,10 @@ package io.apptolast.paparcar.data.datasource.remote
 
 import com.apptolast.customlogin.domain.AuthRepository
 import dev.gitlive.firebase.firestore.FirebaseFirestore
+import io.apptolast.paparcar.data.datasource.remote.dto.DetectionSessionDto
 import io.apptolast.paparcar.data.datasource.remote.dto.toDto
 import io.apptolast.paparcar.data.datasource.remote.dto.toSessionDto
+import io.apptolast.paparcar.domain.detection.triggerLedgerStartedAtMs
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
 import io.apptolast.paparcar.domain.diagnostics.DeviceInfoProvider
@@ -57,6 +59,11 @@ class FirestoreDetectionEventLogger(
 
     /** One retention sweep per process — see [cleanupExpiredSessions]. [DIAG-RETENTION-001] */
     @Volatile private var cleanupStarted = false
+
+    /** [DET-EVERY-TRIGGER-LEAVES-A-TRACE-001] Last daily-ledger id whose header this process
+     *  has written. Consumer-coroutine only (same as [accumulate]), so a plain field is enough:
+     *  it keeps the ledger header at one write per bucket instead of one per trigger. */
+    private var triggerLedgerWritten: String? = null
 
     init {
         scope.launch {
@@ -163,6 +170,25 @@ class FirestoreDetectionEventLogger(
                 ),
             )
             is DetectionEvent.SessionEnded -> flushSession(sessionDoc, event)
+            // [DET-EVERY-TRIGGER-LEAVES-A-TRACE-001] The trigger lane files into a daily ledger, and
+            // that ledger needs a REAL parent document: `cleanupExpiredSessions` finds sessions by
+            // querying `startedAt`, so events under a document that was never created are
+            // unreachable and never deleted (the leak this file's retention KDoc already admits for
+            // the departure lane). One header write per bucket per process — the flag below is what
+            // keeps it at one — and the whole lane becomes collectable by the sweep that exists.
+            is DetectionEvent.Trigger -> if (event.sessionId != triggerLedgerWritten) {
+                triggerLedgerWritten = event.sessionId
+                sessionDoc.set(
+                    DetectionSessionDto(
+                        sessionId = event.sessionId,
+                        startedAt = triggerLedgerStartedAtMs(event.timestampMs),
+                        strategy = TRIGGER_LEDGER_STRATEGY,
+                        deviceModel = deviceInfo.deviceModel,
+                        appVersion = deviceInfo.appVersion,
+                        osVersion = deviceInfo.osVersion,
+                    ),
+                )
+            }
             else -> Unit
         }
         sessionDoc.collection(COLLECTION_EVENTS).add(event.toDto())
@@ -255,6 +281,9 @@ class FirestoreDetectionEventLogger(
         const val FIELD_FINAL_LAT = "finalLat"
         const val FIELD_FINAL_LON = "finalLon"
         const val FIELD_SUMMARY = "summary"
+        /** Strategy label of the daily trigger ledger, so it is obvious in the console that
+         *  this session document is a ledger and not a drive. [DET-EVERY-TRIGGER-LEAVES-A-TRACE-001] */
+        const val TRIGGER_LEDGER_STRATEGY = "TRIGGER_LEDGER"
         const val BUFFER_CAPACITY = 128
         /** [DIAG-RETENTION-001] Diagnostic sessions older than this are swept on gate resolve. */
         const val RETENTION_DAYS = 7L
