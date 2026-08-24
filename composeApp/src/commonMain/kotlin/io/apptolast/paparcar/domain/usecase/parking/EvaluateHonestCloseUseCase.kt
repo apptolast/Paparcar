@@ -1,10 +1,11 @@
 package io.apptolast.paparcar.domain.usecase.parking
 
+import io.apptolast.paparcar.domain.detection.physics.requiredStepsToWalk
+import io.apptolast.paparcar.domain.detection.physics.walkExplainsDisplacement
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.util.haversineMeters
-import kotlin.math.ceil
 
 /**
  * What the honest-close ladder decides for a detection session that is about to ABORT
@@ -334,9 +335,12 @@ class EvaluateHonestCloseUseCase(
             origin.latitude, origin.longitude,
             abortFix.latitude, abortFix.longitude,
         )
-        val stepsToWalkHere = walkDistanceMeters / config.strideMeters
-        val requiredSteps = ceil(stepsToWalkHere * config.walkedStepFraction).toInt()
-        val walkExplainsIt = steps >= requiredSteps
+        val requiredSteps = requiredStepsToWalk(
+            walkDistanceMeters, config.strideMeters, config.walkedStepFraction,
+        ).toInt()
+        val walkExplainsIt = walkExplainsDisplacement(
+            steps, walkDistanceMeters, config.strideMeters, config.walkedStepFraction,
+        )
         if (walkExplainsIt) {
             return HonestCloseVerdict(
                 HonestCloseDecision.KeepSilent, HonestCloseVerdict.REASON_WALK_EXPLAINS,

@@ -1583,6 +1583,41 @@ sparse single-hop drive must still prove itself). **1487 tests.**
 
 ---
 
+### DET-PHYSICS-WALKED-VS-RODE-001 — where the step budget lives now
+
+**Commit:** pending · **Ticket:** `docs/backlog/det-physics-walked-vs-rode-001.md` · plan step P1.5,
+the first that crosses two use cases rather than staying inside the coordinator.
+
+*Did the body walk this distance, or was it carried?* Both `EvaluateHonestCloseUseCase` and
+`EvaluateSafetyNetCheckUseCase` ask it, and both KDocs already called themselves *"mirror of"* the
+other. They now share `domain/detection/physics/WalkedVsRode.kt` and **stay two verdicts** — one
+produces nine typed reasons for closing an abort, the other picks between cure / dispatch / prompt /
+silence, from different inputs at different moments.
+
+**Not moved, deliberately:** the counter-health guards (stale seal, mute counter, frozen counter,
+missing seal origin). Each owner resolves them in its own vocabulary; folding them in would change
+those verdicts rather than move them.
+
+**The equivalence the step rests on.** The two mirrors were not written the same way: one compared
+`steps >= ceil(x)`, the other `steps < x` against the raw Double. For integer step counts those are
+the same test (`n >= ceil(x)` ⟺ `n >= x`), both counts are `Long`, and both sides build the same
+Double from the same operands — so unifying on the rounded form is exact, not approximate. Asserting
+that by inspection would have been a promise, so there is a **boundary sweep** over 4 000 distances
+× the counts around the bar that compares both forms and fails the day the rounding changes.
+
+**A float detail worth knowing before anyone "fixes" it:** 150 m at 0.75 m/step with fraction 0.4
+demands **81** steps, not 80 — `0.4f` is 0.400000005960…, so the geometric bar lands at
+80.0000011920929 and rounds up. One step on a 150 m walk, far inside the tolerance the fraction
+exists to provide, and identical in both unified forms. Left alone on purpose: making it land on 80
+would be a behaviour change wearing a tidy-up's clothes.
+
+**Zero behaviour change**, this time with a proof as well as a green suite.
+
+**Files:** `physics/WalkedVsRode.kt` (new, pure), `EvaluateHonestCloseUseCase.kt`,
+`EvaluateSafetyNetCheckUseCase.kt`, 7 new tests. **1494 tests.**
+
+---
+
 ## 3. Open questions / future work
 
 - **GPS sampling boost during CANDIDATE (PARKING-001 Option B).** Switch the LocationDataSource to a 1 s `minUpdateIntervalMillis` request when entering the CANDIDATE phase, returning to 2 s on exit. Increases density of fixes that refine `bestStopLocation` within the new initial-stop window after a reposition burst. Adds the complexity of swapping the location source mid-session — hold off until A is validated in the field.

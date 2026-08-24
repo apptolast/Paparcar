@@ -1,6 +1,7 @@
 package io.apptolast.paparcar.domain.usecase.parking
 
 import io.apptolast.paparcar.domain.detection.physics.isAdmissibleEvidence
+import io.apptolast.paparcar.domain.detection.physics.walkExplainsDisplacement
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.UserParking
@@ -319,10 +320,11 @@ class EvaluateSafetyNetCheckUseCase(
                     // costs) proves a ride happened; ABSOLUTE (steps ≤ a fence-diameter's worth)
                     // proves the ride was boarded AT the car — 500 steps to a bus stop then a
                     // 5 km ride passes the relative check alone. [DET-RECONCILE-001]
-                    val stepsToWalkHere = distanceMeters / config.strideMeters
-                    if (trustedStepsSinceAnchor < stepsToWalkHere * config.walkedStepFraction &&
-                        trustedStepsSinceAnchor <= config.maxBoardingSteps
-                    ) {
+                    val walked = walkExplainsDisplacement(
+                        trustedStepsSinceAnchor, distanceMeters,
+                        config.strideMeters, config.walkedStepFraction,
+                    )
+                    if (!walked && trustedStepsSinceAnchor <= config.maxBoardingSteps) {
                         return releaseOrAsk(
                             SafetyNetAction.DispatchDeparture(
                                 geofenceId,
@@ -386,8 +388,9 @@ class EvaluateSafetyNetCheckUseCase(
         // stale, and the worker's 6 h per-fence throttle bounds repeats. Field 2026-07-10,
         // Oppo: 4 h at 1.4–1.9 km from an "active" parking, 9 silent ticks, EXIT recorded at
         // 15:31 — the user saw nothing and lost the spot AND the new park. [DET-CONJUNCTION-001]
-        val stepsExplainWalk = trustedStepsSinceAnchor != null &&
-            trustedStepsSinceAnchor >= (distanceMeters / config.strideMeters) * config.walkedStepFraction
+        val stepsExplainWalk = trustedStepsSinceAnchor != null && walkExplainsDisplacement(
+            trustedStepsSinceAnchor, distanceMeters, config.strideMeters, config.walkedStepFraction,
+        )
         if (exitAtMs != null && !stepsExplainWalk) {
             return SafetyNetAction.PromptStillParked(geofenceId)
         }
