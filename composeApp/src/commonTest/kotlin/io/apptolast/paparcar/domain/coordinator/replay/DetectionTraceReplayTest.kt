@@ -733,6 +733,121 @@ class DetectionTraceReplayTest {
             assertEquals(1, env.parkingRepo.saveNewParkingSessionCallCount, "the park is unambiguous")
         }
 
+    @Test
+    fun camelias_gondola_001_a_stop_that_moved_122_m_must_not_pin_the_mouth_of_the_street() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-STOP-MUST-BE-STILL-IN-SPACE-001 — trip 2 of 2026-08-22, Oppo] Three arrival
+            // fixes REPORTED zero speed while the position MEASURED 122.5 m in 9.56 s at 6-11 m
+            // accuracy. The field build accepted them as a matured stop, froze the anchor on the
+            // third, and pinned the mouth of the street 70 m short of the car. Runs the REAL 2-min
+            // hold, as the field did.
+            val replayer = DetectionTraceReplayer(TraceCameliasGondola001.events)
+            val env = buildEnv(clock = { replayer.nowMs }, config = ParkingDetectionConfig())
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 512)
+            val job = launch { env.coordinator.invoke(locations, armEvidence = ArmEvidence.Unverified) }
+
+            replayer.replay(
+                emitFix = { locations.emit(it) },
+                emitStep = { env.stepDetector.emitSteps(1) },
+            )
+            job.cancelAndJoin()
+
+            assertEquals(1, env.parkingRepo.saveNewParkingSessionCallCount, "the park is real and must save")
+            val saved = assertNotNull(env.parkingRepo.getActiveSession())
+            assertTrue(
+                saved.location.latitude in 36.60862..36.60878 &&
+                    saved.location.longitude in -6.27840..-6.27815,
+                "pin must land at the car's true rest (~${TraceCameliasGondola001.REAL_SPOT_LAT}," +
+                    "${TraceCameliasGondola001.REAL_SPOT_LON}), not the moving 'stop' at the street " +
+                    "mouth (${TraceCameliasGondola001.FIELD_PIN_LAT}," +
+                    "${TraceCameliasGondola001.FIELD_PIN_LON}) " +
+                    "— was ${saved.location.latitude},${saved.location.longitude}",
+            )
+        }
+
+    @Test
+    fun gondola_camelias_001_the_egress_walk_must_not_be_judged_a_bicycle() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-CADENCE-CANNOT-ACCUSE-AFTER-EGRESS-001 — trip 1 of 2026-08-22, Redmi] A 75 km/h
+            // car trip vetoed as human-powered 36 s AFTER the anchor froze, on steps the log itself
+            // labels `egress walk, anchor set`. The pedal-cadence latch must not be able to accuse
+            // a walk that begins where the car came to rest.
+            //
+            // This trace carries all three of that day's fixes at once, and what it pins is the
+            // ORDER they now resolve in:
+            //  1. the bicycle accusation is gone — no `human_powered` anywhere;
+            //  2. the confirm STILL degrades, and that is correct: there is a real 100.5 s GPS
+            //     hole between the last driving fix (loc#39, 6.8 m/s) and the first stopped one
+            //     (loc#40), so the app genuinely never saw where the car came to rest. The reason
+            //     it gives is now the honest one, `anchor_gap_entered` [DET-GAP-ANCHOR-ZONE-001];
+            //  3. the user's “Sí” (Δ 584 231, exactly where the field tap landed) completes the
+            //     save, at the car's stopped-fix cluster (36.59766,-6.25062) — not out where
+            //     the walker was;
+            //  4. and because that stop was entered through the hole, the save carries the hole's
+            //     doubt as a RADIUS instead of claiming an exact point
+            //     [DET-USER-YES-IS-NOT-A-COORDINATE-001].
+            //
+            // ⚠ What (3) does NOT prove: forcing the answer path to take the current fix
+            // instead of the witnessed stop leaves this trace byte-identical, because the user
+            // answered while still beside the car. That assertion is a positional regression
+            // guard, NOT a test of [DET-CONFIRM-ANCHOR-001] — that guard needs a trace where
+            // the tap lands far away, and supermarket_001 above is the one that has it.
+            val replayer = DetectionTraceReplayer(TraceGondolaCamelias001.events)
+            val env = buildEnv(clock = { replayer.nowMs }, config = ParkingDetectionConfig())
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 512)
+            val job = launch { env.coordinator.invoke(locations, armEvidence = ArmEvidence.Unverified) }
+
+            var rideStamped = false
+            var userAnswered = false
+            replayer.replay(
+                emitFix = { fix ->
+                    // The AR IN_VEHICLE ENTER landed mid-drive, carrying its own true time.
+                    if (!rideStamped && fix.timestamp >= TraceGondolaCamelias001.AR_RIDE_DELIVERED_AT_MS) {
+                        rideStamped = true
+                        env.coordinator.onVehicleRide(TraceGondolaCamelias001.AR_RIDE_TRUE_TIME_MS)
+                    }
+                    // The user's "Sí", at the second the field tap landed.
+                    if (!userAnswered && fix.timestamp >= TraceGondolaCamelias001.USER_YES_AT_MS) {
+                        userAnswered = true
+                        env.coordinator.onUserConfirmedParking()
+                    }
+                    locations.emit(fix)
+                },
+                emitStep = { env.stepDetector.emitSteps(1) },
+            )
+            job.cancelAndJoin()
+
+            assertTrue(rideStamped && userAnswered, "the trace must reach both the AR stamp and the user's tap")
+
+            val decisions = env.detectionLogger.events.filterIsInstance<DetectionEvent.Decision>()
+            assertTrue(
+                decisions.none { it.reason == "human_powered" },
+                "a measured 75 km/h drive is not a bicycle — decisions were " +
+                    decisions.joinToString { "${it.outcome}/${it.reason}" },
+            )
+            // The doubt that DOES survive is real and must keep saying so: a 100.5 s hole.
+            assertTrue(
+                decisions.any { it.outcome == "CONFIRM_DEGRADED_PROMPT" && it.reason == "anchor_gap_entered" },
+                "the GPS hole must degrade the confirm, and name itself — decisions were " +
+                    decisions.joinToString { "${it.outcome}/${it.reason}" },
+            )
+            assertEquals(1, env.notification.parkingConfirmationCallCount, "the user must be asked exactly once")
+
+            assertEquals(1, env.parkingRepo.saveNewParkingSessionCallCount, "the user's yes completes the save")
+            val saved = assertNotNull(env.parkingRepo.getActiveSession())
+            assertTrue(
+                saved.location.latitude in 36.59765..36.59785 &&
+                    saved.location.longitude in -6.25065..-6.25050,
+                "the pin must sit at the car's stopped-fix cluster near " +
+                    "${TraceGondolaCamelias001.REAL_SPOT_LAT},${TraceGondolaCamelias001.REAL_SPOT_LON} " +
+                    "— was ${saved.location.latitude},${saved.location.longitude}",
+            )
+            // [DET-USER-YES-IS-NOT-A-COORDINATE-001] The answer settles WHETHER, never WHERE: this
+            // stop was entered through the 100.5 s hole, so the save must carry that doubt as a
+            // radius instead of asserting an exact point.
+            assertTrue(saved.isApproximate, "a gap-born anchor may only be saved as an area")
+        }
+
     // ── Env ───────────────────────────────────────────────────────────────────
 
     private class Env(
