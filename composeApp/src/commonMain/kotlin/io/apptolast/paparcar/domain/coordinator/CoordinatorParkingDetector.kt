@@ -10,6 +10,8 @@ import io.apptolast.paparcar.domain.detection.creditSpeedBand
 import io.apptolast.paparcar.domain.detection.VehicleFenceOwnershipPolicy
 import io.apptolast.paparcar.domain.detection.isHumanPoweredRide
 import io.apptolast.paparcar.domain.detection.physics.outrunsPedestrianReach
+import io.apptolast.paparcar.domain.detection.physics.isCredibleFixAccuracy
+import io.apptolast.paparcar.domain.detection.physics.isCredibleMovingFix
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
 import io.apptolast.paparcar.domain.error.PaparcarError
@@ -998,7 +1000,7 @@ class CoordinatorParkingDetector(
                         // to flip hasEverReachedDrivingSpeed and unlock every confirm path — the
                         // same hole the DET-G-04 seed opened, but via GPS noise. Same 50 m gate
                         // that already protects the driving-clears-anchor decision [LOC-002].
-                        val credibleSpeedFix = location.accuracy <= config.minGpsAccuracyForDriving
+                        val credibleSpeedFix = isCredibleFixAccuracy(location, config.minGpsAccuracyForDriving)
                         val hasJustReachedSpeed = !s.hasEverReachedDrivingSpeed &&
                                 location.speed >= config.minimumTripSpeedMps &&
                                 credibleSpeedFix
@@ -1213,8 +1215,11 @@ class CoordinatorParkingDetector(
                         } else {
                             config.clearBestStopSpeedMps
                         }
+                        // [DET-C-02] Strictly greater, deliberately: this discards a pin that has
+                        // already earned its confirm, so the boundary is not moved by a pure-move
+                        // refactor. Only the accuracy gate is shared with the driving predicates.
                         val drivingResumed = location.speed > resumeSpeedBar &&
-                            location.accuracy <= config.minGpsAccuracyForDriving
+                            isCredibleFixAccuracy(location, config.minGpsAccuracyForDriving)
                         when {
                             // [DET-CONFIRM-FRESHNESS-001] Settle-time re-validation: the confirm's
                             // evidence must still be TRUE when the pin is planted. If the current
@@ -2875,15 +2880,17 @@ class CoordinatorParkingDetector(
             }
             now - (_detectionState.value.stoppedSince ?: 0L)
         } else {
-            val isDriving = location.speed >= config.clearBestStopSpeedMps &&
-                    location.accuracy <= config.minGpsAccuracyForDriving
+            val isDriving = isCredibleMovingFix(
+                location, config.clearBestStopSpeedMps, config.minGpsAccuracyForDriving,
+            )
             // [ANCHOR-LOCK-001] Real driving — unambiguous even for a phone on a pedestrian.
             // Field incident 2026-07-04: brisk walking away from the parked car produced Doppler
             // 2.5–3.6 m/s fixes (above clearBestStopSpeedMps) that wiped the true anchor; the park
             // then re-anchored where the user next stood still, 55 m away. Once egress steps are
             // observed, only THIS bar clears the anchor.
-            val isRealDrive = location.speed >= config.minimumTripSpeedMps &&
-                    location.accuracy <= config.minGpsAccuracyForDriving
+            val isRealDrive = isCredibleMovingFix(
+                location, config.minimumTripSpeedMps, config.minGpsAccuracyForDriving,
+            )
             val isRepositionCandidate = location.speed >= config.repositionSpeedMps &&
                     location.accuracy <= config.repositionMaxAccuracyMeters
             if (location.speed >= config.clearBestStopSpeedMps && !isDriving) {
@@ -3001,9 +3008,12 @@ class CoordinatorParkingDetector(
                 // pedestrian-band fixes while the anchor is frozen. Cleared with the anchor.
                 val newKinematicEgressFixes = when {
                     shouldClearBestStop -> 0
+                    // [DET-KINEMATIC-EGRESS-001] The PEDESTRIAN band — speed BELOW the trip bar
+                    // with the same accuracy gate. It shares the gate, not the question.
                     it.anchorFrozen &&
                         location.speed < config.minimumTripSpeedMps &&
-                        location.accuracy <= config.minGpsAccuracyForDriving -> it.kinematicEgressFixes + 1
+                        isCredibleFixAccuracy(location, config.minGpsAccuracyForDriving) ->
+                        it.kinematicEgressFixes + 1
                     else -> it.kinematicEgressFixes
                 }
                 // [DET-ANCHOR-EGRESS-001] Egress birth, moving flavour: the first pedestrian-band

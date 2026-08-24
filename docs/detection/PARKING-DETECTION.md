@@ -1513,6 +1513,42 @@ exercise these four predicates heavily and pass untouched — that is the strong
 
 ---
 
+### DET-PHYSICS-CREDIBLE-MOVEMENT-001 — where the LOC-002 accuracy gate lives now
+
+**Commit:** pending · **Ticket:** `docs/backlog/det-physics-credible-movement-001.md` · plan step P1.3.
+
+`accuracy <= minGpsAccuracyForDriving` — the gate deciding whether a fix's reported speed is worth
+believing at all — was written out five times. The coordinator's own comment at the first of them
+called it *"the same 50 m gate"*.
+
+**Two functions, not one:** `isCredibleFixAccuracy(fix, maxAccuracyMeters)` and
+`isCredibleMovingFix(fix, speedBarMps, maxAccuracyMeters)` built on it, in
+`domain/detection/physics/CredibleMovement.kt`. The split exists because **two of the five sites
+share the gate and not the predicate**, and both stay out of the composite on purpose:
+
+- the hold's *driving resumed* test compares **strictly greater** than its bar. The difference shows
+  only at the bar itself, but that decision discards a pin that already earned its confirm, so the
+  boundary is not moved inside a step announced as a pure move [DET-C-02];
+- the kinematic-egress counter wants the **pedestrian** band — speed *below* the trip bar with the
+  same gate. It shares the gate, not the question [DET-KINEMATIC-EGRESS-001].
+
+The threshold is a parameter rather than read from config, so the caller running a **different**
+envelope (the reposition burst's `repositionMaxAccuracyMeters`) is not forced through a gate that is
+not its own — and `physics/` stays config-free.
+
+**Three steps, three exclusions** (P1.1 the BT identity gate, P1.2 the time-based envelope, P1.3
+these two). That is turning into the dominant shape of Fase 1: what looks like family rarely is
+entirely, and the part that genuinely is gets extracted without dragging the part that is not.
+
+**Zero behaviour change**; the three rewritten sites are identical and the two exempt ones keep their
+literal operator. Verified that **no raw `location.accuracy <= config.minGpsAccuracyForDriving`
+comparison remains** in the coordinator. Suite passes without a single edited assert.
+
+**Files:** `physics/CredibleMovement.kt` (new, pure), `CoordinatorParkingDetector.kt`, 8 new tests.
+**1473 tests.**
+
+---
+
 ## 3. Open questions / future work
 
 - **GPS sampling boost during CANDIDATE (PARKING-001 Option B).** Switch the LocationDataSource to a 1 s `minUpdateIntervalMillis` request when entering the CANDIDATE phase, returning to 2 s on exit. Increases density of fixes that refine `bestStopLocation` within the new initial-stop window after a reposition burst. Adds the complexity of swapping the location source mid-session — hold off until A is validated in the field.
