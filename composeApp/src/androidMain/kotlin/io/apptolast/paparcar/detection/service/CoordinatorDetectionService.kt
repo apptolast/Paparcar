@@ -30,6 +30,7 @@ import io.apptolast.paparcar.domain.detection.triggerLedgerSessionId
 import io.apptolast.paparcar.domain.detection.CheapWakeVerdict
 import io.apptolast.paparcar.domain.detection.cheapWakeVerdict
 import io.apptolast.paparcar.domain.detection.isInsideAnyOwnedFence
+import io.apptolast.paparcar.domain.detection.physics.SessionOutcome
 import io.apptolast.paparcar.domain.detection.mayTriageSentryWake
 import io.apptolast.paparcar.domain.detection.userStopQuietPeriodRemainingMs
 import io.apptolast.paparcar.domain.detection.MutableDetectionRuntimeState
@@ -67,6 +68,7 @@ import io.apptolast.paparcar.domain.usecase.location.ObserveAdaptiveLocationUseC
 import io.apptolast.paparcar.domain.usecase.parking.ProcessConfirmedDepartureUseCase
 import io.apptolast.paparcar.domain.usecase.parking.RevertParkingUseCase
 import io.apptolast.paparcar.domain.usecase.parking.RunHonestCloseUseCase
+import io.apptolast.paparcar.domain.usecase.parking.UnattendedSaveReason
 import io.apptolast.paparcar.domain.usecase.parking.VerifyDepartureEvidenceUseCase
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import io.apptolast.paparcar.domain.util.haversineMeters
@@ -981,7 +983,7 @@ class CoordinatorDetectionService : LifecycleService() {
      */
     private suspend fun maybeRunHonestClose() {
         val outcome = parkingDetectionCoordinator.lastSessionOutcome
-        if (outcome != OUTCOME_ABORTED_FALSE_ENTER && outcome != OUTCOME_ABORTED_NO_MOVEMENT) return
+        if (!parkingDetectionCoordinator.lastOutcome.triggersHonestClose) return
         val abortFix = parkingDetectionCoordinator.lastSessionFix ?: return
         val vehicleId = runCatching { vehicleRepository.observeActiveVehicle().firstOrNull()?.id }
             .getOrNull() ?: return
@@ -1105,7 +1107,11 @@ class CoordinatorDetectionService : LifecycleService() {
      * worker's wake; [ParkingBackfillWorker] reads it and defers the placement to the nudge.
      */
     private fun maybeStampArrivalResolution() {
-        if (parkingDetectionCoordinator.lastSessionOutcome != OUTCOME_ABORTED_UNATTENDED_GAP_ANCHOR) return
+        if (parkingDetectionCoordinator.lastOutcome !=
+            SessionOutcome.AbortedUnattended(UnattendedSaveReason.GAP_ANCHOR.key)
+        ) {
+            return
+        }
         val fix = parkingDetectionCoordinator.lastSessionFix ?: return
         runCatching {
             getSharedPreferences(ParkingSafetyNetWorker.PREFS_NAME, MODE_PRIVATE).edit {
@@ -1184,7 +1190,7 @@ class CoordinatorDetectionService : LifecycleService() {
             sentryWakeAbortStreak = nextSentryWakeAbortStreak(
                 previousStreak = sentryWakeAbortStreak,
                 armedBySentryWake = endedTrigger == DetectionTrigger.SIGNIFICANT_MOTION,
-                sessionOutcome = parkingDetectionCoordinator.lastSessionOutcome,
+                sessionOutcome = parkingDetectionCoordinator.lastOutcome,
                 msSinceLastAbort = msSinceLastAbort,
                 config = detectionConfig,
             )
@@ -1843,16 +1849,6 @@ class CoordinatorDetectionService : LifecycleService() {
         const val ACTION_BT_OVERRIDE = "io.apptolast.paparcar.ACTION_BT_OVERRIDE"
         const val EXTRA_BT_OVERRIDE_REASON = "io.apptolast.paparcar.EXTRA_BT_OVERRIDE_REASON"
 
-        // [DET-HONEST-CLOSE-001] Terminal outcome labels that trigger the honest-close ladder —
-        // the two SILENT aborts. Shared with the sentry-wake cooldown reducer, so they live in
-        // commonMain (`DetectionSessionOutcomes`) rather than as per-class literals.
-        private const val OUTCOME_ABORTED_FALSE_ENTER =
-            io.apptolast.paparcar.domain.detection.DetectionSessionOutcomes.ABORTED_FALSE_ENTER
-        private const val OUTCOME_ABORTED_NO_MOVEMENT =
-            io.apptolast.paparcar.domain.detection.DetectionSessionOutcomes.ABORTED_NO_MOVEMENT
-        // [DET-BACKFILL-TAINT-001] Unattended abort the coordinator resolved as NUDGE-ONLY (gap
-        // anchor: no place is honest) — stamped so the safety net's backfill defers to the nudge.
-        private const val OUTCOME_ABORTED_UNATTENDED_GAP_ANCHOR = "aborted_unattended_gap_anchor"
         // [DET-G-01] Geofence-exit delivered directly to the service via getForegroundService so
         // Play Services grants the privileged FGS start (the same getForegroundService mechanism the
         // AR IN_VEHICLE path used before AR was moved to a plain broadcast — BUG-FGS-001).

@@ -1,6 +1,7 @@
 package io.apptolast.paparcar.domain.detection
 
 import io.apptolast.paparcar.domain.model.GpsPoint
+import io.apptolast.paparcar.domain.detection.physics.SessionOutcome
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.VehicleSize
@@ -50,7 +51,7 @@ class SentryWakeCooldownTest {
         val streak = nextSentryWakeAbortStreak(
             previousStreak = 2,
             armedBySentryWake = true,
-            sessionOutcome = DetectionSessionOutcomes.ABORTED_FALSE_ENTER,
+            sessionOutcome = SessionOutcome.AbortedFalseEnter,
             msSinceLastAbort = 20_000L,
             config = config,
         )
@@ -62,7 +63,7 @@ class SentryWakeCooldownTest {
         val streak = nextSentryWakeAbortStreak(
             previousStreak = 0,
             armedBySentryWake = true,
-            sessionOutcome = DetectionSessionOutcomes.ABORTED_NO_MOVEMENT,
+            sessionOutcome = SessionOutcome.AbortedNoMovement,
             msSinceLastAbort = 20_000L,
             config = config,
         )
@@ -75,7 +76,7 @@ class SentryWakeCooldownTest {
         val streak = nextSentryWakeAbortStreak(
             previousStreak = 5,
             armedBySentryWake = true,
-            sessionOutcome = "confirmed_steps+egress",
+            sessionOutcome = SessionOutcome.Confirmed("steps+egress"),
             msSinceLastAbort = 20_000L,
             config = config,
         )
@@ -89,7 +90,7 @@ class SentryWakeCooldownTest {
         val streak = nextSentryWakeAbortStreak(
             previousStreak = 5,
             armedBySentryWake = false,
-            sessionOutcome = DetectionSessionOutcomes.ABORTED_FALSE_ENTER,
+            sessionOutcome = SessionOutcome.AbortedFalseEnter,
             msSinceLastAbort = 20_000L,
             config = config,
         )
@@ -118,7 +119,7 @@ class SentryWakeCooldownTest {
         val streak = nextSentryWakeAbortStreak(
             previousStreak = 5,
             armedBySentryWake = true,
-            sessionOutcome = DetectionSessionOutcomes.STOPPED_BY_USER,
+            sessionOutcome = SessionOutcome.StoppedByUser,
             msSinceLastAbort = 20_000L,
             config = config,
         )
@@ -133,7 +134,7 @@ class SentryWakeCooldownTest {
         val streak = nextSentryWakeAbortStreak(
             previousStreak = 2,
             armedBySentryWake = true,
-            sessionOutcome = DetectionSessionOutcomes.ABORTED_FALSE_ENTER,
+            sessionOutcome = SessionOutcome.AbortedFalseEnter,
             msSinceLastAbort = config.sentryWakeStreakDecayMs + 1,
             config = config,
         )
@@ -147,7 +148,7 @@ class SentryWakeCooldownTest {
         val streak = nextSentryWakeAbortStreak(
             previousStreak = 2,
             armedBySentryWake = true,
-            sessionOutcome = DetectionSessionOutcomes.ABORTED_FALSE_ENTER,
+            sessionOutcome = SessionOutcome.AbortedFalseEnter,
             msSinceLastAbort = config.sentryWakeStreakDecayMs,
             config = config,
         )
@@ -161,7 +162,7 @@ class SentryWakeCooldownTest {
         val streak = nextSentryWakeAbortStreak(
             previousStreak = 7,
             armedBySentryWake = true,
-            sessionOutcome = DetectionSessionOutcomes.ABORTED_FALSE_ENTER,
+            sessionOutcome = SessionOutcome.AbortedFalseEnter,
             msSinceLastAbort = null,
             config = config,
         )
@@ -294,7 +295,7 @@ class SentryWakeCooldownTest {
         val streak = nextSentryWakeAbortStreak(
             previousStreak = 2,
             armedBySentryWake = true,
-            sessionOutcome = DetectionSessionOutcomes.ABORTED_FALSE_ENTER,
+            sessionOutcome = SessionOutcome.AbortedFalseEnter,
             msSinceLastAbort = 18_000L,
             config = config,
         )
@@ -316,7 +317,7 @@ class SentryWakeCooldownTest {
         val streak = nextSentryWakeAbortStreak(
             previousStreak = 2,
             armedBySentryWake = true,
-            sessionOutcome = DetectionSessionOutcomes.ABORTED_FALSE_ENTER,
+            sessionOutcome = SessionOutcome.AbortedFalseEnter,
             msSinceLastAbort = 30_000L,
             config = config,
         )
@@ -337,7 +338,7 @@ class SentryWakeCooldownTest {
         val streak = nextSentryWakeAbortStreak(
             previousStreak = 2,
             armedBySentryWake = true,
-            sessionOutcome = DetectionSessionOutcomes.ABORTED_FALSE_ENTER,
+            sessionOutcome = SessionOutcome.AbortedFalseEnter,
             msSinceLastAbort = 39 * 60_000L,
             config = config,
         )
@@ -361,7 +362,7 @@ class SentryWakeCooldownTest {
         val streak = nextSentryWakeAbortStreak(
             previousStreak = 2,
             armedBySentryWake = true,
-            sessionOutcome = DetectionSessionOutcomes.ABORTED_FALSE_ENTER,
+            sessionOutcome = SessionOutcome.AbortedFalseEnter,
             msSinceLastAbort = 25_000L,
             config = config,
         )

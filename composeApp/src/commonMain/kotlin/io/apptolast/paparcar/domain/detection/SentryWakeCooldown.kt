@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.domain.detection
 
+import io.apptolast.paparcar.domain.detection.physics.SessionOutcome
 import io.apptolast.paparcar.domain.detection.physics.isWithinFence
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
@@ -65,24 +66,16 @@ import io.apptolast.paparcar.domain.model.UserParking
  * session.
  */
 
-/** Session outcome labels shared by the coordinator (producer), the service teardown and this
- *  damper (consumers) — the two SILENT walking aborts. [DET-SENTRY-COOLDOWN-001] */
-object DetectionSessionOutcomes {
-    const val ABORTED_FALSE_ENTER = "aborted_false_enter"
-    const val ABORTED_NO_MOVEMENT = "aborted_no_movement"
-
-    /** [DET-STOP-BUTTON-001] The user tapped "Stop detection" on a live session. Deliberately NOT
-     *  one of the two walking aborts above: it is not a refuted nomination but the highest
-     *  authority in the system speaking, so it resets the sentry-wake streak like any other
-     *  non-abort ending. See `UserStopQuietPeriod.kt`. */
-    const val STOPPED_BY_USER = "stopped_by_user"
-}
-
 /**
  * Folds one ended detection session into the running sentry-wake abort streak.
  *
  * Only a sentry-wake arm refuted as a walking abort extends the streak; ANY other ended session —
  * a different trigger, a confirm, a prompt, a supersede — proves the world moved on and resets it.
+ *
+ * [11 bug #3] That membership used to be an equality test against two outcome STRINGS, so a new
+ * label joined or left this set by how it was spelled. It is now declared per outcome
+ * ([SessionOutcome.sentryStreakEffect]) and the `when` below reads as what it is: a membership
+ * question and a cadence question, in that order.
  *
  * [DET-COOLDOWN-MUST-NOT-BLIND-A-DRIVE-001] "In a row" is a claim about TIME, and it is now
  * measured. A refuted wake whose predecessor is older than
@@ -97,14 +90,14 @@ object DetectionSessionOutcomes {
 fun nextSentryWakeAbortStreak(
     previousStreak: Int,
     armedBySentryWake: Boolean,
-    sessionOutcome: String?,
+    sessionOutcome: SessionOutcome?,
     msSinceLastAbort: Long?,
     config: ParkingDetectionConfig,
 ): Int = when {
+    // ── Declared membership: which endings are even eligible ──────────────────
     !armedBySentryWake -> 0
-    sessionOutcome != DetectionSessionOutcomes.ABORTED_FALSE_ENTER &&
-        sessionOutcome != DetectionSessionOutcomes.ABORTED_NO_MOVEMENT -> 0
-    // The cadence gate: too far from the previous abort to be the same storm.
+    sessionOutcome?.extendsSentryStreak != true -> 0
+    // ── Measured cadence: is this the same storm as the last one? ─────────────
     msSinceLastAbort == null || msSinceLastAbort > config.sentryWakeStreakDecayMs -> 1
     else -> previousStreak + 1
 }

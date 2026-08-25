@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.domain.usecase.parking
 
+import io.apptolast.paparcar.domain.detection.physics.SessionOutcome
 import io.apptolast.paparcar.domain.detection.physics.walkableInsideGapMeters
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
@@ -26,7 +27,9 @@ enum class UnattendedSaveReason(val key: String, val decisionOutcome: String) {
     ;
 
     val nudgeSource: String get() = "unattended_$key"
-    val abortedOutcome: String get() = "aborted_unattended_$key"
+    /** [11 bug #3] Built by [SessionOutcome.AbortedUnattended] so the label has ONE producer — the
+     *  service used to re-type `"aborted_unattended_gap_anchor"` by hand to recognise it. */
+    val abortedOutcome: String get() = SessionOutcome.AbortedUnattended(key).serialized
 }
 
 /**

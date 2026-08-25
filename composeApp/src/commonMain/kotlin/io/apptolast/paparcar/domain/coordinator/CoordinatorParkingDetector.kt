@@ -4,7 +4,6 @@ import io.apptolast.paparcar.domain.detection.ArmEvidence
 import io.apptolast.paparcar.domain.detection.HoldAction
 import io.apptolast.paparcar.domain.detection.DepartureConfirmationListener
 import io.apptolast.paparcar.domain.detection.DetectionPhase
-import io.apptolast.paparcar.domain.detection.DetectionSessionOutcomes
 import io.apptolast.paparcar.domain.detection.DetectionPhaseSink
 import io.apptolast.paparcar.domain.detection.VehicleFenceOwnershipPolicy
 import io.apptolast.paparcar.domain.detection.isHumanPoweredRide
@@ -19,6 +18,7 @@ import io.apptolast.paparcar.domain.detection.physics.sustainedDepartureFromAnch
 import io.apptolast.paparcar.domain.detection.physics.honestZoneRadius
 import io.apptolast.paparcar.domain.detection.physics.creditSpeedBand
 import io.apptolast.paparcar.domain.detection.physics.walkableInsideGapMeters
+import io.apptolast.paparcar.domain.detection.physics.SessionOutcome
 import io.apptolast.paparcar.domain.detection.physics.effectiveDriving
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
@@ -485,7 +485,7 @@ class CoordinatorParkingDetector(
 
     /** Terminal outcome label emitted in the [DetectionEvent.SessionEnded] for the current
      *  session. Defaults to "ended"; refined by abort paths and by [runConfirm]. */
-    @Volatile private var sessionOutcome: String = "ended"
+    @Volatile private var sessionOutcome: SessionOutcome = SessionOutcome.Ended
 
     /** [DET-HONEST-CLOSE-001] Snapshot of the last processed fix, captured in the finally BEFORE
      *  [reset] wipes the state, so it survives for the caller to read after [invoke] returns.
@@ -501,7 +501,11 @@ class CoordinatorParkingDetector(
      *  label the [DetectionEvent.SessionEnded] carried. Read by the detection service after
      *  [invoke] returns to decide whether to run the honest-close ladder (on `aborted_false_enter`
      *  / `aborted_no_movement`). Survives across the finally's [reset]. */
-    val lastSessionOutcome: String get() = sessionOutcome
+    val lastSessionOutcome: String get() = sessionOutcome.serialized
+
+    /** [11 bug #3] The same ending, typed — what the service asks its membership questions of.
+     *  [lastSessionOutcome] stays the wire form for telemetry. */
+    val lastOutcome: SessionOutcome get() = sessionOutcome
 
     /** [DET-HONEST-CLOSE-001] Position at the abort moment (last processed fix, or the stop anchor
      *  fallback), or null when no fix was seen. The honest-close ladder's candidate new spot. */
@@ -731,7 +735,7 @@ class CoordinatorParkingDetector(
 
         // [DET-LOG-03] Diagnostics session id claimed at entry (T8). Outcome defaults to "ended"
         // and is refined by the abort paths / runConfirm before the finally emits SessionEnded.
-        sessionOutcome = "ended"
+        sessionOutcome = SessionOutcome.Ended
         logDetection { sid -> DetectionEvent.SessionStarted(sid, sessionStartMs, strategy = "COORDINATOR", evidence = currentArmEvidence) }
 
         // Session-start notification cleanup, gated by [savedConfirmPostedAt] age.
@@ -1319,7 +1323,7 @@ class CoordinatorParkingDetector(
                             "  ⊘ false-ENTER abort — ${state.stepCount} steps before driving speed " +
                                 "[BUG-FALSE-ENTER-WALKING]"
                         )
-                        sessionOutcome = "aborted_false_enter"
+                        sessionOutcome = SessionOutcome.AbortedFalseEnter
                         completed = true
                         return@collect
                     }
@@ -1372,7 +1376,8 @@ class CoordinatorParkingDetector(
                             // Distinct outcome + telemetry when the extension ran: field data sizes
                             // this cohort (jam that never cleared? crawl into a re-park?) before
                             // deciding whether it deserves a nudge. [DET-JAM-WINDOW-001]
-                            sessionOutcome = if (jamExtensionLogged) "aborted_no_movement_jam" else "aborted_no_movement"
+                            sessionOutcome =
+                                if (jamExtensionLogged) SessionOutcome.AbortedNoMovementJam else SessionOutcome.AbortedNoMovement
                             if (jamExtensionLogged) {
                                 logDetection { sid ->
                                     DetectionEvent.Decision(
@@ -1416,7 +1421,7 @@ class CoordinatorParkingDetector(
                                 "  ✗ hasEverReachedDrivingSpeed but no vehicle to attribute — abort session" +
                                     if (nominatorVetoed) " (nominator=$nominatingVehicleId vetoed: bt-owned, no active vehicle)" else "",
                             )
-                            sessionOutcome = "aborted_no_vehicle"
+                            sessionOutcome = SessionOutcome.AbortedNoVehicle
                             completed = true
                             return@collect
                         }
@@ -1640,7 +1645,7 @@ class CoordinatorParkingDetector(
                                     // abort) is the only non-looping exit. Dismiss the re-posted
                                     // prompt so nothing dangles. [BUG-STUCK-SESSION]
                                     notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
-                                    sessionOutcome = "aborted_response_timeout"
+                                    sessionOutcome = SessionOutcome.AbortedResponseTimeout
                                 }
                                 completed = true
                                 return@collect
@@ -1788,7 +1793,7 @@ class CoordinatorParkingDetector(
                         )
                     }
                     heldConfirmDroppedByUser = null
-                    logDetection { sid -> DetectionEvent.SessionEnded(sid, nowMs(), sessionOutcome) }
+                    logDetection { sid -> DetectionEvent.SessionEnded(sid, nowMs(), sessionOutcome.serialized) }
                     currentSessionId = null
                     // [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001] A late verdict for a fence whose
                     // session is over addresses nobody.
@@ -1882,7 +1887,7 @@ class CoordinatorParkingDetector(
      */
     fun onUserStoppedDetection() {
         PaparcarLogger.d(DIAG, "✱ onUserStoppedDetection() — user stopped the live session; dropping any held confirm [DET-STOP-BUTTON-001]")
-        sessionOutcome = DetectionSessionOutcomes.STOPPED_BY_USER
+        sessionOutcome = SessionOutcome.StoppedByUser
         notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
         // [DET-HOLD-BRANCHES-MUST-SPEAK-001] Remember WHAT the stop dropped, before the state wipe
         // makes it unknowable. Without this the trace shows a session that ended stopped_by_user and
@@ -2034,7 +2039,7 @@ class CoordinatorParkingDetector(
             pathLabel = "unattended_zone_${reason.key}",
             zoneRadiusMeters = radius,
         )
-        val savedOk = ended && sessionOutcome.startsWith("confirmed_")
+        val savedOk = ended && sessionOutcome.isConfirmed
         logDetection { sid ->
             DetectionEvent.Decision(
                 sid, now,
@@ -2067,7 +2072,7 @@ class CoordinatorParkingDetector(
     ) {
         notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
         notificationPort.showMarkParkingNudge(source = reason.nudgeSource, vehicleId = vehicleId)
-        sessionOutcome = reason.abortedOutcome
+        sessionOutcome = SessionOutcome.AbortedUnattended(reason.key)
         logDetection { sid ->
             DetectionEvent.Decision(
                 sid, now,
@@ -2136,7 +2141,7 @@ class CoordinatorParkingDetector(
                     // is fresh (preserve) or stale (dismiss). [REFACTOR-300-FIX]
                     savedConfirmPostedAt = Clock.System.now().toEpochMilliseconds()
                     // [DET-LOG-03] Terminal CONFIRMED decision for the session trace.
-                    sessionOutcome = "confirmed_$pathLabel"
+                    sessionOutcome = SessionOutcome.Confirmed(pathLabel)
                     logDetection { sid ->
                         DetectionEvent.Decision(sid, nowMs(), outcome = "CONFIRMED", pathLabel = pathLabel, confidence = reliability, location = location)
                     }
@@ -2179,7 +2184,7 @@ class CoordinatorParkingDetector(
                     // Save failed → no parkingId to revert. Just clean up the prompt.
                     notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
                     // [DET-LOG-03] Record the failed confirm in the session trace.
-                    sessionOutcome = "confirm_failed_$pathLabel"
+                    sessionOutcome = SessionOutcome.ConfirmFailed(pathLabel)
                     logDetection { sid ->
                         DetectionEvent.Decision(sid, nowMs(), outcome = "CONFIRM_FAILED", pathLabel = pathLabel, location = location)
                     }

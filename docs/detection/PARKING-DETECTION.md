@@ -1754,7 +1754,7 @@ comment and a guarantee.
 
 ### DET-PHYSICS-SAVED-SHAPE-001 — one name for what a session leaves behind
 
-**Commit:** pending · **Ticket:** `docs/backlog/det-physics-saved-shape-001.md` · plan step P1.10.
+**Commit:** `44f8ba5d` · **Ticket:** `docs/backlog/det-physics-saved-shape-001.md` · plan step P1.10.
 
 Four outcomes, three vocabularies: `SaveExact`/`ApproximatePin`/`Confirmed`,
 `SaveZone`/`ApproximateZone`, `Ask`/`Prompt`, `KeepSilent`/silence-by-omission.
@@ -1788,6 +1788,60 @@ Verified discriminating: adding an arm to `HonestCloseDecision` and satisfying p
 the exclusion test red (🔴).
 
 **Zero behaviour change** — no production call site changed. **1528 tests.**
+
+---
+
+### DET-PHYSICS-SESSION-OUTCOME-001 — the outcome label stops being a string
+
+**Commit:** pending · **Ticket:** `docs/backlog/det-physics-session-outcome-001.md` · plan step P1.11.
+Closes **bug #3** and, by construction, **bug #5**.
+
+Three consumers asked three different questions of the session's terminal label, and all three asked
+them of a **String**:
+
+| Consumer | Question | How it asked |
+|---|---|---|
+| the unattended zone save | did the session actually save? | `startsWith("confirmed_")` |
+| the honest-close ladder | was this a silent abort? | equality against two constants |
+| the sentry-wake damper | was this a walking abort? | equality against the same two |
+
+So membership was decided by **how the label was spelled**, and one string granted or denied three
+behaviours at once. It had already happened: `aborted_no_movement_jam` left the honest-close set AND
+the streak set the moment it was introduced, because it stopped being equal to
+`aborted_no_movement`. Both exclusions are right — the 21-08 sweep over 1,359 sessions found the jam
+cohort EMPTY, so the honest-close question stays undecidable with data and the exclusion stands
+(09 §14.4) — but nobody chose them.
+
+`domain/detection/physics/SessionOutcome.kt` makes all ten arms state their three memberships, with
+**no defaults**: a new outcome does not compile until its author answers all three. The streak
+effect is a `SentryStreakEffect` enum rather than a boolean for the same reason — `resetsSentryStreak`
+was the implicit `else` of a `when` and had never been declared anywhere, even though
+`stopped_by_user` lands there for a real reason (`DET-STOP-BUTTON-001`: the highest authority in the
+system speaking, not a refuted nomination).
+
+The damper's `when` is now split the way it always read: **declared membership**, then **measured
+cadence**.
+
+**Serialization is byte-identical and that is the whole risk.** These strings are a trace contract —
+field diagnoses in `docs/backlog/` quote them. `SessionOutcomeTest` pins every value against the
+literal it replaced, typed by hand rather than derived from the type.
+
+Verified discriminating: renaming `confirmed_` to `confirm_` turns **13 tests red**, 11 of them
+pre-existing coordinator and replay tests — the wire contract is guarded by the suite itself, not
+just by the new golden file. Putting the jam back into both membership sets turns 3 red, and those
+3 are all new: **the jam's exclusion had no test at all**, which is exactly how it became accidental.
+
+Two smaller things fall out. `UnattendedSaveReason.abortedOutcome` now builds its label through the
+sealed, so the service no longer re-types `"aborted_unattended_gap_anchor"` by hand — a rename of
+that key used to change the producer and silently stop matching the consumer, quietly re-opening
+`DET-BACKFILL-TAINT-001`. And there is deliberately **no `parse`**: nothing turns a string back into
+a type, so no `Unknown` arm has to guess its way through the three membership questions.
+
+**Not fixed here, on purpose:** `aborted_unattended_human_powered` still has two producers with one
+name. That is bug #7 and it has its own ticket; both keep emitting the same string so field
+comparisons against every previous bicycle session line up.
+
+**Zero behaviour change**, 0 asserts edited. **1535 tests.** Fase 1 cerrada.
 
 ---
 
