@@ -2301,7 +2301,7 @@ edited. **1629 tests.** Four of ten stages moved.
 
 ### DET-STAGE-PRE-DRIVE-SKIP-001 — the smallest stage, and the first one the scaffold fitted
 
-**Commit:** pending · **Ticket:** `docs/backlog/det-stage-pre-drive-skip-001.md` · plan step P3.5.
+**Commit:** `5b9d32ee` · **Ticket:** `docs/backlog/det-stage-pre-drive-skip-001.md` · plan step P3.5.
 
 Two lines: no drive, no decision. Every stage below reasons about a trip, so until the session is
 authorized as post-drive the pass ends here.
@@ -2321,6 +2321,45 @@ NOMINATION — the arm may have lent it on trust and a dismissed departure can s
 
 **Zero behaviour change**, coordinator +1 line net (the branch was two lines and the stage call is
 one). **1629 tests**, six precedence tests and 18 replays green. Five of ten stages moved.
+
+---
+
+### DET-STAGE-USER-CONFIRM-001 — the shape becomes mandatory, and P0.1 earns its keep
+
+**Commit:** pending · **Ticket:** `docs/backlog/det-stage-user-confirm-001.md` · plan step P3.6, the
+one the plan singles out.
+
+[BUG-COORD-115] A tap outranks every inference below it. `stages/UserConfirmStage.kt` wins over the
+response timeout, the candidate, the fast lane and the scorer, and loses only to the three things a
+tap cannot make true: a hold already resolving, a session that never drove, a budget already folded.
+
+**The answer settles WHETHER, never WHERE** — and most of this stage is working out where the car
+actually is: the anchor when the egress was born at it, the user's own stop when the answer arrives
+far from both the anchor and the birth [DET-CONFIRM-ANCHOR-001], never a gap-born anchor.
+
+**This is the one place in the plan where the refactor closes an omission bug BY CONSTRUCTION.**
+[DET-USER-YES-IS-NOT-A-COORDINATE-001] One branch here used to pin an exact point immediately after
+concluding it did not know where the car was. The stage now returns a `SavedParkingShape`, so a path
+added later **cannot save anything without saying which shape it is** — forgetting stopped being
+expressible. `SavedParkingShape` landed in P1.10 with nothing adopting it; this is its first adopter,
+and it arrives as a requirement rather than as an option.
+
+**Holdability stopped being a call-site choice.** The difference between an inferred confirm (may
+wait out the grace window to rule out an errand stop) and an answered one (may not — nothing a window
+could learn outranks the user having told us) used to be *which function the branch happened to
+call*, `beginConfirm` versus `runConfirm`. It is a property of the DECISION, so it is now
+`Confirm.mayHold`, declared by the stage. The first version of this step had the executor sniffing
+`pathLabel == "user"` instead, which is the same defect wearing a different hat.
+
+**And P0.1 earned its keep.** `should_resolve_the_vehicle_before_confirming_within_the_same_fix`
+went red: stages read the iteration snapshot, but the branches read the vehicle attribution **LIVE**,
+because attribution happens MID-iteration in a stage that outranks these. A stage handed the raw
+snapshot gets a null vehicle id on the very fix that resolved one, and the park is saved to nobody.
+That test was written for exactly this and it caught it on the first run — the fix overlays the live
+attribution for every stage, not just this one, since all five below the attribution were exposed.
+
+**Zero behaviour change**, coordinator **−54 lines**, six precedence tests and 18 replays green with
+no assert edited. **1629 tests.** Six of ten stages moved.
 
 ---
 

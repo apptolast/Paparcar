@@ -133,7 +133,7 @@ class StageScaffoldTest {
     @Test
     fun should_account_for_every_io_method_the_coordinator_performs_today() {
         val everyEffect = listOf(
-            DetectionEffect.Confirm(SavedParkingShape.ExactPin(here, 0.9f), "veh-1", "steps+egress"),
+            DetectionEffect.Confirm(SavedParkingShape.ExactPin(here, 0.9f), "veh-1", "steps+egress", mayHold = true),
             DetectionEffect.AskUser("no_drive", "veh-1", here),
             DetectionEffect.NotifyPrompt(ParkingConfidence.Low),
             DetectionEffect.DegradeToPrompt("ar_enter", "weak_evidence", here),

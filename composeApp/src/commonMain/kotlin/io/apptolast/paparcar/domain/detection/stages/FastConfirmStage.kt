@@ -79,6 +79,8 @@ class FastConfirmStage(
                         ),
                         vehicleId = state.session.attributedVehicleId,
                         pathLabel = decision.pathLabel,
+                    // [DET-C-02] Inferred: the grace window may still rule out an errand stop.
+                    mayHold = true,
                     ),
                 ),
                 stopsIteration = true,

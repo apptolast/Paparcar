@@ -193,11 +193,21 @@ sealed interface StageVerdict {
  */
 sealed interface DetectionEffect {
 
-    /** Save the park. Replaces `runConfirm` / `beginConfirm`'s tail. */
+    /**
+     * Save the park.
+     *
+     * @param mayHold [DET-C-02] Whether this confirm may wait out the post-confirm grace window
+     *   before it is final. An INFERRED confirm may — the window is there to rule out an errand stop
+     *   — but an ANSWERED one may not: the user already told us, and there is nothing a grace window
+     *   could learn that outranks that. It is a property of the DECISION, not of the executor;
+     *   before this it was the difference between calling `beginConfirm` and calling `runConfirm`,
+     *   which is exactly the kind of thing a call site gets to forget.
+     */
     data class Confirm(
         val shape: SavedParkingShape,
         val vehicleId: String?,
         val pathLabel: String,
+        val mayHold: Boolean,
     ) : DetectionEffect
 
     /**

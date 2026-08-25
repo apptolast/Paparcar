@@ -30,6 +30,7 @@ import io.apptolast.paparcar.domain.detection.stages.CandidateStage
 import io.apptolast.paparcar.domain.detection.stages.FastConfirmStage
 import io.apptolast.paparcar.domain.detection.stages.PreDriveSkipStage
 import io.apptolast.paparcar.domain.detection.stages.ResponseTimeoutStage
+import io.apptolast.paparcar.domain.detection.stages.UserConfirmStage
 import io.apptolast.paparcar.domain.detection.stages.SessionStage
 import io.apptolast.paparcar.domain.detection.stages.DetectionEffect
 import io.apptolast.paparcar.domain.detection.stages.StageVerdict
@@ -1057,98 +1058,9 @@ class CoordinatorParkingDetector(
                     }
 
                     // [BUG-COORD-115] precedence: user-confirm always wins.
-                    if (state.confirmation.userConfirmed) {
-                        PaparcarLogger.d(DIAG, "  ▶ USER-CONFIRMED path — entering confirmParking")
-                        // [DET-ANCHOR-EGRESS-001][DET-GAP-ANCHOR-001] A user "Sí" answers "did you
-                        // park?", not "is the anchor right": when the egress was born away from
-                        // the pinned anchor, or the anchor's stop opened through a GPS hole (rest
-                        // unwitnessed — possibly a drive-past point), the anchor is not the car —
-                        // anchor the save at the user's current stop instead (they answer near
-                        // the car; the wrong anchor may sit hundreds of meters out).
-                        val locationToConfirm = if (isEgressBornAtAnchor(state) && !state.anchorGapEnteredAtCapture) {
-                            state.anchorTrust.anchor ?: state.bestFix(location)
-                        } else {
-                            // [DET-CONFIRM-ANCHOR-001] "They answer near the car" is an assumption,
-                            // not a fact: a late "Sí" arrives from wherever the walk ended, and the
-                            // current fix then IS the pedestrian's destination (field 2026-08-11
-                            // 16:08: 32 driving fixes came to rest, mute step counter, the user
-                            // answered after walking away and the pin planted at the destination).
-                            // When the stop was WITNESSED (anchor present and NOT gap-entered — a
-                            // gap-born anchor may be a drive-past point hundreds of meters out with
-                            // unboundable forward error, so it never wins here) and the answer
-                            // arrives far from BOTH the anchor and the egress birth, re-anchor at
-                            // the witnessed end of driving. Answering near the egress BIRTH keeps
-                            // today's behavior on purpose: a born-away egress means the birth, not
-                            // the anchor, is where the car is (field 2026-07-15, Enamorados: frozen
-                            // at a light 1.11 km back — the user's own stop is the right pin there).
-                            val witnessedStop = state.anchorTrust.anchor
-                                ?.takeIf { !state.anchorGapEnteredAtCapture }
-                            val currentFix = state.bestFix(location)
-                            val stopDistanceMeters = witnessedStop?.let {
-                                io.apptolast.paparcar.domain.util.haversineMeters(
-                                    it.latitude, it.longitude, currentFix.latitude, currentFix.longitude,
-                                )
-                            }
-                            val birthDistanceMeters = state.anchorTrust.egressBirth?.originFix?.let {
-                                io.apptolast.paparcar.domain.util.haversineMeters(
-                                    it.latitude, it.longitude, currentFix.latitude, currentFix.longitude,
-                                )
-                            }
-                            val answeredFarFromCar = stopDistanceMeters != null &&
-                                stopDistanceMeters > USER_CONFIRM_NEAR_CAR_MAX_METERS &&
-                                (birthDistanceMeters == null || birthDistanceMeters > USER_CONFIRM_NEAR_CAR_MAX_METERS)
-                            PaparcarLogger.d(
-                                DIAG,
-                                "  ⚓ user-confirm anchor: stopDistance=${stopDistanceMeters?.toInt()}m " +
-                                    "birthDistance=${birthDistanceMeters?.toInt()}m " +
-                                    "gapEntered=${state.anchorGapEnteredAtCapture} " +
-                                    "→ ${if (answeredFarFromCar) "witnessed stop" else "current fix"} [DET-CONFIRM-ANCHOR-001]",
-                            )
-                            if (answeredFarFromCar) witnessedStop!! else currentFix
-                        }
-                        // [DET-USER-YES-IS-NOT-A-COORDINATE-001] The answer settles WHETHER the user
-                        // parked — `reliabilityUserConfirmed` (1.0) is right and stays. It settles
-                        // nothing about WHERE, and this path had one branch that pins an exact point
-                        // immediately after concluding it does not know: a gap-born anchor is
-                        // discarded here as "possibly a drive-past point hundreds of meters out",
-                        // and the fallback fix was then saved as an exact coordinate with the doubt
-                        // recorded nowhere. The unattended path already bounds that same doubt by
-                        // what a person could walk inside the hole [DET-GAP-ANCHOR-ZONE-001]; the
-                        // user path inherits the bound rather than a second opinion of it. The doubt
-                        // hangs on the HOLE, not on which fallback the branch above happened to
-                        // pick: when the stop was entered through one, every candidate position in
-                        // this path is downstream of the same unwitnessed arrival.
-                        //
-                        // Below the zone FLOOR an area says less than the point does, so the point
-                        // stands — this only stops the exact claim where it was already known to be
-                        // unsupportable, and leaves every well-located pin exactly as it was.
-                        val userDoubtMeters = walkableInsideGapMeters(
-                            state.anchorTrust.capture.gapMs, config.maxPedestrianSpeedMps,
-                        )
-                        val userZoneRadius = approximateZoneRadius(locationToConfirm, userDoubtMeters)
-                            .takeIf {
-                                maxOf(locationToConfirm.accuracy, userDoubtMeters.toFloat()) >
-                                    config.honestCloseMinZoneRadiusMeters
-                            }
-                        if (userZoneRadius != null) {
-                            PaparcarLogger.d(
-                                DIAG,
-                                "  ◯ user-confirm saved as a ZONE r=${userZoneRadius}m — the answer proves the " +
-                                    "park, not the spot (doubt=${userDoubtMeters.toInt()}m from a " +
-                                    "${state.anchorTrust.capture.gapMs}ms GPS hole, fixAcc=${locationToConfirm.accuracy}m) " +
-                                    "[DET-USER-YES-IS-NOT-A-COORDINATE-001]",
-                            )
-                        }
-                        completed = runConfirm(
-                            location = locationToConfirm,
-                            reliability = config.reliabilityUserConfirmed,
-                            vehicleId = attributedVehicleId,
-                            pathLabel = "user",
-                            zoneRadiusMeters = userZoneRadius,
-                        )
-                        PaparcarLogger.d(DIAG, "  ◀ USER-CONFIRMED path done — returning from collect")
-                        return@collect
-                    }
+                    val userPass = runStage(userConfirmStage, state, location, now, stoppedDuration)
+                    if (userPass.endsSession) completed = true
+                    if (userPass.endsPass) return@collect
 
                     // No drive, no decision — every stage below reasons about a trip.
                     if (runStage(preDriveSkipStage, state, location, now, stoppedDuration).endsPass) return@collect
@@ -1954,6 +1866,8 @@ class CoordinatorParkingDetector(
         humanPowered = { state, now -> humanPoweredRide(state, attributedVehicleType, now) },
     )
 
+    private val userConfirmStage = UserConfirmStage(isEgressBornAtAnchor = ::isEgressBornAtAnchor)
+
     private val preDriveSkipStage = PreDriveSkipStage()
 
     private val responseTimeoutStage = ResponseTimeoutStage(
@@ -2520,7 +2434,16 @@ class CoordinatorParkingDetector(
         now: Long,
         stoppedDuration: Long,
     ): StagePass {
-        val verdict = stage.evaluate(state, location, now, stoppedDuration, config)
+        // ⚠️ The branches read everything off the iteration snapshot EXCEPT the vehicle
+        // attribution, which they read LIVE — because attribution happens MID-iteration, in a stage
+        // that outranks these. Handing a stage the raw snapshot gives it a null vehicle id on the
+        // very fix that resolved one, and the park is then saved to nobody.
+        // `should_resolve_the_vehicle_before_confirming_within_the_same_fix` (P0.1) caught exactly
+        // that while this stage was being moved — which is what that test was written for.
+        val seen = state.copy(
+            session = state.session.attributeVehicle(attributedVehicleId, attributedVehicleType),
+        )
+        val verdict = stage.evaluate(seen, location, now, stoppedDuration, config)
         verdict.notes.forEach { PaparcarLogger.d(DIAG, it) }
         if (verdict !is StageVerdict.Handled) return StagePass(endsPass = false, endsSession = false)
         val phase = verdict.newState.confirmation.phase
@@ -2537,15 +2460,38 @@ class CoordinatorParkingDetector(
         var sessionCompleted = false
         effects.forEach { effect ->
             when (effect) {
-                is DetectionEffect.Confirm -> {
-                    val pin = effect.shape as SavedParkingShape.ExactPin
-                    sessionCompleted = beginConfirm(
-                        location = pin.location,
-                        reliability = pin.reliability,
+                is DetectionEffect.Confirm -> sessionCompleted = when (val shape = effect.shape) {
+                    // [DET-USER-YES-IS-NOT-A-COORDINATE-001] A bounded zone never waits out a hold:
+                    // it exists because the position is already known to be doubtful, and a grace
+                    // window would only let the doubt grow.
+                    is SavedParkingShape.BoundedZone -> runConfirm(
+                        location = shape.center,
+                        reliability = config.reliabilityUserConfirmed,
                         vehicleId = effect.vehicleId,
                         pathLabel = effect.pathLabel,
-                        now = now,
+                        zoneRadiusMeters = shape.radiusMeters,
                     )
+                    is SavedParkingShape.ExactPin ->
+                        if (effect.mayHold) {
+                            beginConfirm(
+                                location = shape.location,
+                                reliability = shape.reliability,
+                                vehicleId = effect.vehicleId,
+                                pathLabel = effect.pathLabel,
+                                now = now,
+                            )
+                        } else {
+                            runConfirm(
+                                location = shape.location,
+                                reliability = shape.reliability,
+                                vehicleId = effect.vehicleId,
+                                pathLabel = effect.pathLabel,
+                            )
+                        }
+                    // The two silent shapes never reach an executor: a stage that decides to say
+                    // nothing returns no Confirm effect at all.
+                    SavedParkingShape.AskUser, SavedParkingShape.KeepSilent ->
+                        error("a silent shape is not a confirm: $shape")
                 }
                 is DetectionEffect.SaveZone -> {
                     val reason = UnattendedSaveReason.entries.first { it.key == effect.reasonKey }
