@@ -2,6 +2,8 @@ package io.apptolast.paparcar.domain.detection.physics
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 /** [DET-MOTOR-PROOF-001][DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001] The sustained-band accumulator both
  *  the drive proof and the motor proof run on. */
@@ -52,5 +54,26 @@ class SpeedBandClockTest {
             36_000L,
             creditSpeedBand(0L, lastInBandFixMs = 1_000L, fixTimestampMs = 37_000L, fixInBand = true, windowMaxMs = windowMax),
         )
+    }
+
+    // ── sustainedDriveWitnessed ───────────────────────────────────────────────
+
+    @Test
+    fun should_witnessTheDrive_when_theProvenBandReachesTheBar() {
+        assertTrue(sustainedDriveWitnessed(provenBandMs = 30_000L, proofMs = 30_000L))
+        assertTrue(sustainedDriveWitnessed(provenBandMs = 30_001L, proofMs = 30_000L))
+    }
+
+    @Test
+    fun should_notWitnessTheDrive_when_theBandFallsShort() {
+        assertFalse(sustainedDriveWitnessed(provenBandMs = 29_999L, proofMs = 30_000L))
+    }
+
+    @Test
+    fun should_notWitnessTheDrive_when_theTrackNeverCorroboratedIt() {
+        // An uncorroborated run reaches this function as ZERO — the drive proof's promotion rule
+        // is upstream (provenDrivingBandMs), and it is what stopped a lone 5,33 m/s sample from
+        // reading as a trip on 2026-08-24. [DET-ASSERTION-OUTRANKS-INFERENCE-001]
+        assertFalse(sustainedDriveWitnessed(provenBandMs = 0L, proofMs = 30_000L))
     }
 }

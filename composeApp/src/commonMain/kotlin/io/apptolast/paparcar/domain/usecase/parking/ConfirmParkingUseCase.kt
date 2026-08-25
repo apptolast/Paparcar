@@ -188,31 +188,10 @@ class ConfirmParkingUseCase(
         // Same exemptions as the repark guard, on purpose: no session provenance
         // ([tripMaxSpeedMps] null → BT, manual, external callers) and verified arms pass through.
         // A hand-placed pin never arrives here at all — it carries `SpotType.MANUAL_REPORT`.
-        if (spotType == SpotType.AUTO_DETECTED &&
+        val assertionGuardApplies = spotType == SpotType.AUTO_DETECTED &&
             tripMaxSpeedMps != null &&
             !ArmEvidence.isVerifiedLabel(armEvidence) &&
             !(sessionSawDriving ?: false)
-        ) {
-            val asserted = userParkingRepository.getActiveSessionByVehicle(resolvedVehicleId)
-            if (asserted != null && assertionBlocksRelocation(
-                    pinReliability = asserted.detectionReliability,
-                    pinLocation = asserted.location,
-                    candidate = location,
-                    nowMs = Clock.System.now().toEpochMilliseconds(),
-                    sessionSawDriving = false,
-                    userConfirmedReliability = config.reliabilityUserConfirmed,
-                    freshWindowMs = config.reparkPlausibilityWindowMs,
-                    radiusMeters = config.reparkPlausibilityRadiusMeters,
-                )
-            ) {
-                PaparcarLogger.w(
-                    DIAG,
-                    "  ⊘ the user already asserted this car's position — an inference does not " +
-                        "depose it; keeping the existing pin [DET-ASSERTION-OUTRANKS-INFERENCE-001]"
-                )
-                return Result.failure(PaparcarError.Parking.ImplausibleRepark)
-            }
-        }
 
         // ── Repark-plausibility guard [DET-SOLID-001] ─────────────────────────
         // Last line of defense, independent of which detection path confirmed: an AUTO_DETECTED
@@ -222,26 +201,53 @@ class ConfirmParkingUseCase(
         // coordinator can degrade to a user prompt. Bypassed by: user confirmation
         // (reliability 1.0), manual/BT paths (no provenance → tripMaxSpeedMps null), verified
         // arms, real driving in-session, distance, or age.
-        if (spotType == SpotType.AUTO_DETECTED &&
+        val reparkGuardApplies = spotType == SpotType.AUTO_DETECTED &&
             detectionReliability < config.reliabilityUserConfirmed &&
             tripMaxSpeedMps != null && tripMaxSpeedMps < config.minimumTripSpeedMps &&
             !ArmEvidence.isVerifiedLabel(armEvidence)
+
+        // ONE read for both: they interrogate the SAME row — the pin this vehicle already holds —
+        // with two different rules, and neither may run without it. Read here rather than inside
+        // each guard so the confirm path that needs neither (manual, BT, verified arms) still
+        // touches the repository zero times.
+        val previousActive = if (assertionGuardApplies || reparkGuardApplies) {
+            userParkingRepository.getActiveSessionByVehicle(resolvedVehicleId)
+        } else {
+            null
+        }
+
+        if (assertionGuardApplies && previousActive != null && assertionBlocksRelocation(
+                pinReliability = previousActive.detectionReliability,
+                pinLocation = previousActive.location,
+                candidate = location,
+                nowMs = Clock.System.now().toEpochMilliseconds(),
+                sessionSawDriving = false,
+                userConfirmedReliability = config.reliabilityUserConfirmed,
+                freshWindowMs = config.reparkPlausibilityWindowMs,
+                radiusMeters = config.reparkPlausibilityRadiusMeters,
+            )
         ) {
-            val previous = userParkingRepository.getActiveSessionByVehicle(resolvedVehicleId)
-            if (previous != null) {
-                val ageMs = Clock.System.now().toEpochMilliseconds() - previous.location.timestamp
-                val distanceM = haversineMeters(
-                    previous.location.latitude, previous.location.longitude,
-                    location.latitude, location.longitude,
+            PaparcarLogger.w(
+                DIAG,
+                "  ⊘ the user already asserted this car's position — an inference does not " +
+                    "depose it; keeping the existing pin [DET-ASSERTION-OUTRANKS-INFERENCE-001]"
+            )
+            return Result.failure(PaparcarError.Parking.ImplausibleRepark)
+        }
+
+        if (reparkGuardApplies && previousActive != null) {
+            val ageMs = Clock.System.now().toEpochMilliseconds() - previousActive.location.timestamp
+            val distanceM = haversineMeters(
+                previousActive.location.latitude, previousActive.location.longitude,
+                location.latitude, location.longitude,
+            )
+            if (ageMs < config.reparkPlausibilityWindowMs && distanceM < config.reparkPlausibilityRadiusMeters) {
+                PaparcarLogger.w(
+                    DIAG,
+                    "  ⊘ implausible repark — previous active ${ageMs / 1000}s old at ${distanceM.toInt()}m, " +
+                        "session maxSpeed=${tripMaxSpeedMps}m/s (<${config.minimumTripSpeedMps}), evidence=$armEvidence [DET-SOLID-001]"
                 )
-                if (ageMs < config.reparkPlausibilityWindowMs && distanceM < config.reparkPlausibilityRadiusMeters) {
-                    PaparcarLogger.w(
-                        DIAG,
-                        "  ⊘ implausible repark — previous active ${ageMs / 1000}s old at ${distanceM.toInt()}m, " +
-                            "session maxSpeed=${tripMaxSpeedMps}m/s (<${config.minimumTripSpeedMps}), evidence=$armEvidence [DET-SOLID-001]"
-                    )
-                    return Result.failure(PaparcarError.Parking.ImplausibleRepark)
-                }
+                return Result.failure(PaparcarError.Parking.ImplausibleRepark)
             }
         }
 

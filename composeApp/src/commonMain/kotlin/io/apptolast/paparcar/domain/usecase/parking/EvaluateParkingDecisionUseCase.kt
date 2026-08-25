@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.domain.usecase.parking
 
+import io.apptolast.paparcar.domain.detection.physics.sustainedDriveWitnessed
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.VehicleType
 
@@ -219,7 +220,7 @@ class EvaluateParkingDecisionUseCase(private val config: ParkingDetectionConfig)
         // the driving band, not the session peak — a bicycle clears any peak threshold a car
         // must also clear (18,1 km/h for ~6 s pinned the bike rack, field 2026-08-18; 38 km/h
         // on 2026-08-16), but cannot HOLD the band the way even the weakest car trace does.
-        val sessionSawDriving = input.sustainedDrivingMs >= config.sustainedDriveProofMs
+        val sessionSawDriving = sustainedDriveWitnessed(input.sustainedDrivingMs, config.sustainedDriveProofMs)
 
         // [DET-KINEMATIC-EGRESS-001] GPS-measured walk away from the frozen end-of-drive anchor.
         // Steps outrank it (they fire earlier); this is the mute-counter peer. Requires measured

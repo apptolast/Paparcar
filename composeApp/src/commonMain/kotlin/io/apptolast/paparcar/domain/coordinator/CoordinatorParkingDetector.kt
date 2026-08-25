@@ -18,6 +18,7 @@ import io.apptolast.paparcar.domain.detection.physics.pruneRecentFixes
 import io.apptolast.paparcar.domain.detection.physics.sustainedDepartureFromAnchor
 import io.apptolast.paparcar.domain.detection.physics.honestZoneRadius
 import io.apptolast.paparcar.domain.detection.physics.creditSpeedBand
+import io.apptolast.paparcar.domain.detection.physics.sustainedDriveWitnessed
 import io.apptolast.paparcar.domain.detection.physics.walkableInsideGapMeters
 import io.apptolast.paparcar.domain.detection.physics.SessionOutcome
 import io.apptolast.paparcar.domain.detection.physics.effectiveDriving
@@ -2130,8 +2131,10 @@ class CoordinatorParkingDetector(
                 // [DET-ASSERTION-OUTRANKS-INFERENCE-001] The SUSTAINED figure, not the peak above:
                 // the guard's job is to tell a real re-park from a walk-away, and one stray sample
                 // is not a drive. [DET-MOTOR-PROOF-001]
-                sessionSawDriving =
-                    _detectionState.value.provenDrivingBandMs >= config.sustainedDriveProofMs,
+                sessionSawDriving = sustainedDriveWitnessed(
+                    _detectionState.value.provenDrivingBandMs,
+                    config.sustainedDriveProofMs,
+                ),
                 // [DET-PIN-PROVENANCE-001] The confirmation path IS the provenance: "steps+egress",
                 // "kinematic+egress", "vehicle-exit", "unattended_timeout", "user".
                 detectionPath = pathLabel,
@@ -2407,7 +2410,10 @@ class CoordinatorParkingDetector(
                 pinLocation = pin.location,
                 candidate = location,
                 nowMs = now,
-                sessionSawDriving = state.provenDrivingBandMs >= config.sustainedDriveProofMs,
+                sessionSawDriving = sustainedDriveWitnessed(
+                    state.provenDrivingBandMs,
+                    config.sustainedDriveProofMs,
+                ),
                 userConfirmedReliability = config.reliabilityUserConfirmed,
                 freshWindowMs = config.reparkPlausibilityWindowMs,
                 radiusMeters = config.reparkPlausibilityRadiusMeters,

@@ -35,3 +35,23 @@ fun creditSpeedBand(
     val gapMs = fixTimestampMs - lastInBandFixMs
     return if (gapMs in 1..windowMaxMs) accumulatedMs + gapMs else accumulatedMs
 }
+
+/**
+ * [DET-MOTOR-PROOF-001] **Did this session WITNESS a drive?** — the reading of [creditSpeedBand]'s
+ * total that every "was there really a trip" question in the system asks.
+ *
+ * The same `>=` was spelled inline at three call sites — the parking decision's `sessionSawDriving`,
+ * the assertion guard's escape hatch, and the confirm's repark sibling — each one free to drift into
+ * reading a different quantity. The quantity is the load-bearing part: it must be the band the drive
+ * proof already PROMOTED (`ParkingDetectionState.provenDrivingBandMs` / the evaluator's
+ * `sustainedDrivingMs`), never the raw accumulator and never a PEAK. A peak is one sample and one
+ * sample is a mirage — 5,33 m/s out of 25 fixes walked a guard on 2026-08-24
+ * [DET-ASSERTION-OUTRANKS-INFERENCE-001].
+ *
+ * Trivial arithmetic with a name is the point: when the drive proof moves into its own sub-state,
+ * what changes is what FEEDS this, in one place, instead of three comparisons agreeing by luck.
+ *
+ * @param provenBandMs Band time the track has corroborated — zero until it has.
+ * @param proofMs `ParkingDetectionConfig.sustainedDriveProofMs`.
+ */
+fun sustainedDriveWitnessed(provenBandMs: Long, proofMs: Long): Boolean = provenBandMs >= proofMs
