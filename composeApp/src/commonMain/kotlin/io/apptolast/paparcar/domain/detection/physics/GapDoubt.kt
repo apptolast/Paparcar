@@ -1,4 +1,4 @@
-package io.apptolast.paparcar.domain.detection
+package io.apptolast.paparcar.domain.detection.physics
 
 /**
  * [DET-GAP-ANCHOR-ZONE-001][DET-USER-YES-IS-NOT-A-COORDINATE-001] How far the phone could have walked

@@ -1683,6 +1683,37 @@ unpadded site itself (where someone stumbles onto it).
 
 ---
 
+### DET-PHYSICS-MOVE-PURE-FILES-001 — `SpeedBandClock` and `GapDoubt` change folder
+
+**Commit:** pending · **Ticket:** `docs/backlog/det-physics-move-pure-files-001.md` · plan step P1.8,
+the trivial one.
+
+Both were already top-level pure functions in the target pattern; they were simply in the folder next
+door. `git mv` into `physics/` (git records them as renames, so both histories survive), package
+updated, and the two callers that referenced them **fully qualified inline** now use imports.
+
+**The part that was not trivial: `GapDoubt` had no test** — and two consumers that feed its result
+straight into a saved zone's radius. Two consumers and zero tests is exactly the shape a bound has of
+widening in one and being forgotten in the other, which is the bug that caused this function to be
+extracted in the first place. `GapDoubtTest` (5) now covers the Góndola trip's real 100.5 s hole
+(~201 m of doubt), the zero hole, **a backwards clock** (a negative gap must yield zero, not a
+negative radius that would sink under the zone floor and silently claim precision nobody has), the
+scaling with the pedestrian ceiling, and monotonicity.
+
+⚠️ **The P0.4 safety net fired for the first time, and it was worth reading.** The diff reported 5
+tests missing: the baseline stores package-qualified names and the package changed. False alarm in
+substance, true alarm in mechanism. All five were verified one by one under
+`…detection.physics.SpeedBandClockTest` with identical method names, and the rename is recorded
+**inside `P0.4-baseline-tests.txt` itself** so the net stays readable in later steps instead of
+crying the same wolf every time. The plan asked for exactly this: a test that disappears *without a
+written justification* is a silent regression — this one has its justification.
+
+**Zero behaviour change.** **Files:** `physics/SpeedBandClock.kt`, `physics/GapDoubt.kt` (both moved),
+`CoordinatorParkingDetector.kt`, `EvaluateUnattendedParkingSaveUseCase.kt`, 5 new tests.
+**1511 tests.**
+
+---
+
 ## 3. Open questions / future work
 
 - **GPS sampling boost during CANDIDATE (PARKING-001 Option B).** Switch the LocationDataSource to a 1 s `minUpdateIntervalMillis` request when entering the CANDIDATE phase, returning to 2 s on exit. Increases density of fixes that refine `bestStopLocation` within the new initial-stop window after a reposition burst. Adds the complexity of swapping the location source mid-session — hold off until A is validated in the field.

@@ -1,6 +1,14 @@
 # P0.4 - linea de salida del refactor F6
 # master 2288468e - 2026-08-24 - testProdDebugUnitTest --rerun-tasks
 # 1454 tests. Cualquier nombre que desaparezca durante F6 sin justificacion escrita es una regresion.
+#
+# ---- RENOMBRADOS JUSTIFICADOS (el diff los muestra como desaparecidos) ----
+# P1.8 / DET-PHYSICS-MOVE-PURE-FILES-001 - SpeedBandClockTest cambio de paquete:
+#   io.apptolast.paparcar.domain.detection.SpeedBandClockTest
+#     -> io.apptolast.paparcar.domain.detection.physics.SpeedBandClockTest
+#   Los 5 nombres de test son identicos; solo se movio el fichero de carpeta.
+#   Verificado uno a uno contra la corrida: los 5 existen bajo el paquete nuevo.
+#
 
 io.apptolast.paparcar.architecture.ArchitectureTest :: UseCase classes should live inside the domain layer
 io.apptolast.paparcar.architecture.ArchitectureTest :: data layer should not import from presentation layer

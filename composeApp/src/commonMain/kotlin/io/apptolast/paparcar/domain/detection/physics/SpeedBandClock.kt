@@ -1,4 +1,4 @@
-package io.apptolast.paparcar.domain.detection
+package io.apptolast.paparcar.domain.detection.physics
 
 /**
  * [DET-MOTOR-PROOF-001][DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001] How long a session has SUSTAINED a

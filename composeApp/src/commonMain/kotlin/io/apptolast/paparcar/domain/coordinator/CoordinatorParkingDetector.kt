@@ -6,7 +6,6 @@ import io.apptolast.paparcar.domain.detection.DepartureConfirmationListener
 import io.apptolast.paparcar.domain.detection.DetectionPhase
 import io.apptolast.paparcar.domain.detection.DetectionSessionOutcomes
 import io.apptolast.paparcar.domain.detection.DetectionPhaseSink
-import io.apptolast.paparcar.domain.detection.creditSpeedBand
 import io.apptolast.paparcar.domain.detection.VehicleFenceOwnershipPolicy
 import io.apptolast.paparcar.domain.detection.isHumanPoweredRide
 import io.apptolast.paparcar.domain.detection.physics.outrunsPedestrianReach
@@ -18,6 +17,8 @@ import io.apptolast.paparcar.domain.detection.physics.isCorroboratedVehicleHop
 import io.apptolast.paparcar.domain.detection.physics.pruneRecentFixes
 import io.apptolast.paparcar.domain.detection.physics.sustainedDepartureFromAnchor
 import io.apptolast.paparcar.domain.detection.physics.honestZoneRadius
+import io.apptolast.paparcar.domain.detection.physics.creditSpeedBand
+import io.apptolast.paparcar.domain.detection.physics.walkableInsideGapMeters
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
 import io.apptolast.paparcar.domain.error.PaparcarError
@@ -1499,7 +1500,7 @@ class CoordinatorParkingDetector(
                         // Below the zone FLOOR an area says less than the point does, so the point
                         // stands — this only stops the exact claim where it was already known to be
                         // unsupportable, and leaves every well-located pin exactly as it was.
-                        val userDoubtMeters = io.apptolast.paparcar.domain.detection.walkableInsideGapMeters(
+                        val userDoubtMeters = walkableInsideGapMeters(
                             state.anchorGapMsAtCapture, config.maxPedestrianSpeedMps,
                         )
                         val userZoneRadius = approximateZoneRadius(locationToConfirm, userDoubtMeters)

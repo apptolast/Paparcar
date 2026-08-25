@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.domain.usecase.parking
 
+import io.apptolast.paparcar.domain.detection.physics.walkableInsideGapMeters
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.util.haversineMeters
@@ -273,7 +274,7 @@ class EvaluateUnattendedParkingSaveUseCase(private val config: ParkingDetectionC
             // [DET-CAR-REST-CLOCK-001] The rest is the ANCHOR's, not the phone's: the drive-past
             // hypothesis is about the CAR resting, and the pedestrian wandering off (or indoor
             // noise impersonating them) says nothing against it.
-            val walkableInsideHole = io.apptolast.paparcar.domain.detection.walkableInsideGapMeters(
+            val walkableInsideHole = walkableInsideGapMeters(
                 input.anchorGapMs, config.maxPedestrianSpeedMps,
             )
             val sustainedStop = input.anchorRestMs >= config.sustainedStopForSaveMs

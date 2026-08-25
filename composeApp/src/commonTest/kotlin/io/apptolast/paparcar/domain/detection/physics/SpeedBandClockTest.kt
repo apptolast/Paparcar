@@ -1,4 +1,4 @@
-package io.apptolast.paparcar.domain.detection
+package io.apptolast.paparcar.domain.detection.physics
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
