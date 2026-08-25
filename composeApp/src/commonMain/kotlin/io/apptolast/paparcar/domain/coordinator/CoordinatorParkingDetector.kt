@@ -28,6 +28,7 @@ import io.apptolast.paparcar.domain.detection.state.ConfirmationLifecycle
 import io.apptolast.paparcar.domain.detection.stages.ConfidenceScoringStage
 import io.apptolast.paparcar.domain.detection.stages.CandidateStage
 import io.apptolast.paparcar.domain.detection.stages.FastConfirmStage
+import io.apptolast.paparcar.domain.detection.stages.NoMovementBudgetStage
 import io.apptolast.paparcar.domain.detection.stages.PreDriveSkipStage
 import io.apptolast.paparcar.domain.detection.stages.ResponseTimeoutStage
 import io.apptolast.paparcar.domain.detection.stages.UserConfirmStage
@@ -963,52 +964,33 @@ class CoordinatorParkingDetector(
                             creepWindow.removeFirst()
                         }
                     }
-                    val noMovementBudgetMs =
-                        if (staleExitDelivery) config.staleExitNoMovementMs else config.maxNoMovementMs
-                    if (!state.session.driveAuthorized && (now - sessionStartMs) > noMovementBudgetMs) {
-                        val recentCreepMeters = if (creepWindow.size >= 2) {
-                            val oldest = creepWindow.first().second
-                            val newest = creepWindow.last().second
-                            io.apptolast.paparcar.domain.util.haversineMeters(
-                                oldest.latitude, oldest.longitude, newest.latitude, newest.longitude,
-                            )
-                        } else 0.0
-                        val jamCrawl = !staleExitDelivery && recentCreepMeters >= config.jamCreepMinMeters
-                        if (jamCrawl && (now - sessionStartMs) <= config.jamExtendedNoMovementMs) {
-                            if (!jamExtensionLogged) {
-                                jamExtensionLogged = true
-                                PaparcarLogger.d(
-                                    DIAG,
-                                    "  ⏲ no-movement budget EXTENDED — recent creep ${recentCreepMeters.toInt()}m " +
-                                        "in ${config.jamCreepWindowMs}ms without driving speed (jam/stop-go " +
-                                        "crawl) → watching until ${config.jamExtendedNoMovementMs}ms [DET-JAM-WINDOW-001]",
-                                )
-                            }
-                        } else {
-                            PaparcarLogger.d(
-                                DIAG,
-                                "  ⚑ no-movement guard hit after ${now - sessionStartMs}ms " +
-                                    "(budget=${noMovementBudgetMs}ms staleExitDelivery=$staleExitDelivery " +
-                                    "recentCreep=${recentCreepMeters.toInt()}m jamExtended=$jamExtensionLogged) → completed=true",
-                            )
-                            // Distinct outcome + telemetry when the extension ran: field data sizes
-                            // this cohort (jam that never cleared? crawl into a re-park?) before
-                            // deciding whether it deserves a nudge. [DET-JAM-WINDOW-001]
-                            sessionOutcome =
-                                if (jamExtensionLogged) SessionOutcome.AbortedNoMovementJam else SessionOutcome.AbortedNoMovement
-                            if (jamExtensionLogged) {
-                                logDetection { sid ->
-                                    DetectionEvent.Decision(
-                                        sid, now,
-                                        outcome = "NO_MOVEMENT_JAM_FOLD",
-                                        pathLabel = "recentCreep=${recentCreepMeters.toInt()}m rawMax=${state.drive.peakMps}mps",
-                                        location = location,
-                                    )
-                                }
-                            }
-                            completed = true
-                            return@collect
-                        }
+                    val recentCreepMeters = if (creepWindow.size >= 2) {
+                        val oldest = creepWindow.first().second
+                        val newest = creepWindow.last().second
+                        io.apptolast.paparcar.domain.util.haversineMeters(
+                            oldest.latitude, oldest.longitude, newest.latitude, newest.longitude,
+                        )
+                    } else {
+                        0.0
+                    }
+                    val budgetVerdict = noMovementBudgetStage.evaluate(
+                        state = state,
+                        fix = location,
+                        sessionAgeMs = now - sessionStartMs,
+                        staleExitDelivery = staleExitDelivery,
+                        recentCreepMeters = recentCreepMeters,
+                        extensionAlreadyAnnounced = jamExtensionLogged,
+                        config = config,
+                    )
+                    budgetVerdict.notes.forEach { PaparcarLogger.d(DIAG, it) }
+                    if (budgetVerdict is StageVerdict.Handled) {
+                        // The extension latch is the loop's: it exists so the trace carries one line
+                        // per session instead of one per fix, and the stage only reports whether it
+                        // has already spoken.
+                        if (budgetVerdict.notes.isNotEmpty() && !budgetVerdict.stopsIteration) jamExtensionLogged = true
+                        val budgetPass = runStageEffects(budgetVerdict.effects, now)
+                        if (budgetPass.endsSession) completed = true
+                        if (budgetVerdict.stopsIteration) return@collect
                     }
 
                     // [VEH-ACTIVE-FENCE-001] Lock vehicleId on the first driving-speed fix.
@@ -1825,6 +1807,19 @@ class CoordinatorParkingDetector(
         humanPowered = { state, now -> humanPoweredRide(state, attributedVehicleType, now) },
     )
 
+    private val noMovementBudgetStage = NoMovementBudgetStage()
+
+    /** [11 bug #3] The wire label back to its type. The only place a string becomes an outcome —
+     *  an effect carries the serialized form because that is what a trace contract is made of. */
+    private fun detectionOutcomeOf(serialized: String): SessionOutcome = when (serialized) {
+        SessionOutcome.AbortedNoMovement.serialized -> SessionOutcome.AbortedNoMovement
+        SessionOutcome.AbortedNoMovementJam.serialized -> SessionOutcome.AbortedNoMovementJam
+        SessionOutcome.AbortedFalseEnter.serialized -> SessionOutcome.AbortedFalseEnter
+        SessionOutcome.AbortedNoVehicle.serialized -> SessionOutcome.AbortedNoVehicle
+        SessionOutcome.AbortedResponseTimeout.serialized -> SessionOutcome.AbortedResponseTimeout
+        else -> error("no outcome for $serialized")
+    }
+
     private val vehicleAttributionStage = VehicleAttributionStage()
 
     private val userConfirmStage = UserConfirmStage(isEgressBornAtAnchor = ::isEgressBornAtAnchor)
@@ -2588,7 +2583,19 @@ class CoordinatorParkingDetector(
                         )
                     }
                 }
-                is DetectionEffect.EndSession,
+                is DetectionEffect.EndSession -> {
+                    sessionOutcome = detectionOutcomeOf(effect.outcome)
+                    sessionCompleted = true
+                }
+                is DetectionEffect.RecordJamFold -> logDetection { sid ->
+                    DetectionEvent.Decision(
+                        sid, now,
+                        outcome = "NO_MOVEMENT_JAM_FOLD",
+                        pathLabel = "recentCreep=${effect.recentCreepMeters.toInt()}m " +
+                            "rawMax=${effect.rawPeakMps}mps",
+                        location = effect.at,
+                    )
+                }
                 DetectionEffect.DismissPrompt,
                 -> error("effect not reachable until its stage lands: $effect")
             }

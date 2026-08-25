@@ -125,6 +125,7 @@ class StageScaffoldTest {
         is DetectionEffect.CloseHumanPowered -> "closeHumanPoweredRide"
         is DetectionEffect.RecordPromptShown -> "the PROMPT_SHOWN Decision event"
         is DetectionEffect.RecordCandidateOpened -> "the Candidate(OPENED) event"
+        is DetectionEffect.RecordJamFold -> "the NO_MOVEMENT_JAM_FOLD Decision event"
         DetectionEffect.DismissPrompt -> "notificationPort.dismiss"
         is DetectionEffect.ResolveVehicle -> "the vehicleRepository lookup inside the attribution branch"
         is DetectionEffect.EndSession -> "the completed = true / return@collect pairs"
@@ -143,6 +144,7 @@ class StageScaffoldTest {
             DetectionEffect.CloseHumanPowered("veh-1", here),
             DetectionEffect.RecordPromptShown("high_candidate", ParkingConfidence.Low),
             DetectionEffect.RecordCandidateOpened("from Notified"),
+            DetectionEffect.RecordJamFold(42.0, 3.1f, here),
             DetectionEffect.DismissPrompt,
             DetectionEffect.ResolveVehicle("veh-1"),
             DetectionEffect.EndSession("aborted_false_enter"),

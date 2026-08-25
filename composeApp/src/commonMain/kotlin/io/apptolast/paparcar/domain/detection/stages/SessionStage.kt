@@ -243,6 +243,19 @@ sealed interface DetectionEffect {
      */
     data class RecordPromptShown(val pathLabel: String, val confidence: ParkingConfidence) : DetectionEffect
 
+    /**
+     * [DET-JAM-WINDOW-001] The extended no-movement budget ran and the session folded anyway.
+     *
+     * Diagnostics only, and the instrument is the point: field data has to SIZE this cohort — a jam
+     * that never cleared, or a crawl into a re-park? — before anyone decides whether it deserves a
+     * nudge. The 21-08 sweep over 1,359 sessions found it EMPTY, so the question is still open.
+     */
+    data class RecordJamFold(
+        val recentCreepMeters: Double,
+        val rawPeakMps: Float,
+        val at: GpsPoint,
+    ) : DetectionEffect
+
     /** The candidate window opened. Diagnostics only — but a side effect all the same, and the tap
      *  absorbs it in P3.12. */
     data class RecordCandidateOpened(val fromPhase: String) : DetectionEffect

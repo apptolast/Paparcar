@@ -2365,7 +2365,7 @@ no assert edited. **1629 tests.** Six of ten stages moved.
 
 ### DET-STAGE-VEHICLE-ATTRIBUTION-001 — the effect the plan described could not exist
 
-**Commit:** pending · **Ticket:** `docs/backlog/det-stage-vehicle-attribution-001.md` · plan step
+**Commit:** `2aff3e60` · **Ticket:** `docs/backlog/det-stage-vehicle-attribution-001.md` · plan step
 P3.7, the only stage that needs I/O.
 
 [VEH-ACTIVE-FENCE-001][DET-BT-OWNERSHIP-001] Whose car this is, settled once on the first
@@ -2396,6 +2396,47 @@ stage sees the state and nothing else, by design. It is session identity in exac
 
 **Zero behaviour change**, six precedence tests and 18 replays green with no assert edited.
 **1629 tests.** Seven of ten stages moved.
+
+---
+
+### DET-STAGE-NO-MOVEMENT-BUDGET-001 — the stage that does not implement the interface, and says so
+
+**Commit:** pending · **Ticket:** `docs/backlog/det-stage-no-movement-budget-001.md` · plan step P3.8.
+
+A session that never drove has a budget, and this is where it runs out. It outranks the vehicle
+attribution and every confirm lane for the reason P0.1 pinned: **a session with nothing measured is
+over before it can be answered** — a user tap cannot make a trip happen.
+
+Three budgets, each with an incident behind it: the standard one for an ordinary spurious arm; the
+SHORT probe for a stale-delivered EXIT [DET-ZOMBIE-PROBE-001], because a real mid-drive far delivery
+shows driving fixes within seconds and a zombie never will; and the EXTENDED one for a traffic-jam
+crawl [DET-JAM-WINDOW-001], where the car did leave the spot but creeps below driving speed past the
+standard budget and the silent fold lost the whole trip. Stale-lane zombies never get the extension,
+which is what keeps the two guards from cancelling each other out.
+
+**This is the one stage that does not implement `SessionStage`, and pretending otherwise would have
+been worse than saying so.** Its decision needs three things the common signature cannot carry: the
+delivery lane, how far the position crept inside a sliding window, and whether the extension has
+already been announced. Two of those are per-session MUTABLE bookkeeping the loop maintains on every
+fix — including the fixes where this stage is skipped.
+
+Both alternatives were worse. Inventing a state field per measurement to satisfy an interface is the
+tail wagging the dog. Implementing `evaluate` as a function that throws puts a lie in the type
+system — which is precisely the class of defect this refactor keeps finding, something that reads
+like a contract and is not one. The first draft of this step did exactly that, and it was wrong.
+
+So it stays a plain class with its own signature and its place in `DetectionStage` declared. It joins
+the interface when the creep window has a home: [09 §5] slates it to be absorbed by the drive proof
+ring, which already retains recent fixes for a different question. That is a Phase 4 consolidation —
+two windows with different retention rules is a merge that needs its own argument, not a rider on a
+move.
+
+`DetectionEffect.EndSession` gets its first real use here, which also gives the outcome vocabulary a
+round trip: the effect carries the SERIALIZED label, because that is what a trace contract is made
+of, and exactly one function turns it back into a `SessionOutcome`.
+
+**Zero behaviour change**, six precedence tests and 18 replays green with no assert edited.
+**1629 tests.** Eight of ten stages moved.
 
 ---
 
