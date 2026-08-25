@@ -28,6 +28,7 @@ import io.apptolast.paparcar.domain.detection.state.ConfirmationLifecycle
 import io.apptolast.paparcar.domain.detection.stages.ConfidenceScoringStage
 import io.apptolast.paparcar.domain.detection.stages.CandidateStage
 import io.apptolast.paparcar.domain.detection.stages.FastConfirmStage
+import io.apptolast.paparcar.domain.detection.stages.PreDriveSkipStage
 import io.apptolast.paparcar.domain.detection.stages.ResponseTimeoutStage
 import io.apptolast.paparcar.domain.detection.stages.SessionStage
 import io.apptolast.paparcar.domain.detection.stages.DetectionEffect
@@ -1149,10 +1150,8 @@ class CoordinatorParkingDetector(
                         return@collect
                     }
 
-                    if (!state.session.driveAuthorized) {
-                        PaparcarLogger.d(DIAG, "  ⏸ skipping: !hasEverReachedDrivingSpeed")
-                        return@collect
-                    }
+                    // No drive, no decision — every stage below reasons about a trip.
+                    if (runStage(preDriveSkipStage, state, location, now, stoppedDuration).endsPass) return@collect
 
                     // [DET-RECONCILE-001] Response-timeout: SAVE, don't discard.
                     val timeoutPass = runStage(responseTimeoutStage, state, location, now, stoppedDuration)
@@ -1954,6 +1953,8 @@ class CoordinatorParkingDetector(
         decisionInput = ::stageDecisionInput,
         humanPowered = { state, now -> humanPoweredRide(state, attributedVehicleType, now) },
     )
+
+    private val preDriveSkipStage = PreDriveSkipStage()
 
     private val responseTimeoutStage = ResponseTimeoutStage(
         evaluateUnattendedParkingSave = evaluateUnattendedParkingSave,

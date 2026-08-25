@@ -2271,7 +2271,7 @@ this one.
 
 ### DET-STAGE-RESPONSE-TIMEOUT-001 — the biggest branch was mostly a trace line
 
-**Commit:** pending · **Ticket:** `docs/backlog/det-stage-response-timeout-001.md` · plan step P3.4,
+**Commit:** `738e1c9e` · **Ticket:** `docs/backlog/det-stage-response-timeout-001.md` · plan step P3.4,
 the largest of the ten.
 
 [DET-RECONCILE-001] The user was asked and never answered, so the session **saves rather than
@@ -2296,6 +2296,31 @@ ignored one for the full window and ending is the only non-looping exit [BUG-STU
 
 **Zero behaviour change**, P0.1's six precedence tests and all 18 replays green with no assert
 edited. **1629 tests.** Four of ten stages moved.
+
+---
+
+### DET-STAGE-PRE-DRIVE-SKIP-001 — the smallest stage, and the first one the scaffold fitted
+
+**Commit:** pending · **Ticket:** `docs/backlog/det-stage-pre-drive-skip-001.md` · plan step P3.5.
+
+Two lines: no drive, no decision. Every stage below reasons about a trip, so until the session is
+authorized as post-drive the pass ends here.
+
+**It is worth being a stage rather than an early `return` for one reason: it is a PRECEDENCE CLAIM.**
+Four branches outrank it — the hold, the false-ENTER abort, the no-movement budget and the user's tap
+— and five are gated by it, and that ranking used to be nothing but where the `if` happened to sit.
+`DetectionStage` says it now, and `StageOrderTest` fails if anyone moves it.
+
+It is also the first stage that needed **no scaffold correction at all** — green first try. The four
+corrections were P3.1's three and P3.2's one; P3.3 added arms without changing shape, and this one
+fitted as designed. Worth recording as the point where the interface stopped moving.
+
+⚠️ Written into the stage: passing this gate proves nothing about the trip. `driveAuthorized` is the
+NOMINATION — the arm may have lent it on trust and a dismissed departure can still take it back
+[07 §3.3]. A stage below still has to ask the drive proof what was actually measured.
+
+**Zero behaviour change**, coordinator +1 line net (the branch was two lines and the stage call is
+one). **1629 tests**, six precedence tests and 18 replays green. Five of ten stages moved.
 
 ---
 
