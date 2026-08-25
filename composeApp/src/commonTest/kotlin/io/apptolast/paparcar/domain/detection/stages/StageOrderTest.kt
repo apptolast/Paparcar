@@ -120,6 +120,8 @@ class StageScaffoldTest {
         is DetectionEffect.NotifyPrompt -> "notifyParkingConfirmation"
         is DetectionEffect.DegradeToPrompt -> "degradeToPrompt (kept compound: it reads its own clock)"
         is DetectionEffect.DiscardCandidate -> "the Candidate(DISCARDED) branch of evaluateCandidatePhase"
+        is DetectionEffect.SaveZone -> "saveUnattendedZone, with its fall-back-to-nudge"
+        is DetectionEffect.SaveUnattended -> "the SaveExact branch of the response timeout"
         is DetectionEffect.CloseHumanPowered -> "closeHumanPoweredRide"
         is DetectionEffect.RecordPromptShown -> "the PROMPT_SHOWN Decision event"
         is DetectionEffect.RecordCandidateOpened -> "the Candidate(OPENED) event"
@@ -136,6 +138,8 @@ class StageScaffoldTest {
             DetectionEffect.NotifyPrompt(ParkingConfidence.Low),
             DetectionEffect.DegradeToPrompt("ar_enter", "weak_evidence", here),
             DetectionEffect.DiscardCandidate(2_000L, here),
+            DetectionEffect.SaveZone("gap_anchor", here, 42.0, "veh-1", here),
+            DetectionEffect.SaveUnattended(SavedParkingShape.ExactPin(here, 0.4f), "veh-1"),
             DetectionEffect.CloseHumanPowered("veh-1", here),
             DetectionEffect.RecordPromptShown("high_candidate", ParkingConfidence.Low),
             DetectionEffect.RecordCandidateOpened("from Notified"),

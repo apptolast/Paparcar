@@ -2239,7 +2239,7 @@ precedence tests green with no assert edited. **1629 tests.**
 
 ### DET-STAGE-CANDIDATE-001 — a stale snapshot may not stamp a freshness line
 
-**Commit:** pending · **Ticket:** `docs/backlog/det-stage-candidate-001.md` · plan step P3.3.
+**Commit:** `2489305a` · **Ticket:** `docs/backlog/det-stage-candidate-001.md` · plan step P3.3.
 
 [DET-D-02] The open candidate's decision tree becomes `stages/CandidateStage.kt`. It ends the pass on
 **every** branch, inconclusive included: a candidate in flight is not a state anything below it may
@@ -2266,6 +2266,36 @@ green with no assert edited. **1629 tests.**
 Three of ten stages moved. `parkingDecisionInput` now has all three of its consumers, so it is ready
 to move to `stages/` — it stays one more step so that move is its own diff rather than a rider on
 this one.
+
+---
+
+### DET-STAGE-RESPONSE-TIMEOUT-001 — the biggest branch was mostly a trace line
+
+**Commit:** pending · **Ticket:** `docs/backlog/det-stage-response-timeout-001.md` · plan step P3.4,
+the largest of the ten.
+
+[DET-RECONCILE-001] The user was asked and never answered, so the session **saves rather than
+discards**. The prompt only ever shows after a real trip, a real stop and a vehicle-exit signal, so
+the parking almost certainly happened and the only missing piece is a human tap. Throwing it away
+costs the user their car — field 2026-07-06, Redmi — while saving it wrong costs one correction tap.
+
+**What the move revealed is how little of the biggest branch was decision.** Its ~110 lines break
+down as: a timeout gate, one call to a verdict that already exists, a dispatch over three arms — and
+a 12-line `parkdiag` trace with fifteen interpolated values. The seven-way precedence it used to
+hold inline (no-drive → unpinned → egress-mismatch → gap → walk-entered → vehicular-egress → exact)
+had already left for `EvaluateUnattendedParkingSaveUseCase`, which is why the Redmi's fully measured
+25.6-minute drive stopped ending with no pin at all [DET-WALK-ENTERED-ANCHOR-ZONE-001]. So the stage
+is thin by construction, and the trace it emits is now a named function whose only job is to be
+word-for-word what it was.
+
+**Two effects stay compound, and the reason is the same both times:** what happens when the save
+FAILS is a property of executing it, not a second decision the stage could make. `SaveZone` falls
+back to the ask its own reason names, so the user gets an offer instead of silence; `SaveUnattended`
+ends the session even when a guard degrades it to yet another prompt, because the user already
+ignored one for the full window and ending is the only non-looping exit [BUG-STUCK-SESSION].
+
+**Zero behaviour change**, P0.1's six precedence tests and all 18 replays green with no assert
+edited. **1629 tests.** Four of ten stages moved.
 
 ---
 

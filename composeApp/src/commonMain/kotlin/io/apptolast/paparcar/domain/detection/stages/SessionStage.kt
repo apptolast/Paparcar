@@ -251,6 +251,33 @@ sealed interface DetectionEffect {
     ) : DetectionEffect
 
     /**
+     * [DET-WALK-ENTERED-ANCHOR-ZONE-001] Save the park as an AREA: the anchor is doubtful but the
+     * doubt is BOUNDED, so the park is kept and only its precision degrades.
+     *
+     * Compound on purpose. If the zone save is refused or fails, the branch falls back to the ask
+     * that its own reason names — the user still gets the offer instead of silence — and that
+     * fallback is a property of executing the save, not a second decision the stage could make
+     * without knowing whether the first one worked.
+     */
+    data class SaveZone(
+        val reasonKey: String,
+        val center: GpsPoint,
+        val doubtMeters: Double,
+        val vehicleId: String?,
+        val at: GpsPoint,
+    ) : DetectionEffect
+
+    /**
+     * [DET-RECONCILE-001] The user never answered, and every anchor taint came back clean: save at
+     * the pinned anchor with low reliability so nothing community-facing trusts it on its own.
+     *
+     * Compound for the same reason as [SaveZone]: if a guard degrades this save to yet another
+     * prompt, the session ends anyway — the user already ignored one for the full window, and
+     * ending is the only non-looping exit. [BUG-STUCK-SESSION]
+     */
+    data class SaveUnattended(val shape: SavedParkingShape, val vehicleId: String?) : DetectionEffect
+
+    /**
      * [BUG-COORD-105][DET-EVIDENCE-MUST-NOT-LOWER-CONFIDENCE-001] The candidate window expired
      * without its egress proof: fall back to the prompt that is still on screen and move the
      * freshness line.

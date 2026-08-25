@@ -28,6 +28,7 @@ import io.apptolast.paparcar.domain.detection.state.ConfirmationLifecycle
 import io.apptolast.paparcar.domain.detection.stages.ConfidenceScoringStage
 import io.apptolast.paparcar.domain.detection.stages.CandidateStage
 import io.apptolast.paparcar.domain.detection.stages.FastConfirmStage
+import io.apptolast.paparcar.domain.detection.stages.ResponseTimeoutStage
 import io.apptolast.paparcar.domain.detection.stages.SessionStage
 import io.apptolast.paparcar.domain.detection.stages.DetectionEffect
 import io.apptolast.paparcar.domain.detection.stages.StageVerdict
@@ -1153,119 +1154,10 @@ class CoordinatorParkingDetector(
                         return@collect
                     }
 
-                    // Response-timeout: SAVE, don't discard. [DET-RECONCILE-001] The prompt only
-                    // shows after a real trip + stop + vehicle-exit signal — the parking almost
-                    // certainly happened; the only missing bit is a human tap. Throwing the
-                    // session away costs the user their car (field incident 2026-07-06, Redmi:
-                    // a real parking was lost to an unnoticed notification), while saving it
-                    // wrong costs one correction tap. Saved with low reliability so nothing
-                    // community-facing trusts it on its own. Session-end still runs (completed).
-                    val promptShownAt = state.confirmation.phase.promptShownAt
-                    if (promptShownAt != null && (now - promptShownAt) > config.confirmationResponseTimeoutMs) {
-                        // [DET-WALK-ENTERED-ANCHOR-ZONE-001] The seven-way precedence that used to
-                        // live inline here (no-drive → unpinned → egress-mismatch → gap → walk-
-                        // entered → vehicular-egress → exact save) is now ONE pure verdict, so the
-                        // rule "a bounded doubt costs precision, never the park" exists in a single
-                        // place instead of being re-derived per branch — which is how the Redmi's
-                        // fully measured 25,6 min drive ended with no pin at all (field 2026-08-16,
-                        // session 1786918991116). This block keeps only the side effects.
-                        // [DET-CAR-REST-CLOCK-001] The sustained rest the save licence needs is the
-                        // CAR's, and its witness is the pinned anchor's own stop: it was opened by
-                        // the car halting and only re-measured real driving clears it. The phone's
-                        // stop tracker is the wrong clock here — after egress it follows the
-                        // walker, and indoor GPS noise resets it with no accuracy gate (field
-                        // 2026-08-18 Góndola: ~15 s accumulated across 15 min of anchored rest).
-                        val anchorRestMs = if (isAnchorPinned(state)) {
-                            state.anchorTrust.capturedAtStop?.let { now - it } ?: 0L
-                        } else {
-                            0L
-                        }
-                        val verdict = evaluateUnattendedParkingSave(
-                            UnattendedSaveInput(
-                                maxSpeedMps = state.drive.provenMaxSpeedMps,
-                                pendingMaxSpeedMps = state.drive.peakMps,
-                                credibleDrivingFixes = state.drive.credibleFixCount,
-                                anchor = state.anchorTrust.anchor,
-                                currentFix = location,
-                                egressOriginFix = state.anchorTrust.egressBirth?.originFix,
-                                stepCount = state.egress.stepCount,
-                                sessionSawSteps = state.egress.sensorAlive,
-                                vehicleExitConfirmed = state.egress.vehicleExitHint,
-                                anchorPinned = isAnchorPinned(state),
-                                anchorGapMs = state.anchorTrust.capture.gapMs,
-                                anchorWalkEntered = isAnchorWalkEntered(state),
-                                anchorStepEventsAtCapture = state.anchorTrust.capture.stepEvents,
-                                anchorWalkInSpanMeters = state.anchorTrust.capture.walkInSpanMeters,
-                                egressBornAtAnchor = isEgressBornAtAnchor(state),
-                                egressExceedsWalkReach = egressExceedsWalkReach(state, location),
-                                anchorRestMs = anchorRestMs,
-                                humanPoweredRide = humanPoweredRide(state, attributedVehicleType, now),
-                            )
-                        )
-                        PaparcarLogger.d(
-                            DIAG,
-                            "  ⑊ no user response after ${now - promptShownAt}ms " +
-                                "(limit=${config.confirmationResponseTimeoutMs}ms) → $verdict " +
-                                "[maxSpeed=${state.drive.provenMaxSpeedMps}m/s pinned=${isAnchorPinned(state)} " +
-                                "walkEntered=${isAnchorWalkEntered(state)} walkFixes=${state.anchorTrust.capture.walkFixes} " +
-                                "stepEvents=${state.anchorTrust.capture.stepEvents} sawSteps=${state.anchorTrust.capture.sawSteps} " +
-                                "walkInSpan=${state.anchorTrust.capture.walkInSpanMeters.toInt()}m carRest=${anchorRestMs}ms " +
-                                "stopped=${stoppedDuration}ms " +
-                                "gapMs=${state.anchorTrust.capture.gapMs}] " +
-                                "[DET-WALK-ENTERED-ANCHOR-ZONE-001][DET-GAP-ANCHOR-ZONE-001]"
-                        )
-                        when (verdict) {
-                            is UnattendedParkingSave.SaveZone -> {
-                                if (saveUnattendedZone(
-                                        reason = verdict.reason,
-                                        center = verdict.center,
-                                        doubtMeters = verdict.doubtMeters,
-                                        vehicleId = attributedVehicleId,
-                                        location = location,
-                                        now = now,
-                                    )
-                                ) {
-                                    completed = true
-                                    return@collect
-                                }
-                                // The zone save degraded to yet another prompt or failed outright.
-                                // Fall back to the ask its own reason names, so the user still gets
-                                // the offer instead of silence.
-                                nudgeUnattended(verdict.reason, attributedVehicleId, location, now)
-                                completed = true
-                                return@collect
-                            }
-                            is UnattendedParkingSave.Ask -> {
-                                nudgeUnattended(verdict.reason, attributedVehicleId, location, now, verdict.distanceMeters)
-                                completed = true
-                                return@collect
-                            }
-                            UnattendedParkingSave.SaveExact -> {
-                                // [DET-RECONCILE-001] The prompt only shows after a real trip + stop
-                                // + vehicle-exit signal, and every anchor taint came back clean:
-                                // save at the pinned anchor with low reliability so nothing
-                                // community-facing trusts it on its own.
-                                notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
-                                val locationToConfirm = refinedParkLocation(state, location)
-                                val saved = runConfirm(
-                                    location = locationToConfirm,
-                                    reliability = config.reliabilityUnattendedSave,
-                                    vehicleId = attributedVehicleId,
-                                    pathLabel = "unattended_timeout",
-                                )
-                                if (!saved) {
-                                    // Guard degraded the save to yet another prompt — but the user
-                                    // already ignored one for the full window; ending here (old
-                                    // abort) is the only non-looping exit. Dismiss the re-posted
-                                    // prompt so nothing dangles. [BUG-STUCK-SESSION]
-                                    notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
-                                    sessionOutcome = SessionOutcome.AbortedResponseTimeout
-                                }
-                                completed = true
-                                return@collect
-                            }
-                        }
-                    }
+                    // [DET-RECONCILE-001] Response-timeout: SAVE, don't discard.
+                    val timeoutPass = runStage(responseTimeoutStage, state, location, now, stoppedDuration)
+                    if (timeoutPass.endsSession) completed = true
+                    if (timeoutPass.endsPass) return@collect
 
                     // [DET-D-02] Candidate-phase decision tree.
                     val candidatePass = runStage(candidateStage, state, location, now, stoppedDuration)
@@ -2063,6 +1955,14 @@ class CoordinatorParkingDetector(
         humanPowered = { state, now -> humanPoweredRide(state, attributedVehicleType, now) },
     )
 
+    private val responseTimeoutStage = ResponseTimeoutStage(
+        evaluateUnattendedParkingSave = evaluateUnattendedParkingSave,
+        saveInput = ::unattendedSaveInput,
+        refinedParkLocation = ::refinedParkLocation,
+        anchorRestMs = ::anchorRestMs,
+        verdictTrace = ::unattendedVerdictTrace,
+    )
+
     private val candidateStage = CandidateStage(
         evaluateParkingDecision = evaluateParkingDecision,
         decisionInput = ::stageDecisionInput,
@@ -2083,6 +1983,60 @@ class CoordinatorParkingDetector(
      * is `stages/` and it moves there with the third; keeping it here meanwhile is what lets the
      * vehicle TYPE stay a live read of `attributedVehicleType`, exactly as the branches read it.
      */
+    /**
+     * [DET-CAR-REST-CLOCK-001] How long the CAR has rested: the pinned anchor's own stop, opened when
+     * it halted and cleared only by re-measured driving. Zero while the anchor is unpinned, because
+     * then nothing witnessed a rest at all.
+     */
+    private fun anchorRestMs(state: DetectionSessionState, now: Long): Long =
+        if (isAnchorPinned(state)) state.anchorTrust.restMsAt(now) else 0L
+
+    /** [DET-WALK-ENTERED-ANCHOR-ZONE-001] The unattended verdict's input, built from the state and
+     *  the anchor predicates the coordinator owns. Presented to the stage. */
+    private fun unattendedSaveInput(
+        state: DetectionSessionState,
+        location: GpsPoint,
+        now: Long,
+        restMs: Long,
+    ) = UnattendedSaveInput(
+        maxSpeedMps = state.drive.provenMaxSpeedMps,
+        pendingMaxSpeedMps = state.drive.peakMps,
+        credibleDrivingFixes = state.drive.credibleFixCount,
+        anchor = state.anchorTrust.anchor,
+        currentFix = location,
+        egressOriginFix = state.anchorTrust.egressBirth?.originFix,
+        stepCount = state.egress.stepCount,
+        sessionSawSteps = state.egress.sensorAlive,
+        vehicleExitConfirmed = state.egress.vehicleExitHint,
+        anchorPinned = isAnchorPinned(state),
+        anchorGapMs = state.anchorTrust.capture.gapMs,
+        anchorWalkEntered = isAnchorWalkEntered(state),
+        anchorStepEventsAtCapture = state.anchorTrust.capture.stepEvents,
+        anchorWalkInSpanMeters = state.anchorTrust.capture.walkInSpanMeters,
+        egressBornAtAnchor = isEgressBornAtAnchor(state),
+        egressExceedsWalkReach = egressExceedsWalkReach(state, location),
+        anchorRestMs = restMs,
+        humanPoweredRide = humanPoweredRide(state, attributedVehicleType, now),
+    )
+
+    /** The verdict's whole reasoning, in one `parkdiag` line — unchanged, word for word. */
+    private fun unattendedVerdictTrace(
+        state: DetectionSessionState,
+        now: Long,
+        waitedMs: Long,
+        stoppedDuration: Long,
+        verdict: UnattendedParkingSave,
+    ): String =
+        "  ⑊ no user response after ${waitedMs}ms " +
+            "(limit=${config.confirmationResponseTimeoutMs}ms) → $verdict " +
+            "[maxSpeed=${state.drive.provenMaxSpeedMps}m/s pinned=${isAnchorPinned(state)} " +
+            "walkEntered=${isAnchorWalkEntered(state)} walkFixes=${state.anchorTrust.capture.walkFixes} " +
+            "stepEvents=${state.anchorTrust.capture.stepEvents} sawSteps=${state.anchorTrust.capture.sawSteps} " +
+            "walkInSpan=${state.anchorTrust.capture.walkInSpanMeters.toInt()}m carRest=${anchorRestMs(state, now)}ms " +
+            "stopped=${stoppedDuration}ms " +
+            "gapMs=${state.anchorTrust.capture.gapMs}] " +
+            "[DET-WALK-ENTERED-ANCHOR-ZONE-001][DET-GAP-ANCHOR-ZONE-001]"
+
     private fun stageDecisionInput(
         state: DetectionSessionState,
         location: GpsPoint,
@@ -2592,6 +2546,49 @@ class CoordinatorParkingDetector(
                         now = now,
                     )
                 }
+                is DetectionEffect.SaveZone -> {
+                    val reason = UnattendedSaveReason.entries.first { it.key == effect.reasonKey }
+                    val savedZone = saveUnattendedZone(
+                        reason = reason,
+                        center = effect.center,
+                        doubtMeters = effect.doubtMeters,
+                        vehicleId = effect.vehicleId,
+                        location = effect.at,
+                        now = now,
+                    )
+                    // The zone save degraded to yet another prompt or failed outright. Fall back to
+                    // the ask its own reason names, so the user still gets the offer, not silence.
+                    if (!savedZone) nudgeUnattended(reason, effect.vehicleId, effect.at, now)
+                    sessionCompleted = true
+                }
+                is DetectionEffect.SaveUnattended -> {
+                    val pin = effect.shape as SavedParkingShape.ExactPin
+                    notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
+                    val saved = runConfirm(
+                        location = pin.location,
+                        reliability = pin.reliability,
+                        vehicleId = effect.vehicleId,
+                        pathLabel = "unattended_timeout",
+                    )
+                    if (!saved) {
+                        // A guard degraded the save to yet another prompt — but the user already
+                        // ignored one for the full window, so ending here is the only non-looping
+                        // exit. Dismiss the re-posted prompt so nothing dangles. [BUG-STUCK-SESSION]
+                        notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
+                        sessionOutcome = SessionOutcome.AbortedResponseTimeout
+                    }
+                    sessionCompleted = true
+                }
+                is DetectionEffect.AskUser -> {
+                    nudgeUnattended(
+                        reason = UnattendedSaveReason.entries.first { it.key == effect.reasonKey },
+                        vehicleId = effect.vehicleId,
+                        location = effect.at,
+                        now = now,
+                        distanceMeters = effect.distanceMeters,
+                    )
+                    sessionCompleted = true
+                }
                 is DetectionEffect.DiscardCandidate -> {
                     // Applied to the LIVE state, not to the stage's snapshot: the freshness line is
                     // stamped at wherever the count stands NOW.
@@ -2628,13 +2625,6 @@ class CoordinatorParkingDetector(
                 is DetectionEffect.RecordCandidateOpened -> logDetection { sid ->
                     DetectionEvent.Candidate(sid, now, action = "OPENED", phase = effect.fromPhase)
                 }
-                is DetectionEffect.AskUser -> nudgeUnattended(
-                    reason = UnattendedSaveReason.entries.first { it.key == effect.reasonKey },
-                    vehicleId = effect.vehicleId,
-                    location = effect.at,
-                    now = now,
-                    distanceMeters = effect.distanceMeters,
-                )
                 is DetectionEffect.ResolveVehicle,
                 is DetectionEffect.EndSession,
                 DetectionEffect.DismissPrompt,
