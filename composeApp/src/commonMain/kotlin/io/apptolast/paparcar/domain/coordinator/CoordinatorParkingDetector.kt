@@ -19,6 +19,7 @@ import io.apptolast.paparcar.domain.detection.physics.sustainedDepartureFromAnch
 import io.apptolast.paparcar.domain.detection.physics.honestZoneRadius
 import io.apptolast.paparcar.domain.detection.physics.creditSpeedBand
 import io.apptolast.paparcar.domain.detection.physics.walkableInsideGapMeters
+import io.apptolast.paparcar.domain.detection.physics.effectiveDriving
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
 import io.apptolast.paparcar.domain.error.PaparcarError
@@ -2944,16 +2945,21 @@ class CoordinatorParkingDetector(
                 val newPinnedStepless =
                     if (steplessQualifies) it.pinnedSteplessMovingFixes + 1 else it.pinnedSteplessMovingFixes
                 val steplessDeparture = newPinnedStepless >= config.frozenAnchorSteplessDepartureFixes
-                val effectiveDriving = when {
-                    isRealDrive -> true
-                    sustainedDeparture -> true
-                    steplessDeparture -> true
-                    anchorPinned -> false
-                    corroboratedMuteHop -> true
-                    it.stepCount == 0 && isDriving -> false
-                    it.bestStopLocation != null && isDriving && !outruns -> false
-                    else -> isDriving
-                }
+                // The precedence itself lives in `physics/EffectiveDriving.kt`, verbatim — its ORDER
+                // is the content, and every row there won an argument with a real trip. The signals
+                // are computed here because they read this session's state; the ranking between them
+                // is physics and is now directly testable [07 §3.2].
+                val effectiveDriving = effectiveDriving(
+                    isRealDrive = isRealDrive,
+                    sustainedDeparture = sustainedDeparture,
+                    steplessDeparture = steplessDeparture,
+                    anchorPinned = anchorPinned,
+                    corroboratedMuteHop = corroboratedMuteHop,
+                    stepsCounted = it.stepCount,
+                    hasAnchor = it.bestStopLocation != null,
+                    displacementOutrunsSteps = outruns,
+                    isDriving = isDriving,
+                )
                 if (steplessDeparture && !isRealDrive && !sustainedDeparture) {
                     PaparcarLogger.d(
                         DIAG,

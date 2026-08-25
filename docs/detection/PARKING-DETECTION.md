@@ -1714,6 +1714,44 @@ written justification* is a silent regression — this one has its justification
 
 ---
 
+### DET-PHYSICS-EFFECTIVE-DRIVING-001 — the person/car precedence moves out intact, and gets a test
+
+**Commit:** pending · **Ticket:** `docs/backlog/det-physics-effective-driving-001.md` · plan step P1.9.
+
+The eight-row `when` that decides whether a fix clears the park anchor. **The order is the content** —
+the rows are not independent rules, each exists to beat the ones below it in a case where both apply —
+so it moves to `domain/detection/physics/EffectiveDriving.kt` **verbatim**, taking nine
+already-computed signals rather than recomputing anything. Flattening it into configuration would be
+less readable than the commented `when`, and fragmenting it would destroy the only thing it encodes
+(07 §3.2).
+
+**What this actually fixes.** The `when` lived inside a 700-line `update {}` block and its rows were
+only reachable through the whole coordinator. Its own comment says every row won an argument with a
+real trip — and yet **nothing failed if two rows were swapped**. Same hole
+`DET-PRECEDENCE-MUST-BE-TESTABLE-001` found one level up, closed the same way: pin every adjacent
+pair with a case where both rows apply and disagree.
+
+Verified discriminating rather than assumed:
+
+| Swap | Result |
+|---|---|
+| rows 5↔6 (corroborated hop ↔ mute-counter rule) | 🔴 the corroborated-hop test |
+| rows 3↔4 (stepless departure ↔ pinned anchor) | 🔴 the stepless-departure test |
+
+The 5/6 pair is the one that matters: read apart the two rows look contradictory — *"mute counter ⇒
+CAR"* against *"mute counter ⇒ PERSON"* — and they are not. **Row 5 is the *measured* escape hatch of
+row 6.** Swapping them re-opens Galeote (2026-07-16, the car rolling to the kerb read as a walk);
+swapping 3/4 re-opens Bodegas Osborne (2026-07-23, 160 m of creep that never moved the frozen
+anchor). That is now written in the KDoc **and held up by a test**, which is the difference between a
+comment and a guarantee.
+
+**Zero behaviour change**; the `when` is character-for-character the same.
+
+**Files:** `physics/EffectiveDriving.kt` (new, pure), `CoordinatorParkingDetector.kt`, 11 new tests.
+**1522 tests.**
+
+---
+
 ## 3. Open questions / future work
 
 - **GPS sampling boost during CANDIDATE (PARKING-001 Option B).** Switch the LocationDataSource to a 1 s `minUpdateIntervalMillis` request when entering the CANDIDATE phase, returning to 2 s on exit. Increases density of fixes that refine `bestStopLocation` within the new initial-stop window after a reposition burst. Adds the complexity of swapping the location source mid-session — hold off until A is validated in the field.
