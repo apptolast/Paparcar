@@ -4,6 +4,7 @@ package io.apptolast.paparcar.domain.usecase.parking
 
 import com.apptolast.customlogin.domain.AuthRepository
 import io.apptolast.paparcar.domain.detection.ArmEvidence
+import io.apptolast.paparcar.domain.detection.assertionBlocksRelocation
 import io.apptolast.paparcar.domain.detection.DrivingRoute
 import io.apptolast.paparcar.domain.detection.DrivingRouteStore
 import io.apptolast.paparcar.domain.detection.VehicleFenceOwnershipPolicy
@@ -91,6 +92,12 @@ class ConfirmParkingUseCase(
         /** Arm-evidence label of the confirming session (see [ArmEvidence] label constants).
          *  Verified labels bypass the repark guard. [DET-SOLID-001] */
         armEvidence: String? = null,
+        /** [DET-ASSERTION-OUTRANKS-INFERENCE-001] Did the confirming session's own stream witness
+         *  SUSTAINED driving? Deliberately separate from [tripMaxSpeedMps], which is a PEAK: one
+         *  5,33 m/s sample out of 25 cleared `minimumTripSpeedMps` on 2026-08-24 and walked the
+         *  repark guard straight past a pin the user had asserted three minutes earlier. Null when
+         *  the caller has no session provenance; then only the peak test applies, as before. */
+        sessionSawDriving: Boolean? = null,
         /** Confirmation path that placed this pin — which trigger put the parking ("steps+egress",
          *  "safety_net_backfill", "bt", "manual", …). Persisted + synced for provenance. [DET-PIN-PROVENANCE-001] */
         detectionPath: String? = null,
@@ -166,6 +173,45 @@ class ConfirmParkingUseCase(
             }
         } else {
             spotType
+        }
+
+        // ── Assertion guard [DET-ASSERTION-OUTRANKS-INFERENCE-001] ────────────
+        // Narrower sibling of the repark guard below, and the one the "Sí" of a prompt reaches.
+        // That answer carries reliability 1.0 — the user's word about the FACT of being parked —
+        // but a position the MACHINE chose, so it must not be the thing that waves the guard
+        // through. Field 2026-08-24 20:51, Oppo/Calle Fragua: 2 min 53 s after the user confirmed
+        // `a9709e31` (acc 1,25 m), a second "Sí" planted `195e72f1` 14 m away and deactivated the
+        // first. The guard below could not stop it twice over — reliability 1.0 bypassed it, and
+        // the session's PEAK speed (5,33 m/s, a single fix out of 25) cleared `minimumTripSpeedMps`
+        // as well. So this one reads sustained driving, and asks the shared predicate.
+        //
+        // Same exemptions as the repark guard, on purpose: no session provenance
+        // ([tripMaxSpeedMps] null → BT, manual, external callers) and verified arms pass through.
+        // A hand-placed pin never arrives here at all — it carries `SpotType.MANUAL_REPORT`.
+        if (spotType == SpotType.AUTO_DETECTED &&
+            tripMaxSpeedMps != null &&
+            !ArmEvidence.isVerifiedLabel(armEvidence) &&
+            !(sessionSawDriving ?: false)
+        ) {
+            val asserted = userParkingRepository.getActiveSessionByVehicle(resolvedVehicleId)
+            if (asserted != null && assertionBlocksRelocation(
+                    pinReliability = asserted.detectionReliability,
+                    pinLocation = asserted.location,
+                    candidate = location,
+                    nowMs = Clock.System.now().toEpochMilliseconds(),
+                    sessionSawDriving = false,
+                    userConfirmedReliability = config.reliabilityUserConfirmed,
+                    freshWindowMs = config.reparkPlausibilityWindowMs,
+                    radiusMeters = config.reparkPlausibilityRadiusMeters,
+                )
+            ) {
+                PaparcarLogger.w(
+                    DIAG,
+                    "  ⊘ the user already asserted this car's position — an inference does not " +
+                        "depose it; keeping the existing pin [DET-ASSERTION-OUTRANKS-INFERENCE-001]"
+                )
+                return Result.failure(PaparcarError.Parking.ImplausibleRepark)
+            }
         }
 
         // ── Repark-plausibility guard [DET-SOLID-001] ─────────────────────────

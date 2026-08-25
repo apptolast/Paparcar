@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.domain.usecase.parking
 
+import io.apptolast.paparcar.domain.detection.assertionBlocksRelocation
 import io.apptolast.paparcar.domain.detection.physics.honestZoneRadius
 import io.apptolast.paparcar.domain.detection.physics.requiredStepsToWalk
 import io.apptolast.paparcar.domain.detection.physics.walkExplainsDisplacement
@@ -255,7 +256,24 @@ class EvaluateHonestCloseUseCase(
         // strictly below it, enforced by config invariants). Everything past this line is
         // INFERENCE, and inference never deposes assertion; only the measured driving above may
         // release this pin. The safety net remains the backstop if the car truly left.
-        if ((pin.detectionReliability ?: 0f) >= config.reliabilityUserConfirmed) {
+        //
+        // [DET-ASSERTION-OUTRANKS-INFERENCE-001] The rule itself now lives in
+        // [assertionBlocksRelocation], shared with the candidate-phase confirm and the repark
+        // guard — it guarded this lane alone while three others could still relocate a pin the
+        // user had asserted. Unbounded here (null window, null radius), which is exactly the
+        // behaviour this branch always had: a session aborting without measured driving has
+        // produced nothing capable of moving a car, at any age or distance. The measured-driving
+        // branch above has already returned, so the flag below is false by construction — it is
+        // passed honestly rather than hard-coded so the predicate reads the same at every site.
+        if (assertionBlocksRelocation(
+                pinReliability = pin.detectionReliability,
+                pinLocation = pin.location,
+                candidate = abortFix,
+                nowMs = abortFix.timestamp,
+                sessionSawDriving = sessionMaxSpeedMps >= config.minimumTripSpeedMps,
+                userConfirmedReliability = config.reliabilityUserConfirmed,
+            )
+        ) {
             return HonestCloseVerdict(
                 HonestCloseDecision.KeepSilent, HonestCloseVerdict.REASON_USER_ASSERTED_PIN,
                 pinDistanceMeters = distanceMeters, stepsDelta = stepsSinceStalePin,

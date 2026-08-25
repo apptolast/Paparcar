@@ -454,6 +454,84 @@ class ConfirmParkingUseCaseTest {
         isActive = true,
     )
 
+    // ── Assertion guard [DET-ASSERTION-OUTRANKS-INFERENCE-001] ────────────────
+
+    /** The same recent nearby session, but this one the USER put there. */
+    private fun assertedActiveSession(ageMs: Long = 2 * 60_000L + 53_000L) =
+        recentActiveSession(ageMs = ageMs).copy(detectionReliability = 1.0f)
+
+    @Test
+    fun `should refuse to relocate a user-asserted pin when the answer is the only new evidence`() = runTest {
+        // Field 2026-08-24 20:51, Oppo/Calle Fragua. The "Sí" arrives with reliability 1.0 — which
+        // used to bypass the repark guard outright — and the session's PEAK speed (5,33 m/s, one
+        // fix out of 25) sat just above minimumTripSpeedMps, so the guard's other clause would have
+        // let it through too. The pin the user confirmed 2 min 53 s earlier stays.
+        val repo = FakeUserParkingRepository(initialSession = assertedActiveSession())
+        val useCase = buildUseCase(repo = repo)
+
+        val result = useCase(
+            location,
+            detectionReliability = 1.0f,
+            tripMaxSpeedMps = 5.33f,
+            sessionSawDriving = false,
+            detectionPath = "user",
+            sealPoint = null,
+        )
+
+        assertIs<PaparcarError.Parking.ImplausibleRepark>(result.exceptionOrNull())
+        assertEquals(0, repo.saveNewParkingSessionCallCount)
+    }
+
+    @Test
+    fun `should allow relocating a user-asserted pin when the session measured sustained driving`() = runTest {
+        // A genuine re-park: the car drove. Measured movement is not an inference, so it may
+        // overrule the earlier assertion — the single escape hatch, and it must stay open.
+        val repo = FakeUserParkingRepository(initialSession = assertedActiveSession())
+        val useCase = buildUseCase(repo = repo)
+
+        val result = useCase(
+            location,
+            detectionReliability = 1.0f,
+            tripMaxSpeedMps = 15f,
+            sessionSawDriving = true,
+            detectionPath = "user",
+            sealPoint = null,
+        )
+
+        assertTrue(result.isSuccess)
+    }
+
+    @Test
+    fun `should never block a hand-placed pin over a user-asserted one`() = runTest {
+        // The user chose this POSITION on the map. Nothing in this file may argue with that.
+        val repo = FakeUserParkingRepository(initialSession = assertedActiveSession())
+        val useCase = buildUseCase(repo = repo)
+
+        val result = useCase(
+            location,
+            detectionReliability = 1.0f,
+            spotType = io.apptolast.paparcar.domain.model.SpotType.MANUAL_REPORT,
+            tripMaxSpeedMps = 1.2f,
+            sessionSawDriving = false,
+            detectionPath = "manual",
+            sealPoint = null,
+        )
+
+        assertTrue(result.isSuccess)
+    }
+
+    @Test
+    fun `should leave callers without session provenance untouched`() = runTest {
+        // BT / external callers pass no tripMaxSpeedMps — the same exemption the repark guard
+        // grants them. The deterministic lane proves the car moved by its own means.
+        val repo = FakeUserParkingRepository(initialSession = assertedActiveSession())
+        val useCase = buildUseCase(repo = repo)
+
+        val result = useCase(location, detectionReliability = 0.95f, detectionPath = "bt", sealPoint = null)
+
+        assertTrue(result.isSuccess)
+    }
+
     @Test
     fun `should reject implausible repark - recent nearby active session and no driving observed`() = runTest {
         val repo = FakeUserParkingRepository(initialSession = recentActiveSession())

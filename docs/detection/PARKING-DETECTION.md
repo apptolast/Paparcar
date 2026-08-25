@@ -4175,3 +4175,65 @@ replay harness behind it. Tracked as **DET-LONE-SAMPLE-IS-NOT-A-DRIVE-001**
 purpose.
 
 Spec: `docs/backlog/det-exit-fix-cannot-prove-its-own-exit-001.md`.
+
+### DET-ASSERTION-OUTRANKS-INFERENCE-001 — an inference never deposes an assertion, in all four lanes (pending)
+
+**User report.** Field 2026-08-24, Oppo, El Puerto de Santa María: *"he confirmado parking con los
+prompt estando en coche, al poco tiempo he salido y ha vuelto a saltar el prompt y le he dado a
+confirmar para ver qué pasaba y ha plantado un nuevo pin falso un poco al lado"*.
+
+```
+20:38:53  ARM:GEOFENCE_EXIT (geof=5b0ef993 d=158m acc=11m dep=self_observed)
+          → 9.9 min · vmax 99 km/h · drive 42/100fix · DECISION MOTOR_WITNESSED
+20:48:33  DECISION PROMPT_SHOWN  low_medium(timeout=94993ms)  conf=0.55
+20:48:43  DECISION CONFIRMED  pathLabel=user  conf=1.0
+          → pin a9709e31  36.613605,-6.2089333  acc 1.25 m  rel 1.0        ← correct, precise
+20:50:38  ARM:SIGNIFICANT_MOTION (sentry-wake geof=a9709e31)
+20:50:39  session: 25 fixes, ONE above the driving bar (5.33 m/s), 57 steps walking away
+20:51:22  DECISION CONFIRM_DEGRADED_PROMPT  pathLabel=steps+egress  reason=weak_evidence
+20:51:36  second "Sí" → pin 195e72f1  36.6136417,-6.2087783  acc 2.08 m, 14 m away
+20:51:37  a9709e31.isActive = false                                        ← the good pin is gone
+```
+
+**Root cause.** The rule *"a pin the user asserted may only be released by MEASURED driving"* was
+already written and already tested — inside one `if` in `EvaluateHonestCloseUseCase`
+([DET-WALK-FLOOR-001], field 2026-07-26 Glorieta). It guarded ONE of the four lanes that can
+relocate a pin. Sweep:
+
+| Lane | Before |
+|---|---|
+| `EvaluateHonestCloseUseCase` | vetoes (`user_asserted_pin`) — it fired twelve times that same evening |
+| `EvaluateParkingDecisionUseCase` (candidate phase) | never consulted the active pin → **this incident** |
+| `ConfirmParkingUseCase` repark guard | exists, but `detectionReliability < reliabilityUserConfirmed` **bypassed** it at exactly 1.0 — what a "Sí" carries. Its other clause failed too: the session PEAK (5,33 m/s, one fix in 25) cleared `minimumTripSpeedMps` |
+| `EvaluateSafetyNetCheckUseCase` | never consulted it → separate ticket, DET-DEPARTURE-IS-NOT-ARRIVAL-001 |
+
+**Asking is not free.** The asymmetric-failure doctrine says *when in doubt, ask* — but there was no
+doubt: the user had answered this question, here, under three minutes earlier. The second prompt did
+not resolve uncertainty, it manufactured it. And the "Sí" is ambiguous by construction: the user
+affirms the FACT ("yes, I'm parked") while the app reads it as *"pin it HERE"* — at a position the
+MACHINE chose, which was the spot the walk started from rather than where the car stood.
+
+**Fix.** The rule moves to `domain/detection/AssertedPinAuthority.kt` →
+`assertionBlocksRelocation(...)`, a pure predicate in the same family as `SentryWakeCooldown`,
+`VehicleFenceOwnershipPolicy` and `isHumanPoweredRide` [DET-VERDICT-NOT-PREDICATE-001]. Its freshness
+window and radius are **nullable**: the honest close passes nulls and keeps its unbounded reading
+byte-for-byte (a session aborting with no measured driving has produced nothing capable of moving a
+car, at any age or distance), while the candidate phase and the repark guard bound it with
+`reparkPlausibilityWindowMs` / `reparkPlausibilityRadiusMeters`.
+
+- Candidate phase: new input `assertedPinBlocksRelocation` → **`ParkingDecision.Rejected`**, ahead of
+  every confirm and prompt branch. Rejected, not Prompt: discarding the candidate keeps the user's
+  pin and leaves the session alive, and if it later measures real driving the predicate stands down
+  by itself. The coordinator snapshots the vehicle's active pin at arm time (`activeParkedPin`,
+  supplied by the service, which already reads it for the honest close) alongside `armEvidence` and
+  `armingGeofenceId`.
+- `ConfirmParkingUseCase`: a narrower sibling guard above the repark one, reading a new
+  `sessionSawDriving` (SUSTAINED band time, not the peak) and the same predicate. Same exemptions as
+  the repark guard — no session provenance (BT / manual / external) and verified arms pass through —
+  and a hand-placed pin never reaches it at all, since it carries `SpotType.MANUAL_REPORT`.
+
+**Contributing cause, deliberately out of scope.** The lone 5,33 m/s sample that opened the session
+is **DET-LONE-SAMPLE-IS-NOT-A-DRIVE-001** (already tracked). This ticket closes the AUTHORITY
+question, not the threshold; with both, that session would never have opened.
+
+Spec: `docs/backlog/det-assertion-outranks-inference-001.md`.

@@ -1,6 +1,7 @@
 package io.apptolast.paparcar.domain.coordinator
 
 import io.apptolast.paparcar.domain.detection.ArmEvidence
+import io.apptolast.paparcar.domain.detection.assertionBlocksRelocation
 import io.apptolast.paparcar.domain.detection.HoldAction
 import io.apptolast.paparcar.domain.detection.DepartureConfirmationListener
 import io.apptolast.paparcar.domain.detection.DetectionPhase
@@ -27,6 +28,7 @@ import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingConfidence
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.ParkingSignals
+import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.VehicleType
 import io.apptolast.paparcar.domain.model.displayName
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
@@ -626,6 +628,10 @@ class CoordinatorParkingDetector(
      *  session — the address a `Dismissed` verdict must match to retract anything. */
     @Volatile private var currentArmGeofenceId: String? = null
 
+    /** [DET-ASSERTION-OUTRANKS-INFERENCE-001] The vehicle's active pin as it stood when this
+     *  session armed. Consulted only through [assertionBlocksRelocation]. */
+    @Volatile private var currentAssertedPin: UserParking? = null
+
     // ─────────────────────────────────────────────────────────────────────────
     // Public API
     // ─────────────────────────────────────────────────────────────────────────
@@ -671,6 +677,12 @@ class CoordinatorParkingDetector(
          *  refutes. Null for manual / sentry / handoff arms, which never borrowed a fence's word
          *  and therefore have nothing to retract. */
         armingGeofenceId: String? = null,
+        /** [DET-ASSERTION-OUTRANKS-INFERENCE-001] The vehicle's ACTIVE parked session as it stood
+         *  when this one armed — read once here rather than per decision, the same way
+         *  [armEvidence] and [armingGeofenceId] are captured. Only its position and
+         *  `detectionReliability` are consulted, and only to answer one question: would confirming
+         *  here MOVE a pin the user asserted? Null when the vehicle holds no active pin. */
+        activeParkedPin: UserParking? = null,
     ) = coroutineScope {
         val sessionJob = coroutineContext[kotlinx.coroutines.Job]
         val sessionStartMs = clock()
@@ -699,6 +711,9 @@ class CoordinatorParkingDetector(
             PaparcarLogger.d(DIAG, "  ✓ ${armEvidence.persistLabel} → seed hasEverReachedDrivingSpeed=true (armed mid-trip; drive already happened) [DET-G-04]")
         }
         currentArmGeofenceId = armingGeofenceId
+        // [DET-ASSERTION-OUTRANKS-INFERENCE-001] Snapshot, not a live read: the question is whether
+        // THIS session may relocate the pin that existed when it armed.
+        currentAssertedPin = activeParkedPin
         // Session provenance stamped on the confirmed park — the repark-plausibility guard in
         // ConfirmParkingUseCase bypasses verified arms and interrogates self-observed ones.
         // Upgraded live by notifyDepartureConfirmed. [DET-SOLID-001]
@@ -2112,6 +2127,11 @@ class CoordinatorParkingDetector(
                 vehicleId = vehicleId,
                 tripMaxSpeedMps = _detectionState.value.maxSpeedMps,
                 armEvidence = currentArmEvidence,
+                // [DET-ASSERTION-OUTRANKS-INFERENCE-001] The SUSTAINED figure, not the peak above:
+                // the guard's job is to tell a real re-park from a walk-away, and one stray sample
+                // is not a drive. [DET-MOTOR-PROOF-001]
+                sessionSawDriving =
+                    _detectionState.value.provenDrivingBandMs >= config.sustainedDriveProofMs,
                 // [DET-PIN-PROVENANCE-001] The confirmation path IS the provenance: "steps+egress",
                 // "kinematic+egress", "vehicle-exit", "unattended_timeout", "user".
                 detectionPath = pathLabel,
@@ -2378,6 +2398,21 @@ class CoordinatorParkingDetector(
         egressExceedsWalkReach = egressExceedsWalkReach(state, location),
         humanPoweredRide = humanPoweredRide(state, activeVehicleType, now),
         restCertified = restCertified,
+        // [DET-ASSERTION-OUTRANKS-INFERENCE-001] Would confirming HERE move a pin the user
+        // asserted minutes ago and metres away, on a session that never measured a drive? Then
+        // nothing this evaluator can prove outranks it.
+        assertedPinBlocksRelocation = currentAssertedPin?.let { pin ->
+            assertionBlocksRelocation(
+                pinReliability = pin.detectionReliability,
+                pinLocation = pin.location,
+                candidate = location,
+                nowMs = now,
+                sessionSawDriving = state.provenDrivingBandMs >= config.sustainedDriveProofMs,
+                userConfirmedReliability = config.reliabilityUserConfirmed,
+                freshWindowMs = config.reparkPlausibilityWindowMs,
+                radiusMeters = config.reparkPlausibilityRadiusMeters,
+            )
+        } ?: false,
     )
 
     /**

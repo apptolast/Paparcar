@@ -1571,6 +1571,16 @@ class CoordinatorDetectionService : LifecycleService() {
                         // common classes' bases; a wider radius only makes the proof stricter.
                         detectionConfig.geofenceRadiusFor(sizeCategory = null, accuracyMeters = anchor.accuracy)
                     } ?: 0f,
+                    // [DET-ASSERTION-OUTRANKS-INFERENCE-001] The pin this vehicle already holds, so
+                    // the candidate phase can tell "the user parked and is walking away from the
+                    // spot they just confirmed" from "the user parked somewhere new". The
+                    // nominating fence's vehicle wins over the active flag for the same reason
+                    // attribution does [VEH-ACTIVE-FENCE-001].
+                    activeParkedPin = runCatching {
+                        val vehicleId = trip?.departingVehicleId
+                            ?: vehicleRepository.observeActiveVehicle().firstOrNull()?.id
+                        vehicleId?.let { userParkingRepository.getActiveSessionByVehicle(it) }
+                    }.getOrNull(),
                 )
                 PaparcarLogger.d(DIAG, "    ✓ coordinator returned NORMALLY")
                 // [DET-HONEST-CLOSE-001] A silent abort must not lose a real drive-away: if the car

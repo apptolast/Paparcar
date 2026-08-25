@@ -172,6 +172,13 @@ data class ParkingDecisionInput(
      *  `elapsedSinceHighMs = 0` and no stop behind it. Defaults to false — a caller that has not
      *  certified rest must not get the terminal verdict. */
     val restCertified: Boolean = false,
+    /** [DET-ASSERTION-OUTRANKS-INFERENCE-001] The vehicle already holds an ACTIVE pin the USER
+     *  asserted, fresh and within walking reach of this candidate, and this session has not
+     *  measured driving — computed by the caller through
+     *  [io.apptolast.paparcar.domain.detection.assertionBlocksRelocation]. Nothing this evaluator
+     *  can prove is stronger than that assertion, so the candidate is discarded rather than
+     *  confirmed OR asked about. Defaults to false for legacy callers. */
+    val assertedPinBlocksRelocation: Boolean = false,
 )
 
 /**
@@ -319,6 +326,21 @@ class EvaluateParkingDecisionUseCase(private val config: ParkingDetectionConfig)
         }
 
         return when {
+            // [DET-ASSERTION-OUTRANKS-INFERENCE-001] The user has ALREADY told us where the car is,
+            // just now and just here. Every proof this evaluator can assemble is an inference, and
+            // an inference never deposes an assertion — the rule the honest close has enforced
+            // since [DET-WALK-FLOOR-001], applied to the lane that lacked it.
+            //
+            // Rejected, deliberately NOT Prompt. Field 2026-08-24 20:51, Oppo/Calle Fragua: 2 min
+            // 53 s after the user answered "Sí" (pin `a9709e31`, acc 1,25 m), a sentry-wake session
+            // with ONE fix above the driving bar out of 25 and 57 steps of walking away degraded to
+            // `CONFIRM_DEGRADED_PROMPT/weak_evidence` and asked AGAIN. The user answered truthfully
+            // — they WERE parked — and the app read that "Sí" as "pin it HERE", replacing a 1,25 m
+            // pin with a 2,08 m one 14 m away, at the spot the walk started from. Asking is not
+            // free: a question whose only possible answers both damage the state must not be asked.
+            // Discarding the candidate keeps the user's pin and leaves the session alive; if it
+            // later measures real driving the predicate stands down and a genuine re-park confirms.
+            input.assertedPinBlocksRelocation -> ParkingDecision.Rejected
             confirmNow && promptReason != null -> ParkingDecision.Prompt(pathLabel, promptReason)
             confirmNow -> ParkingDecision.Confirmed(
                 pathLabel = pathLabel,

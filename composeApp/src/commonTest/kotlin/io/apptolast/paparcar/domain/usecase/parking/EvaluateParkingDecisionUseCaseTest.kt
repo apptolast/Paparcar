@@ -44,6 +44,7 @@ class EvaluateParkingDecisionUseCaseTest {
         egressBornAtAnchor: Boolean = true,
         anchorWalkEntered: Boolean = false,
         humanPoweredRide: Boolean = false,
+        assertedPinBlocksRelocation: Boolean = false,
     ) = ParkingDecisionInput(
         stepCount, hasEgressDisplacement, hadVehicleExit,
         elapsedSinceHighMs, vehicleType, sessionDurationMs, maxSpeedKmh, sustainedDrivingMs,
@@ -53,7 +54,48 @@ class EvaluateParkingDecisionUseCaseTest {
         egressBornAtAnchor = egressBornAtAnchor,
         anchorWalkEntered = anchorWalkEntered,
         humanPoweredRide = humanPoweredRide,
+        assertedPinBlocksRelocation = assertedPinBlocksRelocation,
     )
+
+    // ── [DET-ASSERTION-OUTRANKS-INFERENCE-001] The user's own word outranks every proof here ─
+
+    @Test
+    fun should_rejectTheCandidate_when_itWouldRelocateAPinTheUserAsserted() {
+        // Field 2026-08-24 20:51, Oppo/Calle Fragua. The sentry-wake session holds a full
+        // steps+egress proof (57 steps of walking away from the car) and a weak arm label, which
+        // is exactly the shape that produced CONFIRM_DEGRADED_PROMPT/weak_evidence and a second
+        // pin 14 m from the one the user had confirmed 2 min 53 s earlier. Neither a confirm nor a
+        // prompt: asking a question whose every answer damages the state is itself the bug.
+        val decision = evaluate(
+            input(
+                stepCount = config.minStepsToConfirm + 49,
+                hasEgressDisplacement = true,
+                maxSpeedKmh = 19f,
+                sustainedDrivingMs = 0L, // one 5,33 m/s fix out of 25 is not a drive
+                evidenceLabel = io.apptolast.paparcar.domain.detection.ArmEvidence.LABEL_SELF_OBSERVED,
+                assertedPinBlocksRelocation = true,
+            ),
+        )
+        assertIs<ParkingDecision.Rejected>(decision)
+    }
+
+    @Test
+    fun should_promptAsBefore_when_theSameSessionHoldsNoAssertedPin() {
+        // The control: identical evidence, no user-asserted pin in the way. The weak-evidence
+        // prompt is still the right answer — this ticket removes ONE question, not the mechanism.
+        val decision = evaluate(
+            input(
+                stepCount = config.minStepsToConfirm + 49,
+                hasEgressDisplacement = true,
+                maxSpeedKmh = 19f,
+                sustainedDrivingMs = 0L,
+                evidenceLabel = io.apptolast.paparcar.domain.detection.ArmEvidence.LABEL_SELF_OBSERVED,
+                assertedPinBlocksRelocation = false,
+            ),
+        )
+        val prompt = assertIs<ParkingDecision.Prompt>(decision)
+        assertEquals(PromptReason.WEAK_EVIDENCE, prompt.reason)
+    }
 
     // ── Kinematic egress: GPS-measured walk from the frozen anchor [DET-KINEMATIC-EGRESS-001] ─
 
