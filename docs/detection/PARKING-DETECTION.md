@@ -2119,7 +2119,7 @@ named transitions, and not one assert was edited in any of them.
 
 ### DET-STAGE-SCAFFOLD-001 — the precedence stops being where the code happens to sit
 
-**Commit:** pending · **Ticket:** `docs/backlog/det-stage-scaffold-001.md` · plan step P3.0, the
+**Commit:** `5e52c641` · **Ticket:** `docs/backlog/det-stage-scaffold-001.md` · plan step P3.0, the
 scaffold that opens Phase 3. **No branch moves yet.**
 
 The detection loop evaluates ten branches per fix and the first that applies wins. That order IS
@@ -2156,6 +2156,51 @@ surprise in P3.11. Same technique `SavedParkingShapeTest` used in P1.10.
 happened to be followed by a `return`: whether it asks for effects, and whether it ends the pass.
 
 **Zero behaviour change** — nothing calls any of it. **1629 tests.**
+
+---
+
+### DET-STAGE-CONFIDENCE-SCORING-001 — the first branch leaves the method, and falsifies the scaffold
+
+**Commit:** pending · **Ticket:** `docs/backlog/det-stage-confidence-scoring-001.md` · plan step
+P3.1.
+
+The scorer and the phase machine become `stages/ConfidenceScoringStage.kt`: pure, returning a
+verdict with the state it wants, the effects it asks for and the trace lines it wants logged. The
+coordinator runs it, logs the notes in order and executes the effects inline until P3.11 gives the
+executor its own file. It is the LAST entry of the precedence, moved FIRST on purpose, so
+everything above it keeps seeing exactly what it expects.
+
+**What actually happened is that the first consumer falsified the scaffold three times**, and that
+is the useful part of this step:
+
+| Correction | Why P3.0 did not catch it |
+|---|---|
+| `AskUser` needs the fix it asks about | the census mapped methods to arms by NAME, never checking a signature |
+| a stage needs `stoppedDurationMs` | the loop measures it once per fix; a stage recomputing it would be a second clock |
+| `Prompt` was never one effect | it is an ACTION plus a MARKER, and on the HIGH lane a third event sits between them |
+
+The third is the sharp one. Today's order is notify → `Candidate(OPENED)` → `PROMPT_SHOWN`; a single
+`Prompt` effect would have emitted the two markers adjacently and silently swapped a pair of events
+that has a defined order. `NotifyPrompt` and `RecordPromptShown` are separate arms for that reason
+alone.
+
+**And the plan's ordering turned out to be wrong in one place.** A third of what these branches do is
+emit diagnostics, much of it on paths that change no state — "notif suppressed, timeout in ~4200ms"
+is a `PARKDIAG` line from a branch that decides to do nothing. The plan schedules the diagnostics tap
+LAST (P3.12), after all ten stage moves; the FIRST move needs it, because dropping those lines
+changes `parkdiag`, and `parkdiag` is the field-test instrument. So `StageVerdict` gains its notes
+channel now, in its smallest honest form — a list of strings the orchestrator logs in order. P3.12
+still replaces the `String` with a typed note and adds the dedups.
+
+**A test caught a real regression mid-move**, which is worth recording. Writing the verdict's whole
+`confirmation` sub-state back drops a `pendingConfirm` opened by the fast-confirm EARLIER IN THE SAME
+FIX — the stage reasons about a snapshot taken at the top of the iteration.
+`should_discard_held_confirm_when_position_outran_the_steps_at_settle` failed on exactly that. A
+stage's write-back is now as wide as what the stage actually changes and no wider, until the loop
+becomes single-writer in P3.13.
+
+**Zero behaviour change**, coordinator **−102 lines**, and the P0.1 precedence tests are green with
+no assert edited. **1629 tests.**
 
 ---
 

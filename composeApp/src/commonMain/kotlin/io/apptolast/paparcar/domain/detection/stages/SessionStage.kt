@@ -1,6 +1,7 @@
 package io.apptolast.paparcar.domain.detection.stages
 
 import io.apptolast.paparcar.domain.detection.physics.SavedParkingShape
+import io.apptolast.paparcar.domain.model.ParkingConfidence
 import io.apptolast.paparcar.domain.detection.state.DetectionSessionState
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
@@ -114,19 +115,43 @@ interface SessionStage {
     /** Which entry of [detectionStageOrder] this stage is. */
     val stage: DetectionStage
 
+    /**
+     * @param stoppedDurationMs How long the CURRENT stop has lasted, or 0 while moving. Presented
+     *   rather than derived: the loop measures it once per fix and several stages read it, and a
+     *   stage recomputing it from the state would be a second clock.
+     */
     fun evaluate(
         state: DetectionSessionState,
         fix: GpsPoint,
         now: Long,
+        stoppedDurationMs: Long,
         config: ParkingDetectionConfig,
     ): StageVerdict
 }
 
-/** What a stage says about a fix. */
+/**
+ * What a stage says about a fix.
+ *
+ * ## Why both arms carry [notes]
+ *
+ * A third of what these branches do is EMIT DIAGNOSTICS, and a good part of that happens on the
+ * paths where the branch decides to do nothing — "notif suppressed, timeout in ~4200ms" is a
+ * `PARKDIAG` line produced by a branch that changes no state at all. The plan schedules the
+ * diagnostics tap LAST (P3.12), after all ten stage moves; the very first stage move needs it,
+ * because dropping those lines would change `parkdiag`, and `parkdiag` is the field-test instrument.
+ *
+ * So the notes channel lands here instead, in its smallest honest form: a list of strings the
+ * orchestrator logs in order, keeping every line byte-identical. P3.12 replaces the `String` with a
+ * typed `DiagnosticNote` and gives the tap its dedups — this is the slice of it that the ordering
+ * of the plan turned out to require.
+ */
 sealed interface StageVerdict {
 
+    /** Lines this stage wants in the trace, in order. */
+    val notes: List<String>
+
     /** This stage does not apply to this fix: carry on down the list. */
-    data object Skip : StageVerdict
+    data class Skip(override val notes: List<String> = emptyList()) : StageVerdict
 
     /**
      * This stage handled the fix.
@@ -140,6 +165,7 @@ sealed interface StageVerdict {
         val newState: DetectionSessionState,
         val effects: List<DetectionEffect> = emptyList(),
         val stopsIteration: Boolean = false,
+        override val notes: List<String> = emptyList(),
     ) : StageVerdict
 }
 
@@ -166,19 +192,41 @@ sealed interface DetectionEffect {
     ) : DetectionEffect
 
     /**
-     * Ask the user to mark the spot: no artifact is honest here. Replaces `nudgeUnattended`.
+     * Ask the user to mark the spot: no artifact is honest here. Replaces `nudgeUnattended` (and
+     * `closeHumanPoweredRide`, which is a nudge with a log line in front of it).
      *
      * @param reasonKey The verdict's OWN reason, carried verbatim — the trace vocabularies are a
      *   contract and are never unified [07 §3.4.1].
+     * @param at Where the user is being asked about. The nudge stamps it into the trace.
      */
     data class AskUser(
         val reasonKey: String,
         val vehicleId: String?,
+        val at: GpsPoint,
         val distanceMeters: Double? = null,
     ) : DetectionEffect
 
-    /** Put a confirmation prompt on screen. Replaces `notifyParkingConfirmation`. */
-    data class Prompt(val pathLabel: String, val reasonKey: String?) : DetectionEffect
+    /**
+     * Put a confirmation prompt on screen.
+     *
+     * ⚠️ Deliberately SEPARATE from [RecordPromptShown], which the P3.0 scaffold had as one arm.
+     * They are not one thing: on the HIGH lane the notification fires, then the candidate marker,
+     * then the prompt marker — a third event sits BETWEEN the action and its record. Fusing them
+     * reorders two events that today have a defined order, which is the sort of "invisible" change
+     * a refactor is not allowed to make.
+     */
+    data class NotifyPrompt(val confidence: ParkingConfidence) : DetectionEffect
+
+    /**
+     * Stamp the prompt's instant into the remote trace. [DET-FROZEN-COUNTER-001] made this
+     * mandatory: the 2026-07-25 Redmi prompt was invisible in forensics and the 15-minute window it
+     * opened could only be inferred backwards from the timeout.
+     */
+    data class RecordPromptShown(val pathLabel: String, val confidence: ParkingConfidence) : DetectionEffect
+
+    /** The candidate window opened. Diagnostics only — but a side effect all the same, and the tap
+     *  absorbs it in P3.12. */
+    data class RecordCandidateOpened(val fromPhase: String) : DetectionEffect
 
     /** Take a prompt off screen. Replaces the direct `notificationPort.dismiss` calls. */
     data object DismissPrompt : DetectionEffect

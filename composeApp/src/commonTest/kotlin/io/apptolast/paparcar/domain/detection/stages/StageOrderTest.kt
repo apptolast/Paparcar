@@ -2,6 +2,7 @@ package io.apptolast.paparcar.domain.detection.stages
 
 import io.apptolast.paparcar.domain.detection.physics.SavedParkingShape
 import io.apptolast.paparcar.domain.model.GpsPoint
+import io.apptolast.paparcar.domain.model.ParkingConfidence
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -116,7 +117,9 @@ class StageScaffoldTest {
     private fun replacedMethod(effect: DetectionEffect): String = when (effect) {
         is DetectionEffect.Confirm -> "runConfirm / beginConfirm / saveUnattendedZone"
         is DetectionEffect.AskUser -> "nudgeUnattended / closeHumanPoweredRide"
-        is DetectionEffect.Prompt -> "notifyParkingConfirmation / degradeToPrompt"
+        is DetectionEffect.NotifyPrompt -> "notifyParkingConfirmation"
+        is DetectionEffect.RecordPromptShown -> "the PROMPT_SHOWN Decision event"
+        is DetectionEffect.RecordCandidateOpened -> "the Candidate(OPENED) event"
         DetectionEffect.DismissPrompt -> "notificationPort.dismiss"
         is DetectionEffect.ResolveVehicle -> "the vehicleRepository lookup inside the attribution branch"
         is DetectionEffect.EndSession -> "the completed = true / return@collect pairs"
@@ -126,8 +129,10 @@ class StageScaffoldTest {
     fun should_account_for_every_io_method_the_coordinator_performs_today() {
         val everyEffect = listOf(
             DetectionEffect.Confirm(SavedParkingShape.ExactPin(here, 0.9f), "veh-1", "steps+egress"),
-            DetectionEffect.AskUser("no_drive", "veh-1"),
-            DetectionEffect.Prompt("ar_enter", "weak_evidence"),
+            DetectionEffect.AskUser("no_drive", "veh-1", here),
+            DetectionEffect.NotifyPrompt(ParkingConfidence.Low),
+            DetectionEffect.RecordPromptShown("high_candidate", ParkingConfidence.Low),
+            DetectionEffect.RecordCandidateOpened("from Notified"),
             DetectionEffect.DismissPrompt,
             DetectionEffect.ResolveVehicle("veh-1"),
             DetectionEffect.EndSession("aborted_false_enter"),
@@ -144,6 +149,7 @@ class StageScaffoldTest {
     fun should_default_a_handled_verdict_to_deciding_nothing_further() {
         val verdict = StageVerdict.Handled(newState = io.apptolast.paparcar.domain.detection.state.DetectionSessionState())
         assertTrue(verdict.effects.isEmpty())
+        assertTrue(verdict.notes.isEmpty())
         assertEquals(false, verdict.stopsIteration)
     }
 }

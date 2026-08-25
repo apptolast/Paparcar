@@ -24,6 +24,9 @@ import io.apptolast.paparcar.domain.detection.physics.SessionOutcome
 import io.apptolast.paparcar.domain.detection.state.AnchorCapture
 import io.apptolast.paparcar.domain.detection.state.AnchorTrust
 import io.apptolast.paparcar.domain.detection.state.ConfirmationLifecycle
+import io.apptolast.paparcar.domain.detection.stages.ConfidenceScoringStage
+import io.apptolast.paparcar.domain.detection.stages.DetectionEffect
+import io.apptolast.paparcar.domain.detection.stages.StageVerdict
 import io.apptolast.paparcar.domain.detection.state.DetectionSessionState
 import io.apptolast.paparcar.domain.detection.state.EgressBirth
 import io.apptolast.paparcar.domain.detection.state.WalkIn
@@ -1335,7 +1338,7 @@ class CoordinatorParkingDetector(
                     // [DET-HUMAN-POWERED-EARLY-CLOSE-001] The scorer can now END the session: High
                     // confidence certifies the sustained stop, and on a muscle-powered ride that is
                     // the entire verdict — no candidate, no prompt, no 15-minute wait.
-                    if (evaluateConfidence(location, stoppedDuration, state, now, attributedVehicleId, attributedVehicleType)) {
+                    if (runConfidenceScoring(location, stoppedDuration, state, now)) {
                         completed = true
                         return@collect
                     }
@@ -2217,6 +2220,23 @@ class CoordinatorParkingDetector(
     /** [DET-DRIVE-PROOF-001] The look-back window AND the ring's retention rule, in one object so
      *  they cannot drift apart — a ring that forgets faster than the window looks back turns a real
      *  drive into one that silently stops proving itself, with no error anywhere. */
+    private val confidenceScoringStage = ConfidenceScoringStage(
+        calculateParkingConfidence = calculateParkingConfidence,
+        evaluateParkingDecision = evaluateParkingDecision,
+        decisionInput = { state, location, now, elapsedSinceHighMs, hadVehicleExit, restCertified ->
+            parkingDecisionInput(
+                state = state,
+                location = location,
+                now = now,
+                activeVehicleType = attributedVehicleType,
+                elapsedSinceHighMs = elapsedSinceHighMs,
+                hadVehicleExit = hadVehicleExit,
+                restCertified = restCertified,
+            )
+        },
+        humanPowered = { state, now -> humanPoweredRide(state, attributedVehicleType, now) },
+    )
+
     private val driveProofBounds = DriveProofBounds(
         windowMinMs = config.driveProofWindowMinMs,
         windowMaxMs = config.driveProofWindowMaxMs,
@@ -2658,188 +2678,66 @@ class CoordinatorParkingDetector(
     }
 
     /**
-     * Runs the confidence scorer and advances the [ConfirmationPhase] state machine.
-     * On reaching [ParkingConfidence.High] for the first time, enters the [ConfirmationPhase.Candidate]
-     * phase and always shows a confirmation notification (if not already shown). Does not
-     * confirm immediately — the observation window in [invoke] handles auto-confirmation timing.
+     * [09 §4] The stage list's LAST entry, now a stage. The orchestrator runs it, logs its notes in
+     * order and executes its effects — see [runStageEffects].
      *
-     * @return true when the session must END here: a certified sustained stop is the moment a
-     *   human-powered ride's verdict is complete ([ParkingDecision.CloseHumanPowered]).
-     *   [DET-HUMAN-POWERED-EARLY-CLOSE-001][DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001]
+     * ⚠️ Only the FIELD the stage touched is written back — the confirmation PHASE, not the whole
+     * confirmation. The stage reasons about a snapshot taken at the top of the iteration, and by the
+     * time it runs that snapshot is stale in two ways: a fast-confirm earlier in the SAME fix may
+     * have opened a hold, and the step collector runs in a sibling coroutine. Writing the verdict's
+     * whole sub-state back drops a `pendingConfirm` set microseconds ago — which is not a theory:
+     * `should_discard_held_confirm_when_position_outran_the_steps_at_settle` failed on exactly that
+     * while this stage was being moved.
+     *
+     * The narrowing disappears when the loop becomes single-writer (P3.13). Until then a stage's
+     * write-back is as wide as what the stage actually changes, and no wider.
      */
-    private suspend fun evaluateConfidence(
+    private suspend fun runConfidenceScoring(
         location: GpsPoint,
         stoppedDuration: Long,
         state: DetectionSessionState,
         now: Long,
-        activeVehicleId: String?,
-        activeVehicleType: VehicleType?,
     ): Boolean {
-        // [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001 §B] The sustained rest is a MEASUREMENT — read the
-        // clock, never infer it from the score.
-        //
-        // DET-HUMAN-POWERED-EARLY-CLOSE-001 asked this question inside `advanceHigh`, reasoning
-        // that "High IS the certified sustained stop, its only route is the 5-minute tier". That is
-        // true of the scorer's SLOW path — and the fast path pre-empts it: with an AR vehicle exit
-        // and 30 s stopped, `CalculateParkingConfidenceUseCase` returns Medium (0,65) and never
-        // looks at the tiers, so High becomes unreachable for the rest of the session. Since a
-        // human-powered ride also has its Low/Medium prompt SUPPRESSED, such a session had no
-        // prompt (no response timeout), no High (no close) and no candidate: nothing could ever end
-        // it. Field 2026-08-20: 102 minutes of foreground service and 967 fixes with one AR exit
-        // 15 seconds after parking, and the only exit it ever found was an unrelated walk clearing
-        // the egress floor 79 minutes later.
-        //
-        // The rest is certified by the same number the tier used (`slowPath5MinMs`) — no new clock,
-        // just read directly. Asked BEFORE the tier dispatch so every tier reaches it.
-        if (stoppedDuration >= config.slowPath5MinMs) {
-            val restVerdict = evaluateParkingDecision(
-                parkingDecisionInput(
-                    state = state,
-                    location = location,
-                    now = now,
-                    activeVehicleType = attributedVehicleType,
-                    elapsedSinceHighMs = 0L,
-                    hadVehicleExit = state.egress.vehicleExitHint,
-                    restCertified = true,
-                )
-            )
-            if (restVerdict == ParkingDecision.CloseHumanPowered) {
-                closeHumanPoweredRide(location, attributedVehicleId, now)
-                return true
-            }
-        }
-
-        val signals = ParkingSignals(
-            speed = location.speed,
-            stoppedDurationMs = stoppedDuration,
-            gpsAccuracy = location.accuracy,
-            activityExit = state.egress.vehicleExitHint,
-        )
-        val confidence = calculateParkingConfidence(signals)
-        PaparcarLogger.d(DIAG, "  ⚖ scoring=$confidence (signals: speed=${signals.speed} stopped=${signals.stoppedDurationMs}ms accuracy=${signals.gpsAccuracy} exit=${signals.activityExit})")
-
-        // [REFACTOR-200] phase advancement via explicit transitions.
-        return when (confidence) {
-            is ParkingConfidence.NotYet -> false
-
-            is ParkingConfidence.Low,
-            is ParkingConfidence.Medium -> {
-                advanceLowMedium(confidence, state, now, humanPoweredRide(state, attributedVehicleType, now))
-                false
-            }
-
-            is ParkingConfidence.High -> {
-                advanceHigh(confidence, state, now)
-                false
-            }
-        }
+        val verdict = confidenceScoringStage.evaluate(state, location, now, stoppedDuration, config)
+        verdict.notes.forEach { PaparcarLogger.d(DIAG, it) }
+        if (verdict !is StageVerdict.Handled) return false
+        val phase = verdict.newState.confirmation.phase
+        _detectionState.update { it.copy(confirmation = it.confirmation.copy(phase = phase)) }
+        runStageEffects(verdict.effects, now)
+        return verdict.stopsIteration
     }
 
-    private suspend fun advanceLowMedium(
-        confidence: ParkingConfidence,
-        state: DetectionSessionState,
-        now: Long,
-        /** [DET-HUMAN-POWERED-EARLY-CLOSE-001] The ride was muscle-powered: "¿has aparcado?" is the
-         *  wrong question to put on screen, and the High tier a few minutes later ends the session
-         *  with the honest one. Asking anyway is what the 2026-08-19 bicycle session did at 22:46. */
-        humanPowered: Boolean,
-    ) {
-        when (val phase = state.confirmation.phase) {
-            is ConfirmationPhase.Idle -> {
-                _detectionState.update { it.copy(confirmation = it.confirmation.lowReached(now)) }
-                PaparcarLogger.d(DIAG, "  → phase: Idle → LowReached(firstReachedAt=$now) [BUG-DETECT-310502]")
-            }
-
-            is ConfirmationPhase.LowReached -> {
-                val hasExit = state.egress.vehicleExitHint
-                val timeoutReached = (now - phase.firstReachedAt) >= config.lowNotifTimeoutMs
-                if (humanPowered) {
-                    // [DET-HUMAN-POWERED-EARLY-CLOSE-001] Suppressed, not deferred: the phase stays
-                    // LowReached (no `shownAt` claiming a prompt nobody saw), so if the veto lifts —
-                    // an AR `IN_VEHICLE` ENTER superseding the bicycle stamp — the very next fix
-                    // shows the prompt normally, its timeout still measured from `firstReachedAt`.
-                    PaparcarLogger.d(
-                        DIAG,
-                        "  ⊘ Low/Medium notif suppressed — human-powered ride, the matured stop " +
-                            "will close the session instead [DET-HUMAN-POWERED-EARLY-CLOSE-001]",
-                    )
-                } else if (hasExit || timeoutReached) {
-                    val reason = if (hasExit)
-                        "exit=${state.egress.vehicleExitHint}"
-                    else
-                        "timeout=${now - phase.firstReachedAt}ms"
-                    PaparcarLogger.d(DIAG, "  → showing parking-confirmation notif (Low/Medium, $reason)")
-                    _detectionState.update { it.copy(confirmation = it.confirmation.notified(now)) }
-                    notifyParkingConfirmation(confidence)
-                    // [DET-FROZEN-COUNTER-001] The prompt instant must exist in the remote trace:
-                    // the 2026-07-25 00:35 Redmi prompt was invisible in forensics — the 15-min
-                    // response window it opened could only be inferred backwards from the timeout.
-                    logDetection { sid ->
-                        DetectionEvent.Decision(
-                            sid, now, outcome = "PROMPT_SHOWN", pathLabel = "low_medium($reason)",
-                            confidence = (confidence as? ParkingConfidence.Medium)?.score,
-                            location = state.session.previousFix,
-                        )
-                    }
-                } else {
-                    val waitMs = config.lowNotifTimeoutMs - (now - phase.firstReachedAt)
-                    PaparcarLogger.d(DIAG, "  ⊘ Low/Medium notif suppressed — no vehicleExit, timeout in ~${waitMs}ms")
-                }
-            }
-
-            is ConfirmationPhase.Notified, is ConfirmationPhase.Candidate -> {
-                // Already prompted; nothing to do on a Low/Medium re-evaluation.
-                Unit
-            }
-        }
-    }
-
-    /**
-     * @return true when the session must END instead of opening (or re-opening) a candidate.
-     *   [DET-HUMAN-POWERED-EARLY-CLOSE-001]
-     */
-    private suspend fun advanceHigh(
-        confidence: ParkingConfidence,
-        state: DetectionSessionState,
-        now: Long,
-    ) {
-        // [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001 §B] The close question used to live HERE, on the
-        // premise that High is the only certified sustained stop. It is not — the scorer's fast
-        // path caps at Medium whenever AR delivered a vehicle exit, which made this the one door a
-        // suppressed-prompt session could never reach. It now lives in [evaluateConfidence], asked
-        // off the measured stop clock before any tier dispatch, so every route to a matured rest
-        // passes through it exactly once. A High reached through the slow path has stopped for
-        // `slowPath5MinMs` by construction, so nothing is lost by not re-asking here.
-        when (val phase = state.confirmation.phase) {
-            is ConfirmationPhase.Idle, is ConfirmationPhase.LowReached -> {
-                // Prompt was never shown — fire it as part of this transition.
-                PaparcarLogger.d(DIAG, "  ▶ HIGH reached — entering CANDIDATE phase + showing notif, vehicleExit=${state.egress.vehicleExitHint}")
-                _detectionState.update { it.copy(confirmation = it.confirmation.candidate(now, state.egress.vehicleExitHint, now)) }
-                notifyParkingConfirmation(confidence)
-                logDetection { sid -> DetectionEvent.Candidate(sid, now, action = "OPENED", phase = "from ${phase::class.simpleName}") }
-                // [DET-FROZEN-COUNTER-001] Same PROMPT_SHOWN marker as the Low/Medium lane, so
-                // every response-timeout window has its opening instant in the remote trace.
-                logDetection { sid ->
+    /** The inline effect executor, until P3.11 gives it its own file. */
+    private suspend fun runStageEffects(effects: List<DetectionEffect>, now: Long) {
+        effects.forEach { effect ->
+            when (effect) {
+                is DetectionEffect.NotifyPrompt -> notifyParkingConfirmation(effect.confidence)
+                is DetectionEffect.RecordPromptShown -> logDetection { sid ->
                     DetectionEvent.Decision(
-                        sid, now, outcome = "PROMPT_SHOWN", pathLabel = "high_candidate",
-                        confidence = (confidence as? ParkingConfidence.High)?.score,
-                        location = state.session.previousFix,
+                        sid, now, outcome = "PROMPT_SHOWN", pathLabel = effect.pathLabel,
+                        confidence = when (val c = effect.confidence) {
+                            is ParkingConfidence.Medium -> c.score
+                            is ParkingConfidence.High -> c.score
+                            else -> null
+                        },
+                        location = _detectionState.value.session.previousFix,
                     )
                 }
-            }
-
-            is ConfirmationPhase.Notified -> {
-                // Prompt already shown at phase.shownAt — preserve it so the response timeout
-                // keeps ticking from the original prompt instant.
-                PaparcarLogger.d(DIAG, "  ▶ HIGH reached after Notified(shownAt=${phase.shownAt}) — entering CANDIDATE phase (suppressing duplicate notif) [BUG-STUCK-SESSION]")
-                _detectionState.update { it.copy(confirmation = it.confirmation.candidate(now, state.egress.vehicleExitHint, phase.shownAt)) }
-                logDetection { sid -> DetectionEvent.Candidate(sid, now, action = "OPENED", phase = "from Notified") }
-            }
-
-            is ConfirmationPhase.Candidate -> {
-                // Already in CANDIDATE — keep the original highReachedAt and shownAt so the
-                // observation window does not reset on every subsequent High fix.
-                Unit
+                is DetectionEffect.RecordCandidateOpened -> logDetection { sid ->
+                    DetectionEvent.Candidate(sid, now, action = "OPENED", phase = effect.fromPhase)
+                }
+                is DetectionEffect.AskUser -> nudgeUnattended(
+                    reason = UnattendedSaveReason.entries.first { it.key == effect.reasonKey },
+                    vehicleId = effect.vehicleId,
+                    location = effect.at,
+                    now = now,
+                    distanceMeters = effect.distanceMeters,
+                )
+                is DetectionEffect.Confirm,
+                is DetectionEffect.ResolveVehicle,
+                is DetectionEffect.EndSession,
+                DetectionEffect.DismissPrompt,
+                -> error("effect not reachable until its stage lands: $effect")
             }
         }
     }
