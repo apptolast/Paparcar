@@ -1716,7 +1716,7 @@ written justification* is a silent regression — this one has its justification
 
 ### DET-PHYSICS-EFFECTIVE-DRIVING-001 — the person/car precedence moves out intact, and gets a test
 
-**Commit:** pending · **Ticket:** `docs/backlog/det-physics-effective-driving-001.md` · plan step P1.9.
+**Commit:** `46b83012` · **Ticket:** `docs/backlog/det-physics-effective-driving-001.md` · plan step P1.9.
 
 The eight-row `when` that decides whether a fix clears the park anchor. **The order is the content** —
 the rows are not independent rules, each exists to beat the ones below it in a case where both apply —
@@ -1749,6 +1749,45 @@ comment and a guarantee.
 
 **Files:** `physics/EffectiveDriving.kt` (new, pure), `CoordinatorParkingDetector.kt`, 11 new tests.
 **1522 tests.**
+
+---
+
+### DET-PHYSICS-SAVED-SHAPE-001 — one name for what a session leaves behind
+
+**Commit:** pending · **Ticket:** `docs/backlog/det-physics-saved-shape-001.md` · plan step P1.10.
+
+Four outcomes, three vocabularies: `SaveExact`/`ApproximatePin`/`Confirmed`,
+`SaveZone`/`ApproximateZone`, `Ask`/`Prompt`, `KeepSilent`/silence-by-omission.
+`domain/detection/physics/SavedParkingShape.kt` gives them one — `ExactPin` / `BoundedZone` /
+`AskUser` / `KeepSilent`.
+
+**Nothing adopts it yet, on purpose** (07 §3.4.1, plan P1.10): making the verdicts return it changes
+their signatures and their tests, which belongs to the verdict phase. What lands now is the type and
+a **census** — `SavedParkingShapeTest` maps every arm of the three existing sealeds through an
+exhaustive `when`, so the divergence cannot grow while the adoption waits.
+
+Three decisions, each of which would have been silently wrong later:
+
+- **No `reason` in the shape.** The `09 §6` sketch gave `AskUser`/`KeepSilent` a `reason: String`;
+  it is dropped. `UnattendedSaveReason`, `HonestCloseVerdict.REASON_*` and `PromptReason` are a
+  **trace contract** — a July trace must still read the same in a September build — and a shared
+  reason field is an open invitation to merge them into it, which 07 §3.4.1 forbids in the same
+  sentence that proposes the type. The shape says WHAT is saved; the verdict keeps saying WHY.
+- **`BoundedZone` carries the FINAL radius, not the doubt.** This settles the one real disagreement
+  left after P1.6: `EvaluateHonestClose` clamps inside the verdict (EvalHC:419) while
+  `EvaluateUnattendedParkingSave` emits raw `doubtMeters` and lets the coordinator clamp
+  (CPD:2006). Both call `honestZoneRadius`, but only one of them can forget to.
+- **`Rejected` and `Inconclusive` are NOT `KeepSilent`.** Silence is *terminal, nothing saved*;
+  `Inconclusive` means *not yet, ask me on the next fix* and `Rejected` discards one candidate while
+  the stop stays alive. Flattening them buys a tidier `when` and a class of false negatives —
+  sessions ended while still working. `ParkingDecision.CloseHumanPowered` **is** a shape, and today
+  it is `AskUser`, not silence: `closeHumanPoweredRide` fires `UNATTENDED_HUMAN_POWERED_NUDGE`.
+
+Verified discriminating: adding an arm to `HonestCloseDecision` and satisfying production's own
+`when` still fails to compile in the census (🔴), and mapping `Inconclusive` to `KeepSilent` turns
+the exclusion test red (🔴).
+
+**Zero behaviour change** — no production call site changed. **1528 tests.**
 
 ---
 
