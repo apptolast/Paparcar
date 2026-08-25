@@ -228,6 +228,19 @@ sealed interface DetectionEffect {
      *  absorbs it in P3.12. */
     data class RecordCandidateOpened(val fromPhase: String) : DetectionEffect
 
+    /**
+     * [DET-SOLID-001] A save the guards refused becomes a QUESTION.
+     *
+     * Kept as ONE compound effect rather than split into dismiss + notify + record + state change,
+     * because `degradeToPrompt` reads its own clock for the prompt instant — splitting it would
+     * either move that read or invent a second one, and both change what the trace says.
+     */
+    data class DegradeToPrompt(
+        val pathLabel: String,
+        val reasonKey: String,
+        val at: GpsPoint,
+    ) : DetectionEffect
+
     /** Take a prompt off screen. Replaces the direct `notificationPort.dismiss` calls. */
     data object DismissPrompt : DetectionEffect
 

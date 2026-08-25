@@ -20,11 +20,14 @@ import io.apptolast.paparcar.domain.detection.physics.honestZoneRadius
 import io.apptolast.paparcar.domain.detection.physics.creditSpeedBand
 import io.apptolast.paparcar.domain.detection.physics.sustainedDriveWitnessed
 import io.apptolast.paparcar.domain.detection.physics.walkableInsideGapMeters
+import io.apptolast.paparcar.domain.detection.physics.SavedParkingShape
 import io.apptolast.paparcar.domain.detection.physics.SessionOutcome
 import io.apptolast.paparcar.domain.detection.state.AnchorCapture
 import io.apptolast.paparcar.domain.detection.state.AnchorTrust
 import io.apptolast.paparcar.domain.detection.state.ConfirmationLifecycle
 import io.apptolast.paparcar.domain.detection.stages.ConfidenceScoringStage
+import io.apptolast.paparcar.domain.detection.stages.FastConfirmStage
+import io.apptolast.paparcar.domain.detection.stages.SessionStage
 import io.apptolast.paparcar.domain.detection.stages.DetectionEffect
 import io.apptolast.paparcar.domain.detection.stages.StageVerdict
 import io.apptolast.paparcar.domain.detection.state.DetectionSessionState
@@ -1278,67 +1281,16 @@ class CoordinatorParkingDetector(
                         return@collect
                     }
 
-                    // [DET-D-03] Steps + egress fast confirm — no AR EXIT required. The user has
-                    // driven, stopped, taken ≥ minStepsToConfirm steps AND walked ≥
-                    // minEgressDisplacementMeters from the parked car: that is unambiguously "parked
-                    // and walked away" on its own. The egress gate is the decisive signal, so the AR
-                    // IN_VEHICLE_EXIT requirement was redundant — a field trace (2026-06-26) showed the
-                    // confirm needlessly waiting ~16 s for the AR EXIT while steps+egress were already
-                    // satisfied, and it made detection fragile on hardware where EXIT is late or never
-                    // fires. AR EXIT is now a non-decisive hint only. Anchor at bestStopLocation (the
-                    // parked-car position). [supersedes BUG-OPPO-LATE-CONFIRM]
-                    // [DET-KINEMATIC-EGRESS-001] The kinematic egress signal is the mute-counter
-                    // peer: the FROZEN anchor has watched a sustained quality walk away from it —
-                    // the same evidence, measured by GPS instead of the step sensor.
-                    // [DET-EVIDENCE-MUST-NOT-LOWER-CONFIDENCE-001] FRESH steps: a discarded
-                    // candidate's steps stay on the record but may not re-arm this lane.
-                    if (state.freshStepCount >= config.minStepsToConfirm || hasKinematicEgressSignal(state)) {
-                        // elapsedSinceHighMs=0 → no observation window; the egress proofs are what
-                        // confirm. The scooter mismatch guard still applies via the use case.
-                        val decision = evaluateParkingDecision(
-                            parkingDecisionInput(
-                                state = state,
-                                location = location,
-                                now = now,
-                                activeVehicleType = attributedVehicleType,
-                                elapsedSinceHighMs = 0L,
-                                hadVehicleExit = state.egress.vehicleExitHint,
-                                // No stop has matured here — this lane runs on the egress proofs
-                                // alone, so it may not reach the terminal human-powered close: a
-                                // cyclist paused at a light must not be closed mid-ride.
-                                // [DET-HUMAN-POWERED-EARLY-CLOSE-001]
-                                restCertified = false,
-                            )
-                        )
-                        if (decision is ParkingDecision.Confirmed) {
-                            PaparcarLogger.d(
-                                DIAG,
-                                "  ▶ ${decision.pathLabel} (steps=${state.egress.stepCount} kinematicFixes=${state.anchorTrust.kinematicEgressFixes}) → fast confirm, skipping slow path [DET-D-03][DET-KINEMATIC-EGRESS-001]"
-                            )
-                            val locationToConfirm = refinedParkLocation(state, location)
-                            completed = beginConfirm(
-                                location = locationToConfirm,
-                                reliability = decision.reliability,
-                                vehicleId = attributedVehicleId,
-                                pathLabel = decision.pathLabel,
-                                now = now,
-                            )
-                            return@collect
-                        }
-                        if (decision is ParkingDecision.Prompt) {
-                            degradeToPrompt(decision.pathLabel, decision.reason, location, now)
-                            return@collect
-                        }
-                        PaparcarLogger.d(
-                            DIAG,
-                            "  ⊘ steps+egress fast confirm gated ($decision) — anchorSet=${state.anchorTrust.anchor != null}, falling to scoring"
-                        )
-                    }
+                    // [DET-D-03][DET-KINEMATIC-EGRESS-001] Steps + egress fast confirm.
+                    val fastPass = runStage(fastConfirmStage, state, location, now, stoppedDuration)
+                    if (fastPass.endsSession) completed = true
+                    if (fastPass.endsPass) return@collect
 
                     // [DET-HUMAN-POWERED-EARLY-CLOSE-001] The scorer can now END the session: High
                     // confidence certifies the sustained stop, and on a muscle-powered ride that is
                     // the entire verdict — no candidate, no prompt, no 15-minute wait.
-                    if (runConfidenceScoring(location, stoppedDuration, state, now)) {
+                    // The scorer's only terminal exit is the human-powered close, which ends both.
+                    if (runStage(confidenceScoringStage, state, location, now, stoppedDuration).endsPass) {
                         completed = true
                         return@collect
                     }
@@ -2223,18 +2175,38 @@ class CoordinatorParkingDetector(
     private val confidenceScoringStage = ConfidenceScoringStage(
         calculateParkingConfidence = calculateParkingConfidence,
         evaluateParkingDecision = evaluateParkingDecision,
-        decisionInput = { state, location, now, elapsedSinceHighMs, hadVehicleExit, restCertified ->
-            parkingDecisionInput(
-                state = state,
-                location = location,
-                now = now,
-                activeVehicleType = attributedVehicleType,
-                elapsedSinceHighMs = elapsedSinceHighMs,
-                hadVehicleExit = hadVehicleExit,
-                restCertified = restCertified,
-            )
-        },
+        decisionInput = ::stageDecisionInput,
         humanPowered = { state, now -> humanPoweredRide(state, attributedVehicleType, now) },
+    )
+
+    private val fastConfirmStage = FastConfirmStage(
+        evaluateParkingDecision = evaluateParkingDecision,
+        decisionInput = ::stageDecisionInput,
+        refinedParkLocation = ::refinedParkLocation,
+    )
+
+    /**
+     * [09 §C.4] The `DetectionSessionState → ParkingDecisionInput` adapter the stages share.
+     *
+     * Two of the three stages that need it now exist, so it stops being a lambda per stage. Its home
+     * is `stages/` and it moves there with the third; keeping it here meanwhile is what lets the
+     * vehicle TYPE stay a live read of `attributedVehicleType`, exactly as the branches read it.
+     */
+    private fun stageDecisionInput(
+        state: DetectionSessionState,
+        location: GpsPoint,
+        now: Long,
+        elapsedSinceHighMs: Long,
+        hadVehicleExit: Boolean,
+        restCertified: Boolean,
+    ) = parkingDecisionInput(
+        state = state,
+        location = location,
+        now = now,
+        activeVehicleType = attributedVehicleType,
+        elapsedSinceHighMs = elapsedSinceHighMs,
+        hadVehicleExit = hadVehicleExit,
+        restCertified = restCertified,
     )
 
     private val driveProofBounds = DriveProofBounds(
@@ -2678,39 +2650,59 @@ class CoordinatorParkingDetector(
     }
 
     /**
-     * [09 §4] The stage list's LAST entry, now a stage. The orchestrator runs it, logs its notes in
-     * order and executes its effects — see [runStageEffects].
+     * [09 §4] Run one stage: log its notes in order, write back what it changed, execute what it
+     * asked for, and say whether this fix's pass is over.
      *
-     * ⚠️ Only the FIELD the stage touched is written back — the confirmation PHASE, not the whole
-     * confirmation. The stage reasons about a snapshot taken at the top of the iteration, and by the
-     * time it runs that snapshot is stale in two ways: a fast-confirm earlier in the SAME fix may
-     * have opened a hold, and the step collector runs in a sibling coroutine. Writing the verdict's
-     * whole sub-state back drops a `pendingConfirm` set microseconds ago — which is not a theory:
-     * `should_discard_held_confirm_when_position_outran_the_steps_at_settle` failed on exactly that
-     * while this stage was being moved.
+     * ⚠️ The write-back is deliberately narrow. The stage reasons about a SNAPSHOT taken at the top
+     * of the iteration, and by the time it runs that snapshot is stale in two ways: an earlier stage
+     * in the SAME fix may have opened a hold, and the step collector runs in a sibling coroutine.
+     * Writing a verdict's whole sub-state back drops a `pendingConfirm` set microseconds ago —
+     * which is not a theory: `should_discard_held_confirm_when_position_outran_the_steps_at_settle`
+     * failed on exactly that while the first stage was being moved. So a stage writes back only what
+     * it actually changes, and no more. The constraint disappears when the loop becomes
+     * single-writer (P3.13).
      *
-     * The narrowing disappears when the loop becomes single-writer (P3.13). Until then a stage's
-     * write-back is as wide as what the stage actually changes, and no wider.
+     * The two answers are NOT the same and were never the same in the branches either: a fast
+     * confirm always ends the pass, but whether it ends the SESSION depends on whether the confirm
+     * was held through its grace window. Returning one boolean for both is how the session stops
+     * ending — three replays caught exactly that while this stage was being moved.
      */
-    private suspend fun runConfidenceScoring(
-        location: GpsPoint,
-        stoppedDuration: Long,
+    private suspend fun runStage(
+        stage: SessionStage,
         state: DetectionSessionState,
+        location: GpsPoint,
         now: Long,
-    ): Boolean {
-        val verdict = confidenceScoringStage.evaluate(state, location, now, stoppedDuration, config)
+        stoppedDuration: Long,
+    ): StagePass {
+        val verdict = stage.evaluate(state, location, now, stoppedDuration, config)
         verdict.notes.forEach { PaparcarLogger.d(DIAG, it) }
-        if (verdict !is StageVerdict.Handled) return false
+        if (verdict !is StageVerdict.Handled) return StagePass(endsPass = false, endsSession = false)
         val phase = verdict.newState.confirmation.phase
         _detectionState.update { it.copy(confirmation = it.confirmation.copy(phase = phase)) }
-        runStageEffects(verdict.effects, now)
-        return verdict.stopsIteration
+        val endsSession = runStageEffects(verdict.effects, now)
+        return StagePass(endsPass = verdict.stopsIteration, endsSession = endsSession)
     }
 
+    /** What running a stage settled: whether this fix's pass is over, and whether the session is. */
+    private data class StagePass(val endsPass: Boolean, val endsSession: Boolean)
+
     /** The inline effect executor, until P3.11 gives it its own file. */
-    private suspend fun runStageEffects(effects: List<DetectionEffect>, now: Long) {
+    private suspend fun runStageEffects(effects: List<DetectionEffect>, now: Long): Boolean {
+        var sessionCompleted = false
         effects.forEach { effect ->
             when (effect) {
+                is DetectionEffect.Confirm -> {
+                    val pin = effect.shape as SavedParkingShape.ExactPin
+                    sessionCompleted = beginConfirm(
+                        location = pin.location,
+                        reliability = pin.reliability,
+                        vehicleId = effect.vehicleId,
+                        pathLabel = effect.pathLabel,
+                        now = now,
+                    )
+                }
+                is DetectionEffect.DegradeToPrompt ->
+                    degradeToPrompt(effect.pathLabel, PromptReason.entries.first { it.key == effect.reasonKey }, effect.at, now)
                 is DetectionEffect.NotifyPrompt -> notifyParkingConfirmation(effect.confidence)
                 is DetectionEffect.RecordPromptShown -> logDetection { sid ->
                     DetectionEvent.Decision(
@@ -2733,13 +2725,13 @@ class CoordinatorParkingDetector(
                     now = now,
                     distanceMeters = effect.distanceMeters,
                 )
-                is DetectionEffect.Confirm,
                 is DetectionEffect.ResolveVehicle,
                 is DetectionEffect.EndSession,
                 DetectionEffect.DismissPrompt,
                 -> error("effect not reachable until its stage lands: $effect")
             }
         }
+        return sessionCompleted
     }
 
     private companion object {

@@ -118,6 +118,7 @@ class StageScaffoldTest {
         is DetectionEffect.Confirm -> "runConfirm / beginConfirm / saveUnattendedZone"
         is DetectionEffect.AskUser -> "nudgeUnattended / closeHumanPoweredRide"
         is DetectionEffect.NotifyPrompt -> "notifyParkingConfirmation"
+        is DetectionEffect.DegradeToPrompt -> "degradeToPrompt (kept compound: it reads its own clock)"
         is DetectionEffect.RecordPromptShown -> "the PROMPT_SHOWN Decision event"
         is DetectionEffect.RecordCandidateOpened -> "the Candidate(OPENED) event"
         DetectionEffect.DismissPrompt -> "notificationPort.dismiss"
@@ -131,6 +132,7 @@ class StageScaffoldTest {
             DetectionEffect.Confirm(SavedParkingShape.ExactPin(here, 0.9f), "veh-1", "steps+egress"),
             DetectionEffect.AskUser("no_drive", "veh-1", here),
             DetectionEffect.NotifyPrompt(ParkingConfidence.Low),
+            DetectionEffect.DegradeToPrompt("ar_enter", "weak_evidence", here),
             DetectionEffect.RecordPromptShown("high_candidate", ParkingConfidence.Low),
             DetectionEffect.RecordCandidateOpened("from Notified"),
             DetectionEffect.DismissPrompt,

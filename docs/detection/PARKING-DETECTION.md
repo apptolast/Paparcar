@@ -2161,7 +2161,7 @@ happened to be followed by a `return`: whether it asks for effects, and whether 
 
 ### DET-STAGE-CONFIDENCE-SCORING-001 — the first branch leaves the method, and falsifies the scaffold
 
-**Commit:** pending · **Ticket:** `docs/backlog/det-stage-confidence-scoring-001.md` · plan step
+**Commit:** `5cbe59a2` · **Ticket:** `docs/backlog/det-stage-confidence-scoring-001.md` · plan step
 P3.1.
 
 The scorer and the phase machine become `stages/ConfidenceScoringStage.kt`: pure, returning a
@@ -2201,6 +2201,39 @@ becomes single-writer in P3.13.
 
 **Zero behaviour change**, coordinator **−102 lines**, and the P0.1 precedence tests are green with
 no assert edited. **1629 tests.**
+
+---
+
+### DET-STAGE-FAST-CONFIRM-001 — two questions that were one boolean
+
+**Commit:** pending · **Ticket:** `docs/backlog/det-stage-fast-confirm-001.md` · plan step P3.2.
+
+[DET-D-03] The steps+egress lane becomes `stages/FastConfirmStage.kt`: the user drove, stopped, took
+enough steps AND walked far enough from the car, so there is nothing left to wait for and the
+observation window is skipped entirely. Its mute-counter peer, the kinematic egress
+[DET-KINEMATIC-EGRESS-001], comes with it — the two witnesses of the same walk now sit in one
+predicate inside the verdict they feed.
+
+**Three replays caught the real defect of this step**, and it is worth writing down because the
+shape recurs: *a fast confirm always ends the PASS, but whether it ends the SESSION depends on
+whether the confirm was held through its grace window.* Those are two answers, and the branch always
+knew it — `completed = beginConfirm(...)` then `return@collect`, two statements. Collapsing them
+into one boolean returned by the stage runner meant the session simply never ended, and
+`calle_gavia_001`, `enamorados_001` and `same_trace_with_speed_verified_arm` all went red at once.
+`StagePass(endsPass, endsSession)` restores the distinction as a type.
+
+**A fourth scaffold correction.** `degradeToPrompt` stays ONE compound effect instead of being split
+into dismiss + notify + record + state change, because it reads its OWN clock for the prompt
+instant: splitting it would either move that read or invent a second one, and both change what the
+trace says.
+
+**The shared adapter stops being a lambda per stage.** `parkingDecisionInput` now has two of its
+three consumers, so it becomes one named method — still on the coordinator, because that is what
+lets the vehicle TYPE stay a live read exactly as the branches read it. It moves to `stages/` with
+the third consumer.
+
+**Zero behaviour change**, coordinator −8 lines net (the runner grew as the branch left), P0.1's six
+precedence tests green with no assert edited. **1629 tests.**
 
 ---
 
