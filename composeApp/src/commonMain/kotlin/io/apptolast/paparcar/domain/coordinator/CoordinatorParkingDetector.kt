@@ -4,6 +4,8 @@ import io.apptolast.paparcar.domain.detection.ArmEvidence
 import io.apptolast.paparcar.domain.detection.assertionBlocksRelocation
 import io.apptolast.paparcar.domain.detection.HoldAction
 import io.apptolast.paparcar.domain.detection.DepartureConfirmationListener
+import io.apptolast.paparcar.domain.detection.DetectionEffectExecutor
+import io.apptolast.paparcar.domain.detection.EffectOutcome
 import io.apptolast.paparcar.domain.detection.DetectionPhase
 import io.apptolast.paparcar.domain.detection.DetectionPhaseSink
 import io.apptolast.paparcar.domain.detection.VehicleFenceOwnershipPolicy
@@ -181,7 +183,7 @@ class CoordinatorParkingDetector(
 
     /**
      * Epoch-ms when [AppNotificationManager.showParkingSavedConfirm] was last posted by
-     * [runConfirm]. Lives across [invoke] calls (the coordinator is a Koin single) so the
+     * the executor. Lives across [invoke] calls (the coordinator is a Koin single) so the
      * session-start cleanup can decide whether the existing notification on
      * [AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID] is a fresh revert card
      * (preserve) or a stale prompt from an abandoned session (dismiss).
@@ -192,7 +194,37 @@ class CoordinatorParkingDetector(
      * lingering notification as stale and dismisses it — reasonable since we have no way
      * to verify its age. [REFACTOR-300-FIX]
      */
-    @Volatile private var savedConfirmPostedAt: Long? = null
+    /**
+     * [09 §4] The only place in the core that performs I/O. It does the side effect and REPORTS what
+     * the session must record; applying that is [applyEffect]'s job, because the session state has
+     * exactly one owner and it is not the thing doing the I/O.
+     */
+    private val effects = DetectionEffectExecutor(
+        confirmParking = confirmParking,
+        notifyParkingConfirmation = notifyParkingConfirmation,
+        notificationPort = notificationPort,
+        vehicleRepository = vehicleRepository,
+        config = config,
+        logEvent = { build -> logDetection(build) },
+        nowMs = ::nowMs,
+    )
+
+    /**
+     * Apply what an effect settled. The executor never reaches into the session; everything it
+     * learned comes back as a value and lands here, in one place.
+     *
+     * @return whether the session is over.
+     */
+    private fun applyEffect(outcome: EffectOutcome): Boolean {
+        outcome.sessionOutcome?.let { sessionOutcome = it }
+        if (outcome.degradeToPrompt) {
+            _detectionState.update { it.copy(confirmation = it.confirmation.degradedToPrompt(shownAt = nowMs())) }
+        }
+        outcome.holdOpened?.let { pending ->
+            _detectionState.update { it.copy(confirmation = it.confirmation.holding(pending)) }
+        }
+        return outcome.endsSession
+    }
 
     // ── DETECTION DIAGNOSTICS (DET-LOG-03) ────────────────────────────────────
     /** Id of the in-flight session (= its start epoch-ms as string). Set at [invoke] entry,
@@ -252,25 +284,6 @@ class CoordinatorParkingDetector(
         detectionEventLogger.log(build(sid))
     }
 
-    /**
-     * [DET-HOLD-BRANCHES-MUST-SPEAK-001] The single door the post-confirm hold [DET-C-02] speaks
-     * through. Every open and every exit goes here and nowhere else: the lane is only worth having
-     * if `type=HOLD` is the complete story of a hold, and that stops being true the moment a branch
-     * writes its own event.
-     *
-     * Two events per hold, not one per fix — the hold spans ~2 min of a 2 s stream, so a per-fix
-     * note would cost ~50 documents to say the same thing the exit says once.
-     */
-    private suspend fun logHold(
-        action: HoldAction,
-        heldMs: Long? = null,
-        pathLabel: String? = null,
-        location: GpsPoint? = null,
-    ) {
-        logDetection { sid ->
-            DetectionEvent.Hold(sid, nowMs(), action = action, heldMs = heldMs, pathLabel = pathLabel, location = location)
-        }
-    }
 
     private fun nowMs(): Long = clock()
 
@@ -466,7 +479,7 @@ class CoordinatorParkingDetector(
         sessionOutcome = SessionOutcome.Ended
         logDetection { sid -> DetectionEvent.SessionStarted(sid, sessionStartMs, strategy = "COORDINATOR", evidence = _detectionState.value.session.armEvidence) }
 
-        // Session-start notification cleanup, gated by [savedConfirmPostedAt] age.
+        // Session-start notification cleanup, gated by the executor's saved-confirm age.
         //
         // We DO dismiss when the visible notification on [PARKING_CONFIRMATION_NOTIFICATION_ID]
         // is either (a) a stale prompt from an abandoned previous session or (b) a revert
@@ -482,7 +495,7 @@ class CoordinatorParkingDetector(
         // The finally never touches notifications: [runConfirm] paths dismiss explicitly
         // (user-tap / response-timeout / failure), and the auto-confirm success path is
         // exactly what we are protecting here.
-        val savedConfirmAge = savedConfirmPostedAt?.let { sessionStartMs - it }
+        val savedConfirmAge = effects.savedConfirmPostedAt?.let { sessionStartMs - it }
         if (savedConfirmAge == null || savedConfirmAge > config.confirmationResponseTimeoutMs) {
             PaparcarLogger.d(
                 DIAG,
@@ -490,7 +503,7 @@ class CoordinatorParkingDetector(
                     "limit=${config.confirmationResponseTimeoutMs}ms)"
             )
             notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
-            savedConfirmPostedAt = null
+            effects.forgetSavedConfirm()
         } else {
             PaparcarLogger.d(
                 DIAG,
@@ -656,13 +669,18 @@ class CoordinatorParkingDetector(
                             // [DET-HOLD-BRANCHES-MUST-SPEAK-001] A pin planted with NO fix to
                             // re-validate it. Deliberate, but a trace has to say so — in forensics
                             // this is what "a spot appeared and I don't know why" looks like.
-                            logHold(
+                            effects.logHold(
                                 HoldAction.STARVED,
                                 heldMs = config.confirmHoldMs + HOLD_WATCHDOG_MARGIN_MS,
                                 pathLabel = pending.pathLabel,
                                 location = pending.location,
                             )
-                            completed = runConfirm(pending.location, pending.reliability, pending.vehicleId, pending.pathLabel)
+                            completed = applyEffect(
+                                effects.confirm(
+                                    _detectionState.value, pending.location, pending.reliability,
+                                    pending.vehicleId, pending.pathLabel,
+                                ),
+                            )
                             if (completed) {
                                 // The collect loop is suspended on a starved stream — cancelling
                                 // the session scope is what actually ends the session. The save
@@ -945,13 +963,18 @@ class CoordinatorParkingDetector(
                         // [DET-HOLD-BRANCHES-MUST-SPEAK-001] The other pin planted with no fix
                         // behind it. Emitted BEFORE runConfirm so the note survives even if the
                         // save itself is what fails.
-                        logHold(
+                        effects.logHold(
                             HoldAction.SESSION_ENDED,
                             heldMs = nowMs() - pending.confirmedAt,
                             pathLabel = pending.pathLabel,
                             location = pending.location,
                         )
-                        completed = runConfirm(pending.location, pending.reliability, pending.vehicleId, pending.pathLabel)
+                        completed = applyEffect(
+                            effects.confirm(
+                                _detectionState.value, pending.location, pending.reliability,
+                                pending.vehicleId, pending.pathLabel,
+                            ),
+                        )
                     }
                     // [DET-HANDOFF-NOT-MANUAL-001 §B.3] This session is over and it never measured a
                     // drive (had it, the one-shot above would have settled the deduction already).
@@ -975,7 +998,7 @@ class CoordinatorParkingDetector(
                     lastFinishedMaxSpeedMps = _detectionState.value.drive.provenMaxSpeedMps
                     // [DET-LOG-03] Close the diagnostics session before wiping state, then clear the id.
                     heldConfirmDroppedByUser?.let { dropped ->
-                        logHold(
+                        effects.logHold(
                             HoldAction.DROPPED_BY_USER,
                             heldMs = nowMs() - dropped.confirmedAt,
                             pathLabel = dropped.pathLabel,
@@ -1129,39 +1152,6 @@ class CoordinatorParkingDetector(
      *
      * Translates the `NotAuthenticated` transient-error case into a warn-level log.
      */
-    /**
-     * [DET-C-02] Begin an auto egress-confirm. With a positive [ParkingDetectionConfig.confirmHoldMs]
-     * this does NOT confirm yet — it records a [PendingConfirm] and returns `false`, keeping the
-     * session alive so the loop's hold handler can either finalise it (window elapsed / explicit
-     * user-yes) or discard it (driving resumed → errand stop → re-anchor at the real spot). With
-     * `confirmHoldMs == 0` it confirms immediately (legacy behaviour) and returns `true`.
-     *
-     * @return whether the caller should mark the session completed (true only on immediate confirm).
-     */
-    private suspend fun beginConfirm(
-        location: GpsPoint,
-        reliability: Float,
-        vehicleId: String?,
-        pathLabel: String,
-        now: Long,
-    ): Boolean {
-        if (config.confirmHoldMs <= 0L) {
-            return runConfirm(location, reliability, vehicleId, pathLabel)
-        }
-        _detectionState.update {
-            it.copy(confirmation = it.confirmation.holding(PendingConfirm(location, reliability, vehicleId, pathLabel, confirmedAt = now)))
-        }
-        PaparcarLogger.d(
-            DIAG,
-            "  ⏸ tentative confirm ($pathLabel) — holding ${config.confirmHoldMs}ms to rule out an errand stop [DET-C-02]"
-        )
-        // [DET-HOLD-BRANCHES-MUST-SPEAK-001] The open is the load-bearing one for testability: a
-        // second OPENED in a trace is what distinguishes "the hold swallowed this fix" from "the
-        // fast lane re-fired and restarted the clock" — the pair
-        // DET-CONFIRM-BRANCH-ORDER-MUST-BE-TESTABLE-001 measured as unobservable.
-        logHold(HoldAction.OPENED, heldMs = 0L, pathLabel = pathLabel, location = location)
-        return false
-    }
 
     /**
      * [DET-FROZEN-COUNTER-001] Unattended-timeout fallback: a guard distrusts the EXACT anchor,
@@ -1193,230 +1183,9 @@ class CoordinatorParkingDetector(
             ceilingMeters = config.unattendedZoneMaxRadiusMeters,
         )
 
-    private suspend fun saveUnattendedZone(
-        reason: UnattendedSaveReason,
-        center: GpsPoint,
-        doubtMeters: Double,
-        vehicleId: String?,
-        location: GpsPoint,
-        now: Long,
-    ): Boolean {
-        val radius = approximateZoneRadius(center, doubtMeters)
-        PaparcarLogger.d(
-            DIAG,
-            "  ◯ unattended zone (${reason.key}) — r=${radius}m (doubt=${doubtMeters.toInt()}m, centerAcc=${center.accuracy}) instead of losing the park [DET-FROZEN-COUNTER-001]"
-        )
-        notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
-        // runConfirm returns "session should end", not "saved" — a hard save failure also ends
-        // the session. Only a real confirmed_* outcome counts as the zone being kept; anything
-        // else falls back to the caller's nudge-only exit so the ask still happens.
-        val ended = runConfirm(
-            location = center,
-            reliability = config.reliabilityUnattendedSave,
-            vehicleId = vehicleId,
-            pathLabel = "unattended_zone_${reason.key}",
-            zoneRadiusMeters = radius,
-        )
-        val savedOk = ended && sessionOutcome.isConfirmed
-        logDetection { sid ->
-            DetectionEvent.Decision(
-                sid, now,
-                outcome = if (savedOk) "UNATTENDED_ZONE_SAVED" else "UNATTENDED_ZONE_SAVE_FAILED",
-                pathLabel = "unattended_zone_${reason.key}",
-                distanceMeters = doubtMeters,
-                radiusMeters = radius,
-                location = location,
-            )
-        }
-        return savedOk
-    }
-
-    /**
-     * [DET-WALK-ENTERED-ANCHOR-ZONE-001] The nudge-only exit of an unattended timeout: the session
-     * could not honestly place anything, so it ASKS. One place instead of six copies, and the three
-     * strings each reason emits (notification source, session outcome, trace label) travel together
-     * on [UnattendedSaveReason] so a future branch cannot invent a fourth spelling — the field
-     * traces are read by their exact wording.
-     *
-     * The copy the user actually sees lives in `showMarkParkingNudge`; nothing here leaks internal
-     * mechanics into it.
-     */
-    private suspend fun nudgeUnattended(
-        reason: UnattendedSaveReason,
-        vehicleId: String?,
-        location: GpsPoint,
-        now: Long,
-        distanceMeters: Double? = null,
-    ) {
-        notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
-        notificationPort.showMarkParkingNudge(source = reason.nudgeSource, vehicleId = vehicleId)
-        sessionOutcome = SessionOutcome.AbortedUnattended(reason.key)
-        logDetection { sid ->
-            DetectionEvent.Decision(
-                sid, now,
-                outcome = reason.decisionOutcome,
-                pathLabel = "unattended_timeout",
-                distanceMeters = distanceMeters,
-                location = location,
-            )
-        }
-    }
-
-    /**
-     * @return whether the session should END (confirmed or hard-failed). `false` only when the
-     *         repark-plausibility guard rejected the auto-confirm and this session degraded to a
-     *         user prompt — the loop keeps collecting so a user "Sí" (reliability 1.0, guard
-     *         bypassed) can still save, and the response-timeout cleans up if ignored. [DET-SOLID-001]
-     */
-    private suspend fun runConfirm(
-        location: GpsPoint,
-        reliability: Float,
-        vehicleId: String?,
-        pathLabel: String,
-        /** Non-null → save an APPROXIMATE ZONE of this radius instead of an exact point — the
-         *  unattended-timeout fallback that keeps the parking instead of losing it when a guard
-         *  distrusts the exact anchor. [DET-FROZEN-COUNTER-001] */
-        zoneRadiusMeters: Float? = null,
-    ): Boolean {
-        var sessionShouldEnd = true
-        withContext(NonCancellable) {
-            PaparcarLogger.d(DIAG, "    → confirmParking(reliability=$reliability, path=$pathLabel, zoneRadius=$zoneRadiusMeters) START")
-            // [CONFIRM-NO-NOTIF-CLEANUP] Notification responsibility lives here: the auto-detection
-            // path owns the unified state-B "Vehículo aparcado · Cancelar" card so the user has a
-            // revert window if AR / steps misfired. See showParkingSavedConfirm call in onSuccess.
-            confirmParking(
-                location,
-                reliability,
-                vehicleId = vehicleId,
-                tripMaxSpeedMps = _detectionState.value.drive.provenMaxSpeedMps,
-                armEvidence = _detectionState.value.session.armEvidence,
-                // [DET-ASSERTION-OUTRANKS-INFERENCE-001] The SUSTAINED figure, not the peak above:
-                // the guard's job is to tell a real re-park from a walk-away, and one stray sample
-                // is not a drive. [DET-MOTOR-PROOF-001]
-                sessionSawDriving = sustainedDriveWitnessed(
-                    _detectionState.value.provenDrivingBandMs,
-                    config.sustainedDriveProofMs,
-                ),
-                // [DET-PIN-PROVENANCE-001] The confirmation path IS the provenance: "steps+egress",
-                // "kinematic+egress", "vehicle-exit", "unattended_timeout", "user".
-                detectionPath = pathLabel,
-                zoneRadiusMeters = zoneRadiusMeters,
-                // [DET-STEP-BUDGET-ORIGIN-001] The step baseline seals where the BODY is at
-                // confirm — for an egress confirm that's the latest processed fix (already
-                // 100+ m from the pin), NOT the anchor. Sealing "at the pin" made the walk
-                // home read as a ride (field 2026-07-22, Glorieta).
-                sealPoint = _detectionState.value.session.previousFix ?: location,
-            )
-                .onSuccess { saved ->
-                    // [REFACTOR-300] Replace the prompt notification at the same ID with the
-                    // post-save "Vehículo aparcado" card carrying ACK and REVERT actions. This
-                    // unifies what used to be a "prompt → dismissed → 'saved' notif posted"
-                    // double-show, and lets the user revert if detection grabbed the wrong car.
-                    val vehicleName = runCatching {
-                        vehicleRepository.observeActiveVehicle().first()
-                            ?.let { it.displayName(fallback = "").takeIf { n -> n.isNotBlank() } }
-                    }.getOrNull()
-                    notificationPort.showParkingSavedConfirm(
-                        parkingId = saved.id,
-                        vehicleName = vehicleName,
-                        latitude = saved.location.latitude,
-                        longitude = saved.location.longitude,
-                    )
-                    // Record post time so the next session-start can decide whether the card
-                    // is fresh (preserve) or stale (dismiss). [REFACTOR-300-FIX]
-                    savedConfirmPostedAt = Clock.System.now().toEpochMilliseconds()
-                    // [DET-LOG-03] Terminal CONFIRMED decision for the session trace.
-                    sessionOutcome = SessionOutcome.Confirmed(pathLabel)
-                    logDetection { sid ->
-                        DetectionEvent.Decision(sid, nowMs(), outcome = "CONFIRMED", pathLabel = pathLabel, confidence = reliability, location = location)
-                    }
-                }
-                .onFailure { e ->
-                    if (e is PaparcarError.Parking.ImplausibleRepark) {
-                        // [DET-SOLID-001] The guard says this auto-confirm would relocate a fresh
-                        // nearby park without the session ever seeing driving — likely pedestrian.
-                        // Degrade to the confirmation prompt instead of silently saving OR silently
-                        // failing: a real (rare) ultra-short repark is one tap away, and the
-                        // response-timeout aborts the session if the prompt is ignored.
-                        PaparcarLogger.w(DIAG, "    ⊘ implausible repark → degrading to user prompt ($pathLabel) [DET-SOLID-001]")
-                        val vehicleName = runCatching {
-                            vehicleRepository.observeActiveVehicle().first()
-                                ?.let { it.displayName(fallback = "").takeIf { n -> n.isNotBlank() } }
-                        }.getOrNull()
-                        notificationPort.showParkingConfirmation(IMPLAUSIBLE_REPARK_PROMPT_SCORE, vehicleName)
-                        _detectionState.update {
-                            it.copy(confirmation = it.confirmation.degradedToPrompt(shownAt = nowMs()))
-                        }
-                        logDetection { sid ->
-                            DetectionEvent.Decision(
-                                sid, nowMs(), outcome = "CONFIRM_DEGRADED_PROMPT", pathLabel = pathLabel,
-                                // [DET-PROMPT-STATES-ITS-REASON-001] The SIXTH producer, and the only
-                                // one outside the evaluator: it degrades on a rejected save, not on a
-                                // doubted proof, and it read identically in the trace until now.
-                                location = location, reason = PromptReason.IMPLAUSIBLE_REPARK.key,
-                            )
-                        }
-                        sessionShouldEnd = false
-                        return@onFailure
-                    }
-                    if (e is PaparcarError.Auth.NotAuthenticated) {
-                        // Transient session loss — not a real crash. Will self-heal on next launch.
-                        PaparcarLogger.w(TAG, "confirmParking ($pathLabel path) — session temporarily unavailable")
-                    } else {
-                        PaparcarLogger.e(TAG, "Failed to confirm parking ($pathLabel path)", e)
-                    }
-                    notificationPort.showConfirmationFailed()
-                    // Save failed → no parkingId to revert. Just clean up the prompt.
-                    notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
-                    // [DET-LOG-03] Record the failed confirm in the session trace.
-                    sessionOutcome = SessionOutcome.ConfirmFailed(pathLabel)
-                    logDetection { sid ->
-                        DetectionEvent.Decision(sid, nowMs(), outcome = "CONFIRM_FAILED", pathLabel = pathLabel, location = location)
-                    }
-                }
-            PaparcarLogger.d(DIAG, "    ← confirmParking(reliability=$reliability, path=$pathLabel) END")
-        }
-        return sessionShouldEnd
-    }
 
 
-    /**
-     * [DET-SOLID-001] All confirm conditions hold but the evidence is too weak for a silent
-     * save (ENTER-only arm, session never saw driving — falsifiable by bus/taxi). Ask the user
-     * via the existing prompt machinery: phase → [ConfirmationPhase.Notified] (promptShownAt
-     * feeds the response-timeout), a "Sí" flows through the user-confirm precedence (reliability
-     * 1.0, every guard bypassed), and silence aborts at `confirmationResponseTimeoutMs`.
-     */
-    private suspend fun degradeToPrompt(
-        pathLabel: String,
-        // [DET-PROMPT-STATES-ITS-REASON-001] WHICH of the six causes degraded this confirm. Not
-        // defaulted: every caller knows its own reason, and a default would quietly resurrect the
-        // anonymous prompt this ticket exists to remove.
-        reason: PromptReason,
-        location: GpsPoint,
-        now: Long,
-    ) {
-        PaparcarLogger.d(DIAG, "  ？ confirm degraded to user prompt ($pathLabel, reason=${reason.key}) [DET-SOLID-001][DET-PROMPT-STATES-ITS-REASON-001]")
-        val alreadyPrompted = _detectionState.value.confirmation.phase.promptShownAt != null
-        if (!alreadyPrompted) {
-            val vehicleName = runCatching {
-                vehicleRepository.observeActiveVehicle().first()
-                    ?.let { it.displayName(fallback = "").takeIf { n -> n.isNotBlank() } }
-            }.getOrNull()
-            notificationPort.showParkingConfirmation(WEAK_EVIDENCE_PROMPT_SCORE, vehicleName)
-            // [DET-AR-FIRST-001 F4] The posting itself must be visible in parkdiag: this path
-            // bypasses NotifyParkingConfirmation, and the 2026-07-10 19:19 session read as
-            // "prompt never shown" in forensics when it HAD been posted right here.
-            PaparcarLogger.d(DIAG, "  ▶ weak-evidence prompt notification POSTED (score=$WEAK_EVIDENCE_PROMPT_SCORE, vehicle=$vehicleName) [DET-AR-FIRST-001]")
-            _detectionState.update { it.copy(confirmation = it.confirmation.notified(shownAt = now)) }
-            logDetection { sid ->
-                DetectionEvent.Decision(
-                    sid, now, outcome = "CONFIRM_DEGRADED_PROMPT", pathLabel = pathLabel,
-                    location = location, reason = reason.key,
-                )
-            }
-        }
-    }
+
 
     /**
      * [DET-HUMAN-POWERED-EARLY-CLOSE-001] The ONE place that assembles the pure decision's inputs.
@@ -1478,31 +1247,6 @@ class CoordinatorParkingDetector(
         } ?: false,
     )
 
-    /**
-     * [DET-HUMAN-POWERED-EARLY-CLOSE-001] Terminal side effect of [ParkingDecision.CloseHumanPowered]:
-     * the same offer the unattended timeout used to make 15 minutes later, made the moment the
-     * verdict exists. Reuses [UnattendedSaveReason.HUMAN_POWERED] on purpose — one vocabulary in the
-     * trace (`aborted_unattended_human_powered`, `UNATTENDED_HUMAN_POWERED_NUDGE`), so a field
-     * comparison against every previous bicycle session still lines up.
-     *
-     * The nudge itself is a symptom of a bug this ticket does NOT fix: the departure was already
-     * committed (spot published, session released, geofence removed) before anything proved a
-     * drive, so the user's car is un-pinned and asking is the only way back. Once
-     * DET-HANDOFF-NOT-MANUAL-001 §B stops committing without proof, a human-powered ride should end
-     * SILENTLY — the old pin was never wrong.
-     */
-    private suspend fun closeHumanPoweredRide(
-        location: GpsPoint,
-        vehicleId: String?,
-        now: Long,
-    ) {
-        PaparcarLogger.d(
-            DIAG,
-            "  ⊘ human-powered ride at a matured stop — closing NOW instead of idling to the " +
-                "response timeout [DET-HUMAN-POWERED-EARLY-CLOSE-001]",
-        )
-        nudgeUnattended(UnattendedSaveReason.HUMAN_POWERED, vehicleId, location, now)
-    }
 
     /** [ANCHOR-LOCK-001] Whether the park anchor is LOCKED: pedestrian steps were counted while
      *  stopped, so the user provably exited the car — later Doppler speed on the phone belongs
@@ -2318,26 +2062,33 @@ class CoordinatorParkingDetector(
     /** What running a stage settled: whether this fix's pass is over, and whether the session is. */
     private data class StagePass(val endsPass: Boolean, val endsSession: Boolean)
 
-    /** The inline effect executor, until P3.11 gives it its own file. */
-    private suspend fun runStageEffects(effects: List<DetectionEffect>, now: Long): StagePass {
+    /**
+     * Turn what a stage ASKED for into what actually happens: the executor performs it, and whatever
+     * it reports back lands via [applyEffect]. This is the dispatcher, not the I/O.
+     */
+    private suspend fun runStageEffects(asked: List<DetectionEffect>, now: Long): StagePass {
         var sessionCompleted = false
         var passEnded = false
-        effects.forEach { effect ->
+        asked.forEach { effect ->
             when (effect) {
                 is DetectionEffect.Confirm -> sessionCompleted = when (val shape = effect.shape) {
                     // [DET-USER-YES-IS-NOT-A-COORDINATE-001] A bounded zone never waits out a hold:
                     // it exists because the position is already known to be doubtful, and a grace
                     // window would only let the doubt grow.
-                    is SavedParkingShape.BoundedZone -> runConfirm(
-                        location = shape.center,
-                        reliability = config.reliabilityUserConfirmed,
-                        vehicleId = effect.vehicleId,
-                        pathLabel = effect.pathLabel,
-                        zoneRadiusMeters = shape.radiusMeters,
+                    is SavedParkingShape.BoundedZone -> applyEffect(
+                        effects.confirm(
+                            state = _detectionState.value,
+                            location = shape.center,
+                            reliability = config.reliabilityUserConfirmed,
+                            vehicleId = effect.vehicleId,
+                            pathLabel = effect.pathLabel,
+                            zoneRadiusMeters = shape.radiusMeters,
+                        ),
                     )
-                    is SavedParkingShape.ExactPin ->
+                    is SavedParkingShape.ExactPin -> applyEffect(
                         if (effect.mayHold) {
-                            beginConfirm(
+                            effects.beginConfirm(
+                                state = _detectionState.value,
                                 location = shape.location,
                                 reliability = shape.reliability,
                                 vehicleId = effect.vehicleId,
@@ -2345,13 +2096,15 @@ class CoordinatorParkingDetector(
                                 now = now,
                             )
                         } else {
-                            runConfirm(
+                            effects.confirm(
+                                state = _detectionState.value,
                                 location = shape.location,
                                 reliability = shape.reliability,
                                 vehicleId = effect.vehicleId,
                                 pathLabel = effect.pathLabel,
                             )
-                        }
+                        },
+                    )
                     // The two silent shapes never reach an executor: a stage that decides to say
                     // nothing returns no Confirm effect at all.
                     SavedParkingShape.AskUser, SavedParkingShape.KeepSilent ->
@@ -2359,53 +2112,61 @@ class CoordinatorParkingDetector(
                 }
                 is DetectionEffect.SaveZone -> {
                     val reason = UnattendedSaveReason.entries.first { it.key == effect.reasonKey }
-                    val savedZone = saveUnattendedZone(
+                    val (zoneOutcome, savedZone) = effects.saveZone(
+                        state = _detectionState.value,
                         reason = reason,
                         center = effect.center,
                         doubtMeters = effect.doubtMeters,
                         vehicleId = effect.vehicleId,
                         location = effect.at,
                         now = now,
+                        radiusMeters = approximateZoneRadius(effect.center, effect.doubtMeters),
                     )
+                    applyEffect(zoneOutcome)
                     // The zone save degraded to yet another prompt or failed outright. Fall back to
                     // the ask its own reason names, so the user still gets the offer, not silence.
-                    if (!savedZone) nudgeUnattended(reason, effect.vehicleId, effect.at, now)
+                    if (!savedZone) applyEffect(effects.nudge(reason, effect.vehicleId, effect.at, now))
                     sessionCompleted = true
                 }
                 is DetectionEffect.SaveUnattended -> {
                     val pin = effect.shape as SavedParkingShape.ExactPin
-                    notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
-                    val saved = runConfirm(
-                        location = pin.location,
-                        reliability = pin.reliability,
-                        vehicleId = effect.vehicleId,
-                        pathLabel = "unattended_timeout",
+                    effects.dismissPrompt()
+                    val saved = applyEffect(
+                        effects.confirm(
+                            state = _detectionState.value,
+                            location = pin.location,
+                            reliability = pin.reliability,
+                            vehicleId = effect.vehicleId,
+                            pathLabel = "unattended_timeout",
+                        ),
                     )
                     if (!saved) {
                         // A guard degraded the save to yet another prompt — but the user already
                         // ignored one for the full window, so ending here is the only non-looping
                         // exit. Dismiss the re-posted prompt so nothing dangles. [BUG-STUCK-SESSION]
-                        notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
+                        effects.dismissPrompt()
                         sessionOutcome = SessionOutcome.AbortedResponseTimeout
                     }
                     sessionCompleted = true
                 }
                 is DetectionEffect.AskUser -> {
-                    nudgeUnattended(
-                        reason = UnattendedSaveReason.entries.first { it.key == effect.reasonKey },
-                        vehicleId = effect.vehicleId,
-                        location = effect.at,
-                        now = now,
-                        distanceMeters = effect.distanceMeters,
+                    applyEffect(
+                        effects.nudge(
+                            reason = UnattendedSaveReason.entries.first { it.key == effect.reasonKey },
+                            vehicleId = effect.vehicleId,
+                            location = effect.at,
+                            now = now,
+                            distanceMeters = effect.distanceMeters,
+                        ),
                     )
                     sessionCompleted = true
                 }
                 is DetectionEffect.DiscardHold -> {
                     _detectionState.update { it.copy(confirmation = it.confirmation.discardingHold()) }
-                    logHold(effect.action, effect.heldMs, effect.pathLabel, effect.at)
+                    effects.logHold(effect.action, effect.heldMs, effect.pathLabel, effect.at)
                 }
                 is DetectionEffect.RecordHoldSettled ->
-                    logHold(HoldAction.SETTLED, effect.heldMs, effect.pathLabel, effect.at)
+                    effects.logHold(HoldAction.SETTLED, effect.heldMs, effect.pathLabel, effect.at)
                 is DetectionEffect.DiscardCandidate -> {
                     // Applied to the LIVE state, not to the stage's snapshot: the freshness line is
                     // stamped at wherever the count stands NOW.
@@ -2422,12 +2183,24 @@ class CoordinatorParkingDetector(
                     }
                 }
                 is DetectionEffect.CloseHumanPowered -> {
-                    closeHumanPoweredRide(effect.at, effect.vehicleId, now)
+                    applyEffect(effects.closeHumanPowered(effect.vehicleId, effect.at, now))
                     sessionCompleted = true
                 }
-                is DetectionEffect.DegradeToPrompt ->
-                    degradeToPrompt(effect.pathLabel, PromptReason.entries.first { it.key == effect.reasonKey }, effect.at, now)
-                is DetectionEffect.NotifyPrompt -> notifyParkingConfirmation(effect.confidence)
+                is DetectionEffect.DegradeToPrompt -> {
+                    val posted = effects.degradeToPrompt(
+                        alreadyPrompted = _detectionState.value.confirmation.promptShownAt != null,
+                        pathLabel = effect.pathLabel,
+                        reason = PromptReason.entries.first { it.key == effect.reasonKey },
+                        location = effect.at,
+                        now = now,
+                    )
+                    // The prompt window moves only when a prompt was actually POSTED: re-posting
+                    // over one the user is already inside would restart their response timeout.
+                    if (posted) {
+                        _detectionState.update { it.copy(confirmation = it.confirmation.notified(shownAt = now)) }
+                    }
+                }
+                is DetectionEffect.NotifyPrompt -> effects.notifyPrompt(effect.confidence)
                 is DetectionEffect.RecordPromptShown -> logDetection { sid ->
                     DetectionEvent.Decision(
                         sid, now, outcome = "PROMPT_SHOWN", pathLabel = effect.pathLabel,

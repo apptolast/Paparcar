@@ -29,7 +29,7 @@ class HoldLaneGuardrailTest {
     @Test
     fun `every hold action is actually emitted somewhere in the hold lane`() {
         val text = scope.files
-            .filter { it.name == COORDINATOR || it.name == HOLD_STAGE }
+            .filter { it.name in LANE }
             .joinToString("\n") { it.text }
         val unemitted = HoldAction.entries
             .filter { !text.contains("HoldAction.${it.name}") }
@@ -37,7 +37,7 @@ class HoldLaneGuardrailTest {
         assertTrue(
             unemitted.isEmpty(),
             "[dead hold action — an exit nobody emits is a branch no test can discriminate] " +
-                "${unemitted.size} of ${HoldAction.entries.size} never emitted in $COORDINATOR.kt / $HOLD_STAGE.kt:\n" +
+                "${unemitted.size} of ${HoldAction.entries.size} never emitted in ${LANE.joinToString()}:\n" +
                 unemitted.joinToString("\n") { "  - HoldAction.$it" },
         )
     }
@@ -49,8 +49,9 @@ class HoldLaneGuardrailTest {
             .filter { CONSTRUCTION_REGEX.containsMatchIn(it.text) }
             .map { it.name }
         assertTrue(
-            builders.size == 1 && builders.single() == COORDINATOR,
-            "[the lane must have ONE door — see logHold] DetectionEvent.Hold is built in " +
+            builders.size == 1 && builders.single() == EXECUTOR,
+            "[the lane must have ONE door — see DetectionEffectExecutor.logHold] " +
+                "DetectionEvent.Hold is built in " +
                 "${builders.size} file(s): ${builders.joinToString()}",
         )
     }
@@ -58,8 +59,17 @@ class HoldLaneGuardrailTest {
     private companion object {
         const val COORDINATOR = "CoordinatorParkingDetector"
 
-        /** Where the branches live since P3.10; the orchestrator still owns the single door. */
+        /** Where the branches live since P3.10. */
         const val HOLD_STAGE = "HoldResolutionStage"
+
+        /** The single DOOR since P3.11: the only place in the core that performs I/O. */
+        const val EXECUTOR = "DetectionEffectExecutor"
+
+        /**
+         * The whole lane. Actions are NAMED by the stage and by the orchestrator's own lifecycle
+         * exits, and EMITTED by the executor — three files, one property: no dead exit.
+         */
+        val LANE = setOf(COORDINATOR, HOLD_STAGE, EXECUTOR)
 
         /** A CONSTRUCTION of the event, not the `is DetectionEvent.Hold ->` branch of the DTO
          *  mapper nor an import. */

@@ -2472,7 +2472,7 @@ assert edited. **1629 tests.** Nine of ten stages moved.
 
 ### DET-STAGE-HOLD-RESOLUTION-001 — the first of the precedence, and two branches that do not end the pass
 
-**Commit:** pending · **Ticket:** `docs/backlog/det-stage-hold-resolution-001.md` · plan step P3.10.
+**Commit:** `6028ec78` · **Ticket:** `docs/backlog/det-stage-hold-resolution-001.md` · plan step P3.10.
 **Closes the ten stage moves.**
 
 [DET-C-02] A held confirm owns the fix that would otherwise re-decide it. Nothing outranks it, and
@@ -2517,6 +2517,52 @@ together and once did not — that mute sibling is why the ticket exists.
 Six precedence tests, 18 replays and 1629 tests green throughout, **without one assert edited in any
 of the ten**. What remains of Phase 3 is P3.11 (the effect executor gets its own file), P3.12 (the
 diagnostics tap) and P3.13 (the orchestrator, and deleting what is left).
+
+---
+
+### DET-EFFECT-EXECUTOR-001 — not a move: the executor had to stop reaching into the session
+
+**Commit:** pending · **Ticket:** `docs/backlog/det-effect-executor-001.md` · plan step P3.11.
+
+The plan describes this as moving the I/O to its own file. **It cannot be a move.** `runConfirm` read
+four fields off the live state — the drive proof, the arm evidence, the last fix, the band clock —
+and wrote two more: the session outcome and the confirmation phase. A class that performs I/O AND
+mutates the session is not an executor, it is a second coordinator.
+
+So every method takes the state it needs as a VALUE and returns an `EffectOutcome` the owner applies.
+That also closes a coupling nobody could see: `saveUnattendedZone` decided whether the zone had been
+KEPT by reading the outcome field the nested `runConfirm` had just written — two functions talking
+through a mutable field, with nothing at either end saying so. The nested call now returns its
+outcome and the caller reads it from a value.
+
+**The acceptance criterion, enforced.** `StagePurityGuardrailTest` fails if any file under `stages/`
+imports a repository or the notification port. It comes with its other half — that the executor still
+DOES talk to a repository — because a ban alone is one refactor away from being satisfied by an empty
+package. Verified discriminating: adding a repository import to a stage turns it red.
+
+The rule is not tidiness. A decision has to be assertable WITHOUT being performed, and `runConfirm`
+both decided and saved — which is exactly why the branch order went untested for so long and why
+`DET-CONFIRM-BRANCH-ORDER-MUST-BE-TESTABLE-001` could not write the tests it set out to write.
+
+**Both hold guardrails fired again, and both were right.** The lane's single DOOR is now the
+executor, which is the point of the step: `DetectionEvent.Hold` is built in exactly one place and
+that place is the only I/O site in the core. The check follows it.
+
+**Two clocks, kept apart deliberately.** The diagnostics timestamps use the injected clock; the
+saved-confirm card's timestamp uses the WALL clock, because it is compared against a FUTURE session's
+start to age a notification, and a test clock that resets per session would make a stale card look
+fresh. `savedConfirmPostedAt` moves into the executor with that written down: it is NOTIFICATION
+state, not session state, which is why it never belonged in the session's own state and why it now
+survives on purpose rather than by accident [REFACTOR-300-FIX].
+
+**Zero behaviour change.** Coordinator **2567 → 2340 lines**; the executor is 414. Six precedence
+tests, 18 replays and both hold guardrails green, no assert edited. **1631 tests.**
+
+⚠️ Worth recording: the first draft of the executor was written from memory and contained **three
+behavioural errors** — a prompt score of 0.65 instead of 0.6, `logHold` passing a name instead of the
+enum, and `degradeToPrompt` emitting the wrong event and the wrong phase transition. All three were
+caught by re-reading the source before wiring, and two of them are diagnostics strings the suite
+would not have caught. Transcribing I/O from memory is not a safe operation.
 
 ---
 
