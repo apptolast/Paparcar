@@ -4237,3 +4237,73 @@ is **DET-LONE-SAMPLE-IS-NOT-A-DRIVE-001** (already tracked). This ticket closes 
 question, not the threshold; with both, that session would never have opened.
 
 Spec: `docs/backlog/det-assertion-outranks-inference-001.md`.
+
+### DET-DEPARTURE-IS-NOT-ARRIVAL-001 — the budget that proves the ride cannot also bound the pin (pending)
+
+**User report.** Field 2026-08-24, **Xiaomi 23117RA68G** (uid `12ck5…`, Range Rover profile, same
+physical Ford Focus as always): *"un falso positivo […] es el semáforo de hospital, que pensaba que
+ese FP lo teníamos más que mirado, pero parece que en este dispositivo nuevo funciona distinto"*.
+Pin `850807ff…` at `36.5983975,-6.2369172` (Calle Valdés 42), `safety_net_backfill`, reliability
+0.5 — **450 m short of where the car actually stopped** (Plaza de Elías Ahuja, the hospital), placed
+while the car was rolling, stopped at a red light. That uid has no `diagnostics_config` document, so
+nothing reached Firestore: recovered from the device's own `files/parkdiag.log`.
+
+**Root cause — one number answering two opposite questions.**
+
+```
+19:26:58  FenceEnter: ✓ re-entered own fence (f5e5c6e5) — steps@anchor=43658, d=59m
+19:29:13  ARReceiver: → IN_VEHICLE ENTER (trueTime=1787592552913, lag=245ms)
+19:29:16  Service:    ⊘ AR ENTER not armable (TickOnly) — evaluator's call
+19:29:16  StepCounter: cumulative → 43755                    ← 97 steps since the anchor
+          ·········· 5 min, 2 976 m, all of it driving ··········
+19:34:16  ExactNet:   ⏰ exact heartbeat fired (doze stretch: 7 ms)
+19:34:20  OneFix:     36.5983975,-6.2369172  speed=0.0 m/s  acc=17.357 m
+19:34:20  StepCounter: cumulative → 43755                    ← THE SAME NUMBER. Zero steps.
+19:34:20  SafetyNet:  ▶ far with vehicle evidence — dispatching departure (preconfirmed=true steps=97 d=2976m)
+19:34:20  SafetyNet:    → chaining parking backfill at wake-up fix (steps=97 acc=17.357)
+19:34:20  Backfill:   ✓ backfilled parking at 36.5983975,-6.2369172 (reliability=0.5)
+```
+
+`trustedStepsSinceAnchor = 97` was used to **release** (`!walkExplainsDisplacement(97, 2976 m)` ⇒
+the body rode — correct) *and* to **bound** (`97 ≤ backfillMaxSteps` ⇒ the body stands within
+97 × 0,75 m of a just-parked car — impossible, since the same line just established those steps were
+spent riding). The two readings cannot both be honest: every branch that reconstructs a departure is
+reached precisely BECAUSE the anchor budget fell short, i.e. because it is spent. Here the 97 steps
+were the walk *to* the car (anchor 19:26:58 → boarding 19:29:13); across the whole displacement the
+counter never moved. Zero steps over 2 976 m is the signature of riding.
+
+**Why it surfaced only now.** The Xiaomi's exact heartbeat is alive (217 firings that day, doze
+stretch 6–9 ms). On the Oppo it has been dead since DET-HEARTBEAT-MISS-IS-EVIDENCE-001, and the
+Redmi shows the same. The 15-min net had **never actually run mid-drive** on either field phone, so
+this branch was untested in the field rather than fixed. The traffic-light FP we did close
+(DET-STEP-SPEED-GATE-001, Avenida de los Mástiles, 2026-07-12) lives only in
+`EvaluateParkingDecisionUseCase` (`isRolling` vetoes every auto-confirm path); the safety-net lane
+never received it. Closing the lane where a bug bit is not closing the invariant.
+
+**Fix.** `backfillBounded` now requires an ARRIVAL budget that is a *different number* from the one
+that proved the departure: `stepsSinceLastWitness`, the walk made since the last independent
+observation of the body. It must be present and non-zero (the user got out and took at least one
+step) and within `backfillMaxSteps`. The witness slot
+(`KEY_LAST_WITNESSED_POS/ACC/AT`, [DET-UNWITNESSED-DISPLACEMENT-001]) gains a fourth field,
+`KEY_LAST_WITNESSED_STEPS`, stamped as ONE seal by both writers — the safety-net tick and
+`CoordinatorDetectionService.stampLastWitnessedFix()`; an unreadable counter drops the slot instead
+of leaving a stale count that would invent a walk. The same witness that bounds WHERE the body was
+now also bounds HOW FAR it has walked since.
+
+Absent the arrival budget, nothing is placed. The departure still dispatches (the old spot is freed,
+which was always correct) and [DET-ARRIVAL-HANDOFF-001]'s existing `else` branch routes the arrival
+to live detection or, if the FGS start is denied, to the still-parked prompt. The refusal is stamped
+into the trace as `BACKFILL_ARRIVAL_UNWITNESSED` on the `safety_net_backfill` path, so "the net
+refused to guess" is distinguishable from "the net never ran".
+
+**What was deliberately NOT done.** An `isRolling`-style veto on `fix.speed` inside the worker — the
+obvious-looking patch that does not cover this case: the red-light fix read **0,0 m/s**. Instantaneous
+speed cannot separate a traffic stop from a park; steps taken afterwards can.
+
+**Accompanying-fix risk.** `EvaluateHonestCloseUseCase.artifactFor` conflates the same two
+quantities — it derives the approximate ZONE's radius from `stepsSinceStalePin × stride`, the very
+budget that proved the ride. It is mitigated (it draws an area rather than a dot, and it runs on a
+live session that has just observed the phone) and on 2026-08-24 the Oppo's zone landed on the real
+spot — by timing, not by construction. Audited in the ticket, not changed here.
+
+Spec: `docs/backlog/det-departure-is-not-arrival-001.md`.

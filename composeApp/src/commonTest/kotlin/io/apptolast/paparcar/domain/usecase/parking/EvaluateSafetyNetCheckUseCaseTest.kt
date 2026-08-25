@@ -58,14 +58,24 @@ class EvaluateSafetyNetCheckUseCaseTest {
         fix: GpsPoint,
         lastSeenNearCarAtMs: Long? = null,
         stepsSinceAnchor: Long? = null,
+        stepsSinceLastWitness: Long? = null,
         lastVehicleEnteredAtMs: Long? = null,
         exitDeliveredAtMs: Long? = null,
         userPresent: Boolean = false,
         vehicleBtGated: Boolean = false,
         lastBtConnectedAtMs: Long? = null,
     ) = useCase(
-        session, fix, lastSeenNearCarAtMs, nowMs, stepsSinceAnchor, lastVehicleEnteredAtMs,
-        exitDeliveredAtMs, userPresent, vehicleBtGated, lastBtConnectedAtMs,
+        session = session,
+        fix = fix,
+        lastSeenNearCarAtMs = lastSeenNearCarAtMs,
+        nowMs = nowMs,
+        stepsSinceAnchor = stepsSinceAnchor,
+        stepsSinceLastWitness = stepsSinceLastWitness,
+        lastVehicleEnteredAtMs = lastVehicleEnteredAtMs,
+        exitDeliveredAtMs = exitDeliveredAtMs,
+        userPresent = userPresent,
+        vehicleBtGated = vehicleBtGated,
+        lastBtConnectedAtMs = lastBtConnectedAtMs,
     )
 
     @Test
@@ -511,15 +521,69 @@ class EvaluateSafetyNetCheckUseCaseTest {
 
     @Test
     fun should_boundBackfill_when_trustedStepsWithinCapAndPinGradeFix() {
-        // 10 trusted steps since the seal + a 10 m fix: the pin error is bounded to metres —
-        // the backfill may plant the new parking at the wake-up fix. [DET-RECONCILE-001]
+        // The canonical case the backfill exists for (field 2026-07-06, Oppo): the process slept
+        // through the whole trip, the user parked and took ~10 steps. 10 trusted steps since the
+        // seal + a 10 m fix bound the pin error to metres — AND those same 10 steps were walked
+        // since the last independent observation, which is what says the ride is OVER.
+        // [DET-RECONCILE-001][DET-DEPARTURE-IS-NOT-ARRIVAL-001]
         val action = evaluate(
             fix = fixAtMeters(986.0, speedMps = 0f),
             lastSeenNearCarAtMs = nowMs - 13 * 60_000L,
             stepsSinceAnchor = 10L,
+            stepsSinceLastWitness = 10L,
         )
         val dispatch = assertIs<SafetyNetAction.DispatchDeparture>(action)
         assertEquals(true, dispatch.backfillBounded)
+    }
+
+    // ── [DET-DEPARTURE-IS-NOT-ARRIVAL-001] The arrival half of the budget ─────────
+
+    @Test
+    fun should_releaseButNotBoundBackfill_when_noStepWasWalkedSinceTheLastWitness() {
+        // Field 2026-08-24 19:34, Xiaomi 23117RA68G, Cádiz → hospital de El Puerto. The 97 steps
+        // were the walk TO the car (anchor 19:26:58 → AR boarding 19:29:13); across the 2 976 m
+        // that followed, the cumulative counter never moved off 43755. The ride verdict is right
+        // and the spot must be freed — but a budget spent proving the ride cannot also bound a pin
+        // at the far end, and the wake-up fix was a red light (speed 0.0, acc 17.4 m), 450 m short
+        // of where the car actually stopped.
+        val action = evaluate(
+            fix = fixAtMeters(2_976.0, speedMps = 0f, accuracy = 17.36f),
+            lastSeenNearCarAtMs = nowMs - 5 * 60_000L,
+            stepsSinceAnchor = 97L,
+            stepsSinceLastWitness = 0L,
+            lastVehicleEnteredAtMs = nowMs - 5 * 60_000L,
+        )
+        val dispatch = assertIs<SafetyNetAction.DispatchDeparture>(action)
+        assertEquals(true, dispatch.preconfirmed, "the departure verdict itself is correct")
+        assertEquals(false, dispatch.backfillBounded, "no arrival walk ⇒ nothing may be placed")
+    }
+
+    @Test
+    fun should_notBoundBackfill_when_theArrivalBudgetIsUnknown() {
+        // No witness on record (fresh install), unreadable counter, or a reboot in between: no
+        // bound is on offer. The old spot is still freed; the arrival goes to the handoff.
+        val action = evaluate(
+            fix = fixAtMeters(986.0, speedMps = 0f),
+            lastSeenNearCarAtMs = nowMs - 13 * 60_000L,
+            stepsSinceAnchor = 10L,
+            stepsSinceLastWitness = null,
+        )
+        val dispatch = assertIs<SafetyNetAction.DispatchDeparture>(action)
+        assertEquals(false, dispatch.backfillBounded)
+    }
+
+    @Test
+    fun should_notBoundBackfill_when_theArrivalWalkExceedsTheBackfillCap() {
+        // The body has walked further than the cap since we last saw it: the fix no longer bounds
+        // anything about the car's position — same reason the anchor budget has its own cap.
+        val action = evaluate(
+            fix = fixAtMeters(986.0, speedMps = 0f),
+            lastSeenNearCarAtMs = nowMs - 13 * 60_000L,
+            stepsSinceAnchor = 10L,
+            stepsSinceLastWitness = config.backfillMaxSteps + 1,
+        )
+        val dispatch = assertIs<SafetyNetAction.DispatchDeparture>(action)
+        assertEquals(false, dispatch.backfillBounded)
     }
 
     @Test

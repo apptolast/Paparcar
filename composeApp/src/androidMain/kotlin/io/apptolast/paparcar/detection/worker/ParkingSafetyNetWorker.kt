@@ -201,10 +201,26 @@ class ParkingSafetyNetWorker(
         // [DET-UNWITNESSED-DISPLACEMENT-001] This fresh check fix is an independent witness of
         // where the body is; the honest close holds the next abort fix to spatio-temporal
         // coherence against it, so a teleporting GPS mirage can no longer "prove" a trip.
+        // [DET-DEPARTURE-IS-NOT-ARRIVAL-001] The ARRIVAL budget: how much the body has walked since
+        // that same witness was stamped. Read BEFORE the slot is overwritten below — this tick's
+        // own reading is the new zero point, not the measure. Negative = reboot → unknown.
+        val witnessSteps = prefs.getLong(KEY_LAST_WITNESSED_STEPS, -1L).takeIf { it >= 0L }
+        val stepsSinceLastWitness = if (cumulativeSteps != null && witnessSteps != null &&
+            cumulativeSteps >= witnessSteps
+        ) {
+            cumulativeSteps - witnessSteps
+        } else {
+            null
+        }
         prefs.edit {
             putString(KEY_LAST_WITNESSED_POS, "${fix.latitude},${fix.longitude}")
             putFloat(KEY_LAST_WITNESSED_ACC, fix.accuracy)
             putLong(KEY_LAST_WITNESSED_AT, now)
+            // The counter sample belongs to the SAME seal as the position: a fresh position paired
+            // with a stale step count would invent a walk that never happened. Unreadable counter →
+            // drop the slot so the next tick honestly reports "no arrival budget".
+            if (cumulativeSteps != null) putLong(KEY_LAST_WITNESSED_STEPS, cumulativeSteps)
+            else remove(KEY_LAST_WITNESSED_STEPS)
         }
         // Drop anchors of geofences that no longer have an active session (departed / reverted).
         pruneStaleAnchors(prefs, sessions.mapNotNullTo(mutableSetOf()) { it.geofenceId })
@@ -229,6 +245,9 @@ class ParkingSafetyNetWorker(
                 lastSeenNearCarAtMs = session.geofenceId?.let { readAnchor(prefs, it) },
                 nowMs = now,
                 stepsSinceAnchor = stepsSinceAnchor,
+                // [DET-DEPARTURE-IS-NOT-ARRIVAL-001] The arrival budget — the only one that may
+                // bound a NEW pin's position; the anchor budget above is already spent on the ride.
+                stepsSinceLastWitness = stepsSinceLastWitness,
                 // AR boarding stamp: the brain's ride proof for mute-counter devices.
                 // [DET-EXIT-TRUST-001]
                 lastVehicleEnteredAtMs = departureEventBus.lastVehicleEnteredAt,
@@ -400,7 +419,7 @@ class ParkingSafetyNetWorker(
                     // old session resolves (publish+clear) before the confirm replaces the
                     // vehicle's active session.
                     if (action.preconfirmed && action.backfillBounded) {
-                        PaparcarLogger.d(DIAG, "  → chaining parking backfill at wake-up fix (steps=${action.trustedStepsSinceAnchor} acc=${fix.accuracy})")
+                        PaparcarLogger.d(DIAG, "  → chaining parking backfill at wake-up fix (steps=${action.trustedStepsSinceAnchor} acc=${fix.accuracy}, arrivalWalk=${stepsSinceLastWitness ?: "?"} steps)")
                         departureChain.then(
                             ParkingBackfillWorker.buildRequest(
                                 fix = fix,
@@ -410,6 +429,28 @@ class ParkingSafetyNetWorker(
                         ).enqueue()
                     } else {
                         departureChain.enqueue()
+                        // [DET-DEPARTURE-IS-NOT-ARRIVAL-001] Say WHY nothing was placed. Without
+                        // this the trace cannot tell "the net refused to guess" from "the net never
+                        // ran" — the same reason [DET-BACKFILL-TAINT-001] logs its own deferral.
+                        if (action.preconfirmed) {
+                            PaparcarLogger.d(
+                                DIAG,
+                                "  ⊘ arrival NOT placed — the ride was proven with the anchor budget, " +
+                                    "so it cannot also bound the new pin (arrivalWalk=${stepsSinceLastWitness ?: "unknown"} steps, " +
+                                    "acc=${fix.accuracy}m) [DET-DEPARTURE-IS-NOT-ARRIVAL-001]"
+                            )
+                            runCatching {
+                                detectionEventLogger.log(
+                                    DetectionEvent.Decision(
+                                        sessionId = action.geofenceId,
+                                        timestampMs = now,
+                                        outcome = OUTCOME_ARRIVAL_UNWITNESSED,
+                                        pathLabel = PATH_SAFETY_NET_BACKFILL,
+                                        location = fix,
+                                    ),
+                                )
+                            }
+                        }
                     }
                     // [DET-ARRIVAL-HANDOFF-001] A dispatched departure must end in exactly one of:
                     // a backfilled session (position bounded, trip provably over) or LIVE
@@ -843,6 +884,23 @@ class ParkingSafetyNetWorker(
         internal const val KEY_LAST_WITNESSED_POS = "last_witnessed_pos"
         internal const val KEY_LAST_WITNESSED_ACC = "last_witnessed_acc"
         internal const val KEY_LAST_WITNESSED_AT = "last_witnessed_at"
+        /** [DET-DEPARTURE-IS-NOT-ARRIVAL-001] Cumulative step-counter sample belonging to that same
+         *  witness seal. Its delta against the next reading is the ARRIVAL budget — the walk the
+         *  body made SINCE we last saw it — and it is the only budget allowed to bound a backfilled
+         *  pin. The anchor budget cannot: every branch that reconstructs a departure has already
+         *  spent it proving the ride (field 2026-08-24 19:34, Xiaomi: the same 97 steps released
+         *  the spot AND "bounded" a pin 2 976 m away, at a red light). Removed rather than left
+         *  stale when the counter cannot be read. */
+        internal const val KEY_LAST_WITNESSED_STEPS = "last_witnessed_steps"
+
+        /** [DET-DEPARTURE-IS-NOT-ARRIVAL-001] Telemetry outcome when the departure was dispatched
+         *  but the arrival was deliberately NOT placed: the step budget that proved the ride cannot
+         *  also bound the new pin, and no independent arrival walk was measured. Distinguishes "the
+         *  net refused to guess" from "the net never ran". */
+        private const val OUTCOME_ARRIVAL_UNWITNESSED = "BACKFILL_ARRIVAL_UNWITNESSED"
+        /** Provenance path the refused placement WOULD have carried, so the two show up in the same
+         *  bucket as [ParkingBackfillWorker]'s own traces. */
+        private const val PATH_SAFETY_NET_BACKFILL = "safety_net_backfill"
         /** [DET-ANCHOR-FREEZE-001 F4] Last GMS re-registration per fence — the cure throttle's
          *  disk half (the in-process half is [curedFencesThisProcess]). */
         private const val CURE_KEY_PREFIX = "cure_registered_"

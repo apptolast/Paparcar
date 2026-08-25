@@ -48,7 +48,13 @@ sealed class SafetyNetAction {
          *  carries pin-grade accuracy — a 300 m fix mid-drive planted a phantom pin, field
          *  2026-07-08 21:43. Decided HERE, in the pure evaluator, not in the worker: this
          *  go/no-go is exactly the phantom-pin class of decision. `false` → arrival placement
-         *  stays the live coordinator's (or the user's) job. [DET-RECONCILE-001] */
+         *  stays the live coordinator's (or the user's) job. [DET-RECONCILE-001]
+         *
+         *  [DET-DEPARTURE-IS-NOT-ARRIVAL-001] It additionally requires an ARRIVAL witness — a
+         *  non-zero walk since the last independent observation of the body. The anchor budget
+         *  alone cannot serve: the branch that grants this action is reached only because those
+         *  steps could NOT walk the displacement, i.e. they were spent riding. Proof that the car
+         *  LEFT is never proof that it has ARRIVED. */
         val backfillBounded: Boolean = false,
     ) : SafetyNetAction()
 
@@ -116,6 +122,13 @@ class EvaluateSafetyNetCheckUseCase(
      *                            null when unknown (no hardware, read timeout, no counter sample
      *                            stored with the anchor, or a reboot reset the counter). The
      *                            caller must map a NEGATIVE delta to null. [DET-RECONCILE-001]
+     * @param stepsSinceLastWitness Cumulative-step-counter delta since the LAST INDEPENDENT
+     *                            observation of the body (previous safety-net check fix / the end
+     *                            fix of the last detection session), or null when unknown. This is
+     *                            the ARRIVAL budget and it is deliberately a different number from
+     *                            [stepsSinceAnchor], which every release branch has already spent
+     *                            proving the ride. Only this one may bound where the body stands
+     *                            relative to a NEW park. [DET-DEPARTURE-IS-NOT-ARRIVAL-001]
      * @param lastVehicleEnteredAtMs Epoch-ms of the last AR IN_VEHICLE ENTER (true transition
      *                            time from the bus), or null when none / unknown. Third proof
      *                            of a ride when the step counter is mute: a boarding stamped
@@ -143,6 +156,7 @@ class EvaluateSafetyNetCheckUseCase(
         lastSeenNearCarAtMs: Long?,
         nowMs: Long,
         stepsSinceAnchor: Long? = null,
+        stepsSinceLastWitness: Long? = null,
         lastVehicleEnteredAtMs: Long? = null,
         exitDeliveredAtMs: Long? = null,
         userPresent: Boolean = false,
@@ -226,12 +240,38 @@ class EvaluateSafetyNetCheckUseCase(
             !config.isBeyondPedestrianReach(distanceMeters, nearAgeMs, radiusMeters, fix.accuracy)
         val trustedStepsSinceAnchor = stepsSinceAnchor.takeUnless { counterFrozenSuspect }
 
+        // [DET-DEPARTURE-IS-NOT-ARRIVAL-001] The ARRIVAL half of the budget, and it must be a
+        // DIFFERENT number from the one that proved the departure.
+        //
+        // Every release branch below is reached precisely BECAUSE `trustedStepsSinceAnchor` fell
+        // far short of walking the displacement — that is what proves the body rode. Those steps
+        // are therefore spent ON the trip, and a spent budget cannot also bound how far the body
+        // has walked from a park at the far end: the same number would be answering two opposite
+        // questions. Field 2026-08-24 19:34, Xiaomi/El Puerto: 97 steps (all of them the walk TO
+        // the car, anchor 19:26:58 → AR boarding 19:29:13) released the spot correctly and then
+        // "bounded" a pin 2 976 m away — at a red light in front of the hospital, with the
+        // cumulative counter reading the identical 43755 it had read before the drive started.
+        // Zero steps over 2 976 m is the signature of RIDING; it is the exact opposite of having
+        // parked and got out.
+        //
+        // The independent budget is the walk made since the last INDEPENDENT observation of the
+        // body — the same witness slot [DET-UNWITNESSED-DISPLACEMENT-001] already keeps to bound
+        // WHERE the body was, now also bounding HOW FAR it has walked since. A placement needs it
+        // to be present and non-zero: the body must have got out and taken at least one step.
+        // Absent (mute/frozen counter, no witness, reboot) → no bound is on offer, so nothing is
+        // placed. The departure still dispatches, and [DET-ARRIVAL-HANDOFF-001] routes the arrival
+        // to live detection or to the prompt — the honest exits. Better a late question than a pin
+        // at a traffic light.
+        val arrivalWalkSteps = stepsSinceLastWitness
+            ?.takeIf { it > 0L && it <= config.backfillMaxSteps }
+
         // Backfill bounding (see [SafetyNetAction.DispatchDeparture.backfillBounded]): trusted
         // steps within the boarding cap bound the pin error, and the fix must be pin-grade.
         // Null trusted steps (mute/frozen counter) can never bound a position.
         val backfillBounded = trustedStepsSinceAnchor != null &&
             trustedStepsSinceAnchor <= config.backfillMaxSteps &&
-            fix.accuracy <= config.minGpsAccuracyForDriving
+            fix.accuracy <= config.minGpsAccuracyForDriving &&
+            arrivalWalkSteps != null
 
         val timeFreshAnchor = nearAgeMs != null && nearAgeMs in 0..config.vehicleEnterWindowMs
         // [DET-RECONCILE-001] The anchor's real freshness clock is STEPS, not minutes. What the

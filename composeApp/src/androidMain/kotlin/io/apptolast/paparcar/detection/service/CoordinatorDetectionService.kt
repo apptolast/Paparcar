@@ -55,6 +55,7 @@ import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.sensor.DetectionStepAnchors
+import io.apptolast.paparcar.domain.sensor.StepCounterSource
 import io.apptolast.paparcar.domain.service.DepartureEventBus
 import io.apptolast.paparcar.domain.service.GeofenceEvent
 import io.apptolast.paparcar.domain.service.GeofenceEventBus
@@ -120,6 +121,9 @@ class CoordinatorDetectionService : LifecycleService() {
     // away from + leave an approximate zone/pin + nudge, run at the abort from the live FGS.
     private val runHonestClose: RunHonestCloseUseCase by inject()
     private val detectionStepAnchors: DetectionStepAnchors by inject()
+    // [DET-DEPARTURE-IS-NOT-ARRIVAL-001] The witness seal carries a step sample too, so the safety
+    // net can measure the walk made SINCE we last saw the body — the arrival budget.
+    private val stepCounterSource: StepCounterSource by inject()
     // [DET-RESIDENT-FGS-001] Armed when the service degrades to SENTRY so a departure that Play
     // Services starves still wakes the (now live) process. Same singleton the safety-net worker syncs.
     private val significantMotionMonitor: SignificantMotionMonitor by inject()
@@ -1085,13 +1089,23 @@ class CoordinatorDetectionService : LifecycleService() {
      * for its own abort (its fixes and the abort fix are the same cluster). Same disk-backed slot
      * the safety-net check refreshes; an OEM kill between wakes cannot blind the coherence gate.
      */
-    private fun stampLastWitnessedFix() {
+    private suspend fun stampLastWitnessedFix() {
         val fix = parkingDetectionCoordinator.lastSessionFix ?: return
+        // [DET-DEPARTURE-IS-NOT-ARRIVAL-001] Position and step sample are ONE seal: the safety net
+        // reads their deltas together to bound where the body is AND how far it has walked since.
+        // A fresh position paired with a stale count would invent a walk, so an unreadable counter
+        // drops the slot instead of leaving the old value behind.
+        val cumulativeSteps = runCatching { stepCounterSource.currentCumulativeSteps() }.getOrNull()
         runCatching {
             getSharedPreferences(ParkingSafetyNetWorker.PREFS_NAME, MODE_PRIVATE).edit {
                 putString(ParkingSafetyNetWorker.KEY_LAST_WITNESSED_POS, "${fix.latitude},${fix.longitude}")
                 putFloat(ParkingSafetyNetWorker.KEY_LAST_WITNESSED_ACC, fix.accuracy)
                 putLong(ParkingSafetyNetWorker.KEY_LAST_WITNESSED_AT, System.currentTimeMillis())
+                if (cumulativeSteps != null) {
+                    putLong(ParkingSafetyNetWorker.KEY_LAST_WITNESSED_STEPS, cumulativeSteps)
+                } else {
+                    remove(ParkingSafetyNetWorker.KEY_LAST_WITNESSED_STEPS)
+                }
             }
         }.onFailure { e -> PaparcarLogger.w(DIAG, "  ⚠ witness stamp failed: ${e.message}") }
     }
