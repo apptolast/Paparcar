@@ -1889,7 +1889,7 @@ the preservation list turns 1 red — and in **both** cases the only test that n
 
 ### DET-STATE-CONFIRMATION-LIFECYCLE-001 — three ways to end a hold that looked like one
 
-**Commit:** pending · **Ticket:** `docs/backlog/det-state-confirmation-lifecycle-001.md` · plan step P2.2.
+**Commit:** `b17ad2ed` · **Ticket:** `docs/backlog/det-state-confirmation-lifecycle-001.md` · plan step P2.2.
 
 `phase`, `pendingConfirm` and `userConfirmedParking` describe one thing — the conversation with the
 user — and were flat neighbours of thirty unrelated fields. `domain/detection/state/
@@ -1918,6 +1918,44 @@ the instance now turns a test red.
 
 **Zero behaviour change**, **no test file touched**, coordinator −19 lines and one dead lambda gone.
 **1570 tests.**
+
+---
+
+### DET-STATE-EGRESS-EVIDENCE-001 — three reset rules that read like one
+
+**Commit:** pending · **Ticket:** `docs/backlog/det-state-egress-evidence-001.md` · plan step P2.3.
+
+Everything the FEET and the activity recogniser say — the step machine, its freshness line, the raw
+event odometer, the live-sensor latch, the pedal-cadence counters, the AR stamps — becomes
+`domain/detection/state/EgressEvidence.kt`. Eleven fields, and `vehicleExitConfirmed` takes the name
+the plan gave it: `vehicleExitHint`. It nominates; it never confirmed anything.
+
+**What it actually fixes.** The reset rules were three different conditions interleaved line by line
+inside one 40-field `copy`, where they read as one rule applied consistently:
+
+| Reset | Cleared by |
+|---|---|
+| step counter + freshness line + exit hint | measured driving |
+| raw step-event odometer | measured driving **or a reposition burst** |
+| stepless-departure run | the **anchor** going away |
+
+Collapsing them is a real regression — a reposition maneuver is a resolved CAR movement for the raw
+odometer but NOT for the counter, because the user shuffled the car rather than driving away, and
+the egress steps they already took still stand. Neutralizing it (making the burst clear the counter
+too) turns exactly one test red, the new one.
+
+**The boundary is now symmetric, on purpose.** The rule was *AnchorTrust owns the anchor; steps are
+PRESENTED to it, never copied in*. `DET-CADENCE-CANNOT-ACCUSE-AFTER-EGRESS-001` made the traffic run
+both ways: the cadence classifier must know whether the anchor is pinned, because feet next to a
+fast fix mean opposite things on either side of it. `onStepEvent` takes the anchor's state **as an
+argument**, exactly as the anchor takes the steps. What that forces is a DECLARED reduction order —
+which is what P2.6 is for.
+
+Verified discriminating: collapsing the reset rules → 🔴 1 test (only the new one). Dropping the
+anchor-pinned cadence veto → 🔴 3 tests, including the Góndola replay — that one was already well
+guarded, and saying so is the point of running the experiment.
+
+**Zero behaviour change**, **no test file touched**, coordinator −83 lines. **1588 tests.**
 
 ---
 
