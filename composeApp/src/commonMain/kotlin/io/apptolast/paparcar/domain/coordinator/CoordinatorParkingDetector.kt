@@ -2513,20 +2513,6 @@ class CoordinatorParkingDetector(
                             "(≥${config.minimumTripSpeedMps} m/s) can move it [DET-ANCHOR-FREEZE-001][DET-SHORT-TRIP-FREEZE-001]"
                     )
                 }
-                // [DET-ANCHOR-EGRESS-001] Egress birth, stopped flavour: the first counted step
-                // with an anchor set — record where that walk began (typically at the car door).
-                // Deliberately NOT gated on pinned: when pinning arrives late relative to the
-                // walk, "first fix after pinned" is already meters into it; the 0→steps
-                // transition is the earliest anchored witness of the walk start.
-                val birth = s.anchorTrust.egressBirth
-                val recordEgressBirth = birth == null && newBestStop != null && s.egress.stepCount > 0
-                // Within the birth window a better-accuracy fix may sharpen the recorded birth —
-                // ONLY while the step count proves the user is still standing at it (the bound
-                // that keeps a slow walk from dragging the birth along, BUG-REPARK-WALK replay).
-                val refineEgressBirth = !recordEgressBirth && birth != null &&
-                    (location.timestamp - birth.originFix.timestamp) <= config.egressBirthWindowMs &&
-                    s.egress.stepCount <= birth.stepCountAtBirth + config.egressBirthRefineMaxExtraSteps &&
-                    location.accuracy < birth.originFix.accuracy
                 s.copy(
                     // [DET-CREDIBLE-DRIVE-001][DET-CONFIRM-FRESHNESS-001]
                     // [DET-WALK-ENTERED-ANCHOR-ZONE-001][DET-GAP-ANCHOR-001] The anchor binds to its
@@ -2542,11 +2528,16 @@ class CoordinatorParkingDetector(
                         stepEventsSinceDriving = s.egress.stepEventsSinceDriving,
                         sensorAlive = s.egress.sensorAlive,
                     ).withEgressBirth(
-                        record = recordEgressBirth,
-                        refine = refineEgressBirth,
-                        cleared = false,
                         fix = location,
+                        anchorCleared = false,
                         stepCount = s.egress.stepCount,
+                        kinematicEgressFixes = s.anchorTrust.kinematicEgressFixes,
+                        // [DET-ANCHOR-EGRESS-001] STOPPED flavour: only a counted step opens a
+                        // birth here. The asymmetry with the moving flavour is bug #6 — preserved
+                        // and named, never fixed inside a move.
+                        acceptsKinematicWitness = false,
+                        birthWindowMs = config.egressBirthWindowMs,
+                        refineMaxExtraSteps = config.egressBirthRefineMaxExtraSteps,
                     ),
                     session = s.session.observed(location),
                 )
@@ -2695,16 +2686,6 @@ class CoordinatorParkingDetector(
                         it.anchorTrust.kinematicEgressFixes + 1
                     else -> it.anchorTrust.kinematicEgressFixes
                 }
-                // [DET-ANCHOR-EGRESS-001] Egress birth, moving flavour: the first pedestrian-band
-                // evidence (step already counted, or the kinematic walk starting) with an anchor
-                // set — where the egress walk was born.
-                val birth = it.anchorTrust.egressBirth
-                val recordEgressBirth = !shouldClearBestStop && birth == null &&
-                    it.anchorTrust.anchor != null && (it.egress.stepCount > 0 || newKinematicEgressFixes > 0)
-                val refineEgressBirth = !shouldClearBestStop && !recordEgressBirth && birth != null &&
-                    (location.timestamp - birth.originFix.timestamp) <= config.egressBirthWindowMs &&
-                    it.egress.stepCount <= birth.stepCountAtBirth + config.egressBirthRefineMaxExtraSteps &&
-                    location.accuracy < birth.originFix.accuracy
                 it.copy(
                     confirmation = nextConfirmation,
                     // The stop is over. The anchor survives unless the movement resolved as CAR;
@@ -2717,11 +2698,15 @@ class CoordinatorParkingDetector(
                         repositionStreak = newConsecutive,
                         kinematicEgressFixes = newKinematicEgressFixes,
                     ).withEgressBirth(
-                        record = recordEgressBirth,
-                        refine = refineEgressBirth,
-                        cleared = shouldClearBestStop,
                         fix = location,
+                        anchorCleared = shouldClearBestStop,
                         stepCount = it.egress.stepCount,
+                        kinematicEgressFixes = newKinematicEgressFixes,
+                        // [DET-ANCHOR-EGRESS-001] MOVING flavour: a kinematic walk fix opens a birth
+                        // too — the mute-counter user's only way to get one. Bug #6 lives here.
+                        acceptsKinematicWitness = true,
+                        birthWindowMs = config.egressBirthWindowMs,
+                        refineMaxExtraSteps = config.egressBirthRefineMaxExtraSteps,
                     ),
                     // The three reset rules that are NOT the same rule — see [EgressEvidence.onFix].
                     egress = it.egress.onFix(

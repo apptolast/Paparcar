@@ -164,31 +164,94 @@ class AnchorTrustTest {
 
     // ── The egress birth ──────────────────────────────────────────────────────
 
+    private fun AnchorTrust.birth(
+        fix: GpsPoint,
+        stepCount: Int,
+        kinematicEgressFixes: Int = 0,
+        acceptsKinematicWitness: Boolean = false,
+        anchorCleared: Boolean = false,
+    ) = withEgressBirth(
+        fix = fix,
+        anchorCleared = anchorCleared,
+        stepCount = stepCount,
+        kinematicEgressFixes = kinematicEgressFixes,
+        acceptsKinematicWitness = acceptsKinematicWitness,
+        birthWindowMs = 30_000L,
+        refineMaxExtraSteps = 2,
+    )
+
+    private val anchored = AnchorTrust().stoppedAt(firstStop, point())
+
     /** The birth is recorded once, with the steps already counted at that instant. */
     @Test
     fun should_record_the_egress_birth_with_the_steps_counted_at_that_instant() {
-        val born = AnchorTrust().withEgressBirth(
-            record = true, refine = false, cleared = false, fix = point(at = 5_000L), stepCount = 3,
-        )
+        val born = anchored.birth(point(at = 5_000L), stepCount = 3)
         assertEquals(3, born.egressBirth?.stepCountAtBirth)
         assertEquals(5_000L, born.egressBirth?.originFix?.timestamp)
+    }
+
+    /** No anchor, no birth: there is nothing for the walk to have started FROM. */
+    @Test
+    fun should_refuse_a_birth_with_no_anchor_to_be_born_at() {
+        assertNull(AnchorTrust().birth(point(at = 5_000L), stepCount = 3).egressBirth)
     }
 
     /** A refinement sharpens the position and **keeps the step count**: the birth did not move, the
      *  witness of it did. */
     @Test
     fun should_sharpen_the_birth_position_without_moving_its_step_count() {
-        val born = AnchorTrust().withEgressBirth(true, false, false, point(at = 5_000L, accuracy = 30f), 3)
-        val sharper = born.withEgressBirth(false, true, false, point(at = 6_000L, accuracy = 6f), 5)
+        val born = anchored.birth(point(at = 5_000L, accuracy = 30f), stepCount = 3)
+        val sharper = born.birth(point(at = 6_000L, accuracy = 6f), stepCount = 5)
         assertEquals(6f, sharper.egressBirth?.originFix?.accuracy)
         assertEquals(3, sharper.egressBirth?.stepCountAtBirth, "the birth's step count is the birth's")
+    }
+
+    /** …and a walk that has moved on may not drag the birth with it. [BUG-REPARK-WALK] */
+    @Test
+    fun should_refuse_to_sharpen_a_birth_the_user_has_already_walked_away_from() {
+        val born = anchored.birth(point(at = 5_000L, accuracy = 30f), stepCount = 3)
+        val later = born.birth(point(at = 6_000L, accuracy = 6f), stepCount = 30)
+        assertEquals(30f, later.egressBirth?.originFix?.accuracy, "the birth stays where it was born")
     }
 
     /** The birth dies with the anchor it was measured against. */
     @Test
     fun should_forget_the_birth_when_the_anchor_is_cleared() {
-        val born = AnchorTrust().withEgressBirth(true, false, false, point(), 3)
-        assertNull(born.withEgressBirth(false, false, cleared = true, fix = point(), stepCount = 9).egressBirth)
+        val born = anchored.birth(point(), stepCount = 3)
+        assertNull(born.birth(point(), stepCount = 9, anchorCleared = true).egressBirth)
+    }
+
+    // ── Bug #6: the asymmetry between the two flavours ───────────────────────
+
+    /**
+     * **The MOVING flavour accepts a kinematic witness**: a GPS-measured walk fix opens a birth even
+     * with a mute step counter, which is the only way that hardware ever gets one.
+     */
+    @Test
+    fun should_open_a_birth_from_a_kinematic_witness_on_a_moving_fix() {
+        val born = anchored.birth(
+            point(at = 5_000L), stepCount = 0, kinematicEgressFixes = 1, acceptsKinematicWitness = true,
+        )
+        assertEquals(0, born.egressBirth?.stepCountAtBirth)
+        assertEquals(5_000L, born.egressBirth?.originFix?.timestamp)
+    }
+
+    /**
+     * **…and the STOPPED flavour does not.** Same inputs, same anchor, opposite answer — because
+     * `acceptsKinematicWitness` is false there.
+     *
+     * ⚠️ This is **bug #6, preserved and named, not fixed**. Both readings are defensible: on a
+     * stopped fix a kinematic witness is either the mute-counter user finally getting a birth, or
+     * GPS noise inventing one at a red light — and the difference decides where a pin lands.
+     * Settling it needs a directed replay or field data. What this test does is make the asymmetry
+     * impossible to read as an accident, and impossible to erase without a failing assert.
+     */
+    @Test
+    fun should_refuse_a_kinematic_witness_on_a_stopped_fix() {
+        val notBorn = anchored.birth(
+            point(at = 5_000L), stepCount = 0, kinematicEgressFixes = 1, acceptsKinematicWitness = false,
+        )
+        assertNull(notBorn.egressBirth)
     }
 
     // ── The car's rest clock ──────────────────────────────────────────────────

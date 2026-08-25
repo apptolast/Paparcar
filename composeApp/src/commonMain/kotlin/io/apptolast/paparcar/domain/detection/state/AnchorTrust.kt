@@ -275,21 +275,65 @@ data class AnchorTrust(
     // ── The egress walk's birth ───────────────────────────────────────────────
 
     /**
-     * [DET-ANCHOR-EGRESS-001] Record or sharpen where the egress walk began.
+     * [DET-ANCHOR-EGRESS-001] Record or sharpen where the egress walk began — **one transition for
+     * both flavours**, where there used to be two near-identical blocks 180 lines apart.
      *
-     * @param record The first egress evidence with an anchor set: this fix IS the birth.
-     * @param refine A better-accuracy fix inside the birth window, while the step count proves the
-     *   user is still standing at it — the bound that keeps a slow walk from dragging the birth
-     *   along (BUG-REPARK-WALK replay).
-     * @param cleared The anchor went away, so the birth means nothing any more.
+     * The stopped flavour ran on a STOPPED fix and the moving one on a MOVING fix, and they were
+     * copies of each other except for one clause. Copies drift: a bound added to one of them is a
+     * bound the other keeps not having, and neither block's reader can tell whether a difference is
+     * a decision or a divergence. Here the difference is a NAMED PARAMETER, so it has to be passed
+     * on purpose.
+     *
+     * ## The asymmetry, preserved and named: [acceptsKinematicWitness]
+     *
+     * A birth needs a WITNESS that the egress walk started. On a moving fix either a counted step or
+     * a kinematic (GPS-measured) walk fix will do; on a stopped fix **only a counted step** does.
+     *
+     * That is bug #6, and it is **preserved, not fixed**. Both readings are defensible — a kinematic
+     * witness on a stopped fix is either the mute-counter user finally getting a birth, or GPS noise
+     * inventing one at a red light — and the difference decides where a pin lands. Settling it needs
+     * a directed replay or field data, not a refactor. What this step buys is that the asymmetry is
+     * now impossible to read as an accident.
+     *
+     * @param anchorCleared The anchor went away, so the birth means nothing any more.
+     * @param stepCount Presented by `EgressEvidence`.
+     * @param kinematicEgressFixes The GPS-measured egress walk so far.
+     * @param acceptsKinematicWitness Whether a kinematic fix alone may open a birth. `true` on a
+     *   moving fix, `false` on a stopped one — see above.
      */
-    fun withEgressBirth(record: Boolean, refine: Boolean, cleared: Boolean, fix: GpsPoint, stepCount: Int): AnchorTrust =
-        copy(
+    @Suppress("LongParameterList")
+    fun withEgressBirth(
+        fix: GpsPoint,
+        anchorCleared: Boolean,
+        stepCount: Int,
+        kinematicEgressFixes: Int,
+        acceptsKinematicWitness: Boolean,
+        birthWindowMs: Long,
+        refineMaxExtraSteps: Int,
+    ): AnchorTrust {
+        if (anchorCleared) return copy(egressBirth = null)
+        val current = egressBirth
+
+        // Deliberately NOT gated on the anchor being PINNED: when pinning arrives late relative to
+        // the walk, "first fix after pinned" is already metres into it, so the 0→witness transition
+        // is the earliest anchored witness of the walk start.
+        val witnessed = stepCount > 0 || (acceptsKinematicWitness && kinematicEgressFixes > 0)
+        val record = current == null && anchor != null && witnessed
+
+        // Within the birth window a better-accuracy fix may sharpen the recorded birth — ONLY while
+        // the step count proves the user is still standing at it. That bound is what keeps a slow
+        // walk from dragging the birth along (BUG-REPARK-WALK replay).
+        val refine = !record && current != null &&
+            (fix.timestamp - current.originFix.timestamp) <= birthWindowMs &&
+            stepCount <= current.stepCountAtBirth + refineMaxExtraSteps &&
+            fix.accuracy < current.originFix.accuracy
+
+        return copy(
             egressBirth = when {
-                cleared -> null
                 record -> EgressBirth(fix, stepCount)
-                refine -> egressBirth?.copy(originFix = fix)
-                else -> egressBirth
+                refine -> current?.copy(originFix = fix)
+                else -> current
             },
         )
+    }
 }

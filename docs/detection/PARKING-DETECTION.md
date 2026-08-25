@@ -2008,7 +2008,7 @@ down there.
 
 ### DET-STATE-ANCHOR-TRUST-001 — one rebind where the same condition was written five times
 
-**Commit:** pending · **Ticket:** `docs/backlog/det-state-anchor-trust-001.md` · plan step P2.5, the
+**Commit:** `7a46ef6a` · **Ticket:** `docs/backlog/det-state-anchor-trust-001.md` · plan step P2.5, the
 largest of Phase 2.
 
 Seventeen fields — the anchor, the stop it was captured at, its five sealed witnesses, the
@@ -2040,6 +2040,40 @@ question can be asked on its own with a replay behind it.
 decision to make.
 
 **Zero behaviour change**, **no test file touched**, coordinator **−133 lines**. **1614 tests.**
+
+---
+
+### DET-STATE-EGRESS-BIRTH-001 — one birth rule, and the asymmetry gets a name
+
+**Commit:** pending · **Ticket:** `docs/backlog/det-state-egress-birth-001.md` · plan step P2.5-bis.
+The first step of the whole refactor marked `C` — **may change behaviour** — so it is its own commit
+with a literal acceptance criterion.
+
+The egress birth was decided by two near-identical blocks 180 lines apart, one for a stopped fix and
+one for a moving one. Copies drift: a bound added to one is a bound the other keeps not having, and
+neither block's reader can tell whether a difference is a decision or a divergence. They become one
+`AnchorTrust.withEgressBirth`, and the single difference between them becomes a **named parameter**.
+
+**The difference is bug #6, and it is preserved, not fixed.** A birth needs a witness that the egress
+walk started. On a MOVING fix either a counted step or a kinematic (GPS-measured) walk fix will do;
+on a STOPPED fix only a counted step does — `acceptsKinematicWitness`. Both readings are defensible:
+on a stopped fix a kinematic witness is either the mute-counter user finally getting a birth, or GPS
+noise inventing one at a red light, and the difference decides where a pin lands.
+
+**Acceptance criterion, met literally.** `Trace_Enamorados001` (3 tests, one of them literally about
+the egress birth) and `Trace_CameliasOppo001` all green, and the replay suite is **identical to its
+pre-change baseline: 18 for 18, no name missing, no name added, zero failures**. Nothing observable
+changed, so the step did not have to stop.
+
+**What the experiment found, and it is the useful part.** Flipping `acceptsKinematicWitness` to true
+on the stopped flavour — i.e. actually *fixing* bug #6 — breaks **nothing**: not one test, not one of
+the 18 replays. The case is reachable in principle (a moving fix can leave `kinematicEgressFixes`
+non-zero before a stop opens) but **no recorded trace reaches it**. So the asymmetry cannot be
+adjudicated with today's material — the same conclusion the jam cohort reached in P1.11 — and it is
+not currently protecting anything measurable. That is now written down instead of guessed at, and
+the pair of tests makes the asymmetry impossible to erase silently.
+
+**1618 tests**, 0 failures.
 
 ---
 
