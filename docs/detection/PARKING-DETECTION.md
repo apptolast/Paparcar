@@ -2522,7 +2522,7 @@ diagnostics tap) and P3.13 (the orchestrator, and deleting what is left).
 
 ### DET-EFFECT-EXECUTOR-001 — not a move: the executor had to stop reaching into the session
 
-**Commit:** pending · **Ticket:** `docs/backlog/det-effect-executor-001.md` · plan step P3.11.
+**Commit:** `895d4a59` · **Ticket:** `docs/backlog/det-effect-executor-001.md` · plan step P3.11.
 
 The plan describes this as moving the I/O to its own file. **It cannot be a move.** `runConfirm` read
 four fields off the live state — the drive proof, the arm evidence, the last fix, the band clock —
@@ -2563,6 +2563,48 @@ behavioural errors** — a prompt score of 0.65 instead of 0.6, `logHold` passin
 enum, and `degradeToPrompt` emitting the wrong event and the wrong phase transition. All three were
 caught by re-reading the source before wiring, and two of them are diagnostics strings the suite
 would not have caught. Transcribing I/O from memory is not a safe operation.
+
+---
+
+### DET-DIAGNOSTICS-TAP-001 — a dedup that was never a dedup
+
+**Commit:** pending · **Ticket:** `docs/backlog/det-diagnostics-tap-001.md` · plan step P3.12.
+
+`DetectionDiagnosticsTap` becomes the single emitter: it holds the session id, drops what belongs to
+no session, and owns the one-per-session markers. The executor and the coordinator both go through
+it, so "did this branch speak?" has one place to look.
+
+**First, a correction to the plan's framing.** It says the 15 mute branches stop existing as
+branches. They cannot, and should not, in this step: those fifteen are in the SERVICE and the
+workers, numbers 2–6 were already covered by the trigger ledger (`fb817e19`), and the plan's own
+caveat is decisive — *the tap replicates the current remote surface exactly; widening it is P4.2*.
+The coordinator's own mute exits were made to speak one at a time across P3.1–P3.10, through the
+notes channel and the typed hold effects. So this step is the single door and the dedups, not new
+telemetry. **Zero observable change** is the acceptance criterion and it is met.
+
+**The finding: one of the two "log dedups" is not a dedup.** `loggedPedalCadence` is — nothing else
+reads it, it exists so the trace carries one line instead of one per fix, and it becomes a named
+`Latch` on the tap. `jamExtensionLogged` is **not**, however much its name says so: the no-movement
+budget picks `aborted_no_movement_jam` over `aborted_no_movement` from it, which is the distinct
+outcome [DET-JAM-WINDOW-001] left as an instrument to size that cohort. It is a VERDICT INPUT wearing
+a logging name. Moving it into the tap would have buried a decision inside the diagnostics, so it
+stays with the loop that decides, and the trap is written down where the next person will meet it.
+
+**The hold guardrail followed the code a third time.** Coordinator → executor → tap, and each time
+the check moved rather than the code being bent back. The property — **one door** — never changed,
+only the address. That distinction is now in the test's own KDoc, because a guardrail that gets
+"fixed" by lowering its bar is worse than none.
+
+**The measurable bonus.** `PaparcarLogger.d` gains an `inline` lazy overload guarded by
+`Napier.isEnable`. The detection loop assembles ~47 interpolated strings per fix whether or not a
+debug antilog is installed — in a release build that is a few dozen throwaway builders per GPS
+sample, for the length of a drive, on a device the feature is already asking to keep its radio warm.
+`inline` is load-bearing: without it the lambda is an allocation of its own and the fix is a wash.
+
+Verified discriminating: making the markers leak across sessions turns the new test red — the leak
+that would silence a real bicycle veto on the second drive of the day.
+
+**1636 tests**, six precedence tests, 18 replays and all four guardrails green, no assert edited.
 
 ---
 

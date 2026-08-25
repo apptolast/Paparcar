@@ -79,8 +79,8 @@ class DetectionEffectExecutor(
     private val notificationPort: AppNotificationManager,
     private val vehicleRepository: VehicleRepository,
     private val config: ParkingDetectionConfig,
-    /** Emits a diagnostics event under the current session id, or drops it between sessions. */
-    private val logEvent: suspend ((sessionId: String) -> DetectionEvent) -> Unit,
+    /** [09 §7] The single emitter. The executor never talks to the logger directly. */
+    private val diagnostics: DetectionDiagnosticsTap,
     private val nowMs: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) {
 
@@ -187,7 +187,7 @@ class DetectionEffectExecutor(
                         sessionOutcome = SessionOutcome.Confirmed(pathLabel),
                         endsSession = true,
                     )
-                    logEvent { sid ->
+                    diagnostics.emit { sid ->
                         DetectionEvent.Decision(
                             sid, nowMs(), outcome = "CONFIRMED", pathLabel = pathLabel,
                             confidence = reliability, location = location,
@@ -204,7 +204,7 @@ class DetectionEffectExecutor(
                         PaparcarLogger.w(DIAG, "    ⊘ implausible repark → degrading to user prompt ($pathLabel) [DET-SOLID-001]")
                         notificationPort.showParkingConfirmation(IMPLAUSIBLE_REPARK_PROMPT_SCORE, activeVehicleName())
                         result = EffectOutcome(endsSession = false, degradeToPrompt = true)
-                        logEvent { sid ->
+                        diagnostics.emit { sid ->
                             DetectionEvent.Decision(
                                 sid, nowMs(), outcome = "CONFIRM_DEGRADED_PROMPT", pathLabel = pathLabel,
                                 // [DET-PROMPT-STATES-ITS-REASON-001] The SIXTH producer, and the
@@ -229,7 +229,7 @@ class DetectionEffectExecutor(
                         sessionOutcome = SessionOutcome.ConfirmFailed(pathLabel),
                         endsSession = true,
                     )
-                    logEvent { sid ->
+                    diagnostics.emit { sid ->
                         DetectionEvent.Decision(
                             sid, nowMs(), outcome = "CONFIRM_FAILED", pathLabel = pathLabel, location = location,
                         )
@@ -276,7 +276,7 @@ class DetectionEffectExecutor(
             zoneRadiusMeters = radiusMeters,
         )
         val savedOk = outcome.endsSession && outcome.sessionOutcome?.isConfirmed == true
-        logEvent { sid ->
+        diagnostics.emit { sid ->
             DetectionEvent.Decision(
                 sid, now,
                 outcome = if (savedOk) "UNATTENDED_ZONE_SAVED" else "UNATTENDED_ZONE_SAVE_FAILED",
@@ -299,7 +299,7 @@ class DetectionEffectExecutor(
     ): EffectOutcome {
         notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
         notificationPort.showMarkParkingNudge(source = reason.nudgeSource, vehicleId = vehicleId)
-        logEvent { sid ->
+        diagnostics.emit { sid ->
             DetectionEvent.Decision(
                 sid, now,
                 outcome = reason.decisionOutcome,
@@ -365,7 +365,7 @@ class DetectionEffectExecutor(
             "  ▶ weak-evidence prompt notification POSTED (score=$WEAK_EVIDENCE_PROMPT_SCORE, " +
                 "vehicle=$vehicleName) [DET-AR-FIRST-001]",
         )
-        logEvent { sid ->
+        diagnostics.emit { sid ->
             DetectionEvent.Decision(
                 sid, now, outcome = "CONFIRM_DEGRADED_PROMPT", pathLabel = pathLabel,
                 location = location, reason = reason.key,
@@ -387,13 +387,7 @@ class DetectionEffectExecutor(
         heldMs: Long? = null,
         pathLabel: String? = null,
         location: GpsPoint? = null,
-    ) {
-        logEvent { sid ->
-            DetectionEvent.Hold(
-                sid, nowMs(), action = action, heldMs = heldMs, pathLabel = pathLabel, location = location,
-            )
-        }
-    }
+    ) = diagnostics.hold(action, nowMs(), heldMs, pathLabel, location)
 
     private suspend fun activeVehicleName(): String? = runCatching {
         vehicleRepository.observeActiveVehicle().first()

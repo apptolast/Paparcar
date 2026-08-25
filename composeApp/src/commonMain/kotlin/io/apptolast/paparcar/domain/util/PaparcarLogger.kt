@@ -1,6 +1,7 @@
 package io.apptolast.paparcar.domain.util
 
 import io.apptolast.paparcar.core.crash.CrashReporter
+import io.github.aakira.napier.LogLevel
 import io.github.aakira.napier.Napier
 
 /**
@@ -17,6 +18,20 @@ object PaparcarLogger {
 
     fun d(tag: String, message: String) {
         Napier.d(message, tag = tag)
+    }
+
+    /**
+     * The same line, built only if anything is listening.
+     *
+     * The detection loop logs ~47 lines per fix, every one of them an interpolated string assembled
+     * whether or not a debug antilog is installed — in a release build that is a few dozen throwaway
+     * `StringBuilder`s per GPS sample, for the whole length of a drive, on a device the feature is
+     * already asking to keep its radio warm.
+     *
+     * `inline` matters: without it the lambda is an allocation of its own and the fix is a wash.
+     */
+    inline fun d(tag: String, message: () -> String) {
+        if (Napier.isEnable(LogLevel.DEBUG, tag)) Napier.d(message(), tag = tag)
     }
 
     fun i(tag: String, message: String) {

@@ -4,6 +4,7 @@ import io.apptolast.paparcar.domain.detection.ArmEvidence
 import io.apptolast.paparcar.domain.detection.assertionBlocksRelocation
 import io.apptolast.paparcar.domain.detection.HoldAction
 import io.apptolast.paparcar.domain.detection.DepartureConfirmationListener
+import io.apptolast.paparcar.domain.detection.DetectionDiagnosticsTap
 import io.apptolast.paparcar.domain.detection.DetectionEffectExecutor
 import io.apptolast.paparcar.domain.detection.EffectOutcome
 import io.apptolast.paparcar.domain.detection.DetectionPhase
@@ -194,6 +195,9 @@ class CoordinatorParkingDetector(
      * lingering notification as stale and dismisses it — reasonable since we have no way
      * to verify its age. [REFACTOR-300-FIX]
      */
+    /** [09 §7] The single emitter, and the owner of the one-per-session markers. */
+    private val diagnostics = DetectionDiagnosticsTap(detectionEventLogger)
+
     /**
      * [09 §4] The only place in the core that performs I/O. It does the side effect and REPORTS what
      * the session must record; applying that is [applyEffect]'s job, because the session state has
@@ -205,7 +209,7 @@ class CoordinatorParkingDetector(
         notificationPort = notificationPort,
         vehicleRepository = vehicleRepository,
         config = config,
-        logEvent = { build -> logDetection(build) },
+        diagnostics = diagnostics,
         nowMs = ::nowMs,
     )
 
@@ -279,10 +283,8 @@ class CoordinatorParkingDetector(
 
     /** Emits a [DetectionEvent] for the current session, or no-ops if no session is active.
      *  The logger contract guarantees this never throws and never blocks on network. */
-    private suspend fun logDetection(build: (sessionId: String) -> DetectionEvent) {
-        val sid = currentSessionId ?: return
-        detectionEventLogger.log(build(sid))
-    }
+    private suspend fun logDetection(build: (sessionId: String) -> DetectionEvent) =
+        diagnostics.emit(build)
 
 
     private fun nowMs(): Long = clock()
@@ -421,6 +423,9 @@ class CoordinatorParkingDetector(
         // place, a superseded finally sees a foreign id and keeps its hands off (see the guard
         // in this function's finally).
         currentSessionId = thisSessionId
+        // [09 §7] The tap follows the session id, so an emission can never land under the previous
+        // session's document — and the one-per-session markers start clean.
+        diagnostics.open(thisSessionId)
         PaparcarLogger.d(DIAG, "▶ coordinator.invoke() entry (armEvidence=${armEvidence.persistLabel}) — calling reset()")
         reset()
 
@@ -472,7 +477,6 @@ class CoordinatorParkingDetector(
         // elimination — which is exactly how the 2026-08-20 Oppo session (63 km/h, three verdicts
         // degraded) stayed unattributable. Owned by the step collector alone, so a plain flag is
         // enough; the fix collector never touches it.
-        var loggedPedalCadence = false
 
         // [DET-LOG-03] Diagnostics session id claimed at entry (T8). Outcome defaults to "ended"
         // and is refined by the abort paths / runConfirm before the finally emits SessionEnded.
@@ -587,11 +591,10 @@ class CoordinatorParkingDetector(
                     // miss: a session whose second distinct fix arrives later satisfies the verdict
                     // with no line at all. A veto that can decide a session silently is the defect,
                     // so the marker is a latch, not an equality.
-                    if (!loggedPedalCadence &&
-                        updated.egress.fastMotionStepEvents >= config.pedalCadenceMinStepEvents &&
-                        updated.egress.fastMotionStepFixes >= config.pedalCadenceMinFixes
+                    if (updated.egress.fastMotionStepEvents >= config.pedalCadenceMinStepEvents &&
+                        updated.egress.fastMotionStepFixes >= config.pedalCadenceMinFixes &&
+                        diagnostics.latchOnce(DetectionDiagnosticsTap.Latch.PEDAL_CADENCE)
                     ) {
-                        loggedPedalCadence = true
                         PaparcarLogger.d(
                             DIAG,
                             "  ♲ pedal cadence — ${updated.egress.fastMotionStepEvents} steps concurrent with " +
@@ -1008,6 +1011,7 @@ class CoordinatorParkingDetector(
                     heldConfirmDroppedByUser = null
                     logDetection { sid -> DetectionEvent.SessionEnded(sid, nowMs(), sessionOutcome.serialized) }
                     currentSessionId = null
+                    diagnostics.close()
                     // [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001] A late verdict for a fence whose
                     // session is over addresses nobody.
                     currentArmGeofenceId = null

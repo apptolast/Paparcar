@@ -49,8 +49,8 @@ class HoldLaneGuardrailTest {
             .filter { CONSTRUCTION_REGEX.containsMatchIn(it.text) }
             .map { it.name }
         assertTrue(
-            builders.size == 1 && builders.single() == EXECUTOR,
-            "[the lane must have ONE door — see DetectionEffectExecutor.logHold] " +
+            builders.size == 1 && builders.single() == TAP,
+            "[the lane must have ONE door — see DetectionDiagnosticsTap.hold] " +
                 "DetectionEvent.Hold is built in " +
                 "${builders.size} file(s): ${builders.joinToString()}",
         )
@@ -62,14 +62,24 @@ class HoldLaneGuardrailTest {
         /** Where the branches live since P3.10. */
         const val HOLD_STAGE = "HoldResolutionStage"
 
-        /** The single DOOR since P3.11: the only place in the core that performs I/O. */
+        /** Where the I/O lives since P3.11. */
         const val EXECUTOR = "DetectionEffectExecutor"
+
+        /**
+         * The single DOOR since P3.12: the only emitter of remote diagnostics.
+         *
+         * It has moved twice while this check watched — coordinator → executor → tap — and each time
+         * the check followed the code rather than the code being bent back. That is the difference
+         * between maintaining a guardrail and defeating one: the property (**one door**) never
+         * changed, only the address.
+         */
+        const val TAP = "DetectionDiagnosticsTap"
 
         /**
          * The whole lane. Actions are NAMED by the stage and by the orchestrator's own lifecycle
          * exits, and EMITTED by the executor — three files, one property: no dead exit.
          */
-        val LANE = setOf(COORDINATOR, HOLD_STAGE, EXECUTOR)
+        val LANE = setOf(COORDINATOR, HOLD_STAGE, EXECUTOR, TAP)
 
         /** A CONSTRUCTION of the event, not the `is DetectionEvent.Hold ->` branch of the DTO
          *  mapper nor an import. */
