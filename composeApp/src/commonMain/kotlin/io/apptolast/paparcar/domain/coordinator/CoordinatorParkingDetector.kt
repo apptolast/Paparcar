@@ -27,6 +27,7 @@ import io.apptolast.paparcar.domain.detection.state.AnchorTrust
 import io.apptolast.paparcar.domain.detection.state.ConfirmationLifecycle
 import io.apptolast.paparcar.domain.detection.stages.ConfidenceScoringStage
 import io.apptolast.paparcar.domain.detection.stages.CandidateStage
+import io.apptolast.paparcar.domain.detection.stages.FalseEnterAbortStage
 import io.apptolast.paparcar.domain.detection.stages.FastConfirmStage
 import io.apptolast.paparcar.domain.detection.stages.NoMovementBudgetStage
 import io.apptolast.paparcar.domain.detection.stages.PreDriveSkipStage
@@ -931,21 +932,10 @@ class CoordinatorParkingDetector(
                         }
                     }
 
-                    // Fast spurious-ENTER abort by pedestrian steps. Triggers when AR fires an
-                    // IN_VEHICLE_ENTER while the user is walking (typical: just got out of the
-                    // car carrying bags, brisk pace). Without this, the same session would run
-                    // for the full [maxNoMovementMs] (4 min) with the FGS notification glued on
-                    // and could repeat as AR misfires again. [BUG-FALSE-ENTER-WALKING]
-                    if (!state.session.driveAuthorized && state.egress.stepCount >= config.falseEnterAbortSteps) {
-                        PaparcarLogger.d(
-                            DIAG,
-                            "  ⊘ false-ENTER abort — ${state.egress.stepCount} steps before driving speed " +
-                                "[BUG-FALSE-ENTER-WALKING]"
-                        )
-                        sessionOutcome = SessionOutcome.AbortedFalseEnter
-                        completed = true
-                        return@collect
-                    }
+                    // [BUG-FALSE-ENTER-WALKING] Feet before wheels: the arm was wrong.
+                    val falseEnterPass = runStage(falseEnterAbortStage, state, location, now, stoppedDuration)
+                    if (falseEnterPass.endsSession) completed = true
+                    if (falseEnterPass.endsPass) return@collect
 
                     // Spurious IN_VEHICLE_ENTER guard. [BUG-NEW-VEHICLE-DEFAULT]
                     // [DET-ZOMBIE-PROBE-001] A stale-delivered EXIT gets the SHORT probe: a real
@@ -1806,6 +1796,8 @@ class CoordinatorParkingDetector(
         decisionInput = ::stageDecisionInput,
         humanPowered = { state, now -> humanPoweredRide(state, attributedVehicleType, now) },
     )
+
+    private val falseEnterAbortStage = FalseEnterAbortStage()
 
     private val noMovementBudgetStage = NoMovementBudgetStage()
 

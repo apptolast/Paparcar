@@ -2401,7 +2401,7 @@ stage sees the state and nothing else, by design. It is session identity in exac
 
 ### DET-STAGE-NO-MOVEMENT-BUDGET-001 — the stage that does not implement the interface, and says so
 
-**Commit:** pending · **Ticket:** `docs/backlog/det-stage-no-movement-budget-001.md` · plan step P3.8.
+**Commit:** `502d92bf` · **Ticket:** `docs/backlog/det-stage-no-movement-budget-001.md` · plan step P3.8.
 
 A session that never drove has a budget, and this is where it runs out. It outranks the vehicle
 attribution and every confirm lane for the reason P0.1 pinned: **a session with nothing measured is
@@ -2437,6 +2437,36 @@ of, and exactly one function turns it back into a `SessionOutcome`.
 
 **Zero behaviour change**, six precedence tests and 18 replays green with no assert edited.
 **1629 tests.** Eight of ten stages moved.
+
+---
+
+### DET-STAGE-FALSE-ENTER-ABORT-001 — the one place the user is deliberately overruled
+
+**Commit:** pending · **Ticket:** `docs/backlog/det-stage-false-enter-abort-001.md` · plan step P3.9.
+
+[BUG-FALSE-ENTER-WALKING] Activity Recognition fires an `IN_VEHICLE` ENTER while the user is walking
+— classically having just got out of the car carrying bags, at a brisk pace — and the session that
+opens has no car in it at all. Counted steps BEFORE any driving speed are the refutation. Without it
+the session runs the full ~4-minute budget with the foreground-service notification glued on, and
+repeats every time AR misfires.
+
+**It outranks the user's own tap, and that is worth stating plainly** because it is the one place in
+the system where the user is deliberately overruled. `should_abort_the_false_enter_even_when_the_user_already_said_yes`
+(P0.1) pins the adjacency. The reason: **a tap cannot make a trip have happened.** Someone answering
+"sí, he aparcado" to a prompt from a session that never had a car is answering about a different
+session than the one that asked, and saving it plants a pin where the person is standing — the exact
+failure the asymmetric-failure doctrine exists to avoid. That is not the user being distrusted; it is
+the session admitting it had nothing to ask about.
+
+**And one thing this stage must not become**, now written into it: it reads `driveAuthorized`, the
+NOMINATION, so a session whose arm SEEDED the authorization on trust never reaches here. That is not
+an oversight — the seed means a departure worker said the drive already happened, and steps after a
+real drive are the egress walk, not a refutation. If a dismissed departure later retracts that seed
+[DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001], this guard re-arms with the steps already counted,
+which is precisely what the 2026-08-22 session needed after counting nine pedestrian steps indoors.
+
+**Zero behaviour change**, coordinator −8 lines, six precedence tests and 18 replays green with no
+assert edited. **1629 tests.** Nine of ten stages moved.
 
 ---
 
