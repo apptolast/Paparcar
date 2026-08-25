@@ -22,6 +22,8 @@ import io.apptolast.paparcar.domain.detection.physics.sustainedDriveWitnessed
 import io.apptolast.paparcar.domain.detection.physics.walkableInsideGapMeters
 import io.apptolast.paparcar.domain.detection.physics.SessionOutcome
 import io.apptolast.paparcar.domain.detection.state.ConfirmationLifecycle
+import io.apptolast.paparcar.domain.detection.state.DriveProof
+import io.apptolast.paparcar.domain.detection.state.DriveProofSource
 import io.apptolast.paparcar.domain.detection.state.EgressEvidence
 import io.apptolast.paparcar.domain.detection.state.PendingConfirm
 import io.apptolast.paparcar.domain.detection.state.SessionTelemetry
@@ -39,7 +41,6 @@ import io.apptolast.paparcar.domain.model.displayName
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.sensor.StepDetectorSource
-import io.apptolast.paparcar.domain.usecase.detection.EvaluateShortHopDriveProofUseCase
 import io.apptolast.paparcar.domain.usecase.notification.NotifyParkingConfirmationUseCase
 import io.apptolast.paparcar.domain.usecase.parking.CalculateParkingConfidenceUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
@@ -142,10 +143,6 @@ class CoordinatorParkingDetector(
     /** Wall-clock source (epoch-ms). Injectable so the time-driven post-confirm hold [DET-C-02]
      *  can be unit-tested without sleeping. Defaults to the system clock. */
     private val clock: () -> Long = { Clock.System.now().toEpochMilliseconds() },
-    /** [DET-SHORT-HOP-PROOF-001] The displacement-based drive proof — pure, config-only, so it
-     *  defaults from [config] and needs no DI change or test-double churn. */
-    private val evaluateShortHopDriveProof: EvaluateShortHopDriveProofUseCase =
-        EvaluateShortHopDriveProofUseCase(config),
     /** [DET-WALK-ENTERED-ANCHOR-ZONE-001] What the unattended timeout should do with the session —
      *  pure, config-only, same defaulting rationale as the two proofs above. */
     private val evaluateUnattendedParkingSave: EvaluateUnattendedParkingSaveUseCase =
@@ -298,72 +295,9 @@ class CoordinatorParkingDetector(
          *  need the whole truth (anchor lock, walk-reach ceilings, the unattended verdict) and not
          *  just by the next confirm. [DET-EVIDENCE-MUST-NOT-LOWER-CONFIDENCE-001] */
         // ── SESSION TELEMETRY (BUG-SCOOTER-001) ───────────────────────────────
-        /** Session peak of credible driving speed, but ZERO until [driveProven] latches — this
-         *  is the statistic every confirm path reads as "did this session measure driving?"
-         *  (evaluator `sessionSawDriving`, the unattended save gate, honest-close, the persisted
-         *  `tripMaxSpeedMps`). A single Doppler mirage (45 m/s at claimed acc 5 m, phone
-         *  indoors) used to set it for the whole session, unlock the kinematic confirm and pin
-         *  the living room (field 2026-07-27). [DET-DRIVE-PROOF-001] */
-        val maxSpeedMps: Float = 0f,
-        /** [DET-DRIVE-PROOF-001] Peak credible-accuracy speed observed so far — the pre-proof
-         *  accumulator [maxSpeedMps] promotes from the moment the TRACK proves a drive, so a
-         *  proven session reports the same vmax it always did. */
-        val pendingMaxSpeedMps: Float = 0f,
-        /** [DET-SENTRY-ARM-PEDESTRIAN-CLOCK-001] How many fixes this session has seen at real
-         *  driving speed with credible accuracy. [pendingMaxSpeedMps] is a PEAK — one sample — and
-         *  a receiver converging out of a cold start emits exactly one (field 2026-08-16 23:52,
-         *  Oppo: 42 km/h at acc 11.5 m on the third fix, with the user on foot the whole session).
-         *  A count distinguishes that spike from a drive the look-back window merely failed to
-         *  corroborate, which is the case [DET-NODRIVE-ZONE-001] was written for. */
-        val credibleDrivingFixes: Int = 0,
-        /** [DET-DRIVE-PROOF-001] TRUE once the track corroborated a drive (see
-         *  [corroboratesDrive]): real ground covered across a bounded look-back window, not a
-         *  fix's bare Doppler claim. Latched for the session. */
-        val driveProven: Boolean = false,
-        /** [DET-DRIVE-PROOF-001] Recent fixes (bounded ring) — the look-back candidates and
-         *  in-window witnesses [corroboratesDrive] judges the current fix against. */
-        val recentFixes: List<GpsPoint> = emptyList(),
-        /** [DET-SHORT-HOP-PROOF-001] Consecutive credible fixes so far sitting unambiguously away
-         *  from the pin the car left. A run of them proves a drive the SPEED-based proof cannot
-         *  see on a short stop-and-go hop; any fix that fails the geometry resets the run, so a
-         *  lone cache teleport never counts. */
-        val shortHopQualifyingFixes: Int = 0,
-        // ── MOTOR PROOF (DET-MOTOR-PROOF-001) ─────────────────────────────────
-        /** Cumulative ms spent in the credible driving band: gaps between SUCCESSIVE in-band
-         *  credible fixes (speed ≥ minimumTripSpeedMps, accuracy ≤ minGpsAccuracyForDriving),
-         *  credited only when the gap fits inside [ParkingDetectionConfig.driveProofWindowMaxMs] —
-         *  the same span the drive-proof shape already trusts to bridge (Calle Gavia's whole
-         *  legitimate drive is one 36-s in-band hop; urban accuracy degradation punches holes
-         *  through a real drive's band run, field Enamorados). A wider gap proves nothing and
-         *  credits NOTHING, so two isolated spikes minutes apart never sum. A lone spike has no
-         *  in-band peer at all and credits nothing either. Read through [provenDrivingBandMs] —
-         *  like [maxSpeedMps], the statistic is worth nothing until the track proves a drive. */
-        val drivingBandMs: Long = 0L,
-        /** GPS timestamp (epoch-ms) of the last credible in-band fix — the other endpoint of the
-         *  next band gap. GPS time, not wall clock: the trace replayer drives the clock from the
-         *  same stamps, so a recorded trace replays identically. */
-        val lastBandFixTimestampMs: Long = 0L,
-        /** Wall-clock (ms) when the last fix was PROCESSED — the freshness reference a concurrent
-         *  step event is judged against (step events carry no GPS timestamp of their own). */
-        val lastFixSeenAtMs: Long = 0L,
-        /** Whether the last fix's accuracy was credible (≤ minGpsAccuracyForDriving). */
-        val lastFixCredible: Boolean = false,
-        /** Step events concurrent with a fresh, credible fix ABOVE the pedestrian ceiling
-         *  (`egressStepMaxSpeedMps`) — feet moving in rhythm while the position travels faster
-         *  than any walk is the PEDALLING signature, the kinematic second source of
-         *  `isHumanPoweredRide` (field 2026-08-18 20:32: 16-20 such steps at 3,3-4,1 m/s in a
-         *  6-min ride AR never classified). Never reset mid-session: cadence is evidence about
-         *  the session's movement, and a car's phantom bursts (1-3 steps) stay under threshold. */
-        /** [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001] The same clock as [drivingBandMs], one band
-         *  higher (`motorProofSpeedMps`): time this session SUSTAINED a speed muscle cannot
-         *  produce. Deliberately NOT read through the drive-proof promotion the way
-         *  [provenDrivingBandMs] is — its job is to REFUTE a human-powered claim, never to buy a
-         *  silent pin, and the asymmetry runs the safe way: doubting the veto costs a prompt,
-         *  believing it cost a car (field 2026-08-20, 361 s held above 40 km/h and the session
-         *  still died judged a bicycle). */
-        val motorBandMs: Long = 0L,
-        /** GPS timestamp (epoch-ms) of the last credible in-MOTOR-band fix. */
-        val lastMotorBandFixTimestampMs: Long = 0L,
+        /** [09 §5] Did this session WATCH the car drive? The two independent proofs, the peak
+         *  they promote, the look-back ring and the two band clocks. */
+        val drive: DriveProof = DriveProof(),
     ) {
         /** @see EgressEvidence.freshStepCount */
         val freshStepCount: Int get() = egress.freshStepCount
@@ -373,12 +307,10 @@ class CoordinatorParkingDetector(
             stoppedFixes.minByOrNull { it.accuracy } ?: fallback
 
         /** Convenience accessor for the mismatch heuristic — km/h is the human-facing unit. */
-        val maxSpeedKmh: Float get() = maxSpeedMps * 3.6f
+        val maxSpeedKmh: Float get() = drive.provenMaxSpeedMps * 3.6f
 
-        /** [DET-MOTOR-PROOF-001] The sustained-drive statistic the evaluator's `sessionSawDriving`
-         *  reads, under the same promotion rule as [maxSpeedMps]: ZERO until the track proved a
-         *  drive [DET-DRIVE-PROOF-001], so an uncorroborated band run buys nothing. */
-        val provenDrivingBandMs: Long get() = if (driveProven) drivingBandMs else 0L
+        /** @see DriveProof.provenDrivingBandMs */
+        val provenDrivingBandMs: Long get() = drive.provenDrivingBandMs
 
         /** Wall-clock duration since the first GPS fix, in ms; `0` if no fix has arrived yet. */
         fun sessionDurationMs(now: Long): Long = session.ageMs(now)
@@ -747,7 +679,7 @@ class CoordinatorParkingDetector(
                         _detectionState.value.session.armEvidence == ArmEvidence.LABEL_VERIFIED_ENTER &&
                         _detectionState.value.egress.stepCount == 0 &&
                         (clock() - sessionStartMs) < config.enterArmStepVetoMs &&
-                        _detectionState.value.maxSpeedMps < config.minimumTripSpeedMps
+                        _detectionState.value.drive.provenMaxSpeedMps < config.minimumTripSpeedMps
                     ) {
                         PaparcarLogger.d(DIAG, "  ⊘ enter-arm step veto — first step ${clock() - sessionStartMs}ms after arm, no driving seen → evidence degraded to self_observed [DET-SOLID-001]")
                         _detectionState.update { it.copy(session = it.session.enterArmStepVeto()) }
@@ -773,8 +705,8 @@ class CoordinatorParkingDetector(
                                 anchorPresent = s.bestStopLocation != null,
                                 anchorPinned = isAnchorPinned(s),
                                 lastFixSpeedMps = s.session.lastSpeedMps,
-                                lastFixCredible = s.lastFixCredible,
-                                lastFixSeenAtMs = s.lastFixSeenAtMs,
+                                lastFixCredible = s.drive.lastFixCredible,
+                                lastFixSeenAtMs = s.drive.lastFixSeenAtMs,
                                 pedestrianCeilingMps = config.egressStepMaxSpeedMps,
                                 motorProofSpeedMps = config.motorProofSpeedMps,
                                 cadenceFixFreshnessMs = config.pedalCadenceFixFreshnessMs,
@@ -933,79 +865,31 @@ class CoordinatorParkingDetector(
                         if (hasJustMoved) {
                             PaparcarLogger.d(DIAG, "  ✓ hasEverMoved → true (speed≥${config.minimumTripSpeedMps}, dist≥${config.minimumTripDistanceMeters}m, actual=${distFromOrigin}m)")
                         }
-                        // [DET-DRIVE-PROOF-001] The session speed statistic only turns on once
-                        // the TRACK proves a drive: real ground covered across a bounded
-                        // look-back window, judged by corroboratesDrive. A lone mirage — 45 m/s
-                        // at claimed acc 5 m on a phone sitting indoors — set maxSpeed for the
-                        // whole session, satisfied `sessionSawDriving`, and the kinematic path
-                        // pinned the living room (field 2026-07-27). Arm seeding and session
-                        // lifecycle (hasEverReachedDrivingSpeed) are deliberately untouched:
-                        // the event nominates, only corroborated movement CONFIRMS.
-                        val newPendingMax =
-                            if (location.speed > s.pendingMaxSpeedMps && credibleSpeedFix) location.speed
-                            else s.pendingMaxSpeedMps
-                        // [DET-SENTRY-ARM-PEDESTRIAN-CLOCK-001] …and how many samples back that peak.
-                        val newCredibleDrivingFixes = s.credibleDrivingFixes +
-                            if (credibleSpeedFix && location.speed >= config.minimumTripSpeedMps) 1 else 0
-                        // [DET-SHORT-HOP-PROOF-001] Second, independent proof: measured DISPLACEMENT
-                        // from the pin the car left. A short stop-and-go hop never holds a
-                        // speed-window the [corroboratesDrive] shape can see (field 2026-08-14
-                        // 22:56: 900 m driven, `drive 3/303`, park lost) — but the ground it covered
-                        // is real, measured and unwalkable. Anchored to the PIN, never to the
-                        // session's own first fix, so the indoor-mirage class stays impossible.
-                        val shortHopRun =
-                            if (evaluateShortHopDriveProof.qualifies(
-                                    departureAnchor = departureAnchor,
-                                    fix = location,
-                                    fenceRadiusMeters = departureFenceRadiusMeters,
-                                    elapsedSinceArmMs = now - sessionStartMs,
-                                )
-                            ) s.shortHopQualifyingFixes + 1 else 0
-                        val shortHopProven = evaluateShortHopDriveProof(
-                            departureAnchor = departureAnchor,
+                        // [DET-DRIVE-PROOF-001][DET-SHORT-HOP-PROOF-001] Both proofs, the promotion,
+                        // the ring and the two band clocks live in the sub-state that owns them; the
+                        // departure pin, its fence and the session clock are PRESENTED.
+                        val newDrive = s.drive.onFix(
                             fix = location,
-                            fenceRadiusMeters = departureFenceRadiusMeters,
+                            nowMs = now,
+                            credibleSpeedFix = credibleSpeedFix,
+                            departureAnchor = departureAnchor,
+                            departureFenceRadiusMeters = departureFenceRadiusMeters,
                             elapsedSinceArmMs = now - sessionStartMs,
-                            consecutiveQualifyingFixes = shortHopRun,
+                            bounds = driveProofBounds,
+                            config = config,
                         )
-                        val driveProven = s.driveProven || shortHopProven || (credibleSpeedFix &&
-                                location.speed >= config.minimumTripSpeedMps &&
-                                corroboratesDrive(s.recentFixes, location))
-                        if (driveProven && !s.driveProven) {
-                            val how = if (shortHopProven) "displacement from the pin [DET-SHORT-HOP-PROOF-001]" else "track [DET-DRIVE-PROOF-001]"
-                            PaparcarLogger.d(DIAG, "  ✓ drive PROVEN by $how — session speed statistic unlocked (pendingMax=${newPendingMax}m/s)")
+                        if (newDrive.isProven && !s.drive.isProven) {
+                            val how = when (newDrive.proven) {
+                                DriveProofSource.SHORT_HOP -> "displacement from the pin [DET-SHORT-HOP-PROOF-001]"
+                                else -> "track [DET-DRIVE-PROOF-001]"
+                            }
+                            PaparcarLogger.d(DIAG, "  ✓ drive PROVEN by $how — session speed statistic unlocked (pendingMax=${newDrive.peakMps}m/s)")
                         }
-                        // [DET-MOTOR-PROOF-001] The sustained-drive clock: credit the gap between
-                        // SUCCESSIVE credible in-band fixes when it fits inside the span the
-                        // drive-proof shape already trusts (a real drive's band run is punched
-                        // through by urban accuracy holes — Enamorados — and a skeletal stream's
-                        // whole drive can be one 36-s hop — Calle Gavia). A wider gap proves
-                        // nothing and credits nothing; a lone spike has no in-band peer at all.
-                        val fixInBand = credibleSpeedFix && location.speed >= config.minimumTripSpeedMps
-                        val newDrivingBandMs = creditSpeedBand(
-                            accumulatedMs = s.drivingBandMs,
-                            lastInBandFixMs = s.lastBandFixTimestampMs,
-                            fixTimestampMs = location.timestamp,
-                            fixInBand = fixInBand,
-                            windowMaxMs = config.driveProofWindowMaxMs,
-                        )
-                        if (newDrivingBandMs >= config.sustainedDriveProofMs && s.drivingBandMs < config.sustainedDriveProofMs) {
-                            PaparcarLogger.d(DIAG, "  ✓ sustained drive — ${newDrivingBandMs}ms accumulated in the driving band (≥${config.sustainedDriveProofMs}ms) [DET-MOTOR-PROOF-001]")
+                        if (newDrive.drivingBandMs >= config.sustainedDriveProofMs && s.drive.drivingBandMs < config.sustainedDriveProofMs) {
+                            PaparcarLogger.d(DIAG, "  ✓ sustained drive — ${newDrive.drivingBandMs}ms accumulated in the driving band (≥${config.sustainedDriveProofMs}ms) [DET-MOTOR-PROOF-001]")
                         }
-                        // [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001] The same clock, one band higher:
-                        // the part of the driving band muscle cannot reach. Its only job is to
-                        // refute a human-powered claim, so it is NOT drive-proof-gated — a session
-                        // that holds 40 km/h for half a minute has settled the question by itself.
-                        val fixInMotorBand = credibleSpeedFix && location.speed >= config.motorProofSpeedMps
-                        val newMotorBandMs = creditSpeedBand(
-                            accumulatedMs = s.motorBandMs,
-                            lastInBandFixMs = s.lastMotorBandFixTimestampMs,
-                            fixTimestampMs = location.timestamp,
-                            fixInBand = fixInMotorBand,
-                            windowMaxMs = config.driveProofWindowMaxMs,
-                        )
-                        if (newMotorBandMs >= config.sustainedDriveProofMs && s.motorBandMs < config.sustainedDriveProofMs) {
-                            PaparcarLogger.d(DIAG, "  ✓ MOTOR witnessed — ${newMotorBandMs}ms held above ${config.motorProofSpeedMps} m/s; no bicycle claim can stand against this session [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001]")
+                        if (newDrive.motorBandMs >= config.sustainedDriveProofMs && s.drive.motorBandMs < config.sustainedDriveProofMs) {
+                            PaparcarLogger.d(DIAG, "  ✓ MOTOR witnessed — ${newDrive.motorBandMs}ms held above ${config.motorProofSpeedMps} m/s; no bicycle claim can stand against this session [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001]")
                         }
                         s.copy(
                             // [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001] Origin, first-fix clock,
@@ -1016,34 +900,16 @@ class CoordinatorParkingDetector(
                                 nowMs = now,
                                 reachedDrivingSpeed = hasJustReachedSpeed,
                                 moved = hasJustMoved,
-                                driveProven = driveProven,
+                                driveProven = newDrive.isProven,
                             ),
-                            // maxSpeed feeds the mismatch guard AND the weak-evidence policy
-                            // ("did this session witness driving?") — an indoor Doppler spike,
-                            // whatever accuracy it claims, must not count as driving.
-                            // [ANCHOR-LOCK-001][DET-DRIVE-PROOF-001]
-                            maxSpeedMps = if (driveProven) newPendingMax else 0f,
-                            pendingMaxSpeedMps = newPendingMax,
-                            credibleDrivingFixes = newCredibleDrivingFixes,
-                            driveProven = driveProven,
-                            recentFixes = pruneRecentFixes(s.recentFixes, location),
-                            shortHopQualifyingFixes = shortHopRun, // [DET-SHORT-HOP-PROOF-001]
-                            // [DET-MOTOR-PROOF-001] The sustained-drive clock and the freshness /
-                            // credibility snapshot the concurrent-step cadence judge reads.
-                            drivingBandMs = newDrivingBandMs,
-                            lastBandFixTimestampMs = if (fixInBand) location.timestamp else s.lastBandFixTimestampMs,
-                            motorBandMs = newMotorBandMs,
-                            lastMotorBandFixTimestampMs =
-                                if (fixInMotorBand) location.timestamp else s.lastMotorBandFixTimestampMs,
-                            lastFixSeenAtMs = now,
-                            lastFixCredible = credibleSpeedFix,
+                            drive = newDrive,
                         )
                     }
                     // [DET-HANDOFF-NOT-MANUAL-001 §B] The car moved, and now it is MEASURED: any
                     // departure that was published on a mere deduction becomes real here — promote
                     // the provisional spot, release the session, drop its geofence. Nothing was
                     // taken from the user until this line.
-                    if (state.driveProven && !deducedDepartureSettled) {
+                    if (state.drive.isProven && !deducedDepartureSettled) {
                         deducedDepartureSettled = true
                         runCatching { finalizeDeducedDeparture?.invoke(attributedVehicleId) }
                             .onFailure { e -> PaparcarLogger.w(DIAG, "  ⚠ finalize deduced departure failed: ${e.message}") }
@@ -1103,12 +969,12 @@ class CoordinatorParkingDetector(
                     // [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001 §A/§C] …and the refutation that now
                     // outranks both, once, when it crosses. If the motor band ever refutes a ride
                     // that really was muscle, this is the line that will say so.
-                    if (!loggedMotorWitnessed && state.motorBandMs >= config.sustainedDriveProofMs) {
+                    if (!loggedMotorWitnessed && state.drive.motorBandMs >= config.sustainedDriveProofMs) {
                         loggedMotorWitnessed = true
                         logDetection { sid ->
                             DetectionEvent.Decision(
                                 sid, now, outcome = "MOTOR_WITNESSED",
-                                pathLabel = "motorBand=${state.motorBandMs}ms ≥${config.motorProofSpeedMps}mps",
+                                pathLabel = "motorBand=${state.drive.motorBandMs}ms ≥${config.motorProofSpeedMps}mps",
                                 location = location,
                             )
                         }
@@ -1286,7 +1152,7 @@ class CoordinatorParkingDetector(
                                     DetectionEvent.Decision(
                                         sid, now,
                                         outcome = "NO_MOVEMENT_JAM_FOLD",
-                                        pathLabel = "recentCreep=${recentCreepMeters.toInt()}m rawMax=${state.pendingMaxSpeedMps}mps",
+                                        pathLabel = "recentCreep=${recentCreepMeters.toInt()}m rawMax=${state.drive.peakMps}mps",
                                         location = location,
                                     )
                                 }
@@ -1471,9 +1337,9 @@ class CoordinatorParkingDetector(
                         }
                         val verdict = evaluateUnattendedParkingSave(
                             UnattendedSaveInput(
-                                maxSpeedMps = state.maxSpeedMps,
-                                pendingMaxSpeedMps = state.pendingMaxSpeedMps,
-                                credibleDrivingFixes = state.credibleDrivingFixes,
+                                maxSpeedMps = state.drive.provenMaxSpeedMps,
+                                pendingMaxSpeedMps = state.drive.peakMps,
+                                credibleDrivingFixes = state.drive.credibleFixCount,
                                 anchor = state.bestStopLocation,
                                 currentFix = location,
                                 egressOriginFix = state.egressOriginFix,
@@ -1495,7 +1361,7 @@ class CoordinatorParkingDetector(
                             DIAG,
                             "  ⑊ no user response after ${now - promptShownAt}ms " +
                                 "(limit=${config.confirmationResponseTimeoutMs}ms) → $verdict " +
-                                "[maxSpeed=${state.maxSpeedMps}m/s pinned=${isAnchorPinned(state)} " +
+                                "[maxSpeed=${state.drive.provenMaxSpeedMps}m/s pinned=${isAnchorPinned(state)} " +
                                 "walkEntered=${isAnchorWalkEntered(state)} walkFixes=${state.anchorWalkFixesAtCapture} " +
                                 "stepEvents=${state.anchorStepEventsAtCapture} sawSteps=${state.anchorSawStepsAtCapture} " +
                                 "walkInSpan=${state.anchorWalkInSpanMeters.toInt()}m carRest=${anchorRestMs}ms " +
@@ -1685,7 +1551,7 @@ class CoordinatorParkingDetector(
                     // detector steps witness counter liveness, measured speed outranks inference.
                     lastFinishedSessionId = currentSessionId
                     lastFinishedStepEvents = _detectionState.value.egress.stepCount
-                    lastFinishedMaxSpeedMps = _detectionState.value.maxSpeedMps
+                    lastFinishedMaxSpeedMps = _detectionState.value.drive.provenMaxSpeedMps
                     // [DET-LOG-03] Close the diagnostics session before wiping state, then clear the id.
                     heldConfirmDroppedByUser?.let { dropped ->
                         logHold(
@@ -1732,7 +1598,7 @@ class CoordinatorParkingDetector(
         fastMotionStepEvents = s.egress.fastMotionStepEvents,
         fastMotionStepFixes = s.egress.fastMotionStepFixes,
         // [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001] …and the measurement that outranks both sources.
-        sustainedMotorBandMs = s.motorBandMs,
+        sustainedMotorBandMs = s.drive.motorBandMs,
         config = config,
     )
 
@@ -2001,7 +1867,7 @@ class CoordinatorParkingDetector(
                 location,
                 reliability,
                 vehicleId = vehicleId,
-                tripMaxSpeedMps = _detectionState.value.maxSpeedMps,
+                tripMaxSpeedMps = _detectionState.value.drive.provenMaxSpeedMps,
                 armEvidence = _detectionState.value.session.armEvidence,
                 // [DET-ASSERTION-OUTRANKS-INFERENCE-001] The SUSTAINED figure, not the peak above:
                 // the guard's job is to tell a real re-park from a walk-away, and one stray sample

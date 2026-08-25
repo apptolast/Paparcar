@@ -1,15 +1,38 @@
-package io.apptolast.paparcar.domain.usecase.detection
+package io.apptolast.paparcar.domain.detection.state
 
+import io.apptolast.paparcar.domain.detection.physics.DriveProofBounds
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-class EvaluateShortHopDriveProofUseCaseTest {
+/**
+ * [DET-SHORT-HOP-PROOF-001] The SHORT-HOP profile of the drive verifier, absorbed from
+ * `EvaluateShortHopDriveProofUseCase` in P2.4 — it was a PREDICATE feeding exactly one verdict, so
+ * per [DET-VERDICT-NOT-PREDICATE-001] it belongs inside that verdict rather than as an injected
+ * class of its own.
+ *
+ * **Every assertion below is the one it had before the move.** A merge that quietly sheds coverage
+ * is the failure mode this file exists to rule out — the same reason its own last two tests were
+ * ported here from `EvaluateMeasuredDepartureUseCaseTest` when THAT unit was absorbed.
+ */
+class DriveProofShortHopTest {
 
     private val config = ParkingDetectionConfig()
-    private val useCase = EvaluateShortHopDriveProofUseCase(config)
+
+    /** The window shape the coordinator builds; the short-hop profile never reads it, but `onFix`
+     *  needs one and an empty ring makes the track proof unreachable — so a hop proves a hop. */
+    private val bounds = DriveProofBounds(
+        windowMinMs = config.driveProofWindowMinMs,
+        windowMaxMs = config.driveProofWindowMaxMs,
+        hopMarginMeters = config.credibleDriveHopMarginMeters,
+        minDistanceMeters = config.minimumTripDistanceMeters,
+        maxRateMps = config.sustainedDepartureMaxRateMps,
+        progressFraction = 0.5f,
+        retentionSlackMs = 30_000L,
+        maxRetainedFixes = 40,
+    )
 
     /** The pin the car left. */
     private val pin = GpsPoint(36.6119, -6.2805, accuracy = 8f, timestamp = 0L, speed = 0f)
@@ -24,13 +47,25 @@ class EvaluateShortHopDriveProofUseCaseTest {
         speedMps: Float = 8.3f,
     ) = GpsPoint(pin.latitude + degreesNorth, pin.longitude, accuracy, 0L, speedMps)
 
+    /** Feeds ONE fix into a proof that already carries `run - 1` qualifying fixes, so this fix is
+     *  the one that reaches the bar — exactly what the old `invoke(…, consecutiveQualifyingFixes)`
+     *  expressed. */
     private fun proof(
         anchor: GpsPoint? = pin,
         fix: GpsPoint = fixAway(),
         fenceRadius: Float = 80f,
         elapsedMs: Long = 3 * 60_000L,
         run: Int = config.shortHopProofFixes,
-    ) = useCase(anchor, fix, fenceRadius, elapsedMs, run)
+    ) = DriveProof(shortHopRun = run - 1).onFix(
+        fix = fix,
+        nowMs = 0L,
+        credibleSpeedFix = true,
+        departureAnchor = anchor,
+        departureFenceRadiusMeters = fenceRadius,
+        elapsedSinceArmMs = elapsedMs,
+        bounds = bounds,
+        config = config,
+    ).proven == DriveProofSource.SHORT_HOP
 
     @Test
     fun `should prove the drive when the car ended far from its pin faster than legs allow`() {
@@ -103,15 +138,24 @@ class EvaluateShortHopDriveProofUseCaseTest {
     }
 
     @Test
-    fun `should expose the per-fix test so the caller can keep the consecutive run`() {
-        // qualifies() feeds the run counter one fix at a time; invoke() adds only the run length.
-        assertTrue(useCase.qualifies(pin, fixAway(), fenceRadiusMeters = 80f, elapsedSinceArmMs = 3 * 60_000L))
+    fun `should expose the per-fix test so the run can be kept one fix at a time`() {
+        // The geometric test feeds the run counter one fix at a time; the run length is what turns
+        // it into a proof. Internal rather than public: directly testable, no injected ceremony.
+        assertTrue(
+            DriveProof().shortHopQualifies(
+                fix = fixAway(),
+                departureAnchor = pin,
+                fenceRadiusMeters = 80f,
+                elapsedSinceArmMs = 3 * 60_000L,
+                config = config,
+            ),
+        )
     }
 
     // ── Absorbed from EvaluateMeasuredDepartureUseCaseTest ──────────────────────────────────
     // [DET-VERDICT-NOT-PREDICATE-001] That use case was deleted once the speed requirement made it a
-    // strict subset of `qualifies`. Its two assertions with no equivalent here are ported rather
-    // than dropped: merging units must not quietly shed coverage.
+    // strict subset of this profile. Its two assertions with no equivalent here were ported rather
+    // than dropped: merging units must not quietly shed coverage. Same rule applied again in P2.4.
 
     @Test
     fun `should not prove the drive while still inside the fence it left`() {

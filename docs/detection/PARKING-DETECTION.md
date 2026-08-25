@@ -1923,7 +1923,7 @@ the instance now turns a test red.
 
 ### DET-STATE-EGRESS-EVIDENCE-001 — three reset rules that read like one
 
-**Commit:** pending · **Ticket:** `docs/backlog/det-state-egress-evidence-001.md` · plan step P2.3.
+**Commit:** `13cbb148` · **Ticket:** `docs/backlog/det-state-egress-evidence-001.md` · plan step P2.3.
 
 Everything the FEET and the activity recogniser say — the step machine, its freshness line, the raw
 event odometer, the live-sensor latch, the pedal-cadence counters, the AR stamps — becomes
@@ -1956,6 +1956,53 @@ anchor-pinned cadence veto → 🔴 3 tests, including the Góndola replay — t
 guarded, and saying so is the point of running the experiment.
 
 **Zero behaviour change**, **no test file touched**, coordinator −83 lines. **1588 tests.**
+
+---
+
+### DET-STATE-DRIVE-PROOF-001 — three lifetimes that looked like one accumulator
+
+**Commit:** pending · **Ticket:** `docs/backlog/det-state-drive-proof-001.md` · plan step P2.4.
+
+The two independent drive proofs, the peak they promote, the look-back ring and the two band clocks
+become `domain/detection/state/DriveProof.kt`. `EvaluateShortHopDriveProofUseCase` is **absorbed**
+into it as a profile: it was a PREDICATE feeding exactly one verdict, which per
+`DET-VERDICT-NOT-PREDICATE-001` belongs inside that verdict rather than as an injected class.
+
+**The plan expected the boundary here to be "rings versus clocks". It is not.** What separates these
+values is how long each one LIVES, and there are three:
+
+| | Lifetime |
+|---|---|
+| the proof and the band clocks | **LATCH** — nothing in the session ever clears them |
+| the short-hop run | **RUN** — any fix failing the geometry breaks it to zero |
+| the look-back ring | **WINDOW** — expires by time |
+
+Read as eleven flat fields updated in one `copy`, those three read as one accumulator. The
+difference is what makes a proof a proof: a latch a slow fix could reset would lose the park of
+everyone who stops at a light after proving their drive; a run that latched would let a lone cache
+teleport accumulate into a proof.
+
+Verified discriminating, and the two answers are opposite — which is the useful part:
+
+| Neutralization | |
+|---|---|
+| turn the proof latch into a per-fix property | 🔴 **10+ existing** coordinator and replay tests |
+| make the short-hop run latch instead of resetting | 🔴 **2, both new** |
+
+So the latch was already well guarded and the RUN was not guarded at all.
+
+`driveProven: Boolean` becomes `proven: DriveProofSource?` — `TRACK_WINDOW` or `SHORT_HOP`, latched
+with whichever proved it FIRST. The "how" was already in the log line; now it is a value, which is
+also what lets the log stay at the same instant with the same words instead of recomputing the
+short-hop proof a second time (the old code called `qualifies` twice per fix).
+
+`maxSpeedMps` / `pendingMaxSpeedMps` become `provenMaxSpeedMps` / `peakMps`. That pair is the one
+`DET-ASSERTION-OUTRANKS-INFERENCE-001` was written about — a peak read where a sustained figure was
+meant — and the old names gave no clue which was which.
+
+**Zero behaviour change**, coordinator −134 lines, one injected class gone. **1603 tests.**
+The 12 moved assertions are pinned 12-for-12 in the P0.4 baseline, with the single rename written
+down there.
 
 ---
 

@@ -9,6 +9,16 @@
 #   Los 5 nombres de test son identicos; solo se movio el fichero de carpeta.
 #   Verificado uno a uno contra la corrida: los 5 existen bajo el paquete nuevo.
 #
+# P2.4 / DET-STATE-DRIVE-PROOF-001 - el predicado short-hop se ABSORBE en su veredicto
+#   (DET-VERDICT-NOT-PREDICATE-001: alimentaba a uno solo), asi que su test se muda:
+#   io.apptolast.paparcar.domain.usecase.detection.EvaluateShortHopDriveProofUseCaseTest
+#     -> io.apptolast.paparcar.domain.detection.state.DriveProofShortHopTest
+#   12 tests por 12. Once conservan su nombre exacto; UNO se renombra porque describia la
+#   API vieja, no la conducta:
+#     "should expose the per-fix test so the caller can keep the consecutive run"
+#       -> "should expose the per-fix test so the run can be kept one fix at a time"
+#   Ni un assert editado: el caller ya no lleva la carrera, la lleva el sub-estado.
+#
 
 io.apptolast.paparcar.architecture.ArchitectureTest :: UseCase classes should live inside the domain layer
 io.apptolast.paparcar.architecture.ArchitectureTest :: data layer should not import from presentation layer
