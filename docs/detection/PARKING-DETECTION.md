@@ -2326,7 +2326,7 @@ one). **1629 tests**, six precedence tests and 18 replays green. Five of ten sta
 
 ### DET-STAGE-USER-CONFIRM-001 — the shape becomes mandatory, and P0.1 earns its keep
 
-**Commit:** pending · **Ticket:** `docs/backlog/det-stage-user-confirm-001.md` · plan step P3.6, the
+**Commit:** `495d25ce` · **Ticket:** `docs/backlog/det-stage-user-confirm-001.md` · plan step P3.6, the
 one the plan singles out.
 
 [BUG-COORD-115] A tap outranks every inference below it. `stages/UserConfirmStage.kt` wins over the
@@ -2360,6 +2360,42 @@ attribution for every stage, not just this one, since all five below the attribu
 
 **Zero behaviour change**, coordinator **−54 lines**, six precedence tests and 18 replays green with
 no assert edited. **1629 tests.** Six of ten stages moved.
+
+---
+
+### DET-STAGE-VEHICLE-ATTRIBUTION-001 — the effect the plan described could not exist
+
+**Commit:** pending · **Ticket:** `docs/backlog/det-stage-vehicle-attribution-001.md` · plan step
+P3.7, the only stage that needs I/O.
+
+[VEH-ACTIVE-FENCE-001][DET-BT-OWNERSHIP-001] Whose car this is, settled once on the first
+driving-speed fix. A park with no owner cannot be saved, which is why it outranks every confirm lane
+— the adjacency `should_resolve_the_vehicle_before_confirming_within_the_same_fix` pins, and the test
+that caught the snapshot bug in P3.6.
+
+**The plan warned about this step, and the warning fired.** It said: *the stage decides in pure code
+and ASKS for the lookup; if this gets awkward, the effect is wrong, not the rule about
+repositories.* The described effect turns out to be impossible — the policy needs the lookup ANSWER
+in order to decide, since it reads which vehicle is active and whether the nominating one is
+Bluetooth-paired. The sequence is **ask → decide**, not decide → ask.
+
+So the effect asks for FACTS instead of announcing a verdict, and the decision stays exactly where it
+already was: `VehicleFenceOwnershipPolicy.resolveSessionVehicleId`, pure and older than this
+refactor. What the stage contributes is therefore modest and is written down as such: **the gate is
+declared, its precedence is declared, and the I/O is named.** It does not make the decision richer —
+it makes the decision PLACE in the order a value instead of a line number.
+
+**An effect may now end the pass on its own.** The no-vehicle abort is discovered AFTER the lookup
+the stage asked for, so no stage could have declared it up front. `runStageEffects` returns a
+`StagePass` and the runner ORs it with the verdict own `stopsIteration`.
+
+**`nominatingVehicleId` moves into `SessionTelemetry`.** It lived as a parameter of the detection
+loop, which is fine while only the loop reads it and stops being fine the moment a STAGE does — a
+stage sees the state and nothing else, by design. It is session identity in exactly the sense
+`armEvidence` is: fixed at the arm, read once, never re-derived.
+
+**Zero behaviour change**, six precedence tests and 18 replays green with no assert edited.
+**1629 tests.** Seven of ten stages moved.
 
 ---
 

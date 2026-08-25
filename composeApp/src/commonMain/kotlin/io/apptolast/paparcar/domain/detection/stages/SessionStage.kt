@@ -310,11 +310,17 @@ sealed interface DetectionEffect {
     data object DismissPrompt : DetectionEffect
 
     /**
-     * Resolve which vehicle this session belongs to. **The only effect that answers back**, and the
-     * only I/O any stage needs: the stage decides in pure code with
-     * `VehicleFenceOwnershipPolicy.resolveSessionVehicleId` and asks for the lookup, then the
-     * executor re-enters through an atomic entrypoint. If this turns out to be awkward, the effect
-     * is wrong — not the rule about repositories.
+     * Resolve which vehicle this session belongs to — **the only I/O any stage needs**.
+     *
+     * ⚠️ The scaffold originally described this as "the stage decides in pure code and asks for the
+     * lookup". It cannot: the policy needs the lookup's ANSWER to decide — which vehicle is active,
+     * and whether the nominating one is Bluetooth-paired. The sequence is ask → decide.
+     *
+     * So this effect asks for FACTS instead of announcing a verdict, and the decision stays in
+     * `VehicleFenceOwnershipPolicy.resolveSessionVehicleId`, which was already a pure function. The
+     * executor fetches, calls that policy and applies the result atomically. Following the plan's
+     * own warning — *if this gets awkward the effect is wrong, not the rule* — is what produced the
+     * corrected shape.
      */
     data class ResolveVehicle(val nominatingVehicleId: String?) : DetectionEffect
 

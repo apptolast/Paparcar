@@ -73,6 +73,16 @@ data class SessionTelemetry(
     val authorizedOnArmTrustOnly: Boolean = false,
     /** The provenance label this session was armed with, as persisted on the pin. */
     val armEvidence: String = ArmEvidence.LABEL_SELF_OBSERVED,
+    /**
+     * [VEH-ACTIVE-FENCE-001] The vehicle whose fence NOMINATED this session, if a fence did. Session
+     * identity in exactly the sense [armEvidence] is: fixed at the arm, read once when the
+     * attribution stage settles ownership, never re-derived.
+     *
+     * It lived as a parameter of the detection loop until P3.7, which is fine while only the loop
+     * reads it and stops being fine the moment a STAGE does — a stage sees the state and nothing
+     * else, by design.
+     */
+    val nominatingVehicleId: String? = null,
     /** The vehicle this session was attributed to, locked on the first driving-speed fix. */
     val attributedVehicleId: String? = null,
     val attributedVehicleType: VehicleType? = null,
@@ -83,8 +93,9 @@ data class SessionTelemetry(
 
     // ── Transitions ───────────────────────────────────────────────────────────
 
-    /** Session start: the arm's provenance label. */
-    fun armed(evidence: String): SessionTelemetry = copy(armEvidence = evidence)
+    /** Session start: the arm's provenance label and the fence that nominated it. */
+    fun armed(evidence: String, nominatingVehicleId: String? = null): SessionTelemetry =
+        copy(armEvidence = evidence, nominatingVehicleId = nominatingVehicleId)
 
     /**
      * [DET-G-04] The arm says the drive already happened (armed mid-trip), so the session starts
@@ -173,6 +184,7 @@ data class SessionTelemetry(
     fun keepingIdentity(): SessionTelemetry = SessionTelemetry(
         fixCount = fixCount,
         armEvidence = armEvidence,
+        nominatingVehicleId = nominatingVehicleId,
         attributedVehicleId = attributedVehicleId,
         attributedVehicleType = attributedVehicleType,
     )

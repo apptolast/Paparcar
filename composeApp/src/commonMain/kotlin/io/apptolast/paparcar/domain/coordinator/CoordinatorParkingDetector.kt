@@ -31,6 +31,7 @@ import io.apptolast.paparcar.domain.detection.stages.FastConfirmStage
 import io.apptolast.paparcar.domain.detection.stages.PreDriveSkipStage
 import io.apptolast.paparcar.domain.detection.stages.ResponseTimeoutStage
 import io.apptolast.paparcar.domain.detection.stages.UserConfirmStage
+import io.apptolast.paparcar.domain.detection.stages.VehicleAttributionStage
 import io.apptolast.paparcar.domain.detection.stages.SessionStage
 import io.apptolast.paparcar.domain.detection.stages.DetectionEffect
 import io.apptolast.paparcar.domain.detection.stages.StageVerdict
@@ -426,7 +427,7 @@ class CoordinatorParkingDetector(
         // Session provenance stamped on the confirmed park — the repark-plausibility guard in
         // ConfirmParkingUseCase bypasses verified arms and interrogates self-observed ones.
         // Upgraded live by notifyDepartureConfirmed. [DET-SOLID-001]
-        _detectionState.update { it.copy(session = it.session.armed(armEvidence.persistLabel)) }
+        _detectionState.update { it.copy(session = it.session.armed(armEvidence.persistLabel, nominatingVehicleId)) }
 
         var completed = false
 
@@ -1010,52 +1011,10 @@ class CoordinatorParkingDetector(
                         }
                     }
 
-                    // Lock vehicleId on first driving-speed fix. [BUG-NEW-VEHICLE-DEFAULT] [BUG-SHORT-TRIP]
-                    if (state.session.driveAuthorized && _detectionState.value.session.attributedVehicleId == null) {
-                        val active = vehicleRepository.observeActiveVehicle().first()
-                        // Attribute to the NOMINATING fence's vehicle (the geofence exit that armed
-                        // this trip identifies the car), else the current active vehicle. Stops the
-                        // pin landing on whatever ranked active. [VEH-ACTIVE-FENCE-001]
-                        // A BT-paired nominator is vetoed by the policy — that identity belongs to
-                        // the Bluetooth strategy alone; its fence only proves the phone left.
-                        // [DET-BT-OWNERSHIP-001]
-                        val nominatorVehicle = when {
-                            nominatingVehicleId == null -> null
-                            nominatingVehicleId == active?.id -> active
-                            else -> vehicleRepository.observeVehicles().first()
-                                .firstOrNull { it.id == nominatingVehicleId }
-                        }
-                        val nominatorIsBtPaired = nominatorVehicle?.bluetoothDeviceId != null
-                        val resolvedId = VehicleFenceOwnershipPolicy.resolveSessionVehicleId(
-                            nominatingVehicleId = nominatingVehicleId,
-                            nominatingVehicleIsBtPaired = nominatorIsBtPaired,
-                            activeVehicleId = active?.id,
-                        )
-                        val nominatorVetoed = nominatingVehicleId != null && resolvedId != nominatingVehicleId
-                        if (resolvedId == null) {
-                            PaparcarLogger.w(
-                                DIAG,
-                                "  ✗ hasEverReachedDrivingSpeed but no vehicle to attribute — abort session" +
-                                    if (nominatorVetoed) " (nominator=$nominatingVehicleId vetoed: bt-owned, no active vehicle)" else "",
-                            )
-                            sessionOutcome = SessionOutcome.AbortedNoVehicle
-                            completed = true
-                            return@collect
-                        }
-                        // Vehicle type: the resolved vehicle's. Cheap when it IS the active one; a
-                        // differing nominator was already looked up in the user's vehicle list.
-                        val resolvedType = if (resolvedId == active?.id) {
-                            active.vehicleType
-                        } else {
-                            nominatorVehicle?.vehicleType
-                        }
-                        _detectionState.update { it.copy(session = it.session.attributeVehicle(resolvedId, resolvedType)) }
-                        PaparcarLogger.d(
-                            DIAG,
-                            "  ✓ vehicleId locked: $resolvedId type=$resolvedType (nominator=$nominatingVehicleId" +
-                                (if (nominatorVetoed) " vetoed: bt-owned" else "") + ")",
-                        )
-                    }
+                    // [VEH-ACTIVE-FENCE-001] Lock vehicleId on the first driving-speed fix.
+                    val vehiclePass = runStage(vehicleAttributionStage, state, location, now, stoppedDuration)
+                    if (vehiclePass.endsSession) completed = true
+                    if (vehiclePass.endsPass) return@collect
 
                     // [BUG-COORD-115] precedence: user-confirm always wins.
                     val userPass = runStage(userConfirmStage, state, location, now, stoppedDuration)
@@ -1866,6 +1825,8 @@ class CoordinatorParkingDetector(
         humanPowered = { state, now -> humanPoweredRide(state, attributedVehicleType, now) },
     )
 
+    private val vehicleAttributionStage = VehicleAttributionStage()
+
     private val userConfirmStage = UserConfirmStage(isEgressBornAtAnchor = ::isEgressBornAtAnchor)
 
     private val preDriveSkipStage = PreDriveSkipStage()
@@ -2448,16 +2409,22 @@ class CoordinatorParkingDetector(
         if (verdict !is StageVerdict.Handled) return StagePass(endsPass = false, endsSession = false)
         val phase = verdict.newState.confirmation.phase
         _detectionState.update { it.copy(confirmation = it.confirmation.copy(phase = phase)) }
-        val endsSession = runStageEffects(verdict.effects, now)
-        return StagePass(endsPass = verdict.stopsIteration, endsSession = endsSession)
+        val fromEffects = runStageEffects(verdict.effects, now)
+        return StagePass(
+            // An effect may end the pass on its own: the vehicle abort is only discovered AFTER the
+            // lookup the stage asked for, so the stage could not have declared it.
+            endsPass = verdict.stopsIteration || fromEffects.endsPass,
+            endsSession = fromEffects.endsSession,
+        )
     }
 
     /** What running a stage settled: whether this fix's pass is over, and whether the session is. */
     private data class StagePass(val endsPass: Boolean, val endsSession: Boolean)
 
     /** The inline effect executor, until P3.11 gives it its own file. */
-    private suspend fun runStageEffects(effects: List<DetectionEffect>, now: Long): Boolean {
+    private suspend fun runStageEffects(effects: List<DetectionEffect>, now: Long): StagePass {
         var sessionCompleted = false
+        var passEnded = false
         effects.forEach { effect ->
             when (effect) {
                 is DetectionEffect.Confirm -> sessionCompleted = when (val shape = effect.shape) {
@@ -2572,13 +2539,61 @@ class CoordinatorParkingDetector(
                 is DetectionEffect.RecordCandidateOpened -> logDetection { sid ->
                     DetectionEvent.Candidate(sid, now, action = "OPENED", phase = effect.fromPhase)
                 }
-                is DetectionEffect.ResolveVehicle,
+                is DetectionEffect.ResolveVehicle -> {
+                    // Ask → decide: the policy needs the lookup's answer, so the facts come first
+                    // and `VehicleFenceOwnershipPolicy` — pure, and older than this refactor —
+                    // settles it. [VEH-ACTIVE-FENCE-001][DET-BT-OWNERSHIP-001]
+                    val active = vehicleRepository.observeActiveVehicle().first()
+                    val nominator = when {
+                        effect.nominatingVehicleId == null -> null
+                        effect.nominatingVehicleId == active?.id -> active
+                        else -> vehicleRepository.observeVehicles().first()
+                            .firstOrNull { it.id == effect.nominatingVehicleId }
+                    }
+                    val resolvedId = VehicleFenceOwnershipPolicy.resolveSessionVehicleId(
+                        nominatingVehicleId = effect.nominatingVehicleId,
+                        // A BT-paired nominator is vetoed: that identity belongs to the Bluetooth
+                        // strategy alone, and its fence only proves the phone left.
+                        nominatingVehicleIsBtPaired = nominator?.bluetoothDeviceId != null,
+                        activeVehicleId = active?.id,
+                    )
+                    val nominatorVetoed = effect.nominatingVehicleId != null &&
+                        resolvedId != effect.nominatingVehicleId
+                    if (resolvedId == null) {
+                        PaparcarLogger.w(
+                            DIAG,
+                            "  ✗ hasEverReachedDrivingSpeed but no vehicle to attribute — abort session" +
+                                if (nominatorVetoed) {
+                                    " (nominator=${effect.nominatingVehicleId} vetoed: bt-owned, no active vehicle)"
+                                } else {
+                                    ""
+                                },
+                        )
+                        sessionOutcome = SessionOutcome.AbortedNoVehicle
+                        sessionCompleted = true
+                        passEnded = true
+                    } else {
+                        // The resolved vehicle's type. Cheap when it IS the active one; a differing
+                        // nominator was already looked up in the user's vehicle list.
+                        val resolvedType =
+                            if (resolvedId == active?.id) active.vehicleType else nominator?.vehicleType
+                        _detectionState.update {
+                            it.copy(session = it.session.attributeVehicle(resolvedId, resolvedType))
+                        }
+                        PaparcarLogger.d(
+                            DIAG,
+                            "  ✓ vehicleId locked: $resolvedId type=$resolvedType " +
+                                "(nominator=${effect.nominatingVehicleId}" +
+                                (if (nominatorVetoed) " vetoed: bt-owned" else "") + ")",
+                        )
+                    }
+                }
                 is DetectionEffect.EndSession,
                 DetectionEffect.DismissPrompt,
                 -> error("effect not reachable until its stage lands: $effect")
             }
         }
-        return sessionCompleted
+        return StagePass(endsPass = passEnded, endsSession = sessionCompleted)
     }
 
     private companion object {
