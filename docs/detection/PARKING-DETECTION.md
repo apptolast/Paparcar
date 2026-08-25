@@ -2442,7 +2442,7 @@ of, and exactly one function turns it back into a `SessionOutcome`.
 
 ### DET-STAGE-FALSE-ENTER-ABORT-001 — the one place the user is deliberately overruled
 
-**Commit:** pending · **Ticket:** `docs/backlog/det-stage-false-enter-abort-001.md` · plan step P3.9.
+**Commit:** `beb2a2a3` · **Ticket:** `docs/backlog/det-stage-false-enter-abort-001.md` · plan step P3.9.
 
 [BUG-FALSE-ENTER-WALKING] Activity Recognition fires an `IN_VEHICLE` ENTER while the user is walking
 — classically having just got out of the car carrying bags, at a brisk pace — and the session that
@@ -2467,6 +2467,56 @@ which is precisely what the 2026-08-22 session needed after counting nine pedest
 
 **Zero behaviour change**, coordinator −8 lines, six precedence tests and 18 replays green with no
 assert edited. **1629 tests.** Nine of ten stages moved.
+
+---
+
+### DET-STAGE-HOLD-RESOLUTION-001 — the first of the precedence, and two branches that do not end the pass
+
+**Commit:** pending · **Ticket:** `docs/backlog/det-stage-hold-resolution-001.md` · plan step P3.10.
+**Closes the ten stage moves.**
+
+[DET-C-02] A held confirm owns the fix that would otherwise re-decide it. Nothing outranks it, and
+two P0.1 tests hold that in place — the sharp one being that when the user answers DURING a hold, the
+pin goes where the CAR was when the hold opened, not where the person is standing when they tap.
+
+**The finding is an asymmetry nobody had written down: two of the four branches do NOT end the pass.**
+
+| Branch | Ends the pass? |
+|---|---|
+| stale at settle | **no** — discard and keep detecting toward the real park |
+| settle | yes |
+| drove off | **no** — same as stale |
+| still holding | yes, and changes nothing |
+
+A discard is not an ending. It says *this pin was wrong*, and the session must go on to find the
+right one — which is the entire point of the hold. Making a discard end the pass would delay every
+real park by one fix; making the still-holding branch fall through would let the stages below
+re-decide a fix the hold has already claimed. In the old code the difference was whether a `return`
+happened to follow the block.
+
+**A guardrail fired, correctly, and was widened rather than weakened.** `HoldLaneGuardrailTest`
+[DET-HOLD-BRANCHES-MUST-SPEAK-001] checks that no `HoldAction` is dead, and it named one file. The
+actions are now NAMED by the stage and LOGGED by the orchestrator — which is what a stage is — so the
+check follows the lane across both files. It still fails on exactly what it failed on before: an exit
+nobody produces. Its sibling check, that `DetectionEvent.Hold` is built in exactly ONE place, passes
+untouched: the lane still has one door.
+
+`DiscardHold` binds the drop and its trace line into one effect, because the two always travel
+together and once did not — that mute sibling is why the ticket exists.
+
+---
+
+**Phase 3 stage moves complete.** Ten branches out of the `collect`, `5e52c641` → here:
+
+| Coordinator | Lines |
+|---|---|
+| before Phase 3 (`44f8ba5d`) | 3336 |
+| after ten stages | **2567** |
+| the ten stages + scaffold | 1545 |
+
+Six precedence tests, 18 replays and 1629 tests green throughout, **without one assert edited in any
+of the ten**. What remains of Phase 3 is P3.11 (the effect executor gets its own file), P3.12 (the
+diagnostics tap) and P3.13 (the orchestrator, and deleting what is left).
 
 ---
 

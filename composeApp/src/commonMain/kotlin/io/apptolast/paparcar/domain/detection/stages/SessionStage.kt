@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.domain.detection.stages
 
+import io.apptolast.paparcar.domain.detection.HoldAction
 import io.apptolast.paparcar.domain.detection.physics.SavedParkingShape
 import io.apptolast.paparcar.domain.model.ParkingConfidence
 import io.apptolast.paparcar.domain.detection.state.DetectionSessionState
@@ -318,6 +319,28 @@ sealed interface DetectionEffect {
      * on its call site ending the session for every terminal branch). One effect, one answer.
      */
     data class CloseHumanPowered(val vehicleId: String?, val at: GpsPoint) : DetectionEffect
+
+    /**
+     * [DET-C-02] Drop a held confirm and say WHY, in one move.
+     *
+     * The two halves always travel together and once did not: [DET-HOLD-BRANCHES-MUST-SPEAK-001]
+     * exists because one discard branch spoke and its sibling was mute, which made two different
+     * outcomes indistinguishable from outside. Binding them into one effect is how that stays fixed.
+     */
+    data class DiscardHold(
+        val action: HoldAction,
+        val heldMs: Long,
+        val pathLabel: String,
+        val at: GpsPoint,
+    ) : DetectionEffect
+
+    /** [DET-C-02] The hold resolved into a save. Stamped BEFORE the save and against the HELD pin —
+     *  the save may fail, and the trace has to say the hold resolved either way. */
+    data class RecordHoldSettled(
+        val heldMs: Long,
+        val pathLabel: String,
+        val at: GpsPoint,
+    ) : DetectionEffect
 
     /** Take a prompt off screen. Replaces the direct `notificationPort.dismiss` calls. */
     data object DismissPrompt : DetectionEffect

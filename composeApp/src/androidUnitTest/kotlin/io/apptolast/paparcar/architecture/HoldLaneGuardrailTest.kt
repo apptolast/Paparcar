@@ -19,16 +19,25 @@ class HoldLaneGuardrailTest {
 
     private val scope = Konsist.scopeFromProject()
 
+    /**
+     * The property is **no dead exit**, not "in this file". When the hold branch moved into
+     * `HoldResolutionStage` (P3.10) the actions started being NAMED by the stage and LOGGED by the
+     * orchestrator, which is the whole point of a stage — so the check follows them across the two
+     * files that make up the lane instead of pinning one name. It fails on exactly what it failed on
+     * before: an action nobody ever produces.
+     */
     @Test
-    fun `every hold action is actually emitted by the coordinator`() {
-        val text = scope.files.single { it.name == COORDINATOR }.text
+    fun `every hold action is actually emitted somewhere in the hold lane`() {
+        val text = scope.files
+            .filter { it.name == COORDINATOR || it.name == HOLD_STAGE }
+            .joinToString("\n") { it.text }
         val unemitted = HoldAction.entries
             .filter { !text.contains("HoldAction.${it.name}") }
             .map { it.name }
         assertTrue(
             unemitted.isEmpty(),
             "[dead hold action — an exit nobody emits is a branch no test can discriminate] " +
-                "${unemitted.size} of ${HoldAction.entries.size} never emitted in $COORDINATOR.kt:\n" +
+                "${unemitted.size} of ${HoldAction.entries.size} never emitted in $COORDINATOR.kt / $HOLD_STAGE.kt:\n" +
                 unemitted.joinToString("\n") { "  - HoldAction.$it" },
         )
     }
@@ -48,6 +57,9 @@ class HoldLaneGuardrailTest {
 
     private companion object {
         const val COORDINATOR = "CoordinatorParkingDetector"
+
+        /** Where the branches live since P3.10; the orchestrator still owns the single door. */
+        const val HOLD_STAGE = "HoldResolutionStage"
 
         /** A CONSTRUCTION of the event, not the `is DetectionEvent.Hold ->` branch of the DTO
          *  mapper nor an import. */

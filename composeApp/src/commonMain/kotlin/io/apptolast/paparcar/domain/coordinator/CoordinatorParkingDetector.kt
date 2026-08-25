@@ -28,6 +28,7 @@ import io.apptolast.paparcar.domain.detection.state.ConfirmationLifecycle
 import io.apptolast.paparcar.domain.detection.stages.ConfidenceScoringStage
 import io.apptolast.paparcar.domain.detection.stages.CandidateStage
 import io.apptolast.paparcar.domain.detection.stages.FalseEnterAbortStage
+import io.apptolast.paparcar.domain.detection.stages.HoldResolutionStage
 import io.apptolast.paparcar.domain.detection.stages.FastConfirmStage
 import io.apptolast.paparcar.domain.detection.stages.NoMovementBudgetStage
 import io.apptolast.paparcar.domain.detection.stages.PreDriveSkipStage
@@ -831,106 +832,10 @@ class CoordinatorParkingDetector(
                         }
                     }
 
-                    // [DET-C-02] Post-confirm hold. A tentative egress-confirm waits here to rule out
-                    // an errand stop (park → walk to a kiosk → drive on to park properly): if the car
-                    // drives off again before confirmHoldMs elapses, discard it and keep detecting so
-                    // the saved park re-anchors at the FINAL spot. An explicit user-yes finalises now.
-                    val pending = state.confirmation.pendingConfirm
-                    if (pending != null) {
-                        val heldMs = now - pending.confirmedAt
-                        // [ANCHOR-LOCK-001][DET-ANCHOR-FREEZE-001] With the anchor pinned (egress
-                        // steps in hand, or the end-of-drive stop matured) the user is on foot —
-                        // only REAL driving speed can mean "errand over, drove off"; brisk
-                        // walking must not discard the hold.
-                        val resumeSpeedBar = if (isAnchorPinned(state)) {
-                            config.minimumTripSpeedMps
-                        } else {
-                            config.clearBestStopSpeedMps
-                        }
-                        // [DET-C-02] Strictly greater, deliberately: this discards a pin that has
-                        // already earned its confirm, so the boundary is not moved by a pure-move
-                        // refactor. Only the accuracy gate is shared with the driving predicates.
-                        val drivingResumed = location.speed > resumeSpeedBar &&
-                            isCredibleFixAccuracy(location, config.minGpsAccuracyForDriving)
-                        when {
-                            // [DET-CONFIRM-FRESHNESS-001] Settle-time re-validation: the confirm's
-                            // evidence must still be TRUE when the pin is planted. If the current
-                            // fix sits farther from the held pin than the counted steps could walk,
-                            // a VEHICLE covered that ground during the hold — this was a pick-up /
-                            // errand stop whose departure the drove-off discard missed (field
-                            // 2026-07-23, Calle Abeto: the only rolling fix carried acc 71 m > the
-                            // 50 m trust gate, then 95 s of GPS silence while driving; the hold
-                            // settled with the car at ANOTHER traffic light 570 m away and pinned
-                            // the pick-up spot). Discard and keep detecting toward the real park —
-                            // same exit as the drove-off discard. The user-yes path is exempt: an
-                            // explicit answer outranks every guard.
-                            !state.confirmation.userConfirmed && heldMs >= config.confirmHoldMs &&
-                                heldConfirmOutrunByVehicle(pending, state, location) -> {
-                                PaparcarLogger.d(
-                                    DIAG,
-                                    "  ↩ tentative confirm STALE at settle — position outran the steps from the held pin (errand/pick-up stop), discarding and re-anchoring [DET-CONFIRM-FRESHNESS-001]"
-                                )
-                                _detectionState.update { it.copy(confirmation = it.confirmation.discardingHold()) }
-                                // [DET-HOLD-BRANCHES-MUST-SPEAK-001] Was the lane's only member,
-                                // as an ad-hoc `Decision`. It joins the typed lane so that its
-                                // mute sibling below becomes comparable to it — one of them
-                                // speaking and the other not is exactly what made the two
-                                // impossible to tell apart from outside.
-                                logHold(
-                                    HoldAction.DISCARDED_STALE,
-                                    heldMs = heldMs,
-                                    pathLabel = pending.pathLabel,
-                                    location = location,
-                                )
-                                // Fall through and keep detecting toward the real park.
-                            }
-                            state.confirmation.userConfirmed || heldMs >= config.confirmHoldMs -> {
-                                PaparcarLogger.d(
-                                    DIAG,
-                                    "  ✓ hold settled (held=${heldMs}ms, userYes=${state.confirmation.userConfirmed}) — finalizing tentative confirm [DET-C-02]"
-                                )
-                                logHold(
-                                    HoldAction.SETTLED,
-                                    heldMs = heldMs,
-                                    pathLabel = if (state.confirmation.userConfirmed) "user" else pending.pathLabel,
-                                    location = pending.location,
-                                )
-                                // A user "Sí" during the hold is the USER-CONFIRMED path (1.0,
-                                // every guard bypassed), not the auto path that opened the hold —
-                                // the class KDoc promises it and the repark guard must not veto a
-                                // park the user explicitly confirmed. Position stays the pinned
-                                // hold location either way.
-                                completed = if (state.confirmation.userConfirmed) {
-                                    runConfirm(pending.location, config.reliabilityUserConfirmed, pending.vehicleId, "user")
-                                } else {
-                                    runConfirm(pending.location, pending.reliability, pending.vehicleId, pending.pathLabel)
-                                }
-                                return@collect
-                            }
-                            drivingResumed -> {
-                                PaparcarLogger.d(
-                                    DIAG,
-                                    "  ↩ tentative confirm DISCARDED — drove off ${heldMs}ms into the hold (errand), re-anchoring [DET-C-02]"
-                                )
-                                _detectionState.update { it.copy(confirmation = it.confirmation.discardingHold()) }
-                                logHold(
-                                    HoldAction.DISCARDED_DROVE_OFF,
-                                    heldMs = heldMs,
-                                    pathLabel = pending.pathLabel,
-                                    location = location,
-                                )
-                                // Fall through and keep detecting toward the real park. On a real
-                                // driving fix updateStopTracking already cleared anchor + steps; on
-                                // an ambiguous walking-band fix (unpinned anchor) it may have KEPT
-                                // them — harmless: the next fix re-confirms from the same anchor
-                                // and re-enters the hold (delayed finalize, never a lost park).
-                            }
-                            else -> {
-                                // Still holding (stopped, window not elapsed) — keep the session alive.
-                                return@collect
-                            }
-                        }
-                    }
+                    // [DET-C-02] Post-confirm hold — the first stage of the precedence.
+                    val holdPass = runStage(holdResolutionStage, state, location, now, stoppedDuration)
+                    if (holdPass.endsSession) completed = true
+                    if (holdPass.endsPass) return@collect
 
                     // [BUG-FALSE-ENTER-WALKING] Feet before wheels: the arm was wrong.
                     val falseEnterPass = runStage(falseEnterAbortStage, state, location, now, stoppedDuration)
@@ -1797,6 +1702,11 @@ class CoordinatorParkingDetector(
         humanPowered = { state, now -> humanPoweredRide(state, attributedVehicleType, now) },
     )
 
+    private val holdResolutionStage = HoldResolutionStage(
+        isAnchorPinned = ::isAnchorPinned,
+        heldConfirmOutrunByVehicle = ::heldConfirmOutrunByVehicle,
+    )
+
     private val falseEnterAbortStage = FalseEnterAbortStage()
 
     private val noMovementBudgetStage = NoMovementBudgetStage()
@@ -2490,6 +2400,12 @@ class CoordinatorParkingDetector(
                     )
                     sessionCompleted = true
                 }
+                is DetectionEffect.DiscardHold -> {
+                    _detectionState.update { it.copy(confirmation = it.confirmation.discardingHold()) }
+                    logHold(effect.action, effect.heldMs, effect.pathLabel, effect.at)
+                }
+                is DetectionEffect.RecordHoldSettled ->
+                    logHold(HoldAction.SETTLED, effect.heldMs, effect.pathLabel, effect.at)
                 is DetectionEffect.DiscardCandidate -> {
                     // Applied to the LIVE state, not to the stage's snapshot: the freshness line is
                     // stamped at wherever the count stands NOW.
