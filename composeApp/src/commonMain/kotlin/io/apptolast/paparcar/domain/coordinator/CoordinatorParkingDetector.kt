@@ -21,6 +21,8 @@ import io.apptolast.paparcar.domain.detection.physics.creditSpeedBand
 import io.apptolast.paparcar.domain.detection.physics.sustainedDriveWitnessed
 import io.apptolast.paparcar.domain.detection.physics.walkableInsideGapMeters
 import io.apptolast.paparcar.domain.detection.physics.SessionOutcome
+import io.apptolast.paparcar.domain.detection.state.ConfirmationLifecycle
+import io.apptolast.paparcar.domain.detection.state.PendingConfirm
 import io.apptolast.paparcar.domain.detection.state.SessionTelemetry
 import io.apptolast.paparcar.domain.detection.physics.effectiveDriving
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
@@ -166,17 +168,6 @@ class CoordinatorParkingDetector(
      *  are folded into a single [ConfirmationPhase] field. The legacy combinations
      *  are still encoded — they're just no longer reachable in an invalid form.]
      */
-    /** A confirmed-but-held parking decision awaiting the [ParkingDetectionConfig.confirmHoldMs]
-     *  grace window. Captured at the egress confirm so the saved location stays pinned to the
-     *  parked-car position even if the user keeps walking during the hold. [DET-C-02] */
-    private data class PendingConfirm(
-        val location: GpsPoint,
-        val reliability: Float,
-        val vehicleId: String?,
-        val pathLabel: String,
-        val confirmedAt: Long,
-    )
-
     private data class ParkingDetectionState(
         /** Epoch-ms of the first GPS sample with speed < 1 m/s in the current stop. `null` while moving. */
         val stoppedSince: Long? = null,
@@ -184,13 +175,9 @@ class CoordinatorParkingDetector(
          *  The fix with the lowest [GpsPoint.accuracy] value is used as the saved parking spot. */
         val stoppedFixes: List<GpsPoint> = emptyList(),
         val vehicleExitConfirmed: Boolean = false,
-        val userConfirmedParking: Boolean = false,
-        /** [DET-C-02] A tentatively-confirmed park awaiting the post-confirm hold window. While
-         *  non-null the session is "tentatively parked": it stays alive so that resuming driving
-         *  before the window elapses discards it and re-anchors at the real spot. */
-        val pendingConfirm: PendingConfirm? = null,
-        /** [REFACTOR-200] explicit confirmation lifecycle. See [ConfirmationPhase]. */
-        val phase: ConfirmationPhase = ConfirmationPhase.Idle,
+        /** [09 §5] The prompt/confirm conversation: which [ConfirmationPhase] this stop is in, the
+         *  confirm held through its grace window, and the user's "Sí". */
+        val confirmation: ConfirmationLifecycle = ConfirmationLifecycle(),
         /** [09 §5] Session identity and the drive AUTHORIZATION — origin, first-fix clock, fix
          *  counter, last speed, previous fix, arm evidence, vehicle attribution. Every change goes
          *  through one of its named transitions; nothing here is written field by field. */
@@ -922,7 +909,7 @@ class CoordinatorParkingDetector(
         val phaseJob = phaseSink?.let { sink ->
             launch {
                 _detectionState
-                    .map { it.phase.toDetectionPhase() }
+                    .map { it.confirmation.phase.toDetectionPhase() }
                     .distinctUntilChanged()
                     .collect { sink.setPhase(it) }
             }
@@ -941,12 +928,12 @@ class CoordinatorParkingDetector(
         val holdWatchdogJob = if (config.confirmHoldMs > 0) {
             launch {
                 _detectionState
-                    .map { it.pendingConfirm }
+                    .map { it.confirmation.pendingConfirm }
                     .distinctUntilChanged()
                     .collectLatest { pending ->
                         if (pending == null) return@collectLatest
                         delay(config.confirmHoldMs + HOLD_WATCHDOG_MARGIN_MS)
-                        if (!completed && _detectionState.value.pendingConfirm === pending) {
+                        if (!completed && _detectionState.value.confirmation.pendingConfirm === pending) {
                             PaparcarLogger.w(
                                 DIAG,
                                 "  ⚑ hold starved of fixes for ${config.confirmHoldMs + HOLD_WATCHDOG_MARGIN_MS}ms — finalizing the held confirm at the pinned location [DET-AUDIT-002 T7]"
@@ -1137,9 +1124,9 @@ class CoordinatorParkingDetector(
                     PaparcarLogger.d(
                         DIAG,
                         "  state hasEverMoved=${state.session.hasEverMoved} hasEverReachedDrivingSpeed=${state.session.driveAuthorized} " +
-                                "userConfirmed=${state.userConfirmedParking} " +
+                                "userConfirmed=${state.confirmation.userConfirmed} " +
                                 "vehicleExit=${state.vehicleExitConfirmed} stoppedSince=${state.stoppedSince} " +
-                                "stoppedDur=${stoppedDuration}ms phase=${state.phase}"
+                                "stoppedDur=${stoppedDuration}ms phase=${state.confirmation.phase}"
                     )
 
                     // [DET-LOG-04] Raw-fix + AR-signal trace (the replay input stream). The fix
@@ -1203,7 +1190,7 @@ class CoordinatorParkingDetector(
                     // an errand stop (park → walk to a kiosk → drive on to park properly): if the car
                     // drives off again before confirmHoldMs elapses, discard it and keep detecting so
                     // the saved park re-anchors at the FINAL spot. An explicit user-yes finalises now.
-                    val pending = state.pendingConfirm
+                    val pending = state.confirmation.pendingConfirm
                     if (pending != null) {
                         val heldMs = now - pending.confirmedAt
                         // [ANCHOR-LOCK-001][DET-ANCHOR-FREEZE-001] With the anchor pinned (egress
@@ -1232,13 +1219,13 @@ class CoordinatorParkingDetector(
                             // the pick-up spot). Discard and keep detecting toward the real park —
                             // same exit as the drove-off discard. The user-yes path is exempt: an
                             // explicit answer outranks every guard.
-                            !state.userConfirmedParking && heldMs >= config.confirmHoldMs &&
+                            !state.confirmation.userConfirmed && heldMs >= config.confirmHoldMs &&
                                 heldConfirmOutrunByVehicle(pending, state, location) -> {
                                 PaparcarLogger.d(
                                     DIAG,
                                     "  ↩ tentative confirm STALE at settle — position outran the steps from the held pin (errand/pick-up stop), discarding and re-anchoring [DET-CONFIRM-FRESHNESS-001]"
                                 )
-                                _detectionState.update { it.copy(pendingConfirm = null) }
+                                _detectionState.update { it.copy(confirmation = it.confirmation.discardingHold()) }
                                 // [DET-HOLD-BRANCHES-MUST-SPEAK-001] Was the lane's only member,
                                 // as an ad-hoc `Decision`. It joins the typed lane so that its
                                 // mute sibling below becomes comparable to it — one of them
@@ -1252,15 +1239,15 @@ class CoordinatorParkingDetector(
                                 )
                                 // Fall through and keep detecting toward the real park.
                             }
-                            state.userConfirmedParking || heldMs >= config.confirmHoldMs -> {
+                            state.confirmation.userConfirmed || heldMs >= config.confirmHoldMs -> {
                                 PaparcarLogger.d(
                                     DIAG,
-                                    "  ✓ hold settled (held=${heldMs}ms, userYes=${state.userConfirmedParking}) — finalizing tentative confirm [DET-C-02]"
+                                    "  ✓ hold settled (held=${heldMs}ms, userYes=${state.confirmation.userConfirmed}) — finalizing tentative confirm [DET-C-02]"
                                 )
                                 logHold(
                                     HoldAction.SETTLED,
                                     heldMs = heldMs,
-                                    pathLabel = if (state.userConfirmedParking) "user" else pending.pathLabel,
+                                    pathLabel = if (state.confirmation.userConfirmed) "user" else pending.pathLabel,
                                     location = pending.location,
                                 )
                                 // A user "Sí" during the hold is the USER-CONFIRMED path (1.0,
@@ -1268,7 +1255,7 @@ class CoordinatorParkingDetector(
                                 // the class KDoc promises it and the repark guard must not veto a
                                 // park the user explicitly confirmed. Position stays the pinned
                                 // hold location either way.
-                                completed = if (state.userConfirmedParking) {
+                                completed = if (state.confirmation.userConfirmed) {
                                     runConfirm(pending.location, config.reliabilityUserConfirmed, pending.vehicleId, "user")
                                 } else {
                                     runConfirm(pending.location, pending.reliability, pending.vehicleId, pending.pathLabel)
@@ -1280,7 +1267,7 @@ class CoordinatorParkingDetector(
                                     DIAG,
                                     "  ↩ tentative confirm DISCARDED — drove off ${heldMs}ms into the hold (errand), re-anchoring [DET-C-02]"
                                 )
-                                _detectionState.update { it.copy(pendingConfirm = null) }
+                                _detectionState.update { it.copy(confirmation = it.confirmation.discardingHold()) }
                                 logHold(
                                     HoldAction.DISCARDED_DROVE_OFF,
                                     heldMs = heldMs,
@@ -1429,7 +1416,7 @@ class CoordinatorParkingDetector(
                     }
 
                     // [BUG-COORD-115] precedence: user-confirm always wins.
-                    if (state.userConfirmedParking) {
+                    if (state.confirmation.userConfirmed) {
                         PaparcarLogger.d(DIAG, "  ▶ USER-CONFIRMED path — entering confirmParking")
                         // [DET-ANCHOR-EGRESS-001][DET-GAP-ANCHOR-001] A user "Sí" answers "did you
                         // park?", not "is the anchor right": when the egress was born away from
@@ -1534,7 +1521,7 @@ class CoordinatorParkingDetector(
                     // a real parking was lost to an unnoticed notification), while saving it
                     // wrong costs one correction tap. Saved with low reliability so nothing
                     // community-facing trusts it on its own. Session-end still runs (completed).
-                    val promptShownAt = state.phase.promptShownAt
+                    val promptShownAt = state.confirmation.phase.promptShownAt
                     if (promptShownAt != null && (now - promptShownAt) > config.confirmationResponseTimeoutMs) {
                         // [DET-WALK-ENTERED-ANCHOR-ZONE-001] The seven-way precedence that used to
                         // live inline here (no-drive → unpinned → egress-mismatch → gap → walk-
@@ -1642,7 +1629,7 @@ class CoordinatorParkingDetector(
                     }
 
                     // Candidate-phase decision tree.
-                    val candidate = state.phase as? ConfirmationPhase.Candidate
+                    val candidate = state.confirmation.phase as? ConfirmationPhase.Candidate
                     if (candidate != null) {
                         val didConfirm = evaluateCandidatePhase(
                             phase = candidate,
@@ -1737,7 +1724,7 @@ class CoordinatorParkingDetector(
                     // [DET-AUDIT-002 T7/M2] Belt to the watchdog's braces: if the stream ENDED
                     // (upstream completion / cancellation) with a confirm still held, finalize it
                     // rather than silently dropping a park the egress proof already earned.
-                    val pending = _detectionState.value.pendingConfirm
+                    val pending = _detectionState.value.confirmation.pendingConfirm
                     if (pending != null && !completed) {
                         PaparcarLogger.w(DIAG, "  ⚑ session ended with a HELD confirm — finalizing at the pinned location [DET-AUDIT-002 T7]")
                         // [DET-HOLD-BRANCHES-MUST-SPEAK-001] The other pin planted with no fix
@@ -1856,7 +1843,7 @@ class CoordinatorParkingDetector(
     fun onUserConfirmedParking() {
         PaparcarLogger.d(DIAG, "✱ onUserConfirmedParking() called")
         notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
-        _detectionState.update { it.copy(userConfirmedParking = true) }
+        _detectionState.update { it.copy(confirmation = it.confirmation.userSaidYes()) }
     }
 
     /**
@@ -1880,7 +1867,7 @@ class CoordinatorParkingDetector(
         // [DET-HOLD-BRANCHES-MUST-SPEAK-001] Remember WHAT the stop dropped, before the state wipe
         // makes it unknowable. Without this the trace shows a session that ended stopped_by_user and
         // no way to tell whether the button cost the user a pin that was one fix from being planted.
-        heldConfirmDroppedByUser = _detectionState.value.pendingConfirm
+        heldConfirmDroppedByUser = _detectionState.value.confirmation.pendingConfirm
         _detectionState.update { ParkingDetectionState(session = it.session.keepingIdentity()) }
     }
 
@@ -1954,7 +1941,7 @@ class CoordinatorParkingDetector(
             return runConfirm(location, reliability, vehicleId, pathLabel)
         }
         _detectionState.update {
-            it.copy(pendingConfirm = PendingConfirm(location, reliability, vehicleId, pathLabel, confirmedAt = now))
+            it.copy(confirmation = it.confirmation.holding(PendingConfirm(location, reliability, vehicleId, pathLabel, confirmedAt = now)))
         }
         PaparcarLogger.d(
             DIAG,
@@ -2150,7 +2137,7 @@ class CoordinatorParkingDetector(
                         }.getOrNull()
                         notificationPort.showParkingConfirmation(IMPLAUSIBLE_REPARK_PROMPT_SCORE, vehicleName)
                         _detectionState.update {
-                            it.copy(pendingConfirm = null, phase = ConfirmationPhase.Notified(shownAt = nowMs()))
+                            it.copy(confirmation = it.confirmation.degradedToPrompt(shownAt = nowMs()))
                         }
                         logDetection { sid ->
                             DetectionEvent.Decision(
@@ -2257,7 +2244,7 @@ class CoordinatorParkingDetector(
                 )
                 _detectionState.update {
                     it.copy(
-                        phase = ConfirmationPhase.Notified(phase.shownAt),
+                        confirmation = it.confirmation.notified(phase.shownAt),
                         // [DET-EVIDENCE-MUST-NOT-LOWER-CONFIDENCE-001] A VERDICT MAY NOT DESTROY A
                         // MEASUREMENT. This used to be `stepCount = 0` — "the window expired, so
                         // those steps were phantom jiggle, wipe them" — which is the right thing to
@@ -2307,7 +2294,7 @@ class CoordinatorParkingDetector(
         now: Long,
     ) {
         PaparcarLogger.d(DIAG, "  ？ confirm degraded to user prompt ($pathLabel, reason=${reason.key}) [DET-SOLID-001][DET-PROMPT-STATES-ITS-REASON-001]")
-        val alreadyPrompted = _detectionState.value.phase.promptShownAt != null
+        val alreadyPrompted = _detectionState.value.confirmation.phase.promptShownAt != null
         if (!alreadyPrompted) {
             val vehicleName = runCatching {
                 vehicleRepository.observeActiveVehicle().first()
@@ -2318,7 +2305,7 @@ class CoordinatorParkingDetector(
             // bypasses NotifyParkingConfirmation, and the 2026-07-10 19:19 session read as
             // "prompt never shown" in forensics when it HAD been posted right here.
             PaparcarLogger.d(DIAG, "  ▶ weak-evidence prompt notification POSTED (score=$WEAK_EVIDENCE_PROMPT_SCORE, vehicle=$vehicleName) [DET-AR-FIRST-001]")
-            _detectionState.update { it.copy(phase = ConfirmationPhase.Notified(shownAt = now)) }
+            _detectionState.update { it.copy(confirmation = it.confirmation.notified(shownAt = now)) }
             logDetection { sid ->
                 DetectionEvent.Decision(
                     sid, now, outcome = "CONFIRM_DEGRADED_PROMPT", pathLabel = pathLabel,
@@ -3019,10 +3006,11 @@ class CoordinatorParkingDetector(
                                 "— clearing bestStopLocation [PARKING-001]"
                     )
                 }
-                // [REFACTOR-200] phase resets to Idle on driving. Walking pace preserves
+                // [REFACTOR-200] the conversation restarts on driving. Walking pace preserves
                 // the current phase so the response-timeout from a prior prompt still ticks
                 // — that's how BUG-STUCK-SESSION's "walked home" abort fires.
-                val nextPhase = if (effectiveDriving) ConfirmationPhase.Idle else it.phase
+                val nextConfirmation =
+                    if (effectiveDriving) it.confirmation.stopEnded() else it.confirmation
                 // [DET-KINEMATIC-EGRESS-001] The egress walk, measured by GPS: quality
                 // pedestrian-band fixes while the anchor is frozen. Cleared with the anchor.
                 val newKinematicEgressFixes = when {
@@ -3048,7 +3036,7 @@ class CoordinatorParkingDetector(
                 it.copy(
                     stoppedSince = null,
                     stoppedFixes = emptyList(),
-                    phase = nextPhase,
+                    confirmation = nextConfirmation,
                     bestStopLocation = if (shouldClearBestStop) null else it.bestStopLocation,
                     anchorCapturedAtStop = if (shouldClearBestStop) null else it.anchorCapturedAtStop,
                     anchorFrozen = if (shouldClearBestStop) false else it.anchorFrozen,
@@ -3186,9 +3174,9 @@ class CoordinatorParkingDetector(
          *  with the honest one. Asking anyway is what the 2026-08-19 bicycle session did at 22:46. */
         humanPowered: Boolean,
     ) {
-        when (val phase = state.phase) {
+        when (val phase = state.confirmation.phase) {
             is ConfirmationPhase.Idle -> {
-                _detectionState.update { it.copy(phase = ConfirmationPhase.LowReached(now)) }
+                _detectionState.update { it.copy(confirmation = it.confirmation.lowReached(now)) }
                 PaparcarLogger.d(DIAG, "  → phase: Idle → LowReached(firstReachedAt=$now) [BUG-DETECT-310502]")
             }
 
@@ -3211,7 +3199,7 @@ class CoordinatorParkingDetector(
                     else
                         "timeout=${now - phase.firstReachedAt}ms"
                     PaparcarLogger.d(DIAG, "  → showing parking-confirmation notif (Low/Medium, $reason)")
-                    _detectionState.update { it.copy(phase = ConfirmationPhase.Notified(now)) }
+                    _detectionState.update { it.copy(confirmation = it.confirmation.notified(now)) }
                     notifyParkingConfirmation(confidence)
                     // [DET-FROZEN-COUNTER-001] The prompt instant must exist in the remote trace:
                     // the 2026-07-25 00:35 Redmi prompt was invisible in forensics — the 15-min
@@ -3252,18 +3240,11 @@ class CoordinatorParkingDetector(
         // off the measured stop clock before any tier dispatch, so every route to a matured rest
         // passes through it exactly once. A High reached through the slow path has stopped for
         // `slowPath5MinMs` by construction, so nothing is lost by not re-asking here.
-        val newCandidate: (Long) -> ConfirmationPhase.Candidate = { shownAt ->
-            ConfirmationPhase.Candidate(
-                highReachedAt = now,
-                hadVehicleExit = state.vehicleExitConfirmed,
-                shownAt = shownAt,
-            )
-        }
-        when (val phase = state.phase) {
+        when (val phase = state.confirmation.phase) {
             is ConfirmationPhase.Idle, is ConfirmationPhase.LowReached -> {
                 // Prompt was never shown — fire it as part of this transition.
                 PaparcarLogger.d(DIAG, "  ▶ HIGH reached — entering CANDIDATE phase + showing notif, vehicleExit=${state.vehicleExitConfirmed}")
-                _detectionState.update { it.copy(phase = newCandidate(now)) }
+                _detectionState.update { it.copy(confirmation = it.confirmation.candidate(now, state.vehicleExitConfirmed, now)) }
                 notifyParkingConfirmation(confidence)
                 logDetection { sid -> DetectionEvent.Candidate(sid, now, action = "OPENED", phase = "from ${phase::class.simpleName}") }
                 // [DET-FROZEN-COUNTER-001] Same PROMPT_SHOWN marker as the Low/Medium lane, so
@@ -3281,7 +3262,7 @@ class CoordinatorParkingDetector(
                 // Prompt already shown at phase.shownAt — preserve it so the response timeout
                 // keeps ticking from the original prompt instant.
                 PaparcarLogger.d(DIAG, "  ▶ HIGH reached after Notified(shownAt=${phase.shownAt}) — entering CANDIDATE phase (suppressing duplicate notif) [BUG-STUCK-SESSION]")
-                _detectionState.update { it.copy(phase = newCandidate(phase.shownAt)) }
+                _detectionState.update { it.copy(confirmation = it.confirmation.candidate(now, state.vehicleExitConfirmed, phase.shownAt)) }
                 logDetection { sid -> DetectionEvent.Candidate(sid, now, action = "OPENED", phase = "from Notified") }
             }
 

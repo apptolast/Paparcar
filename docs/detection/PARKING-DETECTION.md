@@ -1847,7 +1847,7 @@ comparisons against every previous bicycle session line up.
 
 ### DET-STATE-SESSION-TELEMETRY-001 — the session stops being a pile of loose variables
 
-**Commit:** pending · **Ticket:** `docs/backlog/det-state-session-telemetry-001.md` · plan step P2.1,
+**Commit:** `ff948b46` · **Ticket:** `docs/backlog/det-state-session-telemetry-001.md` · plan step P2.1,
 the first of Phase 2.
 
 Ten values that describe WHO a session is and WHAT it may do lived in three different places: seven
@@ -1884,6 +1884,40 @@ Verified discriminating: breaking the retraction's atomicity turns 1 test red, f
 the preservation list turns 1 red — and in **both** cases the only test that notices is the new one.
 
 **Zero behaviour change**, **no test file touched at all**, coordinator −33 lines. **1563 tests.**
+
+---
+
+### DET-STATE-CONFIRMATION-LIFECYCLE-001 — three ways to end a hold that looked like one
+
+**Commit:** pending · **Ticket:** `docs/backlog/det-state-confirmation-lifecycle-001.md` · plan step P2.2.
+
+`phase`, `pendingConfirm` and `userConfirmedParking` describe one thing — the conversation with the
+user — and were flat neighbours of thirty unrelated fields. `domain/detection/state/
+ConfirmationLifecycle.kt` makes them a sub-state with named transitions, and `PendingConfirm` moves
+out of the coordinator to sit next to the lifecycle that owns it.
+
+**What it actually fixes.** `pendingConfirm = null` was written at three sites that mean three
+different things:
+
+| Site | Meaning | Now |
+|---|---|---|
+| held pin went STALE | discard, keep detecting, say nothing | `discardingHold()` |
+| user drove off mid-hold | discard, keep detecting, say nothing | `discardingHold()` |
+| save refused as implausible repark | discard **and put a question on screen** | `degradedToPrompt(shownAt)` |
+
+The third's second half (`phase = Notified(now)`) sat in the same `copy` looking like an unrelated
+line. Neutralizing the distinction — making a plain discard also clear the phase — turns exactly one
+test red, the new one: with the prompt state gone the response-timeout abort never fires, which is
+BUG-STUCK-SESSION re-opened, and **1563 pre-existing tests do not notice**.
+
+**The identity trap finally has a guard.** The hold watchdog compares `PendingConfirm` with `===`
+behind a `distinctUntilChanged`, so a field that the fix loop updates — a fix counter, a refreshed
+location — makes every fix produce a new instance, restarting the watchdog forever and settling the
+hold never. That was a known landmine with nothing enforcing it; making a phase transition rebuild
+the instance now turns a test red.
+
+**Zero behaviour change**, **no test file touched**, coordinator −19 lines and one dead lambda gone.
+**1570 tests.**
 
 ---
 
