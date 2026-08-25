@@ -2079,7 +2079,7 @@ the pair of tests makes the asymmetry impossible to erase silently.
 
 ### DET-STATE-SESSION-COMPOSITION-001 — the order the five are reduced in
 
-**Commit:** pending · **Ticket:** `docs/backlog/det-state-session-composition-001.md` · plan step
+**Commit:** `b42f0d01` · **Ticket:** `docs/backlog/det-state-session-composition-001.md` · plan step
 P2.6. **Closes Phase 2.**
 
 `ParkingDetectionState` leaves the coordinator and becomes
@@ -2114,6 +2114,48 @@ than one that admits it is a convention.
 
 **Phase 2 closed:** seven steps, `c5f06bb5` → here. Forty flat fields became five sub-states with
 named transitions, and not one assert was edited in any of them.
+
+---
+
+### DET-STAGE-SCAFFOLD-001 — the precedence stops being where the code happens to sit
+
+**Commit:** pending · **Ticket:** `docs/backlog/det-stage-scaffold-001.md` · plan step P3.0, the
+scaffold that opens Phase 3. **No branch moves yet.**
+
+The detection loop evaluates ten branches per fix and the first that applies wins. That order IS
+behaviour — permute two entries and a different pin gets planted — and until now it was **the
+physical position of the blocks inside a 700-line method**. Worse, the KDoc documenting it was
+wrong: it omits the hold (which runs FIRST) and calls the user-confirm branch a short-circuit when
+three branches outrank it.
+
+`domain/detection/stages/SessionStage.kt` states the order as a value, with the reason each entry
+outranks the one below it, plus the `SessionStage` interface, `StageVerdict` (`Skip`/`Handled`) and
+the sealed `DetectionEffect`.
+
+**The order is stated TWICE on purpose** — once as the enum's declaration order, once as
+`detectionStageOrder`. Two statements that must agree, so permuting either one alone fails. Verified
+both ways:
+
+| Neutralization | |
+|---|---|
+| permute the list only | 🔴 2 tests |
+| permute the enum only | 🔴 1 test |
+
+That is the plan's literal acceptance criterion for P3.0, met in both directions rather than one.
+
+The order itself is not invented: it is the MEASURED one from `StagePrecedenceCharacterizationTest`
+(P0.1), whose four discriminating tests each pin an adjacent pair. `StageOrderTest` records which
+test pins which pair, so a future permutation lands on the evidence instead of on an opinion.
+
+**And `DetectionEffect` does not land as decoration.** Nothing emits one yet, so `StageScaffoldTest`
+maps every I/O method the coordinator performs today onto the effect that will replace it, through
+an exhaustive `when` — an arm nobody has thought about shows up as a gap now rather than as a
+surprise in P3.11. Same technique `SavedParkingShapeTest` used in P1.10.
+
+`StageVerdict.Handled` also makes explicit the two things that were implicit in whether a block
+happened to be followed by a `return`: whether it asks for effects, and whether it ends the pass.
+
+**Zero behaviour change** — nothing calls any of it. **1629 tests.**
 
 ---
 
