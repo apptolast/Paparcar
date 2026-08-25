@@ -116,9 +116,11 @@ class StageScaffoldTest {
      */
     private fun replacedMethod(effect: DetectionEffect): String = when (effect) {
         is DetectionEffect.Confirm -> "runConfirm / beginConfirm / saveUnattendedZone"
-        is DetectionEffect.AskUser -> "nudgeUnattended / closeHumanPoweredRide"
+        is DetectionEffect.AskUser -> "nudgeUnattended"
         is DetectionEffect.NotifyPrompt -> "notifyParkingConfirmation"
         is DetectionEffect.DegradeToPrompt -> "degradeToPrompt (kept compound: it reads its own clock)"
+        is DetectionEffect.DiscardCandidate -> "the Candidate(DISCARDED) branch of evaluateCandidatePhase"
+        is DetectionEffect.CloseHumanPowered -> "closeHumanPoweredRide"
         is DetectionEffect.RecordPromptShown -> "the PROMPT_SHOWN Decision event"
         is DetectionEffect.RecordCandidateOpened -> "the Candidate(OPENED) event"
         DetectionEffect.DismissPrompt -> "notificationPort.dismiss"
@@ -133,6 +135,8 @@ class StageScaffoldTest {
             DetectionEffect.AskUser("no_drive", "veh-1", here),
             DetectionEffect.NotifyPrompt(ParkingConfidence.Low),
             DetectionEffect.DegradeToPrompt("ar_enter", "weak_evidence", here),
+            DetectionEffect.DiscardCandidate(2_000L, here),
+            DetectionEffect.CloseHumanPowered("veh-1", here),
             DetectionEffect.RecordPromptShown("high_candidate", ParkingConfidence.Low),
             DetectionEffect.RecordCandidateOpened("from Notified"),
             DetectionEffect.DismissPrompt,

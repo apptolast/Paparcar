@@ -2206,7 +2206,7 @@ no assert edited. **1629 tests.**
 
 ### DET-STAGE-FAST-CONFIRM-001 — two questions that were one boolean
 
-**Commit:** pending · **Ticket:** `docs/backlog/det-stage-fast-confirm-001.md` · plan step P3.2.
+**Commit:** `88cc4557` · **Ticket:** `docs/backlog/det-stage-fast-confirm-001.md` · plan step P3.2.
 
 [DET-D-03] The steps+egress lane becomes `stages/FastConfirmStage.kt`: the user drove, stopped, took
 enough steps AND walked far enough from the car, so there is nothing left to wait for and the
@@ -2234,6 +2234,38 @@ the third consumer.
 
 **Zero behaviour change**, coordinator −8 lines net (the runner grew as the branch left), P0.1's six
 precedence tests green with no assert edited. **1629 tests.**
+
+---
+
+### DET-STAGE-CANDIDATE-001 — a stale snapshot may not stamp a freshness line
+
+**Commit:** pending · **Ticket:** `docs/backlog/det-stage-candidate-001.md` · plan step P3.3.
+
+[DET-D-02] The open candidate's decision tree becomes `stages/CandidateStage.kt`. It ends the pass on
+**every** branch, inconclusive included: a candidate in flight is not a state anything below it may
+re-decide, and that was always true — the branch was wrapped in a `return@collect` regardless of what
+it decided.
+
+**The finding is a limit of the scaffold, and it is now written into it.** `StageVerdict.newState` is
+only safe for changes that are IDEMPOTENT against a stale snapshot. A stage reasons about the state
+as it stood at the top of the iteration; by the time its verdict is applied the step collector may
+have counted a step. Assigning a phase is idempotent. `egress.candidateDiscarded()` is not — it
+stamps the freshness line at *wherever the count stands now*, and replaying it from a snapshot
+silently loses the steps taken in between, which is the exact failure
+[DET-EVIDENCE-MUST-NOT-LOWER-CONFIDENCE-001] exists to prevent. So the discard is an EFFECT, applied
+by the executor to the live state, with the transition verbatim.
+
+**One effect absorbed two different plumbings.** The human-powered close is reached from two stages,
+and each ended the session a different way: the candidate branch returned `true`, the scoring branch
+relied on its call site ending the session for every terminal branch. `CloseHumanPowered` is now one
+effect with one answer, and both call sites read `endsSession` the same way.
+
+**Zero behaviour change**, coordinator **−90 lines**, P0.1's six precedence tests and all 18 replays
+green with no assert edited. **1629 tests.**
+
+Three of ten stages moved. `parkingDecisionInput` now has all three of its consumers, so it is ready
+to move to `stages/` — it stays one more step so that move is its own diff rather than a rider on
+this one.
 
 ---
 

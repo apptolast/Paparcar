@@ -156,6 +156,15 @@ sealed interface StageVerdict {
     /**
      * This stage handled the fix.
      *
+     * ⚠️ **[newState] is only safe for changes that are IDEMPOTENT against a stale snapshot.** A
+     * stage reasons about the state as it stood at the top of the iteration, and by the time its
+     * verdict is applied the step collector may have counted a step. Assigning a phase is
+     * idempotent — the same phase results whatever the counters did. A transition defined
+     * RELATIVE to a counter is not: `egress.candidateDiscarded()` stamps the freshness line at
+     * "wherever the count is NOW", and replaying it from a snapshot silently loses the steps taken
+     * in between. Those belong in [effects], where the executor applies the transition to the live
+     * state exactly as the branch did.
+     *
      * @param stopsIteration The `return@collect` of today's loop, made explicit. A stage that
      *   handles a fix does not necessarily end the pass — the false-ENTER abort does, the scoring
      *   stage does not — and until now the difference was whether the block happened to be followed
@@ -240,6 +249,25 @@ sealed interface DetectionEffect {
         val reasonKey: String,
         val at: GpsPoint,
     ) : DetectionEffect
+
+    /**
+     * [BUG-COORD-105][DET-EVIDENCE-MUST-NOT-LOWER-CONFIDENCE-001] The candidate window expired
+     * without its egress proof: fall back to the prompt that is still on screen and move the
+     * freshness line.
+     *
+     * An EFFECT rather than a `newState`, because moving that line is defined relative to the step
+     * count as it stands when it is applied — see the warning on [StageVerdict.Handled].
+     */
+    data class DiscardCandidate(val shownAt: Long, val at: GpsPoint) : DetectionEffect
+
+    /**
+     * [DET-HUMAN-POWERED-EARLY-CLOSE-001] A muscle-powered ride at a matured rest: nudge and END.
+     *
+     * Distinct from [AskUser] even though it nudges, because it also ends the SESSION — and the two
+     * stages that reach it did so through different plumbing (one returned `true`, the other relied
+     * on its call site ending the session for every terminal branch). One effect, one answer.
+     */
+    data class CloseHumanPowered(val vehicleId: String?, val at: GpsPoint) : DetectionEffect
 
     /** Take a prompt off screen. Replaces the direct `notificationPort.dismiss` calls. */
     data object DismissPrompt : DetectionEffect

@@ -10,7 +10,6 @@ import io.apptolast.paparcar.domain.usecase.parking.CalculateParkingConfidenceUs
 import io.apptolast.paparcar.domain.usecase.parking.EvaluateParkingDecisionUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ParkingDecision
 import io.apptolast.paparcar.domain.usecase.parking.ParkingDecisionInput
-import io.apptolast.paparcar.domain.usecase.parking.UnattendedSaveReason
 
 /**
  * [09 §4] The LAST stage of the precedence, and therefore **the first one moved** — everything above
@@ -111,11 +110,7 @@ class ConfidenceScoringStage(
                     "response timeout [DET-HUMAN-POWERED-EARLY-CLOSE-001]",
             ),
             effects = listOf(
-                DetectionEffect.AskUser(
-                    reasonKey = UnattendedSaveReason.HUMAN_POWERED.key,
-                    vehicleId = state.session.attributedVehicleId,
-                    at = fix,
-                ),
+                DetectionEffect.CloseHumanPowered(state.session.attributedVehicleId, fix),
             ),
             stopsIteration = true,
         )

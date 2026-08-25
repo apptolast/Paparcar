@@ -26,6 +26,7 @@ import io.apptolast.paparcar.domain.detection.state.AnchorCapture
 import io.apptolast.paparcar.domain.detection.state.AnchorTrust
 import io.apptolast.paparcar.domain.detection.state.ConfirmationLifecycle
 import io.apptolast.paparcar.domain.detection.stages.ConfidenceScoringStage
+import io.apptolast.paparcar.domain.detection.stages.CandidateStage
 import io.apptolast.paparcar.domain.detection.stages.FastConfirmStage
 import io.apptolast.paparcar.domain.detection.stages.SessionStage
 import io.apptolast.paparcar.domain.detection.stages.DetectionEffect
@@ -1266,20 +1267,10 @@ class CoordinatorParkingDetector(
                         }
                     }
 
-                    // Candidate-phase decision tree.
-                    val candidate = state.confirmation.phase as? ConfirmationPhase.Candidate
-                    if (candidate != null) {
-                        val didConfirm = evaluateCandidatePhase(
-                            phase = candidate,
-                            location = location,
-                            state = state,
-                            now = now,
-                            activeVehicleId = attributedVehicleId,
-                            activeVehicleType = attributedVehicleType,
-                        )
-                        if (didConfirm) completed = true
-                        return@collect
-                    }
+                    // [DET-D-02] Candidate-phase decision tree.
+                    val candidatePass = runStage(candidateStage, state, location, now, stoppedDuration)
+                    if (candidatePass.endsSession) completed = true
+                    if (candidatePass.endsPass) return@collect
 
                     // [DET-D-03][DET-KINEMATIC-EGRESS-001] Steps + egress fast confirm.
                     val fastPass = runStage(fastConfirmStage, state, location, now, stoppedDuration)
@@ -1289,11 +1280,9 @@ class CoordinatorParkingDetector(
                     // [DET-HUMAN-POWERED-EARLY-CLOSE-001] The scorer can now END the session: High
                     // confidence certifies the sustained stop, and on a muscle-powered ride that is
                     // the entire verdict — no candidate, no prompt, no 15-minute wait.
-                    // The scorer's only terminal exit is the human-powered close, which ends both.
-                    if (runStage(confidenceScoringStage, state, location, now, stoppedDuration).endsPass) {
-                        completed = true
-                        return@collect
-                    }
+                    val scoringPass = runStage(confidenceScoringStage, state, location, now, stoppedDuration)
+                    if (scoringPass.endsSession) completed = true
+                    if (scoringPass.endsPass) return@collect
                 }
         } finally {
             stepJob.cancel()
@@ -1751,111 +1740,6 @@ class CoordinatorParkingDetector(
         return sessionShouldEnd
     }
 
-    /**
-     * Evaluates a stop that has already reached [ConfirmationPhase.Candidate]. Three paths:
-     *  1. **Step proof** (hasStepsProof) — strongest, fires the moment the user steps out.
-     *  2. **Vehicle-exit fast** — window elapsed with an IN_VEHICLE→EXIT signal present.
-     *  3. **Slow path** — only if steps confirm; otherwise the candidate is discarded as a
-     *     likely queue / traffic stop.
-     *
-     * Returns true if the candidate was confirmed (caller marks the session completed).
-     */
-    private suspend fun evaluateCandidatePhase(
-        phase: ConfirmationPhase.Candidate,
-        location: GpsPoint,
-        state: DetectionSessionState,
-        now: Long,
-        activeVehicleId: String?,
-        activeVehicleType: VehicleType?,
-    ): Boolean {
-        // [DET-A] Steps prove egress only when paired with displacement from the park anchor.
-        val stepsReached = state.egress.stepCount >= config.minStepsToConfirm
-        val hasEgress = hasEgressDisplacement(state, location)
-        if (stepsReached && !hasEgress) {
-            PaparcarLogger.d(
-                DIAG,
-                "  ⊘ CANDIDATE steps proof gated by EGRESS — anchorSet=${state.anchorTrust.anchor != null}, " +
-                    "need ≥${config.minEgressDisplacementMeters}m walked from park anchor [DET-A]"
-            )
-        }
-
-        // [DET-D-02] Delegate the verdict to the pure decision function. The orchestrator below
-        // keeps the side effects (confirm, phase mutation, diagnostics).
-        val elapsed = now - phase.highReachedAt
-        val decision = evaluateParkingDecision(
-            parkingDecisionInput(
-                state = state,
-                location = location,
-                now = now,
-                activeVehicleType = attributedVehicleType,
-                elapsedSinceHighMs = elapsed,
-                hadVehicleExit = phase.hadVehicleExit,
-                // In the candidate phase by construction: High confidence only arrives after the
-                // sustained-stop tier. [DET-HUMAN-POWERED-EARLY-CLOSE-001]
-                restCertified = true,
-            )
-        )
-        PaparcarLogger.d(
-            DIAG,
-            "  ⏳ CANDIDATE phase — elapsed=${elapsed}ms steps=${state.egress.stepCount}/${config.minStepsToConfirm} → decision=$decision"
-        )
-
-        return when (decision) {
-            is ParkingDecision.Confirmed -> {
-                PaparcarLogger.d(DIAG, "  ▶ CANDIDATE confirmed via ${decision.pathLabel} — entering confirmParking(reliability=${decision.reliability})")
-                val locationToConfirm = refinedParkLocation(state, location)
-                // [DET-C-02] May hold instead of confirming now; returns true only on immediate confirm.
-                beginConfirm(
-                    location = locationToConfirm,
-                    reliability = decision.reliability,
-                    vehicleId = attributedVehicleId,
-                    pathLabel = decision.pathLabel,
-                    now = now,
-                )
-            }
-            ParkingDecision.Rejected -> {
-                // Window expired without the egress conjunction — discard. Phase falls back to
-                // Notified (preserving shownAt so the response-timeout still applies — the user can
-                // still tap the visible prompt). [FIX BUG-COORD-105][REFACTOR-200]
-                PaparcarLogger.d(
-                    DIAG,
-                    "  ⊘ CANDIDATE expired without egress proof — discarding, steps ${state.egress.stepCount} " +
-                        "kept but no longer fresh [BUG-GARAGE-COLA-001][DET-EVIDENCE-MUST-NOT-LOWER-CONFIDENCE-001]"
-                )
-                _detectionState.update {
-                    it.copy(
-                        confirmation = it.confirmation.notified(phase.shownAt),
-                        // [DET-EVIDENCE-MUST-NOT-LOWER-CONFIDENCE-001] A VERDICT MAY NOT DESTROY A
-                        // MEASUREMENT. This used to be `stepCount = 0` — "the window expired, so
-                        // those steps were phantom jiggle, wipe them" — which is the right thing to
-                        // say to the NEXT candidate and the wrong thing to say to every other
-                        // reader: the anchor lock, the walk-reach ceilings and, above all, the
-                        // 15-minute unattended verdict that reads the same counter to justify
-                        // saving a zone. Those steps HAPPENED; what expired is their power to
-                        // confirm. So the count stands and the freshness line moves: a later
-                        // candidate must earn `minStepsToConfirm` NEW steps beyond this mark.
-                        // Only measured driving still zeroes both, exactly like `walkFixesSinceDriving`.
-                        egress = it.egress.candidateDiscarded(),
-                    )
-                }
-                logDetection { sid -> DetectionEvent.Candidate(sid, now, action = "DISCARDED", phase = "Candidate→Notified", location = location) }
-                false
-            }
-            is ParkingDecision.Prompt -> {
-                degradeToPrompt(decision.pathLabel, decision.reason, location, now)
-                false
-            }
-            // [DET-HUMAN-POWERED-EARLY-CLOSE-001] Terminal: nothing this candidate (or any next one
-            // on the same stop) could produce is a car park. Reached when the human-powered evidence
-            // lands AFTER the candidate opened — an AR `ON_BICYCLE` ENTER is delivered up to ~2 min
-            // late, so the stop can mature before the ride is known to have been muscle-powered.
-            ParkingDecision.CloseHumanPowered -> {
-                closeHumanPoweredRide(location, attributedVehicleId, now)
-                true
-            }
-            ParkingDecision.Inconclusive -> false
-        }
-    }
 
     /**
      * [DET-SOLID-001] All confirm conditions hold but the evidence is too weak for a silent
@@ -2177,6 +2061,13 @@ class CoordinatorParkingDetector(
         evaluateParkingDecision = evaluateParkingDecision,
         decisionInput = ::stageDecisionInput,
         humanPowered = { state, now -> humanPoweredRide(state, attributedVehicleType, now) },
+    )
+
+    private val candidateStage = CandidateStage(
+        evaluateParkingDecision = evaluateParkingDecision,
+        decisionInput = ::stageDecisionInput,
+        refinedParkLocation = ::refinedParkLocation,
+        hasEgressDisplacement = ::hasEgressDisplacement,
     )
 
     private val fastConfirmStage = FastConfirmStage(
@@ -2700,6 +2591,25 @@ class CoordinatorParkingDetector(
                         pathLabel = effect.pathLabel,
                         now = now,
                     )
+                }
+                is DetectionEffect.DiscardCandidate -> {
+                    // Applied to the LIVE state, not to the stage's snapshot: the freshness line is
+                    // stamped at wherever the count stands NOW.
+                    _detectionState.update {
+                        it.copy(
+                            confirmation = it.confirmation.notified(effect.shownAt),
+                            egress = it.egress.candidateDiscarded(),
+                        )
+                    }
+                    logDetection { sid ->
+                        DetectionEvent.Candidate(
+                            sid, now, action = "DISCARDED", phase = "Candidate→Notified", location = effect.at,
+                        )
+                    }
+                }
+                is DetectionEffect.CloseHumanPowered -> {
+                    closeHumanPoweredRide(effect.at, effect.vehicleId, now)
+                    sessionCompleted = true
                 }
                 is DetectionEffect.DegradeToPrompt ->
                     degradeToPrompt(effect.pathLabel, PromptReason.entries.first { it.key == effect.reasonKey }, effect.at, now)
