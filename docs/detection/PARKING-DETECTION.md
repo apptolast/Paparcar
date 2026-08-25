@@ -1961,7 +1961,7 @@ guarded, and saying so is the point of running the experiment.
 
 ### DET-STATE-DRIVE-PROOF-001 — three lifetimes that looked like one accumulator
 
-**Commit:** pending · **Ticket:** `docs/backlog/det-state-drive-proof-001.md` · plan step P2.4.
+**Commit:** `c43526c1` · **Ticket:** `docs/backlog/det-state-drive-proof-001.md` · plan step P2.4.
 
 The two independent drive proofs, the peak they promote, the look-back ring and the two band clocks
 become `domain/detection/state/DriveProof.kt`. `EvaluateShortHopDriveProofUseCase` is **absorbed**
@@ -2003,6 +2003,43 @@ meant — and the old names gave no clue which was which.
 **Zero behaviour change**, coordinator −134 lines, one injected class gone. **1603 tests.**
 The 12 moved assertions are pinned 12-for-12 in the P0.4 baseline, with the single rename written
 down there.
+
+---
+
+### DET-STATE-ANCHOR-TRUST-001 — one rebind where the same condition was written five times
+
+**Commit:** pending · **Ticket:** `docs/backlog/det-state-anchor-trust-001.md` · plan step P2.5, the
+largest of Phase 2.
+
+Seventeen fields — the anchor, the stop it was captured at, its five sealed witnesses, the
+stop-window fixes, the walk-in odometer, the egress birth, the reposition streak — become
+`domain/detection/state/AnchorTrust.kt`, with `AnchorCapture`, `WalkIn` and `EgressBirth` inside it.
+
+**The heart of the step.** Sealing the capture was `if (anchorStopOfRecord != s.anchorCapturedAtStop)`
+written out **five times**, once per witness, inside a forty-field `copy`. A sixth witness had to
+REMEMBER to repeat it and nothing failed if it did not; a witness removed left its condition behind.
+`rebind()` makes the capture bind as a whole or not at all — and it is the same identity test as
+before, so a same-stop accuracy refinement still keeps the original taints (the taints belong to the
+STOP, not to the sharpness of the fix).
+
+Verified discriminating by making one witness forget to re-seal: 🔴 **4 tests**, three new and one
+pre-existing (`should_still_taint_walk_entered_anchor_when_step_events_corroborate_the_walk_in`).
+
+**⚠️ One asymmetry is PRESERVED rather than fixed, and it is worth knowing about.** When the anchor
+is cleared, `walkInSpanMeters` and `gapMs` are reset and `walkFixes`, `stepEvents` and `sawSteps` are
+**not**. That reads like an oversight, and it is NOT unobservable: `isAnchorWalkEntered` reads the
+three survivors without requiring an anchor, and both of its callers can be reached with none — the
+unattended timeout above all. Zeroing them would flip a walk-entered verdict to "clean" exactly
+where the anchor is missing, which is the case the asymmetric-failure doctrine treats with most
+suspicion. `AnchorCapture.clearedWithAnchor()` reproduces today's behaviour and names it, so the
+question can be asked on its own with a replay behind it.
+
+**The `refinedParkLocation` loose end closes by construction** (07 §2.1): its fallback reads
+`bestFix`, which read the stopped-fixes list of *another machine*. That list is now the anchor's own
+`stopWindowFixes`, so the fallback and the anchor are the same machine and there was no product
+decision to make.
+
+**Zero behaviour change**, **no test file touched**, coordinator **−133 lines**. **1614 tests.**
 
 ---
 

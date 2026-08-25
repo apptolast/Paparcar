@@ -21,7 +21,11 @@ import io.apptolast.paparcar.domain.detection.physics.creditSpeedBand
 import io.apptolast.paparcar.domain.detection.physics.sustainedDriveWitnessed
 import io.apptolast.paparcar.domain.detection.physics.walkableInsideGapMeters
 import io.apptolast.paparcar.domain.detection.physics.SessionOutcome
+import io.apptolast.paparcar.domain.detection.state.AnchorCapture
+import io.apptolast.paparcar.domain.detection.state.AnchorTrust
 import io.apptolast.paparcar.domain.detection.state.ConfirmationLifecycle
+import io.apptolast.paparcar.domain.detection.state.EgressBirth
+import io.apptolast.paparcar.domain.detection.state.WalkIn
 import io.apptolast.paparcar.domain.detection.state.DriveProof
 import io.apptolast.paparcar.domain.detection.state.DriveProofSource
 import io.apptolast.paparcar.domain.detection.state.EgressEvidence
@@ -167,11 +171,10 @@ class CoordinatorParkingDetector(
      *  are still encoded — they're just no longer reachable in an invalid form.]
      */
     private data class ParkingDetectionState(
-        /** Epoch-ms of the first GPS sample with speed < 1 m/s in the current stop. `null` while moving. */
-        val stoppedSince: Long? = null,
-        /** GPS fixes collected within [ParkingDetectionConfig.initialStopWindowMs] of the initial stop.
-         *  The fix with the lowest [GpsPoint.accuracy] value is used as the saved parking spot. */
-        val stoppedFixes: List<GpsPoint> = emptyList(),
+        /** [09 §5] Where the car is and how much that claim is worth: the anchor, the stop it
+         *  was captured at, its five sealed witnesses, the walk-in odometer, the egress birth
+         *  and the reposition streak. */
+        val anchorTrust: AnchorTrust = AnchorTrust(),
         /** [09 §5] The prompt/confirm conversation: which [ConfirmationPhase] this stop is in, the
          *  confirm held through its grace window, and the user's "Sí". */
         val confirmation: ConfirmationLifecycle = ConfirmationLifecycle(),
@@ -182,105 +185,6 @@ class CoordinatorParkingDetector(
          *  counter, last speed, previous fix, arm evidence, vehicle attribution. Every change goes
          *  through one of its named transitions; nothing here is written field by field. */
         val session: SessionTelemetry = SessionTelemetry(),
-        /** Best (lowest accuracy value) GPS fix recorded while the vehicle was stopped. Cleared
-         *  when the vehicle drives away. Also serves as the egress anchor: [hasEgressDisplacement]
-         *  measures how far the current fix is from it. [code-review #4: a dedicated egressAnchor
-         *  pinned on the *first* stopped fix could latch onto a poor-accuracy fix; reusing
-         *  bestStopLocation gets the lowest-accuracy fix within the initial-stop window, which is
-         *  exactly the parked-car position we want to measure displacement from.] */
-        val bestStopLocation: GpsPoint? = null,
-        /** [ANCHOR-LOCK-001] `stoppedSince` of the stop during which [bestStopLocation] was
-         *  captured. When the anchor is LOCKED (egress steps observed), refinement is allowed
-         *  only while still in that same stop — a LATER stop is the pedestrian standing still,
-         *  never the car, and must not re-capture the anchor. */
-        val anchorCapturedAtStop: Long? = null,
-        /** [DET-ANCHOR-FREEZE-001] `true` once a stop matured past
-         *  [ParkingDetectionConfig.anchorFreezeStopMs] after measured in-session driving: the car
-         *  provably came to rest at [bestStopLocation]. A frozen anchor behaves like a LOCKED one
-         *  (no re-capture at later stops, no clear below real driving speed, reposition-burst
-         *  vetoed) WITHOUT needing the step stream — the guard for hardware whose step counter
-         *  delivers late or never (field 2026-07-11, Redmi: zero steps for the whole walk home;
-         *  the unlocked anchor followed the pedestrian and the pin landed at the front door). */
-        val anchorFrozen: Boolean = false,
-        /** [DET-ANCHOR-FREEZE-001] Moving fixes below a resolved CAR verdict since the last one
-         *  WITH it — the "entered this stop on foot" odometer. A stop may only freeze while this
-         *  is ≤ [ParkingDetectionConfig.anchorFreezeMaxWalkFixes]: the real park is reached
-         *  driving (count 0); the front-door stand is reached after a stretch of walking fixes. */
-        val walkFixesSinceDriving: Int = 0,
-        /** [DET-KINEMATIC-EGRESS-001] QUALITY pedestrian-band fixes observed while the anchor is
-         *  FROZEN — the GPS-measured egress walk. Reaching
-         *  [ParkingDetectionConfig.kinematicEgressMinWalkFixes] (with egress displacement) is the
-         *  mute-step-counter peer of the step proof. Survives walk pauses (a crossing); only a
-         *  resolved CAR movement (which also clears the anchor) resets it. */
-        val kinematicEgressFixes: Int = 0,
-        /** [DET-ANCHOR-EGRESS-001] The fix at which the FIRST egress evidence (a counted step or
-         *  a kinematic walk fix) was observed with the anchor PINNED — where the egress walk was
-         *  BORN. A genuine egress is born at the car, so this must sit within the accuracy
-         *  envelopes of [bestStopLocation]; an egress born far away proves the anchor belongs to
-         *  an intermediate stop (field 2026-07-15: frozen at a traffic light 1.11 km before the
-         *  real park, the walk at the destination confirmed kinematic+egress AT the light).
-         *  Cleared with the anchor. */
-        val egressOriginFix: GpsPoint? = null,
-        /** [DET-ANCHOR-EGRESS-001] Steps already counted when [egressOriginFix] was recorded —
-         *  they widen the allowed birth distance (the user may have walked a few steps before
-         *  the first post-pin fix arrived on a sparse stream). */
-        val egressOriginStepCount: Int = 0,
-        /** [DET-CREDIBLE-DRIVE-001] Value of [walkFixesSinceDriving] at the moment
-         *  [bestStopLocation] was (re)captured — how much WALKING led into the stop the anchor
-         *  belongs to. Above [ParkingDetectionConfig.anchorFreezeMaxWalkFixes] the anchor is
-         *  WALK-ENTERED: the pedestrian's standing spot, not the car's rest (field 2026-07-15,
-         *  Camelias-Oppo: the walk back from a reposition, step counter mute, ended frozen at
-         *  the house door 37 m from the car). A walk-entered anchor may keep detecting, but no
-         *  auto-confirm may pin it silently — ask instead. */
-        val anchorWalkFixesAtCapture: Int = 0,
-        /** [DET-CONFIRM-FRESHNESS-001] [stepEventsSinceDriving] at the moment [bestStopLocation]
-         *  was (re)captured. Corroborates the walk-entered taint: a person walking into a stop
-         *  fires step events on the way (live counter), a car's final parking maneuver fires none.
-         *  Field 2026-07-23, Vista Hermosa: the deceleration into the spot (13.5→2.65→1.49→1.44
-         *  m/s, acc 37–56 m) tainted a PERFECT anchor as walk-entered with zero steps — the
-         *  silent confirm degraded to a 1 AM prompt and the timeout guard then refused the save. */
-        val anchorStepEventsAtCapture: Int = 0,
-        /** [DET-CONFIRM-FRESHNESS-001] Whether the step sensor had already proven itself ALIVE
-         *  ([sessionSawSteps]) by the time [bestStopLocation] was (re)captured. A taint without
-         *  step corroboration is only meaningful when the counter could not have testified —
-         *  snapshot at capture so a counter that wakes late cannot retroactively soften a taint
-         *  earned while it was silent. */
-        val anchorSawStepsAtCapture: Boolean = false,
-        /** [DET-WALK-ENTERED-ANCHOR-ZONE-001] First fix of the current walk-band run — the position
-         *  at which [walkFixesSinceDriving] left zero. Reset together with that odometer by any
-         *  resolved CAR movement, so it always marks where the "entered on foot" stretch began. */
-        val walkRunOriginFix: GpsPoint? = null,
-        /** [DET-WALK-ENTERED-ANCHOR-ZONE-001] Metres between [walkRunOriginFix] and
-         *  [bestStopLocation] at the moment the anchor (re)bound — a MEASURED bound on how far the
-         *  walk-in could have dragged the anchor. [anchorStepEventsAtCapture] bounds the same offset
-         *  but only speaks when the step counter is alive; this one is a GPS geometry and always
-         *  does. The unattended-timeout fallback used to demand the step witness and therefore lost
-         *  every park whose device had a mute counter (field 2026-08-16, Redmi: 25,6 min at 96,7
-         *  km/h, home reached, zero pins). Cleared with the anchor. */
-        val anchorWalkInSpanMeters: Double = 0.0,
-        /** [DET-GAP-ANCHOR-001] Size of the GPS hole the CURRENT stop was entered through, in ms,
-         *  or `0L` when it was witnessed normally: the fix that opened the stop arrived more than
-         *  [ParkingDetectionConfig.anchorGapMaxFixGapMs] after a [previousFix] still at REAL
-         *  driving speed. The car was last SEEN moving and its arrival at rest was never witnessed
-         *  — the stop's location may be a drive-past point. Recomputed each time a stop opens;
-         *  read at anchor (re)bind.
-         *  [DET-GAP-ANCHOR-ZONE-001] Holds the MAGNITUDE rather than the fact, because the hole's
-         *  duration is what bounds the doubt it creates. */
-        val stopEnteredAfterGapMs: Long = 0L,
-        /** [DET-GAP-ANCHOR-001] [stopEnteredAfterGapMs] at the moment [bestStopLocation] was
-         *  (re)bound to its stop — the GAP-ENTERED taint. Like the walk-entered taint it
-         *  invalidates the ANCHOR, not the park: every proof may hold (the user did park and
-         *  walk away) but not where this anchor says, so silent confirm degrades to a prompt and
-         *  a user "Sí" re-anchors at the user's current stop. Field 2026-07-29, Redmi Av. Sanlúcar:
-         *  a 100-s MIUI hole ended in one speed-0 fix mid-route and steps+egress pinned 315 m
-         *  before the real park.
-         *  [DET-GAP-ANCHOR-ZONE-001] The unattended save no longer nudges unconditionally: the
-         *  phone can only have covered the car→anchor offset on foot inside the hole, so this
-         *  duration bounds it and the park is kept as an area once the car has come to a sustained
-         *  rest. See `EvaluateUnattendedParkingSaveUseCase`. */
-        val anchorGapMsAtCapture: Long = 0L,
-        // ── REPOSITION DETECTION (PARKING-001) ────────────────────────────────
-        val consecutiveRepositionFixes: Int = 0,
         // ── STEP DETECTOR (BUG-GARAGE-COLA-001 + BUG-FALSE-ENTER-WALKING) ─────
         /** Pedestrian steps counted under two different gates depending on session phase:
          *  - **Pre-drive** (`!hasEverReachedDrivingSpeed`): every step counts, regardless of
@@ -303,8 +207,7 @@ class CoordinatorParkingDetector(
         val freshStepCount: Int get() = egress.freshStepCount
 
         /** Returns the most GPS-accurate fix collected at the moment of stopping, or [fallback]. */
-        fun bestFix(fallback: GpsPoint): GpsPoint =
-            stoppedFixes.minByOrNull { it.accuracy } ?: fallback
+        fun bestFix(fallback: GpsPoint): GpsPoint = anchorTrust.bestFix(fallback)
 
         /** Convenience accessor for the mismatch heuristic — km/h is the human-facing unit. */
         val maxSpeedKmh: Float get() = drive.provenMaxSpeedMps * 3.6f
@@ -319,7 +222,7 @@ class CoordinatorParkingDetector(
          *  from [anchorGapMsAtCapture] so the fact and its magnitude can never disagree. The
          *  consumers that only need "is it tainted?" (user-confirm re-anchoring, the silent-confirm
          *  degrade to a prompt) read this; the unattended save reads the duration itself. */
-        val anchorGapEnteredAtCapture: Boolean get() = anchorGapMsAtCapture > 0L
+        val anchorGapEnteredAtCapture: Boolean get() = anchorTrust.capture.gapEntered
     }
 
     private val _detectionState = MutableStateFlow(ParkingDetectionState())
@@ -701,8 +604,8 @@ class CoordinatorParkingDetector(
                             egress = s.egress.onStepEvent(
                                 stepAtMs = stepAtMs,
                                 driveAuthorized = s.session.driveAuthorized,
-                                stopped = s.stoppedSince != null,
-                                anchorPresent = s.bestStopLocation != null,
+                                stopped = s.anchorTrust.stopStartedAt != null,
+                                anchorPresent = s.anchorTrust.anchor != null,
                                 anchorPinned = isAnchorPinned(s),
                                 lastFixSpeedMps = s.session.lastSpeedMps,
                                 lastFixCredible = s.drive.lastFixCredible,
@@ -747,10 +650,10 @@ class CoordinatorParkingDetector(
                     if (!updated.session.driveAuthorized) {
                         PaparcarLogger.d(DIAG, "  ✦ step #${updated.egress.stepCount} (pre-drive, false-ENTER candidate)")
                         logDetection { sid -> DetectionEvent.Step(sid, nowMs(), updated.egress.stepCount, stopped = false) }
-                    } else if (updated.stoppedSince != null) {
+                    } else if (updated.anchorTrust.stopStartedAt != null) {
                         PaparcarLogger.d(DIAG, "  ✦ step #${updated.egress.stepCount} (stopped)")
                         logDetection { sid -> DetectionEvent.Step(sid, nowMs(), updated.egress.stepCount, stopped = true) }
-                    } else if (updated.bestStopLocation != null) {
+                    } else if (updated.anchorTrust.anchor != null) {
                         PaparcarLogger.d(DIAG, "  ✦ step #${updated.egress.stepCount} (egress walk, anchor set) [DET-AR-FIRST-001]")
                         logDetection { sid -> DetectionEvent.Step(sid, nowMs(), updated.egress.stepCount, stopped = false) }
                     }
@@ -919,7 +822,7 @@ class CoordinatorParkingDetector(
                         DIAG,
                         "  state hasEverMoved=${state.session.hasEverMoved} hasEverReachedDrivingSpeed=${state.session.driveAuthorized} " +
                                 "userConfirmed=${state.confirmation.userConfirmed} " +
-                                "vehicleExit=${state.egress.vehicleExitHint} stoppedSince=${state.stoppedSince} " +
+                                "vehicleExit=${state.egress.vehicleExitHint} stoppedSince=${state.anchorTrust.stopStartedAt} " +
                                 "stoppedDur=${stoppedDuration}ms phase=${state.confirmation.phase}"
                     )
 
@@ -1219,7 +1122,7 @@ class CoordinatorParkingDetector(
                         // anchor the save at the user's current stop instead (they answer near
                         // the car; the wrong anchor may sit hundreds of meters out).
                         val locationToConfirm = if (isEgressBornAtAnchor(state) && !state.anchorGapEnteredAtCapture) {
-                            state.bestStopLocation ?: state.bestFix(location)
+                            state.anchorTrust.anchor ?: state.bestFix(location)
                         } else {
                             // [DET-CONFIRM-ANCHOR-001] "They answer near the car" is an assumption,
                             // not a fact: a late "Sí" arrives from wherever the walk ended, and the
@@ -1234,7 +1137,7 @@ class CoordinatorParkingDetector(
                             // today's behavior on purpose: a born-away egress means the birth, not
                             // the anchor, is where the car is (field 2026-07-15, Enamorados: frozen
                             // at a light 1.11 km back — the user's own stop is the right pin there).
-                            val witnessedStop = state.bestStopLocation
+                            val witnessedStop = state.anchorTrust.anchor
                                 ?.takeIf { !state.anchorGapEnteredAtCapture }
                             val currentFix = state.bestFix(location)
                             val stopDistanceMeters = witnessedStop?.let {
@@ -1242,7 +1145,7 @@ class CoordinatorParkingDetector(
                                     it.latitude, it.longitude, currentFix.latitude, currentFix.longitude,
                                 )
                             }
-                            val birthDistanceMeters = state.egressOriginFix?.let {
+                            val birthDistanceMeters = state.anchorTrust.egressBirth?.originFix?.let {
                                 io.apptolast.paparcar.domain.util.haversineMeters(
                                     it.latitude, it.longitude, currentFix.latitude, currentFix.longitude,
                                 )
@@ -1276,7 +1179,7 @@ class CoordinatorParkingDetector(
                         // stands — this only stops the exact claim where it was already known to be
                         // unsupportable, and leaves every well-located pin exactly as it was.
                         val userDoubtMeters = walkableInsideGapMeters(
-                            state.anchorGapMsAtCapture, config.maxPedestrianSpeedMps,
+                            state.anchorTrust.capture.gapMs, config.maxPedestrianSpeedMps,
                         )
                         val userZoneRadius = approximateZoneRadius(locationToConfirm, userDoubtMeters)
                             .takeIf {
@@ -1288,7 +1191,7 @@ class CoordinatorParkingDetector(
                                 DIAG,
                                 "  ◯ user-confirm saved as a ZONE r=${userZoneRadius}m — the answer proves the " +
                                     "park, not the spot (doubt=${userDoubtMeters.toInt()}m from a " +
-                                    "${state.anchorGapMsAtCapture}ms GPS hole, fixAcc=${locationToConfirm.accuracy}m) " +
+                                    "${state.anchorTrust.capture.gapMs}ms GPS hole, fixAcc=${locationToConfirm.accuracy}m) " +
                                     "[DET-USER-YES-IS-NOT-A-COORDINATE-001]",
                             )
                         }
@@ -1331,7 +1234,7 @@ class CoordinatorParkingDetector(
                         // walker, and indoor GPS noise resets it with no accuracy gate (field
                         // 2026-08-18 Góndola: ~15 s accumulated across 15 min of anchored rest).
                         val anchorRestMs = if (isAnchorPinned(state)) {
-                            state.anchorCapturedAtStop?.let { now - it } ?: 0L
+                            state.anchorTrust.capturedAtStop?.let { now - it } ?: 0L
                         } else {
                             0L
                         }
@@ -1340,17 +1243,17 @@ class CoordinatorParkingDetector(
                                 maxSpeedMps = state.drive.provenMaxSpeedMps,
                                 pendingMaxSpeedMps = state.drive.peakMps,
                                 credibleDrivingFixes = state.drive.credibleFixCount,
-                                anchor = state.bestStopLocation,
+                                anchor = state.anchorTrust.anchor,
                                 currentFix = location,
-                                egressOriginFix = state.egressOriginFix,
+                                egressOriginFix = state.anchorTrust.egressBirth?.originFix,
                                 stepCount = state.egress.stepCount,
                                 sessionSawSteps = state.egress.sensorAlive,
                                 vehicleExitConfirmed = state.egress.vehicleExitHint,
                                 anchorPinned = isAnchorPinned(state),
-                                anchorGapMs = state.anchorGapMsAtCapture,
+                                anchorGapMs = state.anchorTrust.capture.gapMs,
                                 anchorWalkEntered = isAnchorWalkEntered(state),
-                                anchorStepEventsAtCapture = state.anchorStepEventsAtCapture,
-                                anchorWalkInSpanMeters = state.anchorWalkInSpanMeters,
+                                anchorStepEventsAtCapture = state.anchorTrust.capture.stepEvents,
+                                anchorWalkInSpanMeters = state.anchorTrust.capture.walkInSpanMeters,
                                 egressBornAtAnchor = isEgressBornAtAnchor(state),
                                 egressExceedsWalkReach = egressExceedsWalkReach(state, location),
                                 anchorRestMs = anchorRestMs,
@@ -1362,11 +1265,11 @@ class CoordinatorParkingDetector(
                             "  ⑊ no user response after ${now - promptShownAt}ms " +
                                 "(limit=${config.confirmationResponseTimeoutMs}ms) → $verdict " +
                                 "[maxSpeed=${state.drive.provenMaxSpeedMps}m/s pinned=${isAnchorPinned(state)} " +
-                                "walkEntered=${isAnchorWalkEntered(state)} walkFixes=${state.anchorWalkFixesAtCapture} " +
-                                "stepEvents=${state.anchorStepEventsAtCapture} sawSteps=${state.anchorSawStepsAtCapture} " +
-                                "walkInSpan=${state.anchorWalkInSpanMeters.toInt()}m carRest=${anchorRestMs}ms " +
+                                "walkEntered=${isAnchorWalkEntered(state)} walkFixes=${state.anchorTrust.capture.walkFixes} " +
+                                "stepEvents=${state.anchorTrust.capture.stepEvents} sawSteps=${state.anchorTrust.capture.sawSteps} " +
+                                "walkInSpan=${state.anchorTrust.capture.walkInSpanMeters.toInt()}m carRest=${anchorRestMs}ms " +
                                 "stopped=${stoppedDuration}ms " +
-                                "gapMs=${state.anchorGapMsAtCapture}] " +
+                                "gapMs=${state.anchorTrust.capture.gapMs}] " +
                                 "[DET-WALK-ENTERED-ANCHOR-ZONE-001][DET-GAP-ANCHOR-ZONE-001]"
                         )
                         when (verdict) {
@@ -1472,7 +1375,7 @@ class CoordinatorParkingDetector(
                         if (decision is ParkingDecision.Confirmed) {
                             PaparcarLogger.d(
                                 DIAG,
-                                "  ▶ ${decision.pathLabel} (steps=${state.egress.stepCount} kinematicFixes=${state.kinematicEgressFixes}) → fast confirm, skipping slow path [DET-D-03][DET-KINEMATIC-EGRESS-001]"
+                                "  ▶ ${decision.pathLabel} (steps=${state.egress.stepCount} kinematicFixes=${state.anchorTrust.kinematicEgressFixes}) → fast confirm, skipping slow path [DET-D-03][DET-KINEMATIC-EGRESS-001]"
                             )
                             val locationToConfirm = refinedParkLocation(state, location)
                             completed = beginConfirm(
@@ -1490,7 +1393,7 @@ class CoordinatorParkingDetector(
                         }
                         PaparcarLogger.d(
                             DIAG,
-                            "  ⊘ steps+egress fast confirm gated ($decision) — anchorSet=${state.bestStopLocation != null}, falling to scoring"
+                            "  ⊘ steps+egress fast confirm gated ($decision) — anchorSet=${state.anchorTrust.anchor != null}, falling to scoring"
                         )
                     }
 
@@ -1546,7 +1449,7 @@ class CoordinatorParkingDetector(
                     // state — the caller (the detection service) reads it after invoke returns to
                     // run the honest-close ladder on the two silent aborts. previousFix is the last
                     // fix processed; bestStopLocation is the stop anchor fallback.
-                    lastFinishedFix = _detectionState.value.session.previousFix ?: _detectionState.value.bestStopLocation
+                    lastFinishedFix = _detectionState.value.session.previousFix ?: _detectionState.value.anchorTrust.anchor
                     // [DET-FROZEN-COUNTER-001] Snapshot the session's own evidence for the ladder:
                     // detector steps witness counter liveness, measured speed outranks inference.
                     lastFinishedSessionId = currentSessionId
@@ -1679,7 +1582,7 @@ class CoordinatorParkingDetector(
 
     /**
      * [DET-A] True when the current fix is at least [ParkingDetectionConfig.minEgressDisplacementMeters]
-     * away from [ParkingDetectionState.bestStopLocation] (the lowest-accuracy fix recorded at the
+     * away from [ParkingDetectionState.anchorTrust.anchor] (the lowest-accuracy fix recorded at the
      * parked-car position).
      *
      * The displacement gate is ANDed with the pedestrian-step proof on both confirm paths so that
@@ -1688,7 +1591,7 @@ class CoordinatorParkingDetector(
      * which is the safe direction under the asymmetric-error principle.
      */
     private fun hasEgressDisplacement(state: ParkingDetectionState, current: GpsPoint): Boolean {
-        val anchor = state.bestStopLocation ?: return false
+        val anchor = state.anchorTrust.anchor ?: return false
         val d = io.apptolast.paparcar.domain.util.haversineMeters(
             anchor.latitude, anchor.longitude,
             current.latitude, current.longitude,
@@ -1981,7 +1884,7 @@ class CoordinatorParkingDetector(
         if (stepsReached && !hasEgress) {
             PaparcarLogger.d(
                 DIAG,
-                "  ⊘ CANDIDATE steps proof gated by EGRESS — anchorSet=${state.bestStopLocation != null}, " +
+                "  ⊘ CANDIDATE steps proof gated by EGRESS — anchorSet=${state.anchorTrust.anchor != null}, " +
                     "need ≥${config.minEgressDisplacementMeters}m walked from park anchor [DET-A]"
             )
         }
@@ -2194,14 +2097,14 @@ class CoordinatorParkingDetector(
      *  cleared by walking-range speed; only a REAL drive (≥ minimumTripSpeedMps, credible
      *  accuracy — the errand case: user came back and drove off) unlocks. */
     private fun isAnchorLocked(s: ParkingDetectionState): Boolean =
-        s.bestStopLocation != null && s.egress.stepCount >= config.anchorLockEgressSteps
+        s.anchorTrust.anchor != null && s.egress.stepCount >= config.anchorLockEgressSteps
 
     /** [DET-ANCHOR-FREEZE-001] LOCKED (step proof) or FROZEN (matured end-of-drive stop) — either
      *  way the anchor is pinned to the car: later stops never re-capture it and only re-measured
      *  real driving clears it. Locked and frozen are independent proofs of the same fact ("the
      *  car rests HERE"), so every consumer treats them identically. */
     private fun isAnchorPinned(s: ParkingDetectionState): Boolean =
-        isAnchorLocked(s) || (s.bestStopLocation != null && s.anchorFrozen)
+        isAnchorLocked(s) || (s.anchorTrust.anchor != null && s.anchorTrust.frozenByRest)
 
     /** [DET-CREDIBLE-DRIVE-001][DET-CONFIRM-FRESHNESS-001] The anchor belongs to a stop the user
      *  WALKED into — the pedestrian's standing spot, never the car's rest. The walk-fix budget
@@ -2216,10 +2119,10 @@ class CoordinatorParkingDetector(
      *  ZERO events for the ~13-fix walk back to the house — step silence cannot be trusted across
      *  a long stretch, so that taint stands). */
     private fun isAnchorWalkEntered(s: ParkingDetectionState): Boolean {
-        if (s.anchorWalkFixesAtCapture <= config.anchorFreezeMaxWalkFixes) return false
-        val maneuverEntry = s.anchorStepEventsAtCapture == 0 &&
-            s.anchorSawStepsAtCapture &&
-            s.anchorWalkFixesAtCapture <= config.maneuverEntryMaxWalkFixes
+        if (s.anchorTrust.capture.walkFixes <= config.anchorFreezeMaxWalkFixes) return false
+        val maneuverEntry = s.anchorTrust.capture.stepEvents == 0 &&
+            s.anchorTrust.capture.sawSteps &&
+            s.anchorTrust.capture.walkFixes <= config.maneuverEntryMaxWalkFixes
         return !maneuverEntry
     }
 
@@ -2228,8 +2131,8 @@ class CoordinatorParkingDetector(
      *  [ParkingDecisionInput.hasKinematicEgress]; the decision itself still demands egress
      *  displacement and measured in-session driving. */
     private fun hasKinematicEgressSignal(s: ParkingDetectionState): Boolean =
-        s.anchorFrozen && s.bestStopLocation != null &&
-            s.kinematicEgressFixes >= config.kinematicEgressMinWalkFixes
+        s.anchorTrust.frozenByRest && s.anchorTrust.anchor != null &&
+            s.anchorTrust.kinematicEgressFixes >= config.kinematicEgressMinWalkFixes
 
     /** [DET-AR-FIRST-001 F3] Person/car discriminator for movement away from the park anchor:
      *  TRUE when the displacement from the anchor has OUTRUN what the steps counted since that
@@ -2240,7 +2143,7 @@ class CoordinatorParkingDetector(
      *  A phantom-step jam creep outruns its 1–3 jiggle steps within a couple of fixes; a real
      *  walk-away keeps pace with its own count (the counting gate feeds steps during the walk). */
     private fun movementOutrunsSteps(s: ParkingDetectionState, current: GpsPoint): Boolean {
-        val anchor = s.bestStopLocation ?: return false
+        val anchor = s.anchorTrust.anchor ?: return false
         return outrunsPedestrianReach(
             base = anchor,
             fix = current,
@@ -2276,7 +2179,7 @@ class CoordinatorParkingDetector(
      *  while standing AT the anchor can never qualify, whatever its declared speed — its distance
      *  never escapes its own accuracy. */
     private fun escapesAnchorEnvelope(s: ParkingDetectionState, current: GpsPoint): Boolean {
-        val anchor = s.bestStopLocation ?: return false
+        val anchor = s.anchorTrust.anchor ?: return false
         // The same envelope with NO step credit: this asks whether the position has measurably
         // left the anchor at all, not whether a walker could have covered the gap.
         return outrunsPedestrianReach(
@@ -2299,7 +2202,7 @@ class CoordinatorParkingDetector(
      *  2026-07-18, Calle Abeto). `hasEgressDisplacement` is the floor on the egress; this is the
      *  ceiling. */
     private fun egressExceedsWalkReach(s: ParkingDetectionState, current: GpsPoint): Boolean {
-        val anchor = s.bestStopLocation ?: return false
+        val anchor = s.anchorTrust.anchor ?: return false
         return outrunsPedestrianReach(
             base = anchor,
             fix = current,
@@ -2321,8 +2224,8 @@ class CoordinatorParkingDetector(
      *  unfreezes the anchor when MIUI starves every individual fix of credible accuracy
      *  (field 2026-07-15, Enamorados: 10.12 m/s @ acc 52.4 — the 1.11 km FP's root). */
     private fun isSustainedDepartureFromAnchor(s: ParkingDetectionState, current: GpsPoint, now: Long): Boolean {
-        val anchor = s.bestStopLocation ?: return false
-        val sinceMs = s.anchorCapturedAtStop ?: return false
+        val anchor = s.anchorTrust.anchor ?: return false
+        val sinceMs = s.anchorTrust.capturedAtStop ?: return false
         val departure = sustainedDepartureFromAnchor(
             anchor = anchor,
             anchorStoppedSinceMs = sinceMs,
@@ -2400,21 +2303,22 @@ class CoordinatorParkingDetector(
 
     /** [DET-ANCHOR-EGRESS-001] The egress must be BORN at the anchor — the ceiling the
      *  displacement gate never had (it only checks a floor, and at 1.11 km from the anchor it is
-     *  trivially satisfied). TRUE while the recorded egress birth ([ParkingDetectionState.egressOriginFix])
+     *  trivially satisfied). TRUE while the recorded egress birth ([ParkingDetectionState.anchorTrust.egressBirth?.originFix])
      *  sits within walking-consistency of the pinned anchor: both accuracy envelopes, the steps
      *  already counted at birth, a fixed margin — or the hard floor, whichever is larger (sparse
      *  streams can put an honest birth ~100 m out; a wrong-stop anchor sits hundreds of meters to
      *  kilometers away — field 2026-07-15, Camino de los Enamorados). No anchor or no recorded
      *  egress → nothing to judge → true. */
     private fun isEgressBornAtAnchor(s: ParkingDetectionState): Boolean {
-        val anchor = s.bestStopLocation ?: return true
-        val origin = s.egressOriginFix ?: return true
+        val anchor = s.anchorTrust.anchor ?: return true
+        val birth = s.anchorTrust.egressBirth ?: return true
+        val origin = birth.originFix
         val d = io.apptolast.paparcar.domain.util.haversineMeters(
             anchor.latitude, anchor.longitude,
             origin.latitude, origin.longitude,
         )
         val allowance = anchor.accuracy + origin.accuracy +
-            s.egressOriginStepCount * config.anchorStrideMeters +
+            birth.stepCountAtBirth * config.anchorStrideMeters +
             config.egressBirthMarginMeters
         return d <= maxOf(allowance, config.egressBirthFloorMeters)
     }
@@ -2427,13 +2331,14 @@ class CoordinatorParkingDetector(
      *  anchor, it is the better witness of "where the car is" — bounded, so it can never move
      *  the pin beyond GPS-noise scale. Anything weaker keeps today's anchor. */
     private fun refinedParkLocation(s: ParkingDetectionState, fallback: GpsPoint): GpsPoint {
-        val anchor = s.bestStopLocation ?: return s.bestFix(fallback)
-        val origin = s.egressOriginFix ?: return anchor
+        val anchor = s.anchorTrust.anchor ?: return s.bestFix(fallback)
+        val birth = s.anchorTrust.egressBirth ?: return anchor
+        val origin = birth.originFix
         // Steps are the witness that the birth is the DOOR and not mid-walk. A kinematic
         // (mute-counter) birth is recorded off a fix that is already moving — it feeds the
         // consistency ceiling but must never move the pin ("pin at the frozen anchor, not
         // along the walk" is exactly what the freeze promises mute hardware).
-        if (s.egressOriginStepCount == 0) return anchor
+        if (birth.stepCountAtBirth == 0) return anchor
         if (origin.accuracy > config.egressBirthRefineMaxAccuracyMeters) return anchor
         val d = io.apptolast.paparcar.domain.util.haversineMeters(
             anchor.latitude, anchor.longitude,
@@ -2444,7 +2349,7 @@ class CoordinatorParkingDetector(
         // larger means one of the two is off in a way walking does not account for: keep the
         // anchor (conservative — on a sparse stream the first stepped fix can already be meters
         // into the walk, and a pin must never follow the pedestrian).
-        val maxMove = s.egressOriginStepCount * config.anchorStrideMeters +
+        val maxMove = birth.stepCountAtBirth * config.anchorStrideMeters +
             anchor.accuracy + origin.accuracy
         if (d > maxMove) return anchor
         if (origin !== anchor) {
@@ -2480,7 +2385,7 @@ class CoordinatorParkingDetector(
                 // last driving fix — the fix that OPENS a stop is a hop by construction, and
                 // discarding it would starve a sparse stream of its only anchor), and it takes
                 // car-grade ground rate, so a 55-m GPS drift across a 60-s wait stays a stop.
-                val stopOrigin = s.stoppedFixes.firstOrNull()
+                val stopOrigin = s.anchorTrust.stopWindowFixes.firstOrNull()
                 val stillnessRefuted = stopOrigin != null && isCorroboratedVehicleHop(stopOrigin, location)
                 if (stillnessRefuted && stopOrigin != null) {
                     val moved = io.apptolast.paparcar.domain.util.haversineMeters(
@@ -2496,7 +2401,7 @@ class CoordinatorParkingDetector(
                             "[DET-STOP-MUST-BE-STILL-IN-SPACE-001]"
                     )
                 }
-                val startedAt = s.stoppedSince ?: now
+                val startedAt = s.anchorTrust.stopStartedAt ?: now
                 val withinInitialWindow = (now - startedAt) < config.initialStopWindowMs
                 // [DET-GAP-ANCHOR-001] A stop OPENING on the far side of a GPS hole: the previous
                 // processed fix was still at REAL driving speed and this one arrived more than
@@ -2510,16 +2415,16 @@ class CoordinatorParkingDetector(
                 // only bound on how far the phone could have walked from the car before the stream
                 // came back, and throwing it away is what made every gap-born anchor look
                 // unboundable.
-                val newStopGapMs = if (s.stoppedSince == null) {
+                val newStopGapMs = if (s.anchorTrust.stopStartedAt == null) {
                     val holeMs = s.session.previousFix?.let { location.timestamp - it.timestamp } ?: 0L
                     if (s.session.previousFix != null &&
                         s.session.previousFix.speed >= config.minimumTripSpeedMps &&
                         holeMs > config.anchorGapMaxFixGapMs
                     ) holeMs else 0L
                 } else {
-                    s.stopEnteredAfterGapMs
+                    s.anchorTrust.stopEnteredAfterGapMs
                 }
-                if (newStopGapMs > 0L && s.stoppedSince == null) {
+                if (newStopGapMs > 0L && s.anchorTrust.stopStartedAt == null) {
                     PaparcarLogger.d(
                         DIAG,
                         "  ⚓⚠ stop opened after a ${newStopGapMs}ms GPS hole " +
@@ -2535,7 +2440,7 @@ class CoordinatorParkingDetector(
                 // new stop is the pedestrian standing still, never the car. Same-stop refinement
                 // (better fixes arriving right after the door slam) stays allowed.
                 // [ANCHOR-LOCK-001][DET-ANCHOR-FREEZE-001]
-                val pinnedToOtherStop = isAnchorPinned(s) && s.anchorCapturedAtStop != startedAt
+                val pinnedToOtherStop = isAnchorPinned(s) && s.anchorTrust.capturedAtStop != startedAt
                 // [DET-ANCHOR-FREEZE-001] While no step has been counted, every fix of the SAME
                 // continuous stop is still the parked car — accuracy refinement stays open for
                 // the whole stop, not just the initial window. The 30-s cutoff kept a 260-m
@@ -2543,7 +2448,7 @@ class CoordinatorParkingDetector(
                 // second 71 of the same stop (field 2026-07-11, Avenida Sanlúcar). The first
                 // counted step ends the privilege: from there the better fix may be the walking
                 // user, and the lock machinery takes over.
-                val sameStopPreEgress = s.anchorCapturedAtStop == startedAt && s.egress.stepCount == 0
+                val sameStopPreEgress = s.anchorTrust.capturedAtStop == startedAt && s.egress.stepCount == 0
                 // [DET-STOP-MUST-BE-STILL-IN-SPACE-001] …and a fix the stop's own track refutes may
                 // not become the anchor either. This is the load-bearing half: the anchor is read
                 // from the raw fix here, NOT from `stoppedFixes`, so filtering that list alone would
@@ -2553,9 +2458,9 @@ class CoordinatorParkingDetector(
                 val mayCapture = !pinnedToOtherStop && !stillnessRefuted &&
                     (withinInitialWindow || sameStopPreEgress)
                 val newBestStop = when {
-                    !mayCapture -> s.bestStopLocation
-                    s.bestStopLocation == null || location.accuracy < s.bestStopLocation.accuracy -> location
-                    else -> s.bestStopLocation
+                    !mayCapture -> s.anchorTrust.anchor
+                    s.anchorTrust.anchor == null || location.accuracy < s.anchorTrust.anchor.accuracy -> location
+                    else -> s.anchorTrust.anchor
                 }
                 // [DET-STOP-MUST-BE-STILL-IN-SPACE-001] The refuted fix becomes the sole spatial
                 // ORIGIN the next fixes are measured against, and the quorum starts over from it.
@@ -2569,9 +2474,9 @@ class CoordinatorParkingDetector(
                 // A creeping stop keeps its clock; what it loses is the right to call itself proven.
                 val stoppedFixesNow = when {
                     stillnessRefuted -> listOf(location)
-                    withinInitialWindow && s.stoppedFixes.size < config.maxStoppedFixes ->
-                        s.stoppedFixes + location
-                    else -> s.stoppedFixes
+                    withinInitialWindow && s.anchorTrust.stopWindowFixes.size < config.maxStoppedFixes ->
+                        s.anchorTrust.stopWindowFixes + location
+                    else -> s.anchorTrust.stopWindowFixes
                 }
                 // [DET-ANCHOR-FREEZE-001] End-of-drive maturation. Three conditions, each load-
                 // bearing: measured driving happened; the ANCHOR belongs to THIS stop (freezing
@@ -2581,7 +2486,7 @@ class CoordinatorParkingDetector(
                 // them, the real park after none). Once frozen, only re-measured real driving
                 // moves the anchor; a traffic light that matures unfreezes harmlessly when
                 // driving resumes.
-                val anchorStopOfRecord = if (newBestStop !== s.bestStopLocation) startedAt else s.anchorCapturedAtStop
+                val anchorStopOfRecord = if (newBestStop !== s.anchorTrust.anchor) startedAt else s.anchorTrust.capturedAtStop
                 // [DET-SHORT-TRIP-FREEZE-001] Rest is proven by TIME (≥ anchorFreezeStopMs) OR by
                 // EVIDENCE (≥ anchorFreezeStableFixes stopped fixes) — a short trip's destination
                 // stop rarely lasts 60 s before the user walks off, but N dense stopped fixes prove
@@ -2590,21 +2495,21 @@ class CoordinatorParkingDetector(
                 // The PRIOR count, not the one including this fix: the freeze fires on the fix whose
                 // predecessors already reached the quorum. Counting this one too moves the freeze a
                 // beat earlier and pins the Calle Gavia traffic stop (replay caught it).
-                val restProvenByFixes = s.stoppedFixes.size >= config.anchorFreezeStableFixes
-                val matured = !s.anchorFrozen && s.session.driveAuthorized &&
+                val restProvenByFixes = s.anchorTrust.stopWindowFixes.size >= config.anchorFreezeStableFixes
+                val matured = !s.anchorTrust.frozenByRest && s.session.driveAuthorized &&
                     newBestStop != null && anchorStopOfRecord == startedAt &&
-                    s.walkFixesSinceDriving <= config.anchorFreezeMaxWalkFixes &&
+                    s.anchorTrust.walkIn.fixesSinceDriving <= config.anchorFreezeMaxWalkFixes &&
                     // [DET-STOP-MUST-BE-STILL-IN-SPACE-001] Not on the very beat the track refutes:
                     // this is what keeps the TIME path honest too, since a stop that opened 60 s ago
                     // and has been creeping ever since would otherwise mature on the clock alone.
                     !stillnessRefuted &&
                     (restProvenByTime || restProvenByFixes)
                 if (matured) {
-                    val how = if (restProvenByTime) "time=${now - startedAt}ms" else "stableFixes=${s.stoppedFixes.size}"
+                    val how = if (restProvenByTime) "time=${now - startedAt}ms" else "stableFixes=${s.anchorTrust.stopWindowFixes.size}"
                     PaparcarLogger.d(
                         DIAG,
                         "  ⚓ anchor FROZEN — drive-entered stop matured ($how, " +
-                            "walkFixes=${s.walkFixesSinceDriving}); only real driving " +
+                            "walkFixes=${s.anchorTrust.walkIn.fixesSinceDriving}); only real driving " +
                             "(≥${config.minimumTripSpeedMps} m/s) can move it [DET-ANCHOR-FREEZE-001][DET-SHORT-TRIP-FREEZE-001]"
                     )
                 }
@@ -2613,60 +2518,40 @@ class CoordinatorParkingDetector(
                 // Deliberately NOT gated on pinned: when pinning arrives late relative to the
                 // walk, "first fix after pinned" is already meters into it; the 0→steps
                 // transition is the earliest anchored witness of the walk start.
-                val recordEgressBirth = s.egressOriginFix == null && newBestStop != null && s.egress.stepCount > 0
+                val birth = s.anchorTrust.egressBirth
+                val recordEgressBirth = birth == null && newBestStop != null && s.egress.stepCount > 0
                 // Within the birth window a better-accuracy fix may sharpen the recorded birth —
                 // ONLY while the step count proves the user is still standing at it (the bound
                 // that keeps a slow walk from dragging the birth along, BUG-REPARK-WALK replay).
-                val refineEgressBirth = !recordEgressBirth && s.egressOriginFix != null &&
-                    (location.timestamp - s.egressOriginFix.timestamp) <= config.egressBirthWindowMs &&
-                    s.egress.stepCount <= s.egressOriginStepCount + config.egressBirthRefineMaxExtraSteps &&
-                    location.accuracy < s.egressOriginFix.accuracy
+                val refineEgressBirth = !recordEgressBirth && birth != null &&
+                    (location.timestamp - birth.originFix.timestamp) <= config.egressBirthWindowMs &&
+                    s.egress.stepCount <= birth.stepCountAtBirth + config.egressBirthRefineMaxExtraSteps &&
+                    location.accuracy < birth.originFix.accuracy
                 s.copy(
-                    stoppedSince = startedAt,
-                    stoppedFixes = stoppedFixesNow,
-                    bestStopLocation = newBestStop,
-                    anchorCapturedAtStop = anchorStopOfRecord,
-                    // [DET-CREDIBLE-DRIVE-001] Stamp how much walking led into the anchor's stop
-                    // the moment it (re)binds to THIS stop — the walk-entered taint reads it.
-                    anchorWalkFixesAtCapture = if (anchorStopOfRecord != s.anchorCapturedAtStop)
-                        s.walkFixesSinceDriving else s.anchorWalkFixesAtCapture,
-                    // [DET-CONFIRM-FRESHNESS-001] Same-moment corroboration snapshot: how many
-                    // step EVENTS the "walk in" actually produced, and whether the counter could
-                    // have testified at all. Read together by isAnchorWalkEntered.
-                    anchorStepEventsAtCapture = if (anchorStopOfRecord != s.anchorCapturedAtStop)
-                        s.egress.stepEventsSinceDriving else s.anchorStepEventsAtCapture,
-                    anchorSawStepsAtCapture = if (anchorStopOfRecord != s.anchorCapturedAtStop)
-                        s.egress.sensorAlive else s.anchorSawStepsAtCapture,
-                    // [DET-WALK-ENTERED-ANCHOR-ZONE-001] …and the MEASURED size of that walk-in:
-                    // how far the run's first fix sits from the anchor it led to. Sealed at the same
-                    // instant as the two above so the three witnesses describe the same capture.
-                    anchorWalkInSpanMeters = if (anchorStopOfRecord != s.anchorCapturedAtStop) {
-                        val origin = s.walkRunOriginFix
-                        if (origin != null && newBestStop != null) {
-                            io.apptolast.paparcar.domain.util.haversineMeters(
-                                origin.latitude, origin.longitude,
-                                newBestStop.latitude, newBestStop.longitude,
-                            )
-                        } else {
-                            0.0
-                        }
-                    } else {
-                        s.anchorWalkInSpanMeters
-                    },
-                    // [DET-GAP-ANCHOR-001] The gap taint binds with the anchor: stamped from the
-                    // stop's own opening measurement, so same-stop accuracy refinements keep it.
-                    stopEnteredAfterGapMs = newStopGapMs,
-                    anchorGapMsAtCapture = if (anchorStopOfRecord != s.anchorCapturedAtStop)
-                        newStopGapMs else s.anchorGapMsAtCapture,
-                    anchorFrozen = s.anchorFrozen || matured,
-                    egressOriginFix = if (recordEgressBirth || refineEgressBirth) location else s.egressOriginFix,
-                    egressOriginStepCount = if (recordEgressBirth) s.egress.stepCount else s.egressOriginStepCount,
+                    // [DET-CREDIBLE-DRIVE-001][DET-CONFIRM-FRESHNESS-001]
+                    // [DET-WALK-ENTERED-ANCHOR-ZONE-001][DET-GAP-ANCHOR-001] The anchor binds to its
+                    // stop and its FIVE witnesses are sealed at that same instant — one transition
+                    // where the same condition used to be written out five times. The step counters
+                    // are PRESENTED, never copied into the anchor [07 §2.4].
+                    anchorTrust = s.anchorTrust.onStoppedFix(
+                        stopStartedAt = startedAt,
+                        stopWindowFixes = stoppedFixesNow,
+                        newAnchor = newBestStop,
+                        stopGapMs = newStopGapMs,
+                        frozen = matured,
+                        stepEventsSinceDriving = s.egress.stepEventsSinceDriving,
+                        sensorAlive = s.egress.sensorAlive,
+                    ).withEgressBirth(
+                        record = recordEgressBirth,
+                        refine = refineEgressBirth,
+                        cleared = false,
+                        fix = location,
+                        stepCount = s.egress.stepCount,
+                    ),
                     session = s.session.observed(location),
-                    // Reset the reposition counter on every stopped fix. [PARKING-001]
-                    consecutiveRepositionFixes = 0,
                 )
             }
-            now - (_detectionState.value.stoppedSince ?: 0L)
+            now - (_detectionState.value.anchorTrust.stopStartedAt ?: 0L)
         } else {
             val isDriving = isCredibleMovingFix(
                 location, config.clearBestStopSpeedMps, config.minGpsAccuracyForDriving,
@@ -2743,7 +2628,7 @@ class CoordinatorParkingDetector(
                     anchorPinned = anchorPinned,
                     corroboratedMuteHop = corroboratedMuteHop,
                     stepsCounted = it.egress.stepCount,
-                    hasAnchor = it.bestStopLocation != null,
+                    hasAnchor = it.anchorTrust.anchor != null,
                     displacementOutrunsSteps = outruns,
                     isDriving = isDriving,
                 )
@@ -2769,21 +2654,21 @@ class CoordinatorParkingDetector(
                         "  🔒 anchor $proof — ignoring walking-range speed " +
                                 "${location.speed} m/s (< ${config.minimumTripSpeedMps}) [ANCHOR-LOCK-001][DET-ANCHOR-FREEZE-001]"
                     )
-                } else if (!anchorPinned && it.bestStopLocation != null && isDriving && !isRealDrive && !outruns) {
+                } else if (!anchorPinned && it.anchorTrust.anchor != null && isDriving && !isRealDrive && !outruns) {
                     PaparcarLogger.d(
                         DIAG,
                         "  ♟ anchor HELD — steps=${it.egress.stepCount} cover the displacement " +
                                 "(speed=${location.speed} m/s ambiguous band) [DET-AR-FIRST-001]"
                     )
                 }
-                val newConsecutive = if (isRepositionCandidate) it.consecutiveRepositionFixes + 1 else 0
+                val newConsecutive = if (isRepositionCandidate) it.anchorTrust.repositionStreak + 1 else 0
                 // Reposition burst = slow CAR maneuver. Steps veto it — and so does a FROZEN
                 // anchor: a brisk mute-counter walk (≥1.7 m/s, good accuracy) matches the burst's
                 // signature exactly and outruns its zero steps, which is how the walk home would
                 // clear the end-of-drive anchor. The frozen bar is real driving, nothing less.
                 // [DET-AR-FIRST-001][DET-ANCHOR-FREEZE-001]
                 val isRepositionBurst = newConsecutive >= config.repositionFixCount && !anchorPinned &&
-                    (it.bestStopLocation == null || outruns)
+                    (it.anchorTrust.anchor == null || outruns)
                 val shouldClearBestStop = effectiveDriving || isRepositionBurst
                 if (isRepositionBurst && !effectiveDriving) {
                     PaparcarLogger.d(
@@ -2804,47 +2689,40 @@ class CoordinatorParkingDetector(
                     shouldClearBestStop -> 0
                     // [DET-KINEMATIC-EGRESS-001] The PEDESTRIAN band — speed BELOW the trip bar
                     // with the same accuracy gate. It shares the gate, not the question.
-                    it.anchorFrozen &&
+                    it.anchorTrust.frozenByRest &&
                         location.speed < config.minimumTripSpeedMps &&
                         isCredibleFixAccuracy(location, config.minGpsAccuracyForDriving) ->
-                        it.kinematicEgressFixes + 1
-                    else -> it.kinematicEgressFixes
+                        it.anchorTrust.kinematicEgressFixes + 1
+                    else -> it.anchorTrust.kinematicEgressFixes
                 }
                 // [DET-ANCHOR-EGRESS-001] Egress birth, moving flavour: the first pedestrian-band
                 // evidence (step already counted, or the kinematic walk starting) with an anchor
                 // set — where the egress walk was born.
-                val recordEgressBirth = !shouldClearBestStop && it.egressOriginFix == null &&
-                    it.bestStopLocation != null && (it.egress.stepCount > 0 || newKinematicEgressFixes > 0)
-                val refineEgressBirth = !shouldClearBestStop && !recordEgressBirth &&
-                    it.egressOriginFix != null &&
-                    (location.timestamp - it.egressOriginFix.timestamp) <= config.egressBirthWindowMs &&
-                    it.egress.stepCount <= it.egressOriginStepCount + config.egressBirthRefineMaxExtraSteps &&
-                    location.accuracy < it.egressOriginFix.accuracy
+                val birth = it.anchorTrust.egressBirth
+                val recordEgressBirth = !shouldClearBestStop && birth == null &&
+                    it.anchorTrust.anchor != null && (it.egress.stepCount > 0 || newKinematicEgressFixes > 0)
+                val refineEgressBirth = !shouldClearBestStop && !recordEgressBirth && birth != null &&
+                    (location.timestamp - birth.originFix.timestamp) <= config.egressBirthWindowMs &&
+                    it.egress.stepCount <= birth.stepCountAtBirth + config.egressBirthRefineMaxExtraSteps &&
+                    location.accuracy < birth.originFix.accuracy
                 it.copy(
-                    stoppedSince = null,
-                    stoppedFixes = emptyList(),
                     confirmation = nextConfirmation,
-                    bestStopLocation = if (shouldClearBestStop) null else it.bestStopLocation,
-                    anchorCapturedAtStop = if (shouldClearBestStop) null else it.anchorCapturedAtStop,
-                    anchorFrozen = if (shouldClearBestStop) false else it.anchorFrozen,
-                    // [DET-GAP-ANCHOR-001] The stop is over; its gap flag dies with it. The
-                    // anchor's stamped taint clears only with the anchor itself.
-                    stopEnteredAfterGapMs = 0L,
-                    anchorGapMsAtCapture = if (shouldClearBestStop) 0L else it.anchorGapMsAtCapture,
-                    consecutiveRepositionFixes = newConsecutive,
-                    // [DET-ANCHOR-FREEZE-001] The "entered on foot" odometer: a resolved CAR
-                    // movement (driving verdict or reposition maneuver) zeroes it; anything else
-                    // moving is pedestrian-band and counts.
-                    walkFixesSinceDriving = if (effectiveDriving || isRepositionBurst) 0 else it.walkFixesSinceDriving + 1,
-                    // [DET-WALK-ENTERED-ANCHOR-ZONE-001] Where that odometer started counting. A
-                    // resolved CAR movement zeroes both; the first pedestrian-band fix after it
-                    // marks the origin, and later fixes of the same run leave it alone.
-                    walkRunOriginFix = when {
-                        effectiveDriving || isRepositionBurst -> null
-                        it.walkRunOriginFix == null -> location
-                        else -> it.walkRunOriginFix
-                    },
-                    anchorWalkInSpanMeters = if (shouldClearBestStop) 0.0 else it.anchorWalkInSpanMeters,
+                    // The stop is over. The anchor survives unless the movement resolved as CAR;
+                    // the walk-in odometer measures "since the last car movement", which a
+                    // reposition maneuver also ends. [DET-ANCHOR-FREEZE-001]
+                    anchorTrust = it.anchorTrust.onMovingFix(
+                        anchorCleared = shouldClearBestStop,
+                        carMovement = effectiveDriving || isRepositionBurst,
+                        fix = location,
+                        repositionStreak = newConsecutive,
+                        kinematicEgressFixes = newKinematicEgressFixes,
+                    ).withEgressBirth(
+                        record = recordEgressBirth,
+                        refine = refineEgressBirth,
+                        cleared = shouldClearBestStop,
+                        fix = location,
+                        stepCount = it.egress.stepCount,
+                    ),
                     // The three reset rules that are NOT the same rule — see [EgressEvidence.onFix].
                     egress = it.egress.onFix(
                         effectiveDriving = effectiveDriving,
@@ -2852,17 +2730,6 @@ class CoordinatorParkingDetector(
                         anchorCleared = shouldClearBestStop,
                         steplessMovingFixes = newPinnedStepless,
                     ),
-                    kinematicEgressFixes = newKinematicEgressFixes,
-                    egressOriginFix = when {
-                        shouldClearBestStop -> null
-                        recordEgressBirth || refineEgressBirth -> location
-                        else -> it.egressOriginFix
-                    },
-                    egressOriginStepCount = when {
-                        shouldClearBestStop -> 0
-                        recordEgressBirth -> it.egress.stepCount
-                        else -> it.egressOriginStepCount
-                    },
                     session = it.session.observed(location),
                 )
             }
