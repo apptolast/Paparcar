@@ -5,6 +5,13 @@ import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
 import io.apptolast.paparcar.domain.model.GpsPoint
 
 /**
+ * The `parkdiag` prefix every actor inside one detection pass logs under, so a fix's whole story
+ * greps as one block. Shared rather than repeated: the fix reducer and the orchestrator are two
+ * files now and a tag that drifts splits a trace in half.
+ */
+const val PARKDIAG_COORD = "PARKDIAG/Coord"
+
+/**
  * [09 §7] **The single emitter.** Every remote diagnostics event a detection session produces leaves
  * through here, under the session id this tap is holding.
  *

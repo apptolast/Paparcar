@@ -19,7 +19,7 @@ import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
 import io.apptolast.paparcar.domain.usecase.parking.EvaluateBackfillDeferralUseCase
 import io.apptolast.paparcar.domain.usecase.parking.EvaluateHonestCloseUseCase
 import io.apptolast.paparcar.domain.usecase.parking.RunHonestCloseUseCase
-import io.apptolast.paparcar.domain.coordinator.CoordinatorParkingDetector
+import io.apptolast.paparcar.domain.detection.CoordinatorParkingDetector
 import io.apptolast.paparcar.domain.usecase.parking.DetectParkingDepartureUseCase
 import io.apptolast.paparcar.domain.usecase.parking.EvaluateSafetyNetCheckUseCase
 import io.apptolast.paparcar.domain.usecase.parking.RunDepartureCheckUseCase

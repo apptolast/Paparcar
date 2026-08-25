@@ -2,11 +2,12 @@ package io.apptolast.paparcar.domain.detection.stages
 
 import io.apptolast.paparcar.domain.detection.physics.SavedParkingShape
 import io.apptolast.paparcar.domain.detection.state.DetectionSessionState
+import io.apptolast.paparcar.domain.detection.state.anchorRestMs
+import io.apptolast.paparcar.domain.detection.state.refinedParkLocation
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.usecase.parking.EvaluateUnattendedParkingSaveUseCase
 import io.apptolast.paparcar.domain.usecase.parking.UnattendedParkingSave
-import io.apptolast.paparcar.domain.usecase.parking.UnattendedSaveInput
 
 /**
  * [DET-RECONCILE-001] **The user was asked and never answered — SAVE, do not discard.**
@@ -35,16 +36,9 @@ import io.apptolast.paparcar.domain.usecase.parking.UnattendedSaveInput
  * driving. The phone's stop tracker is the wrong clock: after egress it follows the WALKER, and
  * indoor GPS noise resets it with no accuracy gate (field 2026-08-18, Góndola: ~15 s accumulated
  * across 15 minutes of anchored rest).
- *
- * @param saveInput Builds the verdict's input from the state and the coordinator's anchor
- *   predicates. Presented as a function for the same reason as the other stages' adapters.
  */
 class ResponseTimeoutStage(
     private val evaluateUnattendedParkingSave: EvaluateUnattendedParkingSaveUseCase,
-    private val saveInput: (DetectionSessionState, GpsPoint, Long, Long) -> UnattendedSaveInput,
-    private val refinedParkLocation: (DetectionSessionState, GpsPoint) -> GpsPoint,
-    private val anchorRestMs: (DetectionSessionState, Long) -> Long,
-    private val verdictTrace: (DetectionSessionState, Long, Long, Long, UnattendedParkingSave) -> String,
 ) : SessionStage {
 
     override val stage = DetectionStage.RESPONSE_TIMEOUT
@@ -60,9 +54,9 @@ class ResponseTimeoutStage(
         val waited = now - promptShownAt
         if (waited <= config.confirmationResponseTimeoutMs) return StageVerdict.Skip()
 
-        val rest = anchorRestMs(state, now)
-        val verdict = evaluateUnattendedParkingSave(saveInput(state, fix, now, rest))
-        val notes = listOf(verdictTrace(state, now, waited, stoppedDurationMs, verdict))
+        val rest = state.anchorRestMs(now, config)
+        val verdict = evaluateUnattendedParkingSave(state.unattendedSaveInput(fix, now, rest, config))
+        var notes = notes(state.unattendedVerdictTrace(now, waited, stoppedDurationMs, verdict, config))
         val vehicleId = state.session.attributedVehicleId
 
         val effect = when (verdict) {
@@ -81,13 +75,19 @@ class ResponseTimeoutStage(
                 distanceMeters = verdict.distanceMeters,
             )
 
-            UnattendedParkingSave.SaveExact -> DetectionEffect.SaveUnattended(
-                shape = SavedParkingShape.ExactPin(
-                    location = refinedParkLocation(state, fix),
-                    reliability = config.reliabilityUnattendedSave,
-                ),
-                vehicleId = vehicleId,
-            )
+            UnattendedParkingSave.SaveExact -> {
+                val pin = state.refinedParkLocation(fix, config)
+                // Prepended: the refinement line was logged from inside the helper, so it printed
+                // ahead of the verdict trace even though the trace was composed first.
+                notes = listOfNotNull(pin.note) + notes
+                DetectionEffect.SaveUnattended(
+                    shape = SavedParkingShape.ExactPin(
+                        location = pin.location,
+                        reliability = config.reliabilityUnattendedSave,
+                    ),
+                    vehicleId = vehicleId,
+                )
+            }
         }
 
         // Every branch ends the session: the window is over either way, and the only non-looping

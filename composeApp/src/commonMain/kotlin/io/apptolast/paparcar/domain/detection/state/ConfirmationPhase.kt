@@ -1,4 +1,4 @@
-package io.apptolast.paparcar.domain.coordinator
+package io.apptolast.paparcar.domain.detection.state
 
 /**
  * [REFACTOR-200: explicit state machine replacing the implicit 4-flag encoding]
@@ -7,7 +7,7 @@ package io.apptolast.paparcar.domain.coordinator
  *
  * Replaces the legacy fields `lowFirstReachedAt`, `confirmationNotificationShownAt`,
  * `highConfidenceReachedAt`, and `highCandidateHadVehicleExit` (kept in
- * [io.apptolast.paparcar.domain.coordinator.CoordinatorParkingDetector]'s state until
+ * [io.apptolast.paparcar.domain.detection.CoordinatorParkingDetector]'s state until
  * 2026-06-08). The implicit triple permitted invalid combinations (e.g. a candidate set
  * while no notification was shown) for a one-instruction window between
  * [kotlinx.coroutines.flow.MutableStateFlow.update] calls; the sealed interface makes those

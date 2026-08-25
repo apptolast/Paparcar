@@ -23,7 +23,7 @@ data class TripContext(
 
 /**
  * Coarse, UI-facing phase of an in-progress trip — the probabilistic coordinator's rich internal
- * [io.apptolast.paparcar.domain.coordinator.ConfirmationPhase] mapped down to what Home shows. Kept
+ * [io.apptolast.paparcar.domain.detection.state.ConfirmationPhase] mapped down to what Home shows. Kept
  * intentionally minimal (no scores, no Android types) so it can ride the same service→UI channel as
  * [TripContext]. [DET-PHASE-001]
  */

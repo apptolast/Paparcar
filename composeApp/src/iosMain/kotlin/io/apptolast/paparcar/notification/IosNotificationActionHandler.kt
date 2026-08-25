@@ -2,7 +2,7 @@
 
 package io.apptolast.paparcar.notification
 
-import io.apptolast.paparcar.domain.coordinator.CoordinatorParkingDetector
+import io.apptolast.paparcar.domain.detection.CoordinatorParkingDetector
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.usecase.parking.RevertParkingUseCase
 import io.apptolast.paparcar.domain.util.PaparcarLogger

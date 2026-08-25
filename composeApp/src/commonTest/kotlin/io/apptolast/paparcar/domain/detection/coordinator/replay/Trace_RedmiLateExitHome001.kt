@@ -1,4 +1,4 @@
-package io.apptolast.paparcar.domain.coordinator.replay
+package io.apptolast.paparcar.domain.detection.coordinator.replay
 
 /**
  * [DET-NODRIVE-ZONE-001] Field trace of the **late-EXIT lost park** at home

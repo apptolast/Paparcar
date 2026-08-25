@@ -66,6 +66,16 @@ class HoldLaneGuardrailTest {
         const val EXECUTOR = "DetectionEffectExecutor"
 
         /**
+         * Where the SETTLED action is named since P3.13.
+         *
+         * The fourth address, and it arrived the way the other three did: the lane split, the check
+         * went red, and the check followed. `RecordHoldSettled` is a stage's REQUEST, so naming its
+         * action moved with the code that turns requests into calls. Nothing about the property
+         * changed — an exit nobody emits is still a branch no test can discriminate.
+         */
+        const val DISPATCHER = "DetectionEffectDispatcher"
+
+        /**
          * The single DOOR since P3.12: the only emitter of remote diagnostics.
          *
          * It has moved twice while this check watched — coordinator → executor → tap — and each time
@@ -76,10 +86,11 @@ class HoldLaneGuardrailTest {
         const val TAP = "DetectionDiagnosticsTap"
 
         /**
-         * The whole lane. Actions are NAMED by the stage and by the orchestrator's own lifecycle
-         * exits, and EMITTED by the executor — three files, one property: no dead exit.
+         * The whole lane. Actions are NAMED by the stage, by the dispatcher that runs what the stage
+         * asked for, and by the orchestrator's own lifecycle exits; they are EMITTED by the executor
+         * and they leave through the tap — five files, one property: no dead exit.
          */
-        val LANE = setOf(COORDINATOR, HOLD_STAGE, EXECUTOR, TAP)
+        val LANE = setOf(COORDINATOR, HOLD_STAGE, DISPATCHER, EXECUTOR, TAP)
 
         /** A CONSTRUCTION of the event, not the `is DetectionEvent.Hold ->` branch of the DTO
          *  mapper nor an import. */

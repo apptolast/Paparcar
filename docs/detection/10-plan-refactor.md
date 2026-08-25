@@ -388,6 +388,29 @@ hermanas, entrypoints) y **se borra el fichero viejo**, que a estas alturas est�
   editado. **Este es el criterio de aceptación de toda la Fase 3**, no solo del paso.
 - **Diff:** ~+280/−(lo que quede).
 
+> ✅ **HECHO (2026-08-26) — `DET-ORCHESTRATOR-ASSEMBLY-001`.** 1.636 tests, 0 fallos, 18 replays y
+> los 4 guardrails verdes, **sin un assert editado**; 0 nombres perdidos contra `P0.4-baseline-tests.txt`.
+> El detalle completo vive en `docs/backlog/det-orchestrator-assembly-001.md`.
+>
+> ⚠️ **Dos correcciones al enunciado, y las dos importan.**
+>
+> 1. **El fichero viejo NO estaba vacío: tenía 2.344 líneas.** Lo que quedaba no eran restos de las
+>    etapas, eran cuatro poblaciones que ninguna fase había reclamado porque ninguna era una etapa —
+>    el reducer del fix (`updateStopTracking`, corre ANTES de la precedencia), doce predicados del
+>    ancla, el despachador de efectos y los constructores de input. La estimación no falló por poco:
+>    falló porque el plan sólo censó *ramas*, y el coordinator también era el dueño por defecto de
+>    todo lo que no era una rama.
+> 2. **Las ~235 líneas no eran alcanzables y no deberían serlo.** El presupuesto del §4 cuenta
+>    sentencias; en este proyecto el comentario es la mitad del fichero por decisión explícita. El
+>    orquestador queda en **1.286 líneas** con exactamente el reparto que el §4 enumera (ciclo de
+>    vida, bucle, corrutinas hermanas, entrypoints, epílogo) y con el incidente de campo de cada
+>    guard dentro. Llegar a 235 exige borrar los porqués, que es lo contrario del objetivo declarado.
+>
+> 🔴 **Lo que el paso enseña**: el bucle recorre ahora `detectionStageOrder`, y hasta este paso esa
+> lista **no era ejecutable** — `StageOrderTest` comparaba la lista con el enum y las dos podían
+> estar de acuerdo mientras el bucle hacía otra cosa. Permutar dos entradas ya pone rojos 3 de los 6
+> tests de precedencia; antes no habría cambiado nada.
+
 ---
 
 ## §6 · FASE 4 — Los cambios de conducta

@@ -1,4 +1,4 @@
-package io.apptolast.paparcar.domain.coordinator.replay
+package io.apptolast.paparcar.domain.detection.coordinator.replay
 
 /**
  * [DET-ANCHOR-EGRESS-001] Field trace of the **1.11 km false positive** (2026-07-15 16:11Z,

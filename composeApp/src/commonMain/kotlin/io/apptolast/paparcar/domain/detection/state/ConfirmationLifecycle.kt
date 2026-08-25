@@ -1,7 +1,7 @@
 package io.apptolast.paparcar.domain.detection.state
 
-import io.apptolast.paparcar.domain.coordinator.ConfirmationPhase
-import io.apptolast.paparcar.domain.coordinator.promptShownAt
+import io.apptolast.paparcar.domain.detection.state.ConfirmationPhase
+import io.apptolast.paparcar.domain.detection.state.promptShownAt
 import io.apptolast.paparcar.domain.model.GpsPoint
 
 /**

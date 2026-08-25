@@ -1,6 +1,6 @@
 package io.apptolast.paparcar.domain.detection.stages
 
-import io.apptolast.paparcar.domain.coordinator.ConfirmationPhase
+import io.apptolast.paparcar.domain.detection.state.ConfirmationPhase
 import io.apptolast.paparcar.domain.detection.state.DetectionSessionState
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingConfidence
@@ -9,7 +9,6 @@ import io.apptolast.paparcar.domain.model.ParkingSignals
 import io.apptolast.paparcar.domain.usecase.parking.CalculateParkingConfidenceUseCase
 import io.apptolast.paparcar.domain.usecase.parking.EvaluateParkingDecisionUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ParkingDecision
-import io.apptolast.paparcar.domain.usecase.parking.ParkingDecisionInput
 
 /**
  * [09 §4] The LAST stage of the precedence, and therefore **the first one moved** — everything above
@@ -36,24 +35,10 @@ import io.apptolast.paparcar.domain.usecase.parking.ParkingDecisionInput
  *
  * The rest is certified by the same number the tier used — no new clock, read directly.
  *
- * @param decisionInput The `DetectionSessionState → ParkingDecisionInput` adapter, presented as a
- *   function. Its home is here in `stages/` [09 §C.4] because three stages share it, but it moves
- *   when the second of those three lands — dragging it now would mean deciding for stages that do
- *   not exist yet.
- * @param humanPowered Whether this ride was muscle-powered, presented for the same reason.
  */
 class ConfidenceScoringStage(
     private val calculateParkingConfidence: CalculateParkingConfidenceUseCase,
     private val evaluateParkingDecision: EvaluateParkingDecisionUseCase,
-    private val decisionInput: (
-        state: DetectionSessionState,
-        location: GpsPoint,
-        now: Long,
-        elapsedSinceHighMs: Long,
-        hadVehicleExit: Boolean,
-        restCertified: Boolean,
-    ) -> ParkingDecisionInput,
-    private val humanPowered: (DetectionSessionState, Long) -> Boolean,
 ) : SessionStage {
 
     override val stage = DetectionStage.CONFIDENCE_SCORING
@@ -80,7 +65,7 @@ class ConfidenceScoringStage(
             "stopped=${stoppedDurationMs}ms accuracy=${fix.accuracy} exit=${state.egress.vehicleExitHint})"
 
         return when (confidence) {
-            is ParkingConfidence.NotYet -> StageVerdict.Skip(listOf(scored))
+            is ParkingConfidence.NotYet -> StageVerdict.Skip(notes(scored))
             is ParkingConfidence.Low, is ParkingConfidence.Medium ->
                 advanceLowMedium(state, confidence, now, config).withNoteFirst(scored)
             is ParkingConfidence.High -> advanceHigh(state, confidence, now).withNoteFirst(scored)
@@ -100,12 +85,12 @@ class ConfidenceScoringStage(
     ): StageVerdict? {
         if (stoppedDurationMs < config.slowPath5MinMs) return null
         val verdict = evaluateParkingDecision(
-            decisionInput(state, fix, now, 0L, state.egress.vehicleExitHint, true),
+            state.parkingDecisionInput(fix, now, 0L, state.egress.vehicleExitHint, true, config),
         )
         if (verdict != ParkingDecision.CloseHumanPowered) return null
         return StageVerdict.Handled(
             newState = state,
-            notes = listOf(
+            notes = notes(
                 "  ⊘ human-powered ride at a matured stop — closing NOW instead of idling to the " +
                     "response timeout [DET-HUMAN-POWERED-EARLY-CLOSE-001]",
             ),
@@ -125,7 +110,7 @@ class ConfidenceScoringStage(
     ): StageVerdict = when (val phase = state.confirmation.phase) {
         is ConfirmationPhase.Idle -> StageVerdict.Handled(
             newState = state.copy(confirmation = state.confirmation.lowReached(now)),
-            notes = listOf("  → phase: Idle → LowReached(firstReachedAt=$now) [BUG-DETECT-310502]"),
+            notes = notes("  → phase: Idle → LowReached(firstReachedAt=$now) [BUG-DETECT-310502]"),
         )
 
         is ConfirmationPhase.LowReached -> {
@@ -136,8 +121,8 @@ class ConfidenceScoringStage(
                 // LowReached (no `shownAt` claiming a prompt nobody saw), so if the veto lifts — an
                 // AR `IN_VEHICLE` ENTER superseding the bicycle stamp — the very next fix shows the
                 // prompt normally, its timeout still measured from `firstReachedAt`.
-                humanPowered(state, now) -> StageVerdict.Skip(
-                    listOf(
+                state.humanPoweredRide(now, config) -> StageVerdict.Skip(
+                    notes(
                         "  ⊘ Low/Medium notif suppressed — human-powered ride, the matured stop " +
                             "will close the session instead [DET-HUMAN-POWERED-EARLY-CLOSE-001]",
                     ),
@@ -153,13 +138,13 @@ class ConfidenceScoringStage(
                             confidence = confidence,
                         ),
                     ),
-                    notes = listOf(
+                    notes = notes(
                         "  → showing parking-confirmation notif (Low/Medium, " +
                             (if (hasExit) "exit=true" else "timeout=${now - phase.firstReachedAt}ms") + ")",
                     ),
                 )
                 else -> StageVerdict.Skip(
-                    listOf(
+                    notes(
                         "  ⊘ Low/Medium notif suppressed — no vehicleExit, timeout in " +
                             "~${config.lowNotifTimeoutMs - (now - phase.firstReachedAt)}ms",
                     ),
@@ -188,7 +173,7 @@ class ConfidenceScoringStage(
                 DetectionEffect.RecordCandidateOpened("from ${phase::class.simpleName}"),
                 DetectionEffect.RecordPromptShown("high_candidate", confidence),
             ),
-            notes = listOf(
+            notes = notes(
                 "  ▶ HIGH reached — entering CANDIDATE phase + showing notif, " +
                     "vehicleExit=${state.egress.vehicleExitHint}",
             ),
@@ -201,7 +186,7 @@ class ConfidenceScoringStage(
                 confirmation = state.confirmation.candidate(now, state.egress.vehicleExitHint, phase.shownAt),
             ),
             effects = listOf(DetectionEffect.RecordCandidateOpened("from Notified")),
-            notes = listOf(
+            notes = notes(
                 "  ▶ HIGH reached after Notified(shownAt=${phase.shownAt}) — entering CANDIDATE " +
                     "phase (suppressing duplicate notif) [BUG-STUCK-SESSION]",
             ),
@@ -214,7 +199,7 @@ class ConfidenceScoringStage(
 
     /** The scoring line is logged before the phase machine runs, so it goes in front. */
     private fun StageVerdict.withNoteFirst(note: String): StageVerdict = when (this) {
-        is StageVerdict.Skip -> copy(notes = listOf(note) + notes)
-        is StageVerdict.Handled -> copy(notes = listOf(note) + notes)
+        is StageVerdict.Skip -> copy(notes = notes(note) + notes)
+        is StageVerdict.Handled -> copy(notes = notes(note) + notes)
     }
 }

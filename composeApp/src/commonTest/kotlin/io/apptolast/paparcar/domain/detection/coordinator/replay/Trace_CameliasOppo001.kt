@@ -1,4 +1,4 @@
-﻿package io.apptolast.paparcar.domain.coordinator.replay
+﻿package io.apptolast.paparcar.domain.detection.coordinator.replay
 
 /**
  * [DET-ANCHOR-EGRESS-001 · Rule A][DET-CREDIBLE-DRIVE-001] Field trace of the **in-house pin**

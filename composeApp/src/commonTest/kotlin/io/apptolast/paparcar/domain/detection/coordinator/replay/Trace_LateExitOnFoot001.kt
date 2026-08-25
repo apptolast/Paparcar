@@ -1,4 +1,4 @@
-package io.apptolast.paparcar.domain.coordinator.replay
+package io.apptolast.paparcar.domain.detection.coordinator.replay
 
 /**
  * [DET-HONEST-CLOSE-001] Field trace of the **correctly-silent abort** that must STAY silent

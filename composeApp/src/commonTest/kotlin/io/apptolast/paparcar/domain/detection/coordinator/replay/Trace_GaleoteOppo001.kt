@@ -1,4 +1,4 @@
-﻿package io.apptolast.paparcar.domain.coordinator.replay
+﻿package io.apptolast.paparcar.domain.detection.coordinator.replay
 
 /**
  * [DET-CREDIBLE-DRIVE-001] Field trace of the **false walk-entered taint** at Calle Galeote 31

@@ -4,6 +4,7 @@ import io.apptolast.paparcar.domain.detection.physics.SavedParkingShape
 import io.apptolast.paparcar.domain.detection.physics.honestZoneRadius
 import io.apptolast.paparcar.domain.detection.physics.walkableInsideGapMeters
 import io.apptolast.paparcar.domain.detection.state.DetectionSessionState
+import io.apptolast.paparcar.domain.detection.state.isEgressBornAtAnchor
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.util.haversineMeters
@@ -52,9 +53,7 @@ import io.apptolast.paparcar.domain.util.haversineMeters
  * construction**: the stage returns a [SavedParkingShape], so a path added later cannot save
  * anything without saying which shape it is. Forgetting is no longer expressible.
  */
-class UserConfirmStage(
-    private val isEgressBornAtAnchor: (DetectionSessionState) -> Boolean,
-) : SessionStage {
+class UserConfirmStage : SessionStage {
 
     override val stage = DetectionStage.USER_CONFIRM
 
@@ -67,8 +66,8 @@ class UserConfirmStage(
     ): StageVerdict {
         if (!state.confirmation.userConfirmed) return StageVerdict.Skip()
 
-        val notes = mutableListOf("  ▶ USER-CONFIRMED path — entering confirmParking")
-        val where = whereTheCarIs(state, fix, notes)
+        val notes = mutableListOf(DiagnosticNote("  ▶ USER-CONFIRMED path — entering confirmParking"))
+        val where = whereTheCarIs(state, fix, config, notes)
         val shape = shapeFor(state, where, config, notes)
 
         return StageVerdict.Handled(
@@ -84,7 +83,7 @@ class UserConfirmStage(
                 ),
             ),
             stopsIteration = true,
-            notes = notes + "  ◀ USER-CONFIRMED path done — returning from collect",
+            notes = notes + DiagnosticNote("  ◀ USER-CONFIRMED path done — returning from collect"),
         )
     }
 
@@ -92,9 +91,10 @@ class UserConfirmStage(
     private fun whereTheCarIs(
         state: DetectionSessionState,
         fix: GpsPoint,
-        notes: MutableList<String>,
+        config: ParkingDetectionConfig,
+        notes: MutableList<DiagnosticNote>,
     ): GpsPoint {
-        if (isEgressBornAtAnchor(state) && !state.anchorGapEnteredAtCapture) {
+        if (state.isEgressBornAtAnchor(config) && !state.anchorGapEnteredAtCapture) {
             return state.anchorTrust.anchor ?: state.bestFix(fix)
         }
         // A gap-born anchor may be a drive-past point hundreds of metres out with unboundable
@@ -118,7 +118,7 @@ class UserConfirmStage(
         state: DetectionSessionState,
         where: GpsPoint,
         config: ParkingDetectionConfig,
-        notes: MutableList<String>,
+        notes: MutableList<DiagnosticNote>,
     ): SavedParkingShape {
         val doubtMeters = walkableInsideGapMeters(state.anchorTrust.capture.gapMs, config.maxPedestrianSpeedMps)
         val worthDrawing = maxOf(where.accuracy, doubtMeters.toFloat()) > config.honestCloseMinZoneRadiusMeters

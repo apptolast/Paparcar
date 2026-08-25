@@ -1,4 +1,4 @@
-package io.apptolast.paparcar.domain.coordinator.replay
+package io.apptolast.paparcar.domain.detection.coordinator.replay
 
 /**
  * [ANCHOR-LOCK-001] Field trace of a **CORRECT** detection that the anchor lock must NOT break

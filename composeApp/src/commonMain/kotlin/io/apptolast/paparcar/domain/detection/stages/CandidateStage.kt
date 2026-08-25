@@ -1,13 +1,14 @@
 package io.apptolast.paparcar.domain.detection.stages
 
-import io.apptolast.paparcar.domain.coordinator.ConfirmationPhase
+import io.apptolast.paparcar.domain.detection.state.ConfirmationPhase
 import io.apptolast.paparcar.domain.detection.physics.SavedParkingShape
 import io.apptolast.paparcar.domain.detection.state.DetectionSessionState
+import io.apptolast.paparcar.domain.detection.state.hasEgressDisplacement
+import io.apptolast.paparcar.domain.detection.state.refinedParkLocation
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.usecase.parking.EvaluateParkingDecisionUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ParkingDecision
-import io.apptolast.paparcar.domain.usecase.parking.ParkingDecisionInput
 
 /**
  * [DET-D-02] **The open candidate's own verdict**, judged on the real elapsed observation window.
@@ -31,16 +32,6 @@ import io.apptolast.paparcar.domain.usecase.parking.ParkingDecisionInput
  */
 class CandidateStage(
     private val evaluateParkingDecision: EvaluateParkingDecisionUseCase,
-    private val decisionInput: (
-        state: DetectionSessionState,
-        location: GpsPoint,
-        now: Long,
-        elapsedSinceHighMs: Long,
-        hadVehicleExit: Boolean,
-        restCertified: Boolean,
-    ) -> ParkingDecisionInput,
-    private val refinedParkLocation: (DetectionSessionState, GpsPoint) -> GpsPoint,
-    private val hasEgressDisplacement: (DetectionSessionState, GpsPoint) -> Boolean,
 ) : SessionStage {
 
     override val stage = DetectionStage.CANDIDATE
@@ -54,9 +45,9 @@ class CandidateStage(
     ): StageVerdict {
         val phase = state.confirmation.phase as? ConfirmationPhase.Candidate ?: return StageVerdict.Skip()
 
-        val notes = mutableListOf<String>()
+        val notes = mutableListOf<DiagnosticNote>()
         // [DET-A] Steps prove egress only when paired with displacement from the park anchor.
-        if (state.egress.stepCount >= config.minStepsToConfirm && !hasEgressDisplacement(state, fix)) {
+        if (state.egress.stepCount >= config.minStepsToConfirm && !state.hasEgressDisplacement(fix, config)) {
             notes += "  ⊘ CANDIDATE steps proof gated by EGRESS — " +
                 "anchorSet=${state.anchorTrust.anchor != null}, " +
                 "need ≥${config.minEgressDisplacementMeters}m walked from park anchor [DET-A]"
@@ -64,30 +55,41 @@ class CandidateStage(
 
         val elapsed = now - phase.highReachedAt
         val decision = evaluateParkingDecision(
-            decisionInput(state, fix, now, elapsed, phase.hadVehicleExit, true),
+            state.parkingDecisionInput(fix, now, elapsed, phase.hadVehicleExit, true, config),
         )
         notes += "  ⏳ CANDIDATE phase — elapsed=${elapsed}ms " +
             "steps=${state.egress.stepCount}/${config.minStepsToConfirm} → decision=$decision"
 
         // Every branch ends the pass: an open candidate is not re-decided by anything below it.
         return when (decision) {
-            is ParkingDecision.Confirmed -> handled(
-                state, notes + "  ▶ CANDIDATE confirmed via ${decision.pathLabel} — " +
-                    "entering confirmParking(reliability=${decision.reliability})",
-                DetectionEffect.Confirm(
-                    shape = SavedParkingShape.ExactPin(refinedParkLocation(state, fix), decision.reliability),
-                    vehicleId = state.session.attributedVehicleId,
-                    pathLabel = decision.pathLabel,
-                    // [DET-C-02] Inferred: the grace window may still rule out an errand stop.
-                    mayHold = true,
-                ),
-            )
+            is ParkingDecision.Confirmed -> {
+                // The refinement's own line used to be logged from inside the helper, which put it
+                // AHEAD of everything this branch says. It is prepended for exactly that reason:
+                // a note channel that reorders `parkdiag` is a behaviour change wearing a refactor.
+                val pin = state.refinedParkLocation(fix, config)
+                handled(
+                    state,
+                    listOfNotNull(pin.note) + notes + DiagnosticNote(
+                        "  ▶ CANDIDATE confirmed via ${decision.pathLabel} — " +
+                            "entering confirmParking(reliability=${decision.reliability})",
+                    ),
+                    DetectionEffect.Confirm(
+                        shape = SavedParkingShape.ExactPin(pin.location, decision.reliability),
+                        vehicleId = state.session.attributedVehicleId,
+                        pathLabel = decision.pathLabel,
+                        // [DET-C-02] Inferred: the grace window may still rule out an errand stop.
+                        mayHold = true,
+                    ),
+                )
+            }
 
             ParkingDecision.Rejected -> handled(
                 state,
-                notes + ("  ⊘ CANDIDATE expired without egress proof — discarding, steps " +
-                    "${state.egress.stepCount} kept but no longer fresh " +
-                    "[BUG-GARAGE-COLA-001][DET-EVIDENCE-MUST-NOT-LOWER-CONFIDENCE-001]"),
+                notes + DiagnosticNote(
+                    "  ⊘ CANDIDATE expired without egress proof — discarding, steps " +
+                        "${state.egress.stepCount} kept but no longer fresh " +
+                        "[BUG-GARAGE-COLA-001][DET-EVIDENCE-MUST-NOT-LOWER-CONFIDENCE-001]",
+                ),
                 DetectionEffect.DiscardCandidate(phase.shownAt, fix),
             )
 
@@ -102,8 +104,10 @@ class CandidateStage(
             // late, so the stop can mature before the ride is known to have been muscle-powered.
             ParkingDecision.CloseHumanPowered -> handled(
                 state,
-                notes + ("  ⊘ human-powered ride at a matured stop — closing NOW instead of idling to " +
-                    "the response timeout [DET-HUMAN-POWERED-EARLY-CLOSE-001]"),
+                notes + DiagnosticNote(
+                    "  ⊘ human-powered ride at a matured stop — closing NOW instead of idling to " +
+                        "the response timeout [DET-HUMAN-POWERED-EARLY-CLOSE-001]",
+                ),
                 DetectionEffect.CloseHumanPowered(state.session.attributedVehicleId, fix),
             )
 
@@ -113,7 +117,7 @@ class CandidateStage(
 
     private fun handled(
         state: DetectionSessionState,
-        notes: List<String>,
+        notes: List<DiagnosticNote>,
         vararg effects: DetectionEffect,
     ) = StageVerdict.Handled(
         newState = state,

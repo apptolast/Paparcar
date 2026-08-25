@@ -1,8 +1,8 @@
 @file:OptIn(kotlin.time.ExperimentalTime::class)
 
-package io.apptolast.paparcar.domain.coordinator.replay
+package io.apptolast.paparcar.domain.detection.coordinator.replay
 
-import io.apptolast.paparcar.domain.coordinator.CoordinatorParkingDetector
+import io.apptolast.paparcar.domain.detection.CoordinatorParkingDetector
 import io.apptolast.paparcar.domain.detection.ArmEvidence
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.model.GpsPoint

@@ -1,4 +1,4 @@
-package io.apptolast.paparcar.domain.coordinator.replay
+package io.apptolast.paparcar.domain.detection.coordinator.replay
 
 /**
  * [DET-SOLID-001][C4] Field trace of **BUG-REPARK-WALK-001** (2026-07-03 22:13–22:16Z,

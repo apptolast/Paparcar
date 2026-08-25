@@ -38,7 +38,7 @@ class PreDriveSkipStage : SessionStage {
         StageVerdict.Handled(
             newState = state,
             stopsIteration = true,
-            notes = listOf("  ⏸ skipping: !hasEverReachedDrivingSpeed"),
+            notes = notes("  ⏸ skipping: !hasEverReachedDrivingSpeed"),
         )
     }
 }

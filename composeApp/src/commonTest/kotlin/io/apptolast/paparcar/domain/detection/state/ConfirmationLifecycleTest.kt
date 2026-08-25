@@ -1,6 +1,6 @@
 package io.apptolast.paparcar.domain.detection.state
 
-import io.apptolast.paparcar.domain.coordinator.ConfirmationPhase
+import io.apptolast.paparcar.domain.detection.state.ConfirmationPhase
 import io.apptolast.paparcar.domain.model.GpsPoint
 import kotlin.test.Test
 import kotlin.test.assertEquals

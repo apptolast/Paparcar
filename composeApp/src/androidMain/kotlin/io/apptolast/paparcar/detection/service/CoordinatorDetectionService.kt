@@ -19,7 +19,7 @@ import io.apptolast.paparcar.detection.SignificantMotionMonitor
 import io.apptolast.paparcar.detection.UserStopStore
 import io.apptolast.paparcar.detection.worker.DepartureDetectionWorker
 import io.apptolast.paparcar.detection.worker.ParkingSafetyNetWorker
-import io.apptolast.paparcar.domain.coordinator.CoordinatorParkingDetector
+import io.apptolast.paparcar.domain.detection.CoordinatorParkingDetector
 import io.apptolast.paparcar.domain.detection.ArmEvidence
 import io.apptolast.paparcar.domain.detection.DepartureProof
 import io.apptolast.paparcar.domain.detection.DetectionTrigger

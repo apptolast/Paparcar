@@ -1,7 +1,9 @@
 package io.apptolast.paparcar.domain.detection.state
 
 import io.apptolast.paparcar.domain.detection.ArmEvidence
+import io.apptolast.paparcar.domain.detection.physics.SessionOutcome
 import io.apptolast.paparcar.domain.model.GpsPoint
+import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.VehicleType
 
 /**
@@ -86,6 +88,41 @@ data class SessionTelemetry(
     /** The vehicle this session was attributed to, locked on the first driving-speed fix. */
     val attributedVehicleId: String? = null,
     val attributedVehicleType: VehicleType? = null,
+    /**
+     * [DET-ASSERTION-OUTRANKS-INFERENCE-001] The vehicle's ACTIVE parked session as it stood when
+     * THIS one armed. A SNAPSHOT, not a live read: the question it answers is whether this session
+     * may relocate the pin that existed when it armed, and only the pin's position and
+     * `detectionReliability` are ever consulted. Null when the vehicle held no active pin.
+     *
+     * Session identity in exactly the sense [armEvidence] and [nominatingVehicleId] are — fixed at
+     * the arm, never re-derived. It lived as a `@Volatile` of the coordinator until the decision
+     * input moved to `stages/`, which is the same reason [nominatingVehicleId] moved in P3.7: a
+     * stage sees the state and nothing else, by design.
+     */
+    val activeParkedPin: UserParking? = null,
+    /**
+     * [11 bug #3] How this session ENDS — the label its `SessionEnded` event carries and the typed
+     * answer the service asks its membership questions of. Defaults to [SessionOutcome.Ended] and is
+     * refined by the abort paths and by the confirm.
+     *
+     * ## Why it is here rather than in `ConfirmationLifecycle`
+     *
+     * [09 §3] filed it with the confirmation, and the confirmation is wrong for it: both user vetoes
+     * WIPE that sub-state (`onUserStoppedDetection`, `onUserDeniedParking`) and the outcome must
+     * survive the wipe — `stopped_by_user` is set BY the very call that wipes. It lived as a
+     * `@Volatile` outside the state for exactly that reason, and [keepingIdentity] is what lets it
+     * come inside without losing the property. It is session lifecycle, not conversation.
+     */
+    val outcome: SessionOutcome = SessionOutcome.Ended,
+    /**
+     * The session is over: a confirm landed, an abort fired, or the epilogue finalized a hold.
+     *
+     * Was a local `var` of the detection loop, read by three sibling coroutines through a closure.
+     * In the state it is readable by the hold watchdog and the epilogue without capturing anything,
+     * which is what makes the loop a single writer. Survives the wipes for the same reason
+     * [outcome] does.
+     */
+    val completed: Boolean = false,
 ) {
 
     /** The session's age in ms, or `0` before the first fix. */
@@ -93,9 +130,17 @@ data class SessionTelemetry(
 
     // ── Transitions ───────────────────────────────────────────────────────────
 
-    /** Session start: the arm's provenance label and the fence that nominated it. */
-    fun armed(evidence: String, nominatingVehicleId: String? = null): SessionTelemetry =
-        copy(armEvidence = evidence, nominatingVehicleId = nominatingVehicleId)
+    /** Session start: the arm's provenance label, the fence that nominated it and the pin it must
+     *  not silently move. */
+    fun armed(
+        evidence: String,
+        nominatingVehicleId: String? = null,
+        activeParkedPin: UserParking? = null,
+    ): SessionTelemetry = copy(
+        armEvidence = evidence,
+        nominatingVehicleId = nominatingVehicleId,
+        activeParkedPin = activeParkedPin,
+    )
 
     /**
      * [DET-G-04] The arm says the drive already happened (armed mid-trip), so the session starts
@@ -172,6 +217,12 @@ data class SessionTelemetry(
         armEvidence = ArmEvidence.LABEL_SELF_OBSERVED,
     )
 
+    /** [11 bug #3] This session's ending, named. */
+    fun endedWith(outcome: SessionOutcome): SessionTelemetry = copy(outcome = outcome)
+
+    /** The session is over. Nothing below re-decides it. */
+    fun sessionCompleted(): SessionTelemetry = copy(completed = true)
+
     /** The vehicle is resolved. Locked once per session. */
     fun attributeVehicle(id: String?, type: VehicleType?): SessionTelemetry =
         copy(attributedVehicleId = id, attributedVehicleType = type)
@@ -187,6 +238,15 @@ data class SessionTelemetry(
         nominatingVehicleId = nominatingVehicleId,
         attributedVehicleId = attributedVehicleId,
         attributedVehicleType = attributedVehicleType,
+        // The asserted pin survives a wipe for the same reason it is here at all: it describes the
+        // world this session found, not anything this session reasoned. As a `@Volatile` it survived
+        // by accident of not being in the state; now it survives on purpose.
+        activeParkedPin = activeParkedPin,
+        // …and so do the two that describe the ENDING. `onUserStoppedDetection` stamps
+        // `stopped_by_user` and then wipes; without these two lines the wipe would erase the very
+        // thing the call was made to say.
+        outcome = outcome,
+        completed = completed,
     )
 
     /**

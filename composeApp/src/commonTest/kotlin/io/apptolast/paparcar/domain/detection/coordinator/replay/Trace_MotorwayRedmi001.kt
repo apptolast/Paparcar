@@ -1,4 +1,4 @@
-package io.apptolast.paparcar.domain.coordinator.replay
+package io.apptolast.paparcar.domain.detection.coordinator.replay
 
 /**
  * [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001] Field trace of the **102-minute session that never

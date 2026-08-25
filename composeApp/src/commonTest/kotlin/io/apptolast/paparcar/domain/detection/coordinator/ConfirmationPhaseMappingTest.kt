@@ -1,5 +1,7 @@
-package io.apptolast.paparcar.domain.coordinator
+package io.apptolast.paparcar.domain.detection.coordinator
 
+import io.apptolast.paparcar.domain.detection.state.ConfirmationPhase
+import io.apptolast.paparcar.domain.detection.toDetectionPhase
 import io.apptolast.paparcar.domain.detection.DetectionPhase
 import kotlin.test.Test
 import kotlin.test.assertEquals

@@ -85,16 +85,19 @@ class NoMovementBudgetStage {
         val jamCrawl = !staleExitDelivery && recentCreepMeters >= config.jamCreepMinMeters
         if (jamCrawl && sessionAgeMs <= config.jamExtendedNoMovementMs) {
             // Keep watching. One line per session, not one per fix.
-            val notes = if (extensionAlreadyAnnounced) {
-                emptyList()
-            } else {
-                listOf(
-                    "  ⏲ no-movement budget EXTENDED — recent creep ${recentCreepMeters.toInt()}m " +
-                        "in ${config.jamCreepWindowMs}ms without driving speed (jam/stop-go " +
-                        "crawl) → watching until ${config.jamExtendedNoMovementMs}ms [DET-JAM-WINDOW-001]",
-                )
-            }
-            return StageVerdict.Handled(newState = state, notes = notes)
+            // The CLAIM is what the loop reads; the text is what the trace reads. Before the note
+            // had a name the loop inferred the claim from `notes.isNotEmpty()`, so silencing the
+            // line would have silently changed the eventual outcome label.
+            val extended = DiagnosticNote(
+                "  ⏲ no-movement budget EXTENDED — recent creep ${recentCreepMeters.toInt()}m " +
+                    "in ${config.jamCreepWindowMs}ms without driving speed (jam/stop-go " +
+                    "crawl) → watching until ${config.jamExtendedNoMovementMs}ms [DET-JAM-WINDOW-001]",
+                claim = DiagnosticNote.Claim.NO_MOVEMENT_BUDGET_EXTENDED,
+            )
+            return StageVerdict.Handled(
+                newState = state,
+                notes = if (extensionAlreadyAnnounced) emptyList() else listOf(extended),
+            )
         }
 
         // [DET-JAM-WINDOW-001] A DISTINCT outcome when the extension ran, plus its telemetry: field
@@ -126,7 +129,7 @@ class NoMovementBudgetStage {
             newState = state,
             effects = effects,
             stopsIteration = true,
-            notes = listOf(
+            notes = notes(
                 "  ⚑ no-movement guard hit after ${sessionAgeMs}ms " +
                     "(budget=${budgetMs}ms staleExitDelivery=$staleExitDelivery " +
                     "recentCreep=${recentCreepMeters.toInt()}m jamExtended=$extensionAlreadyAnnounced) " +

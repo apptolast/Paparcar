@@ -1,4 +1,4 @@
-package io.apptolast.paparcar.domain.coordinator.replay
+package io.apptolast.paparcar.domain.detection.coordinator.replay
 
 /**
  * [DET-CADENCE-CANNOT-ACCUSE-AFTER-EGRESS-001] Field trace of **trip 1 of 2026-08-22**, Calle

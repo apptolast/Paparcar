@@ -3,8 +3,10 @@ package io.apptolast.paparcar.domain.detection.stages
 import io.apptolast.paparcar.domain.detection.HoldAction
 import io.apptolast.paparcar.domain.detection.physics.SavedParkingShape
 import io.apptolast.paparcar.domain.detection.physics.isCredibleFixAccuracy
+import io.apptolast.paparcar.domain.detection.physics.outrunsPedestrianReach
 import io.apptolast.paparcar.domain.detection.state.DetectionSessionState
 import io.apptolast.paparcar.domain.detection.state.PendingConfirm
+import io.apptolast.paparcar.domain.detection.state.isAnchorPinned
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 
@@ -57,10 +59,7 @@ import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
  * either way, which is the distinction the whole stage turns on: the answer settles whether, the
  * hold already settled where.
  */
-class HoldResolutionStage(
-    private val isAnchorPinned: (DetectionSessionState) -> Boolean,
-    private val heldConfirmOutrunByVehicle: (PendingConfirm, DetectionSessionState, GpsPoint) -> Boolean,
-) : SessionStage {
+class HoldResolutionStage : SessionStage {
 
     override val stage = DetectionStage.HOLD_RESOLUTION
 
@@ -77,7 +76,7 @@ class HoldResolutionStage(
 
         // Only REAL driving speed clears a pinned anchor; an unpinned one yields to the lower bar.
         val resumeSpeedBar =
-            if (isAnchorPinned(state)) config.minimumTripSpeedMps else config.clearBestStopSpeedMps
+            if (state.isAnchorPinned(config)) config.minimumTripSpeedMps else config.clearBestStopSpeedMps
         // [DET-C-02] Strictly greater, deliberately: this discards a pin that has already EARNED its
         // confirm, so the boundary is not moved by a pure-move refactor. Only the accuracy gate is
         // shared with the driving predicates.
@@ -86,7 +85,7 @@ class HoldResolutionStage(
 
         return when {
             !userSaidYes && heldMs >= config.confirmHoldMs &&
-                heldConfirmOutrunByVehicle(pending, state, fix) ->
+                heldConfirmOutrunByVehicle(pending, state, fix, config) ->
                 discard(state, HoldAction.DISCARDED_STALE, heldMs, pending, fix, STALE_NOTE)
 
             userSaidYes || heldMs >= config.confirmHoldMs -> settle(state, pending, heldMs, userSaidYes, config)
@@ -117,7 +116,7 @@ class HoldResolutionStage(
         newState = state,
         effects = listOf(DetectionEffect.DiscardHold(action, heldMs, pending.pathLabel, fix)),
         stopsIteration = false,
-        notes = listOf(note),
+        notes = notes(note),
     )
 
     private fun settle(
@@ -144,7 +143,7 @@ class HoldResolutionStage(
                 ),
             ),
             stopsIteration = true,
-            notes = listOf("  ✓ hold settled (held=${heldMs}ms, userYes=$userSaidYes) — finalizing tentative confirm [DET-C-02]"),
+            notes = notes("  ✓ hold settled (held=${heldMs}ms, userYes=$userSaidYes) — finalizing tentative confirm [DET-C-02]"),
         )
     }
 
@@ -156,3 +155,26 @@ class HoldResolutionStage(
             "from the held pin (errand/pick-up stop), discarding and re-anchoring [DET-CONFIRM-FRESHNESS-001]"
     }
 }
+
+/** [DET-CONFIRM-FRESHNESS-001] Settle-time freshness check for a held confirm: the current fix
+ *  sits farther from the HELD pin than the steps counted for this stop could walk (stride +
+ *  both accuracy envelopes + the generous egress-birth floor — the same physics as
+ *  `egressExceedsWalkReach`, measured against the pending pin so it needs no live anchor).
+ *  TRUE means a vehicle covered that ground after the tentative confirm: the evidence the hold
+ *  was opened on is no longer true, and finalizing it would pin a stop the car provably left.
+ *  A degraded fix inflates the reach through its own accuracy — fails conservative.
+ *
+ *  Lives with the one stage that asks it, because it is a predicate with a single consumer
+ *  [DET-VERDICT-NOT-PREDICATE-001] — unlike the anchor family, which three stages share. */
+private fun heldConfirmOutrunByVehicle(
+    pending: PendingConfirm,
+    state: DetectionSessionState,
+    current: GpsPoint,
+    config: ParkingDetectionConfig,
+): Boolean = outrunsPedestrianReach(
+    base = pending.location,
+    fix = current,
+    steps = state.egress.stepCount,
+    strideMeters = config.anchorStrideMeters,
+    floorMeters = config.egressBirthFloorMeters,
+)

@@ -1,4 +1,4 @@
-package io.apptolast.paparcar.domain.coordinator.replay
+package io.apptolast.paparcar.domain.detection.coordinator.replay
 
 /**
  * [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001] Field trace of the **indoor-mirage re-park**

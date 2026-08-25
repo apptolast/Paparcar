@@ -1,4 +1,4 @@
-package io.apptolast.paparcar.domain.coordinator.replay
+package io.apptolast.paparcar.domain.detection.coordinator.replay
 
 /**
  * [DET-STOP-MUST-BE-STILL-IN-SPACE-001] Field trace of **trip 2 of 2026-08-22**, Camelias ->

@@ -52,7 +52,7 @@ class FalseEnterAbortStage : SessionStage {
             newState = state,
             effects = listOf(DetectionEffect.EndSession(SessionOutcome.AbortedFalseEnter.serialized)),
             stopsIteration = true,
-            notes = listOf(
+            notes = notes(
                 "  ⊘ false-ENTER abort — ${state.egress.stepCount} steps before driving speed " +
                     "[BUG-FALSE-ENTER-WALKING]",
             ),

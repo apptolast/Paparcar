@@ -141,18 +141,17 @@ interface SessionStage {
  * diagnostics tap LAST (P3.12), after all ten stage moves; the very first stage move needs it,
  * because dropping those lines would change `parkdiag`, and `parkdiag` is the field-test instrument.
  *
- * So the notes channel lands here instead, in its smallest honest form: a list of strings the
- * orchestrator logs in order, keeping every line byte-identical. P3.12 replaces the `String` with a
- * typed `DiagnosticNote` and gives the tap its dedups — this is the slice of it that the ordering
- * of the plan turned out to require.
+ * So the notes channel landed here first in its smallest honest form — a list of strings the
+ * orchestrator logged in order, keeping every line byte-identical. P3.13 gives it the type it was
+ * always going to need, for the reason on [DiagnosticNote].
  */
 sealed interface StageVerdict {
 
     /** Lines this stage wants in the trace, in order. */
-    val notes: List<String>
+    val notes: List<DiagnosticNote>
 
     /** This stage does not apply to this fix: carry on down the list. */
-    data class Skip(override val notes: List<String> = emptyList()) : StageVerdict
+    data class Skip(override val notes: List<DiagnosticNote> = emptyList()) : StageVerdict
 
     /**
      * This stage handled the fix.
@@ -175,8 +174,51 @@ sealed interface StageVerdict {
         val newState: DetectionSessionState,
         val effects: List<DetectionEffect> = emptyList(),
         val stopsIteration: Boolean = false,
-        override val notes: List<String> = emptyList(),
+        override val notes: List<DiagnosticNote> = emptyList(),
     ) : StageVerdict
+}
+
+/**
+ * A line a stage wants in the trace — and, when something READS it, the name to read it by.
+ *
+ * ## Why the channel is not `List<String>` any more
+ *
+ * Because one decision was being made out of it. The no-movement budget picks
+ * `aborted_no_movement_jam` over `aborted_no_movement` from whether the extension was announced, and
+ * the loop learned that by asking **whether the stage had emitted a note at all**
+ * (`notes.isNotEmpty()`). A verdict keyed on the diagnostics channel is the same defect the tap's
+ * KDoc names in `jamExtensionLogged` — an input to a decision wearing a logging name — and here it
+ * was one level worse: not even a named flag, just the presence of *some* text.
+ *
+ * [claim] is the fix, and its scope is deliberately tiny. A note gets a name **only** when a
+ * decision reads it. Everything else stays what it is: a line for the trace, said once, in order.
+ * Naming all sixty would be inventing a vocabulary nobody consumes — and choosing which notes reach
+ * the REMOTE trace is a separate decision with its own write budget [09 §7, P4.2].
+ */
+data class DiagnosticNote(val text: String, val claim: Claim? = null) {
+
+    /** The notes a DECISION reads. One entry, and it should stay hard to add to. */
+    enum class Claim {
+        /** [DET-JAM-WINDOW-001] The extended no-movement budget was announced for this session.
+         *  What makes the eventual fold `aborted_no_movement_jam` instead of `aborted_no_movement`,
+         *  which is the instrument that sizes the jam cohort. */
+        NO_MOVEMENT_BUDGET_EXTENDED,
+    }
+}
+
+/** Plain trace lines, in order. */
+fun notes(vararg texts: String): List<DiagnosticNote> = texts.map { DiagnosticNote(it) }
+
+/**
+ * Sugar for the reducers that accumulate their lines as they go.
+ *
+ * Deliberately only for `+=` on a mutable list. The `List + element` counterpart was written and
+ * then removed: it loses to the stdlib's own `Collection<T>.plus`, which happily infers `T = Any`
+ * and produces a `List<Any>` that only fails LATER, at the call that consumes it. A sugar that can
+ * silently pick the wrong overload is worse than no sugar.
+ */
+operator fun MutableList<DiagnosticNote>.plusAssign(text: String) {
+    add(DiagnosticNote(text))
 }
 
 /**

@@ -11,7 +11,7 @@ import com.google.android.gms.location.DetectedActivity
 import io.apptolast.paparcar.detection.activityLabel
 import io.apptolast.paparcar.detection.transitionLabel
 import io.apptolast.paparcar.detection.worker.ParkingSafetyNetWorker
-import io.apptolast.paparcar.domain.coordinator.CoordinatorParkingDetector
+import io.apptolast.paparcar.domain.detection.CoordinatorParkingDetector
 import io.apptolast.paparcar.domain.service.DepartureEventBus
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import org.koin.core.component.KoinComponent

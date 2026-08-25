@@ -2,11 +2,12 @@ package io.apptolast.paparcar.domain.detection.stages
 
 import io.apptolast.paparcar.domain.detection.physics.SavedParkingShape
 import io.apptolast.paparcar.domain.detection.state.DetectionSessionState
+import io.apptolast.paparcar.domain.detection.state.hasKinematicEgressSignal
+import io.apptolast.paparcar.domain.detection.state.refinedParkLocation
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.usecase.parking.EvaluateParkingDecisionUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ParkingDecision
-import io.apptolast.paparcar.domain.usecase.parking.ParkingDecisionInput
 
 /**
  * [DET-D-03] **Steps + egress: parked and walked away, with nothing left to wait for.**
@@ -34,15 +35,6 @@ import io.apptolast.paparcar.domain.usecase.parking.ParkingDecisionInput
  */
 class FastConfirmStage(
     private val evaluateParkingDecision: EvaluateParkingDecisionUseCase,
-    private val decisionInput: (
-        state: DetectionSessionState,
-        location: GpsPoint,
-        now: Long,
-        elapsedSinceHighMs: Long,
-        hadVehicleExit: Boolean,
-        restCertified: Boolean,
-    ) -> ParkingDecisionInput,
-    private val refinedParkLocation: (DetectionSessionState, GpsPoint) -> GpsPoint,
 ) : SessionStage {
 
     override val stage = DetectionStage.FAST_CONFIRM
@@ -57,39 +49,45 @@ class FastConfirmStage(
         if (!hasEgressProof(state, config)) return StageVerdict.Skip()
 
         val decision = evaluateParkingDecision(
-            decisionInput(
-                state, fix, now,
+            state.parkingDecisionInput(
+                fix, now,
                 /* elapsedSinceHighMs = */ 0L,
                 state.egress.vehicleExitHint,
                 // No stop has matured here — this lane runs on the egress proofs alone, so it may
                 // not reach the terminal human-powered close: a cyclist paused at a light must not
                 // be closed mid-ride. [DET-HUMAN-POWERED-EARLY-CLOSE-001]
                 /* restCertified = */ false,
+                config,
             ),
         )
 
         return when (decision) {
-            is ParkingDecision.Confirmed -> StageVerdict.Handled(
-                newState = state,
-                effects = listOf(
-                    DetectionEffect.Confirm(
-                        shape = SavedParkingShape.ExactPin(
-                            location = refinedParkLocation(state, fix),
-                            reliability = decision.reliability,
+            is ParkingDecision.Confirmed -> {
+                // Prepended, not appended: the refinement's line was logged from inside the helper
+                // and therefore printed ahead of this branch's own note. [DET-ANCHOR-EGRESS-001]
+                val pin = state.refinedParkLocation(fix, config)
+                StageVerdict.Handled(
+                    newState = state,
+                    effects = listOf(
+                        DetectionEffect.Confirm(
+                            shape = SavedParkingShape.ExactPin(
+                                location = pin.location,
+                                reliability = decision.reliability,
+                            ),
+                            vehicleId = state.session.attributedVehicleId,
+                            pathLabel = decision.pathLabel,
+                            // [DET-C-02] Inferred: the grace window may still rule out an errand stop.
+                            mayHold = true,
                         ),
-                        vehicleId = state.session.attributedVehicleId,
-                        pathLabel = decision.pathLabel,
-                    // [DET-C-02] Inferred: the grace window may still rule out an errand stop.
-                    mayHold = true,
                     ),
-                ),
-                stopsIteration = true,
-                notes = listOf(
-                    "  ▶ ${decision.pathLabel} (steps=${state.egress.stepCount} " +
-                        "kinematicFixes=${state.anchorTrust.kinematicEgressFixes}) → fast confirm, " +
-                        "skipping slow path [DET-D-03][DET-KINEMATIC-EGRESS-001]",
-                ),
-            )
+                    stopsIteration = true,
+                    notes = listOfNotNull(pin.note) + notes(
+                        "  ▶ ${decision.pathLabel} (steps=${state.egress.stepCount} " +
+                            "kinematicFixes=${state.anchorTrust.kinematicEgressFixes}) → fast confirm, " +
+                            "skipping slow path [DET-D-03][DET-KINEMATIC-EGRESS-001]",
+                    ),
+                )
+            }
 
             is ParkingDecision.Prompt -> StageVerdict.Handled(
                 newState = state,
@@ -101,7 +99,7 @@ class FastConfirmStage(
 
             // Gated: fall through to the scoring lane, which is the next and last stage.
             else -> StageVerdict.Skip(
-                listOf(
+                notes(
                     "  ⊘ steps+egress fast confirm gated ($decision) — " +
                         "anchorSet=${state.anchorTrust.anchor != null}, falling to scoring",
                 ),
@@ -115,14 +113,9 @@ class FastConfirmStage(
      *
      * A PREDICATE, not a verdict — it produces no `detectionPath`, no outcome and nothing the user
      * reads — so it lives inside the verdict it feeds rather than as a use case of its own
-     * [DET-VERDICT-NOT-PREDICATE-001]. It moves up to shared ground the day a second stage needs it.
+     * [DET-VERDICT-NOT-PREDICATE-001]. Its kinematic half said it would move to shared ground the day
+     * a second stage needed it; the decision input needs it too, so it did.
      */
     private fun hasEgressProof(state: DetectionSessionState, config: ParkingDetectionConfig): Boolean =
-        state.freshStepCount >= config.minStepsToConfirm || hasKinematicEgress(state, config)
-
-    /** [DET-KINEMATIC-EGRESS-001] The frozen anchor has watched a sustained quality walk away. */
-    private fun hasKinematicEgress(state: DetectionSessionState, config: ParkingDetectionConfig): Boolean =
-        state.anchorTrust.frozenByRest &&
-            state.anchorTrust.anchor != null &&
-            state.anchorTrust.kinematicEgressFixes >= config.kinematicEgressMinWalkFixes
+        state.freshStepCount >= config.minStepsToConfirm || state.hasKinematicEgressSignal(config)
 }

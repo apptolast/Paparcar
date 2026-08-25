@@ -1,7 +1,8 @@
 @file:OptIn(kotlin.time.ExperimentalTime::class, kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 
-package io.apptolast.paparcar.domain.coordinator
+package io.apptolast.paparcar.domain.detection.coordinator
 
+import io.apptolast.paparcar.domain.detection.CoordinatorParkingDetector
 import io.apptolast.paparcar.domain.detection.HoldAction
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.model.GpsPoint

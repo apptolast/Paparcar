@@ -1,4 +1,4 @@
-package io.apptolast.paparcar.domain.coordinator.replay
+package io.apptolast.paparcar.domain.detection.coordinator.replay
 
 /**
  * [DET-HONEST-CLOSE-001] Field trace of the **short-hop false negative** at Calle Camelias

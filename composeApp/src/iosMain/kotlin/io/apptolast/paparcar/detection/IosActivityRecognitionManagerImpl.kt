@@ -3,7 +3,7 @@
 package io.apptolast.paparcar.detection
 
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
-import io.apptolast.paparcar.domain.coordinator.CoordinatorParkingDetector
+import io.apptolast.paparcar.domain.detection.CoordinatorParkingDetector
 import io.apptolast.paparcar.domain.service.DepartureEventBus
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlin.time.Clock

@@ -126,6 +126,13 @@ class DetectionEffectExecutor(
     /**
      * Save the park.
      *
+     * Runs [confirmParking] under `NonCancellable` so the save survives an upstream cancellation,
+     * and on success MORPHS the prompt notification into the post-save "Vehículo aparcado ·
+     * Confirmar / Cancelar" card [REFACTOR-300]. The old `notificationPort.dismiss(...)` is gone:
+     * the morph is what closes BUG-FGS-103 AND gives the user the revert affordance for the cases
+     * where an auto-confirm grabbed someone else's car. A `NotAuthenticated` transient error is
+     * translated into a warn-level log rather than a failure.
+     *
      * @param zoneRadiusMeters Non-null → save an APPROXIMATE ZONE of this radius instead of an exact
      *   point: the fallback that keeps the parking instead of losing it when a guard distrusts the
      *   exact anchor. [DET-FROZEN-COUNTER-001]
@@ -243,9 +250,20 @@ class DetectionEffectExecutor(
     /**
      * [DET-FROZEN-COUNTER-001] Save an approximate AREA instead of losing the park.
      *
-     * @return the confirm's outcome plus whether the zone was actually KEPT. That second answer used
-     *   to be read off the session's outcome field, which the nested confirm had just written —
-     *   here it comes from the nested call's own return value.
+     * The unattended-timeout fallback: a guard distrusts the EXACT anchor, but the session measured
+     * real driving — a parking happened somewhere near the evidence, and losing it entirely costs
+     * the user their car (field 2026-07-25/26, Redmi: 92 driving fixes ended in a nudge nobody saw
+     * and no saved parking; the released spot left the vehicle nowhere). So an honest AREA is saved
+     * instead: centred on the best witness ([center]), radius wide enough to also cover
+     * [doubtMeters] — the guard's own measure of how far the truth may sit from the centre, because
+     * **a zone is only honest when that doubt is BOUNDABLE**; guards with unbounded doubt keep the
+     * nudge-only exit. Reliability sits at the unattended floor so nothing community-facing trusts
+     * it on its own, and the saved-parking card is the correction surface.
+     *
+     * @return the confirm's outcome plus whether the zone was actually KEPT — false when the save
+     *   failed or a guard inside the confirm degraded it, and then the caller falls back to the
+     *   nudge-only exit. That second answer used to be read off the session's outcome field, which
+     *   the nested confirm had just written — here it comes from the nested call's own return value.
      */
     @Suppress("LongParameterList")
     suspend fun saveZone(
