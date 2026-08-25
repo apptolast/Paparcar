@@ -2045,7 +2045,7 @@ decision to make.
 
 ### DET-STATE-EGRESS-BIRTH-001 — one birth rule, and the asymmetry gets a name
 
-**Commit:** pending · **Ticket:** `docs/backlog/det-state-egress-birth-001.md` · plan step P2.5-bis.
+**Commit:** `15e251fa` · **Ticket:** `docs/backlog/det-state-egress-birth-001.md` · plan step P2.5-bis.
 The first step of the whole refactor marked `C` — **may change behaviour** — so it is its own commit
 with a literal acceptance criterion.
 
@@ -2074,6 +2074,46 @@ not currently protecting anything measurable. That is now written down instead o
 the pair of tests makes the asymmetry impossible to erase silently.
 
 **1618 tests**, 0 failures.
+
+---
+
+### DET-STATE-SESSION-COMPOSITION-001 — the order the five are reduced in
+
+**Commit:** pending · **Ticket:** `docs/backlog/det-state-session-composition-001.md` · plan step
+P2.6. **Closes Phase 2.**
+
+`ParkingDetectionState` leaves the coordinator and becomes
+`domain/detection/state/DetectionSessionState.kt` — by now it is nothing but the composition of the
+five sub-states, because the five previous steps emptied it field by field. What it gains here is
+the thing that only exists BETWEEN owners: **the reduction order**.
+
+**Why that is not a detail.** The design rule was one-way — the anchor owns itself and the steps are
+PRESENTED to it. `DET-CADENCE-CANNOT-ACCUSE-AFTER-EGRESS-001` made the cadence classifier read the
+anchor back, so the graph has a cycle. With a cycle, a slip in the order changes a verdict while the
+compiler stays happy and every sub-state's own tests keep passing.
+
+The order, on a GPS fix:
+
+1. `DriveProof` reduces first, against the pre-fix state.
+2. `SessionTelemetry` reduces next and consumes the drive proof **produced by this same fix**.
+3. `AnchorTrust` and `EgressEvidence` both reduce against the pre-fix snapshot, so their relative
+   order is irrelevant by construction.
+
+Rule 2 is the one with teeth: `authorizedOnArmTrustOnly` — the flag deciding whether a dismissed
+departure may still retract a seed the arm only LENT — must stop being retractable on the fix that
+proves the drive, not the next one. `DetectionSessionState.onFix` makes drive-then-session one
+indivisible step, and neutralizing it (reducing the session against the PREVIOUS proof) turns **one
+test red, the new one** — the one-fix window is invisible to all 1618 pre-existing tests.
+
+⚠️ **Only rule 2 is enforced here.** Rules 1 and 3 are still conventions the coordinator's fix block
+holds; they become structural when the stage list IS the order (Fase 3, `StageOrderTest`). Saying
+which is which matters more than the list — an order that claims to be enforced and is not is worse
+than one that admits it is a convention.
+
+**Zero behaviour change**, **no test file touched**, coordinator **−65 lines**. **1622 tests.**
+
+**Phase 2 closed:** seven steps, `c5f06bb5` → here. Forty flat fields became five sub-states with
+named transitions, and not one assert was edited in any of them.
 
 ---
 
