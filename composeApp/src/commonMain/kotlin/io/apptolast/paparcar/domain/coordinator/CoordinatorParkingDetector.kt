@@ -21,6 +21,7 @@ import io.apptolast.paparcar.domain.detection.physics.creditSpeedBand
 import io.apptolast.paparcar.domain.detection.physics.sustainedDriveWitnessed
 import io.apptolast.paparcar.domain.detection.physics.walkableInsideGapMeters
 import io.apptolast.paparcar.domain.detection.physics.SessionOutcome
+import io.apptolast.paparcar.domain.detection.state.SessionTelemetry
 import io.apptolast.paparcar.domain.detection.physics.effectiveDriving
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
@@ -101,7 +102,7 @@ import kotlinx.coroutines.withContext
  * **Path precedence inside the collect block** (BUG-COORD-115 invariant):
  *   1. `falseEnterAbortSteps` reached pre-drive → abort spurious session. [BUG-FALSE-ENTER-WALKING]
  *   2. `maxNoMovementMs` elapsed pre-drive → abort spurious session.
- *   3. Lock `activeVehicleId` on first driving-speed fix.
+ *   3. Lock `attributedVehicleId` on first driving-speed fix.
  *   4. `userConfirmedParking` short-circuits everything.
  *   5. `!hasEverReachedDrivingSpeed` skip (waiting for the driving signal).
  *   6. Response-timeout abort.
@@ -190,22 +191,10 @@ class CoordinatorParkingDetector(
         val pendingConfirm: PendingConfirm? = null,
         /** [REFACTOR-200] explicit confirmation lifecycle. See [ConfirmationPhase]. */
         val phase: ConfirmationPhase = ConfirmationPhase.Idle,
-        /** `true` once GPS speed has reached [ParkingDetectionConfig.minimumTripSpeedMps] at least
-         *  once, regardless of displacement from [sessionOrigin]. Enables short-trip detection
-         *  ("circled the block"). [BUG-SHORT-TRIP] */
-        val hasEverReachedDrivingSpeed: Boolean = false,
-        /** [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001] `true` while [hasEverReachedDrivingSpeed]
-         *  rests ONLY on the arm's evidence — granted on trust, never measured by this session.
-         *  Cleared the moment any measurement backs it (a credible in-band fix, the displacement
-         *  proof), and it is the flag that decides whether a DISMISSED departure may retract the
-         *  seed: the worker adjudicates the EXIT, so it may take back what the EXIT lent, and
-         *  nothing that the trip itself earned. */
-        val drivingSpeedOnArmTrustOnly: Boolean = false,
-        /** `true` once both speed AND displacement thresholds have been crossed simultaneously.
-         *  Used exclusively for the [maxNoMovementMs] guard against spurious IN_VEHICLE_ENTER. */
-        val hasEverMoved: Boolean = false,
-        /** First GPS fix received in this session. Captured once and never overwritten. */
-        val sessionOrigin: GpsPoint? = null,
+        /** [09 §5] Session identity and the drive AUTHORIZATION — origin, first-fix clock, fix
+         *  counter, last speed, previous fix, arm evidence, vehicle attribution. Every change goes
+         *  through one of its named transitions; nothing here is written field by field. */
+        val session: SessionTelemetry = SessionTelemetry(),
         /** Best (lowest accuracy value) GPS fix recorded while the vehicle was stopped. Cleared
          *  when the vehicle drives away. Also serves as the egress anchor: [hasEgressDisplacement]
          *  measures how far the current fix is from it. [code-review #4: a dedicated egressAnchor
@@ -330,12 +319,6 @@ class CoordinatorParkingDetector(
          *  CAR and unfreezes the anchor (the traffic-light / parking-search creep, field
          *  2026-07-23 "Bodegas Osborne"). */
         val pinnedSteplessMovingFixes: Int = 0,
-        /** [DET-CREDIBLE-DRIVE-001] The last fix that went through stop tracking — the `prev` of
-         *  the fix-to-fix hop that corroborates a mute-counter ambiguous-band fix as CAR (see
-         *  [isCorroboratedVehicleHop]). Deliberately every processed fix, garbage included: a
-         *  degraded stretch's phantom stop is exactly the `prev` the deceleration hop must be
-         *  measured against (field 2026-07-16, Galeote). */
-        val previousFix: GpsPoint? = null,
         // ── REPOSITION DETECTION (PARKING-001) ────────────────────────────────
         val consecutiveRepositionFixes: Int = 0,
         // ── STEP DETECTOR (BUG-GARAGE-COLA-001 + BUG-FALSE-ENTER-WALKING) ─────
@@ -359,7 +342,6 @@ class CoordinatorParkingDetector(
          *  measured driving, and by nothing else. */
         val stepsAtLastDiscard: Int = 0,
         // ── SESSION TELEMETRY (BUG-SCOOTER-001) ───────────────────────────────
-        val sessionStartMs: Long? = null,
         /** Session peak of credible driving speed, but ZERO until [driveProven] latches — this
          *  is the statistic every confirm path reads as "did this session measure driving?"
          *  (evaluator `sessionSawDriving`, the unattended save gate, honest-close, the persisted
@@ -390,11 +372,6 @@ class CoordinatorParkingDetector(
          *  see on a short stop-and-go hop; any fix that fails the geometry resets the run, so a
          *  lone cache teleport never counts. */
         val shortHopQualifyingFixes: Int = 0,
-        /** [DET-STEP-SPEED-GATE-001] Speed (m/s) of the most recent GPS fix. Distinguishes the
-         *  egress WALK (person, ~1.4 m/s) from a stop-and-go TRAFFIC crawl (car): with an anchor
-         *  set, steps only count while this is below driving speed, so a phone bouncing in traffic
-         *  cannot accumulate phantom steps. Field 2026-07-12 (FP Avenida de los Mástiles, in motion). */
-        val lastSpeedMps: Float = 0f,
         // ── MOTOR PROOF (DET-MOTOR-PROOF-001) ─────────────────────────────────
         /** Cumulative ms spent in the credible driving band: gaps between SUCCESSIVE in-band
          *  credible fixes (speed ≥ minimumTripSpeedMps, accuracy ≤ minGpsAccuracyForDriving),
@@ -455,7 +432,7 @@ class CoordinatorParkingDetector(
         val provenDrivingBandMs: Long get() = if (driveProven) drivingBandMs else 0L
 
         /** Wall-clock duration since the first GPS fix, in ms; `0` if no fix has arrived yet. */
-        fun sessionDurationMs(now: Long): Long = sessionStartMs?.let { now - it } ?: 0L
+        fun sessionDurationMs(now: Long): Long = session.ageMs(now)
 
         /** [DET-GAP-ANCHOR-ZONE-001] Whether the anchor carries the GAP-ENTERED taint — derived
          *  from [anchorGapMsAtCapture] so the fact and its magnitude can never disagree. The
@@ -568,25 +545,30 @@ class CoordinatorParkingDetector(
      * In-session only. Cross-session, [BUG-SERVICE-109] is closed by the `finally { reset() }`
      * inside [invoke]; this property therefore returns `false` between sessions.
      */
-    val hasDetectedMovement: Boolean get() = _detectionState.value.hasEverReachedDrivingSpeed
+    val hasDetectedMovement: Boolean get() = _detectionState.value.session.driveAuthorized
+
+    /** [09 §5] The vehicle this session resolved, read LIVE: attribution happens mid-iteration and
+     *  the readers downstream of it must see it, exactly as they did when this was a local `var`. */
+    private val attributedVehicleId: String? get() = _detectionState.value.session.attributedVehicleId
+    private val attributedVehicleType: VehicleType? get() = _detectionState.value.session.attributedVehicleType
 
     /**
      * [DET-G-05] Live upgrade from the sibling departure pipeline: `DepartureDetectionWorker`
      * confirmed the geofence exit was a real drive-away AFTER this session was armed unverified
      * (no vehicle evidence at arm time — AR ENTER can take up to ~2 min to deliver). Seeds
-     * [ParkingDetectionState.hasEverReachedDrivingSpeed] on the RUNNING session so the confirm
+     * [ParkingDetectionState.session.driveAuthorized] on the RUNNING session so the confirm
      * paths unlock — same effect as arming with `armedByConfirmedDeparture=true`, but only once
      * the evidence actually arrived. No-ops between sessions and when already seeded.
      */
     override fun notifyDepartureConfirmed() {
         if (currentSessionId == null) return
-        currentArmEvidence = ArmEvidence.LABEL_VERIFIED_LATE
         // The worker MEASURED this one (a fresh fix at driving speed, past the independence gap),
-        // so the seed is no longer on trust and can never be retracted afterwards.
+        // so the seed is no longer on trust and can never be retracted afterwards — and the
+        // evidence label that says so moves WITH it, in one transition.
         // [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001]
-        _detectionState.update { it.copy(drivingSpeedOnArmTrustOnly = false) }
-        if (_detectionState.value.hasEverReachedDrivingSpeed) return
-        _detectionState.update { it.copy(hasEverReachedDrivingSpeed = true) }
+        val alreadyAuthorized = _detectionState.value.session.driveAuthorized
+        _detectionState.update { it.copy(session = it.session.departureConfirmed()) }
+        if (alreadyAuthorized) return
         PaparcarLogger.d(DIAG, "  ✓ departure confirmed post-arm → seed hasEverReachedDrivingSpeed=true [DET-G-05]")
     }
 
@@ -607,12 +589,9 @@ class CoordinatorParkingDetector(
     override fun notifyDepartureDismissed(geofenceId: String) {
         if (currentSessionId == null) return
         if (currentArmGeofenceId != geofenceId) return
-        val state = _detectionState.value
-        if (!state.hasEverReachedDrivingSpeed || !state.drivingSpeedOnArmTrustOnly) return
-        _detectionState.update {
-            it.copy(hasEverReachedDrivingSpeed = false, drivingSpeedOnArmTrustOnly = false)
-        }
-        currentArmEvidence = ArmEvidence.LABEL_SELF_OBSERVED
+        val session = _detectionState.value.session
+        if (!session.driveAuthorized || !session.authorizedOnArmTrustOnly) return
+        _detectionState.update { it.copy(session = it.session.departureDismissed()) }
         PaparcarLogger.w(
             DIAG,
             "  ⤺ departure DISMISSED post-arm (geof=${geofenceId.take(8)}) — retracting the unearned " +
@@ -623,7 +602,6 @@ class CoordinatorParkingDetector(
     /** Arm-evidence label of the in-flight session (see [ArmEvidence] label constants).
      *  Set at [invoke] entry, upgraded by [notifyDepartureConfirmed], downgraded by
      *  [notifyDepartureDismissed]. [DET-SOLID-001] */
-    @Volatile private var currentArmEvidence: String = ArmEvidence.LABEL_SELF_OBSERVED
 
     /** [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001] The fence whose EXIT armed the in-flight
      *  session — the address a `Dismissed` verdict must match to retract anything. */
@@ -645,7 +623,7 @@ class CoordinatorParkingDetector(
     suspend operator fun invoke(
         locations: Flow<GpsPoint>,
         /** Typed evidence behind this arm. [ArmEvidence.isVerifiedDeparture] evidence seeds
-         *  [ParkingDetectionState.hasEverReachedDrivingSpeed] — the arm fired MID-trip (the car
+         *  [ParkingDetectionState.session.driveAuthorized] — the arm fired MID-trip (the car
          *  already crossed its parked-car geofence radius, provenly driving), so this session's
          *  own GPS stream cannot be relied on to re-observe driving speed on a short hop.
          *  [ArmEvidence.Manual] / [ArmEvidence.Unverified] arms keep every anti-walking guard
@@ -662,7 +640,7 @@ class CoordinatorParkingDetector(
          *  never show driving and used to burn the full 4-min GPS window per delivery. A real
          *  mid-drive far exit shows driving fixes immediately (the car is moving by construction)
          *  and escapes the guard within the probe. Only meaningful for UNVERIFIED evidence —
-         *  verified arms seed [ParkingDetectionState.hasEverReachedDrivingSpeed] and never
+         *  verified arms seed [ParkingDetectionState.session.driveAuthorized] and never
          *  consult this guard. */
         staleExitDelivery: Boolean = false,
         /** [DET-SHORT-HOP-PROOF-001] The pin the car LEFT (the nominating fence's parked position).
@@ -706,9 +684,7 @@ class CoordinatorParkingDetector(
             // [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001] Flagged as GRANTED ON TRUST: nothing in
             // this session has measured a drive yet. The flag clears on the first measurement and
             // makes the seed retractable until then — the worker is still adjudicating this exit.
-            _detectionState.update {
-                it.copy(hasEverReachedDrivingSpeed = true, drivingSpeedOnArmTrustOnly = true)
-            }
+            _detectionState.update { it.copy(session = it.session.seededOnArmTrust()) }
             PaparcarLogger.d(DIAG, "  ✓ ${armEvidence.persistLabel} → seed hasEverReachedDrivingSpeed=true (armed mid-trip; drive already happened) [DET-G-04]")
         }
         currentArmGeofenceId = armingGeofenceId
@@ -718,10 +694,10 @@ class CoordinatorParkingDetector(
         // Session provenance stamped on the confirmed park — the repark-plausibility guard in
         // ConfirmParkingUseCase bypasses verified arms and interrogates self-observed ones.
         // Upgraded live by notifyDepartureConfirmed. [DET-SOLID-001]
-        currentArmEvidence = armEvidence.persistLabel
+        _detectionState.update { it.copy(session = it.session.armed(armEvidence.persistLabel)) }
 
         var completed = false
-        var locationCount = 0
+
         // [DET-JAM-WINDOW-001] Whether this session earned the extended no-movement budget by
         // measured recent creep — logged once, and folds under the distinct jam outcome label.
         var jamExtensionLogged = false
@@ -752,7 +728,7 @@ class CoordinatorParkingDetector(
         // [DET-LOG-03] Diagnostics session id claimed at entry (T8). Outcome defaults to "ended"
         // and is refined by the abort paths / runConfirm before the finally emits SessionEnded.
         sessionOutcome = SessionOutcome.Ended
-        logDetection { sid -> DetectionEvent.SessionStarted(sid, sessionStartMs, strategy = "COORDINATOR", evidence = currentArmEvidence) }
+        logDetection { sid -> DetectionEvent.SessionStarted(sid, sessionStartMs, strategy = "COORDINATOR", evidence = _detectionState.value.session.armEvidence) }
 
         // Session-start notification cleanup, gated by [savedConfirmPostedAt] age.
         //
@@ -791,8 +767,8 @@ class CoordinatorParkingDetector(
         // Capturing at session start (on IN_VEHICLE_ENTER) was a race: a new vehicle
         // registered between the AR signal and real movement would hijack the active slot.
         // [BUG-NEW-VEHICLE-DEFAULT]
-        var activeVehicleId: String? = null
-        var activeVehicleType: VehicleType? = null
+        // [09 §5] Vehicle attribution and the fix counter live in ParkingDetectionState.session.
+
         // [DET-HANDOFF-NOT-MANUAL-001 §B] One-shot: the first measured drive settles any departure
         // this trip's arm was deduced from. Later fixes have nothing left to settle.
         var deducedDepartureSettled = false
@@ -819,14 +795,13 @@ class CoordinatorParkingDetector(
                     // (walking, BUG-FALSE-ENTER-WALKING hardware quirk) — degrade the evidence
                     // and un-seed so the false-ENTER abort guard re-arms.
                     if (config.enterArmStepVetoMs > 0 &&
-                        currentArmEvidence == ArmEvidence.LABEL_VERIFIED_ENTER &&
+                        _detectionState.value.session.armEvidence == ArmEvidence.LABEL_VERIFIED_ENTER &&
                         _detectionState.value.stepCount == 0 &&
                         (clock() - sessionStartMs) < config.enterArmStepVetoMs &&
                         _detectionState.value.maxSpeedMps < config.minimumTripSpeedMps
                     ) {
                         PaparcarLogger.d(DIAG, "  ⊘ enter-arm step veto — first step ${clock() - sessionStartMs}ms after arm, no driving seen → evidence degraded to self_observed [DET-SOLID-001]")
-                        currentArmEvidence = ArmEvidence.LABEL_SELF_OBSERVED
-                        _detectionState.update { it.copy(hasEverReachedDrivingSpeed = false) }
+                        _detectionState.update { it.copy(session = it.session.enterArmStepVeto()) }
                     }
                     // [DET-AR-FIRST-001 F3] Post-drive steps also count while the park ANCHOR is
                     // set even though GPS reads walking movement: those steps ARE the user's
@@ -837,7 +812,7 @@ class CoordinatorParkingDetector(
                     // the count, so jam jiggle cannot accumulate across stops.
                     val stepAtMs = clock()
                     val updated = _detectionState.updateAndGet { s ->
-                        val shouldCount = !s.hasEverReachedDrivingSpeed ||
+                        val shouldCount = !s.session.driveAuthorized ||
                             s.stoppedSince != null ||
                             // [DET-STEP-SPEED-GATE-001] Egress-walk steps (anchor set, GPS moving)
                             // count ONLY at pedestrian speed. A car crawling in stop-and-go traffic
@@ -845,7 +820,7 @@ class CoordinatorParkingDetector(
                             // vibration accumulated phantom steps that (a) faked steps+egress and
                             // (b) poisoned movementOutrunsSteps into holding the anchor mid-route →
                             // the in-motion false positive at Avenida de los Mástiles (field 2026-07-12).
-                            (s.bestStopLocation != null && s.lastSpeedMps < config.egressStepMaxSpeedMps)
+                            (s.bestStopLocation != null && s.session.lastSpeedMps < config.egressStepMaxSpeedMps)
                         // [DET-MOTOR-PROOF-001] Feet moving in rhythm while a fresh, credible fix
                         // reads above the pedestrian ceiling: nobody WALKS at that speed, and a
                         // car's counter stays silent while rolling — this step is a PEDAL stroke.
@@ -871,8 +846,8 @@ class CoordinatorParkingDetector(
                         // 30 s sustained bar on that starved stream, so nothing else caught it.
                         val cadenceStep = !isAnchorPinned(s) &&
                             s.lastFixCredible &&
-                            s.lastSpeedMps >= config.egressStepMaxSpeedMps &&
-                            s.lastSpeedMps < config.motorProofSpeedMps &&
+                            s.session.lastSpeedMps >= config.egressStepMaxSpeedMps &&
+                            s.session.lastSpeedMps < config.motorProofSpeedMps &&
                             s.lastFixSeenAtMs > 0L &&
                             stepAtMs - s.lastFixSeenAtMs <= config.pedalCadenceFixFreshnessMs
                         // [DET-CONFIRM-FRESHNESS-001] Every step event — counted or gated — proves
@@ -922,7 +897,7 @@ class CoordinatorParkingDetector(
                             )
                         }
                     }
-                    if (!updated.hasEverReachedDrivingSpeed) {
+                    if (!updated.session.driveAuthorized) {
                         PaparcarLogger.d(DIAG, "  ✦ step #${updated.stepCount} (pre-drive, false-ENTER candidate)")
                         logDetection { sid -> DetectionEvent.Step(sid, nowMs(), updated.stepCount, stopped = false) }
                     } else if (updated.stoppedSince != null) {
@@ -1008,7 +983,8 @@ class CoordinatorParkingDetector(
                 }
                 .catch { e -> PaparcarLogger.e(DIAG, "✗ upstream flow error", e) }
                 .collect { location ->
-                    locationCount++
+                    _detectionState.update { it.copy(session = it.session.countFix()) }
+                    val locationCount = _detectionState.value.session.fixCount
                     val now = clock()
                     val sessionAgeMs = now - sessionStartMs
                     PaparcarLogger.d(
@@ -1018,7 +994,7 @@ class CoordinatorParkingDetector(
                     val stoppedDuration = updateStopTracking(location, now)
 
                     val state = _detectionState.updateAndGet { s ->
-                        val origin = s.sessionOrigin ?: location
+                        val origin = s.session.origin ?: location
                         val distFromOrigin = io.apptolast.paparcar.domain.util.haversineMeters(
                             origin.latitude, origin.longitude,
                             location.latitude, location.longitude,
@@ -1029,10 +1005,10 @@ class CoordinatorParkingDetector(
                         // same hole the DET-G-04 seed opened, but via GPS noise. Same 50 m gate
                         // that already protects the driving-clears-anchor decision [LOC-002].
                         val credibleSpeedFix = isCredibleFixAccuracy(location, config.minGpsAccuracyForDriving)
-                        val hasJustReachedSpeed = !s.hasEverReachedDrivingSpeed &&
+                        val hasJustReachedSpeed = !s.session.driveAuthorized &&
                                 location.speed >= config.minimumTripSpeedMps &&
                                 credibleSpeedFix
-                        val hasJustMoved = !s.hasEverMoved &&
+                        val hasJustMoved = !s.session.hasEverMoved &&
                                 location.speed >= config.minimumTripSpeedMps &&
                                 credibleSpeedFix &&
                                 distFromOrigin >= config.minimumTripDistanceMeters
@@ -1117,17 +1093,16 @@ class CoordinatorParkingDetector(
                             PaparcarLogger.d(DIAG, "  ✓ MOTOR witnessed — ${newMotorBandMs}ms held above ${config.motorProofSpeedMps} m/s; no bicycle claim can stand against this session [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001]")
                         }
                         s.copy(
-                            sessionOrigin = s.sessionOrigin ?: location,
-                            hasEverReachedDrivingSpeed = s.hasEverReachedDrivingSpeed || hasJustReachedSpeed,
-                            // [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001] The seed stops being "on
-                            // trust" the moment THIS session proves a drive — and the bar is
-                            // [driveProven] (corroborated track, or displacement from the pin), not
-                            // a lone in-band fix: a single mirage sample is exactly what granted
-                            // the seed in the first place, so it cannot also be what makes it
-                            // permanent. Below that bar the arm's word stays retractable.
-                            drivingSpeedOnArmTrustOnly = s.drivingSpeedOnArmTrustOnly && !driveProven,
-                            hasEverMoved = s.hasEverMoved || hasJustMoved,
-                            sessionStartMs = s.sessionStartMs ?: now,
+                            // [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001] Origin, first-fix clock,
+                            // last speed, the authorization and its "on trust" flag all move
+                            // together — see [SessionTelemetry.onFix].
+                            session = s.session.onFix(
+                                fix = location,
+                                nowMs = now,
+                                reachedDrivingSpeed = hasJustReachedSpeed,
+                                moved = hasJustMoved,
+                                driveProven = driveProven,
+                            ),
                             // maxSpeed feeds the mismatch guard AND the weak-evidence policy
                             // ("did this session witness driving?") — an indoor Doppler spike,
                             // whatever accuracy it claims, must not count as driving.
@@ -1138,9 +1113,6 @@ class CoordinatorParkingDetector(
                             driveProven = driveProven,
                             recentFixes = pruneRecentFixes(s.recentFixes, location),
                             shortHopQualifyingFixes = shortHopRun, // [DET-SHORT-HOP-PROOF-001]
-                            // [DET-STEP-SPEED-GATE-001] Track the last fix speed so the step gate can
-                            // veto phantom steps while the car crawls in traffic (anchor still set).
-                            lastSpeedMps = location.speed,
                             // [DET-MOTOR-PROOF-001] The sustained-drive clock and the freshness /
                             // credibility snapshot the concurrent-step cadence judge reads.
                             drivingBandMs = newDrivingBandMs,
@@ -1158,13 +1130,13 @@ class CoordinatorParkingDetector(
                     // taken from the user until this line.
                     if (state.driveProven && !deducedDepartureSettled) {
                         deducedDepartureSettled = true
-                        runCatching { finalizeDeducedDeparture?.invoke(activeVehicleId) }
+                        runCatching { finalizeDeducedDeparture?.invoke(attributedVehicleId) }
                             .onFailure { e -> PaparcarLogger.w(DIAG, "  ⚠ finalize deduced departure failed: ${e.message}") }
                     }
 
                     PaparcarLogger.d(
                         DIAG,
-                        "  state hasEverMoved=${state.hasEverMoved} hasEverReachedDrivingSpeed=${state.hasEverReachedDrivingSpeed} " +
+                        "  state hasEverMoved=${state.session.hasEverMoved} hasEverReachedDrivingSpeed=${state.session.driveAuthorized} " +
                                 "userConfirmed=${state.userConfirmedParking} " +
                                 "vehicleExit=${state.vehicleExitConfirmed} stoppedSince=${state.stoppedSince} " +
                                 "stoppedDur=${stoppedDuration}ms phase=${state.phase}"
@@ -1333,7 +1305,7 @@ class CoordinatorParkingDetector(
                     // car carrying bags, brisk pace). Without this, the same session would run
                     // for the full [maxNoMovementMs] (4 min) with the FGS notification glued on
                     // and could repeat as AR misfires again. [BUG-FALSE-ENTER-WALKING]
-                    if (!state.hasEverReachedDrivingSpeed && state.stepCount >= config.falseEnterAbortSteps) {
+                    if (!state.session.driveAuthorized && state.stepCount >= config.falseEnterAbortSteps) {
                         PaparcarLogger.d(
                             DIAG,
                             "  ⊘ false-ENTER abort — ${state.stepCount} steps before driving speed " +
@@ -1355,7 +1327,7 @@ class CoordinatorParkingDetector(
                     // the extended budget — a stationary spurious arm shows only GPS noise and
                     // keeps folding at the standard budget, so the OEM power profile of false
                     // starts is unchanged. Stale-lane zombies never get the extension.
-                    if (!state.hasEverReachedDrivingSpeed) {
+                    if (!state.session.driveAuthorized) {
                         if (location.accuracy <= JAM_CREEP_MAX_ACCURACY_M) creepWindow.addLast(now to location)
                         while (creepWindow.isNotEmpty() && now - creepWindow.first().first > config.jamCreepWindowMs) {
                             creepWindow.removeFirst()
@@ -1363,7 +1335,7 @@ class CoordinatorParkingDetector(
                     }
                     val noMovementBudgetMs =
                         if (staleExitDelivery) config.staleExitNoMovementMs else config.maxNoMovementMs
-                    if (!state.hasEverReachedDrivingSpeed && (now - sessionStartMs) > noMovementBudgetMs) {
+                    if (!state.session.driveAuthorized && (now - sessionStartMs) > noMovementBudgetMs) {
                         val recentCreepMeters = if (creepWindow.size >= 2) {
                             val oldest = creepWindow.first().second
                             val newest = creepWindow.last().second
@@ -1410,7 +1382,7 @@ class CoordinatorParkingDetector(
                     }
 
                     // Lock vehicleId on first driving-speed fix. [BUG-NEW-VEHICLE-DEFAULT] [BUG-SHORT-TRIP]
-                    if (state.hasEverReachedDrivingSpeed && activeVehicleId == null) {
+                    if (state.session.driveAuthorized && _detectionState.value.session.attributedVehicleId == null) {
                         val active = vehicleRepository.observeActiveVehicle().first()
                         // Attribute to the NOMINATING fence's vehicle (the geofence exit that armed
                         // this trip identifies the car), else the current active vehicle. Stops the
@@ -1441,17 +1413,17 @@ class CoordinatorParkingDetector(
                             completed = true
                             return@collect
                         }
-                        activeVehicleId = resolvedId
                         // Vehicle type: the resolved vehicle's. Cheap when it IS the active one; a
                         // differing nominator was already looked up in the user's vehicle list.
-                        activeVehicleType = if (resolvedId == active?.id) {
+                        val resolvedType = if (resolvedId == active?.id) {
                             active.vehicleType
                         } else {
                             nominatorVehicle?.vehicleType
                         }
+                        _detectionState.update { it.copy(session = it.session.attributeVehicle(resolvedId, resolvedType)) }
                         PaparcarLogger.d(
                             DIAG,
-                            "  ✓ vehicleId locked: $activeVehicleId type=$activeVehicleType (nominator=$nominatingVehicleId" +
+                            "  ✓ vehicleId locked: $resolvedId type=$resolvedType (nominator=$nominatingVehicleId" +
                                 (if (nominatorVetoed) " vetoed: bt-owned" else "") + ")",
                         )
                     }
@@ -1542,7 +1514,7 @@ class CoordinatorParkingDetector(
                         completed = runConfirm(
                             location = locationToConfirm,
                             reliability = config.reliabilityUserConfirmed,
-                            vehicleId = activeVehicleId,
+                            vehicleId = attributedVehicleId,
                             pathLabel = "user",
                             zoneRadiusMeters = userZoneRadius,
                         )
@@ -1550,7 +1522,7 @@ class CoordinatorParkingDetector(
                         return@collect
                     }
 
-                    if (!state.hasEverReachedDrivingSpeed) {
+                    if (!state.session.driveAuthorized) {
                         PaparcarLogger.d(DIAG, "  ⏸ skipping: !hasEverReachedDrivingSpeed")
                         return@collect
                     }
@@ -1601,7 +1573,7 @@ class CoordinatorParkingDetector(
                                 egressBornAtAnchor = isEgressBornAtAnchor(state),
                                 egressExceedsWalkReach = egressExceedsWalkReach(state, location),
                                 anchorRestMs = anchorRestMs,
-                                humanPoweredRide = humanPoweredRide(state, activeVehicleType, now),
+                                humanPoweredRide = humanPoweredRide(state, attributedVehicleType, now),
                             )
                         )
                         PaparcarLogger.d(
@@ -1622,7 +1594,7 @@ class CoordinatorParkingDetector(
                                         reason = verdict.reason,
                                         center = verdict.center,
                                         doubtMeters = verdict.doubtMeters,
-                                        vehicleId = activeVehicleId,
+                                        vehicleId = attributedVehicleId,
                                         location = location,
                                         now = now,
                                     )
@@ -1633,12 +1605,12 @@ class CoordinatorParkingDetector(
                                 // The zone save degraded to yet another prompt or failed outright.
                                 // Fall back to the ask its own reason names, so the user still gets
                                 // the offer instead of silence.
-                                nudgeUnattended(verdict.reason, activeVehicleId, location, now)
+                                nudgeUnattended(verdict.reason, attributedVehicleId, location, now)
                                 completed = true
                                 return@collect
                             }
                             is UnattendedParkingSave.Ask -> {
-                                nudgeUnattended(verdict.reason, activeVehicleId, location, now, verdict.distanceMeters)
+                                nudgeUnattended(verdict.reason, attributedVehicleId, location, now, verdict.distanceMeters)
                                 completed = true
                                 return@collect
                             }
@@ -1652,7 +1624,7 @@ class CoordinatorParkingDetector(
                                 val saved = runConfirm(
                                     location = locationToConfirm,
                                     reliability = config.reliabilityUnattendedSave,
-                                    vehicleId = activeVehicleId,
+                                    vehicleId = attributedVehicleId,
                                     pathLabel = "unattended_timeout",
                                 )
                                 if (!saved) {
@@ -1677,8 +1649,8 @@ class CoordinatorParkingDetector(
                             location = location,
                             state = state,
                             now = now,
-                            activeVehicleId = activeVehicleId,
-                            activeVehicleType = activeVehicleType,
+                            activeVehicleId = attributedVehicleId,
+                            activeVehicleType = attributedVehicleType,
                         )
                         if (didConfirm) completed = true
                         return@collect
@@ -1706,7 +1678,7 @@ class CoordinatorParkingDetector(
                                 state = state,
                                 location = location,
                                 now = now,
-                                activeVehicleType = activeVehicleType,
+                                activeVehicleType = attributedVehicleType,
                                 elapsedSinceHighMs = 0L,
                                 hadVehicleExit = state.vehicleExitConfirmed,
                                 // No stop has matured here — this lane runs on the egress proofs
@@ -1725,7 +1697,7 @@ class CoordinatorParkingDetector(
                             completed = beginConfirm(
                                 location = locationToConfirm,
                                 reliability = decision.reliability,
-                                vehicleId = activeVehicleId,
+                                vehicleId = attributedVehicleId,
                                 pathLabel = decision.pathLabel,
                                 now = now,
                             )
@@ -1744,7 +1716,7 @@ class CoordinatorParkingDetector(
                     // [DET-HUMAN-POWERED-EARLY-CLOSE-001] The scorer can now END the session: High
                     // confidence certifies the sustained stop, and on a muscle-powered ride that is
                     // the entire verdict — no candidate, no prompt, no 15-minute wait.
-                    if (evaluateConfidence(location, stoppedDuration, state, now, activeVehicleId, activeVehicleType)) {
+                    if (evaluateConfidence(location, stoppedDuration, state, now, attributedVehicleId, attributedVehicleType)) {
                         completed = true
                         return@collect
                     }
@@ -1793,7 +1765,7 @@ class CoordinatorParkingDetector(
                     // state — the caller (the detection service) reads it after invoke returns to
                     // run the honest-close ladder on the two silent aborts. previousFix is the last
                     // fix processed; bestStopLocation is the stop anchor fallback.
-                    lastFinishedFix = _detectionState.value.previousFix ?: _detectionState.value.bestStopLocation
+                    lastFinishedFix = _detectionState.value.session.previousFix ?: _detectionState.value.bestStopLocation
                     // [DET-FROZEN-COUNTER-001] Snapshot the session's own evidence for the ladder:
                     // detector steps witness counter liveness, measured speed outranks inference.
                     lastFinishedSessionId = currentSessionId
@@ -1825,7 +1797,7 @@ class CoordinatorParkingDetector(
                 }
             }
         }
-        PaparcarLogger.d(DIAG, "■ coordinator.invoke() EXITED — locationCount=$locationCount completed=$completed")
+        PaparcarLogger.d(DIAG, "■ coordinator.invoke() EXITED — locationCount=${_detectionState.value.session.fixCount} completed=$completed")
     }
 
     /** [DET-BIKE-NOT-A-CAR-001] Whether this session's movement was human-powered — the profile
@@ -1909,19 +1881,14 @@ class CoordinatorParkingDetector(
         // makes it unknowable. Without this the trace shows a session that ended stopped_by_user and
         // no way to tell whether the button cost the user a pin that was one fix from being planted.
         heldConfirmDroppedByUser = _detectionState.value.pendingConfirm
-        _detectionState.update { ParkingDetectionState() }
+        _detectionState.update { ParkingDetectionState(session = it.session.keepingIdentity()) }
     }
 
     /** User dismissed the confirmation ("Keep driving"). Resets all heuristics. Thread-safe. */
     fun onUserDeniedParking() {
         PaparcarLogger.d(DIAG, "✱ onUserDeniedParking() called")
         notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
-        _detectionState.update {
-            ParkingDetectionState(
-                hasEverReachedDrivingSpeed = it.hasEverReachedDrivingSpeed,
-                hasEverMoved = it.hasEverMoved,
-            )
-        }
+        _detectionState.update { ParkingDetectionState(session = it.session.keepingAuthorization()) }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -2127,7 +2094,7 @@ class CoordinatorParkingDetector(
                 reliability,
                 vehicleId = vehicleId,
                 tripMaxSpeedMps = _detectionState.value.maxSpeedMps,
-                armEvidence = currentArmEvidence,
+                armEvidence = _detectionState.value.session.armEvidence,
                 // [DET-ASSERTION-OUTRANKS-INFERENCE-001] The SUSTAINED figure, not the peak above:
                 // the guard's job is to tell a real re-park from a walk-away, and one stray sample
                 // is not a drive. [DET-MOTOR-PROOF-001]
@@ -2143,7 +2110,7 @@ class CoordinatorParkingDetector(
                 // confirm — for an egress confirm that's the latest processed fix (already
                 // 100+ m from the pin), NOT the anchor. Sealing "at the pin" made the walk
                 // home read as a ride (field 2026-07-22, Glorieta).
-                sealPoint = _detectionState.value.previousFix ?: location,
+                sealPoint = _detectionState.value.session.previousFix ?: location,
             )
                 .onSuccess { saved ->
                     // [REFACTOR-300] Replace the prompt notification at the same ID with the
@@ -2253,7 +2220,7 @@ class CoordinatorParkingDetector(
                 state = state,
                 location = location,
                 now = now,
-                activeVehicleType = activeVehicleType,
+                activeVehicleType = attributedVehicleType,
                 elapsedSinceHighMs = elapsed,
                 hadVehicleExit = phase.hadVehicleExit,
                 // In the candidate phase by construction: High confidence only arrives after the
@@ -2274,7 +2241,7 @@ class CoordinatorParkingDetector(
                 beginConfirm(
                     location = locationToConfirm,
                     reliability = decision.reliability,
-                    vehicleId = activeVehicleId,
+                    vehicleId = attributedVehicleId,
                     pathLabel = decision.pathLabel,
                     now = now,
                 )
@@ -2316,7 +2283,7 @@ class CoordinatorParkingDetector(
             // lands AFTER the candidate opened — an AR `ON_BICYCLE` ENTER is delivered up to ~2 min
             // late, so the stop can mature before the ride is known to have been muscle-powered.
             ParkingDecision.CloseHumanPowered -> {
-                closeHumanPoweredRide(location, activeVehicleId, now)
+                closeHumanPoweredRide(location, attributedVehicleId, now)
                 true
             }
             ParkingDecision.Inconclusive -> false
@@ -2388,18 +2355,18 @@ class CoordinatorParkingDetector(
         hasEgressDisplacement = hasEgressDisplacement(state, location),
         hadVehicleExit = hadVehicleExit,
         elapsedSinceHighMs = elapsedSinceHighMs,
-        vehicleType = activeVehicleType,
+        vehicleType = attributedVehicleType,
         sessionDurationMs = state.sessionDurationMs(now),
         maxSpeedKmh = state.maxSpeedKmh,
         sustainedDrivingMs = state.provenDrivingBandMs, // [DET-MOTOR-PROOF-001]
-        evidenceLabel = currentArmEvidence,
+        evidenceLabel = state.session.armEvidence,
         hasKinematicEgress = hasKinematicEgressSignal(state),
-        lastSpeedMps = state.lastSpeedMps,
+        lastSpeedMps = state.session.lastSpeedMps,
         egressBornAtAnchor = isEgressBornAtAnchor(state),
         anchorWalkEntered = isAnchorWalkEntered(state),
         anchorGapEntered = state.anchorGapEnteredAtCapture,
         egressExceedsWalkReach = egressExceedsWalkReach(state, location),
-        humanPoweredRide = humanPoweredRide(state, activeVehicleType, now),
+        humanPoweredRide = humanPoweredRide(state, attributedVehicleType, now),
         restCertified = restCertified,
         // [DET-ASSERTION-OUTRANKS-INFERENCE-001] Would confirming HERE move a pin the user
         // asserted minutes ago and metres away, on a session that never measured a drive? Then
@@ -2770,9 +2737,9 @@ class CoordinatorParkingDetector(
                 // came back, and throwing it away is what made every gap-born anchor look
                 // unboundable.
                 val newStopGapMs = if (s.stoppedSince == null) {
-                    val holeMs = s.previousFix?.let { location.timestamp - it.timestamp } ?: 0L
-                    if (s.previousFix != null &&
-                        s.previousFix.speed >= config.minimumTripSpeedMps &&
+                    val holeMs = s.session.previousFix?.let { location.timestamp - it.timestamp } ?: 0L
+                    if (s.session.previousFix != null &&
+                        s.session.previousFix.speed >= config.minimumTripSpeedMps &&
                         holeMs > config.anchorGapMaxFixGapMs
                     ) holeMs else 0L
                 } else {
@@ -2782,7 +2749,7 @@ class CoordinatorParkingDetector(
                     PaparcarLogger.d(
                         DIAG,
                         "  ⚓⚠ stop opened after a ${newStopGapMs}ms GPS hole " +
-                            "with the car last seen DRIVING (${s.previousFix?.speed} m/s) — any anchor bound to this " +
+                            "with the car last seen DRIVING (${s.session.previousFix?.speed} m/s) — any anchor bound to this " +
                             "stop is GAP-ENTERED: rest unwitnessed, no silent pin; the hole bounds the doubt to " +
                             "${(newStopGapMs / 1000.0 * config.maxPedestrianSpeedMps).toInt()}m on foot " +
                             "[DET-GAP-ANCHOR-001][DET-GAP-ANCHOR-ZONE-001]"
@@ -2850,7 +2817,7 @@ class CoordinatorParkingDetector(
                 // predecessors already reached the quorum. Counting this one too moves the freeze a
                 // beat earlier and pins the Calle Gavia traffic stop (replay caught it).
                 val restProvenByFixes = s.stoppedFixes.size >= config.anchorFreezeStableFixes
-                val matured = !s.anchorFrozen && s.hasEverReachedDrivingSpeed &&
+                val matured = !s.anchorFrozen && s.session.driveAuthorized &&
                     newBestStop != null && anchorStopOfRecord == startedAt &&
                     s.walkFixesSinceDriving <= config.anchorFreezeMaxWalkFixes &&
                     // [DET-STOP-MUST-BE-STILL-IN-SPACE-001] Not on the very beat the track refutes:
@@ -2920,7 +2887,7 @@ class CoordinatorParkingDetector(
                     anchorFrozen = s.anchorFrozen || matured,
                     egressOriginFix = if (recordEgressBirth || refineEgressBirth) location else s.egressOriginFix,
                     egressOriginStepCount = if (recordEgressBirth) s.stepCount else s.egressOriginStepCount,
-                    previousFix = location,
+                    session = s.session.observed(location),
                     // Reset the reposition counter on every stopped fix. [PARKING-001]
                     consecutiveRepositionFixes = 0,
                 )
@@ -2975,7 +2942,7 @@ class CoordinatorParkingDetector(
                 val outruns = movementOutrunsSteps(it, location)
                 val sustainedDeparture = isSustainedDepartureFromAnchor(it, location, now)
                 val corroboratedMuteHop = it.stepCount == 0 && isDriving &&
-                    isCorroboratedVehicleHop(it.previousFix, location)
+                    isCorroboratedVehicleHop(it.session.previousFix, location)
                 // [DET-CONFIRM-FRESHNESS-001] Stepless departure from a PINNED anchor: the position
                 // keeps escaping the anchor's accuracy envelopes at ≥ clearBestStopSpeedMps while a
                 // step counter PROVEN alive this session has counted NOTHING for this stop. A person
@@ -3125,7 +3092,7 @@ class CoordinatorParkingDetector(
                         recordEgressBirth -> it.stepCount
                         else -> it.egressOriginStepCount
                     },
-                    previousFix = location,
+                    session = it.session.observed(location),
                 )
             }
             0L
@@ -3172,14 +3139,14 @@ class CoordinatorParkingDetector(
                     state = state,
                     location = location,
                     now = now,
-                    activeVehicleType = activeVehicleType,
+                    activeVehicleType = attributedVehicleType,
                     elapsedSinceHighMs = 0L,
                     hadVehicleExit = state.vehicleExitConfirmed,
                     restCertified = true,
                 )
             )
             if (restVerdict == ParkingDecision.CloseHumanPowered) {
-                closeHumanPoweredRide(location, activeVehicleId, now)
+                closeHumanPoweredRide(location, attributedVehicleId, now)
                 return true
             }
         }
@@ -3199,7 +3166,7 @@ class CoordinatorParkingDetector(
 
             is ParkingConfidence.Low,
             is ParkingConfidence.Medium -> {
-                advanceLowMedium(confidence, state, now, humanPoweredRide(state, activeVehicleType, now))
+                advanceLowMedium(confidence, state, now, humanPoweredRide(state, attributedVehicleType, now))
                 false
             }
 
@@ -3253,7 +3220,7 @@ class CoordinatorParkingDetector(
                         DetectionEvent.Decision(
                             sid, now, outcome = "PROMPT_SHOWN", pathLabel = "low_medium($reason)",
                             confidence = (confidence as? ParkingConfidence.Medium)?.score,
-                            location = state.previousFix,
+                            location = state.session.previousFix,
                         )
                     }
                 } else {
@@ -3305,7 +3272,7 @@ class CoordinatorParkingDetector(
                     DetectionEvent.Decision(
                         sid, now, outcome = "PROMPT_SHOWN", pathLabel = "high_candidate",
                         confidence = (confidence as? ParkingConfidence.High)?.score,
-                        location = state.previousFix,
+                        location = state.session.previousFix,
                     )
                 }
             }

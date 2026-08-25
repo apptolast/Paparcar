@@ -1620,7 +1620,7 @@ would be a behaviour change wearing a tidy-up's clothes.
 
 ### DET-PHYSICS-HONEST-ZONE-RADIUS-001 — where the zone radius lives now
 
-**Commit:** pending · **Ticket:** `docs/backlog/det-physics-honest-zone-radius-001.md` · plan step
+**Commit:** `a2f2bff9` · **Ticket:** `docs/backlog/det-physics-honest-zone-radius-001.md` · plan step
 P1.6.
 
 The radius of the area the app draws when it knows the car is parked but not exactly where. Two
@@ -1651,7 +1651,7 @@ duplication — one fewer risky step than the checkpoint counted.
 
 ### DET-PHYSICS-FENCE-CONTAINMENT-001 — where fence containment lives now, and why one site differs
 
-**Commit:** pending · **Ticket:** `docs/backlog/det-physics-fence-containment-001.md` · plan step P1.7.
+**Commit:** `3377e78d` · **Ticket:** `docs/backlog/det-physics-fence-containment-001.md` · plan step P1.7.
 
 *Could the body plausibly be AT this car?* — `d(fix, centre) <= radius + acc(fix)`. The padding by
 the fix's own accuracy is the point: a fix that could be off by 40 m and lands 30 m outside the ring
@@ -1685,7 +1685,7 @@ unpadded site itself (where someone stumbles onto it).
 
 ### DET-PHYSICS-MOVE-PURE-FILES-001 — `SpeedBandClock` and `GapDoubt` change folder
 
-**Commit:** pending · **Ticket:** `docs/backlog/det-physics-move-pure-files-001.md` · plan step P1.8,
+**Commit:** `cfe2e025` · **Ticket:** `docs/backlog/det-physics-move-pure-files-001.md` · plan step P1.8,
 the trivial one.
 
 Both were already top-level pure functions in the target pattern; they were simply in the folder next
@@ -1793,7 +1793,7 @@ the exclusion test red (🔴).
 
 ### DET-PHYSICS-SESSION-OUTCOME-001 — the outcome label stops being a string
 
-**Commit:** pending · **Ticket:** `docs/backlog/det-physics-session-outcome-001.md` · plan step P1.11.
+**Commit:** `57118736` · **Ticket:** `docs/backlog/det-physics-session-outcome-001.md` · plan step P1.11.
 Closes **bug #3** and, by construction, **bug #5**.
 
 Three consumers asked three different questions of the session's terminal label, and all three asked
@@ -1842,6 +1842,48 @@ name. That is bug #7 and it has its own ticket; both keep emitting the same stri
 comparisons against every previous bicycle session line up.
 
 **Zero behaviour change**, 0 asserts edited. **1535 tests.** Fase 1 cerrada.
+
+---
+
+### DET-STATE-SESSION-TELEMETRY-001 — the session stops being a pile of loose variables
+
+**Commit:** pending · **Ticket:** `docs/backlog/det-state-session-telemetry-001.md` · plan step P2.1,
+the first of Phase 2.
+
+Ten values that describe WHO a session is and WHAT it may do lived in three different places: seven
+fields flat inside `ParkingDetectionState`, two `var` locals of the 700-line `invoke()`, and one
+`@Volatile` field of the coordinator. `domain/detection/state/SessionTelemetry.kt` makes them one
+`val`-only sub-state whose every change is a named transition.
+
+**What it actually fixes.** The drive AUTHORIZATION (`hasEverReachedDrivingSpeed`) was mutated from
+five places, and three of those wrote it separately from the evidence label it travels with:
+
+| Site | Before |
+|---|---|
+| late departure confirmed | evidence, then seed — two writes |
+| departure dismissed | seed, then evidence — two writes |
+| enter-arm step veto | evidence, then un-seed — two writes |
+
+Between the two writes the session was readable as *authorized with `self_observed` evidence*, or
+*unauthorized with `verified_enter`* — states that are not supposed to exist. Nothing observed one
+in practice, because the writes are microseconds apart on a single coroutine, but "nothing observed
+it" is luck, not an invariant. `departureConfirmed()` / `departureDismissed()` / `enterArmStepVeto()`
+now move both or neither.
+
+The quieter one is worse: `onUserDeniedParking` wiped the whole state and hand-copied back two
+fields **by name**. A field added to that set had to REMEMBER to be listed, and nothing failed if it
+was not. Neutralizing it — dropping `hasEverMoved` from the list, which would silently re-arm the
+no-movement guard — was invisible to all **1 552** pre-existing tests. `keepingAuthorization()` is
+now one transition, and `keepingIdentity()` its counterpart for the user's stop.
+
+Also written down rather than fixed: `authorizedOnArmTrustOnly` does **not** survive "keep driving",
+so after it a lent seed can no longer be retracted by a dismissal. That is today's behaviour, it is
+a quirk rather than a design, and changing it in a move would be a behaviour change.
+
+Verified discriminating: breaking the retraction's atomicity turns 1 test red, forgetting a field in
+the preservation list turns 1 red — and in **both** cases the only test that notices is the new one.
+
+**Zero behaviour change**, **no test file touched at all**, coordinator −33 lines. **1563 tests.**
 
 ---
 
