@@ -4,6 +4,7 @@ package io.apptolast.paparcar.domain.usecase.parking
 
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
+import io.apptolast.paparcar.domain.model.SpotTtlPolicy
 import io.apptolast.paparcar.domain.repository.SpotRepository
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.util.PaparcarLogger
@@ -39,11 +40,23 @@ import kotlin.time.Clock
  * again — the blinking ghost §B closed. Keeping it also means a drive measured LATER still
  * promotes the spot and releases the car through the ordinary path: a retraction withdraws a
  * report, it does not close the case.
+ *
+ * **[DET-RETRACT-DENIED-FOREVER-001] And because the marker never clears, the attempt has to bound
+ * itself.** The marker answers "is a deduction pending" — which is what
+ * [FinalizeDeducedDepartureUseCase] needs — but this use case was reading it as "is there a spot out
+ * there", and those stopped being the same fact the moment the spot's TTL expired (or the moment a
+ * departure was too stale to publish one at all). Past [SpotTtlPolicy.PROVISIONAL_SPOT_TTL_MS] there
+ * is nothing to take back, so it says so once per session end instead of writing to a document that
+ * is not there.
  */
 class RetractDeducedDepartureUseCase(
     private val userParkingRepository: UserParkingRepository,
     private val spotRepository: SpotRepository,
     private val detectionEventLogger: DetectionEventLogger? = null,
+    // [DET-RETRACT-DENIED-FOREVER-001] Injected so the TTL bound below is reachable from a test at
+    // all — same shape as `RunDepartureCheckUseCase`. Reading the wall clock inline would have made
+    // "the provisional window has elapsed" untestable, which is how it went unbounded to begin with.
+    private val nowMs: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) {
     /**
      * @return the number of spots withdrawn.
@@ -66,13 +79,33 @@ class RetractDeducedDepartureUseCase(
 
         if (pending.isEmpty()) return 0
 
-        val now = Clock.System.now().toEpochMilliseconds()
+        val now = nowMs()
         var retracted = 0
         pending.forEach { session ->
             val deducedAtMs = session.provisionalDepartureAtMs ?: return@forEach
             // A private zone never published anything, so there is nothing to take back. The
             // marker still stands: the car is still the user's to release when a drive proves it.
             if (session.privateZoneId != null) return@forEach
+
+            // [DET-RETRACT-DENIED-FOREVER-001] Past the provisional TTL there is no document left to
+            // withdraw — the expiry already did it, which is what the failure branch below has always
+            // claimed. Without this bound the attempt repeats on EVERY session end for as long as the
+            // marker stands, and the marker is deliberately never cleared (see the KDoc). Worse, the
+            // repeat is not a harmless no-op: `retractSpot` is an UPDATE, and every branch of the
+            // `allow update` rule dereferences `resource.data`, which does not exist for a deleted
+            // document — so Firestore answers PERMISSION_DENIED, not NOT_FOUND, and the log fills with
+            // what reads like a rules bug. Measured on the Oppo (`diagnostics/2026-08-26/`): 256
+            // denials across five days, all for one spot that had never been published at all.
+            val provisionalAgeMs = now - deducedAtMs
+            if (provisionalAgeMs > SpotTtlPolicy.PROVISIONAL_SPOT_TTL_MS) {
+                PaparcarLogger.d(
+                    TAG,
+                    "nothing to withdraw for spot=${session.id.take(8)} — its provisional TTL ran out " +
+                        "${provisionalAgeMs - SpotTtlPolicy.PROVISIONAL_SPOT_TTL_MS}ms ago " +
+                        "[DET-RETRACT-DENIED-FOREVER-001]",
+                )
+                return@forEach
+            }
 
             // The spot carries the session's own id, so the withdrawal lands on the very document
             // the deduction published. Idempotent by construction — the same two fields, again.

@@ -79,10 +79,18 @@ class ProcessConfirmedDepartureUseCase(
         val alreadyPublishedProvisionally =
             proof == DepartureProof.Deduced && session?.provisionalDepartureAtMs != null
 
+        // [DET-RETRACT-DENIED-FOREVER-001] ONE decision, three readers: this branch, the local line
+        // and the remote event. It used to be written out three times in three slightly different
+        // shapes — the remote copy omitted the coordinate check, so it could report
+        // `published = true` for a spot this branch had just skipped. Recorded here instead of
+        // re-derived, because the two readers below run after it and cannot re-test it safely.
+        var publishesNow = false
+
         // Public spots are published to the community; private zones are not reported.
         if (publishSpot && !alreadyPublishedProvisionally &&
             session != null && lat != null && lon != null && session.privateZoneId == null
         ) {
+            publishesNow = true
             // Reuse the address/POI enriched on the session at park time instead of
             // re-geocoding the same coordinates. Null when not yet enriched → the use
             // case geocodes inline. [SPOT-PREFETCH-001]
@@ -110,17 +118,22 @@ class ProcessConfirmedDepartureUseCase(
             if (session != null) {
                 userParkingRepository.markProvisionalDeparture(session.id, Clock.System.now().toEpochMilliseconds())
             }
+            // [DET-RETRACT-DENIED-FOREVER-001] Say which of the two actually happened. This line
+            // used to assert "spot published PROVISIONALLY" unconditionally — including on the
+            // branch that had just declined to publish because the departure was too stale
+            // ([DET-RECONCILE-001]). Field 2026-08-23: a departure 60 min old cleared WITHOUT
+            // publishing and the very next line claimed it had published.
             PaparcarLogger.d(
                 TAG,
-                "deduced departure (geof=${geofenceId.take(8)}) — spot published PROVISIONALLY, " +
-                    "session + geofence KEPT until a drive is measured [DET-HANDOFF-NOT-MANUAL-001]",
+                "deduced departure (geof=${geofenceId.take(8)}) — " +
+                    (if (publishesNow) "spot published PROVISIONALLY" else "NOTHING published (stale, private zone, or already out)") +
+                    ", session + geofence KEPT until a drive is measured [DET-HANDOFF-NOT-MANUAL-001]",
             )
             detectionEventLogger?.log(
                 DetectionEvent.DepartureProcessed(
                     sessionId = geofenceId,
                     timestampMs = Clock.System.now().toEpochMilliseconds(),
-                    published = publishSpot && !alreadyPublishedProvisionally &&
-                        session != null && session.privateZoneId == null,
+                    published = publishesNow,
                     sessionCleared = false,
                     location = session?.location,
                 )

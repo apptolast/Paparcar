@@ -5253,3 +5253,47 @@ no `diagnostics_config/{userId}.enabled == true` sends nothing to Firestore at a
 planned Room reset. This ticket only fixes the local side.
 
 Spec: `docs/backlog/det-parkdiag-keep-more-history-001.md`.
+
+### DET-RETRACT-DENIED-FOREVER-001 — a withdrawal with no terminal state (pending)
+
+**Found in the trace, not in the field.** Reading the Oppo capture committed in `6b9cf6df`:
+`RetractDeducedDeparture` fails with `PERMISSION_DENIED` **256 times across five days** — 235 in the
+rotated half, 21 on the 26th — every one of them the same spot, and no other operation in the app is
+ever denied.
+
+**Root cause — one marker answering two different questions.**
+
+```
+08-23 04:10:34.759  Depart: preconfirmed by parked-state reconcile — skipping live speed re-check (geof=a786c135)
+08-23 04:10:34.760  Depart: stale departure (age=60min) — clearing WITHOUT publishing (geof=a786c135)
+08-23 15:45:45.702  RetractDeducedDeparture: retract failed for spot=a786c135 …        ← and 255 more
+```
+
+A departure 60 min old hits the [DET-RECONCILE-001] freshness gate and does not publish — correct,
+the spot is long gone. But `ProcessConfirmedDepartureUseCase` set `provisionalDepartureAtMs`
+regardless of whether anything was published, and the next line asserted *"spot published
+PROVISIONALLY"* anyway. From then on every session end tried to withdraw a spot that never existed.
+
+Two compounding reasons it never stopped. First, `retractSpot` is an **update**, and every branch of
+`allow update` in `firestore.rules` dereferences `resource.data` — which does not exist for a
+document that was never created — so Firestore answers `PERMISSION_DENIED` rather than `NOT_FOUND`,
+and the failure reads like a rules bug instead of "there is nothing there". Second, the marker is
+deliberately never cleared, because [FinalizeDeducedDepartureUseCase] needs it to release the car if
+a drive is measured later.
+
+**Fix.** The withdrawal bounds itself: past `SpotTtlPolicy.PROVISIONAL_SPOT_TTL_MS` there is nothing
+left to take back, which is exactly what the failure branch had always claimed. The clock is injected
+so that bound is reachable from a test — reading it inline is what made the condition untestable and
+is why it was written without a bound at all. And the publish decision, previously written out three
+times in three slightly different shapes, is decided once and read by the branch, the local line and
+the remote event alike.
+
+**What was deliberately NOT done.** Clearing the marker (it would leave the car parked forever), and
+splitting the field that conflates "a deduction is pending" with "a spot is out there" — the same
+family as DET-DEPARTURE-IS-NOT-ARRIVAL-001. Separating them needs a new column, so it is recorded in
+the ticket rather than done here.
+
+**Accompanying-fix risk.** None in the rules: denying an update against a document that does not
+exist is correct, and `firestore.rules` is untouched. The client was the one that lied.
+
+Spec: `docs/backlog/det-retract-denied-forever-001.md`.

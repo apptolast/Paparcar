@@ -1,6 +1,7 @@
 package io.apptolast.paparcar.domain.usecase.parking
 
 import io.apptolast.paparcar.domain.model.GpsPoint
+import io.apptolast.paparcar.domain.model.SpotTtlPolicy
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.fakes.FakeDetectionEventLogger
 import io.apptolast.paparcar.fakes.FakeSpotRepository
@@ -20,7 +21,7 @@ class RetractDeducedDepartureUseCaseTest {
     private fun session(
         id: String = "session-1",
         vehicleId: String? = "v-1",
-        pendingAtMs: Long? = 1_000_000L,
+        pendingAtMs: Long? = PENDING_AT_MS,
         privateZoneId: String? = null,
     ) = UserParking(
         id = id,
@@ -92,6 +93,45 @@ class RetractDeducedDepartureUseCaseTest {
         assertEquals(listOf("session-1"), spots.retractedSpotIds, "it was attempted")
     }
 
+    // [DET-RETRACT-DENIED-FOREVER-001] The withdrawal is only attempted while the provisional spot
+    // could still be out there, so every case above has to sit inside that window — a minute after
+    // the deduction. Before the bound existed this was the wall clock, which put every fixture
+    // decades past the TTL without anyone noticing, because nothing checked.
+    @Test
+    fun should_not_attempt_a_withdrawal_once_the_provisional_ttl_has_run_out() = runTest {
+        // Field 2026-08-23 → 26 (Oppo): a departure 60 min stale cleared WITHOUT publishing, and the
+        // marker stayed. Every session end since then tried to withdraw a spot that had never
+        // existed — 256 times over five days, each one answered PERMISSION_DENIED because the rules
+        // dereference `resource.data` on a document that is not there.
+        val parkings = FakeUserParkingRepository(initialSession = session())
+        val spots = FakeSpotRepository()
+
+        val retracted = RetractDeducedDepartureUseCase(
+            userParkingRepository = parkings,
+            spotRepository = spots,
+            detectionEventLogger = FakeDetectionEventLogger(),
+            nowMs = { PENDING_AT_MS + SpotTtlPolicy.PROVISIONAL_SPOT_TTL_MS + 1 },
+        )()
+
+        assertEquals(0, retracted)
+        assertTrue(spots.retractedSpotIds.isEmpty(), "nothing left to withdraw — the TTL already did it")
+    }
+
+    @Test
+    fun should_still_withdraw_on_the_last_millisecond_of_the_provisional_window() = runTest {
+        val parkings = FakeUserParkingRepository(initialSession = session())
+        val spots = FakeSpotRepository()
+
+        val retracted = RetractDeducedDepartureUseCase(
+            userParkingRepository = parkings,
+            spotRepository = spots,
+            detectionEventLogger = FakeDetectionEventLogger(),
+            nowMs = { PENDING_AT_MS + SpotTtlPolicy.PROVISIONAL_SPOT_TTL_MS },
+        )()
+
+        assertEquals(1, retracted, "still inside the window — the spot can still be out there")
+    }
+
     private fun buildUseCase(
         parkings: FakeUserParkingRepository = FakeUserParkingRepository(),
         spots: FakeSpotRepository = FakeSpotRepository(),
@@ -99,5 +139,10 @@ class RetractDeducedDepartureUseCaseTest {
         userParkingRepository = parkings,
         spotRepository = spots,
         detectionEventLogger = FakeDetectionEventLogger(),
+        nowMs = { PENDING_AT_MS + 60_000L },
     )
+
+    private companion object {
+        const val PENDING_AT_MS = 1_000_000L
+    }
 }

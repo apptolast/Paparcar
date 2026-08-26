@@ -117,6 +117,28 @@ class ProcessConfirmedDepartureUseCaseTest {
         assertTrue(event.sessionCleared)
     }
 
+    @Test
+    fun should_not_claim_a_publication_when_the_departure_was_too_stale_to_publish_one() = runTest {
+        // [DET-RETRACT-DENIED-FOREVER-001] Field 2026-08-23 04:10 (Oppo): a departure 60 min old hit
+        // the [DET-RECONCILE-001] freshness gate and cleared WITHOUT publishing — correctly, the spot
+        // is long gone. But the very next line claimed "spot published PROVISIONALLY" and the remote
+        // event said published = true, so the session was marked as owing a withdrawal for a spot
+        // that had never existed. Every session end for the next five days then tried to withdraw it.
+        val logger = FakeDetectionEventLogger()
+        val spotScheduler = FakeReportSpotScheduler()
+        val repo = FakeUserParkingRepository(initialSession = activeSession())
+
+        buildUseCase(repo = repo, logger = logger, spotScheduler = spotScheduler)(
+            "session-1",
+            publishSpot = false,
+            proof = DepartureProof.Deduced,
+        )
+
+        val event = logger.events.filterIsInstance<DetectionEvent.DepartureProcessed>().single()
+        assertFalse(event.published, "nothing was published, so the trace must not say it was")
+        assertEquals(0, spotScheduler.scheduleCallCount, "and no spot went out")
+    }
+
     // ── [DET-HANDOFF-NOT-MANUAL-001 §B] A DEDUCED departure publishes, but takes nothing ──
 
     @Test

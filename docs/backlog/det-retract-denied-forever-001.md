@@ -1,7 +1,7 @@
 # DET-RETRACT-DENIED-FOREVER-001 · una retractación que Firestore niega 256 veces y nadie ve
 
-**Estado:** 🔴 Abierto, sin código · hallado el 26-08 leyendo la captura
-`diagnostics/2026-08-26/oppo-cph2371*.log` · **no bloquea el field-test**
+**Estado:** 🟢 Arreglado · **1.668 tests** (1.664 + 4) · hallado el 26-08 leyendo la captura
+`diagnostics/2026-08-26/oppo-cph2371*.log` · ⏳ sin conducir
 
 ## Qué se midió
 
@@ -44,18 +44,95 @@ El fallo **no rompe nada**: es un `W`, va dentro de su `runCatching`, y la líne
 3. **El consuelo del TTL es una suposición del cliente**, no una verificación. Nadie comprueba que la
    plaza haya caducado de verdad; se asume porque el TTL es corto.
 
-## Lo que NO se sabe todavía
+## Causa — diagnosticada el 26-08, cadena completa
 
-⛔ **No se ha mirado la causa**, y hay al menos tres candidatas que la traza no distingue:
+**La plaza nunca se publicó, pero se marcó como si se hubiera publicado.**
 
-- La plaza `a786c135` **nunca existió como documento remoto** (nace de un pin **manual** del 21-08),
-  y las reglas niegan el borrado de algo que no está / no le pertenece a este uid.
-- Las reglas de `spots` no contemplan el borrado por el publicador, sólo la creación.
-- El id que se usa para retractar no es el id del documento de la plaza — nótese que el ticket
-  `UI-PROVISIONAL-SPOT-IS-NOT-ITS-SESSION-001` ya avisó de que **la plaza reutiliza a propósito el id
-  de su sesión**, y que lo peligroso era resolver el TIPO por id.
+`spots/a786c135-2500-42c4-8adc-dd7d695ae0d8` **no existe** en `pap-26` (comprobado por MCP:
+`Document ... not found`). Y la traza dice que nunca llegó a existir:
 
-Antes de tocar código: mirar `firestore.rules` y comprobar si el documento existe.
+```
+08-23 04:10:34.759 D PARKDIAG/Depart: preconfirmed by parked-state reconcile — skipping live speed re-check (geof=a786c135)
+08-23 04:10:34.760 D PARKDIAG/Depart: stale departure (age=60min) — clearing WITHOUT publishing (geof=a786c135)
+08-23 15:45:45.702 W PARKDIAG/RetractDeducedDeparture: retract failed for spot=a786c135 …   ← y 255 más
+```
+
+**1 · El marcador se pone en una rama que decidió NO publicar.**
+`RunDepartureCheckUseCase:159-165` calcula `publishSpot = exitAgeMs <= spotPublishMaxAgeMs`
+([DET-RECONCILE-001], correcto: una salida vieja no debe anunciar una plaza que ya no está) y llama a
+`processConfirmedDeparture(publishSpot = false)`. Dentro:
+
+| Línea | Qué hace | Condición |
+|---|---|---|
+| `ProcessConfirmedDepartureUseCase:83` | **publica** la plaza | `publishSpot && !alreadyPublished && …` |
+| `ProcessConfirmedDepartureUseCase:109-112` | **marca** `provisionalDepartureAtMs` | `proof == Deduced` — **y nada más** |
+
+La publicación está condicionada; la marca **no**. Con `publishSpot = false` la sesión queda marcada
+como "esta deducción ya gastó su publicación" sin que exista publicación ninguna.
+
+**2 · Y el log lo afirma en falso.** La línea que se emite justo después (`:113-117`) dice
+*"deduced departure — spot published PROVISIONALLY"* también cuando `publishSpot` era `false`. Un
+diagnóstico que asegura un hecho que no ocurrió: mismo pecado que el bloque de traza inventado que se
+corrigió en `6b9cf6df`, pero éste lo comete la app.
+
+**3 · Por qué el error es `PERMISSION_DENIED` y no `NOT_FOUND`.** `retractSpot` es un **update**
+(`SpotRepositoryImpl:125-133` — cambia estado + `expiresAt`; a propósito no es un delete, ver
+`SpotStatus`). En `firestore.rules:22-30` **las dos ramas del `allow update` dereferencian
+`resource.data`** (`resource.data.reportedBy`, y `diff(resource.data)` en la otra). Sobre un
+documento que no existe, `resource` es nulo, así que la regla no puede evaluarse a `true` y Firestore
+responde denegando. **El código de error enmascara la causa real**, que es "no está".
+
+**4 · Por qué no para nunca.** `provisionalDepartureAtMs` no se limpia **por diseño** y está
+documentado en `RetractDeducedDepartureUseCase:36-41`: limpiarlo dejaría a la red de seguridad
+re-deducir la misma salida cada 15 min. Impecable para el caso que se publicó — pero convierte el
+caso que **no** se publicó en un bucle infinito.
+
+## Arreglo aplicado
+
+**1 · La retirada se acota sola** (`RetractDeducedDepartureUseCase`). Pasado
+`SpotTtlPolicy.PROVISIONAL_SPOT_TTL_MS` (12 min) no queda documento que retirar — la caducidad ya lo
+hizo, que es justo lo que la rama de fallo llevaba afirmando. Ahora lo dice en una línea en vez de
+escribir contra algo que no está. El reloj pasa a **inyectarse** (`nowMs`, igual que
+`RunDepartureCheckUseCase`): leerlo inline es lo que hacía el límite intestable, y por eso nació sin
+límite.
+
+⚠️ **El marcador sigue sin limpiarse, a propósito.** No se puede: `FinalizeDeducedDepartureUseCase`
+lo usa como "hay una deducción pendiente" para **liberar la sesión** si más tarde se mide conducción.
+Borrarlo dejaría el coche aparcado para siempre. El defecto de fondo — **un campo respondiendo a dos
+preguntas distintas** ("¿hay deducción pendiente?" y "¿hay plaza publicada ahí fuera?"), la misma
+familia que `DET-DEPARTURE-IS-NOT-ARRIVAL-001` — **NO se ha reestructurado**: separarlo pide un campo
+nuevo y, por tanto, esquema. Queda dicho aquí, no arreglado.
+
+**2 · El log deja de mentir** (`ProcessConfirmedDepartureUseCase`). La condición de publicar estaba
+escrita **tres veces** en tres formas distintas (la rama, la línea local y el evento remoto — y la
+copia remota se dejaba la comprobación de coordenadas). Ahora se decide una vez en `publishesNow` y
+la leen los tres; la línea dice cuál de los dos casos ocurrió en vez de afirmar siempre
+*"spot published PROVISIONALLY"*.
+
+### Verificación — y qué NO cubre
+
+| Test | Neutralización | ¿Discrimina? |
+|---|---|---|
+| `should_not_attempt_a_withdrawal_once_the_provisional_ttl_has_run_out` | quitar el bound | ✅ **rojo** |
+| `should_still_withdraw_on_the_last_millisecond_of_the_provisional_window` | — | pin del borde |
+| `should_not_claim_a_publication_when_the_departure_was_too_stale_to_publish_one` | volver a la condición vieja | ❌ **sigue verde** |
+
+⛔ **Dicho sin adornos: el cambio 2 no está protegido por la suite.** Con `publishSpot = false` la
+condición vieja y la nueva coinciden, así que el test es de caracterización, no discriminante; y lo
+que de verdad mentía era **la cadena de log**, que la suite no mira (lección ya escrita en
+`feedback_document_parking_detection_changes` y en el commit `6b9cf6df`). La única diferencia
+observable que el cambio 2 corrige de verdad es el `published` del evento remoto cuando faltan
+coordenadas — inalcanzable hoy, porque `location` no es nulo si la sesión existe.
+
+### Dónde arreglarlo
+
+El invariante es de una línea: **el marcador de "esta deducción gastó su publicación" no lo puede
+poner una rama que se negó a publicar.** Es decir, `:109-112` debe compartir la condición de `:83`,
+no ir suelto. La regla de Firestore **no** hay que tocarla: negar un update sobre algo que no existe
+es correcto; el que miente es el cliente.
+
+⚠️ Al arreglarlo, comprobar el otro consumidor del marcador (`FinalizeDeducedDepartureUseCase`) y la
+línea de log del `:113-117`, que debe decir la verdad en las dos ramas.
 
 ## Criterio de éxito
 
