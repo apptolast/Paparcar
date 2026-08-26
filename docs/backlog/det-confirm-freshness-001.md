@@ -1,6 +1,7 @@
 # DET-CONFIRM-FRESHNESS-001 — La evidencia de un confirm debe seguir siendo cierta al plantar el pin
 
-**Estado:** EN CURSO (2026-07-24) · rama `bugfix/DET-CONFIRM-FRESHNESS-001` (apilada sobre `bugfix/DET-STEP-BUDGET-ORIGIN-001`)
+**Estado:** ✅ EN MASTER (`68648d4a`) · campo cubierto por la validación hasta `1a4128d5` (23-08-2026).
+Su base `DET-STEP-BUDGET-ORIGIN-001` entró antes, en `3ad8f648`.
 **Origen:** field-test 23/24-jul-2026 (2 FP Redmi + 1 FN Redmi, telemetría completa en
 `diagnostics/WZB7…/sessions/{1784829489071, 1784839287970, 1784846935112}`). Ver memoria
 `project_det_field_2026_07_23`.

@@ -1,6 +1,8 @@
 # DET-NUDGE-PERSIST-001 — El nudge "¿Dónde has dejado el coche?" debe sobrevivir como estado de la app
 
-**Estado:** IMPLEMENTADO en rama `feature/DET-NUDGE-PERSIST-001` (pendiente device + merge)
+**Estado:** ✅ EN MASTER (`fb8c0724`) · campo cubierto por la validación hasta `1a4128d5` (23-08-2026).
+El nudge dejó de ser solo notificación y pasó a ESTADO de Home en `865f0f8a` [DET-ASK-STATE-001],
+que es donde vive hoy — ⛔ deslizar la notificación NO cuenta como respuesta.
 **Origen:** field-test noche 24→25-07-2026 (Redmi, sesión diag `1784939810210`).
 
 ## Cómo quedó implementado (2026-07-25)

@@ -1,8 +1,7 @@
 # DET-CONFIRM-ANCHOR-001 — el "Sí" tardío del usuario ancla en el coche, no en el usuario
 
-**Estado:** 🔵 IMPLEMENTADO en rama `bugfix/DET-CONFIRM-ANCHOR-001-user-confirm-anchor`
-(working tree, sin commit) — suite prod completa verde (1088 tests; 6 nuevos del detector).
-⏳ Commit + merge (go-ahead del usuario) y field-test.
+**Estado:** ✅ EN MASTER (`65572c67`) · campo cubierto por la validación hasta `1a4128d5` (23-08-2026).
+La decisión vive hoy en `UserConfirmStage` tras el refactor F6 (`DET-STAGE-USER-CONFIRM-001`).
 **Origen:** bug de campo 2026-08-11 16:08 (evidencia Firestore + telemetría).
 
 ## Forense 11-08 16:08

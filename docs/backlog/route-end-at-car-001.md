@@ -1,8 +1,8 @@
 # ROUTE-END-AT-CAR-001 — la ruta del aparcamiento termina en el coche, no en el peatón
 
-**Estado:** implementado en rama `bugfix/ROUTE-END-AT-CAR-001-trim-walk-tail` · ⏳ field-test
-(el recorte actúa al CONFIRMAR: las rutas ya guardadas conservan su cola — solo los viajes nuevos
-salen recortados)
+**Estado:** ✅ EN MASTER (`1ab5b38b`) · campo cubierto por la validación hasta `1a4128d5` (23-08-2026).
+El recorte actúa al CONFIRMAR: las rutas guardadas ANTES de ese commit conservan su cola para
+siempre — solo los viajes nuevos salen recortados.
 **Origen:** field 2026-08-13 17:33, Calle Mar de Alborán 2 (El Puerto), Coordinator. Caso espejo:
 Ebro 2026-08-11 21:43, donde el ancla quedó ATRÁS del fin de la polyline (la línea sobrepasaba el
 coche).

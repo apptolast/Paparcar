@@ -1,6 +1,7 @@
 # DET-ROUTE-TRACK-001 — La ruta dibujada es el trayecto REAL grabado, no una reconstrucción
 
-**Estado:** ✅ código en rama `feature/ROUTE-LINE-ONROAD-001-route-stays-on-road`. ⏳ tests + device/field.
+**Estado:** ✅ EN MASTER (`3149704b`, el commit que trajo persistencia de ruta + on-road + origen
+superviviente) · campo cubierto por la validación hasta `1a4128d5` (23-08-2026).
 
 ## Idea (propuesta del usuario, 2026-08-08)
 En vez de reconstruir la ruta desde la última plaza cada vez que se abre la app (una conjetura que el

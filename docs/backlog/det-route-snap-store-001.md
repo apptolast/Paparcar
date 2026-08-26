@@ -1,7 +1,7 @@
 # DET-ROUTE-SNAP-STORE-001 — Guardar la ruta YA ajustada a la calzada (snap una vez, no re-lógica al mostrar)
 
-**Estado:** 🟡 rama `feature/DET-ROUTE-SNAP-STORE-001` (worktree `../Paparcar-routesnap`, desde master
-cbc17ac4). ⏳ tests + device/field.
+**Estado:** ✅ EN MASTER (`ccaa6c19`) · campo cubierto por la validación hasta `1a4128d5` (23-08-2026).
+El worktree `../Paparcar-routesnap` ya no existe.
 
 ## Petición del usuario (2026-08-10)
 "Obtenemos fixes crudos, los ajustamos a la calzada como Driversnote/Google/Waze… **eso** es lo que

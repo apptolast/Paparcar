@@ -1,7 +1,10 @@
 # DET-SENTRY-COOLDOWN-001 — amortiguador de tormentas del sentry-wake: paseos seguidos refutados enfrían el re-armado del sensor
 
-**Estado:** 🔧 implementado en rama `bugfix/DET-WALKOUT-FP-001-walkout-false-positive`
-(worktree `Paparcar-walkout-fp`), pendiente de merge + field-test.
+**Estado:** ✅ EN MASTER (`eecef415`) · campo cubierto por la validación hasta `1a4128d5` (23-08-2026).
+Entró con ID propio, no bajo `DET-WALKOUT-FP-001` — esa rama nunca llegó a master con ese nombre.
+
+> El amortiguador se corrigió después: `4d1d6716` [DET-COOLDOWN-MUST-NOT-BLIND-A-DRIVE-001] impide
+> que la tormenta silencie al último nominador en pie. Hacen falta **las dos** puertas.
 **Origen:** "ticket 4" pendiente del field 11-08, reactivado con urgencia por el field 13-08:
 la tormenta es además la que compró la lotería del FP de
 [DET-UNVERIFIED-CONFIRM-001](det-unverified-confirm-001.md).

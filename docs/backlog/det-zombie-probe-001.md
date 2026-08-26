@@ -1,6 +1,6 @@
 # DET-ZOMBIE-PROBE-001 — probe corto para EXITs zombis (75 s en vez de 4,1 min de GPS)
 
-**Estado:** IMPLEMENTADO en rama `feature/DET-ZOMBIE-PROBE-001` (apilada sobre DET-NUDGE-PERSIST-001; pendiente device + merge)
+**Estado:** ✅ EN MASTER (`ed1cce6f`) · campo cubierto por la validación hasta `1a4128d5` (23-08-2026)
 **Origen:** field-test noche 24→25-07-2026.
 
 ## Evidencia de campo

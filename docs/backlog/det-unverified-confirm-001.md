@@ -1,7 +1,7 @@
 # DET-UNVERIFIED-CONFIRM-001 — un arm sin testigo externo y sin conducción probada nunca confirma en silencio
 
-**Estado:** 🔧 implementado en rama `bugfix/DET-WALKOUT-FP-001-walkout-false-positive`
-(worktree `Paparcar-walkout-fp`), pendiente de merge + field-test.
+**Estado:** ✅ EN MASTER (`b36c1bcc`) · campo cubierto por la validación hasta `1a4128d5` (23-08-2026).
+Entró con ID propio, no bajo `DET-WALKOUT-FP-001` — esa rama nunca llegó a master con ese nombre.
 **Origen:** FP de campo 2026-08-13 20:56 local (Oppo, uid `fiyp…`, sesión `1786647238401`):
 el usuario salió de casa ANDANDO y la detección confirmó un aparcamiento nuevo a ~7 m del
 anterior (18:19, misma Calle Góndola), desactivándolo.

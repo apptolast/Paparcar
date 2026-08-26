@@ -1,6 +1,6 @@
 # DET-BT-WRONG-CAR-ABORT-001 — El Bluetooth de OTRO coche propio aborta la sesión del Coordinator
 
-**Estado:** implementado en rama `bugfix/DET-BT-WRONG-CAR-ABORT-001` (staged, sin commit) · ⏳ field-test
+**Estado:** ✅ EN MASTER (`10842797`) · campo cubierto por la validación hasta `1a4128d5` (23-08-2026)
 **Origen:** field-test 2026-08-10 (Oppo, ida El Puerto → Polígono el Palmar en el Kamiq)
 
 ## El bug (evidencia parkdiag.log, certeza absoluta)

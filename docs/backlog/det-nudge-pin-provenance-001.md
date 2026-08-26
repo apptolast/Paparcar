@@ -1,6 +1,7 @@
 # DET-NUDGE-PIN-PROVENANCE-001 — El pin confirmado desde el nudge de detección se estampa como plaza manual
 
-**Estado:** ✅ Implementado + tests verdes (rama `bugfix/DET-NUDGE-PIN-PROVENANCE-001-nudge-pin-provenance`, worktree `../Paparcar-nudgeprovenance`); ⏳ field-test
+**Estado:** ✅ EN MASTER (`cac6f73d`) · campo cubierto por la validación hasta `1a4128d5` (23-08-2026).
+Rama y worktree `../Paparcar-nudgeprovenance` ya no existen.
 **Fecha:** 2026-08-10
 
 ## Problema (observado en campo, viaje 07/08-08 Cañada del Real Tesoro)

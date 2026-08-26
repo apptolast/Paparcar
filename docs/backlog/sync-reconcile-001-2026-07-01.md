@@ -1,8 +1,13 @@
 # SYNC-RECONCILE-001 — reconciliar el sync inbound (fin del remote-wins ciego)
 
 **Fecha:** 2026-07-01
-**Estado:** EN CURSO — **Vehicle ✅ + Zone ✅ hechos** (2026-07-02). Patrón por entidad: entity `updatedAt`/`pendingSync` + migración aditiva (`MIGRATION_8_9` vehicles v9, `MIGRATION_9_10` zones v10) + reconcile (merge que conserva pending, delega en helper genérico `reconcilePending` en `SyncReconcile.kt`) + `syncFromRemote` reescrito + writes local-first con mirror remoto en **background** (fix "botón gira eterno") + **drenador** (`pushPendingVehicles`/`pushPendingZones`, outbox `pendingSync`, `AppViewModel.drainPendingSync` en arranque-online + reconexión → entrega garantizada cross-device) + tests. **UserParking / Profile DIFERIDOS** (reconcile cerrado en vehículos+zonas; parking=WorkManager ya entrega + hueco transitorio + toca workers sensibles, profile=bajo impacto — ver sección abajo). Geocoder-offline + read-only siguen pendientes.
-**Prioridad:** media-alta (corrige pérdida de escrituras locales offline; habilita mutaciones offline seguras)
+**Estado:** ✅ EL RECONCILE, CERRADO — **Vehicle ✅ + Zone ✅** (`8ca52a6c`, 2026-07-02) y
+**UserParking ✅** después (`a435ee07`), que este doc todavía listaba como diferido.
+**Profile** sigue diferido a propósito (impacto bajo — ver §Profile).
+⚠️ **Geocoder-offline y el modo solo-lectura offline siguen abiertos, y NO forman parte del
+reconcile**: son el ticket OFFLINE-LOGIN-GUARD, que hoy solo vive en memoria y no tiene doc aquí.
+
+**Lo implementado**, patrón por entidad: entity `updatedAt`/`pendingSync` + migración aditiva (`MIGRATION_8_9` vehicles v9, `MIGRATION_9_10` zones v10, `MIGRATION_11_12` parking v12) + reconcile (merge que conserva pending, delega en helper genérico `reconcilePending` en `SyncReconcile.kt`) + `syncFromRemote` reescrito + writes local-first con mirror remoto en **background** (fix "botón gira eterno") + **drenador** (`pushPendingVehicles`/`pushPendingZones`/`pushPendingParkingSessions`, outbox `pendingSync`, `AppViewModel.drainPendingSync` en arranque-online + reconexión → entrega garantizada cross-device) + tests.
 **Relacionada:** banner de conexión [CONN-BANNER-001], solo-lectura offline (interino), [[project_arch_cleanup_001]] (VehicleActiveStatePolicy)
 
 ## Problema (escenario real)

@@ -1,6 +1,6 @@
 # DET-RECONCILE-001 — Reconciliación de estado del aparcamiento
 
-**Estado**: en implementación (rama `feature/DET-RECONCILE-001-parked-state-reconcile`)
+**Estado**: ✅ EN MASTER (`ea89490a`) · campo cubierto por la validación hasta `1a4128d5` (23-08-2026)
 **Origen**: field-test 2026-07-06 — ambos móviles perdieron aparcamientos reales pese a que cada capa "funcionó según diseño".
 
 ## El fallo estructural que esto corrige

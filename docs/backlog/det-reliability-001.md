@@ -1,7 +1,7 @@
 # DET-RELIABILITY-001 — Fiabilidad de detección como sistema (exención de batería opcional)
 
-**Fecha:** 2026-07-06 · **Estado:** F1–F3 ✅ implementadas en la rama; F4 DIFERIDA (gate = telemetría de campo)
-**Rama:** `feature/DET-RELIABILITY-001-detection-reliability`
+**Fecha:** 2026-07-06 · **Estado:** ✅ F1–F3 EN MASTER (`7350f358`); **F4 sigue DIFERIDA**
+(gate = telemetría de campo). La rama `feature/DET-RELIABILITY-001-detection-reliability` ya no existe.
 **Nota de implementación:** gran parte del plumbing YA existía y se reutilizó tal cual —
 `OemBackgroundReliabilityManager` (detección de OEM agresivo + deep-links autostart/Hans, con cards
 ya presentes en el tier Opcional de permisos), `AppPermissionState.isBatteryOptimizationExempt`,

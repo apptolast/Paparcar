@@ -1,6 +1,7 @@
 # DET-RIDE-PROOF-001 — Ninguna autoridad sin prueba de movimiento
 
-**Estado:** implementado (rama `feature/DET-BREADCRUMBS-001-trip-trail`), pendiente field-test.
+**Estado:** ✅ EN MASTER (`3ebb9028`) · campo cubierto por la validación hasta `1a4128d5` (23-08-2026).
+Su base `DET-BREADCRUMBS-001` (el rastro que el evaluador lee) entró en `b0abec47`.
 **Origen:** field-test 2026-07-09 — falsos positivos en cascada (Redmi) + salidas reales mudas (Oppo).
 
 ## El principio (el sistema, no los parches)

@@ -1,7 +1,7 @@
 # UI-HISTORY-ROUTE-DRAW-001 — La ruta guardada no se dibujaba en el detalle del historial
 
-**Estado:** implementado en rama `bugfix/UI-HISTORY-ROUTE-DRAW-001` (staged, sin commit) ·
-✅ VERIFICADO device Oppo 2026-08-10 (detalle del parking Kamiq 19:50 con datos reales: línea azul dibujada)
+**Estado:** ✅ EN MASTER (`a4eadc45`) · verificado en device Oppo 2026-08-10 (detalle del parking
+Kamiq 19:50 con datos reales: línea azul dibujada)
 **Origen:** field-test 2026-08-10 — el parking `916a33ca` tenía `routePolyline` (1218 chars) +
 `routeSnapped=1` en Room Y Firestore, pero el detalle mostraba solo el coche aparcado.
 

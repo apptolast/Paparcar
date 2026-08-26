@@ -1,7 +1,8 @@
 # DET-ROUTE-ORIGIN-002 — El origen del viaje sobrevive a la muerte del proceso (se re-resuelve desde Room)
 
-**Estado:** ✅ código en working tree de `master` (sin commit), tests verdes
-(`:composeApp:testDebugUnitTest --tests *HomeTripControllerTest` exit 0). ⏳ device/field-test Redmi.
+**Estado:** ✅ EN MASTER (`3149704b`, junto con la persistencia de ruta por aparcamiento) · campo
+cubierto por la validación hasta `1a4128d5` (23-08-2026). El árbol de master está limpio: aquel
+"working tree sin commit" se commiteó hace tiempo.
 
 ## El bug (campo Redmi, 2026-08-08)
 El usuario reporta: al reiniciar/reabrir la app a mitad de trayecto, la línea de ruta **NO** nacía en

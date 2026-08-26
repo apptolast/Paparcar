@@ -1,7 +1,11 @@
 # ROUTE-QUALITY-001 — Ruta almacenada: origen real, sin desvíos inventados, vértice de inicio, header del detalle
 
-**Estado:** implementado en rama `feature/ROUTE-QUALITY-001` · ⏳ field-test (el snap es una sola vez:
-las rutas ya guardadas conservan su geometría vieja — solo los viajes NUEVOS muestran los fixes)
+**Estado:** ✅ EN MASTER (`2809e4c0`, + el header del detalle en `25afb888`) · campo cubierto por la
+validación hasta `1a4128d5` (23-08-2026). El snap es una sola vez: las rutas guardadas ANTES
+conservan su geometría vieja — solo los viajes NUEVOS muestran los fixes.
+
+> Continuado en `12b1969a` [ROUTE-START-AT-CAR-001]: la ruta debe ARRANCAR en el pin del que salió
+> el coche, esté liberado o no.
 **Origen:** field 2026-08-10, Redmi (Coordinator/C5): capturas del user sobre la ruta del pin 20:39
 (Calle Góndola 25) y del 19:51 (Calle Estopa 9).
 

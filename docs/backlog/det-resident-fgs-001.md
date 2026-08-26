@@ -5,7 +5,8 @@ master `c415e36b`, que ya incluye TRIP-WITNESS/BACKFILL-TAINT/EXACT-HEARTBEAT/JA
 ROUTE-ORIGIN): F1 + SigMotion directo, F2 telemetría (2026-08-04), F3 gating producto (2026-08-06,
 ver Fases abajo). Suite prod completa verde + `assembleMockDebug` verde + `SentryLifecycleDecisionTest`
 (9 casos). **✅ EN MASTER** (mergeada FF 2026-08-06 tras completar F3, go del user; fases F1/F2/F3
-conservadas como commits). ⏳ Pendiente: APK de campo nuevo + field-test del paquete completo.
+conservadas como commits; la rama ya no existe). Campo cubierto por la validación hasta `1a4128d5`
+(23-08-2026) — el sentry lleva semanas conduciéndose en ambos OEMs.
 **Field-tests 28/29-07 (Rota) y 29/30-07 (El Puerto): 0 FN en ambos OEMs, Oppo revive tras muerte
 por batería, todo trigger disparó. Field 30-07 tarde (Redmi): MIUI mató el sentry tras la sesión
 21:19 y NADA lo revivió (deep-kill ≈ force-stop; palanca = autostart, no código) — exactamente el

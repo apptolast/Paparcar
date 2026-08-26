@@ -1,7 +1,10 @@
 # HOME-ATOMIZE-001 — Atomización de estado y descomposición de la presentación de Home
 
-**Estado:** Backlog — arranca en rama propia cuando `feature/DRIVE-PUCK-NATIVE-001-kmpmaps-fork` esté mergeada.
-**Rama propuesta:** `refactor/HOME-ATOMIZE-001-presentation`
+**Estado:** ✅ EN MASTER — las **4 fases del §2 entraron**, cada una en su commit:
+F1 `a2df1aae` · F2 `8ddea26d` · F3 `5d1506fd` · F4 `4f4a9239`.
+Correcciones posteriores del mismo ticket: `ee3fc19f`, `8077caa7`, `518a0455`, `1b4e79fb`.
+Su condición de arranque (`DRIVE-PUCK-NATIVE-001`) se levantó hace tiempo: el fork está en Maven
+Central y Paparcar migrado en `6db9bc7a`.
 **Motivación:** MANTENIBILIDAD, no rendimiento. El único hot-path medido (puck a fix-rate) ya se
 resolvió en DRIVE-PUCK-NATIVE-001 (hoisting de `tripRender` fuera de `HomeState`; arrastres 1.6%
 jank). Este refactor es de estructura: `presentation/home/` son 8.154 líneas donde 3 ficheros

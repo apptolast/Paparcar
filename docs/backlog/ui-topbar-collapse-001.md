@@ -1,7 +1,6 @@
 # UI-TOPBAR-COLLAPSE-001 · Una sola cabecera: se retira al scrollear y deja pasar el contenido
 
-**Estado:** implementado en `feature/UI-TOPBAR-COLLAPSE-001-collapsing-headers` (worktree
-`Paparcar-topbar`) · 1113 tests verdes · APK instalado y validado en Oppo · ⏳ revisión del usuario
+**Estado:** ✅ EN MASTER (`83d294be`) · validado en device (Oppo) antes de entrar
 
 ## Síntoma que lo dispara
 

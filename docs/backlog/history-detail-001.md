@@ -1,7 +1,10 @@
 # HISTORY-DETAIL-001 — Detalle de aparcamiento histórico: icono real, método real y navegación prev/next
 
-**Rama:** `feature/HISTORY-DETAIL-001-real-vehicle-icon-detection-prevnext`
-**Estado:** ⏳ implementado, pendiente build/tests verdes + review + device.
+**Estado:** ✅ EN MASTER (`002d6c2e`). La rama
+`feature/HISTORY-DETAIL-001-real-vehicle-icon-detection-prevnext` ya no existe.
+
+> El origen del pin en el histórico se completó después con `64e1def0`
+> [UI-HISTORY-IDENTITY-AND-SOURCE-001]: legacy sin `detectionPath` se dice `Unknown`, nunca se adivina.
 
 ## Problema (reportado por el usuario)
 Al abrir un aparcamiento del historial en el mapa de detalle (`HistoryParkingDetailScreen`):

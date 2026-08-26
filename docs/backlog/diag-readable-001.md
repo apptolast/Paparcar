@@ -1,6 +1,7 @@
 # DIAG-READABLE-001 — Diagnósticos de campo legibles de un vistazo
 
-**Rama:** `feature/DIAG-READABLE-001` · **Estado:** implementado, compila (`compileProdDebugKotlinAndroid` ✓), pendiente merge + device.
+**Estado:** ✅ EN MASTER (`c46a47c2`) · en uso desde entonces en todos los field-tests. La rama
+`feature/DIAG-READABLE-001` ya no existe.
 
 ## Motivación
 En el field-test del 12-07 (Oppo + Redmi, mismo coche, misma cuenta imposible de distinguir) el análisis costó de más porque las sesiones de `diagnostics/{uid}/sessions/{id}`:

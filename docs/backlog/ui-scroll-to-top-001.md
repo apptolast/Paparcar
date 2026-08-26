@@ -1,7 +1,7 @@
 # UI-SCROLL-TO-TOP-001 · Botón "volver arriba" en las listas largas
 
-**Estado:** implementado en `feature/UI-SCROLL-TO-TOP-001-back-to-top` (worktree `Paparcar-totop`)
-· 1113 tests verdes · validado en **Redmi**; el Oppo no se pudo actualizar (ver abajo)
+**Estado:** ✅ EN MASTER (`1bb5b45d`) · validado en **Redmi** en su día; el Oppo no se pudo
+actualizar entonces (ver abajo), pero ambos móviles llevan builds posteriores desde entonces.
 
 ## Qué
 

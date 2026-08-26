@@ -1,7 +1,7 @@
 # ROUTE-LINE-ONROAD-001 — La línea de ruta va SIEMPRE por la carretera (v5)
 
-**Estado:** ✅ código en rama `feature/ROUTE-LINE-ONROAD-001-route-stays-on-road`, tests verdes
-(`TrailMapMatcherTest` + `HomeTripControllerTest` exit 0). ⏳ device/field-test.
+**Estado:** ✅ EN MASTER (`3149704b`) · campo cubierto por la validación hasta `1a4128d5` (23-08-2026).
+La calidad del trazado se siguió afinando después en `2809e4c0` [ROUTE-QUALITY-001].
 
 ## El problema (campo, 2026-08-08)
 La línea de ruta se salía de la carretera. Decisión del usuario: **"me da igual que el GPS llegue

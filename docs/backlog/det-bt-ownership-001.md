@@ -1,6 +1,12 @@
 # DET-BT-OWNERSHIP-001 — El Coordinator nunca atribuye una sesión a un vehículo vinculado por Bluetooth
 
-**Estado:** implementado en rama `bugfix/DET-BT-OWNERSHIP-001-coordinator-attribution` (working tree, sin commit) · ⏳ field-test
+**Estado:** ✅ EN MASTER (`fa01593a`) · campo cubierto por la validación hasta `1a4128d5` (23-08-2026)
+
+> ⚠️ Cerrado **en el alcance que declaró: la ATRIBUCIÓN**. El veto vive en
+> `VehicleFenceOwnershipPolicy.resolveSessionVehicleId` y su único consumidor es
+> `DetectionEffectDispatcher`. La **NOMINACIÓN** quedó fuera del barrido y volvió a morder el
+> 25-08-2026, con este mismo incidente citado en su KDoc → ticket
+> `DET-BT-CAR-CANNOT-NOMINATE-A-COORDINATOR-SESSION-001`.
 **Origen:** field-test 2026-08-11 (evidencia Firestore, diagnostics/{uid}/sessions)
 
 ## El bug (evidencia Firestore 11-08, certeza absoluta)

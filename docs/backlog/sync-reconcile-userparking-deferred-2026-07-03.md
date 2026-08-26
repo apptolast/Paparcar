@@ -1,12 +1,12 @@
 # SYNC-RECONCILE — UserParking / Profile
 
 **Fecha:** 2026-07-03 (diferido) → **2026-07-05 RESUELTO (UserParking)**
-**Estado UserParking:** ✅ IMPLEMENTADO — rama `feature/SYNC-RECONCILE-USERPARKING-001` (commit `450a6b58`).
+**Estado UserParking:** ✅ EN MASTER (`a435ee07`; en la rama fue `450a6b58`).
 El field-test del 2026-07-05 (Redmi) demostró que el síntoma SÍ molesta (resurrección de sesión
 terminada + dos activas en la nube), disparando el trigger de abajo. Sistema completo: entidad+DTO
 `updatedAt`/`pendingSync` (MIGRATION_11_12, DB v12), estampado en toda mutación INCLUIDAS las
 desactivaciones, `syncFromRemote`→`reconcileParkingSessions` (LWW, supersede el stopgap
-SYNC-UP-GUARD-001), drenador `pushPendingParkingSessions`. Pendiente solo: merge + field-test device.
+SYNC-UP-GUARD-001), drenador `pushPendingParkingSessions`.
 **Estado Profile:** sigue DIFERIDO (impacto bajo — ver §Profile).
 **Relacionado:** `docs/backlog/sync-reconcile-001-2026-07-01.md`, [[project_sync_reconcile_vehicle]], [[project_det_falseneg_2026_07_04]]
 
