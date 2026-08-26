@@ -331,7 +331,7 @@ data class AnchorTrust(
         return copy(
             egressBirth = when {
                 record -> EgressBirth(fix, stepCount)
-                refine -> current?.copy(originFix = fix)
+                refine -> current.copy(originFix = fix)
                 else -> current
             },
         )

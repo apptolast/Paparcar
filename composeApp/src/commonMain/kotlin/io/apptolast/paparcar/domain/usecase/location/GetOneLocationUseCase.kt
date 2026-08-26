@@ -41,7 +41,7 @@ class GetOneLocationUseCase(
                 val ageMs = nowMs() - candidate.timestamp
                 val fresh = maxAgeMs == null || ageMs <= maxAgeMs
                 if (!fresh) {
-                    PaparcarLogger.d(DIAG, "⊘ stale fix rejected (age=${ageMs / 1000}s > ${maxAgeMs!! / 1000}s) lat=${candidate.latitude} lon=${candidate.longitude}")
+                    PaparcarLogger.d(DIAG, "⊘ stale fix rejected (age=${ageMs / 1000}s > ${maxAgeMs / 1000}s) lat=${candidate.latitude} lon=${candidate.longitude}")
                 }
                 fresh
             }

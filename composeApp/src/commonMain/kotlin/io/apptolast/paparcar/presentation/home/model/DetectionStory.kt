@@ -126,7 +126,7 @@ fun resolveDetectionStory(
     fun watchingStory(isParked: Boolean, badge: ParkedWatchBadge): DetectionStory {
         // Watching names the ACTIVE vehicle ONLY — never a ranked or first-of-list fallback.
         val card = activeCard ?: return DetectionStory.Hidden
-        val name = card.vehicle.displayName()?.takeIf { it.isNotBlank() }
+        val name = card.vehicle.displayName().takeIf { it.isNotBlank() }
             ?: return DetectionStory.Hidden
         // The method is read off the vehicle itself so the row's identity colour can never disagree
         // with the garage. [UI-COLOR-DOCTRINE-001]

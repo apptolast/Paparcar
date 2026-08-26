@@ -2,6 +2,7 @@ package io.apptolast.paparcar.presentation.home
 
 import io.apptolast.paparcar.domain.usecase.location.GetAddressAndPlaceUseCase
 import io.apptolast.paparcar.fakes.FakeAddressAndPlaceRepository
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -16,6 +17,7 @@ import kotlin.test.assertTrue
  * every fix, and a geocode slower than the fix interval used to restart
  * forever and never emit. [GEOCODE-DEADLINE-001]
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 class HomeGeocodingControllerTest {
 
     private val repo = FakeAddressAndPlaceRepository()

@@ -52,21 +52,19 @@ class FirebaseDataSourceImpl(private val firestore: FirebaseFirestore) : Firebas
         spotsCollection.document(spotId).delete()
     }
 
-    @Suppress("DEPRECATION")
     override suspend fun retractSpot(spotId: String, expiresAt: Long) {
         // A targeted update, not a set(): the retraction knows two things about the spot (it is
         // withdrawn, and it dies soon) and has no business rewriting the address, the geohash or
         // the community counters other users have been incrementing meanwhile.
-        spotsCollection.document(spotId).update(
-            FIELD_STATUS to SpotStatus.RETRACTED.name,
-            FIELD_EXPIRES_AT to expiresAt,
-        )
+        spotsCollection.document(spotId).updateFields {
+            FIELD_STATUS to SpotStatus.RETRACTED.name
+            FIELD_EXPIRES_AT to expiresAt
+        }
     }
 
-    @Suppress("DEPRECATION")
     override suspend fun sendSpotSignal(spotId: String, accepted: Boolean) {
         val field = if (accepted) FIELD_ACCEPT_COUNT else FIELD_REJECT_COUNT
-        spotsCollection.document(spotId).update(field to FieldValue.increment(1))
+        spotsCollection.document(spotId).updateFields { field to FieldValue.increment(1) }
     }
 
     // ─── Zones ────────────────────────────────────────────────────────────────

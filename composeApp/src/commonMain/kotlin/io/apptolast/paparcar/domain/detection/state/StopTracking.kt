@@ -74,7 +74,7 @@ fun DetectionSessionState.updateStopTracking(
             // car-grade ground rate, so a 55-m GPS drift across a 60-s wait stays a stop.
             val stopOrigin = s.anchorTrust.stopWindowFixes.firstOrNull()
             val stillnessRefuted = stopOrigin != null && isCorroboratedVehicleHop(stopOrigin, location, config)
-            if (stillnessRefuted && stopOrigin != null) {
+            if (stillnessRefuted) {
                 val moved = io.apptolast.paparcar.domain.util.haversineMeters(
                     stopOrigin.latitude, stopOrigin.longitude,
                     location.latitude, location.longitude,

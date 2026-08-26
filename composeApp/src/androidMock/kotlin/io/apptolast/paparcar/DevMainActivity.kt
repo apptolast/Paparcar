@@ -11,7 +11,7 @@ import io.apptolast.paparcar.fakes.MockScenario
 import org.koin.android.ext.android.inject
 
 /**
- * Launcher activity for the **mock** flavor only (declared in `src/mock/AndroidManifest.xml`,
+ * Launcher activity for the **mock** flavor only (declared in `src/mock/AndroidManifest.xml`, sources in `src/androidMock/kotlin`,
  * which also strips MainActivity's launcher filter). Hosts the Dev Catalog, which can mount the
  * real [App] graph under a chosen [MockScenario]. The prod MainActivity is untouched.
  */

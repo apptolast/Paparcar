@@ -223,17 +223,17 @@ class FirestoreDetectionEventLogger(
     ) {
         val r = rollups.remove(ended.sessionId)
         val summary = buildSummary(ended, r)
-        sessionDoc.update(
-            FIELD_OUTCOME to ended.outcome,
-            FIELD_ENDED_AT to ended.timestampMs,
-            FIELD_MAX_SPEED_KMH to r?.maxSpeedKmh,
-            FIELD_DRIVING_FIXES to r?.drivingFixes,
-            FIELD_FIX_COUNT to r?.fixCount,
-            FIELD_MAX_STEP_COUNT to r?.maxStepCount,
-            FIELD_FINAL_LAT to r?.finalLat,
-            FIELD_FINAL_LON to r?.finalLon,
-            FIELD_SUMMARY to summary,
-        )
+        sessionDoc.updateFields {
+            FIELD_OUTCOME to ended.outcome
+            FIELD_ENDED_AT to ended.timestampMs
+            FIELD_MAX_SPEED_KMH to r?.maxSpeedKmh
+            FIELD_DRIVING_FIXES to r?.drivingFixes
+            FIELD_FIX_COUNT to r?.fixCount
+            FIELD_MAX_STEP_COUNT to r?.maxStepCount
+            FIELD_FINAL_LAT to r?.finalLat
+            FIELD_FINAL_LON to r?.finalLon
+            FIELD_SUMMARY to summary
+        }
         PaparcarLogger.i(TAG, "session ${ended.sessionId} [${deviceInfo.deviceModel}]: $summary")
     }
 

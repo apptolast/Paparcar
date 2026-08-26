@@ -67,9 +67,9 @@ class ParkingSessionMapperTest {
         val domain = entity.toDomain()
 
         assertNotNull(domain.address)
-        assertEquals("Madrid", domain.address?.city)
-        assertEquals("ES", domain.address?.country)
-        assertNull(domain.address?.street)
+        assertEquals("Madrid", domain.address.city)
+        assertEquals("ES", domain.address.country)
+        assertNull(domain.address.street)
     }
 
     @Test
@@ -83,8 +83,8 @@ class ParkingSessionMapperTest {
         val domain = entity.toDomain()
 
         assertNotNull(domain.placeInfo)
-        assertEquals("Repsol", domain.placeInfo?.name)
-        assertEquals(PlaceCategory.FUEL, domain.placeInfo?.category)
+        assertEquals("Repsol", domain.placeInfo.name)
+        assertEquals(PlaceCategory.FUEL, domain.placeInfo.category)
     }
 
     @Test
@@ -145,7 +145,7 @@ class ParkingSessionMapperTest {
         val dto = parking.toParkingHistoryDto()
 
         assertNotNull(dto.address)
-        assertEquals("Barcelona", dto.address?.city)
+        assertEquals("Barcelona", dto.address.city)
     }
 
     // ── ParkingHistoryDto → Entity ────────────────────────────────────────────

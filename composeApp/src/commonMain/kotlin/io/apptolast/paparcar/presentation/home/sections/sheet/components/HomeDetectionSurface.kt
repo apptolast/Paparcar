@@ -20,7 +20,7 @@ import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.LocationOff
 import androidx.compose.material.icons.rounded.LocationSearching
 import androidx.compose.material.icons.rounded.Navigation
-import androidx.compose.material.icons.rounded.NotListedLocation
+import androidx.compose.material.icons.automirrored.rounded.NotListedLocation
 import androidx.compose.material.icons.rounded.SensorsOff
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
@@ -167,7 +167,7 @@ internal fun HomeDetectionSurface(
         // [DET-NUDGE-PERSIST-001] The older, deadline-less ask: a parking record we could not place.
         DetectionStory.PendingAsk -> ActionRow(
             tone = amber,
-            icon = Icons.Rounded.NotListedLocation,
+            icon = Icons.AutoMirrored.Rounded.NotListedLocation,
             title = stringResource(Res.string.home_nudge_title),
             subtitle = stringResource(Res.string.home_nudge_sub),
             primaryLabel = stringResource(Res.string.home_nudge_cta),

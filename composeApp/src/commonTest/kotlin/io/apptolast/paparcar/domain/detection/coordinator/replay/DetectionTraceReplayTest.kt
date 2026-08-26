@@ -703,7 +703,7 @@ class DetectionTraceReplayTest {
             )
             val ended = env.detectionLogger.events.filterIsInstance<DetectionEvent.SessionEnded>()
             assertTrue(
-                ended.isNotEmpty() && ended.single().outcome?.startsWith("confirmed_") == true,
+                ended.isNotEmpty() && ended.single().outcome.startsWith("confirmed_"),
                 "the session must reach a verdict of its own; field outcome was " +
                     "'${ended.singleOrNull()?.outcome}' after 102 minutes",
             )

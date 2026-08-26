@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ArrowForward
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.BatteryAlert
 import androidx.compose.material.icons.rounded.BatteryFull
 import androidx.compose.material.icons.rounded.Bluetooth
@@ -395,7 +395,7 @@ private fun ColumnScope.PermissionsFooter(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Icon(
-                    Icons.Rounded.ArrowForward,
+                    Icons.AutoMirrored.Rounded.ArrowForward,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(16.dp),
@@ -410,7 +410,7 @@ private fun ColumnScope.PermissionsFooter(
         } else {
             PapFooterButton(
                 label = stringResource(Res.string.permissions_btn_continue),
-                leadingIcon = Icons.Rounded.ArrowForward,
+                leadingIcon = Icons.AutoMirrored.Rounded.ArrowForward,
                 onClick = onFinish,
             )
         }

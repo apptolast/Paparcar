@@ -81,6 +81,7 @@ import io.apptolast.paparcar.ui.theme.PapGreen
 import io.apptolast.paparcar.ui.theme.PapBlueLight
 import io.apptolast.paparcar.ui.theme.PapGreenLight
 import io.apptolast.paparcar.ui.theme.PapOutlineVariantLight
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.sample
 import kotlinx.coroutines.launch
@@ -607,6 +608,9 @@ private fun clusterSpots(spots: List<Spot>, thresholdDeg: Double): List<SpotClus
  * @param onMapReady fires once, when the underlying Google Map finishes its
  *   first load. Useful to dismiss loading overlays in callers.
  */
+// .sample() on the trail snapshotFlow is still FlowPreview upstream; the throttle is
+// deliberate (TRAIL_SAMPLE_MS) and there is no stable equivalent.
+@OptIn(FlowPreview::class)
 @Composable
 fun PaparcarMapView(
     config: PaparcarMapConfig,

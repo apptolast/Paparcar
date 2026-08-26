@@ -249,7 +249,7 @@ internal fun cameraTitleWhileSettling(info: AddressAndPlace?, isSettling: Boolea
     if (isSettling) {
         info?.let {
             it.placeInfo?.name?.takeIf { n -> n.isNotBlank() }
-                ?: it.address?.displayLine?.takeIf { l -> l.isNotBlank() }
+                ?: it.address.displayLine?.takeIf { l -> l.isNotBlank() }
         } ?: "…"
     } else {
         cameraTitleOrFallback(info)

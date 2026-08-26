@@ -131,7 +131,7 @@ class HomeUiController {
         val withinSpan = user != null &&
             distanceMeters(parking.first, parking.second, user.first, user.second) <= BOUNDS_MAX_SPAN_M
         if (withinSpan) {
-            moveCameraToBounds(parking.first, parking.second, user!!.first, user.second)
+            moveCameraToBounds(parking.first, parking.second, user.first, user.second)
         } else {
             moveCamera(parking.first, parking.second, zoom = FOCUS_PARKED_ZOOM)
         }

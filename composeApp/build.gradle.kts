@@ -1,3 +1,5 @@
+import com.android.build.api.dsl.ApplicationExtension
+import com.google.firebase.appdistribution.gradle.firebaseAppDistribution
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Properties
@@ -64,6 +66,12 @@ kotlin {
         @OptIn(ExperimentalKotlinGradlePluginApi::class)
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_17)
+            // [BUILD-ZERO-WARNINGS-IS-ENFORCED-001] The counter is at zero; keep it there. A new
+            // deprecation now fails the build instead of joining a pile of 51 nobody reads.
+            // Scoped to the Android target on purpose: it covers commonMain + androidMain +
+            // androidUnitTest — everything that can be compiled from Windows. Extending it to the
+            // iOS target belongs to a Mac, where iosMain can actually be verified first.
+            allWarningsAsErrors.set(true)
         }
     }
 
@@ -185,7 +193,7 @@ kotlin {
         }
 
         // ── androidUnitTest ───────────────────────────────────────────────────
-        val androidUnitTest by getting {
+        getByName("androidUnitTest") {
             dependencies {
                 implementation(libs.kotlin.test.junit)
                 implementation(libs.junit)
@@ -197,7 +205,7 @@ kotlin {
         }
 
         // ── androidInstrumentedTest ───────────────────────────────────────────
-        val androidInstrumentedTest by getting {
+        getByName("androidInstrumentedTest") {
             dependencies {
                 implementation(libs.androidx.test.junit)
                 implementation(libs.androidx.espresso.core)
@@ -231,7 +239,11 @@ dependencies {
 // ─────────────────────────────────────────────────────────────────────────────
 // ANDROID
 // ─────────────────────────────────────────────────────────────────────────────
-android {
+// AGP 9 deprecates the generated `android { }` accessor (it resolves to the old
+// BaseAppModuleExtension while `android.newDsl=false` is set for the KMP workaround).
+// Configuring the typed ApplicationExtension avoids the deprecation without flipping
+// that flag. [BUILD-ZERO-WARNINGS-IS-ENFORCED-001]
+extensions.configure<ApplicationExtension> {
     namespace = "io.apptolast.paparcar"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 

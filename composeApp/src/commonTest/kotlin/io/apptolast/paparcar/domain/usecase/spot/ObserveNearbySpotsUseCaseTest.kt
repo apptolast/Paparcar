@@ -69,7 +69,7 @@ class ObserveNearbySpotsUseCaseTest {
             .toList()
 
         assertNotNull(caughtError)
-        assertEquals("Network unavailable", caughtError!!.message)
+        assertEquals("Network unavailable", caughtError.message)
     }
 
     private fun buildSpot(id: String) = Spot(

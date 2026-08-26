@@ -257,7 +257,7 @@ class HomeTripController(
                             // left; the map-matcher snaps the origin→first-recorded gap onto streets.
                             // Empty store (iOS / first trip) → just the seeded origin (the fallback).
                             // [DET-ROUTE-ORIGIN-002] [DET-ROUTE-TRACK-001]
-                            val originHint = pair?.first?.departurePoint
+                            val originHint = pair.first.departurePoint
                                 ?: parkedOriginFor(puck.vehicleId, activeSessions)
                                 ?: previousParkedOriginFor(puck.vehicleId)
                             val origin = backdatedOrigin(originHint, puck)

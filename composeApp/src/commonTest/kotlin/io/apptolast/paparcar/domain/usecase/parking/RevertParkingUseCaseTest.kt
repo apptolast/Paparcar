@@ -58,7 +58,7 @@ class RevertParkingUseCaseTest {
         val event = logger.events.filterIsInstance<DetectionEvent.Reverted>().single()
         assertEquals("parking-1", event.sessionId)
         assertNotNull(event.sessionAgeMs, "the age of the falsely-saved session is the key datum")
-        assertTrue(event.sessionAgeMs!! >= 90_000L)
+        assertTrue(event.sessionAgeMs >= 90_000L)
     }
 
     @Test

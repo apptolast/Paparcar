@@ -399,7 +399,6 @@ class EvaluateSafetyNetCheckUseCase(
                 //  - PEDESTRIAN PHYSICS: a sustained average speed no walker reaches.
                 val arBoardingAtCar = anchoredToCar &&
                     boardingAtMs != null &&
-                    lastSeenNearCarAtMs != null &&
                     boardingAtMs >= lastSeenNearCarAtMs &&
                     (nowMs - boardingAtMs) in 0..config.vehicleEnterWindowMs
                 if (arBoardingAtCar) {
@@ -412,7 +411,7 @@ class EvaluateSafetyNetCheckUseCase(
                         ),
                     )
                 }
-                if (anchoredToCar && nearAgeMs != null && nearAgeMs > 0) {
+                if (anchoredToCar && nearAgeMs > 0) {
                     val averageSpeedMps = distanceMeters / (nearAgeMs / 1000.0)
                     if (averageSpeedMps > config.maxPedestrianSpeedMps) {
                         return releaseOrAsk(

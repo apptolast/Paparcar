@@ -40,7 +40,7 @@ class SwapActiveVehicleFencesUseCase(
 
         val outgoingOwner = outgoingSession
             ?.takeUnless { outgoingIsBt }
-            ?.let { FenceOwner(vehicleId = outgoingVehicleId!!, geofenceId = it.geofenceId) }
+            ?.let { FenceOwner(vehicleId = outgoingVehicleId, geofenceId = it.geofenceId) }
         val incomingOwner = incomingSession
             ?.let { FenceOwner(vehicleId = incomingVehicleId, geofenceId = it.geofenceId) }
 

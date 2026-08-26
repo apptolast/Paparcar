@@ -110,7 +110,7 @@ class UserConfirmStage : SessionStage {
             "birthDistance=${birthDistanceMeters?.toInt()}m " +
             "gapEntered=${state.anchorGapEnteredAtCapture} " +
             "→ ${if (answeredFarFromCar) "witnessed stop" else "current fix"} [DET-CONFIRM-ANCHOR-001]"
-        return if (answeredFarFromCar) witnessedStop!! else currentFix
+        return if (answeredFarFromCar) witnessedStop else currentFix
     }
 
     /** A point, or an AREA when the hole that fed this position bounds a doubt worth drawing. */

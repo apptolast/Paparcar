@@ -186,7 +186,7 @@ composeApp/
 │   └── di/             Módulos Koin
 ├── src/androidMain/    detection/, location/, bluetooth/, geofence/, notification/, worker/
 ├── src/iosMain/        CLLocation, CMMotion, CoreBluetooth (wiring pendiente)
-└── src/mock/           Dev Catalog — modo demo sin backend
+└── src/androidMock/    Dev Catalog — modo demo sin backend (res/manifest en src/mock/)
 
 iosApp/                 SwiftUI shell (delegado a Compose vía MainViewController)
 ```

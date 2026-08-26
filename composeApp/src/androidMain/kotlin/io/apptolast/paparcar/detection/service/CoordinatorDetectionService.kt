@@ -756,7 +756,7 @@ class CoordinatorDetectionService : LifecycleService() {
                         return
                     }
                     val supersedeDist = haversineMeters(
-                        newSession!!.location.latitude, newSession.location.longitude,
+                        newSession.location.latitude, newSession.location.longitude,
                         runningAnchor!!.latitude, runningAnchor.longitude,
                     )
                     PaparcarLogger.d(DIAG, "  ⤳ GEOFENCE_EXIT ${supersedeDist.toInt()}m from running anchor → superseding zombie session [DET-SUPERSEDE-001]")
@@ -928,7 +928,7 @@ class CoordinatorDetectionService : LifecycleService() {
                 return
             }
             val supersedeDist = haversineMeters(
-                session!!.location.latitude, session.location.longitude,
+                session.location.latitude, session.location.longitude,
                 runningAnchor!!.latitude, runningAnchor.longitude,
             )
             PaparcarLogger.d(DIAG, "  ⤳ AR_TRANSITION ${supersedeDist.toInt()}m from running anchor → superseding zombie session [DET-SUPERSEDE-001]")

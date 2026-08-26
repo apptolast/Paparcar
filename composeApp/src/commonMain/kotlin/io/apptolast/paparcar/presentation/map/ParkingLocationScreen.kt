@@ -154,7 +154,7 @@ fun HistoryParkingDetailScreen(
     val routeSnapped = focusedSession?.routeSnapped == true
     val routeRecalculating = !routeSnapped && !focusedSession?.routePolyline.isNullOrEmpty()
     val routeTrail = remember(focusedSession?.routePolyline, routeSnapped) {
-        mutableStateOf(if (routeSnapped) PolylineCodec.decode(focusedSession?.routePolyline) else emptyList())
+        mutableStateOf(if (routeSnapped) PolylineCodec.decode(focusedSession.routePolyline) else emptyList())
     }
     // Provenance-aware segments: measured stretches solid, road-inferred stretches (reconstructed
     // data holes) dimmed until confirmed, dropped once rejected. [ROUTE-GAP-HONEST-001]
@@ -168,8 +168,8 @@ fun HistoryParkingDetailScreen(
             if (routeSnapped) {
                 InferredRoute.split(
                     points = routeTrail.value,
-                    encoded = focusedSession?.routeInferredSpans,
-                    resolution = focusedSession?.routeInferredResolution,
+                    encoded = focusedSession.routeInferredSpans,
+                    resolution = focusedSession.routeInferredResolution,
                 )
             } else emptyList()
         )
@@ -257,7 +257,7 @@ fun HistoryParkingDetailScreen(
         // A stretch of this route was reconstructed over a GPS silence — ask the user to vouch for
         // it (Sí = draw it like the measured line; No = cut it). Floating over the map → glass.
         // [ROUTE-GAP-HONEST-001]
-        if (askInferredRoute && focusedSession != null) {
+        if (askInferredRoute) {
             InferredRouteQuestionCard(
                 onAnswer = { confirmed ->
                     viewModel.handleIntent(
@@ -530,7 +530,7 @@ private fun AddressHeroRow(session: UserParking?, vehicle: Vehicle?) {
     }
     val secondaryText = session?.address?.city?.takeIf { it.isNotBlank() }
         ?.let { city ->
-            session.address?.region?.takeIf { it.isNotBlank() }
+            session.address.region?.takeIf { it.isNotBlank() }
                 ?.let { "$city, $it" } ?: city
         }
 

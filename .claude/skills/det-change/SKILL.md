@@ -76,7 +76,7 @@ abiertas) → **MOVERLO**, no duplicarlo.
 
 **b) Dev Catalog / galería de estados** — si el cambio introduce pantalla, estado MVI, variante
 (loading/empty/error/modo) o condición que afecte al routing:
-- `ScreenGroup` nuevo en `composeApp/src/mock/.../dev/StateGalleryScreen.kt`, llamando a
+- `ScreenGroup` nuevo en `composeApp/src/androidMock/.../dev/StateGalleryScreen.kt`, llamando a
   `XxxContent(state=…)` y espejando su `*Previews.kt`.
 - Condición de routing → `MockScenario` + el fake que la lee + preset/control en `DevCatalogScreen.kt`.
 - Verificar `./gradlew :composeApp:assembleMockDebug` y que prod no se rompe.
