@@ -20,7 +20,7 @@ The `.notes.md` companion file is optional. Use it when a capture justified a ti
 
 ## Capturing a log
 
-The diagnostic logger is `FileAntilog` (`composeApp/src/androidMain/.../logging/FileAntilog.kt`). It writes every Napier log line tagged `PARKDIAG/*` to `${context.filesDir}/parkdiag.log` on debug builds. The file rotates at 5 MB to `parkdiag.log.old`.
+The diagnostic logger is `FileAntilog` (`composeApp/src/androidMain/.../logging/FileAntilog.kt`). It writes every Napier log line tagged `PARKDIAG/*` to `${context.filesDir}/parkdiag.log` on debug builds. At 5 MB the generations shift down — `parkdiag.log.1` is the most recent rotation, `.5` the oldest — and **five are kept** [DET-PARKDIAG-KEEP-MORE-HISTORY-001]. That is ~150 h of traffic; with a single rotation the evidence for the incident under investigation had already fallen off the end twice in one week (2026-08-24, 2026-08-25).
 
 ### Pull from device
 
@@ -34,9 +34,9 @@ $device = "redmi-note-11"   # adjust per device
 $destDir = "diagnostics/$date"
 New-Item -ItemType Directory -Force -Path $destDir | Out-Null
 
-adb shell run-as io.apptolast.paparcar cat files/parkdiag.log > "$destDir/$device.log"
-# Pull the rotated half if it exists
-adb shell run-as io.apptolast.paparcar cat files/parkdiag.log.old > "$destDir/$device.old.log" 2>$null
+# The whole history, oldest first, as ONE chronological file — an incident can straddle
+# a rotation boundary, so this is the default. Missing generations are skipped silently.
+adb shell run-as io.apptolast.paparcar sh -c 'cat files/parkdiag.log.5 files/parkdiag.log.4 files/parkdiag.log.3 files/parkdiag.log.2 files/parkdiag.log.1 files/parkdiag.log 2>/dev/null' > "$destDir/$device.log"
 ```
 
 **Bash:**
@@ -47,8 +47,7 @@ DEVICE=redmi-note-11
 DEST="diagnostics/$DATE"
 mkdir -p "$DEST"
 
-adb shell run-as io.apptolast.paparcar cat files/parkdiag.log > "$DEST/$DEVICE.log"
-adb shell run-as io.apptolast.paparcar cat files/parkdiag.log.old > "$DEST/$DEVICE.old.log" 2>/dev/null
+adb shell run-as io.apptolast.paparcar sh -c 'cat files/parkdiag.log.5 files/parkdiag.log.4 files/parkdiag.log.3 files/parkdiag.log.2 files/parkdiag.log.1 files/parkdiag.log 2>/dev/null' > "$DEST/$DEVICE.log"
 ```
 
 Multiple devices connected: prepend `-s <serial>` to each `adb` call. Get the serial with `adb devices`.
@@ -56,8 +55,8 @@ Multiple devices connected: prepend `-s <serial>` to each `adb` call. Get the se
 ### Clear before a fresh test
 
 ```powershell
-adb shell run-as io.apptolast.paparcar rm files/parkdiag.log
-adb shell run-as io.apptolast.paparcar rm files/parkdiag.log.old
+# Every generation, including any legacy parkdiag.log.old left by a pre-2026-08-26 build.
+adb shell run-as io.apptolast.paparcar sh -c 'rm -f files/parkdiag.log*'
 ```
 
 ### Filter by tag

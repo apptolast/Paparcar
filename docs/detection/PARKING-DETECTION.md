@@ -5214,3 +5214,41 @@ the Kamiq's pin is **not** orphaned: its safety-net watch continues. Why a manua
 days with `isActive = true` is untouched sediment, still open.
 
 Spec: `docs/backlog/det-bt-car-cannot-nominate-a-coordinator-session-001.md`.
+
+### DET-PARKDIAG-KEEP-MORE-HISTORY-001 — a single rotation was not a retention policy (pending)
+
+**Not a decision change — an INSTRUMENT change**, recorded here because it changes how every trace in
+this log is read from now on.
+
+`FileAntilog` kept ONE rotation: past 5 MB, `parkdiag.log` became `parkdiag.log.old` and everything
+older was discarded. Which window survives then depends on when the file happens to fill, not on when
+the incident happened. **Twice in one week the evidence for the incident under investigation had
+already fallen off the end:** on 2026-08-24 the hospital-traffic-light FP (Xiaomi) had to be read from
+the device file pulled by hand, because that uid has no `diagnostics_config` and nothing reached
+Firestore at all; and on 2026-08-25 the Oppo's log had already rotated, so the FN was reconstructed
+from Firestore — which does not carry everything the device log does. `Trace_Gondola2508Supersede.kt`
+says so in its own KDoc.
+
+**Fix.** Generations shift instead of being dropped: `.4`→`.5`, `.3`→`.4`, …, active→`.1`, and five
+are kept. `parkdiag.log.1` is the most recent rotation, `.5` the oldest; the oldest is the only thing
+discarded. 5 MB × 6 files ≈ **150 h** of PARKDIAG traffic against the previous ~30 h.
+
+The default pull is no longer "the active file, plus `.old` if there is one" but the whole history
+concatenated oldest-first into one chronological file — an incident can straddle a rotation boundary:
+
+```
+adb shell run-as io.apptolast.paparcar sh -c \
+  'cat files/parkdiag.log.5 files/parkdiag.log.4 files/parkdiag.log.3 \
+       files/parkdiag.log.2 files/parkdiag.log.1 files/parkdiag.log 2>/dev/null' > parkdiag-full.log
+```
+
+**What was deliberately NOT done.** Deleting a legacy `parkdiag.log.old` left by an in-place upgrade.
+It is never read or written again, but silently deleting evidence is the same mistake this ticket
+exists to fix, in miniature — it is documented so it gets pulled once and cleaned by hand.
+
+**Accompanying-fix risk.** None in code. The sibling gap is data, not code, and stays open: a uid with
+no `diagnostics_config/{userId}.enabled == true` sends nothing to Firestore at all
+(`FirestoreDetectionEventLogger.kt:24`) — the Xiaomi today, and any fresh account created after the
+planned Room reset. This ticket only fixes the local side.
+
+Spec: `docs/backlog/det-parkdiag-keep-more-history-001.md`.
