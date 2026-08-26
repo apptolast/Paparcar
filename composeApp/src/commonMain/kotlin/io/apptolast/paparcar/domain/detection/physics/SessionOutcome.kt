@@ -84,6 +84,31 @@ sealed interface SessionOutcome {
         override val sentryStreakEffect = SentryStreakEffect.RESETS
     }
 
+    /**
+     * [DET-SUPERSEDE-CANNOT-DISCARD-A-MEASURED-DRIVE-001] A newer trigger took this session's place
+     * on the SAME trip — it did not fail, it handed over.
+     *
+     * The string is not new: the superseded branch of the coordinator's `finally` has always logged
+     * `"superseded"` as a literal. What was new is that reaching it depended on a RACE. `cancel()`
+     * does not join, so whether the predecessor's `finally` ran before or after its successor
+     * claimed the singleton decided which of two labels the trace got, and the field session of
+     * 2026-08-25 19:59:05 got the other one: [Ended], the default a session is born with, on a
+     * 23-minute trip with 60 driving fixes. Stamping the outcome BEFORE the cancel removes the race;
+     * this arm is what there is to stamp.
+     *
+     * **All three memberships are decisions:**
+     *  - `triggersHonestClose = false` — the successor now owns this trip's pin. Running the ladder
+     *    here would close the world out from under a session that is still driving through it.
+     *  - `RESETS` — the streak damps REFUTED walking arms. A supersede is the opposite: a live
+     *    trigger asserting the journey continues.
+     */
+    data object Superseded : SessionOutcome {
+        override val serialized = "superseded"
+        override val isConfirmed = false
+        override val triggersHonestClose = false
+        override val sentryStreakEffect = SentryStreakEffect.RESETS
+    }
+
     /** Armed by a trigger the session's own stream then refuted — nothing drove. One of the two
      *  silent walking aborts: the honest-close ladder runs, and a sentry-wake arm that ends here
      *  extends the storm streak. */

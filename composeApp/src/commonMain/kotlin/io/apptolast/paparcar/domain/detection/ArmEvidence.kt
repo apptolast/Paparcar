@@ -1,5 +1,36 @@
 package io.apptolast.paparcar.domain.detection
 
+import io.apptolast.paparcar.domain.detection.state.DriveProofSource
+
+/**
+ * [DET-SUPERSEDE-CANNOT-DISCARD-A-MEASURED-DRIVE-001] What an arm's evidence entitles the session
+ * to assume about the drive, DECLARED per arm rather than inferred from which subtypes an `is`
+ * chain happened to list.
+ *
+ * The predecessor of this type was `isVerifiedDeparture = this is VerifiedBySpeed || this is
+ * VerifiedByVehicleEnter` — membership by spelling, the exact accident
+ * [io.apptolast.paparcar.domain.detection.physics.SessionOutcome] was typed to prevent. It also
+ * could not express the third case at all, and the third case is the one the 25-08 field session
+ * needed: a drive this session did not measure and did not borrow on trust, but INHERITED from the
+ * session it replaced, which measured it.
+ *
+ * The difference between the last two is not cosmetic — it decides whether a `Dismissed` departure
+ * verdict may retract the authorization. Trust may be taken back; a measurement may not.
+ */
+enum class DriveAuthorization {
+    /** Nothing proved a drive at the arm. Every anti-walking guard stays armed and this session's
+     *  own stream is expected to witness the drive itself. */
+    None,
+
+    /** The arm's word: a departure was verified elsewhere, so the session starts authorized but
+     *  RETRACTABLE until one of its own measurements backs it. */
+    OnTrust,
+
+    /** A drive was MEASURED — by this trip, just not inside this session's own stream. Not
+     *  retractable: no later adjudication can un-drive a track that was observed. */
+    Measured,
+}
+
 /**
  * Typed evidence behind a detection-session arm — what proved (or failed to prove) that the
  * vehicle actually drove before this session started looking for the next park.
@@ -51,10 +82,39 @@ sealed interface ArmEvidence {
      *  read the margin in Firestore instead of on a cable. */
     data class BtRide(val engagementMs: Long) : ArmEvidence
 
+    /**
+     * [DET-SUPERSEDE-CANNOT-DISCARD-A-MEASURED-DRIVE-001] This session REPLACED one that had already
+     * PROVEN a drive with its own track, and inherits that proof.
+     *
+     * A supersede is not a new trip: it is the same trip changing which session follows it, because
+     * a fresh trigger (a real AR `IN_VEHICLE ENTER` after a stop to refuel, a fence EXIT from an
+     * intermediate stop) says the journey is not over. Field 2026-08-25 19:59:05: a 23-minute
+     * session with 60 driving fixes and a 98 km/h peak was cancelled 10 ms before its replacement
+     * armed; the replacement measured only the last 35 s of manoeuvring at ≤13,7 km/h, could not
+     * reach driving speed, and the false-ENTER abort threw the whole park away. The drive had been
+     * measured. It simply did not travel.
+     *
+     * [DriveAuthorization.Measured] and NOT [OnTrust]: nothing was lent here. The predecessor's
+     * [DriveProofSource] is carried so a field trace can read WHICH proof was inherited rather than
+     * inferring it from the peak.
+     */
+    data class InheritedDrive(val maxSpeedMps: Float, val source: DriveProofSource) : ArmEvidence
+
+    /**
+     * What this arm entitles the session to assume about the drive. DECLARED by each arm — a new
+     * arm does not compile until its author answers.
+     */
+    val driveAuthorization: DriveAuthorization
+        get() = when (this) {
+            is VerifiedBySpeed, is VerifiedByVehicleEnter -> DriveAuthorization.OnTrust
+            is InheritedDrive -> DriveAuthorization.Measured
+            is Manual, is Unverified, is BoardingAtCar, is ArrivalHandoff, is BtRide -> DriveAuthorization.None
+        }
+
     /** Whether this evidence proves the departure — seeds `hasEverReachedDrivingSpeed` so the
      *  coordinator does not re-litigate a drive its stream structurally cannot observe. */
     val isVerifiedDeparture: Boolean
-        get() = this is VerifiedBySpeed || this is VerifiedByVehicleEnter
+        get() = driveAuthorization != DriveAuthorization.None
 
     /** Stable label persisted on the session / logged in diagnostics. */
     val persistLabel: String
@@ -66,6 +126,7 @@ sealed interface ArmEvidence {
             is BoardingAtCar -> LABEL_ENTER_AT_CAR
             is ArrivalHandoff -> LABEL_ARRIVAL_HANDOFF
             is BtRide -> LABEL_BT_RIDE
+            is InheritedDrive -> LABEL_INHERITED_DRIVE
         }
 
     companion object {
@@ -85,9 +146,22 @@ sealed interface ArmEvidence {
          *  session. The BT lane used to stamp NOTHING, so a field pin could not be traced to its
          *  trigger without pulling the device log over a cable. */
         const val LABEL_BT_RIDE = "bt_ride"
+        /** [DET-SUPERSEDE-CANNOT-DISCARD-A-MEASURED-DRIVE-001] The drive proof of the session this
+         *  one replaced, carried across the supersede. */
+        const val LABEL_INHERITED_DRIVE = "inherited_drive"
 
-        /** Labels that bypass the repark-plausibility guard: the drive was externally proven. */
+        /**
+         * Labels that bypass the repark-plausibility and assertion guards: the drive was externally
+         * proven.
+         *
+         * [DET-SUPERSEDE-CANNOT-DISCARD-A-MEASURED-DRIVE-001] [LABEL_INHERITED_DRIVE] belongs here
+         * and the reason is the whole ticket: those two guards exist to catch a session that never
+         * saw a car, and they read the SUCCESSOR's own peak — which on the last hop of a trip is a
+         * manoeuvring speed. Without the bypass the one arm that carries a MEASURED drive would be
+         * the one they mistake for a pedestrian.
+         */
         fun isVerifiedLabel(label: String?): Boolean =
-            label == LABEL_VERIFIED_SPEED || label == LABEL_VERIFIED_ENTER || label == LABEL_VERIFIED_LATE
+            label == LABEL_VERIFIED_SPEED || label == LABEL_VERIFIED_ENTER ||
+                label == LABEL_VERIFIED_LATE || label == LABEL_INHERITED_DRIVE
     }
 }

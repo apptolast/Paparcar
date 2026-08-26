@@ -3,6 +3,7 @@
 package io.apptolast.paparcar.domain.detection.coordinator.replay
 
 import io.apptolast.paparcar.domain.detection.CoordinatorParkingDetector
+import io.apptolast.paparcar.domain.detection.state.DriveProofSource
 import io.apptolast.paparcar.domain.detection.ArmEvidence
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.model.GpsPoint
@@ -857,6 +858,142 @@ class DetectionTraceReplayTest {
         val stepDetector: FakeStepDetectorSource,
         val detectionLogger: FakeDetectionEventLogger,
     )
+
+    // ── DET-SUPERSEDE-CANNOT-DISCARD-A-MEASURED-DRIVE-001 ────────────────────────────────────────
+    //
+    // The pair below is the whole ticket, replayed against the REAL detector on the REAL stream of
+    // the superseded session. Identical trace, identical anchor, identical everything except what
+    // the supersede handed over. The first test reproduces the field loss; the second is the fix.
+
+    /** The anchor the field arm used: the pin the AR ENTER resolved as "your car". */
+    private fun gondolaAnchor() = GpsPoint(
+        latitude = 36.608368,
+        longitude = -6.2781358,
+        accuracy = 3.603f,
+        timestamp = TRACE_GONDOLA_2508_SUPERSEDE.first().tMs - 60_000L,
+        speed = 0f,
+    )
+
+    @Test
+    fun gondola_2508_supersede_loses_the_park_when_the_successor_inherits_nothing() =
+        runTest(UnconfinedTestDispatcher()) {
+            // The field build, byte for byte: the successor arms with BoardingAtCar — "waiting for
+            // ride proof" — and its own stream can never supply that proof, because the drive it is
+            // the tail of happened in the session that was just cancelled. 13,6 km/h peak, then the
+            // egress walk, then the anti-walking guard. The car spent the night with no pin.
+            val replayer = DetectionTraceReplayer(TRACE_GONDOLA_2508_SUPERSEDE)
+            val env = buildEnv(clock = { replayer.nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 256)
+            val job = launch {
+                env.coordinator.invoke(
+                    locations,
+                    armEvidence = ArmEvidence.BoardingAtCar,
+                    departureAnchor = gondolaAnchor(),
+                    departureFenceRadiusMeters = 85f,
+                )
+            }
+
+            replayer.replay(
+                emitFix = { locations.emit(it) },
+                emitStep = { env.stepDetector.emitSteps(1) },
+            )
+            job.cancelAndJoin()
+
+            assertEquals(0, env.parkingRepo.saveNewParkingSessionCallCount, "the field false negative")
+            val ended = env.detectionLogger.events
+                .filterIsInstance<DetectionEvent.SessionEnded>().single()
+            assertEquals("aborted_false_enter", ended.outcome, "and this is the guard that ate it")
+        }
+
+    @Test
+    fun gondola_2508_supersede_keeps_the_session_alive_when_the_measured_drive_travels() =
+        runTest(UnconfinedTestDispatcher()) {
+            // Same stream, same anchor — the ONLY difference is that the supersede handed over what
+            // the predecessor had measured (27,2 m/s, corroborated across its track). The seed
+            // disarms the anti-walking guards, so the egress walk no longer refutes anything and the
+            // session is still ALIVE when the trace runs out.
+            //
+            // ⚠ What this test does NOT show, and must not claim: the confirm. The field session was
+            // killed at Δ78 940 ms, and at that instant the phone was still ~7 m from the car — the
+            // egress displacement a `steps+egress` confirm needs simply does not exist inside this
+            // window. The Redmi, on the same car with a session nobody superseded, confirmed about
+            // two minutes later. So the trace ends `ended` for the honest reason: the replay ran out
+            // of recording, not because a verdict was reached. The confirm the seed unlocks is
+            // pinned on a trace that contains its moment — see the test below.
+            val replayer = DetectionTraceReplayer(TRACE_GONDOLA_2508_SUPERSEDE)
+            val env = buildEnv(clock = { replayer.nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 256)
+            val job = launch {
+                env.coordinator.invoke(
+                    locations,
+                    armEvidence = ArmEvidence.InheritedDrive(
+                        maxSpeedMps = 27.2f,
+                        source = DriveProofSource.TRACK_WINDOW,
+                    ),
+                    departureAnchor = gondolaAnchor(),
+                    departureFenceRadiusMeters = 85f,
+                )
+            }
+
+            replayer.replay(
+                emitFix = { locations.emit(it) },
+                emitStep = { env.stepDetector.emitSteps(1) },
+            )
+            job.cancelAndJoin()
+
+            val ended = env.detectionLogger.events
+                .filterIsInstance<DetectionEvent.SessionEnded>().single()
+            assertEquals(
+                "ended",
+                ended.outcome,
+                "the 12 egress steps must no longer refute a drive this trip already proved",
+            )
+            // And nothing was invented on the way: no pin, no prompt, from evidence that ends early.
+            assertEquals(0, env.parkingRepo.saveNewParkingSessionCallCount)
+            assertEquals(0, env.notification.parkingConfirmationCallCount)
+        }
+
+    /**
+     * The other half of the claim, on a trace that DOES contain its confirming moment.
+     * `TRACE_BUG_REPARK_WALK_001` already pins that a speed-verified arm confirms at the stop anchor
+     * where an unverified one aborts. An inherited drive must buy exactly that same thing — it is
+     * the stronger evidence of the two, since it was measured rather than lent.
+     */
+    @Test
+    fun an_inherited_drive_unlocks_the_same_confirm_a_verified_departure_does() =
+        runTest(UnconfinedTestDispatcher()) {
+            val replayer = DetectionTraceReplayer(TRACE_BUG_REPARK_WALK_001)
+            val env = buildEnv(clock = { replayer.nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 256)
+            val job = launch {
+                env.coordinator.invoke(
+                    locations,
+                    armEvidence = ArmEvidence.InheritedDrive(
+                        maxSpeedMps = 27.2f,
+                        source = DriveProofSource.TRACK_WINDOW,
+                    ),
+                )
+            }
+
+            replayer.replay(
+                emitFix = { locations.emit(it) },
+                emitStep = { env.stepDetector.emitSteps(1) },
+            )
+            job.cancelAndJoin()
+
+            assertEquals(1, env.parkingRepo.saveNewParkingSessionCallCount, "inherited drive must confirm")
+            val saved = env.parkingRepo.getActiveSession()
+            assertNotNull(saved)
+            assertTrue(
+                saved.location.latitude in 36.60460..36.60470,
+                "same anchor as the verified arm, was ${saved.location.latitude}",
+            )
+            assertEquals(
+                ArmEvidence.LABEL_INHERITED_DRIVE,
+                saved.armEvidence,
+                "and the pin must SAY the drive was inherited — a pin without provenance is not diagnosable",
+            )
+        }
 
     private fun buildEnv(
         clock: () -> Long,

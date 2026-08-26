@@ -150,6 +150,20 @@ data class SessionTelemetry(
     fun seededOnArmTrust(): SessionTelemetry =
         copy(driveAuthorized = true, authorizedOnArmTrustOnly = true)
 
+    /**
+     * [DET-SUPERSEDE-CANNOT-DISCARD-A-MEASURED-DRIVE-001] The drive was MEASURED — by the session
+     * this one superseded, on the same trip. Sibling of [seededOnArmTrust] and deliberately not the
+     * same call: `authorizedOnArmTrustOnly = false` is what makes this seed non-retractable, and
+     * that is correct rather than convenient. A `Dismissed` verdict adjudicates an EXIT and may take
+     * back what an EXIT lent; it says nothing about a track that was already observed.
+     *
+     * Reusing [seededOnArmTrust] here would launder a measurement into trust and hand a later
+     * dismissal the power to un-drive it — the exact confusion between nomination and confirmation
+     * that `DET-G-05` closed.
+     */
+    fun seededOnInheritedDrive(): SessionTelemetry =
+        copy(driveAuthorized = true, authorizedOnArmTrustOnly = false)
+
     /** One processed fix. Counted separately from [onFix] because the `loc#N` line is logged
      *  before the fix is judged, and the number in the trace must not move. */
     fun countFix(): SessionTelemetry = copy(fixCount = fixCount + 1)

@@ -1,8 +1,12 @@
 package io.apptolast.paparcar.domain.detection
 
+import io.apptolast.paparcar.domain.detection.state.DriveProof
+import io.apptolast.paparcar.domain.detection.state.DriveProofSource
 import io.apptolast.paparcar.domain.model.GpsPoint
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /** [DET-SUPERSEDE-001] Pure supersede-vs-suppress decision for a trigger that arrives while a
@@ -47,5 +51,83 @@ class SessionSupersedeTest {
                 newFenceRadiusMeters = 80f,
             ),
         )
+    }
+
+    // ── What the successor inherits [DET-SUPERSEDE-CANNOT-DISCARD-A-MEASURED-DRIVE-001] ──────────
+
+    @Test
+    fun should_hand_the_measured_drive_to_the_successor_when_the_superseded_session_proved_one() {
+        // Field 2026-08-25 19:59:05: 27,2 m/s ≈ 98 km/h proven across a 23-minute track.
+        val proven = DriveProof(
+            proven = DriveProofSource.TRACK_WINDOW,
+            provenMaxSpeedMps = 27.2f,
+            peakMps = 27.2f,
+        )
+
+        val inherited = inheritedArmEvidence(proven)
+
+        assertEquals(ArmEvidence.InheritedDrive(27.2f, DriveProofSource.TRACK_WINDOW), inherited)
+    }
+
+    @Test
+    fun should_keep_the_provenance_of_the_proof_that_was_inherited() {
+        val hop = DriveProof(
+            proven = DriveProofSource.SHORT_HOP,
+            provenMaxSpeedMps = 8.3f,
+            peakMps = 8.3f,
+        )
+
+        assertEquals(DriveProofSource.SHORT_HOP, inheritedArmEvidence(hop)?.source)
+    }
+
+    @Test
+    fun should_inherit_nothing_when_the_superseded_session_never_proved_a_drive() {
+        assertNull(inheritedArmEvidence(DriveProof()))
+    }
+
+    /**
+     * The laundering case, and the reason only [DriveProof.proven] qualifies. A session can hold a
+     * high peak and a full look-back ring without the track ever corroborating a drive — that is
+     * exactly the indoor Doppler mirage of field 2026-07-27. Inheriting on the peak would let each
+     * supersede hand the next session a drive nobody ever measured.
+     */
+    @Test
+    fun should_inherit_nothing_from_an_unproven_peak() {
+        val mirage = DriveProof(
+            proven = null,
+            provenMaxSpeedMps = 0f,
+            peakMps = 45f,
+            credibleFixCount = 1,
+        )
+
+        assertNull(inheritedArmEvidence(mirage))
+    }
+
+    /** An inherited drive is MEASURED, so no later verdict may retract it — unlike an arm's word. */
+    @Test
+    fun should_declare_an_inherited_drive_measured_rather_than_lent_on_trust() {
+        val inherited = ArmEvidence.InheritedDrive(27.2f, DriveProofSource.TRACK_WINDOW)
+
+        assertEquals(DriveAuthorization.Measured, inherited.driveAuthorization)
+        assertEquals(DriveAuthorization.OnTrust, ArmEvidence.VerifiedBySpeed(90f, 5f).driveAuthorization)
+        assertEquals(DriveAuthorization.None, ArmEvidence.BoardingAtCar.driveAuthorization)
+    }
+
+    /**
+     * The two guards in `ConfirmParkingUseCase` read the SUCCESSOR's own peak, which on the last hop
+     * of a trip is a manoeuvring speed. Without this the one arm carrying a measured drive would be
+     * the one they mistake for a pedestrian re-park.
+     */
+    @Test
+    fun should_let_an_inherited_drive_pass_the_guards_that_exempt_verified_arms() {
+        assertTrue(ArmEvidence.isVerifiedLabel(ArmEvidence.LABEL_INHERITED_DRIVE))
+        assertTrue(
+            ArmEvidence.isVerifiedLabel(
+                ArmEvidence.InheritedDrive(27.2f, DriveProofSource.TRACK_WINDOW).persistLabel,
+            ),
+        )
+        // …and the arms that prove nothing still do not.
+        assertFalse(ArmEvidence.isVerifiedLabel(ArmEvidence.BoardingAtCar.persistLabel))
+        assertFalse(ArmEvidence.isVerifiedLabel(ArmEvidence.Unverified.persistLabel))
     }
 }

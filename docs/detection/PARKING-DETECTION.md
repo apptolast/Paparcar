@@ -2608,6 +2608,76 @@ that would silence a real bicycle veto on the second drive of the day.
 
 ---
 
+### DET-SUPERSEDE-CANNOT-DISCARD-A-MEASURED-DRIVE-001 — a supersede is the SAME trip changing sessions (pending)
+
+**Field report (2026-08-25, Oppo CPH2371 / Ford Focus / Coordinator).** Gym → a petrol station with a
+queue, left without refuelling → home, except he pulled into the petrol station two streets from his
+door, got out, got back in, and drove the last ~150 m. **No pin at all.** The Redmi, riding the same
+car with a session nobody interrupted, confirmed at 20:02:51 at the petrol station (77 m from the
+door). Neither phone has the real park.
+
+**Root cause.** At 19:59:05 the AR fired a `IN_VEHICLE ENTER` that was **true** — he really was
+re-boarding — and the service superseded the running session: `cancel()` at `…745472`, the
+replacement armed at `…745482`, **10 ms** apart. The replacement started from zero with
+`ArmEvidence.BoardingAtCar`, which by design does not seed `driveAuthorized` ("the session must
+measure the drive itself"). Its own stream then saw a 13,6 km/h manoeuvre and 12 egress steps, and
+`FalseEnterAbortStage` did exactly what it exists to do. What died with the predecessor was
+**23,2 min · 98 km/h · 60/261 driving fixes · 206 steps** of measured driving.
+
+**The second half of the root cause, which the trace shows and the first diagnosis missed.** The
+`finally` already had a superseded branch stamping `"superseded"`. It did not run, because
+`cancelDetectionJob()` cancels **without joining**: whether the predecessor's `finally` beats its
+successor's claim on `currentSessionId` decides which of two labels reaches the trace. Here it won,
+took the ownership branch, and wrote `SessionOutcome.Ended` — *the default a session is born with* —
+on a 23-minute motorway trip. **Which ending a superseded session got was a coroutine race, and
+neither branch handed anything over.**
+
+**Fix — the invariant, in one sentence.** *A session that has MEASURED driving cannot end in `Ended`:
+it confirms, it asks, or it hands its proof to its successor.* A supersede is the third, not a fourth.
+
+- `DriveAuthorization { None, OnTrust, Measured }` **declared per `ArmEvidence` arm**, replacing
+  `isVerifiedDeparture = this is A || this is B` — membership by spelling, which also could not
+  express the third case. `isVerifiedDeparture` survives as `!= None`, so no existing arm moves.
+- `ArmEvidence.InheritedDrive(maxSpeedMps, source)` → label `inherited_drive`, `Measured`.
+- `SessionTelemetry.seededOnInheritedDrive()` — sibling of `seededOnArmTrust()` and deliberately not
+  the same call: `authorizedOnArmTrustOnly = false` is the only thing `notifyDepartureDismissed`
+  reads, so a measurement stays un-retractable where trust does not. Reusing the trusted seed would
+  have laundered a measurement into trust.
+- `inheritedArmEvidence(runningDrive)` beside `shouldSupersedeRunningSession` — that one answers
+  *whether* to hand over, this one *what travels*. Only `DriveProof.proven` qualifies, **never the
+  authorization**: the predecessor could itself be seeded on trust, and propagating that would chain
+  sessions each believing the previous one saw a car when none did.
+- `notifySuperseded()` runs **before** the cancel — that ordering is the fix. It stamps
+  `SessionOutcome.Superseded` (both branches now agree; the race no longer decides) and returns what
+  the successor inherits, because after `cancel()` there is no session left to ask.
+
+`inherited_drive` joins `isVerifiedLabel`, and that is a decision: the two guards in
+`ConfirmParkingUseCase` read the SUCCESSOR's peak, a manoeuvring speed on the last hop of a trip.
+Without the bypass the one arm carrying a measured drive is the one they mistake for a pedestrian.
+
+**Accompanying-fix risk.** `DriveAuthorization` touches every arm's seeding path. It is a widening,
+not a change: the two arms that seeded before still seed identically, and the new third value is
+reachable only from a supersede.
+
+**What the replay proves, and what it refuses to claim.** `Trace_Gondola2508Supersede` (17 fixes +
+12 steps, matching the `drive 0/17fix · steps 12` the session wrote on exit) reproduces the loss with
+`BoardingAtCar` and, with `InheritedDrive`, keeps the session alive through the same step burst.
+It does **not** show the confirm: the field session was killed at Δ78 940 ms with the phone still
+~7 m from the car, so the egress displacement a `steps+egress` needs does not exist inside the
+window — the Redmi confirmed about two minutes later. The trace ends `ended` because the recording
+ran out, and the test says so. The confirm the seed unlocks is pinned on `TRACE_BUG_REPARK_WALK_001`,
+which contains its moment.
+
+**Deliberately unfixed.** The last hop (a few metres at ≤13,7 km/h) is still unconfirmable on its
+own, and must stay that way — it is exactly the movement a false positive produces. And the
+successor's anchor is still the nominating pin, not the intermediate stop; with the seed it is not
+needed to confirm, but inheriting it would make SHORT_HOP valid on the final leg too. Separate change.
+
+**1649 tests**, 20 replays, 0 failures (master `2deff3c9`: 1636). Verified discriminating: neutralising
+`InheritedDrive → None` turns both replays and the authorization test red.
+
+---
+
 ## 3. Open questions / future work
 
 - **GPS sampling boost during CANDIDATE (PARKING-001 Option B).** Switch the LocationDataSource to a 1 s `minUpdateIntervalMillis` request when entering the CANDIDATE phase, returning to 2 s on exit. Increases density of fixes that refine `bestStopLocation` within the new initial-stop window after a reposition burst. Adds the complexity of swapping the location source mid-session — hold off until A is validated in the field.

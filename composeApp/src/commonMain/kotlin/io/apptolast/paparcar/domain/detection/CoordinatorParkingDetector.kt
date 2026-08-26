@@ -335,6 +335,46 @@ class CoordinatorParkingDetector(
     }
 
     /**
+     * [DET-SUPERSEDE-CANNOT-DISCARD-A-MEASURED-DRIVE-001] **A newer trigger is taking this session's
+     * place on the same trip.** Called by the service BEFORE it cancels the running job, and that
+     * ordering is the entire point.
+     *
+     * Two things happen here, and both were previously lost:
+     *
+     *  1. **The ending gets its name.** The superseded branch of [invoke]'s `finally` has always
+     *     logged `"superseded"`, but reaching that branch depends on a race: `cancel()` does not
+     *     join, so the predecessor's `finally` may well run BEFORE the successor claims the
+     *     singleton — in which case it takes the ownership branch and stamps [SessionOutcome.Ended],
+     *     the default. That is what the 2026-08-25 trace shows on a 23-minute, 98 km/h session.
+     *     Stamping the outcome here, synchronously, means both branches now agree whoever wins.
+     *  2. **The drive proof is handed over.** Returned rather than stored, because the successor is
+     *     armed by the service and the state this reads is about to be `reset()`.
+     *
+     * No-ops between sessions: there is nothing to supersede and nothing to inherit.
+     *
+     * @return the evidence the successor must be armed with, or null when the superseded session
+     *   never proved a drive and the caller should keep its own. Non-null OUTRANKS the caller's:
+     *   every other arm is a nomination, this one is a measurement.
+     */
+    fun notifySuperseded(): ArmEvidence.InheritedDrive? {
+        if (currentSessionId == null) return null
+        val state = _detectionState.value
+        val inherited = inheritedArmEvidence(state.drive)
+        _detectionState.update { it.copy(session = it.session.endedWith(SessionOutcome.Superseded)) }
+        if (inherited == null) {
+            PaparcarLogger.d(DIAG, "  ⤳ session superseded — nothing to inherit (no drive proven) [DET-SUPERSEDE-CANNOT-DISCARD-A-MEASURED-DRIVE-001]")
+        } else {
+            PaparcarLogger.d(
+                DIAG,
+                "  ⤳ session superseded — handing over its MEASURED drive " +
+                    "(${inherited.maxSpeedMps} m/s, ${inherited.source}) to the successor " +
+                    "[DET-SUPERSEDE-CANNOT-DISCARD-A-MEASURED-DRIVE-001]",
+            )
+        }
+        return inherited
+    }
+
+    /**
      * [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001] The departure this session was armed on was
      * REFUTED. Take back what the arm lent on trust — and nothing else.
      *
@@ -441,12 +481,21 @@ class CoordinatorParkingDetector(
         // and the [falseEnterAbortSteps] guard it feeds — protects unverified/manual arms: an arm
         // with no vehicle evidence (walking exit, spurious trigger) must abort on the step burst
         // instead of confirming a phantom park (BUG-REPark-WALK-001). [DET-SOLID-001]
-        if (armEvidence.isVerifiedDeparture) {
+        when (armEvidence.driveAuthorization) {
+            DriveAuthorization.None -> Unit
             // [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001] Flagged as GRANTED ON TRUST: nothing in
             // this session has measured a drive yet. The flag clears on the first measurement and
             // makes the seed retractable until then — the worker is still adjudicating this exit.
-            _detectionState.update { it.copy(session = it.session.seededOnArmTrust()) }
-            PaparcarLogger.d(DIAG, "  ✓ ${armEvidence.persistLabel} → seed hasEverReachedDrivingSpeed=true (armed mid-trip; drive already happened) [DET-G-04]")
+            DriveAuthorization.OnTrust -> {
+                _detectionState.update { it.copy(session = it.session.seededOnArmTrust()) }
+                PaparcarLogger.d(DIAG, "  ✓ ${armEvidence.persistLabel} → seed hasEverReachedDrivingSpeed=true (armed mid-trip; drive already happened) [DET-G-04]")
+            }
+            // [DET-SUPERSEDE-CANNOT-DISCARD-A-MEASURED-DRIVE-001] The trip already PROVED its drive
+            // in the session this one replaced. Not on trust: no later verdict may retract it.
+            DriveAuthorization.Measured -> {
+                _detectionState.update { it.copy(session = it.session.seededOnInheritedDrive()) }
+                PaparcarLogger.d(DIAG, "  ✓ ${armEvidence.persistLabel} → seed hasEverReachedDrivingSpeed=true (drive MEASURED by the superseded session; not retractable) [DET-SUPERSEDE-CANNOT-DISCARD-A-MEASURED-DRIVE-001]")
+            }
         }
         currentArmGeofenceId = armingGeofenceId
         // Session provenance stamped on the confirmed park — the repark-plausibility guard in
@@ -1033,7 +1082,9 @@ class CoordinatorParkingDetector(
                     // guard above skips the usual SessionEnded to protect the successor, which left
                     // superseded sessions with no outcome in the trace (audit 2026-07-15 gap). Logging
                     // under thisSessionId touches no successor state. [VEH-ACTIVE-FENCE-001]
-                    detectionEventLogger.log(DetectionEvent.SessionEnded(thisSessionId, nowMs(), outcome = "superseded"))
+                    detectionEventLogger.log(
+                        DetectionEvent.SessionEnded(thisSessionId, nowMs(), SessionOutcome.Superseded.serialized),
+                    )
                 }
             }
         }

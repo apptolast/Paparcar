@@ -678,6 +678,11 @@ class CoordinatorDetectionService : LifecycleService() {
         when (strategyResolver.resolve()) {
             ParkingStrategy.COORDINATOR -> {
                 if (!guardPermissions("GEOFENCE_EXIT")) return
+                // [DET-SUPERSEDE-CANNOT-DISCARD-A-MEASURED-DRIVE-001] What the session this exit
+                // may replace had already PROVEN. Captured in the supersede branch below and read
+                // at the arm, where it outranks whatever the pre-arm verifier concludes: the
+                // verifier nominates from one fix, this is a measured track.
+                var supersededDrive: ArmEvidence.InheritedDrive? = null
                 // Loop guard: if the coordinator is already running, a fresh exit (e.g. one its
                 // own active GPS stream provoked) must NOT cancel + restart it — that would reset
                 // the no-movement abort timer and, fed by more bad fixes, spin a restart loop.
@@ -719,6 +724,9 @@ class CoordinatorDetectionService : LifecycleService() {
                             )
                         )
                     }
+                    // [DET-SUPERSEDE-CANNOT-DISCARD-A-MEASURED-DRIVE-001] Hand over BEFORE the
+                    // cancel: `cancel()` does not join, so after it there is no session left to ask.
+                    supersededDrive = parkingDetectionCoordinator.notifySuperseded()
                     // fall through to cancelDetectionJob() + startParkingDetection() below
                 }
                 // The coordinator arms for far-delivered exits too — the service is ALREADY
@@ -782,9 +790,12 @@ class CoordinatorDetectionService : LifecycleService() {
                         )
                     )
                 }
+                // [DET-SUPERSEDE-CANNOT-DISCARD-A-MEASURED-DRIVE-001] A measured drive outranks the
+                // pre-arm verdict, which is at best one fix's word about a departure.
+                val armedWith = supersededDrive ?: armEvidence
                 val detail = "geof=${id.take(8)} d=${dist ?: "?"}m acc=${acc ?: "?"}m " +
                     "exitLoc=${triggerLoc?.latitude ?: "?"},${triggerLoc?.longitude ?: "?"} " +
-                    "dep=${armEvidence.persistLabel}"
+                    "dep=${armedWith.persistLabel}"
                 PaparcarLogger.d(DIAG, "  → GEOFENCE_EXIT — arming Coordinator ($detail) [DET-G-01][DET-G-05]")
                 cancelDetectionJob()
                 // Anchor the trip to the departing vehicle's exact session so Home's origin dot +
@@ -793,7 +804,7 @@ class CoordinatorDetectionService : LifecycleService() {
                     DetectionTrigger.GEOFENCE_EXIT,
                     detail,
                     trip = TripContext(session.location, session.vehicleId),
-                    armEvidence = armEvidence,
+                    armEvidence = armedWith,
                     // [DET-ZOMBIE-PROBE-001] Far-delivered arm → short no-movement probe: a zombie
                     // delivery (phone at home, hours late) aborts in ~75 s instead of 4 min of GPS.
                     staleExitDelivery = staleExits.any { (staleId, _) -> staleId == id },
@@ -845,6 +856,9 @@ class CoordinatorDetectionService : LifecycleService() {
             .getOrElse { emptyList() }
         val activeVehicleId = runCatching { vehicleRepository.observeActiveVehicle().firstOrNull()?.id }.getOrNull()
         val session = sessions.firstOrNull { it.vehicleId == activeVehicleId } ?: sessions.firstOrNull()
+        // [DET-SUPERSEDE-CANNOT-DISCARD-A-MEASURED-DRIVE-001] What the session this ENTER may
+        // replace had already PROVEN — captured in the supersede branch, read at the arm below.
+        var supersededDrive: ArmEvidence.InheritedDrive? = null
         if (detectionJob?.isActive == true) {
             // [DET-SUPERSEDE-001] Same policy as handleGeofenceExit: supersede a running session that
             // is a zombie relative to this ENTER (its car beyond its own fence from the running
@@ -877,6 +891,12 @@ class CoordinatorDetectionService : LifecycleService() {
                     )
                 )
             }
+            // [DET-SUPERSEDE-CANNOT-DISCARD-A-MEASURED-DRIVE-001] Hand over BEFORE the cancel:
+            // `cancel()` does not join, so after it there is no session left to ask. Field
+            // 2026-08-25 19:59:05 — a TRUE re-boarding after a fuel stop replaced a session that
+            // had proven 98 km/h across 60 fixes, and the replacement, starting from zero on the
+            // last 35 s of manoeuvring, aborted as a false ENTER.
+            supersededDrive = parkingDetectionCoordinator.notifySuperseded()
             // fall through to the arm ladder below
         }
         val recentStaleExitRecorded = ParkingSafetyNetWorker.hasRecentStaleExit(
@@ -910,14 +930,19 @@ class CoordinatorDetectionService : LifecycleService() {
         val lagMs = now - trueEpochMs
         when (decision) {
             is ArEnterDecision.ArmAtCar -> {
-                val detail = "geof=${decision.geofenceId.take(8)} lag=${lagMs}ms dep=${ArmEvidence.BoardingAtCar.persistLabel}"
+                // [DET-SUPERSEDE-CANNOT-DISCARD-A-MEASURED-DRIVE-001] "Waiting for ride proof" is
+                // the right posture for a boarding caught cold — and the wrong one when the trip
+                // this ENTER interrupts already produced that proof. Inheriting it does not weaken
+                // the guard: with nothing superseded (the ordinary case) this is still BoardingAtCar.
+                val armedWith = supersededDrive ?: ArmEvidence.BoardingAtCar
+                val detail = "geof=${decision.geofenceId.take(8)} lag=${lagMs}ms dep=${armedWith.persistLabel}"
                 PaparcarLogger.d(DIAG, "  → AR ENTER at own fence — arming Coordinator, waiting for ride proof ($detail) [DET-AR-FIRST-001]")
                 cancelDetectionJob()
                 startParkingDetection(
                     DetectionTrigger.AR_VEHICLE_ENTER,
                     detail,
                     trip = TripContext(session!!.location, session.vehicleId),
-                    armEvidence = ArmEvidence.BoardingAtCar,
+                    armEvidence = armedWith,
                 )
             }
             is ArEnterDecision.ArmMidTrip -> {
@@ -940,7 +965,10 @@ class CoordinatorDetectionService : LifecycleService() {
                         session.location.accuracy,
                     ),
                 )
-                val detail = "geof=${decision.geofenceId.take(8)} lag=${lagMs}ms dep=${armEvidence.persistLabel} (exit∧enter)"
+                // [DET-SUPERSEDE-CANNOT-DISCARD-A-MEASURED-DRIVE-001] Same precedence as the EXIT
+                // lane: a measured track outranks the verifier's one-fix nomination.
+                val armedWith = supersededDrive ?: armEvidence
+                val detail = "geof=${decision.geofenceId.take(8)} lag=${lagMs}ms dep=${armedWith.persistLabel} (exit∧enter)"
                 PaparcarLogger.d(DIAG, "  → AR ENTER + broken-fence record — arming mid-trip ($detail) [DET-AR-FIRST-001]")
                 WorkManager.getInstance(this@CoordinatorDetectionService).enqueueUniqueWork(
                     "${DepartureDetectionWorker.TAG}_${decision.geofenceId}",
@@ -952,7 +980,7 @@ class CoordinatorDetectionService : LifecycleService() {
                     DetectionTrigger.AR_VEHICLE_ENTER,
                     detail,
                     trip = TripContext(session.location, session.vehicleId),
-                    armEvidence = armEvidence,
+                    armEvidence = armedWith,
                     // [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001] Same fence the departure worker
                     // enqueued just above — its verdict may retract this arm's seed.
                     armingGeofenceId = decision.geofenceId,

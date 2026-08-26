@@ -51,6 +51,11 @@ class SessionOutcomeTest {
             Expected("aborted_response_timeout", false, false, SentryStreakEffect.RESETS)
         SessionOutcome.StoppedByUser ->
             Expected("stopped_by_user", false, false, SentryStreakEffect.RESETS)
+        // [DET-SUPERSEDE-CANNOT-DISCARD-A-MEASURED-DRIVE-001] Not a new string: the literal the
+        // superseded branch of `CoordinatorParkingDetector`'s finally has always logged. Typing it
+        // is what stops a coroutine race from deciding between it and "ended".
+        SessionOutcome.Superseded ->
+            Expected("superseded", false, false, SentryStreakEffect.RESETS)
         is SessionOutcome.AbortedUnattended ->
             Expected("aborted_unattended_gap_anchor", false, false, SentryStreakEffect.RESETS)
         is SessionOutcome.Confirmed ->
@@ -68,6 +73,7 @@ class SessionOutcomeTest {
         SessionOutcome.AbortedNoVehicle,
         SessionOutcome.AbortedResponseTimeout,
         SessionOutcome.StoppedByUser,
+        SessionOutcome.Superseded,
         SessionOutcome.AbortedUnattended("gap_anchor"),
         SessionOutcome.Confirmed("steps+egress"),
         SessionOutcome.ConfirmFailed("steps+egress"),

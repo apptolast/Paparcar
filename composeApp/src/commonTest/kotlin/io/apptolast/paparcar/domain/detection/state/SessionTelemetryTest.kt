@@ -36,6 +36,31 @@ class SessionTelemetryTest {
     }
 
     /**
+     * [DET-SUPERSEDE-CANNOT-DISCARD-A-MEASURED-DRIVE-001] The sibling seed: authorized because the
+     * session this one replaced MEASURED the drive, on the same trip. Not on trust — the flag that
+     * would make it retractable stays down.
+     */
+    @Test
+    fun should_authorize_without_trust_when_the_drive_was_inherited_from_a_superseded_session() {
+        val s = SessionTelemetry().seededOnInheritedDrive()
+        assertTrue(s.driveAuthorized)
+        assertFalse(s.authorizedOnArmTrustOnly)
+    }
+
+    /**
+     * …and the difference between the two seeds is not decorative: `authorizedOnArmTrustOnly` is the
+     * ONLY thing `notifyDepartureDismissed` consults before retracting, so a seed that sets it is a
+     * seed a later verdict can take back. An inherited drive must not be one — the worker
+     * adjudicates an EXIT and may take back what an EXIT lent, but it says nothing about a track
+     * that was already observed.
+     */
+    @Test
+    fun should_make_only_the_trusted_seed_retractable() {
+        assertTrue(SessionTelemetry().seededOnArmTrust().authorizedOnArmTrustOnly)
+        assertFalse(SessionTelemetry().seededOnInheritedDrive().authorizedOnArmTrustOnly)
+    }
+
+    /**
      * [DET-G-05] A departure the worker MEASURED. Three things move at once: the seed is granted,
      * it stops being retractable, and the evidence says `verified_late`. Splitting them is how the
      * session becomes readable as "authorized but self_observed" — a state that should not exist.
