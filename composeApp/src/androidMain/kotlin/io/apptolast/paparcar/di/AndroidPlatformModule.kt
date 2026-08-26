@@ -5,23 +5,6 @@ import android.content.Context
 import androidx.room.Room
 import com.google.android.gms.location.LocationServices
 import io.apptolast.paparcar.data.datasource.local.room.AppDatabase
-import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_2_3
-import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_3_4
-import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_5_6
-import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_6_7
-import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_7_8
-import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_8_9
-import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_9_10
-import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_10_11
-import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_11_12
-import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_12_13
-import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_13_14
-import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_14_15
-import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_15_16
-import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_16_17
-import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_17_18
-import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_18_19
-import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_19_20
 import io.apptolast.paparcar.domain.location.LocationDataSource
 import io.apptolast.paparcar.domain.geocoder.GeocoderDataSource
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
@@ -49,27 +32,17 @@ import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
 val androidPlatformModule = module {
-    // [AUDIT-DATA-001 M7] Database migrations. The chain is now CONTIGUOUS from the first exported
-    // schema (v5) to the current version — every v5+ upgrade migrates cleanly and preserves local
-    // data (incl. un-synced offline edits). The destructive fallback below is now a last-resort
-    // safety net that can ONLY fire for a pre-v5 database — a schema that was never exported and
-    // never shipped in any release (the public beta baseline is the current version). No real
-    // user can reach it; removing it entirely would trade a harmless wipe of a non-existent DB for
-    // a hard crash, so it stays as the belt to the migration braces.
+    // [DATA-ROOM-STARTS-AT-VERSION-ONE-001] The database starts at v1 and there is no
+    // migration chain, because no shipped install exists to migrate from. The destructive
+    // fallback is what carries our own dev phones across: they still hold a v20 file and get a
+    // clean wipe on first launch instead of a crash. The first public release freezes this —
+    // after it, every schema change needs its Migration.
     single<AppDatabase> {
         Room.databaseBuilder(
             androidContext(),
             AppDatabase::class.java,
             "paparcar.db"
-        ).addMigrations(
-            MIGRATION_2_3, MIGRATION_3_4, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8,
-            MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13,
-            MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17,
-            MIGRATION_17_18,
-            MIGRATION_18_19,
-            MIGRATION_19_20,
-        )
-            .fallbackToDestructiveMigration(dropAllTables = true)
+        ).fallbackToDestructiveMigration(dropAllTables = true)
             .build()
     }
 

@@ -6,23 +6,6 @@ import androidx.room.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import io.apptolast.paparcar.bluetooth.IosBluetoothScanner
 import io.apptolast.paparcar.data.datasource.local.room.AppDatabase
-import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_2_3
-import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_3_4
-import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_5_6
-import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_6_7
-import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_7_8
-import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_8_9
-import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_9_10
-import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_10_11
-import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_11_12
-import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_12_13
-import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_13_14
-import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_14_15
-import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_15_16
-import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_16_17
-import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_17_18
-import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_18_19
-import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_19_20
 import io.apptolast.paparcar.domain.bluetooth.BluetoothScanner
 import io.apptolast.paparcar.diagnostics.IosDeviceInfoProvider
 import io.apptolast.paparcar.domain.connectivity.ConnectivityObserver
@@ -48,21 +31,12 @@ import platform.Foundation.NSFileManager
 import platform.Foundation.NSUserDomainMask
 
 val iosPlatformModule = module {
-    // [AUDIT-DATA-001 M7] Full contiguous migration chain (v5+), matching Android — iOS previously
-    // registered only 8_9/9_10/10_11 and would have wiped any v5-v8 database. Destructive fallback
-    // stays as the last-resort net for the never-shipped pre-v5 case. See AndroidPlatformModule.
+    // [DATA-ROOM-STARTS-AT-VERSION-ONE-001] v1 baseline, no migration chain — mirrors Android.
+    // The destructive fallback stays as the net for pre-release databases on our own devices.
     single<AppDatabase> {
         val dbFilePath = documentDirectory() + "/paparcar.db"
         Room.databaseBuilder<AppDatabase>(name = dbFilePath)
             .setDriver(BundledSQLiteDriver())
-            .addMigrations(
-                MIGRATION_2_3, MIGRATION_3_4, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8,
-                MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13,
-                MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17,
-                MIGRATION_17_18,
-                MIGRATION_18_19,
-                MIGRATION_19_20,
-            )
             .fallbackToDestructiveMigration(dropAllTables = true)
             .build()
     }
