@@ -59,7 +59,8 @@ sealed interface ArEnterDecision {
 class EvaluateArEnterArmUseCase(private val config: ParkingDetectionConfig) {
 
     /**
-     * @param session          The active parked session (active-vehicle preferred), or null.
+     * @param session          The active parked session — the ACTIVE vehicle's, never another car's
+     *                         [DET-BT-CAR-CANNOT-NOMINATE-A-COORDINATOR-SESSION-001] — or null.
      * @param fix              Fresh one-shot fix sampled on delivery, or null when unavailable.
      * @param enterTrueTimeMs  TRUE transition time of the ENTER (from `elapsedRealTimeNanos`).
      * @param nowMs            Wall-clock now (epoch-ms).

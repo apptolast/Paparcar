@@ -39,6 +39,7 @@ import io.apptolast.paparcar.domain.detection.ParkingStrategyResolver
 import io.apptolast.paparcar.domain.detection.PostDetectionLifecycle
 import io.apptolast.paparcar.domain.detection.SentryKillVerdict
 import io.apptolast.paparcar.domain.detection.ServicePresence
+import io.apptolast.paparcar.domain.detection.VehicleFenceOwnershipPolicy
 import io.apptolast.paparcar.domain.detection.nextSentryWakeAbortStreak
 import io.apptolast.paparcar.domain.detection.resolvePostDetectionLifecycle
 import io.apptolast.paparcar.domain.detection.sentryWakeRearmCooldownMs
@@ -352,11 +353,23 @@ class CoordinatorDetectionService : LifecycleService() {
         val sessions = runCatching { userParkingRepository.observeActiveSessions().firstOrNull().orEmpty() }
             .getOrElse { emptyList() }
         val activeVehicleId = runCatching { vehicleRepository.observeActiveVehicle().firstOrNull()?.id }.getOrNull()
-        val session = sessions.firstOrNull { it.vehicleId == activeVehicleId } ?: sessions.firstOrNull()
+        val session = nominatingSession(sessions, activeVehicleId)
         if (session == null) {
             // Nothing parked to watch — the session was cleared elsewhere. The epilogue tears the
             // (now purposeless) resident service down. [DET-RESIDENT-FGS-001]
-            PaparcarLogger.d(DIAG, "  ⊘ SENTRY_WAKE — no parked session; standing down")
+            // Sessions present but none nominable is a DIFFERENT fact and says so: they belong to
+            // cars the user did not declare, and standing down is the point, not a miss.
+            // [DET-BT-CAR-CANNOT-NOMINATE-A-COORDINATOR-SESSION-001]
+            if (sessions.isEmpty()) {
+                PaparcarLogger.d(DIAG, "  ⊘ SENTRY_WAKE — no parked session; standing down")
+            } else {
+                PaparcarLogger.d(
+                    DIAG,
+                    "  ⊘ SENTRY_WAKE — ${sessions.size} parked session(s), none of the active car " +
+                        "(${activeVehicleId?.take(8) ?: "none declared"}); standing down " +
+                        "[DET-BT-CAR-CANNOT-NOMINATE-A-COORDINATOR-SESSION-001]",
+                )
+            }
             return
         }
         // [DET-CHEAP-WAKE-INSTEAD-OF-SILENCE-001] Inside a quiet period this wake buys ONE fix, not
@@ -372,6 +385,39 @@ class CoordinatorDetectionService : LifecycleService() {
             trip = TripContext(session.location, session.vehicleId),
             armEvidence = ArmEvidence.Unverified,
         )
+    }
+
+    /**
+     * [DET-BT-CAR-CANNOT-NOMINATE-A-COORDINATOR-SESSION-001] The parked session a trigger may arm
+     * against, or null when the declared car has none. The judgement is
+     * [VehicleFenceOwnershipPolicy.mayNominateDetection]; everything here is the I/O that feeds it,
+     * per this service's contract.
+     *
+     * The pairing lookup is paid only in the undeclared branch — the only one that consults it. A
+     * repository failure there degrades to "not paired", which can at worst allow the single session
+     * a one-car user has anyway, never a nomination by some OTHER car.
+     */
+    private suspend fun nominatingSession(
+        sessions: List<UserParking>,
+        activeVehicleId: String?,
+    ): UserParking? {
+        if (sessions.isEmpty()) return null
+        val pairedIds: Set<String> = if (activeVehicleId != null) {
+            emptySet()
+        } else {
+            runCatching { vehicleRepository.observeVehicles().firstOrNull() }.getOrNull()
+                .orEmpty()
+                .filter { it.bluetoothDeviceId != null }
+                .mapTo(mutableSetOf()) { it.id }
+        }
+        return sessions.firstOrNull { session ->
+            VehicleFenceOwnershipPolicy.mayNominateDetection(
+                sessionVehicleId = session.vehicleId,
+                activeVehicleId = activeVehicleId,
+                sessionVehicleIsBtPaired = session.vehicleId?.let { it in pairedIds } == true,
+                isOnlyActiveSession = sessions.size == 1,
+            )
+        }
     }
 
     /**
@@ -855,7 +901,12 @@ class CoordinatorDetectionService : LifecycleService() {
         val sessions = runCatching { userParkingRepository.observeActiveSessions().firstOrNull().orEmpty() }
             .getOrElse { emptyList() }
         val activeVehicleId = runCatching { vehicleRepository.observeActiveVehicle().firstOrNull()?.id }.getOrNull()
-        val session = sessions.firstOrNull { it.vehicleId == activeVehicleId } ?: sessions.firstOrNull()
+        // [DET-BT-CAR-CANNOT-NOMINATE-A-COORDINATOR-SESSION-001] Where it bit: a Kamiq's stale manual
+        // pin nominated a Focus trip here, and its 6.3 km from the running anchor then read as a
+        // zombie in the supersede below (field 2026-08-25). The two halves of that FN are
+        // independent: this one stops the wrong car being nominated, the other stops a supersede
+        // discarding what the superseded session had already measured.
+        val session = nominatingSession(sessions, activeVehicleId)
         // [DET-SUPERSEDE-CANNOT-DISCARD-A-MEASURED-DRIVE-001] What the session this ENTER may
         // replace had already PROVEN — captured in the supersede branch, read at the arm below.
         var supersededDrive: ArmEvidence.InheritedDrive? = null

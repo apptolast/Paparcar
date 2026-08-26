@@ -189,4 +189,100 @@ class VehicleFenceOwnershipPolicyTest {
             ),
         )
     }
+
+    // ── mayNominateDetection ───────────────────────────────────────────────────
+    // [DET-BT-CAR-CANNOT-NOMINATE-A-COORDINATOR-SESSION-001]
+
+    private fun mayNominate(
+        sessionVehicleId: String?,
+        activeVehicleId: String?,
+        sessionVehicleIsBtPaired: Boolean = false,
+        isOnlyActiveSession: Boolean = true,
+    ) = VehicleFenceOwnershipPolicy.mayNominateDetection(
+        sessionVehicleId = sessionVehicleId,
+        activeVehicleId = activeVehicleId,
+        sessionVehicleIsBtPaired = sessionVehicleIsBtPaired,
+        isOnlyActiveSession = isOnlyActiveSession,
+    )
+
+    @Test
+    fun should_nominate_when_the_session_belongs_to_the_active_vehicle() {
+        assertTrue(mayNominate(sessionVehicleId = FOCUS, activeVehicleId = FOCUS))
+    }
+
+    @Test
+    fun should_not_nominate_a_bt_paired_car_session_when_the_active_car_has_none() {
+        // The field case (2026-08-25): the active Focus had no parked session, so a five-day-old
+        // manual pin of the BT-paired Kamiq armed a Focus trip — 6.3 km away, which then superseded
+        // 23 min of measured driving and left the phone watching the Kamiq's fence all night.
+        assertFalse(
+            mayNominate(
+                sessionVehicleId = KAMIQ,
+                activeVehicleId = FOCUS,
+                sessionVehicleIsBtPaired = true,
+            ),
+        )
+    }
+
+    @Test
+    fun should_not_nominate_another_non_bt_car_session_when_the_active_car_has_none() {
+        // The veto is not about Bluetooth: the phone cannot tell which non-paired car you took, so
+        // ANY other car's session is a guess. "None" is the answer, and it costs a nudge at most.
+        assertFalse(mayNominate(sessionVehicleId = KAMIQ, activeVehicleId = FOCUS))
+    }
+
+    @Test
+    fun should_nominate_the_active_vehicle_session_even_when_it_is_bt_paired() {
+        // Deliberate, and decided here rather than inherited from resolveSessionVehicleId: pairing
+        // does not erase the user's declaration, and with Bluetooth OFF on the phone the coordinator
+        // IS that car's strategy — vetoing it would be a silent false negative.
+        assertTrue(
+            mayNominate(
+                sessionVehicleId = KAMIQ,
+                activeVehicleId = KAMIQ,
+                sessionVehicleIsBtPaired = true,
+            ),
+        )
+    }
+
+    @Test
+    fun should_not_nominate_an_unattributed_session_when_a_vehicle_is_declared() {
+        // A session whose vehicleId is null is "we don't know whose car this is" — the very guess
+        // this closes, so it is not a candidate either.
+        assertFalse(mayNominate(sessionVehicleId = null, activeVehicleId = FOCUS))
+    }
+
+    @Test
+    fun should_nominate_the_lone_session_when_no_vehicle_is_declared() {
+        // Nothing to guess among: one car, one session. Same shape as HomeTripController.
+        assertTrue(mayNominate(sessionVehicleId = FOCUS, activeVehicleId = null))
+    }
+
+    @Test
+    fun should_not_nominate_the_lone_session_when_no_vehicle_is_declared_and_it_is_bt_paired() {
+        // With no declaration to lean on, a BT-paired car belongs to the Bluetooth strategy alone.
+        assertFalse(
+            mayNominate(
+                sessionVehicleId = KAMIQ,
+                activeVehicleId = null,
+                sessionVehicleIsBtPaired = true,
+            ),
+        )
+    }
+
+    @Test
+    fun should_not_nominate_any_session_when_no_vehicle_is_declared_and_several_are_parked() {
+        assertFalse(
+            mayNominate(
+                sessionVehicleId = FOCUS,
+                activeVehicleId = null,
+                isOnlyActiveSession = false,
+            ),
+        )
+    }
+
+    private companion object {
+        const val FOCUS = "addbe660"
+        const val KAMIQ = "abf6c516"
+    }
 }

@@ -65,6 +65,48 @@ object VehicleFenceOwnershipPolicy {
         nominatingVehicleId.takeUnless { nominatingVehicleIsBtPaired } ?: activeVehicleId
 
     /**
+     * [DET-BT-CAR-CANNOT-NOMINATE-A-COORDINATOR-SESSION-001] Whether a parked session may NOMINATE a
+     * coordinator detection — be the "your parked car" a SENTRY_WAKE or an AR IN_VEHICLE ENTER arms
+     * against. [resolveSessionVehicleId] is the same invariant one step later (who the pin is
+     * attributed TO); this is the step that was never closed.
+     *
+     * The session must belong to the car the user DECLARED active. When that car has no parked
+     * session the answer is "none" — never another car's, because the phone cannot tell which
+     * non-Bluetooth car you took and a wrong nominator is not a near miss: it anchors the trip to a
+     * pin across town (field 2026-08-25: a Kamiq's five-day-old manual pin nominated a Focus trip,
+     * whose 6.3 km from the running anchor then superseded 23 min of measured driving, and left the
+     * phone watching the Kamiq's fence all night while the car that actually drove got no parking).
+     *
+     * Two branches, and the difference is whether a declaration EXISTS:
+     *  - Declared active vehicle → its session, or nothing. No fallback: an unattributed session
+     *    (`vehicleId == null`) is not a candidate either, since "we don't know whose car this is" is
+     *    exactly the guess this closes. Failing asymmetric — a missed arm costs one nudge, a wrong
+     *    arm costs a phantom spot on someone else's car.
+     *  - No declaration at all → the SINGLE active session, and only if its car is not
+     *    Bluetooth-paired. With one car and one session there is nothing to guess among; but with no
+     *    declaration to lean on, a BT-paired car is the Bluetooth strategy's alone (its identity is
+     *    the MAC), and nominating it is the lane mixing CLAUDE.md forbids. Same shape as
+     *    `HomeTripController.parkedOriginFor`, which already got this right.
+     *
+     * Deliberately NOT vetoed: the declared active vehicle being itself BT-paired. That is decided
+     * here on its own grounds rather than inherited from [resolveSessionVehicleId]'s look-alike case:
+     * pairing does not erase the user's declaration, and with Bluetooth turned OFF on the phone
+     * `resolveStrategy` routes that very car to the coordinator — vetoing it would be a silent false
+     * negative for a car whose owner explicitly said "this is the one I drive".
+     */
+    fun mayNominateDetection(
+        sessionVehicleId: String?,
+        activeVehicleId: String?,
+        sessionVehicleIsBtPaired: Boolean,
+        isOnlyActiveSession: Boolean,
+    ): Boolean =
+        if (activeVehicleId != null) {
+            sessionVehicleId == activeVehicleId
+        } else {
+            isOnlyActiveSession && !sessionVehicleIsBtPaired
+        }
+
+    /**
      * Whether closing a parking session should be read as "I drive this car" and flip the active
      * flag. [PARK-DELETE-NO-DECLARE-001]
      *

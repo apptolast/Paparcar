@@ -5140,3 +5140,77 @@ live session that has just observed the phone) and on 2026-08-24 the Oppo's zone
 spot — by timing, not by construction. Audited in the ticket, not changed here.
 
 Spec: `docs/backlog/det-departure-is-not-arrival-001.md`.
+
+### DET-BT-CAR-CANNOT-NOMINATE-A-COORDINATOR-SESSION-001 — the car in the other lane cannot be "your car" (pending)
+
+**User report.** Field 2026-08-25, **Oppo CPH2371** (uid `fiypNbElGlfFexLMpU9sNaMjRMD3`). Active
+vehicle: **Ford Focus** (`addbe660`, no Bluetooth ⇒ Coordinator). Also in the garage, inactive: a
+**Skoda Kamiq** (`abf6c516`, `bluetoothDeviceId = 50:26:EF:16:1D:C0` ⇒ Bluetooth strategy). A real
+trip with 23 min of measured driving ended with **no parking for the Focus**, and the phone spent
+the night watching a pin that belongs to a car parked five days earlier.
+
+**Root cause — an elvis that turns "your car has no session" into "then any car will do."**
+
+```
+19:59:05  ARReceiver: → IN_VEHICLE ENTER (trueTime=…, lag=149ms)
+19:59:05  Service:    ARM:AR_VEHICLE_ENTER (geof=a786c135 lag=149ms dep=enter_at_car)
+                      ↑ a786c135 is a MANUAL pin from 2026-08-21 19:52, C/ Góndola 7,
+                        detectionPath=manual, armEvidence=null, vehicleId=abf6c516 — the KAMIQ
+19:59:05  Service:    ⤳ AR_TRANSITION 6314m from running anchor → superseding zombie session
+          ·········· the successor session dies in aborted_false_enter ··········
+01:38     ExactNet:   [exact-alarm] geof=a786c135: sigues junto al coche (d=5m, radio 85m)
+```
+
+Two identical lines in `CoordinatorDetectionService` — `:355` (SENTRY_WAKE) and `:847`
+(AR_TRANSITION):
+
+```kotlin
+val session = sessions.firstOrNull { it.vehicleId == activeVehicleId } ?: sessions.firstOrNull()
+```
+
+The list arrives `timestamp DESC`, so the fallback is not even "the oldest": it is **the most recent
+session of some other car**. A wrong nominator is not a near miss — it anchors the trip to a pin
+across town, and the 6.3 km that follows is what made `shouldSupersedeRunningSession` read a live
+23-minute drive as a zombie (→ `DET-SUPERSEDE-CANNOT-DISCARD-A-MEASURED-DRIVE-001`, the other half
+of this same FN).
+
+**Why it surfaced only now.** The veto already existed, decided and tested, carrying *this same
+family of field incident* in its KDoc: `VehicleFenceOwnershipPolicy.resolveSessionVehicleId`
+[DET-BT-OWNERSHIP-001], written after 2026-08-11, when a parked Kamiq's fence nominated 8 Focus
+trips. But its only consumer is the **attribution** step (`DetectionEffectDispatcher:265`) — who the
+pin is written to, one step *after* the decision. The veto never went down to the moment of
+**nominating**. Closing the lane where a bug bit is not closing the invariant
+[feedback_systems_not_patches].
+
+**Fix.** A third verdict in the same policy, `mayNominateDetection`, consulted by both sites. The
+session that nominates a detection is the one belonging to the car the user DECLARED active; if that
+car has no parked session the answer is **none**. Two branches, and the difference is whether a
+declaration exists:
+
+- **Declared active vehicle** → its session, or nothing. No fallback, and an unattributed session
+  (`vehicleId == null`) is not a candidate either: "we don't know whose car this is" is exactly the
+  guess being closed. Asymmetric by design — a missed arm costs one nudge, a wrong arm plants a
+  phantom spot on someone else's car.
+- **No declaration at all** → the SINGLE active session, and only if its car is not Bluetooth-paired.
+  With one car and one session there is nothing to guess among; but with no declaration to lean on, a
+  paired car belongs to the Bluetooth strategy alone (its identity is the MAC), and nominating it is
+  the lane mixing CLAUDE.md forbids. This is the shape `HomeTripController.parkedOriginFor` already
+  had right, and `EvaluateGeofenceExitUseCase` (which filters strictly by `activeVehicleId`, no
+  elvis) is a second precedent that was already correct.
+
+A sentry wake that finds sessions but none nominable now says so in a distinct line rather than
+reusing "no parked session": standing down is the point, not a miss.
+
+**What was deliberately NOT done.** Vetoing the declared active vehicle when it is itself the
+BT-paired car. That case is decided here on its own grounds rather than inherited from
+`resolveSessionVehicleId`'s look-alike: pairing does not erase the user's declaration, and with
+Bluetooth turned OFF on the phone `resolveStrategy` routes that very car to the Coordinator — a veto
+would be a silent false negative for the car whose owner explicitly said "this is the one I drive".
+
+**Accompanying-fix risk.** None found by the sweep. `ParkingSafetyNetWorker`,
+`ObserveDetectionReadinessUseCase` and `ObserveParkedVehiclesUseCase` read the whole session list and
+decide per session — they never pick a "your car", so the veto does not reach them, and in particular
+the Kamiq's pin is **not** orphaned: its safety-net watch continues. Why a manual pin survives five
+days with `isActive = true` is untouched sediment, still open.
+
+Spec: `docs/backlog/det-bt-car-cannot-nominate-a-coordinator-session-001.md`.
