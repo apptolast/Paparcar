@@ -20,18 +20,23 @@ explícito de este turno**; **worktree nuevo por tarea** (las ramas NO aíslan e
 Paparcar es una app KMP (Kotlin Multiplatform) de compartición de plazas de aparcamiento en tiempo real basada en comunidad. Android es la plataforma principal; iOS es target futuro. Cuando un usuario sale con el coche, la app detecta automáticamente el evento y publica la plaza recién liberada para que otros usuarios cercanos puedan encontrarla.
 
 ## Stack
-> Fuente de verdad: `gradle/libs.versions.toml`. Versiones reales a 2026-07-01.
-- Lenguaje: Kotlin 2.4.0 (KSP 2.3.9)
-- Build: AGP 9.2.1 · compileSdk 37 · targetSdk 36 · minSdk 26
-- UI: Compose Multiplatform 1.11.1 · Material3 (JB) 1.9.0 · Navigation Compose 2.9.2
+> Fuente de verdad: `gradle/libs.versions.toml`. Versiones reales a 2026-08-26.
+> Solo estables en el catálogo: ni un alpha/beta/rc. Al comprobar si algo se ha quedado atrás,
+> consultar `repo1.maven.org/.../maven-metadata.xml` y `dl.google.com/dl/android/maven2/.../group-index.xml`
+> — el índice de `search.maven.org/solrsearch` está obsoleto y miente por versiones enteras.
+- Lenguaje: Kotlin 2.4.10 (KSP 2.3.11) · Gradle 9.7.1
+- Build: AGP 9.3.2 · compileSdk 37 · targetSdk 36 · minSdk 26
+- UI: Compose Multiplatform 1.12.0 · Material3 (JB) 1.9.0 (**no hay estable por encima**) · Navigation Compose 2.9.2
 - Arquitectura: Clean Architecture + MVI (State + Intent + Effect)
 - DI: Koin 4.2.2
-- DB local: Room KMP 2.8.4 (SQLite bundled 2.6.2)
-- Backend: Firebase (GitLive KMP SDK 2.4.0) · firebase-bom 34.15.0
-- Auth: BaseLogin (librería propia, JitPack)
+- DB local: Room KMP 2.8.4 (SQLite bundled 2.7.0)
+- Backend: Firebase (GitLive KMP SDK 2.6.0) · firebase-bom 34.18.0
+- Auth: BaseLogin (librería propia, JitPack) — ⛔ no se toca desde Paparcar
 - Async: Coroutines 1.11.0 + Flow · Serialization 1.11.0 · Datetime 0.8.0
-- Mapas: kmp-maps (SW Mansion) 0.9.1 — ⚠️ **fork propio en mavenLocal** (PR #170 upstream)
-- Imágenes: Coil 3.5.0 + Ktor 3.5.1 (motor de red)
+- Mapas: kmp-maps **fork propio** `io.github.rndevelo.kmpmaps:core:0.9.1-puck4`, ya en Maven Central
+  (marker de id estable; upstream SW Mansion 0.9.1 + PR #170 sin mergear) — su versión la manda
+  nuestro repo, no upstream
+- Imágenes: Coil 3.6.0 + Ktor 3.5.2 (motor de red)
 - Logging: Napier 2.7.1 · Monitoring: Firebase Crashlytics
 
 > El repo **no tiene `gradlew.bat`**: compilar SIEMPRE con la herramienta Bash (`./gradlew …`).
