@@ -2093,6 +2093,135 @@ class CoordinatorParkingDetectorTest {
             )
         }
 
+    /**
+     * [DET-THREE-EDGE-MARKERS-CANNOT-GO-SILENT-001] The EXIT edge, BOTH halves of it.
+     *
+     * `should_log_vehicle_exit_transition_in_trace` above asserts `any { … }` — that at least one
+     * EXIT reached the trace. That witnesses total silence and nothing else: an edge that regressed
+     * into a heartbeat (one line per fix, the noise the marker exists to prevent) passes it, and so
+     * does an edge that never re-arms. Both are the failure, and neither was covered.
+     */
+    @Test
+    fun should_log_the_vehicle_exit_once_per_departure_and_again_after_the_car_drives_off() =
+        runTest(UnconfinedTestDispatcher()) {
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations, armEvidence = ArmEvidence.Unverified) }
+
+            env.coordinator.onVehicleExit(atMs = 0L)
+            locations.emit(stationaryFix(lat = 40.0, lon = -3.7))
+            // The hint is still set on the next fix. An edge says nothing; a heartbeat repeats.
+            nowMs = 5_000L
+            locations.emit(stationaryFix(lat = 40.0, lon = -3.7))
+
+            // The car leaves again: a driving fix clears the hint (EgressEvidence.onFix), which is
+            // what re-arms the marker — the reason it is a flag reset and not a latch.
+            nowMs = 10_000L
+            locations.emit(GpsPoint(40.0027, -3.7, accuracy = 5f, timestamp = 10_000L, speed = 15f))
+            env.coordinator.onVehicleExit(atMs = 12_000L)
+            nowMs = 15_000L
+            locations.emit(stationaryFix(lat = 40.0027, lon = -3.7))
+
+            job.cancelAndJoin()
+
+            val exits = env.detectionLogger.events
+                .filterIsInstance<DetectionEvent.ActivityTransition>()
+                .filter { it.activity == "IN_VEHICLE" && it.transition == "EXIT" }
+            assertEquals(
+                2,
+                exits.size,
+                "one line per departure — not one per fix, and not one for the whole session; was ${exits.size}",
+            )
+        }
+
+    /**
+     * [DET-THREE-EDGE-MARKERS-CANNOT-GO-SILENT-001] The boarding stamp: deduped by VALUE, not
+     * latched. It is the counterpart the human-powered verdict is read against — without it the
+     * trace shows a cycling veto and no sign of the boarding that should have superseded it — and
+     * unlike its `ON_BICYCLE` twin one line above, nothing asserted it at all.
+     */
+    @Test
+    fun should_log_each_distinct_boarding_stamp_once_with_how_stale_it_already_was() =
+        runTest(UnconfinedTestDispatcher()) {
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations, armEvidence = ArmEvidence.Unverified) }
+
+            env.coordinator.onVehicleRide(atMs = -60_000L) // AR delivered it a minute late
+            nowMs = 0L
+            locations.emit(stationaryFix(lat = 40.0, lon = -3.7))
+            // Same stamp on the next fix: the value has not changed, so neither has the trace.
+            nowMs = 5_000L
+            locations.emit(stationaryFix(lat = 40.0, lon = -3.7))
+
+            // A genuinely NEW boarding. Deduping by value is what lets this one through, and it is
+            // the property a latch would have swallowed.
+            env.coordinator.onVehicleRide(atMs = 20_000L)
+            nowMs = 25_000L
+            locations.emit(stationaryFix(lat = 40.0, lon = -3.7))
+
+            job.cancelAndJoin()
+
+            val boardings = env.detectionLogger.events
+                .filterIsInstance<DetectionEvent.ActivityTransition>()
+                .filter { it.activity == "IN_VEHICLE" && it.transition == "ENTER" }
+            assertEquals(2, boardings.size, "one line per distinct stamp, was ${boardings.size}")
+            assertEquals(
+                60_000L,
+                boardings.first().trueTimeAgeMs,
+                "the trace must carry how stale AR's answer already was",
+            )
+            assertEquals(5_000L, boardings.last().trueTimeAgeMs)
+        }
+
+    /**
+     * [DET-THREE-EDGE-MARKERS-CANNOT-GO-SILENT-001] The motor refutation: a true latch, and the one
+     * marker of the four that carries a VERDICT's name into the trace. If the motor band ever
+     * refutes a ride that really was muscle, this is the line that will say so — so a session that
+     * crossed the bar and never said it is the whole failure, and repeating it on every subsequent
+     * fix buries it in the noise it was written to avoid.
+     */
+    @Test
+    fun should_announce_the_motor_witness_once_when_it_crosses_and_never_again() =
+        runTest(UnconfinedTestDispatcher()) {
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations, armEvidence = ArmEvidence.Unverified) }
+
+            // 15 m/s (54 km/h) is above motorProofSpeedMps (11.1). Fixes 20 s apart, displaced by
+            // the ~300 m that speed actually covers, so the band credits each full gap.
+            //
+            // FIVE fixes, and the count is the point. The band credits the interval BETWEEN two
+            // in-band fixes, so the first one banks nothing and the crossing of
+            // sustainedDriveProofMs (30 s) lands on the FOURTH: 0, 0, 20 s, 40 s, 60 s. A stream
+            // that stops at the crossing cannot tell a latch from a heartbeat — there is no later
+            // fix for the heartbeat to speak on — and this test passed against a delatched
+            // coordinator until the fifth fix was added.
+            val speed = 15f
+            listOf(0L, 20_000L, 40_000L, 60_000L, 80_000L).forEachIndexed { index, at ->
+
+                nowMs = at
+                locations.emit(
+                    GpsPoint(40.0 + 0.0027 * index, -3.7, accuracy = 5f, timestamp = at, speed = speed),
+                )
+            }
+
+            job.cancelAndJoin()
+
+            val witnessed = env.detectionLogger.events
+                .filterIsInstance<DetectionEvent.Decision>()
+                .filter { it.outcome == "MOTOR_WITNESSED" }
+            assertEquals(1, witnessed.size, "latched once at the crossing, was ${witnessed.size}")
+            assertTrue(
+                witnessed.single().pathLabel?.contains("motorBand=") == true,
+                "the line must carry the band it crossed, not just the fact that it did: " +
+                    "${witnessed.single().pathLabel}",
+            )
+        }
+
     @Test
     fun should_record_the_pedal_cadence_latch_in_the_trace_even_when_its_second_fix_arrives_late() =
         runTest(UnconfinedTestDispatcher()) {
