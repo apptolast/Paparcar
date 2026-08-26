@@ -8,45 +8,8 @@ import io.apptolast.paparcar.domain.usecase.location.GetLastKnownLocationUseCase
 import io.apptolast.paparcar.domain.usecase.location.GetOneLocationUseCase
 import io.apptolast.paparcar.domain.usecase.location.ObserveAdaptiveLocationUseCase
 import io.apptolast.paparcar.domain.usecase.location.SearchAddressUseCase
-import io.apptolast.paparcar.domain.usecase.notification.NotifyParkingConfirmationUseCase
-import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
-import io.apptolast.paparcar.domain.usecase.parking.CalculateParkingConfidenceUseCase
-import io.apptolast.paparcar.domain.usecase.parking.ClearParkNudgeUseCase
-import io.apptolast.paparcar.domain.usecase.parking.EvaluateParkingDecisionUseCase
-import io.apptolast.paparcar.domain.usecase.parking.FinalizeDeducedDepartureUseCase
-import io.apptolast.paparcar.domain.usecase.parking.RetractDeducedDepartureUseCase
-import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
-import io.apptolast.paparcar.domain.usecase.parking.EvaluateBackfillDeferralUseCase
-import io.apptolast.paparcar.domain.usecase.parking.EvaluateHonestCloseUseCase
-import io.apptolast.paparcar.domain.usecase.parking.RunHonestCloseUseCase
-import io.apptolast.paparcar.domain.detection.CoordinatorParkingDetector
-import io.apptolast.paparcar.domain.usecase.parking.DetectParkingDepartureUseCase
-import io.apptolast.paparcar.domain.usecase.parking.EvaluateSafetyNetCheckUseCase
-import io.apptolast.paparcar.domain.usecase.parking.RunDepartureCheckUseCase
-import io.apptolast.paparcar.domain.usecase.parking.VerifyDepartureEvidenceUseCase
-import io.apptolast.paparcar.domain.usecase.parking.ProcessConfirmedDepartureUseCase
-import io.apptolast.paparcar.domain.usecase.parking.ReleaseActiveParkingSessionUseCase
-import io.apptolast.paparcar.domain.usecase.parking.RevertParkingUseCase
-import io.apptolast.paparcar.domain.usecase.parking.UpdateParkingLocationUseCase
-import io.apptolast.paparcar.domain.usecase.parking.ObserveParkedVehiclesUseCase
-import io.apptolast.paparcar.domain.detection.DetectionRuntimeState
-import io.apptolast.paparcar.domain.detection.MutableDetectionRuntimeState
-import io.apptolast.paparcar.domain.detection.ParkingStrategyResolver
-import io.apptolast.paparcar.domain.usecase.detection.EvaluateArEnterArmUseCase
-import io.apptolast.paparcar.domain.usecase.detection.EvaluateBtArbitrationUseCase
-import io.apptolast.paparcar.domain.usecase.detection.EvaluateBtParkUseCase
-import io.apptolast.paparcar.domain.usecase.detection.EvaluateGeofenceExitUseCase
-import io.apptolast.paparcar.domain.usecase.detection.EvaluateDetectionReliabilityUseCase
-import io.apptolast.paparcar.domain.usecase.detection.EvaluateFirstParkNudgeUseCase
-import io.apptolast.paparcar.domain.usecase.detection.ObserveDepartureWatchGapUseCase
-import io.apptolast.paparcar.domain.usecase.detection.ObserveDetectionReadinessUseCase
-import io.apptolast.paparcar.domain.usecase.detection.ObserveDetectionReliabilityUseCase
-import org.koin.dsl.bind
-import io.apptolast.paparcar.domain.usecase.parking.SaveManualParkingUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ObserveNearbySpotsUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportManualSpotUseCase
-import io.apptolast.paparcar.domain.usecase.vehicle.DeclareActiveVehicleUseCase
-import io.apptolast.paparcar.domain.usecase.vehicle.SwapActiveVehicleFencesUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import io.apptolast.paparcar.domain.usecase.spot.SendSpotSignalUseCase
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
@@ -60,6 +23,11 @@ import io.apptolast.paparcar.domain.usecase.zone.SaveZoneUseCase
 import org.koin.dsl.module
 
 val domainModule = module {
+
+    // [DET-DI-DETECTION-MODULE-001] Parking detection is declared in its own file — see
+    // [detectionModule] for what belongs there and why it is included from here instead of being
+    // listed at each of the four Koin entry points.
+    includes(detectionModule)
 
     single { MapFocusEventBus() }
     single { StartAddParkingEventBus() }
@@ -94,202 +62,5 @@ val domainModule = module {
     factory { GetLastKnownLocationUseCase(get()) } // [DET-AR-REARM-001] passive — no geofence provocation
     factory { ObserveAdaptiveLocationUseCase(get()) }
     factory { SearchAddressUseCase(get()) }
-
-    // Parking UseCases
-    single { ParkingDetectionConfig() }
-    factory { CalculateParkingConfidenceUseCase(get()) }
-    factory { EvaluateParkingDecisionUseCase(get()) }
-    factory {
-        DetectParkingDepartureUseCase(
-            userParkingRepository = get(),
-            departureEventBus = get(),
-            config = get(),
-        )
-    }
-    factory { ClearParkNudgeUseCase(appPreferences = get(), notificationPort = get()) } // [DET-NUDGE-PERSIST-001]
-    factory { VerifyDepartureEvidenceUseCase(departureEventBus = get(), config = get()) } // [DET-G-05]
-    factory { EvaluateSafetyNetCheckUseCase(config = get()) } // [DET-SAFETY-NET-001]
-    factory { EvaluateBackfillDeferralUseCase(config = get()) } // [DET-BACKFILL-TAINT-001]
-    factory { EvaluateGeofenceExitUseCase(config = get()) } // [AUDIT-A9-KMP-001]
-    factory { EvaluateBtParkUseCase(config = get()) } // [DET-AUDIT-002 T2/T3]
-    factory { EvaluateBtArbitrationUseCase() } // [DET-TIERS-001] BT-as-arbiter over the coordinator
-    factory { EvaluateArEnterArmUseCase(config = get()) } // [DET-AR-FIRST-001]
-    factory {
-        ConfirmParkingUseCase(
-            userParkingRepository = get(),
-            vehicleRepository = get(),
-            zoneRepository = get(),
-            geofenceService = get(),
-            enrichmentScheduler = get(),
-            authRepository = get(),
-            config = get(),
-            departureEventBus = get(),
-            appPreferences = get(),
-            parkingSyncScheduler = get(),
-            detectionEventLogger = get(),
-            // Android-only (no iOS impl yet) — getOrNull so other platforms bind null and the
-            // honest-close budget simply stays unsealed there. [DET-HONEST-CLOSE-001]
-            detectionStepAnchors = getOrNull(),
-            // Android-only route store — getOrNull so iOS binds null (no route snapshot). [DET-ROUTE-TRACK-001]
-            drivingRouteStore = getOrNull(),
-        )
-    }
-    // [DET-HONEST-CLOSE-001] Honest-close ladder: pure evaluator + orchestration.
-    factory { EvaluateHonestCloseUseCase(config = get()) }
-    factory {
-        RunHonestCloseUseCase(
-            userParkingRepository = get(),
-            confirmParking = get(),
-            notificationPort = get(),
-            evaluateHonestClose = get(),
-            config = get(),
-        )
-    }
-    single {
-        CoordinatorParkingDetector(
-            calculateParkingConfidence = get(),
-            confirmParking = get(),
-            notifyParkingConfirmation = get(),
-            notificationPort = get(),
-            vehicleRepository = get(),
-            stepDetector = get(),
-            config = get(),
-            detectionEventLogger = get(),
-            evaluateParkingDecision = get(),
-            phaseSink = get<MutableDetectionRuntimeState>(),
-            // [DET-HANDOFF-NOT-MANUAL-001 §B] The deduced departure's commit, deferred to the
-            // moment this session measures a drive.
-            finalizeDeducedDeparture = get(),
-            // [DET-HANDOFF-NOT-MANUAL-001 §B.3] …and its withdrawal, at the moment this session
-            // ends having measured none.
-            retractDeducedDeparture = get(),
-        )
-    }
-
-    // Notification UseCases
-    factory { NotifyParkingConfirmationUseCase(get(), get()) }
-
-    // Parking session lifecycle use cases
-    factory { ReleaseActiveParkingSessionUseCase(reportSpotReleased = get(), userParkingRepository = get(), geofenceService = get(), detectionEventLogger = get()) }
-    // [VEH-ACTIVE-FENCE-001 · 2c] Active-vehicle declaration + geofence swap.
-    factory { SwapActiveVehicleFencesUseCase(userParkingRepository = get(), vehicleRepository = get(), geofenceService = get(), config = get()) }
-    factory { DeclareActiveVehicleUseCase(vehicleRepository = get(), swapFences = get()) }
-    // [REFACTOR-300] Revert flow for the post-save "No, cancelar" notification action.
-    factory {
-        RevertParkingUseCase(
-            userParkingRepository = get(),
-            geofenceService = get(),
-            notificationPort = get(),
-            detectionEventLogger = get(),
-        )
-    }
-    // [DET-HANDOFF-NOT-MANUAL-001 §B] Promotes a provisional spot + releases the car once a drive
-    // is measured — the other half of a deduced departure.
-    factory {
-        FinalizeDeducedDepartureUseCase(
-            userParkingRepository = get(),
-            reportSpotReleased = get(),
-            geofenceService = get(),
-            detectionEventLogger = get(),
-        )
-    }
-    // [DET-HANDOFF-NOT-MANUAL-001 §B.3] Withdraws that same provisional spot when the trip ends
-    // having measured no drive at all — the losing half of the same pair.
-    factory {
-        RetractDeducedDepartureUseCase(
-            userParkingRepository = get(),
-            spotRepository = get(),
-            detectionEventLogger = get(),
-        )
-    }
-    factory {
-        ProcessConfirmedDepartureUseCase(
-            userParkingRepository = get(),
-            reportSpotReleased = get(),
-            geofenceService = get(),
-            departureEventBus = get(),
-            detectionEventLogger = get(),
-        )
-    }
-    // [DET-SOLID-001] The departure-check seam, extracted from DepartureDetectionWorker.
-    single<io.apptolast.paparcar.domain.detection.DepartureConfirmationListener> { get<CoordinatorParkingDetector>() }
-    factory {
-        RunDepartureCheckUseCase(
-            detectParkingDeparture = get(),
-            processConfirmedDeparture = get(),
-            getOneLocation = get(),
-            departureEventBus = get(),
-            departureConfirmationListener = get(),
-            config = get(),
-            detectionEventLogger = get(),
-        )
-    }
-    factory {
-        UpdateParkingLocationUseCase(
-            userParkingRepository = get(),
-            geofenceService = get(),
-            enrichmentScheduler = get(),
-            config = get(),
-            departureEventBus = get(),
-        )
-    }
-
-    factory { ObserveParkedVehiclesUseCase(userParkingRepository = get(), vehicleRepository = get()) }
-
-    // Home's user-confirmed pin: create / move / detected-prompt confirm. [HOME-ATOMIZE-001 F4]
-    factory {
-        SaveManualParkingUseCase(
-            confirmParking = get(),
-            updateParkingLocation = get(),
-            notificationPort = get(),
-            manualParkingDetection = get(),
-        )
-    }
-
-    // Strategy Resolution
-    factory { ParkingStrategyResolver(get(), get()) }
-
-    // Detection readiness [DET-READY-001]
-    // Shared singleton: CoordinatorDetectionService mutates it, the use case observes it. [DET-READY-001c]
-    single { MutableDetectionRuntimeState() } bind DetectionRuntimeState::class
-    factory {
-        ObserveDetectionReadinessUseCase(
-            vehicleRepository = get(),
-            userParkingRepository = get(),
-            permissionManager = get(),
-            detectionRuntime = get(),
-            strategyResolver = get(),
-            appPreferences = get(),
-        )
-    }
-    factory {
-        EvaluateFirstParkNudgeUseCase(
-            observeDetectionReadiness = get(),
-            appPreferences = get(),
-        )
-    }
-
-    // Detection reliability — single evaluator every surface reads [DET-RELIABILITY-001]
-    factory { EvaluateDetectionReliabilityUseCase() }
-    factory {
-        ObserveDetectionReliabilityUseCase(
-            vehicleRepository = get(),
-            permissionManager = get(),
-            oemBackgroundReliabilityManager = get(),
-            strategyResolver = get(),
-            evaluateDetectionReliability = get(),
-        )
-    }
-
-    // Departure-watch gap — "the watcher should be live but the service is dead" [DET-WATCH-REACTIVATE-001]
-    factory {
-        ObserveDepartureWatchGapUseCase(
-            userParkingRepository = get(),
-            vehicleRepository = get(),
-            strategyResolver = get(),
-            appPreferences = get(),
-            detectionRuntime = get(),
-        )
-    }
 
 }

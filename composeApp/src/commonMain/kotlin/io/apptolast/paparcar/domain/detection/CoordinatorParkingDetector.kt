@@ -176,26 +176,38 @@ class CoordinatorParkingDetector(
     private val config: ParkingDetectionConfig,
     private val detectionEventLogger: DetectionEventLogger,
     private val evaluateParkingDecision: EvaluateParkingDecisionUseCase,
+    /** [DET-WALK-ENTERED-ANCHOR-ZONE-001] What the unattended timeout should do with the session —
+     *  pure and config-only, like every other verdict above it.
+     *
+     *  [DET-DI-DETECTION-MODULE-001] It used to default to `EvaluateUnattendedParkingSaveUseCase(config)`
+     *  built right here, which made it the one detection verdict absent from the Koin graph. */
+    private val evaluateUnattendedParkingSave: EvaluateUnattendedParkingSaveUseCase,
     /** Receives the coarse [DetectionPhase] mapped from the internal confirmation phase, so Home can
      *  show a distinct "candidate / looking for spot" treatment while a trip is being evaluated.
-     *  Nullable so existing test doubles need no change. [DET-PHASE-001] */
-    private val phaseSink: DetectionPhaseSink? = null,
-    /** Wall-clock source (epoch-ms). Injectable so the time-driven post-confirm hold [DET-C-02]
-     *  can be unit-tested without sleeping. Defaults to the system clock. */
-    private val clock: () -> Long = { Clock.System.now().toEpochMilliseconds() },
-    /** [DET-WALK-ENTERED-ANCHOR-ZONE-001] What the unattended timeout should do with the session —
-     *  pure, config-only, same defaulting rationale as the two proofs above. */
-    private val evaluateUnattendedParkingSave: EvaluateUnattendedParkingSaveUseCase =
-        EvaluateUnattendedParkingSaveUseCase(config),
+     *  [DET-PHASE-001]
+     *
+     *  ## Nullable, but no longer defaulted [DET-DI-DETECTION-MODULE-001]
+     *
+     *  This and the two below carried `= null` with the reason written on them: *"nullable so
+     *  existing test doubles need no change"*. That is DI shaped by the tests, and it let a new
+     *  call site omit all three silently — in production that is a session that never finalizes
+     *  nor retracts its deduced departure, with nothing to notice it. Production resolves all
+     *  three with `get()`; the type stays nullable only because the three test setups pass an
+     *  explicit `null` for the lanes they do not exercise, and now they have to say so. */
+    private val phaseSink: DetectionPhaseSink?,
     /** [DET-HANDOFF-NOT-MANUAL-001 §B] Completes a departure that was only DEDUCED, at the instant
      *  this session MEASURES a drive: the deduction is now proven, so the provisional spot is
      *  promoted to the full TTL and the car is released — the commit moved from the guess to the
-     *  proof. Null in test doubles that do not exercise it. */
-    private val finalizeDeducedDeparture: FinalizeDeducedDepartureUseCase? = null,
+     *  proof. Null only in test doubles that do not exercise it. */
+    private val finalizeDeducedDeparture: FinalizeDeducedDepartureUseCase?,
     /** [DET-HANDOFF-NOT-MANUAL-001 §B.3] The other half of the same pair: this session ENDED without
      *  ever measuring a drive, so the departure it was deduced from is refuted and the spot it
-     *  published provisionally is withdrawn. Null in test doubles that do not exercise it. */
-    private val retractDeducedDeparture: RetractDeducedDepartureUseCase? = null,
+     *  published provisionally is withdrawn. Null only in test doubles that do not exercise it. */
+    private val retractDeducedDeparture: RetractDeducedDepartureUseCase?,
+    /** Wall-clock source (epoch-ms). Injectable so the time-driven post-confirm hold [DET-C-02]
+     *  can be unit-tested without sleeping. Defaults to the system clock — the one default left,
+     *  because a missing clock has an obviously correct value and a missing use case does not. */
+    private val clock: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) : DepartureConfirmationListener {
 
     private val _detectionState = MutableStateFlow(DetectionSessionState())

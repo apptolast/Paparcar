@@ -13,6 +13,7 @@ import io.apptolast.paparcar.domain.usecase.notification.NotifyParkingConfirmati
 import io.apptolast.paparcar.domain.usecase.parking.CalculateParkingConfidenceUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
 import io.apptolast.paparcar.domain.usecase.parking.EvaluateParkingDecisionUseCase
+import io.apptolast.paparcar.domain.usecase.parking.EvaluateUnattendedParkingSaveUseCase
 import io.apptolast.paparcar.fakes.FakeAppNotificationManager
 import io.apptolast.paparcar.fakes.FakeAuthRepository
 import io.apptolast.paparcar.fakes.FakeDepartureEventBus
@@ -115,6 +116,15 @@ class StagePrecedenceCharacterizationTest {
             config = config,
             detectionEventLogger = detectionLogger,
             evaluateParkingDecision = EvaluateParkingDecisionUseCase(config),
+            // [DET-DI-DETECTION-MODULE-001] Was the coordinator's own constructor default; the
+            // instance is identical, it is just built where it can be seen.
+            evaluateUnattendedParkingSave = EvaluateUnattendedParkingSaveUseCase(config),
+            // These three used to default to null. They still are null here — the precedence
+            // pairs never reach the Home surface or the deduced-departure lanes — but now the
+            // characterization says which lanes it is NOT holding.
+            phaseSink = null,
+            finalizeDeducedDeparture = null,
+            retractDeducedDeparture = null,
             clock = clock,
         )
         return TestEnv(coordinator, parkingRepo, stepDetector, detectionLogger)
