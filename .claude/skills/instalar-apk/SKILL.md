@@ -14,8 +14,9 @@ description: Compilar el APK prodDebug de Paparcar e instalarlo en TODOS los mó
   PowerShell `.\gradlew` sale **exit 0 sin compilar nada** y te instala el APK de ayer.
 - **`install -r`, nunca `uninstall`.** Los móviles llevan sesiones de aparcamiento, login y estado de
   detección reales; borrarlos tira el field-test en curso. Si hace falta desinstalar, **preguntar**.
-- **Verificar el sha256 EN el device.** MIUI/Redmi puede contestar `Success` y dejar el APK viejo;
-  sin esa comprobación te pasas media hora teorizando sobre un bug ya arreglado.
+- **Verificar el sha256 EN el device** (device ↔ APK local, móvil a móvil — **nunca** un móvil contra
+  otro). MIUI/Redmi puede contestar `Success` y dejar el APK viejo; sin esa comprobación te pasas
+  media hora teorizando sobre un bug ya arreglado. Para comparar DOS móviles entre sí, paso 3-bis.
 - **Todos los conectados.** Si hay dos móviles, van los dos: el setup de campo es intencionalmente
   de dos coches/dos cuentas y comparar un móvil contra el otro es medio diagnóstico.
 - **⛔ No tocar ajustes del móvil: pantalla, bloqueo ni rotación.** Nada de `input keyevent 26`
@@ -49,6 +50,11 @@ sha256sum "$APK"
 > Flavor `mock` (`assembleMockDebug`) es **otro applicationId** (`…paparcar.mock`) y convive sin
 > pisar al de producción: se instala igual, pero solo si el user pide el Dev Catalog.
 
+⛔ **Compilar UNA vez y no volver a invocar Gradle hasta que estén instalados todos los móviles.**
+`packageProdDebug` **reempaqueta en cada invocación aunque no cambie una línea** — medido el 26-08:
+preguntarle a Gradle si estaba al día cambió el sha del APK de `cb2ff4bb…` a `e4488689…` con el dex
+byte a byte idéntico. Si compilas entre un móvil y otro, cada uno se lleva bytes distintos.
+
 ## 3 · Instalar y verificar
 
 ```bash
@@ -59,8 +65,54 @@ for D in $(adb devices | awk '/\tdevice$/{print $1}'); do
   P=$(adb -s $D shell pm path io.apptolast.paparcar | head -1 | tr -d '\r' | sed 's/package://')
   adb -s $D shell sha256sum "$P" | tr -d '\r'
 done
-sha256sum "$APK" | cut -d' ' -f1        # los tres hashes deben coincidir
+sha256sum "$APK" | cut -d' ' -f1
 ```
+
+**Qué prueba este sha y qué NO.** Prueba que **este** móvil recibió **este** fichero **ahora** — que
+es exactamente el `Success` mentiroso de MIUI, así que el paso se queda. **No** prueba que dos
+móviles corran el mismo código: el APK no es un identificador de build estable (arriba), y el 26-08
+dos móviles cuyos sha yo había leído distintos resultaron llevar el mismo dex. Para esa pregunta,
+el paso 3-bis.
+
+## 3-bis · ¿Los móviles corren el MISMO código?
+
+El dex sí es estable: sobrevive a los reempaquetados de Gradle y es lo único que decide la conducta.
+~2,5 s para los dos móviles (APK de 42 MB a ~38 MB/s).
+
+```bash
+export MSYS_NO_PATHCONV=1
+DEST="C:/Users/rndev/AppData/Local/Temp/paparcar-dex"   # ⛔ ruta WINDOWS, ver abajo
+mkdir -p /c/Users/rndev/AppData/Local/Temp/paparcar-dex
+for D in $(adb devices | awk '/\tdevice$/{print $1}'); do
+  P=$(adb -s $D shell pm path io.apptolast.paparcar | head -1 | tr -d '\r' | sed 's/package://')
+  adb -s $D pull "$P" "$DEST/$D.apk" 2>&1 | tail -1
+done
+```
+
+```bash
+python - /c/Users/rndev/AppData/Local/Temp/paparcar-dex/*.apk \
+         composeApp/build/outputs/apk/prod/debug/composeApp-prod-debug.apk <<'EOF'
+import sys, zipfile, hashlib
+for path in sys.argv[1:]:
+    z = zipfile.ZipFile(path)
+    h = hashlib.sha256()
+    for n in sorted(x for x in z.namelist() if x.endswith(".dex")):
+        h.update(z.read(n))
+    print(f"{h.hexdigest()[:16]}  {path.split('/')[-1]}")
+EOF
+```
+
+Todos los dex iguales → mismo código, aunque los sha de los APK difieran. Uno distinto → ese móvil
+lleva otro build, y ahí sí hay que reinstalar.
+
+⛔ **`adb.exe` es un binario Windows: el destino local NO puede ser una ruta MSYS.** `adb pull … /tmp/x`
+falla con `cannot create file/directory`. Usar `C:/…` (las barras normales le valen) y `MSYS_NO_PATHCONV=1`
+para que Git Bash no reescriba la ruta REMOTA `/data/app/…`.
+
+> **Comprobación rápida sin descargar nada**, cuando sólo quieres saber si el build lleva un cambio
+> concreto: buscar en el dex un literal que el código viejo tenía y el nuevo no. Así se verificó
+> DET-PARKDIAG-KEEP-MORE-HISTORY-001 — el literal `parkdiag.log.old` desapareció al pasar a construir
+> los nombres en runtime, así que su ausencia en el dex **es** la firma del build nuevo.
 
 **Si `INSTALL_FAILED_UPDATE_INCOMPATIBLE`** (firma distinta — pasó con una beta02 en el Oppo): NO
 desinstalar por tu cuenta. Compilar `:composeApp:assembleProdRelease`, que va firmado con el keystore
@@ -108,6 +160,10 @@ seguidas** — la segunda cae dentro de `AUTOMATIC_RETRY_COOLDOWN_MS` (60 s), el
 
 ## 5 · Reportar
 
-Decir siempre: **qué commit** se ha compilado (`git log --oneline -1`), el **sha256** y que coincide
-en ambos móviles, y **qué se ha visto** al arrancar. Un run sin esas tres cosas no distingue "va
-bien" de "estoy mirando el APK de ayer".
+Decir siempre: **qué commit** se ha compilado (`git log --oneline -1`), que el **sha256 device↔local
+coincide en cada móvil** (por separado — no afirmar que los dos móviles llevan el mismo sha, que es
+falso en cuanto Gradle vuelva a empaquetar), y **qué se ha visto** al arrancar. Un run sin esas tres
+cosas no distingue "va bien" de "estoy mirando el APK de ayer".
+
+Si el run tiene que sostener una comparación ENTRE móviles — un field-test de dos coches donde se
+comparan dos trazas — añadir el dex del paso 3-bis. Es la única cifra que aguanta esa afirmación.
