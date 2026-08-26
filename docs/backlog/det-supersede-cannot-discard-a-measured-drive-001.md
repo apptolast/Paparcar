@@ -181,7 +181,7 @@ consumidor; un arm nuevo no compila sin declarar su autorización.
 ## Relacionado
 
 - `DET-BT-CAR-CANNOT-NOMINATE-A-COORDINATOR-SESSION-001` — el otro ticket del mismo FN, y la razón de
-  que el supersede se disparara **con 6,3 km de distancia**. Independientes: aun con el coche
+  que el supersede se disparara **con 6.214 m de distancia**. Independientes: aun con el coche
   correcto, un re-embarque legítimo lejos del origen habría superseded igual.
 - `DET-SUPERSEDE-001` (el guard original), `DET-AR-REARM-001`, `DET-AR-FIRST-001`, `DET-G-04`,
   `DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001` (de quien sale la distinción confianza/medición).

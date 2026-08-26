@@ -213,7 +213,7 @@ class VehicleFenceOwnershipPolicyTest {
     @Test
     fun should_not_nominate_a_bt_paired_car_session_when_the_active_car_has_none() {
         // The field case (2026-08-25): the active Focus had no parked session, so a five-day-old
-        // manual pin of the BT-paired Kamiq armed a Focus trip — 6.3 km away, which then superseded
+        // manual pin of the BT-paired Kamiq armed a Focus trip — 6 214 m away, which then superseded
         // 23 min of measured driving and left the phone watching the Kamiq's fence all night.
         assertFalse(
             mayNominate(

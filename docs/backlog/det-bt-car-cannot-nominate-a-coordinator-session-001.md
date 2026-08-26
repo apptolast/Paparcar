@@ -12,7 +12,7 @@ A las 19:59:05, al final del viaje, el AR disparó `IN_VEHICLE ENTER` y el servi
 coche aparcado"* como:
 
 ```
-ARM:AR_VEHICLE_ENTER (geof=a786c135 lag=149ms dep=enter_at_car)
+→ AR ENTER at own fence — arming Coordinator, waiting for ride proof (geof=a786c135 lag=149ms dep=enter_at_car)
 ```
 
 `a786c135-2500-42c4-8adc-dd7d695ae0d8` es un pin **manual del 21-08-2026 19:52**, en C/ Góndola 7,
@@ -23,7 +23,7 @@ convirtió en el sujeto de una sesión del Coordinator.
 Consecuencias encadenadas:
 
 1. Como ese pin está **en casa** y el ancla del viaje vivo estaba en el gimnasio,
-   `shouldSupersedeRunningSession` midió **6,3 km** y canceló la sesión que llevaba 23 min de
+   `shouldSupersedeRunningSession` midió **6.214 m** y canceló la sesión que llevaba 23 min de
    conducción medida (→ `DET-SUPERSEDE-CANNOT-DISCARD-A-MEASURED-DRIVE-001`).
 2. La sesión sucesora nació anclada al Kamiq y murió en `aborted_false_enter`.
 3. Desde entonces **el Oppo vigila el pin del Kamiq del 21-08**: el `parkdiag` de la madrugada del 26

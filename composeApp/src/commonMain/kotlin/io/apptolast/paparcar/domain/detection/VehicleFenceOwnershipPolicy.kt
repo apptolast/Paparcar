@@ -74,7 +74,7 @@ object VehicleFenceOwnershipPolicy {
      * session the answer is "none" — never another car's, because the phone cannot tell which
      * non-Bluetooth car you took and a wrong nominator is not a near miss: it anchors the trip to a
      * pin across town (field 2026-08-25: a Kamiq's five-day-old manual pin nominated a Focus trip,
-     * whose 6.3 km from the running anchor then superseded 23 min of measured driving, and left the
+     * whose 6 214 m from the running anchor then superseded 23 min of measured driving, and left the
      * phone watching the Kamiq's fence all night while the car that actually drove got no parking).
      *
      * Two branches, and the difference is whether a declaration EXISTS:

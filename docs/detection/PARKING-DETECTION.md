@@ -5153,10 +5153,11 @@ the night watching a pin that belongs to a car parked five days earlier.
 
 ```
 19:59:05  ARReceiver: → IN_VEHICLE ENTER (trueTime=…, lag=149ms)
-19:59:05  Service:    ARM:AR_VEHICLE_ENTER (geof=a786c135 lag=149ms dep=enter_at_car)
+19:59:05  Service:    → AR ENTER at own fence — arming Coordinator, waiting for ride proof
+                      (geof=a786c135 lag=149ms dep=enter_at_car)
                       ↑ a786c135 is a MANUAL pin from 2026-08-21 19:52, C/ Góndola 7,
                         detectionPath=manual, armEvidence=null, vehicleId=abf6c516 — the KAMIQ
-19:59:05  Service:    ⤳ AR_TRANSITION 6314m from running anchor → superseding zombie session
+19:59:05  Service:    ⤳ AR_TRANSITION 6214m from running anchor → superseding zombie session
           ·········· the successor session dies in aborted_false_enter ··········
 01:38     ExactNet:   [exact-alarm] geof=a786c135: sigues junto al coche (d=5m, radio 85m)
 ```
@@ -5170,7 +5171,7 @@ val session = sessions.firstOrNull { it.vehicleId == activeVehicleId } ?: sessio
 
 The list arrives `timestamp DESC`, so the fallback is not even "the oldest": it is **the most recent
 session of some other car**. A wrong nominator is not a near miss — it anchors the trip to a pin
-across town, and the 6.3 km that follows is what made `shouldSupersedeRunningSession` read a live
+across town, and the 6 214 m that follows is what made `shouldSupersedeRunningSession` read a live
 23-minute drive as a zombie (→ `DET-SUPERSEDE-CANNOT-DISCARD-A-MEASURED-DRIVE-001`, the other half
 of this same FN).
 

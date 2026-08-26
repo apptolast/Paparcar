@@ -902,7 +902,7 @@ class CoordinatorDetectionService : LifecycleService() {
             .getOrElse { emptyList() }
         val activeVehicleId = runCatching { vehicleRepository.observeActiveVehicle().firstOrNull()?.id }.getOrNull()
         // [DET-BT-CAR-CANNOT-NOMINATE-A-COORDINATOR-SESSION-001] Where it bit: a Kamiq's stale manual
-        // pin nominated a Focus trip here, and its 6.3 km from the running anchor then read as a
+        // pin nominated a Focus trip here, and its 6 214 m from the running anchor then read as a
         // zombie in the supersede below (field 2026-08-25). The two halves of that FN are
         // independent: this one stops the wrong car being nominated, the other stops a supersede
         // discarding what the superseded session had already measured.
