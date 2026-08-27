@@ -78,7 +78,12 @@ ninguna decisión — son traza. Nada que cerrar fuera.
 
 ## Follow-up que este ticket habilita
 
-Mover los marcadores de flanco a `DetectionDiagnosticsTap`, que es donde la arquitectura objetivo
-(§7) los asigna. **Este ticket era su prerequisito**: sin aserción que discrimine, la mudanza se
-haría a ciegas. Ojo, no es una mudanza mecánica — el tap sólo tiene hoy la forma de pestillo
-(`latchOnce`), y de las cuatro hacen falta también el flanco re-armable y el dedup por valor.
+**`DET-EDGE-MARKERS-TO-THE-TAP-001`** — mover los cuatro marcadores a `DetectionDiagnosticsTap`,
+donde la arquitectura objetivo [09 §7] los asigna. **Este ticket era su prerequisito**: sin aserción
+que discrimine, la mudanza se haría a ciegas.
+
+Tiene doc propio (`docs/backlog/det-edge-markers-to-the-tap-001.md`) y no un párrafo aquí, porque un
+follow-up que sólo vive dentro del doc de otro ticket es un follow-up que el backlog no ve — que es
+justo lo que `DOCS-BACKLOG-TRUTH-001` vino a terminar. El aviso importante está allí: **no es una
+mudanza mecánica**, el tap sólo implementa hoy la forma de pestillo (`latchOnce`) y hacen falta
+también el flanco re-armable y el dedup por valor.
