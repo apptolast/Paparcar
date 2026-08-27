@@ -2,9 +2,9 @@ package io.apptolast.paparcar.di
 
 import android.app.NotificationManager
 import android.content.Context
-import androidx.room.Room
 import com.google.android.gms.location.LocationServices
 import io.apptolast.paparcar.data.datasource.local.room.AppDatabase
+import io.apptolast.paparcar.data.datasource.local.room.buildAppDatabase
 import io.apptolast.paparcar.domain.location.LocationDataSource
 import io.apptolast.paparcar.domain.geocoder.GeocoderDataSource
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
@@ -37,14 +37,7 @@ val androidPlatformModule = module {
     // fallback is what carries our own dev phones across: they still hold a v20 file and get a
     // clean wipe on first launch instead of a crash. The first public release freezes this —
     // after it, every schema change needs its Migration.
-    single<AppDatabase> {
-        Room.databaseBuilder(
-            androidContext(),
-            AppDatabase::class.java,
-            "paparcar.db"
-        ).fallbackToDestructiveMigration(dropAllTables = true)
-            .build()
-    }
+    single<AppDatabase> { buildAppDatabase(androidContext()) }
 
     // Location
     single { LocationServices.getFusedLocationProviderClient(androidContext()) }
