@@ -32,7 +32,6 @@ import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingConfidence
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.UserParking
-import io.apptolast.paparcar.domain.model.VehicleType
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.sensor.StepDetectorSource
@@ -161,19 +160,6 @@ class CoordinatorParkingDetector(
 
     private val _detectionState = MutableStateFlow(DetectionSessionState())
 
-    /**
-     * Epoch-ms when [AppNotificationManager.showParkingSavedConfirm] was last posted by
-     * the executor. Lives across [invoke] calls (the coordinator is a Koin single) so the
-     * session-start cleanup can decide whether the existing notification on
-     * [AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID] is a fresh revert card
-     * (preserve) or a stale prompt from an abandoned session (dismiss).
-     *
-     * Reset to `null` whenever the session-start dismiss fires.
-     *
-     * **Process death:** lost. A coordinator created after process restart treats any
-     * lingering notification as stale and dismisses it — reasonable since we have no way
-     * to verify its age. [REFACTOR-300-FIX]
-     */
     /** [09 §7] The single emitter, and the owner of the one-per-session markers. */
     private val diagnostics = DetectionDiagnosticsTap(detectionEventLogger)
 
@@ -273,7 +259,6 @@ class CoordinatorParkingDetector(
     /** [09 §5] The vehicle this session resolved, read LIVE: attribution happens mid-iteration and
      *  the readers downstream of it must see it, exactly as they did when this was a local `var`. */
     private val attributedVehicleId: String? get() = _detectionState.value.session.attributedVehicleId
-    private val attributedVehicleType: VehicleType? get() = _detectionState.value.session.attributedVehicleType
 
     /**
      * [DET-G-05] Live upgrade from the sibling departure pipeline: `DepartureDetectionWorker`
@@ -361,10 +346,6 @@ class CoordinatorParkingDetector(
                 "seed; this session must measure the drive itself [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001]",
         )
     }
-
-    /** Arm-evidence label of the in-flight session (see [ArmEvidence] label constants).
-     *  Set at [invoke] entry, upgraded by [notifyDepartureConfirmed], downgraded by
-     *  [notifyDepartureDismissed]. [DET-SOLID-001] */
 
     /** [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001] The fence whose EXIT armed the in-flight
      *  session — the address a `Dismissed` verdict must match to retract anything. */
@@ -565,12 +546,6 @@ class CoordinatorParkingDetector(
         var loggedVehicleRideAtMs = 0L
         var loggedMotorWitnessed = false
         var loggedMotorWitnessedByDisplacement = false
-        // [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001 §C] The OTHER source of the human-powered veto. The
-        // AR lane above is now in the trace; the cadence latch was still logcat-only, and a trace
-        // that shows no cycling stamp and no cadence line leaves the reader inferring the veto by
-        // elimination — which is exactly how the 2026-08-20 Oppo session (63 km/h, three verdicts
-        // degraded) stayed unattributable. Owned by the step collector alone, so a plain flag is
-        // enough; the fix collector never touches it.
 
         // [DET-LOG-03] Diagnostics session id claimed at entry (T8). The outcome defaults to
         // "ended" — [reset] above put it there — and is refined by the abort paths and by the
@@ -1313,7 +1288,6 @@ class CoordinatorParkingDetector(
 
 
     private companion object {
-        const val TAG = "CoordinatorParkingDetector"
         const val DIAG = "PARKDIAG/Coord"
 
         /** [DET-EXIT-LINE-COUNTS-NOTHING-001] What the exit line says instead of a number when the
@@ -1340,23 +1314,9 @@ class CoordinatorParkingDetector(
         /** [DET-DRIVE-PROOF-001] Hard cap on the recent-fix ring. */
         const val DRIVE_PROOF_MAX_RECENT_FIXES = 48
 
-        /** Score shown on the confirmation prompt when an auto-confirm is degraded by the
-         *  repark-plausibility guard — Medium-band so the copy asks rather than asserts. [DET-SOLID-001] */
-        const val IMPLAUSIBLE_REPARK_PROMPT_SCORE = 0.6f
-
-        /** Score for the weak-evidence (ENTER-only) prompt — same Medium-band treatment. [DET-SOLID-001] */
-        const val WEAK_EVIDENCE_PROMPT_SCORE = 0.6f
-
         /** [DET-AUDIT-002 T7] Extra wait past confirmHoldMs before the clock (not a fix) closes a
          *  starved hold — room for the settling fix of a healthy stream to win the race. */
         const val HOLD_WATCHDOG_MARGIN_MS = 30_000L
-
-        /** [DET-CONFIRM-ANCHOR-001] How far from a car witness (the witnessed stop anchor or the
-         *  egress birth) a user "Sí" may arrive and still count as "answered near the car".
-         *  Sized between the standard near-car radii (geofenceRadiusMeters 80 m,
-         *  geofenceRadiusVanMeters 120 m) and under egressBirthFloorMeters (150 m) — the scale
-         *  at which an honest near-car fix can still sit on a sparse stream. */
-        const val USER_CONFIRM_NEAR_CAR_MAX_METERS = 100.0
     }
 }
 
