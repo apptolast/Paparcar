@@ -15,7 +15,6 @@ import io.apptolast.paparcar.domain.detection.SessionEpilogue
 import io.apptolast.paparcar.domain.detection.VehicleFenceOwnershipPolicy
 import io.apptolast.paparcar.domain.detection.isHumanPoweredRide
 import io.apptolast.paparcar.domain.detection.physics.outrunsPedestrianReach
-import io.apptolast.paparcar.domain.detection.physics.isCredibleFixAccuracy
 import io.apptolast.paparcar.domain.detection.physics.isCredibleMovingFix
 import io.apptolast.paparcar.domain.detection.physics.DriveProofBounds
 import io.apptolast.paparcar.domain.detection.physics.isCorroboratedVehicleHop
@@ -60,8 +59,8 @@ import io.apptolast.paparcar.domain.detection.stages.StageVerdict
 import io.apptolast.paparcar.domain.detection.state.DetectionSessionState
 import io.apptolast.paparcar.domain.detection.state.EgressBirth
 import io.apptolast.paparcar.domain.detection.state.WalkIn
-import io.apptolast.paparcar.domain.detection.state.DriveProof
-import io.apptolast.paparcar.domain.detection.state.DriveProofSource
+import io.apptolast.paparcar.domain.detection.state.FixReduction
+import io.apptolast.paparcar.domain.detection.state.reduceFix
 import io.apptolast.paparcar.domain.detection.state.EgressEvidence
 import io.apptolast.paparcar.domain.detection.state.PendingConfirm
 import io.apptolast.paparcar.domain.detection.state.SessionTelemetry
@@ -873,68 +872,24 @@ class CoordinatorParkingDetector(
                     stopTracking.notes.forEach { PaparcarLogger.d(DIAG, it.text) }
                     val stoppedDuration = stopTracking.stoppedDurationMs
 
+                    // [09 §5] The other half of the reduction — what this fix PROVED. Its own file
+                    // since DET-FIX-REDUCTION-TO-ITS-REDUCER-001, for the reason its twin above
+                    // moved: the five transition lines it produces come back as data and are said
+                    // ONCE, after the winning attempt, instead of being repeated by a CAS retry
+                    // [07 §4.2].
+                    var reduced: FixReduction? = null
                     val state = _detectionState.updateAndGet { s ->
-                        val origin = s.session.origin ?: location
-                        val distFromOrigin = io.apptolast.paparcar.domain.util.haversineMeters(
-                            origin.latitude, origin.longitude,
-                            location.latitude, location.longitude,
-                        )
-                        // [DET-SOLID-001] A driving-speed crossing is only trusted from a fix whose
-                        // accuracy is credible: a single degraded fix (walking, acc 80–200 m) used
-                        // to flip hasEverReachedDrivingSpeed and unlock every confirm path — the
-                        // same hole the DET-G-04 seed opened, but via GPS noise. Same 50 m gate
-                        // that already protects the driving-clears-anchor decision [LOC-002].
-                        val credibleSpeedFix = isCredibleFixAccuracy(location, config.minGpsAccuracyForDriving)
-                        val hasJustReachedSpeed = !s.session.driveAuthorized &&
-                                location.speed >= config.minimumTripSpeedMps &&
-                                credibleSpeedFix
-                        val hasJustMoved = !s.session.hasEverMoved &&
-                                location.speed >= config.minimumTripSpeedMps &&
-                                credibleSpeedFix &&
-                                distFromOrigin >= config.minimumTripDistanceMeters
-                        if (hasJustReachedSpeed) {
-                            PaparcarLogger.d(DIAG, "  ✓ hasEverReachedDrivingSpeed → true (speed=${location.speed}≥${config.minimumTripSpeedMps}) dist=${distFromOrigin}m [BUG-SHORT-TRIP]")
-                        }
-                        if (hasJustMoved) {
-                            PaparcarLogger.d(DIAG, "  ✓ hasEverMoved → true (speed≥${config.minimumTripSpeedMps}, dist≥${config.minimumTripDistanceMeters}m, actual=${distFromOrigin}m)")
-                        }
-                        // [DET-DRIVE-PROOF-001][DET-SHORT-HOP-PROOF-001] Both proofs, the promotion,
-                        // the ring and the two band clocks live in the sub-state that owns them; the
-                        // departure pin, its fence and the session clock are PRESENTED.
-                        val newDrive = s.drive.onFix(
+                        s.reduceFix(
                             fix = location,
                             nowMs = now,
-                            credibleSpeedFix = credibleSpeedFix,
+                            elapsedSinceArmMs = now - sessionStartMs,
                             departureAnchor = departureAnchor,
                             departureFenceRadiusMeters = departureFenceRadiusMeters,
-                            elapsedSinceArmMs = now - sessionStartMs,
                             bounds = driveProofBounds,
                             config = config,
-                        )
-                        if (newDrive.isProven && !s.drive.isProven) {
-                            val how = when (newDrive.proven) {
-                                DriveProofSource.SHORT_HOP -> "displacement from the pin [DET-SHORT-HOP-PROOF-001]"
-                                else -> "track [DET-DRIVE-PROOF-001]"
-                            }
-                            PaparcarLogger.d(DIAG, "  ✓ drive PROVEN by $how — session speed statistic unlocked (pendingMax=${newDrive.peakMps}m/s)")
-                        }
-                        if (newDrive.drivingBandMs >= config.sustainedDriveProofMs && s.drive.drivingBandMs < config.sustainedDriveProofMs) {
-                            PaparcarLogger.d(DIAG, "  ✓ sustained drive — ${newDrive.drivingBandMs}ms accumulated in the driving band (≥${config.sustainedDriveProofMs}ms) [DET-MOTOR-PROOF-001]")
-                        }
-                        if (newDrive.motorBandMs >= config.sustainedDriveProofMs && s.drive.motorBandMs < config.sustainedDriveProofMs) {
-                            PaparcarLogger.d(DIAG, "  ✓ MOTOR witnessed — ${newDrive.motorBandMs}ms held above ${config.motorProofSpeedMps} m/s; no bicycle claim can stand against this session [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001]")
-                        }
-                        // [09 §5] Rules 1 and 2 of the fix reduction, as one indivisible step: the
-                        // session's authorization is settled by the proof produced by THIS fix, not
-                        // by the previous one. See [DetectionSessionState.onFix].
-                        s.onFix(
-                            newDrive = newDrive,
-                            fix = location,
-                            nowMs = now,
-                            reachedDrivingSpeed = hasJustReachedSpeed,
-                            moved = hasJustMoved,
-                        )
+                        ).also { reduced = it }.state
                     }
+                    requireNotNull(reduced).notes.forEach { PaparcarLogger.d(DIAG, it.text) }
                     // [DET-HANDOFF-NOT-MANUAL-001 §B] The car moved, and now it is MEASURED: any
                     // departure that was published on a mere deduction becomes real here — promote
                     // the provisional spot, release the session, drop its geofence. Nothing was
