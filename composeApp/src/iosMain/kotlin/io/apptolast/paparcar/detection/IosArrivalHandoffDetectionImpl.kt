@@ -1,6 +1,6 @@
 package io.apptolast.paparcar.detection
 
-import io.apptolast.paparcar.domain.detection.ArrivalHandoffDetection
+import io.apptolast.paparcar.domain.detection.ports.ArrivalHandoffDetection
 
 /** iOS has no Coordinator detection service yet — no-op until detection lands there.
  *  [DET-HANDOFF-NOT-MANUAL-001] */

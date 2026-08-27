@@ -33,7 +33,7 @@ class GetOneLocationUseCase(
     /** Every accepted fix is a breadcrumb — THE single hook that feeds the trip trail, so every
      *  one-shot consumer (safety net, departure worker, pre-arm) contributes without knowing.
      *  Null where the platform provides no trail (iOS today). [DET-BREADCRUMBS-001] */
-    private val tripTrail: io.apptolast.paparcar.domain.detection.TripTrail? = null,
+    private val tripTrail: io.apptolast.paparcar.domain.detection.ports.TripTrail? = null,
 ) {
     suspend operator fun invoke(maxAgeMs: Long? = null): GpsPoint? {
         val fix = withTimeoutOrNull(TIMEOUT_MS) {

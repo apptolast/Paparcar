@@ -1,7 +1,7 @@
 package io.apptolast.paparcar.detection
 
 import android.content.Context
-import io.apptolast.paparcar.domain.detection.TripTrail
+import io.apptolast.paparcar.domain.detection.ports.TripTrail
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlinx.serialization.builtins.ListSerializer

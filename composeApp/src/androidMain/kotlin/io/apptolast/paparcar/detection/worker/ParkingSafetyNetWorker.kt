@@ -29,8 +29,8 @@ import io.apptolast.paparcar.detection.SentryResidenceStore
 import io.apptolast.paparcar.detection.SignificantMotionMonitor
 import io.apptolast.paparcar.detection.PendingDetectionStore
 import io.apptolast.paparcar.domain.detection.DetectionRuntimeState
-import io.apptolast.paparcar.domain.detection.SentryKillVerdict
-import io.apptolast.paparcar.domain.detection.resolveSentryKillVerdict
+import io.apptolast.paparcar.domain.detection.sentry.SentryKillVerdict
+import io.apptolast.paparcar.domain.detection.sentry.resolveSentryKillVerdict
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
@@ -103,7 +103,7 @@ class ParkingSafetyNetWorker(
     private val config: ParkingDetectionConfig by inject()
     // [DET-HANDOFF-NOT-MANUAL-001] The handoff has its own port; the "I'm driving" one belongs to the
     // user's button and to nobody else.
-    private val arrivalHandoffDetection: io.apptolast.paparcar.domain.detection.ArrivalHandoffDetection by inject()
+    private val arrivalHandoffDetection: io.apptolast.paparcar.domain.detection.ports.ArrivalHandoffDetection by inject()
     // [DET-BT-IDENTITY-GATE-001] Per-session BT-identity inputs for the evaluator's release veto.
     private val vehicleRepository: VehicleRepository by inject()
     private val bluetoothScanner: BluetoothScanner by inject()
@@ -555,7 +555,7 @@ class ParkingSafetyNetWorker(
         // 2026-07-21, Oppo: a false-enter FGS hung ~2 h). This periodic tick is the first CPU the app
         // reliably gets back, so reap the ghost — never killing a process, only dismissing an orphan
         // notification. The pure decision's two locks guarantee a LIVE session is never touched.
-        if (io.apptolast.paparcar.domain.detection.shouldReapGhostDetectionFgs(
+        if (io.apptolast.paparcar.domain.detection.sentry.shouldReapGhostDetectionFgs(
                 isPeriodicTick = source == SOURCE_PERIODIC,
                 isDetectionRunning = detectionRuntime.isRunning.value,
                 hasStalePending = true, // stale is non-empty here (early-returned above otherwise)
@@ -566,7 +566,7 @@ class ParkingSafetyNetWorker(
         }
 
         val shouldNudge = stale.any {
-            io.apptolast.paparcar.domain.detection.shouldNudgeForStalePending(it.trigger, it.sawDriving)
+            io.apptolast.paparcar.domain.detection.sentry.shouldNudgeForStalePending(it.trigger, it.sawDriving)
         }
         if (shouldNudge) {
             PaparcarLogger.d(DIAG, "▶ [never-silent] ${stale.size} stale pending(s), heartbeat dead → mark-parking nudge")

@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.domain.detection
 
+import io.apptolast.paparcar.domain.detection.sentry.inheritedArmEvidence
 import io.apptolast.paparcar.domain.detection.physics.DriveProofBounds
 import io.apptolast.paparcar.domain.detection.physics.SessionOutcome
 import io.apptolast.paparcar.domain.detection.state.ConfirmationPhase

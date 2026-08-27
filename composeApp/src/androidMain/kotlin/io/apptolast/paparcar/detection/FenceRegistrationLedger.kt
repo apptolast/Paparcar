@@ -1,6 +1,6 @@
 package io.apptolast.paparcar.detection
 
-import io.apptolast.paparcar.domain.detection.FenceRegistrationPolicy
+import io.apptolast.paparcar.domain.detection.fence.FenceRegistrationPolicy
 
 /**
  * [DET-FENCE-REREGISTER-BY-CAUSE-001 §A] What this process has already registered, and when.

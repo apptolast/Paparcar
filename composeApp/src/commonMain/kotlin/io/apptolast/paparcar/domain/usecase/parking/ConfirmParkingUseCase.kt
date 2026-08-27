@@ -6,8 +6,8 @@ import com.apptolast.customlogin.domain.AuthRepository
 import io.apptolast.paparcar.domain.detection.ArmEvidence
 import io.apptolast.paparcar.domain.detection.assertionBlocksRelocation
 import io.apptolast.paparcar.domain.detection.DrivingRoute
-import io.apptolast.paparcar.domain.detection.DrivingRouteStore
-import io.apptolast.paparcar.domain.detection.VehicleFenceOwnershipPolicy
+import io.apptolast.paparcar.domain.detection.ports.DrivingRouteStore
+import io.apptolast.paparcar.domain.detection.fence.VehicleFenceOwnershipPolicy
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
 import io.apptolast.paparcar.domain.error.PaparcarError

@@ -5,10 +5,10 @@ import io.apptolast.paparcar.isDebugBuild
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.connectivity.ConnectivityObserver
 import io.apptolast.paparcar.domain.connectivity.ConnectivityStatus
-import io.apptolast.paparcar.domain.detection.DepartureWatchResumer
+import io.apptolast.paparcar.domain.detection.ports.DepartureWatchResumer
 import io.apptolast.paparcar.domain.detection.DetectionRuntimeState
-import io.apptolast.paparcar.domain.detection.ManualParkingDetection
-import io.apptolast.paparcar.domain.detection.VehicleFenceOwnershipPolicy
+import io.apptolast.paparcar.domain.detection.ports.ManualParkingDetection
+import io.apptolast.paparcar.domain.detection.fence.VehicleFenceOwnershipPolicy
 import io.apptolast.paparcar.domain.diagnostics.UiLocationLogger
 import io.apptolast.paparcar.domain.diagnostics.UiLocationSample
 import io.apptolast.paparcar.domain.error.PaparcarError

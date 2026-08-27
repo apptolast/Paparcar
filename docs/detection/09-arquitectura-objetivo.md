@@ -1658,3 +1658,28 @@ Ninguno de los dos cambió de DECISIÓN respecto a lo que el doc 11 §W.1/§W.2 
 (`feature/IOS-SOCIAL-LOGIN-001-google-apple`)— y **ninguno toca el subsistema de detección**, así
 que no hay trabajo en vuelo que colisione con F5 por este flanco. El árbol principal solo tiene sin
 commitear los propios documentos de `docs/detection/`.
+
+---
+
+## Addendum 2026-08-27 — DET-PACKAGE-CLUSTERS-001 (subpaquetes por rol)
+
+El §3 dibujó el árbol con 37 ficheros en la raíz de `domain/detection/` y los marcó `=` (sin
+cambio de casa) porque el refactor F6 movía LÓGICA, no direcciones. Cerrada la Fase 3 y sin ramas
+de detección en vuelo, la raíz se reagrupó por consumidor — cero conducta, solo `package` +
+imports (66 ficheros, 1.708 tests intactos):
+
+| Subpaquete nuevo | Ficheros (antes en raíz) | Consumidor dominante |
+|---|---|---|
+| `sentry/` | `SentryWakeCooldown` · `SentryWakeTriage` · `SentryLifecycleDecision` · `SessionSupersede` · `TriggerLedger` · `UserStopQuietPeriod` · `GhostFgsReapDecision` · `ExactHeartbeatHealth` · `PendingNudgeDecision` | el servicio/receivers/workers de androidMain: veredictos de despertar, matar, superseder y ledger |
+| `fence/` | `FenceRegistrationPolicy` · `GeofenceRegistrationFailure` · `VehicleFenceOwnershipPolicy` | geofence manager + workers: propiedad y registro de cercas |
+| `ports/` | `ArrivalHandoffDetection` · `DepartureWatchResumer` · `ManualParkingDetection` · `DrivingRouteStore` · `TripTrail` | contratos KMP puros con `*Impl` por plataforma |
+
+La raíz conserva el núcleo de sesión (orquestador, ejecutor, despachador, tap, epílogo,
+`HoldLifecycle`, `ArmEvidence`) y el vocabulario transversal que leen UI y domain
+(`ParkingDetectionSource`, `ParkingStrategyResolver`, `DetectionRuntimeState`, `DetectionTrigger`,
+`PendingParkNudge`, `PendingPromptWindow`, `DepartureProof`, `DepartureSpeedProof`,
+`HumanPoweredRide`, `AssertedPinAuthority`, `DrivingRoute`). Los tests espejo de `commonTest`
+siguieron a sus ficheros. Los guardrails no cambiaron de criterio: `StagePurityGuardrailTest`
+ancla en `stages/` (intacto) y `TriggerLane`/`HoldLane` solo actualizaron un import.
+
+Toda mención de rutas en los §§ anteriores a ficheros de la tabla se lee con este mapa delante.

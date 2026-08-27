@@ -2,9 +2,9 @@ package io.apptolast.paparcar.domain.usecase.detection
 
 import io.apptolast.paparcar.domain.detection.DetectionRuntimeState
 import io.apptolast.paparcar.domain.detection.ParkingStrategyResolver
-import io.apptolast.paparcar.domain.detection.PostDetectionLifecycle
+import io.apptolast.paparcar.domain.detection.sentry.PostDetectionLifecycle
 import io.apptolast.paparcar.domain.detection.ServicePresence
-import io.apptolast.paparcar.domain.detection.resolvePostDetectionLifecycle
+import io.apptolast.paparcar.domain.detection.sentry.resolvePostDetectionLifecycle
 import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.repository.VehicleRepository

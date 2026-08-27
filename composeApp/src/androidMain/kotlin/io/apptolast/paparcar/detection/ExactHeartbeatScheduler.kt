@@ -7,8 +7,8 @@ import android.content.Intent
 import android.os.Build
 import androidx.core.content.edit
 import io.apptolast.paparcar.detection.receiver.ExactHeartbeatReceiver
-import io.apptolast.paparcar.domain.detection.isExactHeartbeatLaneDead
-import io.apptolast.paparcar.domain.detection.nextExactHeartbeatMissStreak
+import io.apptolast.paparcar.domain.detection.sentry.isExactHeartbeatLaneDead
+import io.apptolast.paparcar.domain.detection.sentry.nextExactHeartbeatMissStreak
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 

@@ -1,9 +1,9 @@
 package io.apptolast.paparcar.fakes.data.repository
 
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
-import io.apptolast.paparcar.domain.detection.ArrivalHandoffDetection
-import io.apptolast.paparcar.domain.detection.DepartureWatchResumer
-import io.apptolast.paparcar.domain.detection.ManualParkingDetection
+import io.apptolast.paparcar.domain.detection.ports.ArrivalHandoffDetection
+import io.apptolast.paparcar.domain.detection.ports.DepartureWatchResumer
+import io.apptolast.paparcar.domain.detection.ports.ManualParkingDetection
 import io.apptolast.paparcar.domain.detection.MutableDetectionRuntimeState
 import io.apptolast.paparcar.domain.detection.ServicePresence
 import io.apptolast.paparcar.domain.model.AddressInfo

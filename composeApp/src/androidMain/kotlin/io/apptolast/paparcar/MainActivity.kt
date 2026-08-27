@@ -21,7 +21,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.apptolast.customlogin.platform.ActivityHolder
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.connectivity.ConnectivityObserver
-import io.apptolast.paparcar.domain.detection.DepartureWatchResumer
+import io.apptolast.paparcar.domain.detection.ports.DepartureWatchResumer
 import io.apptolast.paparcar.domain.usecase.detection.ObserveDepartureWatchGapUseCase
 import io.apptolast.paparcar.domain.event.MapFocusEventBus
 import io.apptolast.paparcar.domain.event.StartAddParkingEventBus

@@ -5,7 +5,7 @@ import android.content.Intent
 import android.os.SystemClock
 import androidx.core.content.ContextCompat
 import io.apptolast.paparcar.detection.service.CoordinatorDetectionService
-import io.apptolast.paparcar.domain.detection.DepartureWatchResumer
+import io.apptolast.paparcar.domain.detection.ports.DepartureWatchResumer
 import io.apptolast.paparcar.domain.usecase.detection.ObserveDepartureWatchGapUseCase
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlinx.coroutines.withTimeoutOrNull

@@ -3,7 +3,7 @@
 package io.apptolast.paparcar.presentation.home
 
 import io.apptolast.paparcar.domain.detection.DetectionPhase
-import io.apptolast.paparcar.domain.detection.DrivingRouteStore
+import io.apptolast.paparcar.domain.detection.ports.DrivingRouteStore
 import io.apptolast.paparcar.domain.detection.ParkingStrategy
 import io.apptolast.paparcar.domain.location.LocationDataSource
 import io.apptolast.paparcar.domain.location.UserLocationUi

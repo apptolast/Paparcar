@@ -23,28 +23,28 @@ import io.apptolast.paparcar.domain.detection.CoordinatorParkingDetector
 import io.apptolast.paparcar.domain.detection.ArmEvidence
 import io.apptolast.paparcar.domain.detection.DepartureProof
 import io.apptolast.paparcar.domain.detection.DetectionTrigger
-import io.apptolast.paparcar.domain.detection.TriggerDisposition
+import io.apptolast.paparcar.domain.detection.sentry.TriggerDisposition
 import io.apptolast.paparcar.domain.detection.coordinatorMayArm
-import io.apptolast.paparcar.domain.detection.isArmSuppressedByUserStop
-import io.apptolast.paparcar.domain.detection.triggerLedgerSessionId
-import io.apptolast.paparcar.domain.detection.CheapWakeVerdict
-import io.apptolast.paparcar.domain.detection.cheapWakeVerdict
-import io.apptolast.paparcar.domain.detection.isInsideAnyOwnedFence
+import io.apptolast.paparcar.domain.detection.sentry.isArmSuppressedByUserStop
+import io.apptolast.paparcar.domain.detection.sentry.triggerLedgerSessionId
+import io.apptolast.paparcar.domain.detection.sentry.CheapWakeVerdict
+import io.apptolast.paparcar.domain.detection.sentry.cheapWakeVerdict
+import io.apptolast.paparcar.domain.detection.sentry.isInsideAnyOwnedFence
 import io.apptolast.paparcar.domain.detection.physics.SessionOutcome
-import io.apptolast.paparcar.domain.detection.mayTriageSentryWake
-import io.apptolast.paparcar.domain.detection.userStopQuietPeriodRemainingMs
+import io.apptolast.paparcar.domain.detection.sentry.mayTriageSentryWake
+import io.apptolast.paparcar.domain.detection.sentry.userStopQuietPeriodRemainingMs
 import io.apptolast.paparcar.domain.detection.MutableDetectionRuntimeState
 import io.apptolast.paparcar.domain.detection.ParkingStrategy
 import io.apptolast.paparcar.domain.detection.ParkingStrategyResolver
-import io.apptolast.paparcar.domain.detection.PostDetectionLifecycle
-import io.apptolast.paparcar.domain.detection.SentryKillVerdict
+import io.apptolast.paparcar.domain.detection.sentry.PostDetectionLifecycle
+import io.apptolast.paparcar.domain.detection.sentry.SentryKillVerdict
 import io.apptolast.paparcar.domain.detection.ServicePresence
-import io.apptolast.paparcar.domain.detection.VehicleFenceOwnershipPolicy
-import io.apptolast.paparcar.domain.detection.nextSentryWakeAbortStreak
-import io.apptolast.paparcar.domain.detection.resolvePostDetectionLifecycle
-import io.apptolast.paparcar.domain.detection.sentryWakeRearmCooldownMs
+import io.apptolast.paparcar.domain.detection.fence.VehicleFenceOwnershipPolicy
+import io.apptolast.paparcar.domain.detection.sentry.nextSentryWakeAbortStreak
+import io.apptolast.paparcar.domain.detection.sentry.resolvePostDetectionLifecycle
+import io.apptolast.paparcar.domain.detection.sentry.sentryWakeRearmCooldownMs
 import io.apptolast.paparcar.domain.preferences.AppPreferences
-import io.apptolast.paparcar.domain.detection.resolveSentryKillVerdict
+import io.apptolast.paparcar.domain.detection.sentry.resolveSentryKillVerdict
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.detection.TripContext
 import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
@@ -112,7 +112,7 @@ class CoordinatorDetectionService : LifecycleService() {
     // Dense tracked route persisted so Home redraws the real trip after background / cold-start,
     // instead of reconstructing it from the parked spot. Fed from the tracking stream below,
     // cleared when the trip terminates. [DET-ROUTE-TRACK-001]
-    private val drivingRouteStore: io.apptolast.paparcar.domain.detection.DrivingRouteStore by inject()
+    private val drivingRouteStore: io.apptolast.paparcar.domain.detection.ports.DrivingRouteStore by inject()
     private val locationDataSource: io.apptolast.paparcar.domain.location.LocationDataSource by inject() // [ROUTE-PASSIVE-FILL-001]
     private val detectionConfig: ParkingDetectionConfig by inject()
     // [DET-AR-FIRST-001] Arm ladder for the AR ENTER decision lane.
@@ -745,7 +745,7 @@ class CoordinatorDetectionService : LifecycleService() {
                         detectionConfig.geofenceRadiusFor(it.sizeCategory, it.location.accuracy)
                     }
                     val supersede = newSession != null && radius != null &&
-                        io.apptolast.paparcar.domain.detection.shouldSupersedeRunningSession(
+                        io.apptolast.paparcar.domain.detection.sentry.shouldSupersedeRunningSession(
                             newSession.location, runningAnchor, radius,
                         )
                     if (!supersede) {
@@ -919,7 +919,7 @@ class CoordinatorDetectionService : LifecycleService() {
                 detectionConfig.geofenceRadiusFor(it.sizeCategory, it.location.accuracy)
             }
             val supersede = session != null && radius != null &&
-                io.apptolast.paparcar.domain.detection.shouldSupersedeRunningSession(
+                io.apptolast.paparcar.domain.detection.sentry.shouldSupersedeRunningSession(
                     session.location, runningAnchor, radius,
                 )
             if (!supersede) {

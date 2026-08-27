@@ -1,6 +1,6 @@
 package io.apptolast.paparcar.domain.diagnostics
 
-import io.apptolast.paparcar.domain.detection.GeofenceRegistrationFailure
+import io.apptolast.paparcar.domain.detection.fence.GeofenceRegistrationFailure
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingReleaseReason
 
@@ -87,7 +87,7 @@ sealed interface DetectionEvent {
         override val sessionId: String,
         override val timestampMs: Long,
         val trigger: String,
-        val disposition: io.apptolast.paparcar.domain.detection.TriggerDisposition,
+        val disposition: io.apptolast.paparcar.domain.detection.sentry.TriggerDisposition,
         val detail: String? = null,
         val geofenceId: String? = null,
         override val location: GpsPoint? = null,

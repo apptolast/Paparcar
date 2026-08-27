@@ -56,19 +56,19 @@ val androidDetectionModule = module {
     single { SignificantMotionMonitor(androidContext(), get(), get()) }
 
     // --- Trip trail: every one-shot fix becomes a persisted breadcrumb [DET-BREADCRUMBS-001] ---
-    single<io.apptolast.paparcar.domain.detection.TripTrail> {
+    single<io.apptolast.paparcar.domain.detection.ports.TripTrail> {
         io.apptolast.paparcar.detection.TripTrailImpl(androidContext())
     }
 
     // --- Driving route: the dense tracked route persisted so the drawn line survives background /
     // cold-start mid-trip; fed by the service, restored by the trip controller [DET-ROUTE-TRACK-001] ---
-    single<io.apptolast.paparcar.domain.detection.DrivingRouteStore> {
+    single<io.apptolast.paparcar.domain.detection.ports.DrivingRouteStore> {
         io.apptolast.paparcar.detection.DrivingRouteStoreImpl(androidContext())
     }
 
     // --- Departure-watch resurrection: rebuild the resident SENTRY watcher from a foreground moment
     // (visible Activity / "Reactivate" tap). Same gate as the service's idle epilogue. [DET-WATCH-REACTIVATE-001] ---
-    single<io.apptolast.paparcar.domain.detection.DepartureWatchResumer> {
+    single<io.apptolast.paparcar.domain.detection.ports.DepartureWatchResumer> {
         io.apptolast.paparcar.detection.DepartureWatchResumerImpl(
             context = androidContext(),
             observeDepartureWatchGap = get(),
@@ -76,14 +76,14 @@ val androidDetectionModule = module {
     }
 
     // --- Manual detection start ("I'm driving" cold-start affordance) [DET-G-01b] ---
-    single<io.apptolast.paparcar.domain.detection.ManualParkingDetection> {
+    single<io.apptolast.paparcar.domain.detection.ports.ManualParkingDetection> {
         io.apptolast.paparcar.detection.ManualParkingDetectionImpl(androidContext())
     }
 
     // --- Arrival handoff start (safety net follows the rest of a dispatched trip).
     // Its OWN port + service action so a worker-born session is never read as the user's
     // "I'm driving". [DET-HANDOFF-NOT-MANUAL-001][DET-ARRIVAL-HANDOFF-001] ---
-    single<io.apptolast.paparcar.domain.detection.ArrivalHandoffDetection> {
+    single<io.apptolast.paparcar.domain.detection.ports.ArrivalHandoffDetection> {
         io.apptolast.paparcar.detection.ArrivalHandoffDetectionImpl(androidContext())
     }
 

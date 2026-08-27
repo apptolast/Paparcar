@@ -16,7 +16,7 @@ import io.apptolast.paparcar.fakes.FakeZoneRepository
 import io.apptolast.paparcar.fakes.FakeUserParkingRepository
 import io.apptolast.paparcar.fakes.FakeVehicleRepository
 import io.apptolast.paparcar.domain.error.PaparcarError
-import io.apptolast.paparcar.domain.detection.DrivingRouteStore
+import io.apptolast.paparcar.domain.detection.ports.DrivingRouteStore
 import io.apptolast.paparcar.domain.util.PolylineCodec
 import io.apptolast.paparcar.fakes.FakeDrivingRouteStore
 import kotlinx.coroutines.test.runTest

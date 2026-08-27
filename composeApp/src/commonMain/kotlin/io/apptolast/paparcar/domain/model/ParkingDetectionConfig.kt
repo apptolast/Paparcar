@@ -714,7 +714,7 @@ data class ParkingDetectionConfig(
      *  enqueue the janitor; `REPLACE` does not dedupe a run that already finished). 5 min is far
      *  above any such burst and far below every legitimate cause, so it drops the duplicates without
      *  ever delaying a real restoration. A known cause (poisoned state) overrides it —
-     *  see [io.apptolast.paparcar.domain.detection.FenceRegistrationPolicy]. */
+     *  see [io.apptolast.paparcar.domain.detection.fence.FenceRegistrationPolicy]. */
     val fenceRegisterDedupWindowMs: Long = 5 * 60_000L,
 
     /** [DET-ANCHOR-FREEZE-001 F4] Minimum interval between OS re-registrations of a live parked

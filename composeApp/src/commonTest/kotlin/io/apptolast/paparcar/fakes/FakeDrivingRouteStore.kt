@@ -1,7 +1,7 @@
 package io.apptolast.paparcar.fakes
 
 import io.apptolast.paparcar.domain.detection.DrivingRoute
-import io.apptolast.paparcar.domain.detection.DrivingRouteStore
+import io.apptolast.paparcar.domain.detection.ports.DrivingRouteStore
 import io.apptolast.paparcar.domain.model.GpsPoint
 
 /** In-memory [DrivingRouteStore] for tests. Preload via [initial] to simulate a route the service

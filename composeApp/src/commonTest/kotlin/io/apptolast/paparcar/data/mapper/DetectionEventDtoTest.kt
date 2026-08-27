@@ -3,7 +3,7 @@ package io.apptolast.paparcar.data.mapper
 import io.apptolast.paparcar.data.datasource.remote.dto.toDto
 import io.apptolast.paparcar.data.datasource.remote.dto.typeName
 import io.apptolast.paparcar.domain.detection.HoldAction
-import io.apptolast.paparcar.domain.detection.TriggerDisposition
+import io.apptolast.paparcar.domain.detection.sentry.TriggerDisposition
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.model.GpsPoint
 import kotlin.test.Test

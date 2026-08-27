@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.domain.detection
 
+import io.apptolast.paparcar.domain.detection.fence.VehicleFenceOwnershipPolicy
 import io.apptolast.paparcar.domain.detection.physics.SavedParkingShape
 import io.apptolast.paparcar.domain.detection.physics.SessionOutcome
 import io.apptolast.paparcar.domain.detection.physics.honestZoneRadius

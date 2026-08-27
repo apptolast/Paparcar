@@ -1,7 +1,7 @@
 package io.apptolast.paparcar.architecture
 
 import com.lemonappdev.konsist.api.Konsist
-import io.apptolast.paparcar.domain.detection.TriggerDisposition
+import io.apptolast.paparcar.domain.detection.sentry.TriggerDisposition
 import org.junit.Test
 import kotlin.test.assertTrue
 

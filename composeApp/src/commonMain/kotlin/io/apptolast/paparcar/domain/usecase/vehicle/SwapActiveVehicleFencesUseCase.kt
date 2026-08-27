@@ -2,8 +2,8 @@
 
 package io.apptolast.paparcar.domain.usecase.vehicle
 
-import io.apptolast.paparcar.domain.detection.FenceOwner
-import io.apptolast.paparcar.domain.detection.VehicleFenceOwnershipPolicy
+import io.apptolast.paparcar.domain.detection.fence.FenceOwner
+import io.apptolast.paparcar.domain.detection.fence.VehicleFenceOwnershipPolicy
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.repository.VehicleRepository

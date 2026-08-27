@@ -7,7 +7,7 @@ import dev.gitlive.firebase.firestore.FirebaseFirestore
 import io.apptolast.paparcar.data.datasource.remote.dto.DetectionSessionDto
 import io.apptolast.paparcar.data.datasource.remote.dto.toDto
 import io.apptolast.paparcar.data.datasource.remote.dto.toSessionDto
-import io.apptolast.paparcar.domain.detection.triggerLedgerStartedAtMs
+import io.apptolast.paparcar.domain.detection.sentry.triggerLedgerStartedAtMs
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
 import io.apptolast.paparcar.domain.diagnostics.DeviceInfoProvider

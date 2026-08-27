@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.Intent
 import androidx.core.content.ContextCompat
 import io.apptolast.paparcar.detection.service.CoordinatorDetectionService
-import io.apptolast.paparcar.domain.detection.ArrivalHandoffDetection
+import io.apptolast.paparcar.domain.detection.ports.ArrivalHandoffDetection
 
 /**
  * [DET-HANDOFF-NOT-MANUAL-001] Sends the safety net's arrival handoff through its OWN service

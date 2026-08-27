@@ -89,16 +89,16 @@ val mockModule = module {
     single<io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger> { io.apptolast.paparcar.domain.diagnostics.NoOpDetectionEventLogger() }
     single<io.apptolast.paparcar.domain.diagnostics.UiLocationLogger> { io.apptolast.paparcar.domain.diagnostics.NoOpUiLocationLogger() }
     single<ReportSpotScheduler> { FakeReportSpotScheduler() }
-    single<io.apptolast.paparcar.domain.detection.ManualParkingDetection> {
+    single<io.apptolast.paparcar.domain.detection.ports.ManualParkingDetection> {
         // Same shared runtime, so the Home "I'm driving" CTA starts the sim too. [DRIVE-SIM-001]
         io.apptolast.paparcar.fakes.data.repository.FakeManualParkingDetection(get<io.apptolast.paparcar.domain.detection.MutableDetectionRuntimeState>())
     }
-    single<io.apptolast.paparcar.domain.detection.ArrivalHandoffDetection> {
+    single<io.apptolast.paparcar.domain.detection.ports.ArrivalHandoffDetection> {
         // [DET-HANDOFF-NOT-MANUAL-001] Own fake: "the safety net started it" must never be able to
         // satisfy an assertion about the user starting it.
         io.apptolast.paparcar.fakes.data.repository.FakeArrivalHandoffDetection(get<io.apptolast.paparcar.domain.detection.MutableDetectionRuntimeState>())
     }
-    single<io.apptolast.paparcar.domain.detection.DepartureWatchResumer> {
+    single<io.apptolast.paparcar.domain.detection.ports.DepartureWatchResumer> {
         // Same shared runtime: tapping "Reactivate" on the interrupted-watch row flips presence to
         // Sentry, so the row heals in the mock build like it does on device. [DET-WATCH-REACTIVATE-001]
         io.apptolast.paparcar.fakes.data.repository.FakeDepartureWatchResumer(get<io.apptolast.paparcar.domain.detection.MutableDetectionRuntimeState>())

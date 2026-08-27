@@ -12,8 +12,8 @@ import io.apptolast.paparcar.data.session.RoomLocalSessionCache
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.bluetooth.BluetoothScanner
 import io.apptolast.paparcar.domain.connectivity.ConnectivityObserver
-import io.apptolast.paparcar.domain.detection.ArrivalHandoffDetection
-import io.apptolast.paparcar.domain.detection.ManualParkingDetection
+import io.apptolast.paparcar.domain.detection.ports.ArrivalHandoffDetection
+import io.apptolast.paparcar.domain.detection.ports.ManualParkingDetection
 import io.apptolast.paparcar.domain.geocoder.GeocoderDataSource
 import io.apptolast.paparcar.domain.location.LocationDataSource
 import io.apptolast.paparcar.domain.notification.AppNotificationManager

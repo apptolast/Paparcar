@@ -1,7 +1,7 @@
 package io.apptolast.paparcar.detection
 
 import com.google.android.gms.common.api.ApiException
-import io.apptolast.paparcar.domain.detection.GeofenceRegistrationFailure
+import io.apptolast.paparcar.domain.detection.fence.GeofenceRegistrationFailure
 
 /**
  * [DET-FENCE-REREGISTER-BY-CAUSE-001 §D] Pulls the reason out of whatever

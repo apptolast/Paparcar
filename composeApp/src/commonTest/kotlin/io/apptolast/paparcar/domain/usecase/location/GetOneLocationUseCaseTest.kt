@@ -95,7 +95,7 @@ class GetOneLocationUseCaseTest {
 
     // ── Trip trail hook [DET-BREADCRUMBS-001] — every ACCEPTED fix becomes a breadcrumb ──
 
-    private class RecordingTrail : io.apptolast.paparcar.domain.detection.TripTrail {
+    private class RecordingTrail : io.apptolast.paparcar.domain.detection.ports.TripTrail {
         val appended = mutableListOf<GpsPoint>()
         override fun append(point: GpsPoint) { appended.add(point) }
         override fun points(): List<GpsPoint> = appended

@@ -2,7 +2,7 @@
 
 package io.apptolast.paparcar.domain.usecase.parking
 
-import io.apptolast.paparcar.domain.detection.ManualParkingDetection
+import io.apptolast.paparcar.domain.detection.ports.ManualParkingDetection
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.notification.AppNotificationManager

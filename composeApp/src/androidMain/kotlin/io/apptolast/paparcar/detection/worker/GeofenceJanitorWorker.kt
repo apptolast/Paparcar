@@ -15,7 +15,7 @@ import io.apptolast.paparcar.detection.geofenceFailureDetail
 import io.apptolast.paparcar.detection.toGeofenceRegistrationFailure
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
-import io.apptolast.paparcar.domain.detection.VehicleFenceOwnershipPolicy
+import io.apptolast.paparcar.domain.detection.fence.VehicleFenceOwnershipPolicy
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.service.GeofenceManager

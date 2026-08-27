@@ -2,7 +2,7 @@ package io.apptolast.paparcar.detection
 
 import android.content.Context
 import io.apptolast.paparcar.domain.detection.DrivingRoute
-import io.apptolast.paparcar.domain.detection.DrivingRouteStore
+import io.apptolast.paparcar.domain.detection.ports.DrivingRouteStore
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlinx.serialization.builtins.ListSerializer

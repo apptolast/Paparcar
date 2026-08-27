@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.Intent
 import androidx.core.content.ContextCompat
 import io.apptolast.paparcar.detection.service.CoordinatorDetectionService
-import io.apptolast.paparcar.domain.detection.ManualParkingDetection
+import io.apptolast.paparcar.domain.detection.ports.ManualParkingDetection
 
 /**
  * Starts the Coordinator detection service to track the current trip via [ACTION_START_TRACKING]
