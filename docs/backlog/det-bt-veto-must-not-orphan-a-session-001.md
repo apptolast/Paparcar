@@ -42,6 +42,49 @@ reconocido, y si `a786c135` pasa a `isActive: false`.
 ⚠️ Dato de contexto, no acusación: el vehículo está `isActive: false` en el garaje (el activo es el
 Ford Focus `addbe660`, sin BT), lo cual es coherente con no estar usándolo.
 
+## De dónde sale el prompt, exactamente — `DET-BT-IDENTITY-GATE-001`
+
+⚠️ **Segunda corrección.** El prompt no sale de «no había pruebas de viaje». Sale del **propio veto
+BT**, y el user lo señaló antes de que yo lo encontrara: *«el Kamiq está vinculado por BT; los
+vehículos por BT tienen como trigger principal el BT, no debería lanzar prompts así porque sí»*.
+
+`ParkingSafetyNetWorker:238` → `vehicleBtGated = btEnabled && el vehículo tiene MAC`. Para el Kamiq
+es **cierto** (tiene MAC, y el BT del móvil está encendido: los auriculares conectan y desconectan
+durante todo el log). Y `lastBtConnectedAtMs` es **null**, porque su MAC no ha conectado nunca. Con
+eso:
+
+```kotlin
+val btIdentityMissing = vehicleBtGated &&
+    (lastBtConnectedAtMs == null || lastBtConnectedAtMs < sessionStartMs)   // ← permanentemente true
+fun releaseOrAsk(dispatch) = if (btIdentityMissing) PromptStillParked(geofenceId) else dispatch
+```
+
+O sea: **toda** liberación que el safety-net reconstruya para esa sesión se degrada a pregunta, y lo
+seguirá haciendo mientras el MAC no conecte. El guard hace lo que se diseñó para hacer —evita
+liberar la plaza de un coche BT cuando te recogieron en otro (field 2026-07-18)— pero su KDoc
+justifica el coste diciendo *«the honest exit is the human prompt, NEVER silence»*, y eso presupone
+que preguntar es barato. Con un coche aparcado a largo plazo cuyo BT no conecta, esa «salida
+honesta» se dispara **cada vez que sales con el OTRO coche**.
+
+**El punto de doctrina del user es el correcto y es más fuerte que mi primer encuadre:** para un
+coche con MAC, el trigger es el BT. Juzgar su sesión por desplazamiento es razonamiento del carril
+probabilístico aplicado a un coche que no le pertenece — la mezcla que CLAUDE.md prohíbe, en el
+sentido en que no solemos mirarla.
+
+### ⛔ Y el log MIENTE sobre esta rama
+
+`ParkingSafetyNetWorker` imprime, para cualquier `PromptStillParked`:
+
+```
+geof=a786c135: LEJOS del coche (d=2001m) pero SIN pruebas de viaje → te pregunto '¿sigues aparcado?'
+```
+
+En esta rama **sí había pruebas de viaje** — las mismas 4 pasos que liberaron la sesión del Focus 13
+ms después. Lo que faltaba era la identidad BT. Las dos causas salen con el mismo texto, y ese texto
+afirma la que no es. Es la misma familia que `DET-PROMPT-STATES-ITS-REASON-001` resolvió en el lado
+del confirm. **Sin arreglar esto no se puede diagnosticar el resto**: yo mismo no pude distinguir las
+dos rutas leyendo el log, sólo deducirlas del código.
+
 ## Lo que cuesta, medido — ⛔ ningún pin, sólo ruido
 
 El fallo asimétrico **aguantó**: en tres días el zombi no plantó ni un pin. Los dos armes que
@@ -77,6 +120,21 @@ no poder cerrar**: una sesión que ninguna vía puede terminar debería poder qu
 dormir la valla, dejar de reintentar la retirada de un spot inexistente, dejar de gastar heartbeat—
 sin dejar de existir. Y, por separado, que el user tenga una forma clara de decir «ese coche ya no
 está ahí» sin que sea un prompt colgado de cada salida.
+
+### Cómo se resuelve la tensión del veto BT sin desarmarlo
+
+El veto tiene razón en **no liberar**: si conduces el Kamiq con el BT apagado, el desplazamiento es
+real y liberar a ciegas perdería la plaza. Su KDoc elige preguntar por eso. Pero hay un caso en el
+que preguntar tampoco hace falta, y es justo el del 27-08: **cuando el desplazamiento YA tiene
+dueño.** Si en el mismo tick otra sesión despacha su salida con pruebas de viaje, el movimiento está
+explicado — te fuiste en el Focus — y no hay ninguna sospecha que resolver sobre el Kamiq.
+
+Es exactamente lo que propone `DET-EXPLAINED-RIDE-ASKS-NO-OTHER-CAR-001`, así que **ese ticket ya
+cubre el caso que motivó éste**, sin tocar el veto ni relajar la seguridad: el silencio es seguro
+porque el viaje tiene propietario, no porque confiemos en el BT.
+
+Lo que queda aquí, entonces, es más pequeño y más honesto: (a) el texto del log que miente, (b) el
+coste continuo, y (c) la pregunta abierta de si el BT cierra la sesión cuando el coche se conduzca.
 
 Preguntas que hay que contestar antes de escribir código:
 
