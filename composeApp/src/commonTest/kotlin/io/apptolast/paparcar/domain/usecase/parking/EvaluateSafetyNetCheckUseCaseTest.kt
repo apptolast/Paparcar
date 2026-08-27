@@ -558,6 +558,50 @@ class EvaluateSafetyNetCheckUseCaseTest {
         assertEquals(false, dispatch.backfillBounded, "no arrival walk ⇒ nothing may be placed")
     }
 
+    // ── [DET-BACKFILL-CANNOT-PIN-A-MOVING-FIX-001] A space is placed at REST, or not at all ──
+
+    @Test
+    fun should_notBoundBackfill_when_theWakeUpFixIsStillMoving() {
+        // Field 2026-08-27 12:29:18, Oppo CPH2371, Ronda del Puerto. An AR `IN_VEHICLE` ENTER woke
+        // the service mid-drive; the arm was correctly declined ("not armable"), and the same event
+        // then chained a backfill onto the wake-up fix — whose own log line reads
+        // `speed=2.116912m/s acc=2.5m` (7,6 km/h, slowing into a roundabout). Every other clause
+        // passed: 4 trusted steps, 4 arrival-walk steps, a 2,5 m fix. Nineteen seconds later the
+        // fence of that brand-new pin emitted its EXIT at 44 km/h.
+        //
+        // Note the speed is BELOW `minimumDepartureSpeedKmh`, so this arrives through the
+        // AR-boarding branch, not the credible-driving-speed one — exactly as it did in the field.
+        // The anchor age is the field one: the last "still next to the car" witness was 12:25:24,
+        // the backfill fired at 12:29:18. It matters — over ~4 minutes 2 008 m is far beyond
+        // pedestrian reach, so the 4 steps keep their voice and every other clause passes.
+        val action = evaluate(
+            fix = fixAtMeters(2_008.0, speedMps = 2.116912f, accuracy = 2.5f),
+            lastSeenNearCarAtMs = nowMs - 4 * 60_000L,
+            stepsSinceAnchor = 4L,
+            stepsSinceLastWitness = 4L,
+            lastVehicleEnteredAtMs = nowMs - 60_000L,
+        )
+        val dispatch = assertIs<SafetyNetAction.DispatchDeparture>(action)
+        assertEquals(true, dispatch.preconfirmed, "the departure verdict itself is correct")
+        assertEquals(false, dispatch.backfillBounded, "a moving fix has no position to bound")
+    }
+
+    @Test
+    fun should_boundBackfill_when_thatSameWakeUpFixIsAtRest() {
+        // The discriminating twin of the test above: identical steps, accuracy, distance and
+        // boarding — only the fix is stopped. The backfill is the safety net's whole reason to
+        // exist and must keep working; what the guard removes is placing a pin mid-drive.
+        val action = evaluate(
+            fix = fixAtMeters(2_008.0, speedMps = 0f, accuracy = 2.5f),
+            lastSeenNearCarAtMs = nowMs - 4 * 60_000L,
+            stepsSinceAnchor = 4L,
+            stepsSinceLastWitness = 4L,
+            lastVehicleEnteredAtMs = nowMs - 60_000L,
+        )
+        val dispatch = assertIs<SafetyNetAction.DispatchDeparture>(action)
+        assertEquals(true, dispatch.backfillBounded)
+    }
+
     @Test
     fun should_notBoundBackfill_when_theArrivalBudgetIsUnknown() {
         // No witness on record (fresh install), unreadable counter, or a reboot in between: no

@@ -5429,3 +5429,47 @@ fraction of moving fixes carrying concurrent steps, in a car and on a bicycle. T
 exist in any lane.
 
 Spec: `docs/backlog/det-cadence-steps-are-invisible-to-telemetry-001.md`.
+
+### DET-BACKFILL-CANNOT-PIN-A-MOVING-FIX-001 — a space is placed at rest, or not at all (pending)
+
+Field 2026-08-27 12:29:18, Oppo CPH2371, Ronda del Puerto. An AR `IN_VEHICLE` ENTER woke the service
+mid-drive. The arm was correctly declined — `⊘ AR ENTER not armable (TickOnly, lag=227ms)` — and then
+the very same event was good enough to **place a parking space**: the safety net chained a backfill
+onto the wake-up fix, whose own log line reads `speed=2.116912m/s acc=2.5m`. The car was doing
+7,6 km/h, slowing into a roundabout, and a pin went down at `36.6027462,-6.2568375` with reliability
+0,5 and no address.
+
+The app then contradicted itself in 63 seconds: at 12:29:36 the brand-new fence emitted its EXIT at
+44 km/h, and at 12:30:21 `Depart attempt=2 → Confirmed` cleared the session. It processed the
+departure from a space that was never occupied. `ClearActiveParkingSessionWorker` closed the session
+but the history record stayed, indistinguishable to the user from a real park.
+
+**Why it was wrong.** Both halves of the governing doctrine at once. *The event NOMINATES, only
+measured movement CONFIRMS* — one event cannot be too weak to arm and strong enough to pin. And
+*asymmetric failure* — with zero measured rest the honest move is to ask, not to plant. The intent
+was already written in the code: `arrivalWalkSteps` carries the comment *"Better a late question than
+a pin at a traffic light."* The condition simply never checked.
+
+**Fix.** One clause in `backfillBounded` (`EvaluateSafetyNetCheckUseCase`), which is a single computed
+value feeding all five `DispatchDeparture` constructions, so the invariant lands in one place:
+`fix.speed <= config.stoppedSpeedThresholdMps`. Every other clause bounds *how wrong* the position may
+be; none asked whether there was a position to bound. The question is not "did this session drive?"
+(the release branches answer that, and answering it is why the departure dispatches) but "is the car
+standing still HERE, where the pin is about to go?" — and only this fix's own speed measures it.
+`stoppedSpeedThresholdMps` (1 m/s) is the threshold the rest of the detector already uses for that
+sentence, so no new calibration enters.
+
+Failing the clause costs nothing real: the departure still dispatches (releasing the old space was the
+correct half) and the arrival falls to DET-ARRIVAL-HANDOFF-001 — live detection or the prompt —
+exactly as it already does when `arrivalWalkSteps` is null.
+
+**Guard today.** A backfill pin requires trusted steps within the boarding cap, a pin-grade fix, a
+non-zero arrival walk, **and a fix at rest**. Witnessed by the field pair
+`should_notBoundBackfill_when_theWakeUpFixIsStillMoving` / `should_boundBackfill_when_thatSameWakeUpFixIsAtRest`,
+identical in every input but the speed; neutralising the clause turns exactly the first one red.
+
+**What was deliberately NOT done.** Retracting the phantom pin when its own departure confirms
+seconds later — the history record still survives that path. Recorded as
+`PARK-RETRACTED-BACKFILL-MUST-LEAVE-NO-PIN-001`.
+
+Spec: `docs/backlog/det-backfill-cannot-pin-a-moving-fix-001.md`.

@@ -268,9 +268,30 @@ class EvaluateSafetyNetCheckUseCase(
         // Backfill bounding (see [SafetyNetAction.DispatchDeparture.backfillBounded]): trusted
         // steps within the boarding cap bound the pin error, and the fix must be pin-grade.
         // Null trusted steps (mute/frozen counter) can never bound a position.
+        //
+        // [DET-BACKFILL-CANNOT-PIN-A-MOVING-FIX-001] …and the car must be AT REST in that fix.
+        // Every other clause bounds how wrong the position may be; none of them asked whether there
+        // was a position to bound. Field 2026-08-27 12:29:18 (Oppo, Ronda del Puerto): an AR
+        // `IN_VEHICLE` ENTER woke the service, the arm was correctly declined as not armable, and
+        // the very same event was then good enough to PLACE A SPACE — on a wake-up fix whose own log
+        // line reads `speed=2.116912m/s` (7,6 km/h, slowing for a roundabout), with 4 arrival-walk
+        // steps as the whole proof the body had got out. Nineteen seconds later that brand-new
+        // fence emitted its EXIT at 44 km/h and the app processed the departure from a space that
+        // was never occupied, leaving the phantom in the history.
+        //
+        // The question this clause answers is not "did the session drive?" — the release branches
+        // below already answer that, and answering it is *why* the departure dispatches. It is
+        // "is the car standing still HERE, where the pin is about to go?", and only this fix's own
+        // speed measures that. `stoppedSpeedThresholdMps` is the threshold the rest of the detector
+        // already uses for that same sentence, so no new calibration enters.
+        //
+        // Failing it costs nothing that was ever real: the departure still dispatches (releasing the
+        // old space was the correct half), and the arrival falls to [DET-ARRIVAL-HANDOFF-001] — live
+        // detection or the prompt — exactly as it already does when `arrivalWalkSteps` is null.
         val backfillBounded = trustedStepsSinceAnchor != null &&
             trustedStepsSinceAnchor <= config.backfillMaxSteps &&
             fix.accuracy <= config.minGpsAccuracyForDriving &&
+            fix.speed <= config.stoppedSpeedThresholdMps &&
             arrivalWalkSteps != null
 
         val timeFreshAnchor = nearAgeMs != null && nearAgeMs in 0..config.vehicleEnterWindowMs
