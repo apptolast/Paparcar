@@ -124,12 +124,6 @@ fun CarbodyInfoCard(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Edit,
-                            contentDescription = null,
-                            tint = cs.onSurface.copy(alpha = SUBTITLE_ALPHA),
-                            modifier = Modifier.size(14.dp),
-                        )
                         Text(
                             text = stringResource(Res.string.vehicle_registration_carbody_change),
                             style = PaparcarType.current.label,

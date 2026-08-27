@@ -54,9 +54,9 @@ enum class PapFooterButtonStyle { Filled, Outlined, Tonal }
 fun PapFooterButton(
     label: String,
     onClick: () -> Unit,
-    // DEFAULT: every Paparcar button that names a concrete action carries a leading icon.
-    // Pass `null` only for generic flow-control (cancel/dismiss/withdraw) whose meaning the
-    // surrounding sheet already fixes — a glyph there is redundant noise. [UI-SHEET-002]
+    // TEXT-ONLY is the default — the label already names the action. An icon has to earn
+    // its place: destructive actions (Delete) or provider identity, nothing else.
+    // [UI-BUTTON-ICONS-EARN-THEIR-PLACE-001]
     leadingIcon: ImageVector? = null,
     modifier: Modifier = Modifier,
     style: PapFooterButtonStyle = PapFooterButtonStyle.Filled,

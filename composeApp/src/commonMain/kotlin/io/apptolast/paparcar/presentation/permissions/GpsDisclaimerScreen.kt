@@ -44,7 +44,6 @@ fun GpsDisclaimerScreen(
         footer = {
             PapFooterButton(
                 label = stringResource(Res.string.gps_disclaimer_confirm),
-                leadingIcon = Icons.Rounded.GpsFixed,
                 onClick = onAccepted,
                 style = PapFooterButtonStyle.Filled,
                 modifier = Modifier.fillMaxWidth(),

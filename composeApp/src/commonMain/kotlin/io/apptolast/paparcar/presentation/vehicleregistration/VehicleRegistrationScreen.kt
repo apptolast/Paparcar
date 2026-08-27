@@ -21,7 +21,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Bluetooth
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material3.Button
@@ -183,7 +182,6 @@ private fun BluetoothRecommendationDialog(
         title = stringResource(Res.string.veh_bt_recommendation_title),
         body = stringResource(Res.string.veh_bt_recommendation_body),
         primaryLabel = stringResource(Res.string.veh_bt_recommendation_configure),
-        primaryLeadingIcon = Icons.Rounded.Bluetooth,
         onPrimary = onConfigure,
         cancelLabel = stringResource(Res.string.veh_bt_recommendation_skip),
     )
@@ -710,7 +708,6 @@ private fun VehicleRegistrationBottomBar(
                     else Res.string.vehicle_registration_save,
                 ),
                 onClick = onSave,
-                leadingIcon = Icons.Rounded.Check,
                 enabled = canSubmit && !isSaving,
                 isLoading = isSaving,
             )

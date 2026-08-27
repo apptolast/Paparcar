@@ -65,10 +65,10 @@ enum class PapDialogAccent { Primary, Destructive }
  *  │          Body explanation             │
  *  │                                       │
  *  │ ┌──────────────────────────────────┐ │
- *  │ │  [icon]  Primary (filled accent) │ │
+ *  │ │     Primary (filled accent)      │ │
  *  │ └──────────────────────────────────┘ │
  *  │ ┌──────────────────────────────────┐ │
- *  │ │  [icon]  Secondary (outlined)    │ │   ← optional
+ *  │ │      Secondary (outlined)        │ │   ← optional
  *  │ └──────────────────────────────────┘ │
  *  │           Cancel (text)              │   ← optional
  *  └──────────────────────────────────────┘
@@ -96,9 +96,11 @@ fun PapAlertDialog(
     body: String,
     primaryLabel: String,
     onPrimary: () -> Unit,
-    // REQUIRED: every Paparcar button carries a leading icon. [UI-SHEET-002]
-    primaryLeadingIcon: ImageVector,
     modifier: Modifier = Modifier,
+    // TEXT-ONLY is the default — the label already names the action. An icon has to earn
+    // its place: destructive actions (Delete) or provider identity, nothing else.
+    // [UI-BUTTON-ICONS-EARN-THEIR-PLACE-001]
+    primaryLeadingIcon: ImageVector? = null,
     accent: PapDialogAccent = PapDialogAccent.Primary,
     secondaryLabel: String? = null,
     onSecondary: (() -> Unit)? = null,
@@ -238,7 +240,7 @@ fun PapAlertDialog(
 private fun PrimaryAction(
     label: String,
     onClick: () -> Unit,
-    leadingIcon: ImageVector,
+    leadingIcon: ImageVector?,
     accentColor: Color,
     onAccent: Color,
     isLoading: Boolean,
@@ -264,8 +266,10 @@ private fun PrimaryAction(
                 color = onAccent,
             )
         } else {
-            Icon(leadingIcon, contentDescription = null, modifier = Modifier.size(16.dp))
-            Spacer(Modifier.width(6.dp))
+            if (leadingIcon != null) {
+                Icon(leadingIcon, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+            }
             Text(label, style = PaparcarType.current.cta)
         }
     }

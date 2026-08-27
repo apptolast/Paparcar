@@ -19,7 +19,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Straighten
 import androidx.compose.material3.Icon
@@ -122,7 +121,6 @@ fun VehicleSizeExplainerScreen(
         ) {
             PapPrimaryButton(
                 label = stringResource(Res.string.vehicle_size_explainer_cta),
-                icon = Icons.Rounded.Check,
                 onClick = onContinue,
                 modifier = Modifier.fillMaxWidth(),
             )

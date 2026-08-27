@@ -11,7 +11,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,11 +32,11 @@ private val DefaultContentPadding = PaddingValues(
 /**
  * Primary filled button. Use for the main CTA in a screen.
  *
- * [icon] is the DEFAULT — every Paparcar button that names a concrete action
- * carries a leading icon so it reads at a glance. [UI-SHEET-002] Pass `null`
- * only for generic flow-control whose meaning the screen already fixes: the
- * sole submit of a single-purpose screen (login/register) or a wayfinding
- * "Next" — a glyph there is redundant noise.
+ * TEXT-ONLY is the DEFAULT — the label already names the action; a glyph next
+ * to it is noise, not information. An [icon] has to EARN its place, and only
+ * two cases do: a destructive action that deserves an extra beat of attention
+ * (Delete), or provider identity (social-login logos). When in doubt, no icon.
+ * [UI-BUTTON-ICONS-EARN-THEIR-PLACE-001]
  *
  * Supports an [isLoading] state — while loading the content is replaced by a
  * [CircularProgressIndicator] and the button is disabled.
@@ -74,31 +73,5 @@ fun PapPrimaryButton(
                 }
             }
         }
-    }
-}
-
-/**
- * Text-only button. Use for low-emphasis actions (e.g. "Cancel", "Skip").
- * [icon] is REQUIRED — same at-a-glance rule as every other button. [UI-SHEET-002]
- */
-@Composable
-fun PapTextButton(
-    label: String,
-    icon: ImageVector,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-) {
-    TextButton(
-        onClick = onClick,
-        modifier = modifier,
-        enabled = enabled,
-    ) {
-        Icon(icon, contentDescription = null, modifier = Modifier.size(LeadingIconSize))
-        Spacer(Modifier.width(IconLabelGap))
-        Text(
-            text = label,
-            style = PaparcarType.current.cta,
-        )
     }
 }
