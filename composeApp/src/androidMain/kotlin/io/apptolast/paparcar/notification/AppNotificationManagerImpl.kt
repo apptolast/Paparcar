@@ -82,6 +82,12 @@ class AppNotificationManagerImpl(
     }
 
     override fun showParkingSaved(latitude: Double, longitude: Double) {
+        // [SETTINGS-AUDIT-REMEDIATION-001] The Settings "Parking detected" toggle gates ONLY this
+        // informative notification, at its single choke point. The safety asks
+        // (showParkingConfirmation / showParkingSavedConfirm / showStillParkedPrompt /
+        // showMarkParkingNudge) are the anti-false-positive mechanism — never gated from app prefs;
+        // the OS notification channels remain the way to silence those.
+        if (!appPreferences.notifyParkingDetected) return
         val notification = NotificationCompat.Builder(context, UPLOAD_CHANNEL_ID)
             .setContentTitle(context.getString(R.string.notif_parking_saved_title))
             .setContentText(context.getString(R.string.notif_parking_saved_text))

@@ -26,6 +26,7 @@ import io.apptolast.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_zone_action_edit
+import io.apptolast.paparcar.ui.theme.PapAlpha
 
 /**
  * Habitual-zone chip — a **glass stadium pill** that floats over the map in the
@@ -100,4 +101,4 @@ private const val ZONE_CHIP_RADIUS_DP = 999
 private const val ZONE_CHIP_ICON_DP = 18
 private const val ZONE_CHIP_EDIT_DP = 16
 private const val ZONE_CHIP_EDIT_TAP_DP = 28
-private const val ZONE_CHIP_TRAILING_ALPHA = 0.5f
+private val ZONE_CHIP_TRAILING_ALPHA = PapAlpha.muted

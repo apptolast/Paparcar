@@ -20,6 +20,8 @@ val AppShapes = Shapes(
  * Tiered by visual hierarchy so every screen reads as one family:
  *
  *  - [chip]:      999dp pill — filter chips, tabs, badges, status pills
+ *  - [button]:    10dp       — in-card rectangular buttons (Settings logout/delete/fix,
+ *                              pickers). Footer CTAs stay on [chip] via PapFooterButton.
  *  - [cardSmall]: 14dp       — inner cards / tight rows / empty-state surfaces
  *  - [card]:      16dp       — standard card (matches M3 medium)
  *  - [cardLarge]: 18dp       — hero card (vehicle, permissions, weekly chart)
@@ -32,6 +34,7 @@ val AppShapes = Shapes(
  */
 object PapShapes {
     val chip = RoundedCornerShape(999.dp)
+    val button = RoundedCornerShape(10.dp)
     val cardSmall = RoundedCornerShape(14.dp)
     val card = RoundedCornerShape(16.dp)
     val cardLarge = RoundedCornerShape(18.dp)

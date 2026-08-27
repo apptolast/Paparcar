@@ -35,6 +35,7 @@ import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.spot_indicator_en_route
 import paparcar.composeapp.generated.resources.spot_indicator_ttl_expired
 import paparcar.composeapp.generated.resources.spot_indicator_ttl_minutes
+import io.apptolast.paparcar.ui.theme.PapAlpha
 
 private val   IndicatorIconSize              = 12.dp
 private const val TTL_TICK_MS                = 30_000L  // refresh every 30 s
@@ -125,14 +126,14 @@ fun EnRouteIndicator(
         Icon(
             imageVector = Icons.Rounded.Group,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = PapAlpha.subtitle),
             modifier = Modifier.size(IndicatorIconSize),
         )
         Text(
             text = stringResource(Res.string.spot_indicator_en_route, count),
             // En-route count is a data token — condensed per the typography mechanism. [HOME-VEH-REFINE-001]
             style = PaparcarType.current.badge,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = PapAlpha.subtitle),
         )
     }
 }

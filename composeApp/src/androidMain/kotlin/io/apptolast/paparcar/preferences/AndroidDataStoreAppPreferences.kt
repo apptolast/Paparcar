@@ -2,7 +2,6 @@ package io.apptolast.paparcar.preferences
 
 import android.content.Context
 import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.SharedPreferencesMigration
 import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -27,12 +26,12 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
-private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
-    name = DATASTORE_NAME,
-    produceMigrations = { context ->
-        listOf(SharedPreferencesMigration(context, LEGACY_PREFS_NAME))
-    },
-)
+// No produceMigrations: the legacy SharedPreferences file ("paparcar_prefs") was fully migrated
+// long before the pre-beta Room v1 reset — no device still carries un-migrated data, and fresh
+// installs never had the file. NOTE this covers USER prefs only: the detection stores keep raw
+// SharedPreferences ON PURPOSE (synchronous commit that survives imminent process death — see
+// TripTrailImpl / ParkingSafetyNetWorker KDocs). [SETTINGS-AUDIT-REMEDIATION-001]
+private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = DATASTORE_NAME)
 
 class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
 
@@ -188,11 +187,6 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
 
     override fun setNotifyParkingDetected(enabled: Boolean) = set(Keys.NOTIFY_PARKING_DETECTED, enabled)
 
-    override val notifySpotFreed: Boolean
-        get() = get(Keys.NOTIFY_SPOT_FREED, true)
-
-    override fun setNotifySpotFreed(enabled: Boolean) = set(Keys.NOTIFY_SPOT_FREED, enabled)
-
     // ── Theme ────────────────────────────────────────────────────────────────
 
     override val themeMode: ThemeMode
@@ -240,7 +234,8 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
         val PENDING_PROMPT_SHOWN_AT  = longPreferencesKey("pending_prompt_window_shown_at")
         val PENDING_PROMPT_VEHICLE_NAME = stringPreferencesKey("pending_prompt_window_vehicle_name")
         val NOTIFY_PARKING_DETECTED = booleanPreferencesKey("notify_parking_detected")
-        val NOTIFY_SPOT_FREED       = booleanPreferencesKey("notify_spot_freed")
+        // "notify_spot_freed" removed 2026-08-28: it gated a notification that never existed.
+        // Stale values may linger in the DataStore file; they are inert. [SETTINGS-AUDIT-REMEDIATION-001]
         val THEME_MODE              = stringPreferencesKey("theme_mode")
         val USE_IMPERIAL_UNITS      = booleanPreferencesKey("use_imperial_units")
         val DEFAULT_MAP_TYPE        = stringPreferencesKey("default_map_type")
@@ -253,5 +248,4 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
     }
 }
 
-private const val DATASTORE_NAME    = "paparcar_prefs"
-private const val LEGACY_PREFS_NAME = "paparcar_prefs"
+private const val DATASTORE_NAME = "paparcar_prefs"

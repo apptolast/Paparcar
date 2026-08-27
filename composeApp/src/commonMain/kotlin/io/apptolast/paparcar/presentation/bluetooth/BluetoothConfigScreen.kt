@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -32,7 +31,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -49,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.bluetooth.BluetoothDeviceInfo
 import io.apptolast.paparcar.domain.model.bluetooth.BluetoothDeviceType
 import io.apptolast.paparcar.presentation.util.collectAsStateLifecycleAware
+import io.apptolast.paparcar.ui.components.PapBottomActionBar
 import io.apptolast.paparcar.ui.components.PapFooterButton
 import io.apptolast.paparcar.ui.components.PapOutlinedCard
 import io.apptolast.paparcar.ui.theme.PaparcarType
@@ -136,24 +135,14 @@ internal fun BluetoothConfigContent(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
-            Surface(
-                color = cs.surfaceContainer,
-                shadowElevation = BOTTOM_BAR_SHADOW_ELEVATION,
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .navigationBarsPadding()
-                        .padding(horizontal = SCREEN_H_PADDING, vertical = 12.dp),
-                ) {
-                    PapFooterButton(
-                        label = stringResource(Res.string.bt_config_save),
-                        leadingIcon = Icons.Rounded.Check,
-                        onClick = { onIntent(BluetoothConfigIntent.Save) },
-                        enabled = state.hasChanges,
-                        isLoading = state.isSaving,
-                    )
-                }
+            PapBottomActionBar {
+                PapFooterButton(
+                    label = stringResource(Res.string.bt_config_save),
+                    leadingIcon = Icons.Rounded.Check,
+                    onClick = { onIntent(BluetoothConfigIntent.Save) },
+                    enabled = state.hasChanges,
+                    isLoading = state.isSaving,
+                )
             }
         },
     ) { padding ->
@@ -325,6 +314,5 @@ private fun BluetoothDeviceInfo.typeLabel(): String = when (type) {
 
 private val SCREEN_H_PADDING            = 16.dp
 private val LIST_V_PADDING              = 12.dp
-private val BOTTOM_BAR_SHADOW_ELEVATION = 8.dp
 private val BT_OFF_ICON_SIZE            = 64.dp
 private const val BT_STATE_ICON_ALPHA   = 0.4f

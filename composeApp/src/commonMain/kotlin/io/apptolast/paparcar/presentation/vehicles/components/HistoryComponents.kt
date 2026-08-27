@@ -29,6 +29,7 @@ import paparcar.composeapp.generated.resources.empty_records
 import paparcar.composeapp.generated.resources.empty_records_dark
 import paparcar.composeapp.generated.resources.history_empty_subtitle
 import paparcar.composeapp.generated.resources.history_empty_title
+import io.apptolast.paparcar.ui.theme.PapAlpha
 
 /**
  * Active section header — a NEUTRAL [PapSectionHeaderRow] with a leading pulsing dot. Padding-top
@@ -104,4 +105,4 @@ private const val ILLUSTRATION_HEIGHT_DP = 154
 private const val ILLUSTRATION_TEXT_GAP_DP = 2
 private const val TITLE_SUBTITLE_GAP_DP = 4
 private const val ILLUSTRATION_DARK_LUMINANCE = 0.5f
-private const val SUBTITLE_ALPHA = 0.55f
+private val SUBTITLE_ALPHA = PapAlpha.subtitle

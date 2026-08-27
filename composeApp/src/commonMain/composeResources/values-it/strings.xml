@@ -201,8 +201,6 @@
     <string name="settings_section_notifications">Notifiche</string>
     <string name="settings_notif_parking">Parcheggio rilevato</string>
     <string name="settings_notif_parking_desc">Avviso quando viene salvato il parcheggio</string>
-    <string name="settings_notif_spot">Posto disponibile vicino</string>
-    <string name="settings_notif_spot_desc">Avviso quando un posto si libera vicino a te</string>
     <string name="settings_section_about">Informazioni</string>
     <string name="settings_version">Versione</string>
     <string name="settings_privacy">Informativa sulla privacy</string>
@@ -362,6 +360,7 @@
     <string name="home_peek_vehicle_parked_label">%1$s · parcheggiato</string>
     <string name="home_peek_vehicle_status">%1$s · %2$s</string>
     <string name="bt_config_cd_back">Indietro</string>
+    <string name="vehicle_reg_cd_back">Indietro</string>
 
     <!-- ConfirmationBottomSheet (rilevamento parcheggio) -->
     <string name="confirmation_sheet_question">Hai parcheggiato qui?</string>
@@ -450,8 +449,6 @@
     <string name="settings_language_auto">Predefinito di sistema</string>
     <string name="settings_contact">Contatto</string>
     <!-- Settings v2 — UI refactor -->
-    <string name="settings_notifications_title">Notifiche</string>
-    <string name="settings_notifications_subtitle">Ricevi avvisi dell\'app</string>
     <string name="settings_danger_zone">Zona pericolosa</string>
     <string name="settings_danger_zone_subtitle">Azioni irreversibili</string>
     <string name="settings_profile_member_since">Membro dal %1$s %2$d</string>
@@ -460,6 +457,7 @@
     <string name="settings_delete_account_confirm_message">Tutti i tuoi dati verranno eliminati definitivamente. Questa azione non può essere annullata.</string>
     <string name="settings_delete_account_confirm_action">Elimina account</string>
     <string name="settings_delete_account_cancel">Annulla</string>
+    <string name="settings_delete_account_error">Impossibile eliminare il tuo account. Controlla la connessione e riprova.</string>
 
     <!-- Vehicle detail + vehicles history -->
     <string name="vehicle_registration_edit_title">Modifica veicolo</string>

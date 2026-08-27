@@ -201,8 +201,6 @@
     <string name="settings_section_notifications">Meldingen</string>
     <string name="settings_notif_parking">Parkeren gedetecteerd</string>
     <string name="settings_notif_parking_desc">Melding wanneer je parkeerplaats wordt opgeslagen</string>
-    <string name="settings_notif_spot">Parkeerplaats beschikbaar in de buurt</string>
-    <string name="settings_notif_spot_desc">Melding wanneer een parkeerplaats vrij komt in uw buurt</string>
     <string name="settings_section_about">Over</string>
     <string name="settings_version">Versie</string>
     <string name="settings_privacy">Privacybeleid</string>
@@ -362,6 +360,7 @@
     <string name="home_peek_vehicle_parked_label">%1$s · geparkeerd</string>
     <string name="home_peek_vehicle_status">%1$s · %2$s</string>
     <string name="bt_config_cd_back">Terug</string>
+    <string name="vehicle_reg_cd_back">Terug</string>
 
     <!-- ConfirmationBottomSheet (parkeerdetectie) -->
     <string name="confirmation_sheet_question">Heb je hier geparkeerd?</string>
@@ -450,8 +449,6 @@
     <string name="settings_language_auto">Systeemstandaard</string>
     <string name="settings_contact">Contact</string>
     <!-- Settings v2 — UI refactor -->
-    <string name="settings_notifications_title">Meldingen</string>
-    <string name="settings_notifications_subtitle">App-meldingen ontvangen</string>
     <string name="settings_danger_zone">Gevarenzone</string>
     <string name="settings_danger_zone_subtitle">Onomkeerbare acties</string>
     <string name="settings_profile_member_since">Lid sinds %1$s %2$d</string>
@@ -460,6 +457,7 @@
     <string name="settings_delete_account_confirm_message">Al je gegevens worden permanent verwijderd. Deze actie kan niet ongedaan worden gemaakt.</string>
     <string name="settings_delete_account_confirm_action">Account verwijderen</string>
     <string name="settings_delete_account_cancel">Annuleren</string>
+    <string name="settings_delete_account_error">Je account kon niet worden verwijderd. Controleer je verbinding en probeer het opnieuw.</string>
 
     <!-- Vehicle detail + vehicles history -->
     <string name="vehicle_registration_edit_title">Voertuig bewerken</string>

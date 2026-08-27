@@ -72,6 +72,7 @@ import paparcar.composeapp.generated.resources.home_spot_reliability_high
 import paparcar.composeapp.generated.resources.home_spot_reliability_low
 import paparcar.composeapp.generated.resources.home_spot_reliability_medium
 import paparcar.composeapp.generated.resources.home_spot_unconfirmed_badge
+import io.apptolast.paparcar.ui.theme.PapAlpha
 
 /**
  * Spot row (v1 redesign).
@@ -419,12 +420,12 @@ private const val POI_ICON_DP = 15
 private const val POI_ICON_GAP_DP = 5
 private const val SELECTED_ROW_BG_ALPHA = 0.30f
 // Separator between data tokens on the meta line ("FIABLE · 80 m · 1 min").
-private const val META_MUTED_ALPHA = 0.55f
-private const val PRIMARY_CARD_SUBTITLE_ALPHA = 0.55f
+private val META_MUTED_ALPHA = PapAlpha.subtitle
+private val PRIMARY_CARD_SUBTITLE_ALPHA = PapAlpha.subtitle
 private const val PRIMARY_CARD_ICON_BOX_DP = 44
 private const val PRIMARY_CARD_ICON_CORNER_DP = 14
 private const val EMPTY_ICON_ALPHA = 0.25f
-private const val EMPTY_SUBTITLE_ALPHA = 0.5f
+private val EMPTY_SUBTITLE_ALPHA = PapAlpha.muted
 private const val EMPTY_ILLUSTRATION_W = 180
 private const val EMPTY_ILLUSTRATION_H = 154
 // Dashed "waiting slot" border of the empty state — same 14dp tier as cardSmall.

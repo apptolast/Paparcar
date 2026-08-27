@@ -75,6 +75,7 @@ import paparcar.composeapp.generated.resources.home_zone_radius_meters
 import paparcar.composeapp.generated.resources.home_zone_radius_section
 import paparcar.composeapp.generated.resources.home_zone_save_action
 import kotlin.math.roundToInt
+import io.apptolast.paparcar.ui.theme.PapAlpha
 
 // ═════════════════════════════════════════════════════════════════════════════
 // AddingZonePeek — "Nueva zona habitual" (create + edit). [HOME-ATOMIZE-001 F3]
@@ -87,7 +88,7 @@ import kotlin.math.roundToInt
 // ═════════════════════════════════════════════════════════════════════════════
 
 private const val ZONE_ICON_CHIP_DP = 40
-private const val SECTION_LABEL_ALPHA = 0.55f
+private val SECTION_LABEL_ALPHA = PapAlpha.subtitle
 
 /** The zone form's live values, projected from the peek slice by the orchestrator. */
 @Immutable

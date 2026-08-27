@@ -50,6 +50,10 @@ class IosAppNotificationManagerImpl : AppNotificationManager {
     }
 
     override fun showParkingSaved(latitude: Double, longitude: Double) {
+        // Parity gap with Android [SETTINGS-AUDIT-REMEDIATION-001]: on Android this informative
+        // notification is gated by AppPreferences.notifyParkingDetected at this same choke point.
+        // This stub predates DI of prefs here — wire the gate when the iOS notification stack is
+        // brought up for real (kept unchanged to avoid touching the iOS DI graph this ticket).
         val content = UNMutableNotificationContent().apply {
             setTitle("Parking saved")
             setBody("Your car has been parked. Tap to see it on the map.")

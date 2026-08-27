@@ -52,11 +52,11 @@ interface AppPreferences {
     fun setPendingPromptWindow(window: PendingPromptWindow)
     fun clearPendingPromptWindow()
 
+    /** Gate for the INFORMATIVE parking notifications (e.g. "parking saved"). Safety asks —
+     *  "did you park?", the revertable auto-confirm, "still parked?" — are never gated by this:
+     *  they are the anti-false-positive mechanism. [SETTINGS-AUDIT-REMEDIATION-001] */
     val notifyParkingDetected: Boolean
     fun setNotifyParkingDetected(enabled: Boolean)
-
-    val notifySpotFreed: Boolean
-    fun setNotifySpotFreed(enabled: Boolean)
 
     val themeMode: ThemeMode
     fun setThemeMode(mode: ThemeMode)

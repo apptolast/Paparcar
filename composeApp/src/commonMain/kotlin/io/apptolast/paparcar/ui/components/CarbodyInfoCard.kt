@@ -41,6 +41,7 @@ import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.vehicle_registration_carbody_auto_label
 import paparcar.composeapp.generated.resources.vehicle_registration_carbody_change
 import paparcar.composeapp.generated.resources.vehicle_registration_carbody_manual_label
+import io.apptolast.paparcar.ui.theme.PapAlpha
 
 /**
  * Feedback card surfaced once the registration form has enough signal (brand +
@@ -224,7 +225,7 @@ private const val CARD_BORDER_ALPHA = 0.4f
 private const val ICON_BOX_DP = 48
 private const val ICON_SIZE_DP = 28
 private const val ICON_BG_ALPHA = 0.14f
-private const val SUBTITLE_ALPHA = 0.65f
+private val SUBTITLE_ALPHA = PapAlpha.body
 private const val CHANGE_PILL_RADIUS_DP = 999
 private const val ALERT_CORNER_DP = 10
 private const val ALERT_BG_ALPHA = 0.12f

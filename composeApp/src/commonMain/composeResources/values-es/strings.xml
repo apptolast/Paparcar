@@ -247,6 +247,7 @@
     <string name="settings_delete_account_confirm_message">Todos tus datos se eliminarán permanentemente. Esta acción no se puede deshacer.</string>
     <string name="settings_delete_account_confirm_action">Eliminar cuenta</string>
     <string name="settings_delete_account_cancel">Cancelar</string>
+    <string name="settings_delete_account_error">No se ha podido eliminar tu cuenta. Comprueba tu conexión e inténtalo de nuevo.</string>
     <string name="settings_profile_name_placeholder">Usuario</string>
     <string name="settings_section_appearance">Apariencia</string>
     <string name="settings_theme_mode">Tema</string>
@@ -276,16 +277,12 @@
     <string name="settings_section_notifications">Notificaciones</string>
     <string name="settings_notif_parking">Aparcamiento detectado</string>
     <string name="settings_notif_parking_desc">Aviso cuando se guarda tu aparcamiento</string>
-    <string name="settings_notif_spot">Plaza disponible cerca</string>
-    <string name="settings_notif_spot_desc">Aviso cuando se libera una plaza cerca de ti</string>
     <string name="settings_section_about">Acerca de</string>
     <string name="settings_version">Versión</string>
     <string name="settings_privacy">Política de privacidad</string>
     <string name="settings_licenses">Licencias de código abierto</string>
     <string name="settings_contact">Contacto</string>
     <!-- Settings v2 — UI refactorizada -->
-    <string name="settings_notifications_title">Notificaciones</string>
-    <string name="settings_notifications_subtitle">Recibir avisos de la app</string>
     <string name="settings_danger_zone">Zona de peligro</string>
     <string name="settings_danger_zone_subtitle">Acciones irreversibles</string>
     <!-- Profile card: "Miembro desde MAY 2025" — %1$s = mes corto mayúscula, %2$d = año -->
@@ -509,6 +506,7 @@
     <string name="home_peek_vehicle_parked_label">%1$s · aparcado</string>
     <string name="home_peek_vehicle_status">%1$s · %2$s</string>
     <string name="bt_config_cd_back">Atrás</string>
+    <string name="vehicle_reg_cd_back">Atrás</string>
     <!-- Auth screens -->
     <string name="auth_header_app_name">Paparcar</string>
     <string name="auth_header_tagline">Encuentra tu plaza, comparte tu espacio</string>

@@ -48,6 +48,7 @@ import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.history_view_map
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Instant
+import io.apptolast.paparcar.ui.theme.PapAlpha
 
 /**
  * Day separator inside the timeline — "HOY", "AYER", "VIERNES, 14 AGO 2026".
@@ -242,5 +243,5 @@ private const val CARD_PAD_DP = 12
 private const val CARD_END_PAD_DP = 4
 private const val CARD_BOTTOM_GAP_DP = 8
 private const val TITLE_META_GAP_DP = 2
-private const val META_ALPHA = 0.5f
+private val META_ALPHA = PapAlpha.muted
 private const val ACTIVE_META_ALPHA = 0.6f

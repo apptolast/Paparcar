@@ -201,8 +201,6 @@
     <string name="settings_section_notifications">Notifications</string>
     <string name="settings_notif_parking">Stationnement détecté</string>
     <string name="settings_notif_parking_desc">Alerte quand votre stationnement est enregistré</string>
-    <string name="settings_notif_spot">Place disponible à proximité</string>
-    <string name="settings_notif_spot_desc">Alerte quand une place se libère près de vous</string>
     <string name="settings_section_about">À propos</string>
     <string name="settings_version">Version</string>
     <string name="settings_privacy">Politique de confidentialité</string>
@@ -362,6 +360,7 @@
     <string name="home_peek_vehicle_parked_label">%1$s · garé</string>
     <string name="home_peek_vehicle_status">%1$s · %2$s</string>
     <string name="bt_config_cd_back">Retour</string>
+    <string name="vehicle_reg_cd_back">Retour</string>
 
     <!-- ConfirmationBottomSheet (détection de stationnement) -->
     <string name="confirmation_sheet_question">Tu t\'es garé ici ?</string>
@@ -450,8 +449,6 @@
     <string name="settings_language_auto">Par défaut du système</string>
     <string name="settings_contact">Contact</string>
     <!-- Settings v2 — refactor UI -->
-    <string name="settings_notifications_title">Notifications</string>
-    <string name="settings_notifications_subtitle">Recevoir des alertes de l\'app</string>
     <string name="settings_danger_zone">Zone de danger</string>
     <string name="settings_danger_zone_subtitle">Actions irréversibles</string>
     <string name="settings_profile_member_since">Membre depuis %1$s %2$d</string>
@@ -460,6 +457,7 @@
     <string name="settings_delete_account_confirm_message">Toutes tes données seront supprimées définitivement. Cette action ne peut pas être annulée.</string>
     <string name="settings_delete_account_confirm_action">Supprimer le compte</string>
     <string name="settings_delete_account_cancel">Annuler</string>
+    <string name="settings_delete_account_error">Impossible de supprimer votre compte. Vérifiez votre connexion et réessayez.</string>
 
     <!-- Vehicle detail + vehicles history -->
     <string name="vehicle_registration_edit_title">Modifier le véhicule</string>

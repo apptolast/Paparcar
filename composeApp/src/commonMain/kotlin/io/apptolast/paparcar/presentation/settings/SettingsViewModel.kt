@@ -1,7 +1,6 @@
 package io.apptolast.paparcar.presentation.settings
 
 import com.apptolast.customlogin.domain.AuthRepository
-import io.apptolast.paparcar.appVersion as platformAppVersion
 import io.apptolast.paparcar.core.crash.CrashReporter
 import io.apptolast.paparcar.domain.error.PaparcarError
 import io.apptolast.paparcar.domain.permissions.PermissionManager
@@ -103,8 +102,6 @@ class SettingsViewModel(
             copy(
                 autoDetectParking = prefs.autoDetectParking,
                 notifyParkingDetected = prefs.notifyParkingDetected,
-                notifySpotFreed = prefs.notifySpotFreed,
-                appVersion = platformAppVersion,
             )
         }
     }
@@ -130,20 +127,6 @@ class SettingsViewModel(
             is SettingsIntent.ToggleParkingDetectedNotif -> {
                 prefs.setNotifyParkingDetected(intent.enabled)
                 updateState { copy(notifyParkingDetected = intent.enabled) }
-            }
-            is SettingsIntent.ToggleSpotFreedNotif -> {
-                prefs.setNotifySpotFreed(intent.enabled)
-                updateState { copy(notifySpotFreed = intent.enabled) }
-            }
-            is SettingsIntent.ToggleMasterNotifications -> {
-                prefs.setNotifyParkingDetected(intent.enabled)
-                prefs.setNotifySpotFreed(intent.enabled)
-                updateState {
-                    copy(
-                        notifyParkingDetected = intent.enabled,
-                        notifySpotFreed = intent.enabled,
-                    )
-                }
             }
             is SettingsIntent.NavigateToVehicles ->
                 sendEffect(SettingsEffect.NavigateToVehicles)

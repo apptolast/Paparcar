@@ -43,6 +43,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import io.apptolast.paparcar.ui.theme.PapAlpha
 
 /**
  * Visual tone for [PapAlertDialog]. Drives the icon-circle color and the
@@ -327,5 +328,5 @@ private const val DIALOG_ENTER_SCALE = 0.92f
 private const val ICON_CIRCLE_DP = 56
 private const val BUTTON_HEIGHT_DP = 48
 private const val BUTTON_CORNER_DP = 12
-private const val BODY_ALPHA = 0.65f
+private val BODY_ALPHA = PapAlpha.body
 private const val CANCEL_ALPHA = 0.7f

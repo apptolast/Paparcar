@@ -200,3 +200,20 @@ Test Konsist (`ColorGuardrailTest`, F6), igual que tipografía y dividers:
   `PapLiveMap` queda solo-mapa. Se conservan de v1/v2: resolver único, retiro de `tertiary`,
   MANUAL como procedencia (F5), rampa exclusiva de plazas, tokens AA, guardarraíles.
 - **2026-08-11** — `MANUAL` fuera de `SpotReliabilityUiState` (F5): frescura ≠ procedencia.
+
+---
+
+## 9. Alphas de énfasis de texto — `PapAlpha` (`ui/theme/Alpha.kt`)
+
+La escala única para des-enfatizar texto sobre `onSurface`. Nació en SETTINGS-AUDIT-REMEDIATION-001
+(2026-08-28): los mismos cuatro números vivían como constantes privadas en ~16 ficheros de
+presentación, y el mismo NOMBRE valía 0.55 en Settings y 0.65 en `CarbodyInfoCard`. Los alphas de
+BORDES siguen en `PapBorders` — esta escala es solo de contenido.
+
+| Token | Valor | Historia única |
+|---|---|---|
+| `PapAlpha.body` | 0.65 | Prosa que se LEE: cuerpo de diálogos, empty states |
+| `PapAlpha.subtitle` | 0.55 | El subtítulo estándar junto a un título a plena fuerza |
+| `PapAlpha.muted` | 0.5 | Meta de apoyo: hints, subtítulos de filas de Settings, valores trailing |
+| `PapAlpha.disabled` | 0.38 | Contenido deshabilitado (el 0.38 canónico de Material) |
+| `PapAlpha.dim` | 0.3 | Lo más tenue: chevrons, separadores, bordes deshabilitados |

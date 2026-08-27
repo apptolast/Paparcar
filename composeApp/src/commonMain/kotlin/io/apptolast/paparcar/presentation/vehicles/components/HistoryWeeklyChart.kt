@@ -52,6 +52,7 @@ import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.history_activity_low_hint
 import paparcar.composeapp.generated.resources.history_activity_noun
+import io.apptolast.paparcar.ui.theme.PapAlpha
 
 private const val CHART_ENTER_DURATION = 800
 
@@ -338,7 +339,7 @@ private const val MIN_SCALE_MAX = 3
 private const val LOW_ICON_CIRCLE_DP = 44
 private const val LOW_ICON_DP = 22
 private const val BORDER_ALPHA = 0.5f
-private const val SUBTITLE_ALPHA = 0.55f
+private val SUBTITLE_ALPHA = PapAlpha.subtitle
 private const val BAR_WIDTH_FRACTION = 0.45f
 // Max bar width so few-bucket charts don't render one giant full-width bar. [VEHICLES-REDESIGN-001]
 private const val MAX_BAR_WIDTH_DP = 32

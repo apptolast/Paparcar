@@ -48,6 +48,7 @@ import paparcar.composeapp.generated.resources.home_peek_spot_low
 import paparcar.composeapp.generated.resources.home_peek_spot_medium
 import paparcar.composeapp.generated.resources.home_peek_spot_reliability_label
 import paparcar.composeapp.generated.resources.home_vehicle_fallback_name
+import io.apptolast.paparcar.ui.theme.PapAlpha
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PeekShared — helpers common to the peek variants (meta rows, palettes,
@@ -159,7 +160,7 @@ internal fun FiabilityIndicator(level: SpotReliabilityUiState, expiresInMin: Int
                 text = stringResource(Res.string.home_peek_spot_expires, expiresInMin),
                 style = PaparcarType.current.label,
                 fontWeight = FontWeight.Medium,
-                color = if (isExpiring) cs.secondary else cs.onSurface.copy(alpha = 0.55f),
+                color = if (isExpiring) cs.secondary else cs.onSurface.copy(alpha = PapAlpha.subtitle),
             )
         }
     }

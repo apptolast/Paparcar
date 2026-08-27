@@ -1,7 +1,5 @@
 package io.apptolast.paparcar.presentation.vehicleregistration
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,11 +9,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -34,7 +30,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -45,7 +40,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
@@ -61,21 +55,27 @@ import io.apptolast.paparcar.ui.components.CarbodyInfoCard
 import io.apptolast.paparcar.ui.components.CarbodyManualPicker
 import io.apptolast.paparcar.ui.components.NonCarSizeBadge
 import io.apptolast.paparcar.ui.components.PapAlertDialog
+import io.apptolast.paparcar.ui.components.PapBottomActionBar
+import io.apptolast.paparcar.ui.components.PapDangerCard
 import io.apptolast.paparcar.ui.components.PapDialogAccent
 import io.apptolast.paparcar.ui.components.PapFooterButton
+import io.apptolast.paparcar.ui.components.PapIconTile
+import io.apptolast.paparcar.ui.components.PapListItem
 import io.apptolast.paparcar.ui.components.PapOutlinedCard
 import io.apptolast.paparcar.ui.components.PapSectionHeader
+import io.apptolast.paparcar.ui.components.PapSwitchRow
 import io.apptolast.paparcar.ui.components.PapTextField
 import io.apptolast.paparcar.ui.components.VehicleColorSelector
 import io.apptolast.paparcar.ui.components.label
 import io.apptolast.paparcar.ui.components.vehicleSizeLabel
-import io.apptolast.paparcar.ui.theme.PapBorders
+import io.apptolast.paparcar.ui.theme.PapAlpha
 import io.apptolast.paparcar.ui.theme.PapShapes
 import io.apptolast.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.error_unknown
+import paparcar.composeapp.generated.resources.vehicle_reg_cd_back
 import paparcar.composeapp.generated.resources.my_car_delete_cancel
 import paparcar.composeapp.generated.resources.my_car_delete_confirm_action
 import paparcar.composeapp.generated.resources.my_car_delete_confirm_message
@@ -238,7 +238,10 @@ internal fun VehicleRegistrationContent(
         containerColor = cs.surfaceContainer,
         navigationIcon = {
             IconButton(onClick = { onIntent(VehicleRegistrationIntent.NavigateBack) }) {
-                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = null)
+                Icon(
+                    Icons.AutoMirrored.Rounded.ArrowBack,
+                    contentDescription = stringResource(Res.string.vehicle_reg_cd_back),
+                )
             }
         },
         bottomBar = {
@@ -460,50 +463,27 @@ internal fun VehicleRegistrationContent(
                     PapOutlinedCard(
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(BT_ICON_BOX_SIZE)
-                                    .clip(CircleShape)
-                                    .background(cs.primaryContainer),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.Bluetooth,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(BT_ICON_SIZE),
-                                    tint = cs.primary,
-                                )
-                            }
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = stringResource(Res.string.vehicle_registration_bt_title),
-                                    style = PaparcarType.current.body,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = cs.onSurface,
-                                )
-                                Text(
-                                    text = stringResource(Res.string.vehicle_registration_bt_desc),
-                                    style = PaparcarType.current.caption,
-                                    color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA),
-                                )
-                            }
-                            Button(
-                                onClick = onConfigureBluetooth,
-                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                                shape = PapShapes.cardSmall,
-                            ) {
-                                Text(
-                                    text = stringResource(Res.string.vehicle_registration_bt_cta),
-                                    // Button text → cta (Inter), the app's button convention. [TYPO-AUDIT-001]
-                                    style = PaparcarType.current.cta,
-                                )
-                            }
-                        }
+                        // Was a hand-rolled row with its own 38dp circular icon box — now the
+                        // canonical anatomy. [UI-LIST-ITEM-001] [SETTINGS-AUDIT-REMEDIATION-001]
+                        PapListItem(
+                            leading = { PapIconTile(icon = Icons.Rounded.Bluetooth) },
+                            title = stringResource(Res.string.vehicle_registration_bt_title),
+                            subtitle = stringResource(Res.string.vehicle_registration_bt_desc),
+                            subtitleColor = cs.onSurface.copy(alpha = PapAlpha.subtitle),
+                            trailing = {
+                                Button(
+                                    onClick = onConfigureBluetooth,
+                                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                                    shape = PapShapes.cardSmall,
+                                ) {
+                                    Text(
+                                        text = stringResource(Res.string.vehicle_registration_bt_cta),
+                                        // Button text → cta (Inter), the app's button convention. [TYPO-AUDIT-001]
+                                        style = PaparcarType.current.cta,
+                                    )
+                                }
+                            },
+                        )
                     }
                 }
             }
@@ -517,44 +497,28 @@ internal fun VehicleRegistrationContent(
                 PapOutlinedCard(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(14.dp),
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = stringResource(Res.string.vehicle_show_on_spot),
-                                style = PaparcarType.current.body,
-                                fontWeight = FontWeight.SemiBold,
-                                color = cs.onSurface,
-                            )
-                            Text(
-                                text = stringResource(Res.string.vehicle_show_on_spot_desc),
-                                style = PaparcarType.current.caption,
-                                color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA),
-                            )
-                        }
-                        Switch(
-                            checked = state.showBrandModelOnSpot,
-                            onCheckedChange = { onIntent(VehicleRegistrationIntent.SetShowOnSpot(it)) },
-                        )
-                    }
+                    // Was a verbatim re-implementation of Settings' switch row; now the shared
+                    // one — whole row toggleable, label announced by TalkBack.
+                    // [SETTINGS-AUDIT-REMEDIATION-001]
+                    PapSwitchRow(
+                        label = stringResource(Res.string.vehicle_show_on_spot),
+                        description = stringResource(Res.string.vehicle_show_on_spot_desc),
+                        checked = state.showBrandModelOnSpot,
+                        onCheckedChange = { onIntent(VehicleRegistrationIntent.SetShowOnSpot(it)) },
+                        subtitleColor = cs.onSurface.copy(alpha = PapAlpha.subtitle),
+                    )
                 }
             }
 
             // ── Delete section — only shown when editing and more than one vehicle ──
             if (!isNewVehicle && state.canDelete) {
-                Surface(
+                // Unified with Settings' danger zone — one destructive grammar. Values moved to
+                // PapDangerCard (bg 0.3→0.15, border thin@0.4→medium@0.7). [SETTINGS-AUDIT-REMEDIATION-001]
+                PapDangerCard(
                     onClick = { showDeleteDialog = true },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = SCREEN_H_PADDING),
-                    shape = PapShapes.card,
-                    color = cs.errorContainer.copy(alpha = DELETE_SECTION_BG_ALPHA),
-                    border = BorderStroke(PapBorders.thin, cs.error.copy(alpha = DELETE_SECTION_BORDER_ALPHA)),
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
@@ -691,36 +655,27 @@ private fun VehicleRegistrationBottomBar(
 ) {
     val cs = MaterialTheme.colorScheme
 
-    Surface(
-        color = cs.surfaceContainer,
-        shadowElevation = BOTTOM_BAR_SHADOW_ELEVATION,
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(horizontal = SCREEN_H_PADDING, vertical = 12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            PapFooterButton(
-                label = stringResource(
-                    if (isSaving) Res.string.vehicle_registration_saving
-                    else Res.string.vehicle_registration_save,
-                ),
-                onClick = onSave,
-                enabled = canSubmit && !isSaving,
-                isLoading = isSaving,
-            )
+    // Shared bar [SETTINGS-AUDIT-REMEDIATION-001]; the save CTA is text-only — an icon must
+    // earn its place [UI-ONBOARDING-BUTTON-ICONS-EARN-THEIR-PLACE-001].
+    PapBottomActionBar {
+        PapFooterButton(
+            label = stringResource(
+                if (isSaving) Res.string.vehicle_registration_saving
+                else Res.string.vehicle_registration_save,
+            ),
+            onClick = onSave,
+            enabled = canSubmit && !isSaving,
+            isLoading = isSaving,
+        )
 
-            if (hint != null && !isSaving) {
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    text = hint,
-                    style = PaparcarType.current.caption,
-                    color = cs.onSurface.copy(alpha = HINT_TEXT_ALPHA),
-                    textAlign = TextAlign.Center,
-                )
-            }
+        if (hint != null && !isSaving) {
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = hint,
+                style = PaparcarType.current.caption,
+                color = cs.onSurface.copy(alpha = PapAlpha.muted),
+                textAlign = TextAlign.Center,
+            )
         }
     }
 }
@@ -738,19 +693,8 @@ private const val HERO_CARD_BG_ALPHA     = 0.4f
 private const val HERO_ICON_INACTIVE_ALPHA = 0.35f
 private const val HERO_SUBTITLE_ALPHA    = 0.75f
 
-// BT card icon
-private val BT_ICON_BOX_SIZE             = 38.dp
-private val BT_ICON_SIZE                 = 20.dp
-
 // Section items
-private const val SUBTITLE_ALPHA         = 0.55f
 private const val AUTO_SIZE_LABEL_ALPHA  = 0.8f
-
-// Bottom bar / CTA button
-private val BOTTOM_BAR_SHADOW_ELEVATION  = 8.dp
-private const val HINT_TEXT_ALPHA        = 0.5f
 
 // Delete section
 private val DELETE_ICON_SIZE             = 20.dp
-private const val DELETE_SECTION_BG_ALPHA     = 0.3f
-private const val DELETE_SECTION_BORDER_ALPHA = 0.4f

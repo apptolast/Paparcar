@@ -103,13 +103,6 @@ class SettingsViewModelTest {
         assertFalse(vm.state.value.notifyParkingDetected)
     }
 
-    @Test
-    fun `should_loadNotifySpotFreed_from_prefs_on_init`() = runTest {
-        val customPrefs = FakeAppPreferences(initialNotifySpot = false)
-        val vm = buildVm(customPrefs)
-        assertFalse(vm.state.value.notifySpotFreed)
-    }
-
     // ── Profile observation ───────────────────────────────────────────────────
 
     @Test
@@ -159,33 +152,6 @@ class SettingsViewModelTest {
         vm.handleIntent(SettingsIntent.ToggleParkingDetectedNotif(false))
         assertFalse(vm.state.value.notifyParkingDetected)
         assertFalse(prefs.notifyParkingDetected)
-    }
-
-    @Test
-    fun `should_updateNotifySpot_state_and_prefs`() = runTest {
-        vm.handleIntent(SettingsIntent.ToggleSpotFreedNotif(false))
-        assertFalse(vm.state.value.notifySpotFreed)
-        assertFalse(prefs.notifySpotFreed)
-    }
-
-    // ── Master notifications ───────────────────────────────────────────────────
-
-    @Test
-    fun `should_disableBothNotifications_when_masterToggleOff`() = runTest {
-        vm.handleIntent(SettingsIntent.ToggleMasterNotifications(false))
-        assertFalse(vm.state.value.notifyParkingDetected)
-        assertFalse(vm.state.value.notifySpotFreed)
-        assertFalse(prefs.notifyParkingDetected)
-        assertFalse(prefs.notifySpotFreed)
-    }
-
-    @Test
-    fun `should_enableBothNotifications_when_masterToggleOn`() = runTest {
-        prefs.setNotifyParkingDetected(false)
-        prefs.setNotifySpotFreed(false)
-        vm.handleIntent(SettingsIntent.ToggleMasterNotifications(true))
-        assertTrue(vm.state.value.notifyParkingDetected)
-        assertTrue(vm.state.value.notifySpotFreed)
     }
 
     // ── Refresh from prefs ────────────────────────────────────────────────────

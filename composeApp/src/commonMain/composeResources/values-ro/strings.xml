@@ -201,8 +201,6 @@
     <string name="settings_section_notifications">Notificări</string>
     <string name="settings_notif_parking">Parcare detectată</string>
     <string name="settings_notif_parking_desc">Alertă când parcarea este salvată</string>
-    <string name="settings_notif_spot">Loc disponibil în apropiere</string>
-    <string name="settings_notif_spot_desc">Alertă când un loc se eliberează în apropierea ta</string>
     <string name="settings_section_about">Despre</string>
     <string name="settings_version">Versiune</string>
     <string name="settings_privacy">Politică de confidențialitate</string>
@@ -362,6 +360,7 @@
     <string name="home_peek_vehicle_parked_label">%1$s · parcat</string>
     <string name="home_peek_vehicle_status">%1$s · %2$s</string>
     <string name="bt_config_cd_back">Înapoi</string>
+    <string name="vehicle_reg_cd_back">Înapoi</string>
 
     <!-- ConfirmationBottomSheet (detectare parcare) -->
     <string name="confirmation_sheet_question">Ai parcat aici?</string>
@@ -450,8 +449,6 @@
     <string name="settings_language_auto">Implicit din sistem</string>
     <string name="settings_contact">Contact</string>
     <!-- Settings v2 — refactor UI -->
-    <string name="settings_notifications_title">Notificări</string>
-    <string name="settings_notifications_subtitle">Primește alerte ale aplicației</string>
     <string name="settings_danger_zone">Zonă de pericol</string>
     <string name="settings_danger_zone_subtitle">Acțiuni ireversibile</string>
     <string name="settings_profile_member_since">Membru din %1$s %2$d</string>
@@ -460,6 +457,7 @@
     <string name="settings_delete_account_confirm_message">Toate datele tale vor fi șterse permanent. Această acțiune nu poate fi anulată.</string>
     <string name="settings_delete_account_confirm_action">Șterge contul</string>
     <string name="settings_delete_account_cancel">Anulează</string>
+    <string name="settings_delete_account_error">Contul tău nu a putut fi șters. Verifică conexiunea și încearcă din nou.</string>
 
     <!-- Vehicle detail + vehicles history -->
     <string name="vehicle_registration_edit_title">Editează vehiculul</string>

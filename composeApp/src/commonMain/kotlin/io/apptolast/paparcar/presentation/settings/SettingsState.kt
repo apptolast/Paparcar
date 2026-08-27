@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.presentation.settings
 
+import io.apptolast.paparcar.appVersion as platformAppVersion
 import io.apptolast.paparcar.domain.model.DetectionReliabilityLevel
 import io.apptolast.paparcar.domain.model.UserProfile
 import io.apptolast.paparcar.domain.permissions.RequiredPermission
@@ -8,8 +9,9 @@ data class SettingsState(
     val userProfile: UserProfile? = null,
     val autoDetectParking: Boolean = true,
     val notifyParkingDetected: Boolean = true,
-    val notifySpotFreed: Boolean = true,
-    val appVersion: String = "1.0.0",
+    // Single source: the platform build version. The old "1.0.0" literal was a second,
+    // lying default that never matched the APK. [SETTINGS-AUDIT-REMEDIATION-001]
+    val appVersion: String = platformAppVersion,
     val showDeleteAccountConfirmation: Boolean = false,
     val isDeletingAccount: Boolean = false,
 

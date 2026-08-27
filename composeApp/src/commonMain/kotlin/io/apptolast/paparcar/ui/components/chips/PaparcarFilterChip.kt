@@ -23,14 +23,15 @@ import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.ui.theme.PapBorders
 import io.apptolast.paparcar.ui.theme.PapShapes
 import io.apptolast.paparcar.ui.theme.PaparcarType
+import io.apptolast.paparcar.ui.theme.PapAlpha
 
 private val CHIP_SHAPE = PapShapes.chip
 private const val DISABLED_BG_ALPHA = 0.5f
-private const val DISABLED_BORDER_ALPHA = 0.3f
-private const val DISABLED_FG_ALPHA = 0.38f
+private val DISABLED_BORDER_ALPHA = PapAlpha.dim
+private val DISABLED_FG_ALPHA = PapAlpha.disabled
 private val CHIP_ICON_SIZE = 18.dp
 private val TRAILING_ICON_SIZE = 12.dp
-private const val TRAILING_ICON_ALPHA = 0.5f
+private val TRAILING_ICON_ALPHA = PapAlpha.muted
 
 /**
  * Paparcar's canonical chip — the single base used for filter chips, zone

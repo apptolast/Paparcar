@@ -22,7 +22,6 @@ private const val KEY_PENDING_NUDGE_VEHICLE_ID = "pending_park_nudge_vehicle_id"
 private const val KEY_PENDING_PROMPT_SHOWN_AT = "pending_prompt_window_shown_at"
 private const val KEY_PENDING_PROMPT_VEHICLE_NAME = "pending_prompt_window_vehicle_name"
 private const val KEY_NOTIFY_PARKING_DETECTED = "notify_parking_detected"
-private const val KEY_NOTIFY_SPOT_FREED = "notify_spot_freed"
 private const val KEY_DARK_MODE_ENABLED = "dark_mode_enabled"
 private const val KEY_THEME_MODE = "theme_mode"
 private const val KEY_USE_IMPERIAL_UNITS = "use_imperial_units"
@@ -165,14 +164,6 @@ class IosAppPreferences : AppPreferences {
 
     override fun setNotifyParkingDetected(enabled: Boolean) {
         userDefaults.setBool(enabled, forKey = KEY_NOTIFY_PARKING_DETECTED)
-    }
-
-    override val notifySpotFreed: Boolean
-        get() = if (userDefaults.objectForKey(KEY_NOTIFY_SPOT_FREED) == null) true
-                else userDefaults.boolForKey(KEY_NOTIFY_SPOT_FREED)
-
-    override fun setNotifySpotFreed(enabled: Boolean) {
-        userDefaults.setBool(enabled, forKey = KEY_NOTIFY_SPOT_FREED)
     }
 
     override val themeMode: ThemeMode

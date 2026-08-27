@@ -56,6 +56,7 @@ import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_header_add_zone
 import paparcar.composeapp.generated.resources.home_header_add_zone_dismiss_cd
 import paparcar.composeapp.generated.resources.home_header_add_zone_hint
+import io.apptolast.paparcar.ui.theme.PapAlpha
 
 @Composable
 internal fun HomeHeaderSection(
@@ -239,5 +240,5 @@ private const val ADD_ZONE_CHIP_SIZE_DP = 32
 private const val CHIP_SHADOW_ROOM_DP = 8
 private const val CHIP_ICON_BOX_DP = 28
 private const val CHIP_ICON_DP = 16
-private const val HINT_ALPHA = 0.5f
+private val HINT_ALPHA = PapAlpha.muted
 private const val DISMISS_HIT_DP = 28

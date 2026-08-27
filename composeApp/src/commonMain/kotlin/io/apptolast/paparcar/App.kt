@@ -20,14 +20,14 @@ import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Warning
+import androidx.compose.material.icons.rounded.WifiOff
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -45,6 +45,8 @@ import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.ui.components.AppBottomNavItem
 import io.apptolast.paparcar.ui.components.AppBottomNavigation
 import io.apptolast.paparcar.ui.components.ConnectivityBanner
+import io.apptolast.paparcar.ui.components.PapAlertDialog
+import io.apptolast.paparcar.ui.components.PapDialogAccent
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.NavType
@@ -82,6 +84,7 @@ import io.apptolast.paparcar.presentation.vehicleregistration.VehicleSizeExplain
 import io.apptolast.paparcar.ui.auth.paparcarAuthSlots
 import io.apptolast.paparcar.ui.theme.PapMotion
 import io.apptolast.paparcar.ui.theme.PaparcarTheme
+import io.apptolast.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
@@ -277,28 +280,26 @@ private fun BootstrapOfflineDialog(isOffline: Boolean, onRetry: () -> Unit) {
     // returns (the dialog also auto-retries then, via the caller). [RETRY-GATE-001]
     var stillOffline by remember { mutableStateOf(false) }
     LaunchedEffect(isOffline) { if (!isOffline) stillOffline = false }
-    AlertDialog(
-        onDismissRequest = { /* not dismissable — user must retry or kill the app */ },
-        title = { Text(stringResource(Res.string.error_bootstrap_offline_title)) },
-        text = {
-            Column {
-                Text(stringResource(Res.string.error_bootstrap_offline_body))
-                AnimatedVisibility(visible = stillOffline) {
-                    Text(
-                        text = stringResource(Res.string.error_bootstrap_still_offline),
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(top = 8.dp),
-                    )
-                }
-            }
+    // The app's dialog mould — these two bootstrap dialogs were the last raw M3 AlertDialogs,
+    // showing an off-system first impression on cold start. [SETTINGS-AUDIT-REMEDIATION-001]
+    PapAlertDialog(
+        onDismiss = { /* not dismissable — user must retry or kill the app */ },
+        icon = Icons.Rounded.WifiOff,
+        title = stringResource(Res.string.error_bootstrap_offline_title),
+        body = stringResource(Res.string.error_bootstrap_offline_body),
+        primaryLabel = stringResource(Res.string.error_bootstrap_retry),
+        onPrimary = {
+            if (isOffline) stillOffline = true
+            onRetry()
         },
-        confirmButton = {
-            TextButton(onClick = {
-                if (isOffline) stillOffline = true
-                onRetry()
-            }) {
-                Text(stringResource(Res.string.error_bootstrap_retry))
+        content = {
+            AnimatedVisibility(visible = stillOffline) {
+                Text(
+                    text = stringResource(Res.string.error_bootstrap_still_offline),
+                    color = MaterialTheme.colorScheme.error,
+                    style = PaparcarType.current.caption,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
             }
         },
     )
@@ -306,15 +307,14 @@ private fun BootstrapOfflineDialog(isOffline: Boolean, onRetry: () -> Unit) {
 
 @Composable
 private fun BootstrapFatalDialog(onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(Res.string.error_bootstrap_fatal_title)) },
-        text = { Text(stringResource(Res.string.error_bootstrap_fatal_body)) },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(Res.string.error_bootstrap_fatal_dismiss))
-            }
-        },
+    PapAlertDialog(
+        onDismiss = onDismiss,
+        icon = Icons.Rounded.Warning,
+        title = stringResource(Res.string.error_bootstrap_fatal_title),
+        body = stringResource(Res.string.error_bootstrap_fatal_body),
+        primaryLabel = stringResource(Res.string.error_bootstrap_fatal_dismiss),
+        onPrimary = onDismiss,
+        accent = PapDialogAccent.Destructive,
     )
 }
 

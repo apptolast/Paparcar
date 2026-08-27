@@ -87,6 +87,7 @@ import paparcar.composeapp.generated.resources.vehicle_set_active_confirm_cancel
 import paparcar.composeapp.generated.resources.vehicle_set_active_confirm_cta
 import paparcar.composeapp.generated.resources.vehicle_set_active_confirm_title
 import paparcar.composeapp.generated.resources.vehicle_status_active_cd
+import io.apptolast.paparcar.ui.theme.PapAlpha
 
 /**
  * VehiclesScreen (v1 redesign) — Vehicles + History fusionado.
@@ -528,6 +529,6 @@ private const val ACTIVE_DOT_DP = 6
 private const val SELECTED_FILL_ALPHA = 0.14f
 private const val SELECTED_BORDER_ALPHA = 0.45f // muted "green-line", not the neon primary
 private const val EMPTY_ICON_CIRCLE_DP = 120
-private const val EMPTY_BODY_ALPHA = 0.65f
+private val EMPTY_BODY_ALPHA = PapAlpha.body
 private const val EMPTY_CTA_HEIGHT_DP = 50
 private const val EMPTY_CTA_CORNER_DP = 14
