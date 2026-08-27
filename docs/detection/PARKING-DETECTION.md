@@ -5473,3 +5473,60 @@ seconds later — the history record still survives that path. Recorded as
 `PARK-RETRACTED-BACKFILL-MUST-LEAVE-NO-PIN-001`.
 
 Spec: `docs/backlog/det-backfill-cannot-pin-a-moving-fix-001.md`.
+
+### DET-LONE-SAMPLE-CANNOT-UNFREEZE-AN-ANCHOR-001 — a lone sample does not undo a witnessed rest (pending)
+
+Field 2026-08-27, Oppo, arriving at La Parafarmacia (Calle del Vivero). The user: *"the point where
+the polyline ends is where I parked, but it dragged the pin to the physio's"*.
+
+The car really stopped at `36.5999567,-6.2514667` — four consecutive fixes at 0,0 m/s with 2,2 m of
+accuracy — and the anchor froze there. The lock then did its job twice, explicitly ignoring
+walking-range speeds of 2,65 and 4,25 m/s. And then:
+
+```
+12:31:49  loc#63 speed=6.449984m/s acc=2.3m     ← ONE fix. Unfreezes.
+12:31:54  loc#64 speed=0.0m/s acc=2.5m          ← the next one already contradicts it
+12:32:09  ⚓ anchor FROZEN — drive-entered stop matured   ← re-anchors 56 m down the street
+```
+
+37 m of displacement in 5,05 s: a person walking fast with GPS in a narrow street. The saved pin
+landed **35 m** from where the car actually stopped.
+
+**Why it was wrong.** `EffectiveDriving`'s row 1 read *"nothing outranks a credible fix at trip
+speed"* and sits **above** row 4, which is the ANCHOR-LOCK. So the entire lock — the guard whose
+whole purpose is stopping the egress walk from dragging the pin — was skippable by a single sample.
+`isRealDrive` is one call to `isCredibleMovingFix`: one fix, no corroboration of any kind. The
+project already encodes the opposite physics elsewhere: `shortHopProofFixes` demands more than one
+fix because *"a single fix can be a cache teleport"*.
+
+**Fix.** Row 1 splits in two, and the ranking keeps being the content:
+
+```kotlin
+isRealDrive && !anchorPinned -> true          // 1a. nothing witnessed to overturn, one fix is enough
+isRealDrive && realDriveCorroborated -> true  // 1b. pinned, but the drive is corroborated
+```
+
+`realDriveCorroborated` is a run — `AnchorTrust.realDriveStreak`, incremented per consecutive
+real-drive fix, broken by any fix that is not one and reset by every stopped fix, exactly like the
+`repositionStreak` beside it. The bar is `pinnedAnchorRealDriveFixes` = 2 (`require(> 1)`). With a
+pinned anchor the FIRST trip-speed fix now falls through to row 4 and the anchor holds while the run
+climbs; the SECOND clears it. Cost when the car genuinely pulls away: one fix, about five seconds.
+On 27-08 there was no second fix — the next one read 0,0 m/s — so the anchor would have held.
+
+The refusal is not silent: it prints `⚓⏸ anchor HELD against a lone trip-speed fix — … is run 1 of 2`,
+because a trip-speed fix next to an anchor that did not move is otherwise unreadable in a trace.
+
+**Guard today.** A pinned anchor is only cleared by corroborated driving, by a sustained departure
+(row 2, already displacement-corroborated) or by a stepless departure (row 3, already a run of four).
+Witnessed by three tests pinning rows 1a/1b and the field case; neutralising the split back to a bare
+`isRealDrive` turns exactly the lone-sample test red.
+
+**Sibling, deliberately not done here.** The same "one sample is not a drive" applied to the SESSION
+latch: on the small hours of 27-08, phone on the sofa, `DET-CREDIBLE-DRIVE-001` accepted *"SUSTAINED
+DEPARTURE — 230 m from the anchor at 24,5 m/s"* and latched `hasEverReachedDrivingSpeed`, while the
+next fix seven seconds later was back AT the anchor at 0,0 m/s. Different state
+(`SessionTelemetry`, not `AnchorTrust`), and there the stop side already has its guard
+(`DET-STOP-MUST-BE-STILL-IN-SPACE-001` fired six times) — the asymmetry is the finding. Recorded as
+`DET-DISPLACEMENT-DRIVE-MUST-SURVIVE-ITS-NEXT-FIX-001`.
+
+Spec: `docs/backlog/det-lone-sample-cannot-unfreeze-an-anchor-001.md`.

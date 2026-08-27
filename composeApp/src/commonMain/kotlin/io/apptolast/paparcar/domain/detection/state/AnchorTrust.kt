@@ -130,6 +130,11 @@ data class EgressBirth(
  *   time a stop opens; read at rebind, where it becomes [AnchorCapture.gapMs].
  * @property repositionStreak Consecutive fixes that look like a parking maneuver rather than a
  *   drive. [PARKING-001]
+ * @property realDriveStreak Consecutive credible fixes at or above trip speed. A PINNED anchor is a
+ *   rest this session actually witnessed, and one sample does not overturn a witness — the run must
+ *   reach `pinnedAnchorRealDriveFixes` before real driving clears it (field 2026-08-27, Calle del
+ *   Vivero). Any fix that is not a real drive breaks it, and every stopped fix resets it, exactly
+ *   like [repositionStreak]. [DET-LONE-SAMPLE-CANNOT-UNFREEZE-AN-ANCHOR-001]
  */
 data class AnchorTrust(
     val anchor: GpsPoint? = null,
@@ -143,6 +148,7 @@ data class AnchorTrust(
     val kinematicEgressFixes: Int = 0,
     val egressBirth: EgressBirth? = null,
     val repositionStreak: Int = 0,
+    val realDriveStreak: Int = 0,
 ) {
 
     /** The most GPS-accurate fix collected at the moment of stopping, or [fallback]. */
@@ -193,6 +199,9 @@ data class AnchorTrust(
         frozenByRest = frozenByRest || frozen,
         // Reset the reposition counter on every stopped fix. [PARKING-001]
         repositionStreak = 0,
+        // …and the real-drive run with it: a stop breaks any run of driving fixes by definition.
+        // [DET-LONE-SAMPLE-CANNOT-UNFREEZE-AN-ANCHOR-001]
+        realDriveStreak = 0,
     )
 
     /**
@@ -249,6 +258,7 @@ data class AnchorTrust(
         carMovement: Boolean,
         fix: GpsPoint,
         repositionStreak: Int,
+        realDriveStreak: Int,
         kinematicEgressFixes: Int,
     ): AnchorTrust = copy(
         anchor = if (anchorCleared) null else anchor,
@@ -270,6 +280,7 @@ data class AnchorTrust(
         ),
         kinematicEgressFixes = kinematicEgressFixes,
         repositionStreak = repositionStreak,
+        realDriveStreak = realDriveStreak,
     )
 
     // ── The egress walk's birth ───────────────────────────────────────────────

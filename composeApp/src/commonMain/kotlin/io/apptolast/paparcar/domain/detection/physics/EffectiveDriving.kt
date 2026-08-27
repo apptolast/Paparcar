@@ -17,7 +17,18 @@ package io.apptolast.paparcar.domain.detection.physics
  *
  * Reading it top to bottom:
  *
- *  1. **Real driving speed → CAR, always wins.** Nothing outranks a credible fix at trip speed.
+ *  1. **Real driving speed → CAR** — outright when there is no pinned anchor to overturn (1a), and
+ *     only once CORROBORATED when there is (1b). [DET-LONE-SAMPLE-CANNOT-UNFREEZE-AN-ANCHOR-001]
+ *     This row used to read "nothing outranks a credible fix at trip speed", and because it sits
+ *     above row 4 that made the whole ANCHOR-LOCK skippable by one sample. Field 2026-08-27, Calle
+ *     del Vivero: the car really stopped — four consecutive fixes at 0,0 m/s with 2,2 m accuracy —
+ *     the lock correctly ignored brisk walking at 2,65 and 4,25 m/s, and then a SINGLE fix at
+ *     6,45 m/s (37 m in 5 s, a person walking fast down a narrow street) cleared the anchor. The
+ *     next fix, five seconds later, read 0,0 m/s twelve metres away; the park re-anchored 56 m
+ *     down the street and the pin landed 35 m from the car. The same physics `shortHopProofFixes`
+ *     already encodes — *a single fix can be a cache teleport* — applied to the one place that
+ *     overturns a rest the session actually WITNESSED. Cost when the car truly pulls away: one
+ *     fix, about five seconds.
  *  2. **Sustained departure → CAR even when no single fix is credible.** The position provably RAN
  *     from the anchor at vehicle pace; this is what unfreezes an anchor when the OEM starves every
  *     individual fix of accuracy [DET-CREDIBLE-DRIVE-001].
@@ -44,7 +55,14 @@ package io.apptolast.paparcar.domain.detection.physics
  * hatch of 6. Their order is load-bearing, and swapping them re-opens Galeote. Same for 3 and 4 —
  * swapping those re-opens Bodegas Osborne. `EffectiveDrivingTest` pins every adjacent pair.
  *
+ * ⚠️ 1b must stay ABOVE row 4 and 1a must stay separate from it: merging them back into a bare
+ * `isRealDrive` re-opens Calle del Vivero, and demoting the pair below row 4 would mean a car
+ * pulling out of its own space could never clear the anchor it is parked on.
+ *
  * @param isRealDrive Credible fix at or above trip speed.
+ * @param realDriveCorroborated This is not the FIRST such fix in a row — the run has reached
+ *   `pinnedAnchorRealDriveFixes`. Only consulted when an anchor is pinned; a lone sample never
+ *   overturns a witnessed rest. [DET-LONE-SAMPLE-CANNOT-UNFREEZE-AN-ANCHOR-001]
  * @param sustainedDeparture The position ran from the anchor at vehicle pace since its stop began.
  * @param steplessDeparture Enough stepless moving fixes past the anchor envelope with a live counter.
  * @param anchorPinned Step lock or end-of-drive freeze holds the anchor.
@@ -57,6 +75,7 @@ package io.apptolast.paparcar.domain.detection.physics
 @Suppress("LongParameterList")
 fun effectiveDriving(
     isRealDrive: Boolean,
+    realDriveCorroborated: Boolean,
     sustainedDeparture: Boolean,
     steplessDeparture: Boolean,
     anchorPinned: Boolean,
@@ -66,7 +85,8 @@ fun effectiveDriving(
     displacementOutrunsSteps: Boolean,
     isDriving: Boolean,
 ): Boolean = when {
-    isRealDrive -> true
+    isRealDrive && !anchorPinned -> true
+    isRealDrive && realDriveCorroborated -> true
     sustainedDeparture -> true
     steplessDeparture -> true
     anchorPinned -> false

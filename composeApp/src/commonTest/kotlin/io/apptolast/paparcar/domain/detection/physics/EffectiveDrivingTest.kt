@@ -21,6 +21,7 @@ class EffectiveDrivingTest {
     /** All signals off, `isDriving` false: the "nothing is happening" baseline. */
     private fun verdict(
         isRealDrive: Boolean = false,
+        realDriveCorroborated: Boolean = true,
         sustainedDeparture: Boolean = false,
         steplessDeparture: Boolean = false,
         anchorPinned: Boolean = false,
@@ -30,7 +31,7 @@ class EffectiveDrivingTest {
         displacementOutrunsSteps: Boolean = false,
         isDriving: Boolean = false,
     ) = effectiveDriving(
-        isRealDrive, sustainedDeparture, steplessDeparture, anchorPinned,
+        isRealDrive, realDriveCorroborated, sustainedDeparture, steplessDeparture, anchorPinned,
         corroboratedMuteHop, stepsCounted, hasAnchor, displacementOutrunsSteps, isDriving,
     )
 
@@ -39,6 +40,31 @@ class EffectiveDrivingTest {
     @Test
     fun should_say_car_when_the_fix_is_real_driving() {
         assertTrue(verdict(isRealDrive = true))
+    }
+
+    // ── [DET-LONE-SAMPLE-CANNOT-UNFREEZE-AN-ANCHOR-001] Rows 1a / 1b ──────────
+
+    @Test
+    fun should_say_person_when_a_lone_trip_speed_fix_meets_a_pinned_anchor() {
+        // Field 2026-08-27, Calle del Vivero. The car really stopped (four fixes at 0,0 m/s, 2,2 m
+        // accuracy) and the lock had already ignored 2,65 and 4,25 m/s. Then ONE fix at 6,45 m/s —
+        // 37 m in 5 s, a person walking fast — cleared the anchor, and the next fix five seconds
+        // later read 0,0 m/s twelve metres away. The pin ended 35 m from the car.
+        assertFalse(verdict(isRealDrive = true, realDriveCorroborated = false, anchorPinned = true))
+    }
+
+    @Test
+    fun should_say_car_when_the_second_trip_speed_fix_corroborates_the_first() {
+        // The discriminating twin: the car genuinely pulls away, so the run continues and the
+        // anchor clears one fix (~5 s) later than it used to. This is the whole cost of the guard.
+        assertTrue(verdict(isRealDrive = true, realDriveCorroborated = true, anchorPinned = true))
+    }
+
+    @Test
+    fun should_say_car_when_a_lone_trip_speed_fix_has_no_pinned_anchor_to_overturn() {
+        // Row 1a: with nothing witnessed to overturn there is no reason to demand a run, and
+        // demanding one would delay every ordinary departure.
+        assertTrue(verdict(isRealDrive = true, realDriveCorroborated = false, anchorPinned = false))
     }
 
     @Test

@@ -313,8 +313,14 @@ fun DetectionSessionState.updateStopTracking(
             // is the content, and every row there won an argument with a real trip. The signals
             // are computed here because they read this session's state; the ranking between them
             // is physics and is now directly testable [07 §3.2].
+            // [DET-LONE-SAMPLE-CANNOT-UNFREEZE-AN-ANCHOR-001] The run of consecutive real-drive
+            // fixes. Any fix that is not one breaks it; a stopped fix resets it in `onStoppedFix`.
+            // A PINNED anchor is a rest this session witnessed, so overturning it asks for a run
+            // rather than a sample — see the ranking's rows 1a/1b.
+            val newRealDriveStreak = if (isRealDrive) it.anchorTrust.realDriveStreak + 1 else 0
             val effectiveDriving = effectiveDriving(
                 isRealDrive = isRealDrive,
+                realDriveCorroborated = newRealDriveStreak >= config.pinnedAnchorRealDriveFixes,
                 sustainedDeparture = sustainedDeparture,
                 steplessDeparture = steplessDeparture,
                 anchorPinned = anchorPinned,
@@ -334,6 +340,17 @@ fun DetectionSessionState.updateStopTracking(
                 notes +=
                     "  ⤳ mute ambiguous fix corroborated as CAR by displacement " +
                         "(speed=${location.speed} acc=${location.accuracy}) [DET-CREDIBLE-DRIVE-001]"
+            }
+            if (anchorPinned && isRealDrive && newRealDriveStreak < config.pinnedAnchorRealDriveFixes) {
+                // [DET-LONE-SAMPLE-CANNOT-UNFREEZE-AN-ANCHOR-001] Without this line the refusal is
+                // invisible: the trace would show a trip-speed fix and an anchor that did not move,
+                // with nothing saying why. It must also read as PROVISIONAL — the next fix either
+                // corroborates the drive and the anchor goes, or breaks the run and it stays.
+                notes +=
+                    "  ⚓⏸ anchor HELD against a lone trip-speed fix — ${location.speed} m/s " +
+                        "acc=${location.accuracy} is run $newRealDriveStreak of " +
+                        "${config.pinnedAnchorRealDriveFixes}; a witnessed rest needs corroboration " +
+                        "to be overturned [DET-LONE-SAMPLE-CANNOT-UNFREEZE-AN-ANCHOR-001]"
             }
             if (anchorPinned && isDriving && !isRealDrive) {
                 val proof = if (it.isAnchorLocked(config)) "LOCKED (steps=${it.egress.stepCount})" else "FROZEN (end-of-drive stop)"
@@ -387,6 +404,7 @@ fun DetectionSessionState.updateStopTracking(
                     carMovement = effectiveDriving || isRepositionBurst,
                     fix = location,
                     repositionStreak = newConsecutive,
+                    realDriveStreak = newRealDriveStreak,
                     kinematicEgressFixes = newKinematicEgressFixes,
                 ).withEgressBirth(
                     fix = location,

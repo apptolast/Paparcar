@@ -117,7 +117,7 @@ class AnchorTrustTest {
 
         val cleared = sealed.onMovingFix(
             anchorCleared = true, carMovement = true, fix = point(north = 0.01),
-            repositionStreak = 0, kinematicEgressFixes = 0,
+            repositionStreak = 0, realDriveStreak = 0, kinematicEgressFixes = 0,
         )
 
         assertNull(cleared.anchor)
@@ -138,7 +138,7 @@ class AnchorTrustTest {
         val anchored = AnchorTrust().stoppedAt(firstStop, point())
         val walked = anchored.onMovingFix(
             anchorCleared = false, carMovement = false, fix = point(north = 0.0002),
-            repositionStreak = 0, kinematicEgressFixes = 1,
+            repositionStreak = 0, realDriveStreak = 0, kinematicEgressFixes = 1,
         )
         assertEquals(anchored.anchor, walked.anchor)
         assertEquals(1, walked.walkIn.fixesSinceDriving)
@@ -156,7 +156,7 @@ class AnchorTrustTest {
         val walking = AnchorTrust(walkIn = WalkIn(fixesSinceDriving = 5, runOriginFix = point()))
         val after = walking.onMovingFix(
             anchorCleared = false, carMovement = true, fix = point(north = 0.001),
-            repositionStreak = 2, kinematicEgressFixes = 0,
+            repositionStreak = 2, realDriveStreak = 0, kinematicEgressFixes = 0,
         )
         assertEquals(0, after.walkIn.fixesSinceDriving)
         assertNull(after.walkIn.runOriginFix)

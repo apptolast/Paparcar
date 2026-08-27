@@ -477,6 +477,14 @@ data class ParkingDetectionConfig(
      *  A single fix can be a cache teleport; three in a row cannot — and a real arrival keeps
      *  producing them. */
     val shortHopProofFixes: Int = 3,
+    /** [DET-LONE-SAMPLE-CANNOT-UNFREEZE-AN-ANCHOR-001] Consecutive credible trip-speed fixes needed
+     *  to clear a PINNED anchor. A pinned anchor is a rest the session WITNESSED — four fixes at
+     *  0,0 m/s with 2,2 m of accuracy, field 2026-08-27 — and one sample does not overturn a
+     *  witness: a person walking fast down a narrow street produced a lone 6,45 m/s fix (37 m in
+     *  5 s) that cleared it, and the next fix five seconds later read 0,0 m/s twelve metres away.
+     *  Two, not three: unlike [shortHopProofFixes] this run only has to outlast a GPS excursion,
+     *  and every extra fix delays a genuine pull-away by another sampling interval. */
+    val pinnedAnchorRealDriveFixes: Int = 2,
     /** [DET-SENTRY-ARM-PEDESTRIAN-CLOCK-001] Credible driving-speed fixes a session must have seen
      *  before its raw speed PEAK counts as an in-session vehicular signal for the no-drive zone
      *  fallback ([DET-NODRIVE-ZONE-001]). Two, not three: that branch already demands a live step
@@ -1094,6 +1102,10 @@ data class ParkingDetectionConfig(
         }
         require(rawDriveSignalMinFixes > 1) {
             "rawDriveSignalMinFixes must be > 1 (one sample is a cold-start Doppler spike), was $rawDriveSignalMinFixes"
+        }
+        require(pinnedAnchorRealDriveFixes > 1) {
+            "pinnedAnchorRealDriveFixes must be > 1 (a lone sample must never overturn a witnessed " +
+                "rest), was $pinnedAnchorRealDriveFixes"
         }
         require(shortHopProofFixes > 1) {
             "shortHopProofFixes must be > 1 (a single fix can be a cache teleport), was $shortHopProofFixes"
