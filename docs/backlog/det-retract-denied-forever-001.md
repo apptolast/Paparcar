@@ -101,7 +101,13 @@ lo usa como "hay una deducción pendiente" para **liberar la sesión** si más t
 Borrarlo dejaría el coche aparcado para siempre. El defecto de fondo — **un campo respondiendo a dos
 preguntas distintas** ("¿hay deducción pendiente?" y "¿hay plaza publicada ahí fuera?"), la misma
 familia que `DET-DEPARTURE-IS-NOT-ARRIVAL-001` — **NO se ha reestructurado**: separarlo pide un campo
-nuevo y, por tanto, esquema. Queda dicho aquí, no arreglado.
+nuevo y, por tanto, esquema.
+
+> **DECIDIDO 27-08: no se separa.** El bound se llevó el coste real — de 256 intentos en 5 días a
+> como mucho un par dentro de la ventana de 12 min — y lo que queda es latente. Una columna nueva
+> (más DTO, mapper, fakes y tests) no se paga con eso, ni siquiera aprovechando que Room acaba de
+> quedarse en v1 y no costaría migración: sin usuarios, tampoco costará dentro de un mes.
+> **Se reabre si el campo demuestra que el residuo muerde.**
 
 **2 · El log deja de mentir** (`ProcessConfirmedDepartureUseCase`). La condición de publicar estaba
 escrita **tres veces** en tres formas distintas (la rama, la línea local y el evento remoto — y la
