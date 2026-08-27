@@ -1,8 +1,9 @@
-# DET-BT-VETO-MUST-NOT-ORPHAN-A-SESSION-001 · cerrar una vía sin comprobar que la otra puede correr deja la sesión sin salida
+# DET-BT-VETO-MUST-NOT-ORPHAN-A-SESSION-001 · ¿puede cerrarse una sesión cuya vía dueña no corre?
 
-**Estado:** 🟡 Abierto · sin rama · sin worktree · **diseño SIN decidir** (ver abajo)
-**Origen:** field 27-08 (fisio), Oppo. Detectado al preguntarse el user por qué el zombi `a786c135`
-seguía vivo.
+**Estado:** 🟡 Abierto · sin rama · sin worktree · **premisa a medias SIN DEMOSTRAR, bloqueado por
+un viaje** (ver «Lo que NO está demostrado»)
+**Origen:** field 27-08 (fisio), Oppo. Detectado al preguntarse el user por qué la sesión
+`a786c135` seguía viva.
 
 ## Problema
 
@@ -10,28 +11,36 @@ La sesión `a786c135` (Skoda Kamiq, `manual`, Calle Góndola 7) lleva **seis dí
 `isActive: true`. Se creó el **21-08 21:52** y su documento **no se ha vuelto a escribir desde el
 21-08**. Es la única sesión activa de la cuenta.
 
-No es que nadie la haya cerrado: es que **ninguna vía PUEDE cerrarla**.
+⛔ **Y eso, por sí solo, es CORRECTO.** El user (27-08): *«el Kamiq no lo he estado usando estos
+días, tiene sentido que no aparezca»*. Un coche que no se ha movido sigue aparcado: la sesión
+abierta es el dato bueno, no un zombi. Lo que este ticket persigue **no** es cerrarla.
 
-| Vía | Por qué no cierra | Evidencia |
+## Lo que NO está demostrado — corrección a la primera versión de este doc
+
+La primera redacción afirmaba que **ninguna vía puede cerrarla** y que el veto `bt-owned` fabrica un
+huérfano. **Eso afirma más de lo que se midió.** Lo único observado es que la vía Bluetooth **no se
+ejercitó**: el MAC `50:26:EF:16:1D:C0` no aparece en el `parkdiag` porque el coche no se condujo, no
+porque la vía falle. Nunca vi al carril BT intentar cerrar nada y fracasar.
+
+Lo que sí está observado, y sigue en pie:
+
+| Vía | Observado | Evidencia |
 |---|---|---|
-| **Coordinator** | tiene prohibido adueñarse de un coche con MAC | `✓ vehicleId locked: addbe660 … (nominator=abf6c516 **vetoed: bt-owned**)` (26-08 08:30:44) |
-| **Bluetooth** | el MAC del Kamiq nunca conecta | `50:26:EF:16:1D:C0` aparece **0 veces** en todo el `parkdiag`; 0 sesiones `BLUETOOTH`. El único BT visto son unos auriculares (`00:A4:1C:65:2B:3F`) |
+| **Coordinator** | tiene prohibido adueñarse de un coche con MAC, **y su valla sí arma sesiones** | `✓ vehicleId locked: addbe660 … (nominator=abf6c516 **vetoed: bt-owned**)` (26-08 08:30:44) |
+| **Bluetooth** | **sin ejercitar** — el coche no se ha usado | `50:26:EF:16:1D:C0` 0 veces; 0 sesiones `BLUETOOTH` |
 | **SafetyNet** | «lejos pero sin pruebas de viaje» → pregunta, no libera | `geof=a786c135: LEJOS (d=2001m) pero SIN pruebas de viaje` |
 
-El veto `bt-owned` (de `DET-BT-CAR-CANNOT-NOMINATE-A-COORDINATOR-SESSION-001`, field 25-08) es
-**correcto en sí mismo**: un coche emparejado pertenece a la vía determinista y el Coordinator no
-debe reclamarlo. Lo que falta es la otra mitad: **nadie comprueba que la vía dueña pueda correr.**
-El veto cierra una puerta sin mirar si la otra existe, y el resultado es un huérfano.
+**La pregunta abierta**, que es lo que queda del ticket: cuando el Kamiq SÍ se conduzca, ¿la vía BT
+cierra su sesión? Si sí, aquí no hay bug de cierre y sólo queda el coste (abajo). Si no —si el veto
+`bt-owned` deja la sesión sin salida real— entonces sí es la misma forma que
+`DET-RETRACT-DENIED-FOREVER-001` un nivel más arriba, y el ticket recupera su título.
 
-⚠️ **El vehículo está `isActive: false`** (desactivado en el garaje; el activo es el Ford Focus
-`addbe660`, sin BT). O sea: la vía BT no sólo no corre por casualidad — es que ese coche ni siquiera
-es el que la app está vigilando.
+**Cómo se decide, y es barato:** un solo viaje con el Kamiq emparejado. Señales a mirar en el
+`parkdiag`: aparición de `BT DISCONNECTED device=50:26:EF:16:1D:C0` con vehículo emparejado
+reconocido, y si `a786c135` pasa a `isActive: false`.
 
-## Doctrina violada
-
-Es la misma forma que `DET-RETRACT-DENIED-FOREVER-001` («a withdrawal with no terminal state»), un
-nivel más arriba: **una sesión sin estado terminal alcanzable**. Allí era una retirada que nunca
-podía completarse; aquí es un aparcamiento que nunca puede terminar.
+⚠️ Dato de contexto, no acusación: el vehículo está `isActive: false` en el garaje (el activo es el
+Ford Focus `addbe660`, sin BT), lo cual es coherente con no estar usándolo.
 
 ## Lo que cuesta, medido — ⛔ ningún pin, sólo ruido
 
@@ -48,6 +57,10 @@ provocó abortaron. El coste es ruido y trabajo, no datos falsos:
   `DET-EXPLAINED-RIDE-ASKS-NO-OTHER-CAR-001`).
 
 ## Diseño — ⛔ SIN DECIDIR, y el fix tentador es el equivocado
+
+Sea cual sea la respuesta a la pregunta abierta, **la parte del coste se puede atacar ya**: 44
+reintentos contra un spot inexistente y 568 evaluaciones en 3 días son desperdicio aunque la sesión
+sea perfectamente legítima.
 
 **Lo que NO hay que hacer:** *«vehículo `isActive: false` → matar su sesión y su valla»*. El KDoc de
 `Vehicle.isActive` lo dice: *«The vehicle currently used for detection and spot reporting. Only one
@@ -77,8 +90,10 @@ Preguntas que hay que contestar antes de escribir código:
 
 ## Criterio de éxito
 
-- Una sesión cuya vía dueña no puede correr deja de consumir heartbeat y deja de reintentar la
-  retirada, **sin desaparecer del histórico ni del mapa**.
+- **Primero, medir**: un viaje con el Kamiq contesta si la vía BT cierra su sesión. Sin ese dato el
+  ticket no debe escribir código.
+- Una sesión aparcada a largo plazo deja de consumir heartbeat al mismo ritmo y deja de reintentar la
+  retirada de un spot inexistente, **sin desaparecer del histórico ni del mapa**.
 - Un segundo coche aparcado de verdad, con su vía viva, sigue comportándose igual que hoy.
 - El user puede cerrar esa sesión a mano en un paso.
 - Campo: tres días sin `retract failed for spot=…` y sin evaluaciones de una valla que nadie puede
@@ -98,11 +113,19 @@ Pendiente — se hará al abrir la rama, y el barrido es la mitad del trabajo. P
 - `DET-RETRACT-DENIED-FOREVER-001` — misma forma un nivel abajo, y dueño del marcador que no se
   limpia.
 
-## Nota de setup, aparte del bug
+## Por qué el carril BT está sin medir — y por qué eso está BIEN
 
-⚠️ Esto destapa que **el Oppo es «el móvil de la vía BT» sólo sobre el papel**: con el Focus (sin
-MAC) como vehículo activo, `resolveStrategy` devuelve **Coordinator siempre**. Cero sesiones
-Bluetooth en todo el log. La vía determinista lleva días sin probarse en ese aparato — justo lo que
-avisa `project_field_test_device_setup`: *la estrategia del día depende del coche activo,
-verificarlo y no darlo por hecho*. **Esto no es parte del ticket**, es una corrección al setup de
-campo.
+Con el Focus (sin MAC) como vehículo activo, `resolveStrategy` devuelve **Coordinator siempre**:
+cero sesiones Bluetooth en todo el log.
+
+⛔ **Eso NO es un fallo de setup, y proponer «pon el Kamiq activo para probar BT» sería empeorar el
+banco de pruebas.** El user (27-08): *«seguimos teniendo falsos positivos y negativos con Focus;
+claro que no estoy con el Kamiq, que es por BT y tiene menos riesgo»*. Correcto: el Coordinator es
+el carril **probabilístico**, es donde viven los FP y los FN, y es donde el tiempo de conducción
+—el recurso escaso— rinde. El BT es determinista (MAC + fix + 30 m) y tiene mucho menos que fallar.
+
+La consecuencia para ESTE ticket es la única que importa: la vía dueña de `a786c135` está sin medir
+**por una buena razón**, así que la pregunta abierta de arriba no se contesta «de paso». Cuesta un
+viaje con el Kamiq, y ese viaje compite con el tiempo de cazar FP en el Focus. **Mientras no salga
+gratis, este ticket se queda parado en su mitad de coste** (los 44 reintentos y las 568
+evaluaciones), que sí se puede atacar sin conducir nada.
