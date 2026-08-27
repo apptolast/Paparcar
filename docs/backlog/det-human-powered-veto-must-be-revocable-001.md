@@ -1,7 +1,6 @@
 # DET-HUMAN-POWERED-VETO-MUST-BE-REVOCABLE-001 · el veto de tracción humana tiene que poder levantarse con lo que la sesión ya ha medido
 
-**Estado:** 🔵 En progreso · rama `bugfix/DET-HUMAN-POWERED-VETO-MUST-BE-REVOCABLE-001-boarding-and-displacement`
-· worktree `../Paparcar-motor-throttled`
+**Estado:** ✅ Done · master `c322d8c1` (27-08) · rama y worktree eliminados
 
 ## Problema
 
