@@ -867,6 +867,120 @@ class DetectionTraceReplayTest {
     // the supersede handed over. The first test reproduces the field loss; the second is the fix.
 
     /** The anchor the field arm used: the pin the AR ENTER resolved as "your car". */
+    // ── [DET-HUMAN-POWERED-VETO-MUST-BE-REVOCABLE-001] the 2026-08-26 park the veto ate ───────────
+
+    /** Where the car sat in Calle Valdés: the session's own first fix, taken beside it on waking. */
+    private fun valdesAnchor() = GpsPoint(
+        latitude = 36.5961565,
+        longitude = -6.2329631,
+        accuracy = 26.102f,
+        timestamp = TRACE_GONDOLA_2608_CADENCE_VETO.first().tMs - 60_000L,
+        speed = 0f,
+    )
+
+    /** The AR lane of the 2026-08-26 session, at the true transition times the log recorded.
+     *  Injected rather than carried as events — `IN_VEHICLE ENTER` has no `TraceEvent.Kind`, and
+     *  inventing one would put a synthetic value inside a fixture that is otherwise the field stream
+     *  1:1. There was no `ON_BICYCLE` stamp anywhere in this session; that absence is the point. */
+    private fun CoordinatorParkingDetector.stampBoarding() =
+        onVehicleRide(TRACE_GONDOLA_2608_CADENCE_VETO.first().tMs - 2_610L + 64_320L)
+
+    @Test
+    fun gondola_2608_a_witnessed_boarding_and_a_measured_motor_must_outlive_the_cadence_latch() =
+        runTest(UnconfinedTestDispatcher()) {
+            // THE FIELD SESSION, 1:1. 341 fixes, 165 steps, 39 minutes. The cadence latched at
+            // Δ183 s off six city fixes reading 11-17 km/h; the band clock never recovered because
+            // OEM batching spread the in-band fixes 163 s and 200 s apart. The car arrived home at
+            // Δ1 354 s, the anchor froze on the spot at Δ1 381 s, 32 egress steps followed — and the
+            // app asked instead of saving. Nobody answered, and 15 minutes later the park was gone.
+            val replayer = DetectionTraceReplayer(TRACE_GONDOLA_2608_CADENCE_VETO)
+            val env = buildEnv(clock = { replayer.nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 512)
+            val job = launch {
+                env.coordinator.invoke(
+                    locations,
+                    armEvidence = ArmEvidence.Unverified,
+                    departureAnchor = valdesAnchor(),
+                    departureFenceRadiusMeters = 85f,
+                )
+            }
+            env.coordinator.stampBoarding()
+
+            replayer.replay(
+                emitFix = { locations.emit(it) },
+                emitStep = { env.stepDetector.emitSteps(1) },
+                emitVehicleExit = { env.coordinator.onVehicleExit() },
+            )
+            job.cancelAndJoin()
+
+            assertEquals(
+                1, env.parkingRepo.saveNewParkingSessionCallCount,
+                "the arrival is unambiguous and the veto had two independent refutations available",
+            )
+            val saved = assertNotNull(env.parkingRepo.getActiveSession())
+            // The spot: every fix from Δ1 366 s on sits within a few metres of 36.60874,-6.27817.
+            // The traffic stop the anchor first froze on — the one the first prompt fired at — is
+            // 36.5973,-6.2252, five kilometres away, so this window discriminates the two.
+            assertTrue(
+                saved.location.latitude in 36.6085..36.6090 &&
+                    saved.location.longitude in -6.2784..-6.2779,
+                "the pin must land at Góndola 1, not at the traffic stop the anchor first froze on " +
+                    "— was ${saved.location.latitude},${saved.location.longitude}",
+            )
+            val ended = env.detectionLogger.events.filterIsInstance<DetectionEvent.SessionEnded>()
+            assertTrue(
+                ended.isNotEmpty() && ended.single().outcome.startsWith("confirmed_"),
+                "field outcome was the 15-minute 'Ask(HUMAN_POWERED)'; got '${ended.singleOrNull()?.outcome}'",
+            )
+        }
+
+    @Test
+    fun gondola_2608_the_displacement_refutation_alone_carries_the_same_stream() =
+        runTest(UnconfinedTestDispatcher()) {
+            // Door B in isolation ON REAL DATA: the boarding is NOT stamped, so the cadence latch
+            // stands until something measured refutes it — and the only thing that can is the
+            // sustained rate from the anchor (640 m at 24,6 m/s), because the band CLOCK is starved
+            // to ~1 s by the same batching the fixture records.
+            //
+            // ⚠ What this pair does and does not pin down. The two tests together cannot separate
+            // the doors by themselves — the test above has BOTH available. The separation was made
+            // by neutralising each door in the production source and re-running, and it came out:
+            //
+            //   both doors live      → both tests pass
+            //   door A neutralised   → both pass (the displacement carries them)
+            //   door B neutralised   → the test above passes on the BOARDING ALONE; this one fails
+            //   both neutralised     → both fail, reproducing the field false negative
+            //
+            // So door A does carry this real stream on its own; what no permanent test here can
+            // assert is that it would still carry it if the trip had never left the city, because
+            // this trip did reach 94 km/h. That case is pinned in
+            // `HumanPoweredRideTest.should_notVeto_when_cadenceFiredOnACityDriveArHadAlreadyWitnessed`
+            // with the numbers the log recorded.
+            val replayer = DetectionTraceReplayer(TRACE_GONDOLA_2608_CADENCE_VETO)
+            val env = buildEnv(clock = { replayer.nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 512)
+            val job = launch {
+                env.coordinator.invoke(
+                    locations,
+                    armEvidence = ArmEvidence.Unverified,
+                    departureAnchor = valdesAnchor(),
+                    departureFenceRadiusMeters = 85f,
+                )
+            }
+
+            replayer.replay(
+                emitFix = { locations.emit(it) },
+                emitStep = { env.stepDetector.emitSteps(1) },
+                emitVehicleExit = { env.coordinator.onVehicleExit() },
+            )
+            job.cancelAndJoin()
+
+            assertEquals(
+                1, env.parkingRepo.saveNewParkingSessionCallCount,
+                "ground the car provably covered refutes the cadence with no AR help at all",
+            )
+        }
+
     private fun gondolaAnchor() = GpsPoint(
         latitude = 36.608368,
         longitude = -6.2781358,

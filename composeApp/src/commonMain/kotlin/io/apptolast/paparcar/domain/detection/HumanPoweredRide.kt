@@ -38,9 +38,29 @@ import io.apptolast.paparcar.domain.model.VehicleType
  * moving car the counter stays silent (its phantoms arrive as bursts of 1-3, or while parked): steps
  * concurrent with above-pedestrian-ceiling fixes are a PEDALLING signature. So the kinematic source
  * is judged FIRST — it is this session's measurement, while the AR stamps are a memory with a
- * staleness window. Known cost, accepted: a bike→car trip in one session keeps the cadence latch
- * (there is no kinematic "boarding" to supersede it, unlike the AR lane below) and degrades the
- * final pin to a prompt — one tap, the direction asymmetric failure allows.
+ * staleness window.
+ *
+ * **…but only while AR is SILENT.** [DET-HUMAN-POWERED-VETO-MUST-BE-REVOCABLE-001] That "known cost,
+ * accepted" used to read: *a bike→car trip in one session keeps the cadence latch, and degrades the
+ * final pin to a prompt — one tap, the direction asymmetric failure allows.* Field 2026-08-26 (Redmi,
+ * Valdés→Góndola) priced the tap: nobody tapped, the 15-minute window expired and the park was LOST.
+ * A veto with no way out is not "asking when in doubt", it is losing the space by default.
+ *
+ * And the session it convicted was not bike→car. It was a car from the first metre, through the city
+ * centre, with an AR `IN_VEHICLE` ENTER stamped at its true transition time **1 min 49 s BEFORE** the
+ * cadence fired and not one `ON_BICYCLE` label anywhere in it. The classifier had answered the
+ * question and the verdict never looked, because this branch returned before reaching the arbitration
+ * below. So the scope is now what the paragraph above always claimed it was: the cadence speaks for
+ * the short rides **AR never classifies** — the 2026-08-18 ride had ZERO AR events among 316 — and
+ * yields to a boarding AR did witness, under the same "last boarding wins" rule the AR lane uses. A
+ * bicycle produces no `IN_VEHICLE` ENTER, so Los Toruños and the 6-minute ride are untouched by
+ * construction.
+ *
+ * Why the cadence needed that scope and not a higher bar: its ceiling for "above pedestrian" is
+ * `egressStepMaxSpeedMps` (3 m/s = 10,8 km/h), and a car in a narrow street lives there — the six
+ * fixes that convicted this session read 11 to 17 km/h. Recalibrating those numbers is a separate,
+ * measurement-blocked ticket (`DET-PEDAL-CADENCE-CANNOT-CONVICT-A-CAR-IN-TRAFFIC-001`); this one only
+ * stops the claim outranking evidence that already contradicts it.
  *
  * @param vehicleType The active vehicle's registered profile.
  * @param bicycleRideAtMs True transition time of the last AR `ON_BICYCLE` ENTER this session saw
@@ -53,6 +73,10 @@ import io.apptolast.paparcar.domain.model.VehicleType
  * @param nowMs Wall clock.
  * @param sustainedMotorBandMs Time this session HELD `motorProofSpeedMps` across credible
  *   successive fixes. [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001]
+ * @param sustainedMotorDisplacementRateMps The fastest ground rate the session sustained from an
+ *   anchor over a measured baseline (`DriveProof.motorDisplacementRateMps`). The same refutation as
+ *   [sustainedMotorBandMs], asked of a quantity a hole in the stream cannot erase.
+ *   [DET-HUMAN-POWERED-VETO-MUST-BE-REVOCABLE-001]
  * @param fastMotionStepEvents Session count of step events concurrent with a fresh, credible GPS
  *   fix above the pedestrian ceiling (`egressStepMaxSpeedMps`). [DET-MOTOR-PROOF-001]
  * @param fastMotionStepFixes Distinct fixes credited with at least one such step — one fix's burst
@@ -66,6 +90,7 @@ fun isHumanPoweredRide(
     fastMotionStepEvents: Int = 0,
     fastMotionStepFixes: Int = 0,
     sustainedMotorBandMs: Long = 0L,
+    sustainedMotorDisplacementRateMps: Float = 0f,
     config: ParkingDetectionConfig,
 ): Boolean {
     // [DET-SOLID-001][C2] The profile answer stands on its own and always did: a registered bike or
@@ -90,13 +115,32 @@ fun isHumanPoweredRide(
     // asserted about a session that measurably had a motor in it.
     if (sustainedMotorBandMs >= config.sustainedDriveProofMs) return false
 
+    // [DET-HUMAN-POWERED-VETO-MUST-BE-REVOCABLE-001] …and the same refutation measured as a RATE
+    // rather than as a clock, because a clock cannot tick across a hole. `motorBandMs` needs
+    // `sustainedDriveProofMs` of in-band time credited across gaps no wider than
+    // `driveProofWindowMaxMs`; under OEM batching the in-band fixes arrive minutes apart and it
+    // credits nothing, however fast the car was actually going. Field 2026-08-26: 94,3 km/h measured
+    // at 15,5 m of accuracy, ~1 s banked of the 30 s required, session died judged human-powered.
+    // The baseline and the rate ceiling live inside `sustainedDepartureFromAnchor`, so this is
+    // ground covered — never a peak.
+    if (sustainedMotorDisplacementRateMps >= config.motorProofSpeedMps) return false
+
     // [DET-MOTOR-PROOF-001] Pedal cadence — the kinematic source. Feet moving in rhythm WHILE the
     // position travels above the pedestrian ceiling is muscle propelling the movement; measured
-    // this session, so it is not subject to the AR staleness/supersession rules below.
+    // this session, so it is not subject to the AR staleness rule below.
     if (fastMotionStepEvents >= config.pedalCadenceMinStepEvents &&
         fastMotionStepFixes >= config.pedalCadenceMinFixes
     ) {
-        return true
+        // [DET-HUMAN-POWERED-VETO-MUST-BE-REVOCABLE-001] …but it does NOT outrank a boarding AR
+        // actually witnessed. The cadence's charter is the short ride AR never classifies; when AR
+        // has said `IN_VEHICLE` for this session and no `ON_BICYCLE` label supersedes it, the
+        // classifier has already answered "what are you on right now" and a podometer reading taken
+        // at 11-17 km/h does not get to overrule it. Falls THROUGH to the arbitration below rather
+        // than returning false, so the one rule that decides bike-vs-vehicle order stays in one
+        // place — a second copy of "last boarding wins" is how the two lanes drift apart.
+        val boardingWitnessed = vehicleRideAtMs != null &&
+            (bicycleRideAtMs == null || vehicleRideAtMs >= bicycleRideAtMs)
+        if (!boardingWitnessed) return true
     }
 
     val bicycle = bicycleRideAtMs ?: return false

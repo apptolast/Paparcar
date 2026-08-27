@@ -5297,3 +5297,89 @@ the ticket rather than done here.
 exist is correct, and `firestore.rules` is untouched. The client was the one that lied.
 
 Spec: `docs/backlog/det-retract-denied-forever-001.md`.
+### DET-HUMAN-POWERED-VETO-MUST-BE-REVOCABLE-001 — the bicycle veto had no way out (pending)
+
+**Commit:** pending. **Field:** 2026-08-26 evening, Redmi 2201117TY (`WZB7oftWLDY1toGJrDwoRHnnYHx2`,
+Coordinator, no BT) + Oppo CPH2371 as the control. Two car trips, Góndola 1 → Calle Valdés 19 →
+Góndola 1, through the centre of Cádiz. The Oppo saved both by `steps+egress` at 0.9 reliability
+(`a53e43c5` 19:27:31, `e1cb2b34` 20:44:50). **The Redmi lost the second one.**
+
+**Field report.** *"Redmi perdimos la última plaza… he ido en coche por el centro de mi ciudad, lo
+cual lo ha podido detectar como bici; aquí hay varias zonas donde podemos ir más rápido pero en coche
+los 30 km/h se cogen fácil."*
+
+**Root cause — a veto with no exit reachable.** The session had everything a confirm needs: arrival
+measured at 20:41:42 on the real spot, `anchor FROZEN` at 20:42:09, 32 egress steps from 20:42:14. It
+degraded to a prompt anyway, nobody answered inside 15 minutes, and the park was lost with
+`Ask(reason=HUMAN_POWERED)`. What blocked it was a verdict reached **19 minutes earlier** leaving
+Valdés:
+
+```
+20:22:11  ♲ pedal cadence — 12 steps concurrent with 3 above-ceiling fixes → human-powered ride
+```
+
+The six fixes that produced it read **3,13 to 4,65 m/s (11-17 km/h)** — a car in a narrow street.
+`egressStepMaxSpeedMps` (3 m/s = 10,8 km/h) is the "nobody WALKS this fast" ceiling, and the whole
+city lives above it; the Redmi's step counter, unlike the Oppo's, does not stay silent in a car
+(`pedal cadence` appears **8×** in its log versus **1×** in the Oppo's, across zero bicycle trips).
+
+`isHumanPoweredRide` had exactly one exit — `sustainedMotorBandMs >= sustainedDriveProofMs`, 30 s
+held above 11,1 m/s, credited only across gaps ≤ `driveProofWindowMaxMs` (60 s). OEM batching left
+the session's three in-band fixes **163 s and 200 s apart**, so the clock banked ~1 s **despite the
+session measuring 26,2 m/s (94,3 km/h) at 15,5 m of accuracy**. Trip 1 survived by 24 seconds of
+luck: `MOTOR witnessed` at 19:11:03, `pedal cadence` at 19:11:27.
+
+**The second, larger hole.** The session carried a true AR `IN_VEHICLE` ENTER stamped
+**20:20:12 — 1 min 49 s BEFORE the cadence fired** — and not one `ON_BICYCLE` label. The "last
+boarding wins" arbitration the AR lane already ran was **unreachable**: the cadence branch returned
+`true` before ever reading `vehicleRideAtMs`. The file called that a known accepted cost of one tap.
+It is not one tap: an unanswered prompt loses the space. And it is what makes the city-only case
+insoluble by speed alone — a trip that never leaves the centre never reaches 40 km/h, so no motor
+band can save it however healthy the GPS.
+
+**Fix — two doors, no new thresholds, both re-read on every fix.**
+
+1. **A witnessed boarding outranks the cadence.** The cadence's own charter is the short ride *AR
+   never classifies* (2026-08-18: zero AR events among 316). When AR HAS said `IN_VEHICLE` and no
+   cycling stamp supersedes it, the branch falls through to the existing arbitration instead of
+   returning. A bicycle produces no `IN_VEHICLE` ENTER, so Los Toruños (2026-08-16) and the 6-minute
+   ride are untouched by construction.
+2. **The motor measured as a RATE, not a clock.** `DriveProof.motorDisplacementRateMps` banks the
+   session's fastest `sustainedDepartureFromAnchor` rate — distance over elapsed time from the
+   anchor, which a hole in the stream averages instead of erasing. The 2026-08-26 trip produced 226 m
+   @ 19,7 · 599 m @ 23,4 · **640 m @ 24,6** · 275 m @ 34,4 m/s while the clock read ~1 s. Not a peak:
+   the 150 m floor plus both accuracy envelopes and the 55 m/s ceiling live inside that function, so
+   the lone-sample mirage of `DET-ASSERTION-OUTRANKS-INFERENCE-001` cannot enter.
+
+The measurement is computed ONCE by the stop reduction and handed to `DriveProof` — `StopTracking`
+now carries it out, the same way it already carries the stopped duration and its notes, so there is
+no second call site agreeing by luck.
+
+**Accompanying-fix risk.** ⚠️ **One existing assertion was inverted on purpose** —
+`should_stillVeto_when_aLaterBoardingSupersededArButCadenceWasMeasured` became
+`should_notVeto_when_aWitnessedBoardingOutranksTheMeasuredCadence`. It encoded the "known cost,
+accepted" this ticket reverses; its replacement carries the field evidence for the reversal. Nothing
+else changed sign. Both new guards were verified RED by neutralising each one and watching only its
+own tests fail.
+
+**Not fixed here.** The cadence still convicts cars — 2 of 2 trips that night. Recalibrating its
+thresholds needs a corpus with real bicycle rides and at least one traffic jam, so it is filed as
+`DET-PEDAL-CADENCE-CANNOT-CONVICT-A-CAR-IN-TRAFFIC-001`, blocked on measurement. This ticket only
+stops the claim outranking evidence that already contradicts it.
+
+**Diagnostics.** New `parkdiag` line `✓ MOTOR witnessed by displacement — …` and a remote
+`MOTOR_WITNESSED_BY_DISPLACEMENT` decision event, so a future trace says WHICH measurement did the
+refuting. The 2026-08-26 session had to be pulled off the phone by cable precisely because the
+refutation that failed left no remote mark.
+
+**Replay.** `Trace_Gondola2608CadenceVeto.kt` — 341 fixes, 165 logged steps, the field stream 1:1.
+With BOTH doors neutralised it reproduces the field false negative; with only the displacement
+neutralised the boarding alone still carries it. ⚠️ **Twelve step events had to be reconstructed**,
+and finding out why is a defect of its own: `✦ step #N` is emitted in three branches only (pre-drive
+/ stopped / anchor-set), so a step taken while DRIVING with the anchor cleared — *precisely the shape
+of a cadence step* — is recorded nowhere, local or remote. The veto's only inputs are invisible. The
+log's silence between the drive seed and the latch, against a summary line claiming "12 steps", is
+what proves it. Filed as `DET-CADENCE-STEPS-ARE-INVISIBLE-TO-TELEMETRY-001`, and it **blocks** the
+calibration ticket, whose corpus cannot be collected until the numerator is logged.
+
+Spec: `docs/backlog/det-human-powered-veto-must-be-revocable-001.md`.

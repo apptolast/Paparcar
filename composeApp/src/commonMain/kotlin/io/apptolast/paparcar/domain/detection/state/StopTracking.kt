@@ -5,6 +5,7 @@ import io.apptolast.paparcar.domain.detection.physics.effectiveDriving
 import io.apptolast.paparcar.domain.detection.physics.isCorroboratedVehicleHop
 import io.apptolast.paparcar.domain.detection.physics.isCredibleFixAccuracy
 import io.apptolast.paparcar.domain.detection.physics.isCredibleMovingFix
+import io.apptolast.paparcar.domain.detection.physics.SustainedDeparture
 import io.apptolast.paparcar.domain.detection.stages.DiagnosticNote
 import io.apptolast.paparcar.domain.detection.stages.plusAssign
 import io.apptolast.paparcar.domain.model.GpsPoint
@@ -37,11 +38,18 @@ import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 /** What one fix's stop tracking settled: the reduced state, how long the CURRENT stop has lasted
  *  (0 while moving), and the trace lines the reduction produced. The duration is returned rather
  *  than derived by the caller because the caller would have to know which of the two branches ran
- *  to derive it. */
+ *  to derive it.
+ *
+ *  [DET-HUMAN-POWERED-VETO-MUST-BE-REVOCABLE-001] [sustainedDeparture] rides out for the same reason
+ *  the duration does: this reduction ALREADY measured it against the pre-fix anchor, and `DriveProof`
+ *  needs the number a few lines later. Recomputing it there would be a second call site of a pure
+ *  function agreeing by luck — the failure shape `DetectionSessionState.onFix` already refuses for
+ *  the drive proof. Null while stopped, and null while moving when there is no such departure. */
 data class StopTracking(
     val state: DetectionSessionState,
     val stoppedDurationMs: Long,
     val notes: List<DiagnosticNote> = emptyList(),
+    val sustainedDeparture: SustainedDeparture? = null,
 )
 
 /**
@@ -238,6 +246,11 @@ fun DetectionSessionState.updateStopTracking(
         )
         val isRepositionCandidate = location.speed >= config.repositionSpeedMps &&
                 location.accuracy <= config.repositionMaxAccuracyMeters
+        // [DET-HUMAN-POWERED-VETO-MUST-BE-REVOCABLE-001] Hoisted out of the reduction below so it can
+        // also leave this function — same value, same instant, same receiver (`this` is the `it` of
+        // the `let`), computed ONCE. Its note is still emitted from where it always was, so the
+        // ordering of `parkdiag` is untouched.
+        val departure = sustainedDepartureFrom(location, now, config)
         if (location.speed >= config.clearBestStopSpeedMps && !isDriving) {
             notes +=
                 "  ⊘ ignoring driving-speed fix with poor accuracy " +
@@ -273,7 +286,6 @@ fun DetectionSessionState.updateStopTracking(
             // did and still carrying its numbers — the physics returns the MEASUREMENT rather
             // than a boolean precisely so it does not have to be reworded or moved. `parkdiag`
             // is byte-identical. [DET-CREDIBLE-DRIVE-001]
-            val departure = it.sustainedDepartureFrom(location, now, config)
             if (departure != null) {
                 notes +=
                     "  ⇢ SUSTAINED DEPARTURE — position ran ${departure.distanceMeters.toInt()} m from the anchor at " +
@@ -397,7 +409,7 @@ fun DetectionSessionState.updateStopTracking(
                 session = it.session.observed(location),
             )
         }
-        StopTracking(next, 0L, notes)
+        StopTracking(next, 0L, notes, sustainedDeparture = departure)
     }
 }
 

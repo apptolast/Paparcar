@@ -564,6 +564,7 @@ class CoordinatorParkingDetector(
         var loggedBicycleRideAtMs = 0L
         var loggedVehicleRideAtMs = 0L
         var loggedMotorWitnessed = false
+        var loggedMotorWitnessedByDisplacement = false
         // [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001 §C] The OTHER source of the human-powered veto. The
         // AR lane above is now in the trace; the cadence latch was still logcat-only, and a trace
         // that shows no cycling stamp and no cadence line leaves the reader inferring the veto by
@@ -842,6 +843,11 @@ class CoordinatorParkingDetector(
                             departureFenceRadiusMeters = departureFenceRadiusMeters,
                             bounds = driveProofBounds,
                             config = config,
+                            // [DET-HUMAN-POWERED-VETO-MUST-BE-REVOCABLE-001] Measured by the stop
+                            // reduction a few lines up, against the anchor as it stood BEFORE this
+                            // fix — handed over rather than recomputed, for the reason every value
+                            // in this call is handed over.
+                            sustainedDepartureRateMps = stopTracking.sustainedDeparture?.rateMps,
                         ).also { reduced = it }.state
                     }
                     requireNotNull(reduced).notes.forEach { PaparcarLogger.d(DIAG, it.text) }
@@ -915,6 +921,23 @@ class CoordinatorParkingDetector(
                             DetectionEvent.Decision(
                                 sid, now, outcome = "MOTOR_WITNESSED",
                                 pathLabel = "motorBand=${state.drive.motorBandMs}ms ≥${config.motorProofSpeedMps}mps",
+                                location = location,
+                            )
+                        }
+                    }
+                    // [DET-HUMAN-POWERED-VETO-MUST-BE-REVOCABLE-001] Its displacement counterpart, on
+                    // the remote lane too. The 2026-08-26 session is the argument: its `parkdiag` had
+                    // to be pulled off the phone by cable to find out WHY it degraded, because the
+                    // refutation that failed left no remote mark at all — the same blindness §C of
+                    // DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001 closed for the AR lane.
+                    if (!loggedMotorWitnessedByDisplacement &&
+                        state.drive.motorDisplacementRateMps >= config.motorProofSpeedMps
+                    ) {
+                        loggedMotorWitnessedByDisplacement = true
+                        logDetection { sid ->
+                            DetectionEvent.Decision(
+                                sid, now, outcome = "MOTOR_WITNESSED_BY_DISPLACEMENT",
+                                pathLabel = "sustainedRate=${state.drive.motorDisplacementRateMps}mps ≥${config.motorProofSpeedMps}mps",
                                 location = location,
                             )
                         }

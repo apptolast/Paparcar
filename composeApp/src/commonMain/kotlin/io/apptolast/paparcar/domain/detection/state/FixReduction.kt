@@ -57,7 +57,12 @@ data class FixReduction(
  *   clock belongs to the loop and not to the state.
  * @param departureAnchor The pin the car left, which anchors the short-hop profile. Null when the
  *   session armed without one, and then that profile can never fire.
+ * @param sustainedDepartureRateMps The ground rate the STOP reduction already measured from the
+ *   anchor for this same fix, or null when there was no such departure. Presented for the reason
+ *   everything here is presented: it reads the anchor as it stood BEFORE this fix, and a second call
+ *   site would be a copy that agrees by luck. [DET-HUMAN-POWERED-VETO-MUST-BE-REVOCABLE-001]
  */
+@Suppress("LongParameterList")
 fun DetectionSessionState.reduceFix(
     fix: GpsPoint,
     nowMs: Long,
@@ -66,6 +71,7 @@ fun DetectionSessionState.reduceFix(
     departureFenceRadiusMeters: Float,
     bounds: DriveProofBounds,
     config: ParkingDetectionConfig,
+    sustainedDepartureRateMps: Double? = null,
 ): FixReduction {
     val notes = mutableListOf<DiagnosticNote>()
 
@@ -105,6 +111,7 @@ fun DetectionSessionState.reduceFix(
         elapsedSinceArmMs = elapsedSinceArmMs,
         bounds = bounds,
         config = config,
+        sustainedDepartureRateMps = sustainedDepartureRateMps,
     )
     if (newDrive.isProven && !drive.isProven) {
         val how = when (newDrive.proven) {
@@ -118,6 +125,18 @@ fun DetectionSessionState.reduceFix(
     }
     if (newDrive.motorBandMs >= config.sustainedDriveProofMs && drive.motorBandMs < config.sustainedDriveProofMs) {
         notes += "  ✓ MOTOR witnessed — ${newDrive.motorBandMs}ms held above ${config.motorProofSpeedMps} m/s; no bicycle claim can stand against this session [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001]"
+    }
+    // [DET-HUMAN-POWERED-VETO-MUST-BE-REVOCABLE-001] The same refutation reached by the other road.
+    // Edge-logged separately on purpose: when a session is NOT vetoed, the trace has to say WHICH
+    // measurement did the refuting, or the next field test cannot tell a working clock from a
+    // working baseline.
+    if (newDrive.motorDisplacementRateMps >= config.motorProofSpeedMps &&
+        drive.motorDisplacementRateMps < config.motorProofSpeedMps
+    ) {
+        notes += "  ✓ MOTOR witnessed by displacement — sustained " +
+            "${(newDrive.motorDisplacementRateMps * 10).toInt() / 10.0} m/s from the anchor, above " +
+            "${config.motorProofSpeedMps} m/s; a hole in the stream cannot erase ground already " +
+            "covered [DET-HUMAN-POWERED-VETO-MUST-BE-REVOCABLE-001]"
     }
     // [09 §5] Rules 1 and 2 of the fix reduction, as one indivisible step: the session's
     // authorization is settled by the proof produced by THIS fix, not by the previous one.

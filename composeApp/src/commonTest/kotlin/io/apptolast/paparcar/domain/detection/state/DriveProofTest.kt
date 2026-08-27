@@ -34,7 +34,11 @@ class DriveProofTest {
     private fun fix(speed: Float, at: Long, accuracy: Float = 8f, north: Double = 0.0) =
         GpsPoint(36.6119 + north, -6.2805, accuracy, at, speed)
 
-    private fun DriveProof.feed(fix: GpsPoint, credible: Boolean = true) = onFix(
+    private fun DriveProof.feed(
+        fix: GpsPoint,
+        credible: Boolean = true,
+        sustainedDepartureRateMps: Double? = null,
+    ) = onFix(
         fix = fix,
         nowMs = fix.timestamp,
         credibleSpeedFix = credible,
@@ -43,7 +47,53 @@ class DriveProofTest {
         elapsedSinceArmMs = fix.timestamp,
         bounds = bounds,
         config = config,
+        sustainedDepartureRateMps = sustainedDepartureRateMps,
     )
+
+    // ── [DET-HUMAN-POWERED-VETO-MUST-BE-REVOCABLE-001] the rate that survives a hole ───────────
+
+    /**
+     * The band clock and the rate measure the SAME fact and only one of them survives OEM batching.
+     * Field 2026-08-26 (Redmi, Valdés→Góndola): in-band fixes 163 s and 200 s apart, so
+     * `creditSpeedBand` credited nothing past the 60 s window — while the anchor baseline read
+     * 24,6 m/s. Both are asserted together on purpose: if a future change makes the clock tick across
+     * holes, THIS is where the two stop being independent witnesses.
+     */
+    @Test
+    fun should_bank_the_sustained_rate_while_the_band_clock_stays_starved() {
+        val batched = DriveProof()
+            .feed(fix(speed = 14.97f, at = 0L), sustainedDepartureRateMps = 19.7)
+            .feed(fix(speed = 26.2f, at = 163_000L), sustainedDepartureRateMps = 24.6)
+            .feed(fix(speed = 13.42f, at = 363_000L), sustainedDepartureRateMps = 23.4)
+
+        assertEquals(0L, batched.motorBandMs, "gaps of 163 s and 200 s credit no band time at all")
+        assertEquals(24.6f, batched.motorDisplacementRateMps, "the high-water mark of the baselines")
+    }
+
+    /** A high-water mark, like the peak: a later, slower leg does not un-cover ground. */
+    @Test
+    fun should_keep_the_fastest_sustained_rate_when_a_slower_leg_follows() {
+        val after = DriveProof()
+            .feed(fix(speed = 20f, at = 0L), sustainedDepartureRateMps = 24.6)
+            .feed(fix(speed = 3f, at = 5_000L), sustainedDepartureRateMps = 6.0)
+            .feed(fix(speed = 0f, at = 10_000L), sustainedDepartureRateMps = null)
+
+        assertEquals(24.6f, after.motorDisplacementRateMps)
+    }
+
+    /**
+     * NOT drive-proof-gated, exactly like `motorBandMs` and for its reason: the value's job is to
+     * REFUTE a human-powered claim, never to buy a silent pin. Gating it behind the proof would
+     * recreate the 2026-08-20 shape — a session that measurably had a motor in it dying judged a
+     * bicycle because a different statistic had not matured yet.
+     */
+    @Test
+    fun should_bank_the_rate_even_before_the_track_has_proven_a_drive() {
+        val after = DriveProof().feed(fix(speed = 20f, at = 0L), sustainedDepartureRateMps = 24.6)
+
+        assertFalse(after.isProven)
+        assertEquals(24.6f, after.motorDisplacementRateMps)
+    }
 
     // ── The promotion ─────────────────────────────────────────────────────────
 

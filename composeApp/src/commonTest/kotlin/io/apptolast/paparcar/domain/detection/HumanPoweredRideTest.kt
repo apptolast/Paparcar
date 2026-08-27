@@ -20,9 +20,11 @@ class HumanPoweredRideTest {
         fastMotionStepEvents: Int = 0,
         fastMotionStepFixes: Int = 0,
         sustainedMotorBandMs: Long = 0L,
+        sustainedMotorDisplacementRateMps: Float = 0f,
     ) = isHumanPoweredRide(
         vehicleType, bicycleRideAtMs, vehicleRideAtMs, nowMs,
         fastMotionStepEvents, fastMotionStepFixes, sustainedMotorBandMs,
+        sustainedMotorDisplacementRateMps,
         config = config,
     )
 
@@ -133,12 +135,23 @@ class HumanPoweredRideTest {
         )
     }
 
+    // ── [DET-HUMAN-POWERED-VETO-MUST-BE-REVOCABLE-001] a witnessed boarding outranks the cadence ──
+
+    /**
+     * ⚠️ **BEHAVIOUR CHANGE, and this assertion is the record of it.** It used to assert `true` under
+     * the name `should_stillVeto_when_aLaterBoardingSupersededArButCadenceWasMeasured`, with the
+     * reasoning *"the AR supersession rule frees the AR stamp, not the measurement… known cost, the
+     * direction asymmetric failure allows"*.
+     *
+     * Field 2026-08-26 priced that known cost and it was not a prompt: the Redmi's Valdés→Góndola
+     * trip degraded, nobody answered in 15 minutes, the park was LOST. The cadence's own charter is
+     * the short ride AR never classifies; when AR HAS witnessed a boarding and no cycling stamp
+     * supersedes it, the classifier has answered and a podometer reading taken at 11-17 km/h does not
+     * overrule it.
+     */
     @Test
-    fun should_stillVeto_when_aLaterBoardingSupersededArButCadenceWasMeasured() {
-        // The AR supersession rule frees the AR stamp, not the measurement: cadence is this
-        // session's own stream. Known cost (bike→car in one session degrades to a prompt) — the
-        // direction asymmetric failure allows.
-        assertTrue(
+    fun should_notVeto_when_aWitnessedBoardingOutranksTheMeasuredCadence() {
+        assertFalse(
             evaluate(
                 VehicleType.CAR,
                 bicycleRideAtMs = now - 600_000L,
@@ -146,7 +159,45 @@ class HumanPoweredRideTest {
                 nowMs = now,
                 fastMotionStepEvents = 16,
                 fastMotionStepFixes = 4,
-            )
+            ),
+            "AR witnessed the boarding after the cycling stamp; the cadence has no standing left",
+        )
+    }
+
+    @Test
+    fun should_notVeto_when_cadenceFiredOnACityDriveArHadAlreadyWitnessed() {
+        // THE 2026-08-26 SESSION, in one line. Redmi WZB7oft…, Valdés 19 → Góndola 1 through the
+        // centre of Cádiz: `IN_VEHICLE ENTER` stamped at its true transition 20:20:12, `pedal
+        // cadence` at 20:22:11 off six fixes reading 11-17 km/h, and NOT ONE `ON_BICYCLE` label in
+        // the whole window. Nothing here reaches 40 km/h — this is the "what if I had never left the
+        // centre?" case, and it must confirm without any high-speed refutation at all.
+        assertFalse(
+            evaluate(
+                VehicleType.CAR,
+                bicycleRideAtMs = null,
+                vehicleRideAtMs = now - 109_000L, // 1 min 49 s before the cadence, as measured
+                nowMs = now,
+                fastMotionStepEvents = 12,
+                fastMotionStepFixes = 3,
+            ),
+            "a car is not a bicycle merely because a city street kept it under 18 km/h",
+        )
+    }
+
+    @Test
+    fun should_stillVeto_when_cyclingWasStampedAfterTheBoardingAndCadenceAgrees() {
+        // Drove to the park, took the bike out of the boot, and the pedalling was MEASURED. The
+        // arbitration is unchanged and it is still the last boarding that wins — this is the case
+        // the change above must not swallow.
+        assertTrue(
+            evaluate(
+                VehicleType.CAR,
+                bicycleRideAtMs = now - 120_000L,
+                vehicleRideAtMs = now - 600_000L,
+                nowMs = now,
+                fastMotionStepEvents = 16,
+                fastMotionStepFixes = 4,
+            ),
         )
     }
 
@@ -200,6 +251,62 @@ class HumanPoweredRideTest {
                 sustainedMotorBandMs = config.sustainedDriveProofMs - 1,
             ),
             "brushing the band is not holding it",
+        )
+    }
+
+    // ── [DET-HUMAN-POWERED-VETO-MUST-BE-REVOCABLE-001] the motor measured as a RATE, not a clock ──
+
+    @Test
+    fun should_notVeto_when_theMotorWasProvenByDisplacementAcrossAStarvedStream() {
+        // THE OTHER HALF of 2026-08-26. The band CLOCK read ~1 s of the 30 s it needs, because OEM
+        // batching left the three in-band fixes 163 s and 200 s apart and `creditSpeedBand` credits
+        // nothing beyond a 60 s gap — while the session had actually measured 26,2 m/s (94,3 km/h) at
+        // 15,5 m of accuracy and run 640 m from the anchor at 24,6 m/s average. Note the clock is
+        // handed its real starved value: the refutation must come from the rate alone.
+        assertFalse(
+            evaluate(
+                VehicleType.CAR,
+                bicycleRideAtMs = null,
+                vehicleRideAtMs = null,
+                nowMs = now,
+                fastMotionStepEvents = 12,
+                fastMotionStepFixes = 3,
+                sustainedMotorBandMs = 1_060L,
+                sustainedMotorDisplacementRateMps = 24.6f,
+            ),
+            "a hole in the stream cannot erase ground the vehicle provably covered",
+        )
+    }
+
+    @Test
+    fun should_notVeto_when_displacementRefutesAnArCyclingStampToo() {
+        // Same precedence as the band clock: the refutation is measured, so it outranks the label
+        // lane as well as the kinematic one. [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001]
+        assertFalse(
+            evaluate(
+                VehicleType.CAR,
+                bicycleRideAtMs = now - 60_000L,
+                vehicleRideAtMs = null,
+                nowMs = now,
+                sustainedMotorDisplacementRateMps = config.motorProofSpeedMps,
+            ),
+        )
+    }
+
+    @Test
+    fun should_stillVeto_when_theSustainedRateStaysUnderTheMotorBar() {
+        // A fast cyclist averages well over the 5 m/s the departure floor needs, so the ONLY thing
+        // separating this from the case above is the bar itself. Just under it changes nothing —
+        // otherwise the descent to Los Toruños buys a silent pin.
+        assertTrue(
+            evaluate(
+                VehicleType.CAR,
+                bicycleRideAtMs = now - 60_000L,
+                vehicleRideAtMs = null,
+                nowMs = now,
+                sustainedMotorDisplacementRateMps = config.motorProofSpeedMps - 0.1f,
+            ),
+            "brushing the bar is not clearing it",
         )
     }
 

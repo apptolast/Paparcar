@@ -155,7 +155,10 @@ fun DetectionSessionState.humanPoweredRide(
     // own stream, for the short rides AR never classifies.
     fastMotionStepEvents = egress.fastMotionStepEvents,
     fastMotionStepFixes = egress.fastMotionStepFixes,
-    // [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001] …and the measurement that outranks both sources.
+    // [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001] …and the measurement that outranks both sources —
+    // [DET-HUMAN-POWERED-VETO-MUST-BE-REVOCABLE-001] in both of its shapes, because the clock alone
+    // is unreachable on a batched stream.
     sustainedMotorBandMs = drive.motorBandMs,
+    sustainedMotorDisplacementRateMps = drive.motorDisplacementRateMps,
     config = config,
 )

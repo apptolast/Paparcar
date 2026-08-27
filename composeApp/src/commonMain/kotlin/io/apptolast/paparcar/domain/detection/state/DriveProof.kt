@@ -70,6 +70,19 @@ enum class DriveProofSource {
  *   to buy a silent pin, and the asymmetry runs the safe way: doubting the veto costs a prompt,
  *   believing it cost a car (field 2026-08-20, 361 s above 40 km/h and the session still died judged
  *   a bicycle). [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001]
+ * @property motorDisplacementRateMps The fastest ground rate this session has SUSTAINED from an
+ *   anchor, measured as distance over elapsed time rather than as samples in a band.
+ *   [DET-HUMAN-POWERED-VETO-MUST-BE-REVOCABLE-001] It exists because [motorBandMs] is a clock, and a
+ *   clock cannot tick across a hole: field 2026-08-26 (Redmi, Valdés→Góndola) measured 94,3 km/h at
+ *   15,5 m of accuracy and still banked ~1 s of the 30 s the clock needs, because OEM batching left
+ *   its three in-band fixes 163 s and 200 s apart and `creditSpeedBand` credits nothing beyond
+ *   `driveProofWindowMaxMs` (60 s). A rate over a baseline does not care how the middle was sampled —
+ *   the same reason `sustainedDepartureFromAnchor` exists at all. NOT a peak: its measurement floor
+ *   is `sustainedDepartureFloorMeters` plus both accuracy envelopes, and rates above
+ *   `sustainedDepartureMaxRateMps` are discarded as cache teleports, so the lone-sample mirage
+ *   [DET-ASSERTION-OUTRANKS-INFERENCE-001] cannot enter here. Like [motorBandMs] and for the same
+ *   reason, deliberately NOT drive-proof-gated: its job is to REFUTE a human-powered claim, never to
+ *   buy a silent pin.
  * @property lastFixSeenAtMs Wall clock when the last fix was processed — the freshness reference a
  *   concurrent step event is judged against (step events carry no GPS timestamp of their own).
  * @property lastFixCredible Whether that fix's accuracy was credible.
@@ -85,6 +98,7 @@ data class DriveProof(
     val lastBandFixTimestampMs: Long = 0L,
     val motorBandMs: Long = 0L,
     val lastMotorBandFixTimestampMs: Long = 0L,
+    val motorDisplacementRateMps: Float = 0f,
     val lastFixSeenAtMs: Long = 0L,
     val lastFixCredible: Boolean = false,
 ) {
@@ -112,6 +126,12 @@ data class DriveProof(
      * @param bounds The look-back window's shape — presented so the ring and the corroboration read
      *   the SAME numbers; a second copy is how a window gets widened in one and forgotten in the
      *   other.
+     * @param sustainedDepartureRateMps The ground rate the stop reduction ALREADY measured from the
+     *   anchor for this same fix, or null when there was no such departure. Presented rather than
+     *   recomputed here for the reason this whole sub-state is presented values:
+     *   `sustainedDepartureFromAnchor` reads the anchor as it stood BEFORE this fix, and a second
+     *   call site would be a copy that agrees by luck.
+     *   [DET-HUMAN-POWERED-VETO-MUST-BE-REVOCABLE-001]
      */
     @Suppress("LongParameterList")
     fun onFix(
@@ -123,6 +143,7 @@ data class DriveProof(
         elapsedSinceArmMs: Long,
         bounds: DriveProofBounds,
         config: ParkingDetectionConfig,
+        sustainedDepartureRateMps: Double? = null,
     ): DriveProof {
         val newPeak = if (fix.speed > peakMps && credibleSpeedFix) fix.speed else peakMps
         val fixInBand = credibleSpeedFix && fix.speed >= config.minimumTripSpeedMps
@@ -166,6 +187,13 @@ data class DriveProof(
                 windowMaxMs = config.driveProofWindowMaxMs,
             ),
             lastMotorBandFixTimestampMs = if (fixInMotorBand) fix.timestamp else lastMotorBandFixTimestampMs,
+            // A high-water mark, like [peakMps] — but of a RATE OVER A BASELINE, not of a sample. It
+            // latches for the session because what it records is a fact about the trip: ground the
+            // vehicle provably covered does not become uncovered.
+            motorDisplacementRateMps = maxOf(
+                motorDisplacementRateMps,
+                sustainedDepartureRateMps?.toFloat() ?: 0f,
+            ),
             lastFixSeenAtMs = nowMs,
             lastFixCredible = credibleSpeedFix,
         )
