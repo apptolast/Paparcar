@@ -25,7 +25,7 @@ Paparcar es una app KMP (Kotlin Multiplatform) de compartición de plazas de apa
 > consultar `repo1.maven.org/.../maven-metadata.xml` y `dl.google.com/dl/android/maven2/.../group-index.xml`
 > — el índice de `search.maven.org/solrsearch` está obsoleto y miente por versiones enteras.
 - Lenguaje: Kotlin 2.4.10 (KSP 2.3.11) · Gradle 9.7.1
-- Build: AGP 9.3.2 · compileSdk 37 · targetSdk 36 · minSdk 26
+- Build: AGP 9.3.2 · compileSdk 37 · targetSdk 37 (Android 17) · minSdk 26
 - UI: Compose Multiplatform 1.12.0 · Material3 (JB) 1.9.0 (**no hay estable por encima**) · Navigation Compose 2.9.2
 - Arquitectura: Clean Architecture + MVI (State + Intent + Effect)
 - DI: Koin 4.2.2
