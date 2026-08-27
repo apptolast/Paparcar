@@ -84,9 +84,10 @@ import io.apptolast.paparcar.presentation.vehicles.HistoryFilter
 import io.apptolast.paparcar.presentation.vehicles.HistoryState
 import io.apptolast.paparcar.presentation.vehicles.VehiclesContent
 import io.apptolast.paparcar.presentation.vehicles.VehiclesState
-import com.apptolast.customlogin.domain.model.IdentityProvider
 import com.apptolast.customlogin.presentation.screens.components.DefaultAuthContainer
 import com.apptolast.customlogin.presentation.slots.defaultslots.DefaultDivider
+import io.apptolast.paparcar.di.paparcarLoginConfig
+import io.apptolast.paparcar.di.paparcarSocialProviders
 import io.apptolast.paparcar.domain.model.ZoneIcon
 import io.apptolast.paparcar.presentation.util.SpotReliabilityUiState
 import io.apptolast.paparcar.presentation.util.zoneIconFor
@@ -242,6 +243,10 @@ private fun spotFit(spot: io.apptolast.paparcar.domain.model.Spot, vehicle: io.a
 
 // Login (BaseLogin slots) — mirrors PaparcarAuthSlotsPreviews: renders the REAL Paparcar slots
 // inside the library's container, driven by a static state (no ViewModel, no OAuth).
+// Stand-in for BuildConfig.GOOGLE_WEB_CLIENT_ID: the gallery only needs the id to be non-blank so
+// the Google button appears exactly as in production; it never reaches Firebase.
+private const val GALLERY_GOOGLE_WEB_CLIENT_ID = "gallery.apps.googleusercontent.com"
+
 @Composable
 private fun loginScreen(
     email: String = "",
@@ -267,7 +272,10 @@ private fun loginScreen(
             slots.submitButton({}, isLoading, isFormValid && !isLoading, "Iniciar sesión")
             slots.socialProviders?.let { social ->
                 DefaultDivider("O")
-                social(listOf(IdentityProvider.Google, IdentityProvider.Apple), null) {}
+                // The REAL offer, not a hand-written list: same builder the app boots with, so the
+                // gallery cannot show a button production does not have (it used to promise Apple
+                // and hide the SMS one). [AUTH-PROVIDERS-EXPLICIT-001]
+                social(paparcarSocialProviders(paparcarLoginConfig(GALLERY_GOOGLE_WEB_CLIENT_ID)), null) {}
                 Spacer(Modifier.height(8.dp))
             }
             slots.registerLink {}

@@ -13,6 +13,8 @@ import com.apptolast.customlogin.domain.model.IdentityProvider
 import com.apptolast.customlogin.presentation.screens.components.DefaultAuthContainer
 import com.apptolast.customlogin.presentation.slots.LoginScreenSlots
 import com.apptolast.customlogin.presentation.slots.defaultslots.DefaultDivider
+import io.apptolast.paparcar.di.paparcarLoginConfig
+import io.apptolast.paparcar.di.paparcarSocialProviders
 import io.apptolast.paparcar.ui.theme.PaparcarTheme
 
 @Preview(name = "Login — Oscuro", showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
@@ -83,16 +85,20 @@ private fun PaparcarLoginLoadingDarkPreview() {
     }
 }
 
+// Stand-in for BuildConfig.GOOGLE_WEB_CLIENT_ID: only needs to be non-blank so the preview shows
+// the Google button exactly as production does; it never reaches Firebase.
+private const val PREVIEW_GOOGLE_WEB_CLIENT_ID = "preview.apps.googleusercontent.com"
+
 private data class MockLoginState(
     val email: String = "",
     val password: String = "",
     val emailError: String? = null,
     val passwordError: String? = null,
     val isLoading: Boolean = false,
-    val availableProviders: List<IdentityProvider> = listOf(
-        IdentityProvider.Google,
-        IdentityProvider.Apple,
-    ),
+    // The REAL offer, not a hand-written list — same builder the app boots with, so a preview can
+    // never promise a button production does not have. [AUTH-PROVIDERS-EXPLICIT-001]
+    val availableProviders: List<IdentityProvider> =
+        paparcarSocialProviders(paparcarLoginConfig(PREVIEW_GOOGLE_WEB_CLIENT_ID)),
 )
 
 @Composable
