@@ -74,7 +74,6 @@ internal fun HomeBottomSheet(
     /** Browse header subject swap: true while the sheet sits beyond peek (expanded browse
      *  shows the zone counter header instead of the parked car). [UI-SHEET-004] */
     browseShowsZoneHeader: Boolean,
-    spotListExpanded: Boolean,
     onIntent: (HomeIntent) -> Unit,
     onAction: (HomeSheetAction) -> Unit,
     modifier: Modifier = Modifier,
@@ -164,19 +163,20 @@ internal fun HomeBottomSheet(
                 HomePeekHandle(
                     slice = peek,
                     browseShowsZoneHeader = browseShowsZoneHeader,
-                    spotListExpanded = spotListExpanded,
                     onIntent = onIntent,
                     onAction = onAction,
                 )
             }
 
-            val isSpotSelected = peek.selectedSpot != null
             // When location/GPS is missing the peek already shows the full blocker — suppress the
             // list (and its divider) so the sheet is just that one message. [DET-READY-001n]
+            // A selected pin owns the whole surface: its peek now steps to the neighbouring pins on
+            // its own, so there is no state left where the list shows underneath one.
+            // [UI-PEEK-STEPS-BETWEEN-PINS-001]
             val showList = peek.detectionUiState != DetectionUiState.BlockedCore &&
                 peek.mode is HomeMode.Browse &&
                 !peek.isParkingSelected &&
-                (!isSpotSelected || spotListExpanded)
+                peek.selectedSpot == null
             // The peek→list divider sits at the bottom of the peek header. The header is now stretched
             // to the fixed peek slot, so this divider lands exactly on the bottom-nav top divider at
             // rest (one continuous hairline) and rides above the nav as the sheet is dragged up — no

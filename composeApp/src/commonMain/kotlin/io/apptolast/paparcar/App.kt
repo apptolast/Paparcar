@@ -68,7 +68,7 @@ import io.apptolast.paparcar.presentation.app.BootstrapFailure
 import io.apptolast.paparcar.presentation.app.SplashEffect
 import io.apptolast.paparcar.presentation.app.SplashViewModel
 import io.apptolast.paparcar.presentation.home.HomeScreen
-import io.apptolast.paparcar.presentation.map.HistoryParkingDetailScreen
+import io.apptolast.paparcar.presentation.map.ParkingHistoryDetailScreen
 import io.apptolast.paparcar.presentation.vehicles.VehiclesScreen
 import io.apptolast.paparcar.presentation.onboarding.OnboardingScreen
 import io.apptolast.paparcar.presentation.permissions.PermissionsScreen
@@ -578,7 +578,7 @@ private fun MainAppNavigation(
                 val lat = backStack.arguments?.read { getStringOrNull("lat") }?.toDoubleOrNull()
                 val lon = backStack.arguments?.read { getStringOrNull("lon") }?.toDoubleOrNull()
                 val sessionId = backStack.arguments?.read { getStringOrNull("sessionId") } ?: ""
-                HistoryParkingDetailScreen(
+                ParkingHistoryDetailScreen(
                     onNavigateBack = { navController.popBackStack() },
                     initialFocus = if (lat != null && lon != null) Pair(lat, lon) else null,
                     sessionId = sessionId,

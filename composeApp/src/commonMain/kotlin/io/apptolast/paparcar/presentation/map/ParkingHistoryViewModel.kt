@@ -13,18 +13,18 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
-class ParkingLocationViewModel(
+class ParkingHistoryViewModel(
     observeAdaptiveLocation: ObserveAdaptiveLocationUseCase,
     private val userParkingRepository: UserParkingRepository,
     private val vehicleRepository: VehicleRepository,
-) : BaseViewModel<ParkingLocationState, ParkingLocationIntent, ParkingLocationEffect>() {
+) : BaseViewModel<ParkingHistoryState, ParkingHistoryIntent, ParkingHistoryEffect>() {
 
     init {
         userParkingRepository.observeActiveSessions()
             .map { it.firstOrNull() }
             .onEach { session -> updateState { copy(userParking = session) } }
             .catch { e ->
-                sendEffect(ParkingLocationEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))
+                sendEffect(ParkingHistoryEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))
             }
             .launchIn(viewModelScope)
 
@@ -50,29 +50,29 @@ class ParkingLocationViewModel(
             }
             .catch { e ->
                 updateState { copy(isLoading = false) }
-                sendEffect(ParkingLocationEffect.ShowError(PaparcarError.Location.Unknown(e.message ?: "")))
+                sendEffect(ParkingHistoryEffect.ShowError(PaparcarError.Location.Unknown(e.message ?: "")))
             }
             .launchIn(viewModelScope)
     }
 
-    override fun initState(): ParkingLocationState = ParkingLocationState()
+    override fun initState(): ParkingHistoryState = ParkingHistoryState()
 
-    override fun handleIntent(intent: ParkingLocationIntent) {
+    override fun handleIntent(intent: ParkingHistoryIntent) {
         when (intent) {
-            is ParkingLocationIntent.OnSpotSelected ->
-                sendEffect(ParkingLocationEffect.NavigateToSpotDetails(intent.spotId))
+            is ParkingHistoryIntent.OnSpotSelected ->
+                sendEffect(ParkingHistoryEffect.NavigateToSpotDetails(intent.spotId))
 
-            is ParkingLocationIntent.SetFocusedSession ->
+            is ParkingHistoryIntent.SetFocusedSession ->
                 updateState { copy(focusedSessionId = intent.sessionId) }
 
             // [orderedSessions] is newest-first, so stepping OLDER walks down the list (+1) and
             // stepping NEWER walks up (-1). Chevrons read as a timeline: ‹ past, › toward today.
-            ParkingLocationIntent.FocusOlder -> stepFocus(+1)
-            ParkingLocationIntent.FocusNewer -> stepFocus(-1)
+            ParkingHistoryIntent.FocusOlder -> stepFocus(+1)
+            ParkingHistoryIntent.FocusNewer -> stepFocus(-1)
 
             // The user's verdict on a reconstructed stretch — persisted (and synced); the observed
             // sessions flow re-renders the map with the answer applied. [ROUTE-GAP-HONEST-001]
-            is ParkingLocationIntent.ResolveInferredRoute -> viewModelScope.launch {
+            is ParkingHistoryIntent.ResolveInferredRoute -> viewModelScope.launch {
                 userParkingRepository
                     .resolveInferredRoute(
                         id = intent.sessionId,
@@ -83,14 +83,14 @@ class ParkingLocationViewModel(
                         },
                     )
                     .onFailure { e ->
-                        sendEffect(ParkingLocationEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))
+                        sendEffect(ParkingHistoryEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))
                     }
             }
         }
     }
 
     /**
-     * Moves the focus by [delta] within [ParkingLocationState.orderedSessions], clamped to the ends.
+     * Moves the focus by [delta] within [ParkingHistoryState.orderedSessions], clamped to the ends.
      * That list is already scoped to the focused session's vehicle, so the step cannot leave the car.
      */
     private fun stepFocus(delta: Int) {

@@ -25,7 +25,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-class ParkingLocationViewModelTest {
+class ParkingHistoryViewModelTest {
 
     private val testDispatcher = UnconfinedTestDispatcher()
 
@@ -34,7 +34,7 @@ class ParkingLocationViewModelTest {
 
     private lateinit var locationDataSource: FakeLocationDataSource
     private lateinit var parkingRepo: FakeUserParkingRepository
-    private lateinit var vm: ParkingLocationViewModel
+    private lateinit var vm: ParkingHistoryViewModel
 
     @BeforeTest
     fun setUp() {
@@ -53,10 +53,10 @@ class ParkingLocationViewModelTest {
         initialSession: UserParking? = null,
         sessions: List<UserParking> = emptyList(),
         vehicles: List<Vehicle> = emptyList(),
-    ): ParkingLocationViewModel {
+    ): ParkingHistoryViewModel {
         val repo = FakeUserParkingRepository(initialSession = initialSession, initialSessions = sessions)
         parkingRepo = repo
-        return ParkingLocationViewModel(
+        return ParkingHistoryViewModel(
             observeAdaptiveLocation = ObserveAdaptiveLocationUseCase(locationDataSource),
             userParkingRepository = repo,
             vehicleRepository = FakeVehicleRepository(extraVehicles = vehicles),
@@ -105,9 +105,9 @@ class ParkingLocationViewModelTest {
     @Test
     fun `should_emit_NavigateToSpotDetails_on_OnSpotSelected`() = runTest {
         vm.effect.test {
-            vm.handleIntent(ParkingLocationIntent.OnSpotSelected("spot-42"))
+            vm.handleIntent(ParkingHistoryIntent.OnSpotSelected("spot-42"))
             val effect = awaitItem()
-            assertIs<ParkingLocationEffect.NavigateToSpotDetails>(effect)
+            assertIs<ParkingHistoryEffect.NavigateToSpotDetails>(effect)
             assertEquals("spot-42", effect.spotId)
             cancelAndIgnoreRemainingEvents()
         }
@@ -127,14 +127,14 @@ class ParkingLocationViewModelTest {
     @Test
     fun `should_focus_session_by_id_on_SetFocusedSession`() = runTest {
         val vm = threeSessionVm()
-        vm.handleIntent(ParkingLocationIntent.SetFocusedSession("middle"))
+        vm.handleIntent(ParkingHistoryIntent.SetFocusedSession("middle"))
         assertEquals("middle", vm.state.value.focusedSession?.id)
     }
 
     @Test
     fun `should_expose_both_neighbours_when_focused_in_the_middle`() = runTest {
         val vm = threeSessionVm()
-        vm.handleIntent(ParkingLocationIntent.SetFocusedSession("middle"))
+        vm.handleIntent(ParkingHistoryIntent.SetFocusedSession("middle"))
         assertTrue(vm.state.value.hasOlder)
         assertTrue(vm.state.value.hasNewer)
     }
@@ -142,23 +142,23 @@ class ParkingLocationViewModelTest {
     @Test
     fun `should_step_back_in_time_on_FocusOlder`() = runTest {
         val vm = threeSessionVm()
-        vm.handleIntent(ParkingLocationIntent.SetFocusedSession("newest"))
-        vm.handleIntent(ParkingLocationIntent.FocusOlder)
+        vm.handleIntent(ParkingHistoryIntent.SetFocusedSession("newest"))
+        vm.handleIntent(ParkingHistoryIntent.FocusOlder)
         assertEquals("middle", vm.state.value.focusedSession?.id)
     }
 
     @Test
     fun `should_step_toward_today_on_FocusNewer`() = runTest {
         val vm = threeSessionVm()
-        vm.handleIntent(ParkingLocationIntent.SetFocusedSession("middle"))
-        vm.handleIntent(ParkingLocationIntent.FocusNewer)
+        vm.handleIntent(ParkingHistoryIntent.SetFocusedSession("middle"))
+        vm.handleIntent(ParkingHistoryIntent.FocusNewer)
         assertEquals("newest", vm.state.value.focusedSession?.id)
     }
 
     @Test
     fun `should_report_no_newer_at_the_most_recent_end`() = runTest {
         val vm = threeSessionVm()
-        vm.handleIntent(ParkingLocationIntent.SetFocusedSession("newest"))
+        vm.handleIntent(ParkingHistoryIntent.SetFocusedSession("newest"))
         assertFalse(vm.state.value.hasNewer)
         assertTrue(vm.state.value.hasOlder)
     }
@@ -166,7 +166,7 @@ class ParkingLocationViewModelTest {
     @Test
     fun `should_report_no_older_at_the_oldest_end`() = runTest {
         val vm = threeSessionVm()
-        vm.handleIntent(ParkingLocationIntent.SetFocusedSession("oldest"))
+        vm.handleIntent(ParkingHistoryIntent.SetFocusedSession("oldest"))
         assertTrue(vm.state.value.hasNewer)
         assertFalse(vm.state.value.hasOlder)
     }
@@ -174,8 +174,8 @@ class ParkingLocationViewModelTest {
     @Test
     fun `should_clamp_FocusOlder_at_the_oldest_end`() = runTest {
         val vm = threeSessionVm()
-        vm.handleIntent(ParkingLocationIntent.SetFocusedSession("oldest"))
-        vm.handleIntent(ParkingLocationIntent.FocusOlder)
+        vm.handleIntent(ParkingHistoryIntent.SetFocusedSession("oldest"))
+        vm.handleIntent(ParkingHistoryIntent.FocusOlder)
         assertEquals("oldest", vm.state.value.focusedSession?.id)
     }
 
@@ -198,15 +198,15 @@ class ParkingLocationViewModelTest {
     @Test
     fun `should_scope_the_stepper_list_to_the_focused_vehicle`() = runTest {
         val vm = twoVehicleVm()
-        vm.handleIntent(ParkingLocationIntent.SetFocusedSession("kamiq-new"))
+        vm.handleIntent(ParkingHistoryIntent.SetFocusedSession("kamiq-new"))
         assertEquals(listOf("kamiq-new", "kamiq-old"), vm.state.value.orderedSessions.map { it.id })
     }
 
     @Test
     fun `should_skip_the_other_vehicle_when_stepping_older`() = runTest {
         val vm = twoVehicleVm()
-        vm.handleIntent(ParkingLocationIntent.SetFocusedSession("kamiq-new"))
-        vm.handleIntent(ParkingLocationIntent.FocusOlder)
+        vm.handleIntent(ParkingHistoryIntent.SetFocusedSession("kamiq-new"))
+        vm.handleIntent(ParkingHistoryIntent.FocusOlder)
         // focus-new(3000) sits in between, but it belongs to the other car.
         assertEquals("kamiq-old", vm.state.value.focusedSession?.id)
     }
@@ -214,8 +214,8 @@ class ParkingLocationViewModelTest {
     @Test
     fun `should_skip_the_other_vehicle_when_stepping_newer`() = runTest {
         val vm = twoVehicleVm()
-        vm.handleIntent(ParkingLocationIntent.SetFocusedSession("focus-old"))
-        vm.handleIntent(ParkingLocationIntent.FocusNewer)
+        vm.handleIntent(ParkingHistoryIntent.SetFocusedSession("focus-old"))
+        vm.handleIntent(ParkingHistoryIntent.FocusNewer)
         // kamiq-old(2000) sits in between, but it belongs to the other car.
         assertEquals("focus-new", vm.state.value.focusedSession?.id)
     }
@@ -223,7 +223,7 @@ class ParkingLocationViewModelTest {
     @Test
     fun `should_report_no_older_at_the_focused_vehicle_oldest_entry`() = runTest {
         val vm = twoVehicleVm()
-        vm.handleIntent(ParkingLocationIntent.SetFocusedSession("kamiq-old"))
+        vm.handleIntent(ParkingHistoryIntent.SetFocusedSession("kamiq-old"))
         // focus-old(1000) is older in the global history, but not this car's.
         assertFalse(vm.state.value.hasOlder)
         assertTrue(vm.state.value.hasNewer)
@@ -232,7 +232,7 @@ class ParkingLocationViewModelTest {
     @Test
     fun `should_report_no_newer_at_the_focused_vehicle_most_recent_entry`() = runTest {
         val vm = twoVehicleVm()
-        vm.handleIntent(ParkingLocationIntent.SetFocusedSession("focus-new"))
+        vm.handleIntent(ParkingHistoryIntent.SetFocusedSession("focus-new"))
         // kamiq-new(4000) is more recent in the global history, but not this car's.
         assertFalse(vm.state.value.hasNewer)
         assertTrue(vm.state.value.hasOlder)
@@ -241,8 +241,8 @@ class ParkingLocationViewModelTest {
     @Test
     fun `should_rescope_the_stepper_when_focus_moves_to_another_vehicle`() = runTest {
         val vm = twoVehicleVm()
-        vm.handleIntent(ParkingLocationIntent.SetFocusedSession("kamiq-new"))
-        vm.handleIntent(ParkingLocationIntent.SetFocusedSession("focus-old"))
+        vm.handleIntent(ParkingHistoryIntent.SetFocusedSession("kamiq-new"))
+        vm.handleIntent(ParkingHistoryIntent.SetFocusedSession("focus-old"))
         assertEquals(listOf("focus-new", "focus-old"), vm.state.value.orderedSessions.map { it.id })
     }
 
@@ -256,8 +256,8 @@ class ParkingLocationViewModelTest {
                 sessionAt("focus-new", 3_000L, vehicleId = "focus"),
             ),
         )
-        vm.handleIntent(ParkingLocationIntent.SetFocusedSession("kamiq-old"))
-        vm.handleIntent(ParkingLocationIntent.FocusNewer)
+        vm.handleIntent(ParkingHistoryIntent.SetFocusedSession("kamiq-old"))
+        vm.handleIntent(ParkingHistoryIntent.FocusNewer)
         assertEquals("kamiq-now", vm.state.value.focusedSession?.id)
     }
 
@@ -269,7 +269,7 @@ class ParkingLocationViewModelTest {
                 Vehicle(id = "v1", userId = "u1", sizeCategory = VehicleSize.LARGE_SEDAN),
             ),
         )
-        vm.handleIntent(ParkingLocationIntent.SetFocusedSession("s1"))
+        vm.handleIntent(ParkingHistoryIntent.SetFocusedSession("s1"))
         assertEquals("v1", vm.state.value.focusedVehicle?.id)
     }
 }

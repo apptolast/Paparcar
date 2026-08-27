@@ -65,7 +65,7 @@
     <string name="onboarding_step1_title">Wir erkennen das Fahren</string>
     <string name="onboarding_step1_desc">Die App erkennt, wenn du ins Auto steigst</string>
     <string name="onboarding_step2_title">Wir erkennen das Parken</string>
-    <string name="onboarding_step2_desc">Wenn du parkst, speichern wir den Stellplatz</string>
+    <string name="onboarding_step2_desc">Wenn du parkst, speichern wir deinen Parkplatz</string>
     <string name="onboarding_step3_title">Wir teilen den Stellplatz</string>
     <string name="onboarding_step3_desc">Wenn du fährst, wird dein Stellplatz für andere in der Nähe verfügbar</string>
     <string name="onboarding_page3_title">Warum wir deine Berechtigungen benötigen</string>
@@ -168,8 +168,6 @@
     <string name="map_cd_back">Zurück</string>
 
     <!-- HistoryParkingDetailScreen -->
-    <string name="parking_detail_section_label">Historischer Parkplatz</string>
-    <string name="parking_detail_active_section_label">Aktueller Parkplatz</string>
     <string name="parking_detail_navigate_action">Zu diesem Standort navigieren</string>
     <string name="parking_detail_prev">Vorheriger Parkplatz</string>
     <string name="parking_detail_route_recalculating">Route wird neu berechnet…</string>
@@ -202,7 +200,7 @@
     <string name="settings_auto_detect_desc">Parkplatz automatisch speichern</string>
     <string name="settings_section_notifications">Benachrichtigungen</string>
     <string name="settings_notif_parking">Parken erkannt</string>
-    <string name="settings_notif_parking_desc">Benachrichtigung, wenn ein Parkplatz gespeichert wird</string>
+    <string name="settings_notif_parking_desc">Benachrichtigung, wenn dein Parkplatz gespeichert wird</string>
     <string name="settings_notif_spot">Stellplatz in der Nähe verfügbar</string>
     <string name="settings_notif_spot_desc">Benachrichtigung, wenn ein Stellplatz in deiner Nähe frei wird</string>
     <string name="settings_section_about">Über uns</string>
@@ -309,7 +307,7 @@
     <string name="permissions_tier_automatic_name">Automatisch</string>
     <string name="permissions_tier_assisted_plus_name">Assistiert +</string>
     <string name="permissions_tier_assisted_name">Assistiert</string>
-    <string name="permissions_tier_automatic_promise">Dein Platz wird von selbst markiert und freigegeben.</string>
+    <string name="permissions_tier_automatic_promise">Dein Parkplatz wird markiert und der Platz von selbst freigegeben.</string>
     <string name="permissions_tier_assisted_plus_promise">Fast immer automatisch; ab und zu fragen wir nach.</string>
     <string name="permissions_tier_assisted_promise">Wir erkennen, was dein Handy zulässt; im Zweifel fragen wir nach.</string>
     <string name="permissions_tier_unlocks">→ %1$s</string>
@@ -484,7 +482,11 @@
     <string name="home_zone_action_edit">Zone bearbeiten</string>
     <string name="home_zone_action_delete">Zone löschen</string>
     <string name="home_zone_private_badge">Private Zone</string>
-    <string name="home_spot_peek_show_list">Nahegelegene Plätze</string>
+    <!-- UI-PEEK-STEPS-BETWEEN-PINS-001 -->
+    <string name="home_peek_step_prev_spot">Vorheriger Platz</string>
+    <string name="home_peek_step_next_spot">Nächster Platz</string>
+    <string name="home_peek_step_prev_car">Vorheriges geparktes Auto</string>
+    <string name="home_peek_step_next_car">Nächstes geparktes Auto</string>
 
     <!-- VEHICLE-CATEGORIZATION-001 -->
     <string name="home_peek_spot_fit_optimal">Optimal für deinen %1$s</string>
@@ -562,9 +564,9 @@
     <string name="home_det_stopped_msg">Automatische Erkennung gestoppt</string>
     <string name="home_det_stopped_action">Aktivieren</string>
     <string name="home_det_awaiting_title">Wo ist dein Auto?</string>
-    <string name="home_det_awaiting_sub">Markiere den Platz, ich beobachte ihn</string>
+    <string name="home_det_awaiting_sub">Markiere deinen Parkplatz, ich beobachte ihn</string>
     <string name="home_det_watching_title">Wir passen auf deinen %1$s auf</string>
-    <string name="home_det_watching_parked_sub">Geparkt — wir erkennen, wenn du den Platz verlässt</string>
+    <string name="home_det_watching_parked_sub">Geparkt — wir erkennen, wenn du losfährst</string>
     <string name="home_det_watching_bt_sub">Parken wird automatisch über das Bluetooth des Autos erkannt</string>
     <string name="home_det_watching_fragile_sub">Dein Handy überwacht evtl. nicht mehr. Aktiviere es, damit nichts ausfällt.</string>
     <string name="home_det_watching_fortify_cta">Aktivieren</string>
@@ -577,20 +579,20 @@
     <string name="home_det_driving_stop_cta">Stoppen</string>
     <string name="home_det_trip_stopped_msg">Erkennung gestoppt. Diese Fahrt wird nicht als Parkplatz gespeichert – tippe auf „Ich fahre gerade“, wenn du sie wieder starten willst.</string>
     <string name="home_det_candidate_title">Parkst du deinen %1$s?</string>
-    <string name="home_det_candidate_sub">Platz wird bestätigt…</string>
-    <string name="home_det_awaiting_cta_primary">Platz markieren</string>
+    <string name="home_det_candidate_sub">Parkplatz wird bestätigt…</string>
+    <string name="home_det_awaiting_cta_primary">Parkplatz markieren</string>
     <string name="home_det_awaiting_cta_secondary">Ich fahre gerade</string>
     <!-- [DET-ASK-STATE-001] -->
     <string name="home_det_ask_title">Hast du geparkt?</string>
     <string name="home_det_ask_title_vehicle">Hast du deinen %1$s geparkt?</string>
-    <string name="home_det_ask_sub">Ich merke mir den Platz und gebe ihn frei, wenn du losfährst</string>
+    <string name="home_det_ask_sub">Ich merke mir deinen Parkplatz und gebe den Platz frei, wenn du losfährst</string>
     <string name="home_det_ask_cta_yes">Ja, geparkt</string>
     <string name="home_det_ask_cta_no">Noch nicht</string>
     <string name="home_det_ask_eyebrow">Hast du geparkt?</string>
     <!-- Pending "where did you leave your car?" nudge row. [DET-NUDGE-PERSIST-001] -->
     <string name="home_nudge_title">Wo hast du dein Auto abgestellt?</string>
     <string name="home_nudge_sub">Wir konnten deinen Parkplatz nicht festhalten. Markiere ihn, damit er nicht verloren geht.</string>
-    <string name="home_nudge_cta">Platz markieren</string>
+    <string name="home_nudge_cta">Parkplatz markieren</string>
     <string name="home_nudge_dismiss">Verwerfen</string>
     <string name="home_det_monitoring">Unterwegs</string>
 

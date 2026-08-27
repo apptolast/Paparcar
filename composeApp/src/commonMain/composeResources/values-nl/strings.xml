@@ -65,7 +65,7 @@
     <string name="onboarding_step1_title">Wij detecteren het rijden</string>
     <string name="onboarding_step1_desc">De app detecteert wanneer u in uw auto stapt</string>
     <string name="onboarding_step2_title">Wij detecteren het parkeren</string>
-    <string name="onboarding_step2_desc">Wanneer u parkeert, slaan wij stilletjes de parkeerplaats op</string>
+    <string name="onboarding_step2_desc">Wanneer u parkeert, slaan wij stilletjes uw parkeerplaats op</string>
     <string name="onboarding_step3_title">Wij delen de parkeerplaats</string>
     <string name="onboarding_step3_desc">Wanneer u vertrekt, wordt uw parkeerplaats beschikbaar voor anderen in de buurt</string>
     <string name="onboarding_page3_title">Waarom we uw machtigingen nodig hebben</string>
@@ -168,8 +168,6 @@
     <string name="map_cd_back">Terug</string>
 
     <!-- HistoryParkingDetailScreen -->
-    <string name="parking_detail_section_label">Historisch parkeren</string>
-    <string name="parking_detail_active_section_label">Huidig parkeren</string>
     <string name="parking_detail_navigate_action">Navigeer naar deze locatie</string>
     <string name="parking_detail_prev">Vorige parkeerplaats</string>
     <string name="parking_detail_route_recalculating">Route wordt herberekend…</string>
@@ -202,7 +200,7 @@
     <string name="settings_auto_detect_desc">Parkeerplaats automatisch opslaan</string>
     <string name="settings_section_notifications">Meldingen</string>
     <string name="settings_notif_parking">Parkeren gedetecteerd</string>
-    <string name="settings_notif_parking_desc">Melding wanneer een parkeerplaats wordt opgeslagen</string>
+    <string name="settings_notif_parking_desc">Melding wanneer je parkeerplaats wordt opgeslagen</string>
     <string name="settings_notif_spot">Parkeerplaats beschikbaar in de buurt</string>
     <string name="settings_notif_spot_desc">Melding wanneer een parkeerplaats vrij komt in uw buurt</string>
     <string name="settings_section_about">Over</string>
@@ -309,7 +307,7 @@
     <string name="permissions_tier_automatic_name">Automatisch</string>
     <string name="permissions_tier_assisted_plus_name">Geassisteerd +</string>
     <string name="permissions_tier_assisted_name">Geassisteerd</string>
-    <string name="permissions_tier_automatic_promise">Je plek wordt vanzelf gemarkeerd en vrijgegeven.</string>
+    <string name="permissions_tier_automatic_promise">Je parkeerplaats wordt gemarkeerd en de plek komt vanzelf vrij.</string>
     <string name="permissions_tier_assisted_plus_promise">Bijna altijd vanzelf; af en toe vragen we het je.</string>
     <string name="permissions_tier_assisted_promise">We detecteren wat je telefoon toelaat; bij twijfel vragen we het je.</string>
     <string name="permissions_tier_unlocks">→ %1$s</string>
@@ -484,7 +482,11 @@
     <string name="home_zone_action_edit">Zone bewerken</string>
     <string name="home_zone_action_delete">Zone verwijderen</string>
     <string name="home_zone_private_badge">Privézone</string>
-    <string name="home_spot_peek_show_list">Nabijgelegen plekken</string>
+    <!-- UI-PEEK-STEPS-BETWEEN-PINS-001 -->
+    <string name="home_peek_step_prev_spot">Vorige plek</string>
+    <string name="home_peek_step_next_spot">Volgende plek</string>
+    <string name="home_peek_step_prev_car">Vorige geparkeerde auto</string>
+    <string name="home_peek_step_next_car">Volgende geparkeerde auto</string>
 
     <!-- VEHICLE-CATEGORIZATION-001 -->
     <string name="home_peek_spot_fit_optimal">Optimaal voor je %1$s</string>
@@ -562,9 +564,9 @@
     <string name="home_det_stopped_msg">Automatische detectie gestopt</string>
     <string name="home_det_stopped_action">Inschakelen</string>
     <string name="home_det_awaiting_title">Waar staat je auto?</string>
-    <string name="home_det_awaiting_sub">Markeer de plek, ik houd hem in de gaten</string>
+    <string name="home_det_awaiting_sub">Markeer je parkeerplaats, ik houd hem in de gaten</string>
     <string name="home_det_watching_title">We letten op je %1$s</string>
-    <string name="home_det_watching_parked_sub">Geparkeerd — we merken het wanneer je de plek verlaat</string>
+    <string name="home_det_watching_parked_sub">Geparkeerd — we merken het wanneer je wegrijdt</string>
     <string name="home_det_watching_bt_sub">Parkeren wordt automatisch herkend via de Bluetooth van je auto</string>
     <string name="home_det_watching_fragile_sub">Je telefoon stopt mogelijk met bewaken. Zet het aan zodat het niet mislukt.</string>
     <string name="home_det_watching_fortify_cta">Aanzetten</string>
@@ -575,22 +577,22 @@
     <string name="home_det_driving_sub">We detecteren waar je parkeert</string>
     <!-- [DET-STOP-BUTTON-001] -->
     <string name="home_det_driving_stop_cta">Stoppen</string>
-    <string name="home_det_trip_stopped_msg">Detectie gestopt. Deze rit wordt niet als parkeerplek opgeslagen — tik op ‘Ik rij nu’ wanneer je weer wilt starten.</string>
+    <string name="home_det_trip_stopped_msg">Detectie gestopt. Deze rit wordt niet als parkeerplaats opgeslagen — tik op ‘Ik rij nu’ wanneer je weer wilt starten.</string>
     <string name="home_det_candidate_title">Parkeer je je %1$s?</string>
-    <string name="home_det_candidate_sub">Plek wordt bevestigd…</string>
-    <string name="home_det_awaiting_cta_primary">Plek markeren</string>
+    <string name="home_det_candidate_sub">Parkeerplaats wordt bevestigd…</string>
+    <string name="home_det_awaiting_cta_primary">Parkeerplaats markeren</string>
     <string name="home_det_awaiting_cta_secondary">Ik rij nu</string>
     <!-- [DET-ASK-STATE-001] -->
     <string name="home_det_ask_title">Heb je geparkeerd?</string>
     <string name="home_det_ask_title_vehicle">Heb je je %1$s geparkeerd?</string>
-    <string name="home_det_ask_sub">Ik bewaar de plek en publiceer hem als je wegrijdt</string>
+    <string name="home_det_ask_sub">Ik bewaar je parkeerplaats en publiceer de plek als je wegrijdt</string>
     <string name="home_det_ask_cta_yes">Ja, geparkeerd</string>
     <string name="home_det_ask_cta_no">Nog niet</string>
     <string name="home_det_ask_eyebrow">Heb je geparkeerd?</string>
     <!-- Pending "where did you leave your car?" nudge row. [DET-NUDGE-PERSIST-001] -->
     <string name="home_nudge_title">Waar heb je je auto achtergelaten?</string>
-    <string name="home_nudge_sub">We konden je parkeerplek niet vastleggen. Markeer hem zodat je hem niet kwijtraakt.</string>
-    <string name="home_nudge_cta">Mijn plek markeren</string>
+    <string name="home_nudge_sub">We konden je parkeerplaats niet vastleggen. Markeer hem zodat je hem niet kwijtraakt.</string>
+    <string name="home_nudge_cta">Mijn parkeerplaats markeren</string>
     <string name="home_nudge_dismiss">Negeren</string>
     <string name="home_det_monitoring">Onderweg</string>
 

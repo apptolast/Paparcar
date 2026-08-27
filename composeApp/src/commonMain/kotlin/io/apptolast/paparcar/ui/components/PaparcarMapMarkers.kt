@@ -99,7 +99,7 @@ private object MarkerColors {
     // Zone marker is now a theme-tinted centre label (primary / neutral+lock for private), so it
     // carries no hardcoded palette here. [ZONE-AREA-001]
 
-    // MyVehicle fallback teardrop (ParkingLocationScreen) — kept separate
+    // MyVehicle fallback teardrop (ParkingHistoryDetailScreen) — kept separate
     val LegacyGreen   = Color(0xFF25F48C)
     val LegacyForest  = Color(0xFF0D1C14)
 
@@ -400,12 +400,12 @@ private const val PLATE_BODY_CX    = 40f
 private const val PLATE_BODY_CY    = 18f
 private const val PLATE_STROKE     = 1.5f
 
-// ─── MyVehicle marker — legacy fallback (ParkingLocationScreen) ──────────────
+// ─── MyVehicle marker — legacy fallback (ParkingHistoryDetailScreen) ──────────────
 
 /**
  * Fallback teardrop marker used by screens that have a parking location but no
  * [io.apptolast.paparcar.domain.model.ParkedVehicleSummary] context (e.g.
- * ParkingLocationScreen). Home screen uses [VehicleBadgeMarker] instead.
+ * ParkingHistoryDetailScreen). Home screen uses [VehicleBadgeMarker] instead.
  */
 @Composable
 fun MyVehicleMarker(

@@ -87,8 +87,6 @@ internal fun LazyListScope.homeSheetItems(
     onIntent: (HomeIntent) -> Unit,
     onAction: (HomeSheetAction) -> Unit,
 ) {
-    val selectedSpotId = slice.selectedSpotId
-    val isSpotSelected = selectedSpotId != null
     val filteredSpots = slice.filteredSpots
     val vehicleCards = slice.vehicleCards
     val showPersonalBlocks = slice.hasCorePermissions && vehicleCards.isNotEmpty()
@@ -97,17 +95,17 @@ internal fun LazyListScope.homeSheetItems(
     // ── 0. Detection story surface — under the address header, above vehicles.
     // The ONE voice for "what is detection doing right now": loud action rows + discreet happy
     // lines, resolved by a single testable projection. [UX-DETECTION-STORY-001]
-    // Browse-only (hidden while a spot is selected) so it never shifts the spot-scroll index — with
-    // ONE exception: the live "did you park?" question, the only story with a deadline. Losing it
-    // behind a tapped spot is exactly the invisibility this ticket fixes. [DET-ASK-STATE-001]
+    // This whole list only exists in Browse with nothing selected — a selected pin gives the peek
+    // the entire surface and the stepper walks the pins from there, so the old "hide the story
+    // behind a tapped spot" branches (and the live-question exception to them) are gone with the
+    // state that made them reachable. [UI-PEEK-STEPS-BETWEEN-PINS-001] [DET-ASK-STATE-001]
     // Both pending questions (prompt and nudge) are resolved by the projection, not arbitrated here.
     val detectionStory = resolveDetectionStory(
         slice.detectionUiState, slice.drivingMeta, vehicleCards, slice.parkedWatchBadge,
         promptWindow = slice.promptWindow,
         showParkNudge = slice.showParkNudge,
     )
-    val isLiveQuestion = detectionStory is DetectionStory.AwaitingAnswer
-    if (detectionStory != DetectionStory.Hidden && (!isSpotSelected || isLiveQuestion)) {
+    if (detectionStory != DetectionStory.Hidden) {
         item("detection_surface") {
             // The car both cold-start CTAs are about: the active vehicle, or the first if none is
             // flagged. "Mark spot" parks it; "I'm driving" declares it active + arms. [VEH-ACTIVE-FENCE-001]
@@ -159,8 +157,8 @@ internal fun LazyListScope.homeSheetItems(
         }
     }
 
-    // ── 1. "TUS VEHÍCULOS" header + per-vehicle rows — hidden when a spot is selected
-    if (showPersonalBlocks && !isSpotSelected) {
+    // ── 1. "TUS VEHÍCULOS" header + per-vehicle rows
+    if (showPersonalBlocks) {
         item("vehicles_header") {
             PapSectionHeader(
                 // Singular/plural header by vehicle count via plurals. [HOME-CARDS-001]
@@ -183,38 +181,10 @@ internal fun LazyListScope.homeSheetItems(
             slice = slice,
             onIntent = onIntent,
             onAction = onAction,
-            selectedSpotId = selectedSpotId,
             filteredSpots = filteredSpots,
             showFilterBar = showFilterBar,
-            isSpotSelected = isSpotSelected,
         )
     }
-}
-
-/**
- * Returns the absolute item index of a spot card in the LazyColumn emitted
- * by [homeSheetItems], or -1 if the spot is not part of the current list.
- */
-internal fun homeSheetSpotItemIndex(slice: HomeBrowseListSlice, spotId: String): Int {
-    val filteredSpots = slice.filteredSpots
-    val spotIdx = filteredSpots.indexOfFirst { it.id == spotId }
-    if (spotIdx < 0) return -1
-
-    val showPersonalBlocks = slice.hasCorePermissions && slice.vehicleCards.isNotEmpty()
-    val showFilterBar = slice.hasCorePermissions && slice.hasAnySpots
-
-    val isSpotSelected = slice.selectedSpotId != null
-    var base = 1 // offset carried from original layout
-    if (!isSpotSelected) {
-        if (showPersonalBlocks) {
-            base += 1   // vehicles_header
-            base += 1   // vehicles_row (single LazyRow item)
-        }
-        base += 1                       // spots_header (hidden when spot is selected)
-    }
-    if (showFilterBar) base += 1        // filter_bar
-    // report_spot_cta sits AFTER the spot list, so it does not shift indices.
-    return base + spotIdx
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -297,21 +267,17 @@ private fun LazyListScope.spotsSection(
     slice: HomeBrowseListSlice,
     onIntent: (HomeIntent) -> Unit,
     onAction: (HomeSheetAction) -> Unit,
-    selectedSpotId: String?,
     filteredSpots: List<Spot>,
     showFilterBar: Boolean,
-    isSpotSelected: Boolean,
 ) {
-    if (!isSpotSelected) {
-        item("spots_header") {
-            PapSectionHeader(
-                title = if (filteredSpots.isNotEmpty())
-                    pluralStringResource(Res.plurals.home_feed_nearby_with_count, filteredSpots.size, filteredSpots.size)
-                else
-                    stringResource(Res.string.home_feed_nearby),
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
-            )
-        }
+    item("spots_header") {
+        PapSectionHeader(
+            title = if (filteredSpots.isNotEmpty())
+                pluralStringResource(Res.plurals.home_feed_nearby_with_count, filteredSpots.size, filteredSpots.size)
+            else
+                stringResource(Res.string.home_feed_nearby),
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
+        )
     }
 
     if (showFilterBar) {
@@ -346,7 +312,6 @@ private fun LazyListScope.spotsSection(
                 HomeSpotRow(
                     spot = spot,
                     userLocation = slice.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
-                    isSelected = spot.id == selectedSpotId,
                     onSelect = {
                         onAction(HomeSheetAction.MoveCamera(spot.location.latitude, spot.location.longitude))
                         onIntent(HomeIntent.SelectItem(HomeSelection.Spot(spot.id)))

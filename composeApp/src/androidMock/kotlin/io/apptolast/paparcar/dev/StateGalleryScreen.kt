@@ -219,7 +219,6 @@ private fun parkingDetailSheet(
         HistoryDetailSheet(
             session = session,
             vehicle = vehicle,
-            isActive = session.isActive,
             hasOlder = hasOlder,
             hasNewer = hasNewer,
             onOlder = {},
@@ -591,10 +590,43 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             Variant("PapSheet · browse contador ámbar 0 + hint", Placement.Surface) {
                 peek(HomeState(cameraAddressAndPlace = FakeData.addressAndPlaceStreet, nearbySpots = emptyList()))
             },
-            Variant("PapSheet · spot seleccionado (¿Aún está?/Se fue)", Placement.Surface) {
+            // First of the browse order: nothing behind it, so the footer stepper offers only ›.
+            // [UI-PEEK-STEPS-BETWEEN-PINS-001]
+            Variant("PapSheet · spot seleccionado, el primero (solo ›)", Placement.Surface) {
                 peek(
                     HomeState(
                         nearbySpots = FakeData.nearbySpots,
+                        userGpsPoint = sampleGps,
+                        selection = HomeSelection.Spot(FakeData.nearbySpots.first().id),
+                    ),
+                )
+            },
+            // Mid-list: both chevrons. The pair is anchored to the edges over reserved slots, so
+            // this variant and the two end ones must line up pixel-for-pixel.
+            Variant("PapSheet · spot en medio de la lista (‹ y ›)", Placement.Surface) {
+                peek(
+                    HomeState(
+                        nearbySpots = FakeData.nearbySpots,
+                        userGpsPoint = sampleGps,
+                        selection = HomeSelection.Spot(FakeData.nearbySpots[1].id),
+                    ),
+                )
+            },
+            Variant("PapSheet · último spot de la lista (solo ‹)", Placement.Surface) {
+                peek(
+                    HomeState(
+                        nearbySpots = FakeData.nearbySpots,
+                        userGpsPoint = sampleGps,
+                        selection = HomeSelection.Spot(FakeData.nearbySpots.last().id),
+                    ),
+                )
+            },
+            // One spot on offer → no neighbour on either side → no stepper row and no divider: the
+            // peek ends at the two signal buttons, exactly as it did before the stepper existed.
+            Variant("PapSheet · spot único (sin flechas)", Placement.Surface) {
+                peek(
+                    HomeState(
+                        nearbySpots = listOf(FakeData.nearbySpots.first()),
                         userGpsPoint = sampleGps,
                         selection = HomeSelection.Spot(FakeData.nearbySpots.first().id),
                     ),
@@ -646,6 +678,7 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     ),
                 )
             },
+            // One parked car: the peek has no sibling to step to, so it ends at "Me voy".
             Variant("PapSheet · parking seleccionado (Me voy + Directions + editar)", Placement.Surface) {
                 peek(
                     HomeState(
@@ -654,6 +687,25 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                         userGpsPoint = sampleGps,
                         nearbySpots = FakeData.nearbySpots,
                         selection = HomeSelection.Parking(FakeData.activeSession.id),
+                    ),
+                )
+            },
+            // Two cars parked at once: from the first one's peek, › opens the second — the same
+            // gesture as the spot peek, instead of closing this card to hunt for the other marker.
+            // [MULTI-PARKING-001] [UI-PEEK-STEPS-BETWEEN-PINS-001]
+            Variant("PapSheet · 2 coches aparcados, paso al otro (solo ›)", Placement.Surface) {
+                val first = FakeData.activeSession.copy(vehicleId = FakeData.vehicleSedan.id)
+                val second = FakeData.activeSession.copy(
+                    id = "s_active_2",
+                    vehicleId = FakeData.vehicleVan.id,
+                )
+                peek(
+                    HomeState(
+                        vehicles = listOf(FakeData.vehicleSedan, FakeData.vehicleVan),
+                        activeSessions = listOf(first, second),
+                        userGpsPoint = sampleGps,
+                        nearbySpots = FakeData.nearbySpots,
+                        selection = HomeSelection.Parking(first.id),
                     ),
                 )
             },

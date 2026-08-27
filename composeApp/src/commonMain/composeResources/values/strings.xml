@@ -106,7 +106,7 @@
     <string name="onboarding_step1_title">We detect driving</string>
     <string name="onboarding_step1_desc">The app detects when you get in your car</string>
     <string name="onboarding_step2_title">We detect parking</string>
-    <string name="onboarding_step2_desc">When you park, we silently save the spot</string>
+    <string name="onboarding_step2_desc">When you park, we silently save your parking</string>
     <string name="onboarding_step3_title">We share the spot</string>
     <string name="onboarding_step3_desc">When you leave, your spot becomes available to others nearby</string>
     <string name="onboarding_page3_title">Why we need your permissions</string>
@@ -233,8 +233,6 @@
     <string name="map_cd_back">Back</string>
 
     <!-- HistoryParkingDetailScreen -->
-    <string name="parking_detail_section_label">Historic parking</string>
-    <string name="parking_detail_active_section_label">Current parking</string>
     <string name="parking_detail_navigate_action">Navigate to this location</string>
     <string name="parking_detail_prev">Previous parking</string>
     <string name="parking_detail_route_recalculating">Recalculating route…</string>
@@ -267,7 +265,7 @@
     <string name="error_bootstrap_fatal_title">Couldn\'t load your account</string>
     <string name="error_bootstrap_fatal_body">Something went wrong while loading your data. Please sign in again.</string>
     <string name="error_bootstrap_fatal_dismiss">OK</string>
-    <string name="error_parking_save_failed">Could not save your parking spot. Please try again.</string>
+    <string name="error_parking_save_failed">Could not save your parking. Please try again.</string>
 
     <!-- Home success messages -->
     <string name="home_spot_reported">Spot reported — uploading…</string>
@@ -290,7 +288,7 @@
     <string name="home_add_parking_header_label_create">Mark your parking</string>
     <string name="home_add_parking_header_label_edit">Move your parking</string>
     <string name="home_add_parking_helper_primary_create">Center the pin where you left the car</string>
-    <string name="home_add_parking_helper_primary_edit">Drag the map to the correct spot</string>
+    <string name="home_add_parking_helper_primary_edit">Drag the map to the right location</string>
     <string name="home_add_parking_helper_secondary">A geofence will alert you when you drive away</string>
     <string name="home_add_parking_confirm_create">Park here</string>
     <string name="home_add_parking_confirm_edit">Save new location</string>
@@ -341,7 +339,7 @@
     <string name="settings_language_auto">System default</string>
     <string name="settings_section_detection">Detection &amp; permissions</string>
     <string name="settings_auto_detect">Auto-detect parking</string>
-    <string name="settings_auto_detect_desc">Automatically save your parking spot</string>
+    <string name="settings_auto_detect_desc">Automatically save your parking</string>
     <string name="settings_detection_health_ok">All set</string>
     <string name="settings_detection_health_ok_desc">Detection has everything it needs</string>
     <string name="settings_detection_health_missing">Missing %1$s</string>
@@ -357,7 +355,7 @@
     <string name="settings_detection_setup">Set up</string>
     <string name="settings_section_notifications">Notifications</string>
     <string name="settings_notif_parking">Parking detected</string>
-    <string name="settings_notif_parking_desc">Alert when a parking spot is saved</string>
+    <string name="settings_notif_parking_desc">Alert when your parking is saved</string>
     <string name="settings_notif_spot">Spot available nearby</string>
     <string name="settings_notif_spot_desc">Alert when a spot is freed near you</string>
     <string name="settings_section_about">About</string>
@@ -463,7 +461,7 @@
     <string name="permissions_tier_automatic_name">Automatic</string>
     <string name="permissions_tier_assisted_plus_name">Assisted +</string>
     <string name="permissions_tier_assisted_name">Assisted</string>
-    <string name="permissions_tier_automatic_promise">Your spot is marked and freed on its own.</string>
+    <string name="permissions_tier_automatic_promise">Your parking is marked and the spot freed on its own.</string>
     <string name="permissions_tier_assisted_plus_promise">Almost always hands-free; now and then we\'ll ask you.</string>
     <string name="permissions_tier_assisted_promise">We detect what your phone allows; when in doubt, we ask you.</string>
     <!-- Per-permission payoff tag: which tier this action unlocks. "→ Automatic" / "→ Assisted +" -->
@@ -570,7 +568,11 @@
     <string name="home_zone_action_edit">Edit zone</string>
     <string name="home_zone_action_delete">Delete zone</string>
     <string name="home_zone_private_badge">Private zone</string>
-    <string name="home_spot_peek_show_list">Nearby spots</string>
+    <!-- UI-PEEK-STEPS-BETWEEN-PINS-001 — peek footer stepper (content descriptions) -->
+    <string name="home_peek_step_prev_spot">Previous spot</string>
+    <string name="home_peek_step_next_spot">Next spot</string>
+    <string name="home_peek_step_prev_car">Previous parked car</string>
+    <string name="home_peek_step_next_car">Next parked car</string>
 
     <!-- VEHICLE-CATEGORIZATION-001 — Spot fit tri-state pill on home peek -->
     <string name="home_peek_spot_fit_optimal">Optimal for your %1$s</string>
@@ -635,9 +637,9 @@
     <string name="home_det_stopped_msg">Auto-detection stopped</string>
     <string name="home_det_stopped_action">Turn on</string>
     <string name="home_det_awaiting_title">Where is your car?</string>
-    <string name="home_det_awaiting_sub">Mark the spot and I will watch it</string>
+    <string name="home_det_awaiting_sub">Mark your parking and I will watch it</string>
     <string name="home_det_watching_title">Watching your %1$s</string>
-    <string name="home_det_watching_parked_sub">Parked — we’ll notice when you leave the spot</string>
+    <string name="home_det_watching_parked_sub">Parked — we’ll notice when you drive off</string>
     <string name="home_det_watching_bt_sub">Parking detects itself via your car’s Bluetooth</string>
     <string name="home_det_watching_fragile_sub">Your phone may stop watching. Turn it on so it doesn’t fail.</string>
     <string name="home_det_watching_fortify_cta">Turn on</string>
@@ -648,23 +650,23 @@
     <string name="home_det_driving_sub">We’ll detect where you park</string>
     <!-- [DET-STOP-BUTTON-001] Way out of a trip the user does not want followed. -->
     <string name="home_det_driving_stop_cta">Stop</string>
-    <string name="home_det_trip_stopped_msg">Detection stopped. This trip won’t be saved as a parking spot — tap “I am driving” whenever you want it back.</string>
+    <string name="home_det_trip_stopped_msg">Detection stopped. This trip won’t be saved as a parking — tap “I am driving” whenever you want it back.</string>
     <string name="home_det_candidate_title">Parking your %1$s?</string>
-    <string name="home_det_candidate_sub">Confirming the spot…</string>
-    <string name="home_det_awaiting_cta_primary">Mark my spot</string>
+    <string name="home_det_candidate_sub">Confirming your parking…</string>
+    <string name="home_det_awaiting_cta_primary">Mark my parking</string>
     <string name="home_det_awaiting_cta_secondary">I am driving</string>
     <!-- [DET-ASK-STATE-001] The "did you park?" question, asked in-app. Titles mirror the tray
          notification word for word (notif_confirmation_title*) so the two surfaces never diverge. -->
     <string name="home_det_ask_title">Did you park?</string>
     <string name="home_det_ask_title_vehicle">Did you park your %1$s?</string>
-    <string name="home_det_ask_sub">I save the spot and publish it when you leave</string>
+    <string name="home_det_ask_sub">I save your parking and publish the spot when you leave</string>
     <string name="home_det_ask_cta_yes">Yes, I parked</string>
     <string name="home_det_ask_cta_no">Not yet</string>
     <string name="home_det_ask_eyebrow">Did you park?</string>
     <!-- Pending "where did you leave your car?" nudge row. [DET-NUDGE-PERSIST-001] -->
     <string name="home_nudge_title">Where did you leave your car?</string>
-    <string name="home_nudge_sub">We could not pin your parking spot. Mark it so you do not lose it.</string>
-    <string name="home_nudge_cta">Mark my spot</string>
+    <string name="home_nudge_sub">We could not pin your parking. Mark it so you do not lose it.</string>
+    <string name="home_nudge_cta">Mark my parking</string>
     <string name="home_nudge_dismiss">Dismiss</string>
     <string name="home_det_monitoring">On the way</string>
 

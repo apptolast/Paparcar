@@ -141,7 +141,7 @@ io.apptolast.paparcar
 │   ├── bluetooth/                   BluetoothConfigScreen
 │   ├── permissions/                 Permissions + Rationale + GpsDisclaimer
 │   ├── onboarding/
-│   ├── map/                         ParkingLocationScreen (in-app picker)
+│   ├── map/                         ParkingHistoryDetailScreen (un aparcamiento del historial, sobre el mapa)
 │   ├── app/                         AppViewModel (auth + bootstrap) + SplashViewModel
 │   ├── base/                        BaseViewModel<S,I,E>
 │   ├── preview/                     FakeData para Compose Preview

@@ -66,7 +66,6 @@ import io.apptolast.paparcar.presentation.home.sections.sheet.SheetTransitionEff
 import io.apptolast.paparcar.presentation.home.sections.sheet.rememberSheetMotion
 import io.apptolast.paparcar.presentation.home.sections.sheet.rememberSheetPositioning
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.HomeReleaseDialog
-import io.apptolast.paparcar.presentation.home.sections.sheet.components.homeSheetSpotItemIndex
 import io.apptolast.paparcar.presentation.util.rememberOpenExternalNavigation
 import io.apptolast.paparcar.presentation.util.zoneIconFor
 import io.apptolast.paparcar.ui.components.CenterPinKind
@@ -325,7 +324,6 @@ private fun HomeContent(
     // [UI-PROVISIONAL-SPOT-IS-NOT-ITS-SESSION-001] The kind is carried, not inferred from which
     // list happens to contain the id.
     val selectedSpotId = (state.selection as? HomeSelection.Spot)?.id
-    var spotListExpanded by remember(selectedSpotId) { mutableStateOf(false) }
     var showReleaseDialog by remember { mutableStateOf(false) }
     // The session the release dialog acts on — set from the peek that opened it, so the release
     // targets THAT card, never a ranked fallback. [VEH-ACTIVE-FENCE-001]
@@ -357,12 +355,6 @@ private fun HomeContent(
         drivingPuck = trip.puck,
         effects = effects,
     )
-
-    LaunchedEffect(selectedSpotId) {
-        val spotId = selectedSpotId ?: return@LaunchedEffect
-        val idx = homeSheetSpotItemIndex(browseSlice, spotId)
-        if (idx >= 0) lazyListState.animateScrollToItem(idx)
-    }
 
     CompositionLocalProvider(LocalMapInteracting provides mapInteraction.isInteracting) {
         Scaffold(
@@ -424,12 +416,12 @@ private fun HomeContent(
                     peekHeightPx = peekHeightPx,
                     lazyListState = lazyListState,
                     isPureBrowsePeek = isPureBrowsePeek,
-                    // Pin modes / parking selected / spot selected with the list hidden: the peek
-                    // handle owns the whole surface, so the sheet must not expand above peek.
-                    // [SHEET-DRAG-001]
+                    // Pin modes / any selected pin: the peek handle owns the whole surface, so the
+                    // sheet must not expand above peek. [SHEET-DRAG-001]
+                    // [UI-PEEK-STEPS-BETWEEN-PINS-001]
                     capExpandAtPeek = state.mode !is HomeMode.Browse ||
                         isParkingSelected ||
-                        (selectedSpotId != null && !spotListExpanded),
+                        selectedSpotId != null,
                 )
                 val peekOffsetPx = positioning.peekOffsetPx
                 val sheetOffsetPx = remember { Animatable(peekOffsetPx) }
@@ -451,7 +443,6 @@ private fun HomeContent(
                     mode = state.mode,
                     selection = state.selection,
                     isParkingSelected = isParkingSelected,
-                    spotListExpanded = spotListExpanded,
                     navProgressState = navProgressState,
                     // [DET-ASK-STATE-001] The open question opens the sheet on its own, once.
                     promptShownAtMs = state.promptWindow?.shownAtMs,
@@ -643,10 +634,12 @@ private fun HomeContent(
                     state = state,
                     frame = sheetFrame,
                     browseShowsZoneHeader = sheetBeyondPeek,
-                    spotListExpanded = spotListExpanded,
                     onIntent = onIntent,
                     uiController = uiController,
-                    onToggleSpotList = { spotListExpanded = !spotListExpanded },
+                    // A stepper press IS a marker tap — same lambda, so select + camera + sheet
+                    // can't drift between the two. [UI-PEEK-STEPS-BETWEEN-PINS-001]
+                    onSelectSpot = onSpotMarkerClick,
+                    onSelectParking = onMyCarMarkerClick,
                     onRelease = { sessionId ->
                         releaseTargetSessionId = sessionId
                         showReleaseDialog = true
@@ -885,10 +878,10 @@ private fun HomeSheetSection(
     state: HomeState,
     frame: HomeSheetFrame,
     browseShowsZoneHeader: Boolean,
-    spotListExpanded: Boolean,
     onIntent: (HomeIntent) -> Unit,
     uiController: HomeUiController,
-    onToggleSpotList: () -> Unit,
+    onSelectSpot: (spotId: String) -> Unit,
+    onSelectParking: (sessionId: String) -> Unit,
     onRelease: (sessionId: String) -> Unit,
     onNavigateExternal: (lat: Double, lon: Double, walking: Boolean) -> Unit,
     onToggle: () -> Unit,
@@ -899,7 +892,8 @@ private fun HomeSheetSection(
     val onAction: (HomeSheetAction) -> Unit = { action ->
         when (action) {
             HomeSheetAction.ToggleSheet -> onToggle()
-            HomeSheetAction.ToggleSpotList -> onToggleSpotList()
+            is HomeSheetAction.SelectSpot -> onSelectSpot(action.spotId)
+            is HomeSheetAction.SelectParking -> onSelectParking(action.sessionId)
             is HomeSheetAction.RequestRelease -> onRelease(action.sessionId)
             HomeSheetAction.RequestReportMode -> onIntent(
                 HomeIntent.EnterReportMode(
@@ -921,7 +915,6 @@ private fun HomeSheetSection(
         browse = browse,
         frame = frame,
         browseShowsZoneHeader = browseShowsZoneHeader,
-        spotListExpanded = spotListExpanded,
         onIntent = onIntent,
         onAction = onAction,
         modifier = modifier,

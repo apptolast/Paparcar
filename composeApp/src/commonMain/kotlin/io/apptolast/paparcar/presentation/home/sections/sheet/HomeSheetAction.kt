@@ -14,8 +14,14 @@ internal sealed interface HomeSheetAction {
     /** Tap on the peek header — toggle between peek and the adjacent snap. */
     data object ToggleSheet : HomeSheetAction
 
-    /** "Show list" toggle on the selected-spot peek. */
-    data object ToggleSpotList : HomeSheetAction
+    /**
+     * Step the peek to another pin: open [spotId] / [sessionId] exactly as tapping ITS MARKER on
+     * the map does — select + fly the camera + settle the sheet. Both arms are wired to the very
+     * lambdas the map uses, so a stepper press and a marker tap can't drift apart.
+     * [UI-PEEK-STEPS-BETWEEN-PINS-001]
+     */
+    data class SelectSpot(val spotId: String) : HomeSheetAction
+    data class SelectParking(val sessionId: String) : HomeSheetAction
 
     /**
      * "Me voy" on the parking peek — open the release dialog (publish / delete-only)

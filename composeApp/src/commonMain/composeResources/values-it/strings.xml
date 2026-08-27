@@ -65,7 +65,7 @@
     <string name="onboarding_step1_title">Rileviamo la guida</string>
     <string name="onboarding_step1_desc">L\'app rileva quando sali in macchina</string>
     <string name="onboarding_step2_title">Rileviamo il parcheggio</string>
-    <string name="onboarding_step2_desc">Quando parcheggi, salviamo silenziosamente il posto</string>
+    <string name="onboarding_step2_desc">Quando parcheggi, salviamo silenziosamente il tuo parcheggio</string>
     <string name="onboarding_step3_title">Condividiamo il posto</string>
     <string name="onboarding_step3_desc">Quando esci, il tuo posto diventa disponibile per gli altri vicini</string>
     <string name="onboarding_page3_title">Perché abbiamo bisogno dei tuoi permessi</string>
@@ -168,8 +168,6 @@
     <string name="map_cd_back">Indietro</string>
 
     <!-- HistoryParkingDetailScreen -->
-    <string name="parking_detail_section_label">Parcheggio storico</string>
-    <string name="parking_detail_active_section_label">Parcheggio attuale</string>
     <string name="parking_detail_navigate_action">Naviga verso questa posizione</string>
     <string name="parking_detail_prev">Parcheggio precedente</string>
     <string name="parking_detail_route_recalculating">Ricalcolo del percorso…</string>
@@ -199,10 +197,10 @@
     <string name="settings_theme_mode_system">Sistema</string>
     <string name="settings_section_detection">Rilevamento</string>
     <string name="settings_auto_detect">Rilevamento automatico parcheggio</string>
-    <string name="settings_auto_detect_desc">Salva automaticamente il posto di parcheggio</string>
+    <string name="settings_auto_detect_desc">Salva automaticamente il tuo parcheggio</string>
     <string name="settings_section_notifications">Notifiche</string>
     <string name="settings_notif_parking">Parcheggio rilevato</string>
-    <string name="settings_notif_parking_desc">Avviso quando viene salvato un posto di parcheggio</string>
+    <string name="settings_notif_parking_desc">Avviso quando viene salvato il parcheggio</string>
     <string name="settings_notif_spot">Posto disponibile vicino</string>
     <string name="settings_notif_spot_desc">Avviso quando un posto si libera vicino a te</string>
     <string name="settings_section_about">Informazioni</string>
@@ -225,7 +223,7 @@
     <string name="error_bootstrap_fatal_title">Impossibile caricare il tuo account</string>
     <string name="error_bootstrap_fatal_body">Qualcosa è andato storto durante il caricamento dei dati. Accedi di nuovo.</string>
     <string name="error_bootstrap_fatal_dismiss">OK</string>
-    <string name="error_parking_save_failed">Impossibile salvare il tuo posto auto. Riprova.</string>
+    <string name="error_parking_save_failed">Impossibile salvare il tuo parcheggio. Riprova.</string>
 
     <!-- Messaggi di successo Home -->
     <string name="home_spot_reported">Posto segnalato — in caricamento…</string>
@@ -309,7 +307,7 @@
     <string name="permissions_tier_automatic_name">Automatico</string>
     <string name="permissions_tier_assisted_plus_name">Assistito +</string>
     <string name="permissions_tier_assisted_name">Assistito</string>
-    <string name="permissions_tier_automatic_promise">Il tuo posto viene segnato e liberato da solo.</string>
+    <string name="permissions_tier_automatic_promise">Il tuo parcheggio si segna e il posto si libera da solo.</string>
     <string name="permissions_tier_assisted_plus_promise">Quasi sempre in automatico; ogni tanto te lo chiediamo.</string>
     <string name="permissions_tier_assisted_promise">Rileviamo ciò che il telefono permette; nel dubbio, te lo chiediamo.</string>
     <string name="permissions_tier_unlocks">→ %1$s</string>
@@ -484,7 +482,11 @@
     <string name="home_zone_action_edit">Modifica zona</string>
     <string name="home_zone_action_delete">Elimina zona</string>
     <string name="home_zone_private_badge">Zona privata</string>
-    <string name="home_spot_peek_show_list">Parcheggi vicini</string>
+    <!-- UI-PEEK-STEPS-BETWEEN-PINS-001 -->
+    <string name="home_peek_step_prev_spot">Parcheggio precedente</string>
+    <string name="home_peek_step_next_spot">Parcheggio successivo</string>
+    <string name="home_peek_step_prev_car">Auto precedente</string>
+    <string name="home_peek_step_next_car">Auto successiva</string>
 
     <!-- VEHICLE-CATEGORIZATION-001 -->
     <string name="home_peek_spot_fit_optimal">Ottimale per la tua %1$s</string>
@@ -562,9 +564,9 @@
     <string name="home_det_stopped_msg">Rilevamento automatico interrotto</string>
     <string name="home_det_stopped_action">Attiva</string>
     <string name="home_det_awaiting_title">Dov\'è la tua auto?</string>
-    <string name="home_det_awaiting_sub">Segna il posto e lo controllo</string>
+    <string name="home_det_awaiting_sub">Segna il parcheggio e lo controllo</string>
     <string name="home_det_watching_title">Vigiliamo la tua %1$s</string>
-    <string name="home_det_watching_parked_sub">Parcheggiata — rileveremo quando liberi il posto</string>
+    <string name="home_det_watching_parked_sub">Parcheggiata — rileveremo quando riparti</string>
     <string name="home_det_watching_bt_sub">Il parcheggio si rileva da solo tramite il Bluetooth dell’auto</string>
     <string name="home_det_watching_fragile_sub">Il telefono potrebbe smettere di controllare. Attivalo per non fallire.</string>
     <string name="home_det_watching_fortify_cta">Attiva</string>
@@ -575,22 +577,22 @@
     <string name="home_det_driving_sub">Rileveremo dove parcheggi</string>
     <!-- [DET-STOP-BUTTON-001] -->
     <string name="home_det_driving_stop_cta">Ferma</string>
-    <string name="home_det_trip_stopped_msg">Rilevamento fermato. Questo viaggio non verrà salvato come posto; tocca «Sto guidando» quando vuoi riprendere.</string>
+    <string name="home_det_trip_stopped_msg">Rilevamento fermato. Questo viaggio non verrà salvato come parcheggio; tocca «Sto guidando» quando vuoi riprendere.</string>
     <string name="home_det_candidate_title">Stai parcheggiando la tua %1$s?</string>
-    <string name="home_det_candidate_sub">Stiamo confermando il posto…</string>
-    <string name="home_det_awaiting_cta_primary">Segna il posto</string>
+    <string name="home_det_candidate_sub">Stiamo confermando il parcheggio…</string>
+    <string name="home_det_awaiting_cta_primary">Segna il parcheggio</string>
     <string name="home_det_awaiting_cta_secondary">Sto guidando</string>
     <!-- [DET-ASK-STATE-001] -->
     <string name="home_det_ask_title">Hai parcheggiato?</string>
     <string name="home_det_ask_title_vehicle">Hai parcheggiato la tua %1$s?</string>
-    <string name="home_det_ask_sub">Salvo il posto e lo pubblico quando te ne vai</string>
+    <string name="home_det_ask_sub">Salvo il tuo parcheggio e pubblico il posto quando te ne vai</string>
     <string name="home_det_ask_cta_yes">Sì, ho parcheggiato</string>
     <string name="home_det_ask_cta_no">Non ancora</string>
     <string name="home_det_ask_eyebrow">Hai parcheggiato?</string>
     <!-- Pending "where did you leave your car?" nudge row. [DET-NUDGE-PERSIST-001] -->
     <string name="home_nudge_title">Dove hai lasciato l\'auto?</string>
     <string name="home_nudge_sub">Non siamo riusciti a fissare il tuo parcheggio. Segnalo per non perderlo.</string>
-    <string name="home_nudge_cta">Segna il mio posto</string>
+    <string name="home_nudge_cta">Segna il mio parcheggio</string>
     <string name="home_nudge_dismiss">Ignora</string>
     <string name="home_det_monitoring">In viaggio</string>
 

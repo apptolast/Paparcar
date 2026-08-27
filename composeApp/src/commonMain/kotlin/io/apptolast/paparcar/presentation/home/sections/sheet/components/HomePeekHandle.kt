@@ -3,7 +3,9 @@ package io.apptolast.paparcar.presentation.home.sections.sheet.components
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
@@ -44,7 +46,6 @@ internal fun HomePeekHandle(
     slice: HomePeekSlice,
     /** True while the sheet sits beyond peek — expanded browse swaps to the zone header. [UI-SHEET-004] */
     browseShowsZoneHeader: Boolean = false,
-    spotListExpanded: Boolean = false,
     onIntent: (HomeIntent) -> Unit = {},
     onAction: (HomeSheetAction) -> Unit = {},
 ) {
@@ -91,10 +92,17 @@ internal fun HomePeekHandle(
         } else AnimatedContent(
             targetState = peekState,
             transitionSpec = {
-                // Explicit duration coordinated with the sheet snap (PapMotion.Emphasized)
-                // so the peek content and the sheet move as one piece.
+                // A STEP between two pins of the same kind is a page-turn, not a state change:
+                // pressing › (or dragging left) slides the next pin in FROM THE RIGHT and pushes the
+                // current one out to the left, so the motion says which way you moved along the
+                // list. Everything else — engaging a pin, dropping back to browse — keeps the
+                // vertical transition, which is what those ARE. [UI-PEEK-STEPS-BETWEEN-PINS-001]
+                val step = slice.stepDirection(initialState, targetState)
                 val incomingEngaged = targetState !is PeekState.Browse
-                if (incomingEngaged) {
+                if (step != 0) {
+                    (slideInHorizontally(PapMotion.emphasized()) { it * step } + fadeIn(PapMotion.emphasized())) togetherWith
+                        (slideOutHorizontally(PapMotion.emphasized()) { -it * step } + fadeOut(PapMotion.emphasized()))
+                } else if (incomingEngaged) {
                     (slideInVertically(PapMotion.emphasized()) { it / 2 } + fadeIn(PapMotion.emphasized())) togetherWith
                         (slideOutVertically(PapMotion.emphasized()) { -it / 2 } + fadeOut(PapMotion.emphasized()))
                 } else {
@@ -116,7 +124,7 @@ internal fun HomePeekHandle(
                             spot = spot,
                             userLocation = slice.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
                             activeVehicle = slice.vehicles.firstOrNull { it.isActive },
-                            spotListExpanded = spotListExpanded,
+                            step = slice.spotStep,
                             onIntent = onIntent,
                             onAction = onAction,
                         )
@@ -129,6 +137,7 @@ internal fun HomePeekHandle(
                             parking = parking,
                             vehicle = slice.vehicles.firstOrNull { it.id == parking.vehicleId },
                             userGps = slice.userGpsPoint,
+                            step = slice.sessionStep,
                             onIntent = onIntent,
                             onAction = onAction,
                         )
@@ -215,4 +224,27 @@ private sealed class PeekState {
     data object AddingZone : PeekState()
     data class AddingParking(val isEditing: Boolean) : PeekState()
     data object Browse : PeekState()
+}
+
+/**
+ * Which way the peek travelled: `+1` forward along the list (the user pressed › or swiped left),
+ * `-1` backward, `0` when this is not a step at all — a different KIND of peek, or a pin that left
+ * the list (a spot withdrawn while open). [UI-PEEK-STEPS-BETWEEN-PINS-001]
+ *
+ * The order comes from the same projections the chevrons themselves are built from, so the arrow you
+ * pressed and the direction the card slides can't disagree.
+ */
+private fun HomePeekSlice.stepDirection(from: PeekState, to: PeekState): Int = when {
+    from is PeekState.SelectedSpot && to is PeekState.SelectedSpot ->
+        browsableSpotIds.direction(from.spotId, to.spotId)
+    from is PeekState.SelectedParking && to is PeekState.SelectedParking ->
+        activeSessions.map { it.id }.direction(from.sessionId, to.sessionId)
+    else -> 0
+}
+
+private fun List<String>.direction(fromId: String, toId: String): Int {
+    val fromIndex = indexOfFirst { it == fromId }
+    val toIndex = indexOfFirst { it == toId }
+    if (fromIndex < 0 || toIndex < 0 || fromIndex == toIndex) return 0
+    return if (toIndex > fromIndex) 1 else -1
 }

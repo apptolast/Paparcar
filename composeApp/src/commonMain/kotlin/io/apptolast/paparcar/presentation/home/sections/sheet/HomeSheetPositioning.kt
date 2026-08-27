@@ -215,8 +215,8 @@ internal fun isIntentionallyAbovePeek(
 
 /**
  * The sheet's state-driven transitions, extracted from HomeContent as a
- * no-UI composable: reset-to-peek on selection/mode changes, auto-expand on
- * list toggle, and nav-progress hoisting for the global bottom nav.
+ * no-UI composable: reset-to-peek on selection/mode changes, the auto-open of a pending question,
+ * and nav-progress hoisting for the global bottom nav.
  */
 @Composable
 internal fun SheetTransitionEffects(
@@ -225,7 +225,6 @@ internal fun SheetTransitionEffects(
     mode: HomeMode,
     selection: HomeSelection?,
     isParkingSelected: Boolean,
-    spotListExpanded: Boolean,
     navProgressState: MutableFloatState,
     /**
      * [DET-ASK-STATE-001] Identity of the open "did you park?" question (its post timestamp), or
@@ -335,18 +334,6 @@ internal fun SheetTransitionEffects(
     LaunchedEffect(promptShownAtMs) {
         if (promptShownAtMs != null) {
             sheetOffsetPx.animateTo(positioning.expandedOffsetPx, SheetSnapSpec)
-        }
-    }
-
-    // Keep sheet position in sync with spot list expand/collapse.
-    LaunchedEffect(spotListExpanded) {
-        if (spotListExpanded) {
-            // Auto-open the sheet to the capped "expanded" anchor so the list is visible
-            // immediately while a slice of map stays in view (not full-screen). [HOME-SNAP-001]
-            sheetOffsetPx.animateTo(positioning.expandedOffsetPx, SheetSnapSpec)
-        } else if (sheetOffsetPx.value < peekOffsetPx) {
-            // List collapsed while sheet was expanded — snap back to peek.
-            sheetOffsetPx.animateTo(peekOffsetPx, SheetSnapSpec)
         }
     }
 

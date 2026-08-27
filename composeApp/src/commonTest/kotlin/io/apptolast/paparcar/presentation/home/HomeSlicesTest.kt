@@ -446,4 +446,107 @@ class HomeSlicesTest {
         assertNull(HomeState().toHeaderSlice().gpsAccuracy)
         assertEquals(10f, HomeState(userGpsPoint = gps).toHeaderSlice().gpsAccuracy)
     }
+
+    // ── Peek stepper: what ‹ / › can reach [UI-PEEK-STEPS-BETWEEN-PINS-001] ──────────────────
+
+    @Test
+    fun should_offer_both_neighbours_when_the_open_pin_is_mid_list() {
+        assertEquals(PeekStep("a", "c"), PeekStep.of(listOf("a", "b", "c"), "b"))
+    }
+
+    @Test
+    fun should_offer_only_the_next_one_when_the_open_pin_is_the_first() {
+        assertEquals(PeekStep(null, "b"), PeekStep.of(listOf("a", "b", "c"), "a"))
+    }
+
+    @Test
+    fun should_offer_only_the_previous_one_when_the_open_pin_is_the_last() {
+        assertEquals(PeekStep("b", null), PeekStep.of(listOf("a", "b", "c"), "c"))
+    }
+
+    @Test
+    fun should_offer_nothing_when_it_is_the_only_pin() {
+        assertEquals(PeekStep.None, PeekStep.of(listOf("a"), "a"))
+    }
+
+    /** A withdrawn spot stays SELECTED (the peek has to explain itself) while dropping out of the
+     *  browse order — stepping must not silently jump it to the list's edge. */
+    @Test
+    fun should_offer_nothing_when_the_open_pin_is_not_in_the_order() {
+        assertEquals(PeekStep.None, PeekStep.of(listOf("a", "b"), "withdrawn"))
+        assertEquals(PeekStep.None, PeekStep.of(listOf("a", "b"), null))
+        assertEquals(PeekStep.None, PeekStep.of(emptyList(), "a"))
+    }
+
+    @Test
+    fun should_step_spots_in_the_same_order_the_sheet_lists_them() {
+        val state = HomeState(
+            // Provisional sorts LAST in the browse order, so from "fresh" the next one is "other",
+            // not the provisional that happens to sit first in the raw list.
+            nearbySpots = listOf(
+                spot("provisional", status = SpotStatus.PROVISIONAL),
+                spot("fresh"),
+                spot("other"),
+            ),
+            selection = HomeSelection.Spot("fresh"),
+        )
+        val slice = state.toPeekSlice()
+
+        assertEquals(listOf("fresh", "other", "provisional"), slice.browsableSpotIds)
+        assertEquals(PeekStep(null, "other"), slice.spotStep)
+    }
+
+    @Test
+    fun should_not_step_to_a_withdrawn_spot_nor_to_my_own_parked_car() {
+        val mine = session("mine", "veh-A")
+        val state = HomeState(
+            activeSessions = listOf(mine),
+            nearbySpots = listOf(
+                spot("first"),
+                provisionalTwinOf(mine),
+                spot("gone", status = SpotStatus.RETRACTED),
+                spot("last"),
+            ),
+            selection = HomeSelection.Spot("first"),
+        )
+
+        assertEquals(listOf("first", "last"), state.toPeekSlice().browsableSpotIds)
+        assertEquals(PeekStep(null, "last"), state.toPeekSlice().spotStep)
+    }
+
+    @Test
+    fun should_offer_no_step_from_a_withdrawn_spot_that_is_still_open() {
+        val state = HomeState(
+            nearbySpots = listOf(spot("gone", status = SpotStatus.RETRACTED), spot("other")),
+            selection = HomeSelection.Spot("gone"),
+        )
+
+        assertEquals("gone", state.toPeekSlice().selectedSpot?.id, "it stays selected on purpose")
+        assertEquals(PeekStep.None, state.toPeekSlice().spotStep)
+    }
+
+    @Test
+    fun should_step_between_parked_cars_in_the_order_the_car_fab_cycles() {
+        val first = session("s1", "veh-A")
+        val second = session("s2", "veh-B")
+        val state = HomeState(
+            activeSessions = listOf(first, second),
+            selection = HomeSelection.Parking("s1"),
+        )
+
+        assertEquals(PeekStep(null, "s2"), state.toPeekSlice().sessionStep)
+        assertEquals(
+            PeekStep("s1", null),
+            state.copy(selection = HomeSelection.Parking("s2")).toPeekSlice().sessionStep,
+        )
+    }
+
+    @Test
+    fun should_offer_no_step_with_a_single_parked_car() {
+        val state = HomeState(
+            activeSessions = listOf(session("s1", "veh-A")),
+            selection = HomeSelection.Parking("s1"),
+        )
+        assertEquals(PeekStep.None, state.toPeekSlice().sessionStep)
+    }
 }

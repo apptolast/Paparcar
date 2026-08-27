@@ -96,6 +96,11 @@ data class HomePeekSlice(
     /** Size of the size-filtered nearby list — the Browse spot counter. */
     val freeCount: Int,
     val nearbySpots: List<Spot>,
+    /** Ids of the spots the peek's ‹ / › stepper walks, in the ORDER the sheet lists them
+     *  ([HomeState.filteredNearbySpots]) — not raw [nearbySpots], which still carries the
+     *  withdrawn spot the user may have open and the user's own parked session.
+     *  [UI-PEEK-STEPS-BETWEEN-PINS-001] */
+    val browsableSpotIds: List<String>,
     val activeSessions: List<UserParking>,
     val selection: HomeSelection?,
     val vehicles: List<Vehicle>,
@@ -140,6 +145,42 @@ data class HomePeekSlice(
 
     val isParkingSelected: Boolean
         get() = selectedSession != null
+
+    /** Neighbours of the selected spot in the browse order — what the peek's ‹ / › offer.
+     *  [UI-PEEK-STEPS-BETWEEN-PINS-001] */
+    val spotStep: PeekStep
+        get() = PeekStep.of(browsableSpotIds, selectedSpot?.id)
+
+    /** Neighbours of the selected session among the parked cars — same order the car FAB cycles.
+     *  [MULTI-PARKING-001] [UI-PEEK-STEPS-BETWEEN-PINS-001] */
+    val sessionStep: PeekStep
+        get() = PeekStep.of(activeSessions.map { it.id }, selectedSession?.id)
+}
+
+/**
+ * What the peek's footer stepper can reach from the pin currently open: the id one step back and
+ * one step forward, or null on each side where there is nothing.
+ * [UI-PEEK-STEPS-BETWEEN-PINS-001]
+ */
+@Immutable
+data class PeekStep(val prevId: String?, val nextId: String?) {
+    companion object {
+        val None = PeekStep(null, null)
+
+        /**
+         * Neighbours of [currentId] inside [order].
+         *
+         * An id that is NOT in the list yields [None], never the list's edges: a WITHDRAWN spot
+         * stays selected on purpose so the peek can explain itself, while dropping out of the
+         * browse order [DET-HANDOFF-NOT-MANUAL-001 §B.3] — offering it "the next spot" would be
+         * stepping out of a list it was never in.
+         */
+        fun of(order: List<String>, currentId: String?): PeekStep {
+            val index = currentId?.let { id -> order.indexOfFirst { it == id } } ?: -1
+            if (index < 0) return None
+            return PeekStep(prevId = order.getOrNull(index - 1), nextId = order.getOrNull(index + 1))
+        }
+    }
 }
 
 /** What the sheet's scrollable list (vehicles + spots feed + detection surface) sees. */
@@ -165,7 +206,6 @@ data class HomeBrowseListSlice(
     val hasAnySpots: Boolean,
     /** One entry per registered vehicle, joined to its active session — materialised once. */
     val vehicleCards: List<VehicleCard>,
-    val selectedSpotId: String?,
     val userGpsPoint: GpsPoint?,
     val drivingMeta: DrivingMeta?,
 )
@@ -215,32 +255,38 @@ internal fun HomeState.toMapSlice() = HomeMapSlice(
     addingZoneIsPrivate = addingZoneIsPrivate,
 )
 
-internal fun HomeState.toPeekSlice() = HomePeekSlice(
-    detectionUiState = detectionUiState,
-    mode = mode,
-    freeCount = filteredNearbySpots().size,
-    nearbySpots = nearbySpots,
-    activeSessions = activeSessions,
-    selection = selection,
-    vehicles = vehicles,
-    userGpsPoint = userGpsPoint,
-    drivingMeta = drivingMeta,
-    isAwaitingAnswer = promptWindow != null,
-    cameraAddressAndPlace = cameraAddressAndPlace,
-    isCameraMoving = isCameraMoving,
-    isCameraGeocoding = isCameraGeocoding,
-    isReporting = isReporting,
-    reportingSize = reportingSize,
-    isSavingZone = isSavingZone,
-    addingZoneName = addingZoneName,
-    addingZoneIconKey = addingZoneIconKey,
-    addingZoneRadius = addingZoneRadius,
-    addingZoneIsPrivate = addingZoneIsPrivate,
-    editingZoneId = editingZoneId,
-    isSavingParking = isSavingParking,
-    editingParkingId = editingParkingId,
-    addingParkingVehicleId = addingParkingVehicleId,
-)
+internal fun HomeState.toPeekSlice(): HomePeekSlice {
+    // The one list the peek quotes twice: its size is the Browse counter, its order is what the
+    // ‹ / › stepper walks. Materialised once. [UI-PEEK-STEPS-BETWEEN-PINS-001]
+    val browsable = filteredNearbySpots()
+    return HomePeekSlice(
+        detectionUiState = detectionUiState,
+        mode = mode,
+        freeCount = browsable.size,
+        nearbySpots = nearbySpots,
+        browsableSpotIds = browsable.map { it.id },
+        activeSessions = activeSessions,
+        selection = selection,
+        vehicles = vehicles,
+        userGpsPoint = userGpsPoint,
+        drivingMeta = drivingMeta,
+        isAwaitingAnswer = promptWindow != null,
+        cameraAddressAndPlace = cameraAddressAndPlace,
+        isCameraMoving = isCameraMoving,
+        isCameraGeocoding = isCameraGeocoding,
+        isReporting = isReporting,
+        reportingSize = reportingSize,
+        isSavingZone = isSavingZone,
+        addingZoneName = addingZoneName,
+        addingZoneIconKey = addingZoneIconKey,
+        addingZoneRadius = addingZoneRadius,
+        addingZoneIsPrivate = addingZoneIsPrivate,
+        editingZoneId = editingZoneId,
+        isSavingParking = isSavingParking,
+        editingParkingId = editingParkingId,
+        addingParkingVehicleId = addingParkingVehicleId,
+    )
+}
 
 internal fun HomeState.toBrowseListSlice() = HomeBrowseListSlice(
     detectionUiState = detectionUiState,
@@ -259,7 +305,6 @@ internal fun HomeState.toBrowseListSlice() = HomeBrowseListSlice(
     vehicleCards = vehicles.map { v ->
         VehicleCard(vehicle = v, session = activeSessions.firstOrNull { it.vehicleId == v.id })
     },
-    selectedSpotId = selectedSpot?.id,
     userGpsPoint = userGpsPoint,
     drivingMeta = drivingMeta,
 )

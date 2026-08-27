@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +21,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Campaign
+import androidx.compose.material.icons.rounded.ChevronLeft
+import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Info
@@ -27,9 +30,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
@@ -47,6 +53,7 @@ import io.apptolast.paparcar.ui.components.PapAlertDialog
 import io.apptolast.paparcar.ui.components.PapDialogAccent
 import io.apptolast.paparcar.ui.components.PapListItem
 import io.apptolast.paparcar.ui.components.PapShimmerBox
+import io.apptolast.paparcar.ui.components.PapStepperSlot
 import io.apptolast.paparcar.ui.components.SpotPuckIcon
 import io.apptolast.paparcar.ui.components.VehicleGlyph
 import io.apptolast.paparcar.presentation.util.SpotReliabilityUiState
@@ -70,9 +77,9 @@ import paparcar.composeapp.generated.resources.home_release_dialog_cancel
  * hatch). One anatomy, five optional slots: [UI-SHEET-001]
  *
  *  ┌──────────────────────────────────────────────────────────────────────┐
- *  │ [LEAD]  EYEBROW (state-tinted caps)                      [× | pill]  │
- *  │  46dp   Title — 1 line, ellipsis (the address)                       │
- *  │         subtitle (optional, muted)                                   │
+ *  │ ‹  [LEAD]  EYEBROW (state-tinted caps)                [× | pill]   › │
+ *  │     46dp   Title — 1 line, ellipsis (the address)                    │
+ *  │            subtitle (optional, muted)                                │
  *  ├──────────────────────────────────────────────────────────────────────┤
  *  │  banner  — info strip (icon + title + sub) on surfaceContainerHigh   │
  *  │  meta    — icon+value rows       [metaAction: 38dp edit icon-button] │
@@ -106,6 +113,10 @@ internal fun PapSheet(
      *  "¿Has aparcado el Škoda Kamiq?" doesn't truncate. [UX-PARK-FLOW-001 C4, device 06-08] */
     titleMaxLines: Int = 1,
     trailing: PapSheetTrailing? = PapSheetTrailing.Dismiss,
+    /** Pager chrome: the ‹ / › that open the pin before/after this one. Null (the default) leaves
+     *  the header at full width, exactly as it was before the stepper existed.
+     *  [UI-PEEK-STEPS-BETWEEN-PINS-001] */
+    stepper: PapSheetStepper? = null,
     banner: (@Composable () -> Unit)? = null,
     meta: (@Composable ColumnScope.() -> Unit)? = null,
     metaAction: (@Composable () -> Unit)? = null,
@@ -113,13 +124,22 @@ internal fun PapSheet(
     content: (@Composable ColumnScope.() -> Unit)? = null,
     actions: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
-    Column(modifier = modifier.padding(horizontal = PAP_SHEET_HORIZONTAL_PAD_DP.dp)) {
+    Column(
+        modifier = modifier
+            .pagerSwipe(stepper)
+            .padding(horizontal = PAP_SHEET_HORIZONTAL_PAD_DP.dp),
+    ) {
 
         // ── Slot 1 · Header — same leading + overline + title + subtitle + trailing anatomy as
         // every other row, delegated to the shared PapListItem. The height is RESERVED at the
         // 3-line size (eyebrow + title + subtitle) in every state — 2-line headers breathe —
         // so the sheet's collapsed "header band" is one FIXED design derivation and a collapse
         // cut always lands exactly under the header. [UI-LIST-ITEM-002] [UI-SHEET-006]
+        //
+        // The pager chevrons join the × in the TRAILING cluster of this same row — chrome next to
+        // chrome, so the peek's actions stay actions. A 32dp chevron is shorter than the 46dp lead
+        // tile, so the reserved header height (and with it the peek's measured height, the collapse
+        // cut and the peek/nav divider) is untouched. [UI-PEEK-STEPS-BETWEEN-PINS-001] [UI-SHEET-006]
         PapListItem(
             modifier = Modifier.defaultMinSize(minHeight = papSheetHeaderReservedHeight()),
             overline = eyebrow,
@@ -139,10 +159,7 @@ internal fun PapSheet(
             contentPadding = PaddingValues(top = 12.dp, bottom = 14.dp),
             gap = 12.dp,
             leading = { PapSheetLeadTile(lead) },
-            trailing = when (trailing) {
-                PapSheetTrailing.Dismiss -> ({ PapSheetDismissButton(onDismiss = onDismiss) })
-                null -> null
-            },
+            trailing = papSheetHeaderTrailing(trailing, stepper, onDismiss),
         )
 
         // ── Slot 2 · Banner ───────────────────────────────────────────────
@@ -189,6 +206,87 @@ internal fun PapSheet(
         val hasBody = banner != null || meta != null || metaAction != null ||
             chips != null || content != null || actions != null
         if (hasBody) Spacer(Modifier.height(16.dp))
+    }
+}
+
+/**
+ * The pager chrome of a sheet header: which pin the ‹ / › open, or null on the side where there is
+ * none. Both null ⇒ the header renders untouched, at full width. [UI-PEEK-STEPS-BETWEEN-PINS-001]
+ */
+internal data class PapSheetStepper(
+    val prevContentDescription: String,
+    val nextContentDescription: String,
+    val onPrev: (() -> Unit)?,
+    val onNext: (() -> Unit)?,
+) {
+    val hasAny: Boolean get() = onPrev != null || onNext != null
+}
+
+/**
+ * The header's trailing cluster: `‹ › ×`. The chevrons come FIRST and the dismiss × stays last,
+ * where the user already reaches for it — no state loses its way out. [UI-PEEK-STEPS-BETWEEN-PINS-001]
+ *
+ * The three don't look alike on purpose: a filled circle acts on THIS card (dismiss), a bare glyph
+ * moves BETWEEN cards. With three identical tonal pills in a row, the × and the › read as twins and
+ * closing by accident is one mis-tap away.
+ */
+private fun papSheetHeaderTrailing(
+    trailing: PapSheetTrailing?,
+    stepper: PapSheetStepper?,
+    onDismiss: () -> Unit,
+): (@Composable () -> Unit)? {
+    val pager = stepper?.takeIf { it.hasAny }
+    if (pager == null && trailing == null) return null
+    return {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (pager != null) {
+                // The pair is ONE control, so they sit tight together and the air goes before the ×.
+                PapStepperSlot(
+                    icon = Icons.Rounded.ChevronLeft,
+                    contentDescription = pager.prevContentDescription,
+                    onClick = pager.onPrev,
+                )
+                PapStepperSlot(
+                    icon = Icons.Rounded.ChevronRight,
+                    contentDescription = pager.nextContentDescription,
+                    onClick = pager.onNext,
+                )
+                if (trailing != null) Spacer(Modifier.width(STEPPER_TO_DISMISS_GAP_DP.dp))
+            }
+            when (trailing) {
+                PapSheetTrailing.Dismiss -> PapSheetDismissButton(onDismiss = onDismiss)
+                null -> Unit
+            }
+        }
+    }
+}
+
+/**
+ * Swiping the card is the chevrons' gesture twin: dragging LEFT pulls the next pin in from the right
+ * (same as ›), dragging RIGHT the previous one (same as ‹) — and the header's page-turn plays the
+ * matching slide, so finger and motion agree. Mirrors the history detail's gesture verbatim.
+ * [UI-PEEK-STEPS-BETWEEN-PINS-001] [HISTORY-DETAIL-002]
+ *
+ * Horizontal only: it waits for HORIZONTAL touch slop, so the sheet's own vertical drag underneath
+ * still gets every up/down gesture. Trigger-on-release with a distance threshold, so taps on the
+ * card's buttons pass through untouched.
+ */
+@Composable
+private fun Modifier.pagerSwipe(stepper: PapSheetStepper?): Modifier {
+    if (stepper == null || !stepper.hasAny) return this
+    val latest by rememberUpdatedState(stepper)
+    return this.pointerInput(Unit) {
+        var dragged = 0f
+        detectHorizontalDragGestures(
+            onDragStart = { dragged = 0f },
+            onDragEnd = {
+                val threshold = SWIPE_TRIGGER_DP.dp.toPx()
+                when {
+                    dragged <= -threshold -> latest.onNext?.invoke()
+                    dragged >= threshold -> latest.onPrev?.invoke()
+                }
+            },
+        ) { _, dragAmount -> dragged += dragAmount }
     }
 }
 
@@ -487,6 +585,14 @@ private const val HEADER_V_PAD_DP = 26
 internal const val PILL_BLOCK_DP = 14
 // How far the band cut bites into the header's bottom padding (< HEADER_V_PAD_DP's bottom 14).
 private const val BAND_BOTTOM_CLEARANCE_DP = 8
+
+// Air between the chevron pair and the dismiss ×. Enough that the two stop reading as one strip of
+// buttons; the chevrons themselves sit tight together, because they ARE one control.
+private const val STEPPER_TO_DISMISS_GAP_DP = 10
+
+// Swipe distance that commits a page step — same threshold as the history detail's, so the two
+// surfaces need the same flick. Comfortably above tap slop, well below half the card's width.
+private const val SWIPE_TRIGGER_DP = 64
 
 // Component dimensions (not spacing tokens — they belong to this molde).
 private const val LEAD_TILE_DP = 46

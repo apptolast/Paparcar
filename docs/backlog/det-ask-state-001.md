@@ -157,8 +157,11 @@ sitio de la app donde el aparcamiento se dibuja como señal de tráfico.
 ### 5 bis · El sheet se abre SOLO, una vez por pregunta (decisión 22-08 en device)
 
 Con la pregunta abierta, el sheet se anima al ancla `expandedOffsetPx` — la misma a la que lo lleva
-un tap y a la que ya se auto-abre `spotListExpanded`, así que la fila (que es el primer item) queda
-entera en pantalla con margen, sobre un ancla REAL: después se arrastra y engancha como siempre.
+un tap, así que la fila (que es el primer item) queda entera en pantalla con margen, sobre un ancla
+REAL: después se arrastra y engancha como siempre.
+
+> 26-08: el otro auto-abridor que citaba este párrafo (`spotListExpanded`, el toggle "Plazas
+> cercanas" del peek) ya no existe — `UI-PEEK-STEPS-BETWEEN-PINS-001`. El de la pregunta sigue igual.
 
 Hacerlo aquí y no dejarlo en manos del eyebrow: la respuesta es lo único que la app necesita y tiene
 plazo; obligar a descubrirla y arrastrar sería el mismo *"preguntamos donde no estabas mirando"* que

@@ -92,7 +92,7 @@ import kotlin.time.Duration.Companion.milliseconds
 // PaparcarMapView — reusable map surface
 //
 // Single entry point for every map screen: HomeScreen (FULL), AddFreeSpotScreen
-// (POSITION_ONLY + animated pin), ParkingLocationScreen (READ_ONLY).
+// (POSITION_ONLY + animated pin), ParkingHistoryDetailScreen (READ_ONLY).
 // Specific overlays (sheet, FAB column, search bar, glass surfaces) live in
 // their host screens — this component only owns the map surface, markers,
 // crosshair / center pin, loading state and camera animation.
@@ -151,7 +151,7 @@ sealed class CenterPinKind {
  *    user picks a location by moving the map underneath a fixed pin
  *    (Home Reporting / AddingZone flows).
  *  - `READ_ONLY`: every gesture disabled and `onCameraMove` is suppressed.
- *    Used for purely informational map renders (ParkingLocationScreen detail).
+ *    Used for purely informational map renders (ParkingHistoryDetailScreen detail).
  */
 enum class MapInteractionMode { FULL, POSITION_ONLY, READ_ONLY }
 
@@ -473,7 +473,7 @@ private data class PuckMeta(
     val vehicleId: String?,
 )
 
-// Stable empty States for callers without live trip data (e.g. ParkingLocationScreen). [DRIVE-PUCK-NATIVE-001]
+// Stable empty States for callers without live trip data (e.g. ParkingHistoryDetailScreen). [DRIVE-PUCK-NATIVE-001]
 private val EMPTY_PUCK_STATE: State<DrivingPuck?> = mutableStateOf(null)
 private val EMPTY_TRAIL_STATE: State<List<GpsPoint>> = mutableStateOf(emptyList())
 private val EMPTY_DEPARTURE_STATE: State<GpsPoint?> = mutableStateOf(null)
@@ -590,7 +590,7 @@ private fun clusterSpots(spots: List<Spot>, thresholdDeg: Double): List<SpotClus
  *
  * Behaviour is parameterised entirely through [config] — the same composable
  * powers HomeScreen (FULL + free-spot overlays), AddFreeSpotScreen
- * (POSITION_ONLY + animated center pin) and ParkingLocationScreen detail
+ * (POSITION_ONLY + animated center pin) and ParkingHistoryDetailScreen detail
  * (READ_ONLY).
  *
  * The host screen owns everything *around* the map: bottom sheets, FAB
@@ -656,10 +656,10 @@ fun PaparcarMapView(
      * Enriched parking sessions from [ObserveParkedVehiclesUseCase].
      * When non-empty, badge markers are rendered instead of the legacy
      * teardrop for the home screen. [parkingLocation] still drives
-     * ParkingLocationScreen which does not have vehicle context.
+     * ParkingHistoryDetailScreen which does not have vehicle context.
      */
     parkedVehicles: List<ParkedVehicleSummary> = emptyList(),
-    /** Vehicle size for the fallback single-parking marker (used by ParkingLocationScreen). */
+    /** Vehicle size for the fallback single-parking marker (used by ParkingHistoryDetailScreen). */
     parkingVehicleSize: VehicleSize? = null,
     /** Vehicle body shape for the fallback single-parking marker — preferred over [parkingVehicleSize] when present. */
     parkingVehicleCarbody: io.apptolast.paparcar.domain.model.CarbodyType? = null,
@@ -852,7 +852,7 @@ fun PaparcarMapView(
                     )
                 }
             } else {
-                // Fallback: legacy teardrop (used by ParkingLocationScreen which
+                // Fallback: legacy teardrop (used by ParkingHistoryDetailScreen which
                 // does not supply parkedVehicles). Only one possible marker here,
                 // so any non-null selectedSessionId means "the single parking is selected".
                 parkingLocation?.let {
@@ -956,7 +956,7 @@ fun PaparcarMapView(
         puckMeta,
     ) {
         val baseHandlers: Map<String, @Composable (Marker) -> Unit> = buildMap {
-            // ── Fallback single-parking marker (ParkingLocationScreen) ──
+            // ── Fallback single-parking marker (ParkingHistoryDetailScreen) ──
             put(MARKER_MY_CAR) { _ ->
                 VehicleBadgeMarker(
                     sizeCategory = parkingVehicleSize,

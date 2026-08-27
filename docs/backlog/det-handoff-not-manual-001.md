@@ -231,7 +231,7 @@ documentos antiguos leen `CONFIRMED`).
 | `toBrowseListSlice().hasAnySpots` (barra de filtros + empty state) | "¿hay algo?" = lista no vacía | **cerrado** — cuenta sólo lo disponible |
 | `HomePeekHandle` / `HomeState.selectedSpot` (lista SIN filtrar) | resuelve la selección sobre `nearbySpots` | **cerrado por diseño** — es justo lo que permite que la retirada se explique |
 | `HomeScreen.onSpotMarkerClick` (`spotsById` sin filtrar) | mapa y mapa-de-ids comparten origen | **exento** — no hay marcador que pulsar para una retirada; el índice es un superconjunto inofensivo |
-| `homeSheetSpotItemIndex` (auto-scroll a la seleccionada) | la seleccionada está en la lista | **exento** — devuelve −1 y no hay scroll; el peek ya cuenta la historia |
+| `homeSheetSpotItemIndex` (auto-scroll a la seleccionada) | la seleccionada está en la lista | **exento** — devolvía −1 y no había scroll; el peek ya cuenta la historia. *(26-08: retirado con el toggle de la lista — `UI-PEEK-STEPS-BETWEEN-PINS-001`)* |
 | `SpotRepositoryImpl.observeNearbySpots` (barrido de caducados) | borra de Firestore lo caducado | **cubierto por convergencia** — la retirada adelanta `expiresAt`, así que ese mismo barrido la borra pasada la gracia, sin código nuevo |
 | `firestore.rules` (`update`) | el dueño edita libre; terceros sólo contadores | **exento** — retracta el dueño; no hay cambio de reglas |
 | `ReportManualSpotUseCase` | un reporte manual es palabra humana | **exento** — publica con `provisional=false` → `CONFIRMED`, como debe |

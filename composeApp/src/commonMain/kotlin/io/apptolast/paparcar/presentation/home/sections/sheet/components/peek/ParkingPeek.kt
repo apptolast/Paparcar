@@ -18,10 +18,12 @@ import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.presentation.home.HomeIntent
+import io.apptolast.paparcar.presentation.home.PeekStep
 import io.apptolast.paparcar.presentation.home.sections.sheet.HomeSheetAction
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.PapSheet
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.PapSheetLead
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.PapSheetRoundIconButton
+import io.apptolast.paparcar.presentation.home.sections.sheet.components.PapSheetStepper
 import io.apptolast.paparcar.presentation.util.distanceMeters
 import io.apptolast.paparcar.ui.components.PapFooterButton
 import io.apptolast.paparcar.ui.components.PapFooterButtonStyle
@@ -37,6 +39,8 @@ import paparcar.composeapp.generated.resources.home_parking_leave_release
 import paparcar.composeapp.generated.resources.home_peek_car_parked_label
 import paparcar.composeapp.generated.resources.home_peek_parking_duration_hm
 import paparcar.composeapp.generated.resources.home_peek_parking_duration_min
+import paparcar.composeapp.generated.resources.home_peek_step_next_car
+import paparcar.composeapp.generated.resources.home_peek_step_prev_car
 import paparcar.composeapp.generated.resources.home_peek_vehicle_parked_label
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -48,6 +52,10 @@ internal fun ParkingPeek(
     parking: UserParking,
     vehicle: Vehicle?,
     userGps: GpsPoint?,
+    /** Neighbouring parked cars — the footer ‹ / ›. Empty with a single parked car, which is the
+     *  usual case, and then the peek ends at "Me voy" exactly as before.
+     *  [MULTI-PARKING-001] [UI-PEEK-STEPS-BETWEEN-PINS-001] */
+    step: PeekStep,
     onIntent: (HomeIntent) -> Unit,
     onAction: (HomeSheetAction) -> Unit,
 ) {
@@ -86,6 +94,15 @@ internal fun ParkingPeek(
         eyebrowHighlightColor = accentColor,
         title = title,
         onDismiss = { onIntent(HomeIntent.SelectItem(null)) },
+        // With a second car parked, going from one to the other used to mean closing this peek and
+        // hunting for the other marker (or cycling the car FAB). Same chrome as the spot peek and
+        // the history detail. [UI-PEEK-STEPS-BETWEEN-PINS-001]
+        stepper = PapSheetStepper(
+            prevContentDescription = stringResource(Res.string.home_peek_step_prev_car),
+            nextContentDescription = stringResource(Res.string.home_peek_step_next_car),
+            onPrev = step.prevId?.let { id -> { onAction(HomeSheetAction.SelectParking(id)) } },
+            onNext = step.nextId?.let { id -> { onAction(HomeSheetAction.SelectParking(id)) } },
+        ),
         meta = {
             DistanceRow(distanceM = distM, mode = TravelMode.WALKING, accentColor = accentColor)
             ParkingDurationRow(timestampMs = parking.location.timestamp, accentColor = accentColor)

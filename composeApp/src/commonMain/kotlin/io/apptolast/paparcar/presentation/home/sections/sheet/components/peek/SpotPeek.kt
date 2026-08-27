@@ -2,49 +2,38 @@
 
 package io.apptolast.paparcar.presentation.home.sections.sheet.components.peek
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Block
 import androidx.compose.material.icons.rounded.CheckCircle
-import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Group
 import androidx.compose.material.icons.rounded.Navigation
-import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.SpotStatus
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.presentation.home.HomeIntent
+import io.apptolast.paparcar.presentation.home.PeekStep
 import io.apptolast.paparcar.presentation.home.sections.sheet.HomeSheetAction
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.PapSheet
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.PapSheetLead
+import io.apptolast.paparcar.presentation.home.sections.sheet.components.PapSheetStepper
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.SpotFitRow
 import io.apptolast.paparcar.presentation.util.distanceMeters
 import io.apptolast.paparcar.presentation.util.isManualReport
 import io.apptolast.paparcar.presentation.util.toReliabilityUiState
-import io.apptolast.paparcar.ui.components.PapDivider
 import io.apptolast.paparcar.ui.components.PapFooterButton
 import io.apptolast.paparcar.ui.components.PapFooterButtonStyle
-import io.apptolast.paparcar.ui.theme.PapMotion
 import io.apptolast.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -52,8 +41,9 @@ import paparcar.composeapp.generated.resources.home_navigate_to_spot
 import paparcar.composeapp.generated.resources.home_peek_spot_age_hour
 import paparcar.composeapp.generated.resources.home_peek_spot_age_min
 import paparcar.composeapp.generated.resources.home_peek_spot_en_route
+import paparcar.composeapp.generated.resources.home_peek_step_next_spot
+import paparcar.composeapp.generated.resources.home_peek_step_prev_spot
 import paparcar.composeapp.generated.resources.home_spot_gone
-import paparcar.composeapp.generated.resources.home_spot_peek_show_list
 import paparcar.composeapp.generated.resources.home_spot_retracted_action
 import paparcar.composeapp.generated.resources.home_spot_retracted_eyebrow
 import paparcar.composeapp.generated.resources.home_spot_retracted_note
@@ -65,15 +55,16 @@ import paparcar.composeapp.generated.resources.home_spot_unconfirmed_note
 // ═════════════════════════════════════════════════════════════════════════════
 
 private const val WALK_DISTANCE_THRESHOLD_M = 400f
-private const val TOGGLE_ROW_ALPHA = 0.55f
 private const val NOTE_ALPHA = 0.75f
+private const val MINUTES_PER_HOUR = 60
 
 @Composable
 internal fun SpotPeek(
     spot: Spot,
     userLocation: Pair<Double, Double>?,
     activeVehicle: Vehicle?,
-    spotListExpanded: Boolean,
+    /** Neighbours of this spot in the browse order — the footer ‹ / ›. [UI-PEEK-STEPS-BETWEEN-PINS-001] */
+    step: PeekStep,
     onIntent: (HomeIntent) -> Unit,
     onAction: (HomeSheetAction) -> Unit,
 ) {
@@ -101,6 +92,13 @@ internal fun SpotPeek(
     val nowMs = rememberNowMinuteTick()
     val ttlMinutes = remainingMinutes(spot.expiresAt, nowMs)
     val spotAgeMin = ageMinutes(spot.location.timestamp, nowMs)
+    val ageText = spotAgeMin?.let { minutes ->
+        if (minutes < MINUTES_PER_HOUR) {
+            stringResource(Res.string.home_peek_spot_age_min, minutes)
+        } else {
+            stringResource(Res.string.home_peek_spot_age_hour, minutes / MINUTES_PER_HOUR)
+        }
+    }
 
     PapSheet(
         lead = PapSheetLead.CommunitySpot(
@@ -115,7 +113,21 @@ internal fun SpotPeek(
         // [UI-COLOR-DOCTRINE-001]
         eyebrowColor = if (isRetracted) MaterialTheme.colorScheme.onSurfaceVariant else palette.badgeBg,
         title = title,
+        // How old the offer is, on the header's third line — the same slot where the browse peek
+        // puts "aparcado hace 1 h" for your own car. It is the fact that decides whether this spot
+        // is worth driving to, so it reads with the address instead of queueing among the meta rows
+        // (where it used to sit, and where it now no longer appears). [UI-SHEET-001]
+        subtitle = ageText,
         onDismiss = { onIntent(HomeIntent.SelectItem(null)) },
+        // Step to the neighbouring spot in the SAME order the sheet lists them. A withdrawn spot
+        // has already dropped out of that order, so its step is empty and the header renders
+        // untouched — no second condition to keep in sync. [UI-PEEK-STEPS-BETWEEN-PINS-001]
+        stepper = PapSheetStepper(
+            prevContentDescription = stringResource(Res.string.home_peek_step_prev_spot),
+            nextContentDescription = stringResource(Res.string.home_peek_step_next_spot),
+            onPrev = step.prevId?.let { id -> { onAction(HomeSheetAction.SelectSpot(id)) } },
+            onNext = step.nextId?.let { id -> { onAction(HomeSheetAction.SelectSpot(id)) } },
+        ),
         meta = {
             if (isRetracted) {
                 // Fit, distance, age and en-route are all facts about a space to drive to. There
@@ -124,9 +136,6 @@ internal fun SpotPeek(
             } else {
                 SpotFitRow(spot = spot, vehicle = activeVehicle)
                 DistanceRow(distanceM = distM, mode = travelMode, accentColor = palette.badgeBg)
-                if (spotAgeMin != null) {
-                    SpotAgeRow(ageMinutes = spotAgeMin, accentColor = palette.badgeBg)
-                }
                 if (spot.enRouteCount > 0) {
                     SpotEnRouteRow(count = spot.enRouteCount, accentColor = palette.badgeBg)
                 }
@@ -198,13 +207,6 @@ internal fun SpotPeek(
                         modifier = Modifier.weight(1f),
                     )
                 }
-                Spacer(Modifier.height(12.dp))
-                PapDivider()
-                SpotListToggleRow(
-                    expanded = spotListExpanded,
-                    label = stringResource(Res.string.home_spot_peek_show_list),
-                    onClick = { onAction(HomeSheetAction.ToggleSpotList) },
-                )
             }
         },
     )
@@ -222,50 +224,6 @@ private fun SpotNote(text: String) {
         style = PaparcarType.current.body,
         color = MaterialTheme.colorScheme.onSurface.copy(alpha = NOTE_ALPHA),
     )
-}
-
-@Composable
-private fun SpotListToggleRow(
-    expanded: Boolean,
-    label: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val rotation by animateFloatAsState(
-        targetValue = if (expanded) 180f else 0f,
-        animationSpec = PapMotion.medium(),
-        label = "spot_list_chevron",
-    )
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center,
-    ) {
-        Text(
-            text = label,
-            style = PaparcarType.current.body,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = TOGGLE_ROW_ALPHA),
-        )
-        Spacer(Modifier.width(4.dp))
-        Icon(
-            imageVector = Icons.Rounded.ExpandMore,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = TOGGLE_ROW_ALPHA),
-            modifier = Modifier.size(18.dp).rotate(rotation),
-        )
-    }
-}
-
-@Composable
-private fun SpotAgeRow(ageMinutes: Int, accentColor: Color) {
-    val text = if (ageMinutes < 60)
-        stringResource(Res.string.home_peek_spot_age_min, ageMinutes)
-    else
-        stringResource(Res.string.home_peek_spot_age_hour, ageMinutes / 60)
-    PeekMetaRow(icon = Icons.Rounded.Schedule, text = text, tint = accentColor)
 }
 
 @Composable

@@ -8,7 +8,7 @@ import io.apptolast.paparcar.presentation.home.HomeSearchController
 import io.apptolast.paparcar.presentation.home.HomeSpotsController
 import io.apptolast.paparcar.presentation.home.HomeTripController
 import io.apptolast.paparcar.presentation.home.HomeViewModel
-import io.apptolast.paparcar.presentation.map.ParkingLocationViewModel
+import io.apptolast.paparcar.presentation.map.ParkingHistoryViewModel
 import io.apptolast.paparcar.presentation.permissions.PermissionsViewModel
 import io.apptolast.paparcar.presentation.bluetooth.BluetoothConfigViewModel
 import io.apptolast.paparcar.presentation.vehicles.VehiclesViewModel
@@ -51,7 +51,7 @@ val presentationModule = module {
             get(), get(), get(), get(), get(), get(),
         )
     }
-    viewModelOf(::ParkingLocationViewModel)
+    viewModelOf(::ParkingHistoryViewModel)
     viewModelOf(::SettingsViewModel)
     viewModelOf(::PermissionsViewModel)
     viewModelOf(::VehicleRegistrationViewModel)

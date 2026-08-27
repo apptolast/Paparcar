@@ -153,6 +153,22 @@ elige rol. Fuente de verdad: `ui/theme/PaparcarType.kt` (19 roles), se lee
   `-it`, `-pt`, `-fr`, `-de`, `-nl`, `-pl`, `-ro`. Si la traducción no está clara, poner el texto
   inglés antes que omitir la key — Compose Resources **crashea** si falta en el locale activo.
 
+### ⛔ Vocabulario: PLAZA es de la comunidad, APARCAMIENTO es tuyo [COPY-SPOT-IS-NOT-A-PARKING-001]
+Los dos conceptos centrales del producto se llamaban igual, y en el mismo flujo: la acción de
+registrar dónde has dejado tu coche se llamaba "Mark parking" en el chip, "Marcar mi sitio" en la
+detección y "Marcar mi **plaza**" en el nudge — usando para lo TUYO la palabra de lo AJENO.
+
+| Concepto | EN | ES | IT | PT | FR | DE | NL | PL | RO |
+|---|---|---|---|---|---|---|---|---|---|
+| Plaza libre de la comunidad (la que ves, avisas o se publica al irte) | spot | plaza | posto | lugar | place | Platz | plek | miejsce | loc |
+| Tu sesión: dónde has dejado el coche | parking | aparcamiento | parcheggio | estacionamento | stationnement | Parkplatz | parkeerplaats | parkowanie | parcare |
+
+- Verbo de lo tuyo: *"Marcar aparcamiento" / "Mark parking"*. Verbo de lo comunitario: *"Avisar de
+  una plaza" / "Report a free spot"*. Nunca "marcar mi plaza".
+- El pin que pones y la plaza que se publica **son dos cosas**: al irte, tu APARCAMIENTO libera una
+  PLAZA. Cuando una frase habla de las dos (`home_det_ask_sub`), tiene que nombrarlas distinto.
+- "spot" como "sitio" genérico en inglés (*"drag to the correct spot"*) no vale: es `location`.
+
 ### ⛔ Un caso de uso por VEREDICTO, nunca por PREDICADO [DET-VERDICT-NOT-PREDICATE-001]
 Regla mental: *si su resultado no se puede citar en un diagnóstico, no es un caso de uso.*
 - Es **veredicto** si su resultado aparece en el vocabulario de diagnóstico (`detectionPath`,
