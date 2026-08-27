@@ -2275,6 +2275,104 @@ class CoordinatorParkingDetectorTest {
         }
 
     @Test
+    fun should_trace_the_pedal_strokes_themselves_as_one_rollup_per_credited_fix() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-CADENCE-STEPS-ARE-INVISIBLE-TO-TELEMETRY-001] The test above pins the VERDICT.
+            // Its INPUTS reached no lane at all: `Step` is emitted from three branches (pre-drive /
+            // stopped / anchor-set) and a step taken while DRIVING with the anchor cleared — which is
+            // what `cadenceQualifies` requires — fell through every one of them. Field 2026-08-26's
+            // twelve strokes had to be reconstructed by arithmetic before its replay could reproduce
+            // the loss, which is the definition of a decision nobody can audit.
+            //
+            // The emission is a ROLLUP: one event per distinct fix credited, never one per step,
+            // because a bicycle pedals continuously.
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations, armEvidence = ArmEvidence.Unverified) }
+
+            nowMs = 1_000L
+            locations.emit(GpsPoint(40.0, -3.7, accuracy = 6f, timestamp = 1_000L, speed = BICYCLE_SPEED_MPS))
+            nowMs = 2_000L
+            env.stepDetector.emitSteps(config.pedalCadenceMinStepEvents) // 12 strokes, all on fix #1
+
+            val afterFirstFix = env.detectionLogger.events.filterIsInstance<DetectionEvent.Cadence>()
+            assertEquals(
+                1, afterFirstFix.size,
+                "twelve strokes on one fix are ONE rollup, not twelve events — was ${afterFirstFix.size}",
+            )
+            assertEquals(1, afterFirstFix.single().creditedFixes)
+            assertEquals(
+                BICYCLE_SPEED_MPS, afterFirstFix.single().location?.speed,
+                "the event must carry the FIX the concurrency was judged against — that speed is the " +
+                    "whole calibration question",
+            )
+
+            nowMs = 5_000L
+            locations.emit(GpsPoint(40.0004, -3.7, accuracy = 6f, timestamp = 5_000L, speed = BICYCLE_SPEED_MPS))
+            nowMs = 6_000L
+            env.stepDetector.emitSteps(4) // a second credited fix, three more strokes on it
+
+            job.cancelAndJoin()
+
+            val rollups = env.detectionLogger.events.filterIsInstance<DetectionEvent.Cadence>()
+            assertEquals(2, rollups.size, "one rollup per credited FIX, was ${rollups.size}")
+            assertEquals(2, rollups.last().creditedFixes)
+
+            // THE PROPERTY THAT MAKES THE ROLLUP WORTH READING, stated exactly. Each event fires on
+            // the FIRST stroke credited to a new fix, so its `sessionStepEvents` is the running total
+            // INCLUDING that opening stroke — 1, then 13. The burst a fix actually collected is
+            // therefore the DELTA to the next event, not the value carried by its own:
+            assertEquals(1, rollups.first().sessionStepEvents, "the opening stroke of fix #1")
+            assertEquals(
+                config.pedalCadenceMinStepEvents + 1, rollups.last().sessionStepEvents,
+                "12 strokes on fix #1, then the opening stroke of fix #2",
+            )
+            assertEquals(
+                config.pedalCadenceMinStepEvents,
+                rollups.last().sessionStepEvents - rollups.first().sessionStepEvents,
+                "the delta recovers fix #1's COMPLETE burst — this is what a calibration reads",
+            )
+            // …and the honest limit: fix #2's own 4 strokes are not recoverable, because no third
+            // fix ever closed them. Documented on the event, and it costs nothing a threshold reads.
+        }
+
+    @Test
+    fun should_not_trace_a_cadence_rollup_for_a_step_that_did_not_read_as_pedalling() =
+        runTest(UnconfinedTestDispatcher()) {
+            // The DENOMINATOR must not be laundered into the numerator. A step taken while moving
+            // BELOW the pedestrian ceiling is not a pedal stroke, and the remote lane must stay
+            // silent for it — otherwise the fraction the calibration ticket needs
+            // (`DET-PEDAL-CADENCE-CANNOT-CONVICT-A-CAR-IN-TRAFFIC-001`) is unmeasurable in the other
+            // direction. It is still written to `parkdiag`, where the volume is free.
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations, armEvidence = ArmEvidence.Unverified) }
+
+            // Authorise driving, then drop into the walking band without ever stopping: no anchor is
+            // born, so these steps take the same fourth branch — and must NOT be credited.
+            nowMs = 1_000L
+            locations.emit(GpsPoint(40.0, -3.7, accuracy = 6f, timestamp = 1_000L, speed = BICYCLE_SPEED_MPS))
+            nowMs = 3_000L
+            locations.emit(GpsPoint(40.0002, -3.7, accuracy = 6f, timestamp = 3_000L, speed = 2.5f))
+            nowMs = 4_000L
+            env.stepDetector.emitSteps(config.pedalCadenceMinStepEvents * 2)
+
+            job.cancelAndJoin()
+
+            val rollups = env.detectionLogger.events.filterIsInstance<DetectionEvent.Cadence>()
+            assertTrue(
+                rollups.isEmpty(),
+                "24 steps at 2,5 m/s are a walk, not a cadence — was ${rollups.size} rollups",
+            )
+            val latched = env.detectionLogger.events
+                .filterIsInstance<DetectionEvent.Decision>()
+                .count { it.outcome == "PEDAL_CADENCE_LATCHED" }
+            assertEquals(0, latched, "and nothing may be vetoed off them either")
+        }
+
+    @Test
     fun should_not_latch_pedal_cadence_on_the_egress_walk_after_the_anchor_is_pinned() =
         runTest(UnconfinedTestDispatcher()) {
             // [DET-CADENCE-CANNOT-ACCUSE-AFTER-EGRESS-001] Field 2026-08-22 (Redmi,

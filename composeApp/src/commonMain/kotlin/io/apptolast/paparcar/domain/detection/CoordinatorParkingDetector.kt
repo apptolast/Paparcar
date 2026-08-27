@@ -658,7 +658,20 @@ class CoordinatorParkingDetector(
                     // steps+egress confirm both ran blind). Driving still flushes the anchor AND
                     // the count, so jam jiggle cannot accumulate across stops.
                     val stepAtMs = clock()
+                    // [DET-CADENCE-STEPS-ARE-INVISIBLE-TO-TELEMETRY-001] The counters BEFORE this
+                    // step, so the branch below can say whether this event read as a pedal stroke.
+                    // Assigned from inside the retryable lambda on purpose — the same shape the fix
+                    // reduction uses for `tracked` — so the values always belong to the winning
+                    // attempt rather than to a read that lost a CAS.
+                    var strokesBefore = 0
+                    var creditedFixesBefore = 0
+                    var judgedFix: GpsPoint? = null
+                    var judgedFixSeenAtMs = 0L
                     val updated = _detectionState.updateAndGet { s ->
+                        strokesBefore = s.egress.fastMotionStepEvents
+                        creditedFixesBefore = s.egress.fastMotionStepFixes
+                        judgedFix = s.session.previousFix
+                        judgedFixSeenAtMs = s.drive.lastFixSeenAtMs
                         // [DET-STEP-SPEED-GATE-001][DET-MOTOR-PROOF-001]
                         // [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001][DET-CADENCE-CANNOT-ACCUSE-AFTER-EGRESS-001]
                         // The counting gate and the cadence reading both live in the sub-state that
@@ -718,6 +731,56 @@ class CoordinatorParkingDetector(
                     } else if (updated.anchorTrust.anchor != null) {
                         PaparcarLogger.d(DIAG, "  ✦ step #${updated.egress.stepCount} (egress walk, anchor set) [DET-AR-FIRST-001]")
                         logDetection { sid -> DetectionEvent.Step(sid, nowMs(), updated.egress.stepCount, stopped = false) }
+                    } else {
+                        // [DET-CADENCE-STEPS-ARE-INVISIBLE-TO-TELEMETRY-001] THE FOURTH BRANCH, and
+                        // the reason it did not exist: driving, anchor already cleared, nothing
+                        // stopped. `shouldCount` is false in that state, so `stepCount` does not move
+                        // and there is no `#N` to print — which is how a whole class of event came to
+                        // reach no diagnostic lane at all, local or remote.
+                        //
+                        // That class is not a corner: `cadenceQualifies` demands `!anchorPinned` and a
+                        // fresh fix above the pedestrian ceiling, so a PEDAL STROKE lands here almost
+                        // by definition. The human-powered veto was deciding sessions on the only
+                        // input nobody could read. Field 2026-08-26 (Redmi, Valdés→Góndola): twelve
+                        // steps took this branch, latched the veto, cost the park — and the replay
+                        // that proves it had to RECONSTRUCT them by arithmetic from the summary line,
+                        // because the trace held nothing. `DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001 §C`
+                        // closed this same defect for the latch and left its inputs mute.
+                        //
+                        // Both outcomes are logged, not only the credited one. Calibrating the veto
+                        // needs the DENOMINATOR — steps taken while moving that did NOT read as
+                        // pedalling — as much as the numerator; a lane that only records convictions
+                        // cannot answer "how often is it wrong".
+                        val stroke = updated.egress.fastMotionStepEvents > strokesBefore
+                        val fix = judgedFix
+                        val fixAgeMs = if (judgedFixSeenAtMs > 0L) stepAtMs - judgedFixSeenAtMs else -1L
+                        PaparcarLogger.d(
+                            DIAG,
+                            "  ♬ step while driving — ${if (stroke) "PEDAL STROKE" else "not cadence"} " +
+                                "(cadence ${updated.egress.fastMotionStepEvents}/${config.pedalCadenceMinStepEvents} on " +
+                                "${updated.egress.fastMotionStepFixes}/${config.pedalCadenceMinFixes} fixes · " +
+                                "judged against speed=${fix?.speed}m/s acc=${fix?.accuracy}m age=${fixAgeMs}ms · " +
+                                "band=${config.egressStepMaxSpeedMps}-${config.motorProofSpeedMps}mps) " +
+                                "[DET-CADENCE-STEPS-ARE-INVISIBLE-TO-TELEMETRY-001]"
+                        )
+                        // Remote gets a ROLLUP, and only when a NEW fix is credited — one event per
+                        // distinct fix, never one per step. A real bicycle pedals continuously, and
+                        // per-step would put hundreds of writes an hour on a lane that already carries
+                        // every fix. The per-fix stroke count is the delta between consecutive events'
+                        // `stepCount`; only the last credited fix's tail is unrecoverable, which costs
+                        // nothing any threshold reads. The uncredited steps stay local: the fraction
+                        // they bound is recomputable from LOCATION_FIX, which has every fix already.
+                        if (updated.egress.fastMotionStepFixes > creditedFixesBefore) {
+                            logDetection { sid ->
+                                DetectionEvent.Cadence(
+                                    sid, nowMs(),
+                                    creditedFixes = updated.egress.fastMotionStepFixes,
+                                    sessionStepEvents = updated.egress.fastMotionStepEvents,
+                                    fixAgeMs = fixAgeMs,
+                                    location = fix,
+                                )
+                            }
+                        }
                     }
                 }
             } catch (e: CancellationException) {

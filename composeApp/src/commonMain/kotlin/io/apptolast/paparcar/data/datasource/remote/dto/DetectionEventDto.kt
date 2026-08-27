@@ -109,6 +109,7 @@ fun DetectionEvent.typeName(): String = when (this) {
     is DetectionEvent.Bluetooth -> "BLUETOOTH"
     is DetectionEvent.LocationFix -> "LOCATION_FIX"
     is DetectionEvent.Step -> "STEP"
+    is DetectionEvent.Cadence -> "CADENCE"
     is DetectionEvent.Hold -> "HOLD"
     is DetectionEvent.Candidate -> "CANDIDATE"
     is DetectionEvent.Decision -> "DECISION"
@@ -167,6 +168,17 @@ fun DetectionEvent.toDto(): DetectionEventDto {
         is DetectionEvent.Bluetooth -> base.copy(event = event, deviceAddress = deviceAddress)
         is DetectionEvent.LocationFix -> base.copy(stoppedDurationMs = stoppedDurationMs)
         is DetectionEvent.Step -> base.copy(stepCount = stepCount, stopped = stopped)
+        // [DET-CADENCE-STEPS-ARE-INVISIBLE-TO-TELEMETRY-001] Existing columns only. The pedal-stroke
+        // total rides `stepCount` because that is what it is; the fix count rides `pathLabel` in the
+        // same `fixes=N` shape the PEDAL_CADENCE_LATCHED decision already writes, so the input and
+        // the verdict it produced group on the same string; and the fix's staleness rides
+        // `enterAgeMs`, the "how old was this signal" column ACTIVITY_TRANSITION established. The
+        // judged fix's speed and accuracy arrive through `base` — it is this event's `location`.
+        is DetectionEvent.Cadence -> base.copy(
+            stepCount = sessionStepEvents,
+            pathLabel = "fixes=$creditedFixes",
+            enterAgeMs = fixAgeMs,
+        )
         // [DET-HOLD-BRANCHES-MUST-SPEAK-001] Same columns the CANDIDATE lifecycle already uses
         // (`action`, `pathLabel`), with the duration on the existing "how old" column that
         // SpotRetracted/Reverted/Sentry share — no serializer surface change.

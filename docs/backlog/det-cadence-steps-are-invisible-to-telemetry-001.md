@@ -1,9 +1,12 @@
 # DET-CADENCE-STEPS-ARE-INVISIBLE-TO-TELEMETRY-001 · el veto de bici decide con pasos que ningún diagnóstico registra
 
-**Estado:** 🟡 Abierto, sin rama · **coste bajo, valor alto** — es un cambio de logging, no de decisión
-**Origen:** descubierto el 2026-08-27 al construir el replay de
+**Estado:** 🔵 Implementado, sin commitear · rama
+`chore/DET-CADENCE-STEPS-ARE-INVISIBLE-TO-TELEMETRY-001-log-the-inputs` ·
+worktree `../Paparcar-cadence-telemetry`
+
+**Origen:** descubierto el 2026-08-27 construyendo el replay de
 `DET-HUMAN-POWERED-VETO-MUST-BE-REVOCABLE-001`. La primera versión de la traza **pasaba también sin
-el fix**, porque los eventos que causaron el bug no estaban en el log.
+el fix**: los eventos que causaron el bug no estaban en el log.
 
 ## Problema
 
@@ -11,77 +14,136 @@ el fix**, porque los eventos que causaron el bug no estaban en el log.
 exactamente tres ramas:
 
 ```kotlin
-if (!updated.session.driveAuthorized)           → "pre-drive, false-ENTER candidate"
-else if (updated.anchorTrust.stopStartedAt != null) → "stopped"
-else if (updated.anchorTrust.anchor != null)    → "egress walk, anchor set"
+if (!updated.session.driveAuthorized)                → "pre-drive, false-ENTER candidate"
+else if (updated.anchorTrust.stopStartedAt != null)  → "stopped"
+else if (updated.anchorTrust.anchor != null)         → "egress walk, anchor set"
 ```
 
-Un paso dado **conduciendo, con el ancla ya limpiada y la conducción autorizada** no cae en ninguna
-de las tres: se procesa, incrementa `fastMotionStepEvents` y **no deja rastro en ningún sitio**.
+Un paso dado **conduciendo, con el ancla ya limpiada y la conducción autorizada** no cae en ninguna:
+se procesa, incrementa `fastMotionStepEvents` y **no deja rastro en ningún sitio**.
 
-Y esa es, exactamente, la forma de un paso de cadencia. `cadenceQualifies` exige
-`!anchorPinned && lastFixSpeedMps >= egressStepMaxSpeedMps` — es decir, moviéndose y sin ancla
-clavada. **Los únicos eventos que pueden activar el veto de tracción humana son justo los que el
-diagnóstico no graba.**
+Y esa es, exactamente, la forma de un paso de cadencia — `cadenceQualifies` exige `!anchorPinned` y un
+fix fresco por encima del techo peatonal. **Los únicos eventos capaces de activar el veto de tracción
+humana eran justo los que ningún diagnóstico grababa.**
 
 ## Cómo se descubrió
 
-La sesión del 26-08 (Redmi, Valdés→Góndola) escribe esto:
+La sesión del 26-08 (Redmi, Valdés→Góndola) escribe:
 
 ```
 20:22:11.527  ♲ pedal cadence — 12 steps concurrent with 3 above-ceiling fixes
 ```
 
 …y entre el seed de conducción de las 20:21:12 y esa línea, el log **no contiene ni una sola** línea
-`✦ step`. Las dos afirmaciones sólo son simultáneamente ciertas si los doce pasos tomaron la rama
-muda. Al reconstruir la traza a partir del log, el replay salía verde con y sin el fix: sin esos doce
-eventos la cadencia nunca se dispara y no hay bug que reproducir.
-
-La reconstrucción por aritmética (4 pasos contra cada uno de los 3 últimos fixes en banda, dentro de
-la ventana de frescura de 10 s) sí reprodujo el falso negativo. Pero es reconstrucción, y va marcada
-como tal dentro de `Trace_Gondola2608CadenceVeto.kt`.
+`✦ step`. Las dos afirmaciones sólo son ciertas a la vez si los doce tomaron la rama muda. Al
+reconstruir la traza desde el log, el replay salía verde con y sin el fix: sin esos doce eventos la
+cadencia nunca se dispara y no hay bug que reproducir. Hubo que reconstruirlos por aritmética.
 
 ## Doctrina violada
 
-`DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001 §C` ya cerró este mismo defecto un nivel más arriba, y lo dejó
-escrito en el propio código:
+`DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001 §C` cerró este mismo defecto un nivel más arriba, y lo dejó
+escrito en el código:
 
-> *"A veto that can decide a session silently is the defect"* — y por eso el latch `PEDAL_CADENCE_LATCHED`
-> se emite al trace, no sólo a logcat.
+> *"A veto that can decide a session silently is the defect"*
 
-Se registró el **veredicto** y se dejaron mudas sus **entradas**. El resultado es que el latch se
-puede leer pero no auditar: sabemos que hubo 12 pasos, no cuándo, no contra qué fixes, no si la
-concurrencia era rítmica o casual. Justo lo que hace falta para calibrar
-`DET-PEDAL-CADENCE-CANNOT-CONVICT-A-CAR-IN-TRAFFIC-001`.
-
-## Consecuencia práctica, y por qué esto va antes que la calibración
-
-`DET-PEDAL-CADENCE-CANNOT-CONVICT-A-CAR-IN-TRAFFIC-001` está bloqueado por medición: hay que medir
-*fracción de fixes en movimiento con pasos concurrentes*, en coche y en bici. **Ese corpus no se puede
-recoger hoy**, porque el numerador de esa fracción es precisamente lo que no se graba.
-
-Así que este ticket es la precondición del otro. Es también el más barato de los tres: no cambia
-ninguna decisión, sólo hace visible una entrada.
+Se hizo visible el **veredicto** (`PEDAL_CADENCE_LATCHED`) y se dejaron mudas sus **entradas**. El
+latch se puede leer pero no auditar: sabemos que hubo 12 pasos, no contra qué fixes, ni a qué
+velocidad, ni si la concurrencia era rítmica o casual.
 
 ## Diseño
 
-Una cuarta rama de logging para el paso que hoy cae al vacío, y su gemelo en `DetectionEvent.Step`
-(o un campo `cadence: Boolean` en el evento existente, que evita duplicar tipos y deja el conteo
-remoto intacto). Debe llevar los datos que hacen falta para juzgarlo después: velocidad del fix
-contra el que se acredita, su precisión, y si contó como cadencia o no.
+**Es un cambio de logging. No cambia ninguna decisión** — ni un umbral, ni una rama de veredicto.
 
-⚠️ **Volumen**: en bici serían decenas de eventos por minuto. El `parkdiag` aguanta (5 rotaciones,
-~150 h desde `DET-PARKDIAG-KEEP-MORE-HISTORY-001`), pero el lane remoto no debería recibirlos uno a
-uno — probablemente un rollup por fix, no un evento por paso.
+### Local (`parkdiag`) — la cuarta rama, con las dos caras
+
+```
+♬ step while driving — PEDAL STROKE (cadence 12/12 on 3/2 fixes ·
+  judged against speed=4.65m/s acc=7.06m age=812ms · band=3.0-11.1mps)
+```
+
+Se registran **los pasos acreditados Y los no acreditados**. Calibrar el veto necesita el
+**denominador** (pasos en movimiento que NO leyeron como pedaleo) tanto como el numerador; un lane
+que sólo apunta condenas no puede contestar *"¿con qué frecuencia se equivoca?"*.
+
+No lleva `#N` porque `shouldCount` es falso en ese estado y `stepCount` no se mueve — que es
+justamente el motivo por el que esta rama no existía.
+
+### Remoto — `DetectionEvent.Cadence`, **rollup por fix**
+
+Un evento **por cada fix distinto acreditado**, nunca uno por paso: una bici real pedalea de forma
+continua y por-paso serían cientos de escrituras a la hora sobre un lane que ya lleva todos los fixes.
+
+Cabalga columnas existentes, **sin tocar el serializador** — la convención que `toDto` declara cuatro
+veces:
+
+| campo | columna | por qué esa |
+|---|---|---|
+| `sessionStepEvents` | `stepCount` | es un conteo de pasos |
+| `creditedFixes` | `pathLabel` (`fixes=N`) | misma forma que el `PEDAL_CADENCE_LATCHED` ya escribe → entrada y veredicto agrupan por la misma cadena |
+| `fixAgeMs` | `enterAgeMs` | la columna "cuánto de vieja era esta señal" que estableció `ACTIVITY_TRANSITION` |
+| velocidad y precisión del fix juzgado | `speed` / `accuracy` de `base` | **`location` del evento ES el fix juzgado**, no dónde estaba el caminante |
+
+Esa última fila es la que contesta la pregunta de calibración: 3,13-4,65 m/s condenaron a un coche en
+el centro de Cádiz.
+
+**Semántica exacta del rollup**, escrita en el evento y en su test: cada evento se emite en el
+**primer** trazo acreditado a un fix nuevo, así que su `sessionStepEvents` es el total acumulado
+*incluyendo* ese trazo de apertura (1, luego 13). La ráfaga que un fix realmente recogió es el
+**delta al evento siguiente**, no el valor que él lleva. Coste asumido: la ráfaga del **último** fix
+acreditado no se recupera, porque ningún fix posterior la cierra — y eso no afecta a nada que un
+umbral lea.
+
+Los pasos NO acreditados se quedan en local: la fracción que acotan se recompone en remoto desde
+`LOCATION_FIX`, que ya lleva todos los fixes con su velocidad.
 
 ## Criterio de éxito
 
-- Replayar un viaje nuevo reconstruye la cadencia **sin inventar un solo evento**.
-- El bloque marcado `⚠ RECONSTRUCTED` de `Trace_Gondola2608CadenceVeto.kt` deja de ser necesario para
-  trazas futuras (la del 26-08 se queda como está: sus datos ya se perdieron).
+- [x] Un paso dado conduciendo sin ancla deja línea en `parkdiag`, acreditado o no.
+- [x] Un fix acreditado deja **un** evento remoto; doce trazos sobre ese fix no dejan doce.
+- [x] Un paso por debajo del techo peatonal **no** deja evento remoto ni activa nada.
+- [ ] Replayar un viaje nuevo reconstruye la cadencia **sin inventar un solo evento** (necesita un
+      viaje con el build nuevo).
+- [ ] El bloque `⚠ RECONSTRUCTED` de `Trace_Gondola2608CadenceVeto.kt` deja de hacer falta para
+      trazas futuras. La del 26-08 se queda como está: sus datos ya se perdieron.
+
+## Estado de ejecución
+
+- [x] `DetectionEvent.Cadence` + su rama en `typeName()` y `toDto()` (el `when` es exhaustivo, así
+      que olvidar una es error de compilación, no una columna nula silenciosa).
+- [x] Cuarta rama en el colector de pasos del coordinator, con ambos desenlaces.
+- [x] **2 tests nuevos, los dos verificados en rojo** por neutralización:
+      - anulando la emisión → cae el del rollup; **el negativo sigue verde**, como debe (afirma una
+        ausencia);
+      - emitiendo sin condición → **caen los dos**: el negativo es el que impide que un paso no
+        acreditado se cuele en el numerador.
+- [x] Suite completa verde. `compileMockDebugKotlinAndroid` + `compileProdDebugKotlinAndroid` sin
+      warnings.
+- [x] Entrada en `docs/detection/PARKING-DETECTION.md` §2.
+- [x] Sin strings, sin pantallas, sin estados MVI → no toca los 9 locales ni el Dev Catalog.
+- [x] `detectionPath` / `armEvidence` sin cambios: no hay camino de confirmación nuevo.
+
+## Consumidores auditados
+
+`grep -rn "DetectionEvent.Step\|typeName()\|toDto()" composeApp/src`
+
+| Sitio | Clasificación |
+|---|---|
+| `dto/DetectionEventDto.kt` `typeName()` / `toDto()` | **cerrado** — `when` exhaustivo sobre el sealed; el compilador exige la rama |
+| `FirestoreDetectionEventLogger.accumulate()` | **exento con razón** — tiene `else -> Unit` y el rollup de sesión no debe moverse: los trazos de cadencia no incrementan `stepCount`, así que `maxStepCount` seguiría siendo el mismo aunque se añadiera |
+| Las tres ramas existentes de `DetectionEvent.Step` | **intactas** — este ticket añade una cuarta, no toca las tres |
+| `EgressEvidence.onStepEvent` / `cadenceQualifies` | **exento** — no se toca: la decisión es idéntica, sólo se observa |
+
+## ⚠️ Orden de merge
+
+Este ticket y `DET-HUMAN-POWERED-VETO-MUST-BE-REVOCABLE-001` **crean ambos este mismo fichero** y los
+dos añaden al final de `docs/detection/PARKING-DETECTION.md`. El padre entra primero; al rebasar
+éste, resolver quedándose con **esta** versión del doc (es la del ticket que lo implementa) y con
+**las dos** entradas de `PARKING-DETECTION.md`.
 
 ## Relacionado
 
 - Padre: `docs/backlog/det-human-powered-veto-must-be-revocable-001.md`
-- **Bloquea a:** `docs/backlog/det-pedal-cadence-cannot-convict-a-car-in-traffic-001.md`
+- **Bloquea a:** `docs/backlog/det-pedal-cadence-cannot-convict-a-car-in-traffic-001.md` — su corpus
+  (fracción de fixes en movimiento con pasos concurrentes, en coche y en bici) no se puede recoger sin
+  esto.
 - Mismo defecto un nivel arriba, ya cerrado: `DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001 §C`

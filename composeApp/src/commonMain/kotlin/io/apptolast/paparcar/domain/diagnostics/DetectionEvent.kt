@@ -130,6 +130,51 @@ sealed interface DetectionEvent {
     ) : DetectionEvent
 
     /**
+     * [DET-CADENCE-STEPS-ARE-INVISIBLE-TO-TELEMETRY-001] A step read as a PEDAL STROKE — the input
+     * the human-powered veto decides on, which until now reached no diagnostic lane at all.
+     *
+     * [Step] is emitted from three branches (pre-drive / stopped / anchor-set) and a step taken while
+     * DRIVING with the anchor already cleared falls through all three — which is precisely the shape
+     * `cadenceQualifies` requires. So the veto's only inputs were unreadable both locally and
+     * remotely: the 2026-08-26 session's twelve had to be reconstructed by arithmetic from the
+     * summary line before its replay could reproduce the loss.
+     *
+     * `DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001 §C` made the LATCH visible for exactly this reason —
+     * *"a veto that can decide a session silently is the defect"* — and left its inputs mute. This
+     * closes the same defect one level down.
+     *
+     * **Emitted once per distinct fix credited, not once per step**, because a real bicycle ride
+     * pedals continuously and per-step would be hundreds of events an hour. The per-fix count is
+     * therefore not carried directly: it is the delta between consecutive events'
+     * [sessionStepEvents]. Only the tail of the last credited fix is unrecoverable, which costs
+     * nothing that a threshold reads.
+     *
+     * Steps that took the same branch and did NOT read as pedalling are local-only: the fraction they
+     * form the denominator of can be recomputed remotely from [LocationFix], which already carries
+     * every fix and its speed.
+     *
+     * Rides existing wire columns, no serializer surface change — the convention `toDto` states four
+     * times. **[location] is the FIX the concurrency was judged against**, not where the walker was,
+     * so its `speed` and `accuracy` answer the calibration question for free: 3,13-4,65 m/s convicted
+     * a car in the centre of Cádiz.
+     *
+     * @property creditedFixes Session count of distinct fixes credited with at least one pedal
+     *   stroke — the `pedalCadenceMinFixes` half of the verdict.
+     * @property sessionStepEvents Session count of pedal strokes — the `pedalCadenceMinStepEvents`
+     *   half. Both are the running totals AT this event, which is what the veto reads.
+     * @property fixAgeMs How stale that fix was when the step arrived
+     *   (`pedalCadenceFixFreshnessMs` bounds it).
+     */
+    data class Cadence(
+        override val sessionId: String,
+        override val timestampMs: Long,
+        val creditedFixes: Int,
+        val sessionStepEvents: Int,
+        val fixAgeMs: Long,
+        override val location: GpsPoint? = null,
+    ) : DetectionEvent
+
+    /**
      * [DET-HOLD-BRANCHES-MUST-SPEAK-001] Post-confirm hold lifecycle [DET-C-02]: [action] is how the
      * hold opened or ended, [heldMs] how long it had been holding, [pathLabel] the confirm path that
      * opened it.

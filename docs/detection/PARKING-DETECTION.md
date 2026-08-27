@@ -5383,3 +5383,49 @@ what proves it. Filed as `DET-CADENCE-STEPS-ARE-INVISIBLE-TO-TELEMETRY-001`, and
 calibration ticket, whose corpus cannot be collected until the numerator is logged.
 
 Spec: `docs/backlog/det-human-powered-veto-must-be-revocable-001.md`.
+
+### DET-CADENCE-STEPS-ARE-INVISIBLE-TO-TELEMETRY-001 — the bicycle veto's only inputs reached no lane (pending)
+
+**Commit:** pending. **Found:** 2026-08-27, while building the replay for
+`DET-HUMAN-POWERED-VETO-MUST-BE-REVOCABLE-001` — the first version of the trace **passed with the fix
+removed**, which is the signature of a fixture that reproduces nothing.
+
+**Root cause.** `Step` (local `✦ step #N` and remote `DetectionEvent.Step` alike) is emitted from
+three branches — pre-drive, stopped, anchor-set. A step taken while **DRIVING with the anchor already
+cleared** falls through all three, because `shouldCount` is false there and `stepCount` never moves,
+so there is no `#N` to print. That is not a corner: `cadenceQualifies` requires `!anchorPinned` and a
+fresh fix above the pedestrian ceiling, so a PEDAL STROKE lands in that branch almost by definition.
+The human-powered veto was deciding sessions on the one input nobody could read.
+
+**How it surfaced.** The 2026-08-26 Redmi session logs `♲ pedal cadence — 12 steps concurrent with 3
+above-ceiling fixes` at 20:22:11, and between the drive seed at 20:21:12 and that line there is **not
+one `✦ step`**. Both statements are only true together if all twelve took the mute branch. The twelve
+had to be reconstructed by arithmetic before `Trace_Gondola2608CadenceVeto` could reproduce the loss.
+
+**Doctrine.** §C of `DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001` closed this exact defect one level up —
+*"a veto that can decide a session silently is the defect"* — by tracing the LATCH, and left its
+inputs mute. Same defect, one level down.
+
+**Fix — logging only; not one threshold or verdict branch moves.**
+
+- **Local**: a fourth branch, `♬ step while driving — PEDAL STROKE / not cadence (… judged against
+  speed= acc= age= · band=…)`. Both outcomes, because calibrating the veto needs the DENOMINATOR —
+  steps while moving that did NOT read as pedalling — as much as the numerator.
+- **Remote**: `DetectionEvent.Cadence`, **one event per distinct credited fix, never one per step** —
+  a real bicycle pedals continuously and per-step would be hundreds of writes an hour. Rides existing
+  columns only (`stepCount`, `pathLabel` in the same `fixes=N` shape `PEDAL_CADENCE_LATCHED` writes,
+  `enterAgeMs`), and its `location` **is the judged fix**, so the fix's speed and accuracy — the whole
+  calibration question — arrive through `base` for free.
+
+**Rollup semantics, stated because they are easy to misread.** Each event fires on the FIRST stroke
+credited to a new fix, so its `stepCount` is the running total including that opening stroke (1, then
+13). A fix's actual burst is the DELTA to the next event. Accepted loss: the last credited fix's
+burst is unrecoverable, which costs nothing any threshold reads. Uncredited steps stay local — the
+fraction they bound is recomputable remotely from `LOCATION_FIX`.
+
+**Why it matters beyond forensics.** It **unblocks**
+`DET-PEDAL-CADENCE-CANNOT-CONVICT-A-CAR-IN-TRAFFIC-001`, whose whole design depends on measuring the
+fraction of moving fixes carrying concurrent steps, in a car and on a bicycle. That numerator did not
+exist in any lane.
+
+Spec: `docs/backlog/det-cadence-steps-are-invisible-to-telemetry-001.md`.
