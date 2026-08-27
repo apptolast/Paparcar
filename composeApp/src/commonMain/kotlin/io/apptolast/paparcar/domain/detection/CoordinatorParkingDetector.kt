@@ -1,45 +1,9 @@
 package io.apptolast.paparcar.domain.detection
 
-import io.apptolast.paparcar.domain.detection.ArmEvidence
-import io.apptolast.paparcar.domain.detection.assertionBlocksRelocation
-import io.apptolast.paparcar.domain.detection.HoldAction
-import io.apptolast.paparcar.domain.detection.DepartureConfirmationListener
-import io.apptolast.paparcar.domain.detection.DetectionDiagnosticsTap
-import io.apptolast.paparcar.domain.detection.DetectionEffectDispatcher
-import io.apptolast.paparcar.domain.detection.DetectionEffectExecutor
-import io.apptolast.paparcar.domain.detection.StagePass
-import io.apptolast.paparcar.domain.detection.EffectOutcome
-import io.apptolast.paparcar.domain.detection.DetectionPhase
-import io.apptolast.paparcar.domain.detection.DetectionPhaseSink
-import io.apptolast.paparcar.domain.detection.SessionEpilogue
-import io.apptolast.paparcar.domain.detection.VehicleFenceOwnershipPolicy
-import io.apptolast.paparcar.domain.detection.isHumanPoweredRide
-import io.apptolast.paparcar.domain.detection.physics.outrunsPedestrianReach
-import io.apptolast.paparcar.domain.detection.physics.isCredibleMovingFix
 import io.apptolast.paparcar.domain.detection.physics.DriveProofBounds
-import io.apptolast.paparcar.domain.detection.physics.isCorroboratedVehicleHop
-import io.apptolast.paparcar.domain.detection.physics.sustainedDepartureFromAnchor
-import io.apptolast.paparcar.domain.detection.physics.honestZoneRadius
-import io.apptolast.paparcar.domain.detection.physics.creditSpeedBand
-import io.apptolast.paparcar.domain.detection.physics.sustainedDriveWitnessed
-import io.apptolast.paparcar.domain.detection.physics.walkableInsideGapMeters
-import io.apptolast.paparcar.domain.detection.physics.SavedParkingShape
 import io.apptolast.paparcar.domain.detection.physics.SessionOutcome
-import io.apptolast.paparcar.domain.detection.state.AnchorCapture
-import io.apptolast.paparcar.domain.detection.state.AnchorTrust
-import io.apptolast.paparcar.domain.detection.state.ConfirmationLifecycle
 import io.apptolast.paparcar.domain.detection.state.ConfirmationPhase
-import io.apptolast.paparcar.domain.detection.state.anchorRestMs
-import io.apptolast.paparcar.domain.detection.state.egressExceedsWalkReach
-import io.apptolast.paparcar.domain.detection.state.escapesAnchorEnvelope
-import io.apptolast.paparcar.domain.detection.state.hasEgressDisplacement
-import io.apptolast.paparcar.domain.detection.state.hasKinematicEgressSignal
-import io.apptolast.paparcar.domain.detection.state.isAnchorLocked
 import io.apptolast.paparcar.domain.detection.state.isAnchorPinned
-import io.apptolast.paparcar.domain.detection.state.isAnchorWalkEntered
-import io.apptolast.paparcar.domain.detection.state.isEgressBornAtAnchor
-import io.apptolast.paparcar.domain.detection.state.movementOutrunsSteps
-import io.apptolast.paparcar.domain.detection.state.sustainedDepartureFrom
 import io.apptolast.paparcar.domain.detection.stages.ConfidenceScoringStage
 import io.apptolast.paparcar.domain.detection.stages.CandidateStage
 import io.apptolast.paparcar.domain.detection.stages.FalseEnterAbortStage
@@ -57,26 +21,18 @@ import io.apptolast.paparcar.domain.detection.stages.detectionStageOrder
 import io.apptolast.paparcar.domain.detection.stages.DetectionEffect
 import io.apptolast.paparcar.domain.detection.stages.StageVerdict
 import io.apptolast.paparcar.domain.detection.state.DetectionSessionState
-import io.apptolast.paparcar.domain.detection.state.EgressBirth
-import io.apptolast.paparcar.domain.detection.state.WalkIn
 import io.apptolast.paparcar.domain.detection.state.FixReduction
 import io.apptolast.paparcar.domain.detection.state.reduceFix
-import io.apptolast.paparcar.domain.detection.state.EgressEvidence
 import io.apptolast.paparcar.domain.detection.state.PendingConfirm
-import io.apptolast.paparcar.domain.detection.state.SessionTelemetry
 import io.apptolast.paparcar.domain.detection.state.StopTracking
 import io.apptolast.paparcar.domain.detection.state.updateStopTracking
-import io.apptolast.paparcar.domain.detection.physics.effectiveDriving
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
-import io.apptolast.paparcar.domain.error.PaparcarError
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingConfidence
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
-import io.apptolast.paparcar.domain.model.ParkingSignals
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.VehicleType
-import io.apptolast.paparcar.domain.model.displayName
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.sensor.StepDetectorSource
@@ -87,12 +43,6 @@ import io.apptolast.paparcar.domain.usecase.parking.EvaluateParkingDecisionUseCa
 import io.apptolast.paparcar.domain.usecase.parking.EvaluateUnattendedParkingSaveUseCase
 import io.apptolast.paparcar.domain.usecase.parking.FinalizeDeducedDepartureUseCase
 import io.apptolast.paparcar.domain.usecase.parking.RetractDeducedDepartureUseCase
-import io.apptolast.paparcar.domain.usecase.parking.ParkingDecision
-import io.apptolast.paparcar.domain.usecase.parking.ParkingDecisionInput
-import io.apptolast.paparcar.domain.usecase.parking.PromptReason
-import io.apptolast.paparcar.domain.usecase.parking.UnattendedParkingSave
-import io.apptolast.paparcar.domain.usecase.parking.UnattendedSaveInput
-import io.apptolast.paparcar.domain.usecase.parking.UnattendedSaveReason
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlin.concurrent.Volatile
 import kotlin.time.Clock
@@ -799,6 +749,11 @@ class CoordinatorParkingDetector(
         // [DET-CONFIRM-FRESHNESS-001] Deliberately NOT re-validated: there is no fix to re-validate
         // against — a starved stream is the walked-into-a-building egress, not a car driving off
         // (a moving car keeps producing fixes; asymmetric risk accepted and documented).
+        // [DET-STARVED-HOLD-HAS-NO-WITNESS-001] The guard is never false in production —
+        // `confirmHoldMs` defaults to 2 min — so it reads as dead code and is not: three test
+        // files set it to 0 to switch the watchdog OFF. A test seam, not a runtime option.
+        // ⚠️ And the branch it protects has no test at all: `HoldAction.STARVED` appears
+        // nowhere outside this file and `HoldLifecycle`.
         val holdWatchdogJob = if (config.confirmHoldMs > 0) {
             launch {
                 _detectionState
