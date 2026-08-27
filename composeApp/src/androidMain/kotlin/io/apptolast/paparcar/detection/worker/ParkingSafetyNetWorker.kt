@@ -6,6 +6,7 @@ import android.Manifest
 import android.app.ActivityManager
 import android.content.Context
 import android.content.pm.PackageManager
+import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.SystemClock
 import androidx.core.content.ContextCompat
@@ -108,10 +109,30 @@ class ParkingSafetyNetWorker(
     private val vehicleRepository: VehicleRepository by inject()
     private val bluetoothScanner: BluetoothScanner by inject()
 
+    /**
+     * [DET-SAFETY-NET-FGS-IS-TYPED-DATA-SYNC-001] The expedited path promotes this worker to a
+     * foreground service, and the TYPE is part of that promotion — not decoration.
+     *
+     * It used to use the two-argument constructor, which leaves the type to WorkManager's default;
+     * the permission the app declared to cover that default was `FOREGROUND_SERVICE_DATA_SYNC`. So
+     * the service that carries the safety net announced itself to the system as data
+     * synchronisation while it took a GPS fix ([getOneLocation]) to decide whether the car is still
+     * where we left it.
+     *
+     * Two reasons that is worth fixing rather than tolerating. `dataSync` carries a duration cap from
+     * Android 15 and `location` does not, so the wrong label leans on a type the system expires; and
+     * a refused promotion here loses the LAST net — the one that reconciles departures the OS never
+     * delivered — with nothing in the trace to say so.
+     *
+     * Below API 29 the type is ignored, so `minSdk 26` needs no guard. The manifest must ALSO allow
+     * it: the type passed here has to be declared on WorkManager's own `SystemForegroundService`,
+     * which ships without one — see the `tools:node="merge"` entry in `AndroidManifest.xml`.
+     */
     override suspend fun getForegroundInfo(): ForegroundInfo =
         ForegroundInfo(
             AppNotificationManager.DETECTION_NOTIFICATION_ID,
             foregroundNotificationProvider.buildDetectionNotification(),
+            ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION,
         )
 
     override suspend fun doWork(): Result {
