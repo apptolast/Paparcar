@@ -526,6 +526,25 @@ class CoordinatorParkingDetector(
         // flag it reports has to be read before the wipe, exactly as the local `var` it replaced was.
         var completedAtExit = false
 
+        /**
+         * [DET-EXIT-LINE-COUNTS-NOTHING-001] …and the fix count is the same story, which is why it
+         * sits beside `completedAtExit` and not in the state or in [SessionEpilogue].
+         *
+         * The exit line used to read `_detectionState.value.session.fixCount` directly, after
+         * `reset()` had already zeroed it, so it answered "how many fixes did this trip see?" with
+         * `0` for every session that ended normally — a number that reads like a symptom of the
+         * very thing being diagnosed. On the SUPERSEDED branch there is no `reset()`, so the same
+         * read returned a real number belonging to the SUCCESSOR: worse, because it is credible.
+         *
+         * The epilogue could not fix it either: it is a field of the DETECTOR, not of this
+         * invocation — the service reads it after `invoke` returns — so on the superseded branch,
+         * which writes no epilogue by design [DET-AUDIT-002 T8], it holds another session's.
+         *
+         * Null means this invocation never owned the ending, and the line says so instead of
+         * borrowing someone else's count.
+         */
+        var fixCountAtExit: Int? = null
+
         // [DET-JAM-WINDOW-001] Whether this session earned the extended no-movement budget by
         // measured recent creep — logged once, and folds under the distinct jam outcome label.
         var jamExtensionLogged = false
@@ -1070,6 +1089,7 @@ class CoordinatorParkingDetector(
                     // five `@Volatile` fields with the same deadline were one value all along.
                     val finished = _detectionState.value
                     completedAtExit = finished.session.completed
+                    fixCountAtExit = finished.session.fixCount
                     epilogue = SessionEpilogue.of(finished, currentSessionId)
                     // [DET-LOG-03] Close the diagnostics session before wiping state, then clear the id.
                     heldConfirmDroppedByUser?.let { dropped ->
@@ -1100,7 +1120,10 @@ class CoordinatorParkingDetector(
                 }
             }
         }
-        PaparcarLogger.d(DIAG, "■ coordinator.invoke() EXITED — locationCount=${_detectionState.value.session.fixCount} completed=$completedAtExit")
+        PaparcarLogger.d(
+            DIAG,
+            "■ coordinator.invoke() EXITED — locationCount=${fixCountAtExit ?: SUPERSEDED_COUNT} completed=$completedAtExit",
+        )
     }
 
     /** Signals that the `IN_VEHICLE → EXIT` transition was received. Thread-safe. */
@@ -1296,6 +1319,12 @@ class CoordinatorParkingDetector(
     private companion object {
         const val TAG = "CoordinatorParkingDetector"
         const val DIAG = "PARKDIAG/Coord"
+
+        /** [DET-EXIT-LINE-COUNTS-NOTHING-001] What the exit line says instead of a number when the
+         *  invocation did not own the ending. A superseded session measured fixes, but the counter
+         *  it would have to read belongs to its successor, and a credible wrong number costs more
+         *  than an honest absence. */
+        const val SUPERSEDED_COUNT = "n/a (superseded)"
 
         /** [DET-JAM-WINDOW-001] Fixes worse than this never enter the creep window — a multipath
          *  teleport (acc 100+) at home must not fabricate the recent-creep that buys the extended

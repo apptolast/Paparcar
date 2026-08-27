@@ -18,6 +18,9 @@ import io.apptolast.paparcar.fakes.FakeAppNotificationManager
 import io.apptolast.paparcar.fakes.FakeActivityRecognitionManager
 import io.apptolast.paparcar.domain.detection.ArmEvidence
 import io.apptolast.paparcar.domain.detection.HoldAction
+import io.github.aakira.napier.Antilog
+import io.github.aakira.napier.LogLevel
+import io.github.aakira.napier.Napier
 import io.apptolast.paparcar.fakes.FakeDepartureEventBus
 import io.apptolast.paparcar.fakes.FakeDetectionEventLogger
 import io.apptolast.paparcar.fakes.FakeAuthRepository
@@ -3628,9 +3631,70 @@ class CoordinatorParkingDetectorTest {
             )
         }
 
+    /**
+     * [DET-EXIT-LINE-COUNTS-NOTHING-001] The session's closing line must report the fixes the trip
+     * actually saw.
+     *
+     * It is logged AFTER the `finally`, and the `finally` calls `reset()`, so reading the counter
+     * off the state there answered `locationCount=0` for every session that ended normally — a zero
+     * that reads like a symptom of the very thing being diagnosed. The line is the one anyone looks
+     * at first after a field test, and an instrument that lies costs the scarce resource, which is
+     * the time of whoever is reading it.
+     *
+     * The only observable is the log line itself, so the witness is a recording `Antilog`: this is
+     * a diagnostics defect, and asserting on anything else would be asserting on something that was
+     * never broken.
+     *
+     * ⚠️ The session has to end of its OWN accord — `takeWhile { !completed }` ending the flow, the
+     * `finally` running, `invoke` returning. `cancelAndJoin` does NOT reach the line: it is logged
+     * after the `try/finally`, so a `CancellationException` propagates straight past it. Measured,
+     * not assumed — the first version of this test cancelled and failed on "the session must
+     * announce its own ending", which is a fact about the instrument and is written down in the
+     * ticket.
+     */
+    @Test
+    fun should_report_on_the_exit_line_the_fixes_this_trip_actually_saw() =
+        runTest(UnconfinedTestDispatcher()) {
+            val antilog = RecordingAntilog()
+            Napier.base(antilog)
+            try {
+                val env = setup()
+                val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+                val job = launch { env.coordinator.invoke(locations) }
+
+                locations.emit(stationaryFix(lat = 40.0, lon = -3.7))                              // 1
+                locations.emit(GpsPoint(40.002, -3.7, accuracy = 5f, timestamp = 0L, speed = 10f)) // 2
+                env.coordinator.onUserConfirmedParking()
+                locations.emit(stationaryFix(lat = 40.002, lon = -3.7))                            // 3 → completed
+                // The emission that trips the takeWhile. It is never counted — the guard runs
+                // before the collector — so the trip saw three, and three is what must be reported.
+                locations.emit(stationaryFix(lat = 40.002, lon = -3.7))
+                job.join()
+
+                val exit = antilog.lines.lastOrNull { it.contains("coordinator.invoke() EXITED") }
+                assertNotNull(exit, "the session must announce its own ending")
+                assertTrue(
+                    exit.contains("locationCount=3"),
+                    "three fixes were processed, the line must say so — was: $exit",
+                )
+            } finally {
+                Napier.takeLogarithm()
+            }
+        }
+
     // ─────────────────────────────────────────────────────────────────────────
     // Helpers
     // ─────────────────────────────────────────────────────────────────────────
+
+    /** [DET-EXIT-LINE-COUNTS-NOTHING-001] The closing line's only observer. `performLog` is
+     *  `protected` on `Antilog`, so the sink is the way in; the tests that own it remove it in a
+     *  `finally`, because `Napier.base` is global. */
+    private class RecordingAntilog : Antilog() {
+        val lines = mutableListOf<String>()
+        override fun performLog(priority: LogLevel, tag: String?, throwable: Throwable?, message: String?) {
+            message?.let { lines += it }
+        }
+    }
 
     private fun stationaryFix(lat: Double, lon: Double): GpsPoint =
         GpsPoint(latitude = lat, longitude = lon, accuracy = 5f, timestamp = 0L, speed = 0f)
