@@ -709,12 +709,52 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     ),
                 )
             },
+            // The car lane walks VEHICLES, not sessions: from the parked car's peek, › reaches the
+            // UNPARKED van — whose page is its add-parking modal, instead of a dead end back at
+            // the chip list. [UI-PEEK-STEPS-WALK-VEHICLES-NOT-SESSIONS-001]
+            Variant("PapSheet · aparcado + coche sin aparcar (› abre Aparcar)", Placement.Surface) {
+                val parked = FakeData.activeSession.copy(vehicleId = FakeData.vehicleSedan.id)
+                peek(
+                    HomeState(
+                        vehicles = listOf(FakeData.vehicleSedan, FakeData.vehicleVan),
+                        activeSessions = listOf(parked),
+                        userGpsPoint = sampleGps,
+                        nearbySpots = FakeData.nearbySpots,
+                        selection = HomeSelection.Parking(parked.id),
+                    ),
+                )
+            },
             Variant("PapSheet · add parking (Aparcar aquí)", Placement.Surface) {
                 peek(
                     HomeState(
                         mode = HomeMode.AddingParking,
                         cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
                         vehicles = listOf(FakeData.vehicleSedan),
+                        addingParkingVehicleId = FakeData.vehicleSedan.id,
+                    ),
+                )
+            },
+            // …and the add-parking peek is itself a page of the lane: ‹ goes back to the parked
+            // sedan's peek. Same ‹ › chrome as every other pin. [UI-PEEK-STEPS-WALK-VEHICLES-NOT-SESSIONS-001]
+            Variant("PapSheet · add parking con vecino aparcado (solo ‹)", Placement.Surface) {
+                peek(
+                    HomeState(
+                        mode = HomeMode.AddingParking,
+                        cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
+                        vehicles = listOf(FakeData.vehicleSedan, FakeData.vehicleVan),
+                        activeSessions = listOf(FakeData.activeSession.copy(vehicleId = FakeData.vehicleSedan.id)),
+                        addingParkingVehicleId = FakeData.vehicleVan.id,
+                    ),
+                )
+            },
+            // Nothing parked at all — the case the lane exists for: two bare vehicles still step
+            // between their add-parking modals. [UI-PEEK-STEPS-WALK-VEHICLES-NOT-SESSIONS-001]
+            Variant("PapSheet · add parking, nada aparcado (paso al otro coche)", Placement.Surface) {
+                peek(
+                    HomeState(
+                        mode = HomeMode.AddingParking,
+                        cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
+                        vehicles = listOf(FakeData.vehicleSedan, FakeData.vehicleVan),
                         addingParkingVehicleId = FakeData.vehicleSedan.id,
                     ),
                 )

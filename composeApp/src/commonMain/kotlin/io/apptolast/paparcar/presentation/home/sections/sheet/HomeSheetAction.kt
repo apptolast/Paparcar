@@ -15,13 +15,19 @@ internal sealed interface HomeSheetAction {
     data object ToggleSheet : HomeSheetAction
 
     /**
-     * Step the peek to another pin: open [spotId] / [sessionId] exactly as tapping ITS MARKER on
-     * the map does — select + fly the camera + settle the sheet. Both arms are wired to the very
-     * lambdas the map uses, so a stepper press and a marker tap can't drift apart.
-     * [UI-PEEK-STEPS-BETWEEN-PINS-001]
+     * Step the peek to another pin: open [spotId] exactly as tapping ITS MARKER on the map does —
+     * select + fly the camera + settle the sheet. Wired to the very lambda the map uses, so a
+     * stepper press and a marker tap can't drift apart. [UI-PEEK-STEPS-BETWEEN-PINS-001]
      */
     data class SelectSpot(val spotId: String) : HomeSheetAction
-    data class SelectParking(val sessionId: String) : HomeSheetAction
+
+    /**
+     * Step the car lane of the peek to [vehicleId] — EVERY registered vehicle is a stop, and each
+     * one resolves to ITS modal: with an active session it opens that session's peek exactly as
+     * tapping its marker; without one it opens the add-parking peek exactly as tapping the
+     * vehicle's "Aparcar" chip. [UI-PEEK-STEPS-WALK-VEHICLES-NOT-SESSIONS-001]
+     */
+    data class StepToVehicle(val vehicleId: String) : HomeSheetAction
 
     /**
      * "Me voy" on the parking peek — open the release dialog (publish / delete-only)

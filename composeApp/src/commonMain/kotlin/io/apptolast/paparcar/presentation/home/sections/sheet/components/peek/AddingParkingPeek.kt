@@ -20,8 +20,11 @@ import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.displayName
 import io.apptolast.paparcar.presentation.home.HomeIntent
+import io.apptolast.paparcar.presentation.home.PeekStep
+import io.apptolast.paparcar.presentation.home.sections.sheet.HomeSheetAction
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.PapSheet
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.PapSheetBanner
+import io.apptolast.paparcar.presentation.home.sections.sheet.components.PapSheetStepper
 import io.apptolast.paparcar.domain.model.monitoringStatus
 import io.apptolast.paparcar.ui.theme.VehicleWatch
 import io.apptolast.paparcar.ui.theme.vehicleIdentityColor
@@ -44,6 +47,8 @@ import paparcar.composeapp.generated.resources.home_add_parking_helper_secondary
 import paparcar.composeapp.generated.resources.home_parking_delete_confirm_body
 import paparcar.composeapp.generated.resources.home_parking_delete_confirm_title
 import paparcar.composeapp.generated.resources.home_parking_menu_correct
+import paparcar.composeapp.generated.resources.home_peek_step_next_car
+import paparcar.composeapp.generated.resources.home_peek_step_prev_car
 import paparcar.composeapp.generated.resources.home_parking_menu_delete
 import paparcar.composeapp.generated.resources.home_parking_menu_repark
 import paparcar.composeapp.generated.resources.home_release_dialog_cancel
@@ -58,6 +63,10 @@ import paparcar.composeapp.generated.resources.home_vehicle_fallback_name
  *   vehicle; edit: the moved session's vehicle) — the header shows its name so
  *   the user recognises the car when they hit confirm. [MULTI-PARKING-001]
  * @param deleteTarget the session the edit-mode "delete record" acts on.
+ * @param step neighbouring VEHICLES in the car lane — the header ‹ / ›, same chrome as
+ *   [ParkingPeek], so an unparked car is a page of the same book instead of a dead end. The
+ *   caller passes [PeekStep.None] in the flows where stepping away has a cost (edit, detection
+ *   nudge). [UI-PEEK-STEPS-WALK-VEHICLES-NOT-SESSIONS-001]
  */
 @Composable
 internal fun AddingParkingPeek(
@@ -67,7 +76,9 @@ internal fun AddingParkingPeek(
     deleteTarget: UserParking?,
     isSaving: Boolean,
     isCameraMoving: Boolean,
+    step: PeekStep,
     onIntent: (HomeIntent) -> Unit,
+    onAction: (HomeSheetAction) -> Unit,
 ) {
     val fallbackVehicleName = stringResource(Res.string.home_vehicle_fallback_name)
     val genericHeader = if (isEditing) {
@@ -111,6 +122,17 @@ internal fun AddingParkingPeek(
         eyebrowColor = vehicleIdentityColor(targetVehicle?.monitoringStatus()?.watch() ?: VehicleWatch.Off),
         title = title,
         onDismiss = { onIntent(HomeIntent.ExitAddParkingMode) },
+        // Same ‹ / › as ParkingPeek: the car lane walks vehicles, and this modal is just the
+        // unparked vehicle's page of it. Arrows go quiet while the save is in flight, like the
+        // CTA below. [UI-PEEK-STEPS-WALK-VEHICLES-NOT-SESSIONS-001]
+        stepper = PapSheetStepper(
+            prevContentDescription = stringResource(Res.string.home_peek_step_prev_car),
+            nextContentDescription = stringResource(Res.string.home_peek_step_next_car),
+            onPrev = step.prevId?.takeIf { !isSaving }
+                ?.let { id -> { onAction(HomeSheetAction.StepToVehicle(id)) } },
+            onNext = step.nextId?.takeIf { !isSaving }
+                ?.let { id -> { onAction(HomeSheetAction.StepToVehicle(id)) } },
+        ),
         banner = {
             PapSheetBanner(
                 title = helperPrimary,

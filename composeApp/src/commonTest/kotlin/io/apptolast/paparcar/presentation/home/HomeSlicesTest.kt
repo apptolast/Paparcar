@@ -525,28 +525,61 @@ class HomeSlicesTest {
         assertEquals(PeekStep.None, state.toPeekSlice().spotStep)
     }
 
-    @Test
-    fun should_step_between_parked_cars_in_the_order_the_car_fab_cycles() {
-        val first = session("s1", "veh-A")
-        val second = session("s2", "veh-B")
-        val state = HomeState(
-            activeSessions = listOf(first, second),
-            selection = HomeSelection.Parking("s1"),
-        )
+    // ── Car lane: the stepper walks VEHICLES, each resolving to ITS modal (session peek or
+    // add-parking peek). [UI-PEEK-STEPS-WALK-VEHICLES-NOT-SESSIONS-001] ──────────────────────
 
-        assertEquals(PeekStep(null, "s2"), state.toPeekSlice().sessionStep)
-        assertEquals(
-            PeekStep("s1", null),
-            state.copy(selection = HomeSelection.Parking("s2")).toPeekSlice().sessionStep,
+    @Test
+    fun should_step_between_parked_cars_in_the_order_the_vehicle_strip_lists_them() {
+        val state = HomeState(
+            vehicles = listOf(vehicle("veh-A"), vehicle("veh-B")),
+            // veh-B parked more recently → it leads the strip, and the ‹ / › agree.
+            activeSessions = listOf(session("s1", "veh-A", parkedAt = 1_000L), session("s2", "veh-B", parkedAt = 2_000L)),
         )
+        val slice = state.toPeekSlice()
+
+        assertEquals(listOf("veh-B", "veh-A"), slice.steppableVehicleIds)
+        assertEquals(PeekStep(null, "veh-A"), slice.vehicleStep("veh-B"))
+        assertEquals(PeekStep("veh-B", null), slice.vehicleStep("veh-A"))
     }
 
     @Test
-    fun should_offer_no_step_with_a_single_parked_car() {
+    fun should_offer_the_unparked_vehicle_as_the_parked_peeks_neighbour() {
         val state = HomeState(
-            activeSessions = listOf(session("s1", "veh-A")),
-            selection = HomeSelection.Parking("s1"),
+            vehicles = listOf(vehicle("veh-parked"), vehicle("veh-bare")),
+            activeSessions = listOf(session("s1", "veh-parked")),
         )
-        assertEquals(PeekStep.None, state.toPeekSlice().sessionStep)
+        val slice = state.toPeekSlice()
+
+        // Parked floats first in the strip; the bare car is one › away instead of a dead end.
+        assertEquals(listOf("veh-parked", "veh-bare"), slice.steppableVehicleIds)
+        assertEquals(PeekStep(null, "veh-bare"), slice.vehicleStep("veh-parked"))
+        assertEquals(PeekStep("veh-parked", null), slice.vehicleStep("veh-bare"))
+    }
+
+    @Test
+    fun should_step_between_vehicles_when_nothing_is_parked_at_all() {
+        val state = HomeState(vehicles = listOf(vehicle("veh-A"), vehicle("veh-B")))
+
+        assertEquals(PeekStep(null, "veh-B"), state.toPeekSlice().vehicleStep("veh-A"))
+    }
+
+    @Test
+    fun should_offer_no_step_with_a_single_vehicle() {
+        val state = HomeState(
+            vehicles = listOf(vehicle("veh-A")),
+            activeSessions = listOf(session("s1", "veh-A")),
+        )
+        assertEquals(PeekStep.None, state.toPeekSlice().vehicleStep("veh-A"))
+    }
+
+    /** Delete race: a session whose vehicle is gone is not a stop of the lane — its peek simply
+     *  offers no arrows, like the withdrawn spot that stays open. */
+    @Test
+    fun should_offer_no_step_from_a_session_whose_vehicle_was_deleted() {
+        val state = HomeState(
+            vehicles = listOf(vehicle("veh-A")),
+            activeSessions = listOf(session("s1", "veh-A"), session("orphan", "veh-gone")),
+        )
+        assertEquals(PeekStep.None, state.toPeekSlice().vehicleStep("veh-gone"))
     }
 }

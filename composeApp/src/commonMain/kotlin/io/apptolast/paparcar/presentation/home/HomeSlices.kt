@@ -101,6 +101,11 @@ data class HomePeekSlice(
      *  withdrawn spot the user may have open and the user's own parked session.
      *  [UI-PEEK-STEPS-BETWEEN-PINS-001] */
     val browsableSpotIds: List<String>,
+    /** Ids of the vehicles the peek's ‹ / › stepper walks — ALL registered vehicles, in the same
+     *  order as the "TUS VEHÍCULOS" strip ([vehiclesRowOrder]), not just the parked ones. Each
+     *  vehicle resolves to ITS modal: with a session → its ParkingPeek, without → its
+     *  AddingParkingPeek. [UI-PEEK-STEPS-WALK-VEHICLES-NOT-SESSIONS-001] */
+    val steppableVehicleIds: List<String>,
     val activeSessions: List<UserParking>,
     val selection: HomeSelection?,
     val vehicles: List<Vehicle>,
@@ -126,6 +131,10 @@ data class HomePeekSlice(
     val isSavingParking: Boolean,
     val editingParkingId: String?,
     val addingParkingVehicleId: String?,
+    /** [DET-NUDGE-PIN-PROVENANCE-001] True when the open AddingParking came from a detection
+     *  nudge — the peek then hides its stepper: stepping to another car and back would re-enter
+     *  the mode without the nudge flag and silently drop the pin's detection provenance. */
+    val addingParkingFromDetectionNudge: Boolean,
 ) {
     /** The preferred session — same recency-based resolution as [HomeState.userParking]. */
     val userParking: UserParking?
@@ -151,10 +160,11 @@ data class HomePeekSlice(
     val spotStep: PeekStep
         get() = PeekStep.of(browsableSpotIds, selectedSpot?.id)
 
-    /** Neighbours of the selected session among the parked cars — same order the car FAB cycles.
-     *  [MULTI-PARKING-001] [UI-PEEK-STEPS-BETWEEN-PINS-001] */
-    val sessionStep: PeekStep
-        get() = PeekStep.of(activeSessions.map { it.id }, selectedSession?.id)
+    /** Neighbours of [currentVehicleId] among ALL registered vehicles — what the car-lane ‹ / ›
+     *  offer. The ids are VEHICLE ids: the caller resolves each into its modal (session or
+     *  add-parking). [MULTI-PARKING-001] [UI-PEEK-STEPS-WALK-VEHICLES-NOT-SESSIONS-001] */
+    fun vehicleStep(currentVehicleId: String?): PeekStep =
+        PeekStep.of(steppableVehicleIds, currentVehicleId)
 }
 
 /**
@@ -259,12 +269,22 @@ internal fun HomeState.toPeekSlice(): HomePeekSlice {
     // The one list the peek quotes twice: its size is the Browse counter, its order is what the
     // ‹ / › stepper walks. Materialised once. [UI-PEEK-STEPS-BETWEEN-PINS-001]
     val browsable = filteredNearbySpots()
+    // The car lane of the stepper: every registered vehicle, in the strip's own order, so the
+    // ‹ / › and the "TUS VEHÍCULOS" row can never disagree about who comes next.
+    // [UI-PEEK-STEPS-WALK-VEHICLES-NOT-SESSIONS-001]
+    val steppableVehicles = vehiclesRowOrder(
+        cards = vehicles.map { v ->
+            VehicleCard(vehicle = v, session = activeSessions.firstOrNull { it.vehicleId == v.id })
+        },
+        drivingVehicleId = drivingMeta?.vehicleId,
+    )
     return HomePeekSlice(
         detectionUiState = detectionUiState,
         mode = mode,
         freeCount = browsable.size,
         nearbySpots = nearbySpots,
         browsableSpotIds = browsable.map { it.id },
+        steppableVehicleIds = steppableVehicles.map { it.vehicle.id },
         activeSessions = activeSessions,
         selection = selection,
         vehicles = vehicles,
@@ -285,6 +305,7 @@ internal fun HomeState.toPeekSlice(): HomePeekSlice {
         isSavingParking = isSavingParking,
         editingParkingId = editingParkingId,
         addingParkingVehicleId = addingParkingVehicleId,
+        addingParkingFromDetectionNudge = addingParkingFromDetectionNudge,
     )
 }
 

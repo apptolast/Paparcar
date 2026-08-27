@@ -893,7 +893,25 @@ private fun HomeSheetSection(
         when (action) {
             HomeSheetAction.ToggleSheet -> onToggle()
             is HomeSheetAction.SelectSpot -> onSelectSpot(action.spotId)
-            is HomeSheetAction.SelectParking -> onSelectParking(action.sessionId)
+            // The car lane steps over VEHICLES; each stop resolves to its modal here, in the one
+            // translation point. Parked → the very lambda a marker tap uses; unparked → the very
+            // intent the vehicle's "Aparcar" chip sends, plus a camera fly to the user's GPS so
+            // the new pin doesn't sprout on the previous car's spot (the GPS is also the mode's
+            // fallback coordinate). [UI-PEEK-STEPS-WALK-VEHICLES-NOT-SESSIONS-001]
+            is HomeSheetAction.StepToVehicle -> {
+                val session = state.activeSessions.firstOrNull { it.vehicleId == action.vehicleId }
+                if (session != null) {
+                    onSelectParking(session.id)
+                } else {
+                    onIntent(
+                        HomeIntent.EnterAddParkingMode(
+                            initialGps = state.userGpsPoint,
+                            targetVehicleId = action.vehicleId,
+                        ),
+                    )
+                    state.userGpsPoint?.let { uiController.moveCamera(it.latitude, it.longitude) }
+                }
+            }
             is HomeSheetAction.RequestRelease -> onRelease(action.sessionId)
             HomeSheetAction.RequestReportMode -> onIntent(
                 HomeIntent.EnterReportMode(

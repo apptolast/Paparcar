@@ -485,8 +485,8 @@
     <!-- UI-PEEK-STEPS-BETWEEN-PINS-001 -->
     <string name="home_peek_step_prev_spot">Vorige plek</string>
     <string name="home_peek_step_next_spot">Volgende plek</string>
-    <string name="home_peek_step_prev_car">Vorige geparkeerde auto</string>
-    <string name="home_peek_step_next_car">Volgende geparkeerde auto</string>
+    <string name="home_peek_step_prev_car">Vorige auto</string>
+    <string name="home_peek_step_next_car">Volgende auto</string>
 
     <!-- VEHICLE-CATEGORIZATION-001 -->
     <string name="home_peek_spot_fit_optimal">Optimaal voor je %1$s</string>

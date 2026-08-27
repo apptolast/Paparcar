@@ -571,8 +571,8 @@
     <!-- UI-PEEK-STEPS-BETWEEN-PINS-001 — peek footer stepper (content descriptions) -->
     <string name="home_peek_step_prev_spot">Previous spot</string>
     <string name="home_peek_step_next_spot">Next spot</string>
-    <string name="home_peek_step_prev_car">Previous parked car</string>
-    <string name="home_peek_step_next_car">Next parked car</string>
+    <string name="home_peek_step_prev_car">Previous car</string>
+    <string name="home_peek_step_next_car">Next car</string>
 
     <!-- VEHICLE-CATEGORIZATION-001 — Spot fit tri-state pill on home peek -->
     <string name="home_peek_spot_fit_optimal">Optimal for your %1$s</string>

@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.presentation.home.HomeIntent
 import io.apptolast.paparcar.presentation.home.HomeMode
 import io.apptolast.paparcar.presentation.home.HomePeekSlice
+import io.apptolast.paparcar.presentation.home.PeekStep
 import io.apptolast.paparcar.presentation.home.model.DetectionUiState
 import io.apptolast.paparcar.presentation.home.sections.sheet.HomeSheetAction
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.peek.AddingParkingPeek
@@ -55,7 +56,15 @@ internal fun HomePeekHandle(
     val selectedSession = slice.selectedSession
     val peekState: PeekState = when {
         slice.mode is HomeMode.AddingParking ->
-            PeekState.AddingParking(isEditing = slice.editingParkingId != null)
+            PeekState.AddingParking(
+                isEditing = slice.editingParkingId != null,
+                // Identity, not data [BUG-PEEK-JITTER-001]: without the vehicle id, two unparked
+                // cars collapse into EQUAL states and AnimatedContent would not page-turn between
+                // their add-parking peeks. [UI-PEEK-STEPS-WALK-VEHICLES-NOT-SESSIONS-001]
+                vehicleId = slice.editingParkingId
+                    ?.let { id -> slice.activeSessions.firstOrNull { it.id == id }?.vehicleId }
+                    ?: slice.addingParkingVehicleId,
+            )
         slice.mode is HomeMode.Reporting -> PeekState.Reporting
         slice.mode is HomeMode.AddingZone -> PeekState.AddingZone
         // [UI-PROVISIONAL-SPOT-IS-NOT-ITS-SESSION-001] These two are mutually exclusive BY
@@ -137,7 +146,7 @@ internal fun HomePeekHandle(
                             parking = parking,
                             vehicle = slice.vehicles.firstOrNull { it.id == parking.vehicleId },
                             userGps = slice.userGpsPoint,
-                            step = slice.sessionStep,
+                            step = slice.vehicleStep(parking.vehicleId),
                             onIntent = onIntent,
                             onAction = onAction,
                         )
@@ -165,15 +174,9 @@ internal fun HomePeekHandle(
                 )
                 is PeekState.AddingParking -> AddingParkingPeek(
                     title = slice.settlingCameraTitle(),
-                    // create: the tapped row's vehicle; edit: the moved session's vehicle. [MULTI-PARKING-001]
-                    targetVehicle = run {
-                        val vid = if (target.isEditing) {
-                            slice.activeSessions.firstOrNull { it.id == slice.editingParkingId }?.vehicleId
-                        } else {
-                            slice.addingParkingVehicleId
-                        }
-                        vid?.let { id -> slice.vehicles.firstOrNull { it.id == id } }
-                    },
+                    // create: the tapped row's vehicle; edit: the moved session's vehicle —
+                    // already resolved into the state's identity. [MULTI-PARKING-001]
+                    targetVehicle = target.vehicleId?.let { id -> slice.vehicles.firstOrNull { it.id == id } },
                     isEditing = target.isEditing,
                     // "Delete record" acts on the session BEING EDITED (falls back to the
                     // selected session for safety). [UI-SHEET-004]
@@ -182,7 +185,17 @@ internal fun HomePeekHandle(
                         ?: slice.selectedSession ?: slice.userParking,
                     isSaving = slice.isSavingParking,
                     isCameraMoving = slice.isCameraMoving,
+                    // No stepping out of the focused flows: EDIT corrects ONE session's pin, and a
+                    // detection NUDGE is a question about ONE car — stepping away and back would
+                    // re-enter without the nudge flag and drop the pin's detection provenance.
+                    // [DET-NUDGE-PIN-PROVENANCE-001] [UI-PEEK-STEPS-WALK-VEHICLES-NOT-SESSIONS-001]
+                    step = if (target.isEditing || slice.addingParkingFromDetectionNudge) {
+                        PeekStep.None
+                    } else {
+                        slice.vehicleStep(target.vehicleId)
+                    },
                     onIntent = onIntent,
+                    onAction = onAction,
                 )
                 PeekState.Browse -> {
                     val parking = slice.userParking
@@ -222,7 +235,9 @@ private sealed class PeekState {
     data class SelectedParking(val sessionId: String) : PeekState()
     data object Reporting : PeekState()
     data object AddingZone : PeekState()
-    data class AddingParking(val isEditing: Boolean) : PeekState()
+    /** [vehicleId] is the car being positioned — identity for the car-lane page-turn: two unparked
+     *  cars must not collapse into equal states. [UI-PEEK-STEPS-WALK-VEHICLES-NOT-SESSIONS-001] */
+    data class AddingParking(val isEditing: Boolean, val vehicleId: String?) : PeekState()
     data object Browse : PeekState()
 }
 
@@ -237,9 +252,24 @@ private sealed class PeekState {
 private fun HomePeekSlice.stepDirection(from: PeekState, to: PeekState): Int = when {
     from is PeekState.SelectedSpot && to is PeekState.SelectedSpot ->
         browsableSpotIds.direction(from.spotId, to.spotId)
-    from is PeekState.SelectedParking && to is PeekState.SelectedParking ->
-        activeSessions.map { it.id }.direction(from.sessionId, to.sessionId)
-    else -> 0
+    // The car lane walks VEHICLES, so a parked peek and an unparked add-parking peek are pages of
+    // the same book — all four parked↔unparked combos resolve through the one vehicle order.
+    // [UI-PEEK-STEPS-WALK-VEHICLES-NOT-SESSIONS-001]
+    else -> {
+        val fromVehicle = carLaneVehicleId(from)
+        val toVehicle = carLaneVehicleId(to)
+        if (fromVehicle != null && toVehicle != null) {
+            steppableVehicleIds.direction(fromVehicle, toVehicle)
+        } else 0
+    }
+}
+
+/** The car-lane stop this peek sits on, or null when it is not a stop — EDIT mode is a focused
+ *  flow entered from a pin, not a page of the lane, so leaving it keeps the vertical motion. */
+private fun HomePeekSlice.carLaneVehicleId(state: PeekState): String? = when (state) {
+    is PeekState.SelectedParking -> activeSessions.firstOrNull { it.id == state.sessionId }?.vehicleId
+    is PeekState.AddingParking -> state.vehicleId.takeIf { !state.isEditing }
+    else -> null
 }
 
 private fun List<String>.direction(fromId: String, toId: String): Int {

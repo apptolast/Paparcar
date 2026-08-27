@@ -52,9 +52,10 @@ internal fun ParkingPeek(
     parking: UserParking,
     vehicle: Vehicle?,
     userGps: GpsPoint?,
-    /** Neighbouring parked cars — the footer ‹ / ›. Empty with a single parked car, which is the
-     *  usual case, and then the peek ends at "Me voy" exactly as before.
-     *  [MULTI-PARKING-001] [UI-PEEK-STEPS-BETWEEN-PINS-001] */
+    /** Neighbouring VEHICLES (parked or not) — the header ‹ / ›. Carries vehicle ids: an unparked
+     *  neighbour opens its add-parking peek instead of a session. Empty with a single vehicle, and
+     *  then the peek ends at "Me voy" exactly as before.
+     *  [MULTI-PARKING-001] [UI-PEEK-STEPS-WALK-VEHICLES-NOT-SESSIONS-001] */
     step: PeekStep,
     onIntent: (HomeIntent) -> Unit,
     onAction: (HomeSheetAction) -> Unit,
@@ -94,14 +95,14 @@ internal fun ParkingPeek(
         eyebrowHighlightColor = accentColor,
         title = title,
         onDismiss = { onIntent(HomeIntent.SelectItem(null)) },
-        // With a second car parked, going from one to the other used to mean closing this peek and
-        // hunting for the other marker (or cycling the car FAB). Same chrome as the spot peek and
-        // the history detail. [UI-PEEK-STEPS-BETWEEN-PINS-001]
+        // With a second car, going from one to the other used to mean closing this peek and
+        // hunting for the other marker or chip. Same chrome as the spot peek and the history
+        // detail. [UI-PEEK-STEPS-BETWEEN-PINS-001] [UI-PEEK-STEPS-WALK-VEHICLES-NOT-SESSIONS-001]
         stepper = PapSheetStepper(
             prevContentDescription = stringResource(Res.string.home_peek_step_prev_car),
             nextContentDescription = stringResource(Res.string.home_peek_step_next_car),
-            onPrev = step.prevId?.let { id -> { onAction(HomeSheetAction.SelectParking(id)) } },
-            onNext = step.nextId?.let { id -> { onAction(HomeSheetAction.SelectParking(id)) } },
+            onPrev = step.prevId?.let { id -> { onAction(HomeSheetAction.StepToVehicle(id)) } },
+            onNext = step.nextId?.let { id -> { onAction(HomeSheetAction.StepToVehicle(id)) } },
         ),
         meta = {
             DistanceRow(distanceM = distM, mode = TravelMode.WALKING, accentColor = accentColor)
