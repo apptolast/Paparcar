@@ -46,6 +46,8 @@
     <string name="home_empty_title">Noch keine Plätze gemeldet</string>
     <string name="home_empty_subtitle">Sei der Erste, der einen meldet</string>
     <string name="home_address_unknown">Unbekannter Standort</string>
+    <string name="location_fallback_spot">Platz auf der Karte</string>
+    <string name="location_fallback_parking">Standort auf der Karte</string>
     <string name="home_release_dialog_title">Stellplatz freigeben?</string>
     <string name="home_release_dialog_message">Teile deinen Stellplatz mit Fahrern in der Nähe oder lösche ihn, ohne zu teilen.</string>
     <!-- Consequence line: leaving means detection re-arms for the next parking. [VEH-ACTIVE-FENCE-001] -->

@@ -171,6 +171,18 @@ internal object FakeData {
         endedAtMs = now - 86_400_000L - 7_200_000L,
         routeDistanceMeters = 6_800f,
     )
+    // Ungeocoded close — offline when it ended, so neither address nor POI ever resolved:
+    // exercises the human fallback title, never raw coordinates. [UI-LOCATION-FALLBACK-SPEAKS-HUMAN-001]
+    private val endedUngeocoded = UserParking(
+        id = "s_ungeo",
+        location = gps(agoMs = 86_400_000L + 43_200_000L, lat = 40.411, lon = -3.698),
+        spotId = null, geofenceId = "geo_008", isActive = false,
+        address = null,
+        placeInfo = null,
+        detectionReliability = 0.75f,
+        detectionPath = "kinematic+egress",
+        endedAtMs = now - 86_400_000L - 43_200_000L,
+    )
     private val endedOld = UserParking(
         id = "s_old",
         location = gps(agoMs = 3 * 86_400_000L),
@@ -183,8 +195,8 @@ internal object FakeData {
     )
 
     val allSessions =
-        listOf(activeSession, endedToday1, endedToday2, endedYesterday1, endedYesterday2, endedOld)
-    val endedSessions = listOf(endedToday1, endedToday2, endedYesterday1, endedYesterday2, endedOld)
+        listOf(activeSession, endedToday1, endedToday2, endedYesterday1, endedYesterday2, endedUngeocoded, endedOld)
+    val endedSessions = listOf(endedToday1, endedToday2, endedYesterday1, endedYesterday2, endedUngeocoded, endedOld)
     val onlyEndedSessions = endedSessions
 
     // ── Weekly chart ──────────────────────────────────────────────────────────
@@ -251,6 +263,18 @@ internal object FakeData {
             confidence = 0.45f,
             enRouteCount = 0,
             sizeCategory = VehicleSize.LARGE_SEDAN,
+        ),
+        // Ungeocoded spot — published offline, so neither address nor POI resolved: exercises the
+        // human fallback title, never raw coordinates. [UI-LOCATION-FALLBACK-SPEAKS-HUMAN-001]
+        Spot(
+            id = "sp_6_ungeocoded",
+            location = gps(agoMs = 6 * 60_000L, lat = 40.4155, lon = -3.7025),
+            reportedBy = "user_6",
+            address = null,
+            placeInfo = null,
+            confidence = 0.7f,
+            enRouteCount = 0,
+            sizeCategory = VehicleSize.MEDIUM_SUV,
         ),
         // Eyewitness manual report — exercises the person-badge puck (freshness colour + TTL ring
         // + person glyph, no colour of its own). [UI-COLOR-DOCTRINE-001 F5]

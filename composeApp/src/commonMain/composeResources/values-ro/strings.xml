@@ -46,6 +46,8 @@
     <string name="home_empty_title">Niciun loc anunțat încă</string>
     <string name="home_empty_subtitle">Fii primul care raportează unul</string>
     <string name="home_address_unknown">Locație necunoscută</string>
+    <string name="location_fallback_spot">Loc pe hartă</string>
+    <string name="location_fallback_parking">Locație pe hartă</string>
     <string name="home_release_dialog_title">Eliberezi locul?</string>
     <string name="home_release_dialog_message">Distribuie locul către șoferii din apropiere sau șterge-l fără să-l distribui.</string>
     <!-- Consequence line: leaving means detection re-arms for the next parking. [VEH-ACTIVE-FENCE-001] -->

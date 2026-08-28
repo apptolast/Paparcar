@@ -45,6 +45,7 @@ import paparcar.composeapp.generated.resources.home_peek_spot_en_route
 import paparcar.composeapp.generated.resources.home_peek_step_next_spot
 import paparcar.composeapp.generated.resources.home_peek_step_prev_spot
 import paparcar.composeapp.generated.resources.home_spot_gone
+import paparcar.composeapp.generated.resources.location_fallback_spot
 import paparcar.composeapp.generated.resources.home_spot_retracted_action
 import paparcar.composeapp.generated.resources.home_spot_retracted_eyebrow
 import paparcar.composeapp.generated.resources.home_spot_retracted_note
@@ -85,8 +86,7 @@ internal fun SpotPeek(
     val title = peekTitle(
         placeName = spot.placeInfo?.name,
         addressLine = spot.address?.displayLine,
-        lat = spot.location.latitude,
-        lon = spot.location.longitude,
+        fallback = stringResource(Res.string.location_fallback_spot),
     )
     // Live clock: re-reads on every whole-minute boundary so the TTL and age labels count down
     // on screen instead of freezing at the value captured on first composition. [SPOT-TTL-LIVE-001]

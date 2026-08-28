@@ -43,6 +43,7 @@ import paparcar.composeapp.generated.resources.home_peek_parking_duration_now
 import paparcar.composeapp.generated.resources.home_peek_step_next_car
 import paparcar.composeapp.generated.resources.home_peek_step_prev_car
 import paparcar.composeapp.generated.resources.home_peek_vehicle_parked_label
+import paparcar.composeapp.generated.resources.location_fallback_parking
 
 // ═════════════════════════════════════════════════════════════════════════════
 // ParkingPeek — the user's selected active session. [HOME-ATOMIZE-001 F3]
@@ -67,8 +68,7 @@ internal fun ParkingPeek(
     val title = peekTitle(
         placeName = parking.placeInfo?.name,
         addressLine = parking.address?.displayLine,
-        lat = parking.location.latitude,
-        lon = parking.location.longitude,
+        fallback = stringResource(Res.string.location_fallback_parking),
     )
     // The peek's accent is the vehicle's identity colour — its watch method (green = active
     // detection, blue = BT, grey = unwatched). "Parked" is state and stays neutral text.

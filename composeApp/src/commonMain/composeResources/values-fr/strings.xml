@@ -46,6 +46,8 @@
     <string name="home_empty_title">Aucune place signalée pour le moment</string>
     <string name="home_empty_subtitle">Soyez le premier à en signaler une</string>
     <string name="home_address_unknown">Emplacement inconnu</string>
+    <string name="location_fallback_spot">Place sur la carte</string>
+    <string name="location_fallback_parking">Emplacement sur la carte</string>
     <string name="home_release_dialog_title">Libérer la place ?</string>
     <string name="home_release_dialog_message">Partagez votre place avec les conducteurs à proximité, ou supprimez-la sans la partager.</string>
     <!-- Consequence line: leaving means detection re-arms for the next parking. [VEH-ACTIVE-FENCE-001] -->

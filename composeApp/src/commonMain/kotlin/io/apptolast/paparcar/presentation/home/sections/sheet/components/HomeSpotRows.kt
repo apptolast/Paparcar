@@ -72,6 +72,7 @@ import paparcar.composeapp.generated.resources.home_spot_reliability_high
 import paparcar.composeapp.generated.resources.home_spot_reliability_low
 import paparcar.composeapp.generated.resources.home_spot_reliability_medium
 import paparcar.composeapp.generated.resources.home_spot_unconfirmed_badge
+import paparcar.composeapp.generated.resources.location_fallback_spot
 import io.apptolast.paparcar.ui.theme.PapAlpha
 
 /**
@@ -140,9 +141,7 @@ private fun SpotRowContent(
     val displayText = locationDisplayText(
         placeInfo = spot.placeInfo,
         address = spot.address,
-        lat = spot.location.latitude,
-        lon = spot.location.longitude,
-    )
+    ) ?: stringResource(Res.string.location_fallback_spot)
 
     Row(
         modifier = modifier.fillMaxWidth(),

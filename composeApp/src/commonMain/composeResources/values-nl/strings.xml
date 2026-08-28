@@ -46,6 +46,8 @@
     <string name="home_empty_title">Nog geen plekken gemeld</string>
     <string name="home_empty_subtitle">Wees de eerste die er een meldt</string>
     <string name="home_address_unknown">Onbekende locatie</string>
+    <string name="location_fallback_spot">Plek op de kaart</string>
+    <string name="location_fallback_parking">Locatie op de kaart</string>
     <string name="home_release_dialog_title">Parkeerplaats vrijgeven?</string>
     <string name="home_release_dialog_message">Deel je plek met bestuurders in de buurt, of verwijder hem zonder te delen.</string>
     <!-- Consequence line: leaving means detection re-arms for the next parking. [VEH-ACTIVE-FENCE-001] -->

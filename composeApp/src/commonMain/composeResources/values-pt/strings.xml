@@ -46,6 +46,8 @@
     <string name="home_empty_title">Ainda não há lugares reportados</string>
     <string name="home_empty_subtitle">Seja o primeiro a reportar um</string>
     <string name="home_address_unknown">Localização desconhecida</string>
+    <string name="location_fallback_spot">Lugar no mapa</string>
+    <string name="location_fallback_parking">Localização no mapa</string>
     <string name="home_release_dialog_title">Libertar lugar?</string>
     <string name="home_release_dialog_message">Partilha o teu lugar com os condutores próximos, ou apaga-o sem partilhar.</string>
     <!-- Consequence line: leaving means detection re-arms for the next parking. [VEH-ACTIVE-FENCE-001] -->

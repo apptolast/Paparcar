@@ -214,17 +214,17 @@ internal fun SpotReliabilityUiState.peekPalette(): SpotPeekPalette {
 /**
  * Peek-friendly title resolver. Returns place name OR address line, **never**
  * concatenated — the peek/state cards have tight horizontal space and a long
- * "name · address" line truncates ugly mid-word.
+ * "name · address" line truncates ugly mid-word. When neither exists the caller's
+ * [fallback] speaks instead: the label names what the pin IS (a spot, your
+ * parking), never its coordinates. [UI-LOCATION-FALLBACK-SPEAKS-HUMAN-001]
  */
-@Composable
 internal fun peekTitle(
     placeName: String?,
     addressLine: String?,
-    lat: Double,
-    lon: Double,
+    fallback: String,
 ): String = placeName?.takeIf { it.isNotBlank() }
     ?: addressLine?.takeIf { it.isNotBlank() }
-    ?: io.apptolast.paparcar.presentation.util.formatCoords(lat, lon)
+    ?: fallback
 
 /**
  * Camera-anchored title resolver for the pin-mode peek cards. Returns the POI

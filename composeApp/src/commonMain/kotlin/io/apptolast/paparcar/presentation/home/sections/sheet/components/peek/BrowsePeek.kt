@@ -48,6 +48,7 @@ import paparcar.composeapp.generated.resources.home_peek_vehicle_parked_label
 import paparcar.composeapp.generated.resources.home_peek_vehicle_status
 import paparcar.composeapp.generated.resources.home_vehicle_chip_status_candidate
 import paparcar.composeapp.generated.resources.home_vehicle_fallback_name
+import paparcar.composeapp.generated.resources.location_fallback_parking
 
 // ═════════════════════════════════════════════════════════════════════════════
 // BrowsePeek — the default browse header (parked car / live trip / zone).
@@ -152,8 +153,7 @@ internal fun BrowsePeek(
         val title = peekTitle(
             placeName = parking.placeInfo?.name,
             addressLine = parking.address?.displayLine,
-            lat = parking.location.latitude,
-            lon = parking.location.longitude,
+            fallback = stringResource(Res.string.location_fallback_parking),
         )
         val distM = userGpsPoint?.let {
             distanceMeters(it.latitude, it.longitude, parking.location.latitude, parking.location.longitude)

@@ -82,6 +82,9 @@
     <string name="home_browse_parked_ago">Parked %1$s ago</string>
     <string name="home_browse_hint_swipe_report">Swipe ↑ to report a free spot</string>
     <string name="home_address_unknown">Unknown location</string>
+    <!-- Location title fallback when geocoding/POI failed (e.g. offline): names what the pin IS — a community spot vs your parking — never raw coordinates. [UI-LOCATION-FALLBACK-SPEAKS-HUMAN-001] -->
+    <string name="location_fallback_spot">Spot on the map</string>
+    <string name="location_fallback_parking">Location on the map</string>
     <string name="home_release_dialog_title">Releasing the spot — share it?</string>
     <string name="home_release_dialog_message">When you notify, other drivers get an alert and can arrive sooner.</string>
     <!-- Consequence line: leaving means detection re-arms for the next parking. [VEH-ACTIVE-FENCE-001] -->

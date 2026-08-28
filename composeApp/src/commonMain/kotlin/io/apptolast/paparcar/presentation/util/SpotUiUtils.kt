@@ -3,7 +3,6 @@ package io.apptolast.paparcar.presentation.util
 import io.apptolast.paparcar.domain.model.AddressInfo
 import io.apptolast.paparcar.domain.model.PlaceInfo
 import io.apptolast.paparcar.domain.util.haversineMeters
-import kotlin.math.abs
 import kotlin.math.roundToInt
 
 /** UI-facing `Float` wrapper over the domain [haversineMeters] great-circle distance. */
@@ -33,38 +32,21 @@ fun formatDistance(meters: Float, unit: DistanceUnit = DistanceUnit.METRIC): Str
 
 /**
  * Returns the best human-readable label for a location, combining POI name and
- * address when both are available. Falls back to coordinate string. The POI
- * category is shown via a dedicated icon at the render site, never an emoji.
+ * address when both are available, or `null` when neither exists — the call
+ * site supplies its own context-appropriate fallback (a spot vs your parking).
+ * Raw coordinates are never a label: the adjacent map already says WHERE, the
+ * text's only job is to name it. [UI-LOCATION-FALLBACK-SPEAKS-HUMAN-001]
+ * The POI category is shown via a dedicated icon at the render site, never an emoji.
  */
 fun locationDisplayText(
     placeInfo: PlaceInfo?,
     address: AddressInfo?,
-    lat: Double,
-    lon: Double,
-): String {
+): String? {
     val place = placeInfo?.name
     val addr = address?.displayLine
     return when {
         place != null && addr != null -> "$place  ·  $addr"
         place != null -> place
-        addr != null -> addr
-        else -> formatCoords(lat, lon)
+        else -> addr
     }
-}
-
-/** "40.4167°, -3.7037°" — KMP-safe, no String.format */
-fun formatCoords(lat: Double, lon: Double, decimals: Int = 4): String =
-    "${formatCoord(lat, decimals)}°, ${formatCoord(lon, decimals)}°"
-
-private fun formatCoord(value: Double, decimals: Int): String {
-    val sign = if (value < 0) "-" else ""
-    val absVal = abs(value)
-    val intPart = absVal.toLong()
-    val multiplier = when (decimals) {
-        4 -> 10_000L
-        6 -> 1_000_000L
-        else -> 10_000L
-    }
-    val frac = ((absVal - intPart) * multiplier + 0.5).toLong().coerceIn(0, multiplier - 1)
-    return "$sign$intPart.${frac.toString().padStart(decimals, '0')}"
 }

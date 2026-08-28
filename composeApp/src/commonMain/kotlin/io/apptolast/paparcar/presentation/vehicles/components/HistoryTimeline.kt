@@ -46,6 +46,7 @@ import kotlinx.datetime.TimeZone
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.history_view_map
+import paparcar.composeapp.generated.resources.location_fallback_parking
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Instant
 import io.apptolast.paparcar.ui.theme.PapAlpha
@@ -157,9 +158,7 @@ private fun SessionCardContent(
     val primaryText = locationDisplayText(
         placeInfo = session.placeInfo,
         address = session.address,
-        lat = session.location.latitude,
-        lon = session.location.longitude,
-    )
+    ) ?: stringResource(Res.string.location_fallback_parking)
     val secondaryText = if (isActive) activeRelativeTime
         else session.address?.city?.let { "$it · $timeStr" } ?: timeStr
 

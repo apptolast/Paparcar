@@ -94,6 +94,7 @@ import paparcar.composeapp.generated.resources.parking_detail_detection_auto
 import paparcar.composeapp.generated.resources.parking_detail_detection_bluetooth
 import paparcar.composeapp.generated.resources.parking_detail_detection_home
 import paparcar.composeapp.generated.resources.parking_detail_detection_manual
+import paparcar.composeapp.generated.resources.location_fallback_parking
 import paparcar.composeapp.generated.resources.parking_detail_navigate_action
 import paparcar.composeapp.generated.resources.parking_detail_next
 import paparcar.composeapp.generated.resources.parking_detail_no_address
@@ -420,9 +421,7 @@ private fun HistoryParkingCard(
         locationDisplayText(
             placeInfo = session.placeInfo,
             address = session.address,
-            lat = session.location.latitude,
-            lon = session.location.longitude,
-        )
+        ) ?: stringResource(Res.string.location_fallback_parking)
     } else {
         stringResource(Res.string.parking_detail_no_address)
     }
