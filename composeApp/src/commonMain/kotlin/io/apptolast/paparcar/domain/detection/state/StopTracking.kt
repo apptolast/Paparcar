@@ -95,7 +95,29 @@ fun DetectionSessionState.updateStopTracking(
                         "[DET-STOP-MUST-BE-STILL-IN-SPACE-001]"
             }
             val startedAt = s.anchorTrust.stopStartedAt ?: now
-            val withinInitialWindow = (now - startedAt) < config.initialStopWindowMs
+            // [DET-REFUTED-STILLNESS-CANNOT-MATURE-AN-ANCHOR-001] A refutation revokes the stop's
+            // EVIDENCE, not its clock. The stop keeps `stoppedSince` — scoring and prompts may
+            // still read the full duration, because asking is the cheap side of the asymmetric
+            // doctrine — but everything that PROVES rest restarts at the refuting fix: the
+            // maturity credit, the capture window, and the anchor captured from fixes the track
+            // has now contradicted. Field 2026-08-28 (Redmi): a stop refuted 4× while the car
+            // drove home on network fixes matured by TIME at 00:59:42, froze the anchor 3.5 km
+            // from the park, and the cascade ended with the pin inside the house.
+            val evidenceSince = if (stillnessRefuted) {
+                location.timestamp
+            } else {
+                s.anchorTrust.stopEvidenceSince ?: startedAt
+            }
+            val anchorFromRefutedFixes = stillnessRefuted && !s.isAnchorPinned(config) &&
+                s.anchorTrust.capturedAtStop == startedAt
+            if (anchorFromRefutedFixes) {
+                notes +=
+                    "  ⚓✗ anchor DISOWNED with its refuted stop — captured from fixes the track " +
+                        "proved were motion, not rest; the capture contest restarts at this fix " +
+                        "[DET-REFUTED-STILLNESS-CANNOT-MATURE-AN-ANCHOR-001]"
+            }
+            val anchorTrust = if (anchorFromRefutedFixes) s.anchorTrust.disownedByRefutation() else s.anchorTrust
+            val withinInitialWindow = (now - evidenceSince) < config.initialStopWindowMs
             // [DET-GAP-ANCHOR-001] A stop OPENING on the far side of a GPS hole: the previous
             // processed fix was still at REAL driving speed and this one arrived more than
             // anchorGapMaxFixGapMs later — the car's deceleration to rest happened entirely
@@ -131,7 +153,7 @@ fun DetectionSessionState.updateStopTracking(
             // new stop is the pedestrian standing still, never the car. Same-stop refinement
             // (better fixes arriving right after the door slam) stays allowed.
             // [ANCHOR-LOCK-001][DET-ANCHOR-FREEZE-001]
-            val pinnedToOtherStop = s.isAnchorPinned(config) && s.anchorTrust.capturedAtStop != startedAt
+            val pinnedToOtherStop = s.isAnchorPinned(config) && anchorTrust.capturedAtStop != startedAt
             // [DET-ANCHOR-FREEZE-001] While no step has been counted, every fix of the SAME
             // continuous stop is still the parked car — accuracy refinement stays open for
             // the whole stop, not just the initial window. The 30-s cutoff kept a 260-m
@@ -139,7 +161,7 @@ fun DetectionSessionState.updateStopTracking(
             // second 71 of the same stop (field 2026-07-11, Avenida Sanlúcar). The first
             // counted step ends the privilege: from there the better fix may be the walking
             // user, and the lock machinery takes over.
-            val sameStopPreEgress = s.anchorTrust.capturedAtStop == startedAt && s.egress.stepCount == 0
+            val sameStopPreEgress = anchorTrust.capturedAtStop == startedAt && s.egress.stepCount == 0
             // [DET-STOP-MUST-BE-STILL-IN-SPACE-001] …and a fix the stop's own track refutes may
             // not become the anchor either. This is the load-bearing half: the anchor is read
             // from the raw fix here, NOT from `stoppedFixes`, so filtering that list alone would
@@ -149,9 +171,9 @@ fun DetectionSessionState.updateStopTracking(
             val mayCapture = !pinnedToOtherStop && !stillnessRefuted &&
                 (withinInitialWindow || sameStopPreEgress)
             val newBestStop = when {
-                !mayCapture -> s.anchorTrust.anchor
-                s.anchorTrust.anchor == null || location.accuracy < s.anchorTrust.anchor.accuracy -> location
-                else -> s.anchorTrust.anchor
+                !mayCapture -> anchorTrust.anchor
+                anchorTrust.anchor == null || location.accuracy < anchorTrust.anchor.accuracy -> location
+                else -> anchorTrust.anchor
             }
             // [DET-STOP-MUST-BE-STILL-IN-SPACE-001] The refuted fix becomes the sole spatial
             // ORIGIN the next fixes are measured against, and the quorum starts over from it.
@@ -177,26 +199,30 @@ fun DetectionSessionState.updateStopTracking(
             // them, the real park after none). Once frozen, only re-measured real driving
             // moves the anchor; a traffic light that matures unfreezes harmlessly when
             // driving resumes.
-            val anchorStopOfRecord = if (newBestStop !== s.anchorTrust.anchor) startedAt else s.anchorTrust.capturedAtStop
+            val anchorStopOfRecord = if (newBestStop !== anchorTrust.anchor) startedAt else anchorTrust.capturedAtStop
             // [DET-SHORT-TRIP-FREEZE-001] Rest is proven by TIME (≥ anchorFreezeStopMs) OR by
             // EVIDENCE (≥ anchorFreezeStableFixes stopped fixes) — a short trip's destination
             // stop rarely lasts 60 s before the user walks off, but N dense stopped fixes prove
             // the car came to rest here. The other guards (drive-entered, this-stop) are unchanged.
-            val restProvenByTime = (now - startedAt) >= config.anchorFreezeStopMs
+            // [DET-REFUTED-STILLNESS-CANNOT-MATURE-AN-ANCHOR-001] Proof of rest by TIME measures
+            // the UNREFUTED run, never the stop's full clock: a stop refuted mid-life spent part
+            // of that clock provably moving, and motion is not credit toward rest.
+            val restProvenByTime = (now - evidenceSince) >= config.anchorFreezeStopMs
             // The PRIOR count, not the one including this fix: the freeze fires on the fix whose
             // predecessors already reached the quorum. Counting this one too moves the freeze a
             // beat earlier and pins the Calle Gavia traffic stop (replay caught it).
             val restProvenByFixes = s.anchorTrust.stopWindowFixes.size >= config.anchorFreezeStableFixes
-            val matured = !s.anchorTrust.frozenByRest && s.session.driveAuthorized &&
+            val matured = !anchorTrust.frozenByRest && s.session.driveAuthorized &&
                 newBestStop != null && anchorStopOfRecord == startedAt &&
-                s.anchorTrust.walkIn.fixesSinceDriving <= config.anchorFreezeMaxWalkFixes &&
-                // [DET-STOP-MUST-BE-STILL-IN-SPACE-001] Not on the very beat the track refutes:
-                // this is what keeps the TIME path honest too, since a stop that opened 60 s ago
-                // and has been creeping ever since would otherwise mature on the clock alone.
+                anchorTrust.walkIn.fixesSinceDriving <= config.anchorFreezeMaxWalkFixes &&
+                // [DET-STOP-MUST-BE-STILL-IN-SPACE-001] Not on the very beat the track refutes —
+                // and the TIME credit itself restarts at every refutation (`evidenceSince`), so a
+                // stop that opened 60 s ago and has been creeping ever since cannot mature on the
+                // clock alone. [DET-REFUTED-STILLNESS-CANNOT-MATURE-AN-ANCHOR-001]
                 !stillnessRefuted &&
                 (restProvenByTime || restProvenByFixes)
             if (matured) {
-                val how = if (restProvenByTime) "time=${now - startedAt}ms" else "stableFixes=${s.anchorTrust.stopWindowFixes.size}"
+                val how = if (restProvenByTime) "time=${now - evidenceSince}ms" else "stableFixes=${s.anchorTrust.stopWindowFixes.size}"
                 notes +=
                     "  ⚓ anchor FROZEN — drive-entered stop matured ($how, " +
                         "walkFixes=${s.anchorTrust.walkIn.fixesSinceDriving}); only real driving " +
@@ -208,7 +234,7 @@ fun DetectionSessionState.updateStopTracking(
                 // stop and its FIVE witnesses are sealed at that same instant — one transition
                 // where the same condition used to be written out five times. The step counters
                 // are PRESENTED, never copied into the anchor [07 §2.4].
-                anchorTrust = s.anchorTrust.onStoppedFix(
+                anchorTrust = anchorTrust.onStoppedFix(
                     stopStartedAt = startedAt,
                     stopWindowFixes = stoppedFixesNow,
                     newAnchor = newBestStop,
@@ -216,11 +242,12 @@ fun DetectionSessionState.updateStopTracking(
                     frozen = matured,
                     stepEventsSinceDriving = s.egress.stepEventsSinceDriving,
                     sensorAlive = s.egress.sensorAlive,
+                    stopEvidenceSince = evidenceSince,
                 ).withEgressBirth(
                     fix = location,
                     anchorCleared = false,
                     stepCount = s.egress.stepCount,
-                    kinematicEgressFixes = s.anchorTrust.kinematicEgressFixes,
+                    kinematicEgressFixes = anchorTrust.kinematicEgressFixes,
                     // [DET-ANCHOR-EGRESS-001] STOPPED flavour: only a counted step opens a
                     // birth here. The asymmetry with the moving flavour is bug #6 — preserved
                     // and named, never fixed inside a move.

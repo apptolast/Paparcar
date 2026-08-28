@@ -81,11 +81,42 @@ dentro de la ventana la anula.
   653 m en 6 s) pero es exactamente lo que `corroboratesDrive` ya resuelve por geometría, sin tener
   que adivinar cuándo miente el chipset.
 
+## Evidencia nueva — field 28-08 (Redmi, FP dentro de casa)
+
+Segunda aparición del mismo espejismo, esta vez mordiendo el ANCLA además del latch. Sesión
+`1787871129368`, 01:11:04, usuario ya en el sofá:
+
+```
+01:11:04  ⊘ ignoring driving-speed fix with poor accuracy (speed=11.4 acc=81.835 > 50.0)
+01:11:04  ⇢ SUSTAINED DEPARTURE — position ran 4205 m from the anchor at 5.3 m/s avg
+          — credible drive by displacement [DET-CREDIBLE-DRIVE-001]
+```
+
+El MISMO fix, en el MISMO beat: rechazado como conducción por la puerta de accuracy y aceptado
+como conducción por desplazamiento. La distancia era real porque el ancla estaba mal (congelada
+mid-route — ver `det-refuted-stillness-cannot-mature-an-anchor-001`, la causa raíz de esa noche),
+pero lo que este ticket retrata es independiente de esa raíz: **un único sample resolvió CAR y
+limpió ancla congelada + stop + fase Notified + odómetro walk-in**, saltándose la doctrina de
+`DET-LONE-SAMPLE-CANNOT-UNFREEZE-AN-ANCHOR-001` porque el carril `sustainedDeparture` puntúa en
+`effectiveDriving` sin exigir racha (`pinnedAnchorRealDriveFixes` solo gobierna el carril Doppler).
+Dos huecos concretos que el diseño debe cubrir además del latch:
+
+- El gate de «moving» de `sustainedDepartureFromAnchor` (`fix.speed < movingBarMps → null`) confía
+  en el Doppler declarado de un fix cuya accuracy acaba de suspender la vara de conducción. El KDoc
+  dice «believes no single fix, not its speed field» — y el único testigo de movimiento aquí fue
+  exactamente ese campo.
+- Un ancla PINNED (descanso presenciado) no debería poder ser anulada por UN sample de ningún
+  carril: la racha que ya existe para `isRealDrive` debe cubrir también el veredicto por
+  desplazamiento.
+
 ## Criterio de éxito
 
 - Replay del stream real de la madrugada del 27-08 (216 fixes, disponible en el `parkdiag` del Oppo):
   la sesión **no** debe latchear un viaje, y por tanto no debe llegar a `aborted_unattended_no_drive`
   ni lanzar prompt a las 2 de la mañana.
+- Replay del Redmi 28-08 (sesión `1787871129368`), CON el fix de
+  `det-refuted-stillness-cannot-mature-an-anchor-001` desactivado para aislar este guard: el
+  espejismo de la 01:11:04 no debe limpiar un ancla congelada por sí solo.
 - Regresión: un viaje corto real (el caso `SHORT_HOP`, field 2026-08-14) sigue probándose.
 - Regresión: el guard hermano de la parada sigue disparando donde ya disparaba.
 

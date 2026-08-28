@@ -5624,3 +5624,74 @@ lower the periodic cadence, or gate the once lanes by cause. That decision close
 [DET-FENCE-REREGISTER-BY-CAUSE-001]'s open question; this entry only delivers its missing data.
 
 Spec: `docs/backlog/det-janitor-lane-tells-once-from-periodic-001.md`.
+### DET-REFUTED-STILLNESS-CANNOT-MATURE-AN-ANCHOR-001 — refuted stillness leaves no inheritance (pending)
+
+Field 2026-08-28 00:52–01:18, Redmi (Coordinator), the night drive home. The user: *"it dragged the
+parking to the house; it wasn't validating, I tapped 'Sí he aparcado' on the badge, and the pin
+landed inside the house"*. The Oppo, same physical trip, confirmed `kinematic+egress` silently at
+01:09 with 5,25 m of accuracy — ground truth, 41 m from where the Redmi's pin ended up.
+
+Driving home, GPS degraded to network fixes (64–266 m, declared speed 0) with the car still moving.
+`DET-STOP-MUST-BE-STILL-IN-SPACE-001` did its job — it refuted the mid-route stop **four times**
+("the car was still moving — not evidence of rest") — and the stop matured anyway:
+
+```
+00:59:42  ⚓ anchor FROZEN — drive-entered stop matured (time=104593ms, walkFixes=0)
+```
+
+**Why it was wrong.** The `!stillnessRefuted` guard on maturation only protects the BEAT that
+refutes; `restProvenByTime` measured `now - startedAt`, so the clock kept the full credit of
+stillness the track had already disproven — the code's own comment promised the opposite (*"a
+creeping stop keeps its clock; what it loses is the right to call itself proven"*). And the anchor
+kept the same inheritance: it had bound to the stop-OPENING fix (19,75 m — sharper than every later
+fix), so four refutations later it still pointed 3,5 km down the route. Everything downstream
+inherited the lie: every egress measured against the bogus anchor (`egress_not_at_anchor` in a loop
+— the FN half, "no validaba"), a mirage fix (11,4 m/s declared at 81,8 m accuracy, REJECTED by the
+driving-accuracy gate in the same beat) then "ran" 4 205 m from it and DET-CREDIBLE-DRIVE-001
+resolved CAR — wiping the real stop, the Notified phase and the walk-in odometer — and the anchor
+re-froze on the first indoor fix. The user's "Sí" at 01:18 pinned that anchor at reliability 1.0.
+
+**Fix — two clocks, one for asking, one for proving.** A refutation revokes the stop's EVIDENCE,
+never its clock. `AnchorTrust.stopEvidenceSince` marks where the current UNREFUTED stillness run
+began: `restProvenByTime` and the capture window measure from it, while `stoppedSince` (scoring,
+prompts, `stoppedDurationMs`) deliberately keeps the full duration — asking is the cheap side of the
+asymmetric doctrine, and restarting that clock is what the Enamorados replays exist to forbid
+(mid-stop re-capture). The refutation also DISOWNS an unpinned anchor captured at the refuted stop
+(`AnchorTrust.disownedByRefutation()`): the track proved the car was still moving through the fixes
+it came from, so the best-accuracy contest restarts among fixes not yet contradicted. A PINNED
+anchor is untouchable here by construction (the disown requires `!isAnchorPinned`), and the
+gap-entered taint survives (`stopEnteredAfterGapMs` carries across).
+
+**Guard today.** Replayed 1:1 (`Trace_Redmi2808RefutedStillness`, 216 fixes + 287 steps + the AR
+exit + the user's tap at its field second): with the guard neutralised the replay reproduces the
+field pin **byte for byte** (`path=user`, rel 1.0, exact, `36.6084105,-6.2780907` — inside the
+house); with it live, steps+egress saves a silent honest ZONE covering the car ~12 minutes before
+the field build got around to asking. Unit-pinned by the refuted-time-credit and disowned-anchor
+tests beside the DET-STOP-MUST-BE-STILL-IN-SPACE pair; Enamorados, Gavia, Góndola and Camelias
+replays unchanged.
+
+Spec: `docs/backlog/det-refuted-stillness-cannot-mature-an-anchor-001.md`.
+
+### DET-INFERRED-PIN-CARRIES-ITS-DOUBT-001 — an inferred pin may not claim more precision than its fix (pending)
+
+Found by the replay above, one layer down: with the mid-route anchor gone, the honest re-anchor
+landed on a 92,9 m network fix — and `steps+egress` saved it as an **exact** pin at reliability 0,9,
+the field FP's shape one street over. The zone machinery already knew how to draw doubt
+(`honestZoneRadius`, DET-USER-YES-IS-NOT-A-COORDINATE-001, the unattended saves) — the INFERRED
+confirm lanes had simply never adopted it.
+
+**Fix.** One pure formula, `inferredPinDoubtRadius` (physics, beside `honestZoneRadius`): at or
+under the honest-zone floor (60 m) the pin stays an exact point; past it, the save becomes an AREA
+of the fix's own accuracy, capped at the ceiling. Applied at the two funnels every inferred pin
+passes: `DetectionEffectExecutor.confirm` (fast confirm, candidate, hold settle — including
+`beginConfirm`'s hold-disabled shortcut — and the unattended exact save) and
+`ParkingBackfillWorker` (the most inferred pin there is — reconstructed with no live session; the
+27-08 backfill FP came from this worker). Exempt on purpose: user-ASSERTED pins (manual / nudge /
+in-app confirm call `ConfirmParkingUseCase` directly) — a hand-placed pin is ground truth,
+whatever the phone's fix claimed; and the BT lane, which never mixes with Coordinator machinery —
+if the field ever shows a fuzzy BT fix pinning exactly, that is its own ticket. The demotion prints
+itself (`◯ inferred pin demoted to a ZONE r=…`), because a pin that changed shape silently would be
+undiagnosable. ⚠️ `zoneRadiusMeters` is LOCAL-ONLY (it does not reach Firestore) — remote
+diagnostics see the demotion only through the parkdiag line.
+
+Spec: `docs/backlog/det-inferred-pin-carries-its-doubt-001.md`.

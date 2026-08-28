@@ -40,3 +40,31 @@ fun honestZoneRadius(
     ceilingMeters,
     maxOf(floorMeters, centerAccuracyMeters, doubtMeters.toFloat()),
 )
+
+/**
+ * [DET-INFERRED-PIN-CARRIES-ITS-DOUBT-001] **May an INFERRED pin claim to be exact at all?**
+ *
+ * An inferred confirm — one no human placed or ratified at a map — may not claim more precision
+ * than the fix it stands on. Under the floor the answer is null: the fix is sharp enough that a
+ * point says more than an area would. Past it, the claim must be an AREA of the fix's own accuracy
+ * (via [honestZoneRadius], zero extra doubt — the accuracy IS the doubt being drawn).
+ *
+ * Field 2026-08-28 (Redmi): steps+egress re-anchored on a 92.9 m network fix and saved it as an
+ * EXACT pin at reliability 0.9, one street over from the car — the same shape as the night's FP.
+ * Two callers, one formula: the detection executor's confirm funnel (fast confirm, candidate, hold
+ * settle, unattended exact) and the safety-net backfill, which reconstructs a pin with no live
+ * session at all. User-ASSERTED pins (manual / nudge / in-app confirm) never ask this question —
+ * a hand-placed pin is ground truth, whatever the phone's fix claimed.
+ */
+fun inferredPinDoubtRadius(
+    fixAccuracyMeters: Float,
+    floorMeters: Float,
+    ceilingMeters: Float,
+): Float? =
+    if (fixAccuracyMeters <= floorMeters) null
+    else honestZoneRadius(
+        centerAccuracyMeters = fixAccuracyMeters,
+        doubtMeters = 0.0,
+        floorMeters = floorMeters,
+        ceilingMeters = ceilingMeters,
+    )

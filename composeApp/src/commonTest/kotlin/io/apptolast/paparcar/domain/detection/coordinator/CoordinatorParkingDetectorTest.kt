@@ -1565,6 +1565,138 @@ class CoordinatorParkingDetectorTest {
         }
 
     @Test
+    fun should_not_spend_refuted_stillness_as_time_credit_toward_the_anchor_freeze() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-REFUTED-STILLNESS-CANNOT-MATURE-AN-ANCHOR-001] Field 2026-08-28 (Redmi, house
+            // FP): a stop opened mid-route on network fixes was refuted FOUR times — and still
+            // matured by TIME, because the maturity clock kept the credit of stillness the track
+            // had already disproven. Here: 60 s of refuted creep, then a real stop whose UNREFUTED
+            // run is only 5 s old when the walk starts. The freeze may not fire on the poisoned
+            // clock, so the stepless walk finds no frozen anchor and nothing confirms silently.
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            emitCorroboratedDrive(locations)
+            // Refuted creep: every fix claims 0 m/s while hopping ~55 m every 20 s (2.8 m/s of
+            // measured ground, far outside the 10+10 m envelopes). The stop's WALL clock passes
+            // anchorFreezeStopMs (60 s) inside this stretch.
+            val mouthLat = 40.001
+            nowMs = 45_000L
+            locations.emit(GpsPoint(mouthLat, -3.7, accuracy = 10f, timestamp = nowMs, speed = 0f))
+            repeat(3) {
+                nowMs += 20_000L
+                locations.emit(GpsPoint(mouthLat + 0.0005 * (it + 1), -3.7, accuracy = 10f, timestamp = nowMs, speed = 0f))
+            }
+            // The real spot — but its unrefuted stillness is only 5 s old when the walk begins.
+            val spotLat = mouthLat + 0.0015
+            nowMs += 5_000L
+            locations.emit(GpsPoint(spotLat, -3.7, accuracy = 8f, timestamp = nowMs, speed = 0f))
+            var lat = spotLat
+            repeat(config.kinematicEgressMinWalkFixes) {
+                lat += 0.0001
+                nowMs += 5_000L
+                locations.emit(GpsPoint(lat, -3.7, accuracy = 10f, timestamp = nowMs, speed = 1.3f))
+            }
+            job.cancelAndJoin()
+
+            assertEquals(
+                0, env.parkingRepo.saveNewParkingSessionCallCount,
+                "refuted stillness spent as time credit is how the mid-route anchor froze on " +
+                    "2026-08-28 — 5 s of unrefuted rest may not freeze, so nothing confirms silently",
+            )
+        }
+
+    @Test
+    fun should_disown_an_anchor_captured_from_fixes_the_stop_later_refuted() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-REFUTED-STILLNESS-CANNOT-MATURE-AN-ANCHOR-001] The capture half of the same
+            // invariant. Field 2026-08-28: the anchor stuck to the stop-OPENING fix (19.75 m — it
+            // beat every later fix on accuracy) through four refutations, 3.5 km from the park.
+            // A refutation proves the car was still MOVING through the fixes the anchor came from,
+            // so the anchor is disowned and the best-accuracy contest restarts among fixes the
+            // track has not contradicted. Here the mouth fix is the sharpest of the whole stream
+            // (4 m): without the disown it would own the pin forever.
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            emitCorroboratedDrive(locations)
+            val mouthLat = 40.001
+            nowMs = 45_000L
+            locations.emit(GpsPoint(mouthLat, -3.7, accuracy = 4f, timestamp = nowMs, speed = 0f))
+            // The refuting hop: ~55 m past the mouth in 20 s while claiming 0 m/s — the car was
+            // still rolling; the 4 m mouth anchor dies with the refuted stillness.
+            val spotLat = mouthLat + 0.0005
+            nowMs += 20_000L
+            locations.emit(GpsPoint(spotLat, -3.7, accuracy = 10f, timestamp = nowMs, speed = 0f))
+            // The car's true rest: enough stopped fixes to freeze by quorum, none sharper than 6 m.
+            repeat(config.anchorFreezeStableFixes + 1) {
+                nowMs += 5_000L
+                locations.emit(GpsPoint(spotLat, -3.7, accuracy = 6f, timestamp = nowMs, speed = 0f))
+            }
+            var lat = spotLat
+            repeat(config.kinematicEgressMinWalkFixes) {
+                lat += 0.0001
+                nowMs += 5_000L
+                locations.emit(GpsPoint(lat, -3.7, accuracy = 10f, timestamp = nowMs, speed = 1.3f))
+            }
+            job.cancelAndJoin()
+
+            assertEquals(1, env.parkingRepo.saveNewParkingSessionCallCount, "the real park must confirm")
+            val saved = env.parkingRepo.getActiveSession()
+            assertNotNull(saved)
+            assertEquals(
+                spotLat, saved.location.latitude, 0.00005,
+                "the pin belongs at the rest the track never refuted, not at the sharp fix the car " +
+                    "provably rolled through",
+            )
+        }
+
+    @Test
+    fun should_demote_an_inferred_confirm_to_a_zone_when_its_fix_cannot_carry_an_exact_claim() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-INFERRED-PIN-CARRIES-ITS-DOUBT-001] Field 2026-08-28, second half: with the
+            // mid-route anchor gone, steps+egress re-anchored on a 92.9 m network fix — and saved
+            // it as an EXACT pin at 0.9, the field FP's shape one street over. An inferred confirm
+            // may not claim more precision than the fix it stands on: past the honest-zone floor
+            // (60 m) the save is an AREA of the fix's own accuracy. The dozens of exact-pin
+            // assertions elsewhere in this suite are the control: sharp anchors stay exact points.
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            emitCorroboratedDrive(locations)
+            val carLat = 40.001
+            repeat(config.anchorFreezeStableFixes + 1) {
+                nowMs += 5_000L
+                locations.emit(GpsPoint(carLat, -3.7, accuracy = 90f, timestamp = nowMs, speed = 0f))
+            }
+            var lat = carLat
+            repeat(config.kinematicEgressMinWalkFixes) {
+                lat += 0.0001
+                nowMs += 5_000L
+                locations.emit(GpsPoint(lat, -3.7, accuracy = 10f, timestamp = nowMs, speed = 1.3f))
+            }
+            job.cancelAndJoin()
+
+            assertEquals(1, env.parkingRepo.saveNewParkingSessionCallCount, "the park itself is not in doubt")
+            val saved = env.parkingRepo.getActiveSession()
+            assertNotNull(saved)
+            assertTrue(
+                saved.isApproximate,
+                "a 90 m fix cannot carry an exact claim — the save must draw its doubt as an area",
+            )
+            assertEquals(
+                90f, saved.zoneRadiusMeters,
+                "the area is the fix's own accuracy: never less doubt than the evidence measured",
+            )
+        }
+
+    @Test
     fun should_save_approximate_zone_when_unattended_timeout_finds_an_unpinned_anchor() =
         runTest(UnconfinedTestDispatcher()) {
             // Measured driving happened, but no stop matured and no egress steps sealed anything:

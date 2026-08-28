@@ -9,7 +9,9 @@ import androidx.work.workDataOf
 import io.apptolast.paparcar.domain.detection.DetectionRuntimeState
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
+import io.apptolast.paparcar.domain.detection.physics.inferredPinDoubtRadius
 import io.apptolast.paparcar.domain.model.GpsPoint
+import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.displayName
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.repository.VehicleRepository
@@ -46,6 +48,7 @@ class ParkingBackfillWorker(
     private val detectionRuntime: DetectionRuntimeState by inject()
     private val evaluateBackfillDeferral: EvaluateBackfillDeferralUseCase by inject()
     private val detectionEventLogger: DetectionEventLogger by inject()
+    private val config: ParkingDetectionConfig by inject()
 
     override suspend fun doWork(): Result {
         // [DET-ARRIVAL-DOUBLE-PIN-001] Exactly one pipeline may PLACE the arrival. This chained
@@ -106,10 +109,26 @@ class ParkingBackfillWorker(
         val vehicleId = inputData.getString(KEY_VEHICLE_ID)
             ?: vehicleRepository.observeActiveVehicle().firstOrNull()?.id
 
+        // [DET-INFERRED-PIN-CARRIES-ITS-DOUBT-001] A backfill is the MOST inferred pin there is —
+        // reconstructed with no live session — so it draws the fix's own doubt like every other
+        // inferred confirm (same formula as the detection executor's funnel).
+        val doubtRadius = inferredPinDoubtRadius(
+            fixAccuracyMeters = backfillFix.accuracy,
+            floorMeters = config.honestCloseMinZoneRadiusMeters,
+            ceilingMeters = config.unattendedZoneMaxRadiusMeters,
+        )?.also { radius ->
+            PaparcarLogger.d(
+                DIAG,
+                "  ◯ backfill pin demoted to a ZONE r=${radius}m — fix accuracy " +
+                    "${backfillFix.accuracy}m cannot carry an exact claim " +
+                    "[DET-INFERRED-PIN-CARRIES-ITS-DOUBT-001]",
+            )
+        }
         val result = confirmParking(
             location = backfillFix,
             detectionReliability = reliability,
             vehicleId = vehicleId,
+            zoneRadiusMeters = doubtRadius,
             // [DET-PIN-PROVENANCE-001] Mark this pin as the safety-net's reconstructed backfill (no
             // live session followed the trip) — the exact class we had to reverse-engineer on 2026-07-20.
             detectionPath = PATH_SAFETY_NET_BACKFILL,

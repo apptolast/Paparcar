@@ -1,6 +1,7 @@
 package io.apptolast.paparcar.domain.detection
 
 import io.apptolast.paparcar.domain.detection.physics.SessionOutcome
+import io.apptolast.paparcar.domain.detection.physics.inferredPinDoubtRadius
 import io.apptolast.paparcar.domain.detection.physics.sustainedDriveWitnessed
 import io.apptolast.paparcar.domain.detection.state.DetectionSessionState
 import io.apptolast.paparcar.domain.detection.state.PendingConfirm
@@ -146,11 +147,34 @@ class DetectionEffectExecutor(
         pathLabel: String,
         zoneRadiusMeters: Float? = null,
     ): EffectOutcome {
+        // [DET-INFERRED-PIN-CARRIES-ITS-DOUBT-001] An INFERRED pin may not claim more precision
+        // than the fix it stands on: past the honest-zone floor, the claim is saved as an AREA of
+        // the fix's own accuracy. Field 2026-08-28 (Redmi): with the mid-route anchor gone,
+        // steps+egress re-anchored on a 92.9 m network fix and saved it as an EXACT pin at
+        // reliability 0.9 — the field FP's shape, one street over. Every inferred confirm funnels
+        // through here (fast confirm, candidate, hold settle — including `beginConfirm`'s
+        // hold-disabled shortcut — and the unattended exact save), so the floor lives here ONCE.
+        // Exempt on purpose: user-ASSERTED pins (manual / nudge / in-app confirm) call
+        // `ConfirmParkingUseCase` directly — a hand-placed pin is ground truth, whatever the
+        // phone's fix claimed — and the user-"Sí" stage arrives either as a zone of its own or
+        // with an accuracy already under the floor.
+        val honestRadius = zoneRadiusMeters ?: inferredPinDoubtRadius(
+            fixAccuracyMeters = location.accuracy,
+            floorMeters = config.honestCloseMinZoneRadiusMeters,
+            ceilingMeters = config.unattendedZoneMaxRadiusMeters,
+        )?.also { radius ->
+            PaparcarLogger.d(
+                DIAG,
+                "  ◯ inferred pin demoted to a ZONE r=${radius}m — fix accuracy " +
+                    "${location.accuracy}m cannot carry an exact claim " +
+                    "[DET-INFERRED-PIN-CARRIES-ITS-DOUBT-001]",
+            )
+        }
         var result = EffectOutcome(endsSession = true)
         withContext(NonCancellable) {
             PaparcarLogger.d(
                 DIAG,
-                "    → confirmParking(reliability=$reliability, path=$pathLabel, zoneRadius=$zoneRadiusMeters) START",
+                "    → confirmParking(reliability=$reliability, path=$pathLabel, zoneRadius=$honestRadius) START",
             )
             // [CONFIRM-NO-NOTIF-CLEANUP] Notification responsibility lives here: the auto-detection
             // path owns the unified state-B "Vehículo aparcado · Cancelar" card so the user has a
@@ -170,7 +194,7 @@ class DetectionEffectExecutor(
                 ),
                 // [DET-PIN-PROVENANCE-001] The confirmation path IS the provenance.
                 detectionPath = pathLabel,
-                zoneRadiusMeters = zoneRadiusMeters,
+                zoneRadiusMeters = honestRadius,
                 // [DET-STEP-BUDGET-ORIGIN-001] The step baseline seals where the BODY is at confirm
                 // — for an egress confirm that is the latest processed fix (already 100+ m from the
                 // pin), NOT the anchor. Sealing "at the pin" made the walk home read as a ride

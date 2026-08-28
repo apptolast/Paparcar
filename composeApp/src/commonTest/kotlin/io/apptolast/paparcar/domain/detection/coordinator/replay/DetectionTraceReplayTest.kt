@@ -8,6 +8,7 @@ import io.apptolast.paparcar.domain.detection.ArmEvidence
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
+import io.apptolast.paparcar.domain.util.haversineMeters
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.usecase.notification.NotifyParkingConfirmationUseCase
@@ -848,6 +849,95 @@ class DetectionTraceReplayTest {
             // stop was entered through the 100.5 s hole, so the save must carry that doubt as a
             // radius instead of asserting an exact point.
             assertTrue(saved.isApproximate, "a gap-born anchor may only be saved as an area")
+        }
+
+    @Test
+    fun redmi_2808_a_stop_refuted_four_times_must_not_park_the_car_inside_the_house() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-REFUTED-STILLNESS-CANNOT-MATURE-AN-ANCHOR-001 — the 2026-08-28 night FP, 1:1]
+            // Driving home on network fixes (64–266 m, declared 0 m/s), the mid-route stop was
+            // refuted FOUR times and still matured by TIME, freezing the anchor 3.5 km from the
+            // park. Everything downstream inherited the lie: no auto-confirm (egress measured
+            // against the bogus anchor), a mirage "sustained departure" from it, a re-freeze on
+            // the first indoor fix, and the user's "Sí" pinning the house at reliability 1.0.
+            //
+            // What the fix must buy on this exact stream: refuted stillness leaves no inheritance,
+            // so the save — whichever lane completes it — must either sit AT the car (Oppo ground
+            // truth, healthy GPS, 5.25 m) or admit its doubt as an AREA. The one shape that may
+            // never come back is the field one: an EXACT pin tens of metres away, indoors.
+            //
+            // Both guards were verified by NEUTRALIZATION against this fixture:
+            //  - refuted-stillness off (evidenceSince=startedAt, no disown) → the replay reproduces
+            //    the field pin BYTE FOR BYTE: path=user rel=1.0 exact at 36.6084105,-6.2780907;
+            //  - doubt floor off (zoneRadius passthrough) → steps+egress saves an EXACT pin at the
+            //    92.9 m network fix, 52 m from the car (the same FP one street over).
+            // With both live, steps+egress saves a silent honest ZONE (r≈93 m) covering the car,
+            // ~12 minutes before the field build got around to asking.
+            val replayer = DetectionTraceReplayer(TRACE_REDMI_2808_REFUTED_STILLNESS)
+            val env = buildEnv(clock = { replayer.nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 700)
+            val job = launch {
+                env.coordinator.invoke(
+                    locations,
+                    armEvidence = ArmEvidence.Unverified,
+                    armingGeofenceId = "5dd8008f",
+                    departureAnchor = GpsPoint(
+                        REDMI_2808_DEPARTURE_ANCHOR_LAT,
+                        REDMI_2808_DEPARTURE_ANCHOR_LON,
+                        accuracy = 8.1f,
+                        timestamp = TRACE_REDMI_2808_REFUTED_STILLNESS.first().tMs - 187_000L,
+                        speed = 0f,
+                    ),
+                    departureFenceRadiusMeters = 125f,
+                )
+            }
+            // The AR IN_VEHICLE ENTER that locked the vehicle at 00:52:11.
+            env.coordinator.onVehicleRide(REDMI_2808_BOARDING_TRUE_TIME_MS)
+
+            var userAnswered = false
+            replayer.replay(
+                emitFix = { fix ->
+                    // The badge tap, at the second the field log recorded it (01:18:12.3).
+                    if (!userAnswered && fix.timestamp >= REDMI_2808_USER_YES_AT_MS) {
+                        userAnswered = true
+                        env.coordinator.onUserConfirmedParking()
+                    }
+                    locations.emit(fix)
+                },
+                emitStep = { env.stepDetector.emitSteps(1) },
+                emitVehicleExit = { env.coordinator.onVehicleExit() },
+            )
+            job.cancelAndJoin()
+
+            assertEquals(1, env.parkingRepo.saveNewParkingSessionCallCount, "the park is real and must save")
+            val saved = assertNotNull(env.parkingRepo.getActiveSession())
+            val metersFromCar = haversineMeters(
+                saved.location.latitude, saved.location.longitude,
+                REDMI_2808_REAL_CAR_LAT, REDMI_2808_REAL_CAR_LON,
+            )
+            // The FP, formalized: an EXACT pin may only claim a spot the evidence puts the car at.
+            assertTrue(
+                saved.isApproximate || metersFromCar <= 30.0,
+                "an exact pin ${metersFromCar.toInt()} m from the car is the field FP (house pin " +
+                    "$REDMI_2808_HOUSE_PIN_LAT,$REDMI_2808_HOUSE_PIN_LON was 41 m out) — " +
+                    "was ${saved.location.latitude},${saved.location.longitude} " +
+                    "isApproximate=${saved.isApproximate}",
+            )
+            // And wherever the claim centers, it must be the arrival — never the mid-route anchor
+            // the refuted stop matured (3.5 km back), which is what the old TIME credit produced.
+            assertTrue(
+                metersFromCar <= 150.0,
+                "the save must center at the arrival, not down the route — " +
+                    "was ${saved.location.latitude},${saved.location.longitude}, " +
+                    "${metersFromCar.toInt()} m from the car",
+            )
+            val ended = env.detectionLogger.events
+                .filterIsInstance<DetectionEvent.SessionEnded>().single()
+            assertTrue(
+                ended.outcome.startsWith("confirmed_"),
+                "the session must end in a confirm (field: confirmed_user on the house pin) — " +
+                    "was '${ended.outcome}'",
+            )
         }
 
     // ── Env ───────────────────────────────────────────────────────────────────

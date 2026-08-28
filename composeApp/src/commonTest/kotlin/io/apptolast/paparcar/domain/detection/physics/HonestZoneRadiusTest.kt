@@ -79,4 +79,21 @@ class HonestZoneRadiusTest {
         assertEquals(200f, bigWalk)
         assertEquals(200f, bigAccuracy)
     }
+
+    // ── [DET-INFERRED-PIN-CARRIES-ITS-DOUBT-001] ──────────────────────────────
+
+    /** Under the floor a point says more than an area: the pin stays exact (null radius). */
+    @Test
+    fun should_keep_an_exact_claim_when_the_fix_is_at_or_under_the_floor() {
+        assertEquals(null, inferredPinDoubtRadius(fixAccuracyMeters = 5f, floor, ceiling))
+        assertEquals(null, inferredPinDoubtRadius(fixAccuracyMeters = floor, floor, ceiling))
+    }
+
+    /** Past the floor the claim becomes an AREA of the fix's own accuracy — the field 92.9 m
+     *  network fix (2026-08-28) draws exactly its own doubt, and the ceiling still caps it. */
+    @Test
+    fun should_draw_the_fixes_own_accuracy_when_it_cannot_carry_an_exact_claim() {
+        assertEquals(92.9f, inferredPinDoubtRadius(fixAccuracyMeters = 92.9f, floor, ceiling))
+        assertEquals(ceiling, inferredPinDoubtRadius(fixAccuracyMeters = ceiling + 500f, floor, ceiling))
+    }
 }

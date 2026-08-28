@@ -98,7 +98,6 @@ class DetectionEffectDispatcher(
         else -> error("no outcome for $serialized")
     }
 
-
     /**
      * Turn what a stage ASKED for into what actually happens: the executor performs it, and whatever
      * it reports back lands via [apply]. This is the dispatcher, not the I/O.

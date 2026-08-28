@@ -128,6 +128,14 @@ data class EgressBirth(
  *   crossing); only a resolved CAR movement resets it. [DET-KINEMATIC-EGRESS-001]
  * @property stopEnteredAfterGapMs Size of the hole the CURRENT stop opened through. Recomputed every
  *   time a stop opens; read at rebind, where it becomes [AnchorCapture.gapMs].
+ * @property stopEvidenceSince When the current stop's UNREFUTED stillness run began. Equal to
+ *   [stopStartedAt] while the stop's own track never contradicts it; advanced to the refuting fix
+ *   whenever [DET-STOP-MUST-BE-STILL-IN-SPACE-001] proves the car was still moving. The stop keeps
+ *   its clock — scoring and prompts still read [stopStartedAt] (asking is the cheap side of the
+ *   asymmetric-failure doctrine) — but PROOF restarts here: time-maturity and the capture window
+ *   measure from this instant, so refuted stillness leaves no inheritance (field 2026-08-28: a stop
+ *   refuted 4× matured by TIME mid-route and the pin landed inside the house).
+ *   [DET-REFUTED-STILLNESS-CANNOT-MATURE-AN-ANCHOR-001]
  * @property repositionStreak Consecutive fixes that look like a parking maneuver rather than a
  *   drive. [PARKING-001]
  * @property realDriveStreak Consecutive credible fixes at or above trip speed. A PINNED anchor is a
@@ -144,6 +152,7 @@ data class AnchorTrust(
     val stopStartedAt: Long? = null,
     val stopWindowFixes: List<GpsPoint> = emptyList(),
     val stopEnteredAfterGapMs: Long = 0L,
+    val stopEvidenceSince: Long? = null,
     val walkIn: WalkIn = WalkIn(),
     val kinematicEgressFixes: Int = 0,
     val egressBirth: EgressBirth? = null,
@@ -186,6 +195,7 @@ data class AnchorTrust(
         frozen: Boolean,
         stepEventsSinceDriving: Int,
         sensorAlive: Boolean,
+        stopEvidenceSince: Long = stopStartedAt,
     ): AnchorTrust = rebind(
         newAnchor = newAnchor,
         stopStartedAt = stopStartedAt,
@@ -196,6 +206,7 @@ data class AnchorTrust(
         stopStartedAt = stopStartedAt,
         stopWindowFixes = stopWindowFixes,
         stopEnteredAfterGapMs = stopGapMs,
+        stopEvidenceSince = stopEvidenceSince,
         frozenByRest = frozenByRest || frozen,
         // Reset the reposition counter on every stopped fix. [PARKING-001]
         repositionStreak = 0,
@@ -241,6 +252,28 @@ data class AnchorTrust(
         return haversineMeters(origin.latitude, origin.longitude, target.latitude, target.longitude)
     }
 
+    // ── The stop's own track refutes it ───────────────────────────────────────
+
+    /**
+     * [DET-REFUTED-STILLNESS-CANNOT-MATURE-AN-ANCHOR-001] The stop's track just proved the car was
+     * still MOVING through the fixes this anchor was captured from — so the anchor is not a rest,
+     * and it goes the same way a resolved car movement takes it (anchor, stop-of-record, sealed
+     * measurements, egress birth). The caller only invokes this for an UNPINNED anchor captured at
+     * the refuted stop itself: a pinned anchor is a rest this session PROVED (only re-measured real
+     * driving may move it), and an anchor from an earlier stop is not this stop's claim to revoke.
+     *
+     * Field 2026-08-28 (Redmi, house FP): the anchor stuck to the stop-opening fix 3.5 km back —
+     * its 19.75 m accuracy beat every later fix — through four refutations, then matured by TIME.
+     * Disowning at the refutation restarts the best-accuracy contest among fixes the track has not
+     * yet contradicted.
+     */
+    fun disownedByRefutation(): AnchorTrust = copy(
+        anchor = null,
+        capturedAtStop = null,
+        capture = capture.clearedWithAnchor(),
+        egressBirth = null,
+    )
+
     // ── The stop ends ─────────────────────────────────────────────────────────
 
     /**
@@ -270,6 +303,7 @@ data class AnchorTrust(
         stopStartedAt = null,
         stopWindowFixes = emptyList(),
         stopEnteredAfterGapMs = 0L,
+        stopEvidenceSince = null,
         walkIn = WalkIn(
             fixesSinceDriving = if (carMovement) 0 else walkIn.fixesSinceDriving + 1,
             runOriginFix = when {
