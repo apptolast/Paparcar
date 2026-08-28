@@ -44,7 +44,17 @@ class BootCompletedReceiver : BroadcastReceiver(), KoinComponent {
         // Reboot wipes every registered geofence. The periodic KEEP above can take up to 12 h to
         // fire — an active park would sit blind (departure undetectable) for that whole window.
         // Run the restore ONCE right now as well. Idempotent. [DET-SOLID-001]
-        GeofenceJanitorWorker.enqueueOnce(workManager)
+        // The trigger tells the two wipe causes apart in telemetry: BOOT_COMPLETED (real reboot,
+        // or the A15+ synthetic delivery on leaving the stopped state) vs MY_PACKAGE_REPLACED.
+        // [DET-JANITOR-LANE-TELLS-ONCE-FROM-PERIODIC-001]
+        GeofenceJanitorWorker.enqueueOnce(
+            workManager,
+            trigger = if (intent.action == Intent.ACTION_MY_PACKAGE_REPLACED) {
+                GeofenceJanitorWorker.TRIGGER_APP_UPDATE
+            } else {
+                GeofenceJanitorWorker.TRIGGER_BOOT
+            },
+        )
         // Parked-session safety net (fence cure + missed-departure recovery + sig-motion re-arm).
         // Reboot also killed the in-process sensor listener — the periodic re-arms it. [DET-SAFETY-NET-001]
         ParkingSafetyNetWorker.enqueueKeep(workManager)

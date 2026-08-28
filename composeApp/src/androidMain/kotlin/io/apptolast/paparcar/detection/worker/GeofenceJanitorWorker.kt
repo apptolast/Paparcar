@@ -9,6 +9,7 @@ import androidx.work.PeriodicWorkRequest
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import androidx.work.workDataOf
 import io.apptolast.paparcar.data.datasource.local.room.AppDatabase
 import io.apptolast.paparcar.detection.FenceRegistrationLedger
 import io.apptolast.paparcar.detection.geofenceFailureDetail
@@ -50,7 +51,11 @@ class GeofenceJanitorWorker(
     private val detectionEventLogger: DetectionEventLogger by inject()
 
     override suspend fun doWork(): Result {
-        PaparcarLogger.d(TAG, "▶ GeofenceJanitorWorker.doWork attempt=$runAttemptCount")
+        // [DET-JANITOR-LANE-TELLS-ONCE-FROM-PERIODIC-001] Which clock asked for this run. The
+        // periodic request carries no input data (installed periodics survive with KEEP and are
+        // never re-created), so ABSENCE honestly means "periodic" for old and new installs alike.
+        val source = registrationSource(inputData.getString(KEY_TRIGGER))
+        PaparcarLogger.d(TAG, "▶ GeofenceJanitorWorker.doWork attempt=$runAttemptCount source=$source")
 
         val activeSessions = runCatching { db.parkingSessionDao().getAllActive() }
             .getOrElse {
@@ -138,7 +143,7 @@ class GeofenceJanitorWorker(
                         timestampMs = System.currentTimeMillis(),
                         success = cause == null,
                         radiusMeters = config.geofenceRadiusFor(size, session.accuracy),
-                        source = REGISTRATION_SOURCE_JANITOR,
+                        source = source,
                         failure = cause?.toGeofenceRegistrationFailure(),
                     )
                 )
@@ -160,10 +165,26 @@ class GeofenceJanitorWorker(
     companion object {
         const val TAG = "GeofenceJanitorWorker"
 
-        /** [DET-FENCE-REREGISTER-BY-CAUSE-001 §D] Lane label for the registration event. */
+        /** [DET-FENCE-REREGISTER-BY-CAUSE-001 §D] Lane label for the registration event. Kept as
+         *  the PREFIX of every janitor source, so remote queries group the lane with a
+         *  starts-with. [DET-JANITOR-LANE-TELLS-ONCE-FROM-PERIODIC-001] */
         internal const val REGISTRATION_SOURCE_JANITOR = "janitor"
         private const val INTERVAL_HOURS = 12L
         private const val MAX_RETRIES = 3
+
+        /** [DET-JANITOR-LANE-TELLS-ONCE-FROM-PERIODIC-001] Which clock enqueued this run — rides
+         *  the one-time request's input data; the periodic request stays data-less on purpose. */
+        private const val KEY_TRIGGER = "trigger"
+        const val TRIGGER_BOOT = "boot"
+        const val TRIGGER_APP_UPDATE = "app-update"
+        const val TRIGGER_APP_START = "app-start"
+        const val TRIGGER_POST_SYNC = "post-sync"
+        internal const val TRIGGER_PERIODIC = "periodic"
+
+        /** The registration event's `source`: `janitor:<trigger>`, with absent input data reading
+         *  as the periodic (see [KEY_TRIGGER]). Pure so the label contract is unit-testable. */
+        internal fun registrationSource(trigger: String?): String =
+            "$REGISTRATION_SOURCE_JANITOR:${trigger ?: TRIGGER_PERIODIC}"
 
         fun buildPeriodicRequest(): PeriodicWorkRequest =
             PeriodicWorkRequestBuilder<GeofenceJanitorWorker>(INTERVAL_HOURS, TimeUnit.HOURS)
@@ -183,12 +204,18 @@ class GeofenceJanitorWorker(
          * right after a post-login `syncFromRemote` repopulates Room, so a reinstall/reboot gets its
          * geofence re-registered within seconds instead of waiting for the periodic's next run.
          * `REPLACE` keeps rapid duplicate enqueues idempotent; no constraints so it runs ASAP.
+         *
+         * [trigger] names the clock that asked (TRIGGER_*) — it becomes the registration event's
+         * `source` so remote telemetry can tell the once lanes from the 12 h periodic, which is
+         * the data DET-FENCE-REREGISTER-BY-CAUSE-001 §D still needs before any policy cut.
+         * [DET-JANITOR-LANE-TELLS-ONCE-FROM-PERIODIC-001]
          */
-        fun enqueueOnce(workManager: WorkManager) {
+        fun enqueueOnce(workManager: WorkManager, trigger: String) {
             workManager.enqueueUniqueWork(
                 "${TAG}_once",
                 ExistingWorkPolicy.REPLACE,
                 OneTimeWorkRequestBuilder<GeofenceJanitorWorker>()
+                    .setInputData(workDataOf(KEY_TRIGGER to trigger))
                     .addTag(TAG)
                     .build(),
             )

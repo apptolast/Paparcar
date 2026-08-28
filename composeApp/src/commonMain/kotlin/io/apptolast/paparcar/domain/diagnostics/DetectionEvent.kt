@@ -347,10 +347,12 @@ sealed interface DetectionEvent {
         val success: Boolean,
         val radiusMeters: Float? = null,
         override val location: GpsPoint? = null,
-        /** [DET-FENCE-REREGISTER-BY-CAUSE-001 §D] WHO asked for this registration ("cure",
-         *  "janitor") — the two lanes re-register the same fences for different reasons and with
-         *  different safeguards, and a remote trace that cannot tell them apart cannot say which
-         *  one is opening the INSIDE/OUTSIDE blind window. */
+        /** [DET-FENCE-REREGISTER-BY-CAUSE-001 §D] WHO asked for this registration ("cure", or
+         *  "janitor:&lt;trigger&gt;" — periodic/boot/app-update/app-start/post-sync) — the lanes
+         *  re-register the same fences for different reasons and with different safeguards, and a
+         *  remote trace that cannot tell them apart cannot say which one is opening the
+         *  INSIDE/OUTSIDE blind window. Janitor queries group by the "janitor" prefix.
+         *  [DET-JANITOR-LANE-TELLS-ONCE-FROM-PERIODIC-001] */
         val source: String? = null,
         /** [DET-FENCE-REREGISTER-BY-CAUSE-001 §D] Why it failed, when it did. Null on success. */
         val failure: GeofenceRegistrationFailure? = null,

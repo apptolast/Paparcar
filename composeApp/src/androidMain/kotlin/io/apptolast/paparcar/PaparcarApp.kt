@@ -90,7 +90,7 @@ class PaparcarApp : Application() {
         // every process start must assume the fences are gone and rebuild them from Room. Idempotent
         // (FLAG_UPDATE_CURRENT + no initial trigger); waiting up to 12 h for the KEEP periodic would
         // leave an active park blind to its departure for that whole window. [GEOF-RESTORE-001]
-        GeofenceJanitorWorker.enqueueOnce(workManager)
+        GeofenceJanitorWorker.enqueueOnce(workManager, trigger = GeofenceJanitorWorker.TRIGGER_APP_START)
 
         // Parked-session safety net: every 15 min while parked, feed the geofencing engine an
         // active fix, cure a poisoned fence state, recover missed departures, and keep the

@@ -5595,3 +5595,32 @@ was dead. `ConfirmParkingUseCase.setHasConfirmedFirstPark()` deliberately does N
 Pinned by `should_notBeSpent_when_underCapAndNeverParked`.
 
 Spec: `docs/backlog/det-spent-nudge-must-stop-waking-001.md`.
+
+### DET-JANITOR-LANE-TELLS-ONCE-FROM-PERIODIC-001 — every janitor registration names the clock that asked (pending)
+
+**Report.** The §D instrumentation of [DET-FENCE-REREGISTER-BY-CAUSE-001] measured the lanes for a
+week (2026-08-27 counts, all uids): **155 `janitor` registrations vs 99 `cure`** — the UNGATED lane
+fires more than the gated one, and each registration re-opens Play Services' INSIDE/OUTSIDE blind
+window. But `source = "janitor"` conflated four clocks: the 12 h periodic and the three
+`enqueueOnce` lanes (boot receiver, app start, post-sync restore). The policy cut §D was
+instrumented FOR — trim the periodic, or gate the once lanes — still could not be decided, because
+the label could not say which clock produces the noise.
+
+**Fix.** Provenance only, zero behaviour change. `enqueueOnce(workManager, trigger)` stamps the
+clock into the one-time request's input data; the periodic request stays data-less on purpose —
+installed KEEP periodics are never re-created, so ABSENCE honestly reads as "periodic" for old and
+new installs alike. `registrationSource(trigger)` (pure, unit-tested) composes the event label:
+`janitor:periodic` · `janitor:boot` · `janitor:app-update` (the boot receiver tells its two wipe
+causes apart via the intent action) · `janitor:app-start` · `janitor:post-sync`. The `janitor`
+prefix is the lane-grouping contract for remote queries — the existing composite index
+`events(type, source)` serves per-trigger counts directly.
+
+**Companion-fix risk.** None mechanical: what registers and when is untouched. The one contract to
+protect is the prefix — a label that stops starting with `janitor:` silently splits the telemetry
+the policy cut depends on; pinned by `should_keepJanitorAsPrefix_forEveryTrigger`.
+
+**Follow-up (deliberately not here).** With 1–2 weeks of per-trigger data, decide the actual cut:
+lower the periodic cadence, or gate the once lanes by cause. That decision closes
+[DET-FENCE-REREGISTER-BY-CAUSE-001]'s open question; this entry only delivers its missing data.
+
+Spec: `docs/backlog/det-janitor-lane-tells-once-from-periodic-001.md`.

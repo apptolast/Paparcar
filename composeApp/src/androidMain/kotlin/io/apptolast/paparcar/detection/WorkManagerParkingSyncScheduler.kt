@@ -60,6 +60,9 @@ class WorkManagerParkingSyncScheduler(
     }
 
     override fun enqueueGeofenceRestore() {
-        GeofenceJanitorWorker.enqueueOnce(WorkManager.getInstance(context))
+        GeofenceJanitorWorker.enqueueOnce(
+            WorkManager.getInstance(context),
+            trigger = GeofenceJanitorWorker.TRIGGER_POST_SYNC,
+        )
     }
 }
