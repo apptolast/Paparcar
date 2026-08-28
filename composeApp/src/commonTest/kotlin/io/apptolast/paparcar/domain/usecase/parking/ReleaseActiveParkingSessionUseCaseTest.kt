@@ -205,6 +205,30 @@ class ReleaseActiveParkingSessionUseCaseTest {
         assertEquals(1f, scheduler.lastConfidence)
     }
 
+    // ── [VEH-STATS-SAY-SOMETHING-USEFUL-001] Close provenance on the row ─────
+
+    @Test
+    fun `should_stamp_endedAt_and_publishedSpot_when_the_departure_publishes`() = runTest {
+        parkingRepo.saveNewParkingSession(session(id = "sess-close"))
+
+        useCase(40.0, -3.0, parkingRepo.getActiveSession(), reason = ParkingReleaseReason.DEPARTURE_PUBLISHED)
+
+        val closed = parkingRepo.getSessionById("sess-close")!!
+        assertNotNull(closed.endedAtMs, "the close must record when the departure happened")
+        assertTrue(closed.publishedSpot, "a published departure gave the community a spot")
+    }
+
+    @Test
+    fun `should_stamp_endedAt_without_claiming_a_spot_when_kept_private_or_deleted`() = runTest {
+        parkingRepo.saveNewParkingSession(session(id = "sess-priv"))
+
+        useCase(40.0, -3.0, parkingRepo.getActiveSession(), reason = ParkingReleaseReason.DEPARTURE_UNPUBLISHED)
+
+        val closed = parkingRepo.getSessionById("sess-priv")!!
+        assertNotNull(closed.endedAtMs)
+        assertFalse(closed.publishedSpot, "a kept-private departure must not count as a shared spot")
+    }
+
     // ── Session cleared after report ──────────────────────────────────────────
 
     @Test

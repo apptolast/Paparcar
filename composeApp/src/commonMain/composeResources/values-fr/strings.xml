@@ -467,7 +467,7 @@
     <!-- VehicleStatsRow inline cards -->
     <string name="vehicle_stats_sessions">sessions</string>
     <string name="vehicle_stats_last_session">dernier</string>
-    <string name="vehicle_stats_reliability">fiabilité</string>
+    <string name="vehicle_stats_spots_shared">places cédées</string>
     <!-- Auth screens -->
     <string name="auth_header_app_name">Paparcar</string>
     <string name="auth_header_tagline">Trouvez votre place, partagez l'espace</string>
@@ -618,10 +618,14 @@
     <string name="settings_detection_reliability_reduced">Votre téléphone peut limiter la détection</string>
     <string name="settings_detection_reliability_reduced_desc">Votre téléphone restreint les applis en arrière-plan — Paparcar pourrait manquer le moment où vous libérez votre place</string>
     <plurals name="history_activity_noun">
-        <item quantity="one">Stationnement</item>
-        <item quantity="other">Stationnements</item>
+        <item quantity="one">stationnement</item>
+        <item quantity="other">stationnements</item>
     </plurals>
     <string name="history_activity_low_hint">Peu d'activité sur cette période</string>
+    <!-- Facts footer under the activity chart. [VEH-STATS-SAY-SOMETHING-USEFUL-001] -->
+    <string name="history_fact_active_day">Jour le plus actif : %1$s</string>
+    <string name="history_fact_favorite_street">Rue habituelle : %1$s</string>
+    <string name="history_fact_auto_detected">Détectés automatiquement : %1$d sur %2$d</string>
     <string name="history_activity_title">Activité</string>
     <string name="history_section_label">Historique</string>
     <string name="home_vehicle_card_parked_at">Stationné à %1$s</string>

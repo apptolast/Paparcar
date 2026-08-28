@@ -159,10 +159,14 @@
     <!-- Activity chart — scope-aware title/subtitle and the low-data compact summary -->
     <string name="history_activity_title">Actividad</string>
     <plurals name="history_activity_noun">
-        <item quantity="one">Aparcamiento</item>
-        <item quantity="other">Aparcamientos</item>
+        <item quantity="one">aparcamiento</item>
+        <item quantity="other">aparcamientos</item>
     </plurals>
     <string name="history_activity_low_hint">Poca actividad en este periodo</string>
+    <!-- Facts footer under the activity chart. [VEH-STATS-SAY-SOMETHING-USEFUL-001] -->
+    <string name="history_fact_active_day">Día más activo: %1$s</string>
+    <string name="history_fact_favorite_street">Calle habitual: %1$s</string>
+    <string name="history_fact_auto_detected">Detectados automáticamente: %1$d de %2$d</string>
     <!-- Section header over the time-filter chips -->
     <string name="history_section_label">Historial</string>
     <string name="history_today">Hoy</string>
@@ -470,7 +474,7 @@
     <!-- VehicleStatsRow cards inline bajo la hero card -->
     <string name="vehicle_stats_sessions">sesiones</string>
     <string name="vehicle_stats_last_session">última</string>
-    <string name="vehicle_stats_reliability">fiabilidad</string>
+    <string name="vehicle_stats_spots_shared">plazas cedidas</string>
     <!-- SpotIndicators -->
     <string name="spot_indicator_en_route">%1$d en camino</string>
     <string name="spot_indicator_ttl_expired">Expirado</string>

@@ -169,10 +169,14 @@
     <!-- Activity chart — scope-aware title/subtitle and the low-data compact summary -->
     <string name="history_activity_title">Activity</string>
     <plurals name="history_activity_noun">
-        <item quantity="one">Parking</item>
-        <item quantity="other">Parkings</item>
+        <item quantity="one">parking</item>
+        <item quantity="other">parkings</item>
     </plurals>
     <string name="history_activity_low_hint">Not much activity in this period</string>
+    <!-- Facts footer under the activity chart. [VEH-STATS-SAY-SOMETHING-USEFUL-001] -->
+    <string name="history_fact_active_day">Most active day: %1$s</string>
+    <string name="history_fact_favorite_street">Usual street: %1$s</string>
+    <string name="history_fact_auto_detected">Detected automatically: %1$d of %2$d</string>
     <!-- Section header above the time-filter chips, so they read as scoping the history below -->
     <string name="history_section_label">History</string>
     <string name="history_today">Today</string>
@@ -494,7 +498,7 @@
     <!-- VehicleStatsRow inline cards under the hero card -->
     <string name="vehicle_stats_sessions">sessions</string>
     <string name="vehicle_stats_last_session">last</string>
-    <string name="vehicle_stats_reliability">reliability</string>
+    <string name="vehicle_stats_spots_shared">spots shared</string>
     <!-- SpotIndicators -->
     <string name="spot_indicator_en_route">%1$d en route</string>
     <string name="spot_indicator_ttl_expired">Expired</string>

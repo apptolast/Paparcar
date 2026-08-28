@@ -66,6 +66,16 @@ data class UserParkingEntity(
     // RouteInferenceResolution enum name ("CONFIRMED"/"REJECTED") — the user's verdict on the inferred
     // stretches; null while the question is pending. Synced. [ROUTE-GAP-HONEST-001]
     val routeInferredResolution: String? = null,
+    // Haversine length (meters) of routePolyline, stamped by the repository on every route write so
+    // stats never decode polylines. Null = no route (BT/legacy). Synced. [VEH-STATS-SAY-SOMETHING-USEFUL-001]
+    val routeDistanceMeters: Float? = null,
+    // Epoch-ms when the session ENDED (isActive flipped false). COALESCE-stamped: the first close
+    // wins over idempotent re-clears. Null while active / legacy closes. Synced.
+    // [VEH-STATS-SAY-SOMETHING-USEFUL-001]
+    val endedAtMs: Long? = null,
+    // True when closing this session published a community spot. MAX-stamped so a later promotion
+    // can confirm but never retract it. Synced. [VEH-STATS-SAY-SOMETHING-USEFUL-001]
+    val publishedSpot: Boolean = false,
     // Epoch-ms of the last LOCAL mutation of this row (save / clear-active / move / enrich). Drives
     // the inbound-sync Last-Write-Wins merge so a stale remote snapshot can't resurrect an ended
     // session or clobber an offline edit. Local is authoritative. [SYNC-RECONCILE-USERPARKING-001]

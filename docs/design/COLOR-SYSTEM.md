@@ -106,10 +106,13 @@ azul de mapa y no `papCarBlue`.
 
 El **historial también es superficie de coche**: el detalle de un aparcamiento (acento de sus filas
 meta mientras la sesión vive) y la timeline de Vehículos (puntos del raíl y relleno de la tarjeta
-viva) resuelven por el mismo `vehicleIdentityColor`. Se quedan en verde de marca lo que NO es el
-coche: el punto de la cabecera de día, el botón "ver en mapa" (es una acción) y la fila de stats de
-la hero card. Y el rótulo "APARCADO ACTUALMENTE" se queda NEUTRO — es estado, ver §3.1; sólo su
-punto pulsante lleva la identidad del coche. [UI-HISTORY-IDENTITY-AND-SOURCE-001]
+viva) resuelven por el mismo `vehicleIdentityColor`. **Todo lo demás de la página se queda en verde
+de marca en TODAS las fichas**: la card de Actividad entera (barras, contadores, cifra del título,
+tile pocos-datos), la fila de stats de la hero card, el punto de la cabecera de día, "ver en mapa",
+chips de filtro y CTAs. La identidad del coche vive SOLO en su anatomía de método (borde + badge +
+punto + pill) — decisión reafirmada en device el 28-08 tras probar la alternativa, ver §8. El
+rótulo "APARCADO ACTUALMENTE" sigue NEUTRO — es estado, ver §3.1; sólo su punto pulsante lleva la
+identidad. [UI-HISTORY-IDENTITY-AND-SOURCE-001][VEH-STATS-SAY-SOMETHING-USEFUL-001]
 
 | Token | Dark | Light |
 |---|---|---|
@@ -200,6 +203,17 @@ Test Konsist (`ColorGuardrailTest`, F6), igual que tipografía y dividers:
   `PapLiveMap` queda solo-mapa. Se conservan de v1/v2: resolver único, retiro de `tertiary`,
   MANUAL como procedencia (F5), rampa exclusiva de plazas, tokens AA, guardarraíles.
 - **2026-08-11** — `MANUAL` fuera de `SpotReliabilityUiState` (F5): frescura ≠ procedencia.
+- **2026-08-27/28 (episodio cerrado: la v3 se reafirma)** — el user pregunta en device si en la
+  ficha BT "chocan los azules con el verde" y si conviene uniformizar cada ficha con su color.
+  Se probaron DOS alternativas en el Redmi y se revocaron AMBAS con él delante:
+  1. Fila de stats de la hero card en neutro (27-08) → revocada ("las stats estaban bien").
+  2. Chart de Actividad vistiendo la identidad del coche — azul en BT, y neutro fuerte para el
+     coche sin vigilar porque sus barras en `onSurfaceVariant` se leían como zona deshabilitada
+     (28-08) → revocada entera; existió brevemente un resolver `vehicleDataAccent` y se retiró.
+  **Decisión vigente: la v3 tal cual estaba.** El tema es VERDE en toda la página y en todas las
+  fichas (chart, stats, filtros, CTAs); la identidad del coche vive solo en su anatomía de método
+  (borde + badge + punto + pill). Antes de reabrir esto: las dos variantes ya se vieron en
+  pantalla y perdieron contra la v3.
 
 ---
 

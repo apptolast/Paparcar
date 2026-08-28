@@ -43,6 +43,15 @@ data class ParkingHistoryDto(
     /** RouteInferenceResolution enum name ("CONFIRMED"/"REJECTED") — the user's verdict on the
      *  inferred stretches; null while the question is pending. [ROUTE-GAP-HONEST-001] */
     val routeInferredResolution: String? = null,
+    /** Haversine length (meters) of [routePolyline]. Null on legacy docs — the inbound mapper
+     *  recomputes it from the polyline (self-healing). [VEH-STATS-SAY-SOMETHING-USEFUL-001] */
+    val routeDistanceMeters: Float? = null,
+    /** Epoch-ms when the session ended (isActive → false). Null on legacy docs / active sessions.
+     *  [VEH-STATS-SAY-SOMETHING-USEFUL-001] */
+    val endedAtMs: Long? = null,
+    /** Whether closing this session published a community spot. Legacy docs read false.
+     *  [VEH-STATS-SAY-SOMETHING-USEFUL-001] */
+    val publishedSpot: Boolean = false,
     /** Epoch-ms of the local edit this document mirrors. Stamped on every write so the inbound-sync
      *  Last-Write-Wins merge can tell when the server has caught up with a pending local edit.
      *  Legacy docs read 0 → always lose to a real local timestamp. [SYNC-RECONCILE-USERPARKING-001] */

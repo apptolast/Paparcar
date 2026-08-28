@@ -40,6 +40,24 @@ class PolylineCodecTest {
         assertEquals(emptyList(), PolylineCodec.decode(null))
     }
 
+    // ── lengthMeters [VEH-STATS-SAY-SOMETHING-USEFUL-001] ────────────────────
+
+    @Test
+    fun `should measure a two-point route with haversine accuracy`() {
+        // 0.01° of latitude ≈ 1111.9 m at any longitude.
+        val encoded = PolylineCodec.encode(listOf(p(36.60, -6.23), p(36.61, -6.23)))
+        val length = PolylineCodec.lengthMeters(encoded)!!
+        assertTrue(abs(length - 1112f) < 5f, "expected ~1112 m, was $length")
+    }
+
+    @Test
+    fun `should return null length when there is nothing to measure`() {
+        // No route / single fix = "unknown distance", never 0 — a stat must not fake a number.
+        assertEquals(null, PolylineCodec.lengthMeters(null))
+        assertEquals(null, PolylineCodec.lengthMeters(""))
+        assertEquals(null, PolylineCodec.lengthMeters(PolylineCodec.encode(listOf(p(36.6, -6.23)))))
+    }
+
     @Test
     fun `should stay compact for a long route`() {
         // ~400 points ~11 m apart → a real urban trip. Must encode to well under 4 KB.

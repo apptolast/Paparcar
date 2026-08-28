@@ -59,6 +59,25 @@ object PolylineCodec {
         sb.append((v + 63).toChar())
     }
 
+    /**
+     * Haversine length (meters) of an encoded polyline, or null when there is no route to measure
+     * (null/blank or a single point). The repository stamps this next to every route write so
+     * consumers (stats) read a persisted number instead of decoding polylines in hot paths.
+     * [VEH-STATS-SAY-SOMETHING-USEFUL-001]
+     */
+    fun lengthMeters(encoded: String?): Float? {
+        val points = decode(encoded)
+        if (points.size < 2) return null
+        var sum = 0.0
+        for (i in 1 until points.size) {
+            sum += haversineMeters(
+                points[i - 1].latitude, points[i - 1].longitude,
+                points[i].latitude, points[i].longitude,
+            )
+        }
+        return sum.toFloat()
+    }
+
     private class Decoded(val delta: Int, val nextIndex: Int)
 
     private fun decodeValue(encoded: String, start: Int): Decoded {

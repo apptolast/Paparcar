@@ -88,6 +88,20 @@ data class UserParking(
      *  question is pending. Only meaningful when [routeInferredSpans] is non-null. Synced.
      *  [ROUTE-GAP-HONEST-001] */
     val routeInferredResolution: RouteInferenceResolution? = null,
+    /** Haversine length (meters) of [routePolyline] — stamped by the repository on every route
+     *  write (raw store, snap, accept-raw, pin-to-pin) so the stats never decode polylines in the
+     *  hot path. Null when there is no route (BT/legacy) — a missing distance is "unknown", never
+     *  0. Synced. [VEH-STATS-SAY-SOMETHING-USEFUL-001] */
+    val routeDistanceMeters: Float? = null,
+    /** Epoch-ms when this session ENDED (isActive flipped false) — the moment the departure was
+     *  committed, or the real deduced-departure instant when a promotion finalizes one. Null while
+     *  active and on legacy rows closed before this field existed. Synced.
+     *  [VEH-STATS-SAY-SOMETHING-USEFUL-001] */
+    val endedAtMs: Long? = null,
+    /** True when closing this session PUBLISHED a community spot (tu aparcamiento liberó una
+     *  plaza). Stays false for private-zone departures, kept-private releases, reverts and
+     *  supersedes. Synced. [VEH-STATS-SAY-SOMETHING-USEFUL-001] */
+    val publishedSpot: Boolean = false,
 ) {
     /** True when this route carries road-inferred stretches the user has not judged yet — the
      *  detail screen asks. [ROUTE-GAP-HONEST-001] */

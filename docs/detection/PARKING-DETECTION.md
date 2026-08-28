@@ -5530,3 +5530,41 @@ next fix seven seconds later was back AT the anchor at 0,0 m/s. Different state
 `DET-DISPLACEMENT-DRIVE-MUST-SURVIVE-ITS-NEXT-FIX-001`.
 
 Spec: `docs/backlog/det-lone-sample-cannot-unfreeze-an-anchor-001.md`.
+
+### VEH-STATS-SAY-SOMETHING-USEFUL-001 — a session's CLOSE now leaves provenance, like its pin always did (pending)
+
+Not an algorithm change: **no evaluator reads any of the new fields, and no decision moved.** This
+entry exists because the sweep touched the close writers and the UserParking mappers, and the next
+session must know the fields are provenance, not inputs.
+
+**What was missing.** A pin records who placed it (`detectionPath` + `armEvidence`,
+[DET-PIN-PROVENANCE-001]) — but its END recorded nothing. `isActive` flipped to 0 and that was the
+whole story: not WHEN the departure happened (`updatedAt` is sync-LWW bookkeeping, overloaded by
+enrichment), and not WHETHER the close published a community spot (the Spot reuses the session id,
+but the session row never learns it). The vehicle stats had nothing user-true to aggregate, which is
+how "fiabilidad 92%" (the detector's own confidence, averaged) ended up on the hero card.
+
+**Fix.** The close stamps its outcome on the row — one invariant, enforced at the DAO writers of
+`isActive = 0`:
+
+- `endedAtMs` — COALESCE: the FIRST close is the departure moment; idempotent re-clears cannot move
+  it. `FinalizeDeducedDepartureUseCase` passes `provisionalDepartureAtMs` (the REAL departure), not
+  the moment the drive was finally proven.
+- `publishedSpot` — MAX: a later promotion may confirm a publication, never retract one. Witnessed
+  departure → `publishesNow || pending provisional on a non-private zone`; release →
+  `reason.publishesSpot`; revert / supersede / janitor dedup → false.
+- `routeDistanceMeters` — haversine length of `routePolyline`, stamped by the repository at every
+  route write (raw store + snap/accept/pin-to-pin) so route and distance cannot diverge; stats read
+  a persisted number instead of decoding polylines per Room emission.
+
+All three sync to Firestore (entity ⇄ DTO ⇄ field-by-field remote read, with a self-healing
+distance recompute for legacy docs); the reconcile keeps local knowledge when a legacy remote doc
+predates the fields. The remote fast-path clear still patches only `isActive` — the outbox drainer's
+full-doc push carries the close provenance (deliberate: multi-device correctness needs the flag
+fast, the stats do not).
+
+**Accompanying-fix risk.** Low: writes-only. The five `isActive = 0` writers were swept
+(clearActiveById / byVehicle / orphans / janitor dedup / reconcile); the janitor one was caught by
+the compiler, not the grep — it calls the DAO directly.
+
+Spec: `docs/backlog/veh-stats-say-something-useful-001.md`.

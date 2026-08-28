@@ -70,7 +70,11 @@ class RevertParkingUseCase(
             )
         )
 
-        val clearResult = userParkingRepository.clearActiveParkingSession(parkingId)
+        // A revert ends the session NOW and never published anything — the pin was wrong.
+        // [VEH-STATS-SAY-SOMETHING-USEFUL-001]
+        val clearResult = userParkingRepository.clearActiveParkingSession(
+            parkingId, endedAtMs = now, publishedSpot = false,
+        )
         clearResult.onFailure { e ->
             PaparcarLogger.e(DIAG, "  ✗ clearActiveParkingSession failed", e)
         }.onSuccess {

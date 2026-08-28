@@ -467,7 +467,7 @@
     <!-- VehicleStatsRow inline cards -->
     <string name="vehicle_stats_sessions">sesiuni</string>
     <string name="vehicle_stats_last_session">ultima</string>
-    <string name="vehicle_stats_reliability">fiabilitate</string>
+    <string name="vehicle_stats_spots_shared">locuri cedate</string>
     <!-- Auth screens -->
     <string name="auth_header_app_name">Paparcar</string>
     <string name="auth_header_tagline">Găsește-ți locul, împarte spațiul</string>
@@ -622,11 +622,15 @@
     <string name="settings_detection_reliability_reduced">Telefonul tău poate limita detectarea</string>
     <string name="settings_detection_reliability_reduced_desc">Telefonul tău restricționează aplicațiile în fundal — Paparcar ar putea rata momentul în care îți eliberezi locul</string>
     <plurals name="history_activity_noun">
-        <item quantity="one">Parcare</item>
-        <item quantity="few">Parcări</item>
+        <item quantity="one">parcare</item>
+        <item quantity="few">parcări</item>
         <item quantity="other">de parcări</item>
     </plurals>
     <string name="history_activity_low_hint">Activitate redusă în această perioadă</string>
+    <!-- Facts footer under the activity chart. [VEH-STATS-SAY-SOMETHING-USEFUL-001] -->
+    <string name="history_fact_active_day">Cea mai activă zi: %1$s</string>
+    <string name="history_fact_favorite_street">Strada obișnuită: %1$s</string>
+    <string name="history_fact_auto_detected">Detectate automat: %1$d din %2$d</string>
     <string name="history_activity_title">Activitate</string>
     <string name="history_section_label">Istoric</string>
     <string name="home_vehicle_card_parked_at">Parcat la %1$s</string>

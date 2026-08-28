@@ -59,7 +59,7 @@ class VehiclesViewModel(
                             sessions = vSessions,
                             activeFilter = existingFilter,
                             filteredSessions = VehicleHistoryCalculator.filter(vSessions, existingFilter, nowMs),
-                            statsData = VehicleHistoryCalculator.computeStats(vSessions, nowMs),
+                            statsData = VehicleHistoryCalculator.computeStats(vSessions),
                         )
                     }
                     copy(

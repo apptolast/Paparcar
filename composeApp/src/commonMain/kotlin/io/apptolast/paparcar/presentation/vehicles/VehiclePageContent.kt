@@ -19,7 +19,7 @@ import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Schedule
-import androidx.compose.material.icons.rounded.Speed
+import androidx.compose.material.icons.rounded.VolunteerActivism
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -48,8 +48,8 @@ import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.my_car_edit_vehicle
 import paparcar.composeapp.generated.resources.vehicle_set_active_action
 import paparcar.composeapp.generated.resources.vehicle_stats_last_session
-import paparcar.composeapp.generated.resources.vehicle_stats_reliability
 import paparcar.composeapp.generated.resources.vehicle_stats_sessions
+import paparcar.composeapp.generated.resources.vehicle_stats_spots_shared
 
 @Composable
 internal fun VehiclePageContent(
@@ -76,7 +76,9 @@ internal fun VehiclePageContent(
         header = {
             VehicleHeroCard(
                 vehicleWithStats = vehicleWithStats,
-                reliabilityPct = historyState.statsData?.avgReliabilityPct,
+                // Closes that gave the community a spot — the user's contribution, not the
+                // detector's self-assessment. [VEH-STATS-SAY-SOMETHING-USEFUL-001]
+                spotsReleased = historyState.statsData?.spotsReleasedCount,
                 isSettingActive = isSettingActive,
                 // Making a vehicle active declares "I drive this" — confirm first (the screen owns
                 // the consequence dialog), never switch silently. [VEH-ACTIVE-FENCE-001]
@@ -94,7 +96,7 @@ internal fun VehiclePageContent(
 @Composable
 private fun VehicleHeroCard(
     vehicleWithStats: VehicleWithStats,
-    reliabilityPct: Int?,
+    spotsReleased: Int?,
     isSettingActive: Boolean,
     onSetActive: () -> Unit,
     onEdit: () -> Unit,
@@ -144,7 +146,7 @@ private fun VehicleHeroCard(
                 VehicleStatsRow(
                     sessionCount = vehicleWithStats.sessionCount,
                     lastSessionMs = vehicleWithStats.lastSession?.location?.timestamp,
-                    reliabilityPct = reliabilityPct,
+                    spotsReleased = spotsReleased,
                     muted = isInactive,
                 )
             }
@@ -167,7 +169,7 @@ private fun VehicleHeroCard(
 private fun VehicleStatsRow(
     sessionCount: Int,
     lastSessionMs: Long?,
-    reliabilityPct: Int?,
+    spotsReleased: Int?,
     muted: Boolean,
 ) {
     Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
@@ -187,10 +189,12 @@ private fun VehicleStatsRow(
             modifier = Modifier.weight(1f),
         )
         StatDivider()
+        // "Tu aparcamiento liberó una plaza" made countable — 0 is information (never shared),
+        // so the count shows whenever the row shows. [VEH-STATS-SAY-SOMETHING-USEFUL-001]
         StatCell(
-            icon = Icons.Rounded.Speed,
-            value = reliabilityPct?.let { "$it%" } ?: "—",
-            label = stringResource(Res.string.vehicle_stats_reliability),
+            icon = Icons.Rounded.VolunteerActivism,
+            value = (spotsReleased ?: 0).toString(),
+            label = stringResource(Res.string.vehicle_stats_spots_shared),
             muted = muted,
             modifier = Modifier.weight(1f),
         )
@@ -212,6 +216,8 @@ private fun StatCell(
 ) {
     val cs = MaterialTheme.colorScheme
     // Stats are app furniture, not vehicle identity → brand green, like the rest of the chrome.
+    // (Se probó neutro el 27-08 y el user lo revirtió: el choque de la ficha BT no era esta fila,
+    // era la masa del chart — ver COLOR-SYSTEM §3.) [UI-COLOR-DOCTRINE-001]
     val accent = if (muted) cs.onSurfaceVariant else cs.primary
     val valueColor = if (muted) cs.onSurfaceVariant else cs.onSurface
     Column(

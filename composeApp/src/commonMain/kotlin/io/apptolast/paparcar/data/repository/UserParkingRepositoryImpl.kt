@@ -15,6 +15,7 @@ import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.service.ParkingSyncScheduler
 import io.apptolast.paparcar.domain.util.PaparcarLogger
+import io.apptolast.paparcar.domain.util.PolylineCodec
 import kotlin.time.Clock
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -41,12 +42,18 @@ class UserParkingRepositoryImpl(
     override suspend fun saveNewParkingSession(session: UserParking): Result<String?> =
         runCatching {
             val now = Clock.System.now().toEpochMilliseconds()
+            // Stamp the raw route's length next to it — the repo is the choke point of every route
+            // write, so route and distance can never diverge. [VEH-STATS-SAY-SOMETHING-USEFUL-001]
+            val stamped = session.copy(
+                routeDistanceMeters = session.routeDistanceMeters
+                    ?: PolylineCodec.lengthMeters(session.routePolyline),
+            )
             // Atomic deactivate+insert in one Room transaction — process death can no longer
             // leave the vehicle without an active session mid-swap. [DET-SOLID-001]
             // Stamp updatedAt=now + pendingSync so BOTH the new active row AND the previous-session
             // clear win the inbound reconcile over any stale remote snapshot. [SYNC-RECONCILE-USERPARKING-001]
-            val previousId = dao.replaceActiveSession(session.toEntity(updatedAt = now, pendingSync = true), now)
-            runCatching { parkingSyncScheduler.enqueueSaveNewParkingSession(session, previousId) }
+            val previousId = dao.replaceActiveSession(stamped.toEntity(updatedAt = now, pendingSync = true), now)
+            runCatching { parkingSyncScheduler.enqueueSaveNewParkingSession(stamped, previousId) }
                 .onFailure { e -> PaparcarLogger.e(TAG, "enqueueSaveNewParkingSession failed for session ${session.id} — may miss Firestore sync", e) }
             previousId
         }
@@ -86,10 +93,17 @@ class UserParkingRepositoryImpl(
      * Room-only clear of a specific session. Firestore reconciliation is scheduled via
      * [ParkingSyncScheduler.enqueueClearActiveParkingSession] so this never suspends on network I/O. [PIPE-002]
      */
-    override suspend fun clearActiveParkingSession(sessionId: String): Result<Unit> = runCatching {
+    override suspend fun clearActiveParkingSession(
+        sessionId: String,
+        endedAtMs: Long,
+        publishedSpot: Boolean,
+    ): Result<Unit> = runCatching {
         // Stamp updatedAt=now + pendingSync so the deactivation wins the reconcile over a stale
         // remote isActive=true and gets drained to Firestore. [SYNC-RECONCILE-USERPARKING-001]
-        dao.clearActiveById(sessionId, Clock.System.now().toEpochMilliseconds())
+        // endedAtMs/publishedSpot ride the SAME pendingSync: the fast-path worker only patches
+        // isActive remotely; the outbox drainer's full-doc push carries the close provenance.
+        // [VEH-STATS-SAY-SOMETHING-USEFUL-001]
+        dao.clearActiveById(sessionId, endedAtMs, publishedSpot, Clock.System.now().toEpochMilliseconds())
         parkingSyncScheduler.enqueueClearActiveParkingSession(sessionId)
     }
 
@@ -222,6 +236,9 @@ class UserParkingRepositoryImpl(
             routePolyline = routePolyline,
             routeSnapped = snapped,
             routeInferredSpans = inferredSpans,
+            // Stamped here, not by callers — same write, so they cannot diverge.
+            // [VEH-STATS-SAY-SOMETHING-USEFUL-001]
+            routeDistanceMeters = PolylineCodec.lengthMeters(routePolyline),
             now = Clock.System.now().toEpochMilliseconds(),
         )
         val updated = dao.getById(id)?.toDomain() ?: error("No parking session with id=$id")

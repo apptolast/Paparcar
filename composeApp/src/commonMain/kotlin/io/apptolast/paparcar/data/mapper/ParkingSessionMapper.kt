@@ -14,6 +14,7 @@ import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.VehicleSize
+import io.apptolast.paparcar.domain.util.PolylineCodec
 
 // ── UserParkingEntity → Domain ────────────────────────────────────────────────
 
@@ -48,6 +49,9 @@ fun UserParkingEntity.toDomain(): UserParking = UserParking(
     routeSnapped = routeSnapped,
     routeInferredSpans = routeInferredSpans,
     routeInferredResolution = routeInferredResolution.toEnumOrNull<RouteInferenceResolution>(),
+    routeDistanceMeters = routeDistanceMeters,
+    endedAtMs = endedAtMs,
+    publishedSpot = publishedSpot,
 )
 
 private fun UserParkingEntity.addressOrNull(): AddressInfo? =
@@ -113,6 +117,11 @@ fun UserParking.toEntity(updatedAt: Long = 0, pendingSync: Boolean = false): Use
     routeSnapped = routeSnapped,
     routeInferredSpans = routeInferredSpans,
     routeInferredResolution = routeInferredResolution?.name,
+    // Close provenance + route length round-trip Room and sync to Firestore.
+    // [VEH-STATS-SAY-SOMETHING-USEFUL-001]
+    routeDistanceMeters = routeDistanceMeters,
+    endedAtMs = endedAtMs,
+    publishedSpot = publishedSpot,
     updatedAt = updatedAt,
     pendingSync = pendingSync,
 )
@@ -160,6 +169,9 @@ fun UserParking.toParkingHistoryDto(updatedAt: Long = 0L) = ParkingHistoryDto(
     routeSnapped = routeSnapped,
     routeInferredSpans = routeInferredSpans,
     routeInferredResolution = routeInferredResolution?.name,
+    routeDistanceMeters = routeDistanceMeters,
+    endedAtMs = endedAtMs,
+    publishedSpot = publishedSpot,
     updatedAt = updatedAt,
 )
 
@@ -197,6 +209,11 @@ fun ParkingHistoryDto.toEntity() = UserParkingEntity(
     routeSnapped = routeSnapped,
     routeInferredSpans = routeInferredSpans,
     routeInferredResolution = routeInferredResolution,
+    // Legacy docs predate the persisted length → recompute from the polyline they DO carry, so a
+    // restore self-heals instead of undercounting km forever. [VEH-STATS-SAY-SOMETHING-USEFUL-001]
+    routeDistanceMeters = routeDistanceMeters ?: PolylineCodec.lengthMeters(routePolyline),
+    endedAtMs = endedAtMs,
+    publishedSpot = publishedSpot,
     // A row coming FROM Firestore is by definition already synced → pendingSync=false. Its
     // updatedAt carries the remote edit time for the LWW merge. [SYNC-RECONCILE-USERPARKING-001]
     updatedAt = updatedAt,

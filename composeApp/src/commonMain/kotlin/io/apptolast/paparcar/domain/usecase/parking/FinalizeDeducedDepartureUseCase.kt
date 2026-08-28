@@ -72,7 +72,14 @@ class FinalizeDeducedDepartureUseCase(
             )
         }
 
-        userParkingRepository.clearActiveParkingSession(session.id)
+        // The session ended when the deduced departure actually happened, not when the drive was
+        // finally measured — and the provisional spot (now promoted) was its publication, unless
+        // the zone was private and nothing ever went out. [VEH-STATS-SAY-SOMETHING-USEFUL-001]
+        userParkingRepository.clearActiveParkingSession(
+            session.id,
+            endedAtMs = deducedAtMs,
+            publishedSpot = session.privateZoneId == null,
+        )
             .onFailure { e ->
                 // The marker stays, so a later proof (or the safety net's next pass) retries. The
                 // spot is already promoted, which is the half that matters to the community.

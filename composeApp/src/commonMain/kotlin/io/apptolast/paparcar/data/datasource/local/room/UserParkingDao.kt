@@ -59,8 +59,19 @@ interface UserParkingDao {
     // that (a) wins the inbound reconcile over a stale remote isActive=true — the fix for the
     // resurrected/duplicate-active session — and (b) gets drained to Firestore.
     // [SYNC-RECONCILE-USERPARKING-001]
-    @Query("UPDATE parking_sessions SET isActive = 0, updatedAt = :now, pendingSync = 1 WHERE id = :sessionId")
-    suspend fun clearActiveById(sessionId: String, now: Long)
+    // Close provenance: endedAtMs via COALESCE (the FIRST close is the real departure moment — an
+    // idempotent re-clear must not move it) and publishedSpot via MAX (a later promotion may
+    // confirm a publication, never retract one). [VEH-STATS-SAY-SOMETHING-USEFUL-001]
+    @Query("""
+        UPDATE parking_sessions SET
+            isActive = 0,
+            endedAtMs = COALESCE(endedAtMs, :endedAtMs),
+            publishedSpot = MAX(publishedSpot, :publishedSpot),
+            updatedAt = :now,
+            pendingSync = 1
+        WHERE id = :sessionId
+    """)
+    suspend fun clearActiveById(sessionId: String, endedAtMs: Long, publishedSpot: Boolean, now: Long)
 
     /** [DET-HANDOFF-NOT-MANUAL-001 §B] Marks (or clears, with null) a pending DEDUCED departure on a
      *  session that stays ACTIVE: the spot went out provisionally and the car was not given up.
@@ -68,12 +79,15 @@ interface UserParkingDao {
     @Query("UPDATE parking_sessions SET provisionalDepartureAtMs = :atMs, updatedAt = :now WHERE id = :sessionId")
     suspend fun setProvisionalDeparture(sessionId: String, atMs: Long?, now: Long)
 
-    @Query("UPDATE parking_sessions SET isActive = 0, updatedAt = :now, pendingSync = 1 WHERE isActive = 1 AND vehicleId = :vehicleId")
+    // A supersede close (new park replaces the vehicle's active session) still ENDS the old one —
+    // stamp endedAtMs like any other close; publishedSpot stays untouched (nothing was published
+    // by this path). [VEH-STATS-SAY-SOMETHING-USEFUL-001]
+    @Query("UPDATE parking_sessions SET isActive = 0, endedAtMs = COALESCE(endedAtMs, :now), updatedAt = :now, pendingSync = 1 WHERE isActive = 1 AND vehicleId = :vehicleId")
     suspend fun clearActiveByVehicle(vehicleId: String, now: Long)
 
     /** Deactivates legacy/unidentified active sessions (no vehicleId). Without this, a new
      *  vehicle-less session would ACCUMULATE next to previous vehicle-less actives. [DET-SOLID-001] */
-    @Query("UPDATE parking_sessions SET isActive = 0, updatedAt = :now, pendingSync = 1 WHERE isActive = 1 AND vehicleId IS NULL")
+    @Query("UPDATE parking_sessions SET isActive = 0, endedAtMs = COALESCE(endedAtMs, :now), updatedAt = :now, pendingSync = 1 WHERE isActive = 1 AND vehicleId IS NULL")
     suspend fun clearActiveOrphans(now: Long)
 
     /**
@@ -190,6 +204,7 @@ interface UserParkingDao {
             routeSnapped            = :routeSnapped,
             routeInferredSpans      = :routeInferredSpans,
             routeInferredResolution = NULL,
+            routeDistanceMeters     = :routeDistanceMeters,
             updatedAt               = :now,
             pendingSync             = 1
         WHERE id = :id
@@ -199,6 +214,7 @@ interface UserParkingDao {
         routePolyline: String?,
         routeSnapped: Boolean,
         routeInferredSpans: String?,
+        routeDistanceMeters: Float?,
         now: Long,
     )
 

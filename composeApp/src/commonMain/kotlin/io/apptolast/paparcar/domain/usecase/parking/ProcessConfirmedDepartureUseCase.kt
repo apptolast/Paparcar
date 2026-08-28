@@ -142,7 +142,17 @@ class ProcessConfirmedDepartureUseCase(
         }
 
         if (session != null) {
-            userParkingRepository.clearActiveParkingSession(session.id)
+            // A witnessed departure gave the community a spot when it published NOW, or when the
+            // provisional publish already went out for this session (the witnessed close is the
+            // promotion of that same document). Private zones never published either way.
+            // [VEH-STATS-SAY-SOMETHING-USEFUL-001]
+            val gaveSpot = publishesNow ||
+                (session.provisionalDepartureAtMs != null && session.privateZoneId == null)
+            userParkingRepository.clearActiveParkingSession(
+                session.id,
+                endedAtMs = Clock.System.now().toEpochMilliseconds(),
+                publishedSpot = gaveSpot,
+            )
                 .onFailure { e ->
                     PaparcarLogger.e(TAG, "clearActiveParkingSession failed for session=${session.id}", e)
                     return Result.failure(e)

@@ -39,13 +39,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.Event
+import androidx.compose.material.icons.rounded.Place
 import io.apptolast.paparcar.domain.model.UserParking
+import io.apptolast.paparcar.presentation.util.distanceString
 import io.apptolast.paparcar.presentation.vehicles.components.ActiveSectionHeader
 import io.apptolast.paparcar.presentation.vehicles.components.DayHeaderRow
 import io.apptolast.paparcar.presentation.vehicles.components.EmptyHistoryState
 import io.apptolast.paparcar.presentation.vehicles.components.EndedSessionTimelineNode
 import io.apptolast.paparcar.presentation.vehicles.components.HistoryFilterBar
 import io.apptolast.paparcar.presentation.vehicles.components.ActivityCard
+import io.apptolast.paparcar.presentation.vehicles.components.ActivityFact
 import io.apptolast.paparcar.ui.components.PapScrollToTopButton
 import io.apptolast.paparcar.ui.theme.PapMotion
 import io.apptolast.paparcar.ui.theme.PaparcarType
@@ -76,6 +82,9 @@ import paparcar.composeapp.generated.resources.history_day_short_sun
 import paparcar.composeapp.generated.resources.history_day_short_thu
 import paparcar.composeapp.generated.resources.history_day_short_tue
 import paparcar.composeapp.generated.resources.history_day_short_wed
+import paparcar.composeapp.generated.resources.history_fact_active_day
+import paparcar.composeapp.generated.resources.history_fact_auto_detected
+import paparcar.composeapp.generated.resources.history_fact_favorite_street
 import paparcar.composeapp.generated.resources.history_month_short_1
 import paparcar.composeapp.generated.resources.history_month_short_10
 import paparcar.composeapp.generated.resources.history_month_short_11
@@ -246,10 +255,38 @@ internal fun HistoryContent(
 
                 item(key = "chart_spacer") { Spacer(Modifier.height(8.dp)) }
                 item(key = "chart") {
+                    // Scoped km follow the same filter as the bars; all-history facts (day, street,
+                    // auto share) appear only above their significance thresholds — a metric
+                    // without data renders as nothing. [VEH-STATS-SAY-SOMETHING-USEFUL-001]
+                    val scopeDistanceMeters = remember(state.filteredSessions) {
+                        VehicleHistoryCalculator.sumDistanceMeters(state.filteredSessions)
+                    }
+                    val facts = buildList {
+                        state.statsData?.mostActiveDayOfWeek?.let { day ->
+                            add(ActivityFact(
+                                icon = Icons.Rounded.Event,
+                                text = stringResource(Res.string.history_fact_active_day, dayFullLabels[day - 1]),
+                            ))
+                        }
+                        state.statsData?.favoriteStreet?.let { street ->
+                            add(ActivityFact(
+                                icon = Icons.Rounded.Place,
+                                text = stringResource(Res.string.history_fact_favorite_street, street),
+                            ))
+                        }
+                        state.statsData?.autoDetected?.let { share ->
+                            add(ActivityFact(
+                                icon = Icons.Rounded.AutoAwesome,
+                                text = stringResource(Res.string.history_fact_auto_detected, share.auto, share.known),
+                            ))
+                        }
+                    }
                     Box(Modifier.padding(horizontal = 16.dp)) {
                         ActivityCard(
                             data = activityBuckets,
                             total = scopeTotal,
+                            distanceText = scopeDistanceMeters?.let { distanceString(it) },
+                            facts = facts,
                         )
                     }
                 }

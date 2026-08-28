@@ -62,6 +62,18 @@ class RevertParkingUseCaseTest {
     }
 
     @Test
+    fun should_close_the_row_without_claiming_a_spot() = runTest {
+        // A revert is a user-labelled false positive: the session ends now and nothing was ever
+        // given to the community. [VEH-STATS-SAY-SOMETHING-USEFUL-001]
+        val repo = FakeUserParkingRepository(initialSession = activeSession())
+        buildUseCase(repo = repo)("parking-1")
+
+        val closed = repo.getSessionById("parking-1")!!
+        assertNotNull(closed.endedAtMs)
+        assertEquals(false, closed.publishedSpot)
+    }
+
+    @Test
     fun should_still_succeed_and_dismiss_when_clear_fails() = runTest {
         // Best-effort contract: each step logs and continues; the user can retry manually.
         val repo = FakeUserParkingRepository(initialSession = activeSession()).apply {

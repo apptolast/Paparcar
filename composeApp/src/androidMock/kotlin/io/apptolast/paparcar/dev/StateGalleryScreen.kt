@@ -82,6 +82,7 @@ import io.apptolast.paparcar.presentation.vehicleregistration.VehicleRegistratio
 import io.apptolast.paparcar.presentation.vehicles.HistoryContent
 import io.apptolast.paparcar.presentation.vehicles.HistoryFilter
 import io.apptolast.paparcar.presentation.vehicles.HistoryState
+import io.apptolast.paparcar.presentation.vehicles.VehicleHistoryCalculator
 import io.apptolast.paparcar.presentation.vehicles.VehiclesContent
 import io.apptolast.paparcar.presentation.vehicles.VehiclesState
 import com.apptolast.customlogin.presentation.screens.components.DefaultAuthContainer
@@ -984,17 +985,29 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             // El raíl, el punto pulsante y el wash de la sesión viva llevan la identidad del coche
             // de esa página del pager — no un verde fijo. [UI-HISTORY-IDENTITY-AND-SOURCE-001]
             Variant("Lista · coche asistido (verde)") {
-                history(HistoryState(sessions = FakeData.allSessions, filteredSessions = FakeData.allSessions))
+                history(HistoryState(
+                    sessions = FakeData.allSessions,
+                    filteredSessions = FakeData.allSessions,
+                    statsData = VehicleHistoryCalculator.computeStats(FakeData.allSessions),
+                ))
             },
             Variant("Lista · coche Bluetooth (azul)") {
                 history(
-                    HistoryState(sessions = FakeData.allSessions, filteredSessions = FakeData.allSessions),
+                    HistoryState(
+                    sessions = FakeData.allSessions,
+                    filteredSessions = FakeData.allSessions,
+                    statsData = VehicleHistoryCalculator.computeStats(FakeData.allSessions),
+                ),
                     watch = VehicleWatch.Bluetooth,
                 )
             },
             Variant("Lista · coche sin vigilancia (gris)") {
                 history(
-                    HistoryState(sessions = FakeData.allSessions, filteredSessions = FakeData.allSessions),
+                    HistoryState(
+                    sessions = FakeData.allSessions,
+                    filteredSessions = FakeData.allSessions,
+                    statsData = VehicleHistoryCalculator.computeStats(FakeData.allSessions),
+                ),
                     watch = VehicleWatch.Off,
                 )
             },
@@ -1004,6 +1017,7 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                         sessions = FakeData.allSessions,
                         filteredSessions = FakeData.allSessions,
                         activeFilter = HistoryFilter.ThisWeek,
+                        statsData = VehicleHistoryCalculator.computeStats(FakeData.allSessions),
                     ),
                 )
             },
@@ -1080,6 +1094,9 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                         sessions = FakeData.allSessions,
                         activeFilter = HistoryFilter.All,
                         filteredSessions = FakeData.allSessions,
+                        // Same aggregation the ViewModel runs — the gallery must exercise the
+                        // plazas-cedidas cell and the facts footer. [VEH-STATS-SAY-SOMETHING-USEFUL-001]
+                        statsData = VehicleHistoryCalculator.computeStats(FakeData.allSessions),
                     )
                 }
                 VehiclesContent(
@@ -1116,6 +1133,9 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                         sessions = FakeData.allSessions,
                         activeFilter = HistoryFilter.All,
                         filteredSessions = FakeData.allSessions,
+                        // Same aggregation the ViewModel runs — the gallery must exercise the
+                        // plazas-cedidas cell and the facts footer. [VEH-STATS-SAY-SOMETHING-USEFUL-001]
+                        statsData = VehicleHistoryCalculator.computeStats(FakeData.allSessions),
                     )
                 }
                 VehiclesContent(
@@ -1135,6 +1155,9 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                         sessions = FakeData.allSessions,
                         activeFilter = HistoryFilter.All,
                         filteredSessions = FakeData.allSessions,
+                        // Same aggregation the ViewModel runs — the gallery must exercise the
+                        // plazas-cedidas cell and the facts footer. [VEH-STATS-SAY-SOMETHING-USEFUL-001]
+                        statsData = VehicleHistoryCalculator.computeStats(FakeData.allSessions),
                     )
                 }
                 VehiclesContent(

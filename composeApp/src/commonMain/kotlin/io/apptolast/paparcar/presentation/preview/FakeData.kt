@@ -123,7 +123,8 @@ internal object FakeData {
         detectionReliability = 0.90f,
     )
 
-    // Ended sessions
+    // Ended sessions — close provenance + route length populated so previews/gallery exercise the
+    // user metrics (plazas cedidas · km · autodetección). [VEH-STATS-SAY-SOMETHING-USEFUL-001]
     private val endedToday1 = UserParking(
         id = "s_t1",
         location = gps(agoMs = 7_200_000L),
@@ -131,6 +132,10 @@ internal object FakeData {
         address = addrSupermarket,
         placeInfo = placeInfoSupermarket,
         detectionReliability = 0.90f,
+        detectionPath = "vehicle-exit",
+        publishedSpot = true,
+        endedAtMs = now - 3_600_000L,
+        routeDistanceMeters = 3_400f,
     )
     private val endedToday2 = UserParking(
         id = "s_t2",
@@ -139,6 +144,10 @@ internal object FakeData {
         address = addrStreet,
         placeInfo = null,
         detectionReliability = 0.75f,
+        detectionPath = "steps+egress",
+        publishedSpot = true,
+        endedAtMs = now - 10_000_000L,
+        routeDistanceMeters = 1_150f,
     )
     private val endedYesterday1 = UserParking(
         id = "s_y1",
@@ -147,6 +156,8 @@ internal object FakeData {
         address = addrMall,
         placeInfo = placeInfoMall,
         detectionReliability = 1.0f,
+        detectionPath = "manual",
+        endedAtMs = now - 86_400_000L,
     )
     private val endedYesterday2 = UserParking(
         id = "s_y2",
@@ -155,6 +166,10 @@ internal object FakeData {
         address = addrCafe,
         placeInfo = placeInfoCafe,
         detectionReliability = 0.90f,
+        detectionPath = "kinematic+egress",
+        publishedSpot = true,
+        endedAtMs = now - 86_400_000L - 7_200_000L,
+        routeDistanceMeters = 6_800f,
     )
     private val endedOld = UserParking(
         id = "s_old",
@@ -163,6 +178,8 @@ internal object FakeData {
         address = addrHighAccuracy,
         placeInfo = null,
         detectionReliability = 0.75f,
+        detectionPath = "bt",
+        endedAtMs = now - 2 * 86_400_000L,
     )
 
     val allSessions =

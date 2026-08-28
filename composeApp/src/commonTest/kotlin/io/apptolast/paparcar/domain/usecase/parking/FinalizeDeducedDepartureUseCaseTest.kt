@@ -97,6 +97,29 @@ class FinalizeDeducedDepartureUseCaseTest {
         assertFalse(repo.getActiveSessionByGeofence("session-1") != null)
     }
 
+    @Test
+    fun should_stamp_the_close_with_the_deduced_departure_moment_not_the_proof_moment() = runTest {
+        // The car left at deducedAt; the drive was only PROVEN later. The row must record the
+        // real departure, and the promoted spot counts as its publication.
+        // [VEH-STATS-SAY-SOMETHING-USEFUL-001]
+        val repo = FakeUserParkingRepository(initialSession = session(pendingAtMs = 777_000L))
+
+        buildUseCase(repo)("v-1")
+
+        val closed = repo.getSessionById("session-1")!!
+        assertEquals(777_000L, closed.endedAtMs)
+        assertTrue(closed.publishedSpot)
+    }
+
+    @Test
+    fun should_not_claim_a_spot_for_a_private_zone_close() = runTest {
+        val repo = FakeUserParkingRepository(initialSession = session(privateZoneId = "zone-1"))
+
+        buildUseCase(repo)("v-1")
+
+        assertFalse(repo.getSessionById("session-1")!!.publishedSpot)
+    }
+
     private fun buildUseCase(
         repo: FakeUserParkingRepository = FakeUserParkingRepository(),
         spotScheduler: FakeReportSpotScheduler = FakeReportSpotScheduler(),

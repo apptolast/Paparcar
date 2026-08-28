@@ -91,7 +91,14 @@ class FakeUserParkingRepository(
                     i % 3 == 0 -> 0.90f
                     else -> 0.77f
                 },
-                address = AddressInfo("Calle Histórica $i", "Puerto de Santa María", "Cádiz", "España", "ES"),
+                // Streets REPEAT so the "usual street" fact reaches its ≥3 threshold, like a real
+                // history does. Close provenance + route length feed the new stats.
+                // [VEH-STATS-SAY-SOMETHING-USEFUL-001]
+                detectionPath = if (i % 6 == 0) "manual" else "steps+egress",
+                publishedSpot = i % 4 != 0,
+                endedAtMs = now - daysAgo * 86_400_000L + 5 * 3_600_000L,
+                routeDistanceMeters = 900f + (i % 9) * 850f,
+                address = AddressInfo("Calle Histórica ${i % 9}", "Puerto de Santa María", "Cádiz", "España", "ES"),
             ))
         }
 
@@ -112,7 +119,12 @@ class FakeUserParkingRepository(
                 isActive = false,
                 spotType = if (i % 8 == 0) SpotType.MANUAL_REPORT else SpotType.AUTO_DETECTED,
                 detectionReliability = if (i % 8 == 0) 1.0f else 0.95f,
-                address = AddressInfo("Av. Corolla $i", "El Puerto", "Cádiz", "España", "ES"),
+                // BT parks wake at the destination: no route, so no distance — the km line must
+                // honestly disappear on this vehicle. [VEH-STATS-SAY-SOMETHING-USEFUL-001]
+                detectionPath = if (i % 8 == 0) "manual" else "bt",
+                publishedSpot = i % 3 != 0,
+                endedAtMs = now - daysAgo * 86_400_000L + 8 * 3_600_000L,
+                address = AddressInfo("Av. Corolla ${i % 5}", "El Puerto", "Cádiz", "España", "ES"),
             ))
         }
 
@@ -133,6 +145,10 @@ class FakeUserParkingRepository(
                 isActive = false,
                 spotType = SpotType.MANUAL_REPORT,
                 detectionReliability = 1.0f,
+                // All hand-marked, below the auto-share threshold's reach and never publishing —
+                // the moto page demos the facts footer at its emptiest.
+                detectionPath = "manual",
+                endedAtMs = now - daysAgo * 86_400_000L + 26 * 3_600_000L,
                 address = AddressInfo("Paseo Moto $i", "El Puerto", "Cádiz", "España", "ES"),
             ))
         }
@@ -154,7 +170,11 @@ class FakeUserParkingRepository(
                 isActive = false,
                 spotType = if (i % 5 == 0) SpotType.MANUAL_REPORT else SpotType.AUTO_DETECTED,
                 detectionReliability = if (i % 5 == 0) 1.0f else 0.93f,
-                address = AddressInfo("Calle Furgoneta $i", "Puerto de Santa María", "Cádiz", "España", "ES"),
+                detectionPath = if (i % 5 == 0) "manual" else "vehicle-exit",
+                publishedSpot = i % 2 == 0,
+                endedAtMs = now - daysAgo * 86_400_000L + 10 * 3_600_000L,
+                routeDistanceMeters = 2_400f + (i % 4) * 1_600f,
+                address = AddressInfo("Calle Furgoneta ${i % 3}", "Puerto de Santa María", "Cádiz", "España", "ES"),
             ))
         }
     }
@@ -250,7 +270,11 @@ class FakeUserParkingRepository(
         return Result.success(Unit)
     }
 
-    override suspend fun clearActiveParkingSession(sessionId: String): Result<Unit> {
+    override suspend fun clearActiveParkingSession(
+        sessionId: String,
+        endedAtMs: Long,
+        publishedSpot: Boolean,
+    ): Result<Unit> {
         // Releasing really frees the session so the mock plays the whole loop: the parked card
         // and the watching line drop, and the story returns to its cold-start row. [UX-PARKED-STATE-001]
         releasedIds.value = releasedIds.value + sessionId

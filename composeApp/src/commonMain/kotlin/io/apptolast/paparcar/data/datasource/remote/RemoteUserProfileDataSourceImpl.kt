@@ -183,6 +183,12 @@ class RemoteUserProfileDataSourceImpl(
                 // absent on docs written before ROUTE-GAP-HONEST-001. [ROUTE-GAP-HONEST-001]
                 routeInferredSpans = runCatching { get<String?>(FIELD_ROUTE_INFERRED_SPANS) }.getOrNull(),
                 routeInferredResolution = runCatching { get<String?>(FIELD_ROUTE_INFERRED_RESOLUTION) }.getOrNull(),
+                // Close provenance + route length. Defensive: absent on docs written before
+                // VEH-STATS-SAY-SOMETHING-USEFUL-001 (distance self-heals in the inbound mapper).
+                routeDistanceMeters = runCatching { get<Double?>(FIELD_ROUTE_DISTANCE_METERS)?.toFloat() }.getOrNull(),
+                endedAtMs = runCatching { get<Long?>(FIELD_ENDED_AT_MS) }.getOrNull()
+                    ?: runCatching { get<Double?>(FIELD_ENDED_AT_MS)?.toLong() }.getOrNull(),
+                publishedSpot = runCatching { get<Boolean?>(FIELD_PUBLISHED_SPOT) }.getOrNull() ?: false,
                 updatedAt = getLongCompat(FIELD_UPDATED_AT),
             )
         }.getOrElse { e ->
@@ -244,5 +250,9 @@ class RemoteUserProfileDataSourceImpl(
         // Inferred-stretch provenance + user verdict. [ROUTE-GAP-HONEST-001]
         const val FIELD_ROUTE_INFERRED_SPANS = "routeInferredSpans"
         const val FIELD_ROUTE_INFERRED_RESOLUTION = "routeInferredResolution"
+        // Close provenance + route length. [VEH-STATS-SAY-SOMETHING-USEFUL-001]
+        const val FIELD_ROUTE_DISTANCE_METERS = "routeDistanceMeters"
+        const val FIELD_ENDED_AT_MS = "endedAtMs"
+        const val FIELD_PUBLISHED_SPOT = "publishedSpot"
     }
 }

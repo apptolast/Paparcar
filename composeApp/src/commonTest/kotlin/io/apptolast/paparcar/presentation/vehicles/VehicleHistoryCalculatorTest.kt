@@ -2,12 +2,15 @@ package io.apptolast.paparcar.presentation.vehicles
 
 import io.apptolast.paparcar.domain.model.AddressInfo
 import io.apptolast.paparcar.domain.model.GpsPoint
+import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.UserParking
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
-/** [AUDIT-M11-001] History filtering + stat aggregation, now testable outside the ViewModel. */
+/** [AUDIT-M11-001] History filtering + stat aggregation, now testable outside the ViewModel.
+ *  Stats semantics: user-facing metrics with significance thresholds.
+ *  [VEH-STATS-SAY-SOMETHING-USEFUL-001] */
 class VehicleHistoryCalculatorTest {
 
     private val nowMs = 1_700_000_000_000L
@@ -17,13 +20,19 @@ class VehicleHistoryCalculatorTest {
         atMs: Long,
         active: Boolean = false,
         street: String? = null,
-        reliability: Float? = null,
+        publishedSpot: Boolean = false,
+        spotType: SpotType = SpotType.AUTO_DETECTED,
+        detectionPath: String? = null,
+        distanceMeters: Float? = null,
     ) = UserParking(
-        id = "s-$atMs",
+        id = "s-$atMs-${street ?: ""}-$detectionPath",
         location = GpsPoint(0.0, 0.0, accuracy = 5f, timestamp = atMs, speed = 0f),
         isActive = active,
         address = street?.let { AddressInfo(street = it, city = null, region = null, country = null) },
-        detectionReliability = reliability,
+        publishedSpot = publishedSpot,
+        spotType = spotType,
+        detectionPath = detectionPath,
+        routeDistanceMeters = distanceMeters,
     )
 
     // ── filter ────────────────────────────────────────────────────────────────
@@ -46,55 +55,102 @@ class VehicleHistoryCalculatorTest {
 
     @Test
     fun should_returnNull_whenNoSessions() {
-        assertNull(VehicleHistoryCalculator.computeStats(emptyList(), nowMs))
+        assertNull(VehicleHistoryCalculator.computeStats(emptyList()))
     }
 
     @Test
-    fun should_suppressAverage_whenLessThanTwoWeeksOfHistory() {
-        // Only a few days of data → avg-per-week is not meaningful yet.
-        val stats = VehicleHistoryCalculator.computeStats(
-            listOf(session(nowMs - 3 * dayMs), session(nowMs - dayMs)),
-            nowMs,
-        )
-        assertNull(stats?.avgSessionsPerWeek)
-    }
-
-    @Test
-    fun should_pickFavoriteStreet_byFrequency() {
+    fun should_suppressFavoriteStreet_whenNoStreetRepeatsThreeTimes() {
+        // Winning a 2-1 tie is not a habit — below the threshold nothing is claimed.
         val stats = VehicleHistoryCalculator.computeStats(
             listOf(
                 session(nowMs - 20 * dayMs, street = "Calle A"),
                 session(nowMs - 19 * dayMs, street = "Calle A"),
                 session(nowMs - 18 * dayMs, street = "Calle B"),
             ),
-            nowMs,
+        )
+        assertNull(stats?.favoriteStreet)
+    }
+
+    @Test
+    fun should_pickFavoriteStreet_whenAStreetReachesThreeSessions() {
+        val stats = VehicleHistoryCalculator.computeStats(
+            listOf(
+                session(nowMs - 21 * dayMs, street = "Calle A"),
+                session(nowMs - 20 * dayMs, street = "Calle A"),
+                session(nowMs - 19 * dayMs, street = "Calle A"),
+                session(nowMs - 18 * dayMs, street = "Calle B"),
+            ),
         )
         assertEquals("Calle A", stats?.favoriteStreet)
     }
 
     @Test
-    fun should_averageReliability_asPercent() {
+    fun should_countSpotsReleased_overEndedSessionsOnly() {
         val stats = VehicleHistoryCalculator.computeStats(
             listOf(
-                session(nowMs - 20 * dayMs, reliability = 0.9f),
-                session(nowMs - 19 * dayMs, reliability = 0.5f),
+                session(nowMs - 3 * dayMs, publishedSpot = true),
+                session(nowMs - 2 * dayMs, publishedSpot = false),
+                session(nowMs - dayMs, publishedSpot = true),
+                // Active sessions are not completed parks — never counted.
+                session(nowMs, active = true, publishedSpot = true),
             ),
-            nowMs,
         )
-        assertEquals(70, stats?.avgReliabilityPct)
+        assertEquals(2, stats?.spotsReleasedCount)
     }
 
     @Test
-    fun should_excludeActiveSessions_fromStats() {
-        // An active (ongoing) session isn't a completed park — it must not skew the averages.
+    fun should_suppressAutoShare_whenFewerThanFiveKnownProvenanceSessions() {
+        val stats = VehicleHistoryCalculator.computeStats(
+            List(4) { i -> session(nowMs - i * dayMs, detectionPath = "steps+egress") } +
+                // Legacy rows (null path, AUTO_DETECTED) have UNKNOWN provenance — they neither
+                // count toward the threshold nor drag the ratio down.
+                List(10) { i -> session(nowMs - (20 + i) * dayMs) },
+        )
+        assertNull(stats?.autoDetected)
+    }
+
+    @Test
+    fun should_computeAutoShare_overKnownProvenanceSessions() {
         val stats = VehicleHistoryCalculator.computeStats(
             listOf(
-                session(nowMs - 20 * dayMs, street = "Calle A", reliability = 0.9f),
-                session(nowMs, active = true, street = "Calle Z", reliability = 0.1f),
+                session(nowMs - 6 * dayMs, detectionPath = "steps+egress"),
+                session(nowMs - 5 * dayMs, detectionPath = "kinematic+egress"),
+                session(nowMs - 4 * dayMs, detectionPath = "bt"),
+                session(nowMs - 3 * dayMs, detectionPath = "vehicle-exit"),
+                // Placed by the user's hand — known provenance, not auto.
+                session(nowMs - 2 * dayMs, spotType = SpotType.MANUAL_REPORT, detectionPath = "manual"),
+                // Legacy row: unknown provenance, excluded from both counts.
+                session(nowMs - dayMs),
             ),
-            nowMs,
         )
-        assertEquals("Calle A", stats?.favoriteStreet)
-        assertEquals(90, stats?.avgReliabilityPct)
+        assertEquals(AutoDetectedShare(auto = 4, known = 5), stats?.autoDetected)
+    }
+
+    @Test
+    fun should_suppressPeakDay_belowFiveEndedSessions() {
+        val stats = VehicleHistoryCalculator.computeStats(
+            List(4) { i -> session(nowMs - i * 7 * dayMs) },
+        )
+        assertNull(stats?.mostActiveDayOfWeek)
+    }
+
+    // ── sumDistanceMeters ───────────────────────────────────────────────────
+
+    @Test
+    fun should_returnNullDistance_whenNoSessionCarriesOne() {
+        // No data must render as nothing — never as "0 km".
+        assertNull(VehicleHistoryCalculator.sumDistanceMeters(listOf(session(nowMs))))
+    }
+
+    @Test
+    fun should_sumPersistedDistances_ignoringRoutelessSessions() {
+        val total = VehicleHistoryCalculator.sumDistanceMeters(
+            listOf(
+                session(nowMs - 2 * dayMs, distanceMeters = 1200f),
+                session(nowMs - dayMs),
+                session(nowMs, distanceMeters = 800f),
+            ),
+        )
+        assertEquals(2000f, total)
     }
 }

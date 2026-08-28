@@ -85,7 +85,11 @@ class ReleaseActiveParkingSessionUseCase(
             ),
         )
 
-        val cleared = userParkingRepository.clearActiveParkingSession(sessionId)
+        // Close provenance: the release moment + whether this close gave the community a spot.
+        // [VEH-STATS-SAY-SOMETHING-USEFUL-001]
+        val cleared = userParkingRepository.clearActiveParkingSession(
+            sessionId, endedAtMs = nowMs, publishedSpot = reason.publishesSpot,
+        )
 
         // [DET-AUDIT-002 T5/M4] A manual release must also unregister the session's fences:
         // revert and departure already do, but this path left a NEVER_EXPIRE orphan behind on

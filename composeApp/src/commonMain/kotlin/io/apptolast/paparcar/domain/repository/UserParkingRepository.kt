@@ -29,8 +29,21 @@ interface UserParkingRepository : UserScopedRepository, RemoteSyncable {
     fun observeSessionsByVehicle(vehicleId: String): Flow<List<UserParking>>
     suspend fun getSessionsPaged(limit: Int, offset: Int): List<UserParking>
     suspend fun getSessionsByVehiclePaged(vehicleId: String, limit: Int, offset: Int): List<UserParking>
-    /** Clears the active flag of the session with [sessionId] and schedules Firestore reconciliation. */
-    suspend fun clearActiveParkingSession(sessionId: String): Result<Unit>
+    /**
+     * Clears the active flag of the session with [sessionId], stamping the close's provenance on
+     * the row, and schedules Firestore reconciliation.
+     *
+     * @param endedAtMs the moment the departure actually happened — `now` for a witnessed/manual
+     *   close, the deduced-departure instant when a promotion finalizes one. The first close wins
+     *   (idempotent re-clears never move it).
+     * @param publishedSpot whether this close published a community spot (tu aparcamiento liberó
+     *   una plaza). Confirmable later, never retractable. [VEH-STATS-SAY-SOMETHING-USEFUL-001]
+     */
+    suspend fun clearActiveParkingSession(
+        sessionId: String,
+        endedAtMs: Long,
+        publishedSpot: Boolean,
+    ): Result<Unit>
 
     /**
      * [DET-HANDOFF-NOT-MANUAL-001 §B] Records (or clears, with [atMs] = null) that a DEDUCED
@@ -83,6 +96,8 @@ interface UserParkingRepository : UserScopedRepository, RemoteSyncable {
      * reconciliation. Called by the post-park worker when it snaps the raw route onto streets (once),
      * so the history draws the on-road line without re-computing. [DET-ROUTE-SNAP-STORE-001]
      */
+    /** The route's haversine length is stamped alongside it by the implementation, so route and
+     *  distance can never diverge. [VEH-STATS-SAY-SOMETHING-USEFUL-001] */
     suspend fun updateParkingSessionRoute(
         id: String,
         routePolyline: String?,

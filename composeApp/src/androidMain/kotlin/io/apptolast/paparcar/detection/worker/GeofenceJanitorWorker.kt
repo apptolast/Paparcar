@@ -72,7 +72,11 @@ class GeofenceJanitorWorker(
                     // Stamp the dedup deactivation pending so it propagates to Firestore too — the
                     // single enforcement point of the one-active-per-vehicle invariant.
                     // [SYNC-RECONCILE-USERPARKING-001]
-                    runCatching { db.parkingSessionDao().clearActiveById(stale.id, now) }
+                    // A dedup close is a supersede: it ends the stale row now and published
+                    // nothing. [VEH-STATS-SAY-SOMETHING-USEFUL-001]
+                    runCatching {
+                        db.parkingSessionDao().clearActiveById(stale.id, endedAtMs = now, publishedSpot = false, now = now)
+                    }
                 }
             }
         }

@@ -6,6 +6,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -36,6 +37,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
@@ -70,27 +72,78 @@ private const val CHART_ENTER_DURATION = 800
 internal fun ActivityCard(
     data: List<WeekDayStats>,
     total: Int,
+    // Pre-formatted, locale-correct "8,4 km" of the SCOPED sessions — null hides it (no distance
+    // data must render as nothing, never as "0 km"). [VEH-STATS-SAY-SOMETHING-USEFUL-001]
+    distanceText: String? = null,
+    // All-history facts (most active day · usual street · auto-detected share), already resolved
+    // to user copy by the caller; each one only exists above its significance threshold.
+    facts: List<ActivityFact> = emptyList(),
 ) {
+    // Brand green, on EVERY vehicle's page — the chart is app chrome, not identity anatomy. An
+    // identity-tinted chart (blue for BT, neutral for unwatched) was built and REVOKED by the
+    // user on device (28-08): the theme stays green everywhere and the car's identity lives only
+    // in its method glyphs (border/badge/dot/pill). See COLOR-SYSTEM §8. [UI-COLOR-DOCTRINE-001]
     ActivityCardShell {
         if (total <= LOW_DATA_THRESHOLD) {
             LowActivitySummary(total = total)
         } else {
             // The scoped count is the card's title (icon + "N parkings"), so the graph card reads as
             // a titled block, not a bare chart. [ACTIVITY-CARD-TITLE-001]
-            ActivityCardTitle(total = total)
+            ActivityCardTitle(total = total, distanceText = distanceText)
             Spacer(Modifier.height(CARD_TITLE_GAP_DP.dp))
             ActivityBarChart(data = data)
+        }
+        if (facts.isNotEmpty()) {
+            Spacer(Modifier.height(FACTS_TOP_GAP_DP.dp))
+            ActivityFactsColumn(facts)
+        }
+    }
+}
+
+/** One secondary line under the activity chart — icon + resolved copy. */
+internal data class ActivityFact(val icon: ImageVector, val text: String)
+
+@Composable
+private fun ActivityFactsColumn(facts: List<ActivityFact>) {
+    val cs = MaterialTheme.colorScheme
+    Column(verticalArrangement = Arrangement.spacedBy(FACT_ROW_GAP_DP.dp)) {
+        facts.forEach { fact ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(FACT_ICON_GAP_DP.dp),
+            ) {
+                Icon(
+                    imageVector = fact.icon,
+                    contentDescription = null,
+                    tint = cs.onSurfaceVariant,
+                    modifier = Modifier.size(FACT_ICON_DP.dp),
+                )
+                Text(
+                    text = fact.text,
+                    // Barlow metadata, matching the chart labels above — the user weighed the
+                    // Inter/caption alternative on device (28-08) and preferred this. The DATA
+                    // reading: each line is icon + token + payload, kin to the chart it footers.
+                    style = PaparcarType.current.metadata,
+                    color = cs.onSurfaceVariant,
+                    maxLines = 1,
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun ActivityCardTitle(total: Int) {
+private fun ActivityCardTitle(total: Int, distanceText: String?) {
     // No icon — the count in primary already carries the visual hierarchy. [CARD-META-POLISH-001]
     Text(
         text = buildAnnotatedString {
             withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) { append("$total ") }
             append(pluralStringResource(Res.plurals.history_activity_noun, total))
+            if (distanceText != null) {
+                withStyle(SpanStyle(color = MaterialTheme.colorScheme.onSurfaceVariant)) {
+                    append(" · $distanceText")
+                }
+            }
         },
         style = PaparcarType.current.cardTitle,
         color = MaterialTheme.colorScheme.onSurface,
@@ -330,6 +383,11 @@ private fun DrawScope.drawCountLabel(
 private const val CARD_CORNER_DP = 16
 private const val CARD_INNER_PAD_DP = 16
 private const val CARD_TITLE_GAP_DP = 16     // gap from the card title down to the bars
+// Facts footer — secondary lines under the chart. [VEH-STATS-SAY-SOMETHING-USEFUL-001]
+private const val FACTS_TOP_GAP_DP = 12
+private const val FACT_ROW_GAP_DP = 6
+private const val FACT_ICON_GAP_DP = 6
+private const val FACT_ICON_DP = 14
 private const val CHART_HEIGHT_DP = 120
 // ≤ this many sessions in the selected window → compact summary instead of the full chart. [Task 3]
 private const val LOW_DATA_THRESHOLD = 2

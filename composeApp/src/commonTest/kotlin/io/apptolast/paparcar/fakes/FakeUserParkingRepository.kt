@@ -134,11 +134,23 @@ class FakeUserParkingRepository(
         return Result.success(Unit)
     }
 
-    override suspend fun clearActiveParkingSession(sessionId: String): Result<Unit> {
+    override suspend fun clearActiveParkingSession(
+        sessionId: String,
+        endedAtMs: Long,
+        publishedSpot: Boolean,
+    ): Result<Unit> {
         clearActiveParkingSessionResult?.let { override ->
             if (override.isFailure) return override
         }
-        sessions.replaceAll { if (it.id == sessionId) it.copy(isActive = false) else it }
+        // Mirrors the DAO's stamping: first close wins endedAtMs, publishedSpot only ever
+        // confirms. [VEH-STATS-SAY-SOMETHING-USEFUL-001]
+        sessions.replaceAll {
+            if (it.id == sessionId) it.copy(
+                isActive = false,
+                endedAtMs = it.endedAtMs ?: endedAtMs,
+                publishedSpot = it.publishedSpot || publishedSpot,
+            ) else it
+        }
         _sessionsFlow.value = sessions.toList()
         return Result.success(Unit)
     }

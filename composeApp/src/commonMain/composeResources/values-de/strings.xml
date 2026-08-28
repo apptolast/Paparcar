@@ -467,7 +467,7 @@
     <!-- VehicleStatsRow inline cards -->
     <string name="vehicle_stats_sessions">Sitzungen</string>
     <string name="vehicle_stats_last_session">letzte</string>
-    <string name="vehicle_stats_reliability">Zuverlässigkeit</string>
+    <string name="vehicle_stats_spots_shared">Plätze geteilt</string>
     <!-- Auth screens -->
     <string name="auth_header_app_name">Paparcar</string>
     <string name="auth_header_tagline">Finden Sie Ihren Platz, teilen Sie den Raum</string>
@@ -622,6 +622,10 @@
         <item quantity="other">Parkplätze</item>
     </plurals>
     <string name="history_activity_low_hint">Wenig Aktivität in diesem Zeitraum</string>
+    <!-- Facts footer under the activity chart. [VEH-STATS-SAY-SOMETHING-USEFUL-001] -->
+    <string name="history_fact_active_day">Aktivster Tag: %1$s</string>
+    <string name="history_fact_favorite_street">Übliche Straße: %1$s</string>
+    <string name="history_fact_auto_detected">Automatisch erkannt: %1$d von %2$d</string>
     <string name="history_activity_title">Aktivität</string>
     <string name="history_section_label">Verlauf</string>
     <string name="home_vehicle_card_parked_at">Geparkt bei %1$s</string>

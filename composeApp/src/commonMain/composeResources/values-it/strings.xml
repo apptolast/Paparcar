@@ -467,7 +467,7 @@
     <!-- VehicleStatsRow inline cards -->
     <string name="vehicle_stats_sessions">sessioni</string>
     <string name="vehicle_stats_last_session">ultimo</string>
-    <string name="vehicle_stats_reliability">affidabilità</string>
+    <string name="vehicle_stats_spots_shared">posti ceduti</string>
     <!-- Auth screens -->
     <string name="auth_header_app_name">Paparcar</string>
     <string name="auth_header_tagline">Trova il tuo posto, condividi lo spazio</string>
@@ -618,10 +618,14 @@
     <string name="settings_detection_reliability_reduced">Il tuo telefono può limitare il rilevamento</string>
     <string name="settings_detection_reliability_reduced_desc">Il tuo telefono limita le app in background — Paparcar potrebbe non accorgersi di quando liberi il tuo posto</string>
     <plurals name="history_activity_noun">
-        <item quantity="one">Parcheggio</item>
-        <item quantity="other">Parcheggi</item>
+        <item quantity="one">parcheggio</item>
+        <item quantity="other">parcheggi</item>
     </plurals>
     <string name="history_activity_low_hint">Poca attività in questo periodo</string>
+    <!-- Facts footer under the activity chart. [VEH-STATS-SAY-SOMETHING-USEFUL-001] -->
+    <string name="history_fact_active_day">Giorno più attivo: %1$s</string>
+    <string name="history_fact_favorite_street">Via abituale: %1$s</string>
+    <string name="history_fact_auto_detected">Rilevati automaticamente: %1$d su %2$d</string>
     <string name="history_activity_title">Attività</string>
     <string name="history_section_label">Cronologia</string>
     <string name="home_vehicle_card_parked_at">Parcheggiato in %1$s</string>
