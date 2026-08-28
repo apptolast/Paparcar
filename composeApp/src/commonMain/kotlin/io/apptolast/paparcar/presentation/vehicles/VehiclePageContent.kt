@@ -30,7 +30,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import kotlin.math.roundToInt
 import io.apptolast.paparcar.ui.components.PapDivider
 import io.apptolast.paparcar.ui.components.PapVerticalDivider
 import io.apptolast.paparcar.domain.model.VehicleMonitoringStatus
@@ -224,15 +226,22 @@ private fun StatCell(
         modifier = modifier.padding(vertical = STAT_CELL_V_PAD.dp, horizontal = STAT_CELL_H_PAD.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(STAT_ICON_GAP.dp),
-        ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(STAT_ICON_GAP.dp)) {
+            // The icon centres on the DIGIT band (baseline − capHeight/2), not on the text's line
+            // box: statNumber's line box is baseline-asymmetric (ascent′ 22.5sp / descent′ 2.5sp
+            // at 25sp), so CenterVertically floats the icon ~1dp above the numerals. Anchoring to
+            // the baseline survives font scale, lineHeight and value length.
+            // [UI-STAT-ICON-CENTERS-ON-DIGITS-001]
+            val capHeightPx = with(LocalDensity.current) {
+                PaparcarType.current.statNumber.fontSize.toPx() * BARLOW_CAP_HEIGHT_EM
+            }
             Icon(
                 imageVector = icon,
                 contentDescription = null,
                 tint = accent,
-                modifier = Modifier.size(STAT_ICON_DP.dp),
+                modifier = Modifier
+                    .size(STAT_ICON_DP.dp)
+                    .alignBy { it.measuredHeight / 2 + (capHeightPx / 2).roundToInt() },
             )
             Text(
                 text = value,
@@ -241,6 +250,7 @@ private fun StatCell(
                 style = PaparcarType.current.statNumber,
                 color = valueColor,
                 maxLines = 1,
+                modifier = Modifier.alignByBaseline(),
             )
         }
         Spacer(Modifier.size(STAT_LABEL_GAP.dp))
@@ -309,6 +319,10 @@ private const val STAT_CELL_H_PAD = 8
 private const val STAT_DIVIDER_V_PAD = 13
 private const val STAT_ICON_DP = 17
 private const val STAT_ICON_GAP = 5
+// Cap height of Barlow Condensed Bold as measured in the shipped TTF (OS/2 capHeight 700 / upm
+// 1000) — the digit band the stat icon centres on. A font metric, not a tuned pad.
+// [UI-STAT-ICON-CENTERS-ON-DIGITS-001]
+private const val BARLOW_CAP_HEIGHT_EM = 0.70f
 private const val STAT_LABEL_GAP = 5
 private const val SET_ACTIVE_PAD = 13
 private const val SET_ACTIVE_GAP = 9
