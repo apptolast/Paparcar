@@ -337,6 +337,7 @@
     <string name="spot_indicator_en_route">%1$d unterwegs</string>
     <string name="spot_indicator_ttl_expired">Abgelaufen</string>
     <string name="spot_indicator_ttl_minutes">%1$d Min.</string>
+    <string name="spot_indicator_ttl_under_minute">&lt;1 Min.</string>
     <!-- HomeScreen size filter chips -->
     <string name="home_size_filter_all">Alle</string>
 

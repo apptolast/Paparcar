@@ -337,6 +337,7 @@
     <string name="spot_indicator_en_route">%1$d în drum</string>
     <string name="spot_indicator_ttl_expired">Expirat</string>
     <string name="spot_indicator_ttl_minutes">%1$d min</string>
+    <string name="spot_indicator_ttl_under_minute">&lt;1 min</string>
     <!-- HomeScreen size filter chips -->
     <string name="home_size_filter_all">Toate</string>
 

@@ -242,8 +242,9 @@ private fun ageMinutes(timestampMs: Long, nowMs: Long): Int? {
     if (timestampMs <= 0L) return null
     val ageMs = nowMs - timestampMs
     if (ageMs < 0L) return null
-    val mins = (ageMs / MS_PER_MINUTE).toInt()
-    return if (mins > 0) mins else null
+    // 0 is a real age — it renders as "posted just now", the freshest (most valuable) state.
+    // null is reserved for invalid timestamps. [UI-SPOT-CLOCKS-NEVER-READ-ZERO-001]
+    return (ageMs / MS_PER_MINUTE).toInt()
 }
 
 private fun remainingMinutes(expiresAtMs: Long, nowMs: Long): Int? {

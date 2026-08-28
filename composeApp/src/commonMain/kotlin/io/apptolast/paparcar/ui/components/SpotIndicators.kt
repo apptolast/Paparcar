@@ -35,6 +35,7 @@ import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.spot_indicator_en_route
 import paparcar.composeapp.generated.resources.spot_indicator_ttl_expired
 import paparcar.composeapp.generated.resources.spot_indicator_ttl_minutes
+import paparcar.composeapp.generated.resources.spot_indicator_ttl_under_minute
 import io.apptolast.paparcar.ui.theme.PapAlpha
 
 private val   IndicatorIconSize              = 12.dp
@@ -83,10 +84,12 @@ fun TTLIndicator(
         remainingMins <= TTL_WARNING_THRESHOLD_MINUTES  -> PapAmber
         else                                          -> PapGreen
     }
-    val label = if (expired) {
-        stringResource(Res.string.spot_indicator_ttl_expired)
-    } else {
-        stringResource(Res.string.spot_indicator_ttl_minutes, remainingMins.toInt())
+    val label = when {
+        expired -> stringResource(Res.string.spot_indicator_ttl_expired)
+        // A countdown at "0 min" reads as already gone — the last minute says "<1 min".
+        // [UI-SPOT-CLOCKS-NEVER-READ-ZERO-001]
+        remainingMins < 1L -> stringResource(Res.string.spot_indicator_ttl_under_minute)
+        else -> stringResource(Res.string.spot_indicator_ttl_minutes, remainingMins.toInt())
     }
 
     PapBadge(
