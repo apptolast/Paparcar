@@ -23,6 +23,7 @@ import io.apptolast.paparcar.di.domainModule
 import io.apptolast.paparcar.di.presentationModule
 import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.preferences.ThemeMode
+import io.apptolast.paparcar.domain.usecase.detection.isFirstParkNudgeSpent
 import io.apptolast.paparcar.logging.FileAntilog
 import org.koin.android.ext.android.get
 import org.koin.android.ext.koin.androidContext
@@ -59,8 +60,9 @@ class PaparcarApp : Application() {
         // (windowSplashScreenBackground → @color/splash_background DayNight) resolves to
         // the user's choice rather than just the system dark setting. appPreferences is
         // synchronously available via the blocking DataStore warmup at Koin construction.
+        val appPreferences = get<AppPreferences>()
         AppCompatDelegate.setDefaultNightMode(
-            when (get<AppPreferences>().themeMode) {
+            when (appPreferences.themeMode) {
                 ThemeMode.LIGHT -> AppCompatDelegate.MODE_NIGHT_NO
                 ThemeMode.DARK -> AppCompatDelegate.MODE_NIGHT_YES
                 ThemeMode.SYSTEM -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
@@ -98,9 +100,17 @@ class PaparcarApp : Application() {
         // leave) — a fresh fix now seeds the position anchor instead of waiting up to 15 min.
         ParkingSafetyNetWorker.enqueueCheckNow(workManager, source = ParkingSafetyNetWorker.SOURCE_APP_START)
 
-        // Daily cold-start nudge for users who enabled detection but never parked with it. Fires at
-        // most a few throttled reminders and self-disables after the first park. [DET-TOGGLE-002]
-        FirstParkNudgeWorker.enqueueKeep(workManager)
+        // Daily cold-start nudge for users who enabled detection but never parked with it — and the
+        // removal of that clock once the nudge is permanently spent (park confirmed / cap
+        // exhausted), so a job with no future work stops waking daily forever.
+        // [DET-TOGGLE-002][DET-SPENT-NUDGE-MUST-STOP-WAKING-001]
+        FirstParkNudgeWorker.syncSchedule(
+            workManager,
+            nudgeSpent = isFirstParkNudgeSpent(
+                hasConfirmedFirstPark = appPreferences.hasConfirmedFirstPark,
+                nudgeCount = appPreferences.firstParkNudgeCount,
+            ),
+        )
 
         // [DET-WATCH-REACTIVATE-001] The resident SENTRY watcher is NOT resurrected here any more.
         // This spot read the parked sessions ONCE (`observeActiveSessions().first()`), so a clean

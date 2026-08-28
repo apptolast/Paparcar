@@ -54,7 +54,16 @@ fun shouldSendFirstParkNudge(
     val isColdStartCoordinator = readiness is DetectionReadiness.Ready &&
         readiness.strategy == ParkingStrategy.COORDINATOR
     return isColdStartCoordinator &&
-        !hasConfirmedFirstPark &&
-        nudgeCount < EvaluateFirstParkNudgeUseCase.MAX_NUDGES &&
+        !isFirstParkNudgeSpent(hasConfirmedFirstPark, nudgeCount) &&
         (nowMillis - lastNudgeAtMillis) >= EvaluateFirstParkNudgeUseCase.COOLDOWN_MILLIS
 }
+
+/**
+ * Whether the cold-start nudge is PERMANENTLY spent: it did its job (a park was confirmed) or
+ * exhausted its hard cap. Unlike the cooldown — a pause that expires — spent is forever, so it is
+ * the condition under which the nudge's daily periodic must not exist at all: both the worker's
+ * self-cancel and the app-start scheduler gate read THIS predicate, never their own copy of the
+ * rule. [DET-SPENT-NUDGE-MUST-STOP-WAKING-001]
+ */
+fun isFirstParkNudgeSpent(hasConfirmedFirstPark: Boolean, nudgeCount: Int): Boolean =
+    hasConfirmedFirstPark || nudgeCount >= EvaluateFirstParkNudgeUseCase.MAX_NUDGES

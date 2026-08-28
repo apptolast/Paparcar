@@ -5568,3 +5568,30 @@ fast, the stats do not).
 the compiler, not the grep — it calls the DAO directly.
 
 Spec: `docs/backlog/veh-stats-say-something-useful-001.md`.
+
+### DET-SPENT-NUDGE-MUST-STOP-WAKING-001 — a permanently spent nudge owns no clock (pending)
+
+**Report.** Workers audit of 2026-08-27 under the Android 16 job-quota lens (background jobs of an
+app with a resident FGS draw from a shared runtime quota): `FirstParkNudgeWorker` — the daily
+cold-start "park once" reminder — kept its 24 h periodic installed forever. The evaluator
+self-disables permanently once a park is confirmed (`hasConfirmedFirstPark`) or the hard cap of 3
+nudges is exhausted, but the clock kept waking daily to evaluate-and-do-nothing, and
+`PaparcarApp` re-installed it on every start. Quota spent by a job with provably no future work is
+quota stolen from `ParkingSafetyNetWorker` — the lane with 50 reconstructed departures in telemetry.
+
+**Root cause.** "Spent forever" existed only as an emergent property of the nudge gate; no code
+could ask the question, so no code could retire the clock.
+
+**Fix.** The question became a pure predicate, `isFirstParkNudgeSpent(hasConfirmedFirstPark,
+nudgeCount)` (beside `shouldSendFirstParkNudge`, which now delegates to it — one truth). Two
+consumers: the worker cancels its own unique periodic on the tick that finds it spent (checked
+AFTER the show, so the tick that fires the last capped nudge also retires the clock), and
+`FirstParkNudgeWorker.syncSchedule(workManager, nudgeSpent)` — replacing `enqueueKeep` — either
+installs the periodic or cancels it at app start, which covers state that went spent while the app
+was dead. `ConfirmParkingUseCase.setHasConfirmedFirstPark()` deliberately does NOT cancel
+(commonMain owns no WorkManager); the next tick or next app start converges.
+
+**Companion-fix risk.** The cooldown must never read as spent — it pauses, it does not retire.
+Pinned by `should_notBeSpent_when_underCapAndNeverParked`.
+
+Spec: `docs/backlog/det-spent-nudge-must-stop-waking-001.md`.

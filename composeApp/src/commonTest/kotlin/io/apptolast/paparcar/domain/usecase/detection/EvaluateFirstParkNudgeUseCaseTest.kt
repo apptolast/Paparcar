@@ -85,4 +85,23 @@ class EvaluateFirstParkNudgeUseCaseTest {
             shouldSendFirstParkNudge(coldStart, hasConfirmedFirstPark = false, nudgeCount = 1, lastNudgeAtMillis = lastNudge, nowMillis = now),
         )
     }
+
+    // [DET-SPENT-NUDGE-MUST-STOP-WAKING-001] "Spent" is the permanent no-clock condition — it must
+    // include exactly the two forever-cases and exclude the cooldown, which merely pauses.
+
+    @Test
+    fun should_beSpent_when_firstParkConfirmed() {
+        assertTrue(isFirstParkNudgeSpent(hasConfirmedFirstPark = true, nudgeCount = 0))
+    }
+
+    @Test
+    fun should_beSpent_when_capExhausted() {
+        assertTrue(isFirstParkNudgeSpent(hasConfirmedFirstPark = false, nudgeCount = MAX_NUDGES))
+    }
+
+    @Test
+    fun should_notBeSpent_when_underCapAndNeverParked() {
+        // Mid-cooldown lives here too: pausing is the throttle's job, never spent's.
+        assertFalse(isFirstParkNudgeSpent(hasConfirmedFirstPark = false, nudgeCount = MAX_NUDGES - 1))
+    }
 }

@@ -10,6 +10,7 @@ import androidx.work.WorkerParameters
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.usecase.detection.EvaluateFirstParkNudgeUseCase
+import io.apptolast.paparcar.domain.usecase.detection.isFirstParkNudgeSpent
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -21,9 +22,13 @@ import java.util.concurrent.TimeUnit
  * Firing is the exception, not the rule: it wakes ~once a day but only shows a notification when
  * [EvaluateFirstParkNudgeUseCase] says so — i.e. detection is fully ready on the Coordinator strategy
  * (the `AwaitingFirstPark` cold-start), the user has never confirmed a park, the cooldown has elapsed,
- * and the hard cap is not yet reached. After the first confirmed park the use case self-disables, so
- * this worker quietly does nothing forever after. Bluetooth and inactive vehicles never reach the
- * cold-start state, so they are never nudged.
+ * and the hard cap is not yet reached. Bluetooth and inactive vehicles never reach the cold-start
+ * state, so they are never nudged.
+ *
+ * A PERMANENTLY spent nudge (park confirmed, or cap exhausted) owns no clock: the worker cancels
+ * its own periodic on the tick that finds it spent, and [syncSchedule] refuses to (re)install it
+ * at app start — otherwise the periodic wakes daily forever doing nothing, spending the shared
+ * background-job quota Android 16 meters per app. [DET-SPENT-NUDGE-MUST-STOP-WAKING-001]
  */
 class FirstParkNudgeWorker(
     appContext: Context,
@@ -42,6 +47,14 @@ class FirstParkNudgeWorker(
             appPreferences.setLastFirstParkNudgeAt(now)
             PaparcarLogger.d(TAG, "▶ cold-start nudge shown (count=${appPreferences.firstParkNudgeCount})")
         }
+        // Checked AFTER the show so the tick that fires the last capped nudge also retires the
+        // clock, instead of waking once more just to notice. Cancelling the unique work from
+        // inside its own run is safe: there is nothing left to do below, and the periodic must
+        // not survive either way. [DET-SPENT-NUDGE-MUST-STOP-WAKING-001]
+        if (isFirstParkNudgeSpent(appPreferences.hasConfirmedFirstPark, appPreferences.firstParkNudgeCount)) {
+            PaparcarLogger.d(TAG, "■ nudge permanently spent — cancelling its daily periodic [DET-SPENT-NUDGE-MUST-STOP-WAKING-001]")
+            WorkManager.getInstance(applicationContext).cancelUniqueWork(TAG)
+        }
         return Result.success()
     }
 
@@ -54,12 +67,22 @@ class FirstParkNudgeWorker(
                 .addTag(TAG)
                 .build()
 
-        fun enqueueKeep(workManager: WorkManager) {
-            workManager.enqueueUniquePeriodicWork(
-                TAG,
-                ExistingPeriodicWorkPolicy.KEEP,
-                buildPeriodicRequest(),
-            )
+        /**
+         * Installs the daily periodic — or, when the nudge is permanently spent, removes it.
+         * The cancel branch is what retires the clock on devices where the state went spent
+         * while the app was dead (the worker's own self-cancel never got to run): app start is
+         * the first moment we reliably get. [DET-SPENT-NUDGE-MUST-STOP-WAKING-001]
+         */
+        fun syncSchedule(workManager: WorkManager, nudgeSpent: Boolean) {
+            if (nudgeSpent) {
+                workManager.cancelUniqueWork(TAG)
+            } else {
+                workManager.enqueueUniquePeriodicWork(
+                    TAG,
+                    ExistingPeriodicWorkPolicy.KEEP,
+                    buildPeriodicRequest(),
+                )
+            }
         }
     }
 }
