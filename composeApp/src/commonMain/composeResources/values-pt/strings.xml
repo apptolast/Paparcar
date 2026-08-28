@@ -349,8 +349,10 @@
     <string name="confirmation_sheet_withdraw">Não, não estacionei</string>
     <string name="confirmation_sheet_autoconfirm_in">Confirma-se sozinha em %1$s</string>
     <string name="settings_section_map">Mapa</string>
-    <string name="settings_distance_unit">Unidades imperiais</string>
-    <string name="settings_distance_unit_desc">Mostrar distâncias em milhas e pés</string>
+    <string name="settings_distance_unit">Unidades de distância</string>
+    <string name="settings_distance_unit_desc">Para lugares, rotas e estatísticas</string>
+    <string name="settings_distance_unit_metric">Quilómetros (km)</string>
+    <string name="settings_distance_unit_imperial">Milhas (mi)</string>
     <string name="home_filter_empty_title">Nenhuma vaga para este tamanho</string>
     <string name="home_filter_empty_subtitle">Tente outro filtro ou volte mais tarde</string>
     <string name="home_filter_empty_clear">Limpar filtro</string>

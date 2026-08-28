@@ -349,8 +349,10 @@
     <string name="confirmation_sheet_withdraw">Nee, ik heb niet geparkeerd</string>
     <string name="confirmation_sheet_autoconfirm_in">Wordt over %1$s automatisch bevestigd</string>
     <string name="settings_section_map">Kaart</string>
-    <string name="settings_distance_unit">Imperiale eenheden</string>
-    <string name="settings_distance_unit_desc">Toon afstanden in mijlen en voet</string>
+    <string name="settings_distance_unit">Afstandseenheden</string>
+    <string name="settings_distance_unit_desc">Voor plekken, routes en statistieken</string>
+    <string name="settings_distance_unit_metric">Kilometers (km)</string>
+    <string name="settings_distance_unit_imperial">Mijlen (mi)</string>
     <string name="home_filter_empty_title">Geen plekken voor dit formaat</string>
     <string name="home_filter_empty_subtitle">Probeer een ander filter of kom later terug</string>
     <string name="home_filter_empty_clear">Filter verwijderen</string>

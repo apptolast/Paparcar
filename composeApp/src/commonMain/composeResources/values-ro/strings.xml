@@ -349,8 +349,10 @@
     <string name="confirmation_sheet_withdraw">Nu, nu am parcat</string>
     <string name="confirmation_sheet_autoconfirm_in">Se confirmă automat în %1$s</string>
     <string name="settings_section_map">Hartă</string>
-    <string name="settings_distance_unit">Unități imperiale</string>
-    <string name="settings_distance_unit_desc">Afișează distanțele în mile și picioare</string>
+    <string name="settings_distance_unit">Unități de distanță</string>
+    <string name="settings_distance_unit_desc">Pentru locuri, trasee și statistici</string>
+    <string name="settings_distance_unit_metric">Kilometri (km)</string>
+    <string name="settings_distance_unit_imperial">Mile (mi)</string>
     <string name="home_filter_empty_title">Niciun loc pentru această dimensiune</string>
     <string name="home_filter_empty_subtitle">Încearcă alt filtru sau revino mai târziu</string>
     <string name="home_filter_empty_clear">Șterge filtrul</string>

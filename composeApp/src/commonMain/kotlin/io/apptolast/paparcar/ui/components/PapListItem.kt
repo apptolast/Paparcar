@@ -90,6 +90,9 @@ fun PapListItem(
                 maxLines = titleMaxLines,
                 overflow = TextOverflow.Ellipsis,
             )
+            if (subtitleSlot != null || subtitle != null) {
+                Spacer(Modifier.height(TITLE_SUBTITLE_GAP_DP.dp))
+            }
             when {
                 subtitleSlot != null -> subtitleSlot()
                 subtitle != null -> Text(
@@ -125,3 +128,5 @@ private const val ROW_H_PAD_DP = 16
 private const val ROW_V_PAD_DP = 14
 private const val ROW_GAP_DP = 14
 private const val OVERLINE_GAP_DP = 2
+/** One breathing gap between title and its subtitle/meta row, uniform for every consumer. */
+private const val TITLE_SUBTITLE_GAP_DP = 4

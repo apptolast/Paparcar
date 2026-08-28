@@ -521,8 +521,10 @@
     <string name="confirmation_sheet_method_bt">Detected by Bluetooth · %1$s ago</string>
     <string name="confirmation_sheet_method_ar">Auto-detected · %1$s ago</string>
     <string name="settings_section_map">Map</string>
-    <string name="settings_distance_unit">Imperial units</string>
-    <string name="settings_distance_unit_desc">Show distances in miles and feet</string>
+    <string name="settings_distance_unit">Distance units</string>
+    <string name="settings_distance_unit_desc">For spots, routes and stats</string>
+    <string name="settings_distance_unit_metric">Kilometers (km)</string>
+    <string name="settings_distance_unit_imperial">Miles (mi)</string>
     <!-- Home — empty filtered spots feedback -->
     <string name="home_filter_empty_title">No spots for this size</string>
     <string name="home_filter_empty_subtitle">Try a different filter or check back later</string>

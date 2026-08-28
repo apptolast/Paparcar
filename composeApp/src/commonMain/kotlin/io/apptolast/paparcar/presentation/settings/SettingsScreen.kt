@@ -1,8 +1,6 @@
 package io.apptolast.paparcar.presentation.settings
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -15,7 +13,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
@@ -26,7 +23,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material.icons.rounded.BatteryFull
@@ -38,6 +34,7 @@ import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Email
 import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Map
@@ -55,6 +52,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -73,7 +73,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -106,12 +105,8 @@ import io.apptolast.paparcar.ui.components.PapSwitchRow
 import io.apptolast.paparcar.ui.theme.PapAlpha
 import io.apptolast.paparcar.ui.theme.PapBorders
 import io.apptolast.paparcar.ui.theme.PaparcarSpacing
-import io.apptolast.paparcar.ui.theme.PapCardLight
-import io.apptolast.paparcar.ui.theme.PapInk
-import io.apptolast.paparcar.ui.theme.PapInkHigh
 import io.apptolast.paparcar.ui.theme.PapMotion
 import io.apptolast.paparcar.ui.theme.PapShapes
-import io.apptolast.paparcar.ui.theme.PapSurfaceLight
 import io.apptolast.paparcar.ui.theme.PaparcarType
 import io.apptolast.paparcar.ui.theme.outlineSubtle
 import kotlinx.coroutines.launch
@@ -151,6 +146,8 @@ import paparcar.composeapp.generated.resources.settings_detection_improve
 import paparcar.composeapp.generated.resources.settings_detection_setup
 import paparcar.composeapp.generated.resources.settings_distance_unit
 import paparcar.composeapp.generated.resources.settings_distance_unit_desc
+import paparcar.composeapp.generated.resources.settings_distance_unit_imperial
+import paparcar.composeapp.generated.resources.settings_distance_unit_metric
 import paparcar.composeapp.generated.resources.settings_language
 import paparcar.composeapp.generated.resources.settings_language_auto
 import paparcar.composeapp.generated.resources.settings_language_desc
@@ -363,7 +360,20 @@ internal fun SettingsContent(
                     }
                     PapOutlinedCard(modifier = Modifier.fillMaxWidth()) {
                         Column {
-                            ThemeBlock(selected = themeMode, onSelect = onSetThemeMode)
+                            // Same quiet row anatomy as every other setting — the big theme
+                            // swatches read as a foreign widget on this screen.
+                            SettingsSegmentedRow(
+                                icon = Icons.Rounded.DarkMode,
+                                title = stringResource(Res.string.settings_theme_mode),
+                                subtitle = stringResource(Res.string.settings_theme_mode_desc),
+                                options = listOf(
+                                    ThemeMode.LIGHT to stringResource(Res.string.settings_theme_mode_light),
+                                    ThemeMode.DARK to stringResource(Res.string.settings_theme_mode_dark),
+                                    ThemeMode.SYSTEM to stringResource(Res.string.settings_theme_mode_system),
+                                ),
+                                selected = themeMode,
+                                onSelect = onSetThemeMode,
+                            )
                             PapDivider()
                             LanguageDropdownRow(
                                 label = stringResource(Res.string.settings_language),
@@ -380,13 +390,19 @@ internal fun SettingsContent(
                 item { SectionHeaderMuted(stringResource(Res.string.settings_section_map)) }
                 item {
                     PapOutlinedCard(modifier = Modifier.fillMaxWidth()) {
-                        PapSwitchRow(
+                        // Exactly two unit systems, so both are offered by NAME, always visible,
+                        // one tap — a segmented control, not an on/off "imperial" switch the user
+                        // must already know how to read, nor a dropdown hiding the alternative.
+                        SettingsSegmentedRow(
                             icon = Icons.Rounded.Map,
-                            label = stringResource(Res.string.settings_distance_unit),
-                            description = stringResource(Res.string.settings_distance_unit_desc),
-                            checked = imperialUnits,
-                            onCheckedChange = onToggleImperialUnits,
-                            subtitleColor = settingsSubtitleColor(),
+                            title = stringResource(Res.string.settings_distance_unit),
+                            subtitle = stringResource(Res.string.settings_distance_unit_desc),
+                            options = listOf(
+                                false to stringResource(Res.string.settings_distance_unit_metric),
+                                true to stringResource(Res.string.settings_distance_unit_imperial),
+                            ),
+                            selected = imperialUnits,
+                            onSelect = onToggleImperialUnits,
                         )
                     }
                 }
@@ -759,124 +775,57 @@ private fun ProfileAvatar(displayName: String, photoUrl: String?) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Appearance — theme block (mini previews) + language
+// Appearance — theme + language
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Settings row offering 2–5 mutually exclusive options by NAME: the shared list-item anatomy
+ * (icon + title + subtitle) with an M3 segmented control underneath. The selected segment follows
+ * the house chip recipe ([io.apptolast.paparcar.ui.components.chips.PaparcarFilterChip]):
+ * primaryContainer fill + primary border/text — never the M3 default secondaryContainer.
+ * [UI-COLOR-DOCTRINE-001]
+ */
 @Composable
-private fun ThemeBlock(selected: ThemeMode, onSelect: (ThemeMode) -> Unit) {
-    val cs = MaterialTheme.colorScheme
-    Column(modifier = Modifier.padding(16.dp)) {
-        Text(
-            stringResource(Res.string.settings_theme_mode),
-            style = PaparcarType.current.body,
-            fontWeight = FontWeight.SemiBold,
-            color = cs.onSurface,
-        )
-        Text(
-            stringResource(Res.string.settings_theme_mode_desc),
-            style = PaparcarType.current.caption,
-            color = cs.onSurface.copy(alpha = PapAlpha.subtitle),
-        )
-        Spacer(Modifier.size(12.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            ThemePreview(
-                mode = ThemeMode.LIGHT,
-                selected = selected == ThemeMode.LIGHT,
-                label = stringResource(Res.string.settings_theme_mode_light),
-                onClick = { onSelect(ThemeMode.LIGHT) },
-                modifier = Modifier.weight(1f),
-            )
-            ThemePreview(
-                mode = ThemeMode.DARK,
-                selected = selected == ThemeMode.DARK,
-                label = stringResource(Res.string.settings_theme_mode_dark),
-                onClick = { onSelect(ThemeMode.DARK) },
-                modifier = Modifier.weight(1f),
-            )
-            ThemePreview(
-                mode = ThemeMode.SYSTEM,
-                selected = selected == ThemeMode.SYSTEM,
-                label = stringResource(Res.string.settings_theme_mode_system),
-                onClick = { onSelect(ThemeMode.SYSTEM) },
-                modifier = Modifier.weight(1f),
-            )
-        }
-    }
-}
-
-@Composable
-private fun ThemePreview(
-    mode: ThemeMode,
-    selected: Boolean,
-    label: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
+private fun <K> SettingsSegmentedRow(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    options: List<Pair<K, String>>,
+    selected: K,
+    onSelect: (K) -> Unit,
 ) {
     val cs = MaterialTheme.colorScheme
-    val (bg, surfaceColor) = when (mode) {
-        ThemeMode.LIGHT  -> THEME_LIGHT_BG to THEME_LIGHT_SURFACE
-        ThemeMode.DARK   -> THEME_DARK_BG to THEME_DARK_SURFACE
-        ThemeMode.SYSTEM -> THEME_LIGHT_BG to THEME_DARK_SURFACE
-    }
-    // Smoothly grow/recolour the selection ring instead of a hard swap.
-    val borderColor by animateColorAsState(
-        targetValue = if (selected) cs.primary else cs.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA),
-        animationSpec = PapMotion.fast(),
-        label = "theme_preview_border_color",
-    )
-    val borderWidth by animateDpAsState(
-        targetValue = if (selected) PapBorders.strong else PapBorders.thin,
-        animationSpec = PapMotion.fast(),
-        label = "theme_preview_border_width",
-    )
-
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Surface(
-            onClick = onClick,
+    Column {
+        PapListItem(
+            leading = { PapIconTile(icon = icon) },
+            title = title,
+            subtitle = subtitle,
+            subtitleColor = settingsSubtitleColor(),
+        )
+        val segmentColors = SegmentedButtonDefaults.colors(
+            activeContainerColor = cs.primaryContainer,
+            activeContentColor = cs.primary,
+            activeBorderColor = cs.primary,
+            inactiveContainerColor = Color.Transparent,
+            inactiveContentColor = cs.onSurface,
+            inactiveBorderColor = cs.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA),
+        )
+        SingleChoiceSegmentedButtonRow(
             modifier = Modifier
                 .fillMaxWidth()
-                .aspectRatio(THEME_PREVIEW_RATIO),
-            shape = PapShapes.button,
-            color = bg,
-            border = BorderStroke(borderWidth, borderColor),
+                .padding(start = 16.dp, end = 16.dp, bottom = 14.dp),
         ) {
-            if (mode == ThemeMode.SYSTEM) {
-                // diagonal split light/dark
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.linearGradient(
-                                0.0f to THEME_LIGHT_BG,
-                                0.5f to THEME_LIGHT_BG,
-                                0.5f to THEME_DARK_BG,
-                                1.0f to THEME_DARK_BG,
-                            ),
-                        ),
-                )
-            } else {
-                Box(modifier = Modifier.fillMaxSize().background(bg)) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(20.dp)
-                            .align(Alignment.BottomCenter)
-                            .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
-                            .background(surfaceColor),
-                    )
+            options.forEachIndexed { index, (key, label) ->
+                SegmentedButton(
+                    selected = key == selected,
+                    onClick = { onSelect(key) },
+                    shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
+                    colors = segmentColors,
+                ) {
+                    Text(label, style = PaparcarType.current.label)
                 }
             }
         }
-        Spacer(Modifier.size(6.dp))
-        Text(
-            text = label,
-            style = PaparcarType.current.label,
-            fontWeight = FontWeight.Bold,
-            color = if (selected) cs.primary else cs.onSurface.copy(alpha = PapAlpha.subtitle),
-        )
     }
 }
 
@@ -999,12 +948,3 @@ private val CONTENT_V_PADDING = PaparcarSpacing.sm
 
 private const val AVATAR_DP = 56
 
-private const val THEME_PREVIEW_RATIO = 0.85f
-
-
-// Mirror the *real* theme surfaces so the swatches (and the System diagonal)
-// preview exactly what the app renders — not a stand-in greenish palette.
-private val THEME_LIGHT_BG = PapSurfaceLight   // light page background (#F0F4FB)
-private val THEME_LIGHT_SURFACE = PapCardLight // light card surface (#FFFFFF)
-private val THEME_DARK_BG = PapInk             // dark app base (#0D1117)
-private val THEME_DARK_SURFACE = PapInkHigh    // dark card surface (#1A2232)

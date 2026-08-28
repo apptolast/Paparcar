@@ -11,6 +11,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import io.apptolast.paparcar.domain.detection.PendingParkNudge
+import io.apptolast.paparcar.localePrefersImperialUnits
 import io.apptolast.paparcar.domain.detection.PendingPromptWindow
 import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.preferences.ThemeMode
@@ -200,7 +201,7 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
     // ── Units ────────────────────────────────────────────────────────────────
 
     override val useImperialUnits: Boolean
-        get() = get(Keys.USE_IMPERIAL_UNITS, false)
+        get() = get(Keys.USE_IMPERIAL_UNITS, localePrefersImperialUnits())
 
     override fun setUseImperialUnits(enabled: Boolean) = set(Keys.USE_IMPERIAL_UNITS, enabled)
 

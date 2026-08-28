@@ -349,8 +349,10 @@
     <string name="confirmation_sheet_withdraw">Nein, ich habe nicht geparkt</string>
     <string name="confirmation_sheet_autoconfirm_in">Wird in %1$s automatisch bestätigt</string>
     <string name="settings_section_map">Karte</string>
-    <string name="settings_distance_unit">Imperiale Einheiten</string>
-    <string name="settings_distance_unit_desc">Entfernungen in Meilen und Fuß anzeigen</string>
+    <string name="settings_distance_unit">Entfernungseinheiten</string>
+    <string name="settings_distance_unit_desc">Für Plätze, Routen und Statistiken</string>
+    <string name="settings_distance_unit_metric">Kilometer (km)</string>
+    <string name="settings_distance_unit_imperial">Meilen (mi)</string>
     <string name="home_filter_empty_title">Keine Plätze für diese Größe</string>
     <string name="home_filter_empty_subtitle">Versuche einen anderen Filter oder komm später wieder</string>
     <string name="home_filter_empty_clear">Filter entfernen</string>

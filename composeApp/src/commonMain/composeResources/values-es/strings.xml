@@ -496,8 +496,10 @@
     <string name="confirmation_sheet_method_bt">Detección por Bluetooth · hace %1$s</string>
     <string name="confirmation_sheet_method_ar">Detección automática · hace %1$s</string>
     <string name="settings_section_map">Mapa</string>
-    <string name="settings_distance_unit">Unidades imperiales</string>
-    <string name="settings_distance_unit_desc">Mostrar distancias en millas y pies</string>
+    <string name="settings_distance_unit">Unidades de distancia</string>
+    <string name="settings_distance_unit_desc">Para plazas, rutas y estadísticas</string>
+    <string name="settings_distance_unit_metric">Kilómetros (km)</string>
+    <string name="settings_distance_unit_imperial">Millas (mi)</string>
     <string name="home_filter_empty_title">Sin plazas para este tamaño</string>
     <string name="home_filter_empty_subtitle">Prueba otro filtro o vuelve más tarde</string>
     <string name="home_filter_empty_clear">Quitar filtro</string>

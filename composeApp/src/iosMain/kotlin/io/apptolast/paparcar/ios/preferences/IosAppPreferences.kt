@@ -1,6 +1,7 @@
 package io.apptolast.paparcar.ios.preferences
 
 import io.apptolast.paparcar.domain.detection.PendingParkNudge
+import io.apptolast.paparcar.localePrefersImperialUnits
 import io.apptolast.paparcar.domain.detection.PendingPromptWindow
 import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.preferences.ThemeMode
@@ -187,7 +188,11 @@ class IosAppPreferences : AppPreferences {
     }
 
     override val useImperialUnits: Boolean
-        get() = userDefaults.boolForKey(KEY_USE_IMPERIAL_UNITS)
+        get() = if (userDefaults.objectForKey(KEY_USE_IMPERIAL_UNITS) != null) {
+            userDefaults.boolForKey(KEY_USE_IMPERIAL_UNITS)
+        } else {
+            localePrefersImperialUnits()
+        }
 
     override fun setUseImperialUnits(enabled: Boolean) {
         userDefaults.setBool(enabled, forKey = KEY_USE_IMPERIAL_UNITS)
