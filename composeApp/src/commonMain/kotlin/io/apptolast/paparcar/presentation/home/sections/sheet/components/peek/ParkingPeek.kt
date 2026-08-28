@@ -39,6 +39,7 @@ import paparcar.composeapp.generated.resources.home_parking_leave_release
 import paparcar.composeapp.generated.resources.home_peek_car_parked_label
 import paparcar.composeapp.generated.resources.home_peek_parking_duration_hm
 import paparcar.composeapp.generated.resources.home_peek_parking_duration_min
+import paparcar.composeapp.generated.resources.home_peek_parking_duration_now
 import paparcar.composeapp.generated.resources.home_peek_step_next_car
 import paparcar.composeapp.generated.resources.home_peek_step_prev_car
 import paparcar.composeapp.generated.resources.home_peek_vehicle_parked_label
@@ -175,10 +176,12 @@ internal fun ParkingDurationRow(timestampMs: Long, accentColor: Color) {
     val nowMs = rememberNowMinuteTick()
     val elapsedMin = ((nowMs - timestampMs) / MS_PER_MINUTE)
         .toInt().coerceAtLeast(0)
-    val durationText = if (elapsedMin < 60) {
-        stringResource(Res.string.home_peek_parking_duration_min, elapsedMin)
-    } else {
-        stringResource(Res.string.home_peek_parking_duration_hm, elapsedMin / 60, elapsedMin % 60)
+    val durationText = when {
+        // A counter at zero says nothing — the first minute reads like a person would say it.
+        // [UI-JUST-PARKED-READS-AS-NOW-001]
+        elapsedMin < 1 -> stringResource(Res.string.home_peek_parking_duration_now)
+        elapsedMin < 60 -> stringResource(Res.string.home_peek_parking_duration_min, elapsedMin)
+        else -> stringResource(Res.string.home_peek_parking_duration_hm, elapsedMin / 60, elapsedMin % 60)
     }
     PeekMetaRow(icon = Icons.Rounded.Schedule, text = durationText, tint = accentColor)
 }

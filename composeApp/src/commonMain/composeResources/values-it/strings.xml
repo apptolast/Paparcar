@@ -519,9 +519,11 @@
     <string name="home_peek_car_parked_label">La tua auto è parcheggiata</string>
     <string name="home_peek_parking_duration_hm">Parcheggiato %1$dh %2$dm fa</string>
     <string name="home_peek_parking_duration_min">Parcheggiato %1$d min fa</string>
+    <string name="home_peek_parking_duration_now">Parcheggiato proprio ora</string>
     <string name="home_peek_parking_approximate">Da qualche parte entro %1$d m: abbiamo perso la fine del viaggio. Modifica per posizionarlo.</string>
     <string name="home_peek_spot_age_hour">Pubblicato %1$d h fa</string>
     <string name="home_peek_spot_age_min">Pubblicato %1$d min fa</string>
+    <string name="home_peek_spot_age_now">Pubblicato proprio ora</string>
     <string name="home_peek_spot_compat_large">auto grande</string>
     <string name="home_peek_spot_compat_medium">auto media</string>
     <string name="home_peek_spot_compat_moto">moto</string>

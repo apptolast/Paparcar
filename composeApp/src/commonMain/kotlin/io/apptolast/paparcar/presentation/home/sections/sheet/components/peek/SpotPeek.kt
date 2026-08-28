@@ -40,6 +40,7 @@ import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_navigate_to_spot
 import paparcar.composeapp.generated.resources.home_peek_spot_age_hour
 import paparcar.composeapp.generated.resources.home_peek_spot_age_min
+import paparcar.composeapp.generated.resources.home_peek_spot_age_now
 import paparcar.composeapp.generated.resources.home_peek_spot_en_route
 import paparcar.composeapp.generated.resources.home_peek_step_next_spot
 import paparcar.composeapp.generated.resources.home_peek_step_prev_spot
@@ -93,10 +94,12 @@ internal fun SpotPeek(
     val ttlMinutes = remainingMinutes(spot.expiresAt, nowMs)
     val spotAgeMin = ageMinutes(spot.location.timestamp, nowMs)
     val ageText = spotAgeMin?.let { minutes ->
-        if (minutes < MINUTES_PER_HOUR) {
-            stringResource(Res.string.home_peek_spot_age_min, minutes)
-        } else {
-            stringResource(Res.string.home_peek_spot_age_hour, minutes / MINUTES_PER_HOUR)
+        when {
+            // A counter at zero says nothing — the first minute reads like a person would say it.
+            // [UI-JUST-PARKED-READS-AS-NOW-001]
+            minutes < 1 -> stringResource(Res.string.home_peek_spot_age_now)
+            minutes < MINUTES_PER_HOUR -> stringResource(Res.string.home_peek_spot_age_min, minutes)
+            else -> stringResource(Res.string.home_peek_spot_age_hour, minutes / MINUTES_PER_HOUR)
         }
     }
 

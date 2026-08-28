@@ -559,10 +559,12 @@
     <string name="home_peek_spot_occupied">Already taken</string>
     <string name="home_peek_spot_en_route">%1$d on the way</string>
     <string name="home_peek_spot_age_min">Posted %1$d min ago</string>
+    <string name="home_peek_spot_age_now">Posted just now</string>
     <string name="home_peek_spot_age_hour">Posted %1$d h ago</string>
     <string name="home_peek_spot_size_unknown">Size not specified</string>
     <string name="home_peek_spot_reliability_label">Reliability</string>
     <string name="home_peek_parking_duration_min">Parked %1$d min ago</string>
+    <string name="home_peek_parking_duration_now">Parked just now</string>
     <string name="home_peek_parking_approximate">Somewhere within %1$d m — we lost the end of the trip. Edit to place it exactly.</string>
     <string name="home_peek_parking_duration_hm">Parked %1$dh %2$dm ago</string>
     <string name="home_report_size_section">Space size (optional)</string>
