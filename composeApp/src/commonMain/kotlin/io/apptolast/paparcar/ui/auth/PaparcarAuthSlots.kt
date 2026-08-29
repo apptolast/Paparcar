@@ -17,6 +17,7 @@ import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material.icons.rounded.Email
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.Phone
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -24,6 +25,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import io.apptolast.paparcar.ui.components.PapPrimaryButton
+import io.apptolast.paparcar.ui.components.PapProviderButton
 import io.apptolast.paparcar.ui.components.PaparcarLogo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -33,6 +35,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -40,11 +45,27 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.apptolast.customlogin.domain.model.IdentityProvider
 import com.apptolast.customlogin.presentation.slots.AuthScreenSlots
 import com.apptolast.customlogin.presentation.slots.LoginScreenSlots
 import com.apptolast.customlogin.presentation.slots.RegisterScreenSlots
-import com.apptolast.customlogin.presentation.slots.defaultslots.SocialLoginButtonsSection
 import io.apptolast.paparcar.ui.theme.PaparcarType
+import login.custom_login.generated.resources.Res as LoginRes
+import login.custom_login.generated.resources.apple_icon
+import login.custom_login.generated.resources.facebook_icon
+import login.custom_login.generated.resources.github_icon
+import login.custom_login.generated.resources.google_icon
+import login.custom_login.generated.resources.login_apple_button
+import login.custom_login.generated.resources.login_facebook_button
+import login.custom_login.generated.resources.login_github_button
+import login.custom_login.generated.resources.login_google_button
+import login.custom_login.generated.resources.login_magic_link_button
+import login.custom_login.generated.resources.login_microsoft_button
+import login.custom_login.generated.resources.login_phone_button
+import login.custom_login.generated.resources.login_twitter_button
+import login.custom_login.generated.resources.microsoft_icon
+import login.custom_login.generated.resources.twitter_icon
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.auth_cd_hide_password
@@ -65,6 +86,7 @@ private val HEADER_TITLE_TAGLINE_GAP = 4.dp
 private val HEADER_BOTTOM_SPACING = 8.dp
 private val FIELD_ICON_SIZE = 20.dp
 private val FIELD_CORNER_RADIUS = 14.dp
+private val PROVIDER_BUTTON_GAP = 10.dp
 
 fun paparcarAuthSlots(): AuthScreenSlots = AuthScreenSlots(
     login = LoginScreenSlots(
@@ -94,7 +116,7 @@ fun paparcarAuthSlots(): AuthScreenSlots = AuthScreenSlots(
             CompactForgotPasswordLink(onClick = onClick)
         },
         socialProviders = { providers, loadingProvider, onProviderClick ->
-            SocialLoginButtonsSection(
+            PaparcarSocialProviders(
                 providers = providers,
                 loadingProvider = loadingProvider,
                 onProviderClick = onProviderClick,
@@ -127,7 +149,7 @@ fun paparcarAuthSlots(): AuthScreenSlots = AuthScreenSlots(
             CompactSubmitButton(onClick = onClick, isLoading = isLoading, enabled = enabled, text = text)
         },
         socialProviders = { providers, loadingProvider, onProviderClick ->
-            SocialLoginButtonsSection(
+            PaparcarSocialProviders(
                 providers = providers,
                 loadingProvider = loadingProvider,
                 onProviderClick = onProviderClick,
@@ -139,7 +161,11 @@ fun paparcarAuthSlots(): AuthScreenSlots = AuthScreenSlots(
 @Composable
 private fun PaparcarAuthHeader() {
     Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
+        // Start, not centred: the container lays every child out full-width, so a centred header
+        // would float on its own axis while the fields, the CTA and the provider button all begin
+        // at the same left edge. The brand block belongs on that edge too.
+        // [UI-AUTH-HEADER-ALIGNS-WITH-ITS-FIELDS-001]
+        horizontalAlignment = Alignment.Start,
         modifier = Modifier.fillMaxWidth(),
     ) {
         Spacer(modifier = Modifier.height(HEADER_TOP_SPACING))
@@ -308,6 +334,111 @@ private fun CompactSubmitButton(
         enabled = enabled,
         modifier = Modifier.fillMaxWidth(),
     )
+}
+
+/**
+ * The sign-in-with-<provider> buttons, in Paparcar's button shape.
+ *
+ * Replaces the library's default section for one reason: its buttons are 12dp-radius rectangles,
+ * so stacked under our pill-shaped submit button they read as if they came from another app. The
+ * shell is ours ([PapProviderButton]); the brand mark and the already-translated label stay the
+ * library's, so adding a provider never means shipping a new string to nine locales.
+ * [UI-AUTH-HEADER-ALIGNS-WITH-ITS-FIELDS-001]
+ *
+ * While one provider is signing in, the others are disabled: two concurrent auth requests would
+ * race for the same session.
+ */
+@Composable
+private fun PaparcarSocialProviders(
+    providers: List<IdentityProvider>,
+    loadingProvider: IdentityProvider?,
+    onProviderClick: (IdentityProvider) -> Unit,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(PROVIDER_BUTTON_GAP),
+    ) {
+        providers.forEach { provider ->
+            val mark = providerMark(provider) ?: return@forEach
+            PapProviderButton(
+                label = mark.label,
+                icon = mark.icon,
+                onClick = { onProviderClick(provider) },
+                modifier = Modifier.fillMaxWidth(),
+                tint = mark.tint,
+                isLoading = loadingProvider == provider,
+                enabled = loadingProvider == null,
+            )
+        }
+    }
+}
+
+/** How a provider presents itself on its button: its name, its mark, and how the mark is coloured. */
+private data class ProviderMark(val label: String, val icon: Painter, val tint: Color?)
+
+/**
+ * Maps every provider the library can hand us — not just the ones
+ * [io.apptolast.paparcar.di.paparcarLoginConfig] offers today — so enabling one later cannot
+ * produce a blank or off-style button. `null` [ProviderMark.tint] means the mark is multicolour
+ * and must be drawn as-is.
+ */
+@Composable
+private fun providerMark(provider: IdentityProvider): ProviderMark? {
+    val monochrome = MaterialTheme.colorScheme.onSurface
+    return when (provider) {
+        IdentityProvider.Google -> ProviderMark(
+            label = stringResource(LoginRes.string.login_google_button),
+            icon = painterResource(LoginRes.drawable.google_icon),
+            tint = null,
+        )
+
+        IdentityProvider.Apple -> ProviderMark(
+            label = stringResource(LoginRes.string.login_apple_button),
+            icon = painterResource(LoginRes.drawable.apple_icon),
+            tint = monochrome,
+        )
+
+        IdentityProvider.Facebook -> ProviderMark(
+            label = stringResource(LoginRes.string.login_facebook_button),
+            icon = painterResource(LoginRes.drawable.facebook_icon),
+            tint = null,
+        )
+
+        IdentityProvider.GitHub -> ProviderMark(
+            label = stringResource(LoginRes.string.login_github_button),
+            icon = painterResource(LoginRes.drawable.github_icon),
+            tint = monochrome,
+        )
+
+        IdentityProvider.Microsoft -> ProviderMark(
+            label = stringResource(LoginRes.string.login_microsoft_button),
+            icon = painterResource(LoginRes.drawable.microsoft_icon),
+            tint = null,
+        )
+
+        IdentityProvider.Twitter -> ProviderMark(
+            label = stringResource(LoginRes.string.login_twitter_button),
+            icon = painterResource(LoginRes.drawable.twitter_icon),
+            tint = monochrome,
+        )
+
+        // Passwordless methods have no brand mark: a system icon names the channel instead.
+        IdentityProvider.MagicLink -> ProviderMark(
+            label = stringResource(LoginRes.string.login_magic_link_button),
+            icon = rememberVectorPainter(Icons.Rounded.Email),
+            tint = monochrome,
+        )
+
+        IdentityProvider.Phone -> ProviderMark(
+            label = stringResource(LoginRes.string.login_phone_button),
+            icon = rememberVectorPainter(Icons.Rounded.Phone),
+            tint = monochrome,
+        )
+
+        // A custom provider brings neither name nor mark, so there is nothing honest to draw —
+        // same call the library's own section makes.
+        is IdentityProvider.Custom -> null
+    }
 }
 
 @Composable
