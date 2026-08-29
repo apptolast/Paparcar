@@ -159,11 +159,11 @@ class SettingsViewModel(
             is SettingsIntent.FixDetectionReliability ->
                 sendEffect(SettingsEffect.NavigateToPermissions(PermissionsFocus.Producer))
             is SettingsIntent.OpenPrivacyPolicy ->
-                sendEffect(SettingsEffect.OpenUrl("https://paparcar.app/privacy"))
+                sendEffect(SettingsEffect.OpenUrl(PRIVACY_POLICY_URL))
             is SettingsIntent.OpenLicenses ->
-                sendEffect(SettingsEffect.OpenUrl("https://paparcar.app/licenses"))
+                sendEffect(SettingsEffect.OpenUrl(LICENSES_URL))
             is SettingsIntent.OpenContact ->
-                sendEffect(SettingsEffect.OpenUrl("mailto:hola@paparcar.app"))
+                sendEffect(SettingsEffect.OpenUrl(CONTACT_MAILTO))
             is SettingsIntent.RequestDeleteAccount ->
                 updateState { copy(showDeleteAccountConfirmation = true) }
             is SettingsIntent.DismissDeleteAccount ->
@@ -194,5 +194,15 @@ class SettingsViewModel(
 
     private companion object {
         const val TAG = "SettingsViewModel"
+
+        /** Live policy on the pap-26 default Hosting site — the URL declared in Play Console.
+         *  If a custom domain ever exists, connect it to the SAME site instead of changing this. */
+        const val PRIVACY_POLICY_URL = "https://pap-26.web.app/privacy-policy"
+
+        /** ⚠️ Still points at the unregistered paparcar.app domain — dead link. Real fix is an
+         *  in-app licenses screen (AboutLibraries), tracked as a settings-audit follow-up. */
+        const val LICENSES_URL = "https://paparcar.app/licenses"
+
+        const val CONTACT_MAILTO = "mailto:rndeveloper11501@gmail.com"
     }
 }
