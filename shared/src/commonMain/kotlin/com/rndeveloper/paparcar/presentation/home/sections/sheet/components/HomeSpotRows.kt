@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Campaign
 import androidx.compose.material.icons.rounded.FilterAltOff
+import androidx.compose.material.icons.rounded.Group
 import com.rndeveloper.paparcar.ui.illustrations.EmptySpotsIllustration
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -190,55 +191,27 @@ private fun SpotRowContent(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
-                // The distance rides WITH the name, aligned at the end so it forms a column down
-                // the list. It is the datum that decides whether you go, and down in the meta line
-                // it was third in a queue of tokens. Moving it here also frees the trailing slot,
-                // which is what stops long names from being truncated by "3 en route".
-                // Inter, not condensed: measured on device, the column is carried by position and
-                // weight — a third face buys nothing. [UI-TYPE-TWO-VOICES-ONE-ROW-001]
-                if (distanceM != null) {
-                    Text(
-                        distanceString(distanceM),
-                        style = PaparcarType.current.rowDistance,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                    )
-                }
             }
             Spacer(Modifier.height(2.dp))
             // Meta line — reliability tier · drive time · en-route count. All Inter: it shares a
             // line box with taxonomy you READ, one line under a name in Outfit. Barlow here was the
             // visible clash the user reported. [UI-TYPE-TWO-VOICES-ONE-ROW-001]
             val type = PaparcarType.current
+            // La meta se queda con lo que hace falta para DECIDIR desde la lista. Lo que describe la
+            // plaza una vez elegida vive en su modal, que ya lo pinta — la fila lo estaba
+            // repitiendo. [UI-SPOT-ROW-SAYS-WHAT-DECIDES-001]
+            //
+            //  - La fiabilidad sale: el color del puck ya la dice, y el modal la explica con su
+            //    medidor (`FiabilityIndicator`).
+            //  - SIN CONFIRMAR sale: el modal lo cuenta entero, con los dos botones que lo
+            //    resuelven. Aqui era una palabra larga sin salida. [DET-HANDOFF-NOT-MANUAL-001 §B.3]
+            //  - La gente en camino se queda, en icono + cifra: es la senal de que la plaza puede
+            //    estar cogida al llegar, y como glifo cuesta un tercio de lo que costaba escrita.
+            // El espaciado agrupa: tiempo y metros son el MISMO dato dicho de dos formas, asi que
+            // van pegados por su separador; la gente en camino es otra cosa y se separa mas. Un
+            // `spacedBy` uniforme los ponia a los tres a la misma distancia y se leian como tres
+            // datos sueltos.
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    palette.label.uppercase(),
-                    style = type.badge,
-                    color = palette.badgeBg,
-                    maxLines = 1,
-                )
-                Text(
-                    SheetTokens.META_SEPARATOR,
-                    style = type.meta,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = SheetTokens.META_SEPARATOR_ALPHA),
-                )
-                // [DET-HANDOFF-NOT-MANUAL-001 §B.3] Reliability and confirmation are different
-                // axes: the tier says how much the community trusts the report, this says whether
-                // anything measured that the car actually left. In ink, never tinted — it is a
-                // state, and states are written. [UI-COLOR-DOCTRINE-001]
-                if (spot.status == SpotStatus.PROVISIONAL) {
-                    Text(
-                        stringResource(Res.string.home_spot_unconfirmed_badge).uppercase(),
-                        style = type.badge,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = META_MUTED_ALPHA),
-                        maxLines = 1,
-                    )
-                    Text(
-                        SheetTokens.META_SEPARATOR,
-                        style = type.meta,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = SheetTokens.META_SEPARATOR_ALPHA),
-                    )
-                }
                 if (distanceM != null) {
                     Text(
                         driveTimeString(distanceM),
@@ -247,22 +220,34 @@ private fun SpotRowContent(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                }
-                // "3 en camino" moves down here from the trailing slot, which the distance now
-                // occupies. It is a count that qualifies the spot, so it belongs with the other
-                // meta tokens. [UI-TYPE-TWO-VOICES-ONE-ROW-001]
-                if (spot.enRouteCount > 0) {
                     Text(
                         SheetTokens.META_SEPARATOR,
                         style = type.meta,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = SheetTokens.META_SEPARATOR_ALPHA),
                     )
+                    // Los metros viven aqui, no arriba: la linea del nombre entera es para el NOMBRE,
+                    // que es lo que se escanea y lo que se truncaba en los sitios de nombre largo.
                     Text(
-                        stringResource(Res.string.spot_indicator_en_route, spot.enRouteCount),
+                        distanceString(distanceM),
+                        style = type.meta,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = SheetTokens.META_VALUE_ALPHA),
+                        maxLines = 1,
+                    )
+                }
+                if (spot.enRouteCount > 0) {
+                    Spacer(Modifier.width(EN_ROUTE_LEAD_GAP_DP.dp))
+                    Icon(
+                        imageVector = Icons.Rounded.Group,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = META_MUTED_ALPHA),
+                        modifier = Modifier.size(EN_ROUTE_ICON_DP.dp),
+                    )
+                    Spacer(Modifier.width(EN_ROUTE_GAP_DP.dp))
+                    Text(
+                        spot.enRouteCount.toString(),
                         style = type.meta,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = META_MUTED_ALPHA),
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
@@ -441,6 +426,10 @@ private const val SELECTION_INDICATOR_H_DP = 56
 private const val BADGE_DP = 42
 private const val POI_ICON_DP = 15
 private const val POI_ICON_GAP_DP = 5
+private const val EN_ROUTE_ICON_DP = 15
+private const val EN_ROUTE_GAP_DP = 4
+/** Aire ANTES del glifo de gente: los separa del par tiempo/distancia. */
+private const val EN_ROUTE_LEAD_GAP_DP = 14
 private const val SELECTED_ROW_BG_ALPHA = 0.30f
 // Separator between data tokens on the meta line ("FIABLE · 80 m · 1 min").
 private val META_MUTED_ALPHA = PapAlpha.subtitle

@@ -308,7 +308,7 @@ private fun TypographySampleScreen() {
                     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         Text("28", style = data.statNumber,
                             color = MaterialTheme.colorScheme.primary)
-                        Text("4,2 km", style = data.rowDistance,
+                        Text("4,2 km", style = data.meta,
                             color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.align(Alignment.CenterVertically))
                         Text("Compacto", style = data.badge,

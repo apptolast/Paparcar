@@ -431,7 +431,7 @@ private fun LabSpotRow(sample: SpotSample, variant: TypeVariant) {
     // El token de distancia, alineado al final y formando columna entre filas.
     // D lo pinta en Barlow (voz Cifra); E en Inter — la que se llevó la decisión.
     val distanceTokenStyle = when (variant) {
-        TypeVariant.TwoFamilies -> type.rowDistance
+        TypeVariant.TwoFamilies -> type.meta
         else -> barlowMeta.copy(fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
     }
 

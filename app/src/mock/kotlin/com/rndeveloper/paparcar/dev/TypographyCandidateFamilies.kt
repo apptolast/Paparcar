@@ -93,7 +93,7 @@ fun currentSet(): CandidateSet {
     return CandidateSet(
         title = "HOY · Outfit + Inter + Barlow",
         note = "Lo que acabas de mergear. Barlow sólo en la card de métricas.",
-        name = t.rowName, meta = t.meta, badge = t.badge, distance = t.rowDistance,
+        name = t.rowName, meta = t.meta, badge = t.badge, distance = t.meta,
         statNumber = t.statNumber, statLabel = t.statLabel,
     )
 }

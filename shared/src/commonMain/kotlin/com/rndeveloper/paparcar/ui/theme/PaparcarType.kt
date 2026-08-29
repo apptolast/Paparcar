@@ -95,14 +95,6 @@ class PaparcarType(
      *  (`body` + a SemiBold override at the call site). Promoted from "default plus override" to a
      *  role of its own, so it says what it is. [UI-TYPE-TWO-VOICES-ONE-ROW-001] */
     val rowTitle: TextStyle,
-    /** The figure aligned at the END of a row, forming a column down the list — the spot row's
-     *  distance. Same value as [rowTitle] today, but a different role because its precondition is
-     *  different (a column of figures, not a title) and it is the one that may need to move.
-     *
-     *  Deliberately NOT condensed: measured on device, the column reads just as well in Inter, and
-     *  the position + weight already say "this is a figure". Keeping it in Inter is what lets a spot
-     *  row hold two faces instead of three. [UI-TYPE-TWO-VOICES-ONE-ROW-001 · Resultado 5] */
-    val rowDistance: TextStyle,
     /** Prominent body — hero/onboarding subtitles, lead paragraphs. (== bodyLarge.) */
     val subtitle: TextStyle,
     /** Body copy — descriptions, helper paragraphs. (bodyMedium.) */
@@ -217,10 +209,6 @@ fun rememberPaparcarType(fonts: PapFontSet = defaultFontSet()): PaparcarType {
         rowTitle = TextStyle(
             fontFamily = inter, fontWeight = FontWeight.SemiBold,
             fontSize = 14.sp, lineHeight = 20.sp, letterSpacing = 0.25.sp,
-        ),
-        rowDistance = TextStyle(
-            fontFamily = inter, fontWeight = FontWeight.SemiBold,
-            fontSize = 14.sp, lineHeight = 20.sp, letterSpacing = 0.sp,
         ),
         subtitle = TextStyle(
             fontFamily = inter, fontWeight = FontWeight.Normal,
