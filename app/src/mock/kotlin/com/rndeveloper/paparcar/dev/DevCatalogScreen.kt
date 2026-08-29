@@ -46,7 +46,7 @@ fun DevCatalogScreen(
     onEnter: () -> Unit,
     onOpenGallery: () -> Unit = {},
     onOpenTypeLab: () -> Unit = {},
-    fontChoice: DevFontChoice = DevFontChoice.Current,
+    fontChoice: DevFontChoice = DevFontChoice.Shipping,
     onFontChoice: (DevFontChoice) -> Unit = {},
 ) {
     val cs = MaterialTheme.colorScheme

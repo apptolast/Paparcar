@@ -8,8 +8,10 @@ package com.rndeveloper.paparcar.dev
  * Ver una candidata en una fila aislada no dice si aguanta una pantalla de Ajustes entera.
  */
 enum class DevFontChoice(val label: String) {
-    Current("Outfit + Inter"),
-    Jakarta("Plus Jakarta"),
-    JakartaFull("Jakarta full"),
+    /** Lo que se envía. Es el PRIMERO y el que arranca por defecto: si el catálogo abriera en otra
+     *  familia, cualquier captura tomada del mock estaría documentando algo que no existe. */
+    Shipping("Jakarta (app)"),
+    Legacy("Outfit + Inter"),
+    JakartaWithBarlow("Jakarta + Barlow"),
     Archivo("Archivo"),
 }
