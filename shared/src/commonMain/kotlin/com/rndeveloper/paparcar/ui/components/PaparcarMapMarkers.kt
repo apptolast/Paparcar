@@ -66,8 +66,10 @@ import com.rndeveloper.paparcar.domain.model.SpotFreshness
 import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
 import com.rndeveloper.paparcar.ui.icons.icon
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
-import com.rndeveloper.paparcar.ui.theme.PapBlueLight
-import com.rndeveloper.paparcar.ui.theme.PapGreenLight
+import com.rndeveloper.paparcar.ui.theme.PapCarBlueLight
+import com.rndeveloper.paparcar.ui.theme.PapGreen
+import com.rndeveloper.paparcar.ui.theme.PapSpotFreshMap
+import com.rndeveloper.paparcar.ui.theme.PapWatchGreenLight
 import com.rndeveloper.paparcar.ui.theme.PapLiveMap
 import com.rndeveloper.paparcar.ui.theme.PapInk
 import com.rndeveloper.paparcar.ui.theme.PapOutlineVariantLight
@@ -99,8 +101,12 @@ private object MarkerColors {
     // Zone marker is now a theme-tinted centre label (primary / neutral+lock for private), so it
     // carries no hardcoded palette here. [ZONE-AREA-001]
 
-    // MyVehicle fallback teardrop (ParkingHistoryDetailScreen) — kept separate
-    val LegacyGreen   = Color(0xFF25F48C)
+    // MyVehicle fallback teardrop. `MyVehicleMarker` is reachable ONLY from previews and the Dev
+    // Catalog gallery — no production call site — so this pin is kept verbatim rather than
+    // restyled. `LegacyGreen` was a second literal holding PapGreen's exact value; it is now the
+    // token itself, so it cannot drift away from the brand it is copying.
+    // [UI-COLOR-EVERY-HUE-EARNS-ITS-MEANING-001]
+    val LegacyGreen   = PapGreen
     val LegacyForest  = Color(0xFF0D1C14)
 
     // Selection halo — two-pass so it reads on any map tile background
@@ -160,8 +166,8 @@ fun VehicleBadgeMarker(
     val onSurface = MaterialTheme.colorScheme.onSurface
     val borderColor = when {
         selected -> onSurface
-        isBluetoothPaired -> PapBlueLight
-        isActive -> PapGreenLight
+        isBluetoothPaired -> PapCarBlueLight
+        isActive -> PapWatchGreenLight
         else -> PapOutlineVariantLight
     }
     // Theme-aware tag fill: white in light, near-black ink in dark — the original look. The full-colour
@@ -483,7 +489,10 @@ private val MY_VEHICLE_H = 55.dp
 // The en-route tone is NOT here: "someone is moving toward this spot" is the same semantic as the
 // driving car and the trip trail, so it reads the shared [PapLiveMap]. [UI-COLOR-DOCTRINE-001]
 private object SpotPalette {
-    val Green       = Color(0xFF009F5E) // libre · fresca
+    // `Green` was #009F5E — the EXACT value the active-vehicle marker used two hundred lines up.
+    // A stranger's free spot and your own watched car were the same pixel on the same layer,
+    // simultaneously, always. [UI-COLOR-EVERY-HUE-EARNS-ITS-MEANING-001]
+    val Green       = PapSpotFreshMap // libre · fresca
     val Amber       = Color(0xFFE08200) // libre · enfriándose
     val Red         = Color(0xFFE0322F) // libre · caduca ya
     val Paper       = Color(0xFFFFFFFF) // fixed white — ring / "P" / TTL ring / badge discs

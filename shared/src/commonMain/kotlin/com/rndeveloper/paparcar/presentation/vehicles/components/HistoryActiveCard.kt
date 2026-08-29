@@ -13,14 +13,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.rndeveloper.paparcar.ui.theme.PapGreen
 import com.rndeveloper.paparcar.ui.theme.PapMotion
 
 private const val PULSE_EXPAND_DURATION = PapMotion.PulseExpand
 private const val PULSE_COLLAPSE_DURATION = PapMotion.PulseCollapse
 
+/**
+ * The pulsing dot of a live session. [color] is REQUIRED and must come from
+ * `vehicleIdentityColor` — this dot is the one element the doctrine puts the vehicle's identity on
+ * (`COLOR-SYSTEM.md` §3), so it can never fall back to the brand green.
+ * [UI-COLOR-EVERY-HUE-EARNS-ITS-MEANING-001]
+ */
 @Composable
-internal fun PulsingDot(color: Color = PapGreen, modifier: Modifier = Modifier) {
+internal fun PulsingDot(color: Color, modifier: Modifier = Modifier) {
     val ring = remember { Animatable(0f) }
     LaunchedEffect(Unit) {
         while (true) {

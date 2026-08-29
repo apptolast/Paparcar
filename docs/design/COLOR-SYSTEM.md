@@ -11,9 +11,17 @@
 
 ## 0. La doctrina en una frase
 
-> **La app es VERDE (marca). El color del NOMBRE de un coche dice CÓMO se le vigila: verde =
-> detección activa, azul = Bluetooth, gris = sin vigilar. El estado (aparcado / en ruta / sin
-> aparcar) se ESCRIBE en `onSurface` y se anima — nunca se tiñe.**
+> **La app es VERDE (marca). El color del NOMBRE de un coche dice CÓMO se le vigila: verde de
+> vigilancia = detección activa, azul = Bluetooth, gris = sin vigilar. El estado (aparcado / en ruta
+> / sin aparcar) se ESCRIBE en `onSurface` y se anima — nunca se tiñe.**
+
+Desde [UI-COLOR-EVERY-HUE-EARNS-ITS-MEANING-001] hay **tres verdes, no uno**, en un espectro donde la
+marca queda en medio y cada vecino a ≥14° de tono:
+
+> `FRESH` lima (h≈128) — **`BRAND` menta (h≈151)** — `WATCH` teal-esmeralda (h≈166)
+
+*La marca* es lo que la app te ofrece; *la vigilancia* es lo que la app hace por tu coche; *la
+frescura* es lo que otro vecino acaba de dejar libre. Eran el mismo píxel.
 
 Violar esto es un bug de diseño, igual que un `fontSize` inline.
 
@@ -66,7 +74,9 @@ su método (estable), y "aparcado / en ruta" es texto neutro que se anima.
 
 | Canal | Significa — y NADA más | Dónde vive |
 |---|---|---|
-| 🟢 **Verde primario** | La MARCA y la acción (tema de siempre) + vehículo con **detección activa** | CTAs, links, nav, spinners, punto de usuario · nombre/glifo/borde/marcador del coche asistido |
+| 🟢 **Verde marca** `PapGreen`/`PapGreenLight` | La MARCA y la acción — y NADA más | CTAs, links, nav, spinners, punto de usuario, mobiliario de gráficas |
+| 🟩 **Verde vigilancia** `PapWatchGreen*` | Vehículo con **detección activa** (tier asistido) | Glifo/badge/borde/marcador del coche asistido |
+| 🟢 **Verde frescura** `PapSpotFresh*` | Cabeza de la rampa de plazas — ver fila de la rampa | Puck de plaza libre fresca, chip de fiabilidad ALTA, anillo TTL |
 | 🔵 **Azul `papCarBlue`** | Vehículo vigilado por **Bluetooth** | Nombre, glifo BT, badge, borde, marcador del coche BT |
 | 🔵 **Azul `PapLiveMap`** (solo mapa) | Movimiento sobre tiles | Traza del viaje, punto de origen, pin en-route, FAB sigue-coche |
 | ⚪ **Gris** | Vehículo **sin vigilancia** / ausencias | Nombre gris, anillo hueco, borde neutro |
@@ -75,9 +85,21 @@ su método (estable), y "aparcado / en ruta" es texto neutro que se anima.
 | 🟠🔴 **Ámbar/Rojo** | Se acaba el tiempo / algo te necesita | Permisos, errores, destructivo, TTL crítico |
 | 🚗 **Multicolor** | QUÉ coche es — el retrato, jamás mezclado con estado | Glifo ilustrado del vehículo (Nivel 3 de iconos) |
 
-El verde tiene tres papeles (marca, coche activo, plaza fresca) en anatomías que no se tocan:
-pastilla rellena grande / nombre+glifo radar del coche / puck pequeño con "P". Ese verde compartido
-es deliberado: "la app trabajando para ti" y "tu coche vigilado por la app" son la misma promesa.
+El verde tiene tres papeles —marca, coche vigilado, plaza fresca— y hasta el 29-08-2026 los tres
+compartían **un solo valor**. La v3 lo defendía diciendo que las anatomías no se tocan (pastilla
+rellena / nombre+glifo radar / puck con "P") y que *"la app trabajando para ti"* y *"tu coche
+vigilado"* son la misma promesa.
+
+Medido, ese argumento se cae por dos sitios:
+
+1. **Sí se tocan.** En el mapa, el marcador del coche activo y el puck de plaza libre eran el mismo
+   literal `#009F5E`, en la misma capa, a la vez, siempre. ΔE00 = 0.00.
+2. **Aunque marca y coche sean la misma promesa, la plaza de otro vecino no lo es** — y la propia
+   doctrina llama a la rampa de frescura *exclusiva*.
+
+Ahora cada papel tiene su tono (§0). Marca y vigilancia siguen siendo parientes cercanos, porque esa
+parte del argumento era buena: son dos caras de la app trabajando. La plaza fresca se va al lima,
+que además alarga el primer escalón de su propia rampa hacia el ámbar.
 
 ---
 
@@ -87,7 +109,7 @@ Resolver único `ui/theme/VehicleIdentity.kt` → `vehicleIdentityColor(watch)`:
 
 | Vigilancia | Color | Glifo junto al nombre | Badge | Borde de tarjeta | Marcador mapa |
 |---|---|---|---|---|---|
-| **Detección activa** (Coordinator/asistida) | verde `primary` | radar/geocerca (`Icons.Rounded.Radar`) | "ACTIVO" | verde @ 0.55 | marco `PapGreenLight` |
+| **Detección activa** (Coordinator/asistida) | `papWatchGreen` (**ya no** `primary`) | radar/geocerca (`Icons.Rounded.Radar`) | "ACTIVO" | verde vigilancia @ 0.55 | marco `PapWatchGreenLight` |
 | **Bluetooth** (automático) | `papCarBlue` | marca BT | "BLUETOOTH" | azul @ 0.55 | marco `PapBlueLight` |
 | **Sin vigilar** | gris `onSurfaceVariant` | anillo hueco | "INACTIVO" | outline neutro | marco `PapOutlineVariantLight` |
 
@@ -118,7 +140,7 @@ identidad. [UI-HISTORY-IDENTITY-AND-SOURCE-001][VEH-STATS-SAY-SOMETHING-USEFUL-0
 |---|---|---|
 | `papCarBlue` (BT, theme-aware) | `#5B9EFF` (7.0:1 sobre `PapInk`) | `#0057CA` (6.5:1 sobre blanco) |
 | `PapLiveMap` (movimiento, fija solo-mapa) | `#2F6BFF` | `#2F6BFF` |
-| `vehicleIdentityContainer(watch)` / `onVehicleIdentityContainer(watch)` — relleno SÓLIDO de una tarjeta que ES un coche (la sesión viva del historial), y su color de contenido. Nace porque `primaryContainer` solo existe en verde: un coche BT anunciaba su sesión viva en el color del tier asistido. La pierna verde ES el `primaryContainer` del esquema; la azul es su espejo con los tokens que el esquema ya usa en sus slots azules. Se probó un wash traslúcido de la identidad y se descartó en device: la tarjeta viva tiene que leerse RELLENA. | `PapBlueMuted` + `papCarBlue` | `PapBlueContainerLight` + `PapOnBlue` |
+| `vehicleIdentityContainer(watch)` / `onVehicleIdentityContainer(watch)` — relleno SÓLIDO de una tarjeta que ES un coche (la sesión viva del historial), y su color de contenido. Nace porque `primaryContainer` solo existe en verde: un coche BT anunciaba su sesión viva en el color del tier asistido. Se probó un wash traslúcido de la identidad y se descartó en device: la tarjeta viva tiene que leerse RELLENA. **Desde la fase 2 la pierna verde tiene su PROPIA cama** (`PapWatchGreenMuted` / `PapWatchGreenContainerLight` + `PapOnWatchGreenContainerLight`): era el `primaryContainer` del esquema, y al separarse los verdes eso habría rellenado la tarjeta de un coche vigilado con el verde de MARCA mientras su punto y su borde ya eran teal. | `PapBlueMuted` + `papCarBlue` | `PapBlueContainerLight` + `PapOnBlue` |
 
 ### 3.1 El estado NUNCA tiñe — se escribe y se anima
 
@@ -184,6 +206,50 @@ Test Konsist (`ColorGuardrailTest`, F6), igual que tipografía y dividers:
    teñir el ESTADO del vehículo con un color — el estado es texto `onSurface` (+ animación).
 3. **Prohibido declarar `Color(0x…)` literal** en `presentation/` — los valores viven en `ui/theme/`.
 4. Todo token nuevo en `Color.kt` exige una fila en §2/§3 con su historia única.
+5. **Un hex, una historia** — `no two colour stories share a hex`
+   [UI-COLOR-EVERY-HUE-EARNS-ITS-MEANING-001]. La regla 4 era prosa, así que nadie la ejecutaba y
+   **cinco pares de tokens** volvieron a compartir valor bajo nombres distintos: exactamente el
+   desorden que §1 describe como el problema original, sobreviviendo renombrado. Dos tokens pueden
+   compartir valor **sólo declarando la misma historia** en la tabla `PALETTE` del test; una
+   coincidencia sin declarar falla. El quinto par (`PapAmberMuted` = `PapOnAmberContainerLight`
+   = `#3D2A10`) **lo encontró el test, no el ojo, en su primera ejecución**.
+6. **Los tres verdes no vuelven a juntarse** — `the three greens stay perceptually apart in both
+   themes`. La igualdad exacta de hex **no** es el invariante: un futuro ΔE00 de 2 sería igual de
+   indistinguible y pasaría la regla 5. El suelo es perceptual (≥ 14° de tono, ≥ 18 CIE76 en Lab, en
+   los dos temas) y vive en el TONO, por la razón de §8 (2026-08-29, fase 2).
+
+---
+
+## 7.1 Roles de color — `ui/theme/PapColor.kt` [UI-COLOR-EVERY-HUE-EARNS-ITS-MEANING-001]
+
+> **El color lo decide el TRABAJO, no el widget. Dos trabajos pueden compartir un hex sólo si este
+> sistema declara que son la misma promesa — y nunca si se ven a la vez.**
+
+Es el gemelo de la regla de tipografía (*el rol posee su peso*). Nace de una medición:
+`colorScheme.primary` hacía **nueve trabajos distintos** en 50 call sites de 26 ficheros — acción,
+selección, foco, logro, mobiliario de marca, identidad de coche asistido, mapa, spinner y, en
+`VehicleColorLabels`, **un dato AUSENTE**. Un token al que se le pide por nueve nombres que no tiene
+no se puede razonar, ni cambiar para un trabajo sin cambiarlo para los otros ocho.
+
+| Rol | Historia |
+|---|---|
+| `action` / `onAction` | algo que se PULSA: CTA, link, botón de footer, confirmar de diálogo |
+| `selected` | "esta opción es la ELEGIDA" — selectores, segmentos, puntos de página |
+| `focus` | el campo que tiene el CURSOR |
+| `progress` | un escalón CONSEGUIDO: permiso concedido, tier alcanzado |
+| `brandData` | mobiliario de marca sobre datos: gráfica, tiles de icono, overlines, cifras |
+| `attention` / `onAttention` | algo PENDIENTE que puedes arreglar: permiso sin dar, GPS pobre |
+| `danger` / `onDanger` | bloqueado, destructivo o fallido — **nunca** un CTA |
+| `live` | MOVIMIENTO sobre teselas: traza, origen, pin en-route, FAB sigue-coche |
+| `unknown` | un dato que NO tenemos — neutro a propósito |
+
+Varios roles resuelven hoy al mismo valor. **No es redundancia**: un rol con nombre puede divergir
+luego sin arqueología, y nombrarlo obliga a que compartir sea una decisión escrita en vez de un
+accidente sin fecha.
+
+Lo que **no** vive ahí: la identidad de vehículo (`vehicleIdentityColor`), la rampa de frescura
+(`stateColors()`) y los neutros (`onSurface`/`onSurfaceVariant` + `PapAlpha`), que ya son
+inequívocos.
 
 ---
 
@@ -203,6 +269,71 @@ Test Konsist (`ColorGuardrailTest`, F6), igual que tipografía y dividers:
   diana a radar/geocerca; historial/stats/selector vuelven al verde de marca; `papLive` UI muere —
   `PapLiveMap` queda solo-mapa. Se conservan de v1/v2: resolver único, retiro de `tertiary`,
   MANUAL como procedencia (F5), rampa exclusiva de plazas, tokens AA, guardarraíles.
+- **2026-08-29 (UI-COLOR-EVERY-HUE-EARNS-ITS-MEANING-001, fase 1)** — la tabla se audita con
+  medición (contraste WCAG 2.1 + CIEDE2000), no a ojo. Lo que salió:
+  - ⚠️ **El `primary` del tema claro NO cumple AA como texto**: `#009F5E` mide **3.01:1** sobre el
+    scaffold `PapAzure`, con 4.5:1 de mínimo — mientras el azul BT de al lado mide 5.72:1. La frase
+    «tokens AA» heredada de la v1 es falsa para este token. Se cambió a `#237A46` y **el user lo
+    revocó en device el mismo día** (ver la entrada de fase 2): el verde corporativo no se toca.
+    Queda como **deuda conocida y aceptada**, no como despiste: como relleno y como glifo/borde
+    (objeto gráfico, suelo 3.0) cumple; donde es texto verde pequeño sobre claro, no. Si se arregla,
+    se arregla dándole al TEXTO su propia variante oscura — nunca apagando la marca.
+  - **Cinco pares de tokens compartían valor**: `PapGreenLight`/`PapGreenOutlineLight`/
+    `SpotPalette.Green` (`#009F5E`), `PapBlue`/`PapCarBlueDark` (`#5B9EFF`), `PapBlueLight`/
+    `PapCarBlueLight` (`#0057CA`), `PapGreen`/`SpotPalette.LegacyGreen` (`#25F48C`) y
+    `PapAmberMuted`/`PapOnAmberContainerLight` (`#3D2A10`). `PapBlue`, `PapBlueLight` y `PapForest`
+    (muerto) se borran; el esquema respalda sus slots azules con los tokens de coche-BT;
+    `PapGreenOutlineLight` queda como **alias declarado** de `PapGreenLight`.
+  - **Tres bugs de criterio**: el punto pulsante de la sesión viva tenía el verde de marca
+    *hardcodeado* por defecto (`PulsingDot`) cuando es justo el elemento que lleva la identidad
+    (§3); el banner de GPS pintaba `Color.White` crudo sobre un relleno semántico; y un color de
+    coche **desconocido** se pintaba con el verde de marca — un dato ausente vestido de identidad.
+  - Nace §7.1 (roles) y el guardarraíl §7.5.
+- **2026-08-29 (UI-COLOR-EVERY-HUE-EARNS-ITS-MEANING-001, fase 2)** — **los tres verdes se separan**.
+  Espectro con la marca en medio: `FRESH` lima h≈128 · `BRAND` menta h≈151 · `WATCH` teal-esmeralda
+  h≈166. Tokens nuevos: `PapWatchGreen` `#0FBF9A` / `PapWatchGreenLight` `#05876D` ·
+  `PapSpotFresh` `#8FE83C` / `PapSpotFreshMuted` `#0F3B08` / `PapSpotFreshLight` `#398701`.
+  Valores claros finales tras el juicio en device: `PapGreenLight` `#009F5E` (intacto) y
+  `PapWatchGreenLight` `#05876D`.
+  `vehicleIdentityColor(Assisted)` deja de ser `colorScheme.primary`, y la rampa de frescura deja de
+  usar `PapGreen`/`PapGreenMuted`.
+  - **La separación va en el TONO, nunca en la luminosidad ni en el alfa.** No es preferencia: la v1
+    se revocó en device porque su distinción más importante viajaba en el alfa de un borde de 1dp,
+    un eje de ÉNFASIS. Dos verdes separados sólo por claridad se leen como *"el mismo color, más
+    flojo"* — el mismo error con otro sombrero. Todos los pares: ΔE00 ≥ 12.5 y ≥ 14° de tono en
+    ambos temas.
+  - **Cada valor cumple el suelo del trabajo que hace**, no un suelo genérico: la plaza fresca no es
+    texto sino un RELLENO que lo lleva, así que se le exige 4.5:1 contra su etiqueta y 3:1 contra su
+    cama — pedirle 4.5:1 como texto es lo que estrangulaba el tema claro y producía un verde-gris
+    apagado (C\*=21) igual al que hundió la v1.
+  - Guardarraíl §7.6: los tres verdes no pueden volver a juntarse, con suelo **perceptual** (ΔE76 y
+    ángulo de tono), porque la igualdad exacta de hex no es el invariante — ser indistinguibles lo es.
+  - ✅ **Visto en device (Oppo, mock, 29-08)** — y el tema claro se corrigió ahí mismo:
+    - El **oscuro se aprobó tal cual**: `#25F48C` · `#0FBF9A` · `#8FE83C`.
+    - El **claro se revocó**: *«te has cargado el verde corporativo del logotipo, has metido un verde
+      oscuro camuflaje»*. Causa medida: exigir 4.5:1 **como texto** sobre un scaffold casi blanco
+      arrastra los tres verdes a L\*=31-45, entre 15 y 25 puntos por debajo del corporativo. El peor
+      era el de vigilancia, `#00543D` (L\*=31, C\*=30): oscuro **y** apagado a la vez.
+    - Claro definitivo: marca **`#009F5E` restaurada intacta** · vigilancia **`#05876D`** (L\*=50, la
+      mitad más de croma que el revocado) · plaza **`#398701`**.
+    - **La rampa de spots deja de tomar prestados el ámbar y el rojo DEL TEMA** (`PapAmberLight`,
+      `PapRedLight`), que son los de warning y error y por eso son oscuros por necesidad: eso hacía
+      que los spots se leyeran apagados **como conjunto**, no sólo el verde. La rampa estrena sus
+      tres tokens claros — `#5FBF1F` · `#E08200` · `#E0322F` — que son **los del mapa**: una sola
+      rampa, los mismos tres tonos en el sheet y sobre las teselas.
+    - ⚠️ **Deuda aceptada, decidida en device viendo las dos versiones**: como TEXTO sobre tarjeta
+      blanca esos tres miden 2.34 / 2.85 / 4.50 : 1. La versión que cumplía AA se juzgó demasiado
+      oscura para lo que esto es — una señal de frescura, no prosa. **La forma de tener las dos
+      cosas** es pintar la etiqueta de fiabilidad como badge RELLENO (relleno vivo + texto tinta,
+      8.07:1) en vez de como texto de color; sus campos todavía se llaman `badgeBg`/`badgeFg` de
+      cuando lo era. Queda como follow-up explícito, no hecho a escondidas.
+    - El puck del mapa conserva su lima profundo (`PapSpotFreshMap` `#398701`): lleva una "P" blanca
+      encima y el lima vivo la dejaría en 1.9:1.
+  - 🐞 Encontrado **en device, no por el barrido**: `HomeDetectionSurface` escribía la pierna verde
+    de su tono de identidad como `cs.primary`. Correcto mientras marca y vigilancia eran el mismo
+    valor, y silenciosamente falso en cuanto dejaron de serlo — la fila que dice «vigilando ESTE
+    coche» vestía el color de la app. Es el modo de fallo típico de este refactor: separar dos
+    tokens convierte cada `primary` mal puesto en un bug visible.
 - **2026-08-11** — `MANUAL` fuera de `SpotReliabilityUiState` (F5): frescura ≠ procedencia.
 - **2026-08-29 (UI-THEME-OPTION-SHOWS-ITS-THEME-001)** — el selector de Tema es el **único** sitio
   donde se pinta a propósito el color del tema CONTRARIO: cada opción lleva un círculo con la

@@ -8,10 +8,9 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 
 // ── Dark scheme — near-black ink surfaces with neon-green brand accent ──────
-// Surfaces (background + surface family) now use the PapInk ramp; dark greens
-// (PapForest*, PapGreen*) are reserved for interactive accents (primary container,
-// outlines, hero cards) so the app reads as dark and elegant while keeping the
-// brand's green identity on actionable elements.
+// Surfaces (background + surface family) use the PapInk ramp; the dark greens (PapGreen*) are
+// reserved for interactive accents (primary container, outlines, hero cards) so the app reads as
+// dark and elegant while keeping the brand's green identity on actionable elements.
 private val DarkColorScheme = darkColorScheme(
     primary = PapGreen,
     onPrimary = PapInk,
@@ -35,10 +34,10 @@ private val DarkColorScheme = darkColorScheme(
     surfaceTint = PapGreen,                    // elevation tonal overlay stays green
     outline = PapNeutralOutline,
     outlineVariant = PapInkHighest,
-    tertiary = PapBlue,
+    tertiary = PapCarBlueDark,
     onTertiary = PapOnBlue,
     tertiaryContainer = PapBlueMuted,
-    onTertiaryContainer = PapBlue,
+    onTertiaryContainer = PapCarBlueDark,
     error = PapRed,
     errorContainer = PapRedMuted,
     onError = PapOnRed,
@@ -56,7 +55,7 @@ private val LightColorScheme = lightColorScheme(
     onSecondary = Color.White,
     secondaryContainer = PapAmberContainerLight,
     onSecondaryContainer = PapOnAmberContainerLight,
-    tertiary = PapBlueLight,
+    tertiary = PapCarBlueLight,
     onTertiary = Color.White,
     tertiaryContainer = PapBlueContainerLight,
     onTertiaryContainer = PapOnBlue,

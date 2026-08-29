@@ -40,6 +40,7 @@ import com.rndeveloper.paparcar.presentation.home.model.DetectionStory
 import com.rndeveloper.paparcar.presentation.home.model.ParkedWatchBadge
 import com.rndeveloper.paparcar.ui.theme.PapBorders
 import com.rndeveloper.paparcar.ui.theme.papCarBlue
+import com.rndeveloper.paparcar.ui.theme.papWatchGreen
 import com.rndeveloper.paparcar.ui.theme.PapShapes
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
@@ -138,7 +139,13 @@ fun HomeDetectionSurface(
     val brand = Tone(cs.primary, cs.onPrimary, cs.primary.copy(alpha = INFO_CONTAINER_ALPHA), cs.primary, isError = false)
     val carBlue = papCarBlue
     val bluetooth = Tone(carBlue, cs.surface, carBlue.copy(alpha = INFO_CONTAINER_ALPHA), carBlue, isError = false)
-    fun methodTone(viaBluetooth: Boolean) = if (viaBluetooth) bluetooth else brand
+    // The green leg of the identity tone. It used to be `brand` above — correct while the brand
+    // green and the watched-vehicle green were the same value, and silently wrong the moment they
+    // stopped being: this row says "we are watching THIS car", so it must wear the car's colour,
+    // not the app's. Caught on device, not by the sweep. [UI-COLOR-EVERY-HUE-EARNS-ITS-MEANING-001]
+    val watchGreen = papWatchGreen
+    val watched = Tone(watchGreen, cs.surface, watchGreen.copy(alpha = INFO_CONTAINER_ALPHA), watchGreen, isError = false)
+    fun methodTone(viaBluetooth: Boolean) = if (viaBluetooth) bluetooth else watched
 
     when (story) {
         // [DET-ASK-STATE-001] The question the app is waiting on, asked in-app with the SAME two

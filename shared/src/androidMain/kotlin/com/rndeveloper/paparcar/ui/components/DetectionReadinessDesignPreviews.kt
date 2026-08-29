@@ -42,7 +42,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.ui.theme.PapAmber
-import com.rndeveloper.paparcar.ui.theme.PapBlue
+import com.rndeveloper.paparcar.ui.theme.PapCarBlueDark
 import com.rndeveloper.paparcar.ui.theme.PapGreen
 import com.rndeveloper.paparcar.ui.theme.PapRed
 import com.rndeveloper.paparcar.ui.theme.PapShapes
@@ -132,7 +132,7 @@ private fun visualFor(state: DesignState): RVisual = when (state) {
 
     DesignState.AwaitingFirstPark -> RVisual(
         icon = Icons.Rounded.LocalParking,
-        tint = PapBlue,
+        tint = PapCarBlueDark,
         title = "Where's your car?",
         subtitle = "Mark your spot to start automating parking",
         cta = "Mark my spot",
@@ -633,7 +633,7 @@ private fun MockVehicleChip(name: String, parked: Boolean, status: @Composable (
 
 @Composable
 private fun TapToParkAffordance() {
-    Surface(shape = PapShapes.chip, color = PapBlue.copy(alpha = 0.16f), onClick = {}) {
+    Surface(shape = PapShapes.chip, color = PapCarBlueDark.copy(alpha = 0.16f), onClick = {}) {
         Row(
             modifier = Modifier.padding(horizontal = PaparcarSpacing.sm, vertical = 3.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -642,14 +642,14 @@ private fun TapToParkAffordance() {
             Icon(
                 imageVector = Icons.Rounded.Add,
                 contentDescription = null,
-                tint = PapBlue,
+                tint = PapCarBlueDark,
                 modifier = Modifier.size(14.dp),
             )
             Text(
                 text = "Tap to park",
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = PapBlue,
+                color = PapCarBlueDark,
             )
         }
     }
@@ -682,7 +682,7 @@ private fun VehicleChipAffordance() {
                 }
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(PaparcarSpacing.xs)) {
-                Text("after  ✦", style = MaterialTheme.typography.labelSmall, color = PapBlue)
+                Text("after  ✦", style = MaterialTheme.typography.labelSmall, color = PapCarBlueDark)
                 MockVehicleChip("Tesla M3", parked = false) { TapToParkAffordance() }
             }
         }

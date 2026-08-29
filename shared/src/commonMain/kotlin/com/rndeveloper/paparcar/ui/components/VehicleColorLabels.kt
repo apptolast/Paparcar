@@ -48,12 +48,17 @@ fun VehicleColor?.colorLabel(): String = stringResource(
 )
 
 /**
- * The colour to paint a selector swatch with, theme-aware so it matches the body
- * tint actually applied to the icon. `null` (default) uses the brand primary green.
+ * The colour to paint a selector swatch with, theme-aware so it matches the body tint actually
+ * applied to the icon.
+ *
+ * `null` means *"we don't know this car's colour"* — an ABSENT datum, which is painted neutral. It
+ * used to return the brand green, which dressed a missing value as identity: the swatch for "no
+ * colour chosen" was the same green as a CTA. A colour is earned by a story, and "unknown" has none.
+ * [UI-COLOR-EVERY-HUE-EARNS-ITS-MEANING-001]
  */
 @Composable
 fun VehicleColor?.swatchColor(): Color {
-    if (this == null) return MaterialTheme.colorScheme.primary
+    if (this == null) return MaterialTheme.colorScheme.onSurfaceVariant
     val isDark = MaterialTheme.colorScheme.surface.luminance() < DARK_SURFACE_LUMINANCE
     return Color(if (isDark) bodyDarkArgb else bodyLightArgb)
 }

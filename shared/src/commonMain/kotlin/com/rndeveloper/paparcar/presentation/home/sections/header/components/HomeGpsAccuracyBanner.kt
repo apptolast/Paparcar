@@ -20,7 +20,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.ui.theme.PapMotion
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
@@ -30,6 +29,7 @@ import paparcar.composeapp.generated.resources.home_gps_accuracy_banner
 
 private const val ACCURACY_GOOD_THRESHOLD_M = 20f
 private const val ACCURACY_MEDIUM_THRESHOLD_M = 50f
+private const val BANNER_FILL_ALPHA = 0.88f
 
 private enum class GpsAccuracyLevel { GOOD, MEDIUM, POOR }
 
@@ -59,10 +59,18 @@ fun HomeGpsAccuracyBanner(
         exit = fadeOut(PapMotion.medium()) + slideOutVertically(PapMotion.medium()) { -it / 2 },
         modifier = modifier,
     ) {
-        val containerColor = if (level == GpsAccuracyLevel.POOR) {
-            MaterialTheme.colorScheme.error.copy(alpha = 0.88f)
+        // The banner's content colour is the `on…` of whatever fills it, never a raw white: a fill
+        // token and its content token move together. [UI-COLOR-EVERY-HUE-EARNS-ITS-MEANING-001]
+        val poor = level == GpsAccuracyLevel.POOR
+        val containerColor = if (poor) {
+            MaterialTheme.colorScheme.error.copy(alpha = BANNER_FILL_ALPHA)
         } else {
-            MaterialTheme.colorScheme.secondary.copy(alpha = 0.88f)
+            MaterialTheme.colorScheme.secondary.copy(alpha = BANNER_FILL_ALPHA)
+        }
+        val contentColor = if (poor) {
+            MaterialTheme.colorScheme.onError
+        } else {
+            MaterialTheme.colorScheme.onSecondary
         }
 
         Surface(
@@ -77,14 +85,14 @@ fun HomeGpsAccuracyBanner(
                 Icon(
                     imageVector = Icons.Rounded.LocationOn,
                     contentDescription = null,
-                    tint = Color.White,
+                    tint = contentColor,
                     modifier = Modifier.size(14.dp),
                 )
                 Spacer(Modifier.width(4.dp))
                 Text(
                     text = stringResource(Res.string.home_gps_accuracy_banner, accuracy?.toInt() ?: 0),
                     style = PaparcarType.current.label,
-                    color = Color.White,
+                    color = contentColor,
                 )
             }
         }

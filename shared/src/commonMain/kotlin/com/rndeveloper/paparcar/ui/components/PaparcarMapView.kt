@@ -78,8 +78,8 @@ import com.rndeveloper.paparcar.presentation.util.freshness
 import com.rndeveloper.paparcar.presentation.util.zoneIconFor
 import com.rndeveloper.paparcar.ui.theme.PapLiveMap
 import com.rndeveloper.paparcar.ui.theme.PapGreen
-import com.rndeveloper.paparcar.ui.theme.PapBlueLight
-import com.rndeveloper.paparcar.ui.theme.PapGreenLight
+import com.rndeveloper.paparcar.ui.theme.PapCarBlueLight
+import com.rndeveloper.paparcar.ui.theme.PapWatchGreenLight
 import com.rndeveloper.paparcar.ui.theme.PapOutlineVariantLight
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.delay
@@ -1274,8 +1274,8 @@ fun PaparcarMapView(
     val doubtCircles = parkedVehicles.mapNotNull { v ->
         val radius = v.zoneRadiusMeters ?: return@mapNotNull null
         val base = when {
-            v.isBluetoothPaired -> PapBlueLight
-            v.isActive -> PapGreenLight
+            v.isBluetoothPaired -> PapCarBlueLight
+            v.isActive -> PapWatchGreenLight
             else -> PapOutlineVariantLight
         }
         val dim = if (dimSpots && v.sessionId != selectedSessionId) ZONE_CIRCLE_DIM_FACTOR else 1f

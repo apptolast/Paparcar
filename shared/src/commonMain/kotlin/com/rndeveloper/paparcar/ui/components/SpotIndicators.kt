@@ -22,8 +22,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.ui.theme.PapAmber
 import com.rndeveloper.paparcar.ui.theme.PapAmberMuted
-import com.rndeveloper.paparcar.ui.theme.PapGreen
-import com.rndeveloper.paparcar.ui.theme.PapGreenMuted
+import com.rndeveloper.paparcar.ui.theme.PapSpotFresh
+import com.rndeveloper.paparcar.ui.theme.PapSpotFreshMuted
 import com.rndeveloper.paparcar.ui.theme.PapRed
 import com.rndeveloper.paparcar.ui.theme.PapRedMuted
 import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
@@ -75,12 +75,12 @@ fun SpotAgeIndicator(
     val ageMinutes = (ageMs / MS_PER_MINUTE).coerceAtLeast(0L)
 
     val containerColor = when (freshness) {
-        SpotFreshness.FRESH  -> PapGreenMuted
+        SpotFreshness.FRESH  -> PapSpotFreshMuted
         SpotFreshness.RECENT -> PapAmberMuted
         SpotFreshness.STALE  -> PapRedMuted
     }
     val contentColor = when (freshness) {
-        SpotFreshness.FRESH  -> PapGreen
+        SpotFreshness.FRESH  -> PapSpotFresh
         SpotFreshness.RECENT -> PapAmber
         SpotFreshness.STALE  -> PapRed
     }

@@ -50,7 +50,9 @@ fun VehicleMonitoringStatus.watch(): VehicleWatch = when (this) {
 @Composable
 fun vehicleIdentityColor(watch: VehicleWatch): Color = when (watch) {
     VehicleWatch.Bluetooth -> papCarBlue
-    VehicleWatch.Assisted -> MaterialTheme.colorScheme.primary
+    // Was `colorScheme.primary` — the brand green itself, which made a watched car and a CTA the
+    // same pixel. `papWatchGreen` is its own hue now. [UI-COLOR-EVERY-HUE-EARNS-ITS-MEANING-001]
+    VehicleWatch.Assisted -> papWatchGreen
     VehicleWatch.Off -> MaterialTheme.colorScheme.onSurfaceVariant
 }
 
@@ -81,7 +83,11 @@ fun vehicleChassisBorder(
 @Composable
 fun vehicleIdentityContainer(watch: VehicleWatch): Color = when (watch) {
     VehicleWatch.Bluetooth -> if (isDarkSurface()) PapBlueMuted else PapBlueContainerLight
-    VehicleWatch.Assisted -> MaterialTheme.colorScheme.primaryContainer
+    // Was the scheme's `primaryContainer` — the BRAND's green bed. Once the watched-vehicle green
+    // stopped being the brand green, a watched car's live card would have been filled with the
+    // brand while its own dot and border read teal. Now it has its own bed, exactly like the
+    // Bluetooth leg has had all along. [UI-COLOR-EVERY-HUE-EARNS-ITS-MEANING-001]
+    VehicleWatch.Assisted -> if (isDarkSurface()) PapWatchGreenMuted else PapWatchGreenContainerLight
     VehicleWatch.Off -> MaterialTheme.colorScheme.surfaceContainerHigh
 }
 
@@ -90,7 +96,7 @@ fun vehicleIdentityContainer(watch: VehicleWatch): Color = when (watch) {
 @Composable
 fun onVehicleIdentityContainer(watch: VehicleWatch): Color = when (watch) {
     VehicleWatch.Bluetooth -> if (isDarkSurface()) papCarBlue else PapOnBlue
-    VehicleWatch.Assisted -> MaterialTheme.colorScheme.onPrimaryContainer
+    VehicleWatch.Assisted -> if (isDarkSurface()) PapWatchGreen else PapOnWatchGreenContainerLight
     VehicleWatch.Off -> MaterialTheme.colorScheme.onSurface
 }
 

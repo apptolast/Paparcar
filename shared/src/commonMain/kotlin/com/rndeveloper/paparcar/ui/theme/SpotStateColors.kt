@@ -13,10 +13,17 @@ private val isDark: Boolean
 
 @Composable
 fun SpotFreshness.stateColors(): SpotStateColors = when (this) {
-    SpotFreshness.FRESH   -> if (isDark) SpotStateColors(PapGreen,     PapInk)
-                                     else        SpotStateColors(PapGreenLight, Color.White)
-    SpotFreshness.RECENT -> if (isDark) SpotStateColors(PapAmber,     PapInk)
-                                     else        SpotStateColors(PapAmberLight, Color.White)
-    SpotFreshness.STALE    -> if (isDark) SpotStateColors(PapRed,       PapOnRed)
-                                     else        SpotStateColors(PapRedLight,   Color.White)
+    // FRESH was the BRAND green (PapGreen / PapGreenLight) — a stranger's free spot painted in the
+    // colour of our own CTAs. The ramp is exclusive to spots, so its head gets its own hue.
+    //
+    // The light legs are the ramp's OWN tokens now, not the theme's warning-amber and error-red.
+    // Borrowing those made the whole set read muddy, because a colour that has to mean "error" is
+    // dark by necessity. One ramp, the same three tones here and on the map.
+    // [UI-COLOR-EVERY-HUE-EARNS-ITS-MEANING-001]
+    SpotFreshness.FRESH  -> if (isDark) SpotStateColors(PapSpotFresh,      PapInk)
+                            else        SpotStateColors(PapSpotFreshLight, PapInk)
+    SpotFreshness.RECENT -> if (isDark) SpotStateColors(PapAmber,           PapInk)
+                            else        SpotStateColors(PapSpotCoolingLight, PapInk)
+    SpotFreshness.STALE  -> if (isDark) SpotStateColors(PapRed,               PapOnRed)
+                            else        SpotStateColors(PapSpotExpiringLight, Color.White)
 }

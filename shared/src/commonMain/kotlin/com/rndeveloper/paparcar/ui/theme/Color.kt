@@ -19,7 +19,6 @@ val PapInkHigh       = Color(0xFF1A2232)   // surfaceContainerHigh — cards
 val PapInkHighest    = Color(0xFF222C3E)   // surfaceContainerHighest — modals, popovers
 
 // Forest greens — demoted from surface to interactive accents (containers, outlines)
-val PapForest        = Color(0xFF0D1C14)   // legacy — kept for light-theme inverseSurface
 val PapGreenMuted    = Color(0xFF133D28)   // primaryContainer — dark green accent
 val PapGreenOutline  = Color(0xFF226D49)   // secondary-action border — visible but non-neon green
 
@@ -46,10 +45,14 @@ val PapRedMuted      = Color(0xFF3D1010)   // red container dark
 val PapOnRed         = Color(0xFF1C0606)
 
 // ⛔ Framework `tertiary` slot backing ONLY — the tertiary role is RETIRED [UI-COLOR-DOCTRINE-001 F6].
-// These tokens exist solely so the MaterialTheme scheme slots hold sane values (same hue family as
-// papCarBlue, so anything a framework component paints with tertiary blends into the my-car blue).
+// These tokens exist solely so the MaterialTheme scheme slots hold sane values.
 // Feature code must never read `colorScheme.tertiary*` — enforced by ColorGuardrailTest.
-val PapBlue          = Color(0xFF5B9EFF)
+//
+// `PapBlue` (#5B9EFF) and `PapBlueLight` (#0057CA) used to live here as separate names holding the
+// EXACT values of `PapCarBlueDark` / `PapCarBlueLight` — the same duplicate-hex pattern §1 of
+// COLOR-SYSTEM.md was written to kill, surviving under new names. The scheme now backs its blue
+// slots with the car-blue tokens themselves, so there is one blue with one story.
+// [UI-COLOR-EVERY-HUE-EARNS-ITS-MEANING-001]
 val PapBlueMuted     = Color(0xFF0F1F3D)
 val PapOnBlue        = Color(0xFF061021)
 
@@ -60,6 +63,90 @@ val PapOnBlue        = Color(0xFF061021)
 // LOC_HALO_BLUE. In the UI, movement is told by ANIMATION in the vehicle's identity colour — there
 // is no "driving blue" accent anymore.
 val PapLiveMap       = Color(0xFF2F6BFF)   // trail, origin dot, en-route pin, follow FAB — fixed
+
+// ── The three greens ──────────────────────────────────────────────────────────────────────────
+// Until [UI-COLOR-EVERY-HUE-EARNS-ITS-MEANING-001] the app had ONE green telling three unrelated
+// stories: the brand, a vehicle the app is watching, and a stranger's free spot. On the map the
+// last two were the same literal value (#009F5E) on the same layer at the same time — measured
+// ΔE00 = 0.00. The doctrine called the sharing deliberate; being indistinguishable is not a
+// decision, it is the absence of one.
+//
+// The three now sit on a HUE spectrum with the brand in the middle:
+//
+//     FRESH lime (h≈128)  ——  BRAND mint (h≈151)  ——  WATCH teal-emerald (h≈166)
+//
+// Separation is carried by hue, never by lightness or alpha. That is not a preference: v1 was
+// revoked on device precisely because its most important distinction rode on the alpha of a 1dp
+// border — an EMPHASIS axis. Two greens split only by lightness read as "the same colour, weaker",
+// which is the same mistake wearing a different hat. Every pair holds ΔE00 ≥ 12 and ≥ 14° of hue in
+// both themes, and each value meets the contrast floor of the job it actually does.
+
+/** A vehicle the app is ACTIVELY WATCHING (Coordinator/assisted tier) — its name's glyph, badge,
+ *  border and map marker. Deep teal-emerald: the instrument colour, "on duty", kin to the brand but
+ *  never mistakable for it. Not cyan — v1's cyan was rejected on device as incomprehensible.
+ *  5.97:1 on `PapInkHighest`; ΔE00 16.8 from `PapGreen`. */
+val PapWatchGreen      = Color(0xFF0FBF9A)
+
+/** Light-theme leg of [PapWatchGreen], and the FIXED tone of the vehicle marker on the map (markers
+ *  float over street tiles, so they do not theme-invert).
+ *
+ *  Was #00543D and revoked on device with the rest of the light trio: at L\*=31 / C\*=30 it was the
+ *  worst offender — dark AND dull, which is the "camouflage" the user saw. This one lives at L\*=50
+ *  with half again the chroma, alongside the corporate green instead of underneath it. 4.47:1 on
+ *  white (its marker ring), 3.92:1 on the scaffold; ΔE00 12.1 from the brand. */
+val PapWatchGreenLight = Color(0xFF05876D)
+
+/** Solid container for a card that IS an actively-watched vehicle — the live-session card of the
+ *  history timeline. The green leg of `vehicleIdentityContainer`, which used to borrow the BRAND's
+ *  `primaryContainer`: after the greens split that would have filled a watched car's card with the
+ *  brand's green while its own dot and border read teal. 5.37:1 with [PapWatchGreen] on it. */
+val PapWatchGreenMuted          = Color(0xFF0B3A31)
+
+/** Light-theme leg of [PapWatchGreenMuted]. 13.23:1 with [PapOnWatchGreenContainerLight]. */
+val PapWatchGreenContainerLight = Color(0xFFAAF0D8)
+
+/** Content on [PapWatchGreenContainerLight]. */
+val PapOnWatchGreenContainerLight = Color(0xFF00201A)
+
+/** A community spot still FRESH — head of the freshness ramp (fresh → cooling → expiring), a scale
+ *  the doctrine reserves exclusively for spot expiry. Lime side of green, so it never collides with
+ *  the brand or with a watched car. A bright FILL that carries `PapInk` text: 12.41:1 against its
+ *  own label, 9.20:1 against the card behind it. */
+val PapSpotFresh       = Color(0xFF8FE83C)
+
+/** The dark bed a fresh-spot TTL chip writes [PapSpotFresh] on — the lime mirror of
+ *  `PapGreenMuted`, which is the brand's container and was standing in for this. 8.35:1. */
+val PapSpotFreshMuted  = Color(0xFF0F3B08)
+
+// ── The spot ramp in the LIGHT theme ─────────────────────────────────────────────────────────
+// The ramp is EXCLUSIVE to spot expiry, but its light legs used to borrow the theme's own amber and
+// red — the tokens that also mean "warning" and "error". Those are dark by necessity, which is why
+// the spots read muddy as a SET, not just the green. The ramp now owns its three light values, and
+// they are the map's: one ramp, the same three tones in the sheet and on the tiles.
+//
+// ⚠️ Contrast, stated plainly: as TEXT on a white card these measure 2.34 / 2.85 / 4.50 : 1, below
+// the 4.5 floor for the first two. That is a DELIBERATE, user-made trade-off taken on device
+// (29-08) after seeing both: the AA-compliant version was judged too dark for what these are —
+// a freshness signal, not prose. The way to have both is to render the reliability label as a
+// FILLED badge (vivid fill + ink text, 8.07:1) instead of coloured text; its palette fields are
+// still called `badgeBg`/`badgeFg` from when it was one. Left as a follow-up, not done silently.
+// [UI-COLOR-EVERY-HUE-EARNS-ITS-MEANING-001]
+
+/** Light-theme leg of [PapSpotFresh] — reliability label, peek eyebrow, accent rows, meter. */
+val PapSpotFreshLight  = Color(0xFF5FBF1F)
+
+/** Cooling spot, light theme. Was `PapAmberLight`, which is the theme's WARNING amber. */
+val PapSpotCoolingLight = Color(0xFFE08200)
+
+/** Expiring spot, light theme. Was `PapRedLight`, which is the theme's ERROR red. */
+val PapSpotExpiringLight = Color(0xFFE0322F)
+
+/**
+ * The FIXED fill of the free-spot puck on the map. Separate from [PapSpotFreshLight] because the
+ * puck carries a white "P" and a white TTL ring, so it must stay dark enough for white to read on
+ * it: 4.53:1, where the vivid lime would give 1.9. Same story, two beds, both declared.
+ */
+val PapSpotFreshMap    = Color(0xFF398701)
 
 // ── Car blue — the BLUETOOTH-watched vehicle's identity colour. ───────────────────────────────
 // A vehicle's colour is its WATCH METHOD (green = active detection, blue = BT, grey = off) and it
@@ -79,10 +166,27 @@ val PapAzureLow      = Color(0xFFF4F6FC)   // surfaceContainerLow
 val PapAzure         = Color(0xFFECF0F9)   // surfaceContainer — sheet, nav
 
 // Teal-shifted emerald ramp — same hue DNA as PapGreen (#25F48C ≈ H150°).
-// #009F5E → H152°, L31% — electric/vibrant. onPrimary = Color.White in light theme
-// so filled surfaces (buttons, chips, icon circles) use white content on the green fill.
+// onPrimary = Color.White in light theme so filled surfaces (buttons, chips, icon circles) use
+// white content on the green fill.
+//
+// ⚠️ **This is the corporate green and it does NOT move.** It was briefly changed to #237A46 to
+// clear WCAG AA as text (3.01:1 against the light scaffold, where normal text wants 4.5:1) and the
+// user revoked it ON DEVICE (29-08): the darker green read as camouflage and the logo's identity was
+// gone. Measured, that verdict is exact — #237A46 sits 12.5 L* points below this one, and the whole
+// light trio built around it landed 15-25 points below where the dark trio lives.
+//
+// The contrast finding stands and is a KNOWN, ACCEPTED trade-off, not an oversight: as a fill
+// carrying white content, and as a glyph/border (graphical objects, floor 3.0), this token is fine.
+// Where it is small green TEXT on a light surface it is below AA, exactly as it has shipped for
+// months. Revisit by giving TEXT its own darker derivative — never by dulling the brand.
+// [UI-COLOR-EVERY-HUE-EARNS-ITS-MEANING-001]
 val PapGreenLight            = Color(0xFF009F5E)
-val PapGreenOutlineLight     = Color(0xFF009F5E)  // secondary-action border — primary green reads as border in light
+
+/** Secondary-action border in light theme. Deliberately the SAME value as [PapGreenLight] and
+ *  declared as an alias rather than a second literal: "the brand green read as a border" is the
+ *  same story, not a new one. Two names holding one hex by accident is the bug; by declaration it
+ *  is a system. [UI-COLOR-EVERY-HUE-EARNS-ITS-MEANING-001] */
+val PapGreenOutlineLight     = PapGreenLight
 val PapGreenContainerLight   = Color(0xFFA8F5D0)
 val PapOnGreenContainerLight = Color(0xFF002819)
 val PapSurfaceLight          = Color(0xFFF0F4FB)  // page background — blue-tinted (H217°)
@@ -95,11 +199,15 @@ val PapInverseSurfaceLight   = Color(0xFF0D1B33)  // dark navy for Snackbar/Toas
 val PapInverseOnSurfaceLight = Color(0xFFE8EDF8)  // text on inverse surface
 val PapAmberLight            = Color(0xFFB56000)
 val PapAmberContainerLight   = Color(0xFFFFDDB3)
-val PapOnAmberContainerLight = Color(0xFF3D2A10)
+// Content ON the light amber container. Was #3D2A10 — the exact value of `PapAmberMuted`, which is
+// the DARK theme's amber container FILL: a fill and a content colour, two different stories, holding
+// one hex by coincidence. Caught by `ColorGuardrailTest`, not by eye. #402400 reads as the same
+// brown and measures better against its own bed: 11.05:1 on PapAmberContainerLight (was 10.57:1).
+// [UI-COLOR-EVERY-HUE-EARNS-ITS-MEANING-001]
+val PapOnAmberContainerLight = Color(0xFF402400)
 
 // Light semantic counterparts
 val PapRedLight       = Color(0xFFBA1A1A)
-val PapBlueLight      = Color(0xFF0057CA)
 val PapBlueContainerLight = Color(0xFFD8E2FF)
 
 /** Theme-aware secondary-action border green — outlined buttons, the sheet edit icon-button.
@@ -119,6 +227,25 @@ val papCarBlue: Color
     @Composable get() =
         if (MaterialTheme.colorScheme.surface.luminance() < SURFACE_DARK_LUMINANCE) PapCarBlueDark
         else PapCarBlueLight
+
+/**
+ * Theme-aware **active-detection identity** accent — the colour of a vehicle the app is watching via
+ * the Coordinator tier: its glyph, badge, border and marker. The green leg of
+ * `vehicleIdentityColor`, and no longer `colorScheme.primary`: a watched car and a CTA used to be
+ * the same pixel, so "the app is watching this car" and "press me" were indistinguishable.
+ * Resolve through `vehicleIdentityColor`, not directly. [UI-COLOR-EVERY-HUE-EARNS-ITS-MEANING-001]
+ */
+val papWatchGreen: Color
+    @Composable get() =
+        if (MaterialTheme.colorScheme.surface.luminance() < SURFACE_DARK_LUMINANCE) PapWatchGreen
+        else PapWatchGreenLight
+
+/** Theme-aware fill for a FRESH community spot — the head of the freshness ramp. Never for a
+ *  vehicle, never for the brand. [UI-COLOR-EVERY-HUE-EARNS-ITS-MEANING-001] */
+val papSpotFresh: Color
+    @Composable get() =
+        if (MaterialTheme.colorScheme.surface.luminance() < SURFACE_DARK_LUMINANCE) PapSpotFresh
+        else PapSpotFreshLight
 
 /** Luminance below which a surface counts as "dark" for picking a theme variant. */
 internal const val SURFACE_DARK_LUMINANCE = 0.5f
