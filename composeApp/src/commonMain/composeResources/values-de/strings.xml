@@ -450,9 +450,6 @@
     <string name="relative_time_compact_day">%1$dT</string>
 
     <!-- Settings — language + delete account + contact -->
-    <string name="settings_language">Sprache</string>
-    <string name="settings_language_desc">App-Anzeigesprache</string>
-    <string name="settings_language_auto">Systemstandard</string>
     <string name="settings_contact">Kontakt</string>
     <string name="settings_send_diagnostics">Problem melden</string>
     <string name="settings_send_diagnostics_confirm_title">Diagnose senden?</string>

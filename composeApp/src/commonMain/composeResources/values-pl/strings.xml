@@ -454,9 +454,6 @@
     <string name="relative_time_compact_day">%1$dd</string>
 
     <!-- Settings — language + delete account + contact -->
-    <string name="settings_language">Język</string>
-    <string name="settings_language_desc">Język aplikacji</string>
-    <string name="settings_language_auto">Domyślny systemu</string>
     <string name="settings_contact">Kontakt</string>
     <string name="settings_send_diagnostics">Zgłoś problem</string>
     <string name="settings_send_diagnostics_confirm_title">Wysłać diagnostykę?</string>

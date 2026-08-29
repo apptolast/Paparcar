@@ -450,9 +450,6 @@
     <string name="relative_time_compact_day">%1$dz</string>
 
     <!-- Settings — language + delete account + contact -->
-    <string name="settings_language">Limbă</string>
-    <string name="settings_language_desc">Limba aplicației</string>
-    <string name="settings_language_auto">Implicit din sistem</string>
     <string name="settings_contact">Contact</string>
     <string name="settings_send_diagnostics">Raportează o problemă</string>
     <string name="settings_send_diagnostics_confirm_title">Trimiți diagnosticarea?</string>

@@ -10,10 +10,8 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.runtime.LaunchedEffect
 import androidx.core.content.ContextCompat
-import androidx.core.os.LocaleListCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -67,19 +65,8 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Restore the saved locale at the process level before setContent.
-        // CMP Resources reads locale from Locale.getDefault() (ResourceEnvironment.android.kt).
-        // AppCompatDelegate.setApplicationLocales() is the only API that correctly updates
-        // Locale.getDefault() + the application configuration on all API levels:
-        //   API 33+  → delegates to LocaleManager (system-persisted, typically a no-op here)
-        //   API 24-32 → updates Locale.getDefault() + application Resources configuration
-        // AppPreferences.selectedLanguage is synchronously available via the blocking DataStore
-        // warmup that runs at Koin singleton construction (before this point). [BUG-LANG-002]
-        val savedLanguage = appPreferences.selectedLanguage
-        if (savedLanguage != "auto") {
-            AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(savedLanguage))
-        }
-
+        // No locale bootstrap here: the app language is the OS's to restore, declared through
+        // res/xml/locales_config.xml. [SETTINGS-LANGUAGE-LIVES-IN-THE-SYSTEM-001]
         ActivityHolder.setActivity(this)
 
         // installSplashScreen() must run before super.onCreate() AND before enableEdgeToEdge():

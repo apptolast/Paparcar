@@ -10,7 +10,6 @@ data class AppState(
     val hasVehicle: Boolean = false,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val imperialUnits: Boolean = false,
-    val selectedLanguage: String = "auto",
     val connectivity: ConnectivityStatus = ConnectivityStatus.Online,
     /** Drives the root connectivity banner (Hidden/Offline/Restored). [CONN-BANNER-001] */
     val connectivityBanner: ConnectivityBannerPhase = ConnectivityBannerPhase.Hidden,

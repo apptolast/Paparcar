@@ -212,13 +212,6 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
 
     override fun setDefaultMapType(type: String) = set(Keys.DEFAULT_MAP_TYPE, type)
 
-    // ── Language ─────────────────────────────────────────────────────────────
-
-    override val selectedLanguage: String
-        get() = get(Keys.SELECTED_LANGUAGE, LANGUAGE_AUTO)
-
-    override fun setSelectedLanguage(tag: String) = set(Keys.SELECTED_LANGUAGE, tag)
-
     // ── Keys ─────────────────────────────────────────────────────────────────
 
     private object Keys {
@@ -240,12 +233,13 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
         val THEME_MODE              = stringPreferencesKey("theme_mode")
         val USE_IMPERIAL_UNITS      = booleanPreferencesKey("use_imperial_units")
         val DEFAULT_MAP_TYPE        = stringPreferencesKey("default_map_type")
-        val SELECTED_LANGUAGE       = stringPreferencesKey("selected_language")
+        // "selected_language" removed 2026-08-29: the in-app picker never applied anything and the
+        // OS owns the app language now. Stale values linger in the file; they are inert.
+        // [SETTINGS-LANGUAGE-LIVES-IN-THE-SYSTEM-001]
     }
 
     private companion object {
         const val DEFAULT_MAP_TYPE = "TERRAIN"
-        const val LANGUAGE_AUTO    = "auto"
     }
 }
 

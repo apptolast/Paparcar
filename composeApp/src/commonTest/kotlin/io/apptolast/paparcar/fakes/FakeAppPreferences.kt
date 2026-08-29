@@ -14,7 +14,6 @@ class FakeAppPreferences(
     initialThemeMode: ThemeMode = ThemeMode.SYSTEM,
     initialUseImperialUnits: Boolean = false,
     initialDefaultMapType: String = "TERRAIN",
-    initialSelectedLanguage: String = "auto",
 ) : AppPreferences {
 
     private var _isOnboardingCompleted = initialCompleted
@@ -78,8 +77,4 @@ class FakeAppPreferences(
     private var _defaultMapType = initialDefaultMapType
     override val defaultMapType: String get() = _defaultMapType
     override fun setDefaultMapType(type: String) { _defaultMapType = type }
-
-    private var _selectedLanguage = initialSelectedLanguage
-    override val selectedLanguage: String get() = _selectedLanguage
-    override fun setSelectedLanguage(tag: String) { _selectedLanguage = tag }
 }

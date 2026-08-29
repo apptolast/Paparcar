@@ -25,7 +25,10 @@ class AppViewModel(
     private val vehicleRepository: VehicleRepository,
     private val zoneRepository: ZoneRepository,
     private val userParkingRepository: UserParkingRepository,
-) : BaseViewModel<AppState, AppIntent, AppEffect>() {
+// `Nothing` as the effect type: the root ViewModel has no one-shot side effects to emit, and saying
+// so in the type stops one from being smuggled in. Its only effect used to be applying a language
+// the OS owns. [SETTINGS-LANGUAGE-LIVES-IN-THE-SYSTEM-001]
+) : BaseViewModel<AppState, AppIntent, Nothing>() {
 
     init {
         // Synchronously correct state before first composition.
@@ -41,7 +44,6 @@ class AppViewModel(
                     locationServicesEnabled = current.isLocationServicesEnabled,
                     themeMode = appPreferences.themeMode,
                     imperialUnits = appPreferences.useImperialUnits,
-                    selectedLanguage = appPreferences.selectedLanguage,
                     connectivity = connectivityObserver.status.value,
                     // Cold-start offline shows the banner immediately; online starts hidden. [CONN-BANNER-001]
                     connectivityBanner = if (connectivityObserver.status.value == ConnectivityStatus.Offline) {
@@ -148,11 +150,6 @@ class AppViewModel(
             is AppIntent.SetDistanceUnit -> {
                 appPreferences.setUseImperialUnits(intent.imperial)
                 updateState { copy(imperialUnits = intent.imperial) }
-            }
-            is AppIntent.SetLanguage -> {
-                appPreferences.setSelectedLanguage(intent.tag)
-                updateState { copy(selectedLanguage = intent.tag) }
-                sendEffect(AppEffect.ApplyLocale(intent.tag))
             }
         }
     }

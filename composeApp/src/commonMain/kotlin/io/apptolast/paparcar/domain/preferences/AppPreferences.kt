@@ -67,8 +67,4 @@ interface AppPreferences {
     /** Stores map type as a plain string ("TERRAIN" | "SATELLITE" | "HYBRID"). */
     val defaultMapType: String
     fun setDefaultMapType(type: String)
-
-    /** BCP-47 language tag or "auto" to follow the system locale. */
-    val selectedLanguage: String
-    fun setSelectedLanguage(tag: String)
 }

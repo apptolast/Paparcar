@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The languages Paparcar speaks, declared for the OS.
+
+  This is what puts the app in Android's own per-app language picker
+  (Settings → Apps → Paparcar → Language, API 33+). The app itself offers no language
+  setting: the one it had never applied anything, and an in-app picker is a trap — choose
+  the wrong language and you have to find the setting again while unable to read it.
+  Keep this list in sync with composeResources/values-*. [SETTINGS-LANGUAGE-LIVES-IN-THE-SYSTEM-001]
+-->
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+    <locale android:name="en" />
+    <locale android:name="es" />
+    <locale android:name="it" />
+    <locale android:name="pt" />
+    <locale android:name="fr" />
+    <locale android:name="de" />
+    <locale android:name="nl" />
+    <locale android:name="pl" />
+    <locale android:name="ro" />
+</locale-config>

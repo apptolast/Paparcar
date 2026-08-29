@@ -189,10 +189,6 @@ class FakeAppPreferences(private val scenario: MockScenario? = null) : AppPrefer
     private val _defaultMapType = MutableStateFlow("TERRAIN")
     override val defaultMapType: String get() = _defaultMapType.value
     override fun setDefaultMapType(type: String) { _defaultMapType.value = type }
-
-    private val _selectedLanguage = MutableStateFlow("auto")
-    override val selectedLanguage: String get() = _selectedLanguage.value
-    override fun setSelectedLanguage(tag: String) { _selectedLanguage.value = tag }
 }
 
 class FakeBluetoothScanner : BluetoothScanner {

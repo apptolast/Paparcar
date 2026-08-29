@@ -38,7 +38,6 @@ import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Email
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.DarkMode
-import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Map
 import androidx.compose.material.icons.rounded.Notifications
@@ -47,13 +46,9 @@ import androidx.compose.material.icons.rounded.SensorsOff
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -68,10 +63,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -159,9 +152,6 @@ import paparcar.composeapp.generated.resources.settings_distance_unit
 import paparcar.composeapp.generated.resources.settings_distance_unit_desc
 import paparcar.composeapp.generated.resources.settings_distance_unit_imperial
 import paparcar.composeapp.generated.resources.settings_distance_unit_metric
-import paparcar.composeapp.generated.resources.settings_language
-import paparcar.composeapp.generated.resources.settings_language_auto
-import paparcar.composeapp.generated.resources.settings_language_desc
 import paparcar.composeapp.generated.resources.settings_licenses
 import paparcar.composeapp.generated.resources.settings_notif_parking
 import paparcar.composeapp.generated.resources.settings_notif_parking_desc
@@ -201,8 +191,6 @@ fun SettingsScreen(
     onSetThemeMode: (ThemeMode) -> Unit = {},
     imperialUnits: Boolean = false,
     onToggleImperialUnits: (Boolean) -> Unit = {},
-    selectedLanguage: String = "auto",
-    onSetLanguage: (String) -> Unit = {},
 ) {
     val viewModel: SettingsViewModel = koinViewModel()
     val state by viewModel.state.collectAsStateLifecycleAware()
@@ -268,8 +256,6 @@ fun SettingsScreen(
         onSetThemeMode = onSetThemeMode,
         imperialUnits = imperialUnits,
         onToggleImperialUnits = onToggleImperialUnits,
-        selectedLanguage = selectedLanguage,
-        onSetLanguage = onSetLanguage,
     )
 }
 
@@ -283,8 +269,6 @@ internal fun SettingsContent(
     onSetThemeMode: (ThemeMode) -> Unit = {},
     imperialUnits: Boolean = false,
     onToggleImperialUnits: (Boolean) -> Unit = {},
-    selectedLanguage: String = "auto",
-    onSetLanguage: (String) -> Unit = {},
 ) {
     if (state.showSendDiagnosticsConfirmation) {
         // Consent before anything leaves the device: the body says WHAT is shipped (recent
@@ -381,45 +365,30 @@ internal fun SettingsContent(
                     }
                 }
 
-                // ── 4 · Appearance (theme + language) ────────────────────────────
+                // ── 4 · Appearance (theme) ───────────────────────────────────────
+                // Language is NOT offered here: the picker never applied anything, and an in-app
+                // one is a trap — pick the wrong language and you must find this row while unable
+                // to read it. The OS owns it, and res/xml/locales_config.xml is what puts Paparcar
+                // in Android's own per-app language list. [SETTINGS-LANGUAGE-LIVES-IN-THE-SYSTEM-001]
                 item { SectionHeaderMuted(stringResource(Res.string.settings_section_appearance)) }
                 item {
-                    val autoLabel = stringResource(Res.string.settings_language_auto)
-                    val languageOptions = remember(autoLabel) {
-                        linkedMapOf(
-                            "auto" to autoLabel,
-                            "en" to "English", "es" to "Español", "it" to "Italiano",
-                            "pt" to "Português", "fr" to "Français", "de" to "Deutsch",
-                            "nl" to "Nederlands", "pl" to "Polski", "ro" to "Română",
-                        )
-                    }
                     PapOutlinedCard(modifier = Modifier.fillMaxWidth()) {
-                        Column {
-                            // Same quiet row anatomy as every other setting — the big theme
-                            // swatches read as a foreign widget on this screen.
-                            SettingsSegmentedRow(
-                                icon = Icons.Rounded.DarkMode,
-                                title = stringResource(Res.string.settings_theme_mode),
-                                subtitle = stringResource(Res.string.settings_theme_mode_desc),
-                                options = listOf(
-                                    ThemeMode.LIGHT to stringResource(Res.string.settings_theme_mode_light),
-                                    ThemeMode.DARK to stringResource(Res.string.settings_theme_mode_dark),
-                                    ThemeMode.SYSTEM to stringResource(Res.string.settings_theme_mode_system),
-                                ),
-                                selected = themeMode,
-                                onSelect = onSetThemeMode,
-                                // Each option wears the colour it will paint the app with.
-                                optionIcon = { mode -> ThemeModeSwatch(mode) },
-                            )
-                            PapDivider()
-                            LanguageDropdownRow(
-                                label = stringResource(Res.string.settings_language),
-                                description = stringResource(Res.string.settings_language_desc),
-                                options = languageOptions,
-                                selected = selectedLanguage,
-                                onSelect = onSetLanguage,
-                            )
-                        }
+                        // Same quiet row anatomy as every other setting — the big theme
+                        // swatches read as a foreign widget on this screen.
+                        SettingsSegmentedRow(
+                            icon = Icons.Rounded.DarkMode,
+                            title = stringResource(Res.string.settings_theme_mode),
+                            subtitle = stringResource(Res.string.settings_theme_mode_desc),
+                            options = listOf(
+                                ThemeMode.LIGHT to stringResource(Res.string.settings_theme_mode_light),
+                                ThemeMode.DARK to stringResource(Res.string.settings_theme_mode_dark),
+                                ThemeMode.SYSTEM to stringResource(Res.string.settings_theme_mode_system),
+                            ),
+                            selected = themeMode,
+                            onSelect = onSetThemeMode,
+                            // Each option wears the colour it will paint the app with.
+                            optionIcon = { mode -> ThemeModeSwatch(mode) },
+                        )
                     }
                 }
 
@@ -906,51 +875,6 @@ private fun ThemeModeSwatch(mode: ThemeMode) {
     ) {
         halves.forEach { half ->
             Box(modifier = Modifier.weight(1f).fillMaxHeight().background(half))
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun LanguageDropdownRow(
-    label: String,
-    description: String,
-    options: Map<String, String>,
-    selected: String,
-    onSelect: (String) -> Unit,
-) {
-    val cs = MaterialTheme.colorScheme
-    var expanded by rememberSaveable { mutableStateOf(false) }
-    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
-        PapListItem(
-            modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
-            leading = { PapIconTile(icon = Icons.Rounded.Language) },
-            title = label,
-            subtitleSlot = {
-                Text(description, style = PaparcarType.current.caption, color = settingsSubtitleColor())
-                Spacer(Modifier.size(6.dp))
-                Text(
-                    text = options[selected] ?: selected,
-                    style = PaparcarType.current.caption,
-                    color = cs.primary,
-                    fontWeight = FontWeight.Bold,
-                )
-            },
-            trailing = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-        )
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-        ) {
-            options.forEach { (tag, displayName) ->
-                DropdownMenuItem(
-                    text = { Text(displayName) },
-                    onClick = { onSelect(tag); expanded = false },
-                    leadingIcon = if (tag == selected) {
-                        { Icon(Icons.Rounded.Check, contentDescription = null, tint = cs.primary, modifier = Modifier.size(18.dp)) }
-                    } else null,
-                )
-            }
         }
     }
 }

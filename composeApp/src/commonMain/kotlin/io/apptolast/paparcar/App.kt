@@ -63,7 +63,6 @@ import com.apptolast.customlogin.presentation.navigation.NavTransitions
 import com.apptolast.customlogin.presentation.navigation.authRoutesFlow
 import io.apptolast.paparcar.domain.connectivity.ConnectivityBannerPhase
 import io.apptolast.paparcar.domain.preferences.ThemeMode
-import io.apptolast.paparcar.presentation.app.AppEffect
 import io.apptolast.paparcar.presentation.app.AppIntent
 import io.apptolast.paparcar.presentation.app.AppViewModel
 import io.apptolast.paparcar.presentation.app.BootstrapFailure
@@ -78,7 +77,6 @@ import io.apptolast.paparcar.presentation.bluetooth.BluetoothConfigScreen
 import io.apptolast.paparcar.presentation.settings.SettingsScreen
 import io.apptolast.paparcar.presentation.util.DistanceUnit
 import io.apptolast.paparcar.presentation.util.LocalDistanceUnit
-import io.apptolast.paparcar.presentation.util.applyAppLocale
 import io.apptolast.paparcar.presentation.vehicleregistration.VehicleRegistrationScreen
 import io.apptolast.paparcar.presentation.vehicleregistration.VehicleSizeExplainerScreen
 import io.apptolast.paparcar.ui.auth.paparcarAuthSlots
@@ -161,14 +159,6 @@ fun App(
         ) {
         // Each screen's Scaffold draws its own background.
         Surface(modifier = Modifier.fillMaxSize()) {
-            LaunchedEffect(Unit) {
-                appViewModel.effect.collect { effect ->
-                    when (effect) {
-                        is AppEffect.ApplyLocale ->
-                            applyAppLocale(effect.tag)
-                    }
-                }
-            }
             // SplashEffect: offline errors surface a dialog with retry; fatal errors show a
             // one-shot dismissible dialog (sign-out is already done, auth state drives nav).
             var showBootstrapFatalDialog by remember { mutableStateOf(false) }
@@ -237,8 +227,6 @@ fun App(
                                     onSetThemeMode = { appViewModel.handleIntent(AppIntent.SetThemeMode(it)) },
                                     imperialUnits = appState.imperialUnits,
                                     onToggleImperialUnits = { appViewModel.handleIntent(AppIntent.SetDistanceUnit(it)) },
-                                    selectedLanguage = appState.selectedLanguage,
-                                    onSetLanguage = { appViewModel.handleIntent(AppIntent.SetLanguage(it)) },
                                     onDismissGpsDisclaimer = { appViewModel.handleIntent(AppIntent.DismissGpsAccuracyDisclaimer) },
                                 )
                             }
@@ -349,8 +337,6 @@ private fun MainAppNavigation(
     onSetThemeMode: (ThemeMode) -> Unit,
     imperialUnits: Boolean,
     onToggleImperialUnits: (Boolean) -> Unit,
-    selectedLanguage: String,
-    onSetLanguage: (String) -> Unit,
     onDismissGpsDisclaimer: () -> Unit,
 ) {
     val navController = rememberNavController()
@@ -623,8 +609,6 @@ private fun MainAppNavigation(
                         onSetThemeMode = onSetThemeMode,
                         imperialUnits = imperialUnits,
                         onToggleImperialUnits = onToggleImperialUnits,
-                        selectedLanguage = selectedLanguage,
-                        onSetLanguage = onSetLanguage,
                     )
                 }
             }
