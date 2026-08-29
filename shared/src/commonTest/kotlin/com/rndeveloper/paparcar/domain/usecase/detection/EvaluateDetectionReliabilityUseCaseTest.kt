@@ -3,6 +3,7 @@ package com.rndeveloper.paparcar.domain.usecase.detection
 import com.rndeveloper.paparcar.domain.model.DetectionReliabilityIssue
 import com.rndeveloper.paparcar.domain.model.DetectionReliabilityLevel
 import com.rndeveloper.paparcar.domain.model.DetectionTier
+import com.rndeveloper.paparcar.domain.model.DeviceCapabilities
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -15,7 +16,10 @@ import kotlin.test.assertEquals
  */
 class EvaluateDetectionReliabilityUseCaseTest {
 
-    private val useCase = EvaluateDetectionReliabilityUseCase()
+    // [IOS-F0-03] The Android matrix runs with Android's capabilities — both remedies supported.
+    private val useCase = EvaluateDetectionReliabilityUseCase(
+        capabilities = DeviceCapabilities(supportsBtStrategy = true, supportsBatteryExemption = true),
+    )
 
     @Test
     fun should_beOptimalWithoutIssues_when_btPairedAndExemptionGranted() {
@@ -104,5 +108,50 @@ class EvaluateDetectionReliabilityUseCaseTest {
             val report = useCase(hasBluetoothPairedVehicle = false, isBatteryExemptionGranted = false, isAggressiveOem = oem)
             assertEquals(DetectionTier.ASSISTED, report.tier, "No BT + no exemption must be ASSISTED (oem=$oem)")
         }
+    }
+
+    // ── [IOS-F0-03] Capability masking: a leg the platform cannot offer is N/A — never satisfied,
+    // never an issue, never a CTA. iOS (no BT strategy, no exemption concept) reads OPTIMAL with
+    // an empty issue list and a hard ASSISTED tier ceiling. ──────────────────────────────────────
+
+    private val iosUseCase = EvaluateDetectionReliabilityUseCase(
+        capabilities = DeviceCapabilities(supportsBtStrategy = false, supportsBatteryExemption = false),
+    )
+
+    @Test
+    fun should_beOptimalWithoutIssues_when_platformSupportsNoRemedies() {
+        // The strongest available setup for THIS device: nothing left worth asking for — the
+        // report must never nag about fixes the user cannot complete on iOS.
+        val report = iosUseCase(hasBluetoothPairedVehicle = false, isBatteryExemptionGranted = false, isAggressiveOem = false)
+        assertEquals(DetectionReliabilityLevel.OPTIMAL, report.level)
+        assertEquals(emptyList(), report.issues)
+    }
+
+    @Test
+    fun should_capTierAtAssisted_when_platformSupportsNoRemedies_evenIfInputsClaimOtherwise() {
+        // Defensive: even if a stale/foreign input reports a paired vehicle or an exemption,
+        // an unsupported leg cannot promise a tier the platform cannot deliver.
+        for (paired in listOf(true, false)) {
+            for (exempt in listOf(true, false)) {
+                val report = iosUseCase(hasBluetoothPairedVehicle = paired, isBatteryExemptionGranted = exempt, isAggressiveOem = false)
+                assertEquals(
+                    DetectionTier.ASSISTED, report.tier,
+                    "iOS ceiling must be ASSISTED (paired=$paired, exempt=$exempt)",
+                )
+            }
+        }
+    }
+
+    @Test
+    fun should_notSurfaceIssueForUnsupportedLeg_when_onlyBtIsUnsupported() {
+        // Hypothetical single-capability platform: the supported battery leg still degrades and
+        // nags; the unsupported BT leg stays silent. Proves the masking is per leg, not global.
+        val noBtPlatform = EvaluateDetectionReliabilityUseCase(
+            capabilities = DeviceCapabilities(supportsBtStrategy = false, supportsBatteryExemption = true),
+        )
+        val report = noBtPlatform(hasBluetoothPairedVehicle = false, isBatteryExemptionGranted = false, isAggressiveOem = true)
+        assertEquals(DetectionReliabilityLevel.REDUCED, report.level)
+        assertEquals(listOf(DetectionReliabilityIssue.BATTERY_OPTIMIZATION_ACTIVE), report.issues)
+        assertEquals(DetectionTier.ASSISTED, report.tier)
     }
 }

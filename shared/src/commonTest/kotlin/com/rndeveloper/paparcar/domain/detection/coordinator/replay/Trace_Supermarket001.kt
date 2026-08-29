@@ -1,5 +1,7 @@
 package com.rndeveloper.paparcar.domain.detection.coordinator.replay
 
+import com.rndeveloper.paparcar.domain.detection.coordinator.ingestion.TraceEvent
+
 /**
  * [ANCHOR-LOCK-001] Field trace of the supermarket incident — the REAL complaint
  * (2026-07-04 16:46Z, Firestore `diagnostics/fiyp…/sessions/1783183613431`).

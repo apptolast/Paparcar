@@ -18,5 +18,10 @@
 		<string>fetch</string>
 		<string>processing</string>
 	</array>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.rndeveloper.paparcar.refresh</string>
+		<string>com.rndeveloper.paparcar.sync</string>
+	</array>
 </dict>
 </plist>

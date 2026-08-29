@@ -3,6 +3,7 @@ package com.rndeveloper.paparcar.presentation.settings
 import app.cash.turbine.test
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.VehicleSize
+import com.rndeveloper.paparcar.domain.model.DeviceCapabilities
 import com.rndeveloper.paparcar.domain.permissions.AppPermissionState
 import com.rndeveloper.paparcar.domain.permissions.RequiredPermission
 import com.rndeveloper.paparcar.presentation.permissions.PermissionsFocus
@@ -96,7 +97,9 @@ class SettingsViewModelTest {
             permissionManager = customPermissions,
             oemBackgroundReliabilityManager = FakeOemBackgroundReliabilityManager(),
             strategyResolver = ParkingStrategyResolver(customVehicles, FakeBluetoothScanner()),
-            evaluateDetectionReliability = EvaluateDetectionReliabilityUseCase(),
+            evaluateDetectionReliability = EvaluateDetectionReliabilityUseCase(
+                capabilities = DeviceCapabilities(supportsBtStrategy = true, supportsBatteryExemption = true),
+            ),
         )
         val sendDiagnostics = SendDiagnosticsReportUseCase(
             authRepository = auth,

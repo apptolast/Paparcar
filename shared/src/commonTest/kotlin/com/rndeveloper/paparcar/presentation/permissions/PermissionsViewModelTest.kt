@@ -3,6 +3,7 @@ package com.rndeveloper.paparcar.presentation.permissions
 import app.cash.turbine.test
 import com.rndeveloper.paparcar.domain.detection.ParkingStrategyResolver
 import com.rndeveloper.paparcar.domain.permissions.AppPermissionState
+import com.rndeveloper.paparcar.domain.model.DeviceCapabilities
 import com.rndeveloper.paparcar.domain.usecase.detection.EvaluateDetectionReliabilityUseCase
 import com.rndeveloper.paparcar.domain.usecase.detection.ObserveDetectionReliabilityUseCase
 import com.rndeveloper.paparcar.fakes.FakeBluetoothScanner
@@ -47,7 +48,9 @@ class PermissionsViewModelTest {
             permissionManager = fakePermissions,
             oemBackgroundReliabilityManager = oem,
             strategyResolver = ParkingStrategyResolver(FakeVehicleRepository(), FakeBluetoothScanner()),
-            evaluateDetectionReliability = EvaluateDetectionReliabilityUseCase(),
+            evaluateDetectionReliability = EvaluateDetectionReliabilityUseCase(
+                capabilities = DeviceCapabilities(supportsBtStrategy = true, supportsBatteryExemption = true),
+            ),
         ),
     )
 

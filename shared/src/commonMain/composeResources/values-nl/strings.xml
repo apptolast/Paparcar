@@ -882,4 +882,25 @@
     <string name="first_steps_explain_explore_note">Geen van beide komt van de community: het is publieke data, dus vanaf dag één aanwezig, en gratis voor iedereen.</string>
     <string name="paywall_free_nearby">Parkeergarages en brandstofprijzen</string>
     <string name="paywall_plus_nearby">Hetzelfde: kijken is altijd gratis</string>
+    <!-- Notification surface - MIRRORED from app/src/main/res (Android stays the live source until it migrates to composeResources); parity enforced by NotificationCopyParityTest [IOS-NOTIF-A-SURFACE-THAT-SPEAKS-ONE-LANGUAGE-001] -->
+    <string name="notif_confirmation_title">Heb je geparkeerd?</string>
+    <string name="notif_confirmation_title_vehicle">Heb je jouw %1$s geparkeerd?</string>
+    <string name="notif_confirmation_title_street">Heb je geparkeerd op %1$s?</string>
+    <string name="notif_confirmation_title_vehicle_street">Heb je jouw %1$s geparkeerd op %2$s?</string>
+    <string name="notif_confirmation_text">Het lijkt erop dat je hebt geparkeerd. Zullen we de parkeerplaats bevestigen?</string>
+    <string name="notif_action_yes_parked">Ja, ik heb geparkeerd</string>
+    <string name="notif_action_no_not_parked">Nee, ik heb niet geparkeerd</string>
+    <string name="notif_parking_saved_title">Parkeren opgeslagen</string>
+    <string name="notif_parking_saved_text">Uw auto is geparkeerd. Tik om het op de kaart te zien.</string>
+    <string name="notif_parking_saved_confirm_title">Voertuig geparkeerd</string>
+    <string name="notif_parking_saved_confirm_title_vehicle">%1$s geparkeerd</string>
+    <string name="notif_parking_saved_confirm_text">Tik om de kaart te openen, of annuleer als het niet uw voertuig was.</string>
+    <string name="notif_action_confirm">Ja, bevestigen</string>
+    <string name="notif_action_cancel_save">Nee, annuleren</string>
+    <string name="notif_confirmation_failed_title">Parkeren niet opgeslagen</string>
+    <string name="notif_confirmation_failed_text">Parkeerplaats kon niet worden opgeslagen. Open Paparcar om het opnieuw te proberen.</string>
+    <string name="notif_still_parked_title">Nog steeds hier geparkeerd?</string>
+    <string name="notif_still_parked_text">Je lijkt weg te zijn, maar deze parkeerplaats staat nog open. Laat weten of je al vertrokken bent, of markeer waar de auto nu staat.</string>
+    <string name="notif_action_ive_left">Ik ben weg</string>
+    <string name="notif_action_mark_parking">Parkeerplaats markeren</string>
 </resources>

@@ -803,6 +803,27 @@
     <string name="settings_notif_zone_alerts">Zone alerts</string>
     <string name="settings_notif_zone_alerts_desc">Get notified when a free spot appears in your zones</string>
     <string name="home_zone_form_notify_label">Alert me about free spots here</string>
+    <!-- Notification surface - MIRRORED from app/src/main/res (Android stays the live source until it migrates to composeResources); parity enforced by NotificationCopyParityTest [IOS-NOTIF-A-SURFACE-THAT-SPEAKS-ONE-LANGUAGE-001] -->
+    <string name="notif_confirmation_title">Did you park?</string>
+    <string name="notif_confirmation_title_vehicle">Did you park your %1$s?</string>
+    <string name="notif_confirmation_title_street">Did you park at %1$s?</string>
+    <string name="notif_confirmation_title_vehicle_street">Did you park your %1$s at %2$s?</string>
+    <string name="notif_confirmation_text">Looks like you parked. Shall we confirm your parking?</string>
+    <string name="notif_action_yes_parked">Yes, I parked</string>
+    <string name="notif_action_no_not_parked">No, I haven\'t parked</string>
+    <string name="notif_parking_saved_title">Parking saved</string>
+    <string name="notif_parking_saved_text">Your car has been parked. Tap to see it on the map.</string>
+    <string name="notif_parking_saved_confirm_title">Vehicle parked</string>
+    <string name="notif_parking_saved_confirm_title_vehicle">%1$s parked</string>
+    <string name="notif_parking_saved_confirm_text">Tap to open the map, or cancel if it wasn\'t your vehicle.</string>
+    <string name="notif_action_confirm">Yes, confirm</string>
+    <string name="notif_action_cancel_save">No, cancel</string>
+    <string name="notif_confirmation_failed_title">Parking not saved</string>
+    <string name="notif_confirmation_failed_text">Could not save your parking. Open Paparcar to try again.</string>
+    <string name="notif_still_parked_title">Still parked here?</string>
+    <string name="notif_still_parked_text">You seem to be away, but this parking is still open. Tell us if you already left, or mark where the car is now.</string>
+    <string name="notif_action_ive_left">I\'ve left</string>
+    <string name="notif_action_mark_parking">Mark parking</string>
 
     <!-- Fuel block [VEH-FUEL-001] -->
     <string name="vehicle_registration_section_fuel">Fuel</string>

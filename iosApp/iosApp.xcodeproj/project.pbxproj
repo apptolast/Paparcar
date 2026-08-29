@@ -12,6 +12,7 @@
 		5E5F60718293A4B5C6D7E8F9 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 5B2C3D4E5F60718293A4B5C6 /* FirebaseCore */; };
 		5F60718293A4B5C6D7E8F9A0 /* FirebaseAppCheck in Frameworks */ = {isa = PBXBuildFile; productRef = 5C3D4E5F60718293A4B5C6D7 /* FirebaseAppCheck */; };
 		60718293A4B5C6D7E8F9A0B1 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 5D4E5F60718293A4B5C6D7E8 /* GoogleSignIn */; };
+		71828394A5B6C7D8E9F0A1B2 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = 62738495A6B7C8D9E0F1A2B3 /* FirebaseCrashlytics */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -54,6 +55,7 @@
 				E1F2A3B4C5D6E7F8A9B0C1D2 /* FirebaseFirestore in Frameworks */,
 				5F60718293A4B5C6D7E8F9A0 /* FirebaseAppCheck in Frameworks */,
 				60718293A4B5C6D7E8F9A0B1 /* GoogleSignIn in Frameworks */,
+				71828394A5B6C7D8E9F0A1B2 /* FirebaseCrashlytics in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -103,6 +105,7 @@
 				C1D2E3F4A5B6C7D8E9F0A1B2 /* FirebaseFirestore */,
 				5C3D4E5F60718293A4B5C6D7 /* FirebaseAppCheck */,
 				5D4E5F60718293A4B5C6D7E8 /* GoogleSignIn */,
+				62738495A6B7C8D9E0F1A2B3 /* FirebaseCrashlytics */,
 			);
 			productName = iosApp;
 			productReference = 7EBFB4FBF0F544ECF1F52B8C /* Paparcar.app */;
@@ -437,6 +440,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 5A1B2C3D4E5F60718293A4B5 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
 			productName = GoogleSignIn;
+		};
+		62738495A6B7C8D9E0F1A2B3 /* FirebaseCrashlytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A1B2C3D4E5F6A7B8C9D0E1F2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCrashlytics;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

@@ -1,6 +1,7 @@
 package com.rndeveloper.paparcar.presentation.util
 
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.compose.LifecycleResumeEffect
 
 /**
  * Reports whether the hosting screen is **foreground** (visible + interactive) to [onChanged].
@@ -10,8 +11,15 @@ import androidx.compose.runtime.Composable
  * (battery bound): under Compose Navigation the lifecycle owner is the destination's back-stack entry,
  * so this is `true` only while Home is the current destination AND the app is foreground.
  *
- * - **androidMain**: backed by `LifecycleResumeEffect` (resume → true, pause/dispose → false).
- * - **iosMain**: no lifecycle equivalent yet — reports `true` once (matches [collectAsStateLifecycleAware]).
+ * One implementation for both platforms: the multiplatform lifecycle artifact drives
+ * `LifecycleResumeEffect` on iOS too (ComposeUIViewController wires the owner to UIApplication
+ * state), so backgrounding the app finally emits the `false` edge that the old iOS actual — a
+ * one-shot `true` — never produced, and Home's location request is released. [IOS-A-PARITY-TAIL-001]
  */
 @Composable
-expect fun MapForegroundEffect(onChanged: (Boolean) -> Unit)
+fun MapForegroundEffect(onChanged: (Boolean) -> Unit) {
+    LifecycleResumeEffect(Unit) {
+        onChanged(true)
+        onPauseOrDispose { onChanged(false) }
+    }
+}

@@ -766,6 +766,27 @@
     <string name="settings_notif_zone_alerts">Alertes de zone</string>
     <string name="settings_notif_zone_alerts_desc">Alerte quand une place se libère dans tes zones</string>
     <string name="home_zone_form_notify_label">M'alerter des places libres ici</string>
+    <!-- Notification surface - MIRRORED from app/src/main/res (Android stays the live source until it migrates to composeResources); parity enforced by NotificationCopyParityTest [IOS-NOTIF-A-SURFACE-THAT-SPEAKS-ONE-LANGUAGE-001] -->
+    <string name="notif_confirmation_title">Tu t’es garé ?</string>
+    <string name="notif_confirmation_title_vehicle">Tu as garé ta %1$s ?</string>
+    <string name="notif_confirmation_title_street">Tu t’es garé à %1$s ?</string>
+    <string name="notif_confirmation_title_vehicle_street">Tu as garé ta %1$s à %2$s ?</string>
+    <string name="notif_confirmation_text">On dirait que tu t’es garé. On confirme le stationnement ?</string>
+    <string name="notif_action_yes_parked">Oui, je me suis garé</string>
+    <string name="notif_action_no_not_parked">Non, je ne me suis pas garé</string>
+    <string name="notif_parking_saved_title">Stationnement enregistré</string>
+    <string name="notif_parking_saved_text">Votre voiture a été garée. Appuyez pour la voir sur la carte.</string>
+    <string name="notif_parking_saved_confirm_title">Véhicule garé</string>
+    <string name="notif_parking_saved_confirm_title_vehicle">%1$s garé</string>
+    <string name="notif_parking_saved_confirm_text">Touchez pour ouvrir la carte, ou annulez si ce n\'était pas votre véhicule.</string>
+    <string name="notif_action_confirm">Oui, confirmer</string>
+    <string name="notif_action_cancel_save">Non, annuler</string>
+    <string name="notif_confirmation_failed_title">Stationnement non sauvegardé</string>
+    <string name="notif_confirmation_failed_text">Impossible de sauvegarder votre stationnement. Ouvrez Paparcar pour réessayer.</string>
+    <string name="notif_still_parked_title">Toujours garé ici ?</string>
+    <string name="notif_still_parked_text">Vous semblez loin, mais ce stationnement est toujours ouvert. Dites-nous si vous êtes déjà parti, ou indiquez où est la voiture maintenant.</string>
+    <string name="notif_action_ive_left">Je suis parti</string>
+    <string name="notif_action_mark_parking">Marquer le stationnement</string>
 
     <!-- Fuel block [VEH-FUEL-001] -->
     <string name="vehicle_registration_section_fuel">Carburant</string>

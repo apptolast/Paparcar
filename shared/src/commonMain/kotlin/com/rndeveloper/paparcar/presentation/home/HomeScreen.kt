@@ -25,6 +25,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableFloatState
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.Stable
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rndeveloper.paparcar.presentation.permissions.rememberRequestFineLocationAction
 import com.rndeveloper.paparcar.presentation.util.collectAsStateLifecycleAware
 import com.rndeveloper.paparcar.presentation.util.MapForegroundEffect
@@ -177,12 +178,12 @@ fun HomeScreen(
     onOpenPaywall: (PaywallReason) -> Unit = {},
     viewModel: HomeViewModel = koinViewModel(),
 ) {
-    val state by viewModel.state.collectAsStateLifecycleAware()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     // Live trip render data collected SEPARATELY from [state] — it changes at the GPS fix rate and is
     // NOT in HomeState, so this screen (and the expensive map) don't recompose per fix. We hold the
     // State objects and derive per-field States; nothing here reads `.value` in the main body, so the
     // fix-rate updates flow untouched to the map's isolated scopes. [DRIVE-PUCK-NATIVE-001]
-    val tripState = viewModel.tripRender.collectAsStateLifecycleAware()
+    val tripState = viewModel.tripRender.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     // First-entry location ask, launched OVER the map — no permissions screen in front of it.
     // [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001]

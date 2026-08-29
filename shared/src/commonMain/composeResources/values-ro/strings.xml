@@ -780,6 +780,27 @@
     <string name="settings_notif_zone_alerts">Alerte de zonă</string>
     <string name="settings_notif_zone_alerts_desc">Notificare când apare un loc liber în zonele tale</string>
     <string name="home_zone_form_notify_label">Anunță-mă despre locuri libere aici</string>
+    <!-- Notification surface - MIRRORED from app/src/main/res (Android stays the live source until it migrates to composeResources); parity enforced by NotificationCopyParityTest [IOS-NOTIF-A-SURFACE-THAT-SPEAKS-ONE-LANGUAGE-001] -->
+    <string name="notif_confirmation_title">Ai parcat?</string>
+    <string name="notif_confirmation_title_vehicle">Ai parcat %1$s?</string>
+    <string name="notif_confirmation_title_street">Ai parcat pe %1$s?</string>
+    <string name="notif_confirmation_title_vehicle_street">Ai parcat %1$s pe %2$s?</string>
+    <string name="notif_confirmation_text">Se pare că ai parcat. Vrei să confirmăm parcarea?</string>
+    <string name="notif_action_yes_parked">Da, am parcat</string>
+    <string name="notif_action_no_not_parked">Nu, nu am parcat</string>
+    <string name="notif_parking_saved_title">Parcare salvată</string>
+    <string name="notif_parking_saved_text">Mașina ta a fost parcată. Apasă pentru a o vedea pe hartă.</string>
+    <string name="notif_parking_saved_confirm_title">Vehicul parcat</string>
+    <string name="notif_parking_saved_confirm_title_vehicle">%1$s parcat</string>
+    <string name="notif_parking_saved_confirm_text">Atinge pentru a deschide harta, sau anulează dacă nu era vehiculul tău.</string>
+    <string name="notif_action_confirm">Da, confirmă</string>
+    <string name="notif_action_cancel_save">Nu, anulează</string>
+    <string name="notif_confirmation_failed_title">Parcare nesalvată</string>
+    <string name="notif_confirmation_failed_text">Nu s-a putut salva parcarea. Deschide Paparcar pentru a încerca din nou.</string>
+    <string name="notif_still_parked_title">Încă parcat aici?</string>
+    <string name="notif_still_parked_text">Pari să fii departe, dar această parcare este încă deschisă. Spune-ne dacă ai plecat deja sau marchează unde este mașina acum.</string>
+    <string name="notif_action_ive_left">Am plecat</string>
+    <string name="notif_action_mark_parking">Marchează parcarea</string>
 
     <!-- Fuel block [VEH-FUEL-001] -->
     <string name="vehicle_registration_section_fuel">Combustibil</string>

@@ -1637,7 +1637,6 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                         userProfile = sampleProfile,
                         autoDetectParking = false,
                         // Detection OFF → the "Parking detected" notif sub-row is dimmed + locked.
-                        notifyParkingDetected = false,
                     ),
                     themeMode = ThemeMode.DARK,
                     imperialUnits = true,

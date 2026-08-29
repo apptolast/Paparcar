@@ -1,5 +1,7 @@
 package com.rndeveloper.paparcar.domain.detection.coordinator.replay
 
+import com.rndeveloper.paparcar.domain.detection.coordinator.ingestion.TraceEvent
+
 /**
  * [DET-REFUTED-STILLNESS-CANNOT-MATURE-AN-ANCHOR-001] Field 2026-08-28 00:52–01:18 (Redmi,
  * session `1787871129368`, uid WZB7…): the night drive home whose pin landed INSIDE the house.
@@ -40,8 +42,8 @@ val TRACE_REDMI_2808_REFUTED_STILLNESS: List<TraceEvent> = buildList {
     fun fix(dtMs: Long, lat: Double, lon: Double, acc: Float, speed: Float) =
         add(TraceEvent(t0 + dtMs, TraceEvent.Kind.FIX, lat, lon, acc, speed))
     fun step(dtMs: Long) = add(TraceEvent(t0 + dtMs, TraceEvent.Kind.STEP))
-    fun vehicleExit(dtMs: Long) = add(TraceEvent(t0 + dtMs, TraceEvent.Kind.VEHICLE_EXIT))
-    fun bicycleEnter(dtMs: Long) = add(TraceEvent(t0 + dtMs, TraceEvent.Kind.BICYCLE_ENTER))
+    fun vehicleExit(dtMs: Long) = add(TraceEvent(t0 + dtMs, TraceEvent.Kind.ACTIVITY, activity = TraceEvent.Activity.VEHICLE_EXIT))
+    fun bicycleEnter(dtMs: Long) = add(TraceEvent(t0 + dtMs, TraceEvent.Kind.ACTIVITY, activity = TraceEvent.Activity.BICYCLE_ENTER))
     fix(0, 36.6068276, -6.2745392, 24.558000564575195f, 0.0f)
     fix(2041, 36.606571, -6.2742336, 4.328000068664551f, 12.699999809265137f)
     fix(6012, 36.6061804, -6.2739641, 4.828000068664551f, 12.600000381469727f)

@@ -1,4 +1,5 @@
 package com.rndeveloper.paparcar.domain.detection.coordinator.replay
+import com.rndeveloper.paparcar.domain.detection.coordinator.ingestion.TraceEvent
 
 /**
  * [DET-CADENCE-CANNOT-ACCUSE-AFTER-EGRESS-001] Field trace of **trip 1 of 2026-08-22**, Calle
