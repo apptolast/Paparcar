@@ -15,6 +15,8 @@ import com.rndeveloper.paparcar.domain.geocoder.GeocoderDataSource
 import com.rndeveloper.paparcar.domain.geocoder.LocalAddressAndPlaceDataSource
 import com.rndeveloper.paparcar.domain.location.LocationDataSource
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager
+import com.rndeveloper.paparcar.domain.diagnostics.DeviceInfoProvider
+import com.rndeveloper.paparcar.domain.diagnostics.UnknownDeviceInfoProvider
 import com.rndeveloper.paparcar.domain.permissions.OemBackgroundReliabilityManager
 import com.rndeveloper.paparcar.domain.permissions.PermissionManager
 import com.rndeveloper.paparcar.domain.places.PlacesDataSource
@@ -69,6 +71,11 @@ val mockModule = module {
     single<LocationDataSource> { FakeLocationDataSource(get<com.rndeveloper.paparcar.domain.detection.DetectionRuntimeState>()) }
     single<FirebaseDataSource> { FakeFirebaseDataSource() }
     single<AppNotificationManager> { FakeAppNotificationManager() }
+    // Ajustes resuelve DeviceInfoProvider (reporte de soporte). Solo lo ata androidPlatformModule,
+    // que el build mock NO carga, asi que el tab CRASHEABA al abrirlo: Koin
+    // NoDefinitionFoundException. El fallback de dominio ya existe y basta aqui.
+    // [MOCK-SETTINGS-TAB-CRASHES-WITHOUT-DEVICE-INFO-001]
+    single<DeviceInfoProvider> { UnknownDeviceInfoProvider }
     single<GeocoderDataSource> { FakeGeocoderDataSource() }
     single<PlacesDataSource> { FakePlacesDataSource() }
     // Real Overpass road source so the mock sim exercises live OSM map-matching on-device. [ROUTE-SNAP-001]
