@@ -1,4 +1,5 @@
 package com.rndeveloper.paparcar.domain.detection.coordinator.replay
+import com.rndeveloper.paparcar.domain.detection.coordinator.ingestion.TraceEvent
 
 /**
  * [DET-STOP-MUST-BE-STILL-IN-SPACE-001] Field trace of **trip 2 of 2026-08-22**, Camelias ->

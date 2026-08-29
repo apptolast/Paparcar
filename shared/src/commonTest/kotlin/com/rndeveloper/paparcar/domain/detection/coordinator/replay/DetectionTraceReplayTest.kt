@@ -7,6 +7,8 @@ import com.rndeveloper.paparcar.domain.usecase.notification.ResolveAskedStreetUs
 import com.rndeveloper.paparcar.domain.usecase.location.GetAddressAndPlaceUseCase
 import com.rndeveloper.paparcar.domain.detection.ArmLabel
 import com.rndeveloper.paparcar.domain.detection.CoordinatorParkingDetector
+import com.rndeveloper.paparcar.domain.detection.coordinator.ingestion.DetectionTraceIngestion
+import com.rndeveloper.paparcar.domain.detection.coordinator.ingestion.TraceEvent
 import com.rndeveloper.paparcar.domain.detection.state.DriveProofSource
 import com.rndeveloper.paparcar.domain.detection.ArmEvidence
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEvent
@@ -63,7 +65,7 @@ class DetectionTraceReplayTest {
             // Post-redesign the walking exit arms UNVERIFIED (no speed, no ENTER) → the
             // false-ENTER guard must abort on the step burst: no save, no prompt, real session
             // untouched. Pre-fix, this exact trace re-parked the car ~120 m away at 0.90.
-            val replayer = DetectionTraceReplayer(TRACE_BUG_REPARK_WALK_001)
+            val replayer = DetectionTraceIngestion(TRACE_BUG_REPARK_WALK_001)
             val env = buildEnv(clock = { replayer.nowMs })
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 256)
             val job = launch { env.coordinator.invoke(locations, armEvidence = ArmEvidence.Unverified) }
@@ -88,7 +90,7 @@ class DetectionTraceReplayTest {
             // verified (driving-speed fix witnessed it), the identical low-speed arrival stream
             // must still confirm the park, anchored at the first stopped fix. This is the
             // legitimate behaviour the verifier's evidence buys.
-            val replayer = DetectionTraceReplayer(TRACE_BUG_REPARK_WALK_001)
+            val replayer = DetectionTraceIngestion(TRACE_BUG_REPARK_WALK_001)
             val env = buildEnv(clock = { replayer.nowMs })
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 256)
             val job = launch {
@@ -121,7 +123,7 @@ class DetectionTraceReplayTest {
             // trust the trigger had bought. What remains is 50 dead-still fixes and 12 indoor
             // steps, and nothing in that may plant a pin. Pre-fix this exact trace confirmed a
             // phantom park 49 m from the real one, replacing it and deleting its geofence.
-            val replayer = DetectionTraceReplayer(TRACE_HOUSE_MIRAGE_001)
+            val replayer = DetectionTraceIngestion(TRACE_HOUSE_MIRAGE_001)
             val env = buildEnv(clock = { replayer.nowMs })
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 256)
             val job = launch {
@@ -182,7 +184,7 @@ class DetectionTraceReplayTest {
             // trace, same dismissal — but armed the way the OLD verifier armed it, `verified_speed`
             // on the exit's own echo. Without the retraction this is the exact run that planted the
             // phantom pin; with it, the guard the seed had disarmed does its job.
-            val replayer = DetectionTraceReplayer(TRACE_HOUSE_MIRAGE_001)
+            val replayer = DetectionTraceIngestion(TRACE_HOUSE_MIRAGE_001)
             val env = buildEnv(clock = { replayer.nowMs })
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 256)
             val job = launch {
@@ -219,7 +221,7 @@ class DetectionTraceReplayTest {
             // stop whose phone jiggle fired 2 spurious steps (must NOT lock the anchor there),
             // real park on Calle Gavia. The session witnessed driving → silent confirm, anchored
             // at the car.
-            val replayer = DetectionTraceReplayer(TRACE_CALLE_GAVIA_001)
+            val replayer = DetectionTraceIngestion(TRACE_CALLE_GAVIA_001)
             val env = buildEnv(clock = { replayer.nowMs })
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 256)
             val job = launch {
@@ -256,7 +258,7 @@ class DetectionTraceReplayTest {
             //     (pre-fix the indoor re-stops re-captured it and the pin drifted inside);
             //  4. on the user's "Sí", save anchored at the CAR.
             val fullTrace = TraceSupermarket001.park + TraceSupermarket001.wander
-            val replayer = DetectionTraceReplayer(fullTrace)
+            val replayer = DetectionTraceIngestion(fullTrace)
             val env = buildEnv(clock = { replayer.nowMs })
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 256)
             val job = launch {
@@ -309,7 +311,7 @@ class DetectionTraceReplayTest {
             // The anchor unfreezes mid-drive, re-freezes at the REAL arrival (best fix acc 5.7 m,
             // ~13 m from the user-confirmed car position), and the genuine kinematic egress
             // confirms THERE. The 1.11 km FP becomes a correct detection.
-            val replayer = DetectionTraceReplayer(TraceEnamorados001.events)
+            val replayer = DetectionTraceIngestion(TraceEnamorados001.events)
             val env = buildEnv(clock = { replayer.nowMs })
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 256)
             val job = launch { env.coordinator.invoke(locations, armEvidence = ArmEvidence.Unverified) }
@@ -347,6 +349,50 @@ class DetectionTraceReplayTest {
         }
 
     @Test
+    fun enamorados_001_activity_event_in_the_trace_drives_the_ar_lane_like_the_manual_injection() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [IOS-F0-02] Kind.ACTIVITY formalizes what the test above injects by hand inside
+            // emitFix ("the replayer only carries FIX/STEP"): the AR IN_VEHICLE→EXIT becomes an
+            // event IN the trace, delivered in timestamp order through emitActivity — the exact
+            // shape the iOS wake-and-query reconstruction composes on each OS wake. Same trace,
+            // same assertions as the manual-injection replay above. The ACTIVITY event is
+            // PREPENDED because a fix exists at the same tMs (Δ 868 703) and the field/manual
+            // semantics deliver the transition BEFORE that fix — the stable sort keeps list order
+            // on ties.
+            val arExit = TraceEvent(
+                tMs = TraceEnamorados001.AR_EXIT_AT,
+                kind = TraceEvent.Kind.ACTIVITY,
+                activity = TraceEvent.Activity.VEHICLE_EXIT,
+            )
+            val replayer = DetectionTraceIngestion(listOf(arExit) + TraceEnamorados001.events)
+            val env = buildEnv(clock = { replayer.nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 256)
+            val job = launch { env.coordinator.invoke(locations, armEvidence = ArmEvidence.Unverified) }
+
+            replayer.replay(
+                emitFix = { locations.emit(it) },
+                emitStep = { env.stepDetector.emitSteps(1) },
+                emitActivity = { activity, _ ->
+                    if (activity == TraceEvent.Activity.VEHICLE_EXIT) env.coordinator.onVehicleExit()
+                },
+            )
+            job.cancelAndJoin()
+
+            assertEquals(1, env.parkingRepo.saveNewParkingSessionCallCount, "the real park must save")
+            val ended = env.detectionLogger.events
+                .filterIsInstance<DetectionEvent.SessionEnded>().single()
+            assertEquals("confirmed_kinematic+egress", ended.outcome)
+            val saved = env.parkingRepo.getActiveSession()
+            assertTrue(
+                saved != null &&
+                    saved.location.latitude in 36.59790..36.59806 &&
+                    saved.location.longitude in -6.25100..-6.25085,
+                "park must anchor at the REAL arrival — the ACTIVITY lane must be equivalent " +
+                    "to the manual injection — was ${saved?.location?.latitude},${saved?.location?.longitude}",
+            )
+        }
+
+    @Test
     fun enamorados_001_without_recovery_fixes_the_ceiling_prompts_and_a_user_yes_anchors_at_the_car() =
         runTest(UnconfinedTestDispatcher()) {
             // [DET-ANCHOR-EGRESS-001 — the ceiling as LAST line of defence] Worst-case MIUI
@@ -355,7 +401,7 @@ class DetectionTraceReplayTest {
             // traffic light. The egress walk at Camelias is born 1.11 km from it — the ceiling
             // must degrade every auto-confirm to a PROMPT, and the user's "Sí" must anchor at
             // the user's CURRENT stop (the doorstep), never at the light.
-            val replayer = DetectionTraceReplayer(TraceEnamorados001.eventsWithoutRecovery)
+            val replayer = DetectionTraceIngestion(TraceEnamorados001.eventsWithoutRecovery)
             val env = buildEnv(clock = { replayer.nowMs })
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 256)
             val job = launch { env.coordinator.invoke(locations, armEvidence = ArmEvidence.Unverified) }
@@ -420,7 +466,7 @@ class DetectionTraceReplayTest {
                     )
                 }
             }
-            val replayer = DetectionTraceReplayer(TraceEnamorados001.eventsWithoutRecovery + quietTail)
+            val replayer = DetectionTraceIngestion(TraceEnamorados001.eventsWithoutRecovery + quietTail)
             val env = buildEnv(clock = { replayer.nowMs })
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 256)
             val job = launch { env.coordinator.invoke(locations, armEvidence = ArmEvidence.Unverified) }
@@ -459,7 +505,7 @@ class DetectionTraceReplayTest {
             // dep=self_observed). The session watches a pedestrian and the false-ENTER guard
             // kills it at the 8th step — correctly as a session, but SILENTLY: no release of the
             // stale pin, no prompt, no zone. The honest-close ladder will flip the silence.
-            val replayer = DetectionTraceReplayer(TRACE_CAMELIAS_HOP_001)
+            val replayer = DetectionTraceIngestion(TRACE_CAMELIAS_HOP_001)
             val env = buildEnv(clock = { replayer.nowMs })
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 256)
             val job = launch { env.coordinator.invoke(locations, armEvidence = ArmEvidence.Unverified) }
@@ -504,7 +550,7 @@ class DetectionTraceReplayTest {
             //     "you parked, but not here" (the true spot was never GPS-measured);
             //  3. DET-C-02 still discards the first tentative confirm on the Δ990 driving fix
             //     (this test runs the REAL 2-min hold).
-            val replayer = DetectionTraceReplayer(TraceCameliasOppo001.events)
+            val replayer = DetectionTraceIngestion(TraceCameliasOppo001.events)
             val env = buildEnv(clock = { replayer.nowMs }, config = ParkingDetectionConfig())
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 700)
             val job = launch { env.coordinator.invoke(locations, armEvidence = ArmEvidence.Unverified) }
@@ -540,7 +586,7 @@ class DetectionTraceReplayTest {
             // 9.9 m of joint accuracy = CAR) and the odometer resets mid-deceleration: only the
             // 2 true pedestrian-band fixes remain (≤ 3), the anchor stays clean, and the park
             // confirms silently at the true anchor. Runs the REAL 2-min confirm hold.
-            val replayer = DetectionTraceReplayer(TraceGaleoteOppo001.events)
+            val replayer = DetectionTraceIngestion(TraceGaleoteOppo001.events)
             val env = buildEnv(clock = { replayer.nowMs }, config = ParkingDetectionConfig())
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 700)
             val job = launch {
@@ -598,7 +644,7 @@ class DetectionTraceReplayTest {
             // egress-scale steps + real walked displacement + vehicular signal) keeps it as an
             // honest AREA at the locked kerb anchor. The same-day mirage (1 step, no AR exit)
             // still dies nudge-only — see the unit guards.
-            val replayer = DetectionTraceReplayer(TraceRedmiLateExitHome001.events)
+            val replayer = DetectionTraceIngestion(TraceRedmiLateExitHome001.events)
             val env = buildEnv(clock = { replayer.nowMs })
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 700)
             val job = launch {
@@ -653,7 +699,7 @@ class DetectionTraceReplayTest {
             // ladder: the walk explains the distance (no ride proof), so no release, no zone,
             // no prompt — a nag here would assert the car is where the pedestrian is
             // (BUG-WALK-DEPART-001).
-            val replayer = DetectionTraceReplayer(TRACE_LATE_EXIT_ON_FOOT_001)
+            val replayer = DetectionTraceIngestion(TRACE_LATE_EXIT_ON_FOOT_001)
             val env = buildEnv(clock = { replayer.nowMs })
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 256)
             val job = launch { env.coordinator.invoke(locations, armEvidence = ArmEvidence.Unverified) }
@@ -683,7 +729,7 @@ class DetectionTraceReplayTest {
             //
             // The stamp is injected here because AR labels never reach the remote trace (the
             // receiver only logs them to logcat); everything else is the field stream 1:1.
-            val replayer = DetectionTraceReplayer(TRACE_MOTORWAY_REDMI_001)
+            val replayer = DetectionTraceIngestion(TRACE_MOTORWAY_REDMI_001)
             val env = buildEnv(clock = { replayer.nowMs })
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 512)
             val job = launch {
@@ -706,7 +752,13 @@ class DetectionTraceReplayTest {
                     locations.emit(fix)
                 },
                 emitStep = { env.stepDetector.emitSteps(1) },
-                emitVehicleExit = { env.coordinator.onVehicleExit() },
+                emitActivity = { activity, trueTimeMs ->
+                    when (activity) {
+                        TraceEvent.Activity.VEHICLE_EXIT -> env.coordinator.onVehicleExit()
+                        TraceEvent.Activity.BICYCLE_ENTER -> env.coordinator.onHumanPoweredRide(trueTimeMs)
+                        TraceEvent.Activity.VEHICLE_ENTER -> Unit
+                    }
+                },
             )
             job.cancelAndJoin()
 
@@ -728,7 +780,7 @@ class DetectionTraceReplayTest {
             // Control for the test above — the stamp is the ONLY difference between the two runs,
             // and it is what separated this trace from the Oppo's, which confirmed the same
             // arrival at 0.9 one minute 54 seconds after the car stopped.
-            val replayer = DetectionTraceReplayer(TRACE_MOTORWAY_REDMI_001)
+            val replayer = DetectionTraceIngestion(TRACE_MOTORWAY_REDMI_001)
             val env = buildEnv(clock = { replayer.nowMs })
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 512)
             val job = launch {
@@ -741,7 +793,9 @@ class DetectionTraceReplayTest {
             replayer.replay(
                 emitFix = { locations.emit(it) },
                 emitStep = { env.stepDetector.emitSteps(1) },
-                emitVehicleExit = { env.coordinator.onVehicleExit() },
+                emitActivity = { activity, _ ->
+                    if (activity == TraceEvent.Activity.VEHICLE_EXIT) env.coordinator.onVehicleExit()
+                },
             )
             job.cancelAndJoin()
 
@@ -756,7 +810,7 @@ class DetectionTraceReplayTest {
             // accuracy. The field build accepted them as a matured stop, froze the anchor on the
             // third, and pinned the mouth of the street 70 m short of the car. Runs the REAL 2-min
             // hold, as the field did.
-            val replayer = DetectionTraceReplayer(TraceCameliasGondola001.events)
+            val replayer = DetectionTraceIngestion(TraceCameliasGondola001.events)
             val env = buildEnv(clock = { replayer.nowMs }, config = ParkingDetectionConfig())
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 512)
             val job = launch { env.coordinator.invoke(locations, armEvidence = ArmEvidence.Unverified) }
@@ -807,7 +861,7 @@ class DetectionTraceReplayTest {
             // answered while still beside the car. That assertion is a positional regression
             // guard, NOT a test of [DET-CONFIRM-ANCHOR-001] — that guard needs a trace where
             // the tap lands far away, and supermarket_001 above is the one that has it.
-            val replayer = DetectionTraceReplayer(TraceGondolaCamelias001.events)
+            val replayer = DetectionTraceIngestion(TraceGondolaCamelias001.events)
             val env = buildEnv(clock = { replayer.nowMs }, config = ParkingDetectionConfig())
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 512)
             val job = launch { env.coordinator.invoke(locations, armEvidence = ArmEvidence.Unverified) }
@@ -885,7 +939,7 @@ class DetectionTraceReplayTest {
             //    92.9 m network fix, 52 m from the car (the same FP one street over).
             // With both live, steps+egress saves a silent honest ZONE (r≈93 m) covering the car,
             // ~12 minutes before the field build got around to asking.
-            val replayer = DetectionTraceReplayer(TRACE_REDMI_2808_REFUTED_STILLNESS)
+            val replayer = DetectionTraceIngestion(TRACE_REDMI_2808_REFUTED_STILLNESS)
             val env = buildEnv(clock = { replayer.nowMs })
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 700)
             val job = launch {
@@ -917,7 +971,9 @@ class DetectionTraceReplayTest {
                     locations.emit(fix)
                 },
                 emitStep = { env.stepDetector.emitSteps(1) },
-                emitVehicleExit = { env.coordinator.onVehicleExit() },
+                emitActivity = { activity, _ ->
+                    if (activity == TraceEvent.Activity.VEHICLE_EXIT) env.coordinator.onVehicleExit()
+                },
             )
             job.cancelAndJoin()
 
@@ -995,7 +1051,7 @@ class DetectionTraceReplayTest {
             // OEM batching spread the in-band fixes 163 s and 200 s apart. The car arrived home at
             // Δ1 354 s, the anchor froze on the spot at Δ1 381 s, 32 egress steps followed — and the
             // app asked instead of saving. Nobody answered, and 15 minutes later the park was gone.
-            val replayer = DetectionTraceReplayer(TRACE_GONDOLA_2608_CADENCE_VETO)
+            val replayer = DetectionTraceIngestion(TRACE_GONDOLA_2608_CADENCE_VETO)
             val env = buildEnv(clock = { replayer.nowMs })
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 512)
             val job = launch {
@@ -1011,7 +1067,9 @@ class DetectionTraceReplayTest {
             replayer.replay(
                 emitFix = { locations.emit(it) },
                 emitStep = { env.stepDetector.emitSteps(1) },
-                emitVehicleExit = { env.coordinator.onVehicleExit() },
+                emitActivity = { activity, _ ->
+                    if (activity == TraceEvent.Activity.VEHICLE_EXIT) env.coordinator.onVehicleExit()
+                },
             )
             job.cancelAndJoin()
 
@@ -1058,7 +1116,7 @@ class DetectionTraceReplayTest {
             // this trip did reach 94 km/h. That case is pinned in
             // `HumanPoweredRideTest.should_notVeto_when_cadenceFiredOnACityDriveArHadAlreadyWitnessed`
             // with the numbers the log recorded.
-            val replayer = DetectionTraceReplayer(TRACE_GONDOLA_2608_CADENCE_VETO)
+            val replayer = DetectionTraceIngestion(TRACE_GONDOLA_2608_CADENCE_VETO)
             val env = buildEnv(clock = { replayer.nowMs })
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 512)
             val job = launch {
@@ -1073,7 +1131,9 @@ class DetectionTraceReplayTest {
             replayer.replay(
                 emitFix = { locations.emit(it) },
                 emitStep = { env.stepDetector.emitSteps(1) },
-                emitVehicleExit = { env.coordinator.onVehicleExit() },
+                emitActivity = { activity, _ ->
+                    if (activity == TraceEvent.Activity.VEHICLE_EXIT) env.coordinator.onVehicleExit()
+                },
             )
             job.cancelAndJoin()
 
@@ -1098,7 +1158,7 @@ class DetectionTraceReplayTest {
             // ride proof" — and its own stream can never supply that proof, because the drive it is
             // the tail of happened in the session that was just cancelled. 13,6 km/h peak, then the
             // egress walk, then the anti-walking guard. The car spent the night with no pin.
-            val replayer = DetectionTraceReplayer(TRACE_GONDOLA_2508_SUPERSEDE)
+            val replayer = DetectionTraceIngestion(TRACE_GONDOLA_2508_SUPERSEDE)
             val env = buildEnv(clock = { replayer.nowMs })
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 256)
             val job = launch {
@@ -1137,7 +1197,7 @@ class DetectionTraceReplayTest {
             // two minutes later. So the trace ends `ended` for the honest reason: the replay ran out
             // of recording, not because a verdict was reached. The confirm the seed unlocks is
             // pinned on a trace that contains its moment — see the test below.
-            val replayer = DetectionTraceReplayer(TRACE_GONDOLA_2508_SUPERSEDE)
+            val replayer = DetectionTraceIngestion(TRACE_GONDOLA_2508_SUPERSEDE)
             val env = buildEnv(clock = { replayer.nowMs })
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 256)
             val job = launch {
@@ -1179,7 +1239,7 @@ class DetectionTraceReplayTest {
     @Test
     fun an_inherited_drive_unlocks_the_same_confirm_a_verified_departure_does() =
         runTest(UnconfinedTestDispatcher()) {
-            val replayer = DetectionTraceReplayer(TRACE_BUG_REPARK_WALK_001)
+            val replayer = DetectionTraceIngestion(TRACE_BUG_REPARK_WALK_001)
             val env = buildEnv(clock = { replayer.nowMs })
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 256)
             val job = launch {

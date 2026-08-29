@@ -47,9 +47,15 @@
          to avoid "attributionTag not declared in manifest" AppOps leak. [FGS-004] -->
     <attribution android:tag="detection" android:label="@string/attribution_detection_label" />
 
+    <!-- [IOS-F0-07] Backup stays ON (user settings + the parked-car pin survive a device
+         migration) but detection state is excluded — restored anchors/pendings/heartbeats on a
+         new device are ghost state. Rules in res/xml (dataExtractionRules API 31+,
+         fullBackupContent API 26-30). -->
     <application
         android:name=".PaparcarApp"
         android:allowBackup="true"
+        android:dataExtractionRules="@xml/backup_rules"
+        android:fullBackupContent="@xml/full_backup_content"
         android:icon="@mipmap/ic_launcher"
         android:label="Paparcar"
         android:localeConfig="@xml/locales_config"

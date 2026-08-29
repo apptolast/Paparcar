@@ -9,7 +9,7 @@ import com.rndeveloper.paparcar.domain.service.ParkingEnrichmentScheduler
 import com.rndeveloper.paparcar.domain.service.ParkingSyncScheduler
 import com.rndeveloper.paparcar.detection.IosActivityRecognitionManagerImpl
 import com.rndeveloper.paparcar.detection.IosDepartureEventBusImpl
-import com.rndeveloper.paparcar.detection.IosGeofenceEventBusImpl
+import com.rndeveloper.paparcar.detection.SharedFlowGeofenceEventBus
 import com.rndeveloper.paparcar.detection.IosGeofenceManagerImpl
 import com.rndeveloper.paparcar.detection.IosParkingEnrichmentScheduler
 import com.rndeveloper.paparcar.detection.IosParkingSyncScheduler
@@ -21,7 +21,7 @@ import org.koin.dsl.module
 val iosDetectionModule = module {
     single<ActivityRecognitionManager> { IosActivityRecognitionManagerImpl(get(), get()) }
     single<StepDetectorSource> { IosStepDetectorSource() }
-    single<GeofenceEventBus> { IosGeofenceEventBusImpl() }
+    single<GeofenceEventBus> { SharedFlowGeofenceEventBus() }
     single<GeofenceManager> { IosGeofenceManagerImpl(get()) }
     single<DepartureEventBus> { IosDepartureEventBusImpl() }
     single<ParkingEnrichmentScheduler> { IosParkingEnrichmentScheduler(get(), get()) }
@@ -37,5 +37,20 @@ val iosDetectionModule = module {
     // No resident departure watcher on iOS yet — the resumer is a no-op. [DET-WATCH-REACTIVATE-001]
     single<com.rndeveloper.paparcar.domain.detection.ports.DepartureWatchResumer> {
         com.rndeveloper.paparcar.detection.IosDepartureWatchResumerImpl()
+    }
+
+    // [IOS-F0-06] Side-record ports (NSUserDefaults) + step-seal skeleton — the F1 orchestrator's
+    // durable memory for wake-and-query reconstruction.
+    single<com.rndeveloper.paparcar.domain.detection.PendingArmRecords> {
+        com.rndeveloper.paparcar.detection.IosPendingArmRecords()
+    }
+    single<com.rndeveloper.paparcar.domain.detection.ExitDeliveryRecords> {
+        com.rndeveloper.paparcar.detection.IosExitDeliveryRecords()
+    }
+    single<com.rndeveloper.paparcar.domain.detection.ArrivalResolutionRecord> {
+        com.rndeveloper.paparcar.detection.IosArrivalResolutionRecord()
+    }
+    single<com.rndeveloper.paparcar.domain.sensor.DetectionStepAnchors> {
+        com.rndeveloper.paparcar.detection.sensor.IosDetectionStepAnchors()
     }
 }

@@ -1,5 +1,7 @@
 package com.rndeveloper.paparcar.domain.detection.coordinator.replay
 
+import com.rndeveloper.paparcar.domain.detection.coordinator.ingestion.TraceEvent
+
 /**
  * [DET-ANCHOR-EGRESS-001] Field trace of the **1.11 km false positive** (2026-07-15 16:11Z,
  * Firestore `diagnostics/WZB7…/sessions/1784131878857`, Redmi Note 11 / MIUI).
