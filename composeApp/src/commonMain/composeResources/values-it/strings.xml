@@ -66,13 +66,13 @@
     <string name="onboarding_page1_subtitle">La comunità che libera i parcheggi. Quando esci, gli altri trovano il tuo. Quando gli altri escono, tu trovi il loro.</string>
     <string name="onboarding_page2_title">Come funziona</string>
     <string name="onboarding_step1_title">Rileviamo la guida</string>
-    <string name="onboarding_step1_desc">L\'app rileva quando sali in macchina</string>
+    <string name="onboarding_step1_desc">L'app rileva quando sali in macchina</string>
     <string name="onboarding_step2_title">Rileviamo il parcheggio</string>
     <string name="onboarding_step2_desc">Quando parcheggi, salviamo silenziosamente il tuo parcheggio</string>
     <string name="onboarding_step3_title">Condividiamo il posto</string>
     <string name="onboarding_step3_desc">Quando esci, il tuo posto diventa disponibile per gli altri vicini</string>
     <string name="onboarding_page3_title">Perché abbiamo bisogno dei tuoi permessi</string>
-    <string name="onboarding_page3_subtitle">Paparcar raccoglie dati di posizione anche quando l\'app è chiusa o non in uso, per rilevare automaticamente dove parcheggi. La tua posizione non viene mai venduta né usata per pubblicità.</string>
+    <string name="onboarding_page3_subtitle">Paparcar raccoglie dati di posizione anche quando l'app è chiusa o non in uso, per rilevare automaticamente dove parcheggi. La tua posizione non viene mai venduta né usata per pubblicità.</string>
     <string name="onboarding_cta_next">Avanti</string>
     <string name="onboarding_cta_setup">Configura i permessi</string>
 
@@ -82,7 +82,7 @@
     <string name="permissions_perm_location">Posizione precisa</string>
     <string name="permissions_perm_location_desc">Per salvare con precisione dove hai parcheggiato il veicolo</string>
     <string name="permissions_perm_background">Posizione in background</string>
-    <string name="permissions_perm_background_desc">Necessario per rilevare il parcheggio anche quando l\'app è chiusa o non in uso</string>
+    <string name="permissions_perm_background_desc">Necessario per rilevare il parcheggio anche quando l'app è chiusa o non in uso</string>
     <string name="permissions_perm_activity">Riconoscimento attività</string>
     <string name="permissions_perm_activity_desc">Per rilevare automaticamente quando inizi a guidare e quando parcheggi</string>
     <string name="permissions_perm_notifications">Notifiche</string>
@@ -184,7 +184,7 @@
     <string name="parking_detail_detection_assisted">Assistito</string>
     <string name="parking_detail_detection_manual">Segnalazione manuale</string>
     <string name="parking_detail_detection_home">Zona privata</string>
-    <string name="map_cd_midpoint">Punto medio tra me e l\'auto</string>
+    <string name="map_cd_midpoint">Punto medio tra me e l'auto</string>
     <string name="map_cd_go_to_car">Vai alla mia auto parcheggiata</string>
     <string name="map_cd_my_location">Centra sulla mia posizione</string>
 
@@ -259,7 +259,7 @@
     <string name="my_car_set_active">Attiva</string>
     <string name="my_car_unnamed_vehicle">Veicolo senza nome</string>
     <string name="veh_bt_recommendation_title">Migliora la precisione del rilevamento</string>
-    <string name="veh_bt_recommendation_body">Abbinando il Bluetooth dell\'auto, Paparcar rileva con molta più affidabilità quando parcheggi, anche nei tragitti brevi. Puoi configurarlo più tardi dal menu del veicolo.</string>
+    <string name="veh_bt_recommendation_body">Abbinando il Bluetooth dell'auto, Paparcar rileva con molta più affidabilità quando parcheggi, anche nei tragitti brevi. Puoi configurarlo più tardi dal menu del veicolo.</string>
     <string name="veh_bt_recommendation_configure">Abbina Bluetooth</string>
     <string name="veh_bt_recommendation_skip">Più tardi</string>
     <string name="my_car_empty_subtitle">Dobbiamo sapere cosa guidi per rilevare quando parcheggi.</string>
@@ -315,7 +315,7 @@
 
     <!-- Vehicle Size Explainer screen -->
     <string name="vehicle_size_explainer_title">Parlaci della tua auto</string>
-    <string name="vehicle_size_explainer_subtitle">Ci serve solo un dato essenziale per far funzionare l\'app: le dimensioni.</string>
+    <string name="vehicle_size_explainer_subtitle">Ci serve solo un dato essenziale per far funzionare l'app: le dimensioni.</string>
     <string name="vehicle_size_explainer_card1_title">Dimensioni: per abbinare i posti auto</string>
     <string name="vehicle_size_explainer_card1_desc">Altri guidatori cercano posti adatti alla loro auto. Senza questa info non possiamo abbinarvi.</string>
     <string name="vehicle_size_explainer_card2_title">Marca e modello sono opzionali</string>
@@ -323,12 +323,12 @@
     <string name="vehicle_size_explainer_cta">Inizia</string>
 
     <string name="bt_config_title">Chiave auto Bluetooth</string>
-    <string name="bt_config_subtitle">Seleziona il dispositivo Bluetooth già abbinato alla tua auto. L\'app lo utilizzerà per rilevare quando parcheggi o parti.</string>
+    <string name="bt_config_subtitle">Seleziona il dispositivo Bluetooth già abbinato alla tua auto. L'app lo utilizzerà per rilevare quando parcheggi o parti.</string>
     <string name="bt_config_bt_off">Il Bluetooth è disattivato. Attivalo per vedere i tuoi dispositivi abbinati.</string>
     <string name="bt_config_open_bt_settings">Apri impostazioni Bluetooth</string>
-    <string name="bt_config_permission_rationale">Paparcar ha bisogno dell\'accesso Bluetooth per leggere i dispositivi abbinati. Concedi il permesso per continuare.</string>
+    <string name="bt_config_permission_rationale">Paparcar ha bisogno dell'accesso Bluetooth per leggere i dispositivi abbinati. Concedi il permesso per continuare.</string>
     <string name="bt_config_grant_permission">Concedi permesso</string>
-    <string name="bt_config_no_devices">Nessun dispositivo Bluetooth abbinato trovato. Abbina prima il Bluetooth dell\'auto dalle impostazioni di sistema.</string>
+    <string name="bt_config_no_devices">Nessun dispositivo Bluetooth abbinato trovato. Abbina prima il Bluetooth dell'auto dalle impostazioni di sistema.</string>
     <string name="bt_config_save">Salva</string>
     <string name="bt_config_none">Nessun Bluetooth auto</string>
     <string name="bt_config_device_classic">Classico</string>
@@ -360,7 +360,7 @@
 
     <!-- GPS accuracy disclaimer (QA-008) -->
     <string name="gps_disclaimer_title">Avviso sulla precisione GPS</string>
-    <string name="gps_disclaimer_body">La precisione GPS varia tra 5 e 30 metri in base all\'ambiente. Per risultati ottimali, usa l\'app all\'aperto con visuale libera del cielo. In ambienti chiusi o sotterranei la precisione può ridursi.</string>
+    <string name="gps_disclaimer_body">La precisione GPS varia tra 5 e 30 metri in base all'ambiente. Per risultati ottimali, usa l'app all'aperto con visuale libera del cielo. In ambienti chiusi o sotterranei la precisione può ridursi.</string>
     <string name="gps_disclaimer_confirm">Capito</string>
     <string name="home_peek_dismiss_cd">Chiudi</string>
     <string name="home_peek_vehicle_parked_label">%1$s · parcheggiato</string>
@@ -403,13 +403,13 @@
     <!-- ReportPeekRow (segnalazione posto libero) -->
     <string name="home_report_header_label">Segnala posto libero</string>
     <string name="home_report_helper_primary">Centra il pin dove lasci il posto</string>
-    <string name="home_report_helper_secondary">Gli automobilisti vicini riceveranno la notifica all\'istante</string>
+    <string name="home_report_helper_secondary">Gli automobilisti vicini riceveranno la notifica all'istante</string>
     <string name="home_report_confirm_here">Conferma posto qui</string>
 
     <!-- AddingParking mode -->
     <string name="home_add_parking_header_label_create">Segna il tuo parcheggio</string>
     <string name="home_add_parking_header_label_edit">Sposta il tuo parcheggio</string>
-    <string name="home_add_parking_helper_primary_create">Centra il pin dove hai lasciato l\'auto</string>
+    <string name="home_add_parking_helper_primary_create">Centra il pin dove hai lasciato l'auto</string>
     <string name="home_add_parking_helper_primary_edit">Trascina la mappa nel punto giusto</string>
     <string name="home_add_parking_helper_secondary">Un geofence ti avviserà quando te ne vai</string>
     <string name="home_add_parking_confirm_create">Parcheggia qui</string>
@@ -451,7 +451,7 @@
 
     <!-- Settings — language + delete account + contact -->
     <string name="settings_language">Lingua</string>
-    <string name="settings_language_desc">Lingua dell\'app</string>
+    <string name="settings_language_desc">Lingua dell'app</string>
     <string name="settings_language_auto">Predefinito di sistema</string>
     <string name="settings_contact">Contatto</string>
     <string name="settings_send_diagnostics">Segnala un problema</string>
@@ -465,7 +465,7 @@
     <string name="settings_danger_zone_subtitle">Azioni irreversibili</string>
     <string name="settings_profile_member_since">Membro dal %1$s %2$d</string>
     <string name="settings_profile_delete_account">Elimina account</string>
-    <string name="settings_delete_account_confirm_title">Eliminare l\'account?</string>
+    <string name="settings_delete_account_confirm_title">Eliminare l'account?</string>
     <string name="settings_delete_account_confirm_message">Tutti i tuoi dati verranno eliminati definitivamente. Questa azione non può essere annullata.</string>
     <string name="settings_delete_account_confirm_action">Elimina account</string>
     <string name="settings_delete_account_cancel">Annulla</string>
@@ -515,7 +515,7 @@
     <string name="carbody_van_commercial">Furgone commerciale</string>
     <string name="carbody_pickup">Pick-up</string>
 
-    <string name="parking_alert_high_ceiling">Attenzione all\'altezza. Evita i garage con altezza inferiore a 2,10 m.</string>
+    <string name="parking_alert_high_ceiling">Attenzione all'altezza. Evita i garage con altezza inferiore a 2,10 m.</string>
     <string name="parking_alert_long_car">Auto lunga — attenzione alla sporgenza nei posti corti.</string>
     <string name="parking_alert_wide_car">Veicolo largo — preferisci posti senza colonne laterali.</string>
     <string name="parking_alert_standard">Dimensione standard — adatta alla grande maggioranza dei posti.</string>
@@ -562,7 +562,7 @@
     <string name="vehicle_registration_size_hint">Tocca per selezionare la dimensione</string>
 
     <!-- Home detection surface [DET-READY-001h] -->
-    <string name="home_det_novehicle_title">Aggiungi l\'auto</string>
+    <string name="home_det_novehicle_title">Aggiungi l'auto</string>
     <string name="home_det_novehicle_sub">Parcheggia e libera posti senza sforzo</string>
     <string name="home_det_novehicle_cta">Aggiungi</string>
     <string name="home_det_core_title">Attiva la posizione</string>
@@ -575,7 +575,7 @@
     <!-- DET-TOGGLE-002: in-app snackbar when detection drops to a stopped state -->
     <string name="home_det_stopped_msg">Rilevamento automatico interrotto</string>
     <string name="home_det_stopped_action">Attiva</string>
-    <string name="home_det_awaiting_title">Dov\'è la tua auto?</string>
+    <string name="home_det_awaiting_title">Dov'è la tua auto?</string>
     <string name="home_det_awaiting_sub">Segna il parcheggio e lo controllo</string>
     <string name="home_det_watching_title">Vigiliamo la tua %1$s</string>
     <string name="home_det_watching_parked_sub">Parcheggiata — rileveremo quando riparti</string>
@@ -602,7 +602,7 @@
     <string name="home_det_ask_cta_no">Non ancora</string>
     <string name="home_det_ask_eyebrow">Hai parcheggiato?</string>
     <!-- Pending "where did you leave your car?" nudge row. [DET-NUDGE-PERSIST-001] -->
-    <string name="home_nudge_title">Dove hai lasciato l\'auto?</string>
+    <string name="home_nudge_title">Dove hai lasciato l'auto?</string>
     <string name="home_nudge_sub">Non siamo riusciti a fissare il tuo parcheggio. Segnalo per non perderlo.</string>
     <string name="home_nudge_cta">Segna il mio parcheggio</string>
     <string name="home_nudge_dismiss">Ignora</string>
@@ -662,7 +662,7 @@
     <string name="vehicle_bt_cd">Abbinamento Bluetooth</string>
     <string name="vehicle_set_active_action">Imposta come attivo</string>
     <!-- Vehicles — confirmation before making a vehicle the active one. [VEH-ACTIVE-FENCE-001] -->
-    <string name="vehicle_set_active_confirm_title">Stai guidando quest\'auto?</string>
+    <string name="vehicle_set_active_confirm_title">Stai guidando quest'auto?</string>
     <string name="vehicle_set_active_confirm_body">Rileveremo automaticamente dove parcheggi %1$s.</string>
     <string name="vehicle_set_active_confirm_cta">Sì, è la mia auto</string>
     <string name="vehicle_set_active_confirm_cancel">Annulla</string>

@@ -90,9 +90,9 @@
     <string name="home_release_dialog_title">Releasing the spot — share it?</string>
     <string name="home_release_dialog_message">When you notify, other drivers get an alert and can arrive sooner.</string>
     <!-- Consequence line: leaving means detection re-arms for the next parking. [VEH-ACTIVE-FENCE-001] -->
-    <string name="home_release_dialog_detection_active">We\'ll start detecting your next parking.</string>
+    <string name="home_release_dialog_detection_active">We'll start detecting your next parking.</string>
     <string name="home_release_dialog_detection_unavailable">We won’t be able to detect your next parking on our own.</string>
-    <string name="home_release_dialog_detection_inactive">%1$s becomes your active car, so we\'ll detect your next parking.</string>
+    <string name="home_release_dialog_detection_inactive">%1$s becomes your active car, so we'll detect your next parking.</string>
     <string name="home_release_dialog_publish">Release and notify</string>
     <string name="home_release_dialog_delete_only">Just release</string>
     <string name="home_release_dialog_cancel">Cancel</string>
@@ -262,16 +262,16 @@
     <!-- Generic error messages -->
     <string name="error_unknown">Something went wrong</string>
     <string name="error_watch_resume_failed">The watch could not be restarted. Try again in a moment.</string>
-    <string name="error_load_spots">Couldn\'t load nearby spots</string>
-    <string name="error_load_session">Couldn\'t load parking session</string>
-    <string name="error_release_parking">Couldn\'t release parking</string>
+    <string name="error_load_spots">Couldn't load nearby spots</string>
+    <string name="error_load_session">Couldn't load parking session</string>
+    <string name="error_release_parking">Couldn't release parking</string>
     <string name="error_gps_unavailable">Waiting for GPS fix…</string>
     <string name="error_search_failed">Search is not working right now. Check your connection and try again</string>
     <string name="error_bootstrap_offline_title">No internet connection</string>
     <string name="error_bootstrap_offline_body">Paparcar needs a connection to load your data. Check your network and try again.</string>
     <string name="error_bootstrap_retry">Retry</string>
     <string name="error_bootstrap_still_offline">Still no connection</string>
-    <string name="error_bootstrap_fatal_title">Couldn\'t load your account</string>
+    <string name="error_bootstrap_fatal_title">Couldn't load your account</string>
     <string name="error_bootstrap_fatal_body">Something went wrong while loading your data. Please sign in again.</string>
     <string name="error_bootstrap_fatal_dismiss">OK</string>
     <string name="error_parking_save_failed">Could not save your parking. Please try again.</string>
@@ -285,11 +285,11 @@
     <string name="home_cd_map_type">Switch map type</string>
 
     <!-- Home Reporting mode -->
-    <string name="home_report_subtitle">A free spot you\'ve seen and want to share with others.</string>
+    <string name="home_report_subtitle">A free spot you've seen and want to share with others.</string>
     <string name="home_report_fab_cd">Report a free spot</string>
     <!-- Refreshed copy for the reporting peek card (v1 design) -->
     <string name="home_report_header_label">Report free spot</string>
-    <string name="home_report_helper_primary">Center the pin where you\'re leaving the spot</string>
+    <string name="home_report_helper_primary">Center the pin where you're leaving the spot</string>
     <string name="home_report_helper_secondary">Nearby drivers get notified instantly</string>
     <string name="home_report_confirm_here">Confirm spot here</string>
 
@@ -308,7 +308,7 @@
     <string name="home_zone_name_placeholder">e.g. Home, Work</string>
     <string name="home_zone_save_action">Save zone</string>
     <string name="home_zone_private_label">Private zone</string>
-    <string name="home_zone_private_hint">Spot won\'t be shared when you leave</string>
+    <string name="home_zone_private_hint">Spot won't be shared when you leave</string>
     <!-- Refreshed copy for the new-zone peek card (v1 design) -->
     <string name="home_zone_header_label">New habitual zone</string>
     <string name="home_zone_edit_header_label">Edit zone</string>
@@ -373,10 +373,10 @@
     <string name="settings_contact">Contact</string>
     <string name="settings_send_diagnostics">Report a problem</string>
     <string name="settings_send_diagnostics_confirm_title">Send diagnostics?</string>
-    <string name="settings_send_diagnostics_confirm_message">This sends Paparcar\'s recent technical log from this device. It includes approximate locations from your latest drives and parkings, and we use it only to investigate the problem.</string>
+    <string name="settings_send_diagnostics_confirm_message">This sends Paparcar's recent technical log from this device. It includes approximate locations from your latest drives and parkings, and we use it only to investigate the problem.</string>
     <string name="settings_send_diagnostics_confirm_action">Send</string>
-    <string name="settings_send_diagnostics_sent">Diagnostics sent. Thank you, we\'ll look into it.</string>
-    <string name="settings_send_diagnostics_error">Couldn\'t send the diagnostics. Check your connection and try again.</string>
+    <string name="settings_send_diagnostics_sent">Diagnostics sent. Thank you, we'll look into it.</string>
+    <string name="settings_send_diagnostics_error">Couldn't send the diagnostics. Check your connection and try again.</string>
     <!-- Settings v2 — refactored UI -->
     <string name="settings_danger_zone">Danger zone</string>
     <string name="settings_danger_zone_subtitle">Irreversible actions</string>
@@ -406,12 +406,12 @@
     <string name="vehicle_set_active_action">Set as active</string>
     <!-- Vehicles — confirmation before making a vehicle the active one. [VEH-ACTIVE-FENCE-001] -->
     <string name="vehicle_set_active_confirm_title">Are you driving this car?</string>
-    <string name="vehicle_set_active_confirm_body">We\'ll automatically detect where you park %1$s.</string>
-    <string name="vehicle_set_active_confirm_cta">Yes, it\'s my car</string>
+    <string name="vehicle_set_active_confirm_body">We'll automatically detect where you park %1$s.</string>
+    <string name="vehicle_set_active_confirm_cta">Yes, it's my car</string>
     <string name="vehicle_set_active_confirm_cancel">Cancel</string>
     <string name="my_car_unnamed_vehicle">Unnamed vehicle</string>
     <string name="veh_bt_recommendation_title">Improve detection accuracy</string>
-    <string name="veh_bt_recommendation_body">Pairing your car\'s Bluetooth lets Paparcar detect when you park much more reliably, even on short trips. You can always set this up later from the vehicle\'s menu.</string>
+    <string name="veh_bt_recommendation_body">Pairing your car's Bluetooth lets Paparcar detect when you park much more reliably, even on short trips. You can always set this up later from the vehicle's menu.</string>
     <string name="veh_bt_recommendation_configure">Pair Bluetooth</string>
     <string name="veh_bt_recommendation_skip">Later</string>
     <string name="my_car_empty_subtitle">We need to know what you drive so we can detect when you park.</string>
@@ -459,9 +459,9 @@
     <string name="vehicle_type_motorcycle">Motorcycle</string>
     <string name="vehicle_type_motorcycle_examples">Highway-capable motorbike — uses parking spots</string>
     <string name="vehicle_type_scooter">Scooter</string>
-    <string name="vehicle_type_scooter_examples">Moped or electric scooter — usually doesn\'t need spots</string>
+    <string name="vehicle_type_scooter_examples">Moped or electric scooter — usually doesn't need spots</string>
     <string name="vehicle_type_bike">Bike</string>
-    <string name="vehicle_type_bike_examples">Bicycle or e-bike — usually doesn\'t need spots</string>
+    <string name="vehicle_type_bike_examples">Bicycle or e-bike — usually doesn't need spots</string>
 
     <!-- Permissions tier benefit taglines [ONB-SCAFFOLD-001] -->
     <string name="permissions_tier_essential_benefit">To find and see spots on the map</string>
@@ -474,7 +474,7 @@
     <string name="permissions_tier_assisted_plus_name">Assisted +</string>
     <string name="permissions_tier_assisted_name">Assisted</string>
     <string name="permissions_tier_automatic_promise">Your parking is marked and the spot freed on its own.</string>
-    <string name="permissions_tier_assisted_plus_promise">Almost always hands-free; now and then we\'ll ask you.</string>
+    <string name="permissions_tier_assisted_plus_promise">Almost always hands-free; now and then we'll ask you.</string>
     <string name="permissions_tier_assisted_promise">We detect what your phone allows; when in doubt, we ask you.</string>
     <!-- Per-permission payoff tag: which tier this action unlocks. "→ Automatic" / "→ Assisted +" -->
     <string name="permissions_tier_unlocks">→ %1$s</string>
@@ -483,7 +483,7 @@
     <string name="vehicle_size_explainer_title">Tell us about your car</string>
     <string name="vehicle_size_explainer_subtitle">We just need one essential detail for the app to work: the size.</string>
     <string name="vehicle_size_explainer_card1_title">Size: how we match parking spots</string>
-    <string name="vehicle_size_explainer_card1_desc">Other drivers look for spots that fit their car. Without this we can\'t match you.</string>
+    <string name="vehicle_size_explainer_card1_desc">Other drivers look for spots that fit their car. Without this we can't match you.</string>
     <string name="vehicle_size_explainer_card2_title">Brand and model are optional</string>
     <string name="vehicle_size_explainer_card2_desc">You can add them if you want. If not, nobody sees them.</string>
     <string name="vehicle_size_explainer_cta">Get started</string>
@@ -494,7 +494,7 @@
     <string name="bt_config_open_bt_settings">Open Bluetooth Settings</string>
     <string name="bt_config_permission_rationale">Paparcar needs Bluetooth access to read your paired devices. Grant the permission to continue.</string>
     <string name="bt_config_grant_permission">Grant Permission</string>
-    <string name="bt_config_no_devices">No paired Bluetooth devices found. Pair your car\'s Bluetooth in system settings first.</string>
+    <string name="bt_config_no_devices">No paired Bluetooth devices found. Pair your car's Bluetooth in system settings first.</string>
     <string name="bt_config_save">Save</string>
     <string name="bt_config_none">No car Bluetooth</string>
     <string name="bt_config_device_classic">Classic</string>
@@ -538,7 +538,7 @@
     <string name="home_filter_empty_subtitle">Try a different filter or check back later</string>
     <string name="home_filter_empty_clear">Clear filter</string>
     <!-- Connectivity banner / snackbar -->
-    <string name="connectivity_offline_banner">You\'re offline</string>
+    <string name="connectivity_offline_banner">You're offline</string>
     <string name="connectivity_restored_banner">Back online</string>
 
     <!-- GPS accuracy disclaimer (QA-008) -->

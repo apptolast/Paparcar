@@ -66,13 +66,13 @@
     <string name="onboarding_page1_subtitle">La communauté qui libère les places de parking. Quand vous partez, les autres trouvent la vôtre. Quand les autres partent, vous trouvez la leur.</string>
     <string name="onboarding_page2_title">Comment ça marche</string>
     <string name="onboarding_step1_title">Nous détectons la conduite</string>
-    <string name="onboarding_step1_desc">L\'app détecte quand vous montez en voiture</string>
+    <string name="onboarding_step1_desc">L'app détecte quand vous montez en voiture</string>
     <string name="onboarding_step2_title">Nous détectons le stationnement</string>
     <string name="onboarding_step2_desc">Quand vous vous garez, nous enregistrons silencieusement votre stationnement</string>
     <string name="onboarding_step3_title">Nous partageons la place</string>
     <string name="onboarding_step3_desc">Quand vous partez, votre place devient disponible pour les autres à proximité</string>
     <string name="onboarding_page3_title">Pourquoi nous avons besoin de vos permissions</string>
-    <string name="onboarding_page3_subtitle">Paparcar collecte des données de position même quand l\'app est fermée ou n\'est pas utilisée, pour détecter automatiquement votre stationnement. Votre position n\'est jamais vendue ni utilisée à des fins publicitaires.</string>
+    <string name="onboarding_page3_subtitle">Paparcar collecte des données de position même quand l'app est fermée ou n'est pas utilisée, pour détecter automatiquement votre stationnement. Votre position n'est jamais vendue ni utilisée à des fins publicitaires.</string>
     <string name="onboarding_cta_next">Suivant</string>
     <string name="onboarding_cta_setup">Configurer les permissions</string>
 
@@ -82,8 +82,8 @@
     <string name="permissions_perm_location">Position précise</string>
     <string name="permissions_perm_location_desc">Pour enregistrer précisément où vous avez garé votre véhicule</string>
     <string name="permissions_perm_background">Position en arrière-plan</string>
-    <string name="permissions_perm_background_desc">Nécessaire pour détecter le stationnement même quand l\'app est fermée ou n\'est pas utilisée</string>
-    <string name="permissions_perm_activity">Reconnaissance d\'activité</string>
+    <string name="permissions_perm_background_desc">Nécessaire pour détecter le stationnement même quand l'app est fermée ou n'est pas utilisée</string>
+    <string name="permissions_perm_activity">Reconnaissance d'activité</string>
     <string name="permissions_perm_activity_desc">Pour détecter automatiquement quand vous commencez à conduire et quand vous vous garez</string>
     <string name="permissions_perm_notifications">Notifications</string>
     <string name="permissions_perm_notifications_desc">Pour confirmer le stationnement et vous alerter des places libres à proximité</string>
@@ -120,14 +120,14 @@
         <item quantity="one">stationnement cette semaine</item>
         <item quantity="other">stationnements cette semaine</item>
     </plurals>
-    <string name="history_today">Aujourd\'hui</string>
+    <string name="history_today">Aujourd'hui</string>
     <string name="history_yesterday">Hier</string>
     <string name="history_empty_title">Aucun stationnement</string>
     <string name="history_empty_subtitle">Vos enregistrements apparaîtront ici</string>
     <string name="history_active_section">Actuellement garé</string>
     <string name="history_view_map">Voir sur la carte</string>
     <!-- Relative time -->
-    <string name="relative_time_just_now">à l\'instant</string>
+    <string name="relative_time_just_now">à l'instant</string>
     <string name="relative_time_minutes">il y a %1$d min</string>
     <string name="relative_time_hours">il y a %1$d h</string>
     <string name="relative_time_day">il y a %1$d jour</string>
@@ -209,7 +209,7 @@
     <string name="settings_privacy">Politique de confidentialité</string>
     <string name="settings_licenses">Licences open source</string>
 
-    <!-- Messages d\'erreur génériques -->
+    <!-- Messages d'erreur génériques -->
     <string name="error_unknown">Une erreur est survenue</string>
     <string name="error_watch_resume_failed">Impossible de réactiver la surveillance. Réessaie dans un instant.</string>
     <string name="error_load_spots">Impossible de charger les places à proximité</string>
@@ -218,13 +218,13 @@
     <string name="error_gps_unavailable">En attente du signal GPS…</string>
     <string name="error_search_failed">La recherche ne fonctionne pas pour le moment. Vérifiez votre connexion et réessayez</string>
     <string name="error_bootstrap_offline_title">Pas de connexion internet</string>
-    <string name="error_bootstrap_offline_body">Paparcar a besoin d\'une connexion pour charger tes données. Vérifie ton réseau et réessaie.</string>
+    <string name="error_bootstrap_offline_body">Paparcar a besoin d'une connexion pour charger tes données. Vérifie ton réseau et réessaie.</string>
     <string name="error_bootstrap_retry">Réessayer</string>
     <string name="error_bootstrap_still_offline">Toujours pas de connexion</string>
     <string name="error_bootstrap_fatal_title">Impossible de charger ton compte</string>
     <string name="error_bootstrap_fatal_body">Une erreur est survenue lors du chargement de tes données. Reconnecte-toi.</string>
     <string name="error_bootstrap_fatal_dismiss">OK</string>
-    <string name="error_parking_save_failed">Impossible d\'enregistrer votre stationnement. Veuillez réessayer.</string>
+    <string name="error_parking_save_failed">Impossible d'enregistrer votre stationnement. Veuillez réessayer.</string>
 
     <!-- Messages de succès Home -->
     <string name="home_spot_reported">Place signalée — chargement…</string>
@@ -263,7 +263,7 @@
     <string name="veh_bt_recommendation_configure">Associer le Bluetooth</string>
     <string name="veh_bt_recommendation_skip">Plus tard</string>
     <string name="my_car_empty_subtitle">Nous devons savoir ce que vous conduisez pour détecter quand vous vous garez.</string>
-    <string name="my_car_empty_why_link">Pourquoi ai-je besoin d\'un véhicule ?</string>
+    <string name="my_car_empty_why_link">Pourquoi ai-je besoin d'un véhicule ?</string>
 
     <!-- Enregistrement de véhicule -->
     <string name="vehicle_registration_title">Enregistrer votre véhicule</string>
@@ -278,7 +278,7 @@
     <string name="vehicle_registration_brand_error">Sélectionnez une marque pour continuer</string>
     <string name="vehicle_registration_size_required_hint">Choisissez une taille pour continuer</string>
     <string name="vehicle_registration_saving">Enregistrement…</string>
-    <string name="vehicle_registration_license_plate_label">Plaque d\'immatriculation</string>
+    <string name="vehicle_registration_license_plate_label">Plaque d'immatriculation</string>
     <string name="vehicle_show_on_spot">Afficher la marque et le modèle sur les places libres</string>
     <string name="vehicle_show_on_spot_desc">La marque et le modèle sont privés — utilisés uniquement pour estimer la taille de la place. Activez pour que les autres voient quel véhicule a libéré la place.</string>
     <string name="vehicle_size_moto">Moto</string>
@@ -288,20 +288,20 @@
     <string name="vehicle_size_van">Fourgon / SUV</string>
     <string name="vehicle_size_unknown">Indéfini</string>
 
-    <!-- Sélecteur de type de véhicule — écran d\'enregistrement / édition -->
+    <!-- Sélecteur de type de véhicule — écran d'enregistrement / édition -->
     <string name="vehicle_type_car">Voiture</string>
     <string name="vehicle_type_car_examples">Voiture, SUV ou fourgon — occupe une place</string>
     <string name="vehicle_type_motorcycle">Moto</string>
     <string name="vehicle_type_motorcycle_examples">Moto de route — occupe une place</string>
     <string name="vehicle_type_scooter">Trottinette</string>
-    <string name="vehicle_type_scooter_examples">Cyclomoteur ou trottinette électrique — n\'a normalement pas besoin de place</string>
+    <string name="vehicle_type_scooter_examples">Cyclomoteur ou trottinette électrique — n'a normalement pas besoin de place</string>
     <string name="vehicle_type_bike">Vélo</string>
-    <string name="vehicle_type_bike_examples">Vélo ou e-bike — n\'a normalement pas besoin de place</string>
+    <string name="vehicle_type_bike_examples">Vélo ou e-bike — n'a normalement pas besoin de place</string>
 
     <!-- Slogans de bénéfice par palier d'autorisations [ONB-SCAFFOLD-001] -->
     <string name="permissions_tier_essential_benefit">Pour trouver et voir les places sur la carte</string>
     <string name="permissions_tier_detection_benefit">Pour publier votre place en partant, sans rien faire</string>
-    <string name="permissions_tier_optional_benefit">Utiles seulement avec la détection automatique activée — pour qu\'elle ne rate jamais</string>
+    <string name="permissions_tier_optional_benefit">Utiles seulement avec la détection automatique activée — pour qu'elle ne rate jamais</string>
 
     <!-- Niveau de détection — la promesse honnête selon la configuration [DET-TIERS-001] -->
     <string name="permissions_tier_status_eyebrow">Niveau de détection</string>
@@ -315,20 +315,20 @@
 
     <!-- Vehicle Size Explainer screen -->
     <string name="vehicle_size_explainer_title">Parlez-nous de votre voiture</string>
-    <string name="vehicle_size_explainer_subtitle">Nous avons besoin d\'une seule info essentielle pour que l\'app fonctionne : la taille.</string>
+    <string name="vehicle_size_explainer_subtitle">Nous avons besoin d'une seule info essentielle pour que l'app fonctionne : la taille.</string>
     <string name="vehicle_size_explainer_card1_title">Taille : pour associer les places</string>
-    <string name="vehicle_size_explainer_card1_desc">D\'autres conducteurs cherchent des places adaptées à leur voiture. Sans cette info, impossible de vous associer.</string>
+    <string name="vehicle_size_explainer_card1_desc">D'autres conducteurs cherchent des places adaptées à leur voiture. Sans cette info, impossible de vous associer.</string>
     <string name="vehicle_size_explainer_card2_title">Marque et modèle sont facultatifs</string>
     <string name="vehicle_size_explainer_card2_desc">Vous pouvez les ajouter si vous voulez. Sinon, personne ne les verra.</string>
     <string name="vehicle_size_explainer_cta">Commencer</string>
 
     <string name="bt_config_title">Clé Bluetooth de voiture</string>
-    <string name="bt_config_subtitle">Sélectionnez l\'appareil Bluetooth déjà associé à votre voiture. L\'app l\'utilisera pour détecter quand vous vous garez ou partez.</string>
+    <string name="bt_config_subtitle">Sélectionnez l'appareil Bluetooth déjà associé à votre voiture. L'app l'utilisera pour détecter quand vous vous garez ou partez.</string>
     <string name="bt_config_bt_off">Le Bluetooth est désactivé. Activez-le pour voir vos appareils associés.</string>
     <string name="bt_config_open_bt_settings">Ouvrir les paramètres Bluetooth</string>
-    <string name="bt_config_permission_rationale">Paparcar a besoin d\'accès au Bluetooth pour lire vos appareils associés. Accordez la permission pour continuer.</string>
+    <string name="bt_config_permission_rationale">Paparcar a besoin d'accès au Bluetooth pour lire vos appareils associés. Accordez la permission pour continuer.</string>
     <string name="bt_config_grant_permission">Accorder la permission</string>
-    <string name="bt_config_no_devices">Aucun appareil Bluetooth associé trouvé. Associez d\'abord le Bluetooth de votre voiture dans les paramètres système.</string>
+    <string name="bt_config_no_devices">Aucun appareil Bluetooth associé trouvé. Associez d'abord le Bluetooth de votre voiture dans les paramètres système.</string>
     <string name="bt_config_save">Enregistrer</string>
     <string name="bt_config_none">Pas de Bluetooth de voiture</string>
     <string name="bt_config_device_classic">Classique</string>
@@ -360,7 +360,7 @@
 
     <!-- GPS accuracy disclaimer (QA-008) -->
     <string name="gps_disclaimer_title">Avertissement de précision GPS</string>
-    <string name="gps_disclaimer_body">La précision du GPS varie entre 5 et 30 mètres selon l\'environnement. Pour de meilleurs résultats, utilisez l\'app en extérieur avec une vue dégagée du ciel. En intérieur ou en sous-sol, la précision peut être réduite.</string>
+    <string name="gps_disclaimer_body">La précision du GPS varie entre 5 et 30 mètres selon l'environnement. Pour de meilleurs résultats, utilisez l'app en extérieur avec une vue dégagée du ciel. En intérieur ou en sous-sol, la précision peut être réduite.</string>
     <string name="gps_disclaimer_confirm">Compris</string>
     <string name="home_peek_dismiss_cd">Fermer</string>
     <string name="home_peek_vehicle_parked_label">%1$s · garé</string>
@@ -369,7 +369,7 @@
     <string name="vehicle_reg_cd_back">Retour</string>
 
     <!-- ConfirmationBottomSheet (détection de stationnement) -->
-    <string name="confirmation_sheet_question">Tu t\'es garé ici ?</string>
+    <string name="confirmation_sheet_question">Tu t'es garé ici ?</string>
     <string name="confirmation_sheet_question_vehicle">Tu as garé ta %1$s ?</string>
     <string name="confirmation_sheet_method_bt">Détecté par Bluetooth · il y a %1$s</string>
     <string name="confirmation_sheet_method_ar">Détecté automatiquement · il y a %1$s</string>
@@ -402,20 +402,20 @@
 
     <!-- ReportPeekRow (signaler une place libre) -->
     <string name="home_report_header_label">Signaler place libre</string>
-    <string name="home_report_helper_primary">Centre l\'épingle où tu laisses la place</string>
+    <string name="home_report_helper_primary">Centre l'épingle où tu laisses la place</string>
     <string name="home_report_helper_secondary">Les conducteurs proches reçoivent la notification instantanément</string>
     <string name="home_report_confirm_here">Confirmer la place ici</string>
 
     <!-- AddingParking mode -->
     <string name="home_add_parking_header_label_create">Marquer le stationnement</string>
     <string name="home_add_parking_header_label_edit">Déplacer le stationnement</string>
-    <string name="home_add_parking_helper_primary_create">Centre l\'épingle où tu as laissé la voiture</string>
+    <string name="home_add_parking_helper_primary_create">Centre l'épingle où tu as laissé la voiture</string>
     <string name="home_add_parking_helper_primary_edit">Fais glisser la carte au bon endroit</string>
-    <string name="home_add_parking_helper_secondary">Un geofence t\'avertit quand tu pars</string>
+    <string name="home_add_parking_helper_secondary">Un geofence t'avertit quand tu pars</string>
     <string name="home_add_parking_confirm_create">Se garer ici</string>
     <string name="home_add_parking_confirm_edit">Enregistrer la nouvelle position</string>
     <string name="home_add_parking_cancel_cd">Annuler la modification du stationnement</string>
-    <string name="home_parking_action_move_location">Déplacer l\'emplacement</string>
+    <string name="home_parking_action_move_location">Déplacer l'emplacement</string>
 
     <!-- HomeSpotRow reliability tier label -->
     <string name="home_spot_reliability_high">Fiable</string>
@@ -427,7 +427,7 @@
     <string name="home_zone_header_label">Nouvelle zone habituelle</string>
     <string name="home_zone_helper_primary_create">Centre la carte sur ta zone habituelle</string>
     <string name="home_zone_helper_primary_edit">Déplace la carte pour recentrer la zone</string>
-    <string name="home_zone_helper_secondary">Ajuste le rayon jusqu\'à la couvrir entièrement</string>
+    <string name="home_zone_helper_secondary">Ajuste le rayon jusqu'à la couvrir entièrement</string>
     <string name="home_zone_name_dialog_title">Donne un nom à la zone</string>
     <string name="home_zone_name_dialog_body">Tu verras ce nom sur sa puce au-dessus de la carte.</string>
     <string name="home_zone_delete_confirm_title">Supprimer cette zone ?</string>
@@ -451,15 +451,15 @@
 
     <!-- Settings — language + delete account + contact -->
     <string name="settings_language">Langue</string>
-    <string name="settings_language_desc">Langue de l\'app</string>
+    <string name="settings_language_desc">Langue de l'app</string>
     <string name="settings_language_auto">Par défaut du système</string>
     <string name="settings_contact">Contact</string>
     <string name="settings_send_diagnostics">Signaler un problème</string>
     <string name="settings_send_diagnostics_confirm_title">Envoyer le diagnostic ?</string>
-    <string name="settings_send_diagnostics_confirm_message">Le journal technique récent de Paparcar sur cet appareil sera envoyé. Il inclut des positions approximatives de vos derniers trajets et stationnements, et nous l\'utilisons uniquement pour enquêter sur le problème.</string>
+    <string name="settings_send_diagnostics_confirm_message">Le journal technique récent de Paparcar sur cet appareil sera envoyé. Il inclut des positions approximatives de vos derniers trajets et stationnements, et nous l'utilisons uniquement pour enquêter sur le problème.</string>
     <string name="settings_send_diagnostics_confirm_action">Envoyer</string>
-    <string name="settings_send_diagnostics_sent">Diagnostic envoyé. Merci, nous allons l\'examiner.</string>
-    <string name="settings_send_diagnostics_error">Impossible d\'envoyer le diagnostic. Vérifiez votre connexion et réessayez.</string>
+    <string name="settings_send_diagnostics_sent">Diagnostic envoyé. Merci, nous allons l'examiner.</string>
+    <string name="settings_send_diagnostics_error">Impossible d'envoyer le diagnostic. Vérifiez votre connexion et réessayez.</string>
     <!-- Settings v2 — refactor UI -->
     <string name="settings_danger_zone">Zone de danger</string>
     <string name="settings_danger_zone_subtitle">Actions irréversibles</string>
@@ -531,11 +531,11 @@
     <string name="home_peek_car_parked_label">Votre voiture est garée</string>
     <string name="home_peek_parking_duration_hm">Garé il y a %1$dh %2$dm</string>
     <string name="home_peek_parking_duration_min">Garé il y a %1$d min</string>
-    <string name="home_peek_parking_duration_now">Garé à l\'instant</string>
+    <string name="home_peek_parking_duration_now">Garé à l'instant</string>
     <string name="home_peek_parking_approximate">Quelque part dans %1$d m : nous avons perdu la fin du trajet. Modifie pour le placer.</string>
     <string name="home_peek_spot_age_hour">Publié il y a %1$d h</string>
     <string name="home_peek_spot_age_min">Publié il y a %1$d min</string>
-    <string name="home_peek_spot_age_now">Publié à l\'instant</string>
+    <string name="home_peek_spot_age_now">Publié à l'instant</string>
     <string name="home_peek_spot_compat_large">grande voiture</string>
     <string name="home_peek_spot_compat_medium">voiture moyenne</string>
     <string name="home_peek_spot_compat_moto">moto</string>
@@ -548,7 +548,7 @@
     <string name="home_peek_spot_reliability_label">Fiabilité</string>
     <string name="home_peek_spot_size_unknown">Taille non spécifiée</string>
     <string name="home_report_size_section">Taille de la place (facultatif)</string>
-    <string name="permissions_bg_guide_body">Sur l\'écran suivant :\n\n1. Touchez «Localisation»\n2. Sélectionnez «Autoriser tout le temps»\n3. Appuyez sur Retour pour revenir à Paparcar</string>
+    <string name="permissions_bg_guide_body">Sur l'écran suivant :\n\n1. Touchez «Localisation»\n2. Sélectionnez «Autoriser tout le temps»\n3. Appuyez sur Retour pour revenir à Paparcar</string>
     <string name="permissions_bg_guide_cta">Ouvrir les paramètres</string>
     <string name="permissions_bg_guide_dismiss">Pas maintenant</string>
     <string name="permissions_bg_guide_title">Activer la localisation en arrière-plan</string>
@@ -595,12 +595,12 @@
     <string name="home_det_awaiting_cta_primary">Marquer mon stationnement</string>
     <string name="home_det_awaiting_cta_secondary">Je conduis</string>
     <!-- [DET-ASK-STATE-001] -->
-    <string name="home_det_ask_title">Tu t\'es garé ?</string>
+    <string name="home_det_ask_title">Tu t'es garé ?</string>
     <string name="home_det_ask_title_vehicle">Tu as garé ta %1$s ?</string>
     <string name="home_det_ask_sub">J&apos;enregistre votre stationnement et je publie la place quand tu pars</string>
     <string name="home_det_ask_cta_yes">Oui, je suis garé</string>
     <string name="home_det_ask_cta_no">Pas encore</string>
-    <string name="home_det_ask_eyebrow">Tu t\'es garé ?</string>
+    <string name="home_det_ask_eyebrow">Tu t'es garé ?</string>
     <!-- Pending "where did you leave your car?" nudge row. [DET-NUDGE-PERSIST-001] -->
     <string name="home_nudge_title">Où avez-vous laissé votre voiture ?</string>
     <string name="home_nudge_sub">Impossible de fixer votre stationnement. Marquez-le pour ne pas le perdre.</string>
@@ -664,7 +664,7 @@
     <!-- Vehicles — confirmation before making a vehicle the active one. [VEH-ACTIVE-FENCE-001] -->
     <string name="vehicle_set_active_confirm_title">Conduisez-vous cette voiture ?</string>
     <string name="vehicle_set_active_confirm_body">Nous détecterons automatiquement où vous garez %1$s.</string>
-    <string name="vehicle_set_active_confirm_cta">Oui, c\'est ma voiture</string>
+    <string name="vehicle_set_active_confirm_cta">Oui, c'est ma voiture</string>
     <string name="vehicle_set_active_confirm_cancel">Annuler</string>
     <string name="vehicle_status_active">Actif</string>
     <string name="vehicle_status_active_cd">Détection active</string>

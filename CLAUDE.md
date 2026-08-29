@@ -152,6 +152,10 @@ elige rol. Fuente de verdad: `ui/theme/PaparcarType.kt` (19 roles), se lee
 - **Todo string nuevo se añade a los 9 locales en la MISMA tarea**: `values` (EN base), `values-es`,
   `-it`, `-pt`, `-fr`, `-de`, `-nl`, `-pl`, `-ro`. Si la traducción no está clara, poner el texto
   inglés antes que omitir la key — Compose Resources **crashea** si falta en el locale activo.
+- **Apóstrofos CRUDOS (`'`), nunca `\'`** [COPY-APOSTROPHE-IS-NOT-ESCAPED-001]. Esto es Compose
+  Resources, no `android:strings`: **no desescapa `\'`** y el usuario lee la barra
+  («Paparcar\'s»). Medido en el `.cvr` del APK: `\n` sí se desescapa y el apóstrofo crudo sale
+  limpio; `\'` es el único roto. Muerde en EN (contracciones) y FR/IT (elisiones).
 
 ### ⛔ Vocabulario: PLAZA es de la comunidad, APARCAMIENTO es tuyo [COPY-SPOT-IS-NOT-A-PARKING-001]
 Los dos conceptos centrales del producto se llamaban igual, y en el mismo flujo: la acción de
