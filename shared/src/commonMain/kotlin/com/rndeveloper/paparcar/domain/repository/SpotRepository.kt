@@ -28,6 +28,10 @@ interface SpotRepository {
      */
     suspend fun sendSpotSignal(spotId: String, accepted: Boolean): Result<Unit>
 
+    /** Restarts the spot's age — an eyewitness confirmed it is still free. Does not extend its
+     *  expiry. [SPOT-COMMUNITY-VOTES-NEED-A-CONSEQUENCE-001] */
+    suspend fun refreshSpot(spotId: String): Result<Unit>
+
     /** Wipes the local spot cache. Called during account deletion. */
     suspend fun clearCache(): Result<Unit>
 }

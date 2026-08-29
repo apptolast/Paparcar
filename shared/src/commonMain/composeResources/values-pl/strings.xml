@@ -234,7 +234,6 @@
     <string name="home_spot_reported">Miejsce zgłoszone — przesyłanie…</string>
     <string name="home_cd_map_type">Zmień typ mapy</string>
     <string name="home_test_spot_sent">Testowe miejsce wysłane</string>
-    <string name="home_spot_signal_sent">Dzi&#x0119;kujemy za aktualizacj&#x0119;!</string>
 
     <!-- Home Reporting mode -->
     <string name="home_report_subtitle">Wolne miejsce, kt&#xF3;re widzia&#x0142;e&#x015B; i chcesz udost&#x0119;pni&#x0107; innym.</string>
@@ -673,4 +672,7 @@
     <string name="home_peek_spot_recent">Miejsce może być nadal wolne</string>
     <string name="home_peek_spot_stale">Miejsce jest prawdopodobnie zajęte</string>
     <string name="home_peek_spot_freshness_label">Aktualność</string>
+    <!-- Spot vote outcome [SPOT-COMMUNITY-VOTES-NEED-A-CONSEQUENCE-001] -->
+    <string name="home_spot_vote_retracted">Usunięto. Dzięki za oszczędzenie komuś podróży.</string>
+    <string name="home_spot_vote_refreshed">Potwierdzone jako wolne. Dzięki!</string>
 </resources>

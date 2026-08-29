@@ -312,7 +312,6 @@
     <string name="home_spot_reported">Plaza reportada — subiendo…</string>
     <string name="home_cd_map_type">Cambiar tipo de mapa</string>
     <string name="home_test_spot_sent">Plaza de prueba enviada</string>
-    <string name="home_spot_signal_sent">&#xA1;Gracias por la actualizaci&#xF3;n!</string>
 
     <!-- Modo Reporting en Home -->
     <string name="home_report_subtitle">Una plaza libre que has visto y quieres compartir.</string>
@@ -663,4 +662,7 @@
     <string name="home_peek_spot_recent">La plaza puede seguir libre</string>
     <string name="home_peek_spot_stale">La plaza probablemente ya esté ocupada</string>
     <string name="home_peek_spot_freshness_label">Frescura</string>
+    <!-- Spot vote outcome [SPOT-COMMUNITY-VOTES-NEED-A-CONSEQUENCE-001] -->
+    <string name="home_spot_vote_retracted">Retirada. Gracias por ahorrarle el viaje a alguien.</string>
+    <string name="home_spot_vote_refreshed">Confirmada libre ahora mismo. ¡Gracias!</string>
 </resources>

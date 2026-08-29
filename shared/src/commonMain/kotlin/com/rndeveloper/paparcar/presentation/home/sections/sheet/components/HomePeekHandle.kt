@@ -133,6 +133,7 @@ fun HomePeekHandle(
                             spot = spot,
                             userLocation = slice.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
                             activeVehicle = slice.vehicles.firstOrNull { it.isActive },
+                            alreadyVoted = spot.id in slice.votedSpotIds,
                             step = slice.spotStep,
                             onIntent = onIntent,
                             onAction = onAction,

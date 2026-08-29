@@ -633,6 +633,49 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     ),
                 )
             },
+            // [SPOT-COMMUNITY-VOTES-NEED-A-CONSEQUENCE-001] The vote pair is offered only to a
+            // witness. Every spot in FakeData sits 119-441 m from `sampleGps`, so WITHOUT this
+            // variant the buttons would be invisible everywhere in the catalog and the feature
+            // would be untestable off-device — the user is placed on top of the spot instead.
+            Variant("PapSheet · spot con el usuario ENCIMA (botones de voto)", Placement.Surface) {
+                val spot = FakeData.nearbySpots.first()
+                peek(
+                    HomeState(
+                        nearbySpots = FakeData.nearbySpots,
+                        userGpsPoint = sampleGps.copy(
+                            latitude = spot.location.latitude,
+                            longitude = spot.location.longitude,
+                        ),
+                        selection = HomeSelection.Spot(spot.id),
+                    ),
+                )
+            },
+            // The same spot from across town: no buttons at all, rather than buttons that invite
+            // the tap and then refuse it.
+            Variant("PapSheet · spot LEJOS (sin botones de voto)", Placement.Surface) {
+                peek(
+                    HomeState(
+                        nearbySpots = FakeData.nearbySpots,
+                        userGpsPoint = sampleGps,
+                        selection = HomeSelection.Spot(FakeData.nearbySpots.first().id),
+                    ),
+                )
+            },
+            // …and once this session has voted, the pair stops being offered even standing there.
+            Variant("PapSheet · spot ya votado en esta sesión", Placement.Surface) {
+                val spot = FakeData.nearbySpots.first()
+                peek(
+                    HomeState(
+                        nearbySpots = FakeData.nearbySpots,
+                        userGpsPoint = sampleGps.copy(
+                            latitude = spot.location.latitude,
+                            longitude = spot.location.longitude,
+                        ),
+                        selection = HomeSelection.Spot(spot.id),
+                        votedSpotIds = setOf(spot.id),
+                    ),
+                )
+            },
             // [SPOT-FRESHNESS-IS-AGE-NOT-A-COUNTDOWN-001] The whole ramp in three variants, without
             // waiting half an hour for a spot to cross a threshold. Every surface of the peek —
             // eyebrow, puck, meta accents, meter — has to agree with the age on the subtitle.

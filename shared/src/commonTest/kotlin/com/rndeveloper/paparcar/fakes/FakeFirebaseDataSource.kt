@@ -50,6 +50,13 @@ class FakeFirebaseDataSource : FirebaseDataSource {
         retractedSpots += spotId to expiresAt
     }
 
+    /** [SPOT-COMMUNITY-VOTES-NEED-A-CONSEQUENCE-001] `spotId to reportedAt` of each refresh. */
+    val refreshedSpots = mutableListOf<Pair<String, Long>>()
+
+    override suspend fun refreshSpot(spotId: String, reportedAt: Long) {
+        refreshedSpots += spotId to reportedAt
+    }
+
     override suspend fun sendSpotSignal(spotId: String, accepted: Boolean) {
         sendSpotSignalCallCount++
         lastSignal = spotId to accepted

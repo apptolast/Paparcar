@@ -136,6 +136,15 @@ class SpotRepositoryImpl(
         runCatching { firebaseDataSource.sendSpotSignal(spotId, accepted) }
         // Room cache updates automatically via the Firestore real-time listener in observeNearbySpots.
 
+    override suspend fun refreshSpot(spotId: String): Result<Unit> = runCatching {
+        // Firestore only, same as retractSpot: touching Room here would race the listener's echo
+        // and flash the marker. [SPOT-FLICKER-001]
+        firebaseDataSource.refreshSpot(
+            spotId = spotId,
+            reportedAt = Clock.System.now().toEpochMilliseconds(),
+        )
+    }
+
     override suspend fun clearCache(): Result<Unit> = runCatching { spotDao.deleteAll() }
 
     private companion object {

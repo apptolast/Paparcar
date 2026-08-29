@@ -209,6 +209,16 @@ data class HomeState(
     /** Ids of spots whose accept/reject signal is in flight. Prevents double-tap
      *  on the small thumbs-up/down buttons in the spot peek. */
     val inFlightSpotSignals: Set<String> = emptySet(),
+    /**
+     * Spots this session has already voted on — the buttons stop being offered for them.
+     * [SPOT-COMMUNITY-VOTES-NEED-A-CONSEQUENCE-001]
+     *
+     * In memory on purpose, not persisted. A vote is bounded by its own consequences: a second
+     * "gone" on an already-retracted spot is a no-op, and repeated "still there" cannot outlive the
+     * spot because refreshing its age never touches `expiresAt`. A Room table to guard counters
+     * that no pixel reads would be schema cost for nothing.
+     */
+    val votedSpotIds: Set<String> = emptySet(),
     val addingZoneName: String = "",
     val addingZoneIconKey: String = ZoneIcon.DEFAULT,
     val addingZoneRadius: Float = Zone.DEFAULT_RADIUS_METERS,

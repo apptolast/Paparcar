@@ -67,6 +67,18 @@ class FirebaseDataSourceImpl(private val firestore: FirebaseFirestore) : Firebas
         spotsCollection.document(spotId).updateFields { field to FieldValue.increment(1) }
     }
 
+    override suspend fun refreshSpot(spotId: String, reportedAt: Long) {
+        // [SPOT-COMMUNITY-VOTES-NEED-A-CONSEQUENCE-001] An eyewitness just saw this space free, so
+        // the spot is as good as newly published: its AGE restarts.
+        //
+        // ⚠️ `expiresAt` is deliberately NOT touched. Age (which colours the spot) and expiry
+        // (which sweeps the document) were separated on purpose in
+        // [SPOT-FRESHNESS-IS-AGE-NOT-A-COUNTDOWN-001]; pushing expiry forward on every
+        // confirmation would let a chain of "still there" taps make a spot immortal. A confirmed
+        // spot looks new and still dies on schedule.
+        spotsCollection.document(spotId).updateFields { FIELD_REPORTED_AT to reportedAt }
+    }
+
     // ─── Zones ────────────────────────────────────────────────────────────────
 
     private fun zonesCollection(userId: String) =

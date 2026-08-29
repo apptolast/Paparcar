@@ -230,7 +230,6 @@
     <string name="home_spot_reported">Posto segnalato — in caricamento…</string>
     <string name="home_cd_map_type">Cambia tipo mappa</string>
     <string name="home_test_spot_sent">Posto di test inviato</string>
-    <string name="home_spot_signal_sent">Grazie per l&apos;aggiornamento!</string>
 
     <!-- Home Reporting mode -->
     <string name="home_report_subtitle">Un posto libero che hai visto e vuoi condividere con altri.</string>
@@ -667,4 +666,7 @@
     <string name="home_peek_spot_recent">Il posto potrebbe essere ancora libero</string>
     <string name="home_peek_spot_stale">Il posto è probabilmente occupato</string>
     <string name="home_peek_spot_freshness_label">Freschezza</string>
+    <!-- Spot vote outcome [SPOT-COMMUNITY-VOTES-NEED-A-CONSEQUENCE-001] -->
+    <string name="home_spot_vote_retracted">Rimosso. Grazie per aver risparmiato un viaggio a qualcuno.</string>
+    <string name="home_spot_vote_refreshed">Confermato libero adesso. Grazie!</string>
 </resources>

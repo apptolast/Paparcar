@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.model.Spot
+import com.rndeveloper.paparcar.domain.model.SpotVotePolicy
 import com.rndeveloper.paparcar.domain.model.SpotStatus
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.presentation.home.HomeIntent
@@ -65,6 +66,9 @@ internal fun SpotPeek(
     spot: Spot,
     userLocation: Pair<Double, Double>?,
     activeVehicle: Vehicle?,
+    /** True once this session has voted on this spot — the vote pair stops being offered.
+     *  [SPOT-COMMUNITY-VOTES-NEED-A-CONSEQUENCE-001] */
+    alreadyVoted: Boolean,
     /** Neighbours of this spot in the browse order — the footer ‹ / ›. [UI-PEEK-STEPS-BETWEEN-PINS-001] */
     step: PeekStep,
     onIntent: (HomeIntent) -> Unit,
@@ -86,6 +90,9 @@ internal fun SpotPeek(
     }
     // Auto-switch to walking mode when the spot is close enough to walk.
     val travelMode = if (distM != null && distM < WALK_DISTANCE_THRESHOLD_M) TravelMode.WALKING else TravelMode.DRIVING
+    // Only a witness votes. The same rule the use case enforces, asked here so the buttons are
+    // never offered where they would be refused. [SPOT-COMMUNITY-VOTES-NEED-A-CONSEQUENCE-001]
+    val canVote = SpotVotePolicy.canVote(distM?.toDouble())
     val title = peekTitle(
         placeName = spot.placeInfo?.name,
         addressLine = spot.address?.displayLine,
@@ -187,27 +194,36 @@ internal fun SpotPeek(
                     style = PapFooterButtonStyle.Filled,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                Spacer(Modifier.height(8.dp))
-                // Signal pair — community feedback, low emphasis (tonal twins). "Still there?"
-                // reinforces reliability and keeps the sheet open; "It's gone" rejects + dismisses.
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    PapFooterButton(
-                        label = stringResource(Res.string.home_spot_still_there),
-                        leadingIcon = Icons.Rounded.CheckCircle,
-                        onClick = { onIntent(HomeIntent.SendSpotSignal(spot.id, accepted = true)) },
-                        style = PapFooterButtonStyle.Tonal,
-                        modifier = Modifier.weight(1f),
-                    )
-                    PapFooterButton(
-                        label = stringResource(Res.string.home_spot_gone),
-                        leadingIcon = Icons.Rounded.Block,
-                        onClick = {
-                            onIntent(HomeIntent.SendSpotSignal(spot.id, accepted = false))
-                            onIntent(HomeIntent.SelectItem(null))
-                        },
-                        style = PapFooterButtonStyle.Tonal,
-                        modifier = Modifier.weight(1f),
-                    )
+                // Signal pair — community feedback, low emphasis (tonal twins). "Still there"
+                // refreshes the spot's age and keeps the sheet open; "It's gone" withdraws it and
+                // dismisses. [SPOT-COMMUNITY-VOTES-NEED-A-CONSEQUENCE-001]
+                //
+                // Offered ONLY to a witness: within MAX_VOTE_DISTANCE_METERS of the spot, and only
+                // once per session. A single tap now withdraws the spot for everyone, and that is
+                // only safe because the person casting it is standing there. Too far, no fix, or
+                // already voted → the pair is simply absent. A disabled button would invite the tap
+                // and then refuse it; the buttons have nothing to say from across town.
+                if (canVote && !alreadyVoted) {
+                    Spacer(Modifier.height(8.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        PapFooterButton(
+                            label = stringResource(Res.string.home_spot_still_there),
+                            leadingIcon = Icons.Rounded.CheckCircle,
+                            onClick = { onIntent(HomeIntent.SendSpotSignal(spot.id, accepted = true)) },
+                            style = PapFooterButtonStyle.Tonal,
+                            modifier = Modifier.weight(1f),
+                        )
+                        PapFooterButton(
+                            label = stringResource(Res.string.home_spot_gone),
+                            leadingIcon = Icons.Rounded.Block,
+                            onClick = {
+                                onIntent(HomeIntent.SendSpotSignal(spot.id, accepted = false))
+                                onIntent(HomeIntent.SelectItem(null))
+                            },
+                            style = PapFooterButtonStyle.Tonal,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
                 }
             }
         },

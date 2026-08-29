@@ -110,6 +110,9 @@ data class HomePeekSlice(
     val selection: HomeSelection?,
     val vehicles: List<Vehicle>,
     val userGpsPoint: GpsPoint?,
+    /** Spots already voted on this session — their vote buttons stop being offered.
+     *  [SPOT-COMMUNITY-VOTES-NEED-A-CONSEQUENCE-001] */
+    val votedSpotIds: Set<String>,
     val drivingMeta: DrivingMeta?,
     /** [DET-ASK-STATE-001] True while a "did you park?" question is open — the CLOSED sheet says so
      *  in its phase eyebrow, which is the peek's existing voice for the live trip. */
@@ -289,6 +292,7 @@ fun HomeState.toPeekSlice(): HomePeekSlice {
         selection = selection,
         vehicles = vehicles,
         userGpsPoint = userGpsPoint,
+        votedSpotIds = votedSpotIds,
         drivingMeta = drivingMeta,
         isAwaitingAnswer = promptWindow != null,
         cameraAddressAndPlace = cameraAddressAndPlace,

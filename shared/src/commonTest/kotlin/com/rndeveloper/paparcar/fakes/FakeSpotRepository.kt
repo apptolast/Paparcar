@@ -53,6 +53,15 @@ class FakeSpotRepository : SpotRepository {
         return signalResult
     }
 
+    /** [SPOT-COMMUNITY-VOTES-NEED-A-CONSEQUENCE-001] Spot ids rejuvenated through [refreshSpot]. */
+    val refreshedSpotIds = mutableListOf<String>()
+    var refreshResult: Result<Unit> = Result.success(Unit)
+
+    override suspend fun refreshSpot(spotId: String): Result<Unit> {
+        refreshedSpotIds += spotId
+        return refreshResult
+    }
+
     var clearCacheCallCount = 0
         private set
     var clearCacheResult: Result<Unit> = Result.success(Unit)

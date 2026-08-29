@@ -1,6 +1,7 @@
 package com.rndeveloper.paparcar.presentation.home
 
 import com.rndeveloper.paparcar.domain.error.PaparcarError
+import com.rndeveloper.paparcar.domain.model.SpotVoteOutcome
 
 /**
  * Efectos de un solo uso para la pantalla Home.
@@ -11,7 +12,9 @@ sealed class HomeEffect {
     data object SpotReported : HomeEffect()
     data object TestSpotSent : HomeEffect()
     data object RequestLocationPermission : HomeEffect()
-    data object SpotSignalSent : HomeEffect()
+    /** A community vote landed. Carries what it DID, so the confirmation can say it rather than
+     *  thanking the user for nothing. [SPOT-COMMUNITY-VOTES-NEED-A-CONSEQUENCE-001] */
+    data class SpotSignalSent(val outcome: SpotVoteOutcome) : HomeEffect()
     /** Move the map camera to (lat, lon), framed for [frame]'s PURPOSE. The VM says what the
      *  camera is for; the screen owns the zoom numbers. [UI-ZONE-MANAGE-001] */
     data class MoveCameraTo(

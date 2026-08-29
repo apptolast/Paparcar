@@ -272,7 +272,6 @@
     <!-- Home success messages -->
     <string name="home_spot_reported">Spot reported — uploading…</string>
     <string name="home_test_spot_sent">Test spot sent</string>
-    <string name="home_spot_signal_sent">Thanks for the update!</string>
 
     <!-- Home action FAB -->
     <string name="home_cd_map_type">Switch map type</string>
@@ -691,4 +690,7 @@
     <string name="home_peek_spot_recent">Spot may still be free</string>
     <string name="home_peek_spot_stale">Spot is probably taken</string>
     <string name="home_peek_spot_freshness_label">Freshness</string>
+    <!-- Spot vote outcome [SPOT-COMMUNITY-VOTES-NEED-A-CONSEQUENCE-001] -->
+    <string name="home_spot_vote_retracted">Withdrawn. Thanks for saving someone the trip.</string>
+    <string name="home_spot_vote_refreshed">Confirmed free just now. Thanks!</string>
 </resources>

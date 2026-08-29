@@ -12,6 +12,7 @@ import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
 import com.rndeveloper.paparcar.domain.model.ParkingReleaseReason
 import com.rndeveloper.paparcar.domain.model.Spot
+import com.rndeveloper.paparcar.domain.model.SpotVoteOutcome
 import com.rndeveloper.paparcar.domain.model.SpotType
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.Vehicle
@@ -759,23 +760,67 @@ class HomeViewModelTest {
 
     // ── SendSpotSignal ────────────────────────────────────────────────────────
 
+    /**
+     * Puts the user AND a spot at the same coordinates, so the vote is cast by a witness.
+     * [SPOT-COMMUNITY-VOTES-NEED-A-CONSEQUENCE-001] — before this ticket a vote needed no location
+     * at all, so these tests used to pass with a spot the VM had never heard of.
+     */
+    private suspend fun standAtSpot(spotId: String = "spot-1") {
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        spotRepo.spots = listOf(
+            Spot(id = spotId, location = location, reportedBy = "u1", address = null, placeInfo = null),
+        )
+    }
+
     @Test
     fun `should_emit_SpotSignalSent_on_SendSpotSignal_success`() = runTest {
+        standAtSpot()
         vm.effect.test {
             vm.handleIntent(HomeIntent.SendSpotSignal("spot-1", accepted = true))
-            assertIs<HomeEffect.SpotSignalSent>(awaitItem())
+            val effect = assertIs<HomeEffect.SpotSignalSent>(awaitItem())
+            assertEquals(SpotVoteOutcome.REFRESH, effect.outcome)
             cancelAndIgnoreRemainingEvents()
         }
     }
 
     @Test
     fun `should_emit_ShowError_on_SendSpotSignal_failure`() = runTest {
+        standAtSpot()
         spotRepo.signalResult = Result.failure(RuntimeException("network error"))
         vm.effect.test {
             vm.handleIntent(HomeIntent.SendSpotSignal("spot-1", accepted = false))
             assertIs<HomeEffect.ShowError>(awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    @Test
+    fun `should_retract_the_spot_when_a_witness_reports_it_gone`() = runTest {
+        standAtSpot()
+
+        vm.handleIntent(HomeIntent.SendSpotSignal("spot-1", accepted = false))
+
+        assertEquals(listOf("spot-1"), spotRepo.retractedSpotIds)
+        assertTrue("spot-1" in vm.state.value.votedSpotIds)
+    }
+
+    @Test
+    fun `should_ignore_the_vote_when_the_user_is_nowhere_near_the_spot`() = runTest {
+        // The VM measures the distance itself, from the state that owns both the fix and the spot,
+        // so a UI that forgot to gate the buttons still cannot withdraw a spot from across town.
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        val farAway = location.copy(latitude = location.latitude + 1.0)
+        spotRepo.spots = listOf(
+            Spot(id = "spot-1", location = farAway, reportedBy = "u1", address = null, placeInfo = null),
+        )
+
+        vm.handleIntent(HomeIntent.SendSpotSignal("spot-1", accepted = false))
+
+        assertTrue(spotRepo.retractedSpotIds.isEmpty())
+        assertEquals(0, spotRepo.signalCallCount)
+        assertTrue(vm.state.value.votedSpotIds.isEmpty())
     }
 
     // ── Connectivity reconnect tick ───────────────────────────────────────────

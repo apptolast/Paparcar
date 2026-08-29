@@ -19,6 +19,15 @@ interface FirebaseDataSource {
     /** Atomically increments the accept or reject counter for the given spot. */
     suspend fun sendSpotSignal(spotId: String, accepted: Boolean)
 
+    /**
+     * Restarts a spot's age after an eyewitness confirmed it is still free, by moving its
+     * `reportedAt` to [reportedAt]. [SPOT-COMMUNITY-VOTES-NEED-A-CONSEQUENCE-001]
+     *
+     * Writes that ONE field: `expiresAt` stays where it was, so a confirmed spot looks new without
+     * outliving the lifetime it was published with.
+     */
+    suspend fun refreshSpot(spotId: String, reportedAt: Long)
+
     // ─── Zones ────────────────────────────────────────────────────────────────
 
     suspend fun getZones(userId: String): List<ZoneDto>

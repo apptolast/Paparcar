@@ -230,7 +230,6 @@
     <string name="home_spot_reported">Parkeerplaats gemeld — uploaden…</string>
     <string name="home_cd_map_type">Kaarttype wisselen</string>
     <string name="home_test_spot_sent">Testparkeerplaats verzonden</string>
-    <string name="home_spot_signal_sent">Bedankt voor de update!</string>
 
     <!-- Home Reporting mode -->
     <string name="home_report_subtitle">Een vrije plek die je hebt gezien en wilt delen.</string>
@@ -667,4 +666,7 @@
     <string name="home_peek_spot_recent">Plek is mogelijk nog vrij</string>
     <string name="home_peek_spot_stale">Plek is waarschijnlijk bezet</string>
     <string name="home_peek_spot_freshness_label">Actualiteit</string>
+    <!-- Spot vote outcome [SPOT-COMMUNITY-VOTES-NEED-A-CONSEQUENCE-001] -->
+    <string name="home_spot_vote_retracted">Verwijderd. Bedankt dat je iemand de rit bespaart.</string>
+    <string name="home_spot_vote_refreshed">Zojuist bevestigd als vrij. Bedankt!</string>
 </resources>

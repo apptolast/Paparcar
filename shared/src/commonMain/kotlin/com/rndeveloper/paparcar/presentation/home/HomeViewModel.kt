@@ -32,7 +32,9 @@ import com.rndeveloper.paparcar.domain.usecase.parking.SaveManualParkingUseCase
 import com.rndeveloper.paparcar.domain.usecase.vehicle.DeclareActiveVehicleUseCase
 import com.rndeveloper.paparcar.domain.usecase.spot.ReportManualSpotUseCase
 import com.rndeveloper.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
+import com.rndeveloper.paparcar.domain.model.SpotVoteOutcome
 import com.rndeveloper.paparcar.domain.usecase.spot.SendSpotSignalUseCase
+import com.rndeveloper.paparcar.presentation.util.distanceMeters
 import com.rndeveloper.paparcar.domain.event.MapFocusEventBus
 import com.rndeveloper.paparcar.domain.event.StartAddParkingEventBus
 import com.rndeveloper.paparcar.domain.usecase.zone.SaveOrUpdateZoneUseCase
@@ -403,10 +405,26 @@ class HomeViewModel(
 
     private fun submitSpotSignal(spotId: String, accepted: Boolean) {
         if (spotId in state.value.inFlightSpotSignals) return
+        val current = state.value
+        // The distance is measured HERE, from the state that owns both the fix and the spot, so the
+        // gate cannot be bypassed by a call site that forgets to pass it.
+        // [SPOT-COMMUNITY-VOTES-NEED-A-CONSEQUENCE-001]
+        val spot = current.nearbySpots.firstOrNull { it.id == spotId }
+        val distance = spot?.let { s ->
+            current.userGpsPoint?.let { me ->
+                distanceMeters(me.latitude, me.longitude, s.location.latitude, s.location.longitude).toDouble()
+            }
+        }
+
         updateState { copy(inFlightSpotSignals = inFlightSpotSignals + spotId) }
         viewModelScope.launch {
-            sendSpotSignal(spotId, accepted)
-                .onSuccess { sendEffect(HomeEffect.SpotSignalSent) }
+            sendSpotSignal(spotId, accepted, distance)
+                .onSuccess { outcome ->
+                    if (outcome != SpotVoteOutcome.IGNORED_TOO_FAR) {
+                        updateState { copy(votedSpotIds = votedSpotIds + spotId) }
+                    }
+                    sendEffect(HomeEffect.SpotSignalSent(outcome))
+                }
                 .onFailure { sendEffect(HomeEffect.ShowError(PaparcarError.Network.Unknown(it.message ?: ""))) }
             updateState { copy(inFlightSpotSignals = inFlightSpotSignals - spotId) }
         }

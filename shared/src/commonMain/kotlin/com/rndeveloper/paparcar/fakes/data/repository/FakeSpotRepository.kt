@@ -106,6 +106,16 @@ class FakeSpotRepository : SpotRepository {
     override suspend fun sendSpotSignal(spotId: String, accepted: Boolean): Result<Unit> =
         Result.success(Unit)
 
+    override suspend fun refreshSpot(spotId: String): Result<Unit> {
+        // Mirrors production: the age restarts, the expiry does NOT move.
+        // [SPOT-COMMUNITY-VOTES-NEED-A-CONSEQUENCE-001]
+        val nowMs = Clock.System.now().toEpochMilliseconds()
+        spotsFlow.value = spotsFlow.value.map { spot ->
+            if (spot.id == spotId) spot.copy(location = spot.location.copy(timestamp = nowMs)) else spot
+        }
+        return Result.success(Unit)
+    }
+
     override suspend fun clearCache(): Result<Unit> =
         Result.success(Unit)
 }

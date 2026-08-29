@@ -230,7 +230,6 @@
     <string name="home_spot_reported">Loc raportat — se încarcă…</string>
     <string name="home_cd_map_type">Schimbă tipul hărții</string>
     <string name="home_test_spot_sent">Loc de test trimis</string>
-    <string name="home_spot_signal_sent">Mul&#x21B;umim pentru actualizare!</string>
 
     <!-- Home Reporting mode -->
     <string name="home_report_subtitle">Un loc liber pe care l-ai v&#xE3;zut &#x219;i vrei s&#x103;-l &#xEE;mp&#x103;rt&#x103;&#x219;e&#x219;ti.</string>
@@ -672,4 +671,7 @@
     <string name="home_peek_spot_recent">Locul poate fi încă liber</string>
     <string name="home_peek_spot_stale">Locul este probabil ocupat</string>
     <string name="home_peek_spot_freshness_label">Prospețime</string>
+    <!-- Spot vote outcome [SPOT-COMMUNITY-VOTES-NEED-A-CONSEQUENCE-001] -->
+    <string name="home_spot_vote_retracted">Retras. Mulțumim că ai scutit pe cineva de drum.</string>
+    <string name="home_spot_vote_refreshed">Confirmat liber chiar acum. Mulțumim!</string>
 </resources>

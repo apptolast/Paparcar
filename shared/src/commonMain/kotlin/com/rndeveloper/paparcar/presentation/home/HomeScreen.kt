@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 import com.rndeveloper.paparcar.domain.error.PaparcarError
+import com.rndeveloper.paparcar.domain.model.SpotVoteOutcome
 import com.rndeveloper.paparcar.presentation.home.model.isDetectionStopped
 import com.rndeveloper.paparcar.domain.model.DrivingPuck
 import com.rndeveloper.paparcar.domain.model.GpsPoint
@@ -97,7 +98,8 @@ import paparcar.composeapp.generated.resources.home_release_dialog_detection_act
 import paparcar.composeapp.generated.resources.home_release_dialog_detection_inactive
 import paparcar.composeapp.generated.resources.home_release_dialog_detection_unavailable
 import paparcar.composeapp.generated.resources.home_spot_reported
-import paparcar.composeapp.generated.resources.home_spot_signal_sent
+import paparcar.composeapp.generated.resources.home_spot_vote_retracted
+import paparcar.composeapp.generated.resources.home_spot_vote_refreshed
 import paparcar.composeapp.generated.resources.home_test_spot_sent
 import paparcar.composeapp.generated.resources.home_zone_saved_message
 import kotlin.time.Duration.Companion.milliseconds
@@ -170,7 +172,11 @@ fun HomeScreen(
     val msgErrorWatchResumeFailed = stringResource(Res.string.error_watch_resume_failed)
     val msgSpotReported = stringResource(Res.string.home_spot_reported)
     val msgTestSpotSent = stringResource(Res.string.home_test_spot_sent)
-    val msgSpotSignalSent = stringResource(Res.string.home_spot_signal_sent)
+    // Each vote says what it DID. The old single "Thanks for the update!" was true and useless —
+    // it was the confirmation of a button that changed nothing.
+    // [SPOT-COMMUNITY-VOTES-NEED-A-CONSEQUENCE-001]
+    val msgSpotVoteRetracted = stringResource(Res.string.home_spot_vote_retracted)
+    val msgSpotVoteRefreshed = stringResource(Res.string.home_spot_vote_refreshed)
     val msgZoneSaved = stringResource(Res.string.home_zone_saved_message)
     val msgDetectionEnabled = stringResource(Res.string.home_det_enabled_confirm)
     val msgDetectionStopped = stringResource(Res.string.home_det_stopped_msg)
@@ -203,7 +209,14 @@ fun HomeScreen(
 
                 HomeEffect.SpotReported -> snackbarHostState.showSnackbar(msgSpotReported)
                 HomeEffect.TestSpotSent -> snackbarHostState.showSnackbar(msgTestSpotSent)
-                HomeEffect.SpotSignalSent -> snackbarHostState.showSnackbar(msgSpotSignalSent)
+                is HomeEffect.SpotSignalSent -> when (effect.outcome) {
+                    SpotVoteOutcome.RETRACT -> snackbarHostState.showSnackbar(msgSpotVoteRetracted)
+                    SpotVoteOutcome.REFRESH -> snackbarHostState.showSnackbar(msgSpotVoteRefreshed)
+                    // The buttons are not offered from too far away, so this branch is only
+                    // reachable if a vote raced the user walking away. Saying nothing is right:
+                    // nothing was written.
+                    SpotVoteOutcome.IGNORED_TOO_FAR -> Unit
+                }
                 HomeEffect.ZoneSaved -> snackbarHostState.showSnackbar(msgZoneSaved)
                 HomeEffect.DetectionEnabled -> snackbarHostState.showSnackbar(msgDetectionEnabled)
                 // [DET-STOP-BUTTON-001] The user stopped THIS trip — plain confirmation, no action:

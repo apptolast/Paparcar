@@ -230,7 +230,6 @@
     <string name="home_spot_reported">Stellplatz gemeldet — wird hochgeladen…</string>
     <string name="home_cd_map_type">Kartentyp wechseln</string>
     <string name="home_test_spot_sent">Teststellplatz gesendet</string>
-    <string name="home_spot_signal_sent">Danke f&#xFC;r die R&#xFC;ckmeldung!</string>
 
     <!-- Home Reporting mode -->
     <string name="home_report_subtitle">Ein freier Stellplatz, den du gesehen hast und teilen m&#xF6;chtest.</string>
@@ -667,4 +666,7 @@
     <string name="home_peek_spot_recent">Platz ist eventuell noch frei</string>
     <string name="home_peek_spot_stale">Platz ist vermutlich besetzt</string>
     <string name="home_peek_spot_freshness_label">Aktualität</string>
+    <!-- Spot vote outcome [SPOT-COMMUNITY-VOTES-NEED-A-CONSEQUENCE-001] -->
+    <string name="home_spot_vote_retracted">Entfernt. Danke, dass du jemandem die Fahrt ersparst.</string>
+    <string name="home_spot_vote_refreshed">Gerade als frei bestätigt. Danke!</string>
 </resources>
