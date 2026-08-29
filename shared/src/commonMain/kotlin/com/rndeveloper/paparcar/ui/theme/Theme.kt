@@ -89,10 +89,8 @@ fun PaparcarTheme(
 ) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
 
-    // Which families back the three voices. Production always resolves to [defaultFontSet]; the
-    // mock lab can provide another through [LocalPapFontSet] to compare candidates on device
-    // without touching a single role. [UI-TYPE-FAMILY-CANDIDATES-001]
-    val fonts = LocalPapFontSet.current ?: defaultFontSet()
+    // Las tres voces se resuelven en un solo sitio. [UI-TYPE-FAMILY-CANDIDATES-001]
+    val fonts = defaultFontSet()
 
     MaterialTheme(
         colorScheme = colorScheme,

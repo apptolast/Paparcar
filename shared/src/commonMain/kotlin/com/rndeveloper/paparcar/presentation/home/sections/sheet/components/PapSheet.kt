@@ -60,7 +60,9 @@ import com.rndeveloper.paparcar.ui.components.VehicleGlyph
 import com.rndeveloper.paparcar.domain.model.SpotFreshness
 import com.rndeveloper.paparcar.ui.theme.PapBorders
 import com.rndeveloper.paparcar.ui.theme.PapShapes
+import com.rndeveloper.paparcar.ui.theme.PapFonts
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
+import com.rndeveloper.paparcar.ui.theme.figureOpticalLiftSp
 import com.rndeveloper.paparcar.ui.theme.greenOutline
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -384,11 +386,10 @@ private fun PapSheetLeadTile(lead: PapSheetLead) {
                 // corrección sale de las métricas de la familia, así que sigue valiendo si la
                 // familia cambia. [UI-SHEET-001] [UI-TYPE-FAMILY-CANDIDATES-001]
                 val type = PaparcarType.current
-                val opticalLift = with(type) {
-                    val deadTop = (figureAscentEm - figureCapHeightEm) * counter.fontSize.value
-                    val deadBottom = figureDescentEm * counterUnit.fontSize.value
-                    ((deadTop - deadBottom) / 2f).dp
-                }
+                val opticalLift = PapFonts.current.figureOpticalLiftSp(
+                    figureSp = type.counter.fontSize.value,
+                    unitSp = type.counterUnit.fontSize.value,
+                ).dp
                 Column(
                     modifier = Modifier.offset(y = -opticalLift),
                     horizontalAlignment = Alignment.CenterHorizontally,

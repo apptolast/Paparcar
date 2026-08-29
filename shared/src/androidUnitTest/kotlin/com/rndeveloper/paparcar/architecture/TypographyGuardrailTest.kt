@@ -153,11 +153,11 @@ class TypographyGuardrailTest {
             "PaparcarBottomActionBar",
         )
 
-        // Rule 4 — the only feature file allowed to resolve a family itself is the canvas
-        // map-marker painter: its label sizes scale with the marker geometry, so its styles
-        // can't come from the fixed role table (same exception as rule 2).
-        val FONT_FAMILY_REGEX = Regex("""remember(Outfit|Inter|BarlowCondensed)FontFamily|FontFamily\s*\(""")
-        val FONT_FAMILY_ALLOWLIST = setOf("PaparcarMapMarkers")
+        // Rule 4 — nobody resolves a family any more. The map-marker painter used to be the
+        // exception; it now reads the brand family from the theme, so the allowlist is empty and
+        // the rule has no way out. [UI-TYPE-RETIRE-THE-OLD-FAMILIES-001]
+        val FONT_FAMILY_REGEX = Regex("""rememberJakartaFontFamily|FontFamily\s*\(""")
+        val FONT_FAMILY_ALLOWLIST = emptySet<String>()
 
         // Rule 5 — weight belongs to the role.
         val WEIGHT_REGEX = Regex("""\b(fontWeight|titleWeight)\s*=""")

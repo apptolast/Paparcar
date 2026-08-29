@@ -32,11 +32,6 @@ import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import com.rndeveloper.paparcar.App
 import com.rndeveloper.paparcar.fakes.MockScenario
 import com.rndeveloper.paparcar.ui.theme.PaparcarTheme
-import com.rndeveloper.paparcar.ui.theme.LocalPapFontSet
-import com.rndeveloper.paparcar.ui.theme.archivoFontSet
-import com.rndeveloper.paparcar.ui.theme.defaultFontSet
-import com.rndeveloper.paparcar.ui.theme.legacyFontSet
-import com.rndeveloper.paparcar.ui.theme.jakartaFontSet
 
 /**
  * Root of the mock launcher. Shows the [DevCatalogScreen] first; entering mounts the **real**
@@ -54,10 +49,6 @@ import com.rndeveloper.paparcar.ui.theme.jakartaFontSet
 fun DevRoot(scenario: MockScenario) {
     var inApp by rememberSaveable { mutableStateOf(false) }
     var showGallery by rememberSaveable { mutableStateOf(false) }
-    // Laboratorio tipográfico — fase 1 de UI-TYPE-TWO-VOICES-ONE-ROW-001.
-    var showTypeLab by rememberSaveable { mutableStateOf(false) }
-    // Familia con la que se pinta TODA la app, incluido el grafo real. [UI-TYPE-FAMILY-CANDIDATES-001]
-    var fontChoice by rememberSaveable { mutableStateOf(DevFontChoice.Shipping) }
     // Bumped on each entry so the ViewModelStoreOwner (and thus all app ViewModels) is recreated.
     var session by rememberSaveable { mutableIntStateOf(0) }
     // Global mock light/dark override: null = follow system.
@@ -75,21 +66,9 @@ fun DevRoot(scenario: MockScenario) {
         }
     }
 
-    val fontSet = when (fontChoice) {
-        DevFontChoice.Shipping -> defaultFontSet()
-        DevFontChoice.Legacy -> legacyFontSet()
-        DevFontChoice.JakartaWithBarlow -> jakartaFontSet()
-        DevFontChoice.Archivo -> archivoFontSet()
-    }
-
-    CompositionLocalProvider(
-        LocalConfiguration provides overriddenConfig,
-        LocalPapFontSet provides fontSet,
-    ) {
+    CompositionLocalProvider(LocalConfiguration provides overriddenConfig) {
         Box(Modifier.fillMaxSize()) {
             when {
-                showTypeLab && !inApp -> TypographyLabScreen(onBack = { showTypeLab = false })
-
                 showGallery && !inApp -> StateGalleryScreen(onBack = { showGallery = false })
 
                 !inApp -> PaparcarTheme(darkTheme = isSystemInDarkTheme()) {
@@ -97,9 +76,6 @@ fun DevRoot(scenario: MockScenario) {
                         scenario = scenario,
                         onEnter = { session++; inApp = true },
                         onOpenGallery = { showGallery = true },
-                        onOpenTypeLab = { showTypeLab = true },
-                        fontChoice = fontChoice,
-                        onFontChoice = { fontChoice = it },
                     )
                 }
 
@@ -127,8 +103,8 @@ fun DevRoot(scenario: MockScenario) {
                     horizontalAlignment = Alignment.End,
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    if (inApp || showGallery || showTypeLab) {
-                        ElevatedButton(onClick = { inApp = false; showGallery = false; showTypeLab = false }) {
+                    if (inApp || showGallery) {
+                        ElevatedButton(onClick = { inApp = false; showGallery = false }) {
                             Text("DEV", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                         }
                     }
