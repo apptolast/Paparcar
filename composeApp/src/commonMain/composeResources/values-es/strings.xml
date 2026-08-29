@@ -74,6 +74,7 @@
     <string name="home_address_unknown">Ubicación desconocida</string>
     <string name="location_fallback_spot">Plaza en el mapa</string>
     <string name="location_fallback_parking">Ubicación en el mapa</string>
+    <string name="location_approximate_near">Cerca de %1$s</string>
     <string name="home_release_dialog_title">Liberas la plaza, ¿la compartes?</string>
     <string name="home_release_dialog_message">Cuando avisas, otros conductores reciben la notificación y pueden llegar antes.</string>
     <!-- Consequence line: leaving means detection re-arms for the next parking. [VEH-ACTIVE-FENCE-001] -->

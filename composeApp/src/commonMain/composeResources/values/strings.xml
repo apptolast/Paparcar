@@ -85,6 +85,8 @@
     <!-- Location title fallback when geocoding/POI failed (e.g. offline): names what the pin IS — a community spot vs your parking — never raw coordinates. [UI-LOCATION-FALLBACK-SPEAKS-HUMAN-001] -->
     <string name="location_fallback_spot">Spot on the map</string>
     <string name="location_fallback_parking">Location on the map</string>
+    <!-- Prefix for an approximate (borrowed from a nearby cached cell) location line. [GEO-CACHE-ANSWERS-NEARBY-001] -->
+    <string name="location_approximate_near">Near %1$s</string>
     <string name="home_release_dialog_title">Releasing the spot — share it?</string>
     <string name="home_release_dialog_message">When you notify, other drivers get an alert and can arrive sooner.</string>
     <!-- Consequence line: leaving means detection re-arms for the next parking. [VEH-ACTIVE-FENCE-001] -->

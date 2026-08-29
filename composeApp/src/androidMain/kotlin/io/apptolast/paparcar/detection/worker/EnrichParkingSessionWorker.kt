@@ -57,6 +57,10 @@ class EnrichParkingSessionWorker(
         getAddressAndPlace(lat, lon)
             .catch { e -> PaparcarLogger.e(TAG, "getAddressAndPlace failed (attempt $runAttemptCount) lat=$lat lon=$lon", e) }
             .collect { info ->
+                // A borrowed-neighbour answer is display-only: persisting it would stamp a guess
+                // as the session's real street. Skip → retry for the exact one.
+                // [GEO-CACHE-ANSWERS-NEARBY-001]
+                if (info.approximate) return@collect
                 userParkingRepository
                     .updateParkingSessionAddressAndPlace(sessionId, info.address, info.placeInfo)
                     .onSuccess { addressSaved = true }

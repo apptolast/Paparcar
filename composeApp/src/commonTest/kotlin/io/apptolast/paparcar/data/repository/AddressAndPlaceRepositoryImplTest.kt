@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.data.repository
 
+import io.apptolast.paparcar.domain.model.AddressAndPlace
 import io.apptolast.paparcar.domain.model.AddressInfo
 import io.apptolast.paparcar.domain.model.PlaceCategory
 import io.apptolast.paparcar.domain.model.PlaceInfo
@@ -116,6 +117,72 @@ class AddressAndPlaceRepositoryImplTest {
         val sealed = local.puts.last()
         assertEquals(true, sealed.second)
         assertNull(sealed.first.placeInfo)
+    }
+
+    // ── Offline near-miss: the cache answers by neighbourhood [GEO-CACHE-ANSWERS-NEARBY-001] ──
+
+    @Test
+    fun `should emit nearest cached street as approximate when phase 1 fails`() = runTest {
+        geocoder.addressResult = Result.failure(RuntimeException("offline"))
+        places.placeResult = Result.failure(RuntimeException("offline"))
+        val neighbour = AddressAndPlace(
+            address = AddressInfo("Calle Mayor", "Madrid", null, "ES"),
+            placeInfo = null,
+            approximate = true,
+        )
+        local.nearestResult = neighbour
+
+        val emissions = repo.getAddressAndPlace(40.416775, -3.703790).toList()
+
+        assertEquals("Calle Mayor", emissions.first().address.street)
+        assertEquals(true, emissions.first().approximate)
+        // Borrowed answers never write back — the seal still requires a real Phase-1 answer.
+        assertEquals(emptyList(), local.puts)
+    }
+
+    @Test
+    fun `should emit empty non-approximate address when phase 1 fails and no neighbour exists`() = runTest {
+        geocoder.addressResult = Result.failure(RuntimeException("offline"))
+        places.placeResult = Result.failure(RuntimeException("offline"))
+        local.nearestResult = null
+
+        val emissions = repo.getAddressAndPlace(40.416775, -3.703790).toList()
+
+        assertNull(emissions.first().address.street)
+        assertEquals(false, emissions.first().approximate)
+    }
+
+    @Test
+    fun `should not ask for a neighbour when phase 1 answers`() = runTest {
+        geocoder.addressResult = Result.success(AddressInfo("Gran Vía", "Madrid", null, "ES"))
+        places.placeResult = Result.success(null)
+        local.nearestResult = AddressAndPlace(
+            address = AddressInfo("Calle Falsa", "Madrid", null, "ES"),
+            placeInfo = null,
+            approximate = true,
+        )
+
+        val emissions = repo.getAddressAndPlace(40.416775, -3.703790).toList()
+
+        assertEquals("Gran Vía", emissions.first().address.street)
+        assertEquals(false, emissions.first().approximate)
+    }
+
+    @Test
+    fun `should keep approximate on the second emission when a real POI arrives over a borrowed address`() = runTest {
+        geocoder.addressResult = Result.failure(RuntimeException("GMS mute"))
+        places.placeResult = Result.success(PlaceInfo("Mercadona", PlaceCategory.SUPERMARKET))
+        local.nearestResult = AddressAndPlace(
+            address = AddressInfo("Calle Mayor", "Madrid", null, "ES"),
+            placeInfo = null,
+            approximate = true,
+        )
+
+        val emissions = repo.getAddressAndPlace(40.416775, -3.703790).toList()
+
+        assertEquals(true, emissions.last().approximate)
+        assertEquals("Mercadona", emissions.last().placeInfo?.name)
+        assertEquals(emptyList(), local.puts)
     }
 
     @Test

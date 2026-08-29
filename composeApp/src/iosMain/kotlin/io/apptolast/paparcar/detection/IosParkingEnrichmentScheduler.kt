@@ -58,6 +58,9 @@ class IosParkingEnrichmentScheduler(
         getAddressAndPlace(lat, lon)
             .catch { PaparcarLogger.w(TAG, "Geocoder failure for $sessionId", it) }
             .collect { info ->
+                // Display-only borrowed answer — never persisted. Mirrors Android's
+                // EnrichParkingSessionWorker guard. [GEO-CACHE-ANSWERS-NEARBY-001]
+                if (info.approximate) return@collect
                 userParkingRepository
                     .updateParkingSessionAddressAndPlace(sessionId, info.address, info.placeInfo)
                     .onSuccess { addressSaved = true }

@@ -54,8 +54,15 @@ class AddressAndPlaceRepositoryImpl(
         val fetchedAddress: AddressInfo? = withTimeoutOrNull(PHASE1_TIMEOUT_MS) {
             geocoder.getAddress(lat, lon).getOrNull()
         }
-        val address = fetchedAddress ?: AddressInfo(null, null, null, null)
-        emit(AddressAndPlace(address = address, placeInfo = null))
+        // Phase 1 failed (offline / GMS mute): borrow the nearest cached street as a
+        // display-only approximation instead of an empty address. The answer carries
+        // approximate=true so persisting consumers skip it, and it is never written back
+        // to the cache — the seal below still requires a real Phase-1 answer.
+        // [GEO-CACHE-ANSWERS-NEARBY-001]
+        val nearest = if (fetchedAddress == null) local.getNearest(lat, lon) else null
+        val approximate = nearest != null
+        val address = fetchedAddress ?: nearest?.address ?: AddressInfo(null, null, null, null)
+        emit(AddressAndPlace(address = address, placeInfo = nearest?.placeInfo, approximate = approximate))
 
         // Phase 2: POI (network, best-effort). Seals the entry with poiChecked=true
         // so subsequent visits get a full cache hit without hitting Overpass again.
@@ -68,7 +75,9 @@ class AddressAndPlaceRepositoryImpl(
         if (fetchedAddress != null && placeResult?.isSuccess == true) {
             local.put(lat, lon, AddressAndPlace(address = address, placeInfo = placeInfo), poiChecked = true)
         }
-        if (placeInfo != null) emit(AddressAndPlace(address = address, placeInfo = placeInfo))
+        // A real POI upgrade keeps the address's provenance: if the line under it is still a
+        // borrowed neighbour, the emission stays approximate.
+        if (placeInfo != null) emit(AddressAndPlace(address = address, placeInfo = placeInfo, approximate = approximate))
     }
 
     private companion object {

@@ -18,6 +18,8 @@ class FakeAddressAndPlaceRepository(
     var placeInfo: io.apptolast.paparcar.domain.model.PlaceInfo? = initialInfo.placeInfo
     /** Delay before the first emission — lets tests race a slow geocode against re-asks. */
     var delayMs: Long = 0
+    /** Emit every answer flagged approximate — the offline borrowed-neighbour case. */
+    var approximate: Boolean = false
     /** Every request, in order — lets tests assert cancellation/dedup behaviour. */
     val calls = mutableListOf<Pair<Double, Double>>()
 
@@ -25,7 +27,7 @@ class FakeAddressAndPlaceRepository(
         calls += lat to lon
         if (delayMs > 0) kotlinx.coroutines.delay(delayMs)
         val address = addressResult.getOrElse { AddressInfo(null, null, null, null) }
-        emit(AddressAndPlace(address = address, placeInfo = null))
-        if (placeInfo != null) emit(AddressAndPlace(address = address, placeInfo = placeInfo))
+        emit(AddressAndPlace(address = address, placeInfo = null, approximate = approximate))
+        if (placeInfo != null) emit(AddressAndPlace(address = address, placeInfo = placeInfo, approximate = approximate))
     }
 }

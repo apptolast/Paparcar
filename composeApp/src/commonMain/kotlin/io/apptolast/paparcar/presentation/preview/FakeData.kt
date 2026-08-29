@@ -97,6 +97,9 @@ internal object FakeData {
     val addressAndPlaceFuel = AddressAndPlace(addrFuel, placeInfoFuel)
     val addressAndPlaceStreet = AddressAndPlace(addrStreet, null)
 
+    /** Borrowed-neighbour geocode (offline): renders as "Cerca de <calle>". [GEO-CACHE-ANSWERS-NEARBY-001] */
+    val addressAndPlaceApproximate = AddressAndPlace(addrStreet, null, approximate = true)
+
     // ── Sessions ──────────────────────────────────────────────────────────────
 
     /** Active session — parked 30 min ago at a fuel station. User confirmed. */

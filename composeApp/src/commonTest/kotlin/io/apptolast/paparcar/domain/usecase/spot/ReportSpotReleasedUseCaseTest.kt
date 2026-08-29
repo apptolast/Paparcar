@@ -90,6 +90,37 @@ class ReportSpotReleasedUseCaseTest {
         assertEquals(place, scheduler.lastPlaceInfo)
     }
 
+    // ── Approximate answers never publish [GEO-CACHE-ANSWERS-NEARBY-001] ──────
+
+    @Test
+    fun `should_notPublishAddress_when_inlineGeocodeIsApproximate`() = runTest {
+        addressAndPlaceRepo.addressResult =
+            Result.success(AddressInfo(street = "Calle Prestada", city = "Madrid", region = null, country = "ES"))
+        addressAndPlaceRepo.approximate = true
+
+        useCase(40.416775, -3.703790, "spot-1")
+
+        // The spot still schedules, but with NO address — a borrowed neighbour must not
+        // be published to other users as the spot's real street.
+        assertEquals(1, scheduler.scheduleCallCount)
+        assertNull(scheduler.lastAddress)
+    }
+
+    @Test
+    fun `should_ignoreApproximatePrefetch_and_geocodeInline`() = runTest {
+        val exact = AddressInfo(street = "Calle Exacta", city = "Madrid", region = null, country = "ES")
+        addressAndPlaceRepo.addressResult = Result.success(exact)
+        val approximatePrefetch = io.apptolast.paparcar.domain.model.AddressAndPlace(
+            address = AddressInfo(street = "Calle Prestada", city = "Madrid", region = null, country = "ES"),
+            placeInfo = null,
+            approximate = true,
+        )
+
+        useCase(40.416775, -3.703790, "spot-1", prefetched = approximatePrefetch)
+
+        assertEquals(exact, scheduler.lastAddress)
+    }
+
     // ── Phase 4 params ────────────────────────────────────────────────────────
 
     @Test

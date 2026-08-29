@@ -86,6 +86,7 @@ import paparcar.composeapp.generated.resources.error_load_spots
 import paparcar.composeapp.generated.resources.error_parking_save_failed
 import paparcar.composeapp.generated.resources.error_release_parking
 import paparcar.composeapp.generated.resources.error_search_failed
+import paparcar.composeapp.generated.resources.location_approximate_near
 import paparcar.composeapp.generated.resources.error_unknown
 import paparcar.composeapp.generated.resources.error_watch_resume_failed
 import paparcar.composeapp.generated.resources.home_det_enabled_confirm
@@ -255,7 +256,12 @@ fun HomeScreen(
         ConfirmationBottomSheet(
             onConfirm = { viewModel.handleIntent(HomeIntent.ConfirmDetectedParking) },
             onDismiss = { viewModel.handleIntent(HomeIntent.DismissConfirmation) },
-            addressLine = state.cameraAddressAndPlace?.displayLine,
+            addressLine = state.cameraAddressAndPlace?.let { info ->
+                info.displayLine?.let { line ->
+                    // A borrowed-neighbour geocode says so. [GEO-CACHE-ANSWERS-NEARBY-001]
+                    if (info.approximate) stringResource(Res.string.location_approximate_near, line) else line
+                }
+            },
             detectionTimestampMs = pending.timestamp,
             // Same car the notification names (active vehicle) — one voice per event. [C4]
             vehicleName = state.vehicles.firstOrNull { it.isActive }

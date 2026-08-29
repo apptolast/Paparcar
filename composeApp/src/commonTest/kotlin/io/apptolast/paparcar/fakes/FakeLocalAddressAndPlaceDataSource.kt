@@ -9,7 +9,12 @@ class FakeLocalAddressAndPlaceDataSource : LocalAddressAndPlaceDataSource {
     /** Every write, in order — lets tests assert cache purity (what got cached and sealed). */
     val puts = mutableListOf<Pair<AddressAndPlace, Boolean>>()
 
+    /** What [getNearest] answers — the fake's stand-in for a nearby cached cell. */
+    var nearestResult: AddressAndPlace? = null
+
     override suspend fun get(lat: Double, lon: Double): AddressAndPlace? = cache[Pair(lat, lon)]
+
+    override suspend fun getNearest(lat: Double, lon: Double): AddressAndPlace? = nearestResult
 
     override suspend fun put(lat: Double, lon: Double, info: AddressAndPlace, poiChecked: Boolean) {
         puts += info to poiChecked

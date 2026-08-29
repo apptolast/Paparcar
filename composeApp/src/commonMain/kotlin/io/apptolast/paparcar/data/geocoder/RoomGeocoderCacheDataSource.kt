@@ -9,6 +9,7 @@ import io.apptolast.paparcar.domain.model.AddressInfo
 import io.apptolast.paparcar.domain.model.AddressAndPlace
 import io.apptolast.paparcar.domain.model.PlaceCategory
 import io.apptolast.paparcar.domain.model.PlaceInfo
+import io.apptolast.paparcar.domain.util.haversineMeters
 import kotlin.math.roundToInt
 import kotlin.time.Clock
 
@@ -21,6 +22,12 @@ class RoomLocalAddressAndPlaceDataSource(
         if (Clock.System.now().toEpochMilliseconds() - entity.cachedAt > CACHE_TTL_MS) return null
         if (!entity.poiChecked) return null
         return entity.toAddressAndPlace()
+    }
+
+    override suspend fun getNearest(lat: Double, lon: Double): AddressAndPlace? {
+        val minCachedAt = Clock.System.now().toEpochMilliseconds() - CACHE_TTL_MS
+        val nearest = pickNearestCell(dao.getStreetCells(minCachedAt), lat, lon) ?: return null
+        return nearest.toAddressAndPlace().copy(approximate = true)
     }
 
     override suspend fun put(lat: Double, lon: Double, info: AddressAndPlace, poiChecked: Boolean) {
@@ -63,14 +70,43 @@ class RoomLocalAddressAndPlaceDataSource(
         return AddressAndPlace(address = address, placeInfo = placeInfo)
     }
 
-    private companion object {
-        const val CACHE_TTL_MS = 30L * 24 * 60 * 60 * 1_000
-        const val CACHE_PRECISION = 10_000
+    companion object {
+        private const val CACHE_TTL_MS = 30L * 24 * 60 * 60 * 1_000
+        private const val CACHE_PRECISION = 10_000
+
+        /** How far a cached street may honestly stand in for the asked point ("Near X"). */
+        private const val MAX_NEAREST_DISTANCE_METERS = 250.0
 
         fun cacheKey(lat: Double, lon: Double): String {
             val latKey = (lat * CACHE_PRECISION).roundToInt()
             val lonKey = (lon * CACHE_PRECISION).roundToInt()
             return "${latKey}_${lonKey}"
+        }
+
+        /**
+         * Nearest candidate cell within [MAX_NEAREST_DISTANCE_METERS] of (lat, lon), or null.
+         * Pure — the cell centre is recovered from the "${latKey}_${lonKey}" key, so a row whose
+         * key doesn't parse (should not exist) is simply skipped. [GEO-CACHE-ANSWERS-NEARBY-001]
+         */
+        fun pickNearestCell(
+            candidates: List<GeocoderCacheEntity>,
+            lat: Double,
+            lon: Double,
+        ): GeocoderCacheEntity? = candidates
+            .mapNotNull { entity ->
+                val (cellLat, cellLon) = parseKey(entity.locationKey) ?: return@mapNotNull null
+                entity to haversineMeters(lat, lon, cellLat, cellLon)
+            }
+            .filter { (_, meters) -> meters <= MAX_NEAREST_DISTANCE_METERS }
+            .minByOrNull { (_, meters) -> meters }
+            ?.first
+
+        private fun parseKey(key: String): Pair<Double, Double>? {
+            val separator = key.indexOf('_')
+            if (separator <= 0) return null
+            val latKey = key.substring(0, separator).toIntOrNull() ?: return null
+            val lonKey = key.substring(separator + 1).toIntOrNull() ?: return null
+            return latKey.toDouble() / CACHE_PRECISION to lonKey.toDouble() / CACHE_PRECISION
         }
     }
 }

@@ -735,6 +735,18 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     ),
                 )
             },
+            // Offline camera geocode borrowed from a nearby cached cell — the title declares the
+            // approximation ("Cerca de …"), never passes it off as exact. [GEO-CACHE-ANSWERS-NEARBY-001]
+            Variant("PapSheet · add parking, dirección aproximada (Cerca de …)", Placement.Surface) {
+                peek(
+                    HomeState(
+                        mode = HomeMode.AddingParking,
+                        cameraAddressAndPlace = FakeData.addressAndPlaceApproximate,
+                        vehicles = listOf(FakeData.vehicleSedan),
+                        addingParkingVehicleId = FakeData.vehicleSedan.id,
+                    ),
+                )
+            },
             // …and the add-parking peek is itself a page of the lane: ‹ goes back to the parked
             // sedan's peek. Same ‹ › chrome as every other pin. [UI-PEEK-STEPS-WALK-VEHICLES-NOT-SESSIONS-001]
             Variant("PapSheet · add parking con vecino aparcado (solo ‹)", Placement.Surface) {

@@ -51,16 +51,22 @@ class ReportSpotReleasedUseCase(
         // [AUDIT-RULES-001 C4] The spot's identity is the reporter's UID, not their display name —
         // the Firestore rules key owner-only edit/delete off `reportedBy == request.auth.uid`.
         val reportedByUid = authRepository.getCurrentSession()?.userId
-        var address: AddressInfo? = prefetched?.address
-        var placeInfo: PlaceInfo? = prefetched?.placeInfo
+        // An approximate prefetch (borrowed-neighbour address, offline camera geocode) must never
+        // be published as the spot's real street — treat it as no prefetch and let the inline
+        // lookup try for the exact answer. This use case is the single choke point for every spot
+        // publication. [GEO-CACHE-ANSWERS-NEARBY-001]
+        val exactPrefetch = prefetched?.takeUnless { it.approximate }
+        var address: AddressInfo? = exactPrefetch?.address
+        var placeInfo: PlaceInfo? = exactPrefetch?.placeInfo
         // Only hit the network when the caller didn't already geocode these coords.
         // AddressAndPlace.address is non-null, so a non-null [prefetched] always
         // gives us an address → skip the redundant, blocking inline lookup. [SPOT-PREFETCH-001]
-        if (prefetched == null) {
+        if (exactPrefetch == null) {
             withTimeoutOrNull(GEOCODE_TIMEOUT_MS.milliseconds) {
                 getAddressAndPlace(lat, lon)
                     .catch { /* best-effort: schedule with whatever info we have */ }
                     .collect { info ->
+                        if (info.approximate) return@collect
                         address = info.address
                         placeInfo = info.placeInfo ?: placeInfo
                     }

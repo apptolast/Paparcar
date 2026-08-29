@@ -41,6 +41,7 @@ import kotlin.math.roundToInt
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_address_unknown
+import paparcar.composeapp.generated.resources.location_approximate_near
 import paparcar.composeapp.generated.resources.home_peek_parking_approximate
 import paparcar.composeapp.generated.resources.home_peek_spot_expires
 import paparcar.composeapp.generated.resources.home_peek_spot_high
@@ -230,15 +231,12 @@ internal fun peekTitle(
  * Camera-anchored title resolver for the pin-mode peek cards. Returns the POI
  * name when the camera sits on a place, the geocoded address line otherwise,
  * and a localized fallback when the camera has no usable location info yet.
+ * A borrowed-neighbour answer declares itself as "Near X" — the approximation
+ * is never passed off as exact. [GEO-CACHE-ANSWERS-NEARBY-001]
  */
 @Composable
-internal fun cameraTitleOrFallback(info: AddressAndPlace?): String {
-    val placeName = info?.placeInfo?.name?.takeIf { it.isNotBlank() }
-    if (placeName != null) return placeName
-    val addressLine = info?.address?.displayLine?.takeIf { it.isNotBlank() }
-    if (addressLine != null) return addressLine
-    return stringResource(Res.string.home_address_unknown)
-}
+internal fun cameraTitleOrFallback(info: AddressAndPlace?): String =
+    cameraLine(info) ?: stringResource(Res.string.home_address_unknown)
 
 /**
  * Like [cameraTitleOrFallback] but returns stale data or "…" while the camera
@@ -248,10 +246,17 @@ internal fun cameraTitleOrFallback(info: AddressAndPlace?): String {
 @Composable
 internal fun cameraTitleWhileSettling(info: AddressAndPlace?, isSettling: Boolean): String =
     if (isSettling) {
-        info?.let {
-            it.placeInfo?.name?.takeIf { n -> n.isNotBlank() }
-                ?: it.address.displayLine?.takeIf { l -> l.isNotBlank() }
-        } ?: "…"
+        cameraLine(info) ?: "…"
     } else {
         cameraTitleOrFallback(info)
     }
+
+/** POI name > address line, wrapped in "Near X" when the answer is approximate. */
+@Composable
+private fun cameraLine(info: AddressAndPlace?): String? {
+    if (info == null) return null
+    val line = info.placeInfo?.name?.takeIf { it.isNotBlank() }
+        ?: info.address.displayLine?.takeIf { it.isNotBlank() }
+        ?: return null
+    return if (info.approximate) stringResource(Res.string.location_approximate_near, line) else line
+}
