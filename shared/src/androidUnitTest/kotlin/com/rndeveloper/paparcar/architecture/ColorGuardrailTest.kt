@@ -104,6 +104,36 @@ class ColorGuardrailTest {
     }
 
     /**
+     * **A leg is not a role.** `PapSpotFreshMuted` is not "the fresh spot colour" — it is the fresh
+     * spot colour *in the dark theme*, one half of a story. Feature code that names a leg has
+     * decided the theme by hand, and a file that decides the theme by hand can forget to: the age
+     * pill named the three dark legs and no light ones, so it rendered a near-black lozenge on a
+     * white sheet for months. Nothing caught it, because every token it read was the RIGHT token —
+     * a sweep asking WHICH token a site reads cannot see HOW it picks one.
+     *
+     * Banning the leg does see it, because a theme-blind `when` has to name a leg to exist. Feature
+     * code asks for a ROLE — `PapColor`, `stateColors()`, `vehicleIdentityColor()`, `colorScheme` —
+     * and the roles live in `ui/theme`, where the luminance probe is written once.
+     * [UI-COLOR-THE-RAMP-HAS-ONE-RESOLVER-001]
+     */
+    @Test
+    fun `feature code reads roles, never theme legs`() {
+        val violations = featureFiles()
+            .filterNot { it.name in LEG_ALLOWLIST }
+            .mapNotNull { file ->
+                val legs = LEG_REGEX.findAll(file.text).map { it.groupValues[1] }.distinct().toList()
+                if (legs.isEmpty()) null else "  - ${file.name}.kt → ${legs.joinToString(", ")}"
+            }
+        assertTrue(
+            violations.isEmpty(),
+            "[a *Light/*Muted/*Dark token is one THEME LEG of a story — naming it in feature code " +
+                "means this file picks the theme by hand, which is how the age pill went blind. Ask " +
+                "for a role: PapColor, stateColors(), vehicleIdentityColor(), colorScheme]\n" +
+                violations.joinToString("\n"),
+        )
+    }
+
+    /**
      * **One hex, one story.** The doctrine's rule 4 ("every new token needs its own row with its own
      * story") was prose, so nothing enforced it and four pairs of tokens drifted back into holding
      * the same value under different names — the exact disorder §1 of COLOR-SYSTEM.md was written to
@@ -238,6 +268,20 @@ class ColorGuardrailTest {
 
         // A literal ARGB colour constructor. ui/theme is excluded by scope; Color.Transparent etc. don't match.
         val COLOR_LITERAL_REGEX = Regex("""\bColor\s*\(\s*0[xX][0-9a-fA-F]{6,8}\s*\)""")
+
+        /** A theme leg reached from outside `ui/theme` — qualified, so a token merely NAMED in a
+         *  comment or KDoc is not a violation. */
+        val LEG_REGEX = Regex("""ui\.theme\.(Pap\w*(?:Muted|Light|Dark))\b""")
+
+        /**
+         * The two jobs that legitimately name a leg, both because they are NOT painting on our
+         * surface — the luminance probe would answer the wrong question for them:
+         * - map markers and map chrome carry fixed palettes over street tiles, which are the same
+         *   photograph in both themes;
+         * - the theme picker's swatches show the OTHER theme on purpose — a light card next to a
+         *   dark one IS the control. [UI-THEME-OPTION-SHOWS-ITS-THEME-001]
+         */
+        val LEG_ALLOWLIST = setOf("PaparcarMapMarkers", "PaparcarMapView", "SettingsScreen")
 
         /** `Color.value` packs the channels in the HIGH bits, so printing it raw yields #000000 and
          *  a useless failure message. Render from the channels instead. */

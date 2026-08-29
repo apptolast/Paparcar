@@ -217,6 +217,18 @@ Test Konsist (`ColorGuardrailTest`, F6), igual que tipografía y dividers:
    themes`. La igualdad exacta de hex **no** es el invariante: un futuro ΔE00 de 2 sería igual de
    indistinguible y pasaría la regla 5. El suelo es perceptual (≥ 14° de tono, ≥ 18 CIE76 en Lab, en
    los dos temas) y vive en el TONO, por la razón de §8 (2026-08-29, fase 2).
+7. **Una pata no es un rol** — `feature code reads roles, never theme legs`
+   [UI-COLOR-THE-RAMP-HAS-ONE-RESOLVER-001]. `PapSpotFreshMuted` no es "el color de plaza fresca":
+   es ese color **en el tema oscuro**, media historia. Nombrar una pata desde `presentation/` o
+   `ui/components/` es decidir el tema a mano, y quien lo decide a mano puede olvidarse: la píldora
+   «Hace N min» nombró las tres patas oscuras y ninguna clara, y pintó una pastilla negruzca sobre
+   sheet blanco durante meses **sin que ningún barrido lo viera**, porque todos los tokens que leía
+   eran los correctos. Un barrido pregunta QUÉ token lee un sitio; el fallo estaba en CÓMO lo
+   elegía. Prohibir la pata sí lo ve, porque un `when` ciego al tema necesita nombrarla para
+   existir. El feature layer pide ROL: `PapColor`, `stateColors()`, `vehicleIdentityColor()`,
+   `colorScheme`. Exentos (y por qué no pintan sobre nuestra superficie): los marcadores y el chrome
+   del mapa —paleta fija sobre teselas, la misma foto en los dos temas— y las muestras del selector
+   de tema, que enseñan el tema CONTRARIO a propósito.
 
 ---
 
@@ -250,6 +262,11 @@ accidente sin fecha.
 Lo que **no** vive ahí: la identidad de vehículo (`vehicleIdentityColor`), la rampa de frescura
 (`stateColors()`) y los neutros (`onSurface`/`onSurfaceVariant` + `PapAlpha`), que ya son
 inequívocos.
+
+La rampa se resuelve en `ui/theme/SpotStateColors.kt` y **sólo ahí** — cuatro campos, uno por
+trabajo: `bg` (relleno, suelo 3:1) · `text` (la palabra sobre la superficie, 4.5:1) ·
+`container`/`onContainer` (la píldora tonal: cama suave + su contenido). Ningún consumidor elige
+entre patas; si un trabajo nuevo necesita otro par, se añade aquí, no en la pantalla.
 
 ---
 

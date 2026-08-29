@@ -10,7 +10,6 @@ import androidx.compose.material.icons.rounded.Group
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -21,21 +20,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.rndeveloper.paparcar.ui.theme.PapAmber
-import com.rndeveloper.paparcar.ui.theme.PapAmberMuted
-import com.rndeveloper.paparcar.ui.theme.PapSpotFresh
-import com.rndeveloper.paparcar.ui.theme.SURFACE_DARK_LUMINANCE
-import com.rndeveloper.paparcar.ui.theme.PapRedLight
-import com.rndeveloper.paparcar.ui.theme.PapOnAmberContainerLight
-import com.rndeveloper.paparcar.ui.theme.PapAmberContainerLight
-import com.rndeveloper.paparcar.ui.theme.PapSpotExpiringContainerLight
-import com.rndeveloper.paparcar.ui.theme.PapOnSpotFreshContainerLight
-import com.rndeveloper.paparcar.ui.theme.PapSpotFreshContainerLight
-import com.rndeveloper.paparcar.ui.theme.PapSpotFreshMuted
-import com.rndeveloper.paparcar.ui.theme.PapRed
-import com.rndeveloper.paparcar.ui.theme.PapRedMuted
 import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
+import com.rndeveloper.paparcar.ui.theme.stateColors
 import kotlinx.coroutines.delay
 import kotlin.time.Clock
 import org.jetbrains.compose.resources.stringResource
@@ -82,21 +69,11 @@ fun SpotAgeIndicator(
 ) {
     val ageMinutes = (ageMs / MS_PER_MINUTE).coerceAtLeast(0L)
 
-    // This pill had ONE pair of colours for both themes — the dark one — so in the light theme it
-    // rendered as a near-black lozenge on a white sheet. It predates the colour refactor, which
-    // swapped its tokens without noticing the `when` had no theme probe: a sweep that asks WHICH
-    // token a site reads does not catch HOW it picks one. [UI-COLOR-GREEN-TEXT-EARNS-ITS-CONTRAST-001]
-    val dark = MaterialTheme.colorScheme.surface.luminance() < SURFACE_DARK_LUMINANCE
-    val containerColor = when (freshness) {
-        SpotFreshness.FRESH  -> if (dark) PapSpotFreshMuted else PapSpotFreshContainerLight
-        SpotFreshness.RECENT -> if (dark) PapAmberMuted else PapAmberContainerLight
-        SpotFreshness.STALE  -> if (dark) PapRedMuted else PapSpotExpiringContainerLight
-    }
-    val contentColor = when (freshness) {
-        SpotFreshness.FRESH  -> if (dark) PapSpotFresh else PapOnSpotFreshContainerLight
-        SpotFreshness.RECENT -> if (dark) PapAmber else PapOnAmberContainerLight
-        SpotFreshness.STALE  -> if (dark) PapRed else PapRedLight
-    }
+    // The tonal pair comes from the ramp's one resolver. This pill used to pick its own tokens with
+    // a `when` that had no theme probe at all, so it painted the dark bed on a white sheet for
+    // months: the tokens it named were right, the way it chose between them was not — which is why
+    // the rule is now "the feature layer never names a leg". [UI-COLOR-THE-RAMP-HAS-ONE-RESOLVER-001]
+    val tier = freshness.stateColors()
     val label = when {
         // "0 min ago" reads as no information at all — the first minute says it in words.
         // [UI-SPOT-CLOCKS-NEVER-READ-ZERO-001]
@@ -107,8 +84,8 @@ fun SpotAgeIndicator(
 
     PapBadge(
         label = label,
-        containerColor = containerColor,
-        contentColor = contentColor,
+        containerColor = tier.container,
+        contentColor = tier.onContainer,
         icon = Icons.Rounded.Schedule,
         modifier = modifier,
         // Age is a data token — condensed per the typography mechanism. [HOME-VEH-REFINE-001]

@@ -120,7 +120,7 @@ internal fun SpotPeek(
         // tier colour/ring, matching the map marker and list row. [HOME-PUCK-001]
         // A withdrawn spot has no freshness left to tint — the eyebrow states it in ink.
         // [UI-COLOR-DOCTRINE-001]
-        eyebrowColor = if (isRetracted) MaterialTheme.colorScheme.onSurfaceVariant else palette.badgeBg,
+        eyebrowColor = if (isRetracted) MaterialTheme.colorScheme.onSurfaceVariant else palette.accent,
         title = title,
         // How old the offer is, on the header's third line — the same slot where the browse peek
         // puts "aparcado hace 1 h" for your own car. It is the fact that decides whether this spot
@@ -144,9 +144,9 @@ internal fun SpotPeek(
                 DistanceRow(distanceM = distM, mode = travelMode, accentColor = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {
                 SpotFitRow(spot = spot, vehicle = activeVehicle)
-                DistanceRow(distanceM = distM, mode = travelMode, accentColor = palette.badgeBg)
+                DistanceRow(distanceM = distM, mode = travelMode, accentColor = palette.accent)
                 if (spot.enRouteCount > 0) {
-                    SpotEnRouteRow(count = spot.enRouteCount, accentColor = palette.badgeBg)
+                    SpotEnRouteRow(count = spot.enRouteCount, accentColor = palette.accent)
                 }
             }
         },

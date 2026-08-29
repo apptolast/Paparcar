@@ -179,15 +179,21 @@ internal fun rememberNowMinuteTick(): Long {
     return nowMs
 }
 
+/**
+ * What the peek says and what colour it says it in, for one freshness tier.
+ *
+ * The fields were `badgeBg`/`badgeFg` from when this tier rendered as a filled badge. It has not
+ * been one for a long time: everything that reads this — the eyebrow, the distance row, the
+ * en-route row — paints TEXT, so there is one colour and its name says the job. `badgeFg` had no
+ * reader at all. [UI-COLOR-THE-RAMP-HAS-ONE-RESOLVER-001]
+ */
 internal data class SpotPeekPalette(
-    val badgeBg: Color,
-    val badgeFg: Color,
+    val accent: Color,
     val label: String,
 )
 
 @Composable
 internal fun SpotFreshness.peekPalette(): SpotPeekPalette {
-    val sc = stateColors()
     val label = when (this) {
         SpotFreshness.FRESH  -> stringResource(Res.string.home_peek_spot_fresh)
         SpotFreshness.RECENT -> stringResource(Res.string.home_peek_spot_recent)
@@ -195,7 +201,7 @@ internal fun SpotFreshness.peekPalette(): SpotPeekPalette {
     }
     // Painted as TEXT: the peek eyebrow and the accent rows. Readable leg, not the fill.
     // [UI-COLOR-GREEN-TEXT-EARNS-ITS-CONTRAST-001]
-    return SpotPeekPalette(sc.text, sc.on, label)
+    return SpotPeekPalette(stateColors().text, label)
 }
 
 /**

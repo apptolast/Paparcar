@@ -128,9 +128,10 @@ val PapSpotFreshMuted  = Color(0xFF0F3B08)
 // the 4.5 floor for the first two. That is a DELIBERATE, user-made trade-off taken on device
 // (29-08) after seeing both: the AA-compliant version was judged too dark for what these are —
 // a freshness signal, not prose. The way to have both is to render the reliability label as a
-// FILLED badge (vivid fill + ink text, 8.07:1) instead of coloured text; its palette fields are
-// still called `badgeBg`/`badgeFg` from when it was one. Left as a follow-up, not done silently.
-// [UI-COLOR-EVERY-HUE-EARNS-ITS-MEANING-001]
+// FILLED badge (vivid fill + ink text, 8.07:1) instead of coloured text — a change to how the
+// label is BUILT, not to these values. Left as a follow-up, not done silently. It would give
+// `SpotStateColors` back the `on` leg that was dropped once nothing painted a fill with text on it.
+// [UI-COLOR-EVERY-HUE-EARNS-ITS-MEANING-001] [UI-COLOR-THE-RAMP-HAS-ONE-RESOLVER-001]
 
 /** Light-theme leg of [PapSpotFresh] — reliability label, peek eyebrow, accent rows, meter. */
 val PapSpotFreshLight  = Color(0xFF5FBF1F)
