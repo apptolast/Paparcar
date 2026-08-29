@@ -425,6 +425,11 @@ private fun HomeContent(
                     // Pin modes / any selected pin: the peek handle owns the whole surface, so the
                     // sheet must not expand above peek. [SHEET-DRAG-001]
                     // [UI-PEEK-STEPS-BETWEEN-PINS-001]
+                    //
+                    // The ONLY enumeration of those states in the codebase — everything downstream
+                    // asks the geometry via `SheetPositioning.capsAtPeek()` instead of re-listing
+                    // them. A second list is how the selected spot got left out of the reset rule.
+                    // [UI-SHEET-SPOT-PEEK-RESTS-ON-ITS-CONTENT-001]
                     capExpandAtPeek = state.mode !is HomeMode.Browse ||
                         isParkingSelected ||
                         selectedSpotId != null,
@@ -448,7 +453,6 @@ private fun HomeContent(
                     sheetOffsetPx = sheetOffsetPx,
                     mode = state.mode,
                     selection = state.selection,
-                    isParkingSelected = isParkingSelected,
                     navProgressState = navProgressState,
                     // [DET-ASK-STATE-001] The open question opens the sheet on its own, once.
                     promptShownAtMs = state.promptWindow?.shownAtMs,

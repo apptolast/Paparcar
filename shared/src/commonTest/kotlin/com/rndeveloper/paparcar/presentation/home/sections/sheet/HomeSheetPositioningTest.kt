@@ -66,6 +66,30 @@ class HomeSheetPositioningTest {
         assertEquals(1600f, computed.halfOffsetPx)
     }
 
+    // ── capsAtPeek ────────────────────────────────────────────────────────────
+    // "The peek owns the surface" is read off the geometry, never from a second
+    // list of states. [UI-SHEET-SPOT-PEEK-RESTS-ON-ITS-CONTENT-001]
+
+    @Test
+    fun should_report_capped_at_peek_when_nothing_fits_above_it() {
+        assertEquals(true, compute(capExpandAtPeek = true).capsAtPeek())
+    }
+
+    @Test
+    fun should_not_report_capped_at_peek_while_a_list_can_open_above_it() {
+        // Browse with a list that overflows: full snap is the screen top.
+        assertEquals(false, compute().capsAtPeek())
+        // Browse whose list already fits: full snap stops at content height, still above peek.
+        assertEquals(false, compute(allItemsFit = true, listNaturalHeightPx = 600f).capsAtPeek())
+    }
+
+    @Test
+    fun should_report_capped_at_peek_when_the_fitting_list_has_no_height() {
+        // Degenerate content-aware snap (an empty list that "fits"): full lands ON peek, so there
+        // is no position above it — the geometry says capped without anyone enumerating states.
+        assertEquals(true, compute(allItemsFit = true, listNaturalHeightPx = 0f).capsAtPeek())
+    }
+
     @Test
     fun should_stop_full_snap_at_content_height_when_all_items_fit() {
         val computed = compute(allItemsFit = true, listNaturalHeightPx = 600f)

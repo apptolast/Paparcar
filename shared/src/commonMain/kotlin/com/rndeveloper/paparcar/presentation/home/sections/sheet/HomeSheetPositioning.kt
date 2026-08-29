@@ -83,7 +83,21 @@ internal data class SheetPositioning(
     val minimizedOffsetPx: Float,
     /** Floating map chrome (FABs/search) fades once the sheet top rises above this. [HOME-SNAP-001] */
     val overlayHideThresholdPx: Float,
-)
+) {
+    /**
+     * True when the peek owns the whole surface: `full == peek`, so there is no position above peek
+     * to reach and peek is the sheet's only resting anchor.
+     *
+     * This is the ONE place that answers "does this state cap at peek?", and it answers from the
+     * GEOMETRY instead of re-listing the states that produce it. The states used to be enumerated
+     * twice — `capExpandAtPeek` in HomeScreen and `resetToPeek` inside [SheetTransitionEffects] —
+     * and when [UI-PEEK-STEPS-BETWEEN-PINS-001] took the list out from under a selected spot, only
+     * the first list learned about it. That is how a spot's card ended up resting on Browse's
+     * "expanded" anchor with a third of the screen of dead surface below it.
+     * [UI-SHEET-SPOT-PEEK-RESTS-ON-ITS-CONTENT-001]
+     */
+    fun capsAtPeek(): Boolean = fullSnapOffsetPx >= peekOffsetPx
+}
 
 /**
  * Derives the snap points from the frame's inputs. Pure and Compose-free so the
@@ -214,6 +228,28 @@ internal fun isIntentionallyAbovePeek(
 ): Boolean = canExpandAbovePeek && referenceOffsetPx < restingPeekAnchorPx - tolerancePx
 
 /**
+ * Puts the sheet at [peekOffsetPx] — the one correction shared by both transition effects, so the
+ * two can't drift into different physics for the same move.
+ *
+ * Snaps (instead of animating) only when the move is a small layout correction or the sheet already
+ * sits at or below the new peek: those are the peek handle growing under a resting sheet, and a
+ * 300ms glide there reads as slow motion. Everything else animates — including a flight already in
+ * the air, which gets re-aimed rather than left to land on the previous state's anchor.
+ */
+private suspend fun Animatable<Float, AnimationVector1D>.settleAtPeek(
+    peekOffsetPx: Float,
+    snapTolerancePx: Float,
+) {
+    val correction = (value - peekOffsetPx).absoluteValue
+    val sheetBelowNewPeek = value >= peekOffsetPx
+    if (!isRunning && (correction < snapTolerancePx || sheetBelowNewPeek)) {
+        snapTo(peekOffsetPx)
+    } else {
+        animateTo(peekOffsetPx, SheetSnapSpec)
+    }
+}
+
+/**
  * The sheet's state-driven transitions, extracted from HomeContent as a
  * no-UI composable: reset-to-peek on selection/mode changes, the auto-open of a pending question,
  * and nav-progress hoisting for the global bottom nav.
@@ -224,7 +260,6 @@ internal fun SheetTransitionEffects(
     sheetOffsetPx: Animatable<Float, AnimationVector1D>,
     mode: HomeMode,
     selection: HomeSelection?,
-    isParkingSelected: Boolean,
     navProgressState: MutableFloatState,
     /**
      * [DET-ASK-STATE-001] Identity of the open "did you park?" question (its post timestamp), or
@@ -237,14 +272,9 @@ internal fun SheetTransitionEffects(
     val peekOffsetPx = positioning.peekOffsetPx
     val peekSnapTolerancePx = with(LocalDensity.current) { PEEK_LAYOUT_SNAP_TOLERANCE.toPx() }
 
-    val isPinning = mode is HomeMode.Reporting ||
-        mode is HomeMode.AddingZone ||
-        mode is HomeMode.AddingParking
-    val resetToPeek = isPinning || isParkingSelected
     // Read by the layout-correction effect at fire time — a peek re-measure must
     // decide with the CURRENT selection/mode/geometry, not the ones captured at launch.
     val currentPeekOffset = rememberUpdatedState(peekOffsetPx)
-    val currentResetToPeek = rememberUpdatedState(resetToPeek)
     val currentSelection = rememberUpdatedState(selection)
     val currentPositioning = rememberUpdatedState(positioning)
 
@@ -260,24 +290,15 @@ internal fun SheetTransitionEffects(
     // a header-only view. [SHEET-DRAG-001]
     LaunchedEffect(selection, mode) {
         val peek = currentPeekOffset.value
-        if (selection == null || resetToPeek) {
-            val correction = (sheetOffsetPx.value - peek).absoluteValue
-            // Snap (not animate) when: small layout correction OR sheet is already at
-            // or below the new peek. The latter covers selection events where the peek
-            // handle grows (Browse→SelectedParking/Spot), shifting peekOffsetPx upward.
-            // Without this guard the LaunchedEffect would fire animateTo and the sheet
-            // would visibly slide up in slow motion to follow the handle.
-            val sheetBelowNewPeek = sheetOffsetPx.value >= peek
-            if (!sheetOffsetPx.isRunning && (correction < peekSnapTolerancePx || sheetBelowNewPeek)) {
-                sheetOffsetPx.snapTo(peek)
-            } else {
-                sheetOffsetPx.animateTo(peek, SheetSnapSpec)
-            }
+        if (selection == null || currentPositioning.value.capsAtPeek()) {
+            sheetOffsetPx.settleAtPeek(peek, peekSnapTolerancePx)
             restingPeekAnchor = peek
         } else if (!sheetOffsetPx.isRunning && sheetOffsetPx.value >= peek) {
-            // Guard isRunning so the expand animation launched on spot/car tap is not
-            // cancelled by the peekOffsetPx change that occurs when the peek handle
-            // grows to show the selected-item content.
+            // A selection whose geometry still leaves room ABOVE peek (a list under the card):
+            // grow the sheet to the new peek, but guard isRunning so an expand animation the tap
+            // launched is not cancelled by the peek handle growing under it. Every selection Home
+            // has today caps at peek and takes the branch above — this is the shape of the rule,
+            // not a state that exists.
             sheetOffsetPx.snapTo(peek)
             restingPeekAnchor = peek
         }
@@ -298,19 +319,18 @@ internal fun SheetTransitionEffects(
         // fullSnap == peek exactly when capExpandAtPeek (the peek owns the surface) —
         // in that geometry there IS no user position above peek to protect, so the
         // correction always follows the measure. [BUG-SHEET-STRANDED-TALL-001]
-        val snap = currentPositioning.value
-        val canExpandAbovePeek = snap.fullSnapOffsetPx < snap.peekOffsetPx
+        val canExpandAbovePeek = !currentPositioning.value.capsAtPeek()
         if (isIntentionallyAbovePeek(reference, restingPeekAnchor, peekSnapTolerancePx, canExpandAbovePeek)) {
             return@LaunchedEffect
         }
-        if (currentSelection.value == null || currentResetToPeek.value) {
-            val correction = (sheetOffsetPx.value - peekOffsetPx).absoluteValue
-            val sheetBelowNewPeek = sheetOffsetPx.value >= peekOffsetPx
-            if (!sheetOffsetPx.isRunning && (correction < peekSnapTolerancePx || sheetBelowNewPeek)) {
-                sheetOffsetPx.snapTo(peekOffsetPx)
-            } else {
-                sheetOffsetPx.animateTo(peekOffsetPx, SheetSnapSpec)
-            }
+        // Capped geometry takes the correction branch, and the correction branch is the one that
+        // RE-AIMS a flight instead of yielding to it. That matters because every producer of a
+        // sheet position (tap-to-expand, toggle, fling) aims with the anchors of the frame it fired
+        // in: a marker tap launches its expand with Browse's anchors, and this pin's cap only
+        // exists a frame later. Yielding left the card resting on an anchor its own state no longer
+        // has. [UI-SHEET-SPOT-PEEK-RESTS-ON-ITS-CONTENT-001]
+        if (currentSelection.value == null || !canExpandAbovePeek) {
+            sheetOffsetPx.settleAtPeek(peekOffsetPx, peekSnapTolerancePx)
             restingPeekAnchor = peekOffsetPx
         } else if (!sheetOffsetPx.isRunning && sheetOffsetPx.value >= peekOffsetPx) {
             sheetOffsetPx.snapTo(peekOffsetPx)
