@@ -140,7 +140,7 @@ Criterio de LOC: suma de los rangos de líneas actuales que se mudan (los rangos
 nuevo · **M** = movido/absorbido desde CPD u otro fichero · **=** = existente sin cambio de casa.
 
 ```
-composeApp/src/commonMain/kotlin/io/apptolast/paparcar/domain/
+shared/src/commonMain/kotlin/com/rndeveloper/paparcar/domain/
 ├─ detection/
 │  ├─ CoordinatorParkingDetector.kt        N  ~250 [KMP]  orquestador (§4)
 │  ├─ DetectionEffectExecutor.kt           N  ~220 [KMP]  runConfirm/saveUnattendedZone/nudge/degradeToPrompt
@@ -202,7 +202,7 @@ composeApp/src/commonMain/kotlin/io/apptolast/paparcar/domain/
 │  (absorbido como perfil short-hop de DriveProof [07 P14]; su test viaja a DriveProofTest)
 └─ coordinator/CoordinatorParkingDetector.kt  ELIMINADO al final de F6 (sustituido por el árbol de arriba)
 
-composeApp/src/androidMain/.../detection/   =  [Android]  TODOS los actores del 03 §1 quedan:
+shared/src/androidMain/.../detection/   =  [Android]  TODOS los actores del 03 §1 quedan:
    CoordinatorDetectionService (adelgaza: pierde maybeRunHonestClose→sin mover, solo re-cablea el
    nuevo orquestador), BluetoothDetectionService/Detector, ParkingSafetyNetWorker,
    DepartureDetectionWorker, ParkingBackfillWorker, GeofenceJanitorWorker, workers de sync/enrich,

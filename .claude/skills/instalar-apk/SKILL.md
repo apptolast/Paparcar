@@ -42,8 +42,8 @@ esperando; pedir al user que lo acepte.
 ## 2 · Compilar
 
 ```bash
-./gradlew :composeApp:assembleProdDebug --console=plain 2>&1 | tail -8
-APK=composeApp/build/outputs/apk/prod/debug/composeApp-prod-debug.apk
+./gradlew :app:assembleProdDebug --console=plain 2>&1 | tail -8
+APK=app/build/outputs/apk/prod/debug/app-prod-debug.apk
 sha256sum "$APK"
 ```
 
@@ -58,11 +58,11 @@ byte a byte idéntico. Si compilas entre un móvil y otro, cada uno se lleva byt
 ## 3 · Instalar y verificar
 
 ```bash
-APK=composeApp/build/outputs/apk/prod/debug/composeApp-prod-debug.apk
+APK=app/build/outputs/apk/prod/debug/app-prod-debug.apk
 for D in $(adb devices | awk '/\tdevice$/{print $1}'); do
   echo "=== $D ==="
   adb -s $D install -r "$APK" 2>&1 | tail -2
-  P=$(adb -s $D shell pm path io.apptolast.paparcar | head -1 | tr -d '\r' | sed 's/package://')
+  P=$(adb -s $D shell pm path com.rndeveloper.paparcar | head -1 | tr -d '\r' | sed 's/package://')
   adb -s $D shell sha256sum "$P" | tr -d '\r'
 done
 sha256sum "$APK" | cut -d' ' -f1
@@ -84,14 +84,14 @@ export MSYS_NO_PATHCONV=1
 DEST="C:/Users/rndev/AppData/Local/Temp/paparcar-dex"   # ⛔ ruta WINDOWS, ver abajo
 mkdir -p /c/Users/rndev/AppData/Local/Temp/paparcar-dex
 for D in $(adb devices | awk '/\tdevice$/{print $1}'); do
-  P=$(adb -s $D shell pm path io.apptolast.paparcar | head -1 | tr -d '\r' | sed 's/package://')
+  P=$(adb -s $D shell pm path com.rndeveloper.paparcar | head -1 | tr -d '\r' | sed 's/package://')
   adb -s $D pull "$P" "$DEST/$D.apk" 2>&1 | tail -1
 done
 ```
 
 ```bash
 python - /c/Users/rndev/AppData/Local/Temp/paparcar-dex/*.apk \
-         composeApp/build/outputs/apk/prod/debug/composeApp-prod-debug.apk <<'EOF'
+         app/build/outputs/apk/prod/debug/app-prod-debug.apk <<'EOF'
 import sys, zipfile, hashlib
 for path in sys.argv[1:]:
     z = zipfile.ZipFile(path)
@@ -115,7 +115,7 @@ para que Git Bash no reescriba la ruta REMOTA `/data/app/…`.
 > los nombres en runtime, así que su ausencia en el dex **es** la firma del build nuevo.
 
 **Si `INSTALL_FAILED_UPDATE_INCOMPATIBLE`** (firma distinta — pasó con una beta02 en el Oppo): NO
-desinstalar por tu cuenta. Compilar `:composeApp:assembleProdRelease`, que va firmado con el keystore
+desinstalar por tu cuenta. Compilar `:app:assembleProdRelease`, que va firmado con el keystore
 del repo, e instalar ese con `-r`; conserva los datos. Si tampoco entra, preguntar al user.
 
 ## 4 · Arrancar y mirar
@@ -125,7 +125,7 @@ app vive:
 
 ```bash
 for D in $(adb devices | awk '/\tdevice$/{print $1}'); do
-  adb -s $D shell am start -n io.apptolast.paparcar/.MainActivity
+  adb -s $D shell am start -n com.rndeveloper.paparcar/.MainActivity
 done
 ```
 
@@ -133,7 +133,7 @@ Y comprobar que no se ha caído ni ha quedado muda:
 
 ```bash
 adb -s <serial> logcat -d -t 200 | grep -iE "FATAL|AndroidRuntime|PaparcarApp|DepartureWatch|Coordinator"
-adb -s <serial> shell dumpsys activity services io.apptolast.paparcar | grep -E "ServiceRecord|isForeground|channel"
+adb -s <serial> shell dumpsys activity services com.rndeveloper.paparcar | grep -E "ServiceRecord|isForeground|channel"
 ```
 
 Si el cambio que se está probando toca detección, el criterio de éxito concreto (qué línea de log

@@ -1,0 +1,15 @@
+package com.rndeveloper.paparcar.domain.model
+
+data class AddressInfo(
+    val street: String?,
+    val city: String?,
+    val region: String?,
+    val country: String?,
+    val countryCode: String? = null,
+) {
+    val displayLine: String?
+        get() = street ?: city ?: region ?: country
+
+    val fullAddress: String
+        get() = listOfNotNull(street, city, region, country).joinToString(", ")
+}

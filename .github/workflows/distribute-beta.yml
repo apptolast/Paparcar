@@ -34,12 +34,12 @@ jobs:
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
           GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
         run: |
-          echo "$GOOGLE_SERVICES_JSON" > composeApp/google-services.json
+          echo "$GOOGLE_SERVICES_JSON" > app/google-services.json
           echo "GOOGLE_WEB_CLIENT_ID=$GOOGLE_WEB_CLIENT_ID" > local.properties
           echo "MAPS_API_KEY=mock_key" >> local.properties
 
       - name: Run unit tests
-        run: ./gradlew :composeApp:testProdDebugUnitTest --no-daemon --stacktrace
+        run: ./gradlew :shared:testDebugUnitTest --no-daemon --stacktrace
 
   distribute-release:
     name: Build Release & Distribute
@@ -70,7 +70,7 @@ jobs:
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
           RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
         run: |
-          echo "$GOOGLE_SERVICES_JSON" > composeApp/google-services.json
+          echo "$GOOGLE_SERVICES_JSON" > app/google-services.json
           echo "$RELEASE_KEYSTORE_BASE64" | base64 --decode > release.keystore
 
       # [AUDIT-INFRA-001 C2+C3+A7] Flavor-aware task; keystore path relative to the ROOT PROJECT
@@ -78,7 +78,7 @@ jobs:
       # found the decoded keystore); Crashlytics mapping upload enabled here, the one place with
       # clean network (locally it is gated off because SSL inspection breaks it).
       - name: Build & Sign Release APK
-        run: ./gradlew :composeApp:assembleProdRelease -PuploadCrashlyticsMapping=true --no-daemon
+        run: ./gradlew :app:assembleProdRelease -PuploadCrashlyticsMapping=true --no-daemon
         env:
           RELEASE_KEYSTORE_FILE: release.keystore
           RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
@@ -98,5 +98,5 @@ jobs:
           appId: ${{ secrets.FIREBASE_APP_ID }}
           token: ${{ secrets.FIREBASE_TOKEN }}
           groups: "beta-paparcar" # Grupo para testers externos (beta)
-          file: composeApp/build/outputs/apk/prod/release/composeApp-prod-release.apk
+          file: app/build/outputs/apk/prod/release/app-prod-release.apk
           releaseNotesFile: changelog.txt

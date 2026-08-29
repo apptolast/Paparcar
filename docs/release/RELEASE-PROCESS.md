@@ -43,7 +43,7 @@ RELEASE_KEY_PASSWORD=<key-password>
 ```
 
 Sin estas 4 vars, el build de release genera un APK **sin firmar**
-(`composeApp/build.gradle.kts` avisa con un warning explícito).
+(`app/build.gradle.kts` avisa con un warning explícito).
 
 ### 0.3 Firebase App Distribution — auth local
 
@@ -70,7 +70,7 @@ por nombre en `firebaseAppDistribution { groups = "beta-paparcar" }`.
 
 ### 1.1 Bump de versión
 
-En `composeApp/build.gradle.kts → defaultConfig`:
+En `app/build.gradle.kts → defaultConfig`:
 
 - `versionCode` — entero, **siempre incrementar** entre releases (regla Play Store).
 - `versionName` — string visible. Convención: `MAJOR.MINOR.PATCH[-beta##]`.
@@ -85,14 +85,14 @@ Lo lee el plugin de App Distribution y lo muestra a los testers.
 ### 1.3 Build firmado
 
 ```bash
-./gradlew :composeApp:assembleRelease
+./gradlew :app:assembleRelease
 ```
 
-Output: `composeApp/build/outputs/apk/release/composeApp-release.apk`.
+Output: `app/build/outputs/apk/release/app-release.apk`.
 Verifica que esté firmado:
 
 ```bash
-keytool -printcert -jarfile composeApp/build/outputs/apk/release/composeApp-release.apk
+keytool -printcert -jarfile app/build/outputs/apk/release/app-release.apk
 ```
 
 ### 1.4 Smoke test local (manual)
@@ -111,7 +111,7 @@ en `proguard-rules.pro`.
 ### 1.5 Subir a App Distribution
 
 ```bash
-./gradlew :composeApp:appDistributionUploadRelease
+./gradlew :app:appDistributionUploadRelease
 ```
 
 Tareas disponibles:
@@ -141,7 +141,7 @@ el build. Reproducible: borra una key, vuelve a correr — verás el warning.
 ### Crash en release que no aparece en debug
 
 Casi seguro R8 minificando algo reflexivo. Pasos:
-1. `./gradlew :composeApp:assembleRelease --no-daemon -Pandroid.enableR8.fullMode=false`
+1. `./gradlew :app:assembleRelease --no-daemon -Pandroid.enableR8.fullMode=false`
 2. Si el crash desaparece → R8 fullMode estaba siendo agresivo. Añade keeps.
 3. Si persiste → mira el stack trace (Crashlytics dashboard) y añade un keep
    para la clase mencionada en `proguard-rules.pro`.

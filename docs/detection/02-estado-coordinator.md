@@ -5,7 +5,7 @@
 > vivos. Para resolver cualquiera con exactitud: `git show 2288468e:<fichero>`. [P0.5]
 
 > Subagente B · refactor de solo-lectura · 2026-08-18.
-> Fichero principal: `composeApp/src/commonMain/kotlin/io/apptolast/paparcar/domain/coordinator/CoordinatorParkingDetector.kt`
+> Fichero principal: `shared/src/commonMain/kotlin/com/rndeveloper/paparcar/domain/coordinator/CoordinatorParkingDetector.kt`
 > (**2.573 líneas**; abreviado `CPD.kt`). Compañeros: `ConfirmationPhase.kt` (77 líneas),
 > `domain/detection/*` y los dos evaluadores puros `EvaluateParkingDecisionUseCase.kt` /
 > `EvaluateUnattendedParkingSaveUseCase.kt`. Todas las referencias línea:fichero son del árbol en

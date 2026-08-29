@@ -73,7 +73,7 @@ The `withContext(NonCancellable)` block stays — but its body is now bounded by
 
 ### Step 1 — Extract `ParkingSyncWorker`
 
-Create `composeApp/src/androidMain/kotlin/io/apptolast/paparcar/detection/worker/ParkingSyncWorker.kt`:
+Create `composeApp/src/androidMain/kotlin/com/rndeveloper/paparcar/detection/worker/ParkingSyncWorker.kt`:
 
 - Inputs (via `Data`): `userId`, `sessionId`, all fields needed to rebuild a `ParkingHistoryDto` without touching Room (so worker is self-contained — same pattern as `ReportSpotWorker`).
 - Body:

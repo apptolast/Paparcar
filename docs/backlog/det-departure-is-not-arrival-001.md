@@ -14,7 +14,7 @@ es el semáforo de hospital, que pensaba que ese FP lo teníamos más que mirado
 este dispositivo nuevo funciona distinto»*.
 
 ⚠️ Ese uid **no tiene documento en `diagnostics_config`** → no sube nada a Firestore. Todo esto sale
-del `parkdiag.log` local del propio móvil (`adb exec-out run-as io.apptolast.paparcar cat
+del `parkdiag.log` local del propio móvil (`adb exec-out run-as com.rndeveloper.paparcar cat
 files/parkdiag.log`).
 
 ```

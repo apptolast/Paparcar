@@ -267,7 +267,7 @@ diseño) vs **ROZA DECISIÓN** (misma semántica pero exige elegir dueño o camb
 
 ### 4.1 RUIDO PURO (mecánico)
 
-- **FQN inline — 6 grupos, ~36 ocurrencias**: 16× `io.apptolast.paparcar.domain.util.haversineMeters`
+- **FQN inline — 6 grupos, ~36 ocurrencias**: 16× `com.rndeveloper.paparcar.domain.util.haversineMeters`
   en CPD (el plan decía ~15; verificadas 16); 3× `ArmEvidence.LABEL_*` en EvalPD:194-196; 4×
   `PendingDetectionStore` + 7× `domain.detection/location` en CDS; 3× en `ParkingSafetyNetWorker`;
   ~10 en bindings Koin (bajo valor, opcional). Todo: un import + replaces.

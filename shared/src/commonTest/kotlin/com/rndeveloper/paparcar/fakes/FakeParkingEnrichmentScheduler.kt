@@ -1,0 +1,14 @@
+package com.rndeveloper.paparcar.fakes
+
+import com.rndeveloper.paparcar.domain.service.ParkingEnrichmentScheduler
+
+class FakeParkingEnrichmentScheduler : ParkingEnrichmentScheduler {
+
+    var scheduleCallCount = 0
+    var lastScheduledSessionId: String? = null
+
+    override fun enqueueEnrichSession(sessionId: String, lat: Double, lon: Double) {
+        scheduleCallCount++
+        lastScheduledSessionId = sessionId
+    }
+}

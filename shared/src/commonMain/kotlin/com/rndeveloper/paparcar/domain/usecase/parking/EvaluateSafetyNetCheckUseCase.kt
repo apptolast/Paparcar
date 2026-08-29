@@ -1,0 +1,535 @@
+package com.rndeveloper.paparcar.domain.usecase.parking
+
+import com.rndeveloper.paparcar.domain.detection.physics.isAdmissibleEvidence
+import com.rndeveloper.paparcar.domain.detection.physics.walkExplainsDisplacement
+import com.rndeveloper.paparcar.domain.model.GpsPoint
+import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
+import com.rndeveloper.paparcar.domain.model.UserParking
+import com.rndeveloper.paparcar.domain.util.haversineMeters
+
+/**
+ * Action decided by [EvaluateSafetyNetCheckUseCase] for one parked session. [DET-SAFETY-NET-001]
+ */
+sealed class SafetyNetAction {
+
+    /** The fix is INSIDE the session's own geofence radius — re-register the geofence so Play
+     *  Services' internal INSIDE/OUTSIDE state is rebuilt from the fresh fix. A prior false EXIT
+     *  (walking away, WiFi-positioning drift) leaves that state OUTSIDE; without an *observed*
+     *  re-entry the next real drive-away never produces an EXIT transition (field incident
+     *  2026-07-04, Calle Gavia: the departure after a dismissed walking-EXIT was silent). */
+    data class CureGeofence(val geofenceId: String, val radiusMeters: Float) : SafetyNetAction()
+
+    /** Far from the parked car with a fresh position anchor (the phone was seen INSIDE this
+     *  car's fence recently) AND proof the movement was a vehicle trip — either live (credible
+     *  driving-speed fix, [preconfirmed] = false: the departure worker re-verifies by speed) or
+     *  reconstructed after the fact by the step budget / AR boarding / exit∧enter conjunction /
+     *  pedestrian-physics verdict ([preconfirmed] = true: the trip is already over, a speed
+     *  re-check would wrongly veto it — the worker must skip straight to processing).
+     *  [DET-RECONCILE-001]
+     *
+     *  [tripStartedAtMs] is the evaluator's best estimate of when the vehicle actually left —
+     *  the AR boarding stamp when that is the evidence, else the anchor seal (the last moment
+     *  the phone was provably at the car). The dispatcher dates the exit with it so the
+     *  spot-publish freshness gate measures the real age of the freed spot, not the age of this
+     *  wake-up. Null for live dispatches (the departure is happening NOW). */
+    data class DispatchDeparture(
+        val geofenceId: String,
+        val preconfirmed: Boolean = false,
+        val tripStartedAtMs: Long? = null,
+        /** The step delta the evaluator actually TRUSTED for this verdict — null when the
+         *  counter was mute or frozen-suspect ([DET-RIDE-PROOF-001]). Position-bounding
+         *  decisions downstream (parking backfill) must use THIS, never the raw reading: a
+         *  frozen counter's raw delta of 0 "bounds" the user to the car while they walk away
+         *  (field 2026-07-09 12:39, Redmi: phantom backfill at the wake-up fix). */
+        val trustedStepsSinceAnchor: Long? = null,
+        /** Whether the wake-up fix is trustworthy enough to BACKFILL the new parking at it:
+         *  the trusted step budget says the user has barely walked since the trip ended (the
+         *  pin lands at most `trustedSteps × stride` from the just-parked car) AND the fix
+         *  carries pin-grade accuracy — a 300 m fix mid-drive planted a phantom pin, field
+         *  2026-07-08 21:43. Decided HERE, in the pure evaluator, not in the worker: this
+         *  go/no-go is exactly the phantom-pin class of decision. `false` → arrival placement
+         *  stays the live coordinator's (or the user's) job. [DET-RECONCILE-001]
+         *
+         *  [DET-DEPARTURE-IS-NOT-ARRIVAL-001] It additionally requires an ARRIVAL witness — a
+         *  non-zero walk since the last independent observation of the body. The anchor budget
+         *  alone cannot serve: the branch that grants this action is reached only because those
+         *  steps could NOT walk the displacement, i.e. they were spent riding. Proof that the car
+         *  LEFT is never proof that it has ARRIVED. */
+        val backfillBounded: Boolean = false,
+    ) : SafetyNetAction()
+
+    /** Far from the parked car, MOVING at driving speed, but WITHOUT a fresh anchor — in a vehicle
+     *  that was boarded away from the car (bus / taxi / lift, or a real drive-away whose anchor
+     *  expired). Distance + speed alone can't tell those apart (BUG-WALK-DEPART-001), so the user
+     *  disambiguates via the "still parked?" prompt; ignoring it leaves the session untouched. NB:
+     *  far + STATIONARY is [None], not this — being parked-and-away on foot must never prompt. */
+    data class PromptStillParked(val geofenceId: String) : SafetyNetAction()
+
+    /** Nothing to act on: no geofence on the session, or the fix sits in the ambiguous ring
+     *  between the geofence radius and the far threshold (GPS noise territory). The sampled fix
+     *  has already done the passive half of the job — feeding the fused provider so the
+     *  geofencing engine's state stays fresh. */
+    data object None : SafetyNetAction()
+}
+
+/**
+ * Pure decision core of the parked-session safety net. [DET-SAFETY-NET-001]
+ *
+ * Runs on every safety-net wake-up (15-min periodic worker, significant-motion hardware trigger)
+ * while a session is parked and detection is idle. The caller samples ONE active fix and this
+ * evaluator maps it to the action for each active session:
+ *
+ *  - inside the fence        → [SafetyNetAction.CureGeofence] (reset a possibly-poisoned fence)
+ *  - far + driving + anchor  → [SafetyNetAction.DispatchDeparture] (recover a missed EXIT, live)
+ *  - far + driving, no anchor→ [SafetyNetAction.PromptStillParked] (human disambiguates; never auto)
+ *  - far + stationary + anchor + ride proof (steps ≪ distance/stride, or AR boarding after the
+ *    seal, or pedestrian-physics)
+ *                            → [SafetyNetAction.DispatchDeparture] preconfirmed (the trip already
+ *                              happened while we slept) [DET-RECONCILE-001][DET-EXIT-TRUST-001]
+ *  - far + STATIONARY, steps compatible with walking (or no anchor)
+ *                            → [SafetyNetAction.None] (parked-and-away on foot — never nag)
+ *  - ambiguous ring          → [SafetyNetAction.None]
+ *
+ * The whole point of this layer is that it does NOT depend on Play Services delivering anything:
+ * the wake-ups are ours (WorkManager + sensor hub) and the decision inputs are ours (fix, step/AR
+ * bus). The geofence EXIT stays the fast path; this is the guarantee that a lost EXIT can no
+ * longer stall the detection chain. Evidence rules mirror [VerifyDepartureEvidenceUseCase]:
+ * speed must carry credible accuracy, and an IN_VEHICLE_ENTER must PRECEDE now within
+ * [ParkingDetectionConfig.vehicleEnterWindowMs].
+ *
+ * **The position anchor.** What makes a geofence EXIT trustworthy is not the evidence — it is
+ * WHERE it fires: only when crossing the boundary of *your own car's* fence, so "vehicle motion
+ * right after" almost certainly means your car. A periodic wake-up has no such anchoring: at
+ * tick time the user can be doing 40 km/h in a bus 2 km from the parked car. Auto-dispatching on
+ * evidence alone would re-open exactly the bus/taxi false positive the geofence design killed.
+ * So [SafetyNetAction.DispatchDeparture] additionally requires [lastSeenNearCarAtMs]: the caller
+ * records when a safety-net fix last landed INSIDE this session's fence, and only a departure
+ * whose movement provably started at the car (near-recently + evidence) auto-releases. This is
+ * the same risk envelope as the geofence EXIT itself (a bus crossing your own fence fools both —
+ * the accepted limitation documented on [DetectParkingDepartureUseCase]); everything weaker
+ * degrades to the human prompt.
+ */
+class EvaluateSafetyNetCheckUseCase(
+    private val config: ParkingDetectionConfig,
+) {
+    /**
+     * @param session             An ACTIVE parked session (caller iterates 0..N of them).
+     * @param fix                 The freshly sampled fix (caller skips the check when none).
+     * @param lastSeenNearCarAtMs Epoch-ms of the last safety-net fix INSIDE this session's fence
+     *                            (the position anchor), or null when never observed / lost.
+     * @param nowMs               Wall-clock now (epoch-ms).
+     * @param stepsSinceAnchor    Cumulative-step-counter delta since the anchor was written, or
+     *                            null when unknown (no hardware, read timeout, no counter sample
+     *                            stored with the anchor, or a reboot reset the counter). The
+     *                            caller must map a NEGATIVE delta to null. [DET-RECONCILE-001]
+     * @param stepsSinceLastWitness Cumulative-step-counter delta since the LAST INDEPENDENT
+     *                            observation of the body (previous safety-net check fix / the end
+     *                            fix of the last detection session), or null when unknown. This is
+     *                            the ARRIVAL budget and it is deliberately a different number from
+     *                            [stepsSinceAnchor], which every release branch has already spent
+     *                            proving the ride. Only this one may bound where the body stands
+     *                            relative to a NEW park. [DET-DEPARTURE-IS-NOT-ARRIVAL-001]
+     * @param lastVehicleEnteredAtMs Epoch-ms of the last AR IN_VEHICLE ENTER (true transition
+     *                            time from the bus), or null when none / unknown. Third proof
+     *                            of a ride when the step counter is mute: a boarding stamped
+     *                            AFTER the anchor seal and recently means the vehicle movement
+     *                            started AT the car. [DET-EXIT-TRUST-001]
+     * @param exitDeliveredAtMs   Epoch-ms when a geofence EXIT for THIS session was DELIVERED far
+     *                            from its fence (recorded by the trust triage instead of granting
+     *                            it departure authority), or null when none. Not positional trust —
+     *                            just the fact "the OS says this fence broke", usable in
+     *                            conjunction with an independent boarding. [DET-CONJUNCTION-001]
+     * @param userPresent         `true` when this check was triggered by the user OPENING the app
+     *                            (app-start wake-up) — the one moment a disambiguation question
+     *                            costs nothing, because they are already looking at the screen.
+     *                            Unlocks the ask-when-blind branch below. [DET-ANCHOR-FREEZE-001]
+     * @param vehicleBtGated      `true` when THIS session's vehicle is BT-paired AND Bluetooth is
+     *                            enabled — i.e. the BLUETOOTH strategy owns its identity. Only then
+     *                            can a missing BT connection veto an auto-release. [DET-BT-IDENTITY-GATE-001]
+     * @param lastBtConnectedAtMs Epoch-ms of the last ACL CONNECT to this vehicle's paired MAC, or
+     *                            null when none / unknown. A connection at or after the session
+     *                            start proves the user got into THIS car. [DET-BT-IDENTITY-GATE-001]
+     */
+    operator fun invoke(
+        session: UserParking,
+        fix: GpsPoint,
+        lastSeenNearCarAtMs: Long?,
+        nowMs: Long,
+        stepsSinceAnchor: Long? = null,
+        stepsSinceLastWitness: Long? = null,
+        lastVehicleEnteredAtMs: Long? = null,
+        exitDeliveredAtMs: Long? = null,
+        userPresent: Boolean = false,
+        vehicleBtGated: Boolean = false,
+        lastBtConnectedAtMs: Long? = null,
+    ): SafetyNetAction {
+        val geofenceId = session.geofenceId ?: return SafetyNetAction.None
+
+        // ── Session-birth admissibility [DET-SESSION-BIRTH-001] ─────────────────────────────
+        // Evidence older than the session itself describes the trip that CREATED this parking
+        // (or an earlier life entirely) — it cannot prove departure FROM it. Field 2026-07-08:
+        // a re-delivered IN_VEHICLE ENTER from the inbound drive (trueTime 17 min old) "verified"
+        // a walking exit 23 s after the park and erased a correct parking. ONE filter, applied
+        // to every evidence source, kills the whole class.
+        val sessionStartMs = session.location.timestamp
+        val boardingAtMs = lastVehicleEnteredAtMs?.takeIf { isAdmissibleEvidence(it, sessionStartMs) }
+        val exitAtMs = exitDeliveredAtMs?.takeIf { isAdmissibleEvidence(it, sessionStartMs) }
+
+        // ── BT identity veto [DET-BT-IDENTITY-GATE-001] ─────────────────────────────────────────
+        // When THIS vehicle is BT-paired and Bluetooth is on, the BLUETOOTH strategy owns its
+        // identity: a real drive of it connects to its MAC. So an auto-release the safety net
+        // RECONSTRUCTS (step budget / AR boarding / pedestrian physics / live speed) may only fire
+        // when the BT connected to this car AT OR AFTER it parked. Absent that, the far movement is
+        // a ride in ANOTHER vehicle — boarded next to the parked car (field 2026-07-18, Redmi:
+        // picked up beside the car; the step budget released the real spot and pinned a phantom at
+        // the drop-off). The honest exit is the human prompt, NEVER silence — the parked car must
+        // never be silently lost. Non-BT vehicles and BT-off (Coordinator owns identity) pass
+        // through unchanged (vehicleBtGated defaults to false). This gate is a downgrade only: it
+        // turns a DISPATCH into an ASK, never invents a release. The BT-disconnect path remains the
+        // real auto-release for BT cars; this only governs the safety-net backstop.
+        val btIdentityMissing = vehicleBtGated &&
+            (lastBtConnectedAtMs == null || lastBtConnectedAtMs < sessionStartMs)
+        fun releaseOrAsk(dispatch: SafetyNetAction.DispatchDeparture): SafetyNetAction =
+            if (btIdentityMissing) SafetyNetAction.PromptStillParked(geofenceId) else dispatch
+
+        val distanceMeters = haversineMeters(
+            fix.latitude,
+            fix.longitude,
+            session.location.latitude,
+            session.location.longitude,
+        )
+
+        // Same size/accuracy-aware radius the geofence was registered with (SESSION-RESTORE-001),
+        // so "inside" here means inside the REAL fence, not a flat default.
+        //
+        // ⚠️ Deliberately NOT `physics/isWithinFence`, which pads by the fix's own accuracy. This
+        // evaluator does not ask a binary inside/outside question — it runs a three-zone ladder, and
+        // its generosity already lives on the FAR gate right below (where "far" must hold even if
+        // the fix erred by its accuracy). Padding here too would push the two paddings into each
+        // other and eat the ambiguous ring between them, turning GPS-noise fixes into fence cures.
+        // The ring exists so neither answer is forced when the fix cannot support one. Whether this
+        // site SHOULD pad is a product question with its own trade-off — bug #9, its own ticket.
+        // [P1.7]
+        val radiusMeters = config.geofenceRadiusFor(session.sizeCategory, session.location.accuracy)
+        if (distanceMeters <= radiusMeters) {
+            return SafetyNetAction.CureGeofence(geofenceId, radiusMeters)
+        }
+
+        // Accuracy-margin far gate: "far" must hold even if the fix erred by its own accuracy —
+        // a single acc=100 m cache jump must not clear it (the 04:18 incident fix would need
+        // d > 400 m). This also lets a mediocre-but-honest fix (acc 50-70 m at 1+ km) keep
+        // feeding the evidence proofs below instead of being discarded by a flat cutoff
+        // (field 2026-07-08 21:45, Redmi: acc=64 m at d=1222 m — unambiguously far).
+        if (distanceMeters - fix.accuracy <= config.watchdogFarThresholdMeters) {
+            return SafetyNetAction.None
+        }
+
+        val nearAgeMs = lastSeenNearCarAtMs?.let { nowMs - it }
+
+        // ── Frozen-counter guard [DET-RIDE-PROOF-001] ────────────────────────────────────────
+        // A delta of ~0 has two readings: "sat in the car the whole trip" (real drive) or "the
+        // hardware counter is dead" (field 2026-07-09, Redmi: stuck at 307 all day while its own
+        // session step DETECTOR counted 157 steps — the step budget then read a 354 m WALK as a
+        // ride and backfilled a phantom parking). Physics disambiguates: a real drive's
+        // displacement outruns pedestrian reach; a walkable displacement with a silent counter
+        // is exactly what a dead counter produces. In that ambiguous case the counter loses its
+        // voice ENTIRELY (delta AND anchor-freshness) and the mute-counter proofs decide.
+        val counterFrozenSuspect = stepsSinceAnchor != null &&
+            stepsSinceAnchor <= config.frozenCounterSuspectSteps &&
+            nearAgeMs != null && nearAgeMs >= 0 &&
+            !config.isBeyondPedestrianReach(distanceMeters, nearAgeMs, radiusMeters, fix.accuracy)
+        val trustedStepsSinceAnchor = stepsSinceAnchor.takeUnless { counterFrozenSuspect }
+
+        // [DET-DEPARTURE-IS-NOT-ARRIVAL-001] The ARRIVAL half of the budget, and it must be a
+        // DIFFERENT number from the one that proved the departure.
+        //
+        // Every release branch below is reached precisely BECAUSE `trustedStepsSinceAnchor` fell
+        // far short of walking the displacement — that is what proves the body rode. Those steps
+        // are therefore spent ON the trip, and a spent budget cannot also bound how far the body
+        // has walked from a park at the far end: the same number would be answering two opposite
+        // questions. Field 2026-08-24 19:34, Xiaomi/El Puerto: 97 steps (all of them the walk TO
+        // the car, anchor 19:26:58 → AR boarding 19:29:13) released the spot correctly and then
+        // "bounded" a pin 2 976 m away — at a red light in front of the hospital, with the
+        // cumulative counter reading the identical 43755 it had read before the drive started.
+        // Zero steps over 2 976 m is the signature of RIDING; it is the exact opposite of having
+        // parked and got out.
+        //
+        // The independent budget is the walk made since the last INDEPENDENT observation of the
+        // body — the same witness slot [DET-UNWITNESSED-DISPLACEMENT-001] already keeps to bound
+        // WHERE the body was, now also bounding HOW FAR it has walked since. A placement needs it
+        // to be present and non-zero: the body must have got out and taken at least one step.
+        // Absent (mute/frozen counter, no witness, reboot) → no bound is on offer, so nothing is
+        // placed. The departure still dispatches, and [DET-ARRIVAL-HANDOFF-001] routes the arrival
+        // to live detection or to the prompt — the honest exits. Better a late question than a pin
+        // at a traffic light.
+        val arrivalWalkSteps = stepsSinceLastWitness
+            ?.takeIf { it > 0L && it <= config.backfillMaxSteps }
+
+        // Backfill bounding (see [SafetyNetAction.DispatchDeparture.backfillBounded]): trusted
+        // steps within the boarding cap bound the pin error, and the fix must be pin-grade.
+        // Null trusted steps (mute/frozen counter) can never bound a position.
+        //
+        // [DET-BACKFILL-CANNOT-PIN-A-MOVING-FIX-001] …and the car must be AT REST in that fix.
+        // Every other clause bounds how wrong the position may be; none of them asked whether there
+        // was a position to bound. Field 2026-08-27 12:29:18 (Oppo, Ronda del Puerto): an AR
+        // `IN_VEHICLE` ENTER woke the service, the arm was correctly declined as not armable, and
+        // the very same event was then good enough to PLACE A SPACE — on a wake-up fix whose own log
+        // line reads `speed=2.116912m/s` (7,6 km/h, slowing for a roundabout), with 4 arrival-walk
+        // steps as the whole proof the body had got out. Nineteen seconds later that brand-new
+        // fence emitted its EXIT at 44 km/h and the app processed the departure from a space that
+        // was never occupied, leaving the phantom in the history.
+        //
+        // The question this clause answers is not "did the session drive?" — the release branches
+        // below already answer that, and answering it is *why* the departure dispatches. It is
+        // "is the car standing still HERE, where the pin is about to go?", and only this fix's own
+        // speed measures that. `stoppedSpeedThresholdMps` is the threshold the rest of the detector
+        // already uses for that same sentence, so no new calibration enters.
+        //
+        // Failing it costs nothing that was ever real: the departure still dispatches (releasing the
+        // old space was the correct half), and the arrival falls to [DET-ARRIVAL-HANDOFF-001] — live
+        // detection or the prompt — exactly as it already does when `arrivalWalkSteps` is null.
+        val backfillBounded = trustedStepsSinceAnchor != null &&
+            trustedStepsSinceAnchor <= config.backfillMaxSteps &&
+            fix.accuracy <= config.minGpsAccuracyForDriving &&
+            fix.speed <= config.stoppedSpeedThresholdMps &&
+            arrivalWalkSteps != null
+
+        val timeFreshAnchor = nearAgeMs != null && nearAgeMs in 0..config.vehicleEnterWindowMs
+        // [DET-RECONCILE-001] The anchor's real freshness clock is STEPS, not minutes. What the
+        // anchor asserts is "the user was positionally AT the car" — and that assertion only
+        // decays by WALKING away from it, which the hardware counter measures across kills and
+        // Doze. A wall-clock window silently expires it while the user sits at a table 20 m from
+        // the car (field 2026-07-07 22:41, Oppo: anchor 46 min old but only 113 steps walked
+        // since — 4.3 km of displacement was blatantly a drive, vetoed purely by the clock; the
+        // spot was never released). ≤ maxBoardingSteps since the seal ⇒ still at the car for all
+        // decision purposes, hours later. The bus-stop-next-to-the-car residual this admits is
+        // the SAME envelope the time window already accepted — it just no longer expires.
+        // The time window remains for counter-less anchors (mute/absent hardware), whose only
+        // evidence — pedestrian physics over nearAge — needs a time base anyway. Steps relax the
+        // TIME requirement only — an anchor must still EXIST (the delta is only meaningful
+        // relative to a seal moment; without one, few steps + far could be a bus boarded anywhere).
+        val stepFreshAnchor = nearAgeMs != null && nearAgeMs >= 0 &&
+            trustedStepsSinceAnchor != null && trustedStepsSinceAnchor <= config.maxBoardingSteps
+        val anchoredToCar = timeFreshAnchor || stepFreshAnchor
+
+        // Departure IN PROGRESS: a credible driving-speed fix far from the car. Position anchor
+        // decides auto vs ask: the movement must have STARTED at the car (seen inside its fence
+        // within vehicleEnterWindowMs) to auto-release — otherwise it's a vehicle boarded away
+        // from the car (bus/taxi/lift) and only the user can disambiguate. Same bus/taxi risk
+        // envelope as the geofence EXIT itself.
+        val credibleDrivingSpeed =
+            config.isCredibleDrivingSpeed(fix.speed * KMH_PER_MPS, fix.accuracy)
+        if (credibleDrivingSpeed) {
+            return if (anchoredToCar) {
+                releaseOrAsk(
+                    SafetyNetAction.DispatchDeparture(
+                        geofenceId,
+                        preconfirmed = false,
+                        trustedStepsSinceAnchor = trustedStepsSinceAnchor,
+                        backfillBounded = backfillBounded,
+                    ),
+                )
+            } else {
+                SafetyNetAction.PromptStillParked(geofenceId)
+            }
+        }
+
+        // ── Conjunction proof [DET-CONJUNCTION-001] ─────────────────────────────────────────
+        // Two independent OS events, both post-session, agreeing within a tight window: the
+        // geofencing engine says THIS fence broke, and Activity Recognition says a vehicle was
+        // boarded at essentially the same moment. Neither needs the position anchor — the fence
+        // break IS the positional half (its boundary is the car), the boarding is the vehicular
+        // half. This is the proof that survives the devices where every sense the other proofs
+        // need is degraded (field 2026-07-08 cinema, Redmi: wake-up fixes always speed=0, step
+        // counter frozen, anchor expired by clock — while EXIT 21:42 + ENTER 21:43 + d=1470 m
+        // told the whole story). Walking out breaks the fence minutes before any later bus
+        // boarding, so the pairing window rejects bus-after-walk; the live step counter, when
+        // it speaks (and is trusted), still outranks this entirely (doctrine: steps are ground
+        // truth). [DET-RIDE-PROOF-001] The pair alone is still two NOMINATIONS — AR misfires
+        // ENTER while walking (field 2026-07-09 11:53, Redmi) and a walking exit can be
+        // delivered late enough to be recorded here; the displacement must additionally have
+        // outrun pedestrian reach since the boarding. The cinema trips this proof was built for
+        // pass by a wide margin (1470 m in under 5 min); a walk to the hairdresser's never does.
+        if (trustedStepsSinceAnchor == null && exitAtMs != null && boardingAtMs != null &&
+            kotlin.math.abs(exitAtMs - boardingAtMs) <= config.exitEnterPairWindowMs &&
+            config.isBeyondPedestrianReach(
+                distanceMeters = distanceMeters,
+                elapsedMs = nowMs - boardingAtMs,
+                fenceRadiusMeters = radiusMeters,
+                accuracyMeters = fix.accuracy,
+            )
+        ) {
+            return releaseOrAsk(
+                SafetyNetAction.DispatchDeparture(
+                    geofenceId,
+                    preconfirmed = true,
+                    tripStartedAtMs = boardingAtMs,
+                    backfillBounded = backfillBounded,
+                ),
+            )
+        }
+
+        // Far and NOT at driving speed. [DET-RECONCILE-001] The trip may already be OVER — the
+        // field-measured failure mode (2026-07-06, Oppo): the geofence EXIT arrives minutes late,
+        // a 2-minute hop fits entirely inside the latency, and by the first wake-up the user is
+        // parked at the destination. Catching the drive live is therefore not a guarantee anyone
+        // can make. What survives the sleep is the hardware step counter: walking the observed
+        // displacement MUST have produced ~distance/stride steps. A fresh anchor (was AT the car)
+        // plus a step delta far below that proves the user was DRIVEN from their car — release
+        // without asking. A step delta compatible with walking is the normal parked-and-left-on-
+        // foot state and stays SILENT (no nag — SAFETYNET-STATIONARY-001 preserved).
+        //
+        // Doctrine when the counter is ALIVE and trusted: steps are the ground truth and nothing
+        // overrides a walking verdict (bus-after-walk). When the counter is MUTE (null) or
+        // frozen-suspect ([DET-RIDE-PROOF-001]): AR boarding, then pedestrian physics — each a
+        // self-consistent proof with its own dating.
+        if (fix.accuracy <= config.minGpsAccuracyForDriving) {
+            if (trustedStepsSinceAnchor != null) {
+                if (anchoredToCar) {
+                    // Two conditions, not one: RELATIVE (steps ≪ what walking the displacement
+                    // costs) proves a ride happened; ABSOLUTE (steps ≤ a fence-diameter's worth)
+                    // proves the ride was boarded AT the car — 500 steps to a bus stop then a
+                    // 5 km ride passes the relative check alone. [DET-RECONCILE-001]
+                    val walked = walkExplainsDisplacement(
+                        trustedStepsSinceAnchor, distanceMeters,
+                        config.strideMeters, config.walkedStepFraction,
+                    )
+                    if (!walked && trustedStepsSinceAnchor <= config.maxBoardingSteps) {
+                        return releaseOrAsk(
+                            SafetyNetAction.DispatchDeparture(
+                                geofenceId,
+                                preconfirmed = true,
+                                tripStartedAtMs = lastSeenNearCarAtMs,
+                                trustedStepsSinceAnchor = trustedStepsSinceAnchor,
+                                backfillBounded = backfillBounded,
+                            ),
+                        )
+                    }
+                }
+            } else {
+                // No step budget (no hardware / mute counter / read timeout / reboot). Two
+                // independent ride proofs remain (besides the anchor-free conjunction above):
+                //  - AR BOARDING: an IN_VEHICLE ENTER stamped AFTER the anchor seal and recently.
+                //    Seal says "was AT the car", the ENTER says "then boarded a vehicle" — together
+                //    they prove the displacement was a ride that started at the car. This absorbs
+                //    the departure worker's old AR fall-through INTO the brain, WITH the anchor
+                //    requirement the fall-through lacked (an unanchored ENTER is any bus in town).
+                //    Dating the trip to the boarding keeps a short hop publishable (field
+                //    2026-07-07 12:14, Redmi: 2-min 576 m hop, mute counter — physics over the
+                //    14-min-old seal can't see it; the 12:12 boarding can). [DET-EXIT-TRUST-001]
+                //  - PEDESTRIAN PHYSICS: a sustained average speed no walker reaches.
+                val arBoardingAtCar = anchoredToCar &&
+                    boardingAtMs != null &&
+                    boardingAtMs >= lastSeenNearCarAtMs &&
+                    (nowMs - boardingAtMs) in 0..config.vehicleEnterWindowMs
+                if (arBoardingAtCar) {
+                    return releaseOrAsk(
+                        SafetyNetAction.DispatchDeparture(
+                            geofenceId,
+                            preconfirmed = true,
+                            tripStartedAtMs = boardingAtMs,
+                            backfillBounded = backfillBounded,
+                        ),
+                    )
+                }
+                if (anchoredToCar && nearAgeMs > 0) {
+                    val averageSpeedMps = distanceMeters / (nearAgeMs / 1000.0)
+                    if (averageSpeedMps > config.maxPedestrianSpeedMps) {
+                        return releaseOrAsk(
+                            SafetyNetAction.DispatchDeparture(
+                                geofenceId,
+                                preconfirmed = true,
+                                tripStartedAtMs = lastSeenNearCarAtMs,
+                                backfillBounded = backfillBounded,
+                            ),
+                        )
+                    }
+                }
+            }
+        }
+
+        // [DET-AR-FIRST-001 F4] Far from the fence, every proof above failed, BUT the OS's own
+        // record says this fence BROKE (a far-delivered EXIT the trust triage archived): the
+        // contract forbids silence when we lack the means to verify — ask the user. Doctrine
+        // exception: a TRUSTED step count that explains the displacement on foot is ground
+        // truth and outranks the record (the user demonstrably walked here — the normal
+        // parked-and-away state must never nag). A boundary walking exit is never recorded as
+        // stale, and the worker's 6 h per-fence throttle bounds repeats. Field 2026-07-10,
+        // Oppo: 4 h at 1.4–1.9 km from an "active" parking, 9 silent ticks, EXIT recorded at
+        // 15:31 — the user saw nothing and lost the spot AND the new park. [DET-CONJUNCTION-001]
+        val stepsExplainWalk = trustedStepsSinceAnchor != null && walkExplainsDisplacement(
+            trustedStepsSinceAnchor, distanceMeters, config.strideMeters, config.walkedStepFraction,
+        )
+        if (exitAtMs != null && !stepsExplainWalk) {
+            return SafetyNetAction.PromptStillParked(geofenceId)
+        }
+        // [DET-ANCHOR-FREEZE-001] Ask-when-blind: the user just OPENED the app, the fix is
+        // unambiguously far (past the accuracy-margin gate above) and NOT ONE proof explains how
+        // they got here — anchor expired, counter mute, no boarding, no recorded exit. On a
+        // healthy device the trusted step count separates "walked here" (silent — the normal
+        // parked-and-away state, SAFETYNET-STATIONARY-001) from "was driven"; on a device whose
+        // senses are all degraded, staying silent while the user looks at a stale pin is how the
+        // 2026-07-11 Redmi lost its morning departure with the app OPEN at 1 912 m, three times.
+        // An in-hand question costs nothing (no shade notification fatigue: they are already
+        // looking) and the worker's 6 h per-fence throttle bounds repeats.
+        if (userPresent && !stepsExplainWalk) {
+            return SafetyNetAction.PromptStillParked(geofenceId)
+        }
+        return SafetyNetAction.None
+    }
+
+    /**
+     * [DET-ANCHOR-FREEZE-001 F4] Pure half of the cure throttle: whether a tick INSIDE the fence
+     * should actually RE-REGISTER it with the OS, or only re-seal the anchor. Every
+     * re-registration resets the geofencing engine's INSIDE/OUTSIDE state — a blind window in
+     * which a drive-away produces no EXIT (field 2026-07-11: a cure landed ~40 s before the
+     * silent 15:06 departure, and every 15-min tick inside re-opened the window). The first cure
+     * after a process start always runs (force-stop/app-update wipe OS registrations — the cure's
+     * founding purpose); after that, at most once per
+     * [ParkingDetectionConfig.cureReregisterMinIntervalMs]. The caller voids its throttle state
+     * when a dismissed false EXIT poisons the fence OUTSIDE, so the next tick re-registers
+     * immediately.
+     *
+     * [DET-CURE-FRESH-001] A FRESH session ([sessionAgeMs] < [ParkingDetectionConfig.cureSkipFreshSessionMs])
+     * never re-registers: its fence was created seconds ago and is healthy, so resetting INSIDE/OUTSIDE
+     * would only open the blind window right when the user is about to drive off (Oppo manual park at
+     * the Glorieta, field 2026-07-12). A restart-restored session keeps its original old timestamp, so
+     * the janitor's post-restart repair still runs.
+     *
+     * ## [DET-FENCE-REREGISTER-BY-CAUSE-001 §B] Cause first, clock last
+     *
+     * [statePoisoned] is the one thing here that is EVIDENCE rather than a guess: a delivered EXIT
+     * that we judged false left Play Services believing the phone is outside, so the fence still
+     * exists and is useless — the next real drive-away produces nothing. When that is known, it
+     * outranks everything, including the freshness guard: "the fence was created minutes ago so it
+     * must be healthy" is an assumption, and the dismissed EXIT is proof that the assumption is
+     * false. Curing then is not a risk, it is the entire job.
+     *
+     * Everything below it is the BLIND FLOOR, and its honest justification is not "do not cure too
+     * often" — it is **"we have not heard anything"**. There is one poisoning path that emits no
+     * signal at all: GMS consumes the walking EXIT and then misses the return ENTER (Doze), so
+     * neither the dismissal nor the twin fence fires. The floor is the only cover for that case,
+     * and its interval is a bet on how often it happens — a bet the `GEOFENCE_REGISTRATION`
+     * telemetry from §D is meant to settle.
+     *
+     * Note what is deliberately NOT a cause: the return-anchor ENTER firing. If the twin fence
+     * fires, GMS SAW the return and its state is INSIDE — that is evidence the fence is HEALTHY,
+     * so re-registering on it would open the blind window for nothing, right when the user is next
+     * to the car and plausibly about to drive. That lane re-seals the anchor and nothing else.
+     */
+    fun shouldReregisterCure(
+        alreadyCuredThisProcess: Boolean,
+        lastCureAtMs: Long,
+        nowMs: Long,
+        sessionAgeMs: Long,
+        statePoisoned: Boolean = false,
+    ): Boolean = when {
+        statePoisoned -> true
+        sessionAgeMs < config.cureSkipFreshSessionMs -> false
+        else -> !alreadyCuredThisProcess || nowMs - lastCureAtMs >= config.cureReregisterMinIntervalMs
+    }
+
+    private companion object {
+        const val KMH_PER_MPS = 3.6f
+    }
+}

@@ -1,0 +1,104 @@
+package com.rndeveloper.paparcar.ui.theme
+
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.graphics.Color
+
+// ── Dark scheme — near-black ink surfaces with neon-green brand accent ──────
+// Surfaces (background + surface family) now use the PapInk ramp; dark greens
+// (PapForest*, PapGreen*) are reserved for interactive accents (primary container,
+// outlines, hero cards) so the app reads as dark and elegant while keeping the
+// brand's green identity on actionable elements.
+private val DarkColorScheme = darkColorScheme(
+    primary = PapGreen,
+    onPrimary = PapInk,
+    primaryContainer = PapGreenMuted,          // dark green as accent container
+    onPrimaryContainer = PapGreen,
+    secondary = PapAmber,
+    onSecondary = PapInk,
+    secondaryContainer = PapAmberMuted,
+    onSecondaryContainer = PapAmber,
+    background = PapInkDeep,
+    onBackground = PapOnDark,
+    surface = PapInk,
+    onSurface = PapOnDark,
+    surfaceVariant = PapInkHigh,
+    onSurfaceVariant = PapOnDarkMuted,
+    surfaceContainerLowest = PapInkDeep,
+    surfaceContainerLow = PapInk,
+    surfaceContainer = PapInkContainer,        // sheet + nav bar share this token
+    surfaceContainerHigh = PapInkHigh,
+    surfaceContainerHighest = PapInkHighest,
+    surfaceTint = PapGreen,                    // elevation tonal overlay stays green
+    outline = PapNeutralOutline,
+    outlineVariant = PapInkHighest,
+    tertiary = PapBlue,
+    onTertiary = PapOnBlue,
+    tertiaryContainer = PapBlueMuted,
+    onTertiaryContainer = PapBlue,
+    error = PapRed,
+    errorContainer = PapRedMuted,
+    onError = PapOnRed,
+    onErrorContainer = PapRed,
+)
+
+// ── Light scheme — green-on-white counterpart ─────────────────────────────────
+private val LightColorScheme = lightColorScheme(
+    primary = PapGreenLight,
+    onPrimary = Color.White,
+    primaryContainer = PapGreenContainerLight,
+    onPrimaryContainer = PapOnGreenContainerLight,
+    inversePrimary = PapGreen,              // neon green on dark inverse surfaces
+    secondary = PapAmberLight,
+    onSecondary = Color.White,
+    secondaryContainer = PapAmberContainerLight,
+    onSecondaryContainer = PapOnAmberContainerLight,
+    tertiary = PapBlueLight,
+    onTertiary = Color.White,
+    tertiaryContainer = PapBlueContainerLight,
+    onTertiaryContainer = PapOnBlue,
+    background = PapSurfaceLight,           // page background — light greenish tint
+    onBackground = PapOnSurfaceLight,
+    surface = PapCardLight,                 // card / sheet surface — white
+    onSurface = PapOnSurfaceLight,
+    surfaceVariant = PapVariantLight,
+    onSurfaceVariant = PapOnVariantLight,
+    // surfaceContainer ramp mirrors the dark-theme elevation principle:
+    //   scaffold (tinted) → cards (white) → inner chips (white + border).
+    // surfaceContainer (#ECF0F9) acts as the colored scaffold backdrop; High/Highest
+    // are both pure white so cards pop clearly — the same jump as PapInk→PapInkHigh in dark.
+    // Inner-chip differentiation comes from their PapBorders.thin outline, not fill color.
+    surfaceContainerLowest = PapAzureLowest,    // #FFFFFF
+    surfaceContainerLow = PapAzureLow,          // #F4F6FC
+    surfaceContainer = PapAzure,                // #ECF0F9 — scaffold / nav backdrop
+    surfaceContainerHigh = PapAzureLow,         // #F4F6FC — outer cards, tinted toward background ✓
+    surfaceContainerHighest = PapCardLight,     // #FFFFFF — metric chips, pure white ✓
+    outline = PapNeutralOutlineLight,
+    outlineVariant = PapOutlineVariantLight, // subtle dividers
+    inverseSurface = PapInverseSurfaceLight,
+    inverseOnSurface = PapInverseOnSurfaceLight,
+    scrim = Color(0xFF000000),
+)
+
+@Composable
+fun PaparcarTheme(
+    darkTheme: Boolean = true,
+    content: @Composable () -> Unit,
+) {
+    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+
+    MaterialTheme(
+        colorScheme = colorScheme,
+        typography = rememberAppTypography(),
+        shapes = AppShapes,
+    ) {
+        // Paparcar's role-based type system rides alongside the MD3 baseline; feature code reads
+        // `PaparcarType.current.<role>` instead of picking families/sizes ad-hoc. [UI-TYPE-SYSTEM-001]
+        CompositionLocalProvider(LocalPaparcarType provides rememberPaparcarType()) {
+            content()
+        }
+    }
+}

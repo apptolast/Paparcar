@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   Paparcar brand palette · SVG for docs/README.
-  Source of truth: composeApp/src/commonMain/kotlin/io/apptolast/paparcar/ui/theme/Color.kt
+  Source of truth: shared/src/commonMain/kotlin/com/rndeveloper/paparcar/ui/theme/Color.kt
   Text is neutral (#8EA0B4) so the strip reads on both light and dark GitHub themes.
 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 844 268" width="844" height="268" role="img" aria-label="Paleta de marca Paparcar">

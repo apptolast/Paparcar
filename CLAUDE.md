@@ -43,10 +43,16 @@ Paparcar es una app KMP (Kotlin Multiplatform) de compartición de plazas de apa
 > En PowerShell `.\gradlew` sale exit 0 **sin compilar nada**.
 
 ## Estructura
+Dos módulos Gradle desde ARCH-HEALTH F7 (paquete: `com.rndeveloper.paparcar`):
 ```
-commonMain/  → domain/, data/, presentation/, di/, core/
-androidMain/ → detection/, location/, bluetooth/, notification/, worker/, geofence/
-iosMain/     → (futuro) CLLocation, CMMotion, CoreBluetooth, BGTask wrappers
+:shared  → KMP, TODA la lógica de producto
+  commonMain/  → domain/, data/, presentation/, di/, core/
+  androidMain/ → detection/, location/, bluetooth/, notification/, worker/, geofence/
+  iosMain/     → (futuro) CLLocation, CMMotion, CoreBluetooth, BGTask wrappers
+  androidUnitTest/ → tests unitarios Android (`:shared:testDebugUnitTest`)
+:app     → shell Android: MainActivity, PaparcarApp, AppNotificationManagerImpl,
+           manifest, res, flavors prod/mock (Dev Catalog en app/src/mock/), firma.
+           BuildConfig vive aquí: shared lee build facts vía AppBuildInfo/isDebugBuild.
 ```
 
 ## Arquitectura
@@ -235,7 +241,7 @@ El ID debe ser autoexplicativo. ⚠️ PS 5.1 rompe `git commit -m` con comillas
 - No copy al usuario con mecánica interna ni jerga inventada — causa + consecuencia + remedio
 
 ### ⛔ Sistema de pruebas mock (Dev Catalog) — mantener SIEMPRE en sync
-Flavor `mock` (`src/androidMock/.../dev/`) para entrar sin OAuth/Firebase y probar pantallas y estados en
+Flavor `mock` (`app/src/mock/.../dev/`) para entrar sin OAuth/Firebase y probar pantallas y estados en
 device: **Dev Catalog** (`DevMainActivity` → `DevRoot`/`DevCatalogScreen`) con escenarios
 (`MockScenario` + fakes scenario-aware) y **galería de estados** (`StateGalleryScreen`). En la MISMA
 tarea, o queda fuera del set probable:
@@ -244,7 +250,7 @@ tarea, o queda fuera del set probable:
 - **Estado/variante nuevo** (loading/empty/error/modo) → variante en la galería, paridad con `*Previews.kt`.
 - **Condición que afecte routing** (sesión, permisos, onboarding, vehículo) → `MockScenario` + el
   fake que la lee + preset/control en `DevCatalogScreen.kt`.
-- Verificar `assembleMockDebug` sin romper prod. Solo se toca `src/androidMock/` (y `src/mock/` para res/manifest) + `commonMain/fakes/`.
+- Verificar `assembleMockDebug` sin romper prod. Solo se toca `app/src/mock/` + `shared/src/commonMain/fakes/`.
 
 ## Modelos de datos clave
 - `Spot` — plaza comunitaria: location, type (AUTO_DETECTED/MANUAL_REPORT), status, confidence, sizeCategory, carbodyType, enRouteCount, TTL

@@ -140,7 +140,7 @@ Cruzan con trabajo ya realizado en sprints anteriores (indicado con ✅).
 
 **Audit de seguridad (2026-05-22) — P0, resolver antes de subir la beta:**
 1. Maps API key hardcoded en `composeApp/src/androidMain/AndroidManifest.xml:83` (`AIzaSyBpOJ6G-...`). Mover a `local.properties` vía `manifestPlaceholders["MAPS_API_KEY"]`.
-2. Restringir Maps API key en Google Cloud Console: API → "Maps SDK for Android" only; Application → package `io.apptolast.paparcar` + SHA-1 release.
+2. Restringir Maps API key en Google Cloud Console: API → "Maps SDK for Android" only; Application → package `com.rndeveloper.paparcar` + SHA-1 release.
 3. Auditar Firestore Security Rules — toda colección debe filtrar por `request.auth.uid`. Sin esto, la API key Firebase (en historial git) permite leer/escribir.
 
 **Audit — P1 (opcional, valoración del usuario):**

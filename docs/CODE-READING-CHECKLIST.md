@@ -9,7 +9,7 @@
 > - Los ficheros marcados 🐢 abajo son los que *a priori* merecen pasada lenta; el resto empieza en ⚡ y solo
 >   se profundiza si algo sorprende.
 >
-> Rutas relativas a `composeApp/src/commonMain/kotlin/io/apptolast/paparcar/` salvo que se indique otro source set.
+> Rutas relativas a `shared/src/commonMain/kotlin/com/rndeveloper/paparcar/` salvo que se indique otro source set.
 >
 > Al cerrar cada fase: **examen E2E** — narrar un flujo de punta a punta sin mirar el código.
 
@@ -20,7 +20,7 @@
 - [ ] `CLAUDE.md` (raíz del repo)
 - [ ] `docs/architecture/` (los docs que existan, p. ej. VEHICLE-CATEGORIZATION.md)
 - [ ] `gradle/libs.versions.toml`
-- [ ] `composeApp/build.gradle.kts` — flavors mock/prod, KSP, Room
+- [ ] `app/build.gradle.kts` — flavors mock/prod, KSP, Room
 - [ ] 🐢 `di/DataModule.kt` — el mejor índice del proyecto
 - [ ] 🐢 `di/DomainModule.kt`
 - [ ] 🐢 `di/PresentationModule.kt`

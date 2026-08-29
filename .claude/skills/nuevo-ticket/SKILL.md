@@ -15,7 +15,7 @@ description: Abrir y cerrar una tarea de código en Paparcar con el flujo correc
 ```bash
 git worktree add -b <rama> ../Paparcar-<tarea> master
 cp local.properties ../Paparcar-<tarea>/
-cp composeApp/google-services.json ../Paparcar-<tarea>/composeApp/
+cp app/google-services.json ../Paparcar-<tarea>/app/
 ```
 
 Sin esos dos ficheros gitignored el build falla con *"SDK location not found"* /
@@ -79,9 +79,9 @@ Grep de todos los sitios que asumen lo contrario del invariante → cerrado / cu
 - **Compilar y testear desde el worktree, vía la herramienta Bash** (el repo no tiene `gradlew.bat`;
   en PowerShell `.\gradlew` sale exit 0 **sin compilar nada** — trampa conocida):
   ```bash
-  ./gradlew :composeApp:testProdDebugUnitTest --console=plain
-  ./gradlew :composeApp:compileMockDebugKotlinAndroid :composeApp:compileProdDebugKotlinAndroid --console=plain
-  ./gradlew :composeApp:installProdDebug     # verificar "Installed on 1 device"
+  ./gradlew :shared:testDebugUnitTest --console=plain
+  ./gradlew :app:compileMockDebugKotlin :app:compileProdDebugKotlin --console=plain
+  ./gradlew :app:installProdDebug     # verificar "Installed on 1 device"
   ```
 - **Strings nuevos → los 9 locales** en la misma tarea: `values` (EN base), `values-es`, `-it`,
   `-pt`, `-fr`, `-de`, `-nl`, `-pl`, `-ro`. Si la traducción no está clara, poner el texto inglés

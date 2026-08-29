@@ -64,19 +64,19 @@ El comando por defecto ya no es "el activo y a ver si hay .old", es **el histori
 cronológico en un solo fichero** — un incidente puede caer justo en el corte de una rotación:
 
 ```bash
-adb shell run-as io.apptolast.paparcar sh -c \
+adb shell run-as com.rndeveloper.paparcar sh -c \
   'cat files/parkdiag.log.5 files/parkdiag.log.4 files/parkdiag.log.3 \
        files/parkdiag.log.2 files/parkdiag.log.1 files/parkdiag.log 2>/dev/null' \
   > parkdiag-full.log
 ```
 
-Limpiar antes de un test: `adb shell run-as io.apptolast.paparcar sh -c 'rm -f files/parkdiag.log*'`
+Limpiar antes de un test: `adb shell run-as com.rndeveloper.paparcar sh -c 'rm -f files/parkdiag.log*'`
 (se lleva también el `.old` legacy).
 
 ## Criterio de éxito
 
 - Campo: tras varios días sin sacar logs, sigue existiendo la ventana del incidente.
-- Verificable a ojo en el móvil: `adb shell run-as io.apptolast.paparcar ls files/` debe llegar a
+- Verificable a ojo en el móvil: `adb shell run-as com.rndeveloper.paparcar ls files/` debe llegar a
   mostrar `parkdiag.log.1` … `.5` conforme se vayan llenando.
 
 ## Pendiente

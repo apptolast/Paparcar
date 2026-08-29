@@ -70,7 +70,7 @@ Si la rama no tiene worktree, crearlo (nunca hacerla checkout en el principal):
 ```bash
 git worktree add ../Paparcar-<slug> <rama>
 cp local.properties ../Paparcar-<slug>/
-cp composeApp/google-services.json ../Paparcar-<slug>/composeApp/
+cp app/google-services.json ../Paparcar-<slug>/app/
 ```
 
 Anotar que ese worktree lo creó la skill: si no había trabajo vivo, se retira al final.
@@ -128,8 +128,8 @@ PowerShell `.\gradlew` sale exit 0 sin compilar nada):
 
 ```bash
 cd <worktree>
-./gradlew :composeApp:testProdDebugUnitTest --console=plain
-./gradlew :composeApp:compileMockDebugKotlinAndroid :composeApp:compileProdDebugKotlinAndroid --console=plain
+./gradlew :shared:testDebugUnitTest --console=plain
+./gradlew :app:compileMockDebugKotlin :app:compileProdDebugKotlin --console=plain
 ```
 
 Si el ticket toca detección, además el bloque de la skill `det-change`. Si rompe algo, arreglarlo en

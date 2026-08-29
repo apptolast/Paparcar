@@ -1,0 +1,473 @@
+package com.rndeveloper.paparcar.data.mapper
+
+import com.rndeveloper.paparcar.data.datasource.local.room.UserParkingEntity
+import com.rndeveloper.paparcar.data.datasource.remote.dto.AddressDto
+import com.rndeveloper.paparcar.data.datasource.remote.dto.ParkingHistoryDto
+import com.rndeveloper.paparcar.data.datasource.remote.dto.PlaceInfoDto
+import com.rndeveloper.paparcar.domain.model.AddressInfo
+import com.rndeveloper.paparcar.domain.model.GpsPoint
+import com.rndeveloper.paparcar.domain.model.PlaceCategory
+import com.rndeveloper.paparcar.domain.model.PlaceInfo
+import com.rndeveloper.paparcar.domain.model.SpotType
+import com.rndeveloper.paparcar.domain.model.UserParking
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+
+class ParkingSessionMapperTest {
+
+    // ── Fixtures ──────────────────────────────────────────────────────────────
+
+    private val baseEntity = UserParkingEntity(
+        id = "session-1",
+        userId = "user-42",
+        latitude = 40.4168,
+        longitude = -3.7038,
+        accuracy = 5f,
+        timestamp = 1_700_000_000L,
+        isActive = true,
+    )
+
+    private val baseParking = UserParking(
+        id = "session-1",
+        userId = "user-42",
+        location = GpsPoint(
+            latitude = 40.4168,
+            longitude = -3.7038,
+            accuracy = 5f,
+            timestamp = 1_700_000_000L,
+            speed = 0f,
+        ),
+        isActive = true,
+    )
+
+    // ── UserParkingEntity → Domain ────────────────────────────────────────────
+
+    @Test
+    fun `entity toDomain maps basic fields correctly`() {
+        val domain = baseEntity.toDomain()
+
+        assertEquals("session-1", domain.id)
+        assertEquals("user-42", domain.userId)
+        assertEquals(40.4168, domain.location.latitude)
+        assertEquals(-3.7038, domain.location.longitude)
+        assertEquals(true, domain.isActive)
+    }
+
+    @Test
+    fun `entity toDomain produces null address when all address fields are null`() {
+        val domain = baseEntity.toDomain()
+        assertNull(domain.address)
+    }
+
+    @Test
+    fun `entity toDomain produces AddressInfo when at least one field is present`() {
+        val entity = baseEntity.copy(addressCity = "Madrid", addressCountry = "ES")
+        val domain = entity.toDomain()
+
+        assertNotNull(domain.address)
+        assertEquals("Madrid", domain.address.city)
+        assertEquals("ES", domain.address.country)
+        assertNull(domain.address.street)
+    }
+
+    @Test
+    fun `entity toDomain produces null placeInfo when fields are null`() {
+        assertNull(baseEntity.toDomain().placeInfo)
+    }
+
+    @Test
+    fun `entity toDomain produces PlaceInfo when name and valid category present`() {
+        val entity = baseEntity.copy(placeInfoName = "Repsol", placeInfoCategory = "FUEL")
+        val domain = entity.toDomain()
+
+        assertNotNull(domain.placeInfo)
+        assertEquals("Repsol", domain.placeInfo.name)
+        assertEquals(PlaceCategory.FUEL, domain.placeInfo.category)
+    }
+
+    @Test
+    fun `entity toDomain produces null placeInfo for unknown category`() {
+        val entity = baseEntity.copy(placeInfoName = "Test", placeInfoCategory = "UNKNOWN_CAT")
+        assertNull(entity.toDomain().placeInfo)
+    }
+
+    // ── Domain → Entity ───────────────────────────────────────────────────────
+
+    @Test
+    fun `parking toEntity maps userId correctly`() {
+        val entity = baseParking.toEntity()
+        assertEquals("user-42", entity.userId)
+    }
+
+    @Test
+    fun `parking toEntity maps address fields`() {
+        val parking = baseParking.copy(
+            address = AddressInfo(street = "Gran Vía", city = "Madrid", region = null, country = "ES"),
+        )
+        val entity = parking.toEntity()
+
+        assertEquals("Gran Vía", entity.addressStreet)
+        assertEquals("Madrid", entity.addressCity)
+        assertNull(entity.addressRegion)
+        assertEquals("ES", entity.addressCountry)
+    }
+
+    // ── Domain → Spot ─────────────────────────────────────────────────────────
+
+    @Test
+    fun `toSpot uses userId as reportedBy`() {
+        val spot = baseParking.toSpot()
+        assertEquals("user-42", spot.reportedBy)
+    }
+
+    @Test
+    fun `toSpot preserves location`() {
+        val spot = baseParking.toSpot()
+        assertEquals(40.4168, spot.location.latitude)
+        assertEquals(-3.7038, spot.location.longitude)
+    }
+
+    // ── Domain → ParkingHistoryDto ────────────────────────────────────────────
+
+    @Test
+    fun `toParkingHistoryDto includes userId`() {
+        val dto = baseParking.toParkingHistoryDto()
+        assertEquals("user-42", dto.userId)
+    }
+
+    @Test
+    fun `toParkingHistoryDto maps address to dto`() {
+        val parking = baseParking.copy(
+            address = AddressInfo(street = null, city = "Barcelona", region = null, country = "ES"),
+        )
+        val dto = parking.toParkingHistoryDto()
+
+        assertNotNull(dto.address)
+        assertEquals("Barcelona", dto.address.city)
+    }
+
+    // ── ParkingHistoryDto → Entity ────────────────────────────────────────────
+
+    @Test
+    fun `dto toEntity maps userId`() {
+        val dto = ParkingHistoryDto(
+            id = "s1",
+            userId = "user-42",
+            latitude = 40.0,
+            longitude = -3.0,
+        )
+        assertEquals("user-42", dto.toEntity().userId)
+    }
+
+    @Test
+    fun `dto toEntity maps nested address`() {
+        val dto = ParkingHistoryDto(
+            id = "s1",
+            latitude = 40.0,
+            longitude = -3.0,
+            address = AddressDto(street = "Calle Mayor", city = "Madrid", region = null, country = "ES"),
+        )
+        val entity = dto.toEntity()
+
+        assertEquals("Calle Mayor", entity.addressStreet)
+        assertEquals("Madrid", entity.addressCity)
+    }
+
+    // ── driven route round-trip [DET-ROUTE-TRACK-001][DET-ROUTE-SNAP-STORE-001] ──
+
+    @Test
+    fun `routePolyline and routeSnapped round-trip through every mapper`() {
+        val parking = baseParking.copy(routePolyline = "_p~iF~ps|U", routeSnapped = true)
+
+        val entity = parking.toEntity()
+        assertEquals("_p~iF~ps|U", entity.routePolyline)
+        assertEquals(true, entity.routeSnapped)
+
+        val backToDomain = entity.toDomain()
+        assertEquals("_p~iF~ps|U", backToDomain.routePolyline)
+        assertEquals(true, backToDomain.routeSnapped)
+
+        val dto = parking.toParkingHistoryDto()
+        assertEquals("_p~iF~ps|U", dto.routePolyline)
+        assertEquals(true, dto.routeSnapped)
+
+        val fromDto = dto.toEntity()
+        assertEquals("_p~iF~ps|U", fromDto.routePolyline)
+        assertEquals(true, fromDto.routeSnapped)
+    }
+
+    @Test
+    fun `no route defaults to null polyline and unsnapped`() {
+        assertNull(baseParking.toEntity().routePolyline)
+        assertEquals(false, baseParking.toEntity().routeSnapped)
+        assertEquals(false, baseParking.toParkingHistoryDto().routeSnapped)
+    }
+
+    // ── detectionReliability round-trip ──────────────────────────────────────
+
+    @Test
+    fun `parking toEntity preserves detectionReliability`() {
+        val parking = baseParking.copy(detectionReliability = 0.9f)
+        assertEquals(0.9f, parking.toEntity().detectionReliability)
+    }
+
+    @Test
+    fun `parking toEntity produces null detectionReliability when not set`() {
+        assertNull(baseParking.toEntity().detectionReliability)
+    }
+
+    @Test
+    fun `entity toDomain preserves detectionReliability when set`() {
+        val entity = baseEntity.copy(detectionReliability = 0.75f)
+        assertEquals(0.75f, entity.toDomain().detectionReliability)
+    }
+
+    @Test
+    fun `parking toEntity then toDomain round-trips detectionReliability`() {
+        val original = baseParking.copy(detectionReliability = 1.0f)
+        val restored = original.toEntity().toDomain()
+        assertEquals(1.0f, restored.detectionReliability)
+    }
+
+    // ── vehicleId round-trip ─────────────────────────────────────────────────
+
+    @Test
+    fun `entity toDomain preserves vehicleId when set`() {
+        val entity = baseEntity.copy(vehicleId = "vehicle-99")
+        assertEquals("vehicle-99", entity.toDomain().vehicleId)
+    }
+
+    @Test
+    fun `entity toDomain produces null vehicleId when not set`() {
+        assertNull(baseEntity.toDomain().vehicleId)
+    }
+
+    @Test
+    fun `parking toEntity preserves vehicleId`() {
+        val parking = baseParking.copy(vehicleId = "vehicle-99")
+        assertEquals("vehicle-99", parking.toEntity().vehicleId)
+    }
+
+    @Test
+    fun `parking toEntity produces null vehicleId when not set`() {
+        assertNull(baseParking.toEntity().vehicleId)
+    }
+
+    @Test
+    fun `parking toParkingHistoryDto preserves vehicleId`() {
+        val parking = baseParking.copy(vehicleId = "vehicle-99")
+        assertEquals("vehicle-99", parking.toParkingHistoryDto().vehicleId)
+    }
+
+    @Test
+    fun `parking toParkingHistoryDto produces null vehicleId when not set`() {
+        assertNull(baseParking.toParkingHistoryDto().vehicleId)
+    }
+
+    @Test
+    fun `dto toEntity preserves vehicleId when set`() {
+        val dto = ParkingHistoryDto(id = "s1", vehicleId = "vehicle-99", latitude = 40.0, longitude = -3.0)
+        assertEquals("vehicle-99", dto.toEntity().vehicleId)
+    }
+
+    @Test
+    fun `dto toEntity produces null vehicleId when not set`() {
+        val dto = ParkingHistoryDto(id = "s1", latitude = 40.0, longitude = -3.0)
+        assertNull(dto.toEntity().vehicleId)
+    }
+
+    @Test
+    fun `parking round-trips vehicleId through dto and entity`() {
+        // Mirrors the Firestore round-trip: domain → dto (write) → entity (read after sync)
+        val original = baseParking.copy(vehicleId = "vehicle-99")
+        val restored = original.toParkingHistoryDto().toEntity().toDomain()
+        assertEquals("vehicle-99", restored.vehicleId)
+    }
+
+    // ── detectionReliability dto round-trip ──────────────────────────────────
+
+    @Test
+    fun `parking toParkingHistoryDto preserves detectionReliability`() {
+        val parking = baseParking.copy(detectionReliability = 0.9f)
+        assertEquals(0.9f, parking.toParkingHistoryDto().detectionReliability)
+    }
+
+    @Test
+    fun `parking round-trips detectionReliability through dto and entity`() {
+        val original = baseParking.copy(detectionReliability = 0.85f)
+        val restored = original.toParkingHistoryDto().toEntity().toDomain()
+        assertEquals(0.85f, restored.detectionReliability)
+    }
+
+    // ── Pin provenance round-trip (detectionPath + armEvidence) [DET-PIN-PROVENANCE-001] ──
+
+    @Test
+    fun `parking toEntity preserves detectionPath and armEvidence`() {
+        val parking = baseParking.copy(detectionPath = "steps+egress", armEvidence = "verified_enter")
+        val entity = parking.toEntity()
+        assertEquals("steps+egress", entity.detectionPath)
+        assertEquals("verified_enter", entity.armEvidence)
+    }
+
+    @Test
+    fun `entity toDomain preserves detectionPath and armEvidence`() {
+        val entity = baseEntity.copy(detectionPath = "safety_net_backfill", armEvidence = "unverified")
+        val domain = entity.toDomain()
+        assertEquals("safety_net_backfill", domain.detectionPath)
+        assertEquals("unverified", domain.armEvidence)
+    }
+
+    @Test
+    fun `toParkingHistoryDto carries detectionPath and armEvidence to Firestore`() {
+        // Regression: armEvidence used to be deliberately dropped from the DTO (local-only). It is
+        // now mirrored so a remote diagnostic can attribute the pin to its trigger.
+        val parking = baseParking.copy(detectionPath = "bt", armEvidence = "manual")
+        val dto = parking.toParkingHistoryDto()
+        assertEquals("bt", dto.detectionPath)
+        assertEquals("manual", dto.armEvidence)
+    }
+
+    @Test
+    fun `dto toEntity preserves detectionPath and armEvidence`() {
+        val dto = ParkingHistoryDto(
+            id = "s1",
+            latitude = 40.0,
+            longitude = -3.0,
+            detectionPath = "kinematic+egress",
+            armEvidence = "verified_speed",
+        )
+        val entity = dto.toEntity()
+        assertEquals("kinematic+egress", entity.detectionPath)
+        assertEquals("verified_speed", entity.armEvidence)
+    }
+
+    @Test
+    fun `parking round-trips detectionPath and armEvidence through dto and entity`() {
+        // Full Firestore round-trip: domain → dto (write) → entity (read after sync) → domain.
+        val original = baseParking.copy(detectionPath = "safety_net_backfill", armEvidence = "unverified")
+        val restored = original.toParkingHistoryDto().toEntity().toDomain()
+        assertEquals("safety_net_backfill", restored.detectionPath)
+        assertEquals("unverified", restored.armEvidence)
+    }
+
+    @Test
+    fun `legacy pin with no provenance maps to null detectionPath`() {
+        assertNull(baseParking.toParkingHistoryDto().detectionPath)
+        assertNull(baseEntity.toDomain().detectionPath)
+    }
+
+    // ── spotType round-trip (detection method) [HISTORY-DETAIL-001] ──────────
+
+    @Test
+    fun `legacy row with null spotType maps to AUTO_DETECTED`() {
+        // Rows written before v15 have no spotType column value → the pre-v15 implicit default.
+        assertEquals(SpotType.AUTO_DETECTED, baseEntity.toDomain().spotType)
+    }
+
+    @Test
+    fun `entity toDomain reads persisted spotType`() {
+        val entity = baseEntity.copy(spotType = "MANUAL_REPORT")
+        assertEquals(SpotType.MANUAL_REPORT, entity.toDomain().spotType)
+    }
+
+    @Test
+    fun `entity toDomain falls back to AUTO_DETECTED for unknown spotType`() {
+        val entity = baseEntity.copy(spotType = "NONSENSE")
+        assertEquals(SpotType.AUTO_DETECTED, entity.toDomain().spotType)
+    }
+
+    @Test
+    fun `parking toEntity persists spotType name`() {
+        val parking = baseParking.copy(spotType = SpotType.MANUAL_REPORT)
+        assertEquals("MANUAL_REPORT", parking.toEntity().spotType)
+    }
+
+    @Test
+    fun `parking toParkingHistoryDto persists spotType name`() {
+        val parking = baseParking.copy(spotType = SpotType.HOME_GEOFENCE)
+        assertEquals("HOME_GEOFENCE", parking.toParkingHistoryDto().spotType)
+    }
+
+    @Test
+    fun `dto toEntity preserves spotType`() {
+        val dto = ParkingHistoryDto(id = "s1", latitude = 40.0, longitude = -3.0, spotType = "MANUAL_REPORT")
+        assertEquals("MANUAL_REPORT", dto.toEntity().spotType)
+    }
+
+    @Test
+    fun `parking round-trips spotType through dto and entity`() {
+        // Full Firestore round-trip: domain → dto (write) → entity (read after sync) → domain.
+        // Regression: spotType used to be dropped, so history always showed AUTO_DETECTED.
+        val original = baseParking.copy(spotType = SpotType.MANUAL_REPORT)
+        val restored = original.toParkingHistoryDto().toEntity().toDomain()
+        assertEquals(SpotType.MANUAL_REPORT, restored.spotType)
+    }
+
+    // ── Shared helpers ────────────────────────────────────────────────────────
+
+    @Test
+    fun `AddressInfo toAddressDto maps all fields`() {
+        val info = AddressInfo(street = "s", city = "c", region = "r", country = "es", countryCode = "ES")
+        val dto = info.toAddressDto()
+
+        assertEquals("s", dto.street)
+        assertEquals("c", dto.city)
+        assertEquals("r", dto.region)
+        assertEquals("es", dto.country)
+        assertEquals("ES", dto.countryCode)
+    }
+
+    // ── countryCode round-trip (regression: published Spot lost its country code) ──
+
+    @Test
+    fun `parking toEntity preserves countryCode`() {
+        val parking = baseParking.copy(
+            address = AddressInfo(street = null, city = "Madrid", region = null, country = "Spain", countryCode = "ES"),
+        )
+        assertEquals("ES", parking.toEntity().addressCountryCode)
+    }
+
+    @Test
+    fun `entity toDomain preserves countryCode`() {
+        val entity = baseEntity.copy(addressCity = "Madrid", addressCountryCode = "ES")
+        assertEquals("ES", entity.toDomain().address?.countryCode)
+    }
+
+    @Test
+    fun `parking round-trips countryCode through entity`() {
+        val original = baseParking.copy(
+            address = AddressInfo(street = "Gran Vía", city = "Madrid", region = null, country = "Spain", countryCode = "ES"),
+        )
+        val restored = original.toEntity().toDomain()
+        assertEquals("ES", restored.address?.countryCode)
+    }
+
+    @Test
+    fun `parking round-trips countryCode through dto and entity`() {
+        // Mirrors the Firestore sync round-trip: domain → dto (write) → entity (read).
+        val original = baseParking.copy(
+            address = AddressInfo(street = null, city = "Barcelona", region = null, country = "Spain", countryCode = "ES"),
+        )
+        val restored = original.toParkingHistoryDto().toEntity().toDomain()
+        assertEquals("ES", restored.address?.countryCode)
+    }
+
+    @Test
+    fun `toParkingHistoryDto preserves countryCode in address dto`() {
+        val parking = baseParking.copy(
+            address = AddressInfo(street = null, city = "Madrid", region = null, country = "Spain", countryCode = "ES"),
+        )
+        assertEquals("ES", parking.toParkingHistoryDto().address?.countryCode)
+    }
+
+    @Test
+    fun `PlaceInfo toPlaceInfoDto maps name and category name`() {
+        val info = PlaceInfo(name = "Shell", category = PlaceCategory.FUEL)
+        val dto = info.toPlaceInfoDto()
+
+        assertEquals("Shell", dto.name)
+        assertEquals("FUEL", dto.category)
+    }
+}

@@ -41,7 +41,7 @@ La key actual estuvo hardcodeada en `AndroidManifest.xml` en commits previos. Au
 
 En la nueva key → "Application restrictions" → **Android apps**:
 
-- Package name: `io.apptolast.paparcar`
+- Package name: `com.rndeveloper.paparcar`
 - SHA-1 fingerprint del keystore debug + release. Obtener con:
   ```bash
   # Debug

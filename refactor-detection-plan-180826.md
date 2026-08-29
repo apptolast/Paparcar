@@ -184,7 +184,7 @@ Produce:
    - un **modelo explícito de "doubt radius"** que unifique confirm exacto, zona aproximada y
      nudge, en vez de tres caminos con reglas propias.
 4. **Ruido a eliminar**: logs redundantes, dobles cálculos de haversine sobre los mismos puntos,
-   `import` con FQN inline (`io.apptolast.paparcar.domain.util.haversineMeters` está repetido
+   `import` con FQN inline (`com.rndeveloper.paparcar.domain.util.haversineMeters` está repetido
    ~15 veces), constantes duplicadas entre `companion` y `config`.
 
 Entregable: `docs/detection/07-duplicacion.md`

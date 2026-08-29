@@ -18,7 +18,7 @@
 > **EvalSNC** = `EvaluateSafetyNetCheckUseCase.kt` · **SHP** = `EvaluateShortHopDriveProofUseCase.kt` ·
 > **CPC** = `CalculateParkingConfidenceUseCase.kt` · **CDS** = `androidMain/…/detection/service/CoordinatorDetectionService.kt` ·
 > **Config** = `domain/model/ParkingDetectionConfig.kt` · **CPDTest** = `commonTest/…/CoordinatorParkingDetectorTest.kt`.
-> Rutas relativas a `composeApp/src/`. 🔴 = ningún test menciona el tag.
+> Rutas relativas a `shared/src/`. 🔴 = ningún test menciona el tag.
 
 ---
 

@@ -93,7 +93,7 @@ NO contador de rechazos visible al usuario (evitar tono culpabilizador).
 
 ## Secuencia
 1. ⏳ **Primero confirmar la hipótesis en campo**: con Paparcar ya metida en la whitelist por adb
-   (`+io.apptolast.paparcar`), repetir trayecto en Oppo y verificar que el FGS sobrevive y el AR llega
+   (`+com.rndeveloper.paparcar`), repetir trayecto en Oppo y verificar que el FGS sobrevive y el AR llega
    fresco. Si se confirma → este ticket es el fix correcto en producto.
 2. Implementar banner + re-pregunta + deep-link OEM.
 3. Field-test del banner en Oppo/Redmi (que reaparezca y que el CTA lleve a la pantalla correcta).

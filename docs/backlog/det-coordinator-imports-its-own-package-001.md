@@ -5,7 +5,7 @@
 
 ## Problema
 
-`CoordinatorParkingDetector.kt` está en el paquete `io.apptolast.paparcar.domain.detection` e
+`CoordinatorParkingDetector.kt` está en el paquete `com.rndeveloper.paparcar.domain.detection` e
 **importaba 14 símbolos de ese mismo paquete** — Kotlin ya los tiene en scope — y arrastraba **36 más
 que ya no usa nadie**: `outrunsPedestrianReach`, `honestZoneRadius`, `AnchorTrust`,
 `ConfirmationLifecycle`, los doce predicados de `state/`, `ParkingDecisionInput`,

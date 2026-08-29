@@ -7,7 +7,7 @@
 
 ## §1 · ✅ RESUELTO 2026-05-24 — `runBlocking` en getters de DataStore [PERF-001]
 
-**Archivo:** `composeApp/src/androidMain/kotlin/io/apptolast/paparcar/preferences/AndroidDataStoreAppPreferences.kt`
+**Archivo:** `shared/src/androidMain/kotlin/com/rndeveloper/paparcar/preferences/AndroidDataStoreAppPreferences.kt`
 
 Antes: cada getter/setter envolvía el flow del DataStore con `runBlocking { ... }`, bloqueando el thread (Main incluido).
 
@@ -37,12 +37,12 @@ Fix aplicado: snapshot in-memory (`@Volatile private var snapshot: Preferences`)
 ## §4 · ⚠️ PARCIAL 2026-05-24 — Maps API key en manifest sin restricción [SEC-001]
 
 **Parte código (✅ done):**
-- Build falla rápido en releases si falta `MAPS_API_KEY` (`composeApp/build.gradle.kts` — bloque `gradle.taskGraph.whenReady`).
+- Build falla rápido en releases si falta `MAPS_API_KEY` (`app/build.gradle.kts` — bloque `gradle.taskGraph.whenReady`).
 - Documentado el modelo de seguridad y las acciones GCP requeridas en `docs/release/RELEASE-SECURITY.md`.
 
 **Parte GCP Console (⚠️ pendiente usuario):**
 - Rotar Maps API key (la actual estuvo hardcodeada en commits previos, recuperable via `git log`).
-- Aplicar Application restrictions: package `io.apptolast.paparcar` + SHA-1 debug + release.
+- Aplicar Application restrictions: package `com.rndeveloper.paparcar` + SHA-1 debug + release.
 - Aplicar API restrictions: solo `Maps SDK for Android`.
 
 Checklist completo en `docs/release/RELEASE-SECURITY.md §1`. (Inventario en memoria: `reference_api_keys_inventory.md`.)
@@ -83,7 +83,7 @@ Los restantes ~60 hits del grep son iconos decorativos junto a `Text` con label 
 `iOSApp.swift` llama `FirebaseApp.configure()` pero el plist no está en el proyecto. iOS build de Firebase fallará silenciosamente en runtime.
 
 **Fix sugerido:**
-- Crear proyecto iOS en Firebase Console (bundle id `io.apptolast.paparcar`)
+- Crear proyecto iOS en Firebase Console (bundle id `com.rndeveloper.paparcar`)
 - Descargar `GoogleService-Info.plist` y añadir a `iosApp/iosApp/` (`Copy items if needed`, target `iosApp`)
 - Verificar con `Analytics.logEvent` que se conecta
 
@@ -125,7 +125,7 @@ El TTL de 24h provocaba que un coche aparcado >24h perdiera la detección de sal
 
 ## §9 · ✅ Resuelto (2026-05-25) — `ParkingDetectionService` `START_STICKY` sin re-check de permisos
 
-**Archivo:** `composeApp/src/androidMain/.../detection/service/ParkingDetectionService.kt:~76`
+**Archivo:** `shared/src/androidMain/.../detection/service/ParkingDetectionService.kt:~76`
 
 `START_STICKY` reanuda el service tras un kill, pero si el usuario revocó `ACCESS_BACKGROUND_LOCATION` entre kills, el service intentará operar sin permiso → crash o silent failure.
 
@@ -152,7 +152,7 @@ Varias pantallas usan `collectAsState()` desde commonMain (porque `collectAsStat
 
 ## §11 · ✅ Resuelto (2026-05-25) — Política de migraciones Room [DB-001]
 
-**Archivo:** `composeApp/src/commonMain/.../data/datasource/local/room/AppDatabase.kt`
+**Archivo:** `shared/src/commonMain/.../data/datasource/local/room/AppDatabase.kt`
 
 **Estado anterior:** `version = 3` con `fallbackToDestructiveMigration(true)` global en ambos DI modules → cualquier bump futuro borraba silenciosamente los datos del usuario.
 
@@ -211,7 +211,7 @@ Ver: `docs/refactors/BT-REFACTOR-FGS-001-bluetooth-detection-foreground-service.
 
 ## §16 · ✅ RESOLVED — Reset incompleto en `HomeViewModel`
 
-**Archivo:** `composeApp/src/commonMain/.../presentation/home/HomeViewModel.kt:74-79`
+**Archivo:** `shared/src/commonMain/.../presentation/home/HomeViewModel.kt:74-79`
 
 `searchQueryFlow` y `reconnectTick` son `MutableStateFlow` internos que no se resetean en `onCleared()`. No es leak (el ViewModel se destruye con el scope), pero es buena práctica resetear al detach.
 

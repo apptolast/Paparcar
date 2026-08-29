@@ -21,7 +21,7 @@ Escritura local optimista pisada por un sync remoto. Ejemplo con vehículo activ
 
 ## Causa raíz (con referencias)
 
-`composeApp/src/commonMain/kotlin/io/apptolast/paparcar/data/repository/VehicleRepositoryImpl.kt`
+`composeApp/src/commonMain/kotlin/com/rndeveloper/paparcar/data/repository/VehicleRepositoryImpl.kt`
 
 - `syncFromRemote(userId)` (línea ~87) — **remote-wins ciego**:
   ```kotlin

@@ -1,0 +1,197 @@
+@file:OptIn(kotlin.time.ExperimentalTime::class)
+
+package com.rndeveloper.paparcar.detection.worker
+
+import android.content.Context
+import androidx.work.BackoffPolicy
+import androidx.work.Constraints
+import androidx.work.CoroutineWorker
+import androidx.work.Data
+import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequest
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkerParameters
+import androidx.work.workDataOf
+import com.rndeveloper.paparcar.domain.model.AddressInfo
+import com.rndeveloper.paparcar.domain.model.CarbodyType
+import com.rndeveloper.paparcar.domain.model.GpsPoint
+import com.rndeveloper.paparcar.domain.model.PlaceCategory
+import com.rndeveloper.paparcar.domain.model.PlaceInfo
+import com.rndeveloper.paparcar.domain.model.Spot
+import com.rndeveloper.paparcar.domain.model.SpotStatus
+import com.rndeveloper.paparcar.domain.model.SpotTtlPolicy
+import com.rndeveloper.paparcar.domain.model.SpotType
+import com.rndeveloper.paparcar.domain.model.VehicleSize
+import com.rndeveloper.paparcar.domain.repository.SpotRepository
+import com.rndeveloper.paparcar.domain.util.PaparcarLogger
+import kotlin.time.Clock
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import java.util.concurrent.TimeUnit
+
+/**
+ * Guaranteed delivery of a "spot released" report to Firebase.
+ *
+ * All data (spot ID, coordinates, address, place info) is provided via [inputData]
+ * — the worker does not read from the local database, so it runs safely even after
+ * the parking session has been cleared.
+ *
+ * Constraints: NETWORK_CONNECTED.
+ * Backoff: EXPONENTIAL starting at 30s, up to [MAX_RETRY_ATTEMPTS] attempts.
+ */
+class ReportSpotWorker(
+    context: Context,
+    params: WorkerParameters,
+) : CoroutineWorker(context, params), KoinComponent {
+
+    private val spotRepository: SpotRepository by inject()
+
+    override suspend fun doWork(): Result {
+        val spotId = inputData.getString(KEY_SPOT_ID) ?: return Result.failure()
+        val lat = inputData.getDouble(KEY_LAT, Double.NaN).takeIf { !it.isNaN() } ?: return Result.failure()
+        val lon = inputData.getDouble(KEY_LON, Double.NaN).takeIf { !it.isNaN() } ?: return Result.failure()
+
+        val nowMs = Clock.System.now().toEpochMilliseconds()
+        val spotType = inputData.getString(KEY_SPOT_TYPE)
+            ?.let { runCatching { SpotType.valueOf(it) }.getOrNull() }
+            ?: SpotType.AUTO_DETECTED
+        val confidence = inputData.getFloat(KEY_CONFIDENCE, 1f)
+        val sizeCategory = inputData.getString(KEY_SIZE_CATEGORY)
+            ?.let { runCatching { VehicleSize.valueOf(it) }.getOrNull() }
+        val carbodyType = inputData.getString(KEY_CARBODY_TYPE)
+            ?.let { runCatching { CarbodyType.valueOf(it) }.getOrNull() }
+        // [DET-HANDOFF-NOT-MANUAL-001 §B] A spot published on a DEDUCED departure lives minutes,
+        // not hours: the short TTL is the floor under a retraction that can always fail.
+        val provisional = inputData.getBoolean(KEY_PROVISIONAL, false)
+        val ttlMs = SpotTtlPolicy.ttlMsForType(spotType, provisional) // [AUDIT-ARCH-001 M13] shared with iOS
+
+        // [SPOT-OFFLINE-TTL-001] The TTL is anchored to the RELEASE time (enqueue), not to delivery.
+        // A push that spent hours queued offline (dead network, OEM-frozen WorkManager — field
+        // incident 2026-07-04: the Redmi delivered the whole day's queue at 22:32) must not surface
+        // a long-gone spot to the community; drop it instead of publishing stale noise. The
+        // session-side effects are untouched — only the community spot is time-sensitive.
+        val releasedAtMs = inputData.getLong(KEY_TIMESTAMP, nowMs)
+        if (nowMs - releasedAtMs >= ttlMs) {
+            PaparcarLogger.d(TAG, "spot $spotId released ${(nowMs - releasedAtMs) / 60_000} min ago (ttl=${ttlMs / 60_000} min) — expired in queue, not publishing")
+            return Result.success()
+        }
+
+        val spot = Spot(
+            id = spotId,
+            location = GpsPoint(
+                latitude = lat,
+                longitude = lon,
+                accuracy = 0f,
+                timestamp = releasedAtMs,
+                speed = 0f,
+            ),
+            reportedBy = inputData.getString(KEY_REPORTED_BY) ?: "", // [AUDIT-RULES-001 C4] uid, not display name
+            address = inputData.toAddressInfo(),
+            placeInfo = inputData.toPlaceInfo(),
+            type = spotType,
+            confidence = confidence,
+            sizeCategory = sizeCategory,
+            carbodyType = carbodyType,
+            expiresAt = releasedAtMs + ttlMs,
+            // [DET-HANDOFF-NOT-MANUAL-001 §B.3] The spot says out loud how well its departure is
+            // proven, so the community UI can rank it honestly and a later promotion (or
+            // retraction) is a state change on this same document rather than a second spot.
+            status = if (provisional) SpotStatus.PROVISIONAL else SpotStatus.CONFIRMED,
+        )
+
+        return spotRepository.reportSpotReleased(spot).fold(
+            onSuccess = { Result.success() },
+            onFailure = {
+                if (runAttemptCount < MAX_RETRY_ATTEMPTS) Result.retry() else Result.failure()
+            },
+        )
+    }
+
+    companion object {
+        const val TAG = "ReportSpotWorker"
+        private const val MAX_RETRY_ATTEMPTS = 5
+        private const val INITIAL_BACKOFF_SECONDS = 30L
+
+        // [AUDIT-ARCH-001 M13] Spot TTLs moved to the shared domain SpotTtlPolicy (single source
+        // of truth for Android + iOS).
+
+        private const val KEY_SPOT_ID = "spot_id"
+        private const val KEY_LAT = "lat"
+        private const val KEY_LON = "lon"
+        private const val KEY_TIMESTAMP = "timestamp"
+        private const val KEY_ADDRESS_STREET = "address_street"
+        private const val KEY_ADDRESS_CITY = "address_city"
+        private const val KEY_ADDRESS_REGION = "address_region"
+        private const val KEY_ADDRESS_COUNTRY = "address_country"
+        private const val KEY_ADDRESS_COUNTRY_CODE = "address_country_code"
+        private const val KEY_PLACE_NAME = "place_name"
+        private const val KEY_PLACE_CATEGORY = "place_category"
+        private const val KEY_SPOT_TYPE = "spot_type"
+        private const val KEY_CONFIDENCE = "confidence"
+        private const val KEY_SIZE_CATEGORY = "size_category"
+        private const val KEY_CARBODY_TYPE = "carbody_type"
+        private const val KEY_REPORTED_BY = "reported_by"
+        private const val KEY_PROVISIONAL = "provisional"
+
+        fun buildRequest(
+            spotId: String,
+            lat: Double,
+            lon: Double,
+            address: AddressInfo?,
+            placeInfo: PlaceInfo?,
+            spotType: SpotType = SpotType.AUTO_DETECTED,
+            confidence: Float = 1f,
+            sizeCategory: VehicleSize? = null,
+            carbodyType: CarbodyType? = null,
+            reportedBy: String? = null,
+            provisional: Boolean = false,
+        ): OneTimeWorkRequest =
+            OneTimeWorkRequestBuilder<ReportSpotWorker>()
+                .setInputData(
+                    workDataOf(
+                        KEY_SPOT_ID to spotId,
+                        KEY_LAT to lat,
+                        KEY_LON to lon,
+                        KEY_TIMESTAMP to Clock.System.now().toEpochMilliseconds(),
+                        KEY_ADDRESS_STREET to address?.street,
+                        KEY_ADDRESS_CITY to address?.city,
+                        KEY_ADDRESS_REGION to address?.region,
+                        KEY_ADDRESS_COUNTRY to address?.country,
+                        KEY_ADDRESS_COUNTRY_CODE to address?.countryCode,
+                        KEY_PLACE_NAME to placeInfo?.name,
+                        KEY_PLACE_CATEGORY to placeInfo?.category?.name,
+                        KEY_SPOT_TYPE to spotType.name,
+                        KEY_CONFIDENCE to confidence,
+                        KEY_SIZE_CATEGORY to sizeCategory?.name,
+                        KEY_CARBODY_TYPE to carbodyType?.name,
+                        KEY_REPORTED_BY to reportedBy,
+                        KEY_PROVISIONAL to provisional,
+                    )
+                )
+                .setConstraints(
+                    Constraints.Builder()
+                        .setRequiredNetworkType(NetworkType.CONNECTED)
+                        .build()
+                )
+                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, INITIAL_BACKOFF_SECONDS, TimeUnit.SECONDS)
+                .addTag(TAG)
+                .build()
+
+        private fun Data.toAddressInfo(): AddressInfo? {
+            val street = getString(KEY_ADDRESS_STREET)
+            val city = getString(KEY_ADDRESS_CITY)
+            val region = getString(KEY_ADDRESS_REGION)
+            val country = getString(KEY_ADDRESS_COUNTRY)
+            val countryCode = getString(KEY_ADDRESS_COUNTRY_CODE)
+            return if (street != null || city != null || region != null || country != null)
+                AddressInfo(street = street, city = city, region = region, country = country, countryCode = countryCode)
+            else null
+        }
+
+        private fun Data.toPlaceInfo(): PlaceInfo? {
+            val name = getString(KEY_PLACE_NAME) ?: return null
+            val cat = getString(KEY_PLACE_CATEGORY) ?: return null
+            return runCatching { PlaceInfo(name, PlaceCategory.valueOf(cat)) }.getOrNull()
+        }
+    }
+}

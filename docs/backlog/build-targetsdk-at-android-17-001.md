@@ -72,7 +72,7 @@ arriba y la verificación de abajo.
 La línea que importa del logcat, con la app ya declarada como API 37:
 
 ```
-ActivityManager: Background started FGS: Allowed [callingPackage: io.apptolast.paparcar;
+ActivityManager: Background started FGS: Allowed [callingPackage: com.rndeveloper.paparcar;
   intent: ACTION_RESUME_SENTRY cmp=.../detection.service.CoordinatorDetectionService;
   allowWiu:12; targetSdkVersion:37; callerTargetSdkVersion:37]
 ```

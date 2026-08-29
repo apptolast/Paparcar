@@ -76,10 +76,10 @@ Pods/
 *.BASE.*
 *.LOCAL.*
 # ^ merge-tool backups — but on Windows this case-insensitively matches the Room schema dir
-# (io.apptolast.paparcar.data.datasource.LOCAL.room...) and silently unversions the schema
+# (com.rndeveloper.paparcar.data.datasource.LOCAL.room...) and silently unversions the schema
 # history. Re-include it explicitly:
-!composeApp/schemas/
-!composeApp/schemas/**
+!shared/schemas/
+!shared/schemas/**
 *.REMOTE.*
 *_BACKUP_*.txt
 *_BASE_*.txt

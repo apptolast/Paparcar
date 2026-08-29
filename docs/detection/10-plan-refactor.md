@@ -156,7 +156,7 @@ reiniciar el reloj de la parada rompía los dos replays de `Trace_Enamorados001`
 >
 > ⚙️ **Cómo comprobarlo en cualquier momento de F6:**
 > ```
-> ./gradlew :composeApp:testProdDebugUnitTest --rerun-tasks
+> ./gradlew :shared:testDebugUnitTest --rerun-tasks
 > # regenerar la lista y comparar contra P0.4-baseline-tests.txt
 > ```
 >

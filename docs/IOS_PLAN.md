@@ -17,7 +17,7 @@
 
 ## 1. Estado de implementación nativa
 
-### 1.1 Implementaciones reales en `composeApp/src/iosMain/`
+### 1.1 Implementaciones reales en `shared/src/iosMain/`
 
 | Archivo | Tecnología nativa | Estado |
 |---------|-------------------|--------|
@@ -86,14 +86,14 @@ iosApp/
 
 ### 🟢 Fáciles (< 1 h cada una)
 
-1. **Generar `GoogleService-Info.plist`** — Firebase Console → Add iOS app (bundle `io.apptolast.paparcar`) → descargar plist → drag a Xcode (target iosApp, Copy items if needed) — _**~20 min**_
+1. **Generar `GoogleService-Info.plist`** — Firebase Console → Add iOS app (bundle `com.rndeveloper.paparcar`) → descargar plist → drag a Xcode (target iosApp, Copy items if needed) — _**~20 min**_
 2. **Limpiar TODOs de Bluetooth deprecation** — `BluetoothConnectionReceiver.kt:43-45` getParcelableExtra (Android, no iOS) — _**~10 min**_
 
 ### 🟡 Medias (1–3 h cada una)
 
 3. **Wire AR → coordinator en iOS** — terminar `IosActivityRecognitionManagerImpl` para invocar `coordinator.onVehicleExit()` / `onStillDetected()`. Test manual en simulador con "Custom location" + freeway drive. — _**~2 h**_
 4. **`StubPlacesDataSource` → MapKit** — sustituir por `MKLocalSearch` o endpoint HTTP. Reuse `PlaceCategory` mapping. — _**~2 h**_
-5. **Apple Developer setup** — App ID `io.apptolast.paparcar`, Distribution Certificate, Provisioning Profile (Ad Hoc para beta). Instalar localmente en Xcode → Accounts. — _**~1.5 h**_
+5. **Apple Developer setup** — App ID `com.rndeveloper.paparcar`, Distribution Certificate, Provisioning Profile (Ad Hoc para beta). Instalar localmente en Xcode → Accounts. — _**~1.5 h**_
 
 ### 🟠 Difíciles (3–6 h cada una)
 
@@ -121,7 +121,7 @@ iosApp/
 ### Paso 1 — Setup Apple Developer (~1 h)
 ```
 Apple Developer Portal → Certificates, IDs & Profiles
-  ├─ App IDs → Register: io.apptolast.paparcar
+  ├─ App IDs → Register: com.rndeveloper.paparcar
   ├─ Certificates → Apple Distribution (.cer) → install in Keychain
   └─ Profiles → Ad Hoc (para beta) o App Store (para TestFlight)
       Devices: añadir UDIDs de testers
@@ -130,7 +130,7 @@ Apple Developer Portal → Certificates, IDs & Profiles
 ### Paso 2 — Configurar Firebase iOS (~30 min)
 ```
 Firebase Console → Project Settings → Add app → iOS
-  ├─ Bundle ID: io.apptolast.paparcar
+  ├─ Bundle ID: com.rndeveloper.paparcar
   ├─ Download GoogleService-Info.plist
   └─ Drag to Xcode → iosApp target → Copy items if needed ✓
 ```
@@ -140,7 +140,7 @@ Firebase Console → Project Settings → Add app → iOS
 iosApp.xcodeproj
   ├─ Signing & Capabilities
   │   ├─ Team: <Apple Developer Team>
-  │   ├─ Bundle Identifier: io.apptolast.paparcar
+  │   ├─ Bundle Identifier: com.rndeveloper.paparcar
   │   ├─ Provisioning Profile: (seleccionar el creado)
   │   └─ Background Modes: ✓ location, ✓ fetch, ✓ processing
   └─ Build Settings

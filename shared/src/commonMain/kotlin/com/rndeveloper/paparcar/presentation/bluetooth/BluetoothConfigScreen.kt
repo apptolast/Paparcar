@@ -1,0 +1,318 @@
+package com.rndeveloper.paparcar.presentation.bluetooth
+
+import com.rndeveloper.paparcar.ui.components.PapCollapsingTopBarScaffold
+import com.rndeveloper.paparcar.ui.components.PapListItem
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Bluetooth
+import androidx.compose.material.icons.rounded.BluetoothDisabled
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import com.rndeveloper.paparcar.domain.model.bluetooth.BluetoothDeviceInfo
+import com.rndeveloper.paparcar.domain.model.bluetooth.BluetoothDeviceType
+import com.rndeveloper.paparcar.presentation.util.collectAsStateLifecycleAware
+import com.rndeveloper.paparcar.ui.components.PapBottomActionBar
+import com.rndeveloper.paparcar.ui.components.PapFooterButton
+import com.rndeveloper.paparcar.ui.components.PapOutlinedCard
+import com.rndeveloper.paparcar.ui.theme.PaparcarType
+import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.parameter.parametersOf
+import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.bt_config_bt_off
+import paparcar.composeapp.generated.resources.bt_config_cd_back
+import paparcar.composeapp.generated.resources.bt_config_grant_permission
+import paparcar.composeapp.generated.resources.bt_config_open_bt_settings
+import paparcar.composeapp.generated.resources.bt_config_permission_rationale
+import paparcar.composeapp.generated.resources.bt_config_device_classic
+import paparcar.composeapp.generated.resources.bt_config_device_dual
+import paparcar.composeapp.generated.resources.bt_config_device_le
+import paparcar.composeapp.generated.resources.bt_config_no_devices
+import paparcar.composeapp.generated.resources.bt_config_none
+import paparcar.composeapp.generated.resources.bt_config_save
+import paparcar.composeapp.generated.resources.bt_config_subtitle
+import paparcar.composeapp.generated.resources.bt_config_title
+import paparcar.composeapp.generated.resources.error_unknown
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BluetoothConfigScreen(
+    vehicleId: String,
+    onNavigateBack: () -> Unit,
+    viewModel: BluetoothConfigViewModel = koinViewModel(parameters = { parametersOf(vehicleId) }),
+) {
+    val state by viewModel.state.collectAsStateLifecycleAware()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val errorFallback = stringResource(Res.string.error_unknown)
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    val requestPermission = rememberRequestBluetoothPermissionAction()
+    val openBtSettings = rememberOpenBluetoothSettingsAction()
+
+    // Refresh on every resume: catches paired-device changes, permission grants, BT on/off.
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            viewModel.handleIntent(BluetoothConfigIntent.RefreshState)
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.effect.collect { effect ->
+            when (effect) {
+                is BluetoothConfigEffect.NavigateBack -> onNavigateBack()
+                is BluetoothConfigEffect.SavedSuccessfully -> onNavigateBack()
+                is BluetoothConfigEffect.ShowError -> snackbarHostState.showSnackbar(errorFallback)
+            }
+        }
+    }
+
+    BluetoothConfigContent(
+        state = state,
+        snackbarHostState = snackbarHostState,
+        onIntent = viewModel::handleIntent,
+        onRequestPermission = requestPermission,
+        onOpenBtSettings = openBtSettings,
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BluetoothConfigContent(
+    state: BluetoothConfigState,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
+    onIntent: (BluetoothConfigIntent) -> Unit = {},
+    onRequestPermission: () -> Unit = {},
+    onOpenBtSettings: () -> Unit = {},
+) {
+    val cs = MaterialTheme.colorScheme
+
+    PapCollapsingTopBarScaffold(
+        title = stringResource(Res.string.bt_config_title),
+        containerColor = cs.surfaceContainer,
+        navigationIcon = {
+            IconButton(onClick = { onIntent(BluetoothConfigIntent.NavigateBack) }) {
+                Icon(
+                    Icons.AutoMirrored.Rounded.ArrowBack,
+                    contentDescription = stringResource(Res.string.bt_config_cd_back),
+                )
+            }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        bottomBar = {
+            PapBottomActionBar {
+                PapFooterButton(
+                    label = stringResource(Res.string.bt_config_save),
+                    leadingIcon = Icons.Rounded.Check,
+                    onClick = { onIntent(BluetoothConfigIntent.Save) },
+                    enabled = state.hasChanges,
+                    isLoading = state.isSaving,
+                )
+            }
+        },
+    ) { padding ->
+        when {
+            state.isLoading -> Box(
+                modifier = Modifier.fillMaxSize().padding(padding),
+                contentAlignment = Alignment.Center,
+            ) { CircularProgressIndicator() }
+
+            !state.isBluetoothEnabled -> BtOffState(
+                modifier = Modifier.fillMaxSize().padding(padding),
+                onOpenBtSettings = onOpenBtSettings,
+            )
+
+            !state.hasBluetoothPermission -> BtPermissionState(
+                modifier = Modifier.fillMaxSize().padding(padding),
+                onRequestPermission = onRequestPermission,
+            )
+
+            else -> LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = SCREEN_H_PADDING),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                // Padding de contenido: la lista arranca bajo el título y pasa por debajo de la
+                // cabecera al scrollear, en vez de recortarse contra ella. [UI-TOPBAR-COLLAPSE-001]
+                contentPadding = PaddingValues(
+                    top = padding.calculateTopPadding() + LIST_V_PADDING,
+                    bottom = padding.calculateBottomPadding() + LIST_V_PADDING,
+                ),
+            ) {
+                item {
+                    Text(
+                        text = stringResource(Res.string.bt_config_subtitle),
+                        style = PaparcarType.current.body,
+                        color = cs.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                }
+
+                item {
+                    DeviceRow(
+                        name = stringResource(Res.string.bt_config_none),
+                        typeLabel = null,
+                        selected = state.selectedAddress == null,
+                        onClick = { onIntent(BluetoothConfigIntent.SelectDevice(null)) },
+                    )
+                }
+
+                if (state.bondedDevices.isEmpty()) {
+                    item {
+                        Text(
+                            text = stringResource(Res.string.bt_config_no_devices),
+                            style = PaparcarType.current.body,
+                            color = cs.onSurfaceVariant,
+                            modifier = Modifier.padding(vertical = 8.dp),
+                        )
+                    }
+                } else {
+                    items(items = state.bondedDevices, key = { it.address }) { device ->
+                        DeviceRow(
+                            name = device.name ?: device.address,
+                            typeLabel = device.typeLabel(),
+                            selected = device.address == state.selectedAddress,
+                            onClick = { onIntent(BluetoothConfigIntent.SelectDevice(device.address)) },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ─── Sub-composables ──────────────────────────────────────────────────────────
+
+@Composable
+private fun BtOffState(
+    modifier: Modifier = Modifier,
+    onOpenBtSettings: () -> Unit = {},
+) {
+    Column(
+        modifier = modifier.padding(32.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Icon(
+            imageVector = Icons.Rounded.BluetoothDisabled,
+            contentDescription = null,
+            modifier = Modifier.size(BT_OFF_ICON_SIZE),
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = BT_STATE_ICON_ALPHA),
+        )
+        Text(
+            text = stringResource(Res.string.bt_config_bt_off),
+            style = PaparcarType.current.body,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+        OutlinedButton(onClick = onOpenBtSettings) {
+            Icon(Icons.Rounded.Bluetooth, contentDescription = null, modifier = Modifier.size(16.dp))
+            Spacer(Modifier.width(6.dp))
+            Text(stringResource(Res.string.bt_config_open_bt_settings), style = PaparcarType.current.cta)
+        }
+    }
+}
+
+@Composable
+private fun BtPermissionState(
+    modifier: Modifier = Modifier,
+    onRequestPermission: () -> Unit = {},
+) {
+    Column(
+        modifier = modifier.padding(32.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Icon(
+            imageVector = Icons.Rounded.Bluetooth,
+            contentDescription = null,
+            modifier = Modifier.size(BT_OFF_ICON_SIZE),
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = BT_STATE_ICON_ALPHA),
+        )
+        Text(
+            text = stringResource(Res.string.bt_config_permission_rationale),
+            style = PaparcarType.current.body,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+        Button(onClick = onRequestPermission) {
+            Text(stringResource(Res.string.bt_config_grant_permission), style = PaparcarType.current.cta)
+        }
+    }
+}
+
+@Composable
+private fun DeviceRow(
+    name: String,
+    typeLabel: String?,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    PapOutlinedCard(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        PapListItem(
+            title = name,
+            // Paired device name is identity → Outfit (rowTitle), like the vehicle name. [TYPO-AUDIT-001]
+            titleStyle = PaparcarType.current.rowTitle,
+            titleWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            subtitle = typeLabel,
+            subtitleStyle = PaparcarType.current.label,
+            // RadioButton brings its own touch padding, so this row hugs the start edge.
+            contentPadding = PaddingValues(start = 4.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
+            gap = 4.dp,
+            leading = { RadioButton(selected = selected, onClick = onClick) },
+        )
+    }
+}
+
+@Composable
+private fun BluetoothDeviceInfo.typeLabel(): String = when (type) {
+    BluetoothDeviceType.CLASSIC -> stringResource(Res.string.bt_config_device_classic)
+    BluetoothDeviceType.LE      -> stringResource(Res.string.bt_config_device_le)
+    BluetoothDeviceType.DUAL    -> stringResource(Res.string.bt_config_device_dual)
+    BluetoothDeviceType.UNKNOWN -> stringResource(Res.string.bt_config_device_classic)
+}
+
+// ── Layout tokens ─────────────────────────────────────────────────────────────
+
+private val SCREEN_H_PADDING            = 16.dp
+private val LIST_V_PADDING              = 12.dp
+private val BT_OFF_ICON_SIZE            = 64.dp
+private const val BT_STATE_ICON_ALPHA   = 0.4f

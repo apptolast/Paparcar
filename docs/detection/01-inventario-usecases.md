@@ -5,7 +5,7 @@
 > `usecase/detection/` y 23 en `usecase/parking/`; el árbol real contiene **10** y **18**
 > respectivamente (verificado con `ls`). Total inventariado: **36 use cases + 12 políticas puras**.
 >
-> Convenciones: paquete abreviado (`d.` = `io.apptolast.paparcar.domain.`). "Invocadores" lista
+> Convenciones: paquete abreviado (`d.` = `com.rndeveloper.paparcar.domain.`). "Invocadores" lista
 > solo call sites de PRODUCCIÓN (commonMain/androidMain/iosMain); "Koin" indica registro en
 > `di/DomainModule.kt`. Las menciones que son solo KDoc se excluyen (verificado con grep -n).
 > "¿Puro?" = sin I/O ni dependencias de repositorio/plataforma; decisión función de sus argumentos.

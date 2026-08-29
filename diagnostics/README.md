@@ -20,7 +20,7 @@ The `.notes.md` companion file is optional. Use it when a capture justified a ti
 
 ## Capturing a log
 
-The diagnostic logger is `FileAntilog` (`composeApp/src/androidMain/.../logging/FileAntilog.kt`). It writes every Napier log line tagged `PARKDIAG/*` to `${context.filesDir}/parkdiag.log` on debug builds. At 5 MB the generations shift down — `parkdiag.log.1` is the most recent rotation, `.5` the oldest — and **five are kept** [DET-PARKDIAG-KEEP-MORE-HISTORY-001]. That is ~150 h of traffic; with a single rotation the evidence for the incident under investigation had already fallen off the end twice in one week (2026-08-24, 2026-08-25).
+The diagnostic logger is `FileAntilog` (`shared/src/androidMain/.../logging/FileAntilog.kt`). It writes every Napier log line tagged `PARKDIAG/*` to `${context.filesDir}/parkdiag.log` on debug builds. At 5 MB the generations shift down — `parkdiag.log.1` is the most recent rotation, `.5` the oldest — and **five are kept** [DET-PARKDIAG-KEEP-MORE-HISTORY-001]. That is ~150 h of traffic; with a single rotation the evidence for the incident under investigation had already fallen off the end twice in one week (2026-08-24, 2026-08-25).
 
 ### Pull from device
 
@@ -36,7 +36,7 @@ New-Item -ItemType Directory -Force -Path $destDir | Out-Null
 
 # The whole history, oldest first, as ONE chronological file — an incident can straddle
 # a rotation boundary, so this is the default. Missing generations are skipped silently.
-adb shell run-as io.apptolast.paparcar sh -c 'cat files/parkdiag.log.5 files/parkdiag.log.4 files/parkdiag.log.3 files/parkdiag.log.2 files/parkdiag.log.1 files/parkdiag.log 2>/dev/null' > "$destDir/$device.log"
+adb shell run-as com.rndeveloper.paparcar sh -c 'cat files/parkdiag.log.5 files/parkdiag.log.4 files/parkdiag.log.3 files/parkdiag.log.2 files/parkdiag.log.1 files/parkdiag.log 2>/dev/null' > "$destDir/$device.log"
 ```
 
 **Bash:**
@@ -47,7 +47,7 @@ DEVICE=redmi-note-11
 DEST="diagnostics/$DATE"
 mkdir -p "$DEST"
 
-adb shell run-as io.apptolast.paparcar sh -c 'cat files/parkdiag.log.5 files/parkdiag.log.4 files/parkdiag.log.3 files/parkdiag.log.2 files/parkdiag.log.1 files/parkdiag.log 2>/dev/null' > "$DEST/$DEVICE.log"
+adb shell run-as com.rndeveloper.paparcar sh -c 'cat files/parkdiag.log.5 files/parkdiag.log.4 files/parkdiag.log.3 files/parkdiag.log.2 files/parkdiag.log.1 files/parkdiag.log 2>/dev/null' > "$DEST/$DEVICE.log"
 ```
 
 Multiple devices connected: prepend `-s <serial>` to each `adb` call. Get the serial with `adb devices`.
@@ -56,7 +56,7 @@ Multiple devices connected: prepend `-s <serial>` to each `adb` call. Get the se
 
 ```powershell
 # Every generation, including any legacy parkdiag.log.old left by a pre-2026-08-26 build.
-adb shell run-as io.apptolast.paparcar sh -c 'rm -f files/parkdiag.log*'
+adb shell run-as com.rndeveloper.paparcar sh -c 'rm -f files/parkdiag.log*'
 ```
 
 ### Filter by tag
@@ -113,5 +113,5 @@ If a device ever ends up emitting genuinely huge logs (multi-MB sustained per da
 ## Reference
 
 - Algorithm and fix history: `docs/detection/PARKING-DETECTION.md`.
-- Logger source: `composeApp/src/androidMain/kotlin/io/apptolast/paparcar/logging/FileAntilog.kt`.
-- Tags used in the codebase: search for `PARKDIAG/` across `composeApp/src/`.
+- Logger source: `shared/src/androidMain/kotlin/com/rndeveloper/paparcar/logging/FileAntilog.kt`.
+- Tags used in the codebase: search for `PARKDIAG/` across `shared/src/`.

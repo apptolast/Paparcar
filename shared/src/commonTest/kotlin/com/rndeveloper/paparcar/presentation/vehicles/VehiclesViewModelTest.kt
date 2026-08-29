@@ -1,0 +1,149 @@
+@file:OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+
+package com.rndeveloper.paparcar.presentation.vehicles
+
+import app.cash.turbine.test
+import com.rndeveloper.paparcar.domain.model.GpsPoint
+import com.rndeveloper.paparcar.domain.model.UserParking
+import com.rndeveloper.paparcar.domain.model.Vehicle
+import com.rndeveloper.paparcar.domain.model.VehicleSize
+import com.rndeveloper.paparcar.fakes.FakeUserParkingRepository
+import com.rndeveloper.paparcar.fakes.FakeVehicleRepository
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertIs
+import kotlin.test.assertNull
+
+class VehiclesViewModelTest {
+
+    private val testDispatcher = UnconfinedTestDispatcher()
+
+    private val location = GpsPoint(40.0, -3.7, 10f, 0L, 0f)
+
+    private fun vehicle(id: String, isActive: Boolean = false) = Vehicle(
+        id = id,
+        userId = "user-1",
+        sizeCategory = VehicleSize.MEDIUM_SUV,
+        isActive = isActive,
+    )
+
+    private fun session(id: String, vehicleId: String?) = UserParking(
+        id = id,
+        vehicleId = vehicleId,
+        location = location,
+        isActive = false,
+    )
+
+    private lateinit var vehicleRepo: FakeVehicleRepository
+    private lateinit var parkingRepo: FakeUserParkingRepository
+    private lateinit var vm: VehiclesViewModel
+
+    @BeforeTest
+    fun setUp() {
+        Dispatchers.setMain(testDispatcher)
+        vehicleRepo = FakeVehicleRepository()
+        parkingRepo = FakeUserParkingRepository()
+        val declareActiveVehicle = com.rndeveloper.paparcar.domain.usecase.vehicle.DeclareActiveVehicleUseCase(
+            vehicleRepository = vehicleRepo,
+            swapFences = com.rndeveloper.paparcar.domain.usecase.vehicle.SwapActiveVehicleFencesUseCase(
+                userParkingRepository = parkingRepo,
+                vehicleRepository = vehicleRepo,
+                geofenceService = com.rndeveloper.paparcar.fakes.FakeGeofenceManager(),
+                config = com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig(),
+            ),
+        )
+        vm = VehiclesViewModel(vehicleRepo, parkingRepo, declareActiveVehicle)
+    }
+
+    @AfterTest
+    fun tearDown() {
+        Dispatchers.resetMain()
+    }
+
+    // ── Init ──────────────────────────────────────────────────────────────────
+
+    @Test
+    fun `should_emit_empty_list_with_isLoading_false_on_init`() = runTest {
+        assertEquals(emptyList(), vm.state.value.vehicles)
+        assertEquals(false, vm.state.value.isLoading)
+    }
+
+    @Test
+    fun `should_combine_vehicles_and_sessions_into_vehicleWithStats`() = runTest {
+        val v1 = vehicle("v1")
+        vehicleRepo.saveVehicle(v1)
+        parkingRepo.saveNewParkingSession(session("s1", vehicleId = "v1"))
+        parkingRepo.saveNewParkingSession(session("s2", vehicleId = "v1"))
+
+        val stats = vm.state.value.vehicles
+        assertEquals(1, stats.size)
+        assertEquals(2, stats.first().sessionCount)
+    }
+
+    @Test
+    fun `should_set_sessionCount_zero_for_vehicle_with_no_sessions`() = runTest {
+        vehicleRepo.saveVehicle(vehicle("v1"))
+
+        val stats = vm.state.value.vehicles
+        assertEquals(0, stats.first().sessionCount)
+    }
+
+    // ── SetActiveVehicle ──────────────────────────────────────────────────────
+
+    @Test
+    fun `should_call_setActiveVehicle_on_SetActiveVehicle`() = runTest {
+        vehicleRepo.saveVehicle(vehicle("v1"))
+        vm.handleIntent(VehiclesIntent.SetActiveVehicle("v1"))
+        // FakeVehicleRepository.setActiveVehicle is a no-op — just verify no crash
+        assertEquals(1, vm.state.value.vehicles.size)
+    }
+
+    // ── Bluetooth connected vehicle ───────────────────────────────────────────
+
+    @Test
+    fun `should_set_bluetoothConnectedVehicleId_on_BluetoothVehicleConnected`() = runTest {
+        vm.handleIntent(VehiclesIntent.BluetoothVehicleConnected("v1"))
+        assertEquals("v1", vm.state.value.bluetoothConnectedVehicleId)
+    }
+
+    @Test
+    fun `activeVehicle_returns_bluetooth_connected_vehicle_when_present`() = runTest {
+        val v1 = vehicle("v1", isActive = true)
+        val v2 = vehicle("v2", isActive = false)
+        vehicleRepo.saveVehicle(v1)
+        vehicleRepo.saveVehicle(v2)
+        vm.handleIntent(VehiclesIntent.BluetoothVehicleConnected("v2"))
+
+        assertEquals("v2", vm.state.value.activeVehicle?.id)
+    }
+
+    // ── Navigation effects ────────────────────────────────────────────────────
+
+    @Test
+    fun `should_emit_NavigateToAddVehicle_on_AddVehicle`() = runTest {
+        vm.effect.test {
+            vm.handleIntent(VehiclesIntent.AddVehicle)
+            assertIs<VehiclesEffect.NavigateToAddVehicle>(awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `should_emit_NavigateToEditVehicle_with_id`() = runTest {
+        vm.effect.test {
+            vm.handleIntent(VehiclesIntent.EditVehicle("v42"))
+            val effect = awaitItem()
+            assertIs<VehiclesEffect.NavigateToEditVehicle>(effect)
+            assertEquals("v42", effect.vehicleId)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+}

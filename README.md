@@ -49,14 +49,14 @@ Roadmap completo en [`docs/ROADMAP.md`](./docs/ROADMAP.md).
 
 El logo corporativo es el coche verde neón sobre disco *ink* — idéntico al icono de launcher y
 **theme-independent** (el disco siempre es oscuro, lee igual en claro y oscuro). La fuente de
-verdad en la app es [`paparcar_logo.xml`](./composeApp/src/commonMain/composeResources/drawable/paparcar_logo.xml)
+verdad en la app es [`paparcar_logo.xml`](./shared/src/commonMain/composeResources/drawable/paparcar_logo.xml)
 (VectorDrawable, con variante `_dark`); para docs se usa
 [`docs/assets/paparcar-logo.svg`](./docs/assets/paparcar-logo.svg). Es un asset **Nivel 3**:
 trae su color de marca horneado, **nunca se tinta**.
 
 ### Colores corporativos
 
-Fuente de verdad: [`ui/theme/Color.kt`](./composeApp/src/commonMain/kotlin/io/apptolast/paparcar/ui/theme/Color.kt).
+Fuente de verdad: [`ui/theme/Color.kt`](./shared/src/commonMain/kotlin/com/rndeveloper/paparcar/ui/theme/Color.kt).
 
 <p align="center">
   <img src="docs/assets/brand-palette.svg" width="844" alt="Paleta de marca Paparcar"/>
@@ -72,7 +72,7 @@ Fuente de verdad: [`ui/theme/Color.kt`](./composeApp/src/commonMain/kotlin/io/ap
 ### Tipografía — 3 familias por rol (`PaparcarType`)
 
 La familia y el tamaño son propiedad del **rol** del texto, nunca del widget
-([`ui/theme/PaparcarType.kt`](./composeApp/src/commonMain/kotlin/io/apptolast/paparcar/ui/theme/PaparcarType.kt), 18 roles):
+([`ui/theme/PaparcarType.kt`](./shared/src/commonMain/kotlin/com/rndeveloper/paparcar/ui/theme/PaparcarType.kt), 18 roles):
 
 | Familia | Uso | Roles ejemplo |
 |---------|-----|---------------|
@@ -176,8 +176,8 @@ Flujo de entrada: Splash → Auth → VehicleRegistration → Onboarding → Per
 ## Estructura del proyecto
 
 ```
-composeApp/
-├── src/commonMain/kotlin/io/apptolast/paparcar/
+shared/                 KMP — toda la lógica de producto
+├── src/commonMain/kotlin/com/rndeveloper/paparcar/
 │   ├── domain/         Kotlin puro — entidades, UseCases (evaluadores de detección incluidos)
 │   ├── data/           Repos + Room + Firestore + mappers + reconcile LWW
 │   ├── presentation/   ViewModels MVI + screens Compose
@@ -186,7 +186,11 @@ composeApp/
 │   └── di/             Módulos Koin
 ├── src/androidMain/    detection/, location/, bluetooth/, geofence/, notification/, worker/
 ├── src/iosMain/        CLLocation, CMMotion, CoreBluetooth (wiring pendiente)
-└── src/androidMock/    Dev Catalog — modo demo sin backend (res/manifest en src/mock/)
+└── src/androidUnitTest/  Tests unitarios Android (Konsist, Robolectric, workers)
+
+app/                    Shell Android — entry points, manifest, res, flavors, firma
+├── src/main/           MainActivity, PaparcarApp, AppNotificationManagerImpl, res/
+└── src/mock/           Dev Catalog — modo demo sin backend (kotlin + res/manifest)
 
 iosApp/                 SwiftUI shell (delegado a Compose vía MainViewController)
 ```
@@ -204,7 +208,7 @@ dispositivo: launcher propio (`DevMainActivity`) con escenarios de sesión/permi
 tarea (regla ⛔ en [`CLAUDE.md`](./CLAUDE.md)).
 
 ```bash
-./gradlew :composeApp:assembleMockDebug
+./gradlew :app:assembleMockDebug
 ```
 
 ---
@@ -219,7 +223,7 @@ tarea (regla ⛔ en [`CLAUDE.md`](./CLAUDE.md)).
 ### Setup
 
 1. `git clone ...`
-2. Añadir `composeApp/google-services.json` (Firebase Console → Project settings)
+2. Añadir `app/google-services.json` (Firebase Console → Project settings)
 3. Crear `local.properties` con:
    ```properties
    MAPS_API_KEY=AIza...
@@ -229,8 +233,8 @@ tarea (regla ⛔ en [`CLAUDE.md`](./CLAUDE.md)).
    `RELEASE_KEYSTORE_PASSWORD`, `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD`
 5. Compilar:
    ```bash
-   ./gradlew :composeApp:assembleProdDebug   # app real (Firebase/OAuth)
-   ./gradlew :composeApp:assembleMockDebug   # Dev Catalog (sin backend)
+   ./gradlew :app:assembleProdDebug   # app real (Firebase/OAuth)
+   ./gradlew :app:assembleMockDebug   # Dev Catalog (sin backend)
    ```
    > ⚠️ En Windows no hay `gradlew.bat`: usa Git Bash (`./gradlew`), no PowerShell.
 

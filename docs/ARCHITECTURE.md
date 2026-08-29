@@ -101,7 +101,7 @@ ConfirmParkingUseCase
 ## Estructura de paquetes
 
 ```
-io.apptolast.paparcar
+com.rndeveloper.paparcar
 ├── domain/                          (commonMain, Kotlin puro, sin Android)
 │   ├── model/                       Spot, Vehicle, UserParking, Zone,
 │   │                                ParkingConfidence, ParkingSignals,

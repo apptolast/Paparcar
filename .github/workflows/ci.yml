@@ -45,7 +45,7 @@ jobs:
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
           GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
         run: |
-          echo "$GOOGLE_SERVICES_JSON" > composeApp/google-services.json
+          echo "$GOOGLE_SERVICES_JSON" > app/google-services.json
           echo "GOOGLE_WEB_CLIENT_ID=$GOOGLE_WEB_CLIENT_ID" > local.properties
           echo "MAPS_API_KEY=mock_key" >> local.properties
 
@@ -56,15 +56,15 @@ jobs:
       # ambiguous and the suite (incl. Konsist guardrails) never actually ran in CI. Build BOTH
       # flavors' compilation (mock catches DI/fake drift that prod hides) and run the prod suite.
       - name: Build Check
-        run: ./gradlew :composeApp:assembleProdDebug :composeApp:compileMockDebugKotlinAndroid --no-daemon --stacktrace
+        run: ./gradlew :app:assembleProdDebug :app:compileMockDebugKotlin --no-daemon --stacktrace
 
       - name: Run unit tests
-        run: ./gradlew :composeApp:testProdDebugUnitTest --no-daemon --stacktrace
+        run: ./gradlew :shared:testDebugUnitTest --no-daemon --stacktrace
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: test-results
-          path: composeApp/build/reports/tests/
+          path: shared/build/reports/tests/
           retention-days: 7

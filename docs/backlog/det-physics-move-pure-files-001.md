@@ -30,7 +30,7 @@ el techo peatonal, y la monotonía.
 El diff contra la línea base reportó **5 tests desaparecidos**:
 
 ```
-io.apptolast.paparcar.domain.detection.SpeedBandClockTest :: should_creditTheGap_when_...
+com.rndeveloper.paparcar.domain.detection.SpeedBandClockTest :: should_creditTheGap_when_...
    (y 4 más)
 ```
 

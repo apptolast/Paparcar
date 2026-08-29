@@ -39,7 +39,7 @@ Los invariantes van en UN sitio.
 Al cambiar el significado de una señal (qué cuenta como conducción, como egress, como armado…):
 
 ```bash
-grep -rn "<señal / helper / flag>" composeApp/src --include=*.kt
+grep -rn "<señal / helper / flag>" shared/src app/src --include=*.kt
 ```
 
 Clasificar **cada** hit en el doc del ticket: `cerrado` / `cubierto por convergencia` /
@@ -58,8 +58,8 @@ Clasificar **cada** hit en el doc del ticket: `cerrado` / `cubierto por converge
 - Ejecutar la suite completa antes de dar nada por hecho (vía Bash, **no** PowerShell —
   el repo no tiene `gradlew.bat`):
   ```bash
-  ./gradlew :composeApp:testProdDebugUnitTest --console=plain
-  ./gradlew :composeApp:testMockDebugUnitTest --tests "io.apptolast.paparcar.domain.coordinator.*" --console=plain
+  ./gradlew :shared:testDebugUnitTest --console=plain
+  ./gradlew :shared:testDebugUnitTest --tests "com.rndeveloper.paparcar.domain.coordinator.*" --console=plain
   ```
 - Reportar el número de tests verdes en el resumen (el user lo usa como referencia entre sesiones).
 
@@ -76,10 +76,10 @@ abiertas) → **MOVERLO**, no duplicarlo.
 
 **b) Dev Catalog / galería de estados** — si el cambio introduce pantalla, estado MVI, variante
 (loading/empty/error/modo) o condición que afecte al routing:
-- `ScreenGroup` nuevo en `composeApp/src/androidMock/.../dev/StateGalleryScreen.kt`, llamando a
+- `ScreenGroup` nuevo en `app/src/mock/.../dev/StateGalleryScreen.kt`, llamando a
   `XxxContent(state=…)` y espejando su `*Previews.kt`.
 - Condición de routing → `MockScenario` + el fake que la lee + preset/control en `DevCatalogScreen.kt`.
-- Verificar `./gradlew :composeApp:assembleMockDebug` y que prod no se rompe.
+- Verificar `./gradlew :app:assembleMockDebug` y que prod no se rompe.
 
 **c) `docs/backlog/<ticket>.md`** — actualizado en tiempo real, no al final.
 

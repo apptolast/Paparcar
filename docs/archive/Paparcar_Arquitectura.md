@@ -132,7 +132,7 @@
 Paparcar/
 ├── composeApp/
 │   └── src/
-│       ├── commonMain/kotlin/io/apptolast/paparcar/
+│       ├── commonMain/kotlin/com/rndeveloper/paparcar/
 │       │   ├── presentation/
 │       │   │   ├── base/
 │       │   │   │   └── BaseViewModel.kt
@@ -203,7 +203,7 @@ Paparcar/
 │       │       ├── DomainModule.kt
 │       │       └── DataModule.kt
 │       │
-│       ├── androidMain/kotlin/io/apptolast/paparcar/
+│       ├── androidMain/kotlin/com/rndeveloper/paparcar/
 │       │   ├── detection/
 │       │   │   ├── AccelerometerManager.kt
 │       │   │   ├── ActivityRecognitionManager.kt      ← INTERFAZ androidMain
@@ -221,7 +221,7 @@ Paparcar/
 │       │   └── di/
 │       │       └── AndroidDetectionModule.kt
 │       │
-│       └── iosMain/kotlin/io/apptolast/paparcar/
+│       └── iosMain/kotlin/com/rndeveloper/paparcar/
 │           ├── detection/
 │           │   └── IosLocationDataSource.kt           ← implementa PlatformLocationDataSource
 │           └── db/

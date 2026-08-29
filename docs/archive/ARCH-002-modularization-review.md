@@ -89,7 +89,7 @@ Three or four Gradle modules. Suggested split:
 `:domain` is pure Kotlin (no Android, no Compose). `:data` depends on `:domain`. `:presentation` depends on `:domain` (NEVER on `:data` — repos are resolved by interface from `:domain`). `:composeApp` depends on all three and binds them via Koin.
 
 **Pros:**
-- The "discipline gap" becomes a compile error: `presentation` literally cannot `import io.apptolast.paparcar.data.…`. Same for the reverse. The boundary is enforced by the toolchain, not by a linter you might disable.
+- The "discipline gap" becomes a compile error: `presentation` literally cannot `import com.rndeveloper.paparcar.data.…`. Same for the reverse. The boundary is enforced by the toolchain, not by a linter you might disable.
 - Incremental builds get faster: editing a use case in `:domain` recompiles `:domain` + consumers only, not the whole presentation layer. With Gradle's parallel module compilation, this scales much better than IC inside a single module as the codebase grows.
 - `:domain` becomes a candidate for a published artifact later (e.g. if you ever want to share business rules with a backend or a CLI).
 - Forces awareness when adding cross-module dependencies — a deliberate `api`/`implementation` choice, which leads to cleaner public surfaces.

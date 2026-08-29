@@ -64,7 +64,7 @@ json/csv de campo en el repo** (el barrido solo encontró schemas de Room y conf
 
 ⚠️ **Corrección al 24-08 sobre la fuente.** Este doc daba por supuesto que la telemetría cruda vive
 en Firestore `diagnostics/`. **Hay una segunda fuente, y a veces es la única**: el
-`parkdiag.log` del propio móvil (`adb exec-out run-as io.apptolast.paparcar cat files/parkdiag.log`).
+`parkdiag.log` del propio móvil (`adb exec-out run-as com.rndeveloper.paparcar cat files/parkdiag.log`).
 Las tres trazas del 22-08 salieron de ahí porque **la sesión del Oppo de esa noche nunca llegó
 íntegra a Firestore** (el móvil murió de batería). El log rota una sola vez, así que la ventana es
 finita: el 24-08 todavía alcanzaba el 08-22 14:08 en los dos aparatos. Receta de transcripción y
@@ -72,7 +72,7 @@ base de epoch, en `docs/backlog/det-2208-trips-become-replays-001.md`.
 
 ## 2 · Inventario de tests del subsistema
 
-`composeApp/src/commonTest/kotlin/io/apptolast/paparcar/…` (nº de `@Test`):
+`shared/src/commonTest/kotlin/com/rndeveloper/paparcar/…` (nº de `@Test`):
 
 | Fichero | Cubre | Tests |
 |---|---|---|
@@ -133,7 +133,7 @@ Tags de detección fijados por tests FUERA del subsistema (cuentan como cubierto
 ## 3 · Matriz tag → test(s) → escenario de campo
 
 Leyenda: ✅ = con test que menciona el tag · 🔴 = sin ningún test. "Producción" = primera
-ubicación (`composeApp/src/{commonMain,androidMain}/kotlin/io/apptolast/paparcar/` + fichero:línea).
+ubicación (`shared/src/{commonMain,androidMain}/kotlin/com/rndeveloper/paparcar/` + fichero:línea).
 Escenario: de comentarios de traza/test o de `docs/backlog/`; «backlog» = existe
 `docs/backlog/<tag>.md` con el contexto; — = escenario NO VERIFICADO en esta pasada.
 

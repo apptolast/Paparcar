@@ -1,6 +1,8 @@
 # ARCH-HEALTH-001 — Auditoría de salud del código + plan de limpieza por fases
 
-**Estado:** 🔵 Abierto — plan por fases, ninguna fase ejecutada bajo este ticket.
+**Estado:** 🔵 Abierto — plan por fases. **F7 (split `:app`+`:shared`) ✅ EJECUTADA el 29-08-2026**
+junto con el rename del paquete a `com.rndeveloper.paparcar`; el resto de fases siguen pendientes
+de go-ahead una por una, y F8 sigue pospuesta sine die.
 
 > ## ⚠️ Revisión 2026-08-27 — este plan se escribió ANTES del refactor F6 de detección
 >
@@ -149,10 +151,50 @@ Ejecutar en orden; pedir go-ahead por fase.
   Invariante: la cache local emite primero; el `.catch{}` del stream remoto se preserva.
   Device-test entre repositorio y repositorio. Done por repo = tests repo verdes + smoke.
 
-- [ ] **F7 — Split `:app` + `:shared` (L, riesgo medio) — DIFERIDA**
-  Disparador: subida de AGP que convierta los warnings en bloqueo. Elimina
-  `android.builtInKotlin=false` / `android.newDsl=false`. El árbol de paquetes se mueve
-  intacto; mock flavor queda en `:app`.
+- [x] **F7 — Split `:app` + `:shared` (L, riesgo medio) — ✅ HECHA (2026-08-28)**
+  Ejecutada junto con el renombrado de paquete `io.apptolast.paparcar` →
+  `com.rndeveloper.paparcar` (namespace + applicationId + árbol de fuentes; app nueva
+  registrada en Firebase pap-26 con las mismas SHA y `google-services.json` regenerado).
+  - `:shared` = KMP con `com.android.library` + `androidTarget()`; tests en `androidUnitTest`
+    (`:shared:testDebugUnitTest`). `:app` = `com.android.application` + KGP android.
+  - ⚠️ **Los flags `android.builtInKotlin=false` / `android.newDsl=false` SIGUEN puestos, y F7
+    NO los elimina.** Era su disparador declarado, así que conviene decirlo claro. El intento
+    con el plugin recomendado por AGP 9 (`com.android.kotlin.multiplatform.library`) compiló,
+    pasó los 1.762 tests y **murió en el primer frame en el Redmi**: Compose Multiplatform
+    1.12.0 registra `copyAndroidMainComposeResourcesToAndroidAssets` sin `outputDirectory`
+    para ese plugin, y los 35 composeResources del módulo (16 drawables, 10 fuentes, los 9
+    locales de strings) desaparecían del APK sin un solo aviso —
+    `MissingResourceException: …/drawable/paparcar_logo_dark.xml`. Cablearlo a mano se
+    descartó: es exactamente la clase de fontanería que vuelve a romperse en silencio.
+    **Lo que F7 sí elimina** es la causa original de los flags —KMP y
+    `com.android.application` en el MISMO módulo—; lo que queda es la incompatibilidad
+    `com.android.library` + KMP, que se destapa sola cuando Compose MP soporte el plugin
+    nuevo (el cambio son dos líneas en `shared/build.gradle.kts`).
+  - Frontera: `BuildConfig` vive en `:app`; shared lee build facts vía `AppBuildInfo`
+    (seteado por ambas Application antes de Koin) y el expect `isDebugBuild`.
+    `AppNotificationManagerImpl` (usa `R.*` y `MainActivity`) se mudó a `:app` con sus
+    3 bindings en `appModule`. Mock flavor en `app/src/mock/` (composables de la galería
+    publicizados: `internal` cross-módulo ya no aplica).
+  - El manifest completo queda en `:app` con nombres relativos: resuelven contra el
+    namespace `com.rndeveloper.paparcar`, que sigue siendo el paquete Kotlin de shared.
+  - Barrido: CI workflows, skills, README, CLAUDE.md, docs vivos, Xcode
+    (`:shared:embedAndSignAppleFrameworkForXcode`), `.gitignore` (`!shared/schemas/`),
+    schema Room regenerado bajo el FQCN nuevo. **1.762 tests verdes**; prod+mock ensamblan.
+  - 🔁 **RECOMPUTADO sobre master `4059eb55` (29-08), no rebaseado.** El primer intento vivía
+    sobre `866ca62d` y master avanzó 22 commits: un `git rebase` habría dado 136 conflictos
+    rename/modify + 6 rename/delete, y —lo grave— habría dejado **19 ficheros nuevos de master
+    huérfanos en `composeApp/`** (uploader de diagnósticos, `LocaleUnits`, `locales_config.xml`,
+    el trace de replay del 28-08…), que git reporta como limpios porque el commit del rename no
+    los menciona. Como el trabajo es 93% mecánico, se re-ejecutaron los pasos sobre master y se
+    portaron literal los ficheros escritos a mano. Verificado por construcción: el conjunto de
+    ficheros del árbol nuevo == el del intento anterior − los 6 que master borró + los 46 que
+    master añadió. Doctrina: la misma de DET-PACKAGE-CLUSTERS-001 — *recomputar, no resolver
+    a mano*.
+  - ⚠️ Pendientes externos: ✅ secret CI `GOOGLE_SERVICES_JSON` ya actualizado (JSON oficial con
+    los 3 paquetes, así compilan también las ramas viejas); queda restringir la Maps key en GCP
+    al paquete nuevo, y en los móviles la app vieja `io.apptolast.paparcar` queda instalada en
+    paralelo (desinstalarla a mano: dos apps detectando a la vez). iOS: klib no compilable en
+    Windows — validará el compañero, y el bundle id de iosApp no cambia en este ticket.
 
 - [ ] **F8 — Coordinator (L, riesgo alto) — POSPUESTA sine die**
   Extraer transiciones de fase de `CoordinatorParkingDetector` a evaluadores puros, con
@@ -163,3 +205,6 @@ Ejecutar en orden; pedir go-ahead por fase.
 | Fecha | Fase | Resultado |
 |---|---|---|
 | 2026-07-27 | Spec | Auditoría completada, plan aprobado, rama creada |
+| 2026-08-28 | F7 | Split `:app`+`:shared` + rename a `com.rndeveloper.paparcar`; 1.707 tests verdes, workarounds AGP eliminados |
+| 2026-08-29 | F7 | Recomputado sobre master `4059eb55` (22 commits nuevos) en vez de rebasar; 1.762 tests verdes |
+| 2026-08-29 | F7 | Verificado EN DEVICE (Redmi): el plugin KMP-library de AGP 9 vaciaba los composeResources del APK → `:shared` vuelve a `com.android.library`; los 2 flags de compatibilidad se quedan, documentados |

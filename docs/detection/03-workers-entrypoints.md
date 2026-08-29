@@ -1,7 +1,7 @@
 # 03 · Inventario de workers, servicios, receivers y entrypoints — y mapa de carreras
 
 > Subagente C · refactor de solo-lectura · 2026-08-18. Fuentes: lectura íntegra de
-> `composeApp/src/androidMain/.../detection/**`, `.../bluetooth/**` y `AndroidManifest.xml`.
+> `shared/src/androidMain/.../detection/**`, `.../bluetooth/**` y `AndroidManifest.xml`.
 > Todo lo no confirmado con código está marcado **NO VERIFICADO**.
 
 ## 1 · Inventario de actores (39)
@@ -65,7 +65,7 @@
 | `AndroidBluetoothScanner` | Bonded devices + estado conectado (lee `BtConnectionStore`) | — | — |
 | `BtConnectionStore` | Última conexión + set conectado-ahora por vehicleId | Prefs `bt_identity` | Escribe el receiver, leen el safety-net y el strategy resolver |
 
-### 1.5 Manifest (`composeApp/src/androidMain/AndroidManifest.xml`)
+### 1.5 Manifest (`app/src/main/AndroidManifest.xml`)
 
 - Servicios: `CoordinatorDetectionService` y `BluetoothDetectionService`, ambos `foregroundServiceType="location"`, `exported="false"` (`:65-76`).
 - Receivers: `ActivityTransitionReceiver` (exported, permiso GMS AR), `BootCompletedReceiver` (BOOT + MY_PACKAGE_REPLACED), `BluetoothConnectionReceiver` (exported + permiso BLUETOOTH_CONNECT — obligatorio, el stack BT no entrega a no-exportados [DET-BT-RECEIVER-EXPORT-001]), `GeofenceEnterReceiver`, `GeofenceExitWitnessReceiver`, `ExactHeartbeatReceiver` (explícitos, sin filter), `ParkingConfirmationReceiver` (filter con 4 acciones).

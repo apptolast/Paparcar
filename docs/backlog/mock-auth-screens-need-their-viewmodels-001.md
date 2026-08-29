@@ -11,7 +11,7 @@ en el login: la app se cae en el acto ("Paparcar keeps stopping"). Medido en el 
 
 ```
 FATAL EXCEPTION: main
-Process: io.apptolast.paparcar.mock
+Process: com.rndeveloper.paparcar.mock
 org.koin.core.error.NoDefinitionFoundException: No definition found for type
 'com.apptolast.customlogin.presentation.screens.register.RegisterViewModel' on scope '['_root_']'
 ```

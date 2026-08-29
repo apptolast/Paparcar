@@ -1,0 +1,26 @@
+package com.rndeveloper.paparcar.detection
+
+import android.content.Context
+import androidx.work.ExistingWorkPolicy
+import androidx.work.WorkManager
+import com.rndeveloper.paparcar.detection.worker.EnrichParkingSessionWorker
+import com.rndeveloper.paparcar.domain.service.ParkingEnrichmentScheduler
+
+/**
+ * Android implementation of [ParkingEnrichmentScheduler] backed by WorkManager.
+ *
+ * Uses [ExistingWorkPolicy.REPLACE] so a duplicate enqueue (e.g. after process restart)
+ * always runs with the latest coordinates.
+ */
+class WorkManagerParkingEnrichmentScheduler(
+    private val context: Context,
+) : ParkingEnrichmentScheduler {
+
+    override fun enqueueEnrichSession(sessionId: String, lat: Double, lon: Double) {
+        WorkManager.getInstance(context).enqueueUniqueWork(
+            "${EnrichParkingSessionWorker.TAG}_$sessionId",
+            ExistingWorkPolicy.REPLACE,
+            EnrichParkingSessionWorker.buildRequest(sessionId, lat, lon),
+        )
+    }
+}

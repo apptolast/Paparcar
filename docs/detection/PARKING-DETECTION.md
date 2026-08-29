@@ -437,7 +437,7 @@ If the process is killed between parking confirmation and the geofence exit, the
 
 ### 1.8 Diagnostic logging — `PARKDIAG`
 
-Debug builds enable `FileAntilog` (`composeApp/src/androidMain/.../logging/FileAntilog.kt`). Every Napier log line tagged `PARKDIAG/*` is appended to `${context.filesDir}/parkdiag.log` (5 MB rotating). Tags used:
+Debug builds enable `FileAntilog` (`shared/src/androidMain/.../logging/FileAntilog.kt`). Every Napier log line tagged `PARKDIAG/*` is appended to `${context.filesDir}/parkdiag.log` (5 MB rotating). Tags used:
 
 - `PARKDIAG/Service` — `CoordinatorDetectionService` lifecycle.
 - `PARKDIAG/Coord` — `CoordinatorParkingDetector` state transitions.
@@ -448,8 +448,8 @@ Debug builds enable `FileAntilog` (`composeApp/src/androidMain/.../logging/FileA
 Pulling logs from the device:
 
 ```bash
-adb shell run-as io.apptolast.paparcar cat files/parkdiag.log > <local-path>
-adb shell run-as io.apptolast.paparcar cat files/parkdiag.log.old > <local-path-old>
+adb shell run-as com.rndeveloper.paparcar cat files/parkdiag.log > <local-path>
+adb shell run-as com.rndeveloper.paparcar cat files/parkdiag.log.old > <local-path-old>
 ```
 
 See `diagnostics/README.md` at the repo root for the recommended layout when archiving captures.
@@ -649,7 +649,7 @@ The `hasDetectedMovement`-based guard inside the COORDINATOR strategy branch was
 **Field validation.** New log line `↻ IN_VEHICLE_ENTER ignored — already IN (AR noise debounce)` makes the debounce visible in `parkdiag.log` — the next field test confirms whether the duplicate-ENTER bursts are now absorbed. No unit test was added; Robolectric-wrapping the foreground service to exercise this 4-line state machine has a poor cost/benefit when the log line is unambiguous.
 
 **Files touched.**
-- `composeApp/src/androidMain/.../detection/service/CoordinatorDetectionService.kt` — state field, enum, debounce check in ENTER branch, OUT reset in EXIT branch, removal of stale `hasDetectedMovement` guard in COORDINATOR.
+- `shared/src/androidMain/.../detection/service/CoordinatorDetectionService.kt` — state field, enum, debounce check in ENTER branch, OUT reset in EXIT branch, removal of stale `hasDetectedMovement` guard in COORDINATOR.
 
 `hasDetectedMovement` itself is still used by the `ACTION_START_TRACKING` path and by the coordinator's internal `maxNoMovementMs` guard, so it stays on `CoordinatorParkingDetector`.
 
@@ -2761,7 +2761,7 @@ Mechanical clean-up of the three classes that own the detection runtime: `Coordi
 
 - **M1 — `collectLatest` → `collect` in coordinator.** The inner per-location block has no suspending I/O that should be cancelled when a newer fix arrives, so `collectLatest` was adding cancellation hazards (notifications could be cancelled mid-flight) without any benefit. With `collect`, each fix runs to completion before the next is processed, and the `withContext(NonCancellable) { notifyParkingConfirmation(...) }` workarounds added earlier became dead weight and were removed.
 - **M2 — atomic state snapshot.** `_detectionState.update { ... }` followed by `val state = _detectionState.value` is racy: between the two lines another collector could mutate the state. Replaced with `val state = _detectionState.updateAndGet { ... }`, which returns the post-update snapshot atomically.
-- **M3 — shared label helpers.** `activityLabel(Int)` and `transitionLabel(Int)` were duplicated inline in `CoordinatorDetectionService` and `ActivityTransitionReceiver`. Extracted to `composeApp/src/androidMain/.../detection/ActivityRecognitionLabels.kt` (internal helpers).
+- **M3 — shared label helpers.** `activityLabel(Int)` and `transitionLabel(Int)` were duplicated inline in `CoordinatorDetectionService` and `ActivityTransitionReceiver`. Extracted to `shared/src/androidMain/.../detection/ActivityRecognitionLabels.kt` (internal helpers).
 - **M4 — co-locate PendingIntent request codes.** `REQUEST_CODE = 101` lived in `ActivityTransitionReceiver` and was referenced by `ActivityRecognitionManagerImpl` — non-obvious coupling. Moved to `ActivityRecognitionManagerImpl.companion` as `STILL_REQUEST_CODE` alongside `VEHICLE_REQUEST_CODE`, with a comment explaining why both codes must remain distinct (`FLAG_UPDATE_CURRENT` would otherwise collide).
 - **C2 — `guardPermissions(actionLabel)` helper in the service.** The same three-line "check permissions → showPermissionRevoked → stopSelf → return false" appeared inline in START_TRACKING, ACTION_VEHICLE_TRANSITION, and IN_VEHICLE_ENTER paths. Consolidated into a single method; call sites now read `if (!guardPermissions("LABEL")) return …`.
 
@@ -5238,7 +5238,7 @@ The default pull is no longer "the active file, plus `.old` if there is one" but
 concatenated oldest-first into one chronological file — an incident can straddle a rotation boundary:
 
 ```
-adb shell run-as io.apptolast.paparcar sh -c \
+adb shell run-as com.rndeveloper.paparcar sh -c \
   'cat files/parkdiag.log.5 files/parkdiag.log.4 files/parkdiag.log.3 \
        files/parkdiag.log.2 files/parkdiag.log.1 files/parkdiag.log 2>/dev/null' > parkdiag-full.log
 ```

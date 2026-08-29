@@ -114,7 +114,7 @@ existe. Y con `minSdk 26`, tampoco existe para la mayoría del parque real.
 Experimento en el Oppo, con el Focus aparcado y su valla viva:
 
 ```
-adb shell am force-stop io.apptolast.paparcar
+adb shell am force-stop com.rndeveloper.paparcar
 dumpsys package …                    → stopped=true          (entró de verdad en stopped)
 adb shell am start -n …/.MainActivity                        (lo saca de stopped)
 logcat -b all | grep BOOT_COMPLETED  → (vacío)                NO se entregó nada

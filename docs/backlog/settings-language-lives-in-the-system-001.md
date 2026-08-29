@@ -14,7 +14,7 @@ Ajustes → Apariencia → Idioma guardaba la elección y no cambiaba nada. Medi
 |---|---|
 | Elegir *English* en la app | label "English" ✅, `logcat`: `Schedule relaunch activity` ✅ |
 | La UI tras recrearse | **sigue en español** ❌ |
-| `adb shell cmd locale get-app-locales io.apptolast.paparcar` | `[]` — el sistema no tiene locale de la app |
+| `adb shell cmd locale get-app-locales com.rndeveloper.paparcar` | `[]` — el sistema no tiene locale de la app |
 | `adb shell cmd locale set-app-locales … --locales en` | la app se traduce **entera** al instante ✅ |
 
 **Causa** (leída en el fuente de AppCompat 1.8.0):
@@ -84,7 +84,7 @@ hablamos, no construir el selector.*
 
 - `compileProdDebugKotlinAndroid` + `compileMockDebugKotlinAndroid` + `assembleMockDebug` ✅
 - `testProdDebugUnitTest` completo ✅
-- `am start -a android.settings.APP_LOCALE_SETTINGS -d package:io.apptolast.paparcar` → **Android
+- `am start -a android.settings.APP_LOCALE_SETTINGS -d package:com.rndeveloper.paparcar` → **Android
   abre "Idioma de la aplicación" para Paparcar** con *Predeterminado del sistema* marcado y la
   lista de idiomas declarados ✅ (antes de este ticket esa pantalla no tenía nada que ofrecer)
 - Elegir *English (United Kingdom)* → `get-app-locales` devuelve `[en-GB]` y **la app arranca

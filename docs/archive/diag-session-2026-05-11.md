@@ -19,7 +19,7 @@ Branch names follow the project convention (`bugfix/PREFIX-NNN-…`, `feature/PR
 **Priority:** High — directly degrades the core product (wrong spot saved).
 **Reproducible on:** Redmi Note 11 (master) and Samsung A53 (master), tests on 2026-05-11. Saved spot was the user's home (~5 m from front door) instead of the actual parking position a few hundred metres away. Same symptom on both devices → not an OEM quirk, a coordinator-logic bug.
 
-**Where:** `composeApp/src/commonMain/kotlin/io/apptolast/paparcar/domain/coordinator/ParkingDetectionCoordinator.kt:251-283` — `updateStopTracking`.
+**Where:** `composeApp/src/commonMain/kotlin/com/rndeveloper/paparcar/domain/coordinator/ParkingDetectionCoordinator.kt:251-283` — `updateStopTracking`.
 
 **What:** `bestStopLocation` is updated for the entire duration of the stop (any GPS fix with `speed < STOPPED_SPEED_THRESHOLD_MPS = 1 m/s` and better `accuracy` overwrites the running best). The sibling `stoppedFixes` list IS gated to `initialStopWindowMs = 30 s`, but `bestStopLocation` is not. Walking speed (~1.4 m/s) is below `clearBestStopSpeedMps = 2.5 m/s`, so walking from the car to the user's destination does **not** reset the candidate location — it shadows it with whatever the user's new GPS reads when they sit down at home.
 
@@ -36,7 +36,7 @@ Branch names follow the project convention (`bugfix/PREFIX-NNN-…`, `feature/PR
 **Priority:** Low — does not break functionality, but it kills reliability-based analytics.
 **Evidence:** Database Inspector dump on 2026-05-05 — every row in `parking_sessions` had `detectionReliability = NULL`, including new ones written by the current coordinator.
 
-**Where:** `composeApp/src/commonMain/kotlin/io/apptolast/paparcar/data/mapper/ParkingSessionMapper.kt:53-70` — `UserParking.toEntity()`.
+**Where:** `composeApp/src/commonMain/kotlin/com/rndeveloper/paparcar/data/mapper/ParkingSessionMapper.kt:53-70` — `UserParking.toEntity()`.
 
 **What:** The domain → entity mapper omits `detectionReliability = detectionReliability`. The entity falls back to its default (`null`). The reverse mapping (`UserParkingEntity.toDomain`) and the Firestore-DTO mapping (`ParkingHistoryDto.toEntity`) DO map it. Pre-existing bug — not introduced this week.
 
@@ -60,8 +60,8 @@ Branch names follow the project convention (`bugfix/PREFIX-NNN-…`, `feature/PR
 **Evidence:** All `parking_sessions` rows on the OPPO have `vehicleId = NULL`. The new "Mis Vehículos" screen filters with `observeSessionsByVehicle(vehicleId)` so legacy rows never appear anywhere.
 
 **Where:**
-- Migration: `composeApp/src/androidMain/kotlin/io/apptolast/paparcar/di/AndroidPlatformModule.kt` — `MIGRATION_9_10` adds the column nullable, no backfill.
-- Filter: `composeApp/src/commonMain/kotlin/io/apptolast/paparcar/data/datasource/local/room/UserParkingDao.kt:30-31` — `observeByVehicle`.
+- Migration: `composeApp/src/androidMain/kotlin/com/rndeveloper/paparcar/di/AndroidPlatformModule.kt` — `MIGRATION_9_10` adds the column nullable, no backfill.
+- Filter: `composeApp/src/commonMain/kotlin/com/rndeveloper/paparcar/data/datasource/local/room/UserParkingDao.kt:30-31` — `observeByVehicle`.
 
 **Fix:** Backfill at first launch post-migration: rows with `vehicleId = NULL` get assigned to the user's `isDefault = true` vehicle. If no default exists, fall back to the only vehicle (single-vehicle accounts). If multiple vehicles and no default, leave NULL and surface them in an "Unassigned" tab (see 3.b). Idempotent — re-runs are no-ops.
 
@@ -78,7 +78,7 @@ Made obsolete by DB-001 if you choose to reset the schema before this lands; in 
   - Parking history for that vehicle below, no nested screen, no separate tab.
 - Match Material 3 minimalist style: tonal containers over shadow elevation, generous spacing, no redundant titles per section.
 
-**Where:** `composeApp/src/commonMain/kotlin/io/apptolast/paparcar/presentation/vehicles/` — `VehiclesScreen.kt`, `VehicleDetailScreen.kt`, `VehicleDetailsTab.kt`, plus relevant components in `composeApp/src/commonMain/kotlin/io/apptolast/paparcar/ui/components/VehicleCard.kt` (probably delete or repurpose).
+**Where:** `composeApp/src/commonMain/kotlin/com/rndeveloper/paparcar/presentation/vehicles/` — `VehiclesScreen.kt`, `VehicleDetailScreen.kt`, `VehicleDetailsTab.kt`, plus relevant components in `composeApp/src/commonMain/kotlin/com/rndeveloper/paparcar/ui/components/VehicleCard.kt` (probably delete or repurpose).
 
 **Out of scope for this ticket:** changing the VM contract (`VehiclesViewModel` stays as-is; `HistoryViewModel` reuse per tab as the pager pages need their own scope).
 
@@ -115,7 +115,7 @@ PARKDIAG/Notify ← runBlocking returned, vehicleName=Seat Ibiza     (1.35 s lat
 ```
 That delay was on a stationary, well-fed emulator. On a real device with cold Room, contended IO, or auth-token refresh, this can spike past 5 s and trigger an ANR.
 
-**Where:** `composeApp/src/commonMain/kotlin/io/apptolast/paparcar/domain/usecase/notification/NotifyParkingConfirmationUseCase.kt:14-23`.
+**Where:** `composeApp/src/commonMain/kotlin/com/rndeveloper/paparcar/domain/usecase/notification/NotifyParkingConfirmationUseCase.kt:14-23`.
 
 **What:** The use case is non-suspend; it wraps `vehicleRepository.observeDefaultVehicle().firstOrNull()` in `runBlocking` to read the vehicle name for the notification title. The caller (`ParkingDetectionCoordinator.evaluateConfidence`) is already inside a coroutine — `runBlocking` is gratuitous.
 
@@ -135,8 +135,8 @@ That delay was on a stationary, well-fed emulator. On a real device with cold Ro
 **Trigger:** Pre-production state. No external users have data we need to preserve.
 
 **Where:**
-- `composeApp/src/commonMain/kotlin/io/apptolast/paparcar/data/datasource/local/room/AppDatabase.kt` — version + entities list.
-- `composeApp/src/androidMain/kotlin/io/apptolast/paparcar/di/AndroidPlatformModule.kt` — `MIGRATION_3_4`, `MIGRATION_4_5`, `MIGRATION_5_6`, `MIGRATION_7_8`, `MIGRATION_8_9`, `MIGRATION_9_10`.
+- `composeApp/src/commonMain/kotlin/com/rndeveloper/paparcar/data/datasource/local/room/AppDatabase.kt` — version + entities list.
+- `composeApp/src/androidMain/kotlin/com/rndeveloper/paparcar/di/AndroidPlatformModule.kt` — `MIGRATION_3_4`, `MIGRATION_4_5`, `MIGRATION_5_6`, `MIGRATION_7_8`, `MIGRATION_8_9`, `MIGRATION_9_10`.
 
 **What:** Collapse the Room schema history. Delete all `MIGRATION_*` objects and the `.addMigrations(...)` chain. Reset `@Database(version = N)` to `1` (or whatever number you prefer as the new baseline). Existing devices nuke their DB on next launch via `fallbackToDestructiveMigration(true)` — that flag is already there, so legacy installs reset cleanly. The user will manually wipe accounts + Firestore data to start clean.
 
@@ -279,10 +279,10 @@ That delay was on a stationary, well-fed emulator. On a real device with cold Ro
 - **`PermissionsRationaleScreen.onSkip` removed** — it bypassed the vehicle invariant.
 
 **Where:**
-- `composeApp/src/commonMain/kotlin/io/apptolast/paparcar/presentation/app/SplashViewModel.kt` — extend with startRoute calc.
-- `composeApp/src/androidMain/kotlin/io/apptolast/paparcar/MainActivity.kt` — remove startRoute calc, switch `keepOnScreenCondition` to `splashViewModel.isReady`.
-- `composeApp/src/commonMain/kotlin/io/apptolast/paparcar/App.kt` — drop startRoute param, simplify gate, add `nextRouteAfter`.
-- `composeApp/src/commonMain/kotlin/io/apptolast/paparcar/domain/preferences/AppPreferences.kt` — drop `hasVehicleRegistered` + `setVehicleRegistered`.
+- `composeApp/src/commonMain/kotlin/com/rndeveloper/paparcar/presentation/app/SplashViewModel.kt` — extend with startRoute calc.
+- `composeApp/src/androidMain/kotlin/com/rndeveloper/paparcar/MainActivity.kt` — remove startRoute calc, switch `keepOnScreenCondition` to `splashViewModel.isReady`.
+- `composeApp/src/commonMain/kotlin/com/rndeveloper/paparcar/App.kt` — drop startRoute param, simplify gate, add `nextRouteAfter`.
+- `composeApp/src/commonMain/kotlin/com/rndeveloper/paparcar/domain/preferences/AppPreferences.kt` — drop `hasVehicleRegistered` + `setVehicleRegistered`.
 - `VehicleRegistrationViewModel` and test — drop `setVehicleRegistered` call.
 - `VehiclesViewModel` + `VehiclePageContent` + `VehiclesEffect` — implement translucent-delete + snackbar UX.
 - `composeResources/values*/strings.xml` (×9 locales).
@@ -295,7 +295,7 @@ That delay was on a stationary, well-fed emulator. On a real device with cold Ro
 
 **Priority:** Medium — the form works but feels utilitarian compared to the rest of the post-FLOW-001 first-run flow (Onboarding, PermissionsRationale, VehicleSizeExplainer all share a polished pattern; the registration form does not).
 
-**Where:** `composeApp/src/commonMain/kotlin/io/apptolast/paparcar/presentation/vehicle/VehicleRegistrationScreen.kt`.
+**Where:** `composeApp/src/commonMain/kotlin/com/rndeveloper/paparcar/presentation/vehicle/VehicleRegistrationScreen.kt`.
 
 **Scope:** Visual + UX rework of the form. Keep the existing `VehicleRegistrationViewModel`/State/Intent/Effect contract — this is presentation-only.
 
@@ -330,9 +330,9 @@ That delay was on a stationary, well-fed emulator. On a real device with cold Ro
 **Reproducible on:** Redmi Note 11 + OPPO CPH2371, every cold start since FLOW-001 wired `syncParkingHistoryFromRemote` into the splash bootstrap.
 
 **Where:**
-- `composeApp/src/commonMain/kotlin/io/apptolast/paparcar/data/datasource/remote/dto/ParkingHistoryDto.kt` — DTO has no `vehicleId` field.
-- `composeApp/src/commonMain/kotlin/io/apptolast/paparcar/data/mapper/ParkingSessionMapper.kt:85-118` — `UserParking.toParkingHistoryDto` and `ParkingHistoryDto.toEntity` silently drop `vehicleId`.
-- `composeApp/src/androidMain/kotlin/io/apptolast/paparcar/detection/worker/ParkingSyncWorker.kt:99-141` — `buildRequest` + `Data.toParkingHistoryDto` don't carry `vehicleId` in the work payload.
+- `composeApp/src/commonMain/kotlin/com/rndeveloper/paparcar/data/datasource/remote/dto/ParkingHistoryDto.kt` — DTO has no `vehicleId` field.
+- `composeApp/src/commonMain/kotlin/com/rndeveloper/paparcar/data/mapper/ParkingSessionMapper.kt:85-118` — `UserParking.toParkingHistoryDto` and `ParkingHistoryDto.toEntity` silently drop `vehicleId`.
+- `composeApp/src/androidMain/kotlin/com/rndeveloper/paparcar/detection/worker/ParkingSyncWorker.kt:99-141` — `buildRequest` + `Data.toParkingHistoryDto` don't carry `vehicleId` in the work payload.
 
 **What:** Same mapper-omission pattern as `MAPPER-001` (detection reliability). `vehicleId` is written correctly to Room by `UserParking.toEntity()` on the confirm-parking path, but every Firestore round-trip drops it. On the next cold start, `GetOrCreateUserProfileUseCase` → `syncParkingHistoryFromRemote` → `dao.insert(dto.toEntity())` with `REPLACE` conflict overwrites the local row with `vehicleId = null`. After that, `observeSessionsByVehicle(vehicleId)` matches nothing and the per-vehicle history tab is empty.
 
@@ -358,8 +358,8 @@ That delay was on a stationary, well-fed emulator. On a real device with cold Ro
 **Reproducible on:** Redmi Note 11 (master), 2026-05-12 21:20–21:59 session. PARKDIAG log fragments captured. OPPO CPH2371 is less affected (cleaner GPS) but the bug exists there too.
 
 **Where:**
-- `composeApp/src/commonMain/kotlin/io/apptolast/paparcar/domain/coordinator/ParkingDetectionCoordinator.kt:277-315` — `updateStopTracking` moving branch.
-- `composeApp/src/commonMain/kotlin/io/apptolast/paparcar/domain/model/ParkingDetectionConfig.kt` — new threshold.
+- `composeApp/src/commonMain/kotlin/com/rndeveloper/paparcar/domain/coordinator/ParkingDetectionCoordinator.kt:277-315` — `updateStopTracking` moving branch.
+- `composeApp/src/commonMain/kotlin/com/rndeveloper/paparcar/domain/model/ParkingDetectionConfig.kt` — new threshold.
 
 **What:** When `location.speed >= clearBestStopSpeedMps` the coordinator clears `bestStopLocation`, `vehicleExitConfirmed`, `activityStillDetected`, and `highConfidenceReachedAt` (treating the fix as "the vehicle is driving away"). LOC-001 added the initial-stop window so walking pace (<2.5 m/s) doesn't trip this — but a noisy hardware GPS can hallucinate apparent speed > 2.5 m/s in a single fix while reporting accuracy in the 50–200 m range. That single bad fix nukes the parked-car state. Then a new `initialStopWindow` opens wherever the user eventually sits down (home, café, office) and `bestStopLocation` is re-anchored there.
 

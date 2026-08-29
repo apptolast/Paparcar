@@ -1,0 +1,24 @@
+package com.rndeveloper.paparcar.fakes
+
+import com.rndeveloper.paparcar.domain.geocoder.GeocoderDataSource
+import com.rndeveloper.paparcar.domain.model.AddressInfo
+import com.rndeveloper.paparcar.domain.model.SearchResult
+
+class FakeGeocoderDataSource : GeocoderDataSource {
+
+    var addressResult: Result<AddressInfo> = Result.success(AddressInfo(null, null, null, null))
+    /** Simulates a hung platform geocoder (GmsCore listener that never calls back). */
+    var addressDelayMs: Long = 0
+    var searchResults: Result<List<SearchResult>> = Result.success(emptyList())
+    var lastSearchQuery: String? = null
+
+    override suspend fun getAddress(lat: Double, lon: Double): Result<AddressInfo> {
+        if (addressDelayMs > 0) kotlinx.coroutines.delay(addressDelayMs)
+        return addressResult
+    }
+
+    override suspend fun searchByName(query: String, maxResults: Int): Result<List<SearchResult>> {
+        lastSearchQuery = query
+        return searchResults
+    }
+}

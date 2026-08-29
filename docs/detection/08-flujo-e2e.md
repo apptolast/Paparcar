@@ -13,8 +13,8 @@
 > las líneas citadas AQUÍ son las del árbol actual.
 >
 > Abreviaturas de rutas (heredadas de los parciales):
-> `CDS` = `composeApp/src/androidMain/kotlin/io/apptolast/paparcar/detection/service/CoordinatorDetectionService.kt`
-> `CPD` = `composeApp/src/commonMain/kotlin/io/apptolast/paparcar/domain/coordinator/CoordinatorParkingDetector.kt`
+> `CDS` = `shared/src/androidMain/kotlin/com/rndeveloper/paparcar/detection/service/CoordinatorDetectionService.kt`
+> `CPD` = `shared/src/commonMain/kotlin/com/rndeveloper/paparcar/domain/coordinator/CoordinatorParkingDetector.kt`
 > `EvalPD` = `EvaluateParkingDecisionUseCase.kt` · `EvalUS` = `EvaluateUnattendedParkingSaveUseCase.kt`
 > `EvalHC` = `EvaluateHonestCloseUseCase.kt` · `RunHC` = `RunHonestCloseUseCase.kt`
 > `CPUC` = `ConfirmParkingUseCase.kt` · `EvalSNC` = `EvaluateSafetyNetCheckUseCase.kt`

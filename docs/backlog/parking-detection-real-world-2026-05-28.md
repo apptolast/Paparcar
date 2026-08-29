@@ -86,7 +86,7 @@ Más quirúrgico pero pierde el matiz de `hasDetectedMovement` que servía para 
 - ENTER mientras job activo pero `hasDetectedMovement=false` → no restart (caso de los primeros segundos).
 
 ### Files a tocar
-- `composeApp/src/androidMain/kotlin/io/apptolast/paparcar/detection/service/ParkingDetectionService.kt`
+- `composeApp/src/androidMain/kotlin/com/rndeveloper/paparcar/detection/service/ParkingDetectionService.kt`
 - Tests: nuevo `ParkingDetectionServiceDebounceTest.kt`
 - Doc: `docs/detection/PARKING-DETECTION.md` — sección "Service lifecycle" con el nuevo estado binario.
 
