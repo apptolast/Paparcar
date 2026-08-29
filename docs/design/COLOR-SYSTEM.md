@@ -171,6 +171,7 @@ anillo de TTL recuperado**.
 | Plaza en ruta · traza · origen | `PapLiveMap` (movimiento, solo mapa) |
 | Marcador de mi coche en mapa | tag cuadrado con marco verde/azul/gris según método |
 | CTA | verde `primary`, pastilla rellena |
+| Opción de Tema en Ajustes | círculo con anillo: blanco (`PapCardLight`) / tinta (`PapInk`) / mitad y mitad — es una MUESTRA de la superficie que pintaría, no identidad ni estado |
 
 ---
 
@@ -203,6 +204,12 @@ Test Konsist (`ColorGuardrailTest`, F6), igual que tipografía y dividers:
   `PapLiveMap` queda solo-mapa. Se conservan de v1/v2: resolver único, retiro de `tertiary`,
   MANUAL como procedencia (F5), rampa exclusiva de plazas, tokens AA, guardarraíles.
 - **2026-08-11** — `MANUAL` fuera de `SpotReliabilityUiState` (F5): frescura ≠ procedencia.
+- **2026-08-29 (UI-THEME-OPTION-SHOWS-ITS-THEME-001)** — el selector de Tema es el **único** sitio
+  donde se pinta a propósito el color del tema CONTRARIO: cada opción lleva un círculo con la
+  superficie que aplicaría (`PapCardLight`, `PapInk`, o las dos mitades para *Sistema*), y ocupa el
+  hueco del check de M3 — el relleno `primaryContainer` del segmento ya dice cuál está elegida. No
+  es una excepción a "el color va por historia": ahí el color **es** el dato, un muestrario, igual
+  que en una carta de pinturas. No hay tokens nuevos y no se extiende a ningún otro ajuste.
 - **2026-08-27/28 (episodio cerrado: la v3 se reafirma)** — el user pregunta en device si en la
   ficha BT "chocan los azules con el verde" y si conviene uniformizar cada ficha con su color.
   Se probaron DOS alternativas en el Redmi y se revocaron AMBAS con él delante:

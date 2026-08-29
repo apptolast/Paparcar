@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -105,6 +107,8 @@ import io.apptolast.paparcar.ui.components.PapScrollToTopButton
 import io.apptolast.paparcar.ui.components.PapSwitchRow
 import io.apptolast.paparcar.ui.theme.PapAlpha
 import io.apptolast.paparcar.ui.theme.PapBorders
+import io.apptolast.paparcar.ui.theme.PapCardLight
+import io.apptolast.paparcar.ui.theme.PapInk
 import io.apptolast.paparcar.ui.theme.PaparcarSpacing
 import io.apptolast.paparcar.ui.theme.PapMotion
 import io.apptolast.paparcar.ui.theme.PapShapes
@@ -404,6 +408,8 @@ internal fun SettingsContent(
                                 ),
                                 selected = themeMode,
                                 onSelect = onSetThemeMode,
+                                // Each option wears the colour it will paint the app with.
+                                optionIcon = { mode -> ThemeModeSwatch(mode) },
                             )
                             PapDivider()
                             LanguageDropdownRow(
@@ -830,6 +836,7 @@ private fun <K> SettingsSegmentedRow(
     options: List<Pair<K, String>>,
     selected: K,
     onSelect: (K) -> Unit,
+    optionIcon: @Composable ((K) -> Unit)? = null,
 ) {
     val cs = MaterialTheme.colorScheme
     Column {
@@ -858,10 +865,47 @@ private fun <K> SettingsSegmentedRow(
                     onClick = { onSelect(key) },
                     shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
                     colors = segmentColors,
+                    icon = {
+                        if (optionIcon != null) optionIcon(key)
+                        else SegmentedButtonDefaults.Icon(active = key == selected)
+                    },
                 ) {
                     Text(label, style = PaparcarType.current.label)
                 }
             }
+        }
+    }
+}
+
+/**
+ * The colour a theme option paints the app with: light is the light card's white, dark is the app's
+ * base ink, system is both halves. It stands where M3 puts the selection check — the chosen segment
+ * already says it is chosen (primaryContainer fill + primary border + primary text), so the icon
+ * slot is free to say what each option LOOKS like, on all three at once, before you tap.
+ *
+ * The ring is what keeps the white circle from vanishing into the light card, and the ink one from
+ * vanishing into the dark surface. Decorative: the segment label names the option.
+ * [UI-THEME-OPTION-SHOWS-ITS-THEME-001]
+ */
+@Composable
+private fun ThemeModeSwatch(mode: ThemeMode) {
+    val halves = when (mode) {
+        ThemeMode.LIGHT -> listOf(PapCardLight, PapCardLight)
+        ThemeMode.DARK -> listOf(PapInk, PapInk)
+        ThemeMode.SYSTEM -> listOf(PapCardLight, PapInk)
+    }
+    Row(
+        modifier = Modifier
+            .size(THEME_SWATCH_DP.dp)
+            .clip(CircleShape)
+            .border(
+                width = THEME_SWATCH_RING_DP.dp,
+                color = MaterialTheme.colorScheme.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA),
+                shape = CircleShape,
+            ),
+    ) {
+        halves.forEach { half ->
+            Box(modifier = Modifier.weight(1f).fillMaxHeight().background(half))
         }
     }
 }
@@ -984,4 +1028,8 @@ private val CONTENT_H_PADDING = PaparcarSpacing.lg
 private val CONTENT_V_PADDING = PaparcarSpacing.sm
 
 private const val AVATAR_DP = 56
+
+/** Theme swatch: a dot, not a badge — three segments share one row and the label needs the width. */
+private const val THEME_SWATCH_DP = 14
+private const val THEME_SWATCH_RING_DP = 1
 
