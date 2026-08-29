@@ -86,7 +86,6 @@ internal fun EmptyHistoryState(modifier: Modifier = Modifier) {
         Text(
             stringResource(Res.string.history_empty_title),
             style = PaparcarType.current.cardTitle,
-            fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
         )

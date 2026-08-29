@@ -72,7 +72,6 @@ internal fun DetectionTierStatusCard(
                     Text(
                         text = stringResource(tier.nameRes()),
                         style = PaparcarType.current.cardTitle,
-                        fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                 }

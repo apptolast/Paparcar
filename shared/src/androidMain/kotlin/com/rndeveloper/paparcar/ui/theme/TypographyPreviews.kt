@@ -308,10 +308,10 @@ private fun TypographySampleScreen() {
                     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         Text("28", style = data.statNumber,
                             color = MaterialTheme.colorScheme.primary)
-                        Text("4,2 km", style = data.distance,
+                        Text("4,2 km", style = data.rowDistance,
                             color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.align(Alignment.CenterVertically))
-                        Text("Compacto", style = data.sizeToken,
+                        Text("Compacto", style = data.badge,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                             modifier = Modifier.align(Alignment.CenterVertically))
                     }

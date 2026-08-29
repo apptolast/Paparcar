@@ -71,7 +71,6 @@ fun CarbodyManualPicker(
                     Text(
                         text = stringResource(Res.string.vehicle_registration_carbody_picker_title),
                         style = PaparcarType.current.cardTitle,
-                        fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.weight(1f),
                     )
@@ -117,7 +116,7 @@ private fun SizeHeader(size: VehicleSize) {
             text = size.label().uppercase(),
             // Condensed data slot — size tokens share the sizeBadge recipe app-wide.
             // [HOME-VEH-REFINE-001]
-            style = PaparcarType.current.sizeToken,
+            style = PaparcarType.current.badge,
             color = cs.primary,
             modifier = Modifier.padding(top = 6.dp, bottom = 4.dp),
         )
@@ -166,7 +165,6 @@ private fun CarbodyRow(
             Text(
                 text = body.label(),
                 style = PaparcarType.current.body,
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                 color = cs.onSurface,
             )
         }

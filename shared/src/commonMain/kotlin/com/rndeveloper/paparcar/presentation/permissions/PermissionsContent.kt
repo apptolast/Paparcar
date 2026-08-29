@@ -182,7 +182,6 @@ fun PermissionsContent(
             Text(
                 text = stringResource(Res.string.permissions_title),
                 style = PaparcarType.current.heroTitle,
-                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground,
                 textAlign = TextAlign.Center,
             )

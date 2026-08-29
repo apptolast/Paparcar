@@ -12,36 +12,46 @@ import androidx.compose.ui.unit.sp
 /**
  * Paparcar type system — the SINGLE source of truth for text styling in the feature layer.
  *
- * ## Why this exists
- * We have three families (Outfit / Inter / Barlow Condensed). The mistake that made typography
- * drift was letting each `Text` pick its family/size ad-hoc ("is this data or prose? Outfit or
- * Barlow?"). That question is subjective, so it drifted every time.
+ * ## Three voices, decided by an objective precondition [UI-TYPE-TWO-VOICES-ONE-ROW-001]
+ * The old rule asked *"is this data or prose?"*, and "is this data?" is subjective — so it drifted.
+ * A meta line with room to spare got classified as DATA and rendered condensed next to a name in
+ * Outfit: the two most dissimilar faces of the set, one line apart, at 14 vs 13sp. It read as a
+ * rendering error, not as hierarchy.
  *
- * The rule this file enforces: **the family and size are a property of the text's ROLE, decided
- * once, here.** A screen never chooses a font — it chooses a role. The question stops being
- * subjective ("which font?") and becomes objective ("which role?").
+ * The rule now:
+ * - **Marca · Outfit** — names of real things and titles. *Is it a proper name or a title?*
+ * - **Cifra · Barlow Condensed** — a figure that is the SUBJECT OF ITS OWN BLOCK: the sheet
+ *   counter, the vehicle stat cards, chart axes. *Never inside a line of text.*
+ * - **Lectura · Inter** — everything else: prose, actions, structure, meta lines and taxonomy.
+ *
+ * Measured on device (Redmi, 29-08) before writing this: a figure aligned in a COLUMN does not need
+ * its own family — the column is carried by position and weight. That is why the spot row's distance
+ * token is Inter, and why **Barlow no longer appears in any ROW**. Its only remaining place in Home
+ * is the sheet header's free-spot counter, which is a block of its own and meets the precondition.
  *
  * ## The contract
- * - Feature code (the `presentation` and `ui.components` packages) styles text ONLY with a
- *   `PaparcarType` role: `Text(..., style = type.metadata)`.
+ * - Feature code (`presentation` / `ui.components`) styles text ONLY with a role:
+ *   `Text(..., style = type.rowName)`.
+ * - A role owns **family, size AND weight**. The call site overrides none of the three — only
+ *   `color`, which belongs to the colour doctrine. (Before this ticket, 50 call sites rewrote the
+ *   weight of the role they had just asked for; `rowTitle`'s declared Medium was used by exactly
+ *   zero of them.) Enforced by `TypographyGuardrailTest`.
  * - It does NOT use `MaterialTheme.typography.*` and NEVER sets `fontSize` / `letterSpacing` inline.
  *   If a size is missing, add/adjust a role here — do not override at the call site.
  * - `.uppercase()` stays a caller concern (Compose `TextStyle` has no text-transform). Roles that
- *   are conventionally caps (`sectionHeader`, `badge`, `sizeToken`) are uppercased by their callers
+ *   are conventionally caps (`sectionHeader`, `badge`, `statLabel`) are uppercased by their callers
  *   / by `PapSectionHeader`.
  * - Allowed exceptions (documented, non-drifting): canvas / `TextMeasurer` map-marker labels, and
  *   already-tokenised chrome one-offs (bottom-nav, connectivity banner). These do not go through
  *   `PaparcarType`.
  *
- * ## Migration note
- * Every role below maps to the EXACT `TextStyle` already in use today, so adopting a role is a pure
- * rename with zero visual change. The former condensed data-typography holder is superseded by the
- * DATA roles here (identical values). `rememberAppTypography()` (MD3) stays as the Material baseline
- * for the framework; the app talks to `PaparcarType`, not to it.
+ * ⛔ Do not propose "a condensed cut of Outfit or Inter": neither exists. Verified in the shipped
+ * `.ttf`s — Outfit is static (weight only) and Inter's axes are `opsz` 14–32 + `wght` 100–900, with
+ * no `wdth`. Inter Tight is tighter spacing, not a width. Barlow is the only width family here.
  */
 @Immutable
 class PaparcarType(
-    // ── IDENTITY · Outfit (rounded display face — screen/card titles, names) ────────────────────
+    // ── MARCA · Outfit (rounded display face — titles and the names of real things) ─────────────
     /** Top-bar / screen title. "Mis coches". (== the old `appBarTitle`.) */
     val screenTitle: TextStyle,
     /** Hero title on full-screen surfaces (onboarding, permissions, explainers). Resolves the old
@@ -50,68 +60,87 @@ class PaparcarType(
     /** In-content section title — "Activity", "History". Bigger than [cardTitle] so a single-word
      *  section heading doesn't read as small. */
     val sectionTitle: TextStyle,
-    /** Card / row title — vehicle name, spot street, peek title. (titleMedium weight-bumped to Bold.) */
+    /** Card title — vehicle name, peek title, dialog title. (titleMedium weight-bumped to Bold.) */
     val cardTitle: TextStyle,
-    /** Small title inside a row / list item, lighter than [cardTitle]. (== titleSmall.) */
-    val rowTitle: TextStyle,
+    /** The NAME of a real thing inside a row: this spot, this vehicle, this history location.
+     *  Identity, so it keeps the brand face. This is the ONLY 14sp role in Outfit.
+     *
+     *  ⚠️ Not for a row's structural title (the detection surface heading, an onboarding step, an
+     *  empty state) — that is [rowTitle], in Inter. The question is *"is this a proper name?"*, and
+     *  it has one answer per call site. Was `rowTitle` before this ticket, declared Medium and
+     *  overridden to Bold or SemiBold at all 12 of its call sites; now it owns SemiBold.
+     *  [UI-TYPE-TWO-VOICES-ONE-ROW-001] [CARD-ONE-BADGE-001] */
+    val rowName: TextStyle,
 
-    // ── STRUCTURE · Inter (neutral face — navigation of the layout) ─────────────────────────────
+    // ── LECTURA · Inter (structure, prose, actions, data inside a line) ──────────────────────────
     /** Section header eyebrow — "TUS VEHÍCULOS", "ACTIVIDAD". Uppercased by `PapSectionHeader`. */
     val sectionHeader: TextStyle,
     /** SUB-section header — a separator that opens a group INSIDE a section already headed by a
      *  [sectionHeader]: the timeline's day rows ("HOY", "AYER", "VIERNES, 14 AGO 2026") under
      *  "APARCADO ACTUALMENTE". Same Inter recipe as [sectionHeader], one step down in size and
      *  weight so the hierarchy is legible without changing family. Reached via `PapSectionHeaderRow`
-     *  (`dense = true`), never by hand.
-     *
-     *  ⚠️ These day rows used to wear [badge] (Barlow). That was a family error: Barlow is DATA —
-     *  tokens that repeat inside a row or fight a name for horizontal space. A day separator is
-     *  neither; it is layout structure, and structure is Inter. [UI-HISTORY-IDENTITY-AND-SOURCE-001] */
+     *  (`dense = true`), never by hand. [UI-HISTORY-IDENTITY-AND-SOURCE-001] */
     val subsectionHeader: TextStyle,
     /** Sheet-header eyebrow — the small caps line ABOVE a title ("FORD FOCUS · APARCADO",
      *  "TU ZONA"). Smaller and wider-tracked than [sectionHeader]: it qualifies a title directly
      *  below it instead of opening a section, and carries a state tint. Uppercased by caller.
      *  [UI-SHEET-001] */
     val eyebrow: TextStyle,
-    /** Primary CTA / button label. (labelLarge weight-bumped to Bold — the `PapFooterButton` recipe.) */
+    /** Primary CTA / button label. */
     val cta: TextStyle,
-    /** Small standalone label / chip text (not a data token). (== labelMedium.) */
-    val label: TextStyle,
-
-    // ── PROSE · Inter (things you read as sentences) ────────────────────────────────────────────
+    /** A row's STRUCTURAL title — the detection surface heading, an onboarding step, an empty
+     *  state, a Settings row. Not a name: see [rowName].
+     *
+     *  This is the default title of `PapListItem`, which is what Settings has always rendered
+     *  (`body` + a SemiBold override at the call site). Promoted from "default plus override" to a
+     *  role of its own, so it says what it is. [UI-TYPE-TWO-VOICES-ONE-ROW-001] */
+    val rowTitle: TextStyle,
+    /** The figure aligned at the END of a row, forming a column down the list — the spot row's
+     *  distance. Same value as [rowTitle] today, but a different role because its precondition is
+     *  different (a column of figures, not a title) and it is the one that may need to move.
+     *
+     *  Deliberately NOT condensed: measured on device, the column reads just as well in Inter, and
+     *  the position + weight already say "this is a figure". Keeping it in Inter is what lets a spot
+     *  row hold two faces instead of three. [UI-TYPE-TWO-VOICES-ONE-ROW-001 · Resultado 5] */
+    val rowDistance: TextStyle,
     /** Prominent body — hero/onboarding subtitles, lead paragraphs. (== bodyLarge.) */
     val subtitle: TextStyle,
     /** Body copy — descriptions, helper paragraphs. (bodyMedium.) */
     val body: TextStyle,
+    /** Small standalone label / chip text / secondary link. Owns SemiBold: 8 of its 11 former
+     *  overrides already asked for it. */
+    val label: TextStyle,
     /** Secondary / caption text — subtitles, hints. (bodySmall.) */
     val caption: TextStyle,
-
-    // ── DATA · Barlow Condensed (tokens that repeat in rows or fight a name for horizontal space) ─
-    /** Dense metadata line of PURE data tokens — "30 min · 75 m", "179 m · 1 min · 2 en route".
-     *  Text that leads with a place/address name reads as prose → use `caption` (Inter), NOT this.
-     *  (== compactBody.) [CARD-ONE-BADGE-001] */
-    val metadata: TextStyle,
-    /** Status pin / count badge — "ACTIVO", "BLUETOOTH", "3 LIBRES", "FIABLE". Uppercased by caller. (== statusPin.) */
+    /** Meta line under a row title — "FIABLE · 1 min en coche · 3 en camino". Was Barlow
+     *  (`metadata`) until this ticket: it sat one line under a name in Outfit and was the visible
+     *  clash. Inter, because it shares a line box with prose and taxonomy. */
+    val meta: TextStyle,
+    /** Status / count token inside a line — "FIABLE", "SIN CONFIRMAR", "ACTIVO", "MEDIANO",
+     *  "3 en camino". Uppercased by caller. Taxonomy is something you READ, so it is Inter, not
+     *  condensed; the colour carries the tier. Absorbs the former `sizeToken`. */
     val badge: TextStyle,
-    /** Vehicle size token — "MEDIANO". Uppercased by caller. (== sizeBadge.) */
-    val sizeToken: TextStyle,
-    /** Prominent stat readout — "43", "92%". (== statNumber, fixed at 25sp — no per-call overrides.) */
+
+    // ── CIFRA · Barlow Condensed (a figure that is the subject of its own block) ─────────────────
+    /** Prominent stat readout — "1.284", "92%". Fixed at 25sp, no per-call overrides. */
     val statNumber: TextStyle,
+    /** The caption under a [statNumber] — "PLAZAS CEDIDAS". Stays condensed so icon + figure +
+     *  label read as ONE data unit; this is the only caps token left outside Inter, and it never
+     *  shares a line with a name. Uppercased by caller. */
+    val statLabel: TextStyle,
     /** Count digit inside a lead tile — the free-spot number of the sheet-header counter. Between
-     *  [badge] and [statNumber]: big enough to be the tile's subject, small enough for a 46dp box.
-     *  Trimmed line box like [statNumber] so it centres optically. [UI-SHEET-001] */
+     *  [statLabel] and [statNumber]: big enough to be the tile's subject, small enough for a 46dp
+     *  box. Trimmed line box like [statNumber] so it centres optically. [UI-SHEET-001] */
     val counter: TextStyle,
     /** Unit caption under a [counter] digit — "LIBRES". Uppercased by caller. [UI-SHEET-001] */
     val counterUnit: TextStyle,
-    /** Distance / elapsed badge on the map pill — "12 min". (== distanceBadge.) */
-    val distance: TextStyle,
-    /** Chart axis label — month / day names under the bars. (== chartDayLabel.) */
+    /** Chart axis label — month / day names under the bars. */
     val chartLabel: TextStyle,
-    /** Chart per-bar value — the small count above a bar. (== chartCountBadge.) */
+    /** Chart per-bar value — the small count above a bar. */
     val chartValue: TextStyle,
 ) {
     companion object {
-        /** The role table for the current composition. Read as `PaparcarType.current.metadata`.
+        /** The role table for the current composition. Read as `PaparcarType.current.meta`.
          *  Provided by [PaparcarTheme]; reading it outside the theme is a programming error. */
         val current: PaparcarType
             @Composable @ReadOnlyComposable
@@ -136,7 +165,7 @@ fun rememberPaparcarType(): PaparcarType {
     val barlow = rememberBarlowCondensedFontFamily()
 
     return PaparcarType(
-        // ── IDENTITY · Outfit ───────────────────────────────────────────────────────────────────
+        // ── MARCA · Outfit ──────────────────────────────────────────────────────────────────────
         screenTitle = TextStyle(
             fontFamily = outfit, fontWeight = FontWeight.ExtraBold,
             fontSize = 24.sp, lineHeight = 32.sp, letterSpacing = (-0.5).sp,
@@ -153,12 +182,12 @@ fun rememberPaparcarType(): PaparcarType {
             fontFamily = outfit, fontWeight = FontWeight.Bold,
             fontSize = 18.sp, lineHeight = 24.sp, letterSpacing = 0.15.sp,
         ),
-        rowTitle = TextStyle(
-            fontFamily = outfit, fontWeight = FontWeight.Medium,
+        rowName = TextStyle(
+            fontFamily = outfit, fontWeight = FontWeight.SemiBold,
             fontSize = 14.sp, lineHeight = 20.sp, letterSpacing = 0.1.sp,
         ),
 
-        // ── STRUCTURE · Inter ───────────────────────────────────────────────────────────────────
+        // ── LECTURA · Inter ─────────────────────────────────────────────────────────────────────
         sectionHeader = TextStyle(
             fontFamily = inter, fontWeight = FontWeight.ExtraBold,
             fontSize = 12.sp, lineHeight = 16.sp, letterSpacing = 1.0.sp,
@@ -175,12 +204,14 @@ fun rememberPaparcarType(): PaparcarType {
             fontFamily = inter, fontWeight = FontWeight.SemiBold,
             fontSize = 15.sp, lineHeight = 20.sp, letterSpacing = 0.1.sp,
         ),
-        label = TextStyle(
-            fontFamily = inter, fontWeight = FontWeight.Medium,
-            fontSize = 12.sp, lineHeight = 16.sp, letterSpacing = 0.5.sp,
+        rowTitle = TextStyle(
+            fontFamily = inter, fontWeight = FontWeight.SemiBold,
+            fontSize = 14.sp, lineHeight = 20.sp, letterSpacing = 0.25.sp,
         ),
-
-        // ── PROSE · Inter ───────────────────────────────────────────────────────────────────────
+        rowDistance = TextStyle(
+            fontFamily = inter, fontWeight = FontWeight.SemiBold,
+            fontSize = 14.sp, lineHeight = 20.sp, letterSpacing = 0.sp,
+        ),
         subtitle = TextStyle(
             fontFamily = inter, fontWeight = FontWeight.Normal,
             fontSize = 16.sp, lineHeight = 24.sp, letterSpacing = 0.5.sp,
@@ -189,34 +220,38 @@ fun rememberPaparcarType(): PaparcarType {
             fontFamily = inter, fontWeight = FontWeight.Normal,
             fontSize = 14.sp, lineHeight = 20.sp, letterSpacing = 0.25.sp,
         ),
+        label = TextStyle(
+            fontFamily = inter, fontWeight = FontWeight.SemiBold,
+            fontSize = 12.sp, lineHeight = 16.sp, letterSpacing = 0.5.sp,
+        ),
         caption = TextStyle(
             fontFamily = inter, fontWeight = FontWeight.Normal,
             fontSize = 12.sp, lineHeight = 16.sp, letterSpacing = 0.4.sp,
         ),
-
-        // ── DATA · Barlow Condensed ─────────────────────────────────────────────────────────────
-        metadata = TextStyle(
-            fontFamily = barlow, fontWeight = FontWeight.Medium,
-            fontSize = 13.sp, lineHeight = 15.sp, letterSpacing = 0.sp,
+        meta = TextStyle(
+            fontFamily = inter, fontWeight = FontWeight.Normal,
+            fontSize = 12.sp, lineHeight = 16.sp, letterSpacing = 0.2.sp,
         ),
         badge = TextStyle(
-            fontFamily = barlow, fontWeight = FontWeight.SemiBold,
-            fontSize = 13.sp, letterSpacing = 0.6.sp,
+            fontFamily = inter, fontWeight = FontWeight.SemiBold,
+            fontSize = 12.sp, lineHeight = 16.sp, letterSpacing = 0.4.sp,
         ),
-        sizeToken = TextStyle(
-            fontFamily = barlow, fontWeight = FontWeight.SemiBold,
-            fontSize = 12.sp, letterSpacing = 0.5.sp,
-        ),
+
+        // ── CIFRA · Barlow Condensed ────────────────────────────────────────────────────────────
         statNumber = TextStyle(
             // Tight lineHeight + centred/trimmed line box so the digits' box hugs the glyphs and is
             // symmetric — a leading icon set to CenterVertically then lands on the numeral's optical
-            // centre instead of floating high (the extra top leading was pushing it up). [CARD-ONE-BADGE-001]
+            // centre instead of floating high. [CARD-ONE-BADGE-001]
             fontFamily = barlow, fontWeight = FontWeight.Bold,
             fontSize = 25.sp, lineHeight = 25.sp, letterSpacing = (-0.5).sp,
             lineHeightStyle = LineHeightStyle(
                 alignment = LineHeightStyle.Alignment.Center,
                 trim = LineHeightStyle.Trim.Both,
             ),
+        ),
+        statLabel = TextStyle(
+            fontFamily = barlow, fontWeight = FontWeight.SemiBold,
+            fontSize = 13.sp, lineHeight = 16.sp, letterSpacing = 0.6.sp,
         ),
         counter = TextStyle(
             fontFamily = barlow, fontWeight = FontWeight.Bold,
@@ -229,10 +264,6 @@ fun rememberPaparcarType(): PaparcarType {
         counterUnit = TextStyle(
             fontFamily = barlow, fontWeight = FontWeight.SemiBold,
             fontSize = 8.5.sp, lineHeight = 10.sp, letterSpacing = 0.5.sp,
-        ),
-        distance = TextStyle(
-            fontFamily = barlow, fontWeight = FontWeight.SemiBold,
-            fontSize = 13.sp, letterSpacing = 0.sp,
         ),
         chartLabel = TextStyle(
             fontFamily = barlow, fontWeight = FontWeight.Normal,

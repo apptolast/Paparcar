@@ -190,8 +190,7 @@ private fun SessionCardContent(
                     text = primaryText,
                     // Place/address name is the session card's identity title → Outfit (rowTitle);
                     // the "city · time" subline below stays Inter prose. [TYPO-AUDIT-001]
-                    style = PaparcarType.current.rowTitle,
-                    fontWeight = FontWeight.SemiBold,
+                    style = PaparcarType.current.rowName,
                     color = textPrimary,
                     maxLines = 1,
                     modifier = Modifier.basicMarquee(),

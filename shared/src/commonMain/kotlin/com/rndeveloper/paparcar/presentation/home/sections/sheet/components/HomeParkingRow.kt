@@ -122,8 +122,7 @@ internal fun HomeVehicleChip(
                 VehicleWatchLeadingIcon(watch = watch)
                 Text(
                     vehicleName,
-                    style = PaparcarType.current.rowTitle,
-                    fontWeight = FontWeight.Bold,
+                    style = PaparcarType.current.rowName,
                     color = cs.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -154,7 +153,6 @@ internal fun HomeVehicleChip(
                                 else Res.string.home_det_monitoring,
                             ),
                             style = PaparcarType.current.label,
-                            fontWeight = FontWeight.SemiBold,
                             color = cs.onSurface.copy(alpha = rememberDrivingStatePulse()),
                             maxLines = 1,
                         )
@@ -279,8 +277,7 @@ internal fun HomeVehicleCard(
                                 if (isCandidate) Res.string.home_vehicle_chip_status_candidate
                                 else Res.string.home_det_monitoring,
                             ),
-                            style = PaparcarType.current.body,
-                            fontWeight = FontWeight.SemiBold,
+                            style = PaparcarType.current.rowTitle,
                             color = cs.onSurface.copy(alpha = rememberDrivingStatePulse()),
                             maxLines = 1,
                         )
@@ -289,7 +286,7 @@ internal fun HomeVehicleCard(
                             // legibility — condensed is reserved for the tight compact chip. [UI-METRICS-POLISH-001]
                             Text(
                                 text = parkedTitle(session),
-                                style = PaparcarType.current.body.copy(fontWeight = FontWeight.SemiBold),
+                                style = PaparcarType.current.rowTitle,
                                 color = cs.onSurface,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
@@ -305,8 +302,7 @@ internal fun HomeVehicleCard(
                         }
                         else -> Text(
                             text = stringResource(Res.string.home_vehicle_chip_mark_parking),
-                            style = PaparcarType.current.body,
-                            fontWeight = FontWeight.SemiBold,
+                            style = PaparcarType.current.rowTitle,
                             color = cs.primary,
                             maxLines = 1,
                         )

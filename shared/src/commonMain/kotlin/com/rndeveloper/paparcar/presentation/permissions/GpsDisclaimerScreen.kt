@@ -60,7 +60,6 @@ fun GpsDisclaimerScreen(
         Text(
             text = stringResource(Res.string.gps_disclaimer_title),
             style = PaparcarType.current.heroTitle,
-            fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onBackground,
         )

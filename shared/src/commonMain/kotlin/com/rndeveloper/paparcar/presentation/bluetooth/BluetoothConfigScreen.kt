@@ -290,8 +290,7 @@ private fun DeviceRow(
         PapListItem(
             title = name,
             // Paired device name is identity → Outfit (rowTitle), like the vehicle name. [TYPO-AUDIT-001]
-            titleStyle = PaparcarType.current.rowTitle,
-            titleWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            titleStyle = PaparcarType.current.rowName,
             subtitle = typeLabel,
             subtitleStyle = PaparcarType.current.label,
             // RadioButton brings its own touch padding, so this row hugs the start edge.

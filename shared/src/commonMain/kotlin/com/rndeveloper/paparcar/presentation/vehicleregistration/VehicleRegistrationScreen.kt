@@ -629,7 +629,6 @@ private fun VehicleHeroCard(
             Text(
                 text = heroName,
                 style = PaparcarType.current.sectionTitle,
-                fontWeight = FontWeight.Bold,
                 color = nameColor,
             )
             Spacer(Modifier.height(4.dp))

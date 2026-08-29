@@ -100,7 +100,6 @@ fun CarbodyInfoCard(
                     Text(
                         text = sizeLabel,
                         style = PaparcarType.current.rowTitle,
-                        fontWeight = FontWeight.Bold,
                         color = cs.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -128,7 +127,6 @@ fun CarbodyInfoCard(
                         Text(
                             text = stringResource(Res.string.vehicle_registration_carbody_change),
                             style = PaparcarType.current.label,
-                            fontWeight = FontWeight.SemiBold,
                             color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA),
                         )
                     }
@@ -153,7 +151,6 @@ fun CarbodyInfoCard(
                         else Res.string.vehicle_registration_carbody_auto_label
                     ),
                     style = PaparcarType.current.label,
-                    fontWeight = FontWeight.SemiBold,
                     color = cs.primary,
                 )
             }
@@ -202,7 +199,6 @@ fun NonCarSizeBadge(
         PapListItem(
             title = sizeLabel,
             titleStyle = PaparcarType.current.rowTitle,
-            titleWeight = FontWeight.Bold,
             contentPadding = PaddingValues(CARD_PADDING_DP.dp),
             gap = 12.dp,
             leading = {

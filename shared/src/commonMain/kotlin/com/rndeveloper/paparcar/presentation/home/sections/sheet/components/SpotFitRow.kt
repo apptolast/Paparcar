@@ -147,7 +147,6 @@ private fun FitPill(
         Text(
             text = visual.label,
             style = PaparcarType.current.caption,
-            fontWeight = FontWeight.SemiBold,
             color = visual.tint,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,

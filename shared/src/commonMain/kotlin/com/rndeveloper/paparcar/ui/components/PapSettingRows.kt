@@ -97,7 +97,7 @@ fun PapInfoRow(
         modifier = modifier,
         leading = icon?.let { { PapIconTile(icon = it) } },
         title = label,
-        trailing = { Text(value, style = PaparcarType.current.metadata, color = valueColor) },
+        trailing = { Text(value, style = PaparcarType.current.meta, color = valueColor) },
     )
 }
 

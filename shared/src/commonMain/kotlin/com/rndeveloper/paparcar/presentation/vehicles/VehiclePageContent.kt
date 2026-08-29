@@ -256,8 +256,10 @@ private fun StatCell(
         Spacer(Modifier.size(STAT_LABEL_GAP.dp))
         Text(
             // Condensed, matching its number above — icon + number + label read as one data unit.
+            // This is the ONE caps token left outside Inter: it belongs to the figure's block and
+            // never shares a line with a name. [UI-TYPE-TWO-VOICES-ONE-ROW-001]
             text = label.uppercase(),
-            style = PaparcarType.current.badge,
+            style = PaparcarType.current.statLabel,
             color = cs.onSurfaceVariant,
             maxLines = 1,
         )

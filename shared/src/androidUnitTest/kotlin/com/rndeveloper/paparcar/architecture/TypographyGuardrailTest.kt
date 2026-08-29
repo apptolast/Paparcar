@@ -101,6 +101,41 @@ class TypographyGuardrailTest {
         )
     }
 
+    /**
+     * A role owns its WEIGHT too [UI-TYPE-TWO-VOICES-ONE-ROW-001].
+     *
+     * Before this rule existed, 50 call sites rewrote the `fontWeight` of the role they had just
+     * asked for — `rowTitle` declared Medium and not one of its 12 call sites used it, splitting
+     * instead into Bold (Home) and SemiBold (Vehicles). That is the same drift the size rules
+     * already stop, just moved to another property, and it slipped through because `fontWeight`
+     * was explicitly allowed.
+     *
+     * Weight that encodes SELECTION is not an exception either: selection is carried by colour,
+     * border or the control's own check. If a design genuinely needs two weights at one size,
+     * that is two roles, not an override.
+     */
+    @Test
+    fun `feature code does not override the weight of a role`() {
+        val violations = scope.files
+            .filter { it.path.contains("commonMain") }
+            .filter { file ->
+                val pkg = file.packagee?.name ?: ""
+                pkg.startsWith("com.rndeveloper.paparcar.presentation") ||
+                    pkg.startsWith("com.rndeveloper.paparcar.ui.components")
+            }
+            .filter { it.name !in WEIGHT_ALLOWLIST }
+            .filter { WEIGHT_REGEX.containsMatchIn(it.text) }
+            .map { it.name }
+        assertTrue(
+            violations.isEmpty(),
+            buildViolationMessage(
+                "fontWeight/titleWeight in feature code — the role owns its weight, add or adjust " +
+                    "a role in PaparcarType instead",
+                violations,
+            ),
+        )
+    }
+
     private fun buildViolationMessage(rule: String, violations: List<String>): String =
         "[$rule] ${violations.size} violation(s):\n${violations.joinToString("\n") { "  - $it.kt" }}"
 
@@ -121,5 +156,13 @@ class TypographyGuardrailTest {
         // can't come from the fixed role table (same exception as rule 2).
         val FONT_FAMILY_REGEX = Regex("""remember(Outfit|Inter|BarlowCondensed)FontFamily|FontFamily\s*\(""")
         val FONT_FAMILY_ALLOWLIST = setOf("PaparcarMapMarkers")
+
+        // Rule 5 — weight belongs to the role.
+        val WEIGHT_REGEX = Regex("""\b(fontWeight|titleWeight)\s*=""")
+
+        // Same chrome/canvas exceptions as rule 2, plus HistoryWeeklyChart: it emphasises a number
+        // INSIDE a sentence via `SpanStyle` in a `buildAnnotatedString`, and draws its axis labels
+        // through a `TextMeasurer`. Neither is styling a role at a call site.
+        val WEIGHT_ALLOWLIST = INLINE_SP_ALLOWLIST + setOf("HistoryWeeklyChart")
     }
 }

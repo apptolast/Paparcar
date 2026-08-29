@@ -83,7 +83,6 @@ fun VehicleSizeExplainerScreen(
             Text(
                 text = stringResource(Res.string.vehicle_size_explainer_title),
                 style = PaparcarType.current.heroTitle,
-                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
                 textAlign = TextAlign.Center,
             )
@@ -183,7 +182,6 @@ private fun ExplainerTimelineStep(
             Text(
                 text = title,
                 style = PaparcarType.current.rowTitle,
-                fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Spacer(Modifier.height(PaparcarSpacing.xs))

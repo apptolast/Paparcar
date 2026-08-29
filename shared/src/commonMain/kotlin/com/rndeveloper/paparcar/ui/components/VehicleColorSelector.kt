@@ -79,7 +79,6 @@ fun VehicleColorSelector(
         Text(
             text = selected.colorLabel(),
             style = PaparcarType.current.label,
-            fontWeight = FontWeight.Medium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }

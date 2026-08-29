@@ -173,7 +173,6 @@ fun PapAlertDialog(
                 Text(
                     text = title,
                     style = PaparcarType.current.cardTitle,
-                    fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center,
                 )

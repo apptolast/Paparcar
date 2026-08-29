@@ -139,7 +139,6 @@ private fun OnboardingPage1() {
         Text(
             text = stringResource(Res.string.onboarding_page1_title),
             style = PaparcarType.current.heroTitle,
-            fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary,
             textAlign = TextAlign.Center,
         )
@@ -172,7 +171,6 @@ private fun OnboardingPage2() {
         Text(
             text = stringResource(Res.string.onboarding_page2_title),
             style = PaparcarType.current.heroTitle,
-            fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary,
             textAlign = TextAlign.Center,
         )
@@ -216,7 +214,6 @@ private fun OnboardingPage3() {
         Text(
             text = stringResource(Res.string.onboarding_page3_title),
             style = PaparcarType.current.heroTitle,
-            fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary,
             textAlign = TextAlign.Center,
         )
@@ -248,7 +245,6 @@ private fun OnboardingStep(icon: ImageVector, title: String, desc: String) {
                 Text(
                     text = title,
                     style = PaparcarType.current.rowTitle,
-                    fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(

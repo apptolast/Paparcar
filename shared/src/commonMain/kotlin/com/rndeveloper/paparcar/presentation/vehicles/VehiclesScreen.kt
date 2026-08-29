@@ -406,8 +406,7 @@ private fun VehicleTabPill(vehicle: Vehicle, selected: Boolean, onClick: () -> U
                 text = tabName,
                 // The vehicle NAME is identity → Outfit (rowTitle) everywhere, including this selector
                 // pill, so the name reads in one family across card/header/selector. [CARD-ONE-BADGE-001]
-                style = PaparcarType.current.rowTitle,
-                fontWeight = FontWeight.SemiBold,
+                style = PaparcarType.current.rowName,
                 color = fg,
                 maxLines = 1,
             )
@@ -467,7 +466,6 @@ private fun EmptyVehicleState(
         Text(
             text = stringResource(Res.string.my_car_no_vehicle),
             style = PaparcarType.current.heroTitle,
-            fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
         )
@@ -512,7 +510,6 @@ private fun EmptyVehicleState(
             Text(
                 text = stringResource(Res.string.my_car_empty_why_link),
                 style = PaparcarType.current.label,
-                fontWeight = FontWeight.SemiBold,
                 textDecoration = TextDecoration.Underline,
                 color = MaterialTheme.colorScheme.primary,
             )

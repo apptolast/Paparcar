@@ -594,7 +594,6 @@ private fun DetectionHealthRow(state: SettingsState, onFix: () -> Unit, onFixRel
                     Text(
                         stringResource(Res.string.settings_detection_fix),
                         style = PaparcarType.current.cta,
-                        fontWeight = FontWeight.SemiBold,
                     )
                 }
             }
@@ -659,7 +658,6 @@ private fun SetupStatusTrailing(configured: Boolean) {
                 stringResource(Res.string.settings_detection_configured),
                 style = PaparcarType.current.label,
                 color = cs.primary,
-                fontWeight = FontWeight.Bold,
             )
             Icon(Icons.Rounded.Check, contentDescription = null, tint = cs.primary, modifier = Modifier.size(18.dp))
         }
@@ -672,7 +670,6 @@ private fun SetupStatusTrailing(configured: Boolean) {
                 stringResource(Res.string.settings_detection_setup),
                 style = PaparcarType.current.label,
                 color = cs.onSurfaceVariant,
-                fontWeight = FontWeight.SemiBold,
             )
             PapNavChevron()
         }
@@ -717,7 +714,6 @@ private fun ProfileCardV2(
                     Text(
                         text = displayName,
                         style = PaparcarType.current.cardTitle,
-                        fontWeight = FontWeight.Bold,
                         color = cs.onSurface,
                     )
                     if (email != null) {
@@ -744,7 +740,6 @@ private fun ProfileCardV2(
                 Text(
                     stringResource(Res.string.settings_profile_logout),
                     style = PaparcarType.current.cta,
-                    fontWeight = FontWeight.SemiBold,
                 )
             }
         }
@@ -772,7 +767,6 @@ private fun ProfileAvatar(displayName: String, photoUrl: String?) {
         Text(
             text = displayName.firstOrNull()?.uppercaseChar()?.toString() ?: "U",
             style = PaparcarType.current.sectionTitle,
-            fontWeight = FontWeight.ExtraBold,
             color = cs.onPrimary,
         )
         if (!photoUrl.isNullOrBlank()) {

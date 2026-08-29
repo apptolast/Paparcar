@@ -105,7 +105,6 @@ fun PaparcarFilterChip(
             Text(
                 text = label,
                 style = PaparcarType.current.label,
-                fontWeight = FontWeight.SemiBold,
                 color = contentColor,
             )
             if (trailingIcon != null && onTrailingClick != null) {

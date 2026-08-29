@@ -125,7 +125,6 @@ private fun SizeTile(
         Text(
             text = option.label,
             style = PaparcarType.current.label,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
             color = contentColor,
         )
     }

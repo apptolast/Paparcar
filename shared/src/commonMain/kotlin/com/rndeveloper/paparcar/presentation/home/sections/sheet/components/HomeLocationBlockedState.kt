@@ -64,7 +64,6 @@ internal fun HomeLocationBlockedState(
         Text(
             text = stringResource(Res.string.home_det_core_title),
             style = PaparcarType.current.sectionTitle,
-            fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
         )
@@ -85,7 +84,7 @@ internal fun HomeLocationBlockedState(
                 contentColor = MaterialTheme.colorScheme.onError,
             ),
         ) {
-            Text(text = stringResource(Res.string.home_det_core_cta), fontWeight = FontWeight.Bold)
+            Text(text = stringResource(Res.string.home_det_core_cta), style = PaparcarType.current.cta)
         }
     }
 }

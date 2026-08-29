@@ -45,6 +45,7 @@ fun DevCatalogScreen(
     scenario: MockScenario,
     onEnter: () -> Unit,
     onOpenGallery: () -> Unit = {},
+    onOpenTypeLab: () -> Unit = {},
 ) {
     val cs = MaterialTheme.colorScheme
     val session by scenario.session.collectAsStateWithLifecycle()
@@ -231,6 +232,14 @@ fun DevCatalogScreen(
             SectionTitle("Galería de estados por pantalla")
             OutlinedButton(onClick = onOpenGallery, modifier = Modifier.fillMaxWidth()) {
                 Text("Abrir galería de estados")
+            }
+
+            // Fase 1 de UI-TYPE-TWO-VOICES-ONE-ROW-001: comparar tratamientos tipográficos en
+            // device antes de tocar el sistema de roles.
+            HorizontalDivider(Modifier.padding(vertical = 8.dp))
+            SectionTitle("Laboratorio tipográfico")
+            OutlinedButton(onClick = onOpenTypeLab, modifier = Modifier.fillMaxWidth()) {
+                Text("Comparar tipografía de la fila de plaza")
             }
         }
     }

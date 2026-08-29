@@ -149,7 +149,6 @@ internal fun PapSheet(
             overlineHighlightColor = eyebrowHighlightColor ?: (eyebrowColor ?: eyebrowTone.color()),
             title = title,
             titleStyle = PaparcarType.current.cardTitle,
-            titleWeight = FontWeight.SemiBold,
             titleMaxLines = titleMaxLines,
             subtitle = subtitle,
             subtitleStyle = PaparcarType.current.caption,
@@ -478,8 +477,7 @@ internal fun PapSheetBanner(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
-                style = PaparcarType.current.body,
-                fontWeight = FontWeight.SemiBold,
+                style = PaparcarType.current.rowTitle,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,

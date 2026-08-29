@@ -114,22 +114,37 @@ Regla mental: *plumbing de UI → Material; concepto de Paparcar → vector prop
   o texto → **Compose Canvas** en commonMain (VectorDrawable NO soporta trazos discontinuos).
 - Nivel 1/2 se tintan con el tema; Nivel 3 trae su color.
 
-### ⛔ Tipografía — sistema de roles (`PaparcarType`)
-La familia y el tamaño son propiedad del **ROL**, no del widget. Nunca elijas fuente ni tamaño:
-elige rol. Fuente de verdad: `ui/theme/PaparcarType.kt` (19 roles), se lee
-`PaparcarType.current.<rol>`. `fontWeight`/`color` inline sobre el `Text` SÍ se permiten.
-- **IDENTITY · Outfit**: `screenTitle`(=appBarTitle), `heroTitle`, `sectionTitle`, `cardTitle`, `rowTitle`
-- **STRUCTURE · Inter**: `sectionHeader` + `subsectionHeader` (**ambos SOLO vía `PapSectionHeader`**;
-  el sub es el separador de un grupo DENTRO de una sección ya encabezada — los días del historial —
-  y se pide con `dense = true`), `cta`, `label`
-- **PROSE · Inter**: `subtitle`(16sp), `body`, `caption`
-- **DATA · Barlow Condensed**: `metadata`, `badge`, `sizeToken`, `statNumber`(25sp), `distance`, `chartLabel`, `chartValue`
-- Regla mental: *¿título? → Outfit. ¿Frase que se lee? → Inter. ¿Dato/token que se repite en filas
-  o compite en horizontal con un nombre? → Barlow. ¿Dato protagonista de una card con todo el ancho
-  para él (meta-rows del peek)? → NO cumple la precondición DATA → Inter.* [PEEK-META-INTER-001]
+### ⛔ Tipografía — tres voces y un rol que manda [UI-TYPE-TWO-VOICES-ONE-ROW-001]
+Familia, tamaño **y peso** son propiedad del **ROL**, no del widget. Nunca elijas fuente, tamaño ni
+peso: elige rol. Fuente de verdad: `ui/theme/PaparcarType.kt` (23 roles), se lee
+`PaparcarType.current.<rol>`. **Solo `color` se decide en el call site** (lo exige la doctrina de
+color: el estado se escribe, no se tiñe).
+- **MARCA · Outfit** — nombres de cosas reales y títulos: `screenTitle`(=appBarTitle), `heroTitle`,
+  `sectionTitle`, `cardTitle`, `rowName` (el NOMBRE en una fila: esta plaza, este coche, este lugar)
+- **LECTURA · Inter** — todo lo que se lee o se pulsa: `sectionHeader` + `subsectionHeader`
+  (**ambos SOLO vía `PapSectionHeader`**; el sub es el separador de un grupo DENTRO de una sección ya
+  encabezada — los días del historial — y se pide con `dense = true`), `eyebrow`, `cta`, `rowTitle`
+  (título ESTRUCTURAL de fila: cabecera de la superficie de detección, paso de onboarding, estado
+  vacío, fila de Ajustes), `rowDistance` (la cifra alineada al final de una fila), `subtitle`(16sp),
+  `body`, `label`, `caption`, `meta` (la meta-line bajo un título), `badge` (`FIABLE`,
+  `SIN CONFIRMAR`, `ACTIVO`, `MEDIANO`, `3 en camino`)
+- **CIFRA · Barlow Condensed** — una cifra que es el SUJETO DE SU PROPIO BLOQUE, nunca dentro de una
+  línea de texto: `statNumber`(25sp) + `statLabel`, `counter` + `counterUnit`, `chartLabel`,
+  `chartValue`
+- Regla mental, tres preguntas con una sola respuesta: *¿es un nombre propio o un título? → Outfit.
+  ¿es una cifra que protagoniza su bloque? → Barlow. ¿todo lo demás? → Inter.*
+- **Una cifra alineada en COLUMNA no necesita cambiar de familia**: la columna la marcan la posición
+  y el peso. Medido en device el 29-08 — por eso la distancia de la fila de plaza es Inter y Barlow
+  ya no aparece en ninguna FILA. [PEEK-META-INTER-001]
+- ⛔ **No existe una condensada de Outfit ni de Inter** (verificado en los `.ttf`: Outfit es estática;
+  Inter tiene `opsz`+`wght`, sin `wdth`; Inter Tight es espaciado, no anchura). No volver a proponerlo.
+- ⛔ **`fontFeatureSettings` (p. ej. `tnum`) NO se aplica** en Compose Multiplatform 1.12 aunque la
+  fuente declare la feature. No apoyar ninguna decisión en cifras tabulares.
 - **PROHIBIDO** en `presentation/` y `ui/components/`: (a) `fontSize`/`letterSpacing` inline;
-  (b) `MaterialTheme.typography.*` — usa un rol, y si falta un tamaño añade/ajusta el rol;
-  (c) construir familias (`rememberXxxFontFamily()`/`FontFamily(...)`) fuera de `ui/theme`.
+  (b) **`fontWeight`/`titleWeight`** — el rol trae su peso; si hacen falta dos pesos a un tamaño, son
+  dos roles. El peso tampoco marca selección: eso lo dicen el color, el borde o el check;
+  (c) `MaterialTheme.typography.*` — usa un rol, y si falta un tamaño añade/ajusta el rol;
+  (d) construir familias (`rememberXxxFontFamily()`/`FontFamily(...)`) fuera de `ui/theme`.
   Enforced por `TypographyGuardrailTest` (Konsist). Allowlist: canvas/`TextMeasurer` de marcadores
   de mapa + chrome tokenizado (bottom-nav, banner, action bar).
 

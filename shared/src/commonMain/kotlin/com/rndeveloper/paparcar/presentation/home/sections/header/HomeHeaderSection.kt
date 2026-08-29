@@ -209,7 +209,6 @@ private fun HeaderAddZoneChip(onAddZone: () -> Unit) {
                 Text(
                     text = stringResource(Res.string.home_header_add_zone),
                     style = PaparcarType.current.label,
-                    fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(

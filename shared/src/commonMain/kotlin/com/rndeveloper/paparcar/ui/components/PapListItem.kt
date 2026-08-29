@@ -45,15 +45,14 @@ fun PapListItem(
     leading: (@Composable () -> Unit)? = null,
     subtitleSlot: (@Composable () -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
-    titleStyle: TextStyle = PaparcarType.current.body,
-    titleWeight: FontWeight = FontWeight.SemiBold,
+    titleStyle: TextStyle = PaparcarType.current.rowTitle,
     titleColor: Color = MaterialTheme.colorScheme.onSurface,
     titleMaxLines: Int = Int.MAX_VALUE,
     subtitleStyle: TextStyle = PaparcarType.current.caption,
     subtitleColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     subtitleMaxLines: Int = Int.MAX_VALUE,
     overlineColor: Color = MaterialTheme.colorScheme.primary,
-    overlineStyle: TextStyle = PaparcarType.current.badge,
+    overlineStyle: TextStyle = PaparcarType.current.eyebrow,
     /** Substring of [overline] to tint with [overlineHighlightColor] — the vehicle NAME wears its
      *  identity colour while the state words stay in [overlineColor]. [UI-COLOR-DOCTRINE-001] */
     overlineHighlight: String? = null,
@@ -85,7 +84,6 @@ fun PapListItem(
             Text(
                 text = title,
                 style = titleStyle,
-                fontWeight = titleWeight,
                 color = titleColor,
                 maxLines = titleMaxLines,
                 overflow = TextOverflow.Ellipsis,

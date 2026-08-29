@@ -73,7 +73,6 @@ internal fun ZoneChip(
             Text(
                 text = label,
                 style = PaparcarType.current.label,
-                fontWeight = FontWeight.SemiBold,
                 color = cs.onSurface,
                 maxLines = 1,
             )

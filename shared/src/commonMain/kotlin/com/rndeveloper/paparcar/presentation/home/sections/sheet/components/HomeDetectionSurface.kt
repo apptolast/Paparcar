@@ -372,7 +372,6 @@ private fun ActionRow(
                         Text(
                             text = title,
                             style = PaparcarType.current.rowTitle,
-                            fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurface,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
@@ -487,7 +486,6 @@ private fun CtaPill(
             Text(
                 text = label,
                 style = PaparcarType.current.cta,
-                fontWeight = FontWeight.SemiBold,
                 color = content,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

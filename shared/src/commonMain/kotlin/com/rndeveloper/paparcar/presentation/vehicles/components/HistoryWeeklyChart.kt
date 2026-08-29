@@ -123,7 +123,7 @@ private fun ActivityFactsColumn(facts: List<ActivityFact>) {
                     // Barlow metadata, matching the chart labels above — the user weighed the
                     // Inter/caption alternative on device (28-08) and preferred this. The DATA
                     // reading: each line is icon + token + payload, kin to the chart it footers.
-                    style = PaparcarType.current.metadata,
+                    style = PaparcarType.current.meta,
                     color = cs.onSurfaceVariant,
                     maxLines = 1,
                 )
@@ -202,7 +202,6 @@ private fun LowActivitySummary(total: Int) {
                     append(pluralStringResource(Res.plurals.history_activity_noun, total))
                 },
                 style = PaparcarType.current.cardTitle,
-                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(

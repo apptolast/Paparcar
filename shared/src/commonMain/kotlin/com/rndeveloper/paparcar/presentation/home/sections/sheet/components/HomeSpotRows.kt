@@ -60,6 +60,7 @@ import com.rndeveloper.paparcar.ui.components.SpotPuckIcon
 import com.rndeveloper.paparcar.ui.components.TTLIndicator
 import com.rndeveloper.paparcar.ui.theme.PapBorders
 import org.jetbrains.compose.resources.stringResource
+import paparcar.composeapp.generated.resources.spot_indicator_en_route
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_empty_subtitle
 import paparcar.composeapp.generated.resources.home_empty_title
@@ -172,31 +173,44 @@ private fun SpotRowContent(
                 }
                 Text(
                     text = displayText,
-                    // Spot/place name is the row's identity title → Outfit (rowTitle), like the vehicle
-                    // name; the address subline below stays Inter prose. [TYPO-AUDIT-001]
-                    style = PaparcarType.current.rowTitle,
-                    fontWeight = FontWeight.Bold,
+                    // Spot/place name is the row's identity → Outfit (rowName), like the vehicle
+                    // name. [TYPO-AUDIT-001] [CARD-ONE-BADGE-001]
+                    style = PaparcarType.current.rowName,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
+                // The distance rides WITH the name, aligned at the end so it forms a column down
+                // the list. It is the datum that decides whether you go, and down in the meta line
+                // it was third in a queue of tokens. Moving it here also frees the trailing slot,
+                // which is what stops long names from being truncated by "3 en route".
+                // Inter, not condensed: measured on device, the column is carried by position and
+                // weight — a third face buys nothing. [UI-TYPE-TWO-VOICES-ONE-ROW-001]
+                if (distanceM != null) {
+                    Text(
+                        distanceString(distanceM),
+                        style = PaparcarType.current.rowDistance,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                    )
+                }
             }
             Spacer(Modifier.height(2.dp))
-            // Data-dense meta line ("FIABLE · 80 m · 1 min") — condensed per the typography
-            // mechanism: data tokens repeated in rows use Barlow, prose stays Inter. Label and
-            // values share the same condensed body so the line reads as one unit. [UI-REGRESSION]
+            // Meta line — reliability tier · drive time · en-route count. All Inter: it shares a
+            // line box with taxonomy you READ, one line under a name in Outfit. Barlow here was the
+            // visible clash the user reported. [UI-TYPE-TWO-VOICES-ONE-ROW-001]
             val type = PaparcarType.current
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     palette.label.uppercase(),
-                    style = type.badge.copy(fontWeight = FontWeight.Bold),
+                    style = type.badge,
                     color = palette.badgeBg,
                     maxLines = 1,
                 )
                 Text(
                     SheetTokens.META_SEPARATOR,
-                    style = type.metadata,
+                    style = type.meta,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = SheetTokens.META_SEPARATOR_ALPHA),
                 )
                 // [DET-HANDOFF-NOT-MANUAL-001 §B.3] Reliability and confirmation are different
@@ -212,24 +226,31 @@ private fun SpotRowContent(
                     )
                     Text(
                         SheetTokens.META_SEPARATOR,
-                        style = type.metadata,
+                        style = type.meta,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = SheetTokens.META_SEPARATOR_ALPHA),
                     )
                 }
                 if (distanceM != null) {
                     Text(
-                        distanceString(distanceM),
-                        style = type.metadata.copy(fontWeight = FontWeight.SemiBold),
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = SheetTokens.META_VALUE_ALPHA),
+                        driveTimeString(distanceM),
+                        style = type.meta,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = META_MUTED_ALPHA),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
+                }
+                // "3 en camino" moves down here from the trailing slot, which the distance now
+                // occupies. It is a count that qualifies the spot, so it belongs with the other
+                // meta tokens. [UI-TYPE-TWO-VOICES-ONE-ROW-001]
+                if (spot.enRouteCount > 0) {
                     Text(
                         SheetTokens.META_SEPARATOR,
-                        style = type.metadata,
+                        style = type.meta,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = SheetTokens.META_SEPARATOR_ALPHA),
                     )
                     Text(
-                        driveTimeString(distanceM),
-                        style = type.metadata,
+                        stringResource(Res.string.spot_indicator_en_route, spot.enRouteCount),
+                        style = type.meta,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = META_MUTED_ALPHA),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -237,8 +258,6 @@ private fun SpotRowContent(
                 }
             }
         }
-
-        EnRouteIndicator(count = spot.enRouteCount)
 
         if (spot.expiresAt > 0L) {
             TTLIndicator(expiresAtMs = spot.expiresAt)
@@ -309,7 +328,6 @@ internal fun HomeEmptySpots(
         Text(
             stringResource(Res.string.home_empty_title),
             style = PaparcarType.current.rowTitle,
-            fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
         )
         Text(
@@ -345,7 +363,6 @@ internal fun HomeEmptyFilteredSpots(
         Text(
             stringResource(Res.string.home_filter_empty_title),
             style = PaparcarType.current.rowTitle,
-            fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
         )
         Text(
@@ -357,7 +374,6 @@ internal fun HomeEmptyFilteredSpots(
         Text(
             stringResource(Res.string.home_filter_empty_clear),
             style = PaparcarType.current.label,
-            fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.clickable(onClick = onClearFilter),
         )
@@ -384,7 +400,6 @@ internal fun HomeReportSpotCard(
             title = stringResource(Res.string.home_report_fab_cd),
             subtitle = stringResource(Res.string.home_report_subtitle),
             titleStyle = PaparcarType.current.rowTitle,
-            titleWeight = FontWeight.Bold,
             titleMaxLines = 1,
             subtitleStyle = PaparcarType.current.label,
             subtitleColor = MaterialTheme.colorScheme.onSurface.copy(alpha = PRIMARY_CARD_SUBTITLE_ALPHA),
