@@ -46,6 +46,8 @@ fun DevCatalogScreen(
     onEnter: () -> Unit,
     onOpenGallery: () -> Unit = {},
     onOpenTypeLab: () -> Unit = {},
+    fontChoice: DevFontChoice = DevFontChoice.Current,
+    onFontChoice: (DevFontChoice) -> Unit = {},
 ) {
     val cs = MaterialTheme.colorScheme
     val session by scenario.session.collectAsStateWithLifecycle()
@@ -237,6 +239,14 @@ fun DevCatalogScreen(
             // Fase 1 de UI-TYPE-TWO-VOICES-ONE-ROW-001: comparar tratamientos tipográficos en
             // device antes de tocar el sistema de roles.
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
+            SectionTitle("Familia tipográfica (toda la app)")
+            EnumChips(
+                values = DevFontChoice.entries,
+                selected = fontChoice,
+                label = { it.label },
+                onSelect = onFontChoice,
+            )
+            Spacer(Modifier.height(8.dp))
             SectionTitle("Laboratorio tipográfico")
             OutlinedButton(onClick = onOpenTypeLab, modifier = Modifier.fillMaxWidth()) {
                 Text("Comparar tipografía de la fila de plaza")

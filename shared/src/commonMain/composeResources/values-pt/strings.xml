@@ -464,8 +464,8 @@
     <string name="auth_cd_hide_password">Ocultar palavra-passe</string>
 
     <!-- VehicleStatsRow inline cards -->
-    <string name="vehicle_stats_sessions">sessões</string>
-    <string name="vehicle_stats_last_session">última</string>
+    <string name="vehicle_stats_sessions">sessões totais</string>
+    <string name="vehicle_stats_last_session">última sessão</string>
     <string name="vehicle_stats_spots_shared">lugares cedidos</string>
     <!-- Auth screens -->
     <string name="auth_header_app_name">Paparcar</string>

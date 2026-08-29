@@ -471,8 +471,8 @@
     <string name="vehicle_status_inactive_cd">Detección desactivada</string>
     <string name="vehicle_bt_cd">Emparejado por Bluetooth</string>
     <!-- VehicleStatsRow cards inline bajo la hero card -->
-    <string name="vehicle_stats_sessions">sesiones</string>
-    <string name="vehicle_stats_last_session">última</string>
+    <string name="vehicle_stats_sessions">sesiones totales</string>
+    <string name="vehicle_stats_last_session">última sesión</string>
     <string name="vehicle_stats_spots_shared">plazas cedidas</string>
     <!-- SpotIndicators -->
     <string name="spot_indicator_en_route">%1$d en camino</string>

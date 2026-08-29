@@ -84,6 +84,8 @@ fun TypographyLabScreen(onBack: () -> Unit) {
                     .padding(bottom = 32.dp),
             ) {
                 LabHeader()
+                // Lo primero: la pregunta abierta hoy — ¿sobran familias?
+                CandidateFamiliesBlock()
                 TypeVariant.entries.forEach { variant ->
                     VariantBlock(variant)
                 }
@@ -286,6 +288,117 @@ private val WorstCaseLocales = listOf(
 )
 
 private const val META_SEPARATOR = "  ·  "
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Familias candidatas [UI-TYPE-FAMILY-CANDIDATES-001]
+// Misma anatomía (la variante E ya decidida y mergeada), distinta letra. Lo único que cambia entre
+// bloques es la FAMILIA, para que la comparación no mida otra cosa.
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun CandidateFamiliesBlock() {
+    BlockHeader(
+        "¿SOBRAN FAMILIAS? · 3 candidatas",
+        "La misma fila y la misma card de métricas en tres sistemas. Mira dos cosas: si el nombre " +
+            "sigue teniendo carácter de marca, y si la meta a 12sp se lee sin esfuerzo.",
+    )
+    listOf(currentSet(), jakartaSet(), archivoSet()).forEach { set ->
+        Text(
+            set.title,
+            style = PaparcarType.current.label,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(start = 16.dp, top = 14.dp),
+        )
+        Text(
+            set.note,
+            style = PaparcarType.current.caption,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 4.dp),
+        )
+        SampleRows.forEach { sample ->
+            CandidateSpotRow(sample = sample, set = set)
+            HorizontalDivider(
+                modifier = Modifier.padding(start = 71.dp),
+                color = MaterialTheme.colorScheme.outline.copy(alpha = PapAlpha.dim),
+            )
+        }
+        // El caso peor de ancho decide tanto como el gusto: PL con 4 tokens.
+        CandidateSpotRow(sample = WorstCaseLocales[1].second, set = set)
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+        ) {
+            StatCell("1.284", "1.284", set.statNumber, set.statLabel)
+            StatCell("92%", "92%", set.statNumber, set.statLabel)
+        }
+    }
+}
+
+/** La fila de plaza tal y como quedó en master (variante E), pintada con la familia de [set]. */
+@Composable
+private fun CandidateSpotRow(sample: SpotSample, set: CandidateSet) {
+    val cs = MaterialTheme.colorScheme
+    val badgeColor = sample.reliability.stateColors().bg
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 13.dp, end = 16.dp, top = 12.dp, bottom = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        SpotPuckIcon(
+            reliability = sample.reliability,
+            enRouteCount = if (sample.enRoute != null) 3 else 0,
+            modifier = Modifier.size(42.dp),
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
+            ) {
+                sample.poiIcon?.let {
+                    Icon(it, contentDescription = null, tint = cs.onSurfaceVariant, modifier = Modifier.size(15.dp))
+                }
+                Text(
+                    text = sample.name,
+                    style = set.name,
+                    color = cs.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(sample.distance, style = set.distance, color = cs.onSurface, maxLines = 1)
+            }
+            Spacer(Modifier.height(2.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(sample.reliabilityLabel, style = set.badge, color = badgeColor, maxLines = 1)
+                MetaSep(set.meta)
+                sample.unconfirmed?.let {
+                    Text(it, style = set.meta, color = cs.onSurface.copy(alpha = PapAlpha.subtitle), maxLines = 1)
+                    MetaSep(set.meta)
+                }
+                Text(
+                    sample.driveTime,
+                    style = set.meta,
+                    color = cs.onSurface.copy(alpha = PapAlpha.subtitle),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (sample.enRoute != null) {
+                    MetaSep(set.meta)
+                    Text(
+                        sample.enRoute,
+                        style = set.meta,
+                        color = cs.onSurface.copy(alpha = PapAlpha.subtitle),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        }
+    }
+}
 
 @Composable
 private fun LabSpotRow(sample: SpotSample, variant: TypeVariant) {

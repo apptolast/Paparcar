@@ -90,6 +90,11 @@ fun PaparcarTheme(
 ) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
 
+    // Which families back the three voices. Production always resolves to [defaultFontSet]; the
+    // mock lab can provide another through [LocalPapFontSet] to compare candidates on device
+    // without touching a single role. [UI-TYPE-FAMILY-CANDIDATES-001]
+    val fonts = LocalPapFontSet.current ?: defaultFontSet()
+
     MaterialTheme(
         colorScheme = colorScheme,
         typography = rememberAppTypography(),
@@ -97,7 +102,7 @@ fun PaparcarTheme(
     ) {
         // Paparcar's role-based type system rides alongside the MD3 baseline; feature code reads
         // `PaparcarType.current.<role>` instead of picking families/sizes ad-hoc. [UI-TYPE-SYSTEM-001]
-        CompositionLocalProvider(LocalPaparcarType provides rememberPaparcarType()) {
+        CompositionLocalProvider(LocalPaparcarType provides rememberPaparcarType(fonts)) {
             content()
         }
     }

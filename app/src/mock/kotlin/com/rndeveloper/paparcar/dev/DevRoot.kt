@@ -32,6 +32,11 @@ import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import com.rndeveloper.paparcar.App
 import com.rndeveloper.paparcar.fakes.MockScenario
 import com.rndeveloper.paparcar.ui.theme.PaparcarTheme
+import com.rndeveloper.paparcar.ui.theme.LocalPapFontSet
+import com.rndeveloper.paparcar.ui.theme.archivoFontSet
+import com.rndeveloper.paparcar.ui.theme.legacyFontSet
+import com.rndeveloper.paparcar.ui.theme.jakartaFontSet
+import com.rndeveloper.paparcar.ui.theme.jakartaFullFontSet
 
 /**
  * Root of the mock launcher. Shows the [DevCatalogScreen] first; entering mounts the **real**
@@ -51,6 +56,8 @@ fun DevRoot(scenario: MockScenario) {
     var showGallery by rememberSaveable { mutableStateOf(false) }
     // Laboratorio tipográfico — fase 1 de UI-TYPE-TWO-VOICES-ONE-ROW-001.
     var showTypeLab by rememberSaveable { mutableStateOf(false) }
+    // Familia con la que se pinta TODA la app, incluido el grafo real. [UI-TYPE-FAMILY-CANDIDATES-001]
+    var fontChoice by rememberSaveable { mutableStateOf(DevFontChoice.Current) }
     // Bumped on each entry so the ViewModelStoreOwner (and thus all app ViewModels) is recreated.
     var session by rememberSaveable { mutableIntStateOf(0) }
     // Global mock light/dark override: null = follow system.
@@ -68,7 +75,17 @@ fun DevRoot(scenario: MockScenario) {
         }
     }
 
-    CompositionLocalProvider(LocalConfiguration provides overriddenConfig) {
+    val fontSet = when (fontChoice) {
+        DevFontChoice.Current -> legacyFontSet()
+        DevFontChoice.Jakarta -> jakartaFontSet()
+        DevFontChoice.JakartaFull -> jakartaFullFontSet()
+        DevFontChoice.Archivo -> archivoFontSet()
+    }
+
+    CompositionLocalProvider(
+        LocalConfiguration provides overriddenConfig,
+        LocalPapFontSet provides fontSet,
+    ) {
         Box(Modifier.fillMaxSize()) {
             when {
                 showTypeLab && !inApp -> TypographyLabScreen(onBack = { showTypeLab = false })
@@ -81,6 +98,8 @@ fun DevRoot(scenario: MockScenario) {
                         onEnter = { session++; inApp = true },
                         onOpenGallery = { showGallery = true },
                         onOpenTypeLab = { showTypeLab = true },
+                        fontChoice = fontChoice,
+                        onFontChoice = { fontChoice = it },
                     )
                 }
 

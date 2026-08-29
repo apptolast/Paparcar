@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -377,7 +378,21 @@ private fun PapSheetLeadTile(lead: PapSheetLead) {
             val hasSpots = lead.count > 0
             val accent = if (hasSpots) cs.primary else cs.secondary
             LeadTileBox(container = if (hasSpots) cs.primaryContainer else cs.secondaryContainer) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                // Centrar la CAJA de texto no centra lo que se ve: encima del dígito sobra el
+                // ascenso que no usa, y debajo de las mayúsculas sobra el descenso. Con Jakarta ese
+                // hueco es 0.29 em y el bloque quedaba pegado al borde inferior del tile. La
+                // corrección sale de las métricas de la familia, así que sigue valiendo si la
+                // familia cambia. [UI-SHEET-001] [UI-TYPE-FAMILY-CANDIDATES-001]
+                val type = PaparcarType.current
+                val opticalLift = with(type) {
+                    val deadTop = (figureAscentEm - figureCapHeightEm) * counter.fontSize.value
+                    val deadBottom = figureDescentEm * counterUnit.fontSize.value
+                    ((deadTop - deadBottom) / 2f).dp
+                }
+                Column(
+                    modifier = Modifier.offset(y = -opticalLift),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
                     Text(
                         text = "${lead.count}",
                         style = PaparcarType.current.counter,

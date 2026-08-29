@@ -497,8 +497,8 @@
     <string name="vehicle_status_inactive_cd">Detection off</string>
     <string name="vehicle_bt_cd">Bluetooth pairing</string>
     <!-- VehicleStatsRow inline cards under the hero card -->
-    <string name="vehicle_stats_sessions">sessions</string>
-    <string name="vehicle_stats_last_session">last</string>
+    <string name="vehicle_stats_sessions">total sessions</string>
+    <string name="vehicle_stats_last_session">last session</string>
     <string name="vehicle_stats_spots_shared">spots shared</string>
     <!-- SpotIndicators -->
     <string name="spot_indicator_en_route">%1$d en route</string>

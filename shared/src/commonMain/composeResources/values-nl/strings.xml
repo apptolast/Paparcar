@@ -464,8 +464,8 @@
     <string name="auth_cd_hide_password">Wachtwoord verbergen</string>
 
     <!-- VehicleStatsRow inline cards -->
-    <string name="vehicle_stats_sessions">sessies</string>
-    <string name="vehicle_stats_last_session">laatste</string>
+    <string name="vehicle_stats_sessions">sessies totaal</string>
+    <string name="vehicle_stats_last_session">laatste sessie</string>
     <string name="vehicle_stats_spots_shared">plekken gedeeld</string>
     <!-- Auth screens -->
     <string name="auth_header_app_name">Paparcar</string>

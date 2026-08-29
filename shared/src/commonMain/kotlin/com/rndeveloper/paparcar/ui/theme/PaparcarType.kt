@@ -138,6 +138,14 @@ class PaparcarType(
     val chartLabel: TextStyle,
     /** Chart per-bar value — the small count above a bar. */
     val chartValue: TextStyle,
+
+    /** Cap height of the CIFRA family as a fraction of em — see [PapFontSet.figureCapHeightEm].
+     *  Anything aligning a glyph to the digit band reads it from here, never from a constant of
+     *  its own. [UI-STAT-ICON-CENTERS-ON-DIGITS-001] */
+    val figureCapHeightEm: Float,
+    /** Ascenso/descenso de la familia CIFRA — ver [PapFontSet.figureAscentEm]. */
+    val figureAscentEm: Float,
+    val figureDescentEm: Float,
 ) {
     companion object {
         /** The role table for the current composition. Read as `PaparcarType.current.meta`.
@@ -159,10 +167,12 @@ val LocalPaparcarType = staticCompositionLocalOf<PaparcarType> {
  * code reads `PaparcarType.current.<role>` and never calls this directly.
  */
 @Composable
-fun rememberPaparcarType(): PaparcarType {
-    val outfit = rememberOutfitFontFamily()
-    val inter = rememberInterFontFamily()
-    val barlow = rememberBarlowCondensedFontFamily()
+fun rememberPaparcarType(fonts: PapFontSet = defaultFontSet()): PaparcarType {
+    // Las voces se resuelven a familias en [PapFontSet]; aqui solo se reparten los roles. Esa
+    // separacion es lo que permite probar otra familia en la app entera sin tocar un solo rol.
+    val outfit = fonts.brand
+    val inter = fonts.text
+    val barlow = fonts.figure
 
     return PaparcarType(
         // ── MARCA · Outfit ──────────────────────────────────────────────────────────────────────
@@ -250,8 +260,19 @@ fun rememberPaparcarType(): PaparcarType {
             ),
         ),
         statLabel = TextStyle(
+            // Trimmed like [statNumber]: the label sits under a figure inside a fixed cell, so its
+            // box must hug its glyphs or the pair drifts off centre when the family changes.
+            //
+            // `lineHeight` above the font size is deliberate and does NOT undo that: with
+            // `Trim.Both` the surplus is cut off the top of the first line and the bottom of the
+            // last, so it only ever lands BETWEEN lines. A two-word label ("PLAZAS CEDIDAS") wraps,
+            // and at lineHeight == fontSize the two lines sit on top of each other.
             fontFamily = barlow, fontWeight = FontWeight.SemiBold,
             fontSize = 13.sp, lineHeight = 16.sp, letterSpacing = 0.6.sp,
+            lineHeightStyle = LineHeightStyle(
+                alignment = LineHeightStyle.Alignment.Center,
+                trim = LineHeightStyle.Trim.Both,
+            ),
         ),
         counter = TextStyle(
             fontFamily = barlow, fontWeight = FontWeight.Bold,
@@ -262,8 +283,15 @@ fun rememberPaparcarType(): PaparcarType {
             ),
         ),
         counterUnit = TextStyle(
+            // Same trimmed box as [counter]. Without it the unit carries the font's full ascent and
+            // descent, and the pair sinks against the bottom of its 46dp tile — visible the moment
+            // the family changed, because Jakarta's ascent (1038) is taller than Barlow's (1000).
             fontFamily = barlow, fontWeight = FontWeight.SemiBold,
-            fontSize = 8.5.sp, lineHeight = 10.sp, letterSpacing = 0.5.sp,
+            fontSize = 8.5.sp, lineHeight = 8.5.sp, letterSpacing = 0.5.sp,
+            lineHeightStyle = LineHeightStyle(
+                alignment = LineHeightStyle.Alignment.Center,
+                trim = LineHeightStyle.Trim.Both,
+            ),
         ),
         chartLabel = TextStyle(
             fontFamily = barlow, fontWeight = FontWeight.Normal,
@@ -273,5 +301,8 @@ fun rememberPaparcarType(): PaparcarType {
             fontFamily = barlow, fontWeight = FontWeight.Bold,
             fontSize = 10.sp, letterSpacing = 0.sp,
         ),
+        figureCapHeightEm = fonts.figureCapHeightEm,
+        figureAscentEm = fonts.figureAscentEm,
+        figureDescentEm = fonts.figureDescentEm,
     )
 }

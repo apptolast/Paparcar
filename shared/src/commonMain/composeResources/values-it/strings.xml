@@ -464,8 +464,8 @@
     <string name="auth_cd_hide_password">Nascondi password</string>
 
     <!-- VehicleStatsRow inline cards -->
-    <string name="vehicle_stats_sessions">sessioni</string>
-    <string name="vehicle_stats_last_session">ultimo</string>
+    <string name="vehicle_stats_sessions">sessioni totali</string>
+    <string name="vehicle_stats_last_session">ultima sessione</string>
     <string name="vehicle_stats_spots_shared">posti ceduti</string>
     <!-- Auth screens -->
     <string name="auth_header_app_name">Paparcar</string>

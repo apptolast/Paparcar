@@ -30,6 +30,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
@@ -233,7 +234,8 @@ private fun StatCell(
             // the baseline survives font scale, lineHeight and value length.
             // [UI-STAT-ICON-CENTERS-ON-DIGITS-001]
             val capHeightPx = with(LocalDensity.current) {
-                PaparcarType.current.statNumber.fontSize.toPx() * BARLOW_CAP_HEIGHT_EM
+                PaparcarType.current.statNumber.fontSize.toPx() *
+                    PaparcarType.current.figureCapHeightEm
             }
             Icon(
                 imageVector = icon,
@@ -255,13 +257,20 @@ private fun StatCell(
         }
         Spacer(Modifier.size(STAT_LABEL_GAP.dp))
         Text(
-            // Condensed, matching its number above — icon + number + label read as one data unit.
-            // This is the ONE caps token left outside Inter: it belongs to the figure's block and
-            // never shares a line with a name. [UI-TYPE-TWO-VOICES-ONE-ROW-001]
+            // The label belongs to the figure's block: icon + number + label read as one data unit.
+            //
+            // `textAlign` is NOT decoration here. The Text fills the cell, so without it a label
+            // that wraps aligns to the start while the number above stays centred — which is
+            // exactly how "PLAZAS CEDIDAS" ended up looking detached from its 49. And two lines
+            // instead of one because a cell is a third of the card: at one line the second word was
+            // silently dropped (maxLines cut it, no ellipsis), so the stat lost half its meaning
+            // without ever looking broken. `IntrinsicSize.Min` on the row keeps all three cells
+            // the same height. [UI-STAT-ICON-CENTERS-ON-DIGITS-001]
             text = label.uppercase(),
             style = PaparcarType.current.statLabel,
             color = cs.onSurfaceVariant,
-            maxLines = 1,
+            textAlign = TextAlign.Center,
+            maxLines = 2,
         )
     }
 }
@@ -323,8 +332,9 @@ private const val STAT_ICON_DP = 17
 private const val STAT_ICON_GAP = 5
 // Cap height of Barlow Condensed Bold as measured in the shipped TTF (OS/2 capHeight 700 / upm
 // 1000) — the digit band the stat icon centres on. A font metric, not a tuned pad.
-// [UI-STAT-ICON-CENTERS-ON-DIGITS-001]
-private const val BARLOW_CAP_HEIGHT_EM = 0.70f
+// La altura de mayuscula de la voz Cifra vive en PapFontSet, no aqui: es un dato de la FUENTE, y
+// cablearla en esta pantalla hacia que el icono se despegase de los digitos al cambiar de familia
+// (Barlow 0.700 vs Jakarta 0.745). [UI-STAT-ICON-CENTERS-ON-DIGITS-001]
 private const val STAT_LABEL_GAP = 5
 private const val SET_ACTIVE_PAD = 13
 private const val SET_ACTIVE_GAP = 9
