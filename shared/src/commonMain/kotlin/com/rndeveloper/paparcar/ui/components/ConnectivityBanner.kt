@@ -25,8 +25,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rndeveloper.paparcar.domain.connectivity.ConnectivityBannerPhase
@@ -102,8 +102,10 @@ fun ConnectivityBanner(
                 )
                 Text(
                     stringResource(label),
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = BANNER_TEXT_SP.sp,
+                    // Sin `style` este Text caia en LocalTextStyle, que nadie provee: la fuente del
+                    // SISTEMA (Roboto), la unica cara ajena que quedaba en la app. Un aviso de
+                    // estado corto es un `label`. [UI-TYPE-ONE-VOICE-REACHES-MATERIAL-001]
+                    style = PaparcarType.current.label,
                 )
             }
         }
@@ -114,4 +116,3 @@ private const val BANNER_PADDING_H_DP = 16
 private const val BANNER_PADDING_V_DP = 8
 private const val BANNER_GAP_DP = 8
 private const val BANNER_ICON_DP = 16
-private const val BANNER_TEXT_SP = 13

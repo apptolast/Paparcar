@@ -144,10 +144,12 @@ class TypographyGuardrailTest {
 
         // Legit inline-sp: canvas map labels drawn via TextMeasurer, and chrome one-offs whose sizes
         // are their own tokenised constants (documented exceptions in CLAUDE.md).
+        // ConnectivityBanner sale de aqui: estar en la allowlist es lo que le permitio quedarse sin
+        // familia y renderizarse con la fuente del sistema. La exencion tapaba el fallo, no lo
+        // documentaba. [UI-TYPE-ONE-VOICE-REACHES-MATERIAL-001]
         val INLINE_SP_ALLOWLIST = setOf(
             "PaparcarMapMarkers",
             "AppBottomNavigation",
-            "ConnectivityBanner",
             "PaparcarBottomActionBar",
         )
 
