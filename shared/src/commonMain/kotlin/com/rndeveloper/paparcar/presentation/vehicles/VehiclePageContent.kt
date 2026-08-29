@@ -46,6 +46,7 @@ import com.rndeveloper.paparcar.ui.theme.watch
 import com.rndeveloper.paparcar.ui.theme.PapBorders
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.PapShapes
+import com.rndeveloper.paparcar.ui.theme.PapColor
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.my_car_edit_vehicle
@@ -312,7 +313,7 @@ private fun SetActiveRow(isLoading: Boolean, onClick: () -> Unit) {
                 // An action row is a button → cta (Inter), the app's button convention (PapButton);
                 // not rowTitle (Outfit), which is for identity titles. [CARD-ONE-BADGE-001]
                 style = PaparcarType.current.cta,
-                color = cs.primary,
+                color = PapColor.actionText,
             )
         }
     }

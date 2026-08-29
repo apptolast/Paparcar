@@ -68,7 +68,7 @@ import com.rndeveloper.paparcar.ui.icons.icon
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.PapCarBlueLight
 import com.rndeveloper.paparcar.ui.theme.PapGreen
-import com.rndeveloper.paparcar.ui.theme.PapSpotFreshMap
+import com.rndeveloper.paparcar.ui.theme.PapSpotFreshPuck
 import com.rndeveloper.paparcar.ui.theme.PapWatchGreenLight
 import com.rndeveloper.paparcar.ui.theme.PapLiveMap
 import com.rndeveloper.paparcar.ui.theme.PapInk
@@ -492,7 +492,7 @@ private object SpotPalette {
     // `Green` was #009F5E — the EXACT value the active-vehicle marker used two hundred lines up.
     // A stranger's free spot and your own watched car were the same pixel on the same layer,
     // simultaneously, always. [UI-COLOR-EVERY-HUE-EARNS-ITS-MEANING-001]
-    val Green       = PapSpotFreshMap // libre · fresca
+    val Green       = PapSpotFreshPuck // libre · fresca
     val Amber       = Color(0xFFE08200) // libre · enfriándose
     val Red         = Color(0xFFE0322F) // libre · caduca ya
     val Paper       = Color(0xFFFFFFFF) // fixed white — ring / "P" / TTL ring / badge discs

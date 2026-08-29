@@ -13,6 +13,7 @@ import com.rndeveloper.paparcar.ui.theme.PapCarBlueLight
 import com.rndeveloper.paparcar.ui.theme.PapGreen
 import com.rndeveloper.paparcar.ui.theme.PapGreenContainerLight
 import com.rndeveloper.paparcar.ui.theme.PapGreenLight
+import com.rndeveloper.paparcar.ui.theme.PapGreenTextLight
 import com.rndeveloper.paparcar.ui.theme.PapGreenMuted
 import com.rndeveloper.paparcar.ui.theme.PapGreenOutline
 import com.rndeveloper.paparcar.ui.theme.PapGreenOutlineLight
@@ -31,7 +32,11 @@ import com.rndeveloper.paparcar.ui.theme.PapSpotFresh
 import com.rndeveloper.paparcar.ui.theme.PapSpotCoolingLight
 import com.rndeveloper.paparcar.ui.theme.PapSpotExpiringLight
 import com.rndeveloper.paparcar.ui.theme.PapSpotFreshLight
-import com.rndeveloper.paparcar.ui.theme.PapSpotFreshMap
+import com.rndeveloper.paparcar.ui.theme.PapSpotFreshDeep
+import com.rndeveloper.paparcar.ui.theme.PapSpotFreshContainerLight
+import com.rndeveloper.paparcar.ui.theme.PapOnSpotFreshContainerLight
+import com.rndeveloper.paparcar.ui.theme.PapSpotExpiringContainerLight
+import com.rndeveloper.paparcar.ui.theme.PapSpotFreshPuck
 import com.rndeveloper.paparcar.ui.theme.PapSpotFreshMuted
 import com.rndeveloper.paparcar.ui.theme.PapWatchGreen
 import com.rndeveloper.paparcar.ui.theme.PapWatchGreenContainerLight
@@ -184,6 +189,9 @@ class ColorGuardrailTest {
             Triple("PapGreenMuted", PapGreenMuted, "brand-green-container/dark"),
             Triple("PapGreenOutline", PapGreenOutline, "brand-green-border/dark"),
             Triple("PapGreenLight", PapGreenLight, "brand-green/light"),
+            // Same story, split by JOB: the fill may be vivid, the text must be read.
+            // [UI-COLOR-GREEN-TEXT-EARNS-ITS-CONTRAST-001]
+            Triple("PapGreenTextLight", PapGreenTextLight, "brand-green/light-text"),
             // declared alias: "the brand green read as a border" is the same promise, not a new one
             Triple("PapGreenOutlineLight", PapGreenOutlineLight, "brand-green/light"),
             Triple("PapGreenContainerLight", PapGreenContainerLight, "brand-green-container/light"),
@@ -197,7 +205,11 @@ class ColorGuardrailTest {
             Triple("PapSpotFresh", PapSpotFresh, "spot-fresh/dark"),
             Triple("PapSpotFreshMuted", PapSpotFreshMuted, "spot-fresh-container/dark"),
             Triple("PapSpotFreshLight", PapSpotFreshLight, "spot-fresh/light"),
-            Triple("PapSpotFreshMap", PapSpotFreshMap, "spot-fresh/map-puck"),
+            Triple("PapSpotFreshDeep", PapSpotFreshDeep, "spot-fresh/light-text"),
+            Triple("PapSpotFreshPuck", PapSpotFreshPuck, "spot-fresh/puck"),
+            Triple("PapSpotFreshContainerLight", PapSpotFreshContainerLight, "spot-fresh-container/light"),
+            Triple("PapOnSpotFreshContainerLight", PapOnSpotFreshContainerLight, "on-spot-fresh-container/light"),
+            Triple("PapSpotExpiringContainerLight", PapSpotExpiringContainerLight, "spot-expiring-container/light"),
             Triple("PapSpotCoolingLight", PapSpotCoolingLight, "spot-cooling/light"),
             Triple("PapSpotExpiringLight", PapSpotExpiringLight, "spot-expiring/light"),
             Triple("PapOnGreenContainerLight", PapOnGreenContainerLight, "on-brand-green-container/light"),

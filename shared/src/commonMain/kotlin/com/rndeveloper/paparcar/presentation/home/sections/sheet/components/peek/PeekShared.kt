@@ -193,7 +193,9 @@ internal fun SpotFreshness.peekPalette(): SpotPeekPalette {
         SpotFreshness.RECENT -> stringResource(Res.string.home_peek_spot_recent)
         SpotFreshness.STALE  -> stringResource(Res.string.home_peek_spot_stale)
     }
-    return SpotPeekPalette(sc.bg, sc.on, label)
+    // Painted as TEXT: the peek eyebrow and the accent rows. Readable leg, not the fill.
+    // [UI-COLOR-GREEN-TEXT-EARNS-ITS-CONTRAST-001]
+    return SpotPeekPalette(sc.text, sc.on, label)
 }
 
 /**

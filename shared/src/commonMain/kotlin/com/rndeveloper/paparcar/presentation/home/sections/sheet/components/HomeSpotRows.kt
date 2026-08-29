@@ -78,6 +78,7 @@ import paparcar.composeapp.generated.resources.home_spot_freshness_recent
 import paparcar.composeapp.generated.resources.home_spot_unconfirmed_badge
 import paparcar.composeapp.generated.resources.location_fallback_spot
 import com.rndeveloper.paparcar.ui.theme.PapAlpha
+import com.rndeveloper.paparcar.ui.theme.PapColor
 
 /**
  * Spot row (v1 redesign).
@@ -99,7 +100,6 @@ internal fun HomeSpotRow(
     // with itself across its own row. [SPOT-FRESHNESS-IS-AGE-NOT-A-COUNTDOWN-001]
     val nowMs = rememberSpotAgeClock()
     val freshness = spot.freshness(nowMs)
-    val palette = freshness.palette()
 
     val rowBg = if (isSelected)
         MaterialTheme.colorScheme.primaryContainer.copy(alpha = SELECTED_ROW_BG_ALPHA)
@@ -126,7 +126,6 @@ internal fun HomeSpotRow(
             SpotRowContent(
                 spot = spot,
                 userLocation = userLocation,
-                palette = palette,
                 freshness = freshness,
                 ageMs = spot.ageMs(nowMs),
                 modifier = Modifier
@@ -141,7 +140,6 @@ internal fun HomeSpotRow(
 private fun SpotRowContent(
     spot: Spot,
     userLocation: Pair<Double, Double>?,
-    palette: ReliabilityPalette,
     freshness: SpotFreshness,
     ageMs: Long,
     modifier: Modifier = Modifier,
@@ -260,26 +258,6 @@ private fun SpotRowContent(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Reliability palette — aligns spot rows with map markers.
-// ─────────────────────────────────────────────────────────────────────────────
-
-private data class ReliabilityPalette(
-    val badgeBg: Color,
-    val badgeFg: Color,
-    val label: String,
-)
-
-@Composable
-private fun SpotFreshness.palette(): ReliabilityPalette {
-    val sc = stateColors()
-    val label = when (this) {
-        SpotFreshness.FRESH  -> stringResource(Res.string.home_spot_freshness_fresh)
-        SpotFreshness.RECENT -> stringResource(Res.string.home_spot_freshness_recent)
-        SpotFreshness.STALE  -> stringResource(Res.string.home_spot_freshness_stale)
-    }
-    return ReliabilityPalette(sc.bg, sc.on, label)
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Empty states — surface card with centred icon/title/subtitle.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -368,7 +346,7 @@ internal fun HomeEmptyFilteredSpots(
         Text(
             stringResource(Res.string.home_filter_empty_clear),
             style = PaparcarType.current.label,
-            color = MaterialTheme.colorScheme.primary,
+            color = PapColor.actionText,
             modifier = Modifier.clickable(onClick = onClearFilter),
         )
     }

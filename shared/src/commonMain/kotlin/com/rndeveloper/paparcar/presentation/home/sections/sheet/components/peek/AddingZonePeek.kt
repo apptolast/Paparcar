@@ -76,6 +76,7 @@ import paparcar.composeapp.generated.resources.home_zone_radius_section
 import paparcar.composeapp.generated.resources.home_zone_save_action
 import kotlin.math.roundToInt
 import com.rndeveloper.paparcar.ui.theme.PapAlpha
+import com.rndeveloper.paparcar.ui.theme.PapColor
 
 // ═════════════════════════════════════════════════════════════════════════════
 // AddingZonePeek — "Nueva zona habitual" (create + edit). [HOME-ATOMIZE-001 F3]
@@ -330,7 +331,7 @@ private fun ZoneRadiusSlider(
         Text(
             text = stringResource(Res.string.home_zone_radius_meters, radius.roundToInt()),
             style = PaparcarType.current.label,
-            color = MaterialTheme.colorScheme.primary,
+            color = PapColor.actionText,
         )
     }
     Slider(

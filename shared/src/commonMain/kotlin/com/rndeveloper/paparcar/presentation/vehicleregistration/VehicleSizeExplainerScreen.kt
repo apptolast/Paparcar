@@ -37,6 +37,7 @@ import com.rndeveloper.paparcar.ui.components.PapPrimaryButton
 import com.rndeveloper.paparcar.ui.components.VehicleIcon
 import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
+import com.rndeveloper.paparcar.ui.theme.PapColor
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.vehicle_size_explainer_card1_desc
@@ -83,7 +84,7 @@ fun VehicleSizeExplainerScreen(
             Text(
                 text = stringResource(Res.string.vehicle_size_explainer_title),
                 style = PaparcarType.current.heroTitle,
-                color = MaterialTheme.colorScheme.primary,
+                color = PapColor.actionText,
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(PaparcarSpacing.lg))

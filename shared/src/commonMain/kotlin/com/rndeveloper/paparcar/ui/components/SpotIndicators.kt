@@ -10,6 +10,7 @@ import androidx.compose.material.icons.rounded.Group
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -23,6 +24,13 @@ import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.ui.theme.PapAmber
 import com.rndeveloper.paparcar.ui.theme.PapAmberMuted
 import com.rndeveloper.paparcar.ui.theme.PapSpotFresh
+import com.rndeveloper.paparcar.ui.theme.SURFACE_DARK_LUMINANCE
+import com.rndeveloper.paparcar.ui.theme.PapRedLight
+import com.rndeveloper.paparcar.ui.theme.PapOnAmberContainerLight
+import com.rndeveloper.paparcar.ui.theme.PapAmberContainerLight
+import com.rndeveloper.paparcar.ui.theme.PapSpotExpiringContainerLight
+import com.rndeveloper.paparcar.ui.theme.PapOnSpotFreshContainerLight
+import com.rndeveloper.paparcar.ui.theme.PapSpotFreshContainerLight
 import com.rndeveloper.paparcar.ui.theme.PapSpotFreshMuted
 import com.rndeveloper.paparcar.ui.theme.PapRed
 import com.rndeveloper.paparcar.ui.theme.PapRedMuted
@@ -74,15 +82,20 @@ fun SpotAgeIndicator(
 ) {
     val ageMinutes = (ageMs / MS_PER_MINUTE).coerceAtLeast(0L)
 
+    // This pill had ONE pair of colours for both themes — the dark one — so in the light theme it
+    // rendered as a near-black lozenge on a white sheet. It predates the colour refactor, which
+    // swapped its tokens without noticing the `when` had no theme probe: a sweep that asks WHICH
+    // token a site reads does not catch HOW it picks one. [UI-COLOR-GREEN-TEXT-EARNS-ITS-CONTRAST-001]
+    val dark = MaterialTheme.colorScheme.surface.luminance() < SURFACE_DARK_LUMINANCE
     val containerColor = when (freshness) {
-        SpotFreshness.FRESH  -> PapSpotFreshMuted
-        SpotFreshness.RECENT -> PapAmberMuted
-        SpotFreshness.STALE  -> PapRedMuted
+        SpotFreshness.FRESH  -> if (dark) PapSpotFreshMuted else PapSpotFreshContainerLight
+        SpotFreshness.RECENT -> if (dark) PapAmberMuted else PapAmberContainerLight
+        SpotFreshness.STALE  -> if (dark) PapRedMuted else PapSpotExpiringContainerLight
     }
     val contentColor = when (freshness) {
-        SpotFreshness.FRESH  -> PapSpotFresh
-        SpotFreshness.RECENT -> PapAmber
-        SpotFreshness.STALE  -> PapRed
+        SpotFreshness.FRESH  -> if (dark) PapSpotFresh else PapOnSpotFreshContainerLight
+        SpotFreshness.RECENT -> if (dark) PapAmber else PapOnAmberContainerLight
+        SpotFreshness.STALE  -> if (dark) PapRed else PapRedLight
     }
     val label = when {
         // "0 min ago" reads as no information at all — the first minute says it in words.

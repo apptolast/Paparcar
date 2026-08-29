@@ -40,6 +40,7 @@ import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
 import com.rndeveloper.paparcar.ui.illustrations.OnboardingHero
 import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
+import com.rndeveloper.paparcar.ui.theme.PapColor
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -139,7 +140,7 @@ private fun OnboardingPage1() {
         Text(
             text = stringResource(Res.string.onboarding_page1_title),
             style = PaparcarType.current.heroTitle,
-            color = MaterialTheme.colorScheme.primary,
+            color = PapColor.actionText,
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(PaparcarSpacing.lg))
@@ -171,7 +172,7 @@ private fun OnboardingPage2() {
         Text(
             text = stringResource(Res.string.onboarding_page2_title),
             style = PaparcarType.current.heroTitle,
-            color = MaterialTheme.colorScheme.primary,
+            color = PapColor.actionText,
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(PaparcarSpacing.xxl + PaparcarSpacing.md))
@@ -214,7 +215,7 @@ private fun OnboardingPage3() {
         Text(
             text = stringResource(Res.string.onboarding_page3_title),
             style = PaparcarType.current.heroTitle,
-            color = MaterialTheme.colorScheme.primary,
+            color = PapColor.actionText,
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(PaparcarSpacing.lg))

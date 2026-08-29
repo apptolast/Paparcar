@@ -55,6 +55,7 @@ import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.history_activity_low_hint
 import paparcar.composeapp.generated.resources.history_activity_noun
 import com.rndeveloper.paparcar.ui.theme.PapAlpha
+import com.rndeveloper.paparcar.ui.theme.PapColor
 
 private const val CHART_ENTER_DURATION = 800
 
@@ -137,7 +138,7 @@ private fun ActivityCardTitle(total: Int, distanceText: String?) {
     // No icon — the count in primary already carries the visual hierarchy. [CARD-META-POLISH-001]
     Text(
         text = buildAnnotatedString {
-            withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) { append("$total ") }
+            withStyle(SpanStyle(color = PapColor.actionText)) { append("$total ") }
             append(pluralStringResource(Res.plurals.history_activity_noun, total))
             if (distanceText != null) {
                 withStyle(SpanStyle(color = MaterialTheme.colorScheme.onSurfaceVariant)) {
@@ -195,7 +196,7 @@ private fun LowActivitySummary(total: Int) {
                 text = buildAnnotatedString {
                     withStyle(
                         SpanStyle(
-                            color = MaterialTheme.colorScheme.primary,
+                            color = PapColor.actionText,
                             fontWeight = FontWeight.Bold,
                         ),
                     ) { append("$total ") }

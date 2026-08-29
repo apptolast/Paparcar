@@ -50,6 +50,7 @@ import com.rndeveloper.paparcar.ui.theme.vehicleIdentityColor
 import com.rndeveloper.paparcar.ui.theme.watch
 import com.rndeveloper.paparcar.ui.theme.PapShapes
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
+import com.rndeveloper.paparcar.ui.theme.PapColor
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_peek_parked_label
@@ -303,7 +304,7 @@ internal fun HomeVehicleCard(
                         else -> Text(
                             text = stringResource(Res.string.home_vehicle_chip_mark_parking),
                             style = PaparcarType.current.rowTitle,
-                            color = cs.primary,
+                            color = PapColor.actionText,
                             maxLines = 1,
                         )
                     }

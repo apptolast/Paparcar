@@ -80,6 +80,7 @@ import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.VehicleWatch
 import com.rndeveloper.paparcar.ui.theme.vehicleIdentityColor
 import com.rndeveloper.paparcar.ui.theme.watch
+import com.rndeveloper.paparcar.ui.theme.PapColor
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringResource
@@ -319,7 +320,7 @@ private fun InferredRouteQuestionCard(
                     Text(
                         text = stringResource(Res.string.parking_detail_route_inferred_yes),
                         style = PaparcarType.current.cta,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = PapColor.actionText,
                     )
                 }
             }

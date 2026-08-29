@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.ui.components.PapListItem
 import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
+import com.rndeveloper.paparcar.ui.theme.PapColor
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.permissions_status_granted
@@ -91,7 +92,7 @@ internal fun PermissionRow(
                         Text(
                             text = tag,
                             style = PaparcarType.current.label,
-                            color = MaterialTheme.colorScheme.primary,
+                            color = PapColor.actionText,
                         )
                     }
                 }

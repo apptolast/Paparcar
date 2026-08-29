@@ -42,6 +42,7 @@ import paparcar.composeapp.generated.resources.vehicle_registration_carbody_auto
 import paparcar.composeapp.generated.resources.vehicle_registration_carbody_change
 import paparcar.composeapp.generated.resources.vehicle_registration_carbody_manual_label
 import com.rndeveloper.paparcar.ui.theme.PapAlpha
+import com.rndeveloper.paparcar.ui.theme.PapColor
 
 /**
  * Feedback card surfaced once the registration form has enough signal (brand +
@@ -151,7 +152,7 @@ fun CarbodyInfoCard(
                         else Res.string.vehicle_registration_carbody_auto_label
                     ),
                     style = PaparcarType.current.label,
-                    color = cs.primary,
+                    color = PapColor.actionText,
                 )
             }
 

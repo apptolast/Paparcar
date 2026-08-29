@@ -64,6 +64,7 @@ import com.rndeveloper.paparcar.ui.theme.PapFonts
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.figureOpticalLiftSp
 import com.rndeveloper.paparcar.ui.theme.greenOutline
+import com.rndeveloper.paparcar.ui.theme.PapColor
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_counter_unit_free
@@ -340,7 +341,9 @@ internal enum class PapSheetEyebrowTone { Action, Neutral }
 
 @Composable
 private fun PapSheetEyebrowTone.color(): Color = when (this) {
-    PapSheetEyebrowTone.Action -> MaterialTheme.colorScheme.primary
+    // The eyebrow is a WORD, so it takes the readable leg of the brand green.
+    // [UI-COLOR-GREEN-TEXT-EARNS-ITS-CONTRAST-001]
+    PapSheetEyebrowTone.Action -> PapColor.actionText
     PapSheetEyebrowTone.Neutral -> MaterialTheme.colorScheme.onSurfaceVariant
 }
 

@@ -4,6 +4,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 
 /**
  * Paparcar colour ROLES — the single vocabulary the feature layer asks colour by.
@@ -51,6 +52,24 @@ object PapColor {
     /** Content ON a filled [action] surface. */
     val onAction: Color
         @Composable @ReadOnlyComposable get() = MaterialTheme.colorScheme.onPrimary
+
+    /**
+     * The brand green when it spells WORDS on a light surface — a link, a figure, a label, the text
+     * of a borderless button. Same story as [action]; different job, and jobs carry the contrast
+     * floor: filling a shape needs 3:1, being read needs 4.5:1.
+     *
+     * In the dark theme this IS [action] — a vivid green on a near-black bed already clears the bar,
+     * so there is nothing to trade. Only the light theme pays, and it pays in exactly one place
+     * instead of dulling the brand everywhere, which is what was tried and revoked on device.
+     * [UI-COLOR-GREEN-TEXT-EARNS-ITS-CONTRAST-001]
+     */
+    val actionText: Color
+        @Composable get() =
+            if (MaterialTheme.colorScheme.surface.luminance() < SURFACE_DARK_LUMINANCE) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                PapGreenTextLight
+            }
 
     /** "This option is the CHOSEN one": type/size/colour selectors, segmented rows, page dots.
      *  Selection is said with colour + border + check — never with type weight. */

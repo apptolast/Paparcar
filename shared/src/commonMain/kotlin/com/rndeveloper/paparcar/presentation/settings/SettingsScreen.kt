@@ -107,6 +107,7 @@ import com.rndeveloper.paparcar.ui.theme.PapMotion
 import com.rndeveloper.paparcar.ui.theme.PapShapes
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.outlineSubtle
+import com.rndeveloper.paparcar.ui.theme.PapColor
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -657,7 +658,7 @@ private fun SetupStatusTrailing(configured: Boolean) {
             Text(
                 stringResource(Res.string.settings_detection_configured),
                 style = PaparcarType.current.label,
-                color = cs.primary,
+                color = PapColor.actionText,
             )
             Icon(Icons.Rounded.Check, contentDescription = null, tint = cs.primary, modifier = Modifier.size(18.dp))
         }

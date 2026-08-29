@@ -36,6 +36,7 @@ import com.rndeveloper.paparcar.domain.model.CarbodyType
 import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.ui.theme.PapShapes
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
+import com.rndeveloper.paparcar.ui.theme.PapColor
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.vehicle_registration_carbody_picker_dismiss
@@ -117,7 +118,7 @@ private fun SizeHeader(size: VehicleSize) {
             // Condensed data slot — size tokens share the sizeBadge recipe app-wide.
             // [HOME-VEH-REFINE-001]
             style = PaparcarType.current.badge,
-            color = cs.primary,
+            color = PapColor.actionText,
             modifier = Modifier.padding(top = 6.dp, bottom = 4.dp),
         )
         PapDivider()

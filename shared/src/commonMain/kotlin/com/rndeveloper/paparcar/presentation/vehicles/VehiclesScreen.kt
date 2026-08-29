@@ -88,6 +88,7 @@ import paparcar.composeapp.generated.resources.vehicle_set_active_confirm_cta
 import paparcar.composeapp.generated.resources.vehicle_set_active_confirm_title
 import paparcar.composeapp.generated.resources.vehicle_status_active_cd
 import com.rndeveloper.paparcar.ui.theme.PapAlpha
+import com.rndeveloper.paparcar.ui.theme.PapColor
 
 /**
  * VehiclesScreen (v1 redesign) — Vehicles + History fusionado.
@@ -480,7 +481,7 @@ private fun EmptyVehicleState(
         Surface(
             onClick = onAddVehicle,
             shape = RoundedCornerShape(EMPTY_CTA_CORNER_DP.dp),
-            color = MaterialTheme.colorScheme.primary,
+            color = PapColor.actionText,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(EMPTY_CTA_HEIGHT_DP.dp),
@@ -511,7 +512,7 @@ private fun EmptyVehicleState(
                 text = stringResource(Res.string.my_car_empty_why_link),
                 style = PaparcarType.current.label,
                 textDecoration = TextDecoration.Underline,
-                color = MaterialTheme.colorScheme.primary,
+                color = PapColor.actionText,
             )
         }
     }

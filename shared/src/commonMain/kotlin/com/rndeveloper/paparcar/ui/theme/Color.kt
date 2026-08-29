@@ -142,11 +142,21 @@ val PapSpotCoolingLight = Color(0xFFE08200)
 val PapSpotExpiringLight = Color(0xFFE0322F)
 
 /**
- * The FIXED fill of the free-spot puck on the map. Separate from [PapSpotFreshLight] because the
- * puck carries a white "P" and a white TTL ring, so it must stay dark enough for white to read on
- * it: 4.53:1, where the vivid lime would give 1.9. Same story, two beds, both declared.
+ * The fresh tier as TEXT on a white card — the "FIABLE" label, the peek eyebrow. Small text, so the
+ * floor is 4.5:1 and this measures 4.53:1. [UI-COLOR-GREEN-TEXT-EARNS-ITS-CONTRAST-001]
  */
-val PapSpotFreshMap    = Color(0xFF398701)
+val PapSpotFreshDeep   = Color(0xFF398701)
+
+/**
+ * The fresh tier as the PUCK — the round spot marker on the map and its twin in the sheet row.
+ *
+ * Brighter than [PapSpotFreshDeep] because the two jobs stopped sharing a floor: the puck carries a
+ * large bold "P", a graphical glyph whose floor is 3:1, not the 4.5:1 small text needs. At 3.03:1
+ * this clears it with more room than the amber puck next to it has ever had (#E08200 = 2.85:1) —
+ * and it fixes an inconsistency the ramp was already carrying, where the amber and red pucks were
+ * vivid and only the green one sat dark.
+ */
+val PapSpotFreshPuck   = Color(0xFF4FA80A)
 
 // ── Car blue — the BLUETOOTH-watched vehicle's identity colour. ───────────────────────────────
 // A vehicle's colour is its WATCH METHOD (green = active detection, blue = BT, grey = off) and it
@@ -246,6 +256,46 @@ val papSpotFresh: Color
     @Composable get() =
         if (MaterialTheme.colorScheme.surface.luminance() < SURFACE_DARK_LUMINANCE) PapSpotFresh
         else PapSpotFreshLight
+
+// ── Text legs — the same story, dark enough to be READ ───────────────────────────────────────
+// A colour that fills a button and a colour that spells a word have different jobs and different
+// floors: a graphical object needs 3:1, small text needs 4.5:1. Light-theme greens vivid enough to
+// look right as a fill land at 2.3-3.0:1 as text — legible indoors with good eyesight, washed out
+// in sunlight or with reduced vision. Splitting the story in two is what lets the fill stay vivid
+// AND the letters stay readable, instead of trading one for the other.
+// Dark theme needs no split: a vivid colour on a near-black bed already clears 4.5:1.
+// [UI-COLOR-GREEN-TEXT-EARNS-ITS-CONTRAST-001]
+
+/** Brand green as TEXT on a light surface — links, figures, labels. 5.32:1 on white, 4.67:1 on the
+ *  scaffold. `PapGreenLight` (#009F5E, 3.01:1) stays the FILL: buttons, glyphs, markers, the logo. */
+val PapGreenTextLight        = Color(0xFF237A46)
+
+// The ramp's other two text legs are `PapAmberLight` and `PapRedLight` — the theme's own warning
+// and error tones, reused deliberately and NOT copied into new tokens. As a FILL the ramp must not
+// borrow them (that is what made spots read muddy), but as TEXT every one of these has to be dark
+// to be read, and at that darkness the ramp and the theme's warning/error genuinely converge.
+// Minting near-identical tokens to pretend otherwise would be the duplicate-hex disease with better
+// manners. Only the fresh tier needs its own ([PapSpotFreshDeep]): the theme has no green to reuse.
+
+// ── The age pill, light theme ────────────────────────────────────────────────────────────────
+// `SpotAgeIndicator` is a TONAL pill: a soft bed of the tier with the tier written on it. It only
+// ever had a dark bed, so in the light theme it rendered as a near-black lozenge on a white sheet —
+// it was never theme-aware, from before the colour refactor. These are its light legs.
+// [UI-COLOR-GREEN-TEXT-EARNS-ITS-CONTRAST-001]
+
+/** Pale lime bed of the fresh age pill. */
+val PapSpotFreshContainerLight   = Color(0xFFDEF5C7)
+
+/** Content on [PapSpotFreshContainerLight] — 5.38:1. Deeper than the text leg because a tinted bed
+ *  eats contrast that white does not. */
+val PapOnSpotFreshContainerLight = Color(0xFF2E6E01)
+
+/** Pale bed of the expiring age pill; its content is `PapRedLight` — 5.00:1. */
+val PapSpotExpiringContainerLight = Color(0xFFFFDAD6)
+
+// The cooling pill reuses `PapAmberContainerLight` + `PapOnAmberContainerLight` (11.05:1). A pale
+// amber bed IS a pale amber bed: minting a near-identical token to keep the story names apart would
+// be the duplicate-hex disease with better manners, which this system exists to prevent.
 
 /** Luminance below which a surface counts as "dark" for picking a theme variant. */
 internal const val SURFACE_DARK_LUMINANCE = 0.5f

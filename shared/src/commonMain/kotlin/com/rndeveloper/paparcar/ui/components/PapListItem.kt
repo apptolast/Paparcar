@@ -23,6 +23,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
+import com.rndeveloper.paparcar.ui.theme.PapColor
 
 /**
  * The reusable list row — the recurring **leading + [overline] + title + subtitle + trailing**
@@ -51,7 +52,7 @@ fun PapListItem(
     subtitleStyle: TextStyle = PaparcarType.current.caption,
     subtitleColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     subtitleMaxLines: Int = Int.MAX_VALUE,
-    overlineColor: Color = MaterialTheme.colorScheme.primary,
+    overlineColor: Color = PapColor.actionText,
     overlineStyle: TextStyle = PaparcarType.current.eyebrow,
     /** Substring of [overline] to tint with [overlineHighlightColor] — the vehicle NAME wears its
      *  identity colour while the state words stay in [overlineColor]. [UI-COLOR-DOCTRINE-001] */
