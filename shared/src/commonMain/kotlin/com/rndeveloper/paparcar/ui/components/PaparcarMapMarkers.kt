@@ -65,12 +65,12 @@ import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.domain.model.SpotFreshness
 import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
 import com.rndeveloper.paparcar.ui.icons.icon
+import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.PapBlueLight
 import com.rndeveloper.paparcar.ui.theme.PapGreenLight
 import com.rndeveloper.paparcar.ui.theme.PapLiveMap
 import com.rndeveloper.paparcar.ui.theme.PapInk
 import com.rndeveloper.paparcar.ui.theme.PapOutlineVariantLight
-import com.rndeveloper.paparcar.ui.theme.rememberOutfitFontFamily
 import kotlinx.coroutines.launch
 
 /**
@@ -318,7 +318,9 @@ fun LicensePlateMarker(
     modifier: Modifier = Modifier,
     selected: Boolean = false,
 ) {
-    val outfit = rememberOutfitFontFamily()
+    // La familia de MARCA sale del tema, no de una llamada suelta: si la app cambia de
+    // tipografía, las etiquetas del mapa cambian con ella. [UI-TYPE-ONE-VOICE-REACHES-MATERIAL-001]
+    val outfit = PaparcarType.current.cardTitle.fontFamily
     val measurer = rememberTextMeasurer()
     val textStyle = remember(outfit) {
         TextStyle(
@@ -530,7 +532,9 @@ fun FreeSpotMarker(
     enRouteCount: Int = 0,
     isManual: Boolean = false,
 ) {
-    val outfit = rememberOutfitFontFamily()
+    // La familia de MARCA sale del tema, no de una llamada suelta: si la app cambia de
+    // tipografía, las etiquetas del mapa cambian con ella. [UI-TYPE-ONE-VOICE-REACHES-MATERIAL-001]
+    val outfit = PaparcarType.current.cardTitle.fontFamily
     val measurer = rememberTextMeasurer()
     val w = if (selected) SPOT_PIN_SEL_W else SPOT_PIN_W
     val h = w * (SPOT_VIEWBOX_H / SPOT_VIEWBOX_W)
@@ -792,7 +796,9 @@ fun ZoneMarker(
                     else           MaterialTheme.colorScheme.primary
     val paper = MaterialTheme.colorScheme.surface
     val ink = MaterialTheme.colorScheme.onSurface
-    val outfit = rememberOutfitFontFamily()
+    // La familia de MARCA sale del tema, no de una llamada suelta: si la app cambia de
+    // tipografía, las etiquetas del mapa cambian con ella. [UI-TYPE-ONE-VOICE-REACHES-MATERIAL-001]
+    val outfit = PaparcarType.current.cardTitle.fontFamily
     val label = name.trim()
 
     // Centre-anchored marker (0.5, 0.5 in PaparcarMapView), so the pill is centred
@@ -1066,7 +1072,9 @@ private val ZONE_AREA_ICON_VNUDGE = 2.dp
 
 @Composable
 fun FreeSpotClusterMarker(count: Int, modifier: Modifier = Modifier) {
-    val outfit = rememberOutfitFontFamily()
+    // La familia de MARCA sale del tema, no de una llamada suelta: si la app cambia de
+    // tipografía, las etiquetas del mapa cambian con ella. [UI-TYPE-ONE-VOICE-REACHES-MATERIAL-001]
+    val outfit = PaparcarType.current.cardTitle.fontFamily
     val measurer = rememberTextMeasurer()
     // Bolt-green cluster: brand-green disc + white outline + white count, on a
     // soft contact shadow. viewBox 72×72 (centre 36,34 r29). [BOLT-MARKERS-001]

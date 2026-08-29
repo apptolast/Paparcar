@@ -74,11 +74,19 @@ fun rememberBarlowCondensedFontFamily() = FontFamily(
 
 // ─── Typography ───────────────────────────────────────────────────────────────
 
-/** Full MD3 scale: Outfit (Display–Title) + Inter (Body–Label). */
+/**
+ * The MD3 baseline, resolved from the SAME [PapFontSet] as the roles.
+ *
+ * It is not decoration: every Material component that never receives a Paparcar role reads this
+ * scale — the bottom-nav labels, `OutlinedTextField` labels and placeholders, any `Button` whose
+ * `Text` carries no style. Leaving it pinned to Outfit/Inter meant those kept rendering the old
+ * families after the app had adopted another one, and nothing said so.
+ * [UI-TYPE-ONE-VOICE-REACHES-MATERIAL-001]
+ */
 @Composable
-fun rememberAppTypography(): Typography {
-    val outfit = rememberOutfitFontFamily()
-    val inter  = rememberInterFontFamily()
+fun rememberAppTypography(fonts: PapFontSet = defaultFontSet()): Typography {
+    val outfit = fonts.brand
+    val inter  = fonts.text
     return Typography(
         // ── Display ──────────────────────────────────────────────────────────
         displayLarge = TextStyle(

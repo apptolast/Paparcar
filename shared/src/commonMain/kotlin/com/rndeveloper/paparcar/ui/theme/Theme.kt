@@ -97,7 +97,7 @@ fun PaparcarTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = rememberAppTypography(),
+        typography = rememberAppTypography(fonts),
         shapes = AppShapes,
     ) {
         // Paparcar's role-based type system rides alongside the MD3 baseline; feature code reads
