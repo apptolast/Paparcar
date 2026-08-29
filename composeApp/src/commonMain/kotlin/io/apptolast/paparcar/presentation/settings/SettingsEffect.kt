@@ -15,4 +15,7 @@ sealed class SettingsEffect {
     /** Auto-detection just turned OFF from the toggle — confirm at the point of action with an
      *  undo/turn-on snackbar, since the user may not realise what it disables. [DET-TOGGLE-002] */
     data object DetectionTurnedOff : SettingsEffect()
+    /** The problem report reached the backend — confirm so the user knows it's on us now.
+     *  [SUPPORT-REPORT-SHIPS-THE-LOCAL-LOG-001] */
+    data object DiagnosticsSent : SettingsEffect()
 }

@@ -454,6 +454,12 @@
     <string name="settings_language_desc">Weergavetaal van de app</string>
     <string name="settings_language_auto">Systeemstandaard</string>
     <string name="settings_contact">Contact</string>
+    <string name="settings_send_diagnostics">Een probleem melden</string>
+    <string name="settings_send_diagnostics_confirm_title">Diagnose verzenden?</string>
+    <string name="settings_send_diagnostics_confirm_message">Het recente technische logboek van Paparcar op dit apparaat wordt verzonden. Het bevat locaties bij benadering van je laatste ritten en parkeersessies en we gebruiken het alleen om het probleem te onderzoeken.</string>
+    <string name="settings_send_diagnostics_confirm_action">Verzenden</string>
+    <string name="settings_send_diagnostics_sent">Diagnose verzonden. Bedankt, we gaan ermee aan de slag.</string>
+    <string name="settings_send_diagnostics_error">Kon de diagnose niet verzenden. Controleer je verbinding en probeer het opnieuw.</string>
     <!-- Settings v2 — UI refactor -->
     <string name="settings_danger_zone">Gevarenzone</string>
     <string name="settings_danger_zone_subtitle">Onomkeerbare acties</string>

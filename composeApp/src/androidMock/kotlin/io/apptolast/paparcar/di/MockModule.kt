@@ -123,6 +123,11 @@ val mockModule = module {
     // DeleteAccountUseCase resolves this in its swept-repos list; the mock stack has no dataModule,
     // so the port must exist here or resolving it crashes. [ACCOUNT-DELETE-SWEEPS-DIAGNOSTICS-001]
     single<DiagnosticsRepository> { FakeDiagnosticsRepository() }
+    // SendDiagnosticsReportUseCase resolves the uploader; same no-dataModule rule as above.
+    // [SUPPORT-REPORT-SHIPS-THE-LOCAL-LOG-001]
+    single<io.apptolast.paparcar.domain.diagnostics.DiagnosticsReportUploader> {
+        io.apptolast.paparcar.fakes.data.repository.FakeDiagnosticsReportUploader()
+    }
     single<AddressAndPlaceRepository> { AddressAndPlaceRepositoryImpl(get(), get(), get()) }
 
     // Database (In-memory Room)

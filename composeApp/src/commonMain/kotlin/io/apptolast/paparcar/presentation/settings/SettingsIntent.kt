@@ -16,6 +16,10 @@ sealed class SettingsIntent {
     data object OpenPrivacyPolicy : SettingsIntent()
     data object OpenLicenses : SettingsIntent()
     data object OpenContact : SettingsIntent()
+    /** "Report a problem" row — open the consent dialog. [SUPPORT-REPORT-SHIPS-THE-LOCAL-LOG-001] */
+    data object RequestSendDiagnostics : SettingsIntent()
+    data object ConfirmSendDiagnostics : SettingsIntent()
+    data object DismissSendDiagnostics : SettingsIntent()
     data object RequestDeleteAccount : SettingsIntent()
     data object ConfirmDeleteAccount : SettingsIntent()
     data object DismissDeleteAccount : SettingsIntent()

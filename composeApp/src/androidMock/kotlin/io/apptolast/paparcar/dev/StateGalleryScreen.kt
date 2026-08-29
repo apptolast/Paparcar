@@ -1093,6 +1093,18 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             Variant("Diálogo borrar cuenta") {
                 SettingsContent(state = SettingsState(userProfile = sampleProfile, showDeleteAccountConfirmation = true))
             },
+            Variant("Diálogo enviar diagnóstico") {
+                SettingsContent(state = SettingsState(userProfile = sampleProfile, showSendDiagnosticsConfirmation = true))
+            },
+            Variant("Enviando diagnóstico") {
+                SettingsContent(
+                    state = SettingsState(
+                        userProfile = sampleProfile,
+                        showSendDiagnosticsConfirmation = true,
+                        isSendingDiagnostics = true,
+                    ),
+                )
+            },
         ),
     ),
     ScreenGroup(

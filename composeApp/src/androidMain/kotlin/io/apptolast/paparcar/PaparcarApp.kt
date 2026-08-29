@@ -35,9 +35,14 @@ class PaparcarApp : Application() {
         appContext = this
         if (BuildConfig.DEBUG) {
             Napier.base(DebugAntilog())
-            Napier.base(FileAntilog(this))
             Napier.d("GOOGLE_WEB_CLIENT_ID = '${BuildConfig.GOOGLE_WEB_CLIENT_ID}'", tag = "PaparcarApp")
         }
+        // The parkdiag sink runs in EVERY build, not just debug: "Report a problem" in Settings
+        // ships this file, and a release user with a detection bug is exactly who needs it to
+        // exist. App-private storage, PARKDIAG-tagged lines only, bounded by rotation (~30 MB),
+        // gone on uninstall. Logcat mirroring (DebugAntilog) stays debug-only.
+        // [SUPPORT-REPORT-SHIPS-THE-LOCAL-LOG-001]
+        Napier.base(FileAntilog(this))
 
         // What Paparcar offers is declared in ONE place, shared with iOS and with the previews +
         // Dev Catalog gallery. Never inline a LoginLibraryConfig here: its flags default to

@@ -10,6 +10,7 @@ import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.repository.UserProfileRepository
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.usecase.detection.ObserveDetectionReliabilityUseCase
+import io.apptolast.paparcar.domain.usecase.diagnostics.SendDiagnosticsReportUseCase
 import io.apptolast.paparcar.domain.usecase.user.DeleteAccountUseCase
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import io.apptolast.paparcar.presentation.base.BaseViewModel
@@ -27,6 +28,7 @@ class SettingsViewModel(
     private val permissionManager: PermissionManager,
     private val vehicleRepository: VehicleRepository,
     private val observeDetectionReliability: ObserveDetectionReliabilityUseCase,
+    private val sendDiagnosticsReport: SendDiagnosticsReportUseCase,
 ) : BaseViewModel<SettingsState, SettingsIntent, SettingsEffect>() {
 
     override fun initState(): SettingsState = SettingsState()
@@ -164,6 +166,11 @@ class SettingsViewModel(
                 sendEffect(SettingsEffect.OpenUrl(LICENSES_URL))
             is SettingsIntent.OpenContact ->
                 sendEffect(SettingsEffect.OpenUrl(CONTACT_MAILTO))
+            is SettingsIntent.RequestSendDiagnostics ->
+                updateState { copy(showSendDiagnosticsConfirmation = true) }
+            is SettingsIntent.DismissSendDiagnostics ->
+                updateState { copy(showSendDiagnosticsConfirmation = false) }
+            is SettingsIntent.ConfirmSendDiagnostics -> sendDiagnostics()
             is SettingsIntent.RequestDeleteAccount ->
                 updateState { copy(showDeleteAccountConfirmation = true) }
             is SettingsIntent.DismissDeleteAccount ->
@@ -173,6 +180,24 @@ class SettingsViewModel(
                 CrashReporter.setUserId(null)
                 authRepository.signOut()
             }
+        }
+    }
+
+    /** The consent dialog stays up (with progress) until the upload resolves, so the user never
+     *  wonders whether the tap did anything. [SUPPORT-REPORT-SHIPS-THE-LOCAL-LOG-001] */
+    private fun sendDiagnostics() {
+        updateState { copy(isSendingDiagnostics = true) }
+        viewModelScope.launch {
+            sendDiagnosticsReport()
+                .onSuccess {
+                    updateState { copy(isSendingDiagnostics = false, showSendDiagnosticsConfirmation = false) }
+                    sendEffect(SettingsEffect.DiagnosticsSent)
+                }
+                .onFailure { e ->
+                    updateState { copy(isSendingDiagnostics = false, showSendDiagnosticsConfirmation = false) }
+                    PaparcarLogger.e(TAG, "Failed to send diagnostics report", e)
+                    sendEffect(SettingsEffect.ShowError(PaparcarError.Network.Unknown("diagnostics upload failed")))
+                }
         }
     }
 

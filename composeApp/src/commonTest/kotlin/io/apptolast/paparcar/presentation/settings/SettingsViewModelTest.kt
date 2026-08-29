@@ -9,10 +9,14 @@ import io.apptolast.paparcar.presentation.permissions.PermissionsFocus
 import io.apptolast.paparcar.domain.detection.ParkingStrategyResolver
 import io.apptolast.paparcar.domain.usecase.detection.EvaluateDetectionReliabilityUseCase
 import io.apptolast.paparcar.domain.usecase.detection.ObserveDetectionReliabilityUseCase
+import io.apptolast.paparcar.domain.diagnostics.UnknownDeviceInfoProvider
+import io.apptolast.paparcar.domain.usecase.diagnostics.SendDiagnosticsReportUseCase
 import io.apptolast.paparcar.domain.usecase.user.DeleteAccountUseCase
 import io.apptolast.paparcar.fakes.FakeAppPreferences
 import io.apptolast.paparcar.fakes.FakeAuthRepository
 import io.apptolast.paparcar.fakes.FakeBluetoothScanner
+import io.apptolast.paparcar.fakes.FakeDiagnosticsReportUploader
+import io.apptolast.paparcar.fakes.FakeLocalDiagnosticsLog
 import io.apptolast.paparcar.fakes.FakeOemBackgroundReliabilityManager
 import io.apptolast.paparcar.fakes.FakePermissionManager
 import io.apptolast.paparcar.fakes.FakeSpotRepository
@@ -47,6 +51,7 @@ class SettingsViewModelTest {
     private lateinit var spots: FakeSpotRepository
     private lateinit var prefs: FakeAppPreferences
     private lateinit var permissions: FakePermissionManager
+    private lateinit var reportUploader: FakeDiagnosticsReportUploader
     private lateinit var vm: SettingsViewModel
 
     @BeforeTest
@@ -59,6 +64,7 @@ class SettingsViewModelTest {
         spots = FakeSpotRepository()
         prefs = FakeAppPreferences()
         permissions = FakePermissionManager()
+        reportUploader = FakeDiagnosticsReportUploader()
         vm = buildVm()
     }
 
@@ -84,7 +90,22 @@ class SettingsViewModelTest {
             strategyResolver = ParkingStrategyResolver(customVehicles, FakeBluetoothScanner()),
             evaluateDetectionReliability = EvaluateDetectionReliabilityUseCase(),
         )
-        return SettingsViewModel(customPrefs, auth, profile, useCase, customPermissions, customVehicles, observeReliability)
+        val sendDiagnostics = SendDiagnosticsReportUseCase(
+            authRepository = auth,
+            uploader = reportUploader,
+            localLog = FakeLocalDiagnosticsLog(),
+            deviceInfo = UnknownDeviceInfoProvider,
+        )
+        return SettingsViewModel(
+            customPrefs,
+            auth,
+            profile,
+            useCase,
+            customPermissions,
+            customVehicles,
+            observeReliability,
+            sendDiagnostics,
+        )
     }
 
     // ── Init ──────────────────────────────────────────────────────────────────
@@ -161,6 +182,51 @@ class SettingsViewModelTest {
         prefs.setAutoDetectParking(false)
         vm.refreshFromPreferences()
         assertFalse(vm.state.value.autoDetectParking)
+    }
+
+    // ── Send diagnostics flow [SUPPORT-REPORT-SHIPS-THE-LOCAL-LOG-001] ────────
+
+    @Test
+    fun `should_showConsentDialog_on_requestSendDiagnostics`() = runTest {
+        vm.handleIntent(SettingsIntent.RequestSendDiagnostics)
+        assertTrue(vm.state.value.showSendDiagnosticsConfirmation)
+    }
+
+    @Test
+    fun `should_notUploadAnything_on_requestSendDiagnostics`() = runTest {
+        // Consent first: opening the dialog must not ship the log by itself.
+        vm.handleIntent(SettingsIntent.RequestSendDiagnostics)
+        assertEquals(0, reportUploader.uploadCallCount)
+    }
+
+    @Test
+    fun `should_hideConsentDialog_on_dismissSendDiagnostics`() = runTest {
+        vm.handleIntent(SettingsIntent.RequestSendDiagnostics)
+        vm.handleIntent(SettingsIntent.DismissSendDiagnostics)
+        assertFalse(vm.state.value.showSendDiagnosticsConfirmation)
+    }
+
+    @Test
+    fun `should_uploadAndEmitSent_on_confirmSendDiagnostics`() = runTest {
+        vm.effect.test {
+            vm.handleIntent(SettingsIntent.ConfirmSendDiagnostics)
+            assertIs<SettingsEffect.DiagnosticsSent>(awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals(1, reportUploader.uploadCallCount)
+        assertFalse(vm.state.value.showSendDiagnosticsConfirmation)
+        assertFalse(vm.state.value.isSendingDiagnostics)
+    }
+
+    @Test
+    fun `should_emitError_when_diagnosticsUploadFails`() = runTest {
+        reportUploader.uploadResult = Result.failure(Exception("network error"))
+        vm.effect.test {
+            vm.handleIntent(SettingsIntent.ConfirmSendDiagnostics)
+            assertIs<SettingsEffect.ShowError>(awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertFalse(vm.state.value.isSendingDiagnostics)
     }
 
     // ── Delete account flow ───────────────────────────────────────────────────

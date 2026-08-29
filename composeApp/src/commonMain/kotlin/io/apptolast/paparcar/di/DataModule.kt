@@ -9,6 +9,7 @@ import io.apptolast.paparcar.domain.geocoder.LocalAddressAndPlaceDataSource
 import io.apptolast.paparcar.data.datasource.remote.FirebaseDataSource
 import io.apptolast.paparcar.data.datasource.remote.FirebaseDataSourceImpl
 import io.apptolast.paparcar.data.datasource.remote.FirestoreDetectionEventLogger
+import io.apptolast.paparcar.data.datasource.remote.FirestoreDiagnosticsReportUploader
 import io.apptolast.paparcar.data.datasource.remote.FirestoreUiLocationLogger
 import io.apptolast.paparcar.data.datasource.remote.RemoteUserProfileDataSource
 import io.apptolast.paparcar.data.datasource.remote.RemoteUserProfileDataSourceImpl
@@ -28,6 +29,7 @@ import io.apptolast.paparcar.domain.repository.UserProfileRepository
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.repository.ZoneRepository
 import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
+import io.apptolast.paparcar.domain.diagnostics.DiagnosticsReportUploader
 import io.apptolast.paparcar.domain.diagnostics.UiLocationLogger
 import io.apptolast.paparcar.domain.session.LocalSessionCache
 import kotlinx.coroutines.CoroutineScope
@@ -82,6 +84,10 @@ val dataModule = module {
     // Erasure port of the diagnostics telemetry — account deletion sweeps diagnostics/{uid} +
     // diagnostics_config/{uid} with the rest of the user's data. [ACCOUNT-DELETE-SWEEPS-DIAGNOSTICS-001]
     single<DiagnosticsRepository> { DiagnosticsRepositoryImpl(get()) }
+
+    // "Report a problem" upload — chunked into Firestore (no Storage bucket on pap-26).
+    // [SUPPORT-REPORT-SHIPS-THE-LOCAL-LOG-001]
+    single<DiagnosticsReportUploader> { FirestoreDiagnosticsReportUploader(get()) }
 
     // Session
     single<LocalSessionCache> { RoomLocalSessionCache(get()) }

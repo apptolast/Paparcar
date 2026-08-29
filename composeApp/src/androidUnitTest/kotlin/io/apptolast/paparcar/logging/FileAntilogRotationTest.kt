@@ -121,6 +121,32 @@ class FileAntilogRotationTest {
         assertEquals("legacy-window\n", legacy.readText(), "and must not be written into either")
     }
 
+    @Test
+    fun should_beReadableImmediately_when_anEntryIsWritten() {
+        // [SUPPORT-REPORT-SHIPS-THE-LOCAL-LOG-001] The sink keeps its append stream OPEN across
+        // lines (an open+close per line was a syscall storm once this ran in release too). Every
+        // entry is still flushed on the spot, because the whole value of this file is being
+        // readable after the process is killed — a buffered tail would lose exactly the lines
+        // before an OEM kill, which are the ones a field diagnosis needs most.
+        val antilog = FileAntilog(context(), maxBytes = 1024 * 1024L)
+
+        antilog.write("entry-1")
+
+        assertTrue(activeFile().readText().contains("entry-1"), "the entry must be on disk at once")
+    }
+
+    @Test
+    fun should_continueTheActiveGeneration_when_theProcessRestarts() {
+        // A restart must not reset the rotation clock: the byte counter is seeded from the file
+        // that is already there, so a long-lived generation still rotates when it should.
+        FileAntilog(context(), maxBytes = 1L).write("entry-1")
+
+        FileAntilog(context(), maxBytes = 1L).write("entry-2")
+
+        assertTrue(generation(1).readText().contains("entry-1"), "the pre-restart entry rotates out")
+        assertTrue(activeFile().readText().contains("entry-2"), "the new process starts a fresh file")
+    }
+
     // ── helpers ──────────────────────────────────────────────────────────────
 
     private fun context(): Context = ApplicationProvider.getApplicationContext()

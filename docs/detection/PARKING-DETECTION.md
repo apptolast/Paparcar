@@ -5719,3 +5719,29 @@ seen after a process restart no longer loses its doc (`updateFields` on a missin
 throw the whole event away).
 
 Spec: `docs/backlog/account-delete-sweeps-diagnostics-001.md`.
+
+### SUPPORT-REPORT-SHIPS-THE-LOCAL-LOG-001 — the user can hand us the parkdiag, and release builds have one to hand (pending)
+
+Not an algorithm change; a change in what a field diagnosis can reach. Until now the two ways to
+get evidence both failed the ordinary user: the remote gate (`diagnostics_config`) is admin-toggled
+and read once per process, so it only ever captures FUTURE trips, and the `parkdiag.log` — which
+holds what Firestore loses — needed a cable and `adb run-as`. The trip where the bug actually
+happened was unreachable.
+
+**Fix.** Settings gains "Report a problem": a consent dialog that names what travels (the recent
+technical log, approximate locations included), then `SendDiagnosticsReportUseCase` ships a gzip of
+the two newest parkdiag generations to `diagnostics_reports/{uid}/reports/{createdAtMs}` with the
+log split into base64 `chunks` docs. Firestore rather than Storage because pap-26 has no bucket
+(provisioning one needs Blaze), and chunked docs reuse the rules model and the account-deletion
+sweep — which now covers reports too, so the erasure promise still holds.
+
+**The consequence worth writing down.** The sink only ran in DEBUG, so a release user had no log to
+send: `FileAntilog` is now registered in every build. That makes its write path production code, and
+it was an open + write + close **per line** — with the detection loop at ~47 lines per fix, a
+syscall storm for the length of every drive, on a device the feature is already asking to keep its
+radio warm. It now holds one open stream and flushes per entry: one write syscall instead of three,
+and the file still survives a process kill (flush hands the bytes to the OS), which is the property
+every OEM-kill diagnosis depends on. The `PaparcarLogger.d { }` guard no longer short-circuits on
+Android release — that is the price of the file existing, and it is why the write became cheap.
+
+Spec: `docs/backlog/support-report-ships-the-local-log-001.md`.

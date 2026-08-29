@@ -24,9 +24,15 @@ object PaparcarLogger {
      * The same line, built only if anything is listening.
      *
      * The detection loop logs ~47 lines per fix, every one of them an interpolated string assembled
-     * whether or not a debug antilog is installed — in a release build that is a few dozen throwaway
-     * `StringBuilder`s per GPS sample, for the whole length of a drive, on a device the feature is
-     * already asking to keep its radio warm.
+     * whether or not any antilog is installed — a few dozen throwaway `StringBuilder`s per GPS
+     * sample, for the whole length of a drive, on a device the feature is already asking to keep
+     * its radio warm.
+     *
+     * ⚠️ Since [SUPPORT-REPORT-SHIPS-THE-LOCAL-LOG-001] the parkdiag file sink is installed in
+     * RELEASE too, so this guard no longer short-circuits there — the lines are built and written
+     * because that file is what a user's problem report ships. The guard still earns its keep on
+     * builds with no sink at all (iOS release), and the write path it feeds was made cheap for
+     * exactly this reason (one open stream, one flush per entry — see `FileAntilog.write`).
      *
      * `inline` matters: without it the lambda is an allocation of its own and the fix is a wash.
      */

@@ -454,6 +454,12 @@
     <string name="settings_language_desc">Limba aplicației</string>
     <string name="settings_language_auto">Implicit din sistem</string>
     <string name="settings_contact">Contact</string>
+    <string name="settings_send_diagnostics">Raportează o problemă</string>
+    <string name="settings_send_diagnostics_confirm_title">Trimiți diagnosticarea?</string>
+    <string name="settings_send_diagnostics_confirm_message">Se va trimite jurnalul tehnic recent al Paparcar de pe acest dispozitiv. Include locații aproximative din ultimele tale drumuri și parcări și îl folosim doar pentru a investiga problema.</string>
+    <string name="settings_send_diagnostics_confirm_action">Trimite</string>
+    <string name="settings_send_diagnostics_sent">Diagnosticare trimisă. Mulțumim, ne ocupăm de ea.</string>
+    <string name="settings_send_diagnostics_error">Nu s-a putut trimite diagnosticarea. Verifică-ți conexiunea și încearcă din nou.</string>
     <!-- Settings v2 — refactor UI -->
     <string name="settings_danger_zone">Zonă de pericol</string>
     <string name="settings_danger_zone_subtitle">Acțiuni ireversibile</string>

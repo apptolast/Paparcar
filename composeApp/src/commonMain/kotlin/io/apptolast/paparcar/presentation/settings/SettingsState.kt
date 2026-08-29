@@ -14,6 +14,11 @@ data class SettingsState(
     val appVersion: String = platformAppVersion,
     val showDeleteAccountConfirmation: Boolean = false,
     val isDeletingAccount: Boolean = false,
+    /** "Report a problem" consent dialog — says WHAT is shipped before anything leaves the
+     *  device. [SUPPORT-REPORT-SHIPS-THE-LOCAL-LOG-001] */
+    val showSendDiagnosticsConfirmation: Boolean = false,
+    /** Upload in flight; the consent dialog stays up showing progress until it resolves. */
+    val isSendingDiagnostics: Boolean = false,
 
     // ── Detection & permissions (SETTINGS-REMODEL-001) ───────────────────────
     /** Detection-required permissions not yet granted (CORE + PRODUCER). Empty = all held. */

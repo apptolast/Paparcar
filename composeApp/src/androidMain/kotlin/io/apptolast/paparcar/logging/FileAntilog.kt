@@ -4,6 +4,9 @@ import android.content.Context
 import io.github.aakira.napier.Antilog
 import io.github.aakira.napier.LogLevel
 import java.io.File
+import java.io.FileOutputStream
+import java.io.OutputStreamWriter
+import java.io.Writer
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -23,9 +26,11 @@ import java.util.Locale
  * A device upgraded in place may still hold one; it is never written or read again, so pull
  * it once if the window matters and then delete it with the rest.
  *
- * Register from `Application.onCreate` **after** `Napier.base(DebugAntilog())` so logs
- * still appear in Logcat alongside the file copy. Debug builds only — do **not** add
- * this sink to release builds.
+ * Register from `Application.onCreate` **after** `Napier.base(DebugAntilog())` so logs still
+ * appear in Logcat alongside the file copy. Registered in **every** build since
+ * [SUPPORT-REPORT-SHIPS-THE-LOCAL-LOG-001]: Settings' "Report a problem" ships this file, and a
+ * release user with a detection bug is exactly who needs it to exist. The Logcat mirror
+ * (`DebugAntilog`) stays debug-only; this file is app-private and dies with the uninstall.
  *
  * ───────────────────────────────────────────────────────────────────────────────────
  * USAGE (English)
@@ -86,6 +91,13 @@ class FileAntilog(
     private val timestampFormat = SimpleDateFormat("MM-dd HH:mm:ss.SSS", Locale.US)
     private val lock = Any()
 
+    /** Open append stream, kept across lines. See [write] for why this is not an `appendText`. */
+    private var writer: Writer? = null
+
+    /** Bytes in the active file, tracked instead of `stat`-ing it per line. Seeded from disk so a
+     *  process restart continues the current generation instead of resetting the rotation clock. */
+    private var activeFileBytes: Long = file.length()
+
     override fun performLog(
         priority: LogLevel,
         tag: String?,
@@ -95,14 +107,32 @@ class FileAntilog(
         if (tag?.startsWith(tagPrefix) != true) return
         val ts = timestampFormat.format(Date())
         val level = priority.name.first()
-        val line = "$ts $level $tag: ${message ?: ""}\n"
-        synchronized(lock) {
-            runCatching {
-                if (file.length() > maxBytes) rotate()
-                file.appendText(line)
-                throwable?.let { file.appendText("  ${it.stackTraceToString()}\n") }
-            }
+        val line = buildString {
+            append(ts).append(' ').append(level).append(' ').append(tag).append(": ")
+            append(message ?: "").append('\n')
+            throwable?.let { append("  ").append(it.stackTraceToString()).append('\n') }
         }
+        synchronized(lock) { runCatching { write(line) } }
+    }
+
+    /**
+     * Append one entry through a stream that stays open, flushed immediately.
+     *
+     * [SUPPORT-REPORT-SHIPS-THE-LOCAL-LOG-001] This sink runs in RELEASE builds now (the user's
+     * "Report a problem" ships this file), and the detection loop emits tens of lines per GPS fix.
+     * The previous `appendText` per line meant an open + write + close per line — a syscall storm
+     * for the whole length of every drive, on a device whose radio the feature is already keeping
+     * warm. One open stream with a `flush` per entry costs a single write syscall instead, and
+     * keeps the property field testing depends on: `flush` hands the bytes to the OS, so the file
+     * survives a process kill (Doze, OEM killer, ANR) — only a power cut could lose the tail.
+     */
+    private fun write(line: String) {
+        if (activeFileBytes > maxBytes) rotate()
+        val out = writer ?: OutputStreamWriter(FileOutputStream(file, true), Charsets.UTF_8)
+            .also { writer = it }
+        out.write(line)
+        out.flush()
+        activeFileBytes += line.length.toLong()
     }
 
     /**
@@ -117,6 +147,11 @@ class FileAntilog(
      * ~25 MB of private app storage, which is nothing next to losing the one trip that mattered.
      */
     private fun rotate() {
+        // The open stream points at the file about to be renamed: close it so the next write opens
+        // the fresh generation instead of appending into the rotated-away inode.
+        runCatching { writer?.close() }
+        writer = null
+        activeFileBytes = 0L
         File(dir, "$BASE_NAME.$keptRotations").delete()
         for (generation in keptRotations - 1 downTo 1) {
             val older = File(dir, "$BASE_NAME.$generation")
@@ -125,8 +160,10 @@ class FileAntilog(
         file.renameTo(File(dir, "$BASE_NAME.1"))
     }
 
-    private companion object {
-        const val BASE_NAME = "parkdiag.log"
-        const val KEPT_ROTATIONS = 5
+    internal companion object {
+        /** Shared with [AndroidLocalDiagnosticsLog], which snapshots these files for a problem
+         *  report. [SUPPORT-REPORT-SHIPS-THE-LOCAL-LOG-001] */
+        internal const val BASE_NAME = "parkdiag.log"
+        internal const val KEPT_ROTATIONS = 5
     }
 }

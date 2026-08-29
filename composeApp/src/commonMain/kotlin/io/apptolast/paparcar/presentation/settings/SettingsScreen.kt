@@ -27,6 +27,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material.icons.rounded.BatteryFull
 import androidx.compose.material.icons.rounded.Bluetooth
+import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.Build
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.CheckCircle
@@ -124,6 +125,12 @@ import paparcar.composeapp.generated.resources.permissions_perm_notifications
 import paparcar.composeapp.generated.resources.settings_auto_detect
 import paparcar.composeapp.generated.resources.settings_auto_detect_desc
 import paparcar.composeapp.generated.resources.settings_contact
+import paparcar.composeapp.generated.resources.settings_send_diagnostics
+import paparcar.composeapp.generated.resources.settings_send_diagnostics_confirm_action
+import paparcar.composeapp.generated.resources.settings_send_diagnostics_confirm_message
+import paparcar.composeapp.generated.resources.settings_send_diagnostics_confirm_title
+import paparcar.composeapp.generated.resources.settings_send_diagnostics_error
+import paparcar.composeapp.generated.resources.settings_send_diagnostics_sent
 import paparcar.composeapp.generated.resources.settings_danger_zone
 import paparcar.composeapp.generated.resources.settings_danger_zone_subtitle
 import paparcar.composeapp.generated.resources.settings_delete_account_cancel
@@ -201,6 +208,8 @@ fun SettingsScreen(
     val msgTurnOn = stringResource(Res.string.home_det_stopped_action)
     val msgDeleteAccountError = stringResource(Res.string.settings_delete_account_error)
     val msgErrorUnknown = stringResource(Res.string.error_unknown)
+    val msgDiagnosticsSent = stringResource(Res.string.settings_send_diagnostics_sent)
+    val msgDiagnosticsError = stringResource(Res.string.settings_send_diagnostics_error)
 
     // Refresh pref-backed fields AND runtime permissions every time the screen re-enters
     // composition, so a pref mutated elsewhere (BT-config flow) or a permission granted in the
@@ -221,9 +230,16 @@ fun SettingsScreen(
                 is SettingsEffect.ShowError -> snackbarHostState.showSnackbar(
                     message = when (effect.error) {
                         is PaparcarError.Auth -> msgDeleteAccountError
+                        // The diagnostics upload is this screen's only Network emitter today.
+                        is PaparcarError.Network -> msgDiagnosticsError
                         else -> msgErrorUnknown
                     },
                     duration = SnackbarDuration.Long,
+                )
+                // Problem report landed — tell the user it's on us now. [SUPPORT-REPORT-SHIPS-THE-LOCAL-LOG-001]
+                is SettingsEffect.DiagnosticsSent -> snackbarHostState.showSnackbar(
+                    message = msgDiagnosticsSent,
+                    duration = SnackbarDuration.Short,
                 )
                 // Turn-off confirmation with one-tap undo, right where the user flipped it. [DET-TOGGLE-002]
                 is SettingsEffect.DetectionTurnedOff -> {
@@ -266,6 +282,21 @@ internal fun SettingsContent(
     selectedLanguage: String = "auto",
     onSetLanguage: (String) -> Unit = {},
 ) {
+    if (state.showSendDiagnosticsConfirmation) {
+        // Consent before anything leaves the device: the body says WHAT is shipped (recent
+        // technical log, approximate locations included). [SUPPORT-REPORT-SHIPS-THE-LOCAL-LOG-001]
+        PapAlertDialog(
+            onDismiss = { onIntent(SettingsIntent.DismissSendDiagnostics) },
+            icon = Icons.Rounded.BugReport,
+            title = stringResource(Res.string.settings_send_diagnostics_confirm_title),
+            body = stringResource(Res.string.settings_send_diagnostics_confirm_message),
+            primaryLabel = stringResource(Res.string.settings_send_diagnostics_confirm_action),
+            onPrimary = { onIntent(SettingsIntent.ConfirmSendDiagnostics) },
+            cancelLabel = stringResource(Res.string.settings_delete_account_cancel),
+            isLoading = state.isSendingDiagnostics,
+        )
+    }
+
     if (state.showDeleteAccountConfirmation) {
         PapAlertDialog(
             onDismiss = { onIntent(SettingsIntent.DismissDeleteAccount) },
@@ -435,6 +466,12 @@ internal fun SettingsContent(
                                 icon = Icons.Rounded.Email,
                                 label = stringResource(Res.string.settings_contact),
                                 onClick = { onIntent(SettingsIntent.OpenContact) },
+                            )
+                            PapDivider()
+                            PapNavRow(
+                                icon = Icons.Rounded.BugReport,
+                                label = stringResource(Res.string.settings_send_diagnostics),
+                                onClick = { onIntent(SettingsIntent.RequestSendDiagnostics) },
                             )
                         }
                     }

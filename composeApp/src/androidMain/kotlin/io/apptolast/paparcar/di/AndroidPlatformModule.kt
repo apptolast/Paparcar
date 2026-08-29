@@ -19,6 +19,8 @@ import io.apptolast.paparcar.diagnostics.AndroidDeviceInfoProvider
 import io.apptolast.paparcar.domain.bluetooth.BluetoothScanner
 import io.apptolast.paparcar.domain.connectivity.ConnectivityObserver
 import io.apptolast.paparcar.domain.diagnostics.DeviceInfoProvider
+import io.apptolast.paparcar.domain.diagnostics.LocalDiagnosticsLog
+import io.apptolast.paparcar.logging.AndroidLocalDiagnosticsLog
 import io.apptolast.paparcar.location.AndroidGeocoderDataSourceImpl
 import io.apptolast.paparcar.location.AndroidLocationDataSourceImpl
 import io.apptolast.paparcar.location.OverpassPlacesDataSourceImpl
@@ -67,4 +69,7 @@ val androidPlatformModule = module {
 
     // Diagnostics — device identity stamped into detection traces [DIAG-READABLE-001]
     single<DeviceInfoProvider> { AndroidDeviceInfoProvider(androidContext(), get(), get()) }
+
+    // "Report a problem" ships the local parkdiag history. [SUPPORT-REPORT-SHIPS-THE-LOCAL-LOG-001]
+    single<LocalDiagnosticsLog> { AndroidLocalDiagnosticsLog(androidContext()) }
 }

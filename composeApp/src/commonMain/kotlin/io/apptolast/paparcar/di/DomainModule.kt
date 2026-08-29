@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.di
 
+import io.apptolast.paparcar.domain.usecase.diagnostics.SendDiagnosticsReportUseCase
 import io.apptolast.paparcar.domain.usecase.user.BootstrapUserDataUseCase
 import io.apptolast.paparcar.domain.usecase.user.DeleteAccountUseCase
 import io.apptolast.paparcar.domain.usecase.user.GetOrCreateUserProfileUseCase
@@ -50,6 +51,17 @@ val domainModule = module {
                 get<DiagnosticsRepository>(),
             ),
             spotRepository = get(),
+        )
+    }
+
+    // Diagnostics UseCases — localLog is platform-bound (getOrNull → null where absent, e.g. iOS:
+    // the report still ships, headers-only). [SUPPORT-REPORT-SHIPS-THE-LOCAL-LOG-001]
+    factory {
+        SendDiagnosticsReportUseCase(
+            authRepository = get(),
+            uploader = get(),
+            localLog = getOrNull(),
+            deviceInfo = get(),
         )
     }
 

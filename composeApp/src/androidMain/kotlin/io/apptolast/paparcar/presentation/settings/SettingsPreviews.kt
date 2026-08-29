@@ -77,6 +77,19 @@ private fun SettingsDeleteAccountDialogPreview() {
     }
 }
 
+@Preview(name = "Settings — diálogo enviar diagnóstico", showBackground = true)
+@Composable
+private fun SettingsSendDiagnosticsDialogPreview() {
+    PaparcarTheme(darkTheme = false) {
+        SettingsContent(
+            state = SettingsState(
+                userProfile = loggedInProfile,
+                showSendDiagnosticsConfirmation = true,
+            ),
+        )
+    }
+}
+
 @Preview(name = "Settings — permisos incompletos", showBackground = true,
     uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable

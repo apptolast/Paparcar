@@ -58,6 +58,13 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }
 
+    // Informes de problema enviados por el usuario desde Ajustes: cabecera + el log local
+    // troceado en base64. Solo el dueño escribe y lee los suyos; se barren con la cuenta igual
+    // que el resto de la telemetría. [SUPPORT-REPORT-SHIPS-THE-LOCAL-LOG-001]
+    match /diagnostics_reports/{uid}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
     // Flag de diagnóstico por usuario. El cliente sólo LO LEE para auto-gatearse; el toggle
     // lo hace un admin (MCP / Admin SDK, que bypassa estas reglas), nunca el cliente. El BORRADO
     // sí es del dueño: eliminar la cuenta barre también su telemetría (RGPD art. 17).

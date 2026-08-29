@@ -454,6 +454,12 @@
     <string name="settings_language_desc">App-Anzeigesprache</string>
     <string name="settings_language_auto">Systemstandard</string>
     <string name="settings_contact">Kontakt</string>
+    <string name="settings_send_diagnostics">Problem melden</string>
+    <string name="settings_send_diagnostics_confirm_title">Diagnose senden?</string>
+    <string name="settings_send_diagnostics_confirm_message">Das aktuelle technische Protokoll von Paparcar auf diesem Gerät wird gesendet. Es enthält ungefähre Standorte deiner letzten Fahrten und Parkvorgänge und wird nur zur Untersuchung des Problems verwendet.</string>
+    <string name="settings_send_diagnostics_confirm_action">Senden</string>
+    <string name="settings_send_diagnostics_sent">Diagnose gesendet. Danke, wir kümmern uns darum.</string>
+    <string name="settings_send_diagnostics_error">Diagnose konnte nicht gesendet werden. Prüfe deine Verbindung und versuche es erneut.</string>
     <!-- Settings v2 — UI Refactor -->
     <string name="settings_danger_zone">Gefahrenzone</string>
     <string name="settings_danger_zone_subtitle">Unwiderrufliche Aktionen</string>

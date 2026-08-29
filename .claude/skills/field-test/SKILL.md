@@ -30,10 +30,18 @@ OEM-kill/Doze como causa única de falsos negativos.
 ## 1 · Leer la telemetría PRIMERO (Firestore, proyecto `pap-26`, vía Firebase MCP)
 
 ```
-diagnostics_config/{uid}                     → {enabled, note}  (gate de logging)
-diagnostics/{uid}/sessions/{sessionId}       → cabecera de sesión
-diagnostics/{uid}/sessions/{id}/events/{ay}  → eventos crudos
+diagnostics_config/{uid}                          → {enabled, note}  (gate de logging)
+diagnostics/{uid}/sessions/{sessionId}            → cabecera de sesión
+diagnostics/{uid}/sessions/{id}/events/{ay}       → eventos crudos
+diagnostics_reports/{uid}/reports/{createdAtMs}   → informe enviado por el USER desde Ajustes
+diagnostics_reports/{uid}/reports/{id}/chunks/{n} → su parkdiag local, gzip en base64
 ```
+
+**El informe del usuario gana al gate.** [SUPPORT-REPORT-SHIPS-THE-LOCAL-LOG-001] Si el uid tiene
+un `diagnostics_reports`, ahí está el `parkdiag` del propio móvil — que trae lo que Firestore
+pierde — sin cable y sin haber tenido el gate encendido durante el viaje. Reconstruirlo:
+concatenar los `chunks` por `index`, base64-decode, gunzip; la cabecera dice `chunkCount` y
+`gzipBytes` para verificar que está entero.
 
 - Listar sesiones con `firestore_list_documents`, `parent=...documents/diagnostics/{uid}`,
   `collectionId=sessions`, `orderBy` **`startedAt desc`**. Empezar por las más recientes.
@@ -50,9 +58,12 @@ diagnostics/{uid}/sessions/{id}/events/{ay}  → eventos crudos
 **Gotchas del MCP:**
 - `firestore_query_collection` **NO** acepta paths de subcolección (`a/b/c` → 400 "contains /").
   Usar `firestore_list_documents` con `parent` + `collectionId` + `orderBy`/`mask`.
-- `diagnostics/{uid}` es un doc "missing" (solo subcolección) → `showMissing:true` o listar la
-  subcolección directa.
-- No hay `jq` en la máquina. Volcados grandes → parsear con PowerShell `ConvertFrom-Json`.
+- `diagnostics/{uid}` y `diagnostics_reports/{uid}` son docs "missing" (solo subcolección) →
+  `showMissing:true` o listar la subcolección directa.
+- No hay `jq` en la máquina. Volcados grandes → `node -e` (hay Node) o PowerShell `ConvertFrom-Json`.
+- Con `showMissing:true`, una sesión SIN `createTime` es huérfana (evento escrito bajo un padre
+  que nunca existió). No deberían aparecer nuevas desde
+  [ACCOUNT-DELETE-SWEEPS-DIAGNOSTICS-001]; si salen, es que ese móvil lleva un APK anterior.
 
 Los pins viven en `users/{uid}/parkingHistory`; las plazas comunitarias en `spots` (top-level).
 
