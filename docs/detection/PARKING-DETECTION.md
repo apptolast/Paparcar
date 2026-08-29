@@ -5695,3 +5695,27 @@ undiagnosable. ⚠️ `zoneRadiusMeters` is LOCAL-ONLY (it does not reach Firest
 diagnostics see the demotion only through the parkdiag line.
 
 Spec: `docs/backlog/det-inferred-pin-carries-its-doubt-001.md`.
+
+### ACCOUNT-DELETE-SWEEPS-DIAGNOSTICS-001 — deleting the account sweeps the telemetry, and every trace earns a real parent (pending)
+
+Not a detection change — a diagnostics-plumbing one, logged here because it closes a leak this file
+already admitted twice. The published privacy policy promises that deleting the account deletes
+"diagnostics"; nothing did. A new `DiagnosticsRepository` (the erasure port of
+`UserScopedRepository`) now sweeps `diagnostics/{uid}` (sessions → events, uiLocation) plus
+`diagnostics_config/{uid}` as the last repo in `DeleteAccountUseCase`'s chain, right before the
+auth delete. Firestore rules gained `allow delete` on the config doc for its owner (the toggle
+stays admin-only).
+
+**The companion fix.** The erasure enumerates sessions by querying the `sessions` collection — the
+same door the retention sweep uses — and DET-EVERY-TRIGGER-LEAVES-A-TRACE-001 already showed why
+that door misses traces: events written under a session id whose parent doc was never created
+(departure/sentry lanes keyed by geofenceId) are invisible to ANY query. The ledger fix covered
+the trigger lane only; `ensureParentHeader` in `FirestoreDetectionEventLogger.writeEvent` now
+generalises it to every lane: one `get` per sessionId per process, a minimal `strategy=TRACE_HEADER`
+header written only when truly absent (a real drive header is never clobbered). Both sweeps —
+7-day retention and account erasure — now reach everything written from this version on; orphans
+written before it need one manual MCP sweep on the two opted-in uids. Bonus: a `SESSION_ENDED`
+seen after a process restart no longer loses its doc (`updateFields` on a missing header used to
+throw the whole event away).
+
+Spec: `docs/backlog/account-delete-sweeps-diagnostics-001.md`.

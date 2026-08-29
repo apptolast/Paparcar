@@ -2,6 +2,10 @@ package io.apptolast.paparcar.data.datasource.remote
 
 import com.apptolast.customlogin.domain.AuthRepository
 import dev.gitlive.firebase.firestore.FirebaseFirestore
+import io.apptolast.paparcar.data.datasource.remote.DiagnosticsFirestoreSchema.COLLECTION_CONFIG
+import io.apptolast.paparcar.data.datasource.remote.DiagnosticsFirestoreSchema.COLLECTION_DIAGNOSTICS
+import io.apptolast.paparcar.data.datasource.remote.DiagnosticsFirestoreSchema.COLLECTION_UI_LOCATION
+import io.apptolast.paparcar.data.datasource.remote.DiagnosticsFirestoreSchema.FIELD_ENABLED
 import io.apptolast.paparcar.data.datasource.remote.dto.toDto
 import io.apptolast.paparcar.domain.diagnostics.DeviceInfoProvider
 import io.apptolast.paparcar.domain.diagnostics.UiLocationLogger
@@ -118,10 +122,6 @@ class FirestoreUiLocationLogger(
 
     private companion object {
         const val TAG = "UiLocationLogger"
-        const val COLLECTION_CONFIG = "diagnostics_config"
-        const val FIELD_ENABLED = "enabled"
-        const val COLLECTION_DIAGNOSTICS = "diagnostics"
-        const val COLLECTION_UI_LOCATION = "uiLocation"
         const val BUFFER_CAPACITY = 64
         /** At most one FIX doc every 10 s remotely — enough to read cadence without flooding. */
         const val REMOTE_FIX_MIN_INTERVAL_MS = 10_000L

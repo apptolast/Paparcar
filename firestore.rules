@@ -59,10 +59,13 @@ service cloud.firestore {
     }
 
     // Flag de diagnóstico por usuario. El cliente sólo LO LEE para auto-gatearse; el toggle
-    // lo hace un admin (MCP / Admin SDK, que bypassa estas reglas), nunca el cliente.
+    // lo hace un admin (MCP / Admin SDK, que bypassa estas reglas), nunca el cliente. El BORRADO
+    // sí es del dueño: eliminar la cuenta barre también su telemetría (RGPD art. 17).
+    // [ACCOUNT-DELETE-SWEEPS-DIAGNOSTICS-001]
     match /diagnostics_config/{uid} {
-      allow read:  if request.auth != null && request.auth.uid == uid;
-      allow write: if false;
+      allow read:   if request.auth != null && request.auth.uid == uid;
+      allow delete: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if false;
     }
 
     // Denegar cualquier otra colección no listada explícitamente.

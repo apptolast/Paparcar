@@ -12,6 +12,7 @@ import io.apptolast.paparcar.domain.usecase.spot.ObserveNearbySpotsUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportManualSpotUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import io.apptolast.paparcar.domain.usecase.spot.SendSpotSignalUseCase
+import io.apptolast.paparcar.domain.repository.DiagnosticsRepository
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.repository.UserProfileRepository
 import io.apptolast.paparcar.domain.repository.VehicleRepository
@@ -38,7 +39,16 @@ val domainModule = module {
     factory {
         DeleteAccountUseCase(
             authRepository = get(),
-            userScopedRepos = listOf(get<UserParkingRepository>(), get<VehicleRepository>(), get<UserProfileRepository>(), get<ZoneRepository>()),
+            // Diagnostics goes LAST: the loggers keep draining their channels while the chain runs,
+            // so sweeping the telemetry right before the auth delete minimises the window in which
+            // a straggler event could re-create a doc. [ACCOUNT-DELETE-SWEEPS-DIAGNOSTICS-001]
+            userScopedRepos = listOf(
+                get<UserParkingRepository>(),
+                get<VehicleRepository>(),
+                get<UserProfileRepository>(),
+                get<ZoneRepository>(),
+                get<DiagnosticsRepository>(),
+            ),
             spotRepository = get(),
         )
     }

@@ -13,6 +13,7 @@ import io.apptolast.paparcar.data.datasource.remote.FirestoreUiLocationLogger
 import io.apptolast.paparcar.data.datasource.remote.RemoteUserProfileDataSource
 import io.apptolast.paparcar.data.datasource.remote.RemoteUserProfileDataSourceImpl
 import io.apptolast.paparcar.data.repository.AddressAndPlaceRepositoryImpl
+import io.apptolast.paparcar.data.repository.DiagnosticsRepositoryImpl
 import io.apptolast.paparcar.data.repository.SpotRepositoryImpl
 import io.apptolast.paparcar.data.repository.UserParkingRepositoryImpl
 import io.apptolast.paparcar.data.repository.UserProfileRepositoryImpl
@@ -20,6 +21,7 @@ import io.apptolast.paparcar.data.repository.VehicleRepositoryImpl
 import io.apptolast.paparcar.data.repository.ZoneRepositoryImpl
 import io.apptolast.paparcar.data.session.RoomLocalSessionCache
 import io.apptolast.paparcar.domain.repository.AddressAndPlaceRepository
+import io.apptolast.paparcar.domain.repository.DiagnosticsRepository
 import io.apptolast.paparcar.domain.repository.SpotRepository
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.repository.UserProfileRepository
@@ -77,6 +79,9 @@ val dataModule = module {
         ZoneRepositoryImpl(get(), get(), get(), CoroutineScope(SupervisorJob() + Dispatchers.Default))
     }
     single<AddressAndPlaceRepository> { AddressAndPlaceRepositoryImpl(get(), get(), get()) }
+    // Erasure port of the diagnostics telemetry — account deletion sweeps diagnostics/{uid} +
+    // diagnostics_config/{uid} with the rest of the user's data. [ACCOUNT-DELETE-SWEEPS-DIAGNOSTICS-001]
+    single<DiagnosticsRepository> { DiagnosticsRepositoryImpl(get()) }
 
     // Session
     single<LocalSessionCache> { RoomLocalSessionCache(get()) }

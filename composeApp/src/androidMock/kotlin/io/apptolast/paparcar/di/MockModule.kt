@@ -33,6 +33,7 @@ import io.apptolast.paparcar.fakes.data.repository.FakeAuthRepository
 import io.apptolast.paparcar.fakes.data.repository.FakeBluetoothScanner
 import io.apptolast.paparcar.fakes.data.repository.FakeConnectivityObserver
 import io.apptolast.paparcar.fakes.data.repository.FakeDepartureEventBus
+import io.apptolast.paparcar.fakes.data.repository.FakeDiagnosticsRepository
 import io.apptolast.paparcar.fakes.data.repository.FakeGeocoderDataSource
 import io.apptolast.paparcar.fakes.data.repository.FakeGeofenceEventBus
 import io.apptolast.paparcar.fakes.data.repository.FakeGeofenceManager
@@ -119,6 +120,9 @@ val mockModule = module {
     }
     single<UserProfileRepository> { FakeUserProfileRepository() }
     single<ZoneRepository> { FakeZoneRepository() }
+    // DeleteAccountUseCase resolves this in its swept-repos list; the mock stack has no dataModule,
+    // so the port must exist here or resolving it crashes. [ACCOUNT-DELETE-SWEEPS-DIAGNOSTICS-001]
+    single<DiagnosticsRepository> { FakeDiagnosticsRepository() }
     single<AddressAndPlaceRepository> { AddressAndPlaceRepositoryImpl(get(), get(), get()) }
 
     // Database (In-memory Room)

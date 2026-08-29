@@ -9,7 +9,9 @@ import io.apptolast.paparcar.domain.repository.UserScopedRepository
  * then wipes the community spot cache, then deletes the auth account.
  *
  * [userScopedRepos] is an ordered list — currently wired in DomainModule as:
- * UserParkingRepository, VehicleRepository, UserProfileRepository, ZoneRepository.
+ * UserParkingRepository, VehicleRepository, UserProfileRepository, ZoneRepository,
+ * DiagnosticsRepository (telemetry last, right before the auth delete, to minimise the window in
+ * which a live logger could re-create a swept doc [ACCOUNT-DELETE-SWEEPS-DIAGNOSTICS-001]).
  * Order matters: [getOrThrow] is fail-fast, so a failure stops the remaining repos.
  * Adding a new user-scoped repository requires both implementing [UserScopedRepository]
  * AND adding it to the list in DomainModule. [GDPR right-to-erasure]

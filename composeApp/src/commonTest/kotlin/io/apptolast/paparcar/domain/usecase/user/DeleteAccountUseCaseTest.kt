@@ -1,6 +1,7 @@
 package io.apptolast.paparcar.domain.usecase.user
 
 import io.apptolast.paparcar.fakes.FakeAuthRepository
+import io.apptolast.paparcar.fakes.FakeDiagnosticsRepository
 import io.apptolast.paparcar.fakes.FakeSpotRepository
 import io.apptolast.paparcar.fakes.FakeUserParkingRepository
 import io.apptolast.paparcar.fakes.FakeUserProfileRepository
@@ -21,10 +22,11 @@ class DeleteAccountUseCaseTest {
         val vehicles = FakeVehicleRepository()
         val profile = FakeUserProfileRepository()
         val zones = FakeZoneRepository()
+        val diagnostics = FakeDiagnosticsRepository()
         val spots = FakeSpotRepository()
         val useCase get() = DeleteAccountUseCase(
             authRepository = auth,
-            userScopedRepos = listOf(parking, vehicles, profile, zones),
+            userScopedRepos = listOf(parking, vehicles, profile, zones, diagnostics),
             spotRepository = spots,
         )
     }
@@ -46,6 +48,7 @@ class DeleteAccountUseCaseTest {
         assertEquals(1, d.vehicles.deleteAllDataCallCount)
         assertEquals(1, d.spots.clearCacheCallCount)
         assertEquals(1, d.profile.deleteAllDataCallCount)
+        assertEquals(1, d.diagnostics.deleteAllDataCallCount)
         assertEquals(1, d.auth.deleteAccountCallCount)
     }
 
@@ -66,6 +69,7 @@ class DeleteAccountUseCaseTest {
         assertEquals(0, d.vehicles.deleteAllDataCallCount)
         assertEquals(0, d.spots.clearCacheCallCount)
         assertEquals(0, d.profile.deleteAllDataCallCount)
+        assertEquals(0, d.diagnostics.deleteAllDataCallCount)
         assertEquals(0, d.auth.deleteAccountCallCount)
     }
 
@@ -120,6 +124,30 @@ class DeleteAccountUseCaseTest {
         assertEquals(0, d.auth.deleteAccountCallCount)
     }
 
+    // ── Diagnostics sweep — the policy's promise [ACCOUNT-DELETE-SWEEPS-DIAGNOSTICS-001] ─────
+
+    @Test
+    fun `should_sweepDiagnosticsForTheSessionUser_when_accountIsDeleted`() = runTest {
+        val d = buildDeps()
+        d.useCase()
+        assertEquals(session.userId, d.diagnostics.deleteAllUserId)
+    }
+
+    @Test
+    fun `should_returnFailure_when_diagnosticsDeletionFails`() = runTest {
+        val d = buildDeps()
+        d.diagnostics.deleteAllDataResult = Result.failure(Exception("firestore error"))
+        assertTrue(d.useCase().isFailure)
+    }
+
+    @Test
+    fun `should_notCallAuthDelete_when_diagnosticsDeletionFails`() = runTest {
+        val d = buildDeps()
+        d.diagnostics.deleteAllDataResult = Result.failure(Exception("firestore error"))
+        d.useCase()
+        assertEquals(0, d.auth.deleteAccountCallCount)
+    }
+
     // ── Auth deletion failure ─────────────────────────────────────────────────
 
     @Test
@@ -138,5 +166,6 @@ class DeleteAccountUseCaseTest {
         assertEquals(1, d.vehicles.deleteAllDataCallCount)
         assertEquals(1, d.spots.clearCacheCallCount)
         assertEquals(1, d.profile.deleteAllDataCallCount)
+        assertEquals(1, d.diagnostics.deleteAllDataCallCount)
     }
 }

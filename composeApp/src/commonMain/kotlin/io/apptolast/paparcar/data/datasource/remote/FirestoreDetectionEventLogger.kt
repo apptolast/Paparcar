@@ -4,6 +4,11 @@ package io.apptolast.paparcar.data.datasource.remote
 
 import com.apptolast.customlogin.domain.AuthRepository
 import dev.gitlive.firebase.firestore.FirebaseFirestore
+import io.apptolast.paparcar.data.datasource.remote.DiagnosticsFirestoreSchema.COLLECTION_CONFIG
+import io.apptolast.paparcar.data.datasource.remote.DiagnosticsFirestoreSchema.COLLECTION_DIAGNOSTICS
+import io.apptolast.paparcar.data.datasource.remote.DiagnosticsFirestoreSchema.COLLECTION_EVENTS
+import io.apptolast.paparcar.data.datasource.remote.DiagnosticsFirestoreSchema.COLLECTION_SESSIONS
+import io.apptolast.paparcar.data.datasource.remote.DiagnosticsFirestoreSchema.FIELD_ENABLED
 import io.apptolast.paparcar.data.datasource.remote.dto.DetectionSessionDto
 import io.apptolast.paparcar.data.datasource.remote.dto.toDto
 import io.apptolast.paparcar.data.datasource.remote.dto.toSessionDto
@@ -60,10 +65,11 @@ class FirestoreDetectionEventLogger(
     /** One retention sweep per process — see [cleanupExpiredSessions]. [DIAG-RETENTION-001] */
     @Volatile private var cleanupStarted = false
 
-    /** [DET-EVERY-TRIGGER-LEAVES-A-TRACE-001] Last daily-ledger id whose header this process
-     *  has written. Consumer-coroutine only (same as [accumulate]), so a plain field is enough:
-     *  it keeps the ledger header at one write per bucket instead of one per trigger. */
-    private var triggerLedgerWritten: String? = null
+    /** Session ids whose header doc this process KNOWS exists (written or verified). Consumer-
+     *  coroutine only (same as [accumulate]), so a plain set is enough. Keeps the trigger-ledger
+     *  header at one write per bucket [DET-EVERY-TRIGGER-LEAVES-A-TRACE-001] and the
+     *  [ensureParentHeader] check at one read per trace. */
+    private val sessionsWithHeader = mutableSetOf<String>()
 
     init {
         scope.launch {
@@ -115,9 +121,9 @@ class FirestoreDetectionEventLogger(
      * [DIAG-RETENTION-001] Best-effort sweep of this user's OWN diagnostic sessions older than
      * [RETENTION_DAYS]: events subcollection first, then the session doc. Runs at most once per
      * process, right after the gate resolves enabled — i.e. only opted-in field devices pay it,
-     * and analysed traces stop accumulating as garbage. Departure traces keyed by geofenceId have
-     * no header doc (missing parents) and are not reachable via this query — their event counts
-     * are tiny (4–9 docs) and they age out when swept manually.
+     * and analysed traces stop accumulating as garbage. Every event lane now writes a real parent
+     * header ([ensureParentHeader]), so geofence-keyed departure/sentry traces are reachable by
+     * this query too; only orphans written BEFORE that fix stay invisible until swept manually.
      */
     private fun cleanupExpiredSessions(userId: String) {
         if (cleanupStarted) return
@@ -155,29 +161,37 @@ class FirestoreDetectionEventLogger(
 
         accumulate(event)
         when (event) {
-            is DetectionEvent.SessionStarted -> sessionDoc.set(
-                // Stamp device identity so a trace says which phone produced it [DIAG-READABLE-001],
-                // plus the background-survival state so a silent death says whether the exemptions
-                // were in place [DET-SESSION-RELIABILITY-STAMP-001].
-                event.toSessionDto().copy(
-                    deviceModel = deviceInfo.deviceModel,
-                    appVersion = deviceInfo.appVersion,
-                    osVersion = deviceInfo.osVersion,
-                    batteryUnrestricted = deviceInfo.isBatteryUnrestricted,
-                    requiresAutostart = deviceInfo.requiresAutostartWhitelist,
-                    requiresOemBatteryFreeze = deviceInfo.requiresOemBatteryFreezeExemption,
-                    exactHeartbeatLaneDead = deviceInfo.isExactHeartbeatLaneDead,
-                ),
-            )
-            is DetectionEvent.SessionEnded -> flushSession(sessionDoc, event)
+            is DetectionEvent.SessionStarted -> {
+                sessionsWithHeader += event.sessionId
+                sessionDoc.set(
+                    // Stamp device identity so a trace says which phone produced it [DIAG-READABLE-001],
+                    // plus the background-survival state so a silent death says whether the exemptions
+                    // were in place [DET-SESSION-RELIABILITY-STAMP-001].
+                    event.toSessionDto().copy(
+                        deviceModel = deviceInfo.deviceModel,
+                        appVersion = deviceInfo.appVersion,
+                        osVersion = deviceInfo.osVersion,
+                        batteryUnrestricted = deviceInfo.isBatteryUnrestricted,
+                        requiresAutostart = deviceInfo.requiresAutostartWhitelist,
+                        requiresOemBatteryFreeze = deviceInfo.requiresOemBatteryFreezeExemption,
+                        exactHeartbeatLaneDead = deviceInfo.isExactHeartbeatLaneDead,
+                    ),
+                )
+            }
+            is DetectionEvent.SessionEnded -> {
+                // A process restarted mid-session may see the terminal event first: without a
+                // header, `updateFields` in [flushSession] rejects and the SESSION_ENDED doc is
+                // lost with it. Ensure the parent, then patch the outcome onto it.
+                ensureParentHeader(sessionDoc, event)
+                flushSession(sessionDoc, event)
+            }
             // [DET-EVERY-TRIGGER-LEAVES-A-TRACE-001] The trigger lane files into a daily ledger, and
             // that ledger needs a REAL parent document: `cleanupExpiredSessions` finds sessions by
             // querying `startedAt`, so events under a document that was never created are
-            // unreachable and never deleted (the leak this file's retention KDoc already admits for
-            // the departure lane). One header write per bucket per process — the flag below is what
-            // keeps it at one — and the whole lane becomes collectable by the sweep that exists.
-            is DetectionEvent.Trigger -> if (event.sessionId != triggerLedgerWritten) {
-                triggerLedgerWritten = event.sessionId
+            // unreachable and never deleted. One header write per bucket per process — the
+            // [sessionsWithHeader] guard is what keeps it at one — and the whole lane becomes
+            // collectable by the sweep that exists.
+            is DetectionEvent.Trigger -> if (sessionsWithHeader.add(event.sessionId)) {
                 sessionDoc.set(
                     DetectionSessionDto(
                         sessionId = event.sessionId,
@@ -189,9 +203,38 @@ class FirestoreDetectionEventLogger(
                     ),
                 )
             }
-            else -> Unit
+            else -> ensureParentHeader(sessionDoc, event)
         }
         sessionDoc.collection(COLLECTION_EVENTS).add(event.toDto())
+    }
+
+    /**
+     * [ACCOUNT-DELETE-SWEEPS-DIAGNOSTICS-001] Every event lane gets a REAL parent session doc.
+     * Departure/sentry traces keyed by geofenceId used to write events under a parent that was
+     * never created ("missing parent"): invisible to any query on `sessions`, so neither the
+     * retention sweep [DIAG-RETENTION-001] nor the account-deletion erasure could reach them.
+     * One `get` per sessionId per process; the header is only written when truly absent, so a real
+     * drive header from an earlier process is never clobbered. If the check or write fails, the
+     * whole event write fails with it (best-effort diagnostics) and the next event retries.
+     */
+    private suspend fun ensureParentHeader(
+        sessionDoc: dev.gitlive.firebase.firestore.DocumentReference,
+        event: DetectionEvent,
+    ) {
+        if (event.sessionId in sessionsWithHeader) return
+        if (!sessionDoc.get().exists) {
+            sessionDoc.set(
+                DetectionSessionDto(
+                    sessionId = event.sessionId,
+                    startedAt = event.timestampMs,
+                    strategy = TRACE_HEADER_STRATEGY,
+                    deviceModel = deviceInfo.deviceModel,
+                    appVersion = deviceInfo.appVersion,
+                    osVersion = deviceInfo.osVersion,
+                ),
+            )
+        }
+        sessionsWithHeader += event.sessionId
     }
 
     /** Fold each event into its session's rollup. Runs on the consumer coroutine only. */
@@ -265,11 +308,6 @@ class FirestoreDetectionEventLogger(
 
     private companion object {
         const val TAG = "FirestoreDetectionEventLogger"
-        const val COLLECTION_CONFIG = "diagnostics_config"
-        const val FIELD_ENABLED = "enabled"
-        const val COLLECTION_DIAGNOSTICS = "diagnostics"
-        const val COLLECTION_SESSIONS = "sessions"
-        const val COLLECTION_EVENTS = "events"
         const val FIELD_OUTCOME = "outcome"
         const val FIELD_STARTED_AT = "startedAt"
         // Rollup header fields patched on SESSION_ENDED [DIAG-READABLE-001]
@@ -284,6 +322,9 @@ class FirestoreDetectionEventLogger(
         /** Strategy label of the daily trigger ledger, so it is obvious in the console that
          *  this session document is a ledger and not a drive. [DET-EVERY-TRIGGER-LEAVES-A-TRACE-001] */
         const val TRIGGER_LEDGER_STRATEGY = "TRIGGER_LEDGER"
+        /** Strategy label of a backfilled parent header ([ensureParentHeader]): the doc exists so
+         *  the trace is sweepable, not because a drive started there. [ACCOUNT-DELETE-SWEEPS-DIAGNOSTICS-001] */
+        const val TRACE_HEADER_STRATEGY = "TRACE_HEADER"
         const val BUFFER_CAPACITY = 128
         /** [DIAG-RETENTION-001] Diagnostic sessions older than this are swept on gate resolve. */
         const val RETENTION_DAYS = 7L
