@@ -72,7 +72,7 @@
     <string name="onboarding_step3_title">Partilhamos o lugar</string>
     <string name="onboarding_step3_desc">Quando sai, o seu lugar fica disponível para outros próximos</string>
     <string name="onboarding_page3_title">Por que precisamos das suas permissões</string>
-    <string name="onboarding_page3_subtitle">A app funciona automaticamente em segundo plano. Usamos apenas a sua localização para detetar o estacionamento — nunca partilhada com terceiros.</string>
+    <string name="onboarding_page3_subtitle">A Paparcar recolhe dados de localização mesmo quando a app está fechada ou não está em uso, para detetar automaticamente onde estaciona. A sua localização nunca é vendida nem usada para publicidade.</string>
     <string name="onboarding_cta_next">Seguinte</string>
     <string name="onboarding_cta_setup">Configurar permissões</string>
 
@@ -82,7 +82,7 @@
     <string name="permissions_perm_location">Localização precisa</string>
     <string name="permissions_perm_location_desc">Para guardar com precisão onde estacionou o veículo</string>
     <string name="permissions_perm_background">Localização em segundo plano</string>
-    <string name="permissions_perm_background_desc">Necessário para detetar o estacionamento mesmo quando a app não está aberta</string>
+    <string name="permissions_perm_background_desc">Necessário para detetar o estacionamento mesmo quando a app está fechada ou não está em uso</string>
     <string name="permissions_perm_activity">Reconhecimento de atividade</string>
     <string name="permissions_perm_activity_desc">Para detetar automaticamente quando começa a conduzir e quando estaciona</string>
     <string name="permissions_perm_notifications">Notificações</string>

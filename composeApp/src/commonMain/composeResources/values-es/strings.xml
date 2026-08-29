@@ -103,7 +103,7 @@
     <string name="onboarding_step3_title">Compartimos la plaza</string>
     <string name="onboarding_step3_desc">Cuando te vas, tu plaza queda disponible para los demás</string>
     <string name="onboarding_page3_title">Por qué necesitamos tus permisos</string>
-    <string name="onboarding_page3_subtitle">La app funciona automáticamente en segundo plano. Solo usamos tu ubicación para detectar aparcamientos — nunca se comparte con terceros.</string>
+    <string name="onboarding_page3_subtitle">Paparcar recoge datos de ubicación incluso cuando la app está cerrada o no está en uso, para detectar automáticamente dónde aparcas. Tu ubicación nunca se vende ni se usa para publicidad.</string>
     <string name="onboarding_cta_next">Siguiente</string>
     <string name="onboarding_cta_setup">Configurar permisos</string>
 
@@ -113,7 +113,7 @@
     <string name="permissions_perm_location">Ubicación precisa</string>
     <string name="permissions_perm_location_desc">Para guardar exactamente dónde has aparcado tu vehículo</string>
     <string name="permissions_perm_background">Ubicación en segundo plano</string>
-    <string name="permissions_perm_background_desc">Necesaria para detectar aparcamientos aunque la app no esté abierta</string>
+    <string name="permissions_perm_background_desc">Necesaria para detectar aparcamientos incluso cuando la app está cerrada o no está en uso</string>
     <string name="permissions_perm_activity">Reconocimiento de actividad</string>
     <string name="permissions_perm_activity_desc">Para detectar automáticamente cuándo empiezas a conducir y cuándo aparcas</string>
     <string name="permissions_perm_notifications">Notificaciones</string>

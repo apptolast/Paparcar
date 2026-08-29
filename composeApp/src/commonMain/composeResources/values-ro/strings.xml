@@ -72,7 +72,7 @@
     <string name="onboarding_step3_title">Partajăm locul</string>
     <string name="onboarding_step3_desc">Când pleci, locul tău devine disponibil pentru alții din apropiere</string>
     <string name="onboarding_page3_title">De ce avem nevoie de permisiunile tale</string>
-    <string name="onboarding_page3_subtitle">Aplicația funcționează automat în fundal. Folosim locația ta doar pentru detectarea parcării — niciodată partajată cu terțe părți.</string>
+    <string name="onboarding_page3_subtitle">Paparcar colectează date de localizare chiar și când aplicația este închisă sau nu este în uz, pentru a detecta automat unde parchezi. Locația ta nu este niciodată vândută și nici folosită pentru publicitate.</string>
     <string name="onboarding_cta_next">Înainte</string>
     <string name="onboarding_cta_setup">Configurează permisiunile</string>
 
@@ -82,7 +82,7 @@
     <string name="permissions_perm_location">Locație precisă</string>
     <string name="permissions_perm_location_desc">Pentru a salva cu precizie unde ai parcat vehiculul</string>
     <string name="permissions_perm_background">Locație în fundal</string>
-    <string name="permissions_perm_background_desc">Necesară pentru a detecta parcarea chiar și când aplicația este închisă</string>
+    <string name="permissions_perm_background_desc">Necesară pentru a detecta parcarea chiar și când aplicația este închisă sau nu este în uz</string>
     <string name="permissions_perm_activity">Recunoașterea activității</string>
     <string name="permissions_perm_activity_desc">Pentru a detecta automat când începi să conduci și când parchezi</string>
     <string name="permissions_perm_notifications">Notificări</string>

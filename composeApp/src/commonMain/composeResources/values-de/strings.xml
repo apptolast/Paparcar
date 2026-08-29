@@ -72,7 +72,7 @@
     <string name="onboarding_step3_title">Wir teilen den Stellplatz</string>
     <string name="onboarding_step3_desc">Wenn du fährst, wird dein Stellplatz für andere in der Nähe verfügbar</string>
     <string name="onboarding_page3_title">Warum wir deine Berechtigungen benötigen</string>
-    <string name="onboarding_page3_subtitle">Die App funktioniert automatisch im Hintergrund. Wir nutzen deinen Standort nur zur Parkerkennung — niemals mit Dritten geteilt.</string>
+    <string name="onboarding_page3_subtitle">Paparcar erfasst Standortdaten auch dann, wenn die App geschlossen oder nicht in Gebrauch ist, um automatisch zu erkennen, wo du parkst. Dein Standort wird niemals verkauft oder für Werbung genutzt.</string>
     <string name="onboarding_cta_next">Weiter</string>
     <string name="onboarding_cta_setup">Berechtigungen einrichten</string>
 
@@ -82,7 +82,7 @@
     <string name="permissions_perm_location">Genaue Position</string>
     <string name="permissions_perm_location_desc">Um genau zu speichern, wo du dein Fahrzeug geparkt hast</string>
     <string name="permissions_perm_background">Hintergrundstandort</string>
-    <string name="permissions_perm_background_desc">Erforderlich, um das Parken auch bei geschlossener App zu erkennen</string>
+    <string name="permissions_perm_background_desc">Erforderlich, um das Parken auch zu erkennen, wenn die App geschlossen oder nicht in Gebrauch ist</string>
     <string name="permissions_perm_activity">Aktivitätserkennung</string>
     <string name="permissions_perm_activity_desc">Um automatisch zu erkennen, wann du zu fahren beginnst und wann du parkst</string>
     <string name="permissions_perm_notifications">Benachrichtigungen</string>

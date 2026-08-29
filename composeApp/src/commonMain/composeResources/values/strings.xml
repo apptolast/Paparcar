@@ -115,7 +115,7 @@
     <string name="onboarding_step3_title">We share the spot</string>
     <string name="onboarding_step3_desc">When you leave, your spot becomes available to others nearby</string>
     <string name="onboarding_page3_title">Why we need your permissions</string>
-    <string name="onboarding_page3_subtitle">The app works automatically in the background. We only use your location to detect parking — never shared with third parties.</string>
+    <string name="onboarding_page3_subtitle">Paparcar collects location data even when the app is closed or not in use, to automatically detect where you park. Your location is never sold or used for advertising.</string>
     <string name="onboarding_cta_next">Next</string>
     <string name="onboarding_cta_setup">Set up permissions</string>
 
@@ -125,7 +125,7 @@
     <string name="permissions_perm_location">Precise location</string>
     <string name="permissions_perm_location_desc">To precisely save where you parked your vehicle</string>
     <string name="permissions_perm_background">Background location</string>
-    <string name="permissions_perm_background_desc">Required to detect parking even when the app is not open</string>
+    <string name="permissions_perm_background_desc">Required to detect parking even when the app is closed or not in use</string>
     <string name="permissions_perm_activity">Activity recognition</string>
     <string name="permissions_perm_activity_desc">To automatically detect when you start driving and when you park</string>
     <string name="permissions_perm_notifications">Notifications</string>

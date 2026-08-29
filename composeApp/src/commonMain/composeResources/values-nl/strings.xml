@@ -72,7 +72,7 @@
     <string name="onboarding_step3_title">Wij delen de parkeerplaats</string>
     <string name="onboarding_step3_desc">Wanneer u vertrekt, wordt uw parkeerplaats beschikbaar voor anderen in de buurt</string>
     <string name="onboarding_page3_title">Waarom we uw machtigingen nodig hebben</string>
-    <string name="onboarding_page3_subtitle">De app werkt automatisch op de achtergrond. We gebruiken uw locatie alleen voor parkeerdetectie — nooit gedeeld met derden.</string>
+    <string name="onboarding_page3_subtitle">Paparcar verzamelt locatiegegevens ook wanneer de app gesloten of niet in gebruik is, om automatisch te detecteren waar u parkeert. Uw locatie wordt nooit verkocht of voor advertenties gebruikt.</string>
     <string name="onboarding_cta_next">Volgende</string>
     <string name="onboarding_cta_setup">Machtigingen instellen</string>
 
@@ -82,7 +82,7 @@
     <string name="permissions_perm_location">Nauwkeurige locatie</string>
     <string name="permissions_perm_location_desc">Om nauwkeurig op te slaan waar u uw voertuig heeft geparkeerd</string>
     <string name="permissions_perm_background">Achtergrondlocatie</string>
-    <string name="permissions_perm_background_desc">Vereist om parkeren te detecteren ook wanneer de app gesloten is</string>
+    <string name="permissions_perm_background_desc">Vereist om parkeren te detecteren ook wanneer de app gesloten of niet in gebruik is</string>
     <string name="permissions_perm_activity">Activiteitsherkenning</string>
     <string name="permissions_perm_activity_desc">Om automatisch te detecteren wanneer u begint te rijden en wanneer u parkeert</string>
     <string name="permissions_perm_notifications">Meldingen</string>

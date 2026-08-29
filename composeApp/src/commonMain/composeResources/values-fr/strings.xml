@@ -72,7 +72,7 @@
     <string name="onboarding_step3_title">Nous partageons la place</string>
     <string name="onboarding_step3_desc">Quand vous partez, votre place devient disponible pour les autres à proximité</string>
     <string name="onboarding_page3_title">Pourquoi nous avons besoin de vos permissions</string>
-    <string name="onboarding_page3_subtitle">L\'app fonctionne automatiquement en arrière-plan. Nous utilisons uniquement votre position pour détecter le stationnement — jamais partagée avec des tiers.</string>
+    <string name="onboarding_page3_subtitle">Paparcar collecte des données de position même quand l\'app est fermée ou n\'est pas utilisée, pour détecter automatiquement votre stationnement. Votre position n\'est jamais vendue ni utilisée à des fins publicitaires.</string>
     <string name="onboarding_cta_next">Suivant</string>
     <string name="onboarding_cta_setup">Configurer les permissions</string>
 
@@ -82,7 +82,7 @@
     <string name="permissions_perm_location">Position précise</string>
     <string name="permissions_perm_location_desc">Pour enregistrer précisément où vous avez garé votre véhicule</string>
     <string name="permissions_perm_background">Position en arrière-plan</string>
-    <string name="permissions_perm_background_desc">Nécessaire pour détecter le stationnement même quand l\'app est fermée</string>
+    <string name="permissions_perm_background_desc">Nécessaire pour détecter le stationnement même quand l\'app est fermée ou n\'est pas utilisée</string>
     <string name="permissions_perm_activity">Reconnaissance d\'activité</string>
     <string name="permissions_perm_activity_desc">Pour détecter automatiquement quand vous commencez à conduire et quand vous vous garez</string>
     <string name="permissions_perm_notifications">Notifications</string>

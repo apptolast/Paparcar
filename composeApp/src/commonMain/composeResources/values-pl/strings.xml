@@ -74,7 +74,7 @@
     <string name="onboarding_step3_title">Udostępniamy miejsce</string>
     <string name="onboarding_step3_desc">Gdy wyjeżdżasz, Twoje miejsce staje się dostępne dla innych w pobliżu</string>
     <string name="onboarding_page3_title">Dlaczego potrzebujemy Twoich uprawnień</string>
-    <string name="onboarding_page3_subtitle">Aplikacja działa automatycznie w tle. Używamy Twojej lokalizacji tylko do wykrywania parkowania — nigdy nie udostępniamy jej osobom trzecim.</string>
+    <string name="onboarding_page3_subtitle">Paparcar zbiera dane o lokalizacji także wtedy, gdy aplikacja jest zamknięta lub nieużywana, aby automatycznie wykrywać, gdzie parkujesz. Twoja lokalizacja nigdy nie jest sprzedawana ani wykorzystywana do reklam.</string>
     <string name="onboarding_cta_next">Dalej</string>
     <string name="onboarding_cta_setup">Skonfiguruj uprawnienia</string>
 
@@ -84,7 +84,7 @@
     <string name="permissions_perm_location">Dokładna lokalizacja</string>
     <string name="permissions_perm_location_desc">Aby dokładnie zapisać, gdzie zaparkowałeś swój pojazd</string>
     <string name="permissions_perm_background">Lokalizacja w tle</string>
-    <string name="permissions_perm_background_desc">Wymagane do wykrywania parkowania nawet gdy aplikacja jest zamknięta</string>
+    <string name="permissions_perm_background_desc">Wymagane do wykrywania parkowania nawet gdy aplikacja jest zamknięta lub nieużywana</string>
     <string name="permissions_perm_activity">Rozpoznawanie aktywności</string>
     <string name="permissions_perm_activity_desc">Aby automatycznie wykrywać, kiedy zaczynasz jechać i kiedy parkujesz</string>
     <string name="permissions_perm_notifications">Powiadomienia</string>
