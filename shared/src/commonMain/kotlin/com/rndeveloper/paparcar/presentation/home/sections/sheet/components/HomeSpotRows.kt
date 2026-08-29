@@ -45,19 +45,21 @@ import com.rndeveloper.paparcar.domain.model.SpotStatus
 import com.rndeveloper.paparcar.ui.theme.PapShapes
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.stateColors
-import com.rndeveloper.paparcar.presentation.util.SpotReliabilityUiState
+import com.rndeveloper.paparcar.domain.model.SpotFreshness
 import com.rndeveloper.paparcar.presentation.util.distanceMeters
 import com.rndeveloper.paparcar.presentation.util.distanceString
 import com.rndeveloper.paparcar.presentation.util.driveTimeString
 import com.rndeveloper.paparcar.presentation.util.locationDisplayText
 import com.rndeveloper.paparcar.presentation.util.isManualReport
-import com.rndeveloper.paparcar.presentation.util.toReliabilityUiState
+import com.rndeveloper.paparcar.presentation.util.freshness
+import com.rndeveloper.paparcar.presentation.util.ageMs
 import com.rndeveloper.paparcar.ui.components.EnRouteIndicator
 import com.rndeveloper.paparcar.ui.components.PapEmptyStateCard
 import com.rndeveloper.paparcar.ui.components.PapFooterButton
 import com.rndeveloper.paparcar.ui.components.PapFooterButtonStyle
 import com.rndeveloper.paparcar.ui.components.SpotPuckIcon
-import com.rndeveloper.paparcar.ui.components.TTLIndicator
+import com.rndeveloper.paparcar.ui.components.SpotAgeIndicator
+import com.rndeveloper.paparcar.ui.components.rememberSpotAgeClock
 import com.rndeveloper.paparcar.ui.theme.PapBorders
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.spot_indicator_en_route
@@ -69,9 +71,9 @@ import paparcar.composeapp.generated.resources.home_filter_empty_subtitle
 import paparcar.composeapp.generated.resources.home_filter_empty_title
 import paparcar.composeapp.generated.resources.home_report_fab_cd
 import paparcar.composeapp.generated.resources.home_report_subtitle
-import paparcar.composeapp.generated.resources.home_spot_reliability_high
-import paparcar.composeapp.generated.resources.home_spot_reliability_low
-import paparcar.composeapp.generated.resources.home_spot_reliability_medium
+import paparcar.composeapp.generated.resources.home_spot_freshness_fresh
+import paparcar.composeapp.generated.resources.home_spot_freshness_stale
+import paparcar.composeapp.generated.resources.home_spot_freshness_recent
 import paparcar.composeapp.generated.resources.home_spot_unconfirmed_badge
 import paparcar.composeapp.generated.resources.location_fallback_spot
 import com.rndeveloper.paparcar.ui.theme.PapAlpha
@@ -81,8 +83,8 @@ import com.rndeveloper.paparcar.ui.theme.PapAlpha
  *
  *  - 3dp left selection indicator (primary) so the row keeps its neutral fill.
  *  - Circular "P" badge whose colour mirrors the map marker tier
- *    (HIGH=green, MEDIUM=amber, LOW=red; manual provenance = person badge on the puck).
- *  - Meta row: UPPERCASE reliability label + distance + drive time.
+ *    (FRESH=green, RECENT=amber, STALE=red; manual provenance = person badge on the puck).
+ *  - Meta row: UPPERCASE freshness label + distance + drive time.
  */
 @Composable
 internal fun HomeSpotRow(
@@ -92,8 +94,11 @@ internal fun HomeSpotRow(
     isSelected: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
-    val reliability = spot.toReliabilityUiState()
-    val palette = reliability.palette()
+    // One clock, one level, shared by the puck and the age chip — so a spot can never disagree
+    // with itself across its own row. [SPOT-FRESHNESS-IS-AGE-NOT-A-COUNTDOWN-001]
+    val nowMs = rememberSpotAgeClock()
+    val freshness = spot.freshness(nowMs)
+    val palette = freshness.palette()
 
     val rowBg = if (isSelected)
         MaterialTheme.colorScheme.primaryContainer.copy(alpha = SELECTED_ROW_BG_ALPHA)
@@ -121,6 +126,8 @@ internal fun HomeSpotRow(
                 spot = spot,
                 userLocation = userLocation,
                 palette = palette,
+                freshness = freshness,
+                ageMs = spot.ageMs(nowMs),
                 modifier = Modifier
                     .padding(start = 13.dp, end = 16.dp, top = 12.dp, bottom = 12.dp)
                     .weight(1f),
@@ -134,6 +141,8 @@ private fun SpotRowContent(
     spot: Spot,
     userLocation: Pair<Double, Double>?,
     palette: ReliabilityPalette,
+    freshness: SpotFreshness,
+    ageMs: Long,
     modifier: Modifier = Modifier,
 ) {
     val distanceM = userLocation?.let { (uLat, uLon) ->
@@ -150,9 +159,9 @@ private fun SpotRowContent(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         // Same puck as the map marker, tail-less — one shared component keeps list and map in sync,
-        // with the reliability tier encoded by colour/ring/badge. [HOME-PUCK-001]
+        // with the freshness tier encoded by colour/ring/badge. [HOME-PUCK-001]
         SpotPuckIcon(
-            reliability = spot.toReliabilityUiState(),
+            reliability = freshness,
             enRouteCount = spot.enRouteCount,
             isManual = spot.isManualReport,
             modifier = Modifier.size(BADGE_DP.dp),
@@ -259,8 +268,8 @@ private fun SpotRowContent(
             }
         }
 
-        if (spot.expiresAt > 0L) {
-            TTLIndicator(expiresAtMs = spot.expiresAt)
+        if (spot.location.timestamp > 0L) {
+            SpotAgeIndicator(ageMs = ageMs, freshness = freshness)
         }
     }
 }
@@ -276,12 +285,12 @@ private data class ReliabilityPalette(
 )
 
 @Composable
-private fun SpotReliabilityUiState.palette(): ReliabilityPalette {
+private fun SpotFreshness.palette(): ReliabilityPalette {
     val sc = stateColors()
     val label = when (this) {
-        SpotReliabilityUiState.HIGH   -> stringResource(Res.string.home_spot_reliability_high)
-        SpotReliabilityUiState.MEDIUM -> stringResource(Res.string.home_spot_reliability_medium)
-        SpotReliabilityUiState.LOW    -> stringResource(Res.string.home_spot_reliability_low)
+        SpotFreshness.FRESH  -> stringResource(Res.string.home_spot_freshness_fresh)
+        SpotFreshness.RECENT -> stringResource(Res.string.home_spot_freshness_recent)
+        SpotFreshness.STALE  -> stringResource(Res.string.home_spot_freshness_stale)
     }
     return ReliabilityPalette(sc.bg, sc.on, label)
 }

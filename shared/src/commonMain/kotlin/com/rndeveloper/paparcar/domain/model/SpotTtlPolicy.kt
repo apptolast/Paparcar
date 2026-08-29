@@ -9,13 +9,20 @@ package com.rndeveloper.paparcar.domain.model
  * from the same numbers, and the manual-vs-auto rule is unit-testable once.
  */
 object SpotTtlPolicy {
-    /** Auto-detected (and home-geofence) spots: 2 hours — a parked-then-freed spot stays useful
-     *  a while. */
+    /**
+     * How long a published spot stays in the map: 2 hours, whoever reported it.
+     *
+     * [SPOT-FRESHNESS-IS-AGE-NOT-A-COUNTDOWN-001] Manual reports used to expire in 15 minutes,
+     * and that number was never about decay — a parking space fills at the same rate whether a
+     * departing car or a passer-by noticed it was free. It was about how much we TRUSTED the
+     * reporter, and trust already has its own channels ([Spot.confidence], [SpotStatus], the
+     * person badge). One number doing two jobs.
+     *
+     * Deleting the report early also protected nobody: it destroyed the only signal we had. At
+     * launch density an empty map is a worse failure than an old spot, and an old spot is not a
+     * lie as long as the app says how old it is — which is what [SpotFreshness] now does.
+     */
     const val AUTO_SPOT_TTL_MS: Long = 2 * 60 * 60 * 1_000L
-
-    /** Manually reported spots: 15 minutes — a human tap is a "right now" signal that goes stale
-     *  fast. */
-    const val MANUAL_SPOT_TTL_MS: Long = 15 * 60 * 1_000L
 
     /**
      * [DET-HANDOFF-NOT-MANUAL-001 §B] Spots published on a DEDUCED departure
@@ -49,19 +56,18 @@ object SpotTtlPolicy {
      */
     const val RETRACTION_GRACE_MS: Long = 2 * 60 * 1_000L
 
-    /** The TTL for a spot of [type]: only an explicit manual report gets the short window;
-     *  everything else (auto-detected, home-geofence) uses the long one. */
-    fun ttlMsForType(type: SpotType): Long =
-        if (type == SpotType.MANUAL_REPORT) MANUAL_SPOT_TTL_MS else AUTO_SPOT_TTL_MS
-
     /**
-     * [DET-HANDOFF-NOT-MANUAL-001 §B] The TTL for a spot of [type] published with a departure that
-     * is only [provisional]ly proven. A manual report is a human statement and keeps its own
-     * window — this only ever shortens the automatic one.
+     * The lifetime of a newly published spot.
+     *
+     * [SPOT-FRESHNESS-IS-AGE-NOT-A-COUNTDOWN-001] This used to take a [SpotType] and hand manual
+     * reports a shorter window. It no longer does, and the parameter went with it rather than
+     * lingering as a signature that claims an influence it does not have: **the kind of report
+     * does not change how fast the space fills.**
+     *
+     * [provisional] is the one thing that still shortens it ([DET-HANDOFF-NOT-MANUAL-001 §B]), and
+     * for a different reason — not distrust of a reporter, but the blast radius of a spot deduced
+     * from a departure that may never have happened.
      */
-    fun ttlMsForType(type: SpotType, provisional: Boolean): Long = when {
-        type == SpotType.MANUAL_REPORT -> MANUAL_SPOT_TTL_MS
-        provisional -> PROVISIONAL_SPOT_TTL_MS
-        else -> AUTO_SPOT_TTL_MS
-    }
+    fun ttlMs(provisional: Boolean = false): Long =
+        if (provisional) PROVISIONAL_SPOT_TTL_MS else AUTO_SPOT_TTL_MS
 }

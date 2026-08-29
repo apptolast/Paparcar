@@ -1,5 +1,3 @@
-@file:OptIn(kotlin.time.ExperimentalTime::class)
-
 package com.rndeveloper.paparcar.data.mapper
 
 import com.rndeveloper.paparcar.data.datasource.local.room.SpotEntity
@@ -16,7 +14,6 @@ import com.rndeveloper.paparcar.domain.model.Spot
 import com.rndeveloper.paparcar.domain.model.SpotStatus
 import com.rndeveloper.paparcar.domain.model.SpotType
 import com.rndeveloper.paparcar.domain.model.VehicleSize
-import kotlin.time.Clock
 
 fun SpotDto.toDomain(): Spot = Spot(
     id = id,
@@ -35,13 +32,10 @@ fun SpotDto.toDomain(): Spot = Spot(
         dto.category.toEnumOrNull<PlaceCategory>()?.let { PlaceInfo(dto.name, it) }
     },
     type = type.toEnumOrDefault(SpotType.AUTO_DETECTED),
-    confidence = decayedConfidence(
+    confidence = communityConfidence(
         storedConfidence = confidence.coerceIn(0f, 1f),
         acceptCount = acceptCount,
         rejectCount = rejectCount,
-        reportedAt = reportedAt,
-        expiresAt = expiresAt,
-        nowMs = Clock.System.now().toEpochMilliseconds(),
     ),
     sizeCategory = sizeCategory.toEnumOrNull<VehicleSize>(),
     carbodyType = carbodyType.toEnumOrNull<CarbodyType>(),
@@ -122,13 +116,10 @@ fun SpotEntity.toDomain(): Spot = Spot(
         placeInfoCategory.toEnumOrNull<PlaceCategory>()?.let { PlaceInfo(name, it) }
     },
     type = type.toEnumOrDefault(SpotType.AUTO_DETECTED),
-    confidence = decayedConfidence(
+    confidence = communityConfidence(
         storedConfidence = confidence.coerceIn(0f, 1f),
         acceptCount = acceptCount,
         rejectCount = rejectCount,
-        reportedAt = reportedAt,
-        expiresAt = expiresAt,
-        nowMs = Clock.System.now().toEpochMilliseconds(),
     ),
     sizeCategory = sizeCategory.toEnumOrNull<VehicleSize>(),
     carbodyType = carbodyType.toEnumOrNull<CarbodyType>(),
@@ -137,38 +128,29 @@ fun SpotEntity.toDomain(): Spot = Spot(
     status = status.toEnumOrDefault(SpotStatus.CONFIRMED),
 )
 
-// ─── Confidence decay ─────────────────────────────────────────────────────────
+// ─── Community confidence ─────────────────────────────────────────────────────
 //
-// Final confidence = communityConfidence * timeFactor
+// What the COMMUNITY thinks of this report, and nothing else: a Laplace-smoothed vote ratio,
+// falling back to storedConfidence while total votes < MIN_VOTES_FOR_SIGNAL (avoids flip-flopping
+// on a single vote).
 //
-// communityConfidence: Laplace-smoothed vote ratio. Uses storedConfidence when
-//   total votes < MIN_VOTES_FOR_SIGNAL (avoids flip-flopping on a single vote).
-//
-// timeFactor: linear decay from 1.0 (just reported) → 0.0 (at TTL expiry).
-//   Stays 1.0 when expiresAt = 0 (no TTL set).
+// [SPOT-FRESHNESS-IS-AGE-NOT-A-COUNTDOWN-001] This used to be multiplied by a `timeFactor` that
+// decayed linearly to zero at TTL expiry, so one Float carried both "do people believe this
+// report" and "how old is it". The age half now lives in SpotFreshness, which is the single ramp
+// the UI colours itself from — leaving it here too would count the clock twice.
 
-internal fun decayedConfidence(
+internal fun communityConfidence(
     storedConfidence: Float,
     acceptCount: Int,
     rejectCount: Int,
-    reportedAt: Long,
-    expiresAt: Long,
-    nowMs: Long,
 ): Float {
     val totalVotes = acceptCount + rejectCount
-    val communityConfidence = if (totalVotes >= MIN_VOTES_FOR_SIGNAL) {
+    val confidence = if (totalVotes >= MIN_VOTES_FOR_SIGNAL) {
         (acceptCount.toFloat() + LAPLACE_PRIOR) / (totalVotes.toFloat() + 2f * LAPLACE_PRIOR)
     } else {
         storedConfidence
     }
-    val timeFactor = if (reportedAt in 1L until expiresAt) {
-        val total = (expiresAt - reportedAt).toFloat()
-        val remaining = (expiresAt - nowMs).coerceAtLeast(0L).toFloat()
-        remaining / total
-    } else {
-        1f
-    }
-    return (communityConfidence * timeFactor).coerceIn(0f, 1f)
+    return confidence.coerceIn(0f, 1f)
 }
 
 private const val MIN_VOTES_FOR_SIGNAL = 3

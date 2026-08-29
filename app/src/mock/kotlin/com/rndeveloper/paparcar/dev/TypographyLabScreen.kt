@@ -32,7 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.rndeveloper.paparcar.presentation.util.SpotReliabilityUiState
+import com.rndeveloper.paparcar.domain.model.SpotFreshness
 import com.rndeveloper.paparcar.ui.components.SpotPuckIcon
 import com.rndeveloper.paparcar.ui.theme.PapAlpha
 import com.rndeveloper.paparcar.ui.theme.PaparcarTheme
@@ -251,7 +251,7 @@ private fun BlockHeader(title: String, note: String) {
 private class SpotSample(
     val name: String,
     val reliabilityLabel: String,
-    val reliability: SpotReliabilityUiState,
+    val reliability: SpotFreshness,
     val distance: String,
     val driveTime: String,
     val enRoute: String? = null,
@@ -260,15 +260,15 @@ private class SpotSample(
 )
 
 private val SampleRows = listOf(
-    SpotSample("Plaza del Arenal 1", "BAJA", SpotReliabilityUiState.LOW, "426 m", "1 min en coche"),
-    SpotSample("Calle Corredera 8", "FIABLE", SpotReliabilityUiState.HIGH, "518 m", "1 min en coche"),
+    SpotSample("Plaza del Arenal 1", "BAJA", SpotFreshness.STALE, "426 m", "1 min en coche"),
+    SpotSample("Calle Corredera 8", "FIABLE", SpotFreshness.FRESH, "518 m", "1 min en coche"),
     SpotSample(
-        "Repsol Consistorio · Calle Cielos", "FIABLE", SpotReliabilityUiState.HIGH,
+        "Repsol Consistorio · Calle Cielos", "FIABLE", SpotFreshness.FRESH,
         "419 m", "1 min en coche", enRoute = "3 en camino",
         poiIcon = Icons.Rounded.LocalGasStation,
     ),
     SpotSample(
-        "Calle Porvera 30", "MEDIA", SpotReliabilityUiState.MEDIUM, "214 m", "1 min en coche",
+        "Calle Porvera 30", "MEDIA", SpotFreshness.RECENT, "214 m", "1 min en coche",
         unconfirmed = "SIN CONFIRMAR",
     ),
 )
@@ -276,11 +276,11 @@ private val SampleRows = listOf(
 private val WorstCaseLocales = listOf(
     "ES" to SampleRows.last(),
     "PL" to SpotSample(
-        "Calle Porvera 30", "ŚREDNIE", SpotReliabilityUiState.MEDIUM,
+        "Calle Porvera 30", "ŚREDNIE", SpotFreshness.RECENT,
         "214 m", "1 min samochodem", unconfirmed = "NIEPOTWIERDZONE",
     ),
     "RO" to SpotSample(
-        "Calle Porvera 30", "MEDIE", SpotReliabilityUiState.MEDIUM,
+        "Calle Porvera 30", "MEDIE", SpotFreshness.RECENT,
         "214 m", "1 min cu mașina", unconfirmed = "NECONFIRMAT",
     ),
 )

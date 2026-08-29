@@ -29,10 +29,6 @@
     <!-- ParkingPeekRow (hero card del coche seleccionado) — fallback. -->
     <string name="home_peek_parked_label">Aparcado</string>
     <!-- SpotPeekRow (hero card de plaza seleccionada) -->
-    <string name="home_peek_spot_expires">Caduca en %1$d min</string>
-    <string name="home_peek_spot_high">Plaza libre fiable</string>
-    <string name="home_peek_spot_medium">Plaza media</string>
-    <string name="home_peek_spot_low">Plaza baja</string>
     <string name="home_parking_release">Liberar plaza</string>
     <!-- CTA primario del parking seleccionado — irse ES la acción del loop comunitario. [UI-SHEET-001] -->
     <string name="home_parking_leave_release">Me voy</string>
@@ -88,9 +84,6 @@
     <string name="home_search_clear_cd">Limpiar búsqueda</string>
     <string name="pap_field_clear_cd">Limpiar campo</string>
     <!-- HomeSpotRow etiqueta de fiabilidad (badge en mayúsculas) -->
-    <string name="home_spot_reliability_high">Fiable</string>
-    <string name="home_spot_reliability_medium">Media</string>
-    <string name="home_spot_reliability_low">Baja</string>
 
     <!-- OnboardingScreen -->
     <string name="onboarding_page1_title">Bienvenido a Paparcar</string>
@@ -483,9 +476,6 @@
     <string name="vehicle_stats_spots_shared">plazas cedidas</string>
     <!-- SpotIndicators -->
     <string name="spot_indicator_en_route">%1$d en camino</string>
-    <string name="spot_indicator_ttl_expired">Expirado</string>
-    <string name="spot_indicator_ttl_minutes">%1$d min</string>
-    <string name="spot_indicator_ttl_under_minute">&lt;1 min</string>
     <!-- HomeScreen size filter chips -->
     <string name="home_size_filter_all">Todos</string>
 
@@ -585,7 +575,6 @@
     <string name="home_peek_spot_en_route">%1$d en camino</string>
     <string name="home_peek_spot_incompatible">Demasiado pequeña para %1$s</string>
     <string name="home_peek_spot_occupied">Ya ocupada</string>
-    <string name="home_peek_spot_reliability_label">Fiabilidad</string>
     <string name="home_peek_spot_size_unknown">Tamaño sin especificar</string>
     <string name="home_report_size_section">Tamaño de la plaza (opcional)</string>
     <string name="vehicle_registration_bt_cta">Vincular</string>
@@ -663,4 +652,15 @@
     <string name="vehicle_color_gold">Oro</string>
     <string name="vehicle_color_brown">Marrón</string>
     <string name="common_scroll_to_top_cd">Volver arriba</string>
+    <!-- Spot freshness / age [SPOT-FRESHNESS-IS-AGE-NOT-A-COUNTDOWN-001] -->
+    <string name="spot_indicator_age_now">Ahora mismo</string>
+    <string name="spot_indicator_age_minutes">Hace %1$d min</string>
+    <string name="spot_indicator_age_hours">Hace %1$d h</string>
+    <string name="home_spot_freshness_fresh">Probable</string>
+    <string name="home_spot_freshness_recent">Quizá</string>
+    <string name="home_spot_freshness_stale">Poco probable</string>
+    <string name="home_peek_spot_fresh">Plaza recién liberada</string>
+    <string name="home_peek_spot_recent">La plaza puede seguir libre</string>
+    <string name="home_peek_spot_stale">La plaza probablemente ya esté ocupada</string>
+    <string name="home_peek_spot_freshness_label">Frescura</string>
 </resources>

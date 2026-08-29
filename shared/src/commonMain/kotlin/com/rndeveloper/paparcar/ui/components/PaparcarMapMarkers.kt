@@ -62,7 +62,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rndeveloper.paparcar.domain.model.VehicleSize
-import com.rndeveloper.paparcar.presentation.util.SpotReliabilityUiState
+import com.rndeveloper.paparcar.domain.model.SpotFreshness
 import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
 import com.rndeveloper.paparcar.ui.icons.icon
 import com.rndeveloper.paparcar.ui.theme.PapBlueLight
@@ -504,10 +504,10 @@ private data class SpotTierVisual(
 // [isManual] is PROVENANCE, orthogonal to the freshness tier: it swaps the badge slot for the
 // person glyph (one badge slot — the eyewitness mark outranks the clock) and keeps the tier's
 // colour and TTL ring, which the old flat-blue MANUAL tier used to lose. [UI-COLOR-DOCTRINE-001 F5]
-private fun SpotReliabilityUiState.tierVisual(isManual: Boolean = false): SpotTierVisual = when (this) {
-    SpotReliabilityUiState.HIGH   -> SpotTierVisual(SpotPalette.Green, ringFraction = 1f,    clockBadge = false, personBadge = false)
-    SpotReliabilityUiState.MEDIUM -> SpotTierVisual(SpotPalette.Amber, ringFraction = 0.5f,  clockBadge = true,  personBadge = false)
-    SpotReliabilityUiState.LOW    -> SpotTierVisual(SpotPalette.Red,   ringFraction = 0.16f, clockBadge = true,  personBadge = false)
+private fun SpotFreshness.tierVisual(isManual: Boolean = false): SpotTierVisual = when (this) {
+    SpotFreshness.FRESH   -> SpotTierVisual(SpotPalette.Green, ringFraction = 1f,    clockBadge = false, personBadge = false)
+    SpotFreshness.RECENT -> SpotTierVisual(SpotPalette.Amber, ringFraction = 0.5f,  clockBadge = true,  personBadge = false)
+    SpotFreshness.STALE    -> SpotTierVisual(SpotPalette.Red,   ringFraction = 0.16f, clockBadge = true,  personBadge = false)
 }.let { if (isManual) it.copy(clockBadge = false, personBadge = true) else it }
 
 /**
@@ -515,7 +515,7 @@ private fun SpotReliabilityUiState.tierVisual(isManual: Boolean = false): SpotTi
  * encode the reliability tier so the on-map marker matches the peek modal.
  * [BOLT-MARKERS-001]
  *
- * @param reliability freshness tier driving colour/ring. Defaults to [SpotReliabilityUiState.HIGH].
+ * @param reliability freshness tier driving colour/ring. Defaults to [SpotFreshness.FRESH].
  * @param selected when true an extra white outer outline marks the selection
  *   (the live pulse ring is drawn separately by [PaparcarMapView]).
  * @param enRouteCount when > 0 the pin renders the blue "reserved · en route"
@@ -525,7 +525,7 @@ private fun SpotReliabilityUiState.tierVisual(isManual: Boolean = false): SpotTi
 @Composable
 fun FreeSpotMarker(
     modifier: Modifier = Modifier,
-    reliability: SpotReliabilityUiState = SpotReliabilityUiState.HIGH,
+    reliability: SpotFreshness = SpotFreshness.FRESH,
     selected: Boolean = false,
     enRouteCount: Int = 0,
     isManual: Boolean = false,
@@ -574,7 +574,7 @@ fun FreeSpotMarker(
  */
 @Composable
 fun SpotPuckIcon(
-    reliability: SpotReliabilityUiState,
+    reliability: SpotFreshness,
     modifier: Modifier = Modifier,
     enRouteCount: Int = 0,
     selected: Boolean = false,

@@ -20,7 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.LocalParking
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.model.ZoneIcon
-import com.rndeveloper.paparcar.presentation.util.SpotReliabilityUiState
+import com.rndeveloper.paparcar.domain.model.SpotFreshness
 import com.rndeveloper.paparcar.presentation.util.zoneIconFor
 import com.rndeveloper.paparcar.ui.theme.PaparcarTheme
 
@@ -61,11 +61,11 @@ private fun MarkersShowcase() {
 
         SectionLabel("FreeSpot — HIGH · MEDIUM · LOW · MANUAL · selected")
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Bottom) {
-            FreeSpotMarker(reliability = SpotReliabilityUiState.HIGH)
-            FreeSpotMarker(reliability = SpotReliabilityUiState.MEDIUM)
-            FreeSpotMarker(reliability = SpotReliabilityUiState.LOW)
+            FreeSpotMarker(reliability = SpotFreshness.FRESH)
+            FreeSpotMarker(reliability = SpotFreshness.RECENT)
+            FreeSpotMarker(reliability = SpotFreshness.STALE)
             FreeSpotMarker(isManual = true)
-            FreeSpotMarker(reliability = SpotReliabilityUiState.HIGH, selected = true)
+            FreeSpotMarker(reliability = SpotFreshness.FRESH, selected = true)
         }
 
         SectionLabel("FreeSpot · en route — 2 · 5 · 9+")

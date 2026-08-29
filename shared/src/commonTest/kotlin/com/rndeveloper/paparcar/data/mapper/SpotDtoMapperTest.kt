@@ -34,6 +34,30 @@ class SpotDtoMapperTest {
     }
 
     @Test
+    fun `toDomain_should_notDecayConfidenceWithAge_when_spotIsNearlyExpired`() {
+        // [SPOT-FRESHNESS-IS-AGE-NOT-A-COUNTDOWN-001] confidence used to be multiplied by a
+        // timeFactor that fell to zero at expiry, so one Float answered both "do people believe
+        // this report" and "how old is it". Age is SpotFreshness's job now; a spot one millisecond
+        // from the sweep still carries the community's full opinion of it.
+        val almostGone = buildDto(
+            confidence = 0.8f,
+            reportedAt = 1_000L,
+            expiresAt = 1_001L,
+        )
+
+        assertEquals(0.8f, almostGone.toDomain().confidence)
+    }
+
+    @Test
+    fun `toDomain_should_useVoteRatio_when_enoughSignalsExist`() {
+        // Three votes is the threshold at which the community outranks the stored value.
+        val voted = buildDto(confidence = 1f, acceptCount = 3, rejectCount = 0)
+
+        // Laplace-smoothed: (3 + 1) / (3 + 2) = 0.8
+        assertEquals(0.8f, voted.toDomain().confidence)
+    }
+
+    @Test
     fun `toDomain_should_defaultToAutoDetected_for_unknownType`() {
         val domain = buildDto(type = "INVALID_TYPE").toDomain()
 
@@ -139,12 +163,15 @@ class SpotDtoMapperTest {
         enRouteCount: Int = 0,
         expiresAt: Long = 0L,
         status: String = "CONFIRMED",
+        reportedAt: Long = 0L,
+        acceptCount: Int = 0,
+        rejectCount: Int = 0,
     ) = SpotDto(
         id = "spot-test",
         latitude = 40.416775,
         longitude = -3.703790,
         accuracy = 0f,
-        reportedAt = 0L,
+        reportedAt = reportedAt,
         reportedBy = "user-test",
         speed = 0f,
         type = type,
@@ -153,6 +180,8 @@ class SpotDtoMapperTest {
         enRouteCount = enRouteCount,
         expiresAt = expiresAt,
         status = status,
+        acceptCount = acceptCount,
+        rejectCount = rejectCount,
     )
 
     private fun buildSpot(

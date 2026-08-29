@@ -29,7 +29,7 @@ import com.rndeveloper.paparcar.domain.model.AddressAndPlace
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.displayName
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.SheetTokens
-import com.rndeveloper.paparcar.presentation.util.SpotReliabilityUiState
+import com.rndeveloper.paparcar.domain.model.SpotFreshness
 import com.rndeveloper.paparcar.presentation.util.distanceString
 import com.rndeveloper.paparcar.presentation.util.driveTimeString
 import com.rndeveloper.paparcar.presentation.util.walkTimeString
@@ -43,11 +43,10 @@ import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_address_unknown
 import paparcar.composeapp.generated.resources.location_approximate_near
 import paparcar.composeapp.generated.resources.home_peek_parking_approximate
-import paparcar.composeapp.generated.resources.home_peek_spot_expires
-import paparcar.composeapp.generated.resources.home_peek_spot_high
-import paparcar.composeapp.generated.resources.home_peek_spot_low
-import paparcar.composeapp.generated.resources.home_peek_spot_medium
-import paparcar.composeapp.generated.resources.home_peek_spot_reliability_label
+import paparcar.composeapp.generated.resources.home_peek_spot_fresh
+import paparcar.composeapp.generated.resources.home_peek_spot_stale
+import paparcar.composeapp.generated.resources.home_peek_spot_recent
+import paparcar.composeapp.generated.resources.home_peek_spot_freshness_label
 import paparcar.composeapp.generated.resources.home_vehicle_fallback_name
 import com.rndeveloper.paparcar.ui.theme.PapAlpha
 
@@ -59,7 +58,6 @@ import com.rndeveloper.paparcar.ui.theme.PapAlpha
 internal const val MS_PER_MINUTE = 60_000L
 private const val META_ICON_DP = 18
 private const val FIABILITY_SEG_HEIGHT_DP = 4
-private const val FIABILITY_EXPIRY_WARN_MIN = 5
 
 internal enum class TravelMode { WALKING, DRIVING }
 
@@ -142,31 +140,19 @@ internal fun DistanceRow(distanceM: Float?, mode: TravelMode, accentColor: Color
 }
 
 @Composable
-internal fun FiabilityIndicator(level: SpotReliabilityUiState, expiresInMin: Int?) {
-    val cs = MaterialTheme.colorScheme
-    val isExpiring = expiresInMin != null && expiresInMin < FIABILITY_EXPIRY_WARN_MIN
-
-    // Label row: section title on the left, TTL text on the right when available.
-    Row(
+internal fun FiabilityIndicator(level: SpotFreshness) {
+    // [SPOT-FRESHNESS-IS-AGE-NOT-A-COUNTDOWN-001] The right-hand "expires in N min" text is gone.
+    // It was a countdown to the sweep that deletes the document, presented as if it said something
+    // about the parking space — and it sat directly above a meter that had already been told the
+    // spot was stale. How old the offer is now reads once, in the header's subtitle, in words.
+    PapSectionHeader(
+        title = stringResource(Res.string.home_peek_spot_freshness_label),
         modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        PapSectionHeader(
-            title = stringResource(Res.string.home_peek_spot_reliability_label),
-            modifier = Modifier.weight(1f),
-        )
-        if (expiresInMin != null) {
-            Text(
-                text = stringResource(Res.string.home_peek_spot_expires, expiresInMin),
-                style = PaparcarType.current.label,
-                color = if (isExpiring) cs.secondary else cs.onSurface.copy(alpha = PapAlpha.subtitle),
-            )
-        }
-    }
+    )
     Spacer(Modifier.height(5.dp))
 
-    // Same canonical 5-segment meter as list/ficha, coloured by reliability tier
-    // (verde/ámbar/rojo/azul) — no longer always-green. [IDENTITY-ICONS-001 D]
+    // Same canonical 5-segment meter as list/ficha, coloured by freshness tier
+    // (verde/ámbar/rojo) — no longer always-green. [IDENTITY-ICONS-001 D]
     ReliabilityMeter(
         level = level,
         fillWidth = true,
@@ -200,12 +186,12 @@ internal data class SpotPeekPalette(
 )
 
 @Composable
-internal fun SpotReliabilityUiState.peekPalette(): SpotPeekPalette {
+internal fun SpotFreshness.peekPalette(): SpotPeekPalette {
     val sc = stateColors()
     val label = when (this) {
-        SpotReliabilityUiState.HIGH   -> stringResource(Res.string.home_peek_spot_high)
-        SpotReliabilityUiState.MEDIUM -> stringResource(Res.string.home_peek_spot_medium)
-        SpotReliabilityUiState.LOW    -> stringResource(Res.string.home_peek_spot_low)
+        SpotFreshness.FRESH  -> stringResource(Res.string.home_peek_spot_fresh)
+        SpotFreshness.RECENT -> stringResource(Res.string.home_peek_spot_recent)
+        SpotFreshness.STALE  -> stringResource(Res.string.home_peek_spot_stale)
     }
     return SpotPeekPalette(sc.bg, sc.on, label)
 }

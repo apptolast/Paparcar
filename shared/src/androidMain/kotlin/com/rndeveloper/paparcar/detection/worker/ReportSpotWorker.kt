@@ -63,7 +63,7 @@ class ReportSpotWorker(
         // [DET-HANDOFF-NOT-MANUAL-001 §B] A spot published on a DEDUCED departure lives minutes,
         // not hours: the short TTL is the floor under a retraction that can always fail.
         val provisional = inputData.getBoolean(KEY_PROVISIONAL, false)
-        val ttlMs = SpotTtlPolicy.ttlMsForType(spotType, provisional) // [AUDIT-ARCH-001 M13] shared with iOS
+        val ttlMs = SpotTtlPolicy.ttlMs(provisional) // [AUDIT-ARCH-001 M13] shared with iOS
 
         // [SPOT-OFFLINE-TTL-001] The TTL is anchored to the RELEASE time (enqueue), not to delivery.
         // A push that spent hours queued offline (dead network, OEM-frozen WorkManager — field

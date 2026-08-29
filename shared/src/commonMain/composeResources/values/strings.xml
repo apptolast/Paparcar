@@ -39,10 +39,6 @@
     <!-- ParkingPeekRow (selected vehicle hero card) — fallback when vehicle lookup fails. -->
     <string name="home_peek_parked_label">Parked</string>
     <!-- SpotPeekRow (selected spot hero card) -->
-    <string name="home_peek_spot_expires">Expires in %1$d min</string>
-    <string name="home_peek_spot_high">Free reliable spot</string>
-    <string name="home_peek_spot_medium">Medium spot</string>
-    <string name="home_peek_spot_low">Low spot</string>
     <string name="home_parking_release">Release spot</string>
     <!-- Selected-parking primary CTA — leaving IS the community loop action. [UI-SHEET-001] -->
     <string name="home_parking_leave_release">I’m leaving</string>
@@ -100,9 +96,6 @@
     <string name="home_search_clear_cd">Clear search</string>
     <string name="pap_field_clear_cd">Clear field</string>
     <!-- HomeSpotRow reliability tier label (uppercase badge in meta row) -->
-    <string name="home_spot_reliability_high">Reliable</string>
-    <string name="home_spot_reliability_medium">Medium</string>
-    <string name="home_spot_reliability_low">Low</string>
 
     <!-- OnboardingScreen -->
     <string name="onboarding_page1_title">Welcome to Paparcar</string>
@@ -509,9 +502,6 @@
     <string name="vehicle_stats_spots_shared">spots shared</string>
     <!-- SpotIndicators -->
     <string name="spot_indicator_en_route">%1$d en route</string>
-    <string name="spot_indicator_ttl_expired">Expired</string>
-    <string name="spot_indicator_ttl_minutes">%1$d min</string>
-    <string name="spot_indicator_ttl_under_minute">&lt;1 min</string>
     <!-- HomeScreen size filter chips -->
     <string name="home_size_filter_all">All</string>
 
@@ -573,7 +563,6 @@
     <string name="home_peek_spot_age_now">Posted just now</string>
     <string name="home_peek_spot_age_hour">Posted %1$d h ago</string>
     <string name="home_peek_spot_size_unknown">Size not specified</string>
-    <string name="home_peek_spot_reliability_label">Reliability</string>
     <string name="home_peek_parking_duration_min">Parked %1$d min ago</string>
     <string name="home_peek_parking_duration_now">Parked just now</string>
     <string name="home_peek_parking_approximate">Somewhere within %1$d m — we lost the end of the trip. Edit to place it exactly.</string>
@@ -691,4 +680,15 @@
     <string name="permissions_section_optional">Optional · reliability</string>
 
     <string name="common_scroll_to_top_cd">Scroll to top</string>
+    <!-- Spot freshness / age [SPOT-FRESHNESS-IS-AGE-NOT-A-COUNTDOWN-001] -->
+    <string name="spot_indicator_age_now">Just now</string>
+    <string name="spot_indicator_age_minutes">%1$d min ago</string>
+    <string name="spot_indicator_age_hours">%1$d h ago</string>
+    <string name="home_spot_freshness_fresh">Likely free</string>
+    <string name="home_spot_freshness_recent">Maybe free</string>
+    <string name="home_spot_freshness_stale">Unlikely</string>
+    <string name="home_peek_spot_fresh">Just-freed spot</string>
+    <string name="home_peek_spot_recent">Spot may still be free</string>
+    <string name="home_peek_spot_stale">Spot is probably taken</string>
+    <string name="home_peek_spot_freshness_label">Freshness</string>
 </resources>

@@ -72,9 +72,9 @@ import com.rndeveloper.paparcar.domain.model.Spot
 import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.domain.model.Zone
 import com.rndeveloper.paparcar.presentation.map.CameraTarget
-import com.rndeveloper.paparcar.presentation.util.SpotReliabilityUiState
+import com.rndeveloper.paparcar.domain.model.SpotFreshness
 import com.rndeveloper.paparcar.presentation.util.isManualReport
-import com.rndeveloper.paparcar.presentation.util.toReliabilityUiState
+import com.rndeveloper.paparcar.presentation.util.freshness
 import com.rndeveloper.paparcar.presentation.util.zoneIconFor
 import com.rndeveloper.paparcar.ui.theme.PapLiveMap
 import com.rndeveloper.paparcar.ui.theme.PapGreen
@@ -162,6 +162,8 @@ enum class MapInteractionMode { FULL, POSITION_ONLY, READ_ONLY }
 enum class MapStyleMode { AUTO, LIGHT, DARK }
 
 // ── Crosshair / pulse animations ─────────────────────────────────────────────
+/** Bucket width for the marker freshness clock — the ramp only turns on whole minutes. */
+private const val MS_PER_MINUTE_MARKERS   = 60_000L
 private const val CROSSHAIR_SCALE_HIDDEN  = 0f
 private const val CROSSHAIR_SCALE_AIMING  = 1.25f
 private const val CROSSHAIR_SCALE_NORMAL  = 1f
@@ -376,7 +378,7 @@ private const val MARKER_FREE_SPOT_PREFIX = "free_spot_"
 // bounded while still giving each count 1..9 its own pill. [BOLT-MARKERS-001]
 private const val EN_ROUTE_BUCKET_MAX = 10
 private fun freeSpotContentId(
-    tier: SpotReliabilityUiState,
+    tier: SpotFreshness,
     selected: Boolean,
     dim: Boolean,
     enRouteCount: Int = 0,
@@ -807,9 +809,17 @@ fun PaparcarMapView(
     // kmpmaps fetches the pre-dimmed bitmap from cache — that is the only
     // reliable way to refresh opacity, since kmpmaps caches the rasterised
     // bitmap by contentId. [MAP-MARKERS-DIM-002]
+    // Freshness is a function of the clock, so the marker set has to be able to go stale on its
+    // own — without this key a pin keeps the colour it had when the map was composed and drifts out
+    // of step with the same spot's row in the sheet. Bucketed to the minute: the ramp only ever
+    // changes on a whole-minute boundary, and the contentId cache makes an unchanged marker free.
+    // [SPOT-FRESHNESS-IS-AGE-NOT-A-COUNTDOWN-001]
+    val freshnessMinute = rememberSpotAgeClock() / MS_PER_MINUTE_MARKERS
+    val freshnessNowMs = freshnessMinute * MS_PER_MINUTE_MARKERS
+
     val markers = remember(
         clusters, parkingLocation, parkedVehicles, selectedSpotId, selectedSessionId, zones, dimSpots,
-        departure, arrival,
+        departure, arrival, freshnessMinute,
     ) {
         buildList {
             // Zone markers — added FIRST (lowest zIndex) so spot/parking markers
@@ -877,7 +887,7 @@ fun PaparcarMapView(
                     val spot = cluster.spots.first()
                     val selected = spot.id == selectedSpotId
                     val contentId = freeSpotContentId(
-                        tier = spot.toReliabilityUiState(),
+                        tier = spot.freshness(freshnessNowMs),
                         selected = selected,
                         dim = dimSpots,
                         enRouteCount = spot.enRouteCount,
@@ -1002,7 +1012,7 @@ fun PaparcarMapView(
             // Each (tier, manual, state) triple gets its own contentId so kmpmaps caches a distinct
             // bitmap and the on-map colour matches the peek modal badge. Manual provenance = the
             // person badge over the same freshness tier. [MAP-MARKERS-RELIABILITY-001] [F5]
-            SpotReliabilityUiState.entries.forEach { tier ->
+            SpotFreshness.entries.forEach { tier ->
                 listOf(false, true).forEach { manual ->
                     put(freeSpotContentId(tier, selected = false, dim = false, manual = manual)) { _ ->
                         FreeSpotWithOverlays(reliability = tier, selected = false, isManual = manual)
@@ -1019,13 +1029,13 @@ fun PaparcarMapView(
             // Blue override carrying the people count; tier is irrelevant here so the
             // key is keyed by bucket only. [BOLT-MARKERS-001]
             enRouteBuckets.forEach { bucket ->
-                put(freeSpotContentId(SpotReliabilityUiState.HIGH, selected = false, dim = false, enRouteCount = bucket)) { _ ->
+                put(freeSpotContentId(SpotFreshness.FRESH, selected = false, dim = false, enRouteCount = bucket)) { _ ->
                     FreeSpotWithOverlays(selected = false, enRouteCount = bucket)
                 }
-                put(freeSpotContentId(SpotReliabilityUiState.HIGH, selected = false, dim = true, enRouteCount = bucket)) { _ ->
+                put(freeSpotContentId(SpotFreshness.FRESH, selected = false, dim = true, enRouteCount = bucket)) { _ ->
                     DimWrapper { FreeSpotWithOverlays(selected = false, enRouteCount = bucket) }
                 }
-                put(freeSpotContentId(SpotReliabilityUiState.HIGH, selected = true, dim = false, enRouteCount = bucket)) { _ ->
+                put(freeSpotContentId(SpotFreshness.FRESH, selected = true, dim = false, enRouteCount = bucket)) { _ ->
                     FreeSpotWithOverlays(selected = true, enRouteCount = bucket)
                 }
             }
@@ -1843,7 +1853,7 @@ private fun rememberCameraAnimationState(
  */
 @Composable
 private fun FreeSpotWithOverlays(
-    reliability: SpotReliabilityUiState = SpotReliabilityUiState.HIGH,
+    reliability: SpotFreshness = SpotFreshness.FRESH,
     selected: Boolean = false,
     enRouteCount: Int = 0,
     isManual: Boolean = false,

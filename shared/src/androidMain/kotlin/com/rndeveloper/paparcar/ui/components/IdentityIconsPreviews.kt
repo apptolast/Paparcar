@@ -14,7 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.rndeveloper.paparcar.presentation.util.SpotReliabilityUiState
+import com.rndeveloper.paparcar.domain.model.SpotFreshness
 import com.rndeveloper.paparcar.ui.illustrations.EmptySpotsIllustration
 import com.rndeveloper.paparcar.ui.illustrations.LocationAlertIllustration
 import com.rndeveloper.paparcar.ui.illustrations.OnboardingHero
@@ -28,13 +28,13 @@ private fun IdentityIconsShowcase() {
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text("ReliabilityMeter", style = MaterialTheme.typography.titleSmall)
-            SpotReliabilityUiState.entries.forEach { level ->
+            SpotFreshness.entries.forEach { level ->
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     ReliabilityMeter(level)
                     Text(level.name, style = MaterialTheme.typography.labelMedium)
                 }
             }
-            ReliabilityMeter(SpotReliabilityUiState.HIGH, pct = 0.6f)
+            ReliabilityMeter(SpotFreshness.FRESH, pct = 0.6f)
 
             Text("Ilustraciones Nivel 3 (Canvas)", style = MaterialTheme.typography.titleSmall)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

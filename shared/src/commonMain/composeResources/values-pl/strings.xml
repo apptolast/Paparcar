@@ -342,9 +342,6 @@
     <string name="vehicle_card_detection_bt">BT</string>
     <!-- SpotIndicators -->
     <string name="spot_indicator_en_route">%1$d w drodze</string>
-    <string name="spot_indicator_ttl_expired">Wygasło</string>
-    <string name="spot_indicator_ttl_minutes">%1$d min</string>
-    <string name="spot_indicator_ttl_under_minute">&lt;1 min</string>
     <!-- HomeScreen size filter chips -->
     <string name="home_size_filter_all">Wszystkie</string>
 
@@ -399,10 +396,6 @@
     <string name="home_peek_parked_label">Zaparkowany</string>
 
     <!-- SpotPeekRow (karta wybranego miejsca) -->
-    <string name="home_peek_spot_expires">Wygasa za %1$d min</string>
-    <string name="home_peek_spot_high">Wolne wiarygodne miejsce</string>
-    <string name="home_peek_spot_medium">Średnie miejsce</string>
-    <string name="home_peek_spot_low">Niska wiarygodność</string>
 
     <!-- ReportPeekRow (zgłoś wolne miejsce) -->
     <string name="home_report_header_label">Zgłoś wolne miejsce</string>
@@ -422,9 +415,6 @@
     <string name="home_parking_action_move_location">Przenieś lokalizację</string>
 
     <!-- HomeSpotRow reliability tier label -->
-    <string name="home_spot_reliability_high">Wiarygodne</string>
-    <string name="home_spot_reliability_medium">Średnie</string>
-    <string name="home_spot_reliability_low">Niskie</string>
 
     <!-- AddingZonePeekRow (nowa stała strefa) -->
     <string name="home_zone_edit_header_label">Edytuj strefę</string>
@@ -546,7 +536,6 @@
     <string name="home_peek_spot_en_route">%1$d w drodze</string>
     <string name="home_peek_spot_incompatible">Za małe dla %1$s</string>
     <string name="home_peek_spot_occupied">Już zajęte</string>
-    <string name="home_peek_spot_reliability_label">Wiarygodność</string>
     <string name="home_peek_spot_size_unknown">Rozmiar nieokreślony</string>
     <string name="home_report_size_section">Rozmiar miejsca (opcjonalnie)</string>
     <string name="permissions_bg_guide_body">Na następnym ekranie:\n\n1. Dotknij «Lokalizacja»\n2. Wybierz «Zezwalaj zawsze»\n3. Naciśnij Wstecz, aby wrócić do Paparcar</string>
@@ -673,4 +662,15 @@
     <string name="vehicle_status_active_cd">Wykrywanie aktywne</string>
     <string name="vehicle_status_inactive_cd">Wykrywanie wyłączone</string>
     <string name="common_scroll_to_top_cd">Do góry</string>
+    <!-- Spot freshness / age [SPOT-FRESHNESS-IS-AGE-NOT-A-COUNTDOWN-001] -->
+    <string name="spot_indicator_age_now">Przed chwilą</string>
+    <string name="spot_indicator_age_minutes">%1$d min temu</string>
+    <string name="spot_indicator_age_hours">%1$d godz. temu</string>
+    <string name="home_spot_freshness_fresh">Prawdopodobne</string>
+    <string name="home_spot_freshness_recent">Może</string>
+    <string name="home_spot_freshness_stale">Mało prawdopodobne</string>
+    <string name="home_peek_spot_fresh">Miejsce właśnie zwolnione</string>
+    <string name="home_peek_spot_recent">Miejsce może być nadal wolne</string>
+    <string name="home_peek_spot_stale">Miejsce jest prawdopodobnie zajęte</string>
+    <string name="home_peek_spot_freshness_label">Aktualność</string>
 </resources>

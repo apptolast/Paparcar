@@ -338,9 +338,6 @@
     <string name="vehicle_card_detection_bt">BT</string>
     <!-- SpotIndicators -->
     <string name="spot_indicator_en_route">%1$d unterwegs</string>
-    <string name="spot_indicator_ttl_expired">Abgelaufen</string>
-    <string name="spot_indicator_ttl_minutes">%1$d Min.</string>
-    <string name="spot_indicator_ttl_under_minute">&lt;1 Min.</string>
     <!-- HomeScreen size filter chips -->
     <string name="home_size_filter_all">Alle</string>
 
@@ -395,10 +392,6 @@
     <string name="home_peek_parked_label">Geparkt</string>
 
     <!-- SpotPeekRow (Hero Card des ausgewählten Stellplatzes) -->
-    <string name="home_peek_spot_expires">Läuft in %1$d Min. ab</string>
-    <string name="home_peek_spot_high">Freier zuverlässiger Stellplatz</string>
-    <string name="home_peek_spot_medium">Mittlerer Stellplatz</string>
-    <string name="home_peek_spot_low">Niedriger Stellplatz</string>
 
     <!-- ReportPeekRow (freien Stellplatz melden) -->
     <string name="home_report_header_label">Freien Stellplatz melden</string>
@@ -418,9 +411,6 @@
     <string name="home_parking_action_move_location">Standort ändern</string>
 
     <!-- HomeSpotRow reliability tier label -->
-    <string name="home_spot_reliability_high">Zuverlässig</string>
-    <string name="home_spot_reliability_medium">Mittel</string>
-    <string name="home_spot_reliability_low">Niedrig</string>
 
     <!-- AddingZonePeekRow (neue habituelle Zone) -->
     <string name="home_zone_edit_header_label">Zone bearbeiten</string>
@@ -542,7 +532,6 @@
     <string name="home_peek_spot_en_route">%1$d unterwegs</string>
     <string name="home_peek_spot_incompatible">Zu klein für %1$s</string>
     <string name="home_peek_spot_occupied">Bereits belegt</string>
-    <string name="home_peek_spot_reliability_label">Zuverlässigkeit</string>
     <string name="home_peek_spot_size_unknown">Größe nicht angegeben</string>
     <string name="home_report_size_section">Platzgröße (optional)</string>
     <string name="permissions_bg_guide_body">Auf dem nächsten Bildschirm:\n\n1. Tippe auf «Standort»\n2. Wähle «Immer zulassen»\n3. Drücke Zurück, um zu Paparcar zurückzukehren</string>
@@ -667,4 +656,15 @@
     <string name="vehicle_status_active_cd">Erkennung aktiv</string>
     <string name="vehicle_status_inactive_cd">Erkennung aus</string>
     <string name="common_scroll_to_top_cd">Nach oben</string>
+    <!-- Spot freshness / age [SPOT-FRESHNESS-IS-AGE-NOT-A-COUNTDOWN-001] -->
+    <string name="spot_indicator_age_now">Gerade eben</string>
+    <string name="spot_indicator_age_minutes">vor %1$d Min.</string>
+    <string name="spot_indicator_age_hours">vor %1$d Std.</string>
+    <string name="home_spot_freshness_fresh">Wahrscheinlich</string>
+    <string name="home_spot_freshness_recent">Vielleicht</string>
+    <string name="home_spot_freshness_stale">Unwahrscheinlich</string>
+    <string name="home_peek_spot_fresh">Gerade frei gewordener Platz</string>
+    <string name="home_peek_spot_recent">Platz ist eventuell noch frei</string>
+    <string name="home_peek_spot_stale">Platz ist vermutlich besetzt</string>
+    <string name="home_peek_spot_freshness_label">Aktualität</string>
 </resources>

@@ -338,9 +338,6 @@
     <string name="vehicle_card_detection_bt">BT</string>
     <!-- SpotIndicators -->
     <string name="spot_indicator_en_route">%1$d în drum</string>
-    <string name="spot_indicator_ttl_expired">Expirat</string>
-    <string name="spot_indicator_ttl_minutes">%1$d min</string>
-    <string name="spot_indicator_ttl_under_minute">&lt;1 min</string>
     <!-- HomeScreen size filter chips -->
     <string name="home_size_filter_all">Toate</string>
 
@@ -395,10 +392,6 @@
     <string name="home_peek_parked_label">Parcat</string>
 
     <!-- SpotPeekRow (card loc selectat) -->
-    <string name="home_peek_spot_expires">Expiră în %1$d min</string>
-    <string name="home_peek_spot_high">Loc liber de încredere</string>
-    <string name="home_peek_spot_medium">Loc cu fiabilitate medie</string>
-    <string name="home_peek_spot_low">Loc cu fiabilitate scăzută</string>
 
     <!-- ReportPeekRow (raportare loc liber) -->
     <string name="home_report_header_label">Raportează loc liber</string>
@@ -418,9 +411,6 @@
     <string name="home_parking_action_move_location">Mută locația</string>
 
     <!-- HomeSpotRow reliability tier label -->
-    <string name="home_spot_reliability_high">De încredere</string>
-    <string name="home_spot_reliability_medium">Medie</string>
-    <string name="home_spot_reliability_low">Scăzută</string>
 
     <!-- AddingZonePeekRow (zonă obișnuită nouă) -->
     <string name="home_zone_edit_header_label">Editare zonă</string>
@@ -542,7 +532,6 @@
     <string name="home_peek_spot_en_route">%1$d în drum</string>
     <string name="home_peek_spot_incompatible">Prea mic pentru %1$s</string>
     <string name="home_peek_spot_occupied">Deja ocupat</string>
-    <string name="home_peek_spot_reliability_label">Fiabilitate</string>
     <string name="home_peek_spot_size_unknown">Dimensiune nespecificată</string>
     <string name="home_report_size_section">Dimensiunea locului (opțional)</string>
 
@@ -672,4 +661,15 @@
     <string name="vehicle_status_active_cd">Detectare activă</string>
     <string name="vehicle_status_inactive_cd">Detectare oprită</string>
     <string name="common_scroll_to_top_cd">Înapoi sus</string>
+    <!-- Spot freshness / age [SPOT-FRESHNESS-IS-AGE-NOT-A-COUNTDOWN-001] -->
+    <string name="spot_indicator_age_now">Chiar acum</string>
+    <string name="spot_indicator_age_minutes">Acum %1$d min</string>
+    <string name="spot_indicator_age_hours">Acum %1$d h</string>
+    <string name="home_spot_freshness_fresh">Probabil</string>
+    <string name="home_spot_freshness_recent">Poate</string>
+    <string name="home_spot_freshness_stale">Puțin probabil</string>
+    <string name="home_peek_spot_fresh">Loc tocmai eliberat</string>
+    <string name="home_peek_spot_recent">Locul poate fi încă liber</string>
+    <string name="home_peek_spot_stale">Locul este probabil ocupat</string>
+    <string name="home_peek_spot_freshness_label">Prospețime</string>
 </resources>

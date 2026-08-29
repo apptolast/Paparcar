@@ -18,7 +18,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.rndeveloper.paparcar.presentation.util.SpotReliabilityUiState
+import com.rndeveloper.paparcar.domain.model.SpotFreshness
 import com.rndeveloper.paparcar.ui.theme.PapMotion
 import com.rndeveloper.paparcar.ui.theme.stateColors
 import kotlin.math.roundToInt
@@ -27,19 +27,19 @@ import kotlin.math.roundToInt
  * Componente ÚNICO de fiabilidad — medidor de [SEGMENT_COUNT] segmentos.
  *
  * Sustituye las 3 representaciones dispersas (texto suelto / barra / escudo %) por una sola
- * escala, con los **mismos colores de estado** ([SpotReliabilityUiState.stateColors]) que usan
+ * escala, con los **mismos colores de estado** ([SpotFreshness.stateColors]) que usan
  * marcadores y badges, para que mapa, lista y ficha lean igual. Ver regla de iconos en CLAUDE.md.
  *
  * Segmentos rellenos:
- *  - [SpotReliabilityUiState.HIGH]   → 5 (verde — incluye reportes manuales: testigo = confianza 1.0)
- *  - [SpotReliabilityUiState.MEDIUM] → 3 (ámbar)
- *  - [SpotReliabilityUiState.LOW]    → 1 (rojo)
+ *  - [SpotFreshness.FRESH]   → 5 (verde — incluye reportes manuales: testigo = confianza 1.0)
+ *  - [SpotFreshness.RECENT] → 3 (ámbar)
+ *  - [SpotFreshness.STALE]    → 1 (rojo)
  *
  * @param pct Si se aporta (0..1), afina el nº de segmentos rellenos en vez del default por nivel.
  */
 @Composable
 fun ReliabilityMeter(
-    level: SpotReliabilityUiState,
+    level: SpotFreshness,
     modifier: Modifier = Modifier,
     pct: Float? = null,
     barWidth: Dp = DEFAULT_BAR_WIDTH,
@@ -84,12 +84,12 @@ fun ReliabilityMeter(
     }
 }
 
-private fun filledSegments(level: SpotReliabilityUiState, pct: Float?): Int = pct
+private fun filledSegments(level: SpotFreshness, pct: Float?): Int = pct
     ?.let { (it * SEGMENT_COUNT).roundToInt().coerceIn(1, SEGMENT_COUNT) }
     ?: when (level) {
-        SpotReliabilityUiState.HIGH   -> HIGH_SEGMENTS
-        SpotReliabilityUiState.MEDIUM -> MEDIUM_SEGMENTS
-        SpotReliabilityUiState.LOW    -> LOW_SEGMENTS
+        SpotFreshness.FRESH   -> HIGH_SEGMENTS
+        SpotFreshness.RECENT -> MEDIUM_SEGMENTS
+        SpotFreshness.STALE    -> LOW_SEGMENTS
     }
 
 private const val SEGMENT_COUNT = 5

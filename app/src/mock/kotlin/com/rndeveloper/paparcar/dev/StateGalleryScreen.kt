@@ -90,7 +90,7 @@ import com.apptolast.customlogin.presentation.slots.defaultslots.DefaultDivider
 import com.rndeveloper.paparcar.di.paparcarLoginConfig
 import com.rndeveloper.paparcar.di.paparcarSocialProviders
 import com.rndeveloper.paparcar.domain.model.ZoneIcon
-import com.rndeveloper.paparcar.presentation.util.SpotReliabilityUiState
+import com.rndeveloper.paparcar.domain.model.SpotFreshness
 import com.rndeveloper.paparcar.presentation.util.zoneIconFor
 import com.rndeveloper.paparcar.ui.auth.paparcarAuthSlots
 import com.rndeveloper.paparcar.ui.components.ConnectivityBanner
@@ -310,11 +310,11 @@ private fun markersShowcase() {
         }
         MarkerSectionLabel("FreeSpot — HIGH · MEDIUM · LOW · MANUAL · seleccionado")
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Bottom) {
-            FreeSpotMarker(reliability = SpotReliabilityUiState.HIGH)
-            FreeSpotMarker(reliability = SpotReliabilityUiState.MEDIUM)
-            FreeSpotMarker(reliability = SpotReliabilityUiState.LOW)
+            FreeSpotMarker(reliability = SpotFreshness.FRESH)
+            FreeSpotMarker(reliability = SpotFreshness.RECENT)
+            FreeSpotMarker(reliability = SpotFreshness.STALE)
             FreeSpotMarker(isManual = true)
-            FreeSpotMarker(reliability = SpotReliabilityUiState.HIGH, selected = true)
+            FreeSpotMarker(reliability = SpotFreshness.FRESH, selected = true)
         }
         MarkerSectionLabel("FreeSpot · en route — 2 · 5 · 9+ · seleccionado")
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Bottom) {
@@ -630,6 +630,36 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                         nearbySpots = listOf(FakeData.nearbySpots.first()),
                         userGpsPoint = sampleGps,
                         selection = HomeSelection.Spot(FakeData.nearbySpots.first().id),
+                    ),
+                )
+            },
+            // [SPOT-FRESHNESS-IS-AGE-NOT-A-COUNTDOWN-001] The whole ramp in three variants, without
+            // waiting half an hour for a spot to cross a threshold. Every surface of the peek —
+            // eyebrow, puck, meta accents, meter — has to agree with the age on the subtitle.
+            Variant("PapSheet · spot RECIÉN LIBERADO (verde, 4 min)", Placement.Surface) {
+                peek(
+                    HomeState(
+                        nearbySpots = FakeData.nearbySpots,
+                        userGpsPoint = sampleGps,
+                        selection = HomeSelection.Spot("sp_1"),
+                    ),
+                )
+            },
+            Variant("PapSheet · spot RECIENTE (ámbar, 15 min)", Placement.Surface) {
+                peek(
+                    HomeState(
+                        nearbySpots = FakeData.nearbySpots,
+                        userGpsPoint = sampleGps,
+                        selection = HomeSelection.Spot("sp_2"),
+                    ),
+                )
+            },
+            Variant("PapSheet · spot VIEJO (rojo, 40 min — sigue en el mapa)", Placement.Surface) {
+                peek(
+                    HomeState(
+                        nearbySpots = FakeData.nearbySpots,
+                        userGpsPoint = sampleGps,
+                        selection = HomeSelection.Spot("sp_3"),
                     ),
                 )
             },

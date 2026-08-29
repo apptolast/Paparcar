@@ -56,7 +56,7 @@ import com.rndeveloper.paparcar.ui.components.PapShimmerBox
 import com.rndeveloper.paparcar.ui.components.PapStepperSlot
 import com.rndeveloper.paparcar.ui.components.SpotPuckIcon
 import com.rndeveloper.paparcar.ui.components.VehicleGlyph
-import com.rndeveloper.paparcar.presentation.util.SpotReliabilityUiState
+import com.rndeveloper.paparcar.domain.model.SpotFreshness
 import com.rndeveloper.paparcar.ui.theme.PapBorders
 import com.rndeveloper.paparcar.ui.theme.PapShapes
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
@@ -317,7 +317,7 @@ internal sealed interface PapSheetLead {
      *  spot list row (colour + TTL ring + badge encode the tier), never a flat "P".
      *  [HOME-PUCK-001] */
     data class CommunitySpot(
-        val reliability: SpotReliabilityUiState,
+        val reliability: SpotFreshness,
         val enRouteCount: Int = 0,
         /** Eyewitness report — person badge over the freshness tier. [UI-COLOR-DOCTRINE-001 F5] */
         val isManual: Boolean = false,

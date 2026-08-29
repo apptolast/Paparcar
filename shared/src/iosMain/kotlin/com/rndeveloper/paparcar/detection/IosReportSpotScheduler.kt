@@ -59,7 +59,7 @@ class IosReportSpotScheduler(
     ) {
         val nowMs = Clock.System.now().toEpochMilliseconds()
         // [DET-HANDOFF-NOT-MANUAL-001 §B] A deduced departure buys a short lifetime, same as Android.
-        val expiresAt = nowMs + SpotTtlPolicy.ttlMsForType(spotType, provisional) // [AUDIT-ARCH-001 M13]
+        val expiresAt = nowMs + SpotTtlPolicy.ttlMs(provisional) // [AUDIT-ARCH-001 M13]
         val spot = Spot(
             id = spotId,
             location = GpsPoint(

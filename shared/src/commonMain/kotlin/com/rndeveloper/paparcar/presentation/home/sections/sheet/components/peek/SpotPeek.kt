@@ -31,7 +31,7 @@ import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapS
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.SpotFitRow
 import com.rndeveloper.paparcar.presentation.util.distanceMeters
 import com.rndeveloper.paparcar.presentation.util.isManualReport
-import com.rndeveloper.paparcar.presentation.util.toReliabilityUiState
+import com.rndeveloper.paparcar.presentation.util.freshness
 import com.rndeveloper.paparcar.ui.components.PapFooterButton
 import com.rndeveloper.paparcar.ui.components.PapFooterButtonStyle
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
@@ -70,8 +70,11 @@ internal fun SpotPeek(
     onIntent: (HomeIntent) -> Unit,
     onAction: (HomeSheetAction) -> Unit,
 ) {
-    val reliabilityLevel = spot.toReliabilityUiState()
-    val palette = reliabilityLevel.peekPalette()
+    // Live clock first: the freshness level is derived from it, so everything on this peek — puck,
+    // eyebrow, meta accents, meter — moves together. [SPOT-FRESHNESS-IS-AGE-NOT-A-COUNTDOWN-001]
+    val nowMs = rememberNowMinuteTick()
+    val freshnessLevel = spot.freshness(nowMs)
+    val palette = freshnessLevel.peekPalette()
     // [DET-HANDOFF-NOT-MANUAL-001 §B.3] The spot was withdrawn while the user had it open. The
     // marker is already gone from the map; this peek is the only place left that can say WHY, so
     // it drops the whole community loop (directions, "still there?", "it's gone") — every one of
@@ -88,10 +91,6 @@ internal fun SpotPeek(
         addressLine = spot.address?.displayLine,
         fallback = stringResource(Res.string.location_fallback_spot),
     )
-    // Live clock: re-reads on every whole-minute boundary so the TTL and age labels count down
-    // on screen instead of freezing at the value captured on first composition. [SPOT-TTL-LIVE-001]
-    val nowMs = rememberNowMinuteTick()
-    val ttlMinutes = remainingMinutes(spot.expiresAt, nowMs)
     val spotAgeMin = ageMinutes(spot.location.timestamp, nowMs)
     val ageText = spotAgeMin?.let { minutes ->
         when {
@@ -105,14 +104,14 @@ internal fun SpotPeek(
 
     PapSheet(
         lead = PapSheetLead.CommunitySpot(
-            reliability = reliabilityLevel,
+            reliability = freshnessLevel,
             isManual = spot.isManualReport,
             enRouteCount = spot.enRouteCount,
         ),
         eyebrow = if (isRetracted) stringResource(Res.string.home_spot_retracted_eyebrow) else palette.label,
-        // Reliability tint also rides the eyebrow; the lead puck itself now carries the
+        // Freshness tint also rides the eyebrow; the lead puck itself now carries the
         // tier colour/ring, matching the map marker and list row. [HOME-PUCK-001]
-        // A withdrawn spot has no reliability left to tint — the eyebrow states it in ink.
+        // A withdrawn spot has no freshness left to tint — the eyebrow states it in ink.
         // [UI-COLOR-DOCTRINE-001]
         eyebrowColor = if (isRetracted) MaterialTheme.colorScheme.onSurfaceVariant else palette.badgeBg,
         title = title,
@@ -148,7 +147,7 @@ internal fun SpotPeek(
             when {
                 isRetracted -> SpotNote(stringResource(Res.string.home_spot_retracted_note))
                 else -> {
-                    FiabilityIndicator(level = reliabilityLevel, expiresInMin = ttlMinutes)
+                    FiabilityIndicator(level = freshnessLevel)
                     // [DET-HANDOFF-NOT-MANUAL-001 §B.3] Unconfirmed spots keep the full community
                     // loop — they are real offers — but they say what they are, and the note points
                     // at the two buttons right below, which are how an unconfirmed spot becomes a
@@ -245,10 +244,4 @@ private fun ageMinutes(timestampMs: Long, nowMs: Long): Int? {
     // 0 is a real age — it renders as "posted just now", the freshest (most valuable) state.
     // null is reserved for invalid timestamps. [UI-SPOT-CLOCKS-NEVER-READ-ZERO-001]
     return (ageMs / MS_PER_MINUTE).toInt()
-}
-
-private fun remainingMinutes(expiresAtMs: Long, nowMs: Long): Int? {
-    if (expiresAtMs <= 0L) return null
-    val remaining = ((expiresAtMs - nowMs) / MS_PER_MINUTE).toInt()
-    return if (remaining > 0) remaining else null
 }

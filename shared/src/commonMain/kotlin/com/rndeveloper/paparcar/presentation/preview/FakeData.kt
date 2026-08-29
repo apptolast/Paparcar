@@ -279,8 +279,10 @@ object FakeData {
             enRouteCount = 0,
             sizeCategory = VehicleSize.MEDIUM_SUV,
         ),
-        // Eyewitness manual report — exercises the person-badge puck (freshness colour + TTL ring
-        // + person glyph, no colour of its own). [UI-COLOR-DOCTRINE-001 F5]
+        // Eyewitness manual report — exercises the person-badge puck (freshness colour + ring +
+        // person glyph, no colour of its own). [UI-COLOR-DOCTRINE-001 F5] At 2 minutes it is FRESH
+        // exactly like the auto-detected sp_1: provenance is a glyph, never a different ramp.
+        // [SPOT-FRESHNESS-IS-AGE-NOT-A-COUNTDOWN-001]
         Spot(
             id = "sp_5_manual",
             location = gps(agoMs = 2 * 60_000L, lat = 40.4185, lon = -3.7075),
