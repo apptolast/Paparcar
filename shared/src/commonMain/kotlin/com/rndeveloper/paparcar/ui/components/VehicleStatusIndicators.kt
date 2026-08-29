@@ -96,7 +96,9 @@ fun VehicleWatchBadge(
         contentColor = accent,
         modifier = modifier,
         icon = icon,
-        // Repeating data token that competes horizontally with the name → DATA role (Barlow).
+        // Status token that competes horizontally with the name → the `badge` role. It used to be
+        // read as CIFRA (condensed) for that reason; taxonomy is something you READ, so it moved to
+        // LECTURA and the colour carries the tier. [UI-TYPE-TWO-VOICES-ONE-ROW-001]
         textStyle = PaparcarType.current.badge,
     )
 }

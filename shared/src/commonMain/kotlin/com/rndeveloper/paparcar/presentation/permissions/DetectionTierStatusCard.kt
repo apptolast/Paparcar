@@ -65,7 +65,10 @@ internal fun DetectionTierStatusCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = stringResource(Res.string.permissions_tier_status_eyebrow).uppercase(),
-                        style = PaparcarType.current.label,
+                        // Una linea en caps que cualifica el titulo de justo debajo es [eyebrow],
+                        // no [label]: el rol existe para esto y lo escribia a mano con otro
+                        // tracking. [UI-TYPE-SYSTEM-HYGIENE-001]
+                        style = PaparcarType.current.eyebrow,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Spacer(Modifier.height(PaparcarSpacing.xs))

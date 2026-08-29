@@ -310,8 +310,8 @@ private fun SetActiveRow(isLoading: Boolean, onClick: () -> Unit) {
             }
             Text(
                 text = stringResource(Res.string.vehicle_set_active_action),
-                // An action row is a button → cta (Inter), the app's button convention (PapButton);
-                // not rowTitle (Outfit), which is for identity titles. [CARD-ONE-BADGE-001]
+                // An action row is a button → cta, the app's button convention (PapButton);
+                // not rowName (MARCA), which is for identity titles. [CARD-ONE-BADGE-001]
                 style = PaparcarType.current.cta,
                 color = PapColor.actionText,
             )
@@ -331,11 +331,10 @@ private const val STAT_CELL_H_PAD = 8
 private const val STAT_DIVIDER_V_PAD = 13
 private const val STAT_ICON_DP = 17
 private const val STAT_ICON_GAP = 5
-// Cap height of Barlow Condensed Bold as measured in the shipped TTF (OS/2 capHeight 700 / upm
-// 1000) — the digit band the stat icon centres on. A font metric, not a tuned pad.
-// La altura de mayuscula de la voz Cifra vive en PapFontSet, no aqui: es un dato de la FUENTE, y
-// cablearla en esta pantalla hacia que el icono se despegase de los digitos al cambiar de familia
-// (Barlow 0.700 vs Jakarta 0.745). [UI-STAT-ICON-CENTERS-ON-DIGITS-001]
+// La altura de mayuscula de la voz CIFRA vivio aqui como constante (0.700, el cap de la condensada
+// de entonces) hasta que cambiar de familia despego el icono de los digitos: era un dato de la
+// FUENTE, no de esta pantalla. Ahora se lee de PapFontSet (hoy 0.745).
+// [UI-STAT-ICON-CENTERS-ON-DIGITS-001]
 private const val STAT_LABEL_GAP = 5
 private const val SET_ACTIVE_PAD = 13
 private const val SET_ACTIVE_GAP = 9

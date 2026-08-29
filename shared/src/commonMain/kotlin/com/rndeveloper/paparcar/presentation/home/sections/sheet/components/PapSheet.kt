@@ -40,7 +40,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -389,10 +388,18 @@ private fun PapSheetLeadTile(lead: PapSheetLead) {
                 // corrección sale de las métricas de la familia, así que sigue valiendo si la
                 // familia cambia. [UI-SHEET-001] [UI-TYPE-FAMILY-CANDIDATES-001]
                 val type = PaparcarType.current
-                val opticalLift = PapFonts.current.figureOpticalLiftSp(
-                    figureSp = type.counter.fontSize.value,
-                    unitSp = type.counterUnit.fontSize.value,
-                ).dp
+                // El lift sale en SP porque lo dictan las metricas de la letra, y se aplica en DP
+                // porque es un desplazamiento de layout: convertirlo con la densidad es lo que hace
+                // que siga valiendo cuando el usuario agranda el tipo del sistema. Tomarlo como dp
+                // sin convertir coincide solo con fontScale = 1.0; con la letra grande el hueco
+                // muerto crece y la correccion no, asi que el par volvia a hundirse — el mismo
+                // sintoma que [UI-SHEET-001] habia arreglado. [UI-TYPE-SYSTEM-HYGIENE-001]
+                val opticalLift = with(LocalDensity.current) {
+                    PapFonts.current.figureOpticalLiftSp(
+                        figureSp = type.counter.fontSize.value,
+                        unitSp = type.counterUnit.fontSize.value,
+                    ).sp.toDp()
+                }
                 Column(
                     modifier = Modifier.offset(y = -opticalLift),
                     horizontalAlignment = Alignment.CenterHorizontally,

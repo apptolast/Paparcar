@@ -18,10 +18,17 @@ import com.rndeveloper.paparcar.ui.theme.PaparcarType
  * everywhere a vertical section starts (TU COCHE, PLAZAS LIBRES, ACTIVIDAD
  * SEMANAL, ZONAS HABITUALES, etc.).
  *
- * Recipe: uppercase + `labelMedium` + ExtraBold + 1sp tracking + muted tint.
+ * Recipe: uppercase + the [PaparcarType.sectionHeader] role + a muted tint.
  * Anchored on the Vehicle/History screen's pattern (the one the user
  * explicitly liked) and demoted to a neutral colour by default so it works
  * in both structural and emphasised contexts.
+ *
+ * The `.uppercase()` and the tint live HERE, and the role owns family, size and
+ * weight — which is what makes `sectionHeader` / `subsectionHeader` roles that
+ * never leave this file. (This docstring used to spell the recipe out as
+ * "labelMedium + ExtraBold + 1sp tracking": wording from before the role
+ * system, and by then it also described the wrong scale.)
+ * [UI-TYPE-SYSTEM-HYGIENE-001]
  */
 @Composable
 fun PapSectionHeader(

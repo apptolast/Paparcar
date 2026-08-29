@@ -24,7 +24,6 @@ import com.rndeveloper.paparcar.presentation.home.VehicleCard
 import com.rndeveloper.paparcar.presentation.home.toBrowseListSlice
 import com.rndeveloper.paparcar.presentation.home.toPeekSlice
 import com.rndeveloper.paparcar.presentation.preview.FakeData
-import com.rndeveloper.paparcar.ui.components.PaparcarBottomActionBar
 import com.rndeveloper.paparcar.ui.components.PapSectionHeader
 import com.rndeveloper.paparcar.ui.theme.PaparcarTheme
 import kotlin.time.Clock
@@ -80,8 +79,7 @@ internal fun fakeSpotsVariedFreshness() = listOf(
 //  Bottom sheet con lista vertical de HomeSpotRow. El peek muestra contexto de
 //  cámara + badge de spots libres. Diseño implementado en producción.
 //  Componentes: HomeSheetContent · HomeSpotRow · HomeVehicleCard ·
-//               HomePeekHandle · PapSectionHeader ·
-//               HomeEmptySpots · PaparcarBottomActionBar
+//               HomePeekHandle · PapSectionHeader · HomeEmptySpots
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // ─── A — HomePeekHandle ───────────────────────────────────────────────────────
@@ -459,25 +457,6 @@ private fun HomeEmptySpotsDarkPreview() {
 @Composable
 private fun HomeEmptySpotsLightPreview() {
     PaparcarTheme(darkTheme = false) { Column(Modifier.padding(16.dp)) { HomeEmptySpots(onReport = {}) } }
-}
-
-// ─── A — PaparcarBottomActionBar ──────────────────────────────────────────────
-
-@Preview(name = "A — PaparcarBottomActionBar: spot seleccionado (oscuro)", showBackground = true,
-    uiMode = Configuration.UI_MODE_NIGHT_YES)
-@Composable
-private fun PaparcarBottomActionBarSpotDarkPreview() {
-    PaparcarTheme(darkTheme = true) {
-        PaparcarBottomActionBar(label = "⛽ Repsol Av. Castellana  ·  Av. de la Castellana 110", onClick = {})
-    }
-}
-
-@Preview(name = "A — PaparcarBottomActionBar: parking seleccionado (claro)", showBackground = true)
-@Composable
-private fun PaparcarBottomActionBarParkingLightPreview() {
-    PaparcarTheme(darkTheme = false) {
-        PaparcarBottomActionBar(label = "Tu coche  ·  Calle Gran Vía 32", onClick = {})
-    }
 }
 
 // ─── A — HomeSheetContent: pantallas completas ────────────────────────────────

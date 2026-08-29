@@ -427,7 +427,7 @@ private fun ColumnScope.PermissionsFooter(
         ) {
             Text(
                 text = stringResource(Res.string.permissions_continue_with_core),
-                // TextButton text → cta (Inter), the app's button convention. [TYPO-AUDIT-001]
+                // TextButton text → cta, the app's button convention. [TYPO-AUDIT-001]
                 style = PaparcarType.current.cta,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

@@ -93,7 +93,7 @@ internal fun PeekMetaRow(icon: ImageVector, text: String, tint: Color, maxLines:
             text = text,
             // These meta rows ARE the card's primary info, standalone with the full width — the
             // DATA-role precondition (token competing for horizontal space) doesn't hold, so they
-            // read in Inter, not condensed. [PEEK-META-INTER-001]
+            // read as LECTURA, not as CIFRA. [PEEK-META-INTER-001]
             style = PaparcarType.current.rowTitle,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = SheetTokens.META_VALUE_ALPHA),
             maxLines = maxLines,

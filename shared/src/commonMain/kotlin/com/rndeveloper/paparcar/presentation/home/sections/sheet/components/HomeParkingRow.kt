@@ -167,8 +167,8 @@ internal fun HomeVehicleChip(
                         )
                         Text(
                             text = parkedAddressLine(session),
-                            // An address is a phrase you read → Inter (caption), same family as the
-                            // single-vehicle card's footer. Barlow (metadata) is for repeating data
+                            // An address is a phrase you read → LECTURA (caption), same voice as the
+                            // single-vehicle card's footer. CIFRA is for repeating data
                             // tokens, not prose — keeps 1-vehicle and 2+-vehicle Home consistent.
                             // [CARD-ONE-BADGE-001]
                             style = PaparcarType.current.caption,
@@ -283,7 +283,7 @@ internal fun HomeVehicleCard(
                             maxLines = 1,
                         )
                         session != null -> {
-                            // The wide card has room, so the address reads in Inter (body) for
+                            // The wide card has room, so the address reads as LECTURA (rowTitle) for
                             // legibility — condensed is reserved for the tight compact chip. [UI-METRICS-POLISH-001]
                             Text(
                                 text = parkedTitle(session),
@@ -294,8 +294,8 @@ internal fun HomeVehicleCard(
                             )
                             Text(
                                 text = parkedMeta(session, userLocation),
-                                // Secondary subline under an Inter title — same family as its title
-                                // so the selected-car block doesn't mix faces. [PEEK-META-INTER-001]
+                                // Secondary subline under a LECTURA title — same voice as its title
+                                // so the selected-car block doesn't mix voices. [PEEK-META-INTER-001]
                                 style = PaparcarType.current.caption,
                                 color = cs.onSurfaceVariant,
                                 maxLines = 1,

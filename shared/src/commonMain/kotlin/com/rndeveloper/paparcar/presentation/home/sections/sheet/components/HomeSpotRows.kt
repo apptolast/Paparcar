@@ -181,7 +181,7 @@ private fun SpotRowContent(
                 }
                 Text(
                     text = displayText,
-                    // Spot/place name is the row's identity → Outfit (rowName), like the vehicle
+                    // Spot/place name is the row's identity → MARCA (rowName), like the vehicle
                     // name. [TYPO-AUDIT-001] [CARD-ONE-BADGE-001]
                     style = PaparcarType.current.rowName,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -191,8 +191,8 @@ private fun SpotRowContent(
                 )
             }
             Spacer(Modifier.height(2.dp))
-            // Meta line — reliability tier · drive time · en-route count. All Inter: it shares a
-            // line box with taxonomy you READ, one line under a name in Outfit. Barlow here was the
+            // Meta line — reliability tier · drive time · en-route count. All LECTURA: it shares a
+            // line box with taxonomy you READ, one line under a name in MARCA. CIFRA here was the
             // visible clash the user reported. [UI-TYPE-TWO-VOICES-ONE-ROW-001]
             val type = PaparcarType.current
             // La meta se queda con lo que hace falta para DECIDIR desde la lista. Lo que describe la

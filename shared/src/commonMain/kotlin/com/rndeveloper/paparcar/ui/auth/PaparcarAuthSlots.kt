@@ -185,7 +185,7 @@ private fun PaparcarAuthHeader() {
             Column(horizontalAlignment = Alignment.Start) {
                 Text(
                     text = stringResource(Res.string.auth_header_app_name),
-                    // App/brand name = a title → Outfit (screenTitle) via PaparcarType, not the raw
+                    // App/brand name = a title → MARCA (screenTitle) via PaparcarType, not the raw
                     // Material scale. [TYPO-AUDIT-001]
                     style = PaparcarType.current.screenTitle,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -196,7 +196,7 @@ private fun PaparcarAuthHeader() {
 
                 Text(
                     text = stringResource(Res.string.auth_header_tagline),
-                    // Tagline = prose → Inter (body) via PaparcarType. [TYPO-AUDIT-001]
+                    // Tagline = prose → LECTURA (body) via PaparcarType. [TYPO-AUDIT-001]
                     style = PaparcarType.current.body,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Start,
@@ -453,7 +453,7 @@ private fun CompactForgotPasswordLink(onClick: () -> Unit) {
         ) {
             Text(
                 text = stringResource(Res.string.auth_forgot_password),
-                // Small secondary link = label (Inter, == labelMedium) via PaparcarType. [TYPO-AUDIT-001]
+                // Small secondary link = the `label` role via PaparcarType. [TYPO-AUDIT-001]
                 style = PaparcarType.current.label,
                 color = MaterialTheme.colorScheme.primary,
             )

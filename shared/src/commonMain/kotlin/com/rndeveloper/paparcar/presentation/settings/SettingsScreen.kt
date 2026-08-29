@@ -919,7 +919,7 @@ private fun DangerZoneCard(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Rounded.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.size(6.dp))
-                            // Button text → cta (Inter), the app's button convention. [TYPO-AUDIT-001]
+                            // Button text → cta, the app's button convention. [TYPO-AUDIT-001]
                             Text(label, style = PaparcarType.current.cta)
                         }
                     }

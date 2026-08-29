@@ -84,7 +84,7 @@ fun PapNavRow(
     )
 }
 
-/** Static info row — trailing value as a data token (Barlow `metadata`). */
+/** Static info row — trailing value as a quiet `meta` line, not a boxed token. */
 @Composable
 fun PapInfoRow(
     label: String,

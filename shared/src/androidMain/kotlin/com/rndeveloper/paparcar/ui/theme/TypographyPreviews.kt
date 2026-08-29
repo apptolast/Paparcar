@@ -34,13 +34,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 // ─────────────────────────────────────────────────────────────────────────────
-// DS-TYPO-002 — Typography comparison previews
+// Typography sample screen — every voice and every role on one surface.
 //
-// The SAME composable runs on all 3 option branches. Switch branch in Android
-// Studio and the live preview updates to show that option's fonts:
-//   Option A: Outfit  + Inter + Barlow Condensed
-//   Option B: Syne    + Inter + Barlow Condensed
-//   Option C: Space Grotesk + Inter + Barlow Condensed
+// It was born as a comparison harness for three candidate font systems, each on
+// its own branch. That laboratory closed when the app adopted a single family
+// [UI-TYPE-FAMILY-CANDIDATES-001] [UI-TYPE-RETIRE-THE-OLD-FAMILIES-001], and the
+// header kept naming the retired candidates. What it is now: the one place where
+// a role change can be eyeballed against all the others at once.
+// [UI-TYPE-SYSTEM-HYGIENE-001]
 // ─────────────────────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -61,7 +62,7 @@ private fun TypographySampleScreen() {
                 title = {
                     Text(
                         text = "Mi coche",
-                        style = MaterialTheme.typography.appBarTitle,
+                        style = data.screenTitle,
                     )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -283,7 +284,7 @@ private fun TypographySampleScreen() {
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                     )
                     Spacer(Modifier.height(8.dp))
-                    Text("Pantalla principal",   style = MaterialTheme.typography.appBarTitle,
+                    Text("headlineSmall · 24sp", style = MaterialTheme.typography.headlineSmall,
                         color = MaterialTheme.colorScheme.onSurface)
                     Text("titleLarge · 22sp",    style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.onSurface)

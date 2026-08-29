@@ -34,7 +34,7 @@ import paparcar.composeapp.generated.resources.my_car_unnamed_vehicle
  * defined in exactly one place:
  *
  * ```
- * [ tile glyph ]  Name (Outfit, cardTitle)   [● STATUS]      [trailing action]
+ * [ tile glyph ]  Name (MARCA, cardTitle)    [● STATUS]      [trailing action]
  *                 Sedán · Mediano  (quiet metadata, no chips)
  * ```
  *
@@ -108,8 +108,8 @@ fun VehicleIdentityHeader(
                 ).joinToString(SUBTITLE_SEPARATOR)
                 Text(
                     text = subtitle,
-                    // App convention for an icon·title·subtitle row: subtitle is quiet PROSE (Inter
-                    // caption), same as PapListItem — NOT a Barlow data token. [CARD-ONE-BADGE-001]
+                    // App convention for an icon·title·subtitle row: subtitle is quiet PROSE (LECTURA
+                    // caption), same as PapListItem — NOT a CIFRA data token. [CARD-ONE-BADGE-001]
                     style = PaparcarType.current.caption,
                     color = cs.onSurfaceVariant,
                     maxLines = 1,

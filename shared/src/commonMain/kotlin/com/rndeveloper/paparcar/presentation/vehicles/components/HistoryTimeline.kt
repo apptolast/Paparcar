@@ -55,8 +55,8 @@ import com.rndeveloper.paparcar.ui.theme.PapAlpha
  * Day separator inside the timeline — "HOY", "AYER", "VIERNES, 14 AGO 2026".
  *
  * It is a SUB-section header, not a data token: it opens a group under "APARCADO ACTUALMENTE"
- * instead of repeating inside a row, so it wears the same Inter face as that header one step down
- * (`dense`), through the same component. It used to wear the condensed `badge` role — Barlow is for
+ * instead of repeating inside a row, so it wears the same LECTURA voice as that header one step down
+ * (`dense`), through the same component. It used to wear the then-condensed `badge` role — CIFRA is for
  * DATA, and a date separator is layout structure. [UI-HISTORY-IDENTITY-AND-SOURCE-001]
  */
 @Composable
@@ -188,8 +188,8 @@ private fun SessionCardContent(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = primaryText,
-                    // Place/address name is the session card's identity title → Outfit (rowTitle);
-                    // the "city · time" subline below stays Inter prose. [TYPO-AUDIT-001]
+                    // Place/address name is the session card's identity title → MARCA (rowName);
+                    // the "city · time" subline below stays LECTURA prose. [TYPO-AUDIT-001]
                     style = PaparcarType.current.rowName,
                     color = textPrimary,
                     maxLines = 1,
@@ -197,8 +197,8 @@ private fun SessionCardContent(
                 )
                 Spacer(Modifier.height(TITLE_META_GAP_DP.dp))
                 Text(
-                    // Leads with a place name you read ("city · 09:14") → Inter (caption), same as the
-                    // vehicle footer. Barlow (metadata) stays for pure-data rows (distance · drive ·
+                    // Leads with a place name you read ("city · 09:14") → LECTURA (caption), same as the
+                    // vehicle footer. CIFRA stays for pure-data rows (distance · drive ·
                     // en-route in Home spots), which carry no place name. [CARD-ONE-BADGE-001]
                     text = secondaryText,
                     style = PaparcarType.current.caption,

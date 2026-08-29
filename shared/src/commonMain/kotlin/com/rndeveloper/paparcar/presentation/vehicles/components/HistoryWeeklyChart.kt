@@ -121,8 +121,8 @@ private fun ActivityFactsColumn(facts: List<ActivityFact>) {
                 )
                 Text(
                     text = fact.text,
-                    // Barlow metadata, matching the chart labels above — the user weighed the
-                    // Inter/caption alternative on device (28-08) and preferred this. The DATA
+                    // The `meta` role, kin to the chart labels above — the user weighed the
+                    // `caption` alternative on device (28-08) and preferred this. The DATA
                     // reading: each line is icon + token + payload, kin to the chart it footers.
                     style = PaparcarType.current.meta,
                     color = cs.onSurfaceVariant,

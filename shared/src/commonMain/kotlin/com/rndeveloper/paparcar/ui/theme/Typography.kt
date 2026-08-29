@@ -91,14 +91,8 @@ fun rememberAppTypography(fonts: PapFontSet = defaultFontSet()): Typography {
     )
 }
 
-// ─── Extension slots ─────────────────────────────────────────────────────────
-
-/** Unified top-bar title style — Outfit ExtraBold, tightened tracking. */
-val Typography.appBarTitle: TextStyle
-    get() = headlineSmall.copy(
-        fontWeight = FontWeight.ExtraBold,
-        letterSpacing = (-0.5).sp,
-    )
-
-// The condensed "data" styles (charts, badges, stat numbers) now live as roles in
-// [PaparcarType] (DATA group); the Barlow family factory above feeds them. [UI-TYPE-SYSTEM-001]
+// There are no extension slots on top of this scale any more. `appBarTitle` was the last one — a
+// top-bar title that duplicated the `screenTitle` role value for value, was reachable only through
+// `MaterialTheme.typography`, and by the end promised a family the app had stopped shipping. Two
+// previews consumed it; nothing else did. A style with a role is asked for by role.
+// [UI-TYPE-SYSTEM-HYGIENE-001]

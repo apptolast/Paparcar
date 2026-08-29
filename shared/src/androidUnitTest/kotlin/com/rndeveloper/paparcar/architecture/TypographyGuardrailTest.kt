@@ -147,10 +147,13 @@ class TypographyGuardrailTest {
         // ConnectivityBanner sale de aqui: estar en la allowlist es lo que le permitio quedarse sin
         // familia y renderizarse con la fuente del sistema. La exencion tapaba el fallo, no lo
         // documentaba. [UI-TYPE-ONE-VOICE-REACHES-MATERIAL-001]
+        // PaparcarBottomActionBar sale por lo mismo llevado un paso mas alla: no lo instanciaba
+        // ninguna pantalla, asi que la allowlist estaba eximiendo a codigo que no se renderizaba.
+        // Una excepcion sobre codigo muerto no es una excepcion, es un agujero.
+        // [UI-TYPE-SYSTEM-HYGIENE-001]
         val INLINE_SP_ALLOWLIST = setOf(
             "PaparcarMapMarkers",
             "AppBottomNavigation",
-            "PaparcarBottomActionBar",
         )
 
         // Rule 4 — nobody resolves a family any more. The map-marker painter used to be the

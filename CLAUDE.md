@@ -116,28 +116,33 @@ Regla mental: *plumbing de UI → Material; concepto de Paparcar → vector prop
 
 ### ⛔ Tipografía — tres voces y un rol que manda [UI-TYPE-TWO-VOICES-ONE-ROW-001]
 Familia, tamaño **y peso** son propiedad del **ROL**, no del widget. Nunca elijas fuente, tamaño ni
-peso: elige rol. Fuente de verdad: `ui/theme/PaparcarType.kt` (23 roles), se lee
+peso: elige rol. Fuente de verdad: `ui/theme/PaparcarType.kt` (**22 roles**), se lee
 `PaparcarType.current.<rol>`. **Solo `color` se decide en el call site** (lo exige la doctrina de
 color: el estado se escribe, no se tiñe).
-- **MARCA · Outfit** — nombres de cosas reales y títulos: `screenTitle`(=appBarTitle), `heroTitle`,
-  `sectionTitle`, `cardTitle`, `rowName` (el NOMBRE en una fila: esta plaza, este coche, este lugar)
-- **LECTURA · Inter** — todo lo que se lee o se pulsa: `sectionHeader` + `subsectionHeader`
+> Una VOZ es una pregunta, no una fuente. Con qué letra se pinta cada voz lo dice `PapFontSet`, y
+> desde `UI-TYPE-RETIRE-THE-OLD-FAMILIES-001` las tres apuntan a **Plus Jakarta Sans**. Eso no las
+> fusiona: siguen decidiendo tamaño, peso y qué es un nombre, una cifra o prosa. Nombrar la voz por
+> su fuente (*"MARCA · Outfit"*) es lo que hacía elegir rol por la letra que uno recordaba.
+- **MARCA** — nombres de cosas reales y títulos: `screenTitle`, `heroTitle`, `sectionTitle`,
+  `cardTitle`, `rowName` (el NOMBRE en una fila: esta plaza, este coche, este lugar)
+- **LECTURA** — todo lo que se lee o se pulsa: `sectionHeader` + `subsectionHeader`
   (**ambos SOLO vía `PapSectionHeader`**; el sub es el separador de un grupo DENTRO de una sección ya
-  encabezada — los días del historial — y se pide con `dense = true`), `eyebrow`, `cta`, `rowTitle`
-  (título ESTRUCTURAL de fila: cabecera de la superficie de detección, paso de onboarding, estado
-  vacío, fila de Ajustes), `rowDistance` (la cifra alineada al final de una fila), `subtitle`(16sp),
+  encabezada — los días del historial — y se pide con `dense = true`), `eyebrow` (la línea en caps
+  que cualifica el título de justo debajo), `cta`, `rowTitle` (título ESTRUCTURAL de fila: cabecera
+  de la superficie de detección, paso de onboarding, estado vacío, fila de Ajustes), `subtitle`(16sp),
   `body`, `label`, `caption`, `meta` (la meta-line bajo un título), `badge` (`FIABLE`,
   `SIN CONFIRMAR`, `ACTIVO`, `MEDIANO`, `3 en camino`)
-- **CIFRA · Barlow Condensed** — una cifra que es el SUJETO DE SU PROPIO BLOQUE, nunca dentro de una
-  línea de texto: `statNumber`(25sp) + `statLabel`, `counter` + `counterUnit`, `chartLabel`,
-  `chartValue`
-- Regla mental, tres preguntas con una sola respuesta: *¿es un nombre propio o un título? → Outfit.
-  ¿es una cifra que protagoniza su bloque? → Barlow. ¿todo lo demás? → Inter.*
-- **Una cifra alineada en COLUMNA no necesita cambiar de familia**: la columna la marcan la posición
-  y el peso. Medido en device el 29-08 — por eso la distancia de la fila de plaza es Inter y Barlow
-  ya no aparece en ninguna FILA. [PEEK-META-INTER-001]
-- ⛔ **No existe una condensada de Outfit ni de Inter** (verificado en los `.ttf`: Outfit es estática;
-  Inter tiene `opsz`+`wght`, sin `wdth`; Inter Tight es espaciado, no anchura). No volver a proponerlo.
+- **CIFRA** — una cifra que es el SUJETO DE SU PROPIO BLOQUE, nunca dentro de una línea de texto:
+  `statNumber`(25sp) + `statLabel`, `counter` + `counterUnit`, `chartLabel`, `chartValue`
+- Regla mental, tres preguntas con una sola respuesta: *¿es un nombre propio o un título? → MARCA.
+  ¿es una cifra que protagoniza su bloque? → CIFRA. ¿todo lo demás? → LECTURA.*
+- **Una cifra alineada en COLUMNA no necesita cambiar de voz**: la columna la marcan la posición y el
+  peso. Medido en device el 29-08 — por eso la distancia de la fila de plaza es LECTURA y CIFRA ya no
+  aparece en ninguna FILA. [PEEK-META-INTER-001]
+- ⛔ **No hay corte condensado que reservar para CIFRA**: leído del `fvar` de
+  `plus_jakarta_sans_variable.ttf`, **un solo eje `wght` 200–800, sin `wdth`**. La misma comprobación
+  ya lo descartó con el set anterior (Outfit estática; Inter `opsz`+`wght` sin `wdth`; Inter Tight es
+  espaciado, no anchura). CIFRA se distingue por tamaño, peso y caja recortada. No volver a proponerlo.
 - ⛔ **`fontFeatureSettings` (p. ej. `tnum`) NO se aplica** en Compose Multiplatform 1.12 aunque la
   fuente declare la feature. No apoyar ninguna decisión en cifras tabulares.
 - **PROHIBIDO** en `presentation/` y `ui/components/`: (a) `fontSize`/`letterSpacing` inline;
@@ -146,7 +151,10 @@ color: el estado se escribe, no se tiñe).
   (c) `MaterialTheme.typography.*` — usa un rol, y si falta un tamaño añade/ajusta el rol;
   (d) construir familias (`rememberXxxFontFamily()`/`FontFamily(...)`) fuera de `ui/theme`.
   Enforced por `TypographyGuardrailTest` (Konsist). Allowlist: canvas/`TextMeasurer` de marcadores
-  de mapa + chrome tokenizado (bottom-nav, banner, action bar).
+  de mapa + `AppBottomNavigation`. **Y nada más**: el banner salió al descubrirse que la exención era
+  lo que le permitía no tener familia, y la action bar salió porque eximía a un componente MUERTO
+  — una excepción sobre código que no se renderiza no es una excepción, es un agujero.
+  [UI-TYPE-SYSTEM-HYGIENE-001]
 
 ### ⛔ Color — identidad por MÉTODO, estado en texto [UI-COLOR-DOCTRINE-001]
 > Significado y tabla completa de tokens: **`docs/design/COLOR-SYSTEM.md`**. Valores en

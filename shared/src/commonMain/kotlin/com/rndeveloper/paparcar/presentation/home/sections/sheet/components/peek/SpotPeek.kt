@@ -232,7 +232,7 @@ internal fun SpotPeek(
 
 /**
  * [DET-HANDOFF-NOT-MANUAL-001 §B.3] A plain sentence in the peek body: what happened, what it means
- * for you, what to do next. Prose, so Inter — and no tint, because it carries a state, not an
+ * for you, what to do next. Prose, so LECTURA — and no tint, because it carries a state, not an
  * identity. [UI-COLOR-DOCTRINE-001]
  */
 @Composable
