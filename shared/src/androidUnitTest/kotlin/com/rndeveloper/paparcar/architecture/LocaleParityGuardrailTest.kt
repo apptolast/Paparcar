@@ -122,6 +122,26 @@ class LocaleParityGuardrailTest {
         )
     }
 
+    @Test
+    fun `every declared string is read by something`() {
+        val violations = SURFACES.flatMap { surface ->
+            (surface.keysOf(BASE_LOCALE) - USAGE_ALLOWLIST)
+                .filterNot { key -> CALL_SITES.any { it.contains(key) } }
+                .sorted()
+                .map { key -> "  - ${surface.path(BASE_LOCALE)} · $key" }
+        }
+
+        assertTrue(
+            violations.isEmpty(),
+            "[string declared and never read — it passes every parity check, because a dead key is " +
+                "dead in all nine locales, and it taxes every new language] " +
+                "${violations.size} violation(s):\n${violations.joinToString("\n")}\n" +
+                "Delete it from the 9 files, or wire it up. If it is genuinely referenced in a way " +
+                "this sweep cannot see, add it to USAGE_ALLOWLIST **with the reason** — an " +
+                "unexplained entry there is the hole this test exists to close.",
+        )
+    }
+
     /** One place strings live. Both are user-visible; both drift the same way. */
     private class StringSurface(val name: String, val root: File) {
         fun path(locale: String) = "$name/$locale/$STRINGS_FILE"
@@ -209,6 +229,42 @@ class LocaleParityGuardrailTest {
         ).onEach {
             check(it.root.isDirectory) { "string surface not found: ${it.root}" }
         }
+
+        /**
+         * Everything that can name a string: Kotlin (`Res.string.key` / `R.string.key`) and the XML
+         * that is not itself a resource file — `AndroidManifest.xml` references
+         * `@string/attribution_detection_label`, so a Kotlin-only sweep would call it dead.
+         *
+         * Measured before trusting this: the repo has no dynamic resource lookup at all
+         * (`allStringResources`, `getIdentifier` — zero hits), so a key can only be named literally.
+         * The day that stops being true, this test starts lying and the allowlist starts growing.
+         *
+         * Test sources are excluded, and that is not tidiness. This very file names
+         * `attribution_detection_label` in a comment; while it was swept, deleting the manifest
+         * reference left the test GREEN — the guardrail's own prose was keeping the key alive.
+         * Caught by falsification. A product string has to be read by product code; being mentioned
+         * in a comment is not being used.
+         */
+        val CALL_SITES: List<String> = listOf("shared/src", "app/src")
+            .map { File(repoRoot, it) }
+            .flatMap { it.walkTopDown().asIterable() }
+            .filter { it.isFile && (it.extension == "kt" || it.extension == "xml") }
+            .filterNot { file ->
+                val parts = file.invariantSeparatorsPath.split("/")
+                file.name == STRINGS_FILE ||
+                    "build" in parts ||
+                    parts.any { it.endsWith("Test", ignoreCase = true) }
+            }
+            .map { it.readText() }
+
+        /**
+         * Keys that are read in a way the sweep above cannot see. **Empty on purpose** — the 22 keys
+         * this test was written for were all genuinely dead and got deleted, and the one that looked
+         * dead (`attribution_detection_label`) turned out to be live in the manifest, which is why
+         * the sweep reads XML instead of carrying an excuse here.
+         * [I18N-A-DEAD-KEY-PASSES-EVERY-PARITY-CHECK-001]
+         */
+        val USAGE_ALLOWLIST = emptySet<String>()
 
         fun Set<String>.render() = sorted().joinToString(", ")
     }

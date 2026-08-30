@@ -3,15 +3,9 @@
     <!-- HomeScreen -->
     <string name="home_search_placeholder">Szukaj strefy, ulicy…</string>
     <string name="home_search_no_results">Brak wyników dla tego wyszukiwania</string>
-    <string name="home_stats_free_spots_badge">%1$d wolnych</string>
-    <string name="home_peek_no_spots">Brak miejsc w pobliżu</string>
     <!-- PapSheet counter lead tile unit. [UI-SHEET-001] -->
     <string name="home_counter_unit_free">wolne</string>
-    <string name="home_vehicle_chip_badge_active">Aktywny</string>
-    <string name="home_vehicle_chip_status_parked">Zaparkowany · %1$s</string>
-    <string name="home_vehicle_chip_status_driving">W trasie</string>
     <string name="home_vehicle_chip_status_candidate">Parkowanie…</string>
-    <string name="home_parking_release">Zwolnij miejsce</string>
     <!-- PapSheet actions + browse header. [UI-SHEET-001] -->
     <string name="home_parking_leave_release">Odjeżdżam</string>
     <string name="home_parking_edit_menu_cd">Edytuj lokalizację parkowania</string>
@@ -252,8 +246,6 @@
 
     <string name="my_car_no_vehicle">Brak zarejestrowanego pojazdu</string>
     <string name="my_car_add_vehicle">Dodaj pojazd</string>
-    <string name="my_car_active_vehicle">Aktywny pojazd</string>
-    <string name="my_car_set_active">Aktywuj</string>
     <string name="my_car_unnamed_vehicle">Pojazd bez nazwy</string>
     <string name="veh_bt_recommendation_title">Popraw dokładność wykrywania</string>
     <string name="veh_bt_recommendation_body">Sparowanie Bluetooth Twojego samochodu pozwala Paparcar znacznie pewniej wykrywać, kiedy parkujesz, nawet podczas krótkich tras. Możesz to skonfigurować później z menu pojazdu.</string>
@@ -386,7 +378,6 @@
         <item quantity="many">Twoje pojazdy</item>
         <item quantity="other">Twoje pojazdy</item>
     </plurals>
-    <string name="home_vehicle_card_status_empty">Nie zaparkowany</string>
     <string name="home_vehicle_fallback_name">Pojazd</string>
 
     <!-- ParkingPeekRow (karta wybranego pojazdu) -->
@@ -450,7 +441,6 @@
     <!-- Settings v2 — refactor UI -->
     <string name="settings_danger_zone">Strefa zagrożenia</string>
     <string name="settings_danger_zone_subtitle">Działania nieodwracalne</string>
-    <string name="settings_profile_member_since">Członek od %1$s %2$d</string>
     <string name="settings_profile_delete_account">Usuń konto</string>
     <string name="settings_delete_account_confirm_title">Usunąć konto?</string>
     <string name="settings_delete_account_confirm_message">Wszystkie dane zostaną trwale usunięte. Tej operacji nie można cofnąć.</string>
@@ -478,7 +468,6 @@
     <string name="home_zone_saved_message">Strefa zapisana</string>
     <string name="home_zone_action_edit">Edytuj strefę</string>
     <string name="home_zone_action_delete">Usuń strefę</string>
-    <string name="home_zone_private_badge">Strefa prywatna</string>
     <!-- UI-PEEK-STEPS-BETWEEN-PINS-001 -->
     <string name="home_peek_step_prev_spot">Poprzednie miejsce</string>
     <string name="home_peek_step_next_spot">Następne miejsce</string>
@@ -523,15 +512,7 @@
     <string name="home_peek_spot_age_hour">Dodano %1$d godz. temu</string>
     <string name="home_peek_spot_age_min">Dodano %1$d min temu</string>
     <string name="home_peek_spot_age_now">Dodano przed chwilą</string>
-    <string name="home_peek_spot_compat_large">duże auto</string>
-    <string name="home_peek_spot_compat_medium">średnie auto</string>
-    <string name="home_peek_spot_compat_moto">motocykl</string>
-    <string name="home_peek_spot_compat_small">małe auto</string>
-    <string name="home_peek_spot_compat_van">van</string>
-    <string name="home_peek_spot_compatible">Mieści %1$s</string>
     <string name="home_peek_spot_en_route">%1$d w drodze</string>
-    <string name="home_peek_spot_incompatible">Za małe dla %1$s</string>
-    <string name="home_peek_spot_occupied">Już zajęte</string>
     <string name="home_peek_spot_size_unknown">Rozmiar nieokreślony</string>
     <string name="home_report_size_section">Rozmiar miejsca (opcjonalnie)</string>
     <string name="permissions_bg_guide_body">Na następnym ekranie:\n\n1. Dotknij «Lokalizacja»\n2. Wybierz «Zezwalaj zawsze»\n3. Naciśnij Wstecz, aby wrócić do Paparcar</string>
@@ -632,7 +613,6 @@
     <string name="history_section_label">Historia</string>
     <string name="home_vehicle_card_parked_at">Zaparkowano przy %1$s</string>
     <string name="home_vehicle_card_parked_meta">%1$s · %2$s dalej</string>
-    <string name="home_vehicle_chip_badge_bt">BT</string>
     <string name="home_vehicle_chip_mark_parking">Oznacz parkowanie</string>
     <string name="home_vehicle_chip_unmarked">Nieoznaczone</string>
     <string name="home_vehicle_status_inactive">Nieaktywny</string>
@@ -647,7 +627,6 @@
     <string name="settings_detection_health_ok_desc">Wykrywanie ma wszystko, czego potrzebuje</string>
     <string name="settings_detection_improve">Popraw wykrywanie</string>
     <string name="settings_detection_setup">Skonfiguruj</string>
-    <string name="vehicle_bt_cd">Parowanie Bluetooth</string>
     <string name="vehicle_set_active_action">Ustaw jako aktywny</string>
     <!-- Vehicles — confirmation before making a vehicle the active one. [VEH-ACTIVE-FENCE-001] -->
     <string name="vehicle_set_active_confirm_title">Czy jedziesz tym samochodem?</string>
@@ -656,7 +635,6 @@
     <string name="vehicle_set_active_confirm_cancel">Anuluj</string>
     <string name="vehicle_status_active">Aktywny</string>
     <string name="vehicle_status_active_cd">Wykrywanie aktywne</string>
-    <string name="vehicle_status_inactive_cd">Wykrywanie wyłączone</string>
     <string name="common_scroll_to_top_cd">Do góry</string>
     <!-- Spot freshness / age [SPOT-FRESHNESS-IS-AGE-NOT-A-COUNTDOWN-001] -->
     <string name="spot_indicator_age_now">Przed chwilą</string>

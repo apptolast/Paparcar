@@ -3,15 +3,9 @@
     <!-- HomeScreen -->
     <string name="home_search_placeholder">Zoek een gebied, straat…</string>
     <string name="home_search_no_results">Geen resultaten voor deze zoekopdracht</string>
-    <string name="home_stats_free_spots_badge">%1$d vrij</string>
-    <string name="home_peek_no_spots">Geen plekken in de buurt</string>
     <!-- PapSheet counter lead tile unit. [UI-SHEET-001] -->
     <string name="home_counter_unit_free">vrij</string>
-    <string name="home_vehicle_chip_badge_active">Actief</string>
-    <string name="home_vehicle_chip_status_parked">Geparkeerd · %1$s</string>
-    <string name="home_vehicle_chip_status_driving">Onderweg</string>
     <string name="home_vehicle_chip_status_candidate">Parkeren…</string>
-    <string name="home_parking_release">Parkeerplaats vrijgeven</string>
     <!-- PapSheet actions + browse header. [UI-SHEET-001] -->
     <string name="home_parking_leave_release">Ik vertrek</string>
     <string name="home_parking_edit_menu_cd">Parkeerlocatie bewerken</string>
@@ -251,8 +245,6 @@
 
     <string name="my_car_no_vehicle">Nog geen voertuig geregistreerd</string>
     <string name="my_car_add_vehicle">Voertuig toevoegen</string>
-    <string name="my_car_active_vehicle">Actief voertuig</string>
-    <string name="my_car_set_active">Activeren</string>
     <string name="my_car_unnamed_vehicle">Voertuig zonder naam</string>
     <string name="veh_bt_recommendation_title">Verbeter de detectienauwkeurigheid</string>
     <string name="veh_bt_recommendation_body">Door de Bluetooth van je auto te koppelen, kan Paparcar veel betrouwbaarder detecteren wanneer je parkeert, zelfs op korte trajecten. Je kunt dit later instellen via het menu van het voertuig.</string>
@@ -381,7 +373,6 @@
         <item quantity="one">Jouw voertuig</item>
         <item quantity="other">Jouw voertuigen</item>
     </plurals>
-    <string name="home_vehicle_card_status_empty">Niet geparkeerd</string>
     <string name="home_vehicle_fallback_name">Voertuig</string>
 
     <!-- ParkingPeekRow (hero card van geselecteerd voertuig) -->
@@ -445,7 +436,6 @@
     <!-- Settings v2 — UI refactor -->
     <string name="settings_danger_zone">Gevarenzone</string>
     <string name="settings_danger_zone_subtitle">Onomkeerbare acties</string>
-    <string name="settings_profile_member_since">Lid sinds %1$s %2$d</string>
     <string name="settings_profile_delete_account">Account verwijderen</string>
     <string name="settings_delete_account_confirm_title">Account verwijderen?</string>
     <string name="settings_delete_account_confirm_message">Al je gegevens worden permanent verwijderd. Deze actie kan niet ongedaan worden gemaakt.</string>
@@ -473,7 +463,6 @@
     <string name="home_zone_saved_message">Zone opgeslagen</string>
     <string name="home_zone_action_edit">Zone bewerken</string>
     <string name="home_zone_action_delete">Zone verwijderen</string>
-    <string name="home_zone_private_badge">Privézone</string>
     <!-- UI-PEEK-STEPS-BETWEEN-PINS-001 -->
     <string name="home_peek_step_prev_spot">Vorige plek</string>
     <string name="home_peek_step_next_spot">Volgende plek</string>
@@ -518,15 +507,7 @@
     <string name="home_peek_spot_age_hour">%1$d u geleden geplaatst</string>
     <string name="home_peek_spot_age_min">%1$d min geleden geplaatst</string>
     <string name="home_peek_spot_age_now">Zojuist geplaatst</string>
-    <string name="home_peek_spot_compat_large">grote auto</string>
-    <string name="home_peek_spot_compat_medium">middelgrote auto</string>
-    <string name="home_peek_spot_compat_moto">motor</string>
-    <string name="home_peek_spot_compat_small">kleine auto</string>
-    <string name="home_peek_spot_compat_van">bestelbus</string>
-    <string name="home_peek_spot_compatible">Geschikt voor %1$s</string>
     <string name="home_peek_spot_en_route">%1$d onderweg</string>
-    <string name="home_peek_spot_incompatible">Te klein voor %1$s</string>
-    <string name="home_peek_spot_occupied">Al bezet</string>
     <string name="home_peek_spot_size_unknown">Grootte niet opgegeven</string>
     <string name="home_report_size_section">Grootte plek (optioneel)</string>
     <string name="permissions_bg_guide_title">Achtergrondlocatie inschakelen</string>
@@ -625,7 +606,6 @@
     <string name="history_section_label">Geschiedenis</string>
     <string name="home_vehicle_card_parked_at">Geparkeerd bij %1$s</string>
     <string name="home_vehicle_card_parked_meta">%1$s · %2$s verderop</string>
-    <string name="home_vehicle_chip_badge_bt">BT</string>
     <string name="home_vehicle_chip_mark_parking">Parkeren markeren</string>
     <string name="home_vehicle_chip_unmarked">Niet gemarkeerd</string>
     <string name="home_vehicle_status_inactive">Inactief</string>
@@ -640,7 +620,6 @@
     <string name="settings_detection_health_ok_desc">Detectie heeft alles wat nodig is</string>
     <string name="settings_detection_improve">Detectie verbeteren</string>
     <string name="settings_detection_setup">Instellen</string>
-    <string name="vehicle_bt_cd">Bluetooth-koppeling</string>
     <string name="vehicle_set_active_action">Als actief instellen</string>
     <!-- Vehicles — confirmation before making a vehicle the active one. [VEH-ACTIVE-FENCE-001] -->
     <string name="vehicle_set_active_confirm_title">Rijd je in deze auto?</string>
@@ -649,7 +628,6 @@
     <string name="vehicle_set_active_confirm_cancel">Annuleren</string>
     <string name="vehicle_status_active">Actief</string>
     <string name="vehicle_status_active_cd">Detectie actief</string>
-    <string name="vehicle_status_inactive_cd">Detectie uit</string>
     <string name="common_scroll_to_top_cd">Naar boven</string>
     <!-- Spot freshness / age [SPOT-FRESHNESS-IS-AGE-NOT-A-COUNTDOWN-001] -->
     <string name="spot_indicator_age_now">Zojuist</string>

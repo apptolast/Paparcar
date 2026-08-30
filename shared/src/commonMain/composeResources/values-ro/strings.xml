@@ -3,15 +3,9 @@
     <!-- HomeScreen -->
     <string name="home_search_placeholder">Caută o zonă, stradă…</string>
     <string name="home_search_no_results">Niciun rezultat pentru această căutare</string>
-    <string name="home_stats_free_spots_badge">%1$d libere</string>
-    <string name="home_peek_no_spots">Niciun loc în apropiere</string>
     <!-- PapSheet counter lead tile unit. [UI-SHEET-001] -->
     <string name="home_counter_unit_free">libere</string>
-    <string name="home_vehicle_chip_badge_active">Activ</string>
-    <string name="home_vehicle_chip_status_parked">Parcat · %1$s</string>
-    <string name="home_vehicle_chip_status_driving">În mers</string>
     <string name="home_vehicle_chip_status_candidate">Parcare…</string>
-    <string name="home_parking_release">Eliberează locul</string>
     <!-- PapSheet actions + browse header. [UI-SHEET-001] -->
     <string name="home_parking_leave_release">Plec</string>
     <string name="home_parking_edit_menu_cd">Editează locația parcării</string>
@@ -253,8 +247,6 @@
 
     <string name="my_car_no_vehicle">Niciun vehicul înregistrat</string>
     <string name="my_car_add_vehicle">Adaugă vehicul</string>
-    <string name="my_car_active_vehicle">Vehicul activ</string>
-    <string name="my_car_set_active">Activează</string>
     <string name="my_car_unnamed_vehicle">Vehicul fără nume</string>
     <string name="veh_bt_recommendation_title">Îmbunătățește precizia detectării</string>
     <string name="veh_bt_recommendation_body">Asocierea Bluetooth-ului mașinii permite Paparcar să detecteze mult mai fiabil când parchezi, chiar și pe trasee scurte. Poți configura asta mai târziu din meniul vehiculului.</string>
@@ -386,7 +378,6 @@
         <item quantity="few">Vehiculele tale</item>
         <item quantity="other">Vehiculele tale</item>
     </plurals>
-    <string name="home_vehicle_card_status_empty">Neparcat</string>
     <string name="home_vehicle_fallback_name">Vehicul</string>
 
     <!-- ParkingPeekRow (card vehicul selectat) -->
@@ -450,7 +441,6 @@
     <!-- Settings v2 — refactor UI -->
     <string name="settings_danger_zone">Zonă de pericol</string>
     <string name="settings_danger_zone_subtitle">Acțiuni ireversibile</string>
-    <string name="settings_profile_member_since">Membru din %1$s %2$d</string>
     <string name="settings_profile_delete_account">Șterge contul</string>
     <string name="settings_delete_account_confirm_title">Ștergi contul?</string>
     <string name="settings_delete_account_confirm_message">Toate datele tale vor fi șterse permanent. Această acțiune nu poate fi anulată.</string>
@@ -478,7 +468,6 @@
     <string name="home_zone_saved_message">Zonă salvată</string>
     <string name="home_zone_action_edit">Editează zona</string>
     <string name="home_zone_action_delete">Șterge zona</string>
-    <string name="home_zone_private_badge">Zonă privată</string>
     <!-- UI-PEEK-STEPS-BETWEEN-PINS-001 -->
     <string name="home_peek_step_prev_spot">Locul anterior</string>
     <string name="home_peek_step_next_spot">Locul următor</string>
@@ -523,15 +512,7 @@
     <string name="home_peek_spot_age_hour">Postat acum %1$d h</string>
     <string name="home_peek_spot_age_min">Postat acum %1$d min</string>
     <string name="home_peek_spot_age_now">Postat chiar acum</string>
-    <string name="home_peek_spot_compat_large">mașină mare</string>
-    <string name="home_peek_spot_compat_medium">mașină medie</string>
-    <string name="home_peek_spot_compat_moto">motocicletă</string>
-    <string name="home_peek_spot_compat_small">mașină mică</string>
-    <string name="home_peek_spot_compat_van">dubă</string>
-    <string name="home_peek_spot_compatible">Încape %1$s</string>
     <string name="home_peek_spot_en_route">%1$d în drum</string>
-    <string name="home_peek_spot_incompatible">Prea mic pentru %1$s</string>
-    <string name="home_peek_spot_occupied">Deja ocupat</string>
     <string name="home_peek_spot_size_unknown">Dimensiune nespecificată</string>
     <string name="home_report_size_section">Dimensiunea locului (opțional)</string>
 
@@ -635,7 +616,6 @@
     <string name="history_section_label">Istoric</string>
     <string name="home_vehicle_card_parked_at">Parcat la %1$s</string>
     <string name="home_vehicle_card_parked_meta">%1$s · la %2$s</string>
-    <string name="home_vehicle_chip_badge_bt">BT</string>
     <string name="home_vehicle_chip_mark_parking">Marchează parcarea</string>
     <string name="home_vehicle_chip_unmarked">Nemarcat</string>
     <string name="home_vehicle_status_inactive">Inactiv</string>
@@ -650,7 +630,6 @@
     <string name="settings_detection_health_ok_desc">Detectarea are tot ce îi trebuie</string>
     <string name="settings_detection_improve">Îmbunătățește detectarea</string>
     <string name="settings_detection_setup">Configurează</string>
-    <string name="vehicle_bt_cd">Împerechere Bluetooth</string>
     <string name="vehicle_set_active_action">Setează ca activ</string>
     <!-- Vehicles — confirmation before making a vehicle the active one. [VEH-ACTIVE-FENCE-001] -->
     <string name="vehicle_set_active_confirm_title">Conduci această mașină?</string>
@@ -659,7 +638,6 @@
     <string name="vehicle_set_active_confirm_cancel">Anulează</string>
     <string name="vehicle_status_active">Activ</string>
     <string name="vehicle_status_active_cd">Detectare activă</string>
-    <string name="vehicle_status_inactive_cd">Detectare oprită</string>
     <string name="common_scroll_to_top_cd">Înapoi sus</string>
     <!-- Spot freshness / age [SPOT-FRESHNESS-IS-AGE-NOT-A-COUNTDOWN-001] -->
     <string name="spot_indicator_age_now">Chiar acum</string>

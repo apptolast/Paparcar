@@ -3,8 +3,6 @@
     <!-- HomeScreen -->
     <string name="home_search_placeholder">Search an area, street…</string>
     <string name="home_search_no_results">No results for that search</string>
-    <string name="home_stats_free_spots_badge">%1$d free</string>
-    <string name="home_peek_no_spots">No spots nearby</string>
     <!-- PapSheet counter lead tile unit. [UI-SHEET-001] -->
     <string name="home_counter_unit_free">free</string>
     <!-- Sheet section header above the per-vehicle rows; singular/plural by vehicle count. [MULTI-PARKING-001] [HOME-CARDS-001] -->
@@ -13,13 +11,10 @@
         <item quantity="other">Your vehicles</item>
     </plurals>
     <!-- Per-vehicle row when the vehicle has no active session — subtitle. -->
-    <string name="home_vehicle_card_status_empty">Not parked</string>
     <!-- Fallback label when a Vehicle has no name, brand or model set. -->
     <string name="home_vehicle_fallback_name">Vehicle</string>
     <!-- Vehicle chip — short status eyebrow for the active Coordinator vehicle. -->
-    <string name="home_vehicle_chip_badge_active">Active</string>
     <!-- Vehicle chip — short status eyebrow for a Bluetooth-paired vehicle. -->
-    <string name="home_vehicle_chip_badge_bt">BT</string>
     <!-- Vehicle chip — status eyebrow when the vehicle is not the active Coordinator vehicle (no BT). -->
     <string name="home_vehicle_status_inactive">Inactive</string>
     <!-- Vehicle chip — parking-line CTA when the vehicle has no active session (tap enters mark-parking). -->
@@ -31,15 +26,12 @@
     <!-- Single-vehicle card — parked footer subline; %1$s = relative time, %2$s = distance away. -->
     <string name="home_vehicle_card_parked_meta">%1$s · %2$s away</string>
     <!-- Vehicle chip — session status when parked; %1$s is the formatted distance (e.g. "120m"). -->
-    <string name="home_vehicle_chip_status_parked">Parked · %1$s</string>
     <!-- Vehicle chip — live status while a trip is being detected (driving, not yet parked). -->
-    <string name="home_vehicle_chip_status_driving">Driving</string>
     <!-- Vehicle chip — candidate phase: stopped and being evaluated for parking (DET-PHASE-001). -->
     <string name="home_vehicle_chip_status_candidate">Parking…</string>
     <!-- ParkingPeekRow (selected vehicle hero card) — fallback when vehicle lookup fails. -->
     <string name="home_peek_parked_label">Parked</string>
     <!-- SpotPeekRow (selected spot hero card) -->
-    <string name="home_parking_release">Release spot</string>
     <!-- Selected-parking primary CTA — leaving IS the community loop action. [UI-SHEET-001] -->
     <string name="home_parking_leave_release">I’m leaving</string>
     <!-- Edit icon-button (pin+pencil) on the selected-parking meta block + its menu. [UI-SHEET-001] -->
@@ -369,7 +361,6 @@
     <string name="settings_danger_zone">Danger zone</string>
     <string name="settings_danger_zone_subtitle">Irreversible actions</string>
     <!-- Profile card: "Member since MAY 2025" — %1$s = month short name uppercase, %2$d = year -->
-    <string name="settings_profile_member_since">Member since %1$s %2$d</string>
 
     <!-- Bottom navigation tabs -->
     <string name="nav_tab_home">Home</string>
@@ -386,8 +377,6 @@
     <string name="my_car_delete_confirm_message">This vehicle will be permanently removed. This action cannot be undone.</string>
     <string name="my_car_delete_confirm_action">Delete</string>
     <string name="my_car_delete_cancel">Cancel</string>
-    <string name="my_car_active_vehicle">Active vehicle</string>
-    <string name="my_car_set_active">Activate</string>
     <!-- Vehicles ficha — plain status pin label for the actively-detected vehicle. -->
     <string name="vehicle_status_active">Active</string>
     <!-- Vehicles ficha — separate bottom-row action to make an inactive vehicle the active one. -->
@@ -492,8 +481,6 @@
     <string name="vehicle_card_detection_bt">BT</string>
     <!-- Vehicle selector chip — status pin + Bluetooth glyph accessibility -->
     <string name="vehicle_status_active_cd">Detection active</string>
-    <string name="vehicle_status_inactive_cd">Detection off</string>
-    <string name="vehicle_bt_cd">Bluetooth pairing</string>
     <!-- VehicleStatsRow inline cards under the hero card -->
     <string name="vehicle_stats_sessions">total sessions</string>
     <string name="vehicle_stats_last_session">last session</string>
@@ -537,7 +524,6 @@
     <!-- Sheet eyebrow "name · live-phase" — composes a vehicle name with a reused phase word
          (EN RUTA / APARCANDO… / APARCADO). Pure format, locale-independent. [DET-STATUS-SHEET-001] -->
     <string name="home_peek_vehicle_status">%1$s · %2$s</string>
-    <string name="home_peek_spot_compatible">Fits %1$s</string>
     <string name="bt_config_cd_back">Back</string>
     <string name="vehicle_reg_cd_back">Back</string>
     <!-- Auth screens -->
@@ -549,13 +535,6 @@
     <string name="auth_field_confirm_password">Confirm password</string>
     <string name="auth_forgot_password">Forgot password?</string>
 
-    <string name="home_peek_spot_compat_moto">motorbike</string>
-    <string name="home_peek_spot_compat_small">small car</string>
-    <string name="home_peek_spot_compat_medium">medium car</string>
-    <string name="home_peek_spot_compat_large">large car</string>
-    <string name="home_peek_spot_compat_van">van</string>
-    <string name="home_peek_spot_incompatible">Too small for %1$s</string>
-    <string name="home_peek_spot_occupied">Already taken</string>
     <string name="home_peek_spot_en_route">%1$d on the way</string>
     <string name="home_peek_spot_age_min">Posted %1$d min ago</string>
     <string name="home_peek_spot_age_now">Posted just now</string>
@@ -569,7 +548,6 @@
     <string name="home_zone_saved_message">Zone saved</string>
     <string name="home_zone_action_edit">Edit zone</string>
     <string name="home_zone_action_delete">Delete zone</string>
-    <string name="home_zone_private_badge">Private zone</string>
     <!-- UI-PEEK-STEPS-BETWEEN-PINS-001 — peek footer stepper (content descriptions) -->
     <string name="home_peek_step_prev_spot">Previous spot</string>
     <string name="home_peek_step_next_spot">Next spot</string>

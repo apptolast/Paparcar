@@ -3,8 +3,6 @@
     <!-- HomeScreen -->
     <string name="home_search_placeholder">Busca una zona, calle…</string>
     <string name="home_search_no_results">Sin resultados para esa búsqueda</string>
-    <string name="home_stats_free_spots_badge">%1$d libres</string>
-    <string name="home_peek_no_spots">Sin plazas cerca</string>
     <!-- Unidad del contador del PapSheet. [UI-SHEET-001] -->
     <string name="home_counter_unit_free">libres</string>
     <!-- Header de la sección "Tus vehículos" en el sheet; singular/plural según nº de vehículos. [MULTI-PARKING-001] [HOME-CARDS-001] -->
@@ -13,23 +11,17 @@
         <item quantity="other">Tus vehículos</item>
     </plurals>
     <!-- Subtítulo en la fila por vehículo cuando no hay sesión activa. -->
-    <string name="home_vehicle_card_status_empty">Sin aparcar</string>
     <!-- Fallback de nombre cuando el vehículo no tiene name/brand/model. -->
     <string name="home_vehicle_fallback_name">Vehículo</string>
-    <string name="home_vehicle_chip_badge_active">Activo</string>
-    <string name="home_vehicle_chip_badge_bt">BT</string>
     <string name="home_vehicle_status_inactive">Inactivo</string>
     <string name="home_vehicle_chip_mark_parking">Marcar aparcamiento</string>
     <string name="home_vehicle_chip_unmarked">Sin marcar</string>
     <string name="home_vehicle_card_parked_at">Aparcado en %1$s</string>
     <string name="home_vehicle_card_parked_meta">%1$s · a %2$s de ti</string>
-    <string name="home_vehicle_chip_status_parked">Aparcado · %1$s</string>
-    <string name="home_vehicle_chip_status_driving">Conduciendo</string>
     <string name="home_vehicle_chip_status_candidate">Aparcando…</string>
     <!-- ParkingPeekRow (hero card del coche seleccionado) — fallback. -->
     <string name="home_peek_parked_label">Aparcado</string>
     <!-- SpotPeekRow (hero card de plaza seleccionada) -->
-    <string name="home_parking_release">Liberar plaza</string>
     <!-- CTA primario del parking seleccionado — irse ES la acción del loop comunitario. [UI-SHEET-001] -->
     <string name="home_parking_leave_release">Me voy</string>
     <!-- Icon-button editar (pin+lápiz) del bloque meta + su menú. [UI-SHEET-001] -->
@@ -284,7 +276,6 @@
     <string name="settings_danger_zone">Zona de peligro</string>
     <string name="settings_danger_zone_subtitle">Acciones irreversibles</string>
     <!-- Profile card: "Miembro desde MAY 2025" — %1$s = mes corto mayúscula, %2$d = año -->
-    <string name="settings_profile_member_since">Miembro desde %1$s %2$d</string>
 
     <!-- Mensajes de error genéricos -->
     <string name="error_unknown">Algo fue mal</string>
@@ -367,8 +358,6 @@
     <string name="my_car_delete_confirm_message">Este vehículo se eliminará permanentemente. Esta acción no se puede deshacer.</string>
     <string name="my_car_delete_confirm_action">Eliminar</string>
     <string name="my_car_delete_cancel">Cancelar</string>
-    <string name="my_car_active_vehicle">Vehículo activo</string>
-    <string name="my_car_set_active">Activar</string>
     <string name="vehicle_status_active">Activo</string>
     <string name="vehicle_set_active_action">Establecer como activo</string>
     <!-- Vehicles — confirmation before making a vehicle the active one. [VEH-ACTIVE-FENCE-001] -->
@@ -461,8 +450,6 @@
     <string name="vehicle_card_detection_bt">BT</string>
     <!-- Vehicle selector chip — status pin + Bluetooth glyph accessibility -->
     <string name="vehicle_status_active_cd">Detección activa</string>
-    <string name="vehicle_status_inactive_cd">Detección desactivada</string>
-    <string name="vehicle_bt_cd">Emparejado por Bluetooth</string>
     <!-- VehicleStatsRow cards inline bajo la hero card -->
     <string name="vehicle_stats_sessions">sesiones totales</string>
     <string name="vehicle_stats_last_session">última sesión</string>
@@ -514,7 +501,6 @@
     <string name="home_zone_saved_message">Zona guardada</string>
     <string name="home_zone_action_edit">Editar zona</string>
     <string name="home_zone_action_delete">Eliminar zona</string>
-    <string name="home_zone_private_badge">Zona privada</string>
     <!-- UI-PEEK-STEPS-BETWEEN-PINS-001 -->
     <string name="home_peek_step_prev_spot">Plaza anterior</string>
     <string name="home_peek_step_next_spot">Plaza siguiente</string>
@@ -559,15 +545,7 @@
     <string name="home_peek_spot_age_hour">Publicada hace %1$d h</string>
     <string name="home_peek_spot_age_min">Publicada hace %1$d min</string>
     <string name="home_peek_spot_age_now">Publicada ahora mismo</string>
-    <string name="home_peek_spot_compat_large">coche grande</string>
-    <string name="home_peek_spot_compat_medium">coche mediano</string>
-    <string name="home_peek_spot_compat_moto">moto</string>
-    <string name="home_peek_spot_compat_small">coche pequeño</string>
-    <string name="home_peek_spot_compat_van">furgoneta</string>
-    <string name="home_peek_spot_compatible">Apta para %1$s</string>
     <string name="home_peek_spot_en_route">%1$d en camino</string>
-    <string name="home_peek_spot_incompatible">Demasiado pequeña para %1$s</string>
-    <string name="home_peek_spot_occupied">Ya ocupada</string>
     <string name="home_peek_spot_size_unknown">Tamaño sin especificar</string>
     <string name="home_report_size_section">Tamaño de la plaza (opcional)</string>
     <string name="vehicle_registration_bt_cta">Vincular</string>
