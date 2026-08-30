@@ -85,6 +85,40 @@ private fun MarkersShowcase() {
             LocationActiveMarker(carbody = null, size = null, headingDegrees = 270f)
         }
 
+        // [UI-A-SAVED-ZONE-WEARS-ITS-DOUBT-TOO-001] The three dresses side by side — this row is the
+        // whole point of the ticket, and it did not exist: the ask state shipped with a gallery
+        // entry but no preview, so the one comparison that decides the design (are these three
+        // telling me three different things?) could only be made on a phone. The order is the
+        // user's story: it's here → is it here? → it's somewhere around here.
+        SectionLabel("VehicleBadge — exact · asking (open question) · saved AREA")
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.Bottom) {
+            VehicleBadgeMarker(carbodyType = CarbodyType.SUV_MEDIUM)
+            VehicleBadgeMarker(carbodyType = CarbodyType.SUV_MEDIUM, doubt = VehicleMarkerDoubt.ASKING)
+            VehicleBadgeMarker(carbodyType = CarbodyType.SUV_MEDIUM, doubt = VehicleMarkerDoubt.APPROXIMATE)
+        }
+
+        // The doubt badge is knocked out of the identity colour, so it has to hold up in all three
+        // tones — grey is the one that can go quiet against a tile. [UI-COLOR-DOCTRINE-001]
+        SectionLabel("VehicleBadge · saved AREA — watched · Bluetooth · unwatched · selected")
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.Bottom) {
+            VehicleBadgeMarker(carbodyType = CarbodyType.SEDAN, doubt = VehicleMarkerDoubt.APPROXIMATE)
+            VehicleBadgeMarker(
+                carbodyType = CarbodyType.SEDAN,
+                isBluetoothPaired = true,
+                doubt = VehicleMarkerDoubt.APPROXIMATE,
+            )
+            VehicleBadgeMarker(
+                carbodyType = CarbodyType.SEDAN,
+                isActive = false,
+                doubt = VehicleMarkerDoubt.APPROXIMATE,
+            )
+            VehicleBadgeMarker(
+                carbodyType = CarbodyType.SEDAN,
+                selected = true,
+                doubt = VehicleMarkerDoubt.APPROXIMATE,
+            )
+        }
+
         SectionLabel("FreeSpot — HIGH · MEDIUM · LOW · MANUAL · selected")
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Bottom) {
             FreeSpotMarker(reliability = SpotFreshness.FRESH)

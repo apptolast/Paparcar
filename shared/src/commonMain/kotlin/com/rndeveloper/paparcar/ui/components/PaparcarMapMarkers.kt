@@ -126,6 +126,53 @@ private const val GROUND_SHADOW_ALPHA = 0.35f
 // ─── Marker 1 — Parked vehicle (VehicleBadgeMarker) ─────────────────────────
 
 /**
+ * What kind of DOUBT the parked-vehicle tag is wearing — the vocabulary of its top-right corner.
+ *
+ * The two doubts are not the same thing and must not be drawn the same way:
+ *
+ * | state           | what happened to the user                                  | resolves when…            |
+ * |-----------------|------------------------------------------------------------|---------------------------|
+ * | [NONE]          | the car is HERE                                            | —                         |
+ * | [ASKING]        | we don't know whether you parked — a question is OPEN      | you answer / it times out |
+ * | [APPROXIMATE]   | you DID park and it is saved; we don't know exactly where  | only if you edit it       |
+ *
+ * Modelled as one value rather than two booleans because both dresses compete for the SAME corner
+ * and cannot co-exist: a question has no saved session yet, so it can carry no radius. With two
+ * flags that is a comment somebody has to read; here it is a state nobody can write.
+ * [UI-A-SAVED-ZONE-WEARS-ITS-DOUBT-TOO-001]
+ *
+ * ⛔ In all three the carbody stays fully opaque and full-colour. Doubt about the PLACE may not be
+ * expressed by doubting WHICH CAR — a dimmed carbody reads as "this vehicle is going away", the
+ * failure mode the inactive state was explicitly designed around. Identity is not status.
+ */
+enum class VehicleMarkerDoubt {
+    /** A fact with a point behind it: solid frame, opaque tag, empty corner. */
+    NONE,
+
+    /**
+     * [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] The park is NOT a fact yet — this is the place
+     * an open "did you park?" question is about. Same tag, same silhouette, so when the answer (or
+     * the timeout) confirms it, the marker RESOLVES instead of one marker vanishing and another
+     * appearing. Said three ways, none of which touch the car: the border goes DASHED, a `?` disc
+     * sits on the tag's top corner, and the tag's own fill drops to [UNCONFIRMED_TAG_ALPHA].
+     */
+    ASKING,
+
+    /**
+     * [UI-A-SAVED-ZONE-WEARS-ITS-DOUBT-TOO-001] A saved session that is an AREA, not a point
+     * (`zoneRadiusMeters != null`). The frame stays SOLID and the tag stays OPAQUE on purpose —
+     * this is a FACT, and borrowing the ask's provisional dress would send the user hunting for a
+     * notification that no longer exists. What changes is the corner: a target ⊙, the Canvas twin
+     * of the `Icons.Rounded.Adjust` the peek's own approximate row already uses.
+     *
+     * It does not repeat what the doubt ring says. The ring says HOW BIG the doubt is; the target
+     * says THIS PIN IS A CENTRE, NOT A POINT — and it is the only one of the two that survives
+     * street zoom (where the ring's edge is off-screen), the dim pass, and a screen corner.
+     */
+    APPROXIMATE,
+}
+
+/**
  * Marker for the user's parked vehicle: the Bolt-green design's **square "tag"** — a rounded
  * surface card holding the full-colour isometric carbody — sitting over a small position dome.
  * Instantly reads "mine, parked" and never confuses with the round green free-spot pucks around it.
@@ -160,20 +207,10 @@ fun VehicleBadgeMarker(
     contentAlpha: Float = 1f,
     originDot: Boolean = false,
     /**
-     * [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] The park is NOT a fact yet — this is the place
-     * an open "did you park?" question is about. Same tag, same silhouette, so when the answer (or
-     * the timeout) confirms it, the marker RESOLVES instead of one marker vanishing and another
-     * appearing. The doubt is said three ways, none of which touch the car: the border goes
-     * DASHED, a `?` disc sits on the tag's top corner, and the tag's own fill drops to
-     * [UNCONFIRMED_TAG_ALPHA].
-     *
-     * ⛔ The carbody stays fully opaque and full-colour, exactly as in every other state. Fading it
-     * is the one thing this marker must not do: the car is IDENTITY, not status, and a dimmed
-     * carbody reads as "this vehicle is going away" — the failure mode the inactive state was
-     * explicitly designed around a few lines up. Doubt about the PLACE may not be expressed by
-     * doubting WHICH CAR.
+     * Which doubt this tag wears — see [VehicleMarkerDoubt] for the three dresses and the rule none
+     * of them may break (the carbody never fades).
      */
-    unconfirmed: Boolean = false,
+    doubt: VehicleMarkerDoubt = VehicleMarkerDoubt.NONE,
 ) {
     // Method-coloured frame, fixed light-theme tones (markers float over map tiles, not surfaces):
     // BT blue wins (matches Vehicle.monitoringStatus), then active green, grey when unwatched.
@@ -201,7 +238,7 @@ fun VehicleBadgeMarker(
     // exception in the typography guardrail, for exactly this. [UI-TYPE-ONE-VOICE-REACHES-MATERIAL-001]
     val markerFamily = PaparcarType.current.cardTitle.fontFamily
     val questionMeasurer = rememberTextMeasurer()
-    val questionGlyph = if (unconfirmed) {
+    val questionGlyph = if (doubt == VehicleMarkerDoubt.ASKING) {
         val style = remember(markerFamily) {
             TextStyle(
                 fontFamily = markerFamily,
@@ -245,7 +282,11 @@ fun VehicleBadgeMarker(
             val tagTopLeft = Offset(10f * s, 6f * s)
             val tagSize = Size(84f * s, 66f * s)
             val corner = CornerRadius(20f * s, 20f * s)
-            val tagAlpha = if (unconfirmed) UNCONFIRMED_TAG_ALPHA else 1f
+            // Only the OPEN QUESTION goes provisional (translucent fill + dashed frame). A saved
+            // approximate zone is a FACT — it keeps the solid frame and the opaque tag, and says
+            // its doubt in the corner instead. [UI-A-SAVED-ZONE-WEARS-ITS-DOUBT-TOO-001]
+            val asking = doubt == VehicleMarkerDoubt.ASKING
+            val tagAlpha = if (asking) UNCONFIRMED_TAG_ALPHA else 1f
             drawRoundRect(
                 color = tagFill.copy(alpha = tagFill.alpha * contentAlpha * tagAlpha),
                 topLeft = tagTopLeft,
@@ -262,7 +303,7 @@ fun VehicleBadgeMarker(
                 // here, which is the whole reason this marker family was never an SVG.
                 style = Stroke(
                     width = borderUnits * s,
-                    pathEffect = if (unconfirmed) {
+                    pathEffect = if (asking) {
                         PathEffect.dashPathEffect(
                             floatArrayOf(UNCONFIRMED_DASH_ON * s, UNCONFIRMED_DASH_OFF * s),
                         )
@@ -271,21 +312,21 @@ fun VehicleBadgeMarker(
                     },
                 ),
             )
-            if (unconfirmed) {
-                // The `?` disc rides the tag's TOP-RIGHT corner: the tip of the dome is the ground
-                // point and the tag interior is the car, so the corner is the only real estate that
-                // is neither.
-                //
-                // FILLED, with the glyph knocked out of it: a solid identity-coloured disc carrying
-                // a `?` in the tag's own fill. The first pass had it the other way round — pale disc,
-                // coloured glyph — and on device it read as one more pale blob among the map's
-                // labels. The filled version is the same language the free-spot pucks already speak
-                // (coloured disc, paper ring, paper glyph), so it reads as a marker badge at a
-                // glance instead of as a sticker.
-                //
-                // The ring is the tag fill too, which is what keeps the disc off the map tiles —
-                // never grey, which in this app already means "unwatched vehicle" and would vanish
-                // against asphalt anyway.
+            // The doubt badge rides the tag's TOP-RIGHT corner: the tip of the dome is the ground
+            // point and the tag interior is the car, so the corner is the only real estate that
+            // is neither. One slot, one word — which is why [VehicleMarkerDoubt] is an enum.
+            //
+            // FILLED, with the glyph knocked out of it: a solid identity-coloured disc carrying the
+            // mark in the tag's own fill. The first pass had it the other way round — pale disc,
+            // coloured glyph — and on device it read as one more pale blob among the map's
+            // labels. The filled version is the same language the free-spot pucks already speak
+            // (coloured disc, paper ring, paper glyph), so it reads as a marker badge at a
+            // glance instead of as a sticker.
+            //
+            // The ring is the tag fill too, which is what keeps the disc off the map tiles —
+            // never grey, which in this app already means "unwatched vehicle" and would vanish
+            // against asphalt anyway.
+            if (doubt != VehicleMarkerDoubt.NONE) {
                 val badgeCenter = Offset(BADGE_CX * s, BADGE_CY * s)
                 drawCircle(color = borderColor, radius = BADGE_R * s, center = badgeCenter)
                 drawCircle(
@@ -294,15 +335,32 @@ fun VehicleBadgeMarker(
                     center = badgeCenter,
                     style = Stroke(width = BADGE_BORDER_U * s),
                 )
-                questionGlyph?.let { glyph ->
-                    drawText(
-                        glyph,
-                        color = tagFill,
-                        topLeft = Offset(
-                            badgeCenter.x - glyph.size.width / 2f,
-                            badgeCenter.y - glyph.size.height / 2f,
-                        ),
-                    )
+                when (doubt) {
+                    VehicleMarkerDoubt.NONE -> Unit
+                    VehicleMarkerDoubt.ASKING -> questionGlyph?.let { glyph ->
+                        drawText(
+                            glyph,
+                            color = tagFill,
+                            topLeft = Offset(
+                                badgeCenter.x - glyph.size.width / 2f,
+                                badgeCenter.y - glyph.size.height / 2f,
+                            ),
+                        )
+                    }
+                    // The target ⊙ — a ring with its centre marked. Drawn, not measured: unlike the
+                    // `?`, it is two circles and owes nothing to a font's hinting at 9 dp. It is the
+                    // Canvas twin of the `Icons.Rounded.Adjust` the peek's approximate row already
+                    // carries, so both surfaces say the same word about the same session.
+                    // [UI-A-SAVED-ZONE-WEARS-ITS-DOUBT-TOO-001]
+                    VehicleMarkerDoubt.APPROXIMATE -> {
+                        drawCircle(
+                            color = tagFill,
+                            radius = BADGE_TARGET_RING_R * s,
+                            center = badgeCenter,
+                            style = Stroke(width = BADGE_TARGET_RING_U * s),
+                        )
+                        drawCircle(color = tagFill, radius = BADGE_TARGET_DOT_R * s, center = badgeCenter)
+                    }
                 }
             }
         }
@@ -343,6 +401,12 @@ private const val BADGE_CY          = 12f  // tag spans y 6..72
 private const val BADGE_R           = 16f
 private const val BADGE_BORDER_U    = 3f
 private const val BADGE_GLYPH_U     = 22f  // `?` cap size, in the same viewBox units
+
+// [UI-A-SAVED-ZONE-WEARS-ITS-DOUBT-TOO-001] The target ⊙ of a saved approximate zone, knocked out
+// of the same BADGE_R disc the `?` uses (viewBox units) — ring + centre, like Icons.Rounded.Adjust.
+private const val BADGE_TARGET_RING_R = 8.5f
+private const val BADGE_TARGET_RING_U = 2.6f
+private const val BADGE_TARGET_DOT_R  = 3.2f
 
 // ─── Marker 1c — Location-active driving puck (LocationActiveMarker) ─────────
 

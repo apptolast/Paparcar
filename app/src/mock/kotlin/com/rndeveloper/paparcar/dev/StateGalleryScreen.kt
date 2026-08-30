@@ -99,6 +99,7 @@ import com.rndeveloper.paparcar.ui.components.FreeSpotMarker
 import com.rndeveloper.paparcar.ui.components.LicensePlateMarker
 import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
 import com.rndeveloper.paparcar.ui.components.VehicleBadgeMarker
+import com.rndeveloper.paparcar.ui.components.VehicleMarkerDoubt
 import com.rndeveloper.paparcar.ui.components.MyVehicleMarker
 import com.rndeveloper.paparcar.ui.components.ParkingCenterPin
 import com.rndeveloper.paparcar.ui.components.ReportCenterPin
@@ -322,8 +323,35 @@ private fun markersShowcase() {
         MarkerSectionLabel("VehicleBadge — confirmado · SIN CONFIRMAR (pregunta abierta)")
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.Bottom) {
             VehicleBadgeMarker(carbodyType = CarbodyType.SUV_MEDIUM)
-            VehicleBadgeMarker(carbodyType = CarbodyType.SUV_MEDIUM, unconfirmed = true)
-            VehicleBadgeMarker(carbodyType = CarbodyType.SUV_MEDIUM, unconfirmed = true, isBluetoothPaired = true)
+            VehicleBadgeMarker(carbodyType = CarbodyType.SUV_MEDIUM, doubt = VehicleMarkerDoubt.ASKING)
+            VehicleBadgeMarker(
+                carbodyType = CarbodyType.SUV_MEDIUM,
+                doubt = VehicleMarkerDoubt.ASKING,
+                isBluetoothPaired = true,
+            )
+        }
+        // [UI-A-SAVED-ZONE-WEARS-ITS-DOUBT-TOO-001] La tercera duda, junto a las otras dos: hay que
+        // poder ver de un vistazo que la ZONA GUARDADA no es «una pregunta abierta» (borde sólido,
+        // etiqueta opaca, diana en vez de `?`) ni un pin exacto. En el mapa lleva además su anillo
+        // alrededor; aquí se mira el marcador solo, que es lo que sobrevive al zoom de calle.
+        MarkerSectionLabel("VehicleBadge · ZONA GUARDADA — vigilado · Bluetooth · sin vigilancia · seleccionado")
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.Bottom) {
+            VehicleBadgeMarker(carbodyType = CarbodyType.SEDAN, doubt = VehicleMarkerDoubt.APPROXIMATE)
+            VehicleBadgeMarker(
+                carbodyType = CarbodyType.SEDAN,
+                isBluetoothPaired = true,
+                doubt = VehicleMarkerDoubt.APPROXIMATE,
+            )
+            VehicleBadgeMarker(
+                carbodyType = CarbodyType.SEDAN,
+                isActive = false,
+                doubt = VehicleMarkerDoubt.APPROXIMATE,
+            )
+            VehicleBadgeMarker(
+                carbodyType = CarbodyType.SEDAN,
+                selected = true,
+                doubt = VehicleMarkerDoubt.APPROXIMATE,
+            )
         }
         MarkerSectionLabel("FreeSpot — HIGH · MEDIUM · LOW · MANUAL · seleccionado")
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Bottom) {

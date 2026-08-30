@@ -273,9 +273,29 @@ private fun vehicleBadgeContentId(
     // Colour is baked into the key so a recoloured car regenerates its cached bitmap. [VEH-COLOR-001]
     // [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] …and so is the THEME: the tag fill is white in
     // light and ink in dark, so without this a theme flip served the previous theme's raster.
+    // [UI-A-SAVED-ZONE-WEARS-ITS-DOUBT-TOO-001] …and so is "this session is an AREA", which puts
+    // the target ⊙ on the tag's corner. Same reason as every other segment here: the doubt is baked
+    // into the bitmap, so a session that turns out to be a zone needs a key the cache has never seen.
     return "vehicle_badge_${v.vehicleId.take(8)}_${v.sizeCategory?.name ?: "def"}_" +
-        "${v.color?.name ?: "def"}_${state}_${tone}_$themeKey"
+        "${v.color?.name ?: "def"}_${state}_${tone}_${v.doubtKey()}_$themeKey"
 }
+
+/** `apx` when the session is an area, `pt` when it is a point — one segment of the marker cache key. */
+private fun ParkedVehicleSummary.doubtKey(): String = if (isApproximate) "apx" else "pt"
+
+/** The doubt dress a saved parking wears: an area gets the target ⊙, a point gets nothing. */
+private fun parkingDoubt(zoneRadiusMeters: Float?): VehicleMarkerDoubt =
+    if (zoneRadiusMeters != null) VehicleMarkerDoubt.APPROXIMATE else VehicleMarkerDoubt.NONE
+
+/**
+ * Content id of the fallback single-parking marker (the Historial surface, which has no
+ * [ParkedVehicleSummary] context). Both variants are registered as handlers and the list builder
+ * picks the one matching `parkingZoneRadiusMeters` — same shape as the `_dim` pass, and for the
+ * same reason: kmpmaps caches the rasterised bitmap by contentId, so the doubt has to be part of
+ * the id or the marker would keep serving the exact-pin raster. [UI-A-SAVED-ZONE-WEARS-ITS-DOUBT-TOO-001]
+ */
+private fun fallbackParkingContentId(base: String, approximate: Boolean, themeKey: String): String =
+    if (approximate) "${base}_apx_$themeKey" else "${base}_$themeKey"
 
 private const val MARKER_MY_CAR          = "my_car"
 private const val MARKER_MY_CAR_DIM      = "my_car_dim"
@@ -881,6 +901,12 @@ fun PaparcarMapView(
         // Without this key the ask marker would appear only when something ELSE changed the list —
         // and would outlive the question it draws. [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001]
         unconfirmedParking,
+        // The fallback marker's contentId now encodes whether the session is an AREA, so the radius
+        // has to be a key of the list that builds it — otherwise Historial keeps the id (and the
+        // cached raster) of the previously focused session. The [parkedVehicles] path needs no
+        // equivalent: the radius travels inside the summaries, which are already a key.
+        // [UI-A-SAVED-ZONE-WEARS-ITS-DOUBT-TOO-001]
+        parkingZoneRadiusMeters,
     ) {
         buildList {
             // Zone markers — added FIRST (lowest zIndex) so spot/parking markers
@@ -929,11 +955,15 @@ fun PaparcarMapView(
                 // so any non-null selectedSessionId means "the single parking is selected".
                 parkingLocation?.let {
                     val isSelected = selectedSessionId != null
-                    val contentId = when {
-                        isSelected -> MARKER_MY_CAR_SELECTED
-                        dimSpots   -> MARKER_MY_CAR_DIM
-                        else       -> MARKER_MY_CAR
-                    } + "_" + themeKey
+                    val contentId = fallbackParkingContentId(
+                        base = when {
+                            isSelected -> MARKER_MY_CAR_SELECTED
+                            dimSpots   -> MARKER_MY_CAR_DIM
+                            else       -> MARKER_MY_CAR
+                        },
+                        approximate = parkingZoneRadiusMeters != null,
+                        themeKey = themeKey,
+                    )
                     add(
                         Marker(
                             coordinates = Coordinates(it.latitude, it.longitude),
@@ -1044,21 +1074,39 @@ fun PaparcarMapView(
     ) {
         val baseHandlers: Map<String, @Composable (Marker) -> Unit> = buildMap {
             // ── Fallback single-parking marker (ParkingHistoryDetailScreen) ──
-            put("${MARKER_MY_CAR}_$themeKey") { _ ->
-                VehicleBadgeMarker(
-                    sizeCategory = parkingVehicleSize,
-                    carbodyType = parkingVehicleCarbody,
-                    isActive = parkingIsActive,
-                    color = parkingVehicleColor,
-                )
-            }
-            put("${MARKER_MY_CAR_DIM}_$themeKey") { _ ->
-                DimWrapper {
+            // Registered TWICE — exact pin and saved AREA — because the doubt is baked into the
+            // bitmap, exactly like the dim pass. The list builder picks the id that matches the
+            // focused session's radius. [UI-A-SAVED-ZONE-WEARS-ITS-DOUBT-TOO-001]
+            listOf(false, true).forEach { approximate ->
+                val doubt = if (approximate) VehicleMarkerDoubt.APPROXIMATE else VehicleMarkerDoubt.NONE
+                put(fallbackParkingContentId(MARKER_MY_CAR, approximate, themeKey)) { _ ->
                     VehicleBadgeMarker(
                         sizeCategory = parkingVehicleSize,
                         carbodyType = parkingVehicleCarbody,
                         isActive = parkingIsActive,
                         color = parkingVehicleColor,
+                        doubt = doubt,
+                    )
+                }
+                put(fallbackParkingContentId(MARKER_MY_CAR_DIM, approximate, themeKey)) { _ ->
+                    DimWrapper {
+                        VehicleBadgeMarker(
+                            sizeCategory = parkingVehicleSize,
+                            carbodyType = parkingVehicleCarbody,
+                            isActive = parkingIsActive,
+                            color = parkingVehicleColor,
+                            doubt = doubt,
+                        )
+                    }
+                }
+                put(fallbackParkingContentId(MARKER_MY_CAR_SELECTED, approximate, themeKey)) { _ ->
+                    VehicleBadgeMarker(
+                        selected = true,
+                        sizeCategory = parkingVehicleSize,
+                        carbodyType = parkingVehicleCarbody,
+                        color = parkingVehicleColor,
+                        isActive = parkingIsActive,
+                        doubt = doubt,
                     )
                 }
             }
@@ -1073,16 +1121,7 @@ fun PaparcarMapView(
                     // Always the assisted lane: this question only exists on the Coordinator.
                     isActive = true,
                     isBluetoothPaired = false,
-                    unconfirmed = true,
-                )
-            }
-            put("${MARKER_MY_CAR_SELECTED}_$themeKey") { _ ->
-                VehicleBadgeMarker(
-                    selected = true,
-                    sizeCategory = parkingVehicleSize,
-                    carbodyType = parkingVehicleCarbody,
-                    color = parkingVehicleColor,
-                    isActive = parkingIsActive,
+                    doubt = VehicleMarkerDoubt.ASKING,
                 )
             }
             // Departure point: a small blue dot with a white halo — a clean "you left from here"
@@ -1153,6 +1192,9 @@ fun PaparcarMapView(
                             stableRank = v.stableRank,
                             isBluetoothPaired = v.isBluetoothPaired,
                             color = v.color,
+                            // Same field that draws the ring around it, so circle and badge cannot
+                            // disagree. [UI-A-SAVED-ZONE-WEARS-ITS-DOUBT-TOO-001]
+                            doubt = parkingDoubt(v.zoneRadiusMeters),
                         )
                     },
                     vehicleBadgeContentId(v, selected = false, dim = true, themeKey = themeKey) to { _: Marker ->
@@ -1164,6 +1206,7 @@ fun PaparcarMapView(
                                 stableRank = v.stableRank,
                                 isBluetoothPaired = v.isBluetoothPaired,
                                 color = v.color,
+                                doubt = parkingDoubt(v.zoneRadiusMeters),
                             )
                         }
                     },
@@ -1176,6 +1219,7 @@ fun PaparcarMapView(
                             stableRank = v.stableRank,
                             isBluetoothPaired = v.isBluetoothPaired,
                             color = v.color,
+                            doubt = parkingDoubt(v.zoneRadiusMeters),
                         )
                     },
                 )
