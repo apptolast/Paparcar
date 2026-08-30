@@ -30,6 +30,17 @@ data class ParkingHistoryDto(
     /** Confirmation PATH that placed this pin ("steps+egress" / "safety_net_backfill" / "bt" / … ) —
      *  which trigger put the parking. The other half of provenance. Null for legacy pins. [DET-PIN-PROVENANCE-001] */
     val detectionPath: String? = null,
+    /**
+     * [DET-DOUBT-REACHES-REMOTE-001] Radius of the AREA this pin really is, or null when it is a
+     * point. Derived `isApproximate` comes from it (`zoneRadiusMeters != null`).
+     *
+     * It used to be local-only. The reason was written down — an unrefined zone stays on the device
+     * that drew it [DET-HONEST-CLOSE-001] — and the cost was not: in remote a 250 m circle was
+     * indistinguishable from an exact pin, so every diagnosis of an approximate park had to read
+     * Room over a cable (field 2026-08-30, the 142 m pin). A doubt the app measured and then hides
+     * from its own diagnostics is a doubt it cannot learn from.
+     */
+    val zoneRadiusMeters: Float? = null,
     /** The driven route that led to this parking as a Google-encoded polyline (lat/lon). One compact
      *  string synced so the trip renders in history on any device. Null on legacy / BT docs.
      *  [DET-ROUTE-TRACK-001] */

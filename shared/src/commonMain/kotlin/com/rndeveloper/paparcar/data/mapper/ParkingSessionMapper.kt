@@ -163,6 +163,9 @@ fun UserParking.toParkingHistoryDto(updatedAt: Long = 0L) = ParkingHistoryDto(
     // remote diagnostic can attribute a parking to its trigger. [DET-PIN-PROVENANCE-001]
     armEvidence = armEvidence,
     detectionPath = detectionPath,
+    // [DET-DOUBT-REACHES-REMOTE-001] The doubt travels too. A zone that reads as an exact pin in
+    // remote is a measurement error at the analysis layer, and it cost a cable to work around.
+    zoneRadiusMeters = zoneRadiusMeters,
     // The driven route travels to Firestore so the trip renders in history on any device, with the
     // inferred-stretch provenance + verdict. [DET-ROUTE-TRACK-001][ROUTE-GAP-HONEST-001]
     routePolyline = routePolyline,
@@ -203,6 +206,9 @@ fun ParkingHistoryDto.toEntity() = UserParkingEntity(
     // keeps who/what placed it. tripMaxSpeedMps stays local-only → null here. [DET-PIN-PROVENANCE-001]
     armEvidence = armEvidence,
     detectionPath = detectionPath,
+    // [DET-DOUBT-REACHES-REMOTE-001] …and comes back, so a restored pin is still honest about
+    // being an area. Legacy docs carry no field → null → an exact pin, which is what they were.
+    zoneRadiusMeters = zoneRadiusMeters,
     // The driven route comes back from Firestore so a new device renders the trip, with the
     // inferred-stretch provenance + verdict. [DET-ROUTE-TRACK-001][ROUTE-GAP-HONEST-001]
     routePolyline = routePolyline,
