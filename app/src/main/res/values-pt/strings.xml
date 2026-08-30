@@ -52,7 +52,7 @@
 
     <!-- Notificação: watchdog "ainda estacionado?" (possível saída de geocerca perdida) -->
     <string name="notif_still_parked_title">Ainda estacionado aqui?</string>
-    <string name="notif_still_parked_text">Se já saiu, liberte a vaga para a comunidade.</string>
+    <string name="notif_still_parked_text">Parece que está longe, mas este estacionamento continua aberto. Diga-nos se já saiu, ou marque onde está o carro agora.</string>
     <!-- DET-TOGGLE-002: cold-start nudge -->
     <string name="notif_first_park_nudge_title">Estacione uma vez para ativar a deteção</string>
     <string name="notif_first_park_nudge_text">Estacione com o Paparcar uma vez; depois libertamos a sua vaga automaticamente sempre que sair.</string>
@@ -62,6 +62,7 @@
     <string name="notif_mark_parking_text">Detetámos que se deslocou, mas não conseguimos fixar onde ficou o seu carro. Marque a vaga para não a perder.</string>
     <string name="notif_mark_parking_action">Marcar a vaga</string>
     <string name="notif_action_ive_left">Já saí</string>
+    <string name="notif_action_mark_parking">Marcar estacionamento</string>
     <string name="notif_background_kill_title">O teu telemóvel está a bloquear o Paparcar</string>
     <string name="notif_background_kill_text">O sistema parou a deteção de estacionamento em segundo plano durante horas. Toca para abrir a app e resolver em Definições → Deteção.</string>
     <string name="notif_sentry_title">Carro estacionado — atentos à tua saída</string>

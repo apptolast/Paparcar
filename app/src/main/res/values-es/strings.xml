@@ -56,7 +56,7 @@
 
     <!-- Notificación: watchdog "¿sigues aparcado?" (posible salida de geocerca perdida) -->
     <string name="notif_still_parked_title">¿Sigues aparcado aquí?</string>
-    <string name="notif_still_parked_text">Si ya te has ido, libera la plaza para la comunidad.</string>
+    <string name="notif_still_parked_text">Parece que estás lejos, pero este aparcamiento sigue abierto. Dinos si ya te has ido, o marca dónde está ahora el coche.</string>
     <!-- DET-TOGGLE-002: cold-start nudge -->
     <string name="notif_first_park_nudge_title">Aparca una vez para activar la detección</string>
     <string name="notif_first_park_nudge_text">Aparca con Paparcar una vez; después liberamos tu plaza automáticamente cada vez que salgas.</string>
@@ -66,6 +66,7 @@
     <string name="notif_mark_parking_text">Hemos detectado que te has movido, pero no hemos podido fijar dónde quedó tu coche. Marca la plaza para no perderla.</string>
     <string name="notif_mark_parking_action">Marcar mi plaza</string>
     <string name="notif_action_ive_left">Ya he salido</string>
+    <string name="notif_action_mark_parking">Marcar aparcamiento</string>
     <string name="notif_sentry_title">Coche aparcado — atentos a tu salida</string>
     <string name="notif_sentry_text">Cuando te vayas, liberaremos tu plaza para otros. Silencioso y con consumo mínimo. Se desactiva en Ajustes.</string>
     <string name="channel_sentry_name">Vigilancia aparcado</string>

@@ -47,9 +47,16 @@ class ProcessConfirmedDepartureUseCase(
     }
 
     /**
-     * @param publishSpot false when the departure is confirmed but too STALE to advertise the
-     *        freed spot (recovered hours late — the hole is long gone); the session/geofence
-     *        cleanup still runs so the app's own state converges. [DET-RECONCILE-001]
+     * @param publishSpot false when the departure is confirmed but the freed plaza cannot be
+     *        advertised — recovered hours late, or (the watchdog prompt) confirmed by a user who
+     *        witnesses the FACT and not the HOUR; the session/geofence cleanup still runs so the
+     *        app's own state converges. [DET-RECONCILE-001]
+     *
+     *        **Deliberately has no default.** It used to default to `true`, so the one caller that
+     *        never thought about the question published plazas of unknown age in silence
+     *        ([DET-WATCHDOG-DEPARTURE-KNOWS-NO-HOUR-001]). Every closing path must now answer it,
+     *        and the honest answer is `freedSpotIsStillThere(exitAtMs, nowMs, config)` — including
+     *        `exitAtMs = null` when the hour is not known.
      * @param proof how well the departure is proven. [DepartureProof.Witnessed] behaves as it always
      *        did. [DepartureProof.Deduced] splits the two commitments: the spot still goes out
      *        IMMEDIATELY (freshness is its entire value) but provisionally — short TTL — while the
@@ -60,7 +67,7 @@ class ProcessConfirmedDepartureUseCase(
      */
     suspend operator fun invoke(
         geofenceId: String,
-        publishSpot: Boolean = true,
+        publishSpot: Boolean,
         proof: DepartureProof = DepartureProof.Witnessed,
     ): Result<Unit> {
         val session = userParkingRepository.getActiveSessionByGeofence(geofenceId)

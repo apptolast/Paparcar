@@ -23,6 +23,7 @@ import com.rndeveloper.paparcar.domain.detection.CoordinatorParkingDetector
 import com.rndeveloper.paparcar.domain.detection.ArmEvidence
 import com.rndeveloper.paparcar.domain.detection.DepartureProof
 import com.rndeveloper.paparcar.domain.detection.DetectionTrigger
+import com.rndeveloper.paparcar.domain.detection.freedSpotIsStillThere
 import com.rndeveloper.paparcar.domain.detection.sentry.TriggerDisposition
 import com.rndeveloper.paparcar.domain.detection.coordinatorMayArm
 import com.rndeveloper.paparcar.domain.detection.sentry.isArmSuppressedByUserStop
@@ -571,8 +572,13 @@ class CoordinatorDetectionService : LifecycleService() {
 
     /**
      * [DET-AR-REARM-001] Watchdog "I've left" tap: the user confirmed a departure the geofence EXIT
-     * missed. Release the spot for the given geofence via [ProcessConfirmedDepartureUseCase] (report
-     * freed + clear session + remove geofence + unregister AR arming), dismiss the prompt, tear down.
+     * missed. Closes the session for the given geofence via [ProcessConfirmedDepartureUseCase]
+     * (clear session + remove geofence + unregister AR arming), dismisses the prompt, tears down.
+     *
+     * [DET-WATCHDOG-DEPARTURE-KNOWS-NO-HOUR-001] It does NOT publish the freed plaza. This prompt is
+     * raised precisely because nobody observed the EXIT, so no instant exists to date the departure
+     * by — and the ask can sit in the tray for hours before it is answered. See
+     * [freedSpotIsStillThere] for why an unknown hour is not a recent one.
      */
     private suspend fun handleWatchdogDeparture(geofenceId: String?) {
         if (geofenceId.isNullOrBlank()) {
@@ -582,8 +588,23 @@ class CoordinatorDetectionService : LifecycleService() {
         }
         PaparcarLogger.d(DIAG, "  → DEPARTURE_CONFIRMED (watchdog) geofenceId=$geofenceId")
         // [DET-HANDOFF-NOT-MANUAL-001 §B] The user's own statement is the strongest evidence there
-        // is — stronger than any fix — so this commits the departure in full.
-        runCatching { processConfirmedDeparture(geofenceId, proof = DepartureProof.Witnessed) }
+        // is — stronger than any fix — so this commits the departure in full…
+        //
+        // [DET-WATCHDOG-DEPARTURE-KNOWS-NO-HOUR-001] …and that statement covers the FACT, not the
+        // HOUR. Closing the session and the geofence needs only the fact, and still runs. Announcing
+        // a plaza to strangers needs the hour, and nothing on this path has one: `exitAtMs = null`
+        // is the measurement, not a shortcut for false.
+        runCatching {
+            processConfirmedDeparture(
+                geofenceId,
+                publishSpot = freedSpotIsStillThere(
+                    exitAtMs = null,
+                    nowMs = System.currentTimeMillis(),
+                    config = detectionConfig,
+                ),
+                proof = DepartureProof.Witnessed,
+            )
+        }
             .onFailure { e -> PaparcarLogger.e(DIAG, "    ✗ watchdog departure failed", e) }
         notificationPort.dismiss(AppNotificationManager.STILL_PARKED_NOTIFICATION_ID)
     }

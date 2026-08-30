@@ -52,7 +52,7 @@
 
     <!-- Notifica: watchdog "ancora parcheggiato?" (possibile uscita geofence persa) -->
     <string name="notif_still_parked_title">Ancora parcheggiato qui?</string>
-    <string name="notif_still_parked_text">Se sei già partito, libera il posto per la comunità.</string>
+    <string name="notif_still_parked_text">Sembri lontano, ma questo parcheggio è ancora aperto. Dicci se sei già uscito, oppure segna dov\'è l\'auto adesso.</string>
     <!-- DET-TOGGLE-002: cold-start nudge -->
     <string name="notif_first_park_nudge_title">Parcheggia una volta per attivare il rilevamento</string>
     <string name="notif_first_park_nudge_text">Parcheggia con Paparcar una volta; poi liberiamo il tuo posto automaticamente ogni volta che esci.</string>
@@ -62,6 +62,7 @@
     <string name="notif_mark_parking_text">Abbiamo rilevato che ti sei spostato, ma non siamo riusciti a fissare dove è rimasta la tua auto. Segna il parcheggio per non perderlo.</string>
     <string name="notif_mark_parking_action">Segna il posto</string>
     <string name="notif_action_ive_left">Sono uscito</string>
+    <string name="notif_action_mark_parking">Segna parcheggio</string>
     <string name="notif_background_kill_title">Il tuo telefono sta bloccando Paparcar</string>
     <string name="notif_background_kill_text">Il sistema ha sospeso per ore il rilevamento del parcheggio in background. Tocca per aprire l\'app e risolvere in Impostazioni → Rilevamento.</string>
     <string name="notif_sentry_title">Auto parcheggiata — attenti alla tua partenza</string>

@@ -4,6 +4,7 @@ package com.rndeveloper.paparcar.domain.usecase.parking
 
 import com.rndeveloper.paparcar.domain.detection.DepartureConfirmationListener
 import com.rndeveloper.paparcar.domain.detection.DepartureProof
+import com.rndeveloper.paparcar.domain.detection.freedSpotIsStillThere
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEvent
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEventLogger
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
@@ -156,8 +157,12 @@ class RunDepartureCheckUseCase(
         // [DET-RECONCILE-001] Freshness gate: a departure recovered long after the fact (offline
         // device, frozen worker — Redmi 2026-07-06 processed 5 h late) still converges the local
         // state, but the freed spot is long gone — advertising it would sell ghosts.
-        val exitAgeMs = nowMs() - exitTimestampMs
-        val publishSpot = exitAgeMs <= config.spotPublishMaxAgeMs
+        // [DET-WATCHDOG-DEPARTURE-KNOWS-NO-HOUR-001] The rule moved out to `freedSpotIsStillThere`
+        // unchanged: this used to be the ONLY caller that asked it, and the watchdog close — which
+        // holds no exit instant at all — published on the default instead.
+        val now = nowMs()
+        val exitAgeMs = now - exitTimestampMs
+        val publishSpot = freedSpotIsStillThere(exitAtMs = exitTimestampMs, nowMs = now, config = config)
         if (!publishSpot) {
             PaparcarLogger.d(TAG, "stale departure (age=${exitAgeMs / 60_000}min) — clearing WITHOUT publishing (geof=${geofenceId.take(8)})")
         }

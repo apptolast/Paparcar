@@ -52,7 +52,7 @@
 
     <!-- Notification: Watchdog „noch geparkt?" (vermutlich verpasster Geofence-Ausgang) -->
     <string name="notif_still_parked_title">Noch hier geparkt?</string>
-    <string name="notif_still_parked_text">Wenn du schon weg bist, gib den Platz für die Community frei.</string>
+    <string name="notif_still_parked_text">Du scheinst weg zu sein, aber dieser Parkplatz ist noch offen. Sag uns, ob du schon losgefahren bist, oder markiere, wo das Auto jetzt steht.</string>
     <!-- DET-TOGGLE-002: cold-start nudge -->
     <string name="notif_first_park_nudge_title">Einmal parken, um die Erkennung zu starten</string>
     <string name="notif_first_park_nudge_text">Parke einmal mit Paparcar; danach geben wir deinen Platz bei jeder Abfahrt automatisch frei.</string>
@@ -62,6 +62,7 @@
     <string name="notif_mark_parking_text">Wir haben erkannt, dass du dich bewegt hast, konnten aber nicht bestimmen, wo dein Auto geblieben ist. Markiere den Platz, damit er nicht verloren geht.</string>
     <string name="notif_mark_parking_action">Platz markieren</string>
     <string name="notif_action_ive_left">Ich bin weg</string>
+    <string name="notif_action_mark_parking">Parkplatz markieren</string>
     <string name="notif_background_kill_title">Dein Handy blockiert Paparcar</string>
     <string name="notif_background_kill_text">Das System hat die Parkerkennung im Hintergrund stundenlang pausiert. Tippe, um die App zu öffnen und es unter Einstellungen → Erkennung zu beheben.</string>
     <string name="notif_sentry_title">Auto geparkt — wir achten auf deine Abfahrt</string>

@@ -5745,3 +5745,50 @@ every OEM-kill diagnosis depends on. The `PaparcarLogger.d { }` guard no longer 
 Android release — that is the price of the file existing, and it is why the write became cheap.
 
 Spec: `docs/backlog/support-report-ships-the-local-log-001.md`.
+
+### DET-WATCHDOG-DEPARTURE-KNOWS-NO-HOUR-001 — the user witnesses the fact, not the hour (pending)
+
+**Reported by the user (2026-08-30):** the watchdog's *"still parked here?"* notification should not
+carry a *release the spot* button — *"publishing a spot after 3 h can be bad."*
+
+**Root cause.** `handleWatchdogDeparture` called `processConfirmedDeparture(geofenceId, proof =
+Witnessed)` and let `publishSpot` fall through to its `true` default, so tapping *"I've left"*
+advertised the freed plaza with no age check at all. The freshness rule already existed —
+`RunDepartureCheckUseCase` has computed `exitAgeMs <= spotPublishMaxAgeMs` since
+[DET-RECONCILE-001], written after the Redmi processed a departure 5 h late on 2026-07-06 — but it
+lived as an inline expression inside the one caller that happens to hold an exit timestamp. The
+watchdog was the other closing path, and it is the one whose clock is worst **by construction**: the
+prompt is raised precisely because nobody observed the EXIT (`ParkingSafetyNetWorker`, the
+FGS-start-denied fallback and `SafetyNetAction.PromptStillParked`, both fired when the anchor is
+missing), and the ask can then sit in the tray for hours before it is answered. The plaza went out
+stamped `reportedAt = now`, so [SPOT-FRESHNESS-IS-AGE-NOT-A-COUNTDOWN-001] painted a possibly
+hours-dead hole as the freshest thing on the map — the phantom spot asymmetric failure forbids.
+
+The guard's own comment held the half-truth that produced it: *"the user's own statement is the
+strongest evidence there is — so this commits the departure in full"* ([DET-HANDOFF-NOT-MANUAL-001]
+§B). True of the FACT of having left, which is all that closing a session and a geofence needs.
+Silent about the HOUR, which is the only thing a promise made to strangers depends on.
+
+**Fix.** The rule moves out to `freedSpotIsStillThere(exitAtMs, nowMs, config)` in
+`domain/detection/` — a pure predicate, not a new use case ([DET-VERDICT-NOT-PREDICATE-001]: it
+yields no `detectionPath`, no `outcome`, and two verdicts consume it). `exitAtMs = null` returns
+false, so *an unknown hour is not a recent hour* is a property of the doctrine rather than a
+hand-written exception at one call site. `RunDepartureCheckUseCase` delegates to it with identical
+semantics; the watchdog passes `null` and closes session + geofence without publishing.
+
+**The systemic half.** `ProcessConfirmedDepartureUseCase.publishSpot` **lost its default**. A
+parameter that publishes to the community by omission is what let a closing path never think about
+the question; now the compiler makes every path, present and future, answer it. That is what the
+change is for — the one-line `publishSpot = false` would have fixed this instance and left the trap.
+
+**Accompanying-fix risk.** The tap used to be the only way to end these sessions and it published;
+now it only closes. So the prompt gains a second action, *"Mark parking"*, deep-linking into
+add-parking mode (`buildAddParkingIntent`, `fromDetection = true` — detection nominated the ask, so
+the pin keeps its provenance, [DET-NUDGE-PIN-PROVENANCE-001]): if the user left three hours ago the
+car is parked elsewhere by now, and that pin is the half of the answer worth having. Confirming it
+replaces the active session and drops the orphan fence, so both actions converge on a clean state.
+`notif_still_parked_text` promised the publish in nine locales and was rewritten — those strings are
+Android resources (`app/src/main/res`), where the apostrophe **is** escaped, unlike Compose
+Resources ([COPY-APOSTROPHE-IS-NOT-ESCAPED-001]).
+
+Spec: `docs/backlog/det-watchdog-departure-knows-no-hour-001.md`.

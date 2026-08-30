@@ -48,7 +48,7 @@ class ProcessConfirmedDepartureUseCaseTest {
         val bus = FakeDepartureEventBus(initialTimestamp = 999L)
         val useCase = buildUseCase(repo = repo, spotScheduler = spotScheduler, geofence = geofence, bus = bus)
 
-        val result = useCase("session-1")
+        val result = useCase("session-1", publishSpot = true)
 
         assertTrue(result.isSuccess)
         assertEquals(1, spotScheduler.scheduleCallCount, "public departure must publish the freed spot")
@@ -63,7 +63,7 @@ class ProcessConfirmedDepartureUseCaseTest {
         val spotScheduler = FakeReportSpotScheduler()
         val useCase = buildUseCase(repo = repo, spotScheduler = spotScheduler)
 
-        val result = useCase("session-1")
+        val result = useCase("session-1", publishSpot = true)
 
         assertTrue(result.isSuccess)
         assertEquals(0, spotScheduler.scheduleCallCount, "private-zone spots are never published")
@@ -76,7 +76,7 @@ class ProcessConfirmedDepartureUseCaseTest {
         val spotScheduler = FakeReportSpotScheduler()
         val useCase = buildUseCase(repo = repo, spotScheduler = spotScheduler)
 
-        val result = useCase("unknown-geofence")
+        val result = useCase("unknown-geofence", publishSpot = true)
 
         assertTrue(result.isSuccess)
         assertEquals(0, spotScheduler.scheduleCallCount)
@@ -89,7 +89,7 @@ class ProcessConfirmedDepartureUseCaseTest {
         }
         val useCase = buildUseCase(repo = repo)
 
-        val result = useCase("session-1")
+        val result = useCase("session-1", publishSpot = true)
 
         assertTrue(result.isFailure, "a failed clear must propagate so the session is never left open")
     }
@@ -98,7 +98,7 @@ class ProcessConfirmedDepartureUseCaseTest {
     fun should_log_departure_processed_event() = runTest {
         val logger = FakeDetectionEventLogger()
         val repo = FakeUserParkingRepository(initialSession = activeSession())
-        buildUseCase(repo = repo, logger = logger)("session-1")
+        buildUseCase(repo = repo, logger = logger)("session-1", publishSpot = true)
 
         val event = logger.events.filterIsInstance<DetectionEvent.DepartureProcessed>().single()
         assertEquals("session-1", event.sessionId)
@@ -110,7 +110,7 @@ class ProcessConfirmedDepartureUseCaseTest {
     fun should_log_departure_processed_without_publish_for_private_zone() = runTest {
         val logger = FakeDetectionEventLogger()
         val repo = FakeUserParkingRepository(initialSession = activeSession(privateZoneId = "zone-1"))
-        buildUseCase(repo = repo, logger = logger)("session-1")
+        buildUseCase(repo = repo, logger = logger)("session-1", publishSpot = true)
 
         val event = logger.events.filterIsInstance<DetectionEvent.DepartureProcessed>().single()
         assertFalse(event.published)
@@ -151,7 +151,7 @@ class ProcessConfirmedDepartureUseCaseTest {
         val geofence = FakeGeofenceManager()
         val useCase = buildUseCase(repo = repo, spotScheduler = spotScheduler, geofence = geofence)
 
-        val result = useCase("session-1", proof = DepartureProof.Deduced)
+        val result = useCase("session-1", publishSpot = true, proof = DepartureProof.Deduced)
 
         assertTrue(result.isSuccess)
         // The spot still goes out AT ONCE — freshness is its entire value — but with a short life.
@@ -172,8 +172,8 @@ class ProcessConfirmedDepartureUseCaseTest {
         val spotScheduler = FakeReportSpotScheduler()
         val useCase = buildUseCase(repo = repo, spotScheduler = spotScheduler)
 
-        useCase("session-1", proof = DepartureProof.Deduced)
-        useCase("session-1", proof = DepartureProof.Deduced)
+        useCase("session-1", publishSpot = true, proof = DepartureProof.Deduced)
+        useCase("session-1", publishSpot = true, proof = DepartureProof.Deduced)
 
         assertEquals(1, spotScheduler.scheduleCallCount, "one deduction, one publication")
         assertTrue(repo.getActiveSessionByGeofence("session-1") != null)
@@ -188,7 +188,7 @@ class ProcessConfirmedDepartureUseCaseTest {
         val geofence = FakeGeofenceManager()
         val useCase = buildUseCase(repo = repo, spotScheduler = spotScheduler, geofence = geofence)
 
-        useCase("session-1", proof = DepartureProof.Witnessed)
+        useCase("session-1", publishSpot = true, proof = DepartureProof.Witnessed)
 
         assertEquals(false, spotScheduler.lastProvisional)
         assertFalse(repo.getActiveSessionByGeofence("session-1") != null)

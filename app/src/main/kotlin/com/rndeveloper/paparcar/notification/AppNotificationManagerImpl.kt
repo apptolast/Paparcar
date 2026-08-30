@@ -195,14 +195,27 @@ class AppNotificationManagerImpl(
             },
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
+        // [DET-WATCHDOG-DEPARTURE-KNOWS-NO-HOUR-001] The second way out of the same question. "I've
+        // left" now only CLOSES the session — it cannot advertise a plaza it has no hour for — so
+        // the user who left three hours ago is left holding the useful half of the answer: their car
+        // is parked somewhere else by now, and that pin is what the app actually needs. Confirming
+        // it replaces the active session and drops the orphan fence, so both actions converge on a
+        // clean state. DETECTION raised this ask, so the pin keeps detection provenance, same as the
+        // mark-parking nudge. [DET-NUDGE-PIN-PROVENANCE-001]
+        val markParkingPi = buildAddParkingIntent(RC_STILL_PARKED_MARK, fromDetection = true)
         val notification = NotificationCompat.Builder(context, ACTION_CHANNEL_ID)
             .setContentTitle(context.getString(R.string.notif_still_parked_title))
             .setContentText(context.getString(R.string.notif_still_parked_text))
+            .setStyle(
+                NotificationCompat.BigTextStyle()
+                    .bigText(context.getString(R.string.notif_still_parked_text)),
+            )
             .setSmallIcon(R.drawable.ic_notification_logo)
             .setColor(COLOR_CONFIRMATION)
             .setCategory(NotificationCompat.CATEGORY_RECOMMENDATION)
             .setContentIntent(buildFocusIntent(RC_STILL_PARKED_FOCUS, latitude, longitude))
             .addAction(0, context.getString(R.string.notif_action_ive_left), leftPi)
+            .addAction(0, context.getString(R.string.notif_action_mark_parking), markParkingPi)
             .setOnlyAlertOnce(true)
             .setAutoCancel(true)
             .build()
@@ -496,6 +509,8 @@ class AppNotificationManagerImpl(
         // [DET-AR-REARM-001] watchdog "still parked?" prompt request codes
         private const val RC_STILL_PARKED_FOCUS = 205
         private const val RC_STILL_PARKED_LEFT = 206
+        // [DET-WATCHDOG-DEPARTURE-KNOWS-NO-HOUR-001] "mark parking" action on the same prompt
+        private const val RC_STILL_PARKED_MARK = 211
         // [DET-TOGGLE-002] cold-start nudge request code
         private const val RC_FIRST_PARK_NUDGE = 207
         // [OEM-KILL-001] background-kill warning request code
