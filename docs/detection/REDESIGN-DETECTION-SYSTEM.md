@@ -696,9 +696,15 @@ estilo de los `ColorGuardrailTest` / `TypographyGuardrailTest` que ya existen:
 | 4 | `DET-FAIL-CLOSED-BY-CONSTRUCTION-001` (Pieza 3) 🟡 | #5 #9 #14 (#8 y #16 refutados/diferidos) | parcial |
 | 5 | `DET-TWO-TIER-SENTRY-001` (Pieza 5) ✅ | 28→1 armados, batería | hecho ⏳ medir en campo |
 | 6 | `DET-DOUBT-MUST-REACH-THE-SCREEN-001` (Pieza 6) ✅ | §1.5 | hecho ⏳ sin ver en device |
-| 7 | `DET-GUARDRAILS-KEEP-THE-DOCTRINE-001` (Pieza 7) | que no se deshaga | bajo |
+| 7 | `DET-GUARDRAILS-KEEP-THE-DOCTRINE-001` (Pieza 7) 🟡 | que no se deshaga | 3 reglas hechas; replays pendientes |
 
 1, 2 y 4 son los que cambian la tasa de FP. 5 es el que cambia la batería y la escala (§6.5).
+
+🟢 **Las siete piezas están ejecutadas** (30-08), tres de ellas parciales y con lo que falta escrito
+en su propio ticket. Dos enunciados de este documento se REFUTARON al implementarlos y quedan
+corregidos donde viven: el umbral de 5 `drivingFixes` de §6.1 (rompía Calle Gavia; va a 2) y el
+`DrivingEvidenceGuardrailTest` de la Pieza 7 (su propiedad es falsa: `manual`, `inherited_drive` y
+`verified_speed` confirman en silencio sin conducción medida **por diseño**).
 
 🟡 **La Pieza 3 cerró #5, #9 y #14, y REFUTÓ #8**: `isAdmissibleEvidence(sessionStartMs = null)` no es
 un default permisivo — vigila una SEÑAL que nomina, y el contrato de triggers dice que un evento

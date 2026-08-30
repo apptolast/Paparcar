@@ -526,7 +526,9 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                 parkingDetailSheet(
                     session = FakeData.endedSessions[1].copy(
                         spotType = SpotType.AUTO_DETECTED,
-                        detectionPath = "vehicle-exit",
+                        // [DET-GUARDRAILS-KEEP-THE-DOCTRINE-001] Lo cazó el guardarraíl nuevo: se me
+                        // escapó en el barrido de DET-DOUBT-MUST-REACH-THE-SCREEN-001.
+                        detectionPath = DetectionPath.VehicleExitWindow.label,
                     ),
                     vehicle = FakeData.vehicleSedan,
                 )
