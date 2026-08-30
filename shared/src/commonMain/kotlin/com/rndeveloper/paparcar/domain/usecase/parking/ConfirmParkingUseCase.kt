@@ -3,7 +3,7 @@
 package com.rndeveloper.paparcar.domain.usecase.parking
 
 import com.apptolast.customlogin.domain.AuthRepository
-import com.rndeveloper.paparcar.domain.detection.ArmEvidence
+import com.rndeveloper.paparcar.domain.detection.ArmLabel
 import com.rndeveloper.paparcar.domain.detection.assertionBlocksRelocation
 import com.rndeveloper.paparcar.domain.detection.DrivingRoute
 import com.rndeveloper.paparcar.domain.detection.ports.DrivingRouteStore
@@ -89,9 +89,11 @@ class ConfirmParkingUseCase(
         /** Max GPS speed (m/s) the confirming detection session observed, or null when the caller
          *  has no session provenance (BT strategy, external callers). Feeds the repark guard. */
         tripMaxSpeedMps: Float? = null,
-        /** Arm-evidence label of the confirming session (see [ArmEvidence] label constants).
-         *  Verified labels bypass the repark guard. [DET-SOLID-001] */
-        armEvidence: String? = null,
+        /** Arm-evidence label of the confirming session. Verified labels bypass the repark guard
+         *  [DET-SOLID-001]. [DET-AN-ARM-LABEL-IS-PARSED-ONCE-NOT-SPELLED-AT-EVERY-DOOR-001] Typed:
+         *  callers that hold a persisted string parse it at their own edge with
+         *  [ArmLabel.ofPersisted], so this use case never re-derives membership from spelling. */
+        armEvidence: ArmLabel? = null,
         /** [DET-ASSERTION-OUTRANKS-INFERENCE-001] Did the confirming session's own stream witness
          *  SUSTAINED driving? Deliberately separate from [tripMaxSpeedMps], which is a PEAK: one
          *  5,33 m/s sample out of 25 cleared `minimumTripSpeedMps` on 2026-08-24 and walked the
@@ -190,7 +192,7 @@ class ConfirmParkingUseCase(
         // A hand-placed pin never arrives here at all — it carries `SpotType.MANUAL_REPORT`.
         val assertionGuardApplies = spotType == SpotType.AUTO_DETECTED &&
             tripMaxSpeedMps != null &&
-            !ArmEvidence.isVerifiedLabel(armEvidence) &&
+            armEvidence?.isVerifiedDeparture != true &&
             !(sessionSawDriving ?: false)
 
         // ── Repark-plausibility guard [DET-SOLID-001] ─────────────────────────
@@ -204,7 +206,7 @@ class ConfirmParkingUseCase(
         val reparkGuardApplies = spotType == SpotType.AUTO_DETECTED &&
             detectionReliability < config.reliabilityUserConfirmed &&
             tripMaxSpeedMps != null && tripMaxSpeedMps < config.minimumTripSpeedMps &&
-            !ArmEvidence.isVerifiedLabel(armEvidence)
+            armEvidence?.isVerifiedDeparture != true
 
         // ONE read for both: they interrogate the SAME row — the pin this vehicle already holds —
         // with two different rules, and neither may run without it. Read here rather than inside
@@ -245,7 +247,7 @@ class ConfirmParkingUseCase(
                 PaparcarLogger.w(
                     DIAG,
                     "  ⊘ implausible repark — previous active ${ageMs / 1000}s old at ${distanceM.toInt()}m, " +
-                        "session maxSpeed=${tripMaxSpeedMps}m/s (<${config.minimumTripSpeedMps}), evidence=$armEvidence [DET-SOLID-001]"
+                        "session maxSpeed=${tripMaxSpeedMps}m/s (<${config.minimumTripSpeedMps}), evidence=${armEvidence?.persisted} [DET-SOLID-001]"
                 )
                 return Result.failure(PaparcarError.Parking.ImplausibleRepark)
             }
@@ -302,7 +304,9 @@ class ConfirmParkingUseCase(
             carbodyType = resolvedCarbodyType,
             privateZoneId = matchedPrivateZoneId,
             tripMaxSpeedMps = tripMaxSpeedMps,
-            armEvidence = armEvidence,
+            // The word is written back out here — the one edge of this use case where the label is
+            // a string again. [DET-AN-ARM-LABEL-IS-PARSED-ONCE-NOT-SPELLED-AT-EVERY-DOOR-001]
+            armEvidence = armEvidence?.persisted,
             detectionPath = detectionPath,
             zoneRadiusMeters = zoneRadiusMeters,
             routePolyline = routePolyline,

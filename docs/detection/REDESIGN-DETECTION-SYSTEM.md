@@ -591,7 +591,7 @@ hoy se deciden deletreando strings:
 | hoy | pasa a ser |
 |---|---|
 | `weakLabels: Set<String>` | `ArmEvidence.confirmsSilentlyWithoutMeasuredDrive` — `when` exhaustivo ✅ *(hecho, §7)* |
-| `isVerifiedLabel(String)` | propiedad declarada en el `sealed interface` |
+| `isVerifiedLabel(String)` | propiedad declarada en el `sealed interface` ✅ *(hecho el 30-08, `DET-AN-ARM-LABEL-IS-PARSED-ONCE-NOT-SPELLED-AT-EVERY-DOOR-001`, con un matiz que el plan no vio: la palabra necesita **su propio tipo**, `ArmLabel`, porque el arm lleva payload que un parse no puede reconstruir y porque `verified_late` es una palabra SIN arm)* |
 | `humanPowered == SCOOTER \|\| == BIKE` | `VehicleType.isHumanPowered` — `when` exhaustivo |
 | `NON_PARKING_TYPES: Set` | `VehicleType.parkingStrategy` — `when` exhaustivo |
 | **`detectionPath: String`** | **`DetectionPath` sellado**, que lleva DENTRO su `reliability`, su `ParkingDetectionSource` y si es colocado por el usuario |

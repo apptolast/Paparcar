@@ -177,7 +177,7 @@ class BluetoothParkingDetector(
                 detectionPath = PATH_BLUETOOTH_TIMEOUT,
                 // [DET-BT-DISCONNECT-WITHOUT-RIDE-001] Stamp WHAT armed this BT session. The lane
                 // used to persist nothing, so a field pin could only be traced over a cable.
-                armEvidence = ArmEvidence.BtRide(engagement.durationMs).persistLabel,
+                armEvidence = ArmEvidence.BtRide(engagement.durationMs).label,
                 // The user stayed within the walk-away radius for the whole watch, so the pin IS
                 // an honest body position (±30 m) — unlike the egress-confirm case that bans
                 // sealing at the pin. [DET-STEP-BUDGET-ORIGIN-001]
@@ -206,7 +206,7 @@ class BluetoothParkingDetector(
             vehicleId = vehicleId,
             detectionPath = PATH_BLUETOOTH,
             // [DET-BT-DISCONNECT-WITHOUT-RIDE-001] Same provenance stamp as the timeout-save branch.
-            armEvidence = ArmEvidence.BtRide(engagement.durationMs).persistLabel,
+            armEvidence = ArmEvidence.BtRide(engagement.durationMs).label,
             // The fix that settled the walk-away IS where the body is at confirm (≥30 m from the
             // car already) — the honest origin for the step baseline. [DET-STEP-BUDGET-ORIGIN-001]
             sealPoint = walkSettled,

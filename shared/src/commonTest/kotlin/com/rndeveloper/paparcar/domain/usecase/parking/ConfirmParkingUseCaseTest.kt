@@ -2,6 +2,7 @@
 
 package com.rndeveloper.paparcar.domain.usecase.parking
 
+import com.rndeveloper.paparcar.domain.detection.ArmLabel
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
 import com.rndeveloper.paparcar.domain.model.Vehicle
@@ -583,7 +584,7 @@ class ConfirmParkingUseCaseTest {
             location,
             detectionReliability = 0.9f,
             tripMaxSpeedMps = 1.2f,
-            armEvidence = com.rndeveloper.paparcar.domain.detection.ArmEvidence.LABEL_VERIFIED_SPEED,
+            armEvidence = ArmLabel.VERIFIED_SPEED,
             sealPoint = null,
         )
 

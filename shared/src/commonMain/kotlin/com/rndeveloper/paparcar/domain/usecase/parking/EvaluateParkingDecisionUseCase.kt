@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.domain.usecase.parking
 
+import com.rndeveloper.paparcar.domain.detection.ArmLabel
 import com.rndeveloper.paparcar.domain.detection.DetectionPath
 import com.rndeveloper.paparcar.domain.detection.physics.DrivingEvidence
 import com.rndeveloper.paparcar.domain.detection.physics.sustainedDriveWitnessed
@@ -120,9 +121,16 @@ data class ParkingDecisionInput(
      * exactly the pre-ticket behaviour. New call sites must pass it.
      */
     val drivingEvidence: DrivingEvidence? = null,
-    /** Arm-evidence persist label of the session (see [com.rndeveloper.paparcar.domain.detection.ArmEvidence]);
-     *  null for legacy callers. Kept a flat string so the input stays replayable. [DET-SOLID-001] */
-    val evidenceLabel: String? = null,
+    /**
+     * Arm-evidence label of the session; null for legacy callers. [DET-SOLID-001]
+     *
+     * [DET-AN-ARM-LABEL-IS-PARSED-ONCE-NOT-SPELLED-AT-EVERY-DOOR-001] An [ArmLabel] and no longer a
+     * flat string. It was kept flat "so the input stays replayable", but the producer already held
+     * the typed value and stringified it here for the policy below to classify it again by
+     * spelling. A replay parses the recorded word once, with [ArmLabel.ofPersisted], and everything
+     * downstream reads a type.
+     */
+    val evidenceLabel: ArmLabel? = null,
     /** [DET-KINEMATIC-EGRESS-001] The frozen end-of-drive anchor has watched the phone WALK away:
      *  ≥ `kinematicEgressMinWalkFixes` quality pedestrian-band fixes since the freeze. GPS-measured
      *  egress for mute-step-counter hardware — the same inference the freeze already trusts to
@@ -320,8 +328,11 @@ class EvaluateParkingDecisionUseCase(private val config: ParkingDetectionConfig)
         // hierarchy that a new arm cannot skip, and the default is to ASK. The doctrine reads the
         // same either way — the event nominates, only MEASURED movement confirms — but only one of
         // the two spellings makes the compiler enforce it.
-        val armCarriesItsOwnDrive = com.rndeveloper.paparcar.domain.detection.ArmEvidence
-            .confirmsSilentlyWithoutMeasuredDrive(input.evidenceLabel)
+        //
+        // [DET-AN-ARM-LABEL-IS-PARSED-ONCE-NOT-SPELLED-AT-EVERY-DOOR-001] …and the `when` is asked
+        // of the label ITSELF now. The line below used to call a label-side twin of that `when`,
+        // hand-kept a few lines under it: same question, two answers, nothing binding them.
+        val armCarriesItsOwnDrive = input.evidenceLabel?.confirmsSilentlyWithoutMeasuredDrive == true
         val weakEvidenceOnly = config.autoConfirmRequiresStrongEvidence &&
             !armCarriesItsOwnDrive &&
             !sessionSawDriving

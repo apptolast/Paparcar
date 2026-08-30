@@ -5,6 +5,7 @@ package com.rndeveloper.paparcar.domain.detection.coordinator.replay
 import com.rndeveloper.paparcar.fakes.FakeAddressAndPlaceRepository
 import com.rndeveloper.paparcar.domain.usecase.notification.ResolveAskedStreetUseCase
 import com.rndeveloper.paparcar.domain.usecase.location.GetAddressAndPlaceUseCase
+import com.rndeveloper.paparcar.domain.detection.ArmLabel
 import com.rndeveloper.paparcar.domain.detection.CoordinatorParkingDetector
 import com.rndeveloper.paparcar.domain.detection.state.DriveProofSource
 import com.rndeveloper.paparcar.domain.detection.ArmEvidence
@@ -1202,7 +1203,7 @@ class DetectionTraceReplayTest {
                 "same anchor as the verified arm, was ${saved.location.latitude}",
             )
             assertEquals(
-                ArmEvidence.LABEL_INHERITED_DRIVE,
+                ArmLabel.INHERITED_DRIVE.persisted,
                 saved.armEvidence,
                 "and the pin must SAY the drive was inherited — a pin without provenance is not diagnosable",
             )

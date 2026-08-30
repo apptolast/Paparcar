@@ -83,8 +83,12 @@ class DetectionDoctrineGuardrailTest {
      */
     @Test
     fun `no hand-kept set of arm labels decides anything`() {
+        // [DET-AN-ARM-LABEL-IS-PARSED-ONCE-NOT-SPELLED-AT-EVERY-DOOR-001] `ArmEvidence` is no longer
+        // exempt. The exemption was written for the file that DECLARED the label constants, and it
+        // was sheltering two DECISIONS made by comparing them — `isVerifiedLabel` and the label-side
+        // twin of `confirmsSilentlyWithoutMeasuredDrive`, both a few lines under the `when` they
+        // mirrored. The words now live on `ArmLabel`, so nothing in there needs the pass.
         val violations = domainFiles
-            .filter { it.name != "ArmEvidence" }
             .filter { LABEL_SET_REGEX.containsMatchIn(it.text.withoutComments()) }
             .map { it.name }
         assertTrue(
@@ -117,6 +121,34 @@ class DetectionDoctrineGuardrailTest {
         )
     }
 
+    /**
+     * **An arm's word is never compared to a spelling.**
+     *
+     * [DET-AN-ARM-LABEL-IS-PARSED-ONCE-NOT-SPELLED-AT-EVERY-DOOR-001] The sibling of the rule above,
+     * and the shape that actually survived it: not a `setOf(…)` but a chain of `label == "…"`, which
+     * reads as ordinary code and drifts from the sealed `when` it mirrors without anything failing.
+     * The persisted word is parsed ONCE, by `ArmLabel.ofPersisted`, and every question is asked of
+     * the type it returns.
+     *
+     * Comparing the TYPE (`armEvidence == ArmLabel.VERIFIED_ENTER`) is not what this forbids — the
+     * compiler owns that vocabulary. What it forbids is re-deriving membership from a string.
+     */
+    @Test
+    fun `no arm word is compared to a string literal`() {
+        val violations = domainFiles
+            .flatMap { file ->
+                WORD_SPELLING_REGEX.findAll(file.text.withoutComments())
+                    .map { "${file.name}.kt → ${it.value.trim()}" }
+                    .toList()
+            }
+        assertTrue(
+            violations.isEmpty(),
+            "[an arm label classified by spelling it out — parse it once with ArmLabel.ofPersisted " +
+                "and ask the type] ${violations.size} violation(s):\n" +
+                violations.joinToString("\n") { "  - $it" },
+        )
+    }
+
     private companion object {
         /**
          * `detectionPath = "…"` / `pathLabel = "…"`, the two names the persisted provenance uses.
@@ -134,6 +166,14 @@ class DetectionDoctrineGuardrailTest {
 
         /** A `setOf(` whose contents mention an arm-evidence label constant. */
         val LABEL_SET_REGEX = Regex("""setOf\([^)]*LABEL_[A-Z_]+[^)]*\)""", RegexOption.DOT_MATCHES_ALL)
+
+        /**
+         * `armEvidence == "…"` / `evidenceLabel != "…"` / `persistLabel == "…"` — the arm's word
+         * weighed against a spelling. Null checks are not comparisons of a word to a word, so the
+         * shape only matches a string literal on the right.
+         */
+        val WORD_SPELLING_REGEX =
+            Regex("""\b(armEvidence|evidenceLabel|persistLabel|armLabel|persisted)\??\s*[!=]=\s*"""")
 
         /** `detectionPath.startsWith(` / `armEvidence.startsWith(` and their local aliases. */
         val PREFIX_DECISION_REGEX =

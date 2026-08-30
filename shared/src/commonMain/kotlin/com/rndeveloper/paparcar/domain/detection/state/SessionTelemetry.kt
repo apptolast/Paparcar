@@ -1,6 +1,6 @@
 package com.rndeveloper.paparcar.domain.detection.state
 
-import com.rndeveloper.paparcar.domain.detection.ArmEvidence
+import com.rndeveloper.paparcar.domain.detection.ArmLabel
 import com.rndeveloper.paparcar.domain.detection.physics.SessionOutcome
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.UserParking
@@ -73,8 +73,14 @@ data class SessionTelemetry(
      * [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001]
      */
     val authorizedOnArmTrustOnly: Boolean = false,
-    /** The provenance label this session was armed with, as persisted on the pin. */
-    val armEvidence: String = ArmEvidence.LABEL_SELF_OBSERVED,
+    /**
+     * The provenance label this session was armed with, as persisted on the pin.
+     *
+     * [DET-AN-ARM-LABEL-IS-PARSED-ONCE-NOT-SPELLED-AT-EVERY-DOOR-001] An [ArmLabel] and not a
+     * `String`: this is the state a live session reasons about, so it holds the WORD as a type and
+     * spells it out only at the two edges that persist it (`.persisted`).
+     */
+    val armEvidence: ArmLabel = ArmLabel.SELF_OBSERVED,
     /**
      * [VEH-ACTIVE-FENCE-001] The vehicle whose fence NOMINATED this session, if a fence did. Session
      * identity in exactly the sense [armEvidence] is: fixed at the arm, read once when the
@@ -133,7 +139,7 @@ data class SessionTelemetry(
     /** Session start: the arm's provenance label, the fence that nominated it and the pin it must
      *  not silently move. */
     fun armed(
-        evidence: String,
+        evidence: ArmLabel,
         nominatingVehicleId: String? = null,
         activeParkedPin: UserParking? = null,
     ): SessionTelemetry = copy(
@@ -205,7 +211,7 @@ data class SessionTelemetry(
     fun departureConfirmed(): SessionTelemetry = copy(
         driveAuthorized = true,
         authorizedOnArmTrustOnly = false,
-        armEvidence = ArmEvidence.LABEL_VERIFIED_LATE,
+        armEvidence = ArmLabel.VERIFIED_LATE,
     )
 
     /**
@@ -217,7 +223,7 @@ data class SessionTelemetry(
     fun departureDismissed(): SessionTelemetry = copy(
         driveAuthorized = false,
         authorizedOnArmTrustOnly = false,
-        armEvidence = ArmEvidence.LABEL_SELF_OBSERVED,
+        armEvidence = ArmLabel.SELF_OBSERVED,
     )
 
     /** [11 bug #3] This session's ending, named. */

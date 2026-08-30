@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.domain.detection.sentry
 
+import com.rndeveloper.paparcar.domain.detection.ArmLabel
 import com.rndeveloper.paparcar.domain.detection.DriveAuthorization
 
 import com.rndeveloper.paparcar.domain.detection.ArmEvidence
@@ -124,14 +125,18 @@ class SessionSupersedeTest {
      */
     @Test
     fun should_let_an_inherited_drive_pass_the_guards_that_exempt_verified_arms() {
-        assertTrue(ArmEvidence.isVerifiedLabel(ArmEvidence.LABEL_INHERITED_DRIVE))
+        assertTrue(ArmLabel.INHERITED_DRIVE.isVerifiedDeparture)
+        // [DET-AN-ARM-LABEL-IS-PARSED-ONCE-NOT-SPELLED-AT-EVERY-DOOR-001] …asked of the ARM and of
+        // the WORD it persists as, because the guards receive whichever of the two is at hand and
+        // both must answer the same. They cannot disagree now: the arm delegates to its label.
+        assertTrue(ArmEvidence.InheritedDrive(27.2f, DriveProofSource.TRACK_WINDOW).isVerifiedDeparture)
         assertTrue(
-            ArmEvidence.isVerifiedLabel(
+            ArmLabel.ofPersisted(
                 ArmEvidence.InheritedDrive(27.2f, DriveProofSource.TRACK_WINDOW).persistLabel,
-            ),
+            )!!.isVerifiedDeparture,
         )
         // …and the arms that prove nothing still do not.
-        assertFalse(ArmEvidence.isVerifiedLabel(ArmEvidence.BoardingAtCar.persistLabel))
-        assertFalse(ArmEvidence.isVerifiedLabel(ArmEvidence.Unverified.persistLabel))
+        assertFalse(ArmEvidence.BoardingAtCar.isVerifiedDeparture)
+        assertFalse(ArmEvidence.Unverified.isVerifiedDeparture)
     }
 }

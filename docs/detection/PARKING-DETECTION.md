@@ -6262,3 +6262,55 @@ PRODUCTION config, asserting save=0 and prompt=1. It was left untouched on purpo
 that the outcome never depended on the veto.
 
 Spec: `docs/backlog/det-a-veto-nobody-ever-turns-on-is-not-a-veto-001.md`.
+
+### DET-AN-ARM-LABEL-IS-PARSED-ONCE-NOT-SPELLED-AT-EVERY-DOOR-001 — the arm's word gets a type, and one place that reads it (pending)
+
+**Not a field report.** The first of the three memberships Piece 2 of the redesign left open
+(`isVerifiedLabel` → declared on the type).
+
+**What was there.** An arm carries measurements; the persisted session carries only the WORD. So the
+string could not be turned back into `ArmEvidence` without inventing the numbers, and both doors that
+receive a session rather than an arm answered their question by spelling it out again:
+`ArmEvidence.isVerifiedLabel` (four `label ==`, read by the repark and assertion guards in
+`ConfirmParkingUseCase`) and a label-side twin of `confirmsSilentlyWithoutMeasuredDrive` (three
+`label ==`, read by the confirm policy). Both were hand-kept mirrors of two exhaustive `when`s living
+a few lines above them in the same file, and nothing bound the two.
+
+⚠️ **The failure direction is FN, not FP.** Both mirrors failed CLOSED: an unrecognised word answers
+`false`, which means *ask*. A divergence would not have planted a phantom pin — it would have asked
+where it should not have, silently, forever.
+
+**And the guardrail written to forbid this shape could not see it.** `no hand-kept set of arm labels
+decides anything` skipped `ArmEvidence.kt`, which is where both lists lived. The exemption is right
+for DECLARING the words and was sheltering a DECISION made by comparing them — the same hole as
+UI-TYPE-SYSTEM-HYGIENE-001, in another corner.
+
+**The type.** `ArmLabel`: an enum of the nine words the app writes, with `ofPersisted(String?)` as the
+ONE place a label string is ever compared, and the two classification questions answered there once.
+`ArmEvidence` declares its `label` per case and delegates both questions to it.
+
+⛔ **Why a separate enum and not one more sealed case.** `ofPersisted` has to be faithful. Returning
+`VerifiedBySpeed(speedKmh = 0f)` for the word `verified_speed` invents a measurement someone
+downstream could read. The word has no payload; the arm does. And `verified_late` is a word with NO
+arm — `SessionTelemetry.departureConfirmed()` writes it when the worker measures an exit after the
+arm — so the vocabulary is strictly larger than the hierarchy.
+
+**The string is now confined to the edges that persist it**: `SessionTelemetry.armEvidence`,
+`ConfirmParkingUseCase(armEvidence:)` and `ParkingDecisionInput.evidenceLabel` all hold `ArmLabel`;
+`.persisted` appears at four sites — the `SessionStarted` trace line, the repark trace line, the
+`UserParking` the confirm writes, and a replay assertion against that persisted field. `StageInputs`
+stops converting a typed value to a string for the evaluator to classify by spelling three lines
+later.
+
+**What binds the two representations now**, since `driveAuthorization` stays a `when` over the sealed
+hierarchy (it distinguishes trust from measurement, which no label needs): `ArmLabelTest` asserts
+`driveAuthorization != None` equals `label.isVerifiedDeparture` for every arm, and that the arm list
+covers every word except the one with no arm. Both closed sets — *confirms silently* and *verified
+departure* — are frozen with their exact members, and they are the same members as before.
+
+**New guardrail, seen failing before it was believed**: `no arm word is compared to a string literal`.
+Injecting `input.evidenceLabel?.persisted == "manual"` into `EvaluateParkingDecisionUseCase` turned it
+red; reverting turned it green. Comparing the TYPE is not forbidden — the compiler owns that
+vocabulary. Re-deriving membership from a spelling is.
+
+Spec: `docs/backlog/det-an-arm-label-is-parsed-once-not-spelled-at-every-door-001.md`.

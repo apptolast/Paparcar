@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.domain.detection.state
 
+import com.rndeveloper.paparcar.domain.detection.ArmLabel
 import com.rndeveloper.paparcar.domain.detection.ArmEvidence
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.VehicleType
@@ -70,7 +71,7 @@ class SessionTelemetryTest {
         val s = SessionTelemetry().seededOnArmTrust().departureConfirmed()
         assertTrue(s.driveAuthorized)
         assertFalse(s.authorizedOnArmTrustOnly)
-        assertEquals(ArmEvidence.LABEL_VERIFIED_LATE, s.armEvidence)
+        assertEquals(ArmLabel.VERIFIED_LATE, s.armEvidence)
     }
 
     /** …and it grants the seed even to a session that never had one. */
@@ -88,11 +89,11 @@ class SessionTelemetryTest {
      */
     @Test
     fun should_retract_seed_and_evidence_together_when_a_departure_is_dismissed() {
-        val s = SessionTelemetry().armed(ArmEvidence.LABEL_VERIFIED_ENTER).seededOnArmTrust()
+        val s = SessionTelemetry().armed(ArmLabel.VERIFIED_ENTER).seededOnArmTrust()
             .departureDismissed()
         assertFalse(s.driveAuthorized)
         assertFalse(s.authorizedOnArmTrustOnly)
-        assertEquals(ArmEvidence.LABEL_SELF_OBSERVED, s.armEvidence)
+        assertEquals(ArmLabel.SELF_OBSERVED, s.armEvidence)
     }
 
     // ── The per-fix bookkeeping ───────────────────────────────────────────────
@@ -154,7 +155,7 @@ class SessionTelemetryTest {
     @Test
     fun should_keep_the_authorization_and_the_identity_when_the_user_keeps_driving() {
         val before = SessionTelemetry()
-            .armed(ArmEvidence.LABEL_VERIFIED_ENTER)
+            .armed(ArmLabel.VERIFIED_ENTER)
             .seededOnArmTrust()
             .attributeVehicle("veh-1", VehicleType.CAR)
             .countFix()
@@ -166,7 +167,7 @@ class SessionTelemetryTest {
         // Kept: the session is still this session, and it still drove.
         assertTrue(after.driveAuthorized)
         assertTrue(after.hasEverMoved)
-        assertEquals(ArmEvidence.LABEL_VERIFIED_ENTER, after.armEvidence)
+        assertEquals(ArmLabel.VERIFIED_ENTER, after.armEvidence)
         assertEquals("veh-1", after.attributedVehicleId)
         assertEquals(VehicleType.CAR, after.attributedVehicleType)
         assertEquals(1, after.fixCount)
@@ -186,12 +187,12 @@ class SessionTelemetryTest {
     @Test
     fun should_keep_only_the_identity_when_the_user_stops_the_session() {
         val after = SessionTelemetry()
-            .armed(ArmEvidence.LABEL_VERIFIED_ENTER)
+            .armed(ArmLabel.VERIFIED_ENTER)
             .seededOnArmTrust()
             .attributeVehicle("veh-1", VehicleType.CAR)
             .keepingIdentity()
 
-        assertEquals(ArmEvidence.LABEL_VERIFIED_ENTER, after.armEvidence)
+        assertEquals(ArmLabel.VERIFIED_ENTER, after.armEvidence)
         assertEquals("veh-1", after.attributedVehicleId)
         assertFalse(after.driveAuthorized, "a stopped session carries no authorization forward")
     }

@@ -470,7 +470,7 @@ class CoordinatorParkingDetector(
         // it armed.
         _detectionState.update {
             it.copy(
-                session = it.session.armed(armEvidence.persistLabel, nominatingVehicleId, activeParkedPin),
+                session = it.session.armed(armEvidence.label, nominatingVehicleId, activeParkedPin),
             )
         }
 
@@ -572,7 +572,7 @@ class CoordinatorParkingDetector(
         // [DET-LOG-03] Diagnostics session id claimed at entry (T8). The outcome defaults to
         // "ended" — [reset] above put it there — and is refined by the abort paths and by the
         // confirm before the finally emits SessionEnded.
-        logDetection { sid -> DetectionEvent.SessionStarted(sid, sessionStartMs, strategy = "COORDINATOR", evidence = _detectionState.value.session.armEvidence) }
+        logDetection { sid -> DetectionEvent.SessionStarted(sid, sessionStartMs, strategy = "COORDINATOR", evidence = _detectionState.value.session.armEvidence.persisted) }
 
         // Session-start notification cleanup, gated by the executor's saved-confirm age.
         //

@@ -32,6 +32,108 @@ enum class DriveAuthorization {
 }
 
 /**
+ * [DET-AN-ARM-LABEL-IS-PARSED-ONCE-NOT-SPELLED-AT-EVERY-DOOR-001] **The persisted vocabulary of the
+ * arm**, and the only place that classifies it.
+ *
+ * ## Why this is not just [ArmEvidence]
+ *
+ * An arm carries measurements — a speed, an enter-to-exit gap, an engagement duration, an inherited
+ * peak. The persisted session carries only the **word**. So the string cannot be parsed back into
+ * [ArmEvidence] without inventing the numbers, and every door that receives a session instead of an
+ * arm — `ConfirmParkingUseCase`, `EvaluateParkingDecisionUseCase` — used to answer its question by
+ * spelling the words out again: two hand-kept lists of `label == LABEL_…`, mirroring two exhaustive
+ * `when`s that lived a few lines above them.
+ *
+ * Nothing bound the mirrors. Both failed CLOSED, so a divergence would not have planted a phantom
+ * pin — it would have asked where it should not have, quietly, forever. And the guardrail written to
+ * forbid exactly this shape (`no hand-kept set of arm labels decides anything`) exempts
+ * `ArmEvidence.kt`, which is where both lists lived: the exemption is legitimate for DECLARING the
+ * words and was sheltering a DECISION made by comparing them.
+ *
+ * So the word gets its own total type. [ofPersisted] is the one parse, the two questions are
+ * answered here once, and [ArmEvidence] delegates to its own [ArmEvidence.label] rather than
+ * answering them a second time.
+ *
+ * ⚠️ [VERIFIED_LATE] is the reason this cannot be a property of the sealed hierarchy alone: it is a
+ * label with no arm. `SessionTelemetry.departureConfirmed()` writes it when the departure worker
+ * measures an exit AFTER the arm, so it exists only as a word on a live session.
+ */
+enum class ArmLabel(val persisted: String) {
+
+    /** The user explicitly started detection — their own word. */
+    MANUAL("manual"),
+
+    /** A one-shot fix at departure speed witnessed the exit. */
+    VERIFIED_SPEED("verified_speed"),
+
+    /** A recent AR `IN_VEHICLE_ENTER` backs the exit. Fires on ANY vehicle. */
+    VERIFIED_ENTER("verified_enter"),
+
+    /** [DET-G-05] A departure the worker MEASURED after the arm — a post-arm upgrade, never an arm. */
+    VERIFIED_LATE("verified_late"),
+
+    /** No external verification: the coordinator's own stream is the only witness. */
+    SELF_OBSERVED("self_observed"),
+
+    /** [DET-AR-FIRST-001] A fresh AR ENTER inside the parked car's own fence — the boarding moment. */
+    ENTER_AT_CAR("enter_at_car"),
+
+    /** [DET-HANDOFF-NOT-MANUAL-001] The safety net DEDUCED a departure and handed the trip over. */
+    ARRIVAL_HANDOFF("arrival_handoff"),
+
+    /** [DET-BT-DISCONNECT-WITHOUT-RIDE-001] A ride-shaped Bluetooth engagement armed this session. */
+    BT_RIDE("bt_ride"),
+
+    /** [DET-SUPERSEDE-CANNOT-DISCARD-A-MEASURED-DRIVE-001] The drive proof of the superseded session. */
+    INHERITED_DRIVE("inherited_drive"),
+    ;
+
+    /**
+     * Whether the departure was proven OUTSIDE this session's own stream — the question the
+     * repark-plausibility and assertion guards ask before they interrogate a confirm.
+     *
+     * Those guards exist to catch a session that never saw a car. An arm that carries external
+     * proof is not that session, so it passes through. [VERIFIED_LATE] belongs here for the same
+     * reason: the departure worker measured the exit, just later than the arm.
+     */
+    val isVerifiedDeparture: Boolean
+        get() = when (this) {
+            VERIFIED_SPEED, VERIFIED_ENTER, VERIFIED_LATE, INHERITED_DRIVE -> true
+            MANUAL, SELF_OBSERVED, ENTER_AT_CAR, ARRIVAL_HANDOFF, BT_RIDE -> false
+        }
+
+    /**
+     * [DET-DRIVING-EVIDENCE-IS-THE-ONLY-GATE-001] Whether this arm lets the session save a park in
+     * SILENCE when its own stream never measured a drive. The reasoning per case is on
+     * [ArmEvidence.confirmsSilentlyWithoutMeasuredDrive], which this answers for.
+     *
+     * [VERIFIED_LATE] answers `false` and is the one case with no sealed counterpart to inherit the
+     * reasoning from: a late upgrade can rest on the same ENTER fall-through it was meant to
+     * strengthen, and it must never override a prompt the policy already chose (field 2026-07-04).
+     */
+    val confirmsSilentlyWithoutMeasuredDrive: Boolean
+        get() = when (this) {
+            MANUAL, INHERITED_DRIVE, VERIFIED_SPEED -> true
+            VERIFIED_ENTER, VERIFIED_LATE, SELF_OBSERVED,
+            ENTER_AT_CAR, ARRIVAL_HANDOFF, BT_RIDE,
+            -> false
+        }
+
+    companion object {
+        /**
+         * The persisted word back to its type, or **null when nothing recognises it** — the same
+         * shape and the same failure direction as `DetectionPath.ofLabel`.
+         *
+         * ⛔ Fails CLOSED: an unknown or absent label is no evidence, and no evidence means the
+         * guards stay armed and the policy asks. This is the ONE place a label string is compared,
+         * and every door reads its answer instead of re-deriving one.
+         */
+        fun ofPersisted(label: String?): ArmLabel? =
+            if (label.isNullOrBlank()) null else entries.firstOrNull { it.persisted == label }
+    }
+}
+
+/**
  * Typed evidence behind a detection-session arm — what proved (or failed to prove) that the
  * vehicle actually drove before this session started looking for the next park.
  *
@@ -111,10 +213,17 @@ sealed interface ArmEvidence {
             is Manual, is Unverified, is BoardingAtCar, is ArrivalHandoff, is BtRide -> DriveAuthorization.None
         }
 
-    /** Whether this evidence proves the departure — seeds `hasEverReachedDrivingSpeed` so the
-     *  coordinator does not re-litigate a drive its stream structurally cannot observe. */
+    /**
+     * Whether this evidence proves the departure — seeds `hasEverReachedDrivingSpeed` so the
+     * coordinator does not re-litigate a drive its stream structurally cannot observe.
+     *
+     * [DET-AN-ARM-LABEL-IS-PARSED-ONCE-NOT-SPELLED-AT-EVERY-DOOR-001] Delegated to [label] rather
+     * than restated as `driveAuthorization != None`, so the arm and the persisted session give the
+     * same answer BY CONSTRUCTION instead of by two expressions that happen to agree today.
+     * `ArmEvidenceTest` binds the two: for every arm, `driveAuthorization != None` must equal this.
+     */
     val isVerifiedDeparture: Boolean
-        get() = driveAuthorization != DriveAuthorization.None
+        get() = label.isVerifiedDeparture
 
     /**
      * [DET-DRIVING-EVIDENCE-IS-THE-ONLY-GATE-001] Whether this arm lets the session save a park in
@@ -145,80 +254,53 @@ sealed interface ArmEvidence {
      * silently pinned "La Parafarmacia" at reliability 0.9 after 29 m of net displacement, with
      * `DriveProof.proven == null` for the whole session. Stated as a `when` over the sealed
      * hierarchy, the set is CLOSED and a new arm does not compile until its author answers.
+     *
+     * [DET-AN-ARM-LABEL-IS-PARSED-ONCE-NOT-SPELLED-AT-EVERY-DOOR-001] That `when` now lives on
+     * [ArmLabel], because the decision site receives the persisted WORD and not the arm. Answering
+     * the same question in both places is how the mirror got written; this delegates instead.
      */
     val confirmsSilentlyWithoutMeasuredDrive: Boolean
+        get() = label.confirmsSilentlyWithoutMeasuredDrive
+
+    /**
+     * [DET-AN-ARM-LABEL-IS-PARSED-ONCE-NOT-SPELLED-AT-EVERY-DOOR-001] Which word this arm persists
+     * as. Declared per case: a new arm does not compile until its author picks one (or adds it).
+     */
+    val label: ArmLabel
         get() = when (this) {
-            is Manual, is InheritedDrive, is VerifiedBySpeed -> true
-            is VerifiedByVehicleEnter, is Unverified,
-            is BoardingAtCar, is ArrivalHandoff, is BtRide,
-            -> false
+            is Manual -> ArmLabel.MANUAL
+            is VerifiedBySpeed -> ArmLabel.VERIFIED_SPEED
+            is VerifiedByVehicleEnter -> ArmLabel.VERIFIED_ENTER
+            is Unverified -> ArmLabel.SELF_OBSERVED
+            is BoardingAtCar -> ArmLabel.ENTER_AT_CAR
+            is ArrivalHandoff -> ArmLabel.ARRIVAL_HANDOFF
+            is BtRide -> ArmLabel.BT_RIDE
+            is InheritedDrive -> ArmLabel.INHERITED_DRIVE
         }
 
     /** Stable label persisted on the session / logged in diagnostics. */
     val persistLabel: String
-        get() = when (this) {
-            is Manual -> LABEL_MANUAL
-            is VerifiedBySpeed -> LABEL_VERIFIED_SPEED
-            is VerifiedByVehicleEnter -> LABEL_VERIFIED_ENTER
-            is Unverified -> LABEL_SELF_OBSERVED
-            is BoardingAtCar -> LABEL_ENTER_AT_CAR
-            is ArrivalHandoff -> LABEL_ARRIVAL_HANDOFF
-            is BtRide -> LABEL_BT_RIDE
-            is InheritedDrive -> LABEL_INHERITED_DRIVE
-        }
+        get() = label.persisted
 
     companion object {
-        const val LABEL_MANUAL = "manual"
-        const val LABEL_VERIFIED_SPEED = "verified_speed"
-        const val LABEL_VERIFIED_ENTER = "verified_enter"
-        /** [DET-AR-FIRST-001] Boarding caught at the car (fresh ENTER inside the own fence). */
-        const val LABEL_ENTER_AT_CAR = "enter_at_car"
-        /** A departure verdict confirmed AFTER the arm (worker upgrade). [DET-G-05] */
-        const val LABEL_VERIFIED_LATE = "verified_late"
-        /** No external verification — the coordinator's own stream is the only witness. */
-        const val LABEL_SELF_OBSERVED = "self_observed"
-        /** [DET-HANDOFF-NOT-MANUAL-001] The safety net's arrival handoff: a DEDUCED departure, never
-         *  a witnessed drive and never the user's own word. */
-        const val LABEL_ARRIVAL_HANDOFF = "arrival_handoff"
-        /** [DET-BT-DISCONNECT-WITHOUT-RIDE-001] A ride-shaped Bluetooth engagement armed this BT
-         *  session. The BT lane used to stamp NOTHING, so a field pin could not be traced to its
-         *  trigger without pulling the device log over a cable. */
-        const val LABEL_BT_RIDE = "bt_ride"
-        /** [DET-SUPERSEDE-CANNOT-DISCARD-A-MEASURED-DRIVE-001] The drive proof of the session this
-         *  one replaced, carried across the supersede. */
-        const val LABEL_INHERITED_DRIVE = "inherited_drive"
-
         /**
-         * Labels that bypass the repark-plausibility and assertion guards: the drive was externally
-         * proven.
+         * [DET-AN-ARM-LABEL-IS-PARSED-ONCE-NOT-SPELLED-AT-EVERY-DOOR-001] Every arm this type can
+         * build, for the tests that must not let a new one slip past the two questions.
          *
-         * [DET-SUPERSEDE-CANNOT-DISCARD-A-MEASURED-DRIVE-001] [LABEL_INHERITED_DRIVE] belongs here
-         * and the reason is the whole ticket: those two guards exist to catch a session that never
-         * saw a car, and they read the SUCCESSOR's own peak — which on the last hop of a trip is a
-         * manoeuvring speed. Without the bypass the one arm that carries a MEASURED drive would be
-         * the one they mistake for a pedestrian.
+         * A list, and not `entries`, because the payload cases are not objects — the values here are
+         * representative, and only the classification is asserted of them. It is closed by
+         * `ArmEvidenceTest`, which requires it to cover every [ArmLabel] except
+         * [ArmLabel.VERIFIED_LATE]: add a case, add a label, and the test fails until it is listed.
          */
-        fun isVerifiedLabel(label: String?): Boolean =
-            label == LABEL_VERIFIED_SPEED || label == LABEL_VERIFIED_ENTER ||
-                label == LABEL_VERIFIED_LATE || label == LABEL_INHERITED_DRIVE
-
-        /**
-         * [DET-DRIVING-EVIDENCE-IS-THE-ONLY-GATE-001] The label-side reading of
-         * [confirmsSilentlyWithoutMeasuredDrive], for the decision site, which receives the arm as
-         * the persisted string rather than as the sealed value.
-         *
-         * **Fails CLOSED on purpose.** An unknown or absent label answers `false`, i.e. *ask*. The
-         * predicate this replaced failed OPEN — an unlisted label was strong by default — and that
-         * is precisely how `enter_at_car` walked through it. Asymmetric failure is the project's
-         * doctrine: better a question than a phantom pin.
-         *
-         * [LABEL_VERIFIED_LATE] has no sealed counterpart (the departure worker stamps it as a
-         * post-arm upgrade), so it is answered here and answered `false`: a late upgrade can rest on
-         * the same ENTER fall-through it was meant to strengthen, and it must never override a
-         * prompt the policy already chose (field 2026-07-04).
-         */
-        fun confirmsSilentlyWithoutMeasuredDrive(label: String?): Boolean =
-            label == LABEL_MANUAL || label == LABEL_INHERITED_DRIVE ||
-                label == LABEL_VERIFIED_SPEED
+        val allArms: List<ArmEvidence> = listOf(
+            Manual,
+            VerifiedBySpeed(speedKmh = 0f, accuracyM = null),
+            VerifiedByVehicleEnter(enterToExitMs = 0L),
+            Unverified,
+            BoardingAtCar,
+            ArrivalHandoff,
+            BtRide(engagementMs = 0L),
+            InheritedDrive(maxSpeedMps = 0f, source = DriveProofSource.TRACK_WINDOW),
+        )
     }
 }

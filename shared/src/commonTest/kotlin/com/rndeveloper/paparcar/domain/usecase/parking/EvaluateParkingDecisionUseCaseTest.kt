@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.domain.usecase.parking
 
+import com.rndeveloper.paparcar.domain.detection.ArmLabel
 import com.rndeveloper.paparcar.domain.detection.physics.DrivingEvidence
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
 import com.rndeveloper.paparcar.domain.model.VehicleType
@@ -39,7 +40,7 @@ class EvaluateParkingDecisionUseCaseTest {
         // the policy fall back to `sustainedDrivingMs`, which is what every scenario written before
         // the value object was expressing. Tests about the verdict itself pass it explicitly.
         drivingEvidence: DrivingEvidence? = null,
-        evidenceLabel: String? = null,
+        evidenceLabel: ArmLabel? = null,
         hasKinematicEgress: Boolean = false,
         lastSpeedMps: Float = 0f,
         egressExceedsWalkReach: Boolean = false,
@@ -88,7 +89,7 @@ class EvaluateParkingDecisionUseCaseTest {
                 hasEgressDisplacement = true,
                 maxSpeedKmh = 19f,
                 sustainedDrivingMs = 0L, // one 5,33 m/s fix out of 25 is not a drive
-                evidenceLabel = com.rndeveloper.paparcar.domain.detection.ArmEvidence.LABEL_SELF_OBSERVED,
+                evidenceLabel = ArmLabel.SELF_OBSERVED,
                 assertedPinBlocksRelocation = true,
             ),
         )
@@ -105,7 +106,7 @@ class EvaluateParkingDecisionUseCaseTest {
                 hasEgressDisplacement = true,
                 maxSpeedKmh = 19f,
                 sustainedDrivingMs = 0L,
-                evidenceLabel = com.rndeveloper.paparcar.domain.detection.ArmEvidence.LABEL_SELF_OBSERVED,
+                evidenceLabel = ArmLabel.SELF_OBSERVED,
                 assertedPinBlocksRelocation = false,
             ),
         )
@@ -227,7 +228,7 @@ class EvaluateParkingDecisionUseCaseTest {
                 hasEgressDisplacement = true,
                 maxSpeedKmh = 4f,
                 sessionDurationMs = 60_000L, // short session — mismatch guard (>=8 min) not in play
-                evidenceLabel = com.rndeveloper.paparcar.domain.detection.ArmEvidence.LABEL_VERIFIED_ENTER,
+                evidenceLabel = ArmLabel.VERIFIED_ENTER,
             )
         )
         assertIs<ParkingDecision.Prompt>(decision)
@@ -241,7 +242,7 @@ class EvaluateParkingDecisionUseCaseTest {
                 stepCount = 8,
                 hasEgressDisplacement = true,
                 maxSpeedKmh = 30f, // the session itself witnessed the drive
-                evidenceLabel = com.rndeveloper.paparcar.domain.detection.ArmEvidence.LABEL_VERIFIED_ENTER,
+                evidenceLabel = ArmLabel.VERIFIED_ENTER,
             )
         )
         assertIs<ParkingDecision.Confirmed>(decision)
@@ -254,7 +255,7 @@ class EvaluateParkingDecisionUseCaseTest {
                 stepCount = 8,
                 hasEgressDisplacement = true,
                 maxSpeedKmh = 4f,
-                evidenceLabel = com.rndeveloper.paparcar.domain.detection.ArmEvidence.LABEL_VERIFIED_SPEED,
+                evidenceLabel = ArmLabel.VERIFIED_SPEED,
             )
         )
         assertIs<ParkingDecision.Confirmed>(decision)
@@ -278,7 +279,7 @@ class EvaluateParkingDecisionUseCaseTest {
                 maxSpeedKmh = 27.8f,
                 sustainedDrivingMs = 60_000L, // the clock alone would have said "yes"
                 drivingEvidence = DrivingEvidence.Weak(credibleFixes = 1, why = "field 2026-08-29"),
-                evidenceLabel = com.rndeveloper.paparcar.domain.detection.ArmEvidence.LABEL_VERIFIED_ENTER,
+                evidenceLabel = ArmLabel.VERIFIED_ENTER,
             )
         )
         assertEquals(PromptReason.WEAK_EVIDENCE, assertIs<ParkingDecision.Prompt>(decision).reason)
@@ -298,7 +299,7 @@ class EvaluateParkingDecisionUseCaseTest {
                     excursionMeters = 3098.0,
                     sustainedBandMs = 30_001L,
                 ),
-                evidenceLabel = com.rndeveloper.paparcar.domain.detection.ArmEvidence.LABEL_VERIFIED_LATE,
+                evidenceLabel = ArmLabel.VERIFIED_LATE,
             )
         )
         assertIs<ParkingDecision.Confirmed>(decision)
@@ -327,7 +328,7 @@ class EvaluateParkingDecisionUseCaseTest {
                 hasEgressDisplacement = true,
                 maxSpeedKmh = 27.8f, // the mirage fix: 7.71 m/s, and the session peak because of it
                 sustainedDrivingMs = 0L, // …but nothing ever HELD the band: no drive was proven
-                evidenceLabel = com.rndeveloper.paparcar.domain.detection.ArmEvidence.LABEL_ENTER_AT_CAR,
+                evidenceLabel = ArmLabel.ENTER_AT_CAR,
             )
         )
         val prompt = assertIs<ParkingDecision.Prompt>(decision)
@@ -346,7 +347,7 @@ class EvaluateParkingDecisionUseCaseTest {
                 hasEgressDisplacement = true,
                 maxSpeedKmh = 60f,
                 sustainedDrivingMs = 60_000L,
-                evidenceLabel = com.rndeveloper.paparcar.domain.detection.ArmEvidence.LABEL_ENTER_AT_CAR,
+                evidenceLabel = ArmLabel.ENTER_AT_CAR,
             )
         )
         assertIs<ParkingDecision.Confirmed>(decision)
@@ -364,7 +365,7 @@ class EvaluateParkingDecisionUseCaseTest {
                 hasEgressDisplacement = true,
                 maxSpeedKmh = 4f,
                 sustainedDrivingMs = 0L,
-                evidenceLabel = com.rndeveloper.paparcar.domain.detection.ArmEvidence.LABEL_INHERITED_DRIVE,
+                evidenceLabel = ArmLabel.INHERITED_DRIVE,
             )
         )
         assertIs<ParkingDecision.Confirmed>(decision)
@@ -382,7 +383,7 @@ class EvaluateParkingDecisionUseCaseTest {
                 hasEgressDisplacement = true,
                 maxSpeedKmh = 0f,
                 sustainedDrivingMs = 0L,
-                evidenceLabel = com.rndeveloper.paparcar.domain.detection.ArmEvidence.LABEL_MANUAL,
+                evidenceLabel = ArmLabel.MANUAL,
             )
         )
         assertIs<ParkingDecision.Confirmed>(decision)
@@ -393,13 +394,19 @@ class EvaluateParkingDecisionUseCaseTest {
         // The predicate must fail CLOSED. The old one failed open: an unlisted label was strong by
         // default, which is the whole mechanism of the parafarmacia FP. An unrecognised (or absent)
         // arm is the least trustworthy thing this evaluator can be handed — it asks.
+        //
+        // [DET-AN-ARM-LABEL-IS-PARSED-ONCE-NOT-SPELLED-AT-EVERY-DOOR-001] The unknown word cannot
+        // reach the evaluator as a word any more, so the test asks at the door that now owns the
+        // question: the parse answers `null`, and a null asks. Same doctrine, one boundary earlier.
+        val unknown = ArmLabel.ofPersisted("some_arm_invented_after_this_ticket")
+        assertEquals(null, unknown, "an unrecognised word must not resolve to any arm")
         val decision = evaluate(
             input(
                 stepCount = 8,
                 hasEgressDisplacement = true,
                 maxSpeedKmh = 4f,
                 sustainedDrivingMs = 0L,
-                evidenceLabel = "some_arm_invented_after_this_ticket",
+                evidenceLabel = unknown,
             )
         )
         assertEquals(PromptReason.WEAK_EVIDENCE, assertIs<ParkingDecision.Prompt>(decision).reason)
@@ -418,7 +425,7 @@ class EvaluateParkingDecisionUseCaseTest {
                 stepCount = 270,
                 hasEgressDisplacement = true,
                 maxSpeedKmh = 0f,
-                evidenceLabel = com.rndeveloper.paparcar.domain.detection.ArmEvidence.LABEL_SELF_OBSERVED,
+                evidenceLabel = ArmLabel.SELF_OBSERVED,
             )
         )
         assertEquals("steps+egress", assertIs<ParkingDecision.Prompt>(decision).pathLabel)
@@ -433,7 +440,7 @@ class EvaluateParkingDecisionUseCaseTest {
                 stepCount = 8,
                 hasEgressDisplacement = true,
                 maxSpeedKmh = 30f,
-                evidenceLabel = com.rndeveloper.paparcar.domain.detection.ArmEvidence.LABEL_SELF_OBSERVED,
+                evidenceLabel = ArmLabel.SELF_OBSERVED,
             )
         )
         assertIs<ParkingDecision.Confirmed>(decision)
@@ -450,7 +457,7 @@ class EvaluateParkingDecisionUseCaseTest {
                 stepCount = 102,
                 hasEgressDisplacement = true,
                 maxSpeedKmh = 0f,
-                evidenceLabel = com.rndeveloper.paparcar.domain.detection.ArmEvidence.LABEL_ARRIVAL_HANDOFF,
+                evidenceLabel = ArmLabel.ARRIVAL_HANDOFF,
             )
         )
         assertEquals("steps+egress", assertIs<ParkingDecision.Prompt>(decision).pathLabel)
@@ -466,7 +473,7 @@ class EvaluateParkingDecisionUseCaseTest {
                 stepCount = 8,
                 hasEgressDisplacement = true,
                 maxSpeedKmh = 30f,
-                evidenceLabel = com.rndeveloper.paparcar.domain.detection.ArmEvidence.LABEL_ARRIVAL_HANDOFF,
+                evidenceLabel = ArmLabel.ARRIVAL_HANDOFF,
             )
         )
         assertIs<ParkingDecision.Confirmed>(decision)
@@ -487,7 +494,7 @@ class EvaluateParkingDecisionUseCaseTest {
                 maxSpeedKmh = 18.1f,
                 sustainedDrivingMs = 6_000L,
                 sessionDurationMs = 6 * 60_000L,
-                evidenceLabel = com.rndeveloper.paparcar.domain.detection.ArmEvidence.LABEL_SELF_OBSERVED,
+                evidenceLabel = ArmLabel.SELF_OBSERVED,
             )
         )
         assertEquals("steps+egress", assertIs<ParkingDecision.Prompt>(decision).pathLabel)
@@ -504,7 +511,7 @@ class EvaluateParkingDecisionUseCaseTest {
                 hasEgressDisplacement = true,
                 maxSpeedKmh = 25f,
                 sustainedDrivingMs = 36_000L,
-                evidenceLabel = com.rndeveloper.paparcar.domain.detection.ArmEvidence.LABEL_SELF_OBSERVED,
+                evidenceLabel = ArmLabel.SELF_OBSERVED,
             )
         )
         assertIs<ParkingDecision.Confirmed>(decision)
@@ -625,7 +632,7 @@ class EvaluateParkingDecisionUseCaseTest {
                 hasEgressDisplacement = true,
                 maxSpeedKmh = 4f,
                 sessionDurationMs = 60_000L,
-                evidenceLabel = com.rndeveloper.paparcar.domain.detection.ArmEvidence.LABEL_VERIFIED_ENTER,
+                evidenceLabel = ArmLabel.VERIFIED_ENTER,
             )
         )
         assertIs<ParkingDecision.Confirmed>(decision)
@@ -840,7 +847,7 @@ class EvaluateParkingDecisionUseCaseTest {
         anchorWalkEntered: Boolean = false,
         anchorGapEntered: Boolean = false,
         humanPoweredRide: Boolean = false,
-        evidenceLabel: String? = com.rndeveloper.paparcar.domain.detection.ArmEvidence.LABEL_VERIFIED_SPEED,
+        evidenceLabel: ArmLabel? = ArmLabel.VERIFIED_SPEED,
         maxSpeedKmh: Float = 60f,
     ) = input(
         stepCount = 8,
@@ -868,7 +875,7 @@ class EvaluateParkingDecisionUseCaseTest {
                 hasEgressDisplacement = true,
                 vehicleType = VehicleType.BIKE,
                 maxSpeedKmh = 60f,
-                evidenceLabel = com.rndeveloper.paparcar.domain.detection.ArmEvidence.LABEL_VERIFIED_SPEED,
+                evidenceLabel = ArmLabel.VERIFIED_SPEED,
             ),
         )
         assertEquals(PromptReason.HUMAN_POWERED, assertIs<ParkingDecision.Prompt>(decision).reason)
@@ -878,7 +885,7 @@ class EvaluateParkingDecisionUseCaseTest {
     fun should_name_the_cause_when_the_arm_is_weak_and_nothing_witnessed_a_drive() {
         val decision = evaluate(
             confirmableInput(
-                evidenceLabel = com.rndeveloper.paparcar.domain.detection.ArmEvidence.LABEL_SELF_OBSERVED,
+                evidenceLabel = ArmLabel.SELF_OBSERVED,
                 maxSpeedKmh = 0f,
             ),
         )
@@ -926,7 +933,7 @@ class EvaluateParkingDecisionUseCaseTest {
                         egressBornAtAnchor = false,
                         anchorWalkEntered = true,
                         anchorGapEntered = true,
-                        evidenceLabel = com.rndeveloper.paparcar.domain.detection.ArmEvidence.LABEL_SELF_OBSERVED,
+                        evidenceLabel = ArmLabel.SELF_OBSERVED,
                         maxSpeedKmh = 0f,
                     ),
                 ),
@@ -939,7 +946,7 @@ class EvaluateParkingDecisionUseCaseTest {
                     confirmableInput(
                         egressBornAtAnchor = false,
                         anchorWalkEntered = true,
-                        evidenceLabel = com.rndeveloper.paparcar.domain.detection.ArmEvidence.LABEL_SELF_OBSERVED,
+                        evidenceLabel = ArmLabel.SELF_OBSERVED,
                         maxSpeedKmh = 0f,
                     ),
                 ),

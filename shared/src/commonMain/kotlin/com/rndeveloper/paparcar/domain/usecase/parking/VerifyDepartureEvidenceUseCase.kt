@@ -28,7 +28,7 @@ import com.rndeveloper.paparcar.domain.util.PaparcarLogger
  *    `exit_echo` there 760 ms later, and the seed it planted confirmed a phantom park in the living
  *    room. In practice both callers sample the fix at trigger time, so this branch is now
  *    unreachable from them BY CONSTRUCTION and the seed arrives from measurement instead — the
- *    worker's ~15 s retry ([ArmEvidence.LABEL_VERIFIED_LATE]), the displacement proof
+ *    worker's ~15 s retry (`verified_late`), the displacement proof
  *    (`DET-SHORT-HOP-PROOF-001`) or the session's own stream. The branch is kept (not deleted)
  *    because the parameter admits a genuinely older event and the label is persisted on existing
  *    pins. [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001]
