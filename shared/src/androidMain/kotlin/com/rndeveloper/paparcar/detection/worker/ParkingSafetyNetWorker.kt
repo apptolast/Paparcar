@@ -355,10 +355,23 @@ class ParkingSafetyNetWorker(
                         hasKnownCause = statePoisoned,
                     )
                     if (!mustReregister || !ledgerAgrees) {
-                        val why = if (!mustReregister) {
-                            "la valla se re-registró hace ${(now - lastCureAt) / 60_000}min, no toca aún"
-                        } else {
-                            "otra vía acaba de registrarla, no repito"
+                        // [DET-THE-EVIDENCE-MUST-REACH-THE-TRACE-001] This line used to claim ONE
+                        // cause for every no-op, and invent a number to back it: `lastCureAt`
+                        // defaults to 0 when the fence was never cured, so a brand-new pin printed
+                        // «la valla se re-registró hace 29797878min» — 56 years, from the epoch —
+                        // as the reason for not curing. The real reason in that case is the
+                        // opposite one: the parking is too FRESH to cure (field 2026-08-28).
+                        // `shouldReregisterCure` has three ways to say no; the trace now says which.
+                        val sessionAgeMs = now - session.location.timestamp
+                        val why = when {
+                            mustReregister -> "otra vía acaba de registrarla, no repito"
+                            sessionAgeMs < config.cureSkipFreshSessionMs ->
+                                "el aparcamiento es de hace ${sessionAgeMs / 60_000}min y aún no ha " +
+                                    "podido quedarse ciego, no toca"
+                            lastCureAt <= 0L ->
+                                "esta valla no se ha re-registrado nunca y este proceso ya la miró, no repito"
+                            else ->
+                                "la valla se re-registró hace ${(now - lastCureAt) / 60_000}min, no toca aún"
                         }
                         debugLines += "geof=$geofTag: sigues junto al coche (d=${distanceM}m, radio ${action.radiusMeters.toInt()}m) → resello la referencia de pasos; $why"
                     } else {

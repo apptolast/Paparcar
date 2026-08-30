@@ -12,6 +12,7 @@ import com.rndeveloper.paparcar.domain.detection.state.isAnchorPinned
 import com.rndeveloper.paparcar.domain.detection.state.isAnchorWalkEntered
 import com.rndeveloper.paparcar.domain.detection.state.isEgressBornAtAnchor
 import com.rndeveloper.paparcar.domain.model.GpsPoint
+import com.rndeveloper.paparcar.domain.util.haversineMeters
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
 import com.rndeveloper.paparcar.domain.usecase.parking.ParkingDecisionInput
 import com.rndeveloper.paparcar.domain.usecase.parking.UnattendedParkingSave
@@ -142,8 +143,29 @@ fun DetectionSessionState.unattendedVerdictTrace(
         "stepEvents=${anchorTrust.capture.stepEvents} sawSteps=${anchorTrust.capture.sawSteps} " +
         "walkInSpan=${anchorTrust.capture.walkInSpanMeters.toInt()}m carRest=${anchorRestMs(now, config)}ms " +
         "stopped=${stoppedDuration}ms " +
-        "gapMs=${anchorTrust.capture.gapMs}] " +
+        "gapMs=${anchorTrust.capture.gapMs} " +
+        // [DET-THE-EVIDENCE-MUST-REACH-THE-TRACE-001] `DET-NO-CLOCK-PLANTS-A-PIN-001` gave the zone
+        // a CHOICE of centre — the anchor, or the best rest the stop window witnessed — and a
+        // decision that leaves no trace is a decision no field test can check. Says which fix won
+        // and how far apart the two candidates were, which is the whole finding of the 142 m pin.
+        "centre=${zoneCentreTrace(config)}] " +
         "[DET-WALK-ENTERED-ANCHOR-ZONE-001][DET-GAP-ANCHOR-ZONE-001]"
+
+/** [DET-THE-EVIDENCE-MUST-REACH-THE-TRACE-001] Which candidate the zone centred on, and the gap
+ *  between them. `anchor` when nothing better was witnessed; `rest` when the stop window held a
+ *  strictly more accurate fix — the case that moved the field pin of 2026-08-30 by 157 m. */
+private fun DetectionSessionState.zoneCentreTrace(config: ParkingDetectionConfig): String {
+    val anchor = anchorTrust.anchor
+    val witnessed = anchorTrust.witnessedRestFix
+    if (witnessed == null || anchor == null) return "anchor(no-alternative)"
+    if (witnessed.accuracy >= anchor.accuracy) {
+        return "anchor(rest acc=${witnessed.accuracy}m not better than ${anchor.accuracy}m)"
+    }
+    val apart = haversineMeters(
+        anchor.latitude, anchor.longitude, witnessed.latitude, witnessed.longitude,
+    )
+    return "rest(acc=${witnessed.accuracy}m vs anchor ${anchor.accuracy}m, ${apart.toInt()}m apart)"
+}
 
 /** [DET-BIKE-NOT-A-CAR-001] Whether this session's movement was human-powered — the profile
  *  answer OR the measured one. Thin wrapper so both decision sites and the unattended timeout

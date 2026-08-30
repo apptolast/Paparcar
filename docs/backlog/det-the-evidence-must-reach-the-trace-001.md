@@ -61,12 +61,32 @@ veredicto que ningún field test puede comprobar.**
 | `buildSummary` (espejo en logcat) | **cerrado** — imprime las dos |
 | **análisis históricos que citen `drivingFixes`** | ⚠️ **quedan sospechosos**: §6.1 del rediseño ya corregido; cualquier otro que aparezca hay que recontarlo con `credibleDrivingFixes` |
 
+## Auditoría del resto de la superficie de logging
+
+Barrido de las dos familias de error que este ticket persigue: *una cifra calculada con otra
+definición* y *una línea que nombra una causa que no es la suya*.
+
+| sitio | veredicto |
+|---|---|
+| `ParkingSafetyNetWorker:359` — «la valla se re-registró hace Nmin» | 🔴 **BUG, arreglado.** `lastCureAt` vale 0 cuando la valla no se ha curado NUNCA, así que un pin recién puesto imprimía «hace **29797878**min» (56 años, desde el epoch) como razón de no curar. Y la razón real era **la contraria**: el aparcamiento es demasiado FRESCO. `shouldReregisterCure` tiene tres formas de decir que no; la línea decía siempre la misma. Ahora dice cuál |
+| Elección de centro de zona (`DET-NO-CLOCK-PLANTS-A-PIN-001`) | 🔴 **Laguna que abrí yo ayer, cerrada.** La zona ganó una elección de centro y no dejaba rastro. `centre=` dice qué candidato ganó, con qué precisión cada uno y **cuántos metros los separaban** — que es el hallazgo entero del pin a 142 m |
+| `pathLabel`, `else` incondicional (§6.2 #13 del rediseño) | ✅ **falsa alarma en ESTE sitio.** Sólo se lee cuando `confirmNow` es true (líneas 382/384), y ahí la única rama restante es `windowElapsed && hadVehicleExit && sessionSawDriving`. La etiqueta es correcta en todo camino alcanzable |
+| `"poisoned Ns ago"` (`:365`) | ✅ dentro de `if (statePoisoned)`, y `statePoisoned = poisonedAt > 0L` |
+| `"registered Ns ago"` (`ActivityRecognitionManagerImpl:99`) | ✅ seguro por construcción: con el campo a 0 la guarda `now - 0 < INTERVAL` no entra |
+| `ReportSpotWorker:75` | ✅ dentro de la comprobación de caducidad |
+| Resto de `getLong(…, 0L)` usados como instante | ✅ todos con `.takeIf { it > 0L }` |
+
 ## Pendiente en este mismo ticket
 
 - [ ] El veredicto en el **rollup remoto** (hoy sólo el contador). Necesita que `SessionEnded` lo
       transporte, que es plumbing de evento — se hace aquí, no en otro sitio.
-- [ ] `zoneRadiusMeters` / `isApproximate` **no llegan a Firestore** (`ParkingSessionMapper.kt:111`,
-      local-only por diseño). Una zona de 250 m se ve en remoto como un pin exacto.
+- [ ] 🔴 **DECISIÓN DEL USER**: `zoneRadiusMeters` **no llega a Firestore**
+      (`ParkingSessionMapper.kt` mapper remoto). No es un bug — es una decisión escrita
+      (`[DET-HONEST-CLOSE-001]`, *«an unrefined approximate zone stays on the device that detected
+      it»*). Pero su coste ahora se paga: **en remoto una zona de 250 m es indistinguible de un pin
+      exacto**, y el diagnóstico de esta mañana hubo que hacerlo leyendo Room por cable. `spots` (lo
+      comunitario) no se toca; esto es `parkingHistory`, la colección del propio usuario. **No lo
+      cambio por mi cuenta: revierte una decisión de producto documentada.**
 
 ## Criterio de éxito
 
