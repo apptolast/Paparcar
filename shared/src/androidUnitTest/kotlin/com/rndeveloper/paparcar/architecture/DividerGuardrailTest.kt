@@ -1,6 +1,5 @@
 package com.rndeveloper.paparcar.architecture
 
-import com.lemonappdev.konsist.api.Konsist
 import org.junit.Test
 import kotlin.test.assertTrue
 
@@ -12,18 +11,16 @@ import kotlin.test.assertTrue
  */
 class DividerGuardrailTest {
 
-    private val scope = Konsist.scopeFromProject()
-
+    /**
+     * The population comes from [GuardrailScope] — the same one the colour and type guardrails
+     * read, and one that will not come back empty. This file used to carry its own copy of the
+     * filter, so a package move could have retired the rule without turning it red.
+     * [TEST-A-GREEN-SUITE-MUST-PROVE-IT-LOOKED-001]
+     */
     @Test
     fun `feature code uses PapDivider, not raw Material dividers`() {
-        val violations = scope.files
-            .filter { it.path.contains("commonMain") }
+        val violations = GuardrailScope.featureFiles()
             .filter { it.name != "PapDivider" }
-            .filter { file ->
-                val pkg = file.packagee?.name ?: ""
-                pkg.startsWith("com.rndeveloper.paparcar.presentation") ||
-                    pkg.startsWith("com.rndeveloper.paparcar.ui.components")
-            }
             .filter { RAW_DIVIDER_REGEX.containsMatchIn(it.text) }
             .map { it.name }
         assertTrue(

@@ -1,6 +1,5 @@
 package com.rndeveloper.paparcar.architecture
 
-import com.lemonappdev.konsist.api.Konsist
 import org.junit.Test
 import kotlin.test.assertTrue
 
@@ -20,14 +19,24 @@ import kotlin.test.assertTrue
  *
  * A short allowlist covers legit exceptions: canvas/`TextMeasurer` map-marker labels and
  * already-tokenised chrome one-offs (bottom-nav, connectivity banner, primary action bar).
+ *
+ * Rules 2-5 read their population from [GuardrailScope.featureFiles], which will not hand back an
+ * empty one. The filter they share used to be written out four times in this file alone, and none
+ * of the four could tell "feature code is clean" from "no file matched".
+ * [TEST-A-GREEN-SUITE-MUST-PROVE-IT-LOOKED-001]
  */
 class TypographyGuardrailTest {
 
-    private val scope = Konsist.scopeFromProject()
-
+    /**
+     * Rule 1 is the one prohibition here that is vacuous BY DESIGN, and that is fine: its
+     * population is "files still mentioning a deleted API", which is empty on purpose and must stay
+     * empty forever. It has nothing to witness — there is no `DataTypography` left to count. The
+     * scan itself is still witnessed, because [GuardrailScope.commonMainProductionFiles] is what
+     * proves the project was read at all.
+     */
     @Test
     fun `no code references the removed DataTypography API`() {
-        val violations = scope.files
+        val violations = GuardrailScope.scope.files
             .filter { !it.path.contains("Test") }
             .filter { it.text.contains("DataTypography") }
             .map { it.name }
@@ -39,14 +48,7 @@ class TypographyGuardrailTest {
 
     @Test
     fun `feature code does not inline fontSize or letterSpacing`() {
-        val violations = scope.files
-            // Shared runtime UI only — androidMain @Preview exploration files are dev tooling.
-            .filter { it.path.contains("commonMain") }
-            .filter { file ->
-                val pkg = file.packagee?.name ?: ""
-                pkg.startsWith("com.rndeveloper.paparcar.presentation") ||
-                    pkg.startsWith("com.rndeveloper.paparcar.ui.components")
-            }
+        val violations = GuardrailScope.featureFiles()
             .filter { it.name !in INLINE_SP_ALLOWLIST }
             .filter { INLINE_SP_REGEX.containsMatchIn(it.text) }
             .map { it.name }
@@ -61,13 +63,7 @@ class TypographyGuardrailTest {
 
     @Test
     fun `feature code uses PaparcarType roles, not MaterialTheme typography`() {
-        val violations = scope.files
-            .filter { it.path.contains("commonMain") }
-            .filter { file ->
-                val pkg = file.packagee?.name ?: ""
-                pkg.startsWith("com.rndeveloper.paparcar.presentation") ||
-                    pkg.startsWith("com.rndeveloper.paparcar.ui.components")
-            }
+        val violations = GuardrailScope.featureFiles()
             .filter { it.name !in INLINE_SP_ALLOWLIST }
             .filter { it.text.contains("MaterialTheme.typography") }
             .map { it.name }
@@ -82,13 +78,7 @@ class TypographyGuardrailTest {
 
     @Test
     fun `feature code does not build font families directly`() {
-        val violations = scope.files
-            .filter { it.path.contains("commonMain") }
-            .filter { file ->
-                val pkg = file.packagee?.name ?: ""
-                pkg.startsWith("com.rndeveloper.paparcar.presentation") ||
-                    pkg.startsWith("com.rndeveloper.paparcar.ui.components")
-            }
+        val violations = GuardrailScope.featureFiles()
             .filter { it.name !in FONT_FAMILY_ALLOWLIST }
             .filter { FONT_FAMILY_REGEX.containsMatchIn(it.text) }
             .map { it.name }
@@ -116,13 +106,7 @@ class TypographyGuardrailTest {
      */
     @Test
     fun `feature code does not override the weight of a role`() {
-        val violations = scope.files
-            .filter { it.path.contains("commonMain") }
-            .filter { file ->
-                val pkg = file.packagee?.name ?: ""
-                pkg.startsWith("com.rndeveloper.paparcar.presentation") ||
-                    pkg.startsWith("com.rndeveloper.paparcar.ui.components")
-            }
+        val violations = GuardrailScope.featureFiles()
             .filter { it.name !in WEIGHT_ALLOWLIST }
             .filter { WEIGHT_REGEX.containsMatchIn(it.text) }
             .map { it.name }

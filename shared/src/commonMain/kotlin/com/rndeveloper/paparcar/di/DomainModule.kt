@@ -5,7 +5,6 @@ import com.rndeveloper.paparcar.domain.usecase.user.BootstrapUserDataUseCase
 import com.rndeveloper.paparcar.domain.usecase.user.DeleteAccountUseCase
 import com.rndeveloper.paparcar.domain.usecase.user.GetOrCreateUserProfileUseCase
 import com.rndeveloper.paparcar.domain.usecase.location.GetAddressAndPlaceUseCase
-import com.rndeveloper.paparcar.domain.usecase.location.GetLastKnownLocationUseCase
 import com.rndeveloper.paparcar.domain.usecase.location.GetOneLocationUseCase
 import com.rndeveloper.paparcar.domain.usecase.location.ObserveAdaptiveLocationUseCase
 import com.rndeveloper.paparcar.domain.usecase.location.SearchAddressUseCase
@@ -81,7 +80,6 @@ val domainModule = module {
     factory { GetAddressAndPlaceUseCase(repository = get()) }
     // tripTrail is platform-bound (getOrNull → null where absent, e.g. iOS). [DET-BREADCRUMBS-001]
     factory { GetOneLocationUseCase(get(), tripTrail = getOrNull()) }
-    factory { GetLastKnownLocationUseCase(get()) } // [DET-AR-REARM-001] passive — no geofence provocation
     factory { ObserveAdaptiveLocationUseCase(get()) }
     factory { SearchAddressUseCase(get()) }
 

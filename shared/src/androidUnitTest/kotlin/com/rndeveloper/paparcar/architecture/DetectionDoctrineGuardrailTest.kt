@@ -1,6 +1,5 @@
 package com.rndeveloper.paparcar.architecture
 
-import com.lemonappdev.konsist.api.Konsist
 import com.rndeveloper.paparcar.domain.detection.DetectionPath
 import org.junit.Test
 import kotlin.test.assertTrue
@@ -24,11 +23,15 @@ import kotlin.test.assertTrue
  */
 class DetectionDoctrineGuardrailTest {
 
-    private val scope = Konsist.scopeFromProject()
+    /**
+     * The populations come from [GuardrailScope], which refuses to return an empty one. All three
+     * rules below are prohibitions over a filtered set, so all three read the same green whether
+     * production is clean or the selector stopped matching — and this file landed after the tree had
+     * already been renamed once. [TEST-A-GREEN-SUITE-MUST-PROVE-IT-LOOKED-001]
+     */
+    private val sourceFiles get() = GuardrailScope.productionSourceFiles()
 
-    private val sourceFiles = scope.files.filter {
-        it.path.contains("commonMain") || it.path.contains("androidMain") || it.path.contains("mock")
-    }
+    private val domainFiles get() = GuardrailScope.domainProductionFiles()
 
     /**
      * Source with comments stripped. Every one of these rules documents the shape it forbids by
@@ -80,9 +83,8 @@ class DetectionDoctrineGuardrailTest {
      */
     @Test
     fun `no hand-kept set of arm labels decides anything`() {
-        val violations = sourceFiles
+        val violations = domainFiles
             .filter { it.name != "ArmEvidence" }
-            .filter { it.packagee?.name.orEmpty().startsWith("com.rndeveloper.paparcar.domain") }
             .filter { LABEL_SET_REGEX.containsMatchIn(it.text.withoutComments()) }
             .map { it.name }
         assertTrue(
@@ -102,8 +104,7 @@ class DetectionDoctrineGuardrailTest {
      */
     @Test
     fun `no detection decision is made by string prefix on a path or an arm`() {
-        val violations = sourceFiles
-            .filter { it.packagee?.name.orEmpty().startsWith("com.rndeveloper.paparcar.domain") }
+        val violations = domainFiles
             .flatMap { file ->
                 PREFIX_DECISION_REGEX.findAll(file.text.withoutComments())
                     .map { "${file.name}.kt → ${it.value.trim()}" }

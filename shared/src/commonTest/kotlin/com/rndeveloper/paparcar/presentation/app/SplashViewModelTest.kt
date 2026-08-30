@@ -19,6 +19,7 @@ import com.rndeveloper.paparcar.fakes.FakeVehicleRepository
 import com.rndeveloper.paparcar.fakes.FakeZoneRepository
 import com.rndeveloper.paparcar.domain.usecase.user.BootstrapUserDataUseCase
 import com.rndeveloper.paparcar.domain.usecase.user.GetOrCreateUserProfileUseCase
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
@@ -117,12 +118,36 @@ class SplashViewModelTest {
         assertTrue(vm.isReady)
     }
 
+    /**
+     * The branch this pins is `isReady`'s middle row: **Authenticated, no startRoute, no failure**
+     * — the window where the user is signed in but the bootstrap has not decided where to send
+     * them, and the native splash must stay up rather than flash a blank screen.
+     *
+     * It needs the latch to exist at all. Under the unconfined dispatcher `emitState` runs profile
+     * sync, user-data bootstrap and route resolution to completion before it returns, so the window
+     * closes before any assert can see it. That is how this test previously ended up building a
+     * plain view model and asserting `assertFalse(vm.isReady)` on the LOADING state — a body byte
+     * for byte identical to `isReady is false while auth state is Loading` above, passing under a
+     * name that promised the authenticated case. [TEST-A-GREEN-SUITE-MUST-PROVE-IT-LOOKED-001]
+     */
     @Test
-    fun `isReady stays false for Authenticated until startRoute is resolved`() {
-        // Profile use case is unset → succeeds, but resolveStartRoute requires explicit drive.
+    fun `isReady stays false for Authenticated until startRoute is resolved`() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        fakeProfileRepo.profileGate = gate
         val vm = buildViewModel()
-        // Loading initial state → not ready.
-        assertFalse(vm.isReady)
+
+        fakeAuth.emitState(AuthState.Authenticated(session))
+
+        // Held mid-bootstrap: auth IS resolved, so this is not the Loading row.
+        assertEquals(1, fakeProfileRepo.getOrCreateCallCount, "bootstrap must have started")
+        assertNull(vm.state.value.startRoute, "the route cannot be resolved yet")
+        assertNull(vm.state.value.bootstrapFailure, "and nothing has failed — this is the in-flight row")
+        assertFalse(vm.isReady, "authenticated without a route and without a failure is NOT ready")
+
+        // Releasing the latch is what flips it — the assert above is about the route, not the clock.
+        gate.complete(Unit)
+        assertEquals(Routes.ONBOARDING, vm.state.value.startRoute)
+        assertTrue(vm.isReady)
     }
 
     @Test

@@ -1,6 +1,5 @@
 package com.rndeveloper.paparcar.architecture
 
-import com.lemonappdev.konsist.api.Konsist
 import org.junit.Test
 import kotlin.test.assertTrue
 
@@ -13,13 +12,16 @@ import kotlin.test.assertTrue
  */
 class HomeSliceGuardrailTest {
 
-    private val scope = Konsist.scopeFromProject()
-
+    /**
+     * `sections` is a single package, which makes this the most fragile prohibition of the set: one
+     * folder rename and the population is zero and the rule is green forever. It reads through
+     * [GuardrailScope], which fails instead — verified by renaming the package by hand and watching
+     * this test go red. [TEST-A-GREEN-SUITE-MUST-PROVE-IT-LOOKED-001]
+     */
     @Test
     fun `home section composables take slices, not HomeState`() {
-        val violations = scope.files
-            .filter { it.path.contains("commonMain") }
-            .filter { it.packagee?.name?.startsWith(SECTIONS_PACKAGE) == true }
+        val violations = GuardrailScope
+            .commonMainFilesInPackage(SECTIONS_PACKAGE, GuardrailScope.HOME_SECTIONS_FLOOR)
             .filter { HOME_STATE_REGEX.containsMatchIn(it.text) }
             .map { it.name }
         assertTrue(

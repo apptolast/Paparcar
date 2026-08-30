@@ -21,10 +21,18 @@ class StagePurityGuardrailTest {
 
     private val scope = Konsist.scopeFromProject()
 
+    /**
+     * The KDoc on the next test says it already: *a guardrail that only forbids is one refactor
+     * away from being satisfied by an empty package.* That was written about the executor, and the
+     * executor got its witness — but the ban itself was left reading a path with nothing proving
+     * the path still had stages behind it. [GuardrailScope] closes the other half, and it was
+     * verified by pointing this path at a folder that does not exist and watching this test go red.
+     * [TEST-A-GREEN-SUITE-MUST-PROVE-IT-LOOKED-001]
+     */
     @Test
     fun `no stage imports a repository or a notification port`() {
-        val offenders = scope.files
-            .filter { STAGES_PACKAGE.containsMatchIn(it.path.replace('\\', '/')) }
+        val offenders = GuardrailScope
+            .filesUnderPath("detection stages", STAGES_PACKAGE, GuardrailScope.DETECTION_STAGES_FLOOR)
             .flatMap { file -> file.imports.map { file.name to it.name } }
             .filter { (_, import) -> FORBIDDEN.any { import.contains(it) } }
             .map { (file, import) -> "$file → $import" }

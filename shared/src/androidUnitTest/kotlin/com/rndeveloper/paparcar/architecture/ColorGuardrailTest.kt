@@ -1,7 +1,6 @@
 package com.rndeveloper.paparcar.architecture
 
 import androidx.compose.ui.graphics.Color
-import com.lemonappdev.konsist.api.Konsist
 import com.rndeveloper.paparcar.ui.theme.PapAmber
 import com.rndeveloper.paparcar.ui.theme.PapAmberContainerLight
 import com.rndeveloper.paparcar.ui.theme.PapAmberLight
@@ -60,16 +59,14 @@ import kotlin.test.assertTrue
  */
 class ColorGuardrailTest {
 
-    private val scope = Konsist.scopeFromProject()
-
-    /** Feature files = presentation/ + ui/components/ in commonMain (same net as the other guardrails). */
-    private fun featureFiles() = scope.files
-        .filter { it.path.contains("commonMain") }
-        .filter { file ->
-            val pkg = file.packagee?.name ?: ""
-            pkg.startsWith("com.rndeveloper.paparcar.presentation") ||
-                pkg.startsWith("com.rndeveloper.paparcar.ui.components")
-        }
+    /**
+     * Feature files = `presentation/` + `ui/components/` in commonMain. It now comes from
+     * [GuardrailScope], which is both the one definition the type and divider guardrails share and
+     * the thing that refuses to return an empty list — a colour rule satisfied by "no feature file
+     * matched" is the same green as "no feature file offends".
+     * [TEST-A-GREEN-SUITE-MUST-PROVE-IT-LOOKED-001]
+     */
+    private fun featureFiles() = GuardrailScope.featureFiles()
 
     /** `tertiary` is a retired role: its old meanings (BT, manual report, private zone, info) all
      *  moved to the blue story, the person badge, or a neutral+lock. The scheme slots keep backing
@@ -92,8 +89,7 @@ class ColorGuardrailTest {
      *  fixed-over-tiles palettes are documented token objects, not strays.) */
     @Test
     fun `presentation declares no literal colours`() {
-        val violations = featureFiles()
-            .filter { (it.packagee?.name ?: "").startsWith("com.rndeveloper.paparcar.presentation") }
+        val violations = GuardrailScope.presentationFeatureFiles()
             .filter { COLOR_LITERAL_REGEX.containsMatchIn(it.text) }
             .map { it.name }
         assertTrue(
