@@ -508,7 +508,7 @@ private fun HomeContent(
                     { spotId ->
                         spotsById[spotId]?.let { spot ->
                             onIntent(HomeIntent.SelectItem(HomeSelection.Spot(spotId)))
-                            uiController.moveCamera(spot.location.latitude, spot.location.longitude)
+                            uiController.goToPlace(spot.location.latitude, spot.location.longitude)
                             motion.animateToExpanded()
                         }
                     }
@@ -520,7 +520,7 @@ private fun HomeContent(
                     { sessionId ->
                         currentActiveSessions.value.firstOrNull { it.id == sessionId }?.let { p ->
                             onIntent(HomeIntent.SelectItem(HomeSelection.Parking(p.id)))
-                            uiController.moveCamera(p.location.latitude, p.location.longitude)
+                            uiController.goToPlace(p.location.latitude, p.location.longitude)
                             motion.animateToExpanded()
                         }
                     }
@@ -727,7 +727,7 @@ private fun rememberMapInteractionTracker(uiController: HomeUiController): MapIn
     val tracker = remember(uiController, scope) { MapInteractionTracker(scope, uiController) }
 
     // Clear the programmatic-move flag once the camera animation has settled.
-    // isProgrammaticMove is flipped synchronously by uiController.moveCamera*
+    // isProgrammaticMove is flipped synchronously by every uiController camera door
     // before cameraTarget mutates, so this effect runs after the flag is
     // already true — it only needs to clear it when the animation is done.
     LaunchedEffect(uiController.cameraTarget?.token) {
@@ -798,7 +798,7 @@ private fun HomeCameraEffects(
                     CameraFrame.Navigate -> NAVIGATE_ZOOM
                     CameraFrame.ZoneEditing -> ZONE_EDITING_ZOOM
                 }
-                uiController.moveCamera(effect.lat, effect.lon, zoom = zoom)
+                uiController.goToPlace(effect.lat, effect.lon, zoom = zoom)
             }
         }
     }
@@ -869,7 +869,7 @@ private fun HomeFloatingHeader(
                 slice = slice,
                 onSearchQueryChanged = { onIntent(HomeIntent.SearchQueryChanged(it)) },
                 onSearchResultClick = { result ->
-                    uiController.moveCamera(result.lat, result.lon, zoom = NAVIGATE_ZOOM)
+                    uiController.goToPlace(result.lat, result.lon, zoom = NAVIGATE_ZOOM)
                     onIntent(HomeIntent.SelectSearchResult(result))
                 },
                 onSearchClear = { onIntent(HomeIntent.ClearSearch) },
@@ -932,7 +932,7 @@ private fun HomeSheetSection(
                             targetVehicleId = action.vehicleId,
                         ),
                     )
-                    state.userGpsPoint?.let { uiController.moveCamera(it.latitude, it.longitude) }
+                    state.userGpsPoint?.let { uiController.goToPlace(it.latitude, it.longitude) }
                 }
             }
             is HomeSheetAction.RequestRelease -> onRelease(action.sessionId)
@@ -942,7 +942,7 @@ private fun HomeSheetSection(
                     lon = uiController.cameraLon ?: state.userGpsPoint?.longitude ?: 0.0,
                 ),
             )
-            is HomeSheetAction.MoveCamera -> uiController.moveCamera(action.lat, action.lon)
+            is HomeSheetAction.MoveCamera -> uiController.goToPlace(action.lat, action.lon)
             is HomeSheetAction.NavigateExternal ->
                 onNavigateExternal(action.lat, action.lon, action.walking)
             // Only the CORE tier routes here (Inactive uses the unified EnableAutoDetection
@@ -989,7 +989,7 @@ private fun HomeMapFabsSection(
                 uiController.resumeDriverFollow(puck.latitude, puck.longitude)
             } else {
                 currentUserGpsPoint.value?.let {
-                    uiController.moveCamera(it.latitude, it.longitude, zoom = 16f)
+                    uiController.goToPlace(it.latitude, it.longitude, zoom = 16f)
                 }
             }
         }
@@ -999,7 +999,7 @@ private fun HomeMapFabsSection(
             val parking = currentUserParking.value
             val gps = currentUserGpsPoint.value
             if (parking != null && gps != null) {
-                uiController.moveCameraToBounds(
+                uiController.framePlaces(
                     lat1 = parking.location.latitude,
                     lon1 = parking.location.longitude,
                     lat2 = gps.latitude,

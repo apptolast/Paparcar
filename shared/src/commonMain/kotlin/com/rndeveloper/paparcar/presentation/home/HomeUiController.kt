@@ -23,12 +23,12 @@ class HomeUiController {
 
     /**
      * True while the map is running a programmatic camera animation
-     * (moveCamera / moveCameraToBounds / initial GPS centering). The Map
+     * (a place the user asked for, driver-follow tracking, initial GPS centering). The Map
      * library fires onCameraMove at ~60 fps during the animation, which
      * would otherwise trigger the idle-drag glass effect — HomeContent
      * reads this flag to suppress the effect for synthetic frames.
      *
-     * Set synchronously from [moveCamera] / [moveCameraToBounds] so it is
+     * Set synchronously by every camera door on the way to a [CameraTarget], so it is
      * true before the first animation frame arrives, and cleared by
      * HomeContent once the animation has settled.
      */
@@ -54,6 +54,10 @@ class HomeUiController {
      * so the old `!isProgrammaticMove` heuristic raced (the guard cleared between the ~700ms follow
      * moves) and dropped follow after a single step. A real touch wins — it stops auto re-framing
      * ([FOCUS-002]) and pauses driver-follow ([FOLLOW-001]); the map then shows a resume FAB.
+     *
+     * It is no longer the ONLY thing that releases follow — [goToPlace] does too, which is what makes
+     * requests coming from off the map tile (sheet rows, search, the FAB column) work at all.
+     * [UI-MAP-A-TAPPED-PLACE-OUTRANKS-THE-FOLLOWED-CAR-001]
      */
     fun onUserMapGesture() {
         userMovedCameraManually = true
@@ -71,12 +75,35 @@ class HomeUiController {
     private var initialFocusWasParking = false
     private var refocusedOnParking = false
 
-    fun moveCamera(lat: Double, lon: Double, zoom: Float? = null) {
+    /**
+     * A place the USER asked to see — a spot row, a search result, a zone chip, a marker, a camera
+     * FAB. It outranks driver-follow: the camera flies there and STAYS there.
+     * [UI-MAP-A-TAPPED-PLACE-OUTRANKS-THE-FOLLOWED-CAR-001]
+     *
+     * Following the car is a default, not a lock. Before this, follow was only released by a finger
+     * landing on the map tile (`onUserMapGesture`), so every request coming from a surface that is
+     * NOT the map — the sheet, the search header, the FAB column — was silently dropped by the map's
+     * follow branch: no camera move, no error. Rank cannot be inferred from where the finger was, so
+     * it is declared at the door instead, and the low-level setters are private: a name that doesn't
+     * state its rank is exactly what lets the next call site be born broken.
+     */
+    fun goToPlace(lat: Double, lon: Double, zoom: Float? = null) {
+        followingDriver = false
+        setTarget(lat, lon, zoom)
+    }
+
+    /** Deliberate two-point framing (the midpoint FAB: your car AND you). Outranks follow, as [goToPlace]. */
+    fun framePlaces(lat1: Double, lon1: Double, lat2: Double, lon2: Double) {
+        followingDriver = false
+        setBoundsTarget(lat1, lon1, lat2, lon2)
+    }
+
+    private fun setTarget(lat: Double, lon: Double, zoom: Float? = null) {
         isProgrammaticMove = true
         cameraTarget = CameraTarget(lat, lon, zoom, token = (cameraTarget?.token ?: 0) + 1)
     }
 
-    fun moveCameraToBounds(lat1: Double, lon1: Double, lat2: Double, lon2: Double) {
+    private fun setBoundsTarget(lat1: Double, lon1: Double, lat2: Double, lon2: Double) {
         isProgrammaticMove = true
         cameraTarget = CameraTarget(
             lat = lat1,
@@ -99,6 +126,12 @@ class HomeUiController {
      * Idempotent: only the first call moves the camera; later GPS frames are ignored so the map is
      * never yanked out from under a user who has started panning. [FOCUS-002] extends this to re-fire
      * once if a parking session arrives after the first fix but before any manual pan.
+     *
+     * AUTOMATIC framing, so it goes through the private setter and stays neutral on driver-follow:
+     * opening the app mid-trip centres on the user, which IS centring on the car being driven
+     * ([DET-READY-TRIP-OVER-PARKED-001]) — revoking follow here would make the app un-follow itself on
+     * launch. The rank is "what the user asked for", not "anything that moves the camera".
+     * [UI-MAP-A-TAPPED-PLACE-OUTRANKS-THE-FOLLOWED-CAR-001]
      */
     fun centerInitialFocus(
         parking: Pair<Double, Double>?,
@@ -110,8 +143,8 @@ class HomeUiController {
         initialFocusWasParking = parking != null
         when {
             parking != null -> frameParking(parking, user)
-            selectedSpot != null -> moveCamera(selectedSpot.first, selectedSpot.second, zoom = FOCUS_SEARCH_ZOOM)
-            else -> moveCamera(user.first, user.second, zoom = FOCUS_SEARCH_ZOOM)
+            selectedSpot != null -> setTarget(selectedSpot.first, selectedSpot.second, zoom = FOCUS_SEARCH_ZOOM)
+            else -> setTarget(user.first, user.second, zoom = FOCUS_SEARCH_ZOOM)
         }
     }
 
@@ -131,9 +164,9 @@ class HomeUiController {
         val withinSpan = user != null &&
             distanceMeters(parking.first, parking.second, user.first, user.second) <= BOUNDS_MAX_SPAN_M
         if (withinSpan) {
-            moveCameraToBounds(parking.first, parking.second, user.first, user.second)
+            setBoundsTarget(parking.first, parking.second, user.first, user.second)
         } else {
-            moveCamera(parking.first, parking.second, zoom = FOCUS_PARKED_ZOOM)
+            setTarget(parking.first, parking.second, zoom = FOCUS_PARKED_ZOOM)
         }
     }
 
@@ -143,21 +176,24 @@ class HomeUiController {
      *  - [setDriverFollowActive] toggles follow when a trip starts (true) or ends (false). Starting a
      *    trip re-arms follow even if the user had paused a previous one.
      *  - [followDriver] recentres on the puck WITHOUT changing zoom (the user's zoom is respected),
-     *    but only while [followingDriver] is engaged.
-     *  - [resumeDriverFollow] re-engages after the user paused it (the map's "resume" FAB), snapping
-     *    the camera back onto the puck.
+     *    but only while [followingDriver] is engaged. It goes through the private setter: revoking
+     *    follow here would kill the very thing it serves, one GPS fix in.
+     *  - [resumeDriverFollow] re-engages after the user paused it or asked for another place (the
+     *    map's "resume" FAB), snapping the camera back onto the puck. Together with a trip starting,
+     *    these are the ONLY two ways follow comes back.
+     *    [UI-MAP-A-TAPPED-PLACE-OUTRANKS-THE-FOLLOWED-CAR-001]
      */
     fun setDriverFollowActive(active: Boolean) {
         followingDriver = active
     }
 
     fun followDriver(lat: Double, lon: Double) {
-        if (followingDriver) moveCamera(lat, lon)
+        if (followingDriver) setTarget(lat, lon)
     }
 
     fun resumeDriverFollow(lat: Double, lon: Double) {
         followingDriver = true
-        moveCamera(lat, lon)
+        setTarget(lat, lon)
     }
 
     private companion object {

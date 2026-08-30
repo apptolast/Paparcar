@@ -1798,6 +1798,13 @@ private fun rememberCameraAnimationState(
     LaunchedEffect(cameraTarget, following) {
         // Don't run the programmatic tween while locked to the driver (it would fight the lock) or
         // while the user is touching the map (it would yank the camera back mid-gesture).
+        //
+        // This is NOT where a tapped place is ranked against the followed car — the map obeys its
+        // lock, the HOST owns the lock. `HomeUiController.goToPlace` releases follow before it writes
+        // the target, so `following` is already false in the same recomposition and a deliberate
+        // destination never reaches this guard. Keeping the guard is still right: a target tweening
+        // UNDER an engaged lock would be invisible now and would snap the camera to a stale place the
+        // moment follow disengaged. [UI-MAP-A-TAPPED-PLACE-OUTRANKS-THE-FOLLOWED-CAR-001]
         if (following || userInteracting) return@LaunchedEffect
         val target = cameraTarget ?: return@LaunchedEffect
         // Sync all three axes to the real camera so the animation never jumps.
