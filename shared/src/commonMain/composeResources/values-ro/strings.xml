@@ -165,6 +165,7 @@
     <string name="map_cd_back">Înapoi</string>
 
     <!-- HistoryParkingDetailScreen -->
+    <string name="parking_detail_navigate_area_action">Navighează spre zonă</string>
     <string name="parking_detail_prev">Parcarea anterioară</string>
     <string name="parking_detail_route_recalculating">Se recalculează ruta…</string>
     <string name="parking_detail_route_inferred_question">O parte din acest traseu a fost reconstruită deoarece semnalul GPS s-a pierdut pe drum. Ai trecut pe aici?</string>

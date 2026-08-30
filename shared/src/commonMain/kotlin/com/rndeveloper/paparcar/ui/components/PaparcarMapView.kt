@@ -669,6 +669,16 @@ fun PaparcarMapView(
     parkingVehicleColor: com.rndeveloper.paparcar.domain.model.VehicleColor? = null,
     /** When false the fallback parking marker renders in the inactive/history palette. */
     parkingIsActive: Boolean = true,
+    /**
+     * [DET-DOUBT-MUST-REACH-THE-SCREEN-001] Doubt radius of the fallback single-parking marker, or
+     * null when the pin is a point.
+     *
+     * The [parkedVehicles] path already drew its ring; this one did not, so Historial rendered an
+     * approximate session as an exact pin — the app measured the doubt, saved it, and then showed
+     * a dot with a "Navigate here" button under it (§1.5 of the redesign). Same ring, same tokens:
+     * the badge does not move, the circle says "somewhere in here".
+     */
+    parkingZoneRadiusMeters: Float? = null,
     /** When true the add-parking centre pin reads as a Bluetooth-tracked car (blue border). */
     parkingIsBluetoothPaired: Boolean = false,
     cameraTarget: CameraTarget? = null,
@@ -1288,6 +1298,22 @@ fun PaparcarMapView(
         )
     }
 
+    // [DET-DOUBT-MUST-REACH-THE-SCREEN-001] …and the same ring for the single-parking fallback,
+    // which is the surface Historial uses. No Bluetooth information reaches this path, so the tone
+    // is the two-way one: watched green while the session is active, outline once it has ended.
+    val fallbackDoubtCircle = parkingLocation
+        ?.takeIf { parkingZoneRadiusMeters != null }
+        ?.let { where ->
+            val base = if (parkingIsActive) PapWatchGreenLight else PapOutlineVariantLight
+            Circle(
+                center = Coordinates(where.latitude, where.longitude),
+                radius = parkingZoneRadiusMeters!!,
+                color = base.copy(alpha = DOUBT_CIRCLE_FILL_ALPHA),
+                lineColor = base.copy(alpha = DOUBT_CIRCLE_STROKE_ALPHA),
+                lineWidth = doubtRingStrokePx,
+            )
+        }
+
     val zoneCircles = buildList {
         zones.forEach { add(zoneCircle(it.lat, it.lon, it.radiusMeters, it.isPrivate, zoneRingDimFactor)) }
         // Live preview while positioning a new/edited zone — identical native circle
@@ -1298,6 +1324,7 @@ fun PaparcarMapView(
         // Doubt rings go LAST so they sit above saved-zone rings: if your car was left inside a zone
         // you drew, the uncertainty about the car is the thing you need to read first.
         addAll(doubtCircles)
+        fallbackDoubtCircle?.let { add(it) }
     }
 
     // Live trip breadcrumb as a native polyline (en-route blue), rendered below the markers. Prefer the

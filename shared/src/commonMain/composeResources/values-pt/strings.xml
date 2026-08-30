@@ -162,6 +162,7 @@
     <string name="map_cd_back">Voltar</string>
 
     <!-- HistoryParkingDetailScreen -->
+    <string name="parking_detail_navigate_area_action">Navegar para a zona</string>
     <string name="parking_detail_prev">Estacionamento anterior</string>
     <string name="parking_detail_route_recalculating">A recalcular rota…</string>
     <string name="parking_detail_route_inferred_question">Parte desta rota foi reconstruída porque o sinal de GPS se perdeu pelo caminho. Passaste por aqui?</string>

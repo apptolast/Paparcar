@@ -164,6 +164,7 @@
     <string name="map_cd_back">Wstecz</string>
 
     <!-- HistoryParkingDetailScreen -->
+    <string name="parking_detail_navigate_area_action">Nawiguj do obszaru</string>
     <string name="parking_detail_prev">Poprzednie parkowanie</string>
     <string name="parking_detail_route_recalculating">Przeliczanie trasy…</string>
     <string name="parking_detail_route_inferred_question">Część tej trasy została odtworzona, ponieważ po drodze utracono sygnał GPS. Czy jechałeś tędy?</string>

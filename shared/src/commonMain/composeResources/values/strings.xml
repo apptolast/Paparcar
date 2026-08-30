@@ -226,6 +226,7 @@
     <string name="map_cd_back">Back</string>
 
     <!-- HistoryParkingDetailScreen -->
+    <string name="parking_detail_navigate_area_action">Navigate to the area</string>
     <string name="parking_detail_prev">Previous parking</string>
     <string name="parking_detail_route_recalculating">Recalculating route…</string>
     <string name="parking_detail_route_inferred_question">Part of this route was rebuilt because the GPS signal dropped along the way. Did you drive this way?</string>

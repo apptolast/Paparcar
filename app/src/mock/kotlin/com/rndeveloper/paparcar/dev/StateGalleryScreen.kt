@@ -104,6 +104,7 @@ import com.rndeveloper.paparcar.ui.components.ZoneCenterPin
 import com.rndeveloper.paparcar.ui.components.ZoneMarker
 import com.rndeveloper.paparcar.ui.theme.PaparcarTheme
 import com.rndeveloper.paparcar.ui.theme.VehicleWatch
+import com.rndeveloper.paparcar.domain.detection.DetectionPath
 
 /**
  * How a variant should be presented in the viewer.
@@ -490,7 +491,24 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                 parkingDetailSheet(
                     session = FakeData.activeSession.copy(
                         spotType = SpotType.AUTO_DETECTED,
-                        detectionPath = "steps=3 kinematicFixes=7",
+                        // [DET-DETECTION-PATH-IS-A-TYPE-001] Era "steps=3 kinematicFixes=7", jerga de
+                        // diagnóstico que producción NUNCA escribe como detectionPath — así que esta
+                        // variante decía «Asistido» y desde el tipo se leería como desconocida. El
+                        // camino sale del tipo, no de una cadena inventada aquí.
+                        detectionPath = DetectionPath.StepsEgress.label,
+                    ),
+                    vehicle = FakeData.vehicleSedan,
+                )
+            },
+            // [DET-DOUBT-MUST-REACH-THE-SCREEN-001] La sesión que la app guardó como ZONA. Esta
+            // pantalla la pintaba como un punto exacto, con «Navegar a esta ubicación» debajo.
+            Variant("Aproximada · zona con su duda") {
+                parkingDetailSheet(
+                    session = FakeData.activeSession.copy(
+                        spotType = SpotType.AUTO_DETECTED,
+                        detectionPath = DetectionPath.UnattendedZone("gap_anchor").label,
+                        detectionReliability = 0.5f,
+                        zoneRadiusMeters = 250f,
                     ),
                     vehicle = FakeData.vehicleSedan,
                 )

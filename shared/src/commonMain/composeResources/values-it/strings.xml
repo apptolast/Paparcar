@@ -162,6 +162,7 @@
     <string name="map_cd_back">Indietro</string>
 
     <!-- HistoryParkingDetailScreen -->
+    <string name="parking_detail_navigate_area_action">Naviga verso la zona</string>
     <string name="parking_detail_prev">Parcheggio precedente</string>
     <string name="parking_detail_route_recalculating">Ricalcolo del percorso…</string>
     <string name="parking_detail_route_inferred_question">Parte di questo percorso è stata ricostruita perché il segnale GPS si è perso lungo il tragitto. Sei passato di qui?</string>

@@ -695,7 +695,7 @@ estilo de los `ColorGuardrailTest` / `TypographyGuardrailTest` que ya existen:
 | 3 | `DET-DETECTION-PATH-IS-A-TYPE-001` (Pieza 2) 🟡 | #4 #12 (#13 era falsa alarma) | parcial |
 | 4 | `DET-FAIL-CLOSED-BY-CONSTRUCTION-001` (Pieza 3) 🟡 | #5 #9 #14 (#8 y #16 refutados/diferidos) | parcial |
 | 5 | `DET-TWO-TIER-SENTRY-001` (Pieza 5) ✅ | 28→1 armados, batería | hecho ⏳ medir en campo |
-| 6 | `DET-DOUBT-MUST-REACH-THE-SCREEN-001` (Pieza 6) | §1.5 | bajo |
+| 6 | `DET-DOUBT-MUST-REACH-THE-SCREEN-001` (Pieza 6) ✅ | §1.5 | hecho ⏳ sin ver en device |
 | 7 | `DET-GUARDRAILS-KEEP-THE-DOCTRINE-001` (Pieza 7) | que no se deshaga | bajo |
 
 1, 2 y 4 son los que cambian la tasa de FP. 5 es el que cambia la batería y la escala (§6.5).

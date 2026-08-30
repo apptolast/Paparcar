@@ -105,6 +105,8 @@ import paparcar.composeapp.generated.resources.parking_detail_route_inferred_que
 import paparcar.composeapp.generated.resources.parking_detail_route_inferred_yes
 import paparcar.composeapp.generated.resources.parking_detail_route_recalculating
 import kotlin.time.Instant
+import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.peek.ApproximateZoneRow
+import paparcar.composeapp.generated.resources.parking_detail_navigate_area_action
 
 @Composable
 fun ParkingHistoryDetailScreen(
@@ -214,6 +216,8 @@ fun ParkingHistoryDetailScreen(
             parkingVehicleCarbody = focusedSession?.carbodyType ?: state.focusedVehicle?.carbodyType,
             parkingVehicleColor = state.focusedVehicle?.color,
             parkingIsActive = focusedSession?.isActive == true,
+            // [DET-DOUBT-MUST-REACH-THE-SCREEN-001] La duda que la sesión midió y guardó.
+            parkingZoneRadiusMeters = focusedSession?.zoneRadiusMeters,
             onSpotClick = {},
             cameraTarget = cameraTarget,
             modifier = Modifier
@@ -478,11 +482,25 @@ private fun HistoryParkingCard(
             if (session != null) {
                 DateTimeRow(timestampMs = session.location.timestamp, tint = metaTint)
                 DetectionRow(session = session, tint = metaTint)
+                // [DET-DOUBT-MUST-REACH-THE-SCREEN-001] El mismo componente que ya usa el peek de
+                // Home — no se re-implementa una fila «icono + texto» [UI-LIST-ITEM-001]. Sin él,
+                // esta pantalla presentaba una zona de 250 m como un punto exacto, con un botón
+                // «Navegar a esta ubicación» debajo.
+                ApproximateZoneRow(zoneRadiusMeters = session.zoneRadiusMeters, accentColor = metaTint)
             }
         },
         actions = {
             PapFooterButton(
-                label = stringResource(Res.string.common_directions),
+                // [DET-DOUBT-MUST-REACH-THE-SCREEN-001] Un pin aproximado no es «esta ubicación»:
+                // navegar te lleva al CENTRO de una zona, y decir lo contrario es prometer una
+                // precisión que la propia app ya se ha negado a afirmar.
+                // ⚠️ La clave del caso exacto es `common_directions` desde master — este ticket se
+                // rebasó sobre ese renombrado, no lo revierte.
+                label = if (session?.isApproximate == true) {
+                    stringResource(Res.string.parking_detail_navigate_area_action)
+                } else {
+                    stringResource(Res.string.common_directions)
+                },
                 leadingIcon = Icons.Rounded.Navigation,
                 onClick = { onNavigate(lat, lon) },
                 style = PapFooterButtonStyle.Filled,

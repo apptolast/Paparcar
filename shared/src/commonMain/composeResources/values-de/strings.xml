@@ -163,6 +163,7 @@
     <string name="map_cd_back">Zurück</string>
 
     <!-- HistoryParkingDetailScreen -->
+    <string name="parking_detail_navigate_area_action">Zum Bereich navigieren</string>
     <string name="parking_detail_prev">Vorheriger Parkplatz</string>
     <string name="parking_detail_route_recalculating">Route wird neu berechnet…</string>
     <string name="parking_detail_route_inferred_question">Ein Teil dieser Route wurde rekonstruiert, weil das GPS-Signal unterwegs verloren ging. Bist du hier entlanggefahren?</string>
