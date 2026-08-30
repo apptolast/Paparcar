@@ -49,3 +49,19 @@ fun boundingBox(lat: Double, lon: Double, radiusMeters: Double): BoundingBox {
         maxLon = lon + deltaLon,
     )
 }
+
+/**
+ * Distance in metres from a point to the nearest edge of [box], and **0 when the point is inside**.
+ *
+ * Standard axis-aligned box distance: the per-axis overshoot is zero while the coordinate is within
+ * the box's span, so the result degrades to a plain point distance for a degenerate box (a box whose
+ * corners coincide *is* a point). That property is what lets one threshold judge both an OSM node
+ * and a whole supermarket polygon. [POI-A-PLACE-IS-NAMED-ONLY-IF-YOU-ARE-AT-IT-001]
+ */
+fun distanceToBoundingBoxMeters(lat: Double, lon: Double, box: BoundingBox): Double {
+    val overshootLat = maxOf(box.minLat - lat, lat - box.maxLat, 0.0)
+    val overshootLon = maxOf(box.minLon - lon, lon - box.maxLon, 0.0)
+    val metersLat = overshootLat * METERS_PER_DEGREE_LAT
+    val metersLon = overshootLon * METERS_PER_DEGREE_LAT * cos(toRadians(lat))
+    return sqrt(metersLat * metersLat + metersLon * metersLon)
+}

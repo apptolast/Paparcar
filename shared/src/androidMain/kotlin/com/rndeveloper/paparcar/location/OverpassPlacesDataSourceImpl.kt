@@ -1,64 +1,38 @@
 package com.rndeveloper.paparcar.location
 
-import com.rndeveloper.paparcar.domain.model.PlaceCategory
+import com.rndeveloper.paparcar.data.places.OverpassPlaceParser
 import com.rndeveloper.paparcar.domain.model.PlaceInfo
+import com.rndeveloper.paparcar.domain.places.NearbyPlacePolicy
 import com.rndeveloper.paparcar.domain.places.PlacesDataSource
+import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
-import kotlin.math.atan2
-import kotlin.math.cos
-import kotlin.math.sin
-import kotlin.math.sqrt
+
+private const val TAG = "OverpassDS"
 
 /**
- * Queries the public Overpass API (OpenStreetMap) to find the most relevant
- * named POI within ~150 m of a given coordinate.
- *
- * Uses `out center` so that ways and relations return their geometric centre,
- * enabling distance sorting when multiple same-priority POIs are found.
- *
- * Only nodes/ways tagged with [amenity], [shop], [tourism], or [leisure] are
- * considered, so generic building names are excluded. Results are sorted first
- * by category priority (fuel > supermarket > …) then by distance.
+ * Android transport for the public Overpass API (OpenStreetMap). HTTP only — which place is worth
+ * naming is [NearbyPlacePolicy]'s call and the wire format is [OverpassPlaceParser]'s, both in
+ * commonMain and both under test. [POI-A-PLACE-IS-NAMED-ONLY-IF-YOU-ARE-AT-IT-001]
  *
  * No API key required. Degrades gracefully to null on network errors or timeout.
  */
 class OverpassPlacesDataSourceImpl : PlacesDataSource {
 
-    private val json = Json { ignoreUnknownKeys = true }
-
     override suspend fun getNearbyPlace(lat: Double, lon: Double): Result<PlaceInfo?> =
         withContext(Dispatchers.IO) {
             runCatching {
-                val query = buildQuery(lat, lon)
-                android.util.Log.d("OverpassDS", "POST query: $query")
-                val body = postOverpass(query)
-                android.util.Log.d("OverpassDS", "Response body (${body?.length ?: 0} chars): ${body?.take(300)}")
-                if (body == null) return@runCatching null
-                val result = parseResponse(body, lat, lon)
-                android.util.Log.d("OverpassDS", "Parsed POI: $result")
-                result
-            }.also { r -> if (r.isFailure) android.util.Log.w("OverpassDS", "Exception", r.exceptionOrNull()) }
+                val body = postOverpass(OverpassPlaceParser.buildQuery(lat, lon, QUERY_TIMEOUT_S))
+                    ?: return@runCatching null
+                val candidates = OverpassPlaceParser.parseCandidates(body)
+                NearbyPlacePolicy.pick(candidates, lat, lon).also { picked ->
+                    PaparcarLogger.d(TAG, "${candidates.size} candidates near ($lat, $lon) → $picked")
+                }
+            }.onFailure { e -> PaparcarLogger.w(TAG, "Overpass lookup failed for ($lat, $lon)", e) }
         }
-
-    // ── Query ────────────────────────────────────────────────────────────────
-
-    private fun buildQuery(lat: Double, lon: Double): String {
-        val around = "around:$RADIUS_METERS,$lat,$lon"
-        return "[out:json][timeout:$QUERY_TIMEOUT_S];" +
-            "(nwr($around)[name][amenity];" +
-            "nwr($around)[name][shop];" +
-            "nwr($around)[name][tourism];" +
-            "nwr($around)[name][leisure];);" +
-            "out center $MAX_RESULTS;"
-    }
-
-    // ── HTTP ─────────────────────────────────────────────────────────────────
 
     private fun postOverpass(query: String): String? {
         val connection = URL(ENDPOINT).openConnection() as HttpURLConnection
@@ -78,109 +52,10 @@ class OverpassPlacesDataSourceImpl : PlacesDataSource {
         }
     }
 
-    // ── Parsing ──────────────────────────────────────────────────────────────
-
-    private fun parseResponse(body: String, originLat: Double, originLon: Double): PlaceInfo? {
-        val elements = json.decodeFromString<OverpassResponse>(body).elements
-        return elements
-            .mapNotNull { el ->
-                val name = el.tags["name"] ?: return@mapNotNull null
-                val elLat = el.lat ?: el.center?.lat ?: return@mapNotNull null
-                val elLon = el.lon ?: el.center?.lon ?: return@mapNotNull null
-                val dist = haversineMeters(originLat, originLon, elLat, elLon)
-                Triple(name, resolveCategory(el.tags), dist)
-            }
-            .sortedWith(compareBy(
-                { CATEGORY_PRIORITY.indexOf(it.second).let { i -> if (i < 0) Int.MAX_VALUE else i } },
-                { it.third },
-            ))
-            .firstOrNull()
-            ?.let { (name, category, _) -> PlaceInfo(name = name, category = category) }
-    }
-
-    private fun haversineMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
-        val r = EARTH_RADIUS_METERS
-        val dLat = Math.toRadians(lat2 - lat1)
-        val dLon = Math.toRadians(lon2 - lon1)
-        val a = sin(dLat / 2) * sin(dLat / 2) +
-            cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) *
-            sin(dLon / 2) * sin(dLon / 2)
-        return r * 2 * atan2(sqrt(a), sqrt(1 - a))
-    }
-
-    private fun resolveCategory(tags: Map<String, String>): PlaceCategory {
-        val amenity = tags["amenity"]
-        val shop    = tags["shop"]
-        val tourism = tags["tourism"]
-        val leisure = tags["leisure"]
-        return when {
-            amenity == "fuel"                                          -> PlaceCategory.FUEL
-            shop in listOf("supermarket", "grocery", "convenience")   -> PlaceCategory.SUPERMARKET
-            shop in listOf("mall", "department_store",
-                           "shopping_centre", "wholesale")            -> PlaceCategory.MALL
-            amenity in listOf("restaurant", "fast_food", "food_court")-> PlaceCategory.RESTAURANT
-            amenity == "cafe"                                          -> PlaceCategory.CAFE
-            amenity == "pharmacy"                                      -> PlaceCategory.PHARMACY
-            amenity in listOf("hospital", "clinic", "doctors")        -> PlaceCategory.HOSPITAL
-            amenity == "parking"                                       -> PlaceCategory.PARKING
-            amenity in listOf("bank", "atm")                          -> PlaceCategory.BANK
-            tourism in listOf("hotel", "motel", "hostel",
-                              "guest_house", "apartment")             -> PlaceCategory.HOTEL
-            amenity in listOf("school", "university", "college",
-                              "kindergarten")                         -> PlaceCategory.SCHOOL
-            amenity in listOf("gym", "fitness_centre")                -> PlaceCategory.GYM
-            leisure == "fitness_centre"                                -> PlaceCategory.GYM
-            else                                                       -> PlaceCategory.OTHER
-        }
-    }
-
-    // ── Serialization models ─────────────────────────────────────────────────
-
-    @Serializable
-    private data class OverpassResponse(
-        val elements: List<OverpassElement> = emptyList(),
-    )
-
-    @Serializable
-    private data class OverpassElement(
-        val type: String = "",
-        // nodes have lat/lon directly; ways/relations have a "center" object
-        val lat: Double? = null,
-        val lon: Double? = null,
-        val center: Center? = null,
-        val tags: Map<String, String> = emptyMap(),
-    )
-
-    @Serializable
-    private data class Center(
-        val lat: Double = 0.0,
-        val lon: Double = 0.0,
-    )
-
     private companion object {
         const val ENDPOINT = "https://overpass-api.de/api/interpreter"
-        const val RADIUS_METERS = 80
-        const val MAX_RESULTS = 20
         const val QUERY_TIMEOUT_S = 8
         const val CONNECT_TIMEOUT_MS = 6_000
         const val READ_TIMEOUT_MS = 10_000
-        const val EARTH_RADIUS_METERS = 6_371_000.0
-
-        /** Lower index = shown first when multiple POIs are found in the radius. */
-        private val CATEGORY_PRIORITY = listOf(
-            PlaceCategory.FUEL,
-            PlaceCategory.SUPERMARKET,
-            PlaceCategory.MALL,
-            PlaceCategory.HOSPITAL,
-            PlaceCategory.PHARMACY,
-            PlaceCategory.RESTAURANT,
-            PlaceCategory.CAFE,
-            PlaceCategory.HOTEL,
-            PlaceCategory.PARKING,
-            PlaceCategory.BANK,
-            PlaceCategory.SCHOOL,
-            PlaceCategory.GYM,
-            PlaceCategory.OTHER,
-        )
     }
 }

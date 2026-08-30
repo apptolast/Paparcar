@@ -12,6 +12,7 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class AddressAndPlaceRepositoryImplTest {
 
@@ -138,6 +139,26 @@ class AddressAndPlaceRepositoryImplTest {
         assertEquals(true, emissions.first().approximate)
         // Borrowed answers never write back — the seal still requires a real Phase-1 answer.
         assertEquals(emptyList(), local.puts)
+    }
+
+    @Test
+    fun `should borrow the street of a neighbour cell but never its place`() = runTest {
+        geocoder.addressResult = Result.failure(RuntimeException("offline"))
+        places.placeResult = Result.failure(RuntimeException("offline"))
+        local.nearestResult = AddressAndPlace(
+            address = AddressInfo("Calle Mayor", "Madrid", null, "ES"),
+            placeInfo = PlaceInfo("Mercadona", PlaceCategory.SUPERMARKET),
+            approximate = true,
+        )
+
+        val emissions = repo.getAddressAndPlace(40.416775, -3.703790).toList()
+
+        // The neighbour may sit up to 250 m away. A street that far is still an honest "you are
+        // around here"; a PLACE that far is the claim POI-A-PLACE-IS-NAMED-ONLY-IF-YOU-ARE-AT-IT-001
+        // forbids — only Phase 2, which measures, may name one.
+        assertEquals("Calle Mayor", emissions.first().address.street)
+        assertNull(emissions.first().placeInfo)
+        assertTrue(emissions.all { it.placeInfo == null })
     }
 
     @Test

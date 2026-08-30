@@ -59,10 +59,16 @@ class AddressAndPlaceRepositoryImpl(
         // approximate=true so persisting consumers skip it, and it is never written back
         // to the cache — the seal below still requires a real Phase-1 answer.
         // [GEO-CACHE-ANSWERS-NEARBY-001]
+        //
+        // A borrowed cell lends its STREET and never its POI: the neighbour may sit up to 250 m away
+        // (RoomLocalAddressAndPlaceDataSource.MAX_NEAREST_DISTANCE_METERS), and while a street that
+        // far is still an honest "you are around here", a PLACE that far is exactly the claim
+        // [POI-A-PLACE-IS-NAMED-ONLY-IF-YOU-ARE-AT-IT-001] forbids. Phase 2 below is the only thing
+        // allowed to name a place, and it measures.
         val nearest = if (fetchedAddress == null) local.getNearest(lat, lon) else null
         val approximate = nearest != null
         val address = fetchedAddress ?: nearest?.address ?: AddressInfo(null, null, null, null)
-        emit(AddressAndPlace(address = address, placeInfo = nearest?.placeInfo, approximate = approximate))
+        emit(AddressAndPlace(address = address, placeInfo = null, approximate = approximate))
 
         // Phase 2: POI (network, best-effort). Seals the entry with poiChecked=true
         // so subsequent visits get a full cache hit without hitting Overpass again.
