@@ -118,14 +118,23 @@ class EvaluateGeofenceExitUseCaseTest {
     }
 
     @Test
-    fun should_treatNullTriggerLocation_asBoundary() {
-        // No delivery location → cannot claim "far"; default to the boundary path (dispatch + Exited).
+    fun should_treatNullTriggerLocation_asStale_becauseUnmeasurableIsNotMeasuredClose() {
+        // [DET-FAIL-CLOSED-BY-CONSTRUCTION-001] This used to assert `boundary`, reasoning "no
+        // delivery location → cannot claim far". True, and incomplete: you cannot claim NEAR either,
+        // and `boundary` is not the neutral bucket — it is the one that dispatches an INSTANT
+        // release. An unmeasurable delivery was being handed the highest authority in the lane.
+        //
+        // `stale` is not a discard, which is what makes this safe under the trigger contract: the
+        // service fires the SAME speed-gated departure worker for it — "the delivery position only
+        // removes the right to an INSTANT release, never the duty to look". So the EXIT still
+        // fires, always; it just has to show live speed instead of being taken at its word.
         val decision = useCase(
             lookups = listOf(GeofenceExitLookup.Found("geof-1", session("geof-1"))),
             activeVehicleId = "v-1",
             triggerLatitude = null,
             triggerLongitude = null,
         )
-        assertEquals(listOf("geof-1"), decision.boundaryDepartures.map { it.geofenceId })
+        assertEquals(emptyList(), decision.boundaryDepartures.map { it.geofenceId })
+        assertEquals(listOf("geof-1"), decision.staleDepartures.map { it.geofenceId })
     }
 }

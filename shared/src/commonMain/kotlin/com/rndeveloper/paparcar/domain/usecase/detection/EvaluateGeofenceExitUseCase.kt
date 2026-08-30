@@ -94,7 +94,11 @@ class EvaluateGeofenceExitUseCase(private val config: ParkingDetectionConfig) {
             } else {
                 null
             }
-            deliveredAtMeters == null || deliveredAtMeters <= config.watchdogFarThresholdMeters
+            // [DET-FAIL-CLOSED-BY-CONSTRUCTION-001] A null distance used to land in `boundary` —
+            // the HIGHEST-authority bucket — because the trigger carried no coordinates to measure
+            // against. Unmeasurable is not "measured close": it goes to `stale`, which still fires
+            // (every trigger fires) but through late verification instead of on its own word.
+            deliveredAtMeters != null && deliveredAtMeters <= config.watchdogFarThresholdMeters
         }
 
         return GeofenceExitDecision(

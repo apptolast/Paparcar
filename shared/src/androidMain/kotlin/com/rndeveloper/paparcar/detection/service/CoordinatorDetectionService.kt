@@ -473,7 +473,10 @@ class CoordinatorDetectionService : LifecycleService() {
         }
         PaparcarLogger.d(DIAG, "  → START_TRACKING — (re)starting detection")
         cancelDetectionJob()
-        startParkingDetection(DetectionTrigger.MANUAL)
+        // [DET-FAIL-CLOSED-BY-CONSTRUCTION-001] The one caller that relied on the old default — and
+        // it is the button, which is what the default was documented to be for. Stated explicitly
+        // now, so the next lane cannot inherit the user's word by forgetting to speak.
+        startParkingDetection(DetectionTrigger.MANUAL, armEvidence = ArmEvidence.Manual)
     }
 
     /**
@@ -1518,7 +1521,11 @@ class CoordinatorDetectionService : LifecycleService() {
          *  verifier's result; MANUAL passes [ArmEvidence.Manual] (the default); the arrival handoff
          *  passes [ArmEvidence.ArrivalHandoff]. [DET-HANDOFF-NOT-MANUAL-001] The default is only
          *  correct for the button — every other lane must state its own evidence. */
-        armEvidence: ArmEvidence = ArmEvidence.Manual,
+        // [DET-FAIL-CLOSED-BY-CONSTRUCTION-001] ⛔ NO DEFAULT — the KDoc above already said it
+        // ("only correct for the button — every other lane must state its own evidence"), and a
+        // rule stated in prose that the compiler does not enforce is a rule waiting for its first
+        // forgetful caller.
+        armEvidence: ArmEvidence,
         /** [DET-ZOMBIE-PROBE-001] Arm born from a FAR-delivered (stale-lane) EXIT — the
          *  coordinator shrinks its no-movement budget to the zombie probe. */
         staleExitDelivery: Boolean = false,

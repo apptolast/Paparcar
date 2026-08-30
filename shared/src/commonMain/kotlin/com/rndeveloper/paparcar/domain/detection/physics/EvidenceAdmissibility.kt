@@ -30,6 +30,14 @@ package com.rndeveloper.paparcar.domain.detection.physics
  */
 fun isAdmissibleEvidence(evidenceAtMs: Long?, sessionStartMs: Long?): Boolean {
     if (evidenceAtMs == null) return false
+    // [DET-FAIL-CLOSED-BY-CONSTRUCTION-001] ⛔ **NOT flipped, and this is the finding.** §6.2 #8 of
+    // the redesign lists this `true` as a permissive default to close. It is not one, and the
+    // distinction matters more than the line: fail-closed governs a claim that PLANTS something,
+    // while this gates a SIGNAL that only nominates. The project's contract on signals is the
+    // opposite rule — *every trigger fires, always; a stale event loses direct authority and passes
+    // to the evaluator, it is never discarded* — and returning false here discards it outright.
+    // `VerifyDepartureEvidenceUseCase` is the caller that depends on this, and flipping it turned
+    // two of its tests red immediately.
     if (sessionStartMs == null) return true
     return evidenceAtMs >= sessionStartMs
 }

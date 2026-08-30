@@ -369,6 +369,21 @@ class CoordinatorParkingDetector(
          *  own GPS stream cannot be relied on to re-observe driving speed on a short hop.
          *  [ArmEvidence.Manual] / [ArmEvidence.Unverified] arms keep every anti-walking guard
          *  active: their stream is expected to witness the drive itself. [DET-G-04][DET-SOLID-001] */
+        // [DET-FAIL-CLOSED-BY-CONSTRUCTION-001] The default used to be [ArmEvidence.Manual], and
+        // since [DET-DRIVING-EVIDENCE-IS-THE-ONLY-GATE-001] that is one of the three arms allowed to
+        // save a park IN SILENCE without the session measuring a drive — because it is the user's
+        // own word. A caller that forgot to state its evidence inherited the user's word.
+        //
+        // ⚠️ Closed ONE LEVEL UP instead, and the reason is measured: **no production code calls
+        // this function at all.** Every lane enters through `CoordinatorDetectionService
+        // .startParkingDetection`, where the parameter is now REQUIRED — that is where a new lane is
+        // actually added, so that is where the compiler has to ask. Exactly one production caller
+        // relied on the old default and it was the button, which now states `Manual` out loud.
+        //
+        // The default is kept here because the only callers left are tests. Making it required, or
+        // flipping it to the weakest arm, costs 80 test call sites restating a value their scenarios
+        // never cared about — and buys nothing a lane could ever hit. A guard placed where nobody
+        // walks is not a guard, it is noise.
         armEvidence: ArmEvidence = ArmEvidence.Manual,
         /** The vehicle whose geofence exit NOMINATED this trip (the fence that fired identifies the
          *  car). Preferred over the current active vehicle when locking attribution, so a swap-race

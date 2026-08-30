@@ -693,12 +693,17 @@ estilo de los `ColorGuardrailTest` / `TypographyGuardrailTest` que ya existen:
 | 1 | `DET-DRIVING-EVIDENCE-VALUE-OBJECT-001` (Pieza 1) ✅ | §6.0, la raíz | hecho |
 | 2 | `DET-NO-CLOCK-PLANTS-A-PIN-001` (Pieza 4) ✅ | pin a 142 m, batería | hecho |
 | 3 | `DET-DETECTION-PATH-IS-A-TYPE-001` (Pieza 2) 🟡 | #4 #12 (#13 era falsa alarma) | parcial |
-| 4 | `DET-FAIL-CLOSED-BY-CONSTRUCTION-001` (Pieza 3) | #5-#11, #14-#16 | medio |
+| 4 | `DET-FAIL-CLOSED-BY-CONSTRUCTION-001` (Pieza 3) 🟡 | #5 #9 #14 (#8 y #16 refutados/diferidos) | parcial |
 | 5 | `DET-TWO-TIER-SENTRY-001` (Pieza 5) | 28→1 armados, batería | alto |
 | 6 | `DET-DOUBT-MUST-REACH-THE-SCREEN-001` (Pieza 6) | §1.5 | bajo |
 | 7 | `DET-GUARDRAILS-KEEP-THE-DOCTRINE-001` (Pieza 7) | que no se deshaga | bajo |
 
 1, 2 y 4 son los que cambian la tasa de FP. 5 es el que cambia la batería y la escala (§6.5).
+
+🟡 **La Pieza 3 cerró #5, #9 y #14, y REFUTÓ #8**: `isAdmissibleEvidence(sessionStartMs = null)` no es
+un default permisivo — vigila una SEÑAL que nomina, y el contrato de triggers dice que un evento
+viejo pasa al evaluador, nunca se descarta. Fallar cerrado gobierna lo que PLANTA, no lo que nomina.
+Es una distinción que le falta a la Pieza 3b y que conviene escribir en ella.
 
 🟡 **La Pieza 2 va por su decisión más rentable** (`detectionPath` → tipo) y el barrido de textos del
 safety-net. Le quedan las otras tres membresías: `isVerifiedLabel`, `VehicleType.isHumanPowered` y

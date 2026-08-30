@@ -1365,9 +1365,13 @@ data class ParkingDetectionConfig(
      * [com.rndeveloper.paparcar.domain.detection.classifyDepartureSpeed], which adds the independence
      * gate ([departureProofMinGapMs]). [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001]
      */
+    // [DET-FAIL-CLOSED-BY-CONSTRUCTION-001] `accuracyMeters == null` used to READ AS CREDIBLE. A
+    // speed you cannot judge is not a speed you may believe: the accuracy gate exists because a
+    // Doppler reading from a converging receiver is a rumour, and "no accuracy at all" is the
+    // weakest version of that, not an exemption from it.
     fun isCredibleDrivingSpeed(speedKmh: Float?, accuracyMeters: Float?): Boolean =
         speedKmh != null && speedKmh >= minimumDepartureSpeedKmh &&
-            (accuracyMeters == null || accuracyMeters <= minGpsAccuracyForDriving)
+            accuracyMeters != null && accuracyMeters <= minGpsAccuracyForDriving
 
     /**
      * Pedestrian-reach corroboration: could the user have gotten [distanceMeters] away from the
