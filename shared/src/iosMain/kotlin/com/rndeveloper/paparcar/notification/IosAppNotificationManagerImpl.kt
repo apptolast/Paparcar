@@ -2,6 +2,7 @@
 
 package com.rndeveloper.paparcar.notification
 
+import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager.Companion.CONFIRMATION_FAILED_NOTIFICATION_ID
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager.Companion.DEBUG_NOTIFICATION_ID
@@ -37,7 +38,12 @@ class IosAppNotificationManagerImpl : AppNotificationManager {
         registerCategories()
     }
 
-    override fun showParkingConfirmation(score: Float, vehicleName: String?) {
+    override fun showParkingConfirmation(
+        score: Float,
+        vehicleName: String?,
+        candidate: GpsPoint?,
+        street: String?,
+    ) {
         val content = UNMutableNotificationContent().apply {
             setTitle(
                 if (vehicleName != null) "Did you park your $vehicleName?" else "Did you park?",

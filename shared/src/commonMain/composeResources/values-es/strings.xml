@@ -595,6 +595,8 @@
     <string name="home_det_ask_title">¿Has aparcado?</string>
     <string name="home_det_ask_title_vehicle">¿Has aparcado el %1$s?</string>
     <string name="home_det_ask_sub">Guardo tu aparcamiento y publico la plaza cuando te vayas</string>
+    <string name="home_det_ask_sub_at">Preguntado a las %1$s</string>
+    <string name="home_det_ask_sub_at_place">%1$s · preguntado a las %2$s</string>
     <string name="home_det_ask_cta_yes">Sí, he aparcado</string>
     <string name="home_det_ask_cta_no">Aún no</string>
     <string name="home_det_ask_eyebrow">¿Has aparcado?</string>

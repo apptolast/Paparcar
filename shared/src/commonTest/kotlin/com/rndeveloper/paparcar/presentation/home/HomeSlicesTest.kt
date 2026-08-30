@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.presentation.home
 
+import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.Spot
 import com.rndeveloper.paparcar.domain.model.SpotStatus
@@ -581,5 +582,35 @@ class HomeSlicesTest {
             activeSessions = listOf(session("s1", "veh-A"), session("orphan", "veh-gone")),
         )
         assertEquals(PeekStep.None, state.toPeekSlice().vehicleStep("veh-gone"))
+    }
+
+    // ── The open question's place. [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] ────────────
+
+    @Test
+    fun should_give_the_map_the_asked_about_place_when_a_question_is_open() {
+        val carStop = GpsPoint(36.6119, -6.2805, accuracy = 9f, timestamp = 1_000L, speed = 0f)
+        val state = HomeState(
+            promptWindow = PendingPromptWindow(shownAtMs = 1_000L, vehicleName = "Kamiq", candidate = carStop),
+        )
+
+        assertEquals(
+            carStop,
+            state.toMapSlice().unconfirmedParking,
+            "the marker must stand on the witnessed CAR stop, never on wherever the phone is now",
+        )
+    }
+
+    @Test
+    fun should_give_the_map_no_place_when_the_open_question_has_none() {
+        // A window persisted by a build older than this field. "No place" is an answer; guessing
+        // one would put the marker on the pedestrian, which is the whole bug.
+        val state = HomeState(promptWindow = PendingPromptWindow(shownAtMs = 1_000L, vehicleName = "Kamiq"))
+
+        assertNull(state.toMapSlice().unconfirmedParking)
+    }
+
+    @Test
+    fun should_give_the_map_no_place_when_no_question_is_open() {
+        assertNull(HomeState().toMapSlice().unconfirmedParking)
     }
 }

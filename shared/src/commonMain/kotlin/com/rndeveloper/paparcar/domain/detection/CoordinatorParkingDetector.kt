@@ -37,6 +37,7 @@ import com.rndeveloper.paparcar.domain.notification.AppNotificationManager
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import com.rndeveloper.paparcar.domain.sensor.StepDetectorSource
 import com.rndeveloper.paparcar.domain.usecase.notification.NotifyParkingConfirmationUseCase
+import com.rndeveloper.paparcar.domain.usecase.notification.ResolveAskedStreetUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.CalculateParkingConfidenceUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.ConfirmParkingUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.EvaluateParkingDecisionUseCase
@@ -119,6 +120,10 @@ class CoordinatorParkingDetector(
     private val calculateParkingConfidence: CalculateParkingConfidenceUseCase,
     private val confirmParking: ConfirmParkingUseCase,
     private val notifyParkingConfirmation: NotifyParkingConfirmationUseCase,
+    /** [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] What street a question may name. Injected
+     *  rather than reached through [notifyParkingConfirmation] because the executor's two degrade
+     *  paths post the prompt directly, and one rule may not have two owners. */
+    private val resolveAskedStreet: ResolveAskedStreetUseCase,
     private val notificationPort: AppNotificationManager,
     private val vehicleRepository: VehicleRepository,
     private val stepDetector: StepDetectorSource,
@@ -172,6 +177,7 @@ class CoordinatorParkingDetector(
     private val effects = DetectionEffectExecutor(
         confirmParking = confirmParking,
         notifyParkingConfirmation = notifyParkingConfirmation,
+        resolveAskedStreet = resolveAskedStreet,
         notificationPort = notificationPort,
         vehicleRepository = vehicleRepository,
         config = config,
@@ -967,6 +973,25 @@ class CoordinatorParkingDetector(
                     val stopTracking = requireNotNull(tracked)
                     stopTracking.notes.forEach { PaparcarLogger.d(DIAG, it.text) }
                     val stoppedDuration = stopTracking.stoppedDurationMs
+                    // [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] The reduction just reset a
+                    // conversation that had an open question. Retiring it is ONE call: the channel's
+                    // `dismiss` is the same choke point that clears the durable
+                    // `PendingPromptWindow`, so the tray card and the Home row go together and no
+                    // second cleanup path exists to fall out of sync. Silence would leave the app
+                    // asking "did you park?" for the rest of the response window while the car
+                    // drives — an answer nobody is listening for.
+                    if (stopTracking.promptRetracted) {
+                        notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
+                        // Without this the retraction is invisible in forensics: a trace would show
+                        // a prompt posted and never resolved, which is exactly how the 2026-07-10
+                        // session read as "prompt never shown" when it HAD been posted.
+                        logDetection { sid ->
+                            DetectionEvent.Decision(
+                                sid, now, outcome = "PROMPT_RETRACTED", pathLabel = null,
+                                location = location, reason = "drive_resumed",
+                            )
+                        }
+                    }
 
                     // [09 §5] The other half of the reduction — what this fix PROVED. Its own file
                     // since DET-FIX-REDUCTION-TO-ITS-REDUCER-001, for the reason its twin above

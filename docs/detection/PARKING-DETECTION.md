@@ -2694,6 +2694,77 @@ needed to confirm, but inheriting it would make SHORT_HOP valid on the final leg
 
 ---
 
+### DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001 — a question that outlived its own answer
+
+**Commit:** pending · **Reported by the user (30-08):** *"en caso de probar conducción medida
+debería de omitirse esto y volver a estado en ruta"*.
+
+**Root cause.** `updateStopTracking` has always called `confirmation.stopEnded()` when
+`effectiveDriving` returns true, so past that line the session is back on the road:
+`ResponseTimeoutStage` finds no `promptShownAt` and the unattended save never fires. The question
+was therefore already dead INTERNALLY — but nothing took it off the two surfaces that show it. The
+tray notification stayed posted (the only `dismissPrompt()` callers were the safety net, the
+dispatcher's `SaveUnattended` and the user's own "No"), and the durable `PendingPromptWindow` stayed
+written, so `HomeViewModel` kept it alive until the 15-minute `confirmationResponseTimeoutMs`
+expired. Since `resolveDetectionStory` ranks `AwaitingAnswer` above `Driving`, Home asked *"did you
+park your Ford Focus?"*, with two buttons, while the car was measurably driving and nobody was
+listening for the answer.
+
+**Fix.** The reduction now REPORTS the moment it kills a live question (`StopTracking.promptRetracted`,
+riding out beside `sustainedDeparture` for the same stated reason: it was already measured here, and
+re-deriving it in the collector would be two call sites of one rule agreeing by luck). The collector
+executes it with a single `notificationPort.dismiss(PARKING_CONFIRMATION_NOTIFICATION_ID)` — the same
+choke point that clears the durable window, so tray and Home fall together and no second cleanup path
+exists to drift. Logged as `PROMPT_RETRACTED / reason=drive_resumed`, because a retraction the trace
+cannot see reads exactly like the 2026-07-10 "prompt never shown".
+
+**Accompanying-fix risk.** `effectiveDriving` is broader than measured driving — it also admits
+`steplessDeparture`, `corroboratedMuteHop` and `displacementOutrunsSteps`. This change does not widen
+that: the cancellation already happened there, silently. If that bar is too low, the bug is in
+`stopEnded()` and belongs to its own ticket, not to this one.
+
+**Also in this ticket.** `PendingPromptWindow` gains the WITNESSED CAR STOP (`candidate`, with its
+accuracy) so the question has a durable place, not just a durable time and name: the frozen car
+marker lives in a `HomeTripController` var, and on a cold open inside the window that var is null and
+the "frozen" anchor falls back to the current fix — the app would have marked the pedestrian, in
+precisely the scenario `DET-ASK-STATE-001` exists for. Kept deliberately apart from
+`UserConfirmStage.whereTheCarIs`: that cascade is a verdict evaluated at ANSWER time and may prefer
+the fix the user is standing on; this one is a stable witness (`witnessedCarStop`).
+
+**What the question now shows.** The Home row wears the WATCHED green (it names a car, so it wears
+that car's colour — `AwaitingAnswer` had been left on the brand tone by the sweep that fixed the
+rows either side of it), says WHEN it was asked as an absolute clock time, and the whole card is
+tappable to frame the place. The map draws that place as the parked-car tag in an unconfirmed dress:
+dashed frame, `?` disc on the corner, tag fill at 72 %. The CAR inside stays opaque and full-colour —
+`MAP-ICONS-V2` already ruled that a dimmed carbody reads as "this vehicle is going away", and doubt
+about the PLACE may not be expressed by doubting WHICH CAR.
+
+No countdown, deliberately: of the three verdicts the response timeout can reach, only one plants a
+pin at that spot, so any "saving in N min" would be a promise the app cannot keep.
+
+**The theme is part of a marker's pixels.** Measured on device: in dark mode the unconfirmed tag
+rendered WHITE over the dark map, because kmpmaps caches the rasterised bitmap by `contentId` and the
+id did not encode the theme — so a theme flip kept serving the previous theme's raster. Same class of
+staleness the `_dim` suffix already exists to prevent. The fix swept all four id families
+(`my_car*`, `vehicle_badge_*`, the ask marker), because a PARKED car's tag has exactly the same
+white/ink split and was equally stale.
+
+**1815 tests**, 0 failures (master `b1995e09`: 1802). Verified discriminating in both directions:
+forcing the retraction off turns the driving case red, dropping the `effectiveDriving` half turns the
+walk-away case red.
+
+**The street.** `ResolveAskedStreetUseCase` is the one rule, injected into both posting owners
+because three call sites raise this question and a street that differed between them would be three
+questions about one stop. It resolves BEFORE the post on a 2 s budget — the obvious alternative
+(post now, re-post with the street) goes through `showParkingConfirmation`, which rewrites
+`shownAtMs` unconditionally, so a cosmetic upgrade would have restarted the user's response window
+and the unattended-save deadline with it. An `approximate` address is refused outright: the borrowed
+neighbouring street is a road the user is not on, printed with a house number. The POI name is
+refused too — it is the repository's slow Phase 2, so it would only appear when a previous visit had
+cached it, and the same stop would be worded differently on different days.
+
+---
+
 ## 3. Open questions / future work
 
 - **GPS sampling boost during CANDIDATE (PARKING-001 Option B).** Switch the LocationDataSource to a 1 s `minUpdateIntervalMillis` request when entering the CANDIDATE phase, returning to 2 s on exit. Increases density of fixes that refine `bestStopLocation` within the new initial-stop window after a reposition burst. Adds the complexity of swapping the location source mid-session — hold off until A is validated in the field.

@@ -15,6 +15,7 @@ import com.rndeveloper.paparcar.domain.usecase.detection.ObserveDepartureWatchGa
 import com.rndeveloper.paparcar.domain.usecase.detection.ObserveDetectionReadinessUseCase
 import com.rndeveloper.paparcar.domain.usecase.detection.ObserveDetectionReliabilityUseCase
 import com.rndeveloper.paparcar.domain.usecase.notification.NotifyParkingConfirmationUseCase
+import com.rndeveloper.paparcar.domain.usecase.notification.ResolveAskedStreetUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.CalculateParkingConfidenceUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.ClearParkNudgeUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.ConfirmParkingUseCase
@@ -121,7 +122,8 @@ val detectionModule = module {
             drivingRouteStore = getOrNull(),
         )
     }
-    factory { NotifyParkingConfirmationUseCase(get(), get()) }
+    factory { ResolveAskedStreetUseCase(get()) }
+    factory { NotifyParkingConfirmationUseCase(get(), get(), get()) }
 
     // ── The coordinator (probabilistic strategy) ──────────────────────────────────────────────
     single {
@@ -129,6 +131,7 @@ val detectionModule = module {
             calculateParkingConfidence = get(),
             confirmParking = get(),
             notifyParkingConfirmation = get(),
+            resolveAskedStreet = get(),
             notificationPort = get(),
             vehicleRepository = get(),
             stepDetector = get(),

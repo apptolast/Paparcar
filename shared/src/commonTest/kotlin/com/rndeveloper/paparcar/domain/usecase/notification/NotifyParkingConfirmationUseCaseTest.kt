@@ -2,6 +2,9 @@
 
 package com.rndeveloper.paparcar.domain.usecase.notification
 
+import com.rndeveloper.paparcar.fakes.FakeAddressAndPlaceRepository
+import com.rndeveloper.paparcar.domain.usecase.location.GetAddressAndPlaceUseCase
+import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.ParkingConfidence
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.VehicleSize
@@ -15,9 +18,14 @@ class NotifyParkingConfirmationUseCaseTest {
 
     private val notificationManager = FakeAppNotificationManager()
 
+    /** These cases are about the VEHICLE NAME; the street rule has its own file. An empty geocoder
+     *  keeps them from depending on it either way. */
+    private val noStreet = ResolveAskedStreetUseCase(GetAddressAndPlaceUseCase(FakeAddressAndPlaceRepository()))
+
     private fun useCase(vehicle: Vehicle? = null) = NotifyParkingConfirmationUseCase(
         notificationPort = notificationManager,
         vehicleRepository = FakeVehicleRepository(defaultVehicle = vehicle),
+        resolveAskedStreet = noStreet,
     )
 
     private fun vehicle(brand: String? = null, model: String? = null) = Vehicle(
@@ -62,14 +70,20 @@ class NotifyParkingConfirmationUseCaseTest {
     fun `should pass brand and model as display name when both present`() = runTest {
         var capturedName: String? = "sentinel"
         val mgr = object : FakeAppNotificationManager() {
-            override fun showParkingConfirmation(score: Float, vehicleName: String?) {
-                super.showParkingConfirmation(score, vehicleName)
+            override fun showParkingConfirmation(
+                score: Float,
+                vehicleName: String?,
+                candidate: GpsPoint?,
+                street: String?,
+            ) {
+                super.showParkingConfirmation(score, vehicleName, candidate, street)
                 capturedName = vehicleName
             }
         }
         val uc = NotifyParkingConfirmationUseCase(
             notificationPort = mgr,
             vehicleRepository = FakeVehicleRepository(vehicle(brand = "Toyota", model = "Corolla")),
+            resolveAskedStreet = noStreet,
         )
         uc(ParkingConfidence.Low)
         assertEquals("Toyota Corolla", capturedName)
@@ -79,13 +93,19 @@ class NotifyParkingConfirmationUseCaseTest {
     fun `should pass brand only when model is null`() = runTest {
         var capturedName: String? = "sentinel"
         val mgr = object : FakeAppNotificationManager() {
-            override fun showParkingConfirmation(score: Float, vehicleName: String?) {
+            override fun showParkingConfirmation(
+                score: Float,
+                vehicleName: String?,
+                candidate: GpsPoint?,
+                street: String?,
+            ) {
                 capturedName = vehicleName
             }
         }
         val uc = NotifyParkingConfirmationUseCase(
             notificationPort = mgr,
             vehicleRepository = FakeVehicleRepository(vehicle(brand = "Ford", model = null)),
+            resolveAskedStreet = noStreet,
         )
         uc(ParkingConfidence.Low)
         assertEquals("Ford", capturedName)
@@ -95,13 +115,19 @@ class NotifyParkingConfirmationUseCaseTest {
     fun `should pass null when both brand and model are null`() = runTest {
         var capturedName: String? = "sentinel"
         val mgr = object : FakeAppNotificationManager() {
-            override fun showParkingConfirmation(score: Float, vehicleName: String?) {
+            override fun showParkingConfirmation(
+                score: Float,
+                vehicleName: String?,
+                candidate: GpsPoint?,
+                street: String?,
+            ) {
                 capturedName = vehicleName
             }
         }
         val uc = NotifyParkingConfirmationUseCase(
             notificationPort = mgr,
             vehicleRepository = FakeVehicleRepository(vehicle(brand = null, model = null)),
+            resolveAskedStreet = noStreet,
         )
         uc(ParkingConfidence.Low)
         assertEquals(null, capturedName)
@@ -111,13 +137,19 @@ class NotifyParkingConfirmationUseCaseTest {
     fun `should pass null when no default vehicle exists`() = runTest {
         var capturedName: String? = "sentinel"
         val mgr = object : FakeAppNotificationManager() {
-            override fun showParkingConfirmation(score: Float, vehicleName: String?) {
+            override fun showParkingConfirmation(
+                score: Float,
+                vehicleName: String?,
+                candidate: GpsPoint?,
+                street: String?,
+            ) {
                 capturedName = vehicleName
             }
         }
         val uc = NotifyParkingConfirmationUseCase(
             notificationPort = mgr,
             vehicleRepository = FakeVehicleRepository(defaultVehicle = null),
+            resolveAskedStreet = noStreet,
         )
         uc(ParkingConfidence.Low)
         assertEquals(null, capturedName)

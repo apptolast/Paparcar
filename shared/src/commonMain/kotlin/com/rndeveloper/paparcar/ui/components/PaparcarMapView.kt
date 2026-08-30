@@ -256,6 +256,7 @@ private fun vehicleBadgeContentId(
     v: ParkedVehicleSummary,
     selected: Boolean,
     dim: Boolean = false,
+    themeKey: String,
 ): String {
     val state = when {
         selected -> "sel"
@@ -270,12 +271,19 @@ private fun vehicleBadgeContentId(
         else                -> "ina"
     }
     // Colour is baked into the key so a recoloured car regenerates its cached bitmap. [VEH-COLOR-001]
-    return "vehicle_badge_${v.vehicleId.take(8)}_${v.sizeCategory?.name ?: "def"}_${v.color?.name ?: "def"}_${state}_$tone"
+    // [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] …and so is the THEME: the tag fill is white in
+    // light and ink in dark, so without this a theme flip served the previous theme's raster.
+    return "vehicle_badge_${v.vehicleId.take(8)}_${v.sizeCategory?.name ?: "def"}_" +
+        "${v.color?.name ?: "def"}_${state}_${tone}_$themeKey"
 }
 
 private const val MARKER_MY_CAR          = "my_car"
 private const val MARKER_MY_CAR_DIM      = "my_car_dim"
 private const val MARKER_MY_CAR_SELECTED = "my_car_selected"
+// [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] The place an OPEN "did you park?" question is
+// about. Its own contentId because kmpmaps caches bitmaps by it: the dashed frame and the `?`
+// disc must be baked in, exactly as the dim pass is, or the marker would never flip reliably.
+private const val MARKER_MY_CAR_ASKING   = "my_car_asking"
 private const val MARKER_DEPARTURE       = "departure" // trip origin (blue dot) during a trip [DEPART-CONSISTENCY-001]
 private const val MARKER_ARRIVAL         = "arrival"   // stored route's end (same dot) at the parked car [ROUTE-END-AT-CAR-001]
 // Trip breadcrumb polyline width (screen px in Google Maps). Navigation-app weight: thick enough
@@ -641,6 +649,37 @@ fun PaparcarMapView(
     /** Faded "departure" point — where the car left from, shown while a trip runs. [TRIP-TRAIL-001] */
     departurePoint: State<GpsPoint?> = EMPTY_DEPARTURE_STATE,
     /**
+     * [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] Where an OPEN "did you park?" question is
+     * about — the witnessed car stop carried by the durable `PendingPromptWindow`. Drawn as the
+     * parked-car tag in its unconfirmed dress, so answering "Sí" (or the silence verdict) RESOLVES
+     * this marker rather than swapping it for a different one.
+     *
+     * Deliberately NOT derived from the driving puck: that anchor is a `var` in `HomeTripController`
+     * which is null on a cold open, and the fallback would put this marker on the PEDESTRIAN — in
+     * the exact scenario (parked, walked off, opened the app) the question exists for.
+     */
+    unconfirmedParking: GpsPoint? = null,
+    /**
+     * [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] Tap on the unconfirmed marker. It carries no
+     * id because there is no session yet — the question is precisely about whether there should be
+     * one — so unlike [onMyCarClick] it has nothing to look up: there is only ever one open
+     * question.
+     */
+    onAskMarkerClick: () -> Unit = {},
+    /**
+     * [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] The car the open question is about — its own
+     * parameters, NOT the `parkingVehicle*` trio, which is the history detail's single-parking
+     * fallback and is null on Home. Wiring the ask marker to those made it draw the generic
+     * silhouette instead of the user's actual car (caught on device, first run).
+     *
+     * It is the ACTIVE vehicle, and that cannot drift from the wording: both posting paths name the
+     * active vehicle too (`activeVehicleName()` / `observeActiveVehicle()`), so the tag wears the
+     * car the title already names.
+     */
+    askVehicleCarbody: com.rndeveloper.paparcar.domain.model.CarbodyType? = null,
+    askVehicleSize: VehicleSize? = null,
+    askVehicleColor: com.rndeveloper.paparcar.domain.model.VehicleColor? = null,
+    /**
      * End vertex of a STORED route — the departure dot's mirror on the polyline's last point, tight
      * against the parked-car marker, so the line terminates cleanly instead of dying in an abrupt
      * cut. Only for saved routes (history detail); a LIVE trip's end is the moving puck, so live
@@ -827,9 +866,21 @@ fun PaparcarMapView(
     val freshnessMinute = rememberSpotAgeClock() / MS_PER_MINUTE_MARKERS
     val freshnessNowMs = freshnessMinute * MS_PER_MINUTE_MARKERS
 
+    // [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] The theme is part of what a marker bitmap LOOKS
+    // like — `VehicleBadgeMarker`'s tag fill is white in light and ink in dark — and kmpmaps caches
+    // that bitmap by contentId. Hoisted above the marker list (it used to be declared with the map
+    // style, hundreds of lines below) so both the ids and the handlers can bake it in. Without it a
+    // theme flip keeps serving the previous theme's raster: measured on device, the unconfirmed tag
+    // stayed WHITE over the dark map. Same class of staleness as the `_dim` suffix, same fix.
+    val isThemeDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val themeKey = if (isThemeDark) "dk" else "lt"
+
     val markers = remember(
         clusters, parkingLocation, parkedVehicles, selectedSpotId, selectedSessionId, zones, dimSpots,
-        departure, arrival, freshnessMinute,
+        departure, arrival, freshnessMinute, themeKey,
+        // Without this key the ask marker would appear only when something ELSE changed the list —
+        // and would outlive the question it draws. [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001]
+        unconfirmedParking,
     ) {
         buildList {
             // Zone markers — added FIRST (lowest zIndex) so spot/parking markers
@@ -866,6 +917,7 @@ fun PaparcarMapView(
                                 v,
                                 selected = selected,
                                 dim = !selected && dimSpots,
+                                themeKey = themeKey,
                             ),
                             androidMarkerOptions = if (selected) SELECTED_MARKER_OPTIONS else NORMAL_MARKER_OPTIONS,
                         ),
@@ -881,7 +933,7 @@ fun PaparcarMapView(
                         isSelected -> MARKER_MY_CAR_SELECTED
                         dimSpots   -> MARKER_MY_CAR_DIM
                         else       -> MARKER_MY_CAR
-                    }
+                    } + "_" + themeKey
                     add(
                         Marker(
                             coordinates = Coordinates(it.latitude, it.longitude),
@@ -921,6 +973,20 @@ fun PaparcarMapView(
                         ),
                     )
                 }
+            }
+            // [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] The open question's place. Added
+            // unconditionally when present: it never competes with a parked marker, because a
+            // confirmed session and an unanswered question about the same car cannot coexist —
+            // confirming is what closes the window.
+            unconfirmedParking?.let { at ->
+                add(
+                    Marker(
+                        coordinates = Coordinates(at.latitude, at.longitude),
+                        title = null,
+                        contentId = "${MARKER_MY_CAR_ASKING}_$themeKey",
+                        androidMarkerOptions = NORMAL_MARKER_OPTIONS,
+                    ),
+                )
             }
             // Trip origin — a blue dot where the car left from, under the trail + puck. [DEPART-CONSISTENCY-001]
             departure?.let { dp ->
@@ -969,6 +1035,7 @@ fun PaparcarMapView(
     val customMarkerContent = remember(
         clusterCountByCoords, enRouteBuckets, parkedVehicles, zones,
         parkingVehicleSize, parkingVehicleCarbody, parkingVehicleColor, parkingIsActive,
+        askVehicleCarbody, askVehicleSize, askVehicleColor, themeKey,
         // Key only on the puck's VISUAL identity, not the whole drivingPuck: its handler bitmap depends
         // solely on carbody/size/colour (heading is native rotation, position is the marker coordinate).
         // Keying on the full object rebuilt this map every GPS fix (~1 Hz), which re-rasterised the puck
@@ -977,7 +1044,7 @@ fun PaparcarMapView(
     ) {
         val baseHandlers: Map<String, @Composable (Marker) -> Unit> = buildMap {
             // ── Fallback single-parking marker (ParkingHistoryDetailScreen) ──
-            put(MARKER_MY_CAR) { _ ->
+            put("${MARKER_MY_CAR}_$themeKey") { _ ->
                 VehicleBadgeMarker(
                     sizeCategory = parkingVehicleSize,
                     carbodyType = parkingVehicleCarbody,
@@ -985,7 +1052,7 @@ fun PaparcarMapView(
                     color = parkingVehicleColor,
                 )
             }
-            put(MARKER_MY_CAR_DIM) { _ ->
+            put("${MARKER_MY_CAR_DIM}_$themeKey") { _ ->
                 DimWrapper {
                     VehicleBadgeMarker(
                         sizeCategory = parkingVehicleSize,
@@ -995,7 +1062,21 @@ fun PaparcarMapView(
                     )
                 }
             }
-            put(MARKER_MY_CAR_SELECTED) { _ ->
+            // [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] Same tag, unconfirmed dress. The car
+            // keeps its identity — full colour, full opacity — because the doubt is about the
+            // PLACE, not about which vehicle.
+            put("${MARKER_MY_CAR_ASKING}_$themeKey") { _ ->
+                VehicleBadgeMarker(
+                    sizeCategory = askVehicleSize,
+                    carbodyType = askVehicleCarbody,
+                    color = askVehicleColor,
+                    // Always the assisted lane: this question only exists on the Coordinator.
+                    isActive = true,
+                    isBluetoothPaired = false,
+                    unconfirmed = true,
+                )
+            }
+            put("${MARKER_MY_CAR_SELECTED}_$themeKey") { _ ->
                 VehicleBadgeMarker(
                     selected = true,
                     sizeCategory = parkingVehicleSize,
@@ -1064,7 +1145,7 @@ fun PaparcarMapView(
         val vehicleHandlers: Map<String, @Composable (Marker) -> Unit> =
             parkedVehicles.flatMap { v ->
                 listOf<Pair<String, @Composable (Marker) -> Unit>>(
-                    vehicleBadgeContentId(v, selected = false, dim = false) to { _: Marker ->
+                    vehicleBadgeContentId(v, selected = false, dim = false, themeKey = themeKey) to { _: Marker ->
                         VehicleBadgeMarker(
                             sizeCategory = v.sizeCategory,
                             carbodyType = v.carbodyType,
@@ -1074,7 +1155,7 @@ fun PaparcarMapView(
                             color = v.color,
                         )
                     },
-                    vehicleBadgeContentId(v, selected = false, dim = true) to { _: Marker ->
+                    vehicleBadgeContentId(v, selected = false, dim = true, themeKey = themeKey) to { _: Marker ->
                         DimWrapper {
                             VehicleBadgeMarker(
                                 sizeCategory = v.sizeCategory,
@@ -1086,7 +1167,7 @@ fun PaparcarMapView(
                             )
                         }
                     },
-                    vehicleBadgeContentId(v, selected = true) to { _: Marker ->
+                    vehicleBadgeContentId(v, selected = true, themeKey = themeKey) to { _: Marker ->
                         VehicleBadgeMarker(
                             selected = true,
                             sizeCategory = v.sizeCategory,
@@ -1166,7 +1247,6 @@ fun PaparcarMapView(
 
     // ── Loading state ────────────────────────────────────────────────────
     val backgroundColor = MaterialTheme.colorScheme.background
-    val isThemeDark = backgroundColor.luminance() < 0.5f
     val resolvedDark = when (config.styleMode) {
         MapStyleMode.AUTO -> isThemeDark
         MapStyleMode.DARK -> true
@@ -1542,11 +1622,11 @@ fun PaparcarMapView(
                 // route clicks purely off contentId + a coords-keyed lookup.
                 val cid = marker.contentId
                 when {
-                    cid == MARKER_MY_CAR ||
-                        cid == MARKER_MY_CAR_DIM ||
-                        cid == MARKER_MY_CAR_SELECTED ||
+                    cid?.startsWith(MARKER_MY_CAR) == true ||
                         cid?.startsWith("vehicle_badge_") == true ->
                         sessionIdByCoords[marker.coordinates]?.let(onMyCarClick)
+                    // The ask marker resolves to no session on purpose — see [onAskMarkerClick].
+                    cid?.startsWith(MARKER_MY_CAR_ASKING) == true -> onAskMarkerClick()
                     cid?.startsWith(MARKER_ZONE_PREFIX) == true ->
                         zoneIdByCoords[marker.coordinates]?.let(onZoneClick)
                     cid == MARKER_CLUSTER || cid == MARKER_CLUSTER_DIM -> Unit // cluster taps are inert

@@ -159,6 +159,21 @@ fun VehicleBadgeMarker(
     color: com.rndeveloper.paparcar.domain.model.VehicleColor? = null,
     contentAlpha: Float = 1f,
     originDot: Boolean = false,
+    /**
+     * [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] The park is NOT a fact yet — this is the place
+     * an open "did you park?" question is about. Same tag, same silhouette, so when the answer (or
+     * the timeout) confirms it, the marker RESOLVES instead of one marker vanishing and another
+     * appearing. The doubt is said three ways, none of which touch the car: the border goes
+     * DASHED, a `?` disc sits on the tag's top corner, and the tag's own fill drops to
+     * [UNCONFIRMED_TAG_ALPHA].
+     *
+     * ⛔ The carbody stays fully opaque and full-colour, exactly as in every other state. Fading it
+     * is the one thing this marker must not do: the car is IDENTITY, not status, and a dimmed
+     * carbody reads as "this vehicle is going away" — the failure mode the inactive state was
+     * explicitly designed around a few lines up. Doubt about the PLACE may not be expressed by
+     * doubting WHICH CAR.
+     */
+    unconfirmed: Boolean = false,
 ) {
     // Method-coloured frame, fixed light-theme tones (markers float over map tiles, not surfaces):
     // BT blue wins (matches Vehicle.monitoringStatus), then active green, grey when unwatched.
@@ -179,6 +194,28 @@ fun VehicleBadgeMarker(
 
     // dp-per-viewBox-unit, so the overlaid carbody lands exactly inside the drawn tag interior.
     val u = TAG_MARKER_W / TAG_VB_W
+
+    // [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] The `?` is measured here, not drawn as a
+    // hand-built path: a glyph at ~9 dp lives or dies on its hinting, and the app's own family
+    // already draws every other label on this map. Map-marker `TextMeasurer` is the standing
+    // exception in the typography guardrail, for exactly this. [UI-TYPE-ONE-VOICE-REACHES-MATERIAL-001]
+    val markerFamily = PaparcarType.current.cardTitle.fontFamily
+    val questionMeasurer = rememberTextMeasurer()
+    val questionGlyph = if (unconfirmed) {
+        val style = remember(markerFamily) {
+            TextStyle(
+                fontFamily = markerFamily,
+                fontWeight = FontWeight.Bold,
+                fontSize = (TAG_MARKER_W.value * BADGE_GLYPH_U / TAG_VB_W).sp,
+                textAlign = TextAlign.Center,
+            )
+        }
+        remember(questionMeasurer, style) {
+            questionMeasurer.measure(text = AnnotatedString("?"), style = style)
+        }
+    } else {
+        null
+    }
 
     Box(
         modifier = modifier.size(
@@ -208,14 +245,66 @@ fun VehicleBadgeMarker(
             val tagTopLeft = Offset(10f * s, 6f * s)
             val tagSize = Size(84f * s, 66f * s)
             val corner = CornerRadius(20f * s, 20f * s)
-            drawRoundRect(color = tagFill.copy(alpha = tagFill.alpha * contentAlpha), topLeft = tagTopLeft, size = tagSize, cornerRadius = corner)
+            val tagAlpha = if (unconfirmed) UNCONFIRMED_TAG_ALPHA else 1f
+            drawRoundRect(
+                color = tagFill.copy(alpha = tagFill.alpha * contentAlpha * tagAlpha),
+                topLeft = tagTopLeft,
+                size = tagSize,
+                cornerRadius = corner,
+            )
             drawRoundRect(
                 color = borderColor.copy(alpha = borderColor.alpha * contentAlpha),
                 topLeft = tagTopLeft,
                 size = tagSize,
                 cornerRadius = corner,
-                style = Stroke(width = borderUnits * s),
+                // A dashed frame is the one "provisional" idiom that survives at marker scale, and
+                // Canvas can draw it — the VectorDrawable ban on `stroke-dasharray` does not reach
+                // here, which is the whole reason this marker family was never an SVG.
+                style = Stroke(
+                    width = borderUnits * s,
+                    pathEffect = if (unconfirmed) {
+                        PathEffect.dashPathEffect(
+                            floatArrayOf(UNCONFIRMED_DASH_ON * s, UNCONFIRMED_DASH_OFF * s),
+                        )
+                    } else {
+                        null
+                    },
+                ),
             )
+            if (unconfirmed) {
+                // The `?` disc rides the tag's TOP-RIGHT corner: the tip of the dome is the ground
+                // point and the tag interior is the car, so the corner is the only real estate that
+                // is neither.
+                //
+                // FILLED, with the glyph knocked out of it: a solid identity-coloured disc carrying
+                // a `?` in the tag's own fill. The first pass had it the other way round — pale disc,
+                // coloured glyph — and on device it read as one more pale blob among the map's
+                // labels. The filled version is the same language the free-spot pucks already speak
+                // (coloured disc, paper ring, paper glyph), so it reads as a marker badge at a
+                // glance instead of as a sticker.
+                //
+                // The ring is the tag fill too, which is what keeps the disc off the map tiles —
+                // never grey, which in this app already means "unwatched vehicle" and would vanish
+                // against asphalt anyway.
+                val badgeCenter = Offset(BADGE_CX * s, BADGE_CY * s)
+                drawCircle(color = borderColor, radius = BADGE_R * s, center = badgeCenter)
+                drawCircle(
+                    color = tagFill,
+                    radius = BADGE_R * s,
+                    center = badgeCenter,
+                    style = Stroke(width = BADGE_BORDER_U * s),
+                )
+                questionGlyph?.let { glyph ->
+                    drawText(
+                        glyph,
+                        color = tagFill,
+                        topLeft = Offset(
+                            badgeCenter.x - glyph.size.width / 2f,
+                            badgeCenter.y - glyph.size.height / 2f,
+                        ),
+                    )
+                }
+            }
         }
         // 4 · the isometric carbody, centred in the tag interior (ContentScale.Fit); faded with the tag.
         VehicleIcon(
@@ -244,6 +333,16 @@ private const val TAG_SHADOW_ALPHA  = 0.18f
 private const val TAG_DARK_LUMINANCE = 0.5f // theme surface below this ⇒ dark ⇒ ink fill, else white
 private const val ORIGIN_DOT_SCALE      = 1.4f // blue trip-origin dot, larger than the normal dot [TRIP-TRAIL-001]
 private const val ORIGIN_DOT_HALO_SCALE = 1.9f // white halo behind the origin dot
+
+// [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] The unconfirmed dress (viewBox units).
+private const val UNCONFIRMED_TAG_ALPHA = 0.72f // the TAG's fill only — never the carbody
+private const val UNCONFIRMED_DASH_ON   = 7f
+private const val UNCONFIRMED_DASH_OFF  = 5f
+private const val BADGE_CX          = 90f  // tag spans x 10..94 — the disc rides the top-right corner
+private const val BADGE_CY          = 12f  // tag spans y 6..72
+private const val BADGE_R           = 16f
+private const val BADGE_BORDER_U    = 3f
+private const val BADGE_GLYPH_U     = 22f  // `?` cap size, in the same viewBox units
 
 // ─── Marker 1c — Location-active driving puck (LocationActiveMarker) ─────────
 

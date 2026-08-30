@@ -560,6 +560,8 @@
     <string name="home_det_ask_title">Já estacionaste?</string>
     <string name="home_det_ask_title_vehicle">Já estacionaste o teu %1$s?</string>
     <string name="home_det_ask_sub">Guardo o teu estacionamento e publico o lugar quando saíres</string>
+    <string name="home_det_ask_sub_at">Perguntado às %1$s</string>
+    <string name="home_det_ask_sub_at_place">%1$s · perguntado às %2$s</string>
     <string name="home_det_ask_cta_yes">Sim, estacionei</string>
     <string name="home_det_ask_cta_no">Ainda não</string>
     <string name="home_det_ask_eyebrow">Já estacionaste?</string>

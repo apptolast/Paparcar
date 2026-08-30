@@ -1,11 +1,18 @@
 package com.rndeveloper.paparcar.fakes
 
+import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager
 
 open class FakeAppNotificationManager : AppNotificationManager {
 
     var parkingSpotSavedCallCount = 0
     var parkingConfirmationCallCount = 0
+
+    /** [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] The place the last posted question was about. */
+    var lastPromptCandidate: GpsPoint? = null
+
+    /** The street the last posted question named, or null when it named none. */
+    var lastPromptStreet: String? = null
     var parkingSavedConfirmCallCount = 0
     val dismissedIds: MutableList<Int> = mutableListOf()
 
@@ -19,7 +26,14 @@ open class FakeAppNotificationManager : AppNotificationManager {
      */
     val confirmationNotifOps: MutableList<String> = mutableListOf()
 
-    override fun showParkingConfirmation(score: Float, vehicleName: String?) {
+    override fun showParkingConfirmation(
+        score: Float,
+        vehicleName: String?,
+        candidate: GpsPoint?,
+        street: String?,
+    ) {
+        lastPromptCandidate = candidate
+        lastPromptStreet = street
         parkingConfirmationCallCount++
     }
 

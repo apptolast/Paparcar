@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.presentation.home.model.DetectionStory
+import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
 import com.rndeveloper.paparcar.presentation.home.model.ParkedWatchBadge
 import com.rndeveloper.paparcar.ui.theme.PaparcarTheme
 
@@ -21,8 +22,8 @@ import com.rndeveloper.paparcar.ui.theme.PaparcarTheme
 private val stories = listOf(
     "BlockedCore" to DetectionStory.BlockedCore,
     // [DET-ASK-STATE-001] The open question, named and generic — both wordings ship.
-    "AwaitingAnswer · vehicle" to DetectionStory.AwaitingAnswer("Škoda Kamiq"),
-    "AwaitingAnswer · generic" to DetectionStory.AwaitingAnswer(null),
+    "AwaitingAnswer · vehicle" to DetectionStory.AwaitingAnswer(PendingPromptWindow(shownAtMs = 0L, vehicleName = "Škoda Kamiq")),
+    "AwaitingAnswer · generic" to DetectionStory.AwaitingAnswer(PendingPromptWindow(shownAtMs = 0L)),
     // [DET-NUDGE-PERSIST-001] Pending "where did you leave your car?" row.
     "PendingAsk" to DetectionStory.PendingAsk,
     "Inactive" to DetectionStory.Inactive,

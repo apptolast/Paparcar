@@ -55,6 +55,8 @@ internal fun HomeMapSection(
     onMyCarClick: (sessionId: String) -> Unit,
     onZoneClick: (String) -> Unit,
     onCameraMove: (lat: Double, lon: Double) -> Unit,
+    /** [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] Tap on the unconfirmed-parking marker. */
+    onAskMarkerClick: () -> Unit = {},
     onUserMapGesture: () -> Unit = {},
     followingDriver: Boolean = false,
     modifier: Modifier = Modifier,
@@ -76,6 +78,12 @@ internal fun HomeMapSection(
         departurePoint = departurePoint,
         centerDrivingPuck = followingDriver,
         parkingLocation = slice.parkingLocation,
+        // [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] The open question's place.
+        unconfirmedParking = slice.unconfirmedParking,
+        onAskMarkerClick = onAskMarkerClick,
+        askVehicleCarbody = slice.askVehicle?.carbodyType,
+        askVehicleSize = slice.askVehicle?.sizeCategory,
+        askVehicleColor = slice.askVehicle?.color,
         parkingVehicleCarbody = addParkingVehicle?.carbodyType,
         parkingVehicleSize = addParkingVehicle?.sizeCategory,
         parkingVehicleColor = addParkingVehicle?.color,

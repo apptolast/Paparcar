@@ -516,6 +516,9 @@ private fun HomeContent(
 
                 // Stable lambda — activeSessions read via rememberUpdatedState at call-time.
                 val currentActiveSessions = rememberUpdatedState(state.activeSessions)
+                // Read at call-time so the tap lambda stays identity-stable while the window opens
+                // and closes underneath it.
+                val currentPromptCandidate = rememberUpdatedState(state.promptWindow?.candidate)
                 val onMyCarMarkerClick: (sessionId: String) -> Unit = remember(uiController, motion) {
                     { sessionId ->
                         currentActiveSessions.value.firstOrNull { it.id == sessionId }?.let { p ->
@@ -523,6 +526,21 @@ private fun HomeContent(
                             uiController.goToPlace(p.location.latitude, p.location.longitude)
                             motion.animateToExpanded()
                         }
+                    }
+                }
+
+                // [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] Tapping the unconfirmed marker
+                // opens the sheet on the question, the same gesture a spot or a parked car already
+                // gets. It does NOT select anything: there is no session to select — the question is
+                // whether there should be one — and it does not answer anything either. It frames
+                // the place and puts the two answers in reach, which is the whole point of showing
+                // the place at all.
+                val onAskMarkerClick: () -> Unit = remember(uiController, motion) {
+                    {
+                        currentPromptCandidate.value?.let { at ->
+                            uiController.goToPlace(at.latitude, at.longitude)
+                        }
+                        motion.animateToExpanded()
                     }
                 }
 
@@ -572,6 +590,7 @@ private fun HomeContent(
                     dimSpots = isPinningMode || state.selection != null,
                     onSpotClick = onSpotMarkerClick,
                     onMyCarClick = onMyCarMarkerClick,
+                    onAskMarkerClick = onAskMarkerClick,
                     onZoneClick = onZoneClick,
                     onCameraMove = onMapCameraMove,
                     onUserMapGesture = { uiController.onUserMapGesture() },

@@ -570,6 +570,8 @@
     <string name="home_det_ask_title">Ai parcat?</string>
     <string name="home_det_ask_title_vehicle">Ai parcat %1$s?</string>
     <string name="home_det_ask_sub">Salvez parcarea ta și public locul când pleci</string>
+    <string name="home_det_ask_sub_at">Întrebat la %1$s</string>
+    <string name="home_det_ask_sub_at_place">%1$s · întrebat la %2$s</string>
     <string name="home_det_ask_cta_yes">Da, am parcat</string>
     <string name="home_det_ask_cta_no">Încă nu</string>
     <string name="home_det_ask_eyebrow">Ai parcat?</string>

@@ -81,6 +81,17 @@ data class HomeMapSlice(
     val isLoading: Boolean,
     val addingZoneRadius: Float,
     val addingZoneIsPrivate: Boolean,
+    /**
+     * [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] Where an OPEN "did you park?" question is
+     * about, or null when none is open. Comes from the durable `PendingPromptWindow` — already
+     * filtered for expiry upstream — so it survives a cold open inside the window, which is the
+     * only reason the map can show the CAR instead of the person holding the phone.
+     */
+    val unconfirmedParking: GpsPoint?,
+    /** [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] The car the open question is about, so its
+     *  marker wears the real vehicle instead of the generic silhouette. The ACTIVE vehicle: both
+     *  paths that post the question name that one, so glyph and title cannot disagree. */
+    val askVehicle: Vehicle?,
 )
 
 /**
@@ -266,6 +277,8 @@ internal fun HomeState.toMapSlice() = HomeMapSlice(
     isLoading = isLoading,
     addingZoneRadius = addingZoneRadius,
     addingZoneIsPrivate = addingZoneIsPrivate,
+    unconfirmedParking = promptWindow?.candidate,
+    askVehicle = promptWindow?.let { vehicles.firstOrNull { v -> v.isActive } },
 )
 
 fun HomeState.toPeekSlice(): HomePeekSlice {

@@ -2,6 +2,9 @@
 
 package com.rndeveloper.paparcar.domain.detection.coordinator
 
+import com.rndeveloper.paparcar.fakes.FakeAddressAndPlaceRepository
+import com.rndeveloper.paparcar.domain.usecase.notification.ResolveAskedStreetUseCase
+import com.rndeveloper.paparcar.domain.usecase.location.GetAddressAndPlaceUseCase
 import com.rndeveloper.paparcar.domain.detection.CoordinatorParkingDetector
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEvent
 import com.rndeveloper.paparcar.domain.model.GpsPoint
@@ -42,6 +45,11 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+
+/** [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] These files exercise DETECTION, not wording: an
+ *  empty geocoder keeps a question from ever naming a street here. The rule has its own test. */
+private val noStreet = ResolveAskedStreetUseCase(GetAddressAndPlaceUseCase(FakeAddressAndPlaceRepository()))
+
 
 /**
  * Unit tests for [CoordinatorParkingDetector].
@@ -107,6 +115,7 @@ class CoordinatorParkingDetectorTest {
         val notifyParking = NotifyParkingConfirmationUseCase(
             notificationPort = notification,
             vehicleRepository = vehicleRepo,
+            resolveAskedStreet = noStreet,
         )
         val calcConfidence = CalculateParkingConfidenceUseCase(config)
         val stepDetector = FakeStepDetectorSource()
@@ -115,6 +124,7 @@ class CoordinatorParkingDetectorTest {
             calculateParkingConfidence = calcConfidence,
             confirmParking = confirmParking,
             notifyParkingConfirmation = notifyParking,
+            resolveAskedStreet = noStreet,
             notificationPort = notification,
             vehicleRepository = vehicleRepo,
             stepDetector = stepDetector,

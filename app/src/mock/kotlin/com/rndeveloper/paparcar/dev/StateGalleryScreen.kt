@@ -97,6 +97,8 @@ import com.rndeveloper.paparcar.ui.components.ConnectivityBanner
 import com.rndeveloper.paparcar.ui.components.FreeSpotClusterMarker
 import com.rndeveloper.paparcar.ui.components.FreeSpotMarker
 import com.rndeveloper.paparcar.ui.components.LicensePlateMarker
+import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
+import com.rndeveloper.paparcar.ui.components.VehicleBadgeMarker
 import com.rndeveloper.paparcar.ui.components.MyVehicleMarker
 import com.rndeveloper.paparcar.ui.components.ParkingCenterPin
 import com.rndeveloper.paparcar.ui.components.ReportCenterPin
@@ -149,6 +151,12 @@ private fun detectionSurface(story: DetectionStory) {
 }
 
 private val sampleGps = GpsPoint(40.4165, -3.7030, 12f, 0L, 0f)
+
+// [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] Sitio e instante fijos de la pregunta en la
+// galería: la hora es un valor estampado, no `now`, para que la captura de un estado sea la
+// misma hoy que dentro de un mes.
+private const val GALLERY_ASK_SHOWN_AT_MS = 1_756_000_860_000L
+private val GALLERY_ASK_CANDIDATE = GpsPoint(40.4168, -3.7038, 14f, GALLERY_ASK_SHOWN_AT_MS, 0f)
 
 private val sampleSearchResults = listOf(
     SearchResult("Gran Vía, Madrid", 40.4203, -3.7058),
@@ -309,6 +317,14 @@ private fun markersShowcase() {
             MyVehicleMarker()
             MyVehicleMarker(selected = true)
         }
+        // [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] El fantasma junto al confirmado: hay que
+        // poder ver de un vistazo que son EL MISMO objeto en dos estados, no dos marcadores.
+        MarkerSectionLabel("VehicleBadge — confirmado · SIN CONFIRMAR (pregunta abierta)")
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.Bottom) {
+            VehicleBadgeMarker(carbodyType = CarbodyType.SUV_MEDIUM)
+            VehicleBadgeMarker(carbodyType = CarbodyType.SUV_MEDIUM, unconfirmed = true)
+            VehicleBadgeMarker(carbodyType = CarbodyType.SUV_MEDIUM, unconfirmed = true, isBluetoothPaired = true)
+        }
         MarkerSectionLabel("FreeSpot — HIGH · MEDIUM · LOW · MANUAL · seleccionado")
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Bottom) {
             FreeSpotMarker(reliability = SpotFreshness.FRESH)
@@ -425,11 +441,33 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             },
             // [DET-ASK-STATE-001] La pregunta viva: manda sobre todo salvo el bloqueo de ubicación,
             // y sus dos botones son los mismos comandos que los de la notificación.
-            Variant("¿Has aparcado? — con coche (AwaitingAnswer)", Placement.Surface) {
-                detectionSurface(DetectionStory.AwaitingAnswer("Škoda Kamiq"))
+            Variant("¿Has aparcado? — con coche y sitio (AwaitingAnswer)", Placement.Surface) {
+                // [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] Con sitio: la card es pulsable y
+                // encuadra el pin fantasma. La hora del subtítulo sale del propio `shownAtMs`.
+                detectionSurface(
+                    DetectionStory.AwaitingAnswer(
+                        PendingPromptWindow(
+                            shownAtMs = GALLERY_ASK_SHOWN_AT_MS,
+                            vehicleName = "Škoda Kamiq",
+                            candidate = GALLERY_ASK_CANDIDATE,
+                            street = "Calle Padornelo 3",
+                        ),
+                    ),
+                )
+            },
+            Variant("¿Has aparcado? — sin sitio (ask antiguo, card inerte)", Placement.Surface) {
+                // La ventana persistida por una build anterior no lleva sitio: la card NO se puede
+                // pulsar y el mapa no dibuja fantasma. Es un estado real, no un caso imposible.
+                detectionSurface(
+                    DetectionStory.AwaitingAnswer(
+                        PendingPromptWindow(shownAtMs = GALLERY_ASK_SHOWN_AT_MS, vehicleName = "Škoda Kamiq"),
+                    ),
+                )
             },
             Variant("¿Has aparcado? — sin nombre de coche", Placement.Surface) {
-                detectionSurface(DetectionStory.AwaitingAnswer(null))
+                detectionSurface(
+                    DetectionStory.AwaitingAnswer(PendingPromptWindow(shownAtMs = GALLERY_ASK_SHOWN_AT_MS)),
+                )
             },
         ),
     ),

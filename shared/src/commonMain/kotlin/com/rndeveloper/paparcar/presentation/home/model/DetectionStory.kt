@@ -39,10 +39,13 @@ sealed interface DetectionStory {
      * the window can resolve it without ever going to the shade — the case that silently timed out
      * on 2026-07-25.
      *
-     * [vehicleName] is carried verbatim from the notification that posted it (null = the generic
-     * wording), so the two surfaces can never word the same question differently.
+     * The whole [PendingPromptWindow] rides along rather than a copy of its fields: the vehicle
+     * name is carried verbatim from the notification that posted it (null = the generic wording),
+     * and since [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] so are the instant it was asked and
+     * the place it is about. Splitting them into three parameters here would be three chances for
+     * the row to describe a different question than the tray does.
      */
-    data class AwaitingAnswer(val vehicleName: String?) : DetectionStory
+    data class AwaitingAnswer(val window: PendingPromptWindow) : DetectionStory
 
     /**
      * [DET-NUDGE-PERSIST-001] An unanswered "where did you leave your car?" nudge. A lost parking
@@ -143,7 +146,7 @@ fun resolveDetectionStory(
     // outrank everything the app wants to TELL the user — and a live question with a deadline
     // outranks a stale one. [DET-ASK-STATE-001]
     if (uiState == DetectionUiState.BlockedCore) return DetectionStory.BlockedCore
-    if (promptWindow != null) return DetectionStory.AwaitingAnswer(promptWindow.vehicleName)
+    if (promptWindow != null) return DetectionStory.AwaitingAnswer(promptWindow)
     if (showParkNudge) return DetectionStory.PendingAsk
 
     return when (uiState) {

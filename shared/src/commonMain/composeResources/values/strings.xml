@@ -641,6 +641,8 @@
     <string name="home_det_ask_title">Did you park?</string>
     <string name="home_det_ask_title_vehicle">Did you park your %1$s?</string>
     <string name="home_det_ask_sub">I save your parking and publish the spot when you leave</string>
+    <string name="home_det_ask_sub_at">Asked at %1$s</string>
+    <string name="home_det_ask_sub_at_place">%1$s · asked at %2$s</string>
     <string name="home_det_ask_cta_yes">Yes, I parked</string>
     <string name="home_det_ask_cta_no">Not yet</string>
     <string name="home_det_ask_eyebrow">Did you park?</string>

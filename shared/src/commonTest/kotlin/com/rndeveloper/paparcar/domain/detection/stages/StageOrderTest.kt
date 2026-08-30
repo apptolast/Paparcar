@@ -138,7 +138,7 @@ class StageScaffoldTest {
         val everyEffect = listOf(
             DetectionEffect.Confirm(SavedParkingShape.ExactPin(here, 0.9f), "veh-1", "steps+egress", mayHold = true),
             DetectionEffect.AskUser("no_drive", "veh-1", here),
-            DetectionEffect.NotifyPrompt(ParkingConfidence.Low),
+            DetectionEffect.NotifyPrompt(ParkingConfidence.Low, here),
             DetectionEffect.DegradeToPrompt("ar_enter", "weak_evidence", here),
             DetectionEffect.DiscardCandidate(2_000L, here),
             DetectionEffect.SaveZone("gap_anchor", here, 42.0, "veh-1", here),

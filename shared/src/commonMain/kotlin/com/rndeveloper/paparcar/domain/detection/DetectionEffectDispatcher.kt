@@ -228,6 +228,7 @@ class DetectionEffectDispatcher(
                         pathLabel = effect.pathLabel,
                         reason = PromptReason.entries.first { it.key == effect.reasonKey },
                         location = effect.at,
+                        candidate = state.value.witnessedCarStop(effect.at),
                         now = now,
                     )
                     // The prompt window moves only when a prompt was actually POSTED: re-posting
@@ -236,7 +237,7 @@ class DetectionEffectDispatcher(
                         state.update { it.copy(confirmation = it.confirmation.notified(shownAt = now)) }
                     }
                 }
-                is DetectionEffect.NotifyPrompt -> effects.notifyPrompt(effect.confidence)
+                is DetectionEffect.NotifyPrompt -> effects.notifyPrompt(effect.confidence, effect.at)
                 is DetectionEffect.RecordPromptShown -> diagnostics.emit { sid ->
                     DetectionEvent.Decision(
                         sid, now, outcome = "PROMPT_SHOWN", pathLabel = effect.pathLabel,

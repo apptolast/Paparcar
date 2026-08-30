@@ -5,7 +5,9 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -13,6 +15,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.rndeveloper.paparcar.domain.detection.PendingParkNudge
 import com.rndeveloper.paparcar.localePrefersImperialUnits
 import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
+import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import com.rndeveloper.paparcar.domain.preferences.ThemeMode
 import kotlinx.coroutines.CoroutineScope
@@ -162,9 +165,28 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
 
     private fun Preferences.toPendingPromptWindow(): PendingPromptWindow? {
         val shownAt = this[Keys.PENDING_PROMPT_SHOWN_AT] ?: return null
+        val lat = this[Keys.PENDING_PROMPT_LAT]
+        val lon = this[Keys.PENDING_PROMPT_LON]
         return PendingPromptWindow(
             shownAtMs = shownAt,
             vehicleName = this[Keys.PENDING_PROMPT_VEHICLE_NAME],
+            street = this[Keys.PENDING_PROMPT_STREET],
+            // [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] Both halves or neither: half a
+            // coordinate is a point off the coast of Africa, not a missing one. A window written by
+            // a build that predates this field reads as "no place", which is what it is.
+            candidate = if (lat != null && lon != null) {
+                GpsPoint(
+                    latitude = lat,
+                    longitude = lon,
+                    accuracy = this[Keys.PENDING_PROMPT_ACC] ?: 0f,
+                    timestamp = this[Keys.PENDING_PROMPT_AT] ?: shownAt,
+                    // A witnessed car stop is stationary by construction — this is the definition
+                    // of the field, not a value lost in the round-trip.
+                    speed = 0f,
+                )
+            } else {
+                null
+            },
         )
     }
 
@@ -174,11 +196,30 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
         if (window == null) {
             remove(Keys.PENDING_PROMPT_SHOWN_AT)
             remove(Keys.PENDING_PROMPT_VEHICLE_NAME)
+            remove(Keys.PENDING_PROMPT_STREET)
+            removePromptCandidate()
         } else {
             this[Keys.PENDING_PROMPT_SHOWN_AT] = window.shownAtMs
             window.vehicleName?.let { this[Keys.PENDING_PROMPT_VEHICLE_NAME] = it }
                 ?: remove(Keys.PENDING_PROMPT_VEHICLE_NAME)
+            window.street?.let { this[Keys.PENDING_PROMPT_STREET] = it }
+                ?: remove(Keys.PENDING_PROMPT_STREET)
+            window.candidate?.let {
+                this[Keys.PENDING_PROMPT_LAT] = it.latitude
+                this[Keys.PENDING_PROMPT_LON] = it.longitude
+                this[Keys.PENDING_PROMPT_ACC] = it.accuracy
+                this[Keys.PENDING_PROMPT_AT] = it.timestamp
+            } ?: removePromptCandidate()
         }
+    }
+
+    /** The four keys of the candidate place go together — a partial clear would leave a coordinate
+     *  wearing the previous ask's accuracy. */
+    private fun MutablePreferences.removePromptCandidate() {
+        remove(Keys.PENDING_PROMPT_LAT)
+        remove(Keys.PENDING_PROMPT_LON)
+        remove(Keys.PENDING_PROMPT_ACC)
+        remove(Keys.PENDING_PROMPT_AT)
     }
 
     // ── Notifications ────────────────────────────────────────────────────────
@@ -227,6 +268,14 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
         val PENDING_NUDGE_VEHICLE_ID = stringPreferencesKey("pending_park_nudge_vehicle_id")
         val PENDING_PROMPT_SHOWN_AT  = longPreferencesKey("pending_prompt_window_shown_at")
         val PENDING_PROMPT_VEHICLE_NAME = stringPreferencesKey("pending_prompt_window_vehicle_name")
+        // [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] Where the question is about. The ACCURACY
+        // travels with the coordinate: a marker that cannot say how sure it is would be drawn as a
+        // precise claim, which is the one thing an unconfirmed pin must not do.
+        val PENDING_PROMPT_LAT = doublePreferencesKey("pending_prompt_window_lat")
+        val PENDING_PROMPT_LON = doublePreferencesKey("pending_prompt_window_lon")
+        val PENDING_PROMPT_ACC = floatPreferencesKey("pending_prompt_window_accuracy")
+        val PENDING_PROMPT_AT = longPreferencesKey("pending_prompt_window_witnessed_at")
+        val PENDING_PROMPT_STREET = stringPreferencesKey("pending_prompt_window_street")
         val NOTIFY_PARKING_DETECTED = booleanPreferencesKey("notify_parking_detected")
         // "notify_spot_freed" removed 2026-08-28: it gated a notification that never existed.
         // Stale values may linger in the DataStore file; they are inert. [SETTINGS-AUDIT-REMEDIATION-001]

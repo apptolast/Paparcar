@@ -51,6 +51,17 @@ data class StopTracking(
     val stoppedDurationMs: Long,
     val notes: List<DiagnosticNote> = emptyList(),
     val sustainedDeparture: SustainedDeparture? = null,
+    /**
+     * [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] This fix ended a stop that had an OPEN "did you
+     * park?" question: the reduction reset the conversation to `Idle`, so the question is already
+     * dead internally and the caller must now take it off the tray and off Home.
+     *
+     * It rides out for the same reason [sustainedDeparture] does — the reduction already evaluated
+     * `effectiveDriving` against the pre-fix anchor, and a second evaluation in the collector would
+     * be two call sites of one rule agreeing by luck. It is a REPORT, not a request: what the state
+     * does is decided here, what the user sees is executed there.
+     */
+    val promptRetracted: Boolean = false,
 )
 
 /**
@@ -69,6 +80,9 @@ fun DetectionSessionState.updateStopTracking(
     config: ParkingDetectionConfig,
 ): StopTracking {
     val notes = mutableListOf<DiagnosticNote>()
+    // [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] Set by the moving branch when this fix ends a
+    // stop that had an open question. Collected like `notes`: measured here, acted on by the caller.
+    var promptRetracted = false
     return if (location.speed < config.stoppedSpeedThresholdMps) {
         val next = this.let { s ->
             // [DET-STOP-MUST-BE-STILL-IN-SPACE-001] A stop is a claim about POSITION, and the
@@ -415,6 +429,21 @@ fun DetectionSessionState.updateStopTracking(
             // — that's how BUG-STUCK-SESSION's "walked home" abort fires.
             val nextConfirmation =
                 if (effectiveDriving) it.confirmation.stopEnded() else it.confirmation
+            // [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] The line above has always killed the
+            // question INTERNALLY — past it `ResponseTimeoutStage` has no `promptShownAt` and the
+            // unattended save never fires. What it could not do is take the question off the two
+            // surfaces that show it, so the tray card and the Home row kept asking "did you park?"
+            // for the rest of the 15-minute window while the car was demonstrably driving. The
+            // retraction is reported here, next to the transition that causes it, for the same
+            // reason `sustainedDeparture` rides out of this reduction: recomputing it in the
+            // collector would be a second call site of the same rule agreeing by luck.
+            if (effectiveDriving && it.confirmation.promptShownAt != null) {
+                promptRetracted = true
+                notes +=
+                    "  ？⊘ open prompt RETRACTED — the car is driving again " +
+                        "(speed=${location.speed} acc=${location.accuracy}), so the question no " +
+                        "longer applies [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001]"
+            }
             // [DET-KINEMATIC-EGRESS-001] The egress walk, measured by GPS: quality
             // pedestrian-band fixes while the anchor is frozen. Cleared with the anchor.
             val newKinematicEgressFixes = when {
@@ -460,7 +489,7 @@ fun DetectionSessionState.updateStopTracking(
                 session = it.session.observed(location),
             )
         }
-        StopTracking(next, 0L, notes, sustainedDeparture = departure)
+        StopTracking(next, 0L, notes, sustainedDeparture = departure, promptRetracted = promptRetracted)
     }
 }
 

@@ -566,6 +566,8 @@
     <string name="home_det_ask_title">Zaparkowałeś?</string>
     <string name="home_det_ask_title_vehicle">Zaparkowałeś swoje %1$s?</string>
     <string name="home_det_ask_sub">Zapiszę Twoje parkowanie i opublikuję miejsce, gdy odjedziesz</string>
+    <string name="home_det_ask_sub_at">Zapytano o %1$s</string>
+    <string name="home_det_ask_sub_at_place">%1$s · zapytano o %2$s</string>
     <string name="home_det_ask_cta_yes">Tak, zaparkowałem</string>
     <string name="home_det_ask_cta_no">Jeszcze nie</string>
     <string name="home_det_ask_eyebrow">Zaparkowałeś?</string>

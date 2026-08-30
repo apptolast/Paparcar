@@ -2,6 +2,9 @@
 
 package com.rndeveloper.paparcar.domain.detection.coordinator
 
+import com.rndeveloper.paparcar.fakes.FakeAddressAndPlaceRepository
+import com.rndeveloper.paparcar.domain.usecase.notification.ResolveAskedStreetUseCase
+import com.rndeveloper.paparcar.domain.usecase.location.GetAddressAndPlaceUseCase
 import com.rndeveloper.paparcar.domain.detection.CoordinatorParkingDetector
 import com.rndeveloper.paparcar.domain.detection.HoldAction
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEvent
@@ -33,6 +36,11 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+
+/** [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] These files exercise DETECTION, not wording: an
+ *  empty geocoder keeps a question from ever naming a street here. The rule has its own test. */
+private val noStreet = ResolveAskedStreetUseCase(GetAddressAndPlaceUseCase(FakeAddressAndPlaceRepository()))
+
 
 /**
  * [DET-PRECEDENCE-MUST-BE-TESTABLE-001] Characterization of the **ORDER** of the branches inside
@@ -107,9 +115,11 @@ class StagePrecedenceCharacterizationTest {
             calculateParkingConfidence = CalculateParkingConfidenceUseCase(config),
             confirmParking = confirmParking,
             notifyParkingConfirmation = NotifyParkingConfirmationUseCase(
+                resolveAskedStreet = noStreet,
                 notificationPort = notification,
                 vehicleRepository = vehicleRepo,
             ),
+            resolveAskedStreet = noStreet,
             notificationPort = notification,
             vehicleRepository = vehicleRepo,
             stepDetector = stepDetector,

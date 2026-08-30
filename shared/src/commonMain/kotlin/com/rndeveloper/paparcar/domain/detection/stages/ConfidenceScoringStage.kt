@@ -2,6 +2,7 @@ package com.rndeveloper.paparcar.domain.detection.stages
 
 import com.rndeveloper.paparcar.domain.detection.state.ConfirmationPhase
 import com.rndeveloper.paparcar.domain.detection.state.DetectionSessionState
+import com.rndeveloper.paparcar.domain.detection.witnessedCarStop
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.ParkingConfidence
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
@@ -67,8 +68,8 @@ class ConfidenceScoringStage(
         return when (confidence) {
             is ParkingConfidence.NotYet -> StageVerdict.Skip(notes(scored))
             is ParkingConfidence.Low, is ParkingConfidence.Medium ->
-                advanceLowMedium(state, confidence, now, config).withNoteFirst(scored)
-            is ParkingConfidence.High -> advanceHigh(state, confidence, now).withNoteFirst(scored)
+                advanceLowMedium(state, confidence, fix, now, config).withNoteFirst(scored)
+            is ParkingConfidence.High -> advanceHigh(state, confidence, fix, now).withNoteFirst(scored)
         }
     }
 
@@ -105,6 +106,7 @@ class ConfidenceScoringStage(
     private fun advanceLowMedium(
         state: DetectionSessionState,
         confidence: ParkingConfidence,
+        fix: GpsPoint,
         now: Long,
         config: ParkingDetectionConfig,
     ): StageVerdict = when (val phase = state.confirmation.phase) {
@@ -130,7 +132,7 @@ class ConfidenceScoringStage(
                 hasExit || timeoutReached -> StageVerdict.Handled(
                     newState = state.copy(confirmation = state.confirmation.notified(now)),
                     effects = listOf(
-                        DetectionEffect.NotifyPrompt(confidence),
+                        DetectionEffect.NotifyPrompt(confidence, state.witnessedCarStop(fix)),
                         DetectionEffect.RecordPromptShown(
                             pathLabel = "low_medium(" +
                                 (if (hasExit) "exit=true" else "timeout=${now - phase.firstReachedAt}ms") +
@@ -159,6 +161,7 @@ class ConfidenceScoringStage(
     private fun advanceHigh(
         state: DetectionSessionState,
         confidence: ParkingConfidence,
+        fix: GpsPoint,
         now: Long,
     ): StageVerdict = when (val phase = state.confirmation.phase) {
         // Prompt was never shown — fire it as part of this transition.
@@ -169,7 +172,7 @@ class ConfidenceScoringStage(
             // The order is today's, and it is not the obvious one: the notification fires FIRST,
             // then the candidate marker, then the prompt marker.
             effects = listOf(
-                DetectionEffect.NotifyPrompt(confidence),
+                DetectionEffect.NotifyPrompt(confidence, state.witnessedCarStop(fix)),
                 DetectionEffect.RecordCandidateOpened("from ${phase::class.simpleName}"),
                 DetectionEffect.RecordPromptShown("high_candidate", confidence),
             ),

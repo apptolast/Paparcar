@@ -561,6 +561,8 @@
     <string name="home_det_ask_title">Hast du geparkt?</string>
     <string name="home_det_ask_title_vehicle">Hast du deinen %1$s geparkt?</string>
     <string name="home_det_ask_sub">Ich merke mir deinen Parkplatz und gebe den Platz frei, wenn du losfährst</string>
+    <string name="home_det_ask_sub_at">Gefragt um %1$s</string>
+    <string name="home_det_ask_sub_at_place">%1$s · gefragt um %2$s</string>
     <string name="home_det_ask_cta_yes">Ja, geparkt</string>
     <string name="home_det_ask_cta_no">Noch nicht</string>
     <string name="home_det_ask_eyebrow">Hast du geparkt?</string>

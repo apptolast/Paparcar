@@ -3,6 +3,7 @@ package com.rndeveloper.paparcar.presentation.home.sections.sheet.components
 import com.rndeveloper.paparcar.ui.components.PapIconTile
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,8 +37,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.presentation.home.model.DetectionStory
 import com.rndeveloper.paparcar.presentation.home.model.ParkedWatchBadge
+import com.rndeveloper.paparcar.presentation.util.formatClockTime
 import com.rndeveloper.paparcar.ui.theme.PapBorders
 import com.rndeveloper.paparcar.ui.theme.papCarBlue
 import com.rndeveloper.paparcar.ui.theme.papWatchGreen
@@ -51,7 +54,8 @@ import paparcar.composeapp.generated.resources.home_det_awaiting_sub
 import paparcar.composeapp.generated.resources.home_det_awaiting_title
 import paparcar.composeapp.generated.resources.home_det_ask_cta_no
 import paparcar.composeapp.generated.resources.home_det_ask_cta_yes
-import paparcar.composeapp.generated.resources.home_det_ask_sub
+import paparcar.composeapp.generated.resources.home_det_ask_sub_at
+import paparcar.composeapp.generated.resources.home_det_ask_sub_at_place
 import paparcar.composeapp.generated.resources.home_det_ask_title
 import paparcar.composeapp.generated.resources.home_det_ask_title_vehicle
 import paparcar.composeapp.generated.resources.home_det_candidate_sub
@@ -121,6 +125,8 @@ fun HomeDetectionSurface(
      *  don't break. */
     onAnswerParked: () -> Unit = {},
     onAnswerStillDriving: () -> Unit = {},
+    /** [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] Frame the place the question is about. */
+    onFocusAsk: (GpsPoint) -> Unit = {},
     /** Fire the battery-optimization exemption request from the FRAGILE watch row — the setup whose
      *  problem the exemption actually solves. [DET-WATCH-HONEST-001] [DET-BATTERY-EXEMPTION-NUDGE-001] */
     onRequestBatteryExemption: () -> Unit = {},
@@ -149,25 +155,56 @@ fun HomeDetectionSurface(
 
     when (story) {
         // [DET-ASK-STATE-001] The question the app is waiting on, asked in-app with the SAME two
-        // answers as the tray notification. Brand green, not amber: nothing has failed — detection
-        // is doing its job and simply cannot tell on its own, which is the doctrine's asymmetric
+        // answers as the tray notification. Green, not amber: nothing has failed — detection is
+        // doing its job and simply cannot tell on its own, which is the doctrine's asymmetric
         // failure working as designed. The wording comes from the notification that posted it, so
         // the two surfaces cannot drift.
+        //
+        // [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] The WATCHED green, not the brand's. This
+        // row was left on `brand` by the sweep that fixed `methodTone` a few lines below — the same
+        // miss, one branch of the `when` further down, and the rule that sweep wrote applies here
+        // more plainly than anywhere: this row names a specific car in its own title and wears its
+        // glyph. A fixed token rather than `methodTone` because the question is Coordinator-only —
+        // `NotifyParkingConfirmation` and `degradeToPrompt` are wired nowhere else, and a
+        // Bluetooth-watched car confirms deterministically without ever being asked. Painting it
+        // blue would be the one screen that proves the car is NOT on the Bluetooth lane.
         is DetectionStory.AwaitingAnswer -> ActionRow(
-            tone = brand,
+            tone = watched,
             // The car, not a parking "P": this row is about the vehicle Paparcar is following, and
             // the app's whole visual vocabulary for "your car" is the car glyph. A P would be the
             // first place in the app where parking is drawn as signage.
             icon = Icons.Rounded.DirectionsCar,
-            title = story.vehicleName
+            title = story.window.vehicleName
                 ?.let { stringResource(Res.string.home_det_ask_title_vehicle, it) }
                 ?: stringResource(Res.string.home_det_ask_title),
-            subtitle = stringResource(Res.string.home_det_ask_sub),
+            // [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] The subtitle answers WHEN. Absolute
+            // ("a las 12:41"), never "hace N min": a relative age needs a ticker, and without one it
+            // freezes at whatever it read when the row was composed — the trap already met with the
+            // map markers. An absolute time is also literally what was asked for, and it never lies
+            // as it ages. It says nothing about what happens on silence: of the three verdicts the
+            // timeout can reach, only one plants a pin here, so any countdown would be a promise
+            // the app cannot keep.
+            subtitle = story.window.street?.let { street ->
+                // The place first: it is what decides the answer. The hour qualifies it.
+                stringResource(
+                    Res.string.home_det_ask_sub_at_place,
+                    street,
+                    formatClockTime(story.window.shownAtMs),
+                )
+            } ?: stringResource(
+                Res.string.home_det_ask_sub_at,
+                formatClockTime(story.window.shownAtMs),
+            ),
             primaryLabel = stringResource(Res.string.home_det_ask_cta_yes),
             onPrimary = onAnswerParked,
             secondaryLabel = stringResource(Res.string.home_det_ask_cta_no),
             onSecondary = onAnswerStillDriving,
             secondaryIsDecline = true,
+            // Tapping the CARD frames the place on the map. Not a button: a third control in a
+            // yes/no row would rank "ver" alongside two answers it is not equal to, and the badge
+            // glyph is a ~24 dp target nobody finds. Looking is NOT answering — this must never
+            // touch the window, exactly like the deliberately absent `setDeleteIntent`.
+            onClick = story.window.candidate?.let { at -> { onFocusAsk(at) } },
             modifier = modifier,
         )
 
@@ -334,6 +371,12 @@ private fun ActionRow(
      * other. This flag names the SEMANTICS, not the colour: only a yes/no answer sets it.
      */
     secondaryIsDecline: Boolean = false,
+    /**
+     * [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] Optional whole-card tap, for rows whose content
+     * is ABOUT a place the map can show. Null (the default) leaves the card inert, so no existing
+     * story grows an invisible affordance by accident.
+     */
+    onClick: (() -> Unit)? = null,
 ) {
     val cardColor = if (tone.isError) tone.container else MaterialTheme.colorScheme.surfaceContainerHigh
     // Error: a stronger accent-tinted border (urgent). Otherwise the SAME neutral card border the
@@ -345,11 +388,17 @@ private fun ActionRow(
         BorderStroke(PapBorders.thin, MaterialTheme.colorScheme.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA))
     }
 
+    val cardModifier = modifier
+        .fillMaxWidth()
+        // The card is one target that CONTAINS two buttons, so it announces itself as such instead
+        // of leaving a screen reader three peers with no hierarchy.
+        .then(onClick?.let { Modifier.clickable(onClick = it) } ?: Modifier)
+
     Surface(
         shape = PapShapes.card,
         color = cardColor,
         border = border,
-        modifier = modifier.fillMaxWidth(),
+        modifier = cardModifier,
     ) {
         Row(modifier = Modifier.height(IntrinsicSize.Min)) {
             // Accent bar spans the full row height.

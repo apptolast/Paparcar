@@ -204,7 +204,7 @@ class DetectionStoryTest {
             vehicleCards = listOf(activeCard),
             promptWindow = window("Škoda Kamiq"),
         )
-        assertEquals(DetectionStory.AwaitingAnswer("Škoda Kamiq"), story)
+        assertEquals(DetectionStory.AwaitingAnswer(window("Škoda Kamiq")), story)
     }
 
     @Test
@@ -212,7 +212,7 @@ class DetectionStoryTest {
         // The row repeats the name the notification used — including its ABSENCE, which is the
         // generic wording, not a chance to guess a car the tray never named.
         assertEquals(
-            DetectionStory.AwaitingAnswer(null),
+            DetectionStory.AwaitingAnswer(window(null)),
             resolveDetectionStory(
                 DetectionUiState.Monitoring, null, listOf(activeCard), promptWindow = window(null),
             ),
@@ -229,7 +229,7 @@ class DetectionStoryTest {
             promptWindow = window("Škoda Kamiq"),
             showParkNudge = true,
         )
-        assertEquals(DetectionStory.AwaitingAnswer("Škoda Kamiq"), story)
+        assertEquals(DetectionStory.AwaitingAnswer(window("Škoda Kamiq")), story)
     }
 
     @Test

@@ -13,6 +13,7 @@ import com.rndeveloper.paparcar.R
 import com.rndeveloper.paparcar.detection.receiver.ParkingConfirmationReceiver
 import com.rndeveloper.paparcar.domain.detection.PendingParkNudge
 import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
+import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 
@@ -38,14 +39,27 @@ class AppNotificationManagerImpl(
         notificationManager.notify(notifId, buildDetectionNotificationWith(vehicleName))
     }
 
-    override fun showParkingConfirmation(score: Float, vehicleName: String?) {
+    override fun showParkingConfirmation(
+        score: Float,
+        vehicleName: String?,
+        candidate: GpsPoint?,
+        street: String?,
+    ) {
         // [DET-ASK-STATE-001] Persist FIRST: this is the ONLY place the question is opened, so the
         // in-app row is written from the same call that words the tray notification — they cannot
         // drift. Never let a persist failure suppress the proven notification ask (same rule as the
         // nudge). The window closes itself in `dismiss` / `showParkingSavedConfirm` below.
         runCatching {
             appPreferences.setPendingPromptWindow(
-                PendingPromptWindow(shownAtMs = System.currentTimeMillis(), vehicleName = vehicleName),
+                PendingPromptWindow(
+                    shownAtMs = System.currentTimeMillis(),
+                    vehicleName = vehicleName,
+                    // [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] The place AND the street
+                    // travel with the wording, through the same single write, for the same
+                    // anti-drift reason: the Home row must repeat this address, never re-derive it.
+                    candidate = candidate,
+                    street = street,
+                ),
             )
         }
         val confirmedPi = PendingIntent.getBroadcast(
@@ -62,10 +76,17 @@ class AppNotificationManagerImpl(
             },
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
-        val title = if (vehicleName != null) {
-            context.getString(R.string.notif_confirmation_title_vehicle, vehicleName)
-        } else {
-            context.getString(R.string.notif_confirmation_title)
+        // [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] Four wordings, not a concatenation: the
+        // preposition before a street ("en", "at", "à", "przy"…) is part of the sentence, and gluing
+        // strings would leave eight of the nine locales reading like a form field.
+        val title = when {
+            vehicleName != null && street != null ->
+                context.getString(R.string.notif_confirmation_title_vehicle_street, vehicleName, street)
+            vehicleName != null ->
+                context.getString(R.string.notif_confirmation_title_vehicle, vehicleName)
+            street != null ->
+                context.getString(R.string.notif_confirmation_title_street, street)
+            else -> context.getString(R.string.notif_confirmation_title)
         }
         val notification = NotificationCompat.Builder(context, ACTION_CHANNEL_ID)
             .setContentTitle(title)

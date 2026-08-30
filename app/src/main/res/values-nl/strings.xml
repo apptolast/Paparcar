@@ -10,6 +10,8 @@
     <!-- Melding: bevestiging van parkeren -->
     <string name="notif_confirmation_title">Heb je geparkeerd?</string>
     <string name="notif_confirmation_title_vehicle">Heb je jouw %1$s geparkeerd?</string>
+    <string name="notif_confirmation_title_vehicle_street">Heb je jouw %1$s geparkeerd op %2$s?</string>
+    <string name="notif_confirmation_title_street">Heb je geparkeerd op %1$s?</string>
     <string name="notif_confirmation_text">Het lijkt erop dat je hebt geparkeerd. Zullen we de plek bevestigen?</string>
     <string name="notif_action_yes_parked">Ja, ik heb geparkeerd</string>
     <!-- [DET-STOP-BUTTON-001] Way out of a trip the user does not want followed. -->

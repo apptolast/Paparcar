@@ -1,5 +1,7 @@
 package com.rndeveloper.paparcar.domain.notification
 
+import com.rndeveloper.paparcar.domain.model.GpsPoint
+
 /**
  * Domain interface for displaying user-facing notifications.
  *
@@ -17,8 +19,21 @@ interface AppNotificationManager {
      * @param vehicleName Name of the vehicle that triggered detection (e.g. "Toyota Corolla").
      *                    When provided, the notification title reads "Did you park your [name]?"
      *                    instead of the generic "Did you park?".
+     * @param candidate   [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] WHERE the question is
+     *                    about — the last witnessed car stop. Persisted with the window so the map
+     *                    can show the place the app is asking about, and so a user who opens the
+     *                    app inside the window sees the CAR rather than themselves. Null when the
+     *                    asking path has no position to stand behind; never a guessed one.
      */
-    fun showParkingConfirmation(score: Float, vehicleName: String? = null)
+    fun showParkingConfirmation(
+        score: Float,
+        vehicleName: String? = null,
+        candidate: GpsPoint? = null,
+        /** [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] The street to name, already vetted by
+         *  `ResolveAskedStreetUseCase`. Null = word the question without an address; never guess
+         *  one here. */
+        street: String? = null,
+    )
 
     /**
      * Shows a transient notification confirming that the user's car is parked.

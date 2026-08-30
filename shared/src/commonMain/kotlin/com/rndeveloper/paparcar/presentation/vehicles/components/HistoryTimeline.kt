@@ -42,6 +42,7 @@ import com.rndeveloper.paparcar.ui.theme.VehicleWatch
 import com.rndeveloper.paparcar.ui.theme.onVehicleIdentityContainer
 import com.rndeveloper.paparcar.ui.theme.vehicleIdentityColor
 import com.rndeveloper.paparcar.ui.theme.vehicleIdentityContainer
+import com.rndeveloper.paparcar.presentation.util.formatClockTime
 import kotlinx.datetime.TimeZone
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -153,7 +154,8 @@ private fun SessionCardContent(
         Instant.fromEpochMilliseconds(session.location.timestamp)
             .toLocalDateTime(TimeZone.currentSystemDefault())
     }
-    val timeStr = "${dateTime.hour.toString().padStart(2, '0')}:${dateTime.minute.toString().padStart(2, '0')}"
+    // One place decides how this app writes a wall clock. [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001]
+    val timeStr = formatClockTime(session.location.timestamp)
     val activeRelativeTime = relativeTimeText(session.location.timestamp)
     val primaryText = locationDisplayText(
         placeInfo = session.placeInfo,

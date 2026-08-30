@@ -561,6 +561,8 @@
     <string name="home_det_ask_title">Heb je geparkeerd?</string>
     <string name="home_det_ask_title_vehicle">Heb je je %1$s geparkeerd?</string>
     <string name="home_det_ask_sub">Ik bewaar je parkeerplaats en publiceer de plek als je wegrijdt</string>
+    <string name="home_det_ask_sub_at">Gevraagd om %1$s</string>
+    <string name="home_det_ask_sub_at_place">%1$s · gevraagd om %2$s</string>
     <string name="home_det_ask_cta_yes">Ja, geparkeerd</string>
     <string name="home_det_ask_cta_no">Nog niet</string>
     <string name="home_det_ask_eyebrow">Heb je geparkeerd?</string>

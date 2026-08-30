@@ -1,5 +1,7 @@
 package com.rndeveloper.paparcar.domain.detection
 
+import com.rndeveloper.paparcar.domain.model.GpsPoint
+
 /**
  * [DET-ASK-STATE-001] Durable record of an OPEN "did you park?" question.
  *
@@ -26,6 +28,38 @@ data class PendingPromptWindow(
     /** The vehicle name the NOTIFICATION used, carried verbatim so the in-app row and the tray can
      *  never word the same question differently. Null when the asking path had no name. */
     val vehicleName: String? = null,
+    /**
+     * [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] WHERE the question is about: the last place
+     * this session witnessed the car stop, or the posting fix when there was no anchor yet.
+     *
+     * It is the third field of the same family as [vehicleName], and it is here for the same
+     * reason — so that the tray wording, the Home row and the map marker cannot describe different
+     * places. Without it the map had no durable answer at all: the frozen car marker is a `var` in
+     * `HomeTripController`, and on a cold open inside the window that var is null, so the "frozen"
+     * anchor falls back to the CURRENT fix. The user who parks, walks off and opens the app —
+     * precisely the case this whole slot exists for — would have been shown a marker on THEMSELVES.
+     *
+     * Null only for asks posted before this field existed (a window persisted by an older build),
+     * which read as "no place to show" rather than as a place to guess.
+     *
+     * ⚠️ It is a WITNESS, not a promise: it says where the car was last seen stopped, not where a
+     * "Sí" will plant the pin. The answer runs its own anchor cascade at answer time
+     * (`UserConfirmStage.whereTheCarIs`), which may legitimately prefer the fix the user is
+     * standing on when they answer from beside the car. Do not "fix" the divergence by pinning
+     * this point on answer: the cascade exists because answering next to the car is better
+     * evidence than a minutes-old anchor.
+     */
+    val candidate: GpsPoint? = null,
+    /**
+     * [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] The street the notification named, carried
+     * verbatim for the same anti-drift reason as [vehicleName] — the row must say the same address
+     * the tray said, not geocode the point a second time and possibly get a different answer.
+     *
+     * Null whenever `ResolveAskedStreetUseCase` refused (no answer inside its budget, or only a
+     * borrowed neighbouring street), and the question is worded without an address rather than with
+     * a guessed one.
+     */
+    val street: String? = null,
 )
 
 /**

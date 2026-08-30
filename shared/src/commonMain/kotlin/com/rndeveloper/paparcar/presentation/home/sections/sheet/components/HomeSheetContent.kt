@@ -138,6 +138,10 @@ fun LazyListScope.homeSheetItems(
                 // [DET-ASK-STATE-001] The same two commands the notification's buttons send.
                 onAnswerParked = { onIntent(HomeIntent.AnswerParkingPrompt(parked = true)) },
                 onAnswerStillDriving = { onIntent(HomeIntent.AnswerParkingPrompt(parked = false)) },
+                // [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] Tapping the card frames the place
+                // the question is about. It is a CAMERA move and nothing else — the same action a
+                // row tap already uses — so consulting the map can never be mistaken for answering.
+                onFocusAsk = { at -> onAction(HomeSheetAction.MoveCamera(at.latitude, at.longitude)) },
                 onMarkNudgeSpot = {
                     // Same promise as the notification's "Marcar mi plaza": straight into
                     // AddingParking for the nudged vehicle. [DET-NUDGE-PERSIST-001] The row only

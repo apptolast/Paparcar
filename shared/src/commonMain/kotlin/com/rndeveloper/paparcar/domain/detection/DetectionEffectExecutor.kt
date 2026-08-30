@@ -15,6 +15,7 @@ import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import com.rndeveloper.paparcar.domain.usecase.notification.NotifyParkingConfirmationUseCase
+import com.rndeveloper.paparcar.domain.usecase.notification.ResolveAskedStreetUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.ConfirmParkingUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.PromptReason
 import com.rndeveloper.paparcar.domain.usecase.parking.UnattendedSaveReason
@@ -77,6 +78,7 @@ data class EffectOutcome(
 class DetectionEffectExecutor(
     private val confirmParking: ConfirmParkingUseCase,
     private val notifyParkingConfirmation: NotifyParkingConfirmationUseCase,
+    private val resolveAskedStreet: ResolveAskedStreetUseCase,
     private val notificationPort: AppNotificationManager,
     private val vehicleRepository: VehicleRepository,
     private val config: ParkingDetectionConfig,
@@ -233,7 +235,15 @@ class DetectionEffectExecutor(
                         // real (rare) ultra-short repark is one tap away, and the response timeout
                         // aborts the session if the prompt is ignored.
                         PaparcarLogger.w(DIAG, "    ⊘ implausible repark → degrading to user prompt ($pathLabel) [DET-SOLID-001]")
-                        notificationPort.showParkingConfirmation(IMPLAUSIBLE_REPARK_PROMPT_SCORE, activeVehicleName())
+                        val askedAt = state.witnessedCarStop(location)
+                        notificationPort.showParkingConfirmation(
+                            IMPLAUSIBLE_REPARK_PROMPT_SCORE,
+                            activeVehicleName(),
+                            // The question is about the car's witnessed stop, not about the
+                            // rejected save's own point. [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001]
+                            askedAt,
+                            resolveAskedStreet(askedAt),
+                        )
                         result = EffectOutcome(endsSession = false, degradeToPrompt = true)
                         diagnostics.emit { sid ->
                             DetectionEvent.Decision(
@@ -389,6 +399,11 @@ class DetectionEffectExecutor(
         // anonymous prompt that ticket exists to remove.
         reason: PromptReason,
         location: GpsPoint,
+        // [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] WHERE the question is about — the
+        // witnessed car stop, which is not the same as [location], the fix that triggered the
+        // degrade. Resolved by the dispatcher from the live state, for the same reason the
+        // scoring stage resolves its own: one place, decided once.
+        candidate: GpsPoint,
         now: Long,
     ): Boolean {
         PaparcarLogger.d(
@@ -398,7 +413,12 @@ class DetectionEffectExecutor(
         )
         if (alreadyPrompted) return false
         val vehicleName = activeVehicleName()
-        notificationPort.showParkingConfirmation(WEAK_EVIDENCE_PROMPT_SCORE, vehicleName)
+        notificationPort.showParkingConfirmation(
+            WEAK_EVIDENCE_PROMPT_SCORE,
+            vehicleName,
+            candidate,
+            resolveAskedStreet(candidate),
+        )
         // [DET-AR-FIRST-001 F4] The posting itself must be visible in parkdiag: this path bypasses
         // NotifyParkingConfirmation, and the 2026-07-10 19:19 session read as "prompt never shown"
         // in forensics when it HAD been posted right here.
@@ -417,7 +437,8 @@ class DetectionEffectExecutor(
     }
 
     /** Put a confirmation prompt on screen. */
-    suspend fun notifyPrompt(confidence: ParkingConfidence) = notifyParkingConfirmation(confidence)
+    suspend fun notifyPrompt(confidence: ParkingConfidence, at: GpsPoint) =
+        notifyParkingConfirmation(confidence, at)
 
     /** Take the confirmation prompt off screen. */
     fun dismissPrompt() =

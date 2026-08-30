@@ -10,6 +10,8 @@
     <!-- Notification : confirmation de stationnement -->
     <string name="notif_confirmation_title">Tu t’es garé ?</string>
     <string name="notif_confirmation_title_vehicle">Tu as garé ta %1$s ?</string>
+    <string name="notif_confirmation_title_vehicle_street">Tu as garé ta %1$s à %2$s ?</string>
+    <string name="notif_confirmation_title_street">Tu t’es garé à %1$s ?</string>
     <string name="notif_confirmation_text">On dirait que tu t’es garé. On confirme la place ?</string>
     <string name="notif_action_yes_parked">Oui, je me suis garé</string>
     <!-- [DET-STOP-BUTTON-001] Way out of a trip the user does not want followed. -->

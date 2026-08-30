@@ -10,6 +10,8 @@
     <!-- Notificação: confirmação de estacionamento -->
     <string name="notif_confirmation_title">Estacionaste?</string>
     <string name="notif_confirmation_title_vehicle">Estacionaste o %1$s?</string>
+    <string name="notif_confirmation_title_vehicle_street">Estacionaste o %1$s em %2$s?</string>
+    <string name="notif_confirmation_title_street">Estacionaste em %1$s?</string>
     <string name="notif_confirmation_text">Parece que estacionaste. Confirmamos o lugar?</string>
     <string name="notif_action_yes_parked">Sim, estacionei</string>
     <!-- [DET-STOP-BUTTON-001] Way out of a trip the user does not want followed. -->

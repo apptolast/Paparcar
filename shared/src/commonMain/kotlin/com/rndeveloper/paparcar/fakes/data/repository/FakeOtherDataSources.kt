@@ -10,6 +10,7 @@ import com.rndeveloper.paparcar.domain.permissions.AppPermissionState
 import com.rndeveloper.paparcar.domain.permissions.OemBackgroundReliabilityManager
 import com.rndeveloper.paparcar.domain.detection.PendingParkNudge
 import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
+import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import com.rndeveloper.paparcar.domain.preferences.ThemeMode
 import com.rndeveloper.paparcar.domain.bluetooth.BluetoothScanner
@@ -44,6 +45,16 @@ private const val MOCK_PROMPT_VEHICLE = "Toyota Corolla"
  *  TWO live links needs a real clock, and the mock never produces two.
  *  [UI-MAP-PUCK-BELONGS-TO-THE-DRIVE-NOT-TO-ONE-LANE-001] */
 private const val MOCK_CONNECTED_AT_MS = 1L
+/** [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] Where the mock question is ABOUT — inside the same
+ *  Cádiz block as the seeded spots, so flipping `promptOpen` in the Dev Catalog draws the
+ *  unconfirmed marker on screen instead of somewhere off the visible map. Without a place the row
+ *  still renders but the marker never appears, which is a real state (a window from an older build)
+ *  and NOT the one the scenario is for. */
+private val MOCK_PROMPT_CANDIDATE = GpsPoint(36.5922, -6.2318, 11f, 0L, 0f)
+
+/** The street the mock question names — a real address in the same block, so the Dev Catalog
+ *  shows the wording that ships and not a placeholder. */
+private const val MOCK_PROMPT_STREET = "Calle Larga 22"
 
 class FakeGeocoderDataSource : GeocoderDataSource {
     override suspend fun getAddress(lat: Double, lon: Double): Result<AddressInfo> =
@@ -174,7 +185,17 @@ class FakeAppPreferences(private val scenario: MockScenario? = null) : AppPrefer
     private val pendingPromptWindow = MutableStateFlow<PendingPromptWindow?>(null)
     override fun observePendingPromptWindow(): kotlinx.coroutines.flow.Flow<PendingPromptWindow?> =
         scenario?.promptOpen?.map { open ->
-            if (open) PendingPromptWindow(Clock.System.now().toEpochMilliseconds(), MOCK_PROMPT_VEHICLE) else null
+            if (open) {
+                val nowMs = Clock.System.now().toEpochMilliseconds()
+                PendingPromptWindow(
+                    shownAtMs = nowMs,
+                    vehicleName = MOCK_PROMPT_VEHICLE,
+                    candidate = MOCK_PROMPT_CANDIDATE.copy(timestamp = nowMs),
+                    street = MOCK_PROMPT_STREET,
+                )
+            } else {
+                null
+            }
         } ?: pendingPromptWindow
     override fun setPendingPromptWindow(window: PendingPromptWindow) { pendingPromptWindow.value = window }
     override fun clearPendingPromptWindow() {

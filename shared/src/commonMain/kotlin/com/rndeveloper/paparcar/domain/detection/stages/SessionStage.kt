@@ -277,7 +277,11 @@ sealed interface DetectionEffect {
      * reorders two events that today have a defined order, which is the sort of "invisible" change
      * a refactor is not allowed to make.
      */
-    data class NotifyPrompt(val confidence: ParkingConfidence) : DetectionEffect
+    /** [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] [at] is WHERE the question is about — the
+     *  witnessed car stop, or the posting fix when this session has no anchor yet. It travels on
+     *  the effect rather than being re-derived by the executor, so the marker the user sees and
+     *  the state that raised the question can never point at two different places. */
+    data class NotifyPrompt(val confidence: ParkingConfidence, val at: GpsPoint) : DetectionEffect
 
     /**
      * Stamp the prompt's instant into the remote trace. [DET-FROZEN-COUNTER-001] made this

@@ -9,6 +9,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import kotlinx.coroutines.delay
+import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.drive_time_minutes
@@ -108,3 +109,20 @@ fun driveTimeString(meters: Float): String {
  */
 @Composable
 fun distanceString(meters: Float): String = formatDistance(meters, LocalDistanceUnit.current)
+
+/**
+ * A wall-clock time, `HH:mm`, in the device's own zone.
+ *
+ * [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] Deliberately NOT a relative age: an absolute time
+ * needs no ticker, so it cannot freeze at whatever it read when its row was composed — the failure
+ * [relativeTimeText] pays a coroutine to avoid, and that a marker or a one-shot row would simply
+ * inherit. It is also the only form that is still true an hour later.
+ *
+ * 24-hour on purpose: this string is read next to a clock, and every locale we ship reads it that
+ * way. Not a composable — it takes no resources, so it can be called from anywhere.
+ */
+fun formatClockTime(epochMs: Long): String {
+    val local = kotlin.time.Instant.fromEpochMilliseconds(epochMs)
+        .toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault())
+    return "${local.hour.toString().padStart(2, '0')}:${local.minute.toString().padStart(2, '0')}"
+}

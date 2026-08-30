@@ -10,6 +10,8 @@
     <!-- Notificare: confirmare parcare -->
     <string name="notif_confirmation_title">Ai parcat?</string>
     <string name="notif_confirmation_title_vehicle">Ai parcat %1$s?</string>
+    <string name="notif_confirmation_title_vehicle_street">Ai parcat %1$s pe %2$s?</string>
+    <string name="notif_confirmation_title_street">Ai parcat pe %1$s?</string>
     <string name="notif_confirmation_text">Se pare că ai parcat. Vrei să confirmăm locul?</string>
     <string name="notif_action_yes_parked">Da, am parcat</string>
     <!-- [DET-STOP-BUTTON-001] Way out of a trip the user does not want followed. -->

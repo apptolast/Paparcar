@@ -2,6 +2,9 @@
 
 package com.rndeveloper.paparcar.domain.detection.coordinator.replay
 
+import com.rndeveloper.paparcar.fakes.FakeAddressAndPlaceRepository
+import com.rndeveloper.paparcar.domain.usecase.notification.ResolveAskedStreetUseCase
+import com.rndeveloper.paparcar.domain.usecase.location.GetAddressAndPlaceUseCase
 import com.rndeveloper.paparcar.domain.detection.CoordinatorParkingDetector
 import com.rndeveloper.paparcar.domain.detection.state.DriveProofSource
 import com.rndeveloper.paparcar.domain.detection.ArmEvidence
@@ -36,6 +39,11 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+
+/** [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] These files exercise DETECTION, not wording: an
+ *  empty geocoder keeps a question from ever naming a street here. The rule has its own test. */
+private val noStreet = ResolveAskedStreetUseCase(GetAddressAndPlaceUseCase(FakeAddressAndPlaceRepository()))
+
 
 /**
  * [DET-SOLID-001][C4] Field-trace replays against the REAL detector — the mechanism that turns
@@ -1227,9 +1235,11 @@ class DetectionTraceReplayTest {
                 departureEventBus = FakeDepartureEventBus(),
             ),
             notifyParkingConfirmation = NotifyParkingConfirmationUseCase(
+                resolveAskedStreet = noStreet,
                 notificationPort = notification,
                 vehicleRepository = vehicleRepo,
             ),
+            resolveAskedStreet = noStreet,
             notificationPort = notification,
             vehicleRepository = vehicleRepo,
             stepDetector = stepDetector,
