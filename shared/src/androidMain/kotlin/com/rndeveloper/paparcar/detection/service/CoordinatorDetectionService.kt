@@ -373,11 +373,28 @@ class CoordinatorDetectionService : LifecycleService() {
             }
             return
         }
-        // [DET-CHEAP-WAKE-INSTEAD-OF-SILENCE-001] Inside a quiet period this wake buys ONE fix, not
-        // a session. It escalates only when that fix cannot be a walk near the car; otherwise the
+        // [DET-TWO-TIER-SENTRY-001] **The triage is now the ONLY door.** A wake buys ONE fix, not a
+        // session: it escalates only when that fix cannot be a walk near the car, and otherwise the
         // process goes back to sleep having spent a fix instead of an FGS session with a GPS stream
         // and two Firestore documents. The DECISION is the pure predicate; everything here is I/O.
-        if (triageOnly && !runCheapWakeTriage(sessions)) return
+        //
+        // It used to be gated on `triageOnly`, i.e. it only ran INSIDE a quiet period — after an
+        // abort streak had already opened one. Outside a quiet period every wake bought a full
+        // session, and that is the bill of the field night of 2026-08-29: 61 sentry-wake intents,
+        // the cooldown stopped 37, **24 armed** — and 23 of the night's 28 arms died as
+        // `⊘ false-ENTER abort` with the user walking around the house, 22-69 m from a parked car
+        // inside its own 89 m fence, at 0-4 km/h. Every one of those 24 fails BOTH escalation tests
+        // (not credible driving speed, inside an owned fence), so each would have cost one fix.
+        //
+        // ⚠️ The asymmetries that keep this from silencing a real departure are the triage's own and
+        // are unchanged: a fix that never arrives ESCALATES, a body outside every owned fence
+        // ESCALATES, and credible driving speed ESCALATES. Failing towards noise costs one session;
+        // failing towards silence costs a parking spot.
+        //
+        // `triageOnly` survives as the flag the quiet-period wake still carries, but it no longer
+        // decides anything here — it is telemetry now, and the trace says which kind of wake this
+        // was so the promotions-per-trip ratio stays countable.
+        if (!runCheapWakeTriage(sessions, quietPeriod = triageOnly)) return
         PaparcarLogger.d(DIAG, "  → SENTRY_WAKE — significant motion on live process, arming Coordinator (Unverified) [DET-RESIDENT-FGS-001]")
         cancelDetectionJob()
         startParkingDetection(
@@ -429,7 +446,7 @@ class CoordinatorDetectionService : LifecycleService() {
      * All the judgement is in [cheapWakeVerdict] / [mayTriageSentryWake]; this function is I/O and
      * telemetry only, per the service's contract.
      */
-    private suspend fun runCheapWakeTriage(sessions: List<UserParking>): Boolean {
+    private suspend fun runCheapWakeTriage(sessions: List<UserParking>, quietPeriod: Boolean): Boolean {
         val nowMs = System.currentTimeMillis()
         // Clock skew degrades to "no predecessor", which ALLOWS the triage — never to a spuriously
         // tight cadence that would drop it.
@@ -450,13 +467,18 @@ class CoordinatorDetectionService : LifecycleService() {
         } else {
             "speed=${(fix.speed * 3.6f).toInt()}km/h acc=${fix.accuracy.toInt()}m"
         }
+        // [DET-TWO-TIER-SENTRY-001] The metric this piece is judged by is PROMOTIONS TO TIER 2 PER
+        // REAL TRIP (measured 28/1 on 2026-08-29; target ≈1), so every triage says which tier it
+        // stopped at and whether it was a quiet-period wake — countable from the trace alone.
+        val tier = if (verdict == CheapWakeVerdict.ESCALATE) "tier2 (session)" else "tier1 (one fix)"
+        val lane = if (quietPeriod) "quiet-period" else "ordinary"
         PaparcarLogger.d(
             DIAG,
-            "  ⏱ cheap wake triage → $verdict ($signal) [DET-CHEAP-WAKE-INSTEAD-OF-SILENCE-001]",
+            "  ⏱ cheap wake triage [$lane] → $verdict, stops at $tier ($signal) [DET-TWO-TIER-SENTRY-001]",
         )
         logSentry(
             DetectionEvent.Sentry.WAKE_TRIAGE,
-            signal = "$verdict $signal",
+            signal = "$verdict $signal $lane",
             sessionId = sessions.firstNotNullOfOrNull { it.geofenceId } ?: "-",
         )
         return verdict == CheapWakeVerdict.ESCALATE

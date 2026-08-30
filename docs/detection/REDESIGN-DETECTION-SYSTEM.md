@@ -694,7 +694,7 @@ estilo de los `ColorGuardrailTest` / `TypographyGuardrailTest` que ya existen:
 | 2 | `DET-NO-CLOCK-PLANTS-A-PIN-001` (Pieza 4) ✅ | pin a 142 m, batería | hecho |
 | 3 | `DET-DETECTION-PATH-IS-A-TYPE-001` (Pieza 2) 🟡 | #4 #12 (#13 era falsa alarma) | parcial |
 | 4 | `DET-FAIL-CLOSED-BY-CONSTRUCTION-001` (Pieza 3) 🟡 | #5 #9 #14 (#8 y #16 refutados/diferidos) | parcial |
-| 5 | `DET-TWO-TIER-SENTRY-001` (Pieza 5) | 28→1 armados, batería | alto |
+| 5 | `DET-TWO-TIER-SENTRY-001` (Pieza 5) ✅ | 28→1 armados, batería | hecho ⏳ medir en campo |
 | 6 | `DET-DOUBT-MUST-REACH-THE-SCREEN-001` (Pieza 6) | §1.5 | bajo |
 | 7 | `DET-GUARDRAILS-KEEP-THE-DOCTRINE-001` (Pieza 7) | que no se deshaga | bajo |
 

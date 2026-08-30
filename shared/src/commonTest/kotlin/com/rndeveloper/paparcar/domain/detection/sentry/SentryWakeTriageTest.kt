@@ -47,6 +47,65 @@ class SentryWakeTriageTest {
         speedMps: Float = 0f,
     ) = GpsPoint(lat, lon, accuracy = accuracy, timestamp = 0L, speed = speedMps)
 
+    // ── [DET-TWO-TIER-SENTRY-001] The night the triage was not the door ──────
+
+    /**
+     * FIELD REPLAY — 2026-08-29/30, Redmi, four hours with the car parked outside.
+     *
+     * The bill: **61** sentry-wake intents, the cooldown stopped 37, **24 armed a full session** —
+     * and 23 of the night's 28 arms died as `⊘ false-ENTER abort`, the user walking around the
+     * house. The honest-close lines put them 22-69 m from a car parked inside its own 89 m fence,
+     * at 0-4 km/h. One useful pin came out of 28 arms.
+     *
+     * The triage existed and would have stopped every one of them for the price of a fix — it just
+     * was not the door: it only ran INSIDE a quiet period, after an abort streak had opened one.
+     * This is the case that made it the only door.
+     */
+    @Test
+    fun should_stayQuiet_forEveryWakeOfTheFieldNight_whenWalkingInsideTheOwnFence() {
+        // The measured envelope of those aborts: 22-69 m from the pin, 0-4 km/h.
+        listOf(22.0, 35.0, 50.0, 69.0).forEach { metres ->
+            listOf(0f, 0.3f, 0.8f, 1.1f).forEach { speedMps ->
+                val verdict = cheapWakeVerdict(
+                    fix = fixAt(lat = carLat + metresToLat(metres), speedMps = speedMps),
+                    parkedSessions = listOf(parkedAt()),
+                    config = config,
+                )
+                assertEquals(
+                    CheapWakeVerdict.STAY_QUIET,
+                    verdict,
+                    "d=${metres}m speed=${speedMps}m/s must cost ONE FIX, not a session",
+                )
+            }
+        }
+    }
+
+    /**
+     * …and the other half of the same rule, so the piece cannot be mistaken for "wake less".
+     * The night's ONE real trip left the fence at driving speed, and that must still promote.
+     */
+    @Test
+    fun should_escalate_when_theSameNightsRealTripLeaves() {
+        assertEquals(
+            CheapWakeVerdict.ESCALATE,
+            cheapWakeVerdict(fixAt(speedMps = 16f, accuracy = 11f), listOf(parkedAt()), config),
+            "58 km/h with credible accuracy is the 21:47 drive — tier 2, always",
+        )
+        assertEquals(
+            CheapWakeVerdict.ESCALATE,
+            cheapWakeVerdict(fixAt(lat = carLat + metresToLat(400.0)), listOf(parkedAt()), config),
+            "outside every owned fence escalates even at rest — the body left, the quiet is over",
+        )
+        assertEquals(
+            CheapWakeVerdict.ESCALATE,
+            cheapWakeVerdict(fix = null, parkedSessions = listOf(parkedAt()), config = config),
+            "a triage that cannot see must not conclude 'nothing happening'",
+        )
+    }
+
+    /** ~111 320 m per degree of latitude — enough for a fixture that only needs the right decade. */
+    private fun metresToLat(metres: Double): Double = metres / 111_320.0
+
     // ── Cadence floor ────────────────────────────────────────────────────────
 
     @Test

@@ -6114,3 +6114,38 @@ comment describes and its opposite half became a new test.
 1.815 tests green.
 
 Spec: `docs/backlog/det-no-clock-plants-a-pin-001.md`.
+
+### DET-TWO-TIER-SENTRY-001 — a wake buys one fix, not a session (pending)
+
+Field 2026-08-29/30, Redmi, 4 h 14 min with the car parked outside: **61** sentry-wake intents, the
+cooldown stopped 37, **24 armed a full session**, and 23 of the night's 28 arms died as
+`⊘ false-ENTER abort` with the user walking around the house — 22 to 69 m from a car inside its own
+89 m fence, at 0 to 4 km/h. **One useful pin out of 28 arms.** Every arm is an FGS session with a
+high-cadence GPS stream, two Firestore documents and a fresh chance for the cold-start Doppler mirage
+that produced the parafarmacia false positive.
+
+**The door already existed and was not fitted.** `SentryWakeTriage` — tier 1 — was implemented and
+tested, but ran under `if (triageOnly && …)`: only INSIDE a quiet period, after an abort streak had
+opened one. Outside it, every wake bought a session. All 24 of that night's wakes fail BOTH
+escalation tests, so each would have cost a single fix.
+
+**Fix.** The triage is the only door. Tier 1 wakes on everything, buys one fix and has no right to
+plant; tier 2 is reached only by promotion, and is the only tier with a stream and the right to
+confirm. The asymmetries that stop this from silencing a real departure are the triage's own and are
+untouched: a fix that never arrives ESCALATES, a body outside every owned fence ESCALATES, credible
+driving speed ESCALATES — failing towards noise costs one session, failing towards silence costs a
+parking spot. Significant motion itself is not touched: it is what saves us from false negatives and
+costs about nothing while armed.
+
+**The metric rides in the trace**, because the piece is judged by promotions to tier 2 per real trip
+(28/1 measured, ≈1 the target): every triage records the tier it stopped at and whether the wake came
+from a quiet period, locally and in the remote `WAKE_TRIAGE` event.
+
+⏳ The real measurement is a field one — promotions per real trip over a night with the car parked.
+
+🟡 Follow-up this opens: `SentryWakeCooldown` loses most of its justification now that an arm is no
+longer bought with a wake, and it has a known cost — on 2026-08-22 it silenced the sensor exactly as
+designed and the trip was caught by `GEOFENCE_EXIT` instead. The triage's own KDoc already called the
+damper "the wrong axis". Removing it is its own behaviour delta and needs a real trip to measure.
+
+Spec: `docs/backlog/det-two-tier-sentry-001.md`.
