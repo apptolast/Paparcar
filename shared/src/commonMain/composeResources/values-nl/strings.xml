@@ -118,11 +118,6 @@
     <string name="permissions_status_pending">In behandeling</string>
 
     <!-- HistoryScreen -->
-    <string name="history_weekly_title">Wekelijkse activiteit</string>
-    <plurals name="history_weekly_subtitle">
-        <item quantity="one">parkeerder deze week</item>
-        <item quantity="other">parkeerders deze week</item>
-    </plurals>
     <string name="history_today">Vandaag</string>
     <string name="history_yesterday">Gisteren</string>
     <string name="history_empty_title">Nog geen parkeergeschiedenis</string>

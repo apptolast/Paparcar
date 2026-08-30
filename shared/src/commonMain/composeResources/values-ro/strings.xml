@@ -38,9 +38,12 @@
     <string name="common_directions">Indicații</string>
     <string name="home_navigate_to_vehicle_cd">Indicații către mașină</string>
     <string name="home_feed_nearby">În apropierea ta</string>
+    <!-- Romanian takes "de" from 20 up (20 de locuri), not below it (3 locuri). What used to sit in
+         `other` was the few form, so counts of 20+ read wrong. [I18N-PLURAL-CATEGORIES-FOLLOW-THE-LANGUAGE-NOT-ENGLISH-001] -->
     <plurals name="home_feed_nearby_with_count">
         <item quantity="one">%1$d loc liber în apropierea ta</item>
-        <item quantity="other">%1$d locuri libere în apropierea ta</item>
+        <item quantity="few">%1$d locuri libere în apropierea ta</item>
+        <item quantity="other">%1$d de locuri libere în apropierea ta</item>
     </plurals>
     <string name="home_empty_title">Niciun loc anunțat încă</string>
     <string name="home_empty_subtitle">Fii primul care raportează unul</string>
@@ -117,11 +120,6 @@
     <string name="permissions_status_pending">În așteptare</string>
 
     <!-- HistoryScreen -->
-    <string name="history_weekly_title">Activitate săptămânală</string>
-    <plurals name="history_weekly_subtitle">
-        <item quantity="one">parcare în această săptămână</item>
-        <item quantity="other">parcări în această săptămână</item>
-    </plurals>
     <string name="history_today">Astăzi</string>
     <string name="history_yesterday">Ieri</string>
     <string name="history_empty_title">Nicio parcare încă</string>
@@ -381,8 +379,11 @@
     <string name="home_header_add_zone_dismiss_cd">Renunță</string>
 
     <!-- Sheet section headers + permisiuni -->
+    <!-- No numeral in front of it: Romanian only needs "de" after a figure, so few and other
+         coincide here. Both are declared — the runtime picks by category, not by wording. -->
     <plurals name="home_vehicles_section_header">
         <item quantity="one">Vehiculul tău</item>
+        <item quantity="few">Vehiculele tale</item>
         <item quantity="other">Vehiculele tale</item>
     </plurals>
     <string name="home_vehicle_card_status_empty">Neparcat</string>

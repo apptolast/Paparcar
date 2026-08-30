@@ -163,11 +163,6 @@
     <string name="permissions_bg_guide_dismiss">Not now</string>
 
     <!-- HistoryScreen -->
-    <string name="history_weekly_title">Weekly activity</string>
-    <plurals name="history_weekly_subtitle">
-        <item quantity="one">parking this week</item>
-        <item quantity="other">parkings this week</item>
-    </plurals>
     <!-- Activity chart — scope-aware title/subtitle and the low-data compact summary -->
     <string name="history_activity_title">Activity</string>
     <plurals name="history_activity_noun">

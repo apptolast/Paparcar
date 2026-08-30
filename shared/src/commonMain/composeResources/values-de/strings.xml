@@ -118,11 +118,6 @@
     <string name="permissions_status_pending">Ausstehend</string>
 
     <!-- HistoryScreen -->
-    <string name="history_weekly_title">Wöchentliche Aktivität</string>
-    <plurals name="history_weekly_subtitle">
-        <item quantity="one">Parking diese Woche</item>
-        <item quantity="other">Parkings diese Woche</item>
-    </plurals>
     <string name="history_today">Heute</string>
     <string name="history_yesterday">Gestern</string>
     <string name="history_empty_title">Noch keine Parkings</string>

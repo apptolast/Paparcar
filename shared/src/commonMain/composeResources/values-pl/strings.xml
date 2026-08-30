@@ -119,13 +119,6 @@
     <string name="permissions_status_pending">Oczekujące</string>
 
     <!-- HistoryScreen -->
-    <string name="history_weekly_title">Aktywność tygodniowa</string>
-    <plurals name="history_weekly_subtitle">
-        <item quantity="one">parkowanie w tym tygodniu</item>
-        <item quantity="few">parkowania w tym tygodniu</item>
-        <item quantity="many">parkowań w tym tygodniu</item>
-        <item quantity="other">parkowań w tym tygodniu</item>
-    </plurals>
     <string name="history_today">Dziś</string>
     <string name="history_yesterday">Wczoraj</string>
     <string name="history_empty_title">Brak historii parkowania</string>
@@ -385,8 +378,12 @@
     <string name="home_header_add_zone_dismiss_cd">Odrzuć</string>
 
     <!-- Sheet section headers + uprawnienia -->
+    <!-- No numeral in front of it, so Polish uses the nominative plural and few/many/other coincide.
+         They are still declared: the runtime picks by category, not by whether the forms differ. -->
     <plurals name="home_vehicles_section_header">
         <item quantity="one">Twój pojazd</item>
+        <item quantity="few">Twoje pojazdy</item>
+        <item quantity="many">Twoje pojazdy</item>
         <item quantity="other">Twoje pojazdy</item>
     </plurals>
     <string name="home_vehicle_card_status_empty">Nie zaparkowany</string>

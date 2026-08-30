@@ -117,11 +117,6 @@
     <string name="permissions_status_pending">En attente</string>
 
     <!-- HistoryScreen -->
-    <string name="history_weekly_title">Activité hebdomadaire</string>
-    <plurals name="history_weekly_subtitle">
-        <item quantity="one">stationnement cette semaine</item>
-        <item quantity="other">stationnements cette semaine</item>
-    </plurals>
     <string name="history_today">Aujourd'hui</string>
     <string name="history_yesterday">Hier</string>
     <string name="history_empty_title">Aucun stationnement</string>
