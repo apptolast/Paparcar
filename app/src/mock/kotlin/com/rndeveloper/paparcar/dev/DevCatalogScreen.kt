@@ -127,7 +127,13 @@ fun DevCatalogScreen(
             SwitchRow("Aparcamiento aproximado (zona, no pin)", approximate) {
                 scenario.approximateParking.value = it
             }
-            SwitchRow("BT emparejado en el coche activo", activeBt) { scenario.activeVehicleBluetooth.value = it }
+            // [UI-MAP-PUCK-BELONGS-TO-THE-DRIVE-NOT-TO-ONE-LANE-001] Ya no es sólo "emparejado": el
+            // coche activo queda CONECTADO, que es lo que el carril BT usa para decir que vas
+            // conduciendo. Con este switch y sin sesión propia aparcada, Home saca el puck de coche
+            // sin tocar el de "Conduciendo" (ése es el carril del Coordinator). El nombre lo dice
+            // porque encender un viaje entero desde una etiqueta que promete un emparejamiento sería
+            // justo el control sobrecargado en silencio que no queremos.
+            SwitchRow("BT conectado al coche activo (viaje por BT)", activeBt) { scenario.activeVehicleBluetooth.value = it }
             SwitchRow("Conduciendo (puck en movimiento en Home)", driving) { on ->
                 // Mirror a geofence-exit: stamp the trip's origin (route start) + the DEPARTING vehicle
                 // (mock_vehicle_002, deliberately NOT the active mock_vehicle_001) so Home's blue origin

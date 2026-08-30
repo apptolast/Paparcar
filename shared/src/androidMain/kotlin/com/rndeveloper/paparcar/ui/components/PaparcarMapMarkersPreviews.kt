@@ -19,6 +19,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.LocalParking
 import androidx.compose.ui.unit.dp
+import com.rndeveloper.paparcar.domain.model.CarbodyType
+import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.domain.model.ZoneIcon
 import com.rndeveloper.paparcar.domain.model.SpotFreshness
 import com.rndeveloper.paparcar.presentation.util.zoneIconFor
@@ -57,6 +59,30 @@ private fun MarkersShowcase() {
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             MyVehicleMarker()
             MyVehicleMarker(selected = true)
+        }
+
+        // [UI-MAP-PUCK-BELONGS-TO-THE-DRIVE-NOT-TO-ONE-LANE-001] The driving puck had no preview and
+        // no gallery entry — the only marker on the map you could not look at without starting a
+        // trip, which is exactly why nobody noticed it read small. Headings are the four cardinals
+        // so the rotation is checkable at a glance.
+        SectionLabel("Driving puck — N · E · S · W (hatchback · SUV · van)")
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            LocationActiveMarker(
+                carbody = CarbodyType.HATCHBACK_MEDIUM,
+                size = VehicleSize.MEDIUM_SUV,
+                headingDegrees = 0f,
+            )
+            LocationActiveMarker(
+                carbody = CarbodyType.SUV_MEDIUM,
+                size = VehicleSize.MEDIUM_SUV,
+                headingDegrees = 90f,
+            )
+            LocationActiveMarker(
+                carbody = CarbodyType.VAN_LIGHT,
+                size = VehicleSize.VAN_HIGH,
+                headingDegrees = 180f,
+            )
+            LocationActiveMarker(carbody = null, size = null, headingDegrees = 270f)
         }
 
         SectionLabel("FreeSpot — HIGH · MEDIUM · LOW · MANUAL · selected")

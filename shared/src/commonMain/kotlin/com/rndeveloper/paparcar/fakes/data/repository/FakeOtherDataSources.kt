@@ -13,6 +13,7 @@ import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import com.rndeveloper.paparcar.domain.preferences.ThemeMode
 import com.rndeveloper.paparcar.domain.bluetooth.BluetoothScanner
+import com.rndeveloper.paparcar.domain.bluetooth.BtConnection
 import com.rndeveloper.paparcar.domain.connectivity.ConnectivityObserver
 import com.rndeveloper.paparcar.domain.connectivity.ConnectivityStatus
 import com.rndeveloper.paparcar.domain.model.bluetooth.BluetoothDeviceInfo
@@ -20,8 +21,10 @@ import com.rndeveloper.paparcar.fakes.MockScenario
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
@@ -36,6 +39,11 @@ import kotlin.time.Clock
  * produce (the peek eyebrow names the trip's car, the row would name another).
  */
 private const val MOCK_PROMPT_VEHICLE = "Toyota Corolla"
+
+/** The mock has one connected car at a time, so any non-zero stamp ranks it. Only the ordering of
+ *  TWO live links needs a real clock, and the mock never produces two.
+ *  [UI-MAP-PUCK-BELONGS-TO-THE-DRIVE-NOT-TO-ONE-LANE-001] */
+private const val MOCK_CONNECTED_AT_MS = 1L
 
 class FakeGeocoderDataSource : GeocoderDataSource {
     override suspend fun getAddress(lat: Double, lon: Double): Result<AddressInfo> =
@@ -191,13 +199,35 @@ class FakeAppPreferences(private val scenario: MockScenario? = null) : AppPrefer
     override fun setDefaultMapType(type: String) { _defaultMapType.value = type }
 }
 
-class FakeBluetoothScanner : BluetoothScanner {
+/**
+ * [UI-MAP-PUCK-BELONGS-TO-THE-DRIVE-NOT-TO-ONE-LANE-001] Connection follows the Dev Catalog's BT
+ * lever, and nothing else.
+ *
+ * ⚠ It used to answer `pairedVehicleIds.isNotEmpty()`, on the stated assumption that "the mock only
+ * assigns a bluetoothDeviceId when the BT scenario is on". That was never true — `mock_vehicle_002`
+ * and `_004` carry hard-coded MACs — so the mock resolved BLUETOOTH **permanently**, whatever the
+ * lever said, and the Coordinator stories were being told under the wrong strategy. Harmless while
+ * the strategy only picked banner copy; now that a connected car also drives the trip surface, an
+ * always-connected mock would park a car puck on Home forever.
+ *
+ * With the lever off, the fleet still HAS paired cars that are not connected — which is precisely
+ * the situation [DET-BT-CONNECTED-NOT-PAIRED-001] exists for, and the mock now models it.
+ */
+class FakeBluetoothScanner(private val scenario: MockScenario? = null) : BluetoothScanner {
     override fun isBluetoothEnabled(): Boolean = true
     override fun getBondedDevices(): List<BluetoothDeviceInfo> = emptyList()
-    // Mock treats a BT-paired car as connected, so the scenario's BT story keeps resolving BLUETOOTH.
-    // The mock only assigns a bluetoothDeviceId when the BT scenario is on, so a non-empty set ⟺ BT on.
-    // [DET-BT-CONNECTED-NOT-PAIRED-001]
-    override fun isConnectedToPairedCar(pairedVehicleIds: Set<String>): Boolean = pairedVehicleIds.isNotEmpty()
+
+    override fun isConnectedToPairedCar(pairedVehicleIds: Set<String>): Boolean =
+        connectedIds().any { it in pairedVehicleIds }
+
+    override fun observeConnectedPairedCars(): Flow<List<BtConnection>> =
+        scenario?.activeVehicleBluetooth?.map { on -> connectedCars(on) } ?: flowOf(emptyList())
+
+    private fun connectedCars(on: Boolean) =
+        connectedIds(on).map { BtConnection(vehicleId = it, connectedAtMs = MOCK_CONNECTED_AT_MS) }
+
+    private fun connectedIds(on: Boolean = scenario?.activeVehicleBluetooth?.value == true): Set<String> =
+        if (on) setOf(FakeVehicleRepository.ACTIVE_VEHICLE_ID) else emptySet()
 }
 
 /**

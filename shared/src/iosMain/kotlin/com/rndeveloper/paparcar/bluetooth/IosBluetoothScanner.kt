@@ -3,7 +3,10 @@
 package com.rndeveloper.paparcar.bluetooth
 
 import com.rndeveloper.paparcar.domain.bluetooth.BluetoothScanner
+import com.rndeveloper.paparcar.domain.bluetooth.BtConnection
 import com.rndeveloper.paparcar.domain.model.bluetooth.BluetoothDeviceInfo
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import platform.CoreBluetooth.CBCentralManager
 import platform.CoreBluetooth.CBCentralManagerDelegateProtocol
 import platform.CoreBluetooth.CBManagerStatePoweredOn
@@ -53,4 +56,9 @@ class IosBluetoothScanner : BluetoothScanner {
     // strategy is Android-only for now, so the resolver always falls back to COORDINATOR on iOS.
     // [DET-BT-CONNECTED-NOT-PAIRED-001]
     override fun isConnectedToPairedCar(pairedVehicleIds: Set<String>): Boolean = false
+
+    // Same reason, reactive form: with no car-connection edges to observe, the set is permanently
+    // empty and the BT trip lane never lights up on iOS.
+    // [UI-MAP-PUCK-BELONGS-TO-THE-DRIVE-NOT-TO-ONE-LANE-001]
+    override fun observeConnectedPairedCars(): Flow<List<BtConnection>> = flowOf(emptyList())
 }

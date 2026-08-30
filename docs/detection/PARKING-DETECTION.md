@@ -5874,3 +5874,88 @@ the drag mechanism (the first fixes arrive with the user still in the car), and 
 no field datum behind it.
 
 Spec: `docs/backlog/det-bt-pin-is-sampled-after-the-walk-001.md`.
+
+### UI-MAP-PUCK-BELONGS-TO-THE-DRIVE-NOT-TO-ONE-LANE-001 — the BT lane can finally say it is following a trip (pending)
+
+User, 30-08: *«para bt no convertimos el icono de location en coche, deberíamos de hacerlo».*
+Correct, and not an oversight in the UI: the lane had **no way** to. `DetectionReadiness.Monitoring`
+— which drives the Home detection story AND the driving puck — was decided by
+`detectionRuntime.isRunning`, and `DetectionRuntimeState` is written **only** by
+`CoordinatorDetectionService` / `CoordinatorParkingDetector`. The four files under `bluetooth/`
+write to it never; `BluetoothConnectionReceiver` only *reads* it, and when it arbitrates it sends
+`ACTION_BT_OVERRIDE` to make the Coordinator **abort**. Since a connected paired car suppresses the
+Coordinator by design (`ParkingStrategyResolver`), `isRunning` never rises and a whole drive in the
+BT car reads Ready/Parked: location dot, no car, and the story line silent.
+
+Two pieces of already-written code prove this was intended and never worked: the
+`ParkingStrategy.BLUETOOTH` branch of `HomeTripController.monitoredVehicle` (it picks which car the
+puck paints) and `DetectionStory.drivingStory`'s `viaBluetooth` flag. Both unreachable, for the same
+reason.
+
+**Fix.** The two lanes meet where the app already decides what the user is told —
+`ObserveDetectionReadinessUseCase`, *"single source of truth for the Home detection banner"* — and
+nowhere else. It gains the live BT connection as a second source of "I am following a trip"; the BT
+lane still writes no Coordinator state, so the lanes stay unmixed. Same bar as the Coordinator, with
+no exception for being deterministic: a car whose own session is still live has **not** measurably
+left, so connecting while parked keeps reading `Parked` until the departure clears it
+[DET-READY-TRIP-OVER-PARKED-001].
+
+**Which lane noticed the trip and WHICH CAR it is are two different questions** — the first version
+of this fix conflated them, resolving the conflict by branch order (`isRunning` first), so with both
+lanes live the lane that INFERS the car outranked the one that KNOWS it by MAC. Corrected on review:
+the car is named by the strongest evidence available, never by whoever spoke first. That is also
+what detection itself already decided — `EvaluateBtArbitrationUseCase` makes a paired-car edge
+SUPERSEDE a live coordinator session — so painting the coordinator's car would have the map
+contradicting its own app; and since the puck's glyph is an IDENTITY ("which of my cars is this"),
+the wrong one is a false statement, not a cosmetic slip [UI-COLOR-DOCTRINE-001].
+
+**With more than one paired car**, the two layers were not equal. Detection always could tell them
+apart — `BluetoothConnectionReceiver` resolves the vehicle from the event's own MAC, so a disconnect
+pins the car that disconnected, whatever else is in the fleet. This new READING starts from a set of
+live links instead, and its first version collapsed it with `firstOrNull` over the fleet, i.e. by
+repository order: a guess wearing a function's clothes. Two links really can be up at once (you park
+the van, walk to the car, and the van's head unit stays powered for a while), so the rule is **the
+car you got into LAST is the car you are in** — ranked by the connect stamp `BtConnectionStore`
+already writes beside the connection, now surfaced as `BtConnection.connectedAtMs`. When recency
+cannot decide (a tie, or an unstamped link sitting next to stamped ones) it names NOBODY: an
+unstamped link could be the newest for all we know, so it does not lose the ranking, it invalidates
+it — and no car is less information, while the wrong car is a false statement.
+
+The coordinator's payload travels with its car: `phase` and `departurePoint` describe the vehicle IT
+tracks, so once BT names a different one they are foreign facts — a foreign `Candidate` would freeze
+this puck where *another* car stopped, and a foreign departure point would draw this trip's origin at
+another car's kerb. The rule is "foreign **only if** BT named a different car", not "if BT named
+one": a MANUAL arm attributes no car but its phase is real and must still freeze the puck. That
+distinction is the difference between fixing the bug and regressing the lane that already worked, and
+it carries its own test.
+
+**Why a new flow and not the answer already in hand.** `strategyFor(vehicles)` — called in that same
+use case — already returns `BLUETOOTH` exactly when connected to a paired car. But it is a
+point-in-time read of `BtConnectionStore`, and the readiness only recomputes when one of its sources
+emits: **the ACL edge is not one of them**. Getting into the car changes nothing observable, so the
+car icon would appear whenever something *else* happened to emit. Hence
+`BluetoothScanner.observeConnectedPairedVehicleIds()`, backed on Android by the change listener of
+the very SharedPreferences the manifest receiver already writes — the edge itself, no second
+bookkeeping. The suite's falsification case (everything frozen except the ACL edge) goes red the
+moment that source is turned back into a snapshot.
+
+**Mock correction found on the way.** The mock `FakeBluetoothScanner` answered
+`isConnectedToPairedCar = pairedVehicleIds.isNotEmpty()`, on the stated assumption that "the mock
+only assigns a bluetoothDeviceId when the BT scenario is on" — never true, since `mock_vehicle_002`
+and `_004` carry hard-coded MACs. The mock therefore resolved **BLUETOOTH permanently** and told
+every Coordinator story under the wrong strategy. Harmless while the strategy only picked banner
+copy; with a connected car now driving the trip surface it would have parked a car puck on Home
+forever. Connection now follows the Dev Catalog lever, which also means the mock finally models the
+paired-but-not-connected fleet that [DET-BT-CONNECTED-NOT-PAIRED-001] exists for.
+
+Rider from the same request: the puck's car glyph goes 38 → 44 dp inside a 54 → 60 dp halo (the
+ratio is what makes it read as a puck rather than a sticker), and `LocationActiveMarker` gets the
+preview it never had — it was the only marker on the map you could not look at without starting a
+trip, which is why nobody noticed it read small.
+
+Not done here: the BT lane publishes no `Candidate` phase, so on disconnect the puck goes out and
+the dot returns until the pin confirms and `Parked` takes over. Freezing the car at the spot during
+the detector's hunt would need the BT detector to publish in-flight state → follow-up if the field
+shows it looking wrong.
+
+Spec: `docs/backlog/ui-map-puck-belongs-to-the-drive-not-to-one-lane-001.md`.

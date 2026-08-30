@@ -279,8 +279,11 @@ fun LocationActiveMarker(
     }
 }
 
-private val LOC_ACTIVE_DIAM = 54.dp
-private val LOC_ACTIVE_CAR  = 38.dp
+// [UI-MAP-PUCK-BELONGS-TO-THE-DRIVE-NOT-TO-ONE-LANE-001] Both grew together (was 54/38): the car
+// reads too small against the road at speed, but bumping only the glyph would leave the halo a rim.
+// The ratio is what makes it read as a puck and not as a sticker — keep it near 0.73.
+private val LOC_ACTIVE_DIAM = 60.dp
+private val LOC_ACTIVE_CAR  = 44.dp
 private const val LOC_HALO_ALPHA = 0.16f
 
 // ─── Marker 1d — Trip origin dot (DepartureDotMarker) ────────────────────────

@@ -1,7 +1,13 @@
 package com.rndeveloper.paparcar.bluetooth
 
 import android.content.Context
+import android.content.SharedPreferences
+import com.rndeveloper.paparcar.domain.bluetooth.BtConnection
 import androidx.core.content.edit
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 
 /**
  * Disk-backed record of the last time Bluetooth connected to each vehicle's paired car MAC.
@@ -50,6 +56,38 @@ object BtConnectionStore {
     /** The vehicleIds whose paired car is connected right now (per the last ACL edge). */
     fun connectedVehicleIds(context: Context): Set<String> =
         prefs(context).getStringSet(KEY_CONNECTED_SET, emptySet()).orEmpty().toSet()
+
+    /**
+     * [UI-MAP-PUCK-BELONGS-TO-THE-DRIVE-NOT-TO-ONE-LANE-001] The same set, pushed on every edge.
+     *
+     * The prefs change listener is the cheapest honest edge we have: the ACL receiver already writes
+     * here, so a collector learns that the user got into the car at the exact moment the app does —
+     * without a second source of truth to drift, and without holding a BluetoothProfile proxy open
+     * for the lifetime of the screen. Emits the current set on collection so a subscriber that
+     * arrives mid-drive is not blind until the next edge.
+     *
+     * ⚠ Android registers the change listener behind a WEAK reference, so a listener nobody holds is
+     * collected mid-drive and the edges silently stop arriving. Here the `listener` local is captured
+     * by [awaitClose], which lives as long as the flow does — that capture is what keeps it alive,
+     * not an accident of style. Do not inline it into the register call.
+     */
+    fun observeConnected(context: Context): Flow<List<BtConnection>> = callbackFlow {
+        val prefs = prefs(context)
+        trySend(connected(context))
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_CONNECTED_SET || key == null) trySend(connected(context))
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }.distinctUntilChanged()
+
+    /** The live links, each paired with the connect stamp this store already keeps for it. The two
+     *  keys are written together by the receiver, so reading them together costs nothing and is what
+     *  lets a caller tell TWO connected cars apart. */
+    private fun connected(context: Context): List<BtConnection> =
+        connectedVehicleIds(context).map { id ->
+            BtConnection(vehicleId = id, connectedAtMs = lastConnectedAt(context, id) ?: 0L)
+        }
 
     private fun prefs(context: Context) =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)

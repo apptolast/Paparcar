@@ -247,6 +247,7 @@ val detectionModule = module {
             detectionRuntime = get(),
             strategyResolver = get(),
             appPreferences = get(),
+            bluetoothScanner = get(),
         )
     }
     factory {

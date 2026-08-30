@@ -83,7 +83,9 @@ val mockModule = module {
     single<PermissionManager> { FakePermissionManager(get()) }
     single<OemBackgroundReliabilityManager> { FakeOemBackgroundReliabilityManager(get()) }
     single<AppPreferences> { FakeAppPreferences(get()) }
-    single<BluetoothScanner> { FakeBluetoothScanner() }
+    // Scenario-aware since [UI-MAP-PUCK-BELONGS-TO-THE-DRIVE-NOT-TO-ONE-LANE-001]: the connection is
+    // what the BT trip surface reads, so the Dev Catalog lever has to drive it.
+    single<BluetoothScanner> { FakeBluetoothScanner(get()) }
     single<ConnectivityObserver> { FakeConnectivityObserver(get()) }
     single<ActivityRecognitionManager> { FakeActivityRecognitionManager() }
     single<StepDetectorSource> { FakeStepDetectorSource() }

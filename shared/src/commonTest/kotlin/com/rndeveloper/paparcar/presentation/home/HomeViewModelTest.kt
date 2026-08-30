@@ -143,6 +143,7 @@ class HomeViewModelTest {
             detectionRuntime = StaticDetectionRuntimeState(),
             strategyResolver = ParkingStrategyResolver(vehicleRepo, FakeBluetoothScanner(bluetoothEnabled = false)),
             appPreferences = FakeAppPreferences(),
+            bluetoothScanner = FakeBluetoothScanner(bluetoothEnabled = false),
         )
         val saveManualParking = SaveManualParkingUseCase(
             confirmParking = confirmParking,

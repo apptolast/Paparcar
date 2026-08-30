@@ -119,8 +119,13 @@ class FakeVehicleRepository(private val scenario: MockScenario? = null) : Vehicl
 
     override suspend fun pushPendingVehicles(): Result<Unit> = Result.success(Unit)
 
-    private companion object {
+    companion object {
         /** MAC the Dev Catalog "BT on the active vehicle" lever pins to the active car. */
         const val ACTIVE_BT_MAC = "77:88:99:AA:BB:CC"
+
+        /** The one vehicle with `isActive = true` above. Shared so the fake BT scanner can report
+         *  THIS car as the connected one under the same lever, instead of guessing.
+         *  [UI-MAP-PUCK-BELONGS-TO-THE-DRIVE-NOT-TO-ONE-LANE-001] */
+        const val ACTIVE_VEHICLE_ID = "mock_vehicle_001"
     }
 }

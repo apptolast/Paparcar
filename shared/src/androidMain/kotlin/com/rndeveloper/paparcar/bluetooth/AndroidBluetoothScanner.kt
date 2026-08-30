@@ -5,8 +5,10 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
 import android.content.Context
 import com.rndeveloper.paparcar.domain.bluetooth.BluetoothScanner
+import com.rndeveloper.paparcar.domain.bluetooth.BtConnection
 import com.rndeveloper.paparcar.domain.model.bluetooth.BluetoothDeviceInfo
 import com.rndeveloper.paparcar.domain.model.bluetooth.BluetoothDeviceType
+import kotlinx.coroutines.flow.Flow
 
 /**
  * Android implementation of [BluetoothScanner].
@@ -48,6 +50,15 @@ class AndroidBluetoothScanner(private val context: Context) : BluetoothScanner {
         if (pairedVehicleIds.isEmpty()) return false
         return BtConnectionStore.connectedVehicleIds(context).any { it in pairedVehicleIds }
     }
+
+    /**
+     * [UI-MAP-PUCK-BELONGS-TO-THE-DRIVE-NOT-TO-ONE-LANE-001] Same ground truth as above, pushed
+     * instead of polled. The store is SharedPreferences (written by the manifest ACL receiver so it
+     * survives OEM process kills), so its own change listener IS the connect/disconnect edge — no
+     * second bookkeeping to keep in sync, and no BluetoothProfile proxy to hold open.
+     */
+    override fun observeConnectedPairedCars(): Flow<List<BtConnection>> =
+        BtConnectionStore.observeConnected(context)
 
     private fun Int.toBluetoothDeviceType(): BluetoothDeviceType = when (this) {
         BluetoothDevice.DEVICE_TYPE_CLASSIC -> BluetoothDeviceType.CLASSIC
