@@ -5959,3 +5959,49 @@ the detector's hunt would need the BT detector to publish in-flight state → fo
 shows it looking wrong.
 
 Spec: `docs/backlog/ui-map-puck-belongs-to-the-drive-not-to-one-lane-001.md`.
+### DET-DRIVING-EVIDENCE-IS-THE-ONLY-GATE-001 — the silent-confirm policy asks the arm's type, not a list of the arms that already burned us (pending)
+
+Field 2026-08-29 23:56, Redmi `2201117TY`, pin `c6a57fad` — "La Parafarmacia", `steps+egress`,
+`armEvidence = enter_at_car`, reliability **0.9**, saved in silence. The user was on foot the whole
+time. The session armed on an AR `IN_VEHICLE ENTER` delivered **89 s late** inside the parked car's
+own fence, whose own log line reads *"waiting for ride proof"*. The ride proof never came:
+`DriveProof.proven` stayed null from the arm to the confirm, and `hasEverMoved` printed `false` on
+every state line. One fix read 7.71 m/s at 16 m accuracy and had its 71.6 m **undone 64.8 m
+backwards 3.5 s later**; net displacement arm → pin was 29 m. Eight walking steps and an egress
+displacement then satisfied `steps+egress`.
+
+**Why it reached the confirm.** The weak-evidence policy in `EvaluateParkingDecisionUseCase` read a
+hand-kept `setOf(LABEL_VERIFIED_ENTER, LABEL_VERIFIED_LATE, LABEL_SELF_OBSERVED,
+LABEL_ARRIVAL_HANDOFF)` — the labels the project had already been burned by, each added the day it
+produced its own field FP. That shape **fails OPEN**: an arm absent from the list is strong by
+default, so every new arm confirms silently until its first false positive earns it a line.
+`enter_at_car` was the newest arm and had never earned one.
+
+**Fix.** The policy stops re-deriving the arm's strength and asks `ArmEvidence` itself, as a `when`
+over the sealed hierarchy that a new arm cannot skip (`confirmsSilentlyWithoutMeasuredDrive`), with
+a label-side reading for the decision site that receives the persisted string. The set inverts from
+"the known weaknesses" (open, grows with each FP) to "what carries a measurement" (closed, and the
+default is to ASK). Three arms may still save in silence without the session measuring a drive, each
+for a stated reason: `manual` is the user's word — an assertion, and an inference never deposes one
+[DET-ASSERTION-OUTRANKS-INFERENCE-001]; `inherited_drive` carries a drive measured by the session it
+superseded [DET-SUPERSEDE-CANNOT-DISCARD-A-MEASURED-DRIVE-001]; `verified_speed` carries one the
+departure worker measured outside this stream. `verified_enter` parts company from `verified_speed`
+here despite sharing `DriveAuthorization.OnTrust`, on the only distinction this question cares
+about: *verified by SPEED* is a measurement, *verified by vehicle ENTER* is an event — and the
+governing doctrine is that the event nominates while only measured movement confirms.
+
+**Behaviour delta: exactly one label.** `enter_at_car` moves from silent confirm to
+`Prompt(WEAK_EVIDENCE)` when the session never measured a drive; with measured driving it confirms
+as before. An unknown or absent label now asks instead of confirming — the predicate fails closed,
+which is the asymmetric-failure doctrine (better a question than a phantom pin) applied to the
+predicate itself. The Bluetooth strategy never reaches this evaluator, so `bt_ride` is unaffected.
+
+**The gate is deliberately NOT in `confirmNow`.** Adding `!sessionSawDriving -> false` there would
+make the session neither confirm nor ask — a mute false negative with no recourse for the user.
+Doctrine says that in doubt we ASK, so the gate belongs to the prompt policy.
+
+Verified by the `DET-2208-TRIPS-BECOME-REPLAYS-001` method: neutralising the guard turns **exactly
+one** test red, the parafarmacia one, and no other. 1.798 tests green.
+
+Spec: `docs/backlog/det-driving-evidence-is-the-only-gate-001.md`. Wider redesign this ticket is
+step 0 of: `docs/detection/REDESIGN-DETECTION-SYSTEM.md`.

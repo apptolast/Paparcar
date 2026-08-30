@@ -116,6 +116,44 @@ sealed interface ArmEvidence {
     val isVerifiedDeparture: Boolean
         get() = driveAuthorization != DriveAuthorization.None
 
+    /**
+     * [DET-DRIVING-EVIDENCE-IS-THE-ONLY-GATE-001] Whether this arm lets the session save a park in
+     * SILENCE when its own stream never measured a drive. Two arms may, for two different reasons,
+     * and both are the doctrine rather than an exception to it:
+     *
+     *  - [Manual] is the user's own word — an ASSERTION, and an inference never deposes an
+     *    assertion [DET-ASSERTION-OUTRANKS-INFERENCE-001]. Note this is the ARM being manual, not a
+     *    handoff wearing the label: [DET-HANDOFF-NOT-MANUAL-001] moved the safety net's deduced
+     *    departure OUT of `manual` for exactly this reason.
+     *  - [InheritedDrive] carries a drive that WAS measured, by the session this one superseded
+     *    [DET-SUPERSEDE-CANNOT-DISCARD-A-MEASURED-DRIVE-001].
+     *  - [VerifiedBySpeed] carries a drive the departure worker MEASURED, outside this session's
+     *    stream. The measurement is real even though this stream did not make it.
+     *
+     * Everything else asks — including [VerifiedByVehicleEnter], which shares
+     * [DriveAuthorization.OnTrust] with [VerifiedBySpeed] and parts company here on the only
+     * distinction that matters to this question: *verified by SPEED* is a measurement, *verified by
+     * vehicle ENTER* is an event. Trust is a nomination, and the governing doctrine is that the
+     * event nominates while only measured movement confirms.
+     *
+     * ## Why this is a `when` and not a set of labels
+     *
+     * The decision site used to re-derive this from a hand-kept `setOf(LABEL_…)` of WEAK labels —
+     * an open set that enumerated the arms someone had already been burned by, so every new arm was
+     * strong-by-default until the day it produced a false positive. [BoardingAtCar] was never on it:
+     * field 2026-08-29 23:56, an `enter_at_car` arm whose log line says *"waiting for ride proof"*
+     * silently pinned "La Parafarmacia" at reliability 0.9 after 29 m of net displacement, with
+     * `DriveProof.proven == null` for the whole session. Stated as a `when` over the sealed
+     * hierarchy, the set is CLOSED and a new arm does not compile until its author answers.
+     */
+    val confirmsSilentlyWithoutMeasuredDrive: Boolean
+        get() = when (this) {
+            is Manual, is InheritedDrive, is VerifiedBySpeed -> true
+            is VerifiedByVehicleEnter, is Unverified,
+            is BoardingAtCar, is ArrivalHandoff, is BtRide,
+            -> false
+        }
+
     /** Stable label persisted on the session / logged in diagnostics. */
     val persistLabel: String
         get() = when (this) {
@@ -163,5 +201,24 @@ sealed interface ArmEvidence {
         fun isVerifiedLabel(label: String?): Boolean =
             label == LABEL_VERIFIED_SPEED || label == LABEL_VERIFIED_ENTER ||
                 label == LABEL_VERIFIED_LATE || label == LABEL_INHERITED_DRIVE
+
+        /**
+         * [DET-DRIVING-EVIDENCE-IS-THE-ONLY-GATE-001] The label-side reading of
+         * [confirmsSilentlyWithoutMeasuredDrive], for the decision site, which receives the arm as
+         * the persisted string rather than as the sealed value.
+         *
+         * **Fails CLOSED on purpose.** An unknown or absent label answers `false`, i.e. *ask*. The
+         * predicate this replaced failed OPEN — an unlisted label was strong by default — and that
+         * is precisely how `enter_at_car` walked through it. Asymmetric failure is the project's
+         * doctrine: better a question than a phantom pin.
+         *
+         * [LABEL_VERIFIED_LATE] has no sealed counterpart (the departure worker stamps it as a
+         * post-arm upgrade), so it is answered here and answered `false`: a late upgrade can rest on
+         * the same ENTER fall-through it was meant to strengthen, and it must never override a
+         * prompt the policy already chose (field 2026-07-04).
+         */
+        fun confirmsSilentlyWithoutMeasuredDrive(label: String?): Boolean =
+            label == LABEL_MANUAL || label == LABEL_INHERITED_DRIVE ||
+                label == LABEL_VERIFIED_SPEED
     }
 }

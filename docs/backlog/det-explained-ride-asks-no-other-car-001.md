@@ -1,5 +1,10 @@
 # DET-EXPLAINED-RIDE-ASKS-NO-OTHER-CAR-001 · una salida ya atribuida a un coche no puede además interrogarte por los otros
 
+> ⚠️ **Cruzado con el rediseño (30-08): INTACTO.** Vive en el bucle multi-sesión de
+> `ParkingSafetyNetWorker`; las siete piezas viven en la decisión de UNA sesión. Un evaluador puro no
+> puede saber qué hicieron las otras sesiones del mismo tick — por construcción, ninguna pieza lo
+> absorbe. Ver `docs/detection/REDESIGN-DETECTION-SYSTEM.md` §9.3.
+
 **Estado:** 🟡 Abierto · sin rama · sin worktree
 **Origen:** field 27-08 (fisio), Oppo. Hallazgo lateral al investigar la sesión zombi `a786c135`.
 

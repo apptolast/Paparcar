@@ -1,5 +1,11 @@
 # DET-BT-VETO-MUST-NOT-ORPHAN-A-SESSION-001 · ¿puede cerrarse una sesión cuya vía dueña no corre?
 
+> ⚠️ **Cruzado con el rediseño (30-08): INTACTO y sigue BLOQUEADO por un viaje con el Kamiq.**
+> Dos matices: sus **dos armes espurios** mueren en el triaje de nivel 1 de la Pieza 5 (el resto de su
+> mitad de coste es otro worker y no lo cubre nadie), y su **log que miente** es la misma familia que
+> §6.2 #13 — conviene barrerlos juntos en la Pieza 2.
+> Ver `docs/detection/REDESIGN-DETECTION-SYSTEM.md` §9.3.
+
 **Estado:** 🟡 Abierto · sin rama · sin worktree · **premisa a medias SIN DEMOSTRAR, bloqueado por
 un viaje** (ver «Lo que NO está demostrado»)
 **Origen:** field 27-08 (fisio), Oppo. Detectado al preguntarse el user por qué la sesión

@@ -1,5 +1,13 @@
 # DET-PEDAL-CADENCE-CANNOT-CONVICT-A-CAR-IN-TRAFFIC-001 · un coche a 12 km/h por el centro no es una bicicleta
 
+> ⚠️ **Cruzado con el rediseño (30-08): INTACTO, y SUBE de prioridad.** No lo toca ninguna pieza
+> (§6.2 #2 y la Pieza 2 tratan el `humanPowered` por OMISIÓN; esto condena a un coche REAL por su
+> velocidad urbana). La Pieza 4 lo **encarece**: hoy un veto falso cuesta un pin impreciso, y con
+> «prompt sin contestar → cerrar sin pin» pasará a costar la plaza entera.
+> Dato nuevo 29-08: el veto de cadencia heredó la velocidad ESPEJISMO (7,71 m/s) dentro del FP de la
+> parafarmacia — si la Pieza 1 arregla `Measured`, este veto mejora de rebote.
+> Ver `docs/detection/REDESIGN-DETECTION-SYSTEM.md` §9.3.
+
 **Estado:** 🟡 Abierto, **bloqueado por medición** · sin rama · sin worktree
 **Origen:** follow-up deliberado de `DET-HUMAN-POWERED-VETO-MUST-BE-REVOCABLE-001` (field 26-08).
 Aquel arregla el **desenlace** (que el veto se pueda levantar); éste ataca el **origen** (que el veto

@@ -1,5 +1,10 @@
 # DET-STARVED-HOLD-HAS-NO-WITNESS-001 · la rama que planta un pin sin fix detrás no tiene un solo test
 
+> ⚠️ **Cruzado con el rediseño (30-08): CERRADO COMO DUPLICADO.** Lo absorbe entero la Pieza 4
+> (`DET-NO-CLOCK-PLANTS-A-PIN-001`). Sus **tres caveats** — `confirmHoldMs > 0` es costura de tres
+> ficheros de test, `runTest` da tiempo virtual, y `pendingConfirm === pending` se compara por
+> IDENTIDAD — pasan a criterio de aceptación de esa pieza. Ver `docs/detection/REDESIGN-DETECTION-SYSTEM.md` §9.1.
+
 **Estado:** 🔴 Abierto, sin código · sale de un `//FIXME` del user, contestado el 27-08
 
 ## La pregunta que lo abrió

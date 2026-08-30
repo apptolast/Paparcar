@@ -1,5 +1,11 @@
 # PARK-RETRACTED-BACKFILL-MUST-LEAVE-NO-PIN-001 · la plaza que la app misma se desdice sigue en el histórico
 
+> ⚠️ **Cruzado con el rediseño (30-08): INTACTO, y destapa la única laguna estructural.** Las siete
+> piezas son PREVENTIVAS; ninguna puede mover, marcar ni retirar un pin ya escrito. Es el **único caso
+> de uso vivo** de la candidata a Pieza 8 (pin provisional hasta el fin del viaje) — el pin a 142 m del
+> 30-08 dejó de necesitarla al medirse que su reposo bueno existía 10 min ANTES de plantar.
+> Ver `docs/detection/REDESIGN-DETECTION-SYSTEM.md` §9.2.
+
 **Estado:** 🟡 Abierto · sin rama · sin worktree
 **Origen:** follow-up deliberado de `DET-BACKFILL-CANNOT-PIN-A-MOVING-FIX-001` (field 27-08).
 Aquel evita **crear** el pin fantasma; éste limpia el que ya se creó por cualquier otra vía.

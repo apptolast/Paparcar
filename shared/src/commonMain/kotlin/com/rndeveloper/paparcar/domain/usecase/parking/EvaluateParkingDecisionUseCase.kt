@@ -278,14 +278,24 @@ class EvaluateParkingDecisionUseCase(private val config: ParkingDetectionConfig)
         // or a bicycle satisfies just as well) and it used to arrive stamped `manual`, i.e. wearing
         // the user's own word, which this policy trusts to save in silence. It never witnessed a
         // drive: without `sessionSawDriving` it asks.
-        val weakLabels = setOf(
-            com.rndeveloper.paparcar.domain.detection.ArmEvidence.LABEL_VERIFIED_ENTER,
-            com.rndeveloper.paparcar.domain.detection.ArmEvidence.LABEL_VERIFIED_LATE,
-            com.rndeveloper.paparcar.domain.detection.ArmEvidence.LABEL_SELF_OBSERVED,
-            com.rndeveloper.paparcar.domain.detection.ArmEvidence.LABEL_ARRIVAL_HANDOFF,
-        )
+        // [DET-DRIVING-EVIDENCE-IS-THE-ONLY-GATE-001] The set above USED to be spelled here as a
+        // literal `setOf(LABEL_VERIFIED_ENTER, LABEL_VERIFIED_LATE, LABEL_SELF_OBSERVED,
+        // LABEL_ARRIVAL_HANDOFF)` — the labels someone had already been burned by. That shape fails
+        // OPEN: an arm absent from the list is strong by default, so every new arm confirms in
+        // silence until the day it produces its first false positive and earns its line. It did.
+        // Field 2026-08-29 23:56 (Redmi, pin `c6a57fad`): an `enter_at_car` arm — the log line for
+        // which reads "waiting for ride proof" — was not on the list, so with `DriveProof.proven`
+        // null for the entire session, 8 walking steps and 29 m of net displacement at 16 m accuracy
+        // silently pinned "La Parafarmacia" at reliability 0.9.
+        //
+        // Now it asks `ArmEvidence` itself, where the classification is a `when` over the sealed
+        // hierarchy that a new arm cannot skip, and the default is to ASK. The doctrine reads the
+        // same either way — the event nominates, only MEASURED movement confirms — but only one of
+        // the two spellings makes the compiler enforce it.
+        val armCarriesItsOwnDrive = com.rndeveloper.paparcar.domain.detection.ArmEvidence
+            .confirmsSilentlyWithoutMeasuredDrive(input.evidenceLabel)
         val weakEvidenceOnly = config.autoConfirmRequiresStrongEvidence &&
-            input.evidenceLabel in weakLabels &&
+            !armCarriesItsOwnDrive &&
             !sessionSawDriving
 
         // [DET-SOLID-001][C2] Human-powered profiles never auto-confirm: a bike/scooter crossing

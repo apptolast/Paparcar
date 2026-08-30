@@ -1,5 +1,13 @@
 # DET-DISPLACEMENT-DRIVE-MUST-SURVIVE-ITS-NEXT-FIX-001 · hay guard para refutar una PARADA por su traza y ninguno para refutar un VIAJE
 
+> ⚠️ **Cruzado con el rediseño (30-08): SOBREVIVE CON ALCANCE RECORTADO a el LATCH y el ANCLA.**
+> Sus otras dos mitades ya las cubren la Pieza 1 (desplazamiento neto mata el espejismo del lado del
+> confirm) y la Pieza 3b (un fix inadmisible por un carril no puede ser admisible por otro).
+> Tercer caso de campo, el más limpio: **29-08 23:47:52** — 71,6 m de ida deshechos 64,8 m en 3,5 s.
+> Medición resuelta el 30-08: la sesión de multipath del 27-08 (Oppo `1787789799012`) tiene
+> `drivingFixes = 1` de 216 → la Pieza 1 SÍ la cubre, y este ticket **no sube de prioridad** por esa vía.
+> Ver `docs/detection/REDESIGN-DETECTION-SYSTEM.md` §9.2.
+
 **Estado:** 🟡 Abierto · sin rama · sin worktree
 **Origen:** hermano de `DET-LONE-SAMPLE-CANNOT-UNFREEZE-AN-ANCHOR-001` (field 27-08). Mismo
 invariante — *una muestra no es un viaje* — sobre otro estado: aquél protege el ANCLA

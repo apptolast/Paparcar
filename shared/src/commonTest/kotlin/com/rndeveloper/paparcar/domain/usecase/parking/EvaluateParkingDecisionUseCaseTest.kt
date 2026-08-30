@@ -244,6 +244,109 @@ class EvaluateParkingDecisionUseCaseTest {
         assertIs<ParkingDecision.Confirmed>(decision)
     }
 
+    // ── [DET-DRIVING-EVIDENCE-IS-THE-ONLY-GATE-001] ─────────────────────────────────────────────
+
+    @Test
+    fun should_prompt_when_enter_at_car_arm_and_session_never_drove() {
+        // FIELD REPLAY — 2026-08-29 23:56, Redmi, pin `c6a57fad`, "La Parafarmacia".
+        //
+        // The session armed `enter_at_car` (AR IN_VEHICLE ENTER inside its own fence, delivered
+        // 89 s late; the arm's own log line reads "waiting for ride proof"). The ride proof never
+        // came: `DriveProof.proven` stayed null for the whole session — there is not one
+        // `drive PROVEN` line between the arm and the confirm — and `hasEverMoved` printed `false`
+        // on every state line. The net displacement from arm to pin was 29 m, from fixes carrying
+        // 16 m of accuracy; the one fix that read 7.71 m/s had its 71.6 m undone 64.8 m backwards
+        // 3.5 s later. Eight walking steps and an egress displacement then satisfied `steps+egress`
+        // and it saved SILENTLY at reliability 0.9.
+        //
+        // It reached the confirm because the weak-evidence policy read a hand-kept list of weak
+        // LABELS and `enter_at_car` was not on it. `verified_enter`, `verified_late`,
+        // `self_observed` and `arrival_handoff` were — each added the day it produced its own field
+        // FP. The set failed open, so the newest arm was strong by default.
+        val decision = evaluate(
+            input(
+                stepCount = 8,
+                hasEgressDisplacement = true,
+                maxSpeedKmh = 27.8f, // the mirage fix: 7.71 m/s, and the session peak because of it
+                sustainedDrivingMs = 0L, // …but nothing ever HELD the band: no drive was proven
+                evidenceLabel = com.rndeveloper.paparcar.domain.detection.ArmEvidence.LABEL_ENTER_AT_CAR,
+            )
+        )
+        val prompt = assertIs<ParkingDecision.Prompt>(decision)
+        assertEquals("steps+egress", prompt.pathLabel)
+        assertEquals(PromptReason.WEAK_EVIDENCE, prompt.reason)
+    }
+
+    @Test
+    fun should_confirm_when_enter_at_car_arm_and_session_measured_driving() {
+        // The other half of the same rule, so the fix above cannot be mistaken for "enter_at_car
+        // never confirms". The arm is identical; the session's own stream held the driving band.
+        // That is measured movement, and measured movement confirms.
+        val decision = evaluate(
+            input(
+                stepCount = 8,
+                hasEgressDisplacement = true,
+                maxSpeedKmh = 60f,
+                sustainedDrivingMs = 60_000L,
+                evidenceLabel = com.rndeveloper.paparcar.domain.detection.ArmEvidence.LABEL_ENTER_AT_CAR,
+            )
+        )
+        assertIs<ParkingDecision.Confirmed>(decision)
+    }
+
+    @Test
+    fun should_confirm_when_inherited_drive_arm_even_without_observed_driving() {
+        // [DET-SUPERSEDE-CANNOT-DISCARD-A-MEASURED-DRIVE-001] Regression guard for the arm that
+        // carries a drive MEASURED by the session it superseded. The successor's own stream sees
+        // only the last hop's manoeuvring speed, so gating it on `sessionSawDriving` would make the
+        // one arm holding a real measurement the one that has to ask.
+        val decision = evaluate(
+            input(
+                stepCount = 8,
+                hasEgressDisplacement = true,
+                maxSpeedKmh = 4f,
+                sustainedDrivingMs = 0L,
+                evidenceLabel = com.rndeveloper.paparcar.domain.detection.ArmEvidence.LABEL_INHERITED_DRIVE,
+            )
+        )
+        assertIs<ParkingDecision.Confirmed>(decision)
+    }
+
+    @Test
+    fun should_confirm_when_manual_arm_even_without_observed_driving() {
+        // [DET-ASSERTION-OUTRANKS-INFERENCE-001][DET-HANDOFF-NOT-MANUAL-001] The user's own word is
+        // an assertion, not an inference, and this policy has always trusted it to save in silence.
+        // Guarded explicitly because the fix replaced the label set that used to grant it by
+        // omission — and a permission granted by omission is the thing that broke here.
+        val decision = evaluate(
+            input(
+                stepCount = 8,
+                hasEgressDisplacement = true,
+                maxSpeedKmh = 0f,
+                sustainedDrivingMs = 0L,
+                evidenceLabel = com.rndeveloper.paparcar.domain.detection.ArmEvidence.LABEL_MANUAL,
+            )
+        )
+        assertIs<ParkingDecision.Confirmed>(decision)
+    }
+
+    @Test
+    fun should_prompt_when_the_arm_label_is_unknown_and_session_never_drove() {
+        // The predicate must fail CLOSED. The old one failed open: an unlisted label was strong by
+        // default, which is the whole mechanism of the parafarmacia FP. An unrecognised (or absent)
+        // arm is the least trustworthy thing this evaluator can be handed — it asks.
+        val decision = evaluate(
+            input(
+                stepCount = 8,
+                hasEgressDisplacement = true,
+                maxSpeedKmh = 4f,
+                sustainedDrivingMs = 0L,
+                evidenceLabel = "some_arm_invented_after_this_ticket",
+            )
+        )
+        assertEquals(PromptReason.WEAK_EVIDENCE, assertIs<ParkingDecision.Prompt>(decision).reason)
+    }
+
     @Test
     fun should_prompt_when_self_observed_arm_and_session_never_drove() {
         // [DET-UNVERIFIED-CONFIRM-001] Field 2026-08-13 (Calle Góndola): sentry-wake arm
