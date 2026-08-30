@@ -39,6 +39,10 @@ data class DetectionSessionDto(
     val endedAt: Long? = null,
     val maxSpeedKmh: Float? = null,
     val drivingFixes: Int? = null,
+    /** [DET-THE-EVIDENCE-MUST-REACH-THE-TRACE-001] [drivingFixes] with the accuracy gate the
+     *  detector applies. The two differ by a lot on a bad-GPS night and only this one matches
+     *  `DriveProof.credibleFixCount`, which is what every confirm decision reads. */
+    val credibleDrivingFixes: Int? = null,
     val fixCount: Int? = null,
     val maxStepCount: Int? = null,
     val finalLat: Double? = null,

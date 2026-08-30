@@ -925,7 +925,14 @@ class CoordinatorParkingDetector(
 
                     PaparcarLogger.d(
                         DIAG,
+                        // [DET-THE-EVIDENCE-MUST-REACH-THE-TRACE-001] The VERDICT rides on every
+                        // state line, not just the two lifecycle booleans. Diagnosing the field
+                        // night of 2026-08-29 meant re-deriving "did it drive?" by hand from 6.464
+                        // lines of fixes, because the one value the confirm paths obey was the one
+                        // the trace never printed. `evidence=` is that value; the two booleans stay
+                        // because they answer a DIFFERENT question (may this session stay alive).
                         "  state hasEverMoved=${state.session.hasEverMoved} hasEverReachedDrivingSpeed=${state.session.driveAuthorized} " +
+                                "evidence=${state.drivingEvidence(config).trace()} " +
                                 "userConfirmed=${state.confirmation.userConfirmed} " +
                                 "vehicleExit=${state.egress.vehicleExitHint} stoppedSince=${state.anchorTrust.stopStartedAt} " +
                                 "stoppedDur=${stoppedDuration}ms phase=${state.confirmation.phase}"

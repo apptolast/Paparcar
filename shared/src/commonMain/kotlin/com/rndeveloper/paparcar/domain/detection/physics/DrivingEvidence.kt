@@ -65,6 +65,21 @@ sealed interface DrivingEvidence {
         val sustainedBandMs: Long,
     ) : DrivingEvidence
 
+    /**
+     * [DET-THE-EVIDENCE-MUST-REACH-THE-TRACE-001] One compact token for a `parkdiag` line — the
+     * whole verdict, with the numbers that produced it and, when it fell short, WHICH bar.
+     *
+     * It exists because diagnosing the field night of 2026-08-29 meant re-deriving this by hand
+     * from 6.464 lines of raw fixes: the trace printed the two lifecycle booleans and never the one
+     * value the confirm paths actually obey. A verdict that cannot be read back from a trace is a
+     * verdict no field test can check.
+     */
+    fun trace(): String = when (this) {
+        is None -> "NONE"
+        is Weak -> "WEAK(fixes=$credibleFixes; $why)"
+        is Measured -> "MEASURED(fixes=$credibleFixes exc=${excursionMeters.toInt()}m band=${sustainedBandMs}ms)"
+    }
+
     /** ONLY [Measured] may save a park without asking. */
     val mayConfirmSilently: Boolean get() = this is Measured
 

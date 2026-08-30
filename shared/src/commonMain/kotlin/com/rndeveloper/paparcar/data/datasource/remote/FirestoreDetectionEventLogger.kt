@@ -22,6 +22,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import kotlin.concurrent.Volatile
 import kotlin.math.roundToInt
+import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
 
 /**
  * Firestore-backed [DetectionEventLogger] for field diagnostics. [DET-LOG-02]
@@ -48,6 +49,10 @@ class FirestoreDetectionEventLogger(
     private val authRepository: AuthRepository,
     private val deviceInfo: DeviceInfoProvider,
     scope: CoroutineScope,
+    /** [DET-THE-EVIDENCE-MUST-REACH-THE-TRACE-001] Injected so the rollup counts a "credible
+     *  driving fix" with the SAME two bars the detector applies, instead of a private copy that
+     *  drifts. Its speed bar was already duplicated here as a km/h constant. */
+    private val detectionConfig: ParkingDetectionConfig,
 ) : DetectionEventLogger {
 
     private val channel = Channel<DetectionEvent>(capacity = BUFFER_CAPACITY)
@@ -247,7 +252,21 @@ class FirestoreDetectionEventLogger(
                 r.fixCount++
                 val kmh = (event.location?.speed ?: 0f) * MS_TO_KMH
                 if (kmh > r.maxSpeedKmh) r.maxSpeedKmh = kmh
+                // [DET-THE-EVIDENCE-MUST-REACH-THE-TRACE-001] ⛔ `drivingFixes` has NO accuracy
+                // gate and never had one — it counts every fix above the speed bar, however wild
+                // its accuracy. Left exactly as it was so old and new sessions stay comparable, but
+                // it is NOT what `DriveProof.credibleFixCount` means, and reading it as if it were
+                // is a measurement error the redesign already made: the home trip of 2026-08-30
+                // reads 44 here and 7 there, because 37 of those fixes carried accuracy worse than
+                // the driving gate on the night of the GPS hole.
                 if (kmh >= DRIVING_SPEED_KMH) r.drivingFixes++
+                // The gated count, which IS the one every confirm decision reads.
+                val acc = event.location?.accuracy
+                if (kmh >= DRIVING_SPEED_KMH && acc != null &&
+                    acc <= detectionConfig.minGpsAccuracyForDriving
+                ) {
+                    r.credibleDrivingFixes++
+                }
                 event.location?.let { r.finalLat = it.latitude; r.finalLon = it.longitude }
             }
             is DetectionEvent.Step -> {
@@ -271,6 +290,7 @@ class FirestoreDetectionEventLogger(
             FIELD_ENDED_AT to ended.timestampMs
             FIELD_MAX_SPEED_KMH to r?.maxSpeedKmh
             FIELD_DRIVING_FIXES to r?.drivingFixes
+            FIELD_CREDIBLE_DRIVING_FIXES to r?.credibleDrivingFixes
             FIELD_FIX_COUNT to r?.fixCount
             FIELD_MAX_STEP_COUNT to r?.maxStepCount
             FIELD_FINAL_LAT to r?.finalLat
@@ -287,7 +307,9 @@ class FirestoreDetectionEventLogger(
         }
         if (r != null) {
             parts += "vmax ${r.maxSpeedKmh.roundToInt()}km/h"
-            parts += "drive ${r.drivingFixes}/${r.fixCount}fix"
+            // Both, deliberately: one number would be read as "the" driving-fix count, and the two
+            // answer different questions. `cred` is the one the confirm paths obey.
+            parts += "drive ${r.drivingFixes}/${r.fixCount}fix (cred ${r.credibleDrivingFixes})"
             parts += "steps ${r.maxStepCount}"
             val lat = r.finalLat
             val lon = r.finalLon
@@ -301,6 +323,7 @@ class FirestoreDetectionEventLogger(
         var fixCount = 0
         var maxSpeedKmh = 0f
         var drivingFixes = 0
+        var credibleDrivingFixes = 0
         var maxStepCount = 0
         var finalLat: Double? = null
         var finalLon: Double? = null
@@ -314,6 +337,7 @@ class FirestoreDetectionEventLogger(
         const val FIELD_ENDED_AT = "endedAt"
         const val FIELD_MAX_SPEED_KMH = "maxSpeedKmh"
         const val FIELD_DRIVING_FIXES = "drivingFixes"
+        const val FIELD_CREDIBLE_DRIVING_FIXES = "credibleDrivingFixes"
         const val FIELD_FIX_COUNT = "fixCount"
         const val FIELD_MAX_STEP_COUNT = "maxStepCount"
         const val FIELD_FINAL_LAT = "finalLat"

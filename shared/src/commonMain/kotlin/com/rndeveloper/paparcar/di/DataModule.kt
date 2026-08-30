@@ -56,6 +56,9 @@ val dataModule = module {
             authRepository = get(),
             deviceInfo = get(),
             scope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
+            // [DET-THE-EVIDENCE-MUST-REACH-THE-TRACE-001] So the rollup's "credible driving fix"
+            // uses the detector's own bars instead of a private copy that drifts.
+            detectionConfig = get(),
         )
     }
 
