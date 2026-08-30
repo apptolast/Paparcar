@@ -49,8 +49,6 @@ import com.rndeveloper.paparcar.domain.model.CarbodyType
 import com.rndeveloper.paparcar.domain.model.VehicleColor
 import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.ui.components.DrivingRadarHalo
-import com.rndeveloper.paparcar.ui.components.PapAlertDialog
-import com.rndeveloper.paparcar.ui.components.PapDialogAccent
 import com.rndeveloper.paparcar.ui.components.PapListItem
 import com.rndeveloper.paparcar.ui.components.PapShimmerBox
 import com.rndeveloper.paparcar.ui.components.PapStepperSlot
@@ -67,12 +65,7 @@ import com.rndeveloper.paparcar.ui.theme.PapColor
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_counter_unit_free
-import paparcar.composeapp.generated.resources.home_parking_action_move_location
-import paparcar.composeapp.generated.resources.home_parking_edit_dialog_body
-import paparcar.composeapp.generated.resources.home_parking_edit_dialog_title
-import paparcar.composeapp.generated.resources.home_parking_menu_delete
 import paparcar.composeapp.generated.resources.home_peek_dismiss_cd
-import paparcar.composeapp.generated.resources.home_release_dialog_cancel
 
 /**
  * The unified bottom-sheet molde for every Home state — browse, selected

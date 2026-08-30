@@ -43,7 +43,8 @@ import paparcar.composeapp.generated.resources.home_add_parking_header_label_cre
 import paparcar.composeapp.generated.resources.home_add_parking_header_label_edit
 import paparcar.composeapp.generated.resources.home_add_parking_helper_primary_create
 import paparcar.composeapp.generated.resources.home_add_parking_helper_primary_edit
-import paparcar.composeapp.generated.resources.home_add_parking_helper_secondary
+import paparcar.composeapp.generated.resources.home_add_parking_helper_secondary_create
+import paparcar.composeapp.generated.resources.home_add_parking_helper_secondary_edit
 import paparcar.composeapp.generated.resources.home_parking_delete_confirm_body
 import paparcar.composeapp.generated.resources.home_parking_delete_confirm_title
 import paparcar.composeapp.generated.resources.home_parking_menu_correct
@@ -62,7 +63,7 @@ import paparcar.composeapp.generated.resources.home_vehicle_fallback_name
  * @param targetVehicle the vehicle this session is FOR (create: the tapped row's
  *   vehicle; edit: the moved session's vehicle) — the header shows its name so
  *   the user recognises the car when they hit confirm. [MULTI-PARKING-001]
- * @param deleteTarget the session the edit-mode "delete record" acts on.
+ * @param deleteTarget the session the edit-mode "delete parking" acts on.
  * @param step neighbouring VEHICLES in the car lane — the header ‹ / ›, same chrome as
  *   [ParkingPeek], so an unparked car is a page of the same book instead of a dead end. The
  *   caller passes [PeekStep.None] in the flows where stepping away has a cost (edit, detection
@@ -92,8 +93,17 @@ internal fun AddingParkingPeek(
     } else {
         stringResource(Res.string.home_add_parking_helper_primary_create)
     }
-    // In EDIT the primary confirm CORRECTS this session's pin (same session); "I parked somewhere
-    // else" is the sibling that re-parks. In CREATE it just parks the car. [UX-PARKED-STATE-001]
+    // In EDIT the geofence line of CREATE says nothing new — the fence already exists. What the
+    // user needs here is the one axis that separates the two confirms below: correcting keeps the
+    // parked time this session has been counting, marking a new parking restarts it from zero.
+    // [COPY-PARKING-EDIT-THREE-ANSWERS-ONE-QUESTION-001]
+    val helperSecondary = if (isEditing) {
+        stringResource(Res.string.home_add_parking_helper_secondary_edit)
+    } else {
+        stringResource(Res.string.home_add_parking_helper_secondary_create)
+    }
+    // In EDIT the primary confirm CORRECTS this session's pin (same session); "Mark new parking" is
+    // the sibling that starts another one. In CREATE it just parks the car. [UX-PARKED-STATE-001]
     val ctaLabel = if (isEditing) {
         stringResource(Res.string.home_parking_menu_correct)
     } else {
@@ -136,7 +146,7 @@ internal fun AddingParkingPeek(
         banner = {
             PapSheetBanner(
                 title = helperPrimary,
-                subtitle = stringResource(Res.string.home_add_parking_helper_secondary),
+                subtitle = helperSecondary,
             )
         },
         actions = {
@@ -165,7 +175,7 @@ internal fun AddingParkingPeek(
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(Modifier.height(8.dp))
-                // Delete record — the one sanctioned destructive red, behind a confirm since it is
+                // Delete parking — the one sanctioned destructive red, behind a confirm since it is
                 // one tap away and irreversible. Acts on the session being edited. [UI-SHEET-004]
                 PapFooterButton(
                     label = stringResource(Res.string.home_parking_menu_delete),

@@ -96,7 +96,7 @@ import paparcar.composeapp.generated.resources.parking_detail_detection_bluetoot
 import paparcar.composeapp.generated.resources.parking_detail_detection_home
 import paparcar.composeapp.generated.resources.parking_detail_detection_manual
 import paparcar.composeapp.generated.resources.location_fallback_parking
-import paparcar.composeapp.generated.resources.parking_detail_navigate_action
+import paparcar.composeapp.generated.resources.common_directions
 import paparcar.composeapp.generated.resources.parking_detail_next
 import paparcar.composeapp.generated.resources.parking_detail_no_address
 import paparcar.composeapp.generated.resources.parking_detail_prev
@@ -482,7 +482,7 @@ private fun HistoryParkingCard(
         },
         actions = {
             PapFooterButton(
-                label = stringResource(Res.string.parking_detail_navigate_action),
+                label = stringResource(Res.string.common_directions),
                 leadingIcon = Icons.Rounded.Navigation,
                 onClick = { onNavigate(lat, lon) },
                 style = PapFooterButtonStyle.Filled,

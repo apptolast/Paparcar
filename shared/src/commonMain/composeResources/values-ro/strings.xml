@@ -15,15 +15,14 @@
     <!-- PapSheet actions + browse header. [UI-SHEET-001] -->
     <string name="home_parking_leave_release">Plec</string>
     <string name="home_parking_edit_menu_cd">Editează locația parcării</string>
-    <string name="home_parking_menu_delete">Șterge înregistrarea</string>
-    <!-- Edit-parking confirm choices: correct this pin vs. re-park elsewhere. [UX-PARKED-STATE-001] -->
+    <!-- Trei răspunsuri la o singură întrebare: aceeași parcare sau alta?
+         [COPY-PARKING-EDIT-THREE-ANSWERS-ONE-QUESTION-001] -->
+    <string name="home_parking_menu_delete">Șterge parcarea</string>
     <string name="home_parking_menu_correct">Corectează locația</string>
-    <string name="home_parking_menu_repark">Am parcat în altă parte</string>
-    <!-- Delete-record confirmation (destructive). [UX-PARKED-STATE-001] -->
+    <string name="home_parking_menu_repark">Marchează o parcare nouă</string>
+    <!-- Delete confirmation (destructive). [UX-PARKED-STATE-001] -->
     <string name="home_parking_delete_confirm_title">Ștergi această parcare?</string>
-    <string name="home_parking_delete_confirm_body">Elimină înregistrarea. Locul nu va fi partajat cu comunitatea.</string>
-    <string name="home_parking_edit_dialog_title">Editează parcarea</string>
-    <string name="home_parking_edit_dialog_body">Mută pinul la locul corect sau șterge această înregistrare.</string>
+    <string name="home_parking_delete_confirm_body">Șterge parcarea. Locul nu va fi partajat cu comunitatea.</string>
     <string name="home_spot_still_there">Mai este?</string>
     <string name="home_spot_gone">A dispărut</string>
     <!-- [DET-HANDOFF-NOT-MANUAL-001 B.3] A spot published on a DEDUCED departure says so, and says it plainly when the report is withdrawn. -->
@@ -36,8 +35,8 @@
     <string name="home_browse_parked_meta">Parcat acum %1$s · la %2$s de tine</string>
     <string name="home_browse_parked_ago">Parcat acum %1$s</string>
     <string name="home_browse_hint_swipe_report">Glisează ↑ pentru a anunța un loc</string>
-    <string name="home_navigate_to_spot">Indicații</string>
-    <string name="home_navigate_to_vehicle">Traseu</string>
+    <string name="common_directions">Indicații</string>
+    <string name="home_navigate_to_vehicle_cd">Indicații către mașină</string>
     <string name="home_feed_nearby">În apropierea ta</string>
     <plurals name="home_feed_nearby_with_count">
         <item quantity="one">%1$d loc liber în apropierea ta</item>
@@ -174,7 +173,6 @@
     <string name="map_cd_back">Înapoi</string>
 
     <!-- HistoryParkingDetailScreen -->
-    <string name="parking_detail_navigate_action">Navighează la această locație</string>
     <string name="parking_detail_prev">Parcarea anterioară</string>
     <string name="parking_detail_route_recalculating">Se recalculează ruta…</string>
     <string name="parking_detail_route_inferred_question">O parte din acest traseu a fost reconstruită deoarece semnalul GPS s-a pierdut pe drum. Ai trecut pe aici?</string>
@@ -406,11 +404,10 @@
     <string name="home_add_parking_header_label_edit">Mută parcarea</string>
     <string name="home_add_parking_helper_primary_create">Centrează pinul unde ai lăsat mașina</string>
     <string name="home_add_parking_helper_primary_edit">Trage harta la locul corect</string>
-    <string name="home_add_parking_helper_secondary">Un geofence te avertizează când pleci</string>
+    <string name="home_add_parking_helper_secondary_create">Un geofence te avertizează când pleci</string>
+    <string name="home_add_parking_helper_secondary_edit">Corectarea păstrează timpul parcat; marcarea uneia noi îl resetează</string>
     <string name="home_add_parking_confirm_create">Parchează aici</string>
-    <string name="home_add_parking_confirm_edit">Salvează noua locație</string>
     <string name="home_add_parking_cancel_cd">Anulează editarea parcării</string>
-    <string name="home_parking_action_move_location">Mută locația</string>
 
     <!-- HomeSpotRow reliability tier label -->
 

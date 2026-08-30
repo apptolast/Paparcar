@@ -845,9 +845,11 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     ),
                 )
             },
-            // Edit mode = decide at confirm: Corregir ubicación / He aparcado en otro sitio /
-            // Borrar registro (rojo, con confirmación). [UX-PARKED-STATE-001]
-            Variant("PapSheet · edit parking (corregir / otro sitio / borrar)", Placement.Surface) {
+            // Edit mode = decide at confirm. Three answers to one question — ¿el MISMO aparcamiento
+            // u otro?: Corregir ubicación / Marcar aparcamiento nuevo / Eliminar aparcamiento (rojo,
+            // con confirmación). Su banner es el único que nombra el eje: corregir mantiene el
+            // tiempo aparcado. [UX-PARKED-STATE-001][COPY-PARKING-EDIT-THREE-ANSWERS-ONE-QUESTION-001]
+            Variant("PapSheet · edit parking (corregir / nuevo / eliminar)", Placement.Surface) {
                 peek(
                     HomeState(
                         mode = HomeMode.AddingParking,

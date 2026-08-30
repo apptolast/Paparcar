@@ -15,15 +15,14 @@
     <!-- PapSheet actions + browse header. [UI-SHEET-001] -->
     <string name="home_parking_leave_release">Me ne vado</string>
     <string name="home_parking_edit_menu_cd">Modifica posizione del parcheggio</string>
-    <string name="home_parking_menu_delete">Elimina registro</string>
-    <!-- Edit-parking confirm choices: correct this pin vs. re-park elsewhere. [UX-PARKED-STATE-001] -->
+    <!-- Le tre risposte a una domanda: è lo STESSO parcheggio o un altro?
+         [COPY-PARKING-EDIT-THREE-ANSWERS-ONE-QUESTION-001] -->
+    <string name="home_parking_menu_delete">Elimina parcheggio</string>
     <string name="home_parking_menu_correct">Correggi posizione</string>
-    <string name="home_parking_menu_repark">Ho parcheggiato altrove</string>
-    <!-- Delete-record confirmation (destructive). [UX-PARKED-STATE-001] -->
+    <string name="home_parking_menu_repark">Segna nuovo parcheggio</string>
+    <!-- Delete confirmation (destructive). [UX-PARKED-STATE-001] -->
     <string name="home_parking_delete_confirm_title">Eliminare questo parcheggio?</string>
-    <string name="home_parking_delete_confirm_body">Rimuove il record. Il posto non verrà condiviso con la community.</string>
-    <string name="home_parking_edit_dialog_title">Modifica parcheggio</string>
-    <string name="home_parking_edit_dialog_body">Sposta il pin nel punto giusto o elimina questo registro di parcheggio.</string>
+    <string name="home_parking_delete_confirm_body">Elimina il parcheggio. Il posto non verrà condiviso con la community.</string>
     <string name="home_spot_still_there">C&#8217;è ancora?</string>
     <string name="home_spot_gone">Non c&#8217;è più</string>
     <!-- [DET-HANDOFF-NOT-MANUAL-001 B.3] A spot published on a DEDUCED departure says so, and says it plainly when the report is withdrawn. -->
@@ -36,8 +35,8 @@
     <string name="home_browse_parked_meta">Parcheggiato %1$s fa · a %2$s da te</string>
     <string name="home_browse_parked_ago">Parcheggiato %1$s fa</string>
     <string name="home_browse_hint_swipe_report">Scorri ↑ per segnalare un posto</string>
-    <string name="home_navigate_to_spot">Indicazioni</string>
-    <string name="home_navigate_to_vehicle">Indicazioni</string>
+    <string name="common_directions">Indicazioni</string>
+    <string name="home_navigate_to_vehicle_cd">Indicazioni per l&#8217;auto</string>
     <string name="home_feed_nearby">Vicino a te</string>
     <plurals name="home_feed_nearby_with_count">
         <item quantity="one">%1$d posto libero vicino a te</item>
@@ -174,7 +173,6 @@
     <string name="map_cd_back">Indietro</string>
 
     <!-- HistoryParkingDetailScreen -->
-    <string name="parking_detail_navigate_action">Naviga verso questa posizione</string>
     <string name="parking_detail_prev">Parcheggio precedente</string>
     <string name="parking_detail_route_recalculating">Ricalcolo del percorso…</string>
     <string name="parking_detail_route_inferred_question">Parte di questo percorso è stata ricostruita perché il segnale GPS si è perso lungo il tragitto. Sei passato di qui?</string>
@@ -406,11 +404,10 @@
     <string name="home_add_parking_header_label_edit">Sposta il tuo parcheggio</string>
     <string name="home_add_parking_helper_primary_create">Centra il pin dove hai lasciato l'auto</string>
     <string name="home_add_parking_helper_primary_edit">Trascina la mappa nel punto giusto</string>
-    <string name="home_add_parking_helper_secondary">Un geofence ti avviserà quando te ne vai</string>
+    <string name="home_add_parking_helper_secondary_create">Un geofence ti avviserà quando te ne vai</string>
+    <string name="home_add_parking_helper_secondary_edit">Correggere mantiene il tempo di sosta; segnarne uno nuovo lo azzera</string>
     <string name="home_add_parking_confirm_create">Parcheggia qui</string>
-    <string name="home_add_parking_confirm_edit">Salva nuova posizione</string>
     <string name="home_add_parking_cancel_cd">Annulla modifica parcheggio</string>
-    <string name="home_parking_action_move_location">Sposta posizione</string>
 
     <!-- HomeSpotRow reliability tier label -->
 

@@ -44,16 +44,15 @@
     <string name="home_parking_leave_release">I’m leaving</string>
     <!-- Edit icon-button (pin+pencil) on the selected-parking meta block + its menu. [UI-SHEET-001] -->
     <string name="home_parking_edit_menu_cd">Edit parking location</string>
-    <string name="home_parking_menu_delete">Delete record</string>
-    <!-- Edit-parking confirm choices: correct this pin vs. re-park elsewhere. [UX-PARKED-STATE-001] -->
+    <!-- The three answers to one question: is this the SAME parking, or another one? Same noun and
+         same verb+object shape for all three, and only the one that creates says "new".
+         [COPY-PARKING-EDIT-THREE-ANSWERS-ONE-QUESTION-001] -->
+    <string name="home_parking_menu_delete">Delete parking</string>
     <string name="home_parking_menu_correct">Correct location</string>
-    <string name="home_parking_menu_repark">I parked somewhere else</string>
-    <!-- Delete-record confirmation (destructive). [UX-PARKED-STATE-001] -->
+    <string name="home_parking_menu_repark">Mark new parking</string>
+    <!-- Delete confirmation (destructive). [UX-PARKED-STATE-001] -->
     <string name="home_parking_delete_confirm_title">Delete this parking?</string>
-    <string name="home_parking_delete_confirm_body">This removes the record. The spot won’t be shared with the community.</string>
-    <!-- Edit-parking modal (move primary / delete destructive). [UI-SHEET-004] -->
-    <string name="home_parking_edit_dialog_title">Edit parking</string>
-    <string name="home_parking_edit_dialog_body">Move the pin to the right place, or delete this parking record.</string>
+    <string name="home_parking_delete_confirm_body">This deletes the parking. The spot won’t be shared with the community.</string>
     <!-- Community-spot signal pair — confirm it still exists / report it gone. [UI-SHEET-001] -->
     <string name="home_spot_still_there">Still there?</string>
     <string name="home_spot_gone">It&#8217;s gone</string>
@@ -63,8 +62,13 @@
     <string name="home_spot_retracted_eyebrow">Withdrawn</string>
     <string name="home_spot_retracted_note">Whoever reported it didn&#8217;t leave after all, so this space isn&#8217;t free. Look for another one nearby.</string>
     <string name="home_spot_retracted_action">See other spots</string>
-    <string name="home_navigate_to_spot">Directions</string>
-    <string name="home_navigate_to_vehicle">Directions</string>
+    <!-- ONE label for the hand-off to the maps app, wherever it appears: the spot peek, the parking
+         history detail. It says where you're going, not what the other app will do — the geo:
+         fallback shows the point without navigating, so "Navigate" would be a lie there.
+         [COPY-PARKING-EDIT-THREE-ANSWERS-ONE-QUESTION-001] -->
+    <string name="common_directions">Directions</string>
+    <!-- The icon-only twin on the parking peek: a screen reader needs the destination too. -->
+    <string name="home_navigate_to_vehicle_cd">Directions to your car</string>
     <string name="home_feed_nearby">Near you</string>
     <plurals name="home_feed_nearby_with_count">
         <item quantity="one">%1$d free spot near you</item>
@@ -235,7 +239,6 @@
     <string name="map_cd_back">Back</string>
 
     <!-- HistoryParkingDetailScreen -->
-    <string name="parking_detail_navigate_action">Navigate to this location</string>
     <string name="parking_detail_prev">Previous parking</string>
     <string name="parking_detail_route_recalculating">Recalculating route…</string>
     <string name="parking_detail_route_inferred_question">Part of this route was rebuilt because the GPS signal dropped along the way. Did you drive this way?</string>
@@ -290,11 +293,12 @@
     <string name="home_add_parking_header_label_edit">Move your parking</string>
     <string name="home_add_parking_helper_primary_create">Center the pin where you left the car</string>
     <string name="home_add_parking_helper_primary_edit">Drag the map to the right location</string>
-    <string name="home_add_parking_helper_secondary">A geofence will alert you when you drive away</string>
+    <string name="home_add_parking_helper_secondary_create">A geofence will alert you when you drive away</string>
+    <!-- In EDIT the geofence already exists; what the user needs is the one axis that separates the
+         two confirms — the parked time. [COPY-PARKING-EDIT-THREE-ANSWERS-ONE-QUESTION-001] -->
+    <string name="home_add_parking_helper_secondary_edit">Correcting keeps the parked time; marking a new one resets it</string>
     <string name="home_add_parking_confirm_create">Park here</string>
-    <string name="home_add_parking_confirm_edit">Save new location</string>
     <string name="home_add_parking_cancel_cd">Cancel parking edit</string>
-    <string name="home_parking_action_move_location">Move location</string>
 
     <!-- Home Zones — habitual places -->
     <string name="home_zone_name_placeholder">e.g. Home, Work</string>

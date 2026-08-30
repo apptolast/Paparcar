@@ -33,7 +33,7 @@ import com.rndeveloper.paparcar.ui.theme.vehicleIdentityColor
 import com.rndeveloper.paparcar.ui.theme.watch
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
-import paparcar.composeapp.generated.resources.home_navigate_to_vehicle
+import paparcar.composeapp.generated.resources.home_navigate_to_vehicle_cd
 import paparcar.composeapp.generated.resources.home_parking_edit_menu_cd
 import paparcar.composeapp.generated.resources.home_parking_leave_release
 import paparcar.composeapp.generated.resources.home_peek_car_parked_label
@@ -126,7 +126,7 @@ internal fun ParkingPeek(
                 // default maps app via a geo: intent. [UX-PARKED-STATE-001]
                 PapSheetRoundIconButton(
                     icon = Icons.Rounded.Directions,
-                    contentDescription = stringResource(Res.string.home_navigate_to_vehicle),
+                    contentDescription = stringResource(Res.string.home_navigate_to_vehicle_cd),
                     onClick = {
                         onAction(
                             HomeSheetAction.NavigateExternal(

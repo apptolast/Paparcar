@@ -15,15 +15,14 @@
     <!-- PapSheet actions + browse header. [UI-SHEET-001] -->
     <string name="home_parking_leave_release">Je pars</string>
     <string name="home_parking_edit_menu_cd">Modifier l&#8217;emplacement du stationnement</string>
-    <string name="home_parking_menu_delete">Supprimer l&#8217;enregistrement</string>
-    <!-- Edit-parking confirm choices: correct this pin vs. re-park elsewhere. [UX-PARKED-STATE-001] -->
+    <!-- Les trois réponses à une seule question : est-ce le MÊME stationnement ou un autre ?
+         [COPY-PARKING-EDIT-THREE-ANSWERS-ONE-QUESTION-001] -->
+    <string name="home_parking_menu_delete">Supprimer le stationnement</string>
     <string name="home_parking_menu_correct">Corriger l&#8217;emplacement</string>
-    <string name="home_parking_menu_repark">Je me suis garé ailleurs</string>
-    <!-- Delete-record confirmation (destructive). [UX-PARKED-STATE-001] -->
+    <string name="home_parking_menu_repark">Marquer un nouveau stationnement</string>
+    <!-- Delete confirmation (destructive). [UX-PARKED-STATE-001] -->
     <string name="home_parking_delete_confirm_title">Supprimer ce stationnement ?</string>
-    <string name="home_parking_delete_confirm_body">Cela supprime l&#8217;enregistrement. La place ne sera pas partagée avec la communauté.</string>
-    <string name="home_parking_edit_dialog_title">Modifier le stationnement</string>
-    <string name="home_parking_edit_dialog_body">Déplacez le pin au bon endroit ou supprimez cet enregistrement.</string>
+    <string name="home_parking_delete_confirm_body">Cela supprime le stationnement. La place ne sera pas partagée avec la communauté.</string>
     <string name="home_spot_still_there">Toujours là ?</string>
     <string name="home_spot_gone">Plus là</string>
     <!-- [DET-HANDOFF-NOT-MANUAL-001 B.3] A spot published on a DEDUCED departure says so, and says it plainly when the report is withdrawn. -->
@@ -36,8 +35,8 @@
     <string name="home_browse_parked_meta">Garé il y a %1$s · à %2$s de vous</string>
     <string name="home_browse_parked_ago">Garé il y a %1$s</string>
     <string name="home_browse_hint_swipe_report">Glissez ↑ pour signaler une place</string>
-    <string name="home_navigate_to_spot">Itinéraire</string>
-    <string name="home_navigate_to_vehicle">Itinéraire</string>
+    <string name="common_directions">Itinéraire</string>
+    <string name="home_navigate_to_vehicle_cd">Itinéraire jusqu&#8217;à la voiture</string>
     <string name="home_feed_nearby">Près de vous</string>
     <plurals name="home_feed_nearby_with_count">
         <item quantity="one">%1$d place libre près de vous</item>
@@ -174,7 +173,6 @@
     <string name="map_cd_back">Retour</string>
 
     <!-- HistoryParkingDetailScreen -->
-    <string name="parking_detail_navigate_action">Naviguer vers cet emplacement</string>
     <string name="parking_detail_prev">Stationnement précédent</string>
     <string name="parking_detail_route_recalculating">Recalcul de l'itinéraire…</string>
     <string name="parking_detail_route_inferred_question">Une partie de cet itinéraire a été reconstruite car le signal GPS a été perdu en route. Êtes-vous passé par ici ?</string>
@@ -406,11 +404,10 @@
     <string name="home_add_parking_header_label_edit">Déplacer le stationnement</string>
     <string name="home_add_parking_helper_primary_create">Centre l'épingle où tu as laissé la voiture</string>
     <string name="home_add_parking_helper_primary_edit">Fais glisser la carte au bon endroit</string>
-    <string name="home_add_parking_helper_secondary">Un geofence t'avertit quand tu pars</string>
+    <string name="home_add_parking_helper_secondary_create">Un geofence t'avertit quand tu pars</string>
+    <string name="home_add_parking_helper_secondary_edit">Corriger conserve le temps de stationnement ; en marquer un nouveau le remet à zéro</string>
     <string name="home_add_parking_confirm_create">Se garer ici</string>
-    <string name="home_add_parking_confirm_edit">Enregistrer la nouvelle position</string>
     <string name="home_add_parking_cancel_cd">Annuler la modification du stationnement</string>
-    <string name="home_parking_action_move_location">Déplacer l'emplacement</string>
 
     <!-- HomeSpotRow reliability tier label -->
 

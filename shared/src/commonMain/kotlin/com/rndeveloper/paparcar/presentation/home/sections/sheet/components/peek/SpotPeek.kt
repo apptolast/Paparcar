@@ -38,7 +38,7 @@ import com.rndeveloper.paparcar.ui.components.PapFooterButtonStyle
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
-import paparcar.composeapp.generated.resources.home_navigate_to_spot
+import paparcar.composeapp.generated.resources.common_directions
 import paparcar.composeapp.generated.resources.home_peek_spot_age_hour
 import paparcar.composeapp.generated.resources.home_peek_spot_age_min
 import paparcar.composeapp.generated.resources.home_peek_spot_age_now
@@ -180,7 +180,7 @@ internal fun SpotPeek(
             } else {
                 // Primary = get there before it expires — THE community-loop action here.
                 PapFooterButton(
-                    label = stringResource(Res.string.home_navigate_to_spot),
+                    label = stringResource(Res.string.common_directions),
                     leadingIcon = Icons.Rounded.Navigation,
                     onClick = {
                         onAction(

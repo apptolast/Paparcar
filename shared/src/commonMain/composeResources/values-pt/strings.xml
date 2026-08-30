@@ -15,15 +15,14 @@
     <!-- PapSheet actions + browse header. [UI-SHEET-001] -->
     <string name="home_parking_leave_release">Vou-me embora</string>
     <string name="home_parking_edit_menu_cd">Editar localização do estacionamento</string>
-    <string name="home_parking_menu_delete">Eliminar registo</string>
-    <!-- Edit-parking confirm choices: correct this pin vs. re-park elsewhere. [UX-PARKED-STATE-001] -->
+    <!-- As três respostas a uma pergunta: é o MESMO estacionamento ou outro?
+         [COPY-PARKING-EDIT-THREE-ANSWERS-ONE-QUESTION-001] -->
+    <string name="home_parking_menu_delete">Eliminar estacionamento</string>
     <string name="home_parking_menu_correct">Corrigir localização</string>
-    <string name="home_parking_menu_repark">Estacionei noutro sítio</string>
-    <!-- Delete-record confirmation (destructive). [UX-PARKED-STATE-001] -->
+    <string name="home_parking_menu_repark">Marcar novo estacionamento</string>
+    <!-- Delete confirmation (destructive). [UX-PARKED-STATE-001] -->
     <string name="home_parking_delete_confirm_title">Eliminar este estacionamento?</string>
-    <string name="home_parking_delete_confirm_body">Remove o registo. O lugar não será partilhado com a comunidade.</string>
-    <string name="home_parking_edit_dialog_title">Editar estacionamento</string>
-    <string name="home_parking_edit_dialog_body">Move o pin para o lugar certo ou elimina este registo de estacionamento.</string>
+    <string name="home_parking_delete_confirm_body">Elimina o estacionamento. O lugar não será partilhado com a comunidade.</string>
     <string name="home_spot_still_there">Ainda está?</string>
     <string name="home_spot_gone">Já foi</string>
     <!-- [DET-HANDOFF-NOT-MANUAL-001 B.3] A spot published on a DEDUCED departure says so, and says it plainly when the report is withdrawn. -->
@@ -36,8 +35,8 @@
     <string name="home_browse_parked_meta">Estacionado há %1$s · a %2$s de ti</string>
     <string name="home_browse_parked_ago">Estacionado há %1$s</string>
     <string name="home_browse_hint_swipe_report">Desliza ↑ para reportar um lugar</string>
-    <string name="home_navigate_to_spot">Como chegar</string>
-    <string name="home_navigate_to_vehicle">Direções</string>
+    <string name="common_directions">Como chegar</string>
+    <string name="home_navigate_to_vehicle_cd">Como chegar ao carro</string>
     <string name="home_feed_nearby">Perto de si</string>
     <plurals name="home_feed_nearby_with_count">
         <item quantity="one">%1$d lugar livre perto de si</item>
@@ -174,7 +173,6 @@
     <string name="map_cd_back">Voltar</string>
 
     <!-- HistoryParkingDetailScreen -->
-    <string name="parking_detail_navigate_action">Navegar até este local</string>
     <string name="parking_detail_prev">Estacionamento anterior</string>
     <string name="parking_detail_route_recalculating">A recalcular rota…</string>
     <string name="parking_detail_route_inferred_question">Parte desta rota foi reconstruída porque o sinal de GPS se perdeu pelo caminho. Passaste por aqui?</string>
@@ -406,11 +404,10 @@
     <string name="home_add_parking_header_label_edit">Move o teu estacionamento</string>
     <string name="home_add_parking_helper_primary_create">Centra o pin onde deixaste o carro</string>
     <string name="home_add_parking_helper_primary_edit">Arrasta o mapa para o local correto</string>
-    <string name="home_add_parking_helper_secondary">Uma geocerca avisa-te quando saíres</string>
+    <string name="home_add_parking_helper_secondary_create">Uma geocerca avisa-te quando saíres</string>
+    <string name="home_add_parking_helper_secondary_edit">Corrigir mantém o tempo estacionado; marcar um novo põe-no a zero</string>
     <string name="home_add_parking_confirm_create">Estacionar aqui</string>
-    <string name="home_add_parking_confirm_edit">Guardar nova localização</string>
     <string name="home_add_parking_cancel_cd">Cancelar edição de estacionamento</string>
-    <string name="home_parking_action_move_location">Mover localização</string>
 
     <!-- HomeSpotRow reliability tier label -->
 

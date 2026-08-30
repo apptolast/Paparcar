@@ -34,16 +34,15 @@
     <string name="home_parking_leave_release">Me voy</string>
     <!-- Icon-button editar (pin+lápiz) del bloque meta + su menú. [UI-SHEET-001] -->
     <string name="home_parking_edit_menu_cd">Editar ubicación del aparcamiento</string>
-    <string name="home_parking_menu_delete">Eliminar registro</string>
-    <!-- Edit-parking confirm choices: correct this pin vs. re-park elsewhere. [UX-PARKED-STATE-001] -->
+    <!-- Las tres respuestas a una pregunta: ¿es el MISMO aparcamiento u otro? Mismo sustantivo y
+         misma forma verbo+objeto; solo la que crea dice «nuevo».
+         [COPY-PARKING-EDIT-THREE-ANSWERS-ONE-QUESTION-001] -->
+    <string name="home_parking_menu_delete">Eliminar aparcamiento</string>
     <string name="home_parking_menu_correct">Corregir ubicación</string>
-    <string name="home_parking_menu_repark">He aparcado en otro sitio</string>
-    <!-- Delete-record confirmation (destructive). [UX-PARKED-STATE-001] -->
-    <string name="home_parking_delete_confirm_title">¿Borrar este aparcamiento?</string>
-    <string name="home_parking_delete_confirm_body">Se elimina el registro. La plaza no se compartirá con la comunidad.</string>
-    <!-- Modal de modificar aparcamiento (mover primario / eliminar destructivo). [UI-SHEET-004] -->
-    <string name="home_parking_edit_dialog_title">Modificar aparcamiento</string>
-    <string name="home_parking_edit_dialog_body">Mueve el pin al lugar correcto o elimina este registro de aparcamiento.</string>
+    <string name="home_parking_menu_repark">Marcar aparcamiento nuevo</string>
+    <!-- Confirmación de borrado (destructiva). [UX-PARKED-STATE-001] -->
+    <string name="home_parking_delete_confirm_title">¿Eliminar este aparcamiento?</string>
+    <string name="home_parking_delete_confirm_body">Se elimina el aparcamiento. La plaza no se compartirá con la comunidad.</string>
     <!-- Par de señales de plaza comunitaria — confirmar que sigue / avisar que se fue. [UI-SHEET-001] -->
     <string name="home_spot_still_there">¿Aún está?</string>
     <string name="home_spot_gone">Se fue</string>
@@ -53,8 +52,10 @@
     <string name="home_spot_retracted_eyebrow">Retirada</string>
     <string name="home_spot_retracted_note">Quien la publicó no llegó a salir, así que la plaza no está libre. Busca otra cerca.</string>
     <string name="home_spot_retracted_action">Ver otras plazas</string>
-    <string name="home_navigate_to_spot">Cómo llegar</string>
-    <string name="home_navigate_to_vehicle">Cómo llegar</string>
+    <!-- UNA etiqueta para el traspaso a la app de mapas, esté donde esté.
+         [COPY-PARKING-EDIT-THREE-ANSWERS-ONE-QUESTION-001] -->
+    <string name="common_directions">Cómo llegar</string>
+    <string name="home_navigate_to_vehicle_cd">Cómo llegar al coche</string>
     <string name="home_feed_nearby">Cerca de ti</string>
     <plurals name="home_feed_nearby_with_count">
         <item quantity="one">%1$d plaza libre cerca de ti</item>
@@ -222,7 +223,6 @@
     <string name="map_cd_back">Volver</string>
 
     <!-- HistoryParkingDetailScreen -->
-    <string name="parking_detail_navigate_action">Navegar a esta ubicación</string>
     <string name="parking_detail_prev">Aparcamiento anterior</string>
     <string name="parking_detail_route_recalculating">Recalculando ruta…</string>
     <string name="parking_detail_route_inferred_question">Parte de esta ruta se ha reconstruido porque la señal GPS se perdió por el camino. ¿Pasaste por aquí?</string>
@@ -327,11 +327,10 @@
     <string name="home_add_parking_header_label_edit">Mueve tu aparcamiento</string>
     <string name="home_add_parking_helper_primary_create">Centra el pin donde dejaste el coche</string>
     <string name="home_add_parking_helper_primary_edit">Arrastra el mapa al punto correcto</string>
-    <string name="home_add_parking_helper_secondary">Una geocerca te avisará cuando te vayas</string>
+    <string name="home_add_parking_helper_secondary_create">Una geocerca te avisará cuando te vayas</string>
+    <string name="home_add_parking_helper_secondary_edit">Corregir mantiene el tiempo aparcado; marcar uno nuevo lo pone a cero</string>
     <string name="home_add_parking_confirm_create">Aparcar aquí</string>
-    <string name="home_add_parking_confirm_edit">Guardar nueva ubicación</string>
     <string name="home_add_parking_cancel_cd">Cancelar edición de aparcamiento</string>
-    <string name="home_parking_action_move_location">Mover ubicación</string>
 
     <!-- Zonas en Home — lugares habituales -->
     <string name="home_zone_name_placeholder">Ej. Casa, Trabajo</string>

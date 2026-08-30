@@ -15,15 +15,15 @@
     <!-- PapSheet actions + browse header. [UI-SHEET-001] -->
     <string name="home_parking_leave_release">Ik vertrek</string>
     <string name="home_parking_edit_menu_cd">Parkeerlocatie bewerken</string>
-    <string name="home_parking_menu_delete">Registratie verwijderen</string>
-    <!-- Edit-parking confirm choices: correct this pin vs. re-park elsewhere. [UX-PARKED-STATE-001] -->
+    <!-- Drie antwoorden op één vraag: dezelfde parkeerplek of een andere? Het scherm gebruikt
+         "parkeerplek" voor je eigen sessie en "plek" voor de community.
+         [COPY-PARKING-EDIT-THREE-ANSWERS-ONE-QUESTION-001] -->
+    <string name="home_parking_menu_delete">Parkeerplek verwijderen</string>
     <string name="home_parking_menu_correct">Locatie corrigeren</string>
-    <string name="home_parking_menu_repark">Ergens anders geparkeerd</string>
-    <!-- Delete-record confirmation (destructive). [UX-PARKED-STATE-001] -->
+    <string name="home_parking_menu_repark">Nieuwe parkeerplek markeren</string>
+    <!-- Delete confirmation (destructive). [UX-PARKED-STATE-001] -->
     <string name="home_parking_delete_confirm_title">Deze parkeerplek verwijderen?</string>
-    <string name="home_parking_delete_confirm_body">Dit verwijdert de registratie. De plek wordt niet met de community gedeeld.</string>
-    <string name="home_parking_edit_dialog_title">Parkeren bewerken</string>
-    <string name="home_parking_edit_dialog_body">Verplaats de pin naar de juiste plek of verwijder deze registratie.</string>
+    <string name="home_parking_delete_confirm_body">Dit verwijdert de parkeerplek. De vrijgekomen plek wordt niet met de community gedeeld.</string>
     <string name="home_spot_still_there">Nog vrij?</string>
     <string name="home_spot_gone">Al weg</string>
     <!-- [DET-HANDOFF-NOT-MANUAL-001 B.3] A spot published on a DEDUCED departure says so, and says it plainly when the report is withdrawn. -->
@@ -36,8 +36,8 @@
     <string name="home_browse_parked_meta">Geparkeerd %1$s geleden · %2$s van jou</string>
     <string name="home_browse_parked_ago">Geparkeerd %1$s geleden</string>
     <string name="home_browse_hint_swipe_report">Veeg ↑ om een plek te melden</string>
-    <string name="home_navigate_to_spot">Route</string>
-    <string name="home_navigate_to_vehicle">Route</string>
+    <string name="common_directions">Route</string>
+    <string name="home_navigate_to_vehicle_cd">Route naar je auto</string>
     <string name="home_feed_nearby">In uw buurt</string>
     <plurals name="home_feed_nearby_with_count">
         <item quantity="one">%1$d vrije parkeerplaats in uw buurt</item>
@@ -174,7 +174,6 @@
     <string name="map_cd_back">Terug</string>
 
     <!-- HistoryParkingDetailScreen -->
-    <string name="parking_detail_navigate_action">Navigeer naar deze locatie</string>
     <string name="parking_detail_prev">Vorige parkeerplaats</string>
     <string name="parking_detail_route_recalculating">Route wordt herberekend…</string>
     <string name="parking_detail_route_inferred_question">Een deel van deze route is gereconstrueerd omdat het gps-signaal onderweg wegviel. Ben je hierlangs gereden?</string>
@@ -406,11 +405,10 @@
     <string name="home_add_parking_header_label_edit">Verplaats je parkeerplek</string>
     <string name="home_add_parking_helper_primary_create">Centreer de pin waar je de auto hebt geparkeerd</string>
     <string name="home_add_parking_helper_primary_edit">Sleep de kaart naar de juiste plek</string>
-    <string name="home_add_parking_helper_secondary">Een geofence waarschuwt je wanneer je wegrijdt</string>
+    <string name="home_add_parking_helper_secondary_create">Een geofence waarschuwt je wanneer je wegrijdt</string>
+    <string name="home_add_parking_helper_secondary_edit">Corrigeren behoudt de parkeertijd; een nieuwe markeren zet hem op nul</string>
     <string name="home_add_parking_confirm_create">Hier parkeren</string>
-    <string name="home_add_parking_confirm_edit">Nieuwe locatie opslaan</string>
     <string name="home_add_parking_cancel_cd">Parkeerbewerking annuleren</string>
-    <string name="home_parking_action_move_location">Locatie verplaatsen</string>
 
     <!-- HomeSpotRow reliability tier label -->
 
