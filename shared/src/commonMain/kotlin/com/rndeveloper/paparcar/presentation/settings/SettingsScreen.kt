@@ -380,10 +380,12 @@ fun SettingsContent(
                             icon = Icons.Rounded.DarkMode,
                             title = stringResource(Res.string.settings_theme_mode),
                             subtitle = stringResource(Res.string.settings_theme_mode_desc),
+                            // System leads: it is the default and what most users keep, so the
+                            // option already in force opens the row.
                             options = listOf(
+                                ThemeMode.SYSTEM to stringResource(Res.string.settings_theme_mode_system),
                                 ThemeMode.LIGHT to stringResource(Res.string.settings_theme_mode_light),
                                 ThemeMode.DARK to stringResource(Res.string.settings_theme_mode_dark),
-                                ThemeMode.SYSTEM to stringResource(Res.string.settings_theme_mode_system),
                             ),
                             selected = themeMode,
                             onSelect = onSetThemeMode,
