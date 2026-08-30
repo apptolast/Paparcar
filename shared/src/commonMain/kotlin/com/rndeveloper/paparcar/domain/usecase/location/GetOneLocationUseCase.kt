@@ -2,6 +2,7 @@
 
 package com.rndeveloper.paparcar.domain.usecase.location
 
+import com.rndeveloper.paparcar.domain.detection.provenanceLabel
 import com.rndeveloper.paparcar.domain.location.LocationDataSource
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
@@ -49,7 +50,7 @@ class GetOneLocationUseCase(
         // Every one-shot fix is a field-forensics data point: WHERE it landed decides what the
         // safety net / departure worker concluded there. Timeouts matter just as much.
         if (fix != null) {
-            PaparcarLogger.d(DIAG, "fix lat=${fix.latitude} lon=${fix.longitude} speed=${fix.speed}m/s acc=${fix.accuracy}m age=${(nowMs() - fix.timestamp) / 1000}s")
+            PaparcarLogger.d(DIAG, "fix lat=${fix.latitude} lon=${fix.longitude} speed=${fix.speed}m/s acc=${fix.accuracy}m src=${fix.provenanceLabel()} age=${(nowMs() - fix.timestamp) / 1000}s")
             runCatching { tripTrail?.append(fix) }
         } else {
             PaparcarLogger.d(DIAG, "fix TIMEOUT after ${TIMEOUT_MS}ms (maxAge=${maxAgeMs?.div(1000)?.let { "${it}s" } ?: "none"})")

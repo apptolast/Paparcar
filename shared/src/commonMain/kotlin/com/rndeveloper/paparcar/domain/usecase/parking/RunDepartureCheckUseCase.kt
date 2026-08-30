@@ -5,6 +5,7 @@ package com.rndeveloper.paparcar.domain.usecase.parking
 import com.rndeveloper.paparcar.domain.detection.DepartureConfirmationListener
 import com.rndeveloper.paparcar.domain.detection.DepartureProof
 import com.rndeveloper.paparcar.domain.detection.freedSpotIsStillThere
+import com.rndeveloper.paparcar.domain.detection.provenanceLabel
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEvent
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEventLogger
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
@@ -90,7 +91,7 @@ class RunDepartureCheckUseCase(
                     "Inconclusive(${decision.reason})"
                 else -> decision::class.simpleName ?: "UNKNOWN"
             }
-            PaparcarLogger.d(TAG, "attempt=$attempt geof=${geofenceId.take(8)} speed=${speedKmh}km/h acc=${fix?.accuracy}m → $verdictLabel")
+            PaparcarLogger.d(TAG, "attempt=$attempt geof=${geofenceId.take(8)} speed=${speedKmh}km/h acc=${fix?.accuracy}m src=${fix?.provenanceLabel() ?: "-"} → $verdictLabel")
 
             // [DET-SOLID-001] Observability: every attempt's verdict, traced by geofenceId.
             runCatching {

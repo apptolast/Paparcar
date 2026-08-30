@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.data.datasource.remote.dto
 
+import com.rndeveloper.paparcar.domain.detection.provenanceLabel
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEvent
 import kotlinx.serialization.Serializable
 
@@ -97,6 +98,13 @@ data class DetectionEventDto(
     val requiredSteps: Int? = null,
     // Abort-fix coherence vs the last witnessed position [DET-UNWITNESSED-DISPLACEMENT-001]
     val witnessDistanceMeters: Double? = null,
+    // [DET-A-FIX-MUST-SAY-WHERE-IT-CAME-FROM-001] Where the fix came from — `gnss(7sat)` · `network`
+    // · `fused` · `passive` · `?`. A NEW column rather than the usual ride-an-existing-one, because
+    // there is none free: `source` is already spoken for by DepartureVerdict, GeofenceRegistration
+    // and Sentry, each meaning something else by it. It is set in `base`, so provenance travels with
+    // EVERY event that carries a location and not only with LOCATION_FIX — the accuracy of the fix a
+    // decision was taken on is already there; what was missing was which world produced it.
+    val fixSource: String? = null,
 )
 
 /** Canonical wire discriminator for each event subtype. */
@@ -150,6 +158,7 @@ fun DetectionEvent.toDto(): DetectionEventDto {
         lon = loc?.longitude,
         accuracy = loc?.accuracy,
         speed = loc?.speed,
+        fixSource = loc?.provenanceLabel(),
     )
     return when (this) {
         is DetectionEvent.SessionStarted -> base.copy(strategy = strategy, vehicleType = vehicleType, evidence = evidence)

@@ -852,7 +852,7 @@ class CoordinatorParkingDetector(
                     val sessionAgeMs = now - sessionStartMs
                     PaparcarLogger.d(
                         DIAG,
-                        "─ loc#$locationCount lat=${location.latitude} lon=${location.longitude} speed=${location.speed}m/s acc=${location.accuracy}m sessionAge=${sessionAgeMs}ms"
+                        "─ loc#$locationCount lat=${location.latitude} lon=${location.longitude} speed=${location.speed}m/s acc=${location.accuracy}m src=${location.provenanceLabel()} sessionAge=${sessionAgeMs}ms"
                     )
                     // [09 §5] The fix reduction that precedes the precedence: is the car stopped,
                     // and where does that leave the anchor? Its own file since P3.13. The CAS keeps

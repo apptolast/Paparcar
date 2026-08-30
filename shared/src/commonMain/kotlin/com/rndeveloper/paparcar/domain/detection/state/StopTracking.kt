@@ -6,6 +6,7 @@ import com.rndeveloper.paparcar.domain.detection.physics.isCorroboratedVehicleHo
 import com.rndeveloper.paparcar.domain.detection.physics.isCredibleFixAccuracy
 import com.rndeveloper.paparcar.domain.detection.physics.isCredibleMovingFix
 import com.rndeveloper.paparcar.domain.detection.physics.SustainedDeparture
+import com.rndeveloper.paparcar.domain.detection.provenanceLabel
 import com.rndeveloper.paparcar.domain.detection.stages.DiagnosticNote
 import com.rndeveloper.paparcar.domain.detection.stages.plusAssign
 import com.rndeveloper.paparcar.domain.model.GpsPoint
@@ -280,8 +281,13 @@ fun DetectionSessionState.updateStopTracking(
         val departure = sustainedDepartureFrom(location, now, config)
         if (location.speed >= config.clearBestStopSpeedMps && !isDriving) {
             notes +=
+                // [DET-A-FIX-MUST-SAY-WHERE-IT-CAME-FROM-001] `src` is what turns a wall of these
+                // into an answer: 38 of them in eleven minutes (field 29→30-08, Redmi) could not be
+                // told apart as bad GNSS geometry or a network fix carrying a speed it never
+                // measured, and the parking degraded to a 250 m zone with the cause unattributable.
                 "  ⊘ ignoring driving-speed fix with poor accuracy " +
-                        "(speed=${location.speed} acc=${location.accuracy} > " +
+                        "(speed=${location.speed} acc=${location.accuracy} " +
+                        "src=${location.provenanceLabel()} > " +
                         "minGpsAccuracyForDriving=${config.minGpsAccuracyForDriving})"
         }
         val next = this.let {
