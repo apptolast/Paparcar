@@ -860,6 +860,69 @@ class CoordinatorParkingDetector(
             null
         }
 
+        // [DET-STARVED-PROMPT-HAS-NO-WITNESS-001] The prompt window has the same hole the HOLD had
+        // before its watchdog, and it costs more. `ResponseTimeoutStage` is a `SessionStage`, so it
+        // only ever runs when a FIX arrives: ask the user, get no answer, and if the stream then
+        // dies the 15-minute verdict never runs at all and the park is lost in silence — no pin, no
+        // zone, no nudge, nothing in the trace to say a decision was due.
+        //
+        // That is the common shape, not an edge case: the prompt fires as the user walks away from
+        // the car and into a building, which is exactly when GPS stops.
+        //
+        // ⚠️ Deliberately NOT a second copy of the verdict. It re-runs the SAME stage through the
+        // SAME `runStage`, so the decision, its effects and its trace line are the stage's own — a
+        // parallel implementation is how two paths end up agreeing by luck and diverging in the
+        // field. The only thing the watchdog supplies is the fix the stream never sent: the last
+        // one the session saw.
+        // ⚠️ NO `if (config.confirmationResponseTimeoutMs > 0)` guard here, unlike the hold watchdog
+        // above. That one is a real TEST SEAM — `confirmHoldMs` is `require(>= 0)` with "0 disables
+        // the post-confirm hold" in its own message, and three test files switch the watchdog off
+        // with it. This clock cannot be zero: `require(confirmationResponseTimeoutMs >
+        // lowNotifTimeoutMs)` and `require(lowNotifTimeoutMs > 0)` together make it strictly
+        // positive at construction. A guard here would be dead code that LOOKS like a switch, and
+        // the next person would go looking for the way to turn it off.
+        val promptWatchdogJob = run {
+            launch {
+                _detectionState
+                    .map { it.confirmation.promptShownAt }
+                    .distinctUntilChanged()
+                    .collectLatest { shownAt ->
+                        if (shownAt == null) return@collectLatest
+                        delay(config.confirmationResponseTimeoutMs + PROMPT_WATCHDOG_MARGIN_MS)
+                        val live = _detectionState.value
+                        if (live.session.completed) return@collectLatest
+                        if (live.confirmation.promptShownAt != shownAt) return@collectLatest
+                        val now = nowMs()
+                        val waited = now - shownAt
+                        val lastFix = live.session.previousFix
+                        if (lastFix == null) {
+                            // Nothing was ever measured, so there is nothing to place. Say so —
+                            // an absent pin with an absent line is indistinguishable from a crash.
+                            PaparcarLogger.w(
+                                DIAG,
+                                "  ⚑ prompt starved for ${waited}ms and this session never saw a single fix — nothing to place [DET-STARVED-PROMPT-HAS-NO-WITNESS-001]"
+                            )
+                            return@collectLatest
+                        }
+                        PaparcarLogger.w(
+                            DIAG,
+                            "  ⚑ prompt starved of fixes for ${waited}ms (limit=${config.confirmationResponseTimeoutMs}ms) — " +
+                                "running the unattended verdict on the LAST fix seen " +
+                                "(lat=${lastFix.latitude} lon=${lastFix.longitude} acc=${lastFix.accuracy}m) " +
+                                "[DET-STARVED-PROMPT-HAS-NO-WITNESS-001]"
+                        )
+                        val stoppedDuration = live.anchorTrust.stopStartedAt?.let { now - it } ?: 0L
+                        runStage(responseTimeoutStage, lastFix, now, stoppedDuration)
+                        endSession()
+                        // Same reason as the hold watchdog: the collect loop is suspended on a dead
+                        // stream, so cancelling the scope is what actually ends the session.
+                        sessionJob?.cancel(
+                            CancellationException("prompt-watchdog-resolved [DET-STARVED-PROMPT-HAS-NO-WITNESS-001]")
+                        )
+                    }
+            }
+        }
+
         try {
             locations
                 .takeWhile {
@@ -1042,6 +1105,7 @@ class CoordinatorParkingDetector(
             stepJob.cancel()
             phaseJob?.cancel()
             holdWatchdogJob?.cancel()
+            promptWatchdogJob.cancel()
             // [FIX BUG-SERVICE-109: reset state on session exit so cross-session reads of
             //  hasDetectedMovement and any other state fields return defaults. Without this,
             //  the next session start would briefly observe stale `hasEverReachedDrivingSpeed`.
@@ -1364,6 +1428,12 @@ class CoordinatorParkingDetector(
         /** [DET-AUDIT-002 T7] Extra wait past confirmHoldMs before the clock (not a fix) closes a
          *  starved hold — room for the settling fix of a healthy stream to win the race. */
         const val HOLD_WATCHDOG_MARGIN_MS = 30_000L
+
+        /** [DET-STARVED-PROMPT-HAS-NO-WITNESS-001] Extra wait past `confirmationResponseTimeoutMs`
+         *  before the clock (not a fix) resolves a starved prompt. Same shape and same reason as
+         *  [HOLD_WATCHDOG_MARGIN_MS]: room for a healthy stream's next fix to win the race, so the
+         *  watchdog only ever fires on a stream that really did die. */
+        const val PROMPT_WATCHDOG_MARGIN_MS = 30_000L
     }
 }
 

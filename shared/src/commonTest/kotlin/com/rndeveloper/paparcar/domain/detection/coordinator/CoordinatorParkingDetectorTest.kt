@@ -3523,6 +3523,80 @@ class CoordinatorParkingDetectorTest {
         }
 
     @Test
+    fun should_resolve_a_starved_prompt_by_clock_when_no_fix_ever_comes_back() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-STARVED-PROMPT-HAS-NO-WITNESS-001] The user's own question: what happens if,
+            // after the last bad fix, no good one arrives for an hour?
+            //
+            // Before this: NOTHING. `ResponseTimeoutStage` is a SessionStage, so the 15-minute
+            // verdict only ever ran when a FIX arrived. Ask the user, get no answer, let the stream
+            // die — and the park was lost in silence: no pin, no zone, no nudge, and not one line
+            // in the trace to say a decision had been due. It is the common shape, not an edge
+            // case: the prompt fires as the user walks into a building, which is when GPS stops.
+            //
+            // ⏱ The 15 min + margin cost nothing here — `runTest` runs on virtual time.
+            var fakeNow = 1_000_000L
+            val cfg = ParkingDetectionConfig(confirmHoldMs = 0L) // watchdog del hold OFF: seam de test
+            val env = setup(config = cfg, clock = { fakeNow })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            // A real drive, so the session is not thrown away for lack of evidence…
+            locations.emit(GpsPoint(40.0, -3.7, accuracy = 5f, timestamp = 10_000L, speed = 6f))
+            locations.emit(GpsPoint(40.0005, -3.7, accuracy = 5f, timestamp = 20_000L, speed = 6f))
+            locations.emit(GpsPoint(40.001, -3.7, accuracy = 5f, timestamp = 30_000L, speed = 6f))
+            locations.emit(GpsPoint(40.0015, -3.7, accuracy = 5f, timestamp = 40_000L, speed = 6f))
+            locations.emit(GpsPoint(40.002, -3.7, accuracy = 5f, timestamp = 50_000L, speed = 6f))
+            // …then a stop, and the GPS dies for good. `runCurrent`, NOT `advanceUntilIdle`: the
+            // latter would jump virtual time past the watchdog's own delay and resolve it before
+            // the snapshot below, which is precisely how this test first passed with the watchdog
+            // neutralised.
+            // …and then a long stillness, which is what earns the prompt. In the field it took the
+            // stop clock past `lowNotifTimeoutMs` with the Low/Medium notification suppressed until
+            // it did (`⊘ Low/Medium notif suppressed — no vehicleExit`), so the stub has to sit
+            // still for real rather than emit one stopped fix and hope.
+            var ts = 60_000L
+            repeat(20) {
+                ts += 20_000L
+                fakeNow += 20_000L
+                locations.emit(GpsPoint(40.0025, -3.7, accuracy = 40f, timestamp = ts, speed = 0f))
+                testScheduler.runCurrent()
+            }
+            // The GPS now dies for good. `runCurrent`, NOT `advanceUntilIdle`: the latter would jump
+            // virtual time past the watchdog's own delay and resolve it before the snapshot below,
+            // which is exactly how this test first passed with the watchdog neutralised.
+            testScheduler.runCurrent()
+
+            // ⚠️ The BASELINE is what makes this test mean anything. Asserting "a notification
+            // exists" is trivially true — the prompt itself is one — so the assertion is that the
+            // count MOVED after the stream died, which only the watchdog can do.
+            val savesBefore = env.parkingRepo.saveNewParkingSessionCallCount
+            val notifsBefore = env.notification.confirmationNotifOps.size
+            // The trace is the third witness, and the one the ticket is really about: a starved
+            // prompt must leave a RECORD of the decision, whichever way it went.
+            val eventsBefore = env.detectionLogger.events.size
+
+            fakeNow += cfg.confirmationResponseTimeoutMs + 120_000L
+            testScheduler.advanceUntilIdle()
+
+            // Deliberately not asserting WHICH verdict won: SaveZone vs Ask depends on evidence
+            // this stub does not fix, and pinning it here would be asserting the stage's job rather
+            // than the watchdog's. What the watchdog owes is that the decision RAN at all.
+            assertTrue(
+                env.parkingRepo.saveNewParkingSessionCallCount > savesBefore ||
+                    env.notification.confirmationNotifOps.size > notifsBefore ||
+                    env.detectionLogger.events.size > eventsBefore,
+                "a starved prompt must still reach a verdict — pin, zone or nudge, but never " +
+                    "silence [DET-STARVED-PROMPT-HAS-NO-WITNESS-001]. " +
+                    "saves ${env.parkingRepo.saveNewParkingSessionCallCount} (was $savesBefore), " +
+                    "notifs ${env.notification.confirmationNotifOps.size} (was $notifsBefore), " +
+                    "events ${env.detectionLogger.events.size} (was $eventsBefore)",
+            )
+
+            job.cancelAndJoin()
+        }
+
+    @Test
     fun should_close_a_starved_hold_without_a_pin_when_the_session_never_measured_a_drive() =
         runTest(UnconfinedTestDispatcher()) {
             // [DET-NO-CLOCK-PLANTS-A-PIN-001] The branch the redesign named: a clock running out
