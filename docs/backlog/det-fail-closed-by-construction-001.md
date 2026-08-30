@@ -91,6 +91,12 @@ en vez de preguntar al final, con su propio riesgo de falso negativo. Ya estaba 
 de `DET-DRIVING-EVIDENCE-IS-THE-ONLY-GATE-001` como candidato de `DET-TWO-TIER-SENTRY-001`, que es
 donde el problema es el ARMADO. Sigue allí.
 
+> ✅ **Cerrado el 30-08 en `DET-A-VETO-NOBODY-EVER-TURNS-ON-IS-NOT-A-VETO-001` — borrándolo, no
+> encendiéndolo.** El razonamiento de arriba se sostiene y por eso la salida no fue calibrar: el
+> desenlace que el veto perseguía ya lo da el `when` sellado (`VerifiedByVehicleEnter` no confirma en
+> silencio) y su un-seed ya tiene un camino vivo y general (la retractación del seed `OnTrust`). Lo
+> que quedaba era una rama que nunca se ejecutó y un knob que invitaba a encenderse sin datos.
+
 ### #15 · defaults de `ParkingDecisionInput`
 
 Invertir los campos de duda (`egressBornAtAnchor = true` → `egressDoubt = true`) toca todos los

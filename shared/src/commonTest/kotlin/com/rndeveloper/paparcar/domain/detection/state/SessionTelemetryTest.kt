@@ -95,15 +95,6 @@ class SessionTelemetryTest {
         assertEquals(ArmEvidence.LABEL_SELF_OBSERVED, s.armEvidence)
     }
 
-    /** [DET-SOLID-001] The enter-arm step veto: same pairing, different cause. */
-    @Test
-    fun should_degrade_evidence_and_unseed_together_on_the_enter_arm_step_veto() {
-        val s = SessionTelemetry().armed(ArmEvidence.LABEL_VERIFIED_ENTER).seededOnArmTrust()
-            .enterArmStepVeto()
-        assertFalse(s.driveAuthorized)
-        assertEquals(ArmEvidence.LABEL_SELF_OBSERVED, s.armEvidence)
-    }
-
     // ── The per-fix bookkeeping ───────────────────────────────────────────────
 
     /** Origin and the first-fix clock are captured once and never overwritten. */

@@ -310,12 +310,6 @@ data class ParkingDetectionConfig(
      *  bus beside my parked car". Costs one tap on legitimate no-GPS short-hops; flip to false
      *  if that UX cost outweighs the bus/taxi false-positive risk in the field. */
     val autoConfirmRequiresStrongEvidence: Boolean = true,
-    /** [B4] Enter-arm step veto window (ms). When > 0 and a `verified_enter` arm sees its FIRST
-     *  pedestrian step within this window with no driving observed, the ENTER is treated as
-     *  spurious (walking) and the evidence degrades to self_observed, re-arming the false-ENTER
-     *  abort guard. 0 = disabled (default) — enable only after validating against replay traces
-     *  that real short-hops don't produce a first step this early. [DET-SOLID-001] */
-    val enterArmStepVetoMs: Long = 0L,
     /** [ANCHOR-LOCK-001] Post-stop pedestrian steps that LOCK the park anchor: once this many
      *  steps are counted while stopped (the user provably exited the car), `bestStopLocation`
      *  freezes — later pedestrian stops can no longer re-capture it and only REAL driving
@@ -1210,9 +1204,6 @@ data class ParkingDetectionConfig(
         }
         require(reliabilityKinematicEgress > 0f && reliabilityKinematicEgress <= 1f) {
             "reliabilityKinematicEgress must be in (0, 1], was $reliabilityKinematicEgress"
-        }
-        require(enterArmStepVetoMs >= 0) {
-            "enterArmStepVetoMs must be >= 0 (0 = disabled), was $enterArmStepVetoMs"
         }
         require(sentryWakeAbortStreakForCooldown >= 1) {
             "sentryWakeAbortStreakForCooldown must be >= 1, was $sentryWakeAbortStreakForCooldown"

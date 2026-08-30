@@ -220,17 +220,6 @@ data class SessionTelemetry(
         armEvidence = ArmEvidence.LABEL_SELF_OBSERVED,
     )
 
-    /**
-     * [DET-SOLID-001] The first step arrived within the veto window of an ENTER arm with no driving
-     * seen: this was a walk, not a boarding. Degrade the evidence and un-seed so the false-ENTER
-     * abort guard re-arms — one transition, because a session authorized with `self_observed`
-     * evidence is a state that should not exist even for a microsecond.
-     */
-    fun enterArmStepVeto(): SessionTelemetry = copy(
-        driveAuthorized = false,
-        armEvidence = ArmEvidence.LABEL_SELF_OBSERVED,
-    )
-
     /** [11 bug #3] This session's ending, named. */
     fun endedWith(outcome: SessionOutcome): SessionTelemetry = copy(outcome = outcome)
 

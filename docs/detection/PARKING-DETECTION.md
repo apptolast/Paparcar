@@ -1884,7 +1884,8 @@ Between the two writes the session was readable as *authorized with `self_observ
 *unauthorized with `verified_enter`* — states that are not supposed to exist. Nothing observed one
 in practice, because the writes are microseconds apart on a single coroutine, but "nothing observed
 it" is luck, not an invariant. `departureConfirmed()` / `departureDismissed()` / `enterArmStepVeto()`
-now move both or neither.
+now move both or neither. (`enterArmStepVeto()` was deleted on 2026-08-30 with the veto it served —
+`DET-A-VETO-NOBODY-EVER-TURNS-ON-IS-NOT-A-VETO-001`. The invariant stands for the two that remain.)
 
 The quieter one is worse: `onUserDeniedParking` wiped the whole state and hand-copied back two
 fields **by name**. A field added to that set had to REMEMBER to be listed, and nothing failed if it
@@ -3289,7 +3290,7 @@ The system stopped being a pile of point guards (DET-G-01..05) and became **evid
 1. **Arming is exclusive to `GEOFENCE_EXIT` + `MANUAL`.** `DetectionTrigger.AR_PROXIMITY` and the whole AR-arming machinery (`registerVehicleEnterArming`, `handleArVehicleEnter`, `ShouldArmFromVehicleEnterUseCase`, `AR_REARM_ENABLED`) were purged — AR is an **indicator only** (user-confirmed design rule: in the field AR failed both ways, spurious AND missing, so it must never be load-bearing).
 2. **Typed `ArmEvidence`** (`Manual | VerifiedBySpeed | VerifiedByVehicleEnter | Unverified`) replaces the `armedByConfirmedDeparture` boolean. Verified evidence seeds `hasEverReachedDrivingSpeed`; unverified/manual arms keep every anti-walking guard. The label is persisted on the session (`UserParking.armEvidence` + `tripMaxSpeedMps`, Room v11, local-only) and logged in `SessionStarted.evidence`.
 3. **AR ENTER rides the passive broadcast receiver** (same request as EXIT, zero FGS, zero arming) and stamps `DepartureEventBus` with the TRUE transition time (`elapsedRealTimeNanos` → epoch). Both evidence windows are strict **enter-precedes-exit** — an ENTER after the exit is a bus/taxi boarded outside the radius, never departure proof. The bus timestamp survives process death (SharedPreferences mirror).
-4. **Evidence policy** (`EvaluateParkingDecisionUseCase`): ENTER-only evidence with no observed driving → `ParkingDecision.Prompt` (ask, don't assert) — flag `autoConfirmRequiresStrongEvidence`. BIKE/SCOOTER profiles never auto-confirm. The B4 step-cadence veto exists behind `enterArmStepVetoMs` (default OFF until replay-validated).
+4. **Evidence policy** (`EvaluateParkingDecisionUseCase`): ENTER-only evidence with no observed driving → `ParkingDecision.Prompt` (ask, don't assert) — flag `autoConfirmRequiresStrongEvidence`. BIKE/SCOOTER profiles never auto-confirm. (A B4 step-cadence veto used to sit behind `enterArmStepVetoMs`, default OFF; it shipped disabled, was never validated and was deleted — `DET-A-VETO-NOBODY-EVER-TURNS-ON-IS-NOT-A-VETO-001`.)
 5. **Write-side invariants**: atomic `replaceActiveSession` (Room `@Transaction`); repark-plausibility guard in `ConfirmParkingUseCase` (recent + near + no driving observed + unverified arm → `ImplausibleRepark`, degraded to a prompt); geofence registration failure is loud + janitor-retried (session ⟺ geofence); janitor self-repairs duplicate actives; boot runs an immediate geofence restore.
 6. **Observability**: `DepartureVerdict` (pre-arm + every worker attempt), `DepartureProcessed`, `Reverted` (user-labelled false positive — the gold datum), `OrphanCleaned`, `GeofenceRegistration`.
 7. **Replay harness** (`DetectionTraceReplayer` + `tools/trace2fixture`): every field bug becomes a permanent fixture against the REAL detector. First fixture: the BUG-REPARK-WALK-001 walking trace — asserts clean `aborted_false_enter`, no save, no prompt.
@@ -6220,3 +6221,44 @@ designed and the trip was caught by `GEOFENCE_EXIT` instead. The triage's own KD
 damper "the wrong axis". Removing it is its own behaviour delta and needs a real trip to measure.
 
 Spec: `docs/backlog/det-two-tier-sentry-001.md`.
+
+### DET-A-VETO-NOBODY-EVER-TURNS-ON-IS-NOT-A-VETO-001 — a veto shipped disabled is not a veto (pending)
+
+**Not a field report.** This is #16 of the redesign's Piece 3 (fail closed by construction), the one
+defect of the four that Piece 3 left marked *refuted/deferred* rather than fixed:
+`ParkingDetectionConfig.enterArmStepVetoMs = 0L`.
+
+**What was measured.** The B4 enter-arm step veto — first pedestrian step within N ms of a
+`verified_enter` arm with no driving seen → degrade the evidence to `self_observed` and un-seed, so
+the false-ENTER abort re-arms — shipped with its window at `0L` and nothing ever raised it. Its own
+KDoc said why: *"enable only after validating against replay traces that real short-hops don't
+produce a first step this early."* That validation never happened. The branch's first condition is
+`config.enterArmStepVetoMs > 0`, false at every production call site, so the four conditions behind
+it — including one of the surviving `armEvidence == LABEL_…` string comparisons — never evaluated.
+Its only executor was a test that set `15_000L` itself.
+
+**Why deleting is the fix and not calibrating.** Both halves of the veto's job arrived afterwards by
+other routes. The outcome it chased — an ENTER-only arm must not save in silence — is now the sealed
+type's own answer: `VerifiedByVehicleEnter.confirmsSilentlyWithoutMeasuredDrive` is `false`
+[DET-DRIVING-EVIDENCE-IS-THE-ONLY-GATE-001], veto or no veto. And the un-seed it wanted has one
+general, live path: the `OnTrust` seed is retractable and `departureDismissed()` takes it back with
+every anti-walking guard [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001]. What remained was a second,
+ad-hoc, permanently-off door to the same state, plus a documented invitation to switch it on without
+data.
+
+**Behaviour delta: none.** The deleted branch never ran. The one thing that changes is what the
+docs claim: §4 of the evidence-policy summary no longer promises a veto that was never on.
+
+**What the veto would have added, stated so nobody re-invents it blind.** It aborted the spurious
+walking session *silently* — no save and no prompt. Without it the same walk ends in a **question**.
+That is the asymmetric-failure doctrine's own side (better to ask than to plant), and since
+DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001 the question shows where it asks and retracts itself.
+If a field trace ever justifies refuting an ENTER by its steps, it enters through the existing
+retraction as a verdict — not through a config knob.
+
+**Coverage was already there.** `should_prompt_instead_of_saving_when_enter_only_arm_never_sees_driving`
+is the veto's own scenario (same arm, same walking burst, no measured drive) run under the
+PRODUCTION config, asserting save=0 and prompt=1. It was left untouched on purpose: it is the proof
+that the outcome never depended on the veto.
+
+Spec: `docs/backlog/det-a-veto-nobody-ever-turns-on-is-not-a-veto-001.md`.

@@ -633,20 +633,14 @@ class CoordinatorParkingDetector(
                     //     the user has parked, steps are proof they exited the car. This is the
                     //     existing BUG-GARAGE-COLA-001 behaviour; gated on stoppedSince so steps
                     //     during driving (phone bouncing in pocket) don't accumulate.
-                    // [DET-SOLID-001][B4] Enter-arm step veto (config-gated, default OFF): the
-                    // FIRST step arriving suspiciously soon after a VerifiedByVehicleEnter arm,
-                    // with no driving observed by the stream, marks the ENTER as spurious
-                    // (walking, BUG-FALSE-ENTER-WALKING hardware quirk) — degrade the evidence
-                    // and un-seed so the false-ENTER abort guard re-arms.
-                    if (config.enterArmStepVetoMs > 0 &&
-                        _detectionState.value.session.armEvidence == ArmEvidence.LABEL_VERIFIED_ENTER &&
-                        _detectionState.value.egress.stepCount == 0 &&
-                        (clock() - sessionStartMs) < config.enterArmStepVetoMs &&
-                        _detectionState.value.drive.provenMaxSpeedMps < config.minimumTripSpeedMps
-                    ) {
-                        PaparcarLogger.d(DIAG, "  ⊘ enter-arm step veto — first step ${clock() - sessionStartMs}ms after arm, no driving seen → evidence degraded to self_observed [DET-SOLID-001]")
-                        _detectionState.update { it.copy(session = it.session.enterArmStepVeto()) }
-                    }
+                    // [DET-A-VETO-NOBODY-EVER-TURNS-ON-IS-NOT-A-VETO-001] A third role used to be
+                    // spelled here — the B4 enter-arm step veto, which refuted a `verified_enter`
+                    // arm whose first step landed too soon. It shipped `enterArmStepVetoMs = 0L`
+                    // and nothing ever raised it, so the branch never ran in production. What it
+                    // was for is covered twice over now: `VerifiedByVehicleEnter` no longer
+                    // confirms in silence [DET-DRIVING-EVIDENCE-IS-THE-ONLY-GATE-001], and the
+                    // trust seed it wanted to take back is retractable through one general path
+                    // [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001].
                     // [DET-AR-FIRST-001 F3] Post-drive steps also count while the park ANCHOR is
                     // set even though GPS reads walking movement: those steps ARE the user's
                     // egress walk. Gating them on `stoppedSince` starved the count the moment the

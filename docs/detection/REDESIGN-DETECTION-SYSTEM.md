@@ -466,7 +466,7 @@ Rutas relativas a `shared/src/commonMain/kotlin/com/rndeveloper/paparcar` (`$C`)
 | 13 | mismo `:301` `pathLabel` | qué se traza | `else` incondicional: un prompt sin pruebas se traza como `vehicleExit+window+egress` |
 | 14 | `$C/domain/detection/CoordinatorParkingDetector.kt:372` y `$A/.../CoordinatorDetectionService.kt:1500` | con qué evidencia arma | **`armEvidence: ArmEvidence = ArmEvidence.Manual` por defecto** — la evidencia más fuerte del sistema es el valor omitido |
 | 15 | `ParkingDecisionInput` `:109-182` | toda la decisión | `egressBornAtAnchor = true`, `anchorGapEntered = false`, `humanPoweredRide = false`, `assertedPinBlocksRelocation = false`… **todos** hacia permitir |
-| 16 | `$C/domain/model/ParkingDetectionConfig.kt:318` | veto de step tras arm | `enterArmStepVetoMs = 0L` → el veto está **desactivado por defecto** |
+| 16 | `$C/domain/model/ParkingDetectionConfig.kt:318` | veto de step tras arm | `enterArmStepVetoMs = 0L` → el veto está **desactivado por defecto** ✅ **cerrado 30-08 BORRÁNDOLO** (`DET-A-VETO-NOBODY-EVER-TURNS-ON-IS-NOT-A-VETO-001`): su desenlace ya lo da el `when` sellado y su un-seed ya tiene camino general |
 
 Contraste que demuestra que el proyecto sabe hacerlo bien: `DetectionEffectDispatcher.kt:92,150,191,229,316`
 **revienta** (`error(...)`) ante un valor desconocido. Política opuesta, mismo módulo.
@@ -611,7 +611,10 @@ Criterio de aceptación de la pieza: **un caso nuevo no compila hasta que su aut
   más fuerte del sistema sea el valor omitido es indefendible.
 - `ParkingDecisionInput` (#15) → los campos de duda pasan a ser obligatorios, o se **invierten** para
   que el default sea el valor dudoso: `egressBornAtAnchor: Boolean = true` → `egressDoubt: Boolean = true`.
-- `enterArmStepVetoMs = 0L` (#16) → un veto desactivado por defecto no es un veto.
+- `enterArmStepVetoMs = 0L` (#16) → un veto desactivado por defecto no es un veto. ✅ **Resuelto el
+  30-08 por BORRADO**, no por calibración: nada lo encendió nunca, su desenlace lo da hoy
+  `VerifiedByVehicleEnter.confirmsSilentlyWithoutMeasuredDrive = false` y su un-seed lo da la
+  retractación del seed `OnTrust`. Ver `DET-A-VETO-NOBODY-EVER-TURNS-ON-IS-NOT-A-VETO-001`.
 
 **3b. Una sola política de nulos, escrita una vez.** Hoy hay tres ficheros contiguos con tres
 políticas distintas (§6.2 #8, #9, #10). Regla: **en una pregunta de evidencia, `null` significa

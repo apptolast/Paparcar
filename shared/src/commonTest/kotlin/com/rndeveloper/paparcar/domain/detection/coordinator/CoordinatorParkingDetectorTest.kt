@@ -1795,7 +1795,7 @@ class CoordinatorParkingDetectorTest {
         }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // DET-SOLID-001 B3/B4: weak-evidence prompt + enter-arm step veto
+    // DET-SOLID-001 B3: weak-evidence prompt
     // ─────────────────────────────────────────────────────────────────────────
 
     @Test
@@ -1803,6 +1803,12 @@ class CoordinatorParkingDetectorTest {
         runTest(UnconfinedTestDispatcher()) {
             // [B3] ENTER-only evidence (bus/taxi-falsifiable) + no driving observed by the stream
             // → all confirm conditions hold but the coordinator must ASK, not save.
+            //
+            // [DET-A-VETO-NOBODY-EVER-TURNS-ON-IS-NOT-A-VETO-001] This is also the scenario the B4
+            // enter-arm step veto claimed: same arm, same walking burst, no measured drive. The
+            // veto shipped disabled and was deleted; this test runs the PRODUCTION config, so what
+            // it asserts is what the field actually gets — a question, not a silent abort and not
+            // a phantom pin.
             val env = setup()
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
             val job = launch {
@@ -1830,33 +1836,6 @@ class CoordinatorParkingDetectorTest {
             locations.emit(GpsPoint(40.0053, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
             job.cancelAndJoin()
             assertEquals(1, env.parkingRepo.saveNewParkingSessionCallCount, "user tap completes the save")
-        }
-
-    @Test
-    fun should_veto_enter_arm_when_first_step_arrives_immediately() =
-        runTest(UnconfinedTestDispatcher()) {
-            // [B4] Veto ON: a VerifiedByVehicleEnter arm whose FIRST step lands right after the
-            // arm (no driving seen) is a spurious walking ENTER — evidence degrades and the
-            // false-ENTER abort re-arms, so the walking burst aborts with no save AND no prompt.
-            val env = setup(config = config.copy(enterArmStepVetoMs = 15_000L))
-            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
-            val job = launch {
-                env.coordinator.invoke(locations, armEvidence = ArmEvidence.VerifiedByVehicleEnter(enterToExitMs = 30_000L))
-            }
-
-            locations.emit(GpsPoint(40.005, -3.7, accuracy = 5f, timestamp = 0L, speed = 1.2f))
-            env.stepDetector.emitSteps(1)
-            assertFalse(
-                env.coordinator.hasDetectedMovement,
-                "immediate first step must degrade the ENTER evidence and un-seed [DET-SOLID-001 B4]",
-            )
-            env.stepDetector.emitSteps(7)
-            locations.emit(GpsPoint(40.0051, -3.7, accuracy = 5f, timestamp = 0L, speed = 1.2f))
-
-            job.cancelAndJoin()
-
-            assertEquals(0, env.parkingRepo.saveNewParkingSessionCallCount, "vetoed session saves nothing")
-            assertEquals(0, env.notification.parkingConfirmationCallCount, "vetoed session prompts nothing")
         }
 
     // ─────────────────────────────────────────────────────────────────────────
