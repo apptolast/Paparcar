@@ -522,6 +522,37 @@ data class ParkingDetectionConfig(
      *  clean: bikes hold the ≥18 km/h band in seconds-long bursts, while the worst legitimate
      *  car trace on file (Calle Gavia, skeletal MIUI stream) still held it for one 36-s hop. */
     val sustainedDriveProofMs: Long = 30_000L,
+    /**
+     * [DET-DRIVING-EVIDENCE-VALUE-OBJECT-001] How many fixes at real driving speed **with credible
+     * accuracy** a session must have seen before its driving counts as MEASURED
+     * (`DrivingEvidence.Measured`). Below it the session may ask about a park; it may never plant
+     * one in silence.
+     *
+     * **This is the LONE-SAMPLE rule, not a density threshold — and the difference was measured.**
+     *
+     * The redesign proposed **5**, from 148 COORDINATOR sessions where walking noise never passed 2
+     * credible fixes and the weakest trip appeared to have 7. Two measurements refuted it:
+     *
+     *  - That trip has **7**, not the 44 the redesign credited it with: 44 counts `speed >= 5`
+     *    without the accuracy gate, and this counter applies it — 37 of those fixes carried accuracy
+     *    worse than [minGpsAccuracyForDriving], on the night of the 2 min 16 s GPS hole.
+     *  - And the **worst legitimate trace on file breaks a bar of 5 outright**: Calle Gavia
+     *    (2026-07-04, the skeletal MIUI stream this config already cites twice as the weakest real
+     *    car trace) has **2** credible fixes in 11, and a bar of 5 turned that correct park into a
+     *    silent false negative — caught by its own replay test.
+     *
+     * So the honest bar is **2**, and it is the rule the project already applies elsewhere: *a lone
+     * sample is not a measurement*. `DET-LONE-SAMPLE-CANNOT-UNFREEZE-AN-ANCHOR-001` refuses to move
+     * an anchor on one trip-speed fix ("run 1 of 2"); this refuses to plant a pin on one. The
+     * parafarmacia false positive had exactly **1**.
+     *
+     * ⚠️ This bar is deliberately the WEAKEST of the three `DrivingEvidence.Measured` requires: a
+     * fix count measures how densely the OS sampled, not whether a car moved. The load is carried by
+     * the other two, which are physical — excursion ([minimumTripDistanceMeters]) and sustained band
+     * ([sustainedDriveProofMs]) — and the false positive failed all three independently while Calle
+     * Gavia cleared both of the physical ones with room to spare (543 m, 36 s).
+     */
+    val minDrivingFixesForConfirm: Int = 2,
     /** [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001] The speed band no bicycle SUSTAINS — 11,1 m/s
      *  (40 km/h). Held for [sustainedDriveProofMs] by credible successive fixes, it is a MOTOR,
      *  measured by this session's own stream, and it refutes every human-powered claim made about
@@ -1118,6 +1149,11 @@ data class ParkingDetectionConfig(
         }
         require(sustainedDriveProofMs > 0L) {
             "sustainedDriveProofMs must be > 0, was $sustainedDriveProofMs"
+        }
+        require(minDrivingFixesForConfirm > 0) {
+            // Zero would make DrivingEvidence.Measured reachable with no credible fix at all, which
+            // is the hole this bar exists to close. [DET-DRIVING-EVIDENCE-VALUE-OBJECT-001]
+            "minDrivingFixesForConfirm must be > 0, was $minDrivingFixesForConfirm"
         }
         require(sustainedDriveProofMs <= driveProofWindowMaxMs) {
             // A single in-band hop the drive-proof window already trusts (Calle Gavia: one 36-s

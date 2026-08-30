@@ -112,6 +112,10 @@ fun DetectionSessionState.reduceFix(
         bounds = bounds,
         config = config,
         sustainedDepartureRateMps = sustainedDepartureRateMps,
+        // [DET-DRIVING-EVIDENCE-VALUE-OBJECT-001] Presented, like everything else here: the origin
+        // belongs to the session telemetry and the distance is already measured above. A second
+        // call site would be a copy that agrees by luck.
+        distanceFromOriginMeters = distFromOrigin,
     )
     if (newDrive.isProven && !drive.isProven) {
         val how = when (newDrive.proven) {

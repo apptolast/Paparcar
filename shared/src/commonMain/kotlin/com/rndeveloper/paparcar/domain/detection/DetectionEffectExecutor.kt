@@ -188,10 +188,10 @@ class DetectionEffectExecutor(
                 // [DET-ASSERTION-OUTRANKS-INFERENCE-001] The SUSTAINED figure, not a peak: the
                 // guard's job is to tell a real re-park from a walk-away, and one stray sample is
                 // not a drive. [DET-MOTOR-PROOF-001]
-                sessionSawDriving = sustainedDriveWitnessed(
-                    state.provenDrivingBandMs,
-                    config.sustainedDriveProofMs,
-                ),
+                // [DET-DRIVING-EVIDENCE-VALUE-OBJECT-001] …and "not a drive" is now the one verdict,
+                // not this clock read on its own — a band time cannot say whether the position ever
+                // went anywhere, and the parafarmacia session cleared none of the three bars.
+                sessionSawDriving = state.drivingEvidence(config).mayConfirmSilently,
                 // [DET-PIN-PROVENANCE-001] The confirmation path IS the provenance.
                 detectionPath = pathLabel,
                 zoneRadiusMeters = honestRadius,

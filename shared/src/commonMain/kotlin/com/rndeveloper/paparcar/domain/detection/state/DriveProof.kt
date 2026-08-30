@@ -86,12 +86,20 @@ enum class DriveProofSource {
  * @property lastFixSeenAtMs Wall clock when the last fix was processed — the freshness reference a
  *   concurrent step event is judged against (step events carry no GPS timestamp of their own).
  * @property lastFixCredible Whether that fix's accuracy was credible.
+ * @property maxExcursionMeters [DET-DRIVING-EVIDENCE-VALUE-OBJECT-001] The furthest the position
+ *   provably got from the session origin, counted only over fixes whose accuracy was credible. A
+ *   LATCH, like [proven]: how far the car got is a fact about the trip, and coming back does not
+ *   un-travel it. This is the displacement half of `DrivingEvidence.Measured`, and it is an
+ *   EXCURSION rather than a net origin→final displacement on purpose — a there-and-back trip that
+ *   parks on its own street nets ≈0 and would become a false negative, while the mirage this has to
+ *   refute (field 2026-08-29: 71,6 m out, 64,8 m back in 3,5 s) never got past 72 m.
  */
 data class DriveProof(
     val proven: DriveProofSource? = null,
     val provenMaxSpeedMps: Float = 0f,
     val peakMps: Float = 0f,
     val credibleFixCount: Int = 0,
+    val maxExcursionMeters: Double = 0.0,
     val recentFixes: List<GpsPoint> = emptyList(),
     val shortHopRun: Int = 0,
     val drivingBandMs: Long = 0L,
@@ -144,6 +152,7 @@ data class DriveProof(
         bounds: DriveProofBounds,
         config: ParkingDetectionConfig,
         sustainedDepartureRateMps: Double? = null,
+        distanceFromOriginMeters: Double = 0.0,
     ): DriveProof {
         val newPeak = if (fix.speed > peakMps && credibleSpeedFix) fix.speed else peakMps
         val fixInBand = credibleSpeedFix && fix.speed >= config.minimumTripSpeedMps
@@ -169,6 +178,13 @@ data class DriveProof(
             provenMaxSpeedMps = if (newProven != null) newPeak else 0f,
             peakMps = newPeak,
             credibleFixCount = credibleFixCount + if (fixInBand) 1 else 0,
+            // [DET-DRIVING-EVIDENCE-VALUE-OBJECT-001] Only a credible fix may move the excursion:
+            // a 250 m-accuracy fix reported 200 m away proves nothing about where the car got to.
+            maxExcursionMeters = if (credibleSpeedFix) {
+                maxOf(maxExcursionMeters, distanceFromOriginMeters)
+            } else {
+                maxExcursionMeters
+            },
             recentFixes = pruneRecentFixes(recentFixes, fix, bounds),
             shortHopRun = newShortHopRun,
             drivingBandMs = creditSpeedBand(

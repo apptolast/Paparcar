@@ -423,6 +423,27 @@ Contado sobre el `parkdiag` de la noche del 29-08, las tres sesiones que produje
 del histórico. Este es el invariante empírico central del rediseño y sale de nuestros propios datos,
 no de una intuición.
 
+> 🔴 **CORREGIDO al implementar la Pieza 1 (30-08), con dos mediciones. Las dos cifras de arriba
+> están mal y el umbral de 5 también.**
+>
+> 1. **La sesión de casa tiene 7 `drivingFixes`, no 44.** El 44 sale de contar `speed >= 5` **sin la
+>    puerta de precisión**, y `DriveProof.credibleFixCount` sí la aplica (`credibleSpeedFix &&
+>    speed >= minimumTripSpeedMps`). 37 de esos 44 fixes traían accuracy > 50 m — era la noche del
+>    agujero de GPS. Con la definición real del contador, el margen del umbral no es 39, es **2**.
+> 2. **Un umbral de 5 SÍ toca un confirmado legítimo, y lo dijo un test.** El replay
+>    `calle_gavia_001_correct_detection_still_anchors_at_calle_gavia` (traza del 04-07, el stream
+>    esquelético de MIUI que este repo cita como el peor trayecto real del histórico) se puso rojo:
+>    *«the correct park must save expected:1 but was:0»*. Esa traza tiene **2 fixes creíbles de 11**.
+>
+> **El bar implementado es 2**, y no es un número nuevo: es la regla LONE-SAMPLE que el proyecto ya
+> aplica en `DET-LONE-SAMPLE-CANNOT-UNFREEZE-AN-ANCHOR-001` («run 1 of 2»). Un contador de fixes mide
+> la densidad con que muestreó el OS, no si un coche se movió: es la más DÉBIL de las tres
+> condiciones de `Measured`. El peso lo llevan las dos físicas —excursión ≥150 m y banda ≥30 s—, que
+> el FP falla ambas (72 m, 0 ms) y Calle Gavia pasa ambas con holgura (543 m, 36 s).
+>
+> Lección, que es la misma que este documento predica: *una cifra que no se ha contado con la
+> definición del código es una intuición con aspecto de dato*.
+
 ### 6.2 Inventario de fallos abiertos (16 sitios, con fichero:línea)
 
 Rutas relativas a `shared/src/commonMain/kotlin/com/rndeveloper/paparcar` (`$C`) y
@@ -669,7 +690,7 @@ estilo de los `ColorGuardrailTest` / `TypographyGuardrailTest` que ya existen:
 | # | ticket | cierra | riesgo |
 |---|---|---|---|
 | 0 | `DET-DRIVING-EVIDENCE-IS-THE-ONLY-GATE-001` ✅ | FP parafarmacia | hecho |
-| 1 | `DET-DRIVING-EVIDENCE-VALUE-OBJECT-001` (Pieza 1) | §6.0, la raíz | medio |
+| 1 | `DET-DRIVING-EVIDENCE-VALUE-OBJECT-001` (Pieza 1) ✅ | §6.0, la raíz | hecho |
 | 2 | `DET-NO-CLOCK-PLANTS-A-PIN-001` (Pieza 4) | pin a 142 m, batería | bajo |
 | 3 | `DET-DETECTION-PATH-IS-A-TYPE-001` (Pieza 2) | #4 #12 #13 | medio |
 | 4 | `DET-FAIL-CLOSED-BY-CONSTRUCTION-001` (Pieza 3) | #5-#11, #14-#16 | medio |

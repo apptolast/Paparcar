@@ -1,6 +1,9 @@
 package com.rndeveloper.paparcar.domain.detection.state
 
+import com.rndeveloper.paparcar.domain.detection.physics.DrivingEvidence
+import com.rndeveloper.paparcar.domain.detection.physics.drivingEvidence
 import com.rndeveloper.paparcar.domain.model.GpsPoint
+import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
 
 /**
  * [09 §5] The five sub-states, composed — and **the order they are reduced in**.
@@ -88,6 +91,28 @@ data class DetectionSessionState(
 
     /** @see DriveProof.provenDrivingBandMs */
     val provenDrivingBandMs: Long get() = drive.provenDrivingBandMs
+
+    /**
+     * [DET-DRIVING-EVIDENCE-VALUE-OBJECT-001] **The single answer to "did this session watch a car
+     * drive?"**, and the only place it is built.
+     *
+     * The four signals it replaces at the decision sites — `driveAuthorized`, `hasEverMoved`,
+     * `drive.proven` and `provenDrivingBandMs` — each answered a different question, and the path
+     * that plants the most pins (`steps+egress`) consulted the weakest of them. Reading them one at
+     * a time is how a session with ONE mirage fix confirmed a park in silence (field 2026-08-29
+     * 23:56, "La Parafarmacia").
+     *
+     * ⚠️ `driveAuthorized` is deliberately NOT folded in. It is the lifecycle authorization — *may
+     * this session stay alive?* — not the right to confirm, and the two are different planes. That
+     * one is `DET-DISPLACEMENT-DRIVE-MUST-SURVIVE-ITS-NEXT-FIX-001`.
+     */
+    fun drivingEvidence(config: ParkingDetectionConfig): DrivingEvidence = drivingEvidence(
+        credibleFixes = drive.credibleFixCount,
+        excursionMeters = drive.maxExcursionMeters,
+        sustainedBandMs = drive.provenDrivingBandMs,
+        shortHopProven = drive.proven == DriveProofSource.SHORT_HOP,
+        config = config,
+    )
 
     /** Wall-clock duration since the first GPS fix, in ms; `0` if no fix has arrived yet. */
     fun sessionDurationMs(now: Long): Long = session.ageMs(now)

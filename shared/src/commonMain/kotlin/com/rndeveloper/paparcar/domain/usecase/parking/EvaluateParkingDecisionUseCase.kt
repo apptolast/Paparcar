@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.domain.usecase.parking
 
+import com.rndeveloper.paparcar.domain.detection.physics.DrivingEvidence
 import com.rndeveloper.paparcar.domain.detection.physics.sustainedDriveWitnessed
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
 import com.rndeveloper.paparcar.domain.model.VehicleType
@@ -107,6 +108,17 @@ data class ParkingDecisionInput(
      *  ride peaked at 38 km/h), while sustained band time separates clean — the worst legitimate
      *  car trace on file (Calle Gavia, skeletal stream) still held one 36-s hop. */
     val sustainedDrivingMs: Long = 0L,
+    /**
+     * [DET-DRIVING-EVIDENCE-VALUE-OBJECT-001] The session's ONE verdict on whether it watched a car
+     * drive, built by `DetectionSessionState.drivingEvidence`. Only
+     * [com.rndeveloper.paparcar.domain.detection.physics.DrivingEvidence.Measured] authorises a
+     * silent pin.
+     *
+     * Defaults to `null` for the replay/legacy callers that predate it; a null reads as "this input
+     * carries no verdict", and the policy then falls back to [sustainedDrivingMs] alone, which is
+     * exactly the pre-ticket behaviour. New call sites must pass it.
+     */
+    val drivingEvidence: DrivingEvidence? = null,
     /** Arm-evidence persist label of the session (see [com.rndeveloper.paparcar.domain.detection.ArmEvidence]);
      *  null for legacy callers. Kept a flat string so the input stays replayable. [DET-SOLID-001] */
     val evidenceLabel: String? = null,
@@ -220,7 +232,17 @@ class EvaluateParkingDecisionUseCase(private val config: ParkingDetectionConfig)
         // the driving band, not the session peak — a bicycle clears any peak threshold a car
         // must also clear (18,1 km/h for ~6 s pinned the bike rack, field 2026-08-18; 38 km/h
         // on 2026-08-16), but cannot HOLD the band the way even the weakest car trace does.
-        val sessionSawDriving = sustainedDriveWitnessed(input.sustainedDrivingMs, config.sustainedDriveProofMs)
+        //
+        // [DET-DRIVING-EVIDENCE-VALUE-OBJECT-001] And "witnessed a motor" is now ONE verdict rather
+        // than this clock read alone. The clock answers *how long* the band was held; it cannot
+        // answer *how many credible fixes said so* or *whether the position actually went
+        // anywhere*, and the parafarmacia FP cleared none of the three while this line, on its own,
+        // was the only question the silent path ever asked. `DrivingEvidence` asks all three at
+        // once, in the one place that can see them. A null verdict means the caller predates the
+        // value object (replays, hand-built inputs): fall back to the clock, which is exactly the
+        // behaviour those callers were written against.
+        val sessionSawDriving = input.drivingEvidence?.mayConfirmSilently
+            ?: sustainedDriveWitnessed(input.sustainedDrivingMs, config.sustainedDriveProofMs)
 
         // [DET-KINEMATIC-EGRESS-001] GPS-measured walk away from the frozen end-of-drive anchor.
         // Steps outrank it (they fire earlier); this is the mute-counter peer. Requires measured

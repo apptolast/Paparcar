@@ -6005,3 +6005,59 @@ one** test red, the parafarmacia one, and no other. 1.798 tests green.
 
 Spec: `docs/backlog/det-driving-evidence-is-the-only-gate-001.md`. Wider redesign this ticket is
 step 0 of: `docs/detection/REDESIGN-DETECTION-SYSTEM.md`.
+
+### DET-DRIVING-EVIDENCE-VALUE-OBJECT-001 — one verdict on "did it drive?", and the bar it sets was measured, not guessed (pending)
+
+The question *"did this session watch a car drive?"* was answered in four places with four different
+things — `driveAuthorized` (the arm's NOMINATION, which one in-band fix flips), `hasEverMoved`,
+`DriveProof.proven`, and `provenDrivingBandMs` — and **the path that plants the most pins,
+`steps+egress`, consulted none of the last two.** It leaned on the nomination having let the fix
+through. `PreDriveSkipStage.kt:17-20` says so in its own KDoc (*"passing this gate proves nothing
+about the trip"*) three stages above the site that treats it as proof.
+
+**Fix.** A value object, `DrivingEvidence` (`None` / `Weak` / `Measured`), built in exactly one place
+(`DetectionSessionState.drivingEvidence`) and read by the three sites that ask the question: the
+confirm policy, the asserted-pin relocation guard, and the confirm executor. `Measured` — the only
+tier that authorises a silent pin — requires three bars at once: credible driving fixes, the furthest
+the position provably got from the session origin, and sustained time in the driving band.
+
+**Excursion, not net displacement.** The redesign spec said "net displacement"; taken literally
+(origin → last fix) a there-and-back trip that parks on its own street measures ≈0 and a real park
+becomes a false negative. What has to be refuted is the mirage — 71,6 m out and 64,8 m back in 3,5 s
+— and the furthest point reached with credible accuracy refutes exactly that: the parafarmacia FP
+never got past 72 m, under the 150 m the config already calls a trip. A proven `SHORT_HOP` is exempt,
+or a 100 m re-park down the street would be a false negative.
+
+**The fix-count bar was proposed at 5 and is shipping at 2, because a test refuted 5.** With 5, the
+replay `calle_gavia_001_correct_detection_still_anchors_at_calle_gavia` went red — *"the correct park
+must save expected:1 but was:0"*. That 2026-07-04 trace is the skeletal MIUI stream this repo already
+calls the weakest legitimate car trace on file: **2 credible fixes out of 11**. Two is the
+LONE-SAMPLE rule the project already applies (`DET-LONE-SAMPLE-CANNOT-UNFREEZE-AN-ANCHOR-001` will
+not move an anchor on one trip-speed fix; this will not plant a pin on one). A fix count measures how
+densely the OS sampled, not whether a car moved — it is deliberately the weakest of the three, and
+the physical bars carry the load.
+
+Measured on the field night of 2026-08-29→30, counted with the code's own definition
+(`speed >= 5 m/s` AND `acc <= 50 m`):
+
+| session | credible fixes | excursion | band | verdict |
+|---|---|---|---|---|
+| FP "La Parafarmacia" 23:47 | **1** | **72 m** | **0** | `Weak` → asks |
+| real trip 21:47 | 86 | 3.098 m | 30,0 s | `Measured` |
+| home trip 01:20 | 7 | 2.493 m | 45,0 s | `Measured` |
+| Calle Gavia (2026-07-04) | 2 | 543 m | 36 s | `Measured` |
+
+⚠️ The redesign's §6.1 credited the home trip with 44 credible fixes; the real figure is **7**. The 44
+counts `speed >= 5` without the accuracy gate, and `credibleFixCount` applies it — 37 of those fixes
+carried accuracy worse than 50 m, on the night of the 2 min 16 s GPS hole. §6.1 now carries the
+correction.
+
+`driveAuthorized` is deliberately untouched: it governs *may this session stay alive*, not *may it
+confirm*, and folding the two would mix two behaviour deltas into one ticket. That one is
+`DET-DISPLACEMENT-DRIVE-MUST-SURVIVE-ITS-NEXT-FIX-001`. `None.mayAskAboutAPark` is declared and
+deliberately not wired: closing a session is the Piece 4 decision.
+
+1.812 tests green. Falsified: reverting the verdict wiring turns exactly the two new decision tests
+red and no others.
+
+Spec: `docs/backlog/det-driving-evidence-value-object-001.md`.

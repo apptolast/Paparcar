@@ -65,6 +65,7 @@ fun DetectionSessionState.parkingDecisionInput(
     sessionDurationMs = sessionDurationMs(now),
     maxSpeedKmh = maxSpeedKmh,
     sustainedDrivingMs = provenDrivingBandMs, // [DET-MOTOR-PROOF-001]
+    drivingEvidence = drivingEvidence(config), // [DET-DRIVING-EVIDENCE-VALUE-OBJECT-001]
     evidenceLabel = session.armEvidence,
     hasKinematicEgress = hasKinematicEgressSignal(config),
     lastSpeedMps = session.lastSpeedMps,
@@ -83,10 +84,12 @@ fun DetectionSessionState.parkingDecisionInput(
             pinLocation = pin.location,
             candidate = location,
             nowMs = now,
-            sessionSawDriving = sustainedDriveWitnessed(
-                provenDrivingBandMs,
-                config.sustainedDriveProofMs,
-            ),
+            // [DET-DRIVING-EVIDENCE-VALUE-OBJECT-001] The same verdict the confirm policy reads.
+            // This asks literally the same question — *did THIS session witness driving?* — and
+            // answering it with a second expression is how four answers to one question came about.
+            // The direction is safe: a stricter verdict blocks MORE relocations of a pin the user
+            // asserted, which is the side the asymmetric-failure doctrine wants to err on.
+            sessionSawDriving = drivingEvidence(config).mayConfirmSilently,
             userConfirmedReliability = config.reliabilityUserConfirmed,
             freshWindowMs = config.reparkPlausibilityWindowMs,
             radiusMeters = config.reparkPlausibilityRadiusMeters,

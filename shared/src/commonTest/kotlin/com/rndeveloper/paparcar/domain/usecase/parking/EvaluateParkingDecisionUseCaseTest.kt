@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.domain.usecase.parking
 
+import com.rndeveloper.paparcar.domain.detection.physics.DrivingEvidence
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
 import com.rndeveloper.paparcar.domain.model.VehicleType
 import kotlin.test.Test
@@ -34,6 +35,10 @@ class EvaluateParkingDecisionUseCaseTest {
         // Default derived from the peak so every pre-existing scenario keeps its intent: a test
         // that gave the session a real driving peak meant "the stream witnessed the drive".
         sustainedDrivingMs: Long = if (maxSpeedKmh >= 18f) 60_000L else 0L,
+        // [DET-DRIVING-EVIDENCE-VALUE-OBJECT-001] Null on purpose by default: a null verdict makes
+        // the policy fall back to `sustainedDrivingMs`, which is what every scenario written before
+        // the value object was expressing. Tests about the verdict itself pass it explicitly.
+        drivingEvidence: DrivingEvidence? = null,
         evidenceLabel: String? = null,
         hasKinematicEgress: Boolean = false,
         lastSpeedMps: Float = 0f,
@@ -46,9 +51,20 @@ class EvaluateParkingDecisionUseCaseTest {
         humanPoweredRide: Boolean = false,
         assertedPinBlocksRelocation: Boolean = false,
     ) = ParkingDecisionInput(
-        stepCount, hasEgressDisplacement, hadVehicleExit,
-        elapsedSinceHighMs, vehicleType, sessionDurationMs, maxSpeedKmh, sustainedDrivingMs,
-        evidenceLabel, hasKinematicEgress, lastSpeedMps,
+        // Named, not positional: inserting a field into the middle of the data class used to bind
+        // the wrong argument to the wrong parameter and still compile.
+        stepCount = stepCount,
+        hasEgressDisplacement = hasEgressDisplacement,
+        hadVehicleExit = hadVehicleExit,
+        elapsedSinceHighMs = elapsedSinceHighMs,
+        vehicleType = vehicleType,
+        sessionDurationMs = sessionDurationMs,
+        maxSpeedKmh = maxSpeedKmh,
+        sustainedDrivingMs = sustainedDrivingMs,
+        drivingEvidence = drivingEvidence,
+        evidenceLabel = evidenceLabel,
+        hasKinematicEgress = hasKinematicEgress,
+        lastSpeedMps = lastSpeedMps,
         egressExceedsWalkReach = egressExceedsWalkReach,
         anchorGapEntered = anchorGapEntered,
         egressBornAtAnchor = egressBornAtAnchor,
@@ -245,6 +261,48 @@ class EvaluateParkingDecisionUseCaseTest {
     }
 
     // ── [DET-DRIVING-EVIDENCE-IS-THE-ONLY-GATE-001] ─────────────────────────────────────────────
+
+    // ── [DET-DRIVING-EVIDENCE-VALUE-OBJECT-001] ────────────────────────────────────────────────
+
+    @Test
+    fun should_prompt_when_the_driving_evidence_is_weak_even_on_a_strong_arm() {
+        // §6.0 of the redesign, closed: the path that plants the most pins — steps+egress — could
+        // confirm in silence without consulting the drive proof at all, because `verified_speed` is
+        // an arm the weak-evidence policy trusts. Now the verdict is asked as well, and the
+        // parafarmacia numbers (1 credible fix, 72 m of excursion, no band time) cannot buy a pin
+        // through ANY arm that does not itself carry a measurement.
+        val decision = evaluate(
+            input(
+                stepCount = 8,
+                hasEgressDisplacement = true,
+                maxSpeedKmh = 27.8f,
+                sustainedDrivingMs = 60_000L, // the clock alone would have said "yes"
+                drivingEvidence = DrivingEvidence.Weak(credibleFixes = 1, why = "field 2026-08-29"),
+                evidenceLabel = com.rndeveloper.paparcar.domain.detection.ArmEvidence.LABEL_VERIFIED_ENTER,
+            )
+        )
+        assertEquals(PromptReason.WEAK_EVIDENCE, assertIs<ParkingDecision.Prompt>(decision).reason)
+    }
+
+    @Test
+    fun should_confirm_when_the_driving_evidence_is_measured() {
+        // The other half of the same rule: the real 21:47 trip of that night.
+        val decision = evaluate(
+            input(
+                stepCount = 8,
+                hasEgressDisplacement = true,
+                maxSpeedKmh = 58f,
+                sustainedDrivingMs = 0L, // …and the verdict OUTRANKS the raw clock read
+                drivingEvidence = DrivingEvidence.Measured(
+                    credibleFixes = 86,
+                    excursionMeters = 3098.0,
+                    sustainedBandMs = 30_001L,
+                ),
+                evidenceLabel = com.rndeveloper.paparcar.domain.detection.ArmEvidence.LABEL_VERIFIED_LATE,
+            )
+        )
+        assertIs<ParkingDecision.Confirmed>(decision)
+    }
 
     @Test
     fun should_prompt_when_enter_at_car_arm_and_session_never_drove() {
