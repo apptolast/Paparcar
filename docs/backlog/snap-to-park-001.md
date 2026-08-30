@@ -1,8 +1,13 @@
 # SNAP-TO-PARK-001 — Sacar el ancla de dentro de edificios (snap al aparcamiento más cercano)
 
-> **Estado**: PENDIENTE — rama `feature/SNAP-TO-PARK-001-snap-anchor-out-of-buildings` (parte de
-> `refactor/DET-SOLID-001-evidence-system`). Decidido 2026-07-05: probar primero en campo el
-> armado temprano (safety-net + anchor-lock); implementar esto después con datos frescos.
+> **Estado**: 🔵 **Abierto, sin código y sin rama.** Verificado el 2026-08-30
+> [DOCS-LIVING-DOCS-MUST-MATCH-MASTER-001]: cero marcadores en `shared/src`, y su único commit en
+> master es el `docs(backlog):` que lo abrió (`9f898b81`). La rama que citaba la cabecera
+> (`feature/SNAP-TO-PARK-001-snap-anchor-out-of-buildings`) **nunca existió o ya se borró** — decirlo
+> importa, porque leído antes parecía trabajo empezado que alguien podría estar buscando.
+>
+> Decidido 2026-07-05: probar primero en campo el armado temprano (safety-net + anchor-lock);
+> implementar esto después con datos frescos.
 
 ## Problema (incidente de campo 2026-07-04, sesión `1783183613431`)
 

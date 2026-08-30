@@ -1,5 +1,11 @@
 # HANDOFF — Refactor definitivo del flujo de detección de aparcamiento
 
+> 🗄 **ARCHIVADO 2026-08-30** [DOCS-LIVING-DOCS-MUST-MATCH-MASTER-001]. Documento de traspaso de una
+> sesión de diseño de junio de 2026; vivía en la raíz del repo, donde se leía como si fuera vigente.
+> Su plan se ejecutó y aterrizó en master como `9b80f9c` — el registro de esa ejecución es
+> [`docs/detection/REFACTOR-PLAN.md`](../detection/REFACTOR-PLAN.md). **No describe el sistema
+> actual.** Para eso: [`docs/detection/PARKING-DETECTION.md`](../detection/PARKING-DETECTION.md).
+
 > **Para Claude Code.** Este documento es el resultado de una sesión de razonamiento de
 > arquitectura sobre el núcleo de detección de Paparcar. Resume el diagnóstico, las decisiones
 > ya tomadas y el plan de refactor. **No actúes todavía**: lee esto, cruza cada afirmación con

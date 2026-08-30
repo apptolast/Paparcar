@@ -1,6 +1,10 @@
 # DET-CREDIBLE-DRIVE-001 — Primitivo "conducción creíble": velocidad+accuracy O velocidad+desplazamiento
 
-> **Estado**: NÚCLEO IMPLEMENTADO 2026-07-16 en la rama `feature/DET-ANCHOR-EGRESS-001-egress-born-at-anchor`
+> **Estado**: ✅ Done · en master como `781cb666` — *"displacement-corroborated hop rescues the mute
+> deceleration"*. La rama ya no existe; el marcador vive en **15 ficheros** de producción.
+> *(Corregido el 2026-08-30 por [DOCS-LIVING-DOCS-MUST-MATCH-MASTER-001].)*
+>
+> Implementado originalmente 2026-07-16 sobre la rama `feature/DET-ANCHOR-EGRESS-001-egress-born-at-anchor`
 > (encadenado tras el techo/Regla A por decisión del user). Implementado: salida sostenida desde el
 > ancla (`isSustainedDepartureFromAnchor` — descongela por desplazamiento corroborado), banda
 > ambigua muda no prueba COCHE (el odómetro de caminata sobrevive), taint de ancla walk-entered

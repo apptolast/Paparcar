@@ -1,5 +1,23 @@
 # Arquitectura de señales de detección — referencia
 
+> ⚠️ **DOC DE DISEÑO DE JUNIO 2026, PARCIALMENTE SUPERADO.** Revisado el 2026-08-30 contra master
+> `46621e7f` [DOCS-LIVING-DOCS-MUST-MATCH-MASTER-001]. **El principio rector sigue vigente y es el
+> valor de este documento; el mapa de qué señal arma NO.** Dos correcciones que hay que leer antes
+> que nada:
+>
+> 1. **AR `IN_VEHICLE ENTER` SÍ arma hoy.** Este doc decía lo contrario (§1). Desde `2a25219a`
+>    [DET-AR-FIRST-001] el armado es **AR-first**: `EvaluateArEnterArmUseCase` arma cuando el
+>    embarque está atado al PROPIO coche (un bus o un taxi no arman), y `GEOFENCE_EXIT` es la otra
+>    vía. No es una vuelta atrás al diseño de mayo: lo que se prohíbe sigue siendo que un evento
+>    **confirme**, no que despierte.
+> 2. **El evento NOMINA, solo el movimiento MEDIDO confirma.** Es la formulación vigente de la misma
+>    idea que este doc llama "señal decisiva". Un EXIT de geocerca o un AR ENTER despiertan o arman;
+>    ninguno planta un pin por sí solo, y un evento re-entregado por Doze/OEM nunca lo hace.
+>
+> **Fuente de verdad de la detección de hoy:** [`PARKING-DETECTION.md`](./PARKING-DETECTION.md) y la
+> sección de detección de [`CLAUDE.md`](../../CLAUDE.md). Este doc se conserva porque explica **por
+> qué** cada señal vale lo que vale — el razonamiento aguanta aunque el reparto haya cambiado.
+
 > El diseño de referencia del núcleo de Paparcar. Define **qué señal gobierna cada decisión** y por
 > qué. Principio rector: **fallo asimétrico** — un falso negativo (no detecto plaza) cuesta ~0; un
 > **falso positivo (plaza fantasma) rompe la confianza de la red**. Por eso cada decisión cuelga de
@@ -14,6 +32,9 @@
 La señal **decisiva** (la que confirma/dispara) debe ser **físicamente imposible de producir en un
 no-evento** (atasco, semáforo, drop-off, ir en bus). Todo lo demás solo puede *abrir candidato*,
 *subir confianza* o *corroborar* — **nunca decide solo**.
+
+> La columna "Rol" es la de junio. Lee la fila del AR `IN_VEHICLE_ENTER` junto a la corrección de la
+> cabecera: hoy **arma** (con la escalera de propiedad del coche), y sigue sin **confirmar**.
 
 | Señal | ¿Aparece en un no-evento? | Rol |
 |---|---|---|
@@ -59,8 +80,10 @@ garaje — no es obligatorio ni para armar ni para liberar.
   el gate de velocidad** — un walk-out nunca alcanza `minimumTripSpeedMps` y se auto-aborta
   (`falseEnterAbortSteps` / `maxNoMovementMs`). Ningún spot fantasma puede salir: el egreso exige
   haber conducido Y caminado lejos.
-- **AR `IN_VEHICLE_ENTER` ya NO arma** — disparaba con cualquier vehículo (bus, coche ajeno). Queda
-  solo para registrar el timestamp de la ventana de departure.
+- ~~**AR `IN_VEHICLE_ENTER` ya NO arma**~~ — **superado.** El problema que se describía (disparaba con
+  cualquier vehículo: bus, coche ajeno) era real, pero la solución no fue quitarle el armado al AR:
+  fue **condicionarlo a que el embarque sea del propio coche**. Hoy `EvaluateArEnterArmUseCase` es la
+  escalera que decide eso, y el AR es la vía de **menor latencia** para armar [DET-AR-FIRST-001].
 - **Cold-start:** la geocerca solo existe si hay plaza. El primer park (o tras liberar sin nuevo
   park) se marca a mano (`HomeMode.AddingParking`). Tras marcarlo → al salir se arma el siguiente.
   *Al liberar se borra la geocerca, pero el armado ya se disparó en el exit, así que da igual.*

@@ -1,7 +1,15 @@
 # DET-SAFETY-NET-FGS-IS-TYPED-DATA-SYNC-001 · la red de seguridad pide un fix GPS declarándose sincronización de datos
 
-**Estado:** 🔵 En progreso · rama `bugfix/DET-SAFETY-NET-FGS-IS-TYPED-DATA-SYNC-001-location-type`
-· worktree `../Paparcar-fgs-type`
+**Estado:** ✅ Done · en master como `2e777e3b` — *"the safety net asked for a GPS fix calling itself
+data synchronisation"*. La rama `bugfix/…-location-type` y el worktree `../Paparcar-fgs-type` ya no
+existen.
+
+> Cerrado el 2026-08-30 por [DOCS-LIVING-DOCS-MUST-MATCH-MASTER-001]: este doc siguió declarando
+> *"🔵 En progreso"* sobre una rama borrada. Verificado por las tres vías de `DOCS-BACKLOG-TRUTH-001`
+> — `git log master --grep`, existencia de la rama, y el tipo del `ForegroundInfo` en el árbol.
+>
+> ⛔ El aprendizaje que **no** hay que perder: `DATA_SYNC` lo inyecta AGP por su cuenta al fusionar
+> manifiestos. Que el permiso apareciera no significaba que lo hubiéramos pedido nosotros.
 
 **Origen:** 2026-08-27. Salió de una pregunta del user sobre qué nos aprietan las versiones nuevas de
 Android. Al auditar la superficie de foreground services apareció un permiso

@@ -1,5 +1,10 @@
 # PROMPT — Refactor profundo del subsistema de DETECCIÓN (Paparcar)
 
+> 🗄 **ARCHIVADO 2026-08-30** [DOCS-LIVING-DOCS-MUST-MATCH-MASTER-001]. Es el prompt de arranque del
+> refactor del 18-08-2026, no una descripción del sistema: vivía en la raíz del repo. Lo que produjo
+> son los análisis [`docs/detection/01-…` a `11-…`](../detection/) y el plan
+> [`10-plan-refactor.md`](../detection/10-plan-refactor.md), con las fases ejecutadas anotadas allí.
+
 > Pégalo entero en Claude Code, en la raíz del repo, con el módulo Android/KMP indexado.
 > Está diseñado para ejecutarse por fases. **No pases a la siguiente fase sin mi aprobación explícita.**
 

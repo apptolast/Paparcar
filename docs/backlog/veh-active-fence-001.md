@@ -1,7 +1,11 @@
 # VEH-ACTIVE-FENCE-001 — El vehículo activo es la declaración: vallas, armado manual y release por sesión
 
-> **Estado**: CODE-COMPLETE (5/5 piezas) en rama `feature/VEH-ACTIVE-FENCE-001-active-vehicle-model`.
-> Pendiente: field-test de la Pieza 1 (vallas) + rebase/merge. Ver "Estado de implementación" abajo.
+> **Estado**: ✅ Done · en master (`49f02777`, `5d9a9106`, `277bba6d` entre otros). La rama
+> `feature/VEH-ACTIVE-FENCE-001-active-vehicle-model` ya no existe, y `VehicleFenceOwnershipPolicy`
+> tiene hoy **13 consumidores** en producción — incluidos `CoordinatorDetectionService`,
+> `GeofenceJanitorWorker`, `ConfirmParkingUseCase` y `SwapActiveVehicleFencesUseCase`.
+> *(Corregido el 2026-08-30 por [DOCS-LIVING-DOCS-MUST-MATCH-MASTER-001]: decía "CODE-COMPLETE en
+> rama, pendiente rebase/merge".)*
 > Origen: release fantasma del Chevrolet Beat + 6 FGS espurios (auditoría 2026-07-15).
 > Decidido con el user 2026-07-16. Prioridad: **P1**.
 >

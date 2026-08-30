@@ -1,7 +1,18 @@
 # UI-COLOR-DOCTRINE-001 — Ordenar la identidad cromática (un color = un significado)
 
-> **Estado**: 🟡 F1-F6 COMPLETAS en rama `feature/UI-COLOR-DOCTRINE-001-color-identity`
-> (worktree `../Paparcar-color`), SIN mergear. ⏳ revisión visual final en device → merge.
+> **Estado**: ✅ Done · **la doctrina está en master y es vinculante**. La rama
+> `feature/UI-COLOR-DOCTRINE-001-color-identity` y el worktree `../Paparcar-color` ya no existen.
+> Marcadores vivos: `ColorGuardrailTest`, `SpotFreshness.kt`, `DetectionStory.kt`, y la sección
+> ⛔ Color de `CLAUDE.md`.
+> *(Corregido el 2026-08-30 por [DOCS-LIVING-DOCS-MUST-MATCH-MASTER-001]: decía "SIN mergear, ⏳
+> revisión visual final".)*
+>
+> ⚠️ **Este doc es el origen, no el estado.** La doctrina evolucionó después en tres tickets que sí
+> mandan sobre los valores: `UI-COLOR-EVERY-HUE-EARNS-ITS-MEANING-001` (tres verdes separados por
+> TONO, nunca por luminosidad), `UI-COLOR-GREEN-TEXT-EARNS-ITS-CONTRAST-001` (relleno vivo vs texto
+> legible) y `UI-COLOR-THE-RAMP-HAS-ONE-RESOLVER-001` (un solo resolver de la rampa). La versión viva
+> es [`docs/design/COLOR-SYSTEM.md`](../design/COLOR-SYSTEM.md).
+>
 > Doctrina reformulada a v2 tras rechazar la v1 en device (ver Reformulación abajo).
 > Doctrina: [`docs/design/COLOR-SYSTEM.md`](../design/COLOR-SYSTEM.md).
 > Origen: el usuario reporta que verde y azul "chirrían" — un coche con BT aparcado muestra el

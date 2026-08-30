@@ -1,6 +1,11 @@
 # DET-SUPERSEDE-CANNOT-DISCARD-A-MEASURED-DRIVE-001 · un supersede es la CONTINUACIÓN del mismo viaje, no un viaje nuevo
 
-**Estado:** 🟢 Implementado, sin commitear · rama `bugfix/DET-SUPERSEDE-CANNOT-DISCARD-A-MEASURED-DRIVE-001-carry-drive-proof` · worktree `../Paparcar-supersede-drive-proof`
+**Estado:** ✅ Done · en master como `8b996fef` — *"a supersede is the same trip changing sessions,
+not a new one"*. La rama `bugfix/…-carry-drive-proof` y el worktree `../Paparcar-supersede-drive-proof`
+ya no existen.
+
+> Corregido el 2026-08-30 por [DOCS-LIVING-DOCS-MUST-MATCH-MASTER-001]: decía *"🟢 Implementado, sin
+> commitear"*.
 
 ## Problema
 

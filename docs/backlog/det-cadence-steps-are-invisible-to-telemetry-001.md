@@ -1,8 +1,10 @@
 # DET-CADENCE-STEPS-ARE-INVISIBLE-TO-TELEMETRY-001 · el veto de bici decide con pasos que ningún diagnóstico registra
 
-**Estado:** 🔵 Implementado, sin commitear · rama
-`chore/DET-CADENCE-STEPS-ARE-INVISIBLE-TO-TELEMETRY-001-log-the-inputs` ·
-worktree `../Paparcar-cadence-telemetry`
+**Estado:** ✅ Done · en master como `c692d61c` — *"the bicycle veto's only inputs reached no lane at
+all"*. La rama `chore/…-log-the-inputs` y el worktree `../Paparcar-cadence-telemetry` ya no existen.
+
+> Corregido el 2026-08-30 por [DOCS-LIVING-DOCS-MUST-MATCH-MASTER-001]: decía *"🔵 Implementado, sin
+> commitear"*.
 
 **Origen:** descubierto el 2026-08-27 construyendo el replay de
 `DET-HUMAN-POWERED-VETO-MUST-BE-REVOCABLE-001`. La primera versión de la traza **pasaba también sin

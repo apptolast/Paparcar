@@ -1,6 +1,12 @@
 # DET-BT-CAR-CANNOT-NOMINATE-A-COORDINATOR-SESSION-001 · el coche del otro carril no puede ser "tu coche"
 
-**Estado:** 🟢 Implementado, sin commitear · rama `bugfix/DET-BT-CAR-CANNOT-NOMINATE-A-COORDINATOR-SESSION-001-veto-bt-nominator` · worktree `../Paparcar-bt-nominator` · **1.644 tests verdes** (1.636 + 8) · ⏳ sin conducir
+**Estado:** ✅ Done · en master como `5d6a941f` — *"the car in the other lane cannot be 'your car'"*.
+La rama `bugfix/…-veto-bt-nominator` y el worktree `../Paparcar-bt-nominator` ya no existen.
+
+> Corregido el 2026-08-30 por [DOCS-LIVING-DOCS-MUST-MATCH-MASTER-001]: decía *"🟢 Implementado, sin
+> commitear"*. Verificado por las tres vías — commit con su tag, marcador vivo en
+> `VehicleFenceOwnershipPolicy` / `EvaluateArEnterArmUseCase` / `CoordinatorDetectionService`, y rama
+> inexistente.
 
 ## Problema
 

@@ -1,249 +1,156 @@
-# Paparcar — Bugs detectados y deuda técnica
+# Paparcar — Bugs y deuda técnica
 
-> Inventario auditado el **2026-05-24**. Sustituye a `docs/Gemini_Potential_Fixes.md` (archivado en `docs/archive/`).
-> Severidad: **Critical** (rompe core / Main thread / data loss), **High** (degrada UX o estabilidad), **Medium** (perf / accesibilidad), **Low** (cosmético / TODO).
-
----
-
-## §1 · ✅ RESUELTO 2026-05-24 — `runBlocking` en getters de DataStore [PERF-001]
-
-**Archivo:** `shared/src/androidMain/kotlin/com/rndeveloper/paparcar/preferences/AndroidDataStoreAppPreferences.kt`
-
-Antes: cada getter/setter envolvía el flow del DataStore con `runBlocking { ... }`, bloqueando el thread (Main incluido).
-
-Fix aplicado: snapshot in-memory (`@Volatile private var snapshot: Preferences`) inicializado con **un solo** `runBlocking { store.data.first() }` en construcción, mantenido en sync por un `collect` en `CoroutineScope(IO)`. Setters actualizan el snapshot optimísticamente + lanzan el write asíncrono a DataStore. Resultado: **0 runBlocking por getter, 1 por ciclo de vida del proceso**.
-
----
-
-## §2 · ✅ RESUELTO 2026-05-24 — Dos implementaciones de `AppPreferences` sin selección clara [DI-001]
-
-`AndroidAppPreferences.kt` (SharedPreferences legacy) era código muerto — el DI ya bindeaba `AndroidDataStoreAppPreferences`. Borrado. La migración SharedPreferences → DataStore se mantiene vía `SharedPreferencesMigration` integrada en el `preferencesDataStore` delegate.
+> **Doc vivo.** Inventario de lo que **sigue abierto hoy**. Verificado contra master `46621e7f` el
+> **2026-08-30**: cada punto se comprobó en el árbol (`grep`/`ls`), no de memoria.
+> Sustituye a `Gemini_Potential_Fixes.md`, **borrado** en este mismo barrido por estar reemplazado
+> por completo (recuperable en el histórico de git).
+>
+> **Qué NO vive aquí:** los bugs de detección con ticket propio — esos están en
+> [`ROADMAP.md`](./ROADMAP.md) y en [`backlog/`](./backlog/), que es donde se trabajan. Este doc
+> recoge la deuda **estructural**: la que no es un ticket porque no tiene arreglo de una tarde.
+>
+> La versión de mayo de este inventario (17 secciones, 15 ya cerradas) queda en el histórico de git:
+> `git show 9946ae94:docs/BUGS_AND_DEBT.md`. No se conserva aquí porque un doc vivo lleno de ✅ de
+> hace tres meses no informa, estorba.
 
 ---
 
-## §3 · ✅ RESUELTO 2026-05-24 — iOS Activity Recognition stubs sin implementar [IOS-AR-001]
+## 1 · iOS no arranca Firebase — falta `GoogleService-Info.plist`
 
-`IosActivityRecognitionManagerImpl` ahora inyecta `DepartureEventBus` + `ParkingDetectionCoordinator` y emite las 3 señales:
-- IN_VEHICLE/ENTER → `departureEventBus.onVehicleEntered(now)`
-- IN_VEHICLE/EXIT  → `coordinator.onVehicleExit()`
-- STILL/ENTER      → `coordinator.onStillDetected()`
+**Severidad:** alta (para iOS) · **Verificado:** `ls iosApp/iosApp/` no lo contiene.
 
-**Pendiente fuera del scope:** el loop que llama a `coordinator.invoke(locations)` con un Flow de GPS en iOS (no hay foreground service equivalente). Trackeo en `docs/IOS_PLAN.md`.
+`iOSApp.swift` llama a `FirebaseApp.configure()` y el plist no está en el proyecto: en runtime la
+inicialización falla **en silencio**. Cualquier build iOS que se distribuya hoy arranca sin Auth ni
+Firestore y sin decirlo.
 
-**Nota colateral:** se añadieron a `IosAppPreferences` los miembros `hasSeenGpsAccuracyDisclaimer` + `setGpsAccuracyDisclaimerSeen()` que faltaban (paridad con Android, añadidos a la interface en un sprint anterior).
-
----
-
-## §4 · ⚠️ PARCIAL 2026-05-24 — Maps API key en manifest sin restricción [SEC-001]
-
-**Parte código (✅ done):**
-- Build falla rápido en releases si falta `MAPS_API_KEY` (`app/build.gradle.kts` — bloque `gradle.taskGraph.whenReady`).
-- Documentado el modelo de seguridad y las acciones GCP requeridas en `docs/release/RELEASE-SECURITY.md`.
-
-**Parte GCP Console (⚠️ pendiente usuario):**
-- Rotar Maps API key (la actual estuvo hardcodeada en commits previos, recuperable via `git log`).
-- Aplicar Application restrictions: package `com.rndeveloper.paparcar` + SHA-1 debug + release.
-- Aplicar API restrictions: solo `Maps SDK for Android`.
-
-Checklist completo en `docs/release/RELEASE-SECURITY.md §1`. (Inventario en memoria: `reference_api_keys_inventory.md`.)
+**Cierre:** Firebase Console → Add iOS app (bundle `com.rndeveloper.paparcar`) → descargar el plist →
+añadir al target `iosApp` con *Copy items if needed*. ~20 min, bloqueado solo por hacerlo.
 
 ---
 
-## §5 · ✅ Parcial (2026-05-25) — Lambdas inline en listas [PERF-002]
+## 2 · Los schedulers de iOS no sobreviven a la muerte del proceso
 
-**Done:**
-- `HomeSheetContent.kt` — `vehiclesSection` ahora memoiza `onClick` con `remember(card.session?.id, card.vehicle.id, onParkingClick, onParkVehicle)`.
-- `HomeZoneChips.kt` — los lambdas de `onClick` y `onDelete` por chip ahora se memoizan con `remember(zone.id, callback)`.
+**Severidad:** alta (para iOS) · **Verificado:** `iosMain/detection/IosParkingSyncScheduler.kt`,
+`IosParkingEnrichmentScheduler.kt`, `IosReportSpotScheduler.kt`.
 
-**Pendiente (no bloqueante):**
-- `HomeSheetContent.kt:~359-371` (filter chips) — sin priorizar; el coste es marginal porque la lista es de 4-5 chips fijos. Reabrir si los profilers muestran recomposiciones reales del filter bar.
+Son coroutine + retry sobre un scope propio. Funcionan mientras el proceso viva; si iOS lo mata a
+mitad de un sync, **el trabajo se pierde sin reintento**. En Android ese papel lo hace WorkManager,
+que persiste.
 
----
+**Cierre:** `BGProcessingTask` con `requiresNetworkConnectivity`, identifier registrado en
+`Info.plist` (`BGTaskSchedulerPermittedIdentifiers`) y el `sessionId` pendiente en `NSUserDefaults`
+para sobrevivir al kill. Estimado ~4 h — ver [`IOS_PLAN.md`](./IOS_PLAN.md).
 
-## §6 · ✅ Resuelto parcial (2026-05-25) — Accesibilidad de iconos [A11Y-001]
-
-Re-auditado: la cifra "~25" venía de un grep crudo de `contentDescription = null` sin distinguir uso. Sólo había **dos** `IconButton` realmente clickables sin alternativa textual:
-
-- `VehicleRegistrationScreen.kt:172` (botón de back en TopAppBar) → ahora usa `vehicle_registration_cd_back`.
-- `PaparcarAuthSlots.kt:236` (toggle de visibilidad de contraseña) → ahora usa `auth_cd_show_password` / `auth_cd_hide_password`.
-
-Los restantes ~60 hits del grep son iconos decorativos junto a `Text` con label (en `Surface(onClick=)` rows, banners, empty states, leadingIcon de TextField, etc.). En esos casos `contentDescription = null` es **correcto** — TalkBack fusiona el Row en un único elemento accesible y lee el Text.
-
-**Pendiente (A11Y-002 — TalkBack pass):**
-- Verificar in-device con TalkBack que los Surface(onClick=) realmente fusionan el contenido (algunos requieren `Modifier.semantics(mergeDescendants = true)`).
-- Tamaños mínimos de touch target (≥48dp) en chips e icon buttons pequeños.
-- CDs en iconos de status (banners, badges) — opcional pero mejor UX si están aislados visualmente.
+> ✅ Ya **no quedan stubs** en `iosMain`: las 11 piezas de detección tienen implementación nativa
+> real. Lo que falta no es "rellenar un stub", es el ciclo de vida.
 
 ---
 
-## §6b · High — GoogleService-Info.plist ausente
+## 3 · iOS no tiene quien alimente al coordinator
 
-**Carpeta:** `iosApp/iosApp/`
+**Severidad:** alta (para iOS) · **Estado:** Fase 0 en la rama `feature/IOS-F0-001-fase0`, sin mergear.
 
-`iOSApp.swift` llama `FirebaseApp.configure()` pero el plist no está en el proyecto. iOS build de Firebase fallará silenciosamente en runtime.
+Las señales existen (`CLLocation`, `CMMotion`, geocercas, pasos), pero no hay equivalente al
+foreground service que en Android empuja el stream de GPS al detector. Sin ese lazo, la estrategia
+probabilística no corre en iOS aunque todas sus piezas estén.
 
-**Fix sugerido:**
-- Crear proyecto iOS en Firebase Console (bundle id `com.rndeveloper.paparcar`)
-- Descargar `GoogleService-Info.plist` y añadir a `iosApp/iosApp/` (`Copy items if needed`, target `iosApp`)
-- Verificar con `Analytics.logEvent` que se conecta
-
----
-
-## §7 · ✅ Resuelto (2026-05-25) — Doze Mode / MIUI mitigation [DOZE-001]
-
-**Cambios:**
-- `AppPermissionState.kt` + `PermissionManagerImpl.kt` — nuevo campo `isBatteryOptimizationExempt` vía `PowerManager.isIgnoringBatteryOptimizations()`.
-- `PermissionsState/Intent/Effect/ViewModel/Content` — nueva fila opcional "Unrestricted battery usage" (mismo patrón que Bluetooth). Toca la fila → lanza `ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` system dialog. Si OEM detectado se muestra hint textual sobre "Autostart" / "Background activity".
-- `AndroidManifest.xml` — añadido `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` permission.
-- `DetectionHeartbeatWorker.kt` (nuevo) — worker periódico cada 15 min. Si hay sesiones activas en Room, llama `startForegroundService(ACTION_START_TRACKING)`. El servicio ya deduplica (no-op si ya está corriendo). Catch de `ForegroundServiceStartNotAllowedException` — el próximo heartbeat reintenta.
-- `PaparcarApp.kt` + `BootCompletedReceiver.kt` — `DetectionHeartbeatWorker.enqueueKeep()` en ambos puntos de entrada.
-
-**Pendiente (no en beta-1):** test en device físico Redmi Note 11 + Oppo ColorOS para validar que el OEM hint efectivamente aparece.
+`IOS-F0-001` prepara el terreno (puertos, capacidades, harness). 🔵 **Lo valida un compañero con Mac**:
+desde este entorno Windows no se puede compilar K/N para iOS — de ahí que el CI tenga desde `02a29f62`
+un job `macos-latest` que al menos compila `iosMain` en cada push.
 
 ---
 
-## §8 · ✅ Resuelto (2026-05-25) — Geofence TTL + Janitor [GEOF-001]
+## 4 · Room vive de un destructivo que caduca el día del lanzamiento
 
-**Cambios:**
-- `GeofenceManagerImpl.kt` — `NEVER_EXPIRE` → `GEOFENCE_TTL_MS` (24 h). Geofences se auto-destruyen tras 24h sin proceso activo.
-- `UserParkingDao.kt` — añadido `getAllActive(): List<UserParkingEntity>` (suspend, no Flow).
-- `GeofenceJanitorWorker.kt` (nuevo) — worker periódico (12 h, KEEP policy) que re-registra las geofences de todas las sesiones activas en Room. Re-añadir una geofence existente es idempotente (`FLAG_UPDATE_CURRENT`, `setInitialTrigger(0)`).
-- `PaparcarApp.kt` — `GeofenceJanitorWorker.enqueueKeep(workManager)` en `onCreate()`.
+**Severidad:** media hoy, **crítica el día 1** · **Verificado:** `AppDatabase.kt` (`version = 1`),
+`AndroidAppDatabase.kt:27` y `IosPlatformModule.kt:40` (`fallbackToDestructiveMigration(dropAllTables = true)`).
 
-### §8.1 · ✅ Revisión (2026-06-26) — vuelta a `NEVER_EXPIRE` + drenado en logout [SESSION-ISOLATION-001]
+La cadena v2..v20 y sus 16 esquemas se borraron a conciencia: describían upgrades de bases que solo
+existieron en nuestros propios móviles. v1 es la línea base y el destructivo es **correcto mientras no
+haya usuarios**. [DATA-ROOM-STARTS-AT-VERSION-ONE-001]
 
-El TTL de 24h provocaba que un coche aparcado >24h perdiera la detección de salida si el OEM (Xiaomi/Redmi) estrangulaba a WorkManager y el Janitor no corría dentro de la ventana. Decisión: geofence **sin expiración** y prevención de huérfanas vía borrado explícito en todas las vías de fin de sesión.
+⚠️ **El primer release público invierte el signo de esta decisión.** Desde ahí hay datos que deben
+sobrevivir y todo cambio de esquema necesita `Migration` + schema exportado + `MigrationTestHelper`.
+No hay recordatorio automático de eso: está escrito en el KDoc de `AppDatabase` y aquí.
 
-**Cambios:**
-- `GeofenceManagerImpl.kt` — `GEOFENCE_TTL_MS` (24 h) → `Geofence.NEVER_EXPIRE`.
-- `GeofenceManager` (domain) — nuevo `removeAllGeofences()`; Android lo implementa con `removeGeofences(PendingIntent)` (borra todas sin enumerar ids), iOS itera `monitoredRegions`.
-- `SplashViewModel.wipeLocalUserData()` — drena las geofences del OS **antes** del `clearAllTables()` en cada transición a `Unauthenticated` (logout / cambio de usuario / token expiry). Cierra el hueco por el que la geofence del usuario anterior seguía registrada en GMS hasta 24h.
-- `GeofenceJanitorWorker` — su rol pasa de "refrescar TTL" a "restaurar tras reboot/reinstall" (GMS borra todas las geofences en ambos casos, independientemente de la expiración).
-- Prevención de huérfanas restante: borrado en `RevertParkingUseCase` / `ProcessConfirmedDepartureUseCase` / `UpdateParkingLocationUseCase`, drenado en logout, y limpieza automática del OS en uninstall.
+> El comportamiento del downgrade está **medido**, no supuesto: `AppDatabaseDowngradeTest` demuestra
+> que no crashea. Ese test existe precisamente porque la documentación de Room dice lo contrario.
 
 ---
 
-## §9 · ✅ Resuelto (2026-05-25) — `ParkingDetectionService` `START_STICKY` sin re-check de permisos
+## 5 · Clave de Maps sin rotar y sin restringir
 
-**Archivo:** `shared/src/androidMain/.../detection/service/ParkingDetectionService.kt:~76`
+**Severidad:** alta · **Parte código ✅ / parte consola ⏳ usuario.**
 
-`START_STICKY` reanuda el service tras un kill, pero si el usuario revocó `ACCESS_BACKGROUND_LOCATION` entre kills, el service intentará operar sin permiso → crash o silent failure.
+El build ya falla rápido en release si falta `MAPS_API_KEY`, y el modelo de seguridad está escrito en
+[`release/RELEASE-SECURITY.md`](./release/RELEASE-SECURITY.md). Lo que falta no se arregla con código:
 
-**Fix aplicado:**
-- `intent == null` (START_STICKY restart) → tratado como `ACTION_START_TRACKING`
-- `hasRequiredPermissions()` verifica `ACCESS_FINE_LOCATION` + `ACCESS_BACKGROUND_LOCATION` (API Q+)
-- Si faltan: `stopSelf()` + `notificationPort.showPermissionRevoked()` (notificación con CTA)
-- `AppNotificationManager.showPermissionRevoked()` añadido a interface + Android impl + iOS no-op
-- `notif_permission_revoked_title/text` en strings.xml EN/ES
+- **Rotar** la clave — estuvo hardcodeada en commits antiguos y sigue siendo recuperable con `git log`.
+- **Application restrictions**: package `com.rndeveloper.paparcar` + SHA-1 de debug y release.
+- **API restrictions**: solo *Maps SDK for Android*.
 
----
-
-## §10 · ✅ Resuelto (2026-05-25) — `collectAsState` sin lifecycle en commonMain
-
-Varias pantallas usan `collectAsState()` desde commonMain (porque `collectAsStateWithLifecycle` está en androidx-lifecycle-runtime-compose, **androidMain only**). En iOS esto sigue funcionando, pero en Android **no respeta el lifecycle** y sigue consumiendo el flow tras un `pause`.
-
-**Fix aplicado:**
-- `presentation/util/StateFlowExt.kt` (commonMain) — expect `collectAsStateLifecycleAware()`
-- `StateFlowExt.android.kt` → `collectAsStateWithLifecycle()`
-- `StateFlowExt.ios.kt` → `collectAsState()`
-- 8 screens migradas: `BluetoothConfigScreen`, `HistoryScreen`, `HomeScreen`, `ParkingLocationScreen`, `SettingsScreen`, `VehicleRegistrationScreen`, `VehiclePageContent`, `VehiclesScreen`
+Y desplegar las reglas mínimas de Firestore de `RELEASE-SECURITY.md §2`. ⚠️ El MCP `firebase_deploy`
+es un **no-op silencioso**: hay que usar la CLI y verificar.
 
 ---
 
-## §11 · ✅ Resuelto (2026-05-25) — Política de migraciones Room [DB-001]
+## 6 · El flavor `mock` se rompe en las pantallas de auth
 
-**Archivo:** `shared/src/commonMain/.../data/datasource/local/room/AppDatabase.kt`
+**Severidad:** media (solo desarrollo) · **Ticket:** `MOCK-AUTH-SCREENS-NEED-THEIR-VIEWMODELS-001`.
 
-**Estado anterior:** `version = 3` con `fallbackToDestructiveMigration(true)` global en ambos DI modules → cualquier bump futuro borraba silenciosamente los datos del usuario.
+En `mock`, pulsar "Sign Up" mata la app; en `prod` está sana. La causa es de dependencias de BaseLogin
+que el módulo mock no bindea. Lo arregla de verdad **publicar BaseLogin 2.0.0 en Maven Central** — que
+es una sesión propia y aparte, porque el rename cambia TODOS los imports del proyecto.
 
-**Decisión:**
-- **No** se escriben migraciones retroactivas 1→2 y 2→3 (las versiones 1 y 2 sólo corrieron en builds internas pre-beta — cero usuarios productivos).
-- En `AndroidPlatformModule.kt` y `IosPlatformModule.kt`: `fallbackToDestructiveMigration(true)` → `fallbackToDestructiveMigrationFrom(true, 1, 2)`. El fallback queda restringido a los saltos legacy 1→3 / 2→3; cualquier bump futuro (v3→v4, etc.) requerirá `Migration` explícito o Room lanzará al startup.
-- Eliminados schemas obsoletos `9.json` y `10.json` (artefactos de cuando el proyecto empezaba en v9 antes de la renumeración).
-- Añadido contrato en KDoc de `AppDatabase` explicando el flujo (bump version → KSP genera schema → escribir Migration → `MigrationTestHelper`).
-
-**Pendiente cuando llegue v4:** primer Migration real + `MigrationTestHelper` (no se hace ahora porque no hay bump en cola).
+> ⛔ BaseLogin no se toca desde este repo.
 
 ---
 
-## §12 · ✅ Resuelto (2026-05-25) — Glass effect sin blur real [GLASS-001]
+## Riesgos estructurales (no son bugs hoy)
 
-**Archivos creados/modificados:**
-- `GlassBlur.kt` (commonMain expect) — `@Composable expect fun Modifier.glassBlur(radius: Dp): Modifier`
-- `GlassBlur.android.kt` — API ≥ S: `android.graphics.RenderEffect.createBlurEffect` via `asComposeRenderEffect()`. API < S: no-op.
-- `GlassBlur.ios.kt` — no-op (`UIVisualEffectView` interop requeriría un composable wrapper, no un Modifier; la opacidad de GlassSurface actúa de fallback).
-- `GlassSurface.kt` — aplica `glassBlur(GlassDefaults.BLUR_RADIUS)` al modifier cuando `isInteracting == true`. Radio: 20 dp.
+### R1 · La detección en background depende de que el OEM la deje vivir
+**Probabilidad alta · impacto en el core.** Xiaomi/Redmi y ColorOS estrangulan servicios y
+WorkManager; un force-stop borra además las geocercas. Ya hemos medido muertes reales en campo.
 
----
+Mitigación **ya construida**: nudge de exención de batería, instrucciones de autostart por OEM,
+heartbeat exacto, `ParkingSafetyNetWorker` + sensor de movimiento, y `GeofenceJanitorWorker` para
+restaurar tras reboot/reinstall. Ninguna lo elimina — lo acotan.
 
-## §13 · ✅ Resuelto completamente (2026-06-02) — `BluetoothParkingDetector` scope huérfano + proceso no protegido [BT-REFACTOR-FGS-001]
+Mitigación **pendiente de medida**: `DET-BROADCAST-QUEUE-STALL-001` y `DET-HEARTBEAT-LANE-REPAIR-001`
+esperan a que el Oppo vuelva a fallar para decidir con datos.
 
-**Fix parcial 2026-05-25:** Scope movido a Koin single (`btDetectorScope`) en vez de inline en el Receiver. El leak de instancias se reducía, pero el scope seguía sin dueño con ciclo de vida y el proceso podía ser matado durante los ~5 minutos de detección.
+### R2 · Google Play y el permiso de ubicación en background
+**Probabilidad media · impacto: retraso indefinido.** Play endurece cada año la justificación de
+`ACCESS_BACKGROUND_LOCATION` + `FOREGROUND_SERVICE_LOCATION`.
 
-**Fix completo 2026-06-02:**
-- `BluetoothConnectionReceiver` reducido a trabajo mínimo: lookup vehicleId + disparar Service.
-- Nuevo `BluetoothDetectionService` (`LifecycleService`, `START_NOT_STICKY`, `foregroundServiceType="location"`) dueño del scope largo. El proceso no puede ser matado mientras detecta.
-- `BluetoothParkingDetector` → stateless: sin `scope`, sin `detectionJob`. `onCarDisconnected()` → `suspend fun detectParking()`. Abort-on-reconnect via cancelación cooperativa del Service.
-- `btDetectorScope` eliminado de `AndroidDetectionModule`.
+Mitigación: la disclosure del onboarding ya dice exactamente lo que declara el formulario de Data
+Safety [ONB-DISCLOSURE-MATCHES-DATA-SAFETY-001], la política de privacidad está publicada en hosting
+propio, el borrado de cuenta tiene ruta web, y la ficha promete **solo** *"sabe dónde aparcaste"*.
+Prometer detección infalible en la ficha sería el error caro.
 
-Ver: `docs/refactors/BT-REFACTOR-FGS-001-bluetooth-detection-foreground-service.md`
+### R3 · GitLive es un wrapper de terceros sobre Firebase
+Si Google mueve el SDK oficial y GitLive no sigue, nos quedamos atrás. Plan B: `expect/actual` propio
+sobre el SDK oficial de Android. No hay señal de que haga falta hoy.
 
----
+### R4 · El fork propio de kmp-maps
+`io.github.rndevelo.kmpmaps:core:0.9.1-puck4` es nuestro (upstream 0.9.1 + PR #170 sin mergear). Nos
+da el marker de id estable que el flicker exigía, y a cambio **la versión la mantenemos nosotros**: si
+upstream avanza, el rebase del fork es trabajo nuestro.
 
-## §14 · Medium — Stubs iOS bloquean features
-
-**✅ Resuelto 2026-05-25 (parcial):**
-- `StubParkingSyncScheduler` → `IosParkingSyncScheduler` (coroutine + retry). No process-death persistence; BGTask deferred. [IOS-SYNC-001]
-- `StubPlacesDataSource` → `IosOverpassPlacesDataSourceImpl` (NSURLSession, misma query Overpass). [IOS-PLACES-001]
-
-**Pendiente:**
-- `StubDepartureEventBus.kt` — no-op por diseño (correcto)
-- `IosParkingSyncScheduler` — no persiste a través de process death (BGTask deferred)
-
----
-
-## §15 · ✅ Resuelto (2026-05-25) — TODOs abandonados
-
-- `IosActivityRecognitionManagerImpl.kt` líneas ~18–20 → cubierto en §3 [IOS-AR-001]
-- `BluetoothConnectionReceiver.kt:43-45` → `getParcelableExtra` migrado a API 33+ con compat guard: `if (SDK_INT >= TIRAMISU) getParcelableExtra(key, Class) else @Suppress("DEPRECATION") getParcelableExtra(key)`
+### R5 · Specs que solo viven en una rama
+Once ramas sin mergear llevan **dentro** su `docs/backlog/<id>.md`, de modo que el backlog de master
+no las ve. Listadas en [`ROADMAP.md § En vuelo`](./ROADMAP.md) para que no desaparezcan. Es el mismo
+agujero que motivó `IOS-SOCIAL-LOGIN-001`.
 
 ---
 
-## §16 · ✅ RESOLVED — Reset incompleto en `HomeViewModel`
+## Higiene medida (para no repetir auditorías)
 
-**Archivo:** `shared/src/commonMain/.../presentation/home/HomeViewModel.kt:74-79`
-
-`searchQueryFlow` y `reconnectTick` son `MutableStateFlow` internos que no se resetean en `onCleared()`. No es leak (el ViewModel se destruye con el scope), pero es buena práctica resetear al detach.
-
-**Fix (2026-05-25):** Added `onCleared()` override resetting both flows before calling `super.onCleared()`.
-
----
-
-## §17 · Low — `MapFab.kt` vs `HomeMapFab.kt` (no es duplicación)
-
-Confirmado por exploración: `HomeMapFab` es un wrapper temático sobre el genérico `MapCircleFab` de `MapFab.kt`. Patrón adapter válido — **no es deuda**.
-
----
-
-## Resumen por severidad
-
-| Sev. | Cantidad |
-|------|----------|
-| Critical | 4 |
-| High | 6 |
-| Medium | 5 |
-| Low | 3 |
-
----
-
-## Riesgos arquitectónicos (no son bugs hoy pero pueden serlo mañana)
-
-1. **Foreground service como pilar único de detección** — si Android refuerza más las restricciones (como hizo con `FOREGROUND_SERVICE_LOCATION` en 14+), el modelo se rompe. Considerar arquitectura híbrida: geofence pasivo + AR transitions + service solo en ventanas activas.
-
-2. **GitLive Firebase KMP** — wrapping de tercero. Si Google evoluciona el SDK oficial Android y GitLive no sigue, quedaremos atrás. Plan B: usar Firebase Android oficial vía `expect/actual` propio si GitLive deja de mantenerse.
-
-3. **Monolito growth** — 330+ ficheros. Aceptable hoy. Si supera 500 o builds >2 min, evaluar split `:core:detection` (ver `docs/archive/ARCH-002-modularization-review.md`).
-
-4. **Room sin migraciones explícitas** — bomba de relojería para usuarios que se actualizan a través de saltos de versión.
-
-5. **iOS está al ~70%** — implementaciones reales pero sin sync persistente. Cualquier release a TestFlight tendría detección incompleta sin §3 + §14.
+| Métrica | Valor el 2026-08-30 |
+|---|---|
+| `TODO(` / `FIXME` en `shared/src` | **0** |
+| Stubs en `iosMain` | **0** |
+| Ficheros de test | 191 en `commonTest` + 16 en `androidUnitTest` |
+| Guardarraíles Konsist | 10 (`architecture/`) |
+| Ficheros Kotlin `:shared` + `:app` | ~809 |
+| Warnings de compilación | 0 — `-Werror` activo [BUILD-ZERO-WARNINGS-IS-ENFORCED-001] |

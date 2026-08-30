@@ -1,6 +1,11 @@
 # DET-PIN-PROVENANCE-001 — provenance del pin: qué trigger/path colocó cada aparcamiento
 
-> **Estado**: IMPLEMENTADO 2026-07-21, rama `feature/DET-PIN-PROVENANCE-001` (desde master). Sin merge.
+> **Estado**: ✅ Done · en master como `9e9e3f48` — *"stamp which trigger placed each pin
+> (provenance)"*. La rama `feature/DET-PIN-PROVENANCE-001` ya no existe; `detectionPath` /
+> `armEvidence` viven hoy en **18 ficheros** de producción y son doctrina en `CLAUDE.md`.
+> *(Corregido el 2026-08-30 por [DOCS-LIVING-DOCS-MUST-MATCH-MASTER-001]: decía "Sin merge".)*
+> ⚠️ El "Room v12→v13" que menciona abajo ya no aplica: el esquema se colapsó a **v1**
+> [DATA-ROOM-STARTS-AT-VERSION-ONE-001].
 > Room v12→v13 (detectionPath) + `armEvidence`/`detectionPath` espejados a Firestore; 18 ficheros,
 > tests de mapper + reconcile ampliados, `testProdDebugUnitTest` verde, prod+mock compilan, schema
 > 13.json generado. PENDIENTE: device + field-test + verificación iOS (cambio 2 líneas, mismo patrón).

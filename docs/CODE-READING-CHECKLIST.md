@@ -1,5 +1,9 @@
 # Checklist de lectura del código — plan por fases
 
+> **Doc vivo.** Toda ruta citada aquí se comprobó con `ls`/`find` contra master `46621e7f` el
+> **2026-08-30** [DOCS-LIVING-DOCS-MUST-MATCH-MASTER-001]. Antes mandaba leer dos ficheros que no
+> existen; si vuelve a pasar, es un bug del doc.
+>
 > Objetivo: leer el proyecto entero **por orden de dependencia** (domain → data → detección → presentation → bordes),
 > no por orden alfabético. Cada fichero que abres ya conoce los tipos que usa.
 >
@@ -20,9 +24,11 @@
 - [ ] `CLAUDE.md` (raíz del repo)
 - [ ] `docs/architecture/` (los docs que existan, p. ej. VEHICLE-CATEGORIZATION.md)
 - [ ] `gradle/libs.versions.toml`
-- [ ] `app/build.gradle.kts` — flavors mock/prod, KSP, Room
+- [ ] `app/build.gradle.kts` (flavors mock/prod, firma, BuildConfig) + `shared/build.gradle.kts`
+      (source sets KMP, KSP/Room, `allWarningsAsErrors`)
 - [ ] 🐢 `di/DataModule.kt` — el mejor índice del proyecto
 - [ ] 🐢 `di/DomainModule.kt`
+- [ ] `di/DetectionModule.kt` — ⛔ ojo: los *stages* del coordinator **no** se inyectan
 - [ ] 🐢 `di/PresentationModule.kt`
 - [ ] `androidMain/.../di/AndroidPlatformModule.kt`
 - [ ] `androidMain/.../di/AndroidDetectionModule.kt`
@@ -75,8 +81,11 @@
 ## Fase 2 — Data: cómo se cumplen las promesas (2 sesiones)
 
 ### 2a. Room
-- [ ] `data/datasource/local/room/AppDatabase.kt`
-- [ ] 🐢 `data/datasource/local/room/Migrations.kt` — historia condensada del proyecto (vas por v12)
+- [ ] 🐢 `data/datasource/local/room/AppDatabase.kt` — **v1**, y su KDoc explica por qué: la cadena
+      v2..v20 se colapsó porque describía upgrades de bases que solo existieron en nuestros móviles
+      [DATA-ROOM-STARTS-AT-VERSION-ONE-001]. **No hay `Migrations.kt`** — si buscas la "historia
+      condensada del proyecto", está en ese comentario, no en un fichero de migraciones.
+- [ ] `androidUnitTest/.../AppDatabaseDowngradeTest.kt` — por qué el downgrade se midió en vez de creerle a la doc de Room
 - [ ] Entidades + DAOs (⚡ en parejas): `SpotEntity`/`SpotDao` · `UserParkingEntity`/`UserParkingDao` · `VehicleEntity`/`VehicleDao` · `UserProfileEntity`/`UserProfileDao` · `ZoneEntity`/`ZoneDao` · `GeocoderCacheEntity`/`GeocoderCacheDao`
 - [ ] `data/session/RoomLocalSessionCache.kt` · `data/geocoder/RoomGeocoderCacheDataSource.kt`
 
@@ -106,15 +115,27 @@
 > Regla de oro aquí: **test primero** — los replay tests con trazas de campo reales son la mejor spec.
 
 ### 3a. El cerebro puro (commonMain)
-- [ ] `domain/detection/DetectionTrigger.kt` · `DetectionRuntimeState.kt` · `ManualParkingDetection.kt` · `DepartureConfirmationListener.kt`
-- [ ] 🐢 `domain/detection/ArmEvidence.kt` — el modelo de evidencia de armado
+> ⚠️ **`domain/coordinator/` ya no existe.** Todo el cerebro de detección vive bajo
+> `domain/detection/`, repartido en `stages/` · `physics/` · `state/` · `fence/` · `sentry/` ·
+> `ports/` [DET-PACKAGE-CLUSTERS-001].
+
+- [ ] `domain/detection/DetectionTrigger.kt` · `DetectionRuntimeState.kt` · `DepartureConfirmationListener.kt`
+- [ ] 🐢 `domain/detection/ArmEvidence.kt` — el modelo de evidencia de armado · `FixProvenance.kt` — de qué mundo salió cada fix
 - [ ] 🐢 `domain/detection/ParkingStrategyResolver.kt` (test ✓) — BT vs Coordinator
-- [ ] `domain/detection/TripTrail.kt` + `domain/matching/TrailMapMatcher.kt` (test ✓)
-- [ ] 🐢 `domain/coordinator/ConfirmationPhase.kt` (test: `ConfirmationPhaseMappingTest`)
-- [ ] 🐢🐢 `domain/coordinator/CoordinatorParkingDetector.kt` (~1.400 líneas) — leer ANTES sus tests:
-  - [ ] `commonTest/.../coordinator/CoordinatorParkingDetectorTest.kt`
-  - [ ] `commonTest/.../coordinator/replay/DetectionTraceReplayer.kt` + `DetectionTraceReplayTest.kt`
-  - [ ] Trazas de campo fijadas: `Trace_CalleGavia001` · `Trace_Supermarket001` · `Trace_BugReparkWalk001`
+- [ ] `domain/detection/ports/TripTrail.kt` + `ports/ManualParkingDetection.kt` + `domain/matching/TrailMapMatcher.kt` (test ✓)
+- [ ] 🐢 `domain/detection/physics/` — los 12 predicados puros compartidos (`CredibleMovement`,
+      `WalkedVsRode`, `EffectiveDriving`, `HonestZoneRadius`, `SessionOutcome`, …). Aquí es donde vive
+      un predicado que usan 2+ veredictos, **no** dentro del coordinator
+- [ ] 🐢 `domain/detection/stages/` — los 12 stages (`CandidateStage`, `FastConfirmStage`,
+      `HoldResolutionStage`, `VehicleAttributionStage`, `UserConfirmStage`, …) + `StageInputs.kt`
+- [ ] 🐢 `domain/detection/state/ConfirmationPhase.kt` (test: `ConfirmationPhaseMappingTest`)
+- [ ] 🐢🐢 `domain/detection/CoordinatorParkingDetector.kt` — leer ANTES sus tests:
+  - [ ] `commonTest/.../domain/detection/coordinator/CoordinatorParkingDetectorTest.kt`
+  - [ ] `commonTest/.../domain/detection/coordinator/replay/DetectionTraceReplayer.kt` + `DetectionTraceReplayTest.kt`
+  - [ ] **16 trazas de campo reales fijadas** en `replay/Trace_*.kt` (`Trace_CalleGavia001`,
+        `Trace_Supermarket001`, `Trace_MotorwayRedmi001`, `Trace_HouseMirage001`,
+        `Trace_Gondola2608CadenceVeto`…). Son la mejor spec del sistema: cada una es un viaje que se
+        midió y un fallo que no debe volver
 
 ### 3b. El lado Android sucio (`androidMain/.../`)
 - [ ] 🐢 `detection/service/CoordinatorDetectionService.kt` (test: `CoordinatorDetectionServiceTest`)
@@ -172,8 +193,13 @@ notificación + worker de geocoding. Y el inverso: geofence EXIT → departure c
 - [ ] ⚡ `presentation/util/` — `SpotUiUtils` · `TimeStringComposables` · `ZoneIconMap` · etc.
 
 ### 4d. Sistema de diseño
-- [ ] 🐢 `ui/theme/PaparcarType.kt` — los 18 roles tipográficos
-- [ ] `ui/theme/` resto: `Theme` · `Color` · `SpotStateColors` · `Spacing` · `Shapes` · `Borders` · `PapMotion` · `Typography`
+- [ ] 🐢 `ui/theme/PaparcarType.kt` — los **22 roles** tipográficos, agrupados en tres voces
+      (MARCA / LECTURA / CIFRA). El rol posee familia, tamaño **y peso**; el call site solo decide color
+- [ ] `ui/theme/PapFontSet.kt` — qué letra pinta cada voz (hoy las tres, Plus Jakarta Sans) y sus
+      métricas. ⛔ las métricas de fuente viven aquí, nunca en una pantalla
+- [ ] 🐢 `ui/theme/VehicleIdentity.kt` — `vehicleIdentityColor(watch)`, el **único** resolver de
+      identidad de vehículo · `SpotStateColors.kt` — la rampa de frescura, también con un solo resolver
+- [ ] `ui/theme/` resto: `Theme` · `Color` · `PapColor` · `Alpha` · `Spacing` · `Shapes` · `Borders` · `PapMotion` · `Typography`
 - [ ] ⚡ `ui/components/` primitivos `Pap*`: `PapListItem` · `PapIconTile` · `PapCard` · `PapButton` · `PapSectionHeader` · `PapDivider` · resto
 - [ ] ⚡ `ui/components/Vehicle*` — la familia de iconografía de vehículo por geometría
 - [ ] `ui/icons/PaparcarIcons.kt` + `ui/illustrations/`
@@ -185,13 +211,22 @@ notificación + worker de geocoding. Y el inverso: geofence EXIT → departure c
 ## Fase 5 — Los bordes (1 sesión)
 
 ### 5a. Guardarraíles (codifican reglas que no están en el código de producción)
-- [ ] 🐢 `androidUnitTest/.../architecture/ArchitectureTest.kt`
-- [ ] `androidUnitTest/.../architecture/TypographyGuardrailTest.kt` + `DividerGuardrailTest.kt`
+- [ ] 🐢 `androidUnitTest/.../architecture/ArchitectureTest.kt` — domain sin Android/iOS
+- [ ] Diseño: `TypographyGuardrailTest.kt` · `ColorGuardrailTest.kt` · `DividerGuardrailTest.kt`
+- [ ] i18n: `LocaleParityGuardrailTest.kt` — las **dos** superficies de strings, y por qué faltar en
+      un locale no crashea (sale en inglés en silencio)
+- [ ] Detección: `StagePurityGuardrailTest.kt` · `HoldLaneGuardrailTest.kt` ·
+      `TriggerLaneGuardrailTest.kt` · `PromptWindowGuardrailTest.kt` · `HomeSliceGuardrailTest.kt`
+
+> Un guardarraíl de PROHIBICIÓN que nunca se ha visto fallar siempre pasa. Al escribir uno, validarlo
+> por falsación: romper el código a propósito y comprobar que el test se pone rojo.
 
 ### 5b. Dev Catalog (flavor mock)
-- [ ] `mock/kotlin/.../DevMainActivity.kt` + `MockPaparcarApp.kt` + `di/MockModule.kt`
-- [ ] `mock/kotlin/.../dev/DevRoot.kt` + `DevCatalogScreen.kt` + `StateGalleryScreen.kt`
-- [ ] `fakes/MockScenario.kt` + `fakes/` (commonMain) — los fakes scenario-aware
+- [ ] `app/src/mock/kotlin/.../DevMainActivity.kt` + `MockPaparcarApp.kt` + `di/MockModule.kt`
+      — ⚠️ un binding que falte en `MockModule` es un **crash latente**, no un error de compilación
+- [ ] `app/src/mock/kotlin/.../dev/DevRoot.kt` + `DevCatalogScreen.kt` + `StateGalleryScreen.kt`
+- [ ] `shared/src/commonMain/.../fakes/MockScenario.kt` + `fakes/` — los fakes scenario-aware, que
+      comparten el flavor mock y los tests
 - [ ] `commonTest/.../fakes/` — vistazo: qué fakes existen para tests
 
 ### 5c. iOS (vistazo de 10 min: qué expect/actual existen)

@@ -1,6 +1,10 @@
 # DET-ENDED-VETO-RACE-001 — El teardown del FGS se vetaba a sí mismo (zombi con proceso vivo)
 
-> **Estado**: rama `bugfix/DET-ENDED-VETO-RACE-001` (apilada sobre `feature/DET-FGS-REAPER-001`).
+> **Estado**: ✅ Done · en master como `bfa3648a` — *"send DetectionEnded on job completion, not from
+> its finally"*. La rama `bugfix/DET-ENDED-VETO-RACE-001` (que iba apilada sobre
+> `feature/DET-FGS-REAPER-001`) ya no existe.
+> *(Corregido el 2026-08-30 por [DOCS-LIVING-DOCS-MUST-MATCH-MASTER-001]: la cabecera solo nombraba
+> la rama, sin decir que estuviera cerrado.)*
 > Fix implementado 2026-07-23 y **✅ VALIDADO en device el mismo día** (Redmi, repro natural:
 > relaunch lejos del coche → abort 4 min → teardown en 25 ms, `stopSelfResult(1)=true` +
 > `onDestroy`; antes 2/2 zombis, después 1/1 limpio). ⏳ install pendiente en el Oppo (USB caído).

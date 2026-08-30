@@ -1,6 +1,8 @@
 # UI-VEHICLE-ICON-SKELETON-001 — El icono del vehículo no parpadea al genérico mientras carga
 
-> **Estado**: EN CURSO en rama `feature/UI-VEHICLE-ICON-SKELETON-001-loading-glyph` (off master).
+> **Estado**: ✅ Done · en master como `61411be3` — *"vehicle icon breathes a skeleton while loading,
+> no generic flash"*. La rama `feature/…-loading-glyph` ya no existe.
+> *(Corregido el 2026-08-30 por [DOCS-LIVING-DOCS-MUST-MATCH-MASTER-001]: decía "EN CURSO en rama".)*
 > Origen: petición de campo — "en las modales de Home parpadea el coche genérico hasta que
 > carga el vehículo, aunque ya lo tengamos seleccionado". Prioridad: P2 (pulido).
 

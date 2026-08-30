@@ -9,7 +9,8 @@
 > reglas Firestore de diagnóstico.
 >
 > Rama: `refactor/DET-001-detection-decision-engine`
-> Origen: sesión de diseño en `HANDOFF-refactor-deteccion.md`, validada contra el repo el 2026-06-25.
+> Origen: sesión de diseño en [`docs/archive/HANDOFF-refactor-deteccion-2026-06.md`](../archive/HANDOFF-refactor-deteccion-2026-06.md),
+> validada contra el repo el 2026-06-25.
 > Regla: 1 ticket = 1 commit. No se mergea sin aprobación explícita del usuario.
 
 Este documento es la fuente de verdad de la ejecución. El HANDOFF queda como memoria de

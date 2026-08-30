@@ -1,6 +1,10 @@
 # DET-STEP-BUDGET-ORIGIN-001 — Presupuesto de pasos y desplazamiento desde el MISMO origen
 
-> **Estado**: rama `bugfix/DET-STEP-BUDGET-ORIGIN-001` (apilada sobre `bugfix/DET-ENDED-VETO-RACE-001`).
+> **Estado**: ✅ Done · en master como `3ad8f648` — *"step budget and displacement measured from ONE
+> origin — the seal point"*. La rama (apilada sobre `bugfix/DET-ENDED-VETO-RACE-001`) ya no existe;
+> el marcador vive en **14 ficheros** de producción, y el ⏳ de campo quedó cubierto por la frontera
+> de validado del 23-08.
+> *(Corregido el 2026-08-30 por [DOCS-LIVING-DOCS-MUST-MATCH-MASTER-001].)*
 > Implementado 2026-07-23; 935 tests verdes (8 del evaluador honest-close, con regresión Glorieta).
 > ⏳ device + field-test. Origen: FP de campo 2026-07-22 01:47 (Redmi, pin dentro de casa).
 

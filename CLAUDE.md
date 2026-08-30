@@ -20,7 +20,8 @@ explícito de este turno**; **worktree nuevo por tarea** (las ramas NO aíslan e
 Paparcar es una app KMP (Kotlin Multiplatform) de compartición de plazas de aparcamiento en tiempo real basada en comunidad. Android es la plataforma principal; iOS es target futuro. Cuando un usuario sale con el coche, la app detecta automáticamente el evento y publica la plaza recién liberada para que otros usuarios cercanos puedan encontrarla.
 
 ## Stack
-> Fuente de verdad: `gradle/libs.versions.toml`. Versiones reales a 2026-08-26.
+> Fuente de verdad: `gradle/libs.versions.toml`. Todas las versiones de abajo re-verificadas contra
+> el catálogo y el wrapper el **2026-08-30** (master `46621e7f`) — ninguna había derivado.
 > Solo estables en el catálogo: ni un alpha/beta/rc. Al comprobar si algo se ha quedado atrás,
 > consultar `repo1.maven.org/.../maven-metadata.xml` y `dl.google.com/dl/android/maven2/.../group-index.xml`
 > — el índice de `search.maven.org/solrsearch` está obsoleto y miente por versiones enteras.
@@ -49,7 +50,11 @@ Dos módulos Gradle desde ARCH-HEALTH F7 (paquete: `com.rndeveloper.paparcar`):
   commonMain/  → domain/, data/, presentation/, di/, core/
   androidMain/ → detection/, location/, bluetooth/, notification/, worker/, geofence/
   iosMain/     → (futuro) CLLocation, CMMotion, CoreBluetooth, BGTask wrappers
-  androidUnitTest/ → tests unitarios Android (`:shared:testDebugUnitTest`)
+  commonTest/  → el GRUESO de los tests (191 ficheros): use cases, evaluadores, ViewModels,
+                 mappers, y el replay de 16 trazas de campo reales
+  androidUnitTest/ → solo lo que necesita JVM/Android (16): guardarraíles Konsist, Robolectric,
+                 workers, paridad de deserializadores Firestore
+  Ambos corren con `:shared:testDebugUnitTest`
 :app     → shell Android: MainActivity, PaparcarApp, AppNotificationManagerImpl,
            manifest, res, flavors prod/mock (Dev Catalog en app/src/mock/), firma.
            BuildConfig vive aquí: shared lee build facts vía AppBuildInfo/isDebugBuild.
@@ -219,7 +224,7 @@ Regla mental: *si su resultado no se puede citar en un diagnóstico, no es un ca
   `SentryWakeCooldown.kt`, `SentryLifecycleDecision.kt`, `VehicleFenceOwnershipPolicy.kt`,
   `HumanPoweredRide.kt`). Sigue siendo directamente testeable, sin ceremonia de clase inyectada.
 - **Un predicado NO se queda como método privado del coordinator sólo porque estuvieras editando ese
-  fichero.** Ese reflejo es lo que produjo a la vez 45 casos de uso y un `CoordinatorParkingDetector`
+  fichero.** Ese reflejo es lo que produjo a la vez ~45 casos de uso (hoy **47**) y un `CoordinatorParkingDetector`
   de 2.600 líneas con 11 predicados puros dentro — no son dos problemas opuestos, son el mismo.
 - **Arreglar un bug no justifica un caso de uso nuevo.** Lo normal es añadir una línea a un evaluador
   que ya existe. Crear uno se justifica cuando hay lógica **inalcanzable para los tests** (p. ej. una

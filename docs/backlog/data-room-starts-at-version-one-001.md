@@ -1,6 +1,13 @@
 # DATA-ROOM-STARTS-AT-VERSION-ONE-001 · La base local empieza en 1, sin migraciones
 
-**Estado:** ✅ Done · mergeado en master · ⏳ falta la verificación en device del downgrade v20 → v1
+**Estado:** ✅ Done · mergeado en master · ⏳ falta la confirmación **en device** del downgrade v20 → v1
+
+> Anotado el 2026-08-30 [DOCS-LIVING-DOCS-MUST-MATCH-MASTER-001]: ese ⏳ ya no es un riesgo abierto,
+> es una confirmación redundante. El downgrade **está medido** en
+> `androidUnitTest/.../AppDatabaseDowngradeTest.kt`, que existe justo porque dos lecturas de la doc de
+> Room se contradecían y *"ninguna lectura es evidencia"*. Resultado: `fallbackToDestructiveMigration
+> (dropAllTables = true)` pone `requireMigration = false`, así que el downgrade **no crashea** — tira
+> las tablas y las recrea.
 
 ## Problema
 

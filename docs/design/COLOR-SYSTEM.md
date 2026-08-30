@@ -1,5 +1,10 @@
 # Sistema de color de Paparcar — doctrina
 
+> **Doc vivo**, al día — re-verificado contra master `46621e7f` el 2026-08-30
+> [DOCS-LIVING-DOCS-MUST-MATCH-MASTER-001]: los tokens citados existen en `Color.kt` con los mismos
+> hexes. Es el único doc de diseño que el barrido no tuvo que corregir, porque cada ticket de color
+> lo actualiza en su propio commit.
+>
 > Fuente de verdad del significado del color. Los valores viven en `ui/theme/Color.kt` y
 > `ui/theme/Theme.kt`; **este documento manda sobre por qué existe cada token**.
 > Creado 2026-08-11. v1 (color-por-urgencia) descartada en device; v2 (mi coche = azul) descartada

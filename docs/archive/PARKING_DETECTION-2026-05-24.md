@@ -1,7 +1,14 @@
 # Paparcar — Parking detection
 
-> Visión consolidada del sistema de detección. La spec algorítmica canónica (referida en `CLAUDE.md`) sigue siendo `docs/detection/PARKING-DETECTION.md` — este documento es la **vista de producto + estado actual + plan de mejora**.
-> Última auditoría: **2026-05-24**.
+> 🗄 **ARCHIVADO 2026-08-30** [DOCS-LIVING-DOCS-MUST-MATCH-MASTER-001]. Vivía en `docs/` como segunda
+> vista del mismo sistema y el README lo enlazaba **junto** a la spec canónica, de modo que un lector
+> no sabía cuál mandaba. Nada de lo que describe sigue vigente: la escalera de armado, los nombres de
+> clase (`BluetoothParkingDetector`, `ParkingDetectionCoordinator`) y los umbrales son de mayo.
+> **La única fuente de verdad de detección es
+> [`docs/detection/PARKING-DETECTION.md`](../detection/PARKING-DETECTION.md)**; la vista de producto
+> en una página está en el [`README`](../../README.md) y en `CLAUDE.md`.
+>
+> Visión consolidada del sistema de detección, con el estado a **2026-05-24**.
 
 ---
 

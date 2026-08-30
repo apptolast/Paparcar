@@ -1,8 +1,17 @@
 # Fase G — Diseño: trigger por departure + UI de armado en frío
 
-> Estado: **diseño, sin implementar.** Fase G es la única que cambia *comportamiento de usuario*
-> (cuándo se arma la detección) y *UI*, y tiene una dependencia dura de device (FGS background-start).
-> Este doc la deja lista para implementar tras el field test. Rama `refactor/DET-001-...`.
+> 📌 **Registro fechado (junio 2026). Revisado el 2026-08-30** [DOCS-LIVING-DOCS-MUST-MATCH-MASTER-001].
+> Decía *"diseño, sin implementar"*: **el motor sí se implementó** — `DET-G-04` (`58b2c5f1`, confiar en
+> el arm por `GEOFENCE_EXIT` para no perder reparks cortos) y `DET-G-05` (`54cac751`, verificar la
+> evidencia de salida antes de sembrar ese arm) están en master, y el armado ha evolucionado después
+> a **AR-first** [DET-AR-FIRST-001], que no estaba en este diseño.
+>
+> Lo que queda de este doc es el razonamiento sobre el **cold-start** y la UI de armado en frío
+> (G-02). El pin manual existe (`HomeMode.AddingParking`), así que el caso está cubierto por
+> producto; lo que se describe aquí es cómo se contaría mejor.
+>
+> Fase G era la única que cambiaba *comportamiento de usuario* (cuándo se arma la detección) y *UI*,
+> con dependencia dura de device (FGS background-start). Rama de origen: `refactor/DET-001-...`.
 
 ## Por qué G se trata distinto al resto del plan
 - **Sus beneficios de bug ya están entregados.** El FP de Praga lo mata el gate de egreso (Fase A);

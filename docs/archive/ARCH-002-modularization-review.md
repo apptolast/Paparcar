@@ -47,7 +47,8 @@ This document is an honest read of the current architecture, the pain points it 
 
 ## 3. Where the architecture is overkill, blurred, or actively a problem
 
-- **`expect/actual` is used sparingly** (5 contracts in `docs/ios-contracts.md`). Most platform variation is handled via Koin-bound interfaces (the "stub pattern"). That's a good thing — `expect/actual` is more rigid and the team converged on the right tool. No action needed, just an honest note.
+- **`expect/actual` is used sparingly** (5 contracts, listed at the time in `docs/ios-contracts.md` —
+  that file was deleted on 2026-08-30, superseded by [`../IOS_PLAN.md`](../IOS_PLAN.md)). Most platform variation is handled via Koin-bound interfaces (the "stub pattern"). That's a good thing — `expect/actual` is more rigid and the team converged on the right tool. No action needed, just an honest note.
 - **`presentation` is the heaviest package (89 files in commonMain + 15 in androidMain)** and it's monolithic — `home`, `vehicles`, `history`, `settings`, `addspot`, `bluetooth`, `permissions`, `onboarding`, `splash`, `auth`, `app`. No internal boundaries; every screen can transitively reach every other screen's State/Intent/Effect. In practice you've avoided that, but the compiler doesn't know.
 - **The `di` package mixes scopes**: `presentationModule`, `domainModule`, `dataModule` are in `commonMain/di`, the platform overlays sit in `androidMain/di`. Adding a new use case touches one module file, adding a new ViewModel touches another — that's expected for Koin and no fix is needed, but if the project ever migrates to `kotlin-inject` or Hilt the centralised lists become friction.
 - **`UserParkingRepositoryImpl.saveSession`** does Room + Firestore writes inside a single `runCatching`. We've already filed PIPE-001 to extract Firestore to a worker; this is recognised tech debt.

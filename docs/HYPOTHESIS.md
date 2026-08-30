@@ -1,5 +1,32 @@
 # Paparcar — Hipótesis: ¿cómo lo haría desde cero?
 
+> **Retrospectiva fechada del 2026-05-24.** No es un doc vivo ni un plan: es un ejercicio de opinión,
+> y por eso se conserva tal cual en vez de reescribirse. Lo que sigue abajo es lo que se pensaba
+> entonces, con sus palabras.
+>
+> 📌 **Balance al 2026-08-30** (master `46621e7f`) — qué pasó con cada punto, sin retocar el original
+> [DOCS-LIVING-DOCS-MUST-MATCH-MASTER-001]:
+>
+> | Punto de mayo | Qué pasó de verdad |
+> |---|---|
+> | *"Cambiaría el foreground service como pilar único"* | **Se hizo, y no exactamente así.** Hoy el modelo es híbrido de verdad: geocerca + AR arman, el FGS vive en ventanas, y encima hay red de seguridad (worker 15 min + sensor de movimiento) y heartbeat exacto. Lo que no se puede quitar es el FGS durante la conducción medida |
+> | *"Persistir el estado del coordinator"* | **Se hizo por otra vía.** No hay snapshot del coordinator en Room; lo que hay son *stores* de estado (`PendingDetectionStore`, `SentryResidenceStore`, `UserStopStore`, `FenceRegistrationLedger`) y triggers que no dependen de memoria viva. Un evento re-entregado tras un kill se re-evalúa, no se cree |
+> | *"Una sola implementación de `AppPreferences`"* | ✅ **Cerrado** en mayo. La legacy de SharedPreferences se borró; la migración vive en el delegate de DataStore |
+> | *"No exponer la Maps key vía manifest"* | ⏳ **Sigue igual, y sigue siendo verdad.** La única defensa real son las restricciones GCP por SHA-1 — que están documentadas y **sin aplicar**. Ver `BUGS_AND_DEBT.md §5` |
+> | *"Migraciones Room desde el día uno"* | **Se resolvió al revés de como se pedía**, y mejor: en vez de escribir migraciones retroactivas para bases que solo existían en nuestros móviles, se colapsó todo a un **v1 baseline** y se borraron los 16 esquemas. La disciplina que pedía este punto empieza el día del primer release público |
+> | *"Decidir el patrón de retorno"* | ✅ **Cerrado.** `kotlin.Result<T>` + `Flow<T>` + value objects. `AppResult` nunca existió en el código |
+> | *"iOS como ciudadano de primera"* | 🟡 **A medias.** Ya no hay un solo stub en `iosMain` y el CI lo compila en cada push, pero el lazo GPS → coordinator sigue sin cerrar y nadie con Mac lo ha juzgado |
+> | *"Quitaría el glassmorphism"* | ❌ **No se quitó**, y el juicio de mayo se quedó corto: el problema del sistema visual no era el glass sino tener **cinco tipografías y hexes sin dueño**. Eso sí se resolvió — una familia, roles con peso propio, un hex una historia |
+> | *"Simplificaría el onboarding largo"* | ❌ **No se hizo**, y hoy hay una razón para no hacerlo: la disclosure de ubicación tiene que decir exactamente lo que declara el formulario de Data Safety de Play. El onboarding no es solo UX, es superficie legal |
+> | *"Histórico como tab separada"* | ✅ **Se hizo.** El historial se fusionó dentro de Vehículos; la BottomNav son tres destinos |
+> | *"Widget Android / Android Auto / CarPlay pairing"* | ⏳ **Siguen sin hacerse**, y siguen siendo buenas ideas: están en el 🔮 del [`ROADMAP.md`](./ROADMAP.md) |
+> | *"Confidence dashboard interno para diagnosticar sin pedir logs"* | ✅ **Se hizo, mejor de lo previsto.** No es una pantalla de debug: es telemetría remota a Firestore + un `parkdiag.log` en device que el usuario puede enviar desde Ajustes [SUPPORT-REPORT-SHIPS-THE-LOCAL-LOG-001] |
+>
+> Los "3 riesgos técnicos más grandes" del final siguen siendo los tres correctos. La versión viva
+> de esa lista está en [`BUGS_AND_DEBT.md § Riesgos estructurales`](./BUGS_AND_DEBT.md).
+
+---
+
 > Reflexión crítica y honesta tras la auditoría del **2026-05-24**. No es un plan de migración — es un ejercicio de "qué he aprendido" para informar decisiones futuras y para evitar repetir errores si algún día se reescribe.
 
 ---

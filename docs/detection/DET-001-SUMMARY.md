@@ -1,8 +1,15 @@
 # DET-001 — Resumen de sesión (técnico + negocio)
 
-> Rama `refactor/DET-001-detection-decision-engine`, sin merge. Suite verde en cada paso
-> (`testMockDebugUnitTest`). `iosMain` no compilado en este entorno (Windows; K/N iOS necesita macOS).
-> Plan vivo: `REFACTOR-PLAN.md` · Diseño Fase G: `FASE-G-DESIGN.md`.
+> 📌 **Registro fechado (junio 2026), no doc vivo.** Revisado el 2026-08-30
+> [DOCS-LIVING-DOCS-MUST-MATCH-MASTER-001]: decía *"rama sin merge"* y **ya no lo está** — el refactor
+> aterrizó en master como `9b80f9ce`. Desde entonces la detección ha seguido moviéndose mucho (Fases
+> F1–F7 del refactor de agosto, AR-first, procedencia del pin), así que **no leas esto como
+> descripción del sistema actual**: para eso está
+> [`PARKING-DETECTION.md`](./PARKING-DETECTION.md). Vale por el *por qué* de la sesión.
+>
+> Suite verde en cada paso (`testMockDebugUnitTest`). `iosMain` no se compiló en aquel entorno
+> (Windows; K/N iOS necesita macOS) — hoy sí lo compila el CI en `macos-latest`.
+> Plan de aquella tanda: `REFACTOR-PLAN.md` · Diseño Fase G: `FASE-G-DESIGN.md`.
 
 ## Qué problema resolvía
 La detección de aparcamiento es el activo central de Paparcar: si publica **plazas fantasma**, la

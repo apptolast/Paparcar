@@ -1,8 +1,14 @@
 # VEH-ACTIVE-FENCE-001 · Pieza 1 — Plan de implementación (vallas solo del activo)
 
-> **Estado**: PLAN. Scaffolding puro ya en la rama (`VehicleFenceOwnershipPolicy` + tests). Wiring
-> (Fase 2) DIFERIDO hasta el field-test de las piezas 2/3/4/5 (decisión user 18-07). Alto riesgo:
-> toca el registro de geocercas del OS y la atribución del detector. Redactado 2026-07-18.
+> **Estado**: ✅ Ejecutado. El wiring que este plan dejaba diferido **está hecho**:
+> `VehicleFenceOwnershipPolicy` la consumen hoy 13 ficheros de producción, entre ellos
+> `CoordinatorDetectionService`, `GeofenceJanitorWorker`, `VehicleAttributionStage` y
+> `SwapActiveVehicleFencesUseCase`. Se conserva como registro del razonamiento de riesgo.
+> *(Corregido el 2026-08-30 por [DOCS-LIVING-DOCS-MUST-MATCH-MASTER-001]: decía "PLAN · Wiring
+> DIFERIDO".)*
+>
+> Redactado 2026-07-18. Alto riesgo asumido entonces: toca el registro de geocercas del OS y la
+> atribución del detector.
 
 ## Objetivo
 

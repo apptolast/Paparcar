@@ -1,8 +1,11 @@
 # UI-LOC-FOREGROUND-001 — El dot del usuario refresca en foreground (high-accuracy) + logger de verificación
 
-> **Estado**: IMPLEMENTADO 2026-07-18 — rama `feature/UI-LOC-FOREGROUND-001`, sin merge. Compila
-> prod+mock, tests unitarios verdes (incl. guardrails Konsist). Pendiente: field-test en el device
-> que fallaba (Oppo/Redmi) + validación iOS.
+> **Estado**: ✅ Done · en master como `f6de7697` — *"user dot refreshes via foreground-scoped
+> high-accuracy + verification logger"*. La rama `feature/UI-LOC-FOREGROUND-001` ya no existe y el
+> marcador vive en **13 ficheros** de producción.
+> *(Corregido el 2026-08-30 por [DOCS-LIVING-DOCS-MUST-MATCH-MASTER-001]: decía "sin merge".)*
+> El field-test que pedía quedó cubierto: el commit es anterior a la frontera de campo validado del
+> 23-08. La validación iOS sigue dependiendo de un Mac, como todo lo de esa plataforma.
 
 ## Problema (reportado por el usuario)
 

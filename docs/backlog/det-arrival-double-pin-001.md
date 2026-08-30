@@ -1,7 +1,9 @@
 # DET-ARRIVAL-DOUBLE-PIN-001 — el backfill de la red de seguridad duplica la llegada del coordinator vivo
 
-> **Estado**: FIX NÚCLEO IMPLEMENTADO 2026-07-21 en la rama `bugfix/DET-ARRIVAL-DOUBLE-PIN-001`
-> (guard `isRunning` en `ParkingBackfillWorker.doWork()`). Field-test PENDIENTE. Sin merge.
+> **Estado**: ✅ Done · en master como `5f0cc166` — *"backfill cede la llegada al coordinator vivo
+> (fin del doble-pin)"*. La rama `bugfix/DET-ARRIVAL-DOUBLE-PIN-001` ya no existe.
+> *(Corregido el 2026-08-30 por [DOCS-LIVING-DOCS-MUST-MATCH-MASTER-001]: decía "Sin merge,
+> field-test PENDIENTE". El commit es anterior a la frontera de campo validado del 23-08.)*
 > Origen: field-test 20-jul madrugada (Redmi, Citroën C5). Prioridad: **P1** (FP visible al usuario,
 > bajo riesgo — un solo guard que espeja el que ya usa el propio worker de la red de seguridad).
 

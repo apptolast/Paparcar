@@ -1,140 +1,171 @@
 # Paparcar — Roadmap
 
-> Documento consolidado. Sustituye a `Paparcar_Roadmap_TechDebt.md` y `Paparcar_Roadmap_Completo.md` (movidos a `docs/archive/`).
-> Última auditoría: **2026-06-05** (actualizado sesión tarde).
+> **Doc vivo.** Responde a *"¿qué queda por hacer?"* sin auditar `git log` primero.
+> Verificado contra master `46621e7f` el **2026-08-30**: cada línea 🚧/📋 se comprobó con
+> `git log master --grep=<TICKET-ID>`, distinguiendo un commit de código de un `docs(backlog):` que
+> solo ABRE el ticket. Sustituye a `Paparcar_Roadmap_*.md` (en `docs/archive/`).
+>
+> ⛔ **Regla de este doc y de todos los vivos:** cabecera con **fecha + commit** contra el que se
+> verificó. Un doc sin eso no se distingue de uno que nadie ha mirado en tres meses.
+> [DOCS-LIVING-DOCS-MUST-MATCH-MASTER-001]
 
 ---
 
-## ✅ Completado
+## Dónde está el proyecto
 
-### Fase 0–3 (foundation, detection MVP, sync)
-- Clean Architecture + MVI + Koin + Room KMP + Firebase GitLive
-- Estrategia dual de detección: `BluetoothParkingDetector` (determinista) y `ParkingDetectionCoordinator` (probabilístico)
-- `ConfirmParkingUseCase` → Room + Firestore + Geofence + Notification + WorkManager enrichment
-- `DetectParkingDepartureUseCase` validada por 3 señales (sesión activa + geofence + AR window)
-- 6 workers de WorkManager con backoff exponencial y constraints diferenciados
-- BaseLogin 1.0.16 integrado (Auth + offline-safe `getCurrentSession`)
-- AppDatabase v3 (sin migraciones definidas — ver BUGS_AND_DEBT.md)
+**Pre-lanzamiento, en field-testing diario.** El producto está completo y en master; lo que se hace
+cada día es medir la detección en dos móviles reales (Oppo + Redmi) con telemetría remota, y cerrar
+el fallo que salga. Política *fix-forward*.
 
-### Sprint reciente (mayo–junio 2026)
-- **AUTH-002** — fix lost parking on null session (BaseLogin 1.0.15)
-- **ADD-PARKING-PIN-001 / ADD-ZONE-PIN-001** — `TeardropPinScaffold` unificado + `HomeMode.AddingParking` + `UpdateParkingLocationUseCase`
-- **MULTI-PARKING-001** — per-vehicle cards en Home, sesiones independientes por vehículo
-- **MARKERS-001 / MAP-TYPE-001 / HOME-DEPTH-001** — sistema de marcadores y picker de mapa
-- **VEH-BT-001** — asignación manual de dispositivo BT por vehículo
-- **ICON-LOGO-PALETTE-001/002** — adaptive icon repintado a la paleta dark theme
-- **DS-TYPO-002** — Outfit + Inter + Barlow Condensed tipography system
-- **RELEASE-001** (scaffold) — keystore, ProGuard, Firebase App Distribution **Android**
-- **DS unification Phase A** — superficies opacas, `PapSectionHeader`, CTAs unificados
-- **PERF-001/002 · DI-001 · DB-001 · A11Y-001 · DOZE-001 · GEOF-001** — auditoría P0/P1 completada 2026-05-24/25
-- **§9 · §10 · §13 · §15 · §16** — auditoría Medium/Low completada 2026-05-25 (permission guard START_STICKY, collectAsStateLifecycleAware, BT scope inyectado, getParcelableExtra API 33+, HomeViewModel reset)
-- **BUG-FGS-001 + BUG-FGS-002** — eliminados 24+5 crashes (9+1 usuarios). `PendingIntent.getForegroundService()` en `ActivityRecognitionManagerImpl`; lógica de routing IN_VEHICLE movida a `ParkingDetectionService.ACTION_VEHICLE_TRANSITION`; `ActivityTransitionReceiver` simplificado a STILL-only; `StartDetectionWorker` eliminado. Done 2026-05-25.
-- **BUG-GEOFENCE-001** — `GeofenceManagerImpl.buildPendingIntent()` usaba `FLAG_IMMUTABLE`; en Android 12+ Play Services no puede escribir los extras de `GeofencingEvent` en el intent, `triggeringGeofences` llega null y el receiver no encola `DepartureDetectionWorker`. Fix: `FLAG_MUTABLE`. También: `DepartureDetectionWorker` ahora propaga `spotType`, `detectionReliability` y `sizeCategory` al `ReportSpotReleasedUseCase`. Done 2026-05-25.
-- **BUG-PERMS-UX-001** — guía paso a paso antes de abrir Settings para ubicación en segundo plano (Android 11+ no muestra dialog, el usuario no sabe que debe elegir "Permitir siempre"). `PapAlertDialog` con instrucciones numeradas. Done 2026-05-25.
-- **IOS-AR-001 · IOS-BUILD-001 · IOS-SYNC-001 · IOS-PLACES-001** — iOS completado al ~95% (solo IOS-DIST-001 y BGTask pending)
-- **I18N-001** — strings EN/ES/IT/PT/FR/DE/NL/PL/RO sincronizadas; stale key `home_my_car_section_header` eliminada en DE/NL/PL/RO
-- **BUG-LANG-002** — ⛔ **NUNCA ESTUVO ARREGLADO** (medido en device el 2026-08-29). Se dio por *Done 2026-05-26*, pero su fix llamaba a `AppCompatDelegate.setApplicationLocales()`, que en esta app es un **no-op silencioso**: resuelve el `LocaleManager` recorriendo delegates de `AppCompatActivity` y `MainActivity` es una `ComponentActivity`, así que la lista está vacía. Ni el arranque en frío ni el selector aplicaban nada, en ninguna versión de Android. Cerrado de verdad retirando el selector: el idioma lo administra el SO vía `res/xml/locales_config.xml`. Ver `docs/backlog/settings-language-lives-in-the-system-001.md` [SETTINGS-LANGUAGE-LIVES-IN-THE-SYSTEM-001].
-- **REFACTOR-DETECT-001** — limpieza del flujo Service + Coordinator + Receiver. `collectLatest → collect` (sin cancelaciones espurias de notificaciones), `update + .value → updateAndGet` (lectura atómica del snapshot post-update), `guardPermissions(actionLabel)` consolida 3 checks duplicados, labels compartidos en `ActivityRecognitionLabels.kt`, request codes co-localizados en el manager. Done 2026-05-27 (commit `935e6fc`). Ver `docs/backlog/detection-improvements-2026-05-27.md`.
-- **VEH-NAME-001 + VEH-REG-001 + VEH-MARKERS-001/002/003 + VEH-PARK-STATE-001** — 7 tickets del sprint de vehículos: nombre opcional (`name: String?`), dropdowns de marca/modelo con catálogo, multi-parking markers, circle badge per vehicle, accent palette. Done 2026-05-25 (commit `b53edfd`).
-- **BUG-GARAGE-COLA-001 + BUG-SCOOTER-001** — Step Detector como señal canónica de "usuario fuera del coche"; `VehicleType` enum (CAR/MOTORCYCLE/SCOOTER/BIKE) + `ParkingStrategyResolver`; guard de mismatch (CAR + sesión ≥ 8 min + maxSpeed ≤ 28 km/h) suprime auto-confirm. Done 2026-05-31 (commit `ef450de`).
-- **BUG-DETECT-ENTER-DEBOUNCE-001** — AR noise debounce para IN_VEHICLE_ENTER duplicado; estado binario `VehicleState.OUT/IN` en `ParkingDetectionService`. Done 2026-05-28 (commit `61a024d`).
-- **BUG-DETECT-OEM-KILLER-001 (B.1)** — `OemBackgroundReliabilityManager` con instrucciones de autostart por OEM + card en PermissionsScreen. Done 2026-05-28 (commit `85285b4`).
-- **REFACTOR-DETECT-002** — `HandleVehicleTransitionUseCase` extrae lógica de transición del Service; `confirmParking()` fallo propaga notificación al usuario; constantes `maxStoppedFixes` / `stoppedSpeedThresholdMps` inyectables en `ParkingDetectionConfig`. Done 2026-06-05 (commit `51bf342`).
-- **BUG-STUCK-SESSION** — sesión corta volviendo al mismo sitio: notificación re-disparada en casa + service corriendo 1 h. Fix: `confirmationNotificationShownAt` reemplaza `mediumNotificationShown`, timeout de respuesta 15 min. Done 2026-06-03 (commit `be11d40`).
-- **BUG-NEW-VEHICLE-DEFAULT** — nuevo vehículo siempre se ponía como default aunque ya existiesen otros. Fix: solo default si es el primer vehículo jamás registrado. Done 2026-06-03 (commit `13a51d2`).
-- **Notifications refactor** — acción de denegar renombrada, detección muestra vehículo, "Parking Saved" (renombrado + tap → mapa), "Spot Published" (nueva), `MapFocusEventBus`, deep link vía extras de `MainActivity`. Done 2026-06-03 (commit `2589c53`).
-- **MAP-MARKERS-REDESIGN-001** — `VehicleBadgeMarker` (amber circle + icono vehículo), `FreeSpotMarker` unificado (verde único, sin tiers de reliability), `ZoneMarker` hexagonal (azul #3B82F6, código de zona); pipeline `licensePlate` hasta el mapa (Vehicle → VehicleEntity → ParkedVehicleSummary → ObserveParkedVehiclesUseCase); formulario de matrícula en registro; MIGRATION_3_4 (`vehicleType` + `licensePlate`); DB v4. Done 2026-06-05 (pendiente commit).
-- **MAP-MARKERS-FIX-001** — 3 correcciones de markers: (1) `FreeSpotMarker` icono "P" blanco (era `SpotOnGreen` ≈ negro en tema claro); `FreeSpotClusterMarker` número blanco; (2) coche aparcado revertido de `LicensePlateMarker` (rect) a `VehicleBadgeMarker` (círculo); (3) `ReportCenterPin` + `ParkingCenterPin` rediseñados de teardrop a `RoundCenterPinScaffold` — círculo sin relleno, borde `onSurface`, icono outlined, sombra + animación lift/scale preservada. Done 2026-06-05 (pendiente commit).
-- **HOME-VEH-CHIP-001** — sección "Tus vehículos" en BROWSE rediseñada: de N filas verticales `HomeVehicleCard` a un `LazyRow` de chips compactos `HomeVehicleChip` (148 dp). Cada chip expone dos dimensiones ortogonales: badge de detección (`[BT]` / `[Active]` / nada) y estado de sesión ("Parked · Xm" en verde / "Not parked" muted). Borde verde (`PapGreen`) cuando aparcado, neutro si no. Orden: aparcado > BT > activo > manual. `homeSheetSpotItemIndex` corregido (+N items → +1 item). 2 strings nuevas × 9 locales. Done 2026-06-05 (pendiente commit).
+Lo que **falta para publicar** no es código de producto: es la ficha de Play, las verificaciones de
+cuenta de desarrollador y el endurecimiento de claves (§ *Bloqueantes de lanzamiento*).
+
+| Área | Estado |
+|---|---|
+| Detección dual (BT determinista + Coordinator AR-first) | ✅ En master, field-test continuo |
+| Procedencia del pin (`detectionPath` + `armEvidence` en cada sesión) | ✅ |
+| Red de seguridad (worker 15 min + reconcile de salidas perdidas) | ✅ |
+| Sync offline-first + reconcile LWW (vehículos, zonas, sesiones) | ✅ |
+| Votos de comunidad sobre plazas (retirar / rejuvenecer) | ✅ `1781af0a` |
+| Frescura de plaza por EDAD + TTL 2 h | ✅ `d0fb3427` |
+| Design system: color por método, tipografía por rol, guardarraíles Konsist | ✅ |
+| Dev Catalog (flavor `mock`, sin backend) | ✅ |
+| Telemetría de diagnóstico remota (Firestore, con gate) | ✅ |
+| Split `:app` + `:shared` | ✅ `b949efa1` |
+| Puck del mapa: es del VIAJE, no del carril que lo detectó | ✅ `46621e7f` |
+| CI: build + tests + **compilación iOS en `macos-latest`** | ✅ `02a29f62` |
+| Superficie legal (política de privacidad, borrado de cuenta por web, data safety) | ✅ código; ⏳ acciones de cuenta |
+| Ficha de Play (9 idiomas, icono, gráfico) | 🟡 escrita, **sin commitear**; faltan capturas |
+| Detección iOS | 🟡 Fase 0 en rama sin mergear; nativos listos, wiring pendiente |
 
 ---
 
-## 🚧 En progreso
+## 🚧 En vuelo — ramas sin mergear
 
-| Ticket | Descripción | Estado | Blocker |
-|--------|-------------|--------|---------|
-| **RELEASE-001** | Primer beta a testers | Pre-beta audit | P0: restringir API Maps en GCP, audit reglas Firestore, mover Maps key fuera del manifest |
-| ✅ **OFFLINE-LOGIN-GUARD-001** | Fail-fast + retry + error diferenciado — done 2026-05-25 | Cerrado | Offline: no sign-out, `BootstrapFailure.Offline`, `retry()` + `BootstrapOfflineDialog`. Fatal: sign-out + `ShowError` (previo). Tests: 2 casos nuevos en `SplashViewModelTest`. |
-| **HOME-MARKERS-AUDIT** | ~~#1 TTL dead code~~ ✅ / ~~#3 SELECTED~~ ✅ / **#2 MANUAL decay** ⏳ deferred (product decision needed) | Backlog | #2: MANUAL spots stay blue forever — after N rejections? fraction of TTL? Needs design call before touching code |
-| ~~**VEH-MARKERS + VEH-NAME**~~ | ~~7 tickets de vehículos + multi-parking markers~~ | ✅ Done 2026-05-25 | Commit `b53edfd` |
-| ~~**BUG-GARAGE-COLA-001**~~ | ~~Step Detector + CANDIDATE via steps~~ | ✅ Done 2026-05-31 | Commit `ef450de` |
-| ~~**BUG-SCOOTER-001**~~ | ~~VehicleType + ParkingStrategyResolver + mismatch guard~~ | ✅ Done 2026-05-31 | Commit `ef450de` |
-| ~~**FEAT-HOME-PARKING-001..004**~~ | ~~Marcador "mi parking de casa" con geocerca + notificación de confirmación. 4 fases.~~ | ✅ Done 2026-06-05 | Room entity + DAO + Firestore mapper + CRUD screen + Settings nav + geofence registration + `HomeParkingDepartureWorker` + `HOME_GEOFENCE` SpotType + wiring in `ConfirmParkingUseCase` |
-| **DECISION-SERVICE-LIFECYCLE-001** | ¿Cuándo matar `ParkingDetectionService`? Necesita telemetría de duración y tasa de resurrección. | 🟡 Pendiente de definición | Datos de campo |
-| **DECISION-MERGE-BT-COORDINATOR-002** | ¿Fusionar `BluetoothDetectionStrategy` con `ParkingDetectionCoordinator`? Cambio arquitectural; debate técnico previo. | 🟡 Pendiente de definición | Debate |
+> ⚠️ **Estas ramas llevan su propio `docs/backlog/<id>.md` dentro**, así que el backlog de master
+> **no las ve**. Es el mismo agujero que motivó `IOS-SOCIAL-LOGIN-001`: una spec que solo vive en una
+> rama es una spec que el backlog no puede leer. Aquí quedan listadas para que no se pierdan.
 
----
+### La pila de detección — 10 ramas, cada una contiene a la anterior
 
-## 📋 Plan de acción (auditoría 2026-05-24)
+Verificado con `git merge-base --is-ancestor` eslabón a eslabón: es **una sola cadena lineal**, no
+diez ramas paralelas. Mergear la de más abajo arrastra todas las de arriba.
 
-Tickets nuevos derivados del resumen ejecutivo. Detalle técnico en `docs/BUGS_AND_DEBT.md`.
+| # | Ticket | Qué hace |
+|---|---|---|
+| 1 | `DET-DRIVING-EVIDENCE-IS-THE-ONLY-GATE-001` | el confirm silencioso pregunta **qué es** el armado, no recita la lista de armados que ya nos quemaron |
+| 2 | `DET-DRIVING-EVIDENCE-VALUE-OBJECT-001` | un solo veredicto contesta *"¿condujo?"*, con el listón **medido** en vez de supuesto |
+| 3 | `DET-NO-CLOCK-PLANTS-A-PIN-001` | un reloj agotándose no es evidencia; la zona se centra en el reposo que vio la sesión |
+| 4 | `DET-THE-EVIDENCE-MUST-REACH-THE-TRACE-001` | una línea de diagnóstico que nombra la causa equivocada es peor que ninguna |
+| 5 | `DET-STARVED-PROMPT-HAS-NO-WITNESS-001` | un prompt cuyo stream muere **igualmente llega a un veredicto** |
+| 6 | `DET-DOUBT-REACHES-REMOTE-001` | la duda viaja con el pin, o ningún diagnóstico remoto puede verla |
+| 7 | `DET-DETECTION-PATH-IS-A-TYPE-001` | la procedencia de un pin es un **tipo**, no un string que tres sitios re-parsean |
+| 8 | `DET-FAIL-CLOSED-BY-CONSTRUCTION-001` | lo que no se puede medir **no puede contar como medido** |
+| 9 | `DET-TWO-TIER-SENTRY-001` | un despertar compra **un fix, no una sesión** |
+| 10 | `DET-DOUBT-MUST-REACH-THE-SCREEN-001` | la app medía la duda, la guardaba… y luego dibujaba un punto |
 
-### P0 — Critical (bloqueantes de beta)
-| Ticket | Descripción | Estimado | Ref |
-|--------|-------------|----------|-----|
-| ✅ **PERF-001** | ~~Eliminar `runBlocking` en getters de `AndroidDataStoreAppPreferences`~~ — done 2026-05-24 | 2 h | BUGS §1 |
-| ✅ **DI-001** | ~~Unificar `AppPreferences` — eliminar `AndroidAppPreferences` SharedPreferences legacy~~ — done 2026-05-24 | 2 h | BUGS §2 |
-| ✅ **IOS-AR-001** | ~~Cablear los 3 TODO de `IosActivityRecognitionManagerImpl` con el coordinator~~ — done 2026-05-24 | 2 h | IOS_PLAN §3 |
-| ⚠️ **SEC-001** | Parte código done (fail-fast + RELEASE-SECURITY.md). Pendiente: rotar key + restricciones GCP Console (acción usuario) | 1 h + GCP | BUGS §4 |
-| ⚠️ **AUDIT-FIRESTORE-001** | Reglas mínimas documentadas en `docs/release/RELEASE-SECURITY.md §2`. Pendiente: desplegar + testear en Firebase Console (acción usuario) | 0 h código | RELEASE-001 |
-| ✅ **BUG-WORKER-001** | Race condition `UpdateParkingSessionAddressAndPlaceWorker` vs `SaveNewParkingSessionWorker` — resuelto 2026-05-25. `enqueueUpdateParkingSessionAddressAndPlace()` usa `APPEND_OR_REPLACE` en la misma cadena `parking_chain_$sessionId`, garantizando `set()` antes de `update()`. | 1 h | worker-bugs-2026-05-25 |
-| ✅ **BUG-WORKER-002** | `SaveNewParkingSessionWorker` cancelado por OEM (Redmi) — resuelto 2026-05-25. `withContext(NonCancellable)` protege las escrituras Firestore de cancelaciones externas del Job. | 1 h | worker-bugs-2026-05-25 |
+Ramas: `feature/<TICKET>-<slug>`. La cabeza de la pila es la #10
+(`…-doubt-on-screen`, 11 commits sobre master).
 
-### P1 — High (calidad / producción)
-| Ticket | Descripción | Estimado | Ref |
-|--------|-------------|----------|-----|
-| ✅ **DOZE-001** | ~~Doze/MIUI mitigation~~ — done 2026-05-25. Battery opt exemption row en Permissions + `DetectionHeartbeatWorker` 15 min. | 4 h | BUGS §7 |
-| ✅ **GEOF-001** | ~~Scheduler de TTL para geofences huérfanos~~ — done 2026-05-25. Revisado 2026-06-26: `NEVER_EXPIRE` + drenado en logout (`removeAllGeofences`); Janitor pasa a restaurar tras reboot/reinstall. | 2 h | BUGS §8/§8.1 |
-| ✅ **A11Y-001** | ~~contentDescription audit~~ — done 2026-05-25. Sólo 2 reales (back + password toggle); resto eran decorativos. Ver BUGS §6. | 1 h | BUGS §6 |
-| ✅ **PERF-002** | ~~Memoizar lambdas inline en `HomeSheetContent.kt:174` y `HomeZoneChips.kt:70`~~ — done 2026-05-25 | 1 h | BUGS §5 |
-| ✅ **DB-001** | ~~Política de migraciones Room~~ — done 2026-05-25. `fallbackToDestructiveMigrationFrom(true, 1, 2)` + KDoc contrato en `AppDatabase`. Migración real + `MigrationTestHelper` quedan para cuando llegue v4. | 1 h | BUGS §11 |
+### Independientes
 
-### P2 — Medium (deuda + UX)
-| Ticket | Descripción | Estimado | Ref |
-|--------|-------------|----------|-----|
-| **RELEASE-001** | Cerrar pre-beta audit + keystore + primer upload Firebase App Distribution Android | 4 h | en progreso |
-| ✅ **GLASS-001** | ~~Decidir glass real~~ — done 2026-05-25. `expect/actual Modifier.glassBlur`: Android ≥ S usa `RenderEffect.createBlurEffect` (20 dp); <S + iOS son no-op. GlassSurface aplica blur cuando `isInteracting`. | 6 h | BUGS §12 |
-| ✅ **I18N-001** | ~~Completar traducciones~~ — done 2026-05-25. All 8 locales (ES/IT/PT/FR/DE/NL/PL/RO) in sync with EN. Stale key `home_my_car_section_header` purged from DE/NL/PL/RO. | — | — |
-| ✅ **A11Y-002** | TalkBack pass completo + tamaños mínimos de touch target — done 2026-06-05 | 4 h | BUGS §4 |
-
-### P3 — iOS
-| Ticket | Descripción | Estimado | Ref |
-|--------|-------------|----------|-----|
-| ✅ **IOS-BUILD-001** | ~~Reparar errores de compilación iOS~~ — done 2026-05-25. Único error real: `PermissionsScreen.ios.kt` no manejaba `RequestStepBluetooth` ni `RequestBatteryOptimizationExemption`. Añadido `requestBluetooth()` en `IosPermissionRequester` (CBCentralManager). Resto de ítems (getString, Dispatchers.IO, format, currentLocale) compilaban OK con Kotlin 2.3.10. | 1 h | — |
-| **IOS-DIST-001** | Firebase App Distribution iOS (Fastlane + cert + provisioning) | 6–9 h | IOS_PLAN |
-| ✅ **IOS-SYNC-001** | ~~Sustituir `StubParkingSyncScheduler`~~ — done 2026-05-25. `IosParkingSyncScheduler` con coroutine scope + retry (patrón `IosParkingEnrichmentScheduler`). No process-death persistence — BGTask deferred until Swift bridge solidifies. | 4 h | IOS_PLAN |
-| ✅ **IOS-PLACES-001** | ~~Sustituir `PlacesDataSource` stub~~ — done 2026-05-25. `IosOverpassPlacesDataSourceImpl` con NSURLSession — misma query Overpass que Android, sin nuevas dependencias. | 3 h | IOS_PLAN |
-
-### Housekeeping
-| Ticket | Descripción | Estimado |
-|--------|-------------|----------|
-| ✅ **CLEAN-001** | ~~Decidir destino de logs y diagnósticos sueltos~~ — done 2026-05-25. `diagnostics/README.md` documenta la política: commits como evidencia canónica; `!diagnostics/**/*.log` ya en `.gitignore`. Pendiente de staging en próximo commit. | 30 min |
-| **PIPE-004** *(deferred)* | Collapse `EnrichParkingSessionWorker` + `UpdateParkingSessionAddressAndPlaceWorker` (reabrir cuando bugs de vehículos estén estables) | — |
+| Rama | Ticket | Estado |
+|---|---|---|
+| `feature/IOS-F0-001-fase0` | `IOS-F0-001` | Fase 0 del port iOS: puertos, capacidades y harness. 🔵 lo valida un compañero con Mac |
 
 ---
 
-## 🔮 Futuro / nice-to-have
+## 📋 Abierto en el backlog
 
-- **Widget Android** de parking activo + tiempo desde aparcamiento
-- **Android Auto integration** — surface de "soltar plaza" en infotainment
-- **WearOS complication** — countdown TTL del último spot publicado
-- **Confidence dashboard** in-app (debug) para visualizar el scoring del coordinator
-- **Modularización** (ver `docs/archive/ARCH-002-modularization-review.md`) — solo si el monolito empieza a escalar mal (>500 archivos, builds >2 min)
-- **Server-side detection ML** — entrenar modelo con eventos confirmados/denegados (privacy-first, federado)
-- **Idiomas P2** — DE, NL, PL, RO (excluidos RTL y glifos complejos por complejidad UI)
+Verificado uno a uno: aparecen en `git log` **solo** por su commit `docs(backlog):` de apertura.
+
+### Detección — con evidencia, esperando implementación
+| Ticket | Qué falla |
+|---|---|
+| `DET-STARVED-HOLD-HAS-NO-WITNESS-001` | 🔴 la rama que planta un pin sin fix detrás no tiene test |
+| `DET-BT-VETO-MUST-NOT-ORPHAN-A-SESSION-001` | el prompt sale del gate BT y el log nombra otra causa — ⛔ diseño sin decidir |
+| `DET-EXPLAINED-RIDE-ASKS-NO-OTHER-CAR-001` | un trayecto ya explicado sigue preguntando por otro coche |
+| `DET-DISPLACEMENT-DRIVE-MUST-SURVIVE-ITS-NEXT-FIX-001` | la conducción por desplazamiento no sobrevive al fix siguiente |
+| `PARK-RETRACTED-BACKFILL-MUST-LEAVE-NO-PIN-001` | un backfill retractado no debe dejar pin |
+| `DET-BT-PIN-GRADE-IS-NOT-A-DRIVING-THRESHOLD-001` | destapado por `DET-BT-PIN-IS-SAMPLED-AFTER-THE-WALK-001` (30-08) |
+| `DET-BLIND-AFTER-LOST-PARK-001` | ciego tras perder un park |
+| `DET-BIKE-DEPARTURE-RELEASE-001` | follow-up de `DET-BIKE-NOT-A-CAR-001` |
+| `DET-COARSE-FIX-DRIVE-PROOF-001` · `DET-LONE-SAMPLE-IS-NOT-A-DRIVE-001` · `DET-BT-BOARDING-ANCHOR-001` | hallazgos de análisis, sin código |
+| `DET-EDGE-MARKERS-TO-THE-TAP-001` | desbloqueado — su prerequisito ya está |
+
+### Detección — bloqueados por MEDICIÓN, no por código
+No esperan a un viaje: esperan a que vuelva a fallar lo que los originó.
+
+- `DET-BROADCAST-QUEUE-STALL-001` + `DET-HEARTBEAT-LANE-REPAIR-001` — esperan a que el **Oppo** falle otra vez.
+- `DET-PEDAL-CADENCE-CANNOT-CONVICT-A-CAR-IN-TRAFFIC-001` — necesita otra cadencia real.
+- `DET-BT-AUTONOMOUS-REPAIRING-ANDROID-17-001` + `DET-MEMORY-LIMITER-IS-AN-ATTRIBUTABLE-KILL-001` — necesitan un móvil con **Android 17**.
+
+### Arquitectura y limpieza
+| Ticket | Estado |
+|---|---|
+| `ARCH-HEALTH-001` | 🔵 plan por fases · **F7 (split `:app`+`:shared`) ✅ ejecutada el 29-08** |
+| `DET-COORDINATOR-NO-OPTIONAL-DEPS-001` · `DET-KOIN-MODULE-VERIFY-001` | follow-ups de `DET-DI-DETECTION-MODULE-001` |
+| `INFRA-DATASTORE-MIGRATION-001` | 📋 propuesto 10-08, no urgente |
+| `PIPE-004` | ⏸ diferido — colapsar `EnrichParkingSessionWorker` + `UpdateParkingSessionAddressAndPlaceWorker` |
+
+### UI / copy / mock
+| Ticket | Estado |
+|---|---|
+| `MOCK-AUTH-SCREENS-NEED-THEIR-VIEWMODELS-001` | 🔴 en `mock`, "Sign Up" mata la app (prod sana). Lo arregla publicar BaseLogin |
+| `COPY-NOTIFICATION-LAYER-STILL-SAYS-PLAZA-001` | 🟡 la capa de notificaciones usa "plaza" para lo que es un APARCAMIENTO |
+| `UI-BUTTON-ONE-CANONICAL-CTA-001` | follow-up de `UI-TYPE-SYSTEM-HYGIENE-001` |
+| `UI-APPROXIMATE-ZONE-IN-HISTORY-001` | la zona aproximada no se dibuja en el historial |
+
+### iOS
+| Ticket | Estado |
+|---|---|
+| `IOS-F0-001` | 🟡 Fase 0 en rama `feature/IOS-F0-001-fase0`, sin mergear |
+| `IOS-SOCIAL-LOGIN-001` | 🔵 bloqueado hasta tener un Mac |
+| BGTaskScheduler + App Distribution iOS | 📋 ver [`IOS_PLAN.md`](./IOS_PLAN.md) |
 
 ---
 
-## Convenciones de tickets
+## 🔴 Bloqueantes de lanzamiento (acciones del usuario, no código)
 
-Formato de branch + commit:
+1. **Google Play Console** — declarar *trader status*, completar verificaciones de identidad y fijar
+   el nombre legal. Sin esto no hay publicación, con la app terminada o no.
+2. **Ficha de Play** — copy en 9 idiomas + icono + gráfico destacado están escritos pero **sin
+   commitear**; faltan las **capturas**. ⛔ La ficha promete solo *"sabe dónde aparcaste"*: no se
+   promete detección infalible.
+3. **Clave de Maps** — rotarla y aplicar restricciones en GCP (package + SHA-1 debug/release, y solo
+   *Maps SDK for Android*). Checklist en [`release/RELEASE-SECURITY.md`](./release/RELEASE-SECURITY.md).
+4. **Reglas de Firestore** — desplegar y probar las mínimas documentadas en `RELEASE-SECURITY.md §2`.
+   ⚠️ el MCP `firebase_deploy` es un **no-op silencioso**: hay que usar la CLI.
+5. **Dominio y correo** — `paparcar.com` comprado; falta conectarlo a Hosting y barrer del repo el
+   Gmail personal.
+6. **Room** — el primer release público convierte v1 en línea base real: a partir de ahí **todo cambio
+   de esquema exige `Migration` + schema exportado**. Hoy sigue el destructivo.
+
+---
+
+## 🔮 Futuro (post-lanzamiento, no ahora)
+
+- **Widget Android** del aparcamiento activo (dirección + tiempo transcurrido + tap al mapa).
+- **Android Auto** — soltar la plaza desde el infotainment al desconectar.
+- **WearOS / Apple Watch** — countdown del TTL de la última plaza publicada.
+- **Detección vía CarPlay / Android Auto pairing** — señal tan fuerte como el BT, para quien no
+  empareja el móvil pero sí conecta multimedia.
+- **Modo "voy de camino"** con ETA, apoyado en el `enRouteCount` que ya existe en el modelo.
+- **4º tab Comunidad/Perfil** — posible, deliberadamente aplazado.
+- **Modularización** más allá de F7 — solo si el monolito escala mal.
+- **Detección server-side / ML** con eventos confirmados y denegados (privacy-first).
+
+---
+
+## Convenciones
+
+Ramas `feature/` · `bugfix/` · `refactor/` · `chore/` · `experiment/` + `<TICKET-ID>-<slug>`, con ID
+**autoexplicativo**. Commits Conventional con el ticket entre corchetes:
+
 ```
-feature/{TICKET}-descripcion-corta
-fix/{TICKET}-descripcion-corta
-chore/{TICKET}-descripcion-corta
-
-feat(scope): descripción [TICKET]
-fix(scope): descripción [TICKET]
+feat(home): implement bottom sheet with nearby spots [HOME-002]
 ```
 
-Backlogs vivos en `docs/backlog/*.md` — un fichero por feature/iniciativa.
+Un ticket = **un** commit en master (`--squash`), y su doc de backlog viaja **dentro** de ese commit.
+Flujo completo en la skill `nuevo-ticket`. Backlog vivo en [`backlog/README.md`](./backlog/README.md)
+— índice de lo abierto, con el método para verificar que la lista no miente.

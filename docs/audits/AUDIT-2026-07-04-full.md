@@ -55,6 +55,12 @@ Los problemas graves están en las **fronteras**: infraestructura (CI/distribuci
 | `HANDOFF-refactor-deteccion.md`, `HYPOTHESIS.md`, `IOS_PLAN.md`, `README.md` | Tareas "pendientes" ya hechas, iOS ~70%, doble AppPreferences | Ejecutado/superado; contradicciones internas (`onStillDetected` ya no existe) | ⚠️ Archivar/purgar |
 | Código (KDocs) | `ParkingDetectionConfig.kt:17-21,97-113,466` y `ConfirmationPhase.kt:18-20` citan STILL/AR-rearm/clase purgada | Señales purgadas | ⚠️ Drift embebido |
 
+> ✅ **Ejecutado el 2026-08-30**, ocho semanas después de escribirse [DOCS-LIVING-DOCS-MUST-MATCH-MASTER-001]:
+> `docs/PARKING_DETECTION.md` → `docs/archive/PARKING_DETECTION-2026-05-24.md`, `HANDOFF-refactor-deteccion.md`
+> → `docs/archive/HANDOFF-refactor-deteccion-2026-06.md`. `HYPOTHESIS.md` no se archivó: se marcó como
+> retrospectiva fechada con un balance de qué se cumplió (es un ejercicio de opinión, no una descripción
+> del sistema). `BUGS_AND_DEBT.md`, `README.md` e `IOS_PLAN.md` regenerados en la misma tarea.
+
 **Acciones documentales:** archivar `docs/PARKING_DETECTION.md` (raíz), `HANDOFF-refactor-deteccion.md`, `HYPOTHESIS.md`; reescribir la sección de detección de `CLAUDE.md` **cuando DET-SOLID-001 pase el gate y se mergee**; regenerar `BUGS_AND_DEBT.md` (y registrar la regresión a11y del back de `VehicleRegistrationScreen.kt:252`).
 
 ---

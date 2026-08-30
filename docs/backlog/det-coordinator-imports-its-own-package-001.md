@@ -1,7 +1,12 @@
 # DET-COORDINATOR-IMPORTS-ITS-OWN-PACKAGE-001 · 50 imports que el compilador ya tenía
 
-**Estado:** 🟢 Listo, sin mergear · rama `refactor/DET-COORDINATOR-IMPORTS-ITS-OWN-PACKAGE-001-drop-redundant-imports`
-· worktree `../Paparcar-coord-imports` · **1.675 tests** · coordinator **1.333 → 1.283**
+**Estado:** ✅ Done · en master como `024ecc73` — *"fifty imports the compiler already had"*. La rama
+`refactor/…-drop-redundant-imports` y el worktree `../Paparcar-coord-imports` ya no existen.
+· **1.675 tests** · coordinator **1.333 → 1.283**
+
+> Corregido el 2026-08-30 por [DOCS-LIVING-DOCS-MUST-MATCH-MASTER-001]: decía *"🟢 Listo, sin
+> mergear"*. Aquí no hay marcador en código que buscar — el ticket **borra** líneas, no las añade —
+> así que la prueba es el commit con su tag y la rama inexistente.
 
 ## Problema
 

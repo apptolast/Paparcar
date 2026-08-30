@@ -1,6 +1,19 @@
 # Detection Readiness & Permission Tiering — Reference Document
 
 **Status:** living document. Update when the readiness model, permission tiers, the navigation gate, or the onboarding permission flow change.
+
+> ⚠️ **Revisado el 2026-08-30 contra master `46621e7f`** [DOCS-LIVING-DOCS-MUST-MATCH-MASTER-001].
+> El **modelo** (§2 tiers · §3 gate · §4 `DetectionReadiness` · §5 diagrama) sigue siendo verdad: los
+> ficheros existen y `DetectionReadiness` conserva sus cinco estados (`Disabled`/`Blocked`/`Ready`/
+> `Monitoring`/`Parked`) con `DisabledReason` en `NO_VEHICLE` · `NON_PARKING_VEHICLE` · `TURNED_OFF`.
+>
+> **Lo que sí ha cambiado es la SUPERFICIE (§6) y por tanto la tabla de ficheros (§8):** ya no hay un
+> `DetectionReadinessBanner` ni claves `detection_*`. La readiness se presenta a través de
+> `presentation/home/model/DetectionUiState.kt` (8 variantes: `NoVehicle`, `Inactive`, `BlockedCore`,
+> `Parked`, `Monitoring`, `AwaitingFirstPark`, `ArmedBluetooth`, `Silent`) y se pinta en
+> `presentation/home/sections/sheet/components/HomeDetectionSurface.kt`, con copy bajo `home_det_*`.
+> Es decir: dejó de ser una tira informativa y pasó a ser **la cabecera de la hoja de Home**, que
+> además ofrece acción. Las filas de §6/§8 marcadas ⚠️ abajo son las que quedaron desfasadas.
 **Audience:** solo developer + AI pair.
 **Scope:** the *presentation/runtime* layer that decides **what the app tells the user about automatic detection** — distinct from how detection actually works (signals, scoring, geofences). For the algorithm see [`PARKING-DETECTION.md`](./PARKING-DETECTION.md) and [`SIGNAL-ARCHITECTURE.md`](./SIGNAL-ARCHITECTURE.md).
 
@@ -127,6 +140,21 @@ Why `Blocked` outranks `Parked`: a parked car with a revoked permission must sti
 
 ## 6. The Home banner
 
+> ⚠️ **Sección desfasada (2026-08-30).** El banner como *tira superior persistente* ya no existe:
+> `ui/components/DetectionReadinessBanner.kt` no está en el árbol y **ninguna clave `detection_*` de
+> esta tabla existe** en `strings.xml`. Hoy la readiness es la **cabecera de la hoja de Home**
+> (`presentation/home/sections/sheet/components/HomeDetectionSurface.kt`), alimentada por
+> `presentation/home/model/DetectionUiState.kt` y con copy bajo `home_det_*`
+> (`home_det_core_title/sub/cta`, `home_det_monitoring`, `home_det_awaiting_*`, `home_det_driving_*`,
+> `home_det_candidate_*`, `home_det_ask_*`…).
+>
+> Las 8 variantes de `DetectionUiState` — `NoVehicle` · `Inactive` · `BlockedCore` · `Parked` ·
+> `Monitoring` · `AwaitingFirstPark` · `ArmedBluetooth` · `Silent` — son las que hoy deciden qué se
+> muestra. **El razonamiento de esta sección sigue valiendo** (severidad adaptativa, CTA solo cuando
+> hay handler, estados de acción-necesaria nunca ocultos); lo que cambió es dónde vive.
+>
+> Lo de abajo se conserva como registro del diseño de junio.
+
 `ui/components/DetectionReadinessBanner.kt`. A **persistent top strip** anchored in a `Column(TopCenter)` in `HomeScreen`, **outside** the `overlayVisible` gate, so action-needed states are never hidden when the user drags the sheet or selects a spot. The wrapping column owns the status-bar inset (the search header no longer does).
 
 Prominence is **adaptive by severity**:
@@ -150,7 +178,15 @@ Compose `@Preview`s (all states + 3 placement options) live in `androidMain/.../
 
 ## 7. Onboarding — CORE-required, PRODUCER-optional
 
-Priming screen (`PermissionsRationaleScreen`) leads with personal value (`perm_rationale_title` = "Automate your parking"). The permissions screen lets the user enter with **CORE only**:
+> ⚠️ **Corregido el 2026-08-30:** la pantalla de *priming* separada (`PermissionsRationaleScreen`, con
+> `perm_rationale_title`) **ya no existe** — ni el fichero ni la clave. El onboarding de permisos es
+> hoy una sola pantalla, `PermissionsScreen` + `PermissionsContent`, con `PermissionTier.kt`,
+> `PermissionRow.kt` y `DetectionTierStatusCard.kt` (la tarjeta que dice qué nivel de detección
+> desbloquea lo concedido). Lo demás de esta sección **sigue siendo exacto**: las dos claves que cita
+> (`permissions_btn_activate_detection`, `permissions_continue_with_core`) existen y el flujo
+> CORE-only es el vigente.
+
+The permissions screen leads with personal value and lets the user enter with **CORE only**:
 
 - The step-2 (background-location) CTA is labelled **"Turn on auto-detection"** (`permissions_btn_activate_detection`).
 - A secondary **"Maybe later"** (`permissions_continue_with_core`) appears when `PermissionsState.canContinueWithCore` (CORE + GPS satisfied, PRODUCER incomplete) → `PermissionsIntent.ContinueWithCore` → `NavigateToHome` (guarded on CORE + GPS).
@@ -170,10 +206,14 @@ A new user who taps "Maybe later" reaches Home with the `Blocked` banner nudging
 | Runtime flag | `domain/detection/DetectionRuntimeState.kt`, `CoordinatorDetectionService.kt` |
 | Strategy (pure) | `domain/detection/ParkingStrategyResolver.kt` (`strategyFor`) |
 | Gate | `presentation/app/AppViewModel.kt`, `SplashViewModel.kt`, `App.kt` |
-| Banner | `ui/components/DetectionReadinessBanner.kt` |
-| Home wiring | `presentation/home/HomeViewModel.kt`, `HomeState.kt`, `HomeScreen.kt` |
-| Onboarding | `presentation/permissions/PermissionsViewModel.kt`, `PermissionsState.kt`, `PermissionsContent.kt`, `PermissionsRationaleScreen.kt` |
+| **Superficie** (antes "Banner") | `presentation/home/sections/sheet/components/HomeDetectionSurface.kt` + `presentation/home/model/DetectionUiState.kt` — ⚠️ **ya no** `ui/components/DetectionReadinessBanner.kt` |
+| Previews de diseño | `androidMain/.../ui/components/DetectionReadinessDesignPreviews.kt` |
+| Home wiring | `presentation/home/HomeViewModel.kt`, `HomeTripController.kt`, `HomeState.kt`, `HomeScreen.kt` |
+| Onboarding | `presentation/permissions/PermissionsViewModel.kt`, `PermissionsState.kt`, `PermissionsContent.kt` — ⚠️ el `PermissionsRationaleScreen.kt` que citaba esta fila ya no existe |
 | Tests | `ObserveDetectionReadinessUseCaseTest`, `AppPermissionStateTest`, `HomeViewModelTest` |
+
+> Verificado fichero a fichero el 2026-08-30. Las dos filas ⚠️ son exactamente lo que este barrido
+> encontró roto: dos rutas que se citaban con confianza y no existían.
 
 ---
 

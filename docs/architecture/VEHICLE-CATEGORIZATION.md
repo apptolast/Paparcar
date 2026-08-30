@@ -2,7 +2,9 @@
 
 **Ticket:** VEHICLE-CATEGORIZATION-001
 **Shipped:** 2026-06-08
-**Status:** ✅ Active
+**Status:** ✅ Active — **doc vivo**, re-verificado contra master `46621e7f` el **2026-08-30**
+[DOCS-LIVING-DOCS-MUST-MATCH-MASTER-001]. El modelo (dos ejes + `SpotFit`) no ha cambiado; lo que
+había envejecido eran la sección de persistencia y los follow-ups.
 
 ## Motivation
 
@@ -64,7 +66,15 @@ Both `sizeCategory` and `carbodyType` are stored as the enum name (String) on:
 - **Room** — VehicleEntity, UserParkingEntity, SpotEntity (carbodyType nullable on all three).
 - **Firestore DTOs** — VehicleDto.carbodyType (empty string when null), SpotDto.carbodyType (nullable), ParkingHistoryDto.carbodyType (nullable).
 
-Room schema bumped to **v6** at the same time. `fallbackToDestructiveMigration(dropAllTables = true)` is active on both Android and iOS so no explicit migration is shipped — Firestore is the durable source of truth.
+> ⚠️ **Corregido el 2026-08-30.** This section used to say *"Room schema bumped to **v6**"* and, further
+> down, *"`MIGRATION_6_7`"*. Neither survives: `DATA-ROOM-STARTS-AT-VERSION-ONE-001` **collapsed the
+> whole v2..v20 chain into a v1 baseline** and deleted its 16 exported schemas, because those upgrades
+> only ever ran on our own test phones. `AppDatabase.version = 1` today.
+
+`fallbackToDestructiveMigration(dropAllTables = true)` is active on both Android and iOS, so no
+explicit migration is shipped and Firestore is the durable source of truth. **That ends with the
+first public release**: from then on every schema change needs its own `Migration` and exported
+schema — see [`../BUGS_AND_DEBT.md §4`](../BUGS_AND_DEBT.md).
 
 ## Spot Fit (peek tri-state)
 
@@ -95,7 +105,10 @@ A secondary "Liberada por [icon] [carbody label]" subline appears underneath whe
 - `parking_alert_high_ceiling / long_car / wide_car / standard`
 - `vehicle_registration_carbody_section / auto_label / manual_label / change / picker_title / picker_dismiss`
 
-The 7 secondary locales (de, fr, it, pt, nl, pl, ro) carry the EN copy as fallback per `feedback_i18n_all_locales`.
+The 7 secondary locales (de, fr, it, pt, nl, pl, ro) shipped carrying the EN copy as fallback. Since
+then the rule hardened: **every new key lands in all 9 locales in the same task**, and
+`LocaleParityGuardrailTest` fails the build otherwise. Missing a translation does not crash — it
+silently renders English, which is why the guardrail exists.
 
 ## Tests
 
@@ -105,7 +118,8 @@ The 7 secondary locales (de, fr, it, pt, nl, pl, ro) carry the EN copy as fallba
 - `VehicleCatalogTest` — exact-match + pattern fallback assertions adapted.
 - `VehicleRegistrationViewModelTest` — `SetCarbody` intent replaces legacy `SetSize`.
 
-448 unit tests green.
+448 unit tests green **cuando se envió** (2026-06-08). No es una cifra viva: hoy la suite está en 191
+ficheros de test en `commonTest` + 16 en `androidUnitTest`.
 
 ## Paint colour — a third, independent axis [VEH-COLOR-001]
 
@@ -121,15 +135,25 @@ or spot publishing.
 - Rendering: the body-family source colours (`#00794A`/`#009F5E` body, `#23C47D` highlight,
   `#005E39` shade) are swapped at runtime for a palette derived from the chosen colour
   (`carPaletteOf` + `recolor` in `VehicleCarPaint`), rebuilding the `ImageVector` from the
-  embedded geometry in `VehicleCarGeometry` (both side-profile and top-down). The default
-  (null) path keeps using the real drawables, so existing cars are byte-identical.
+  embedded geometry in `VehicleCarGeometry` (both side-profile and top-down).
 - Applied at every site that depicts a specific vehicle: registration hero, the My Vehicles
   list, the on-map badge marker, and the top-down driving puck.
-- Persistence: `Vehicle.color` ↔ Room (`vehicles.color`, `MIGRATION_6_7`) ↔ Firestore
-  (`VehicleDto.color`), parsed defensively (unknown/blank → null), mirroring `carbodyType`.
+- Persistence: `Vehicle.color` ↔ Room (`vehicles.color`) ↔ Firestore (`VehicleDto.color`), parsed
+  defensively (unknown/blank → null), mirroring `carbodyType`. (The `MIGRATION_6_7` this line used to
+  cite went away with the collapse to v1 — the column is born with the schema now.)
 
 ## Open follow-ups
 
-- **ICON-SVG-001** — replace the 10 `ic_car_*.xml` placeholders with proper Lucide/Material SVGs.
-- **MARKERS-CARBODY-001** — use `CarbodyType.icon` (drawable) in `VehicleBadgeMarker` once SVGs are in place; will require converting the marker `Icon` call to a `painterResource` flow.
-- **VehicleSizeExplainer-rewrite** — current explainer screen still references the legacy mental model; refresh copy + examples to the bidimensional taxonomy.
+> Revisados el 2026-08-30. Dos de los tres quedaron **sin objeto** — no "cerrados": el problema
+> desapareció al dejar de ser el arte del vehículo un drawable.
+
+- ~~**ICON-SVG-001** — replace the 10 `ic_car_*.xml` placeholders with proper SVGs~~ → **sin objeto.**
+  Esos ficheros ya no existen: `composeResources/drawable/` no tiene ni un `ic_car_*`, y ningún
+  componente `Vehicle*` referencia `Res.drawable`. El vehículo se dibuja por geometría
+  (`VehicleCarGeometry` + `VehicleCarPaint` + `VehicleIconPainter`), que es justo lo que permite
+  repintar la carrocería por `VehicleColor` sin un asset por combinación de forma y color.
+- ~~**MARKERS-CARBODY-001** — usar el drawable de `CarbodyType` en `VehicleBadgeMarker`~~ → **sin
+  objeto** por lo mismo: dependía de unos SVG que no llegaron a existir.
+- **VehicleSizeExplainer-rewrite** — ⏳ **sigue abierto.**
+  `presentation/vehicleregistration/VehicleSizeExplainerScreen.kt` aún explica el modelo lineal
+  antiguo; hay que reescribir copy y ejemplos a la taxonomía de dos ejes.

@@ -1,7 +1,11 @@
 # Paparcar — Architecture
 
-> Documento consolidado. Sustituye a `Paparcar_Arquitectura.md`, `docs/architecture/ARCH-002-modularization-review.md` y partes de `docs/ios-contracts.md` (todos movidos a `docs/archive/`).
-> Última auditoría: **2026-05-24**.
+> **Doc vivo.** Describe el proyecto **en presente**: si algo aquí no es verdad hoy, es un bug del doc.
+> Verificado contra master `46621e7f` el **2026-08-30** — versiones leídas de `gradle/libs.versions.toml`,
+> rutas y cifras contadas sobre el árbol.
+> Sustituye a `Paparcar_Arquitectura.md` (v4.0, abril 2026), **borrado** en este mismo barrido por
+> estar reemplazado por completo — recuperable con `git show <commit>^:docs/archive/Paparcar_Arquitectura.md`.
+> El análisis de modularización sigue vivo en [`archive/ARCH-002-modularization-review.md`](./archive/ARCH-002-modularization-review.md).
 
 ---
 
@@ -9,19 +13,46 @@
 
 | Capa | Tecnología |
 |------|------------|
-| UI | Compose Multiplatform 1.10.2 (Material3) |
-| Arquitectura | Clean Architecture + MVI (State + Intent + Effect) |
+| Lenguaje | Kotlin 2.4.10 (KSP 2.3.11) · JVM 17 · Gradle 9.7.1 |
+| Build | AGP 9.3.2 · compileSdk 37 · targetSdk 37 · minSdk 26 |
+| UI | Compose Multiplatform 1.12.0 · Material3 (JB) 1.9.0 |
 | Navegación | Navigation Compose KMP 2.9.2 |
-| DI | Koin 4.1.1 (core + compose + viewmodel) |
-| DB local | Room KMP 2.8.4 + sqlite-bundled |
-| Backend | Firebase via GitLive 2.4.0 (Auth, Firestore, Crashlytics) |
-| Maps | KMP Maps (Software Mansion) 0.8.1 — Google Maps Android, Apple Maps iOS |
-| Auth | BaseLogin 1.0.16 (librería propia, JitPack) |
-| Async | Kotlinx Coroutines 1.10.2 + Flow |
-| Logging | Napier 2.7.1 |
-| Background | WorkManager 2.11.1 (Android) — BGTaskScheduler pendiente en iOS |
+| Arquitectura | Clean Architecture + MVI (State + Intent + Effect) |
+| DI | Koin 4.2.2 (core + compose + viewmodel) |
+| DB local | Room KMP 2.8.4 + sqlite-bundled 2.7.0 |
+| Backend | Firebase vía GitLive 2.6.0 (Auth · Firestore · Crashlytics) · firebase-bom 34.18.0 |
+| Maps | `io.github.rndevelo.kmpmaps:core:0.9.1-puck4` — **fork propio** en Maven Central (Google Maps en Android, Apple Maps en iOS) |
+| Auth | BaseLogin 1.1.0 (librería propia, JitPack) — ⛔ no se toca desde este repo |
+| Async | Coroutines 1.11.0 + Flow · Serialization 1.11.0 · Datetime 0.8.0 |
+| Imágenes | Coil 3.6.0 + Ktor 3.5.2 (motor de red) |
+| Logging | Napier 2.7.1 · Crashlytics |
+| Background | WorkManager 2.11.2 (Android) — BGTaskScheduler pendiente en iOS |
+| Tests | JUnit 4 · Turbine 1.2.1 · Robolectric 4.16.1 · **Konsist 0.17.3** (guardarraíles) |
 
-**Targets:** Android `minSdk 26 / target 36 / compile 37`. iOS `arm64 + simulatorArm64`. Kotlin 2.3.10. JVM 17.
+**Targets:** Android `minSdk 26 / target 37 / compile 37` · iOS `arm64 + simulatorArm64`.
+
+> El fork de kmp-maps es nuestro: la versión la manda este repo, no upstream (Software Mansion 0.9.1
+> + PR #170 sin mergear, que da id estable al marker). [BUILD-KMPMAPS-CENTRAL-DEPENDENCY-001]
+
+---
+
+## Los dos módulos Gradle
+
+Desde `b949efa1` [ARCH-HEALTH-001 F7] el proyecto está partido en dos, con el paquete
+`com.rndeveloper.paparcar`:
+
+```
+:shared   KMP — TODA la lógica de producto (domain, data, presentation, ui, di, core)
+:app      Shell Android — MainActivity, PaparcarApp, AppNotificationManagerImpl, manifest,
+          res/, flavors prod|mock, firma. Aquí vive BuildConfig.
+iosApp/   Shell SwiftUI (delega en Compose vía MainViewController)
+```
+
+`:app` es deliberadamente delgado: **4 ficheros Kotlin** en `src/main`. `:shared` no puede leer
+`BuildConfig` (vive en `:app`), así que los *build facts* viajan por `AppBuildInfo` / `isDebugBuild`.
+
+> ⛔ El plugin `com.android.kotlin.multiplatform.library` **vacía los composeResources del APK** — por
+> eso `:shared` no lo usa. Trampa medida durante F7.
 
 ---
 
@@ -29,38 +60,38 @@
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│  UI (commonMain/ui + presentation)                           │
-│  HomeScreen · VehiclesScreen · HistoryScreen · SettingsScreen│
-│  PaparcarMapView · PapButton · PapCard · GlassSurface · ...  │
+│  UI (shared/commonMain/ui + presentation)                    │
+│  HomeScreen · VehiclesScreen · SettingsScreen · Onboarding   │
+│  PaparcarMapView · Pap* (design system) · GlassSurface       │
 └────────────┬─────────────────────────────────────────────────┘
              │ State / Intent / Effect
 ┌────────────▼─────────────────────────────────────────────────┐
-│  Presentation (commonMain/presentation)                      │
-│  HomeViewModel · VehiclesViewModel · HistoryViewModel · ...  │
+│  Presentation (commonMain/presentation) — MVI                │
+│  HomeViewModel (+ controllers) · VehiclesViewModel · …       │
 │  AppViewModel (auth + bootstrap) · SplashViewModel           │
 └────────────┬─────────────────────────────────────────────────┘
-             │ UseCases (Result<T> | Flow<T>)
+             │ UseCases (Result<T> | Flow<T> | value object)
 ┌────────────▼─────────────────────────────────────────────────┐
 │  Domain (commonMain/domain) — KOTLIN PURO                    │
-│  usecase/{location,parking,spot,user,zone,notification}      │
-│  model/{Spot,Vehicle,UserParking,Zone,ParkingConfidence,…}   │
-│  service/{GeofenceManager,EventBus,Scheduler interfaces}     │
-│  coordinator/ParkingDetectionCoordinator                     │
+│  usecase/{parking,detection,spot,location,user,zone,          │
+│           vehicle,notification,diagnostics}                  │
+│  detection/{stages,physics,state,fence,sentry,ports}         │
+│  model/ · repository/ (interfaces) · error/PaparcarError     │
 └────────────┬─────────────────────────────────────────────────┘
              │ Repository interfaces
 ┌────────────▼─────────────────────────────────────────────────┐
 │  Data (commonMain/data)                                      │
 │  repository/*Impl  →  Room DAO  ⇄  Firestore (GitLive)       │
-│  mapper/* (Entity ↔ Domain ↔ DTO)                            │
+│  mapper/ · geohash/ · geocoder/ · session/                   │
 └────────────┬─────────────────────────────────────────────────┘
-             │ expect/actual
+             │ expect/actual + bindings Koin
 ┌────────────▼─────────────────────────────────────────────────┐
-│  Platform                                                    │
-│  androidMain: WorkManager · FusedLocation · ActivityRecog    │
-│               · Foreground Service · BroadcastReceivers      │
-│               · BluetoothScanner · GeofencingClient          │
-│  iosMain:     CLLocation · CMMotion · CBCentralManager       │
-│               · UNUserNotificationCenter · NWPathMonitor     │
+│  Platform (shared/androidMain | shared/iosMain)              │
+│  androidMain: CoordinatorDetectionService · BluetoothDetec-  │
+│    tionService · 11 workers · 6 receivers · FusedLocation ·  │
+│    ActivityRecognition · GeofencingClient · sensores         │
+│  iosMain: CLLocation · CMMotion · CBCentralManager ·         │
+│    UNUserNotificationCenter · NWPathMonitor                  │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -68,32 +99,34 @@
 
 ## Flujo de datos canónico
 
-**Lectura observable** (ej.: spots cercanos en mapa):
+**Lectura observable** (spots cercanos en el mapa):
+
 ```
 HomeScreen
-  ↓ collectAsStateWithLifecycle
+  ↓ collectAsStateLifecycleAware
 HomeViewModel.state: StateFlow<HomeState>
   ↑ combine
 ObserveNearbySpotsUseCase: Flow<List<Spot>>
   ↑
 SpotRepository (offline-first)
   ↳ Room SpotDao.observeNearby(...): Flow<List<SpotEntity>>   ← Source of Truth
-  ↳ Firestore listener → upsert en Room                        ← Sync layer
+  ↳ Firestore listener → upsert en Room                        ← capa de sync
 ```
 
-**Comando con efecto** (ej.: confirmar parking):
+**Comando con efecto** (confirmar un aparcamiento):
+
 ```
-BluetoothParkingDetector / ParkingDetectionCoordinator
-  ↓
-ConfirmParkingUseCase
-  ├→ UserParkingRepository.insertActive(...)   (Room, sync)
+BluetoothParkingDetector  |  CoordinatorParkingDetector
+  ↓                                    ↓
+        ConfirmParkingUseCase   ← punto único de convergencia
+  ├→ UserParkingRepository.insertActive(...)   (Room, síncrono)
   ├→ GeofenceManager.register(...)             (Play Services / CLLocationManager)
   ├→ AppNotificationManager.notifyConfirmed()
-  └→ ParkingSyncScheduler.enqueueSaveNewParkingSession(session, previousSessionId)
+  └→ ParkingSyncScheduler.enqueueSaveNewParkingSession(...)
          ↓
        SaveNewParkingSessionWorker (WorkManager / coroutine en iOS)
          ↓
-       Firestore.collection("userParkings").set(...) + opcional update({isActive:false}) en previa
+       Firestore.set(...) + update({isActive:false}) sobre la sesión previa
 ```
 
 ---
@@ -101,78 +134,48 @@ ConfirmParkingUseCase
 ## Estructura de paquetes
 
 ```
-com.rndeveloper.paparcar
-├── domain/                          (commonMain, Kotlin puro, sin Android)
-│   ├── model/                       Spot, Vehicle, UserParking, Zone,
-│   │                                ParkingConfidence, ParkingSignals,
-│   │                                ParkingDetectionConfig, …
-│   ├── coordinator/                 ParkingDetectionCoordinator
-│   ├── detection/                   ParkingStrategyResolver
-│   ├── usecase/
-│   │   ├── parking/                 Confirm·DetectDeparture·ObserveParked·
-│   │   │                            ReleaseActiveSession·UpdateLocation·
-│   │   │                            CalculateConfidence
-│   │   ├── location/                GetOne·GetInfo·ObserveAdaptive·Search
-│   │   ├── spot/                    ObserveNearby·ReportReleased·SendSignal
-│   │   ├── user/                    GetOrCreate·Bootstrap·DeleteAccount
-│   │   ├── zone/                    Observe·Save·Delete
-│   │   └── notification/            NotifyParkingConfirmation
-│   ├── repository/                  interfaces
-│   ├── service/                     GeofenceManager, EventBus, Scheduler interfaces
-│   ├── session/                     LocalSessionCache
-│   ├── preferences/                 AppPreferences, ThemeMode
-│   ├── connectivity/                ConnectivityObserver
-│   └── error/                       PaparcarError
+com.rndeveloper.paparcar                          (shared/src/commonMain)
+├── domain/                          Kotlin puro — sin android.* ni platform.*
+│   ├── model/                       Spot · UserParking · Vehicle · Zone · VehicleSize ·
+│   │                                CarbodyType · SpotFit · ParkingDetectionConfig · …
+│   ├── detection/                   el cerebro de detección, puro y testeable
+│   │   ├── stages/                  12 stages del coordinator (Candidate, FastConfirm,
+│   │   │                            HoldResolution, VehicleAttribution, UserConfirm, …)
+│   │   ├── physics/                 12 predicados puros compartidos (CredibleMovement,
+│   │   │                            WalkedVsRode, HonestZoneRadius, SessionOutcome, …)
+│   │   ├── state/                   ConfirmationPhase + composición de sesión
+│   │   ├── fence/ · sentry/         propiedad de geocerca · ciclo de vida del centinela
+│   │   ├── ports/                   TripTrail · ManualParkingDetection (puertos)
+│   │   └── CoordinatorParkingDetector.kt · ParkingStrategyResolver.kt · ArmEvidence.kt
+│   ├── usecase/                     47 use cases en 9 áreas — uno por VEREDICTO
+│   ├── repository/ service/ ports   interfaces
+│   ├── permissions/ preferences/ session/ diagnostics/ …
+│   └── error/PaparcarError.kt
 │
-├── data/                            (commonMain)
-│   ├── datasource/
-│   │   ├── local/room/              AppDatabase v3, DAOs, Entities
-│   │   └── remote/                  FirebaseDataSource, DTOs
-│   ├── repository/                  *Impl (offline-first)
-│   ├── mapper/                      Entity↔Domain↔DTO
-│   └── session/                     RoomLocalSessionCache
+├── data/
+│   ├── datasource/local/room/       AppDatabase v1, 6 entidades, DAOs
+│   ├── datasource/remote/           FirebaseDataSource + DTOs + logger de diagnóstico
+│   ├── repository/                  *Impl offline-first + reconcile LWW (SyncReconcile.kt)
+│   ├── mapper/ geohash/ geocoder/ session/
 │
-├── presentation/                    (commonMain, MVI)
-│   ├── home/                        HomeScreen + State/Intent/Effect/ViewModel
-│   │   └── sections/                header · map · sheet (subcomponentes)
-│   ├── history/
-│   ├── vehicles/                    + vehicle/ (registration, size explainer)
-│   ├── settings/
-│   ├── bluetooth/                   BluetoothConfigScreen
-│   ├── permissions/                 Permissions + Rationale + GpsDisclaimer
-│   ├── onboarding/
-│   ├── map/                         ParkingHistoryDetailScreen (un aparcamiento del historial, sobre el mapa)
-│   ├── app/                         AppViewModel (auth + bootstrap) + SplashViewModel
-│   ├── base/                        BaseViewModel<S,I,E>
-│   ├── preview/                     FakeData para Compose Preview
-│   └── util/                        DistanceUnit, LocaleApplier, ExternalNav…
-│
-├── ui/                              (commonMain, design system)
-│   ├── theme/                       Color, Typography, Shapes, Spacing,
-│   │                                Borders, VehicleAccentPalette, Theme
-│   ├── components/                  PapButton/Card/TextField/Badge,
-│   │                                GlassSurface, PaparcarMapView,
-│   │                                PaparcarMapMarkers, AppBottomNavigation,
-│   │                                ConfirmationBottomSheet, ChipsPaparcar*…
-│   ├── auth/                        PaparcarAuthSlots
-│   └── icons/                       PaparcarIcons
-│
-├── di/                              (commonMain)
-│   ├── DomainModule.kt              UseCases + ParkingDetectionConfig + Coordinator
-│   ├── DataModule.kt                Repos + Room + Firestore wiring
-│   └── PresentationModule.kt        ViewModels
-│
-└── (androidMain | iosMain)/
-    ├── di/                          AndroidPlatformModule + AndroidDetectionModule
-    │                                IosPlatformModule + IosDetectionModule
-    ├── detection/                   service, workers, receivers (Android)
-    │                                CL/CM bridges (iOS)
-    ├── location/                    Fused/CL adapter
-    ├── bluetooth/                   BluetoothScanner + ConnectionReceiver (Android)
-    ├── notification/                AppNotificationManager impl
-    ├── permissions/                 PermissionManager impl
-    ├── preferences/                 AppPreferences impl
-    └── connectivity/                ConnectivityObserver impl
+├── presentation/                    MVI: home · vehicles · settings · permissions ·
+│                                    onboarding · bluetooth · vehicleregistration · map ·
+│                                    app (Auth/Splash) · base · preview · util
+├── ui/                              theme/ (Color · PapColor · PaparcarType · PapFontSet ·
+│                                    VehicleIdentity · SpotStateColors) · components/ ·
+│                                    icons/ · illustrations/ · auth/
+├── core/crash/                      · di/ (DomainModule · DataModule · DetectionModule ·
+│                                       PresentationModule)
+└── fakes/                           fakes scenario-aware que comparten mock y tests
+
+(shared/src/androidMain)             detection/{service,worker,receiver,sensor} ·
+                                     bluetooth/ · location/ · notification/ · permissions/ ·
+                                     preferences/ · diagnostics/ · logging/ · di/
+(shared/src/iosMain)                 CL/CM/CB bridges · ios/stub/ · di/
+(app/src/main)                       MainActivity · PaparcarApp · AppNotificationManagerImpl ·
+                                     di/AppModule
+(app/src/mock)                       Dev Catalog: DevMainActivity · DevRoot · DevCatalogScreen ·
+                                     StateGalleryScreen
 ```
 
 ---
@@ -180,48 +183,84 @@ com.rndeveloper.paparcar
 ## Decisiones técnicas clave
 
 ### 1. Domain puro Kotlin
-`domain/` no debe importar `android.*` ni `platform.*` (iOS). Verificado: no hay violaciones. Las dependencias de plataforma se exponen como `interface` en domain y se implementan via `expect/actual` o Koin bindings en `androidMain`/`iosMain`.
+`domain/` no importa `android.*` ni `platform.*`. Lo verifica `ArchitectureTest` (Konsist), no la
+buena voluntad. Las dependencias de plataforma se declaran como `interface` en domain y se
+implementan vía `expect/actual` o bindings de Koin en `androidMain`/`iosMain`.
 
 ### 2. Offline-first con dual write
-**Room es Source of Truth.** `ConfirmParkingUseCase` escribe a Room **sincrónicamente**, y `SaveNewParkingSessionWorker` propaga a Firestore con reintentos. La lectura siempre observa Room; Firestore se merge upstream via listener.
+**Room es Source of Truth.** `ConfirmParkingUseCase` escribe a Room **sincrónicamente**; los workers
+propagan a Firestore con reintentos. La lectura observa siempre Room. Rationale: la app tiene que
+funcionar sin red — se aparca en sótanos.
 
-Rationale: la app debe funcionar sin red (el usuario aparca y pierde cobertura en parking subterráneo).
+Para vehículos, zonas y sesiones hay además **reconcile LWW** (`SyncReconcile.kt` + `VehicleReconcile`
+/ `ZoneReconcile`): lo editado offline se marca pendiente y se drena al reconectar.
 
-### 3. Dual detection strategy
-Dos estrategias **independientes**, nunca se mezclan (regla en `CLAUDE.md`):
+### 3. Estrategia dual de detección
+Dos estrategias **independientes** que nunca se mezclan (regla vinculante en `CLAUDE.md`):
 
-- **`BluetoothParkingDetector`** — determinista: BT disconnect → GPS fix con accuracy ≤ 50m (timeout 60s) → distance threshold 30m → confirm con `reliability=0.95`. Anti-bounce de 30s contra paradas de tráfico.
-- **`ParkingDetectionCoordinator`** — probabilístico: Activity Recognition + GPS stream → `CalculateParkingConfidenceUseCase` → fase CANDIDATE con ventana de observación (3 min si `vehicleExitConfirmed`, ~20 min slow path) → auto-confirm con `reliability=0.75–0.90`.
+- **`BluetoothParkingDetector`** — determinista. BT disconnect del MAC emparejado → fix GPS →
+  alejarse ≥30 m → confirma. Ligada a la MAC, no al modelo. Sin scoring ni Activity Recognition.
+- **`CoordinatorParkingDetector`** — probabilístico. Arma con AR `IN_VEHICLE ENTER` (AR-first) o
+  `GEOFENCE_EXIT`; confirma vía `EvaluateParkingDecisionUseCase`, que **siempre exige conducción
+  medida**. El scoring por sí solo no auto-confirma.
 
-Resolución en `ParkingStrategyResolver` según `vehicle.bluetoothDeviceId != null && isBluetoothEnabled`.
+`ParkingStrategyResolver` elige según `vehicle.bluetoothDeviceId != null && isBluetoothEnabled`.
+Ambas convergen en `ConfirmParkingUseCase`.
 
-Detalle algorítmico completo en `docs/PARKING_DETECTION.md` y `docs/detection/PARKING-DETECTION.md`.
+**Spec canónica:** [`docs/detection/PARKING-DETECTION.md`](./detection/PARKING-DETECTION.md).
+Antes de tocar nada: skill `det-change`.
 
-### 4. WorkManager para side-effects diferidos
-Eventos críticos (sync Firestore, geocoding, validación de departure) no se ejecutan inline porque pueden tardar y fallar por red. Se delegan a workers con `BackoffPolicy.EXPONENTIAL` y constraints (CONNECTED solo donde necesario).
+### 4. La decisión es pura; el servicio solo hace I/O
+`CoordinatorDetectionService` serializa todos los triggers en un **intake único** [DET-INTAKE-001] y
+se limita a I/O y side-effects. **Qué se decide vive en use cases de `commonMain`**, testeables sin
+device — incluidos los *replay tests* con trazas de campo reales.
 
-Workers actuales (Android):
-- `SaveNewParkingSessionWorker` — sesión nueva (`set()`) + desactiva previa (`update({isActive:false})`) en Firestore (constraint: CONNECTED)
-- `ClearActiveParkingSessionWorker` — `update({isActive:false})` sobre la sesión liberada (constraint: CONNECTED)
-- `UpdateParkingSessionAddressAndPlaceWorker` — `update({address, placeInfo})` tras enrichment (constraint: CONNECTED)
-- `EnrichParkingSessionWorker` — geocoder + places lookup (sin constraint, best-effort) — encadena `UpdateParkingSessionAddressAndPlaceWorker`
-- `DepartureDetectionWorker` — valida geofence + AR + sesión (3 retries max)
-- `ReportSpotWorker` — publica spot liberado
+Corolario de gobierno, enforced por `StagePurityGuardrailTest`: un caso de uso existe por
+**veredicto** (algo citable en un diagnóstico), nunca por predicado. Los predicados compartidos son
+funciones puras en `domain/detection/physics/`.
 
-En iOS estos están como **stubs** (sin BGTaskScheduler) — ver `docs/IOS_PLAN.md`.
+### 5. WorkManager para side-effects diferidos
+Nada que pueda tardar o fallar por red se ejecuta inline. **11 workers** (Android):
 
-### 5. MVI estricto
-Cada screen tiene `<Name>State`, `<Name>Intent` (sealed class de acciones del usuario), `<Name>Effect` (efectos one-shot: navegación, toast). `BaseViewModel<S,I,E>` centraliza `state: StateFlow`, `handleIntent(intent: I)` y `emitEffect(effect: E)`.
+| Worker | Rol |
+|---|---|
+| `SaveNewParkingSessionWorker` | nacimiento de sesión en Firestore (constraint CONNECTED) |
+| `ClearActiveParkingSessionWorker` | cierre de la sesión liberada |
+| `EnrichParkingSessionWorker` | geocoder + places, best-effort → encadena el update |
+| `UpdateParkingSessionAddressAndPlaceWorker` | `update({address, placeInfo})` |
+| `DepartureDetectionWorker` | valida la salida (geofence + AR + sesión) |
+| `ReportSpotWorker` | publica la plaza liberada |
+| `ParkingSafetyNetWorker` | red de seguridad 15 min + sensor de movimiento |
+| `ParkingBackfillWorker` | reconcilia una salida que el OS no entregó |
+| `GeofenceJanitorWorker` | restaura geocercas tras reboot / reinstall |
+| `RegisterActivityTransitionsWorker` | re-registra las transiciones de AR |
+| `FirstParkNudgeWorker` | nudge del primer aparcamiento |
 
-### 6. Koin con módulos separados por capa y plataforma
-- `commonMain/di/`: `DomainModule`, `DataModule`, `PresentationModule`
-- `androidMain/di/`: `AndroidPlatformModule`, `AndroidDetectionModule`
-- `iosMain/di/`: `IosPlatformModule`, `IosDetectionModule`
+En iOS estos son coroutine+retry sin persistencia tras process death — ver [`IOS_PLAN.md`](./IOS_PLAN.md).
 
-Permite arrancar app/test con el subconjunto necesario.
+### 6. MVI estricto
+Cada pantalla tiene `<Name>State` / `<Name>Intent` / `<Name>Effect`. `BaseViewModel<S,I,E>` centraliza
+`state: StateFlow`, `handleIntent(intent)` y `emitEffect(effect)`. Home, por tamaño, delega en
+*controllers* (`HomeTripController`, `HomeSpotsController`, `HomeSearchController`,
+`HomeGeocodingController`, `HomeUiController`), cada uno con su test.
 
-### 7. Una sola Activity, navegación Compose
-`MainActivity.kt` carga `App()` composable que contiene `NavHost`. `singleTask` launchMode + `configChanges=orientation|screenSize|…` evita recrear la Activity en rotación.
+### 7. Koin por capa y por plataforma
+`commonMain/di/`: `DomainModule` · `DataModule` · `DetectionModule` · `PresentationModule`.
+`androidMain/di/`: `AndroidPlatformModule` · `AndroidDetectionModule`. `iosMain/di/`: los dos `Ios*`.
+`app/src/main/di/AppModule.kt` aporta lo que solo el shell puede construir.
+
+> ⛔ Los *stages* del coordinator **no se inyectan**: se construyen dentro del detector. Meterlos en
+> Koin fue evaluado y descartado. [DET-DI-DETECTION-MODULE-001]
+
+### 8. Una sola Activity
+`MainActivity` carga `App()` con el `NavHost`. `singleTask` + `configChanges` evita recrearla al rotar.
+El flavor `mock` arranca por `DevMainActivity` en su lugar.
+
+### 9. Guardarraíles ejecutables en vez de reglas escritas
+Las convenciones que un humano olvida se comprueban con Konsist en `androidUnitTest/architecture/`:
+`ArchitectureTest` · `TypographyGuardrailTest` · `ColorGuardrailTest` · `DividerGuardrailTest` ·
+`LocaleParityGuardrailTest` · `StagePurityGuardrailTest` · `HoldLaneGuardrailTest` ·
+`TriggerLaneGuardrailTest` · `PromptWindowGuardrailTest` · `HomeSliceGuardrailTest`.
 
 ---
 
@@ -229,63 +268,108 @@ Permite arrancar app/test con el subconjunto necesario.
 
 | Modelo | Resumen |
 |--------|---------|
-| `Spot` | Plaza comunitaria publicada. `location`, `type` (AUTO_DETECTED / MANUAL_REPORT), `status`, `confidence`, `enRouteCount`, `ttl` |
-| `UserParking` | Sesión propia de aparcamiento. `vehicleId` (NN), `location`, `geofenceId`, `isActive`, `detectionMethod` (BLUETOOTH / COORDINATOR / MANUAL) |
-| `Vehicle` | Vehículo del usuario. `brand`, `model`, `licensePlate?`, `bluetoothDeviceId?`, `isDefault`, `size`, accentColorIndex |
-| `UserProfile` | Perfil Firebase. `userId`, `email`, `displayName`, `photoUrl` |
-| `Zone` | Zona regulada / favorita. `location`, `radius`, `icon`, `name` |
-| `ParkingConfidence` | `High` / `Medium` / `Low` con score y motivos |
-| `ParkingSignals` | DTO de entrada al cálculo: `speed`, `stoppedDurationMs`, `gpsAccuracy`, `activityExit`, `activityStill` |
-| `ParkingDetectionConfig` | Umbrales del coordinator (singleton inyectable) |
+| `Spot` | Plaza comunitaria publicada: `location`, `type` (AUTO_DETECTED / MANUAL_REPORT), `status`, `confidence`, `sizeCategory`, `carbodyType`, `enRouteCount`, TTL |
+| `UserParking` | Sesión propia: `vehicleId`, `location`, `geofenceId`, `isActive`, `detectionMethod`, **`detectionPath`**, **`armEvidence`**, `routePolyline`, `sizeCategory`, `carbodyType` |
+| `Vehicle` | `brand`, `model`, `licensePlate?`, `bluetoothDeviceId?`, `isDefault`, `sizeCategory`, `carbodyType?`, `color?` |
+| `UserProfile` | `userId`, `email`, `displayName`, `photoUrl` |
+| `Zone` | Zona favorita/regulada: `location`, `radius`, `icon`, `name` |
+| `ParkingConfidence` | High / Medium / Low con score y motivos |
+| `ParkingDetectionConfig` | Todos los umbrales del coordinator, singleton inyectable |
 
-**Invariante crítica:** toda `UserParking` debe tener `vehicleId` no nulo. No existe "histórico sin vehículo".
+**Invariantes críticas:**
+- Toda `UserParking` tiene `vehicleId` no nulo. No existe histórico sin vehículo.
+- Todo pin persiste su **procedencia** (`detectionPath` + `armEvidence`): en un diagnóstico siempre
+  se puede decir qué trigger lo colocó.
+- Un vehículo activo como máximo (`VehicleActiveStatePolicy`).
+
+Talla × carrocería → `SpotFit`: ver [`architecture/VEHICLE-CATEGORIZATION.md`](./architecture/VEHICLE-CATEGORIZATION.md).
 
 ---
 
 ## Persistencia
 
-### Room (AppDatabase v3)
-Entidades: `UserParkingEntity`, `UserProfileEntity`, `VehicleEntity`, `SpotEntity`, `ZoneEntity`. DAOs paralelos.
+### Room — `AppDatabase` **v1**
+Entidades: `UserParkingEntity`, `UserProfileEntity`, `VehicleEntity`, `SpotEntity`, `ZoneEntity`,
+`GeocoderCacheEntity`.
 
-⚠️ **Sin migraciones explícitas definidas.** Cualquier cambio de esquema requiere `Migration(from, to)` o destruirá data en producción. Ver BUGS_AND_DEBT.md §11.
+La cadena v2..v20 y sus 16 esquemas exportados se **borraron**: describían upgrades de bases que solo
+existieron en nuestros propios móviles de test. v1 es la línea base y
+`fallbackToDestructiveMigration(dropAllTables = true)` sigue activo mientras la app no esté publicada.
+[DATA-ROOM-STARTS-AT-VERSION-ONE-001]
+
+> ⚠️ **El primer release público cierra esa puerta**: desde ahí hay usuarios cuyos datos deben
+> sobrevivir y todo cambio de esquema necesita su `Migration` y su schema exportado. El downgrade
+> está medido, no supuesto: `AppDatabaseDowngradeTest`.
 
 ### DataStore Preferences (Android)
-Theme mode, language, distance unit. Implementado en `AndroidDataStoreAppPreferences.kt`.
-
-⚠️ **Dos implementaciones rivales:** `AndroidAppPreferences.kt` (SharedPreferences legacy) y `AndroidDataStoreAppPreferences.kt`. La selección no está clara en DI. Ver BUGS_AND_DEBT.md §2.
+Tema, unidad de distancia y flags. `AndroidDataStoreAppPreferences` con snapshot in-memory (0
+`runBlocking` por getter). La implementación legacy sobre SharedPreferences se borró en mayo; la
+migración vive en el delegate `preferencesDataStore`.
 
 ### NSUserDefaults (iOS)
-`IosAppPreferences.kt` con bridge a `NSUserDefaults` + migración perezosa desde clave legacy. Implementación real, no stub.
+`IosAppPreferences` con migración perezosa desde la clave legacy. Implementación real, no stub.
 
 ### Firestore
-Colecciones principales: `userParkings`, `spots`, `vehicles`, `zones`, `userProfiles`. Acceso vía `FirebaseDataSourceImpl` y repos. Listeners se reactivan en `Offline→Online` mediante `reconnectTick` en `HomeViewModel`.
+`userParkings` · `spots` · `vehicles` · `zones` · `userProfiles` · `diagnostics/{uid}/sessions`.
+Los listeners se reactivan al pasar Offline→Online (`reconnectTick` en `HomeViewModel`).
 
 ---
 
 ## Errores y resultados
 
-Operaciones one-shot (UseCases/repos) retornan `kotlin.Result<T>` (stdlib) vía `runCatching`. Los observables son `Flow<T>` y aíslan errores con `.catch { e -> … }` para no matar el flujo (la UI sigue sirviendo la cache). Los evaluadores puros y síncronos retornan un value object de dominio.
+One-shot → `kotlin.Result<T>` (stdlib) vía `runCatching`. Observables → `Flow<T>` con `.catch { }`
+para no matar el stream (la UI sigue sirviendo cache). Los evaluadores puros y síncronos retornan un
+value object de dominio.
 
-> No existe un wrapper `AppResult` propio: el estándar es `kotlin.Result<T>`.
+> No existe wrapper `AppResult`: el estándar es `kotlin.Result<T>`.
 
-Los errores de negocio que se muestran al usuario se modelan con `PaparcarError` (sealed): `Location`, `Network`, `Database`, `Detection`, `Auth`, `Parking`, `Vehicle`. Se emiten vía `Effect.ShowError(PaparcarError)`, se mapean con un `when` en la pantalla y se muestran en un `SnackbarHost`.
+Los errores de negocio visibles se modelan con `PaparcarError` (sealed: `Location`, `Network`,
+`Database`, `Detection`, `Auth`, `Parking`, `Vehicle`), se emiten con `Effect.ShowError(...)`, se
+mapean con un `when` en la pantalla y se muestran en un `SnackbarHost`. **Cero catch silenciosos.**
+
+---
+
+## Testing
+
+| Source set | Ficheros | Para qué |
+|---|---|---|
+| `shared/src/commonTest` | 191 | el grueso: use cases, evaluadores, ViewModels, mappers, reconcile, **replay de trazas de campo** |
+| `shared/src/androidUnitTest` | 16 | lo que necesita JVM/Android: guardarraíles Konsist, Robolectric, workers, paridad de deserializadores Firestore |
+
+```bash
+./gradlew :shared:testDebugUnitTest --console=plain
+```
+
+Regla: **fakes sobre mocks** (`FakeAuthRepository`, `FakePermissionManager`, …), naming
+`should_expectedBehavior_when_condition`, y toda UseCase nueva lleva test.
+
+---
+
+## CI
+
+`.github/workflows/`: `ci.yml` (build + tests; incluye un job `macos-latest` que compila `iosMain` —
+antes de `02a29f62` **nadie compilaba iOS nunca**), `distribute-alpha.yml`, `distribute-beta.yml`.
 
 ---
 
 ## Convenciones obligatorias
 
-(Resumen — la versión vinculante está en `CLAUDE.md`)
+(Resumen — la versión vinculante está en [`CLAUDE.md`](../CLAUDE.md))
 
-- **Strings**: NUNCA hardcoded. Todo a `composeResources/values/strings.xml` con keys en inglés `feature_component_description`. Mínimo EN+ES.
-- **Magic numbers**: NUNCA inline. `private companion object` con UPPER_SNAKE_CASE.
-- **Logs**: Napier con tag, nunca `println`.
-- **Imports**: nunca wildcard.
-- **Build artifacts**: nunca se commitean (`build/`, `.kotlin/metadata`, logs).
+- **Strings**: nunca hardcoded → `composeResources/values/strings.xml`, keys EN, y **los 9 locales en
+  la misma tarea**. Faltar en uno no crashea: sale en inglés en silencio.
+- **Tipografía y color**: se elige **rol**, no fuente/tamaño/peso; el estado se escribe, no se tiñe.
+- **Magic numbers**: `private companion object` con UPPER_SNAKE_CASE.
+- **Logs**: Napier con tag, nunca `println`. **Imports**: nunca wildcard.
+- **Build artifacts**: nunca se commitean.
 
 ---
 
 ## Modularización (no urgente)
 
-Análisis previo en `docs/archive/ARCH-002-modularization-review.md`. El proyecto es un monolito (~330 ficheros Kotlin). Los path A/B/C evaluados concluyeron que **no es momento de modularizar** — los costes de compilación + KMP + Compose superan los beneficios hasta >500 ficheros o builds >2 min.
-
-Si el proyecto crece, candidato natural a primer split: extraer `detection/` (algoritmo + workers) a un módulo aparte con interfaces en `:core:detection-api`.
+Análisis previo en [`archive/ARCH-002-modularization-review.md`](./archive/ARCH-002-modularization-review.md).
+El split `:app` + `:shared` (F7) ya cubrió lo que dolía: aislar el shell Android de la lógica de
+producto. `:shared` son ~800 ficheros Kotlin; el siguiente candidato natural sería extraer
+`detection/` con interfaces en `:core:detection-api`, pero **no hay motivo hoy** — el coste de
+compilación KMP + Compose sigue superando al beneficio. Plan por fases en
+[`backlog/arch-health-001.md`](./backlog/arch-health-001.md).

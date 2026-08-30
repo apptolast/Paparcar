@@ -68,9 +68,20 @@ diferenciador es el eyebrow/copy del peek. Riesgo de que el usuario confirme en 
 **Map-type picker** (`MapTypePicker.kt:58-145`): stack vertical de 3 FABs circulares (Layers →
 Terrain/Satellite/Hybrid) con expand/collapse animado; anillo de selección 1.5 dp.
 
-**Defecto AS-IS (H2)** — ya tiene ticket: el picker ofrece TERRAIN/SATELLITE/HYBRID y el default es
-`TERRAIN`, sobre el que **el estilo de marca Paparcar no aplica** (es ráster). Cubierto por
-**MAP-TYPES-001** (spec + rama local `Paparcar-maptypes`, sin merge). No re-abrir aquí.
+**Defecto AS-IS (H2)** — el picker ofrece TERRAIN/SATELLITE/HYBRID y el default es `TERRAIN`, sobre el
+que **el estilo de marca Paparcar no aplica** (es ráster; el JSON de `MapStyles.kt` solo rinde del todo
+sobre el tipo vectorial `NORMAL`).
+
+> 📌 **Actualizado el 2026-08-30** [DOCS-LIVING-DOCS-MUST-MATCH-MASTER-001]. `MAP-TYPES-001`, que era
+> el dueño de este defecto, **se borró**: su propuesta era rediseñar un popup de 3 opciones que ya no
+> existe — `UI-MAP-TYPE-TOGGLE-001` (20-08) lo sustituyó por un toggle Terreno ⇄ Híbrido
+> (`MapTypeToggle.kt`) y retiró Satélite puro. La spec entera describía una pantalla muerta.
+>
+> Lo único suyo que seguía siendo cierto se queda aquí, que es donde se detectó: **el default sigue
+> siendo `MapType.TERRAIN`** (`HomeState.kt` y `PaparcarMapView.kt`, verificado el 30-08), así que el
+> estilo de marca y el dark automático siguen sin aplicar del todo. El KDoc del toggle defiende
+> TERRAIN por legibilidad ("flat street plan at city zoom") pero no responde a esto. Si algún día
+> molesta, se abre ticket nuevo sobre el toggle — no se resucita el del popup.
 
 ---
 
@@ -248,7 +259,7 @@ Búsqueda (3): `SearchQueryChanged`, `SelectSearchResult`, `ClearSearch`. Plazas
 | # | Síntoma UX | Origen | Dueño |
 |---|---|---|---|
 | H1 | 4 modos pin casi idénticos; riesgo de confirmar en el equivocado | mismo esqueleto peek, solo cambia eyebrow | UX (narrativa modo) |
-| H2 | Tipo de mapa por defecto sin estilo de marca | default TERRAIN ráster | **MAP-TYPES-001** (ya spec) |
+| H2 | Tipo de mapa por defecto sin estilo de marca | default TERRAIN ráster | 🟡 sin dueño — `MAP-TYPES-001` se borró (describía el popup que retiró `UI-MAP-TYPE-TOGGLE-001`); el defecto sigue vivo, detalle en §H2 |
 | H3 | Búsqueda falla en silencio | `SearchUpdate.Failure` limpia sin feedback | ✅ CURADA en esta rama 06-08 (snackbar + fila "sin resultados") |
 | H4 | Spot y sesión comparten `selectedItemId` | acoplamiento MULTI-PARKING-001 | vigilar al tocar peek |
 | H5/C6 | Sin relato único de estado de detección | pills sueltas + fase + banner GPS | **UX-PARK-FLOW-001** (C6) |
@@ -262,7 +273,9 @@ Búsqueda (3): `SearchQueryChanged`, `SelectSearchResult`, `ClearSearch`. Plazas
 3. **Feedback de error de búsqueda** (H3) — barato, alta fricción. → ✅ hecho en esta rama (06-08).
 
 ## 12. Qué NO es de este análisis (deuda con dueño)
-- Estilo de mapa → **MAP-TYPES-001** (a 06-08 sigue en rama sin merge, worktree `Paparcar-maptypes`).
+- Estilo de mapa → ~~**MAP-TYPES-001**~~ **sin dueño desde el 30-08**: aquel ticket se borró por
+  describir el popup de 3 opciones que `UI-MAP-TYPE-TOGGLE-001` retiró. El defecto (default `TERRAIN`,
+  estilo de marca sin aplicar) sigue vivo y documentado en §H2 de este mismo doc.
 - Modelo activo/liberar (release fantasma, atribución) → **VEH-ACTIVE-FENCE-001** — ✅ en master
   21-07 (pendiente field-test Pieza 1).
 - Snap del ancla fuera de edificios → **SNAP-TO-PARK-001** (solo spec).

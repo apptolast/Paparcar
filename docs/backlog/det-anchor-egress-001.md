@@ -1,6 +1,10 @@
 # DET-ANCHOR-EGRESS-001 — El egress nace del ancla (cerca refina, lejos invalida)
 
-> **Estado**: ESPECIFICADO — pendiente de rama `feature/DET-ANCHOR-EGRESS-001-egress-born-at-anchor`.
+> **Estado**: ✅ Done · en master como `54b57173` — *"Rule A — auto-confirms pin the step-witnessed
+> egress birth, bounded"*. La rama `feature/…-egress-born-at-anchor` ya no existe; el marcador vive
+> en **12 ficheros** de producción.
+> *(Corregido el 2026-08-30 por [DOCS-LIVING-DOCS-MUST-MATCH-MASTER-001]: decía "ESPECIFICADO —
+> pendiente de rama".)*
 > Origen: FP grave de la auditoría 2026-07-15 (pin a 1,11 km) + pins-dentro-del-edificio desde el
 > cambio de régimen DET-ANCHOR-FREEZE-001 (master 12-07). Decidido con el user 2026-07-16.
 > Prioridad: **P0** — el más quirúrgico y el de mayor daño actual; primero de la tanda.

@@ -1,5 +1,13 @@
 # Paparcar — Session tasks — 2026-05-20
 
+> 📌 **Registro CONGELADO al 2026-05-21. No es backlog vivo.** Anotado el 2026-08-30
+> [DOCS-LIVING-DOCS-MUST-MATCH-MASTER-001]: los **11 estados `🔵 Branch ready`** de abajo se
+> escribieron aquella semana y **ninguna de esas ramas existe hoy**. No se han reetiquetado uno a uno
+> porque este doc no es una lista de trabajo pendiente sino el acta de una sesión de planificación:
+> el estado real de cada tarea vive en su propio ticket de `docs/backlog/` o en `git log`.
+>
+> Si buscas qué queda por hacer, esto **no** es la respuesta: es [`../ROADMAP.md`](../ROADMAP.md).
+
 Ten tareas originadas en sesión de planificación del 2026-05-20.
 Cruzan con trabajo ya realizado en sprints anteriores (indicado con ✅).
 

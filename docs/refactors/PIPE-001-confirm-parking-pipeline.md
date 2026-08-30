@@ -1,7 +1,15 @@
 # PIPE-001 — Move `confirmParking` side-effects out of the ForegroundService
 
-> **Status**: pending — open `feature/PIPE-001-confirm-parking-pipeline` from master when ready.
-> **Do not start until**: the foreground-service-hang bug (current `debug/parking-hang-diag` work) is resolved and merged. This refactor must not be entangled with the bugfix; mixing them obscures blame.
+> **Status**: ✅ **shipped.** Corregido el 2026-08-30 [DOCS-LIVING-DOCS-MUST-MATCH-MASTER-001]: este
+> doc seguía diciendo *"pending — open the branch when ready"* de un refactor **hecho hace meses**.
+> `55db3434` lo marcó done, y `PIPE-002`/`PIPE-003` construyeron encima (`ec89592b`, `daeeb2dd`).
+> Comprobado en el árbol: `CoordinatorDetectionService` **no menciona ya** `confirmParking` ni
+> `ConfirmParkingUseCase` — los side-effects viven en el use case y en los workers, que es
+> exactamente lo que este documento pedía. `PIPE-004` (colapsar los dos workers de enrichment) sigue
+> deliberadamente diferido.
+>
+> La condición de arranque original — *"no empezar hasta resolver el cuelgue del foreground service"* —
+> se cumplió: aquel bug se cerró antes de este refactor.
 
 > **Nota 2026-06-05 — Rename Fase 1.5:** los nombres en este documento histórico han sido renombrados en el código actual. Equivalencia:
 > - `ParkingSyncWorker` → `SaveNewParkingSessionWorker`
