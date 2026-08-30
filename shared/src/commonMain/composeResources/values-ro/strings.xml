@@ -101,6 +101,9 @@
     <!-- DET-READY-001e -->
     <string name="permissions_btn_activate_detection">Activează detectarea automată</string>
     <string name="permissions_continue_with_core">Poate mai târziu</string>
+    <!-- PERM-FOOTER-001 -->
+    <string name="permissions_btn_allow_background">Permite în fundal</string>
+    <string name="permissions_btn_continue">Continuă</string>
     <!-- DET-TOGGLE-002: educational dialog when tapping "Maybe later" -->
     <string name="permissions_skip_dialog_title">Sari peste detectarea automată?</string>
     <string name="permissions_skip_dialog_body">Cea mai bună funcție Paparcar găsește și eliberează automat locul tău când pleci. Fără ea, va trebui să faci totul manual.</string>

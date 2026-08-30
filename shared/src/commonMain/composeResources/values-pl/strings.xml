@@ -103,6 +103,9 @@
     <!-- DET-READY-001e -->
     <string name="permissions_btn_activate_detection">Włącz automatyczne wykrywanie</string>
     <string name="permissions_continue_with_core">Może później</string>
+    <!-- PERM-FOOTER-001 -->
+    <string name="permissions_btn_allow_background">Zezwól na działanie w tle</string>
+    <string name="permissions_btn_continue">Dalej</string>
     <!-- DET-TOGGLE-002: educational dialog when tapping "Maybe later" -->
     <string name="permissions_skip_dialog_title">Pominąć automatyczne wykrywanie?</string>
     <string name="permissions_skip_dialog_body">Najlepsza funkcja Paparcar automatycznie wykrywa i zwalnia Twoje miejsce, gdy odjeżdżasz. Bez niej wszystko musisz robić ręcznie.</string>

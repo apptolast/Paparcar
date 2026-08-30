@@ -219,6 +219,23 @@ compose.resources {
     publicResClass = true
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// I18N — los strings.xml son ENTRADA de los tests [I18N-PERMISSIONS-BUTTONS-EXIST-IN-ONE-LOCALE-ONLY-001]
+// ─────────────────────────────────────────────────────────────────────────────
+// `LocaleParityGuardrailTest` lee los ficheros de strings de las dos superficies directamente del
+// disco, así que Gradle no puede deducir que le afectan: sin esto, tocar una traducción deja el test
+// UP-TO-DATE y el guardarraíl pasa en verde SIN mirar el cambio. Medido: mutar
+// `app/src/main/res/values-it` no lo despertaba. Que el de `:shared` sí se despertase era casualidad
+// — sus recursos alimentan la compilación. Un guardarraíl que no vuelve a correr no guarda nada.
+tasks.withType<Test>().configureEach {
+    inputs.dir(layout.projectDirectory.dir("src/commonMain/composeResources"))
+        .withPropertyName("composeResourcesStrings")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.dir(layout.settingsDirectory.dir("app/src/main/res"))
+        .withPropertyName("appAndroidResStrings")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+}
+
 dependencies {
     add("kspAndroid", libs.room.compiler)
     add("kspIosArm64", libs.room.compiler)

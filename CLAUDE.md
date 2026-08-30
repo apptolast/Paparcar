@@ -180,7 +180,14 @@ color: el estado se escribe, no se tiñe).
 - Key en inglés, convención `feature_component_description` (`home_fab_report_spot`)
 - **Todo string nuevo se añade a los 9 locales en la MISMA tarea**: `values` (EN base), `values-es`,
   `-it`, `-pt`, `-fr`, `-de`, `-nl`, `-pl`, `-ro`. Si la traducción no está clara, poner el texto
-  inglés antes que omitir la key — Compose Resources **crashea** si falta en el locale activo.
+  inglés antes que omitir la key. Enforced por `LocaleParityGuardrailTest`.
+- ⚠️ **Faltar en un locale NO crashea, y por eso es peor** [I18N-PERMISSIONS-BUTTONS-EXIST-IN-ONE-LOCALE-ONLY-001].
+  Medido en `ResourceEnvironment.kt:182-195` de CMP 1.12: si ningún item lleva el idioma pedido,
+  `filterByLocale` devuelve el item **sin qualifier**. Dos fallos distintos, uno mudo:
+  (a) falta en una traducción y está en `values` → **sale en inglés, en silencio** (así vivieron 48
+  días dos botones de la pantalla de permisos); (b) falta en `values` → resolución vacía →
+  `error("Resource with ID='…' not found")` = **crash** en todo locale que no la declare. La base
+  `values` es la que sostiene a las otras ocho: es la única que no puede faltar nunca.
 - **Apóstrofos CRUDOS (`'`), nunca `\'`** [COPY-APOSTROPHE-IS-NOT-ESCAPED-001]. Esto es Compose
   Resources, no `android:strings`: **no desescapa `\'`** y el usuario lee la barra
   («Paparcar\'s»). Medido en el `.cvr` del APK: `\n` sí se desescapa y el apóstrofo crudo sale

@@ -101,6 +101,9 @@
     <!-- DET-READY-001e -->
     <string name="permissions_btn_activate_detection">Activer la détection automatique</string>
     <string name="permissions_continue_with_core">Peut-être plus tard</string>
+    <!-- PERM-FOOTER-001 -->
+    <string name="permissions_btn_allow_background">Autoriser en arrière-plan</string>
+    <string name="permissions_btn_continue">Continuer</string>
     <!-- DET-TOGGLE-002: educational dialog when tapping "Maybe later" -->
     <string name="permissions_skip_dialog_title">Ignorer la détection automatique ?</string>
     <string name="permissions_skip_dialog_body">La meilleure fonction de Paparcar détecte et libère votre place automatiquement quand vous partez. Sans elle, vous devrez tout faire à la main.</string>

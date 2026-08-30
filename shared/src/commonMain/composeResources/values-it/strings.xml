@@ -101,6 +101,9 @@
     <!-- DET-READY-001e -->
     <string name="permissions_btn_activate_detection">Attiva il rilevamento automatico</string>
     <string name="permissions_continue_with_core">Forse più tardi</string>
+    <!-- PERM-FOOTER-001 -->
+    <string name="permissions_btn_allow_background">Consenti in background</string>
+    <string name="permissions_btn_continue">Continua</string>
     <!-- DET-TOGGLE-002: educational dialog when tapping "Maybe later" -->
     <string name="permissions_skip_dialog_title">Saltare il rilevamento automatico?</string>
     <string name="permissions_skip_dialog_body">La funzione migliore di Paparcar trova e libera il tuo posto automaticamente quando esci. Senza, dovrai fare tutto a mano.</string>

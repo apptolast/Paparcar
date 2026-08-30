@@ -101,6 +101,9 @@
     <!-- DET-READY-001e -->
     <string name="permissions_btn_activate_detection">Ativar deteção automática</string>
     <string name="permissions_continue_with_core">Talvez mais tarde</string>
+    <!-- PERM-FOOTER-001 -->
+    <string name="permissions_btn_allow_background">Permitir em segundo plano</string>
+    <string name="permissions_btn_continue">Continuar</string>
     <!-- DET-TOGGLE-002: educational dialog when tapping "Maybe later" -->
     <string name="permissions_skip_dialog_title">Ignorar a deteção automática?</string>
     <string name="permissions_skip_dialog_body">O melhor do Paparcar deteta e liberta o teu lugar automaticamente quando sais. Sem isto, terás de fazer tudo à mão.</string>

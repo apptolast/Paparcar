@@ -101,6 +101,9 @@
     <!-- DET-READY-001e -->
     <string name="permissions_btn_activate_detection">Automatische detectie inschakelen</string>
     <string name="permissions_continue_with_core">Misschien later</string>
+    <!-- PERM-FOOTER-001 -->
+    <string name="permissions_btn_allow_background">Op achtergrond toestaan</string>
+    <string name="permissions_btn_continue">Doorgaan</string>
     <!-- DET-TOGGLE-002: educational dialog when tapping "Maybe later" -->
     <string name="permissions_skip_dialog_title">Automatische detectie overslaan?</string>
     <string name="permissions_skip_dialog_body">De beste functie van Paparcar vindt en geeft je parkeerplek automatisch vrij wanneer je wegrijdt. Zonder moet je alles handmatig doen.</string>
