@@ -61,6 +61,16 @@ sealed interface UnattendedParkingSave {
 
 /** Everything the verdict depends on, as plain values — replayable from a recorded trace. */
 data class UnattendedSaveInput(
+    /**
+     * [DET-NO-CLOCK-PLANTS-A-PIN-001] The best-accuracy fix the stop window WITNESSED, or null.
+     *
+     * Every zone this evaluator draws used to be centred on the [anchor], which on a gap-entered
+     * stop is the first fix on the far side of the hole — a point the car was *passing*. When the
+     * session has a better look at where it actually came to rest, the circle is centred there
+     * instead. The RADIUS does not shrink: the hole's doubt is about where the CAR stopped, and a
+     * better fix of where the PHONE rests does not answer that.
+     */
+    val witnessedRestFix: GpsPoint? = null,
     /** Drive-proof-gated session peak (`ParkingDetectionState.maxSpeedMps`). */
     val maxSpeedMps: Float,
     /** Raw (un-corroborated) session peak — a vehicular HINT, never a proof on its own. */
@@ -283,7 +293,11 @@ class EvaluateUnattendedParkingSaveUseCase(private val config: ParkingDetectionC
             val sustainedStop = input.anchorRestMs >= config.sustainedStopForSaveMs
             return zoneOrAsk(
                 reason = UnattendedSaveReason.GAP_ANCHOR,
-                center = anchor,
+                // [DET-NO-CLOCK-PLANTS-A-PIN-001] The anchor is the point the car was PASSING when
+                // the stream came back; the witnessed rest is the best look the session got at
+                // where it stopped. Field 2026-08-30 01:49: the zone was centred 157 m from the car
+                // while an 11 m fix sitting on top of it was already in the same stop window.
+                center = bestWitnessedCenter(input, anchor),
                 doubtMeters = walkableInsideHole,
                 bounded = sustainedStop,
             )
@@ -335,4 +349,22 @@ class EvaluateUnattendedParkingSaveUseCase(private val config: ParkingDetectionC
             UnattendedParkingSave.Ask(reason)
         }
 
+}
+
+/**
+ * [DET-NO-CLOCK-PLANTS-A-PIN-001] Where a zone should be CENTRED: the best look the session got at
+ * the place it came to rest, falling back to the anchor.
+ *
+ * The anchor answers *where did the stop begin*; on a healthy stop that is the same place, and this
+ * returns it unchanged. On a gap-entered stop it is the first fix on the far side of the hole — a
+ * point the car was passing — and the stop window often holds a much better one.
+ *
+ * **Strictly more accurate, or the anchor stands.** Equal accuracy is not an improvement, and moving
+ * the centre for no measured gain would make every zone's position depend on list order rather than
+ * on evidence.
+ */
+internal fun bestWitnessedCenter(input: UnattendedSaveInput, anchor: GpsPoint?): GpsPoint? {
+    val witnessed = input.witnessedRestFix ?: return anchor
+    val current = anchor ?: return witnessed
+    return if (witnessed.accuracy < current.accuracy) witnessed else current
 }

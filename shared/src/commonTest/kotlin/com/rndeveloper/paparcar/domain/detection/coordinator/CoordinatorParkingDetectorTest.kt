@@ -3495,10 +3495,20 @@ class CoordinatorParkingDetectorTest {
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
             val job = launch { env.coordinator.invoke(locations) }
 
-            locations.emit(GpsPoint(40.0, -3.7, accuracy = 5f, timestamp = 0L, speed = 6f)) // drive
-            locations.emit(GpsPoint(40.001, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f)) // park
+            // [DET-NO-CLOCK-PLANTS-A-PIN-001] The drive is now a DRIVE. This scenario always said
+            // "park, walk into the building" — which happens after driving somewhere — but its
+            // stream was a single 6 m/s fix over 111 m with no timestamps, i.e. not a trip by any
+            // measure the app applies. The watchdog may only finalize what the session MEASURED, so
+            // the stub is spelled out: five credible in-band fixes, 10 s apart, 222 m of ground.
+            // Its sibling below covers the other half — a starved hold nothing measured.
+            locations.emit(GpsPoint(40.0, -3.7, accuracy = 5f, timestamp = 10_000L, speed = 6f))
+            locations.emit(GpsPoint(40.0005, -3.7, accuracy = 5f, timestamp = 20_000L, speed = 6f))
+            locations.emit(GpsPoint(40.001, -3.7, accuracy = 5f, timestamp = 30_000L, speed = 6f))
+            locations.emit(GpsPoint(40.0015, -3.7, accuracy = 5f, timestamp = 40_000L, speed = 6f))
+            locations.emit(GpsPoint(40.002, -3.7, accuracy = 5f, timestamp = 50_000L, speed = 6f))
+            locations.emit(GpsPoint(40.001, -3.7, accuracy = 5f, timestamp = 60_000L, speed = 0f)) // park
             env.stepDetector.emitSteps(8)
-            locations.emit(GpsPoint(40.0013, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f)) // egress ~33 m → held
+            locations.emit(GpsPoint(40.0013, -3.7, accuracy = 5f, timestamp = 70_000L, speed = 0f)) // egress ~33 m → held
             assertEquals(0, env.parkingRepo.saveNewParkingSessionCallCount, "held, nothing saved yet")
 
             // GPS dies — no more fixes, ever. Only virtual time advances.
@@ -3508,6 +3518,43 @@ class CoordinatorParkingDetectorTest {
             val saved = env.parkingRepo.getActiveSession()
             assertNotNull(saved)
             assertEquals(40.001, saved.location.latitude, 0.00005, "pin at the parked-car anchor")
+
+            job.cancelAndJoin()
+        }
+
+    @Test
+    fun should_close_a_starved_hold_without_a_pin_when_the_session_never_measured_a_drive() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-NO-CLOCK-PLANTS-A-PIN-001] The branch the redesign named: a clock running out
+            // means "no further evidence arrived", and that is not evidence. This is the exact
+            // stream the sibling test used to carry — ONE fix at driving speed over 111 m, which
+            // `DrivingEvidence` calls Weak — and the watchdog used to plant a pin on it with no fix
+            // to re-validate it. In field forensics that is what "a spot appeared and I don't know
+            // why" looks like.
+            //
+            // ⛔ `confirmHoldMs = 120_000L` is a TEST SEAM, not a runtime option: the watchdog is
+            // switched OFF by `confirmHoldMs = 0`, and three test files rely on that. Anyone
+            // "cleaning up" the `> 0` guard breaks them.
+            // ⏱ The 2 min 30 s wait costs nothing: `runTest` runs on virtual time.
+            val holdConfig = ParkingDetectionConfig(confirmHoldMs = 120_000L)
+            val env = setup(config = holdConfig)
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            locations.emit(GpsPoint(40.0, -3.7, accuracy = 5f, timestamp = 0L, speed = 6f)) // "drive"
+            locations.emit(GpsPoint(40.001, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f)) // park
+            env.stepDetector.emitSteps(8)
+            locations.emit(GpsPoint(40.0013, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f)) // egress → held
+            assertEquals(0, env.parkingRepo.saveNewParkingSessionCallCount, "held, nothing saved yet")
+
+            // GPS dies — no more fixes, ever. Only virtual time advances.
+            testScheduler.advanceUntilIdle()
+
+            assertEquals(
+                0,
+                env.parkingRepo.saveNewParkingSessionCallCount,
+                "a clock may not plant a pin the session never measured [DET-NO-CLOCK-PLANTS-A-PIN-001]",
+            )
 
             job.cancelAndJoin()
         }

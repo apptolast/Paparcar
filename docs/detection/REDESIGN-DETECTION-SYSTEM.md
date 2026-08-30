@@ -691,7 +691,7 @@ estilo de los `ColorGuardrailTest` / `TypographyGuardrailTest` que ya existen:
 |---|---|---|---|
 | 0 | `DET-DRIVING-EVIDENCE-IS-THE-ONLY-GATE-001` ✅ | FP parafarmacia | hecho |
 | 1 | `DET-DRIVING-EVIDENCE-VALUE-OBJECT-001` (Pieza 1) ✅ | §6.0, la raíz | hecho |
-| 2 | `DET-NO-CLOCK-PLANTS-A-PIN-001` (Pieza 4) | pin a 142 m, batería | bajo |
+| 2 | `DET-NO-CLOCK-PLANTS-A-PIN-001` (Pieza 4) ✅ | pin a 142 m, batería | hecho |
 | 3 | `DET-DETECTION-PATH-IS-A-TYPE-001` (Pieza 2) | #4 #12 #13 | medio |
 | 4 | `DET-FAIL-CLOSED-BY-CONSTRUCTION-001` (Pieza 3) | #5-#11, #14-#16 | medio |
 | 5 | `DET-TWO-TIER-SENTRY-001` (Pieza 5) | 28→1 armados, batería | alto |

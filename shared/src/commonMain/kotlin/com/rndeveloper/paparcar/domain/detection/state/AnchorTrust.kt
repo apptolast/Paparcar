@@ -160,8 +160,21 @@ data class AnchorTrust(
     val realDriveStreak: Int = 0,
 ) {
 
+    /**
+     * [DET-NO-CLOCK-PLANTS-A-PIN-001] The most GPS-accurate fix the stop window actually WITNESSED,
+     * or null when the window collected nothing.
+     *
+     * Distinct from [anchor] on purpose. The anchor is *where the stop was declared to begin*; this
+     * is *the best look the session ever got at the place it came to rest*. On a healthy stop the
+     * two coincide. On a GAP-ENTERED stop they do not, and the difference is a false positive: field
+     * 2026-08-30 01:34, the anchor was the first fix out of a 2 min 16 s hole (acc 25 m) and **not
+     * one of the 215 fixes that followed came back within 100 m of it** — while the same stop window
+     * held a fix of 11 m accuracy, 157 m away, on top of the car.
+     */
+    val witnessedRestFix: GpsPoint? get() = stopWindowFixes.minByOrNull { it.accuracy }
+
     /** The most GPS-accurate fix collected at the moment of stopping, or [fallback]. */
-    fun bestFix(fallback: GpsPoint): GpsPoint = stopWindowFixes.minByOrNull { it.accuracy } ?: fallback
+    fun bestFix(fallback: GpsPoint): GpsPoint = witnessedRestFix ?: fallback
 
     /**
      * How long the CAR has been at rest, measured from the stop the anchor belongs to rather than

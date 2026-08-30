@@ -105,6 +105,8 @@ fun DetectionSessionState.unattendedSaveInput(
     restMs: Long,
     config: ParkingDetectionConfig,
 ) = UnattendedSaveInput(
+    // [DET-NO-CLOCK-PLANTS-A-PIN-001] Presented so the zone can be centred on what the session SAW.
+    witnessedRestFix = anchorTrust.witnessedRestFix,
     maxSpeedMps = drive.provenMaxSpeedMps,
     pendingMaxSpeedMps = drive.peakMps,
     credibleDrivingFixes = drive.credibleFixCount,

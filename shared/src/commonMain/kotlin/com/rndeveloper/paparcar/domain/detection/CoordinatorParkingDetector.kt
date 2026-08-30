@@ -804,6 +804,29 @@ class CoordinatorParkingDetector(
                         delay(config.confirmHoldMs + HOLD_WATCHDOG_MARGIN_MS)
                         val live = _detectionState.value
                         if (!live.session.completed && live.confirmation.pendingConfirm === pending) {
+                            // [DET-NO-CLOCK-PLANTS-A-PIN-001] A clock running out means "no further
+                            // evidence arrived", and that is not evidence. This exit plants with NO
+                            // fix to justify it, so it may only do so when the session MEASURED a
+                            // drive. Without that, the honest close is to plant nothing: the hold
+                            // was earned by an arm's word, and no clock may promote a word into a
+                            // pin nobody can be shown.
+                            if (!live.drivingEvidence(config).mayConfirmSilently) {
+                                PaparcarLogger.w(
+                                    DIAG,
+                                    "  ⚑ hold starved of fixes for ${config.confirmHoldMs + HOLD_WATCHDOG_MARGIN_MS}ms and the session never measured a drive — closing WITHOUT a pin [DET-NO-CLOCK-PLANTS-A-PIN-001]"
+                                )
+                                effects.logHold(
+                                    HoldAction.STARVED_UNWITNESSED,
+                                    heldMs = config.confirmHoldMs + HOLD_WATCHDOG_MARGIN_MS,
+                                    pathLabel = pending.pathLabel,
+                                    location = pending.location,
+                                )
+                                endSession()
+                                sessionJob?.cancel(
+                                    CancellationException("hold-watchdog-closed-unwitnessed [DET-NO-CLOCK-PLANTS-A-PIN-001]")
+                                )
+                                return@collectLatest
+                            }
                             PaparcarLogger.w(
                                 DIAG,
                                 "  ⚑ hold starved of fixes for ${config.confirmHoldMs + HOLD_WATCHDOG_MARGIN_MS}ms — finalizing the held confirm at the pinned location [DET-AUDIT-002 T7]"
@@ -1025,7 +1048,23 @@ class CoordinatorParkingDetector(
                     // (upstream completion / cancellation) with a confirm still held, finalize it
                     // rather than silently dropping a park the egress proof already earned.
                     val pending = _detectionState.value.confirmation.pendingConfirm
-                    if (pending != null && !_detectionState.value.session.completed) {
+                    if (pending != null && !_detectionState.value.session.completed &&
+                        !_detectionState.value.drivingEvidence(config).mayConfirmSilently
+                    ) {
+                        // [DET-NO-CLOCK-PLANTS-A-PIN-001] Same rule as the starved watchdog, at the
+                        // other exit that plants with no fix behind it: the session ending is not
+                        // evidence either. Without a measured drive there is nothing to pin.
+                        PaparcarLogger.w(
+                            DIAG,
+                            "  ⚑ session ended with a HELD confirm and no measured drive — closing WITHOUT a pin [DET-NO-CLOCK-PLANTS-A-PIN-001]"
+                        )
+                        effects.logHold(
+                            HoldAction.SESSION_ENDED_UNWITNESSED,
+                            heldMs = nowMs() - pending.confirmedAt,
+                            pathLabel = pending.pathLabel,
+                            location = pending.location,
+                        )
+                    } else if (pending != null && !_detectionState.value.session.completed) {
                         PaparcarLogger.w(DIAG, "  ⚑ session ended with a HELD confirm — finalizing at the pinned location [DET-AUDIT-002 T7]")
                         // [DET-HOLD-BRANCHES-MUST-SPEAK-001] The other pin planted with no fix
                         // behind it. Emitted BEFORE runConfirm so the note survives even if the

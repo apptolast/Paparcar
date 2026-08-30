@@ -274,7 +274,12 @@ class EvaluateParkingDecisionUseCase(private val config: ParkingDetectionConfig)
             egressIsVehicular && !hasKinematicProof -> false
             hasStepsProof -> true
             hasKinematicProof -> true
-            windowElapsed && input.hadVehicleExit -> true
+            // [DET-NO-CLOCK-PLANTS-A-PIN-001] The weakest confirm path in the system: no steps, no
+            // pedestrian-band fixes — just an AR EXIT and a clock running out with the position 18 m
+            // from the anchor. A clock running out means *no further evidence arrived*, and that is
+            // not evidence. This path now needs the session to have MEASURED a drive; the other two
+            // carry their own physical proof of an egress and do not.
+            windowElapsed && input.hadVehicleExit && sessionSawDriving -> true
             else -> false
         }
 

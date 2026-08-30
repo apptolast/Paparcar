@@ -6061,3 +6061,56 @@ deliberately not wired: closing a session is the Piece 4 decision.
 red and no others.
 
 Spec: `docs/backlog/det-driving-evidence-value-object-001.md`.
+
+### DET-NO-CLOCK-PLANTS-A-PIN-001 — a clock running out is not evidence, and a zone centres on the rest the session saw (pending)
+
+Detection has seven clocks and **four of them plant a pin when they expire**. `HoldLifecycle.kt:16`
+admits it in writing: *"Two of these exits plant a pin with no fix to justify it."* Field 2026-08-30
+01:49 is the fifth: a real drive home ended in a **2 min 16 s GPS hole**, so the anchor became the
+first fix on the far side of it — a point the car was *passing*. The app knew (`anchor_gap_entered`),
+refused to confirm and asked, which is correct. Nobody answered at 01:34 in the morning, and fifteen
+minutes later the unattended clock planted the zone **on the very anchor it had already declared
+invalid**, 157 m from the car.
+
+**A · No clock plants without measured driving.** The two hold exits that plant with no fix behind
+them (`STARVED`, `SESSION_ENDED`) and the weakest confirm path (the `vehicleExit` window: an AR EXIT,
+18 m, and a clock — no steps, no pedestrian-band fixes) now require `DrivingEvidence.Measured`.
+Without it the hold closes and plants nothing, and says so: `STARVED_UNWITNESSED` /
+`SESSION_ENDED_UNWITNESSED` are their own enum entries rather than a flag, because in forensics the
+question is always *why is there no pin*, and a silent exit is indistinguishable from a crash.
+
+**B · A zone centres on the rest the session WITNESSED.** `AnchorTrust.witnessedRestFix` is the most
+accurate fix the stop window ever collected. The unattended zone centres there instead of on the
+anchor, and only when it is *strictly* more accurate — equal quality is not an improvement, and
+moving the centre for no measured gain would make it depend on list order rather than on evidence.
+⚠️ **The radius does not shrink.** The hole's doubt is about where the CAR stopped; a better fix of
+where the PHONE rests does not answer that. Only the centre moves. On the field session that is a
+250 m zone centred ~10 m from the car instead of 157 m away.
+
+What made this a bug rather than bad luck, measured on that session's 216 post-hole fixes: **not one
+of the 215 that followed the anchor came back within 100 m of it** (minimum 116 m, mean 157 m), while
+the same stop window held **18 fixes at ≤12 m accuracy with 4 m of dispersion**, sitting on the car —
+and that cluster closed at 01:39:22, **ten minutes before** the clock planted the wrong centre.
+
+**Two deliberate deviations from the redesign's Piece 4 table**, both written up in the ticket. The
+`confirmHoldMs` settle is untouched: it happens ON a fix, the evaluator behind it already requires
+`Measured` since `DET-DRIVING-EVIDENCE-VALUE-OBJECT-001`, and the only arms it would newly block are
+`manual` / `inherited_drive` / `verified_speed` — blocking `manual` breaks
+`DET-ASSERTION-OUTRANKS-INFERENCE-001`, since the user's word is not an inference. And the unanswered
+prompt does not "close without a pin": that throws away the 18-fix cluster and loses the park
+outright, which is the cost escalation §9.3 of the redesign already warned about. The rule
+implemented is precedence instead — *an honest close centres on the best rest the session witnessed;
+it goes without a pin only when there is none*.
+
+Absorbs `DET-STARVED-HOLD-HAS-NO-WITNESS-001` entirely, carrying its three caveats into the new
+test: `confirmHoldMs > 0` is a test seam and not a runtime option (three files set it to 0 to switch
+the watchdog off), `runTest` gives virtual time so the 2 min 30 s wait costs nothing, and
+`pendingConfirm === pending` is compared by IDENTITY on purpose. ⚠️ That ticket said the `STARVED`
+branch "has no test at all"; what it has no assertion on is the enum VALUE — its behaviour was
+covered, and that test is exactly what went red here. Its stream was one 6 m/s fix over 111 m with no
+timestamps, which is not a trip by any measure the app applies, so it was given the drive its own
+comment describes and its opposite half became a new test.
+
+1.815 tests green.
+
+Spec: `docs/backlog/det-no-clock-plants-a-pin-001.md`.

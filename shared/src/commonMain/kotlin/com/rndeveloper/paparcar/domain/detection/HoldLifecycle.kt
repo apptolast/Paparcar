@@ -48,4 +48,15 @@ enum class HoldAction {
     /** [DET-STOP-BUTTON-001] The user stopped detection while a confirm was held. The hold is
      *  dropped so the button does not plant the very pin the user just refused. */
     DROPPED_BY_USER,
+
+    /**
+     * [DET-NO-CLOCK-PLANTS-A-PIN-001] The starved watchdog fired on a session that never measured a
+     * drive, so it planted **nothing**. The counterpart of [STARVED], and the reason the pair is two
+     * enum entries rather than one with a flag: in forensics the question is always *why is there no
+     * pin*, and an exit that stays silent is indistinguishable from a crash.
+     */
+    STARVED_UNWITNESSED,
+
+    /** [DET-NO-CLOCK-PLANTS-A-PIN-001] The counterpart of [SESSION_ENDED], for the same reason. */
+    SESSION_ENDED_UNWITNESSED,
 }

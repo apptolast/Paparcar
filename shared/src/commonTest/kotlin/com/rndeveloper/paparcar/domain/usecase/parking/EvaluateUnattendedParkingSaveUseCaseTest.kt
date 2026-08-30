@@ -51,7 +51,9 @@ class EvaluateUnattendedParkingSaveUseCaseTest {
         egressBornAtAnchor: Boolean = true,
         egressExceedsWalkReach: Boolean = false,
         anchorRestMs: Long = config.sustainedStopForSaveMs + 1,
+        witnessedRestFix: GpsPoint? = null,
     ) = UnattendedSaveInput(
+        witnessedRestFix = witnessedRestFix,
         maxSpeedMps = maxSpeedMps,
         pendingMaxSpeedMps = pendingMaxSpeedMps,
         credibleDrivingFixes = credibleDrivingFixes,
@@ -299,9 +301,59 @@ class EvaluateUnattendedParkingSaveUseCaseTest {
 
         val zone = assertIs<UnattendedParkingSave.SaveZone>(verdict)
         assertEquals(UnattendedSaveReason.GAP_ANCHOR, zone.reason)
-        assertEquals(anchor, zone.center, "the zone centres on the anchor the hole cast doubt on")
+        assertEquals(anchor, zone.center, "with nothing better witnessed, the anchor still holds the centre")
         // 126 s of hole at pedestrian pace — everything the phone could have walked inside it.
         assertEquals(126.0 * config.maxPedestrianSpeedMps, zone.doubtMeters, 0.5)
+    }
+
+    /**
+     * [DET-NO-CLOCK-PLANTS-A-PIN-001] **The 142 m pin of field 2026-08-30 01:49.**
+     *
+     * A real drive home ended in a 2 min 16 s GPS hole. The anchor is therefore the first fix on the
+     * far side of it — a point the car was PASSING — and the app knew that (`anchor_gap_entered`),
+     * refused to confirm and asked. Nobody answered at 01:34 in the morning, and 15 minutes later
+     * the unattended clock planted the zone **on that same anchor it had already declared invalid**,
+     * 157 m from the car.
+     *
+     * The measurement that makes this a bug rather than bad luck: of the 215 fixes that followed,
+     * **not one came back within 100 m of the anchor** (minimum 116 m, mean 157 m), while the SAME
+     * stop window held 18 fixes at ≤12 m accuracy with 4 m of dispersion, sitting on the car.
+     *
+     * The radius does not shrink and must not: the hole's doubt is about where the CAR stopped, and
+     * a better fix of where the PHONE rests does not answer that question. Only the centre moves.
+     */
+    @Test
+    fun should_centreTheZoneOnTheWitnessedRest_when_theGapAnchorIsAPointTheCarWasPassing() {
+        val witnessed = GpsPoint(36.6084421, -6.2782785, accuracy = 10.9f, timestamp = 0L, speed = 0f)
+        val verdict = evaluate(
+            input(
+                anchor = GpsPoint(36.6098405, -6.2784644, accuracy = 25.2f, timestamp = 0L, speed = 0f),
+                anchorGapMs = 135_910L,
+                anchorRestMs = 909_800L,
+                witnessedRestFix = witnessed,
+            )
+        )
+
+        val zone = assertIs<UnattendedParkingSave.SaveZone>(verdict)
+        assertEquals(UnattendedSaveReason.GAP_ANCHOR, zone.reason)
+        assertEquals(witnessed, zone.center, "the circle centres on the rest the session SAW, not on the drive-past point")
+        assertEquals(135.91 * config.maxPedestrianSpeedMps, zone.doubtMeters, 0.5, "the hole's doubt is unchanged")
+    }
+
+    @Test
+    fun should_keepTheAnchorAsCentre_when_theWitnessedRestIsNoMoreAccurate() {
+        // Not an improvement, so it is not a move. Otherwise the centre of every zone would depend
+        // on the order of the stop window rather than on evidence.
+        val sameQuality = GpsPoint(36.60, -6.27, accuracy = anchor.accuracy, timestamp = 0L, speed = 0f)
+        val verdict = evaluate(
+            input(
+                anchorGapMs = 126_000L,
+                anchorRestMs = 880_000L,
+                witnessedRestFix = sameQuality,
+            )
+        )
+
+        assertEquals(anchor, assertIs<UnattendedParkingSave.SaveZone>(verdict).center)
     }
 
     /**
