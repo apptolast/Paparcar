@@ -10,6 +10,33 @@ import com.rndeveloper.paparcar.domain.util.haversineMeters
 /**
  * Action decided by [EvaluateSafetyNetCheckUseCase] for one parked session. [DET-SAFETY-NET-001]
  */
+/**
+ * [DET-DETECTION-PATH-IS-A-TYPE-001] Why the safety net is asking *"are you still parked?"* instead
+ * of deciding.
+ *
+ * Four independent situations produce that question, and the worker's trace used to print ONE
+ * sentence for all of them — «LEJOS del coche pero SIN pruebas de viaje» — which is wrong for three
+ * of the four and the exact OPPOSITE of [BOARDED_AWAY_FROM_CAR], where driving is precisely what was
+ * measured. A field diagnosis that reads a cause the code did not decide is worse than one that
+ * reads nothing.
+ */
+enum class StillParkedReason {
+    /** The car is BT-gated and no BT connection vouched for this session: the safety net may ask,
+     *  but it may not invent a release the deterministic strategy never confirmed. */
+    BT_IDENTITY_MISSING,
+
+    /** Credible driving speed far from the car, but the movement did NOT start at the car — a bus,
+     *  a taxi or a lift boarded somewhere else. Driving was measured; whose driving is the question. */
+    BOARDED_AWAY_FROM_CAR,
+
+    /** A geofence EXIT was recorded and the counted steps do not explain the distance. */
+    UNEXPLAINED_EXIT,
+
+    /** Ask-when-blind: the user has the app open, the fix is unambiguously far, and not one proof
+     *  explains how they got there — anchor expired, counter mute, no boarding, no recorded exit. */
+    USER_PRESENT_AND_BLIND,
+}
+
 sealed class SafetyNetAction {
 
     /** The fix is INSIDE the session's own geofence radius — re-register the geofence so Play
@@ -63,7 +90,12 @@ sealed class SafetyNetAction {
      *  expired). Distance + speed alone can't tell those apart (BUG-WALK-DEPART-001), so the user
      *  disambiguates via the "still parked?" prompt; ignoring it leaves the session untouched. NB:
      *  far + STATIONARY is [None], not this — being parked-and-away on foot must never prompt. */
-    data class PromptStillParked(val geofenceId: String) : SafetyNetAction()
+    data class PromptStillParked(
+        val geofenceId: String,
+        /** [DET-DETECTION-PATH-IS-A-TYPE-001] WHY we are asking. Four different situations reach
+         *  this action and the trace used to attribute a single one to all of them. */
+        val reason: StillParkedReason,
+    ) : SafetyNetAction()
 
     /** Nothing to act on: no geofence on the session, or the fix sits in the ambiguous ring
      *  between the geofence radius and the far threshold (GPS noise territory). The sampled fix
@@ -190,7 +222,11 @@ class EvaluateSafetyNetCheckUseCase(
         val btIdentityMissing = vehicleBtGated &&
             (lastBtConnectedAtMs == null || lastBtConnectedAtMs < sessionStartMs)
         fun releaseOrAsk(dispatch: SafetyNetAction.DispatchDeparture): SafetyNetAction =
-            if (btIdentityMissing) SafetyNetAction.PromptStillParked(geofenceId) else dispatch
+            if (btIdentityMissing) {
+                SafetyNetAction.PromptStillParked(geofenceId, StillParkedReason.BT_IDENTITY_MISSING)
+            } else {
+                dispatch
+            }
 
         val distanceMeters = haversineMeters(
             fix.latitude,
@@ -330,7 +366,7 @@ class EvaluateSafetyNetCheckUseCase(
                     ),
                 )
             } else {
-                SafetyNetAction.PromptStillParked(geofenceId)
+                SafetyNetAction.PromptStillParked(geofenceId, StillParkedReason.BOARDED_AWAY_FROM_CAR)
             }
         }
 
@@ -461,7 +497,7 @@ class EvaluateSafetyNetCheckUseCase(
             trustedStepsSinceAnchor, distanceMeters, config.strideMeters, config.walkedStepFraction,
         )
         if (exitAtMs != null && !stepsExplainWalk) {
-            return SafetyNetAction.PromptStillParked(geofenceId)
+            return SafetyNetAction.PromptStillParked(geofenceId, StillParkedReason.UNEXPLAINED_EXIT)
         }
         // [DET-ANCHOR-FREEZE-001] Ask-when-blind: the user just OPENED the app, the fix is
         // unambiguously far (past the accuracy-margin gate above) and NOT ONE proof explains how
@@ -473,7 +509,7 @@ class EvaluateSafetyNetCheckUseCase(
         // An in-hand question costs nothing (no shade notification fatigue: they are already
         // looking) and the worker's 6 h per-fence throttle bounds repeats.
         if (userPresent && !stepsExplainWalk) {
-            return SafetyNetAction.PromptStillParked(geofenceId)
+            return SafetyNetAction.PromptStillParked(geofenceId, StillParkedReason.USER_PRESENT_AND_BLIND)
         }
         return SafetyNetAction.None
     }

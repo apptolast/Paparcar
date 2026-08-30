@@ -54,11 +54,15 @@ data class UserParking(
     /** Arm-evidence label of the confirming session ("speed", "vehicle_enter", "unverified",
      *  "manual") — the ARM trigger. Synced to Firestore for remote diagnostics. [DET-SOLID-001] */
     val armEvidence: String? = null,
-    /** Confirmation PATH that placed this pin — the answer to "which trigger put this parking":
-     *  "steps+egress" / "kinematic+egress" / "vehicle-exit" / "unattended_timeout" / "user" (live
-     *  coordinator), "bt", "manual", or "safety_net_backfill" (the 15-min net's reconstructed pin).
+    /** Confirmation PATH that placed this pin — the answer to "which trigger put this parking".
      *  Pairs with [armEvidence] for full provenance; synced to Firestore. Null for legacy rows.
-     *  [DET-PIN-PROVENANCE-001] */
+     *  [DET-PIN-PROVENANCE-001]
+     *
+     *  ⛔ **The set of values lives in `DetectionPath`, not in this comment.** This KDoc used to
+     *  enumerate them and had drifted: it listed `"vehicle-exit"`, which production has never
+     *  written — the real label is `"vehicleExit+window+egress"` — and that spelling had spread to
+     *  the repository fake and the preview data. A list of strings kept in prose is a list that
+     *  goes stale in silence. [DET-DETECTION-PATH-IS-A-TYPE-001] */
     val detectionPath: String? = null,
     /** Non-null when this session is an APPROXIMATE ZONE, not an exact point: the honest-close
      *  ladder proved the car drove away from its last pin but had no pin-grade anchor at the new

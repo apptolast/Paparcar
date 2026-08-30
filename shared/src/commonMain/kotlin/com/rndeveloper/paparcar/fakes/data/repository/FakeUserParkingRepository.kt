@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
+import com.rndeveloper.paparcar.domain.detection.DetectionPath
 
 /**
  * Fake repository for tests and debug DI.
@@ -170,7 +171,7 @@ class FakeUserParkingRepository(
                 isActive = false,
                 spotType = if (i % 5 == 0) SpotType.MANUAL_REPORT else SpotType.AUTO_DETECTED,
                 detectionReliability = if (i % 5 == 0) 1.0f else 0.93f,
-                detectionPath = if (i % 5 == 0) "manual" else "vehicle-exit",
+                detectionPath = if (i % 5 == 0) DetectionPath.ManualPin.label else DetectionPath.VehicleExitWindow.label,
                 publishedSpot = i % 2 == 0,
                 endedAtMs = now - daysAgo * 86_400_000L + 10 * 3_600_000L,
                 routeDistanceMeters = 2_400f + (i % 4) * 1_600f,

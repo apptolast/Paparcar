@@ -403,7 +403,13 @@ class EvaluateSafetyNetCheckUseCaseTest {
             lastVehicleEnteredAtMs = nowMs - 10 * 60_000L,
             exitDeliveredAtMs = nowMs - 8 * 60_000L,
         )
-        assertEquals(SafetyNetAction.PromptStillParked("geof-1"), action)
+        assertEquals(
+            // [DET-DETECTION-PATH-IS-A-TYPE-001] Los tres casos de aquí son el MISMO de los
+            // cuatro que preguntan: una salida de valla que los pasos no explican. Antes esto
+            // no se veía en ninguna parte — la acción no lo decía y el log afirmaba otra cosa.
+            SafetyNetAction.PromptStillParked("geof-1", StillParkedReason.UNEXPLAINED_EXIT),
+            action,
+        )
     }
 
     @Test
@@ -419,7 +425,13 @@ class EvaluateSafetyNetCheckUseCaseTest {
             lastVehicleEnteredAtMs = nowMs - 2 * 60_000L,
             exitDeliveredAtMs = nowMs - 20 * 60_000L,
         )
-        assertEquals(SafetyNetAction.PromptStillParked("geof-1"), action)
+        assertEquals(
+            // [DET-DETECTION-PATH-IS-A-TYPE-001] Los tres casos de aquí son el MISMO de los
+            // cuatro que preguntan: una salida de valla que los pasos no explican. Antes esto
+            // no se veía en ninguna parte — la acción no lo decía y el log afirmaba otra cosa.
+            SafetyNetAction.PromptStillParked("geof-1", StillParkedReason.UNEXPLAINED_EXIT),
+            action,
+        )
     }
 
     @Test
@@ -435,7 +447,13 @@ class EvaluateSafetyNetCheckUseCaseTest {
             lastVehicleEnteredAtMs = sessionStartMs - 60_000L,
             exitDeliveredAtMs = sessionStartMs + 2 * 60_000L,
         )
-        assertEquals(SafetyNetAction.PromptStillParked("geof-1"), action)
+        assertEquals(
+            // [DET-DETECTION-PATH-IS-A-TYPE-001] Los tres casos de aquí son el MISMO de los
+            // cuatro que preguntan: una salida de valla que los pasos no explican. Antes esto
+            // no se veía en ninguna parte — la acción no lo decía y el log afirmaba otra cosa.
+            SafetyNetAction.PromptStillParked("geof-1", StillParkedReason.UNEXPLAINED_EXIT),
+            action,
+        )
     }
 
     @Test

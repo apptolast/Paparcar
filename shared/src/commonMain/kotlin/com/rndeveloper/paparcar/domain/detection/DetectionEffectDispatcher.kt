@@ -173,7 +173,7 @@ class DetectionEffectDispatcher(
                             location = pin.location,
                             reliability = pin.reliability,
                             vehicleId = effect.vehicleId,
-                            pathLabel = "unattended_timeout",
+                            pathLabel = DetectionPath.UnattendedTimeout.label,
                         ),
                     )
                     if (!saved) {

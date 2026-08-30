@@ -55,6 +55,7 @@ import kotlinx.coroutines.flow.firstOrNull
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import androidx.core.content.edit
+import com.rndeveloper.paparcar.domain.usecase.parking.StillParkedReason
 
 /**
  * The parked-session safety net: the one departure guarantee that does not depend on Play
@@ -547,7 +548,21 @@ class ParkingSafetyNetWorker(
                         )
                         logVerdict(action.geofenceId, verdict = "safety_net_prompt", source = source, fixSpeedKmh = fix.speed * KMH_PER_MPS, now = now)
                     }
-                    debugLines += "geof=$geofTag: LEJOS del coche (d=${distanceM}m) pero SIN pruebas de viaje → te pregunto '¿sigues aparcado?' en vez de liberar${if (throttled) " (pregunta reciente, no repito)" else ""}"
+                    // [DET-DETECTION-PATH-IS-A-TYPE-001] La causa la DECIDE el evaluador, no la
+                    // adivina esta línea. Antes decía «SIN pruebas de viaje» para las cuatro
+                    // situaciones que llegan aquí — y para una de ellas es lo contrario: sí se midió
+                    // conducción, lo que falta es que empezara en el coche.
+                    val porque = when (action.reason) {
+                        StillParkedReason.BT_IDENTITY_MISSING ->
+                            "este coche se vigila por Bluetooth y no hay conexión que avale este trayecto"
+                        StillParkedReason.BOARDED_AWAY_FROM_CAR ->
+                            "vas a velocidad de coche pero el movimiento no empezó junto al tuyo (bus/taxi/te llevan)"
+                        StillParkedReason.UNEXPLAINED_EXIT ->
+                            "hubo una salida de la valla que los pasos contados no explican"
+                        StillParkedReason.USER_PRESENT_AND_BLIND ->
+                            "tienes la app abierta y ninguna prueba explica cómo has llegado hasta aquí"
+                    }
+                    debugLines += "geof=$geofTag: LEJOS del coche (d=${distanceM}m) y $porque → te pregunto '¿sigues aparcado?' en vez de liberar${if (throttled) " (pregunta reciente, no repito)" else ""}"
                 }
 
                 SafetyNetAction.None -> {

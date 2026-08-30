@@ -31,22 +31,66 @@ class ParkingDetectionSourceTest {
 
     @Test
     fun should_readAssisted_when_theCoordinatorConfirmedTheDrive() {
-        // The coordinator's real labels are diagnostic strings, not an enum — they must all land in
-        // Assisted without the screen ever printing them.
+        // [DET-DETECTION-PATH-IS-A-TYPE-001] These are now the coordinator's DECLARED paths, taken
+        // from the type rather than retyped here — a label that drifts cannot pass this test by
+        // being spelled the same in two places.
+        listOf(
+            DetectionPath.StepsEgress,
+            DetectionPath.KinematicEgress,
+            DetectionPath.VehicleExitWindow,
+            DetectionPath.UnattendedTimeout,
+            DetectionPath.UnattendedZone("prompt_ignored"),
+            DetectionPath.SafetyNetBackfill,
+            DetectionPath.ClosedApproximatePin,
+        ).forEach { path ->
+            assertEquals(
+                ParkingDetectionSource.Assisted,
+                parkingDetectionSourceOf(SpotType.AUTO_DETECTED, path.label),
+                "path=${path.label}",
+            )
+        }
+    }
+
+    @Test
+    fun should_readUnknown_when_theLabelIsNotOneWeWrite() {
+        // ⚠️ BEHAVIOUR CHANGE, and the reason is measured. This list used to include
+        // "steps=3 kinematicFixes=7" and "motorBand=41000ms ≥8.0mps", on the premise that the
+        // coordinator persisted diagnostic jargon as a detectionPath. It does not: that jargon is a
+        // TRACE note (`FastConfirmStage`'s "▶ steps+egress (steps=8 kinematicFixes=0)"), and three
+        // real accounts of parking history read on 2026-08-30 carry only declared labels —
+        // steps+egress, kinematic+egress, unattended_zone_gap_anchor, user, manual, nudge, bt,
+        // safety_net_backfill, closed_approximate_pin — and nulls. Not one jargon path exists.
+        //
+        // "vehicle-exit" belongs here too, and that is the finding: production writes
+        // "vehicleExit+window+egress". The other spelling lived only in UserParking's KDoc, the
+        // repository fake and the preview data — a provenance the app has never once written.
+        //
+        // So the old `else -> Assisted` was not covering a real case; it was ATTRIBUTING an
+        // unrecognised pin to the Coordinator, in the exact field a user opens to ask who placed a
+        // pin they did not expect. Unknown claims nothing, which is the honest answer.
         listOf(
             "steps=3 kinematicFixes=7",
             "motorBand=41000ms ≥8.0mps",
             "vehicle-exit",
-            "unattended_timeout",
-            "unattended_zone_prompt_ignored",
-            "safety_net_backfill",
+            "btle_beacon",
+            "a_path_invented_after_this_ticket",
         ).forEach { path ->
             assertEquals(
-                ParkingDetectionSource.Assisted,
+                ParkingDetectionSource.Unknown,
                 parkingDetectionSourceOf(SpotType.AUTO_DETECTED, path),
                 "path=$path",
             )
         }
+    }
+
+    @Test
+    fun should_notMistakeANewBtPrefixedPathForTheBluetoothStrategy() {
+        // The prefix guard, made explicit: classification used to be `startsWith("bt")`, so any
+        // future path beginning with those two letters would have been filed as the deterministic
+        // Bluetooth strategy on the strength of two characters.
+        assertEquals(ParkingDetectionSource.Bluetooth, parkingDetectionSourceOf(SpotType.AUTO_DETECTED, "bt"))
+        assertEquals(ParkingDetectionSource.Bluetooth, parkingDetectionSourceOf(SpotType.AUTO_DETECTED, "bt_timeout"))
+        assertEquals(ParkingDetectionSource.Unknown, parkingDetectionSourceOf(SpotType.AUTO_DETECTED, "bt_something_new"))
     }
 
     @Test

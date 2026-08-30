@@ -16,9 +16,15 @@ import com.rndeveloper.paparcar.domain.model.UserParking
  * is a pure top-level function and NOT a use case — same shape as [HumanPoweredRide] /
  * [SentryWakeCooldown]. [DET-VERDICT-NOT-PREDICATE-001]
  *
- * ⚠️ The coordinator's own path labels are diagnostic jargon (`"steps=3 kinematicFixes=7"`,
- * `"motorBand=41000ms ≥8.0mps"`). They are CLASSIFIED here and never shown — user copy carries no
- * internal mechanics.
+ * ⚠️ This used to warn that the coordinator's path labels were diagnostic jargon
+ * (`"steps=3 kinematicFixes=7"`, `"motorBand=41000ms ≥8.0mps"`). **They are not, and never were.**
+ * That jargon is a TRACE note — `FastConfirmStage`'s `"▶ steps+egress (steps=8 kinematicFixes=0)"` —
+ * while `detectionPath` has only ever carried declared labels: three real accounts of parking
+ * history read on 2026-08-30 hold `steps+egress`, `kinematic+egress`, `unattended_zone_gap_anchor`,
+ * `user`, `manual`, `nudge`, `bt`, `safety_net_backfill`, `closed_approximate_pin` and nulls.
+ * [DET-DETECTION-PATH-IS-A-TYPE-001] now states that set as a type, so the warning is not just
+ * false, it is unreachable. What DOES hold is the second half: nothing here is ever shown to the
+ * user — the copy speaks of tiers, never of mechanics.
  */
 enum class ParkingDetectionSource {
     /** The deterministic BT-disconnect strategy — the "automatic" tier. */
@@ -55,21 +61,17 @@ fun parkingDetectionSourceOf(
 ): ParkingDetectionSource = when (spotType) {
     SpotType.HOME_GEOFENCE -> ParkingDetectionSource.PrivateZone
     SpotType.MANUAL_REPORT -> ParkingDetectionSource.Manual
-    SpotType.AUTO_DETECTED -> when {
-        detectionPath.isNullOrBlank() -> ParkingDetectionSource.Unknown
-        // "bt" and "bt_timeout" — both are the Bluetooth strategy; the timeout leg differs only in
-        // how much walk corroboration it got, which is a reliability question, not a "who" question.
-        detectionPath.startsWith(BLUETOOTH_PATH_PREFIX) -> ParkingDetectionSource.Bluetooth
-        // A pin the user placed answering a detection nudge keeps AUTO_DETECTED on purpose (so the
-        // freed spot publishes with the auto TTL), but the hand that put it there was the user's.
-        // [DET-NUDGE-PIN-PROVENANCE-001]
-        detectionPath in USER_PLACED_PATHS -> ParkingDetectionSource.Manual
-        else -> ParkingDetectionSource.Assisted
-    }
+    // [DET-DETECTION-PATH-IS-A-TYPE-001] The path DECLARES its strategy; this no longer re-derives
+    // it. What used to live here was a prefix guess and a fall-through:
+    //
+    //   detectionPath.startsWith("bt")     -> Bluetooth   // any future "bt…" path, by two letters
+    //   detectionPath in USER_PLACED_PATHS -> Manual
+    //   else                               -> Assisted    // …with `Unknown` sitting right there
+    //
+    // The `else` is the one that mattered: an unrecognised path was ATTRIBUTED to the Coordinator,
+    // in the exact field a user opens to ask who placed a pin they did not expect. Now an unknown
+    // label resolves to `Unknown`, which claims nothing — the same asymmetric-failure rule the
+    // detection side obeys, applied to what we tell the user.
+    SpotType.AUTO_DETECTED ->
+        DetectionPath.ofLabel(detectionPath)?.source ?: ParkingDetectionSource.Unknown
 }
-
-/** `"bt"` (walk corroborated) and `"bt_timeout"` (walk watch expired) — see BluetoothParkingDetector. */
-private const val BLUETOOTH_PATH_PREFIX = "bt"
-
-/** The three user-ground-truth paths of SaveManualParkingUseCase. */
-private val USER_PLACED_PATHS = setOf("manual", "user", "nudge")

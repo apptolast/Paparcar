@@ -692,13 +692,18 @@ estilo de los `ColorGuardrailTest` / `TypographyGuardrailTest` que ya existen:
 | 0 | `DET-DRIVING-EVIDENCE-IS-THE-ONLY-GATE-001` ✅ | FP parafarmacia | hecho |
 | 1 | `DET-DRIVING-EVIDENCE-VALUE-OBJECT-001` (Pieza 1) ✅ | §6.0, la raíz | hecho |
 | 2 | `DET-NO-CLOCK-PLANTS-A-PIN-001` (Pieza 4) ✅ | pin a 142 m, batería | hecho |
-| 3 | `DET-DETECTION-PATH-IS-A-TYPE-001` (Pieza 2) | #4 #12 #13 | medio |
+| 3 | `DET-DETECTION-PATH-IS-A-TYPE-001` (Pieza 2) 🟡 | #4 #12 (#13 era falsa alarma) | parcial |
 | 4 | `DET-FAIL-CLOSED-BY-CONSTRUCTION-001` (Pieza 3) | #5-#11, #14-#16 | medio |
 | 5 | `DET-TWO-TIER-SENTRY-001` (Pieza 5) | 28→1 armados, batería | alto |
 | 6 | `DET-DOUBT-MUST-REACH-THE-SCREEN-001` (Pieza 6) | §1.5 | bajo |
 | 7 | `DET-GUARDRAILS-KEEP-THE-DOCTRINE-001` (Pieza 7) | que no se deshaga | bajo |
 
 1, 2 y 4 son los que cambian la tasa de FP. 5 es el que cambia la batería y la escala (§6.5).
+
+🟡 **La Pieza 2 va por su decisión más rentable** (`detectionPath` → tipo) y el barrido de textos del
+safety-net. Le quedan las otras tres membresías: `isVerifiedLabel`, `VehicleType.isHumanPowered` y
+`NON_PARKING_TYPES`. **#13 se cerró como falsa alarma**: el `else` incondicional de `pathLabel` sólo
+se lee cuando `confirmNow` es true, y ahí la única rama restante es la que la etiqueta nombra.
 
 ⚠️ Antes de abrir el #1, leer **§9.4**: el cruce con el backlog abierto añade obligaciones a las
 Piezas 2, 3 y 4, y deja sobre la mesa si hace falta una **Pieza 8** correctiva.

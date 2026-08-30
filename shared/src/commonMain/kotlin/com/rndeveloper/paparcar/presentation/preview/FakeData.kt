@@ -18,6 +18,7 @@ import com.rndeveloper.paparcar.domain.model.bluetooth.BluetoothDeviceInfo
 import com.rndeveloper.paparcar.domain.model.bluetooth.BluetoothDeviceType
 import com.rndeveloper.paparcar.presentation.vehicles.WeekDayStats
 import kotlin.time.Clock
+import com.rndeveloper.paparcar.domain.detection.DetectionPath
 
 /**
  * Fake domain data for @Preview composables. Not used in production.
@@ -135,7 +136,7 @@ object FakeData {
         address = addrSupermarket,
         placeInfo = placeInfoSupermarket,
         detectionReliability = 0.90f,
-        detectionPath = "vehicle-exit",
+        detectionPath = DetectionPath.VehicleExitWindow.label,
         publishedSpot = true,
         endedAtMs = now - 3_600_000L,
         routeDistanceMeters = 3_400f,

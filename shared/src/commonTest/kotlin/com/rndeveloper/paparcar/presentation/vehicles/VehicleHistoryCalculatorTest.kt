@@ -7,6 +7,7 @@ import com.rndeveloper.paparcar.domain.model.UserParking
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import com.rndeveloper.paparcar.domain.detection.DetectionPath
 
 /** [AUDIT-M11-001] History filtering + stat aggregation, now testable outside the ViewModel.
  *  Stats semantics: user-facing metrics with significance thresholds.
@@ -101,7 +102,7 @@ class VehicleHistoryCalculatorTest {
     @Test
     fun should_suppressAutoShare_whenFewerThanFiveKnownProvenanceSessions() {
         val stats = VehicleHistoryCalculator.computeStats(
-            List(4) { i -> session(nowMs - i * dayMs, detectionPath = "steps+egress") } +
+            List(4) { i -> session(nowMs - i * dayMs, detectionPath = DetectionPath.StepsEgress.label) } +
                 // Legacy rows (null path, AUTO_DETECTED) have UNKNOWN provenance — they neither
                 // count toward the threshold nor drag the ratio down.
                 List(10) { i -> session(nowMs - (20 + i) * dayMs) },
@@ -113,12 +114,12 @@ class VehicleHistoryCalculatorTest {
     fun should_computeAutoShare_overKnownProvenanceSessions() {
         val stats = VehicleHistoryCalculator.computeStats(
             listOf(
-                session(nowMs - 6 * dayMs, detectionPath = "steps+egress"),
-                session(nowMs - 5 * dayMs, detectionPath = "kinematic+egress"),
-                session(nowMs - 4 * dayMs, detectionPath = "bt"),
-                session(nowMs - 3 * dayMs, detectionPath = "vehicle-exit"),
+                session(nowMs - 6 * dayMs, detectionPath = DetectionPath.StepsEgress.label),
+                session(nowMs - 5 * dayMs, detectionPath = DetectionPath.KinematicEgress.label),
+                session(nowMs - 4 * dayMs, detectionPath = DetectionPath.Bt.label),
+                session(nowMs - 3 * dayMs, detectionPath = DetectionPath.VehicleExitWindow.label),
                 // Placed by the user's hand — known provenance, not auto.
-                session(nowMs - 2 * dayMs, spotType = SpotType.MANUAL_REPORT, detectionPath = "manual"),
+                session(nowMs - 2 * dayMs, spotType = SpotType.MANUAL_REPORT, detectionPath = DetectionPath.ManualPin.label),
                 // Legacy row: unknown provenance, excluded from both counts.
                 session(nowMs - dayMs),
             ),

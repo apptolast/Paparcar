@@ -314,7 +314,7 @@ class DetectionEffectExecutor(
             location = center,
             reliability = config.reliabilityUnattendedSave,
             vehicleId = vehicleId,
-            pathLabel = "unattended_zone_${reason.key}",
+            pathLabel = DetectionPath.UnattendedZone(reason.key).label,
             zoneRadiusMeters = radiusMeters,
         )
         val savedOk = outcome.endsSession && outcome.sessionOutcome?.isConfirmed == true
@@ -322,7 +322,7 @@ class DetectionEffectExecutor(
             DetectionEvent.Decision(
                 sid, now,
                 outcome = if (savedOk) "UNATTENDED_ZONE_SAVED" else "UNATTENDED_ZONE_SAVE_FAILED",
-                pathLabel = "unattended_zone_${reason.key}",
+                pathLabel = DetectionPath.UnattendedZone(reason.key).label,
                 distanceMeters = doubtMeters,
                 radiusMeters = radiusMeters,
                 location = location,
@@ -345,7 +345,7 @@ class DetectionEffectExecutor(
             DetectionEvent.Decision(
                 sid, now,
                 outcome = reason.decisionOutcome,
-                pathLabel = "unattended_timeout",
+                pathLabel = DetectionPath.UnattendedTimeout.label,
                 distanceMeters = distanceMeters,
                 location = location,
             )

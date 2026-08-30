@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.domain.usecase.parking
 
+import com.rndeveloper.paparcar.domain.detection.DetectionPath
 import com.rndeveloper.paparcar.domain.detection.physics.DrivingEvidence
 import com.rndeveloper.paparcar.domain.detection.physics.sustainedDriveWitnessed
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
@@ -335,11 +336,17 @@ class EvaluateParkingDecisionUseCase(private val config: ParkingDetectionConfig)
             input.vehicleType == VehicleType.BIKE ||
             input.humanPoweredRide
 
-        val pathLabel = when {
-            hasStepsProof -> "steps+egress"
-            hasKinematicProof -> "kinematic+egress"
-            else -> "vehicleExit+window+egress"
+        // [DET-DETECTION-PATH-IS-A-TYPE-001] The path is a TYPE now, and it carries its own
+        // reliability. It used to be three string literals here and a fourth comparison below
+        // (`if (pathLabel == "kinematic+egress")`), with everything unmatched falling to the
+        // MAXIMUM — so a path added tomorrow would be born stamped 0.90 without its author ever
+        // choosing that. Reliability is now the path's own answer.
+        val path: DetectionPath = when {
+            hasStepsProof -> DetectionPath.StepsEgress
+            hasKinematicProof -> DetectionPath.KinematicEgress
+            else -> DetectionPath.VehicleExitWindow
         }
+        val pathLabel = path.label
 
         // [DET-ANCHOR-EGRESS-001][DET-CREDIBLE-DRIVE-001][DET-GAP-ANCHOR-001] An egress born away
         // from the anchor, an anchor captured at a walk-entered stop, or an anchor whose stop opened
@@ -382,11 +389,9 @@ class EvaluateParkingDecisionUseCase(private val config: ParkingDetectionConfig)
             confirmNow && promptReason != null -> ParkingDecision.Prompt(pathLabel, promptReason)
             confirmNow -> ParkingDecision.Confirmed(
                 pathLabel = pathLabel,
-                reliability = if (pathLabel == "kinematic+egress") {
-                    config.reliabilityKinematicEgress
-                } else {
-                    config.reliabilityVehicleExit
-                },
+                // Every branch of `path` is a live-confirm path, so this is never null — but the
+                // fallback is spelled out rather than `!!`, and it is the SAFE value, not the max.
+                reliability = path.confirmReliability(config) ?: config.reliabilityKinematicEgress,
             )
             // [DET-STEP-SPEED-GATE-001] Proofs present but the car is still rolling → this is a
             // traffic false positive (FP Avenida de los Mástiles), not a park. Reject the candidate
