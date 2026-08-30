@@ -1,6 +1,6 @@
 # DET-NO-CLOCK-PLANTS-A-PIN-001 · que un reloj venza no es evidencia
 
-**Estado:** 🔵 En progreso · rama `feature/DET-NO-CLOCK-PLANTS-A-PIN-001-no-clock-plants-a-pin` ·
+**Estado:** ✅ Done · rama `feature/DET-NO-CLOCK-PLANTS-A-PIN-001-no-clock-plants-a-pin` ·
 worktree `../Paparcar-no-clock` · **apilada sobre `DET-DRIVING-EVIDENCE-VALUE-OBJECT-001`**
 
 Pieza 4 del rediseño (`docs/detection/REDESIGN-DETECTION-SYSTEM.md` §8) + la **obligación 5** del

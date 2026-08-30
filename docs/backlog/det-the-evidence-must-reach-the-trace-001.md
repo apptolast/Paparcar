@@ -1,6 +1,6 @@
 # DET-THE-EVIDENCE-MUST-REACH-THE-TRACE-001 · el veredicto que decide tiene que poder leerse en el log
 
-**Estado:** 🔵 En progreso · rama `feature/DET-THE-EVIDENCE-MUST-REACH-THE-TRACE-001-evidence-trace`
+**Estado:** ✅ Done · rama `feature/DET-THE-EVIDENCE-MUST-REACH-THE-TRACE-001-evidence-trace`
 · worktree `../Paparcar-evidence-trace` · apilada sobre `DET-NO-CLOCK-PLANTS-A-PIN-001`
 
 ## Problema

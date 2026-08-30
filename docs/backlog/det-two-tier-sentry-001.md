@@ -1,6 +1,6 @@
 # DET-TWO-TIER-SENTRY-001 · un despertar compra un fix, no una sesión
 
-**Estado:** 🔵 En progreso · rama `feature/DET-TWO-TIER-SENTRY-001-two-tier-sentry` · worktree
+**Estado:** ✅ Done · rama `feature/DET-TWO-TIER-SENTRY-001-two-tier-sentry` · worktree
 `../Paparcar-two-tier` · apilada sobre `DET-FAIL-CLOSED-BY-CONSTRUCTION-001`
 
 Pieza 5 del rediseño. Es la que cambia **batería y escala**, y la que el propio §1.4 señaló como el

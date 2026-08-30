@@ -1,6 +1,6 @@
 # DET-STARVED-PROMPT-HAS-NO-WITNESS-001 · si el stream muere mientras preguntamos, el aparcamiento se pierde en silencio
 
-**Estado:** 🔵 En progreso · rama `feature/DET-STARVED-PROMPT-HAS-NO-WITNESS-001-starved-prompt` ·
+**Estado:** ✅ Done · rama `feature/DET-STARVED-PROMPT-HAS-NO-WITNESS-001-starved-prompt` ·
 worktree `../Paparcar-starved-prompt` · apilada sobre `DET-THE-EVIDENCE-MUST-REACH-THE-TRACE-001`
 
 Sale de una pregunta del user: *«¿qué pasa si desde el último fix malo no nos vuelve a llegar otro

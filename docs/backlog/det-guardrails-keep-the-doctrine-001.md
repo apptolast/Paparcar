@@ -1,6 +1,6 @@
 # DET-GUARDRAILS-KEEP-THE-DOCTRINE-001 · sin esto, las seis piezas duran hasta el próximo fix con prisa
 
-**Estado:** 🔵 En progreso · rama `feature/DET-GUARDRAILS-KEEP-THE-DOCTRINE-001-guardrails` ·
+**Estado:** ✅ Done · rama `feature/DET-GUARDRAILS-KEEP-THE-DOCTRINE-001-guardrails` ·
 worktree `../Paparcar-guardrails` · apilada sobre `DET-DOUBT-MUST-REACH-THE-SCREEN-001`
 
 Pieza 7 del rediseño.

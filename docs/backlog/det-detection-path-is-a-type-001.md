@@ -1,6 +1,6 @@
 # DET-DETECTION-PATH-IS-A-TYPE-001 · la procedencia de un pin deja de ser un string que tres sitios reinterpretan
 
-**Estado:** 🔵 En progreso · rama `feature/DET-DETECTION-PATH-IS-A-TYPE-001-path-is-a-type` ·
+**Estado:** ✅ Done · rama `feature/DET-DETECTION-PATH-IS-A-TYPE-001-path-is-a-type` ·
 worktree `../Paparcar-path-type` · apilada sobre `DET-DOUBT-REACHES-REMOTE-001`
 
 Pieza 2 del rediseño. Cierra los fallos **#4**, **#12** y el barrido de textos del safety-net (§9.3).

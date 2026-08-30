@@ -1,6 +1,6 @@
 # DET-DOUBT-MUST-REACH-THE-SCREEN-001 · la app calculaba la duda y la tiraba
 
-**Estado:** 🔵 En progreso · rama `feature/DET-DOUBT-MUST-REACH-THE-SCREEN-001-doubt-on-screen` ·
+**Estado:** ✅ Done · rama `feature/DET-DOUBT-MUST-REACH-THE-SCREEN-001-doubt-on-screen` ·
 worktree `../Paparcar-doubt-screen` · apilada sobre `DET-TWO-TIER-SENTRY-001`
 
 Pieza 6 del rediseño (§1.5).

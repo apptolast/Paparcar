@@ -1,6 +1,6 @@
 # DET-FAIL-CLOSED-BY-CONSTRUCTION-001 · lo que no se puede medir no puede valer como medido
 
-**Estado:** 🔵 En progreso · rama `feature/DET-FAIL-CLOSED-BY-CONSTRUCTION-001-fail-closed` ·
+**Estado:** ✅ Done · rama `feature/DET-FAIL-CLOSED-BY-CONSTRUCTION-001-fail-closed` ·
 worktree `../Paparcar-fail-closed` · apilada sobre `DET-DETECTION-PATH-IS-A-TYPE-001`
 
 Pieza 3 del rediseño (3a defaults permisivos + 3b política de nulos), más la **obligación 1** del

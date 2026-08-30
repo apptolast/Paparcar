@@ -1,6 +1,6 @@
 # DET-DRIVING-EVIDENCE-VALUE-OBJECT-001 · «¿condujo?» se responde una vez, con una medición
 
-**Estado:** 🔵 En progreso · rama `feature/DET-DRIVING-EVIDENCE-VALUE-OBJECT-001-driving-evidence-vo`
+**Estado:** ✅ Done · rama `feature/DET-DRIVING-EVIDENCE-VALUE-OBJECT-001-driving-evidence-vo`
 · worktree `../Paparcar-drivingevidence-vo` · **apilada sobre
 `DET-DRIVING-EVIDENCE-IS-THE-ONLY-GATE-001`** (aún sin mergear a master)
 

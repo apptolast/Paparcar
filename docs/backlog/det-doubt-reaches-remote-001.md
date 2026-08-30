@@ -1,6 +1,6 @@
 # DET-DOUBT-REACHES-REMOTE-001 · una zona que en remoto parece un pin exacto no se puede diagnosticar
 
-**Estado:** 🔵 En progreso · rama `feature/DET-DOUBT-REACHES-REMOTE-001-doubt-remote` · worktree
+**Estado:** ✅ Done · rama `feature/DET-DOUBT-REACHES-REMOTE-001-doubt-remote` · worktree
 `../Paparcar-doubt-remote` · apilada sobre `DET-STARVED-PROMPT-HAS-NO-WITNESS-001`
 
 ## Problema

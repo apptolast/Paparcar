@@ -1,6 +1,6 @@
 # DET-DRIVING-EVIDENCE-IS-THE-ONLY-GATE-001 · el confirm silencioso pregunta a la nominación, no a la prueba
 
-**Estado:** 🔵 En progreso · rama `feature/DET-DRIVING-EVIDENCE-IS-THE-ONLY-GATE-001-driving-evidence` · worktree `../Paparcar-driving-evidence`
+**Estado:** ✅ Done · rama `feature/DET-DRIVING-EVIDENCE-IS-THE-ONLY-GATE-001-driving-evidence` · worktree `../Paparcar-driving-evidence`
 
 ## Problema
 
