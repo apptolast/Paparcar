@@ -143,9 +143,25 @@ lost parking); the positive BT arbitration (`EvaluateBtArbitrationUseCase`) is u
    `showMarkParkingNudge` and return before the debounce — no FGS held, no GPS stream, no pin.
    An engagement proves the car came within radio range of the phone, which is PRESENCE, not
    driving; the two only coincide when the phone was inside the car.
-1. **Debounce** — `delay(BT_DISCONNECT_DEBOUNCE_MS = 30 s)`. Cancellable — if BT reconnects, the Service cancels the coroutine here before the delay returns (BT-005).
-2. **GPS fix** — sample the location stream until `accuracy ≤ GPS_ACCURACY_THRESHOLD_M = 50 m`, or `GPS_SAMPLE_TIMEOUT_MS = 60 s` elapses. The first fix that meets the accuracy bar is the candidate parking location.
-3. **Walking confirmation** — keep watching GPS until the user has moved `≥ DISTANCE_THRESHOLD_M = 30 m` from the candidate fix. This rules out "BT dropped while still in the car" cases (passenger left, head-unit died, etc.).
+1. **Candidate hunt, from the disconnect** [DET-BT-PIN-IS-SAMPLED-AFTER-THE-WALK-001] — sample the
+   location stream immediately and fold every fix through `EvaluateBtParkUseCase.foldCandidateFix`:
+   the **earliest** fix that is pin-grade (`accuracy ≤ minGpsAccuracyForDriving = 50 m`) **and**
+   stationary (`speed < stoppedSpeedThresholdMps = 1 m/s`) becomes the candidate parking location;
+   a credible driving fix aborts the whole detection (the BT drop happened mid-drive). Ceiling
+   `BT_DISCONNECT_DEBOUNCE_MS + GPS_SAMPLE_TIMEOUT_MS = 90 s`; expiring with a candidate in hand
+   still parks (it is a park to save, not a timeout to report). A fix **stamped before the
+   disconnect** decides nothing — subscribing this early can be served a cached fix (fused default
+   max age ≈ 2× interval ≈ 10 s), and that one witnessed the arrival, not the park.
+2. **Debounce** — the hunt settles no earlier than `BT_DISCONNECT_DEBOUNCE_MS = 30 s`. The window
+   gates ACTING, never LOOKING: BT oscillation and traffic lights are reasons not to act on a
+   disconnect, but the car's position can only be lost with time, never recovered. Cancellable — if
+   BT reconnects the Service cancels the coroutine at `Flow.first` (BT-005).
+3. **Walking confirmation** — keep watching GPS until the user has moved `≥ btWalkAwayDistanceMeters
+   = 30 m` from the candidate fix **at pedestrian rate**. This rules out "BT dropped while still in
+   the car" cases (passenger left, head-unit died, etc.). Distance and clock both run from the
+   candidate's own seal (`BtCandidate` = fix + instant): the candidate can now be up to 30 s older
+   than the watch, and clocking its displacement from the watch instead would read a normal walk as
+   a teleport and abort a real park.
 4. **Confirm** — `confirmParking(candidateFix, config.reliabilityBluetooth = 0.95f)`. [DET-F-01]
 5. **Timeout-save** [DET-BT-TIMEOUT-SAVE-001] — if the walk-away watch expires
    (`btWalkAwayTimeoutMs = 15 min`) with the stationary pin-grade candidate still standing, the
@@ -154,10 +170,10 @@ lost parking); the positive BT arbitration (`EvaluateBtArbitrationUseCase`) is u
    never covered 30 m — the abort lost the user's "where is my car", a regression vs the
    coordinator which confirms home parks via steps+egress). Safe because nothing community-facing
    publishes at confirm time (spots publish at departure), and a mid-drive BT drop cannot reach
-   the timeout: a driving candidate never passes step 2, and vehicle-rate displacement during the
+   the timeout: a driving candidate never passes step 1, and vehicle-rate displacement during the
    watch aborts with no save. A garage park with no usable GPS still aborts (no candidate).
 
-Abort-on-reconnect (BT-005): when `ACTION_ACL_CONNECTED` arrives, the Receiver starts the Service with `ACTION_BT_CONNECTED`. The Service calls `detectionJob?.cancel()` — the suspend function receives `CancellationException` at the active suspension point (`delay` or `Flow.first`) and exits cooperatively. The detector itself carries no cancellation flag.
+Abort-on-reconnect (BT-005): when `ACTION_ACL_CONNECTED` arrives, the Receiver starts the Service with `ACTION_BT_CONNECTED`. The Service calls `detectionJob?.cancel()` — the suspend function receives `CancellationException` at the active suspension point (`Flow.first`, in whichever watch is collecting) and exits cooperatively. The detector itself carries no cancellation flag.
 
 > **DET-E-01 reverted (code review):** feeding `DepartureEventBus.onVehicleEntered` on BT connect
 > made the `BUG-WALK-DEPART-001` fallthrough in `DepartureDetectionWorker` treat a BT user merely
@@ -5746,6 +5762,7 @@ Android release — that is the price of the file existing, and it is why the wr
 
 Spec: `docs/backlog/support-report-ships-the-local-log-001.md`.
 
+
 ### DET-WATCHDOG-DEPARTURE-KNOWS-NO-HOUR-001 — the user witnesses the fact, not the hour (pending)
 
 **Reported by the user (2026-08-30):** the watchdog's *"still parked here?"* notification should not
@@ -5792,3 +5809,68 @@ Android resources (`app/src/main/res`), where the apostrophe **is** escaped, unl
 Resources ([COPY-APOSTROPHE-IS-NOT-ESCAPED-001]).
 
 Spec: `docs/backlog/det-watchdog-departure-knows-no-hour-001.md`.
+
+
+### DET-BT-PIN-IS-SAMPLED-AFTER-THE-WALK-001 — a wait that exists so we do not ACT cannot delay what we OBSERVE (pending)
+
+User, 30-08, reading the lane rather than a field pin: *«si desconectamos puede ser ya cuando me
+haya alejado del coche, lo cual el pin quedaría algo movido».* Confirmed, and worse than the
+disconnect instant alone: the BT lane **slept through** its 30 s debounce and pinned the first fix
+sampled *after* it, so the pin was the user's BODY at t+30…90 s — 35–45 m of walk at pedestrian
+pace. Further still in the common case, because `stoppedSpeedThresholdMps = 1 m/s` sits **below**
+human walking pace: a walking fix reads `KeepWaiting`, so sampling continued while the user got
+further away and the pin landed wherever they first stood still (a crossing, a doorway) — or nowhere
+at all (`bt_gps_timeout`). That the average case was not worse rested on phones reporting
+`speed=0.0` for derived low-quality fixes, i.e. on a hardware accident, not on a guard.
+
+Unlike the coordinator, the lane has **no anchor to fall back on**: `handleConnected` opens no
+location stream during the drive (it stamps `BtConnectionStore` and enqueues a safety-net check), so
+at disconnect there is no "last driving fix" in memory. The car's position can only come from a fix
+*after* the disconnect — and of those, the good one is the EARLIEST, which is exactly the one the
+debounce threw away.
+
+**Fix.** The debounce becomes a floor on *acting*, not on *looking*. The hunt runs from the
+disconnect through `EvaluateBtParkUseCase.foldCandidateFix` (a fold inside the verdict that already
+owns these rules — not a new use case: "who won the hunt" appears in no diagnostic vocabulary
+[DET-VERDICT-NOT-PREDICATE-001]): the earliest pin-grade stationary fix wins, a later one never
+replaces it, and a credible driving fix aborts terminally. Two side effects worth naming: the
+mid-drive drop is now watched over the **first 30 s too** (a blind spot until today), and the 90 s
+ceiling expiring with a candidate in hand now parks instead of reporting a timeout.
+
+**The hazard the change itself opens**, closed in the same fold: subscribing at the disconnect
+instead of 30 s later means the fused provider can serve a **cached** fix first — its default max
+age is twice the request interval, ≈ 10 s at high accuracy. Ten seconds before the ignition went off
+the car was still rolling, and `minimumDepartureSpeedKmh` is only 10 km/h, so that single cached
+sample could either pin the car a block back (if it was stationary at the last light) or **abort
+every ordinary BT park** (if it was not). A fix stamped before `BtCandidateHunt.sinceMs` therefore
+decides nothing — neither pins nor aborts. Unstamped fixes (`timestamp <= 0`, which Android never
+produces) are still judged: a lane that refused to park without a stamp would fail worse than the
+case being prevented.
+
+**Companion-fix risk, and the reason this is one ticket and not two.** Moving the sample earlier
+*alone* would be a regression. The walk-away measures a displacement from the candidate fix, so its
+pedestrian-rate clock has to run from the candidate's instant; the two coincided only because the
+sample was taken immediately before the watch opened. With a candidate up to 30 s older, clocking it
+from the watch turns 35 m of ordinary walking into a teleport (`averageSpeed > maxPedestrianSpeedMps`
+⇒ `DrivingAbort`) and kills a real park. Hence `BtCandidate` (fix + instant as one seal) and
+`evaluateWalkAway(candidate, current, nowMs)` — the signature no longer lets the call site pair a
+distance from one moment with a duration from another. The suite asserts both halves of that.
+
+⚠️ **Measured in the code, unmeasured on the phone.** There are **zero BT sessions** in the field
+logs — the active vehicle is the Focus (no MAC) and the Kamiq's MAC never appears, which is
+deliberate (BT is the deterministic lane; driving time is spent on the coordinator). So this ticket
+is not born of an observed crooked pin. Field validation needs the Kamiq, and it also has to settle
+the one thing only a trip can: **whether the Kamiq's `ACL_DISCONNECTED` fires at ignition-off (phone
+still inside — the early fix lands on the car) or on range loss (already walking — the 30 s used to
+be added to a walk already under way).** The number to read is the new `pin lag` on the confirmation
+line, which also rides remote in `DepartureVerdict.enterAgeMs` (the DTO's established "how old was
+this signal" column, no schema change). Before this change it could not be under 30 000 ms.
+
+**Deliberately out of scope.** The pin-grade accuracy bar is `minGpsAccuracyForDriving = 50 m` — a
+*driving-credibility* threshold reused for placement (the detector's KDoc calls it "pin-grade"; the
+constant is not). How much accuracy it takes to PLACE is its own question with no constant of its own
+today → follow-up. `stoppedSpeedThresholdMps` is left alone too: with the early hunt it stops being
+the drag mechanism (the first fixes arrive with the user still in the car), and re-calibrating it has
+no field datum behind it.
+
+Spec: `docs/backlog/det-bt-pin-is-sampled-after-the-walk-001.md`.

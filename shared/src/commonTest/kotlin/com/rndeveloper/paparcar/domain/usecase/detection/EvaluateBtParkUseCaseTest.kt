@@ -4,6 +4,10 @@ import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 /**
  * First test suite of the Bluetooth path (audit A3): the pure decision core extracted from the
@@ -20,13 +24,31 @@ class EvaluateBtParkUseCaseTest {
         meters: Double = 0.0,
         speedMps: Float = 0f,
         accuracy: Float = 10f,
+        timestamp: Long = 0L,
     ) = GpsPoint(
         latitude = BASE_LAT + meters / METERS_PER_DEGREE_LAT,
         longitude = BASE_LON,
         accuracy = accuracy,
-        timestamp = 0L,
+        timestamp = timestamp,
         speed = speedMps,
     )
+
+    /** One sampled fix and the wall-clock instant it arrived — what the hunt folds over. */
+    private data class Sample(val fix: GpsPoint, val atMs: Long)
+
+    private fun stoppedAt(meters: Double, atMs: Long) = Sample(fix(meters = meters, speedMps = 0.3f), atMs)
+    private fun drivingAt(atMs: Long) = Sample(fix(meters = 300.0, speedMps = 9f), atMs)
+    private fun degradedAt(atMs: Long) = Sample(fix(accuracy = 80f), atMs)
+    private fun walkingAt(atMs: Long) = Sample(fix(meters = 20.0, speedMps = 1.4f), atMs)
+
+    /** Replay a whole disconnect window through the fold, in arrival order. The disconnect is t=0. */
+    private fun hunt(vararg samples: Sample) = samples.fold(BtCandidateHunt(sinceMs = 0L)) { state, sample ->
+        useCase.foldCandidateFix(state, sample.fix, sample.atMs)
+    }
+
+    private fun candidate(atMs: Long, meters: Double = 0.0) = BtCandidate(fix(meters = meters), atMs)
+
+    private fun metersFromBase(point: GpsPoint) = (point.latitude - BASE_LAT) * METERS_PER_DEGREE_LAT
 
     // ── Candidate fix: pin-grade AND stationary, or nothing ──────────────────
 
@@ -59,46 +81,149 @@ class EvaluateBtParkUseCaseTest {
         assertEquals(BtParkVerdict.KeepWaiting, useCase.evaluateCandidateFix(fix(speedMps = 1.4f, accuracy = 10f)))
     }
 
+    // ── Candidate hunt: the EARLIEST fix wins [DET-BT-PIN-IS-SAMPLED-AFTER-THE-WALK-001] ──────
+
+    @Test
+    fun should_pinTheEarliestStationaryFix_when_laterOnesAlsoQualify() {
+        // The whole ticket. Disconnect at t=0, the user still at the car at t=3 s, then walking:
+        // fixes keep arriving and keep qualifying, and every one of them is further from the car.
+        val hunt = hunt(
+            stoppedAt(meters = 0.0, atMs = 3_000L),    // at the car, engine just off
+            stoppedAt(meters = 40.0, atMs = 33_000L),  // 40 m up the street, waiting at a crossing
+            stoppedAt(meters = 95.0, atMs = 61_000L),  // at the door
+        )
+        val pinned = assertNotNull(hunt.candidate)
+        assertEquals(0.0, metersFromBase(pinned.fix), 0.5)
+        assertEquals(3_000L, pinned.atMs)
+    }
+
+    @Test
+    fun should_abortHunt_when_drivingArrivesAfterAStationaryCandidate() {
+        // BT dropped at a red light: the fix at t=2 s is a genuine standstill, and the car moving
+        // off at t=15 s is what says it was not a park. Before the hunt started at the disconnect,
+        // this whole window went unwatched — the first sample was taken at t=30 s.
+        val hunt = hunt(stoppedAt(meters = 0.0, atMs = 2_000L), drivingAt(15_000L))
+        assertTrue(hunt.aborted)
+    }
+
+    @Test
+    fun should_keepTheAbort_when_theCarStopsAgainLater() {
+        // Abort is terminal: the next red light must not resurrect the hunt.
+        val hunt = hunt(drivingAt(4_000L), stoppedAt(meters = 0.0, atMs = 20_000L))
+        assertTrue(hunt.aborted)
+        assertNull(hunt.candidate)
+    }
+
+    @Test
+    fun should_holdNoCandidate_when_everyFixIsUnusable() {
+        // Degraded and walking-pace fixes decide nothing — the detector reports a GPS timeout.
+        val hunt = hunt(degradedAt(5_000L), walkingAt(20_000L))
+        assertNull(hunt.candidate)
+        assertFalse(hunt.aborted)
+    }
+
+    @Test
+    fun should_ignoreTheCachedFix_when_itWasStampedBeforeTheDisconnect() {
+        // Subscribing AT the disconnect means the fused provider can hand us a cached fix first (its
+        // default max age is twice the request interval ≈ 10 s). Ten seconds before the ignition
+        // went off the car was still rolling, and 4 m/s = 14 km/h clears minimumDepartureSpeedKmh —
+        // so without the stamp guard the very first sample would abort ordinary BT parks.
+        val disconnectAtMs = 1_000_000L
+        var state = BtCandidateHunt(sinceMs = disconnectAtMs)
+
+        state = useCase.foldCandidateFix(
+            state,
+            fix(meters = 120.0, speedMps = 4f, timestamp = disconnectAtMs - 9_000L),
+            atMs = disconnectAtMs + 200L,
+        )
+        assertFalse(state.aborted)
+        assertNull(state.candidate)
+
+        state = useCase.foldCandidateFix(
+            state,
+            fix(meters = 0.0, speedMps = 0.2f, timestamp = disconnectAtMs + 4_000L),
+            atMs = disconnectAtMs + 4_000L,
+        )
+        assertEquals(0.0, metersFromBase(assertNotNull(state.candidate).fix), 0.5)
+    }
+
+    @Test
+    fun should_notPinTheCachedFix_when_itWasStampedBeforeTheDisconnect() {
+        // The mirror hazard of the same cached sample: stationary (the last light before home), so
+        // it would win the hunt outright and pin the car a block back.
+        val disconnectAtMs = 1_000_000L
+        val state = useCase.foldCandidateFix(
+            BtCandidateHunt(sinceMs = disconnectAtMs),
+            fix(meters = 150.0, speedMps = 0.1f, timestamp = disconnectAtMs - 8_000L),
+            atMs = disconnectAtMs + 100L,
+        )
+        assertNull(state.candidate)
+    }
+
     // ── Walk-away: the displacement must be WALKED ────────────────────────────
 
     @Test
     fun should_confirm_when_walkedDistanceAtPedestrianRate() {
         // 35 m in 25 s = 1.4 m/s — a person on foot.
-        val verdict = useCase.evaluateWalkAway(fix(), fix(meters = 35.0, speedMps = 1.3f), elapsedMs = 25_000L)
+        val verdict = useCase.evaluateWalkAway(candidate(atMs = 0L), fix(meters = 35.0, speedMps = 1.3f), nowMs = 25_000L)
         assertEquals(BtParkVerdict.WalkAwayConfirmed, verdict)
+    }
+
+    @Test
+    fun should_confirm_when_theWalkStartedBeforeTheWatchDid() {
+        // [DET-BT-PIN-IS-SAMPLED-AFTER-THE-WALK-001] The coupling that makes the early hunt safe.
+        // Candidate sampled at t=2 s; the watch only opens when the debounce closes at t=30 s, and
+        // its first fix is already 35 m away. Measured from the candidate that is 1.25 m/s — a
+        // walk. Measured from the start of the watch it would be 35 m in a blink, i.e. a teleport,
+        // and the lane would abort a perfectly real park.
+        val walkFix = fix(meters = 35.0, speedMps = 0.9f)
+        assertEquals(
+            BtParkVerdict.WalkAwayConfirmed,
+            useCase.evaluateWalkAway(candidate(atMs = 2_000L), walkFix, nowMs = 30_000L),
+        )
+        // The same displacement clocked from the watch instead of from the candidate — i.e. what
+        // this lane would do if the two halves of the seal were allowed to drift apart.
+        assertEquals(
+            BtParkVerdict.DrivingAbort,
+            useCase.evaluateWalkAway(candidate(atMs = 30_000L), walkFix, nowMs = 30_000L),
+        )
     }
 
     @Test
     fun should_abortWalkAway_when_currentFixIsCredibleDriving() {
         // The car (with the phone in it) drove on after a BT drop at a light.
-        val verdict = useCase.evaluateWalkAway(fix(), fix(meters = 40.0, speedMps = 9f), elapsedMs = 6_000L)
+        val verdict = useCase.evaluateWalkAway(candidate(atMs = 0L), fix(meters = 40.0, speedMps = 9f), nowMs = 6_000L)
         assertEquals(BtParkVerdict.DrivingAbort, verdict)
     }
 
     @Test
     fun should_abortWalkAway_when_displacementOutrunsPedestrianRate() {
         // 200 m in 10 s with speed=0 fixes (sparse cadence hid the drive): 20 m/s is wheels.
-        val verdict = useCase.evaluateWalkAway(fix(), fix(meters = 200.0, speedMps = 0f), elapsedMs = 10_000L)
+        val verdict = useCase.evaluateWalkAway(candidate(atMs = 0L), fix(meters = 200.0, speedMps = 0f), nowMs = 10_000L)
         assertEquals(BtParkVerdict.DrivingAbort, verdict)
     }
 
     @Test
     fun should_abortWalkAway_when_thresholdCoveredInstantly() {
-        // elapsed <= 0 with the distance already covered = teleport/GPS jump — never confirm.
-        val verdict = useCase.evaluateWalkAway(fix(), fix(meters = 35.0, speedMps = 0f), elapsedMs = 0L)
+        // No elapsed span with the distance already covered = teleport/GPS jump — never confirm.
+        val verdict = useCase.evaluateWalkAway(candidate(atMs = 9_000L), fix(meters = 35.0, speedMps = 0f), nowMs = 9_000L)
         assertEquals(BtParkVerdict.DrivingAbort, verdict)
     }
 
     @Test
     fun should_keepWaiting_when_underTheWalkThreshold() {
-        val verdict = useCase.evaluateWalkAway(fix(), fix(meters = 15.0, speedMps = 1.2f), elapsedMs = 12_000L)
+        val verdict = useCase.evaluateWalkAway(candidate(atMs = 0L), fix(meters = 15.0, speedMps = 1.2f), nowMs = 12_000L)
         assertEquals(BtParkVerdict.KeepWaiting, verdict)
     }
 
     @Test
     fun should_keepWaiting_when_currentWalkFixDegraded() {
         // A 100 m-accuracy fix can fake 30 m of displacement by noise alone.
-        val verdict = useCase.evaluateWalkAway(fix(), fix(meters = 35.0, speedMps = 1.2f, accuracy = 100f), elapsedMs = 25_000L)
+        val verdict = useCase.evaluateWalkAway(
+            candidate(atMs = 0L),
+            fix(meters = 35.0, speedMps = 1.2f, accuracy = 100f),
+            nowMs = 25_000L,
+        )
         assertEquals(BtParkVerdict.KeepWaiting, verdict)
     }
 

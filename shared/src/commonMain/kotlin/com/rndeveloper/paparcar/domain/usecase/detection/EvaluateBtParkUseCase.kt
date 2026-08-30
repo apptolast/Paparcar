@@ -24,6 +24,35 @@ sealed interface BtParkVerdict {
 }
 
 /**
+ * A parked-car candidate: the fix that will BE the pin, and the instant it was sampled.
+ * [DET-BT-PIN-IS-SAMPLED-AFTER-THE-WALK-001]
+ *
+ * The two travel together on purpose. The walk-away check measures a displacement FROM this fix, so
+ * the pedestrian rate that judges it has to be measured from THIS instant — not from whenever the
+ * watch happened to start. While the candidate was sampled immediately before the watch the two
+ * coincided by accident; now that the hunt runs from the disconnect, a candidate can be half a
+ * minute older than the watch, and pairing it with the wrong clock turns a normal walk into a
+ * teleport (`averageSpeed > maxPedestrianSpeedMps` ⇒ [BtParkVerdict.DrivingAbort]) — aborting a real
+ * park. One seal, two halves.
+ */
+data class BtCandidate(val fix: GpsPoint, val atMs: Long)
+
+/**
+ * Running state of the candidate hunt. [DET-BT-PIN-IS-SAMPLED-AFTER-THE-WALK-001]
+ *
+ * Not a use case of its own: "who won the hunt" appears in no diagnostic vocabulary and only ever
+ * feeds the verdict this file already owns, so by [DET-VERDICT-NOT-PREDICATE-001] it lives INSIDE
+ * that verdict. Kept as a fold rather than as a loop in the Android detector so the rule is
+ * testable with a list of fixes instead of with a foreground service.
+ */
+data class BtCandidateHunt(
+    /** The disconnect. Nothing stamped before it may pin or abort — see [EvaluateBtParkUseCase.foldCandidateFix]. */
+    val sinceMs: Long,
+    val candidate: BtCandidate? = null,
+    val aborted: Boolean = false,
+)
+
+/**
  * What the connect→disconnect engagement with the paired car was SHAPED like.
  * [DET-BT-DISCONNECT-WITHOUT-RIDE-001]
  *
@@ -110,21 +139,61 @@ class EvaluateBtParkUseCase(private val config: ParkingDetectionConfig) {
     }
 
     /**
+     * Fold one sampled fix into the hunt for the parked-car position.
+     * [DET-BT-PIN-IS-SAMPLED-AFTER-THE-WALK-001]
+     *
+     * Two rules, and the first one is the whole ticket:
+     *  - **The EARLIEST accepted fix wins.** The car's position can only be lost with time, never
+     *    recovered: every second between the disconnect and the sample is metres of the user's walk
+     *    baked into the pin. A later fix never replaces an accepted candidate.
+     *  - **Any credible driving fix aborts**, candidate in hand or not. This is what lets the hunt
+     *    start at the disconnect instead of after the debounce: the mid-drive BT drop (head-unit
+     *    battery cut, interference) is still caught — now across the whole window rather than only
+     *    its tail, which used to leave the first 30 s unwatched.
+     *
+     * Abort is terminal: a stationary fix afterwards does not resurrect the hunt.
+     *
+     * **A fix stamped before [BtCandidateHunt.sinceMs] decides nothing** — neither pins nor aborts.
+     * Subscribing at the disconnect instead of 30 s later means the fused provider may hand us a
+     * CACHED fix first (its default max age is twice the request interval, so ~10 s at high
+     * accuracy), and 10 s before the ignition went off the car was still rolling. Such a fix
+     * witnessed the arrival, not the park: pinning it would place the car where it was a block
+     * back, and — since `minimumDepartureSpeedKmh` is only 10 km/h — aborting on it would silently
+     * kill ordinary BT parks. The hazard is created by looking earlier, so it is closed here.
+     * An unstamped fix (`timestamp <= 0`, which Android never produces) is judged normally: a lane
+     * that refused to park without a stamp would be a worse failure than the one being prevented.
+     */
+    fun foldCandidateFix(state: BtCandidateHunt, fix: GpsPoint, atMs: Long): BtCandidateHunt {
+        if (state.aborted) return state
+        if (fix.timestamp > 0L && fix.timestamp < state.sinceMs) return state
+        return when (evaluateCandidateFix(fix)) {
+            BtParkVerdict.DrivingAbort -> state.copy(aborted = true)
+            BtParkVerdict.CandidateAccepted ->
+                if (state.candidate == null) state.copy(candidate = BtCandidate(fix, atMs)) else state
+            else -> state
+        }
+    }
+
+    /**
      * Classify one fix of the walk-away phase.
      *
-     * @param elapsedMs wall-clock ms since the walk-away watch started — the base for the
-     *   pedestrian-rate check. `<= 0` (first fix raced the clock, or a position teleport) is
-     *   treated as non-pedestrian: physically a jump, so it must not confirm.
+     * @param candidate the parked-car candidate: its fix is the origin of the displacement AND its
+     *   instant is the origin of the clock. Both halves come from one [BtCandidate] on purpose — a
+     *   distance measured from one moment against a duration measured from another is not a speed.
+     * @param nowMs wall-clock of [current]. A non-positive span since the candidate (first fix raced
+     *   the clock, or a position teleport) is treated as non-pedestrian: physically a jump, so it
+     *   must not confirm.
      */
-    fun evaluateWalkAway(candidate: GpsPoint, current: GpsPoint, elapsedMs: Long): BtParkVerdict {
+    fun evaluateWalkAway(candidate: BtCandidate, current: GpsPoint, nowMs: Long): BtParkVerdict {
         if (config.isCredibleDrivingSpeed(current.speed * KMH_PER_MPS, current.accuracy)) {
             return BtParkVerdict.DrivingAbort
         }
         // A degraded fix can fake a 30 m displacement by noise alone — never decide on it.
         if (current.accuracy > config.minGpsAccuracyForDriving) return BtParkVerdict.KeepWaiting
 
+        val elapsedMs = nowMs - candidate.atMs
         val distanceMeters = haversineMeters(
-            candidate.latitude, candidate.longitude,
+            candidate.fix.latitude, candidate.fix.longitude,
             current.latitude, current.longitude,
         )
         if (distanceMeters < config.btWalkAwayDistanceMeters) return BtParkVerdict.KeepWaiting
