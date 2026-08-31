@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Notificação: serviço foreground de deteção -->
-    <string name="notif_detection_title">Deteção de estacionamento ativa</string>
-    <string name="notif_detection_text">Deteto quando estacionas · toca para gerir</string>
+    <string name="notif_detection_title">Atento ao teu carro</string>
     <!-- %1$s = nome do veículo (ex. "Ford Focus") -->
-    <string name="notif_detection_text_vehicle">Atento ao teu %1$s · toca para gerir</string>
+    <string name="notif_detection_title_vehicle">Atento ao teu %1$s</string>
     <string name="notif_detection_explainer">Deteto automaticamente quando estacionas para libertar o teu lugar para a comunidade. Consumo de bateria mínimo.</string>
 
     <!-- Notificação: confirmação de estacionamento -->
@@ -67,7 +66,7 @@
     <string name="notif_action_mark_parking">Marcar estacionamento</string>
     <string name="notif_background_kill_title">O teu telemóvel está a bloquear o Paparcar</string>
     <string name="notif_background_kill_text">O sistema parou a deteção de estacionamento em segundo plano durante horas. Toca para abrir a app e resolver em Definições → Deteção.</string>
-    <string name="notif_sentry_title">Carro estacionado — atentos à tua saída</string>
+    <string name="notif_sentry_title">Estacionado · atento à tua saída</string>
     <string name="notif_sentry_text">Quando saíres, libertaremos o teu lugar para outros. Silenciosa, bateria mínima. Desativa-se nas Definições.</string>
     <string name="channel_sentry_name">Vigilância estacionado</string>
     <string name="channel_sentry_desc">Notificação silenciosa enquanto o teu carro está estacionado</string>

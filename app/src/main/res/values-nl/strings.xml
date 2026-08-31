@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Melding: detectie-voorgrondservice -->
-    <string name="notif_detection_title">Parkeerdetectie aan</string>
-    <string name="notif_detection_text">Ik detecteer wanneer je parkeert · tik om te beheren</string>
+    <string name="notif_detection_title">Ik let op je auto</string>
     <!-- %1$s = voertuignaam (bijv. "Ford Focus") -->
-    <string name="notif_detection_text_vehicle">Ik let op je %1$s · tik om te beheren</string>
+    <string name="notif_detection_title_vehicle">Ik let op je %1$s</string>
     <string name="notif_detection_explainer">Ik detecteer automatisch wanneer je parkeert om je plaats vrij te geven aan de community. Minimaal batterijverbruik.</string>
 
     <!-- Melding: bevestiging van parkeren -->
@@ -67,7 +66,7 @@
     <string name="notif_action_mark_parking">Parkeerplaats markeren</string>
     <string name="notif_background_kill_title">Je telefoon blokkeert Paparcar</string>
     <string name="notif_background_kill_text">Het systeem heeft de parkeerdetectie urenlang op de achtergrond gepauzeerd. Tik om de app te openen en dit op te lossen in Instellingen → Detectie.</string>
-    <string name="notif_sentry_title">Auto geparkeerd — we letten op je vertrek</string>
+    <string name="notif_sentry_title">Geparkeerd · ik let op je vertrek</string>
     <string name="notif_sentry_text">Als je wegrijdt, geven we je plek vrij voor anderen. Stil, minimaal batterijgebruik. Uit te zetten in Instellingen.</string>
     <string name="channel_sentry_name">Parkeerwacht</string>
     <string name="channel_sentry_desc">Stille melding terwijl je auto geparkeerd staat</string>

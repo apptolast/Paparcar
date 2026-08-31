@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Benachrichtigung: Erkennungs-Vordergrunddienst -->
-    <string name="notif_detection_title">Parkerkennung aktiv</string>
-    <string name="notif_detection_text">Ich erkenne, wenn du parkst · zum Verwalten tippen</string>
+    <string name="notif_detection_title">Achte auf dein Auto</string>
     <!-- %1$s = Fahrzeugname (z. B. "Ford Focus") -->
-    <string name="notif_detection_text_vehicle">Ich beobachte deinen %1$s · zum Verwalten tippen</string>
+    <string name="notif_detection_title_vehicle">Achte auf deinen %1$s</string>
     <string name="notif_detection_explainer">Ich erkenne automatisch, wenn du parkst, um deinen Stellplatz für die Community freizugeben. Minimaler Batterieverbrauch.</string>
 
     <!-- Benachrichtigung: Parkbestätigung -->
@@ -67,7 +66,7 @@
     <string name="notif_action_mark_parking">Parkplatz markieren</string>
     <string name="notif_background_kill_title">Dein Handy blockiert Paparcar</string>
     <string name="notif_background_kill_text">Das System hat die Parkerkennung im Hintergrund stundenlang pausiert. Tippe, um die App zu öffnen und es unter Einstellungen → Erkennung zu beheben.</string>
-    <string name="notif_sentry_title">Auto geparkt — wir achten auf deine Abfahrt</string>
+    <string name="notif_sentry_title">Geparkt · achte auf deine Abfahrt</string>
     <string name="notif_sentry_text">Wenn du losfährst, geben wir deinen Parkplatz für andere frei. Lautlos, minimaler Akkuverbrauch. In den Einstellungen abschaltbar.</string>
     <string name="channel_sentry_name">Park-Überwachung</string>
     <string name="channel_sentry_desc">Stille Benachrichtigung, während dein Auto geparkt ist</string>

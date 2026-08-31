@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Notificación: servicio foreground de detección -->
-    <string name="notif_detection_title">Detección de aparcamiento activa</string>
-    <string name="notif_detection_text">Detectaré cuándo aparcas · toca para gestionar</string>
+    <string name="notif_detection_title">Atento a tu coche</string>
     <!-- %1$s = nombre del vehículo (ej. "Ford Focus") -->
-    <string name="notif_detection_text_vehicle">Atento a tu %1$s · toca para gestionar</string>
+    <string name="notif_detection_title_vehicle">Atento a tu %1$s</string>
     <string name="notif_detection_explainer">Detecto automáticamente cuándo aparcas para liberar tu plaza a la comunidad. Consumo de batería mínimo.</string>
 
     <!-- Notificación: confirmación de aparcamiento -->
@@ -69,7 +68,7 @@
     <string name="notif_mark_parking_action">Marcar mi plaza</string>
     <string name="notif_action_ive_left">Ya he salido</string>
     <string name="notif_action_mark_parking">Marcar aparcamiento</string>
-    <string name="notif_sentry_title">Coche aparcado — atentos a tu salida</string>
+    <string name="notif_sentry_title">Aparcado · atento a tu salida</string>
     <string name="notif_sentry_text">Cuando te vayas, liberaremos tu plaza para otros. Silencioso y con consumo mínimo. Se desactiva en Ajustes.</string>
     <string name="channel_sentry_name">Vigilancia aparcado</string>
     <string name="channel_sentry_desc">Notificación silenciosa mientras tu coche está aparcado</string>

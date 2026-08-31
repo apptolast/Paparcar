@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Powiadomienie: usługa wykrywania na pierwszym planie -->
-    <string name="notif_detection_title">Wykrywanie parkowania włączone</string>
-    <string name="notif_detection_text">Wykryję, gdy zaparkujesz · dotknij, aby zarządzać</string>
+    <string name="notif_detection_title">Obserwuję twój samochód</string>
     <!-- %1$s = nazwa pojazdu (np. "Ford Focus") -->
-    <string name="notif_detection_text_vehicle">Obserwuję twój %1$s · dotknij, aby zarządzać</string>
+    <string name="notif_detection_title_vehicle">Obserwuję twój %1$s</string>
     <string name="notif_detection_explainer">Automatycznie wykrywam, gdy parkujesz, aby zwolnić twoje miejsce dla społeczności. Minimalne zużycie baterii.</string>
 
     <!-- Powiadomienie: potwierdzenie parkowania -->
@@ -67,7 +66,7 @@
     <string name="notif_action_mark_parking">Zaznacz parkowanie</string>
     <string name="notif_background_kill_title">Twój telefon blokuje Paparcar</string>
     <string name="notif_background_kill_text">System na wiele godzin wstrzymał wykrywanie parkowania w tle. Dotknij, aby otworzyć aplikację i naprawić to w Ustawienia → Wykrywanie.</string>
-    <string name="notif_sentry_title">Samochód zaparkowany — czekamy na Twój odjazd</string>
+    <string name="notif_sentry_title">Zaparkowano · czekam na odjazd</string>
     <string name="notif_sentry_text">Gdy odjedziesz, zwolnimy Twoje miejsce dla innych. Cicho, minimalne zużycie baterii. Można wyłączyć w Ustawieniach.</string>
     <string name="channel_sentry_name">Czuwanie po zaparkowaniu</string>
     <string name="channel_sentry_desc">Cicha notyfikacja, gdy Twój samochód jest zaparkowany</string>

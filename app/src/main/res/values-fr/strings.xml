@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Notification : service foreground de détection -->
-    <string name="notif_detection_title">Détection de stationnement active</string>
-    <string name="notif_detection_text">Je détecte quand vous vous garez · toucher pour gérer</string>
+    <string name="notif_detection_title">Attentif à votre voiture</string>
     <!-- %1$s = nom du véhicule (ex. "Ford Focus") -->
-    <string name="notif_detection_text_vehicle">Attentif à votre %1$s · toucher pour gérer</string>
+    <string name="notif_detection_title_vehicle">Attentif à votre %1$s</string>
     <string name="notif_detection_explainer">Je détecte automatiquement quand vous vous garez pour libérer votre place pour la communauté. Consommation de batterie minimale.</string>
 
     <!-- Notification : confirmation de stationnement -->
@@ -67,7 +66,7 @@
     <string name="notif_action_mark_parking">Marquer le stationnement</string>
     <string name="notif_background_kill_title">Votre téléphone bloque Paparcar</string>
     <string name="notif_background_kill_text">Le système a suspendu la détection de stationnement en arrière-plan pendant des heures. Touchez pour ouvrir l\'appli et corriger dans Réglages → Détection.</string>
-    <string name="notif_sentry_title">Voiture garée — attentifs à votre départ</string>
+    <string name="notif_sentry_title">Garée · attentif à votre départ</string>
     <string name="notif_sentry_text">Quand vous partirez, nous libérerons votre place pour les autres. Silencieux, batterie minimale. Désactivable dans les Réglages.</string>
     <string name="channel_sentry_name">Veille stationnement</string>
     <string name="channel_sentry_desc">Notification silencieuse pendant que votre voiture est garée</string>

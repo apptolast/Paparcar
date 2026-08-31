@@ -1,10 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Notification: detection foreground service -->
-    <string name="notif_detection_title">Parking detection on</string>
-    <string name="notif_detection_text">Detecting when you park · tap to manage</string>
+    <!-- Notification: detection foreground service.
+         [COPY-THE-SERVICE-NOTIFICATION-IS-ONE-LINE-001] The title IS the whole collapsed row: these
+         ongoing notifications carry no contentText, so this one string has to say the only thing the
+         user cannot work out alone — WHAT is being watched. Budget ~36 chars, measured in the
+         longest language (DE/PL), never in EN or ES. The "what it does + battery" sentence lives in
+         `notif_detection_explainer` and shows only when the row is expanded. -->
+    <string name="notif_detection_title">Watching your car</string>
     <!-- %1$s = vehicle name (e.g. "Ford Focus") -->
-    <string name="notif_detection_text_vehicle">Watching your %1$s · tap to manage</string>
+    <string name="notif_detection_title_vehicle">Watching your %1$s</string>
     <string name="notif_detection_explainer">I automatically detect when you park to free your spot for the community. Minimal battery use.</string>
 
     <!-- Notification: parking confirmation prompt -->
@@ -71,7 +75,9 @@
     <string name="channel_action_desc">Asks you to confirm whether you have parked</string>
     <string name="channel_debug_name">Debug</string>
     <string name="channel_debug_desc">Debug messages — development builds only</string>
-    <string name="notif_sentry_title">Car parked — we\'re watching for your departure</string>
+    <!-- Same one-line rule as `notif_detection_title`: driving, we watch the car; parked, we watch
+         for the departure. `notif_sentry_text` below is the expanded explainer, not a second line. -->
+    <string name="notif_sentry_title">Parked · watching for your departure</string>
     <string name="notif_sentry_text">When you drive off we\'ll free your spot for others. Quiet, minimal battery. Turn off in Settings.</string>
     <string name="channel_sentry_name">Parked watch</string>
     <string name="channel_sentry_desc">Silent notification shown while your car is parked</string>

@@ -351,11 +351,44 @@ class AppNotificationManagerImpl(
 
     // endregion
 
+    /**
+     * [COPY-THE-SERVICE-NOTIFICATION-IS-ONE-LINE-001] The shape both resident notifications share:
+     * **one short line in the shade, and the long "what this is and how to switch it off" only on
+     * expand**. Before this, the two were copy-paste twins that each spent two rows saying one
+     * thing — the title named the subsystem ("Parking detection on") and the text said it again,
+     * so the one fact the user cannot work out alone, *which car is being watched*, lived in the
+     * line the shade truncates first.
+     *
+     * The rule lives in this signature instead of in a guardrail test: there is no parameter for a
+     * `contentText`, so a caller has nowhere to put the second line. A third resident service will
+     * inherit the shape by being unable to express its opposite — which is worth more than a
+     * prohibition test nobody watches fail.
+     *
+     * Returns the builder, not the notification: the caller still owns what is genuinely its own
+     * (the detection action button, the sentry's MIN priority).
+     */
+    private fun buildOngoingNotification(
+        channelId: String,
+        line: String,
+        explainer: String,
+    ): NotificationCompat.Builder =
+        NotificationCompat.Builder(context, channelId)
+            .setContentTitle(line)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(explainer))
+            .setSmallIcon(R.drawable.ic_notification_logo)
+            .setCategory(Notification.CATEGORY_SERVICE)
+            .setContentIntent(buildOpenAppIntent(RC_DETECTION))
+            .setOngoing(true)
+            .setShowWhen(false)
+            .setColor(COLOR_DETECTION)
+
     private fun buildDetectionNotificationWith(vehicleName: String?): Notification {
-        val bodyText = if (vehicleName != null) {
-            context.getString(R.string.notif_detection_text_vehicle, vehicleName)
+        // The single line answers "what is being watched right now", so the vehicle belongs in it —
+        // it used to sit in the secondary row, which is the one that gets truncated.
+        val line = if (vehicleName != null) {
+            context.getString(R.string.notif_detection_title_vehicle, vehicleName)
         } else {
-            context.getString(R.string.notif_detection_text)
+            context.getString(R.string.notif_detection_title)
         }
         // [DET-STOP-BUTTON-001] The way out of a trip the user does not want followed, where they
         // actually see it running: the phone is locked in a pocket, not showing Home. Routed through
@@ -367,20 +400,12 @@ class AppNotificationManagerImpl(
             },
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
-        return NotificationCompat.Builder(context, DETECTION_CHANNEL_ID)
+        return buildOngoingNotification(
+            channelId = DETECTION_CHANNEL_ID,
+            line = line,
+            explainer = context.getString(R.string.notif_detection_explainer),
+        )
             .addAction(0, context.getString(R.string.notif_action_stop_detection), stopPi)
-            .setContentTitle(context.getString(R.string.notif_detection_title))
-            .setContentText(bodyText)
-            .setStyle(
-                NotificationCompat.BigTextStyle()
-                    .bigText(context.getString(R.string.notif_detection_explainer)),
-            )
-            .setSmallIcon(R.drawable.ic_notification_logo)
-            .setCategory(Notification.CATEGORY_SERVICE)
-            .setContentIntent(buildOpenAppIntent(RC_DETECTION))
-            .setOngoing(true)
-            .setShowWhen(false)
-            .setColor(COLOR_DETECTION)
             .build()
     }
 
@@ -389,23 +414,18 @@ class AppNotificationManagerImpl(
      * quietest thing the OS allows: its own MIN-importance channel (no sound, no vibration, collapsed
      * in the shade), copy in plain user language — what the app is doing for you and where to turn it
      * off — never internal mechanics.
+     *
+     * It is also the longest-lived thing the user sees: it sits in the shade for the whole time the
+     * car is parked. That is why it is the one that most had to lose its second row.
      */
     override fun buildSentryNotification(): Notification =
-        NotificationCompat.Builder(context, SENTRY_CHANNEL_ID)
-            .setContentTitle(context.getString(R.string.notif_sentry_title))
-            .setContentText(context.getString(R.string.notif_sentry_text))
-            .setStyle(
-                NotificationCompat.BigTextStyle()
-                    .bigText(context.getString(R.string.notif_sentry_text)),
-            )
-            .setSmallIcon(R.drawable.ic_notification_logo)
-            .setCategory(Notification.CATEGORY_SERVICE)
-            .setContentIntent(buildOpenAppIntent(RC_DETECTION))
-            .setOngoing(true)
-            .setShowWhen(false)
+        buildOngoingNotification(
+            channelId = SENTRY_CHANNEL_ID,
+            line = context.getString(R.string.notif_sentry_title),
+            explainer = context.getString(R.string.notif_sentry_text),
+        )
             .setSilent(true)
             .setPriority(NotificationCompat.PRIORITY_MIN)
-            .setColor(COLOR_DETECTION)
             .build()
 
     /**

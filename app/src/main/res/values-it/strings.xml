@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Notifica: servizio foreground di rilevamento -->
-    <string name="notif_detection_title">Rilevamento parcheggio attivo</string>
-    <string name="notif_detection_text">Rilevo quando parcheggi · tocca per gestire</string>
+    <string name="notif_detection_title">Attento alla tua auto</string>
     <!-- %1$s = nome del veicolo (es. "Ford Focus") -->
-    <string name="notif_detection_text_vehicle">Attento alla tua %1$s · tocca per gestire</string>
+    <string name="notif_detection_title_vehicle">Attento alla tua %1$s</string>
     <string name="notif_detection_explainer">Rilevo automaticamente quando parcheggi per liberare il tuo posto alla comunità. Consumo di batteria minimo.</string>
 
     <!-- Notifica: conferma parcheggio -->
@@ -67,7 +66,7 @@
     <string name="notif_action_mark_parking">Segna parcheggio</string>
     <string name="notif_background_kill_title">Il tuo telefono sta bloccando Paparcar</string>
     <string name="notif_background_kill_text">Il sistema ha sospeso per ore il rilevamento del parcheggio in background. Tocca per aprire l\'app e risolvere in Impostazioni → Rilevamento.</string>
-    <string name="notif_sentry_title">Auto parcheggiata — attenti alla tua partenza</string>
+    <string name="notif_sentry_title">Parcheggiata · attento alla partenza</string>
     <string name="notif_sentry_text">Quando riparti libereremo il tuo posto per gli altri. Silenziosa, batteria minima. Si disattiva nelle Impostazioni.</string>
     <string name="channel_sentry_name">Sorveglianza parcheggio</string>
     <string name="channel_sentry_desc">Notifica silenziosa mentre la tua auto è parcheggiata</string>

@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Notificare: serviciu foreground de detecție -->
-    <string name="notif_detection_title">Detecția parcării activă</string>
-    <string name="notif_detection_text">Detectez când parchezi · atinge pentru gestionare</string>
+    <string name="notif_detection_title">Atent la mașina ta</string>
     <!-- %1$s = numele vehiculului (ex. "Ford Focus") -->
-    <string name="notif_detection_text_vehicle">Atent la %1$s al tău · atinge pentru gestionare</string>
+    <string name="notif_detection_title_vehicle">Atent la %1$s al tău</string>
     <string name="notif_detection_explainer">Detectez automat când parchezi pentru a elibera locul tău comunității. Consum minim de baterie.</string>
 
     <!-- Notificare: confirmare parcare -->
@@ -67,7 +66,7 @@
     <string name="notif_action_mark_parking">Marchează parcarea</string>
     <string name="notif_background_kill_title">Telefonul tău blochează Paparcar</string>
     <string name="notif_background_kill_text">Sistemul a oprit ore întregi detectarea parcării în fundal. Atinge pentru a deschide aplicația și a rezolva din Setări → Detectare.</string>
-    <string name="notif_sentry_title">Mașină parcată — suntem atenți la plecarea ta</string>
+    <string name="notif_sentry_title">Parcată · atent la plecarea ta</string>
     <string name="notif_sentry_text">Când pleci, îți vom elibera locul pentru alții. Silențios, baterie minimă. Se dezactivează din Setări.</string>
     <string name="channel_sentry_name">Veghe parcare</string>
     <string name="channel_sentry_desc">Notificare silențioasă cât timp mașina ta este parcată</string>
