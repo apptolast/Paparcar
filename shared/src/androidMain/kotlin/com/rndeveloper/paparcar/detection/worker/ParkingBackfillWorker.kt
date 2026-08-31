@@ -73,6 +73,21 @@ class ParkingBackfillWorker(
         val accuracy = inputData.getFloat(KEY_ACCURACY, 50f)
         val fixTimestampMs = inputData.getLong(KEY_FIX_TIMESTAMP, System.currentTimeMillis())
         val reliability = inputData.getFloat(KEY_RELIABILITY, 0.5f)
+        // [DET-BACKFILL-MUST-NOT-PIN-A-MOVING-CAR-001] Carried, never invented. This used to be
+        // rebuilt as a literal `0f`, so the worker that PLACES the pin believed every fix it ever
+        // received was standing still — a false rest by construction.
+        //
+        // And it gets NO default, for the reason [DET-A-DOUBT-FIELD-MUST-NOT-DEFAULT-TO-CERTAINTY-001]
+        // spells out: a default is a permanent silent answer, and `0f` is the permissive one — it
+        // answers "at rest" for a fix nobody measured. The only population that can reach this
+        // branch is a request enqueued by the PREVIOUS build and still sitting in WorkManager's
+        // queue across an upgrade, and for that population the honest answer is not a guess: no
+        // speed, no placement. Asymmetric failure — one missed backfill in an upgrade window costs
+        // a nudge; a phantom pin costs a phantom space.
+        val speed = inputData.getFloat(KEY_SPEED, Float.NaN).takeIf { !it.isNaN() } ?: run {
+            PaparcarLogger.d(DIAG, "⊘ backfill request predates the speed field (older build's queue) — not placing a pin from an unmeasured fix [DET-BACKFILL-MUST-NOT-PIN-A-MOVING-CAR-001]")
+            return Result.success()
+        }
 
         // [DET-BACKFILL-TAINT-001] An arrival the coordinator already RESOLVED as nudge-only
         // (GAP-ENTERED anchor: rest unwitnessed, forward error unboundable — no place is honest)
@@ -81,7 +96,7 @@ class ParkingBackfillWorker(
         // arrival, the nudge stays the only exit (field 2026-07-30 20:42, Redmi/Jerez: this
         // placement landed right by luck — over a 2 km hole it lands 2 km wrong with the same
         // confidence). Only the PLACEMENT defers: the departure chain already freed the old spot.
-        val backfillFix = GpsPoint(lat, lon, accuracy, fixTimestampMs, 0f)
+        val backfillFix = GpsPoint(lat, lon, accuracy, fixTimestampMs, speed)
         val resolution = readArrivalResolution()
         if (evaluateBackfillDeferral(
                 backfillFix = backfillFix,
@@ -194,6 +209,12 @@ class ParkingBackfillWorker(
         private const val KEY_RELIABILITY = "reliability"
         private const val KEY_VEHICLE_ID = "vehicle_id"
 
+        /** [DET-BACKFILL-MUST-NOT-PIN-A-MOVING-CAR-001] The wake-up fix's own speed. It used to be
+         *  dropped here and rebuilt as `0f` on the other side, so the worker that PLACES the pin
+         *  believed every fix it ever received was standing still — a false rest by construction.
+         *  A reconstructed fix must not claim more than the fix it reconstructs. */
+        private const val KEY_SPEED = "speed_mps"
+
         fun buildRequest(
             fix: GpsPoint,
             vehicleId: String?,
@@ -206,6 +227,7 @@ class ParkingBackfillWorker(
                         KEY_LON to fix.longitude,
                         KEY_ACCURACY to fix.accuracy,
                         KEY_FIX_TIMESTAMP to fix.timestamp,
+                        KEY_SPEED to fix.speed,
                         KEY_RELIABILITY to reliability,
                         KEY_VEHICLE_ID to vehicleId,
                     )

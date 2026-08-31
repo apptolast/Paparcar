@@ -1198,6 +1198,71 @@ would make it impossible to tell which change moved anything. Measure first, rep
 
 ---
 
+### DET-BACKFILL-MUST-NOT-PIN-A-MOVING-CAR-001 — live detection measures, the backfill guesses, and the measurement wins (2026-08-30, Oppo)
+
+**Commit:** pending · **Ticket:** `docs/backlog/det-backfill-must-not-pin-a-moving-car-001.md`
+
+**User report.** Best field day so far — two phones, both COORDINATOR, one single false positive:
+a pin on **Calle del Verdugo 24**, in the middle of the drive, **on the road**, with a community
+space published. It lived 52 s.
+
+**Root cause — and it is an ORDERING, not a missing check.** The car was parked at Av. Blas Infante
+(fence `785dabe3`). The process never woke during the return drive; it woke at **21:27:33 already
+3 652 m away and still moving**. The safety net dispatched the departure and chained the backfill
+`at wake-up fix`, on evidence that arrived **101 minutes stale** (`ExitWitness … fixAge=6075717ms`,
+`ARReceiver … lag=6069910ms`). The pin was placed at 21:27:34.649 with `reliability=0.5`.
+
+Every `backfillBounded` clause passed — **including the one whose whole job is to ask "is the car at
+rest HERE?"** (`EvaluateSafetyNetCheckUseCase:330`, `DET-BACKFILL-CANNOT-PIN-A-MOVING-FIX-001`),
+because that clause reads the fix's **declared** `speed` field and the field said `0.0` while the car
+did ~37 km/h. Its own comment asserts *"only this fix's own speed measures that"* — a premise
+`DET-STOP-MUST-BE-STILL-IN-SPACE-001` had already falsified eight days earlier for the stop tracker.
+This is the **third** site where trusting the declared `speed` as proof of rest has bitten.
+
+The measurement that would have refuted it was already on its way: the ARRIVAL_HANDOFF coordinator
+started **49 ms before** the pin was written and refuted the same fix seven seconds later — *"stop
+REFUTED by its own track — 134 m from the stop origin in 5 s while reporting 0.0 m/s"*. The guess
+simply got there first, because the ordering let it: `val backfillChained = …; if (!backfillChained)
+{ arrivalHandoffDetection.start() }` — the handoff was the *fallback* for when the net had nothing to
+place. That reads as "place whenever you can", the opposite of *the event NOMINATES, only measured
+movement CONFIRMS*.
+
+Predicted verbatim by `DET-BACKFILL-TAINT-001` (2026-08-04), which closed a different face of the
+same defect: *"it landed right by luck (short hole); over a 2 km hole it lands 2 km wrong with the
+same confidence."* Here the hole was 101 minutes and 3 652 m.
+
+**Fix.** The precedence is inverted and lifted out of worker folklore into a pure `commonMain`
+function — `domain/detection/ArrivalOwnership.kt` → `arrivalOwner(handoffStarted,
+departurePreconfirmed, backfillBounded): ArrivalOwner` (`LiveDetection` / `Backfill` / `UserPrompt`).
+Live detection is tried FIRST; when it takes the arrival the bounded backfill is declined and says so
+(`BACKFILL_CEDED_TO_HANDOFF`). It introduces **no new calibration** — no threshold, no second fix, no
+clock — because it defers to a measurement that already existed. On the field trace it costs nothing:
+that same live session confirmed the real park by `steps+egress` at 21:34.
+
+The backfill is **not deleted**: it stays the backstop for the case that created it — live detection
+cannot start (background FGS denied, Android 12+/OEM), so nobody is left to measure.
+
+**Accompanying-fix risk.** (a) The handoff is now started on **every** dispatched departure, not only
+the unbounded ones, so `arrivalHandoffDetection.start()` runs more often; its failure path is
+unchanged and now falls through to the backfill instead of straight to the prompt. (b) Accepted
+residual: in the backstop branch a lying wake-up fix can still misplace a pin — bounded by being the
+last option before the prompt, and by asymmetric failure ranking a doubted pin above losing the
+arrival. (c) Plumbing bug fixed in passing: `ParkingBackfillWorker.buildRequest` never serialised
+`fix.speed` and `doWork` rebuilt the `GpsPoint` with `speed = 0f`, so the worker that PLACES the pin
+believed every fix it ever received was standing still.
+
+**Out of scope, own ticket.** The same departure was dispatched **twice** 596 ms apart, through two
+doors (`[geofence-enter]` and `[ar-enter]`); the `DET-DEPARTURE-IS-NOT-ARRIVAL-001` veto ran on the
+second and correctly refused to place — after the first had already placed. →
+`DET-A-DEPARTURE-DISPATCHES-ONCE-PER-FENCE-001`. This fix stops that race producing a phantom pin; it
+does not stop the race.
+
+**Files:** `ArrivalOwnership.kt` (new), `ParkingSafetyNetWorker` (precedence + `CEDED` telemetry),
+`ParkingBackfillWorker` (speed carried), `ArrivalOwnershipTest` (new, 5 tests). **1990 tests**;
+the guard verified by falsification — inverting the two branches turns two of them RED.
+
+---
+
 ### DET-STOP-MUST-BE-STILL-IN-SPACE-001 — a stop that covers 122 m is not a stop
 
 **Commit:** pending.

@@ -29,7 +29,9 @@ import com.rndeveloper.paparcar.detection.toGeofenceRegistrationFailure
 import com.rndeveloper.paparcar.detection.SentryResidenceStore
 import com.rndeveloper.paparcar.detection.SignificantMotionMonitor
 import com.rndeveloper.paparcar.detection.PendingDetectionStore
+import com.rndeveloper.paparcar.domain.detection.ArrivalOwner
 import com.rndeveloper.paparcar.domain.detection.DetectionRuntimeState
+import com.rndeveloper.paparcar.domain.detection.arrivalOwner
 import com.rndeveloper.paparcar.domain.detection.sentry.SentryKillVerdict
 import com.rndeveloper.paparcar.domain.detection.sentry.resolveSentryKillVerdict
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEvent
@@ -445,80 +447,131 @@ class ParkingSafetyNetWorker(
                             preconfirmed = action.preconfirmed,
                         ),
                     )
-                    // [DET-RECONCILE-001] Backfill the NEW parking only when its position is
-                    // BOUNDED — decided by the PURE evaluator ([SafetyNetAction.DispatchDeparture
-                    // .backfillBounded]: trusted step budget within the boarding cap + pin-grade
-                    // fix accuracy), so the phantom-pin class of go/no-go is unit-tested, not
-                    // worker folklore. Anything weaker must NOT guess a position: arrival
-                    // placement is the live coordinator's job. Chained AFTER the departure so the
-                    // old session resolves (publish+clear) before the confirm replaces the
-                    // vehicle's active session.
-                    if (action.preconfirmed && action.backfillBounded) {
-                        PaparcarLogger.d(DIAG, "  → chaining parking backfill at wake-up fix (steps=${action.trustedStepsSinceAnchor} acc=${fix.accuracy}, arrivalWalk=${stepsSinceLastWitness ?: "?"} steps)")
-                        departureChain.then(
-                            ParkingBackfillWorker.buildRequest(
-                                fix = fix,
-                                vehicleId = session.vehicleId,
-                                reliability = config.reliabilityUnattendedSave,
-                            )
-                        ).enqueue()
-                    } else {
-                        departureChain.enqueue()
-                        // [DET-DEPARTURE-IS-NOT-ARRIVAL-001] Say WHY nothing was placed. Without
-                        // this the trace cannot tell "the net refused to guess" from "the net never
-                        // ran" — the same reason [DET-BACKFILL-TAINT-001] logs its own deferral.
-                        if (action.preconfirmed) {
-                            PaparcarLogger.d(
-                                DIAG,
-                                "  ⊘ arrival NOT placed — the ride was proven with the anchor budget, " +
-                                    "so it cannot also bound the new pin (arrivalWalk=${stepsSinceLastWitness ?: "unknown"} steps, " +
-                                    "acc=${fix.accuracy}m) [DET-DEPARTURE-IS-NOT-ARRIVAL-001]"
-                            )
-                            runCatching {
-                                detectionEventLogger.log(
-                                    DetectionEvent.Decision(
-                                        sessionId = action.geofenceId,
-                                        timestampMs = now,
-                                        outcome = OUTCOME_ARRIVAL_UNWITNESSED,
-                                        pathLabel = PATH_SAFETY_NET_BACKFILL,
-                                        location = fix,
-                                    ),
-                                )
-                            }
-                        }
-                    }
                     // [DET-ARRIVAL-HANDOFF-001] A dispatched departure must end in exactly one of:
-                    // a backfilled session (position bounded, trip provably over) or LIVE
-                    // detection following the rest of the trip so the NEW parking is captured at
-                    // full quality. NEVER neither — that orphans the arrival: the evaluator
-                    // detected the Oppo's return trip mid-drive (2026-07-08 20:41), cleared the
-                    // session, and nobody was listening when the user parked 5 min later.
-                    // Background FGS-start may be denied (Android 12+/OEM); then the still-parked
-                    // prompt asks the user to place it — a notification beats silence.
-                    val backfillChained = action.preconfirmed && action.backfillBounded
-                    if (!backfillChained) {
-                        // [DET-HANDOFF-NOT-MANUAL-001] Through the handoff's OWN port: this arm is
-                        // the net's deduction, not the user's word, and every downstream reader
-                        // (strategy gate, evidence strength, diagnostics, debug copy) must be able
-                        // to tell the two apart. It used to call the "I'm driving" port.
-                        runCatching { arrivalHandoffDetection.start() }
-                            .onSuccess { PaparcarLogger.d(DIAG, "  → departure dispatched without backfill — arrival handoff started for the rest of the trip") }
-                            .onFailure { e ->
-                                PaparcarLogger.w(DIAG, "  ⊘ tracking service start denied (${e.message}) — asking the user via still-parked prompt")
-                                // This prompt must survive the end-of-run cleanup: without the
-                                // flag, `if (!anyPromptActive) dismissPrompt()` below erased it
-                                // milliseconds after showing (field 2026-07-09 13:55, Redmi:
-                                // the user saw NO notification for the whole ride home).
-                                // [DET-RIDE-PROOF-001]
-                                anyPromptActive = true
+                    // LIVE detection following the rest of the trip, a backfilled session (position
+                    // bounded, trip provably over), or the still-parked prompt. NEVER neither —
+                    // that orphans the arrival: the evaluator detected the Oppo's return trip
+                    // mid-drive (2026-07-08 20:41), cleared the session, and nobody was listening
+                    // when the user parked 5 min later.
+                    //
+                    // [DET-BACKFILL-MUST-NOT-PIN-A-MOVING-CAR-001] The ORDER of those three is not
+                    // arbitrary, and it used to be backwards. Live detection MEASURES the rest of
+                    // the trip; the backfill GUESSES a position from the single wake-up fix. When
+                    // both are available the measurement wins — always. Field 2026-08-30 21:27:34
+                    // (Oppo, Calle del Verdugo 24): the net woke 3 652 m from the car with the user
+                    // still driving, and `backfillBounded` was true because the wake-up fix declared
+                    // `speed=0.0` while doing ~37 km/h — a lie the ARRIVAL_HANDOFF coordinator
+                    // refuted from its own track seven seconds later (134 m in 5 s,
+                    // [DET-STOP-MUST-BE-STILL-IN-SPACE-001]). The pin landed on the road, published
+                    // a phantom space, and lived 52 s. Ceding to the handoff would have cost
+                    // nothing: that same live session confirmed the REAL park by `steps+egress` at
+                    // 21:34. Predicted verbatim by [DET-BACKFILL-TAINT-001]: *"it landed right by
+                    // luck (short hole); over a 2 km hole it lands 2 km wrong with the same
+                    // confidence."*
+                    //
+                    // The backfill is not deleted — it stays the backstop for exactly the case that
+                    // justified it: when live detection CANNOT take the arrival (background
+                    // FGS-start denied on Android 12+/OEM). Residual, accepted: in that branch a
+                    // lying wake-up fix can still misplace a pin, because nothing there can measure
+                    // movement. Bounded by being the only branch left before the prompt.
+                    //
+                    // [DET-HANDOFF-NOT-MANUAL-001] Through the handoff's OWN port: this arm is the
+                    // net's deduction, not the user's word, and every downstream reader (strategy
+                    // gate, evidence strength, diagnostics, debug copy) must be able to tell the two
+                    // apart. It used to call the "I'm driving" port.
+                    val handoffStarted = runCatching { arrivalHandoffDetection.start() }
+                        .onFailure { e ->
+                            PaparcarLogger.w(DIAG, "  ⊘ tracking service start denied (${e.message}) — falling back to the backfill backstop")
+                        }
+                        .isSuccess
+                    val backfillOffered = action.preconfirmed && action.backfillBounded
+                    when (
+                        arrivalOwner(
+                            handoffStarted = handoffStarted,
+                            departurePreconfirmed = action.preconfirmed,
+                            backfillBounded = action.backfillBounded,
+                        )
+                    ) {
+                        ArrivalOwner.LiveDetection -> {
+                            departureChain.enqueue()
+                            PaparcarLogger.d(DIAG, "  → departure dispatched — arrival handoff started for the rest of the trip; live detection owns the new park")
+                            // Say WHY the guess was declined even though it was on offer, so a trace
+                            // can tell "ceded to a measurement" from "the net had nothing".
+                            if (backfillOffered) {
+                                PaparcarLogger.d(
+                                    DIAG,
+                                    "  ⊘ arrival NOT placed by the net — a bounded backfill was available " +
+                                        "(steps=${action.trustedStepsSinceAnchor} acc=${fix.accuracy}m " +
+                                        "arrivalWalk=${stepsSinceLastWitness ?: "?"} steps) but live detection " +
+                                        "measures and the backfill only guesses [DET-BACKFILL-MUST-NOT-PIN-A-MOVING-CAR-001]"
+                                )
                                 runCatching {
-                                    notificationPort.showStillParkedPrompt(
-                                        geofenceId = action.geofenceId,
-                                        latitude = session.location.latitude,
-                                        longitude = session.location.longitude,
+                                    detectionEventLogger.log(
+                                        DetectionEvent.Decision(
+                                            sessionId = action.geofenceId,
+                                            timestampMs = now,
+                                            outcome = OUTCOME_ARRIVAL_CEDED_TO_HANDOFF,
+                                            pathLabel = PATH_SAFETY_NET_BACKFILL,
+                                            location = fix,
+                                        ),
                                     )
                                 }
                             }
+                        }
+
+                        // Backstop: live detection was denied, so the bounded guess is the best
+                        // remaining answer. Chained AFTER the departure so the old session resolves
+                        // (publish+clear) before the confirm replaces the vehicle's active session.
+                        ArrivalOwner.Backfill -> {
+                            PaparcarLogger.d(DIAG, "  → chaining parking backfill at wake-up fix — handoff denied, this is the backstop (steps=${action.trustedStepsSinceAnchor} acc=${fix.accuracy}, arrivalWalk=${stepsSinceLastWitness ?: "?"} steps)")
+                            departureChain.then(
+                                ParkingBackfillWorker.buildRequest(
+                                    fix = fix,
+                                    vehicleId = session.vehicleId,
+                                    reliability = config.reliabilityUnattendedSave,
+                                )
+                            ).enqueue()
+                        }
+
+                        ArrivalOwner.UserPrompt -> {
+                            departureChain.enqueue()
+                            // [DET-DEPARTURE-IS-NOT-ARRIVAL-001] Say WHY nothing was placed. Without
+                            // this the trace cannot tell "the net refused to guess" from "the net
+                            // never ran" — the same reason [DET-BACKFILL-TAINT-001] logs its own
+                            // deferral.
+                            if (action.preconfirmed) {
+                                PaparcarLogger.d(
+                                    DIAG,
+                                    "  ⊘ arrival NOT placed — the ride was proven with the anchor budget, " +
+                                        "so it cannot also bound the new pin (arrivalWalk=${stepsSinceLastWitness ?: "unknown"} steps, " +
+                                        "acc=${fix.accuracy}m) [DET-DEPARTURE-IS-NOT-ARRIVAL-001]"
+                                )
+                                runCatching {
+                                    detectionEventLogger.log(
+                                        DetectionEvent.Decision(
+                                            sessionId = action.geofenceId,
+                                            timestampMs = now,
+                                            outcome = OUTCOME_ARRIVAL_UNWITNESSED,
+                                            pathLabel = PATH_SAFETY_NET_BACKFILL,
+                                            location = fix,
+                                        ),
+                                    )
+                                }
+                            }
+                            PaparcarLogger.w(DIAG, "  ⊘ nothing left to take the arrival — asking the user via still-parked prompt")
+                            // This prompt must survive the end-of-run cleanup: without the flag,
+                            // `if (!anyPromptActive) dismissPrompt()` below erased it milliseconds
+                            // after showing (field 2026-07-09 13:55, Redmi: the user saw NO
+                            // notification for the whole ride home). [DET-RIDE-PROOF-001]
+                            anyPromptActive = true
+                            runCatching {
+                                notificationPort.showStillParkedPrompt(
+                                    geofenceId = action.geofenceId,
+                                    latitude = session.location.latitude,
+                                    longitude = session.location.longitude,
+                                )
+                            }
+                        }
                     }
                     logVerdict(
                         action.geofenceId,
@@ -947,6 +1000,11 @@ class ParkingSafetyNetWorker(
          *  also bound the new pin, and no independent arrival walk was measured. Distinguishes "the
          *  net refused to guess" from "the net never ran". */
         private const val OUTCOME_ARRIVAL_UNWITNESSED = "BACKFILL_ARRIVAL_UNWITNESSED"
+
+        /** A bounded backfill was on offer and was declined because live detection took the
+         *  arrival instead — the measurement outranks the guess.
+         *  [DET-BACKFILL-MUST-NOT-PIN-A-MOVING-CAR-001] */
+        private const val OUTCOME_ARRIVAL_CEDED_TO_HANDOFF = "BACKFILL_CEDED_TO_HANDOFF"
         /** Provenance path the refused placement WOULD have carried, so the two show up in the same
          *  bucket as [ParkingBackfillWorker]'s own traces. */
         private const val PATH_SAFETY_NET_BACKFILL = "safety_net_backfill"
