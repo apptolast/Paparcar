@@ -252,7 +252,7 @@ private data class SpotMeta(
 // Badge markers: contentId encodes vehicleId + sizeCategory + selection + dim
 // state, so the bitmap cache stores one entry per vehicle×state×dim and
 // kmpmaps regenerates the bitmap whenever any of those flips. [MAP-MARKERS-DIM-002]
-private fun vehicleBadgeContentId(
+internal fun vehicleBadgeContentId(
     v: ParkedVehicleSummary,
     selected: Boolean,
     dim: Boolean = false,
@@ -276,7 +276,7 @@ private fun vehicleBadgeContentId(
     // [UI-A-SAVED-ZONE-WEARS-ITS-DOUBT-TOO-001] …and so is "this session is an AREA", which puts
     // the target ⊙ on the tag's corner. Same reason as every other segment here: the doubt is baked
     // into the bitmap, so a session that turns out to be a zone needs a key the cache has never seen.
-    return "vehicle_badge_${v.vehicleId.take(8)}_${v.sizeCategory?.name ?: "def"}_" +
+    return "$MARKER_VEHICLE_BADGE_PREFIX${v.vehicleId.take(8)}_${v.sizeCategory?.name ?: "def"}_" +
         "${v.color?.name ?: "def"}_${state}_${tone}_${v.doubtKey()}_$themeKey"
 }
 
@@ -294,18 +294,13 @@ private fun parkingDoubt(zoneRadiusMeters: Float?): VehicleMarkerDoubt =
  * same reason: kmpmaps caches the rasterised bitmap by contentId, so the doubt has to be part of
  * the id or the marker would keep serving the exact-pin raster. [UI-A-SAVED-ZONE-WEARS-ITS-DOUBT-TOO-001]
  */
-private fun fallbackParkingContentId(base: String, approximate: Boolean, themeKey: String): String =
+internal fun fallbackParkingContentId(base: String, approximate: Boolean, themeKey: String): String =
     if (approximate) "${base}_apx_$themeKey" else "${base}_$themeKey"
 
-private const val MARKER_MY_CAR          = "my_car"
-private const val MARKER_MY_CAR_DIM      = "my_car_dim"
-private const val MARKER_MY_CAR_SELECTED = "my_car_selected"
-// [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] The place an OPEN "did you park?" question is
-// about. Its own contentId because kmpmaps caches bitmaps by it: the dashed frame and the `?`
-// disc must be baked in, exactly as the dim pass is, or the marker would never flip reliably.
-private const val MARKER_MY_CAR_ASKING   = "my_car_asking"
-private const val MARKER_DEPARTURE       = "departure" // trip origin (blue dot) during a trip [DEPART-CONSISTENCY-001]
-private const val MARKER_ARRIVAL         = "arrival"   // stored route's end (same dot) at the parked car [ROUTE-END-AT-CAR-001]
+// The marker families themselves — and the function that says what a tap on each one means — live in
+// `MapMarkerIds.kt`, next to each other on purpose. [UI-THE-ASK-MARKER-TAP-NEVER-REACHES-ITS-HANDLER-001]
+internal const val MARKER_DEPARTURE = "departure" // trip origin (blue dot) during a trip [DEPART-CONSISTENCY-001]
+internal const val MARKER_ARRIVAL   = "arrival"   // stored route's end (same dot) at the parked car [ROUTE-END-AT-CAR-001]
 // Trip breadcrumb polyline width (screen px in Google Maps). Navigation-app weight: thick enough
 // that residual GPS jitter reads as a confident line, not noise. 20→28→38 on user feedback — on the
 // ~3× density field phones 38 px ≈ 12,5 dp, a touch above Google Maps' own route weight so the trail
@@ -386,7 +381,7 @@ private val PUCK_MARKER_OPTIONS = AndroidMarkerOptions(
 // User-location dot — the "you" marker when not driving. Migrated from a Web Mercator Compose overlay
 // to a native Marker with a stable id: that overlay only existed to dodge the kmpmaps moving-marker
 // flicker the fork now fixes, so the projection is gone. Centred on its coordinate. [DRIVE-PUCK-NATIVE-001]
-private const val MARKER_USER_DOT = "user_location_dot"
+internal const val MARKER_USER_DOT = "user_location_dot"
 private const val MARKER_USER_DOT_ID = "user-location-dot"
 private val USER_DOT_MARKER_OPTIONS = AndroidMarkerOptions(
     anchor = GoogleMapsAnchor(0.5f, 0.5f),
@@ -400,12 +395,11 @@ private val USER_DOT_MARKER_OPTIONS = AndroidMarkerOptions(
 // because kmpmaps caches by contentId; if dim were applied post-rasterization
 // via a Modifier.alpha, the cached bitmap would never refresh when dimSpots
 // toggled without the list of Marker instances also changing. [MAP-MARKERS-DIM-002]
-private const val MARKER_FREE_SPOT_PREFIX = "free_spot_"
 // Largest distinct en-route count baked into a contentId; anything higher
 // collapses to this bucket and renders as "9+". Keeps the bitmap-cache key set
 // bounded while still giving each count 1..9 its own pill. [BOLT-MARKERS-001]
 private const val EN_ROUTE_BUCKET_MAX = 10
-private fun freeSpotContentId(
+internal fun freeSpotContentId(
     tier: SpotFreshness,
     selected: Boolean,
     dim: Boolean,
@@ -439,15 +433,13 @@ private const val DIM_MARKER_ALPHA = 0.35f
 private const val STYLE_VEIL_IN_MS   = 100
 private const val STYLE_VEIL_HOLD_MS = 40L
 private const val STYLE_VEIL_OUT_MS  = 220
-private const val MARKER_CLUSTER     = "cluster"
-private const val MARKER_CLUSTER_DIM = "cluster_dim"
 
 // ── Location-active driving puck ──────────────────────────────────────────────
 // ONE north-up bitmap per carbody × colour: the GPS heading is applied as native marker rotation
 // now (see [PUCK_MARKER_OPTIONS]), not baked into the bitmap, so the contentId no longer carries a
 // heading bucket. Anchored centre so the car pivots around the coordinate. [DRIVE-PUCK-NATIVE-001]
-private const val LOCATION_ACTIVE_PREFIX = "loc_active_"
-private fun locationActiveContentId(
+internal const val LOCATION_ACTIVE_PREFIX = "loc_active_"
+internal fun locationActiveContentId(
     carbody: CarbodyType?,
     color: com.rndeveloper.paparcar.domain.model.VehicleColor? = null,
 ): String =
@@ -556,10 +548,7 @@ private fun DimWrapper(content: @Composable () -> Unit) {
         content()
     }
 }
-// Zone markers are keyed by iconKey: zones sharing the same icon reuse the
-// same cached bitmap, which is correct since the visual is identical.
-private const val MARKER_ZONE_PREFIX         = "zone_"
-private const val CAMERA_MOVING_DEBOUNCE_MS  = 280L
+private const val CAMERA_MOVING_DEBOUNCE_MS = 280L
 
 // ── Clustering ───────────────────────────────────────────────────────────────
 /** Zoom level at or above which spots are rendered as individual markers (no clustering). */
@@ -912,7 +901,6 @@ fun PaparcarMapView(
             // Zone markers — added FIRST (lowest zIndex) so spot/parking markers
             // always render on top. Zones are never the selected marker, so they
             // route through the dim suffix uniformly.
-            val zoneDimSuffix = if (dimSpots) "_dim" else "_nrm"
             zones.forEach { zone ->
                 add(
                     Marker(
@@ -921,8 +909,7 @@ fun PaparcarMapView(
                         // balloon. Zone ID is recovered via zoneIdByCoords in the
                         // click handler instead.
                         title = null,
-                        // Per-zone × dim contentId: each zone has two cached bitmaps. [MAP-MARKERS-DIM-002]
-                        contentId = "$MARKER_ZONE_PREFIX${zone.id}_${if (zone.isPrivate) "prv" else "pub"}$zoneDimSuffix",
+                        contentId = zoneContentId(zone.id, zone.isPrivate, dim = dimSpots),
                         androidMarkerOptions = ZONE_MARKER_OPTIONS,
                     ),
                 )
@@ -1013,7 +1000,7 @@ fun PaparcarMapView(
                     Marker(
                         coordinates = Coordinates(at.latitude, at.longitude),
                         title = null,
-                        contentId = "${MARKER_MY_CAR_ASKING}_$themeKey",
+                        contentId = parkingAskContentId(themeKey),
                         androidMarkerOptions = NORMAL_MARKER_OPTIONS,
                     ),
                 )
@@ -1113,7 +1100,7 @@ fun PaparcarMapView(
             // [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] Same tag, unconfirmed dress. The car
             // keeps its identity — full colour, full opacity — because the doubt is about the
             // PLACE, not about which vehicle.
-            put("${MARKER_MY_CAR_ASKING}_$themeKey") { _ ->
+            put(parkingAskContentId(themeKey)) { _ ->
                 VehicleBadgeMarker(
                     sizeCategory = askVehicleSize,
                     carbodyType = askVehicleCarbody,
@@ -1228,12 +1215,11 @@ fun PaparcarMapView(
         // ── Per-zone marker bitmaps (zone code is zone-specific × dim) ──
         val zoneHandlers: Map<String, @Composable (Marker) -> Unit> =
             zones.flatMap { zone ->
-                val base = "$MARKER_ZONE_PREFIX${zone.id}_${if (zone.isPrivate) "prv" else "pub"}"
                 listOf<Pair<String, @Composable (Marker) -> Unit>>(
-                    "${base}_nrm" to { _: Marker ->
+                    zoneContentId(zone.id, zone.isPrivate, dim = false) to { _: Marker ->
                         ZoneMarker(name = zone.name, icon = zoneIconFor(zone.iconKey), isPrivate = zone.isPrivate)
                     },
-                    "${base}_dim" to { _: Marker ->
+                    zoneContentId(zone.id, zone.isPrivate, dim = true) to { _: Marker ->
                         DimWrapper {
                             ZoneMarker(name = zone.name, icon = zoneIconFor(zone.iconKey), isPrivate = zone.isPrivate)
                         }
@@ -1661,22 +1647,23 @@ fun PaparcarMapView(
                 }
             },
             onMarkerClick = { marker ->
-                // Marker.title is null for every marker we render (so Google
-                // Maps suppresses the default info-window balloon), so we
-                // route clicks purely off contentId + a coords-keyed lookup.
-                val cid = marker.contentId
-                when {
-                    cid?.startsWith(MARKER_MY_CAR) == true ||
-                        cid?.startsWith("vehicle_badge_") == true ->
+                // Marker.title is null for every marker we render (so Google Maps suppresses the
+                // default info-window balloon), so a tap can only be routed off its contentId. WHICH
+                // family an id belongs to is decided by [resolveMarkerTapTarget] — a pure function
+                // that a test can call; here we only do the I/O that answering it requires (the
+                // coords-keyed lookup of the object the marker stands for).
+                // [UI-THE-ASK-MARKER-TAP-NEVER-REACHES-ITS-HANDLER-001]
+                when (resolveMarkerTapTarget(marker.contentId)) {
+                    MarkerTapTarget.ParkedVehicle ->
                         sessionIdByCoords[marker.coordinates]?.let(onMyCarClick)
-                    // The ask marker resolves to no session on purpose — see [onAskMarkerClick].
-                    cid?.startsWith(MARKER_MY_CAR_ASKING) == true -> onAskMarkerClick()
-                    cid?.startsWith(MARKER_ZONE_PREFIX) == true ->
+                    // The ask marker has no session to look up: the question exists precisely
+                    // because none was confirmed. It carries its own handler instead.
+                    MarkerTapTarget.ParkingAsk -> onAskMarkerClick()
+                    MarkerTapTarget.Zone ->
                         zoneIdByCoords[marker.coordinates]?.let(onZoneClick)
-                    cid == MARKER_CLUSTER || cid == MARKER_CLUSTER_DIM -> Unit // cluster taps are inert
-                    cid?.startsWith(MARKER_FREE_SPOT_PREFIX) == true ->
+                    MarkerTapTarget.FreeSpot ->
                         spotMetaByCoords[marker.coordinates]?.let { onSpotClick(it.spotId) }
-                    else -> Unit
+                    MarkerTapTarget.Inert -> Unit
                 }
             },
             onMapLoaded = {

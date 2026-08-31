@@ -2766,6 +2766,38 @@ cached it, and the same stop would be worded differently on different days.
 
 ---
 
+### UI-THE-ASK-MARKER-TAP-NEVER-REACHES-ITS-HANDLER-001 — the `?` marker drew fine; its tap was dead from the day it was written
+
+**Commit:** pending · found while re-reading `e47240fd`, before any field test.
+
+The marker the section above describes rendered correctly and was never tappable. `onMarkerClick`
+routed by prefix, and the first branch tested `my_car` — which `my_car_asking_lt` starts with. Every
+tap on the open question fell into the parked-car branch, looked up a session by coordinates, found
+none (a confirmed session and an unanswered question about the same car cannot coexist — confirming
+is what closes the window), and the `?.let` did nothing. No log, no `else`, no feedback. The comment
+above the branch, *"the ask marker resolves to no session on purpose"*, described the bug believing
+it described a decision.
+
+**Fix, in the order that matters.** The id moves out of the `my_car` namespace and becomes
+`parking_ask` — the vocabulary rule applies here too, since what is in doubt is YOUR session, not a
+community spot [COPY-SPOT-IS-NOT-A-PARKING-001]. Then the `when` leaves the `@Composable` lambda,
+where nothing could call it, and becomes `resolveMarkerTapTarget(contentId): MarkerTapTarget` in
+`MapMarkerIds.kt`, beside the id families it reads. The composable keeps only the I/O that answering
+a tap needs — the coords-keyed lookup of the object the marker stands for.
+
+**Why the rename alone was not the fix.** Reordering the branches, or renaming without a witness,
+leaves the trap armed for the next `my_car_*` id. `MapMarkerIdsTest` builds the corpus of every
+emitted id with the render path's OWN builders and asserts two things: each id resolves to its own
+family, and **no family's prefix is a prefix of another family's id**. Validated by falsification:
+putting `my_car_asking` back turns the second assertion red — and leaves the first one GREEN, because
+the router happens to test the ask branch first. Order-dependent correctness is invisible to the
+obvious test; only the disjointness rule sees it. Swapping the two branches with the correct id keeps
+everything green, which is the actual claim.
+
+**1990 tests**, 0 failures (master `70e4d297`: 1985 — this ticket adds the 5 of `MapMarkerIdsTest`).
+
+---
+
 ## 3. Open questions / future work
 
 - **GPS sampling boost during CANDIDATE (PARKING-001 Option B).** Switch the LocationDataSource to a 1 s `minUpdateIntervalMillis` request when entering the CANDIDATE phase, returning to 2 s on exit. Increases density of fixes that refine `bestStopLocation` within the new initial-stop window after a reposition burst. Adds the complexity of swapping the location source mid-session — hold off until A is validated in the field.
