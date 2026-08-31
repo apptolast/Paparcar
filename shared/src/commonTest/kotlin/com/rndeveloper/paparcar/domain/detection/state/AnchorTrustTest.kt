@@ -4,6 +4,7 @@ import com.rndeveloper.paparcar.domain.model.GpsPoint
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -194,6 +195,42 @@ class AnchorTrustTest {
     @Test
     fun should_refuse_a_birth_with_no_anchor_to_be_born_at() {
         assertNull(AnchorTrust().birth(point(at = 5_000L), stepCount = 3).egressBirth)
+    }
+
+    /**
+     * [DET-NOTHING-TO-JUDGE-IS-NOT-NO-DOUBT-001] **The claim the new prompt rests on**, pinned here
+     * where the mechanism lives rather than asserted in prose.
+     *
+     * `EgressBirthJudgement.NOT_RECORDED` degrades a silent confirm to a question, and that is only
+     * proportionate because the two confirm paths carrying their own physical proof of an egress
+     * cannot reach it: a counted step opens a birth, and so does an accepted kinematic witness. What
+     * remains is the path with no walk evidence at all (AR vehicle-exit + clock + displacement),
+     * which is exactly the one that used to get the free "no doubt".
+     *
+     * ⚠️ And the asymmetry between the two flavours is real and NOT fixed here: the STOPPED flavour
+     * passes `acceptsKinematicWitness = false`, so a mute step counter opens no birth there. The
+     * production comment calls it *"bug #6 — preserved and named, never fixed inside a move"*; this
+     * ticket makes its consequence a question instead of a silent pin, it does not close it.
+     */
+    @Test
+    fun should_open_a_birth_for_either_witness_a_confirm_path_could_have() {
+        assertNotNull(
+            anchored.birth(point(at = 5_000L), stepCount = 1).egressBirth,
+            "a counted step opens a birth — so the steps path can never be NOT_RECORDED",
+        )
+        assertNotNull(
+            anchored.birth(
+                point(at = 5_000L),
+                stepCount = 0,
+                kinematicEgressFixes = 1,
+                acceptsKinematicWitness = true,
+            ).egressBirth,
+            "an accepted kinematic witness opens one too — so the kinematic path cannot either",
+        )
+        assertNull(
+            anchored.birth(point(at = 5_000L), stepCount = 0, kinematicEgressFixes = 1).egressBirth,
+            "and the STOPPED flavour still opens none on a kinematic witness alone — bug #6, named",
+        )
     }
 
     /** A refinement sharpens the position and **keeps the step count**: the birth did not move, the

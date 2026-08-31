@@ -10,7 +10,7 @@ import com.rndeveloper.paparcar.domain.detection.state.hasEgressDisplacement
 import com.rndeveloper.paparcar.domain.detection.state.hasKinematicEgressSignal
 import com.rndeveloper.paparcar.domain.detection.state.isAnchorPinned
 import com.rndeveloper.paparcar.domain.detection.state.isAnchorWalkEntered
-import com.rndeveloper.paparcar.domain.detection.state.isEgressBornAtAnchor
+import com.rndeveloper.paparcar.domain.detection.state.judgeEgressBirth
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.util.haversineMeters
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
@@ -70,7 +70,7 @@ fun DetectionSessionState.parkingDecisionInput(
     evidenceLabel = session.armEvidence,
     hasKinematicEgress = hasKinematicEgressSignal(config),
     lastSpeedMps = session.lastSpeedMps,
-    egressBornAtAnchor = isEgressBornAtAnchor(config),
+    egressBirth = judgeEgressBirth(config),
     anchorWalkEntered = isAnchorWalkEntered(config),
     anchorGapEntered = anchorGapEnteredAtCapture,
     egressExceedsWalkReach = egressExceedsWalkReach(location, config),
@@ -122,7 +122,7 @@ fun DetectionSessionState.unattendedSaveInput(
     anchorWalkEntered = isAnchorWalkEntered(config),
     anchorStepEventsAtCapture = anchorTrust.capture.stepEvents,
     anchorWalkInSpanMeters = anchorTrust.capture.walkInSpanMeters,
-    egressBornAtAnchor = isEgressBornAtAnchor(config),
+    egressBirth = judgeEgressBirth(config),
     egressExceedsWalkReach = egressExceedsWalkReach(location, config),
     anchorRestMs = restMs,
     humanPoweredRide = humanPoweredRide(now, config),

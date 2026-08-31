@@ -460,7 +460,7 @@ Rutas relativas a `shared/src/commonMain/kotlin/com/rndeveloper/paparcar` (`$C`)
 | 7 | `$A/detection/service/CoordinatorDetectionService.kt:1202` | escribir el sello | sólo sella `GAP_ANCHOR` de **8** razones → las otras 7 las re-decide el backfill |
 | 8 | `$C/domain/detection/physics/EvidenceAdmissibility.kt:33` | admitir evidencia | `sessionStartMs == null` → **admite** (un AR re-entregado vuelve a valer) |
 | 9 | `$C/domain/model/ParkingDetectionConfig.kt:1332` `isCredibleDrivingSpeed` | certificar conducción | `accuracyMeters == null` → **certifica** |
-| 10 | `$C/domain/detection/state/AnchorPredicates.kt:212` `isEgressBornAtAnchor` | si hay duda del ancla | sin ancla o sin birth → `true` = **no hay duda** (sus 7 hermanas devuelven `false`) |
+| 10 | `$C/domain/detection/state/AnchorPredicates.kt:212` `isEgressBornAtAnchor` | si hay duda del ancla | sin ancla o sin birth → `true` = **no hay duda** (sus 7 hermanas devuelven `false`). *(cerrado el 31-08, `DET-NOTHING-TO-JUDGE-IS-NOT-NO-DOUBT-001`: tres valores, y el caso sin birth ahora PREGUNTA con motivo propio)* |
 | 11 | `$C/domain/detection/AssertedPinAuthority.kt:83` | proteger el pin del usuario | `pinReliability` nulo → **no protege** |
 | 12 | `$C/domain/usecase/parking/EvaluateParkingDecisionUseCase.kt:346` | la fiabilidad del pin | se elige comparando el `pathLabel` **como string**: camino nuevo → **0.90**, el máximo |
 | 13 | mismo `:301` `pathLabel` | qué se traza | `else` incondicional: un prompt sin pruebas se traza como `vehicleExit+window+egress` |
@@ -627,6 +627,29 @@ políticas distintas (§6.2 #8, #9, #10). Regla: **en una pregunta de evidencia,
 `EvidenceAdmissibility:33`, `isCredibleDrivingSpeed:1334`, `isEgressBornAtAnchor:212`,
 `EvaluateGeofenceExitUseCase:88` y `EvaluateBackfillDeferralUseCase:53`.
 
+✅ **Hecho el 31-08 (`DET-NOTHING-TO-JUDGE-IS-NOT-NO-DOUBT-001`), y la regla de arriba está
+INCOMPLETA tal como se enunció.** Le falta la mitad que hace falsa a una de sus cinco entradas:
+
+> *plantar* → fallar CERRADO · *nominar* → fallar ABIERTO.
+
+El contrato de triggers del proyecto es la segunda mitad (*todo trigger dispara siempre; un evento
+viejo pasa al evaluador, nunca se descarta*), y es exactamente por eso que **#8 se refutó**. La
+política completa, con su tabla y los cinco sitios auditados, queda escrita en
+`PARKING-DETECTION.md` — que era lo único de 3b que nadie había hecho: tres de los cinco ya estaban
+cerrados **de uno en uno por tres tickets distintos**.
+
+Estado real tras la auditoría: **#8 refutado · #9 y #5 ya cerrados** (⚠️ el KDoc de #9 llevaba semanas
+contradiciendo su propio código; corregido) · **#10 cerrado por este ticket** · ⛔ **#6 declarado
+INSEPARABLE de #7** y movido a 3c: su null es el caso NORMAL porque el sello sólo se escribe para 1
+de 8 razones, así que diferir sobre él suprimiría todo backfill legítimo.
+
+⚠️ Lo que #10 resultó ser, más preciso que "devuelve `true`": el regalo cae **sistemáticamente** en el
+único camino de confirmación sin prueba física de egress (AR vehicle-exit + ventana + alejamiento),
+porque los otros dos exigen justamente la evidencia que ABRE una birth. Ahora ese caso pregunta, con
+motivo propio (`EGRESS_NOT_WITNESSED`, nunca prestado del vecino). ⚠️ Coste aceptado: con el contador
+de pasos mudo ese camino pasa a pregunta, y con **P3** una pregunta sin contestar será *sin pin* — el
+precio sube después. Revertible en una línea.
+
 **3c. Evidencia declarada inválida no se reutiliza (P4).** Un ancla descartada por hueco de GPS no
 vale para el guardado desatendido, ni para el backfill, ni para el honest close. Y el sello de
 resolución se escribe para **las 8** razones, no para 1 (#7).
@@ -701,7 +724,7 @@ estilo de los `ColorGuardrailTest` / `TypographyGuardrailTest` que ya existen:
 | 1 | `DET-DRIVING-EVIDENCE-VALUE-OBJECT-001` (Pieza 1) ✅ | §6.0, la raíz | hecho |
 | 2 | `DET-NO-CLOCK-PLANTS-A-PIN-001` (Pieza 4) ✅ | pin a 142 m, batería | hecho |
 | 3 | `DET-DETECTION-PATH-IS-A-TYPE-001` (Pieza 2) 🟡 | #4 #12 (#13 era falsa alarma) | parcial |
-| 4 | `DET-FAIL-CLOSED-BY-CONSTRUCTION-001` (Pieza 3) 🟡 | #5 #9 #14 #15 (#8 y #16 refutados/borrados) | **3a completo**; faltan 3b (#10) y 3c (#7) |
+| 4 | `DET-FAIL-CLOSED-BY-CONSTRUCTION-001` (Pieza 3) 🟡 | #5 #9 #10 #14 #15 (#8 y #16 refutados/borrados) | **3a y 3b completos**; falta **3c** (#7, que ahora arrastra también #6) |
 | 5 | `DET-TWO-TIER-SENTRY-001` (Pieza 5) ✅ | 28→1 armados, batería | hecho ⏳ medir en campo |
 | 6 | `DET-DOUBT-MUST-REACH-THE-SCREEN-001` (Pieza 6) ✅ | §1.5 | hecho ⏳ sin ver en device |
 | 7 | `DET-GUARDRAILS-KEEP-THE-DOCTRINE-001` (Pieza 7) 🟡 | que no se deshaga | 3 reglas hechas; replays pendientes |
@@ -719,9 +742,10 @@ un default permisivo — vigila una SEÑAL que nomina, y el contrato de triggers
 viejo pasa al evaluador, nunca se descarta. Fallar cerrado gobierna lo que PLANTA, no lo que nomina.
 Es una distinción que le falta a la Pieza 3b y que conviene escribir en ella.
 
-🟢 **Y su apartado 3a está COMPLETO** (31-08): #14 y #16 ya lo estaban, y #15 se cerró con
-`DET-A-DOUBT-FIELD-MUST-NOT-DEFAULT-TO-CERTAINTY-001`. Quedan **3b** (una sola política de nulos:
-#8 refutado, #9 hecho, #10 abierto) y **3c**. ⚠️ Y una advertencia que 3b hereda del 3a: los defaults
+🟢 **Y sus apartados 3a y 3b están COMPLETOS** (31-08): #14 y #16 ya lo estaban, #15 se cerró con
+`DET-A-DOUBT-FIELD-MUST-NOT-DEFAULT-TO-CERTAINTY-001` y **3b con
+`DET-NOTHING-TO-JUDGE-IS-NOT-NO-DOUBT-001`** (#10 cerrado, la política escrita, y #6 declarado
+inseparable de #7). Queda **3c**. ⚠️ Y una advertencia que 3b hereda del 3a: los defaults
 de #15 se justificaban en su propio KDoc *"for legacy callers"* y **no existía ni un legacy caller** —
 un campo con default en un input de evaluador no es compatibilidad, es una respuesta permanente que
 nadie tiene que dar. El barrido encontró además 2 defaults en el input HERMANO (`UnattendedSaveInput`),

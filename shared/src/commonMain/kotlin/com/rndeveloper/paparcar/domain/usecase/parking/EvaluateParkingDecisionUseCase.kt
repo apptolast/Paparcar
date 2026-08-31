@@ -4,6 +4,7 @@ import com.rndeveloper.paparcar.domain.detection.ArmLabel
 import com.rndeveloper.paparcar.domain.detection.DetectionPath
 import com.rndeveloper.paparcar.domain.detection.physics.DrivingEvidence
 import com.rndeveloper.paparcar.domain.detection.physics.sustainedDriveWitnessed
+import com.rndeveloper.paparcar.domain.detection.state.EgressBirthJudgement
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
 import com.rndeveloper.paparcar.domain.model.VehicleType
 
@@ -45,6 +46,18 @@ enum class PromptReason(val key: String) {
     /** The egress was born away from the anchor: the park is probably real, the ANCHOR is not.
      *  [DET-ANCHOR-EGRESS-001] */
     EGRESS_NOT_AT_ANCHOR("egress_not_at_anchor"),
+
+    /**
+     * [DET-NOTHING-TO-JUDGE-IS-NOT-NO-DOUBT-001] The session never witnessed the walk away from the
+     * car begin, so there is nothing to place the anchor against at all.
+     *
+     * ⛔ **Deliberately NOT [EGRESS_NOT_AT_ANCHOR].** That one is a MEASUREMENT — the walk started,
+     * and it started somewhere else. This one is its absence, and reporting it under the other name
+     * would tell the user (and every future field forensic) that we measured a walk that began far
+     * away, when no walk was recorded at all. Two causes sharing one word is exactly the defect
+     * `DET-PROMPT-STATES-ITS-REASON-001` split this enum out of.
+     */
+    EGRESS_NOT_WITNESSED("egress_not_witnessed"),
 
     /** The anchor was captured at a stop the user walked into. [DET-CREDIBLE-DRIVE-001] */
     ANCHOR_WALK_ENTERED("anchor_walk_entered"),
@@ -162,14 +175,18 @@ data class ParkingDecisionInput(
      *  ROLLING — the in-motion false positive at Avenida de los Mástiles (field 2026-07-12). No
      *  path may auto-confirm while this is above the pedestrian ceiling (`egressStepMaxSpeedMps`). */
     val lastSpeedMps: Float,
-    /** [DET-ANCHOR-EGRESS-001] FALSE when the egress evidence was BORN outside walking-consistency
-     *  of the pinned anchor (see `CoordinatorParkingDetector.isEgressBornAtAnchor`): the walk
-     *  cannot be an egress FROM that anchor, so the anchor belongs to an intermediate stop
-     *  (field 2026-07-15: frozen at a traffic light 1.11 km before the real park, confirmed
-     *  kinematic+egress at the light). The displacement gate only ever had a FLOOR — this is its
-     *  ceiling. TRUE is the permissive answer here, which is why it may not be the omitted one.
-     *  [DET-A-DOUBT-FIELD-MUST-NOT-DEFAULT-TO-CERTAINTY-001] */
-    val egressBornAtAnchor: Boolean,
+    /**
+     * [DET-ANCHOR-EGRESS-001] Where the walk away from the car BEGAN, relative to the anchor this
+     * decision wants to pin. `BORN_AWAY` means the walk cannot be an egress FROM that anchor, so the
+     * anchor belongs to an intermediate stop (field 2026-07-15: frozen at a traffic light 1.11 km
+     * before the real park, confirmed kinematic+egress at the light). The displacement gate only
+     * ever had a FLOOR — this is its ceiling.
+     *
+     * [DET-NOTHING-TO-JUDGE-IS-NOT-NO-DOUBT-001] Was a `Boolean` whose `true` meant BOTH "measured
+     * at the anchor" and "nothing was recorded, so nothing was measured". The second is now
+     * `NOT_RECORDED` and it degrades a silent confirm to a question, under its own name.
+     */
+    val egressBirth: EgressBirthJudgement,
     /** [DET-CREDIBLE-DRIVE-001] TRUE when the anchor was captured at a stop the user WALKED into
      *  (walk fixes above `anchorFreezeMaxWalkFixes` led to it) — the pedestrian's standing spot,
      *  not the car's rest. Field 2026-07-15, Camelias-Oppo: a mute step counter let the walk back
@@ -401,7 +418,15 @@ class EvaluateParkingDecisionUseCase(private val config: ParkingDetectionConfig)
         val promptReason: PromptReason? = when {
             humanPowered -> PromptReason.HUMAN_POWERED
             weakEvidenceOnly -> PromptReason.WEAK_EVIDENCE
-            !input.egressBornAtAnchor -> PromptReason.EGRESS_NOT_AT_ANCHOR
+            // [DET-NOTHING-TO-JUDGE-IS-NOT-NO-DOUBT-001] Two rows where there used to be one, and
+            // the second is the whole ticket. `NOT_RECORDED` — the session never saw the walk begin
+            // — used to arrive here spelled `egressBornAtAnchor = true` and produced NO reason at
+            // all, i.e. a silent pin. It cannot reach this line from the steps or kinematic paths
+            // (the evidence those require is what OPENS a birth), so what it degrades is exactly the
+            // weakest path in the system: an AR vehicle-exit plus a clock plus displacement, with no
+            // witness of a walk anywhere in it.
+            input.egressBirth == EgressBirthJudgement.BORN_AWAY -> PromptReason.EGRESS_NOT_AT_ANCHOR
+            input.egressBirth == EgressBirthJudgement.NOT_RECORDED -> PromptReason.EGRESS_NOT_WITNESSED
             input.anchorWalkEntered -> PromptReason.ANCHOR_WALK_ENTERED
             input.anchorGapEntered -> PromptReason.ANCHOR_GAP_ENTERED
             else -> null

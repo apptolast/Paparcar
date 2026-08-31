@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.domain.usecase.parking
 
+import com.rndeveloper.paparcar.domain.detection.state.EgressBirthJudgement
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
 import kotlin.test.Test
@@ -48,7 +49,7 @@ class EvaluateUnattendedParkingSaveUseCaseTest {
         anchorWalkEntered: Boolean = false,
         anchorStepEventsAtCapture: Int = 0,
         anchorWalkInSpanMeters: Double = 0.0,
-        egressBornAtAnchor: Boolean = true,
+        egressBirth: EgressBirthJudgement = EgressBirthJudgement.BORN_AT_ANCHOR,
         egressExceedsWalkReach: Boolean = false,
         anchorRestMs: Long = config.sustainedStopForSaveMs + 1,
         witnessedRestFix: GpsPoint? = null,
@@ -73,7 +74,7 @@ class EvaluateUnattendedParkingSaveUseCaseTest {
         anchorWalkEntered = anchorWalkEntered,
         anchorStepEventsAtCapture = anchorStepEventsAtCapture,
         anchorWalkInSpanMeters = anchorWalkInSpanMeters,
-        egressBornAtAnchor = egressBornAtAnchor,
+        egressBirth = egressBirth,
         egressExceedsWalkReach = egressExceedsWalkReach,
         anchorRestMs = anchorRestMs,
         humanPoweredRide = humanPoweredRide,
@@ -267,7 +268,7 @@ class EvaluateUnattendedParkingSaveUseCaseTest {
     @Test
     fun should_saveZoneCenteredOnAnchor_when_egressBornAwayAndCounterMute() {
         val birth = fix(lat = 36.59000, lon = -6.27820, accuracy = 8f)
-        val verdict = evaluate(input(egressBornAtAnchor = false, egressOriginFix = birth, sessionSawSteps = false))
+        val verdict = evaluate(input(egressBirth = EgressBirthJudgement.BORN_AWAY, egressOriginFix = birth, sessionSawSteps = false))
 
         val zone = assertIs<UnattendedParkingSave.SaveZone>(verdict)
         assertEquals(UnattendedSaveReason.EGRESS_MISMATCH, zone.reason)
@@ -278,10 +279,33 @@ class EvaluateUnattendedParkingSaveUseCaseTest {
     @Test
     fun should_saveZoneCenteredOnBirth_when_egressBornAwayAndCounterAlive() {
         val birth = fix(lat = 36.59000, lon = -6.27820, accuracy = 8f)
-        val verdict = evaluate(input(egressBornAtAnchor = false, egressOriginFix = birth, sessionSawSteps = true))
+        val verdict = evaluate(input(egressBirth = EgressBirthJudgement.BORN_AWAY, egressOriginFix = birth, sessionSawSteps = true))
 
         val zone = assertIs<UnattendedParkingSave.SaveZone>(verdict)
         assertEquals(birth, zone.center)
+    }
+
+    /**
+     * [DET-NOTHING-TO-JUDGE-IS-NOT-NO-DOUBT-001] `NOT_RECORDED` must NOT enter the branch above.
+     *
+     * That branch draws a zone spanning anchor↔birth and stamps `EGRESS_MISMATCH` — a doubt measured
+     * between two points. With nothing recorded there is no birth to span to: `egressOriginFix` is
+     * null, the centre falls back to the anchor and the span collapses to `0.0`, so the verdict
+     * would claim a mismatch it never measured and a doubt of zero metres. Its outcome stays what it
+     * is today, and the reason it stays is written here rather than left to whoever reads
+     * `!= BORN_AWAY` next.
+     */
+    @Test
+    fun should_notClaimAnEgressMismatch_when_nothingWasEverRecordedToJudge() {
+        val verdict = evaluate(
+            input(egressBirth = EgressBirthJudgement.NOT_RECORDED, egressOriginFix = null),
+        )
+
+        val reason = (verdict as? UnattendedParkingSave.SaveZone)?.reason
+        assertTrue(
+            reason != UnattendedSaveReason.EGRESS_MISMATCH,
+            "an absence of measurement must not be reported as a measured mismatch, was $reason",
+        )
     }
 
     // ── The GAP-ENTERED anchor: a hole has a duration, so the doubt it creates has a bound ───

@@ -201,17 +201,54 @@ fun DetectionSessionState.sustainedDepartureFrom(
     )
 }
 
+/**
+ * [DET-NOTHING-TO-JUDGE-IS-NOT-NO-DOUBT-001] What this session can say about **where the walk away
+ * from the car began**, relative to the anchor it wants to pin.
+ *
+ * Three answers, because the boolean this replaces was being made to carry three meanings — and the
+ * one it could not express is the one that mattered.
+ */
+enum class EgressBirthJudgement {
+    /** Measured, and consistent: the recorded birth sits within walking-consistency of the anchor. */
+    BORN_AT_ANCHOR,
+
+    /**
+     * Measured, and inconsistent: the walk began too far from the anchor for the anchor to be where
+     * the car rests — so the anchor belongs to an intermediate stop (field 2026-07-15, Camino de los
+     * Enamorados: frozen at a traffic light 1.11 km before the real park).
+     */
+    BORN_AWAY,
+
+    /**
+     * ⛔ **Nothing was recorded, so there is nothing to judge** — and this is NOT
+     * [BORN_AT_ANCHOR]. The session never witnessed the walk begin: no counted step and no accepted
+     * kinematic witness, so [AnchorTrust.egressBirth] was never opened.
+     *
+     * It reads as an absence of doubt only if you let it, and the old boolean did: it answered
+     * `true`, the same word it uses for a birth it MEASURED next to the anchor. Worse, it answered
+     * it exactly where it hurts. The two confirm paths that carry their own physical proof of an
+     * egress — steps and kinematic — cannot reach this value **by construction**, because the very
+     * evidence they require is what opens a birth. The one path that CAN is the weakest in the
+     * system (an AR vehicle-exit plus a clock plus displacement from the anchor, with no witness of
+     * a walk at all), and for it the old answer was a free pass.
+     */
+    NOT_RECORDED,
+}
+
 /** [DET-ANCHOR-EGRESS-001] The egress must be BORN at the anchor — the ceiling the
  *  displacement gate never had (it only checks a floor, and at 1.11 km from the anchor it is
- *  trivially satisfied). TRUE while the recorded egress birth ([AnchorTrust.egressBirth]'s
- *  `originFix`) sits within walking-consistency of the pinned anchor: both accuracy envelopes,
- *  the steps already counted at birth, a fixed margin — or the hard floor, whichever is larger
- *  (sparse streams can put an honest birth ~100 m out; a wrong-stop anchor sits hundreds of meters
- *  to kilometers away — field 2026-07-15, Camino de los Enamorados). No anchor or no recorded
- *  egress → nothing to judge → true. */
-fun DetectionSessionState.isEgressBornAtAnchor(config: ParkingDetectionConfig): Boolean {
-    val anchor = anchorTrust.anchor ?: return true
-    val birth = anchorTrust.egressBirth ?: return true
+ *  trivially satisfied). [EgressBirthJudgement.BORN_AT_ANCHOR] while the recorded egress birth
+ *  ([AnchorTrust.egressBirth]'s `originFix`) sits within walking-consistency of the pinned anchor:
+ *  both accuracy envelopes, the steps already counted at birth, a fixed margin — or the hard floor,
+ *  whichever is larger (sparse streams can put an honest birth ~100 m out; a wrong-stop anchor sits
+ *  hundreds of meters to kilometers away — field 2026-07-15, Camino de los Enamorados).
+ *
+ *  [DET-NOTHING-TO-JUDGE-IS-NOT-NO-DOUBT-001] No anchor or no recorded egress →
+ *  [EgressBirthJudgement.NOT_RECORDED], which used to be spelled `true` — the same word as a birth
+ *  MEASURED at the anchor. Read that KDoc for why the distinction is the whole ticket. */
+fun DetectionSessionState.judgeEgressBirth(config: ParkingDetectionConfig): EgressBirthJudgement {
+    val anchor = anchorTrust.anchor ?: return EgressBirthJudgement.NOT_RECORDED
+    val birth = anchorTrust.egressBirth ?: return EgressBirthJudgement.NOT_RECORDED
     val origin = birth.originFix
     val d = haversineMeters(
         anchor.latitude, anchor.longitude,
@@ -220,7 +257,11 @@ fun DetectionSessionState.isEgressBornAtAnchor(config: ParkingDetectionConfig): 
     val allowance = anchor.accuracy + origin.accuracy +
         birth.stepCountAtBirth * config.anchorStrideMeters +
         config.egressBirthMarginMeters
-    return d <= maxOf(allowance, config.egressBirthFloorMeters)
+    return if (d <= maxOf(allowance, config.egressBirthFloorMeters)) {
+        EgressBirthJudgement.BORN_AT_ANCHOR
+    } else {
+        EgressBirthJudgement.BORN_AWAY
+    }
 }
 
 /**

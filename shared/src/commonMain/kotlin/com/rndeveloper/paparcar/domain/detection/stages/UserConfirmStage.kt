@@ -4,7 +4,8 @@ import com.rndeveloper.paparcar.domain.detection.physics.SavedParkingShape
 import com.rndeveloper.paparcar.domain.detection.physics.honestZoneRadius
 import com.rndeveloper.paparcar.domain.detection.physics.walkableInsideGapMeters
 import com.rndeveloper.paparcar.domain.detection.state.DetectionSessionState
-import com.rndeveloper.paparcar.domain.detection.state.isEgressBornAtAnchor
+import com.rndeveloper.paparcar.domain.detection.state.EgressBirthJudgement
+import com.rndeveloper.paparcar.domain.detection.state.judgeEgressBirth
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
 import com.rndeveloper.paparcar.domain.util.haversineMeters
@@ -94,7 +95,17 @@ class UserConfirmStage : SessionStage {
         config: ParkingDetectionConfig,
         notes: MutableList<DiagnosticNote>,
     ): GpsPoint {
-        if (state.isEgressBornAtAnchor(config) && !state.anchorGapEnteredAtCapture) {
+        // [DET-NOTHING-TO-JUDGE-IS-NOT-NO-DOUBT-001] Reads `!= BORN_AWAY`, so NOT_RECORDED keeps
+        // trusting the anchor — the only one of the three consumers of this judgement that does NOT
+        // change, and deliberately. The cascade below exists for an anchor the session has REASON to
+        // doubt (born away, or entered through a GPS hole); "we never saw the walk begin" is not
+        // such a reason, and demoting on it would move a pin the USER just confirmed off the
+        // anchor and onto whatever fix they happened to answer from — a door 40 m away is a worse
+        // guess than the stop the session measured. The user's answer proves the park; this branch
+        // only picks coordinates. [DET-CONFIRM-ANCHOR-001]
+        if (state.judgeEgressBirth(config) != EgressBirthJudgement.BORN_AWAY &&
+            !state.anchorGapEnteredAtCapture
+        ) {
             return state.anchorTrust.anchor ?: state.bestFix(fix)
         }
         // A gap-born anchor may be a drive-past point hundreds of metres out with unboundable

@@ -338,23 +338,26 @@ class AnchorPredicatesTest {
         assertNull(state.sustainedDepartureFrom(point(metersNorth = 600.0, speed = 1f), 60_000L, config))
     }
 
-    // ── isEgressBornAtAnchor · the ceiling the displacement gate never had ────
+    // ── judgeEgressBirth · the ceiling the displacement gate never had ────
 
     @Test
-    fun should_accept_the_egress_birth_when_there_is_no_anchor_to_judge_it_against() {
+    fun should_reportNothingToJudge_when_there_is_no_anchor_to_judge_the_birth_against() {
         val state = stateWith(anchor = null, egressBirth = EgressBirth(point(metersNorth = 5_000.0), 3))
-        assertTrue(state.isEgressBornAtAnchor(config))
+        assertEquals(EgressBirthJudgement.NOT_RECORDED, state.judgeEgressBirth(config))
     }
 
     @Test
-    fun should_accept_the_session_when_no_egress_birth_was_ever_recorded() {
-        assertTrue(stateWith(egressBirth = null).isEgressBornAtAnchor(config))
+    fun should_reportNothingToJudge_when_no_egress_birth_was_ever_recorded() {
+        assertEquals(
+            EgressBirthJudgement.NOT_RECORDED,
+            stateWith(egressBirth = null).judgeEgressBirth(config),
+        )
     }
 
     @Test
     fun should_accept_an_egress_born_within_walking_consistency_of_the_anchor() {
         val state = stateWith(egressBirth = EgressBirth(point(metersNorth = 20.0), stepCountAtBirth = 5))
-        assertTrue(state.isEgressBornAtAnchor(config))
+        assertEquals(EgressBirthJudgement.BORN_AT_ANCHOR, state.judgeEgressBirth(config))
     }
 
     /**
@@ -365,7 +368,7 @@ class AnchorPredicatesTest {
     @Test
     fun should_accept_a_sparse_but_honest_birth_on_the_hard_floor_rather_than_the_computed_allowance() {
         val state = stateWith(egressBirth = EgressBirth(point(metersNorth = 100.0), stepCountAtBirth = 3))
-        assertTrue(state.isEgressBornAtAnchor(config))
+        assertEquals(EgressBirthJudgement.BORN_AT_ANCHOR, state.judgeEgressBirth(config))
     }
 
     /**
@@ -375,7 +378,7 @@ class AnchorPredicatesTest {
     @Test
     fun should_reject_an_egress_born_a_kilometre_from_the_anchor() {
         val state = stateWith(egressBirth = EgressBirth(point(metersNorth = 1_200.0), stepCountAtBirth = 3))
-        assertFalse(state.isEgressBornAtAnchor(config))
+        assertEquals(EgressBirthJudgement.BORN_AWAY, state.judgeEgressBirth(config))
     }
 
     // ── refinedParkLocation · where the pin lands ────────────────────────────

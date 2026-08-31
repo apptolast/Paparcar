@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.domain.usecase.parking
 
+import com.rndeveloper.paparcar.domain.detection.state.EgressBirthJudgement
 import com.rndeveloper.paparcar.domain.detection.ArmLabel
 import com.rndeveloper.paparcar.domain.detection.physics.DrivingEvidence
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
@@ -47,7 +48,7 @@ class EvaluateParkingDecisionUseCaseTest {
         anchorGapEntered: Boolean = false,
         // [DET-PROMPT-STATES-ITS-REASON-001] The three remaining prompt causes, needed to prove each
         // one reaches the trace under its OWN name.
-        egressBornAtAnchor: Boolean = true,
+        egressBirth: EgressBirthJudgement = EgressBirthJudgement.BORN_AT_ANCHOR,
         anchorWalkEntered: Boolean = false,
         humanPoweredRide: Boolean = false,
         assertedPinBlocksRelocation: Boolean = false,
@@ -73,7 +74,7 @@ class EvaluateParkingDecisionUseCaseTest {
         lastSpeedMps = lastSpeedMps,
         egressExceedsWalkReach = egressExceedsWalkReach,
         anchorGapEntered = anchorGapEntered,
-        egressBornAtAnchor = egressBornAtAnchor,
+        egressBirth = egressBirth,
         anchorWalkEntered = anchorWalkEntered,
         humanPoweredRide = humanPoweredRide,
         assertedPinBlocksRelocation = assertedPinBlocksRelocation,
@@ -849,7 +850,7 @@ class EvaluateParkingDecisionUseCaseTest {
 
     /** A confirm that would otherwise be silent, so each test below flips exactly one cause. */
     private fun confirmableInput(
-        egressBornAtAnchor: Boolean = true,
+        egressBirth: EgressBirthJudgement = EgressBirthJudgement.BORN_AT_ANCHOR,
         anchorWalkEntered: Boolean = false,
         anchorGapEntered: Boolean = false,
         humanPoweredRide: Boolean = false,
@@ -860,7 +861,7 @@ class EvaluateParkingDecisionUseCaseTest {
         hasEgressDisplacement = true,
         maxSpeedKmh = maxSpeedKmh,
         evidenceLabel = evidenceLabel,
-        egressBornAtAnchor = egressBornAtAnchor,
+        egressBirth = egressBirth,
         anchorWalkEntered = anchorWalkEntered,
         anchorGapEntered = anchorGapEntered,
         humanPoweredRide = humanPoweredRide,
@@ -900,11 +901,74 @@ class EvaluateParkingDecisionUseCaseTest {
 
     @Test
     fun should_name_the_cause_when_the_egress_was_not_born_at_the_anchor() {
-        val decision = evaluate(confirmableInput(egressBornAtAnchor = false))
+        val decision = evaluate(confirmableInput(egressBirth = EgressBirthJudgement.BORN_AWAY))
         assertEquals(
             PromptReason.EGRESS_NOT_AT_ANCHOR,
             assertIs<ParkingDecision.Prompt>(decision).reason,
         )
+    }
+
+    /**
+     * [DET-NOTHING-TO-JUDGE-IS-NOT-NO-DOUBT-001] The case the boolean could not express, and the
+     * reason this ticket exists: the session never witnessed the walk begin, so there is nothing to
+     * place the anchor against. It used to arrive spelled `egressBornAtAnchor = true` — the same
+     * word as a birth MEASURED at the anchor — and produced no reason at all, i.e. a silent pin.
+     */
+    @Test
+    fun should_ask_when_the_session_never_witnessed_the_walk_begin() {
+        val decision = evaluate(confirmableInput(egressBirth = EgressBirthJudgement.NOT_RECORDED))
+        assertEquals(
+            PromptReason.EGRESS_NOT_WITNESSED,
+            assertIs<ParkingDecision.Prompt>(decision).reason,
+        )
+    }
+
+    /**
+     * ⛔ And it must not borrow the other one's name. `EGRESS_NOT_AT_ANCHOR` is a MEASUREMENT — the
+     * walk started, and it started somewhere else. Reporting an absence under that name would tell
+     * the user, and every future field forensic, that we measured a walk that began far away when no
+     * walk was recorded at all — the same "a prompt naming the wrong cause" defect
+     * `DET-PROMPT-STATES-ITS-REASON-001` exists to prevent.
+     */
+    @Test
+    fun should_keep_the_two_egress_doubts_distinguishable() {
+        val notWitnessed = evaluate(confirmableInput(egressBirth = EgressBirthJudgement.NOT_RECORDED))
+        val bornAway = evaluate(confirmableInput(egressBirth = EgressBirthJudgement.BORN_AWAY))
+        assertEquals(
+            PromptReason.EGRESS_NOT_WITNESSED,
+            assertIs<ParkingDecision.Prompt>(notWitnessed).reason,
+        )
+        assertEquals(
+            PromptReason.EGRESS_NOT_AT_ANCHOR,
+            assertIs<ParkingDecision.Prompt>(bornAway).reason,
+        )
+    }
+
+    /**
+     * The census: **each** of the three judgements produces a distinct outcome. Collapsing any two —
+     * which is what the boolean did — turns this red. The population comes from the enum itself, so
+     * a fourth value added tomorrow has no row here and fails.
+     */
+    @Test
+    fun should_give_every_egress_birth_judgement_its_own_outcome() {
+        val expected = mapOf(
+            EgressBirthJudgement.BORN_AT_ANCHOR to null,
+            EgressBirthJudgement.BORN_AWAY to PromptReason.EGRESS_NOT_AT_ANCHOR,
+            EgressBirthJudgement.NOT_RECORDED to PromptReason.EGRESS_NOT_WITNESSED,
+        )
+        val unclassified = EgressBirthJudgement.entries.filterNot { it in expected }
+        assertTrue(
+            unclassified.isEmpty(),
+            "[unclassified judgement] ${unclassified.joinToString()} — decide what it does to a " +
+                "silent confirm here AND in the evaluator, or it inherits an outcome by omission",
+        )
+        EgressBirthJudgement.entries.forEach { judgement ->
+            val decision = evaluate(confirmableInput(egressBirth = judgement))
+            when (val want = expected.getValue(judgement)) {
+                null -> assertIs<ParkingDecision.Confirmed>(decision, "$judgement must save silently")
+                else -> assertEquals(want, assertIs<ParkingDecision.Prompt>(decision).reason, "$judgement")
+            }
+        }
     }
 
     @Test
@@ -936,7 +1000,7 @@ class EvaluateParkingDecisionUseCaseTest {
                 evaluate(
                     confirmableInput(
                         humanPoweredRide = true,
-                        egressBornAtAnchor = false,
+                        egressBirth = EgressBirthJudgement.BORN_AWAY,
                         anchorWalkEntered = true,
                         anchorGapEntered = true,
                         evidenceLabel = ArmLabel.SELF_OBSERVED,
@@ -950,7 +1014,7 @@ class EvaluateParkingDecisionUseCaseTest {
             assertIs<ParkingDecision.Prompt>(
                 evaluate(
                     confirmableInput(
-                        egressBornAtAnchor = false,
+                        egressBirth = EgressBirthJudgement.BORN_AWAY,
                         anchorWalkEntered = true,
                         evidenceLabel = ArmLabel.SELF_OBSERVED,
                         maxSpeedKmh = 0f,

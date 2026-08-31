@@ -6746,3 +6746,87 @@ still travels the other way.
 Absorbs and closes `PARK-RETRACTED-BACKFILL-MUST-LEAVE-NO-PIN-001`.
 
 Spec: `docs/backlog/park-a-refuted-pin-leaves-the-history-001.md`.
+
+---
+
+### DET-NOTHING-TO-JUDGE-IS-NOT-NO-DOUBT-001 — one null policy, written once, and the site that still needed it (pending)
+
+**Not a field report.** Piece 3b of the redesign: *"one null policy, written once"*. Three of its five
+sites had already been fixed one at a time by three different tickets, the policy itself was written
+nowhere, and the list was wrong in two places.
+
+#### The policy, stated once
+
+**In a question about EVIDENCE, `null` means "there is no evidence" — and no evidence must not
+license a claim.** But the rule has a second half the plan's one-liner omits, and omitting it is what
+made one of its five entries wrong:
+
+| the question is about… | what an absent input means | direction |
+|---|---|---|
+| **PLANTING** — a claim that changes what the user sees | nothing to stand on → do not claim it | fail CLOSED |
+| **NOMINATING** — a signal that only wakes a lane up | not grounds to throw a real signal away | fail OPEN |
+
+The project's trigger contract is the second half: *every trigger fires, always; a stale event loses
+direct authority and passes to the evaluator, it is never discarded.* Fail-closed governs what the
+app **plants**, not what it **listens to**.
+
+#### The five sites, audited against master
+
+| # | site | verdict |
+|---|---|---|
+| 8 | `isAdmissibleEvidence(sessionStartMs = null)` | ✅ **REFUTED, and rightly** — it gates a nominating SIGNAL. Already written in the file itself; flipping it turned two `VerifyDepartureEvidenceUseCase` tests red |
+| 9 | `isCredibleDrivingSpeed(accuracyMeters = null)` | ✅ already closed — ⚠️ **but its KDoc still said the opposite**, contradicting the line it documents. A doc that survives its own code is worse than none: it is what a reader trusts when deciding not to read further. Corrected here |
+| 5 | `EvaluateGeofenceExitUseCase` unmeasurable distance | ✅ already closed (`stale`, not `boundary`) |
+| 6 | `EvaluateBackfillDeferralUseCase(resolutionAtMs = null)` | ⛔ **not fixable on its own, and not a bug in isolation**: the null is the NORMAL case because the resolution seal is only written for 1 of 8 reasons — which is failure **#7**. They are one problem; #6 alone would suppress every legitimate backfill |
+| 10 | `isEgressBornAtAnchor` | 🔴 **open — this ticket** |
+
+#### #10: the free pass landed exactly where it hurts
+
+`isEgressBornAtAnchor` answered `true` — *"no doubt about the anchor"* — for **two different
+reasons**: a birth MEASURED within walking-consistency of the anchor, and no birth recorded at all.
+The second is not an absence of doubt; it is an absence of measurement.
+
+And it is not evenly distributed across the confirm paths. **The two paths that carry their own
+physical proof of an egress cannot reach it by construction** — a counted step opens a birth, and so
+does an accepted kinematic witness, which is precisely what those paths require. The one path that
+can is the weakest in the system: an AR vehicle-exit, plus a clock, plus displacement from the
+anchor, with no witness of a walk anywhere in it. That path got the free "no doubt" every time the
+step counter stayed mute.
+
+⚠️ **The mute-counter case is a named, deferred bug of its own.** `withEgressBirth` is called with
+`acceptsKinematicWitness = false` on the STOPPED flavour and `true` on the MOVING one; the production
+comment calls the asymmetry *"bug #6 — preserved and named, never fixed inside a move"*. This ticket
+makes its CONSEQUENCE a question instead of a silent pin. It does not close it.
+
+#### The fix
+
+`EgressBirthJudgement` — `BORN_AT_ANCHOR` / `BORN_AWAY` / `NOT_RECORDED` — so the third can never
+again be read as the first. Three consumers, and each **declares** what it does:
+
+- **the confirm evaluator** → `NOT_RECORDED` degrades the silent save to a question;
+- **the unattended verdict** → only `BORN_AWAY` enters the birth-vs-anchor zone branch. On
+  `NOT_RECORDED` there is no `egressOriginFix` to span to, so entering it would centre a zone on a
+  birth that does not exist and stamp an `EGRESS_MISMATCH` nobody measured;
+- **`UserConfirmStage.whereTheCarIs`** → reads `!= BORN_AWAY`, i.e. **deliberately unchanged**. That
+  cascade exists for an anchor there is REASON to doubt; "we never saw the walk begin" is not such a
+  reason, and demoting on it would move a pin the USER just confirmed onto whatever fix they answered
+  from — a door 40 m away is a worse guess than the stop the session measured.
+
+⛔ **And the question names its own cause.** `PromptReason.EGRESS_NOT_WITNESSED`, not
+`EGRESS_NOT_AT_ANCHOR`. The latter is a MEASUREMENT — the walk started, and it started somewhere
+else. Reporting an absence under that name would tell the user, and every future field forensic, that
+we measured a walk that began far away when no walk was recorded at all: exactly the "a prompt naming
+the wrong cause" defect `DET-PROMPT-STATES-ITS-REASON-001` exists to prevent. `PromptReason` rides
+the diagnostics column only, so no user-facing string changes and no locale work.
+
+⚠️ **Known cost, accepted with the ticket.** On hardware whose step counter stays mute, that weakest
+path now produces a question instead of a silent pin. Today an unanswered question leaves an
+imprecise pin; once **P3** lands (*a question is a door, not a delay*) it will mean no pin at all — so
+the price of this choice RISES later. It is the asymmetric-failure direction the doctrine mandates,
+and reversing it is one line if the field says otherwise.
+
+**Seen failing before it was believed** — three injections: removing the new prompt row (3 tests red),
+making it borrow `EGRESS_NOT_AT_ANCHOR`'s name (the same 3), and restoring the predicate's old
+permissive answer (1 red).
+
+Spec: `docs/backlog/det-nothing-to-judge-is-not-no-doubt-001.md`.

@@ -2,6 +2,7 @@ package com.rndeveloper.paparcar.domain.usecase.parking
 
 import com.rndeveloper.paparcar.domain.detection.physics.SessionOutcome
 import com.rndeveloper.paparcar.domain.detection.physics.walkableInsideGapMeters
+import com.rndeveloper.paparcar.domain.detection.state.EgressBirthJudgement
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
 import com.rndeveloper.paparcar.domain.util.haversineMeters
@@ -125,8 +126,15 @@ data class UnattendedSaveInput(
      * being mute is exactly the case that used to lose the park.
      */
     val anchorWalkInSpanMeters: Double,
-    /** `isEgressBornAtAnchor` — false when the egress was born away from the anchor. */
-    val egressBornAtAnchor: Boolean,
+    /**
+     * Where the walk away from the car BEGAN, relative to the anchor. [DET-ANCHOR-EGRESS-001]
+     *
+     * [DET-NOTHING-TO-JUDGE-IS-NOT-NO-DOUBT-001] Was a `Boolean`. Only `BORN_AWAY` — a MEASURED walk
+     * that began somewhere else — sends the zone into the birth-vs-anchor branch below; that branch
+     * reads [egressOriginFix], and on `NOT_RECORDED` there is no origin fix to read, so entering it
+     * would centre a zone on a birth that does not exist and stamp a doubt nobody measured.
+     */
+    val egressBirth: EgressBirthJudgement,
     /** `egressExceedsWalkReach` — the position OUTRAN the steps: a vehicle covered that ground. */
     val egressExceedsWalkReach: Boolean,
     /**
@@ -244,7 +252,7 @@ class EvaluateUnattendedParkingSaveUseCase(private val config: ParkingDetectionC
         // provably started at the birth, so that is the car; a MUTE counter makes the "birth" a
         // kinematic guess along the walker's trail, so the FROZEN anchor is the better centre.
         // Either way the radius covers the OTHER candidate, so the truth stays inside.
-        if (!input.egressBornAtAnchor) {
+        if (input.egressBirth == EgressBirthJudgement.BORN_AWAY) {
             val birth = input.egressOriginFix
             val center = if (input.sessionSawSteps) birth ?: anchor else anchor ?: birth
             val birthToAnchorMeters = if (birth != null && anchor != null) {

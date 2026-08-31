@@ -1368,8 +1368,12 @@ data class ParkingDetectionConfig(
      * accuracy gate existed in the coordinator and the evaluator but NOT in the departure
      * verdict, because each site carried its own copy of this rule. [DET-EXIT-TRUST-001]
      *
-     * A null accuracy passes only because callers that have a speed always have its fix's
-     * accuracy too — the permissive branch keeps legacy call shapes valid, it is not a loophole.
+     * [DET-NOTHING-TO-JUDGE-IS-NOT-NO-DOUBT-001] ⚠️ This paragraph used to read *"a null accuracy
+     * passes only because callers that have a speed always have its fix's accuracy too — the
+     * permissive branch keeps legacy call shapes valid, it is not a loophole"*. That stopped being
+     * true when the branch was closed below, and it sat here for weeks **contradicting the line it
+     * documents**. A doc that survives its own code is worse than no doc: it is the one thing a
+     * reader trusts when deciding not to read further.
      *
      * ⚠ This rule judges ONE sample on its own merits. It cannot tell a second opinion from the
      * trigger echoing itself, and an indoor mirage passes it comfortably. Any caller using a fix to
