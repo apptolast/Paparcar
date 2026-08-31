@@ -452,8 +452,8 @@ Rutas relativas a `shared/src/commonMain/kotlin/com/rndeveloper/paparcar` (`$C`)
 | # | sitio | qué decide | qué pasa con un caso nuevo/desconocido |
 |---|---|---|---|
 | 1 | `$C/domain/usecase/parking/EvaluateParkingDecisionUseCase.kt:281` `weakLabels` | silencio vs pregunta | pasa → **pin silencioso**. *(cerrado en §7)* |
-| 2 | mismo fichero `:297` `humanPowered` | si puede auto-confirmar | un `VehicleType` nuevo (e-bike, patinete) **no** es human-powered → auto-confirm |
-| 3 | `$C/domain/detection/ParkingStrategyResolver.kt:131` `NON_PARKING_TYPES` + `:104` | si se detecta | tipo desconocido o sin vehículo → **COORDINATOR activo** |
+| 2 | mismo fichero `:297` `humanPowered` | si puede auto-confirmar | un `VehicleType` nuevo (e-bike, patinete) **no** es human-powered → auto-confirm. *(cerrado el 31-08, `VEH-A-NEW-VEHICLE-TYPE-MUST-NOT-BE-A-CAR-BY-OMISSION-001`)* |
+| 3 | `$C/domain/detection/ParkingStrategyResolver.kt:131` `NON_PARKING_TYPES` + `:104` | si se detecta | tipo desconocido o sin vehículo → **COORDINATOR activo**. *(el set murió el 31-08, mismo ticket; “sin vehículo → COORDINATOR” sigue siendo deliberado)* |
 | 4 | `$C/domain/detection/ParkingDetectionSource.kt:58-68` | cómo se presenta el pin | `else -> Assisted` (existiendo `Unknown`); y `startsWith("bt")` por **prefijo** |
 | 5 | `$C/domain/usecase/detection/EvaluateGeofenceExitUseCase.kt:88` | confianza del EXIT | `deliveredAtMeters == null` → **boundary**, la máxima confianza, sin probe ni sello |
 | 6 | `$C/domain/usecase/parking/EvaluateBackfillDeferralUseCase.kt:53` | diferir o plantar | sello nulo/ilegible/reloj atrás → **planta el pin** |
@@ -592,8 +592,8 @@ hoy se deciden deletreando strings:
 |---|---|
 | `weakLabels: Set<String>` | `ArmEvidence.confirmsSilentlyWithoutMeasuredDrive` — `when` exhaustivo ✅ *(hecho, §7)* |
 | `isVerifiedLabel(String)` | propiedad declarada en el `sealed interface` ✅ *(hecho el 30-08, `DET-AN-ARM-LABEL-IS-PARSED-ONCE-NOT-SPELLED-AT-EVERY-DOOR-001`, con un matiz que el plan no vio: la palabra necesita **su propio tipo**, `ArmLabel`, porque el arm lleva payload que un parse no puede reconstruir y porque `verified_late` es una palabra SIN arm)* |
-| `humanPowered == SCOOTER \|\| == BIKE` | `VehicleType.isHumanPowered` — `when` exhaustivo |
-| `NON_PARKING_TYPES: Set` | `VehicleType.parkingStrategy` — `when` exhaustivo |
+| `humanPowered == SCOOTER \|\| == BIKE` | `VehicleType.isHumanPowered` — `when` exhaustivo ✅ *(hecho el 31-08, `VEH-A-NEW-VEHICLE-TYPE-MUST-NOT-BE-A-CAR-BY-OMISSION-001`)* |
+| `NON_PARKING_TYPES: Set` | `VehicleType.parksInASpot` — `when` exhaustivo ✅ *(misma tarea; el plan lo llamaba `parkingStrategy`, pero el resolver no pregunta qué estrategia usa un tipo: pregunta si ocupa una plaza, y la estrategia la decide él)* |
 | **`detectionPath: String`** | **`DetectionPath` sellado**, que lleva DENTRO su `reliability`, su `ParkingDetectionSource` y si es colocado por el usuario |
 
 La última es la más rentable: convierte `detectionPath` de string a tipo y **mata de una vez los
@@ -714,10 +714,17 @@ un default permisivo — vigila una SEÑAL que nomina, y el contrato de triggers
 viejo pasa al evaluador, nunca se descarta. Fallar cerrado gobierna lo que PLANTA, no lo que nomina.
 Es una distinción que le falta a la Pieza 3b y que conviene escribir en ella.
 
-🟡 **La Pieza 2 va por su decisión más rentable** (`detectionPath` → tipo) y el barrido de textos del
-safety-net. Le quedan las otras tres membresías: `isVerifiedLabel`, `VehicleType.isHumanPowered` y
-`NON_PARKING_TYPES`. **#13 se cerró como falsa alarma**: el `else` incondicional de `pathLabel` sólo
-se lee cuando `confirmNow` es true, y ahí la única rama restante es la que la etiqueta nombra.
+🟢 **La Pieza 2 está CERRADA** (31-08). Fue por su decisión más rentable (`detectionPath` → tipo) y el
+barrido de textos del safety-net; las tres membresías que le quedaban se cerraron en dos tickets:
+`isVerifiedLabel` en `DET-AN-ARM-LABEL-IS-PARSED-ONCE-NOT-SPELLED-AT-EVERY-DOOR-001` (30-08) y las dos
+de `VehicleType` en `VEH-A-NEW-VEHICLE-TYPE-MUST-NOT-BE-A-CAR-BY-OMISSION-001` (31-08). **#13 se cerró
+como falsa alarma**: el `else` incondicional de `pathLabel` sólo se lee cuando `confirmNow` es true, y
+ahí la única rama restante es la que la etiqueta nombra.
+
+⚠️ Lo que el plan no vio de `VehicleType`: la fila decía **dos** membresías y hay **cuatro** preguntas.
+`hasCarbody` (cinco `== CAR` en el registro) y `slowTripContradictsProfile` (el guard de mismatch de
+`BUG-SCOOTER-001`) estaban deletreadas igual, y no son sinónimos de las otras dos — coinciden sobre los
+cuatro tipos de hoy por accidente, no por significado.
 
 ⚠️ Antes de abrir el #1, leer **§9.4**: el cruce con el backlog abierto añade obligaciones a las
 Piezas 2, 3 y 4, y deja sobre la mesa si hace falta una **Pieza 8** correctiva.

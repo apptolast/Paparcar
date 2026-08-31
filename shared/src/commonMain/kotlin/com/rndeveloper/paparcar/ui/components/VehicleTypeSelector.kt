@@ -24,6 +24,7 @@ import com.rndeveloper.paparcar.domain.model.VehicleType
 import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
 import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.vehicle_type_bike
@@ -41,9 +42,31 @@ private val BorderWidth = 1.5.dp
 private data class TypeOption(
     val type: VehicleType,
     val icon: ImageVector,
-    val label: @Composable () -> String,
-    val examples: @Composable () -> String,
+    val label: StringResource,
+    val examples: StringResource,
 )
+
+/**
+ * [VEH-A-NEW-VEHICLE-TYPE-MUST-NOT-BE-A-CAR-BY-OMISSION-001] How each type shows itself in the
+ * picker — an exhaustive `when`, so a type added tomorrow does not compile until it has an icon and
+ * its two strings. The list below is then derived from [VehicleType.entries] rather than written by
+ * hand: a hand-written list omits silently, and a type absent from this picker is a type the user
+ * can never choose while every downstream lane still handles it.
+ */
+private fun VehicleType.toOption(): TypeOption = when (this) {
+    VehicleType.CAR -> TypeOption(
+        this, PaparcarIcons.VehicleCar, Res.string.vehicle_type_car, Res.string.vehicle_type_car_examples,
+    )
+    VehicleType.MOTORCYCLE -> TypeOption(
+        this, PaparcarIcons.VehicleMotorcycle, Res.string.vehicle_type_motorcycle, Res.string.vehicle_type_motorcycle_examples,
+    )
+    VehicleType.SCOOTER -> TypeOption(
+        this, PaparcarIcons.VehicleScooter, Res.string.vehicle_type_scooter, Res.string.vehicle_type_scooter_examples,
+    )
+    VehicleType.BIKE -> TypeOption(
+        this, PaparcarIcons.VehicleBike, Res.string.vehicle_type_bike, Res.string.vehicle_type_bike_examples,
+    )
+}
 
 /**
  * Visual vehicle type selector (CAR / MOTORCYCLE / SCOOTER / BIKE).
@@ -60,12 +83,7 @@ fun VehicleTypeSelector(
     onSelect: (VehicleType) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val options = listOf(
-        TypeOption(VehicleType.CAR,        PaparcarIcons.VehicleCar,        { stringResource(Res.string.vehicle_type_car) },        { stringResource(Res.string.vehicle_type_car_examples) }),
-        TypeOption(VehicleType.MOTORCYCLE, PaparcarIcons.VehicleMotorcycle, { stringResource(Res.string.vehicle_type_motorcycle) }, { stringResource(Res.string.vehicle_type_motorcycle_examples) }),
-        TypeOption(VehicleType.SCOOTER,    PaparcarIcons.VehicleScooter,    { stringResource(Res.string.vehicle_type_scooter) },    { stringResource(Res.string.vehicle_type_scooter_examples) }),
-        TypeOption(VehicleType.BIKE,       PaparcarIcons.VehicleBike,       { stringResource(Res.string.vehicle_type_bike) },       { stringResource(Res.string.vehicle_type_bike_examples) }),
-    )
+    val options = VehicleType.entries.map { it.toOption() }
 
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -110,8 +128,8 @@ private fun TypeTile(
             },
     ) {
         PapListItem(
-            title = option.label(),
-            subtitle = option.examples(),
+            title = stringResource(option.label),
+            subtitle = stringResource(option.examples),
             titleColor = if (isSelected) MaterialTheme.colorScheme.primary
                          else MaterialTheme.colorScheme.onSurface,
             contentPadding = PaddingValues(horizontal = PaparcarSpacing.lg, vertical = PaparcarSpacing.md),

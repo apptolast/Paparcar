@@ -261,7 +261,12 @@ class EvaluateParkingDecisionUseCase(private val config: ParkingDetectionConfig)
 
         // Scooter mismatch guard: a CAR profile on a sustained slow trip looks like a moped —
         // suppress auto-confirm and leave it to the user prompt. [BUG-SCOOTER-001]
-        val isMismatch = input.vehicleType == VehicleType.CAR &&
+        // [VEH-A-NEW-VEHICLE-TYPE-MUST-NOT-BE-A-CAR-BY-OMISSION-001] The `== CAR` here was not the
+        // same question as the two above it: it asks whether a SLOW trip contradicts the profile,
+        // which is false for a motorcycle for a reason that has nothing to do with parking or with
+        // muscle. Spelled out as a constant, a type added tomorrow would silently have joined the
+        // wrong side of whichever of the three it happened to resemble.
+        val isMismatch = input.vehicleType?.slowTripContradictsProfile == true &&
             input.sessionDurationMs >= config.mismatchMinSessionDurationMs &&
             input.maxSpeedKmh <= config.mismatchMaxSpeedKmh
 
@@ -343,9 +348,10 @@ class EvaluateParkingDecisionUseCase(private val config: ParkingDetectionConfig)
         // MOTORCYCLE is a real motor vehicle with its own geofence — keeps auto-confirm.
         // [DET-BIKE-NOT-A-CAR-001] …and the same is true when the PROFILE says car but the RIDE was
         // a bicycle. The profile is a property of the garage, not of this trip.
-        val humanPowered = input.vehicleType == VehicleType.SCOOTER ||
-            input.vehicleType == VehicleType.BIKE ||
-            input.humanPoweredRide
+        // [VEH-A-NEW-VEHICLE-TYPE-MUST-NOT-BE-A-CAR-BY-OMISSION-001] The profile half of this OR was
+        // the third place spelling out the same pair of types. It reads the type's own answer now;
+        // the ride half stays exactly as it was, because the two questions are genuinely different.
+        val humanPowered = input.vehicleType?.isHumanPowered == true || input.humanPoweredRide
 
         // [DET-DETECTION-PATH-IS-A-TYPE-001] The path is a TYPE now, and it carries its own
         // reliability. It used to be three string literals here and a fourth comparison below

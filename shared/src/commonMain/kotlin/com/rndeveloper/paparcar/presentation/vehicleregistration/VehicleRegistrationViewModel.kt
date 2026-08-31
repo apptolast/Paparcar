@@ -69,7 +69,7 @@ class VehicleRegistrationViewModel(
                 // brand it was tied to.
                 val wasCatalog = !isBrandOther
                 val nextModel = if (wasCatalog) "" else model
-                val inferred = inferIfCar(vehicleType, intent.value, nextModel)
+                val inferred = inferCarbody(vehicleType, intent.value, nextModel)
                 copy(
                     brand = intent.value,
                     isBrandOther = true,
@@ -86,7 +86,7 @@ class VehicleRegistrationViewModel(
             }
 
             is VehicleRegistrationIntent.SelectModel -> updateState {
-                val inferred = inferIfCar(vehicleType, brand, intent.model)
+                val inferred = inferCarbody(vehicleType, brand, intent.model)
                 copy(
                     model = intent.model,
                     isModelOther = false,
@@ -102,7 +102,7 @@ class VehicleRegistrationViewModel(
                     model = "",
                     isModelOther = true,
                     carbodyType = null,
-                    sizeCategory = if (vehicleType == VehicleType.CAR || vehicleType == null) null else VehicleSize.MOTORCYCLE,
+                    sizeCategory = if (vehicleType == null || vehicleType.hasCarbody) null else VehicleSize.MOTORCYCLE,
                     isCarbodyManualOverride = false,
                     hasInteractedWithForm = true,
                 )
@@ -110,7 +110,7 @@ class VehicleRegistrationViewModel(
             is VehicleRegistrationIntent.SetCustomModel -> updateState {
                 // Typing in the model field always switches to "custom model" mode so the
                 // canSubmit gate treats the value as user-supplied free text.
-                val inferred = inferIfCar(vehicleType, brand, intent.value)
+                val inferred = inferCarbody(vehicleType, brand, intent.value)
                 copy(
                     model = intent.value,
                     isModelOther = true,
@@ -132,8 +132,10 @@ class VehicleRegistrationViewModel(
             }
             is VehicleRegistrationIntent.SetVehicleType -> updateState {
                 val newType = intent.type
-                if (newType == VehicleType.CAR) {
-                    val inferred = inferIfCar(newType, brand, model)
+                // [VEH-A-NEW-VEHICLE-TYPE-MUST-NOT-BE-A-CAR-BY-OMISSION-001] The form asks the type
+                // whether it HAS a body, instead of asking whether it is the one type that does.
+                if (newType.hasCarbody) {
+                    val inferred = inferCarbody(newType, brand, model)
                     copy(
                         vehicleType = newType,
                         carbodyType = inferred,
@@ -142,8 +144,9 @@ class VehicleRegistrationViewModel(
                         hasInteractedWithForm = true,
                     )
                 } else {
-                    // Motorcycles, scooters and bikes don't have a carbody — they always
-                    // share the MOTORCYCLE size for the spot fit calculation.
+                    // A type with no carbody is sized as MOTORCYCLE for the spot fit calculation
+                    // and persists a null body — today that is motorcycle, scooter and bike, but
+                    // the branch is chosen by the answer, not by the list.
                     copy(
                         vehicleType = newType,
                         carbodyType = null,
@@ -168,29 +171,33 @@ class VehicleRegistrationViewModel(
     }
 
     /**
-     * Runs the carbody inference only when the user is registering a CAR. For
-     * other vehicle types we never have a carbody, and a blank brand+model
-     * pair short-circuits to null so the UI doesn't flash a stale selection.
+     * Runs the carbody inference only for a type that HAS a body ([VehicleType.hasCarbody]). For
+     * the rest we never have a carbody, and a blank brand+model pair short-circuits to null so the
+     * UI doesn't flash a stale selection. A null type has not been chosen yet and is left open —
+     * this screen's brand/model fields imply a car, and the type picker rewrites the answer.
      *
      * When the user types a brand/model the catalog can't recognise (free-text
      * path), inference falls back to [DEFAULT_CAR_CARBODY] instead of null so the
      * form is never blocked — the user can refine it via the manual carbody
      * picker (the card always exposes a "change" affordance). [VEH-FREETEXT-001]
+     *
+     * [VEH-A-NEW-VEHICLE-TYPE-MUST-NOT-BE-A-CAR-BY-OMISSION-001] Was `inferIfCar`, asking `!= CAR`.
+     * The name and the question both said "car" where they meant "has a body".
      */
-    private fun inferIfCar(type: VehicleType?, brand: String, model: String): CarbodyType? {
-        if (type != null && type != VehicleType.CAR) return null
+    private fun inferCarbody(type: VehicleType?, brand: String, model: String): CarbodyType? {
+        if (type != null && !type.hasCarbody) return null
         if (brand.isBlank() && model.isBlank()) return null
         return VehicleCatalog.inferBodyType(brand, model) ?: DEFAULT_CAR_CARBODY
     }
 
     /**
      * Resolves the size dimension that gets persisted:
-     *  - non-CAR vehicle types are always [VehicleSize.MOTORCYCLE]
-     *  - CAR with a known carbody uses [CarbodyType.sizeCategory]
-     *  - CAR without an inferred carbody returns null so the form stays gated
+     *  - a type with no carbody is always [VehicleSize.MOTORCYCLE]
+     *  - a bodied type with a known carbody uses [CarbodyType.sizeCategory]
+     *  - a bodied type without an inferred carbody returns null so the form stays gated
      */
     private fun resolveSize(type: VehicleType?, body: CarbodyType?): VehicleSize? = when {
-        type != null && type != VehicleType.CAR -> VehicleSize.MOTORCYCLE
+        type != null && !type.hasCarbody -> VehicleSize.MOTORCYCLE
         body != null -> body.sizeCategory
         else -> null
     }
@@ -253,9 +260,9 @@ class VehicleRegistrationViewModel(
         // Silent CAR default for safety — UI requires a pick (canSubmit gate),
         // so this only triggers on programmatic save paths. [BUG-SCOOTER-001]
         val type = current.vehicleType ?: VehicleType.CAR
-        // Carbody is required for CAR (canSubmit enforces it). Non-CAR types
-        // intentionally persist null.
-        val body = if (type == VehicleType.CAR) current.carbodyType else null
+        // Carbody is required for a bodied type (canSubmit enforces it); the rest intentionally
+        // persist null. [VEH-A-NEW-VEHICLE-TYPE-MUST-NOT-BE-A-CAR-BY-OMISSION-001]
+        val body = if (type.hasCarbody) current.carbodyType else null
         // name is required when both brand and model are blank — persist placeholder if that slips through
         val resolvedName = current.name.trim().ifBlank {
             if (current.brand.isBlank() && current.model.isBlank()) "Car ${current.defaultNamePlaceholderIndex}" else null

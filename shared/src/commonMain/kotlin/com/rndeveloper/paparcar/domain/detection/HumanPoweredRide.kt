@@ -95,7 +95,9 @@ fun isHumanPoweredRide(
 ): Boolean {
     // [DET-SOLID-001][C2] The profile answer stands on its own and always did: a registered bike or
     // scooter never auto-confirms, whatever AR happens to think.
-    if (vehicleType == VehicleType.SCOOTER || vehicleType == VehicleType.BIKE) return true
+    // [VEH-A-NEW-VEHICLE-TYPE-MUST-NOT-BE-A-CAR-BY-OMISSION-001] Asked of the type, which declares
+    // it. Spelled out here, a type added tomorrow would have been motorised by omission.
+    if (vehicleType?.isHumanPowered == true) return true
 
     // [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001] MEASURED MOTOR REFUTES EVERYTHING BELOW.
     //

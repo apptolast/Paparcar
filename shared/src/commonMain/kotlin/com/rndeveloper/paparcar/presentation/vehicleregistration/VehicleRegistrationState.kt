@@ -70,8 +70,14 @@ data class VehicleRegistrationState(
     /** True when there is more than one vehicle — prevents deleting the last one. */
     val canDelete: Boolean get() = existingVehicleCount > 1
 
-    /** True when the vehicle is a car-like body and therefore expects a [carbodyType]. */
-    val expectsCarbody: Boolean get() = vehicleType == VehicleType.CAR
+    /**
+     * True when the vehicle is a car-like body and therefore expects a [carbodyType].
+     *
+     * [VEH-A-NEW-VEHICLE-TYPE-MUST-NOT-BE-A-CAR-BY-OMISSION-001] Asked of the type
+     * ([VehicleType.hasCarbody]) instead of spelled as `== CAR`. Null (no type chosen yet) is not a
+     * car: the form is not gated on a body until the user says it is one.
+     */
+    val expectsCarbody: Boolean get() = vehicleType?.hasCarbody == true
 
     /**
      * CTA is enabled when:

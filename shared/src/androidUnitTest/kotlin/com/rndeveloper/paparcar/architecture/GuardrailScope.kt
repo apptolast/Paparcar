@@ -227,6 +227,17 @@ object GuardrailScope {
         productionSourceFiles().filter { (it.packagee?.name ?: "").startsWith(DOMAIN) }
     }
 
+    /**
+     * [productionSourceFiles] narrowed to the files that so much as MENTION [symbol] — the
+     * population a *vocabulary* rule filters ("nobody outside the type re-derives what the type
+     * means"). Rename the type and this drops to zero, which is precisely the case
+     * [population] refuses to let pass. [VEH-A-NEW-VEHICLE-TYPE-MUST-NOT-BE-A-CAR-BY-OMISSION-001]
+     */
+    fun productionFilesMentioning(symbol: String, floor: Int): List<KoFileDeclaration> = population(
+        name = "production sources mentioning $symbol",
+        floor = floor,
+    ) { _ -> productionSourceFiles().filter { it.text.contains(symbol) } }
+
     /** Every declared class in the project, for rules about where a KIND of class may live. */
     fun allClasses(): List<KoClassDeclaration> = classPopulation(
         name = "all project classes",
@@ -250,5 +261,6 @@ object GuardrailScope {
     const val COMMON_MAIN_PRODUCTION_FLOOR = 220    // measured 463
     const val PRODUCTION_SOURCES_FLOOR = 270        // measured 562
     const val DOMAIN_PRODUCTION_FLOOR = 100         // measured 210
+    const val VEHICLE_TYPE_MENTIONS_FLOOR = 10      // measured  21
     const val ALL_CLASSES_FLOOR = 300
 }

@@ -2,7 +2,6 @@ package com.rndeveloper.paparcar.domain.detection
 
 import com.rndeveloper.paparcar.domain.bluetooth.BluetoothScanner
 import com.rndeveloper.paparcar.domain.model.Vehicle
-import com.rndeveloper.paparcar.domain.model.VehicleType
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import kotlinx.coroutines.flow.first
 
@@ -19,14 +18,16 @@ import kotlinx.coroutines.flow.first
  * Resolution order (first match wins):
  * | Condition                                                      | Resolved   |
  * |----------------------------------------------------------------|------------|
- * | Primary vehicle type ∈ {SCOOTER, BIKE}                         | NONE       |
+ * | Primary vehicle type does not park in a spot                   | NONE       |
  * | CONNECTED to a paired car (bluetoothDeviceId, BT enabled, ACL up)| BLUETOOTH |
- * | Primary vehicle exists (and is not SCOOTER/BIKE)               | COORDINATOR|
+ * | Primary vehicle exists (and parks in a spot)                   | COORDINATOR|
  * | No primary vehicle                                              | COORDINATOR|
  *
  * Both BLUETOOTH and COORDINATOR converge on [ConfirmParkingUseCase]. NONE means
  * we skip parking detection entirely — scooters and bikes are dismounted on the
- * sidewalk and never liberate a parking spot. [BUG-SCOOTER-001]
+ * sidewalk and never liberate a parking spot. WHICH types those are is
+ * `VehicleType.parksInASpot`'s answer, not a list kept in this file.
+ * [BUG-SCOOTER-001][VEH-A-NEW-VEHICLE-TYPE-MUST-NOT-BE-A-CAR-BY-OMISSION-001]
  *
  * Note: when BLUETOOTH wins (connected to the car), Coordinator is suppressed even if the primary
  * vehicle has no BT pairing. Rationale: the BT receiver already covers the connected car
@@ -102,7 +103,9 @@ class ParkingStrategyResolver(
         // type that never parks, suppress detection entirely. With no primary at
         // all, fall through to COORDINATOR (legacy "no vehicle" behaviour).
         val primary = vehicles.firstOrNull { it.isActive } ?: vehicles.firstOrNull()
-        if (primary != null && primary.vehicleType in NON_PARKING_TYPES) {
+        // [VEH-A-NEW-VEHICLE-TYPE-MUST-NOT-BE-A-CAR-BY-OMISSION-001] The type declares whether it
+        // takes a parking space; this lane only reads the answer.
+        if (primary != null && !primary.vehicleType.parksInASpot) {
             return ParkingStrategy.NONE
         }
         return ParkingStrategy.COORDINATOR
@@ -125,9 +128,5 @@ class ParkingStrategyResolver(
         vehicles.any { it.isBtPairedAndParks() }
 
     private fun Vehicle.isBtPairedAndParks(): Boolean =
-        bluetoothDeviceId != null && vehicleType !in NON_PARKING_TYPES
-
-    private companion object {
-        val NON_PARKING_TYPES = setOf(VehicleType.SCOOTER, VehicleType.BIKE)
-    }
+        bluetoothDeviceId != null && vehicleType.parksInASpot
 }

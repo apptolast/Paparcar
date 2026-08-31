@@ -6346,3 +6346,53 @@ red; reverting turned it green. Comparing the TYPE is not forbidden — the comp
 vocabulary. Re-deriving membership from a spelling is.
 
 Spec: `docs/backlog/det-an-arm-label-is-parsed-once-not-spelled-at-every-door-001.md`.
+
+---
+
+### VEH-A-NEW-VEHICLE-TYPE-MUST-NOT-BE-A-CAR-BY-OMISSION-001 — four questions the type answers, instead of four answers spelled at four doors (pending)
+
+**Not a field report.** The last two memberships Piece 2 of the redesign left open
+(`VehicleType.isHumanPowered` and `NON_PARKING_TYPES`) — which turned out to be **four**.
+
+**What was there.** Everything `VehicleType` implies was re-derived at the site that needed it:
+
+| dónde | cómo se deletreaba | qué pregunta era en realidad |
+|---|---|---|
+| `HumanPoweredRide.kt:98` | `== SCOOTER \|\| == BIKE` | ¿es músculo? |
+| `ParkingStrategyResolver.kt` | `NON_PARKING_TYPES = setOf(SCOOTER, BIKE)` | ¿ocupa una plaza? |
+| `EvaluateParkingDecisionUseCase.kt:264` | `== CAR` (guard de mismatch) | ¿un viaje lento contradice el perfil? |
+| `VehicleRegistrationState.kt:74` + 4 sitios del ViewModel | `== CAR` | ¿tiene carrocería? |
+
+The three detection sites agreed on today's four constants, which is exactly why nobody noticed they
+are **three different questions**; the registration sites were a fourth. A fifth type added tomorrow
+would have inherited every answer by omission — a car that parks, with a body, whose slow trips are
+suspicious, whatever it actually was. A moped is motorised AND takes no car space; a cargo bike is
+muscle AND takes one.
+
+**The four properties** now live on the enum as exhaustive `when`s, each with its own reason written
+where it is answered: `isHumanPowered`, `parksInASpot`, `hasCarbody`, `slowTripContradictsProfile`. A
+new constant does not compile until its author has answered all four.
+
+⛔ **They are four and not one on purpose.** `hasCarbody` and `slowTripContradictsProfile` are both
+true for `CAR` alone for entirely unrelated reasons — one is the registration form asking for a body
+shape, the other is the `BUG-SCOOTER-001` guard, which `MOTORCYCLE` answers `false` to because it
+already IS the small slow-capable vehicle. `VehicleTypeQuestionsTest` states the non-collapse as a
+test, so merging two of them has to happen against an explicit claim rather than by looking green.
+
+**Zero behaviour delta.** Every rewritten expression answers exactly what it answered before, null
+included (`vehicleType == null` was not a car at any of the sites, and still is not).
+
+**Two sites the sweep found that the plan did not name.** The picker
+(`VehicleTypeSelector`) built its options from a hand-written `listOf`, so a type absent from it
+would be unchoosable while every downstream lane still handled it — it is now
+`VehicleType.entries.map { it.toOption() }` over an exhaustive `when`. And `inferIfCar` was renamed
+`inferCarbody`: the NAME said car where it meant "has a body".
+
+**New guardrail, seen failing before it was believed**: `no production code compares a value to a
+VehicleType constant` + `no vehicle type question falls back to an else branch`. Injecting the old
+`== SCOOTER || == BIKE` into `HumanPoweredRide` and an `else -> false` into `VehicleType` turned both
+red; reverting turned them green. Naming a type inside an exhaustive `when` is NOT forbidden (the
+compiler owns that vocabulary) and neither is constructing one (`?: VehicleType.CAR`, the
+registration and Room-migration defaults, which are about a missing value, not about meaning).
+
+Spec: `docs/backlog/veh-a-new-vehicle-type-must-not-be-a-car-by-omission-001.md`.
