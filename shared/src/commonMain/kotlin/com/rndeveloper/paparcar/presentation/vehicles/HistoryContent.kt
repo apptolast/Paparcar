@@ -160,19 +160,26 @@ fun HistoryContent(
     val dayLabels = DAY_SHORT_RES.map { stringResource(it) }
     val dayFullLabels = DAY_FULL_RES.map { stringResource(it) }
 
-    val allEnded = remember(state.sessions) { state.sessions.filter { !it.isActive } }
+    // Unresolved means "Room hasn't spoken yet", NOT "this car has no history": it renders the
+    // skeleton, and the empty state stays reserved for a history that really is empty.
+    // [UI-HISTORY-A-LOADING-LIST-MUST-NOT-CLAIM-TO-BE-EMPTY-001]
+    val resolved = state.timeline as? HistoryTimeline.Resolved
+    val sessions = resolved?.sessions.orEmpty()
+    val filteredSessions = resolved?.filteredSessions.orEmpty()
+
+    val allEnded = remember(sessions) { sessions.filter { !it.isActive } }
     // The activity chart now follows the selected time filter: buckets are built from the SCOPED
     // sessions with a granularity that matches the window (daily for a week, weekly for a month,
     // monthly for longer). Its total/scope label come from the same filter. [VEHICLES-REDESIGN-001]
-    val activityBuckets = remember(state.filteredSessions, state.activeFilter, dayLabels, monthNamesShort) {
-        buildActivityBuckets(state.filteredSessions, state.activeFilter, dayLabels, monthNamesShort)
+    val activityBuckets = remember(filteredSessions, state.activeFilter, dayLabels, monthNamesShort) {
+        buildActivityBuckets(filteredSessions, state.activeFilter, dayLabels, monthNamesShort)
     }
-    val scopeTotal = state.filteredSessions.size
+    val scopeTotal = filteredSessions.size
     // The History timeline is ALWAYS the complete list — the time filter scopes only the Activity
     // chart, never the timeline below it. So it reads from every session, not the filtered set.
     // [HOME-VEH-REFINE-001 · Task 4]
     val activeSession =
-        remember(state.sessions) { state.sessions.firstOrNull { it.isActive } }
+        remember(sessions) { sessions.firstOrNull { it.isActive } }
     val timelineItems =
         remember(allEnded, todayLabel, yesterdayLabel, monthNamesShort, dayFullLabels) {
             buildTimeline(allEnded, todayLabel, yesterdayLabel, monthNamesShort, dayFullLabels)
@@ -197,12 +204,12 @@ fun HistoryContent(
             modifier = Modifier.fillMaxSize(),
             contentPadding = listPadding,
         ) {
-            if (state.isLoading) {
+            if (resolved == null) {
                 if (header != null) item(key = "header") { header() }
                 item(key = "sk_section") {
                     HistorySkeletonSection(fillMaxSize = header == null)
                 }
-            } else if (state.sessions.isEmpty()) {
+            } else if (sessions.isEmpty()) {
                 item(key = "empty") {
                     // Un único item a viewport completo: la hero card arriba y el bloque vacío
                     // centrado en el hueco restante con weight(1f), así queda encuadrado en el
@@ -258,23 +265,23 @@ fun HistoryContent(
                     // Scoped km follow the same filter as the bars; all-history facts (day, street,
                     // auto share) appear only above their significance thresholds — a metric
                     // without data renders as nothing. [VEH-STATS-SAY-SOMETHING-USEFUL-001]
-                    val scopeDistanceMeters = remember(state.filteredSessions) {
-                        VehicleHistoryCalculator.sumDistanceMeters(state.filteredSessions)
+                    val scopeDistanceMeters = remember(filteredSessions) {
+                        VehicleHistoryCalculator.sumDistanceMeters(filteredSessions)
                     }
                     val facts = buildList {
-                        state.statsData?.mostActiveDayOfWeek?.let { day ->
+                        resolved.statsData?.mostActiveDayOfWeek?.let { day ->
                             add(ActivityFact(
                                 icon = Icons.Rounded.Event,
                                 text = stringResource(Res.string.history_fact_active_day, dayFullLabels[day - 1]),
                             ))
                         }
-                        state.statsData?.favoriteStreet?.let { street ->
+                        resolved.statsData?.favoriteStreet?.let { street ->
                             add(ActivityFact(
                                 icon = Icons.Rounded.Place,
                                 text = stringResource(Res.string.history_fact_favorite_street, street),
                             ))
                         }
-                        state.statsData?.autoDetected?.let { share ->
+                        resolved.statsData?.autoDetected?.let { share ->
                             add(ActivityFact(
                                 icon = Icons.Rounded.AutoAwesome,
                                 text = stringResource(Res.string.history_fact_auto_detected, share.auto, share.known),

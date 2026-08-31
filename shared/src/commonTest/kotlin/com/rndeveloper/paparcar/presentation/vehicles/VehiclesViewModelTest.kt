@@ -95,6 +95,36 @@ class VehiclesViewModelTest {
         assertEquals(0, stats.first().sessionCount)
     }
 
+    // ── Historial: "aún no lo sé" ≠ "no hay nada" ─────────────────────────────
+    // [UI-HISTORY-A-LOADING-LIST-MUST-NOT-CLAIM-TO-BE-EMPTY-001]
+
+    @Test
+    fun `should_report_history_as_unresolved_when_the_vehicle_is_not_in_the_cache_yet`() = runTest {
+        // Antes de la primera emisión no hay entrada de caché para ningún coche: el historial debe
+        // decir que NO SABE, no devolver una lista vacía ya resuelta (que la UI pinta como
+        // "aún no hay historial" sobre el coche del usuario).
+        assertIs<HistoryTimeline.Unresolved>(vm.state.value.historyState.timeline)
+    }
+
+    @Test
+    fun `should_report_history_as_resolved_and_empty_for_a_vehicle_with_no_sessions`() = runTest {
+        vehicleRepo.saveVehicle(vehicle("v1"))
+
+        val timeline = vm.state.value.historyState.timeline
+        assertIs<HistoryTimeline.Resolved>(timeline)
+        assertEquals(emptyList(), timeline.sessions)
+    }
+
+    @Test
+    fun `should_resolve_history_with_its_sessions_when_room_emits`() = runTest {
+        vehicleRepo.saveVehicle(vehicle("v1"))
+        parkingRepo.saveNewParkingSession(session("s1", vehicleId = "v1"))
+
+        val timeline = vm.state.value.historyState.timeline
+        assertIs<HistoryTimeline.Resolved>(timeline)
+        assertEquals(listOf("s1"), timeline.sessions.map { it.id })
+    }
+
     // ── SetActiveVehicle ──────────────────────────────────────────────────────
 
     @Test

@@ -17,9 +17,8 @@ import com.rndeveloper.paparcar.ui.theme.PaparcarTheme
 private fun previewHistory(sessions: List<com.rndeveloper.paparcar.domain.model.UserParking>) =
     FakeData.vehiclesWithStats.associate { vws ->
         vws.vehicle.id to HistoryState(
-            sessions = sessions,
+            timeline = HistoryTimeline.resolve(sessions, HistoryFilter.All),
             activeFilter = HistoryFilter.All,
-            filteredSessions = sessions,
         )
     }
 
@@ -126,6 +125,23 @@ private fun VehiclesLoadingPreview() {
     PaparcarTheme(darkTheme = false) {
         VehiclesContent(
             state = VehiclesState(isLoading = true),
+        )
+    }
+}
+
+// Los coches ya han llegado pero su historial NO: cada página cae en el fallback `Unresolved` y
+// debe pintar el skeleton bajo la hero card — nunca el "aún no hay historial".
+// [UI-HISTORY-A-LOADING-LIST-MUST-NOT-CLAIM-TO-BE-EMPTY-001]
+@Preview(name = "Vehicles — historial sin resolver", showBackground = true)
+@Composable
+private fun VehiclesHistoryUnresolvedPreview() {
+    PaparcarTheme(darkTheme = false) {
+        VehiclesContent(
+            state = VehiclesState(
+                vehicles = FakeData.vehiclesWithStats,
+                isLoading = false,
+                historyCache = emptyMap(),
+            ),
         )
     }
 }

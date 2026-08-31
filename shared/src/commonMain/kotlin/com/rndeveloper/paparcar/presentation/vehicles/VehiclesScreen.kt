@@ -248,8 +248,10 @@ private fun VehiclesPager(
         // Using the shared state.historyState (derived from selectedVehicleIndex)
         // would show the SELECTED vehicle's history on ALL visible pages during a
         // pager slide animation, making the incoming page appear to have the wrong content.
+        // A page whose vehicle is not in the cache yet is still WAITING, not empty.
+        // [UI-HISTORY-A-LOADING-LIST-MUST-NOT-CLAIM-TO-BE-EMPTY-001]
         val pageHistoryState = state.historyCache[vehicleWithStats.vehicle.id]
-            ?: HistoryState(isLoading = false)
+            ?: HistoryState(timeline = HistoryTimeline.Unresolved)
         // Carousel polish: the off-centre page eases out (alpha + scale) as you
         // swipe, so the incoming vehicle "settles" into focus instead of a flat slide.
         val pageOffset =

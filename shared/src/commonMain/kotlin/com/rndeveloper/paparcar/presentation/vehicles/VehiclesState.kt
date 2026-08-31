@@ -17,8 +17,13 @@ data class VehiclesState(
     val currentVehicleId: String?
         get() = vehicles.getOrNull(selectedVehicleIndex)?.vehicle?.id
 
+    /**
+     * No cache entry means this vehicle's history has NOT arrived yet — never that it has none.
+     * [UI-HISTORY-A-LOADING-LIST-MUST-NOT-CLAIM-TO-BE-EMPTY-001]
+     */
     val historyState: HistoryState
-        get() = currentVehicleId?.let { historyCache[it] } ?: HistoryState(isLoading = false)
+        get() = currentVehicleId?.let { historyCache[it] }
+            ?: HistoryState(timeline = HistoryTimeline.Unresolved)
 
     val activeVehicle: Vehicle?
         get() = vehicles

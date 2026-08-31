@@ -55,11 +55,12 @@ class VehiclesViewModel(
                         val vId = vws.vehicle.id
                         val vSessions = sessionsByVehicle[vId].orEmpty()
                         val existingFilter = historyCache[vId]?.activeFilter ?: HistoryFilter.All
+                        // This emission IS the answer to "¿ha llegado el historial?" — resolving it
+                        // here is what keeps the skeleton from being replaced by a false "no hay
+                        // nada". [UI-HISTORY-A-LOADING-LIST-MUST-NOT-CLAIM-TO-BE-EMPTY-001]
                         vId to HistoryState(
-                            sessions = vSessions,
+                            timeline = HistoryTimeline.resolve(vSessions, existingFilter, nowMs),
                             activeFilter = existingFilter,
-                            filteredSessions = VehicleHistoryCalculator.filter(vSessions, existingFilter, nowMs),
-                            statsData = VehicleHistoryCalculator.computeStats(vSessions),
                         )
                     }
                     copy(
@@ -93,10 +94,15 @@ class VehiclesViewModel(
             is VehiclesIntent.SetHistoryFilter -> {
                 val vehicleId = state.value.currentVehicleId ?: return
                 val currentHistory = state.value.historyCache[vehicleId] ?: return
+                // Nothing to re-scope until the history has arrived: an unresolved timeline has no
+                // sessions to filter, and must not be turned into a resolved-but-empty one.
+                val resolved = currentHistory.timeline as? HistoryTimeline.Resolved ?: return
                 val nowMs = Clock.System.now().toEpochMilliseconds()
-                val filtered = VehicleHistoryCalculator.filter(currentHistory.sessions, intent.filter, nowMs)
                 updateState {
-                    val updated = currentHistory.copy(activeFilter = intent.filter, filteredSessions = filtered)
+                    val updated = currentHistory.copy(
+                        timeline = HistoryTimeline.resolve(resolved.sessions, intent.filter, nowMs),
+                        activeFilter = intent.filter,
+                    )
                     copy(historyCache = historyCache + (vehicleId to updated))
                 }
             }

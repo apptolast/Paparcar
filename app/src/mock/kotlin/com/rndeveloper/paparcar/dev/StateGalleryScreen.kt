@@ -82,7 +82,7 @@ import com.rndeveloper.paparcar.presentation.vehicleregistration.VehicleRegistra
 import com.rndeveloper.paparcar.presentation.vehicles.HistoryContent
 import com.rndeveloper.paparcar.presentation.vehicles.HistoryFilter
 import com.rndeveloper.paparcar.presentation.vehicles.HistoryState
-import com.rndeveloper.paparcar.presentation.vehicles.VehicleHistoryCalculator
+import com.rndeveloper.paparcar.presentation.vehicles.HistoryTimeline
 import com.rndeveloper.paparcar.presentation.vehicles.VehiclesContent
 import com.rndeveloper.paparcar.presentation.vehicles.VehiclesState
 import com.apptolast.customlogin.presentation.screens.components.DefaultAuthContainer
@@ -204,6 +204,19 @@ private fun sheet(state: HomeState) {
         )
     }
 }
+
+// Un historial ya resuelto, con sus vistas derivadas calculadas por el MISMO sitio que las calcula
+// en producción — así la galería no puede mostrar un set filtrado que contradiga a su filtro.
+private fun resolvedHistory(
+    sessions: List<UserParking>,
+    filter: HistoryFilter = HistoryFilter.All,
+) = HistoryTimeline.resolve(sessions, filter)
+
+/** Historial ya resuelto para TODOS los coches falsos, que es lo que espera la pantalla Vehicles. */
+private fun vehiclesHistoryCache(sessions: List<UserParking>) =
+    FakeData.vehiclesWithStats.associate { vws ->
+        vws.vehicle.id to HistoryState(timeline = resolvedHistory(sessions))
+    }
 
 @Composable
 private fun history(state: HistoryState, watch: VehicleWatch = VehicleWatch.Assisted) {
@@ -1158,44 +1171,36 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             // El raíl, el punto pulsante y el wash de la sesión viva llevan la identidad del coche
             // de esa página del pager — no un verde fijo. [UI-HISTORY-IDENTITY-AND-SOURCE-001]
             Variant("Lista · coche asistido (verde)") {
-                history(HistoryState(
-                    sessions = FakeData.allSessions,
-                    filteredSessions = FakeData.allSessions,
-                    statsData = VehicleHistoryCalculator.computeStats(FakeData.allSessions),
-                ))
+                history(HistoryState(timeline = resolvedHistory(FakeData.allSessions)))
             },
             Variant("Lista · coche Bluetooth (azul)") {
                 history(
-                    HistoryState(
-                    sessions = FakeData.allSessions,
-                    filteredSessions = FakeData.allSessions,
-                    statsData = VehicleHistoryCalculator.computeStats(FakeData.allSessions),
-                ),
+                    HistoryState(timeline = resolvedHistory(FakeData.allSessions)),
                     watch = VehicleWatch.Bluetooth,
                 )
             },
             Variant("Lista · coche sin vigilancia (gris)") {
                 history(
-                    HistoryState(
-                    sessions = FakeData.allSessions,
-                    filteredSessions = FakeData.allSessions,
-                    statsData = VehicleHistoryCalculator.computeStats(FakeData.allSessions),
-                ),
+                    HistoryState(timeline = resolvedHistory(FakeData.allSessions)),
                     watch = VehicleWatch.Off,
                 )
             },
             Variant("Filtro: esta semana") {
                 history(
                     HistoryState(
-                        sessions = FakeData.allSessions,
-                        filteredSessions = FakeData.allSessions,
+                        timeline = resolvedHistory(FakeData.allSessions, HistoryFilter.ThisWeek),
                         activeFilter = HistoryFilter.ThisWeek,
-                        statsData = VehicleHistoryCalculator.computeStats(FakeData.allSessions),
                     ),
                 )
             },
-            Variant("Vacío") { history(HistoryState()) },
-            Variant("Cargando") { history(HistoryState(isLoading = true)) },
+            // Las DOS caras que antes eran el mismo valor: "no hay nada" frente a "aún no lo sé".
+            // [UI-HISTORY-A-LOADING-LIST-MUST-NOT-CLAIM-TO-BE-EMPTY-001]
+            Variant("Vacío (historial resuelto, sin sesiones)") {
+                history(HistoryState(timeline = resolvedHistory(emptyList())))
+            },
+            Variant("Sin resolver (skeleton)") {
+                history(HistoryState(timeline = HistoryTimeline.Unresolved))
+            },
         ),
     ),
     ScreenGroup(
@@ -1274,16 +1279,10 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             // Full history per vehicle so the activity chart + filter bar + timeline actually render
             // (the hero card alone doesn't exercise the History section). [VEHICLES-REDESIGN-001]
             Variant("Lista") {
-                val history = FakeData.vehiclesWithStats.associate { vws ->
-                    vws.vehicle.id to HistoryState(
-                        sessions = FakeData.allSessions,
-                        activeFilter = HistoryFilter.All,
-                        filteredSessions = FakeData.allSessions,
-                        // Same aggregation the ViewModel runs — the gallery must exercise the
-                        // plazas-cedidas cell and the facts footer. [VEH-STATS-SAY-SOMETHING-USEFUL-001]
-                        statsData = VehicleHistoryCalculator.computeStats(FakeData.allSessions),
-                    )
-                }
+                // Las vistas derivadas (filtrado + stats) salen del MISMO resolvedor que usa el
+                // ViewModel, así la galería ejercita la celda de plazas cedidas y el pie de facts.
+                // [VEH-STATS-SAY-SOMETHING-USEFUL-001]
+                val history = vehiclesHistoryCache(FakeData.allSessions)
                 VehiclesContent(
                     state = VehiclesState(
                         vehicles = FakeData.vehiclesWithStats,
@@ -1295,14 +1294,7 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             // Low-data: a single session in the window → the chart collapses to the compact summary
             // instead of a near-empty full-height chart. [VEHICLES-REDESIGN-001 · Task 3]
             Variant("Pocos datos") {
-                val oneSession = FakeData.endedSessions.take(1)
-                val history = FakeData.vehiclesWithStats.associate { vws ->
-                    vws.vehicle.id to HistoryState(
-                        sessions = oneSession,
-                        activeFilter = HistoryFilter.All,
-                        filteredSessions = oneSession,
-                    )
-                }
+                val history = vehiclesHistoryCache(FakeData.endedSessions.take(1))
                 VehiclesContent(
                     state = VehiclesState(
                         vehicles = FakeData.vehiclesWithStats,
@@ -1313,16 +1305,7 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             },
             // Bluetooth ficha (page 1 = Corolla): blue status pin, no method label. [HOME-VEH-REFINE-001]
             Variant("Ficha Bluetooth") {
-                val history = FakeData.vehiclesWithStats.associate { vws ->
-                    vws.vehicle.id to HistoryState(
-                        sessions = FakeData.allSessions,
-                        activeFilter = HistoryFilter.All,
-                        filteredSessions = FakeData.allSessions,
-                        // Same aggregation the ViewModel runs — the gallery must exercise the
-                        // plazas-cedidas cell and the facts footer. [VEH-STATS-SAY-SOMETHING-USEFUL-001]
-                        statsData = VehicleHistoryCalculator.computeStats(FakeData.allSessions),
-                    )
-                }
+                val history = vehiclesHistoryCache(FakeData.allSessions)
                 VehiclesContent(
                     state = VehiclesState(
                         vehicles = FakeData.vehiclesWithStats,
@@ -1335,16 +1318,7 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             // Inactive ficha (page 2 = Moto): grey pin, MUTED stats it still keeps, plus the separate
             // "Establecer como activo" row (absent for active / BT vehicles). [HOME-VEH-REFINE-001]
             Variant("Ficha inactiva (métricas atenuadas + activar)") {
-                val history = FakeData.vehiclesWithStats.associate { vws ->
-                    vws.vehicle.id to HistoryState(
-                        sessions = FakeData.allSessions,
-                        activeFilter = HistoryFilter.All,
-                        filteredSessions = FakeData.allSessions,
-                        // Same aggregation the ViewModel runs — the gallery must exercise the
-                        // plazas-cedidas cell and the facts footer. [VEH-STATS-SAY-SOMETHING-USEFUL-001]
-                        statsData = VehicleHistoryCalculator.computeStats(FakeData.allSessions),
-                    )
-                }
+                val history = vehiclesHistoryCache(FakeData.allSessions)
                 VehiclesContent(
                     state = VehiclesState(
                         vehicles = FakeData.vehiclesWithStats,
@@ -1356,6 +1330,18 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             },
             Variant("Vacío") { VehiclesContent(state = VehiclesState(vehicles = emptyList(), isLoading = false)) },
             Variant("Cargando") { VehiclesContent(state = VehiclesState(isLoading = true)) },
+            // Los coches ya están, su historial NO: cada página cae en el fallback `Unresolved` y
+            // pinta skeleton bajo la hero card, nunca el "aún no hay historial".
+            // [UI-HISTORY-A-LOADING-LIST-MUST-NOT-CLAIM-TO-BE-EMPTY-001]
+            Variant("Historial sin resolver") {
+                VehiclesContent(
+                    state = VehiclesState(
+                        vehicles = FakeData.vehiclesWithStats,
+                        isLoading = false,
+                        historyCache = emptyMap(),
+                    ),
+                )
+            },
         ),
     ),
     ScreenGroup(
