@@ -6887,3 +6887,53 @@ egress fixes, so that user loses both paths that do not require steps. It is the
 on measurement: `docs/backlog/det-a-walk-reporting-zero-is-still-a-walk-001.md`.
 
 Spec: `docs/backlog/det-a-disowned-anchor-takes-its-walk-with-it-001.md`.
+
+---
+
+### DET-A-RESOLVED-ARRIVAL-IS-RESOLVED-FOR-ALL-EIGHT-REASONS-001 — the seal was written for one of eight (pending)
+
+**Piece 3c of the redesign, and it closes Piece 3.** Audited against master first, and three of its
+four parts were already done by later tickets: the gap-entered anchor in the unattended save
+(`DET-GAP-ANCHOR-ZONE-001`, the hole has a duration so it BOUNDS the zone) and in the honest close
+(`DET-CLOSE-ZONE-WHEN-THE-BODY-WALKED-001`, the doubt is bounded by steps, not by fix accuracy). What
+was left alive was one site — the same shape 3b had.
+
+**The bug.** `maybeStampArrivalResolution()` decided whether to seal by comparing for **equality
+against ONE outcome**, `AbortedUnattended("gap_anchor")`. The verdict that produces that outcome has
+**eight** reasons, every one of them reaching the same `Ask` and ending the session through a single
+producer (`DetectionEffectExecutor.nudge`). So **seven arrivals out of eight were resolved by the
+coordinator and re-decided by the safety net a minute later, with less information** — which is
+literally the defect `DET-BACKFILL-TAINT-001` exists for (field 2026-07-30 20:42, Redmi/Jerez: the
+backfill planted the pin the coordinator had just refused), closed then for one reason and left open
+for the other seven.
+
+**The fix.** `SessionOutcome.resolvesTheArrival` — the fourth declared membership of a file whose own
+header already says that membership was being decided by *how the string was spelled*. Abstract, so a
+ninth outcome does not compile until its author answers.
+
+⛔ **The FALSE side is the interesting one, and `AbortedResponseTimeout` is the near miss.** It
+answers `false` on purpose: there the verdict WAS *save exact here* and a confirm GUARD refused it — a
+different actor, and the backfill's own placement runs through those same guards. The silent aborts
+never reached a park decision at all, and a `Confirmed` already has a pin.
+
+**And the seal carries its reason** (`KEY_ARRIVAL_RESOLUTION_REASON`), so a deferral can name its
+cause instead of being an unattributable skip — the same argument that gave every prompt its own
+reason. A stamp written by an older build has no reason field, and the trace says so rather than
+inventing one.
+
+⛔ **This also closes failure #6, exactly as 3b's audit predicted, with no code change of its own.**
+`EvaluateBackfillDeferralUseCase`'s "no seal → place normally" looked like a permissive default; it
+was not fixable alone, because while the seal was written for 1 of 8 the null WAS the normal case and
+deferring on it would have suppressed every legitimate backfill. With all eight sealed, the null
+finally means what it says.
+
+**Seen failing before it was believed**, one injection per direction: making the unattended abort not
+resolve (2 tests red), and widening the false side by letting `AbortedResponseTimeout` resolve (1
+red).
+
+⚠️ **What the suite does NOT cover, said rather than left implied**: the seal lives in
+`SharedPreferences`, written by an `androidMain` service. The CONDITION is what has been typed and
+tested; the prefs write and the worker's read have no test, exactly as before this ticket. The new
+trace line, which now names the reason, is what will show it in the field.
+
+Spec: `docs/backlog/det-a-resolved-arrival-is-resolved-for-all-eight-reasons-001.md`.

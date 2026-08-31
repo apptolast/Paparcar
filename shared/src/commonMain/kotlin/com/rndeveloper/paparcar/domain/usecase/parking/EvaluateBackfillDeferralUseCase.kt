@@ -39,6 +39,14 @@ class EvaluateBackfillDeferralUseCase(
      * @param nowMs            The placer's wall clock.
      * @param resolutionAtMs   WHEN the coordinator stamped the nudge-only resolution, or null when
      *                         no resolution is on record.
+     *
+     *   [DET-A-RESOLVED-ARRIVAL-IS-RESOLVED-FOR-ALL-EIGHT-REASONS-001] ⛔ **This null used to be the
+     *   NORMAL case, and that is why failure #6 of the redesign audit was not fixable on its own.**
+     *   The stamp was written for one of the eight unattended reasons, so seven resolved arrivals
+     *   arrived here indistinguishable from an arrival nobody had resolved — and making the null
+     *   defer would have suppressed every legitimate backfill instead. The seal is written for all
+     *   eight now, so a null here finally means what it says: *nothing resolved this arrival*, and
+     *   placing normally is the right answer. #6 closes with #7, which is what the audit predicted.
      * @param resolutionPoint  WHERE the resolved arrival's last fix was, or null when the stamp
      *                         carries no position (defensive: a stamp without a place cannot match
      *                         a trip — place normally).

@@ -106,7 +106,13 @@ class ParkingBackfillWorker(
                 resolutionPoint = resolution?.second,
             )
         ) {
-            PaparcarLogger.d(DIAG, "⊘ arrival already resolved nudge-only by the coordinator — deferring to the nudge, skipping placement [DET-BACKFILL-TAINT-001]")
+            PaparcarLogger.d(
+                DIAG,
+                "⊘ arrival already resolved nudge-only by the coordinator " +
+                    "(${resolution?.third ?: "reason not stamped — pre-field build"}) — deferring to " +
+                    "the nudge, skipping placement " +
+                    "[DET-BACKFILL-TAINT-001][DET-A-RESOLVED-ARRIVAL-IS-RESOLVED-FOR-ALL-EIGHT-REASONS-001]",
+            )
             runCatching {
                 detectionEventLogger.log(
                     DetectionEvent.Decision(
@@ -178,7 +184,9 @@ class ParkingBackfillWorker(
 
     /** The coordinator's persisted nudge-only arrival resolution: (stampedAtMs, lastFix), or null
      *  when none is on record / the stamp is unparseable. [DET-BACKFILL-TAINT-001] */
-    private fun readArrivalResolution(): Pair<Long, GpsPoint>? {
+    /** The stamp, with the reason that produced it — null on a stamp written before the field
+     *  existed. [DET-A-RESOLVED-ARRIVAL-IS-RESOLVED-FOR-ALL-EIGHT-REASONS-001] */
+    private fun readArrivalResolution(): Triple<Long, GpsPoint, String?>? {
         val prefs = applicationContext.getSharedPreferences(
             ParkingSafetyNetWorker.PREFS_NAME,
             Context.MODE_PRIVATE,
@@ -189,7 +197,12 @@ class ParkingBackfillWorker(
         val parts = raw.split(',')
         val lat = parts.getOrNull(0)?.toDoubleOrNull() ?: return null
         val lon = parts.getOrNull(1)?.toDoubleOrNull() ?: return null
-        return atMs to GpsPoint(latitude = lat, longitude = lon, accuracy = 0f, timestamp = atMs, speed = 0f)
+        val reason = prefs.getString(ParkingSafetyNetWorker.KEY_ARRIVAL_RESOLUTION_REASON, null)
+        return Triple(
+            atMs,
+            GpsPoint(latitude = lat, longitude = lon, accuracy = 0f, timestamp = atMs, speed = 0f),
+            reason,
+        )
     }
 
     companion object {

@@ -977,6 +977,10 @@ class ParkingSafetyNetWorker(
          *  (`arrivalResolutionWindowMs`) — no per-geofence pruning. */
         internal const val KEY_ARRIVAL_RESOLUTION_AT = "arrival_resolution_at"
         internal const val KEY_ARRIVAL_RESOLUTION_POS = "arrival_resolution_pos"
+        /** [DET-A-RESOLVED-ARRIVAL-IS-RESOLVED-FOR-ALL-EIGHT-REASONS-001] WHICH of the eight
+         *  unattended reasons resolved it, so a deferral can name its cause instead of being an
+         *  unattributable skip. Absent on a stamp written by a build that predated the field. */
+        internal const val KEY_ARRIVAL_RESOLUTION_REASON = "arrival_resolution_reason"
         /** [DET-UNWITNESSED-DISPLACEMENT-001] Last independently witnessed position of the BODY
          *  ("lat,lon" + accuracy + epoch ms): the end fix of every detection session and every
          *  safety-net check fix, latest wins. The honest close holds the next abort fix to

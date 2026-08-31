@@ -1282,12 +1282,19 @@ class CoordinatorDetectionService : LifecycleService() {
      * worker's wake; [ParkingBackfillWorker] reads it and defers the placement to the nudge.
      */
     private fun maybeStampArrivalResolution() {
-        if (parkingDetectionCoordinator.lastOutcome !=
-            SessionOutcome.AbortedUnattended(UnattendedSaveReason.GAP_ANCHOR.key)
-        ) {
-            return
-        }
+        // [DET-A-RESOLVED-ARRIVAL-IS-RESOLVED-FOR-ALL-EIGHT-REASONS-001] Was an equality against ONE
+        // outcome — `AbortedUnattended("gap_anchor")` — while the verdict that produces it has
+        // EIGHT reasons, every one of them reaching the same `Ask` through the same single
+        // producer. Seven arrivals out of eight were resolved by the coordinator and then quietly
+        // re-decided by the net a minute later, which is the whole defect DET-BACKFILL-TAINT-001
+        // exists for. The question is asked of the type now, so a ninth outcome has to answer it.
+        val outcome = parkingDetectionCoordinator.lastOutcome
+        if (!outcome.resolvesTheArrival) return
         val fix = parkingDetectionCoordinator.lastSessionFix ?: return
+        // The REASON travels with the stamp: a deferral that cannot say which resolution caused it
+        // is a decision no field test can check — the same argument that gave every prompt its own
+        // cause. [DET-PROMPT-STATES-ITS-REASON-001]
+        val reasonKey = (outcome as? SessionOutcome.AbortedUnattended)?.reasonKey
         runCatching {
             getSharedPreferences(ParkingSafetyNetWorker.PREFS_NAME, MODE_PRIVATE).edit {
                 putLong(ParkingSafetyNetWorker.KEY_ARRIVAL_RESOLUTION_AT, System.currentTimeMillis())
@@ -1295,10 +1302,16 @@ class CoordinatorDetectionService : LifecycleService() {
                     ParkingSafetyNetWorker.KEY_ARRIVAL_RESOLUTION_POS,
                     "${fix.latitude},${fix.longitude}",
                 )
+                if (reasonKey != null) {
+                    putString(ParkingSafetyNetWorker.KEY_ARRIVAL_RESOLUTION_REASON, reasonKey)
+                } else {
+                    remove(ParkingSafetyNetWorker.KEY_ARRIVAL_RESOLUTION_REASON)
+                }
             }
             PaparcarLogger.d(
                 DIAG,
-                "  ⑊ arrival resolution stamped: nudge-only (gap anchor) at ${fix.latitude},${fix.longitude} — net backfill will defer [DET-BACKFILL-TAINT-001]"
+                "  ⑊ arrival resolution stamped: nudge-only (${reasonKey ?: outcome.serialized}) at " +
+                    "${fix.latitude},${fix.longitude} — net backfill will defer [DET-BACKFILL-TAINT-001]"
             )
         }.onFailure { e -> PaparcarLogger.w(DIAG, "  ⚠ arrival-resolution stamp failed: ${e.message}") }
     }

@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.domain.detection.physics
 
+import com.rndeveloper.paparcar.domain.usecase.parking.UnattendedSaveReason
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -104,6 +105,48 @@ class SessionOutcomeTest {
         }
     }
 
+    /**
+     * [DET-A-RESOLVED-ARRIVAL-IS-RESOLVED-FOR-ALL-EIGHT-REASONS-001] The fourth membership, and the
+     * census that makes a ninth outcome a decision: **exactly** the unattended verdict's own aborts
+     * resolve the arrival, and nothing else does.
+     *
+     * The point of the list is the FALSE side. `AbortedResponseTimeout` is the near miss and it is
+     * `false` on purpose: there the verdict was *save exact here* and a confirm GUARD refused it —
+     * a different actor, and the backfill's own placement runs through those same guards. A
+     * `Confirmed` has a pin already; the silent aborts never reached a park decision at all.
+     */
+    @Test
+    fun should_let_exactly_the_unattended_verdict_resolve_the_arrival() {
+        everyOutcome.forEach { outcome ->
+            assertEquals(
+                outcome is SessionOutcome.AbortedUnattended,
+                outcome.resolvesTheArrival,
+                "resolvesTheArrival of $outcome",
+            )
+        }
+    }
+
+    /**
+     * …and for **all eight** reasons, which is the defect this closes: the service compared against
+     * `AbortedUnattended("gap_anchor")` alone, so seven arrivals out of eight were resolved by the
+     * coordinator and then re-decided by the safety net a minute later.
+     */
+    @Test
+    fun should_resolve_the_arrival_for_every_one_of_the_eight_unattended_reasons() {
+        assertTrue(
+            UnattendedSaveReason.entries.size >= MIN_UNATTENDED_REASONS,
+            "[${UnattendedSaveReason.entries.size} reasons] the census below is vacuous below " +
+                "$MIN_UNATTENDED_REASONS",
+        )
+        UnattendedSaveReason.entries.forEach { reason ->
+            assertTrue(
+                SessionOutcome.AbortedUnattended(reason.key).resolvesTheArrival,
+                "the coordinator resolved the arrival as nudge-only for ${reason.key}, and the " +
+                    "backfill must not re-decide it",
+            )
+        }
+    }
+
     /** [SessionOutcome.extendsSentryStreak] and its twin can never disagree: both read one source. */
     @Test
     fun should_never_let_the_two_streak_views_contradict_each_other() {
@@ -158,5 +201,10 @@ class SessionOutcomeTest {
     fun should_reset_the_storm_streak_when_the_user_stopped_it_by_hand() {
         assertTrue(SessionOutcome.StoppedByUser.resetsSentryStreak)
         assertFalse(SessionOutcome.StoppedByUser.triggersHonestClose)
+    }
+
+    private companion object {
+        /** Eight reasons today; half, per the floors doctrine of `GuardrailScope`. */
+        const val MIN_UNATTENDED_REASONS = 4
     }
 }

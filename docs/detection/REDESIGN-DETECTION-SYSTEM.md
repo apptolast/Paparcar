@@ -457,7 +457,7 @@ Rutas relativas a `shared/src/commonMain/kotlin/com/rndeveloper/paparcar` (`$C`)
 | 4 | `$C/domain/detection/ParkingDetectionSource.kt:58-68` | cómo se presenta el pin | `else -> Assisted` (existiendo `Unknown`); y `startsWith("bt")` por **prefijo** |
 | 5 | `$C/domain/usecase/detection/EvaluateGeofenceExitUseCase.kt:88` | confianza del EXIT | `deliveredAtMeters == null` → **boundary**, la máxima confianza, sin probe ni sello |
 | 6 | `$C/domain/usecase/parking/EvaluateBackfillDeferralUseCase.kt:53` | diferir o plantar | sello nulo/ilegible/reloj atrás → **planta el pin** |
-| 7 | `$A/detection/service/CoordinatorDetectionService.kt:1202` | escribir el sello | sólo sella `GAP_ANCHOR` de **8** razones → las otras 7 las re-decide el backfill |
+| 7 | `$A/detection/service/CoordinatorDetectionService.kt:1202` | escribir el sello | sólo sella `GAP_ANCHOR` de **8** razones → las otras 7 las re-decide el backfill. *(cerrado el 31-08, `DET-A-RESOLVED-ARRIVAL-IS-RESOLVED-FOR-ALL-EIGHT-REASONS-001`: la pregunta se le hace al tipo, `SessionOutcome.resolvesTheArrival`; **cierra #6 con él**)* |
 | 8 | `$C/domain/detection/physics/EvidenceAdmissibility.kt:33` | admitir evidencia | `sessionStartMs == null` → **admite** (un AR re-entregado vuelve a valer) |
 | 9 | `$C/domain/model/ParkingDetectionConfig.kt:1332` `isCredibleDrivingSpeed` | certificar conducción | `accuracyMeters == null` → **certifica** |
 | 10 | `$C/domain/detection/state/AnchorPredicates.kt:212` `isEgressBornAtAnchor` | si hay duda del ancla | sin ancla o sin birth → `true` = **no hay duda** (sus 7 hermanas devuelven `false`). *(cerrado el 31-08, `DET-NOTHING-TO-JUDGE-IS-NOT-NO-DOUBT-001`: tres valores, y el caso sin birth ahora PREGUNTA con motivo propio)* |
@@ -654,6 +654,23 @@ precio sube después. Revertible en una línea.
 vale para el guardado desatendido, ni para el backfill, ni para el honest close. Y el sello de
 resolución se escribe para **las 8** razones, no para 1 (#7).
 
+✅ **Hecho el 31-08 (`DET-A-RESOLVED-ARRIVAL-IS-RESOLVED-FOR-ALL-EIGHT-REASONS-001`) — y con esto la
+Pieza 3 queda COMPLETA.** Auditado antes de tocar: de las cuatro partes, **tres ya estaban cerradas**
+por tickets posteriores — el ancla de hueco en el guardado desatendido (`DET-GAP-ANCHOR-ZONE-001`: el
+hueco tiene DURACIÓN, así que acota la zona en vez de invalidarla) y en el honest close
+(`DET-CLOSE-ZONE-WHEN-THE-BODY-WALKED-001`: la duda se acota por pasos, no por la accuracy del fix).
+
+Quedaba **#7**, y era exacto: el sello se decidía por **igualdad contra UN outcome**
+(`AbortedUnattended("gap_anchor")`) mientras el veredicto que lo produce tiene **ocho** razones, todas
+por el mismo `Ask` y el mismo productor único. **Siete de cada ocho llegadas se resolvían y las volvía
+a decidir el safety net un minuto después.** Ahora la pregunta se le hace al tipo
+(`SessionOutcome.resolvesTheArrival`, cuarta membresía declarada), y el sello **se lleva la razón**
+para que el aplazamiento pueda nombrar su causa.
+
+⛔ **Y cierra #6 sin cambiarle una línea**, como predijo el audit de 3b: mientras el sello fuera de 1
+de 8, su `null` era el caso NORMAL y diferir habría suprimido todo backfill legítimo. Con las ocho
+selladas, el `null` por fin significa *nadie resolvió esta llegada*.
+
 ---
 
 ### Pieza 4 · Ningún reloj planta un pin
@@ -724,7 +741,7 @@ estilo de los `ColorGuardrailTest` / `TypographyGuardrailTest` que ya existen:
 | 1 | `DET-DRIVING-EVIDENCE-VALUE-OBJECT-001` (Pieza 1) ✅ | §6.0, la raíz | hecho |
 | 2 | `DET-NO-CLOCK-PLANTS-A-PIN-001` (Pieza 4) ✅ | pin a 142 m, batería | hecho |
 | 3 | `DET-DETECTION-PATH-IS-A-TYPE-001` (Pieza 2) 🟡 | #4 #12 (#13 era falsa alarma) | parcial |
-| 4 | `DET-FAIL-CLOSED-BY-CONSTRUCTION-001` (Pieza 3) 🟡 | #5 #9 #10 #14 #15 (#8 y #16 refutados/borrados) | **3a y 3b completos**; falta **3c** (#7, que ahora arrastra también #6) |
+| 4 | `DET-FAIL-CLOSED-BY-CONSTRUCTION-001` (Pieza 3) 🟢 | #5 #6 #7 #9 #10 #14 #15 (#8 y #16 refutados/borrados) | **COMPLETA** (3a · 3b · 3c) el 31-08 |
 | 5 | `DET-TWO-TIER-SENTRY-001` (Pieza 5) ✅ | 28→1 armados, batería | hecho ⏳ medir en campo |
 | 6 | `DET-DOUBT-MUST-REACH-THE-SCREEN-001` (Pieza 6) ✅ | §1.5 | hecho ⏳ sin ver en device |
 | 7 | `DET-GUARDRAILS-KEEP-THE-DOCTRINE-001` (Pieza 7) 🟡 | que no se deshaga | 3 reglas hechas; replays pendientes |
@@ -742,10 +759,16 @@ un default permisivo — vigila una SEÑAL que nomina, y el contrato de triggers
 viejo pasa al evaluador, nunca se descarta. Fallar cerrado gobierna lo que PLANTA, no lo que nomina.
 Es una distinción que le falta a la Pieza 3b y que conviene escribir en ella.
 
-🟢 **Y sus apartados 3a y 3b están COMPLETOS** (31-08): #14 y #16 ya lo estaban, #15 se cerró con
-`DET-A-DOUBT-FIELD-MUST-NOT-DEFAULT-TO-CERTAINTY-001` y **3b con
+🟢 **La Pieza 3 está COMPLETA** (31-08): #14 y #16 ya lo estaban, #15 se cerró con
+`DET-A-DOUBT-FIELD-MUST-NOT-DEFAULT-TO-CERTAINTY-001`, **3b con
 `DET-NOTHING-TO-JUDGE-IS-NOT-NO-DOUBT-001`** (#10 cerrado, la política escrita, y #6 declarado
-inseparable de #7). Queda **3c**. ⚠️ Y una advertencia que 3b hereda del 3a: los defaults
+inseparable de #7) y **3c con `DET-A-RESOLVED-ARRIVAL-IS-RESOLVED-FOR-ALL-EIGHT-REASONS-001`**, que
+cerró #7 y con él #6.
+
+📌 **Patrón que se repitió en los tres apartados**: al auditar contra master, la mayoría de los sitios
+que cada uno listaba **ya estaban cerrados de uno en uno por tickets posteriores**, y lo que quedaba
+vivo era UN sitio — más lo que el plan no había escrito en ninguna parte (la política de nulos en 3b).
+Auditar antes de implementar no fue ceremonia: cambió el alcance de los tres. ⚠️ Y una advertencia que 3b hereda del 3a: los defaults
 de #15 se justificaban en su propio KDoc *"for legacy callers"* y **no existía ni un legacy caller** —
 un campo con default en un input de evaluador no es compatibilidad, es una respuesta permanente que
 nadie tiene que dar. El barrido encontró además 2 defaults en el input HERMANO (`UnattendedSaveInput`),

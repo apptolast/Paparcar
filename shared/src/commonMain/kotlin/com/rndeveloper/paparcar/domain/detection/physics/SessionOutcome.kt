@@ -73,6 +73,23 @@ sealed interface SessionOutcome {
     /** @see SentryStreakEffect */
     val sentryStreakEffect: SentryStreakEffect
 
+    /**
+     * [DET-A-RESOLVED-ARRIVAL-IS-RESOLVED-FOR-ALL-EIGHT-REASONS-001] **Did the coordinator reach a
+     * verdict about this arrival and answer "only the user can mark it"?**
+     *
+     * When it did, the 15-minute safety net's backfill must NOT re-decide the same arrival with
+     * less information — it stamps the resolution to disk at the abort and the backfill defers to
+     * the nudge. That is `DET-BACKFILL-TAINT-001`, opened by field 2026-07-30 20:42 (Redmi/Jerez),
+     * where the backfill planted the pin the coordinator had just refused.
+     *
+     * ⛔ The service used to ask this question by comparing against **one** outcome —
+     * `AbortedUnattended("gap_anchor")` — while the verdict that produces it has **eight** reasons,
+     * all of them reaching the same `Ask`, all of them ending the session through the same single
+     * producer. Seven arrivals out of eight were resolved and then quietly re-decided. Asked of the
+     * type now, so a ninth outcome has to answer.
+     */
+    val resolvesTheArrival: Boolean
+
     val extendsSentryStreak: Boolean get() = sentryStreakEffect == SentryStreakEffect.EXTENDS
     val resetsSentryStreak: Boolean get() = sentryStreakEffect == SentryStreakEffect.RESETS
 
@@ -82,6 +99,8 @@ sealed interface SessionOutcome {
         override val isConfirmed = false
         override val triggersHonestClose = false
         override val sentryStreakEffect = SentryStreakEffect.RESETS
+        /** `false` - no verdict was reached at all. */
+        override val resolvesTheArrival = false
     }
 
     /**
@@ -107,6 +126,8 @@ sealed interface SessionOutcome {
         override val isConfirmed = false
         override val triggersHonestClose = false
         override val sentryStreakEffect = SentryStreakEffect.RESETS
+        /** `false` - a newer park replaced it; there is nothing pending to re-decide. */
+        override val resolvesTheArrival = false
     }
 
     /** Armed by a trigger the session's own stream then refuted — nothing drove. One of the two
@@ -117,6 +138,8 @@ sealed interface SessionOutcome {
         override val isConfirmed = false
         override val triggersHonestClose = true
         override val sentryStreakEffect = SentryStreakEffect.EXTENDS
+        /** `false` - the session never reached a park decision. */
+        override val resolvesTheArrival = false
     }
 
     /** The stop clock ran out with no movement worth a candidate. The other silent walking abort. */
@@ -125,6 +148,8 @@ sealed interface SessionOutcome {
         override val isConfirmed = false
         override val triggersHonestClose = true
         override val sentryStreakEffect = SentryStreakEffect.EXTENDS
+        /** `false` - idem - nothing arrived, so nothing was resolved. */
+        override val resolvesTheArrival = false
     }
 
     /**
@@ -144,6 +169,8 @@ sealed interface SessionOutcome {
         override val isConfirmed = false
         override val triggersHonestClose = false
         override val sentryStreakEffect = SentryStreakEffect.RESETS
+        /** `false` - idem. */
+        override val resolvesTheArrival = false
     }
 
     /** No vehicle could be attributed, so nothing could be saved to anything. */
@@ -152,6 +179,8 @@ sealed interface SessionOutcome {
         override val isConfirmed = false
         override val triggersHonestClose = false
         override val sentryStreakEffect = SentryStreakEffect.RESETS
+        /** `false` - nothing could be saved to anything; the net may still try. */
+        override val resolvesTheArrival = false
     }
 
     /** The user was asked and never answered within `confirmationResponseTimeoutMs`. A question was
@@ -161,6 +190,8 @@ sealed interface SessionOutcome {
         override val isConfirmed = false
         override val triggersHonestClose = false
         override val sentryStreakEffect = SentryStreakEffect.RESETS
+        /** `false` - the verdict WAS 'save exact here' and a confirm GUARD refused it - a different actor, and the backfill's own placement goes through those same guards. */
+        override val resolvesTheArrival = false
     }
 
     /**
@@ -174,6 +205,8 @@ sealed interface SessionOutcome {
         override val isConfirmed = false
         override val triggersHonestClose = false
         override val sentryStreakEffect = SentryStreakEffect.RESETS
+        /** `false` - the user turned detection off; the net does not run either. */
+        override val resolvesTheArrival = false
     }
 
     /**
@@ -188,6 +221,8 @@ sealed interface SessionOutcome {
         override val isConfirmed = false
         override val triggersHonestClose = false
         override val sentryStreakEffect = SentryStreakEffect.RESETS
+        /** `true` - the verdict itself said nudge-only, for whichever of the eight reasons. */
+        override val resolvesTheArrival = true
     }
 
     /** A park was saved. [pathLabel] is the `detectionPath` that earned it. */
@@ -196,6 +231,8 @@ sealed interface SessionOutcome {
         override val isConfirmed = true
         override val triggersHonestClose = false
         override val sentryStreakEffect = SentryStreakEffect.RESETS
+        /** `false` - a pin exists; the backfill has nothing to place. */
+        override val resolvesTheArrival = false
     }
 
     /**
@@ -210,5 +247,7 @@ sealed interface SessionOutcome {
         override val isConfirmed = false
         override val triggersHonestClose = false
         override val sentryStreakEffect = SentryStreakEffect.RESETS
+        /** `false` - the save was attempted and failed - a retry is not a re-decision. */
+        override val resolvesTheArrival = false
     }
 }
