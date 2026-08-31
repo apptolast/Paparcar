@@ -11,6 +11,7 @@ import com.rndeveloper.paparcar.fakes.FakeLocationDataSource
 import com.rndeveloper.paparcar.fakes.FakeUserParkingRepository
 import com.rndeveloper.paparcar.fakes.FakeVehicleRepository
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.yield
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -19,6 +20,7 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import app.cash.turbine.test
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
@@ -112,6 +114,50 @@ class ParkingHistoryViewModelTest {
         val state = ParkingHistoryState(allSessions = null, focusedSessionId = "s1")
         assertFalse(state.hasOlder)
         assertFalse(state.hasNewer)
+    }
+
+    // ── Quitar del historial [PARK-A-HISTORIC-PARKING-CAN-BE-WITHDRAWN-001] ───
+
+    @Test
+    fun `should_withdraw_the_parking_from_the_history_on_WithdrawParking`() = runTest {
+        val vm = buildVm(sessions = listOf(sessionAt("s1", 1_000L), sessionAt("s2", 2_000L)))
+        vm.handleIntent(ParkingHistoryIntent.SetFocusedSession("s1"))
+
+        vm.handleIntent(ParkingHistoryIntent.WithdrawParking("s1"))
+        // The retraction lands through a combine of four flows — let it settle before reading.
+        yield()
+
+        // It leaves the history reads — and with it, this screen's focus.
+        assertEquals(listOf("s2"), vm.state.value.allSessions?.map { it.id })
+        assertIs<FocusedParking.NotFound>(vm.state.value.focusedParking)
+    }
+
+    @Test
+    fun `should_emit_Withdrawn_so_the_screen_leaves`() = runTest {
+        val vm = buildVm(sessions = listOf(sessionAt("s1", 1_000L)))
+        vm.effect.test {
+            vm.handleIntent(ParkingHistoryIntent.WithdrawParking("s1"))
+            assertIs<ParkingHistoryEffect.Withdrawn>(awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `should_not_offer_to_withdraw_a_live_session`() = runTest {
+        // Ending a LIVE parking is a teardown Home owns; hiding it here would leave detection
+        // watching a session the user can no longer see.
+        val live = sessionAt("live", 5_000L).copy(isActive = true)
+        val state = ParkingHistoryState(allSessions = listOf(live), focusedSessionId = "live")
+        assertFalse(state.canWithdraw)
+    }
+
+    @Test
+    fun `should_offer_to_withdraw_a_closed_session`() = runTest {
+        val state = ParkingHistoryState(
+            allSessions = listOf(sessionAt("s1", 1_000L)),
+            focusedSessionId = "s1",
+        )
+        assertTrue(state.canWithdraw)
     }
 
     // ── Focus + timeline stepper (‹ older / › newer) [HISTORY-DETAIL-002] ─────

@@ -1,3 +1,5 @@
+@file:OptIn(kotlin.time.ExperimentalTime::class)
+
 package com.rndeveloper.paparcar.presentation.map
 
 import com.rndeveloper.paparcar.domain.error.PaparcarError
@@ -12,6 +14,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlin.time.Clock
 
 class ParkingHistoryViewModel(
     observeAdaptiveLocation: ObserveAdaptiveLocationUseCase,
@@ -63,6 +66,18 @@ class ParkingHistoryViewModel(
             // stepping NEWER walks up (-1). Chevrons read as a timeline: ‹ past, › toward today.
             ParkingHistoryIntent.FocusOlder -> stepFocus(+1)
             ParkingHistoryIntent.FocusNewer -> stepFocus(-1)
+
+            // A retraction, straight to the repository — there is no decision to make here, exactly
+            // like ResolveInferredRoute below. The row leaves the history and survives for
+            // diagnostics. [PARK-A-HISTORIC-PARKING-CAN-BE-WITHDRAWN-001]
+            is ParkingHistoryIntent.WithdrawParking -> viewModelScope.launch {
+                userParkingRepository
+                    .retractParkingSession(intent.sessionId, Clock.System.now().toEpochMilliseconds())
+                    .onSuccess { sendEffect(ParkingHistoryEffect.Withdrawn) }
+                    .onFailure { e ->
+                        sendEffect(ParkingHistoryEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))
+                    }
+            }
 
             // The user's verdict on a reconstructed stretch — persisted (and synced); the observed
             // sessions flow re-renders the map with the answer applied. [ROUTE-GAP-HONEST-001]

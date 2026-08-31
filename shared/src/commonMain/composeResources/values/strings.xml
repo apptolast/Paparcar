@@ -234,6 +234,9 @@
     <string name="parking_detail_route_inferred_no">No</string>
     <string name="parking_detail_next">Next parking</string>
     <string name="parking_detail_not_in_history">This parking is no longer in your history</string>
+    <string name="parking_detail_withdraw_action">Remove from history</string>
+    <string name="parking_detail_withdraw_confirm_title">Remove this parking?</string>
+    <string name="parking_detail_withdraw_confirm_body">It disappears from your history and from the map. The spot you already shared with the community stays as it was.</string>
     <string name="parking_detail_detection_auto">Auto-detected</string>
     <string name="parking_detail_detection_bluetooth">Automatic (Bluetooth)</string>
     <string name="parking_detail_detection_assisted">Assisted</string>

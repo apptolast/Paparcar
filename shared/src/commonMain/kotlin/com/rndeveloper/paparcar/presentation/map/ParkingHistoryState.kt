@@ -83,6 +83,15 @@ data class ParkingHistoryState(
     val hasOlder: Boolean
         get() = focusedIndex in 0 until orderedSessions.lastIndex
 
+    /**
+     * Whether the focused parking may be withdrawn from here. A LIVE session may not: ending one is a
+     * teardown (geofence, notification, the spot it may still publish) that Home owns through
+     * `RevertParkingUseCase` — withdrawing it here would hide it from the history while detection
+     * kept watching it. [PARK-A-HISTORIC-PARKING-CAN-BE-WITHDRAWN-001]
+     */
+    val canWithdraw: Boolean
+        get() = (focusedParking as? FocusedParking.Resolved)?.session?.isActive == false
+
     /** The registered vehicle that owns the focused session, or null if it was deleted / unresolved. */
     val focusedVehicle: Vehicle?
         get() = (focusedParking as? FocusedParking.Resolved)?.session

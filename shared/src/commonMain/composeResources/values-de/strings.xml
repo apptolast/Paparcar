@@ -171,6 +171,9 @@
     <string name="parking_detail_route_inferred_no">Nein</string>
     <string name="parking_detail_next">Nächster Parkplatz</string>
     <string name="parking_detail_not_in_history">Dieser Parkplatz ist nicht mehr in deinem Verlauf</string>
+    <string name="parking_detail_withdraw_action">Aus dem Verlauf entfernen</string>
+    <string name="parking_detail_withdraw_confirm_title">Diesen Parkplatz entfernen?</string>
+    <string name="parking_detail_withdraw_confirm_body">Er verschwindet aus deinem Verlauf und von der Karte. Der Platz, den du bereits mit der Community geteilt hast, bleibt unverändert.</string>
     <string name="parking_detail_detection_auto">Automatisch erkannt</string>
     <string name="parking_detail_detection_bluetooth">Automatisch (Bluetooth)</string>
     <string name="parking_detail_detection_assisted">Assistiert</string>

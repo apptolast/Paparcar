@@ -170,6 +170,9 @@
     <string name="parking_detail_route_inferred_no">No</string>
     <string name="parking_detail_next">Parcheggio successivo</string>
     <string name="parking_detail_not_in_history">Questo parcheggio non è più nel tuo storico</string>
+    <string name="parking_detail_withdraw_action">Rimuovi dallo storico</string>
+    <string name="parking_detail_withdraw_confirm_title">Rimuovere questo parcheggio?</string>
+    <string name="parking_detail_withdraw_confirm_body">Sparisce dal tuo storico e dalla mappa. Il posto che hai già condiviso con la comunità resta com’era.</string>
     <string name="parking_detail_detection_auto">Rilevamento automatico</string>
     <string name="parking_detail_detection_bluetooth">Automatico (Bluetooth)</string>
     <string name="parking_detail_detection_assisted">Assistito</string>

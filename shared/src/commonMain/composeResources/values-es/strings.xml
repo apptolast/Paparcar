@@ -218,6 +218,9 @@
     <string name="parking_detail_route_inferred_no">No</string>
     <string name="parking_detail_next">Aparcamiento siguiente</string>
     <string name="parking_detail_not_in_history">Este aparcamiento ya no está en tu historial</string>
+    <string name="parking_detail_withdraw_action">Quitar del historial</string>
+    <string name="parking_detail_withdraw_confirm_title">¿Quitar este aparcamiento?</string>
+    <string name="parking_detail_withdraw_confirm_body">Desaparece de tu historial y del mapa. La plaza que ya compartiste con la comunidad se queda como estaba.</string>
     <string name="parking_detail_detection_auto">Detección automática</string>
     <string name="parking_detail_detection_bluetooth">Automático (Bluetooth)</string>
     <string name="parking_detail_detection_assisted">Asistido</string>

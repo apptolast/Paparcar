@@ -25,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Bluetooth
 import androidx.compose.material.icons.rounded.Bolt
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.ChevronLeft
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.EditLocationAlt
@@ -74,6 +75,8 @@ import com.rndeveloper.paparcar.ui.components.GlassSurface
 import com.rndeveloper.paparcar.ui.components.PapCollapsingTopBarScaffold
 import com.rndeveloper.paparcar.ui.components.PapFooterButton
 import com.rndeveloper.paparcar.ui.components.PapFooterButtonStyle
+import com.rndeveloper.paparcar.ui.components.PapAlertDialog
+import com.rndeveloper.paparcar.ui.components.PapDialogAccent
 import com.rndeveloper.paparcar.ui.components.PaparcarMapConfig
 import com.rndeveloper.paparcar.ui.components.PaparcarMapView
 import com.rndeveloper.paparcar.ui.components.PapShimmerBox
@@ -105,6 +108,10 @@ import paparcar.composeapp.generated.resources.location_fallback_parking
 import paparcar.composeapp.generated.resources.common_directions
 import paparcar.composeapp.generated.resources.parking_detail_next
 import paparcar.composeapp.generated.resources.parking_detail_not_in_history
+import paparcar.composeapp.generated.resources.home_release_dialog_cancel
+import paparcar.composeapp.generated.resources.parking_detail_withdraw_confirm_body
+import paparcar.composeapp.generated.resources.parking_detail_withdraw_confirm_title
+import paparcar.composeapp.generated.resources.parking_detail_withdraw_action
 import paparcar.composeapp.generated.resources.parking_detail_prev
 import paparcar.composeapp.generated.resources.parking_detail_route_inferred_no
 import paparcar.composeapp.generated.resources.parking_detail_route_inferred_question
@@ -127,6 +134,17 @@ fun ParkingHistoryDetailScreen(
     LaunchedEffect(sessionId) {
         if (sessionId.isNotBlank()) {
             viewModel.handleIntent(ParkingHistoryIntent.SetFocusedSession(sessionId))
+        }
+    }
+
+    // Withdrawing leaves nothing to read on this screen, so it closes.
+    // [PARK-A-HISTORIC-PARKING-CAN-BE-WITHDRAWN-001]
+    LaunchedEffect(Unit) {
+        viewModel.effect.collect { effect ->
+            when (effect) {
+                ParkingHistoryEffect.Withdrawn -> onNavigateBack()
+                is ParkingHistoryEffect.ShowError -> Unit
+            }
         }
     }
 
@@ -307,6 +325,11 @@ fun ParkingHistoryDetailScreen(
                 .fillMaxWidth()
                 .onGloballyPositioned { sheetHeightPx = it.size.height },
             onNavigate = { lat, lon -> openNavigation(lat, lon, false) },
+            onWithdraw = if (state.canWithdraw) {
+                { focusedSession?.let { viewModel.handleIntent(ParkingHistoryIntent.WithdrawParking(it.id)) } }
+            } else {
+                null
+            },
         )
 
         // Los mandos del mapa, los mismos de Home: centrar en mí · centrar en ESTE aparcamiento ·
@@ -437,6 +460,8 @@ fun HistoryDetailSheet(
     onNewer: () -> Unit,
     onNavigate: (lat: Double, lon: Double) -> Unit,
     modifier: Modifier = Modifier,
+    /** Null hides the action: a LIVE session is not withdrawn from here (see `canWithdraw`). */
+    onWithdraw: (() -> Unit)? = null,
 ) {
     Surface(
         modifier = modifier,
@@ -485,6 +510,7 @@ fun HistoryDetailSheet(
                         onOlder = onOlder,
                         onNewer = onNewer,
                         onNavigate = onNavigate,
+                        onWithdraw = onWithdraw,
                     )
                 }
             }
@@ -580,8 +606,10 @@ private fun HistoryParkingCard(
     onOlder: () -> Unit,
     onNewer: () -> Unit,
     onNavigate: (lat: Double, lon: Double) -> Unit,
+    onWithdraw: (() -> Unit)?,
 ) {
     val cs = MaterialTheme.colorScheme
+    var confirmingWithdraw by remember { mutableStateOf(false) }
     val title = locationDisplayText(
         placeInfo = session.placeInfo,
         address = session.address,
@@ -662,8 +690,37 @@ private fun HistoryParkingCard(
                 style = PapFooterButtonStyle.Filled,
                 modifier = Modifier.fillMaxWidth(),
             )
+            // Quitar del historial: retirada, no borrado — la fila sobrevive para el diagnóstico.
+            // Sólo para sesiones cerradas. [PARK-A-HISTORIC-PARKING-CAN-BE-WITHDRAWN-001]
+            if (onWithdraw != null) {
+                Spacer(Modifier.height(WITHDRAW_GAP_DP.dp))
+                PapFooterButton(
+                    label = stringResource(Res.string.parking_detail_withdraw_action),
+                    leadingIcon = Icons.Rounded.Delete,
+                    onClick = { confirmingWithdraw = true },
+                    style = PapFooterButtonStyle.Outlined,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         },
     )
+
+    if (confirmingWithdraw && onWithdraw != null) {
+        PapAlertDialog(
+            onDismiss = { confirmingWithdraw = false },
+            accent = PapDialogAccent.Destructive,
+            icon = Icons.Rounded.Delete,
+            title = stringResource(Res.string.parking_detail_withdraw_confirm_title),
+            body = stringResource(Res.string.parking_detail_withdraw_confirm_body),
+            primaryLabel = stringResource(Res.string.parking_detail_withdraw_action),
+            primaryLeadingIcon = Icons.Rounded.Delete,
+            onPrimary = {
+                confirmingWithdraw = false
+                onWithdraw()
+            },
+            cancelLabel = stringResource(Res.string.home_release_dialog_cancel),
+        )
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -742,4 +799,5 @@ private const val SKELETON_ACTION_HEIGHT_DP = 48
 private const val SKELETON_ACTION_CORNER_DP = 14
 private const val SKELETON_SECONDARY_ALPHA = 0.7f
 private const val MISSING_V_PAD = 28
+private const val WITHDRAW_GAP_DP = 8
 

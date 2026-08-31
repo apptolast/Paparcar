@@ -108,16 +108,27 @@ class FakeUserParkingRepository(
     override fun observeActiveSessions(): Flow<List<UserParking>> =
         _sessionsFlow.map { list -> list.filter { it.isActive } }
 
-    override fun observeAllSessions(): Flow<List<UserParking>> = _sessionsFlow
+    /**
+     * The four HISTORY-facing reads hide a withdrawn row, exactly like the Room queries do
+     * (`retractedAtMs IS NULL`, `UserParkingDao.kt:40-61`). The fake used to stamp `retractedAtMs`
+     * and then keep serving the row, so a screen that showed retracted parkings would have passed
+     * every test. The DIAGNOSTIC reads (`getActiveSession`, the active flow) deliberately keep
+     * seeing everything, same as production.
+     * [PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001][PARK-A-HISTORIC-PARKING-CAN-BE-WITHDRAWN-001]
+     */
+    override fun observeAllSessions(): Flow<List<UserParking>> =
+        _sessionsFlow.map { list -> list.filterNot { it.isRetracted } }
 
     override fun observeSessionsByVehicle(vehicleId: String): Flow<List<UserParking>> =
-        _sessionsFlow.map { list -> list.filter { it.vehicleId == vehicleId } }
+        _sessionsFlow.map { list ->
+            list.filter { it.vehicleId == vehicleId && !it.isRetracted }
+        }
 
     override suspend fun getSessionsPaged(limit: Int, offset: Int): List<UserParking> =
-        sessions.drop(offset).take(limit)
+        sessions.filterNot { it.isRetracted }.drop(offset).take(limit)
 
     override suspend fun getSessionsByVehiclePaged(vehicleId: String, limit: Int, offset: Int): List<UserParking> =
-        sessions.filter { it.vehicleId == vehicleId }.drop(offset).take(limit)
+        sessions.filter { it.vehicleId == vehicleId && !it.isRetracted }.drop(offset).take(limit)
 
     /** Failure override for tests — when set to a failure, [clearActiveParkingSession] returns it
      *  without mutating state. */
@@ -135,8 +146,10 @@ class FakeUserParkingRepository(
     }
 
     /** [PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001] The withdrawal is STAMPED on the stored session,
-     *  never removed from the list — a test must be able to assert both halves: the row survives
-     *  and it carries the instant. `COALESCE` semantics: the first withdrawal wins. */
+     *  never removed from the backing list — a test must be able to assert both halves: the row
+     *  survives and it carries the instant. What DOES hide it is the pair of history-facing reads
+     *  above, exactly as Room does; the diagnostic reads still find it here.
+     *  `COALESCE` semantics: the first withdrawal wins. */
     override suspend fun retractParkingSession(sessionId: String, retractedAtMs: Long): Result<Unit> {
         sessions.replaceAll {
             if (it.id == sessionId && it.retractedAtMs == null) it.copy(retractedAtMs = retractedAtMs) else it

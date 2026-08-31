@@ -172,6 +172,9 @@
     <string name="parking_detail_route_inferred_no">Nie</string>
     <string name="parking_detail_next">Następne parkowanie</string>
     <string name="parking_detail_not_in_history">Tego parkowania nie ma już w Twojej historii</string>
+    <string name="parking_detail_withdraw_action">Usuń z historii</string>
+    <string name="parking_detail_withdraw_confirm_title">Usunąć to parkowanie?</string>
+    <string name="parking_detail_withdraw_confirm_body">Zniknie z Twojej historii i z mapy. Miejsce, które już udostępniłeś społeczności, pozostaje bez zmian.</string>
     <string name="parking_detail_detection_auto">Wykryto automatycznie</string>
     <string name="parking_detail_detection_bluetooth">Automatyczny (Bluetooth)</string>
     <string name="parking_detail_detection_assisted">Wspomagany</string>

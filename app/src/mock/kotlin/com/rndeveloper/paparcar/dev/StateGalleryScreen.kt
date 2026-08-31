@@ -239,6 +239,7 @@ private fun parkingDetailSheet(
     vehicle: Vehicle,
     hasOlder: Boolean = true,
     hasNewer: Boolean = true,
+    canWithdraw: Boolean = false,
 ) {
     Box(Modifier.fillMaxSize()) {
         HistoryDetailSheet(
@@ -249,6 +250,7 @@ private fun parkingDetailSheet(
             onOlder = {},
             onNewer = {},
             onNavigate = { _, _ -> },
+            onWithdraw = if (canWithdraw) ({}) else null,
             modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(),
         )
     }
@@ -672,6 +674,15 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             },
             // Las dos caras que antes se pintaban igual (y mintiendo).
             // [UI-HISTORY-DETAIL-MUST-NOT-SPEAK-BEFORE-IT-KNOWS-001]
+            // Sesión cerrada: se puede QUITAR del historial (retirada, no borrado). Una sesión viva
+            // no ofrece el botón. [PARK-A-HISTORIC-PARKING-CAN-BE-WITHDRAWN-001]
+            Variant("Cerrada · con quitar del historial") {
+                parkingDetailSheet(
+                    session = FakeData.endedSessions.first(),
+                    vehicle = FakeData.vehicleSedan,
+                    canWithdraw = true,
+                )
+            },
             Variant("Sin resolver (skeleton)") {
                 parkingDetailSheetFace(FocusedParking.Unresolved)
             },

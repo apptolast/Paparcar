@@ -173,6 +173,9 @@
     <string name="parking_detail_route_inferred_no">Nu</string>
     <string name="parking_detail_next">Parcarea următoare</string>
     <string name="parking_detail_not_in_history">Această parcare nu mai este în istoricul tău</string>
+    <string name="parking_detail_withdraw_action">Elimină din istoric</string>
+    <string name="parking_detail_withdraw_confirm_title">Elimini această parcare?</string>
+    <string name="parking_detail_withdraw_confirm_body">Dispare din istoricul tău și de pe hartă. Locul pe care l-ai partajat deja cu comunitatea rămâne neschimbat.</string>
     <string name="parking_detail_detection_auto">Detectat automat</string>
     <string name="parking_detail_detection_bluetooth">Automat (Bluetooth)</string>
     <string name="parking_detail_detection_assisted">Asistat</string>

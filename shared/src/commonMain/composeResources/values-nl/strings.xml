@@ -171,6 +171,9 @@
     <string name="parking_detail_route_inferred_no">Nee</string>
     <string name="parking_detail_next">Volgende parkeerplaats</string>
     <string name="parking_detail_not_in_history">Deze parkeerplaats staat niet meer in je geschiedenis</string>
+    <string name="parking_detail_withdraw_action">Uit geschiedenis verwijderen</string>
+    <string name="parking_detail_withdraw_confirm_title">Deze parkeerplaats verwijderen?</string>
+    <string name="parking_detail_withdraw_confirm_body">Hij verdwijnt uit je geschiedenis en van de kaart. De plek die je al met de community deelde blijft zoals hij was.</string>
     <string name="parking_detail_detection_auto">Automatisch gedetecteerd</string>
     <string name="parking_detail_detection_bluetooth">Automatisch (Bluetooth)</string>
     <string name="parking_detail_detection_assisted">Geassisteerd</string>
