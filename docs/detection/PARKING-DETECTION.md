@@ -6569,3 +6569,72 @@ rule filters classes by NAME, so a rename would leave it passing over nothing. R
 red. Both green after reverting.
 
 Spec: `docs/backlog/det-a-doubt-field-must-not-default-to-certainty-001.md`.
+
+---
+
+### PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001 — the app stops keeping a parking it has already disproved (pending)
+
+**Two field cases, and the first CORRECTIVE change in the tree.** The redesign's seven pieces are all
+preventive: they decide better before planting. None of them can touch a row already written, and
+twice a pin the app itself disproved seconds later stayed in the user's history looking like an
+ordinary parking:
+
+- **2026-08-27, Oppo.** The backfill planted `724befda` at 12:29:18; at 12:29:36 the app emitted an
+  EXIT for that very pin's geofence; at 12:30:21 it confirmed the departure at 16,3 km/h. The pin
+  **lived 63 s**. Reported by the user as *"un FALSO POSITIVAZO en Dia · Calle Ronda del Puerto 15"*.
+- **2026-08-30, Oppo, Calle del Verdugo.** Same shape, on the road, mid-drive, with a community space
+  published. It **lived 52 s**. `DET-BACKFILL-MUST-NOT-PIN-A-MOVING-CAR-001` stops the next one being
+  created; nothing could reach the one already there.
+
+⚠️ **And a second door nobody had looked at.** `RevertParkingUseCase` — the *"No, cancelar"* button —
+did the same: closed the session and stopped. Its own comment said *"the pin was wrong"*, and the
+wrong pin stayed in the history. Its KDoc carried the `TODO-REVERT-P1` asking for exactly this.
+
+**Marked, not deleted — and the repo had already answered that question once.** `SpotStatus` wrote
+the reason down when the community spot faced the same choice: *a deleted document just stops
+arriving, taking the explanation with it.* `UserParking.retractedAtMs` keeps the row for diagnostics
+and takes it out of the history.
+
+⚠️ **An instant, not an enum.** `isActive` already answers a different question and is read by five
+Room queries and the Firestore close; a `status` would either duplicate it or migrate all of them.
+One nullable instant answers *whether* and *when* with no second source of truth.
+
+**The question is declared on the type.** `DetectionPath.mayBeWithdrawnByTheApp` is abstract, so a
+new path does not compile until its author answers. `true` for exactly one, and not because it is the
+one that burned us: `SafetyNetBackfill` is the only pin placed with **no live session behind it**.
+
+**Two doors, two authorities.** `ProcessConfirmedDepartureUseCase` consults the policy — the app is
+contradicting itself. `RevertParkingUseCase` consults **nothing**: a revert is an INSTRUCTION, not a
+verdict, and nothing the app measures outranks the user's own word.
+
+**The window is 3 min, and the number is not the guard**: the backfill only fires ~15 min after the
+fact, so a genuine two-minute errand is long over before it could place anything. Both measured cases
+(52 s, 63 s) clear it 3x. A NEGATIVE life answers `false` — a clock that moved backwards is not a
+young pin.
+
+⛔ **What is deliberately NOT built: the "move" half of Piece 8.** The redesign proposes a two-phase
+`UserParking` able to re-anchor a placed pin, with the 142 m pin as its case — and that case stopped
+existing on 2026-08-30, when its good rest was measured to have existed 10 min BEFORE planting, so
+`DET-NO-CLOCK-PLANTS-A-PIN-001` closes it preventively. Building it today would add a lifecycle to
+the model, Firestore, the map and the geofence with no live failure demanding it.
+
+**New guardrail with TWO halves, both seen failing.** A well-meaning sweep that filtered EVERY query
+would hide the row from diagnostics — taking the explanation with it, the exact failure "state, not
+delete" avoids — and leave `getPendingSync` unable to push the withdrawal to Firestore at all. So:
+`every history read excludes withdrawn parkings` (5 reads) AND `no diagnostic read hides a withdrawn
+parking` (7 reads). Removing the clause from `observeAll` reddened the first; adding it to `getById`
+reddened the second.
+
+⚠️ **And the rebase onto `SYNC-A-PARKING-MUST-TRAVEL-WHOLE-001` cut both ways.** It hands over the
+hard half for free — the WorkManager payload is now `Json.encodeToString(dto)`, so `retractedAtMs`
+travels because it is part of the DTO rather than because someone remembered — and it exposes a real
+hole: `reconcileParkingSessions`'s `onTakeRemote` explicitly preserves the fields a legacy remote doc
+would carry as null, and the withdrawal was not among them. A NEWER remote document written before
+the field travelled (or by a device that has not received the withdrawal yet) wins the LWW and would
+have **put the phantom row back**. Same shape and same argument as the `zoneRadiusMeters` line above
+it: taking the remote null claims more than we know. Once withdrawn, withdrawn — and the withdrawal
+still travels the other way.
+
+Absorbs and closes `PARK-RETRACTED-BACKFILL-MUST-LEAVE-NO-PIN-001`.
+
+Spec: `docs/backlog/park-a-refuted-pin-leaves-the-history-001.md`.

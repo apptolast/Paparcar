@@ -6,7 +6,12 @@
 > 30-08 dejó de necesitarla al medirse que su reposo bueno existía 10 min ANTES de plantar.
 > Ver `docs/detection/REDESIGN-DETECTION-SYSTEM.md` §9.2.
 
-**Estado:** 🟡 Abierto · sin rama · sin worktree
+**Estado:** ✅ **CERRADO el 31-08**, absorbido por `PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001`
+(`docs/backlog/park-a-refuted-pin-leaves-the-history-001.md`). Las respuestas a las dos preguntas que
+este doc dejaba abiertas: **se marca, no se borra** —la razón ya estaba escrita en `SpotStatus`— y el
+filtro vive en las **cuatro lecturas de histórico de la DAO**, no en cada consumidor. El barrido
+encontró además un **segundo caso** (52 s, 30-08, Calle del Verdugo) y una **segunda puerta**: el
+botón *«No, cancelar»*, que tenía el mismo defecto y cuyo KDoc llevaba el `TODO-REVERT-P1` pidiéndolo.
 **Origen:** follow-up deliberado de `DET-BACKFILL-CANNOT-PIN-A-MOVING-FIX-001` (field 27-08).
 Aquel evita **crear** el pin fantasma; éste limpia el que ya se creó por cualquier otra vía.
 

@@ -37,13 +37,18 @@ interface UserParkingDao {
     @Query("SELECT * FROM parking_sessions WHERE isActive = 1 AND vehicleId = :vehicleId LIMIT 1")
     suspend fun getActiveByVehicle(vehicleId: String): UserParkingEntity?
 
-    @Query("SELECT * FROM parking_sessions ORDER BY timestamp DESC LIMIT :limit OFFSET :offset")
+    @Query("SELECT * FROM parking_sessions WHERE retractedAtMs IS NULL ORDER BY timestamp DESC LIMIT :limit OFFSET :offset")
     suspend fun getSessionsPaged(limit: Int, offset: Int): List<UserParkingEntity>
 
-    @Query("SELECT * FROM parking_sessions WHERE vehicleId = :vehicleId AND isActive = 0 ORDER BY timestamp DESC LIMIT :limit OFFSET :offset")
+    @Query("SELECT * FROM parking_sessions WHERE vehicleId = :vehicleId AND isActive = 0 AND retractedAtMs IS NULL ORDER BY timestamp DESC LIMIT :limit OFFSET :offset")
     suspend fun getEndedSessionsByVehiclePaged(vehicleId: String, limit: Int, offset: Int): List<UserParkingEntity>
 
-    @Query("SELECT * FROM parking_sessions ORDER BY timestamp DESC")
+    // [PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001] The four history-facing reads (this, the two
+    // paged ones and observeByVehicle) carry `retractedAtMs IS NULL`: a parking the app itself
+    // disproved is not a row the user should read. The DIAGNOSTIC reads deliberately do NOT —
+    // getById, getByUser, getPendingSync and the active/geofence lookups still see everything,
+    // because a withdrawn pin is exactly what a field report is trying to explain.
+    @Query("SELECT * FROM parking_sessions WHERE retractedAtMs IS NULL ORDER BY timestamp DESC")
     fun observeAll(): Flow<List<UserParkingEntity>>
 
     @Query("SELECT * FROM parking_sessions WHERE isActive = 1 ORDER BY timestamp DESC")
@@ -52,7 +57,7 @@ interface UserParkingDao {
     @Query("SELECT * FROM parking_sessions WHERE isActive = 1 ORDER BY timestamp DESC")
     suspend fun getAllActive(): List<UserParkingEntity>
 
-    @Query("SELECT * FROM parking_sessions WHERE vehicleId = :vehicleId ORDER BY timestamp DESC")
+    @Query("SELECT * FROM parking_sessions WHERE vehicleId = :vehicleId AND retractedAtMs IS NULL ORDER BY timestamp DESC")
     fun observeByVehicle(vehicleId: String): Flow<List<UserParkingEntity>>
 
     // Every deactivation stamps updatedAt=:now + pendingSync=1 so the change is a NEWER local edit
@@ -72,6 +77,23 @@ interface UserParkingDao {
         WHERE id = :sessionId
     """)
     suspend fun clearActiveById(sessionId: String, endedAtMs: Long, publishedSpot: Boolean, now: Long)
+
+    /**
+     * [PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001] Withdraws a parking the app concluded never
+     * happened. Stamps updatedAt + pendingSync like every other close, so the withdrawal reaches
+     * Firestore through the ordinary reconcile.
+     *
+     * COALESCE on the instant for the same reason the close uses it: the FIRST withdrawal is the
+     * real one, and an idempotent repeat must not move it.
+     */
+    @Query("""
+        UPDATE parking_sessions SET
+            retractedAtMs = COALESCE(retractedAtMs, :retractedAtMs),
+            updatedAt = :now,
+            pendingSync = 1
+        WHERE id = :sessionId
+    """)
+    suspend fun retractById(sessionId: String, retractedAtMs: Long, now: Long)
 
     /** [DET-HANDOFF-NOT-MANUAL-001 §B] Marks (or clears, with null) a pending DEDUCED departure on a
      *  session that stays ACTIVE: the spot went out provisionally and the car was not given up.
@@ -189,7 +211,7 @@ interface UserParkingDao {
      *  [ROUTE-GAP-HONEST-001] */
     @Query(
         "SELECT * FROM parking_sessions WHERE vehicleId = :vehicleId AND timestamp < :beforeTimestamp " +
-            "ORDER BY timestamp DESC LIMIT 1"
+            "AND retractedAtMs IS NULL ORDER BY timestamp DESC LIMIT 1"
     )
     suspend fun getPreviousByVehicle(vehicleId: String, beforeTimestamp: Long): UserParkingEntity?
 

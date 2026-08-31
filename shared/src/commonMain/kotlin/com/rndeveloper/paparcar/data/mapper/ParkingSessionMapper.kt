@@ -52,6 +52,7 @@ fun UserParkingEntity.toDomain(): UserParking = UserParking(
     routeDistanceMeters = routeDistanceMeters,
     endedAtMs = endedAtMs,
     publishedSpot = publishedSpot,
+    retractedAtMs = retractedAtMs,
 )
 
 private fun UserParkingEntity.addressOrNull(): AddressInfo? =
@@ -122,6 +123,7 @@ fun UserParking.toEntity(updatedAt: Long = 0, pendingSync: Boolean = false): Use
     routeDistanceMeters = routeDistanceMeters,
     endedAtMs = endedAtMs,
     publishedSpot = publishedSpot,
+    retractedAtMs = retractedAtMs,
     updatedAt = updatedAt,
     pendingSync = pendingSync,
 )
@@ -175,6 +177,7 @@ fun UserParking.toParkingHistoryDto(updatedAt: Long = 0L) = ParkingHistoryDto(
     routeDistanceMeters = routeDistanceMeters,
     endedAtMs = endedAtMs,
     publishedSpot = publishedSpot,
+    retractedAtMs = retractedAtMs,
     updatedAt = updatedAt,
 )
 
@@ -220,6 +223,7 @@ fun ParkingHistoryDto.toEntity() = UserParkingEntity(
     routeDistanceMeters = routeDistanceMeters ?: PolylineCodec.lengthMeters(routePolyline),
     endedAtMs = endedAtMs,
     publishedSpot = publishedSpot,
+    retractedAtMs = retractedAtMs,
     // A row coming FROM Firestore is by definition already synced → pendingSync=false. Its
     // updatedAt carries the remote edit time for the LWW merge. [SYNC-RECONCILE-USERPARKING-001]
     updatedAt = updatedAt,

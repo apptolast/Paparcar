@@ -5,7 +5,10 @@ package com.rndeveloper.paparcar.domain.usecase.parking
 import com.rndeveloper.paparcar.domain.detection.DepartureProof
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEvent
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEventLogger
+import com.rndeveloper.paparcar.domain.detection.DetectionPath
+import com.rndeveloper.paparcar.domain.detection.pinIsRefutedByItsOwnDeparture
 import com.rndeveloper.paparcar.domain.model.AddressAndPlace
+import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
 import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
 import com.rndeveloper.paparcar.domain.service.DepartureEventBus
 import com.rndeveloper.paparcar.domain.service.GeofenceManager
@@ -41,6 +44,11 @@ class ProcessConfirmedDepartureUseCase(
     private val departureEventBus: DepartureEventBus,
     // Nullable so existing test doubles / call sites need no change. [DET-SOLID-001]
     private val detectionEventLogger: DetectionEventLogger? = null,
+    // [PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001] Only `refutedPinMaxLifeMs` is read; injected
+    // whole so the window stays where every other detection number lives. No default, per
+    // [DET-A-DOUBT-FIELD-MUST-NOT-DEFAULT-TO-CERTAINTY-001] — three call sites, all of which have
+    // a config to hand.
+    private val config: ParkingDetectionConfig,
 ) {
     private companion object {
         const val TAG = "ProcessConfirmedDeparture"
@@ -164,6 +172,39 @@ class ProcessConfirmedDepartureUseCase(
                     PaparcarLogger.e(TAG, "clearActiveParkingSession failed for session=${session.id}", e)
                     return Result.failure(e)
                 }
+
+            // [PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001] The departure we just committed can be
+            // the REFUTATION of the pin it departed from, not its ending: a backfill reconstruction
+            // whose own geofence emitted an EXIT seconds later. Twice measured — 63 s on 2026-08-27
+            // and 52 s on 2026-08-30 — and both rows stayed in the user's history looking like
+            // ordinary parkings. The seven redesign pieces are all preventive; nothing could reach
+            // a row already written.
+            //
+            // Withdrawn, not deleted: the row is exactly what the next field report needs to read.
+            val departedAtMs = Clock.System.now().toEpochMilliseconds()
+            val refuted = pinIsRefutedByItsOwnDeparture(
+                path = DetectionPath.ofLabel(session.detectionPath),
+                parkedAtMs = session.location.timestamp,
+                departedAtMs = departedAtMs,
+                maxLifeMs = config.refutedPinMaxLifeMs,
+            )
+            if (refuted) {
+                userParkingRepository.retractParkingSession(session.id, departedAtMs)
+                    .onFailure { e ->
+                        // The close already succeeded; a failed withdrawal leaves a visible phantom
+                        // row, which is the bug this closes — but re-running the whole departure to
+                        // retry it would re-publish the spot. Loud, and not fatal.
+                        PaparcarLogger.e(TAG, "retractParkingSession failed for session=${session.id}", e)
+                    }
+                    .onSuccess {
+                        PaparcarLogger.d(
+                            TAG,
+                            "withdrew parking ${session.id.take(8)} — its own departure refuted it " +
+                                "${departedAtMs - session.location.timestamp}ms after it was placed by " +
+                                "${session.detectionPath} [PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001]",
+                        )
+                    }
+            }
         }
 
         departureEventBus.reset()

@@ -1,8 +1,12 @@
+@file:OptIn(kotlin.time.ExperimentalTime::class)
+
 package com.rndeveloper.paparcar.domain.usecase.parking
 
 import com.rndeveloper.paparcar.domain.detection.DepartureProof
+import com.rndeveloper.paparcar.domain.detection.DetectionPath
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEvent
 import com.rndeveloper.paparcar.domain.model.GpsPoint
+import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.usecase.location.GetAddressAndPlaceUseCase
 import com.rndeveloper.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
@@ -14,6 +18,7 @@ import com.rndeveloper.paparcar.fakes.FakeGeofenceManager
 import com.rndeveloper.paparcar.fakes.FakeReportSpotScheduler
 import com.rndeveloper.paparcar.fakes.FakeUserParkingRepository
 import kotlinx.coroutines.test.runTest
+import kotlin.time.Clock
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -195,6 +200,72 @@ class ProcessConfirmedDepartureUseCaseTest {
         assertEquals(listOf("session-1"), geofence.removedIds)
     }
 
+    // ── [PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001] A pin its own departure refuted ──────
+
+    /**
+     * Field 2026-08-27 (63 s) and 2026-08-30 (52 s): the backfill reconstructs a pin, and the app's
+     * own geofence emits an EXIT from it seconds later. Closing the session was never enough — the
+     * row stayed in the history looking like an ordinary parking, addressless, and the user
+     * reported it as a false positive.
+     */
+    @Test
+    fun should_withdrawTheParking_when_itsOwnDepartureRefutedTheBackfillThatPlacedIt() = runTest {
+        val parkedAt = Clock.System.now().toEpochMilliseconds() - 60_000L
+        val repo = FakeUserParkingRepository(
+            initialSession = activeSession().copy(
+                location = GpsPoint(40.4, -3.7, 8f, parkedAt, 0f),
+                detectionPath = DetectionPath.SafetyNetBackfill.label,
+            ),
+        )
+        val useCase = buildUseCase(repo = repo)
+
+        val result = useCase("session-1", publishSpot = true)
+
+        assertTrue(result.isSuccess)
+        val stored = repo.getSessionById("session-1")
+        assertTrue(stored?.isRetracted == true, "a refuted pin must leave the history")
+        // Withdrawn, NEVER deleted — the row is what the next field report reads.
+        assertEquals("session-1", stored.id, "the row itself must survive for diagnostics")
+        assertFalse(stored.isActive, "and it is still closed, like any ended session")
+    }
+
+    @Test
+    fun should_keepTheParking_when_theSamePinWasPlacedByAMeasuredPath() = runTest {
+        val parkedAt = Clock.System.now().toEpochMilliseconds() - 60_000L
+        val repo = FakeUserParkingRepository(
+            initialSession = activeSession().copy(
+                location = GpsPoint(40.4, -3.7, 8f, parkedAt, 0f),
+                detectionPath = DetectionPath.StepsEgress.label,
+            ),
+        )
+
+        buildUseCase(repo = repo)("session-1", publishSpot = true)
+
+        assertFalse(
+            repo.getSessionById("session-1")?.isRetracted == true,
+            "a session that measured the walk away from the car ENDED; it was not refuted",
+        )
+    }
+
+    @Test
+    fun should_keepTheBackfillParking_when_itOutlivedTheRefutationWindow() = runTest {
+        val config = ParkingDetectionConfig()
+        val parkedAt = Clock.System.now().toEpochMilliseconds() - config.refutedPinMaxLifeMs - 60_000L
+        val repo = FakeUserParkingRepository(
+            initialSession = activeSession().copy(
+                location = GpsPoint(40.4, -3.7, 8f, parkedAt, 0f),
+                detectionPath = DetectionPath.SafetyNetBackfill.label,
+            ),
+        )
+
+        buildUseCase(repo = repo, config = config)("session-1", publishSpot = true)
+
+        assertFalse(
+            repo.getSessionById("session-1")?.isRetracted == true,
+            "a backfill pin the car actually sat at for an hour is a real parking",
+        )
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun buildUseCase(
@@ -203,6 +274,7 @@ class ProcessConfirmedDepartureUseCaseTest {
         geofence: FakeGeofenceManager = FakeGeofenceManager(),
         bus: FakeDepartureEventBus = FakeDepartureEventBus(),
         logger: FakeDetectionEventLogger = FakeDetectionEventLogger(),
+        config: ParkingDetectionConfig = ParkingDetectionConfig(),
     ) = ProcessConfirmedDepartureUseCase(
         userParkingRepository = repo,
         reportSpotReleased = ReportSpotReleasedUseCase(
@@ -213,5 +285,6 @@ class ProcessConfirmedDepartureUseCaseTest {
         geofenceService = geofence,
         departureEventBus = bus,
         detectionEventLogger = logger,
+        config = config,
     )
 }

@@ -29,6 +29,7 @@ import com.rndeveloper.paparcar.detection.toGeofenceRegistrationFailure
 import com.rndeveloper.paparcar.detection.SentryResidenceStore
 import com.rndeveloper.paparcar.detection.SignificantMotionMonitor
 import com.rndeveloper.paparcar.detection.PendingDetectionStore
+import com.rndeveloper.paparcar.domain.detection.DetectionPath
 import com.rndeveloper.paparcar.domain.detection.ArrivalOwner
 import com.rndeveloper.paparcar.domain.detection.DetectionRuntimeState
 import com.rndeveloper.paparcar.domain.detection.arrivalOwner
@@ -1007,7 +1008,11 @@ class ParkingSafetyNetWorker(
         private const val OUTCOME_ARRIVAL_CEDED_TO_HANDOFF = "BACKFILL_CEDED_TO_HANDOFF"
         /** Provenance path the refused placement WOULD have carried, so the two show up in the same
          *  bucket as [ParkingBackfillWorker]'s own traces. */
-        private const val PATH_SAFETY_NET_BACKFILL = "safety_net_backfill"
+        // [PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001] The word belongs to the type that owns
+        // it. Two workers each held their own copy of the literal while DetectionPath already
+        // declared it — and this is now the path the withdrawal policy keys on, so a drift
+        // between the two spellings would silently stop refuted pins leaving the history.
+        private val PATH_SAFETY_NET_BACKFILL = DetectionPath.SafetyNetBackfill.label
         /** [DET-ANCHOR-FREEZE-001 F4] Last GMS re-registration per fence — the cure throttle's
          *  disk half (the in-process half is [curedFencesThisProcess]). */
         private const val CURE_KEY_PREFIX = "cure_registered_"

@@ -76,6 +76,9 @@ data class UserParkingEntity(
     // True when closing this session published a community spot. MAX-stamped so a later promotion
     // can confirm but never retract it. Synced. [VEH-STATS-SAY-SOMETHING-USEFUL-001]
     val publishedSpot: Boolean = false,
+    /** [PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001] Epoch-ms of the withdrawal; null for every
+     *  ordinary session. The row stays for diagnostics and leaves the history. */
+    val retractedAtMs: Long? = null,
     // Epoch-ms of the last LOCAL mutation of this row (save / clear-active / move / enrich). Drives
     // the inbound-sync Last-Write-Wins merge so a stale remote snapshot can't resurrect an ended
     // session or clobber an offline edit. Local is authoritative. [SYNC-RECONCILE-USERPARKING-001]

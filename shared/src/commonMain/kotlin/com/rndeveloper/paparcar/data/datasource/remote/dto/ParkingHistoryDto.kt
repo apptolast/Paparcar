@@ -63,6 +63,8 @@ data class ParkingHistoryDto(
     /** Whether closing this session published a community spot. Legacy docs read false.
      *  [VEH-STATS-SAY-SOMETHING-USEFUL-001] */
     val publishedSpot: Boolean = false,
+    /** [PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001] Epoch-ms of the withdrawal, or null. */
+    val retractedAtMs: Long? = null,
     /** Epoch-ms of the local edit this document mirrors. Stamped on every write so the inbound-sync
      *  Last-Write-Wins merge can tell when the server has caught up with a pending local edit.
      *  Legacy docs read 0 → always lose to a real local timestamp. [SYNC-RECONCILE-USERPARKING-001] */

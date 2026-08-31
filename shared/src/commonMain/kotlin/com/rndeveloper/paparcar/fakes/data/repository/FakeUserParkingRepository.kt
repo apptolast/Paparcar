@@ -58,6 +58,11 @@ class FakeUserParkingRepository(
     /** Ids released at runtime — releasing in the mock really frees the session. */
     private val releasedIds = MutableStateFlow<Set<String>>(emptySet())
 
+    /** [PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001] Ids withdrawn at runtime, with the instant.
+     *  Kept apart from [releasedIds] because the two are different facts: a release ENDS a
+     *  parking, a withdrawal says it never happened. */
+    private val retractedIds = MutableStateFlow<Map<String, Long>>(emptyMap())
+
     private val mockSessions: List<UserParking> = buildList {
         // ── Active session ────────────────────────────────────────────────────
         add(UserParking(
@@ -191,8 +196,12 @@ class FakeUserParkingRepository(
                 if (own) list + seedFor(approx) else list
             }
         }
-        return combine(baseWithSeed, savedSessions, releasedIds) { base, saved, released ->
-            (base + saved).map { s -> if (s.id in released) s.copy(isActive = false) else s }
+        return combine(baseWithSeed, savedSessions, releasedIds, retractedIds) { base, saved, released, retracted ->
+            (base + saved)
+                .map { s -> if (s.id in released) s.copy(isActive = false) else s }
+                // [PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001] The mock hides a withdrawn row from
+                // the history exactly as the Room queries do, so the Dev Catalog plays the real loop.
+                .filterNot { it.id in retracted }
         }
     }
 
@@ -204,6 +213,9 @@ class FakeUserParkingRepository(
         }
         return (mockSessions + seed + savedSessions.value)
             .map { s -> if (s.id in releasedIds.value) s.copy(isActive = false) else s }
+            // The by-id and active lookups are DIAGNOSTIC reads: they still see a withdrawn row,
+            // stamped, like production. [PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001]
+            .map { s -> retractedIds.value[s.id]?.let { at -> s.copy(retractedAtMs = at) } ?: s }
     }
 
     override suspend fun saveNewParkingSession(session: UserParking): Result<String?> {
@@ -268,6 +280,13 @@ class FakeUserParkingRepository(
 
     override suspend fun markProvisionalDeparture(sessionId: String, atMs: Long?): Result<Unit> {
         provisionalDepartures[sessionId] = atMs
+        return Result.success(Unit)
+    }
+
+    /** [PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001] Withdrawn, not removed — the Dev Catalog plays
+     *  the same loop production does: the row leaves the history and stays on file. */
+    override suspend fun retractParkingSession(sessionId: String, retractedAtMs: Long): Result<Unit> {
+        retractedIds.value = retractedIds.value + (sessionId to retractedAtMs)
         return Result.success(Unit)
     }
 

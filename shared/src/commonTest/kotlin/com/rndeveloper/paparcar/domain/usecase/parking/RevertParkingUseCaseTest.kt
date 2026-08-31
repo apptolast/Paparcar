@@ -73,6 +73,40 @@ class RevertParkingUseCaseTest {
         assertEquals(false, closed.publishedSpot)
     }
 
+    /**
+     * [PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001] This use case's own comment already said "the pin
+     * was wrong" — and the wrong pin then sat in the user's history as an ordinary parking, because
+     * closing a session was the only thing the app could do to a row. A revert is the strongest
+     * refutation there is: the user's own word.
+     */
+    @Test
+    fun should_takeTheParkingOutOfTheHistory_when_theUserRevertsIt() = runTest {
+        val repo = FakeUserParkingRepository(initialSession = activeSession())
+        buildUseCase(repo = repo)("parking-1")
+
+        val reverted = repo.getSessionById("parking-1")!!
+        assertTrue(reverted.isRetracted, "the row the user called wrong must leave their history")
+        // Withdrawn, never deleted: the field report that follows a wrong pin has to read it.
+        assertNotNull(reverted.retractedAtMs)
+    }
+
+    /**
+     * ⛔ No policy is consulted on this door. A revert is an INSTRUCTION, not a verdict — the pin
+     * may have been placed by any path, minutes or hours ago, and the user still outranks every
+     * measurement. [DET-ASSERTION-OUTRANKS-INFERENCE-001]
+     */
+    @Test
+    fun should_takeItOutWhateverPlacedIt_when_theUserRevertsAnOldMeasuredPin() = runTest {
+        val old = activeSession().copy(
+            location = GpsPoint(40.4, -3.7, 8f, System.currentTimeMillis() - 6 * 60 * 60_000L, 0f),
+            detectionPath = "steps+egress",
+        )
+        val repo = FakeUserParkingRepository(initialSession = old)
+        buildUseCase(repo = repo)("parking-1")
+
+        assertTrue(repo.getSessionById("parking-1")!!.isRetracted)
+    }
+
     @Test
     fun should_still_succeed_and_dismiss_when_clear_fails() = runTest {
         // Best-effort contract: each step logs and continues; the user can retry manually.

@@ -21,10 +21,17 @@ import kotlin.time.Clock
  * operaciones ya existentes que son inversas a [ConfirmParkingUseCase]:
  *
  *  1. [UserParkingRepository.clearActiveParkingSession] — marca `isActive=false` en
- *     Room y propaga a Firestore. La sesión queda en el histórico como una sesión
- *     pasada inactiva. **TODO-REVERT-P1:** añadir `deleteSession` para borrarla del
- *     histórico cuando el usuario tira del botón "Cancelar" (semánticamente: "esto
- *     no era un aparcamiento, no quiero verlo en mi historial").
+ *     Room y propaga a Firestore.
+ *  1b. [UserParkingRepository.retractParkingSession] — y la RETIRA del histórico.
+ *     [PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001] Esto era el `TODO-REVERT-P1` de esta
+ *     misma nota, que decía literalmente *"borrarla del histórico … semánticamente:
+ *     'esto no era un aparcamiento, no quiero verlo en mi historial'"*. Se ha resuelto
+ *     con la OTRA respuesta a esa pregunta: **retirada, no borrado**, por la razón que
+ *     [com.rndeveloper.paparcar.domain.model.SpotStatus] ya escribió cuando la plaza
+ *     comunitaria se enfrentó a la misma elección — *un documento borrado simplemente
+ *     deja de llegar, y se lleva la explicación con él*. La fila sobrevive para el
+ *     diagnóstico (es justo el pin que un informe de campo intenta explicar) y
+ *     desaparece de las cuatro lecturas que alimentan el histórico.
  *  2. [GeofenceManager.removeGeofence] — desregistra la geofence Android/iOS.
  *  3. Dismiss de la notificación 2002 — la única notificación visible para este
  *     evento (ya no se muestra la antigua "showParkingSaved" duplicada).
@@ -80,6 +87,17 @@ class RevertParkingUseCase(
         }.onSuccess {
             PaparcarLogger.d(DIAG, "  ✓ session cleared (isActive=false in Room + queued for Firestore)")
         }
+
+        // [PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001] …and the row LEAVES the history, which is the
+        // whole meaning of the button the user just pressed. Closing it was never enough: this
+        // use case's own comment already said "the pin was wrong", and the wrong pin then sat in
+        // their history as an ordinary parking. No policy is consulted here — a revert is an
+        // INSTRUCTION, not a verdict, and nothing the app measures outranks the user's own word
+        // ([DET-ASSERTION-OUTRANKS-INFERENCE-001]). It is withdrawn, not deleted: the field report
+        // that follows a wrong pin needs to be able to read it.
+        userParkingRepository.retractParkingSession(parkingId, now)
+            .onFailure { e -> PaparcarLogger.e(DIAG, "  ✗ retractParkingSession failed", e) }
+            .onSuccess { PaparcarLogger.d(DIAG, "  ✓ parking withdrawn — it leaves the history") }
 
         val geofenceResult = geofenceService.removeGeofence(parkingId)
         geofenceResult.onFailure { e ->

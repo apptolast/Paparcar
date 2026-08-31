@@ -858,6 +858,24 @@ data class ParkingDetectionConfig(
      *  with field telemetry. [DET-C-02] */
     val confirmHoldMs: Long = 2 * 60_000L,
 
+    // ── WITHDRAWING A PIN THE APP ITSELF REFUTED (PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001) ──
+    /**
+     * How short a life makes a confirmed departure a REFUTATION of the pin rather than its ordinary
+     * ending — read by `pinIsRefutedByItsOwnDeparture`, and only for a path that answers
+     * [com.rndeveloper.paparcar.domain.detection.DetectionPath.mayBeWithdrawnByTheApp].
+     *
+     * **Three minutes, and the number is not the guard.** The path condition is: only the safety
+     * net's backfill can be withdrawn, and the backfill fires ~15 min after the fact — a genuine
+     * two-minute errand is long over before it could place anything, so this window cannot reach
+     * one. The two measured cases sit at **52 s** (field 2026-08-30, Calle del Verdugo) and **63 s**
+     * (field 2026-08-27, Ronda del Puerto), so three minutes clears both by roughly 3×  while
+     * staying far under any parking a user would look for in their history.
+     *
+     * Erring short is the safe direction here: leaving a phantom row costs the user a lie they can
+     * see, hiding a real row costs them a memory they cannot get back.
+     */
+    val refutedPinMaxLifeMs: Long = 3 * 60_000L,
+
     // ── DETECTION RELIABILITY ─────────────────────────────────────────────────
     /** Reliability score [0.0, 1.0] assigned when the user manually confirms parking.
      *  Represents near-certain ground truth. */
@@ -1314,6 +1332,9 @@ data class ParkingDetectionConfig(
         }
         require(confirmHoldMs >= 0) {
             "confirmHoldMs must be >= 0 (0 disables the post-confirm hold), was $confirmHoldMs"
+        }
+        require(refutedPinMaxLifeMs > 0L) {
+            "refutedPinMaxLifeMs must be > 0 (0 would withdraw nothing), was $refutedPinMaxLifeMs"
         }
     }
 

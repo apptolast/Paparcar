@@ -23,6 +23,7 @@ class UserParkingReconcileTest {
         tripMaxSpeedMps: Float? = null,
         armEvidence: String? = null,
         detectionPath: String? = null,
+        retractedAtMs: Long? = null,
     ) = UserParkingEntity(
         id = id,
         userId = "u1",
@@ -37,6 +38,7 @@ class UserParkingReconcileTest {
         tripMaxSpeedMps = tripMaxSpeedMps,
         armEvidence = armEvidence,
         detectionPath = detectionPath,
+        retractedAtMs = retractedAtMs,
     )
 
     @Test
@@ -124,5 +126,33 @@ class UserParkingReconcileTest {
         assertEquals(12.5f, merged.single().tripMaxSpeedMps)
         assertEquals("speed", merged.single().armEvidence)
         assertEquals("steps+egress", merged.single().detectionPath)
+    }
+
+    /**
+     * [PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001] A withdrawal is never un-done by a document that
+     * predates it. The remote doc here is NEWER, so it wins the LWW — and it carries
+     * `retractedAtMs = null` because it was written before the field travelled, or by a device that
+     * has not received the withdrawal yet. Taking that null would put the phantom row back in the
+     * history AND claim more than we know (that the parking was real). Same shape as
+     * `zoneRadiusMeters` and the close provenance above it.
+     */
+    @Test
+    fun `a withdrawal survives taking a newer remote snapshot that predates it`() {
+        val local = listOf(s("A", updatedAt = 10, retractedAtMs = 1_700L))
+        val remote = listOf(s("A", updatedAt = 20, retractedAtMs = null))
+
+        val merged = reconcileParkingSessions(local, remote)
+
+        assertEquals(1_700L, merged.single().retractedAtMs, "once withdrawn, withdrawn")
+    }
+
+    @Test
+    fun `a remote withdrawal reaches a local row that has not heard about it`() {
+        val local = listOf(s("A", updatedAt = 10, retractedAtMs = null))
+        val remote = listOf(s("A", updatedAt = 20, retractedAtMs = 2_500L))
+
+        val merged = reconcileParkingSessions(local, remote)
+
+        assertEquals(2_500L, merged.single().retractedAtMs, "the withdrawal travels both ways")
     }
 }

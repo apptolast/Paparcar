@@ -855,6 +855,28 @@ y sigue sin tener forma de hacerlo.
 > —¿borrar o marcar?— es la misma pregunta, y no debe contestarse sin mirar antes cómo lee el
 > Historial.
 
+🟢 **DECIDIDO el 31-08, y la Pieza 8 se parte en dos mitades con suertes opuestas**
+(`PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001`, que absorbe el ticket de arriba):
+
+- **RETIRAR: hecho.** Es la mitad con fallo medido detrás — dos, de hecho: 63 s el 27-08 y **52 s el
+  30-08** (Calle del Verdugo, el FP del propio `DET-BACKFILL-MUST-NOT-PIN-A-MOVING-CAR-001`, cuyo
+  mensaje lo dice: *«A pin on the road, mid-drive… It lived 52 s»*). `UserParking.retractedAtMs` +
+  `DetectionPath.mayBeWithdrawnByTheApp` + dos puertas (la app se desmiente / el usuario revierte).
+- ⛔ **MOVER: no se construye.** Su único caso de uso enunciado es el pin a 142 m, y **ese caso dejó
+  de existir el 30-08**: se midió que su reposo bueno existía 10 min ANTES de plantar, así que lo
+  cierra preventivamente `DET-NO-CLOCK-PLANTS-A-PIN-001`. Añadir hoy un ciclo de vida en dos fases a
+  `UserParking` + Firestore + mapa + geocerca sería construir sobre un fallo que ya no está vivo.
+
+**¿Borrar o marcar? MARCAR** — y la pregunta ya estaba contestada dentro del propio repo: `SpotStatus`
+lo razonó para la plaza comunitaria (*«un documento borrado simplemente deja de llegar, y se lleva la
+explicación con él»*). ⚠️ Pero **no** como enum: `isActive` ya responde otra pregunta y la leen cinco
+queries de Room más el cierre de Firestore, así que un `status` duplicaría la verdad o forzaría
+migrarlas todas. Un instante nullable responde *si* y *cuándo* con una sola fuente.
+
+⚠️ Y el barrido descubrió una **segunda puerta**: el botón *«No, cancelar»* (`RevertParkingUseCase`)
+tenía el mismo defecto con la autoridad más fuerte detrás —la palabra del usuario— y su propio KDoc
+llevaba el `TODO-REVERT-P1` pidiendo justo esto. Resuelto con la otra respuesta: retirada, no borrado.
+
 ### 9.3 Intactos — las piezas no los rozan, y dos se vuelven MÁS urgentes
 
 **`DET-EXPLAINED-RIDE-ASKS-NO-OTHER-CAR-001`.** Vive en el bucle de `ParkingSafetyNetWorker`, que
@@ -896,8 +918,11 @@ Nada de esto reordena las siete piezas, pero añade cuatro obligaciones:
 1. La **Pieza 3b** amplía su lista con `sustainedDepartureFromAnchor` (§9.2).
 2. La **Pieza 4** hereda los tres caveats del hold famélico (§9.1) como criterio de aceptación.
 3. La **Pieza 2** barre también el texto del safety-net que nombra la causa equivocada (§9.3).
-4. Hay que **decidir si existe una Pieza 8** correctiva (§9.2). Es la única laguna estructural que
-   ha destapado este cruce.
+4. ~~Hay que **decidir si existe una Pieza 8** correctiva (§9.2).~~ ✅ **Decidido e implementado el
+   31-08** (`PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001`): existe **sólo su mitad de RETIRAR**, que
+   es la que tiene dos fallos medidos detrás (63 s el 27-08, 52 s el 30-08); la mitad de MOVER no se
+   construye, porque su único caso de uso enunciado —el pin a 142 m— lo cerró preventivamente
+   `DET-NO-CLOCK-PLANTS-A-PIN-001`. Detalle y las dos preguntas de diseño en §9.2.
 
 Y una medición pendiente, barata y que puede tumbar una afirmación de §9.2: **contar los
 `drivingFixes` de la sesión `1787789799012`** (Oppo, 27-08, 216 fixes) en su `parkdiag`. Si pasan de

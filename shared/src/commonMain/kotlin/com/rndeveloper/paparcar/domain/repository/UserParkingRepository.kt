@@ -51,6 +51,18 @@ interface UserParkingRepository : UserScopedRepository, RemoteSyncable {
      * the marker coordinates the promote-vs-expire decision on this device and is never synced.
      */
     suspend fun markProvisionalDeparture(sessionId: String, atMs: Long?): Result<Unit>
+
+    /**
+     * [PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001] Withdraws a parking the app itself disproved (a
+     * backfill pin whose own departure refuted it within `refutedPinMaxLifeMs`) or that the user
+     * reverted. The row is KEPT — a withdrawal is a state, not a delete, for the reason
+     * [com.rndeveloper.paparcar.domain.model.SpotStatus] wrote down — and disappears from the
+     * history reads while every diagnostic read still sees it. Synced: the withdrawal has to reach
+     * the user's other devices like any other close.
+     *
+     * Idempotent: the first withdrawal instant wins, like the first close.
+     */
+    suspend fun retractParkingSession(sessionId: String, retractedAtMs: Long): Result<Unit>
     /**
      * Downloads parking history from Firestore and merges it into Room with a Last-Write-Wins
      * reconcile: a pending local edit strictly newer than remote is preserved; otherwise remote

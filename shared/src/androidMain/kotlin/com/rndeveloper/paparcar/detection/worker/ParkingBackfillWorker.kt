@@ -6,6 +6,7 @@ import androidx.work.OneTimeWorkRequest
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
+import com.rndeveloper.paparcar.domain.detection.DetectionPath
 import com.rndeveloper.paparcar.domain.detection.DetectionRuntimeState
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEvent
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEventLogger
@@ -196,7 +197,11 @@ class ParkingBackfillWorker(
         private const val DIAG = "PARKDIAG/Backfill"
         /** Pin provenance path: the 15-min safety net reconstructed this arrival (no live session
          *  followed the trip — process was asleep). [DET-PIN-PROVENANCE-001] */
-        private const val PATH_SAFETY_NET_BACKFILL = "safety_net_backfill"
+        // [PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001] The word belongs to the type that owns
+        // it. Two workers each held their own copy of the literal while DetectionPath already
+        // declared it — and this is now the path the withdrawal policy keys on, so a drift
+        // between the two spellings would silently stop refuted pins leaving the history.
+        private val PATH_SAFETY_NET_BACKFILL = DetectionPath.SafetyNetBackfill.label
         /** [DET-BACKFILL-TAINT-001] Telemetry outcome when the placement defers to the
          *  coordinator's nudge-only arrival resolution. */
         private const val OUTCOME_DEFERRED_TO_NUDGE = "BACKFILL_DEFERRED_TO_NUDGE"

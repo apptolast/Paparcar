@@ -106,6 +106,24 @@ data class UserParking(
      *  plaza). Stays false for private-zone departures, kept-private releases, reverts and
      *  supersedes. Synced. [VEH-STATS-SAY-SOMETHING-USEFUL-001] */
     val publishedSpot: Boolean = false,
+    /**
+     * [PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001] Epoch-ms when this parking was WITHDRAWN — the app
+     * concluded it never happened, or the user said so by reverting it. Null for every ordinary
+     * session, active or ended. Synced.
+     *
+     * ⛔ **A withdrawal is a state, not a delete.** Same choice the community spot faced and wrote
+     * down in [SpotStatus]: *a deleted document just stops arriving, taking the explanation with
+     * it.* The row survives for diagnostics — it is precisely the phantom a field report is trying
+     * to explain — and it leaves the history through [isRetracted].
+     *
+     * ⚠️ **And not an enum, deliberately.** `isActive` already answers a different question ("is
+     * this the car's current parking"), and a session is withdrawn only after it is closed. Folding
+     * the two into one `status` would either duplicate `isActive` — which five Room queries and the
+     * Firestore close both read — or migrate all of them, in a ticket whose scope is one row
+     * leaving one list. One nullable instant answers *whether* and *when* with no second source of
+     * truth.
+     */
+    val retractedAtMs: Long? = null,
 ) {
     /** True when this route carries road-inferred stretches the user has not judged yet — the
      *  detail screen asks. [ROUTE-GAP-HONEST-001] */
@@ -116,4 +134,8 @@ data class UserParking(
      *  source of truth is [zoneRadiusMeters] (an area intrinsically has a radius; a boolean
      *  alongside it could contradict it). [DET-HONEST-CLOSE-001] */
     val isApproximate: Boolean get() = zoneRadiusMeters != null
+
+    /** True when this parking has been withdrawn — it is kept for diagnostics and must not appear
+     *  in the user's history, stats or chart. [PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001] */
+    val isRetracted: Boolean get() = retractedAtMs != null
 }

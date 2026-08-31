@@ -47,6 +47,14 @@ fun reconcileParkingSessions(
             routeDistanceMeters = r.routeDistanceMeters ?: l?.routeDistanceMeters,
             endedAtMs = r.endedAtMs ?: l?.endedAtMs,
             publishedSpot = r.publishedSpot || l?.publishedSpot == true,
+            // [PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001] A withdrawal is never un-done by a
+            // document that predates it. Same shape and same argument as `zoneRadiusMeters` above:
+            // a remote doc written before the field travelled — or by a device that has not
+            // received the withdrawal yet — carries null, and taking that null would put the
+            // phantom row back in the history. It also claims MORE than we know (that the parking
+            // was real), which is the asymmetric-failure direction we never take. The withdrawal
+            // only ever travels one way: once withdrawn, withdrawn.
+            retractedAtMs = r.retractedAtMs ?: l?.retractedAtMs,
         )
     },
 )

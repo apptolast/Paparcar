@@ -183,6 +183,7 @@ class RunDepartureCheckUseCaseTest {
                 ),
                 geofenceService = FakeGeofenceManager(),
                 departureEventBus = bus,
+                config = ParkingDetectionConfig(),
             ),
             getOneLocation = GetOneLocationUseCase(locationSource, nowMs = { clockMs }),
             departureEventBus = bus,

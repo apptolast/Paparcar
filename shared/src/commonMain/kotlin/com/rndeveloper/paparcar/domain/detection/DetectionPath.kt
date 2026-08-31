@@ -49,6 +49,27 @@ sealed interface DetectionPath {
      */
     fun confirmReliability(config: ParkingDetectionConfig): Float?
 
+    /**
+     * [PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001] **May the app withdraw a pin this path placed,
+     * on its own, when its own measurements go on to refute it?**
+     *
+     * The third question this type owns, and the one that decides whether a parking the app has
+     * already concluded never happened stays in the user's history. It is `true` for exactly one
+     * path today, and the reason is not "that is the one that burned us" — it is that
+     * [SafetyNetBackfill] is the only pin placed with **no live session behind it**: a
+     * reconstruction from stale evidence, which is precisely the class of claim a later measurement
+     * can overturn. Every other path had a session that watched something.
+     *
+     * ⛔ **`false` is not a synonym of "trustworthy".** [UnattendedZone] is a guess bounded by its
+     * own doubt and [BtTimeout] lost its corroboration, and both still answer `false`: they were
+     * placed by a session that measured a drive and a rest, so a later departure from them is an
+     * ordinary end, not a refutation. And the user-placed paths answer `false` for a different
+     * reason again — nothing the app measures outranks the user's own hand
+     * ([DET-ASSERTION-OUTRANKS-INFERENCE-001]). The user withdrawing their OWN pin does not come
+     * through here at all; a revert is an instruction, not a verdict.
+     */
+    val mayBeWithdrawnByTheApp: Boolean
+
     // ── Coordinator live-confirm paths ──────────────────────────────────────────────────────────
 
     /** Pedestrian steps plus egress displacement — the path that plants the most pins. */
@@ -56,6 +77,8 @@ sealed interface DetectionPath {
         override val label = "steps+egress"
         override val source = ParkingDetectionSource.Assisted
         override fun confirmReliability(config: ParkingDetectionConfig) = config.reliabilityVehicleExit
+        /** `false` - a live session measured the walk away from the car. */
+        override val mayBeWithdrawnByTheApp = false
     }
 
     /** Pedestrian-band GPS fixes walking away from a frozen anchor — the mute-counter peer. */
@@ -63,6 +86,8 @@ sealed interface DetectionPath {
         override val label = "kinematic+egress"
         override val source = ParkingDetectionSource.Assisted
         override fun confirmReliability(config: ParkingDetectionConfig) = config.reliabilityKinematicEgress
+        /** `false` - a live session measured the walk away from the car. */
+        override val mayBeWithdrawnByTheApp = false
     }
 
     /** An AR vehicle EXIT plus the observation window plus egress displacement. */
@@ -70,6 +95,8 @@ sealed interface DetectionPath {
         override val label = "vehicleExit+window+egress"
         override val source = ParkingDetectionSource.Assisted
         override fun confirmReliability(config: ParkingDetectionConfig) = config.reliabilityVehicleExit
+        /** `false` - a live session measured the exit and the egress. */
+        override val mayBeWithdrawnByTheApp = false
     }
 
     // ── Clock and reconciliation paths ──────────────────────────────────────────────────────────
@@ -79,6 +106,8 @@ sealed interface DetectionPath {
         override val label = "unattended_timeout"
         override val source = ParkingDetectionSource.Assisted
         override fun confirmReliability(config: ParkingDetectionConfig): Float? = null
+        /** `false` - the session measured a drive and a rest; the clock only ended the wait. */
+        override val mayBeWithdrawnByTheApp = false
     }
 
     /**
@@ -95,6 +124,8 @@ sealed interface DetectionPath {
         override val label = LABEL_PREFIX + reasonKey
         override val source = ParkingDetectionSource.Assisted
         override fun confirmReliability(config: ParkingDetectionConfig): Float? = null
+        /** `false` - same as the exact one - the doubt is already in the radius, not in whether it happened. */
+        override val mayBeWithdrawnByTheApp = false
 
         companion object { const val LABEL_PREFIX = "unattended_zone_" }
     }
@@ -104,6 +135,8 @@ sealed interface DetectionPath {
         override val label = "safety_net_backfill"
         override val source = ParkingDetectionSource.Assisted
         override fun confirmReliability(config: ParkingDetectionConfig): Float? = null
+        /** `true` - reconstructed with NO live session, from evidence that may be hours stale. */
+        override val mayBeWithdrawnByTheApp = true
     }
 
     /** The honest close drew the area it was willing to stand behind. */
@@ -111,6 +144,8 @@ sealed interface DetectionPath {
         override val label = "closed_approximate_pin"
         override val source = ParkingDetectionSource.Assisted
         override fun confirmReliability(config: ParkingDetectionConfig): Float? = null
+        /** `false` - the honest close drew what its own session witnessed. */
+        override val mayBeWithdrawnByTheApp = false
     }
 
     // ── Bluetooth strategy ──────────────────────────────────────────────────────────────────────
@@ -120,6 +155,8 @@ sealed interface DetectionPath {
         override val label = "bt"
         override val source = ParkingDetectionSource.Bluetooth
         override fun confirmReliability(config: ParkingDetectionConfig): Float? = null
+        /** `false` - the disconnect and the displacement were both measured. */
+        override val mayBeWithdrawnByTheApp = false
     }
 
     /** BT disconnect whose walk watch expired. Same strategy, less corroboration. */
@@ -127,6 +164,8 @@ sealed interface DetectionPath {
         override val label = "bt_timeout"
         override val source = ParkingDetectionSource.Bluetooth
         override fun confirmReliability(config: ParkingDetectionConfig): Float? = null
+        /** `false` - the disconnect was measured; only its corroboration expired. */
+        override val mayBeWithdrawnByTheApp = false
     }
 
     // ── Placed by the user ──────────────────────────────────────────────────────────────────────
@@ -137,6 +176,8 @@ sealed interface DetectionPath {
         override val label = "user"
         override val source = ParkingDetectionSource.Manual
         override fun confirmReliability(config: ParkingDetectionConfig): Float? = null
+        /** `false` - the hand was the user's. */
+        override val mayBeWithdrawnByTheApp = false
     }
 
     /** The user placed the pin by hand. */
@@ -144,6 +185,8 @@ sealed interface DetectionPath {
         override val label = "manual"
         override val source = ParkingDetectionSource.Manual
         override fun confirmReliability(config: ParkingDetectionConfig): Float? = null
+        /** `false` - the hand was the user's. */
+        override val mayBeWithdrawnByTheApp = false
     }
 
     /** The user answered a nudge notification. */
@@ -151,6 +194,8 @@ sealed interface DetectionPath {
         override val label = "nudge"
         override val source = ParkingDetectionSource.Manual
         override fun confirmReliability(config: ParkingDetectionConfig): Float? = null
+        /** `false` - the hand was the user's. */
+        override val mayBeWithdrawnByTheApp = false
     }
 
     companion object {

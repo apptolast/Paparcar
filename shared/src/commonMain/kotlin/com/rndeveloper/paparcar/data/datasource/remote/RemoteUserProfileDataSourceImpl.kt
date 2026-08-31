@@ -192,6 +192,7 @@ class RemoteUserProfileDataSourceImpl(
                 endedAtMs = runCatching { get<Long?>(FIELD_ENDED_AT_MS) }.getOrNull()
                     ?: runCatching { get<Double?>(FIELD_ENDED_AT_MS)?.toLong() }.getOrNull(),
                 publishedSpot = runCatching { get<Boolean?>(FIELD_PUBLISHED_SPOT) }.getOrNull() ?: false,
+                retractedAtMs = runCatching { get<Long?>(FIELD_RETRACTED_AT_MS) }.getOrNull(),
                 updatedAt = getLongCompat(FIELD_UPDATED_AT),
             )
         }.getOrElse { e ->
@@ -258,5 +259,6 @@ class RemoteUserProfileDataSourceImpl(
         const val FIELD_ROUTE_DISTANCE_METERS = "routeDistanceMeters"
         const val FIELD_ENDED_AT_MS = "endedAtMs"
         const val FIELD_PUBLISHED_SPOT = "publishedSpot"
+        const val FIELD_RETRACTED_AT_MS = "retractedAtMs"
     }
 }

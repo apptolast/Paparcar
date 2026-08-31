@@ -134,6 +134,17 @@ class FakeUserParkingRepository(
         return Result.success(Unit)
     }
 
+    /** [PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001] The withdrawal is STAMPED on the stored session,
+     *  never removed from the list — a test must be able to assert both halves: the row survives
+     *  and it carries the instant. `COALESCE` semantics: the first withdrawal wins. */
+    override suspend fun retractParkingSession(sessionId: String, retractedAtMs: Long): Result<Unit> {
+        sessions.replaceAll {
+            if (it.id == sessionId && it.retractedAtMs == null) it.copy(retractedAtMs = retractedAtMs) else it
+        }
+        _sessionsFlow.value = sessions.toList()
+        return Result.success(Unit)
+    }
+
     override suspend fun clearActiveParkingSession(
         sessionId: String,
         endedAtMs: Long,

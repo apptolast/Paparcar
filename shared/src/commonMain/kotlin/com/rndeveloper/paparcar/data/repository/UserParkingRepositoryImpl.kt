@@ -116,6 +116,17 @@ class UserParkingRepositoryImpl(
     }
 
     /**
+     * [PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001] Room write plus the SAME sync enqueue the close
+     * uses. The withdrawal rides `pendingSync` on the outbox drainer's full-document push, so it
+     * reaches Firestore through the ordinary reconcile — nothing new in the sync layer.
+     */
+    override suspend fun retractParkingSession(sessionId: String, retractedAtMs: Long): Result<Unit> =
+        runCatching {
+            dao.retractById(sessionId, retractedAtMs, Clock.System.now().toEpochMilliseconds())
+            parkingSyncScheduler.enqueueClearActiveParkingSession(sessionId)
+        }
+
+    /**
      * Inbound sync with Last-Write-Wins reconcile — supersedes the SYNC-UP-GUARD-001 stopgap. Local
      * is authoritative: a pending local edit strictly newer than remote is preserved; otherwise the
      * remote row wins (carrying local-only detection provenance). This is what stops a stale remote

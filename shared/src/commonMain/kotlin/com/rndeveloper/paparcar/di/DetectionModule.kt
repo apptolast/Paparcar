@@ -222,6 +222,7 @@ val detectionModule = module {
             geofenceService = get(),
             departureEventBus = get(),
             detectionEventLogger = get(),
+            config = get(),
         )
     }
     factory {
