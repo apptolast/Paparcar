@@ -91,6 +91,10 @@ enum class ArmLabel(val persisted: String) {
 
     /** [DET-SUPERSEDE-CANNOT-DISCARD-A-MEASURED-DRIVE-001] The drive proof of the superseded session. */
     INHERITED_DRIVE("inherited_drive"),
+
+    /** [DET-A-JUST-DEPARTED-CAR-IS-NOT-NO-SESSION-001] The departure worker MEASURED the exit and
+     *  found no live session to upgrade — so the confirmed departure armed its own follower. */
+    DEPARTURE_FOLLOWED("departure_followed"),
     ;
 
     /**
@@ -103,7 +107,7 @@ enum class ArmLabel(val persisted: String) {
      */
     val isVerifiedDeparture: Boolean
         get() = when (this) {
-            VERIFIED_SPEED, VERIFIED_ENTER, VERIFIED_LATE, INHERITED_DRIVE -> true
+            VERIFIED_SPEED, VERIFIED_ENTER, VERIFIED_LATE, INHERITED_DRIVE, DEPARTURE_FOLLOWED -> true
             MANUAL, SELF_OBSERVED, ENTER_AT_CAR, ARRIVAL_HANDOFF, BT_RIDE, BOARDED_AWAY -> false
         }
 
@@ -121,6 +125,11 @@ enum class ArmLabel(val persisted: String) {
             MANUAL, INHERITED_DRIVE, VERIFIED_SPEED -> true
             VERIFIED_ENTER, VERIFIED_LATE, SELF_OBSERVED,
             ENTER_AT_CAR, ARRIVAL_HANDOFF, BT_RIDE, BOARDED_AWAY,
+            // [DET-A-JUST-DEPARTED-CAR-IS-NOT-NO-SESSION-001] The worker's fix cleared the DEPARTURE
+            // bar (10 km/h), not the TRIP bar (18 km/h) — a cyclist clears the former all day. The
+            // follower rides at full quality, but a park at the far end without its OWN measured
+            // drive costs a question, never a silent pin (asymmetric failure).
+            DEPARTURE_FOLLOWED,
             -> false
         }
 
@@ -229,12 +238,32 @@ sealed interface ArmEvidence {
     data class InheritedDrive(val maxSpeedMps: Float, val source: DriveProofSource) : ArmEvidence
 
     /**
+     * [DET-A-JUST-DEPARTED-CAR-IS-NOT-NO-SESSION-001] The departure worker MEASURED this exit
+     * (fresh fix ≥ departure speed, credible accuracy, past the echo gate) and found **no live
+     * session to upgrade** — `notifyDepartureConfirmed()` had nobody to tell. Until this arm, that
+     * measured drive was simply dropped: the session cleared, the sentry stood down (no parked
+     * session of the active car left to watch), and the detector went deaf for the rest of the trip.
+     *
+     * Field 2026-08-31 21:22 (Oppo): a real slow exit (13,3 km/h, dirt road) confirmed 6 s AFTER the
+     * session's own false-ENTER abort; the AR ENTER of the actual drive died in `NoSession` at 21:28
+     * and 39 sentry wakes stood down all night — two parks lost. The Redmi on the SAME trip was
+     * saved only because a sentry wake happened to re-arm 100 s before its clear ran: this arm turns
+     * that accident of ordering into a guarantee.
+     *
+     * [DriveAuthorization.OnTrust] like [VerifiedBySpeed] — a departure verified outside this
+     * session's stream, retractable until its own measurements back it. But it does NOT confirm
+     * silently: the worker's bar is the DEPARTURE band (10 km/h), which a bicycle clears, not the
+     * TRIP band. The follower must measure the drive itself or ask at the far end.
+     */
+    data class DepartureFollowed(val speedKmh: Float, val accuracyM: Float?) : ArmEvidence
+
+    /**
      * What this arm entitles the session to assume about the drive. DECLARED by each arm — a new
      * arm does not compile until its author answers.
      */
     val driveAuthorization: DriveAuthorization
         get() = when (this) {
-            is VerifiedBySpeed, is VerifiedByVehicleEnter -> DriveAuthorization.OnTrust
+            is VerifiedBySpeed, is VerifiedByVehicleEnter, is DepartureFollowed -> DriveAuthorization.OnTrust
             is InheritedDrive -> DriveAuthorization.Measured
             is Manual, is Unverified, is BoardingAtCar, is ArrivalHandoff, is BtRide,
             is BoardedAwayFromCar -> DriveAuthorization.None
@@ -304,6 +333,7 @@ sealed interface ArmEvidence {
             is BoardedAwayFromCar -> ArmLabel.BOARDED_AWAY
             is BtRide -> ArmLabel.BT_RIDE
             is InheritedDrive -> ArmLabel.INHERITED_DRIVE
+            is DepartureFollowed -> ArmLabel.DEPARTURE_FOLLOWED
         }
 
     /** Stable label persisted on the session / logged in diagnostics. */
@@ -330,6 +360,7 @@ sealed interface ArmEvidence {
             BoardedAwayFromCar,
             BtRide(engagementMs = 0L),
             InheritedDrive(maxSpeedMps = 0f, source = DriveProofSource.TRACK_WINDOW),
+            DepartureFollowed(speedKmh = 0f, accuracyM = null),
         )
     }
 }

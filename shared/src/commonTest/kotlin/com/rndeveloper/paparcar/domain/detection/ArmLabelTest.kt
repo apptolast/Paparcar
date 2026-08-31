@@ -98,6 +98,10 @@ class ArmLabelTest {
                 ArmLabel.VERIFIED_ENTER,
                 ArmLabel.VERIFIED_LATE,
                 ArmLabel.INHERITED_DRIVE,
+                // [DET-A-JUST-DEPARTED-CAR-IS-NOT-NO-SESSION-001] The departure worker's own
+                // echo-gated measurement — the same fact VERIFIED_LATE names, delivered to a
+                // follower arm instead of to a live session.
+                ArmLabel.DEPARTURE_FOLLOWED,
             ),
             verified,
             "the set of arms that bypass the repark and assertion guards changed",

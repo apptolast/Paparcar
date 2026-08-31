@@ -6937,3 +6937,54 @@ tested; the prefs write and the worker's read have no test, exactly as before th
 trace line, which now names the reason, is what will show it in the field.
 
 Spec: `docs/backlog/det-a-resolved-arrival-is-resolved-for-all-eight-reasons-001.md`.
+
+---
+
+### DET-A-JUST-DEPARTED-CAR-IS-NOT-NO-SESSION-001 — a measured departure leaves a follower, not a deaf detector (pending)
+
+**The field day.** 2026-08-31 21:22 (Oppo, `parkdiag`): a REAL slow exit — dirt road, 13,3 km/h at
+acc 2,3 m — was confirmed by the departure worker **6 s after the live session's own false-ENTER
+abort**. The confirm cleared the active car's only parked session; from that instant there was
+nothing left to re-arm from. The trip's real AR `IN_VEHICLE_ENTER` died in
+`ArEnterDecision.NoSession` at 21:28, and **39 sentry wakes stood down all night** ("1 parked
+session(s), none of the active car") — the phone was awake and shouting, and nobody could answer.
+Two parks lost (Góndola, ≈21:40 and ≈22:40).
+
+**The control that proves the design.** The Redmi rode the SAME trip with the same defect and was
+saved by **100 seconds of ordering**: its sentry wake armed a coordinator at 21:23:56, its departure
+confirm ran at 21:24:33, so when the clear landed a live session was already following the trip —
+arrival detected, `steps+egress`, correct pin. Nothing guaranteed that order. Now something does.
+
+**The invariant.** *Processing a departure confirmed by measurement never leaves the detector
+without a session: if no live detection exists at that instant, the departure arms a follower.* It
+lives in ONE place — `RunDepartureCheckUseCase`'s measured-`Confirmed` path, the one actor that both
+measures the drive and orders the clear — as `DepartureCheckOutcome.Processed.followTrip`. The
+worker translates it into the service's own door (`ACTION_FOLLOW_DEPARTURE`), best-effort like the
+re-look's arm: a background-FGS refusal leaves the safety net the backstop it always was.
+
+**The gate is the measurement, not the label.** `handleWatchdogDeparture` also commits
+`DepartureProof.Witnessed` — the user's word — but holds **no hour**; the trip may be hours over.
+The preconfirmed reconcile and the admissible-boarding fall-through commit on deduction. None of
+them measured a fix NOW, so none of them follow. Only the attempt whose own fresh, echo-gated fix
+confirmed the exit hands over.
+
+**The arm's word.** `ArmEvidence.DepartureFollowed(speedKmh, accuracyM)` → `departure_followed`,
+its own persisted provenance (a follower must be tellable from a sentry wake without a logcat).
+`isVerifiedDeparture = true` — the same fact `verified_late` names, delivered to a new session
+instead of a live one. `confirmsSilentlyWithoutMeasuredDrive = false`, and this is the asymmetry
+doing its job: the worker's bar is the DEPARTURE band (10 km/h), which a bicycle clears all day —
+the follower rides at full quality, but a park at the far end without its OWN measured drive costs
+a question, never a silent pin. Trigger stays `GEOFENCE_EXIT`: the fence exit is the signal that
+started this chain; the worker only verified it late.
+
+**Seen failing before it was believed**: dropping the `isRunning` gate turned
+`should_notHandOffFollower_when_aLiveSessionAlreadyFollowsTheTrip` red; never handing off turned
+`should_handOffFollower_when_departureMeasured_and_nobodyFollowsTheTrip` red.
+
+⚠️ **What the suite does NOT cover, said rather than left implied**: the intent hop
+(worker → `startForegroundService` → `handleFollowDeparture`) and the anchor re-read of the
+just-cleared pin (`getSessionById`, whose row survives the clear with `isActive=false`) are
+androidMain I/O with no test, like every other lane's hop. The `departure-follower(...)` detail in
+the trigger ledger is what will show it in the field.
+
+Spec: `docs/backlog/det-a-just-departed-car-is-not-no-session-001.md`.

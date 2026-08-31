@@ -1,6 +1,8 @@
 package com.rndeveloper.paparcar.domain.usecase.parking
 
 import com.rndeveloper.paparcar.domain.detection.DepartureConfirmationListener
+import com.rndeveloper.paparcar.domain.detection.DetectionRuntimeState
+import com.rndeveloper.paparcar.domain.detection.StaticDetectionRuntimeState
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEvent
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
@@ -167,6 +169,9 @@ class RunDepartureCheckUseCaseTest {
         // Fixed clock 1 min after the exit → departures are FRESH by default; the exit-echo
         // replay overrides it to sit ON the exit moment. [DET-DEPART-PROOF-001]
         val clockMs: Long = exitTimestamp + 60_000L,
+        // [DET-A-JUST-DEPARTED-CAR-IS-NOT-NO-SESSION-001] Nobody follows the trip by default —
+        // the Oppo 31-08 shape. The already-running test flips it.
+        val runtime: DetectionRuntimeState = StaticDetectionRuntimeState(running = false),
     ) {
         val useCase = RunDepartureCheckUseCase(
             detectParkingDeparture = DetectParkingDepartureUseCase(
@@ -188,6 +193,7 @@ class RunDepartureCheckUseCaseTest {
             getOneLocation = GetOneLocationUseCase(locationSource, nowMs = { clockMs }),
             departureEventBus = bus,
             departureConfirmationListener = listener,
+            detectionRuntime = runtime,
             config = ParkingDetectionConfig(),
             detectionEventLogger = logger,
             // Fixed clock (default 1 min after the exit) → departures are FRESH by default; the
@@ -236,6 +242,69 @@ class RunDepartureCheckUseCaseTest {
 
         assertIs<DepartureCheckOutcome.Processed>(outcome)
         assertEquals(1, env.spotScheduler.scheduleCallCount, "freed spot published")
+    }
+
+    // ── [DET-A-JUST-DEPARTED-CAR-IS-NOT-NO-SESSION-001] A measured departure leaves a follower ─
+
+    @Test
+    fun should_handOffFollower_when_departureMeasured_and_nobodyFollowsTheTrip() = runTest {
+        // Field 2026-08-31 21:22:44 (Oppo): the worker confirmed a REAL slow exit 6 s after the live
+        // session's own abort and cleared the active car's only parked session — with nobody
+        // following, the trip's real AR ENTER died in NoSession and two parks were lost. A measured
+        // confirm with no live detection must hand the trip to a follower.
+        val env = Env()
+        launch { env.locationSource.emitBalanced(currentFix(speedMps = 8f, accuracy = 10f)) }
+
+        val outcome = env.useCase("geo-1", exitTimestamp, attempt = 0)
+
+        val processed = assertIs<DepartureCheckOutcome.Processed>(outcome)
+        val handoff = assertNotNull(processed.followTrip, "a measured departure with no live session hands over a follower")
+        assertEquals("geo-1", handoff.geofenceId)
+        assertEquals(8f * 3.6f, handoff.speedKmh, "the arm's evidence is THIS attempt's measurement")
+        assertEquals(10f, handoff.accuracyM)
+    }
+
+    @Test
+    fun should_notHandOffFollower_when_aLiveSessionAlreadyFollowsTheTrip() = runTest {
+        // The Redmi on the same trip: a sentry wake armed 100 s before the clear ran, so the trip
+        // was already followed — a second session would be the double-pin shape.
+        val env = Env(runtime = StaticDetectionRuntimeState(running = true))
+        launch { env.locationSource.emitBalanced(currentFix(speedMps = 8f, accuracy = 10f)) }
+
+        val outcome = env.useCase("geo-1", exitTimestamp, attempt = 0)
+
+        val processed = assertIs<DepartureCheckOutcome.Processed>(outcome)
+        assertNull(processed.followTrip, "a trip already followed needs no second follower")
+    }
+
+    @Test
+    fun should_notHandOffFollower_when_preconfirmed_by_reconcile() = runTest {
+        // The reconcile PROVES a departure that already happened — the user is stationary at the
+        // destination and nothing was measured NOW. Arming a follower would chase a finished trip.
+        val env = Env()
+
+        val outcome = env.useCase("geo-1", exitTimestamp, attempt = 0, preconfirmed = true)
+
+        val processed = assertIs<DepartureCheckOutcome.Processed>(outcome)
+        assertNull(processed.followTrip, "a deduced departure measured nothing to follow")
+    }
+
+    @Test
+    fun should_notHandOffFollower_when_theFallThroughCommitsOnABoardingAlone() = runTest {
+        // The attempts-exhausted admissible-boarding fall-through: proof stays Deduced — an AR
+        // ENTER plus displacement is a nomination, not a measurement, and a bicycle satisfies it
+        // (field 2026-08-19). No measurement now → no follower.
+        val env = Env(bus = FakeDepartureEventBus(initialTimestamp = exitTimestamp - 30_000L))
+        launch { env.locationSource.emitBalanced(farFix(speedMps = 1f, accuracy = 10f)) }
+
+        val outcome = env.useCase(
+            "geo-1",
+            exitTimestamp,
+            attempt = RunDepartureCheckUseCase.MAX_INCONCLUSIVE_ATTEMPTS,
+        )
+
+        val processed = assertIs<DepartureCheckOutcome.Processed>(outcome)
+        assertNull(processed.followTrip, "a boarding fall-through measured no drive to follow")
     }
 
     // ── [DET-DEPART-PROOF-001] The exit's own fix must never confirm the departure ─

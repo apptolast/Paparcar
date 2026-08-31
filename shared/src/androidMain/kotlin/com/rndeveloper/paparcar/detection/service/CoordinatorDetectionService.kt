@@ -288,6 +288,9 @@ class CoordinatorDetectionService : LifecycleService() {
             ACTION_START_TRACKING -> handleStartTracking()
             ACTION_ARRIVAL_HANDOFF -> handleArrivalHandoff() // [DET-HANDOFF-NOT-MANUAL-001]
             ACTION_BOARDED_AWAY -> handleBoardedAway(intent.getStringExtra(EXTRA_GEOFENCE_ID))
+            // [DET-A-JUST-DEPARTED-CAR-IS-NOT-NO-SESSION-001] A measured departure that cleared the
+            // last parked session hands the rest of the trip to a follower.
+            ACTION_FOLLOW_DEPARTURE -> handleFollowDeparture(intent)
             // [DET-RESIDENT-FGS-001] · [DET-CHEAP-WAKE-INSTEAD-OF-SILENCE-001] the extra says whether
             // this wake may spend a whole session or only one fix.
             ACTION_SENTRY_WAKE -> handleSentryWake(
@@ -545,6 +548,50 @@ class CoordinatorDetectionService : LifecycleService() {
             DetectionTrigger.AR_VEHICLE_ENTER,
             detail = "relook(geof=${geofenceId ?: "?"})",
             armEvidence = ArmEvidence.BoardedAwayFromCar,
+        )
+    }
+
+    /**
+     * [DET-A-JUST-DEPARTED-CAR-IS-NOT-NO-SESSION-001] The departure worker MEASURED an exit and
+     * found no live session to upgrade — clearing the active car's last parked session with nobody
+     * following the trip is what left the detector deaf on 2026-08-31 (the real AR ENTER died in
+     * `NoSession` 6 min later; 39 sentry wakes stood down all night; two parks lost).
+     *
+     * Arms a follower with [ArmEvidence.DepartureFollowed]: verified departure (the worker's own
+     * echo-gated measurement), but never a silent confirm — the departure band is bicycle-reachable,
+     * so the far end still needs the session's OWN measured drive or a question.
+     *
+     * Trigger stays [DetectionTrigger.GEOFENCE_EXIT]: the fence EXIT is the signal that started this
+     * chain — the worker only verified it late. The trip anchor is the pin the departure just closed
+     * (its row survives the clear with `isActive=false`); when it cannot be re-read the arm still
+     * proceeds without an anchor, exactly like [handleBoardedAway].
+     */
+    private suspend fun handleFollowDeparture(intent: Intent) {
+        if (!guardPermissions("FOLLOW_DEPARTURE")) return
+        if (detectionJob?.isActive == true) {
+            // The race the Redmi survived by luck, closed on purpose: something (sentry wake, AR)
+            // armed between the worker's check and this intent — that session already follows.
+            PaparcarLogger.d(DIAG, "  ↻ FOLLOW_DEPARTURE ignored — detectionJob already active")
+            return
+        }
+        val geofenceId = intent.getStringExtra(EXTRA_GEOFENCE_ID)
+        val speedKmh = intent.getFloatExtra(EXTRA_FOLLOW_SPEED_KMH, 0f)
+        val accuracyM = intent.getFloatExtra(EXTRA_FOLLOW_ACC_M, -1f).takeIf { it >= 0f }
+        val closedPin = geofenceId?.let { id ->
+            runCatching { userParkingRepository.getSessionById(id) }.getOrNull()
+        }
+        PaparcarLogger.d(
+            DIAG,
+            "  → FOLLOW_DEPARTURE — measured departure cleared the last session; arming a follower " +
+                "(geof=${geofenceId?.take(8) ?: "?"} speed=${speedKmh}km/h anchor=${closedPin != null}) " +
+                "[DET-A-JUST-DEPARTED-CAR-IS-NOT-NO-SESSION-001]",
+        )
+        cancelDetectionJob()
+        startParkingDetection(
+            DetectionTrigger.GEOFENCE_EXIT,
+            detail = "departure-follower(geof=${geofenceId?.take(8) ?: "?"} speed=${speedKmh}km/h)",
+            trip = closedPin?.let { TripContext(it.location, it.vehicleId) },
+            armEvidence = ArmEvidence.DepartureFollowed(speedKmh = speedKmh, accuracyM = accuracyM),
         )
     }
 
@@ -2044,6 +2091,33 @@ class CoordinatorDetectionService : LifecycleService() {
             val intent = android.content.Intent(context, CoordinatorDetectionService::class.java).apply {
                 action = ACTION_BOARDED_AWAY
                 putExtra(EXTRA_GEOFENCE_ID, geofenceId)
+            }
+            androidx.core.content.ContextCompat.startForegroundService(context, intent)
+        }
+
+        // [DET-A-JUST-DEPARTED-CAR-IS-NOT-NO-SESSION-001] A measured departure cleared the active
+        // car's last parked session with no live detection to upgrade — the confirmed departure arms
+        // its own follower. Its own action, for the reason BOARDED_AWAY has one: the arm evidence
+        // differs, and a trace must be able to tell which lane armed.
+        const val ACTION_FOLLOW_DEPARTURE = "com.rndeveloper.paparcar.ACTION_FOLLOW_DEPARTURE"
+        const val EXTRA_FOLLOW_SPEED_KMH = "com.rndeveloper.paparcar.EXTRA_FOLLOW_SPEED_KMH"
+        const val EXTRA_FOLLOW_ACC_M = "com.rndeveloper.paparcar.EXTRA_FOLLOW_ACC_M"
+
+        /** [DET-A-JUST-DEPARTED-CAR-IS-NOT-NO-SESSION-001] Foreground-service start for the
+         *  departure follower's arm. Called from
+         *  [com.rndeveloper.paparcar.detection.worker.DepartureDetectionWorker], which handles a
+         *  platform refusal by leaving the safety net as the backstop. */
+        fun startDepartureFollowerArm(
+            context: android.content.Context,
+            geofenceId: String,
+            speedKmh: Float,
+            accuracyM: Float?,
+        ) {
+            val intent = android.content.Intent(context, CoordinatorDetectionService::class.java).apply {
+                action = ACTION_FOLLOW_DEPARTURE
+                putExtra(EXTRA_GEOFENCE_ID, geofenceId)
+                putExtra(EXTRA_FOLLOW_SPEED_KMH, speedKmh)
+                putExtra(EXTRA_FOLLOW_ACC_M, accuracyM ?: -1f)
             }
             androidx.core.content.ContextCompat.startForegroundService(context, intent)
         }

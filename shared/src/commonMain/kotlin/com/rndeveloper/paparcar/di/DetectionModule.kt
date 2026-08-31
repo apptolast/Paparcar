@@ -232,6 +232,7 @@ val detectionModule = module {
             getOneLocation = get(),
             departureEventBus = get(),
             departureConfirmationListener = get(),
+            detectionRuntime = get(),
             config = get(),
             detectionEventLogger = get(),
         )
