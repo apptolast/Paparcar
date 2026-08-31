@@ -3,6 +3,7 @@ package com.rndeveloper.paparcar.domain.detection
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEvent
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEventLogger
 import com.rndeveloper.paparcar.domain.model.GpsPoint
+import kotlin.concurrent.Volatile
 
 /**
  * The `parkdiag` prefix every actor inside one detection pass logs under, so a fix's whole story

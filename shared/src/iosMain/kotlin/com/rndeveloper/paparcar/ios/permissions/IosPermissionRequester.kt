@@ -65,7 +65,12 @@ class IosPermissionRequester(private val permissionManager: PermissionManager) {
         requestActivityRecognition()
     }
 
-    private fun requestNotifications() {
+    /**
+     * Notifications ALONE — the per-card direct grant [ONB-CARDS-001]. Public and not folded into
+     * [requestProducerSensors] on purpose: a card that asks for one permission must raise one
+     * dialog, or the user answers a question the card never posed.
+     */
+    fun requestNotifications() {
         val options = UNAuthorizationOptionAlert or
             UNAuthorizationOptionBadge or
             UNAuthorizationOptionSound
@@ -75,7 +80,8 @@ class IosPermissionRequester(private val permissionManager: PermissionManager) {
             }
     }
 
-    private fun requestActivityRecognition() {
+    /** Motion & Fitness ALONE — the per-card direct grant [ONB-CARDS-001]. See [requestNotifications]. */
+    fun requestActivityRecognition() {
         if (!CMMotionActivityManager.isActivityAvailable()) return
         // Triggering a brief query causes iOS to show the Motion & Fitness permission dialog.
         val manager = CMMotionActivityManager()
