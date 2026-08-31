@@ -68,6 +68,7 @@ import com.rndeveloper.paparcar.domain.model.SpotStatus
 import com.rndeveloper.paparcar.domain.model.SpotType
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.Vehicle
+import com.rndeveloper.paparcar.presentation.map.FocusedParking
 import com.rndeveloper.paparcar.presentation.map.HistoryDetailSheet
 import com.rndeveloper.paparcar.presentation.onboarding.OnboardingScreen
 import com.rndeveloper.paparcar.presentation.permissions.PermissionsContent
@@ -241,10 +242,29 @@ private fun parkingDetailSheet(
 ) {
     Box(Modifier.fillMaxSize()) {
         HistoryDetailSheet(
-            session = session,
+            focused = FocusedParking.Resolved(session),
             vehicle = vehicle,
             hasOlder = hasOlder,
             hasNewer = hasNewer,
+            onOlder = {},
+            onNewer = {},
+            onNavigate = { _, _ -> },
+            modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(),
+        )
+    }
+}
+
+// Las dos caras SIN datos de la misma ficha: "aun no lo se" (skeleton) y "ese aparcamiento ya no
+// esta en tu historial". Antes las dos se pintaban como una tarjeta que decia "Ubicacion
+// desconocida". [UI-HISTORY-DETAIL-MUST-NOT-SPEAK-BEFORE-IT-KNOWS-001]
+@Composable
+private fun parkingDetailSheetFace(focused: FocusedParking) {
+    Box(Modifier.fillMaxSize()) {
+        HistoryDetailSheet(
+            focused = focused,
+            vehicle = null,
+            hasOlder = false,
+            hasNewer = false,
             onOlder = {},
             onNewer = {},
             onNavigate = { _, _ -> },
@@ -649,6 +669,14 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     vehicle = FakeData.vehicleVan,
                     hasOlder = false,
                 )
+            },
+            // Las dos caras que antes se pintaban igual (y mintiendo).
+            // [UI-HISTORY-DETAIL-MUST-NOT-SPEAK-BEFORE-IT-KNOWS-001]
+            Variant("Sin resolver (skeleton)") {
+                parkingDetailSheetFace(FocusedParking.Unresolved)
+            },
+            Variant("Ya no está en el historial") {
+                parkingDetailSheetFace(FocusedParking.NotFound)
             },
         ),
     ),

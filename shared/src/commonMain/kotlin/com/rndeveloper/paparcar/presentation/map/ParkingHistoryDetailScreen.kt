@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -19,6 +20,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Bluetooth
@@ -74,6 +76,7 @@ import com.rndeveloper.paparcar.ui.components.PapFooterButton
 import com.rndeveloper.paparcar.ui.components.PapFooterButtonStyle
 import com.rndeveloper.paparcar.ui.components.PaparcarMapConfig
 import com.rndeveloper.paparcar.ui.components.PaparcarMapView
+import com.rndeveloper.paparcar.ui.components.PapShimmerBox
 import com.rndeveloper.paparcar.ui.theme.PapMotion
 import com.rndeveloper.paparcar.ui.theme.PapShapes
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
@@ -98,7 +101,7 @@ import paparcar.composeapp.generated.resources.parking_detail_detection_manual
 import paparcar.composeapp.generated.resources.location_fallback_parking
 import paparcar.composeapp.generated.resources.common_directions
 import paparcar.composeapp.generated.resources.parking_detail_next
-import paparcar.composeapp.generated.resources.parking_detail_no_address
+import paparcar.composeapp.generated.resources.parking_detail_not_in_history
 import paparcar.composeapp.generated.resources.parking_detail_prev
 import paparcar.composeapp.generated.resources.parking_detail_route_inferred_no
 import paparcar.composeapp.generated.resources.parking_detail_route_inferred_question
@@ -136,7 +139,11 @@ fun ParkingHistoryDetailScreen(
         mutableStateOf(initialFocus?.let { (lat, lon) -> CameraTarget(lat = lat, lon = lon, zoom = 16f) })
     }
     var cameraToken by remember { mutableIntStateOf(0) }
-    val focusedSession = state.focusedSession
+    // ONE unwrap, in the open: everything below reads a session that is either resolved or absent,
+    // and the sheet gets the full answer (unresolved / not found / resolved) so it can say which.
+    // [UI-HISTORY-DETAIL-MUST-NOT-SPEAK-BEFORE-IT-KNOWS-001]
+    val focusedParking = state.focusedParking
+    val focusedSession = (focusedParking as? FocusedParking.Resolved)?.session
     LaunchedEffect(focusedSession?.id) {
         val loc = focusedSession?.location ?: return@LaunchedEffect
         cameraToken += 1
@@ -211,7 +218,10 @@ fun ParkingHistoryDetailScreen(
             tripSegments = routeSegments,
             departurePoint = routeStart,
             arrivalPoint = routeEnd,
-            parkingLocation = focusedSession?.location ?: parkingGpsPoint ?: state.userParking?.location,
+            // The caller's coords seed the first frame (they ARE this parking's), but there is no
+            // third fallback: painting the ACTIVE session here put today's pin on a historic map.
+            // No resolved session and no seed ⇒ no pin. [UI-HISTORY-DETAIL-MUST-NOT-SPEAK-BEFORE-IT-KNOWS-001]
+            parkingLocation = focusedSession?.location ?: parkingGpsPoint,
             parkingVehicleSize = focusedSession?.sizeCategory ?: state.focusedVehicle?.sizeCategory,
             parkingVehicleCarbody = focusedSession?.carbodyType ?: state.focusedVehicle?.carbodyType,
             parkingVehicleColor = state.focusedVehicle?.color,
@@ -279,7 +289,7 @@ fun ParkingHistoryDetailScreen(
         }
 
         HistoryDetailSheet(
-            session = focusedSession,
+            focused = focusedParking,
             vehicle = state.focusedVehicle,
             hasOlder = state.hasOlder,
             hasNewer = state.hasNewer,
@@ -360,7 +370,7 @@ private fun InferredRouteQuestionCard(
  */
 @Composable
 fun HistoryDetailSheet(
-    session: UserParking?,
+    focused: FocusedParking,
     vehicle: Vehicle?,
     hasOlder: Boolean,
     hasNewer: Boolean,
@@ -381,11 +391,20 @@ fun HistoryDetailSheet(
                 .padding(top = SHEET_TOP_PAD.dp, bottom = SHEET_BOTTOM_PAD.dp),
         ) {
             AnimatedContent(
-                targetState = session to vehicle,
-                contentKey = { (target, _) -> target?.id },
+                targetState = focused to vehicle,
+                // Keyed on WHICH face is showing: the two data-less faces are one page each, so the
+                // skeleton doesn't re-enter on every recomposition and the arrival of the real card
+                // is a single page turn. [UI-HISTORY-DETAIL-MUST-NOT-SPEAK-BEFORE-IT-KNOWS-001]
+                contentKey = { (target, _) ->
+                    when (target) {
+                        is FocusedParking.Resolved -> target.session.id
+                        FocusedParking.Unresolved -> KEY_UNRESOLVED
+                        FocusedParking.NotFound -> KEY_NOT_FOUND
+                    }
+                },
                 transitionSpec = {
-                    val toNewer = (targetState.first?.location?.timestamp ?: 0L) >
-                        (initialState.first?.location?.timestamp ?: 0L)
+                    val toNewer = (targetState.first.timestampOrZero()) >
+                        (initialState.first.timestampOrZero())
                     val from = if (toNewer) 1 else -1
                     ContentTransform(
                         targetContentEnter = slideInHorizontally(PapMotion.emphasized()) { it * from } +
@@ -395,25 +414,107 @@ fun HistoryDetailSheet(
                     )
                 },
                 label = "history_step",
-            ) { (shownSession, shownVehicle) ->
-                HistoryParkingCard(
-                    session = shownSession,
-                    vehicle = shownVehicle,
-                    hasOlder = hasOlder,
-                    hasNewer = hasNewer,
-                    onOlder = onOlder,
-                    onNewer = onNewer,
-                    onNavigate = onNavigate,
+            ) { (shownFocused, shownVehicle) ->
+                when (shownFocused) {
+                    FocusedParking.Unresolved -> HistoryParkingSkeleton()
+                    FocusedParking.NotFound -> HistoryParkingMissing()
+                    is FocusedParking.Resolved -> HistoryParkingCard(
+                        session = shownFocused.session,
+                        vehicle = shownVehicle,
+                        hasOlder = hasOlder,
+                        hasNewer = hasNewer,
+                        onOlder = onOlder,
+                        onNewer = onNewer,
+                        onNavigate = onNavigate,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** Page-turn direction only: a face without a session has no time to compare. */
+private fun FocusedParking.timestampOrZero(): Long =
+    (this as? FocusedParking.Resolved)?.session?.location?.timestamp ?: 0L
+
+/**
+ * The sheet while the history is still being read. Mirrors the card's anatomy (lead glyph, eyebrow,
+ * title, two meta rows, footer button) so nothing jumps when the real data lands, and reuses
+ * [PapShimmerBox] like `PeekLocationSkeleton` does in the same sheet molde.
+ * [UI-HISTORY-DETAIL-MUST-NOT-SPEAK-BEFORE-IT-KNOWS-001]
+ */
+@Composable
+private fun HistoryParkingSkeleton() {
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            PapShimmerBox(modifier = Modifier.size(SKELETON_LEAD_DP.dp), shape = CircleShape)
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                PapShimmerBox(
+                    modifier = Modifier.fillMaxWidth(SKELETON_EYEBROW_FRACTION).height(10.dp),
+                    shape = RoundedCornerShape(5.dp),
+                    alphaScale = SKELETON_SECONDARY_ALPHA,
+                )
+                PapShimmerBox(
+                    modifier = Modifier.fillMaxWidth(SKELETON_TITLE_FRACTION).height(16.dp),
+                    shape = RoundedCornerShape(8.dp),
                 )
             }
         }
+        Spacer(Modifier.height(SKELETON_META_TOP_GAP.dp))
+        repeat(SKELETON_META_ROWS) {
+            PapShimmerBox(
+                modifier = Modifier
+                    .padding(bottom = SKELETON_META_ROW_GAP.dp)
+                    .fillMaxWidth(SKELETON_META_FRACTION)
+                    .height(12.dp),
+                shape = RoundedCornerShape(6.dp),
+                alphaScale = SKELETON_SECONDARY_ALPHA,
+            )
+        }
+        Spacer(Modifier.height(SKELETON_ACTION_TOP_GAP.dp))
+        PapShimmerBox(
+            modifier = Modifier.fillMaxWidth().height(SKELETON_ACTION_HEIGHT_DP.dp),
+            shape = RoundedCornerShape(SKELETON_ACTION_CORNER_DP.dp),
+            alphaScale = SKELETON_SECONDARY_ALPHA,
+        )
+    }
+}
+
+/**
+ * The history arrived and this parking is not in it — retracted, deleted, or a dead deep link. It
+ * says so instead of rendering an empty card that reads as "this parking has no data".
+ * [UI-HISTORY-DETAIL-MUST-NOT-SPEAK-BEFORE-IT-KNOWS-001]
+ */
+@Composable
+private fun HistoryParkingMissing() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = MISSING_V_PAD.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = stringResource(Res.string.parking_detail_not_in_history),
+            style = PaparcarType.current.body,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
 /** One parking as Home's sheet molde renders it — the page the timeline turns. */
 @Composable
 private fun HistoryParkingCard(
-    session: UserParking?,
+    // Non-null by construction: the card is only reached through [FocusedParking.Resolved], so it can
+    // no longer be asked to render a parking it does not have.
+    // [UI-HISTORY-DETAIL-MUST-NOT-SPEAK-BEFORE-IT-KNOWS-001]
+    session: UserParking,
     vehicle: Vehicle?,
     hasOlder: Boolean,
     hasNewer: Boolean,
@@ -422,15 +523,11 @@ private fun HistoryParkingCard(
     onNavigate: (lat: Double, lon: Double) -> Unit,
 ) {
     val cs = MaterialTheme.colorScheme
-    val title = if (session != null) {
-        locationDisplayText(
-            placeInfo = session.placeInfo,
-            address = session.address,
-        ) ?: stringResource(Res.string.location_fallback_parking)
-    } else {
-        stringResource(Res.string.parking_detail_no_address)
-    }
-    val subtitle = session?.address?.city?.takeIf { it.isNotBlank() }
+    val title = locationDisplayText(
+        placeInfo = session.placeInfo,
+        address = session.address,
+    ) ?: stringResource(Res.string.location_fallback_parking)
+    val subtitle = session.address?.city?.takeIf { it.isNotBlank() }
         ?.let { city ->
             session.address.region?.takeIf { it.isNotBlank() }?.let { "$city, $it" } ?: city
         }
@@ -440,7 +537,7 @@ private fun HistoryParkingCard(
     // like Home and Vehículos. A closed session keeps its muted tone: the accent marks what is LIVE.
     // [UI-COLOR-DOCTRINE-001][UI-HISTORY-IDENTITY-AND-SOURCE-001]
     val identity = vehicleIdentityColor(vehicle?.monitoringStatus()?.watch() ?: VehicleWatch.Off)
-    val isLive = session?.isActive == true
+    val isLive = session.isActive
     val metaTint = if (isLive) identity else cs.onSurfaceVariant
 
     // The eyebrow carries the car, the same way Home's parking peek does: the NAME wears the watch
@@ -454,14 +551,14 @@ private fun HistoryParkingCard(
         else -> vehicleName
     }
 
-    val (lat, lon) = session?.let { it.location.latitude to it.location.longitude } ?: (0.0 to 0.0)
+    val (lat, lon) = session.location.latitude to session.location.longitude
 
     PapSheet(
         // Body shape from the session (captured at park time), falling back to the registered
         // vehicle; colour only lives on the vehicle. [HISTORY-DETAIL-001]
         lead = PapSheetLead.Vehicle(
-            carbody = session?.carbodyType ?: vehicle?.carbodyType,
-            size = session?.sizeCategory ?: vehicle?.sizeCategory,
+            carbody = session.carbodyType ?: vehicle?.carbodyType,
+            size = session.sizeCategory ?: vehicle?.sizeCategory,
             color = vehicle?.color,
         ),
         eyebrow = eyebrow,
@@ -479,7 +576,7 @@ private fun HistoryParkingCard(
             onNext = onNewer.takeIf { hasNewer },
         ),
         meta = {
-            if (session != null) {
+            run {
                 DateTimeRow(timestampMs = session.location.timestamp, tint = metaTint)
                 DetectionRow(session = session, tint = metaTint)
                 // [DET-DOUBT-MUST-REACH-THE-SCREEN-001] El mismo componente que ya usa el peek de
@@ -496,7 +593,7 @@ private fun HistoryParkingCard(
                 // precisión que la propia app ya se ha negado a afirmar.
                 // ⚠️ La clave del caso exacto es `common_directions` desde master — este ticket se
                 // rebasó sobre ese renombrado, no lo revierte.
-                label = if (session?.isApproximate == true) {
+                label = if (session.isApproximate) {
                     stringResource(Res.string.parking_detail_navigate_area_action)
                 } else {
                     stringResource(Res.string.common_directions)
@@ -504,7 +601,6 @@ private fun HistoryParkingCard(
                 leadingIcon = Icons.Rounded.Navigation,
                 onClick = { onNavigate(lat, lon) },
                 style = PapFooterButtonStyle.Filled,
-                enabled = session != null,
                 modifier = Modifier.fillMaxWidth(),
             )
         },
@@ -569,3 +665,22 @@ private const val SHEET_TOP_PAD = 14
 private const val SHEET_BOTTOM_PAD = 4
 
 private val MAP_BOTTOM_BLEED = 20.dp
+
+// ── Skeleton / missing faces ─────────────────────────────────────────────────
+// Page keys for the two data-less faces, so AnimatedContent treats each as ONE page.
+private const val KEY_UNRESOLVED = "unresolved"
+private const val KEY_NOT_FOUND = "not_found"
+// Widths as fractions of the card, sized off the real card's anatomy so nothing jumps on arrival.
+private const val SKELETON_LEAD_DP = 40
+private const val SKELETON_EYEBROW_FRACTION = 0.34f
+private const val SKELETON_TITLE_FRACTION = 0.72f
+private const val SKELETON_META_FRACTION = 0.55f
+private const val SKELETON_META_ROWS = 2
+private const val SKELETON_META_TOP_GAP = 16
+private const val SKELETON_META_ROW_GAP = 8
+private const val SKELETON_ACTION_TOP_GAP = 12
+private const val SKELETON_ACTION_HEIGHT_DP = 48
+private const val SKELETON_ACTION_CORNER_DP = 14
+private const val SKELETON_SECONDARY_ALPHA = 0.7f
+private const val MISSING_V_PAD = 28
+

@@ -233,7 +233,7 @@
     <string name="parking_detail_route_inferred_yes">Yes</string>
     <string name="parking_detail_route_inferred_no">No</string>
     <string name="parking_detail_next">Next parking</string>
-    <string name="parking_detail_no_address">Unknown location</string>
+    <string name="parking_detail_not_in_history">This parking is no longer in your history</string>
     <string name="parking_detail_detection_auto">Auto-detected</string>
     <string name="parking_detail_detection_bluetooth">Automatic (Bluetooth)</string>
     <string name="parking_detail_detection_assisted">Assisted</string>

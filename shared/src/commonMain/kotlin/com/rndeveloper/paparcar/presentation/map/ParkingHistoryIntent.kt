@@ -1,7 +1,10 @@
 package com.rndeveloper.paparcar.presentation.map
 
 sealed class ParkingHistoryIntent {
-    data class OnSpotSelected(val spotId: String) : ParkingHistoryIntent()
+    // No spot intent: this screen renders no spots (it passes `spots = emptyList()` and an empty
+    // click handler), so `OnSpotSelected` + its `NavigateToSpotDetails` effect were unreachable and
+    // were removed rather than left as a door onto nothing.
+    // [UI-HISTORY-DETAIL-MUST-NOT-SPEAK-BEFORE-IT-KNOWS-001]
     data class SetFocusedSession(val sessionId: String) : ParkingHistoryIntent()
 
     /** Step back in time to the OLDER history entry — the left ‹ chevron. [HISTORY-DETAIL-002] */

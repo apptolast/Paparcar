@@ -171,7 +171,7 @@
     <string name="parking_detail_route_inferred_yes">Tak</string>
     <string name="parking_detail_route_inferred_no">Nie</string>
     <string name="parking_detail_next">Następne parkowanie</string>
-    <string name="parking_detail_no_address">Nieznana lokalizacja</string>
+    <string name="parking_detail_not_in_history">Tego parkowania nie ma już w Twojej historii</string>
     <string name="parking_detail_detection_auto">Wykryto automatycznie</string>
     <string name="parking_detail_detection_bluetooth">Automatyczny (Bluetooth)</string>
     <string name="parking_detail_detection_assisted">Wspomagany</string>

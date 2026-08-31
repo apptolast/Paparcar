@@ -20,13 +20,9 @@ class ParkingHistoryViewModel(
 ) : BaseViewModel<ParkingHistoryState, ParkingHistoryIntent, ParkingHistoryEffect>() {
 
     init {
-        userParkingRepository.observeActiveSessions()
-            .map { it.firstOrNull() }
-            .onEach { session -> updateState { copy(userParking = session) } }
-            .catch { e ->
-                sendEffect(ParkingHistoryEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))
-            }
-            .launchIn(viewModelScope)
+        // The ACTIVE session is deliberately NOT observed here. It only ever fed a fallback that
+        // painted today's parking on the map while a HISTORIC one was still resolving — another
+        // session's data dressed as this one. [UI-HISTORY-DETAIL-MUST-NOT-SPEAK-BEFORE-IT-KNOWS-001]
 
         // Whole history, most-recent → oldest. Re-sorted defensively so the prev/next stepper is
         // deterministic regardless of the source's ordering (Room already sorts; fakes may not).
@@ -44,24 +40,22 @@ class ParkingHistoryViewModel(
             .catch { e -> PaparcarLogger.w(TAG, "observeVehicles failed — icon falls back to size shape", e) }
             .launchIn(viewModelScope)
 
+        // No loading flag rides on this stream: what it measures is a GPS fix, which says nothing
+        // about whether the history has arrived — and the old `isLoading` it maintained was read by
+        // nobody. [UI-HISTORY-DETAIL-MUST-NOT-SPEAK-BEFORE-IT-KNOWS-001]
         observeAdaptiveLocation()
-            .onEach { location ->
-                updateState { copy(isLoading = false, userLocation = location) }
-            }
+            .onEach { location -> updateState { copy(userLocation = location) } }
             .catch { e ->
-                updateState { copy(isLoading = false) }
                 sendEffect(ParkingHistoryEffect.ShowError(PaparcarError.Location.Unknown(e.message ?: "")))
             }
             .launchIn(viewModelScope)
     }
 
-    override fun initState(): ParkingHistoryState = ParkingHistoryState()
+    // `allSessions = null`: nothing has been read yet. The screen shows a skeleton until Room speaks.
+    override fun initState(): ParkingHistoryState = ParkingHistoryState(allSessions = null)
 
     override fun handleIntent(intent: ParkingHistoryIntent) {
         when (intent) {
-            is ParkingHistoryIntent.OnSpotSelected ->
-                sendEffect(ParkingHistoryEffect.NavigateToSpotDetails(intent.spotId))
-
             is ParkingHistoryIntent.SetFocusedSession ->
                 updateState { copy(focusedSessionId = intent.sessionId) }
 

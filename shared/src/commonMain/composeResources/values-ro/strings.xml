@@ -172,7 +172,7 @@
     <string name="parking_detail_route_inferred_yes">Da</string>
     <string name="parking_detail_route_inferred_no">Nu</string>
     <string name="parking_detail_next">Parcarea următoare</string>
-    <string name="parking_detail_no_address">Locație necunoscută</string>
+    <string name="parking_detail_not_in_history">Această parcare nu mai este în istoricul tău</string>
     <string name="parking_detail_detection_auto">Detectat automat</string>
     <string name="parking_detail_detection_bluetooth">Automat (Bluetooth)</string>
     <string name="parking_detail_detection_assisted">Asistat</string>

@@ -2,7 +2,6 @@
 
 package com.rndeveloper.paparcar.presentation.map
 
-import app.cash.turbine.test
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.Vehicle
@@ -22,7 +21,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class ParkingHistoryViewModelTest {
@@ -73,44 +71,47 @@ class ParkingHistoryViewModelTest {
     // ── Init ──────────────────────────────────────────────────────────────────
 
     @Test
-    fun `should_start_with_isLoading_true_before_first_location`() = runTest {
-        assertEquals(true, vm.state.value.isLoading)
-    }
-
-    @Test
-    fun `should_set_isLoading_false_after_first_location_emission`() = runTest {
-        locationDataSource.emitHighAccuracy(location)
-        assertFalse(vm.state.value.isLoading)
-    }
-
-    @Test
     fun `should_update_userLocation_on_location_emission`() = runTest {
         locationDataSource.emitHighAccuracy(location)
         assertEquals(location, vm.state.value.userLocation)
     }
 
+
+    /** The focused session's id, or null when the state is not showing a resolved parking. */
+    private fun ParkingHistoryState.focusedId(): String? =
+        (focusedParking as? FocusedParking.Resolved)?.session?.id
+
+    // ── "aún no lo sé" ≠ "no está" [UI-HISTORY-DETAIL-MUST-NOT-SPEAK-BEFORE-IT-KNOWS-001] ──
+
     @Test
-    fun `should_populate_userParking_from_active_session`() = runTest {
-        val vmWithSession = buildVm(initialSession = session)
-        assertEquals(session, vmWithSession.state.value.userParking)
+    fun `should_report_the_parking_as_unresolved_before_the_history_is_read`() = runTest {
+        // Nothing read yet: the screen must show a skeleton, not a card denying the parking's data.
+        val state = ParkingHistoryState(allSessions = null, focusedSessionId = "s1")
+        assertIs<FocusedParking.Unresolved>(state.focusedParking)
     }
 
     @Test
-    fun `should_start_with_null_userParking_when_no_active_session`() = runTest {
-        assertNull(vm.state.value.userParking)
+    fun `should_report_the_parking_as_not_found_when_the_history_has_no_such_id`() = runTest {
+        // Retracted, deleted or a dead deep link — a different answer from "not read yet".
+        val state = ParkingHistoryState(
+            allSessions = listOf(sessionAt("other", 1_000L)),
+            focusedSessionId = "s1",
+        )
+        assertIs<FocusedParking.NotFound>(state.focusedParking)
     }
 
-    // ── handleIntent ──────────────────────────────────────────────────────────
+    @Test
+    fun `should_resolve_the_parking_when_the_history_holds_its_id`() = runTest {
+        val focused = sessionAt("s1", 1_000L)
+        val state = ParkingHistoryState(allSessions = listOf(focused), focusedSessionId = "s1")
+        assertEquals(focused, (state.focusedParking as FocusedParking.Resolved).session)
+    }
 
     @Test
-    fun `should_emit_NavigateToSpotDetails_on_OnSpotSelected`() = runTest {
-        vm.effect.test {
-            vm.handleIntent(ParkingHistoryIntent.OnSpotSelected("spot-42"))
-            val effect = awaitItem()
-            assertIs<ParkingHistoryEffect.NavigateToSpotDetails>(effect)
-            assertEquals("spot-42", effect.spotId)
-            cancelAndIgnoreRemainingEvents()
-        }
+    fun `should_offer_no_neighbours_while_the_history_is_unresolved`() = runTest {
+        val state = ParkingHistoryState(allSessions = null, focusedSessionId = "s1")
+        assertFalse(state.hasOlder)
+        assertFalse(state.hasNewer)
     }
 
     // ── Focus + timeline stepper (‹ older / › newer) [HISTORY-DETAIL-002] ─────
@@ -128,7 +129,7 @@ class ParkingHistoryViewModelTest {
     fun `should_focus_session_by_id_on_SetFocusedSession`() = runTest {
         val vm = threeSessionVm()
         vm.handleIntent(ParkingHistoryIntent.SetFocusedSession("middle"))
-        assertEquals("middle", vm.state.value.focusedSession?.id)
+        assertEquals("middle", vm.state.value.focusedId())
     }
 
     @Test
@@ -144,7 +145,7 @@ class ParkingHistoryViewModelTest {
         val vm = threeSessionVm()
         vm.handleIntent(ParkingHistoryIntent.SetFocusedSession("newest"))
         vm.handleIntent(ParkingHistoryIntent.FocusOlder)
-        assertEquals("middle", vm.state.value.focusedSession?.id)
+        assertEquals("middle", vm.state.value.focusedId())
     }
 
     @Test
@@ -152,7 +153,7 @@ class ParkingHistoryViewModelTest {
         val vm = threeSessionVm()
         vm.handleIntent(ParkingHistoryIntent.SetFocusedSession("middle"))
         vm.handleIntent(ParkingHistoryIntent.FocusNewer)
-        assertEquals("newest", vm.state.value.focusedSession?.id)
+        assertEquals("newest", vm.state.value.focusedId())
     }
 
     @Test
@@ -176,7 +177,7 @@ class ParkingHistoryViewModelTest {
         val vm = threeSessionVm()
         vm.handleIntent(ParkingHistoryIntent.SetFocusedSession("oldest"))
         vm.handleIntent(ParkingHistoryIntent.FocusOlder)
-        assertEquals("oldest", vm.state.value.focusedSession?.id)
+        assertEquals("oldest", vm.state.value.focusedId())
     }
 
     // ── Per-vehicle scope of the stepper [HISTORY-DETAIL-VEHICLE-SCOPE-001] ───
@@ -208,7 +209,7 @@ class ParkingHistoryViewModelTest {
         vm.handleIntent(ParkingHistoryIntent.SetFocusedSession("kamiq-new"))
         vm.handleIntent(ParkingHistoryIntent.FocusOlder)
         // focus-new(3000) sits in between, but it belongs to the other car.
-        assertEquals("kamiq-old", vm.state.value.focusedSession?.id)
+        assertEquals("kamiq-old", vm.state.value.focusedId())
     }
 
     @Test
@@ -217,7 +218,7 @@ class ParkingHistoryViewModelTest {
         vm.handleIntent(ParkingHistoryIntent.SetFocusedSession("focus-old"))
         vm.handleIntent(ParkingHistoryIntent.FocusNewer)
         // kamiq-old(2000) sits in between, but it belongs to the other car.
-        assertEquals("focus-new", vm.state.value.focusedSession?.id)
+        assertEquals("focus-new", vm.state.value.focusedId())
     }
 
     @Test
@@ -258,7 +259,7 @@ class ParkingHistoryViewModelTest {
         )
         vm.handleIntent(ParkingHistoryIntent.SetFocusedSession("kamiq-old"))
         vm.handleIntent(ParkingHistoryIntent.FocusNewer)
-        assertEquals("kamiq-now", vm.state.value.focusedSession?.id)
+        assertEquals("kamiq-now", vm.state.value.focusedId())
     }
 
     @Test
