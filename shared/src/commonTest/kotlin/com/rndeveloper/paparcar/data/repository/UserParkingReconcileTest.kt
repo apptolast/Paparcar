@@ -24,6 +24,7 @@ class UserParkingReconcileTest {
         armEvidence: String? = null,
         detectionPath: String? = null,
         retractedAtMs: Long? = null,
+        zoneRadiusMeters: Float? = null,
     ) = UserParkingEntity(
         id = id,
         userId = "u1",
@@ -39,7 +40,91 @@ class UserParkingReconcileTest {
         armEvidence = armEvidence,
         detectionPath = detectionPath,
         retractedAtMs = retractedAtMs,
+        zoneRadiusMeters = zoneRadiusMeters,
     )
+
+    // ── The doubt radius: one null, two meanings ─────────────────────────────────────────────
+    // [DET-NOTHING-TO-JUDGE-IS-NOT-NO-DOUBT-001]
+
+    /**
+     * The case `zoneRadiusMeters = r.zoneRadiusMeters ?: l?.zoneRadiusMeters` was written FOR, and
+     * it is right: a remote document written before the field travelled
+     * ([SYNC-A-PARKING-MUST-TRAVEL-WHOLE-001]) carries null, and taking that null would turn a zone
+     * this device MEASURED into an exact pin — claiming more certainty than we have.
+     */
+    @Test
+    fun `a legacy remote without the field keeps the radius this device measured`() {
+        val local = listOf(s("A", updatedAt = 100, zoneRadiusMeters = 250f))
+        val remote = listOf(s("A", updatedAt = 200, zoneRadiusMeters = null))
+
+        val merged = reconcileParkingSessions(local, remote)
+
+        assertEquals(250f, merged.single().zoneRadiusMeters, "a legacy doc must not erase a measured zone")
+    }
+
+    /**
+     * ⚠️ **CHARACTERIZATION OF A KNOWN DEFECT — this test is GREEN on purpose and asserts the WRONG
+     * behaviour.** It exists because the residual was written in prose in
+     * `docs/backlog/park-a-pin-must-say-who-placed-it-001.md` and prose does not fail a build.
+     *
+     * [PARK-A-PIN-MUST-SAY-WHO-PLACED-IT-001] made the drag clear `zoneRadiusMeters` deliberately:
+     * the user has just said where the car is, so the doubt is answered and the target badge must
+     * go. On the device that did the drag, it does.
+     *
+     * On a SECOND device that still holds the old radius, this merge puts it back — the badge is
+     * resurrected on a pin the user corrected by hand. The `?:` cannot tell the two nulls apart,
+     * and the test above is the reason it leans the way it does.
+     *
+     * ⛔ **When [DET-NOTHING-TO-JUDGE-IS-NOT-NO-DOUBT-001] lands, this assertion must be INVERTED**
+     * (expect `null`) and this KDoc deleted. If it is still here and still green, the defect is
+     * still shipping.
+     */
+    @Test
+    fun `characterizes the defect - another device resurrects the radius a drag cleared`() {
+        // Device B still has the pre-drag zone in Room.
+        val local = listOf(s("A", updatedAt = 100, zoneRadiusMeters = 250f))
+        // Device A dragged the pin: it cleared the radius ON PURPOSE and uploaded that null.
+        val remote = listOf(s("A", updatedAt = 200, zoneRadiusMeters = null))
+
+        val merged = reconcileParkingSessions(local, remote)
+
+        assertEquals(
+            250f,
+            merged.single().zoneRadiusMeters,
+            "TODAY the badge comes back; the correct answer is null — see DET-NOTHING-TO-JUDGE-IS-NOT-NO-DOUBT-001",
+        )
+    }
+
+    /**
+     * **The tesis of [DET-NOTHING-TO-JUDGE-IS-NOT-NO-DOUBT-001], stated as an assertion.**
+     *
+     * The two tests above are not two scenarios that happen to agree — their inputs are *the same
+     * bytes*. "The remote predates the field" and "the remote says there is no radius" reach this
+     * function as one indistinguishable value, so no amount of care inside the merge can separate
+     * them: the information is not there to read.
+     *
+     * That is why the fix cannot live here. Whatever shape it takes, it has to make the two causes
+     * distinguishable BEFORE they arrive — which is the same conclusion `markFenceStatePoisoned`
+     * reached when it replaced an absent key with an explicit stamp
+     * ([DET-FENCE-REREGISTER-BY-CAUSE-001 §B]).
+     *
+     * 🔬 **Measured, not argued.** Dropping the `?: l?.zoneRadiusMeters` — the obvious "fix", taking
+     * the remote always — turns BOTH tests above red in the same run: the defect one (as intended)
+     * and the legacy one (as collateral). The trade-off is therefore not a matter of taste and
+     * cannot be resolved by leaning the operator the other way; with today's inputs, every choice is
+     * wrong for one of the two causes.
+     */
+    @Test
+    fun `the two meanings of an absent radius are the same input`() {
+        val remoteThatPredatesTheField = s("A", updatedAt = 200, zoneRadiusMeters = null)
+        val remoteWhoseDragClearedIt = s("A", updatedAt = 200, zoneRadiusMeters = null)
+
+        assertEquals(
+            remoteThatPredatesTheField,
+            remoteWhoseDragClearedIt,
+            "if these ever differ, the reconcile CAN tell them apart and the ticket has landed",
+        )
+    }
 
     @Test
     fun `stale remote active does not resurrect a locally-ended session`() {
