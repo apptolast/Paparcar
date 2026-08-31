@@ -179,6 +179,8 @@
     <string name="parking_detail_detection_home">Strefa prywatna</string>
     <string name="map_cd_midpoint">Punkt środkowy między mną a samochodem</string>
     <string name="map_cd_go_to_car">Jedź do mojego zaparkowanego samochodu</string>
+    <string name="map_cd_go_to_parking">Wyśrodkuj na tym parkowaniu</string>
+    <string name="map_cd_midpoint_parking">Punkt środkowy między mną a tym parkowaniem</string>
     <string name="map_cd_my_location">Wyśrodkuj na mojej lokalizacji</string>
 
     <!-- SettingsScreen -->

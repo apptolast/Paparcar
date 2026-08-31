@@ -178,6 +178,8 @@
     <string name="parking_detail_detection_home">Private Zone</string>
     <string name="map_cd_midpoint">Mittelpunkt zwischen mir und dem Auto</string>
     <string name="map_cd_go_to_car">Zu meinem geparkten Auto</string>
+    <string name="map_cd_go_to_parking">Auf diesen Parkplatz zentrieren</string>
+    <string name="map_cd_midpoint_parking">Mittelpunkt zwischen mir und diesem Parkplatz</string>
     <string name="map_cd_my_location">Auf meinen Standort zentrieren</string>
 
     <!-- SettingsScreen -->

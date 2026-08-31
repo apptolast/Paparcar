@@ -225,6 +225,8 @@
     <string name="parking_detail_detection_home">Zona privada</string>
     <string name="map_cd_midpoint">Punto medio entre mi posición y el coche</string>
     <string name="map_cd_go_to_car">Ir a mi vehículo aparcado</string>
+    <string name="map_cd_go_to_parking">Centrar en este aparcamiento</string>
+    <string name="map_cd_midpoint_parking">Punto medio entre mi posición y este aparcamiento</string>
     <string name="map_cd_my_location">Centrar en mi ubicación</string>
 
     <!-- SettingsScreen -->

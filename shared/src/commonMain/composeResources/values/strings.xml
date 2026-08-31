@@ -241,6 +241,8 @@
     <string name="parking_detail_detection_home">Private zone</string>
     <string name="map_cd_midpoint">Midpoint between me and car</string>
     <string name="map_cd_go_to_car">Go to my parked car</string>
+    <string name="map_cd_go_to_parking">Center on this parking</string>
+    <string name="map_cd_midpoint_parking">Midpoint between me and this parking</string>
     <string name="map_cd_my_location">Center on my location</string>
 
     <!-- Generic error messages -->

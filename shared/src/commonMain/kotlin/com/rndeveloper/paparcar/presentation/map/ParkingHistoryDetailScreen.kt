@@ -77,6 +77,9 @@ import com.rndeveloper.paparcar.ui.components.PapFooterButtonStyle
 import com.rndeveloper.paparcar.ui.components.PaparcarMapConfig
 import com.rndeveloper.paparcar.ui.components.PaparcarMapView
 import com.rndeveloper.paparcar.ui.components.PapShimmerBox
+import com.rndeveloper.paparcar.presentation.map.components.MapControlButtons
+import com.rndeveloper.paparcar.presentation.home.sections.header.components.MapTypeToggle
+import com.swmansion.kmpmaps.core.MapType
 import com.rndeveloper.paparcar.ui.theme.PapMotion
 import com.rndeveloper.paparcar.ui.theme.PapShapes
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
@@ -139,6 +142,10 @@ fun ParkingHistoryDetailScreen(
         mutableStateOf(initialFocus?.let { (lat, lon) -> CameraTarget(lat = lat, lon = lon, zoom = 16f) })
     }
     var cameraToken by remember { mutableIntStateOf(0) }
+    // Tipo de mapa: estado LOCAL de la pantalla. En Home vive en `HomeState.mapType`, también en
+    // memoria — no hay persistencia de este ajuste en ningún sitio, así que no se inventa una.
+    // [UI-HISTORY-DETAIL-HAS-THE-MAP-CONTROLS-001]
+    var mapType by remember { mutableStateOf(MapType.TERRAIN) }
     // ONE unwrap, in the open: everything below reads a session that is either resolved or absent,
     // and the sheet gets the full answer (unresolved / not found / resolved) so it can say which.
     // [UI-HISTORY-DETAIL-MUST-NOT-SPEAK-BEFORE-IT-KNOWS-001]
@@ -211,7 +218,7 @@ fun ParkingHistoryDetailScreen(
     ) { contentPadding ->
     Box(modifier = Modifier.fillMaxSize().padding(top = contentPadding.calculateTopPadding())) {
         PaparcarMapView(
-            config = PaparcarMapConfig(showFreeSpotOverlays = false),
+            config = PaparcarMapConfig(showFreeSpotOverlays = false, mapType = mapType),
             spots = emptyList(),
             userLocation = state.userLocation,
             tripTrail = routeTrail,
@@ -300,6 +307,58 @@ fun ParkingHistoryDetailScreen(
                 .fillMaxWidth()
                 .onGloballyPositioned { sheetHeightPx = it.size.height },
             onNavigate = { lat, lon -> openNavigation(lat, lon, false) },
+        )
+
+        // Los mandos del mapa, los mismos de Home: centrar en mí · centrar en ESTE aparcamiento ·
+        // encuadrar ambos. Empujan por el mismo carril de cámara que el stepper.
+        // [UI-HISTORY-DETAIL-HAS-THE-MAP-CONTROLS-001]
+        val pinLocation = focusedSession?.location ?: parkingGpsPoint
+        MapControlButtons(
+            userLocation = state.userLocation,
+            parkingLocation = pinLocation,
+            sheetBottomPadding = with(density) { sheetHeightPx.toDp() },
+            onMyLocation = {
+                state.userLocation?.let { me ->
+                    cameraToken += 1
+                    cameraTarget = CameraTarget(
+                        lat = me.latitude, lon = me.longitude, zoom = 16f, token = cameraToken,
+                    )
+                }
+            },
+            onParking = {
+                pinLocation?.let { pin ->
+                    cameraToken += 1
+                    cameraTarget = CameraTarget(
+                        lat = pin.latitude, lon = pin.longitude, zoom = 16f, token = cameraToken,
+                    )
+                }
+            },
+            onMidpoint = {
+                val me = state.userLocation
+                val pin = pinLocation
+                if (me != null && pin != null) {
+                    cameraToken += 1
+                    // Sin zoom: el encuadre lo decide el par de puntos, no una cifra fija.
+                    cameraTarget = CameraTarget(
+                        lat = pin.latitude,
+                        lon = pin.longitude,
+                        token = cameraToken,
+                        boundsLat2 = me.latitude,
+                        boundsLon2 = me.longitude,
+                    )
+                }
+            },
+            modifier = Modifier.align(Alignment.BottomEnd),
+        )
+
+        // El tipo de mapa se cambia arriba a la derecha, fuera del camino de la ficha — en Home vive
+        // en la cabecera, que aquí la ocupa la top bar de "Historial".
+        MapTypeToggle(
+            currentType = mapType,
+            onTypeSelected = { mapType = it },
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(end = 12.dp, top = 12.dp),
         )
     }
     }

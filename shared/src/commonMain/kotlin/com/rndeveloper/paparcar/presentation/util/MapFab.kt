@@ -24,7 +24,12 @@ import com.rndeveloper.paparcar.ui.components.GlassSurface
 const val MAP_FLOATING_SHADOW_DP = 6
 
 /**
- * Shared circular map FAB used by both HomeMapFabColumn and MapControlButtons.
+ * Shared circular map FAB. Its live consumers are Home's `HomeMapFabColumn` + `MapTypeToggle` and the
+ * history detail map's `MapControlButtons`.
+ *
+ * ⚠️ This list is only worth writing if it is checked: it used to name `MapControlButtons` while that
+ * component was dead code nobody called, so the KDoc asserted a second surface that did not render.
+ * [UI-HISTORY-DETAIL-HAS-THE-MAP-CONTROLS-001]
  */
 @Composable
 fun MapCircleFab(

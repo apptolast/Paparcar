@@ -180,6 +180,8 @@
     <string name="parking_detail_detection_home">Zonă privată</string>
     <string name="map_cd_midpoint">Punctul de mijloc între mine și mașină</string>
     <string name="map_cd_go_to_car">Mergi la mașina mea parcată</string>
+    <string name="map_cd_go_to_parking">Centrează pe această parcare</string>
+    <string name="map_cd_midpoint_parking">Punct de mijloc între mine și această parcare</string>
     <string name="map_cd_my_location">Centrează pe locația mea</string>
 
     <!-- SettingsScreen -->
