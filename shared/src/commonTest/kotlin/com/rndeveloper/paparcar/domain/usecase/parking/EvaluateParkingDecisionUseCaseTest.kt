@@ -51,6 +51,11 @@ class EvaluateParkingDecisionUseCaseTest {
         anchorWalkEntered: Boolean = false,
         humanPoweredRide: Boolean = false,
         assertedPinBlocksRelocation: Boolean = false,
+        // [DET-A-DOUBT-FIELD-MUST-NOT-DEFAULT-TO-CERTAINTY-001] The one field this helper never
+        // mentioned, so every scenario here took it from the data class. The value is unchanged —
+        // the fast lane genuinely runs with no stop behind it — but it is stated now, and the four
+        // tests that care already say so through `.copy(restCertified = …)`.
+        restCertified: Boolean = false,
     ) = ParkingDecisionInput(
         // Named, not positional: inserting a field into the middle of the data class used to bind
         // the wrong argument to the wrong parameter and still compile.
@@ -72,6 +77,7 @@ class EvaluateParkingDecisionUseCaseTest {
         anchorWalkEntered = anchorWalkEntered,
         humanPoweredRide = humanPoweredRide,
         assertedPinBlocksRelocation = assertedPinBlocksRelocation,
+        restCertified = restCertified,
     )
 
     // ── [DET-ASSERTION-OUTRANKS-INFERENCE-001] The user's own word outranks every proof here ─

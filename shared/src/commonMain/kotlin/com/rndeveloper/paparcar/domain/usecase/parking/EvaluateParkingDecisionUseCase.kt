@@ -85,6 +85,24 @@ sealed interface ParkingDecision {
  * Pure inputs for one candidate-phase decision. Deliberately primitives (not the coordinator's
  * private state) so the decision is a pure function of corroboration signals — replayable from a
  * recorded trace without any coroutine / Flow / sensor machinery. [DET-D-02]
+ *
+ * ## [DET-A-DOUBT-FIELD-MUST-NOT-DEFAULT-TO-CERTAINTY-001] Nothing here has a default
+ *
+ * Twelve of these nineteen fields used to carry one, each justified in its own KDoc as being "for
+ * legacy callers". There were no legacy callers: this class has exactly ONE production call site
+ * ([com.rndeveloper.paparcar.domain.detection.stages.parkingDecisionInput]) and one test helper,
+ * and the production one has always passed every field. The population the exemption was written
+ * for was empty, and what the defaults actually bought was the ability to add a signal WITHOUT
+ * anybody having to answer it.
+ *
+ * Three of them answered in the permissive direction while they lived: `egressBornAtAnchor = true`
+ * (no doubt about the anchor), `lastSpeedMps = 0f` (not rolling, so no speed gate) and
+ * `humanPoweredRide = false` (a motor, so auto-confirm is allowed). A field added tomorrow inherits
+ * nothing now — its absence does not compile.
+ *
+ * ⚠️ Nullability is NOT a default. [drivingEvidence] and [evidenceLabel] stay nullable because
+ * "this input carries no verdict" is a real state a replay can be in; what changed is that a caller
+ * in that state has to say `null` out loud.
  */
 data class ParkingDecisionInput(
     /** Pedestrian steps counted while stopped post-drive. */
@@ -109,18 +127,19 @@ data class ParkingDecisionInput(
      *  its 6 minutes and pinned the bike rack in silence, field 2026-08-18 20:32; the 2026-08-16
      *  ride peaked at 38 km/h), while sustained band time separates clean — the worst legitimate
      *  car trace on file (Calle Gavia, skeletal stream) still held one 36-s hop. */
-    val sustainedDrivingMs: Long = 0L,
+    val sustainedDrivingMs: Long,
     /**
      * [DET-DRIVING-EVIDENCE-VALUE-OBJECT-001] The session's ONE verdict on whether it watched a car
      * drive, built by `DetectionSessionState.drivingEvidence`. Only
      * [com.rndeveloper.paparcar.domain.detection.physics.DrivingEvidence.Measured] authorises a
      * silent pin.
      *
-     * Defaults to `null` for the replay/legacy callers that predate it; a null reads as "this input
+     * A null reads as "this input
      * carries no verdict", and the policy then falls back to [sustainedDrivingMs] alone, which is
-     * exactly the pre-ticket behaviour. New call sites must pass it.
+     * exactly the pre-ticket behaviour. [DET-A-DOUBT-FIELD-MUST-NOT-DEFAULT-TO-CERTAINTY-001] It is no
+     * longer a DEFAULT: a caller with no verdict says `null` out loud.
      */
-    val drivingEvidence: DrivingEvidence? = null,
+    val drivingEvidence: DrivingEvidence?,
     /**
      * Arm-evidence label of the session; null for legacy callers. [DET-SOLID-001]
      *
@@ -130,42 +149,42 @@ data class ParkingDecisionInput(
      * spelling. A replay parses the recorded word once, with [ArmLabel.ofPersisted], and everything
      * downstream reads a type.
      */
-    val evidenceLabel: ArmLabel? = null,
+    val evidenceLabel: ArmLabel?,
     /** [DET-KINEMATIC-EGRESS-001] The frozen end-of-drive anchor has watched the phone WALK away:
      *  ≥ `kinematicEgressMinWalkFixes` quality pedestrian-band fixes since the freeze. GPS-measured
      *  egress for mute-step-counter hardware — the same inference the freeze already trusts to
      *  protect the anchor ("this movement is the person, not the car"), now allowed to confirm.
      *  Only counts when the session itself measured driving (a seeded arm whose stream never saw
      *  the trip must keep asking). */
-    val hasKinematicEgress: Boolean = false,
+    val hasKinematicEgress: Boolean,
     /** [DET-STEP-SPEED-GATE-001] Speed (m/s) of the most recent GPS fix. The evaluator only ever
      *  saw `maxSpeedKmh` (session PEAK), so it could confirm steps+egress while the car was still
      *  ROLLING — the in-motion false positive at Avenida de los Mástiles (field 2026-07-12). No
      *  path may auto-confirm while this is above the pedestrian ceiling (`egressStepMaxSpeedMps`). */
-    val lastSpeedMps: Float = 0f,
+    val lastSpeedMps: Float,
     /** [DET-ANCHOR-EGRESS-001] FALSE when the egress evidence was BORN outside walking-consistency
      *  of the pinned anchor (see `CoordinatorParkingDetector.isEgressBornAtAnchor`): the walk
      *  cannot be an egress FROM that anchor, so the anchor belongs to an intermediate stop
      *  (field 2026-07-15: frozen at a traffic light 1.11 km before the real park, confirmed
      *  kinematic+egress at the light). The displacement gate only ever had a FLOOR — this is its
-     *  ceiling. Defaults to true for legacy callers. */
-    val egressBornAtAnchor: Boolean = true,
+     *  ceiling. TRUE is the permissive answer here, which is why it may not be the omitted one.
+     *  [DET-A-DOUBT-FIELD-MUST-NOT-DEFAULT-TO-CERTAINTY-001] */
+    val egressBornAtAnchor: Boolean,
     /** [DET-CREDIBLE-DRIVE-001] TRUE when the anchor was captured at a stop the user WALKED into
      *  (walk fixes above `anchorFreezeMaxWalkFixes` led to it) — the pedestrian's standing spot,
      *  not the car's rest. Field 2026-07-15, Camelias-Oppo: a mute step counter let the walk back
      *  from a reposition read as driving; the anchor bound to the house door 37 m from the car and
      *  steps+egress confirmed there. All proofs may hold — the user DID park — but not where this
-     *  anchor says: ask, never pin. Defaults to false for legacy callers. */
-    val anchorWalkEntered: Boolean = false,
+     *  anchor says: ask, never pin. */
+    val anchorWalkEntered: Boolean,
     /** [DET-GAP-ANCHOR-001] TRUE when the anchor bound to a stop that OPENED through a GPS hole:
      *  the fix that started the stop arrived > `anchorGapMaxFixGapMs` after a fix still at real
      *  driving speed. The car was last seen MOVING and its arrival at rest was never witnessed —
      *  the anchor may be a drive-past point the stream happened to sample (field 2026-07-29,
      *  Redmi Av. Sanlúcar: a 100-s MIUI hole ended in one speed-0 fix mid-route; the egress walk
      *  home then satisfied steps+egress and pinned 315 m before the real park). Same class as
-     *  [anchorWalkEntered]: the proofs hold, the ANCHOR does not — ask, never pin. Defaults to
-     *  false for legacy callers. */
-    val anchorGapEntered: Boolean = false,
+     *  [anchorWalkEntered]: the proofs hold, the ANCHOR does not — ask, never pin. */
+    val anchorGapEntered: Boolean,
     /** [DET-EGRESS-PEDESTRIAN-CEILING-001] TRUE when the displacement from the anchor exceeds what a
      *  pedestrian egress could reach (`CoordinatorParkingDetector.egressExceedsWalkReach`: steps ×
      *  stride + both accuracy envelopes + a generous walk-reach floor): the distance can only have
@@ -178,29 +197,30 @@ data class ParkingDecisionInput(
      *  CEILING on the egress floor. The floor is deliberately generous (a real egress under-logs
      *  steps and loses GPS: field trace Calle Gavia walked 68 m on 8 logged steps) so it only ever
      *  rules out vehicle-scale distance. Vetoes the step- and window-based paths; the kinematic path
-     *  stands on its own pedestrian-band fixes. Defaults to false for legacy callers. */
-    val egressExceedsWalkReach: Boolean = false,
+     *  stands on its own pedestrian-band fixes. */
+    val egressExceedsWalkReach: Boolean,
     /** [DET-BIKE-NOT-A-CAR-001] The session's own movement was made under HUMAN power — AR reported
      *  `ON_BICYCLE` and no later boarding superseded it (see `EvaluateHumanPoweredRideUseCase`).
      *  [vehicleType] answers "what do you drive"; this answers "what are you on right now", and the
      *  field FP of 2026-08-16 turned on the difference: a `CAR` profile on a bicycle re-pinned the
-     *  car 4,8 km away. Defaults to false for legacy callers. */
-    val humanPoweredRide: Boolean = false,
+     *  car 4,8 km away. FALSE is the permissive answer — a motor, so auto-confirm is allowed — so it
+     *  may not be the omitted one. [DET-A-DOUBT-FIELD-MUST-NOT-DEFAULT-TO-CERTAINTY-001] */
+    val humanPoweredRide: Boolean,
     /** [DET-HUMAN-POWERED-EARLY-CLOSE-001] The confidence scorer has certified a SUSTAINED stop —
      *  the caller is at (or entering) the CANDIDATE phase, which High confidence only grants after
      *  the 5-minute stopped tier. It is the pure expression of "the ride is over", and the terminal
      *  [ParkingDecision.CloseHumanPowered] needs it: without it, a cyclist pausing at a light with
      *  a few steps counted would be closed mid-ride by the fast-confirm lane, which runs with
-     *  `elapsedSinceHighMs = 0` and no stop behind it. Defaults to false — a caller that has not
-     *  certified rest must not get the terminal verdict. */
-    val restCertified: Boolean = false,
+     *  `elapsedSinceHighMs = 0` and no stop behind it. A caller that has not certified rest must
+     *  not get the terminal verdict — and now has to say so, rather than getting it by omission. */
+    val restCertified: Boolean,
     /** [DET-ASSERTION-OUTRANKS-INFERENCE-001] The vehicle already holds an ACTIVE pin the USER
      *  asserted, fresh and within walking reach of this candidate, and this session has not
      *  measured driving — computed by the caller through
      *  [com.rndeveloper.paparcar.domain.detection.assertionBlocksRelocation]. Nothing this evaluator
      *  can prove is stronger than that assertion, so the candidate is discarded rather than
-     *  confirmed OR asked about. Defaults to false for legacy callers. */
-    val assertedPinBlocksRelocation: Boolean = false,
+     *  confirmed OR asked about. */
+    val assertedPinBlocksRelocation: Boolean,
 )
 
 /**

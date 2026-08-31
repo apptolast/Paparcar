@@ -465,7 +465,7 @@ Rutas relativas a `shared/src/commonMain/kotlin/com/rndeveloper/paparcar` (`$C`)
 | 12 | `$C/domain/usecase/parking/EvaluateParkingDecisionUseCase.kt:346` | la fiabilidad del pin | se elige comparando el `pathLabel` **como string**: camino nuevo → **0.90**, el máximo |
 | 13 | mismo `:301` `pathLabel` | qué se traza | `else` incondicional: un prompt sin pruebas se traza como `vehicleExit+window+egress` |
 | 14 | `$C/domain/detection/CoordinatorParkingDetector.kt:372` y `$A/.../CoordinatorDetectionService.kt:1500` | con qué evidencia arma | **`armEvidence: ArmEvidence = ArmEvidence.Manual` por defecto** — la evidencia más fuerte del sistema es el valor omitido |
-| 15 | `ParkingDecisionInput` `:109-182` | toda la decisión | `egressBornAtAnchor = true`, `anchorGapEntered = false`, `humanPoweredRide = false`, `assertedPinBlocksRelocation = false`… **todos** hacia permitir |
+| 15 | `ParkingDecisionInput` `:109-182` | toda la decisión | `egressBornAtAnchor = true`, `anchorGapEntered = false`, `humanPoweredRide = false`, `assertedPinBlocksRelocation = false`… **todos** hacia permitir. *(cerrado el 31-08, `DET-A-DOUBT-FIELD-MUST-NOT-DEFAULT-TO-CERTAINTY-001`: se borraron los 12 defaults, y los 2 de su hermano `UnattendedSaveInput` con ellos)* |
 | 16 | `$C/domain/model/ParkingDetectionConfig.kt:318` | veto de step tras arm | `enterArmStepVetoMs = 0L` → el veto está **desactivado por defecto** ✅ **cerrado 30-08 BORRÁNDOLO** (`DET-A-VETO-NOBODY-EVER-TURNS-ON-IS-NOT-A-VETO-001`): su desenlace ya lo da el `when` sellado y su un-seed ya tiene camino general |
 
 Contraste que demuestra que el proyecto sabe hacerlo bien: `DetectionEffectDispatcher.kt:92,150,191,229,316`
@@ -611,6 +611,11 @@ Criterio de aceptación de la pieza: **un caso nuevo no compila hasta que su aut
   más fuerte del sistema sea el valor omitido es indefendible.
 - `ParkingDecisionInput` (#15) → los campos de duda pasan a ser obligatorios, o se **invierten** para
   que el default sea el valor dudoso: `egressBornAtAnchor: Boolean = true` → `egressDoubt: Boolean = true`.
+  ✅ *(hecho el 31-08, `DET-A-DOUBT-FIELD-MUST-NOT-DEFAULT-TO-CERTAINTY-001`, por la primera vía:*
+  ***obligatorios***. *La inversión se descartó y por qué importa: una vez que nada se puede omitir, la
+  polaridad del campo no compra seguridad — sólo renombraría el predicado, el input hermano y las
+  trazas. Y el barrido encontró que el hermano `UnattendedSaveInput` también tenía 2 defaults, uno de
+  ellos `humanPoweredRide = false`, su PRIMER guard, que su helper de tests jamás nombraba.)*
 - `enterArmStepVetoMs = 0L` (#16) → un veto desactivado por defecto no es un veto. ✅ **Resuelto el
   30-08 por BORRADO**, no por calibración: nada lo encendió nunca, su desenlace lo da hoy
   `VerifiedByVehicleEnter.confirmsSilentlyWithoutMeasuredDrive = false` y su un-seed lo da la
@@ -696,7 +701,7 @@ estilo de los `ColorGuardrailTest` / `TypographyGuardrailTest` que ya existen:
 | 1 | `DET-DRIVING-EVIDENCE-VALUE-OBJECT-001` (Pieza 1) ✅ | §6.0, la raíz | hecho |
 | 2 | `DET-NO-CLOCK-PLANTS-A-PIN-001` (Pieza 4) ✅ | pin a 142 m, batería | hecho |
 | 3 | `DET-DETECTION-PATH-IS-A-TYPE-001` (Pieza 2) 🟡 | #4 #12 (#13 era falsa alarma) | parcial |
-| 4 | `DET-FAIL-CLOSED-BY-CONSTRUCTION-001` (Pieza 3) 🟡 | #5 #9 #14 (#8 y #16 refutados/diferidos) | parcial |
+| 4 | `DET-FAIL-CLOSED-BY-CONSTRUCTION-001` (Pieza 3) 🟡 | #5 #9 #14 #15 (#8 y #16 refutados/borrados) | **3a completo**; faltan 3b (#10) y 3c (#7) |
 | 5 | `DET-TWO-TIER-SENTRY-001` (Pieza 5) ✅ | 28→1 armados, batería | hecho ⏳ medir en campo |
 | 6 | `DET-DOUBT-MUST-REACH-THE-SCREEN-001` (Pieza 6) ✅ | §1.5 | hecho ⏳ sin ver en device |
 | 7 | `DET-GUARDRAILS-KEEP-THE-DOCTRINE-001` (Pieza 7) 🟡 | que no se deshaga | 3 reglas hechas; replays pendientes |
@@ -713,6 +718,14 @@ corregidos donde viven: el umbral de 5 `drivingFixes` de §6.1 (rompía Calle Ga
 un default permisivo — vigila una SEÑAL que nomina, y el contrato de triggers dice que un evento
 viejo pasa al evaluador, nunca se descarta. Fallar cerrado gobierna lo que PLANTA, no lo que nomina.
 Es una distinción que le falta a la Pieza 3b y que conviene escribir en ella.
+
+🟢 **Y su apartado 3a está COMPLETO** (31-08): #14 y #16 ya lo estaban, y #15 se cerró con
+`DET-A-DOUBT-FIELD-MUST-NOT-DEFAULT-TO-CERTAINTY-001`. Quedan **3b** (una sola política de nulos:
+#8 refutado, #9 hecho, #10 abierto) y **3c**. ⚠️ Y una advertencia que 3b hereda del 3a: los defaults
+de #15 se justificaban en su propio KDoc *"for legacy callers"* y **no existía ni un legacy caller** —
+un campo con default en un input de evaluador no es compatibilidad, es una respuesta permanente que
+nadie tiene que dar. El barrido encontró además 2 defaults en el input HERMANO (`UnattendedSaveInput`),
+uno de ellos su primer guard.
 
 🟢 **La Pieza 2 está CERRADA** (31-08). Fue por su decisión más rentable (`detectionPath` → tipo) y el
 barrido de textos del safety-net; las tres membresías que le quedaban se cerraron en dos tickets:

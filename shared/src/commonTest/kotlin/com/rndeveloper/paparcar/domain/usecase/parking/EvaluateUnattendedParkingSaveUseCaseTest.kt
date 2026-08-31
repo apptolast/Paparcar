@@ -52,6 +52,11 @@ class EvaluateUnattendedParkingSaveUseCaseTest {
         egressExceedsWalkReach: Boolean = false,
         anchorRestMs: Long = config.sustainedStopForSaveMs + 1,
         witnessedRestFix: GpsPoint? = null,
+        // [DET-A-DOUBT-FIELD-MUST-NOT-DEFAULT-TO-CERTAINTY-001] This helper passed every other field
+        // by name and never mentioned this one, so all of these scenarios silently ran the
+        // evaluator's FIRST guard in its permissive position. The value is unchanged; what changed
+        // is that the file now says it out loud.
+        humanPoweredRide: Boolean = false,
     ) = UnattendedSaveInput(
         witnessedRestFix = witnessedRestFix,
         maxSpeedMps = maxSpeedMps,
@@ -71,6 +76,7 @@ class EvaluateUnattendedParkingSaveUseCaseTest {
         egressBornAtAnchor = egressBornAtAnchor,
         egressExceedsWalkReach = egressExceedsWalkReach,
         anchorRestMs = anchorRestMs,
+        humanPoweredRide = humanPoweredRide,
     )
 
     // ── The field regression ─────────────────────────────────────────────────────────────────

@@ -6396,3 +6396,51 @@ compiler owns that vocabulary) and neither is constructing one (`?: VehicleType.
 registration and Room-migration defaults, which are about a missing value, not about meaning).
 
 Spec: `docs/backlog/veh-a-new-vehicle-type-must-not-be-a-car-by-omission-001.md`.
+
+---
+
+### DET-A-DOUBT-FIELD-MUST-NOT-DEFAULT-TO-CERTAINTY-001 — a decision input has no defaults, because a default is a permanent silent answer (pending)
+
+**Not a field report.** Failure #15 of the redesign's §6.2 inventory, and the last of Piece 3's
+fail-closed-by-construction list.
+
+**What was there.** `ParkingDecisionInput` carried **12 defaults on 19 fields**;
+`UnattendedSaveInput`, its sibling in the same lane, carried **2 on 18**. Every one of them was
+justified in its own KDoc as being *"for legacy callers"*.
+
+⛔ **There were no legacy callers.** Each class has exactly ONE production call site
+(`StageInputs.kt`) and one test helper, and the production one has always passed every field by
+name. The population the exemption was written for was empty — so what the defaults actually bought
+was the ability to ADD a signal without anybody having to answer it.
+
+**Three of them answered permissively while they lived**: `egressBornAtAnchor = true` (no doubt
+about the anchor), `lastSpeedMps = 0f` (not rolling, so the speed gate never fires) and
+`humanPoweredRide = false` (a motor, so auto-confirm is allowed).
+
+⚠️ **And the sweep found the one that mattered.** `UnattendedSaveInput.humanPoweredRide = false` is
+the FIRST guard `EvaluateUnattendedParkingSaveUseCase` runs — the one whose absence let a 59-minute
+bicycle ride become a parking 4,8 km from the car (field 2026-08-16, `DET-BIKE-NOT-A-CAR-001`) — and
+its test helper, which names all seventeen other fields, **never mentioned it**. Every unattended
+scenario in the suite ran that guard in its permissive position without saying so. Same shape as
+`ParkingDecisionInput.restCertified`, which the decision helper also never named.
+
+**The fix: no defaults at all**, on both inputs. The plan offered a second option — INVERT the
+polarity so the omitted value is the doubtful one (`egressBornAtAnchor = true` →
+`egressDoubt = true`). Refused, and the reason is the point of the ticket: once nothing can be
+omitted, polarity buys no safety, and the rename would churn the predicate, the sibling input and
+the traces for zero gain.
+
+⚠️ **Nullability is not a default.** `drivingEvidence` and `evidenceLabel` stay nullable — "this
+input carries no verdict" is a real state a replay can be in. What changed is that a caller in that
+state has to say `null` out loud.
+
+**Zero behaviour delta.** The production call site already passed everything; the two test helpers
+now name the field they were silently inheriting, at the value they were inheriting.
+
+**New guardrail, seen failing before it was believed**: `no evaluator input parameter carries a
+default`, plus its own witness `both decision inputs are found and are the size they claim` — the
+rule filters classes by NAME, so a rename would leave it passing over nothing. Re-adding
+`egressBornAtAnchor = true` turned the first red; renaming the class in the filter turned the second
+red. Both green after reverting.
+
+Spec: `docs/backlog/det-a-doubt-field-must-not-default-to-certainty-001.md`.

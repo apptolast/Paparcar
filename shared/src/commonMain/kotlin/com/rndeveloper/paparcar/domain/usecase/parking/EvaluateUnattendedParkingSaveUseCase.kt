@@ -59,7 +59,16 @@ sealed interface UnattendedParkingSave {
     ) : UnattendedParkingSave
 }
 
-/** Everything the verdict depends on, as plain values — replayable from a recorded trace. */
+/**
+ * Everything the verdict depends on, as plain values — replayable from a recorded trace.
+ *
+ * [DET-A-DOUBT-FIELD-MUST-NOT-DEFAULT-TO-CERTAINTY-001] **No field here has a default**, same rule
+ * as its sibling [com.rndeveloper.paparcar.domain.usecase.parking.ParkingDecisionInput]. Two of them
+ * did, and the second one mattered: `humanPoweredRide = false` is the FIRST guard this evaluator
+ * runs — the one whose absence let a 59-minute bicycle ride become a parking 4,8 km from the car —
+ * and its test helper, which passes all seventeen other fields by name, simply never mentioned it.
+ * Every unattended test ran the permissive answer without saying so.
+ */
 data class UnattendedSaveInput(
     /**
      * [DET-NO-CLOCK-PLANTS-A-PIN-001] The best-accuracy fix the stop window WITNESSED, or null.
@@ -70,7 +79,7 @@ data class UnattendedSaveInput(
      * instead. The RADIUS does not shrink: the hole's doubt is about where the CAR stopped, and a
      * better fix of where the PHONE rests does not answer that.
      */
-    val witnessedRestFix: GpsPoint? = null,
+    val witnessedRestFix: GpsPoint?,
     /** Drive-proof-gated session peak (`ParkingDetectionState.maxSpeedMps`). */
     val maxSpeedMps: Float,
     /** Raw (un-corroborated) session peak — a vehicular HINT, never a proof on its own. */
@@ -140,7 +149,7 @@ data class UnattendedSaveInput(
      * anchor`, 4,8 km from a Mercedes that never moved. Vetoing only the confirm paths would have
      * left the phantom exactly where it was.
      */
-    val humanPoweredRide: Boolean = false,
+    val humanPoweredRide: Boolean,
 )
 
 /**

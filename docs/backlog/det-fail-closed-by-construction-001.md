@@ -102,6 +102,14 @@ donde el problema es el ARMADO. Sigue allí.
 Invertir los campos de duda (`egressBornAtAnchor = true` → `egressDoubt = true`) toca todos los
 constructores del input. Mismo patrón, otro alcance.
 
+> ✅ **Cerrado el 31-08 por `DET-A-DOUBT-FIELD-MUST-NOT-DEFAULT-TO-CERTAINTY-001`** — y el alcance
+> era el contrario del que temía esta nota: el input tiene **UN** constructor de producción y **UN**
+> helper de tests, así que los 12 defaults simplemente se borraron (más los 2 del hermano
+> `UnattendedSaveInput`). La inversión se descartó: una vez que nada se puede omitir, la polaridad no
+> compra seguridad. ⚠️ Los KDoc los justificaban *"for legacy callers"* y no existía ninguno — la
+> misma clase de exención que este documento ya declaró legítima para `CoordinatorParkingDetector`,
+> pero aquí sin el hecho que la sostenía. Con **3a** completo, a la Pieza 3 le quedan 3b y 3c.
+
 ## Consumidores auditados
 
 | sitio | clasificación |
