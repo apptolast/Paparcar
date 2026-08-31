@@ -2,6 +2,7 @@ package com.rndeveloper.paparcar.domain.detection
 
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
 import kotlin.test.Test
+import com.rndeveloper.paparcar.domain.usecase.parking.RunHonestCloseUseCase
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -21,6 +22,35 @@ class DetectionPathTest {
         // could catch it because the set of paths was stated nowhere.
         DetectionPath.fixedLabelPaths.forEach { path ->
             assertSame(path, DetectionPath.ofLabel(path.label), "label=${path.label}")
+        }
+    }
+
+    /**
+     * [PARK-A-PIN-MUST-SAY-WHO-PLACED-IT-001] **The witness `roundTripEveryFixedLabel` could not be.**
+     *
+     * That test walks `fixedLabelPaths` — a list checking itself. A label that production EMITS but
+     * that never got a type is, by construction, not in the list, so it cannot be walked and cannot
+     * fail. `closed_approximate_zone` lived exactly there: `RunHonestCloseUseCase` had been writing
+     * it since it gained the zone branch, `ofLabel` returned null for it, and the pin carrying the
+     * most doubt of any read `Unknown` in the provenance UI — while its exact-pin sibling resolved
+     * fine, which is what made the family look covered.
+     *
+     * This asserts the OTHER direction: every label an emitter actually persists resolves to a type.
+     * The emitters now read their constants off `DetectionPath`, so this is the bridge that keeps
+     * them from drifting apart again — and it is the assertion that would have gone red on the day
+     * the zone branch was written.
+     */
+    @Test
+    fun should_giveEveryEmittedLabelAType_not_justTheOnesInTheList() {
+        val emitted = mapOf(
+            "honest close, pin" to RunHonestCloseUseCase.OUTCOME_APPROXIMATE_PIN,
+            "honest close, zone" to RunHonestCloseUseCase.OUTCOME_APPROXIMATE_ZONE,
+        )
+        emitted.forEach { (who, label) ->
+            assertNotNull(
+                DetectionPath.ofLabel(label),
+                "$who persists '$label' and nothing recognises it → the pin reads Unknown",
+            )
         }
     }
 
@@ -59,8 +89,10 @@ class DetectionPathTest {
         // a decision: their reliability is decided at their own site.
         listOf(
             DetectionPath.UnattendedTimeout, DetectionPath.SafetyNetBackfill,
-            DetectionPath.ClosedApproximatePin, DetectionPath.Bt, DetectionPath.BtTimeout,
-            DetectionPath.UserAnswered, DetectionPath.ManualPin, DetectionPath.Nudge,
+            DetectionPath.ClosedApproximatePin, DetectionPath.ClosedApproximateZone,
+            DetectionPath.Bt, DetectionPath.BtTimeout,
+            DetectionPath.UserAnswered, DetectionPath.ManualPin, DetectionPath.UserMovedPin,
+            DetectionPath.Nudge,
         ).forEach { assertNull(it.confirmReliability(config), "path=${it.label}") }
         assertNull(DetectionPath.UnattendedZone("gap_anchor").confirmReliability(config))
     }

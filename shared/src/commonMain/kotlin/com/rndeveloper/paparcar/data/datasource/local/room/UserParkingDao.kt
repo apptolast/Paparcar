@@ -177,21 +177,36 @@ interface UserParkingDao {
      * with the new location's geocode. Used by `UpdateParkingLocationUseCase`
      * when the user drags the parked-car pin to a new spot via the
      * `HomeMode.AddingParking` edit flow.
+     *
+     * [PARK-A-PIN-MUST-SAY-WHO-PLACED-IT-001] It also rewrites the PROVENANCE, because after a drag
+     * the old one is a lie: the pin now sits where the user put it, not where the detector guessed.
+     * The three fields move together or not at all —
+     * - `detectionPath` → who placed it (`user_moved`),
+     * - `detectionReliability` → 1.0, the same ground truth a hand-placed pin gets,
+     * - `zoneRadiusMeters` → NULL, because the doubt was about where the CAR was and the user has
+     *   just answered that; leaving the radius would draw a target badge around a point the user
+     *   pointed at. [DET-DOUBT-REACHES-REMOTE-001]
+     *
+     * Field 2026-08-30 19:32:44 (Redmi): a dragged pin still read `unattended_zone_gap_anchor` with
+     * reliability 0.5 — the pin claimed the unattended net had placed it.
      */
     @Query("""
         UPDATE parking_sessions SET
-            latitude            = :lat,
-            longitude           = :lon,
-            accuracy            = :accuracy,
-            timestamp           = :timestamp,
-            addressStreet       = NULL,
-            addressCity         = NULL,
-            addressRegion       = NULL,
-            addressCountry      = NULL,
-            placeInfoName       = NULL,
-            placeInfoCategory   = NULL,
-            updatedAt           = :now,
-            pendingSync         = 1
+            latitude             = :lat,
+            longitude            = :lon,
+            accuracy             = :accuracy,
+            timestamp            = :timestamp,
+            addressStreet        = NULL,
+            addressCity          = NULL,
+            addressRegion        = NULL,
+            addressCountry       = NULL,
+            placeInfoName        = NULL,
+            placeInfoCategory    = NULL,
+            detectionPath        = :detectionPath,
+            detectionReliability = :detectionReliability,
+            zoneRadiusMeters     = NULL,
+            updatedAt            = :now,
+            pendingSync          = 1
         WHERE id = :id
     """)
     suspend fun updateLocation(
@@ -200,6 +215,8 @@ interface UserParkingDao {
         lon: Double,
         accuracy: Float,
         timestamp: Long,
+        detectionPath: String,
+        detectionReliability: Float,
         now: Long,
     )
 

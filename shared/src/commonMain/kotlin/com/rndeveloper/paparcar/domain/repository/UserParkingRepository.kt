@@ -97,10 +97,20 @@ interface UserParkingRepository : UserScopedRepository, RemoteSyncable {
      *
      * Used by the manual "Move location" flow when the user re-positions an already-parked
      * vehicle on the map. Schedules a full Firestore set() via [ParkingSyncScheduler.enqueueSaveNewParkingSession].
+     *
+     * [PARK-A-PIN-MUST-SAY-WHO-PLACED-IT-001] The move rewrites the pin's PROVENANCE too, and both
+     * arguments are required for that reason: after a drag the pin sits where the USER put it, so a
+     * path still naming the detector is a lie, and any doubt radius the detector had drawn is
+     * answered. The implementation clears `zoneRadiusMeters` alongside them.
+     *
+     * @param detectionPath who placed the pin NOW — [DetectionPath.UserMovedPin] for the drag.
+     * @param detectionReliability ground truth (1.0) for a pin a human pointed at.
      */
     suspend fun updateParkingSessionPosition(
         id: String,
         location: GpsPoint,
+        detectionPath: String,
+        detectionReliability: Float,
     ): Result<UserParking>
 
     /**

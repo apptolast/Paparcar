@@ -215,6 +215,8 @@ class UserParkingRepositoryImpl(
     override suspend fun updateParkingSessionPosition(
         id: String,
         location: GpsPoint,
+        detectionPath: String,
+        detectionReliability: Float,
     ): Result<UserParking> = runCatching {
         dao.updateLocation(
             id = id,
@@ -222,6 +224,8 @@ class UserParkingRepositoryImpl(
             lon = location.longitude,
             accuracy = location.accuracy,
             timestamp = location.timestamp,
+            detectionPath = detectionPath,
+            detectionReliability = detectionReliability,
             now = Clock.System.now().toEpochMilliseconds(),
         )
         val updated = dao.getById(id)?.toDomain()

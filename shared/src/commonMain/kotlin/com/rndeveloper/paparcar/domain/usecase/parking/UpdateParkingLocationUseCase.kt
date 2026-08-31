@@ -3,6 +3,7 @@
 package com.rndeveloper.paparcar.domain.usecase.parking
 
 import com.rndeveloper.paparcar.domain.error.PaparcarError
+import com.rndeveloper.paparcar.domain.detection.DetectionPath
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
 import com.rndeveloper.paparcar.domain.model.UserParking
@@ -58,7 +59,18 @@ class UpdateParkingLocationUseCase(
         // time.
         val stamped = newLocation.copy(timestamp = Clock.System.now().toEpochMilliseconds())
 
-        val updated = userParkingRepository.updateParkingSessionPosition(parkingId, stamped)
+        // [PARK-A-PIN-MUST-SAY-WHO-PLACED-IT-001] The drag re-writes the provenance with the
+        // coordinates. It used to change only WHERE the pin was, leaving WHO placed it untouched,
+        // so a corrected pin still credited the detector that had got it wrong — the one field a
+        // user opens to ask exactly that. `user_moved` is deliberately not `manual`: this pin was
+        // born by the detector and then corrected, and only that combination is a detection failure
+        // worth chasing in a trace.
+        val updated = userParkingRepository.updateParkingSessionPosition(
+            id = parkingId,
+            location = stamped,
+            detectionPath = DetectionPath.UserMovedPin.label,
+            detectionReliability = USER_PLACED_RELIABILITY,
+        )
             .getOrElse { e ->
                 PaparcarLogger.e(DIAG, "updateLocation failed", e)
                 return Result.failure(PaparcarError.Parking.SaveFailed)
@@ -84,5 +96,9 @@ class UpdateParkingLocationUseCase(
 
     private companion object {
         const val DIAG = "PARKDIAG/UpdateLoc"
+
+        /** A pin a human pointed at is ground truth — same value `SaveManualParkingUseCase` gives a
+         *  hand-placed pin. [PARK-A-PIN-MUST-SAY-WHO-PLACED-IT-001] */
+        const val USER_PLACED_RELIABILITY = 1.0f
     }
 }

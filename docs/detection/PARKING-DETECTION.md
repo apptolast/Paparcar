@@ -1198,6 +1198,56 @@ would make it impossible to tell which change moved anything. Measure first, rep
 
 ---
 
+### PARK-A-PIN-MUST-SAY-WHO-PLACED-IT-001 — the label was spelled twice, so one spelling had no type (2026-08-31)
+
+**Commit:** pending · **Ticket:** `docs/backlog/park-a-pin-must-say-who-placed-it-001.md`
+
+**Two provenance defects from the 30-08 field, same question broken from both ends.**
+
+**A. `closed_approximate_zone` had no type.** `RunHonestCloseUseCase` had emitted that label since
+it gained the zone branch, but `DetectionPath` only declared `ClosedApproximatePin`. `ofLabel()`
+fails closed by design, so it returned null → `ParkingDetectionSource.Unknown`. The session carrying
+the MOST doubt of any — a real area with a radius — was the one whose provenance the app could not
+state, in the exact screen a user opens to ask who placed a pin they did not expect (Oppo 23:48,
+196.5 m). What kept it quiet: its exact-pin sibling resolved fine, so the family looked covered. The
+`ClosedApproximatePin` KDoc even described *the AREA it was willing to stand behind* — the zone's
+description sitting on the pin's type. The zone had been forgotten in its own documentation.
+
+**B. Dragging a pin did not change its provenance.** `SaveManualParkingUseCase.save()` computes a
+`detectionPath` and, on the edit branch, calls `updateParkingLocation(id, gps)` **discarding it**;
+the DAO touched only coordinates, address and POI. A pin the user had dragged by hand still read
+`unattended_zone_gap_anchor` at reliability 0.5, still carrying its doubt radius — the pin lied
+about who put it there (Redmi 19:32:44).
+
+**Fix.** The label is spelled ONCE, in the type: emitters read their constants off `DetectionPath`,
+so emitting a typeless label stops being possible — there is no second place to write it. Same shape
+as SYNC-A-PARKING-MUST-TRAVEL-WHOLE-001, two hand-kept spellings of one contract. New types:
+`ClosedApproximateZone`, and `UserMovedPin` (`user_moved`) kept deliberately distinct from `manual` —
+one pin was born by hand, the other born by the detector and then corrected, and only the second is a
+detection failure worth chasing. The drag now rewrites three fields together: path → `user_moved`,
+reliability → 1.0, `zoneRadiusMeters` → NULL (the doubt was about where the CAR was, and the user has
+just answered it).
+
+**Accompanying-fix risk.** The witness is the load-bearing part: `roundTripEveryFixedLabel` walks
+`fixedLabelPaths`, a list checking itself — a label production emits but never typed is by
+construction not in the list, cannot be walked, and cannot fail. The new test asserts the other
+direction (every label an emitter persists resolves), and would have gone red the day the zone branch
+was written. Both fakes mirror the real UPDATE including the radius clear; a fake that kept the radius
+would green-light behaviour production does not have. No Room migration — the UPDATE touches existing
+columns.
+
+**Known interaction.** SYNC-A-PARKING-MUST-TRAVEL-WHOLE-001 made the reconcile rescue a local radius
+when the remote carries null; the drag sets null deliberately. Single-device is safe (the drag's row
+wins the LWW and uploads the null). Multi-device is an accepted residual: a second device still
+holding the old radius would resurrect the badge, because "the remote did not carry the field" and
+"the remote says there is no radius" are the same `null` today.
+
+**Files:** `DetectionPath` (2 types + KDoc fix), `RunHonestCloseUseCase`, `SaveManualParkingUseCase`,
+`UpdateParkingLocationUseCase`, `UserParkingRepository`(+Impl), `UserParkingDao.updateLocation`, both
+`FakeUserParkingRepository`s, 3 new tests. **2036 tests**; both guards verified by falsification.
+
+---
+
 ### DET-BACKFILL-MUST-NOT-PIN-A-MOVING-CAR-001 — live detection measures, the backfill guesses, and the measurement wins (2026-08-30, Oppo)
 
 **Commit:** pending · **Ticket:** `docs/backlog/det-backfill-must-not-pin-a-moving-car-001.md`

@@ -139,12 +139,35 @@ sealed interface DetectionPath {
         override val mayBeWithdrawnByTheApp = true
     }
 
-    /** The honest close drew the area it was willing to stand behind. */
+    /** The honest close stood behind a POINT: the fix was sharp enough that a pin says more than an
+     *  area would, so it carries no radius. [DET-HONEST-CLOSE-001] */
     data object ClosedApproximatePin : DetectionPath {
         override val label = "closed_approximate_pin"
         override val source = ParkingDetectionSource.Assisted
         override fun confirmReliability(config: ParkingDetectionConfig): Float? = null
         /** `false` - the honest close drew what its own session witnessed. */
+        override val mayBeWithdrawnByTheApp = false
+    }
+
+    /**
+     * The honest close drew the AREA it was willing to stand behind — the sibling of
+     * [ClosedApproximatePin], and the one that was missing.
+     *
+     * `RunHonestCloseUseCase` has emitted this label since it gained the zone branch, but the type
+     * never existed, so [ofLabel] returned null for it and the session carrying the MOST doubt of
+     * any — a real area, drawn with a radius — was the one attributed to `Unknown` in the very
+     * screen a user opens to ask who placed a pin. Its exact-pin sibling resolved fine, which is
+     * what kept the hole quiet: the family looked covered. Field 2026-08-30, Oppo, 23:48:
+     * `closed_approximate_zone` with a 196.5 m radius, provenance unknown.
+     */
+    data object ClosedApproximateZone : DetectionPath {
+        override val label = "closed_approximate_zone"
+        override val source = ParkingDetectionSource.Assisted
+        override fun confirmReliability(config: ParkingDetectionConfig): Float? = null
+
+        /** Same answer as [ClosedApproximatePin], for the same reason: a session watched a drive and
+         *  a rest and then drew what it was willing to stand behind. A later departure from it is an
+         *  ordinary end, not a refutation — the area IS the doubt, already declared. */
         override val mayBeWithdrawnByTheApp = false
     }
 
@@ -189,6 +212,31 @@ sealed interface DetectionPath {
         override val mayBeWithdrawnByTheApp = false
     }
 
+    /**
+     * The user DRAGGED an existing pin to where the car really is.
+     *
+     * Distinct from [ManualPin] on purpose: that one was born by hand, this one was born by the
+     * detector and then corrected. Keeping them apart is the whole point of the field — a trace
+     * that reads `manual` cannot tell "the app never saw this park" from "the app saw it and got it
+     * wrong", and only the second is a detection failure worth chasing.
+     *
+     * Before this existed the drag changed the coordinates and left the path untouched, so a pin the
+     * user had placed still claimed to be `unattended_zone_gap_anchor` — the pin lied about who put
+     * it there, which is exactly what [DET-PIN-PROVENANCE-001] exists to prevent. Field 2026-08-30,
+     * Redmi 19:32:44.
+     */
+    data object UserMovedPin : DetectionPath {
+        override val label = "user_moved"
+        override val source = ParkingDetectionSource.Manual
+        override fun confirmReliability(config: ParkingDetectionConfig): Float? = null
+
+        /** `false`, and emphatically so: this pin is where the user's own hand put it, so nothing the
+         *  app measures afterwards outranks it [DET-ASSERTION-OUTRANKS-INFERENCE-001]. A drag is the
+         *  user CORRECTING the app — letting the app then withdraw the correction would invert the
+         *  whole relationship. */
+        override val mayBeWithdrawnByTheApp = false
+    }
+
     /** The user answered a nudge notification. */
     data object Nudge : DetectionPath {
         override val label = "nudge"
@@ -203,9 +251,10 @@ sealed interface DetectionPath {
         /** Every path with a fixed label. [UnattendedZone] is absent on purpose — it composes. */
         val fixedLabelPaths: List<DetectionPath> = listOf(
             StepsEgress, KinematicEgress, VehicleExitWindow,
-            UnattendedTimeout, SafetyNetBackfill, ClosedApproximatePin,
+            UnattendedTimeout, SafetyNetBackfill,
+            ClosedApproximatePin, ClosedApproximateZone,
             Bt, BtTimeout,
-            UserAnswered, ManualPin, Nudge,
+            UserAnswered, ManualPin, UserMovedPin, Nudge,
         )
 
         /**

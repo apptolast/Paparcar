@@ -2,6 +2,7 @@
 
 package com.rndeveloper.paparcar.domain.usecase.parking
 
+import com.rndeveloper.paparcar.domain.detection.DetectionPath
 import com.rndeveloper.paparcar.domain.detection.ports.ManualParkingDetection
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.SpotType
@@ -98,9 +99,14 @@ class SaveManualParkingUseCase(
     private companion object {
         // A pin the user placed/confirmed by hand is ground truth.
         const val USER_CONFIRMED_RELIABILITY = 1.0f
-        // Pin provenance paths. [DET-PIN-PROVENANCE-001][DET-NUDGE-PIN-PROVENANCE-001]
-        const val PATH_MANUAL = "manual"
-        const val PATH_USER = "user"
-        const val PATH_NUDGE = "nudge"
+        // Pin provenance paths, read off the TYPE so a path can never be spelled twice.
+        // [DET-PIN-PROVENANCE-001][DET-NUDGE-PIN-PROVENANCE-001][PARK-A-PIN-MUST-SAY-WHO-PLACED-IT-001]
+        val PATH_MANUAL = DetectionPath.ManualPin.label
+        val PATH_USER = DetectionPath.UserAnswered.label
+        val PATH_NUDGE = DetectionPath.Nudge.label
+        // The MOVE branch has no path constant here on purpose: it does not build a pin, it hands
+        // the id to [UpdateParkingLocationUseCase], which owns the provenance of a drag
+        // (`user_moved`). A constant here would be a second place to spell it — the exact defect
+        // this ticket removes. [PARK-A-PIN-MUST-SAY-WHO-PLACED-IT-001]
     }
 }

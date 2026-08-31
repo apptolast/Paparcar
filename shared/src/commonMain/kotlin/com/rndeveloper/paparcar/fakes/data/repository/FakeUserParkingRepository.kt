@@ -311,9 +311,24 @@ class FakeUserParkingRepository(
         placeInfo: PlaceInfo?,
     ): Result<Unit> = Result.success(Unit)
 
-    override suspend fun updateParkingSessionPosition(id: String, location: GpsPoint): Result<UserParking> {
+    override suspend fun updateParkingSessionPosition(
+        id: String,
+        location: GpsPoint,
+        detectionPath: String,
+        detectionReliability: Float,
+    ): Result<UserParking> {
         val session = currentSessions().find { it.id == id } ?: return Result.failure(Exception("Not found"))
-        return Result.success(session.copy(location = location))
+        // Mirrors the real DAO's UPDATE, clearing the doubt radius with the provenance rewrite —
+        // a fake that kept the old radius would let a test pass on behaviour production does not
+        // have. [PARK-A-PIN-MUST-SAY-WHO-PLACED-IT-001]
+        val moved = session.copy(
+            location = location,
+            detectionPath = detectionPath,
+            detectionReliability = detectionReliability,
+            zoneRadiusMeters = null,
+        )
+        savedSessions.value = savedSessions.value.map { if (it.id == id) moved else it }
+        return Result.success(moved)
     }
 
     override suspend fun updateParkingSessionRoute(

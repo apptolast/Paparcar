@@ -209,15 +209,26 @@ class FakeUserParkingRepository(
         private set
     var updateParkingSessionPositionResult: Result<UserParking>? = null
 
-    override suspend fun updateParkingSessionPosition(id: String, location: GpsPoint): Result<UserParking> {
+    override suspend fun updateParkingSessionPosition(
+        id: String,
+        location: GpsPoint,
+        detectionPath: String,
+        detectionReliability: Float,
+    ): Result<UserParking> {
         updateParkingSessionPositionCallCount++
         updateParkingSessionPositionResult?.let { return it }
         val idx = sessions.indexOfFirst { it.id == id }
         if (idx < 0) return Result.failure(IllegalStateException("No session $id"))
+        // Mirrors the real DAO's UPDATE exactly, INCLUDING clearing the doubt radius alongside the
+        // provenance rewrite. A fake that kept the old radius would let a test go green on behaviour
+        // production does not have. [PARK-A-PIN-MUST-SAY-WHO-PLACED-IT-001]
         val updated = sessions[idx].copy(
             location = location,
             address = null,
             placeInfo = null,
+            detectionPath = detectionPath,
+            detectionReliability = detectionReliability,
+            zoneRadiusMeters = null,
         )
         sessions[idx] = updated
         _sessionsFlow.value = sessions.toList()

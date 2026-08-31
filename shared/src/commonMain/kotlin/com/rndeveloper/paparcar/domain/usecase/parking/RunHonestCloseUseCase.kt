@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.domain.usecase.parking
 
+import com.rndeveloper.paparcar.domain.detection.DetectionPath
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager
@@ -133,7 +134,19 @@ class RunHonestCloseUseCase(
     }
 
     companion object {
-        const val OUTCOME_APPROXIMATE_PIN = "closed_approximate_pin"
-        const val OUTCOME_APPROXIMATE_ZONE = "closed_approximate_zone"
+        /**
+         * [PARK-A-PIN-MUST-SAY-WHO-PLACED-IT-001] Spelled by the TYPE, not next to it.
+         *
+         * These used to be independent string literals that happened to match a `DetectionPath`.
+         * `closed_approximate_zone` never had a matching type, so `DetectionPath.ofLabel` returned
+         * null for it and the pin with the most doubt of any read `Unknown` in the provenance UI —
+         * while its exact-pin sibling resolved fine, which is what kept the hole quiet.
+         *
+         * Reading the label off the type makes emitting a typeless path impossible: there is no
+         * second place to spell it. Same shape as the field-list defect in
+         * [SYNC-A-PARKING-MUST-TRAVEL-WHOLE-001] — two hand-kept spellings of one contract.
+         */
+        val OUTCOME_APPROXIMATE_PIN = DetectionPath.ClosedApproximatePin.label
+        val OUTCOME_APPROXIMATE_ZONE = DetectionPath.ClosedApproximateZone.label
     }
 }

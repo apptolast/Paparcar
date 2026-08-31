@@ -2,6 +2,7 @@
 
 package com.rndeveloper.paparcar.domain.usecase.parking
 
+import com.rndeveloper.paparcar.domain.detection.DetectionPath
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
 import com.rndeveloper.paparcar.domain.model.UserParking
@@ -29,6 +30,55 @@ class UpdateParkingLocationUseCaseTest {
         geofenceId = id,
         sizeCategory = sizeCategory,
     )
+
+    // ── Provenance [PARK-A-PIN-MUST-SAY-WHO-PLACED-IT-001] ────────────────────
+
+    /**
+     * A dragged pin sits where the USER put it, so the provenance the detector left on it is a lie.
+     * Field 2026-08-30 19:32:44 (Redmi): the pin still read `unattended_zone_gap_anchor` at
+     * reliability 0.5 after the user corrected it by hand.
+     *
+     * The three fields move together — path, reliability and the doubt radius — because they answer
+     * the same question. Asserting them in one test is deliberate: a drag that rewrote two of the
+     * three would be a new way to lie.
+     */
+    @Test
+    fun should_rewriteProvenanceToUserMoved_when_theUserDragsThePin() = runTest {
+        val session = existingSession().copy(
+            detectionPath = DetectionPath.UnattendedZone("gap_anchor").label,
+            detectionReliability = 0.5f,
+            zoneRadiusMeters = 250f,
+        )
+        val repo = FakeUserParkingRepository(initialSession = session)
+        val useCase = buildUseCase(repo = repo)
+
+        val moved = useCase(session.id, newLocation).getOrNull()
+
+        assertNotNull(moved)
+        assertEquals(DetectionPath.UserMovedPin.label, moved.detectionPath, "who placed it")
+        assertEquals(1.0f, moved.detectionReliability, "a pin a human pointed at is ground truth")
+        assertEquals(null, moved.zoneRadiusMeters, "the doubt was about where the car was; the user just answered it")
+    }
+
+    /**
+     * `user_moved` must be distinguishable from `manual`: one pin was born by hand, the other was
+     * born by the detector and then corrected — and only the second is a detection failure worth
+     * chasing. Collapsing them would erase exactly the signal a field trace needs.
+     */
+    @Test
+    fun should_notClaimTheDraggedPinWasHandPlacedFromTheStart() = runTest {
+        val session = existingSession()
+        val repo = FakeUserParkingRepository(initialSession = session)
+        val useCase = buildUseCase(repo = repo)
+
+        val moved = useCase(session.id, newLocation).getOrNull()
+
+        assertNotNull(moved)
+        assertTrue(
+            moved.detectionPath != DetectionPath.ManualPin.label,
+            "a corrected pin is not a hand-placed one — keep the two paths apart",
+        )
+    }
 
     // ── Happy path ────────────────────────────────────────────────────────────
 
