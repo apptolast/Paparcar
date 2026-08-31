@@ -81,6 +81,11 @@ enum class ArmLabel(val persisted: String) {
     /** [DET-HANDOFF-NOT-MANUAL-001] The safety net DEDUCED a departure and handed the trip over. */
     ARRIVAL_HANDOFF("arrival_handoff"),
 
+    /** [DET-A-DECLINED-ARM-IS-NOT-SILENCE-001] A fresh AR boarding was declined for sitting outside
+     *  the car's fence, and the re-look 90 s later MEASURED driving. The event nominated; the
+     *  movement confirmed. */
+    BOARDED_AWAY("boarded_away"),
+
     /** [DET-BT-DISCONNECT-WITHOUT-RIDE-001] A ride-shaped Bluetooth engagement armed this session. */
     BT_RIDE("bt_ride"),
 
@@ -99,7 +104,7 @@ enum class ArmLabel(val persisted: String) {
     val isVerifiedDeparture: Boolean
         get() = when (this) {
             VERIFIED_SPEED, VERIFIED_ENTER, VERIFIED_LATE, INHERITED_DRIVE -> true
-            MANUAL, SELF_OBSERVED, ENTER_AT_CAR, ARRIVAL_HANDOFF, BT_RIDE -> false
+            MANUAL, SELF_OBSERVED, ENTER_AT_CAR, ARRIVAL_HANDOFF, BT_RIDE, BOARDED_AWAY -> false
         }
 
     /**
@@ -115,7 +120,7 @@ enum class ArmLabel(val persisted: String) {
         get() = when (this) {
             MANUAL, INHERITED_DRIVE, VERIFIED_SPEED -> true
             VERIFIED_ENTER, VERIFIED_LATE, SELF_OBSERVED,
-            ENTER_AT_CAR, ARRIVAL_HANDOFF, BT_RIDE,
+            ENTER_AT_CAR, ARRIVAL_HANDOFF, BT_RIDE, BOARDED_AWAY,
             -> false
         }
 
@@ -169,6 +174,27 @@ sealed interface ArmEvidence {
      *  measured driving. */
     data object ArrivalHandoff : ArmEvidence
 
+    /**
+     * [DET-A-DECLINED-ARM-IS-NOT-SILENCE-001] A FRESH AR `IN_VEHICLE_ENTER` whose fix sat OUTSIDE
+     * the parked car's fence — so [BoardingAtCar] could not be claimed — and whose deliberate
+     * re-look ~90 s later MEASURED credible driving.
+     *
+     * The declined boarding is what made us LOOK; the measured driving is what arms. That order is
+     * the doctrine, not a workaround for it: the event nominates, only measured movement confirms.
+     * AR fires on ANY vehicle, so this arm cannot mean "you got into YOUR car" — it means "you are
+     * being driven somewhere and nobody was following". Hence [DriveAuthorization.None] and a
+     * `false` [isVerifiedDeparture]: the session follows the trip at full quality, the anti-walking
+     * guards stay armed, and a park at the far end is ASKED rather than saved in silence. A bus ride
+     * costs one question, never a phantom pin.
+     *
+     * Field 2026-08-30 21:20:42 (Oppo): a fresh ENTER (lag 232 ms) 143 m from the car was declined —
+     * correctly, it could have been a bus — and nothing looked again. The geofence EXIT that should
+     * have covered it arrived 7 min and 3,6 km later, because the fence had been re-registered
+     * 2 min earlier and the GPS was off. In the three other declines that day the EXIT armed within
+     * 100 ms; this arm exists for the fourth.
+     */
+    data object BoardedAwayFromCar : ArmEvidence
+
     /** [DET-AR-FIRST-001] A FRESH AR `IN_VEHICLE_ENTER` whose fix sits INSIDE the parked car's
      *  own fence — the boarding moment, caught BEFORE any driving exists to measure. Arms the
      *  coordinator "waiting for ride proof": deliberately NOT a verified departure (no seed),
@@ -210,7 +236,8 @@ sealed interface ArmEvidence {
         get() = when (this) {
             is VerifiedBySpeed, is VerifiedByVehicleEnter -> DriveAuthorization.OnTrust
             is InheritedDrive -> DriveAuthorization.Measured
-            is Manual, is Unverified, is BoardingAtCar, is ArrivalHandoff, is BtRide -> DriveAuthorization.None
+            is Manual, is Unverified, is BoardingAtCar, is ArrivalHandoff, is BtRide,
+            is BoardedAwayFromCar -> DriveAuthorization.None
         }
 
     /**
@@ -274,6 +301,7 @@ sealed interface ArmEvidence {
             is Unverified -> ArmLabel.SELF_OBSERVED
             is BoardingAtCar -> ArmLabel.ENTER_AT_CAR
             is ArrivalHandoff -> ArmLabel.ARRIVAL_HANDOFF
+            is BoardedAwayFromCar -> ArmLabel.BOARDED_AWAY
             is BtRide -> ArmLabel.BT_RIDE
             is InheritedDrive -> ArmLabel.INHERITED_DRIVE
         }
@@ -299,6 +327,7 @@ sealed interface ArmEvidence {
             Unverified,
             BoardingAtCar,
             ArrivalHandoff,
+            BoardedAwayFromCar,
             BtRide(engagementMs = 0L),
             InheritedDrive(maxSpeedMps = 0f, source = DriveProofSource.TRACK_WINDOW),
         )

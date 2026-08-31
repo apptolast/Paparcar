@@ -1198,6 +1198,64 @@ would make it impossible to tell which change moved anything. Measure first, rep
 
 ---
 
+### DET-A-DECLINED-ARM-IS-NOT-SILENCE-001 — the declined boarding buys one more look, never the arm (2026-08-31)
+
+**Commit:** pending · **Ticket:** `docs/backlog/det-a-declined-arm-is-not-silence-001.md`
+
+**Field 2026-08-30 21:20:42 (Oppo).** A FRESH AR `IN_VEHICLE_ENTER` (lag 232 ms) arrived with its fix
+143 m from the parked car. The ladder answered `TickOnly` — correctly: AR fires on buses and taxis,
+and arming on it would be the event confirming itself. Then the service logged the decline, wrote a
+telemetry row nobody reads, and called `enterSentry` (GPS off). **Nothing looked again for 6 min 51 s
+and 3,6 km.**
+
+**Root cause is an ordering gap, not a structural one — measured before touching code.** Of the day's
+five `TickOnly` declines, three were covered by the `GEOFENCE_EXIT` within 100 ms (93/87/83 ms) and a
+fourth happened with detection already running. Only this one was orphaned, and the reason is NOT
+"the GPS was off" — it was off in all four (`enterSentry — GPS off` runs in the same millisecond the
+fast EXITs arrive). Play Services geofences fire with our GPS off by design; they work from a dead
+process. What separates the slow one is that its fence had been **re-registered 2 min 21 s before the
+user drove off** (`poisoned 1213s ago`, 21:18:21), while the fast ones had either never been
+re-registered or last were 65 min earlier. A freshly registered fence needs time to settle, and with
+no GPS fixes of our own Play Services has only wifi/cell to settle it — the GPS being off AGGRAVATES
+the latency, it does not cause it. Its EXIT landed at 21:27:41. The app already measures this regime:
+`⚑ GEOFENCE_EXIT delivered FAR from fence` fired 8 times that day, once at 474 m. Meanwhile every watcher left behind shares one evaluator, and between the fence
+radius (~95 m) and `watchdogFarThresholdMeters` (300 m) it answers `None`. 143 m sits in that dead
+ring, so the first mechanism able to decide anything was the one that found the car already far away.
+
+**Fix.** The decline stands; the silence after it does not. `TickOnly` — and only `TickOnly`, the one
+decision meaning "someone boarded a vehicle and it is not provably yours" — schedules ONE fix 90 s
+later (`DeclinedBoardingRelookWorker`, unique per fence, skipped if detection is already running or
+the park is gone). The verdict is the pure `shouldArmAfterDeclinedBoarding`: credible driving speed
+AND outside the car's own fence, both reusing existing predicates, so no new calibration enters.
+
+The delay is load-bearing, not taste: the actual boarding fix read `speed=0.22708045m/s` — still
+walking, or barely pulling away — so a speed test at the ENTER answers "no" and is exactly as blind
+as the silence it replaces. That real fix is a test; if it ever goes green the design must be re-read.
+
+The arm carries `ArmEvidence.BoardedAwayFromCar` → `DriveAuthorization.None`: follow the trip at full
+quality, never save a park in silence. **A bus ride costs one question, never a phantom pin** — the
+same asymmetry the decline itself protects. `EvaluateArEnterArmUseCase` is untouched, so the written
+rule that the ladder only arms on a boarding tied to your OWN car holds word for word.
+
+**Rejected on reading it.** `DepartureDetectionWorker` was the tempting reuse — it already measures
+across retries at 15/30/60 s and `ArmMidTrip` enqueues it. But it PROCESSES a departure, and
+processing one frees the space: enqueuing it here would release your parking every time you boarded a
+bus 143 m from your car. `ArmMidTrip` can afford it because it requires `recentStaleExitRecorded`, an
+EXIT from YOUR fence that ties the movement to YOUR car. `TickOnly` has no such anchor.
+
+**Accompanying-fix risk.** The re-look starts an FGS from background, which Android 12+/OEM may deny;
+that path logs and does nothing, returning to exactly the pre-ticket behaviour with the safety net as
+backstop. No prompt there on purpose — we proved something is driving, not that the user left THEIR
+car. The population guard `ArmLabelTest` failed until the new arm was registered in
+`ArmEvidence.allArms`, which is the witness doing its job.
+
+**Files:** `DeclinedBoardingRelook.kt` (new, pure), `DeclinedBoardingRelookWorker` (new),
+`ArmEvidence`/`ArmLabel` (+1 arm, 4 exhaustive `when`s), `CoordinatorDetectionService`
+(`ACTION_BOARDED_AWAY` + handler + the enqueue), `DeclinedBoardingRelookTest` (8 tests).
+**2044 tests**; both gates verified by falsification.
+
+---
+
 ### PARK-A-PIN-MUST-SAY-WHO-PLACED-IT-001 — the label was spelled twice, so one spelling had no type (2026-08-31)
 
 **Commit:** pending · **Ticket:** `docs/backlog/park-a-pin-must-say-who-placed-it-001.md`

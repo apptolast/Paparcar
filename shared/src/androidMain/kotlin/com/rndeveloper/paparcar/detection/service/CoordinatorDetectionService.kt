@@ -17,6 +17,7 @@ import com.rndeveloper.paparcar.isDebugBuild
 import com.rndeveloper.paparcar.detection.SentryResidenceStore
 import com.rndeveloper.paparcar.detection.SignificantMotionMonitor
 import com.rndeveloper.paparcar.detection.UserStopStore
+import com.rndeveloper.paparcar.detection.worker.DeclinedBoardingRelookWorker
 import com.rndeveloper.paparcar.detection.worker.DepartureDetectionWorker
 import com.rndeveloper.paparcar.detection.worker.ParkingSafetyNetWorker
 import com.rndeveloper.paparcar.domain.detection.CoordinatorParkingDetector
@@ -286,6 +287,7 @@ class CoordinatorDetectionService : LifecycleService() {
         when (val action = intent.action) {
             ACTION_START_TRACKING -> handleStartTracking()
             ACTION_ARRIVAL_HANDOFF -> handleArrivalHandoff() // [DET-HANDOFF-NOT-MANUAL-001]
+            ACTION_BOARDED_AWAY -> handleBoardedAway(intent.getStringExtra(EXTRA_GEOFENCE_ID))
             // [DET-RESIDENT-FGS-001] · [DET-CHEAP-WAKE-INSTEAD-OF-SILENCE-001] the extra says whether
             // this wake may spend a whole session or only one fix.
             ACTION_SENTRY_WAKE -> handleSentryWake(
@@ -520,6 +522,29 @@ class CoordinatorDetectionService : LifecycleService() {
         startParkingDetection(
             DetectionTrigger.ARRIVAL_HANDOFF,
             armEvidence = ArmEvidence.ArrivalHandoff,
+        )
+    }
+
+    /**
+     * [DET-A-DECLINED-ARM-IS-NOT-SILENCE-001] The re-look measured driving after a declined boarding.
+     *
+     * Arms with [ArmEvidence.BoardedAwayFromCar] → [DriveAuthorization.None]: follow the trip at full
+     * quality, but never save a park in silence. AR fires on any vehicle, so what was measured is
+     * "something is driving this phone away", not "you got into YOUR car" — and the difference is
+     * exactly what keeps a bus ride costing one question instead of a phantom pin.
+     */
+    private suspend fun handleBoardedAway(geofenceId: String?) {
+        if (!guardPermissions("BOARDED_AWAY")) return
+        if (detectionJob?.isActive == true) {
+            PaparcarLogger.d(DIAG, "  ↻ BOARDED_AWAY ignored — detectionJob already active")
+            return
+        }
+        PaparcarLogger.d(DIAG, "  → BOARDED_AWAY — the declined boarding's re-look measured a drive; following it")
+        cancelDetectionJob()
+        startParkingDetection(
+            DetectionTrigger.AR_VEHICLE_ENTER,
+            detail = "relook(geof=${geofenceId ?: "?"})",
+            armEvidence = ArmEvidence.BoardedAwayFromCar,
         )
     }
 
@@ -1099,6 +1124,17 @@ class CoordinatorDetectionService : LifecycleService() {
                     TriggerDisposition.NOT_ARMABLE,
                     detail = "${decision::class.simpleName}(lag=${lagMs}ms)",
                 )
+                // [DET-A-DECLINED-ARM-IS-NOT-SILENCE-001] A declined boarding is not silence. Only
+                // TickOnly earns the re-look: it is the one decision that means "someone boarded a
+                // vehicle and it is not provably yours" — the other three mean the evidence was
+                // unusable (no session, stale, no fix), and looking again would be looking at
+                // nothing. The re-look does not arm; measured driving does.
+                if (decision is ArEnterDecision.TickOnly) {
+                    session?.geofenceId?.let { geofenceId ->
+                        PaparcarLogger.d(DIAG, "  ⏱ boarding declined away from the car — one re-look scheduled [DET-A-DECLINED-ARM-IS-NOT-SILENCE-001]")
+                        DeclinedBoardingRelookWorker.enqueue(applicationContext, geofenceId)
+                    }
+                }
             }
         }
     }
@@ -1982,6 +2018,22 @@ class CoordinatorDetectionService : LifecycleService() {
         // user's "I'm driving" — same trigger, same evidence, same strategy-gate exemption. One
         // action per meaning: START_TRACKING is the button and nothing else.
         const val ACTION_ARRIVAL_HANDOFF = "com.rndeveloper.paparcar.ACTION_ARRIVAL_HANDOFF"
+
+        // [DET-A-DECLINED-ARM-IS-NOT-SILENCE-001] The deliberate re-look at a declined AR boarding
+        // MEASURED driving away from the car. Its own action, for the reason ARRIVAL_HANDOFF has
+        // one: the arm evidence differs, and a trace must be able to tell which lane armed.
+        const val ACTION_BOARDED_AWAY = "com.rndeveloper.paparcar.ACTION_BOARDED_AWAY"
+
+        /** [DET-A-DECLINED-ARM-IS-NOT-SILENCE-001] Foreground-service start for the re-look's arm.
+         *  Called from [com.rndeveloper.paparcar.detection.worker.DeclinedBoardingRelookWorker],
+         *  which handles a platform refusal by leaving the safety net as the backstop. */
+        fun startBoardedAwayArm(context: android.content.Context, geofenceId: String) {
+            val intent = android.content.Intent(context, CoordinatorDetectionService::class.java).apply {
+                action = ACTION_BOARDED_AWAY
+                putExtra(EXTRA_GEOFENCE_ID, geofenceId)
+            }
+            androidx.core.content.ContextCompat.startForegroundService(context, intent)
+        }
         // [DET-RESIDENT-FGS-001] Significant-motion wake, delivered by SignificantMotionMonitor ONLY
         // when the service is resident in SENTRY (already foreground → legal re-delivery). Arms a
         // coordinator session with Unverified evidence; the WorkManager path is used from a dead process.
