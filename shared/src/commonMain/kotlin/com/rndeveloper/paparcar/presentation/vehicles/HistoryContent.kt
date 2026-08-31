@@ -168,11 +168,20 @@ fun HistoryContent(
     val filteredSessions = resolved?.filteredSessions.orEmpty()
 
     val allEnded = remember(sessions) { sessions.filter { !it.isActive } }
-    // The activity chart now follows the selected time filter: buckets are built from the SCOPED
+    // The activity chart follows the selected time filter: buckets are built from the SCOPED
     // sessions with a granularity that matches the window (daily for a week, weekly for a month,
     // monthly for longer). Its total/scope label come from the same filter. [VEHICLES-REDESIGN-001]
+    // The bars now span the SAME window that scoped those sessions — both read
+    // VehicleHistoryCalculator.windowStartMs, so neither can drift from the other. That claim used
+    // to be a comment here while the code did something else.
+    // [UI-HISTORY-THE-CHART-SPANS-WHAT-THE-FILTER-SPANS-001]
     val activityBuckets = remember(filteredSessions, state.activeFilter, dayLabels, monthNamesShort) {
-        buildActivityBuckets(filteredSessions, state.activeFilter, dayLabels, monthNamesShort)
+        VehicleHistoryCalculator.buildActivityBuckets(
+            sessions = filteredSessions,
+            filter = state.activeFilter,
+            dayLabels = dayLabels,
+            monthNamesShort = monthNamesShort,
+        )
     }
     val scopeTotal = filteredSessions.size
     // The History timeline is ALWAYS the complete list — the time filter scopes only the Activity
@@ -459,101 +468,6 @@ private const val SKELETON_CHIP_ALPHA_FACTOR = 0.85f
 private const val SKELETON_HEADER_ALPHA_FACTOR = 0.7f
 
 private const val DAY_MS = 86_400_000L
-private const val DAYS_PER_WEEK = 7
-private const val WEEKS_IN_MONTH = 5
-private const val MONTHS_PER_YEAR = 12
-// Cap on how many months the "All" activity chart shows (older sessions still count in the total). [Task 4]
-private const val ALL_MONTHS_CAP = 6
-
-private fun buildWeeklyStats(
-    sessions: List<UserParking>,
-    dayLabels: List<String>
-): List<WeekDayStats> {
-    val tz = TimeZone.currentSystemDefault()
-    val nowMs = kotlin.time.Clock.System.now().toEpochMilliseconds()
-
-    val grouped = sessions
-        .filter { it.location.timestamp >= nowMs - 7 * DAY_MS }
-        .groupBy { Instant.fromEpochMilliseconds(it.location.timestamp).toLocalDateTime(tz).date }
-
-    return (6 downTo 0).map { daysAgo ->
-        val date = Instant.fromEpochMilliseconds(nowMs - daysAgo * DAY_MS).toLocalDateTime(tz).date
-        WeekDayStats(
-            label = dayLabels[date.dayOfWeek.isoDayNumber - 1],
-            sessions = grouped[date]?.size ?: 0,
-            isCurrent = daysAgo == 0,
-        )
-    }
-}
-
-// Activity-chart buckets that follow the selected time filter: the window's granularity changes so a
-// single chart reads well from a week up to all-time. [VEHICLES-REDESIGN-001]
-private fun buildActivityBuckets(
-    sessions: List<UserParking>,
-    filter: HistoryFilter,
-    dayLabels: List<String>,
-    monthNamesShort: List<String>,
-): List<WeekDayStats> = when (filter) {
-    HistoryFilter.ThisWeek -> buildWeeklyStats(sessions, dayLabels)          // 7 daily bars
-    HistoryFilter.ThisMonth -> buildMonthWeekBuckets(sessions)              // weekly bars of this month
-    HistoryFilter.Last3Months -> buildMonthlyBuckets(sessions, monthNamesShort, months = 3)
-    HistoryFilter.All -> buildMonthlyBuckets(sessions, monthNamesShort, months = ALL_MONTHS_CAP)
-}
-
-// This-month view: one bar per week of the current month, labelled by the week's starting day-of-month
-// (1, 8, 15, 22, 29). Always shows the full month (weeks not reached yet read as empty track bars) so
-// the chart never degenerates to a single full-width bar early in the month. The week containing today
-// is highlighted. [VEHICLES-REDESIGN-001]
-private fun buildMonthWeekBuckets(sessions: List<UserParking>): List<WeekDayStats> {
-    val tz = TimeZone.currentSystemDefault()
-    val nowMs = kotlin.time.Clock.System.now().toEpochMilliseconds()
-    val nowLocal = Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(tz)
-    val currentWeek = (nowLocal.date.day - 1) / DAYS_PER_WEEK
-    val counts = IntArray(WEEKS_IN_MONTH)
-    sessions.forEach { s ->
-        val d = Instant.fromEpochMilliseconds(s.location.timestamp).toLocalDateTime(tz).date
-        if (d.year == nowLocal.year && d.month == nowLocal.month) {
-            val wk = ((d.day - 1) / DAYS_PER_WEEK).coerceAtMost(WEEKS_IN_MONTH - 1)
-            counts[wk]++
-        }
-    }
-    return (0 until WEEKS_IN_MONTH).map { i ->
-        WeekDayStats(
-            label = "${i * DAYS_PER_WEEK + 1}",
-            sessions = counts[i],
-            isCurrent = i == currentWeek,
-        )
-    }
-}
-
-// Longer windows: one bar per calendar month for the last [months] months (oldest → newest), labelled
-// by short month name. The last bar is the current month (highlighted).
-private fun buildMonthlyBuckets(
-    sessions: List<UserParking>,
-    monthNamesShort: List<String>,
-    months: Int,
-): List<WeekDayStats> {
-    val tz = TimeZone.currentSystemDefault()
-    val nowMs = kotlin.time.Clock.System.now().toEpochMilliseconds()
-    val nowLocal = Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(tz)
-    val grouped = sessions.groupBy { s ->
-        val d = Instant.fromEpochMilliseconds(s.location.timestamp).toLocalDateTime(tz)
-        d.year to d.month.number
-    }
-    return (months - 1 downTo 0).map { back ->
-        var y = nowLocal.year
-        var m = nowLocal.month.number - back
-        while (m <= 0) {
-            m += MONTHS_PER_YEAR
-            y -= 1
-        }
-        WeekDayStats(
-            label = monthNamesShort[m - 1],
-            sessions = grouped[y to m]?.size ?: 0,
-            isCurrent = back == 0,
-        )
-    }
-}
 
 private fun buildTimeline(
     sessions: List<UserParking>,
