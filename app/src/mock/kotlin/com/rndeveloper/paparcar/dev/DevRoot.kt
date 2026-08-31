@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.Text
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.MaterialTheme
@@ -38,7 +37,8 @@ import com.rndeveloper.paparcar.ui.theme.PaparcarTheme
  * [App] inside a fresh [ViewModelStoreOwner] (keyed by a session counter) so every entry gets a
  * brand-new `SplashViewModel` that re-resolves routing from the current [MockScenario].
  *
- * Two persistent dev controls, clustered top-end (none of this exists in prod):
+ * Two persistent dev controls, clustered on the left edge at mid-height (none of this exists in
+ * prod) — see the note at the cluster for why not top-end:
  * - A **theme toggle** (☀/🌙) present on *every* screen. It flips a global light/dark override that
  *   is applied by shadowing [LocalConfiguration]'s night mask, so it reaches every surface —
  *   catalog, state gallery, and the real [App] (which themes from `ThemeMode.SYSTEM →
@@ -92,15 +92,21 @@ fun DevRoot(scenario: MockScenario) {
                 }
             }
 
-            // Persistent dev controls, clustered top-end. Theme toggle is always present; the DEV
-            // escape hatch only appears outside the catalog.
+            // Persistent dev controls. Theme toggle is always present; the DEV escape hatch only
+            // appears outside the catalog.
+            //
+            // They live on the LEFT EDGE, vertically centred, because top-end is where the APP puts
+            // its own controls: Home's map-type toggle and the history detail map's sit exactly
+            // there, and this cluster was covering both — the dev scaffolding was hiding the thing
+            // a dev build exists to look at. The left edge at mid-height is the one region no screen
+            // uses (map on Home and on the detail, margin on the lists).
+            // [MOCK-THE-DEV-CHIPS-MUST-NOT-COVER-THE-APPS-CONTROLS-001]
             PaparcarTheme(darkTheme = effectiveDark) {
                 Column(
                     modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .statusBarsPadding()
+                        .align(Alignment.CenterStart)
                         .padding(8.dp),
-                    horizontalAlignment = Alignment.End,
+                    horizontalAlignment = Alignment.Start,
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     if (inApp || showGallery) {
