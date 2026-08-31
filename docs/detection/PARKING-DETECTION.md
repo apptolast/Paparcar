@@ -2863,6 +2863,66 @@ everything green, which is the actual claim.
 
 ---
 
+### UI-THE-ASK-IS-A-CAMERA-SUBJECT-001 — the question showed its place off-screen
+
+**Commit:** pending · **reported by the user (31-08):** *"cuando estamos en ¿Has aparcado? abrimos la
+modal, pero deberíamos dirigir la cámara también a donde se supone que hemos aparcado, ¿no? Cuando
+abrimos la app"*.
+
+Third defect of the same marker, and the one that made the other two half-useless. The two sections
+above gave the question a place and a working tap; nothing ever pointed the CAMERA at it. Reproduce
+it exactly as the slot was designed to be used: park, walk 300 m, open the app. The sheet auto-opens
+on the question (`SheetTransitionEffects`, keyed by `shownAtMs`), the `?` marker is drawn at
+`PendingPromptWindow.candidate` — and the camera is centred on YOU at `FOCUS_SEARCH_ZOOM`, with the
+asked place possibly off-screen. Showing a place the camera is not looking at is not showing it.
+
+**Root cause, and why it was structural rather than an omission.** `HomeCameraEffects` has exactly
+two subjects: `state.userParking` and the user. During an open question there **is no session** —
+that is the thing being asked — so `centerInitialFocus` could only ever take its "not parked" branch.
+The question was never a camera subject, so no amount of ranking inside the existing branches would
+have reached it.
+
+**Fix.** One new door on `HomeUiController`, where the whole focus state machine already lives:
+`frameTheAsk(shownAtMs, candidate)`. Three properties, each load-bearing:
+
+- **Tight on the place, no bounds with the user.** `frameParking` frames the car WITH you (bounds at
+  ≤250 m) because you are walking back to it. A question asks *"is the car THERE?"*, which needs that
+  block, not an average of that block and wherever you are standing. Needing no user position is also
+  what frees the framing from waiting on the first GPS fix — it fires on a cold open while the fix is
+  still pending.
+- **It consumes the one-shot initial focus** (`centeredOnUser = true`). Without that, the first fix
+  arrives a beat later and `centerInitialFocus` drags the camera straight back onto the user — the
+  original bug, restored. This is also what ranks an open question above a genuinely parked car at
+  open time: the question is the one thing with a deadline, and the sheet is already on it. No `ask`
+  parameter was added to `centerInitialFocus`: the framing already happened, it only has to not undo
+  it.
+- **Once per QUESTION, with the identity in the controller** (`framedAskAtMs`), not in a
+  `LaunchedEffect` key — same unit (`shownAtMs`) as the sheet's auto-open, so sheet and map open the
+  same place exactly once even if the effect relaunches. Deliberately **no** `userMovedCameraManually`
+  guard: a new question is a new event and the sheet already opens itself for it without asking; a
+  camera obeying the pan guard while the sheet does not would put the two surfaces back on different
+  places, which is the bug.
+
+`initialFocusWasParking` stays *"the initial focus framed the SESSION"* and the ask does not set it,
+which is what keeps `refocusOnParkingArrival` armed: answering "Yes" plants a real pin (possibly not
+at the asked point — the answer runs its own anchor cascade) and the camera follows it there.
+
+The effect is declared BEFORE the initial-focus effect so that on an open with the fix already in
+hand there is one camera move, not a centre on the user immediately corrected. It carries the same
+live-trip guard as the parking refocus (`drivingPuck.value == null`): with the puck moving, an
+unanswered question is about an earlier stop and must not steal the drive's frame.
+
+**Validated by falsification**, twice. Dropping `centeredOnUser = true` turns three tests red
+(`keepTheAskedPlace_when_theFirstGpsFixArrives`, `outrankAParkedCar_when_aQuestionIsOpen`,
+`frameTheParkedCar_when_theAnswerTurnsTheQuestionIntoASession`); dropping the identity guard turns
+`notMoveTheCameraAgain_when_theSameQuestionIsSeenTwice` red. Both green after restoring.
+
+**2011 tests**, 0 failures (master `29a9b0a5`: 2004 — this ticket adds 7).
+
+Spec: `docs/backlog/ui-the-ask-is-a-camera-subject-001.md`.
+
+---
+
 ## 3. Open questions / future work
 
 - **GPS sampling boost during CANDIDATE (PARKING-001 Option B).** Switch the LocationDataSource to a 1 s `minUpdateIntervalMillis` request when entering the CANDIDATE phase, returning to 2 s on exit. Increases density of fixes that refine `bestStopLocation` within the new initial-stop window after a reposition burst. Adds the complexity of swapping the location source mid-session — hold off until A is validated in the field.

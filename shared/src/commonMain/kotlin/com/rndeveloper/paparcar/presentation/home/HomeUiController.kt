@@ -72,8 +72,12 @@ class HomeUiController {
     // True once the user pans/zooms by hand — disables every automatic re-frame thereafter. [FOCUS-002]
     private var userMovedCameraManually = false
     // True when the initial focus already framed the parked car, so [FOCUS-002] needn't re-fire.
+    // The ASK does not set it: framing a question is not framing a session, which is what lets the
+    // session born from a "Yes" still re-frame. [UI-THE-ASK-IS-A-CAMERA-SUBJECT-001]
     private var initialFocusWasParking = false
     private var refocusedOnParking = false
+    // Identity (post timestamp) of the question whose place is already framed. [UI-THE-ASK-IS-A-CAMERA-SUBJECT-001]
+    private var framedAskAtMs: Long? = null
 
     /**
      * A place the USER asked to see — a spot row, a search result, a zone chip, a marker, a camera
@@ -127,6 +131,10 @@ class HomeUiController {
      * never yanked out from under a user who has started panning. [FOCUS-002] extends this to re-fire
      * once if a parking session arrives after the first fix but before any manual pan.
      *
+     * An open "did you park?" question consumes this one-shot before the first fix even arrives, so
+     * Home opens on the place being asked about rather than on the user — there is no `ask` parameter
+     * here because that framing already happened. [UI-THE-ASK-IS-A-CAMERA-SUBJECT-001]
+     *
      * AUTOMATIC framing, so it goes through the private setter and stays neutral on driver-follow:
      * opening the app mid-trip centres on the user, which IS centring on the car being driven
      * ([DET-READY-TRIP-OVER-PARKED-001]) — revoking follow here would make the app un-follow itself on
@@ -149,9 +157,49 @@ class HomeUiController {
     }
 
     /**
+     * [UI-THE-ASK-IS-A-CAMERA-SUBJECT-001] The place an open "did you park?" question is about, framed
+     * as a camera subject of its own. Once per QUESTION, keyed by its post timestamp — the same
+     * identity and the same "once" the sheet's auto-open already uses, so the sheet and the map can
+     * never be open on two different places.
+     *
+     * Before this, the question had a marker and a tap target but no camera: the sheet opened by
+     * itself on a place the camera was not looking at. On the case the whole slot exists for — park,
+     * walk off, open the app — Home framed YOU, because during a question there IS no session and
+     * [centerInitialFocus] therefore always took its "not parked" branch.
+     *
+     * Framed TIGHT on the place, deliberately not in bounds with the user the way [frameParking] does.
+     * The parked car is framed with you because you are walking back to it and the two positions read
+     * together; a question asks "is the car THERE?", and answering it needs that block, not an average
+     * of that block and wherever you happen to be standing. Not needing the user's position is also
+     * what frees this from waiting on the first GPS fix — it fires on a cold open while the fix is
+     * still pending.
+     *
+     * It CONSUMES the one-shot initial focus ([centeredOnUser]): otherwise [centerInitialFocus] would
+     * arrive with that first fix and drag the camera straight back onto the user. That is also what
+     * ranks an open question above a genuinely parked car at open time — the question is the one thing
+     * with a deadline, and the sheet is already on it.
+     *
+     * No [userMovedCameraManually] guard, on purpose: a new question is a new event, and the sheet
+     * already opens itself for it without asking. A camera that obeyed the pan guard while the sheet
+     * did not would put the two surfaces back on different places, which is the bug this fixes.
+     *
+     * AUTOMATIC framing, so it goes through the private setter and stays neutral on driver-follow, as
+     * the rest of the focus machinery does. [UI-MAP-A-TAPPED-PLACE-OUTRANKS-THE-FOLLOWED-CAR-001]
+     */
+    fun frameTheAsk(shownAtMs: Long, candidate: Pair<Double, Double>) {
+        if (framedAskAtMs == shownAtMs) return
+        framedAskAtMs = shownAtMs
+        centeredOnUser = true
+        setTarget(candidate.first, candidate.second, zoom = FOCUS_PARKED_ZOOM)
+    }
+
+    /**
      * Re-frame the parked car ONCE if its session arrived after the initial fix — but only while the
      * initial focus centred on the user (not already the car) and the user hasn't panned by hand. This
      * covers the common race where the GPS fix lands a beat before the parking session loads. [FOCUS-002]
+     *
+     * It is also the path that answers a question: "Yes" creates the session, and the camera moves off
+     * the asked place onto the pin that was actually planted. [UI-THE-ASK-IS-A-CAMERA-SUBJECT-001]
      */
     fun refocusOnParkingArrival(parking: Pair<Double, Double>, user: Pair<Double, Double>?) {
         if (!centeredOnUser || userMovedCameraManually || initialFocusWasParking || refocusedOnParking) return

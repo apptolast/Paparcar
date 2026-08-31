@@ -4,6 +4,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -23,6 +24,9 @@ class HomeUiControllerTest {
         const val CAR_LON = -3.7100
         const val USER_LAT = 40.4300
         const val USER_LON = -3.7200
+        const val ASK_LAT = 40.4250
+        const val ASK_LON = -3.7150
+        const val ASK_AT_MS = 1_700_000_000_000L
     }
 
     private fun drivingController(): HomeUiController =
@@ -129,6 +133,100 @@ class HomeUiControllerTest {
         controller.goToPlace(SPOT_LAT, SPOT_LON)
 
         assertEquals(first + 1, assertNotNull(controller.cameraTarget).token)
+    }
+
+    // ── The asked place as a camera subject [UI-THE-ASK-IS-A-CAMERA-SUBJECT-001] ──────────────────
+
+    @Test
+    fun should_frameTheAskedPlace_when_aQuestionIsOpen() {
+        val controller = HomeUiController()
+
+        controller.frameTheAsk(ASK_AT_MS, ASK_LAT to ASK_LON)
+
+        val target = assertNotNull(controller.cameraTarget)
+        assertEquals(ASK_LAT, target.lat)
+        assertEquals(ASK_LON, target.lon)
+        // Tight on the block being asked about, not in bounds with the user: the question is
+        // "is the car THERE?", not "how do I walk back to it".
+        assertNull(target.boundsLat2, "the asked place is framed alone")
+    }
+
+    @Test
+    fun should_keepTheAskedPlace_when_theFirstGpsFixArrives() {
+        // THE regression test. On a cold open with a question pending there is no session — that is
+        // what is being asked — so centerInitialFocus always took its "not parked" branch and pulled
+        // the camera onto the user, while the sheet opened on the asked place. Park, walk off, open
+        // the app: the two surfaces showed two different places.
+        val controller = HomeUiController()
+        controller.frameTheAsk(ASK_AT_MS, ASK_LAT to ASK_LON)
+
+        controller.centerInitialFocus(parking = null, selectedSpot = null, user = USER_LAT to USER_LON)
+
+        val target = assertNotNull(controller.cameraTarget)
+        assertEquals(ASK_LAT, target.lat, "the question owns the opening frame, not the user")
+        assertEquals(ASK_LON, target.lon)
+    }
+
+    @Test
+    fun should_outrankAParkedCar_when_aQuestionIsOpenAtTheSameTime() {
+        // A question and a genuinely parked car can coexist. The question is the one with a deadline
+        // and the one the sheet is already open on, so it wins the opening frame.
+        val controller = HomeUiController()
+        controller.frameTheAsk(ASK_AT_MS, ASK_LAT to ASK_LON)
+
+        controller.centerInitialFocus(
+            parking = CAR_LAT to CAR_LON,
+            selectedSpot = null,
+            user = USER_LAT to USER_LON,
+        )
+
+        assertEquals(ASK_LAT, assertNotNull(controller.cameraTarget).lat)
+    }
+
+    @Test
+    fun should_notMoveTheCameraAgain_when_theSameQuestionIsSeenTwice() {
+        // Once per QUESTION, the same unit the sheet's auto-open uses. A re-launched effect (Home
+        // recomposing, the window re-emitting) must not yank a user who moved on.
+        val controller = HomeUiController()
+        controller.frameTheAsk(ASK_AT_MS, ASK_LAT to ASK_LON)
+        val first = assertNotNull(controller.cameraTarget).token
+
+        controller.frameTheAsk(ASK_AT_MS, ASK_LAT to ASK_LON)
+
+        assertEquals(first, assertNotNull(controller.cameraTarget).token)
+    }
+
+    @Test
+    fun should_frameTheAskedPlaceAgain_when_aSecondQuestionIsPosted() {
+        val controller = HomeUiController()
+        controller.frameTheAsk(ASK_AT_MS, ASK_LAT to ASK_LON)
+
+        controller.frameTheAsk(ASK_AT_MS + 1, CAR_LAT to CAR_LON)
+
+        assertEquals(CAR_LAT, assertNotNull(controller.cameraTarget).lat)
+    }
+
+    @Test
+    fun should_frameTheParkedCar_when_theAnswerTurnsTheQuestionIntoASession() {
+        // Answering "Yes" plants a real pin, which may not be the asked point (the answer runs its own
+        // anchor cascade). Framing a question is not framing a session, so [FOCUS-002] stays armed.
+        val controller = HomeUiController()
+        controller.frameTheAsk(ASK_AT_MS, ASK_LAT to ASK_LON)
+
+        controller.refocusOnParkingArrival(parking = CAR_LAT to CAR_LON, user = null)
+
+        assertEquals(CAR_LAT, assertNotNull(controller.cameraTarget).lat)
+    }
+
+    @Test
+    fun should_keepFollowingTheDriver_when_anAskedPlaceIsFramed() {
+        // Automatic framing is not a request: it must stay neutral on follow like the rest of the
+        // focus machinery. [UI-MAP-A-TAPPED-PLACE-OUTRANKS-THE-FOLLOWED-CAR-001]
+        val controller = drivingController()
+
+        controller.frameTheAsk(ASK_AT_MS, ASK_LAT to ASK_LON)
+
+        assertTrue(controller.followingDriver)
     }
 
     @Test

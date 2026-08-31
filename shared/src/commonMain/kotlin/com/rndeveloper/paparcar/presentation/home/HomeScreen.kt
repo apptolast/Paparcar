@@ -766,6 +766,29 @@ private fun HomeCameraEffects(
     drivingPuck: State<DrivingPuck?>,
     effects: SharedFlow<HomeEffect>,
 ) {
+    // [UI-THE-ASK-IS-A-CAMERA-SUBJECT-001] Frame the place an open "did you park?" question is about.
+    // The sheet already opens itself on that question ([SheetTransitionEffects]); without this the
+    // camera stayed wherever it was, so on the very case the question exists for — park, walk off,
+    // open the app — the sheet asked about one place while the map showed another.
+    //
+    // Keyed by the question's own timestamp, the same identity the sheet's auto-open uses, so the two
+    // surfaces open on the same place exactly once. Deliberately NOT keyed on the GPS fix: the framing
+    // is tight on the asked place and needs no user position, which is what lets it fire on a cold
+    // open before the first fix and claim the initial focus from inside the controller.
+    //
+    // Declared BEFORE the initial focus so that on an open where the fix is already in hand the ask
+    // frames first and the initial focus finds its one-shot spent — one camera move, not a centre on
+    // the user immediately corrected.
+    //
+    // A live trip owns the camera: with the puck moving, an unanswered question is about an earlier
+    // stop and must not steal the drive's frame. [DET-READY-TRIP-OVER-PARKED-001]
+    LaunchedEffect(state.promptWindow?.shownAtMs) {
+        val window = state.promptWindow ?: return@LaunchedEffect
+        val at = window.candidate ?: return@LaunchedEffect
+        if (drivingPuck.value != null) return@LaunchedEffect
+        uiController.frameTheAsk(window.shownAtMs, at.latitude to at.longitude)
+    }
+
     LaunchedEffect(state.userGpsPoint) {
         val gps = state.userGpsPoint ?: return@LaunchedEffect
         // Stateful initial focus: frame the parked car (with the user, if close), else centre on the
