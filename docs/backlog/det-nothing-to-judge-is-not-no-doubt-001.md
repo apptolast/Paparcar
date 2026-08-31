@@ -55,17 +55,21 @@ Y no se reparte por igual entre los caminos de confirmación:
 |---|---|
 | pasos + alejamiento | **No** — un paso contado ABRE una birth, y ese camino exige pasos |
 | cinemático | **No** — un testigo cinemático aceptado también la abre, y ese camino los exige |
-| **AR vehicle-exit + ventana + alejamiento** | **Sí, siempre** con el contador mudo |
+| **AR vehicle-exit + ventana + alejamiento** | **Sí** — es el único que no exige ninguna de las dos |
 
 El tercero es, dicho por el propio código, *«the weakest confirm path in the system»*: ninguna prueba
-física de que el usuario se bajara **ahí**. Le tocaba el «no hay duda» gratis en cada sesión con el
-podómetro callado.
+física de que el usuario se bajara **ahí**. Le tocaba el «no hay duda» gratis siempre que no se
+registrara birth.
 
-⚠️ **La causa de que el contador mudo no abra birth es un bug propio, nombrado y diferido.**
-`withEgressBirth` se llama con `acceptsKinematicWitness = false` en la rama STOPPED y `true` en la
-MOVING; el comentario de producción lo llama *«bug #6 — preserved and named, never fixed inside a
-move»*. **Este ticket convierte su CONSECUENCIA en una pregunta en vez de un pin silencioso. No lo
-cierra.**
+⚠️ **CORRECCIÓN (`DET-A-DISOWNED-ANCHOR-TAKES-ITS-WALK-WITH-IT-001`, el mismo día).** Este doc decía
+*«sí, siempre con el contador mudo»* y culpaba a la asimetría de `acceptsKinematicWitness` («bug
+#6»). **Medido después, las dos afirmaciones son demasiado fuertes**: la caminata de un usuario con
+podómetro mudo **sí** abre birth por la rama MOVING, donde la bandera ya es `true`, siempre que los
+fixes reporten ≥ `stoppedSpeedThresholdMps` (1 m/s) con accuracy creíble. Lo que no tiene testigo es
+una caminata cuyos fixes reporten **por debajo** de ese umbral: ésos caen del lado parado, donde
+nadie los cuenta. Lo de arriba vale para «sin birth registrada», no para «contador mudo». El bug #6
+quedó **resuelto como REGLA, no como deuda**, y el hueco real tiene spec propia:
+`docs/backlog/det-a-walk-reporting-zero-is-still-a-walk-001.md`.
 
 ## 4. ⛔ #6 no es arreglable sin #7, y eso es un hallazgo
 

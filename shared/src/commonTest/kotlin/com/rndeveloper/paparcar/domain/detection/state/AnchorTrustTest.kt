@@ -163,6 +163,66 @@ class AnchorTrustTest {
         assertNull(after.walkIn.runOriginFix)
     }
 
+    // ── [DET-A-DISOWNED-ANCHOR-TAKES-ITS-WALK-WITH-IT-001] The disown keeps its promise ──
+
+    /**
+     * `disownedByRefutation`'s own KDoc says the anchor goes *"the same way a resolved car movement
+     * takes it"*. A car movement clears FIVE things (`onMovingFix`: anchor, stop-of-record, sealed
+     * capture, `frozenByRest`, and the kinematic count, which its caller passes as 0). The disown
+     * cleared three.
+     *
+     * Both survivors are read by the anchor RE-CAPTURED afterwards, which is a different position:
+     * `hasKinematicEgressSignal` is `frozenByRest && anchor != null && count >= min`, so the
+     * kinematic confirm path could fire on the new anchor using fixes earned walking away from the
+     * old one.
+     */
+    @Test
+    fun should_take_the_walk_and_the_rest_with_it_when_an_anchor_is_disowned() {
+        val disowned = AnchorTrust(kinematicEgressFixes = 3)
+            .stoppedAt(firstStop, point(), stepEvents = 4, sensorAlive = true, frozen = true)
+            .birth(point(at = 5_000L), stepCount = 4)
+            .disownedByRefutation()
+
+        assertNull(disowned.anchor)
+        assertNull(disowned.capturedAtStop)
+        assertNull(disowned.egressBirth)
+        // The two the sentence promised and the copy did not deliver:
+        assertFalse(disowned.frozenByRest, "a disowned anchor certifies no rest")
+        assertEquals(0, disowned.kinematicEgressFixes, "and the walk was measured against IT")
+    }
+
+    /**
+     * ⛔ The asymmetry of [AnchorTrust.withEgressBirth]'s `acceptsKinematicWitness`, filed for months
+     * as *"bug #6, preserved not fixed"*, **measured and settled as the rule rather than as debt**.
+     *
+     * A kinematic count is only ever earned on a MOVING fix, and that same fix opens the birth with
+     * the flag already `true`. So a non-zero count on a STOPPED fix can only be one earned earlier,
+     * against a position this anchor may no longer be — and accepting it records the birth AT the
+     * stopped fix, i.e. exactly at the anchor, which `judgeEgressBirth` then reads as
+     * `BORN_AT_ANCHOR`: it manufactures the "no doubt" answer
+     * `DET-NOTHING-TO-JUDGE-IS-NOT-NO-DOUBT-001` had just removed, dressed as a measurement.
+     *
+     * This is the probe that settled it, kept as the test that stops it being flipped later.
+     */
+    @Test
+    fun should_refuse_to_open_a_birth_from_a_kinematic_witness_on_a_stopped_fix() {
+        val stopped = AnchorTrust(kinematicEgressFixes = 3).stoppedAt(firstStop, point())
+
+        assertNull(
+            stopped.birth(point(at = 5_000L), stepCount = 0, kinematicEgressFixes = 3).egressBirth,
+            "a stopped fix is not a witness that a walk began",
+        )
+        // …and what accepting it would have produced: a birth AT the anchor, from no walk at all.
+        val fabricated = stopped.birth(
+            point(at = 5_000L),
+            stepCount = 0,
+            kinematicEgressFixes = 3,
+            acceptsKinematicWitness = true,
+        ).egressBirth
+        assertNotNull(fabricated)
+        assertEquals(0, fabricated.stepCountAtBirth, "no step ever witnessed this 'walk'")
+    }
+
     // ── The egress birth ──────────────────────────────────────────────────────
 
     private fun AnchorTrust.birth(

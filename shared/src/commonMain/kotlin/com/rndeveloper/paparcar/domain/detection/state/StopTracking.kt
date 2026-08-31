@@ -264,8 +264,12 @@ fun DetectionSessionState.updateStopTracking(
                     stepCount = s.egress.stepCount,
                     kinematicEgressFixes = anchorTrust.kinematicEgressFixes,
                     // [DET-ANCHOR-EGRESS-001] STOPPED flavour: only a counted step opens a
-                    // birth here. The asymmetry with the moving flavour is bug #6 — preserved
-                    // and named, never fixed inside a move.
+                    // birth here. [DET-A-DISOWNED-ANCHOR-TAKES-ITS-WALK-WITH-IT-001] Filed as
+                    // "bug #6, preserved not fixed"; measured and SETTLED as the rule. A
+                    // kinematic count is only earned on a MOVING fix, which opens the birth
+                    // there, so a non-zero count here is one earned earlier against a position
+                    // this anchor may no longer be — and accepting it would record the birth AT
+                    // the anchor, manufacturing the "no doubt" answer.
                     acceptsKinematicWitness = false,
                     birthWindowMs = config.egressBirthWindowMs,
                     refineMaxExtraSteps = config.egressBirthRefineMaxExtraSteps,
@@ -474,7 +478,10 @@ fun DetectionSessionState.updateStopTracking(
                     stepCount = it.egress.stepCount,
                     kinematicEgressFixes = newKinematicEgressFixes,
                     // [DET-ANCHOR-EGRESS-001] MOVING flavour: a kinematic walk fix opens a birth
-                    // too — the mute-counter user's only way to get one. Bug #6 lives here.
+                    // too — the mute-counter user's way to get one, and it works: what has no
+                    // witness is a walk whose fixes report BELOW stoppedSpeedThresholdMps, which
+                    // never reaches this branch at all.
+                    // [DET-A-DISOWNED-ANCHOR-TAKES-ITS-WALK-WITH-IT-001]
                     acceptsKinematicWitness = true,
                     birthWindowMs = config.egressBirthWindowMs,
                     refineMaxExtraSteps = config.egressBirthRefineMaxExtraSteps,

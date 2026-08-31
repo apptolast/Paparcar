@@ -285,6 +285,18 @@ data class AnchorTrust(
         capturedAtStop = null,
         capture = capture.clearedWithAnchor(),
         egressBirth = null,
+        // [DET-A-DISOWNED-ANCHOR-TAKES-ITS-WALK-WITH-IT-001] The two the sentence above PROMISED
+        // and this copy did not deliver. A resolved car movement clears five things ([onMovingFix]:
+        // anchor, stop-of-record, sealed capture, `frozenByRest`, and the kinematic count, which
+        // the caller passes as 0); this cleared three, so a disowned anchor left behind a rest it
+        // no longer certifies and a walk measured against a position that has been revoked.
+        //
+        // Both survivors are read by the anchor RE-CAPTURED afterwards, which is a different place:
+        // `hasKinematicEgressSignal` is `frozenByRest && anchor != null && count >= min`, so the
+        // kinematic confirm path could fire on the new anchor using fixes earned walking away from
+        // the old one. Measured, not argued — see `AnchorTrustTest`.
+        frozenByRest = false,
+        kinematicEgressFixes = 0,
     )
 
     // ── The stop ends ─────────────────────────────────────────────────────────
@@ -347,11 +359,28 @@ data class AnchorTrust(
      * A birth needs a WITNESS that the egress walk started. On a moving fix either a counted step or
      * a kinematic (GPS-measured) walk fix will do; on a stopped fix **only a counted step** does.
      *
-     * That is bug #6, and it is **preserved, not fixed**. Both readings are defensible — a kinematic
-     * witness on a stopped fix is either the mute-counter user finally getting a birth, or GPS noise
-     * inventing one at a red light — and the difference decides where a pin lands. Settling it needs
-     * a directed replay or field data, not a refactor. What this step buys is that the asymmetry is
-     * now impossible to read as an accident.
+     * That was filed as "bug #6, preserved not fixed", pending *"a directed replay or field data"*.
+     *
+     * ⛔ **[DET-A-DISOWNED-ANCHOR-TAKES-ITS-WALK-WITH-IT-001] Settled by measurement, and the answer
+     * is that it is NOT debt — it is the rule.** A `kinematicEgressFixes` count is only ever earned
+     * on a MOVING fix, and that same fix opens the birth, where this flag is already `true`. So on a
+     * stopped fix a non-zero count can only be a count earned EARLIER, against a position this
+     * anchor may no longer be — and accepting it would record a birth at the stopped fix itself,
+     * i.e. exactly at the anchor, which `judgeEgressBirth` then reads as `BORN_AT_ANCHOR`. That
+     * manufactures the "no doubt" answer `DET-NOTHING-TO-JUDGE-IS-NOT-NO-DOUBT-001` had just removed,
+     * and dresses it as a measurement.
+     *
+     * The probe that settled it (now `AnchorTrustTest`) also found the real defect behind the
+     * question: [disownedByRefutation] was leaving `kinematicEgressFixes` and `frozenByRest` behind,
+     * so the stale count was reachable at all. That is fixed; this flag stays.
+     *
+     * ⚠️ **And the mute-counter user is not what this flag was withholding.** Their walk opens a
+     * birth perfectly well through the moving flavour — as long as the fixes report ≥
+     * `stoppedSpeedThresholdMps` (1 m/s) with credible accuracy. What has no witness is a walk whose
+     * fixes report BELOW that: those land on the stopped side, where nothing counts them, and no
+     * flag here can see them. Fixing that means measuring the walk by DISPLACEMENT rather than by
+     * the declared speed field — the mirror of `DET-STOP-MUST-BE-STILL-IN-SPACE-001` — and it is its
+     * own ticket: `docs/backlog/det-a-walk-reporting-zero-is-still-a-walk-001.md`.
      *
      * @param anchorCleared The anchor went away, so the birth means nothing any more.
      * @param stepCount Presented by `EgressEvidence`.

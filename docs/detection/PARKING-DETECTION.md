@@ -6790,13 +6790,18 @@ And it is not evenly distributed across the confirm paths. **The two paths that 
 physical proof of an egress cannot reach it by construction** — a counted step opens a birth, and so
 does an accepted kinematic witness, which is precisely what those paths require. The one path that
 can is the weakest in the system: an AR vehicle-exit, plus a clock, plus displacement from the
-anchor, with no witness of a walk anywhere in it. That path got the free "no doubt" every time the
-step counter stayed mute.
+anchor, with no witness of a walk anywhere in it. That path got the free "no doubt" whenever no birth
+was recorded.
 
-⚠️ **The mute-counter case is a named, deferred bug of its own.** `withEgressBirth` is called with
-`acceptsKinematicWitness = false` on the STOPPED flavour and `true` on the MOVING one; the production
-comment calls the asymmetry *"bug #6 — preserved and named, never fixed inside a move"*. This ticket
-makes its CONSEQUENCE a question instead of a silent pin. It does not close it.
+⚠️ **CORRECTION (`DET-A-DISOWNED-ANCHOR-TAKES-ITS-WALK-WITH-IT-001`, same day).** This entry
+originally said *"every time the step counter stayed mute"* and blamed the `acceptsKinematicWitness`
+asymmetry ("bug #6"). Measured afterwards, both claims are **too strong**: a mute-counter user's walk
+opens a birth perfectly well through the MOVING flavour, where the flag is already `true` — as long
+as the fixes report ≥ `stoppedSpeedThresholdMps` (1 m/s) with credible accuracy. What has no witness
+is a walk whose fixes report BELOW that: those land on the stopped side, where nothing counts them.
+The claim above holds for "no birth recorded", not for "mute counter". Its own follow-up ticket
+settled bug #6 as the RULE rather than as debt, and the real gap has its own spec:
+`docs/backlog/det-a-walk-reporting-zero-is-still-a-walk-001.md`.
 
 #### The fix
 
@@ -6830,3 +6835,55 @@ making it borrow `EGRESS_NOT_AT_ANCHOR`'s name (the same 3), and restoring the p
 permissive answer (1 red).
 
 Spec: `docs/backlog/det-nothing-to-judge-is-not-no-doubt-001.md`.
+
+---
+
+### DET-A-DISOWNED-ANCHOR-TAKES-ITS-WALK-WITH-IT-001 — a named debt that was the rule, and the real bug hiding behind it (pending)
+
+**Went to close "bug #6"; the bug was somewhere else.** `withEgressBirth` takes
+`acceptsKinematicWitness = false` on the STOPPED flavour and `true` on the MOVING one, and the
+production comment had called that asymmetry *"bug #6 — preserved and named, never fixed inside a
+move"* pending *"a directed replay or field data"*.
+
+⛔ **The premise was false, and measurably so.** `kinematicEgressFixes` is only ever incremented on a
+MOVING fix — and that same fix calls `withEgressBirth` with the flag already `true`. So a mute-counter
+user's walk DOES open a birth, as long as its fixes report ≥ `stoppedSpeedThresholdMps` (1 m/s) with
+credible accuracy.
+
+⛔ **And flipping the flag is not a no-op, it is harmful.** A twenty-line probe against `AnchorTrust`:
+
+```
+PROBE after disown: anchor=null birth=null kinFixes=3 frozen=true
+PROBE flag ON  -> birth=90000 steps=0
+PROBE flag OFF -> birth=null
+```
+
+With the flag on, a STOPPED fix opens a birth **at that stopped fix — i.e. exactly at the freshly
+captured anchor — from a count earned earlier**. `judgeEgressBirth` reads that as `BORN_AT_ANCHOR`:
+it would resurrect the "no doubt" answer `DET-NOTHING-TO-JUDGE-IS-NOT-NO-DOUBT-001` had just removed,
+dressed as a measurement. The asymmetry is the rule; both comments now say so.
+
+**The bug the probe DID find.** `disownedByRefutation()` says in its own KDoc that the anchor goes
+*"the same way a resolved car movement takes it"*. A car movement clears FIVE things (anchor,
+stop-of-record, sealed capture, `frozenByRest`, and the kinematic count its caller passes as 0). The
+disown cleared three. Both survivors are read by the anchor RE-CAPTURED afterwards, and
+`hasKinematicEgressSignal` is `frozenByRest && anchor != null && count >= min` — so the kinematic
+confirm path could fire on the new anchor **using fixes earned walking away from the one the session
+had just declared refuted** (`DET-REFUTED-STILLNESS-CANNOT-MATURE-AN-ANCHOR-001`, field 2026-08-28).
+One omission, two consequences: that is also what made the stale count reachable on a stopped fix.
+
+⚠️ **A green suite is not an innocuous change.** With the flag flipped in production the whole suite
+passed — 2052/0, including all sixteen field-trace replays. What that proved is that no test covered
+the case, which is exactly why the direct probe was needed.
+
+⚠️ **Two same-day corrections to yesterday's docs**, in this commit: the entry above said the free
+pass landed *"every time the step counter stayed mute"* and blamed bug #6. Both too strong — it holds
+for "no birth recorded", and the mute counter is one route to that, not a guarantee.
+
+⛔ **NOT fixed here, and now specified**: a walk whose fixes report BELOW 1 m/s (Doppler at 0 indoors,
+in a garage, on a cold receiver) lands on the stopped side, where nothing counts it — no birth and no
+egress fixes, so that user loses both paths that do not require steps. It is the mirror of
+`DET-STOP-MUST-BE-STILL-IN-SPACE-001` (*the declared speed field is not position*) and it is blocked
+on measurement: `docs/backlog/det-a-walk-reporting-zero-is-still-a-walk-001.md`.
+
+Spec: `docs/backlog/det-a-disowned-anchor-takes-its-walk-with-it-001.md`.
