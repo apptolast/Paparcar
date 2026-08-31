@@ -114,12 +114,26 @@ object VehicleHistoryCalculator {
         )
     }
 
-    /** Sum (meters) of the persisted route lengths of [sessions], or null when none carries one —
-     *  "no distance data" must render as nothing, never as 0 km. */
-    fun sumDistanceMeters(sessions: List<UserParking>): Float? = sessions
-        .mapNotNull { it.routeDistanceMeters }
-        .takeIf { it.isNotEmpty() }
-        ?.sum()
+    /**
+     * Distance covered by [sessions], **with how much of them it covers** — or null when not one
+     * of them carries a route ("no distance data" renders as nothing, never as 0 km).
+     *
+     * [UI-HISTORY-A-PARTIAL-SUM-IS-NOT-A-TOTAL-001] It used to return a bare `Float?`, summing only
+     * the sessions that carry `routeDistanceMeters` and handing the number to a screen that printed
+     * it next to a count of ALL of them. The per-session rule ("unknown, never 0") was kept and then
+     * broken on the way to the aggregate: the unknowns slipped into the sum as if they contributed
+     * zero. Returning the coverage alongside the sum is what stops a call site from being able to
+     * print the figure without it.
+     */
+    fun sumDistanceMeters(sessions: List<UserParking>): ScopedDistance? {
+        val measured = sessions.mapNotNull { it.routeDistanceMeters }
+        if (measured.isEmpty()) return null
+        return ScopedDistance(
+            meters = measured.sum(),
+            fromParkings = measured.size,
+            ofParkings = sessions.size,
+        )
+    }
 
     /**
      * The chart's bars for [filter], built from the sessions the SAME filter kept.

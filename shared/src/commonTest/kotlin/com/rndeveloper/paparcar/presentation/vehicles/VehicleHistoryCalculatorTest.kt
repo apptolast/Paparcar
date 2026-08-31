@@ -152,6 +152,36 @@ class VehicleHistoryCalculatorTest {
                 session(nowMs, distanceMeters = 800f),
             ),
         )
-        assertEquals(2000f, total)
+        assertEquals(2000f, total?.meters)
+    }
+
+    // [UI-HISTORY-A-PARTIAL-SUM-IS-NOT-A-TOTAL-001] The sum above is over TWO of three parkings.
+    // Summing routeless sessions as zero is right; presenting the result as the scope's total is
+    // not, and the only thing that can stop a call site doing it is the coverage travelling with
+    // the number.
+
+    @Test
+    fun should_reportPartialCoverage_when_someSessionsCarryNoRoute() {
+        val distance = VehicleHistoryCalculator.sumDistanceMeters(
+            listOf(
+                session(nowMs - 2 * dayMs, distanceMeters = 1200f),
+                session(nowMs - dayMs),
+                session(nowMs, distanceMeters = 800f),
+            ),
+        )
+        assertEquals(2, distance?.fromParkings)
+        assertEquals(3, distance?.ofParkings)
+        assertEquals(false, distance?.isComplete, "2 of 3 parkings is not a total")
+    }
+
+    @Test
+    fun should_reportCompleteCoverage_when_everySessionCarriesARoute() {
+        val distance = VehicleHistoryCalculator.sumDistanceMeters(
+            listOf(
+                session(nowMs - dayMs, distanceMeters = 1200f),
+                session(nowMs, distanceMeters = 800f),
+            ),
+        )
+        assertEquals(true, distance?.isComplete, "the common case must stay a plain figure")
     }
 }

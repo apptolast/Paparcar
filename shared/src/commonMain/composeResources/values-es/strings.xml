@@ -146,6 +146,7 @@
         <item quantity="one">aparcamiento</item>
         <item quantity="other">aparcamientos</item>
     </plurals>
+    <string name="history_activity_distance_partial">%1$s en %2$d de ellos</string>
     <string name="history_activity_low_hint">Poca actividad en este periodo</string>
     <!-- Facts footer under the activity chart. [VEH-STATS-SAY-SOMETHING-USEFUL-001] -->
     <string name="history_fact_active_day">Día más activo: %1$s</string>

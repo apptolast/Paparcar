@@ -161,6 +161,9 @@
         <item quantity="one">parking</item>
         <item quantity="other">parkings</item>
     </plurals>
+    <!-- Distancia de un tramo que NO cubre todos sus aparcamientos: la cifra dice sobre
+         cuántos se midió. [UI-HISTORY-A-PARTIAL-SUM-IS-NOT-A-TOTAL-001] -->
+    <string name="history_activity_distance_partial">%1$s in %2$d of them</string>
     <string name="history_activity_low_hint">Not much activity in this period</string>
     <!-- Facts footer under the activity chart. [VEH-STATS-SAY-SOMETHING-USEFUL-001] -->
     <string name="history_fact_active_day">Most active day: %1$s</string>

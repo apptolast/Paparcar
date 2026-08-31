@@ -621,6 +621,7 @@
         <item quantity="few">parcări</item>
         <item quantity="other">de parcări</item>
     </plurals>
+    <string name="history_activity_distance_partial">%1$s la %2$d dintre ele</string>
     <string name="history_activity_low_hint">Activitate redusă în această perioadă</string>
     <!-- Facts footer under the activity chart. [VEH-STATS-SAY-SOMETHING-USEFUL-001] -->
     <string name="history_fact_active_day">Cea mai activă zi: %1$s</string>
