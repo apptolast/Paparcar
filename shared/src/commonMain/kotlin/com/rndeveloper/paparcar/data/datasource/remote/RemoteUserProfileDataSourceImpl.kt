@@ -71,6 +71,15 @@ class RemoteUserProfileDataSourceImpl(
             .documents
             .mapNotNull { it.toParkingHistoryDto() }
 
+    // Filtered client-side rather than with a `where` clause: the collection is one user's own
+    // history (already fetched whole by getParkingHistory) and a server-side filter would need an
+    // index for a once-in-a-while delete. [VEH-A-DELETED-CAR-DOES-NOT-ERASE-ITS-HISTORY-001]
+    override suspend fun deleteParkingSessionsForVehicle(userId: String, vehicleId: String) {
+        parkingHistoryCollection(userId).get().documents
+            .filter { runCatching { it.get<String?>(FIELD_VEHICLE_ID) }.getOrNull() == vehicleId }
+            .forEach { it.reference.delete() }
+    }
+
     override suspend fun getVehicles(userId: String): List<VehicleDto> =
         vehiclesCollection(userId).get().documents.mapNotNull { doc ->
             doc.toVehicleDto()

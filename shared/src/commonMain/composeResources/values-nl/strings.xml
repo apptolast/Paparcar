@@ -417,6 +417,11 @@
     <string name="my_car_edit_vehicle">Bewerken</string>
     <string name="my_car_delete_confirm_title">Voertuig verwijderen?</string>
     <string name="my_car_delete_confirm_message">Dit voertuig wordt permanent verwijderd. Deze actie kan niet ongedaan worden gemaakt.</string>
+    <plurals name="my_car_delete_confirm_message_with_history">
+        <item quantity="one">Dit voertuig en %1$d parkeerplaats worden permanent verwijderd. Deze actie kan niet ongedaan worden gemaakt.</item>
+        <item quantity="other">Dit voertuig en %1$d parkeerplaatsen worden permanent verwijderd. Deze actie kan niet ongedaan worden gemaakt.</item>
+    </plurals>
+    <string name="my_car_delete_blocked_parked">Deze auto staat nu geparkeerd. Sluit de parkeerplaats af voordat je hem verwijdert.</string>
     <string name="my_car_delete_confirm_action">Verwijderen</string>
     <string name="my_car_delete_cancel">Annuleren</string>
 

@@ -239,6 +239,11 @@ class VehicleRegistrationViewModel(
                         color = vehicle.color,
                     )
                 }
+                // What deleting this car would cost, read AFTER the form is on screen: the warning
+                // and the block need it, the rest of the screen doesn't wait for it.
+                // [VEH-A-DELETED-CAR-DOES-NOT-ERASE-ITS-HISTORY-001]
+                val footprint = vehicleRepository.getParkingFootprint(vehicle.id)
+                updateState { copy(parkingFootprint = footprint) }
             }.onFailure { e ->
                 PaparcarLogger.e(TAG, "Failed to load vehicle", e)
                 sendEffect(VehicleRegistrationEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))
@@ -329,9 +334,20 @@ class VehicleRegistrationViewModel(
             vehicleRepository.deleteVehicle(vehicleId)
                 .onSuccess { sendEffect(VehicleRegistrationEffect.NavigateBack) }
                 .onFailure { e ->
-                    PaparcarLogger.e(TAG, "Failed to delete vehicle", e)
                     updateState { copy(isDeleting = false) }
-                    sendEffect(VehicleRegistrationEffect.ShowError(PaparcarError.Vehicle.DeleteFailed))
+                    // A car that is parked isn't a failure to report as one: the repository refused
+                    // on purpose and the user is told what to do about it. Only a real breakage is
+                    // logged as an error. [VEH-A-DELETED-CAR-DOES-NOT-ERASE-ITS-HISTORY-001]
+                    if (e is PaparcarError.Vehicle.DeleteBlockedByActiveParking) {
+                        // The button should already be blocked; reaching here means the parking
+                        // started while the screen was open, so re-read what the screen believes.
+                        val footprint = vehicleRepository.getParkingFootprint(vehicleId)
+                        updateState { copy(parkingFootprint = footprint) }
+                        sendEffect(VehicleRegistrationEffect.ShowError(e))
+                    } else {
+                        PaparcarLogger.e(TAG, "Failed to delete vehicle", e)
+                        sendEffect(VehicleRegistrationEffect.ShowError(PaparcarError.Vehicle.DeleteFailed))
+                    }
                 }
         }
     }

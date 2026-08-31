@@ -422,6 +422,12 @@
     <string name="my_car_edit_vehicle">Editează</string>
     <string name="my_car_delete_confirm_title">Ștergi vehiculul?</string>
     <string name="my_car_delete_confirm_message">Acest vehicul va fi eliminat permanent. Această acțiune nu poate fi anulată.</string>
+    <plurals name="my_car_delete_confirm_message_with_history">
+        <item quantity="one">Acest vehicul și %1$d parcare vor fi eliminate permanent. Această acțiune nu poate fi anulată.</item>
+        <item quantity="few">Acest vehicul și %1$d parcări vor fi eliminate permanent. Această acțiune nu poate fi anulată.</item>
+        <item quantity="other">Acest vehicul și %1$d de parcări vor fi eliminate permanent. Această acțiune nu poate fi anulată.</item>
+    </plurals>
+    <string name="my_car_delete_blocked_parked">Această mașină este parcată acum. Încheie parcarea înainte de a o șterge.</string>
     <string name="my_car_delete_confirm_action">Șterge</string>
     <string name="my_car_delete_cancel">Anulează</string>
 

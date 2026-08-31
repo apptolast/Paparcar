@@ -144,6 +144,24 @@ interface UserParkingDao {
     @Query("DELETE FROM parking_sessions WHERE userId = :userId")
     suspend fun deleteByUser(userId: String)
 
+    /**
+     * [VEH-A-DELETED-CAR-DOES-NOT-ERASE-ITS-HISTORY-001] Every row of a vehicle, retracted ones
+     * included. Deleting the car takes its parkings with it: a row whose vehicleId no page will
+     * ever ask for again is not history, it is a leak — it keeps syncing and occupying space while
+     * being unreachable from every screen.
+     */
+    @Query("DELETE FROM parking_sessions WHERE vehicleId = :vehicleId")
+    suspend fun deleteByVehicle(vehicleId: String)
+
+    /**
+     * How many parkings the USER would see disappear with [vehicleId] — the number the delete
+     * warning quotes. Mirrors the history reads exactly (`isActive = 0`, `retractedAtMs IS NULL`):
+     * counting rows the history never showed would inflate the warning, and the active one cannot
+     * be here because a vehicle holding one can't be deleted at all.
+     */
+    @Query("SELECT COUNT(*) FROM parking_sessions WHERE vehicleId = :vehicleId AND isActive = 0 AND retractedAtMs IS NULL")
+    suspend fun countEndedByVehicle(vehicleId: String): Int
+
     /** Unconditional wipe of every row. Used by [LocalSessionCache.wipe] on sign-out. */
     @Query("DELETE FROM parking_sessions")
     suspend fun deleteAll()

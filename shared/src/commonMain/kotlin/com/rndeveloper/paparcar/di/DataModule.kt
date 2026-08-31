@@ -78,7 +78,7 @@ val dataModule = module {
     single<UserParkingRepository> { UserParkingRepositoryImpl(get(), get(), get()) }
     single<UserProfileRepository> { UserProfileRepositoryImpl(get(), get()) }
     single<VehicleRepository> {
-        VehicleRepositoryImpl(get(), get(), get(), get(), CoroutineScope(SupervisorJob() + Dispatchers.Default))
+        VehicleRepositoryImpl(get(), get(), get(), get(), get(), CoroutineScope(SupervisorJob() + Dispatchers.Default))
     }
     single<ZoneRepository> {
         ZoneRepositoryImpl(get(), get(), get(), CoroutineScope(SupervisorJob() + Dispatchers.Default))

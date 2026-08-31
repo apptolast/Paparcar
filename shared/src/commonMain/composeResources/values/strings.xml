@@ -376,6 +376,13 @@
     <string name="my_car_delete_vehicle">Delete</string>
     <string name="my_car_delete_confirm_title">Delete vehicle?</string>
     <string name="my_car_delete_confirm_message">This vehicle will be permanently removed. This action cannot be undone.</string>
+    <!-- Deleting a car takes its parking history with it, and a parked car cannot be deleted at
+         all. [VEH-A-DELETED-CAR-DOES-NOT-ERASE-ITS-HISTORY-001] -->
+    <plurals name="my_car_delete_confirm_message_with_history">
+        <item quantity="one">This vehicle and %1$d parking will be permanently removed. This action cannot be undone.</item>
+        <item quantity="other">This vehicle and %1$d parkings will be permanently removed. This action cannot be undone.</item>
+    </plurals>
+    <string name="my_car_delete_blocked_parked">This car is parked right now. Close the parking before deleting it.</string>
     <string name="my_car_delete_confirm_action">Delete</string>
     <string name="my_car_delete_cancel">Cancel</string>
     <!-- Vehicles ficha — plain status pin label for the actively-detected vehicle. -->

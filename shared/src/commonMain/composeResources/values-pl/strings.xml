@@ -422,6 +422,13 @@
     <string name="my_car_edit_vehicle">Edytuj</string>
     <string name="my_car_delete_confirm_title">Usunąć pojazd?</string>
     <string name="my_car_delete_confirm_message">Ten pojazd zostanie trwale usunięty. Tej operacji nie można cofnąć.</string>
+    <plurals name="my_car_delete_confirm_message_with_history">
+        <item quantity="one">Ten pojazd i %1$d parkowanie zostaną trwale usunięte. Tej operacji nie można cofnąć.</item>
+        <item quantity="few">Ten pojazd i %1$d parkowania zostaną trwale usunięte. Tej operacji nie można cofnąć.</item>
+        <item quantity="many">Ten pojazd i %1$d parkowań zostaną trwale usunięte. Tej operacji nie można cofnąć.</item>
+        <item quantity="other">Ten pojazd i %1$d parkowania zostaną trwale usunięte. Tej operacji nie można cofnąć.</item>
+    </plurals>
+    <string name="my_car_delete_blocked_parked">Ten samochód jest teraz zaparkowany. Zakończ parkowanie, zanim go usuniesz.</string>
     <string name="my_car_delete_confirm_action">Usuń</string>
     <string name="my_car_delete_cancel">Anuluj</string>
 

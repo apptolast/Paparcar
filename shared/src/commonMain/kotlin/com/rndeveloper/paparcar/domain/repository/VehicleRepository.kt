@@ -1,6 +1,7 @@
 package com.rndeveloper.paparcar.domain.repository
 
 import com.rndeveloper.paparcar.domain.model.Vehicle
+import com.rndeveloper.paparcar.domain.model.VehicleParkingFootprint
 import kotlinx.coroutines.flow.Flow
 
 interface VehicleRepository : UserScopedRepository, RemoteSyncable {
@@ -48,8 +49,20 @@ interface VehicleRepository : UserScopedRepository, RemoteSyncable {
     /** Save a new vehicle or update an existing one. */
     suspend fun saveVehicle(vehicle: Vehicle): Result<Unit>
 
-    /** Delete a vehicle by id. If it was the default, the remaining list has no default. */
+    /**
+     * Delete a vehicle by id, **and its whole parking history with it** — local and remote. If it
+     * was the default, the remaining list has no default.
+     *
+     * Fails with [com.rndeveloper.paparcar.domain.error.PaparcarError.Vehicle.DeleteBlockedByActiveParking]
+     * when the vehicle is parked right now: closing a parking may publish a spot to the community,
+     * and that is never a side effect of deleting a car. [VEH-A-DELETED-CAR-DOES-NOT-ERASE-ITS-HISTORY-001]
+     */
     suspend fun deleteVehicle(id: String): Result<Unit>
+
+    /** What deleting [vehicleId] would take with it, and whether it can be deleted at all — so the
+     *  screen can quote the real number and block while the car is parked.
+     *  [VEH-A-DELETED-CAR-DOES-NOT-ERASE-ITS-HISTORY-001] */
+    suspend fun getParkingFootprint(vehicleId: String): VehicleParkingFootprint
 
     /**
      * Set the given vehicle as the active one.

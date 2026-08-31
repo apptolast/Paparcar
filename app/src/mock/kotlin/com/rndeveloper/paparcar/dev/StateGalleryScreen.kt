@@ -44,6 +44,7 @@ import com.rndeveloper.paparcar.domain.model.CarbodyType
 import com.rndeveloper.paparcar.domain.model.DetectionReliabilityLevel
 import com.rndeveloper.paparcar.domain.model.UserProfile
 import com.rndeveloper.paparcar.domain.model.VehicleColor
+import com.rndeveloper.paparcar.domain.model.VehicleParkingFootprint
 import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.domain.model.VehicleType
 import com.rndeveloper.paparcar.domain.preferences.ThemeMode
@@ -1501,6 +1502,39 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                         model = "Corolla",
                         sizeCategory = VehicleSize.MEDIUM_SUV,
                         showBrandModelOnSpot = true,
+                    ),
+                )
+            },
+            // [VEH-A-DELETED-CAR-DOES-NOT-ERASE-ITS-HISTORY-001] La zona de borrado sólo aparece
+            // con más de un vehículo (`existingVehicleCount > 1`), así que hasta ahora la galería
+            // no la enseñaba en ninguna variante. Estas dos son sus dos caras.
+            Variant("Edición · borrar con historial") {
+                VehicleRegistrationContent(
+                    state = VehicleRegistrationState(
+                        editingVehicleId = "v-history",
+                        brand = "Toyota",
+                        model = "Corolla",
+                        sizeCategory = VehicleSize.MEDIUM_SUV,
+                        existingVehicleCount = 2,
+                        parkingFootprint = VehicleParkingFootprint(
+                            endedParkings = 12,
+                            hasActiveParking = false,
+                        ),
+                    ),
+                )
+            },
+            Variant("Edición · aparcado (borrado bloqueado)") {
+                VehicleRegistrationContent(
+                    state = VehicleRegistrationState(
+                        editingVehicleId = "v-parked",
+                        brand = "Skoda",
+                        model = "Kamiq",
+                        sizeCategory = VehicleSize.MEDIUM_SUV,
+                        existingVehicleCount = 2,
+                        parkingFootprint = VehicleParkingFootprint(
+                            endedParkings = 12,
+                            hasActiveParking = true,
+                        ),
                     ),
                 )
             },

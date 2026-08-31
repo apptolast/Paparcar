@@ -1,6 +1,7 @@
 package com.rndeveloper.paparcar.fakes.data.repository
 
 import com.rndeveloper.paparcar.domain.model.Vehicle
+import com.rndeveloper.paparcar.domain.model.VehicleParkingFootprint
 import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.domain.model.VehicleType
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
@@ -108,6 +109,11 @@ class FakeVehicleRepository(private val scenario: MockScenario? = null) : Vehicl
     override suspend fun saveVehicle(vehicle: Vehicle): Result<Unit> = Result.success(Unit)
 
     override suspend fun deleteVehicle(id: String): Result<Unit> = Result.success(Unit)
+
+    // Dev Catalog: a mock car has no parking history to lose and is never parked, so deleting it is
+    // always allowed. [VEH-A-DELETED-CAR-DOES-NOT-ERASE-ITS-HISTORY-001]
+    override suspend fun getParkingFootprint(vehicleId: String): VehicleParkingFootprint =
+        VehicleParkingFootprint(endedParkings = 0, hasActiveParking = false)
 
     override suspend fun setActiveVehicle(id: String): Result<Unit> = Result.success(Unit)
 
