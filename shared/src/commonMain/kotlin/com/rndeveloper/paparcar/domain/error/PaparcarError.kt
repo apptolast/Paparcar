@@ -61,5 +61,11 @@ sealed class PaparcarError : Exception() {
     sealed class Vehicle : PaparcarError() {
         data object SaveFailed : Vehicle()
         data object DeleteFailed : Vehicle()
+
+        /** The vehicle is parked right now, and deleting it would erase the parking in progress
+         *  along with its history. Distinct from [DeleteFailed] because nothing broke: the user is
+         *  told to close the parking first, not that the delete failed.
+         *  [VEH-A-DELETED-CAR-DOES-NOT-ERASE-ITS-HISTORY-001] */
+        data object DeleteBlockedByActiveParking : Vehicle()
     }
 }

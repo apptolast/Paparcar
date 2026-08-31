@@ -2,6 +2,7 @@ package com.rndeveloper.paparcar.presentation.vehicleregistration
 
 import com.rndeveloper.paparcar.domain.model.CarbodyType
 import com.rndeveloper.paparcar.domain.model.VehicleColor
+import com.rndeveloper.paparcar.domain.model.VehicleParkingFootprint
 import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.domain.model.VehicleType
 
@@ -45,6 +46,14 @@ data class VehicleRegistrationState(
     val isSaving: Boolean = false,
     val isDeleting: Boolean = false,
     val editingVehicleId: String? = null,
+    /**
+     * What deleting this vehicle would take with it — null until the read lands (and while adding a
+     * NEW vehicle, which has nothing to lose). Deleting is destructive and irreversible, so the
+     * screen quotes the real number of parkings and refuses outright while the car is parked; an
+     * unknown footprint is never a licence to enable the button.
+     * [VEH-A-DELETED-CAR-DOES-NOT-ERASE-ITS-HISTORY-001]
+     */
+    val parkingFootprint: VehicleParkingFootprint? = null,
     /**
      * UUID generado en el primer intento de guardado de un vehículo nuevo (no edición).
      * Se memoiza aquí para que un reintento tras fallo de red (mismo VM, otro tap) reuse el

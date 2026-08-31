@@ -6,9 +6,12 @@ import com.apptolast.customlogin.domain.AuthRepository
 import kotlin.time.Clock
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import com.rndeveloper.paparcar.data.datasource.local.room.UserParkingDao
 import com.rndeveloper.paparcar.data.datasource.local.room.UserProfileDao
 import com.rndeveloper.paparcar.data.datasource.local.room.VehicleDao
 import com.rndeveloper.paparcar.data.datasource.remote.RemoteUserProfileDataSource
+import com.rndeveloper.paparcar.domain.error.PaparcarError
+import com.rndeveloper.paparcar.domain.model.VehicleParkingFootprint
 import com.rndeveloper.paparcar.data.mapper.toDomain
 import com.rndeveloper.paparcar.data.mapper.toDto
 import com.rndeveloper.paparcar.data.mapper.toEntity
@@ -24,6 +27,10 @@ import kotlinx.coroutines.flow.map
 class VehicleRepositoryImpl(
     private val dao: VehicleDao,
     private val profileDao: UserProfileDao,
+    /** A vehicle's parkings are deleted with it, and a parked vehicle can't be deleted at all —
+     *  both need to be read/written from the one place a vehicle stops existing.
+     *  [VEH-A-DELETED-CAR-DOES-NOT-ERASE-ITS-HISTORY-001] */
+    private val userParkingDao: UserParkingDao,
     private val userProfileDataSource: RemoteUserProfileDataSource,
     private val authRepository: AuthRepository,
     /**
@@ -161,9 +168,23 @@ class VehicleRepositoryImpl(
         }
     }
 
+    /**
+     * [VEH-A-DELETED-CAR-DOES-NOT-ERASE-ITS-HISTORY-001] A vehicle and its parkings live and die
+     * together. This is the ONE place a vehicle stops existing, so it is the one place the
+     * invariant "no parking without a vehicle to belong to" can be kept — filtering orphans out of
+     * the history reads would only hide them in each consumer while they kept syncing.
+     *
+     * A car that is parked RIGHT NOW is not deleted at all: closing a parking can publish a spot to
+     * the community, and that must never be a side effect of deleting a car. The screen blocks the
+     * button, and this guard makes the rule true for every caller, not just that screen.
+     */
     override suspend fun deleteVehicle(id: String): Result<Unit> = runCatching {
+        if (userParkingDao.getActiveByVehicle(id) != null) {
+            throw PaparcarError.Vehicle.DeleteBlockedByActiveParking
+        }
         val uid = currentUserId()
         dao.deleteById(id) // local — the row is gone immediately
+        userParkingDao.deleteByVehicle(id) // …and so is its history, in the same breath
         if (uid != null) {
             val now = Clock.System.now().toEpochMilliseconds()
             // If we just deleted the active vehicle, promote another (if any) to keep the
@@ -188,6 +209,11 @@ class VehicleRepositoryImpl(
             // Remote in the background so the delete button doesn't hang on the server ack.
             // [SYNC-RECONCILE-001]
             syncScope.launch {
+                // Sessions FIRST: leaving them in Firestore is not a cosmetic leak — the inbound
+                // reconcile takes any remote row missing locally, so surviving docs would be pulled
+                // straight back into Room as history of a car that no longer exists.
+                runCatching { userProfileDataSource.deleteParkingSessionsForVehicle(uid, id) }
+                    .onFailure { e -> PaparcarLogger.w(DIAG, "deleteVehicle: remote history delete failed $id", e) }
                 runCatching { userProfileDataSource.deleteVehicle(uid, id) }
                     .onFailure { e -> PaparcarLogger.w(DIAG, "deleteVehicle: remote delete failed $id", e) }
                 if (wasActive) {
@@ -202,6 +228,12 @@ class VehicleRepositoryImpl(
             }
         }
     }
+
+    override suspend fun getParkingFootprint(vehicleId: String): VehicleParkingFootprint =
+        VehicleParkingFootprint(
+            endedParkings = userParkingDao.countEndedByVehicle(vehicleId),
+            hasActiveParking = userParkingDao.getActiveByVehicle(vehicleId) != null,
+        )
 
     override suspend fun setActiveVehicle(id: String): Result<Unit> = runCatching {
         val uid = currentUserId() ?: return@runCatching

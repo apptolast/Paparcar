@@ -362,6 +362,11 @@
     <string name="my_car_delete_vehicle">Eliminar</string>
     <string name="my_car_delete_confirm_title">¿Eliminar vehículo?</string>
     <string name="my_car_delete_confirm_message">Este vehículo se eliminará permanentemente. Esta acción no se puede deshacer.</string>
+    <plurals name="my_car_delete_confirm_message_with_history">
+        <item quantity="one">Se eliminarán permanentemente este vehículo y %1$d aparcamiento. Esta acción no se puede deshacer.</item>
+        <item quantity="other">Se eliminarán permanentemente este vehículo y %1$d aparcamientos. Esta acción no se puede deshacer.</item>
+    </plurals>
+    <string name="my_car_delete_blocked_parked">Este coche está aparcado ahora mismo. Cierra el aparcamiento antes de eliminarlo.</string>
     <string name="my_car_delete_confirm_action">Eliminar</string>
     <string name="my_car_delete_cancel">Cancelar</string>
     <string name="vehicle_status_active">Activo</string>

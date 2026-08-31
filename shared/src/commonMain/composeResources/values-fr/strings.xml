@@ -421,6 +421,11 @@
     <string name="my_car_edit_vehicle">Modifier</string>
     <string name="my_car_delete_confirm_title">Supprimer le véhicule ?</string>
     <string name="my_car_delete_confirm_message">Ce véhicule sera supprimé définitivement. Cette action ne peut pas être annulée.</string>
+    <plurals name="my_car_delete_confirm_message_with_history">
+        <item quantity="one">Ce véhicule et %1$d stationnement seront supprimés définitivement. Cette action ne peut pas être annulée.</item>
+        <item quantity="other">Ce véhicule et %1$d stationnements seront supprimés définitivement. Cette action ne peut pas être annulée.</item>
+    </plurals>
+    <string name="my_car_delete_blocked_parked">Cette voiture est stationnée en ce moment. Terminez le stationnement avant de la supprimer.</string>
     <string name="my_car_delete_confirm_action">Supprimer</string>
     <string name="my_car_delete_cancel">Annuler</string>
 

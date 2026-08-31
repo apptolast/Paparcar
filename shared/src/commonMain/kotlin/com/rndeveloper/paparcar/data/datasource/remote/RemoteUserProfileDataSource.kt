@@ -19,6 +19,11 @@ interface RemoteUserProfileDataSource {
     suspend fun updateParkingSessionAddressAndPlace(userId: String, sessionId: String, address: AddressDto?, placeInfo: PlaceInfoDto?)
     suspend fun getParkingHistory(userId: String): List<ParkingHistoryDto>
 
+    /** Deletes every parking session of [vehicleId]. Called when the vehicle itself is deleted:
+     *  docs left behind would be pulled back into Room by the inbound reconcile.
+     *  [VEH-A-DELETED-CAR-DOES-NOT-ERASE-ITS-HISTORY-001] */
+    suspend fun deleteParkingSessionsForVehicle(userId: String, vehicleId: String)
+
     // ─── Vehicles ─────────────────────────────────────────────────────────────
 
     suspend fun getVehicles(userId: String): List<VehicleDto>

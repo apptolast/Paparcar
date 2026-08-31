@@ -1,6 +1,8 @@
 package com.rndeveloper.paparcar.fakes
 
+import com.rndeveloper.paparcar.domain.error.PaparcarError
 import com.rndeveloper.paparcar.domain.model.Vehicle
+import com.rndeveloper.paparcar.domain.model.VehicleParkingFootprint
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
@@ -57,7 +59,24 @@ class FakeVehicleRepository(
         return Result.success(Unit)
     }
 
+    /** What [getParkingFootprint] answers, per vehicle id. A vehicle with no entry has no history
+     *  and no active parking. [VEH-A-DELETED-CAR-DOES-NOT-ERASE-ITS-HISTORY-001] */
+    val parkingFootprints = mutableMapOf<String, VehicleParkingFootprint>()
+
+    override suspend fun getParkingFootprint(vehicleId: String): VehicleParkingFootprint =
+        parkingFootprints[vehicleId]
+            ?: VehicleParkingFootprint(endedParkings = 0, hasActiveParking = false)
+
+    /** Ids whose parkings were deleted along with the vehicle, in order. */
+    val deletedVehicleIds = mutableListOf<String>()
+
     override suspend fun deleteVehicle(id: String): Result<Unit> {
+        // Mirrors production: a parked vehicle is refused, not silently deleted.
+        if (getParkingFootprint(id).hasActiveParking) {
+            return Result.failure(PaparcarError.Vehicle.DeleteBlockedByActiveParking)
+        }
+        deletedVehicleIds += id
+        parkingFootprints.remove(id)
         _vehicles.value = _vehicles.value.filter { it.id != id }
         if (_defaultVehicle.value?.id == id) _defaultVehicle.value = null
         return Result.success(Unit)

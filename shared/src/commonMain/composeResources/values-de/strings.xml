@@ -422,6 +422,11 @@
     <string name="my_car_edit_vehicle">Bearbeiten</string>
     <string name="my_car_delete_confirm_title">Fahrzeug löschen?</string>
     <string name="my_car_delete_confirm_message">Dieses Fahrzeug wird dauerhaft entfernt. Diese Aktion kann nicht rückgängig gemacht werden.</string>
+    <plurals name="my_car_delete_confirm_message_with_history">
+        <item quantity="one">Dieses Fahrzeug und %1$d Parkplatz werden dauerhaft entfernt. Diese Aktion kann nicht rückgängig gemacht werden.</item>
+        <item quantity="other">Dieses Fahrzeug und %1$d Parkplätze werden dauerhaft entfernt. Diese Aktion kann nicht rückgängig gemacht werden.</item>
+    </plurals>
+    <string name="my_car_delete_blocked_parked">Dieses Auto ist gerade geparkt. Beende den Parkplatz, bevor du es löschst.</string>
     <string name="my_car_delete_confirm_action">Löschen</string>
     <string name="my_car_delete_cancel">Abbrechen</string>
 

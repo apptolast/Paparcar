@@ -48,6 +48,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.rndeveloper.paparcar.domain.error.PaparcarError
 import com.rndeveloper.paparcar.domain.model.CarbodyType
 import com.rndeveloper.paparcar.presentation.vehicleregistration.data.VehicleCatalog
 import com.rndeveloper.paparcar.ui.components.PapCollapsingTopBarScaffold
@@ -71,6 +72,7 @@ import com.rndeveloper.paparcar.ui.components.vehicleSizeLabel
 import com.rndeveloper.paparcar.ui.theme.PapAlpha
 import com.rndeveloper.paparcar.ui.theme.PapShapes
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
@@ -78,7 +80,9 @@ import paparcar.composeapp.generated.resources.error_unknown
 import paparcar.composeapp.generated.resources.vehicle_reg_cd_back
 import paparcar.composeapp.generated.resources.my_car_delete_cancel
 import paparcar.composeapp.generated.resources.my_car_delete_confirm_action
+import paparcar.composeapp.generated.resources.my_car_delete_blocked_parked
 import paparcar.composeapp.generated.resources.my_car_delete_confirm_message
+import paparcar.composeapp.generated.resources.my_car_delete_confirm_message_with_history
 import paparcar.composeapp.generated.resources.my_car_delete_confirm_title
 import paparcar.composeapp.generated.resources.my_car_delete_vehicle
 import paparcar.composeapp.generated.resources.veh_bt_recommendation_body
@@ -123,6 +127,7 @@ fun VehicleRegistrationScreen(
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val errorFallback = stringResource(Res.string.error_unknown)
+    val msgDeleteBlockedParked = stringResource(Res.string.my_car_delete_blocked_parked)
     var pendingBtRecommendation: String? by remember { mutableStateOf(null) }
 
     LaunchedEffect(vehicleId) {
@@ -143,7 +148,15 @@ fun VehicleRegistrationScreen(
                 }
                 is VehicleRegistrationEffect.NavigateBack -> onNavigateBack()
                 is VehicleRegistrationEffect.ShowError ->
-                    snackbarHostState.showSnackbar(errorFallback)
+                    snackbarHostState.showSnackbar(
+                        // A refusal is not a breakage: the parked car gets its own sentence, the
+                        // one the blocked row already shows, instead of "something went wrong".
+                        // [VEH-A-DELETED-CAR-DOES-NOT-ERASE-ITS-HISTORY-001]
+                        when (effect.error) {
+                            is PaparcarError.Vehicle.DeleteBlockedByActiveParking -> msgDeleteBlockedParked
+                            else -> errorFallback
+                        },
+                    )
             }
         }
     }
@@ -512,31 +525,49 @@ fun VehicleRegistrationContent(
 
             // ── Delete section — only shown when editing and more than one vehicle ──
             if (!isNewVehicle && state.canDelete) {
+                // [VEH-A-DELETED-CAR-DOES-NOT-ERASE-ITS-HISTORY-001] Deleting a car takes its whole
+                // parking history with it, so the action stays shut until we know what that costs —
+                // and while the car is parked, because closing a parking can publish a spot and that
+                // is never a side effect of deleting a car. An unread footprint blocks too: not
+                // knowing is not permission.
+                val footprint = state.parkingFootprint
+                val deleteBlocked = footprint == null || footprint.hasActiveParking
                 // Unified with Settings' danger zone — one destructive grammar. Values moved to
                 // PapDangerCard (bg 0.3→0.15, border thin@0.4→medium@0.7). [SETTINGS-AUDIT-REMEDIATION-001]
                 PapDangerCard(
-                    onClick = { showDeleteDialog = true },
+                    onClick = { if (!deleteBlocked) showDeleteDialog = true },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = SCREEN_H_PADDING),
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Delete,
-                            contentDescription = null,
-                            tint = cs.error,
-                            modifier = Modifier.size(DELETE_ICON_SIZE),
-                        )
-                        Text(
-                            text = stringResource(Res.string.my_car_delete_vehicle),
-                            // Action row = a button → cta, like SetActiveRow. [TYPO-AUDIT-001]
-                            style = PaparcarType.current.cta,
-                            color = cs.error,
-                        )
+                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Delete,
+                                contentDescription = null,
+                                tint = cs.error.copy(alpha = if (deleteBlocked) PapAlpha.disabled else 1f),
+                                modifier = Modifier.size(DELETE_ICON_SIZE),
+                            )
+                            Text(
+                                text = stringResource(Res.string.my_car_delete_vehicle),
+                                // Action row = a button → cta, like SetActiveRow. [TYPO-AUDIT-001]
+                                style = PaparcarType.current.cta,
+                                color = cs.error.copy(alpha = if (deleteBlocked) PapAlpha.disabled else 1f),
+                            )
+                        }
+                        // The reason is written, not implied by a greyed-out row: a disabled control
+                        // with no explanation reads as a bug.
+                        if (footprint?.hasActiveParking == true) {
+                            Text(
+                                text = stringResource(Res.string.my_car_delete_blocked_parked),
+                                style = PaparcarType.current.caption,
+                                color = cs.onSurface.copy(alpha = PapAlpha.subtitle),
+                                modifier = Modifier.padding(top = 6.dp),
+                            )
+                        }
                     }
                 }
             }
@@ -546,7 +577,20 @@ fun VehicleRegistrationContent(
                     onDismiss = { if (!state.isDeleting) showDeleteDialog = false },
                     icon = Icons.Rounded.Delete,
                     title = stringResource(Res.string.my_car_delete_confirm_title),
-                    body = stringResource(Res.string.my_car_delete_confirm_message),
+                    // The history goes with the car, so the warning quotes how much of it there is
+                    // — with the real number, before confirming, because there is no undo. A car
+                    // with nothing to lose keeps the plain message.
+                    // [VEH-A-DELETED-CAR-DOES-NOT-ERASE-ITS-HISTORY-001]
+                    body = state.parkingFootprint
+                        ?.takeIf { it.endedParkings > 0 }
+                        ?.let { footprint ->
+                            pluralStringResource(
+                                Res.plurals.my_car_delete_confirm_message_with_history,
+                                footprint.endedParkings,
+                                footprint.endedParkings,
+                            )
+                        }
+                        ?: stringResource(Res.string.my_car_delete_confirm_message),
                     primaryLabel = stringResource(Res.string.my_car_delete_confirm_action),
                     primaryLeadingIcon = Icons.Rounded.Delete,
                     onPrimary = {
