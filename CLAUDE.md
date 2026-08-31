@@ -267,7 +267,11 @@ El ID debe ser autoexplicativo. ⚠️ PS 5.1 rompe `git commit -m` con comillas
 - No usar `HorizontalDivider`/`VerticalDivider` crudos → `PapDivider`/`PapVerticalDivider`
   (alpha en `PapBorders.HAIRLINE_DIVIDER_ALPHA`). Enforced por `DividerGuardrailTest`.
 - No usar `println` para logs → Logger con tag
-- No usar wildcard imports (`import com.paparcar.*`)
+- No usar wildcard imports (`import com.paparcar.*`) — nombrar los símbolos. Enforced por
+  `ImportGuardrailTest` (Konsist). ⚠️ Un wildcard **no lo cubre un rename**: no hay símbolo que
+  renombrar, y por eso los 5 que había sobrevivieron al `sed` de BaseLogin.
+  ⛔ **Falsificar un guard de Konsist exige `--rerun-tasks`**: un import no cambia el bytecode, así
+  que Gradle da el test por UP-TO-DATE y no llega a ejecutarlo. Vale para todos los de este paquete.
 - No commitear archivos de build: logs, .kotlin/metadata, build/
 - No escribir strings en español en el código — EN es siempre la base
 - No mezclar señales Bluetooth dentro del Coordinator scoring
