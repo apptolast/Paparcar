@@ -35,6 +35,13 @@ fun reconcileParkingSessions(
             provisionalDepartureAtMs = l?.provisionalDepartureAtMs,
             armEvidence = l?.armEvidence ?: r.armEvidence,
             detectionPath = l?.detectionPath ?: r.detectionPath,
+            // [SYNC-A-PARKING-MUST-TRAVEL-WHOLE-001] The doubt radius is synced
+            // [DET-DOUBT-REACHES-REMOTE-001], but a remote doc written before it travelled carries
+            // null — and taking that null silently turns a zone this device MEASURED into an exact
+            // pin, because the map's target badge reads `zoneRadiusMeters != null` and nothing else.
+            // That is the asymmetric-failure direction we never take: claiming more certainty than
+            // we have. Field 2026-08-30: a 250 m gap-anchor zone reached Room as an exact pin.
+            zoneRadiusMeters = r.zoneRadiusMeters ?: l?.zoneRadiusMeters,
             // Close provenance + route length ARE synced, but a legacy remote doc predating the
             // fields must not erase what this device already knows. [VEH-STATS-SAY-SOMETHING-USEFUL-001]
             routeDistanceMeters = r.routeDistanceMeters ?: l?.routeDistanceMeters,

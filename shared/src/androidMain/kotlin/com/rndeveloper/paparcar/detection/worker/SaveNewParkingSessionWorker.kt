@@ -14,10 +14,13 @@ import androidx.work.workDataOf
 import com.apptolast.customlogin.domain.AuthRepository
 import com.rndeveloper.paparcar.data.datasource.remote.RemoteUserProfileDataSource
 import com.rndeveloper.paparcar.data.datasource.remote.dto.ParkingHistoryDto
+import com.rndeveloper.paparcar.data.mapper.toParkingHistoryDto
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
+import kotlin.time.Clock
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.concurrent.TimeUnit
@@ -36,10 +39,15 @@ import java.util.concurrent.TimeUnit
  * the worker returns [Result.failure] (data-less retry would be meaningless).
  *
  * Inputs (passed via [androidx.work.Data]):
- * - [KEY_NEW_SESSION_*] — every field of the new session, since the worker is
- *   self-contained (no Room reads — same pattern as [ReportSpotWorker]).
+ * - [KEY_SESSION_JSON] — the whole [ParkingHistoryDto], serialised. The worker stays
+ *   self-contained (no Room reads — same pattern as [ReportSpotWorker]) without a
+ *   per-field list to keep in step with the dto. [SYNC-A-PARKING-MUST-TRAVEL-WHOLE-001]
  * - [KEY_PREVIOUS_SESSION_ID] — id of the previous active session to mark as
  *   `isActive=false` in Firestore (mirrors `dao.clearActive()`). Optional.
+ *
+ * ⚠️ [RemoteUserProfileDataSource.saveParkingSession] writes with `set()` and NO merge, so this
+ * payload is not "what to update" — it is the document. Anything it fails to carry is not omitted,
+ * it is erased.
  *
  * Constraints: `NETWORK_CONNECTED`. Backoff: exponential 30 s base.
  * Unique work name: `parking_chain_$sessionId`, policy `REPLACE`.
@@ -98,51 +106,55 @@ class SaveNewParkingSessionWorker(
 
         private const val KEY_PREVIOUS_SESSION_ID = "previousSessionId"
 
-        // New-session payload — keep in lockstep with [ParkingHistoryDto].
-        private const val KEY_NEW_SESSION_ID = "session_id"
-        private const val KEY_NEW_SESSION_VEHICLE_ID = "session_vehicle_id"
-        private const val KEY_NEW_SESSION_LAT = "session_lat"
-        private const val KEY_NEW_SESSION_LON = "session_lon"
-        private const val KEY_NEW_SESSION_ACCURACY = "session_accuracy"
-        private const val KEY_NEW_SESSION_TIMESTAMP = "session_timestamp"
-        private const val KEY_NEW_SESSION_IS_ACTIVE = "session_is_active"
-        private const val KEY_NEW_SESSION_SPOT_ID = "session_spot_id"
-        private const val KEY_NEW_SESSION_GEOFENCE_ID = "session_geofence_id"
-        private const val KEY_NEW_SESSION_DETECTION_RELIABILITY = "session_detection_reliability"
-        // [BUG-SIZE-PARITY] These were missing — the worker dropped the vehicle size/carbody on the
-        // Firestore sync (Room kept them), so parkingHistory and the published Spot showed
-        // "size unspecified", and syncFromRemote then overwrote Room's size with null. [VEHICLE-CATEGORIZATION-001]
-        private const val KEY_NEW_SESSION_SIZE_CATEGORY = "session_size_category"
-        private const val KEY_NEW_SESSION_CARBODY_TYPE = "session_carbody_type"
-        // [DET-PIN-PROVENANCE-001] Pin provenance — the ARM trigger + the confirmation PATH that
-        // placed this parking, carried to Firestore so a remote diagnostic can attribute the pin.
-        private const val KEY_NEW_SESSION_ARM_EVIDENCE = "session_arm_evidence"
-        private const val KEY_NEW_SESSION_DETECTION_PATH = "session_detection_path"
+        /**
+         * The whole [ParkingHistoryDto] as JSON. No per-field keys, and therefore no list to keep
+         * in lockstep with anything. [SYNC-A-PARKING-MUST-TRAVEL-WHOLE-001]
+         *
+         * The per-field keys this replaces carried their own scars, and they are the argument:
+         * `session_size_category`/`session_carbody_type` were added by [BUG-SIZE-PARITY] after the
+         * worker dropped the vehicle size on sync (history and the published Spot read "size
+         * unspecified", and `syncFromRemote` then overwrote Room's size with null), and
+         * `session_arm_evidence`/`session_detection_path` by [DET-PIN-PROVENANCE-001] after a
+         * phantom pin could not be attributed to its trigger. Each fix added the one field it
+         * needed. None of them asked why a field had to be remembered at all.
+         */
+        internal const val KEY_SESSION_JSON = "session_json"
 
+        /**
+         * [SYNC-A-PARKING-MUST-TRAVEL-WHOLE-001] The WHOLE dto, as one JSON string.
+         *
+         * This used to be a hand-written list of 15 `workDataOf` entries, re-assembled field by
+         * field on the other side. The ten fields nobody remembered to add — `zoneRadiusMeters`,
+         * `spotType`, `address`, `placeInfo`, `routePolyline`, `routeSnapped`,
+         * `routeInferredSpans`/`Resolution`, `routeDistanceMeters`, `endedAtMs`, `publishedSpot`,
+         * `updatedAt` — were not merely omitted: [RemoteUserProfileDataSource.saveParkingSession]
+         * does `set()` WITHOUT merge, so every one of them was WRITTEN as null/false over whatever
+         * the document already held.
+         *
+         * The list was documented as "every field of the new session" and asked to be kept "in
+         * lockstep with ParkingHistoryDto". It had already fallen out of lockstep three times —
+         * MAPPER-001 (`detectionReliability`), MAPPER-002 (`vehicleId`) and now `zoneRadiusMeters`,
+         * whose own KDoc in the dto says the doubt travels to remote. Both earlier fixes added the
+         * missing field to the list, which is what guaranteed a fourth. **A comment is not a check.**
+         *
+         * Serialising the dto itself removes the list: a field added to [ParkingHistoryDto] travels
+         * because it is part of the dto, not because someone remembered. The worker stays
+         * self-contained (no Room reads) exactly as designed.
+         */
         fun buildRequest(
             session: UserParking,
             previousSessionId: String?,
         ): OneTimeWorkRequest {
+            // Stamp the enqueue moment as `updatedAt`. The old payload had no field for it, so every
+            // document this worker wrote carried `updatedAt = 0L` — and 0 loses every
+            // Last-Write-Wins comparison in `UserParkingReconcile`, so the remote mirror could never
+            // win over a stale local row. [SYNC-RECONCILE-USERPARKING-001]
+            val dto = session.toParkingHistoryDto(
+                updatedAt = Clock.System.now().toEpochMilliseconds(),
+            )
             val data = workDataOf(
                 KEY_PREVIOUS_SESSION_ID to previousSessionId,
-                KEY_NEW_SESSION_ID to session.id,
-                KEY_NEW_SESSION_VEHICLE_ID to session.vehicleId,
-                KEY_NEW_SESSION_LAT to session.location.latitude,
-                KEY_NEW_SESSION_LON to session.location.longitude,
-                KEY_NEW_SESSION_ACCURACY to session.location.accuracy.toDouble(),
-                KEY_NEW_SESSION_TIMESTAMP to session.location.timestamp,
-                KEY_NEW_SESSION_IS_ACTIVE to session.isActive,
-                KEY_NEW_SESSION_SPOT_ID to session.spotId,
-                KEY_NEW_SESSION_GEOFENCE_ID to session.geofenceId,
-                // NaN sentinel for "absent" — workDataOf does not preserve nulls for primitives,
-                // and `detectionReliability` may legitimately be null for manually-reported spots. [MAPPER-003]
-                KEY_NEW_SESSION_DETECTION_RELIABILITY to (session.detectionReliability?.toDouble() ?: Double.NaN),
-                // [BUG-SIZE-PARITY] carry the vehicle size/carbody through to Firestore.
-                KEY_NEW_SESSION_SIZE_CATEGORY to session.sizeCategory?.name,
-                KEY_NEW_SESSION_CARBODY_TYPE to session.carbodyType?.name,
-                // [DET-PIN-PROVENANCE-001] carry the pin provenance through to Firestore.
-                KEY_NEW_SESSION_ARM_EVIDENCE to session.armEvidence,
-                KEY_NEW_SESSION_DETECTION_PATH to session.detectionPath,
+                KEY_SESSION_JSON to Json.encodeToString(dto),
             )
             return OneTimeWorkRequestBuilder<SaveNewParkingSessionWorker>()
                 .setInputData(data)
@@ -156,26 +168,19 @@ class SaveNewParkingSessionWorker(
                 .build()
         }
 
-        private fun androidx.work.Data.toParkingHistoryDto(userId: String): ParkingHistoryDto? {
-            val id = getString(KEY_NEW_SESSION_ID) ?: return null
-            return ParkingHistoryDto(
-                id = id,
-                userId = userId,
-                vehicleId = getString(KEY_NEW_SESSION_VEHICLE_ID),
-                latitude = getDouble(KEY_NEW_SESSION_LAT, Double.NaN).takeIf { !it.isNaN() } ?: return null,
-                longitude = getDouble(KEY_NEW_SESSION_LON, Double.NaN).takeIf { !it.isNaN() } ?: return null,
-                accuracy = getDouble(KEY_NEW_SESSION_ACCURACY, 0.0).toFloat(),
-                timestamp = getLong(KEY_NEW_SESSION_TIMESTAMP, 0L),
-                isActive = getBoolean(KEY_NEW_SESSION_IS_ACTIVE, false),
-                spotId = getString(KEY_NEW_SESSION_SPOT_ID),
-                geofenceId = getString(KEY_NEW_SESSION_GEOFENCE_ID),
-                detectionReliability = getDouble(KEY_NEW_SESSION_DETECTION_RELIABILITY, Double.NaN)
-                    .takeUnless { it.isNaN() }?.toFloat(),
-                sizeCategory = getString(KEY_NEW_SESSION_SIZE_CATEGORY),
-                carbodyType = getString(KEY_NEW_SESSION_CARBODY_TYPE),
-                armEvidence = getString(KEY_NEW_SESSION_ARM_EVIDENCE),
-                detectionPath = getString(KEY_NEW_SESSION_DETECTION_PATH),
-            )
+        /**
+         * The dto exactly as it was enqueued, with the CURRENT session's userId stamped on it.
+         *
+         * The userId is resolved at execution time (not carried in the payload) because the enqueue
+         * path is synchronous and has no auth session to read — see the class KDoc. Everything else
+         * survives the round-trip untouched, which is the whole point of
+         * [SYNC-A-PARKING-MUST-TRAVEL-WHOLE-001].
+         */
+        internal fun androidx.work.Data.toParkingHistoryDto(userId: String): ParkingHistoryDto? {
+            val json = getString(KEY_SESSION_JSON) ?: return null
+            val dto = runCatching { Json.decodeFromString<ParkingHistoryDto>(json) }.getOrNull()
+                ?: return null
+            return dto.copy(userId = userId)
         }
     }
 }

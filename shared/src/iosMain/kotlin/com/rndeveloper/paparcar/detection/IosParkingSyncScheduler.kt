@@ -12,6 +12,7 @@ import com.rndeveloper.paparcar.domain.model.PlaceInfo
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.service.ParkingSyncScheduler
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
+import kotlin.time.Clock
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -46,7 +47,14 @@ class IosParkingSyncScheduler(
                 previousSessionId?.let { prevId ->
                     remoteDataSource.clearParkingSessionActiveFlag(userId, prevId)
                 }
-                remoteDataSource.saveParkingSession(userId, session.toParkingHistoryDto())
+                // [SYNC-A-PARKING-MUST-TRAVEL-WHOLE-001] Stamp a real `updatedAt`. The default is
+                // 0, and 0 loses every Last-Write-Wins comparison in `UserParkingReconcile`, so the
+                // document this writes could never win over a stale local row. The Android lane had
+                // the same hole and it is fixed there; this is the same invariant, not a copy.
+                remoteDataSource.saveParkingSession(
+                    userId,
+                    session.toParkingHistoryDto(updatedAt = Clock.System.now().toEpochMilliseconds()),
+                )
             }
         }
     }

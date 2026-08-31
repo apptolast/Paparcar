@@ -15,8 +15,13 @@ import com.rndeveloper.paparcar.fakes.FakeAuthRepository
 import com.rndeveloper.paparcar.detection.worker.ClearActiveParkingSessionWorker
 import com.rndeveloper.paparcar.detection.worker.SaveNewParkingSessionWorker
 import com.rndeveloper.paparcar.detection.worker.UpdateParkingSessionAddressAndPlaceWorker
+import com.rndeveloper.paparcar.data.mapper.toParkingHistoryDto
+import com.rndeveloper.paparcar.domain.model.CarbodyType
 import com.rndeveloper.paparcar.domain.model.GpsPoint
+import com.rndeveloper.paparcar.domain.model.RouteInferenceResolution
+import com.rndeveloper.paparcar.domain.model.SpotType
 import com.rndeveloper.paparcar.domain.model.UserParking
+import com.rndeveloper.paparcar.domain.model.VehicleSize
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
@@ -28,6 +33,7 @@ import org.koin.dsl.module
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -69,6 +75,84 @@ class SaveNewParkingSessionWorkerTest {
         assertEquals("new-session", fakeDataSource.lastSavedSession?.id)
         assertEquals(1, fakeDataSource.updateActiveFlagCallCount)
         assertEquals("old-session" to false, fakeDataSource.lastActiveFlagUpdate)
+    }
+
+    /**
+     * [SYNC-A-PARKING-MUST-TRAVEL-WHOLE-001] **The witness the field list never had.**
+     *
+     * The payload used to be a hand-written list of 15 keys re-assembled field by field, documented
+     * as "every field of the new session" and asked to be kept "in lockstep with ParkingHistoryDto".
+     * It fell out of lockstep three times — MAPPER-001, MAPPER-002 and `zoneRadiusMeters` — and each
+     * time the fix added the one missing field and a test for that one field. The per-field tests
+     * below are those fixes. None of them could fail for a field nobody had thought of, which is
+     * exactly the population that keeps getting dropped.
+     *
+     * This one compares the WHOLE dto that reached the data source against the whole dto the mapper
+     * produces. A field added to [ParkingHistoryDto] tomorrow is covered on the day it is added,
+     * without anyone remembering this file exists.
+     *
+     * ⚠️ Falsification: drop any single field from the payload (e.g. re-introduce a per-field
+     * `workDataOf` that omits `zoneRadiusMeters`) and this must go red. If it stays green, it is
+     * asserting less than it claims.
+     */
+    @Test
+    fun `SaveNewParkingSessionWorker carries EVERY dto field to the data source`() = runTest {
+        val context: Context = ApplicationProvider.getApplicationContext()
+        // Every field set to a value distinguishable from its default, so a dropped field shows up
+        // as a mismatch rather than coinciding with the default it would have been written as.
+        val session = userParking("whole-session").copy(
+            vehicleId = "vehicle-99",
+            spotId = "spot-7",
+            geofenceId = "geof-7",
+            isActive = false,
+            detectionReliability = 0.90f,
+            spotType = SpotType.MANUAL_REPORT,
+            sizeCategory = VehicleSize.VAN_HIGH,
+            carbodyType = CarbodyType.PICKUP,
+            armEvidence = "verified_enter",
+            detectionPath = "steps+egress",
+            zoneRadiusMeters = 250f,
+            routePolyline = "ghk~Ex}ce@Ov@Bb@",
+            routeSnapped = true,
+            routeInferredSpans = "3:9",
+            routeInferredResolution = RouteInferenceResolution.CONFIRMED,
+            routeDistanceMeters = 3542.79f,
+            endedAtMs = 1788111681770L,
+            publishedSpot = true,
+        )
+        val request = SaveNewParkingSessionWorker.buildRequest(session, previousSessionId = null)
+        val worker = TestListenableWorkerBuilder<SaveNewParkingSessionWorker>(context)
+            .setInputData(request.workSpec.input)
+            .build()
+
+        worker.doWork()
+
+        val saved = fakeDataSource.lastSavedSession
+        // `updatedAt` is stamped at enqueue time (wall clock) and `userId` at execution time from
+        // the auth session, so neither can come from the mapper — every OTHER field must.
+        val expected = session.toParkingHistoryDto(updatedAt = saved?.updatedAt ?: 0L)
+        assertEquals(expected, saved)
+    }
+
+    /**
+     * The `updatedAt` the old payload had no key for: it was written as 0, and 0 loses every
+     * Last-Write-Wins comparison in `UserParkingReconcile`, so a remote doc could never win over a
+     * stale local row. [SYNC-A-PARKING-MUST-TRAVEL-WHOLE-001][SYNC-RECONCILE-USERPARKING-001]
+     */
+    @Test
+    fun `SaveNewParkingSessionWorker stamps a real updatedAt so the remote can win the LWW`() = runTest {
+        val context: Context = ApplicationProvider.getApplicationContext()
+        val request = SaveNewParkingSessionWorker.buildRequest(userParking("stamp"), previousSessionId = null)
+        val worker = TestListenableWorkerBuilder<SaveNewParkingSessionWorker>(context)
+            .setInputData(request.workSpec.input)
+            .build()
+
+        worker.doWork()
+
+        assertTrue(
+            (fakeDataSource.lastSavedSession?.updatedAt ?: 0L) > 0L,
+            "updatedAt must be a real timestamp, not the 0 that always loses the LWW",
+        )
     }
 
     @Test
