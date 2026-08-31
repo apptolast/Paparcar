@@ -82,6 +82,7 @@ import paparcar.composeapp.generated.resources.history_day_short_sun
 import paparcar.composeapp.generated.resources.history_day_short_thu
 import paparcar.composeapp.generated.resources.history_day_short_tue
 import paparcar.composeapp.generated.resources.history_day_short_wed
+import paparcar.composeapp.generated.resources.history_activity_distance_partial
 import paparcar.composeapp.generated.resources.history_fact_active_day
 import paparcar.composeapp.generated.resources.history_fact_auto_detected
 import paparcar.composeapp.generated.resources.history_fact_favorite_street
@@ -274,8 +275,21 @@ fun HistoryContent(
                     // Scoped km follow the same filter as the bars; all-history facts (day, street,
                     // auto share) appear only above their significance thresholds — a metric
                     // without data renders as nothing. [VEH-STATS-SAY-SOMETHING-USEFUL-001]
-                    val scopeDistanceMeters = remember(filteredSessions) {
+                    val scopeDistance = remember(filteredSessions) {
                         VehicleHistoryCalculator.sumDistanceMeters(filteredSessions)
+                    }
+                    // [UI-HISTORY-A-PARTIAL-SUM-IS-NOT-A-TOTAL-001] A sum that does not cover every
+                    // parking in scope says so. Only the BT lane and legacy rows lack a route, so
+                    // the plain figure is still the common case; what it can no longer do is pass
+                    // for a total while describing three parkings out of twelve.
+                    val distanceText = scopeDistance?.let { distance ->
+                        val km = distanceString(distance.meters)
+                        if (distance.isComplete) km
+                        else stringResource(
+                            Res.string.history_activity_distance_partial,
+                            km,
+                            distance.fromParkings,
+                        )
                     }
                     val facts = buildList {
                         resolved.statsData?.mostActiveDayOfWeek?.let { day ->
@@ -301,7 +315,7 @@ fun HistoryContent(
                         ActivityCard(
                             data = activityBuckets,
                             total = scopeTotal,
-                            distanceText = scopeDistanceMeters?.let { distanceString(it) },
+                            distanceText = distanceText,
                             facts = facts,
                         )
                     }

@@ -604,6 +604,7 @@
         <item quantity="one">stationnement</item>
         <item quantity="other">stationnements</item>
     </plurals>
+    <string name="history_activity_distance_partial">%1$s sur %2$d d'entre eux</string>
     <string name="history_activity_low_hint">Peu d'activité sur cette période</string>
     <!-- Facts footer under the activity chart. [VEH-STATS-SAY-SOMETHING-USEFUL-001] -->
     <string name="history_fact_active_day">Jour le plus actif : %1$s</string>

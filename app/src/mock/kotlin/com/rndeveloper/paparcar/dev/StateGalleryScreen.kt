@@ -1194,6 +1194,23 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     ),
                 )
             },
+            // [UI-HISTORY-A-PARTIAL-SUM-IS-NOT-A-TOTAL-001] Los km del bloque salen sólo de las
+            // sesiones CON ruta. En un coche mixto (unas por Coordinator, otras por BT o legacy)
+            // la cifra describía un subconjunto sin decirlo; aquí se ve diciéndolo.
+            Variant("Km de cobertura parcial (mixto BT + ruta)") {
+                history(
+                    HistoryState(
+                        timeline = resolvedHistory(
+                            FakeData.allSessions.mapIndexed { i, session ->
+                                // Sólo una de cada tres trae ruta — el resto son el carril BT, que
+                                // despierta en el destino y nunca traza el viaje.
+                                if (i % 3 == 0) session.copy(routeDistanceMeters = 4_200f)
+                                else session.copy(routeDistanceMeters = null)
+                            },
+                        ),
+                    ),
+                )
+            },
             // Las DOS caras que antes eran el mismo valor: "no hay nada" frente a "aún no lo sé".
             // [UI-HISTORY-A-LOADING-LIST-MUST-NOT-CLAIM-TO-BE-EMPTY-001]
             Variant("Vacío (historial resuelto, sin sesiones)") {

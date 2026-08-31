@@ -605,6 +605,7 @@
         <item quantity="one">Parkplatz</item>
         <item quantity="other">Parkplätze</item>
     </plurals>
+    <string name="history_activity_distance_partial">%1$s bei %2$d davon</string>
     <string name="history_activity_low_hint">Wenig Aktivität in diesem Zeitraum</string>
     <!-- Facts footer under the activity chart. [VEH-STATS-SAY-SOMETHING-USEFUL-001] -->
     <string name="history_fact_active_day">Aktivster Tag: %1$s</string>
