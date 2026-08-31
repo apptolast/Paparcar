@@ -4,7 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
-import com.apptolast.customlogin.appContext
+import com.apptolast.baselogin.appContext
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 
 /**

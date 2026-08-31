@@ -5,7 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import com.apptolast.customlogin.platform.ActivityHolder
+import com.apptolast.baselogin.platform.ActivityHolder
 import com.rndeveloper.paparcar.dev.DevRoot
 import com.rndeveloper.paparcar.fakes.MockScenario
 import org.koin.android.ext.android.inject
@@ -23,7 +23,7 @@ class DevMainActivity : ComponentActivity() {
         // No keep-on-screen condition: the catalog is ready immediately, so the splash dismisses
         // on the first frame. Kept only so the API 31+ starting-window theme resolves correctly.
         installSplashScreen()
-        // The customlogin library reads the current Activity from here for its auth UI.
+        // The baselogin library reads the current Activity from here for its auth UI.
         ActivityHolder.setActivity(this)
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)

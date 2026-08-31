@@ -87,8 +87,8 @@ import com.rndeveloper.paparcar.presentation.vehicles.HistoryState
 import com.rndeveloper.paparcar.presentation.vehicles.HistoryTimeline
 import com.rndeveloper.paparcar.presentation.vehicles.VehiclesContent
 import com.rndeveloper.paparcar.presentation.vehicles.VehiclesState
-import com.apptolast.customlogin.presentation.screens.components.DefaultAuthContainer
-import com.apptolast.customlogin.presentation.slots.defaultslots.DefaultDivider
+import com.apptolast.baselogin.presentation.screens.components.DefaultAuthContainer
+import com.apptolast.baselogin.presentation.slots.defaultslots.DefaultDivider
 import com.rndeveloper.paparcar.di.paparcarLoginConfig
 import com.rndeveloper.paparcar.di.paparcarSocialProviders
 import com.rndeveloper.paparcar.domain.model.ZoneIcon

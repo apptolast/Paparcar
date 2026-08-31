@@ -1,8 +1,8 @@
 package com.rndeveloper.paparcar.di
 
-import com.apptolast.customlogin.config.GoogleSignInConfig
-import com.apptolast.customlogin.di.LoginLibraryConfig
-import com.apptolast.customlogin.domain.model.IdentityProvider
+import com.apptolast.baselogin.config.GoogleSignInConfig
+import com.apptolast.baselogin.di.LoginLibraryConfig
+import com.apptolast.baselogin.domain.model.IdentityProvider
 
 /**
  * Single source of truth for WHICH sign-in methods Paparcar offers. [AUTH-PROVIDERS-EXPLICIT-001]

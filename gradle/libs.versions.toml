@@ -85,13 +85,11 @@ coil = "3.6.0"
 ktor = "3.5.2"
 
 # ── Login Library ────────────────────────────────────────────────────────────
-# Release tag on JitPack (replaces the 35a5e15fc4 commit-hash build of
-# feature/improve-custom-login-integration — the host-integration fix shipped in 1.1.0).
-# ⚠️ El grupo lleva el nombre del repo capitalizado: `com.github.apptolast.BaseLogin`.
-# Con `com.github.apptolast` a secas JitPack resuelve igual pero devuelve un POM agregado sin
-# metadata de variantes y un metadata jar de KMP vacío → no falla al resolver, falla luego con
-# símbolos sin resolver. [DEPS-BASELOGIN-110]
-baselogin = "1.1.0"
+# Publicada en Maven Central desde 2.0.0 (hasta 1.1.0 vivía en JitPack; nada nuevo saldrá allí).
+# Grupo `io.github.apptolast`, artifact id `baselogin` — el mismo id que el módulo Gradle.
+# ⚠️ Depender SIEMPRE de la publicación raíz: Gradle resuelve solo los artefactos por target
+# (`baselogin-android`, `baselogin-iosarm64`, `baselogin-iossimulatorarm64`); nunca declararlos.
+baselogin = "2.0.0"
 
 # ── Android-only ─────────────────────────────────────────────────────────────
 # play-services-location incluye Activity Recognition Transitions desde v17+
@@ -194,8 +192,8 @@ coil-network-ktor3 = { module = "io.coil-kt.coil3:coil-network-ktor3", version.r
 ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }  # androidMain
 ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }  # iosMain
 
-# ── Login Library (JitPack) ───────────────────────────────────────────────────
-baselogin = { module = "com.github.apptolast.BaseLogin:baselogin", version.ref = "baselogin" }
+# ── Login Library (Maven Central) ─────────────────────────────────────────────
+baselogin = { module = "io.github.apptolast:baselogin", version.ref = "baselogin" }
 
 # ── Android-only: Detección ──────────────────────────────────────────────────
 # Incluye FusedLocationProviderClient + Activity Recognition Transitions API

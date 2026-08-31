@@ -4,7 +4,7 @@ import android.content.Intent
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import androidx.work.WorkManager
-import com.apptolast.customlogin.domain.AuthRepository
+import com.apptolast.baselogin.domain.AuthRepository
 import com.rndeveloper.paparcar.detection.service.ForegroundServiceController
 import com.rndeveloper.paparcar.detection.worker.ParkingSafetyNetWorker
 import com.rndeveloper.paparcar.domain.model.displayName

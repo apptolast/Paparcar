@@ -2,7 +2,7 @@
 
 package com.rndeveloper.paparcar.domain.usecase.zone
 
-import com.apptolast.customlogin.domain.AuthRepository
+import com.apptolast.baselogin.domain.AuthRepository
 import com.rndeveloper.paparcar.domain.error.PaparcarError
 import com.rndeveloper.paparcar.domain.model.Zone
 import com.rndeveloper.paparcar.domain.model.ZoneIcon

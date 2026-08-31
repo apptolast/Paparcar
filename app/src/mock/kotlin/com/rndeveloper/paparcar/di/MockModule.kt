@@ -1,7 +1,7 @@
 package com.rndeveloper.paparcar.di
 
 import androidx.room.Room
-import com.apptolast.customlogin.domain.AuthRepository
+import com.apptolast.baselogin.domain.AuthRepository
 import com.rndeveloper.paparcar.data.datasource.FakeLocationDataSource
 import com.rndeveloper.paparcar.data.datasource.local.room.AppDatabase
 import com.rndeveloper.paparcar.fakes.data.datasource.remote.FakeFirebaseDataSource
@@ -23,9 +23,20 @@ import com.rndeveloper.paparcar.domain.places.PlacesDataSource
 import com.rndeveloper.paparcar.domain.places.RoadNetworkDataSource
 import com.rndeveloper.paparcar.location.OverpassRoadNetworkDataSourceImpl
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
-import com.rndeveloper.paparcar.domain.repository.*
+import com.rndeveloper.paparcar.domain.repository.AddressAndPlaceRepository
+import com.rndeveloper.paparcar.domain.repository.DiagnosticsRepository
+import com.rndeveloper.paparcar.domain.repository.SpotRepository
+import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
+import com.rndeveloper.paparcar.domain.repository.UserProfileRepository
+import com.rndeveloper.paparcar.domain.repository.VehicleRepository
+import com.rndeveloper.paparcar.domain.repository.ZoneRepository
 import com.rndeveloper.paparcar.domain.sensor.StepDetectorSource
-import com.rndeveloper.paparcar.domain.service.*
+import com.rndeveloper.paparcar.domain.service.DepartureEventBus
+import com.rndeveloper.paparcar.domain.service.GeofenceEventBus
+import com.rndeveloper.paparcar.domain.service.GeofenceManager
+import com.rndeveloper.paparcar.domain.service.ParkingEnrichmentScheduler
+import com.rndeveloper.paparcar.domain.service.ParkingSyncScheduler
+import com.rndeveloper.paparcar.domain.service.ReportSpotScheduler
 import com.rndeveloper.paparcar.notification.FakeAppNotificationManager
 import com.rndeveloper.paparcar.data.session.RoomLocalSessionCache
 import com.rndeveloper.paparcar.domain.session.LocalSessionCache
@@ -52,7 +63,7 @@ import com.rndeveloper.paparcar.fakes.data.repository.FakeUserProfileRepository
 import com.rndeveloper.paparcar.fakes.data.repository.FakeVehicleRepository
 import com.rndeveloper.paparcar.fakes.data.repository.FakeZoneRepository
 import com.rndeveloper.paparcar.fakes.MockScenario
-import com.apptolast.customlogin.presentation.screens.login.LoginViewModel
+import com.apptolast.baselogin.presentation.screens.login.LoginViewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module

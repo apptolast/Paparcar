@@ -1,15 +1,15 @@
 package com.rndeveloper.paparcar.fakes
 
-import com.apptolast.customlogin.domain.AuthRepository
-import com.apptolast.customlogin.domain.model.AuthResult
-import com.apptolast.customlogin.domain.model.AuthState
-import com.apptolast.customlogin.domain.model.Credentials
-import com.apptolast.customlogin.domain.model.AuthError
-import com.apptolast.customlogin.domain.model.IdentityProvider
-import com.apptolast.customlogin.domain.model.PasswordResetData
-import com.apptolast.customlogin.domain.model.PhoneAuthResult
-import com.apptolast.customlogin.domain.model.SignUpData
-import com.apptolast.customlogin.domain.model.UserSession
+import com.apptolast.baselogin.domain.AuthRepository
+import com.apptolast.baselogin.domain.model.AuthResult
+import com.apptolast.baselogin.domain.model.AuthState
+import com.apptolast.baselogin.domain.model.Credentials
+import com.apptolast.baselogin.domain.model.AuthError
+import com.apptolast.baselogin.domain.model.IdentityProvider
+import com.apptolast.baselogin.domain.model.PasswordResetData
+import com.apptolast.baselogin.domain.model.PhoneAuthResult
+import com.apptolast.baselogin.domain.model.SignUpData
+import com.apptolast.baselogin.domain.model.UserSession
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow

@@ -4,7 +4,7 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import androidx.work.ListenableWorker
 import androidx.work.testing.TestListenableWorkerBuilder
-import com.apptolast.customlogin.domain.AuthRepository
+import com.apptolast.baselogin.domain.AuthRepository
 import com.rndeveloper.paparcar.data.datasource.remote.RemoteUserProfileDataSource
 import com.rndeveloper.paparcar.data.datasource.remote.dto.AddressDto
 import com.rndeveloper.paparcar.data.datasource.remote.dto.ParkingHistoryDto
@@ -248,7 +248,7 @@ class SaveNewParkingSessionWorkerTest {
 
     @Test
     fun `SaveNewParkingSessionWorker fails immediately when userId missing`() = runTest {
-        fakeAuth.emitState(com.apptolast.customlogin.domain.model.AuthState.Unauthenticated)
+        fakeAuth.emitState(com.apptolast.baselogin.domain.model.AuthState.Unauthenticated)
         val context: Context = ApplicationProvider.getApplicationContext()
         val worker = TestListenableWorkerBuilder<SaveNewParkingSessionWorker>(context).build()
 

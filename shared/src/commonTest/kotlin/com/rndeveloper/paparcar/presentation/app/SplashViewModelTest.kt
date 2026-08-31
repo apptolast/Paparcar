@@ -1,7 +1,7 @@
 package com.rndeveloper.paparcar.presentation.app
 
 import app.cash.turbine.test
-import com.apptolast.customlogin.domain.model.AuthState
+import com.apptolast.baselogin.domain.model.AuthState
 import com.rndeveloper.paparcar.Routes
 import com.rndeveloper.paparcar.presentation.app.BootstrapFailure
 import com.rndeveloper.paparcar.domain.model.Vehicle

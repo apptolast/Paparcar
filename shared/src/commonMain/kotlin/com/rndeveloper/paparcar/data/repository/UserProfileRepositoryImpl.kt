@@ -2,7 +2,7 @@
 
 package com.rndeveloper.paparcar.data.repository
 
-import com.apptolast.customlogin.domain.model.UserSession
+import com.apptolast.baselogin.domain.model.UserSession
 import com.rndeveloper.paparcar.data.datasource.local.room.UserProfileDao
 import com.rndeveloper.paparcar.data.datasource.remote.RemoteUserProfileDataSource
 import com.rndeveloper.paparcar.data.datasource.remote.dto.UserProfileDto

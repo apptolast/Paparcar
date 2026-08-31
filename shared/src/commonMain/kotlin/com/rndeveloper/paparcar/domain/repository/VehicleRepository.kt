@@ -30,7 +30,7 @@ interface VehicleRepository : UserScopedRepository, RemoteSyncable {
 
     /**
      * One-shot fetch of the vehicle paired with [deviceAddress] for the current user.
-     * Resolves the userId internally via [com.apptolast.customlogin.domain.AuthRepository].
+     * Resolves the userId internally via [com.apptolast.baselogin.domain.AuthRepository].
      * Used by the BT detection receiver to identify *which* vehicle is being driven
      * (under multi-vehicle BT, the default is no longer a reliable proxy). Returns null
      * if no vehicle has this MAC paired, or if there is no authenticated session.

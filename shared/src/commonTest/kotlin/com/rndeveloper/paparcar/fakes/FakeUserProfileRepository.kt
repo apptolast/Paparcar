@@ -1,6 +1,6 @@
 package com.rndeveloper.paparcar.fakes
 
-import com.apptolast.customlogin.domain.model.UserSession
+import com.apptolast.baselogin.domain.model.UserSession
 import com.rndeveloper.paparcar.domain.model.UserProfile
 import com.rndeveloper.paparcar.domain.repository.UserProfileRepository
 import kotlinx.coroutines.CompletableDeferred

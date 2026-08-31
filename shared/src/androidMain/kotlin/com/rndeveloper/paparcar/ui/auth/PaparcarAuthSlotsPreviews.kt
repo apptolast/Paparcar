@@ -9,10 +9,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.apptolast.customlogin.domain.model.IdentityProvider
-import com.apptolast.customlogin.presentation.screens.components.DefaultAuthContainer
-import com.apptolast.customlogin.presentation.slots.LoginScreenSlots
-import com.apptolast.customlogin.presentation.slots.defaultslots.DefaultDivider
+import com.apptolast.baselogin.domain.model.IdentityProvider
+import com.apptolast.baselogin.presentation.screens.components.DefaultAuthContainer
+import com.apptolast.baselogin.presentation.slots.LoginScreenSlots
+import com.apptolast.baselogin.presentation.slots.defaultslots.DefaultDivider
 import com.rndeveloper.paparcar.di.paparcarLoginConfig
 import com.rndeveloper.paparcar.di.paparcarSocialProviders
 import com.rndeveloper.paparcar.ui.theme.PaparcarTheme

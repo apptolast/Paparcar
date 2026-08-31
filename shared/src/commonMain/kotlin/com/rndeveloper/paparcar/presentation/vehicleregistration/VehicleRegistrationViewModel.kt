@@ -1,6 +1,6 @@
 package com.rndeveloper.paparcar.presentation.vehicleregistration
 
-import com.apptolast.customlogin.domain.AuthRepository
+import com.apptolast.baselogin.domain.AuthRepository
 import com.rndeveloper.paparcar.domain.error.PaparcarError
 import com.rndeveloper.paparcar.domain.model.CarbodyType
 import com.rndeveloper.paparcar.domain.model.Vehicle

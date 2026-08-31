@@ -1,7 +1,7 @@
 package com.rndeveloper.paparcar
 
 import android.app.Application
-import com.apptolast.customlogin.appContext
+import com.apptolast.baselogin.appContext
 import com.rndeveloper.paparcar.di.domainModule
 import com.rndeveloper.paparcar.di.mockModule
 import com.rndeveloper.paparcar.di.presentationModule

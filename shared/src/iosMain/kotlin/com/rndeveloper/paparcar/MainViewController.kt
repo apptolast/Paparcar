@@ -3,7 +3,7 @@
 package com.rndeveloper.paparcar
 
 import androidx.compose.ui.window.ComposeUIViewController
-import com.apptolast.customlogin.di.initLoginKoin
+import com.apptolast.baselogin.di.initLoginKoin
 import com.rndeveloper.paparcar.di.dataModule
 import com.rndeveloper.paparcar.di.domainModule
 import com.rndeveloper.paparcar.di.iosDetectionModule

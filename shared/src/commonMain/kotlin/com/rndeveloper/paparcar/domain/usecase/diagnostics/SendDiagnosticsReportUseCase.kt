@@ -2,7 +2,7 @@
 
 package com.rndeveloper.paparcar.domain.usecase.diagnostics
 
-import com.apptolast.customlogin.domain.AuthRepository
+import com.apptolast.baselogin.domain.AuthRepository
 import com.rndeveloper.paparcar.domain.diagnostics.DeviceInfoProvider
 import com.rndeveloper.paparcar.domain.diagnostics.DiagnosticsReport
 import com.rndeveloper.paparcar.domain.diagnostics.DiagnosticsReportUploader

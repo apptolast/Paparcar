@@ -2,7 +2,7 @@
 
 package com.rndeveloper.paparcar.data.datasource.remote
 
-import com.apptolast.customlogin.domain.AuthRepository
+import com.apptolast.baselogin.domain.AuthRepository
 import dev.gitlive.firebase.firestore.FirebaseFirestore
 import com.rndeveloper.paparcar.data.datasource.remote.DiagnosticsFirestoreSchema.COLLECTION_CONFIG
 import com.rndeveloper.paparcar.data.datasource.remote.DiagnosticsFirestoreSchema.COLLECTION_DIAGNOSTICS

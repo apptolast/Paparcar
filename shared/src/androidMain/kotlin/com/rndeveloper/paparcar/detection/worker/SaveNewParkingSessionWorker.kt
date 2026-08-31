@@ -11,7 +11,7 @@ import androidx.work.OneTimeWorkRequest
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
-import com.apptolast.customlogin.domain.AuthRepository
+import com.apptolast.baselogin.domain.AuthRepository
 import com.rndeveloper.paparcar.data.datasource.remote.RemoteUserProfileDataSource
 import com.rndeveloper.paparcar.data.datasource.remote.dto.ParkingHistoryDto
 import com.rndeveloper.paparcar.data.mapper.toParkingHistoryDto

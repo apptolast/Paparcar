@@ -56,11 +56,11 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.savedstate.read
-import com.apptolast.customlogin.domain.model.AuthState
-import com.apptolast.customlogin.presentation.navigation.AuthRoutesFlow
-import com.apptolast.customlogin.presentation.navigation.LoginRoute
-import com.apptolast.customlogin.presentation.navigation.NavTransitions
-import com.apptolast.customlogin.presentation.navigation.authRoutesFlow
+import com.apptolast.baselogin.domain.model.AuthState
+import com.apptolast.baselogin.presentation.navigation.AuthRoutesFlow
+import com.apptolast.baselogin.presentation.navigation.LoginRoute
+import com.apptolast.baselogin.presentation.navigation.NavTransitions
+import com.apptolast.baselogin.presentation.navigation.authRoutesFlow
 import com.rndeveloper.paparcar.domain.connectivity.ConnectivityBannerPhase
 import com.rndeveloper.paparcar.domain.preferences.ThemeMode
 import com.rndeveloper.paparcar.presentation.app.AppIntent

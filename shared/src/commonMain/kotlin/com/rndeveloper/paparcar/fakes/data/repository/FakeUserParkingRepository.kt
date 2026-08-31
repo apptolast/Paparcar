@@ -3,7 +3,12 @@
 package com.rndeveloper.paparcar.fakes.data.repository
 
 import com.rndeveloper.paparcar.domain.detection.DetectionRuntimeState
-import com.rndeveloper.paparcar.domain.model.*
+import com.rndeveloper.paparcar.domain.model.AddressInfo
+import com.rndeveloper.paparcar.domain.model.GpsPoint
+import com.rndeveloper.paparcar.domain.model.PlaceInfo
+import com.rndeveloper.paparcar.domain.model.RouteInferenceResolution
+import com.rndeveloper.paparcar.domain.model.SpotType
+import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow

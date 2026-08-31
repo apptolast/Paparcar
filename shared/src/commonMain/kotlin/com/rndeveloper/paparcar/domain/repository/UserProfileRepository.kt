@@ -1,6 +1,6 @@
 package com.rndeveloper.paparcar.domain.repository
 
-import com.apptolast.customlogin.domain.model.UserSession
+import com.apptolast.baselogin.domain.model.UserSession
 import com.rndeveloper.paparcar.domain.model.UserProfile
 import kotlinx.coroutines.flow.Flow
 

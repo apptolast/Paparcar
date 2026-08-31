@@ -1,7 +1,14 @@
 package com.rndeveloper.paparcar.fakes.data.repository
 
-import com.apptolast.customlogin.domain.AuthRepository
-import com.apptolast.customlogin.domain.model.*
+import com.apptolast.baselogin.domain.AuthRepository
+import com.apptolast.baselogin.domain.model.AuthResult
+import com.apptolast.baselogin.domain.model.AuthState
+import com.apptolast.baselogin.domain.model.Credentials
+import com.apptolast.baselogin.domain.model.IdentityProvider
+import com.apptolast.baselogin.domain.model.PasswordResetData
+import com.apptolast.baselogin.domain.model.PhoneAuthResult
+import com.apptolast.baselogin.domain.model.SignUpData
+import com.apptolast.baselogin.domain.model.UserSession
 import com.rndeveloper.paparcar.di.paparcarLoginConfig
 import com.rndeveloper.paparcar.di.paparcarSocialProviders
 import com.rndeveloper.paparcar.fakes.MockScenario

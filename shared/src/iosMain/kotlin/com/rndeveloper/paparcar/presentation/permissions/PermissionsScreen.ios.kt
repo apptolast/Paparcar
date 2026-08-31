@@ -29,6 +29,10 @@ actual @Composable fun PermissionsScreen(onPermissionsGranted: () -> Unit, focus
                     requester.requestStep1()
                 PermissionsEffect.RequestProducerSensors ->
                     requester.requestProducerSensors()
+                PermissionsEffect.RequestActivityRecognition ->
+                    requester.requestActivityRecognition()
+                PermissionsEffect.RequestNotifications ->
+                    requester.requestNotifications()
                 PermissionsEffect.RequestStep2BackgroundLocation ->
                     requester.requestAlwaysLocation()
                 PermissionsEffect.RequestStepBluetooth ->
