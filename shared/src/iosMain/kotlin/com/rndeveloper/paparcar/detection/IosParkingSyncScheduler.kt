@@ -2,7 +2,7 @@
 
 package com.rndeveloper.paparcar.detection
 
-import com.apptolast.customlogin.domain.AuthRepository
+import com.apptolast.baselogin.domain.AuthRepository
 import com.rndeveloper.paparcar.data.datasource.remote.RemoteUserProfileDataSource
 import com.rndeveloper.paparcar.data.mapper.toAddressDto
 import com.rndeveloper.paparcar.data.mapper.toParkingHistoryDto

@@ -7,10 +7,10 @@ import android.os.Build
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
 import androidx.work.WorkManager
-import com.apptolast.customlogin.appContext
+import com.apptolast.baselogin.appContext
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
-import com.apptolast.customlogin.di.initLoginKoin
+import com.apptolast.baselogin.di.initLoginKoin
 import com.rndeveloper.paparcar.di.paparcarLoginConfig
 import com.rndeveloper.paparcar.detection.worker.FirstParkNudgeWorker
 import com.rndeveloper.paparcar.detection.worker.GeofenceJanitorWorker

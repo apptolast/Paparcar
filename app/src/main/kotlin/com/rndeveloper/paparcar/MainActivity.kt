@@ -16,7 +16,7 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import com.apptolast.customlogin.platform.ActivityHolder
+import com.apptolast.baselogin.platform.ActivityHolder
 import com.rndeveloper.paparcar.domain.ActivityRecognitionManager
 import com.rndeveloper.paparcar.domain.connectivity.ConnectivityObserver
 import com.rndeveloper.paparcar.domain.detection.ports.DepartureWatchResumer

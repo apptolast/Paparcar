@@ -2,8 +2,8 @@ package com.rndeveloper.paparcar.presentation.app
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.apptolast.customlogin.domain.AuthRepository
-import com.apptolast.customlogin.domain.model.AuthState
+import com.apptolast.baselogin.domain.AuthRepository
+import com.apptolast.baselogin.domain.model.AuthState
 import com.rndeveloper.paparcar.Routes
 import com.rndeveloper.paparcar.core.crash.CrashReporter
 import com.rndeveloper.paparcar.domain.error.PaparcarError

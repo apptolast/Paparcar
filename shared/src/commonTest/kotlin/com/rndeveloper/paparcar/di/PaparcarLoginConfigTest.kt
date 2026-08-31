@@ -1,6 +1,6 @@
 package com.rndeveloper.paparcar.di
 
-import com.apptolast.customlogin.domain.model.IdentityProvider
+import com.apptolast.baselogin.domain.model.IdentityProvider
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

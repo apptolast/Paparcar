@@ -2,7 +2,7 @@
 
 package com.rndeveloper.paparcar.data.repository
 
-import com.apptolast.customlogin.domain.AuthRepository
+import com.apptolast.baselogin.domain.AuthRepository
 import com.rndeveloper.paparcar.data.datasource.local.room.ZoneDao
 import com.rndeveloper.paparcar.data.datasource.remote.FirebaseDataSource
 import com.rndeveloper.paparcar.data.mapper.toDomain

@@ -5,7 +5,7 @@ import com.rndeveloper.paparcar.domain.model.PlaceCategory
 import com.rndeveloper.paparcar.domain.model.PlaceInfo
 import com.rndeveloper.paparcar.domain.model.SpotType
 import com.rndeveloper.paparcar.domain.model.VehicleSize
-import com.apptolast.customlogin.domain.model.UserSession
+import com.apptolast.baselogin.domain.model.UserSession
 import com.rndeveloper.paparcar.domain.usecase.location.GetAddressAndPlaceUseCase
 import com.rndeveloper.paparcar.fakes.FakeAuthRepository
 import com.rndeveloper.paparcar.fakes.FakeAddressAndPlaceRepository
@@ -158,7 +158,7 @@ class ReportSpotReleasedUseCaseTest {
 
     @Test
     fun `should_passNull_as_reportedBy_when_no_session`() = runTest {
-        auth.emitState(com.apptolast.customlogin.domain.model.AuthState.Unauthenticated)
+        auth.emitState(com.apptolast.baselogin.domain.model.AuthState.Unauthenticated)
         val ucNoAuth = ReportSpotReleasedUseCase(
             reportSpotScheduler = scheduler,
             getAddressAndPlace = GetAddressAndPlaceUseCase(addressAndPlaceRepo),

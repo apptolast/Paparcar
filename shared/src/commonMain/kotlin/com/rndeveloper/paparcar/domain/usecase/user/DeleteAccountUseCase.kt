@@ -1,6 +1,6 @@
 package com.rndeveloper.paparcar.domain.usecase.user
 
-import com.apptolast.customlogin.domain.AuthRepository
+import com.apptolast.baselogin.domain.AuthRepository
 import com.rndeveloper.paparcar.domain.repository.SpotRepository
 import com.rndeveloper.paparcar.domain.repository.UserScopedRepository
 

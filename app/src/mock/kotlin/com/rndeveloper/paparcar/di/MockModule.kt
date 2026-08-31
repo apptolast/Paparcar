@@ -1,7 +1,7 @@
 package com.rndeveloper.paparcar.di
 
 import androidx.room.Room
-import com.apptolast.customlogin.domain.AuthRepository
+import com.apptolast.baselogin.domain.AuthRepository
 import com.rndeveloper.paparcar.data.datasource.FakeLocationDataSource
 import com.rndeveloper.paparcar.data.datasource.local.room.AppDatabase
 import com.rndeveloper.paparcar.fakes.data.datasource.remote.FakeFirebaseDataSource
@@ -52,7 +52,7 @@ import com.rndeveloper.paparcar.fakes.data.repository.FakeUserProfileRepository
 import com.rndeveloper.paparcar.fakes.data.repository.FakeVehicleRepository
 import com.rndeveloper.paparcar.fakes.data.repository.FakeZoneRepository
 import com.rndeveloper.paparcar.fakes.MockScenario
-import com.apptolast.customlogin.presentation.screens.login.LoginViewModel
+import com.apptolast.baselogin.presentation.screens.login.LoginViewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
