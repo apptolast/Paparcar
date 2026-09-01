@@ -5,6 +5,7 @@ package com.rndeveloper.paparcar.di
 import androidx.room.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import com.rndeveloper.paparcar.bluetooth.IosBluetoothScanner
+import com.rndeveloper.paparcar.data.datasource.local.room.ALL_MIGRATIONS
 import com.rndeveloper.paparcar.data.datasource.local.room.AppDatabase
 import com.rndeveloper.paparcar.domain.bluetooth.BluetoothScanner
 import com.rndeveloper.paparcar.diagnostics.IosDeviceInfoProvider
@@ -31,12 +32,15 @@ import platform.Foundation.NSFileManager
 import platform.Foundation.NSUserDomainMask
 
 val iosPlatformModule = module {
-    // [DATA-ROOM-STARTS-AT-VERSION-ONE-001] v1 baseline, no migration chain — mirrors Android.
-    // The destructive fallback stays as the net for pre-release databases on our own devices.
+    // [DATA-ROOM-STARTS-AT-VERSION-ONE-001] v1 baseline — mirrors Android, INCLUDING the migration
+    // chain [DB-A-NEW-COLUMN-NEEDS-ITS-MIGRATION-001]: with the destructive fallback below, a
+    // version bump whose migration is missing here would not crash — it would silently wipe the
+    // device. The shared ALL_MIGRATIONS list is what keeps the platforms from drifting.
     single<AppDatabase> {
         val dbFilePath = documentDirectory() + "/paparcar.db"
         Room.databaseBuilder<AppDatabase>(name = dbFilePath)
             .setDriver(BundledSQLiteDriver())
+            .addMigrations(*ALL_MIGRATIONS)
             .fallbackToDestructiveMigration(dropAllTables = true)
             .build()
     }

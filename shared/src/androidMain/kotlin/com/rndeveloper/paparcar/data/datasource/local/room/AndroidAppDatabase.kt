@@ -24,5 +24,10 @@ const val PAPARCAR_DB_NAME: String = "paparcar.db"
  */
 fun buildAppDatabase(context: Context, name: String = PAPARCAR_DB_NAME): AppDatabase =
     Room.databaseBuilder(context, AppDatabase::class.java, name)
+        // [DB-A-NEW-COLUMN-NEEDS-ITS-MIGRATION-001] Registered migrations WIN over the destructive
+        // fallback below — that precedence is what lets both lines coexist: known upgrades migrate
+        // (bench data survives), while the unknown pre-release downgrades the fallback exists for
+        // (v20→v1) still wipe instead of refusing to open.
+        .addMigrations(*ALL_MIGRATIONS)
         .fallbackToDestructiveMigration(dropAllTables = true)
         .build()

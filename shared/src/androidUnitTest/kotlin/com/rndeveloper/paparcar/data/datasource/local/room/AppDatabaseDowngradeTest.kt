@@ -45,7 +45,7 @@ class AppDatabaseDowngradeTest {
     private val context: Context get() = ApplicationProvider.getApplicationContext()
 
     @Test
-    fun should_wipeAndReopenAtVersionOne_when_theFileIsLeftFromAHigherPreReleaseVersion() = runTest {
+    fun should_wipeAndReopenAtDeclaredVersion_when_theFileIsLeftFromAHigherPreReleaseVersion() = runTest {
         val name = "downgrade-from-20.db"
         seedPreReleaseDatabase(name, version = 20)
 
@@ -55,7 +55,7 @@ class AppDatabaseDowngradeTest {
         db.close()
 
         assertNull(vehicle, "a wiped database cannot hand back rows")
-        assertEquals(1, readUserVersion(name), "the file must end up at the version the app declares")
+        assertEquals(PAPARCAR_DB_VERSION, readUserVersion(name), "the file must end up at the version the app declares")
     }
 
     @Test
@@ -86,15 +86,19 @@ class AppDatabaseDowngradeTest {
      * thing standing between an old file and a crash.
      */
     @Test
-    fun should_wipeAndReopenAtVersionOne_when_theFileIsFromAnOlderVersionWithNoMigration() = runTest {
-        val name = "upgrade-from-3.db"
-        seedPreReleaseDatabase(name, version = 3)
+    fun should_wipeAndReopenAtDeclaredVersion_when_theFileIsFromTheNextPreReleaseVersion() = runTest {
+        // [DB-A-NEW-COLUMN-NEEDS-ITS-MIGRATION-001] Re-framed when v1->v2 gained a real Migration:
+        // there is no longer any UPGRADE gap without one, so the near-boundary case the fallback
+        // still owns is the rollback from a build one version ahead (sideloaded newer APK, then
+        // back to this one). Same path as the v20 file, pinned at the closest distance.
+        val name = "downgrade-from-next.db"
+        seedPreReleaseDatabase(name, version = PAPARCAR_DB_VERSION + 1)
 
         val db = buildAppDatabase(context, name)
         db.vehicleDao().getActive("nobody")
         db.close()
 
-        assertEquals(1, readUserVersion(name))
+        assertEquals(PAPARCAR_DB_VERSION, readUserVersion(name))
         assertTrue("vehicles" in readTableNames(name))
     }
 
