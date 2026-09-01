@@ -63,19 +63,24 @@ import com.rndeveloper.paparcar.fakes.data.repository.FakeUserProfileRepository
 import com.rndeveloper.paparcar.fakes.data.repository.FakeVehicleRepository
 import com.rndeveloper.paparcar.fakes.data.repository.FakeZoneRepository
 import com.rndeveloper.paparcar.fakes.MockScenario
-import com.apptolast.baselogin.presentation.screens.login.LoginViewModel
+import com.rndeveloper.paparcar.BuildConfig
 import org.koin.android.ext.koin.androidContext
-import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
 val mockModule = module {
     // Dev scenario shared by the scenario-aware fakes below and by the Dev Catalog UI.
     single { MockScenario() }
 
-    // Library login screen's ViewModel (needs only AuthRepository, faked below). The library's
-    // own presentationModule is internal, so we register this one explicitly — without it the
-    // login screen crashes (NoDefinitionFound) when the Dev Catalog shows the LoggedOut flow.
-    viewModelOf(::LoginViewModel)
+    // [MOCK-AUTH-SCREENS-NEED-THEIR-VIEWMODELS-001] The auth ViewModels no longer live here: the
+    // whole set arrives with `loginPresentationModule` in MockPaparcarApp. What DOES belong here is
+    // the config they need, because mock skips `initLoginKoin` (Firebase) and that is what binds it
+    // in production. Without this line the register screen compiles and then dies asking Koin for a
+    // LoginLibraryConfig — the same crash the ticket is about, one dependency further in.
+    //
+    // Built through `paparcarLoginConfig` and given the REAL client id, never inlined: the Dev
+    // Catalog exists to show the screens as they ship, and the library's own flags default to
+    // offering methods Paparcar does not support. [AUTH-PROVIDERS-EXPLICIT-001]
+    single { paparcarLoginConfig(googleWebClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID) }
 
     // DataSources
     // Pass the shared detection runtime so the mock location can "drive" while a trip is running. [DRIVE-SIM-001]
