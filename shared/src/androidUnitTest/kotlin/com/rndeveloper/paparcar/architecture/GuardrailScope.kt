@@ -238,6 +238,44 @@ object GuardrailScope {
         floor = floor,
     ) { _ -> productionSourceFiles().filter { it.text.contains(symbol) } }
 
+    /**
+     * The recorded field traces: `Trace_*.kt` under the replay package.
+     *
+     * The only population here that lives in a TEST source set, and the reason is that these files
+     * are not tests — they are evidence. Each one is a stream a real device recorded on a real
+     * night, transcribed once and kept forever, and the corpus is quoted as a number
+     * ("the 16 field replays") in commit messages, docs and memory.
+     * [TEST-AN-ORPHANED-FIELD-TRACE-STILL-LOOKS-LIKE-COVERAGE-001]
+     */
+    fun fieldTraceFiles(): List<KoFileDeclaration> = population(
+        name = "field trace fixtures (commonTest, replay/Trace_*.kt)",
+        floor = FIELD_TRACE_FILES_FLOOR,
+    ) { scope ->
+        scope.files.filter { file ->
+            val path = file.path.replace('\\', '/')
+            path.contains(REPLAY_PACKAGE_PATH) && path.substringAfterLast('/').startsWith("Trace_")
+        }
+    }
+
+    /**
+     * Every file in a test source set — the corpus the trace rule searches for readers.
+     *
+     * ⚠️ It carries a floor like the rest, but for a different reason, and the difference is worth
+     * knowing before anyone copies this: if THIS selector broke, every trace would come back with no
+     * reader and the rule would go **red**, loudly. It is the population under rule that fails
+     * silently when its selector breaks, never the corpus being searched. The floor here is belt.
+     */
+    fun testSourceFiles(): List<KoFileDeclaration> = population(
+        name = "test sources",
+        floor = TEST_SOURCES_FLOOR,
+    ) { scope ->
+        scope.files.filter { file ->
+            val path = file.path.replace('\\', '/')
+            path.contains("/commonTest/") || path.contains("/androidUnitTest/") ||
+                path.contains("/androidTest/") || path.contains("/iosTest/")
+        }
+    }
+
     /** Every declared class in the project, for rules about where a KIND of class may live. */
     fun allClasses(): List<KoClassDeclaration> = classPopulation(
         name = "all project classes",
@@ -262,5 +300,10 @@ object GuardrailScope {
     const val PRODUCTION_SOURCES_FLOOR = 270        // measured 562
     const val DOMAIN_PRODUCTION_FLOOR = 100         // measured 210
     const val VEHICLE_TYPE_MENTIONS_FLOOR = 10      // measured  21
+    const val FIELD_TRACE_FILES_FLOOR = 9           // measured  18
+    const val TEST_SOURCES_FLOOR = 115              // measured 234
     const val ALL_CLASSES_FLOOR = 300
+
+    /** Where the field traces live. Named once: [fieldTraceFiles] selects it, the rule reports it. */
+    const val REPLAY_PACKAGE_PATH = "/domain/detection/coordinator/replay/"
 }

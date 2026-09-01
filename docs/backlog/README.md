@@ -76,6 +76,7 @@ No esperan a un viaje: esperan a que vuelva a fallar lo que los originó.
 
 | Ticket | Nota |
 |---|---|
+| [`test-a-trace-whose-ground-truth-is-never-asserted-001`](test-a-trace-whose-ground-truth-is-never-asserted-001.md) | **medido**: 6 constantes de ground-truth que nadie lee. ⛔ decisión caso por caso ANTES de la regla — puede cerrarse REFUTADO |
 | [`ux-park-flow-001`](ux-park-flow-001.md) | placeholder POR DEFINIR · análisis hecho en [`ux-park-flow-001-analysis`](ux-park-flow-001-analysis.md) y [`home-flow-analysis`](home-flow-analysis.md) |
 | [`snap-to-park-001`](snap-to-park-001.md) | sacar el ancla de dentro de edificios. Sin código y **sin rama** |
 | [`zone-subscribe-001`](zone-subscribe-001.md) | *"avísame cuando haya plaza aquí"* — excluido de UI-SHEET-001 por no haber backend |
