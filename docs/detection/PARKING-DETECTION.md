@@ -7144,3 +7144,35 @@ the zone. Nothing else moved.
 the hole's. Not answered here — there is no measurement behind it yet.
 
 Spec: `docs/backlog/det-a-user-yes-does-not-shrink-a-walk-entered-doubt-001.md`.
+
+---
+
+### DET-A-RELEASED-PIN-TAKES-ITS-FENCES-WITH-IT-001 — an orphan ENTER fence fires forever, and nobody was listening (pending)
+
+**The field day.** 2026-08-31 (Oppo): pin `d194668c` released at 21:22:44; its `enter_` twin was
+still firing at 21:34:26. Fences are `NEVER_EXPIRE` — an orphan fires for good.
+
+**Two defects, both measured.** (1) `ProcessConfirmedDepartureUseCase` discarded `removeGeofence`'s
+Result in SILENCE — and removal failures are real (2026-08-30 21:27:34, a logging call site caught
+one). Of the eight call sites, half logged failures and half did not: whether a removal failure was
+even *visible* depended on which door released the pin. (2) The EXIT lane has had an orphan sweep
+since 2026-07-11; the ENTER lane had none — `GeofenceEnterReceiver` never asked whether the fence
+that fired still had a session.
+
+**Why the janitor cannot cover it.** `removeGeofence` forgets the ledger entry BEFORE asking GMS
+(deliberate — better to re-register a removed fence than skip a live one), so after a failed
+removal no ledger remembers the fence, and GMS exposes no list API. **The orphan's own firing is
+its only observable** — so the cure lives on the trigger, exactly like the EXIT lane's.
+
+**The fix.** (1) The failure witness moved INTO `GeofenceManagerImpl.removeGeofence` — one place
+covers all eight call sites, present and future. (2) `cleanOrphanEnterFences` (commonMain,
+tested): the ENTER receiver carries the fired base ids to the safety-net check, which sweeps the
+ones with no active session — remove + `OrphanCleaned`, best-effort (a failed removal gets its
+retry on the fence's next firing). **Fails OPEN by construction**: the sweep only runs after a
+SUCCESSFUL session read (the 2026-07-11 lesson — a failed lookup must never classify a live fence
+as orphan), and the receiver stays the dumb relay it was built to be.
+
+**Seen failing before it was believed**: sweeping everything (filter dropped) turned the
+live-fence and the mixed-delivery tests red.
+
+Spec: `docs/backlog/det-a-released-pin-takes-its-fences-with-it-001.md`.

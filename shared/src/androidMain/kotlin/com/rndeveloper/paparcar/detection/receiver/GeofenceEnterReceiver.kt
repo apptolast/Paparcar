@@ -6,6 +6,7 @@ import android.content.Intent
 import androidx.work.WorkManager
 import com.google.android.gms.location.Geofence
 import com.google.android.gms.location.GeofencingEvent
+import com.rndeveloper.paparcar.detection.GeofenceManagerImpl
 import com.rndeveloper.paparcar.detection.worker.ParkingSafetyNetWorker
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 
@@ -35,9 +36,18 @@ class GeofenceEnterReceiver : BroadcastReceiver() {
         if (event.geofenceTransition != Geofence.GEOFENCE_TRANSITION_ENTER) return
         val ids = event.triggeringGeofences?.joinToString { it.requestId } ?: "?"
         PaparcarLogger.d(TAG, "✓ re-entered own fence ($ids) → enqueueing anchor re-seal check")
+        // [DET-A-RELEASED-PIN-TAKES-ITS-FENCES-WITH-IT-001] Carry the BASE ids of the fences that
+        // fired: the check sweeps the ones with no session left (a released pin whose removal
+        // failed in silence — field 2026-08-31, enter_d194668c firing 12 min after its release).
+        // Still no decision HERE — the receiver stays the dumb relay it was built to be; the
+        // worker owns the session read, and its fail-open on a broken read owns the 07-11 lesson.
+        val baseIds = event.triggeringGeofences.orEmpty().map {
+            it.requestId.removePrefix(GeofenceManagerImpl.ENTER_ID_PREFIX)
+        }
         ParkingSafetyNetWorker.enqueueCheckNow(
             WorkManager.getInstance(context),
             source = ParkingSafetyNetWorker.SOURCE_GEOFENCE_ENTER,
+            triggeringFenceIds = baseIds,
         )
     }
 

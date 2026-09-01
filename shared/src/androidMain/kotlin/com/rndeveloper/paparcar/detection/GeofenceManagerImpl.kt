@@ -121,7 +121,7 @@ class GeofenceManagerImpl(
             .onFailure { PaparcarLogger.w(TAG, "⚠ witness fence registration failed for $geofenceId (${it.message}) — diagnostics-only, EXIT trigger unaffected") }
     }
 
-    override suspend fun removeGeofence(geofenceId: String): Result<Unit> = runCatching {
+    override suspend fun removeGeofence(geofenceId: String): Result<Unit> = runCatching<Unit> {
         // Forget it FIRST: if the removal throws we would rather re-register a fence that is
         // already gone than skip one because of a stale ledger entry. [DET-FENCE-REREGISTER-BY-CAUSE-001]
         FenceRegistrationLedger.forget(geofenceId)
@@ -129,6 +129,22 @@ class GeofenceManagerImpl(
             listOf(geofenceId, ENTER_ID_PREFIX + geofenceId, WITNESS_ID_PREFIX + geofenceId),
         ).await()
     }
+        // [DET-A-RELEASED-PIN-TAKES-ITS-FENCES-WITH-IT-001] The witness lives HERE, in the one
+        // place all eight call sites converge, because half of them discarded the Result in
+        // silence: field 2026-08-31 21:22 (Oppo) released pin d194668c with no removal trace at
+        // all, and its NEVER_EXPIRE enter_ twin was still firing 12 minutes later — with no way
+        // to tell "the removal failed" from "it never ran". A removal that fails must say so:
+        // the fence outlives the pin until its next trigger cleans it up (the ENTER-lane orphan
+        // sweep), and that is a fact a field trace has to be able to read.
+        .onSuccess { PaparcarLogger.d(TAG, "✓ removed fences for ${geofenceId.take(8)} (exit + enter + witness)") }
+        .onFailure {
+            PaparcarLogger.w(
+                TAG,
+                "⚠ removeGeofence(${geofenceId.take(8)}) FAILED (${it.message}) — the three fences " +
+                    "outlive the released pin until their next trigger cleans them " +
+                    "[DET-A-RELEASED-PIN-TAKES-ITS-FENCES-WITH-IT-001]",
+            )
+        }
 
     override suspend fun removeAllGeofences(): Result<Unit> = runCatching {
         FenceRegistrationLedger.reset()

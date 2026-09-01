@@ -33,6 +33,7 @@ import com.rndeveloper.paparcar.domain.detection.DetectionPath
 import com.rndeveloper.paparcar.domain.detection.ArrivalOwner
 import com.rndeveloper.paparcar.domain.detection.DetectionRuntimeState
 import com.rndeveloper.paparcar.domain.detection.arrivalOwner
+import com.rndeveloper.paparcar.domain.detection.cleanOrphanEnterFences
 import com.rndeveloper.paparcar.domain.detection.sentry.SentryKillVerdict
 import com.rndeveloper.paparcar.domain.detection.sentry.resolveSentryKillVerdict
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEvent
@@ -146,9 +147,29 @@ class ParkingSafetyNetWorker(
 
         val sessions = runCatching { userParkingRepository.observeActiveSessions().firstOrNull().orEmpty() }
             .getOrElse {
+                // [DET-A-RELEASED-PIN-TAKES-ITS-FENCES-WITH-IT-001] Returning HERE is also what
+                // keeps the orphan sweep below fail-open: a failed read must never classify a live
+                // fence as orphan (the 2026-07-11 lesson, inherited from the EXIT lane's sweep).
                 PaparcarLogger.e(DIAG, "✗ failed to read active sessions", it)
                 return Result.success()
             }
+
+        // [DET-A-RELEASED-PIN-TAKES-ITS-FENCES-WITH-IT-001] The ENTER lane's orphan sweep: a fence
+        // whose ENTER fired but whose session is gone was released with a failed/never-run removal
+        // (NEVER_EXPIRE — it fires forever, and its own firing is its only observable). Runs BEFORE
+        // the empty-sessions early return on purpose: no sessions at all is the most orphaned case.
+        val deliveredFenceIds = inputData.getStringArray(KEY_TRIGGERING_FENCE_IDS)?.toList().orEmpty()
+        if (deliveredFenceIds.isNotEmpty()) {
+            runCatching {
+                cleanOrphanEnterFences(
+                    deliveredGeofenceIds = deliveredFenceIds,
+                    activeSessions = sessions,
+                    geofenceManager = geofenceManager,
+                    detectionEventLogger = detectionEventLogger,
+                    nowMs = System.currentTimeMillis(),
+                )
+            }
+        }
 
         // [OEM-KILL-001] Heartbeat: measure the gap since the previous safety-net run BEFORE
         // stamping the new one. An hours-long gap with a session active means the OEM froze
@@ -907,6 +928,9 @@ class ParkingSafetyNetWorker(
 
         /** What woke the check up — debug + telemetry breadcrumb (`DEPARTURE_VERDICT.source`). */
         private const val KEY_SOURCE = "source"
+        /** [DET-A-RELEASED-PIN-TAKES-ITS-FENCES-WITH-IT-001] Base fence ids delivered by the ENTER
+         *  receiver — the orphan sweep's input. */
+        private const val KEY_TRIGGERING_FENCE_IDS = "triggering_fence_ids"
         const val SOURCE_PERIODIC = "periodic"
         const val SOURCE_SIG_MOTION = "sig-motion"
         const val SOURCE_APP_START = "app-start"
@@ -1114,12 +1138,26 @@ class ParkingSafetyNetWorker(
          * Expedited where quota allows — a sensor callback cannot legally start an FGS on
          * Android 12+, and expedited work is the sanctioned fast lane.
          */
-        fun enqueueCheckNow(workManager: WorkManager, source: String) {
+        /**
+         * @param triggeringFenceIds [DET-A-RELEASED-PIN-TAKES-ITS-FENCES-WITH-IT-001] BASE ids of
+         *   the fences whose ENTER delivered this wake (prefix stripped by the receiver). The check
+         *   sweeps the ones that no longer have a session — the ENTER lane's orphan cleanup.
+         */
+        fun enqueueCheckNow(
+            workManager: WorkManager,
+            source: String,
+            triggeringFenceIds: List<String> = emptyList(),
+        ) {
             workManager.enqueueUniqueWork(
                 "${TAG}_now",
                 ExistingWorkPolicy.REPLACE,
                 OneTimeWorkRequestBuilder<ParkingSafetyNetWorker>()
-                    .setInputData(workDataOf(KEY_SOURCE to source))
+                    .setInputData(
+                        workDataOf(
+                            KEY_SOURCE to source,
+                            KEY_TRIGGERING_FENCE_IDS to triggeringFenceIds.toTypedArray(),
+                        )
+                    )
                     .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
                     .addTag(TAG)
                     .build(),
