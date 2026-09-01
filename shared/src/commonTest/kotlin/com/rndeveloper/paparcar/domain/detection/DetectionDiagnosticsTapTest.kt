@@ -80,4 +80,73 @@ class DetectionDiagnosticsTapTest {
             "a marker from a previous drive must not silence this one",
         )
     }
+
+    // ── Rising edge [DET-EDGE-MARKERS-TO-THE-TAP-001] ─────────────────────────
+    // The form `latchOnce` cannot express: one line per RISE, re-armed on fall — a departure per
+    // drive. A latch here would have swallowed the second exit of the session.
+
+    @Test
+    fun should_claimTheEdgeOnceOnRiseAndStayQuietWhileHigh_when_theSignalHolds() {
+        val tap = DetectionDiagnosticsTap(RecordingLogger())
+        tap.open("session-1")
+        assertTrue(tap.risingEdge(DetectionDiagnosticsTap.Edge.VEHICLE_EXIT, high = true))
+        assertFalse(tap.risingEdge(DetectionDiagnosticsTap.Edge.VEHICLE_EXIT, high = true))
+    }
+
+    @Test
+    fun should_reArmAndClaimAgain_when_theSignalFallsAndRises() {
+        val tap = DetectionDiagnosticsTap(RecordingLogger())
+        tap.open("session-1")
+        assertTrue(tap.risingEdge(DetectionDiagnosticsTap.Edge.VEHICLE_EXIT, high = true))
+        assertFalse(tap.risingEdge(DetectionDiagnosticsTap.Edge.VEHICLE_EXIT, high = false))
+        assertTrue(
+            tap.risingEdge(DetectionDiagnosticsTap.Edge.VEHICLE_EXIT, high = true),
+            "a hint that cleared (driving away) and set again is a SECOND exit and must log again",
+        )
+    }
+
+    @Test
+    fun should_forgetARisenEdge_when_aNewSessionOpens() {
+        val tap = DetectionDiagnosticsTap(RecordingLogger())
+        tap.open("session-1")
+        tap.risingEdge(DetectionDiagnosticsTap.Edge.VEHICLE_EXIT, high = true)
+        tap.open("session-2")
+        assertTrue(tap.risingEdge(DetectionDiagnosticsTap.Edge.VEHICLE_EXIT, high = true))
+    }
+
+    // ── Value dedup [DET-EDGE-MARKERS-TO-THE-TAP-001] ─────────────────────────
+    // The other form `latchOnce` cannot express: re-emit when the stamp CHANGES, including from
+    // the empty seed — an INHERITED AR stamp must log on the first observation with its true age,
+    // and a second boarding must re-emit.
+
+    @Test
+    fun should_claimTheFirstObservedStamp_when_theSeedIsEmpty() {
+        val tap = DetectionDiagnosticsTap(RecordingLogger())
+        tap.open("session-1")
+        assertTrue(
+            tap.valueChanged(DetectionDiagnosticsTap.ValueMark.BICYCLE_RIDE_STAMP, 5_000L),
+            "a stamp inherited from before the session must log on the first fix",
+        )
+        assertFalse(tap.valueChanged(DetectionDiagnosticsTap.ValueMark.BICYCLE_RIDE_STAMP, 5_000L))
+    }
+
+    @Test
+    fun should_claimAgain_when_theStampChanges() {
+        val tap = DetectionDiagnosticsTap(RecordingLogger())
+        tap.open("session-1")
+        tap.valueChanged(DetectionDiagnosticsTap.ValueMark.VEHICLE_RIDE_STAMP, 5_000L)
+        assertTrue(
+            tap.valueChanged(DetectionDiagnosticsTap.ValueMark.VEHICLE_RIDE_STAMP, 9_000L),
+            "a second boarding is a NEW stamp and must re-emit — latchOnce would swallow it",
+        )
+    }
+
+    @Test
+    fun should_forgetClaimedStamps_when_aNewSessionOpens() {
+        val tap = DetectionDiagnosticsTap(RecordingLogger())
+        tap.open("session-1")
+        tap.valueChanged(DetectionDiagnosticsTap.ValueMark.BICYCLE_RIDE_STAMP, 5_000L)
+        tap.open("session-2")
+        assertTrue(tap.valueChanged(DetectionDiagnosticsTap.ValueMark.BICYCLE_RIDE_STAMP, 5_000L))
+    }
 }

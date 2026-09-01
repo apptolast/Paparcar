@@ -555,19 +555,9 @@ class CoordinatorParkingDetector(
             return StagePass(endsPass = budgetVerdict.stopsIteration, endsSession = budgetPass.endsSession)
         }
 
-        // [DET-LOG-04] Edge-detect the AR signals so each transition is logged once (not on every
-        // subsequent fix). Reset to false when the signal clears (driving away), so a re-entry logs again.
-        var loggedVehicleExit = false
-        // [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001 §C] Edge markers for the AR EVIDENCE lane. Seeded
-        // to 0 (not to the current state) on purpose: a stamp INHERITED from before this session —
-        // the singleton state is only reset when a session ends, so a cycling stamp delivered
-        // between sessions rides into the next one — gets logged on the first fix, with its true
-        // age. That inheritance is invisible today and it is the hardest kind of veto to explain
-        // after the fact.
-        var loggedBicycleRideAtMs = 0L
-        var loggedVehicleRideAtMs = 0L
-        var loggedMotorWitnessed = false
-        var loggedMotorWitnessedByDisplacement = false
+        // [DET-EDGE-MARKERS-TO-THE-TAP-001] The five edge/value/latch markers that used to be
+        // loose `var`s here live in [DetectionDiagnosticsTap] as three NAMED dedup forms —
+        // cleared by `diagnostics.open()` above, claimed in the trace block after the fix.
 
         // [DET-LOG-03] Diagnostics session id claimed at entry (T8). The outcome defaults to
         // "ended" — [reset] above put it there — and is refined by the abort paths and by the
@@ -1039,11 +1029,8 @@ class CoordinatorParkingDetector(
                     // carries speed/accuracy/position + the running stopped duration; the AR EXIT
                     // transition is edge-logged from the state flip fed by onVehicleExit.
                     logDetection { sid -> DetectionEvent.LocationFix(sid, now, location, stoppedDuration) }
-                    if (state.egress.vehicleExitHint && !loggedVehicleExit) {
-                        loggedVehicleExit = true
+                    if (diagnostics.risingEdge(DetectionDiagnosticsTap.Edge.VEHICLE_EXIT, state.egress.vehicleExitHint)) {
                         logDetection { sid -> DetectionEvent.ActivityTransition(sid, now, activity = "IN_VEHICLE", transition = "EXIT", location = location) }
-                    } else if (!state.egress.vehicleExitHint) {
-                        loggedVehicleExit = false
                     }
                     // [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001 §C] The AR EVIDENCE lane, edge-logged
                     // the same way — because it was the only lane that could decide a session
@@ -1054,8 +1041,7 @@ class CoordinatorParkingDetector(
                     // the EXIT is: those are non-suspend entry points called from a receiver, and
                     // the edge belongs in the fix stream's order.
                     state.egress.bicycleRideAtMs?.let { stampedAt ->
-                        if (stampedAt != loggedBicycleRideAtMs) {
-                            loggedBicycleRideAtMs = stampedAt
+                        if (diagnostics.valueChanged(DetectionDiagnosticsTap.ValueMark.BICYCLE_RIDE_STAMP, stampedAt)) {
                             logDetection { sid ->
                                 DetectionEvent.ActivityTransition(
                                     sid, now, activity = "ON_BICYCLE", transition = "ENTER",
@@ -1065,8 +1051,7 @@ class CoordinatorParkingDetector(
                         }
                     }
                     state.egress.vehicleRideAtMs?.let { stampedAt ->
-                        if (stampedAt != loggedVehicleRideAtMs) {
-                            loggedVehicleRideAtMs = stampedAt
+                        if (diagnostics.valueChanged(DetectionDiagnosticsTap.ValueMark.VEHICLE_RIDE_STAMP, stampedAt)) {
                             // The counterpart: without it the trace shows a veto and no sign of the
                             // boarding that should have superseded it — which is precisely the
                             // comparison the verdict makes.
@@ -1081,8 +1066,9 @@ class CoordinatorParkingDetector(
                     // [DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001 §A/§C] …and the refutation that now
                     // outranks both, once, when it crosses. If the motor band ever refutes a ride
                     // that really was muscle, this is the line that will say so.
-                    if (!loggedMotorWitnessed && state.drive.motorBandMs >= config.sustainedDriveProofMs) {
-                        loggedMotorWitnessed = true
+                    if (state.drive.motorBandMs >= config.sustainedDriveProofMs &&
+                        diagnostics.latchOnce(DetectionDiagnosticsTap.Latch.MOTOR_WITNESSED)
+                    ) {
                         logDetection { sid ->
                             DetectionEvent.Decision(
                                 sid, now, outcome = "MOTOR_WITNESSED",
@@ -1096,10 +1082,9 @@ class CoordinatorParkingDetector(
                     // to be pulled off the phone by cable to find out WHY it degraded, because the
                     // refutation that failed left no remote mark at all — the same blindness §C of
                     // DET-MOTORWAY-TRIP-JUDGED-BICYCLE-001 closed for the AR lane.
-                    if (!loggedMotorWitnessedByDisplacement &&
-                        state.drive.motorDisplacementRateMps >= config.motorProofSpeedMps
+                    if (state.drive.motorDisplacementRateMps >= config.motorProofSpeedMps &&
+                        diagnostics.latchOnce(DetectionDiagnosticsTap.Latch.MOTOR_WITNESSED_BY_DISPLACEMENT)
                     ) {
-                        loggedMotorWitnessedByDisplacement = true
                         logDetection { sid ->
                             DetectionEvent.Decision(
                                 sid, now, outcome = "MOTOR_WITNESSED_BY_DISPLACEMENT",

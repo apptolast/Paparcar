@@ -1,7 +1,50 @@
 # DET-EDGE-MARKERS-TO-THE-TAP-001 · los marcadores de flanco, a su dueño
 
-**Estado:** 🔵 Abierto · sin rama · **desbloqueado** — su prerequisito
-(`DET-THREE-EDGE-MARKERS-CANNOT-GO-SILENT-001`, master `4272377b`) está cerrado.
+**Estado:** ✅ Done · rama `refactor/DET-EDGE-MARKERS-TO-THE-TAP-001-tap` (el hash del merge vive
+en `MEMORY.md`; este doc viaja dentro de ese commit). Prerequisito que lo desbloqueó:
+`DET-THREE-EDGE-MARKERS-CANNOT-GO-SILENT-001`, master `4272377b`.
+
+## Resolución
+
+- ⚠️ **El censo ya no era de cuatro: eran CINCO.** Después de escribirse este doc nació
+  `loggedMotorWitnessedByDisplacement` (DET-HUMAN-POWERED-VETO-MUST-BE-REVOCABLE-001) — mismo
+  patrón pestillo que `loggedMotorWitnessed`. Auditar antes de implementar volvió a cambiar el
+  alcance: los cinco se mudaron.
+- Las **tres formas nombradas** viven en `DetectionDiagnosticsTap`, cada una con su enum y su KDoc:
+  - `latchOnce(Latch)` — la que ya existía; gana `MOTOR_WITNESSED` y
+    `MOTOR_WITNESSED_BY_DISPLACEMENT`.
+  - `risingEdge(Edge, high)` — flanco re-armable (`VEHICLE_EXIT`): true en cada subida LOW→HIGH,
+    se rearma al caer. Un `latchOnce` se habría tragado la segunda salida.
+  - `valueChanged(ValueMark, value)` — dedup por VALOR (`BICYCLE_RIDE_STAMP`,
+    `VEHICLE_RIDE_STAMP`): true cuando el sello CAMBIA, incluida la primera observación desde la
+    semilla vacía — el sello HEREDADO de antes de la sesión se loguea en el primer fix con su edad
+    real, y un segundo embarque re-emite.
+- `open()` limpia las TRES estructuras (`latches`, `risenEdges`, `valueMarks`): ninguna forma
+  filtra de una sesión a la siguiente. `open()` corre en cada entrada de `invoke()` — la misma
+  vida que tenían las `var` locales, medido antes de mover.
+
+## Criterio de éxito — CUMPLIDO
+
+- Los cinco marcadores viven en el tap con las tres formas nombradas; en el coordinator quedan
+  **cero** `var` de traza (grep `loggedVehicleExit|loggedBicycleRideAtMs|loggedVehicleRideAtMs|
+  loggedMotorWitnessed` → 0 hits en shared+app).
+- **Cero tests editados**: los testigos existentes (los de `4272377b`, el del `ON_BICYCLE` y el
+  del EXIT) pasan sin tocarse. Suite completa: **2.118 tests, 0 fallos**. Se AÑADEN 6 tests de las
+  dos formas nuevas en `DetectionDiagnosticsTapTest` (11 en total allí).
+- `jamExtensionLogged` sigue donde estaba, como exige este doc: es entrada de veredicto.
+
+## Medido, no estimado
+
+La nota previa decía «~55 líneas». Lo medido: coordinator **−26/+11** (neto −15), tap **+80/−3**
+(las dos formas nuevas + KDocs), tests **+69/−0**.
+
+## Consumidores auditados
+
+- Los cinco marcadores solo se leían/escribían dentro del collector — confirmado por grep antes de
+  mover; después del cambio, 0 referencias a los nombres viejos en todo el repo. **Cerrado.**
+- Los tres eventos que emiten (`ActivityTransition`, `Decision`) viajan igual que antes: mismo
+  `logDetection`/`emit`, mismo orden en el stream del fix. **Sin cambio de conducta.**
+- `latchOnce`/`risingEdge`/`valueChanged`: call sites solo en coordinator + tap + su test. **Cerrado.**
 
 ## Problema
 

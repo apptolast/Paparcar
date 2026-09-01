@@ -7286,3 +7286,30 @@ consumes it to decide anything yet. It complements, not replaces, `FORCE_STOP_CO
 force-stop-only, one heuristic for what the APIs cannot see.
 
 Spec: `docs/backlog/det-memory-limiter-is-an-attributable-kill-001.md`.
+
+---
+
+### DET-EDGE-MARKERS-TO-THE-TAP-001 — the trace markers move in with their owner, as three named forms
+
+**Not a bug fix — an ownership fix.** Five loose `var`s inside the coordinator's collector decided
+what the remote trace emits (`loggedVehicleExit`, the two AR stamps, the two motor-witness
+latches), while `DetectionDiagnosticsTap` claimed to be the single door. "Did this branch speak?"
+had two places to look.
+
+**The finding that made it a design and not a move**: they were not five copies of one dedup but
+THREE different forms wearing the same disguise, and the tap only implemented one. Now all three
+are named API with owned state, cleared together in `open()` so nothing leaks across sessions:
+`latchOnce` (one line per session — gains `MOTOR_WITNESSED`, `MOTOR_WITNESSED_BY_DISPLACEMENT`),
+`risingEdge` (one line per RISE, re-armed on fall — `VEHICLE_EXIT`; a latch would swallow the
+second exit), `valueChanged` (one line per stamp CHANGE, seeded empty so an INHERITED AR stamp
+logs on the first fix with its true age — a latch would swallow both that and a second boarding).
+
+**Census correction**: the ticket said four; a fifth (`loggedMotorWitnessedByDisplacement`) had
+been born since. Audit-before-implement changed the scope again.
+
+**Behaviour change: none, and that is enforced** — zero existing tests edited (the `4272377b`
+witnesses are the definition of "unchanged" here), 6 new tests for the two new forms, suite
+2 118/0. `jamExtensionLogged` stays in the loop on purpose: it is a VERDICT INPUT
+(`aborted_no_movement_jam`), not bookkeeping — the tap's KDoc already names that trap.
+
+Spec: `docs/backlog/det-edge-markers-to-the-tap-001.md`.
