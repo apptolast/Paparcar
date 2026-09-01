@@ -1,7 +1,6 @@
 # DET-A-RELEASED-PIN-TAKES-ITS-FENCES-WITH-IT-001 · Una valla ENTER huérfana dispara para siempre y nadie la quita
 
-**Estado:** 🔵 En progreso · rama `bugfix/DET-A-RELEASED-PIN-TAKES-ITS-FENCES-WITH-IT-001-orphanfence`
-· worktree `../Paparcar-orphanfence` · abierto 01-09-2026 sobre master `9aa000c6`
+**Estado:** ✅ Done (01-09-2026) — mergeado a master por squash; el hash vive en `MEMORY.md`.
 
 ## Problema
 

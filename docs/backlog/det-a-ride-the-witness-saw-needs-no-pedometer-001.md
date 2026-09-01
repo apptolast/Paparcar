@@ -1,7 +1,6 @@
 # DET-A-RIDE-THE-WITNESS-SAW-NEEDS-NO-PEDOMETER-001 · 580 m en 74 s entre dos testigos no necesita contador de pasos
 
-**Estado:** 🔵 En progreso · rama `bugfix/DET-A-RIDE-THE-WITNESS-SAW-NEEDS-NO-PEDOMETER-001-witnessride`
-· worktree `../Paparcar-witnessride` · abierto 01-09-2026 sobre master `9aa00c6`
+**Estado:** ✅ Done (01-09-2026) — mergeado a master por squash; el hash vive en `MEMORY.md`.
 
 ## Problema
 
