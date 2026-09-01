@@ -1,6 +1,6 @@
 # DET-A-HOLE-THE-SPEED-FIELD-DENIES-IS-STILL-A-HOLE-001
 
-> **Estado:** implementado 2026-09-01 · rama `bugfix/DET-A-HOLE-THE-SPEED-FIELD-DENIES-IS-STILL-A-HOLE-001-gapgate` (base `0a4067e2`)
+> **Estado:** ✅ **Done** — mergeado a master el 01-09-2026 (squash, `b4f1256c`). Rama y worktree borrados.
 > **Origen:** la pregunta que dejó abierta `DET-A-USER-YES-DOES-NOT-SHRINK-A-WALK-ENTERED-DOUBT-001`
 > — *«si un bound de walk-in puede quedarse corto, ¿puede quedarse corto también el del hueco?»*.
 > Se midió. La respuesta no es la esperada.

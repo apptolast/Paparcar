@@ -1,7 +1,7 @@
 # DET-NOTHING-TO-JUDGE-IS-NOT-NO-DOUBT-001
 
-> **Estado:** implementado 2026-08-31 · rama
-> `refactor/DET-NOTHING-TO-JUDGE-IS-NOT-NO-DOUBT-001-null-policy` (base `b1de3e53`)
+> **Estado:** ✅ **Done** — mergeado a master el 31-08-2026 (squash, `c0144b5e`). Rama y worktree
+> borrados.
 > **Origen:** **Pieza 3b** del rediseño (*«una sola política de nulos, escrita una vez»*).
 > **Cierra el fallo #10** de §6.2 y deja escrita la política. **#6 queda declarado inseparable de #7.**
 

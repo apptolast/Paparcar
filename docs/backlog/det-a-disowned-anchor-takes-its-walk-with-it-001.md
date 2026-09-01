@@ -1,7 +1,7 @@
 # DET-A-DISOWNED-ANCHOR-TAKES-ITS-WALK-WITH-IT-001
 
-> **Estado:** implementado 2026-08-31 · rama `bugfix/DET-EGRESS-BIRTH-6-kinematic-witness`
-> (base `2855aafe`)
+> **Estado:** ✅ **Done** — mergeado a master el 31-08-2026 (squash, `d74e6e8c`). Rama y worktree
+> borrados.
 > **Origen:** ir a cerrar el «**bug #6**» del egress birth. **El bug era otro**, y el #6 resultó ser
 > la regla, no deuda.
 

@@ -1,7 +1,12 @@
 # DET-BT-CONNECTED-NOT-PAIRED-001 — La estrategia BT debe mandar solo si el coche BT está CONECTADO, no meramente emparejado
 
-> Estado: 📋 SPEC (sin empezar) · Creado 2026-08-08 · Prioridad: ALTA (afecta la detección en sí, por encima del banner)
-> Rama propuesta: `bugfix/DET-BT-CONNECTED-NOT-PAIRED-001-strategy-by-connection`
+> **Estado:** ✅ **Done — en master `cbc17ac4` (10-08-2026)**, *"BT strategy owns detection only when
+> CONNECTED"*.
+> ⚠️ **Este doc decía «📋 SPEC (sin empezar)» hasta el 01-09-2026**, tres semanas después de haberse
+> arreglado. Verificado antes de corregirlo: `BluetoothScanner.isConnectedToPairedCar(...)` existe y
+> cita este ticket, tiene su gemelo reactivo, y `ParkingStrategyResolver` documenta en su cabecera
+> que el criterio es el **enlace ACL** (*"the ground truth of 'I'm driving THIS car'"*), no el
+> emparejamiento. Creado 2026-08-08.
 
 ## Bug (field 08-08 Málaga, confirmado en device)
 Con dos coches — **Kamiq (BT emparejado)** y **Focus (sin BT, activo)** — y el Bluetooth del móvil

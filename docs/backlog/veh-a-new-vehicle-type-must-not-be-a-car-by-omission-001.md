@@ -1,7 +1,7 @@
 # VEH-A-NEW-VEHICLE-TYPE-MUST-NOT-BE-A-CAR-BY-OMISSION-001
 
-> **Estado:** implementado 2026-08-31 · rama
-> `refactor/VEH-A-NEW-VEHICLE-TYPE-MUST-NOT-BE-A-CAR-BY-OMISSION-001-declare` (base `70e4d297`)
+> **Estado:** ✅ **Done** — mergeado a master el 31-08-2026 (squash, `22abbcc4`). Rama y worktree
+> borrados.
 > **Origen:** las dos membresías que la **Pieza 2** del rediseño de detección dejó abiertas
 > (`docs/detection/REDESIGN-DETECTION-SYSTEM.md` §7.2, fallos #2 y #3). Resultaron ser **cuatro**.
 > **Delta de comportamiento:** cero. Es un cambio de DÓNDE se responde, no de QUÉ se responde.

@@ -1,6 +1,6 @@
 # TEST-AN-ORPHANED-FIELD-TRACE-STILL-LOOKS-LIKE-COVERAGE-001
 
-> **Estado:** implementado 2026-09-01 · rama `test/TEST-AN-ORPHANED-FIELD-TRACE-STILL-LOOKS-LIKE-COVERAGE-001-guardrail` (base `3adb08ae`)
+> **Estado:** ✅ **Done** — mergeado a master el 01-09-2026 (squash, `f58e9d64`). Rama y worktree borrados.
 > **Origen:** el hueco que dejé escrito al cerrar la Pieza 7 en
 > `DET-THE-TWO-FPS-THAT-CAUSED-THE-REDESIGN-BECOME-REPLAYS-001`: *«un `Trace_*.kt` que se quede sin
 > test que lo lea no lo detecta nada hoy — vale para los 16 anteriores igual que para estos 2»*.

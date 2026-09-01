@@ -1,7 +1,21 @@
 # DET-RESUME-RECONCILE-001 — reconciliar la sesión activa al revivir (salida perdida por móvil apagado)
 
 **Fecha:** 2026-07-02
-**Estado:** BACKLOG (preparada — no empezada)
+**Estado:** 🟡 **Abierto, pero con la PREMISA CADUCADA — releer antes de implementar nada**
+(revisado 01-09-2026). Sin rama.
+
+⛔ **Dos cosas que este doc da por ciertas ya no lo son**, y las dos sostienen su sección «por qué el
+watchdog actual NO lo cubre»:
+1. **`WATCHDOG_ENABLED` ya no existe** en el código, ni `DetectionHeartbeatWorker`. El razonamiento
+   sobre el gate `recentVehicleEnter` describe un componente retirado.
+2. **La reconciliación al revivir SÍ existe hoy**: `ParkingSafetyNetWorker` +
+   `EvaluateSafetyNetCheckUseCase`, cuyo KDoc contempla explícitamente el caso *«a reboot reset the
+   counter»* → `stepsSinceAnchor = null`, y cita `[DET-RECONCILE-001]`.
+
+Lo que **no** he verificado, y es lo único que decide si el ticket sigue vivo: si esa red cubre el
+escenario concreto del **apagón por batería** (nadie corriendo durante el viaje entero) o sólo el
+EXIT perdido con el móvil vivo. El «límite honesto» que el propio doc reconoce —al revivir no se
+puede saber cuándo se fue ni si condujo— sigue siendo cierto y sigue acotando cualquier diseño.
 **Prioridad:** media (correctitud del estado propio del usuario; la pérdida comunitaria es aceptable)
 **Relacionada:** watchdog OEM-kill (backlog), la contingencia AR-ENTER/watchdog, [DET-G-04] (geocerca como trigger fiable), [DET-AR-REARM-001]
 

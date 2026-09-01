@@ -1,7 +1,7 @@
 # PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001
 
-> **Estado:** implementado 2026-08-31 · rama
-> `feature/PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001-retract` (base `29a9b0a5`)
+> **Estado:** ✅ **Done** — mergeado a master el 31-08-2026 (squash, `d010b8c0`). Rama y worktree
+> borrados.
 > **Origen:** la **Pieza 8** candidata del rediseño (§9.2), con el alcance recortado tras leer el
 > código. **Absorbe y cierra** `PARK-RETRACTED-BACKFILL-MUST-LEAVE-NO-PIN-001`.
 > **La mitad de la Pieza 8 que NO se construye** (mover un pin ya colocado) y por qué: §5.

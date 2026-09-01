@@ -312,7 +312,16 @@ Google Activity Recognition a veces oscila entre `IN_VEHICLE` y `ON_BICYCLE` par
 
 ## 5 · FEAT-HOME-PARKING-001..004 — Marcador "mi parking de casa" con geocerca · ✅ Done 2026-06-05
 
-**Estado:** Diferido hasta completar BUG-GARAGE-COLA-001 + BUG-SCOOTER-001 (decisión usuario 2026-05-27).
+**Estado:** 🗄 **HISTÓRICO — no es un ticket accionable** (reclasificado 01-09-2026).
+
+⛔ Su estado anterior era *"Diferido hasta completar BUG-GARAGE-COLA-001 + BUG-SCOOTER-001"*, y
+**ninguno de esos dos bloqueantes existe** en `docs/backlog/`: llevaba meses esperando a algo que no
+se puede completar. Además no es un ticket sino un **roll-up de mayo** de 391 líneas que mezcla
+refactor ya shippeado, decisiones, bugs y una feature — su propia leyenda de estados lo dice.
+
+Se conserva como arqueología del primer field-test (Redmi/Oppo, 27-05) y del refactor `935e6fc`.
+⚠️ **No leerlo como cola de trabajo**: casi todo lo que describe se rehizo entero en el rediseño de
+detección de agosto. Lo que siga vivo de aquí tiene que salir como ticket propio, con su evidencia.
 
 **Ticket family:** `FEAT-HOME-PARKING-001..004`
 **Origen:** propuesta del usuario en sesión 2026-05-27.

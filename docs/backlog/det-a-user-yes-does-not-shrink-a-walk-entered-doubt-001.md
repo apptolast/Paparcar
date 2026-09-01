@@ -1,6 +1,6 @@
 # DET-A-USER-YES-DOES-NOT-SHRINK-A-WALK-ENTERED-DOUBT-001
 
-> **Estado:** implementado 2026-09-01 · rama `bugfix/DET-A-USER-YES-DOES-NOT-SHRINK-A-WALK-ENTERED-DOUBT-001-anchordoubt` (base `0912ddf5`)
+> **Estado:** ✅ **Done** — mergeado a master el 01-09-2026 (squash, `51561ea4`). Rama y worktree borrados.
 > **Origen:** la auditoría de `TEST-A-TRACE-WHOSE-GROUND-TRUTH-IS-NEVER-ASSERTED-001`. Salió al leer,
 > por primera vez, el ground-truth de `TraceCameliasOppo001` — que llevaba desde julio sin que ningún
 > test lo tocara.

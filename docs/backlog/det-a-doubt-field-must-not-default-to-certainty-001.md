@@ -1,8 +1,7 @@
 # DET-A-DOUBT-FIELD-MUST-NOT-DEFAULT-TO-CERTAINTY-001
 
-> **Estado:** implementado 2026-08-31 · rama
-> `refactor/DET-A-DOUBT-FIELD-MUST-NOT-DEFAULT-TO-CERTAINTY-001-no-optimistic-defaults`
-> (base `22abbcc4`)
+> **Estado:** ✅ **Done** — mergeado a master el 31-08-2026 (squash, `c604a058`). Rama y worktree
+> borrados.
 > **Origen:** fallo **#15** del inventario §6.2 del rediseño y último punto de la **Pieza 3**
 > (fallar cerrado por construcción).
 > **Delta de comportamiento:** cero. Ningún valor cambia; cambia **quién tiene que decirlo**.

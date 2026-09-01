@@ -1,7 +1,14 @@
 # DET-AR-FIRST-001 — Armado AR-first + ancla de fin de conducción
 
-> Rama: `feature/DET-AR-FIRST-001-ar-first-arming` (sobre `feature/DET-BREADCRUMBS-001-trip-trail`)
-> Estado: ESPECIFICADO — pendiente de implementación
+> **Estado:** ✅ **IMPLEMENTADO Y EN MASTER.** Rama y worktree borrados hace tiempo.
+> ⚠️ **Este doc decía «ESPECIFICADO — pendiente de implementación» hasta el 01-09-2026**, describiendo
+> como futura una de las piezas centrales de la doctrina viva. Verificado antes de corregirlo:
+> `DET-AR-FIRST-001` aparece en **5 ficheros de producción** — `ActivityRecognitionManagerImpl`
+> (los dos carriles, con el `PendingIntent.getForegroundService` de F1 y su línea de log
+> *"IN_VEHICLE ENTER decision lane registered"*), `ActivityTransitionReceiver`,
+> `CoordinatorDetectionService`, `DetectionModule` y `ActivityRecognitionManager` — y sale en el
+> `parkdiag` de campo del 01-09 (`⊘ AR ENTER not armable … [DET-AR-FIRST-001]`).
+> Se conserva por su valor de spec: explica **por qué** existen los dos carriles.
 > Origen: field-tests 2026-07-09/10. El EXIT de geocerca se entrega sistemáticamente tarde en OEMs
 > (6/6 entregas a 951–2.192 m el 10-07 en Oppo; el fix disparador ya venía lejos → GMS muestrea
 > ubicación en background cada varios minutos, el radio es irrelevante). Los receivers de Activity

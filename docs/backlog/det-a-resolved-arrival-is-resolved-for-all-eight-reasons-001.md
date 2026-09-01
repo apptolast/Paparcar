@@ -1,6 +1,6 @@
 # DET-A-RESOLVED-ARRIVAL-IS-RESOLVED-FOR-ALL-EIGHT-REASONS-001
 
-> **Estado:** implementado 2026-08-31 · rama `feature/DET-PIECE-3C-resolution-seal` (base `d74e6e8c`)
+> **Estado:** ✅ **Done** — mergeado a master el 31-08-2026 (squash, `c5bfd274`). Rama y worktree borrados.
 > **Origen:** **Pieza 3c** del rediseño — fallo **#7** («el sello se escribe para las 8 razones, no
 > para 1»). **Cierra también #6**, que el propio audit de 3b había declarado inseparable de éste.
 > **Con esto la Pieza 3 queda COMPLETA** (3a, 3b, 3c).

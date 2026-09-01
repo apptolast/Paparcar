@@ -1,6 +1,6 @@
 # DET-THE-TWO-FPS-THAT-CAUSED-THE-REDESIGN-BECOME-REPLAYS-001
 
-> **Estado:** implementado 2026-08-31 · rama `test/DET-THE-TWO-FPS-THAT-CAUSED-THE-REDESIGN-BECOME-REPLAYS-001-replays` (base `d6833d41`)
+> **Estado:** ✅ **Done** — mergeado a master el 01-09-2026 (squash, `3adb08ae`). Rama y worktree borrados.
 > **Origen:** **Pieza 7** del rediseño, regla 4 — *«replays de campo como regresión, empezando por
 > `Trace_Parafarmacia2908` y `Trace_CasaGapAnchor3008`»*. Era lo único que le quedaba abierto: las
 > tres reglas de guardarraíl estaban hechas desde el 30-08.

@@ -1,6 +1,15 @@
 # BUG-FAB-001 — HomeMapFabsLayer: padding must be non-negative (Nothing Phone A001, OS 16)
 
-**Estado:** OPEN  
+**Estado:** 🟡 **Abierto de verdad** — revisado el 01-09-2026 y **NO está resuelto**: sigue sin
+reproducirse y sin causa confirmada, que es exactamente donde lo dejó su «siguiente paso 1»
+(*"si el crash reaparece en más usuarios, priorizar"*). Sin rama.
+⚠️ **Lo que sí estaba caducado era la RUTA**: el análisis de abajo cita
+`composeApp/src/commonMain/.../home/sections/map/HomeMapSection.kt:94`, y ese módulo ya no existe
+desde el split de `ARCH-HEALTH-001` F7. Hoy el fichero vive en
+`shared/src/commonMain/kotlin/com/rndeveloper/paparcar/presentation/home/sections/map/HomeMapSection.kt`
+y el `Modifier.padding(end = 14.dp)` señalado está en la **línea 149**, dentro de `HomeMapFabsLayer`,
+sin cambios de fondo. El literal sigue siendo literal, así que la hipótesis de insets negativos
+heredados del árbol padre sigue siendo la viva.
 **Prioridad:** P2  
 **Detectado:** 2026-06-05 (Crashlytics beta01)  
 **Afecta:** 1 evento / 1 usuario  
