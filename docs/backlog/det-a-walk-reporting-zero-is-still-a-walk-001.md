@@ -1,8 +1,9 @@
 # DET-A-WALK-REPORTING-ZERO-IS-STILL-A-WALK-001 · la caminata que el GPS declara parada no la mide nadie
 
-**Estado:** 🟡 Abierto · sin rama · **DESBLOQUEADO 2026-09-01: los dos números están medidos**, y el
-segundo refuta la dirección de diseño que este doc proponía. Lo que queda es una DECISIÓN, no una
-medición.
+**Estado:** 🧊 **APARCADO 2026-09-01 — NO es una tarea.** Los dos números están medidos y **no hay
+nada que implementar** (ver §«Corrección» abajo: la «versión débil» no existe). Se revisa **cuando
+saquemos diagnósticos**, con la lista de comprobación del final. Decisión del user: no sobrecargar la
+cola con esto.
 **Origen:** hallazgo medido de `DET-A-DISOWNED-ANCHOR-TAKES-ITS-WALK-WITH-IT-001` (31-08), que fue a
 cerrar el «bug #6» del egress birth y encontró que el bug era otro.
 
@@ -137,24 +138,50 @@ Lo que sí sobrevive del razonamiento original es el marco: `DET-STOP-MUST-BE-ST
 puede desmentir movimiento. Sólo que la magnitud que lleva la señal **no es el salto entre dos fixes,
 es el desplazamiento NETO de una ventana de 30 s**, y ni siquiera ésa alcanza para confirmar.
 
-### Las dos salidas, y sólo hay dos
+### ⛔ Corrección: la «versión débil» NO EXISTE, y este doc la proponía
 
-1. **Versión débil: abrir birth, no confirmar.** Una ventana de 30 s con ≥ 20 m netos abre una
-   `egressBirth` pero **no** alimenta `kinematicEgressFixes`. Efecto: la sesión pasa de perder el
-   aparcamiento a **preguntar**, que es lo que la doctrina pide ante la duda. Coste: el 9,4 % de las
-   ventanas en reposo abriría una birth falsa → alguna pregunta de más, **ningún pin fantasma**.
-   ⚠️ Antes de implementarla hay que comprobar qué más lee `egressBirth`: si algún consumidor la trata
-   como evidencia de confirmación, esta salida deja de ser débil. `judgeEgressBirth` tiene hoy tres
-   consumidores [DET-NOTHING-TO-JUDGE-IS-NOT-NO-DOUBT-001].
-2. **Cerrar el ticket como refutado**: aceptar que **un móvil con podómetro mudo, en interior, es
-   ASK-only por física**, y escribirlo donde se lea (KDoc del carril cinemático) en lugar de dejarlo
-   como un hueco que el siguiente vuelva a «arreglar».
+Se llegó a escribir aquí que se podía *«abrir la birth pero no alimentar `kinematicEgressFixes`»*,
+para que la sesión pasara de perder el aparcamiento a preguntar. **Es falso, y al revés.** Verificado
+en `EvaluateParkingDecisionUseCase:428-429`:
 
-## Criterio de éxito (reescrito con los números delante)
+```kotlin
+input.egressBirth == EgressBirthJudgement.BORN_AWAY    -> PromptReason.EGRESS_NOT_AT_ANCHOR
+input.egressBirth == EgressBirthJudgement.NOT_RECORDED -> PromptReason.EGRESS_NOT_WITNESSED
+```
 
-- ⛔ Ya NO es *«puede confirmar por el carril cinemático»*: eso exigiría un segundo testigo
-  independiente y el único que hay es el podómetro, que es justamente el que falta en este caso.
-- Una sesión con podómetro mudo cuyo GPS declara 0 m/s durante una caminata real **no pierde el
-  aparcamiento en silencio**: pregunta.
-- Un teléfono quieto en interior con multipath **no planta un pin**. Que abra una birth falsa de vez
-  en cuando es un coste aceptado y acotado (9,4 % a 20 m/30 s), no un fallo.
+Sin birth (`NOT_RECORDED`) **hoy ya se PREGUNTA**. Con birth abierta en el ancla (`BORN_AT_ANCHOR`)
+no se añade motivo de pregunta → **pin silencioso**. Es decir: **abrir la birth ES lo que quita la
+pregunta.** La supuesta versión débil convertiría una pregunta en un pin puesto solo, sobre una señal
+que se equivoca el **9,4 %** de las veces con el móvil quieto. Plantaría pines en salones.
+
+### Y con eso, el «hueco» de este ticket es mucho más pequeño de lo que decía arriba
+
+Un móvil con podómetro mudo **no pierde el aparcamiento: se le PREGUNTA**, que es exactamente lo que
+la doctrina pide ante la duda. El enunciado original (*«su aparcamiento acaba en pregunta. Con P3, en
+nada»*) sigue siendo correcto — pero la primera mitad no es un defecto, es el comportamiento deseado.
+
+**Sólo un cambio futuro lo revive**: el día que una pregunta sin contestar deje de guardar nada
+(«P3»). Hasta entonces no hay nada roto que arreglar.
+
+## 🔬 Qué mirar CUANDO SAQUEMOS DIAGNÓSTICOS (lo único pendiente)
+
+No hay código que escribir. Hay que contar, sobre sesiones reales, si esto le pasa a alguien:
+
+1. `StepCounter: cumulative steps read → 0 (mute counter → treated as unknown)` — podómetro mudo;
+2. fixes de la caminata de egress declarando **< 1 m/s**;
+3. `judgeEgressBirth` → **`NOT_RECORDED`**;
+4. desenlace **pregunta** (`EGRESS_NOT_WITNESSED`) — nunca un pin mal puesto.
+
+Y entonces la pregunta que decide: **¿esas preguntas se contestan?**
+
+- Si son ~0 sesiones → **cerrar refutado**: el usuario con podómetro mudo en interior es ASK-only por
+  física, y se escribe en el KDoc del carril cinemático para que nadie lo «arregle».
+- Si son muchas **y** las preguntas se quedan sin contestar → hay un problema real, pero **no es
+  éste**: es el de la pregunta que no llega o no se ve, y se abre con esos datos.
+
+⛔ **Lo que NO hay que hacer en ningún caso**: usar el desplazamiento para abrir birth. Está medido
+arriba y planta pines.
+
+⚠️ Contexto del user (01-09): sólo hay **2 móviles de test**, así que la ausencia de casos en campo
+no prueba que otros hardware no lo sufran — pero como el comportamiento actual ya es el seguro
+(preguntar), esperar no cuesta un pin.

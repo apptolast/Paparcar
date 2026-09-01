@@ -37,7 +37,7 @@ La (2) es la buena. El barrido del 30-08 encontró con ella **15 tickets** que d
 | [`det-bt-pin-grade-is-not-a-driving-threshold-001`](det-bt-pin-grade-is-not-a-driving-threshold-001.md) | la precisión con la que se CREE un fix no es la que decide que se condujo. Destapado el 30-08 |
 | [`det-blind-after-lost-park-001`](det-blind-after-lost-park-001.md) | perder un aparcamiento deja la app **ciega** para el viaje siguiente |
 | [`det-lone-sample-is-not-a-drive-001`](det-lone-sample-is-not-a-drive-001.md) | un solo fix de velocidad abre la sesión entera |
-| [`det-a-walk-reporting-zero-is-still-a-walk-001`](det-a-walk-reporting-zero-is-still-a-walk-001.md) | 🟢 **los DOS números medidos (01-09)** y refutan la dirección que el propio doc proponía. Queda una **decisión**, no una medición: birth-sin-confirm, o cerrar como ASK-only por física |
+| [`det-a-walk-reporting-zero-is-still-a-walk-001`](det-a-walk-reporting-zero-is-still-a-walk-001.md) | 🧊 **APARCADO, no es tarea**: medido y **sin nada que implementar** — hoy el caso ya PREGUNTA, que es lo correcto. ⛔ abrir birth quitaría la pregunta y plantaría pines. Revisar al sacar diagnósticos |
 | [`det-coarse-fix-drive-proof-001`](det-coarse-fix-drive-proof-001.md) | un móvil con accuracy crónicamente mala no puede probar **nunca** una conducción |
 | [`det-bike-departure-release-001`](det-bike-departure-release-001.md) | un paseo en bici sigue declarando que el coche se ha ido |
 | [`det-bt-boarding-anchor-001`](det-bt-boarding-anchor-001.md) | distinguir *"aparcó a mi lado"* de *"pasó por mi lado"* |
