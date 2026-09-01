@@ -250,8 +250,13 @@ fun rememberPaparcarType(fonts: PapFontSet = defaultFontSet()): PaparcarType {
             // Tight lineHeight + centred/trimmed line box so the digits' box hugs the glyphs and is
             // symmetric — a leading icon set to CenterVertically then lands on the numeral's optical
             // centre instead of floating high. [CARD-ONE-BADGE-001]
+            //
+            // 20sp, down from 25: three 25sp figures outweighed the 18sp cardTitle that OWNS the
+            // hero card — the supporting facts shouted over the car's name. The stat still leads its
+            // own cell (vs the 12sp label below it); it just no longer outranks the card's subject.
+            // Judged on device. [UI-TYPE-A-STAT-MUST-NOT-OUTRANK-ITS-CARDS-TITLE-001]
             fontFamily = figure, fontWeight = FontWeight.Bold,
-            fontSize = 25.sp, lineHeight = 25.sp, letterSpacing = (-0.5).sp,
+            fontSize = 20.sp, lineHeight = 20.sp, letterSpacing = (-0.4).sp,
             lineHeightStyle = LineHeightStyle(
                 alignment = LineHeightStyle.Alignment.Center,
                 trim = LineHeightStyle.Trim.Both,
@@ -265,8 +270,10 @@ fun rememberPaparcarType(fonts: PapFontSet = defaultFontSet()): PaparcarType {
             // `Trim.Both` the surplus is cut off the top of the first line and the bottom of the
             // last, so it only ever lands BETWEEN lines. A two-word label ("PLAZAS CEDIDAS") wraps,
             // and at lineHeight == fontSize the two lines sit on top of each other.
+            // 12sp, down with its figure (25→20): the pair shrinks together or the label stops
+            // reading as the figure's caption. [UI-TYPE-A-STAT-MUST-NOT-OUTRANK-ITS-CARDS-TITLE-001]
             fontFamily = figure, fontWeight = FontWeight.SemiBold,
-            fontSize = 13.sp, lineHeight = 16.sp, letterSpacing = 0.6.sp,
+            fontSize = 12.sp, lineHeight = 15.sp, letterSpacing = 0.6.sp,
             lineHeightStyle = LineHeightStyle(
                 alignment = LineHeightStyle.Alignment.Center,
                 trim = LineHeightStyle.Trim.Both,
