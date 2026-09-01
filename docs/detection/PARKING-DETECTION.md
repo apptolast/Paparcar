@@ -7214,3 +7214,43 @@ budget already accepts.
 test red; dropping the stale-seal fallback turned the T3 replay red.
 
 Spec: `docs/backlog/det-a-ride-the-witness-saw-needs-no-pedometer-001.md`.
+
+---
+
+### DET-A-HOLE-THE-SPEED-FIELD-DENIES-IS-STILL-A-HOLE-001 — the gap gate believed the field the rest of detection stopped believing (pending)
+
+**The question this answers.** `DET-A-USER-YES-DOES-NOT-SHRINK-A-WALK-ENTERED-DOUBT-001` left one:
+if a walk-in bound can fall short, can the HOLE's bound fall short too?
+
+**Its magnitude does not, and the reason is structural.** The walk-in bound measures the part of a
+walk the GPS happened to see, which is why it is a lower bound. A hole measures a SILENCE, and both
+its ends are known fixes — there is no unseen part. Measured where ground truth exists
+(`Trace_CasaGapAnchor3008`): 339 m of bound against 158 m of real anchor→car offset. Generous.
+
+**But the gate that RECOGNISES a hole reads the pre-gap fix's declared `speed`, and that is the
+defect.** A degraded stream reporting 0.00 m/s while the car drives gives its stop `gapMs = 0`: not
+a doubt that is too small, but **no doubt at all**, and an anchor free to be pinned exactly. Swept
+across the 18 replays: **14** holes recognised, **3** missed — all in
+`Trace_Redmi2808RefutedStillness`, 54–76 s each, declaring **0.00 m/s** while the position covered
+**416–879 m** at 7–12 m/s.
+
+⛔ It is the lesson `DET-STOP-MUST-BE-STILL-IN-SPACE-001` already learned one function away: it
+stopped trusting the declared speed to MATURE a stop, while this gate still trusted it to OPEN a
+doubt. Note the gate's own KDoc had argued about accuracy — it defended against demanding too much,
+never against the field lying LOW.
+
+**The fix is the predicate that already exists and is already calibrated**: the gate now also accepts
+a hop beyond both accuracy envelopes at a rate no walker sustains (`isCorroboratedVehicleHop`, the
+same one the stop-refutation uses). It catches all three with room — 879 m against a 288 m envelope.
+An `||`, not a swap, and the declared speed stays first: Doppler is credible at accuracies the hop
+test would never clear, which is why both forms of proof are kept.
+
+**Accompanying-fix risk, and the honest shape of this one.** ⚠️ **The corpus changed no verdict**,
+including on the trace that exposes it — those holes are mid-route and the stop they open is disowned
+later by the refuted-stillness guard, so the final pin is identical. This is a LATENT defect,
+measured but without a victim in the corpus, and its witness is therefore a unit test on
+`updateStopTracking` rather than a replay. Widening the gate marks more anchors gap-entered, which
+costs questions and zones instead of silent exact pins — the doctrine's safe direction, cost in the
+field unmeasured.
+
+Spec: `docs/backlog/det-a-hole-the-speed-field-denies-is-still-a-hole-001.md`.

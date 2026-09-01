@@ -145,12 +145,23 @@ fun DetectionSessionState.updateStopTracking(
             // only bound on how far the phone could have walked from the car before the stream
             // came back, and throwing it away is what made every gap-born anchor look
             // unboundable.
+            // [DET-A-HOLE-THE-SPEED-FIELD-DENIES-IS-STILL-A-HOLE-001] …and the car was DRIVING is a
+            // claim about the ground, not about the `speed` field. Reading only the declared value
+            // means a stream that reports 0.0 while covering 879 m in 76 s opens its stop with
+            // `gapMs = 0` — no doubt at all, which is worse than a doubt that is too small. Same
+            // lesson `DET-STOP-MUST-BE-STILL-IN-SPACE-001` applied one function away, and the same
+            // already-calibrated predicate: a hop beyond both accuracy envelopes at a rate no walker
+            // sustains. Declared speed stays FIRST and unchanged — Doppler is credible at accuracies
+            // the hop test would never clear, which is exactly why this is an `||` and not a swap.
             val newStopGapMs = if (s.anchorTrust.stopStartedAt == null) {
-                val holeMs = s.session.previousFix?.let { location.timestamp - it.timestamp } ?: 0L
-                if (s.session.previousFix != null &&
-                    s.session.previousFix.speed >= config.minimumTripSpeedMps &&
-                    holeMs > config.anchorGapMaxFixGapMs
-                ) holeMs else 0L
+                val previous = s.session.previousFix
+                val holeMs = previous?.let { location.timestamp - it.timestamp } ?: 0L
+                val cameFromDriving = previous != null &&
+                    (
+                        previous.speed >= config.minimumTripSpeedMps ||
+                            isCorroboratedVehicleHop(previous, location, config)
+                        )
+                if (cameFromDriving && holeMs > config.anchorGapMaxFixGapMs) holeMs else 0L
             } else {
                 s.anchorTrust.stopEnteredAfterGapMs
             }

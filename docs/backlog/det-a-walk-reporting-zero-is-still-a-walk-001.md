@@ -33,11 +33,40 @@ que no exigen pasos, y su aparcamiento acaba en pregunta. Con **P3**, en nada.
 - aceptar el testigo cinemático en la rama STOPPED **no es el arreglo**: fabrica una birth *en el
   ancla* a partir de un contador viejo, que `judgeEgressBirth` leería como `BORN_AT_ANCHOR`.
 
-❌ **Sin medir, y es lo que bloquea este ticket**: cuántos fixes de una caminata real llegan con
-`speed < 1 m/s` en los móviles de campo. Es contable desde el `parkdiag` (los fixes ya se trazan con
-su `speed`): **contar, en las sesiones que acabaron en `NOT_RECORDED`, cuántos fixes post-ancla
-tienen `speed < 1` y desplazamiento > 0 entre ellos.** Sin ese número, cualquier umbral es una
-intuición con aspecto de dato.
+🟢 **MEDIDO el 2026-09-01 — el ticket queda DESBLOQUEADO, y el número es mucho mayor de lo que
+sugería el enunciado.**
+
+Método (sin decidir yo qué es una caminata): un fix está «en caminata» si el `parkdiag` registró
+eventos de paso **dentro de los 15 s anteriores Y posteriores**. El podómetro es el testigo
+independiente; el `speed` del GPS es lo que está en juicio. Barrido sobre **8 sesiones de parkdiag**
+distintas (Oppo, Redmi y un tercer device), **6.403 fixes en caminata**:
+
+| sesión | fixes en caminata | `< 1,0 m/s` | `< 0,5 m/s` | mediana declarada |
+|---|---|---|---|---|
+| oppo | 999 | 71,6 % | 49,8 % | 0,51 |
+| oppo | 644 | 70,3 % | 48,6 % | 0,55 |
+| oppo | 330 | 77,0 % | 53,0 % | 0,45 |
+| redmi | 1 370 | 56,6 % | 42,5 % | 0,79 |
+| redmi | 1 331 | 70,2 % | 56,3 % | 0,34 |
+| redmi | 1 002 | 56,2 % | 42,2 % | 0,82 |
+| redmi | 307 | 57,7 % | 40,4 % | 0,83 |
+| 23117RA68G | 420 | 76,0 % | 64,8 % | 0,21 |
+| **TOTAL** | **6 403** | **65,5 %** | **~48 %** | **0,21–0,83** |
+
+**Dos de cada tres fixes tomados mientras el usuario anda demostrablemente declaran por debajo del
+umbral de parado.** No es un caso raro de interior o garaje: es el caso NORMAL, en todos los devices
+y todos los días del corpus.
+
+⛔⛔ **Y el mismo número REFUTA el arreglo obvio.** Bajar `stoppedSpeedThresholdMps` no sirve: con el
+**48 %** de los fixes de caminata por debajo de 0,5 m/s, no queda margen entre «anda» y «está quieto»
+en el eje de la velocidad declarada — el campo no lleva señal a esas magnitudes. El separador tiene
+que ser **posición contra tiempo**, que es exactamente el movimiento que ya hicieron
+`DET-STOP-MUST-BE-STILL-IN-SPACE-001` y `DET-A-HOLE-THE-SPEED-FIELD-DENIES-IS-STILL-A-HOLE-001`.
+
+❌ **Lo que sigue sin medir, y es lo que ahora bloquea**: el ruido de un teléfono QUIETO. Hace falta
+la distribución del desplazamiento medido entre fixes consecutivos en reposo (interior, multipath)
+para saber si separa de la caminata y con qué envolvente. Sin ese segundo número, cualquier umbral
+por desplazamiento tiene el mismo problema que tenía el de velocidad.
 
 ## Dirección de diseño (a decidir con el número delante)
 

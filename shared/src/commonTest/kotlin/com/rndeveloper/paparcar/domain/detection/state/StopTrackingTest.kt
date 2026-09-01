@@ -223,6 +223,50 @@ class StopTrackingTest {
         assertEquals(0L, result.state.anchorTrust.capture.gapMs)
     }
 
+    /**
+     * [DET-A-HOLE-THE-SPEED-FIELD-DENIES-IS-STILL-A-HOLE-001] …and "the car was driving" is a claim
+     * about the GROUND, not about the `speed` field.
+     *
+     * Measured on `Trace_Redmi2808RefutedStillness` — the night drive home on network fixes — where
+     * three holes of 54-76 s report **0.00 m/s** while the position covers 416 to 879 m across them,
+     * at 7 to 12 m/s. Reading only the declared value gives those stops `gapMs = 0`: not a doubt too
+     * small, but **no doubt at all**, and an anchor free to be pinned exactly. It is the same lesson
+     * `DET-STOP-MUST-BE-STILL-IN-SPACE-001` applied one function away, and it uses that fix's own
+     * already-calibrated predicate.
+     *
+     * The numbers below are the largest of the three, 1:1.
+     */
+    @Test
+    fun should_mark_a_gap_when_the_track_proves_driving_the_speed_field_denied() {
+        val beforeTheHole = point(accuracy = 136f, at = 0L, speed = 0f)
+        val afterTheHole = point(metersNorth = 879.0, accuracy = 142f, at = 76_000L, speed = 0f)
+
+        val result = state(previousFix = beforeTheHole)
+            .updateStopTracking(afterTheHole, now = 76_000L, config = config)
+
+        assertTrue(result.state.anchorTrust.capture.gapEntered, "879 m in 76 s is a car, whatever it declared")
+        assertEquals(76_000L, result.state.anchorTrust.capture.gapMs)
+    }
+
+    /**
+     * The other half, and the reason this reuses the calibrated predicate instead of comparing a
+     * raw rate: a GPS recovery swing moves too, and its accuracy envelopes balloon exactly when it
+     * does. 60 m of "movement" inside 100+50+10 m of joint noise proves nothing, so the stop stays
+     * ungapped — the Camelias walk-back case the hop test was tuned against
+     * [DET-CREDIBLE-DRIVE-001]. Widening the gate must not turn every degraded stream into a gap.
+     */
+    @Test
+    fun should_not_mark_a_gap_when_the_movement_is_inside_the_noise_that_produced_it() {
+        val beforeTheHole = point(accuracy = 100f, at = 0L, speed = 0f)
+        val afterTheHole = point(metersNorth = 60.0, accuracy = 50f, at = 50_000L, speed = 0f)
+
+        val result = state(previousFix = beforeTheHole)
+            .updateStopTracking(afterTheHole, now = 50_000L, config = config)
+
+        assertFalse(result.state.anchorTrust.capture.gapEntered, "a swing inside its own envelopes is not a drive")
+        assertEquals(0L, result.state.anchorTrust.capture.gapMs)
+    }
+
     // ── End-of-drive maturation ──────────────────────────────────────────────
 
     /**
