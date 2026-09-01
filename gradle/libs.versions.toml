@@ -162,6 +162,8 @@ koin-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel", ver
 koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin" }
 # androidMain — koinViewModel() con scoping de Android ViewModel (Activity/Fragment backstack)
 koin-androidx-compose = { module = "io.insert-koin:koin-androidx-compose", version.ref = "koin" }
+# androidUnitTest — verify() estático del grafo de módulos [DET-KOIN-MODULE-VERIFY-001]
+koin-test = { module = "io.insert-koin:koin-test", version.ref = "koin" }
 
 # ── Persistencia local — Room KMP ────────────────────────────────────────────
 # room-runtime en commonMain, room-compiler solo via KSP (ver bloque dependencies)

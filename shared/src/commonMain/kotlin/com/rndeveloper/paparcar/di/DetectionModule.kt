@@ -1,6 +1,7 @@
 package com.rndeveloper.paparcar.di
 
 import com.rndeveloper.paparcar.domain.detection.CoordinatorParkingDetector
+import com.rndeveloper.paparcar.domain.detection.DetectionPhaseSink
 import com.rndeveloper.paparcar.domain.detection.DetectionRuntimeState
 import com.rndeveloper.paparcar.domain.detection.MutableDetectionRuntimeState
 import com.rndeveloper.paparcar.domain.detection.ParkingStrategyResolver
@@ -38,7 +39,7 @@ import com.rndeveloper.paparcar.domain.usecase.parking.UpdateParkingLocationUseC
 import com.rndeveloper.paparcar.domain.usecase.parking.VerifyDepartureEvidenceUseCase
 import com.rndeveloper.paparcar.domain.usecase.vehicle.DeclareActiveVehicleUseCase
 import com.rndeveloper.paparcar.domain.usecase.vehicle.SwapActiveVehicleFencesUseCase
-import org.koin.dsl.bind
+import org.koin.dsl.binds
 import org.koin.dsl.module
 
 /**
@@ -138,7 +139,7 @@ val detectionModule = module {
             config = get(),
             detectionEventLogger = get(),
             evaluateParkingDecision = get(),
-            phaseSink = get<MutableDetectionRuntimeState>(),
+            phaseSink = get(),
             // [DET-DI-DETECTION-MODULE-001] Was a hand-built default inside the constructor.
             evaluateUnattendedParkingSave = get(),
             // [DET-HANDOFF-NOT-MANUAL-001 §B] The deduced departure's commit, deferred to the
@@ -243,7 +244,10 @@ val detectionModule = module {
 
     // ── Runtime state + readiness [DET-READY-001] ─────────────────────────────────────────────
     // Shared singleton: CoordinatorDetectionService mutates it, the use case observes it. [DET-READY-001c]
-    single { MutableDetectionRuntimeState() } bind DetectionRuntimeState::class
+    // Also bound as DetectionPhaseSink: the coordinator consumes that contract, and hiding the
+    // identity inside a typed `get<MutableDetectionRuntimeState>()` kept the sink invisible to
+    // graph verification. [DET-KOIN-MODULE-VERIFY-001]
+    single { MutableDetectionRuntimeState() } binds arrayOf(DetectionRuntimeState::class, DetectionPhaseSink::class)
     factory {
         ObserveDetectionReadinessUseCase(
             vehicleRepository = get(),

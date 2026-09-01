@@ -175,6 +175,8 @@ kotlin {
                 implementation(libs.work.testing)
                 implementation(libs.robolectric)
                 implementation(libs.androidx.test.core)
+                // Verificación estática del grafo Koin [DET-KOIN-MODULE-VERIFY-001]
+                implementation(libs.koin.test)
             }
         }
     }
