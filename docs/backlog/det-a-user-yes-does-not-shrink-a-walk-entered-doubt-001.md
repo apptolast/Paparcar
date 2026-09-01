@@ -1,10 +1,9 @@
 # DET-A-USER-YES-DOES-NOT-SHRINK-A-WALK-ENTERED-DOUBT-001
 
-> **Estado:** 🔴 abierto, **con evidencia y sin implementar** · descubierto 2026-09-01 sobre master `f58e9d64`
+> **Estado:** implementado 2026-09-01 · rama `bugfix/DET-A-USER-YES-DOES-NOT-SHRINK-A-WALK-ENTERED-DOUBT-001-anchordoubt` (base `0912ddf5`)
 > **Origen:** la auditoría de `TEST-A-TRACE-WHOSE-GROUND-TRUTH-IS-NEVER-ASSERTED-001`. Salió al leer,
-> por primera vez, el ground-truth de `TraceCameliasOppo001` — que llevaba desde julio sin que
-> ningún test lo tocara.
-> ⛔ **Es un cambio de detección**: antes de tocar nada, skill `det-change`.
+> por primera vez, el ground-truth de `TraceCameliasOppo001` — que llevaba desde julio sin que ningún
+> test lo tocara.
 
 ---
 
@@ -19,55 +18,93 @@ salida de la MISMA sesión, con la MISMA duda:
 | nadie contesta → timeout desatendido | **ZONA** | 60 m | `confirmed_unattended_zone_walk_entered_anchor` |
 | el usuario toca **"Sí"** | **PIN EXACTO** | — | `confirmed_user` |
 
-El pin exacto cae **exactamente en la coordenada del FP de campo** (`< 1 m` del `FIELD_PIN` del
-fixture). La zona de 60 m **cubre** los 37 m de error real; el pin exacto, no.
+El pin exacto caía **a menos de un metro del FP de campo**. La zona de 60 m **cubre** los 37 m de
+error real; el pin exacto, no.
 
-## 2. Por qué pasa
+## 2. La causa, y la trampa que casi me lleva al arreglo equivocado
 
-`UserConfirmStage.shapeFor` acota la duda **de UNA sola fuente**: el agujero de GPS
-(`state.anchorTrust.capture.gapMs`), que es la duda para la que se escribió
-`DET-USER-YES-IS-NOT-A-COORDINATE-001`.
+`UserConfirmStage.shapeFor` acotaba la duda **de UNA sola fuente**, el agujero de GPS
+(`capture.gapMs`) — la duda para la que se escribió `DET-USER-YES-IS-NOT-A-COORDINATE-001`. Un ancla
+walk-entered no tiene agujero → `doubtMeters = 0` → `ExactPin`.
 
-```kotlin
-val doubtMeters = walkableInsideGapMeters(state.anchorTrust.capture.gapMs, config.maxPedestrianSpeedMps)
-val worthDrawing = maxOf(where.accuracy, doubtMeters.toFloat()) > config.honestCloseMinZoneRadiusMeters
-if (!worthDrawing) return SavedParkingShape.ExactPin(where, config.reliabilityUserConfirmed)
-```
+⛔ **Pero pasarle la duda del walk-in a la puerta que ya había NO habría arreglado nada.** Medido:
+el bound del walk-in en ese trace es **29,5 m**, y la puerta era
+`max(accuracy, doubt) > honestCloseMinZoneRadiusMeters (60)`. 29,5 < 60 → seguiría siendo pin exacto.
+*(Medido bajando el suelo a 1 m en un replay y leyendo el radio resultante.)*
 
-Un ancla walk-entered **no tiene agujero**: `gapMs = 0` → `doubtMeters = 0`, y la accuracy del fix
-(≈3,3 m) está muy por debajo del suelo de 60 m → `ExactPin`. La duda del walk-in **no es que sea
-pequeña: es que no se consulta**. `EvaluateUnattendedParkingSaveUseCase` sí la tiene, con nombre
-propio (`WALK_ENTERED_ANCHOR`, `doubt = max(steppedBound, anchorWalkInSpanMeters)`).
+Lo que hace insostenible el pin no es el TAMAÑO del número, es **qué es**: un **bound INFERIOR** —
+la caminata sólo se vio en parte — sobre lo equivocado que está el **SITIO**. El error real (37 m) es
+**mayor** que el bound que supuestamente nos tranquilizaba.
 
-⚠️ **Y la discrepancia es sobre SI dibujar, no sobre cuánto.** Forzando abierta la puerta de
-`shapeFor` en la falsación, el guardado sale con **60,0 m** — el mismo radio, porque ambos caminos
-caen en el mismo **suelo** (`honestCloseMinZoneRadiusMeters = 60f`). En este trace el offset medido
-del walk-in está POR DEBAJO del suelo, así que su papel es **licenciar** el área, no dimensionarla.
-⛔ No escribir que «la zona dibuja el offset del walk-in»: no es cierto aquí.
+## 3. La regla, escrita donde faltaba
 
-## 3. Por qué no es la excepción que ya está razonada
+La frase del KDoc de `UserConfirmStage` —*«por debajo del suelo un área dice menos que el punto, así
+que el punto se queda»*— **es sobre PRECISIÓN, y se le estaba preguntando por el SITIO**:
 
-El KDoc de `UserConfirmStage` defiende una decisión deliberada, y **no es ésta**: la que está
-razonada es `whereTheCarIs` (qué COORDENADA elegir; `NOT_RECORDED` conserva el ancla a propósito,
-[[project_det_piece3b_null_policy_2026_08_31]]). Esto es `shapeFor` — la **FORMA**. Y la tesis del
-propio fichero (*«the answer settles WHETHER, never WHERE»*) apunta justo al revés de lo que hace el
-código: un toque prueba que hubo aparcamiento, no mide dónde.
+- **Duda ya GASTADA relocalizando** (ancla de hueco: la cascada se va a otro fix) → lo que queda es
+  una distancia desde el punto elegido. Es precisión, manda el suelo, **no se toca**.
+- **Duda que el guardado SE LLEVA** (ancla walk-entered: la cascada **no** relocaliza — a propósito,
+  una puerta a 40 m es peor apuesta que la parada que la sesión midió) → el punto guardado es el que
+  la propia sesión marcó como del peatón. Ahí **la mancha licencia el área, sea cual sea su
+  magnitud**, y la magnitud sólo la dimensiona (suelo incluido).
 
-## 4. Alcance propuesto (SIN decidir)
+Es el mismo trato que el timeout desatendido lleva haciendo siempre sobre esa misma ancla
+(`WALK_ENTERED_ANCHOR`, licenciado por `doubt > 0`). **Dos puertas, una respuesta.**
 
-- `shapeFor` debe preguntar por la duda del **ancla**, no sólo por la del agujero. La duda ya está
-  calculada en el camino desatendido: el arreglo es que **haya UN sitio** que la responda y los dos
-  caminos lo lean — no un segundo cálculo en el stage.
-- ⛔ Ojo con el barrido: la tercera puerta (`EvaluateHonestCloseUseCase`) usa la misma `honestZoneRadius`.
-  Comprobar si tiene el mismo agujero antes de tocar una sola.
-- ⛔ **Coste a medir antes de aceptar**: pasar de pin exacto a zona de 60 m en un "Sí" degrada la
-  precisión de un aparcamiento que el usuario acaba de confirmar. Hay que decidir si el ancla
-  walk-entered es motivo suficiente, o si sólo lo es cuando el offset medido supera el suelo.
+## 4. Cambios
 
-## 5. Qué ya existe de este ticket
+| fichero | qué |
+|---|---|
+| `physics/WalkInDoubt.kt` **(nuevo)** | `walkedInToAnchorMeters(...)` — el bound, con UN nombre. Hermano de `walkableInsideGapMeters`. Su KDoc dice que es un bound INFERIOR y prohíbe leer «número pequeño» como «ancla buena» |
+| `EvaluateUnattendedParkingSaveUseCase` | la expresión inline (`max(steppedBound, walkInSpan)`) pasa a llamar a la función. Mismo resultado, un solo sitio |
+| `UserConfirmStage` | `whereTheCarIs` devuelve `Where(point, keptATaintedAnchor)` — el hecho de que la cascada **conservó** un ancla contaminada vivía sólo en su flujo de control y no llegaba a nadie. `shapeFor` lo lee |
 
-**Nada de código.** Lo que existe es el testigo: el par de tests
-`camelias_oppo_001_an_unanswered_prompt_draws_the_walk_in_doubt_as_a_zone` y
-`camelias_oppo_001_a_user_yes_drops_that_same_doubt_and_pins_exactly_today` en
-`DetectionTraceReplayTest`. El segundo es **CARACTERIZACIÓN**: afirma el defecto de hoy y su mensaje
-nombra este ticket. Al implementar, ese test **se voltea a exigir una zona** — no se borra.
+⛔ **Sin caso de uso nuevo** [DET-VERDICT-NOT-PREDICATE-001]: esto es un **predicado** compartido por
+dos veredictos → función pura de nivel superior en `domain/detection/physics/`, como
+`walkableInsideGapMeters`, `HumanPoweredRide` o `SentryWakeCooldown`.
+
+## 5. Barrido de consumidores
+
+`grep -rn "anchorStrideMeters\|walkInSpanMeters\|isAnchorWalkEntered" shared/src app/src` (producción):
+
+| sitio | clasificación |
+|---|---|
+| `EvaluateUnattendedParkingSaveUseCase:337` (rama walk-entered) | **cerrado** — ahora llama a la función |
+| `UserConfirmStage:188` | **cerrado** — este ticket |
+| `EvaluateUnattendedParkingSaveUseCase:198` `stepCount * stride` | **exento con razón**: es la caminata de EGRESS (pasos desde que se dejó el coche), otra caminata |
+| `AnchorPredicates:259,307` `stepCountAtBirth * stride + envelopes` | **exento con razón**: alcance del NACIMIENTO del egress, con envolventes de accuracy; otra pregunta |
+| `AnchorPredicates:122,142,166`, `HoldResolutionStage:178` | **exento**: alimentan `PedestrianReach`, otra función |
+| `StageInputs:74,122,124,142,144` | **cubierto por convergencia**: presentan el estado a los evaluadores, no deciden |
+| `honestZoneRadius` en `EvaluateHonestCloseUseCase:437` | **exento con razón**: el honest close **no tiene ancla** (la sesión abortó); acota por pasos desde el pin viejo. Misma fórmula, otro testigo |
+| `honestZoneRadius` en `DetectionEffectDispatcher:83` | **exento**: es el clamp compartido, no la duda |
+| `inferredPinDoubtRadius` | **exento**: responde otra pregunta (¿puede un pin INFERIDO decirse exacto?) |
+
+## 6. Tests y falsación
+
+**2.092 tests, 0 fallos.** Al aplicar el arreglo cayó **exactamente un** test en toda la suite: la
+CARACTERIZACIÓN que este ticket había dejado escrita el día anterior, que se ha **volteado** a exigir
+zona (no borrado). Nada más se movió — el cambio es quirúrgico.
+
+- `WalkInDoubtTest` (6 tests) — incluido el testigo de que es un bound inferior.
+- El par de replays sobre `TraceCameliasOppo001` afirma ahora **el mismo radio** por las dos puertas:
+  si alguien enseña algo a una y no a la otra, se pone rojo.
+
+Falsaciones, ambas en rojo:
+1. quitar `where.keptATaintedAnchor ||` de la puerta → vuelve el pin exacto;
+2. invertir la comprobación de identidad (`point !== anchor`) → vuelve el pin exacto. La fontanería
+   de la mancha es lo que lo sostiene, no la casualidad.
+
+## 7. Lo que este ticket NO toca
+
+- **La rama del hueco sigue con su puerta de suelo.** Su duda ya se gastó relocalizando y la decisión
+  está razonada en `DET-USER-YES-IS-NOT-A-COORDINATE-001`. ⚠️ Queda una pregunta legítima: si un
+  bound de walk-in puede quedarse corto (29,5 m contra 37 m reales), ¿puede quedarse corto también el
+  del hueco? **No se responde aquí y no hay medición que lo sostenga todavía.**
+- **`detectionPath` no cambia**: sigue siendo `user`. No hay camino de confirmación nuevo, así que no
+  hay valor nuevo que espejar a Firestore.
+- **Sin Dev Catalog ni strings**: no hay pantalla, estado MVI ni copy nuevos. `isApproximate` ya
+  existía y ya lo producían otras vías; que Home e Historial pinten un área como un punto es un
+  defecto **anterior**, con su propio ticket (`ui-approximate-zone-in-history-001`).
+- ⚠️ **Coste aceptado**: un "Sí" sobre un ancla walk-entered pasa de pin exacto a área de 60 m. Es la
+  población que `DET-CREDIBLE-DRIVE-001` ya degrada a pregunta — anclas que la sesión declaró del
+  peatón — y en el único caso de campo medido el área acierta donde el punto fallaba por 37 m.

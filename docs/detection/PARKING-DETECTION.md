@@ -7092,3 +7092,55 @@ because the fence witness contradicted it one second earlier. Confronting two wi
 `AnchorTrust`/the intake and is a separate ticket.
 
 Spec: `docs/backlog/det-a-departure-rate-must-be-physically-reachable-001.md`.
+
+---
+
+### DET-A-USER-YES-DOES-NOT-SHRINK-A-WALK-ENTERED-DOUBT-001 — two doors out of one session gave two answers about the same doubt (pending)
+
+**The report.** Not a field report — an AUDIT. `TEST-A-TRACE-WHOSE-GROUND-TRUTH-IS-NEVER-ASSERTED-001`
+went looking at trace constants nobody read, and `TraceCameliasOppo001`'s REAL_CAR / FIELD_PIN turned
+out to be hiding a live defect rather than documenting a closed one.
+
+**The defect, measured on that stream.** A walk-entered anchor (the pedestrian froze it, not the car)
+37 m from the real car. Nobody answers the prompt → the unattended timeout saves a **60 m zone**
+(`walk_entered_anchor`) that covers the car. The user taps "Sí" → the same anchor is saved as an
+**exact pin**, within a metre of the coordinate the field build got wrong. Same session, same anchor,
+same doubt, two shapes.
+
+**Root cause.** `UserConfirmStage.shapeFor` bounded doubt from ONE source, the GPS hole
+(`capture.gapMs`) — the doubt `DET-USER-YES-IS-NOT-A-COORDINATE-001` was written for. A walk-entered
+anchor has no hole, so its doubt was not smaller: it was never consulted. The bound existed, inlined
+in the unattended evaluator, and the second verdict never learned it was there.
+
+**⛔ The trap, and why the obvious fix was the wrong one.** Feeding the walk-in bound to the gate that
+already existed changes nothing: the bound on this trace is **29,5 m** and the gate is
+`> honestCloseMinZoneRadiusMeters` (60 m). Measured, by lowering the floor to 1 m in a replay and
+reading the resulting radius. What makes the exact pin unsupportable is not the number's size but
+what the number IS — a **lower** bound (the walk was only partly witnessed) on how wrong the PLACE is.
+The real error, 37 m, is LARGER than the bound that was supposed to reassure us.
+
+**The fix, stated as the distinction the old rule was missing.** *"Below the floor an area says less
+than the point does"* is a rule about PRECISION, and it was being asked about PLACE:
+
+ - a doubt the cascade already SPENT by relocating (gap-born anchor → it moves to another fix) is a
+   distance from a point it chose. Precision. The floor rule stands, untouched.
+ - a doubt the save CARRIES — a walk-entered anchor, the one taint the cascade deliberately does not
+   relocate away from, because a door 40 m away is a worse guess than the stop the session measured —
+   sits on a point the session itself marked as the pedestrian's. There the taint licenses an area
+   whatever its magnitude, and the magnitude only sizes it.
+
+Which is the bargain the unattended timeout has always struck on that same anchor. Two doors, one
+answer. The bound gets a name (`walkedInToAnchorMeters`, sibling of `walkableInsideGapMeters`) so it
+has one definition, and `whereTheCarIs` now returns whether the point it chose is a kept taint —
+that fact lived only in its control flow and reached nobody.
+
+**Accompanying-fix risk.** A "Sí" over a walk-entered anchor is now an area, not a point. That is the
+population `DET-CREDIBLE-DRIVE-001` already degrades to a prompt, and on the only field case measured
+the area holds the car where the point missed it by 37 m. Applying the change turned exactly ONE test
+red in 2 092 — the characterization this ticket had left behind the day before, now flipped to assert
+the zone. Nothing else moved.
+
+⚠️ **Left open, deliberately**: if a walk-in bound can fall short (29,5 m against 37 m real), so might
+the hole's. Not answered here — there is no measurement behind it yet.
+
+Spec: `docs/backlog/det-a-user-yes-does-not-shrink-a-walk-entered-doubt-001.md`.

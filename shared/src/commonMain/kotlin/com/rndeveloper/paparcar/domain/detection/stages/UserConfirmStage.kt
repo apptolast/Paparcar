@@ -3,8 +3,10 @@ package com.rndeveloper.paparcar.domain.detection.stages
 import com.rndeveloper.paparcar.domain.detection.physics.SavedParkingShape
 import com.rndeveloper.paparcar.domain.detection.physics.honestZoneRadius
 import com.rndeveloper.paparcar.domain.detection.physics.walkableInsideGapMeters
+import com.rndeveloper.paparcar.domain.detection.physics.walkedInToAnchorMeters
 import com.rndeveloper.paparcar.domain.detection.state.DetectionSessionState
 import com.rndeveloper.paparcar.domain.detection.state.EgressBirthJudgement
+import com.rndeveloper.paparcar.domain.detection.state.isAnchorWalkEntered
 import com.rndeveloper.paparcar.domain.detection.state.judgeEgressBirth
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
@@ -50,6 +52,13 @@ import com.rndeveloper.paparcar.domain.util.haversineMeters
  * the exact claim where it was already known to be unsupportable, and leaves every well-located pin
  * exactly as it was.
  *
+ * ⚠️ [DET-A-USER-YES-DOES-NOT-SHRINK-A-WALK-ENTERED-DOUBT-001] **That floor rule is about
+ * PRECISION, and it was being asked a question about PLACE.** It holds for a doubt the cascade has
+ * already spent by relocating — a distance from a fix it chose. It does not hold for the one taint
+ * the cascade deliberately does NOT relocate away from: a walk-entered anchor is kept as the centre,
+ * and there the number is a lower bound on how wrong the PLACE is, so "the number is under 60 m"
+ * says nothing about the anchor being good. See [shapeFor].
+ *
  * **And this is the one place in the plan where the refactor closes an omission bug by
  * construction**: the stage returns a [SavedParkingShape], so a path added later cannot save
  * anything without saying which shape it is. Forgetting is no longer expressible.
@@ -88,13 +97,29 @@ class UserConfirmStage : SessionStage {
         )
     }
 
+    /**
+     * [DET-A-USER-YES-DOES-NOT-SHRINK-A-WALK-ENTERED-DOUBT-001] The position this save believes, and
+     * **whether that position is a tainted one it kept**.
+     *
+     * The two travel together because separating them is what broke: [shapeFor] used to re-derive
+     * the doubt from the session and could only see the hole, while the fact that the cascade had
+     * just RETURNED a walk-entered anchor — the one taint it does not relocate away from — lived
+     * only in [whereTheCarIs]'s control flow and reached nobody.
+     */
+    private data class Where(val point: GpsPoint, val keptATaintedAnchor: Boolean)
+
     /** The anchor cascade: whose position does this save believe? */
     private fun whereTheCarIs(
         state: DetectionSessionState,
         fix: GpsPoint,
         config: ParkingDetectionConfig,
         notes: MutableList<DiagnosticNote>,
-    ): GpsPoint {
+    ): Where {
+        val anchor = state.anchorTrust.anchor
+        // Identity, not a second opinion: whatever the cascade below returns, this asks whether the
+        // thing it handed back IS the anchor and whether that anchor was walked into.
+        fun resolved(point: GpsPoint) =
+            Where(point, keptATaintedAnchor = point === anchor && state.isAnchorWalkEntered(config))
         // [DET-NOTHING-TO-JUDGE-IS-NOT-NO-DOUBT-001] Reads `!= BORN_AWAY`, so NOT_RECORDED keeps
         // trusting the anchor — the only one of the three consumers of this judgement that does NOT
         // change, and deliberately. The cascade below exists for an anchor the session has REASON to
@@ -106,11 +131,11 @@ class UserConfirmStage : SessionStage {
         if (state.judgeEgressBirth(config) != EgressBirthJudgement.BORN_AWAY &&
             !state.anchorGapEnteredAtCapture
         ) {
-            return state.anchorTrust.anchor ?: state.bestFix(fix)
+            return resolved(anchor ?: state.bestFix(fix))
         }
         // A gap-born anchor may be a drive-past point hundreds of metres out with unboundable
         // forward error, so it never wins here.
-        val witnessedStop = state.anchorTrust.anchor?.takeIf { !state.anchorGapEnteredAtCapture }
+        val witnessedStop = anchor?.takeIf { !state.anchorGapEnteredAtCapture }
         val currentFix = state.bestFix(fix)
         val stopDistanceMeters = witnessedStop?.let { metresBetween(it, currentFix) }
         val birthDistanceMeters = state.anchorTrust.egressBirth?.originFix?.let { metresBetween(it, currentFix) }
@@ -121,30 +146,68 @@ class UserConfirmStage : SessionStage {
             "birthDistance=${birthDistanceMeters?.toInt()}m " +
             "gapEntered=${state.anchorGapEnteredAtCapture} " +
             "→ ${if (answeredFarFromCar) "witnessed stop" else "current fix"} [DET-CONFIRM-ANCHOR-001]"
-        return if (answeredFarFromCar) witnessedStop else currentFix
+        return resolved(if (answeredFarFromCar) witnessedStop else currentFix)
     }
 
-    /** A point, or an AREA when the hole that fed this position bounds a doubt worth drawing. */
+    /**
+     * A point, or an AREA when this position carries a doubt worth drawing.
+     *
+     * ## [DET-A-USER-YES-DOES-NOT-SHRINK-A-WALK-ENTERED-DOUBT-001] Two doubts, and only one of them
+     * has to clear the floor
+     *
+     * A **relocated** doubt is a distance: the cascade above walked away from a gap-born anchor, so
+     * what is left to draw is how far the car might be from the fix it chose instead. That is a
+     * question of precision, the floor rule answers it, and it is unchanged — below the floor an
+     * area really does say less than the point does.
+     *
+     * A **kept** doubt is not a distance, it is a doubt about the PLACE. When the cascade returns a
+     * walk-entered anchor it does not relocate — that is deliberate, a door 40 m away is a worse
+     * guess than the stop the session measured — so the save lands on a point the session itself has
+     * marked as the pedestrian's, and nothing downstream used to know. Asking "is the number bigger
+     * than 60 m?" is the wrong question there, because [walkedInToAnchorMeters] is a LOWER bound:
+     * field 2026-07-15 measured **29,5 m** of walk-in against a real error of **37 m**. A small
+     * bound is not evidence that the anchor is good; it is evidence that the walk was only partly
+     * seen. So a kept taint draws an area whatever its magnitude, and the magnitude only sizes it.
+     *
+     * This is the same bargain the unattended timeout has always struck on the same anchor
+     * (`WALK_ENTERED_ANCHOR`, licensed by `doubt > 0`). Two doors out of one session now answer the
+     * question the same way instead of two ways.
+     */
     private fun shapeFor(
         state: DetectionSessionState,
-        where: GpsPoint,
+        where: Where,
         config: ParkingDetectionConfig,
         notes: MutableList<DiagnosticNote>,
     ): SavedParkingShape {
-        val doubtMeters = walkableInsideGapMeters(state.anchorTrust.capture.gapMs, config.maxPedestrianSpeedMps)
-        val worthDrawing = maxOf(where.accuracy, doubtMeters.toFloat()) > config.honestCloseMinZoneRadiusMeters
-        if (!worthDrawing) return SavedParkingShape.ExactPin(where, config.reliabilityUserConfirmed)
+        val point = where.point
+        val gapMs = state.anchorTrust.capture.gapMs
+        val gapDoubt = walkableInsideGapMeters(gapMs, config.maxPedestrianSpeedMps)
+        val walkInDoubt = if (where.keptATaintedAnchor) {
+            walkedInToAnchorMeters(
+                stepEventsAtCapture = state.anchorTrust.capture.stepEvents,
+                walkInSpanMeters = state.anchorTrust.capture.walkInSpanMeters,
+                strideMeters = config.anchorStrideMeters,
+            )
+        } else {
+            0.0
+        }
+        val doubtMeters = maxOf(gapDoubt, walkInDoubt)
+        val worthDrawing = where.keptATaintedAnchor ||
+            maxOf(point.accuracy, doubtMeters.toFloat()) > config.honestCloseMinZoneRadiusMeters
+        if (!worthDrawing) return SavedParkingShape.ExactPin(point, config.reliabilityUserConfirmed)
 
         val radius = honestZoneRadius(
-            centerAccuracyMeters = where.accuracy,
+            centerAccuracyMeters = point.accuracy,
             doubtMeters = doubtMeters,
             floorMeters = config.honestCloseMinZoneRadiusMeters,
             ceilingMeters = config.unattendedZoneMaxRadiusMeters,
         )
         notes += "  ◯ user-confirm saved as a ZONE r=${radius}m — the answer proves the park, " +
-            "not the spot (doubt=${doubtMeters.toInt()}m from a ${state.anchorTrust.capture.gapMs}ms " +
-            "GPS hole, fixAcc=${where.accuracy}m) [DET-USER-YES-IS-NOT-A-COORDINATE-001]"
-        return SavedParkingShape.BoundedZone(where, radius)
+            "not the spot (doubt=${doubtMeters.toInt()}m from a ${gapMs}ms GPS hole" +
+            (if (where.keptATaintedAnchor) " + a walk-entered anchor (${walkInDoubt.toInt()}m walked in)" else "") +
+            ", fixAcc=${point.accuracy}m) [DET-USER-YES-IS-NOT-A-COORDINATE-001]" +
+            (if (where.keptATaintedAnchor) "[DET-A-USER-YES-DOES-NOT-SHRINK-A-WALK-ENTERED-DOUBT-001]" else "")
+        return SavedParkingShape.BoundedZone(point, radius)
     }
 
     private fun metresBetween(a: GpsPoint, b: GpsPoint): Double =

@@ -1435,16 +1435,26 @@ class DetectionTraceReplayTest {
             assertEquals(0, env.notification.markParkingNudgeCallCount, "the saved zone is the ask — no extra nudge")
         }
 
-    // ── TEST-A-TRACE-WHOSE-GROUND-TRUTH-IS-NEVER-ASSERTED-001 · the pair below is one finding ──────
+    /**
+     * The circle both doors draw over `TraceCameliasOppo001`'s walk-entered anchor. It is the 60 m
+     * FLOOR rather than the measured walk-in bound (29,5 m, which is under it), so the two tests
+     * below name it once instead of each repeating a number whose provenance is easy to misread.
+     */
+    private val UNANSWERED_ZONE_RADIUS_METERS = 60f
+
+    // ── The two doors out of one session, and they must agree ────────────────────────────────────
     //
-    // `TraceCameliasOppo001` has carried REAL_CAR and FIELD_PIN since the day it was recorded, and
-    // until now no test read either: the replay above asserts "no silent pin, one question", and on
-    // that run there is no pin to locate. So the trace's own ground truth — the 37 m between where
-    // the car was and where the field build put it — was documentation.
+    // `TraceCameliasOppo001` carried REAL_CAR and FIELD_PIN from the day it was recorded and no test
+    // read either, because the replay above asserts "no silent pin, one question" and on that run
+    // there is no pin to locate [TEST-A-TRACE-WHOSE-GROUND-TRUTH-IS-NEVER-ASSERTED-001]. What the
+    // unread ground truth was hiding is not a coordinate but a SHAPE: the same stream and the same
+    // walk-entered anchor left the session by two doors, and the doors disagreed about how much the
+    // app admits it does not know. The unanswered timeout drew an area; a user's "Sí" pinned exactly,
+    // 37 m from the car, on the very coordinate the field build got wrong.
     //
-    // What it was hiding is below, and it is not a coordinate: it is a SHAPE. The same stream, the
-    // same tainted anchor, two doors out of the session, two different answers about how much the
-    // app admits it does not know.
+    // [DET-A-USER-YES-DOES-NOT-SHRINK-A-WALK-ENTERED-DOUBT-001] closed that, and the pair below is
+    // how it stays closed: the two tests assert the SAME radius from the same anchor, so a change
+    // that teaches one door something the other does not know goes red.
 
     @Test
     fun camelias_oppo_001_an_unanswered_prompt_draws_the_walk_in_doubt_as_a_zone() =
@@ -1488,33 +1498,32 @@ class DetectionTraceReplayTest {
                 "the walk-in doubt must be drawn wide enough to hold the car: r=$radius " +
                     "against ${fromCar.toInt()} m of real error",
             )
+            assertEquals(
+                UNANSWERED_ZONE_RADIUS_METERS,
+                radius,
+                "the circle the twin test below compares itself against",
+            )
         }
 
     /**
-     * ⚠️ **CHARACTERIZATION, and the defect is the difference from the test above.**
+     * [DET-A-USER-YES-DOES-NOT-SHRINK-A-WALK-ENTERED-DOUBT-001] **The tap changes the reliability, not
+     * the geometry.**
      *
-     * Identical stream, identical anchor, and the only change is that the user taps "Sí" instead of
-     * ignoring the question. Today that turns the 60 m zone into an **exact pin at the same
-     * coordinate** — 37 m from the car, at precisely
-     * [TraceCameliasOppo001.FIELD_PIN_LAT]/[TraceCameliasOppo001.FIELD_PIN_LON], the point the field
-     * build got wrong.
+     * Identical stream, identical anchor, and the only change from the test above is that the user
+     * taps "Sí" instead of ignoring the question. That answer proves the park — and proves nothing
+     * about the place, which is what this file's own header has always said. Until this ticket it
+     * turned the 60 m zone into an **exact pin at the same coordinate**, 37 m from the car and within
+     * a metre of [TraceCameliasOppo001.FIELD_PIN_LAT]/[TraceCameliasOppo001.FIELD_PIN_LON] — the very
+     * point the field build got wrong.
      *
-     * `UserConfirmStage` is not careless about this; it is incomplete. Its `shapeFor` bounds doubt
-     * from ONE source — the GPS hole (`capture.gapMs`) — which is the doubt
-     * `DET-USER-YES-IS-NOT-A-COORDINATE-001` was written for. A walk-entered anchor has no hole, so
-     * the doubt is not merely smaller here, it is **not consulted**, while the unattended path names
-     * it (`walk_entered_anchor`) and lets it license an area. Same doubt, two doors, two shapes.
-     *
-     * And the disagreement is purely about WHETHER to draw, not about how big: forcing
-     * `shapeFor`'s gate open makes this save a **60 m** zone — the identical radius, because both
-     * paths land on the same floor.
-     *
-     * The tap settles WHETHER, and this file's own header says so. It does not measure anything.
-     * → `DET-A-USER-YES-DOES-NOT-SHRINK-A-WALK-ENTERED-DOUBT-001`; when that lands, this test flips
-     * to asserting a zone and its twin above stops being the odd one out.
+     * ⚠️ **The number that decided the fix.** The measured walk-in bound on this trace is **29,5 m**,
+     * comfortably UNDER the 60 m floor — so simply feeding it to the old `> floor` gate would have
+     * changed nothing here. What makes the pin unsupportable is not the bound's size but what it is:
+     * a LOWER bound (the walk was only partly seen) on how wrong the PLACE is. The real error is
+     * 37 m, larger than the bound that was supposed to reassure us.
      */
     @Test
-    fun camelias_oppo_001_a_user_yes_drops_that_same_doubt_and_pins_exactly_today() =
+    fun camelias_oppo_001_a_user_yes_keeps_that_same_doubt_as_a_zone() =
         runTest(UnconfinedTestDispatcher()) {
             val replayer = DetectionTraceReplayer(TraceCameliasOppo001.events)
             val env = buildEnv(clock = { replayer.nowMs }, config = ParkingDetectionConfig())
@@ -1550,20 +1559,34 @@ class DetectionTraceReplayTest {
                 saved.location.latitude, saved.location.longitude,
                 TraceCameliasOppo001.FIELD_PIN_LAT, TraceCameliasOppo001.FIELD_PIN_LON,
             )
+            // The CENTRE is unchanged and that is deliberate: the cascade keeps a walk-entered anchor
+            // rather than demoting to whatever fix the user answered from, because a door 40 m away
+            // is a worse guess than the stop the session measured [DET-CONFIRM-ANCHOR-001]. What the
+            // ticket changed is the claim made about that centre, not the centre.
             assertTrue(
                 fromFieldPin < 1.0,
-                "today's tap lands on the field pin itself — was ${fromFieldPin.toInt()} m from it",
+                "the tap still centres where the session's anchor is — was ${fromFieldPin.toInt()} m " +
+                    "from the field pin",
             )
             assertTrue(
                 fromCar in 30.0..45.0,
                 "and that is ~37 m from where the car actually was — was ${fromCar.toInt()} m",
             )
-            assertEquals(
-                null,
+            val radius = assertNotNull(
                 saved.zoneRadiusMeters,
-                "TODAY the tap saves an EXACT pin, dropping the walk-in doubt the unattended path " +
-                    "on this same stream draws as 60 m. This assertion is the defect, not the rule: " +
-                    "DET-A-USER-YES-DOES-NOT-SHRINK-A-WALK-ENTERED-DOUBT-001 flips it to a zone",
+                "a tap over a walk-entered anchor may not claim an exact point: the answer proves " +
+                    "the park, and the anchor is still the pedestrian's spot",
+            )
+            assertTrue(
+                radius >= fromCar,
+                "and the area must hold the car: r=$radius against ${fromCar.toInt()} m of real error",
+            )
+            // The invariant that keeps the two doors from drifting apart again: same session, same
+            // anchor, same doubt — so the same circle, whoever ends the session.
+            assertEquals(
+                UNANSWERED_ZONE_RADIUS_METERS,
+                radius,
+                "the tap and the timeout must draw the SAME circle over the same anchor",
             )
         }
 

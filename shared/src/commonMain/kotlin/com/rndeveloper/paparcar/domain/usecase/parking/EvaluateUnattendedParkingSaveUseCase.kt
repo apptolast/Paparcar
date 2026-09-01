@@ -2,6 +2,7 @@ package com.rndeveloper.paparcar.domain.usecase.parking
 
 import com.rndeveloper.paparcar.domain.detection.physics.SessionOutcome
 import com.rndeveloper.paparcar.domain.detection.physics.walkableInsideGapMeters
+import com.rndeveloper.paparcar.domain.detection.physics.walkedInToAnchorMeters
 import com.rndeveloper.paparcar.domain.detection.state.EgressBirthJudgement
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
@@ -328,8 +329,14 @@ class EvaluateUnattendedParkingSaveUseCase(private val config: ParkingDetectionC
         // the GPS span of the walk-band run itself (always). The old gate demanded the FORMER and
         // therefore lost every park whose device had a mute counter — the Redmi's 97 km/h drive.
         if (input.anchorWalkEntered) {
-            val steppedBound = input.anchorStepEventsAtCapture * config.anchorStrideMeters.toDouble()
-            val doubt = maxOf(steppedBound, input.anchorWalkInSpanMeters)
+            // [DET-A-USER-YES-DOES-NOT-SHRINK-A-WALK-ENTERED-DOUBT-001] The two witnesses used to be
+            // maxed inline here, and the user's "Sí" path — which saves this same anchor — never
+            // learned the expression existed. One name, both callers.
+            val doubt = walkedInToAnchorMeters(
+                stepEventsAtCapture = input.anchorStepEventsAtCapture,
+                walkInSpanMeters = input.anchorWalkInSpanMeters,
+                strideMeters = config.anchorStrideMeters,
+            )
             // The licence the user granted on 2026-08-17: proven driving plus a sustained rest
             // means "it is obvious we moved by car and then parked". From there a bounded doubt may
             // only cost precision. Unlike the unpinned case above, this anchor WAS witnessed at
