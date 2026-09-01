@@ -1,7 +1,9 @@
 # DET-TWO-DISPATCHES-OF-ONE-DEPARTURE-READ-DIFFERENT-STATE-001
 
-**Estado:** 🔵 **Fase 1 (censo + definición) COMPLETADA 01-09-2026** — sin código, por diseño.
-La implementación (fase 2) queda pendiente de decisión, con el censo de abajo como alcance.
+**Estado:** 🟡 **Backlog — FASE 2 (implementación) PENDIENTE.** La fase 1 (censo + definición)
+quedó completada el 01-09-2026, sin código por diseño; el gate de daño del propio doc está CUMPLIDO
+(la pregunta 3 tiene dos casos medidos). Alcance de la fase 2: el censo de abajo — dirección
+propuesta «snapshot de adjudicación por hecho», con sus 3 preguntas abiertas al final. Sin rama.
 
 > ⛔ **Este ticket se llamaba `DET-A-DEPARTURE-DISPATCHES-ONCE-PER-FENCE-001` y ese nombre estaba
 > mal.** Prejuzgaba la solución —deduplicar— y la deduplicación es precisamente lo que los datos
