@@ -14,8 +14,8 @@ import kotlin.time.ExperimentalTime
 class FakeUserProfileRepository : UserProfileRepository {
     private val mockProfile = UserProfile(
         userId = "mock_user_001",
-        email = "rene@paparcar.mock",
-        displayName = "Rene Dev",
+        email = "alex@paparcar.app",
+        displayName = "Alex García",
         photoUrl = null,
         createdAt = Clock.System.now().toEpochMilliseconds(),
         updatedAt = Clock.System.now().toEpochMilliseconds(),

@@ -41,11 +41,12 @@ class FakeUserParkingRepository(
         id = "parking_own_active",
         userId = "mock_user_001",
         vehicleId = "mock_vehicle_001",
-        location = GpsPoint(36.5915, -6.2285, 6f, now - 40 * 60_000L, 0f),
+        // On Av. de la Concepción — matching the address below; the old point sat on the riverbank.
+        location = GpsPoint(36.5932, -6.2322, 6f, now - 40 * 60_000L, 0f),
         isActive = true,
         spotType = SpotType.AUTO_DETECTED,
         detectionReliability = 0.95f,
-        address = AddressInfo("Calle Luna, 18", "Puerto de Santa María", "Cádiz", "España", "ES"),
+        address = AddressInfo("Av. de la Concepción, 21", "Puerto de Santa María", "Cádiz", "España", "ES"),
     )
 
     /**
@@ -74,11 +75,12 @@ class FakeUserParkingRepository(
             id = "parking_active_001",
             userId = "mock_user_001",
             vehicleId = "mock_vehicle_002",
-            location = GpsPoint(36.5900, -6.2300, 5f, now - 3_600_000L, 0f),
+            // In the city grid — the old point floated in the Guadalete on the Home map.
+            location = GpsPoint(36.5940, -6.2332, 5f, now - 3_600_000L, 0f),
             isActive = true,
             spotType = SpotType.AUTO_DETECTED,
             detectionReliability = 0.92f,
-            address = AddressInfo("Calle Active", "Puerto de Santa María", "Cádiz", "España", "ES"),
+            address = AddressInfo("Calle San Bartolomé, 12", "Puerto de Santa María", "Cádiz", "España", "ES"),
         ))
 
         // ── Seat León (vehicle_001) — 65 sessions over 2 years ───────────────

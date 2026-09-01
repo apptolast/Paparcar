@@ -38,12 +38,12 @@ class FakeSpotRepository : SpotRepository {
             confidence = 0.65f, // MEDIA (Ámbar)
             enRouteCount = 1,
             address = AddressInfo(street = "Av. Álvaro Domecq 2", city = "Jerez de la Frontera", region = "Andalucía", country = "España"),
-            placeInfo = PlaceInfo("Mercadona Álvaro Domecq", PlaceCategory.SUPERMARKET),
+            placeInfo = PlaceInfo("Supermercado La Bahía", PlaceCategory.SUPERMARKET),
             sizeCategory = VehicleSize.MICRO_SMALL,
         ),
         Spot(
             id = "spot_mock_003",
-            location = GpsPoint(36.5950, -6.2280, 5f, initTime - 45 * 60_000L, 0f), // 45 min ago
+            location = GpsPoint(36.5950, -6.2298, 5f, initTime - 45 * 60_000L, 0f), // 45 min ago
             reportedBy = "user_ghi",
             type = SpotType.AUTO_DETECTED,
             confidence = 0.45f, // BAJA (Rojo)
@@ -69,7 +69,7 @@ class FakeSpotRepository : SpotRepository {
             confidence = 1.0f, // FIABLE (Verde intenso)
             enRouteCount = 3,
             address = AddressInfo(street = "Calle Consistorio 12", city = "Jerez de la Frontera", region = "Andalucía", country = "España"),
-            placeInfo = PlaceInfo("Repsol Consistorio", PlaceCategory.FUEL),
+            placeInfo = PlaceInfo("Gasolinera del Puerto", PlaceCategory.FUEL),
             sizeCategory = VehicleSize.VAN_HIGH,
         ),
         // [DET-HANDOFF-NOT-MANUAL-001 §B.3] A spot published on a DEDUCED departure: fresh and
@@ -77,7 +77,7 @@ class FakeSpotRepository : SpotRepository {
         // treatment in the list, the peek and the ordering (it sorts below confirmed spots).
         Spot(
             id = "spot_mock_006",
-            location = GpsPoint(36.5928, -6.2295, 5f, initTime - 1 * 60_000L, 0f), // 1 min ago
+            location = GpsPoint(36.5928, -6.2308, 5f, initTime - 1 * 60_000L, 0f), // 1 min ago
             reportedBy = "user_pqr",
             type = SpotType.AUTO_DETECTED,
             confidence = 0.7f,

@@ -27,8 +27,8 @@ private const val MOCK_GOOGLE_WEB_CLIENT_ID = "mock.apps.googleusercontent.com"
 class FakeAuthRepository(private val scenario: MockScenario? = null) : AuthRepository {
     private val mockUser = UserSession(
         userId = "mock_user_001",
-        email = "rene@paparcar.mock",
-        displayName = "Rene Dev",
+        email = "alex@paparcar.app",
+        displayName = "Alex García",
         photoUrl = null
     )
 
