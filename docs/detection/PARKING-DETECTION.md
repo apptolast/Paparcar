@@ -7042,3 +7042,53 @@ demonstrate on the stream what `drivingEvidence`'s KDoc table only asserts about
 the driving bars each bring the pin back **on their own**.
 
 Spec: `docs/backlog/det-the-two-fps-that-caused-the-redesign-become-replays-001.md`.
+
+### DET-A-DEPARTURE-RATE-MUST-BE-PHYSICALLY-REACHABLE-001 — the ceiling that could not see time (pending)
+
+**User report.** Field 31-08, night, Oppo: two parkings lost. Root cause 2 was fixed as
+`DET-A-JUST-DEPARTED-CAR-IS-NOT-NO-SESSION-001`; this is the other thing the same `parkdiag` showed,
+five seconds into the session that started it all.
+
+**What was wrong.** `sustainedDepartureFromAnchor` accepted any average departure rate inside
+`[minimumTripSpeedMps, sustainedDepartureMaxRateMps]` = `[5, 55]` m/s. 55 m/s is ~200 km/h, so the
+upper bar only ever refuted the arithmetic overflow class of cache jump. Measured at Cañada:
+
+```
+21:21:59      GEOFENCE_EXIT ARMED — d=276m
+21:22:00.142  loc#1  speed=0.0m/s acc=5.1m   → opens the stop the anchor binds to
+21:22:05.252  loc#2  207 m away, acc=12.5m
+21:22:05.254  ⇢ SUSTAINED DEPARTURE — 207 m from the anchor at 40.5 m/s   ← 146 km/h, accepted
+```
+
+`loc#1` is the outlier — the nine fixes after `loc#2` all stay where `loc#2` is, and the fence had
+already measured 276 m from the pin one second *before* `loc#1` claimed to be sitting on it.
+
+**Why the flat bar cannot catch it.** A rate ceiling has no notion of window, and the window is the
+whole difference. Field 2026-08-26 (Valdés→Góndola) measured a REAL 26.2 m/s under OEM batching whose
+in-band fixes arrived 163 s apart. Both sit under 55 m/s; lowering the bar to catch the teleport
+would kill the real drive.
+
+**Why it mattered more than one verdict.** Four consumers read this one measurement — the anchor
+unfreeze, `EffectiveDriving`, the stepless-departure gate, and `DriveProof.motorDisplacementRateMps`.
+The last is a **session latch** (`maxOf`, *"ground the vehicle provably covered does not become
+uncovered"*), and it feeds `HumanPoweredRide`: one teleport in second 5 revoked the human-powered
+veto for the rest of the session, with nothing able to undo it. That is why the fix went into the
+measurement and not into any of the four.
+
+**Guard today.** A second ceiling in the same function, asking what the first cannot: could the
+vehicle have got there from the state the anchor declared? `d - (both accuracy envelopes)` must not
+exceed `v0·t + ½·a·t²`, with `v0 = anchor.speed` and `a = sustainedDepartureMaxAccelerationMps2`
+(**4 m/s²**, deliberately generous — a physical impossibility bar, not a driving-style bar). It
+tightens as the window shrinks, which is the teleport's signature, and the batched-stream case it
+must tolerate clears it by three orders of magnitude. The anchor's own declared speed is the starting
+point, so a stop that was still rolling is not judged as if it had been at rest.
+
+**Accompanying-fix risk.** Refusing wrongly is *not* the safe side here: an anchor that fails to
+unfreeze is what planted the pin 1.11 km away at Enamorados (LOC-001 family). Hence the accuracy
+discount and the generous `a`, and hence two of the four new tests assert the guard does NOT fire.
+
+**Deliberately out of scope.** `loc#1` should arguably never have been the anchor's baseline at all,
+because the fence witness contradicted it one second earlier. Confronting two witnesses lives in
+`AnchorTrust`/the intake and is a separate ticket.
+
+Spec: `docs/backlog/det-a-departure-rate-must-be-physically-reachable-001.md`.

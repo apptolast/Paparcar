@@ -95,6 +95,7 @@ class DriveCorroborationTest {
             fix = at(366.0, 30_000L, accuracy = 52.4f, speed = 10.12f),
             nowMs = 30_000L,
             movingBarMps = 2.5f, floorMeters = 150f, minRateMps = 5f, maxRateMps = 55f,
+            maxAccelerationMps2 = 4f,
         )
         assertNotNull(d, "a 366 m run in 30 s is a drive whatever the accuracy says")
         assertEquals(12.2, d.rateMps, 0.1)
@@ -111,6 +112,7 @@ class DriveCorroborationTest {
                 anchor = at(0.0, 0L), anchorStoppedSinceMs = 0L,
                 fix = at(400.0, 30_000L, speed = 1.1f), nowMs = 30_000L,
                 movingBarMps = 2.5f, floorMeters = 150f, minRateMps = 5f, maxRateMps = 55f,
+                maxAccelerationMps2 = 4f,
             ),
         )
     }
@@ -123,6 +125,7 @@ class DriveCorroborationTest {
                 anchor = at(0.0, 0L), anchorStoppedSinceMs = 0L,
                 fix = at(400.0, 200_000L, speed = 3f), nowMs = 200_000L,
                 movingBarMps = 2.5f, floorMeters = 150f, minRateMps = 5f, maxRateMps = 55f,
+                maxAccelerationMps2 = 4f,
             ),
         )
     }
@@ -135,8 +138,87 @@ class DriveCorroborationTest {
                 anchor = at(0.0, 0L), anchorStoppedSinceMs = 0L,
                 fix = at(6_000.0, 30_000L, speed = 30f), nowMs = 30_000L,
                 movingBarMps = 2.5f, floorMeters = 150f, minRateMps = 5f, maxRateMps = 55f,
+                maxAccelerationMps2 = 4f,
             ),
         )
+    }
+
+    // ── sustainedDepartureFromAnchor · the reachability ceiling ───────────────
+    // [DET-A-DEPARTURE-RATE-MUST-BE-PHYSICALLY-REACHABLE-001] The pair below is the whole point:
+    // both clear the flat 55 m/s bar, and only one of them could have happened.
+
+    /**
+     * Field 2026-08-31, Oppo, Cañada: `loc#1` declared `speed=0.0 acc=5.1` and opened the stop;
+     * 5.1 s later `loc#2` sat 207 m away and the log said *"ran 207 m from the anchor at 40.5 m/s"*.
+     * 40.5 m/s is under the 55 m/s ceiling, so the flat bar let a cache teleport through — and it
+     * did not just unfreeze the anchor, it latched `motorDisplacementRateMps` and revoked the
+     * human-powered veto for the rest of the session.
+     */
+    @Test
+    fun should_stay_silent_when_the_distance_is_unreachable_from_a_stopped_anchor() {
+        assertNull(
+            sustainedDepartureFromAnchor(
+                anchor = at(0.0, 0L, accuracy = 5.1f, speed = 0f),
+                anchorStoppedSinceMs = 0L,
+                fix = at(207.0, 5_100L, accuracy = 12.5f, speed = 3.19f),
+                nowMs = 5_100L,
+                movingBarMps = 2.5f, floorMeters = 150f, minRateMps = 5f, maxRateMps = 55f,
+                maxAccelerationMps2 = 4f,
+            ),
+            "207 m in 5.1 s from rest needs 16 m/s² — four times what a car can do",
+        )
+    }
+
+    /**
+     * Field 2026-08-26, Valdés→Góndola: 94.3 km/h measured under OEM batching, whose in-band fixes
+     * arrived 163 s apart. A REAL drive at a rate only 14 m/s below the teleport above — the window
+     * is what separates them, which is exactly what a flat rate bar cannot see.
+     */
+    @Test
+    fun should_report_the_measurement_when_a_long_window_makes_the_rate_reachable() {
+        val d = sustainedDepartureFromAnchor(
+            anchor = at(0.0, 0L, accuracy = 15.5f, speed = 0f),
+            anchorStoppedSinceMs = 0L,
+            fix = at(4_270.0, 163_000L, accuracy = 15.5f, speed = 26.2f),
+            nowMs = 163_000L,
+            movingBarMps = 2.5f, floorMeters = 150f, minRateMps = 5f, maxRateMps = 55f,
+            maxAccelerationMps2 = 4f,
+        )
+        assertNotNull(d, "163 s of window clears the bound by three orders of magnitude")
+        assertEquals(26.2, d.rateMps, 0.1)
+    }
+
+    /** A stop that was still rolling is not judged as if it had been at rest: the anchor's own
+     *  declared speed is the starting point. The same geometry from `speed=0` is refused. */
+    @Test
+    fun should_start_the_bound_from_the_speed_the_anchor_declared() {
+        fun runFrom(anchorSpeed: Float) = sustainedDepartureFromAnchor(
+            anchor = at(0.0, 0L, speed = anchorSpeed),
+            anchorStoppedSinceMs = 0L,
+            fix = at(200.0, 8_000L, speed = 25f),
+            nowMs = 8_000L,
+            movingBarMps = 2.5f, floorMeters = 150f, minRateMps = 5f, maxRateMps = 55f,
+            maxAccelerationMps2 = 4f,
+        )
+        assertNotNull(runFrom(12f), "rolling at 12 m/s, 200 m in 8 s is reachable")
+        assertNull(runFrom(0f), "from rest the same 200 m in 8 s is not")
+    }
+
+    /** The bound is compared against the distance DISCOUNTED by both accuracy envelopes, the same
+     *  way the floor adds them. This bar refutes the impossible, never a real drive-away that GPS
+     *  noise pushed a few metres over — an anchor that fails to unfreeze is what planted the pin
+     *  1.11 km away at Enamorados. */
+    @Test
+    fun should_discount_both_accuracy_envelopes_before_judging_reachability() {
+        val d = sustainedDepartureFromAnchor(
+            anchor = at(0.0, 0L, accuracy = 20f, speed = 0f),
+            anchorStoppedSinceMs = 0L,
+            fix = at(240.0, 10_000L, accuracy = 30f, speed = 24f),
+            nowMs = 10_000L,
+            movingBarMps = 2.5f, floorMeters = 150f, minRateMps = 5f, maxRateMps = 55f,
+            maxAccelerationMps2 = 4f,
+        )
+        assertNotNull(d, "240 m raw is over the 200 m bound, but 50 m of it is envelope")
     }
 
     // ── corroboratesDrive ─────────────────────────────────────────────────────

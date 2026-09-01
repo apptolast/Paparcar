@@ -94,6 +94,27 @@ data class SustainedDeparture(val distanceMeters: Double, val rateMps: Double)
  * (field 2026-07-15, Enamorados: 10.12 m/s at accuracy 52.4 — the root of the 1.11 km false
  * positive).
  *
+ * ## Two ceilings, because one of them cannot see time
+ *
+ * [DET-A-DEPARTURE-RATE-MUST-BE-PHYSICALLY-REACHABLE-001] [maxRateMps] is a flat bar, and a flat bar
+ * cannot tell these two apart — both sit under it:
+ *
+ * | | rate | window | verdict |
+ * |---|---|---|---|
+ * | field 2026-08-26, Valdés→Góndola under OEM batching | 26.2 m/s | 163 s | a REAL drive |
+ * | field 2026-08-31, Oppo, fifth second of the session | 40.5 m/s | 5.1 s | a cache teleport |
+ *
+ * So the second ceiling asks what the first cannot: **could the vehicle have got there from the
+ * state the anchor declared?** `v0·t + ½·a·t²` with [maxAccelerationMps2]. It tightens as the window
+ * shrinks, which is exactly the shape of the problem — a teleport's signature is covering ground in
+ * no time, while the batched-stream case this function exists to tolerate has minutes of window and
+ * clears the bound by three orders of magnitude.
+ *
+ * The measured distance is discounted by both accuracy envelopes before the comparison, the same way
+ * the floor above adds them: this bar must refute the physically impossible, never a real drive-away
+ * that GPS noise pushed a few metres over. Refusing wrongly is not the safe side here — an anchor
+ * that fails to unfreeze is what planted the pin 1.11 km away at Enamorados.
+ *
  * **Returns the measurement rather than a boolean** so the log stays where the numbers are known
  * without this function having to do I/O. That is the whole point of it living here.
  */
@@ -106,14 +127,22 @@ fun sustainedDepartureFromAnchor(
     floorMeters: Float,
     minRateMps: Float,
     maxRateMps: Float,
+    maxAccelerationMps2: Float,
 ): SustainedDeparture? {
     if (fix.speed < movingBarMps) return null
     val elapsedSeconds = (nowMs - anchorStoppedSinceMs) / 1000.0
     if (elapsedSeconds <= 0.0) return null
     val d = haversineMeters(anchor.latitude, anchor.longitude, fix.latitude, fix.longitude)
-    if (d <= anchor.accuracy + fix.accuracy + floorMeters) return null
+    val jointAccuracyMeters = anchor.accuracy + fix.accuracy
+    if (d <= jointAccuracyMeters + floorMeters) return null
     val rate = d / elapsedSeconds
     if (rate < minRateMps || rate > maxRateMps) return null
+    // The anchor's own declared speed is the starting point, so a stop that was rolling is not
+    // judged as if it had been at rest. At Cañada it declared 0.0 m/s, which is what makes 207 m in
+    // 5.1 s unreachable by a factor of four.
+    val reachableMeters = anchor.speed * elapsedSeconds +
+        0.5 * maxAccelerationMps2 * elapsedSeconds * elapsedSeconds
+    if (d - jointAccuracyMeters > reachableMeters) return null
     return SustainedDeparture(distanceMeters = d, rateMps = rate)
 }
 

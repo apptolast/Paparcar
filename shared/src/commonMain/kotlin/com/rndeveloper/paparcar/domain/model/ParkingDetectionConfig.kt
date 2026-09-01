@@ -451,6 +451,17 @@ data class ParkingDetectionConfig(
      *  shortly after a stop claims absurd rates (hundreds of m/s); no urban drive sustains more
      *  than motorway pace. 55 m/s ≈ 200 km/h. */
     val sustainedDepartureMaxRateMps: Float = 55f,
+    /** [DET-A-DEPARTURE-RATE-MUST-BE-PHYSICALLY-REACHABLE-001] Ceiling (m/s²) on the acceleration
+     *  the departure is allowed to imply, which is what [sustainedDepartureMaxRateMps] cannot
+     *  express: a flat rate ceiling cannot tell 26 m/s sustained over 163 s (real, field
+     *  2026-08-26 under OEM batching) from 40 m/s over 5 s (a cache teleport, field 2026-08-31).
+     *  Both sit under 55 m/s; only one is reachable.
+     *
+     *  4 m/s² is deliberately generous — more than a loaded hatchback pulling out of a bay, and
+     *  roughly a brisk 0-100 km/h in 7 s. It is a PHYSICAL impossibility bar, not a driving-style
+     *  bar: everything a car can actually do must pass it, so the only thing it refutes is a
+     *  measurement no vehicle could have produced. */
+    val sustainedDepartureMaxAccelerationMps2: Float = 4f,
     /** Slack (meters) added on top of both accuracy envelopes when a single fix-to-fix hop
      *  corroborates a mute-counter ambiguous-band fix as CAR. Every arrival traverses the
      *  pedestrian band while decelerating: at Galeote (field 2026-07-16) the rolling-to-the-kerb
@@ -1136,6 +1147,9 @@ data class ParkingDetectionConfig(
         }
         require(sustainedDepartureMaxRateMps > minimumTripSpeedMps) {
             "sustainedDepartureMaxRateMps ($sustainedDepartureMaxRateMps) must be > minimumTripSpeedMps ($minimumTripSpeedMps)"
+        }
+        require(sustainedDepartureMaxAccelerationMps2 > 0f) {
+            "sustainedDepartureMaxAccelerationMps2 must be > 0, was $sustainedDepartureMaxAccelerationMps2"
         }
         require(credibleDriveHopMarginMeters >= 0f) {
             "credibleDriveHopMarginMeters must be >= 0, was $credibleDriveHopMarginMeters"

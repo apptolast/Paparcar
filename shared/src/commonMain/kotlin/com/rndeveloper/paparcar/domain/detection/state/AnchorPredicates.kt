@@ -198,6 +198,7 @@ fun DetectionSessionState.sustainedDepartureFrom(
         floorMeters = config.sustainedDepartureFloorMeters,
         minRateMps = config.minimumTripSpeedMps,
         maxRateMps = config.sustainedDepartureMaxRateMps,
+        maxAccelerationMps2 = config.sustainedDepartureMaxAccelerationMps2,
     )
 }
 
