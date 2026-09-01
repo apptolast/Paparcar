@@ -1,6 +1,8 @@
 # DET-A-WALK-REPORTING-ZERO-IS-STILL-A-WALK-001 · la caminata que el GPS declara parada no la mide nadie
 
-**Estado:** 🟡 Abierto · sin rama · sin worktree
+**Estado:** 🟡 Abierto · sin rama · **DESBLOQUEADO 2026-09-01: los dos números están medidos**, y el
+segundo refuta la dirección de diseño que este doc proponía. Lo que queda es una DECISIÓN, no una
+medición.
 **Origen:** hallazgo medido de `DET-A-DISOWNED-ANCHOR-TAKES-ITS-WALK-WITH-IT-001` (31-08), que fue a
 cerrar el «bug #6» del egress birth y encontró que el bug era otro.
 
@@ -63,30 +65,96 @@ en el eje de la velocidad declarada — el campo no lleva señal a esas magnitud
 que ser **posición contra tiempo**, que es exactamente el movimiento que ya hicieron
 `DET-STOP-MUST-BE-STILL-IN-SPACE-001` y `DET-A-HOLE-THE-SPEED-FIELD-DENIES-IS-STILL-A-HOLE-001`.
 
-❌ **Lo que sigue sin medir, y es lo que ahora bloquea**: el ruido de un teléfono QUIETO. Hace falta
-la distribución del desplazamiento medido entre fixes consecutivos en reposo (interior, multipath)
-para saber si separa de la caminata y con qué envolvente. Sin ese segundo número, cualquier umbral
-por desplazamiento tiene el mismo problema que tenía el de velocidad.
+### 🟢 El SEGUNDO número, medido el 2026-09-01 — y **refuta el arreglo por pares**
 
-## Dirección de diseño (a decidir con el número delante)
+Mismas dos poblaciones, definidas SIEMPRE por el podómetro (el testigo independiente), nunca por el
+`speed`. `WALK` = pasos a ambos lados dentro de 15 s. `REST` = ningún paso en ±120 s, **y** ninguna
+marca de conducción del propio log en ±120 s.
 
-La doctrina ya está escrita para el caso simétrico: `DET-STOP-MUST-BE-STILL-IN-SPACE-001` dice
-*«una parada es una afirmación sobre POSICIÓN, y el campo `speed` declarado no es posición»* — y por
-eso una parada se refuta por desplazamiento medido entre fixes, no por lo que diga el Doppler.
+**(a) Entre fixes CONSECUTIVOS — no separa, y el test de envolvente está INVERTIDO:**
 
-**El espejo de esa regla es este ticket**: si `speed` no puede probar reposo, tampoco puede
-**desmentir** movimiento. Una caminata debería poder medirse por **desplazamiento** entre fixes
-consecutivos con accuracy creíble, no por el campo declarado.
+| | metros movidos p50 | p90 | p99 | **supera `acc₁+acc₂`** |
+|---|---|---|---|---|
+| WALK (n=8 092) | 2,2 | 9,3 | 69,5 | **4,2 %** |
+| REST (n=9 037) | 0,3 | 5,1 | 176,7 | **6,8 %** |
 
-⚠️ Y el riesgo va en la dirección contraria, que es lo que hace esto delicado: el carril cinemático
-es un camino de CONFIRMACIÓN. Contar como «caminata» el ruido de un teléfono quieto sobre una mesa
-—multipath en interior mueve un fix decenas de metros— plantaría pines. Cualquier medida por
-desplazamiento necesita su envolvente de accuracy y un suelo, exactamente como
-`outrunsPedestrianReach` y `sustainedDepartureFromAnchor` ya hacen en su lado.
+⛔⛔ **Un móvil QUIETO supera la envolvente conjunta MÁS a menudo que uno andando** (6,8 % contra
+4,2 %), y su p99 es **más grande** (177 m contra 70 m). Es multipath: el salto es grande justo cuando
+la accuracy es mala. **El predicado que usa todo el código (`d > acc₁+acc₂+margen`) no vale aquí.**
 
-## Criterio de éxito
+**(b) Por VENTANA de 30 s, desplazamiento NETO (primer fix → último) — aquí sí hay señal:**
 
-- Una sesión con podómetro mudo cuyo GPS declara 0 m/s durante una caminata real **abre birth** y
-  puede confirmar por el carril cinemático.
-- Un teléfono quieto en interior con multipath **no** abre birth ni acumula fixes de egress.
-- El número que hoy falta, contado y escrito en el doc antes de elegir umbral.
+| | p10 | p50 | p90 | p99 |
+|---|---|---|---|---|
+| WALK (n=5 534) | 3,0 | **18,6** | 43,1 | 159,2 |
+| REST ±120 s (n=8 053) | 0,1 | **1,3** | 17,0 | 259,8 |
+| REST ±300 s (n=4 479) | 0,3 | **1,2** | 6,3 | 99,8 |
+
+Mediana **14× mayor** andando. Punto de operación según qué reposo haya que sobrevivir:
+
+| umbral neto / 30 s | caminatas conservadas | **reposos admitidos** (±120 s) | (±300 s) |
+|---|---|---|---|
+| 10 m | 67,5 % | **12,5 %** | 5,9 % |
+| 20 m | 47,5 % | **9,4 %** | 3,6 % |
+| 30 m | 29,5 % | **7,4 %** | 2,6 % |
+| 50 m | 5,9 % | **5,2 %** | 1,9 % |
+
+⚠️ **La ventana de 60 s es PEOR que la de 30**, no mejor: la cola del reposo explota (p90 149 m,
+p99 1 108 m). Más tiempo no es más señal.
+
+⛔ **Y la columna que manda es la de ±120 s, no la de ±300 s.** El reposo que este carril tiene que
+distinguir empieza **segundos** después de una caminata —aparcas, andas al portal, te quedas en el
+recibidor—, así que la población «móvil asentado cinco minutos» es la optimista y no la relevante.
+**1 de cada 8 ventanas en reposo pasaría por caminata a 10 m**, y a 50 m las dos curvas se cruzan.
+
+## ⛔ Veredicto: el desplazamiento SOLO no puede licenciar el carril cinemático
+
+El carril cinemático **CONFIRMA**. Admitir el 12,5 % de las ventanas en reposo es plantar pines en un
+móvil sobre una mesa, que es exactamente el riesgo que este doc ya anticipaba. Y no hay umbral que lo
+salve: por debajo de 20 m admite demasiado reposo, por encima de 40 m ya no conserva caminatas, y a
+50 m las curvas se cruzan.
+
+**Lo que el número SÍ deja abierto** (y es la única dirección que queda viva): separar *«puede ABRIR
+una birth de egress»* de *«puede CONFIRMAR»*. Abrir una birth sólo **registra la duda** — su efecto
+es que la sesión pregunte en vez de plantar. Para eso un 12,5 % de falsos positivos cuesta preguntas,
+no pines fantasma, y la asimetría de la doctrina lo tolera. Confirmar necesitaría un segundo testigo
+independiente, y el único que hay es el podómetro — que es justo el que falta en este caso.
+
+📌 **Decisión pendiente, con los dos números ya delante**: o se implementa esa versión débil (birth
+sí, confirm no), o se cierra el ticket aceptando que **el móvil con podómetro mudo en interior es
+ASK-only por física**, y eso se escribe donde se pueda leer en vez de quedar como hueco.
+
+## Dirección de diseño — ⛔ la que este doc proponía está REFUTADA por su propia medición
+
+Lo que decía aquí, y que la medición (b) desmonta: *«una caminata debería poder medirse por
+desplazamiento entre fixes CONSECUTIVOS con accuracy creíble»*. No puede: entre fixes consecutivos un
+móvil quieto supera la envolvente conjunta **más** a menudo que uno andando (6,8 % contra 4,2 %). La
+premisa era que la envolvente de accuracy filtraría el multipath, y hace lo contrario, porque el
+multipath **hincha la accuracy y el salto a la vez**.
+
+Lo que sí sobrevive del razonamiento original es el marco: `DET-STOP-MUST-BE-STILL-IN-SPACE-001` dice
+*«una parada es una afirmación sobre POSICIÓN»*, y el espejo sigue valiendo — el `speed` declarado no
+puede desmentir movimiento. Sólo que la magnitud que lleva la señal **no es el salto entre dos fixes,
+es el desplazamiento NETO de una ventana de 30 s**, y ni siquiera ésa alcanza para confirmar.
+
+### Las dos salidas, y sólo hay dos
+
+1. **Versión débil: abrir birth, no confirmar.** Una ventana de 30 s con ≥ 20 m netos abre una
+   `egressBirth` pero **no** alimenta `kinematicEgressFixes`. Efecto: la sesión pasa de perder el
+   aparcamiento a **preguntar**, que es lo que la doctrina pide ante la duda. Coste: el 9,4 % de las
+   ventanas en reposo abriría una birth falsa → alguna pregunta de más, **ningún pin fantasma**.
+   ⚠️ Antes de implementarla hay que comprobar qué más lee `egressBirth`: si algún consumidor la trata
+   como evidencia de confirmación, esta salida deja de ser débil. `judgeEgressBirth` tiene hoy tres
+   consumidores [DET-NOTHING-TO-JUDGE-IS-NOT-NO-DOUBT-001].
+2. **Cerrar el ticket como refutado**: aceptar que **un móvil con podómetro mudo, en interior, es
+   ASK-only por física**, y escribirlo donde se lea (KDoc del carril cinemático) en lugar de dejarlo
+   como un hueco que el siguiente vuelva a «arreglar».
+
+## Criterio de éxito (reescrito con los números delante)
+
+- ⛔ Ya NO es *«puede confirmar por el carril cinemático»*: eso exigiría un segundo testigo
+  independiente y el único que hay es el podómetro, que es justamente el que falta en este caso.
+- Una sesión con podómetro mudo cuyo GPS declara 0 m/s durante una caminata real **no pierde el
+  aparcamiento en silencio**: pregunta.
+- Un teléfono quieto en interior con multipath **no planta un pin**. Que abra una birth falsa de vez
+  en cuando es un coste aceptado y acotado (9,4 % a 20 m/30 s), no un fallo.
