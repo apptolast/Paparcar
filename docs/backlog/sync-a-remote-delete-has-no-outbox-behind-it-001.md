@@ -1,7 +1,7 @@
 # SYNC-A-REMOTE-DELETE-HAS-NO-OUTBOX-BEHIND-IT-001 · Un borrado remoto es la única escritura sin red de seguridad
 
-**Estado:** 🔵 Abierto, sin código · rama `chore/SYNC-A-REMOTE-WRITE-MUST-OUTLIVE-THE-PROCESS-001-ticket`
-· worktree `../Paparcar-remotewrite`
+**Estado:** 🔵 Abierto, sin código · **sin rama** — este doc está en master (`d32aaf79`); la rama y el
+worktree que lo trajeron se cerraron al mergearlo. Al implementar, worktree nuevo.
 **Abierto:** 2026-08-31 sobre master `d74e6e8c` · nace de
 `VEH-A-DELETED-CAR-DOES-NOT-ERASE-ITS-HISTORY-001` (`b0d40353`), donde el riesgo quedó documentado
 como residual y sin arreglar
