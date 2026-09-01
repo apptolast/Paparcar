@@ -1,8 +1,9 @@
 # Rediseño del motor de detección — documento de trabajo
 
-> **Estado:** 🔵 en construcción, noche del 29→30-08-2026.
+> **Estado:** 🟢 **CERRADO el 31-08-2026** — las 7 piezas ejecutadas, la última la 7 con sus dos
+> replays de campo. Escrito la noche del 29→30-08-2026 y ejecutado en los dos días siguientes.
 > Este documento existe para que nadie tenga que acordarse de nada. Todo lo que se mide, se escribe
-> aquí. Las secciones marcadas ⏳ están pendientes de las tres investigaciones en curso.
+> aquí. Lo que queda marcado ⏳ está pendiente de **medirse en campo**, no de implementarse.
 
 ---
 
@@ -730,6 +731,15 @@ estilo de los `ColorGuardrailTest` / `TypographyGuardrailTest` que ya existen:
 4. **Replays de campo como regresión** — el método de `DET-2208-TRIPS-BECOME-REPLAYS-001`, con la
    regla que ya se aplicó hoy: **cada aserción se verifica neutralizando su guard y viéndola roja**.
    Empezando por `Trace_Parafarmacia2908` y `Trace_CasaGapAnchor3008`.
+   🟢 **HECHO el 31-08** (`DET-THE-TWO-FPS-THAT-CAUSED-THE-REDESIGN-BECOME-REPLAYS-001`): los dos
+   traces (102 y 376 fixes, 1:1 del `parkdiag`) y sus dos tests, con **seis falsaciones**, una por
+   aserción. Con esto la Pieza 7 y el rediseño entero quedan cerrados. Lo que enseñó y no estaba
+   escrito: en el FP 2 **hay DOS guardas moviendo el centro de la zona y ninguna sobra** — apagar
+   sólo `DET-STOP-MUST-BE-STILL-IN-SPACE-001` deja el test en verde (`bestWitnessedCenter` lo salva
+   solo); apagar sólo `bestWitnessedCenter` lo deja **a 36 m**; hacen falta las dos para reproducir
+   el pin de campo. ⚠️ Y una aserción del primer borrador estaba **inventada** («tampoco puede
+   preguntar»): la doctrina dice que ante la duda se PREGUNTA, y el coste real del rediseño en ese
+   stream es una pregunta a medianoche, no cero preguntas.
 
 ---
 
@@ -740,16 +750,21 @@ estilo de los `ColorGuardrailTest` / `TypographyGuardrailTest` que ya existen:
 | 0 | `DET-DRIVING-EVIDENCE-IS-THE-ONLY-GATE-001` ✅ | FP parafarmacia | hecho |
 | 1 | `DET-DRIVING-EVIDENCE-VALUE-OBJECT-001` (Pieza 1) ✅ | §6.0, la raíz | hecho |
 | 2 | `DET-NO-CLOCK-PLANTS-A-PIN-001` (Pieza 4) ✅ | pin a 142 m, batería | hecho |
-| 3 | `DET-DETECTION-PATH-IS-A-TYPE-001` (Pieza 2) 🟡 | #4 #12 (#13 era falsa alarma) | parcial |
+| 3 | `DET-DETECTION-PATH-IS-A-TYPE-001` (Pieza 2) 🟢 | #4 #12 (#13 era falsa alarma) | **COMPLETA** el 31-08 |
 | 4 | `DET-FAIL-CLOSED-BY-CONSTRUCTION-001` (Pieza 3) 🟢 | #5 #6 #7 #9 #10 #14 #15 (#8 y #16 refutados/borrados) | **COMPLETA** (3a · 3b · 3c) el 31-08 |
 | 5 | `DET-TWO-TIER-SENTRY-001` (Pieza 5) ✅ | 28→1 armados, batería | hecho ⏳ medir en campo |
 | 6 | `DET-DOUBT-MUST-REACH-THE-SCREEN-001` (Pieza 6) ✅ | §1.5 | hecho ⏳ sin ver en device |
-| 7 | `DET-GUARDRAILS-KEEP-THE-DOCTRINE-001` (Pieza 7) 🟡 | que no se deshaga | 3 reglas hechas; replays pendientes |
+| 7 | `DET-GUARDRAILS-KEEP-THE-DOCTRINE-001` (Pieza 7) 🟢 | que no se deshaga | **COMPLETA** el 31-08: 3 reglas + los 2 replays |
 
 1, 2 y 4 son los que cambian la tasa de FP. 5 es el que cambia la batería y la escala (§6.5).
 
-🟢 **Las siete piezas están ejecutadas** (30-08), tres de ellas parciales y con lo que falta escrito
-en su propio ticket. Dos enunciados de este documento se REFUTARON al implementarlos y quedan
+🟢 **EL REDISEÑO ESTÁ CERRADO** (31-08). Las siete piezas se ejecutaron el 30-08, tres de ellas
+parciales; la 2 y la 3 se completaron el 31-08 y la 7 la cerraron sus dos replays de campo el mismo
+día. No queda nada abierto dentro de este plan. ⏳ Lo que sigue pendiente NO es implementación sino
+**medición en campo**: la métrica de la Pieza 5 (promociones por viaje real), la zona con su duda en
+Historial, y el coste en preguntas del gate de la Pieza 0 con podómetro mudo.
+
+Dos enunciados de este documento se REFUTARON al implementarlos y quedan
 corregidos donde viven: el umbral de 5 `drivingFixes` de §6.1 (rompía Calle Gavia; va a 2) y el
 `DrivingEvidenceGuardrailTest` de la Pieza 7 (su propiedad es falsa: `manual`, `inherited_drive` y
 `verified_speed` confirman en silencio sin conducción medida **por diseño**).

@@ -6988,3 +6988,57 @@ androidMain I/O with no test, like every other lane's hop. The `departure-follow
 the trigger ledger is what will show it in the field.
 
 Spec: `docs/backlog/det-a-just-departed-car-is-not-no-session-001.md`.
+
+---
+
+### DET-THE-TWO-FPS-THAT-CAUSED-THE-REDESIGN-BECOME-REPLAYS-001 — the two field nights become fixtures, and the redesign is finished (pending)
+
+**Piece 7 of the redesign, regla 4 — and the last thing the redesign had open.** The three guardrail
+rules landed on 30-08; the replays did not. The redesign was written FROM these two sessions and
+until now they existed only as prose in `REDESIGN-DETECTION-SYSTEM.md` and 6 464 lines of
+`parkdiag.log` on a cable. A doctrine defended only by the unit tests of the pieces it produced is
+defended against the shapes we already thought of; these two defend against the shapes the field
+produced. No production line changed — every guard was already in master, what was missing was the
+witness.
+
+**FP 1, `Trace_Parafarmacia2908`** (29-08 23:47, 102 fixes, 19 steps). An AR `IN_VEHICLE ENTER` 89 s
+late, standing 38 m from its own car's fence, arms `enter_at_car`; then ONE fix carries driving speed
+(7.71 m/s @ 16.086 m, 71.6 m out) and the next, 3.5 s later, has already undone 64.8 m. `hasEverMoved`
+stays false for all 102 fixes, and the field build still planted an exact pin at reliability 0.9,
+58.3 m from a perfectly good pin whose geofence it deleted. Master: **no pin**.
+
+⚠️ **It still ASKS, and that is the doctrine, not a leak.** The first draft of this test asserted "it
+may not ask either" — invented, not derived. *Ante la duda se pregunta.* The measured cost of the
+redesign on this stream is one question at midnight on the way to the pharmacy, and an unanswered
+question leaves no pin. The field build asked the SAME question at 23:53:48 and pinned anyway 2 min
+40 s later, on the fast path this trace no longer opens.
+
+**FP 2, `Trace_CasaGapAnchor3008`** (30-08 01:20, 376 fixes, 643 steps, two-leg trip). The drive is
+real and was read correctly. Then 198 219 ms of darkness; the first fix afterwards is a point the car
+was *passing through*, and the field build centred a 250 m zone on it. Measured on the trace: of the
+216 fixes after the hole exactly one is within 100 m of that centre, and it is the anchor itself,
+while the same window holds 18 fixes at ≤12 m accuracy clustered inside 6.7 m, 158.6 m away. Master
+saves the same shape with the centre 5.1 m from that cluster.
+
+**⚠️ The tail is not invented, and it is separate.** Master shows the gap-anchor prompt 16.3 s later
+than the field build did, so the 900 s window closes 13.3 s past the last fix the recording contains —
+the field stream ends there because the save closed the session. The three fixes that let the timeout
+run are the `OneFix` samples the safety net took at 01:49:36, 01:50:29 and 01:55:30 from the same log,
+on the resting cluster, and they live in their own `val`.
+
+**⛔ The trilateration, because the log never prints a pin's coordinates.** Three centres were needed
+and all three were recovered by least squares over the `SafetyNet … (d=NNm)` readings against the
+preceding `OneFix`: rms **0.24–0.28 m** over 15–30 observations. Validated against a known answer —
+the fence the coordinator DOES print in its `SaveZone` line trilaterates to within 2 cm of latitude.
+
+**📌 What falsification taught, and nobody had written down: on FP 2 there are TWO guards moving the
+centre, by different amounts, and neither is redundant.** With only `DET-STOP-MUST-BE-STILL-IN-SPACE-001`
+neutralized the test still passes — `bestWitnessedCenter` alone saves it. With only
+`bestWitnessedCenter` neutralized the centre lands **36 m** from the rest — the stillness guard alone
+gets it off the gap fix but not home. Both off reproduces the field pin **verbatim**, and that is why
+the "≥100 m from the field centre" half of the test has a witness instead of being a claim that
+cannot fail. Six neutralizations in all, one per assertion, each reverted. On FP 1 they also
+demonstrate on the stream what `drivingEvidence`'s KDoc table only asserts about it: the arm gate and
+the driving bars each bring the pin back **on their own**.
+
+Spec: `docs/backlog/det-the-two-fps-that-caused-the-redesign-become-replays-001.md`.

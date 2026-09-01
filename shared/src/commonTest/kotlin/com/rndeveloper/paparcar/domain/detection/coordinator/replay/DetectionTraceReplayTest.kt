@@ -1209,6 +1209,232 @@ class DetectionTraceReplayTest {
             )
         }
 
+    // ── DET-GUARDRAILS-KEEP-THE-DOCTRINE-001 · the two FPs that caused the redesign ──────────────
+    //
+    // The redesign of 2026-08-30 was written from these two field sessions, and until now they
+    // existed only as prose in `REDESIGN-DETECTION-SYSTEM.md` and a 6 464-line `parkdiag.log` on a
+    // cable. Piece 7 is the one that keeps the other six from being undone by the next hurried fix,
+    // and a doctrine defended only by unit tests of the pieces it produced is defended against the
+    // shapes we already thought of. These two replay the streams that produced the shapes.
+
+    /**
+     * The parafarmacia FP, 1:1. Two things had to be true at once for it to happen, and the replay
+     * keeps both: an `enter_at_car` arm that the old weak-evidence list did not contain, and a
+     * single Doppler sample standing in for a drive. `ArmEvidence.confirmsSilentlyWithoutMeasuredDrive`
+     * closed the first and `DrivingEvidence` the second — this is the stream that proves neither can
+     * be reopened by accident.
+     *
+     * Both were verified by NEUTRALIZATION against this fixture, one at a time, and each brings the
+     * field pin back **on its own**:
+     *  - `ENTER_AT_CAR` moved back onto the silent-confirm side of
+     *    `ArmLabel.confirmsSilentlyWithoutMeasuredDrive` → 1 save;
+     *  - the three `drivingEvidence` bars neutralized, arm gate untouched → 1 save.
+     *
+     * That is the KDoc table on `drivingEvidence` — *"each one killed the false positive on its
+     * own"* — demonstrated on the stream instead of stated about it.
+     */
+    @Test
+    fun parafarmacia_2908_one_doppler_sample_must_not_replace_a_good_pin() =
+        runTest(UnconfinedTestDispatcher()) {
+            val replayer = DetectionTraceReplayer(TRACE_PARAFARMACIA_2908)
+            val env = buildEnv(clock = { replayer.nowMs }, config = ParkingDetectionConfig())
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 256)
+            val job = launch {
+                env.coordinator.invoke(
+                    locations,
+                    armEvidence = ArmEvidence.BoardingAtCar,
+                    armingGeofenceId = "092c74d7",
+                    departureAnchor = GpsPoint(
+                        PARAFARMACIA_2908_REAL_CAR_LAT,
+                        PARAFARMACIA_2908_REAL_CAR_LON,
+                        accuracy = 7.1f,
+                        timestamp = TRACE_PARAFARMACIA_2908.first().tMs - 88 * 60_000L,
+                        speed = 0f,
+                    ),
+                    departureFenceRadiusMeters = 89f,
+                )
+            }
+            // ⚠ No `onVehicleRide` here, and that is faithful rather than an omission. The receiver
+            // stamped [PARAFARMACIA_2908_BOARDING_TRUE_TIME_MS] at 23:47:41.655, and `invoke()`
+            // called `reset()` 2.7 s later — `reset()` assigns a whole fresh `DetectionSessionState`,
+            // so the stamp was gone before the first fix. What locked the vehicle at 23:47:52 was
+            // the speed path, on the lone Doppler sample. Injecting the ride would give this replay
+            // an egress witness the field session never had.
+
+            replayer.replay(
+                emitFix = { locations.emit(it) },
+                emitStep = { env.stepDetector.emitSteps(1) },
+            )
+            job.cancelAndJoin()
+
+            assertEquals(
+                0,
+                env.parkingRepo.saveNewParkingSessionCallCount,
+                "the car never moved: 71.6 m out and 64.8 m of it undone 3.5 s later, on ONE fix. " +
+                    "Nothing here may plant a pin — the field build planted one at reliability 0.9 " +
+                    "and deleted the geofence of the good pin it replaced",
+            )
+            // What the session is allowed to do instead is ASK, and it does — once, from the
+            // scoring lane, exactly as the field build did at 23:53:48. The doctrine's asymmetry
+            // is the whole point: the pharmacy trip costs one question at midnight, and the
+            // question left unanswered leaves NO pin. The field build asked the same question and
+            // then pinned anyway 2 min 40 s later, on the fast path this trace no longer opens.
+            assertEquals(
+                1,
+                env.notification.parkingConfirmationCallCount,
+                "under doubt the app asks — it does not decide",
+            )
+            assertEquals(
+                listOf("PROMPT_SHOWN"),
+                env.detectionLogger.events.filterIsInstance<DetectionEvent.Decision>().map { it.outcome },
+                "and it is the scoring lane's question, never a confirm that got downgraded: " +
+                    "there is no confirm here to downgrade",
+            )
+            assertEquals(0, env.notification.markParkingNudgeCallCount, "no nudge either")
+            // The session still runs to the end of its stream rather than aborting early, and that
+            // is the honest shape: `hasEverReachedDrivingSpeed` DID flip on the lone sample, which
+            // is what disarms the false-ENTER guard. What stops the pin is one step further in —
+            // the confirm needs measured driving, and the lone sample is not that.
+            val ended = env.detectionLogger.events
+                .filterIsInstance<DetectionEvent.SessionEnded>().single()
+            assertEquals("ended", ended.outcome, "no confirm, no prompt — the session just runs out")
+        }
+
+    /**
+     * The gap-anchor FP, 1:1 plus the quiet tail the timeout needs (see
+     * [TRACE_CASA_GAP_ANCHOR_3008_QUIET_TAIL]).
+     *
+     * This one is not about refusing to save — the drive was real and the park was real, and losing
+     * it would be its own failure. It is about WHERE a save is allowed to point when the app admits
+     * it never saw the car stop. The field build kept the right shape (an area, reliability 0.5) and
+     * centred it on the one fix in the window the evidence had already ruled out.
+     *
+     * Neutralization, and the layering it exposed — **two guards move the centre, by different
+     * amounts, and neither is redundant**:
+     *  - `DET-STOP-MUST-BE-STILL-IN-SPACE-001` off (the 120 m jump 1.5 s after the gap fix stops
+     *    refuting the stop) but `bestWitnessedCenter` live → still **passes**: the refinement alone
+     *    catches it;
+     *  - `bestWitnessedCenter` off (`center = anchor`) but the stillness guard live → **red at 36 m**
+     *    from the rest: the guard alone gets the centre off the gap fix, and not all the way home;
+     *  - both off → the field FP verbatim, **158 m out at 36.6098405,-6.2784644**, which is why the
+     *    ≥100 m half of this test has a witness and is not a claim that cannot fail.
+     *
+     * And the other two assertions, each seen red on its own: `doubtMeters` divided by 8 → radius
+     * 61.9 m instead of 250; the drive-resumed retraction suppressed → the errand-stop question
+     * never withdrawn, so the sequence loses its middle row.
+     */
+    @Test
+    fun casa_gap_anchor_3008_the_zone_must_centre_on_the_rest_it_witnessed() =
+        runTest(UnconfinedTestDispatcher()) {
+            val replayer = DetectionTraceReplayer(TRACE_CASA_GAP_ANCHOR_3008 + TRACE_CASA_GAP_ANCHOR_3008_QUIET_TAIL)
+            val env = buildEnv(clock = { replayer.nowMs }, config = ParkingDetectionConfig())
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 1200)
+            val job = launch {
+                env.coordinator.invoke(
+                    locations,
+                    armEvidence = ArmEvidence.Unverified,
+                    armingGeofenceId = "c6a57fad",
+                    departureAnchor = GpsPoint(
+                        CASA_GAP_3008_DEPARTURE_ANCHOR_LAT,
+                        CASA_GAP_3008_DEPARTURE_ANCHOR_LON,
+                        accuracy = 22.3f,
+                        timestamp = TRACE_CASA_GAP_ANCHOR_3008.first().tMs - 84 * 60_000L,
+                        speed = 0f,
+                    ),
+                    departureFenceRadiusMeters = 89f,
+                )
+            }
+
+            var boarded = false
+            var secondLeg = false
+            var firstExit = false
+            var arrivalExit = false
+            replayer.replay(
+                emitFix = { fix ->
+                    if (!boarded && fix.timestamp >= CASA_GAP_3008_BOARDING_TRUE_TIME_MS) {
+                        boarded = true
+                        env.coordinator.onVehicleRide(CASA_GAP_3008_BOARDING_TRUE_TIME_MS)
+                    }
+                    if (!firstExit && fix.timestamp >= CASA_GAP_3008_FIRST_EXIT_AT_MS) {
+                        firstExit = true
+                        env.coordinator.onVehicleExit(CASA_GAP_3008_FIRST_EXIT_AT_MS)
+                    }
+                    if (!secondLeg && fix.timestamp >= CASA_GAP_3008_SECOND_LEG_TRUE_TIME_MS) {
+                        secondLeg = true
+                        env.coordinator.onVehicleRide(CASA_GAP_3008_SECOND_LEG_TRUE_TIME_MS)
+                    }
+                    if (!arrivalExit && fix.timestamp >= CASA_GAP_3008_ARRIVAL_EXIT_AT_MS) {
+                        arrivalExit = true
+                        env.coordinator.onVehicleExit(CASA_GAP_3008_ARRIVAL_EXIT_AT_MS)
+                    }
+                    locations.emit(fix)
+                },
+                emitStep = { env.stepDetector.emitSteps(1) },
+            )
+            job.cancelAndJoin()
+
+            assertTrue(
+                boarded && firstExit && secondLeg && arrivalExit,
+                "the trace must reach both boardings and both vehicle exits",
+            )
+            val decisions = env.detectionLogger.events.filterIsInstance<DetectionEvent.Decision>()
+            // The two-leg trip, reproduced: the errand stop asks, the resumed drive RETRACTS that
+            // question, and the arrival asks again naming the hole. A build that stopped retracting
+            // would leave the first question standing and time it out at the errand stop.
+            assertEquals(
+                listOf(
+                    "CONFIRM_DEGRADED_PROMPT/weak_evidence",
+                    "PROMPT_RETRACTED/drive_resumed",
+                    "CONFIRM_DEGRADED_PROMPT/anchor_gap_entered",
+                ),
+                decisions.map { "${it.outcome}/${it.reason}" }
+                    .filter { it.startsWith("CONFIRM_DEGRADED_PROMPT") || it.startsWith("PROMPT_RETRACTED") },
+                "the field's own sequence of questions",
+            )
+
+            assertEquals(
+                1,
+                env.parkingRepo.saveNewParkingSessionCallCount,
+                "the drive and the park are both real — losing them is not the fix for pointing wrong",
+            )
+            val saved = assertNotNull(env.parkingRepo.getActiveSession())
+            assertTrue(
+                saved.isApproximate,
+                "a stop entered through a 198 s hole was never witnessed: area only, never an exact pin",
+            )
+            val fromRest = haversineMeters(
+                saved.location.latitude, saved.location.longitude,
+                CASA_GAP_3008_WITNESSED_REST_LAT, CASA_GAP_3008_WITNESSED_REST_LON,
+            )
+            val fromFieldCentre = haversineMeters(
+                saved.location.latitude, saved.location.longitude,
+                CASA_GAP_3008_FIELD_ZONE_CENTRE_LAT, CASA_GAP_3008_FIELD_ZONE_CENTRE_LON,
+            )
+            assertTrue(
+                fromRest <= 30.0,
+                "the zone must centre on the rest the session WITNESSED (18 fixes, ≤12 m accuracy, " +
+                    "6.7 m of spread) — was ${fromRest.toInt()} m from it, at " +
+                    "${saved.location.latitude},${saved.location.longitude}",
+            )
+            assertTrue(
+                fromFieldCentre >= 100.0,
+                "and never again on the gap anchor: of the 216 fixes after the hole, only the " +
+                    "anchor itself came within 100 m of it — was ${fromFieldCentre.toInt()} m away",
+            )
+            // [DET-NO-CLOCK-PLANTS-A-PIN-001] The centre got better; the doubt did not get smaller.
+            // The hole is what sizes the radius, and the hole is unchanged.
+            assertEquals(
+                250f,
+                saved.zoneRadiusMeters,
+                "a better centre does not shrink the doubt — the field radius was 250 m and the " +
+                    "198 s hole that sized it is still there",
+            )
+            val ended = env.detectionLogger.events
+                .filterIsInstance<DetectionEvent.SessionEnded>().single()
+            assertEquals("confirmed_unattended_zone_gap_anchor", ended.outcome)
+            assertEquals(0, env.notification.markParkingNudgeCallCount, "the saved zone is the ask — no extra nudge")
+        }
+
     private fun buildEnv(
         clock: () -> Long,
         // confirmHoldMs=0 by default: most replays end at the confirm moment; traces where the
