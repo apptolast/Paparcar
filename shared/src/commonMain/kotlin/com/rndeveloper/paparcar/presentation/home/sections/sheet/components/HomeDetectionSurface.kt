@@ -284,11 +284,13 @@ fun HomeDetectionSurface(
             ),
             primaryLabel = stringResource(Res.string.home_det_driving_stop_cta),
             onPrimary = onStopDetection,
-            // Stacked full-width, not inline: this row's copy carries the CAR NAME, so an inline
-            // pill steals the width the title needs and wraps "Conduciendo tu Toyota Corolla" onto
-            // two lines (longer names then truncate). Same reason the alert watch rows stack.
-            // [DET-WATCH-HONEST-001]
-            primaryStacksBelow = true,
+            // INLINE trailing pill, not stacked: a four-letter CTA does not earn a full-width band,
+            // and the title it "steals width from" is allowed to wrap — two lines of car name cost
+            // less than a whole button row. Measured across the 9 locales before flipping: the CTA
+            // tops out at 9 chars (PL "Zatrzymaj") and the subtitle at 35, both fine at the reduced
+            // width. The alert watch rows below KEEP stacking for a measured reason too: their
+            // subtitles run to 78/126 chars and would not survive the inline cut.
+            // [UI-DET-STOP-BELONGS-BESIDE-THE-STORY-001]
             modifier = modifier,
         )
 
