@@ -7254,3 +7254,35 @@ costs questions and zones instead of silent exact pins — the doctrine's safe d
 field unmeasured.
 
 Spec: `docs/backlog/det-a-hole-the-speed-field-denies-is-still-a-hole-001.md`.
+
+---
+
+### DET-MEMORY-LIMITER-IS-AN-ATTRIBUTABLE-KILL-001 — why the process died, asked to the system
+
+**The debt this pays.** Months of field false negatives attributed to "the OEM killed the process"
+with no way to prove it: Doze, OEM deep-kill and memory death were told apart by staring at
+parkdiag gaps, and a gap does not say who made it. Android 17 adds a brand-new killer with the same
+silhouette — per-device RAM limits that kill the exact profile of a long-trip foreground detection
+service.
+
+**The lane.** `ProcessDeathAttributor` (androidMain/diagnostics, wired at `PaparcarApp.onCreate`)
+asks `ApplicationExitInfo` (API 30+) why the previous MAIN process died and stamps the answer into
+parkdiag + the remote diagnostics as `PROCESS_DEATH`, filed under the daily trigger ledger. The
+vocabulary is citable, one word per cause: `force_stop` (what an OEM deep-kill amounts to) ·
+`low_memory` · `memory_limiter` (Android 17's `REASON_OTHER` + "MemoryLimiter" description — a
+string match, NOT an API contract; a rename degrades it to `other` with the raw record preserved) ·
+`crash` · `anr` · `excessive_resource` · `self_exit` · `other`. Each historical exit is reported
+exactly once across starts (persisted watermark on the exit timestamp). Below API 30 the local log
+states `unknown` instead of pretending.
+
+**The valuable half is the negative.** A start that reports `self_exit` — or "no unreported process
+deaths" — removes the OEM excuse and returns the false negative to our side of the net, which is
+what *a parking lost with data is OUR bug* demands.
+
+**What it is not.** Not a verdict and not a use case [DET-VERDICT-NOT-PREDICATE-001]: nothing
+consumes it to decide anything yet. It complements, not replaces, `FORCE_STOP_CONFIRMED`
+(`ApplicationStartInfo`, Android 16+, force-stop only, session-gated) and `BACKGROUND_KILL_SUSPECTED`
+(heartbeat-gap heuristic): three lanes, one deterministic per-cause, one deterministic
+force-stop-only, one heuristic for what the APIs cannot see.
+
+Spec: `docs/backlog/det-memory-limiter-is-an-attributable-kill-001.md`.

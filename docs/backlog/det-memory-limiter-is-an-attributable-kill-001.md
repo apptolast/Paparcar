@@ -1,7 +1,43 @@
 # DET-MEMORY-LIMITER-IS-AN-ATTRIBUTABLE-KILL-001 · Por qué murió el proceso, preguntado al sistema
 
-**Estado:** 🔵 Abierto, sin código. Sin rama: el spec vive aquí, en el backlog. Cuando empiece el
-código, worktree y rama nuevos.
+**Estado:** ✅ Done · rama `feature/DET-MEMORY-LIMITER-IS-AN-ATTRIBUTABLE-KILL-001-exitinfo`
+(el hash del merge vive en `MEMORY.md`; este doc viaja dentro de ese commit)
+
+## Resolución
+
+Tal y como pedía el esbozo de diseño, con tres desviaciones que se explican solas:
+
+- **`ProcessDeathAttributor`** (`androidMain/diagnostics/`, vecino de `AndroidDeviceInfoProvider`),
+  registrado en `androidDetectionModule` e invocado desde `PaparcarApp.onCreate`. Consulta
+  `getHistoricalProcessExitReasons` (API 30+), filtra al proceso PRINCIPAL, deduplica contra un
+  watermark persistido (el timestamp del exit más nuevo ya reportado) y emite **un evento por
+  muerte, exactamente una vez** entre arranques.
+- **Evento nuevo `DetectionEvent.ProcessDeath`** → `PROCESS_DEATH` en el wire, colgado del **ledger
+  diario de triggers** (padre real, barrible por el sweep). Solo columnas existentes: vocabulario en
+  `reason`, registro crudo de plataforma en `source`, edad de la muerte en `enterAgeMs`.
+- **Vocabulario ampliado** sobre el esbozo (decía "a confirmar al implementar"): `force_stop` ·
+  `low_memory` · `memory_limiter` · `crash` · `anr` + **`excessive_resource`**, **`self_exit`** (el
+  negativo valioso: el proceso NO fue matado — devuelve el FN a nuestro tejado) y **`other`** (con
+  el registro crudo siempre en `detail`, nada se pierde). `unknown` queda para lo que el esbozo
+  decía: por debajo de API 30 el log local lo DICE en vez de fingir, y no se emite nada remoto.
+- El caso "no hay muertes nuevas" también **se afirma** en el parkdiag ("no unreported process
+  deaths") — la mitad más valiosa del criterio de éxito, dicha explícitamente.
+
+Tests (`ProcessDeathAttributorTest`, 7): tabla de atribución completa (incl. el string
+`MemoryLimiter:AnonSwap` de Android 17 y su degradación a `other`), watermark estricto, orden
+cronológico de emisión, un-evento-por-muerte entre dos arranques, y el negativo. El
+`KoinModuleVerifyTest` de la tarea anterior verifica el binding nuevo sin tocar nada.
+
+## Consumidores auditados
+
+- `DetectionEvent` exhaustivo: `typeName()` y `toDto()` tienen su rama (el compilador lo fuerza);
+  `accumulate()` del logger lo ignora a propósito (no aporta rollup de sesión).
+- `ForceStopConfirmed` (ApplicationStartInfo, 16+, gated por sesión) y `BackgroundKillSuspected`
+  (heurística de heartbeat) **se quedan**: tres carriles complementarios, documentados en
+  `PARKING-DETECTION.md`.
+- Criterios de campo pendientes de cosechar (no bloquean el cierre): force-stop manual en el Oppo →
+  `force_stop` en el siguiente arranque; `am memory-limiter manual` en un device con Android 17 →
+  `memory_limiter`.
 
 ## Problema
 

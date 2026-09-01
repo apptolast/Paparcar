@@ -379,6 +379,37 @@ sealed interface DetectionEvent {
         override val location: GpsPoint? = null,
     ) : DetectionEvent
 
+    /**
+     * [DET-MEMORY-LIMITER-IS-AN-ATTRIBUTABLE-KILL-001] Why the PREVIOUS process died, asked to the
+     * platform (`ApplicationExitInfo`, API 30+) instead of deduced from parkdiag gaps. Months of
+     * false negatives were attributed to "the OEM killed the process" with no way to prove it —
+     * and Android 17's per-device RAM limits add a brand-new killer with the same silhouette.
+     *
+     * [reason] is the citable vocabulary, one word per cause the field can quote: `force_stop`
+     * (REASON_USER_REQUESTED / REASON_USER_STOPPED — what an OEM deep-kill amounts to),
+     * `low_memory`, `memory_limiter` (Android 17's REASON_OTHER + "MemoryLimiter" description —
+     * a STRING match, not an API contract; if the platform renames it this degrades to `other`),
+     * `crash`, `anr`, `excessive_resource`, `self_exit` (the valuable negative: the process did
+     * NOT get killed, which returns the bug to our side of the net), `other`. [detail] carries the
+     * raw platform record so the vocabulary being coarse never loses data. [deathAgeMs] is how old
+     * the death was when this process start reported it — the absolute death moment is
+     * `timestampMs - deathAgeMs`.
+     *
+     * Unlike [ForceStopConfirmed] (Android 16+, force-stop only, logged only while a session is
+     * active), this lane reports EVERY main-process death exactly once, deduped across starts by
+     * exit timestamp, session or not: a field gap can only cite a cause if the cause was recorded
+     * before anyone knew a gap would matter. Filed under the daily trigger ledger (out-of-session
+     * convention above) so the events have a real, sweepable parent document.
+     */
+    data class ProcessDeath(
+        override val sessionId: String,
+        override val timestampMs: Long,
+        val reason: String,
+        val detail: String? = null,
+        val deathAgeMs: Long? = null,
+        override val location: GpsPoint? = null,
+    ) : DetectionEvent
+
     /** [DET-RESIDENT-FGS-001] Resident-SENTRY lifecycle telemetry: the service [event]ed the
      *  resident idle watcher ([ENTERED] after a park, with the epilogue reason as [signal]), handed
      *  it over to a live tracking job ([WOKE], with the arm trigger as [signal]), or was found dead

@@ -136,6 +136,7 @@ fun DetectionEvent.typeName(): String = when (this) {
     is DetectionEvent.GeofenceRegistration -> "GEOFENCE_REGISTRATION"
     is DetectionEvent.BackgroundKillSuspected -> "BACKGROUND_KILL_SUSPECTED"
     is DetectionEvent.ForceStopConfirmed -> "FORCE_STOP_CONFIRMED"
+    is DetectionEvent.ProcessDeath -> "PROCESS_DEATH"
     is DetectionEvent.Sentry -> "SENTRY"
 }
 
@@ -240,6 +241,12 @@ fun DetectionEvent.toDto(): DetectionEventDto {
         )
         is DetectionEvent.BackgroundKillSuspected -> base.copy(gapMs = gapMs)
         is DetectionEvent.ForceStopConfirmed -> base
+        // [DET-MEMORY-LIMITER-IS-AN-ATTRIBUTABLE-KILL-001] Existing columns only: the citable cause
+        // rides `reason` (the established "why" column), the raw platform record rides `source`
+        // (free-form provenance, same spirit as Sentry's signal), and the death's age rides
+        // `enterAgeMs` — the "how old was this signal" column ACTIVITY_TRANSITION established.
+        is DetectionEvent.ProcessDeath ->
+            base.copy(reason = reason, source = detail, enterAgeMs = deathAgeMs)
         // [DET-RESIDENT-FGS-001 · F2] Reuses existing columns on purpose (no serializer surface
         // change): the waking/entering signal rides in `source`, time-in-SENTRY in `sessionAgeMs`.
         is DetectionEvent.Sentry -> base.copy(event = event, source = signal, gapMs = gapMs, sessionAgeMs = residencyMs)

@@ -87,6 +87,10 @@ val androidDetectionModule = module {
         com.rndeveloper.paparcar.detection.ArrivalHandoffDetectionImpl(androidContext())
     }
 
+    // --- Previous-process death attribution: parkdiag gaps stop being anonymous
+    // [DET-MEMORY-LIMITER-IS-AN-ATTRIBUTABLE-KILL-001] ---
+    single { com.rndeveloper.paparcar.diagnostics.ProcessDeathAttributor(androidContext(), get()) }
+
     // --- Parking Enrichment ---
     single<ParkingEnrichmentScheduler> { WorkManagerParkingEnrichmentScheduler(androidContext()) }
 

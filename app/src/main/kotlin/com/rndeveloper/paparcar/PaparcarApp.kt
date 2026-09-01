@@ -22,6 +22,7 @@ import com.rndeveloper.paparcar.di.appModule
 import com.rndeveloper.paparcar.di.dataModule
 import com.rndeveloper.paparcar.di.domainModule
 import com.rndeveloper.paparcar.di.presentationModule
+import com.rndeveloper.paparcar.diagnostics.ProcessDeathAttributor
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import com.rndeveloper.paparcar.domain.preferences.ThemeMode
 import com.rndeveloper.paparcar.domain.usecase.detection.isFirstParkNudgeSpent
@@ -110,6 +111,12 @@ class PaparcarApp : Application() {
         // Immediate pass as well: app-open often happens right at the car (just parked / about to
         // leave) — a fresh fix now seeds the position anchor instead of waiting up to 15 min.
         ParkingSafetyNetWorker.enqueueCheckNow(workManager, source = ParkingSafetyNetWorker.SOURCE_APP_START)
+
+        // [DET-MEMORY-LIMITER-IS-AN-ATTRIBUTABLE-KILL-001] Ask the platform why the previous
+        // process died (force_stop / low_memory / memory_limiter / crash / anr / self_exit) and
+        // stamp it into parkdiag + diagnostics, once per historical exit. A field gap can only
+        // cite its cause if the cause was recorded before anyone knew the gap would matter.
+        get<ProcessDeathAttributor>().reportPendingDeaths()
 
         // Daily cold-start nudge for users who enabled detection but never parked with it — and the
         // removal of that clock once the nudge is permanently spent (park confirmed / cap
