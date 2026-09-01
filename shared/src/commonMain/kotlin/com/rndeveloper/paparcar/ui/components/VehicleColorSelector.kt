@@ -33,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.model.VehicleColor
 import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
+import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 
 private val SWATCH_SIZE = 40.dp
@@ -95,7 +96,7 @@ private fun ColorSwatch(
     // Selected → a primary ring; otherwise a hairline outline so light swatches (white,
     // silver) stay visible on the surface.
     val borderColor = if (isSelected) {
-        MaterialTheme.colorScheme.primary
+        PapColor.selected
     } else {
         MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
     }

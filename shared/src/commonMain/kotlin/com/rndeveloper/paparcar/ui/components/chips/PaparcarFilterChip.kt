@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.ui.theme.PapBorders
+import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PapShapes
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.PapAlpha
@@ -66,12 +67,12 @@ fun PaparcarFilterChip(
     }
     val borderColor = when {
         !enabled -> cs.outlineVariant.copy(alpha = DISABLED_BORDER_ALPHA)
-        selected -> cs.primary
+        selected -> PapColor.selected
         else -> cs.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA)
     }
     val contentColor = when {
         !enabled -> cs.onSurface.copy(alpha = DISABLED_FG_ALPHA)
-        selected -> cs.primary
+        selected -> PapColor.selected
         else -> cs.onSurface
     }
 
@@ -98,7 +99,7 @@ fun PaparcarFilterChip(
                     // Leading icons always render in primary (green) so chips read
                     // as branded accents rather than monochrome labels. Disabled
                     // chips fade with the rest of the foreground.
-                    tint = if (!enabled) contentColor else cs.primary,
+                    tint = if (!enabled) contentColor else PapColor.brandData,
                     modifier = Modifier.size(CHIP_ICON_SIZE),
                 )
             }

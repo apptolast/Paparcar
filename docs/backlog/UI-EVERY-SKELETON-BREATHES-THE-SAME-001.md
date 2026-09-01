@@ -1,7 +1,22 @@
 # UI-EVERY-SKELETON-BREATHES-THE-SAME-001 · Los dos skeletons de lista respiran distinto por accidente
 
-**Estado:** 🟡 Abierto, sin rama · follow-up de `UI-HISTORY-A-LOADING-LIST-MUST-NOT-CLAIM-TO-BE-EMPTY-001`
-**Abierto:** 31-08-2026
+**Estado:** ✅ Done — implementado dentro de `UI-SEVEN-STRAYS-FROM-THE-CANON-001` (incidencia 4)
+**Abierto:** 31-08-2026 · **Cerrado:** 01-09-2026
+
+## Resolución
+
+Opción **(a)**: `PapShimmerBox` sigue siendo el único primitivo y gana el ritmo de bloque grande
+como constante compartida `PapShimmerBlockScale = 0.4f` (en `PapShimmer.kt`): 0.15→0.40 × 0.4 =
+0.06→0.16, exactamente el ritmo que Home ya tenía. Duración unificada en `PapMotion.Breathe`
+(600 ms) — el token de motion del sistema, que Historial ya usaba. Los dos skeletons de lista
+(`SpotsSkeletonList`, `HistorySkeletonSection`) se portaron a `PapShimmerBox` conservando sus
+factores secundarios (subtítulo ×0.7, chips ×0.85, header ×0.7) sobre la escala de bloque.
+
+Lo que cambia a la vista: Home respira a 600 ms en vez de 900; Historial baja su alfa máxima de
+0.18 a 0.16 y pierde su `LinearEasing` particular. ⏳ **Pendiente el visto bueno en device** (claro
+y oscuro), como pedía el criterio de éxito — los otros dos criterios verificados por grep: cero
+`rememberInfiniteTransition` en `presentation/`, ambas listas leen las mismas constantes del mismo
+fichero.
 
 ## Problema
 

@@ -103,7 +103,7 @@ internal fun PermissionRow(
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = if (granted) MaterialTheme.colorScheme.primary
+                    tint = if (granted) PapColor.progress
                     else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(MAIN_ICON_SIZE),
                 )
@@ -139,7 +139,7 @@ private fun StatusIcon(state: PermissionUiState) {
     val (statusIcon, tint, label) = when (state) {
         PermissionUiState.Granted -> Triple(
             Icons.Rounded.CheckCircle,
-            MaterialTheme.colorScheme.primary,
+            PapColor.progress,
             stringResource(Res.string.permissions_status_granted),
         )
         PermissionUiState.Pending -> Triple(

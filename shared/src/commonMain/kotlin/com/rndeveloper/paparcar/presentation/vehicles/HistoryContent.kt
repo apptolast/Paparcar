@@ -2,14 +2,7 @@
 
 package com.rndeveloper.paparcar.presentation.vehicles
 
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,12 +24,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
@@ -53,7 +44,8 @@ import com.rndeveloper.paparcar.presentation.vehicles.components.HistoryFilterBa
 import com.rndeveloper.paparcar.presentation.vehicles.components.ActivityCard
 import com.rndeveloper.paparcar.presentation.vehicles.components.ActivityFact
 import com.rndeveloper.paparcar.ui.components.PapScrollToTopButton
-import com.rndeveloper.paparcar.ui.theme.PapMotion
+import com.rndeveloper.paparcar.ui.components.PapShimmerBox
+import com.rndeveloper.paparcar.ui.components.PapShimmerBlockScale
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.VehicleWatch
 import com.rndeveloper.paparcar.ui.theme.vehicleIdentityColor
@@ -395,30 +387,19 @@ fun HistoryContent(
 
 @Composable
 private fun HistorySkeletonSection(fillMaxSize: Boolean, modifier: Modifier = Modifier) {
-    val transition = rememberInfiniteTransition()
-    val skAlpha by transition.animateFloat(
-        initialValue = SKELETON_ALPHA_MIN,
-        targetValue = SKELETON_ALPHA_MAX,
-        animationSpec = infiniteRepeatable(
-            animation = tween(SKELETON_ANIM_MS, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-    )
-    val cs = MaterialTheme.colorScheme
-
     Column(
         modifier = modifier
             .fillMaxWidth()
             .then(if (fillMaxSize) Modifier.fillMaxSize() else Modifier)
             .padding(top = 6.dp),
     ) {
-        Box(
+        PapShimmerBox(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
-                .height(SKELETON_CHART_HEIGHT_DP.dp)
-                .clip(RoundedCornerShape(SKELETON_CORNER_DP.dp))
-                .background(cs.onSurface.copy(alpha = skAlpha)),
+                .height(SKELETON_CHART_HEIGHT_DP.dp),
+            shape = RoundedCornerShape(SKELETON_CORNER_DP.dp),
+            alphaScale = PapShimmerBlockScale,
         )
         Spacer(Modifier.height(8.dp))
         Row(
@@ -426,33 +407,33 @@ private fun HistorySkeletonSection(fillMaxSize: Boolean, modifier: Modifier = Mo
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             repeat(SKELETON_FILTER_COUNT) {
-                Box(
+                PapShimmerBox(
                     modifier = Modifier
                         .weight(1f)
-                        .height(SKELETON_CHIP_HEIGHT_DP.dp)
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(cs.onSurface.copy(alpha = skAlpha * SKELETON_CHIP_ALPHA_FACTOR)),
+                        .height(SKELETON_CHIP_HEIGHT_DP.dp),
+                    shape = RoundedCornerShape(999.dp),
+                    alphaScale = PapShimmerBlockScale * SKELETON_CHIP_ALPHA_FACTOR,
                 )
             }
         }
         Spacer(Modifier.height(12.dp))
-        Box(
+        PapShimmerBox(
             modifier = Modifier
                 .padding(start = 16.dp)
                 .width(SKELETON_HEADER_WIDTH_DP.dp)
-                .height(SKELETON_HEADER_HEIGHT_DP.dp)
-                .clip(RoundedCornerShape(4.dp))
-                .background(cs.onSurface.copy(alpha = skAlpha * SKELETON_HEADER_ALPHA_FACTOR)),
+                .height(SKELETON_HEADER_HEIGHT_DP.dp),
+            shape = RoundedCornerShape(4.dp),
+            alphaScale = PapShimmerBlockScale * SKELETON_HEADER_ALPHA_FACTOR,
         )
         Spacer(Modifier.height(8.dp))
         repeat(SKELETON_ROW_COUNT) {
-            Box(
+            PapShimmerBox(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 4.dp)
-                    .height(SKELETON_SESSION_HEIGHT_DP.dp)
-                    .clip(RoundedCornerShape(SKELETON_CORNER_DP.dp))
-                    .background(cs.onSurface.copy(alpha = skAlpha)),
+                    .height(SKELETON_SESSION_HEIGHT_DP.dp),
+                shape = RoundedCornerShape(SKELETON_CORNER_DP.dp),
+                alphaScale = PapShimmerBlockScale,
             )
         }
     }
@@ -470,14 +451,11 @@ private const val SKELETON_SESSION_HEIGHT_DP = 72
 private const val SKELETON_HEADER_WIDTH_DP = 80
 private const val SKELETON_HEADER_HEIGHT_DP = 12
 private const val SKELETON_CORNER_DP = 16
-private const val SKELETON_ANIM_MS = PapMotion.Breathe
 private const val SKELETON_FILTER_COUNT = 4
 private const val SKELETON_ROW_COUNT = 3
-private const val SKELETON_ALPHA_MIN = 0.06f
 /** Holgura vertical de la lista con sus extremos. */
 private val LIST_V_PADDING = 8.dp
 
-private const val SKELETON_ALPHA_MAX = 0.18f
 private const val SKELETON_CHIP_ALPHA_FACTOR = 0.85f
 private const val SKELETON_HEADER_ALPHA_FACTOR = 0.7f
 

@@ -17,7 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.model.VehicleMonitoringStatus
 import com.rndeveloper.paparcar.presentation.util.MapCircleFab
-import com.rndeveloper.paparcar.ui.theme.PapLiveMap
+import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PapMotion
 import com.rndeveloper.paparcar.ui.theme.vehicleIdentityColor
 import com.rndeveloper.paparcar.ui.theme.watch
@@ -92,7 +92,7 @@ internal fun HomeMapFabColumn(
         MapCircleFab(
             icon = Icons.Rounded.MyLocation,
             // Following the LIVE car — the map-movement blue, same as the puck it chases.
-            iconTint = if (followsCar) PapLiveMap else Color.Unspecified,
+            iconTint = if (followsCar) PapColor.live else Color.Unspecified,
             onClick = onMyLocation,
             contentDescription = stringResource(Res.string.map_cd_my_location),
         )

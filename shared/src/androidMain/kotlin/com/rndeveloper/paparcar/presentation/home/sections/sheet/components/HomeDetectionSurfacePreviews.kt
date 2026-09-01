@@ -16,6 +16,7 @@ import com.rndeveloper.paparcar.presentation.home.model.DetectionStory
 import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
 import com.rndeveloper.paparcar.presentation.home.model.ParkedWatchBadge
 import com.rndeveloper.paparcar.ui.theme.PaparcarTheme
+import com.rndeveloper.paparcar.ui.theme.VehicleWatch
 
 // One entry per story the surface can tell — action rows + discreet happy lines.
 // [UX-DETECTION-STORY-001]
@@ -29,17 +30,17 @@ private val stories = listOf(
     "Inactive" to DetectionStory.Inactive,
     "NoVehicle" to DetectionStory.NoVehicle,
     "AwaitingFirstPark" to DetectionStory.AwaitingFirstPark,
-    "Watching · parked" to DetectionStory.Watching("Škoda Kamiq", isParked = true, viaBluetooth = false),
+    "Watching · parked" to DetectionStory.Watching("Škoda Kamiq", isParked = true, watch = VehicleWatch.Assisted),
     // [DET-WATCH-HONEST-001] Honest watch health: fragile (warns) + interrupted (OS killed the FGS).
     "Watching · fragile" to DetectionStory.Watching(
-        "Škoda Kamiq", isParked = true, viaBluetooth = false, watchBadge = ParkedWatchBadge.WATCHING_FRAGILE,
+        "Škoda Kamiq", isParked = true, watch = VehicleWatch.Assisted, watchBadge = ParkedWatchBadge.WATCHING_FRAGILE,
     ),
     "Watching · interrupted" to DetectionStory.Watching(
-        "Škoda Kamiq", isParked = true, viaBluetooth = false, watchBadge = ParkedWatchBadge.WATCH_INTERRUPTED,
+        "Škoda Kamiq", isParked = true, watch = VehicleWatch.Assisted, watchBadge = ParkedWatchBadge.WATCH_INTERRUPTED,
     ),
-    "Watching · BT armed" to DetectionStory.Watching("Škoda Kamiq", isParked = false, viaBluetooth = true),
+    "Watching · BT armed" to DetectionStory.Watching("Škoda Kamiq", isParked = false, watch = VehicleWatch.Bluetooth),
     "Driving" to DetectionStory.Driving("Škoda Kamiq", isCandidate = false),
-    "Driving · BT" to DetectionStory.Driving("Škoda Kamiq", isCandidate = false, viaBluetooth = true),
+    "Driving · BT" to DetectionStory.Driving("Škoda Kamiq", isCandidate = false, watch = VehicleWatch.Bluetooth),
     "Candidate" to DetectionStory.Driving("Škoda Kamiq", isCandidate = true),
 )
 

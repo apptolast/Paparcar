@@ -130,6 +130,39 @@ class ColorGuardrailTest {
     }
 
     /**
+     * **A vehicle's colour has ONE resolver.** Doctrine rule 2 says it in prose ("el color de un
+     * vehículo sale SOLO del resolver único"), but the leg rule above only sees the `Light`, `Muted`
+     * and `Dark` suffixes — the theme-aware identity accents (`papCarBlue`, `papWatchGreen`) slipped through
+     * it, and `HomeDetectionSurface` used exactly that gap to keep a private copy of the
+     * method→colour switch: a Boolean that could not say "unwatched", silently wrong the day the
+     * greens split. Feature code asks `vehicleIdentityColor(watch)` (or the container/border
+     * resolvers next to it); only `ui/theme` may name the accents themselves.
+     * [UI-SEVEN-STRAYS-FROM-THE-CANON-001]
+     */
+    @Test
+    fun `feature code never names the identity accents directly`() {
+        // Subject witness for the PARSER itself: a regex that has gone blind reports the same green
+        // as a codebase with no offenders, so first prove it can see a known offender shape.
+        // [TEST-AN-ORPHANED-FIELD-TRACE-...: every text-parsing guardrail carries its own witness]
+        assertTrue(
+            IDENTITY_ACCENT_REGEX.containsMatchIn("import com.rndeveloper.paparcar.ui.theme.papCarBlue"),
+            "IDENTITY_ACCENT_REGEX no longer matches the offender shape it was written to catch",
+        )
+        val violations = featureFiles()
+            .mapNotNull { file ->
+                val hits = IDENTITY_ACCENT_REGEX.findAll(file.text).map { it.groupValues[1] }.distinct().toList()
+                if (hits.isEmpty()) null else "  - ${file.name}.kt → ${hits.joinToString(", ")}"
+            }
+        assertTrue(
+            violations.isEmpty(),
+            "[an identity accent named outside ui/theme — a vehicle's colour comes ONLY from " +
+                "vehicleIdentityColor(watch) / vehicleChassisBorder / vehicleIdentityContainer, " +
+                "so every surface reads the same switch and none can drift]\n" +
+                violations.joinToString("\n"),
+        )
+    }
+
+    /**
      * **One hex, one story.** The doctrine's rule 4 ("every new token needs its own row with its own
      * story") was prose, so nothing enforced it and four pairs of tokens drifted back into holding
      * the same value under different names — the exact disorder §1 of COLOR-SYSTEM.md was written to
@@ -268,6 +301,11 @@ class ColorGuardrailTest {
         /** A theme leg reached from outside `ui/theme` — qualified, so a token merely NAMED in a
          *  comment or KDoc is not a violation. */
         val LEG_REGEX = Regex("""ui\.theme\.(Pap\w*(?:Muted|Light|Dark))\b""")
+
+        /** The identity accents and their unsuffixed relatives — everything a stray resolver would
+         *  need to import that the leg regex cannot see. `\b` keeps the longer container names to
+         *  the leg rule (their suffixes match there). */
+        val IDENTITY_ACCENT_REGEX = Regex("""ui\.theme\.(papCarBlue|papWatchGreen|PapWatchGreen|PapOnBlue)\b""")
 
         /**
          * The two jobs that legitimately name a leg, both because they are NOT painting on our

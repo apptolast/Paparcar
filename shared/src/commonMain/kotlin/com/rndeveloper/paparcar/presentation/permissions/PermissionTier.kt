@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.ui.components.PapSectionHeader
 import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
+import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 
 private val NODE_SIZE        = 32.dp
@@ -58,7 +59,7 @@ internal fun PermissionTier(
     rows: @Composable ColumnScope.() -> Unit,
 ) {
     val nodeColor by animateColorAsState(
-        targetValue = if (satisfied) MaterialTheme.colorScheme.primary
+        targetValue = if (satisfied) PapColor.progress
         else MaterialTheme.colorScheme.surfaceVariant,
         label = "tier_node_bg",
     )

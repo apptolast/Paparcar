@@ -76,7 +76,7 @@ import com.rndeveloper.paparcar.domain.model.SpotFreshness
 import com.rndeveloper.paparcar.presentation.util.isManualReport
 import com.rndeveloper.paparcar.presentation.util.freshness
 import com.rndeveloper.paparcar.presentation.util.zoneIconFor
-import com.rndeveloper.paparcar.ui.theme.PapLiveMap
+import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PapGreen
 import com.rndeveloper.paparcar.ui.theme.PapCarBlueLight
 import com.rndeveloper.paparcar.ui.theme.PapWatchGreenLight
@@ -1463,7 +1463,7 @@ fun PaparcarMapView(
                         Polyline(
                             coordinates = segment.points.map { Coordinates(it.latitude, it.longitude) },
                             width = TRIP_TRAIL_WIDTH,
-                            lineColor = if (segment.inferred) PapLiveMap.copy(alpha = INFERRED_ROUTE_ALPHA) else PapLiveMap,
+                            lineColor = if (segment.inferred) PapColor.live.copy(alpha = INFERRED_ROUTE_ALPHA) else PapColor.live,
                         )
                     }
                 } else if (matched.size >= 2) {
@@ -1471,7 +1471,7 @@ fun PaparcarMapView(
                     listOf(Polyline(
                         coordinates = matched.map { Coordinates(it.latitude, it.longitude) },
                         width = TRIP_TRAIL_WIDTH,
-                        lineColor = PapLiveMap,
+                        lineColor = PapColor.live,
                     ))
                 } else {
                     val coords = buildList {
@@ -1479,7 +1479,7 @@ fun PaparcarMapView(
                         raw.forEach { add(Coordinates(it.latitude, it.longitude)) }
                     }
                     if (coords.size < 2) emptyList()
-                    else listOf(Polyline(coordinates = smoothTrail(coords), width = TRIP_TRAIL_WIDTH, lineColor = PapLiveMap))
+                    else listOf(Polyline(coordinates = smoothTrail(coords), width = TRIP_TRAIL_WIDTH, lineColor = PapColor.live))
                 }
             }
     }

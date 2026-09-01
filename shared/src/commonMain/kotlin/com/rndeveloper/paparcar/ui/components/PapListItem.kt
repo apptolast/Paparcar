@@ -33,6 +33,8 @@ import com.rndeveloper.paparcar.ui.theme.PapColor
  *
  * - [leading] / [trailing] are slots (an icon [PapIconTile], a vehicle glyph, a spot puck, a switch,
  *   a chevron, a badge, a status pin — anything).
+ * - [title] is plain text; pass [titleSlot] instead when the title line carries structure (an
+ *   inline POI glyph before a place name) — same contract as [subtitle]/[subtitleSlot].
  * - [subtitle] is plain text; pass [subtitleSlot] instead for a structured meta row (chips/tokens).
  * - [overline] is a small uppercase eyebrow above the title (accent-coloured).
  * [UI-LIST-ITEM-001]
@@ -44,6 +46,9 @@ fun PapListItem(
     overline: String? = null,
     subtitle: String? = null,
     leading: (@Composable () -> Unit)? = null,
+    /** Replaces the title [Text] when the title line needs structure; [title] and the title styling
+     *  params are ignored while it is set. */
+    titleSlot: (@Composable () -> Unit)? = null,
     subtitleSlot: (@Composable () -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
     titleStyle: TextStyle = PaparcarType.current.rowTitle,
@@ -82,13 +87,16 @@ fun PapListItem(
                 )
                 Spacer(Modifier.height(OVERLINE_GAP_DP.dp))
             }
-            Text(
-                text = title,
-                style = titleStyle,
-                color = titleColor,
-                maxLines = titleMaxLines,
-                overflow = TextOverflow.Ellipsis,
-            )
+            when {
+                titleSlot != null -> titleSlot()
+                else -> Text(
+                    text = title,
+                    style = titleStyle,
+                    color = titleColor,
+                    maxLines = titleMaxLines,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
             if (subtitleSlot != null || subtitle != null) {
                 Spacer(Modifier.height(TITLE_SUBTITLE_GAP_DP.dp))
             }

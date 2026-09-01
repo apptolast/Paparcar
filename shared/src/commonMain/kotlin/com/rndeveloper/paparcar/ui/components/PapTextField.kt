@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 
 /**
@@ -82,7 +83,7 @@ fun PapTextField(
         readOnly = readOnly,
         shape = MaterialTheme.shapes.small,
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            focusedBorderColor = PapColor.focus,
             unfocusedBorderColor = MaterialTheme.colorScheme.outline,
             errorBorderColor = MaterialTheme.colorScheme.error,
         ),

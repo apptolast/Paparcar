@@ -567,7 +567,7 @@ private fun DetectionHealthRow(state: SettingsState, onFix: () -> Unit, onFixRel
                 PapIconTile(
                     icon = Icons.Rounded.Warning,
                     container = cs.secondaryContainer,
-                    tint = cs.secondary,
+                    tint = PapColor.attention,
                 )
             }
         },
@@ -576,7 +576,7 @@ private fun DetectionHealthRow(state: SettingsState, onFix: () -> Unit, onFixRel
             reduced -> stringResource(Res.string.settings_detection_reliability_reduced)
             else -> stringResource(Res.string.settings_detection_health_ok)
         },
-        titleColor = if (amber) cs.secondary else cs.onSurface,
+        titleColor = if (amber) PapColor.attention else cs.onSurface,
         subtitle = when {
             !healthy -> null
             reduced -> stringResource(Res.string.settings_detection_reliability_reduced_desc)
@@ -588,8 +588,8 @@ private fun DetectionHealthRow(state: SettingsState, onFix: () -> Unit, onFixRel
                 OutlinedButton(
                     onClick = if (healthy) onFixReliability else onFix,
                     shape = PapShapes.button,
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = cs.secondary),
-                    border = BorderStroke(PapBorders.thin, cs.secondary),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = PapColor.attention),
+                    border = BorderStroke(PapBorders.thin, PapColor.attention),
                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
                 ) {
                     Icon(Icons.Rounded.Build, contentDescription = null, modifier = Modifier.size(14.dp))

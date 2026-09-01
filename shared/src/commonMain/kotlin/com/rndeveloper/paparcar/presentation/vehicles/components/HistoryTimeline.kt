@@ -37,6 +37,7 @@ import com.rndeveloper.paparcar.presentation.util.locationDisplayText
 import com.rndeveloper.paparcar.presentation.util.relativeTimeText
 import com.rndeveloper.paparcar.ui.components.PapSectionHeaderRow
 import com.rndeveloper.paparcar.ui.theme.PapBorders
+import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.VehicleWatch
 import com.rndeveloper.paparcar.ui.theme.onVehicleIdentityContainer
@@ -72,7 +73,7 @@ internal fun DayHeaderRow(label: String) {
                 modifier = Modifier
                     .size(DAY_HEADER_DOT_DP.dp)
                     .background(
-                        MaterialTheme.colorScheme.primary.copy(alpha = DAY_HEADER_DOT_ALPHA),
+                        PapColor.brandData.copy(alpha = DAY_HEADER_DOT_ALPHA),
                         CircleShape,
                     )
             )
@@ -210,7 +211,7 @@ private fun SessionCardContent(
             IconButton(
                 onClick = { onViewOnMap(session.location.latitude, session.location.longitude, session.id) },
             ) {
-                Icon(Icons.Rounded.Map, contentDescription = stringResource(Res.string.history_view_map), tint = cs.primary)
+                Icon(Icons.Rounded.Map, contentDescription = stringResource(Res.string.history_view_map), tint = PapColor.action)
             }
         }
     }

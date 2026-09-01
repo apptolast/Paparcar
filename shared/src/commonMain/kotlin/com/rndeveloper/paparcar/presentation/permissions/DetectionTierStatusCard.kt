@@ -23,6 +23,7 @@ import com.rndeveloper.paparcar.domain.model.DetectionTier
 import com.rndeveloper.paparcar.ui.components.PapOutlinedCard
 import com.rndeveloper.paparcar.ui.theme.PapBorders
 import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
+import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.outlineSubtle
 import org.jetbrains.compose.resources.stringResource
@@ -98,7 +99,7 @@ private fun TierGauge(rank: Int) {
         repeat(TIER_COUNT) { index ->
             Surface(
                 shape = RoundedCornerShape(DASH_HEIGHT / 2),
-                color = if (index < rank) MaterialTheme.colorScheme.primary
+                color = if (index < rank) PapColor.progress
                 else MaterialTheme.colorScheme.surfaceVariant,
                 modifier = Modifier.width(DASH_WIDTH).height(DASH_HEIGHT),
             ) {}
@@ -114,9 +115,9 @@ private fun TierGauge(rank: Int) {
 @Composable
 private fun DetectionTier.border(): BorderStroke = when (this) {
     DetectionTier.AUTOMATIC ->
-        BorderStroke(PapBorders.medium, MaterialTheme.colorScheme.primary.copy(alpha = AUTOMATIC_BORDER_ALPHA))
+        BorderStroke(PapBorders.medium, PapColor.progress.copy(alpha = AUTOMATIC_BORDER_ALPHA))
     DetectionTier.ASSISTED_PLUS ->
-        BorderStroke(PapBorders.medium, MaterialTheme.colorScheme.primary.copy(alpha = ASSISTED_PLUS_BORDER_ALPHA))
+        BorderStroke(PapBorders.medium, PapColor.progress.copy(alpha = ASSISTED_PLUS_BORDER_ALPHA))
     DetectionTier.ASSISTED -> outlineSubtle
 }
 

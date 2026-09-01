@@ -22,6 +22,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.model.VehicleType
 import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
+import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.StringResource
@@ -106,7 +107,7 @@ private fun TypeTile(
     onClick: () -> Unit,
 ) {
     val borderColor = if (isSelected)
-        MaterialTheme.colorScheme.primary
+        PapColor.selected
     else
         MaterialTheme.colorScheme.outlineVariant
 
@@ -130,7 +131,7 @@ private fun TypeTile(
         PapListItem(
             title = stringResource(option.label),
             subtitle = stringResource(option.examples),
-            titleColor = if (isSelected) MaterialTheme.colorScheme.primary
+            titleColor = if (isSelected) PapColor.selected
                          else MaterialTheme.colorScheme.onSurface,
             contentPadding = PaddingValues(horizontal = PaparcarSpacing.lg, vertical = PaparcarSpacing.md),
             gap = PaparcarSpacing.lg,
@@ -139,7 +140,7 @@ private fun TypeTile(
                     imageVector = option.icon,
                     contentDescription = null,
                     modifier = Modifier.size(IconSize),
-                    tint = if (isSelected) MaterialTheme.colorScheme.primary
+                    tint = if (isSelected) PapColor.selected
                            else MaterialTheme.colorScheme.onSurface,
                 )
             },

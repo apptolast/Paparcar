@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -68,6 +67,8 @@ import com.rndeveloper.paparcar.ui.theme.VehicleWatch
 import com.rndeveloper.paparcar.ui.theme.vehicleIdentityColor
 import com.rndeveloper.paparcar.ui.theme.watch
 import com.rndeveloper.paparcar.ui.components.PapAlertDialog
+import com.rndeveloper.paparcar.ui.components.PapFooterButton
+import com.rndeveloper.paparcar.ui.components.PapFooterButtonStyle
 import com.rndeveloper.paparcar.ui.components.chips.PaparcarAddChip
 import com.rndeveloper.paparcar.ui.theme.PapBorders
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
@@ -480,34 +481,16 @@ private fun EmptyVehicleState(
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(28.dp))
-        Surface(
+        // The canonical filled CTA, not a hand-rolled twin. The old Surface filled itself with
+        // `PapColor.actionText` — the dark READABLE-TEXT leg of the brand green (4.5:1 floor), so in
+        // the light theme this was the one filled button darker than every other CTA in the app.
+        // Text-only per the button's own icon policy: the label already names the action.
+        // [UI-SEVEN-STRAYS-FROM-THE-CANON-001] [UI-BUTTON-ICONS-EARN-THEIR-PLACE-001]
+        PapFooterButton(
+            label = stringResource(Res.string.my_car_add_vehicle),
             onClick = onAddVehicle,
-            shape = RoundedCornerShape(EMPTY_CTA_CORNER_DP.dp),
-            color = PapColor.actionText,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(EMPTY_CTA_HEIGHT_DP.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxSize(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center,
-            ) {
-                Icon(
-                    Icons.Rounded.Add,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(18.dp),
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    stringResource(Res.string.my_car_add_vehicle),
-                    // Filled primary button → cta, the app's button convention. [CARD-ONE-BADGE-001]
-                    style = PaparcarType.current.cta,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                )
-            }
-        }
+            style = PapFooterButtonStyle.Filled,
+        )
         Spacer(Modifier.height(12.dp))
         TextButton(onClick = onShowExplainer) {
             Text(
@@ -530,5 +513,3 @@ private const val SELECTED_FILL_ALPHA = 0.14f
 private const val SELECTED_BORDER_ALPHA = 0.45f // muted "green-line", not the neon primary
 private const val EMPTY_ICON_CIRCLE_DP = 120
 private val EMPTY_BODY_ALPHA = PapAlpha.body
-private const val EMPTY_CTA_HEIGHT_DP = 50
-private const val EMPTY_CTA_CORNER_DP = 14

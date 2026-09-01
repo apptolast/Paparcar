@@ -263,7 +263,7 @@ private fun ZoneNameDialog(
                     Icon(
                         imageVector = zoneIconFor(form.iconKey),
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = PapColor.brandData,
                     )
                 },
                 trailingIcon = if (form.name.isNotEmpty()) {

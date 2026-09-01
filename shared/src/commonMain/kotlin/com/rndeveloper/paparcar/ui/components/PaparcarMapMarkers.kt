@@ -68,9 +68,11 @@ import com.rndeveloper.paparcar.ui.icons.icon
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.PapCarBlueLight
 import com.rndeveloper.paparcar.ui.theme.PapGreen
+import com.rndeveloper.paparcar.ui.theme.PapSpotCoolingLight
+import com.rndeveloper.paparcar.ui.theme.PapSpotExpiringLight
 import com.rndeveloper.paparcar.ui.theme.PapSpotFreshPuck
 import com.rndeveloper.paparcar.ui.theme.PapWatchGreenLight
-import com.rndeveloper.paparcar.ui.theme.PapLiveMap
+import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PapInk
 import com.rndeveloper.paparcar.ui.theme.PapOutlineVariantLight
 import kotlinx.coroutines.launch
@@ -274,7 +276,7 @@ fun VehicleBadgeMarker(
             val dotCenter = Offset(52f * s, TAG_DOT_CY * s)
             if (originDot) {
                 drawCircle(color = Color.White, radius = TAG_DOT_R * s * ORIGIN_DOT_HALO_SCALE, center = dotCenter)
-                drawCircle(color = PapLiveMap, radius = TAG_DOT_R * s * ORIGIN_DOT_SCALE, center = dotCenter)
+                drawCircle(color = PapColor.live, radius = TAG_DOT_R * s * ORIGIN_DOT_SCALE, center = dotCenter)
             } else {
                 drawCircle(color = borderColor, radius = TAG_DOT_R * s, center = dotCenter)
             }
@@ -429,7 +431,7 @@ fun LocationActiveMarker(
 ) {
     Box(modifier.size(LOC_ACTIVE_DIAM), contentAlignment = Alignment.Center) {
         Canvas(Modifier.matchParentSize()) {
-            drawCircle(color = PapLiveMap, alpha = LOC_HALO_ALPHA, radius = this.size.minDimension / 2f)
+            drawCircle(color = PapColor.live, alpha = LOC_HALO_ALPHA, radius = this.size.minDimension / 2f)
         }
         VehicleTopdownIcon(
             carbody = carbody,
@@ -464,7 +466,7 @@ fun DepartureDotMarker(modifier: Modifier = Modifier) {
         Canvas(Modifier.matchParentSize()) {
             val r = size.minDimension / 2f
             drawCircle(color = Color.White, radius = r)
-            drawCircle(color = PapLiveMap, radius = r * DEPARTURE_DOT_INNER_SCALE)
+            drawCircle(color = PapColor.live, radius = r * DEPARTURE_DOT_INNER_SCALE)
         }
     }
 }
@@ -653,14 +655,18 @@ private val MY_VEHICLE_H = 55.dp
 /** Bolt-green spot palette — fixed brand tones (independent of [MaterialTheme]). */
 // Brand tier colours — kept fixed across themes (neutrals invert via `paper`/`ink`). [BOLT-MARKERS-001]
 // The en-route tone is NOT here: "someone is moving toward this spot" is the same semantic as the
-// driving car and the trip trail, so it reads the shared [PapLiveMap]. [UI-COLOR-DOCTRINE-001]
+// driving car and the trip trail, so it reads the shared [PapColor.live]. [UI-COLOR-DOCTRINE-001]
 private object SpotPalette {
     // `Green` was #009F5E — the EXACT value the active-vehicle marker used two hundred lines up.
     // A stranger's free spot and your own watched car were the same pixel on the same layer,
     // simultaneously, always. [UI-COLOR-EVERY-HUE-EARNS-ITS-MEANING-001]
     val Green       = PapSpotFreshPuck // libre · fresca
-    val Amber       = Color(0xFFE08200) // libre · enfriándose
-    val Red         = Color(0xFFE0322F) // libre · caduca ya
+    // One ramp, one value: the light-theme ramp legs ARE the map tones by design ("una sola rampa,
+    // los mismos tres tonos en el sheet y sobre las teselas"). These two used to duplicate the hex
+    // as literals, which the one-hex-one-story rule cannot see — it only audits declared tokens.
+    // [UI-SEVEN-STRAYS-FROM-THE-CANON-001]
+    val Amber       = PapSpotCoolingLight // libre · enfriándose
+    val Red         = PapSpotExpiringLight // libre · caduca ya
     val Paper       = Color(0xFFFFFFFF) // fixed white — ring / "P" / TTL ring / badge discs
     val Ink         = Color(0xFF0E1A2E) // fixed dark — contact shadow / en-route pill
 }
@@ -763,7 +769,7 @@ fun SpotPuckIcon(
     val ink = SpotPalette.Ink
     val pPath = remember { PathParser().parsePathString(SPOT_P_PATH).toPath() }
     val visual = if (enRouteCount > 0) {
-        SpotTierVisual(PapLiveMap, ringFraction = null, clockBadge = false, personBadge = false)
+        SpotTierVisual(PapColor.live, ringFraction = null, clockBadge = false, personBadge = false)
     } else {
         reliability.tierVisual(isManual)
     }
@@ -902,16 +908,16 @@ private fun DrawScope.drawEnRoutePin(
     ink: Color,
 ) {
     drawSpotShadow(s, ink)
-    drawSpotDot(s, PapLiveMap)
+    drawSpotDot(s, PapColor.live)
     // Dashed outer orbit (centre 36,34 r29)
     drawCircle(
-        PapLiveMap,
+        PapColor.live,
         radius = 29f * s,
         center = Offset(36f * s, 34f * s),
         style = Stroke(2.4f * s, pathEffect = PathEffect.dashPathEffect(floatArrayOf(4f * s, 5f * s))),
     )
     // Inner blue puck (r25) inside the dashed orbit
-    drawPuckBody(s, PapLiveMap, selected, paper, ink, radius = 25f)
+    drawPuckBody(s, PapColor.live, selected, paper, ink, radius = 25f)
     drawPFredoka(s, pPath, paper)
 
     // People pill — right-anchored at x=68 so it widens leftward for "9+". The pill uses `ink`

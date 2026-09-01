@@ -42,9 +42,9 @@ import com.rndeveloper.paparcar.presentation.home.model.DetectionStory
 import com.rndeveloper.paparcar.presentation.home.model.ParkedWatchBadge
 import com.rndeveloper.paparcar.presentation.util.formatClockTime
 import com.rndeveloper.paparcar.ui.theme.PapBorders
-import com.rndeveloper.paparcar.ui.theme.papCarBlue
-import com.rndeveloper.paparcar.ui.theme.papWatchGreen
 import com.rndeveloper.paparcar.ui.theme.PapShapes
+import com.rndeveloper.paparcar.ui.theme.VehicleWatch
+import com.rndeveloper.paparcar.ui.theme.vehicleIdentityColor
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -139,19 +139,18 @@ fun HomeDetectionSurface(
     val amber = Tone(cs.secondary, cs.onSecondary, cs.secondaryContainer, cs.onSecondaryContainer, isError = false)
     val error = Tone(cs.error, cs.onError, cs.errorContainer, cs.onErrorContainer, isError = true)
     // Colour = WHO is watching. Set-up rows speak as the app → brand green. Rows about a specific
-    // vehicle wear that vehicle's identity colour (green = active detection, blue = Bluetooth) —
-    // the same colour its name wears in the chip and the garage. Tonal container = accent at low
+    // vehicle wear that vehicle's identity colour — read from THE single resolver
+    // (`vehicleIdentityColor`), the same call the chip, garage and peek make, so this surface can
+    // never drift from them again. This file used to keep its own copy of the method→colour switch
+    // (raw `papCarBlue`/`papWatchGreen` + a Boolean that could not say "unwatched") and that copy is
+    // exactly what went silently wrong when the greens split. Tonal container = accent at low
     // alpha, same language as the watch badge. [UI-COLOR-DOCTRINE-001]
     val brand = Tone(cs.primary, cs.onPrimary, cs.primary.copy(alpha = INFO_CONTAINER_ALPHA), cs.primary, isError = false)
-    val carBlue = papCarBlue
-    val bluetooth = Tone(carBlue, cs.surface, carBlue.copy(alpha = INFO_CONTAINER_ALPHA), carBlue, isError = false)
-    // The green leg of the identity tone. It used to be `brand` above — correct while the brand
-    // green and the watched-vehicle green were the same value, and silently wrong the moment they
-    // stopped being: this row says "we are watching THIS car", so it must wear the car's colour,
-    // not the app's. Caught on device, not by the sweep. [UI-COLOR-EVERY-HUE-EARNS-ITS-MEANING-001]
-    val watchGreen = papWatchGreen
-    val watched = Tone(watchGreen, cs.surface, watchGreen.copy(alpha = INFO_CONTAINER_ALPHA), watchGreen, isError = false)
-    fun methodTone(viaBluetooth: Boolean) = if (viaBluetooth) bluetooth else watched
+    @Composable
+    fun identityTone(watch: VehicleWatch): Tone {
+        val accent = vehicleIdentityColor(watch)
+        return Tone(accent, cs.surface, accent.copy(alpha = INFO_CONTAINER_ALPHA), accent, isError = false)
+    }
 
     when (story) {
         // [DET-ASK-STATE-001] The question the app is waiting on, asked in-app with the SAME two
@@ -164,12 +163,13 @@ fun HomeDetectionSurface(
         // row was left on `brand` by the sweep that fixed `methodTone` a few lines below — the same
         // miss, one branch of the `when` further down, and the rule that sweep wrote applies here
         // more plainly than anywhere: this row names a specific car in its own title and wears its
-        // glyph. A fixed token rather than `methodTone` because the question is Coordinator-only —
-        // `NotifyParkingConfirmation` and `degradeToPrompt` are wired nowhere else, and a
-        // Bluetooth-watched car confirms deterministically without ever being asked. Painting it
-        // blue would be the one screen that proves the car is NOT on the Bluetooth lane.
+        // glyph. A fixed `VehicleWatch.Assisted` rather than the story's own watch because the
+        // question is Coordinator-only — `NotifyParkingConfirmation` and `degradeToPrompt` are
+        // wired nowhere else, and a Bluetooth-watched car confirms deterministically without ever
+        // being asked. Painting it blue would be the one screen that proves the car is NOT on the
+        // Bluetooth lane.
         is DetectionStory.AwaitingAnswer -> ActionRow(
-            tone = watched,
+            tone = identityTone(VehicleWatch.Assisted),
             // The car, not a parking "P": this row is about the vehicle Paparcar is following, and
             // the app's whole visual vocabulary for "your car" is the car glyph. A P would be the
             // first place in the app where parking is drawn as signage.
@@ -273,7 +273,7 @@ fun HomeDetectionSurface(
         // where stopping means anything, and the exact row that claims to be following them.
         // [DET-STOP-BUTTON-001]
         is DetectionStory.Driving -> ActionRow(
-            tone = methodTone(story.viaBluetooth),
+            tone = identityTone(story.watch),
             icon = if (story.isCandidate) Icons.Rounded.LocationSearching else Icons.Rounded.Navigation,
             title = stringResource(
                 if (story.isCandidate) Res.string.home_det_candidate_title else Res.string.home_det_driving_title,
@@ -299,7 +299,7 @@ fun HomeDetectionSurface(
         // [DET-WATCH-HONEST-001] [DET-WATCH-REACTIVATE-001] [UI-COLOR-DOCTRINE-001]
         is DetectionStory.Watching -> when (story.watchBadge) {
             ParkedWatchBadge.WATCHING, ParkedWatchBadge.PARK_MY_VEHICLE -> ActionRow(
-                tone = methodTone(story.viaBluetooth),
+                tone = identityTone(story.watch),
                 icon = Icons.Rounded.Visibility,
                 title = stringResource(Res.string.home_det_watching_title, story.vehicleName),
                 subtitle = stringResource(

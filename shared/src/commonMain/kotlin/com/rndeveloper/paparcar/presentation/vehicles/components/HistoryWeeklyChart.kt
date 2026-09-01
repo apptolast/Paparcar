@@ -186,7 +186,7 @@ private fun LowActivitySummary(total: Int) {
             Icon(
                 imageVector = Icons.AutoMirrored.Rounded.TrendingUp,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = PapColor.brandData,
                 modifier = Modifier.size(LOW_ICON_DP.dp),
             )
         }
@@ -235,7 +235,7 @@ private fun ActivityBarChart(data: List<WeekDayStats>) {
     val anim = progress.value
     val textMeasurer = rememberTextMeasurer()
     val type = PaparcarType.current
-    val primaryColor = MaterialTheme.colorScheme.primary
+    val primaryColor = PapColor.brandData
     val onSurfaceColor = MaterialTheme.colorScheme.onSurface
 
     Canvas(

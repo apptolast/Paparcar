@@ -464,13 +464,13 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             Variant("Sin aparcar aún (AwaitingFirstPark)", Placement.Surface) { detectionSurface(DetectionStory.AwaitingFirstPark) },
             // [UX-DETECTION-STORY-001] Relatos felices — línea discreta, sin card.
             Variant("Vigilando (activo aparcado)", Placement.Surface) {
-                detectionSurface(DetectionStory.Watching("Škoda Kamiq", isParked = true, viaBluetooth = false))
+                detectionSurface(DetectionStory.Watching("Škoda Kamiq", isParked = true, watch = VehicleWatch.Assisted))
             },
             // [DET-WATCH-HONEST-001] Honesto: frágil (avisa) e interrumpido (el OS mató la FGS).
             Variant("Vigilando FRÁGIL (sin exención batería)", Placement.Surface) {
                 detectionSurface(
                     DetectionStory.Watching(
-                        "Škoda Kamiq", isParked = true, viaBluetooth = false,
+                        "Škoda Kamiq", isParked = true, watch = VehicleWatch.Assisted,
                         watchBadge = ParkedWatchBadge.WATCHING_FRAGILE,
                     ),
                 )
@@ -480,20 +480,20 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             Variant("Vigilancia en PAUSA (el sistema paró el vigilante)", Placement.Surface) {
                 detectionSurface(
                     DetectionStory.Watching(
-                        "Škoda Kamiq", isParked = true, viaBluetooth = false,
+                        "Škoda Kamiq", isParked = true, watch = VehicleWatch.Assisted,
                         watchBadge = ParkedWatchBadge.WATCH_INTERRUPTED,
                     ),
                 )
             },
             Variant("Vigilando (BT armado, sin sesión)", Placement.Surface) {
-                detectionSurface(DetectionStory.Watching("Škoda Kamiq", isParked = false, viaBluetooth = true))
+                detectionSurface(DetectionStory.Watching("Škoda Kamiq", isParked = false, watch = VehicleWatch.Bluetooth))
             },
             Variant("Conduciendo (detección activa → verde)", Placement.Surface) {
                 detectionSurface(DetectionStory.Driving("Škoda Kamiq", isCandidate = false))
             },
             // [UI-COLOR-DOCTRINE-001] La fila viste el color del MÉTODO del coche: BT → azul.
             Variant("Conduciendo (BT → azul)", Placement.Surface) {
-                detectionSurface(DetectionStory.Driving("Škoda Kamiq", isCandidate = false, viaBluetooth = true))
+                detectionSurface(DetectionStory.Driving("Škoda Kamiq", isCandidate = false, watch = VehicleWatch.Bluetooth))
             },
             Variant("Aparcando… (candidate)", Placement.Surface) {
                 detectionSurface(DetectionStory.Driving("Škoda Kamiq", isCandidate = true))

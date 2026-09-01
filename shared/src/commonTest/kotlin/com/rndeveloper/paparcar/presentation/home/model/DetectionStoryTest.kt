@@ -8,6 +8,7 @@ import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.presentation.home.DrivingMeta
 import com.rndeveloper.paparcar.presentation.home.VehicleCard
+import com.rndeveloper.paparcar.ui.theme.VehicleWatch
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -65,7 +66,14 @@ class DetectionStoryTest {
             drivingMeta = DrivingMeta(vehicleId = "v-other", phase = DetectionPhase.Driving),
             vehicleCards = listOf(activeCard, otherCard),
         )
-        assertEquals(DetectionStory.Driving(vehicleName = "Seat Ibiza", isCandidate = false), story)
+        // The Ibiza is neither active nor BT-paired, so its watch method is Off — and the story
+        // carries that truthfully. Before the model carried VehicleWatch this projected to
+        // `viaBluetooth = false` and the row silently wore the assisted green while the garage
+        // painted the same car grey. [UI-SEVEN-STRAYS-FROM-THE-CANON-001]
+        assertEquals(
+            DetectionStory.Driving(vehicleName = "Seat Ibiza", isCandidate = false, watch = VehicleWatch.Off),
+            story,
+        )
     }
 
     @Test
@@ -96,14 +104,14 @@ class DetectionStoryTest {
             vehicleCards = listOf(otherCard, activeParkedCard),
         )
         assertEquals(
-            DetectionStory.Watching(vehicleName = "Skoda Kamiq", isParked = true, viaBluetooth = false),
+            DetectionStory.Watching(vehicleName = "Skoda Kamiq", isParked = true, watch = VehicleWatch.Assisted),
             story,
         )
     }
 
     @Test
     fun should_watch_via_bluetooth_when_bt_armed() {
-        // viaBluetooth is read off the VEHICLE (its watch method owns the identity colour), not
+        // The watch method is read off the VEHICLE (it owns the identity colour), not
         // hardcoded per state. [UI-COLOR-DOCTRINE-001]
         val btCard = VehicleCard(vehicle("v-active", isActive = true, bluetoothDeviceId = "AA:BB"), session = null)
         val story = resolveDetectionStory(
@@ -112,7 +120,7 @@ class DetectionStoryTest {
             vehicleCards = listOf(btCard, otherCard),
         )
         assertEquals(
-            DetectionStory.Watching(vehicleName = "Skoda Kamiq", isParked = false, viaBluetooth = true),
+            DetectionStory.Watching(vehicleName = "Skoda Kamiq", isParked = false, watch = VehicleWatch.Bluetooth),
             story,
         )
     }
@@ -130,7 +138,7 @@ class DetectionStoryTest {
             vehicleCards = listOf(activeCard, btOther),
         )
         assertEquals(
-            DetectionStory.Driving(vehicleName = "Seat Ibiza", isCandidate = false, viaBluetooth = true),
+            DetectionStory.Driving(vehicleName = "Seat Ibiza", isCandidate = false, watch = VehicleWatch.Bluetooth),
             story,
         )
     }
@@ -146,7 +154,7 @@ class DetectionStoryTest {
         )
         assertEquals(
             DetectionStory.Watching(
-                vehicleName = "Skoda Kamiq", isParked = true, viaBluetooth = false,
+                vehicleName = "Skoda Kamiq", isParked = true, watch = VehicleWatch.Assisted,
                 watchBadge = ParkedWatchBadge.WATCHING_FRAGILE,
             ),
             story,
@@ -164,7 +172,7 @@ class DetectionStoryTest {
         )
         assertEquals(
             DetectionStory.Watching(
-                vehicleName = "Skoda Kamiq", isParked = true, viaBluetooth = false,
+                vehicleName = "Skoda Kamiq", isParked = true, watch = VehicleWatch.Assisted,
                 watchBadge = ParkedWatchBadge.WATCH_INTERRUPTED,
             ),
             story,
@@ -269,7 +277,7 @@ class DetectionStoryTest {
     fun should_keep_telling_the_ordinary_story_when_nothing_is_pending() {
         // Guard against the questions leaking into the happy path: no window, no nudge, no change.
         assertEquals(
-            DetectionStory.Watching("Skoda Kamiq", isParked = true, viaBluetooth = false),
+            DetectionStory.Watching("Skoda Kamiq", isParked = true, watch = VehicleWatch.Assisted),
             resolveDetectionStory(DetectionUiState.Parked, null, listOf(activeParkedCard)),
         )
     }

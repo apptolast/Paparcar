@@ -1,12 +1,6 @@
 
 package com.rndeveloper.paparcar.presentation.home.sections.sheet.components
 
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,14 +20,14 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.rndeveloper.paparcar.ui.components.PapDivider
+import com.rndeveloper.paparcar.ui.components.PapShimmerBox
+import com.rndeveloper.paparcar.ui.components.PapShimmerBlockScale
 import com.rndeveloper.paparcar.ui.components.chips.PaparcarFilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -350,18 +344,6 @@ private fun LazyListScope.spotsSection(
 private fun SpotsSkeletonList(
     itemCount: Int = SKELETON_ITEM_COUNT,
 ) {
-    val transition = rememberInfiniteTransition(label = "skeleton_shimmer")
-    val alpha by transition.animateFloat(
-        initialValue = SKELETON_ALPHA_MIN,
-        targetValue = SKELETON_ALPHA_MAX,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = SKELETON_ANIM_MS),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "skeleton_alpha",
-    )
-    val shimmerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha)
-
     Column {
         repeat(itemCount) { index ->
             Row(
@@ -370,27 +352,22 @@ private fun SpotsSkeletonList(
                     .padding(horizontal = 16.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(42.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(shimmerColor),
+                PapShimmerBox(
+                    modifier = Modifier.size(42.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    alphaScale = PapShimmerBlockScale,
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Box(
-                        modifier = Modifier
-                            .width(SKELETON_TITLE_WIDTH.dp)
-                            .height(12.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(shimmerColor),
+                    PapShimmerBox(
+                        modifier = Modifier.width(SKELETON_TITLE_WIDTH.dp).height(12.dp),
+                        shape = RoundedCornerShape(4.dp),
+                        alphaScale = PapShimmerBlockScale,
                     )
-                    Box(
-                        modifier = Modifier
-                            .width(SKELETON_SUBTITLE_WIDTH.dp)
-                            .height(10.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(shimmerColor.copy(alpha = shimmerColor.alpha * SKELETON_SUBTITLE_ALPHA_FACTOR)),
+                    PapShimmerBox(
+                        modifier = Modifier.width(SKELETON_SUBTITLE_WIDTH.dp).height(10.dp),
+                        shape = RoundedCornerShape(4.dp),
+                        alphaScale = PapShimmerBlockScale * SKELETON_SUBTITLE_ALPHA_FACTOR,
                     )
                 }
             }
@@ -402,9 +379,6 @@ private fun SpotsSkeletonList(
 }
 
 private const val SKELETON_ITEM_COUNT = 4
-private const val SKELETON_ALPHA_MIN = 0.06f
-private const val SKELETON_ALPHA_MAX = 0.16f
-private const val SKELETON_ANIM_MS = 900
 private const val SKELETON_TITLE_WIDTH = 140
 private const val SKELETON_SUBTITLE_WIDTH = 100
 private const val SKELETON_SUBTITLE_ALPHA_FACTOR = 0.7f

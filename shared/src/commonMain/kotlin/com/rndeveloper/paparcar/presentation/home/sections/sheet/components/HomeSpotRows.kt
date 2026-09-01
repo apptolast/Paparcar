@@ -120,7 +120,7 @@ internal fun HomeSpotRow(
                     .width(SELECTION_INDICATOR_W_DP.dp)
                     .height(SELECTION_INDICATOR_H_DP.dp)
                     .background(
-                        if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                        if (isSelected) PapColor.selected else Color.Transparent,
                     ),
             )
             SpotRowContent(
@@ -152,21 +152,25 @@ private fun SpotRowContent(
         address = spot.address,
     ) ?: stringResource(Res.string.location_fallback_spot)
 
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        // Same puck as the map marker, tail-less — one shared component keeps list and map in sync,
-        // with the freshness tier encoded by colour/ring/badge. [HOME-PUCK-001]
-        SpotPuckIcon(
-            reliability = freshness,
-            enRouteCount = spot.enRouteCount,
-            isManual = spot.isManualReport,
-            modifier = Modifier.size(BADGE_DP.dp),
-        )
-
-        Column(modifier = Modifier.weight(1f)) {
+    // The canonical row anatomy, not a hand-rolled twin of it: puck = leading, meta = subtitleSlot,
+    // age pill = trailing. The title line keeps its inline POI glyph via titleSlot — the structured
+    // sibling of `title`, same contract subtitle/subtitleSlot already had. [UI-LIST-ITEM-001]
+    PapListItem(
+        title = displayText,
+        modifier = modifier,
+        contentPadding = PaddingValues(0.dp), // the caller owns this row's outer padding
+        gap = ROW_SLOT_GAP_DP.dp,
+        leading = {
+            // Same puck as the map marker, tail-less — one shared component keeps list and map in
+            // sync, with the freshness tier encoded by colour/ring/badge. [HOME-PUCK-001]
+            SpotPuckIcon(
+                reliability = freshness,
+                enRouteCount = spot.enRouteCount,
+                isManual = spot.isManualReport,
+                modifier = Modifier.size(BADGE_DP.dp),
+            )
+        },
+        titleSlot = {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(POI_ICON_GAP_DP.dp),
@@ -190,69 +194,74 @@ private fun SpotRowContent(
                     modifier = Modifier.weight(1f),
                 )
             }
-            Spacer(Modifier.height(2.dp))
-            // Meta line — reliability tier · drive time · en-route count. All LECTURA: it shares a
-            // line box with taxonomy you READ, one line under a name in MARCA. CIFRA here was the
-            // visible clash the user reported. [UI-TYPE-TWO-VOICES-ONE-ROW-001]
-            val type = PaparcarType.current
-            // La meta se queda con lo que hace falta para DECIDIR desde la lista. Lo que describe la
-            // plaza una vez elegida vive en su modal, que ya lo pinta — la fila lo estaba
-            // repitiendo. [UI-SPOT-ROW-SAYS-WHAT-DECIDES-001]
-            //
-            //  - La fiabilidad sale: el color del puck ya la dice, y el modal la explica con su
-            //    medidor (`FiabilityIndicator`).
-            //  - SIN CONFIRMAR sale: el modal lo cuenta entero, con los dos botones que lo
-            //    resuelven. Aqui era una palabra larga sin salida. [DET-HANDOFF-NOT-MANUAL-001 §B.3]
-            //  - La gente en camino se queda, en icono + cifra: es la senal de que la plaza puede
-            //    estar cogida al llegar, y como glifo cuesta un tercio de lo que costaba escrita.
-            // El espaciado agrupa: tiempo y metros son el MISMO dato dicho de dos formas, asi que
-            // van pegados por su separador; la gente en camino es otra cosa y se separa mas. Un
-            // `spacedBy` uniforme los ponia a los tres a la misma distancia y se leian como tres
-            // datos sueltos.
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (distanceM != null) {
-                    Text(
-                        driveTimeString(distanceM),
-                        style = type.meta,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = META_MUTED_ALPHA),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        SheetTokens.META_SEPARATOR,
-                        style = type.meta,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = SheetTokens.META_SEPARATOR_ALPHA),
-                    )
-                    // Los metros viven aqui, no arriba: la linea del nombre entera es para el NOMBRE,
-                    // que es lo que se escanea y lo que se truncaba en los sitios de nombre largo.
-                    Text(
-                        distanceString(distanceM),
-                        style = type.meta,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = SheetTokens.META_VALUE_ALPHA),
-                        maxLines = 1,
-                    )
-                }
-                if (spot.enRouteCount > 0) {
-                    Spacer(Modifier.width(EN_ROUTE_LEAD_GAP_DP.dp))
-                    Icon(
-                        imageVector = Icons.Rounded.Group,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = META_MUTED_ALPHA),
-                        modifier = Modifier.size(EN_ROUTE_ICON_DP.dp),
-                    )
-                    Spacer(Modifier.width(EN_ROUTE_GAP_DP.dp))
-                    Text(
-                        spot.enRouteCount.toString(),
-                        style = type.meta,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = META_MUTED_ALPHA),
-                        maxLines = 1,
-                    )
-                }
-            }
-        }
+        },
+        subtitleSlot = { SpotMetaRow(spot = spot, distanceM = distanceM) },
+        trailing = if (spot.location.timestamp > 0L) {
+            { SpotAgeIndicator(ageMs = ageMs, freshness = freshness) }
+        } else {
+            null
+        },
+    )
+}
 
-        if (spot.location.timestamp > 0L) {
-            SpotAgeIndicator(ageMs = ageMs, freshness = freshness)
+// Meta line — reliability tier · drive time · en-route count. All LECTURA: it shares a line box
+// with taxonomy you READ, one line under a name in MARCA. CIFRA here was the visible clash the
+// user reported. [UI-TYPE-TWO-VOICES-ONE-ROW-001]
+//
+// La meta se queda con lo que hace falta para DECIDIR desde la lista. Lo que describe la plaza una
+// vez elegida vive en su modal, que ya lo pinta — la fila lo estaba repitiendo.
+// [UI-SPOT-ROW-SAYS-WHAT-DECIDES-001]
+//
+//  - La fiabilidad sale: el color del puck ya la dice, y el modal la explica con su medidor
+//    (`FiabilityIndicator`).
+//  - SIN CONFIRMAR sale: el modal lo cuenta entero, con los dos botones que lo resuelven. Aqui era
+//    una palabra larga sin salida. [DET-HANDOFF-NOT-MANUAL-001 §B.3]
+//  - La gente en camino se queda, en icono + cifra: es la senal de que la plaza puede estar cogida
+//    al llegar, y como glifo cuesta un tercio de lo que costaba escrita.
+// El espaciado agrupa: tiempo y metros son el MISMO dato dicho de dos formas, asi que van pegados
+// por su separador; la gente en camino es otra cosa y se separa mas. Un `spacedBy` uniforme los
+// ponia a los tres a la misma distancia y se leian como tres datos sueltos.
+@Composable
+private fun SpotMetaRow(spot: Spot, distanceM: Float?) {
+    val type = PaparcarType.current
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        if (distanceM != null) {
+            Text(
+                driveTimeString(distanceM),
+                style = type.meta,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = META_MUTED_ALPHA),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                SheetTokens.META_SEPARATOR,
+                style = type.meta,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = SheetTokens.META_SEPARATOR_ALPHA),
+            )
+            // Los metros viven aqui, no arriba: la linea del nombre entera es para el NOMBRE,
+            // que es lo que se escanea y lo que se truncaba en los sitios de nombre largo.
+            Text(
+                distanceString(distanceM),
+                style = type.meta,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = SheetTokens.META_VALUE_ALPHA),
+                maxLines = 1,
+            )
+        }
+        if (spot.enRouteCount > 0) {
+            Spacer(Modifier.width(EN_ROUTE_LEAD_GAP_DP.dp))
+            Icon(
+                imageVector = Icons.Rounded.Group,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = META_MUTED_ALPHA),
+                modifier = Modifier.size(EN_ROUTE_ICON_DP.dp),
+            )
+            Spacer(Modifier.width(EN_ROUTE_GAP_DP.dp))
+            Text(
+                spot.enRouteCount.toString(),
+                style = type.meta,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = META_MUTED_ALPHA),
+                maxLines = 1,
+            )
         }
     }
 }
@@ -391,7 +400,7 @@ internal fun HomeReportSpotCard(
                 Icon(
                     Icons.Rounded.Add,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = PapColor.action,
                     modifier = Modifier.size(22.dp),
                 )
             },
@@ -402,6 +411,9 @@ internal fun HomeReportSpotCard(
 private const val SELECTION_INDICATOR_W_DP = 3
 private const val SELECTION_INDICATOR_H_DP = 56
 private const val BADGE_DP = 42
+/** Gap between the row's slots (puck · text block · age pill) — denser than the PapListItem
+ *  default: the puck already carries visual weight. */
+private const val ROW_SLOT_GAP_DP = 12
 private const val POI_ICON_DP = 15
 private const val POI_ICON_GAP_DP = 5
 private const val EN_ROUTE_ICON_DP = 15

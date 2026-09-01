@@ -2,11 +2,12 @@ package com.rndeveloper.paparcar.presentation.home.model
 
 import com.rndeveloper.paparcar.domain.detection.DetectionPhase
 import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
-import com.rndeveloper.paparcar.domain.model.VehicleMonitoringStatus
 import com.rndeveloper.paparcar.domain.model.displayName
 import com.rndeveloper.paparcar.domain.model.monitoringStatus
 import com.rndeveloper.paparcar.presentation.home.DrivingMeta
 import com.rndeveloper.paparcar.presentation.home.VehicleCard
+import com.rndeveloper.paparcar.ui.theme.VehicleWatch
+import com.rndeveloper.paparcar.ui.theme.watch
 
 /**
  * The SINGLE detection story Home tells in the expanded sheet — one voice for "what is the app
@@ -64,19 +65,20 @@ sealed interface DetectionStory {
     data object AwaitingFirstPark : DetectionStory
 
     /** A trip is being followed right now. [isCandidate] = stopped, confirming the spot.
-     *  [viaBluetooth] = the trip vehicle's watch method, so the row wears its identity colour.
+     *  [watch] = the trip vehicle's watch method, the one axis that owns its identity colour —
+     *  carried whole (not projected to a Boolean) so the surface can read the single resolver.
      *  [UI-COLOR-DOCTRINE-001] */
     data class Driving(
         val vehicleName: String,
         val isCandidate: Boolean,
-        val viaBluetooth: Boolean = false,
+        val watch: VehicleWatch = VehicleWatch.Assisted,
     ) : DetectionStory
 
     /**
      * Discreet happy line — detection is armed and covering the ACTIVE vehicle. Only the active
      * vehicle earns this story: it is the one the Coordinator works for (strategy gate
      * [DET-STRATEGY-GATE-001]); other cars never claim to be "watched". [isParked] = a fence is
-     * watching its session; [viaBluetooth] = armed by the car's paired Bluetooth instead.
+     * watching its session; [watch] = the vehicle's watch method (Bluetooth-armed vs assisted).
      *
      * [watchBadge] makes the line HONEST: it only reads "Vigilando tu sitio" when the watch is
      * genuinely live ([ParkedWatchBadge.WATCHING]); a fragile setup warns, and a killed foreground
@@ -85,7 +87,7 @@ sealed interface DetectionStory {
     data class Watching(
         val vehicleName: String,
         val isParked: Boolean,
-        val viaBluetooth: Boolean,
+        val watch: VehicleWatch,
         val watchBadge: ParkedWatchBadge = ParkedWatchBadge.WATCHING,
     ) : DetectionStory
 
@@ -122,7 +124,7 @@ fun resolveDetectionStory(
         return DetectionStory.Driving(
             vehicleName = name,
             isCandidate = drivingMeta?.phase == DetectionPhase.Candidate,
-            viaBluetooth = card.vehicle.monitoringStatus() is VehicleMonitoringStatus.Bluetooth,
+            watch = card.vehicle.monitoringStatus().watch(),
         )
     }
 
@@ -136,7 +138,7 @@ fun resolveDetectionStory(
         return DetectionStory.Watching(
             name,
             isParked = isParked,
-            viaBluetooth = card.vehicle.monitoringStatus() is VehicleMonitoringStatus.Bluetooth,
+            watch = card.vehicle.monitoringStatus().watch(),
             watchBadge = badge,
         )
     }

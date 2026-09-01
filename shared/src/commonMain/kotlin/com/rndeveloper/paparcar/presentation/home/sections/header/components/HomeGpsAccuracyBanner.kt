@@ -22,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.ui.theme.PapMotion
+import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -63,14 +64,14 @@ fun HomeGpsAccuracyBanner(
         // token and its content token move together. [UI-COLOR-EVERY-HUE-EARNS-ITS-MEANING-001]
         val poor = level == GpsAccuracyLevel.POOR
         val containerColor = if (poor) {
-            MaterialTheme.colorScheme.error.copy(alpha = BANNER_FILL_ALPHA)
+            PapColor.danger.copy(alpha = BANNER_FILL_ALPHA)
         } else {
-            MaterialTheme.colorScheme.secondary.copy(alpha = BANNER_FILL_ALPHA)
+            PapColor.attention.copy(alpha = BANNER_FILL_ALPHA)
         }
         val contentColor = if (poor) {
-            MaterialTheme.colorScheme.onError
+            PapColor.onDanger
         } else {
-            MaterialTheme.colorScheme.onSecondary
+            PapColor.onAttention
         }
 
         Surface(

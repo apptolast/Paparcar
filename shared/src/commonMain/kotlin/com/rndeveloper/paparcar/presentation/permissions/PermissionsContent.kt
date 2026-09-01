@@ -34,6 +34,7 @@ import com.rndeveloper.paparcar.ui.components.PapFooterButton
 import com.rndeveloper.paparcar.ui.components.PaparcarBottomActionScaffold
 import com.rndeveloper.paparcar.ui.illustrations.OnboardingHero
 import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
+import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -312,7 +313,7 @@ fun PermissionsContent(
                         ),
                         style = PaparcarType.current.caption,
                         color = if (state.isReliabilityReduced) {
-                            MaterialTheme.colorScheme.secondary
+                            PapColor.attention
                         } else {
                             MaterialTheme.colorScheme.onSurfaceVariant
                         },
@@ -352,7 +353,7 @@ fun PermissionsContent(
             Text(
                 text = stringResource(Res.string.permissions_rationale),
                 style = PaparcarType.current.caption,
-                color = MaterialTheme.colorScheme.secondary,
+                color = PapColor.attention,
             )
         }
     }
@@ -415,8 +416,8 @@ private fun ColumnScope.PermissionsFooter(
     PapFooterButton(
         label = label,
         onClick = onRequestPermissions,
-        containerColor = if (isAmber) MaterialTheme.colorScheme.secondary else null,
-        contentColor = if (isAmber) MaterialTheme.colorScheme.onSecondary else null,
+        containerColor = if (isAmber) PapColor.attention else null,
+        contentColor = if (isAmber) PapColor.onAttention else null,
     )
     // "Maybe later" — enter with CORE only, defer PRODUCER. Shown once the minimum (CORE + GPS) is
     // met so the user is never stranded below it. [DET-READY-001e]

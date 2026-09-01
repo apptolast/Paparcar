@@ -373,7 +373,7 @@ private fun PapSheetLeadTile(lead: PapSheetLead) {
 
         is PapSheetLead.SpotCounter -> {
             val hasSpots = lead.count > 0
-            val accent = if (hasSpots) cs.primary else cs.secondary
+            val accent = if (hasSpots) PapColor.brandData else PapColor.attention
             LeadTileBox(container = if (hasSpots) cs.primaryContainer else cs.secondaryContainer) {
                 // Centrar la CAJA de texto no centra lo que se ve: encima del dígito sobra el
                 // ascenso que no usa, y debajo de las mayúsculas sobra el descenso. Con Jakarta ese
@@ -468,7 +468,7 @@ internal fun PapSheetBanner(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     icon: ImageVector = Icons.Rounded.Info,
-    iconTint: Color = MaterialTheme.colorScheme.secondary,
+    iconTint: Color = PapColor.attention,
 ) {
     Row(
         modifier = modifier
