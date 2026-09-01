@@ -682,4 +682,27 @@ object TraceCameliasOppo001 {
         fix(1365728, 36.597569, -6.2507316, 3.34f, 0.06f)
         fix(1367728, 36.5975676, -6.2507333, 3.25f, 0.06f)
     }
+
+    /**
+     * [TEST-A-TRACE-WHOSE-GROUND-TRUTH-IS-NEVER-ASSERTED-001] Four quiet fixes past the 15-minute
+     * response window, for the test that lets the question go unanswered.
+     *
+     * Unlike `TRACE_CASA_GAP_ANCHOR_3008_QUIET_TAIL` these are **synthetic**: the field recording
+     * ends here and there is no later `OneFix` to borrow, so they repeat the last fix verbatim —
+     * position, accuracy, a walking-still speed. That is the one thing the trace does say about the
+     * minutes after it stops: the phone was standing at the house door and stayed there.
+     *
+     * ⚠️ Separate `val`, like the other tail: [events] is the field session 1:1 and stays that way.
+     */
+    val quietTail: List<TraceEvent> = buildList {
+        val lastMs = T0 + 1_367_728L
+        repeat(4) { i ->
+            add(
+                TraceEvent(
+                    lastMs + 16 * 60_000L + i * 30_000L, TraceEvent.Kind.FIX,
+                    36.5975676, -6.2507333, 3.25f, 0.05f,
+                )
+            )
+        }
+    }
 }

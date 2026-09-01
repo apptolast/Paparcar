@@ -1435,6 +1435,138 @@ class DetectionTraceReplayTest {
             assertEquals(0, env.notification.markParkingNudgeCallCount, "the saved zone is the ask — no extra nudge")
         }
 
+    // ── TEST-A-TRACE-WHOSE-GROUND-TRUTH-IS-NEVER-ASSERTED-001 · the pair below is one finding ──────
+    //
+    // `TraceCameliasOppo001` has carried REAL_CAR and FIELD_PIN since the day it was recorded, and
+    // until now no test read either: the replay above asserts "no silent pin, one question", and on
+    // that run there is no pin to locate. So the trace's own ground truth — the 37 m between where
+    // the car was and where the field build put it — was documentation.
+    //
+    // What it was hiding is below, and it is not a coordinate: it is a SHAPE. The same stream, the
+    // same tainted anchor, two doors out of the session, two different answers about how much the
+    // app admits it does not know.
+
+    @Test
+    fun camelias_oppo_001_an_unanswered_prompt_draws_the_walk_in_doubt_as_a_zone() =
+        runTest(UnconfinedTestDispatcher()) {
+            val replayer = DetectionTraceReplayer(
+                TraceCameliasOppo001.events + TraceCameliasOppo001.quietTail,
+            )
+            val env = buildEnv(clock = { replayer.nowMs }, config = ParkingDetectionConfig())
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 700)
+            val job = launch { env.coordinator.invoke(locations, armEvidence = ArmEvidence.Unverified) }
+
+            replayer.replay(
+                emitFix = { locations.emit(it) },
+                emitStep = { env.stepDetector.emitSteps(1) },
+            )
+            job.cancelAndJoin()
+
+            assertEquals(
+                1,
+                env.parkingRepo.saveNewParkingSessionCallCount,
+                "a bounded doubt costs precision, never the park — with the walk-in offset gone " +
+                    "this verdict falls back to asking and the parking is lost",
+            )
+            val saved = assertNotNull(env.parkingRepo.getActiveSession())
+            val ended = env.detectionLogger.events
+                .filterIsInstance<DetectionEvent.SessionEnded>().single()
+            assertEquals("confirmed_unattended_zone_walk_entered_anchor", ended.outcome)
+            val fromCar = haversineMeters(
+                saved.location.latitude, saved.location.longitude,
+                TraceCameliasOppo001.REAL_CAR_LAT, TraceCameliasOppo001.REAL_CAR_LON,
+            )
+            // The centre is still the pedestrian's spot — the true one was never GPS-measured, so
+            // there is nowhere better to put it. What makes the save honest is that an AREA is
+            // drawn at all. ⚠ The radius is the 60 m FLOOR, not the measured walk-in offset, which
+            // on this trace is smaller (the walk back ran on a mute counter, so the bound comes
+            // from the GPS span of the walk-band run). The offset's job here is to LICENSE the
+            // area, not to size it — and the floor happens to cover the 37 m of real error.
+            val radius = assertNotNull(saved.zoneRadiusMeters, "the walk-in doubt must be drawn")
+            assertTrue(
+                radius >= fromCar,
+                "the walk-in doubt must be drawn wide enough to hold the car: r=$radius " +
+                    "against ${fromCar.toInt()} m of real error",
+            )
+        }
+
+    /**
+     * ⚠️ **CHARACTERIZATION, and the defect is the difference from the test above.**
+     *
+     * Identical stream, identical anchor, and the only change is that the user taps "Sí" instead of
+     * ignoring the question. Today that turns the 60 m zone into an **exact pin at the same
+     * coordinate** — 37 m from the car, at precisely
+     * [TraceCameliasOppo001.FIELD_PIN_LAT]/[TraceCameliasOppo001.FIELD_PIN_LON], the point the field
+     * build got wrong.
+     *
+     * `UserConfirmStage` is not careless about this; it is incomplete. Its `shapeFor` bounds doubt
+     * from ONE source — the GPS hole (`capture.gapMs`) — which is the doubt
+     * `DET-USER-YES-IS-NOT-A-COORDINATE-001` was written for. A walk-entered anchor has no hole, so
+     * the doubt is not merely smaller here, it is **not consulted**, while the unattended path names
+     * it (`walk_entered_anchor`) and lets it license an area. Same doubt, two doors, two shapes.
+     *
+     * And the disagreement is purely about WHETHER to draw, not about how big: forcing
+     * `shapeFor`'s gate open makes this save a **60 m** zone — the identical radius, because both
+     * paths land on the same floor.
+     *
+     * The tap settles WHETHER, and this file's own header says so. It does not measure anything.
+     * → `DET-A-USER-YES-DOES-NOT-SHRINK-A-WALK-ENTERED-DOUBT-001`; when that lands, this test flips
+     * to asserting a zone and its twin above stops being the odd one out.
+     */
+    @Test
+    fun camelias_oppo_001_a_user_yes_drops_that_same_doubt_and_pins_exactly_today() =
+        runTest(UnconfinedTestDispatcher()) {
+            val replayer = DetectionTraceReplayer(TraceCameliasOppo001.events)
+            val env = buildEnv(clock = { replayer.nowMs }, config = ParkingDetectionConfig())
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 700)
+            val job = launch { env.coordinator.invoke(locations, armEvidence = ArmEvidence.Unverified) }
+
+            var answered = false
+            replayer.replay(
+                emitFix = { fix ->
+                    // The tap lands on the first fix after the question, which is the best case for
+                    // the app: the user is still standing where the prompt found them.
+                    if (!answered && env.notification.parkingConfirmationCallCount > 0) {
+                        answered = true
+                        env.coordinator.onUserConfirmedParking()
+                    }
+                    locations.emit(fix)
+                },
+                emitStep = { env.stepDetector.emitSteps(1) },
+            )
+            job.cancelAndJoin()
+
+            assertTrue(answered, "the trace must reach the prompt and answer it")
+            val saved = assertNotNull(env.parkingRepo.getActiveSession())
+            val ended = env.detectionLogger.events
+                .filterIsInstance<DetectionEvent.SessionEnded>().single()
+            assertEquals("confirmed_user", ended.outcome)
+
+            val fromCar = haversineMeters(
+                saved.location.latitude, saved.location.longitude,
+                TraceCameliasOppo001.REAL_CAR_LAT, TraceCameliasOppo001.REAL_CAR_LON,
+            )
+            val fromFieldPin = haversineMeters(
+                saved.location.latitude, saved.location.longitude,
+                TraceCameliasOppo001.FIELD_PIN_LAT, TraceCameliasOppo001.FIELD_PIN_LON,
+            )
+            assertTrue(
+                fromFieldPin < 1.0,
+                "today's tap lands on the field pin itself — was ${fromFieldPin.toInt()} m from it",
+            )
+            assertTrue(
+                fromCar in 30.0..45.0,
+                "and that is ~37 m from where the car actually was — was ${fromCar.toInt()} m",
+            )
+            assertEquals(
+                null,
+                saved.zoneRadiusMeters,
+                "TODAY the tap saves an EXACT pin, dropping the walk-in doubt the unattended path " +
+                    "on this same stream draws as 60 m. This assertion is the defect, not the rule: " +
+                    "DET-A-USER-YES-DOES-NOT-SHRINK-A-WALK-ENTERED-DOUBT-001 flips it to a zone",
+            )
+        }
+
     private fun buildEnv(
         clock: () -> Long,
         // confirmHoldMs=0 by default: most replays end at the confirm moment; traces where the

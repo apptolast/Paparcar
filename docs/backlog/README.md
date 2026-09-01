@@ -35,6 +35,7 @@ La (2) es la buena. El barrido del 30-08 encontró con ella **15 tickets** que d
 | [`det-displacement-drive-must-survive-its-next-fix-001`](det-displacement-drive-must-survive-its-next-fix-001.md) | hay guard para refutar una parada por su traza, no para sostener la conducción |
 | [`park-retracted-backfill-must-leave-no-pin-001`](park-retracted-backfill-must-leave-no-pin-001.md) | la plaza que la app se desdice sigue en el historial |
 | [`det-bt-pin-grade-is-not-a-driving-threshold-001`](det-bt-pin-grade-is-not-a-driving-threshold-001.md) | la precisión con la que se CREE un fix no es la que decide que se condujo. Destapado el 30-08 |
+| [`det-a-user-yes-does-not-shrink-a-walk-entered-doubt-001`](det-a-user-yes-does-not-shrink-a-walk-entered-doubt-001.md) | un "Sí" planta un pin EXACTO sobre un ancla walk-entered; el timeout, sobre la MISMA, dibuja zona. Medido 01-09, con sus dos tests ya en master |
 | [`det-blind-after-lost-park-001`](det-blind-after-lost-park-001.md) | perder un aparcamiento deja la app **ciega** para el viaje siguiente |
 | [`det-lone-sample-is-not-a-drive-001`](det-lone-sample-is-not-a-drive-001.md) | un solo fix de velocidad abre la sesión entera |
 | [`det-coarse-fix-drive-proof-001`](det-coarse-fix-drive-proof-001.md) | un móvil con accuracy crónicamente mala no puede probar **nunca** una conducción |
@@ -76,7 +77,6 @@ No esperan a un viaje: esperan a que vuelva a fallar lo que los originó.
 
 | Ticket | Nota |
 |---|---|
-| [`test-a-trace-whose-ground-truth-is-never-asserted-001`](test-a-trace-whose-ground-truth-is-never-asserted-001.md) | **medido**: 6 constantes de ground-truth que nadie lee. ⛔ decisión caso por caso ANTES de la regla — puede cerrarse REFUTADO |
 | [`ux-park-flow-001`](ux-park-flow-001.md) | placeholder POR DEFINIR · análisis hecho en [`ux-park-flow-001-analysis`](ux-park-flow-001-analysis.md) y [`home-flow-analysis`](home-flow-analysis.md) |
 | [`snap-to-park-001`](snap-to-park-001.md) | sacar el ancla de dentro de edificios. Sin código y **sin rama** |
 | [`zone-subscribe-001`](zone-subscribe-001.md) | *"avísame cuando haya plaza aquí"* — excluido de UI-SHEET-001 por no haber backend |

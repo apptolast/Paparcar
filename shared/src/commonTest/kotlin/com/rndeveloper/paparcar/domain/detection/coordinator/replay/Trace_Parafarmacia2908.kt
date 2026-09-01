@@ -22,8 +22,17 @@ package com.rndeveloper.paparcar.domain.detection.coordinator.replay
  * `092c74d7`, confirmed 88 minutes earlier at the end of a real 9.3 km drive) the whole time, and it
  * was still there when the session ended.
  */
-/** The pin the field build planted — the parafarmacia FP. Trilaterated from 15 SafetyNet fence
- *  readings (rms 0.28 m); the log never prints a pin's coordinates. */
+/**
+ * The pin the field build planted — the parafarmacia FP. Trilaterated from 15 SafetyNet fence
+ * readings (rms 0.28 m); the log never prints a pin's coordinates.
+ *
+ * ⚠️ **Read by no test, ON PURPOSE — do not "fix" this by inventing an assertion.**
+ * [TEST-A-TRACE-WHOSE-GROUND-TRUTH-IS-NEVER-ASSERTED-001] audited it: this trace's verdict is *no
+ * pin, one question*, so there is no position to assert. The coordinate is here to say what was
+ * AVOIDED. The one run that would place a pin — the user tapping "Sí" — rests on a false premise,
+ * because on this stream the car never moved; and even then the tap would outrank the inference
+ * [DET-ASSERTION-OUTRANKS-INFERENCE-001], so there would be nothing to accuse the app of.
+ */
 const val PARAFARMACIA_2908_FIELD_PIN_LAT = 36.5992450
 const val PARAFARMACIA_2908_FIELD_PIN_LON = -6.2513309
 
