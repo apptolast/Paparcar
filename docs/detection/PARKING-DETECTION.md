@@ -7176,3 +7176,41 @@ as orphan), and the receiver stays the dumb relay it was built to be.
 live-fence and the mixed-delivery tests red.
 
 Spec: `docs/backlog/det-a-released-pin-takes-its-fences-with-it-001.md`.
+
+---
+
+### DET-A-RIDE-THE-WITNESS-SAW-NEEDS-NO-PEDOMETER-001 — 580 m in 74 s between two witnesses needs no step counter (pending)
+
+**The field day.** 2026-08-31 22:34 (Redmi, Góndola — the park BOTH phones lost). The safety net
+witnessed the body AT the pin (d=50 m, radius 150 m) at 22:33:10; the abort fix sat 580 m away
+74 s later — ~7 m/s sustained between two independent observations. The honest close stayed silent
+anyway (`stale_seal`), because its only yardstick was a pedometer that read 0 all night: a mute
+counter stamps no usable seal, so every close on that phone died at the seal gate. Zero artifact
+at Góndola.
+
+**The rung.** The evaluator already held both halves of the proof — `lastWitnessedFix` +
+`witnessAgeMs`, used only to REFUTE (`unwitnessed_displacement`). The same pair now proves in the
+positive: *a body witnessed AT the car (inside the pin's own fence) and beyond pedestrian reach of
+that sighting now was TRANSPORTED* — `isBeyondPedestrianReach`, the same physics the boarding
+fall-through trusts, accuracy-slacked on both ends, no fence slack. The band is defined by the two
+existing guards: the coherence gate above already refused anything faster than a door-to-door
+drive; this rung refuses anything a walk explains.
+
+**A fallback, never a preemption.** Returned only where the step budget refuses to answer
+(stale/absent seal, mute counter, frozen counter, unknown origin). A living counter stays the
+judge — its verdict is tighter (a zero-step drive earns a PIN where witness physics can only draw
+a zone), and a counter that answers "walked" answers.
+
+**Always a zone.** Without steps nothing bounds the walk made after leaving the car, but the walk
+since the ride ended is bounded by pedestrian reach within the witness window — that is the doubt
+the radius carries (clamped by the shared floor/ceiling).
+
+**The at-the-car condition is load-bearing**: without it, a body witnessed at home (walked there
+hours ago) and then bussed downtown would "prove" a ride the car never made — the D2-return FP
+class. With it, the residual envelope (a bus boarded beside your own car) is the same one the step
+budget already accepts.
+
+**Seen failing before it was believed**: dropping the at-the-car condition turned the bus-from-home
+test red; dropping the stale-seal fallback turned the T3 replay red.
+
+Spec: `docs/backlog/det-a-ride-the-witness-saw-needs-no-pedometer-001.md`.

@@ -586,4 +586,87 @@ class EvaluateHonestCloseUseCaseTest {
         assertIs<HonestCloseDecision.ApproximatePin>(verdict.decision)
         assertEquals(HonestCloseVerdict.REASON_TRIP_PROVEN, verdict.reason)
     }
+
+    // ── [DET-A-RIDE-THE-WITNESS-SAW-NEEDS-NO-PEDOMETER-001] witness-ride: the counterless proof ──
+
+    @Test
+    fun should_open_zone_by_witness_physics_when_the_counter_is_mute_but_the_body_was_transported() {
+        // T3 replay (field 2026-08-31 22:34, Redmi, Góndola — the park BOTH phones lost). The
+        // safety net witnessed the body AT the pin (d≈50 m, radius 150 m) 74 s before an abort fix
+        // 580 m away: ~7 m/s sustained between two independent observations, no pedometer needed.
+        // The counter was mute all night → no usable seal → the ladder used to die in stale_seal.
+        val verdict = useCase(
+            stalePin = pinAt(36.6050551, -6.2733271, acc = 24.5f),      // 2f4197dc, Rosa de los Vientos
+            abortFix = fixAt(36.6086805, -6.2780963, acc = 31.9f),      // the ExitWitness fix, Góndola
+            stepsSinceStalePin = null,                                   // mute counter
+            stepSealPoint = null,
+            sealAgeMs = null,                                            // no usable seal → the T3 branch
+            lastWitnessedFix = fixAt(36.6054, -6.2735, acc = 12f),       // d≈40-50 m from the pin
+            witnessAgeMs = 74_000L,
+        )
+        val zone = assertIs<HonestCloseDecision.ApproximateZone>(verdict.decision)
+        assertEquals(HonestCloseVerdict.REASON_WITNESS_RIDE, verdict.reason)
+        // The doubt is the walk the body could have made since the witness (2.5 m/s × 74 s ≈ 185 m
+        // + the fix's own accuracy) — an AREA that contains the car, never a confident dot.
+        assertTrue(zone.radiusMeters >= 60f, "floor applies")
+        assertTrue(zone.radiusMeters <= 250f, "ceiling applies")
+        assertNotNull(verdict.witnessDistanceMeters)
+        assertEquals(74_000L, verdict.witnessAgeMs)
+    }
+
+    @Test
+    fun should_stay_silent_when_the_witness_saw_the_body_AWAY_from_the_car() {
+        // The bus-from-home FP class (the D2-return shape): the body was witnessed ~500 m from the
+        // pin (walked home hours ago), then a bus transported it. Physics says "transported" — but
+        // transported FROM HOME says nothing about the CAR. Without the at-the-car condition this
+        // would release a pin the car never left.
+        val verdict = useCase(
+            stalePin = pinAt(36.60000, -6.25000, acc = 5f),
+            abortFix = fixAt(36.61500, -6.25000, acc = 15f),             // far downtown
+            stepsSinceStalePin = null,
+            stepSealPoint = null,
+            sealAgeMs = null,
+            lastWitnessedFix = fixAt(36.60450, -6.25000, acc = 12f),     // ~500 m from the pin: NOT at the car
+            witnessAgeMs = 300_000L,
+        )
+        assertEquals(HonestCloseDecision.KeepSilent, verdict.decision)
+        assertEquals(HonestCloseVerdict.REASON_STALE_SEAL, verdict.reason)
+    }
+
+    @Test
+    fun should_stay_silent_when_the_displacement_is_walkable_within_the_witness_window() {
+        // Witness at the car, but 10 minutes old: 580 m is comfortably walkable in 600 s
+        // (2.5 m/s × 600 = 1 500 m) — physics cannot rule out a walk, and without a counter
+        // nothing else can either. The conservative silence stands; the safety net backstops.
+        val verdict = useCase(
+            stalePin = pinAt(36.60000, -6.25000, acc = 5f),
+            abortFix = fixAt(36.60520, -6.25000, acc = 15f),             // ~580 m
+            stepsSinceStalePin = null,
+            stepSealPoint = null,
+            sealAgeMs = null,
+            lastWitnessedFix = fixAt(36.60005, -6.25000, acc = 12f),     // at the car
+            witnessAgeMs = 10 * 60_000L,
+        )
+        assertEquals(HonestCloseDecision.KeepSilent, verdict.decision)
+        assertEquals(HonestCloseVerdict.REASON_STALE_SEAL, verdict.reason)
+    }
+
+    @Test
+    fun should_let_the_living_counter_judge_even_when_witness_physics_would_also_prove_the_ride() {
+        // Both proofs available → the STEP BUDGET wins: it is the tighter instrument (a zero-step
+        // drive earns a PIN where witness physics can only ever draw a zone). The witness rung is
+        // a fallback for the counter's refusals, never a preemption of its verdicts.
+        val witness = fixAt(36.60000, -6.25000, acc = 10f)
+        val verdict = useCase(
+            stalePin = pinAt(36.60000, -6.25000, acc = 2f),
+            abortFix = fixAt(36.60430, -6.25000, acc = 10f),             // ~479 m in 32 s: rode, clearly
+            stepsSinceStalePin = 0L,
+            stepSealPoint = witness,
+            sealAgeMs = FRESH_SEAL_AGE_MS,
+            lastWitnessedFix = witness,
+            witnessAgeMs = 32_000L,
+        )
+        assertIs<HonestCloseDecision.ApproximatePin>(verdict.decision)
+        assertEquals(HonestCloseVerdict.REASON_TRIP_PROVEN, verdict.reason)
+    }
 }

@@ -2,6 +2,7 @@ package com.rndeveloper.paparcar.domain.usecase.parking
 
 import com.rndeveloper.paparcar.domain.detection.assertionBlocksRelocation
 import com.rndeveloper.paparcar.domain.detection.physics.honestZoneRadius
+import com.rndeveloper.paparcar.domain.detection.physics.isWithinFence
 import com.rndeveloper.paparcar.domain.detection.physics.requiredStepsToWalk
 import com.rndeveloper.paparcar.domain.detection.physics.walkExplainsDisplacement
 import com.rndeveloper.paparcar.domain.model.GpsPoint
@@ -78,6 +79,10 @@ data class HonestCloseVerdict(
 ) {
     companion object {
         const val REASON_TRIP_PROVEN = "trip_proven"
+        /** [DET-A-RIDE-THE-WITNESS-SAW-NEEDS-NO-PEDOMETER-001] Ride proven by witness physics:
+         *  the body was seen AT the car and sits beyond pedestrian reach of that sighting now —
+         *  no step counter involved. */
+        const val REASON_WITNESS_RIDE = "witness_ride"
         const val REASON_UNWITNESSED_DISPLACEMENT = "unwitnessed_displacement"
         const val REASON_NO_STALE_PIN = "no_stale_pin"
         const val REASON_TOO_CLOSE = "too_close"
@@ -110,8 +115,10 @@ data class HonestCloseVerdict(
  * **Mute counter (null steps).** Conservatively → [HonestCloseDecision.KeepSilent]. Without steps
  * this evaluator cannot separate a ride from a long walk, and the doctrine is asymmetric (a false
  * negative here costs a late prompt from the safety-net, which still runs; a false zone plants a
- * wrong area). The AR-boarding / pedestrian-physics proofs for mute counters are a documented
- * follow-up — the safety net remains the backstop.
+ * wrong area). The pedestrian-physics proof for mute counters exists now — the witness-ride rung
+ * below [DET-A-RIDE-THE-WITNESS-SAW-NEEDS-NO-PEDOMETER-001] — so a mute counter only silences the
+ * closes the witness pair cannot decide; the AR-boarding proof remains the documented follow-up,
+ * and the safety net remains the backstop.
  *
  * **Frozen counter (the negative inference's blind spot). [DET-FROZEN-COUNTER-001]** The trip
  * proof is an inference from ABSENT steps — it is only as good as the counter's liveness. A
@@ -301,6 +308,69 @@ class EvaluateHonestCloseUseCase(
             }
         }
 
+        // [DET-A-RIDE-THE-WITNESS-SAW-NEEDS-NO-PEDOMETER-001] The POSITIVE half of the witness
+        // pair, sitting exactly between the two guards that define its band: the coherence gate
+        // above already refused anything faster than a door-to-door drive (the teleport), and the
+        // step rungs below need a counter this branch exists to do without.
+        //
+        // Field 2026-08-31 22:34 (Redmi, Góndola — the park BOTH phones lost): the safety net
+        // witnessed the body AT the pin (d=50 m, radius 150 m) at 22:33:10; the abort fix sat
+        // 580 m away 74 s later — ~7 m/s sustained between two independent observations, and the
+        // ladder still stayed silent (`stale_seal`) because its only yardstick was a pedometer
+        // that read 0 all night. A body seen AT the car and beyond pedestrian reach of that
+        // sighting now was TRANSPORTED: the ride is proven by physics, no counter involved.
+        //
+        // Two conditions, each load-bearing:
+        //  - The witness must sit INSIDE the pin's own fence. Without it, a body witnessed at
+        //    home (walked there hours ago) and then bussed downtown would "prove" a ride the car
+        //    never made — the D2-return FP class. WITH it, the residual envelope (a bus boarded
+        //    beside your own car) is the same one the step budget already accepts.
+        //  - Beyond pedestrian reach for the witness's age, accuracy-slacked on both ends — the
+        //    same physics the boarding fall-through trusts (`isBeyondPedestrianReach`), with no
+        //    fence slack (no fence is being crossed here; the envelopes carry the doubt).
+        //
+        // Always a ZONE, never a pin: without steps nothing bounds the walk made after leaving
+        // the car, but the walk since the ride ended is bounded by pedestrian reach within the
+        // witness window — that is the doubt the radius carries.
+        //
+        // A FALLBACK, not a preemption: computed here (its inputs are already validated by the
+        // coherence gate above) but returned only where the STEP BUDGET refuses to answer
+        // (stale/absent seal, mute counter, frozen counter, unknown origin). When the counter is
+        // alive it stays the judge — its verdict is tighter (a zero-step drive earns a PIN where
+        // this rung can only ever draw a zone), and a counter that answers "walked" answers.
+        val witnessRide: HonestCloseVerdict? = run {
+            if (lastWitnessedFix == null || witnessDistanceMeters == null || witnessAgeMs == null) return@run null
+            val witnessAtTheCar = isWithinFence(
+                lastWitnessedFix, pin.location,
+                config.geofenceRadiusFor(pin.sizeCategory, pin.location.accuracy),
+            )
+            val transported = config.isBeyondPedestrianReach(
+                distanceMeters = witnessDistanceMeters,
+                elapsedMs = witnessAgeMs,
+                fenceRadiusMeters = 0f,
+                accuracyMeters = lastWitnessedFix.accuracy + abortFix.accuracy,
+            )
+            if (!witnessAtTheCar || !transported) return@run null
+            val walkDoubtMeters = config.maxPedestrianSpeedMps * (witnessAgeMs / 1000.0) +
+                abortFix.accuracy
+            HonestCloseVerdict(
+                HonestCloseDecision.ApproximateZone(
+                    abortFix,
+                    honestZoneRadius(
+                        centerAccuracyMeters = abortFix.accuracy,
+                        doubtMeters = walkDoubtMeters,
+                        floorMeters = config.honestCloseMinZoneRadiusMeters,
+                        ceilingMeters = config.unattendedZoneMaxRadiusMeters,
+                    ),
+                ),
+                HonestCloseVerdict.REASON_WITNESS_RIDE,
+                pinDistanceMeters = distanceMeters,
+                stepsDelta = stepsSinceStalePin,
+                witnessDistanceMeters = witnessDistanceMeters,
+                witnessAgeMs = witnessAgeMs,
+            )
+        }
+
         // [DET-TRIP-WITNESS-001] Everything below is the STEP-BUDGET inference, and the budget
         // expires: a delta spanning hours of sleep / process deaths / MIUI batching can read ≈0
         // over a real walk with no session witness to expose it — exactly the false "ride proof"
@@ -308,7 +378,9 @@ class EvaluateHonestCloseUseCase(
         // echo). Unknown age (legacy seal) is indistinguishable from old. Refuse the verdict;
         // the safety net remains the backstop for a genuinely late real departure.
         if (sealAgeMs == null || sealAgeMs > config.honestCloseMaxSealAgeMs) {
-            return HonestCloseVerdict(
+            // [DET-A-RIDE-THE-WITNESS-SAW-NEEDS-NO-PEDOMETER-001] The T3 branch: the Redmi's
+            // mute counter never stamps a usable seal, so every close of that phone died HERE.
+            return witnessRide ?: HonestCloseVerdict(
                 HonestCloseDecision.KeepSilent, HonestCloseVerdict.REASON_STALE_SEAL,
                 pinDistanceMeters = distanceMeters, stepsDelta = stepsSinceStalePin,
             )
@@ -317,7 +389,7 @@ class EvaluateHonestCloseUseCase(
         // Mute counter → cannot prove a ride (nor rule out a long walk). Conservative silence;
         // the safety net's mute-counter proofs (AR boarding, pedestrian physics) are the backstop.
         val steps = stepsSinceStalePin
-            ?: return HonestCloseVerdict(
+            ?: return witnessRide ?: HonestCloseVerdict(
                 HonestCloseDecision.KeepSilent, HonestCloseVerdict.REASON_MUTE_COUNTER,
                 pinDistanceMeters = distanceMeters,
             )
@@ -328,7 +400,7 @@ class EvaluateHonestCloseUseCase(
         // and a frozen counter's low delta is exactly the false "ride proof" this gate exists to
         // reject. Treat as mute: silence, safety net backstops.
         if (sessionStepEvents > 0 && steps < sessionStepEvents) {
-            return HonestCloseVerdict(
+            return witnessRide ?: HonestCloseVerdict(
                 HonestCloseDecision.KeepSilent, HonestCloseVerdict.REASON_FROZEN_COUNTER,
                 pinDistanceMeters = distanceMeters, stepsDelta = steps,
             )
@@ -341,7 +413,7 @@ class EvaluateHonestCloseUseCase(
         // pin, the remaining ~83 m walk cost ~110 steps < the 129 the PIN distance demanded).
         // Conservative silence; the safety net remains the backstop.
         val origin = stepSealPoint
-            ?: return HonestCloseVerdict(
+            ?: return witnessRide ?: HonestCloseVerdict(
                 HonestCloseDecision.KeepSilent, HonestCloseVerdict.REASON_NO_SEAL_ORIGIN,
                 pinDistanceMeters = distanceMeters, stepsDelta = steps,
             )
