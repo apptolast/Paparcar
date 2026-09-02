@@ -11,8 +11,11 @@ local.properties
 
 # Log/OS Files
 *.log
-# Diagnostic captures are archived deliberately — see diagnostics/README.md
-!diagnostics/**/*.log
+# Las capturas PARKDIAG de `diagnostics/` estuvieron versionadas a propósito (ver
+# diagnostics/README.md) hasta descubrirse que este repo es PÚBLICO: un log crudo lleva las
+# coordenadas GPS reales de los field-tests (casa incluida) y la MAC del coche. Se quedan en
+# disco y `field-test` los sigue leyendo igual; lo que no hacen es viajar a GitHub.
+# El análisis (`*.notes.md`) SÍ sigue versionado: es donde vive la conclusión y no lleva PII.
 
 # Android Studio generated files and folders
 captures/
@@ -758,3 +761,12 @@ movement.sh
 # Stray local junk accidentally swept by `git add -A` — never commit.
 firebase_help.txt
 parkdiag*.txt
+
+# Ficha de Play: las capturas por idioma son DERIVADAS — se regeneran desde `raw/` (las 8 crudas
+# del device) pasándolas por `assets/screenshot-frame.html`. Versionar las 9 copias son 59 MB en
+# un repo que pesa 88, y cada retoque de marco las duplica otra vez. Se versiona la FUENTE.
+# Debe ser `screenshots/*` y no `screenshots/`: git no desciende en un directorio excluido, así
+# que con la forma de directorio la negación de `raw/` no tendría efecto (mismo motivo que
+# `.claude/*` arriba).
+docs/release/play-listing/assets/screenshots/*
+!docs/release/play-listing/assets/screenshots/raw/
