@@ -21,7 +21,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import kotlin.concurrent.Volatile
-import kotlin.math.roundToInt
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
 
 /**
@@ -248,31 +247,20 @@ class FirestoreDetectionEventLogger(
             is DetectionEvent.SessionStarted ->
                 rollups[event.sessionId] = SessionRollup(startedAt = event.timestampMs)
             is DetectionEvent.LocationFix -> {
-                val r = rollups.getOrPut(event.sessionId) { SessionRollup() }
-                r.fixCount++
-                val kmh = (event.location?.speed ?: 0f) * MS_TO_KMH
-                if (kmh > r.maxSpeedKmh) r.maxSpeedKmh = kmh
-                // [DET-THE-EVIDENCE-MUST-REACH-THE-TRACE-001] ⛔ `drivingFixes` has NO accuracy
-                // gate and never had one — it counts every fix above the speed bar, however wild
-                // its accuracy. Left exactly as it was so old and new sessions stay comparable, but
-                // it is NOT what `DriveProof.credibleFixCount` means, and reading it as if it were
-                // is a measurement error the redesign already made: the home trip of 2026-08-30
-                // reads 44 here and 7 there, because 37 of those fixes carried accuracy worse than
-                // the driving gate on the night of the GPS hole.
-                if (kmh >= DRIVING_SPEED_KMH) r.drivingFixes++
-                // The gated count, which IS the one every confirm decision reads.
-                val acc = event.location?.accuracy
-                if (kmh >= DRIVING_SPEED_KMH && acc != null &&
-                    acc <= detectionConfig.minGpsAccuracyForDriving
-                ) {
-                    r.credibleDrivingFixes++
-                }
-                event.location?.let { r.finalLat = it.latitude; r.finalLon = it.longitude }
+                // [DET-A-SESSION-ROLLUP-MUST-USE-THE-NUMBERS-THE-VERDICT-USED-001] The arithmetic
+                // (and the reason each number is kept) lives in `SessionRollup`, where it can be
+                // asked whether the digest agrees with the verdict beside it.
+                rollups.getOrPut(event.sessionId) { SessionRollup() }.onFix(
+                    speedKmh = (event.location?.speed ?: 0f) * MS_TO_KMH,
+                    accuracyMeters = event.location?.accuracy,
+                    latitude = event.location?.latitude,
+                    longitude = event.location?.longitude,
+                    drivingBarKmh = DRIVING_SPEED_KMH,
+                    accuracyGateMeters = detectionConfig.minGpsAccuracyForDriving,
+                )
             }
-            is DetectionEvent.Step -> {
-                val r = rollups.getOrPut(event.sessionId) { SessionRollup() }
-                if (event.stepCount > r.maxStepCount) r.maxStepCount = event.stepCount
-            }
+            is DetectionEvent.Step ->
+                rollups.getOrPut(event.sessionId) { SessionRollup() }.onStep(event.stepCount)
             else -> Unit
         }
     }
@@ -284,11 +272,14 @@ class FirestoreDetectionEventLogger(
         ended: DetectionEvent.SessionEnded,
     ) {
         val r = rollups.remove(ended.sessionId)
-        val summary = buildSummary(ended, r)
+        val summary = r?.summary(ended.outcome, ended.timestampMs) ?: ended.outcome
         sessionDoc.updateFields {
             FIELD_OUTCOME to ended.outcome
             FIELD_ENDED_AT to ended.timestampMs
             FIELD_MAX_SPEED_KMH to r?.maxSpeedKmh
+            // [DET-A-SESSION-ROLLUP-MUST-USE-THE-NUMBERS-THE-VERDICT-USED-001] The peak a verdict
+            // could actually have used, beside the one the receiver merely claimed.
+            FIELD_CREDIBLE_MAX_SPEED_KMH to r?.credibleMaxSpeedKmh
             FIELD_DRIVING_FIXES to r?.drivingFixes
             FIELD_CREDIBLE_DRIVING_FIXES to r?.credibleDrivingFixes
             FIELD_FIX_COUNT to r?.fixCount
@@ -300,35 +291,6 @@ class FirestoreDetectionEventLogger(
         PaparcarLogger.i(TAG, "session ${ended.sessionId} [${deviceInfo.deviceModel}]: $summary")
     }
 
-    private fun buildSummary(ended: DetectionEvent.SessionEnded, r: SessionRollup?): String {
-        val parts = mutableListOf(ended.outcome)
-        if (r != null && r.startedAt > 0L) {
-            parts += "${round1((ended.timestampMs - r.startedAt) / 60_000.0)}min"
-        }
-        if (r != null) {
-            parts += "vmax ${r.maxSpeedKmh.roundToInt()}km/h"
-            // Both, deliberately: one number would be read as "the" driving-fix count, and the two
-            // answer different questions. `cred` is the one the confirm paths obey.
-            parts += "drive ${r.drivingFixes}/${r.fixCount}fix (cred ${r.credibleDrivingFixes})"
-            parts += "steps ${r.maxStepCount}"
-            val lat = r.finalLat
-            val lon = r.finalLon
-            if (lat != null && lon != null) parts += "end ${round5(lat)},${round5(lon)}"
-        }
-        return parts.joinToString(" · ")
-    }
-
-    /** Mutable per-session accumulator (consumer-thread confined). */
-    private class SessionRollup(val startedAt: Long = 0L) {
-        var fixCount = 0
-        var maxSpeedKmh = 0f
-        var drivingFixes = 0
-        var credibleDrivingFixes = 0
-        var maxStepCount = 0
-        var finalLat: Double? = null
-        var finalLon: Double? = null
-    }
-
     private companion object {
         const val TAG = "FirestoreDetectionEventLogger"
         const val FIELD_OUTCOME = "outcome"
@@ -336,6 +298,7 @@ class FirestoreDetectionEventLogger(
         // Rollup header fields patched on SESSION_ENDED [DIAG-READABLE-001]
         const val FIELD_ENDED_AT = "endedAt"
         const val FIELD_MAX_SPEED_KMH = "maxSpeedKmh"
+        const val FIELD_CREDIBLE_MAX_SPEED_KMH = "credibleMaxSpeedKmh"
         const val FIELD_DRIVING_FIXES = "drivingFixes"
         const val FIELD_CREDIBLE_DRIVING_FIXES = "credibleDrivingFixes"
         const val FIELD_FIX_COUNT = "fixCount"
@@ -358,8 +321,4 @@ class FirestoreDetectionEventLogger(
     }
 }
 
-/** Round to 1 decimal without `String.format` (unavailable in commonMain). */
-private fun round1(v: Double): Double = (v * 10).roundToInt() / 10.0
 
-/** Round a coordinate to 5 decimals (~1 m) for a compact, readable summary. */
-private fun round5(v: Double): Double = (v * 100_000).roundToInt() / 100_000.0

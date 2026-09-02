@@ -78,7 +78,14 @@ minutos no es ruido, y eso se puede exigir sin relajar el umbral para el fix ind
 - Alternativa peor: un `minGpsAccuracyForDriving` por dispositivo/adaptativo. Introduce estado
   aprendido y hace el diagnóstico irreproducible. Descartada salvo evidencia de que la anterior falla.
 
-## Sub-hallazgo accionable ya: **el resumen de sesión miente**
+## Sub-hallazgo accionable ya: **el resumen de sesión miente** — ✅ CERRADO (03-09)
+
+> Salió a ticket propio y está hecho:
+> [DET-A-SESSION-ROLLUP-MUST-USE-THE-NUMBERS-THE-VERDICT-USED-001](det-a-session-rollup-must-use-the-numbers-the-verdict-used-001.md).
+> El resumen imprime ahora `vmax 80km/h (cred 49) · drive 44/602fix (cred 7)`, y la aritmética vive
+> en una pieza pura con tests. **Lo que sigue abierto de ESTE ticket es su mitad grande**: admitir
+> una racha coherente de fixes degradados como prueba de viaje (el diseño de abajo, sin decidir).
+> El texto original se conserva tal cual porque es la evidencia de campo que lo abrió.
 
 `FirestoreDetectionEventLogger` calcula el rollup (`vmax`, `drive N/M fix`) con su propio umbral
 `DRIVING_SPEED_KMH` y **sin la puerta de accuracy**, mientras la decisión usa `maxSpeedMps`

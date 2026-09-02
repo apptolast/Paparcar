@@ -38,6 +38,11 @@ data class DetectionSessionDto(
     // Per-session rollup, patched on SESSION_ENDED [DIAG-READABLE-001]
     val endedAt: Long? = null,
     val maxSpeedKmh: Float? = null,
+    /** [DET-A-SESSION-ROLLUP-MUST-USE-THE-NUMBERS-THE-VERDICT-USED-001] [maxSpeedKmh] with the
+     *  accuracy gate the detector applies. The raw peak is what the receiver CLAIMED; this is the
+     *  peak a verdict could have used, and printing only the first is how a header came to read
+     *  `vmax 80km/h` beside `aborted_unattended_no_drive`. */
+    val credibleMaxSpeedKmh: Float? = null,
     val drivingFixes: Int? = null,
     /** [DET-THE-EVIDENCE-MUST-REACH-THE-TRACE-001] [drivingFixes] with the accuracy gate the
      *  detector applies. The two differ by a lot on a bad-GPS night and only this one matches

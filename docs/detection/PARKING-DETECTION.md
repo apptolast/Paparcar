@@ -7473,3 +7473,35 @@ dying with the session. Suite 2 151/0, 8 new tests; falsified twice (neutralizin
 harness for `ParkingSafetyNetWorker` — so its field criterion is the `⊷ observation ADHERES` line.
 
 Spec: `docs/backlog/det-two-dispatches-of-one-departure-read-different-state-001.md`.
+
+---
+
+### DET-A-SESSION-ROLLUP-MUST-USE-THE-NUMBERS-THE-VERDICT-USED-001 — the digest stops quoting a number no verdict used
+
+**Not a detection change — a diagnostics one, and it cost a whole diagnosis.** Field 2026-08-16
+(Samsung SM-A536B, session `1786873042480`): the header read `vmax 80km/h · drive 44/602fix` above
+`outcome=aborted_unattended_no_drive`. Both were true and the pair was unreadable — the 80 km/h fix
+carried 180 m of accuracy, so `credibleSpeedFix` was false and no confirm path ever saw it. The
+summary published the RAW number while every decision reads the accuracy-gated one, and the summary
+is the first line a field diagnosis reads.
+
+Half of this was already closed for the fix COUNT (`drivingFixes` vs `credibleDrivingFixes`,
+[DET-THE-EVIDENCE-MUST-REACH-THE-TRACE-001]); the PEAK — the number a human actually quotes — was
+still ungated. `HumanPoweredRideTest` had already written the lesson down: *"the summary said vmax
+40 km/h, but its best CREDIBLE fix was 21,3 — the peak is a rumour."*
+
+**Fix**: `SessionRollup` leaves `FirestoreDetectionEventLogger` (where its arithmetic was split
+across two private methods and could never be asked a question, since Firestore is not needed to
+answer *does this digest agree with the verdict beside it?*) and becomes a pure, tested piece. It
+gains `credibleMaxSpeedKmh` — the peak under the detector's own accuracy gate — published as a new
+session field and printed beside the raw one: `vmax 80km/h (cred 49) · drive 44/602fix (cred 7)`.
+BOTH are kept deliberately: the raw peak still describes what the receiver claimed (a wild one is
+itself a symptom), the credible peak is the one a verdict can be held to. A fix with no accuracy
+counts as not credible — a fix that cannot say how wrong it might be is what the gate exists for.
+
+**No behaviour change in detection**: nothing here feeds a decision. Suite 2 161/0 with 7 new tests
+where there were none; falsified by removing the gate (3/7 fail).
+
+Spec: `docs/backlog/det-a-session-rollup-must-use-the-numbers-the-verdict-used-001.md`. The parent
+[DET-COARSE-FIX-DRIVE-PROOF-001] stays open for its larger half: admitting a coherent run of
+degraded fixes as proof of a drive.
