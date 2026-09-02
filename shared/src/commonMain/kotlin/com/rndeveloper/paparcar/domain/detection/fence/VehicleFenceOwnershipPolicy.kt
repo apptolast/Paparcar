@@ -14,8 +14,10 @@ import com.rndeveloper.paparcar.domain.model.ParkingReleaseReason
  *
  * Pure and unit-tested here. The geofence I/O (createGeofence / removeGeofence) is wired by the
  * confirm / active-swap / janitor / attribution paths that consult these verdicts — kept out of
- * this file so the invariant has one named, testable home. NOT yet wired (Phase 2 of the plan in
- * `docs/backlog/veh-active-fence-001-piece1-plan.md`). [feedback_systems_not_patches]
+ * this file so the invariant has one named, testable home. Wired since 2026-08 (this KDoc said
+ * "NOT yet wired" long after 13 production files consumed it — the plan doc was corrected on
+ * 2026-08-30, this line on 2026-09-02): see
+ * `docs/backlog/veh-active-fence-001-piece1-plan.md`. [feedback_systems_not_patches]
  */
 object VehicleFenceOwnershipPolicy {
 

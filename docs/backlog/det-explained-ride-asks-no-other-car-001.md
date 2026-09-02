@@ -5,7 +5,7 @@
 > puede saber qué hicieron las otras sesiones del mismo tick — por construcción, ninguna pieza lo
 > absorbe. Ver `docs/detection/REDESIGN-DETECTION-SYSTEM.md` §9.3.
 
-**Estado:** 🟡 Abierto · sin rama · sin worktree
+**Estado:** ✅ Done (2026-09-02) · ⏳ pendiente validar en campo (salir con dos coches aparcados)
 **Origen:** field 27-08 (fisio), Oppo. Hallazgo lateral al investigar la sesión zombi `a786c135`.
 
 ## Problema
@@ -95,8 +95,35 @@ propia salida está aún por verificar.
 
 ## Consumidores auditados
 
-Pendiente — se hará al abrir la rama. Punto de partida:
-`grep -rn "PromptStillParked\|showStillParkedPrompt\|anyPromptActive" composeApp/src --include=*.kt`
+`grep -rn "PromptStillParked\|showStillParkedPrompt\|anyPromptActive" shared/src app/src` (02-09):
+
+| Sitio | Clasificación |
+|---|---|
+| `ParkingSafetyNetWorker` — rama `PromptStillParked` del bucle | **cerrado** — diferida al final del tick y resuelta contra el mute |
+| `ParkingSafetyNetWorker` — prompt del `ArrivalOwner.UserPrompt` dentro de `DispatchDeparture` | **exento con razón** — es el fallback de arrival de la PROPIA sesión despachada (nada pudo tomar la llegada); pregunta otra cosa y no debe callarse |
+| `AppNotificationManagerImpl.showStillParkedPrompt` (app) | **exento** — sink de I/O, no decide |
+| `AppNotificationManager` (interfaz, default no-op) | **exento** — contrato |
+| `EvaluateSafetyNetCheckUseCase` (produce la acción) | **exento con razón** — evaluador por-sesión, no puede saber el tick (§9.3 del rediseño); intacto a propósito |
+| `DepartureDetectionWorker` / `FreedSpotIsStillThere` (leen `preconfirmed`) | **exentos** — no tocan el prompt |
+
+## Cierre (2026-09-02)
+
+Implementado como estaba bosquejado, con la decisión en código puro:
+
+- **`domain/detection/ExplainedDeparture.kt`** — `stillParkedPromptsExplainedByDeparture(tickActions)`:
+  predicado puro de tick (patrón `HumanPoweredRide`/`SentryWakeCooldown`, no un use case
+  [DET-VERDICT-NOT-PREDICATE-001]). Solo muta un `DispatchDeparture(preconfirmed = true)`; un
+  dispatch vivo aún debe pasar su re-verificación de velocidad y no calla nada.
+- **Worker**: los `PromptStillParked` se RETIENEN durante el bucle (la sesión que explica puede ir
+  después en el orden) y se resuelven al final del tick. Mute → línea de traza + verdict
+  `safety_net_prompt_muted` (citable en diagnóstico) + línea de debug «la salida de otro coche en
+  este mismo aviso ya explica el movimiento → no te pregunto», sin notificación, **sin estampar el
+  throttle** (una pregunta nunca mostrada no gasta la ventana de una legítima futura) y sin marcar
+  `anyPromptActive` (un prompt viejo sobre ese mismo desplazamiento es igual de caduco → se descarta).
+- Tests (6, en `ExplainedDepartureTest`): los dos del criterio (dos sesiones → mute; prompt solo →
+  pregunta), orden inverso dispatch/prompt, dispatch vivo NO muta, N prompts todos mutados, acciones
+  ajenas ignoradas. **Discriminación verificada**: neutralizando el guard fallan 4/6.
+- Suite **2.127/0** (2.121 previas + 6).
 
 ## Relación con otros tickets
 

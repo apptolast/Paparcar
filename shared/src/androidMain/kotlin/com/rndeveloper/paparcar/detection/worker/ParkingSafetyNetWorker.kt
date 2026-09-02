@@ -34,6 +34,7 @@ import com.rndeveloper.paparcar.domain.detection.ArrivalOwner
 import com.rndeveloper.paparcar.domain.detection.DetectionRuntimeState
 import com.rndeveloper.paparcar.domain.detection.arrivalOwner
 import com.rndeveloper.paparcar.domain.detection.cleanOrphanEnterFences
+import com.rndeveloper.paparcar.domain.detection.stillParkedPromptsExplainedByDeparture
 import com.rndeveloper.paparcar.domain.detection.sentry.SentryKillVerdict
 import com.rndeveloper.paparcar.domain.detection.sentry.resolveSentryKillVerdict
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEvent
@@ -230,6 +231,12 @@ class ParkingSafetyNetWorker(
         val now = System.currentTimeMillis()
         var anyPromptActive = false
         val debugLines = mutableListOf<String>()
+        // [DET-EXPLAINED-RIDE-ASKS-NO-OTHER-CAR-001] Every action this tick resolved, across
+        // sessions, plus the prompts held back until the whole tick has spoken: whether an ask is
+        // legitimate depends on what the OTHER sessions concluded about the same displacement, and
+        // the session that explains it may be evaluated after the one that wants to ask.
+        val tickActions = mutableListOf<SafetyNetAction>()
+        val heldPrompts = mutableListOf<HeldStillParkedPrompt>()
 
         // [DET-RECONCILE-001] Cumulative hardware step counter: read once per tick; the delta
         // against the value stored with the anchor is the step budget that separates "walked
@@ -314,6 +321,7 @@ class ParkingSafetyNetWorker(
                 session.location.latitude, session.location.longitude,
             ).toInt()
             val geofTag = session.geofenceId?.take(8) ?: "sin-geof"
+            tickActions += action
             when (action) {
                 is SafetyNetAction.CureGeofence -> {
                     // Position anchor: the phone is provably AT the car right now — this is what
@@ -607,37 +615,16 @@ class ParkingSafetyNetWorker(
                 }
 
                 is SafetyNetAction.PromptStillParked -> {
-                    anyPromptActive = true
-                    // Throttle persisted to disk (NOT in-memory): the OEM kills the process, so an
-                    // in-memory throttle is empty on every app-start and re-nags the same prompt each
-                    // time (field incident 2026-07-05). [ANCHOR-PERSIST-001]
-                    val lastPromptAt = prefs.getLong(PROMPT_KEY_PREFIX + action.geofenceId, 0L)
-                    val throttled = now - lastPromptAt < PROMPT_THROTTLE_MS
-                    if (!throttled) {
-                        PaparcarLogger.d(DIAG, "▶ moving far without anchor — still-parked prompt geofence=${action.geofenceId}")
-                        prefs.edit { putLong(PROMPT_KEY_PREFIX + action.geofenceId, now) }
-                        notificationPort.showStillParkedPrompt(
-                            geofenceId = action.geofenceId,
-                            latitude = session.location.latitude,
-                            longitude = session.location.longitude,
-                        )
-                        logVerdict(action.geofenceId, verdict = "safety_net_prompt", source = source, fixSpeedKmh = fix.speed * KMH_PER_MPS, now = now)
-                    }
-                    // [DET-DETECTION-PATH-IS-A-TYPE-001] La causa la DECIDE el evaluador, no la
-                    // adivina esta línea. Antes decía «SIN pruebas de viaje» para las cuatro
-                    // situaciones que llegan aquí — y para una de ellas es lo contrario: sí se midió
-                    // conducción, lo que falta es que empezara en el coche.
-                    val porque = when (action.reason) {
-                        StillParkedReason.BT_IDENTITY_MISSING ->
-                            "este coche se vigila por Bluetooth y no hay conexión que avale este trayecto"
-                        StillParkedReason.BOARDED_AWAY_FROM_CAR ->
-                            "vas a velocidad de coche pero el movimiento no empezó junto al tuyo (bus/taxi/te llevan)"
-                        StillParkedReason.UNEXPLAINED_EXIT ->
-                            "hubo una salida de la valla que los pasos contados no explican"
-                        StillParkedReason.USER_PRESENT_AND_BLIND ->
-                            "tienes la app abierta y ninguna prueba explica cómo has llegado hasta aquí"
-                    }
-                    debugLines += "geof=$geofTag: LEJOS del coche (d=${distanceM}m) y $porque → te pregunto '¿sigues aparcado?' en vez de liberar${if (throttled) " (pregunta reciente, no repito)" else ""}"
+                    // [DET-EXPLAINED-RIDE-ASKS-NO-OTHER-CAR-001] Held, not shown: another session
+                    // of this same tick may dispatch a preconfirmed departure that already explains
+                    // this displacement — and it may sit LATER in the loop. Resolved after it.
+                    heldPrompts += HeldStillParkedPrompt(
+                        action = action,
+                        sessionLatitude = session.location.latitude,
+                        sessionLongitude = session.location.longitude,
+                        distanceM = distanceM,
+                        geofTag = geofTag,
+                    )
                 }
 
                 SafetyNetAction.None -> {
@@ -646,7 +633,63 @@ class ParkingSafetyNetWorker(
             }
         }
 
-        // Back near the car (or ambiguity resolved) → any lingering prompt is stale.
+        // [DET-EXPLAINED-RIDE-ASKS-NO-OTHER-CAR-001] The tick has spoken for every session; now the
+        // held asks resolve. If any session dispatched a PRECONFIRMED departure, the body provably
+        // left in a car — "the other cars are still parked" is this tick's normal conclusion, not a
+        // doubt, and asking would burn the prompt's credibility on a question the same tick already
+        // answered (field 2026-08-27 12:29: two fences 30 m apart, 2008 m vs 2001 m, one explained
+        // and one nagging, 13 ms apart). A LIVE dispatch does not mute: its own exit is still
+        // awaiting the speed re-check. The throttle slot is deliberately NOT stamped on a mute — a
+        // later legitimate ask must not find its window spent by a question never shown.
+        val mutedPromptFences = stillParkedPromptsExplainedByDeparture(tickActions)
+        for (held in heldPrompts) {
+            val action = held.action
+            if (action.geofenceId in mutedPromptFences) {
+                PaparcarLogger.d(
+                    DIAG,
+                    "⊘ still-parked prompt muted geofence=${action.geofenceId} — a preconfirmed departure in " +
+                        "this same tick already explains the displacement [DET-EXPLAINED-RIDE-ASKS-NO-OTHER-CAR-001]"
+                )
+                logVerdict(action.geofenceId, verdict = "safety_net_prompt_muted", source = source, fixSpeedKmh = fix.speed * KMH_PER_MPS, now = now)
+                debugLines += "geof=${held.geofTag}: LEJOS del coche (d=${held.distanceM}m) pero la salida de otro coche en este mismo aviso ya explica el movimiento → no te pregunto"
+                continue
+            }
+            anyPromptActive = true
+            // Throttle persisted to disk (NOT in-memory): the OEM kills the process, so an
+            // in-memory throttle is empty on every app-start and re-nags the same prompt each
+            // time (field incident 2026-07-05). [ANCHOR-PERSIST-001]
+            val lastPromptAt = prefs.getLong(PROMPT_KEY_PREFIX + action.geofenceId, 0L)
+            val throttled = now - lastPromptAt < PROMPT_THROTTLE_MS
+            if (!throttled) {
+                PaparcarLogger.d(DIAG, "▶ moving far without anchor — still-parked prompt geofence=${action.geofenceId}")
+                prefs.edit { putLong(PROMPT_KEY_PREFIX + action.geofenceId, now) }
+                notificationPort.showStillParkedPrompt(
+                    geofenceId = action.geofenceId,
+                    latitude = held.sessionLatitude,
+                    longitude = held.sessionLongitude,
+                )
+                logVerdict(action.geofenceId, verdict = "safety_net_prompt", source = source, fixSpeedKmh = fix.speed * KMH_PER_MPS, now = now)
+            }
+            // [DET-DETECTION-PATH-IS-A-TYPE-001] La causa la DECIDE el evaluador, no la
+            // adivina esta línea. Antes decía «SIN pruebas de viaje» para las cuatro
+            // situaciones que llegan aquí — y para una de ellas es lo contrario: sí se midió
+            // conducción, lo que falta es que empezara en el coche.
+            val porque = when (action.reason) {
+                StillParkedReason.BT_IDENTITY_MISSING ->
+                    "este coche se vigila por Bluetooth y no hay conexión que avale este trayecto"
+                StillParkedReason.BOARDED_AWAY_FROM_CAR ->
+                    "vas a velocidad de coche pero el movimiento no empezó junto al tuyo (bus/taxi/te llevan)"
+                StillParkedReason.UNEXPLAINED_EXIT ->
+                    "hubo una salida de la valla que los pasos contados no explican"
+                StillParkedReason.USER_PRESENT_AND_BLIND ->
+                    "tienes la app abierta y ninguna prueba explica cómo has llegado hasta aquí"
+            }
+            debugLines += "geof=${held.geofTag}: LEJOS del coche (d=${held.distanceM}m) y $porque → te pregunto '¿sigues aparcado?' en vez de liberar${if (throttled) " (pregunta reciente, no repito)" else ""}"
+        }
+
+        // Back near the car (or ambiguity resolved) → any lingering prompt is stale. A muted ask
+        // keeps this false on purpose: the displacement is explained, so a prompt lingering from an
+        // earlier tick about that same movement is stale by the same argument.
         if (!anyPromptActive) dismissPrompt()
 
         // File-visible mirror of the debug notification: the notification shade rotates, the
@@ -1165,3 +1208,16 @@ class ParkingSafetyNetWorker(
         }
     }
 }
+
+/**
+ * [DET-EXPLAINED-RIDE-ASKS-NO-OTHER-CAR-001] A still-parked ask held until the whole tick has been
+ * evaluated: whether it may be shown depends on what the OTHER sessions of the same tick resolved,
+ * and the session that explains the displacement may sit later in the loop.
+ */
+private data class HeldStillParkedPrompt(
+    val action: SafetyNetAction.PromptStillParked,
+    val sessionLatitude: Double,
+    val sessionLongitude: Double,
+    val distanceM: Int,
+    val geofTag: String,
+)

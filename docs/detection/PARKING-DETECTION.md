@@ -7339,3 +7339,43 @@ which is precisely what injecting `null` used to make impossible to notice. Suit
 2 118 pre-existing tests untouched, 3 new).
 
 Spec: `docs/backlog/det-coordinator-no-optional-deps-001.md`.
+
+---
+
+### DET-EXPLAINED-RIDE-ASKS-NO-OTHER-CAR-001 — a departure already attributed to one car must not also interrogate you about the others
+
+**User report** (field 2026-08-27 12:29, Oppo, fisio): two sessions parked 30 m apart (Focus,
+Kamiq), the user drives the Focus away — and gets a real "still parked?" notification about the
+Kamiq, a car untouched for six days.
+
+**Root cause**: the safety-net evaluator is pure and per-session — by construction it cannot know
+what the other sessions of the same tick concluded. So the SAME 2 km displacement of the SAME body,
+13 ms apart, was "explained, dispatch the departure (trip proof + 4 trusted steps)" for `e1cb2b34`
+and "unexplained, ask the human" for `a786c135`. No pin was planted (asymmetric failure held); the
+defect is the QUESTION — a prompt whose answer the tick already holds trains the user to ignore
+prompts, and the prompt is the instrument the whole doctrine leans on.
+
+**Fix**: the cross-session fact lives where cross-session facts already live — the worker's tick
+loop (symmetric to `anyPromptActive`), with the decision in a pure commonMain predicate:
+`stillParkedPromptsExplainedByDeparture(tickActions)` in `domain/detection/ExplainedDeparture.kt`.
+The worker now HOLDS every `PromptStillParked` until the tick has evaluated all sessions (the
+explaining session may sit later in the loop), then resolves: if any session dispatched a
+`preconfirmed` departure, the held asks are muted — trace line + `safety_net_prompt_muted` verdict
+instead of a notification. The throttle slot is NOT stamped on a mute (a question never shown must
+not spend a legitimate future one), and a muted tick lets the stale-prompt dismissal run: a
+lingering ask about the now-explained displacement is stale by the same argument.
+
+**Scope, deliberately narrow**: only `preconfirmed = true` mutes — a LIVE dispatch is itself still
+awaiting the departure worker's speed re-check. The arrival-owner fallback prompt a dispatched
+session raises for ITSELF is untouched (different question). Per-session identity evidence is also
+untouched: the BT identity gate ([DET-BT-IDENTITY-GATE-001]) keeps deciding, inside the evaluator,
+whether a BT-owned car's ride is vouched for by its MAC — this ticket only adds the tick-level fact
+no single-session evaluator can see (ruled with the redesign: no piece absorbs it, §9.3).
+
+**Accompanying risk**: with three cars parked and one driven away, ALL other asks of that tick go
+silent — intended: their staying parked is the tick's normal conclusion. The legitimate ask ("you
+took the OTHER car, bus/taxi boarding") still fires: in those ticks nothing dispatches
+preconfirmed, so nothing mutes. 6 new tests (`ExplainedDepartureTest`), discrimination verified by
+neutralizing the guard (4/6 fail). Suite 2 127/0.
+
+Spec: `docs/backlog/det-explained-ride-asks-no-other-car-001.md`.
