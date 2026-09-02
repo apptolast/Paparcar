@@ -47,7 +47,12 @@ enum class DriveProofSource {
  * It is the lifecycle AUTHORIZATION — *may this session confirm at all?* — and lives in
  * `SessionTelemetry`. Fusing nomination with confirmation is the exact bug `DET-G-05` closed, and
  * the governing doctrine says the event nominates while only measured movement confirms
- * [07 §3.3].
+ * [07 §3.3]. [DET-DISPLACEMENT-DRIVE-MUST-SURVIVE-ITS-NEXT-FIX-001] And the two now differ in one
+ * more way that keeps this file's latch rule TRUE as written: the authorization's fix-born crossing
+ * is provisional for one fix (`SessionTelemetry.provisionalCrossing` — its own track may take it
+ * back), while [proven] here stays unconditional, because it already demands a corroborated window
+ * or a streak before it latches. No later fix un-drives a PROVEN drive; a lone claimed one was
+ * never proven.
  *
  * @property proven How the drive was proven, or null. Latched for the session, with the source that
  *   FIRST proved it — a later track window does not overwrite a short hop's provenance.

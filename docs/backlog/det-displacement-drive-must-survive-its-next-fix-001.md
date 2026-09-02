@@ -8,7 +8,9 @@
 > `drivingFixes = 1` de 216 → la Pieza 1 SÍ la cubre, y este ticket **no sube de prioridad** por esa vía.
 > Ver `docs/detection/REDESIGN-DETECTION-SYSTEM.md` §9.2.
 
-**Estado:** 🟡 Abierto · sin rama · sin worktree
+**Estado:** ✅ Done (2026-09-02) · ⏳ pendiente validar en campo (el replay del stream completo del
+27-08 sigue pendiente de extraer del `parkdiag` del Oppo — el caso está cubierto por unit test con
+los números exactos y por el replay de Parafarmacia, que es el caso citado como «el más limpio»)
 **Origen:** hermano de `DET-LONE-SAMPLE-CANNOT-UNFREEZE-AN-ANCHOR-001` (field 27-08). Mismo
 invariante — *una muestra no es un viaje* — sobre otro estado: aquél protege el ANCLA
 (`AnchorTrust`), éste el LATCH DE SESIÓN (`SessionTelemetry`).
@@ -65,7 +67,7 @@ una capa más abajo de donde debía.
 - La refutación geométrica ya está escrita en `DET-STOP-MUST-BE-STILL-IN-SPACE-001`: dos posiciones,
   dos envolventes de precisión y un delta de tiempo. Es la misma cuenta, con el signo cambiado.
 
-## Diseño (a decidir, NO cerrado)
+## Diseño (era «a decidir» — DECIDIDO en el cierre de abajo, tal como estaba bosquejado aquí)
 
 La idea: una prueba de viaje nacida **sólo de desplazamiento** entre dos fixes debe quedar
 **provisional** hasta que un tercer fix sea espacialmente coherente con ella. Un retorno al origen
@@ -130,5 +132,75 @@ Dos huecos concretos que el diseño debe cubrir además del latch:
 
 ## Consumidores auditados
 
-Pendiente — se hará al abrir la rama. `hasEverReachedDrivingSpeed` tiene muchos lectores y el
-barrido es la mitad del trabajo de este ticket.
+Hecho — tabla completa en el cierre de abajo.
+
+## Cierre (2026-09-02) — el diseño decidido
+
+Las dos mitades del alcance recortado (§9.2 del rediseño), con UN invariante — *el veredicto de
+movimiento debe sobrevivir a su siguiente fix* — aplicado en sus dos casas:
+
+### El ANCLA: filas 2a/2b en `effectiveDriving` (espejo exacto de 1a/1b)
+
+`sustainedDeparture` ya no anula un ancla PINNED con un sample: exige una racha de
+`pinnedAnchorRealDriveFixes` (2) veredictos consecutivos — `sustainedDepartureStreak` en
+`AnchorTrust`, mismo ciclo de vida que `realDriveStreak` (cualquier fix sin veredicto la rompe,
+todo fix parado la resetea). Sin ancla pinned, un solo veredicto sigue bastando (2a): exigir racha
+ahí retrasaría el unfreeze OEM-starved que Enamorados existe para curar. La negativa se traza
+(`⚓⏸ anchor HELD against a lone displacement verdict … run N of 2`).
+
+- ✅ **El atasco sigue curándose** (validado en campo el mismo 02-09): la reanudación va por el
+  carril Doppler (`realDriveStreak`, intacto) o por el de desplazamiento con UN fix extra de coste.
+- ⛔ **Alternativa descartada — puerta de accuracy en `sustainedDepartureFromAnchor`** (la
+  obligación §9.4.1 leída literalmente): los fixes de recovery de Enamorados son acc 52,4 y 68,6 —
+  AMBOS suspenden la vara de 50 m — y son exactamente lo que este carril existe para creer. Una
+  puerta de admisibilidad reabriría el FP de 1,11 km. La racha logra lo que la puerta prometía:
+  el Doppler mentiroso de UN fix ya no basta, porque el veredicto tiene que re-medirse.
+
+### El LATCH: el cruce nacido de un fix recibe el trato del arm (`provisionalCrossing`)
+
+`authorizedOnArmTrustOnly` ya codificaba la regla — *un seed otorgado por una PALABRA queda
+retractable hasta que una medición lo respalde* — y un fix solitario también es una palabra. El
+cruce que además RECLAMA separación real del origen (más allá de ambos sobres + margen de hop)
+queda en `SessionTelemetry.provisionalCrossing`:
+
+- **Revoca**: el siguiente fix vuelve DENTRO del sobre del origen dentro de la ventana de
+  coherencia (`driveProofWindowMaxMs`, 60 s) — la misma aritmética de dos posiciones y dos sobres
+  de `DET-STOP-MUST-BE-STILL-IN-SPACE-001`, con el signo cambiado. La revocación se lleva
+  `driveAuthorized` Y `hasEverMoved` (mientras hay provisional, solo el mismo fix pudo acuñarlos)
+  y re-arma las guardas pre-drive. Puede re-latchear después: no es un veto.
+- **Asienta** (permanente): un 2º fix in-band creíble, la prueba de drive del track, un
+  `departureConfirmed()` del worker, o la expiración de la ventana sin refutación — seguir viva es
+  el lado barato del fallo asimétrico.
+- Un cruce que nunca reclamó separación es permanente como siempre; un seed del arm no pasa por
+  aquí (no es fix-born).
+
+### Lo que cambia de conducta, medido
+
+- **Replay Parafarmacia 29-08** (el «tercer caso, el más limpio» de la cabecera): antes costaba
+  una pregunta a medianoche (`ended` + PROMPT_SHOWN); ahora el cruce se revoca a los 3,5 s y la
+  sesión muere `aborted_no_movement`, sin pregunta y sin pin. Test actualizado con la razón.
+- **Test del estanco (DET-C-02)**: su fixture emitía UN fix de conducción al reanudar; ahora dos,
+  que es lo que emite un stream real — el coste documentado del guard (un fix, ~5 s).
+- Los otros 2.125 tests intactos, **los 16 replays incluidos** (Enamorados corrobora con sus pares
+  de recovery a ~1 s; Redmi 28-08 verde con la racha).
+
+## Consumidores auditados (02-09)
+
+`grep -rn "driveAuthorized|hasEverReachedDrivingSpeed|sustainedDeparture" shared/src`:
+
+| Sitio | Clasificación |
+|---|---|
+| `PreDriveSkipStage` / `NoMovementBudgetStage` / `FalseEnterAbortStage` | **cubiertos** — la revocación los re-arma; el abort silencioso del boarding espurio es el fix (medido: `aborted_no_movement` en el replay) |
+| `EgressEvidence.shouldCount` | **cubierto** — tras revocar, los pasos vuelven a contar como pre-drive |
+| `StopTracking.matured` (freeze de ancla exige `driveAuthorized`) | **cubierto** — una sesión revocada no congela anclas |
+| `VehicleAttributionStage` / `attributedVehicleId` | **exento con razón** — la atribución capturada no se des-captura; mismo trato que `departureDismissed()` (precedente) |
+| `keepingAuthorization()` (el «sigo conduciendo» del user) | **exento con razón** — el provisional muere en el wipe: la palabra del user corrobora |
+| `DriveProof` (`proven`, latches propios) | **intacto a propósito** — su KDoc «no later fix un-drives it» sigue siendo VERDAD: habla de `proven`, que exige racha o ventana corroborada desde la Pieza 1; la revocación vive en `SessionTelemetry` |
+| `motorDisplacementRateMps` (alimentado por el veredicto crudo) | **exento con razón** — es el carril que REFUTA un veto human-powered; se deja crudo (la medición sale del replay verde del Redmi) y si el campo muerde, ticket propio |
+| Nota `⇢ SUSTAINED DEPARTURE` | **exenta** — es la MEDICIÓN y los replays la fijan byte a byte; el veredicto retenido añade su propia línea |
+
+## Medido
+
+Suite **2.135/0** (2.127 previos con 2 actualizados a la conducta nueva + 8 tests nuevos).
+Discriminación verificada neutralizando ambos guards por separado: caen 3 tests (revocación ×2,
+racha ×1).

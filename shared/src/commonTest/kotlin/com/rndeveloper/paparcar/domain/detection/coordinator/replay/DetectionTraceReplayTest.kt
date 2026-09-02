@@ -1277,30 +1277,37 @@ class DetectionTraceReplayTest {
                     "Nothing here may plant a pin — the field build planted one at reliability 0.9 " +
                     "and deleted the geofence of the good pin it replaced",
             )
-            // What the session is allowed to do instead is ASK, and it does — once, from the
-            // scoring lane, exactly as the field build did at 23:53:48. The doctrine's asymmetry
-            // is the whole point: the pharmacy trip costs one question at midnight, and the
-            // question left unanswered leaves NO pin. The field build asked the same question and
-            // then pinned anyway 2 min 40 s later, on the fast path this trace no longer opens.
+            // [DET-DISPLACEMENT-DRIVE-MUST-SURVIVE-ITS-NEXT-FIX-001] This used to cost one question
+            // at midnight: the lone sample flipped `hasEverReachedDrivingSpeed`, the latch stood
+            // (nothing could take it back), and the scoring lane asked at 23:53:48 — the accepted
+            // price of a monotonic latch. The crossing is provisional now, and THIS trace is the
+            // ticket's own field case: 71,6 m out, 64,8 m of it undone 3,5 s later — the next fix
+            // sits back inside the origin envelope, no car produces that track, the crossing is
+            // REVOKED and the session owes nobody a question about a trip it now knows never
+            // happened. No pin (as before), and no midnight ask either.
             assertEquals(
-                1,
+                0,
                 env.notification.parkingConfirmationCallCount,
-                "under doubt the app asks — it does not decide",
+                "no ask: the track refuted the only evidence the question would have ridden on",
             )
             assertEquals(
-                listOf("PROMPT_SHOWN"),
+                emptyList(),
                 env.detectionLogger.events.filterIsInstance<DetectionEvent.Decision>().map { it.outcome },
-                "and it is the scoring lane's question, never a confirm that got downgraded: " +
-                    "there is no confirm here to downgrade",
+                "no decision at all — the session never earned one",
             )
             assertEquals(0, env.notification.markParkingNudgeCallCount, "no nudge either")
-            // The session still runs to the end of its stream rather than aborting early, and that
-            // is the honest shape: `hasEverReachedDrivingSpeed` DID flip on the lone sample, which
-            // is what disarms the false-ENTER guard. What stops the pin is one step further in —
-            // the confirm needs measured driving, and the lone sample is not that.
+            // With the authorization (and the same-fix `hasEverMoved`) revoked, the pre-drive
+            // guards are re-armed and the no-movement budget closes the session the way it closes
+            // every boarding that never drove — instead of the field's 19 minutes of life ending in
+            // `aborted_unattended_no_drive` plus the question.
             val ended = env.detectionLogger.events
                 .filterIsInstance<DetectionEvent.SessionEnded>().single()
-            assertEquals("ended", ended.outcome, "no confirm, no prompt — the session just runs out")
+            assertEquals(
+                "aborted_no_movement",
+                ended.outcome,
+                "the revoked crossing re-arms the pre-drive guards, and the spurious boarding " +
+                    "aborts the way a boarding that never drove always did",
+            )
         }
 
     /**

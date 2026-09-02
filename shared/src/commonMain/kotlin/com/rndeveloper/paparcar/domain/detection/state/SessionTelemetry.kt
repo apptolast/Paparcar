@@ -74,6 +74,33 @@ data class SessionTelemetry(
      */
     val authorizedOnArmTrustOnly: Boolean = false,
     /**
+     * [DET-DISPLACEMENT-DRIVE-MUST-SURVIVE-ITS-NEXT-FIX-001] The lone fix whose speed crossing
+     * minted [driveAuthorized] while ALSO claiming real separation from the origin — held until the
+     * track keeps or breaks its word. Null when nothing is outstanding: the crossing was settled
+     * (a second in-band fix, a drive proof, or the coherence window expiring with no refutation),
+     * revoked, born without a separation claim, or the authorization came from the arm.
+     *
+     * ## Why a fix-born authorization gets the arm's treatment
+     *
+     * [authorizedOnArmTrustOnly] already encodes the rule: a seed granted on a WORD stays
+     * retractable until a measurement backs it. A lone in-band fix is also a word — its `speed`
+     * field is a claim, made with the same confidence when the receiver is lost — yet its seed was
+     * permanent the instant it landed. Field 2026-08-27 02:16:48 (Oppo, phone on the sofa): one
+     * multipath fix declared 21,6 m/s at a fully credible 13,5 m accuracy, claimed 230 m of
+     * separation, and the NEXT fix was back at the origin seven seconds later — a track no car can
+     * produce. The latch stood anyway, the session lived 19 minutes and ended
+     * `aborted_unattended_no_drive` with a prompt at 02:35. The stop side of the same stream was
+     * already guarded ([DET-STOP-MUST-BE-STILL-IN-SPACE-001] fired six times that night); this is
+     * the same arithmetic with the sign flipped.
+     *
+     * Narrow on purpose: only the fix immediately following can refute (by returning inside the
+     * origin envelope within the drive-proof window), a crossing that never claimed separation is
+     * permanent as before, and once ANY corroboration lands the crossing settles forever. A real
+     * drive keeps producing in-band fixes, so its provisional window closes in seconds and costs
+     * nothing.
+     */
+    val provisionalCrossing: GpsPoint? = null,
+    /**
      * The provenance label this session was armed with, as persisted on the pin.
      *
      * [DET-AN-ARM-LABEL-IS-PARSED-ONCE-NOT-SPELLED-AT-EVERY-DOOR-001] An [ArmLabel] and not a
@@ -183,6 +210,16 @@ data class SessionTelemetry(
      *   what makes a trusted seed permanent: a single mirage sample is what granted the seed in the
      *   first place, so it cannot also be what settles it.
      *   [DET-EXIT-FIX-CANNOT-PROVE-ITS-OWN-EXIT-001]
+     * @param crossingClaimsSeparation A crossing minted by THIS fix also claims to sit beyond the
+     *   origin envelope — the only kind of crossing held provisionally, because it is the only kind
+     *   the track can later contradict. [DET-DISPLACEMENT-DRIVE-MUST-SURVIVE-ITS-NEXT-FIX-001]
+     * @param crossingRefuted THIS fix refutes the outstanding [provisionalCrossing]: back inside
+     *   the origin envelope within the coherence window — a track no car produces. Judged by the
+     *   caller (it needs the config); applied here so the seed and its provenance move atomically,
+     *   like every other transition of this class.
+     * @param crossingSettled THIS fix settles the outstanding crossing without refuting it: a
+     *   second in-band fix corroborated it, or the coherence window expired. Staying alive is the
+     *   cheap side of asymmetric failure, so an unrefuted crossing becomes permanent by default.
      */
     fun onFix(
         fix: GpsPoint,
@@ -190,14 +227,32 @@ data class SessionTelemetry(
         reachedDrivingSpeed: Boolean,
         moved: Boolean,
         driveProven: Boolean,
-    ): SessionTelemetry = copy(
-        origin = origin ?: fix,
-        firstFixAtMs = firstFixAtMs ?: nowMs,
-        lastSpeedMps = fix.speed,
-        driveAuthorized = driveAuthorized || reachedDrivingSpeed,
-        authorizedOnArmTrustOnly = authorizedOnArmTrustOnly && !driveProven,
-        hasEverMoved = hasEverMoved || moved,
-    )
+        crossingClaimsSeparation: Boolean = false,
+        crossingRefuted: Boolean = false,
+        crossingSettled: Boolean = false,
+    ): SessionTelemetry {
+        // [DET-DISPLACEMENT-DRIVE-MUST-SURVIVE-ITS-NEXT-FIX-001] A revocation takes back ONLY what
+        // the lone crossing minted. While a crossing is provisional, `hasEverMoved` can only have
+        // been set by that same fix (any earlier fix meeting `moved`'s conditions would also have
+        // latched the authorization and started the settling clock), so both go together — the
+        // exact sibling of `departureDismissed()`, adjudicating a fix's word instead of an EXIT's.
+        // A proof arriving on this very fix outranks the refutation by definition: the track spoke.
+        val revoked = provisionalCrossing != null && crossingRefuted && !driveProven
+        return copy(
+            origin = origin ?: fix,
+            firstFixAtMs = firstFixAtMs ?: nowMs,
+            lastSpeedMps = fix.speed,
+            driveAuthorized = (driveAuthorized && !revoked) || reachedDrivingSpeed,
+            authorizedOnArmTrustOnly = authorizedOnArmTrustOnly && !driveProven,
+            hasEverMoved = (hasEverMoved && !revoked) || moved,
+            provisionalCrossing = when {
+                driveProven || revoked -> null
+                reachedDrivingSpeed && crossingClaimsSeparation -> fix
+                crossingSettled -> null
+                else -> provisionalCrossing
+            },
+        )
+    }
 
     /** Stop tracking saw this fix. Separate from [onFix] because it runs in the stop-tracking pass,
      *  after the judgement, and the `prev` of the next hop must be the fix as of THAT moment. */
@@ -211,6 +266,8 @@ data class SessionTelemetry(
     fun departureConfirmed(): SessionTelemetry = copy(
         driveAuthorized = true,
         authorizedOnArmTrustOnly = false,
+        // A departure the worker MEASURED settles any outstanding lone-fix crossing too.
+        provisionalCrossing = null,
         armEvidence = ArmLabel.VERIFIED_LATE,
     )
 
@@ -223,6 +280,7 @@ data class SessionTelemetry(
     fun departureDismissed(): SessionTelemetry = copy(
         driveAuthorized = false,
         authorizedOnArmTrustOnly = false,
+        provisionalCrossing = null,
         armEvidence = ArmLabel.SELF_OBSERVED,
     )
 

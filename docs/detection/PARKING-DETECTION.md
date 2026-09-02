@@ -7379,3 +7379,51 @@ preconfirmed, so nothing mutes. 6 new tests (`ExplainedDepartureTest`), discrimi
 neutralizing the guard (4/6 fail). Suite 2 127/0.
 
 Spec: `docs/backlog/det-explained-ride-asks-no-other-car-001.md`.
+
+---
+
+### DET-DISPLACEMENT-DRIVE-MUST-SURVIVE-ITS-NEXT-FIX-001 — a movement verdict must survive its next fix, in both of its houses
+
+**User report** (field 2026-08-27 02:16, Oppo, phone on the sofa): "a detection event fired while I
+was on the sofa, and later it asked me if I had parked — no new pin, but there was a prompt". The
+session lived 19 minutes on ONE multipath fix (21,6 m/s at a fully credible 13,5 m accuracy,
+claiming 230 m of separation) whose NEXT fix was back at the origin seven seconds later — a track
+no car produces. Second bite 2026-08-28 01:11 (Redmi): one fix, already REJECTED as driving by the
+accuracy gate (acc 81,8 > 50), resolved CAR by displacement in the same beat and cleared a FROZEN
+anchor.
+
+**Root cause, the asymmetry**: the same incoherent stream was already caught on the STOP side —
+`DET-STOP-MUST-BE-STILL-IN-SPACE-001` fired six times that night — but no symmetric guard existed
+for the TRIP. And the invariant *a sample is not a drive* (`DET-LONE-SAMPLE-CANNOT-UNFREEZE-AN-
+ANCHOR-001`) covered only the Doppler lane: the displacement verdict could still overturn a pinned
+anchor on one sample, and the fix-born authorization latch was permanent the instant it landed —
+while the ARM's identical claim stays retractable until measured (`authorizedOnArmTrustOnly`).
+
+**Fix, one invariant in its two houses**:
+- **Anchor** — `effectiveDriving` rows 2a/2b, the exact mirror of 1a/1b: a sustained-departure
+  verdict against a PINNED anchor needs a run of `pinnedAnchorRealDriveFixes` consecutive verdicts
+  (`AnchorTrust.sustainedDepartureStreak`, reset like its siblings). Unpinned anchors keep the
+  single-verdict unfreeze — demanding a run there would delay the OEM-starved cure Enamorados
+  needs. An accuracy gate on `sustainedDepartureFromAnchor` was REJECTED: Enamorados' recovery
+  fixes are acc 52,4/68,6, both past the 50 m bar, and they are precisely what this lane exists to
+  believe. The streak achieves what the gate promised — a lying Doppler sample must re-measure.
+- **Latch** — a fix-born crossing that also CLAIMS separation beyond the origin envelope is held in
+  `SessionTelemetry.provisionalCrossing`: the next fix returning inside the origin envelope within
+  the drive-proof window REVOKES it (authorization + same-fix `hasEverMoved`, re-arming the
+  pre-drive guards); a second in-band fix, a drive proof, a worker-confirmed departure or the
+  window expiring settles it permanently. Same two-positions-two-envelopes arithmetic as the stop
+  guard, sign flipped. A crossing with no separation claim, and every arm seed, is untouched.
+
+**Behaviour change, measured on the replays**: Parafarmacia 29-08 (71,6 m out, 64,8 m undone in
+3,5 s — this ticket's cleanest field case) used to cost one question at midnight; now the crossing
+revokes and the session dies `aborted_no_movement` — no ask, no pin. The errand-stop test (DET-C-02)
+now resumes with TWO driving fixes, which is what a real stream emits — the guard's whole cost, one
+fix. All 16 replays green, jam-resume (validated in the field this same day) untouched: the Doppler
+lane's streak is unchanged.
+
+**Accompanying risk**: a real crossing followed by an immediate return to the origin within 60 s
+(pull out, brake, back into the same space) is revoked — and that is correct: no departure
+happened, the fence never broke, the car rests where its pin says. Suite 2 135/0 (8 new tests, 2
+updated to the new behaviour, discrimination verified by neutralizing each guard separately).
+
+Spec: `docs/backlog/det-displacement-drive-must-survive-its-next-fix-001.md`.

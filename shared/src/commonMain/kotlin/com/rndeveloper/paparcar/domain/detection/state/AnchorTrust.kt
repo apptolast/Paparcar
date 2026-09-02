@@ -143,6 +143,15 @@ data class EgressBirth(
  *   reach `pinnedAnchorRealDriveFixes` before real driving clears it (field 2026-08-27, Calle del
  *   Vivero). Any fix that is not a real drive breaks it, and every stopped fix resets it, exactly
  *   like [repositionStreak]. [DET-LONE-SAMPLE-CANNOT-UNFREEZE-AN-ANCHOR-001]
+ * @property sustainedDepartureStreak Consecutive fixes whose sustained-departure geometry held —
+ *   the same invariant one lane over: the DISPLACEMENT verdict used to overturn a pinned anchor on
+ *   ONE sample, which [realDriveStreak] had just forbidden for the Doppler lane. Field 2026-08-28
+ *   01:11:04 (Redmi): a single fix, already rejected as driving by the accuracy gate
+ *   (acc 81.8 > 50), resolved CAR by displacement in the same beat and cleared a frozen anchor +
+ *   stop + Notified phase + walk-in odometer. The run must reach `pinnedAnchorRealDriveFixes`
+ *   before displacement clears a pinned anchor — a mirage burst is a lone sample by shape, a real
+ *   departure keeps re-measuring on the next fix. Reset like the others.
+ *   [DET-DISPLACEMENT-DRIVE-MUST-SURVIVE-ITS-NEXT-FIX-001]
  */
 data class AnchorTrust(
     val anchor: GpsPoint? = null,
@@ -158,6 +167,7 @@ data class AnchorTrust(
     val egressBirth: EgressBirth? = null,
     val repositionStreak: Int = 0,
     val realDriveStreak: Int = 0,
+    val sustainedDepartureStreak: Int = 0,
 ) {
 
     /**
@@ -223,6 +233,9 @@ data class AnchorTrust(
         frozenByRest = frozenByRest || frozen,
         // Reset the reposition counter on every stopped fix. [PARKING-001]
         repositionStreak = 0,
+        // …and the sustained-departure run: a stop breaks a departure by definition.
+        // [DET-DISPLACEMENT-DRIVE-MUST-SURVIVE-ITS-NEXT-FIX-001]
+        sustainedDepartureStreak = 0,
         // …and the real-drive run with it: a stop breaks any run of driving fixes by definition.
         // [DET-LONE-SAMPLE-CANNOT-UNFREEZE-AN-ANCHOR-001]
         realDriveStreak = 0,
@@ -317,6 +330,7 @@ data class AnchorTrust(
         fix: GpsPoint,
         repositionStreak: Int,
         realDriveStreak: Int,
+        sustainedDepartureStreak: Int,
         kinematicEgressFixes: Int,
     ): AnchorTrust = copy(
         anchor = if (anchorCleared) null else anchor,
@@ -340,6 +354,7 @@ data class AnchorTrust(
         kinematicEgressFixes = kinematicEgressFixes,
         repositionStreak = repositionStreak,
         realDriveStreak = realDriveStreak,
+        sustainedDepartureStreak = sustainedDepartureStreak,
     )
 
     // ── The egress walk's birth ───────────────────────────────────────────────

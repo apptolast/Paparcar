@@ -67,6 +67,9 @@ data class DetectionSessionState(
         nowMs: Long,
         reachedDrivingSpeed: Boolean,
         moved: Boolean,
+        crossingClaimsSeparation: Boolean = false,
+        crossingRefuted: Boolean = false,
+        crossingSettled: Boolean = false,
     ): DetectionSessionState = copy(
         drive = newDrive,
         session = session.onFix(
@@ -75,6 +78,9 @@ data class DetectionSessionState(
             reachedDrivingSpeed = reachedDrivingSpeed,
             moved = moved,
             driveProven = newDrive.isProven,
+            crossingClaimsSeparation = crossingClaimsSeparation,
+            crossingRefuted = crossingRefuted,
+            crossingSettled = crossingSettled,
         ),
     )
 

@@ -380,10 +380,17 @@ fun DetectionSessionState.updateStopTracking(
             // A PINNED anchor is a rest this session witnessed, so overturning it asks for a run
             // rather than a sample — see the ranking's rows 1a/1b.
             val newRealDriveStreak = if (isRealDrive) it.anchorTrust.realDriveStreak + 1 else 0
+            // [DET-DISPLACEMENT-DRIVE-MUST-SURVIVE-ITS-NEXT-FIX-001] The displacement lane's own
+            // run, same shape and same bar: a mirage burst is a lone sample, a real departure keeps
+            // satisfying the geometry on the next fix. Any fix without the verdict breaks it; a
+            // stopped fix resets it in `onStoppedFix`.
+            val newSustainedDepartureStreak =
+                if (departure != null) it.anchorTrust.sustainedDepartureStreak + 1 else 0
             val effectiveDriving = effectiveDriving(
                 isRealDrive = isRealDrive,
                 realDriveCorroborated = newRealDriveStreak >= config.pinnedAnchorRealDriveFixes,
                 sustainedDeparture = sustainedDeparture,
+                sustainedDepartureCorroborated = newSustainedDepartureStreak >= config.pinnedAnchorRealDriveFixes,
                 steplessDeparture = steplessDeparture,
                 anchorPinned = anchorPinned,
                 corroboratedMuteHop = corroboratedMuteHop,
@@ -402,6 +409,22 @@ fun DetectionSessionState.updateStopTracking(
                 notes +=
                     "  ⤳ mute ambiguous fix corroborated as CAR by displacement " +
                         "(speed=${location.speed} acc=${location.accuracy}) [DET-CREDIBLE-DRIVE-001]"
+            }
+            if (anchorPinned && sustainedDeparture && !isRealDrive &&
+                newSustainedDepartureStreak < config.pinnedAnchorRealDriveFixes
+            ) {
+                // [DET-DISPLACEMENT-DRIVE-MUST-SURVIVE-ITS-NEXT-FIX-001] Same refusal as the
+                // Doppler lane's below, same reason to say it out loud: without this line the trace
+                // shows a SUSTAINED DEPARTURE measurement and an anchor that did not move, with
+                // nothing saying why. It must read as PROVISIONAL — the next fix either re-measures
+                // the departure and the anchor goes, or breaks the run and it stays.
+                notes +=
+                    "  ⚓⏸ anchor HELD against a lone displacement verdict — " +
+                        "${departure.distanceMeters.toInt()}m at " +
+                        "${(departure.rateMps * 10).toInt() / 10.0} m/s is run " +
+                        "$newSustainedDepartureStreak of ${config.pinnedAnchorRealDriveFixes}; a " +
+                        "witnessed rest needs corroboration to be overturned " +
+                        "[DET-DISPLACEMENT-DRIVE-MUST-SURVIVE-ITS-NEXT-FIX-001]"
             }
             if (anchorPinned && isRealDrive && newRealDriveStreak < config.pinnedAnchorRealDriveFixes) {
                 // [DET-LONE-SAMPLE-CANNOT-UNFREEZE-AN-ANCHOR-001] Without this line the refusal is
@@ -482,6 +505,7 @@ fun DetectionSessionState.updateStopTracking(
                     fix = location,
                     repositionStreak = newConsecutive,
                     realDriveStreak = newRealDriveStreak,
+                    sustainedDepartureStreak = newSustainedDepartureStreak,
                     kinematicEgressFixes = newKinematicEgressFixes,
                 ).withEgressBirth(
                     fix = location,

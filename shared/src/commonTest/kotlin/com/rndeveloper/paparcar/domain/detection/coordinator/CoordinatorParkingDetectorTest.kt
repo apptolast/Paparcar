@@ -3451,8 +3451,14 @@ class CoordinatorParkingDetectorTest {
             )
 
             // 30 s into the hold the errand is over: drive off again → discard the tentative confirm.
+            // Two driving fixes, not one: the egress steps LOCKED the anchor at the errand stop, and
+            // a witnessed rest is only overturned by a corroborated run — one trip-speed sample is
+            // the Vivero/sofa mirage shape. A real resume produces the second fix ~5 s later; that
+            // is the guard's whole cost. [DET-LONE-SAMPLE-CANNOT-UNFREEZE-AN-ANCHOR-001]
+            // [DET-DISPLACEMENT-DRIVE-MUST-SURVIVE-ITS-NEXT-FIX-001]
             fakeNow += 30_000L
             locations.emit(GpsPoint(40.010, -3.7, accuracy = 5f, timestamp = 0L, speed = 10f))
+            locations.emit(GpsPoint(40.012, -3.7, accuracy = 5f, timestamp = 0L, speed = 10f))
             assertEquals(
                 0,
                 env.parkingRepo.saveNewParkingSessionCallCount,

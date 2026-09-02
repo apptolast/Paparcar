@@ -23,6 +23,7 @@ class EffectiveDrivingTest {
         isRealDrive: Boolean = false,
         realDriveCorroborated: Boolean = true,
         sustainedDeparture: Boolean = false,
+        sustainedDepartureCorroborated: Boolean = true,
         steplessDeparture: Boolean = false,
         anchorPinned: Boolean = false,
         corroboratedMuteHop: Boolean = false,
@@ -31,8 +32,9 @@ class EffectiveDrivingTest {
         displacementOutrunsSteps: Boolean = false,
         isDriving: Boolean = false,
     ) = effectiveDriving(
-        isRealDrive, realDriveCorroborated, sustainedDeparture, steplessDeparture, anchorPinned,
-        corroboratedMuteHop, stepsCounted, hasAnchor, displacementOutrunsSteps, isDriving,
+        isRealDrive, realDriveCorroborated, sustainedDeparture, sustainedDepartureCorroborated,
+        steplessDeparture, anchorPinned, corroboratedMuteHop, stepsCounted, hasAnchor,
+        displacementOutrunsSteps, isDriving,
     )
 
     // ── The rows, each reachable on its own ───────────────────────────────────
@@ -70,6 +72,50 @@ class EffectiveDrivingTest {
     @Test
     fun should_say_person_when_nothing_suggests_movement() {
         assertFalse(verdict())
+    }
+
+    // ── [DET-DISPLACEMENT-DRIVE-MUST-SURVIVE-ITS-NEXT-FIX-001] Rows 2a / 2b ──────
+
+    @Test
+    fun should_say_person_when_a_lone_displacement_verdict_meets_a_pinned_anchor() {
+        // Field 2026-08-28 01:11:04 (Redmi, sofa): ONE fix — already rejected as driving by the
+        // accuracy gate (acc 81,8 > 50) — resolved CAR by displacement in the same beat and
+        // cleared a FROZEN anchor, a rest the session had witnessed. Same invariant as row 1b,
+        // other lane: one sample does not overturn a witness.
+        assertFalse(
+            verdict(
+                sustainedDeparture = true,
+                sustainedDepartureCorroborated = false,
+                anchorPinned = true,
+            )
+        )
+    }
+
+    @Test
+    fun should_say_car_when_the_second_displacement_verdict_corroborates_the_first() {
+        // The jam-resume twin (field 2026-09-02: a jam froze the anchor and the resume had to
+        // break it — and did). The car genuinely pulls away, the geometry holds on the next fix
+        // too, and the anchor clears one fix later than it used to. That delay is the whole cost.
+        assertTrue(
+            verdict(
+                sustainedDeparture = true,
+                sustainedDepartureCorroborated = true,
+                anchorPinned = true,
+            )
+        )
+    }
+
+    @Test
+    fun should_say_car_when_a_lone_displacement_verdict_has_no_pinned_anchor_to_overturn() {
+        // Row 2a: with no witnessed rest to overturn there is no reason to demand a run —
+        // demanding one would delay the OEM-starved unfreeze Enamorados needs.
+        assertTrue(
+            verdict(
+                sustainedDeparture = true,
+                sustainedDepartureCorroborated = false,
+                anchorPinned = false,
+            )
+        )
     }
 
     // ── Adjacent pairs: the order IS the content ──────────────────────────────

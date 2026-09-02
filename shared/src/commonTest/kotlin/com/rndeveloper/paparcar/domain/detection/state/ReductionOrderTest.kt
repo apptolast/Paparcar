@@ -84,12 +84,12 @@ class ReductionOrderTest {
         val here = fix(speed = 1f, at = 2_000L)
 
         val anchorFirst = start
-            .copy(anchorTrust = start.anchorTrust.onMovingFix(false, false, here, 0, 0, 0))
+            .copy(anchorTrust = start.anchorTrust.onMovingFix(false, false, here, 0, 0, 0, 0))
             .let { it.copy(egress = start.egress.onFix(false, false, false, 2)) }
 
         val egressFirst = start
             .copy(egress = start.egress.onFix(false, false, false, 2))
-            .let { it.copy(anchorTrust = start.anchorTrust.onMovingFix(false, false, here, 0, 0, 0)) }
+            .let { it.copy(anchorTrust = start.anchorTrust.onMovingFix(false, false, here, 0, 0, 0, 0)) }
 
         assertEquals(anchorFirst, egressFirst)
     }

@@ -29,9 +29,19 @@ package com.rndeveloper.paparcar.domain.detection.physics
  *     already encodes — *a single fix can be a cache teleport* — applied to the one place that
  *     overturns a rest the session actually WITNESSED. Cost when the car truly pulls away: one
  *     fix, about five seconds.
- *  2. **Sustained departure → CAR even when no single fix is credible.** The position provably RAN
- *     from the anchor at vehicle pace; this is what unfreezes an anchor when the OEM starves every
- *     individual fix of accuracy [DET-CREDIBLE-DRIVE-001].
+ *  2. **Sustained departure → CAR even when no single fix is credible** — outright when there is no
+ *     pinned anchor to overturn (2a), and only once CORROBORATED when there is (2b). The position
+ *     provably RAN from the anchor at vehicle pace; this is what unfreezes an anchor when the OEM
+ *     starves every individual fix of accuracy [DET-CREDIBLE-DRIVE-001].
+ *     [DET-DISPLACEMENT-DRIVE-MUST-SURVIVE-ITS-NEXT-FIX-001] The 2a/2b split is row 1's own split
+ *     applied to the other lane, for the same field reason one lane over: on 2026-08-28 01:11:04
+ *     (Redmi) a SINGLE fix — already rejected as driving by the accuracy gate (acc 81.8 > 50) —
+ *     resolved CAR by displacement in the same beat and cleared a FROZEN anchor, a witnessed rest.
+ *     Its moving gate is the declared Doppler of that very fix, so the verdict inherits the field's
+ *     lies; what a mirage cannot do is KEEP satisfying the departure geometry on the next fix
+ *     (2026-08-29 23:47: 71,6 m out, 64,8 m back in 3,5 s), while a real departure re-measures on
+ *     every fix (Enamorados' recovery fixes arrive in pairs ~1 s apart). Cost when the car truly
+ *     pulls away from a pinned rest: one fix.
  *  3. **Stepless departure → CAR.** The position keeps escaping the anchor's envelopes at
  *     above-walking pace while a counter *proven alive this session* has counted nothing. A person
  *     covering that ground produces steps within a couple of fixes; a live counter's silence is
@@ -64,6 +74,10 @@ package com.rndeveloper.paparcar.domain.detection.physics
  *   `pinnedAnchorRealDriveFixes`. Only consulted when an anchor is pinned; a lone sample never
  *   overturns a witnessed rest. [DET-LONE-SAMPLE-CANNOT-UNFREEZE-AN-ANCHOR-001]
  * @param sustainedDeparture The position ran from the anchor at vehicle pace since its stop began.
+ * @param sustainedDepartureCorroborated This is not the FIRST such verdict in a row — the run has
+ *   reached `pinnedAnchorRealDriveFixes` (same bar as the Doppler lane: both overturn the same
+ *   witnessed rest). Only consulted when an anchor is pinned.
+ *   [DET-DISPLACEMENT-DRIVE-MUST-SURVIVE-ITS-NEXT-FIX-001]
  * @param steplessDeparture Enough stepless moving fixes past the anchor envelope with a live counter.
  * @param anchorPinned Step lock or end-of-drive freeze holds the anchor.
  * @param corroboratedMuteHop Zero steps, ambiguous band, and a hop the position provably made.
@@ -77,6 +91,7 @@ fun effectiveDriving(
     isRealDrive: Boolean,
     realDriveCorroborated: Boolean,
     sustainedDeparture: Boolean,
+    sustainedDepartureCorroborated: Boolean,
     steplessDeparture: Boolean,
     anchorPinned: Boolean,
     corroboratedMuteHop: Boolean,
@@ -87,7 +102,8 @@ fun effectiveDriving(
 ): Boolean = when {
     isRealDrive && !anchorPinned -> true
     isRealDrive && realDriveCorroborated -> true
-    sustainedDeparture -> true
+    sustainedDeparture && !anchorPinned -> true
+    sustainedDeparture && sustainedDepartureCorroborated -> true
     steplessDeparture -> true
     anchorPinned -> false
     corroboratedMuteHop -> true

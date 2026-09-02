@@ -86,15 +86,47 @@ fun DetectionSessionState.reduceFix(
     // opened, but via GPS noise. Same 50 m gate that already protects the driving-clears-anchor
     // decision [LOC-002].
     val credibleSpeedFix = isCredibleFixAccuracy(fix, config.minGpsAccuracyForDriving)
+    // [DET-DISPLACEMENT-DRIVE-MUST-SURVIVE-ITS-NEXT-FIX-001] Judge an OUTSTANDING provisional
+    // crossing against this fix, before this fix may mint one. The crossing fix claimed the session
+    // left its origin; a fix back INSIDE the origin envelope within the drive-proof window says the
+    // ground was never covered — the same two-positions-two-envelopes arithmetic that refutes a
+    // stop's stillness [DET-STOP-MUST-BE-STILL-IN-SPACE-001], with the sign flipped. Field
+    // 2026-08-27 02:16 (Oppo, sofa): 230 m out at a declared 21,6 m/s, back at the origin 7 s
+    // later; the latch stood and bought a 19-minute session and a 02:35 prompt. Past the window (or
+    // on a second in-band fix) the crossing settles permanent: staying alive is the cheap side.
+    val outstandingCrossing = session.provisionalCrossing
+    val withinCoherenceWindow = outstandingCrossing != null &&
+        fix.timestamp - outstandingCrossing.timestamp <= config.driveProofWindowMaxMs
+    val backInsideOriginEnvelope =
+        distFromOrigin <= origin.accuracy + fix.accuracy + config.credibleDriveHopMarginMeters
+    val crossingRefuted = outstandingCrossing != null && withinCoherenceWindow && backInsideOriginEnvelope
+    val crossingSettled = outstandingCrossing != null && !crossingRefuted &&
+        (!withinCoherenceWindow || (credibleSpeedFix && fix.speed >= config.minimumTripSpeedMps))
     val hasJustReachedSpeed = !session.driveAuthorized &&
             fix.speed >= config.minimumTripSpeedMps &&
             credibleSpeedFix
+    // Only a crossing that CLAIMS separation is held provisionally — it is the only kind the track
+    // can later contradict; a crossing still inside its own origin envelope stays permanent as ever.
+    val crossingClaimsSeparation = hasJustReachedSpeed && !backInsideOriginEnvelope
     val hasJustMoved = !session.hasEverMoved &&
             fix.speed >= config.minimumTripSpeedMps &&
             credibleSpeedFix &&
             distFromOrigin >= config.minimumTripDistanceMeters
+    if (crossingRefuted) {
+        notes += "  ✗ trip crossing REVOKED by its own track — back within the origin envelope " +
+            "(${distFromOrigin.toInt()}m, envelopes ${origin.accuracy}+${fix.accuracy}m) " +
+            "${(fix.timestamp - outstandingCrossing.timestamp) / 1000}s after claiming " +
+            "${outstandingCrossing.speed} m/s; no car produces that track — authorization returns " +
+            "to unproven [DET-DISPLACEMENT-DRIVE-MUST-SURVIVE-ITS-NEXT-FIX-001]"
+    }
     if (hasJustReachedSpeed) {
         notes += "  ✓ hasEverReachedDrivingSpeed → true (speed=${fix.speed}≥${config.minimumTripSpeedMps}) dist=${distFromOrigin}m [BUG-SHORT-TRIP]"
+    }
+    if (crossingClaimsSeparation) {
+        notes += "  ⏳ crossing is PROVISIONAL — it also claims ${distFromOrigin.toInt()}m of " +
+            "separation, so the next fix must keep its word (a return to the origin inside " +
+            "${config.driveProofWindowMaxMs / 1000}s revokes it) " +
+            "[DET-DISPLACEMENT-DRIVE-MUST-SURVIVE-ITS-NEXT-FIX-001]"
     }
     if (hasJustMoved) {
         notes += "  ✓ hasEverMoved → true (speed≥${config.minimumTripSpeedMps}, dist≥${config.minimumTripDistanceMeters}m, actual=${distFromOrigin}m)"
@@ -152,6 +184,9 @@ fun DetectionSessionState.reduceFix(
             nowMs = nowMs,
             reachedDrivingSpeed = hasJustReachedSpeed,
             moved = hasJustMoved,
+            crossingClaimsSeparation = crossingClaimsSeparation,
+            crossingRefuted = crossingRefuted,
+            crossingSettled = crossingSettled,
         ),
         notes = notes,
     )
