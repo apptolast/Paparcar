@@ -1,6 +1,6 @@
 # DET-COORDINATOR-NO-OPTIONAL-DEPS-001 · Tres dependencias que en producción nunca son null
 
-**Estado:** 🔵 Abierto · sin rama · follow-up de `DET-DI-DETECTION-MODULE-001`
+**Estado:** ✅ Done (2026-09-02) · follow-up de `DET-DI-DETECTION-MODULE-001`
 
 ## Problema
 
@@ -43,3 +43,23 @@ está sin cobertura de test precisamente porque se inyectaba `null`.
 
 Cero `?` en dependencias del constructor del coordinator, y al menos un test que falle si el
 finalize/retract deja de llamarse.
+
+## Cierre (2026-09-02)
+
+Cumplido, con un matiz de diseño que el ticket no anticipaba: los dos use cases son clases finales
+cuyo constructor arrastra el grafo de publicación entero (`ReportSpotReleasedUseCase` →
+`GetAddressAndPlaceUseCase` → …), así que "un fake que solo registra" no podía ser una subclase —
+habría tenido que construir el grafo real en su `super()`, exactamente el acoplamiento que este doc
+prohíbe. La costura es el patrón que el coordinator ya usaba para la tercera dependencia:
+**`fun interface` junto a cada use case** (`FinalizeDeducedDeparture` / `RetractDeducedDeparture`,
+espejo de `DetectionPhaseSink`), la clase real lo implementa y el módulo lo registra con `bind` —
+con lo que `KoinModuleVerifyTest` sigue verificando las tres resoluciones, sin whitelists nuevas.
+
+- Coordinator: los tres parámetros no-nulables; fuera los `?.let`/`?.invoke`/`phaseJob?.cancel()`.
+- `FakeCoordinatorSeams.kt` (commonTest): `FakeDetectionPhaseSink` acumula fases,
+  `FakeFinalizeDeducedDeparture` registra el vehicleId de cada llamada, `FakeRetractDeducedDeparture`
+  cuenta. Los 3 setups los inyectan.
+- **El bonus era el ticket**: 3 tests nuevos — el drive probado finaliza la deducción UNA vez y el
+  cierre ya no retracta; el cierre sin drive medido retracta; la fase coarse llega al sink.
+  Cualquiera de los tres falla si su lane se descablea.
+- Medido: suite 2.121/0 (2.118 previos intactos + 3 nuevos). Diff +164/−49 en 7 ficheros + 1 nuevo.

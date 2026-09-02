@@ -7313,3 +7313,29 @@ witnesses are the definition of "unchanged" here), 6 new tests for the two new f
 (`aborted_no_movement_jam`), not bookkeeping — the tap's KDoc already names that trap.
 
 Spec: `docs/backlog/det-edge-markers-to-the-tap-001.md`.
+
+---
+
+### DET-COORDINATOR-NO-OPTIONAL-DEPS-001 — three dependencies that were never null in production
+
+**Not a behaviour change — a coverage fix.** The coordinator declared `phaseSink`,
+`finalizeDeducedDeparture` and `retractDeducedDeparture` as nullable, and production resolved all
+three with `get()` on both platforms: the `?` only ever described the three test setups, which
+injected `null`. The price was invisible but real — the `DET-HANDOFF-NOT-MANUAL-001 §B/§B.3` lanes
+(finalize a deduced departure when the drive is proven, retract it when the session ends without
+one) ran on every real trip and in zero tests.
+
+**The seam, not the subclass.** The two use cases are final classes whose constructors drag the
+whole publish graph behind them, so a recording fake could not be a subclass — it would have had to
+build the real graph in its `super()` call. Each use case now declares a `fun interface` next to it
+(`FinalizeDeducedDeparture` / `RetractDeducedDeparture`, mirroring `DetectionPhaseSink`), the class
+implements it, and `detectionModule` registers it with `bind` — so `KoinModuleVerifyTest` keeps
+verifying all three resolutions with no new whitelist entries.
+
+**What the tests can now say**: a proven drive finalizes the pending deduction exactly ONCE and the
+session end then retracts nothing; a session that ends without a measured drive attempts the
+retraction; the coarse phase reaches the Home sink. Any of the three fails if its lane is unwired —
+which is precisely what injecting `null` used to make impossible to notice. Suite 2 121/0 (the
+2 118 pre-existing tests untouched, 3 new).
+
+Spec: `docs/backlog/det-coordinator-no-optional-deps-001.md`.

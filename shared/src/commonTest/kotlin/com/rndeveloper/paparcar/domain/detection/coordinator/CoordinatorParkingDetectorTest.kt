@@ -26,6 +26,9 @@ import io.github.aakira.napier.LogLevel
 import io.github.aakira.napier.Napier
 import com.rndeveloper.paparcar.fakes.FakeDepartureEventBus
 import com.rndeveloper.paparcar.fakes.FakeDetectionEventLogger
+import com.rndeveloper.paparcar.fakes.FakeDetectionPhaseSink
+import com.rndeveloper.paparcar.fakes.FakeFinalizeDeducedDeparture
+import com.rndeveloper.paparcar.fakes.FakeRetractDeducedDeparture
 import com.rndeveloper.paparcar.fakes.FakeAuthRepository
 import com.rndeveloper.paparcar.fakes.FakeGeofenceManager
 import com.rndeveloper.paparcar.fakes.FakeParkingEnrichmentScheduler
@@ -120,6 +123,9 @@ class CoordinatorParkingDetectorTest {
         val calcConfidence = CalculateParkingConfidenceUseCase(config)
         val stepDetector = FakeStepDetectorSource()
         val detectionLogger = FakeDetectionEventLogger()
+        val phaseSink = FakeDetectionPhaseSink()
+        val finalizeDeduced = FakeFinalizeDeducedDeparture()
+        val retractDeduced = FakeRetractDeducedDeparture()
         val coordinator = CoordinatorParkingDetector(
             calculateParkingConfidence = calcConfidence,
             confirmParking = confirmParking,
@@ -134,14 +140,17 @@ class CoordinatorParkingDetectorTest {
             // [DET-DI-DETECTION-MODULE-001] Was the coordinator's own constructor default; the
             // instance is identical, it is just built where it can be seen.
             evaluateUnattendedParkingSave = EvaluateUnattendedParkingSaveUseCase(config),
-            // These three used to default to null. They still are null here — this suite exercises
-            // neither the Home phase surface nor the deduced-departure pair — but now it says so.
-            phaseSink = null,
-            finalizeDeducedDeparture = null,
-            retractDeducedDeparture = null,
+            // [DET-COORDINATOR-NO-OPTIONAL-DEPS-001] These three used to be null. The recording
+            // fakes cost the same and let the §B/§B.3 tests below assert the calls actually happen.
+            phaseSink = phaseSink,
+            finalizeDeducedDeparture = finalizeDeduced,
+            retractDeducedDeparture = retractDeduced,
             clock = clock,
         )
-        return TestEnv(coordinator, parkingRepo, geofence, enrichment, notification, stepDetector, detectionLogger)
+        return TestEnv(
+            coordinator, parkingRepo, geofence, enrichment, notification, stepDetector,
+            detectionLogger, phaseSink, finalizeDeduced, retractDeduced,
+        )
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -4192,6 +4201,81 @@ class CoordinatorParkingDetectorTest {
             )
         }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // [DET-COORDINATOR-NO-OPTIONAL-DEPS-001] The deduced-departure pair + the phase sink.
+    // These lanes ran in production and never in a test, because the setups injected null
+    // where production injects real collaborators. The recording fakes make the CALLS
+    // assertable; the behaviour behind them has its own suites.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Test
+    fun should_finalize_the_deduced_departure_once_when_this_session_measures_a_drive() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-HANDOFF-NOT-MANUAL-001 §B] The moment the drive is PROVEN, any departure that
+            // was published on a mere deduction must be committed — exactly once, not per fix.
+            val env = setup()
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            emitCorroboratedDrive(locations)
+            assertEquals(
+                1,
+                env.finalizeDeduced.calls.size,
+                "a proven drive must finalize the pending deduced departure, once",
+            )
+
+            // The one-shot must hold: further driving fixes re-prove nothing.
+            locations.emit(GpsPoint(40.0001, -3.7, accuracy = 5f, timestamp = 40_000L, speed = 11f))
+            assertEquals(1, env.finalizeDeduced.calls.size, "the finalize is a one-shot per session")
+
+            job.cancelAndJoin()
+            assertEquals(
+                0,
+                env.retractDeduced.calls,
+                "a settled deduction leaves nothing for the session end to retract",
+            )
+        }
+
+    @Test
+    fun should_retract_the_deduced_departure_when_the_session_ends_without_a_measured_drive() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-HANDOFF-NOT-MANUAL-001 §B.3] A session that dies with no drive refutes the
+            // deduction it rode in on: the provisional spot is taken back at session end.
+            val env = setup()
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            // Movement, but never a PROVEN drive — a lone speed-carrying fix is not a measured
+            // drive (the at-home FP of field 2026-07-27 is why).
+            locations.emit(stationaryFix(lat = 40.0, lon = -3.7))
+            locations.emit(GpsPoint(40.002, -3.7, accuracy = 5f, timestamp = 0L, speed = 10f))
+            job.cancelAndJoin()
+
+            assertEquals(
+                1,
+                env.retractDeduced.calls,
+                "a session end without a proven drive must attempt the retraction",
+            )
+            assertEquals(0, env.finalizeDeduced.calls.size, "nothing was proven, nothing finalizes")
+        }
+
+    @Test
+    fun should_mirror_the_coarse_phase_to_the_home_sink_while_the_session_runs() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-PHASE-001] The reactive phase mirror is the only thing Home has; if the
+            // collector is never wired, the map shows a stale phase forever.
+            val env = setup()
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            locations.emit(stationaryFix(lat = 40.0, lon = -3.7))
+            assertTrue(
+                env.phaseSink.phases.isNotEmpty(),
+                "the session must publish its coarse phase to the sink",
+            )
+            job.cancelAndJoin()
+        }
+
     private data class TestEnv(
         val coordinator: CoordinatorParkingDetector,
         val parkingRepo: FakeUserParkingRepository,
@@ -4200,5 +4284,8 @@ class CoordinatorParkingDetectorTest {
         val notification: FakeAppNotificationManager,
         val stepDetector: FakeStepDetectorSource,
         val detectionLogger: FakeDetectionEventLogger,
+        val phaseSink: FakeDetectionPhaseSink,
+        val finalizeDeduced: FakeFinalizeDeducedDeparture,
+        val retractDeduced: FakeRetractDeducedDeparture,
     )
 }

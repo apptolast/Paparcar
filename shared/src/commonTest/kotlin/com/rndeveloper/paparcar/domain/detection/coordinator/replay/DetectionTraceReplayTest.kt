@@ -24,6 +24,9 @@ import com.rndeveloper.paparcar.fakes.FakeAppNotificationManager
 import com.rndeveloper.paparcar.fakes.FakeAuthRepository
 import com.rndeveloper.paparcar.fakes.FakeDepartureEventBus
 import com.rndeveloper.paparcar.fakes.FakeDetectionEventLogger
+import com.rndeveloper.paparcar.fakes.FakeDetectionPhaseSink
+import com.rndeveloper.paparcar.fakes.FakeFinalizeDeducedDeparture
+import com.rndeveloper.paparcar.fakes.FakeRetractDeducedDeparture
 import com.rndeveloper.paparcar.fakes.FakeGeofenceManager
 import com.rndeveloper.paparcar.fakes.FakeParkingEnrichmentScheduler
 import com.rndeveloper.paparcar.fakes.FakeStepDetectorSource
@@ -1631,12 +1634,11 @@ class DetectionTraceReplayTest {
             // [DET-DI-DETECTION-MODULE-001] Was the coordinator's own constructor default; the
             // instance is identical, it is just built where it can be seen.
             evaluateUnattendedParkingSave = EvaluateUnattendedParkingSaveUseCase(config),
-            // These three used to default to null. They still are null here — the replays drive
-            // the detection loop from a trace, not the Home surface or the deduced-departure
-            // pair — but now the trace harness states it.
-            phaseSink = null,
-            finalizeDeducedDeparture = null,
-            retractDeducedDeparture = null,
+            // [DET-COORDINATOR-NO-OPTIONAL-DEPS-001] Recording fakes — the replays drive the
+            // detection loop from a trace; none of them asserts on these lanes.
+            phaseSink = FakeDetectionPhaseSink(),
+            finalizeDeducedDeparture = FakeFinalizeDeducedDeparture(),
+            retractDeducedDeparture = FakeRetractDeducedDeparture(),
             clock = clock,
         )
         return Env(coordinator, parkingRepo, notification, stepDetector, detectionLogger)

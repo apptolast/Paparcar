@@ -26,10 +26,12 @@ import com.rndeveloper.paparcar.domain.usecase.parking.EvaluateHonestCloseUseCas
 import com.rndeveloper.paparcar.domain.usecase.parking.EvaluateParkingDecisionUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.EvaluateSafetyNetCheckUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.EvaluateUnattendedParkingSaveUseCase
+import com.rndeveloper.paparcar.domain.usecase.parking.FinalizeDeducedDeparture
 import com.rndeveloper.paparcar.domain.usecase.parking.FinalizeDeducedDepartureUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.ObserveParkedVehiclesUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.ProcessConfirmedDepartureUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.ReleaseActiveParkingSessionUseCase
+import com.rndeveloper.paparcar.domain.usecase.parking.RetractDeducedDeparture
 import com.rndeveloper.paparcar.domain.usecase.parking.RetractDeducedDepartureUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.RevertParkingUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.RunDepartureCheckUseCase
@@ -39,6 +41,7 @@ import com.rndeveloper.paparcar.domain.usecase.parking.UpdateParkingLocationUseC
 import com.rndeveloper.paparcar.domain.usecase.parking.VerifyDepartureEvidenceUseCase
 import com.rndeveloper.paparcar.domain.usecase.vehicle.DeclareActiveVehicleUseCase
 import com.rndeveloper.paparcar.domain.usecase.vehicle.SwapActiveVehicleFencesUseCase
+import org.koin.dsl.bind
 import org.koin.dsl.binds
 import org.koin.dsl.module
 
@@ -198,7 +201,8 @@ val detectionModule = module {
     }
     factory { VerifyDepartureEvidenceUseCase(departureEventBus = get(), config = get()) } // [DET-G-05]
     // [DET-HANDOFF-NOT-MANUAL-001 §B] Promotes a provisional spot + releases the car once a drive
-    // is measured — the other half of a deduced departure.
+    // is measured — the other half of a deduced departure. Bound also as its seam, which is the
+    // type the coordinator asks for. [DET-COORDINATOR-NO-OPTIONAL-DEPS-001]
     factory {
         FinalizeDeducedDepartureUseCase(
             userParkingRepository = get(),
@@ -206,7 +210,7 @@ val detectionModule = module {
             geofenceService = get(),
             detectionEventLogger = get(),
         )
-    }
+    } bind FinalizeDeducedDeparture::class
     // [DET-HANDOFF-NOT-MANUAL-001 §B.3] Withdraws that same provisional spot when the trip ends
     // having measured no drive at all — the losing half of the same pair.
     factory {
@@ -215,7 +219,7 @@ val detectionModule = module {
             spotRepository = get(),
             detectionEventLogger = get(),
         )
-    }
+    } bind RetractDeducedDeparture::class
     factory {
         ProcessConfirmedDepartureUseCase(
             userParkingRepository = get(),

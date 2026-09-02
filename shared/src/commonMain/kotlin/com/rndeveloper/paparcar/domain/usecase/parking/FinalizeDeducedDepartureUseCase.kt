@@ -12,6 +12,19 @@ import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import kotlin.time.Clock
 
 /**
+ * [DET-COORDINATOR-NO-OPTIONAL-DEPS-001] The face of [FinalizeDeducedDepartureUseCase] that the
+ * coordinator holds. The concrete class is final and drags the whole publish graph behind its
+ * constructor ([com.rndeveloper.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase] and
+ * everything IT needs), which is why the coordinator's tests used to inject `null` instead of a
+ * double — and `null` is what left the §B lane with zero test coverage. A seam the tests can
+ * implement in three lines removes the last excuse for the nullable.
+ */
+fun interface FinalizeDeducedDeparture {
+    /** See [FinalizeDeducedDepartureUseCase.invoke]. */
+    suspend operator fun invoke(vehicleId: String?): Boolean
+}
+
+/**
  * [DET-HANDOFF-NOT-MANUAL-001 §B] Completes a departure that was only DEDUCED, at the moment a
  * drive is finally MEASURED.
  *
@@ -37,7 +50,7 @@ class FinalizeDeducedDepartureUseCase(
     private val reportSpotReleased: ReportSpotReleasedUseCase,
     private val geofenceService: GeofenceManager,
     private val detectionEventLogger: DetectionEventLogger? = null,
-) {
+) : FinalizeDeducedDeparture {
     /**
      * @param vehicleId the vehicle whose live session just proved a drive. The pending departure is
      *   looked up on THAT vehicle's active session — a second car parked elsewhere is untouched,
@@ -45,7 +58,7 @@ class FinalizeDeducedDepartureUseCase(
      *   committed) finds nothing to finalize.
      * @return true when a pending deduced departure was completed.
      */
-    suspend operator fun invoke(vehicleId: String?): Boolean {
+    override suspend operator fun invoke(vehicleId: String?): Boolean {
         val session = vehicleId?.let { userParkingRepository.getActiveSessionByVehicle(it) } ?: return false
         val deducedAtMs = session.provisionalDepartureAtMs ?: return false
 

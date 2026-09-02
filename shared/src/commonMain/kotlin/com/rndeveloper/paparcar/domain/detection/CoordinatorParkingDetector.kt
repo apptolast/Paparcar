@@ -42,8 +42,8 @@ import com.rndeveloper.paparcar.domain.usecase.parking.CalculateParkingConfidenc
 import com.rndeveloper.paparcar.domain.usecase.parking.ConfirmParkingUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.EvaluateParkingDecisionUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.EvaluateUnattendedParkingSaveUseCase
-import com.rndeveloper.paparcar.domain.usecase.parking.FinalizeDeducedDepartureUseCase
-import com.rndeveloper.paparcar.domain.usecase.parking.RetractDeducedDepartureUseCase
+import com.rndeveloper.paparcar.domain.usecase.parking.FinalizeDeducedDeparture
+import com.rndeveloper.paparcar.domain.usecase.parking.RetractDeducedDeparture
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import kotlin.concurrent.Volatile
 import kotlin.time.Clock
@@ -140,24 +140,22 @@ class CoordinatorParkingDetector(
      *  show a distinct "candidate / looking for spot" treatment while a trip is being evaluated.
      *  [DET-PHASE-001]
      *
-     *  ## Nullable, but no longer defaulted [DET-DI-DETECTION-MODULE-001]
+     *  ## No longer nullable [DET-COORDINATOR-NO-OPTIONAL-DEPS-001]
      *
-     *  This and the two below carried `= null` with the reason written on them: *"nullable so
-     *  existing test doubles need no change"*. That is DI shaped by the tests, and it let a new
-     *  call site omit all three silently — in production that is a session that never finalizes
-     *  nor retracts its deduced departure, with nothing to notice it. Production resolves all
-     *  three with `get()`; the type stays nullable only because the three test setups pass an
-     *  explicit `null` for the lanes they do not exercise, and now they have to say so. */
-    private val phaseSink: DetectionPhaseSink?,
+     *  This and the two below spent two tickets shedding their test-shaped DI: `= null` defaults
+     *  went in [DET-DI-DETECTION-MODULE-001], and the `?` itself went when the test setups gained
+     *  recording fakes. Production always resolved all three with `get()` — the nullable only ever
+     *  described the tests, and it priced the §B/§B.3 lanes out of coverage while it lasted. */
+    private val phaseSink: DetectionPhaseSink,
     /** [DET-HANDOFF-NOT-MANUAL-001 §B] Completes a departure that was only DEDUCED, at the instant
      *  this session MEASURES a drive: the deduction is now proven, so the provisional spot is
      *  promoted to the full TTL and the car is released — the commit moved from the guess to the
-     *  proof. Null only in test doubles that do not exercise it. */
-    private val finalizeDeducedDeparture: FinalizeDeducedDepartureUseCase?,
+     *  proof. */
+    private val finalizeDeducedDeparture: FinalizeDeducedDeparture,
     /** [DET-HANDOFF-NOT-MANUAL-001 §B.3] The other half of the same pair: this session ENDED without
      *  ever measuring a drive, so the departure it was deduced from is refuted and the spot it
-     *  published provisionally is withdrawn. Null only in test doubles that do not exercise it. */
-    private val retractDeducedDeparture: RetractDeducedDepartureUseCase?,
+     *  published provisionally is withdrawn. */
+    private val retractDeducedDeparture: RetractDeducedDeparture,
     /** Wall-clock source (epoch-ms). Injectable so the time-driven post-confirm hold [DET-C-02]
      *  can be unit-tested without sleeping. Defaults to the system clock — the one default left,
      *  because a missing clock has an obviously correct value and a missing use case does not. */
@@ -775,13 +773,11 @@ class CoordinatorParkingDetector(
         // a distinct "candidate" treatment the moment the user stops and starts walking away. A reactive
         // collector covers every phase mutation (and every return@collect path) with one emit point;
         // cancelled in the finally alongside stepJob. [DET-PHASE-001]
-        val phaseJob = phaseSink?.let { sink ->
-            launch {
-                _detectionState
-                    .map { it.confirmation.phase.toDetectionPhase() }
-                    .distinctUntilChanged()
-                    .collect { sink.setPhase(it) }
-            }
+        val phaseJob = launch {
+            _detectionState
+                .map { it.confirmation.phase.toDetectionPhase() }
+                .distinctUntilChanged()
+                .collect { phaseSink.setPhase(it) }
         }
 
         // [DET-AUDIT-002 T7/M2] Hold watchdog: every hold decision above is driven by the NEXT
@@ -1006,7 +1002,7 @@ class CoordinatorParkingDetector(
                     // taken from the user until this line.
                     if (state.drive.isProven && !deducedDepartureSettled) {
                         deducedDepartureSettled = true
-                        runCatching { finalizeDeducedDeparture?.invoke(attributedVehicleId) }
+                        runCatching { finalizeDeducedDeparture(attributedVehicleId) }
                             .onFailure { e -> PaparcarLogger.w(DIAG, "  ⚠ finalize deduced departure failed: ${e.message}") }
                     }
 
@@ -1122,7 +1118,7 @@ class CoordinatorParkingDetector(
                 }
         } finally {
             stepJob.cancel()
-            phaseJob?.cancel()
+            phaseJob.cancel()
             holdWatchdogJob?.cancel()
             promptWatchdogJob.cancel()
             // [FIX BUG-SERVICE-109: reset state on session exit so cross-session reads of
@@ -1182,7 +1178,7 @@ class CoordinatorParkingDetector(
                     // the held-confirm finalize on purpose — a park confirmed just now replaces the
                     // pending session, and then there is nothing left to retract.
                     if (!deducedDepartureSettled) {
-                        runCatching { retractDeducedDeparture?.invoke() }
+                        runCatching { retractDeducedDeparture() }
                             .onFailure { e -> PaparcarLogger.w(DIAG, "  ⚠ retract of a refuted deduction failed: ${e.message}") }
                     }
                     // [DET-HONEST-CLOSE-001][DET-FROZEN-COUNTER-001] Everything the session leaves

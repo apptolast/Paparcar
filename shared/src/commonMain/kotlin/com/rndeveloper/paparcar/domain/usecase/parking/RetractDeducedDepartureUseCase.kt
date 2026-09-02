@@ -12,6 +12,17 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlin.time.Clock
 
 /**
+ * [DET-COORDINATOR-NO-OPTIONAL-DEPS-001] The face of [RetractDeducedDepartureUseCase] that the
+ * coordinator holds — same reason as [FinalizeDeducedDeparture]: the concrete class is final, so
+ * without a seam the coordinator's tests could only inject `null`, and the §B.3 lane went
+ * unexercised.
+ */
+fun interface RetractDeducedDeparture {
+    /** See [RetractDeducedDepartureUseCase.invoke]. */
+    suspend operator fun invoke(): Int
+}
+
+/**
  * [DET-HANDOFF-NOT-MANUAL-001 §B.3] Withdraws the community spot of a DEDUCED departure that the
  * trip itself went on to refute — the losing half of the pair whose winning half is
  * [FinalizeDeducedDepartureUseCase].
@@ -57,7 +68,7 @@ class RetractDeducedDepartureUseCase(
     // all — same shape as `RunDepartureCheckUseCase`. Reading the wall clock inline would have made
     // "the provisional window has elapsed" untestable, which is how it went unbounded to begin with.
     private val nowMs: () -> Long = { Clock.System.now().toEpochMilliseconds() },
-) {
+) : RetractDeducedDeparture {
     /**
      * @return the number of spots withdrawn.
      *
@@ -69,7 +80,7 @@ class RetractDeducedDepartureUseCase(
      *
      * Safe to call on every session end: with no pending deduction it reads one list and returns 0.
      */
-    suspend operator fun invoke(): Int {
+    override suspend operator fun invoke(): Int {
         val pending = runCatching {
             userParkingRepository.observeActiveSessions().firstOrNull().orEmpty()
         }.getOrElse { e ->
