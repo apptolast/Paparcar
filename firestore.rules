@@ -4,11 +4,10 @@ service cloud.firestore {
 
     // Spots — recurso comunitario. [AUDIT-RULES-001 C4 + A4-rules]
     //   - read:   cualquier autenticado (todos ven plazas cercanas).
-    //   - create: TRANSITORIO — permisivo hasta que TODOS los dispositivos tengan el cliente que
-    //             firma con uid (reportedBy=uid, ya en este commit). Mientras haya apps instaladas
-    //             que escriben el displayName, exigir reportedBy==uid rompería la publicación.
-    //             Este fichero es lo que está DESPLEGADO en prod (2026-07-13); apretar a
-    //             `reportedBy == request.auth.uid` y re-desplegar cuando el cliente uid esté en campo.
+    //   - create: sólo firmado con el propio uid (reportedBy == request.auth.uid). La ventana
+    //             transitoria permisiva (2026-07-13, clientes que escribían displayName) se cerró
+    //             el 2026-09-03 antes del primer release de producción: la DB se reseteó el 30-08
+    //             y todos los clientes en campo firman con uid desde julio.
     //   - update: el dueño puede editar cualquier campo; CUALQUIER otro autenticado sólo puede
     //             tocar los contadores comunitarios (enRouteCount / acceptCount / rejectCount) y
     //             nunca reasignar reportedBy — cierra el "cualquiera reescribe el spot ajeno".
@@ -17,7 +16,8 @@ service cloud.firestore {
     match /spots/{spotId} {
       allow read:   if request.auth != null;
 
-      allow create: if request.auth != null; // TRANSITORIO — apretar a reportedBy==uid tras desplegar el cliente
+      allow create: if request.auth != null
+                    && request.resource.data.reportedBy == request.auth.uid;
 
       allow update: if request.auth != null
                     && (

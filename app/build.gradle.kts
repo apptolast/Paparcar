@@ -72,8 +72,8 @@ extensions.configure<ApplicationExtension> {
         applicationId = "com.rndeveloper.paparcar"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 3
-        versionName = "1.0.0-beta02"
+        versionCode = 4
+        versionName = "1.0.0"
 
         buildConfigField(
             "String",
