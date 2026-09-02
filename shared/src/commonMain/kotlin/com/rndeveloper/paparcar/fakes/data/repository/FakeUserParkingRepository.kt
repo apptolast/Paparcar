@@ -84,6 +84,12 @@ class FakeUserParkingRepository(
         ))
 
         // ── Seat León (vehicle_001) — 65 sessions over 2 years ───────────────
+        // Real-sounding streets (the placeholders leaked into the Play-listing captures);
+        // indexed by modulo so streets still REPEAT and the "usual street" fact reaches ≥3.
+        val leonStreets = listOf(
+            "Calle Larga", "Calle Cielos", "Calle Palacios", "Calle San Juan", "Calle Vicario",
+            "Av. de la Libertad", "Calle Santa Lucía", "Calle Ganado", "Calle Zarza",
+        )
         for (i in 1..65) {
             val daysAgo = i * 11L
             add(UserParking(
@@ -111,11 +117,14 @@ class FakeUserParkingRepository(
                 publishedSpot = i % 4 != 0,
                 endedAtMs = now - daysAgo * 86_400_000L + 5 * 3_600_000L,
                 routeDistanceMeters = 900f + (i % 9) * 850f,
-                address = AddressInfo("Calle Histórica ${i % 9}", "Puerto de Santa María", "Cádiz", "España", "ES"),
+                address = AddressInfo(leonStreets[i % 9], "Puerto de Santa María", "Cádiz", "España", "ES"),
             ))
         }
 
         // ── Toyota Corolla BT (vehicle_002) — 45 sessions over 18 months ─────
+        val corollaStreets = listOf(
+            "Calle Misericordia", "Calle Pagador", "Av. de la Bajamar", "Calle Cruces", "Calle Nevería",
+        )
         for (i in 1..45) {
             val daysAgo = i * 12L
             add(UserParking(
@@ -137,11 +146,14 @@ class FakeUserParkingRepository(
                 detectionPath = if (i % 8 == 0) "manual" else "bt",
                 publishedSpot = i % 3 != 0,
                 endedAtMs = now - daysAgo * 86_400_000L + 8 * 3_600_000L,
-                address = AddressInfo("Av. Corolla ${i % 5}", "El Puerto", "Cádiz", "España", "ES"),
+                address = AddressInfo(corollaStreets[i % 5], "El Puerto", "Cádiz", "España", "ES"),
             ))
         }
 
         // ── Honda CBR 600 (vehicle_003) — 12 sessions over 1 year ────────────
+        val motoStreets = listOf(
+            "Paseo de la Playa", "Calle Micaela Aramburu", "Plaza de las Galeras", "Ribera del Marisco",
+        )
         for (i in 1..12) {
             val daysAgo = i * 30L
             add(UserParking(
@@ -162,11 +174,12 @@ class FakeUserParkingRepository(
                 // the moto page demos the facts footer at its emptiest.
                 detectionPath = "manual",
                 endedAtMs = now - daysAgo * 86_400_000L + 26 * 3_600_000L,
-                address = AddressInfo("Paseo Moto $i", "El Puerto", "Cádiz", "España", "ES"),
+                address = AddressInfo(motoStreets[i % 4], "El Puerto", "Cádiz", "España", "ES"),
             ))
         }
 
         // ── Ford Transit BT (vehicle_004) — 18 sessions over 6 months ────────
+        val transitStreets = listOf("Polígono Las Salinas", "Calle Valdés", "Av. de Sanlúcar")
         for (i in 1..18) {
             val daysAgo = i * 10L
             add(UserParking(
@@ -187,7 +200,7 @@ class FakeUserParkingRepository(
                 publishedSpot = i % 2 == 0,
                 endedAtMs = now - daysAgo * 86_400_000L + 10 * 3_600_000L,
                 routeDistanceMeters = 2_400f + (i % 4) * 1_600f,
-                address = AddressInfo("Calle Furgoneta ${i % 3}", "Puerto de Santa María", "Cádiz", "España", "ES"),
+                address = AddressInfo(transitStreets[i % 3], "Puerto de Santa María", "Cádiz", "España", "ES"),
             ))
         }
     }
