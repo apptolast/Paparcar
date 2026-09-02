@@ -1,0 +1,63 @@
+<en-US>
+Paparcar's first public version:
+• Park and forget it — the app automatically saves where you left your car.
+• When you drive away, you can free your spot for drivers nearby.
+• See spots others have just left, with a size check for your car.
+• Your garage: cars, vans and motorbikes, each tracked its own way.
+</en-US>
+<de-DE>
+Erste öffentliche Version von Paparcar:
+• Parken und vergessen: Die App speichert automatisch, wo du dein Auto abgestellt hast.
+• Wenn du losfährst, kannst du deinen Parkplatz für Fahrer in der Nähe freigeben.
+• Sieh dir Plätze an, die andere gerade freigegeben haben – mit Größencheck für dein Auto.
+• Deine Garage: Autos, Transporter und Motorräder, jedes auf seine Art überwacht.
+</de-DE>
+<es-ES>
+Primera versión pública de Paparcar:
+• Aparca y olvídate: la app guarda automáticamente dónde dejaste el coche.
+• Al irte, puedes liberar tu plaza para los conductores cercanos.
+• Mira las plazas que otros acaban de dejar, con aviso de si tu coche cabe.
+• Tu garaje: coches, furgonetas y motos, cada uno vigilado a su manera.
+</es-ES>
+<fr-FR>
+Première version publique de Paparcar :
+• Garez-vous et n'y pensez plus : l'appli enregistre automatiquement où vous avez laissé votre voiture.
+• Quand vous repartez, vous pouvez libérer votre place pour les conducteurs à proximité.
+• Voyez les places que d'autres viennent de laisser, avec vérification que votre voiture peut y tenir.
+• Votre garage : voitures, utilitaires et motos, chacun suivi à sa façon.
+</fr-FR>
+<it-IT>
+Prima versione pubblica di Paparcar:
+• Parcheggia e dimenticatene: l'app salva automaticamente dove hai lasciato l'auto.
+• Quando riparti, puoi liberare il tuo posto per gli automobilisti nelle vicinanze.
+• Guarda i posti che altri hanno appena lasciato, con verifica che la tua auto ci stia.
+• Il tuo garage: auto, furgoni e moto, ciascuno monitorato a modo suo.
+</it-IT>
+<nl-NL>
+Eerste publieke versie van Paparcar:
+• Parkeer en vergeet het: de app slaat automatisch op waar je je auto hebt achtergelaten.
+• Als je wegrijdt, kun je jouw plek vrijgeven voor bestuurders in de buurt.
+• Bekijk plekken die anderen net hebben vrijgemaakt en controleer of jouw auto erin past.
+• Jouw garage: auto's, busjes en motoren, elk op zijn eigen manier gevolgd.
+</nl-NL>
+<pl-PL>
+Pierwsza publiczna wersja Paparcara:
+• Zaparkuj i zapomnij: aplikacja automatycznie zapisuje, gdzie zostawiłeś samochód.
+• Gdy odjeżdżasz, możesz zwolnić swoje miejsce dla kierowców w pobliżu.
+• Zobacz miejsca, które inni właśnie zwolnili, i sprawdź, czy Twoje auto się zmieści.
+• Twój garaż: samochody, furgonetki i motocykle, każdy monitorowany na swój sposób.
+</pl-PL>
+<pt-PT>
+Primeira versão pública do Paparcar:
+• Estaciona e esquece: a aplicação guarda automaticamente onde deixaste o carro.
+• Quando sais, podes libertar o teu lugar para os condutores próximos.
+• Vê os lugares que outros acabaram de deixar, com indicação de se o teu carro cabe.
+• A tua garagem: carros, carrinhas e motas, cada um acompanhado à sua maneira.
+</pt-PT>
+<ro>
+Prima versiune publică a Paparcar:
+• Parchează și uită: aplicația salvează automat unde ți-ai lăsat mașina.
+• Când pleci, poți elibera locul pentru șoferii din apropiere.
+• Vezi locurile pe care alții tocmai le-au eliberat și verifică dacă mașina ta încape.
+• Garajul tău: mașini, furgonete și motociclete, fiecare monitorizat în felul său.
+</ro>

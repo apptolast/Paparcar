@@ -1,0 +1,68 @@
+FICHA DE PLAY STORE — ro-RO
+============================================================
+
+--- 1. NOMBRE DE LA APLICACION (24/30) ---
+Paparcar: unde ai parcat
+
+--- 2. DESCRIPCION BREVE (76/80) ---
+Unde ai parcat? Paparcar ține minte. Iar locul tău trece la următorul șofer.
+
+--- 3. DESCRIPCION COMPLETA (2962/4000) ---
+Unde ai parcat?
+
+Paparcar ține minte pentru tine.
+
+Parchează, coboară din mașină și vezi-ți de zi. Paparcar salvează automat unde ai lăsat mașina: fără să deschizi aplicația, fără să pui un indicator și fără să scrii o adresă. Când te întorci, vei ști unde este și de cât timp stă acolo.
+
+Și Paparcar mai face ceva. Când pleci, locul pe care îl eliberezi poate apărea pe hartă pentru șoferii din apropiere. Iar tu poți vedea locurile pe care alții tocmai le-au eliberat. Cu cât mai mulți șoferi folosesc Paparcar în orașul tău, cu atât mai multe locuri pot apărea pe hartă.
+
+CUM FUNCȚIONEAZĂ
+
+1. PARCHEZI
+Paparcar detectează că ai terminat de parcat și salvează locul. Îl poți marca și manual, cu o atingere.
+
+2. PLECI
+Aplicația detectează că ai început din nou să conduci.
+
+3. LOCUL TĂU SE ELIBEREAZĂ
+La momentul potrivit, locul tău este publicat pentru șoferii din apropiere.
+
+PARCAREA TA, FĂRĂ EFORT
+• Unde ai lăsat mașina și de cât timp stă acolo.
+• Toate mașinile tale într-un singur garaj, fiecare cu dimensiunea, culoarea și Bluetooth-ul ei.
+• Istoricul parcărilor tale, cu câte a detectat aplicația și câte locuri ai cedat.
+• Locul nu este exact? Mută-ți parcarea pe hartă și salveaz-o din nou.
+
+LOCURI DE PARCARE ÎN TIMP REAL
+• Vezi pe hartă locurile pe care alți șoferi tocmai le-au eliberat.
+• Când s-a eliberat fiecare: un loc de acum două minute nu e totuna cu unul de acum douăzeci.
+• Câți șoferi se îndreaptă deja spre acel loc.
+• Dacă mașina ta încape: Paparcar compară spațiul cu dimensiunea mașinii tale.
+• Vezi un loc liber când treci pe lângă el? Raportează-l din două atingeri, pentru următorul șofer.
+
+DETECTARE AUTOMATĂ, PE DOUĂ CĂI
+
+• BLUETOOTH
+Dacă mașina ta se conectează la telefon, deconectarea ajută la detectarea faptului că ai terminat de parcat. O metodă precisă și eficientă.
+
+• DETECTARE ASISTATĂ
+Dacă mașina ta nu are Bluetooth, Paparcar folosește mișcarea și locația pentru a detecta când ai început să conduci și unde te-ai oprit.
+
+Paparcar nu vrea să ghicească. Când nu este sigur de ce s-a întâmplat, te întreabă înainte de a publica un loc.
+
+CONFIDENȚIALITATE
+• Zone private: marchează locuri precum casa ta, iar Paparcar nu va publica acolo niciun loc atunci când pleci.
+• Numărul tău de înmatriculare nu îți părăsește niciodată telefonul.
+• Marca și modelul mașinii tale sunt private: apar la locul pe care îl eliberezi doar dacă activezi tu asta.
+• Locația ta nu este niciodată vândută și nici folosită pentru publicitate.
+• Îți poți șterge contul și datele din Setări sau de pe web.
+• Fără reclame.
+
+LOCAȚIA ÎN FUNDAL
+
+Paparcar folosește date de locație chiar și atunci când aplicația este închisă sau nu o folosești, pentru a detecta unde parchezi și pentru a elibera locul tău când pleci.
+
+Detectarea automată are nevoie de această permisiune. Fără ea, Paparcar continuă să funcționeze, dar va trebui să marchezi și să eliberezi parcările manual.
+
+Politica de confidențialitate:
+https://paparcar.com/privacy-policy

@@ -1,0 +1,209 @@
+<!doctype html>
+<meta charset="utf-8">
+<style>
+  @font-face{font-family:Jakarta;src:url("fonts/plus_jakarta_sans_variable.ttf");font-weight:200 800}
+  html,body{margin:0;padding:0;background:#000}
+  .frame{width:1080px;height:1920px;position:relative;overflow:hidden;
+         background:radial-gradient(130% 100% at 50% -10%, #15251F 0%, #0D1117 52%, #080B0A 100%)}
+  .glow{position:absolute;inset:0;
+        background:radial-gradient(60% 34% at 50% 12%, rgba(37,244,140,.16) 0%, rgba(37,244,140,0) 70%)}
+  .copy{position:absolute;left:70px;right:70px;top:84px;text-align:center}
+  .h{font-family:Jakarta;font-weight:800;font-size:66px;color:#F2F5F4;
+     letter-spacing:-1.5px;line-height:1.08;margin:0}
+  .h b{color:#25F48C;font-weight:800}
+  .s{font-family:Jakarta;font-weight:500;font-size:31px;color:#A9B4B1;
+     line-height:1.35;margin:22px auto 0;max-width:840px}
+  .shotwrap{position:absolute;left:50%;transform:translateX(-50%);bottom:-6px;
+            width:704px;border-radius:46px 46px 0 0;overflow:hidden;
+            box-shadow:0 -8px 90px rgba(0,0,0,.65), 0 0 0 2px rgba(37,244,140,.16)}
+  .shotwrap img{display:block;width:704px}
+</style>
+<div class="frame">
+  <div class="glow"></div>
+  <div class="copy"><h1 class="h" id="h"></h1><div class="s" id="s"></div></div>
+  <div class="shotwrap"><img id="img" src=""></div>
+</div>
+<script>
+  // Order in the Play carousel: 1→2→4→3→5→6 (script in PLAN-OPTIMIZACION.md § 15-17).
+  // Render with ?n=1..8&lang=en|es|it|pt|fr|de|nl|pl|ro (defaults: n=1, lang=en).
+  // Vocabulary is COPY-SPOT-IS-NOT-A-PARKING-001: the community's spot vs YOUR parking —
+  // posto/parcheggio · lugar/estacionamento · place/stationnement · Platz/Parkplatz ·
+  // plek/parkeerplaats · miejsce/parkowanie · loc/parcare. FR uses vous; the rest tutean.
+  const SHOTS = {
+    1:"screenshots/raw/shot1.png", 2:"screenshots/raw/shot2.png",
+    3:"screenshots/raw/shot4.png", 4:"screenshots/raw/shot3.png",
+    5:"screenshots/raw/shot5.png", 6:"screenshots/raw/shot7.png",
+    7:"screenshots/raw/shot8.png", 8:"screenshots/raw/shot6.png",
+  };
+  const T = {
+    en:{
+      1:{h:'Where did I park? <b>Paparcar remembers</b>',
+         s:'Your car, the street and the minute — saved automatically when you park.'},
+      2:{h:'It saves <b>itself</b>',
+         s:'No opening the app. No dropping a pin. No typing an address.'},
+      3:{h:'Spots others <b>just left</b>',
+         s:'On the map, in real time.'},
+      4:{h:'Your spot can help the <b>next driver</b>',
+         s:'When you drive away, Paparcar can publish the space you freed.'},
+      5:{h:'Not every spot <b>fits every car</b>',
+         s:'Paparcar checks the size before you drive there.'},
+      6:{h:'All your cars, <b>one garage</b>',
+         s:'Cars, vans, motorbikes — each watched its own way.'},
+      7:{h:'Every parking, <b>remembered</b>',
+         s:'Where, when and how long — for every vehicle.'},
+      8:{h:'You decide what <b>Paparcar shares</b>',
+         s:'Your license plate never leaves your phone.'},
+    },
+    es:{
+      1:{h:'¿Dónde aparqué? <b>Paparcar lo recuerda</b>',
+         s:'Tu coche, la calle y el minuto: guardados automáticamente al aparcar.'},
+      2:{h:'Se guarda <b>solo</b>',
+         s:'Sin abrir la app. Sin poner un pin. Sin escribir una dirección.'},
+      3:{h:'Plazas que otros <b>acaban de dejar</b>',
+         s:'En el mapa, en tiempo real.'},
+      4:{h:'Tu plaza puede ayudar al <b>siguiente conductor</b>',
+         s:'Cuando te vas, Paparcar puede publicar la plaza que dejas libre.'},
+      5:{h:'No toda plaza <b>vale para todo coche</b>',
+         s:'Paparcar comprueba el tamaño antes de que vayas.'},
+      6:{h:'Todos tus coches, <b>un garaje</b>',
+         s:'Coches, furgonetas, motos: cada uno vigilado a su manera.'},
+      7:{h:'Cada aparcamiento, <b>recordado</b>',
+         s:'Dónde, cuándo y cuánto tiempo — de cada vehículo.'},
+      8:{h:'Tú decides qué <b>comparte Paparcar</b>',
+         s:'Tu matrícula nunca sale de tu móvil.'},
+    },
+    it:{
+      1:{h:'Dove ho parcheggiato? <b>Paparcar se lo ricorda</b>',
+         s:'La tua auto, la via e il minuto: salvati in automatico quando parcheggi.'},
+      2:{h:'Si salva <b>da solo</b>',
+         s:'Senza aprire l\'app. Senza mettere un segnaposto. Senza scrivere un indirizzo.'},
+      3:{h:'Posti che altri hanno <b>appena liberato</b>',
+         s:'Sulla mappa, in tempo reale.'},
+      4:{h:'Il tuo posto può aiutare il <b>prossimo</b>',
+         s:'Quando riparti, Paparcar può pubblicare il posto che lasci libero.'},
+      5:{h:'Non ogni posto <b>va bene per ogni auto</b>',
+         s:'Paparcar controlla lo spazio prima che tu ci vada.'},
+      6:{h:'Tutte le tue auto, <b>un solo garage</b>',
+         s:'Auto, furgoni, moto: ognuno sorvegliato a modo suo.'},
+      7:{h:'Ogni parcheggio, <b>ricordato</b>',
+         s:'Dove, quando e per quanto tempo — per ogni veicolo.'},
+      8:{h:'Decidi tu cosa <b>condivide Paparcar</b>',
+         s:'La tua targa non esce mai dal tuo telefono.'},
+    },
+    pt:{
+      1:{h:'Onde estacionei? <b>O Paparcar lembra-se</b>',
+         s:'O teu carro, a rua e o minuto: guardados automaticamente ao estacionar.'},
+      2:{h:'Guarda-se <b>sozinho</b>',
+         s:'Sem abrir a aplicação. Sem colocar um pino. Sem escrever uma morada.'},
+      3:{h:'Lugares que outros <b>acabaram de deixar</b>',
+         s:'No mapa, em tempo real.'},
+      4:{h:'O teu lugar pode ajudar o <b>condutor seguinte</b>',
+         s:'Quando sais, o Paparcar pode publicar o lugar que deixas livre.'},
+      5:{h:'Nem todo o lugar <b>serve para todos os carros</b>',
+         s:'O Paparcar verifica o tamanho antes de ires até lá.'},
+      6:{h:'Todos os teus carros, <b>uma garagem</b>',
+         s:'Carros, furgonetas, motas: cada um vigiado à sua maneira.'},
+      7:{h:'Cada estacionamento, <b>lembrado</b>',
+         s:'Onde, quando e por quanto tempo — para cada veículo.'},
+      8:{h:'Tu decides o que <b>o Paparcar partilha</b>',
+         s:'A tua matrícula nunca sai do teu telemóvel.'},
+    },
+    fr:{
+      1:{h:'Où me suis-je garé ? <b>Paparcar s\'en souvient</b>',
+         s:'Votre voiture, la rue et la minute — le tout enregistré automatiquement quand vous vous garez.'},
+      2:{h:'Il s\'enregistre <b>tout seul</b>',
+         s:'Sans ouvrir l\'application. Sans poser d\'épingle. Sans saisir d\'adresse.'},
+      3:{h:'Des places <b>tout juste libérées</b>',
+         s:'Sur la carte, en temps réel.'},
+      4:{h:'Votre place peut aider le <b>conducteur suivant</b>',
+         s:'Quand vous repartez, Paparcar peut publier la place que vous libérez.'},
+      5:{h:'Une place ne va pas à <b>toutes les voitures</b>',
+         s:'Paparcar vérifie la taille avant que vous y alliez.'},
+      6:{h:'Toutes vos voitures, <b>un seul garage</b>',
+         s:'Voitures, utilitaires, motos — chacun surveillé à sa façon.'},
+      7:{h:'Chaque stationnement, <b>en mémoire</b>',
+         s:'Où, quand et combien de temps — pour chaque véhicule.'},
+      8:{h:'Vous décidez ce que <b>Paparcar partage</b>',
+         s:'Votre plaque d\'immatriculation ne quitte jamais votre téléphone.'},
+    },
+    de:{
+      1:{h:'Wo habe ich geparkt? <b>Paparcar merkt es sich</b>',
+         s:'Dein Auto, die Straße und die Minute — automatisch gespeichert, wenn du parkst.'},
+      2:{h:'Speichert sich <b>von selbst</b>',
+         s:'Ohne die App zu öffnen. Ohne Stecknadel. Ohne Adresse einzutippen.'},
+      3:{h:'Gerade frei gewordene <b>Plätze</b>',
+         s:'Auf der Karte, in Echtzeit.'},
+      4:{h:'Dein Platz kann dem <b>Nächsten helfen</b>',
+         s:'Wenn du losfährst, kann Paparcar den Platz veröffentlichen, den du frei machst.'},
+      5:{h:'Nicht jeder Platz <b>passt zu jedem Auto</b>',
+         s:'Paparcar prüft die Größe, bevor du hinfährst.'},
+      6:{h:'Alle deine Autos, <b>eine Garage</b>',
+         s:'Autos, Transporter, Motorräder — jedes auf seine Art im Blick.'},
+      7:{h:'Jeder Parkvorgang, <b>gespeichert</b>',
+         s:'Wo, wann und wie lange — für jedes Fahrzeug.'},
+      8:{h:'Du entscheidest, was <b>Paparcar teilt</b>',
+         s:'Dein Kennzeichen verlässt niemals dein Handy.'},
+    },
+    nl:{
+      1:{h:'Waar heb ik geparkeerd? <b>Paparcar onthoudt het</b>',
+         s:'Je auto, de straat en de minuut — automatisch opgeslagen als je parkeert.'},
+      2:{h:'Wordt <b>vanzelf</b> opgeslagen',
+         s:'Zonder de app te openen. Zonder speld. Zonder adres in te typen.'},
+      3:{h:'Plekken die anderen net <b>hebben vrijgemaakt</b>',
+         s:'Op de kaart, in realtime.'},
+      4:{h:'Jouw plek kan de <b>volgende helpen</b>',
+         s:'Als je wegrijdt, kan Paparcar de plek publiceren die je achterlaat.'},
+      5:{h:'Niet elke plek <b>past bij elke auto</b>',
+         s:'Paparcar controleert de maat voordat je erheen rijdt.'},
+      6:{h:'Al je auto\'s, <b>één garage</b>',
+         s:'Auto\'s, busjes, motoren — elk op zijn eigen manier bewaakt.'},
+      7:{h:'Elke parkeerbeurt, <b>onthouden</b>',
+         s:'Waar, wanneer en hoe lang — voor elk voertuig.'},
+      8:{h:'Jij bepaalt wat <b>Paparcar deelt</b>',
+         s:'Je kenteken verlaat nooit je telefoon.'},
+    },
+    pl:{
+      1:{h:'Gdzie zaparkowałem? <b>Paparcar pamięta</b>',
+         s:'Twoje auto, ulica i minuta — zapisane automatycznie, gdy parkujesz.'},
+      2:{h:'Zapisuje się <b>samo</b>',
+         s:'Bez otwierania aplikacji. Bez pinezki. Bez wpisywania adresu.'},
+      3:{h:'Miejsca, które inni <b>właśnie zwolnili</b>',
+         s:'Na mapie, w czasie rzeczywistym.'},
+      4:{h:'Twoje miejsce może pomóc <b>kolejnemu kierowcy</b>',
+         s:'Gdy odjeżdżasz, Paparcar może opublikować zwolnione przez Ciebie miejsce.'},
+      5:{h:'Nie każde miejsce <b>pasuje do każdego auta</b>',
+         s:'Paparcar sprawdza rozmiar, zanim tam pojedziesz.'},
+      6:{h:'Wszystkie Twoje auta, <b>jeden garaż</b>',
+         s:'Samochody, furgonetki, motocykle — każde pilnowane na swój sposób.'},
+      7:{h:'Każde parkowanie, <b>zapamiętane</b>',
+         s:'Gdzie, kiedy i jak długo — dla każdego pojazdu.'},
+      8:{h:'Ty decydujesz, co <b>udostępnia Paparcar</b>',
+         s:'Twoja tablica rejestracyjna nigdy nie opuszcza telefonu.'},
+    },
+    ro:{
+      1:{h:'Unde am parcat? <b>Paparcar ține minte</b>',
+         s:'Mașina ta, strada și minutul — salvate automat când parchezi.'},
+      2:{h:'Se salvează <b>singur</b>',
+         s:'Fără să deschizi aplicația. Fără indicator. Fără să scrii o adresă.'},
+      3:{h:'Locuri pe care alții <b>tocmai le-au eliberat</b>',
+         s:'Pe hartă, în timp real.'},
+      4:{h:'Locul tău poate ajuta <b>următorul șofer</b>',
+         s:'Când pleci, Paparcar poate publica locul pe care îl eliberezi.'},
+      5:{h:'Nu orice loc <b>se potrivește oricărei mașini</b>',
+         s:'Paparcar verifică dimensiunea înainte să mergi acolo.'},
+      6:{h:'Toate mașinile tale, <b>un singur garaj</b>',
+         s:'Mașini, furgonete, motociclete — fiecare urmărită în felul ei.'},
+      7:{h:'Fiecare parcare, <b>ținută minte</b>',
+         s:'Unde, când și cât timp — pentru fiecare vehicul.'},
+      8:{h:'Tu decizi ce <b>partajează Paparcar</b>',
+         s:'Numărul tău de înmatriculare nu îți părăsește niciodată telefonul.'},
+    },
+  };
+  const q = new URLSearchParams(location.search);
+  const n = q.get("n") || "1";
+  const lang = q.get("lang") || "en";
+  const f = T[lang][n];
+  document.getElementById("h").innerHTML = f.h;
+  document.getElementById("s").innerHTML = f.s;
+  document.getElementById("img").src = SHOTS[n];
+</script>

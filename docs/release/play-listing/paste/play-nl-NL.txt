@@ -1,0 +1,68 @@
+FICHA DE PLAY STORE — nl-NL
+============================================================
+
+--- 1. NOMBRE DE LA APLICACION (28/30) ---
+Paparcar: waar staat je auto
+
+--- 2. DESCRIPCION BREVE (79/80) ---
+Waar heb je geparkeerd? Paparcar onthoudt het. Jouw plek gaat naar de volgende.
+
+--- 3. DESCRIPCION COMPLETA (3120/4000) ---
+Waar heb je geparkeerd?
+
+Paparcar onthoudt het voor je.
+
+Parkeer, stap uit en ga verder met je dag. Paparcar slaat automatisch op waar je de auto hebt achtergelaten: zonder de app te openen, zonder een speld te zetten en zonder een adres in te typen. Als je terugkomt, weet je waar hij staat en hoe lang hij er al staat.
+
+En Paparcar doet nog iets. Als je wegrijdt, kan de plek die je achterlaat op de kaart verschijnen voor de bestuurders in de buurt. En jij ziet de plekken die anderen net hebben vrijgemaakt. Hoe meer bestuurders Paparcar in jouw stad gebruiken, hoe meer plekken er op de kaart kunnen verschijnen.
+
+ZO WERKT HET
+
+1. PARKEREN
+Paparcar merkt dat je klaar bent met parkeren en slaat de plek op. Je kunt hem ook met één tik met de hand markeren.
+
+2. WEGRIJDEN
+De app merkt dat je weer rijdt.
+
+3. JOUW PLEK KOMT VRIJ
+Op het juiste moment wordt jouw plek gepubliceerd voor de bestuurders in de buurt.
+
+JOUW PARKEERPLAATS, MOEITELOOS
+• Waar je de auto hebt achtergelaten en hoe lang hij er al staat.
+• Al je auto's in één garage, elk met een eigen formaat, kleur en Bluetooth.
+• Je parkeergeschiedenis, met hoeveel de app er heeft gedetecteerd en hoeveel plekken je hebt doorgegeven.
+• Klopt de plek niet helemaal? Verplaats je parkeerplaats op de kaart en sla hem opnieuw op.
+
+PARKEERPLEKKEN IN REALTIME
+• Zie op de kaart de plekken die andere bestuurders net hebben vrijgemaakt.
+• Wanneer elke plek vrijkwam: een plek van twee minuten geleden is niet hetzelfde als een van twintig minuten geleden.
+• Hoeveel bestuurders al onderweg zijn naar die plek.
+• Of jouw auto past: Paparcar vergelijkt de ruimte met het formaat van die van jou.
+• Zie je een vrije plek als je langsloopt? Meld hem met twee tikken voor de volgende bestuurder.
+
+AUTOMATISCHE DETECTIE, OP TWEE MANIEREN
+
+• BLUETOOTH
+Als je auto verbinding maakt met je telefoon, helpt het verbreken ervan om te detecteren dat je klaar bent met parkeren. Een nauwkeurige en efficiënte methode.
+
+• ONDERSTEUNDE DETECTIE
+Heeft je auto geen Bluetooth? Dan gebruikt Paparcar beweging en locatie om te detecteren wanneer je bent gaan rijden en waar je bent gestopt.
+
+Paparcar wil niet gokken. Als het niet zeker weet wat er is gebeurd, vraagt het je dat voordat er een plek wordt gepubliceerd.
+
+PRIVACY
+• Privézones: markeer plekken zoals je huis, dan publiceert Paparcar daar geen plek als je wegrijdt.
+• Je kenteken verlaat nooit je telefoon.
+• Het merk en model van je auto zijn privé: die verschijnen alleen op de plek die je vrijmaakt als jij dat aanzet.
+• Je locatie wordt nooit verkocht of gebruikt voor advertenties.
+• Je kunt je account en de bijbehorende gegevens verwijderen via Instellingen of via het web.
+• Geen advertenties.
+
+LOCATIE OP DE ACHTERGROND
+
+Paparcar gebruikt locatiegegevens ook wanneer de app gesloten is of je hem niet gebruikt, om te detecteren waar je parkeert en om jouw plek vrij te geven als je wegrijdt.
+
+Automatische detectie heeft deze toestemming nodig. Zonder die toestemming blijft Paparcar werken, maar moet je je parkeerplaatsen handmatig markeren en vrijgeven.
+
+Privacybeleid:
+https://paparcar.com/privacy-policy

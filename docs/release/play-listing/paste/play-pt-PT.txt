@@ -1,0 +1,68 @@
+FICHA DE PLAY STORE — pt-PT
+============================================================
+
+--- 1. NOMBRE DE LA APLICACION (27/30) ---
+Paparcar: onde estacionaste
+
+--- 2. DESCRIPCION BREVE (78/80) ---
+Onde estacionaste? O Paparcar lembra-se por ti. O teu lugar passa ao seguinte.
+
+--- 3. DESCRIPCION COMPLETA (2920/4000) ---
+Onde estacionaste?
+
+O Paparcar lembra-se por ti.
+
+Estaciona, sai do carro e segue com o teu dia. O Paparcar guarda automaticamente onde deixaste o carro: sem abrir a aplicação, sem colocar um pino e sem escrever uma morada. Quando voltares, saberás onde está e há quanto tempo ali se encontra.
+
+E o Paparcar faz mais uma coisa. Quando sais, o lugar que deixas pode aparecer no mapa para os condutores que estão por perto. E tu podes ver os lugares que outros acabaram de libertar. Quantos mais condutores usarem o Paparcar na tua cidade, mais lugares poderão aparecer no mapa.
+
+COMO FUNCIONA
+
+1. ESTACIONA
+O Paparcar deteta que acabaste de estacionar e guarda o sítio. Também podes marcá-lo à mão com um toque.
+
+2. SAIS
+A aplicação deteta que voltaste a conduzir.
+
+3. O TEU LUGAR FICA LIVRE
+Quando é altura, o teu lugar é publicado para os condutores que estão por perto.
+
+O TEU ESTACIONAMENTO, SEM ESFORÇO
+• Onde deixaste o carro e há quanto tempo ali está.
+• Todos os teus carros numa só garagem, cada um com o seu tamanho, a sua cor e o seu Bluetooth.
+• O teu histórico de estacionamentos, com quantos a aplicação detetou e quantos lugares cedeste.
+• O sítio não está certo? Move o teu estacionamento no mapa e guarda-o de novo.
+
+LUGARES DE ESTACIONAMENTO EM TEMPO REAL
+• Vê no mapa os lugares que outros condutores acabaram de libertar.
+• Quando cada um ficou livre: um lugar de há dois minutos não é o mesmo que um de há vinte.
+• Quantos condutores já vão a caminho desse lugar.
+• Se o teu carro cabe: o Paparcar compara o espaço com o tamanho do teu.
+• Vês um lugar livre ao passar? Comunica-o em dois toques para o condutor seguinte.
+
+DETEÇÃO AUTOMÁTICA, POR DUAS VIAS
+
+• BLUETOOTH
+Se o teu carro se liga ao telemóvel, a desconexão ajuda a detetar que acabaste de estacionar. É um método preciso e eficiente.
+
+• DETEÇÃO ASSISTIDA
+Se o teu carro não tem Bluetooth, o Paparcar usa o movimento e a localização para detetar quando começaste a conduzir e onde paraste.
+
+O Paparcar não quer adivinhar. Quando não tem a certeza do que aconteceu, pergunta-te antes de publicar um lugar.
+
+PRIVACIDADE
+• Zonas privadas: marca sítios como a tua casa e o Paparcar não publicará ali nenhum lugar quando saíres.
+• A tua matrícula nunca sai do teu telemóvel.
+• A marca e o modelo do teu carro são privados: só aparecem no lugar que libertas se tu o ativares.
+• A tua localização não é vendida nem utilizada para publicidade.
+• Podes eliminar a tua conta e os seus dados nas Definições ou na web.
+• Sem anúncios.
+
+LOCALIZAÇÃO EM SEGUNDO PLANO
+
+O Paparcar utiliza dados de localização mesmo quando a aplicação está fechada ou não a estás a utilizar, para detetar onde estacionas e libertar o teu lugar quando sais.
+
+A deteção automática precisa desta permissão. Sem ela, o Paparcar continua a funcionar, mas terás de marcar e libertar os estacionamentos manualmente.
+
+Política de privacidade:
+https://paparcar.com/privacy-policy

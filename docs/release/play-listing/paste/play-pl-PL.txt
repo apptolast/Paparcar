@@ -1,0 +1,68 @@
+FICHA DE PLAY STORE — pl-PL
+============================================================
+
+--- 1. NOMBRE DE LA APLICACION (28/30) ---
+Paparcar: gdzie zaparkowałeś
+
+--- 2. DESCRIPCION BREVE (76/80) ---
+Gdzie zaparkowałeś? Paparcar to zapamięta. Twoje miejsce trafi do kolejnego.
+
+--- 3. DESCRIPCION COMPLETA (3028/4000) ---
+Gdzie zaparkowałeś?
+
+Paparcar zapamięta to za Ciebie.
+
+Zaparkuj, wysiądź z auta i zajmij się swoimi sprawami. Paparcar automatycznie zapisuje, gdzie zostawiłeś samochód: bez otwierania aplikacji, bez wbijania pinezki i bez wpisywania adresu. Kiedy wrócisz, będziesz wiedzieć, gdzie stoi i jak długo już tam stoi.
+
+Paparcar robi jeszcze coś. Kiedy odjeżdżasz, zwolnione przez Ciebie miejsce może pojawić się na mapie dla kierowców w pobliżu. A Ty widzisz miejsca, które inni właśnie zwolnili. Im więcej kierowców korzysta z Paparcara w Twoim mieście, tym więcej miejsc może pojawić się na mapie.
+
+JAK TO DZIAŁA
+
+1. PARKUJESZ
+Paparcar wykrywa, że skończyłeś parkować, i zapisuje miejsce. Możesz też oznaczyć je ręcznie jednym dotknięciem.
+
+2. ODJEŻDŻASZ
+Aplikacja wykrywa, że znów prowadzisz.
+
+3. TWOJE MIEJSCE SIĘ ZWALNIA
+W odpowiednim momencie Twoje miejsce zostaje opublikowane dla kierowców w pobliżu.
+
+TWOJE PARKOWANIE, BEZ WYSIŁKU
+• Gdzie zostawiłeś samochód i jak długo już tam stoi.
+• Wszystkie Twoje auta w jednym garażu, każde z własnym rozmiarem, kolorem i Bluetoothem.
+• Historia Twoich parkowań, wraz z liczbą wykrytych przez aplikację i liczbą miejsc, które przekazałeś dalej.
+• Miejsce nie jest dokładne? Przesuń swoje parkowanie na mapie i zapisz je ponownie.
+
+MIEJSCA PARKINGOWE W CZASIE RZECZYWISTYM
+• Zobacz na mapie miejsca, które inni kierowcy właśnie zwolnili.
+• Kiedy każde z nich się zwolniło: miejsce sprzed dwóch minut to nie to samo co sprzed dwudziestu.
+• Ilu kierowców już jedzie w stronę tego miejsca.
+• Czy Twoje auto się zmieści: Paparcar porównuje lukę z rozmiarem Twojego samochodu.
+• Widzisz wolne miejsce, przechodząc obok? Zgłoś je dwoma dotknięciami dla następnego kierowcy.
+
+AUTOMATYCZNE WYKRYWANIE NA DWA SPOSOBY
+
+• BLUETOOTH
+Jeśli Twoje auto łączy się z telefonem, rozłączenie pomaga wykryć, że skończyłeś parkować. To metoda precyzyjna i oszczędna.
+
+• WYKRYWANIE WSPOMAGANE
+Jeśli Twoje auto nie ma Bluetootha, Paparcar korzysta z ruchu i lokalizacji, aby wykryć, kiedy zacząłeś jechać i gdzie się zatrzymałeś.
+
+Paparcar nie chce zgadywać. Kiedy nie ma pewności, co się wydarzyło, zapyta Cię, zanim opublikuje miejsce.
+
+PRYWATNOŚĆ
+• Strefy prywatne: oznacz miejsca takie jak Twój dom, a Paparcar nie opublikuje tam żadnego miejsca, gdy odjedziesz.
+• Twoja tablica rejestracyjna nigdy nie opuszcza telefonu.
+• Marka i model Twojego auta są prywatne: pojawiają się przy zwolnionym miejscu tylko wtedy, gdy sam to włączysz.
+• Twoja lokalizacja nigdy nie jest sprzedawana ani wykorzystywana do reklam.
+• Możesz usunąć konto i jego dane w Ustawieniach lub przez stronę internetową.
+• Bez reklam.
+
+LOKALIZACJA W TLE
+
+Paparcar korzysta z danych o lokalizacji także wtedy, gdy aplikacja jest zamknięta lub z niej nie korzystasz, aby wykryć, gdzie parkujesz, i zwolnić Twoje miejsce, gdy odjeżdżasz.
+
+Automatyczne wykrywanie potrzebuje tego uprawnienia. Bez niego Paparcar nadal działa, ale parkowania trzeba oznaczać i zwalniać ręcznie.
+
+Polityka prywatności:
+https://paparcar.com/privacy-policy

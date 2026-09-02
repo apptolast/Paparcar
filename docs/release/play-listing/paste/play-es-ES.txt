@@ -1,0 +1,68 @@
+FICHA DE PLAY STORE — es-ES
+============================================================
+
+--- 1. NOMBRE DE LA APLICACION (25/30) ---
+Paparcar: dónde aparcaste
+
+--- 2. DESCRIPCION BREVE (76/80) ---
+¿Dónde aparcaste? Paparcar lo recuerda por ti. Y tu plaza pasa al siguiente.
+
+--- 3. DESCRIPCION COMPLETA (2853/4000) ---
+¿Dónde aparcaste?
+
+Paparcar lo recuerda por ti.
+
+Aparca, bájate del coche y sigue con tu día. Paparcar guarda dónde has dejado el coche automáticamente: sin abrir la app, sin poner un pin y sin escribir una dirección. Cuando vuelvas, sabrás dónde está y cuánto tiempo lleva allí.
+
+Y Paparcar hace algo más. Cuando te vas, la plaza que dejas puede publicarse en el mapa para los conductores que están cerca. Y tú puedes ver las plazas que otros acaban de liberar. Cuantos más conductores usen Paparcar en tu ciudad, más plazas podrán aparecer en el mapa.
+
+CÓMO FUNCIONA
+
+1. APARCA
+Paparcar detecta que has terminado de aparcar y guarda el sitio. También puedes marcarlo a mano con un toque.
+
+2. TE VAS
+La app detecta que vuelves a conducir.
+
+3. TU PLAZA SE LIBERA
+Cuando corresponde, tu plaza se publica para los conductores que están cerca.
+
+TU APARCAMIENTO, SIN ESFUERZO
+• Dónde dejaste el coche y cuánto tiempo lleva allí.
+• Todos tus coches en un mismo garaje, cada uno con su tamaño, su color y su Bluetooth.
+• Tu historial de aparcamientos, con cuántos detectó la app y cuántas plazas has cedido.
+• ¿El sitio no es exacto? Mueve tu aparcamiento en el mapa y guárdalo de nuevo.
+
+PLAZAS DE APARCAMIENTO EN TIEMPO REAL
+• Mira en el mapa las plazas que otros conductores acaban de liberar.
+• Cuándo se liberó cada una: no es lo mismo una de hace dos minutos que una de hace veinte.
+• Cuántos conductores van ya hacia esa plaza.
+• Si tu coche cabe: Paparcar compara el hueco con el tamaño del tuyo.
+• ¿Ves una plaza libre al pasar? Avísala en dos toques para el siguiente conductor.
+
+DETECCIÓN AUTOMÁTICA, POR DOS VÍAS
+
+• BLUETOOTH
+Si tu coche se conecta al móvil, la desconexión ayuda a detectar que has terminado de aparcar. Es un método preciso y eficiente.
+
+• DETECCIÓN ASISTIDA
+Si tu coche no tiene Bluetooth, Paparcar usa el movimiento y la ubicación para detectar cuándo has empezado a conducir y dónde te has detenido.
+
+Paparcar no quiere adivinar. Cuando no está seguro de lo que ha ocurrido, te pregunta antes de publicar una plaza.
+
+PRIVACIDAD
+• Zonas privadas: marca lugares como tu casa y Paparcar no publicará allí una plaza cuando te vayas.
+• Tu matrícula no sale nunca de tu móvil.
+• La marca y el modelo de tu coche son privados: sólo aparecen en la plaza que liberas si tú lo activas.
+• Tu ubicación no se vende ni se utiliza para publicidad.
+• Puedes eliminar tu cuenta y sus datos desde Ajustes o desde la web.
+• Sin anuncios.
+
+UBICACIÓN EN SEGUNDO PLANO
+
+Paparcar utiliza datos de ubicación incluso cuando la aplicación está cerrada o no la estás utilizando, para detectar dónde aparcas y liberar tu plaza cuando te vas.
+
+La detección automática necesita este permiso. Sin él, Paparcar sigue funcionando, pero tendrás que marcar y liberar los aparcamientos manualmente.
+
+Política de privacidad:
+https://paparcar.com/privacy-policy
