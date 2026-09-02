@@ -1,6 +1,32 @@
 # DET-BLIND-AFTER-LOST-PARK-001 · Perder un aparcamiento deja la app CIEGA para el viaje siguiente
 
 **Estado:** 🔵 Abierto, sin código · detectado al diagnosticar el field 15-08
+· **auditado el 03-09 contra master: SIGUE VIVO, y ya se sabe por qué exactamente** (ver abajo)
+
+> ## Auditoría 03-09 — ⛔ el honest close NO lo cubre, y la razón es una línea
+>
+> Hipótesis natural al releerlo hoy: `DET-HONEST-CLOSE-001` llegó DESPUÉS de este ticket y su KDoc
+> promete literalmente lo que aquí se pide — *«registers a fresh geofence at the new spot → the next
+> departure always has a nominator, so the chain never breaks (the whole point of leaving a zone
+> instead of nothing)»*. **Refutada.** En `CoordinatorDetectionService.maybeRunHonestClose`:
+>
+> ```kotlin
+> val stalePin = ... getActiveSessionByVehicle(vehicleId)
+> // No active pin (or no fence to key the step baseline) → nothing to release, nothing to prove.
+> val staleGeofence = stalePin?.geofenceId ?: return
+> ```
+>
+> El honest close **exige un pin previo que liberar** — su trabajo es *«el coche se fue de SU pin»*.
+> El escenario de este ticket es el contrario: la sesión murió **sin dejar pin y sin haber ninguno
+> activo** (el anterior se liberó al salir), así que ni entra en la escalera. La app se queda sin
+> valla, sin sentry y con `EvaluateArEnterArmUseCase` devolviendo `NoSession`.
+>
+> Consecuencia para el diseño: la vía 1 del doc (*«dejar SIEMPRE algo vigilable»*) **no es aflojar el
+> requisito de egress de `saveUnattendedZone`**, sino decidir si el honest close puede correr sin pin
+> previo — y ahí su ancla no es «de dónde se fue el coche» sino «dónde estaba el móvil», que es una
+> afirmación mucho más débil. La vía 2 (armar por AR sin sesión, en modo PREGUNTAR) sigue siendo la
+> que respeta la doctrina, y sigue teniendo el riesgo de FP bus/taxi que el propio doc anota.
+> **Ninguna de las dos se decide sin el user: no es implementación, es una elección de producto.**
 
 ## Problema
 
