@@ -150,6 +150,26 @@ class FakeUserParkingRepository(
             ))
         }
 
+        // ── One honest-close AREA in the Seat León history ───────────────────
+        // The approximate variant is a state the timeline must render, so the device catalog
+        // carries one: its row reads "Near X", never the exact claim the session itself refused.
+        // 154 m is the 21-08 field figure; path/reliability are what `RunHonestCloseUseCase`
+        // really stamps on a zone save. [UI-APPROXIMATE-ZONE-IN-HISTORY-001]
+        add(UserParking(
+            id = "parking_leon_zone",
+            userId = "mock_user_001",
+            vehicleId = "mock_vehicle_001",
+            location = GpsPoint(36.5951, -6.2308, 12f, now - 4L * 86_400_000L, 0f),
+            isActive = false,
+            spotType = SpotType.AUTO_DETECTED,
+            detectionReliability = 0.5f,
+            detectionPath = "closed_approximate_zone",
+            publishedSpot = false,
+            endedAtMs = now - 4L * 86_400_000L + 2 * 3_600_000L,
+            zoneRadiusMeters = 154f,
+            address = AddressInfo("Calle Larga, 43", "Puerto de Santa María", "Cádiz", "España", "ES"),
+        ))
+
         // ── Honda CBR 600 (vehicle_003) — 12 sessions over 1 year ────────────
         val motoStreets = listOf(
             "Paseo de la Playa", "Calle Micaela Aramburu", "Plaza de las Galeras", "Ribera del Marisco",

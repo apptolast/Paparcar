@@ -1,7 +1,6 @@
 # UI-APPROXIMATE-ZONE-IN-HISTORY-001 · La card de Home y el historial siguen pintando un área como si fuera un pin
 
-**Estado:** 🔵 Abierto, sin código · follow-up deliberado de
-`UI-APPROXIMATE-PARKING-DRAWS-ITS-DOUBT-001`
+**Estado:** ✅ Done (2026-09-03) · ⏳ visto en device pendiente del próximo `/run`
 
 ## Problema
 
@@ -41,3 +40,35 @@ el campo. **No inventar un radio por defecto**: eso sería afirmar una duda que 
 - Sin strings nuevos si se puede reusar `home_peek_parking_approximate`; si hace falta uno, va a los
   9 locales.
 - La decisión sobre el local-only queda escrita, no implícita.
+
+## Cierre (2026-09-03)
+
+**Cero strings nuevos** — pero el reusado no fue el del criterio: `home_peek_parking_approximate` es
+una frase completa (causa+remedio) que no cabe en una card; el que encaja es
+**`location_approximate_near`** («Near %1$s»), la MISMA palabra que la app ya usa para ubicaciones
+prestadas del geocache — así «aproximado» suena igual en toda la app. Ya está en los 9 locales.
+Sin riesgo de «Near Near X»: ese prefijo hoy solo se aplica a la línea de ubicación EN VIVO, nunca
+a la dirección persistida de una sesión.
+
+**El barrido encontró una 4ª superficie** (el doc citaba 2): el header del peek plegado con el coche
+aparcado (`BrowsePeek`) también afirmaba el punto exacto, y no tiene `ApproximateZoneRow` debajo.
+
+| Superficie | Tratamiento |
+|---|---|
+| `HomeVehicleCard` (1 coche) | título «Near X» en vez de «Parked at X» + glifo de zona (`Adjust`) en vez del pin |
+| `HomeVehicleChip` (2+ coches) | línea «Near X · hace 2 h» + glifo de zona |
+| Historial (`SessionCardContent`) | título «Near X»; el fallback sin geocodificar queda llano («Parking» no afirma nada exacto que suavizar) |
+| `BrowsePeek` plegado | título «Near X» (sin fila de zona debajo, el título carga la duda) |
+| `ParkingPeek` / detalle de historial | **exentos** — ya llevan `ApproximateZoneRow` del ticket padre |
+
+- El read-model NO pierde el campo: card, chip, historial y peek reciben `UserParking` entero
+  (`isApproximate` ya existía en dominio).
+- **Decisión local-only, escrita**: `zoneRadiusMeters` sigue sin sincronizarse a Firestore. En un
+  móvil nuevo el historial descargado se lee como exacto y **es aceptable**: la zona sin refinar es
+  una duda MEDIDA por el device que la detectó; sincronizarla no añade remedio (el «edítalo» ya no
+  aplica a una sesión cerrada) y **no se inventa un radio por defecto** — sería afirmar una duda
+  que no consta.
+- Mock/galería en paridad: `FakeData.endedApproximateZone` (previews + galería la muestran en todas
+  las listas) y una sesión `closed_approximate_zone` en el catálogo de device (154 m, la cifra real
+  del campo 21-08; path y fiabilidad los que `RunHonestCloseUseCase` stampa de verdad).
+- Suite 2.143/0 · `assembleMockDebug` y `compileProdDebugKotlin` en verde.

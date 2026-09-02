@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Adjust
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material3.Icon
@@ -61,6 +62,7 @@ import paparcar.composeapp.generated.resources.home_det_monitoring
 import paparcar.composeapp.generated.resources.home_vehicle_chip_status_candidate
 import paparcar.composeapp.generated.resources.home_vehicle_chip_unmarked
 import paparcar.composeapp.generated.resources.home_vehicle_fallback_name
+import paparcar.composeapp.generated.resources.location_approximate_near
 
 /**
  * Compact vehicle chip in the Home vehicles LazyRow (2+ vehicles). A vertical card: an identity row
@@ -160,7 +162,9 @@ internal fun HomeVehicleChip(
                     }
                     session != null -> {
                         Icon(
-                            imageVector = Icons.Rounded.LocationOn,
+                            // An AREA wears the zone glyph, never the pin — the pin claims a point
+                            // the session refused to claim. [UI-APPROXIMATE-ZONE-IN-HISTORY-001]
+                            imageVector = if (session.isApproximate) Icons.Rounded.Adjust else Icons.Rounded.LocationOn,
                             contentDescription = null,
                             tint = accent,
                             modifier = Modifier.size(FOOT_ICON_DP.dp),
@@ -261,7 +265,9 @@ internal fun HomeVehicleCard(
                                 glyphSize = CARD_FOOT_ICON_DP.dp,
                             )
                             session != null -> Icon(
-                                imageVector = Icons.Rounded.LocationOn,
+                                // Same rule as the chip: an approximate session shows the zone
+                                // glyph, not the pin. [UI-APPROXIMATE-ZONE-IN-HISTORY-001]
+                                imageVector = if (session.isApproximate) Icons.Rounded.Adjust else Icons.Rounded.LocationOn,
                                 contentDescription = null,
                                 tint = accent,
                                 modifier = Modifier.size(CARD_FOOT_ICON_DP.dp),
@@ -329,21 +335,38 @@ private fun parkedName(session: UserParking): String? =
     session.placeInfo?.name?.takeIf { it.isNotBlank() }
         ?: session.address?.displayLine?.takeIf { it.isNotBlank() }
 
+/**
+ * [UI-APPROXIMATE-ZONE-IN-HISTORY-001] An approximate session (an AREA, not a point) says so at
+ * card level with the same word the app already uses for borrowed locations: "Near X". The full
+ * explanation (radius, cause, remedy) stays in the peek — a glanceable card only needs to stop
+ * CLAIMING exactness it does not have.
+ */
+@Composable
+private fun parkedPlaceLine(session: UserParking): String? {
+    val name = parkedName(session) ?: return null
+    return if (session.isApproximate) stringResource(Res.string.location_approximate_near, name) else name
+}
+
 /** Compact chip parking line: "address · 2 h ago" (max 2 lines), falling back to just the time. */
 @Composable
 private fun parkedAddressLine(session: UserParking): String {
     val time = relativeTimeText(session.location.timestamp)
-    val name = parkedName(session)
+    val name = parkedPlaceLine(session)
     return if (name != null) "$name · $time"
     else "${stringResource(Res.string.home_peek_parked_label)} · $time"
 }
 
-/** Single-card footer title: "Parked at {address}", or a plain "Parked" before enrichment. */
+/** Single-card footer title: "Parked at {address}" — or "Near {address}" for an approximate
+ *  session, or a plain "Parked" before enrichment. */
 @Composable
 private fun parkedTitle(session: UserParking): String {
     val name = parkedName(session)
-    return if (name != null) stringResource(Res.string.home_vehicle_card_parked_at, name)
-    else stringResource(Res.string.home_peek_parked_label)
+    return when {
+        name != null && session.isApproximate ->
+            stringResource(Res.string.location_approximate_near, name)
+        name != null -> stringResource(Res.string.home_vehicle_card_parked_at, name)
+        else -> stringResource(Res.string.home_peek_parked_label)
+    }
 }
 
 /** Single-card footer subline: "2 h ago · 180 m away", or just the time when position is unknown. */

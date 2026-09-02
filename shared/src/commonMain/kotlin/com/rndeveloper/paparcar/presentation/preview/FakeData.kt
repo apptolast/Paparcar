@@ -197,10 +197,25 @@ object FakeData {
         detectionPath = "bt",
         endedAtMs = now - 2 * 86_400_000L,
     )
+    // An honest close that saved an AREA, not a point — the history row must read "Near X" and
+    // never claim exactness the session refused to claim. 154 m is the 21-08 field figure, and the
+    // path/reliability are what `RunHonestCloseUseCase` really stamps on a zone save.
+    // [UI-APPROXIMATE-ZONE-IN-HISTORY-001]
+    private val endedApproximateZone = UserParking(
+        id = "s_zone",
+        location = gps(agoMs = 2 * 86_400_000L + 10_800_000L, lat = 40.409, lon = -3.692),
+        spotId = null, geofenceId = "geo_009", isActive = false,
+        address = addrStreet,
+        placeInfo = null,
+        detectionReliability = 0.5f,
+        detectionPath = "closed_approximate_zone",
+        endedAtMs = now - 2 * 86_400_000L - 10_800_000L,
+        zoneRadiusMeters = 154f,
+    )
 
     val allSessions =
-        listOf(activeSession, endedToday1, endedToday2, endedYesterday1, endedYesterday2, endedUngeocoded, endedOld)
-    val endedSessions = listOf(endedToday1, endedToday2, endedYesterday1, endedYesterday2, endedUngeocoded, endedOld)
+        listOf(activeSession, endedToday1, endedToday2, endedYesterday1, endedYesterday2, endedUngeocoded, endedOld, endedApproximateZone)
+    val endedSessions = listOf(endedToday1, endedToday2, endedYesterday1, endedYesterday2, endedUngeocoded, endedOld, endedApproximateZone)
     val onlyEndedSessions = endedSessions
 
     // ── Weekly chart ──────────────────────────────────────────────────────────

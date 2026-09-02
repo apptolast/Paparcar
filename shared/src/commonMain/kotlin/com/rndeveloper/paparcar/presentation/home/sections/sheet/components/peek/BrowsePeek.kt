@@ -48,6 +48,7 @@ import paparcar.composeapp.generated.resources.home_peek_vehicle_parked_label
 import paparcar.composeapp.generated.resources.home_peek_vehicle_status
 import paparcar.composeapp.generated.resources.home_vehicle_chip_status_candidate
 import paparcar.composeapp.generated.resources.home_vehicle_fallback_name
+import paparcar.composeapp.generated.resources.location_approximate_near
 import paparcar.composeapp.generated.resources.location_fallback_parking
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -150,11 +151,21 @@ internal fun BrowsePeek(
         } else {
             stringResource(Res.string.home_peek_car_parked_label)
         }
-        val title = peekTitle(
+        // [UI-APPROXIMATE-ZONE-IN-HISTORY-001] An approximate session reads "Near X" here too:
+        // this collapsed header has no ApproximateZoneRow below it (that lives in the parking
+        // peek), so the title itself must not claim a point the session refused to claim. The
+        // fallback stays plain — "Parking" names nothing exact to soften.
+        val resolvedTitle = peekTitle(
             placeName = parking.placeInfo?.name,
             addressLine = parking.address?.displayLine,
-            fallback = stringResource(Res.string.location_fallback_parking),
-        )
+            fallback = "",
+        ).takeIf { it.isNotBlank() }
+        val title = when {
+            resolvedTitle != null && parking.isApproximate ->
+                stringResource(Res.string.location_approximate_near, resolvedTitle)
+            resolvedTitle != null -> resolvedTitle
+            else -> stringResource(Res.string.location_fallback_parking)
+        }
         val distM = userGpsPoint?.let {
             distanceMeters(it.latitude, it.longitude, parking.location.latitude, parking.location.longitude)
         }

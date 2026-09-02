@@ -48,6 +48,7 @@ import kotlinx.datetime.TimeZone
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.history_view_map
+import paparcar.composeapp.generated.resources.location_approximate_near
 import paparcar.composeapp.generated.resources.location_fallback_parking
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Instant
@@ -158,10 +159,20 @@ private fun SessionCardContent(
     // One place decides how this app writes a wall clock. [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001]
     val timeStr = formatClockTime(session.location.timestamp)
     val activeRelativeTime = relativeTimeText(session.location.timestamp)
-    val primaryText = locationDisplayText(
+    // [UI-APPROXIMATE-ZONE-IN-HISTORY-001] A past session that was an AREA (zoneRadiusMeters) reads
+    // "Near X", not "X": the row must not claim the exactness the session itself refused to claim.
+    // Same word the live surfaces use for borrowed locations. The unresolved fallback stays plain —
+    // "Parking" names nothing exact to soften.
+    val resolvedLocation = locationDisplayText(
         placeInfo = session.placeInfo,
         address = session.address,
-    ) ?: stringResource(Res.string.location_fallback_parking)
+    )
+    val primaryText = when {
+        resolvedLocation != null && session.isApproximate ->
+            stringResource(Res.string.location_approximate_near, resolvedLocation)
+        resolvedLocation != null -> resolvedLocation
+        else -> stringResource(Res.string.location_fallback_parking)
+    }
     val secondaryText = if (isActive) activeRelativeTime
         else session.address?.city?.let { "$it · $timeStr" } ?: timeStr
 
