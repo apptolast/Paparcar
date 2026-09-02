@@ -79,6 +79,11 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
 
     override fun setGpsAccuracyDisclaimerSeen() = set(Keys.GPS_ACCURACY_DISCLAIMER_SEEN, true)
 
+    override val hasAcceptedLegalConsent: Boolean
+        get() = get(Keys.LEGAL_CONSENT_ACCEPTED, false)
+
+    override fun setLegalConsentAccepted() = set(Keys.LEGAL_CONSENT_ACCEPTED, true)
+
     override val hasRequestedLocationPermission: Boolean
         get() = get(Keys.LOCATION_PERMISSION_REQUESTED, false)
 
@@ -258,6 +263,7 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
     private object Keys {
         val ONBOARDING_COMPLETED            = booleanPreferencesKey("onboarding_completed")
         val GPS_ACCURACY_DISCLAIMER_SEEN    = booleanPreferencesKey("gps_accuracy_disclaimer_seen")
+        val LEGAL_CONSENT_ACCEPTED          = booleanPreferencesKey("legal_consent_accepted")
         val LOCATION_PERMISSION_REQUESTED   = booleanPreferencesKey("location_permission_requested")
         val AUTO_DETECT_PARKING     = booleanPreferencesKey("auto_detect_parking")
         val FIRST_PARK_NUDGE_COUNT  = intPreferencesKey("first_park_nudge_count")

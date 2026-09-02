@@ -154,6 +154,12 @@ class FakeAppPreferences(private val scenario: MockScenario? = null) : AppPrefer
     override val hasSeenGpsAccuracyDisclaimer: Boolean get() = _hasSeenGpsAccuracyDisclaimer.value
     override fun setGpsAccuracyDisclaimerSeen() { _hasSeenGpsAccuracyDisclaimer.value = true }
 
+    // False so the Dev Catalog's live auth screens exercise the consent checkbox, the state
+    // this ticket exists for. [AUTH-A-SIGN-IN-ASKS-FOR-CONSENT-FIRST-001]
+    private val _hasAcceptedLegalConsent = MutableStateFlow(false)
+    override val hasAcceptedLegalConsent: Boolean get() = _hasAcceptedLegalConsent.value
+    override fun setLegalConsentAccepted() { _hasAcceptedLegalConsent.value = true }
+
     private val _hasRequestedLocationPermission = MutableStateFlow(false)
     override val hasRequestedLocationPermission: Boolean get() = _hasRequestedLocationPermission.value
     override fun setLocationPermissionRequested() { _hasRequestedLocationPermission.value = true }

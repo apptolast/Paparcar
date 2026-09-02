@@ -14,6 +14,9 @@ data class AppState(
     /** Drives the root connectivity banner (Hidden/Offline/Restored). [CONN-BANNER-001] */
     val connectivityBanner: ConnectivityBannerPhase = ConnectivityBannerPhase.Hidden,
     val hasSeenGpsAccuracyDisclaimer: Boolean = false,
+    /** Device-local "I accept the Privacy Policy" tick — gates every sign-in CTA until given.
+     *  [AUTH-A-SIGN-IN-ASKS-FOR-CONSENT-FIRST-001] */
+    val hasAcceptedLegalConsent: Boolean = false,
 ) {
     /** True only when runtime permissions AND GPS are both ready. */
     val isFullyOperational: Boolean

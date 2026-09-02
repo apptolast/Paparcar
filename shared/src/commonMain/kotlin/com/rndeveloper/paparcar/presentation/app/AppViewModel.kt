@@ -52,6 +52,7 @@ class AppViewModel(
                         ConnectivityBannerPhase.Hidden
                     },
                     hasSeenGpsAccuracyDisclaimer = appPreferences.hasSeenGpsAccuracyDisclaimer,
+                    hasAcceptedLegalConsent = appPreferences.hasAcceptedLegalConsent,
                 )
             }
         }
@@ -142,6 +143,10 @@ class AppViewModel(
             AppIntent.DismissGpsAccuracyDisclaimer -> {
                 appPreferences.setGpsAccuracyDisclaimerSeen()
                 updateState { copy(hasSeenGpsAccuracyDisclaimer = true) }
+            }
+            AppIntent.AcceptLegalConsent -> {
+                appPreferences.setLegalConsentAccepted()
+                updateState { copy(hasAcceptedLegalConsent = true) }
             }
             is AppIntent.SetThemeMode -> {
                 appPreferences.setThemeMode(intent.mode)

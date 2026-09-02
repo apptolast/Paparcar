@@ -231,7 +231,10 @@ fun App(
                                 )
                             }
                         }
-                        else -> AuthNavigation()
+                        else -> AuthNavigation(
+                            hasAcceptedLegalConsent = appState.hasAcceptedLegalConsent,
+                            onLegalConsentAccepted = { appViewModel.handleIntent(AppIntent.AcceptLegalConsent) },
+                        )
                     }
                 }
                 }
@@ -307,8 +310,17 @@ private fun BootstrapFatalDialog(onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun AuthNavigation() {
+private fun AuthNavigation(
+    hasAcceptedLegalConsent: Boolean,
+    onLegalConsentAccepted: () -> Unit,
+) {
     val navController = rememberNavController()
+    // Built here and not inside the NavHost builder: the builder lambda is not a composable
+    // context, and the slots are since they remember the consent tick.
+    val slots = paparcarAuthSlots(
+        hasAcceptedLegalConsent = hasAcceptedLegalConsent,
+        onLegalConsentAccepted = onLegalConsentAccepted,
+    )
     NavHost(
         navController = navController,
         startDestination = AuthRoutesFlow,
@@ -320,7 +332,7 @@ private fun AuthNavigation() {
         authRoutesFlow(
             navController = navController,
             startDestination = LoginRoute,
-            slots = paparcarAuthSlots(),
+            slots = slots,
             onNavigateToHome = { /* Handled by AuthState change */ },
         )
     }

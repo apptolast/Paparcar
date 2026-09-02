@@ -300,8 +300,12 @@ private fun loginScreen(
     emailError: String? = null,
     passwordError: String? = null,
     isLoading: Boolean = false,
+    consentAccepted: Boolean = false,
 ) {
-    val slots = paparcarAuthSlots().login
+    val slots = paparcarAuthSlots(
+        hasAcceptedLegalConsent = consentAccepted,
+        onLegalConsentAccepted = {},
+    ).login
     val isFormValid = email.isNotBlank() && password.isNotBlank()
     Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
         DefaultAuthContainer(
@@ -1673,6 +1677,11 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             },
             Variant("Cargando") {
                 loginScreen(email = "ana@paparcar.io", password = "MiPassword123", isLoading = true)
+            },
+            // Consent already persisted on this device → no checkbox, CTAs ungated.
+            // [AUTH-A-SIGN-IN-ASKS-FOR-CONSENT-FIRST-001]
+            Variant("Consentimiento ya dado") {
+                loginScreen(email = "ana@paparcar.io", password = "MiPassword123", consentAccepted = true)
             },
         ),
     ),

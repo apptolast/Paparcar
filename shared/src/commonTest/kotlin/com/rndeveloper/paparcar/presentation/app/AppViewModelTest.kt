@@ -223,4 +223,44 @@ class AppViewModelTest {
         assertEquals(2, fakePrefs.setOnboardingCompletedCount)
         assertTrue(fakePrefs.isOnboardingCompleted)
     }
+
+    // ── Legal consent [AUTH-A-SIGN-IN-ASKS-FOR-CONSENT-FIRST-001] ────────────────
+
+    @Test
+    fun `should_startWithoutConsent_when_neverAccepted`() {
+        val vm = AppViewModel(fakePermissions, fakePrefs, fakeConnectivity, fakeVehicleRepo, fakeZoneRepo, fakeParkingRepo)
+
+        // A fresh install must ASK: the auth screen reads this flag to decide whether to draw the
+        // checkbox and gate its CTAs.
+        assertFalse(vm.state.value.hasAcceptedLegalConsent)
+    }
+
+    @Test
+    fun `should_persistConsent_when_accepted`() {
+        val vm = AppViewModel(fakePermissions, fakePrefs, fakeConnectivity, fakeVehicleRepo, fakeZoneRepo, fakeParkingRepo)
+
+        vm.handleIntent(AppIntent.AcceptLegalConsent)
+
+        // Both halves matter: the live state ungates the CTAs in THIS composition, and the
+        // preference is what survives the process.
+        assertTrue(vm.state.value.hasAcceptedLegalConsent)
+        assertTrue(fakePrefs.hasAcceptedLegalConsent)
+    }
+
+    @Test
+    fun `should_notAskAgain_when_consentWasAcceptedOnAPreviousRun`() {
+        // Accept it, then throw the ViewModel away — this is a relaunch, and the only thing that
+        // crosses over is the persisted preference.
+        AppViewModel(fakePermissions, fakePrefs, fakeConnectivity, fakeVehicleRepo, fakeZoneRepo, fakeParkingRepo)
+            .handleIntent(AppIntent.AcceptLegalConsent)
+
+        val relaunched = AppViewModel(
+            fakePermissions, fakePrefs, fakeConnectivity, fakeVehicleRepo, fakeZoneRepo, fakeParkingRepo,
+        )
+
+        // True at construction time (not after some later emission): the auth screen decides whether
+        // to draw the consent row on its FIRST composition, so a late value would flash the checkbox
+        // at someone who already accepted.
+        assertTrue(relaunched.state.value.hasAcceptedLegalConsent)
+    }
 }

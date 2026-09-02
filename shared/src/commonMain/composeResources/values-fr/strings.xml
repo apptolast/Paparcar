@@ -470,6 +470,8 @@
     <string name="auth_field_name">Prénom</string>
     <string name="auth_field_confirm_password">Confirmer le mot de passe</string>
     <string name="auth_forgot_password">Mot de passe oublié ?</string>
+    <string name="auth_consent_accept">J'accepte la %1$s</string>
+    <string name="auth_consent_privacy_policy">Politique de confidentialité</string>
     <string name="home_zone_saved_message">Zone enregistrée</string>
     <string name="home_zone_action_edit">Modifier la zone</string>
     <string name="home_zone_action_delete">Supprimer la zone</string>

@@ -31,6 +31,10 @@ class FakeAppPreferences(
     override val hasSeenGpsAccuracyDisclaimer: Boolean get() = _hasSeenGpsAccuracyDisclaimer
     override fun setGpsAccuracyDisclaimerSeen() { _hasSeenGpsAccuracyDisclaimer = true }
 
+    private var _hasAcceptedLegalConsent = false
+    override val hasAcceptedLegalConsent: Boolean get() = _hasAcceptedLegalConsent
+    override fun setLegalConsentAccepted() { _hasAcceptedLegalConsent = true }
+
     private var _hasRequestedLocationPermission = false
     override val hasRequestedLocationPermission: Boolean get() = _hasRequestedLocationPermission
     override fun setLocationPermissionRequested() { _hasRequestedLocationPermission = true }

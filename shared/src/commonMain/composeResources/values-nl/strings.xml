@@ -471,6 +471,8 @@
     <string name="auth_field_name">Naam</string>
     <string name="auth_field_confirm_password">Wachtwoord bevestigen</string>
     <string name="auth_forgot_password">Wachtwoord vergeten?</string>
+    <string name="auth_consent_accept">Ik accepteer het %1$s</string>
+    <string name="auth_consent_privacy_policy">Privacybeleid</string>
     <string name="home_zone_saved_message">Zone opgeslagen</string>
     <string name="home_zone_action_edit">Zone bewerken</string>
     <string name="home_zone_action_delete">Zone verwijderen</string>

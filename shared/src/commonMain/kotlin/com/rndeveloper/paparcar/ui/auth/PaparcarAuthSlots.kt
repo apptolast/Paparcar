@@ -18,6 +18,7 @@ import androidx.compose.material.icons.rounded.Email
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Phone
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -28,6 +29,7 @@ import com.rndeveloper.paparcar.ui.components.PapPrimaryButton
 import com.rndeveloper.paparcar.ui.components.PapProviderButton
 import com.rndeveloper.paparcar.ui.components.PaparcarLogo
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,8 +40,13 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -69,6 +76,8 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.auth_cd_hide_password
+import paparcar.composeapp.generated.resources.auth_consent_accept
+import paparcar.composeapp.generated.resources.auth_consent_privacy_policy
 import paparcar.composeapp.generated.resources.auth_header_app_name
 import paparcar.composeapp.generated.resources.auth_cd_show_password
 import paparcar.composeapp.generated.resources.auth_field_confirm_password
@@ -77,6 +86,10 @@ import paparcar.composeapp.generated.resources.auth_field_name
 import paparcar.composeapp.generated.resources.auth_field_password
 import paparcar.composeapp.generated.resources.auth_forgot_password
 import paparcar.composeapp.generated.resources.auth_header_tagline
+
+/** Where the consent link points. Same document Settings links to; unify the constant when the
+ *  domain sweep lands. [AUTH-A-SIGN-IN-ASKS-FOR-CONSENT-FIRST-001] */
+private const val LEGAL_PRIVACY_POLICY_URL = "https://paparcar.com/privacy-policy"
 
 private val LOGO_BADGE_SIZE = 72.dp
 private val LOGO_BADGE_ELEVATION = 6.dp
@@ -87,8 +100,35 @@ private val HEADER_BOTTOM_SPACING = 8.dp
 private val FIELD_ICON_SIZE = 20.dp
 private val FIELD_CORNER_RADIUS = 14.dp
 private val PROVIDER_BUTTON_GAP = 10.dp
+private val CONSENT_SUBMIT_GAP = 4.dp
 
-fun paparcarAuthSlots(): AuthScreenSlots = AuthScreenSlots(
+/**
+ * The auth screens' Paparcar skin, plus the legal-consent gate.
+ *
+ * Consent must live HERE and not only on the register form because a first Google sign-in from the
+ * LOGIN screen silently creates the account — so until the "I accept the Privacy Policy" box is
+ * ticked, the login submit AND the social provider buttons stay disabled. Register reuses the same
+ * row through the library's own `termsCheckbox` slot (whose ViewModel already gates its submit).
+ *
+ * [hasAcceptedLegalConsent] is the device-persisted flag: when it is already true the row is not
+ * shown at all and nothing is gated — consent is asked once per install, not on every re-login.
+ * Ticking the box fires [onLegalConsentAccepted] immediately so the acceptance survives even if
+ * the user abandons the screen before signing in. Within the current composition the row stays
+ * visible after the tick (hiding it under the user's finger would read as a glitch); it disappears
+ * from the next visit on. [AUTH-A-SIGN-IN-ASKS-FOR-CONSENT-FIRST-001]
+ */
+@Composable
+fun paparcarAuthSlots(
+    hasAcceptedLegalConsent: Boolean,
+    onLegalConsentAccepted: () -> Unit,
+): AuthScreenSlots {
+    var consentGiven by remember { mutableStateOf(hasAcceptedLegalConsent) }
+    val showConsentRow = remember { !hasAcceptedLegalConsent }
+    val acceptConsent: (Boolean) -> Unit = { accepted ->
+        consentGiven = accepted
+        if (accepted) onLegalConsentAccepted()
+    }
+    return AuthScreenSlots(
     login = LoginScreenSlots(
         layoutVerticalArrangement = Arrangement.Top,
         header = { PaparcarAuthHeader() },
@@ -110,7 +150,18 @@ fun paparcarAuthSlots(): AuthScreenSlots = AuthScreenSlots(
             )
         },
         submitButton = { onClick, isLoading, enabled, text ->
-            CompactSubmitButton(onClick = onClick, isLoading = isLoading, enabled = enabled, text = text)
+            Column(modifier = Modifier.fillMaxWidth()) {
+                if (showConsentRow) {
+                    LegalConsentRow(checked = consentGiven, onCheckedChange = acceptConsent)
+                    Spacer(modifier = Modifier.height(CONSENT_SUBMIT_GAP))
+                }
+                CompactSubmitButton(
+                    onClick = onClick,
+                    isLoading = isLoading,
+                    enabled = enabled && consentGiven,
+                    text = text,
+                )
+            }
         },
         forgotPasswordLink = { onClick ->
             CompactForgotPasswordLink(onClick = onClick)
@@ -120,6 +171,7 @@ fun paparcarAuthSlots(): AuthScreenSlots = AuthScreenSlots(
                 providers = providers,
                 loadingProvider = loadingProvider,
                 onProviderClick = onProviderClick,
+                enabled = consentGiven,
             )
         },
     ),
@@ -145,6 +197,21 @@ fun paparcarAuthSlots(): AuthScreenSlots = AuthScreenSlots(
                 imeAction = ImeAction.Done,
             )
         },
+        termsCheckbox = { checked, onCheckedChange ->
+            if (showConsentRow) {
+                LegalConsentRow(
+                    checked = checked,
+                    onCheckedChange = { accepted ->
+                        onCheckedChange(accepted)
+                        acceptConsent(accepted)
+                    },
+                )
+            } else {
+                // Consent already given on this device — satisfy the library's own submit gate
+                // silently instead of asking a second time.
+                LaunchedEffect(Unit) { onCheckedChange(true) }
+            }
+        },
         submitButton = { onClick, isLoading, enabled, text ->
             CompactSubmitButton(onClick = onClick, isLoading = isLoading, enabled = enabled, text = text)
         },
@@ -153,10 +220,54 @@ fun paparcarAuthSlots(): AuthScreenSlots = AuthScreenSlots(
                 providers = providers,
                 loadingProvider = loadingProvider,
                 onProviderClick = onProviderClick,
+                enabled = consentGiven,
             )
         },
     ),
-)
+    )
+}
+
+/**
+ * The consent ask itself: checkbox + "I accept the Privacy Policy", with the policy name a live
+ * link to the published document. The link must be reachable BEFORE ticking — that is the point
+ * of the row — so it never sits behind the disabled state it controls.
+ */
+@Composable
+private fun LegalConsentRow(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    val linkColor = MaterialTheme.colorScheme.primary
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Checkbox(checked = checked, onCheckedChange = onCheckedChange)
+        val policyName = stringResource(Res.string.auth_consent_privacy_policy)
+        val sentence = stringResource(Res.string.auth_consent_accept, policyName)
+        val linkStart = sentence.indexOf(policyName)
+        Text(
+            text = buildAnnotatedString {
+                if (linkStart < 0) {
+                    // A translation lost the placeholder — degrade to plain text, never crash.
+                    append(sentence)
+                } else {
+                    append(sentence.substring(0, linkStart))
+                    withLink(
+                        LinkAnnotation.Url(
+                            url = LEGAL_PRIVACY_POLICY_URL,
+                            styles = TextLinkStyles(style = SpanStyle(color = linkColor)),
+                        ),
+                    ) { append(policyName) }
+                    append(sentence.substring(linkStart + policyName.length))
+                }
+            },
+            // Legal micro-copy next to a control = LECTURA (label). [TYPO-AUDIT-001]
+            style = PaparcarType.current.label,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
 
 @Composable
 private fun PaparcarAuthHeader() {
@@ -353,6 +464,7 @@ private fun PaparcarSocialProviders(
     providers: List<IdentityProvider>,
     loadingProvider: IdentityProvider?,
     onProviderClick: (IdentityProvider) -> Unit,
+    enabled: Boolean = true,
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -367,7 +479,9 @@ private fun PaparcarSocialProviders(
                 modifier = Modifier.fillMaxWidth(),
                 tint = mark.tint,
                 isLoading = loadingProvider == provider,
-                enabled = loadingProvider == null,
+                // A social sign-in is also an account CREATION the first time, so it waits for
+                // the same legal consent as the submit button. [AUTH-A-SIGN-IN-ASKS-FOR-CONSENT-FIRST-001]
+                enabled = enabled && loadingProvider == null,
             )
         }
     }

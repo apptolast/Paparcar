@@ -478,6 +478,8 @@
     <string name="auth_field_name">Imię</string>
     <string name="auth_field_confirm_password">Potwierdź hasło</string>
     <string name="auth_forgot_password">Nie pamiętasz hasła?</string>
+    <string name="auth_consent_accept">Akceptuję %1$s</string>
+    <string name="auth_consent_privacy_policy">Politykę prywatności</string>
     <string name="home_zone_saved_message">Strefa zapisana</string>
     <string name="home_zone_action_edit">Edytuj strefę</string>
     <string name="home_zone_action_delete">Usuń strefę</string>

@@ -471,6 +471,8 @@
     <string name="auth_field_name">Name</string>
     <string name="auth_field_confirm_password">Passwort bestätigen</string>
     <string name="auth_forgot_password">Passwort vergessen?</string>
+    <string name="auth_consent_accept">Ich akzeptiere die %1$s</string>
+    <string name="auth_consent_privacy_policy">Datenschutzerklärung</string>
     <string name="home_zone_saved_message">Zone gespeichert</string>
     <string name="home_zone_action_edit">Zone bearbeiten</string>
     <string name="home_zone_action_delete">Zone löschen</string>

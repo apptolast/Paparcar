@@ -11,6 +11,13 @@ interface AppPreferences {
     val hasSeenGpsAccuracyDisclaimer: Boolean
     fun setGpsAccuracyDisclaimerSeen()
 
+    /** True once the user has ticked "I accept the Privacy Policy" on the auth flow. Device-local,
+     *  asked once per install: a first Google sign-in CREATES the account, so consent must gate the
+     *  login screen's CTAs too, not just the register form.
+     *  [AUTH-A-SIGN-IN-ASKS-FOR-CONSENT-FIRST-001] */
+    val hasAcceptedLegalConsent: Boolean
+    fun setLegalConsentAccepted()
+
     /** True once we have ever fired the foreground-location request dialog. Lets the permissions
      *  screen tell a genuine first launch (offer the system dialog) apart from a permanently denied /
      *  revoked permission (jump straight to system settings). Android-only concept. [DET-READY-001m] */
