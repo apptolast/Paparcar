@@ -1,6 +1,6 @@
 # COPY-NOTIFICATION-LAYER-STILL-SAYS-PLAZA-001 · La capa de notificaciones nunca se barrió
 
-**Estado:** 🟡 Abierto, sin rama · detectado desde `DET-WATCHDOG-DEPARTURE-KNOWS-NO-HOUR-001`
+**Estado:** ✅ Done (2026-09-02) · sin código, solo `app/src/main/res`
 
 ## Problema
 
@@ -41,3 +41,21 @@ segundos, y `notif_mark_parking_text` lleva uno en EN.
 
 `grep -rn "my spot\|mi plaza" app/src/main/res/` no devuelve nada, y `LocaleParityGuardrailTest`
 sigue verde.
+
+## Cierre (2026-09-02)
+
+**El censo del doc (4 keys) estaba corto: eran 5.** La criba de «spot» restantes destapó
+`notif_confirmation_text` — *«Shall we confirm the spot?»* / *«¿Confirmamos la plaza?»* — que
+pregunta por TU aparcamiento con la palabra comunitaria, en los 9 locales. Cuarta vez que «auditar
+antes de implementar» amplía el alcance.
+
+- 5 keys × 9 locales barridas al vocabulario de la tabla de CLAUDE.md, reutilizando literal el
+  wording del key ya correcto (`notif_action_mark_parking`) para los botones. Apóstrofos: aquí SÍ
+  escapados (`\'`) — recursos Android, no Compose Resources.
+- Los usos correctos del mismo fichero quedan intactos (la plaza que LIBERAS: `notif_detection_explainer`,
+  `notif_first_park_nudge_text`, `notif_sentry_text`, `channel_upload_desc`).
+- Fuera de alcance a propósito: `channel_detection_name` («Spot Detection», metadato de canal en
+  Ajustes de Android) — borde, no es un botón que el user pulse sobre lo suyo.
+- Verificado: grep del criterio limpio · `LocaleParityGuardrailTest` **5/5 con `--rerun-tasks`**
+  (testigo de ejecución comprobado en el XML) · `processProdDebugResources` +
+  `processMockDebugResources` en verde.

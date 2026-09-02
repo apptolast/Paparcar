@@ -11,7 +11,7 @@
     <string name="notif_confirmation_title_vehicle">Estacionaste o %1$s?</string>
     <string name="notif_confirmation_title_vehicle_street">Estacionaste o %1$s em %2$s?</string>
     <string name="notif_confirmation_title_street">Estacionaste em %1$s?</string>
-    <string name="notif_confirmation_text">Parece que estacionaste. Confirmamos o lugar?</string>
+    <string name="notif_confirmation_text">Parece que estacionaste. Confirmamos o estacionamento?</string>
     <string name="notif_action_yes_parked">Sim, estacionei</string>
     <!-- [DET-STOP-BUTTON-001] Way out of a trip the user does not want followed. -->
     <string name="notif_action_stop_detection">Parar deteção</string>
@@ -34,7 +34,7 @@
 
     <!-- Notificação: erro ao salvar o estacionamento -->
     <string name="notif_confirmation_failed_title">Estacionamento não salvo</string>
-    <string name="notif_confirmation_failed_text">Não foi possível salvar a vaga. Abra o Paparcar para tentar novamente.</string>
+    <string name="notif_confirmation_failed_text">Não foi possível salvar o estacionamento. Abra o Paparcar para tentar novamente.</string>
 
     <!-- Notificação: debug (apenas builds de desenvolvimento) -->
     <string name="notif_debug_title">Paparcar Debug</string>
@@ -57,11 +57,11 @@
     <!-- DET-TOGGLE-002: cold-start nudge -->
     <string name="notif_first_park_nudge_title">Estacione uma vez para ativar a deteção</string>
     <string name="notif_first_park_nudge_text">Estacione com o Paparcar uma vez; depois libertamos a sua vaga automaticamente sempre que sair.</string>
-    <string name="notif_first_park_nudge_action">Marcar a vaga</string>
+    <string name="notif_first_park_nudge_action">Marcar estacionamento</string>
     <!-- DET-AR-FIRST-001 -->
     <string name="notif_mark_parking_title">Onde deixou o carro?</string>
-    <string name="notif_mark_parking_text">Detetámos que se deslocou, mas não conseguimos fixar onde ficou o seu carro. Marque a vaga para não a perder.</string>
-    <string name="notif_mark_parking_action">Marcar a vaga</string>
+    <string name="notif_mark_parking_text">Detetámos que se deslocou, mas não conseguimos fixar onde ficou o seu carro. Marque o estacionamento para não o perder.</string>
+    <string name="notif_mark_parking_action">Marcar estacionamento</string>
     <string name="notif_action_ive_left">Já saí</string>
     <string name="notif_action_mark_parking">Marcar estacionamento</string>
     <string name="notif_background_kill_title">O teu telemóvel está a bloquear o Paparcar</string>

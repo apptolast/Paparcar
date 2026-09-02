@@ -11,7 +11,7 @@
     <string name="notif_confirmation_title_vehicle">Ai parcat %1$s?</string>
     <string name="notif_confirmation_title_vehicle_street">Ai parcat %1$s pe %2$s?</string>
     <string name="notif_confirmation_title_street">Ai parcat pe %1$s?</string>
-    <string name="notif_confirmation_text">Se pare că ai parcat. Vrei să confirmăm locul?</string>
+    <string name="notif_confirmation_text">Se pare că ai parcat. Vrei să confirmăm parcarea?</string>
     <string name="notif_action_yes_parked">Da, am parcat</string>
     <!-- [DET-STOP-BUTTON-001] Way out of a trip the user does not want followed. -->
     <string name="notif_action_stop_detection">Oprește detectarea</string>
@@ -34,7 +34,7 @@
 
     <!-- Notificare: eroare la salvarea parcării -->
     <string name="notif_confirmation_failed_title">Parcare nesalvată</string>
-    <string name="notif_confirmation_failed_text">Nu s-a putut salva locul de parcare. Deschide Paparcar pentru a încerca din nou.</string>
+    <string name="notif_confirmation_failed_text">Nu s-a putut salva parcarea. Deschide Paparcar pentru a încerca din nou.</string>
 
     <!-- Notificare: debug (doar build-uri de dezvoltare) -->
     <string name="notif_debug_title">Paparcar Debug</string>
@@ -57,11 +57,11 @@
     <!-- DET-TOGGLE-002: cold-start nudge -->
     <string name="notif_first_park_nudge_title">Parchează o dată pentru a porni detectarea</string>
     <string name="notif_first_park_nudge_text">Parchează o dată cu Paparcar; apoi eliberăm automat locul tău de fiecare dată când pleci.</string>
-    <string name="notif_first_park_nudge_action">Marchează locul</string>
+    <string name="notif_first_park_nudge_action">Marchează parcarea</string>
     <!-- DET-AR-FIRST-001 -->
     <string name="notif_mark_parking_title">Unde ți-ai lăsat mașina?</string>
-    <string name="notif_mark_parking_text">Am detectat că te-ai deplasat, dar nu am putut stabili unde a rămas mașina ta. Marchează locul ca să nu îl pierzi.</string>
-    <string name="notif_mark_parking_action">Marchează locul</string>
+    <string name="notif_mark_parking_text">Am detectat că te-ai deplasat, dar nu am putut stabili unde a rămas mașina ta. Marchează parcarea ca să nu o pierzi.</string>
+    <string name="notif_mark_parking_action">Marchează parcarea</string>
     <string name="notif_action_ive_left">Am plecat</string>
     <string name="notif_action_mark_parking">Marchează parcarea</string>
     <string name="notif_background_kill_title">Telefonul tău blochează Paparcar</string>

@@ -11,7 +11,7 @@
     <string name="notif_confirmation_title_vehicle">Heb je jouw %1$s geparkeerd?</string>
     <string name="notif_confirmation_title_vehicle_street">Heb je jouw %1$s geparkeerd op %2$s?</string>
     <string name="notif_confirmation_title_street">Heb je geparkeerd op %1$s?</string>
-    <string name="notif_confirmation_text">Het lijkt erop dat je hebt geparkeerd. Zullen we de plek bevestigen?</string>
+    <string name="notif_confirmation_text">Het lijkt erop dat je hebt geparkeerd. Zullen we de parkeerplaats bevestigen?</string>
     <string name="notif_action_yes_parked">Ja, ik heb geparkeerd</string>
     <!-- [DET-STOP-BUTTON-001] Way out of a trip the user does not want followed. -->
     <string name="notif_action_stop_detection">Detectie stoppen</string>
@@ -57,11 +57,11 @@
     <!-- DET-TOGGLE-002: cold-start nudge -->
     <string name="notif_first_park_nudge_title">Parkeer één keer om detectie te starten</string>
     <string name="notif_first_park_nudge_text">Parkeer één keer met Paparcar; daarna geven we je plek automatisch vrij bij elk vertrek.</string>
-    <string name="notif_first_park_nudge_action">Mijn plek markeren</string>
+    <string name="notif_first_park_nudge_action">Parkeerplaats markeren</string>
     <!-- DET-AR-FIRST-001 -->
     <string name="notif_mark_parking_title">Waar heb je je auto achtergelaten?</string>
-    <string name="notif_mark_parking_text">We hebben gemerkt dat je je hebt verplaatst, maar konden niet vaststellen waar je auto is gebleven. Markeer de plek zodat je hem niet kwijtraakt.</string>
-    <string name="notif_mark_parking_action">Mijn plek markeren</string>
+    <string name="notif_mark_parking_text">We hebben gemerkt dat je je hebt verplaatst, maar konden niet vaststellen waar je auto is gebleven. Markeer de parkeerplaats zodat je hem niet kwijtraakt.</string>
+    <string name="notif_mark_parking_action">Parkeerplaats markeren</string>
     <string name="notif_action_ive_left">Ik ben weg</string>
     <string name="notif_action_mark_parking">Parkeerplaats markeren</string>
     <string name="notif_background_kill_title">Je telefoon blokkeert Paparcar</string>

@@ -11,7 +11,7 @@
     <string name="notif_confirmation_title_vehicle">¿Has aparcado el %1$s?</string>
     <string name="notif_confirmation_title_vehicle_street">¿Has aparcado el %1$s en %2$s?</string>
     <string name="notif_confirmation_title_street">¿Has aparcado en %1$s?</string>
-    <string name="notif_confirmation_text">Parece que has aparcado el coche. ¿Confirmamos la plaza?</string>
+    <string name="notif_confirmation_text">Parece que has aparcado el coche. ¿Confirmamos el aparcamiento?</string>
     <string name="notif_action_yes_parked">Sí, he aparcado</string>
     <!-- [DET-STOP-BUTTON-001] Way out of a trip the user does not want followed. -->
     <string name="notif_action_stop_detection">Parar detección</string>
@@ -34,7 +34,7 @@
 
     <!-- Notificación: error al guardar el aparcamiento -->
     <string name="notif_confirmation_failed_title">Aparcamiento no guardado</string>
-    <string name="notif_confirmation_failed_text">No se pudo guardar tu plaza. Abre Paparcar para intentarlo de nuevo.</string>
+    <string name="notif_confirmation_failed_text">No se pudo guardar tu aparcamiento. Abre Paparcar para intentarlo de nuevo.</string>
 
     <!-- Notificación: debug (solo builds de desarrollo) -->
     <string name="notif_debug_title">Paparcar Debug</string>
@@ -61,11 +61,11 @@
     <!-- DET-TOGGLE-002: cold-start nudge -->
     <string name="notif_first_park_nudge_title">Aparca una vez para activar la detección</string>
     <string name="notif_first_park_nudge_text">Aparca con Paparcar una vez; después liberamos tu plaza automáticamente cada vez que salgas.</string>
-    <string name="notif_first_park_nudge_action">Marcar mi plaza</string>
+    <string name="notif_first_park_nudge_action">Marcar aparcamiento</string>
     <!-- DET-AR-FIRST-001: sesión desatendida sin conducción medida — preguntar dónde está el coche -->
     <string name="notif_mark_parking_title">¿Dónde has dejado el coche?</string>
-    <string name="notif_mark_parking_text">Hemos detectado que te has movido, pero no hemos podido fijar dónde quedó tu coche. Marca la plaza para no perderla.</string>
-    <string name="notif_mark_parking_action">Marcar mi plaza</string>
+    <string name="notif_mark_parking_text">Hemos detectado que te has movido, pero no hemos podido fijar dónde quedó tu coche. Marca el aparcamiento para no perderlo.</string>
+    <string name="notif_mark_parking_action">Marcar aparcamiento</string>
     <string name="notif_action_ive_left">Ya he salido</string>
     <string name="notif_action_mark_parking">Marcar aparcamiento</string>
     <string name="notif_sentry_title">Aparcado · atento a tu salida</string>

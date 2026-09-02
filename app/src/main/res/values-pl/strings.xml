@@ -11,7 +11,7 @@
     <string name="notif_confirmation_title_vehicle">Czy zaparkowałeś %1$s?</string>
     <string name="notif_confirmation_title_vehicle_street">Czy zaparkowałeś %1$s przy %2$s?</string>
     <string name="notif_confirmation_title_street">Czy zaparkowałeś przy %1$s?</string>
-    <string name="notif_confirmation_text">Wygląda na to, że zaparkowałeś. Czy potwierdzić miejsce?</string>
+    <string name="notif_confirmation_text">Wygląda na to, że zaparkowałeś. Czy potwierdzić parkowanie?</string>
     <string name="notif_action_yes_parked">Tak, zaparkowałem</string>
     <!-- [DET-STOP-BUTTON-001] Way out of a trip the user does not want followed. -->
     <string name="notif_action_stop_detection">Zatrzymaj wykrywanie</string>
@@ -34,7 +34,7 @@
 
     <!-- Powiadomienie: błąd zapisywania parkowania -->
     <string name="notif_confirmation_failed_title">Parkowanie nie zostało zapisane</string>
-    <string name="notif_confirmation_failed_text">Nie udało się zapisać miejsca parkingowego. Otwórz Paparcar, aby spróbować ponownie.</string>
+    <string name="notif_confirmation_failed_text">Nie udało się zapisać parkowania. Otwórz Paparcar, aby spróbować ponownie.</string>
 
     <!-- Powiadomienie: debug (tylko buildy deweloperskie) -->
     <string name="notif_debug_title">Paparcar Debug</string>
@@ -57,11 +57,11 @@
     <!-- DET-TOGGLE-002: cold-start nudge -->
     <string name="notif_first_park_nudge_title">Zaparkuj raz, aby uruchomić wykrywanie</string>
     <string name="notif_first_park_nudge_text">Zaparkuj raz z Paparcar; potem automatycznie zwalniamy Twoje miejsce przy każdym wyjeździe.</string>
-    <string name="notif_first_park_nudge_action">Oznacz miejsce</string>
+    <string name="notif_first_park_nudge_action">Zaznacz parkowanie</string>
     <!-- DET-AR-FIRST-001 -->
     <string name="notif_mark_parking_title">Gdzie zostawiłeś samochód?</string>
-    <string name="notif_mark_parking_text">Wykryliśmy, że się przemieściłeś, ale nie udało się ustalić, gdzie został Twój samochód. Oznacz miejsce, aby go nie zgubić.</string>
-    <string name="notif_mark_parking_action">Oznacz miejsce</string>
+    <string name="notif_mark_parking_text">Wykryliśmy, że się przemieściłeś, ale nie udało się ustalić, gdzie został Twój samochód. Oznacz parkowanie, aby go nie zgubić.</string>
+    <string name="notif_mark_parking_action">Zaznacz parkowanie</string>
     <string name="notif_action_ive_left">Już wyjechałem</string>
     <string name="notif_action_mark_parking">Zaznacz parkowanie</string>
     <string name="notif_background_kill_title">Twój telefon blokuje Paparcar</string>

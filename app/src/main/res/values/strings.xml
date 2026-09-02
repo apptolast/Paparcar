@@ -16,7 +16,7 @@
     <string name="notif_confirmation_title_vehicle">Did you park your %1$s?</string>
     <string name="notif_confirmation_title_vehicle_street">Did you park your %1$s at %2$s?</string>
     <string name="notif_confirmation_title_street">Did you park at %1$s?</string>
-    <string name="notif_confirmation_text">Looks like you parked. Shall we confirm the spot?</string>
+    <string name="notif_confirmation_text">Looks like you parked. Shall we confirm your parking?</string>
     <string name="notif_action_yes_parked">Yes, I parked</string>
     <!-- [DET-STOP-BUTTON-001] Way out of a trip the user does not want followed. -->
     <string name="notif_action_stop_detection">Stop detection</string>
@@ -40,7 +40,7 @@
 
     <!-- Notification: confirmation failed (exceptional error path) -->
     <string name="notif_confirmation_failed_title">Parking not saved</string>
-    <string name="notif_confirmation_failed_text">Could not save your parking spot. Open Paparcar to try again.</string>
+    <string name="notif_confirmation_failed_text">Could not save your parking. Open Paparcar to try again.</string>
 
     <!-- Notification: OEM background-kill warning [OEM-KILL-001] -->
     <string name="notif_background_kill_title">Your phone is blocking Paparcar</string>
@@ -52,11 +52,11 @@
     <!-- DET-TOGGLE-002: cold-start nudge -->
     <string name="notif_first_park_nudge_title">Park once to start auto-detection</string>
     <string name="notif_first_park_nudge_text">Park with Paparcar once — after that we free your spot automatically every time you leave.</string>
-    <string name="notif_first_park_nudge_action">Mark my spot</string>
+    <string name="notif_first_park_nudge_action">Mark parking</string>
     <!-- DET-AR-FIRST-001: unattended session ended without measured driving — ask where the car is -->
     <string name="notif_mark_parking_title">Where did you leave your car?</string>
-    <string name="notif_mark_parking_text">We noticed you moved, but we couldn\'t pin where your car ended up. Mark the spot so you don\'t lose it.</string>
-    <string name="notif_mark_parking_action">Mark my spot</string>
+    <string name="notif_mark_parking_text">We noticed you moved, but we couldn\'t pin where your car ended up. Mark your parking so you don\'t lose it.</string>
+    <string name="notif_mark_parking_action">Mark parking</string>
     <string name="notif_action_ive_left">I\'ve left</string>
     <string name="notif_action_mark_parking">Mark parking</string>
 

@@ -11,7 +11,7 @@
     <string name="notif_confirmation_title_vehicle">Hai parcheggiato il %1$s?</string>
     <string name="notif_confirmation_title_vehicle_street">Hai parcheggiato il %1$s in %2$s?</string>
     <string name="notif_confirmation_title_street">Hai parcheggiato in %1$s?</string>
-    <string name="notif_confirmation_text">Sembra che tu abbia parcheggiato. Vuoi confermare il posto?</string>
+    <string name="notif_confirmation_text">Sembra che tu abbia parcheggiato. Vuoi confermare il parcheggio?</string>
     <string name="notif_action_yes_parked">Sì, ho parcheggiato</string>
     <!-- [DET-STOP-BUTTON-001] Way out of a trip the user does not want followed. -->
     <string name="notif_action_stop_detection">Ferma il rilevamento</string>
@@ -34,7 +34,7 @@
 
     <!-- Notifica: errore nel salvataggio del parcheggio -->
     <string name="notif_confirmation_failed_title">Parcheggio non salvato</string>
-    <string name="notif_confirmation_failed_text">Impossibile salvare il posto. Apri Paparcar per riprovare.</string>
+    <string name="notif_confirmation_failed_text">Impossibile salvare il parcheggio. Apri Paparcar per riprovare.</string>
 
     <!-- Notifica: debug (solo build di sviluppo) -->
     <string name="notif_debug_title">Paparcar Debug</string>
@@ -57,11 +57,11 @@
     <!-- DET-TOGGLE-002: cold-start nudge -->
     <string name="notif_first_park_nudge_title">Parcheggia una volta per attivare il rilevamento</string>
     <string name="notif_first_park_nudge_text">Parcheggia con Paparcar una volta; poi liberiamo il tuo posto automaticamente ogni volta che esci.</string>
-    <string name="notif_first_park_nudge_action">Segna il posto</string>
+    <string name="notif_first_park_nudge_action">Segna parcheggio</string>
     <!-- DET-AR-FIRST-001 -->
     <string name="notif_mark_parking_title">Dove hai lasciato l\'auto?</string>
     <string name="notif_mark_parking_text">Abbiamo rilevato che ti sei spostato, ma non siamo riusciti a fissare dove è rimasta la tua auto. Segna il parcheggio per non perderlo.</string>
-    <string name="notif_mark_parking_action">Segna il posto</string>
+    <string name="notif_mark_parking_action">Segna parcheggio</string>
     <string name="notif_action_ive_left">Sono uscito</string>
     <string name="notif_action_mark_parking">Segna parcheggio</string>
     <string name="notif_background_kill_title">Il tuo telefono sta bloccando Paparcar</string>

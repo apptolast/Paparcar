@@ -11,7 +11,7 @@
     <string name="notif_confirmation_title_vehicle">Hast du deinen %1$s geparkt?</string>
     <string name="notif_confirmation_title_vehicle_street">Hast du deinen %1$s in %2$s geparkt?</string>
     <string name="notif_confirmation_title_street">Hast du in %1$s geparkt?</string>
-    <string name="notif_confirmation_text">Sieht aus, als hättest du geparkt. Bestätigen wir den Platz?</string>
+    <string name="notif_confirmation_text">Sieht aus, als hättest du geparkt. Bestätigen wir den Parkplatz?</string>
     <string name="notif_action_yes_parked">Ja, ich habe geparkt</string>
     <!-- [DET-STOP-BUTTON-001] Way out of a trip the user does not want followed. -->
     <string name="notif_action_stop_detection">Erkennung stoppen</string>
@@ -57,11 +57,11 @@
     <!-- DET-TOGGLE-002: cold-start nudge -->
     <string name="notif_first_park_nudge_title">Einmal parken, um die Erkennung zu starten</string>
     <string name="notif_first_park_nudge_text">Parke einmal mit Paparcar; danach geben wir deinen Platz bei jeder Abfahrt automatisch frei.</string>
-    <string name="notif_first_park_nudge_action">Platz markieren</string>
+    <string name="notif_first_park_nudge_action">Parkplatz markieren</string>
     <!-- DET-AR-FIRST-001 -->
     <string name="notif_mark_parking_title">Wo hast du dein Auto abgestellt?</string>
-    <string name="notif_mark_parking_text">Wir haben erkannt, dass du dich bewegt hast, konnten aber nicht bestimmen, wo dein Auto geblieben ist. Markiere den Platz, damit er nicht verloren geht.</string>
-    <string name="notif_mark_parking_action">Platz markieren</string>
+    <string name="notif_mark_parking_text">Wir haben erkannt, dass du dich bewegt hast, konnten aber nicht bestimmen, wo dein Auto geblieben ist. Markiere den Parkplatz, damit er nicht verloren geht.</string>
+    <string name="notif_mark_parking_action">Parkplatz markieren</string>
     <string name="notif_action_ive_left">Ich bin weg</string>
     <string name="notif_action_mark_parking">Parkplatz markieren</string>
     <string name="notif_background_kill_title">Dein Handy blockiert Paparcar</string>
