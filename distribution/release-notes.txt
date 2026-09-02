@@ -18,4 +18,4 @@ Mejoras y correcciones sobre beta01.
 — Buscador y campos de texto con botón de limpiar de una sola pulsación.
 — Traducciones revisadas en 9 idiomas.
 
-Reporte de bugs: rndeveloper11501@gmail.com
+Reporte de bugs: support@paparcar.com

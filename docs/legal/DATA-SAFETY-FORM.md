@@ -4,9 +4,10 @@
 > recoge, se actualizan los dos en la MISMA tarea. Inventario verificado contra el manifest
 > prodRelease y los data sources de Firestore el 28-08-2026.
 >
-> **Política publicada (28-08-2026): <https://pap-26.web.app/privacy-policy>** — fuente:
-> `hosting/public/privacy-policy.html`, se despliega con `firebase deploy --only hosting`
-> (config en `firebase.json`, site por defecto de pap-26).
+> **Política publicada (28-08-2026): <https://paparcar.com/privacy-policy>** — dominio custom
+> conectado el 02-09-2026 al site por defecto de pap-26 (`pap-26.web.app` sigue sirviendo lo mismo
+> como fallback). Fuente: `hosting/public/privacy-policy.html`, se despliega con
+> `firebase deploy --only hosting` (config en `firebase.json`).
 
 ## Preguntas generales
 
@@ -14,7 +15,7 @@
 |---|---|
 | ¿Recoge o comparte datos de usuario? | **Sí** |
 | ¿Todos los datos en tránsito van cifrados? | **Sí** (TLS — Firebase/HTTPS) |
-| ¿Ofrece un mecanismo para solicitar el borrado? | **Sí** — borrado en-app (Ajustes → Eliminar cuenta) + web. **URL de borrado de cuenta (campo del formulario): `https://pap-26.web.app/delete-account`** (viva desde 29-08; runbook admin en `ACCOUNT-DELETE-RUNBOOK.md`). Marcar también que se puede pedir borrado PARCIAL sin cerrar la cuenta (la página lo ofrece) |
+| ¿Ofrece un mecanismo para solicitar el borrado? | **Sí** — borrado en-app (Ajustes → Eliminar cuenta) + web. **URL de borrado de cuenta (campo del formulario): `https://paparcar.com/delete-account`** (viva desde 29-08; runbook admin en `ACCOUNT-DELETE-RUNBOOK.md`). Marcar también que se puede pedir borrado PARCIAL sin cerrar la cuenta (la página lo ofrece) |
 | ¿App dirigida a menores? | No |
 
 ## Tipos de datos a declarar
@@ -52,10 +53,10 @@ información financiera, datos de salud médicos.
    lo detecta y pregunta.
 3. **Account deletion URL**: obligatoria desde 2024 — apuntar a la política publicada (ancla de la
    sección 6) o página propia.
-4. **URL de la política**: ✅ publicada en `https://pap-26.web.app/privacy-policy` (pública, sin
-   login). Si algún día revive `paparcar.app`, conectarlo como dominio custom del MISMO site para
-   no romper la URL declarada en el Console. ⚠️ El MCP `firebase_deploy` es no-op: desplegar
-   siempre con la CLI (`firebase deploy --only hosting`).
+4. **URL de la política**: ✅ publicada en `https://paparcar.com/privacy-policy` (pública, sin
+   login; dominio custom del site pap-26, con `pap-26.web.app` de fallback — no romper la URL
+   declarada en el Console). ⚠️ El MCP `firebase_deploy` es no-op: desplegar siempre con la CLI
+   (`firebase deploy --only hosting`).
 
 ## Cuándo se usa este doc
 Al **subir la app al Play Console** (primera vez y cada vez que cambie qué datos se recogen):
@@ -79,5 +80,7 @@ lo mismo.
       legal real. **Declaración de trader (DSA)**: la primera release va sin monetizar → puede
       declararse **no-trader**; ANTES de activar cualquier monetización hay que cambiar a
       **trader** (verificación + nombre y dirección legales PÚBLICOS en la ficha de Play).
-- [ ] Email de contacto: rndeveloper11501@gmail.com hasta que exista correo de dominio que reciba.
+- [x] Email de contacto: `support@paparcar.com` (forwarding de Porkbun → Gmail; solo recepción).
+      ⚠️ Verificar que el alias del forwarding es exactamente `support@` antes de pegarlo en el
+      Console — un alias distinto pierde solicitudes en silencio.
 - [ ] Si algún día se activa FCM/push remoto o publicidad, política y formulario se quedan cortos.

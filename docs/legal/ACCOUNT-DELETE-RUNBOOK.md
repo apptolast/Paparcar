@@ -1,6 +1,6 @@
 # Runbook — borrado manual de cuenta (solicitud web/email)
 
-> Ejecuta la promesa de `pap-26.web.app/delete-account`: solicitud por email → borrado completo
+> Ejecuta la promesa de `paparcar.com/delete-account`: solicitud por email → borrado completo
 > en ≤30 días + respuesta de confirmación. Espejo del `DeleteAccountUseCase` in-app — si aquel
 > cambia (repos nuevos en `DomainModule`), este runbook cambia en la MISMA tarea.
 

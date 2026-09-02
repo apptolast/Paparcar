@@ -220,14 +220,14 @@ class SettingsViewModel(
     private companion object {
         const val TAG = "SettingsViewModel"
 
-        /** Live policy on the pap-26 default Hosting site — the URL declared in Play Console.
-         *  If a custom domain ever exists, connect it to the SAME site instead of changing this. */
-        const val PRIVACY_POLICY_URL = "https://pap-26.web.app/privacy-policy"
+        /** Custom domain of the pap-26 Hosting site — the URL declared in Play Console.
+         *  pap-26.web.app keeps serving the same content as a fallback. */
+        const val PRIVACY_POLICY_URL = "https://paparcar.com/privacy-policy"
 
-        /** ⚠️ Still points at the unregistered paparcar.app domain — dead link. Real fix is an
-         *  in-app licenses screen (AboutLibraries), tracked as a settings-audit follow-up. */
-        const val LICENSES_URL = "https://paparcar.app/licenses"
+        /** ⚠️ Deliberately dead (404 on our own domain) — the real fix is an in-app licenses
+         *  screen (AboutLibraries), tracked as a settings-audit follow-up. */
+        const val LICENSES_URL = "https://paparcar.com/licenses"
 
-        const val CONTACT_MAILTO = "mailto:rndeveloper11501@gmail.com"
+        const val CONTACT_MAILTO = "mailto:support@paparcar.com"
     }
 }
