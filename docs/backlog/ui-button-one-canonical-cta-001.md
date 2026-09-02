@@ -1,6 +1,7 @@
 # UI-BUTTON-ONE-CANONICAL-CTA-001 · Tres botones de la app no pasan por el botón de la app
 
-**Estado:** 🟡 Abierto, sin rama · follow-up de `UI-TYPE-SYSTEM-HYGIENE-001`
+**Estado:** ✅ Done (2026-09-02) · ⏳ visto en device pendiente del próximo `/run` (bloqueo de
+ubicación, permisos BT, alta de vehículo)
 
 ## Problema
 
@@ -41,3 +42,23 @@ que la respuesta correcta sea un composable hermano con nombre propio.
 - 0 `Button(` de M3 en `presentation/` (`PapAlertDialog` es la única excepción documentada).
 - El alto, la forma y el padding de un CTA se cambian en un fichero.
 - Visto en device: bloqueo de ubicación, permisos BT y alta de vehículo.
+
+## Cierre (2026-09-02)
+
+Los dos ejes del diseño, tal cual estaban propuestos — y ninguno más, que era el aviso:
+
+- `PapButtonTone` (`Brand`/`Destructive`) y `PapButtonSize` (`Regular`/`Compact`) resueltos DENTRO
+  de `PapPrimaryButton`; el call site pide intención, nunca `colorScheme.error` ni un padding.
+  La receta compacta (16/8 + `cardSmall`) y la destructiva viven ahora en `PapButton.kt`.
+- Migrados los 3: `HomeLocationBlockedState` (pierde su alto fijo 52dp y su `shapes.medium` — la
+  silueta es la del botón de la app), `BluetoothConfigScreen` (swap directo) y el trailing de
+  `VehicleRegistrationScreen` (`size = Compact`).
+- 🔎 De paso, un bug latente arreglado: el spinner de `isLoading` estaba hardcodeado a `onPrimary`
+  — sobre un fill Destructive habría sido invisible. Ahora usa `LocalContentColor`.
+- **El criterio es permanente, no un grep**: `ButtonGuardrailTest` (Konsist, población compartida
+  de `GuardrailScope` — no puede volver vacía) prohíbe el `Button(` crudo en feature. En su primera
+  pasada cazó un sujeto real: `PapFooterButton` — que resultó ser el OTRO botón canónico (footer
+  universal, 3 estilos) y entró al allowlist con su razón, junto a `PapButton` y `PapAlertDialog`.
+- Suite **2.143/0** (+1 guardarraíl) · `:app:compileMockDebugKotlin` y `compileProdDebugKotlin` en
+  verde. Sin strings nuevos, sin estados nuevos (la galería no cambia: mismas pantallas, misma
+  variante).

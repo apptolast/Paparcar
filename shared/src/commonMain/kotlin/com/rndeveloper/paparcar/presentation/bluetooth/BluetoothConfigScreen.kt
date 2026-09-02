@@ -21,7 +21,6 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Bluetooth
 import androidx.compose.material.icons.rounded.BluetoothDisabled
 import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedButton
@@ -50,6 +49,7 @@ import com.rndeveloper.paparcar.presentation.util.collectAsStateLifecycleAware
 import com.rndeveloper.paparcar.ui.components.PapBottomActionBar
 import com.rndeveloper.paparcar.ui.components.PapFooterButton
 import com.rndeveloper.paparcar.ui.components.PapOutlinedCard
+import com.rndeveloper.paparcar.ui.components.PapPrimaryButton
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -270,9 +270,11 @@ private fun BtPermissionState(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
-        Button(onClick = onRequestPermission) {
-            Text(stringResource(Res.string.bt_config_grant_permission), style = PaparcarType.current.cta)
-        }
+        // [UI-BUTTON-ONE-CANONICAL-CTA-001] A plain CTA that had simply never been migrated.
+        PapPrimaryButton(
+            label = stringResource(Res.string.bt_config_grant_permission),
+            onClick = onRequestPermission,
+        )
     }
 }
 

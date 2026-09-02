@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -18,6 +16,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.rndeveloper.paparcar.ui.components.PapButtonTone
+import com.rndeveloper.paparcar.ui.components.PapPrimaryButton
 import com.rndeveloper.paparcar.ui.illustrations.LocationAlertIllustration
 import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
@@ -74,21 +74,18 @@ internal fun HomeLocationBlockedState(
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(PaparcarSpacing.xl))
-        Button(
+        // [UI-BUTTON-ONE-CANONICAL-CTA-001] The canonical CTA with the Destructive tone: red on
+        // purpose (this button BLOCKS consumption until location is granted, it does not inform),
+        // but the silhouette — height, shape, padding — is the app button's, not this file's.
+        PapPrimaryButton(
+            label = stringResource(Res.string.home_det_core_cta),
             onClick = onActivate,
-            modifier = Modifier.fillMaxWidth().height(BUTTON_DP.dp),
-            shape = MaterialTheme.shapes.medium,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.error,
-                contentColor = MaterialTheme.colorScheme.onError,
-            ),
-        ) {
-            Text(text = stringResource(Res.string.home_det_core_cta), style = PaparcarType.current.cta)
-        }
+            modifier = Modifier.fillMaxWidth(),
+            tone = PapButtonTone.Destructive,
+        )
     }
 }
 
-private const val BUTTON_DP = 52
 private const val GRABBER_TOP_DP = 10
 private const val GRABBER_W_DP = 32
 private const val GRABBER_H_DP = 4

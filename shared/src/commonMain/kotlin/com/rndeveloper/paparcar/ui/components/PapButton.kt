@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.ui.theme.PapBorders
+import com.rndeveloper.paparcar.ui.theme.PapShapes
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 
 private val ButtonHorizontalPadding = 24.dp
@@ -37,6 +38,30 @@ private val DefaultContentPadding = PaddingValues(
     vertical   = ButtonVerticalPadding,
 )
 
+private val CompactHorizontalPadding = 16.dp
+private val CompactVerticalPadding   = 8.dp
+
+private val CompactContentPadding = PaddingValues(
+    horizontal = CompactHorizontalPadding,
+    vertical   = CompactVerticalPadding,
+)
+
+/**
+ * [UI-BUTTON-ONE-CANONICAL-CTA-001] What the CTA MEANS — resolved INSIDE the component so a call
+ * site asks for intention, never for `colorScheme.error` by hand. [UI-COLOR-DOCTRINE-001]
+ *
+ * [Destructive] is for the action that BLOCKS or destroys (revoke-location blocked state, delete):
+ * red on purpose, and the one tone that may never be the default.
+ */
+enum class PapButtonTone { Brand, Destructive }
+
+/**
+ * [UI-BUTTON-ONE-CANONICAL-CTA-001] How much room the CTA owns. [Regular] is the screen CTA;
+ * [Compact] is the button living in a row's `trailing` slot, which cannot carry a screen CTA's
+ * padding — its padding and shape are one recipe here, not a per-call-site improvisation.
+ */
+enum class PapButtonSize { Regular, Compact }
+
 /**
  * Primary filled button. Use for the main CTA in a screen.
  *
@@ -48,6 +73,11 @@ private val DefaultContentPadding = PaddingValues(
  *
  * Supports an [isLoading] state — while loading the content is replaced by a
  * [CircularProgressIndicator] and the button is disabled.
+ *
+ * [UI-BUTTON-ONE-CANONICAL-CTA-001] [tone] and [size] are the only two styling axes, on purpose:
+ * a canonical button with five style parameters is M3 with another name. Everything else —
+ * height, shape, padding, spinner — is this file's decision, so a silhouette change lands on
+ * every CTA at once.
  */
 @Composable
 fun PapPrimaryButton(
@@ -57,19 +87,37 @@ fun PapPrimaryButton(
     icon: ImageVector? = null,
     isLoading: Boolean = false,
     enabled: Boolean = true,
+    tone: PapButtonTone = PapButtonTone.Brand,
+    size: PapButtonSize = PapButtonSize.Regular,
 ) {
     Button(
         onClick = onClick,
         modifier = modifier,
         enabled = enabled && !isLoading,
-        contentPadding = DefaultContentPadding,
+        shape = when (size) {
+            PapButtonSize.Regular -> ButtonDefaults.shape
+            PapButtonSize.Compact -> PapShapes.cardSmall
+        },
+        colors = when (tone) {
+            PapButtonTone.Brand -> ButtonDefaults.buttonColors()
+            PapButtonTone.Destructive -> ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.error,
+                contentColor = MaterialTheme.colorScheme.onError,
+            )
+        },
+        contentPadding = when (size) {
+            PapButtonSize.Regular -> DefaultContentPadding
+            PapButtonSize.Compact -> CompactContentPadding
+        },
     ) {
         Box(contentAlignment = Alignment.Center) {
             if (isLoading) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(LoadingIndicatorSize),
                     strokeWidth = 2.dp,
-                    color = MaterialTheme.colorScheme.onPrimary,
+                    // The content colour the tone resolved — onPrimary was hardcoded here, which
+                    // would have painted an invisible spinner on a Destructive fill.
+                    color = LocalContentColor.current,
                 )
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically) {

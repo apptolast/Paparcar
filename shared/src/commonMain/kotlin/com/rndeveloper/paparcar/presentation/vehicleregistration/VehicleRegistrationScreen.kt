@@ -19,7 +19,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Bluetooth
 import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
@@ -57,12 +56,14 @@ import com.rndeveloper.paparcar.ui.components.CarbodyManualPicker
 import com.rndeveloper.paparcar.ui.components.NonCarSizeBadge
 import com.rndeveloper.paparcar.ui.components.PapAlertDialog
 import com.rndeveloper.paparcar.ui.components.PapBottomActionBar
+import com.rndeveloper.paparcar.ui.components.PapButtonSize
 import com.rndeveloper.paparcar.ui.components.PapDangerCard
 import com.rndeveloper.paparcar.ui.components.PapDialogAccent
 import com.rndeveloper.paparcar.ui.components.PapFooterButton
 import com.rndeveloper.paparcar.ui.components.PapIconTile
 import com.rndeveloper.paparcar.ui.components.PapListItem
 import com.rndeveloper.paparcar.ui.components.PapOutlinedCard
+import com.rndeveloper.paparcar.ui.components.PapPrimaryButton
 import com.rndeveloper.paparcar.ui.components.PapSectionHeader
 import com.rndeveloper.paparcar.ui.components.PapSwitchRow
 import com.rndeveloper.paparcar.ui.components.PapTextField
@@ -484,17 +485,14 @@ fun VehicleRegistrationContent(
                             subtitle = stringResource(Res.string.vehicle_registration_bt_desc),
                             subtitleColor = cs.onSurface.copy(alpha = PapAlpha.subtitle),
                             trailing = {
-                                Button(
+                                // [UI-BUTTON-ONE-CANONICAL-CTA-001] The row-trailing recipe
+                                // (16/8 padding + cardSmall) now lives in the canonical button
+                                // as its Compact size, not in this call site.
+                                PapPrimaryButton(
+                                    label = stringResource(Res.string.vehicle_registration_bt_cta),
                                     onClick = onConfigureBluetooth,
-                                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                                    shape = PapShapes.cardSmall,
-                                ) {
-                                    Text(
-                                        text = stringResource(Res.string.vehicle_registration_bt_cta),
-                                        // Button text → cta, the app's button convention. [TYPO-AUDIT-001]
-                                        style = PaparcarType.current.cta,
-                                    )
-                                }
+                                    size = PapButtonSize.Compact,
+                                )
                             },
                         )
                     }
