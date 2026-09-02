@@ -636,6 +636,7 @@ class ConfirmParkingUseCaseTest {
             address: com.rndeveloper.paparcar.domain.model.AddressInfo?,
             placeInfo: com.rndeveloper.paparcar.domain.model.PlaceInfo?,
         ) {}
+        override fun enqueueDeleteVehicleRemote(vehicleId: String) {}
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

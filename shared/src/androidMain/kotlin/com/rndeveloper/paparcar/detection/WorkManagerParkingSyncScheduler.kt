@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.work.ExistingWorkPolicy
 import androidx.work.WorkManager
 import com.rndeveloper.paparcar.detection.worker.ClearActiveParkingSessionWorker
+import com.rndeveloper.paparcar.detection.worker.DeleteVehicleRemoteWorker
 import com.rndeveloper.paparcar.detection.worker.GeofenceJanitorWorker
 import com.rndeveloper.paparcar.detection.worker.SaveNewParkingSessionWorker
 import com.rndeveloper.paparcar.detection.worker.UpdateParkingSessionAddressAndPlaceWorker
@@ -63,6 +64,16 @@ class WorkManagerParkingSyncScheduler(
         GeofenceJanitorWorker.enqueueOnce(
             WorkManager.getInstance(context),
             trigger = GeofenceJanitorWorker.TRIGGER_POST_SYNC,
+        )
+    }
+
+    override fun enqueueDeleteVehicleRemote(vehicleId: String) {
+        // [SYNC-A-REMOTE-DELETE-HAS-NO-OUTBOX-BEHIND-IT-001] Its own unique name, not the parking
+        // chain: nothing may run before a delete, and REPLACE keeps a double-tap idempotent.
+        WorkManager.getInstance(context).enqueueUniqueWork(
+            "vehicle_delete_$vehicleId",
+            ExistingWorkPolicy.REPLACE,
+            DeleteVehicleRemoteWorker.buildRequest(vehicleId),
         )
     }
 }

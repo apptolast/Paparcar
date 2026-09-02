@@ -151,9 +151,14 @@ class FakeParkingEnrichmentScheduler : ParkingEnrichmentScheduler {
 }
 
 class FakeParkingSyncScheduler : ParkingSyncScheduler {
+    /** [SYNC-A-REMOTE-DELETE-HAS-NO-OUTBOX-BEHIND-IT-001] One entry per enqueued vehicle delete. */
+    val deletedVehicleRemotes = mutableListOf<String>()
     override fun enqueueSaveNewParkingSession(session: UserParking, previousSessionId: String?) {}
     override fun enqueueClearActiveParkingSession(sessionId: String) {}
     override fun enqueueUpdateParkingSessionAddressAndPlace(sessionId: String, address: AddressInfo?, placeInfo: PlaceInfo?) {}
+    override fun enqueueDeleteVehicleRemote(vehicleId: String) {
+        deletedVehicleRemotes += vehicleId
+    }
 }
 
 class FakeReportSpotScheduler : ReportSpotScheduler {

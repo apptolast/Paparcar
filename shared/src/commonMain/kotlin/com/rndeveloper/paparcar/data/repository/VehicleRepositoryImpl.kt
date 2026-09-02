@@ -17,6 +17,7 @@ import com.rndeveloper.paparcar.data.mapper.toDto
 import com.rndeveloper.paparcar.data.mapper.toEntity
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
+import com.rndeveloper.paparcar.domain.service.ParkingSyncScheduler
 import com.rndeveloper.paparcar.domain.vehicle.VehicleActiveStatePolicy
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import kotlinx.coroutines.flow.Flow
@@ -40,6 +41,15 @@ class VehicleRepositoryImpl(
      * forever while offline — runs here in the background and self-heals via the sync. [SYNC-RECONCILE-001]
      */
     private val syncScope: CoroutineScope,
+    /**
+     * [SYNC-A-REMOTE-DELETE-HAS-NO-OUTBOX-BEHIND-IT-001] The one lane for remote DELETES. The
+     * [syncScope] pattern above is correct for updates — every mutated row is `pendingSync` and
+     * `pushPendingVehicles()` drains it — but a delete leaves no row to hang the flag on: if the
+     * process dies before the remote delete lands, nothing local remembers it was owed, and the
+     * inbound reconcile pulls the surviving docs back. A worker survives the process death that
+     * the scope does not.
+     */
+    private val parkingSyncScheduler: ParkingSyncScheduler,
 ) : VehicleRepository {
 
     private suspend fun currentUserId(): String? =
@@ -206,16 +216,18 @@ class VehicleRepositoryImpl(
                 null
             }
 
-            // Remote in the background so the delete button doesn't hang on the server ack.
-            // [SYNC-RECONCILE-001]
+            // [SYNC-A-REMOTE-DELETE-HAS-NO-OUTBOX-BEHIND-IT-001] The remote deletes travel in a
+            // WORKER, not in the scope: both are still off the button's critical path (the enqueue
+            // is synchronous and instant), but the job now survives the process death that used to
+            // orphan them — and an orphaned remote delete does not stay half-done, it UNDOES
+            // itself, because the inbound reconcile pulls any surviving remote doc back into Room.
+            // Sessions first inside the job: surviving session docs are what would be resurrected
+            // as history of a car that no longer exists.
+            parkingSyncScheduler.enqueueDeleteVehicleRemote(id)
+            // The promotion mirror stays in the scope on purpose: these are UPDATES — the promoted
+            // row is `pendingSync` and self-heals — moving them would be work with no defect
+            // behind it. [SYNC-RECONCILE-001]
             syncScope.launch {
-                // Sessions FIRST: leaving them in Firestore is not a cosmetic leak — the inbound
-                // reconcile takes any remote row missing locally, so surviving docs would be pulled
-                // straight back into Room as history of a car that no longer exists.
-                runCatching { userProfileDataSource.deleteParkingSessionsForVehicle(uid, id) }
-                    .onFailure { e -> PaparcarLogger.w(DIAG, "deleteVehicle: remote history delete failed $id", e) }
-                runCatching { userProfileDataSource.deleteVehicle(uid, id) }
-                    .onFailure { e -> PaparcarLogger.w(DIAG, "deleteVehicle: remote delete failed $id", e) }
                 if (wasActive) {
                     runCatching { userProfileDataSource.updateDefaultVehicleId(uid, promoteId) }
                         .onFailure { e -> PaparcarLogger.w(DIAG, "deleteVehicle: remote defaultVehicleId failed", e) }
@@ -277,6 +289,10 @@ class VehicleRepositoryImpl(
     }
 
     override suspend fun deleteAllData(userId: String): Result<Unit> = runCatching {
+        // [SYNC-A-REMOTE-DELETE-HAS-NO-OUTBOX-BEHIND-IT-001] Deliberately NOT the worker lane: this
+        // is the account-delete path, and it AWAITS the remote ack — a failure here fails the whole
+        // `DeleteAccountUseCase` and the user is told, which is the right behaviour for "delete my
+        // account" and the wrong one for "delete a car". No shared hole: nothing fire-and-forget.
         userProfileDataSource.deleteUserData(userId) // This handles both profile and sub-collections
         dao.deleteByUser(userId)
     }

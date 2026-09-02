@@ -90,6 +90,26 @@ class IosParkingSyncScheduler(
         }
     }
 
+    override fun enqueueDeleteVehicleRemote(vehicleId: String) {
+        // [SYNC-A-REMOTE-DELETE-HAS-NO-OUTBOX-BEHIND-IT-001] Sessions FIRST, then the vehicle doc —
+        // surviving session docs are what the inbound reconcile resurrects.
+        // TODO [IOS-SYNC-001]: same limitation as every method here, but it bites HARDER for a
+        // delete — an update lost to process death self-heals via `pendingSync`, a delete has no
+        // row left to hang a flag on, so on iOS a kill mid-flight still resurrects the car on the
+        // next sync. Real fix is the BGTaskScheduler bridge this file already tracks.
+        scope.launch {
+            val userId = authRepository.getCurrentSession()?.userId
+            if (userId == null) {
+                PaparcarLogger.w(TAG, "enqueueDeleteVehicleRemote() skipped — no auth session for $vehicleId")
+                return@launch
+            }
+            retrying("deleteVehicleRemote:$vehicleId") {
+                remoteDataSource.deleteParkingSessionsForVehicle(userId, vehicleId)
+                remoteDataSource.deleteVehicle(userId, vehicleId)
+            }
+        }
+    }
+
     private suspend fun retrying(label: String, block: suspend () -> Unit) {
         var attempt = 0
         while (attempt < MAX_RETRIES) {

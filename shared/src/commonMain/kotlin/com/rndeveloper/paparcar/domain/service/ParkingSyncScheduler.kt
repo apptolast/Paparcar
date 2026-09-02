@@ -21,6 +21,7 @@ import com.rndeveloper.paparcar.domain.model.UserParking
  * | New session saved / pin moved     | [enqueueSaveNewParkingSession]             | set() (full)     |
  * | Session released / cleared        | [enqueueClearActiveParkingSession]         | update(isActive) |
  * | Geocoder result ready             | [enqueueUpdateParkingSessionAddressAndPlace]  | update(address)  |
+ * | Vehicle deleted (with history)    | [enqueueDeleteVehicleRemote]               | delete() ×2      |
  *
  * @see com.rndeveloper.paparcar.domain.usecase.parking.ConfirmParkingUseCase
  * @see com.rndeveloper.paparcar.data.repository.UserParkingRepositoryImpl
@@ -59,4 +60,20 @@ interface ParkingSyncScheduler {
      * periodic `GeofenceJanitorWorker` to run. Idempotent. Default no-op for platforms without WorkManager.
      */
     fun enqueueGeofenceRestore() {}
+
+    /**
+     * [SYNC-A-REMOTE-DELETE-HAS-NO-OUTBOX-BEHIND-IT-001] Deletes a vehicle's remote footprint —
+     * its parking sessions FIRST, then the vehicle document, in one job.
+     *
+     * The one write class that CANNOT ride a fire-and-forget scope: an update that never lands
+     * leaves a `pendingSync` row behind and `pushPendingVehicles()` heals it, but a delete leaves
+     * NO row to hang the flag on. If the process dies before the remote delete lands, nothing
+     * local remembers it was owed — and the inbound reconcile then pulls the surviving remote
+     * docs straight back into Room: the delete UNDOES ITSELF. So the invariant: a remote write
+     * that cannot be reconstructed from local state travels in a worker, not in a scope.
+     *
+     * Sessions before vehicle on purpose: surviving session docs are what the reconcile
+     * resurrects as history of a car that no longer exists.
+     */
+    fun enqueueDeleteVehicleRemote(vehicleId: String)
 }

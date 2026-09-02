@@ -1,7 +1,7 @@
 # SYNC-A-REMOTE-DELETE-HAS-NO-OUTBOX-BEHIND-IT-001 · Un borrado remoto es la única escritura sin red de seguridad
 
-**Estado:** 🔵 Abierto, sin código · **sin rama** — este doc está en master (`d32aaf79`); la rama y el
-worktree que lo trajeron se cerraron al mergearlo. Al implementar, worktree nuevo.
+**Estado:** ✅ Done (2026-09-02) · ⏳ el testigo de campo (matar el proceso tras borrar y reabrir)
+queda para el próximo `/run`
 **Abierto:** 2026-08-31 sobre master `d74e6e8c` · nace de
 `VEH-A-DELETED-CAR-DOES-NOT-ERASE-ITS-HISTORY-001` (`b0d40353`), donde el riesgo quedó documentado
 como residual y sin arreglar
@@ -91,17 +91,33 @@ y si comparte el agujero, entra aquí; si no, se dice por qué no.
   debe resucitar el coche. Si no falla, el test no está midiendo esto.
 - Sin strings nuevos (nada de esto se le cuenta al usuario: para él el borrado ya ocurrió).
 
-## Consumidores auditados
+## Consumidores auditados (02-09)
 
-Pendiente de barrido al implementar. Puntos de partida:
+| Sitio | Clasificación |
+|---|---|
+| `VehicleRepositoryImpl.deleteVehicle` — los dos deletes del `syncScope.launch` | **cerrado** — sustituidos por `parkingSyncScheduler.enqueueDeleteVehicleRemote(id)` (enqueue síncrono, el botón no espera) |
+| La rama `wasActive` del mismo launch (promoción defaultVehicleId + flag) | **exenta con razón** — son UPDATES: la fila promovida va `markPending` y se autocura; moverla sería trabajo sin defecto detrás |
+| Los 3 `syncScope` de updates (`saveVehicle`/`setActiveVehicle`/`updateBluetoothDevice`) | **exentos** — fuera de alcance por diseño (buzón + drenaje existen) |
+| `ParkingSyncScheduler` — 4 implementadores (`WorkManager…`, `Ios…`, `FakeParkingSyncScheduler`, `RecordingParkingSyncScheduler` de test) | **cerrados** — los 4 implementan el método nuevo; iOS con el TODO honesto: sin BGTask un kill mid-flight sigue resucitando ahí ([IOS-SYNC-001], le muerde MÁS que a los updates y está escrito) |
+| `RemoteUserProfileDataSource.deleteParkingSessionsForVehicle`/`deleteVehicle` | **sin cambio** — solo cambia quién los llama (el worker) |
+| `UserParkingReconcile` / `reconcileVehicles` | **intactos a propósito** — hacen visible el fallo, no son su causa; el test de resurrección lo documenta |
+| `deleteAllData` (cuenta) | **decidido: NO comparte el agujero** — es llamada suspend AWAITED (sin scope); un fallo falla el `DeleteAccountUseCase` y se le dice al user, que es lo correcto para «borra mi cuenta». Comentado en el código |
 
-- `VehicleRepositoryImpl.deleteVehicle` (`:211`) — el bloque que se muda.
-- `ParkingSyncScheduler` + su actual Android e iOS — ⛔ **iOS también implementa la interfaz**: un
-  método nuevo obliga a resolverlo ahí, aunque sea con un TODO explícito.
-- `RemoteUserProfileDataSource.deleteParkingSessionsForVehicle` / `deleteVehicle` — no cambian, sólo
-  cambia quién los llama.
-- `UserParkingReconcile` — no se toca; es la pieza que hace visible el fallo, no su causa.
-- `deleteAllData` / `deleteUserData` — ver la decisión abierta arriba.
+## Cierre (2026-09-02)
+
+Implementado como estaba diseñado: `enqueueDeleteVehicleRemote(vehicleId)` en `ParkingSyncScheduler`
+(4º del patrón), `DeleteVehicleRemoteWorker` (Android) con las DOS mitades en un job — sesiones
+primero, `NonCancellable`, red requerida, backoff 30 s ×3, unique work `vehicle_delete_<id>` con
+REPLACE — y el actual iOS con el retry de scope y su limitación escrita.
+
+- Tests (7): 4 del worker en `DeleteVehicleRemoteWorkerTest` (orden sesiones→vehículo; retry sin
+  saltarse el orden; retry re-paga las sesiones —idempotentes— antes que trackear progreso parcial;
+  user deslogueado no toca el remoto) + 3 en `VehicleDeleteCascadeTest`: el enqueue como testigo,
+  cero enqueue en un delete bloqueado, y **el testigo de la resurrección** (worker sin correr +
+  remoto vivo → `syncFromRemote` devuelve el coche a Room — la medición de para qué existe el
+  worker).
+- **Falsación hecha**: neutralizando el enqueue en el repo, el testigo cae (1/6 en rojo).
+- Suite **2.142/0** (2.135 previos + 7). Sin strings (nada de esto se le cuenta al user).
 
 ## Relacionados
 
