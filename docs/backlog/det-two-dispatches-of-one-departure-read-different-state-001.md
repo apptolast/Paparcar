@@ -1,9 +1,9 @@
 # DET-TWO-DISPATCHES-OF-ONE-DEPARTURE-READ-DIFFERENT-STATE-001
 
-**Estado:** 🟡 **Backlog — FASE 2 (implementación) PENDIENTE.** La fase 1 (censo + definición)
-quedó completada el 01-09-2026, sin código por diseño; el gate de daño del propio doc está CUMPLIDO
-(la pregunta 3 tiene dos casos medidos). Alcance de la fase 2: el censo de abajo — dirección
-propuesta «snapshot de adjudicación por hecho», con sus 3 preguntas abiertas al final. Sin rama.
+**Estado:** ✅ **FASE 2 hecha (2026-09-03)** — el sello de adjudicación existe y lo consulta la
+puerta 4 (el safety net), que es de donde salieron los DOS incidentes medidos. Las 3 preguntas
+abiertas están contestadas abajo. ⏳ Campo: la línea `⊷ observation ADHERES`.
+Fase 1 (censo + definición): 01-09-2026, sin código por diseño.
 
 > ⛔ **Este ticket se llamaba `DET-A-DEPARTURE-DISPATCHES-ONCE-PER-FENCE-001` y ese nombre estaba
 > mal.** Prejuzgaba la solución —deduplicar— y la deduplicación es precisamente lo que los datos
@@ -132,3 +132,62 @@ Preguntas abiertas para la fase 2: (a) ¿`KEEP` en vez de `REPLACE` pierde el up
 `preconfirmed` de un despacho posterior mejor informado?; (b) ¿dónde vive el snapshot —
 prefs junto a los seals, o workData del primer despacho?; (c) ¿el watchdog (puerta 5, sin worker)
 se adhiere o su palabra-de-user lo exime?
+
+---
+
+## FASE 2 (2026-09-03) · El sello de adjudicación
+
+**El invariante, en una frase: un hecho, una adjudicación.** El primer despacho de una salida SELLA
+el hecho; una observación posterior del MISMO hecho **se adhiere** —no re-adjudica y no vuelve a
+despachar— salvo que traiga prueba **estrictamente mayor**.
+
+La regla vive pura en `domain/detection/DepartureAdjudication.kt` (`adjudicateDeparture`, patrón
+`HumanPoweredRide`/`ExplainedDeparture` — predicado, no caso de uso [DET-VERDICT-NOT-PREDICATE-001])
+y el sello se persiste en las mismas prefs por-valla que los anchors.
+
+### Por qué esto NO es el dedupe que el user descartó
+
+Su objeción sigue en pie y es la que da forma al arreglo: *«el que omitimos podría ser el bueno»*.
+La respuesta no es elegir mejor, es que **el segundo veredicto nunca fue evidencia independiente**:
+la primera pasada reselló el witness, así que la segunda midió un presupuesto de pasos que la
+primera acababa de gastar. Adherirse no es «me quedo con el primero» — es **negarse a re-derivar un
+veredicto a partir de estado ya comido**. El pin equivocado de aquel día lo cerró
+`DET-BACKFILL-MUST-NOT-PIN-A-MOVING-CAR-001` (`29a9b0a5`); lo que faltaba aquí era que el veredicto
+**dejara de depender del orden de llegada**.
+
+### Las 3 preguntas abiertas, contestadas
+
+| # | Pregunta | Respuesta |
+|---|---|---|
+| a | ¿`KEEP` en vez de `REPLACE` pierde el upgrade a `preconfirmed`? | **Sí, y por eso `REPLACE` se queda.** `KEEP` decidiría en WorkManager, que es demasiado tarde y demasiado tonto: dejaría caer en silencio justo la observación mejor informada. El sello decide ANTES del enqueue — una observación que se adhiere no llega nunca a WorkManager (así que tampoco reinicia la cadena, que era el riesgo de la pregunta b de la fase 1), y un `Upgrade` sí reemplaza a propósito, porque tiene que meter `preconfirmed` en la request. |
+| b | ¿Dónde vive el snapshot — prefs o `workData`? | **Prefs, y `workData` está descartado por construcción**: muere con la request que el siguiente `REPLACE` sobrescribe, o sea exactamente cuando una segunda observación necesitaría leerlo. Va al mismo fichero que los seals del anchor (`adjudication_<geofenceId>`), y **se cierra por el mismo barrido**: la salida adjudicada termina la sesión → `pruneStaleAnchors` no encuentra valla viva y borra el sello. |
+| c | ¿El watchdog (puerta 5, sin worker) se adhiere? | **No: exento, y sin cierre explícito.** Su autoridad es la PALABRA DEL USUARIO, y la aserción supera a la inferencia [DET-ASSERTION-OUTRANKS-INFERENCE-001]; hacer que se adhiera a una deducción del safety net sería invertir esa jerarquía. No necesita cerrar nada: procesa directo, la sesión acaba y el barrido tira el sello en el tick siguiente. |
+
+**Y una respuesta que el diseño de la fase 1 ya no necesita**: el doc proponía mover el resello del
+witness al CIERRE de la adjudicación. No hace falta y no se ha tocado — una vez que no existe una
+segunda adjudicación del mismo hecho, el resello no engaña a nadie, y para las OTRAS sesiones del
+mismo tick (hechos distintos) el sello fresco es justamente la lectura correcta.
+
+### Alcance: quién CONSULTA el sello, y por qué solo uno
+
+- **Puerta 4 (`ParkingSafetyNetWorker`) — consulta y escribe.** Es de donde salieron los dos
+  incidentes medidos (30-08 doble wake a 596 ms; 31-08 honest close vs carril de salida).
+- **Puertas 1-3 (EXIT frontera / EXIT far-delivered / AR `ArmMidTrip`, en `CoordinatorDetectionService`)
+  — NO consultan.** Es el carril VIVO, y la doctrina dice *todo trigger dispara SIEMPRE*: hacer que
+  el tiempo real se calle porque el reconciliador ya opinó invierte la jerarquía. ⏳ Lo que sí queda
+  como continuación natural (sin caso medido todavía) es que ESCRIBAN el sello sin leerlo, para que
+  el safety net pueda adherirse a un despacho del carril vivo. No es re-implementar la regla: es
+  añadir escritores al mismo sello, que ya tiene una sola casa.
+- **Puerta 5 (watchdog)** — exenta, ver (c).
+
+### Medido
+
+- Suite **2.151/0** (8 tests nuevos de la regla pura). **Falsación por partida doble**: neutralizando
+  `Adhere` caen 4/8; neutralizando `Upgrade` cae 1/8.
+- ⚠️ **El cableado del worker no tiene test unitario, y se dice en vez de disimularse**: este repo no
+  tiene harness para `ParkingSafetyNetWorker` (inyecta ubicación, repos, geocercas, podómetro, BT,
+  bus y notificaciones) y montarlo era más ticket que el ticket. La DECISIÓN sí está cubierta, que es
+  donde la doctrina la pone; las 20 líneas de cableado se verifican en campo con su línea de traza.
+- ⏳ **Criterio de campo**: `⊷ observation ADHERES` en el `parkdiag` cuando dos wakes del safety net
+  caigan sobre la misma valla, y **cero** `safety_net_dispatch` duplicados para un mismo `geofenceId`
+  en la misma ventana.

@@ -7427,3 +7427,49 @@ happened, the fence never broke, the car rests where its pin says. Suite 2 135/0
 updated to the new behaviour, discrimination verified by neutralizing each guard separately).
 
 Spec: `docs/backlog/det-displacement-drive-must-survive-its-next-fix-001.md`.
+
+---
+
+### DET-TWO-DISPATCHES-OF-ONE-DEPARTURE-READ-DIFFERENT-STATE-001 (phase 2) — one fact, one adjudication
+
+**Not a user report — a measured structural defect** (field 2026-08-30 21:27, Oppo): the same fence
+dispatched its departure TWICE, 596 ms apart, from two safety-net wakes. The first read
+`arrivalWalk=12` and planted the wrong pin; the second read `arrivalWalk=0` and vetoed.
+
+**Root cause, and why the obvious fix was wrong**: the two verdicts were never independent. The
+first pass RESEALED the witness slot, so the second measured a step budget the first had just
+spent — it was right as a side effect, not because it knew more. Deduplicating was ruled out by the
+data itself: *keep the first* keeps the bad one, *keep the last* picks by arrival order, which is
+the defect. The real statement is **a departure is a FACT and the OS delivers it several times; each
+delivery was opening its own adjudication against state the previous one had consumed.**
+
+**Fix**: a per-fence adjudication seal. The first dispatch seals the fact (`adjudication_<fenceId>`,
+same prefs file as the anchor seals, written BEFORE the side effects so a process death cannot leave
+the fact unadjudicated); a later observation of the same fact **adheres** — it does not re-adjudicate
+and does not re-enqueue — unless it carries strictly MORE proof (`preconfirmed`: the trip is already
+over, so the departure worker must skip the speed re-check), which is an **upgrade**, not a matter of
+who arrived first. The decision is pure and testable (`domain/detection/DepartureAdjudication.kt`);
+the worker only stores and obeys. Past a 5-minute window the same fence breaking is a NEW fact
+(park, leave, come back, leave again), and the seal is closed by the existing stale-key sweep: the
+adjudicated departure ends the session, so the next tick finds no live fence for it.
+
+Three things deliberately NOT done, each with its reason in the ticket: the witness reseal was not
+moved (with no second adjudication of the same fact there is nobody left to mislead, and for the
+OTHER sessions of that tick the fresh seal is the correct reading); `REPLACE` was not swapped for
+`KEEP` (WorkManager would silently drop the better-informed observation — the seal decides earlier
+and better); and the watchdog lane stays exempt, because its authority is the user's word and
+assertion outranks inference [DET-ASSERTION-OUTRANKS-INFERENCE-001].
+
+**Scope**: the seal is read by the safety net, which is where both measured incidents came from. The
+live lanes (EXIT at the border, far-delivered EXIT, AR arm) do not consult it — *every trigger always
+fires* is doctrine, and making real time defer to the reconciler would invert it. Writing the seal
+from those lanes so the safety net can adhere to a live dispatch is the natural continuation, with
+no measured case yet.
+
+**Accompanying risk**: an adhering observation is one the net does NOT act on, so a genuinely new
+departure inside the window would be swallowed. Bounded by the window being 5 min and by the seal
+dying with the session. Suite 2 151/0, 8 new tests; falsified twice (neutralizing `Adhere` fails
+4/8, neutralizing `Upgrade` fails 1/8). The worker wiring has no unit test — this repo has no
+harness for `ParkingSafetyNetWorker` — so its field criterion is the `⊷ observation ADHERES` line.
+
+Spec: `docs/backlog/det-two-dispatches-of-one-departure-read-different-state-001.md`.

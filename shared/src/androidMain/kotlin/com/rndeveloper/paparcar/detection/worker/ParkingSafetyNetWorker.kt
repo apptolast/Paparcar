@@ -33,6 +33,9 @@ import com.rndeveloper.paparcar.domain.detection.DetectionPath
 import com.rndeveloper.paparcar.domain.detection.ArrivalOwner
 import com.rndeveloper.paparcar.domain.detection.DetectionRuntimeState
 import com.rndeveloper.paparcar.domain.detection.arrivalOwner
+import com.rndeveloper.paparcar.domain.detection.DepartureAdjudicationVerdict
+import com.rndeveloper.paparcar.domain.detection.OpenDepartureAdjudication
+import com.rndeveloper.paparcar.domain.detection.adjudicateDeparture
 import com.rndeveloper.paparcar.domain.detection.cleanOrphanEnterFences
 import com.rndeveloper.paparcar.domain.detection.stillParkedPromptsExplainedByDeparture
 import com.rndeveloper.paparcar.domain.detection.sentry.SentryKillVerdict
@@ -458,6 +461,52 @@ class ParkingSafetyNetWorker(
                 }
 
                 is SafetyNetAction.DispatchDeparture -> {
+                    // [DET-TWO-DISPATCHES-OF-ONE-DEPARTURE-READ-DIFFERENT-STATE-001] One fact, one
+                    // adjudication. This wake may be a LATER OBSERVATION of a departure a previous
+                    // wake already dispatched — field 2026-08-30 21:27, two wakes 596 ms apart on
+                    // the same fence — and the second reading is not independent evidence: the
+                    // first pass resealed the witness slot, so the second measures a step budget
+                    // the first just spent. Adhering is not "keep the first": it is declining to
+                    // re-derive a verdict from state that has been eaten. Only strictly MORE proof
+                    // (`preconfirmed` where the open adjudication had none) may re-open it.
+                    val adjudication = adjudicateDeparture(
+                        open = readAdjudication(prefs, action.geofenceId),
+                        nowMs = now,
+                        observationPreconfirmed = action.preconfirmed,
+                        windowMs = ADJUDICATION_WINDOW_MS,
+                    )
+                    if (adjudication == DepartureAdjudicationVerdict.Adhere) {
+                        PaparcarLogger.d(
+                            DIAG,
+                            "⊷ observation ADHERES to the open adjudication of geofence=${action.geofenceId} — " +
+                                "this departure was already dispatched and nothing here outranks it " +
+                                "[DET-TWO-DISPATCHES-OF-ONE-DEPARTURE-READ-DIFFERENT-STATE-001]"
+                        )
+                        logVerdict(
+                            action.geofenceId,
+                            verdict = "safety_net_dispatch_adhered",
+                            source = source,
+                            fixSpeedKmh = fix.speed * KMH_PER_MPS,
+                            now = now,
+                        )
+                        debugLines += "geof=$geofTag: esta salida ya se estaba procesando (aviso repetido del sistema) → no la proceso otra vez"
+                        // The action stays in `tickActions`: the departure IS a fact of this tick,
+                        // so it still explains the other cars' displacement.
+                        // [DET-EXPLAINED-RIDE-ASKS-NO-OTHER-CAR-001]
+                        continue
+                    }
+                    // Sealed BEFORE the side effects: a process death between the enqueue and this
+                    // write would leave the fact unadjudicated and the next wake would re-derive it
+                    // from consumed state, which is the defect itself.
+                    writeAdjudication(prefs, action.geofenceId, now, action.preconfirmed)
+                    if (adjudication == DepartureAdjudicationVerdict.Upgrade) {
+                        PaparcarLogger.d(
+                            DIAG,
+                            "⇑ adjudication UPGRADED for geofence=${action.geofenceId} — this observation proves " +
+                                "the trip already ENDED and the open one did not, so the departure worker must " +
+                                "skip the speed re-check [DET-TWO-DISPATCHES-OF-ONE-DEPARTURE-READ-DIFFERENT-STATE-001]"
+                        )
+                    }
                     // [DET-RECONCILE-001] preconfirmed = the trip already ENDED — the evaluator
                     // dates it (anchor seal, or the AR boarding when that was the proof) so the
                     // freshness gate measures the real age of the freed spot, not the age of
@@ -926,6 +975,38 @@ class ParkingSafetyNetWorker(
     private fun readExitDeliveredAt(prefs: android.content.SharedPreferences, geofenceId: String): Long? =
         prefs.getLong(EXIT_KEY_PREFIX + geofenceId, 0L).takeIf { it > 0L }
 
+    /**
+     * [DET-TWO-DISPATCHES-OF-ONE-DEPARTURE-READ-DIFFERENT-STATE-001] The adjudication open for this
+     * fence's departure, or null when none is. Stored as `"<openedAtMs>|<preconfirmed>"` in the same
+     * prefs file as the anchor seals — NOT in the dispatch's `workData`, which dies with the request
+     * the next `REPLACE` overwrites, i.e. exactly when a second observation needs to read it.
+     *
+     * Parsed defensively: a slot we cannot read is treated as no adjudication, which errs toward
+     * adjudicating again rather than toward silence.
+     */
+    private fun readAdjudication(
+        prefs: android.content.SharedPreferences,
+        geofenceId: String,
+    ): OpenDepartureAdjudication? {
+        val raw = prefs.getString(ADJUDICATION_KEY_PREFIX + geofenceId, null) ?: return null
+        val parts = raw.split('|')
+        val openedAt = parts.getOrNull(0)?.toLongOrNull()?.takeIf { it > 0L } ?: return null
+        return OpenDepartureAdjudication(
+            openedAtMs = openedAt,
+            preconfirmed = parts.getOrNull(1)?.toBooleanStrictOrNull() ?: false,
+        )
+    }
+
+    /** Seals this fence's departure as adjudicated, with the grade of proof it was dispatched on. */
+    private fun writeAdjudication(
+        prefs: android.content.SharedPreferences,
+        geofenceId: String,
+        atMs: Long,
+        preconfirmed: Boolean,
+    ) {
+        prefs.edit { putString(ADJUDICATION_KEY_PREFIX + geofenceId, "$atMs|$preconfirmed") }
+    }
+
     /** Removes per-geofence anchor + prompt-throttle + exit-evidence keys for geofences with no
      *  active session left (departed / reverted). */
     private fun pruneStaleAnchors(prefs: android.content.SharedPreferences, liveGeofenceIds: Set<String>) {
@@ -936,6 +1017,12 @@ class ParkingSafetyNetWorker(
                 key.startsWith(ANCHOR_STEPS_KEY_PREFIX) -> key.removePrefix(ANCHOR_STEPS_KEY_PREFIX) !in liveGeofenceIds
                 key.startsWith(ANCHOR_KEY_PREFIX) -> key.removePrefix(ANCHOR_KEY_PREFIX) !in liveGeofenceIds
                 key.startsWith(PROMPT_KEY_PREFIX) -> key.removePrefix(PROMPT_KEY_PREFIX) !in liveGeofenceIds
+                // [DET-TWO-DISPATCHES-OF-ONE-DEPARTURE-READ-DIFFERENT-STATE-001] …and this is also
+                // how the adjudication CLOSES: the departure it adjudicated ends the session, so the
+                // next tick finds no live fence for it and drops the seal. That is why the watchdog
+                // lane — which processes a departure directly, on the user's own word — needs no
+                // explicit close: its authority never passed through here.
+                key.startsWith(ADJUDICATION_KEY_PREFIX) -> key.removePrefix(ADJUDICATION_KEY_PREFIX) !in liveGeofenceIds
                 key.startsWith(EXIT_KEY_PREFIX) -> key.removePrefix(EXIT_KEY_PREFIX) !in liveGeofenceIds
                 key.startsWith(CURE_KEY_PREFIX) -> key.removePrefix(CURE_KEY_PREFIX) !in liveGeofenceIds
                 // [DET-FENCE-REREGISTER-BY-CAUSE-001 §B] Its own branch: "cure_poisoned_" is NOT
@@ -1011,6 +1098,26 @@ class ParkingSafetyNetWorker(
         private const val PROMPT_THROTTLE_MS = 6 * 60 * 60 * 1_000L
         /** Per-geofence prompt-throttle timestamp keys, in the same prefs file as the anchor. */
         private const val PROMPT_KEY_PREFIX = "prompt_"
+
+        /** [DET-TWO-DISPATCHES-OF-ONE-DEPARTURE-READ-DIFFERENT-STATE-001] Per-geofence seal of the
+         *  departure adjudication currently open, same prefs file as everything else per-fence. */
+        private const val ADJUDICATION_KEY_PREFIX = "adjudication_"
+
+        /**
+         * How long a departure adjudication stays open. Two bounds, and the value sits between them:
+         *
+         *  - it must OUTLIVE the dispatch chain's own retries (`DepartureDetectionWorker` re-checks
+         *    at 15/30/60 s), or a retry still in flight would be re-adjudicated underneath itself —
+         *    the very race this seal exists to end;
+         *  - it must stay far BELOW the interval at which a human parks the same fence and departs
+         *    again, because past this window the same fence breaking IS a new fact, not a late
+         *    observation of the old one.
+         *
+         * The measured double dispatch was 596 ms apart, so the floor is not what is tight here;
+         * five minutes clears the retry ladder with room and is an order of magnitude under any
+         * park-and-leave-again cycle.
+         */
+        private const val ADJUDICATION_WINDOW_MS = 5 * 60 * 1_000L
 
         // [OEM-KILL-001] Heartbeat persistence (must survive process death — SharedPreferences).
         // [DET-HONEST-CLOSE-001] PREFS_NAME + ANCHOR_STEPS_KEY_PREFIX are `internal` so the
