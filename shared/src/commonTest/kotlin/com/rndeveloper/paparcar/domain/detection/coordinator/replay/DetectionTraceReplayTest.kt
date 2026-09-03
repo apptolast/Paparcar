@@ -1299,7 +1299,7 @@ class DetectionTraceReplayTest {
     @Test
     fun parafarmacia_2908_one_doppler_sample_must_not_replace_a_good_pin() =
         runTest(UnconfinedTestDispatcher()) {
-            val replayer = DetectionTraceReplayer(TRACE_PARAFARMACIA_2908)
+            val replayer = DetectionTraceIngestion(TRACE_PARAFARMACIA_2908)
             val env = buildEnv(clock = { replayer.nowMs }, config = ParkingDetectionConfig())
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 256)
             val job = launch {
@@ -1396,7 +1396,7 @@ class DetectionTraceReplayTest {
     @Test
     fun casa_gap_anchor_3008_the_zone_must_centre_on_the_rest_it_witnessed() =
         runTest(UnconfinedTestDispatcher()) {
-            val replayer = DetectionTraceReplayer(TRACE_CASA_GAP_ANCHOR_3008 + TRACE_CASA_GAP_ANCHOR_3008_QUIET_TAIL)
+            val replayer = DetectionTraceIngestion(TRACE_CASA_GAP_ANCHOR_3008 + TRACE_CASA_GAP_ANCHOR_3008_QUIET_TAIL)
             val env = buildEnv(clock = { replayer.nowMs }, config = ParkingDetectionConfig())
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 1200)
             val job = launch {
@@ -1529,7 +1529,7 @@ class DetectionTraceReplayTest {
     @Test
     fun camelias_oppo_001_an_unanswered_prompt_draws_the_walk_in_doubt_as_a_zone() =
         runTest(UnconfinedTestDispatcher()) {
-            val replayer = DetectionTraceReplayer(
+            val replayer = DetectionTraceIngestion(
                 TraceCameliasOppo001.events + TraceCameliasOppo001.quietTail,
             )
             val env = buildEnv(clock = { replayer.nowMs }, config = ParkingDetectionConfig())
@@ -1595,7 +1595,7 @@ class DetectionTraceReplayTest {
     @Test
     fun camelias_oppo_001_a_user_yes_keeps_that_same_doubt_as_a_zone() =
         runTest(UnconfinedTestDispatcher()) {
-            val replayer = DetectionTraceReplayer(TraceCameliasOppo001.events)
+            val replayer = DetectionTraceIngestion(TraceCameliasOppo001.events)
             val env = buildEnv(clock = { replayer.nowMs }, config = ParkingDetectionConfig())
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 700)
             val job = launch { env.coordinator.invoke(locations, armEvidence = ArmEvidence.Unverified) }
