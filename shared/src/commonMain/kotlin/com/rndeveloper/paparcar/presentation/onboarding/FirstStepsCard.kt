@@ -119,6 +119,10 @@ fun FirstStepsCard(
     onDeferStep: (FirstStep) -> Unit = {},
     /** Tap on a postponed step: it becomes the current ask again. */
     onResumeStep: (FirstStep) -> Unit = {},
+    /** Whether a position is already known. CTAs that need one stay disabled until it arrives —
+     *  Home fills in over the first seconds and the GPS fix is the last thing to land.
+     *  [UI-HOME-MUST-NOT-OFFER-WHAT-IT-CANNOT-DO-YET-001] */
+    hasLocation: Boolean = true,
 ) {
     PapOutlinedCard(modifier = modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(vertical = CARD_V_PAD_DP.dp)) {
@@ -146,6 +150,7 @@ fun FirstStepsCard(
                         findSpotAsk = progress.findSpotAsk,
                         watchAsk = progress.watchAsk,
                         reinforcement = progress.reinforcement,
+                        hasLocation = hasLocation,
                         onStart = { onStartStep(step) },
                         onDefer = { onDeferStep(step) },
                         onResume = { onResumeStep(step) },
@@ -210,6 +215,7 @@ private fun StepRow(
     findSpotAsk: FindSpotAsk,
     watchAsk: WatchAsk,
     reinforcement: WatchReinforcement,
+    hasLocation: Boolean,
     onStart: () -> Unit,
     onDefer: () -> Unit,
     onResume: () -> Unit,
@@ -278,6 +284,10 @@ private fun StepRow(
                     label = stringResource(cta),
                     onClick = onStart,
                     size = PapButtonSize.Compact,
+                    // Not hidden, DISABLED: a button that vanishes and comes back reads as a glitch,
+                    // and the step still has to say what it is going to ask of you.
+                    // [UI-HOME-MUST-NOT-OFFER-WHAT-IT-CANNOT-DO-YET-001]
+                    enabled = hasLocation || !copy.needsLocation,
                 )
                 // The way out, next to the way in. Only steps that ASK FOR A PERMISSION carry it:
                 // marking your parking or meeting the community are things the app can keep asking
@@ -414,6 +424,16 @@ private data class FirstStepCopy(
      * [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001]
      */
     val asksForPermission: Boolean = false,
+    /**
+     * This CTA cannot do anything without a position. [UI-HOME-MUST-NOT-OFFER-WHAT-IT-CANNOT-DO-YET-001]
+     *
+     * Home fills in over the first seconds — preferences, vehicles, permissions, and the GPS fix
+     * last of all — and a button pressed before its data arrives does not fail loudly: marking a
+     * parking with no fix enters pin mode with no centre, and entering report mode with neither
+     * camera nor GPS falls back to `0.0, 0.0`. Better to look unavailable for a moment than to
+     * accept a tap it cannot honour.
+     */
+    val needsLocation: Boolean = false,
 )
 
 private fun FirstStep.copy(
@@ -428,6 +448,7 @@ private fun FirstStep.copy(
         subtitle = Res.string.first_steps_park_sub,
         cta = Res.string.first_steps_park_cta,
         icon = Icons.Rounded.AddLocationAlt,
+        needsLocation = true,
     )
     // The eye is the app's established "we are watching this car" glyph (the Watching story row).
     //
@@ -502,6 +523,7 @@ private fun FirstStep.copy(
             title = Res.string.first_steps_spot_report_title,
             subtitle = Res.string.first_steps_spot_report_sub,
             cta = Res.string.first_steps_spot_report_cta,
+            needsLocation = true,
             // The glyph follows the ask: reporting is putting a spot ON the map, the same
             // AddLocationAlt gesture step 1 uses for your own parking — not exploring for one.
             icon = Icons.Rounded.AddLocationAlt,

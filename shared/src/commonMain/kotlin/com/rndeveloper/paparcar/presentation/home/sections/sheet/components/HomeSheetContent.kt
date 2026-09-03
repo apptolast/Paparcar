@@ -170,6 +170,10 @@ fun LazyListScope.homeSheetItems(
                 // [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001]
                 onDeferStep = { step -> onIntent(HomeIntent.DeferFirstStep(step)) },
                 onResumeStep = { step -> onIntent(HomeIntent.ResumeFirstStep(step)) },
+                // Sin posicion no se puede ni marcar un aparcamiento ni avisar de una plaza: esos
+                // CTA esperan al primer fix en vez de aceptar un toque que no pueden cumplir.
+                // [UI-HOME-MUST-NOT-OFFER-WHAT-IT-CANNOT-DO-YET-001]
+                hasLocation = slice.userGpsPoint != null,
                 // [ONBOARDING-A-SPOT-IS-BORN-TWO-WAYS-001] Every row opens its explainer, done ones
                 // included — that is what makes replaying the checklist from Settings worth
                 // something once the live state already ticks all three.
