@@ -577,7 +577,7 @@ private fun clusterSpots(spots: List<Spot>, thresholdDeg: Double): List<SpotClus
     val remaining = spots.toMutableList()
     val clusters = mutableListOf<SpotCluster>()
     while (remaining.isNotEmpty()) {
-        val seed = remaining.removeFirst()
+        val seed = remaining.removeAt(0)
         val group = mutableListOf(seed)
         val iter = remaining.iterator()
         while (iter.hasNext()) {
