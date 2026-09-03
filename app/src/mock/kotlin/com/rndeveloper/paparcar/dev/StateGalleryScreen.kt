@@ -87,6 +87,9 @@ import com.rndeveloper.paparcar.presentation.permissions.PermissionsState
 import com.rndeveloper.paparcar.presentation.preview.FakeData
 import com.rndeveloper.paparcar.domain.model.DetectionTier
 import com.rndeveloper.paparcar.domain.permissions.RequiredPermission
+import com.rndeveloper.paparcar.presentation.licenses.LicenseDetailContent
+import com.rndeveloper.paparcar.presentation.licenses.LicensesContent
+import com.rndeveloper.paparcar.presentation.licenses.LicensesState
 import com.rndeveloper.paparcar.presentation.settings.SettingsContent
 import com.rndeveloper.paparcar.presentation.settings.SettingsState
 import com.rndeveloper.paparcar.presentation.vehicleregistration.VehicleRegistrationContent
@@ -140,6 +143,12 @@ private class Variant(
     val content: @Composable () -> Unit,
 )
 private class ScreenGroup(val title: String, val variants: List<Variant>)
+
+private val licensesLoaded = LicensesState(
+    isLoading = false,
+    libraries = FakeData.openSourceLibraries,
+    licenses = FakeData.openSourceLicenses,
+)
 
 private val sampleProfile = UserProfile(
     userId = "u1",
@@ -1443,6 +1452,26 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                         isSendingDiagnostics = true,
                     ),
                 )
+            },
+        ),
+    ),
+    // [SET-LICENSES-ARE-SHOWN-IN-THE-APP-001] La atribución OSS. Con datos de muestra: la lista de
+    // verdad la genera el build a partir del grafo de Gradle, y en la galería importa la FORMA —
+    // las dos clases de licencia (texto entregable vs términos que solo se enlazan) y los dos
+    // fallos posibles (cargando, y un APK que salió sin el fichero).
+    ScreenGroup(
+        "Licencias open source",
+        listOf(
+            Variant("Lista de librerías") { LicensesContent(state = licensesLoaded) },
+            Variant("Cargando") { LicensesContent(state = LicensesState(isLoading = true)) },
+            Variant("No se pudo leer") {
+                LicensesContent(state = LicensesState(isLoading = false, failedToLoad = true))
+            },
+            Variant("Detalle · texto completo") {
+                LicenseDetailContent(state = licensesLoaded, licenseId = FakeData.licenseApache.id)
+            },
+            Variant("Detalle · solo enlace") {
+                LicenseDetailContent(state = licensesLoaded, licenseId = FakeData.licenseTerms.id)
             },
         ),
     ),

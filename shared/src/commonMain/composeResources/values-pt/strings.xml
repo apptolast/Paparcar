@@ -204,6 +204,12 @@
     <string name="settings_version">Versão</string>
     <string name="settings_privacy">Política de privacidade</string>
     <string name="settings_licenses">Licenças open source</string>
+    <string name="licenses_cd_back">Voltar</string>
+    <string name="licenses_subtitle">O Paparcar é feito com software de código aberto. Toca numa biblioteca para ler a licença com que é distribuída.</string>
+    <string name="licenses_count">%1$d bibliotecas · %2$d licenças</string>
+    <string name="licenses_error">Esta versão não inclui a lista de licenças, por isso não pode ser mostrada. Reinstalar o Paparcar repõe-na.</string>
+    <string name="licenses_detail_no_text">Estes termos pertencem ao seu proprietário e não são distribuídos dentro da app. Abre-os para ler o texto completo.</string>
+    <string name="licenses_detail_open_terms">Ler os termos completos</string>
 
     <!-- Mensagens de erro genéricas -->
     <string name="error_unknown">Algo correu mal</string>

@@ -205,6 +205,12 @@
     <string name="settings_version">Version</string>
     <string name="settings_privacy">Datenschutzrichtlinie</string>
     <string name="settings_licenses">Open-Source-Lizenzen</string>
+    <string name="licenses_cd_back">Zurück</string>
+    <string name="licenses_subtitle">Paparcar ist mit Open-Source-Software gebaut. Tippe auf eine Bibliothek, um die Lizenz zu lesen, unter der sie ausgeliefert wird.</string>
+    <string name="licenses_count">%1$d Bibliotheken · %2$d Lizenzen</string>
+    <string name="licenses_error">Diese Version enthält die Lizenzliste nicht, deshalb kann sie nicht angezeigt werden. Eine Neuinstallation von Paparcar stellt sie wieder her.</string>
+    <string name="licenses_detail_no_text">Diese Bedingungen gehören ihrem Anbieter und werden nicht in der App mitgeliefert. Öffne sie, um den vollständigen Text zu lesen.</string>
+    <string name="licenses_detail_open_terms">Vollständige Bedingungen lesen</string>
 
     <!-- Fehlermeldungen -->
     <string name="error_unknown">Etwas ist schiefgelaufen</string>

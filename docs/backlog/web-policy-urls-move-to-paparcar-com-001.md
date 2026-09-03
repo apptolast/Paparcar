@@ -2,6 +2,10 @@
 
 **Estado:** ✅ Done (03-09-2026)
 
+> 📌 Actualización 03-09-2026: `LICENSES_URL` ya no existe. La fila abre una pantalla in-app
+> generada desde el grafo de Gradle — ver `set-licenses-are-shown-in-the-app-001.md`.
+
+
 ## Problema
 `paparcar.com` quedó conectado a Firebase Hosting el 02/03-09-2026 (verificado: A `199.36.158.100`,
 `https://paparcar.com/privacy-policy` y `/delete-account` responden 200 con certificado, http→https

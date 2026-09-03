@@ -72,6 +72,9 @@ google-services = "4.5.0"
 # Publicado en Maven Central desde rndevelo/kmp-maps tag v0.9.1-puck4 [BUILD-KMPMAPS-CENTRAL-DEPENDENCY-001].
 kmp-maps = "0.9.1-puck4"
 
+# ── Licencias OSS — AboutLibraries ───────────────────────────────────────────
+aboutlibraries = "15.2.0"
+
 # ── Logging — Napier ─────────────────────────────────────────────────────────
 napier = "2.7.1"
 
@@ -183,6 +186,9 @@ firebase-common = { module = "dev.gitlive:firebase-common", version.ref = "fireb
 # El paquete del código sigue siendo com.swmansion.kmpmaps.core; solo cambian las coordenadas.
 kmp-maps-core = { module = "io.github.rndevelo.kmpmaps:core", version.ref = "kmp-maps" }
 
+# ── Licencias OSS — AboutLibraries (solo el core: los DATOS, no su UI) ───────
+aboutlibraries-core = { module = "com.mikepenz:aboutlibraries-core", version.ref = "aboutlibraries" }
+
 # ── Logging — Napier (KMP) ───────────────────────────────────────────────────
 napier = { module = "io.github.aakira:napier", version.ref = "napier" }
 
@@ -224,3 +230,4 @@ firebaseCrashlytics = { id = "com.google.firebase.crashlytics", version.ref = "f
 firebaseAppDistribution = { id = "com.google.firebase.appdistribution", version.ref = "firebase-appdistribution-plugin" }
 room = { id = "androidx.room", version.ref = "room" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+aboutLibraries = { id = "com.mikepenz.aboutlibraries.plugin", version.ref = "aboutlibraries" }

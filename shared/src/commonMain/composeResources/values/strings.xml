@@ -359,6 +359,12 @@
     <string name="settings_version">Version</string>
     <string name="settings_privacy">Privacy policy</string>
     <string name="settings_licenses">Open source licenses</string>
+    <string name="licenses_cd_back">Back</string>
+    <string name="licenses_subtitle">Paparcar is built with open source software. Tap a library to read the license it ships under.</string>
+    <string name="licenses_count">%1$d libraries · %2$d licenses</string>
+    <string name="licenses_error">This build did not ship the license list, so it cannot be shown. Reinstalling Paparcar restores it.</string>
+    <string name="licenses_detail_no_text">These terms belong to their vendor and are not distributed inside the app. Open them to read the full text.</string>
+    <string name="licenses_detail_open_terms">Read the full terms</string>
     <string name="settings_contact">Contact</string>
     <string name="settings_send_diagnostics">Report a problem</string>
     <string name="settings_send_diagnostics_confirm_title">Send diagnostics?</string>

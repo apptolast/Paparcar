@@ -8,6 +8,7 @@ import com.rndeveloper.paparcar.presentation.home.HomeSearchController
 import com.rndeveloper.paparcar.presentation.home.HomeSpotsController
 import com.rndeveloper.paparcar.presentation.home.HomeTripController
 import com.rndeveloper.paparcar.presentation.home.HomeViewModel
+import com.rndeveloper.paparcar.presentation.licenses.LicensesViewModel
 import com.rndeveloper.paparcar.presentation.map.ParkingHistoryViewModel
 import com.rndeveloper.paparcar.presentation.permissions.PermissionsViewModel
 import com.rndeveloper.paparcar.presentation.bluetooth.BluetoothConfigViewModel
@@ -53,6 +54,7 @@ val presentationModule = module {
     }
     viewModelOf(::ParkingHistoryViewModel)
     viewModelOf(::SettingsViewModel)
+    viewModelOf(::LicensesViewModel)
     viewModelOf(::PermissionsViewModel)
     viewModelOf(::VehicleRegistrationViewModel)
     viewModelOf(::VehiclesViewModel)

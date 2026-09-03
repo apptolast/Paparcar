@@ -10,6 +10,9 @@ sealed class SettingsEffect {
     data class NavigateToPermissions(val focus: PermissionsFocus) : SettingsEffect()
     /** Deep-link into the car-Bluetooth config for a given vehicle. */
     data class NavigateToBluetoothConfig(val vehicleId: String) : SettingsEffect()
+    /** Abre la atribución OSS, que vive DENTRO de la app: no es un enlace.
+     *  [SET-LICENSES-ARE-SHOWN-IN-THE-APP-001] */
+    data object NavigateToLicenses : SettingsEffect()
     data class OpenUrl(val url: String) : SettingsEffect()
     data class ShowError(val error: PaparcarError) : SettingsEffect()
     /** Auto-detection just turned OFF from the toggle — confirm at the point of action with an

@@ -15,6 +15,7 @@ import com.rndeveloper.paparcar.data.datasource.remote.RemoteUserProfileDataSour
 import com.rndeveloper.paparcar.data.datasource.remote.RemoteUserProfileDataSourceImpl
 import com.rndeveloper.paparcar.data.repository.AddressAndPlaceRepositoryImpl
 import com.rndeveloper.paparcar.data.repository.DiagnosticsRepositoryImpl
+import com.rndeveloper.paparcar.data.repository.OpenSourceLicenseRepositoryImpl
 import com.rndeveloper.paparcar.data.repository.SpotRepositoryImpl
 import com.rndeveloper.paparcar.data.repository.UserParkingRepositoryImpl
 import com.rndeveloper.paparcar.data.repository.UserProfileRepositoryImpl
@@ -23,6 +24,7 @@ import com.rndeveloper.paparcar.data.repository.ZoneRepositoryImpl
 import com.rndeveloper.paparcar.data.session.RoomLocalSessionCache
 import com.rndeveloper.paparcar.domain.repository.AddressAndPlaceRepository
 import com.rndeveloper.paparcar.domain.repository.DiagnosticsRepository
+import com.rndeveloper.paparcar.domain.repository.OpenSourceLicenseRepository
 import com.rndeveloper.paparcar.domain.repository.SpotRepository
 import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
 import com.rndeveloper.paparcar.domain.repository.UserProfileRepository
@@ -80,6 +82,10 @@ val dataModule = module {
     single<VehicleRepository> {
         VehicleRepositoryImpl(get(), get(), get(), get(), get(), CoroutineScope(SupervisorJob() + Dispatchers.Default), get())
     }
+    // Atribución OSS — `single` a propósito: el fichero se genera en build y no cambia en runtime,
+    // así que la lista y el detalle comparten una sola lectura. [SET-LICENSES-ARE-SHOWN-IN-THE-APP-001]
+    single<OpenSourceLicenseRepository> { OpenSourceLicenseRepositoryImpl() }
+
     single<ZoneRepository> {
         ZoneRepositoryImpl(get(), get(), get(), CoroutineScope(SupervisorJob() + Dispatchers.Default))
     }

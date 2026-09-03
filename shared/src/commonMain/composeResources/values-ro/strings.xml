@@ -207,6 +207,12 @@
     <string name="settings_version">Versiune</string>
     <string name="settings_privacy">Politică de confidențialitate</string>
     <string name="settings_licenses">Licențe open source</string>
+    <string name="licenses_cd_back">Înapoi</string>
+    <string name="licenses_subtitle">Paparcar este construit cu software open source. Atinge o bibliotecă pentru a citi licența sub care este distribuită.</string>
+    <string name="licenses_count">%1$d biblioteci · %2$d licențe</string>
+    <string name="licenses_error">Această versiune nu include lista de licențe, deci nu poate fi afișată. Reinstalarea Paparcar o restaurează.</string>
+    <string name="licenses_detail_no_text">Acești termeni aparțin proprietarului lor și nu sunt distribuiți în aplicație. Deschide-i pentru a citi textul complet.</string>
+    <string name="licenses_detail_open_terms">Citește termenii compleți</string>
 
     <!-- Generic error messages -->
     <string name="error_unknown">Ceva a mers greșit</string>

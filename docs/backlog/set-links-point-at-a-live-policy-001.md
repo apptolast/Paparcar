@@ -4,6 +4,9 @@
 constantes del companion. `LICENSES_URL` sigue muerta a propósito (su fix es AboutLibraries
 in-app, follow-up de SETTINGS-AUDIT-REMEDIATION-001).
 
+> 📌 Actualización 03-09-2026: `LICENSES_URL` ya no existe. La fila abre una pantalla in-app
+> generada desde el grafo de Gradle — ver `set-licenses-are-shown-in-the-app-001.md`.
+
 ## Problema
 Los tres enlaces externos de Ajustes salían a `paparcar.app` — un dominio **inventado en su día
 como placeholder y nunca registrado**: `https://paparcar.app/privacy`,

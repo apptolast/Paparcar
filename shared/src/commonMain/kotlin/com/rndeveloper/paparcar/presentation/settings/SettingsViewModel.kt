@@ -172,7 +172,7 @@ class SettingsViewModel(
             is SettingsIntent.OpenPrivacyPolicy ->
                 sendEffect(SettingsEffect.OpenUrl(PRIVACY_POLICY_URL))
             is SettingsIntent.OpenLicenses ->
-                sendEffect(SettingsEffect.OpenUrl(LICENSES_URL))
+                sendEffect(SettingsEffect.NavigateToLicenses)
             is SettingsIntent.OpenContact ->
                 sendEffect(SettingsEffect.OpenUrl(CONTACT_MAILTO))
             is SettingsIntent.RequestSendDiagnostics ->
@@ -245,10 +245,6 @@ class SettingsViewModel(
         /** Custom domain of the pap-26 Hosting site — the URL declared in Play Console.
          *  pap-26.web.app keeps serving the same content as a fallback. */
         const val PRIVACY_POLICY_URL = "https://paparcar.com/privacy-policy"
-
-        /** ⚠️ Deliberately dead (404 on our own domain) — the real fix is an in-app licenses
-         *  screen (AboutLibraries), tracked as a settings-audit follow-up. */
-        const val LICENSES_URL = "https://paparcar.com/licenses"
 
         const val CONTACT_MAILTO = "mailto:support@paparcar.com"
     }

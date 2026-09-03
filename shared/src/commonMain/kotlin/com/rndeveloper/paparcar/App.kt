@@ -76,6 +76,8 @@ import com.rndeveloper.paparcar.presentation.permissions.PermissionsScreen
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 import com.rndeveloper.paparcar.presentation.bluetooth.BluetoothConfigScreen
 import com.rndeveloper.paparcar.presentation.onboarding.FirstStepExplainerScreen
+import com.rndeveloper.paparcar.presentation.licenses.LicenseDetailScreen
+import com.rndeveloper.paparcar.presentation.licenses.LicensesScreen
 import com.rndeveloper.paparcar.presentation.settings.SettingsScreen
 import com.rndeveloper.paparcar.presentation.util.DistanceUnit
 import com.rndeveloper.paparcar.presentation.util.LocalDistanceUnit
@@ -113,6 +115,10 @@ object Routes {
     /** First-run rationale shown before VEHICLE_REGISTRATION. Explains why size is required. */
     const val VEHICLE_SIZE_EXPLAINER = "vehicle_size_explainer"
     const val BT_CONFIG = "bt_config"
+    /** Atribución OSS: lista de librerías → texto de una licencia.
+     *  [SET-LICENSES-ARE-SHOWN-IN-THE-APP-001] */
+    const val LICENSES = "licenses"
+    const val LICENSE_DETAIL = "license_detail"
     const val GPS_DISCLAIMER = "gps_disclaimer"
     /** A guided first step's explanation. Its own screen, not a sheet over Home — see
      *  `FirstStepExplainerScreen`. [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001] */
@@ -647,12 +653,35 @@ private fun MainAppNavigation(
                         onNavigateToPermissions = { focus -> navController.navigate("${Routes.PERMISSIONS}?focus=$focus") },
                         // Deep-link into car-Bluetooth config for the active vehicle.
                         onNavigateToBluetoothConfig = { vehicleId -> navController.navigate("${Routes.BT_CONFIG}/$vehicleId") },
+                        onNavigateToLicenses = { navController.navigate(Routes.LICENSES) },
                         themeMode = themeMode,
                         onSetThemeMode = onSetThemeMode,
                         imperialUnits = imperialUnits,
                         onToggleImperialUnits = onToggleImperialUnits,
                     )
                 }
+            }
+            composable(Routes.LICENSES) {
+                LicensesScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToLicense = { licenseId ->
+                        navController.navigate("${Routes.LICENSE_DETAIL}/$licenseId")
+                    },
+                )
+            }
+            // El id de licencia es SPDX (`Apache-2.0`, `MIT`) o el hash del generador: seguro en una
+            // ruta, sin dos puntos ni barras que haya que escapar — por eso el detalle se abre por
+            // licencia y no por coordenadas Maven de la librería.
+            composable(
+                route = "${Routes.LICENSE_DETAIL}/{licenseId}",
+                arguments = listOf(navArgument("licenseId") { type = NavType.StringType }),
+            ) { backStack ->
+                val licenseId = backStack.arguments?.read { getStringOrNull("licenseId") }
+                    ?: return@composable
+                LicenseDetailScreen(
+                    licenseId = licenseId,
+                    onNavigateBack = { navController.popBackStack() },
+                )
             }
             composable(
                 route = "${Routes.BT_CONFIG}/{vehicleId}",

@@ -197,6 +197,7 @@ fun SettingsScreen(
     onNavigateToAuth: () -> Unit = {},
     onNavigateToPermissions: (PermissionsFocus) -> Unit = {},
     onNavigateToBluetoothConfig: (String) -> Unit = {},
+    onNavigateToLicenses: () -> Unit = {},
     themeMode: ThemeMode = ThemeMode.SYSTEM,
     onSetThemeMode: (ThemeMode) -> Unit = {},
     imperialUnits: Boolean = false,
@@ -226,6 +227,7 @@ fun SettingsScreen(
                 is SettingsEffect.NavigateToAuth -> onNavigateToAuth()
                 is SettingsEffect.NavigateToPermissions -> onNavigateToPermissions(effect.focus)
                 is SettingsEffect.NavigateToBluetoothConfig -> onNavigateToBluetoothConfig(effect.vehicleId)
+                is SettingsEffect.NavigateToLicenses -> onNavigateToLicenses()
                 is SettingsEffect.OpenUrl -> uriHandler.openUri(effect.url)
                 // The only error this screen emits today is the account-deletion failure —
                 // surface it; anything new falls back to the generic message rather than

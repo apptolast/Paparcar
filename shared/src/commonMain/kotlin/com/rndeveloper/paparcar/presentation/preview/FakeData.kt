@@ -4,6 +4,8 @@ package com.rndeveloper.paparcar.presentation.preview
 
 import com.rndeveloper.paparcar.domain.model.AddressInfo
 import com.rndeveloper.paparcar.domain.model.GpsPoint
+import com.rndeveloper.paparcar.domain.model.OpenSourceLibrary
+import com.rndeveloper.paparcar.domain.model.OpenSourceLicense
 import com.rndeveloper.paparcar.domain.model.AddressAndPlace
 import com.rndeveloper.paparcar.domain.model.PlaceCategory
 import com.rndeveloper.paparcar.domain.model.PlaceInfo
@@ -376,5 +378,46 @@ object FakeData {
     val btDevices = listOf(
         BluetoothDeviceInfo(address = "AA:BB:CC:DD:EE:FF", name = "Toyota BT Audio", type = BluetoothDeviceType.CLASSIC),
         BluetoothDeviceInfo(address = "11:22:33:44:55:66", name = "Ford Transit", type = BluetoothDeviceType.DUAL),
+    )
+
+    // ── Atribución OSS ────────────────────────────────────────────────────────
+    // La de verdad la genera el build; ésta es una muestra con las dos formas que la pantalla
+    // tiene que saber pintar: licencia con texto entregable y términos que solo se enlazan.
+    // [SET-LICENSES-ARE-SHOWN-IN-THE-APP-001]
+
+    val licenseApache = OpenSourceLicense(
+        id = "Apache-2.0",
+        name = "Apache License 2.0",
+        url = "https://spdx.org/licenses/Apache-2.0.html",
+        text = """
+                                 Apache License
+                           Version 2.0, January 2004
+
+   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+   1. Definitions. …
+        """.trimIndent(),
+    )
+
+    val licenseTerms = OpenSourceLicense(
+        id = "ASDKL",
+        name = "Android Software Development Kit License",
+        url = "https://developer.android.com/studio/terms.html",
+        text = null,
+    )
+
+    val openSourceLicenses = listOf(licenseApache, licenseTerms)
+
+    val openSourceLibraries = listOf(
+        OpenSourceLibrary("androidx.room:room-runtime", "Room", "2.8.4", null, listOf("Apache-2.0")),
+        OpenSourceLibrary("io.coil-kt.coil3:coil-compose", "Coil", "3.6.0", null, listOf("Apache-2.0")),
+        OpenSourceLibrary("io.insert-koin:koin-core", "Koin", "4.2.2", null, listOf("Apache-2.0")),
+        OpenSourceLibrary(
+            "com.google.android.gms:play-services-location",
+            "Google Play services Location",
+            "21.4.0",
+            null,
+            listOf("ASDKL"),
+        ),
     )
 }

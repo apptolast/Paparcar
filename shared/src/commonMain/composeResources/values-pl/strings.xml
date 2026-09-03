@@ -206,6 +206,12 @@
     <string name="settings_version">Wersja</string>
     <string name="settings_privacy">Polityka prywatności</string>
     <string name="settings_licenses">Licencje open source</string>
+    <string name="licenses_cd_back">Wstecz</string>
+    <string name="licenses_subtitle">Paparcar korzysta z oprogramowania open source. Dotknij biblioteki, aby przeczytać licencję, na której jest dostarczana.</string>
+    <string name="licenses_count">%1$d bibliotek · %2$d licencji</string>
+    <string name="licenses_error">Ta wersja nie zawiera listy licencji, więc nie można jej pokazać. Ponowna instalacja Paparcar ją przywraca.</string>
+    <string name="licenses_detail_no_text">Te warunki należą do ich właściciela i nie są dołączane do aplikacji. Otwórz je, aby przeczytać pełny tekst.</string>
+    <string name="licenses_detail_open_terms">Przeczytaj pełne warunki</string>
 
     <!-- Generic error messages -->
     <string name="error_unknown">Coś poszło nie tak</string>

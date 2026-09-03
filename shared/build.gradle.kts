@@ -17,6 +17,7 @@ plugins {
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.room)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.aboutLibraries)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -84,6 +85,12 @@ kotlin {
 
             // Logging — Napier (KMP structured logger)
             api(libs.napier)
+
+            // Licencias OSS — SOLO el parser de los datos que genera su plugin Gradle.
+            // `implementation` a propósito, contra la norma `api` de este bloque: sus tipos se
+            // mapean a modelo de dominio en el repositorio y no cruzan a :app.
+            // [SET-LICENSES-ARE-SHOWN-IN-THE-APP-001]
+            implementation(libs.aboutlibraries.core)
 
             // Kotlin coroutines y utils
             api(libs.kotlinx.coroutines.core)
@@ -213,12 +220,77 @@ room {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// LICENCIAS OSS — la lista es una PROYECCIÓN del grafo de dependencias
+// [SET-LICENSES-ARE-SHOWN-IN-THE-APP-001]
+// ─────────────────────────────────────────────────────────────────────────────
+// El fichero se GENERA en `build/` y se enchufa como directorio de composeResources: nunca se
+// commitea. Es la única forma de que subir una dependencia actualice la pantalla sin que nadie
+// se acuerde de regenerar nada — un JSON versionado a mano se queda obsoleto en silencio, que es
+// justo el fallo que este ticket vino a cerrar.
+val licensesResourceDir: Provider<Directory> =
+    layout.buildDirectory.dir("generated/aboutLibraries/composeResources")
+
+/** Fuentes reales + el JSON generado, en un solo árbol. Ver [mergeComposeResourcesWithLicenses]. */
+val mergedComposeResourcesDir: Provider<Directory> =
+    layout.buildDirectory.dir("generated/composeResourcesWithLicenses/commonMain/composeResources")
+
+aboutLibraries {
+    // ⛔ `collect { fetchRemoteLicense = true }` NO se usa, y no es un olvido. Medido el 03-09 sobre
+    // este mismo grafo: baja el LICENSE de cada repo, así que las 7 licencias distintas se
+    // convierten en 18 entradas con ONCE copias byte-a-byte del mismo Apache-2.0 (+100 KB en el
+    // APK) y la pantalla pasa a enseñar "18 licencias" donde hay 7. Sin él, el mapeo a SPDX ya
+    // trae el texto íntegro de las tres licencias OSS reales (Apache-2.0, MIT, BSD-3-Clause);
+    // las otras cuatro son términos propietarios (Android SDK, Play ×2, Go) que no son
+    // redistribuibles ni fetchables, y se enseñan con su enlace — como hace el propio Google.
+    library {
+        // Guardarraíl en el build, no en un test: una dependencia sin licencia declarada rompe la
+        // compilación en vez de aparecer como "Unknown" en la pantalla. Una lista incompleta sigue
+        // siendo una mentira.
+        requireLicense = true
+    }
+    export {
+        outputFile = licensesResourceDir.map { it.file("files/aboutlibraries.json") }
+        prettyPrint = false
+        // La pantalla enseña nombre, versión, licencia y web. La prosa de marketing de cada POM
+        // y sus enlaces de financiación solo engordan el APK.
+        excludeFields = setOf("description", "funding")
+    }
+}
+
+// ⚠️ `compose.resources { customDirectory(...) }` SUSTITUYE el directorio del source set, no lo
+// añade — medido: registrar el dir generado en `commonMain` dejó sin resolver las ~700 keys de
+// strings y todos los drawables de golpe (`ResourcesDSL.kt:55` → `customResourceDirectories[name]
+// ?: default`). Por eso el árbol se fusiona aquí: fuentes reales + JSON generado en un directorio
+// único que es el que ve Compose Resources. Fusionar (en vez de registrar el dir generado en
+// `androidMain`/`iosMain`, que están vacíos hoy) evita la trampa de que crear
+// `src/androidMain/composeResources` mañana desactive esto en silencio.
+// El plugin, además del export, engancha su propia generación a las variantes Android y mete una
+// SEGUNDA copia del JSON en `res/raw/aboutlibraries.json` (medido: 128 KB en el APK, duplicando los
+// 131 KB que ya viajan como composeResource). Esa vía es para su UI de Android, que no usamos —
+// nuestra pantalla lee el recurso KMP. Se apaga: dos copias de la misma lista es peso muerto, y la
+// que no se lee es además la que nadie comprobaría si se desincronizara.
+tasks.matching { it.name.startsWith("prepareLibraryDefinitions") }.configureEach { enabled = false }
+
+val mergeComposeResourcesWithLicenses = tasks.register<Sync>("mergeComposeResourcesWithLicenses") {
+    dependsOn(tasks.named("exportLibraryDefinitions"))
+    from(layout.projectDirectory.dir("src/commonMain/composeResources"))
+    from(licensesResourceDir)
+    into(mergedComposeResourcesDir)
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // COMPOSE RESOURCES
 // ─────────────────────────────────────────────────────────────────────────────
 compose.resources {
     packageOfResClass = "paparcar.composeapp.generated.resources"
     // :app (galería del Dev Catalog) referencia Res.* directamente.
     publicResClass = true
+    // Árbol fusionado: `Res.readBytes("files/aboutlibraries.json")` ve el JSON generado como
+    // cualquier otro recurso, sin que viva en el árbol de fuentes ni se commitee.
+    customDirectory(
+        sourceSetName = "commonMain",
+        directoryProvider = mergeComposeResourcesWithLicenses.map { mergedComposeResourcesDir.get() },
+    )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -235,6 +307,15 @@ tasks.withType<Test>().configureEach {
         .withPathSensitivity(PathSensitivity.RELATIVE)
     inputs.dir(layout.settingsDirectory.dir("app/src/main/res"))
         .withPropertyName("appAndroidResStrings")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+
+    // Mismo motivo para la atribución OSS: `OpenSourceAttributionGuardrailTest` lee del disco el
+    // JSON YA FUSIONADO — los bytes que se empaquetan — así que sin esto ni existiría al correr los
+    // tests en limpio, ni volvería a correr el guardarraíl al cambiar una dependencia.
+    // [SET-LICENSES-ARE-SHOWN-IN-THE-APP-001]
+    dependsOn(mergeComposeResourcesWithLicenses)
+    inputs.file(mergedComposeResourcesDir.map { it.file("files/aboutlibraries.json") })
+        .withPropertyName("openSourceAttribution")
         .withPathSensitivity(PathSensitivity.RELATIVE)
 }
 

@@ -205,6 +205,12 @@
     <string name="settings_version">Versie</string>
     <string name="settings_privacy">Privacybeleid</string>
     <string name="settings_licenses">Open source-licenties</string>
+    <string name="licenses_cd_back">Terug</string>
+    <string name="licenses_subtitle">Paparcar is gebouwd met opensourcesoftware. Tik op een bibliotheek om de licentie te lezen waaronder die wordt geleverd.</string>
+    <string name="licenses_count">%1$d bibliotheken · %2$d licenties</string>
+    <string name="licenses_error">Deze versie bevat de licentielijst niet, dus die kan niet worden getoond. Paparcar opnieuw installeren herstelt hem.</string>
+    <string name="licenses_detail_no_text">Deze voorwaarden zijn van hun eigenaar en worden niet met de app meegeleverd. Open ze om de volledige tekst te lezen.</string>
+    <string name="licenses_detail_open_terms">Volledige voorwaarden lezen</string>
 
     <!-- Generic error messages -->
     <string name="error_unknown">Er is iets misgegaan</string>
