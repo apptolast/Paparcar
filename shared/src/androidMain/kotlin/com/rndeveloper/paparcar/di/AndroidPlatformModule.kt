@@ -31,11 +31,11 @@ import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
 val androidPlatformModule = module {
-    // [DATA-ROOM-STARTS-AT-VERSION-ONE-001] The database starts at v1 and there is no
-    // migration chain, because no shipped install exists to migrate from. The destructive
-    // fallback is what carries our own dev phones across: they still hold a v20 file and get a
-    // clean wipe on first launch instead of a crash. The first public release freezes this —
-    // after it, every schema change needs its Migration.
+    // [DATA-ROOM-STARTS-AT-VERSION-ONE-001] The database starts at v1 and the migration chain is
+    // empty, because no shipped install exists to migrate from. The destructive fallback is what
+    // carries our own dev phones across: they hold a v2 file [DATA-ROOM-RETURNS-TO-VERSION-ONE-001]
+    // and get a clean wipe on first launch instead of a crash. The first public release freezes
+    // this — after it, every schema change needs its Migration.
     single<AppDatabase> { buildAppDatabase(androidContext()) }
 
     // Location

@@ -2,6 +2,11 @@
 
 **Estado:** ✅ Done · mergeado en master · ⏳ falta la confirmación **en device** del downgrade v20 → v1
 
+> Actualizado el 2026-09-03: el baseline se fue a v2 nueve días
+> (`DB-A-NEW-COLUMN-NEEDS-ITS-MIGRATION-001`) y volvió a v1 con
+> `DATA-ROOM-RETURNS-TO-VERSION-ONE-001`. Lo que este doc describe sigue vigente; lo único que
+> cambió es que ahora el fichero que los móviles de banco traen al downgrade es un **v2**, no un v20.
+
 > Anotado el 2026-08-30 [DOCS-LIVING-DOCS-MUST-MATCH-MASTER-001]: ese ⏳ ya no es un riesgo abierto,
 > es una confirmación redundante. El downgrade **está medido** en
 > `androidUnitTest/.../AppDatabaseDowngradeTest.kt`, que existe justo porque dos lecturas de la doc de

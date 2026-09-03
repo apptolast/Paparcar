@@ -72,6 +72,22 @@ field-test real). `d010b8c0` cambió el esquema sin contestarla.
 | DBs v1 con columna ya presente | ALTER ciego = crash | ✅ guard idempotente + test |
 | Próximo cambio de esquema | repetir el olvido | la constante + este doc + el patrón `ALL_MIGRATIONS`; el testigo estructural sigue siendo el install en banco |
 
+## Epílogo — el escalón se retira, el invariante no (03-09-2026)
+
+`DATA-ROOM-RETURNS-TO-VERSION-ONE-001` borró `Migration1To2` y devolvió la base a `version = 1`.
+No es una marcha atrás de este ticket: la migración existía porque los datos del banco **debían
+sobrevivir**, y el borrado de datos del lanzamiento quitó esa condición. La prueba de que el
+escalón ya no describía nada: `1.json` y `2.json` compartían `identityHash e8bc446…`.
+
+Lo que sí sobrevive intacto es lo que este ticket compró con un fallo de campo real:
+
+- `ALL_MIGRATIONS` sigue existiendo (vacío) y **sigue registrado en los dos builders**.
+- La regla —*todo cambio de esquema bumpea la versión Y publica su `Migration`*— sigue siendo la
+  doctrina, ahora escrita en el KDoc de `AppDatabase` como la puerta que cierra el primer release.
+- El agujero que este ticket midió (**misma versión + hash distinto = fichero rechazado para
+  siempre**) tiene testigo permanente en `AppDatabaseV1BaselineTest`, que además es la razón por la
+  que limpiar los móviles de banco es un paso del lanzamiento y no un consejo.
+
 ## Origen
 
 - Destapado por el run de `DET-A-JUST-DEPARTED-CAR-IS-NOT-NO-SESSION-001` (89266cfd) en el Redmi.

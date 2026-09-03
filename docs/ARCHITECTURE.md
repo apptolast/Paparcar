@@ -297,9 +297,17 @@ existieron en nuestros propios móviles de test. v1 es la línea base y
 `fallbackToDestructiveMigration(dropAllTables = true)` sigue activo mientras la app no esté publicada.
 [DATA-ROOM-STARTS-AT-VERSION-ONE-001]
 
+Hubo un v2 de nueve días: `DB-A-NEW-COLUMN-NEEDS-ITS-MIGRATION-001` (01-09) tuvo que bumpear porque
+los móviles de banco guardaban datos que debían sobrevivir. El borrado de datos del lanzamiento
+(03-09) quitó esa condición y `DATA-ROOM-RETURNS-TO-VERSION-ONE-001` retiró el escalón: `1.json` y
+`2.json` llevaban el **mismo `identityHash`**, así que v2 subía desde un v1 que ya no existe en
+ningún device. `ALL_MIGRATIONS` queda vacío pero **registrado** en ambos builders.
+
 > ⚠️ **El primer release público cierra esa puerta**: desde ahí hay usuarios cuyos datos deben
 > sobrevivir y todo cambio de esquema necesita su `Migration` y su schema exportado. El downgrade
-> está medido, no supuesto: `AppDatabaseDowngradeTest`.
+> está medido, no supuesto: `AppDatabaseDowngradeTest`. Y las tres formas en que un fichero real se
+> encuentra con este baseline —v2 se limpia, v1 actual abre, v1 viejo **se rechaza para siempre**—
+> están medidas en `AppDatabaseV1BaselineTest`.
 
 ### DataStore Preferences (Android)
 Tema, unidad de distancia y flags. `AndroidDataStoreAppPreferences` con snapshot in-memory (0

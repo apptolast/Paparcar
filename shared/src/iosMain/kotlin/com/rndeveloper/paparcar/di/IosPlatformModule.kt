@@ -35,7 +35,9 @@ val iosPlatformModule = module {
     // [DATA-ROOM-STARTS-AT-VERSION-ONE-001] v1 baseline — mirrors Android, INCLUDING the migration
     // chain [DB-A-NEW-COLUMN-NEEDS-ITS-MIGRATION-001]: with the destructive fallback below, a
     // version bump whose migration is missing here would not crash — it would silently wipe the
-    // device. The shared ALL_MIGRATIONS list is what keeps the platforms from drifting.
+    // device. The shared ALL_MIGRATIONS list is what keeps the platforms from drifting, and it is
+    // registered even while empty [DATA-ROOM-RETURNS-TO-VERSION-ONE-001] so that staying in sync
+    // costs nothing on the day it stops being empty.
     single<AppDatabase> {
         val dbFilePath = documentDirectory() + "/paparcar.db"
         Room.databaseBuilder<AppDatabase>(name = dbFilePath)

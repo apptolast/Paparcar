@@ -7,7 +7,7 @@ import androidx.room.RoomDatabaseConstructor
 
 /** The declared schema version — single source for the annotation and the tests that pin what an
  *  opened file must end up at. [DB-A-NEW-COLUMN-NEEDS-ITS-MIGRATION-001] */
-const val PAPARCAR_DB_VERSION = 2
+const val PAPARCAR_DB_VERSION = 1
 
 @Database(
     entities = [
@@ -18,18 +18,22 @@ const val PAPARCAR_DB_VERSION = 2
         ZoneEntity::class,
         GeocoderCacheEntity::class,
     ],
-    // v1 was the baseline of [DATA-ROOM-STARTS-AT-VERSION-ONE-001]: Paparcar had never shipped, so
+    // v1 is the baseline of [DATA-ROOM-STARTS-AT-VERSION-ONE-001]: Paparcar had never shipped, so
     // the old v2..v20 chain described upgrades of databases that only ever existed on our own test
     // phones, and those were wiped along with their accounts on the 2026-08-30 reset.
     //
-    // That reset is also why the door its comment promised for "the first public release" closed
-    // EARLY: the bench phones now hold v1 data that must survive (field-test state; wiping them is
-    // forbidden), so from v1 onward every schema change bumps this number and ships its Migration.
-    // [DB-A-NEW-COLUMN-NEEDS-ITS-MIGRATION-001] is the measurement of what happens otherwise:
-    // PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001 added `retractedAtMs` while this stayed 1, and the
-    // first install on a live phone (Redmi, 2026-09-01 01:28) failed EVERY read with "Room cannot
-    // verify the data integrity" — same version, different identity hash, a case the destructive
-    // fallback does NOT cover (it only watches version CHANGES).
+    // It briefly read 2. [DB-A-NEW-COLUMN-NEEDS-ITS-MIGRATION-001] had to bump it on 2026-09-01
+    // because the bench phones held v1 data that MUST survive — a car was parked and being watched,
+    // so clearing them was forbidden. [DATA-ROOM-RETURNS-TO-VERSION-ONE-001] retired that step on
+    // the 09-03 release wipe, when nothing had to survive any more: `1.json` and `2.json` carried
+    // the SAME identity hash, so v2 was a step from a v1 that will never exist on any device again.
+    //
+    // ⛔ The door this comment promises stays open only until the first public release. From the
+    // first real user, data must survive: every schema change bumps this number AND ships its
+    // Migration in [ALL_MIGRATIONS]. Skipping the bump is the worse half — same version + different
+    // schema is the ONE shape `fallbackToDestructiveMigration` does not cover (it only watches
+    // version CHANGES): it neither migrates nor wipes, it refuses the file on every open, forever.
+    // Measured, not supposed: [AppDatabaseV1BaselineTest].
     version = PAPARCAR_DB_VERSION,
 )
 @ConstructedBy(AppDatabaseConstructor::class)

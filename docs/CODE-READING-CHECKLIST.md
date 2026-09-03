@@ -83,9 +83,13 @@
 ### 2a. Room
 - [ ] 🐢 `data/datasource/local/room/AppDatabase.kt` — **v1**, y su KDoc explica por qué: la cadena
       v2..v20 se colapsó porque describía upgrades de bases que solo existieron en nuestros móviles
-      [DATA-ROOM-STARTS-AT-VERSION-ONE-001]. **No hay `Migrations.kt`** — si buscas la "historia
-      condensada del proyecto", está en ese comentario, no en un fichero de migraciones.
+      [DATA-ROOM-STARTS-AT-VERSION-ONE-001]. **`AppDatabaseMigrations.kt` está vacío** — si buscas la
+      "historia condensada del proyecto", está en ese comentario, no en un fichero de migraciones.
+      El fichero existe con `ALL_MIGRATIONS = emptyArray()` a propósito
+      [DATA-ROOM-RETURNS-TO-VERSION-ONE-001]: el hueco marcado vale más que la lista borrada.
 - [ ] `androidUnitTest/.../AppDatabaseDowngradeTest.kt` — por qué el downgrade se midió en vez de creerle a la doc de Room
+- [ ] `androidUnitTest/.../AppDatabaseV1BaselineTest.kt` — las tres cosas que le pueden pasar a un
+      fichero real contra el baseline v1, y por qué una de ellas no tiene arreglo en código
 - [ ] Entidades + DAOs (⚡ en parejas): `SpotEntity`/`SpotDao` · `UserParkingEntity`/`UserParkingDao` · `VehicleEntity`/`VehicleDao` · `UserProfileEntity`/`UserProfileDao` · `ZoneEntity`/`ZoneDao` · `GeocoderCacheEntity`/`GeocoderCacheDao`
 - [ ] `data/session/RoomLocalSessionCache.kt` · `data/geocoder/RoomGeocoderCacheDataSource.kt`
 

@@ -73,8 +73,15 @@ haya usuarios**. [DATA-ROOM-STARTS-AT-VERSION-ONE-001]
 sobrevivir y todo cambio de esquema necesita `Migration` + schema exportado + `MigrationTestHelper`.
 No hay recordatorio automático de eso: está escrito en el KDoc de `AppDatabase` y aquí.
 
+> Ya se ensayó una vez: `DB-A-NEW-COLUMN-NEEDS-ITS-MIGRATION-001` bumpeó a v2 el 01-09 con los
+> móviles de banco como "usuarios", y `DATA-ROOM-RETURNS-TO-VERSION-ONE-001` lo retiró el 03-09 al
+> borrarse esos datos. La tubería (`ALL_MIGRATIONS` compartido, registrado en los dos builders)
+> sobrevivió vacía a propósito: lo caro no era la migración, era descubrir dónde va.
+
 > El comportamiento del downgrade está **medido**, no supuesto: `AppDatabaseDowngradeTest` demuestra
 > que no crashea. Ese test existe precisamente porque la documentación de Room dice lo contrario.
+> `AppDatabaseV1BaselineTest` mide además el agujero que ningún destructivo tapa: **misma versión +
+> hash distinto** rechaza el fichero en cada open, para siempre.
 
 ---
 

@@ -87,10 +87,12 @@ class AppDatabaseDowngradeTest {
      */
     @Test
     fun should_wipeAndReopenAtDeclaredVersion_when_theFileIsFromTheNextPreReleaseVersion() = runTest {
-        // [DB-A-NEW-COLUMN-NEEDS-ITS-MIGRATION-001] Re-framed when v1->v2 gained a real Migration:
-        // there is no longer any UPGRADE gap without one, so the near-boundary case the fallback
-        // still owns is the rollback from a build one version ahead (sideloaded newer APK, then
-        // back to this one). Same path as the v20 file, pinned at the closest distance.
+        // [DATA-ROOM-RETURNS-TO-VERSION-ONE-001] With ALL_MIGRATIONS empty again, the fallback owns
+        // BOTH near-boundary directions: an upgrade with no migration registered, and the rollback
+        // from a build one version ahead. Same path as the v20 file, pinned at the closest
+        // distance — and with the collapse to v1 it is no longer hypothetical, since every bench
+        // phone holds exactly a v2 file. [AppDatabaseV1BaselineTest] pins that same step with a
+        // LEGITIMATE v2 schema; this one keeps it hostile, so neither reading covers for the other.
         val name = "downgrade-from-next.db"
         seedPreReleaseDatabase(name, version = PAPARCAR_DB_VERSION + 1)
 
