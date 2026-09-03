@@ -1,5 +1,7 @@
 package com.rndeveloper.paparcar.presentation.home.sections.sheet
 
+import com.rndeveloper.paparcar.domain.onboarding.FirstStep
+
 /**
  * The single UI-action channel of the bottom sheet. [HOME-ATOMIZE-001 F3]
  *
@@ -50,4 +52,15 @@ sealed interface HomeSheetAction {
 
     /** Detection surface — navigate to vehicle registration. */
     data object AddVehicle : HomeSheetAction
+
+    /**
+     * Tap on a guided first-step row — open its explainer sheet.
+     * [ONBOARDING-A-SPOT-IS-BORN-TWO-WAYS-001]
+     *
+     * An ACTION and not a [com.rndeveloper.paparcar.presentation.home.HomeIntent] because opening
+     * the sheet changes nothing the ViewModel owns: no progress is banked by reading, and a step
+     * completes on measured state either way. It is exactly what this channel is for — local UI
+     * orchestration, translated in one place.
+     */
+    data class OpenFirstStepExplainer(val step: FirstStep) : HomeSheetAction
 }

@@ -49,7 +49,7 @@
     <string name="home_release_dialog_detection_unavailable">Não vamos conseguir detetar sozinhos o teu próximo estacionamento.</string>
     <string name="home_release_dialog_detection_inactive">%1$s passa a ser o teu carro ativo, por isso vamos detetar o teu próximo estacionamento.</string>
     <string name="home_release_dialog_publish">Publicar lugar</string>
-    <string name="home_release_dialog_delete_only">Apenas apagar</string>
+    <string name="home_release_dialog_delete_only">Só libertar</string>
     <string name="home_release_dialog_cancel">Cancelar</string>
     <string name="home_search_clear_cd">Limpar pesquisa</string>
     <string name="pap_field_clear_cd">Limpar campo</string>
@@ -676,4 +676,22 @@
     <string name="first_steps_spotlight_caption">O pin fica fixo: arrasta o MAPA até ficar sobre o teu carro e confirma em baixo.</string>
     <string name="settings_replay_first_steps">Rever os primeiros passos</string>
     <string name="settings_replay_first_steps_done">Os primeiros passos voltaram ao Início</string>
+    <!-- First-step explainers: the two ways a spot is born [ONBOARDING-A-SPOT-IS-BORN-TWO-WAYS-001] -->
+    <string name="first_steps_explain_close">Percebi</string>
+    <string name="first_steps_explain_park_title">Marca onde deixaste o carro</string>
+    <string name="first_steps_explain_park_body">Isso abre o teu estacionamento: a app guarda o sítio e começa a vigiá-lo por ti.</string>
+    <string name="first_steps_explain_park_way_title">A partir daí, o carro é connosco</string>
+    <string name="first_steps_explain_park_way_body">Não tens de te lembrar da rua, do número nem do piso. Abres o Paparcar e está lá.</string>
+    <string name="first_steps_explain_watch_title">Quando saíres, o teu sítio fica livre para outro</string>
+    <string name="first_steps_explain_watch_body">O teu estacionamento passa a ser um lugar livre para a comunidade. Acontece de duas maneiras.</string>
+    <string name="first_steps_explain_watch_auto_title">Sozinho</string>
+    <string name="first_steps_explain_watch_auto_body">O Paparcar nota que foste embora e avisa do lugar por ti, sem tocares em nada.</string>
+    <string name="first_steps_explain_watch_manual_title">Ou dizes tu</string>
+    <string name="first_steps_explain_watch_manual_body">Carregas em 'Vou-me embora' no teu estacionamento e fechas tu, quando quiseres.</string>
+    <string name="first_steps_explain_watch_note">Fechar o teu estacionamento não te obriga a avisar de nada: 'Só libertar' termina-o sem dizer a ninguém.</string>
+    <string name="first_steps_explain_spot_title">E se vires um lugar livre, avisa</string>
+    <string name="first_steps_explain_spot_body">Um espaço que outro deixou e que viste na rua.</string>
+    <string name="first_steps_explain_spot_way_title">Avisar de um lugar</string>
+    <string name="first_steps_explain_spot_way_body">Marca-lo no mapa e os condutores ali perto veem-no. Não é preciso mais.</string>
+    <string name="first_steps_explain_spot_note">Isto não é sobre o teu carro: não abre nenhum estacionamento teu nem inicia qualquer vigilância.</string>
 </resources>

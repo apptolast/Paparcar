@@ -52,7 +52,7 @@
     <string name="home_release_dialog_detection_unavailable">Nu vom putea detecta singuri următoarea ta parcare.</string>
     <string name="home_release_dialog_detection_inactive">%1$s devine mașina ta activă, așa că vom detecta următoarea ta parcare.</string>
     <string name="home_release_dialog_publish">Publică locul</string>
-    <string name="home_release_dialog_delete_only">Doar șterge</string>
+    <string name="home_release_dialog_delete_only">Doar eliberează</string>
     <string name="home_release_dialog_cancel">Anulează</string>
     <string name="home_search_clear_cd">Șterge căutarea</string>
     <string name="pap_field_clear_cd">Șterge câmpul</string>
@@ -688,4 +688,22 @@
     <string name="first_steps_spotlight_caption">Pinul rămâne pe loc: trage HARTA până ajunge peste mașina ta, apoi confirmă mai jos.</string>
     <string name="settings_replay_first_steps">Reia primii pași</string>
     <string name="settings_replay_first_steps_done">Primii pași sunt din nou pe pagina principală</string>
+    <!-- First-step explainers: the two ways a spot is born [ONBOARDING-A-SPOT-IS-BORN-TWO-WAYS-001] -->
+    <string name="first_steps_explain_close">Am înțeles</string>
+    <string name="first_steps_explain_park_title">Marchează unde ai lăsat mașina</string>
+    <string name="first_steps_explain_park_body">Asta deschide parcarea ta: aplicația reține locul și începe să îl supravegheze pentru tine.</string>
+    <string name="first_steps_explain_park_way_title">De atunci, de mașină ne ocupăm noi</string>
+    <string name="first_steps_explain_park_way_body">Nu trebuie să ții minte strada, numărul sau etajul. Deschizi Paparcar și e acolo.</string>
+    <string name="first_steps_explain_watch_title">Când pleci, locul tău rămâne liber pentru altcineva</string>
+    <string name="first_steps_explain_watch_body">Parcarea ta devine un loc liber pentru comunitate. Se întâmplă în două feluri.</string>
+    <string name="first_steps_explain_watch_auto_title">Singur</string>
+    <string name="first_steps_explain_watch_auto_body">Paparcar observă că ai plecat și anunță locul în locul tău, fără să atingi nimic.</string>
+    <string name="first_steps_explain_watch_manual_title">Sau spui tu</string>
+    <string name="first_steps_explain_watch_manual_body">Apeși 'Plec' pe parcarea ta și o închizi chiar tu, când vrei.</string>
+    <string name="first_steps_explain_watch_note">Închiderea parcării nu te obligă să anunți nimic: 'Doar eliberează' o încheie fără să spună nimănui.</string>
+    <string name="first_steps_explain_spot_title">Iar dacă vezi un loc liber, anunță-l</string>
+    <string name="first_steps_explain_spot_body">Un spațiu lăsat de altcineva, pe care l-ai văzut de pe stradă.</string>
+    <string name="first_steps_explain_spot_way_title">Anunță un loc liber</string>
+    <string name="first_steps_explain_spot_way_body">Îl marchezi pe hartă și șoferii din apropiere îl văd. Nu e nevoie de mai mult.</string>
+    <string name="first_steps_explain_spot_note">Asta nu e despre mașina ta: nu deschide nicio parcare de-a ta și nu pornește nicio supraveghere.</string>
 </resources>

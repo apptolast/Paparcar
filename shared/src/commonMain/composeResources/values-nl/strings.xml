@@ -43,14 +43,14 @@
     <string name="location_fallback_spot">Plek op de kaart</string>
     <string name="location_fallback_parking">Locatie op de kaart</string>
     <string name="location_approximate_near">Bij %1$s</string>
-    <string name="home_release_dialog_title">Parkeerplaats vrijgeven?</string>
+    <string name="home_release_dialog_title">Plek vrijgeven?</string>
     <string name="home_release_dialog_message">Deel je plek met bestuurders in de buurt, of verwijder hem zonder te delen.</string>
     <!-- Consequence line: leaving means detection re-arms for the next parking. [VEH-ACTIVE-FENCE-001] -->
     <string name="home_release_dialog_detection_active">We beginnen je volgende parkeerplek te detecteren.</string>
     <string name="home_release_dialog_detection_unavailable">We kunnen je volgende parkeeractie niet zelf detecteren.</string>
     <string name="home_release_dialog_detection_inactive">%1$s wordt je actieve auto, dus we detecteren je volgende parkeerplek.</string>
     <string name="home_release_dialog_publish">Plek publiceren</string>
-    <string name="home_release_dialog_delete_only">Alleen verwijderen</string>
+    <string name="home_release_dialog_delete_only">Alleen vrijgeven</string>
     <string name="home_release_dialog_cancel">Annuleren</string>
     <string name="home_search_clear_cd">Zoekopdracht wissen</string>
     <string name="pap_field_clear_cd">Veld wissen</string>
@@ -677,4 +677,22 @@
     <string name="first_steps_spotlight_caption">De speld blijft staan: sleep de KAART tot hij op je auto ligt en bevestig hieronder.</string>
     <string name="settings_replay_first_steps">Eerste stappen opnieuw bekijken</string>
     <string name="settings_replay_first_steps_done">De eerste stappen staan weer op Home</string>
+    <!-- First-step explainers: the two ways a spot is born [ONBOARDING-A-SPOT-IS-BORN-TWO-WAYS-001] -->
+    <string name="first_steps_explain_close">Begrepen</string>
+    <string name="first_steps_explain_park_title">Markeer waar je auto staat</string>
+    <string name="first_steps_explain_park_body">Dat opent je parkeerplaats: de app onthoudt de plek en gaat hem voor je bewaken.</string>
+    <string name="first_steps_explain_park_way_title">Vanaf dan is de auto onze zorg</string>
+    <string name="first_steps_explain_park_way_body">Je hoeft de straat, het nummer of de verdieping niet te onthouden. Je opent Paparcar en daar staat hij.</string>
+    <string name="first_steps_explain_watch_title">Als je wegrijdt, komt jouw plek vrij voor een ander</string>
+    <string name="first_steps_explain_watch_body">Je parkeerplaats wordt een vrije plek voor de gemeenschap. Dat gebeurt op twee manieren.</string>
+    <string name="first_steps_explain_watch_auto_title">Vanzelf</string>
+    <string name="first_steps_explain_watch_auto_body">Paparcar merkt dat je bent weggereden en meldt de plek voor je, zonder dat je iets doet.</string>
+    <string name="first_steps_explain_watch_manual_title">Of jij zegt het</string>
+    <string name="first_steps_explain_watch_manual_body">Je drukt op 'Ik vertrek' bij je parkeerplaats en sluit hem zelf af, wanneer je wilt.</string>
+    <string name="first_steps_explain_watch_note">Je parkeerplaats afsluiten verplicht je tot niets: 'Alleen vrijgeven' beëindigt hem zonder het iemand te vertellen.</string>
+    <string name="first_steps_explain_spot_title">En zie je een vrije plek, meld hem dan</string>
+    <string name="first_steps_explain_spot_body">Een gat dat iemand anders achterliet en dat jij vanaf de straat zag.</string>
+    <string name="first_steps_explain_spot_way_title">Vrije plek melden</string>
+    <string name="first_steps_explain_spot_way_body">Je markeert hem op de kaart en de bestuurders in de buurt zien hem. Meer is er niet nodig.</string>
+    <string name="first_steps_explain_spot_note">Dit gaat niet over jouw auto: het opent geen parkeerplaats van jou en start geen bewaking.</string>
 </resources>

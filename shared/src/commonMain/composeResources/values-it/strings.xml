@@ -49,7 +49,7 @@
     <string name="home_release_dialog_detection_unavailable">Non potremo rilevare da soli il tuo prossimo parcheggio.</string>
     <string name="home_release_dialog_detection_inactive">%1$s diventa la tua auto attiva, così rileveremo il tuo prossimo parcheggio.</string>
     <string name="home_release_dialog_publish">Pubblica posto</string>
-    <string name="home_release_dialog_delete_only">Solo elimina</string>
+    <string name="home_release_dialog_delete_only">Libera soltanto</string>
     <string name="home_release_dialog_cancel">Annulla</string>
     <string name="home_search_clear_cd">Cancella ricerca</string>
     <string name="pap_field_clear_cd">Cancella campo</string>
@@ -676,4 +676,22 @@
     <string name="first_steps_spotlight_caption">Il segnaposto resta fermo: trascina la MAPPA finché non è sulla tua auto, poi conferma sotto.</string>
     <string name="settings_replay_first_steps">Rivedi i primi passi</string>
     <string name="settings_replay_first_steps_done">I primi passi sono di nuovo nella Home</string>
+    <!-- First-step explainers: the two ways a spot is born [ONBOARDING-A-SPOT-IS-BORN-TWO-WAYS-001] -->
+    <string name="first_steps_explain_close">Ho capito</string>
+    <string name="first_steps_explain_park_title">Segna dove hai lasciato l'auto</string>
+    <string name="first_steps_explain_park_body">Così apri il tuo parcheggio: l'app salva il posto e comincia a sorvegliarlo per te.</string>
+    <string name="first_steps_explain_park_way_title">Da lì in poi, all'auto ci pensiamo noi</string>
+    <string name="first_steps_explain_park_way_body">Non devi ricordare la via, il numero o il piano. Apri Paparcar ed è lì.</string>
+    <string name="first_steps_explain_watch_title">Quando te ne vai, il tuo posto si libera per un altro</string>
+    <string name="first_steps_explain_watch_body">Il tuo parcheggio diventa un posto libero per la comunità. Succede in due modi.</string>
+    <string name="first_steps_explain_watch_auto_title">Da solo</string>
+    <string name="first_steps_explain_watch_auto_body">Paparcar si accorge che sei partito e segnala il posto per te, senza che tu tocchi nulla.</string>
+    <string name="first_steps_explain_watch_manual_title">Oppure lo dici tu</string>
+    <string name="first_steps_explain_watch_manual_body">Premi 'Me ne vado' sul tuo parcheggio e lo chiudi tu, quando vuoi.</string>
+    <string name="first_steps_explain_watch_note">Chiudere il parcheggio non ti obbliga a segnalare niente: 'Libera soltanto' lo chiude senza dirlo a nessuno.</string>
+    <string name="first_steps_explain_spot_title">E se vedi un posto libero, segnalalo</string>
+    <string name="first_steps_explain_spot_body">Uno spazio lasciato da un altro, che hai visto per strada.</string>
+    <string name="first_steps_explain_spot_way_title">Segnala un posto libero</string>
+    <string name="first_steps_explain_spot_way_body">Lo segni sulla mappa e chi è lì vicino lo vede. Non serve altro.</string>
+    <string name="first_steps_explain_spot_note">Questo non riguarda la tua auto: non apre nessun tuo parcheggio e non avvia nessuna sorveglianza.</string>
 </resources>

@@ -708,4 +708,22 @@
     <string name="first_steps_spotlight_caption">The pin stays put — drag the MAP until it sits on your car, then confirm below.</string>
     <string name="settings_replay_first_steps">Replay the first steps</string>
     <string name="settings_replay_first_steps_done">First steps are back on Home</string>
+    <!-- First-step explainers: the two ways a spot is born [ONBOARDING-A-SPOT-IS-BORN-TWO-WAYS-001] -->
+    <string name="first_steps_explain_close">Got it</string>
+    <string name="first_steps_explain_park_title">Mark where you left your car</string>
+    <string name="first_steps_explain_park_body">This opens your parking: the app saves the place and starts watching it for you.</string>
+    <string name="first_steps_explain_park_way_title">From then on, the car is our job</string>
+    <string name="first_steps_explain_park_way_body">You do not have to remember the street, the number or the floor. Open Paparcar and it is there.</string>
+    <string name="first_steps_explain_watch_title">When you leave, your space frees up for someone else</string>
+    <string name="first_steps_explain_watch_body">Your parking becomes a free spot for the community. It happens in one of two ways.</string>
+    <string name="first_steps_explain_watch_auto_title">On its own</string>
+    <string name="first_steps_explain_watch_auto_body">Paparcar notices you have driven off and reports the spot for you, without you touching anything.</string>
+    <string name="first_steps_explain_watch_manual_title">Or you say so</string>
+    <string name="first_steps_explain_watch_manual_body">Press 'I'm leaving' on your parking and close it yourself, whenever you want.</string>
+    <string name="first_steps_explain_watch_note">Closing your parking does not force you to report anything: 'Just release' ends it without telling anyone.</string>
+    <string name="first_steps_explain_spot_title">And if you see a free spot, report it</string>
+    <string name="first_steps_explain_spot_body">A space someone else left, that you saw from the street.</string>
+    <string name="first_steps_explain_spot_way_title">Report a free spot</string>
+    <string name="first_steps_explain_spot_way_body">You mark it on the map and nearby drivers see it. That is all it takes.</string>
+    <string name="first_steps_explain_spot_note">This one is not about your car: it opens no parking of yours and starts no watching.</string>
 </resources>

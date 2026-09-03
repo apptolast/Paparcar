@@ -51,7 +51,7 @@
     <string name="home_release_dialog_detection_unavailable">Nie będziemy w stanie sami wykryć twojego następnego parkowania.</string>
     <string name="home_release_dialog_detection_inactive">%1$s staje się Twoim aktywnym samochodem, więc wykryjemy Twoje następne parkowanie.</string>
     <string name="home_release_dialog_publish">Opublikuj miejsce</string>
-    <string name="home_release_dialog_delete_only">Tylko usuń</string>
+    <string name="home_release_dialog_delete_only">Tylko zwolnij</string>
     <string name="home_release_dialog_cancel">Anuluj</string>
     <string name="home_search_clear_cd">Wyczyść wyszukiwanie</string>
     <string name="pap_field_clear_cd">Wyczyść pole</string>
@@ -686,4 +686,22 @@
     <string name="first_steps_spotlight_caption">Pinezka stoi w miejscu: przeciągaj MAPĘ, aż znajdzie się na twoim samochodzie, i potwierdź poniżej.</string>
     <string name="settings_replay_first_steps">Powtórz pierwsze kroki</string>
     <string name="settings_replay_first_steps_done">Pierwsze kroki znów są na ekranie głównym</string>
+    <!-- First-step explainers: the two ways a spot is born [ONBOARDING-A-SPOT-IS-BORN-TWO-WAYS-001] -->
+    <string name="first_steps_explain_close">Rozumiem</string>
+    <string name="first_steps_explain_park_title">Zaznacz, gdzie zostawiłeś samochód</string>
+    <string name="first_steps_explain_park_body">To otwiera twoje parkowanie: aplikacja zapamiętuje miejsce i zaczyna go pilnować za ciebie.</string>
+    <string name="first_steps_explain_park_way_title">Od tej chwili samochód to nasza sprawa</string>
+    <string name="first_steps_explain_park_way_body">Nie musisz pamiętać ulicy, numeru ani piętra. Otwierasz Paparcar i już tam jest.</string>
+    <string name="first_steps_explain_watch_title">Kiedy odjedziesz, twoje miejsce zwolni się dla kogoś innego</string>
+    <string name="first_steps_explain_watch_body">Twoje parkowanie zamienia się w wolne miejsce dla społeczności. Dzieje się to na dwa sposoby.</string>
+    <string name="first_steps_explain_watch_auto_title">Samo</string>
+    <string name="first_steps_explain_watch_auto_body">Paparcar zauważa, że odjechałeś, i zgłasza miejsce za ciebie, bez twojego udziału.</string>
+    <string name="first_steps_explain_watch_manual_title">Albo mówisz to ty</string>
+    <string name="first_steps_explain_watch_manual_body">Naciskasz 'Odjeżdżam' przy swoim parkowaniu i zamykasz je sam, kiedy chcesz.</string>
+    <string name="first_steps_explain_watch_note">Zamknięcie parkowania do niczego cię nie zobowiązuje: 'Tylko zwolnij' kończy je, nie mówiąc nikomu.</string>
+    <string name="first_steps_explain_spot_title">A jeśli widzisz wolne miejsce, zgłoś je</string>
+    <string name="first_steps_explain_spot_body">Luka, którą zostawił ktoś inny, a którą zobaczyłeś z ulicy.</string>
+    <string name="first_steps_explain_spot_way_title">Zgłoś wolne miejsce</string>
+    <string name="first_steps_explain_spot_way_body">Zaznaczasz je na mapie, a kierowcy w pobliżu je widzą. Nic więcej nie trzeba.</string>
+    <string name="first_steps_explain_spot_note">To nie dotyczy twojego samochodu: nie otwiera żadnego twojego parkowania ani nie włącza pilnowania.</string>
 </resources>

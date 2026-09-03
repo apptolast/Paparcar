@@ -74,6 +74,7 @@ import com.rndeveloper.paparcar.ui.components.ConfirmationBottomSheet
 import com.rndeveloper.paparcar.ui.components.LocalMapInteracting
 import com.rndeveloper.paparcar.ui.components.PapSpotlight
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
+import com.rndeveloper.paparcar.presentation.onboarding.FirstStepExplainerSheet
 import com.rndeveloper.paparcar.ui.theme.PapMotion
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -989,9 +990,15 @@ private fun HomeSheetSection(
     onAddVehicle: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // [ONBOARDING-A-SPOT-IS-BORN-TWO-WAYS-001] Which first-step explainer is open, or null. Local UI
+    // state on purpose: reading an explanation banks no progress and changes nothing the ViewModel
+    // owns, so putting it in HomeState would be a field that exists only to be true for four seconds.
+    var explainerStep by remember { mutableStateOf<FirstStep?>(null) }
+
     val onAction: (HomeSheetAction) -> Unit = { action ->
         when (action) {
             HomeSheetAction.ToggleSheet -> onToggle()
+            is HomeSheetAction.OpenFirstStepExplainer -> explainerStep = action.step
             is HomeSheetAction.SelectSpot -> onSelectSpot(action.spotId)
             // The car lane steps over VEHICLES; each stop resolves to its modal here, in the one
             // translation point. Parked → the very lambda a marker tap uses; unparked → the very
@@ -1037,6 +1044,13 @@ private fun HomeSheetSection(
         onAction = onAction,
         modifier = modifier,
     )
+
+    // [ONBOARDING-A-SPOT-IS-BORN-TWO-WAYS-001] Where the two ways a spot is born are actually
+    // explained: the one you leave behind (automatically, or with "I'm leaving") and the one you
+    // saw in the street.
+    explainerStep?.let { step ->
+        FirstStepExplainerSheet(step = step, onDismiss = { explainerStep = null })
+    }
 }
 
 /** The right-side camera FAB column plus its actions (locate/car/midpoint). */

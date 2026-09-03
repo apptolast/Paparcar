@@ -133,6 +133,10 @@ fun LazyListScope.homeSheetItems(
                     }
                 },
                 onDismiss = { onIntent(HomeIntent.DismissFirstSteps) },
+                // [ONBOARDING-A-SPOT-IS-BORN-TWO-WAYS-001] Every row opens its explainer, done ones
+                // included — that is what makes replaying the checklist from Settings worth
+                // something once the live state already ticks all three.
+                onOpenStep = { step -> onAction(HomeSheetAction.OpenFirstStepExplainer(step)) },
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp),
             )
         }

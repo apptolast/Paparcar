@@ -49,7 +49,7 @@
     <string name="home_release_dialog_detection_unavailable">Nous ne pourrons pas détecter ton prochain stationnement par nous-mêmes.</string>
     <string name="home_release_dialog_detection_inactive">%1$s devient votre voiture active, nous détecterons donc votre prochain stationnement.</string>
     <string name="home_release_dialog_publish">Publier la place</string>
-    <string name="home_release_dialog_delete_only">Supprimer seulement</string>
+    <string name="home_release_dialog_delete_only">Libérer seulement</string>
     <string name="home_release_dialog_cancel">Annuler</string>
     <string name="home_search_clear_cd">Effacer la recherche</string>
     <string name="pap_field_clear_cd">Effacer le champ</string>
@@ -676,4 +676,22 @@
     <string name="first_steps_spotlight_caption">Le repère ne bouge pas : faites glisser la CARTE jusqu'à ce qu'il soit sur votre voiture, puis confirmez en dessous.</string>
     <string name="settings_replay_first_steps">Revoir les premiers pas</string>
     <string name="settings_replay_first_steps_done">Les premiers pas sont de retour sur l'accueil</string>
+    <!-- First-step explainers: the two ways a spot is born [ONBOARDING-A-SPOT-IS-BORN-TWO-WAYS-001] -->
+    <string name="first_steps_explain_close">Compris</string>
+    <string name="first_steps_explain_park_title">Indiquez où vous avez laissé la voiture</string>
+    <string name="first_steps_explain_park_body">Cela ouvre votre stationnement : l'appli retient l'endroit et se met à le surveiller pour vous.</string>
+    <string name="first_steps_explain_park_way_title">À partir de là, la voiture c'est notre affaire</string>
+    <string name="first_steps_explain_park_way_body">Vous n'avez ni la rue, ni le numéro, ni l'étage à retenir. Vous ouvrez Paparcar et c'est là.</string>
+    <string name="first_steps_explain_watch_title">Quand vous partez, votre emplacement se libère pour quelqu'un d'autre</string>
+    <string name="first_steps_explain_watch_body">Votre stationnement devient une place libre pour la communauté. Cela arrive de deux façons.</string>
+    <string name="first_steps_explain_watch_auto_title">Tout seul</string>
+    <string name="first_steps_explain_watch_auto_body">Paparcar voit que vous êtes parti et signale la place à votre place, sans que vous touchiez à rien.</string>
+    <string name="first_steps_explain_watch_manual_title">Ou c'est vous qui le dites</string>
+    <string name="first_steps_explain_watch_manual_body">Vous appuyez sur 'Je pars' sur votre stationnement et vous le clôturez vous-même, quand vous voulez.</string>
+    <string name="first_steps_explain_watch_note">Clôturer votre stationnement ne vous oblige à rien signaler : 'Libérer seulement' y met fin sans le dire à personne.</string>
+    <string name="first_steps_explain_spot_title">Et si vous voyez une place libre, signalez-la</string>
+    <string name="first_steps_explain_spot_body">Un espace laissé par quelqu'un d'autre, que vous avez vu depuis la rue.</string>
+    <string name="first_steps_explain_spot_way_title">Signaler une place</string>
+    <string name="first_steps_explain_spot_way_body">Vous la marquez sur la carte et les conducteurs à côté la voient. Il n'en faut pas plus.</string>
+    <string name="first_steps_explain_spot_note">Ici il ne s'agit pas de votre voiture : cela n'ouvre aucun stationnement à vous et ne lance aucune surveillance.</string>
 </resources>

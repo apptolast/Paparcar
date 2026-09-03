@@ -43,14 +43,14 @@
     <string name="location_fallback_spot">Platz auf der Karte</string>
     <string name="location_fallback_parking">Standort auf der Karte</string>
     <string name="location_approximate_near">In der Nähe von %1$s</string>
-    <string name="home_release_dialog_title">Stellplatz freigeben?</string>
+    <string name="home_release_dialog_title">Platz freigeben?</string>
     <string name="home_release_dialog_message">Teile deinen Stellplatz mit Fahrern in der Nähe oder lösche ihn, ohne zu teilen.</string>
     <!-- Consequence line: leaving means detection re-arms for the next parking. [VEH-ACTIVE-FENCE-001] -->
     <string name="home_release_dialog_detection_active">Wir beginnen, deinen nächsten Parkvorgang zu erkennen.</string>
     <string name="home_release_dialog_detection_unavailable">Wir können dein nächstes Parken nicht von selbst erkennen.</string>
     <string name="home_release_dialog_detection_inactive">%1$s wird dein aktives Auto, also erkennen wir deinen nächsten Parkvorgang.</string>
-    <string name="home_release_dialog_publish">Stellplatz teilen</string>
-    <string name="home_release_dialog_delete_only">Nur löschen</string>
+    <string name="home_release_dialog_publish">Platz teilen</string>
+    <string name="home_release_dialog_delete_only">Nur freigeben</string>
     <string name="home_release_dialog_cancel">Abbrechen</string>
     <string name="home_search_clear_cd">Suche löschen</string>
     <string name="pap_field_clear_cd">Feld leeren</string>
@@ -677,4 +677,22 @@
     <string name="first_steps_spotlight_caption">Die Nadel bleibt stehen: Zieh die KARTE, bis sie auf deinem Auto liegt, und bestätige unten.</string>
     <string name="settings_replay_first_steps">Erste Schritte erneut ansehen</string>
     <string name="settings_replay_first_steps_done">Die ersten Schritte sind wieder auf der Startseite</string>
+    <!-- First-step explainers: the two ways a spot is born [ONBOARDING-A-SPOT-IS-BORN-TWO-WAYS-001] -->
+    <string name="first_steps_explain_close">Verstanden</string>
+    <string name="first_steps_explain_park_title">Markiere, wo dein Auto steht</string>
+    <string name="first_steps_explain_park_body">Das öffnet deinen Parkplatz: Die App merkt sich den Ort und behält ihn für dich im Blick.</string>
+    <string name="first_steps_explain_park_way_title">Ab da ist das Auto unsere Sache</string>
+    <string name="first_steps_explain_park_way_body">Du musst dir weder Straße noch Nummer noch Etage merken. Du öffnest Paparcar, und da ist es.</string>
+    <string name="first_steps_explain_watch_title">Wenn du losfährst, wird dein Platz für jemand anderen frei</string>
+    <string name="first_steps_explain_watch_body">Aus deinem Parkplatz wird ein freier Platz für die Gemeinschaft. Das passiert auf zwei Arten.</string>
+    <string name="first_steps_explain_watch_auto_title">Von allein</string>
+    <string name="first_steps_explain_watch_auto_body">Paparcar merkt, dass du losgefahren bist, und meldet den Platz für dich, ohne dass du etwas tust.</string>
+    <string name="first_steps_explain_watch_manual_title">Oder du sagst es</string>
+    <string name="first_steps_explain_watch_manual_body">Du drückst auf deinem Parkplatz 'Ich fahre los' und schließt ihn selbst ab, wann du willst.</string>
+    <string name="first_steps_explain_watch_note">Deinen Parkplatz abzuschließen zwingt dich zu keiner Meldung: 'Nur freigeben' beendet ihn, ohne jemandem Bescheid zu sagen.</string>
+    <string name="first_steps_explain_spot_title">Und wenn du einen freien Platz siehst, melde ihn</string>
+    <string name="first_steps_explain_spot_body">Eine Lücke, die jemand anders hinterlassen hat und die du von der Straße aus gesehen hast.</string>
+    <string name="first_steps_explain_spot_way_title">Freien Platz melden</string>
+    <string name="first_steps_explain_spot_way_body">Du markierst ihn auf der Karte, und die Fahrer in der Nähe sehen ihn. Mehr braucht es nicht.</string>
+    <string name="first_steps_explain_spot_note">Hier geht es nicht um dein Auto: Es öffnet keinen Parkplatz von dir und startet keine Überwachung.</string>
 </resources>

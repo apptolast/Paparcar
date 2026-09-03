@@ -671,4 +671,22 @@
     <string name="first_steps_spotlight_caption">El pin no se mueve: arrastra el MAPA hasta que quede sobre tu coche y confirma abajo.</string>
     <string name="settings_replay_first_steps">Repetir los primeros pasos</string>
     <string name="settings_replay_first_steps_done">Los primeros pasos vuelven a estar en Inicio</string>
+    <!-- First-step explainers: the two ways a spot is born [ONBOARDING-A-SPOT-IS-BORN-TWO-WAYS-001] -->
+    <string name="first_steps_explain_close">Entendido</string>
+    <string name="first_steps_explain_park_title">Marca dónde has dejado el coche</string>
+    <string name="first_steps_explain_park_body">Eso abre tu aparcamiento: la app guarda el sitio y empieza a vigilarlo por ti.</string>
+    <string name="first_steps_explain_park_way_title">A partir de ahí, el coche es cosa nuestra</string>
+    <string name="first_steps_explain_park_way_body">No tienes que recordar la calle, el número ni la planta. Abres Paparcar y ahí está.</string>
+    <string name="first_steps_explain_watch_title">Cuando te vayas, tu sitio queda libre para otro</string>
+    <string name="first_steps_explain_watch_body">Tu aparcamiento se convierte en una plaza libre para la comunidad. Pasa de dos maneras.</string>
+    <string name="first_steps_explain_watch_auto_title">Solo</string>
+    <string name="first_steps_explain_watch_auto_body">Paparcar nota que te has ido y avisa de la plaza por ti, sin que toques nada.</string>
+    <string name="first_steps_explain_watch_manual_title">O lo dices tú</string>
+    <string name="first_steps_explain_watch_manual_body">Pulsas 'Me voy' en tu aparcamiento y lo cierras tú, cuando quieras.</string>
+    <string name="first_steps_explain_watch_note">Cerrar tu aparcamiento no te obliga a avisar de nada: 'Solo liberar' lo termina sin decírselo a nadie.</string>
+    <string name="first_steps_explain_spot_title">Y si ves una plaza libre, avisa</string>
+    <string name="first_steps_explain_spot_body">Un hueco que ha dejado otro y que has visto por la calle.</string>
+    <string name="first_steps_explain_spot_way_title">Avisar de una plaza</string>
+    <string name="first_steps_explain_spot_way_body">La marcas en el mapa y los conductores de al lado la ven. No hace falta más.</string>
+    <string name="first_steps_explain_spot_note">Esto no va de tu coche: no abre ningún aparcamiento tuyo ni activa ninguna vigilancia.</string>
 </resources>

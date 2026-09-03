@@ -74,6 +74,7 @@ import com.rndeveloper.paparcar.presentation.map.HistoryDetailSheet
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.first_steps_spotlight_caption
+import com.rndeveloper.paparcar.presentation.onboarding.FirstStepExplainerContent
 import com.rndeveloper.paparcar.presentation.onboarding.FirstStepsCard
 import com.rndeveloper.paparcar.presentation.onboarding.OnboardingScreen
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
@@ -1731,6 +1732,22 @@ private val galleryGroups: List<ScreenGroup> = listOf(
         "Primeros pasos (foco del pin)",
         listOf(
             Variant("Foco sobre el pin central") { firstStepsSpotlight() },
+        ),
+    ),
+    // [ONBOARDING-A-SPOT-IS-BORN-TWO-WAYS-001] Donde por fin se explican las DOS formas de que nazca
+    // una plaza. El paso 2 es el que lleva las dos mecánicas de la forma 1 (automática y "Me voy").
+    ScreenGroup(
+        "Primeros pasos (explicadores)",
+        listOf(
+            Variant("Paso 1 · qué abre marcar tu aparcamiento", Placement.Surface) {
+                FirstStepExplainerContent(FirstStep.MARK_PARKING, onDismiss = {})
+            },
+            Variant("Paso 2 · las 2 formas de liberar (auto + Me voy)", Placement.Surface) {
+                FirstStepExplainerContent(FirstStep.UNDERSTAND_WATCH, onDismiss = {})
+            },
+            Variant("Paso 3 · avisar de una plaza ajena", Placement.Surface) {
+                FirstStepExplainerContent(FirstStep.FIND_SPOT, onDismiss = {})
+            },
         ),
     ),
     ScreenGroup(

@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.presentation.onboarding
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -69,6 +70,14 @@ fun FirstStepsCard(
     onStartStep: (FirstStep) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * Open the step's explainer. [ONBOARDING-A-SPOT-IS-BORN-TWO-WAYS-001]
+     *
+     * EVERY row is tappable, including the done ones — that is what makes replaying the checklist
+     * from Settings worth anything once the live state already satisfies all three steps. Without
+     * it, a replay would just show three ticks.
+     */
+    onOpenStep: (FirstStep) -> Unit = {},
 ) {
     PapOutlinedCard(modifier = modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(vertical = CARD_V_PAD_DP.dp)) {
@@ -86,6 +95,7 @@ fun FirstStepsCard(
                         isDone = step in progress.done,
                         isCurrent = step == progress.current,
                         onStart = { onStartStep(step) },
+                        onOpen = { onOpenStep(step) },
                     )
                 }
             }
@@ -134,9 +144,14 @@ private fun StepRow(
     isDone: Boolean,
     isCurrent: Boolean,
     onStart: () -> Unit,
+    onOpen: () -> Unit,
 ) {
     val copy = step.copy()
     PapListItem(
+        // Interaction lives on the container, layout in the row — the component's own contract.
+        // The whole row opens the explainer; the trailing CTA keeps its own, narrower job.
+        // [UI-LIST-ITEM-001] [ONBOARDING-A-SPOT-IS-BORN-TWO-WAYS-001]
+        modifier = Modifier.clickable(onClick = onOpen),
         title = stringResource(copy.title),
         // Only the CURRENT step spends the vertical room on an explanation — three subtitles at
         // once is a wall of text, and two of them would be describing things the user is not being
