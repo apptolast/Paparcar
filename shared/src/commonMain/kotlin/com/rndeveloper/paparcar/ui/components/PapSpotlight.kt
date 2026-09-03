@@ -20,7 +20,6 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -50,6 +49,8 @@ import com.rndeveloper.paparcar.ui.theme.PaparcarType
 fun PapSpotlight(
     visible: Boolean,
     caption: String,
+    /** Called by the HOST when the user does the thing this mark is pointing at — the overlay itself
+     *  never listens for touches, see the comment on its Box. */
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     holeRadius: Dp = HOLE_RADIUS_DP.dp,
@@ -62,18 +63,19 @@ fun PapSpotlight(
         modifier = modifier,
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .pointerInput(Unit) {
-                    // A tap anywhere dismisses AND is consumed here, so the gesture that closes the
-                    // coach mark never reaches the map as a pan.
-                    awaitPointerEventScope {
-                        while (true) {
-                            awaitPointerEvent().changes.forEach { it.consume() }
-                            onDismiss()
-                        }
-                    }
-                },
+            // ⛔ NO pointer handling here AT ALL. [UI-A-COACH-MARK-MUST-NOT-EAT-THE-GESTURE-IT-TEACHES-001]
+            //
+            // It used to consume every pointer change on purpose ("so the gesture that closes the
+            // coach mark never reaches the map as a pan"), which ate the one gesture this thing
+            // exists to teach — its caption says «arrastra el MAPA hasta tu coche». Making it merely
+            // OBSERVE (Initial pass, no consume) was not enough either, and the device said so: the
+            // map underneath is a native view embedded in Compose, and a Compose overlay on top of it
+            // takes the touch away whether or not it consumes.
+            //
+            // So the overlay is now purely decorative — a hole and a caption — and WHO closes it is
+            // the map's own gesture observer, which is where the touch really lands. See
+            // `onUserMapGesture` in HomeScreen.
+            modifier = Modifier.fillMaxSize(),
         ) {
             Box(
                 modifier = Modifier

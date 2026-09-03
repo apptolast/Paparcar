@@ -592,6 +592,10 @@ private fun HomeContent(
                     else -> null
                 }
 
+                // Declared BEFORE the map because the map's gesture observer is what closes it.
+                // [UI-A-COACH-MARK-MUST-NOT-EAT-THE-GESTURE-IT-TEACHES-001]
+                var spotlightSeen by remember(state.mode) { mutableStateOf(false) }
+
                 // Stable event lambdas for HomeMapSection — extracted so the composable
                 // can skip recomposition when only unrelated state fields change.
                 val onZoneClick: (String) -> Unit = remember {
@@ -627,7 +631,14 @@ private fun HomeContent(
                     onAskMarkerClick = onAskMarkerClick,
                     onZoneClick = onZoneClick,
                     onCameraMove = onMapCameraMove,
-                    onUserMapGesture = { uiController.onUserMapGesture() },
+                    // El foco del primer aparcamiento se cierra AQUI, no en su propia capa: el
+                    // observador del mapa es el que ve el toque de verdad, y no lo consume, asi que
+                    // el mismo arrastre sigue moviendo el mapa.
+                    // [UI-A-COACH-MARK-MUST-NOT-EAT-THE-GESTURE-IT-TEACHES-001]
+                    onUserMapGesture = {
+                        uiController.onUserMapGesture()
+                        spotlightSeen = true
+                    },
                     followingDriver = uiController.followingDriver,
                     previewZoneLat = if (isAddingZone) uiController.cameraLat else null,
                     previewZoneLon = if (isAddingZone) uiController.cameraLon else null,
@@ -655,7 +666,6 @@ private fun HomeContent(
                 // It repeats the SAME `Modifier.layout` as the map above on purpose: identical
                 // bounds mean the hole's centre and the pin's centre are the same point by
                 // construction, with nothing measured and nothing to keep in sync. [see PapSpotlight]
-                var spotlightSeen by remember(state.mode) { mutableStateOf(false) }
                 PapSpotlight(
                     visible = state.mode is HomeMode.AddingParking &&
                         state.firstSteps.isVisible &&
