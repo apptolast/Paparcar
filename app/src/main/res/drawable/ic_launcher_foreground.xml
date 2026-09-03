@@ -8,9 +8,9 @@
   background reproduces the brand colour pairing of the dark theme primary.
 
   The full glyph (body + wheels) is wrapped in an outer <group> with
-  scaleX/Y = 0.72 around pivot (54,54) — parity with the chosen Play Store
-  512px icon (icon.html cell B) while still fitting inside Android's 66dp
-  adaptive safe zone, so no launcher mask crops the car.
+  scaleX/Y = 0.60 around pivot (54,54) so the car sits comfortably inside
+  Android's adaptive safe zone instead of pushing against it — matches the
+  breathing-room proportion seen in the original presentation artwork.
 
   Transform mapping (SVG → VectorDrawable):
     SVG transform="translate(X Y) rotate(Z)"  ≡
@@ -22,10 +22,10 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Outer wrapper: scale the whole glyph to 72% around canvas centre. -->
+    <!-- Outer wrapper: shrink the whole glyph to 60% around canvas centre. -->
     <group
-        android:scaleX="0.72"
-        android:scaleY="0.72"
+        android:scaleX="0.60"
+        android:scaleY="0.60"
         android:pivotX="54"
         android:pivotY="54">
 

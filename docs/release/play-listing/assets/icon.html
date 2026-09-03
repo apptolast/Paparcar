@@ -7,7 +7,9 @@
   svg{display:block;width:512px;height:512px}
 </style>
 <div class="row">
-  <!-- A: glyph 0.60 (the OLD launcher scale — superseded 02-09: launcher now 0.72) -->
+  <!-- A: glyph 0.60 — the launcher's scale (restored 03-09). NOT the Play icon: the
+       adaptive mask shows only the inner 72 of 108, so the same number reads 1.5x
+       bigger on the phone. Kept here as the small-glyph alternative. -->
   <div class="cell">
     <svg viewBox="0 0 108 108" xmlns="http://www.w3.org/2000/svg">
       <defs>
@@ -23,7 +25,8 @@
       </g>
     </svg>
   </div>
-  <!-- B: glyph 0.72 (CHOSEN — and launcher parity since 02-09) -->
+  <!-- B: glyph 0.72 — CHOSEN Play Store icon (play-icon-512.png). The launcher is 0.60
+       on purpose; see README, the two are NOT meant to share the number. -->
   <div class="cell">
     <svg viewBox="0 0 108 108" xmlns="http://www.w3.org/2000/svg">
       <defs>

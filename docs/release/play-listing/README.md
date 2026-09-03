@@ -36,10 +36,14 @@ CHROME="/c/Program Files/Google/Chrome/Application/chrome.exe"
       `Paparcar: dónde aparcaste` (25/30) en es-ES — **con tilde** en `dónde`
 - [x] Descripción breve — 65/80 (EN) · 76/80 (ES)
 - [x] Descripción completa — 2.734/4.000 (EN) · 2.853/4.000 (ES)
-- [x] Icono de la aplicación — vigente el de glifo al 72% (`icon.html` celda B). El
-      **launcher de la app** se subió de 0.60 a **0.72** el 02-09 (`ic_launcher_foreground.xml`)
-      para que ambos midan igual; al 72% el punto más bajo de las ruedas queda a ~32,3 del
-      centro (límite de la zona segura adaptativa: 33) — no subir más sin re-medir.
+- [x] Icono de la aplicación — vigente el de glifo al 72% (`icon.html` celda B), decisión
+      confirmada el 03-09. ⛔ **El launcher NO lleva ese número y no debe llevarlo**: el
+      02-09 se le subió a 0.72 «para que ambos midan igual» y eso era falso — el icono
+      adaptativo solo enseña los **72 centrales de 108**, así que a igual número el glifo
+      se ve 1,5× más grande en el móvil. Medido sobre los PNG: a 0.72 el glifo ocupa el
+      **48,4 %** del tile de Play pero el **72,7 %** del tile visible del launcher. El
+      launcher volvió a **0.60** el 03-09 (= 60,4 % de su tile visible). Igualarlos a ojo
+      exigiría subir el de Play a ~0.90, que deja el coche pegado al borde: descartado.
 - [x] Gráfico de funciones — lleva dibujada la frase de marca, no un campo de texto.
       Texto actualizado el 29-08 a «Park and forget it. Paparcar remembers.»
       **Localizado el 02-09 a los 9 idiomas**: `screenshots/{lang}/feature-graphic-1024x500.png`
