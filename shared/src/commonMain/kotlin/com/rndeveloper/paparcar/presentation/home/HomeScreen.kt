@@ -1065,12 +1065,14 @@ private fun HomeSheetSection(
                 }
             }
             is HomeSheetAction.RequestRelease -> onRelease(action.sessionId)
-            HomeSheetAction.RequestReportMode -> onIntent(
-                HomeIntent.EnterReportMode(
-                    lat = uiController.cameraLat ?: state.userGpsPoint?.latitude ?: 0.0,
-                    lon = uiController.cameraLon ?: state.userGpsPoint?.longitude ?: 0.0,
-                ),
-            )
+            // [SPOT-A-REPORT-WITHOUT-A-PLACE-MUST-NOT-HAPPEN-001] No place, no report mode. This
+            // used to fall back to `0.0, 0.0` — the Gulf of Guinea — and a spot published there is
+            // garbage on everyone else's map. The CTAs above are disabled without a place, so this
+            // guard is the floor, not the message: there is nothing to tell a user who could not
+            // have pressed anything.
+            HomeSheetAction.RequestReportMode -> pinStartPoint(uiController, state)?.let { (lat, lon) ->
+                onIntent(HomeIntent.EnterReportMode(lat = lat, lon = lon))
+            }
             is HomeSheetAction.MoveCamera -> uiController.goToPlace(action.lat, action.lon)
             is HomeSheetAction.NavigateExternal ->
                 onNavigateExternal(action.lat, action.lon, action.walking)
@@ -1103,6 +1105,21 @@ private fun HomeSheetSection(
         modifier = modifier,
     )
 
+}
+
+/**
+ * Where a pin mode STARTS: the camera if the map has drawn a frame, else the last GPS fix, else
+ * nowhere. [SPOT-A-REPORT-WITHOUT-A-PLACE-MUST-NOT-HAPPEN-001]
+ *
+ * Null is a real answer and the callers honour it. Before this, report mode defaulted to
+ * `0.0, 0.0` when both were missing — a coordinate nobody chose, in the middle of the ocean, on a
+ * surface whose whole job is publishing places to strangers. The window is small (the first frames
+ * after a cold start) but what it produces is permanent: a spot on the map that is not anywhere.
+ */
+internal fun pinStartPoint(uiController: HomeUiController, state: HomeState): Pair<Double, Double>? {
+    val lat = uiController.cameraLat ?: state.userGpsPoint?.latitude ?: return null
+    val lon = uiController.cameraLon ?: state.userGpsPoint?.longitude ?: return null
+    return lat to lon
 }
 
 /**

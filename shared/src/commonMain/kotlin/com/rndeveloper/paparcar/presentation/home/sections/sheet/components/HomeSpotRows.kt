@@ -371,9 +371,12 @@ internal fun HomeEmptyFilteredSpots(
 internal fun HomeReportSpotCard(
     onReport: () -> Unit,
     modifier: Modifier = Modifier,
+    /** False while Home still has no place to start the pin from — see
+     *  [SPOT-A-REPORT-WITHOUT-A-PLACE-MUST-NOT-HAPPEN-001]. */
+    enabled: Boolean = true,
 ) {
     PapOutlinedCard(
-        onClick = onReport,
+        onClick = onReport.takeIf { enabled },
         modifier = modifier.fillMaxWidth(),
         shape = PapShapes.cardSmall,
     ) {

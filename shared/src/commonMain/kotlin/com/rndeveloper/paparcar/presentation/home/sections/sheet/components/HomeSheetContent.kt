@@ -426,6 +426,9 @@ private fun LazyListScope.spotsSection(
         item("report_spot_cta") {
             HomeReportSpotCard(
                 onReport = { onAction(HomeSheetAction.RequestReportMode) },
+                // Sin sitio del que partir no se entra en modo reporte, asi que tampoco se ofrece.
+                // [SPOT-A-REPORT-WITHOUT-A-PLACE-MUST-NOT-HAPPEN-001]
+                enabled = slice.userGpsPoint != null,
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
             )
         }
