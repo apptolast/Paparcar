@@ -193,8 +193,26 @@ sealed interface DetectionPath {
 
     // ── Placed by the user ──────────────────────────────────────────────────────────────────────
 
-    /** The user answered a detection prompt. Keeps `AUTO_DETECTED` so the freed spot publishes with
-     *  the auto TTL, but the hand that placed it was theirs. [DET-NUDGE-PIN-PROVENANCE-001] */
+    /**
+     * The user answered a detection prompt. Keeps `AUTO_DETECTED` so the freed spot publishes with
+     * the auto TTL, but the hand that placed it was theirs. [DET-NUDGE-PIN-PROVENANCE-001]
+     *
+     * ⚠️ **Nothing writes this label today, and no pin is missing because of it.**
+     * [UI-THE-PARKING-CONFIRMATION-MODAL-IS-UNREACHABLE-001]
+     *
+     * Its only producer was `SaveManualParkingUseCase.confirmDetected()`, the entry point of a
+     * confirmation sheet that no code path ever opened — so `"user"` had already stopped being
+     * stamped long before that sheet was deleted on 2026-09-03.
+     *
+     * Answering the real question does NOT stamp it either, and that is correct:
+     * `onUserConfirmedParking()` only marks the session as confirmed
+     * (`confirmation.userSaidYes()`), and the coordinator then plants the pin with the path of HOW
+     * it was detected. A "Yes" confirms a detection, it does not replace it.
+     *
+     * Kept on purpose rather than deleted: sessions written by older builds may carry `"user"`, and
+     * the deserializer has to keep resolving it. If you are reading traces and never see this path,
+     * nothing is lost — it simply has no writer.
+     */
     data object UserAnswered : DetectionPath {
         override val label = "user"
         override val source = ParkingDetectionSource.Manual
