@@ -670,6 +670,7 @@
     <string name="first_steps_eyebrow">Primeros pasos</string>
     <string name="first_steps_progress">%1$d de %2$d</string>
     <string name="first_steps_skip">Saltar</string>
+    <string name="first_steps_how_it_works">Cómo funciona</string>
     <string name="first_steps_done_cta">Hecho</string>
     <string name="first_steps_complete_title">Ya lo tienes</string>
     <string name="first_steps_complete_sub">Ya sabes cómo funciona Paparcar. Ahora solo conduce.</string>

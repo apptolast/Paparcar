@@ -32,7 +32,37 @@ enum class FirstStep {
     FORTIFY_WATCH,
 
     /** Meet the community side: a free spot someone else left, or one you report. */
-    FIND_SPOT,
+    FIND_SPOT;
+
+    /**
+     * Whether ENGAGING with this step is doing it — reading its explanation, or opening the flow it
+     * teaches, whether or not anything came of it.
+     * [ONBOARDING-THE-COMMUNITY-STEP-CANNOT-DEMAND-A-SPOT-001]
+     *
+     * True only for steps of KNOWLEDGE. [FIND_SPOT] teaches that the community half exists: that
+     * spots others leave show on the map, and that a free space you see can be reported. Having read
+     * that IS knowing it. Demanding a published spot instead left a user with none nearby and no
+     * free space to report unable to ever close the step — the only ways out being a false report,
+     * which dirties the map for everyone, or a checklist open forever.
+     *
+     * Its CTA counts too, and for the same reason: pressing "report a spot" puts the user IN the
+     * reporting flow — the pin, the map, the whole gesture — which shows them what it is even if
+     * they back out. That is knowing it. What would NOT be knowledge is ticking the step for a tap
+     * on a row nobody read, which is why the door into the explanation is a labelled button and not
+     * a hidden touch area.
+     *
+     * False for every step that is an ACT — marking the car, turning detection on, granting the
+     * exemption. Reading about them does not do them, and [MARK_PARKING] in particular is REQUIRED:
+     * it is what arms everything else, and it completes only with a parking that really exists,
+     * whether it was marked from the checklist or from the app's normal flow.
+     *
+     * The whole projection exists because *a step completes on measured state, never on a tap*. This
+     * property is the ONE narrow exception, and it is narrow because what this step measures is what
+     * the user KNOWS.
+     *
+     * A new step has to declare which kind it is HERE, not inherit one from a `when` elsewhere.
+     */
+    val completesOnEngage: Boolean get() = this == FIND_SPOT
 }
 
 /**

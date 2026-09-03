@@ -676,6 +676,7 @@
     <string name="first_steps_eyebrow">Eerste stappen</string>
     <string name="first_steps_progress">%1$d van %2$d</string>
     <string name="first_steps_skip">Overslaan</string>
+    <string name="first_steps_how_it_works">Hoe het werkt</string>
     <string name="first_steps_done_cta">Klaar</string>
     <string name="first_steps_complete_title">Je bent er klaar voor</string>
     <string name="first_steps_complete_sub">Je weet nu hoe Paparcar werkt. Nu gewoon rijden.</string>

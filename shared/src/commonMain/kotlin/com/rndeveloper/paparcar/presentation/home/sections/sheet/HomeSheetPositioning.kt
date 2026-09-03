@@ -26,7 +26,6 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
-import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 import com.rndeveloper.paparcar.presentation.home.HomeMode
 import com.rndeveloper.paparcar.presentation.home.HomeSelection
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.papSheetHeaderBandHeight
@@ -282,11 +281,11 @@ internal fun SheetTransitionEffects(
      */
     promptShownAtMs: Long? = null,
     /**
-     * [ONBOARDING-FIRST-STEPS-MUST-BE-READABLE-AND-FOUND-001] The first step the guided checklist is
-     * asking for while it is on screen, or null. Same role as [promptShownAtMs]: the KEY of an
-     * auto-open, not a boolean.
+     * [ONBOARDING-FIRST-STEPS-MUST-BE-READABLE-AND-FOUND-001] What the guided checklist has to show
+     * while it is on screen, or null. Same role as [promptShownAtMs]: the KEY of an auto-open, not a
+     * boolean — see `HomeBrowseListSlice.firstStepsCue`.
      */
-    firstStepAnchor: FirstStep? = null,
+    firstStepsCue: String? = null,
 ) {
     val peekOffsetPx = positioning.peekOffsetPx
     val peekSnapTolerancePx = with(LocalDensity.current) { PEEK_LAYOUT_SNAP_TOLERANCE.toPx() }
@@ -397,8 +396,8 @@ internal fun SheetTransitionEffects(
     // advancing is a CHANGE worth showing rather than a state to be in.
     // [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001]
     var firstStepsOpenedOnce by remember { mutableStateOf(false) }
-    LaunchedEffect(firstStepAnchor) {
-        if (firstStepAnchor == null) return@LaunchedEffect
+    LaunchedEffect(firstStepsCue) {
+        if (firstStepsCue == null) return@LaunchedEffect
         // Rewind BEFORE the sheet moves, so the checklist is already the first thing on screen when
         // it arrives instead of scrolling into place afterwards.
         lazyListState.scrollToItem(0)

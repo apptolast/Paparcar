@@ -112,6 +112,32 @@ class FirstStepsTest {
         assertEquals(FirstStep.MARK_PARKING, resolve(dismissed = true).current)
     }
 
+    // ── Qué paso se completa con solo TOCARLO ──
+    // [ONBOARDING-THE-COMMUNITY-STEP-CANNOT-DEMAND-A-SPOT-001]
+
+    @Test
+    fun should_completeTheCommunityStep_when_theUserEngagesWithIt() {
+        // Reading its explanation or opening the report flow, published spot or not. It teaches that
+        // the community half EXISTS; demanding a publication left a user with nothing to report
+        // unable to ever close it — the only ways out being a false report or a checklist open
+        // forever.
+        assertTrue(FirstStep.FIND_SPOT.completesOnEngage)
+    }
+
+    @Test
+    fun should_notCompleteAnyStepThatIsAnAct_when_itIsMerelyTapped() {
+        // The guard that matters: a tap does not park the car, does not turn detection on and does
+        // not grant an exemption. MARK_PARKING above all — it is what arms everything else and stays
+        // REQUIRED, with a parking that really exists. This is the assertion someone would have to
+        // delete on purpose when adding a fifth step, instead of quietly inheriting "a tap counts".
+        val acts = FirstStep.entries.filter { it != FirstStep.FIND_SPOT }
+        assertEquals(
+            emptyList(),
+            acts.filter { it.completesOnEngage },
+            "only steps of KNOWLEDGE complete on engagement",
+        )
+    }
+
     // ── A step that asks for a permission never blocks ──
     // [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001]
 

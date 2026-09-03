@@ -688,6 +688,7 @@
     <string name="first_steps_eyebrow">Primii pași</string>
     <string name="first_steps_progress">%1$d din %2$d</string>
     <string name="first_steps_skip">Sari peste</string>
+    <string name="first_steps_how_it_works">Cum funcționează</string>
     <string name="first_steps_done_cta">Gata</string>
     <string name="first_steps_complete_title">Totul e pregătit</string>
     <string name="first_steps_complete_sub">Știi cum funcționează Paparcar. Acum doar condu.</string>

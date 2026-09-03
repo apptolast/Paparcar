@@ -687,6 +687,7 @@
     <string name="first_steps_eyebrow">Pierwsze kroki</string>
     <string name="first_steps_progress">%1$d z %2$d</string>
     <string name="first_steps_skip">Pomiń</string>
+    <string name="first_steps_how_it_works">Jak to działa</string>
     <string name="first_steps_done_cta">Gotowe</string>
     <string name="first_steps_complete_title">Wszystko gotowe</string>
     <string name="first_steps_complete_sub">Wiesz już, jak działa Paparcar. Teraz po prostu jedź.</string>

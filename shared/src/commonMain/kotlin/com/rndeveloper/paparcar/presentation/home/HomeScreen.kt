@@ -489,8 +489,12 @@ private fun HomeContent(
                     promptShownAtMs = state.promptWindow?.shownAtMs,
                     // [ONBOARDING-FIRST-STEPS-MUST-BE-READABLE-AND-FOUND-001] So does the guided
                     // checklist — otherwise the tutorial only exists for a user who already knows
-                    // to drag the sheet up. Same gate the card itself renders from.
-                    firstStepAnchor = browseSlice.firstStepAnchor,
+                    // to drag the sheet up. Same gate the card itself renders from, and it covers
+                    // coming BACK from a step's explanation: Home recomposes with the sheet at peek,
+                    // and the checklist has to be there again — including when reading that
+                    // explanation is what finished it.
+                    // [ONBOARDING-THE-COMMUNITY-STEP-CANNOT-DEMAND-A-SPOT-001]
+                    firstStepsCue = browseSlice.firstStepsCue,
                 )
 
                 // Tap-toggle, programmatic expand and nested-scroll collapse — see [SheetMotion].

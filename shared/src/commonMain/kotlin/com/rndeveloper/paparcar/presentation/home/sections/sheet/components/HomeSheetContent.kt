@@ -119,6 +119,10 @@ fun LazyListScope.homeSheetItems(
             FirstStepsCard(
                 progress = firstSteps,
                 onStartStep = { step ->
+                    // Pressing the CTA counts as much as reading it: it drops the user INTO the flow
+                    // the step teaches, which is what the step is about.
+                    // [ONBOARDING-THE-COMMUNITY-STEP-CANNOT-DEMAND-A-SPOT-001]
+                    if (step.completesOnEngage) onIntent(HomeIntent.CompleteFirstStep(step))
                     when (step) {
                         // The REAL flow, with the same parameters the cold-start row passes — the
                         // step teaches the app's own control, not a rehearsal of it.
@@ -169,7 +173,13 @@ fun LazyListScope.homeSheetItems(
                 // [ONBOARDING-A-SPOT-IS-BORN-TWO-WAYS-001] Every row opens its explainer, done ones
                 // included — that is what makes replaying the checklist from Settings worth
                 // something once the live state already ticks all three.
-                onOpenStep = { step -> onAction(HomeSheetAction.OpenFirstStepExplainer(step)) },
+                onOpenStep = { step ->
+                    onAction(HomeSheetAction.OpenFirstStepExplainer(step))
+                    // [ONBOARDING-THE-COMMUNITY-STEP-CANNOT-DEMAND-A-SPOT-001] For a step of
+                    // KNOWLEDGE, engaging with it IS doing it. WHICH steps those are is the model's
+                    // answer (`completesOnEngage`), not an `if` written here.
+                    if (step.completesOnEngage) onIntent(HomeIntent.CompleteFirstStep(step))
+                },
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp),
             )
         }

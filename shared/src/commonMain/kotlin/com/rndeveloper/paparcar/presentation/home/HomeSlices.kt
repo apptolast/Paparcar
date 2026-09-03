@@ -254,13 +254,23 @@ data class HomeBrowseListSlice(
         get() = firstSteps.isVisible && hasCorePermissions && vehicleCards.isNotEmpty()
 
     /**
-     * The step the checklist is asking for right now, or null when it is not on screen / has nothing
-     * left to ask. The KEY of the sheet's auto-open: it only ever moves FORWARD (the latch in
-     * `subscribeFirstSteps` banks a done step, so a step never un-completes), so the sheet opens once
-     * per step and dragging it back down sticks until there is genuinely something new to show.
+     * WHAT the checklist has to show right now, as a key — or null when it is not on screen.
+     * [ONBOARDING-THE-COMMUNITY-STEP-CANNOT-DEMAND-A-SPOT-001]
+     *
+     * The KEY of the sheet's auto-open. It used to be the current STEP, which had a hole: reading a
+     * step's explanation can complete it, and if it was the last one the user came back from that
+     * screen to a closed sheet — with the checklist hidden at the exact moment they finished it.
+     * A finished-but-still-visible checklist has something to show too (its closing card), so it
+     * gets its own key instead of collapsing to "nothing to ask".
+     *
+     * Steps only ever move FORWARD (the latch banks a done step), so this changes a handful of times
+     * at most: once per step, once on closing.
      */
-    val firstStepAnchor: FirstStep?
-        get() = firstSteps.current.takeIf { showsFirstSteps }
+    val firstStepsCue: String?
+        get() = when {
+            !showsFirstSteps -> null
+            else -> firstSteps.current?.name ?: FIRST_STEPS_CLOSING_CUE
+        }
 }
 
 // ── Projections ───────────────────────────────────────────────────────────────
@@ -427,6 +437,9 @@ internal fun HomeState.isMyOwnLiveSession(spot: Spot): Boolean =
  * NOT size-filtered on purpose: the size filter is a lens the user chose, and the question here is
  * whether the community has anything at all.
  */
+/** The cue of a checklist that has nothing left to ask but is still on screen. */
+internal const val FIRST_STEPS_CLOSING_CUE = "closing"
+
 internal val HomeState.spotsOnOffer: List<Spot>
     get() = nearbySpots.filter { it.status.isAvailable && !isMyOwnLiveSession(it) }
 

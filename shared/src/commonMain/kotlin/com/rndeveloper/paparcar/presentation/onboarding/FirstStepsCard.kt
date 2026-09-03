@@ -7,8 +7,10 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.HelpOutline
 import androidx.compose.material.icons.rounded.AddLocationAlt
 import androidx.compose.material.icons.rounded.BatteryAlert
 import androidx.compose.material.icons.rounded.Bluetooth
@@ -19,6 +21,7 @@ import androidx.compose.material.icons.rounded.SensorsOff
 import androidx.compose.material.icons.rounded.Verified
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -51,6 +54,7 @@ import paparcar.composeapp.generated.resources.first_steps_deferred_sub
 import paparcar.composeapp.generated.resources.first_steps_deferred_title
 import paparcar.composeapp.generated.resources.first_steps_done_cta
 import paparcar.composeapp.generated.resources.first_steps_eyebrow
+import paparcar.composeapp.generated.resources.first_steps_how_it_works
 import paparcar.composeapp.generated.resources.first_steps_fortify_battery_sub
 import paparcar.composeapp.generated.resources.first_steps_fortify_battery_title
 import paparcar.composeapp.generated.resources.first_steps_fortify_bt_sub
@@ -237,6 +241,23 @@ private fun StepRow(
             // The glyph comes from the copy already resolved above — the step's words and its icon
             // are one decision, and resolving it twice is how the two drift apart.
             leading = { StepMarker(icon = copy.icon, isDone = isDone, isCurrent = isCurrent) },
+            // The way INTO the explanation, and the only visible sign that there is one.
+            // [ONBOARDING-THE-COMMUNITY-STEP-CANNOT-DEMAND-A-SPOT-001]
+            //
+            // The row was already tappable, but next to a filled green CTA nobody taps prose: the
+            // button shouts and the text says nothing about leading anywhere. So the affordance gets
+            // its own control. A GLYPH, not a third button — the row's trailing slot is for compact
+            // affordances, and a word here would compete with the step's actual action.
+            // [UI-LIST-ITEM-001]
+            trailing = {
+                IconButton(onClick = onOpen, modifier = Modifier.size(HELP_TOUCH_DP.dp)) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Rounded.HelpOutline,
+                        contentDescription = stringResource(Res.string.first_steps_how_it_works),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            },
             contentPadding = PaddingValues(
                 horizontal = CARD_H_PAD_DP.dp,
                 vertical = ROW_V_PAD_DP.dp,
@@ -263,10 +284,21 @@ private fun StepRow(
                 // for, but a permission the user declined must not cost them the rest of the
                 // tutorial. Quiet on purpose — an invitation with an exit, not two competing CTAs.
                 // [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001]
-                if (copy.asksForPermission) {
-                    TextButton(onClick = onDefer) {
+                when {
+                    copy.asksForPermission -> TextButton(onClick = onDefer) {
                         Text(
                             text = stringResource(Res.string.first_steps_not_yet),
+                            style = PaparcarType.current.cta,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    // The step of KNOWLEDGE gets a second, LABELLED door: not everyone wants to open
+                    // the report flow just to learn what it is, and a glyph alone was not something
+                    // anyone was looking for next to a filled green button.
+                    // [ONBOARDING-THE-COMMUNITY-STEP-CANNOT-DEMAND-A-SPOT-001]
+                    step.completesOnEngage -> TextButton(onClick = onOpen) {
+                        Text(
+                            text = stringResource(Res.string.first_steps_how_it_works),
                             style = PaparcarType.current.cta,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -483,6 +515,8 @@ private const val ROW_V_PAD_DP = 8
 private const val HEADER_GAP_DP = 8
 /** Between the step's CTA and its "not yet" way out. */
 private const val CTA_GAP_DP = 4
+/** Touch target of the help glyph — a hair under the 48 dp default so it does not grow the row. */
+private const val HELP_TOUCH_DP = 40
 /** Inset that lines the bare status glyphs up with the 40 dp tile of the current step. */
 private const val MARKER_INSET_DP = 8
 

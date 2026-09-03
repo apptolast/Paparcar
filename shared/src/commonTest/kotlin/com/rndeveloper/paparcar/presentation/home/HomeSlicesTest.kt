@@ -635,7 +635,7 @@ class HomeSlicesTest {
         val slice = newUser().toBrowseListSlice()
 
         assertTrue(slice.showsFirstSteps)
-        assertEquals(FirstStep.MARK_PARKING, slice.firstStepAnchor, "the sheet opens on step one")
+        assertEquals(FirstStep.MARK_PARKING.name, slice.firstStepsCue, "the sheet opens on step one")
     }
 
     @Test
@@ -643,7 +643,7 @@ class HomeSlicesTest {
         val slice = newUser(dismissed = true).toBrowseListSlice()
 
         assertFalse(slice.showsFirstSteps)
-        assertNull(slice.firstStepAnchor, "a skipped checklist must not open the sheet either")
+        assertNull(slice.firstStepsCue, "a skipped checklist must not open the sheet either")
     }
 
     @Test
@@ -653,7 +653,7 @@ class HomeSlicesTest {
         val slice = newUser(vehicles = emptyList()).toBrowseListSlice()
 
         assertFalse(slice.showsFirstSteps)
-        assertNull(slice.firstStepAnchor)
+        assertNull(slice.firstStepsCue)
     }
 
     @Test
@@ -661,7 +661,7 @@ class HomeSlicesTest {
         val slice = newUser(hasCorePermissions = false).toBrowseListSlice()
 
         assertFalse(slice.showsFirstSteps)
-        assertNull(slice.firstStepAnchor)
+        assertNull(slice.firstStepsCue)
     }
 
     @Test
@@ -673,7 +673,11 @@ class HomeSlicesTest {
             .toBrowseListSlice()
 
         assertTrue(slice.showsFirstSteps, "the closing card still shows")
-        assertNull(slice.firstStepAnchor, "…and asks for nothing, so the sheet stays put")
+        // [ONBOARDING-THE-COMMUNITY-STEP-CANNOT-DEMAND-A-SPOT-001] A finished checklist still has
+        // something to show — its closing card — and coming back from a step's explanation that
+        // FINISHED it used to land on a closed sheet, hiding the tutorial at the very moment the
+        // user completed it.
+        assertEquals(FIRST_STEPS_CLOSING_CUE, slice.firstStepsCue)
     }
 
     @Test
@@ -686,8 +690,8 @@ class HomeSlicesTest {
             .toBrowseListSlice()
 
         assertEquals(
-            FirstStep.FIND_SPOT,
-            slice.firstStepAnchor,
+            FirstStep.FIND_SPOT.name,
+            slice.firstStepsCue,
             "a new step is new to teach — that is exactly when the sheet opens again",
         )
     }
