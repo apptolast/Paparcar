@@ -2,9 +2,8 @@
 
 **Estado:** ✅ Cerrado (03-09-2026) — resuelto borrando **la base de datos entera**, no documento a
 documento. Sin rama: es operación, no código. Lo que este doc conserva es la trampa que destapó.
-Residuo cosmético, no bloqueante: 12 docs de `diagnostics_config` quedan **apagados** (`enabled:
-false`) en vez de borrados, porque el contador de borrados de Spark se agotó; se barren en la
-ventana siguiente si se quiere la colección literalmente vacía.
+Estado final verificado: `listCollectionIds` sobre la raíz de `pap-26` devuelve **`{}`** — ni una
+colección, `diagnostics_config` incluida. El proyecto está en **Blaze** desde el 03-09.
 
 ## Cómo acabó
 
@@ -17,7 +16,7 @@ borrar la base no toca las cuentas.
 |---|---|
 | `users`, `spots` | ✅ borradas (03-09, antes del reset de base) |
 | `diagnostics` | ✅ borrada entera con la base — sesiones, `uiLocation` y ~57.000 `events` |
-| `diagnostics_config` | ✅ restaurada y **apagada entera**: 1 doc borrado + 12 en `enabled: false` |
+| `diagnostics_config` | ✅ **borrada** — se restauró, se apagó entera y finalmente se barrió: sin usuarios no protegía nada, y las notas viven en el zip |
 | Reglas | ✅ intactas — viven a nivel de proyecto, sobrevivieron al borrado de la base |
 | Índices | ✅ `indexes: []` en el repo y `[]` en el proyecto: no había ninguno que perder |
 | Auth | ✅ intacto |
@@ -103,8 +102,14 @@ suelto que responde **no** demuestra que la app funcione. Comprobar la operació
 pantalla, no la que tienes a mano.
 
 📌 Consecuencia para la operación: con `delete` agotado y `update` vivo, apagar un flag escribiendo
-`enabled: false` es equivalente a borrarlo (el gate es `?: false`) y **sí entra hoy**. Los 12 docs se
-apagaron así; el borrado limpio de la colección queda para la ventana siguiente (09:00).
+`enabled: false` equivale a borrarlo (el gate es `?: false`) y **sí entra**. Así se apagaron los 12
+mientras el contador de borrados seguía cerrado.
+
+⚠️ **Subir a Blaze no suelta los contadores a la vez.** Con el plan ya cambiado, las lecturas y las
+consultas volvieron de inmediato —una `listDocuments` que daba 429 pasó al minuto— pero los
+**borrados siguieron en 429 varios minutos más**, y `firestore:delete --recursive` falló entretanto
+con *"Failed to fetch documents to delete >= 3 times"*, que parece un problema de ruta y no lo es.
+Reintentar: entran solos cuando el contador se libera.
 
 ## Gate remoto: apagado para TODOS, y se abre por uid bajo demanda (decisión del user, 03-09)
 
@@ -112,9 +117,10 @@ Los diagnósticos remotos están apagados por defecto sin tocar código: el gate
 `.get<Boolean?>(FIELD_ENABLED) ?: false` y arranca `null`, así que un usuario nuevo de Play —sin doc
 en `diagnostics_config`— no emite nada remoto. El sink local de logcat sigue activo y no cuesta cuota.
 
-El barrido del 30-08 que dejó los 13 en `enabled: true` **se revierte**: se restauraron y acto
-seguido se apagaron los 13 (1 borrado, 12 a `enabled: false` — ver estado de cuota abajo). Ninguna
-cuenta emite telemetría remota.
+El barrido del 30-08 que dejó los 13 en `enabled: true` **se revierte, y la colección se borra
+entera**: sin usuarios en producción, 13 flags de una etapa que ya no existe no protegen nada, y sus
+notas (qué uid era qué móvil) siguen en el zip del corpus. `diagnostics_config` se repuebla de una en
+una, cuando haga falta. Ninguna cuenta emite telemetría remota.
 
 **Cómo se abre a alguien concreto:** cuando un usuario reporta un problema de detección, su **uid
 viaja en el propio informe** (`diagnostics_reports/{uid}`, [SUPPORT-REPORT-SHIPS-THE-LOCAL-LOG-001]),
@@ -134,8 +140,8 @@ paso del detector en `events`. Por eso "encendido a todos por si acaso" fue lo q
 Con los eventos contados, el volumen real era **~85.000 documentos con 11 testers**, no los 28k que
 decía el manifest. Dos frentes distintos, y conviene no confundirlos:
 
-1. **Plan** — Blaze antes de abrir el grifo (decisión del user, necesita tarjeta). Estas operaciones
-   cuestan céntimos; el problema de Spark no es el precio, son los techos diarios.
+1. **Plan** — ✅ **Blaze activado el 03-09**, antes de abrir el grifo. Se acabaron los techos
+   diarios; estas operaciones cuestan céntimos. El problema de Spark nunca fue el precio.
 2. **Diseño** — un doc por muestra (`uiLocation`) y un doc por paso del detector (`events`) es caro
    por construcción. Agrupar por sesión, o muestrear más fuerte, es una tarea de código propia que
    este doc NO abre; solo la señala con su medida.
