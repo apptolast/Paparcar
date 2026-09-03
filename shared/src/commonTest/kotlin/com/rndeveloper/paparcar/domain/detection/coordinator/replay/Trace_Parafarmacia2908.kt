@@ -1,5 +1,7 @@
 package com.rndeveloper.paparcar.domain.detection.coordinator.replay
 
+import com.rndeveloper.paparcar.domain.detection.coordinator.ingestion.TraceEvent
+
 /**
  * [DET-GUARDRAILS-KEEP-THE-DOCTRINE-001] Field 2026-08-29 23:47:44–23:56:33 (Redmi, uid `itmG…`,
  * session `c6a57fad`): **the parafarmacia false positive** — the first of the two FPs that caused
