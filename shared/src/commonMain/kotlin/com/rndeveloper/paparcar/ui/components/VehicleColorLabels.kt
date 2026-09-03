@@ -51,14 +51,21 @@ fun VehicleColor?.colorLabel(): String = stringResource(
  * The colour to paint a selector swatch with, theme-aware so it matches the body tint actually
  * applied to the icon.
  *
- * `null` means *"we don't know this car's colour"* — an ABSENT datum, which is painted neutral. It
- * used to return the brand green, which dressed a missing value as identity: the swatch for "no
- * colour chosen" was the same green as a CTA. A colour is earned by a story, and "unknown" has none.
- * [UI-COLOR-EVERY-HUE-EARNS-ITS-MEANING-001]
+ * **A swatch shows the fill it will apply — no exceptions.** The row is a paint chart, the case
+ * `COLOR-SYSTEM.md` already carves out for the theme picker: there the colour *is* the datum, not a
+ * story about one.
+ *
+ * `null` is not a missing datum here, it is the factory paint: with no chosen colour the pictogram
+ * renders through [defaultCarPalette] (`VehicleIconPainter`), i.e. brand green. Painting the swatch
+ * neutral read it as "unknown" and made the chart lie — it promised grey and delivered green, and
+ * the car glyph stuffed inside the bubble existed only to excuse that. So the swatch reads the very
+ * function that paints the car, and the two cannot drift apart. Side-profile because that is the
+ * orientation `vehicleIconPainter` resolves, and the pictogram the user has on screen here.
+ * [UI-COLOR-THE-DEFAULT-SWATCH-MUST-SHOW-ITS-PAINT-001]
  */
 @Composable
 fun VehicleColor?.swatchColor(): Color {
-    if (this == null) return MaterialTheme.colorScheme.onSurfaceVariant
+    if (this == null) return defaultCarPalette(topdown = false).body
     val isDark = MaterialTheme.colorScheme.surface.luminance() < DARK_SURFACE_LUMINANCE
     return Color(if (isDark) bodyDarkArgb else bodyLightArgb)
 }

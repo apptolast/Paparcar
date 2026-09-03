@@ -9,8 +9,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -32,7 +34,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.model.VehicleColor
-import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
 import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 
@@ -40,6 +41,11 @@ private val SWATCH_SIZE = 40.dp
 private val SWATCH_GAP = 10.dp
 private val SELECTED_RING_WIDTH = 2.5.dp
 private val REST_BORDER_WIDTH = 1.dp
+
+/** Surface-coloured breathing room between the selection ring and the fill, so the ring reads
+ *  against ANY swatch — including the brand-green default, which is the same green as the ring
+ *  itself. [UI-COLOR-THE-DEFAULT-SWATCH-MUST-SHOW-ITS-PAINT-001] */
+private val SELECTED_RING_GAP = 2.dp
 private val CHECK_SIZE = 20.dp
 private const val CHECK_DARK_LUMINANCE = 0.55f
 
@@ -48,6 +54,10 @@ private const val CHECK_DARK_LUMINANCE = 0.55f
  * (a wrapping row of tappable circles). The first swatch is the "default" (brand-green)
  * option that maps to a `null` colour; the rest are the [VehicleColor] palette. The
  * currently selected colour's name is shown below the row. [VEH-COLOR-001]
+ *
+ * Every swatch — the default one included — is painted with the fill it will apply, resolved by
+ * `swatchColor()`. It carries no glyph: a bubble in a paint chart is said by its colour and by the
+ * name underneath. [UI-COLOR-THE-DEFAULT-SWATCH-MUST-SHOW-ITS-PAINT-001]
  *
  * @param selected currently chosen colour, or null for the default green.
  * @param onSelect called with the chosen colour (null = reset to default).
@@ -70,7 +80,6 @@ fun VehicleColorSelector(
                 ColorSwatch(
                     color = option.swatchColor(),
                     isSelected = selected == option,
-                    isDefault = option == null,
                     label = option.colorLabel(),
                     onClick = { onSelect(option) },
                 )
@@ -89,7 +98,6 @@ fun VehicleColorSelector(
 private fun ColorSwatch(
     color: Color,
     isSelected: Boolean,
-    isDefault: Boolean,
     label: String,
     onClick: () -> Unit,
 ) {
@@ -101,12 +109,20 @@ private fun ColorSwatch(
         MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
     }
     val borderWidth = if (isSelected) SELECTED_RING_WIDTH else REST_BORDER_WIDTH
+    // The ring is drawn on the outer box and the fill is inset inside it, so the surface shows
+    // through in between. At rest the inset is just the hairline, which keeps today's look (the
+    // outline hugging the fill); when selected the extra gap detaches the ring from the fill, which
+    // is what lets a green ring be seen on the green default — and stops the black swatch from
+    // swallowing its own ring.
+    val fillInset = if (isSelected) SELECTED_RING_WIDTH + SELECTED_RING_GAP else REST_BORDER_WIDTH
     val glyphTint = if (color.luminance() > CHECK_DARK_LUMINANCE) Color.Black else Color.White
     Box(
         modifier = Modifier
             .size(SWATCH_SIZE)
+            // Before .clickable, so the ripple is bounded by the circle instead of the layout box.
+            // The fill is clipped on the inner Box, so without this the outer node has no shape and
+            // the press indication squares off over a round swatch.
             .clip(CircleShape)
-            .background(color)
             .border(borderWidth, borderColor, CircleShape)
             .clickable(onClick = onClick)
             .semantics {
@@ -116,21 +132,22 @@ private fun ColorSwatch(
             },
         contentAlignment = Alignment.Center,
     ) {
-        when {
-            isSelected -> Icon(
-                imageVector = Icons.Rounded.Check,
-                contentDescription = null,
-                modifier = Modifier.size(CHECK_SIZE),
-                tint = glyphTint,
-            )
-            // The default swatch carries no hue meaning of its own, so mark it with a small
-            // car glyph to read as "keep the standard look".
-            isDefault -> Icon(
-                imageVector = PaparcarIcons.VehicleCar,
-                contentDescription = null,
-                modifier = Modifier.size(CHECK_SIZE),
-                tint = glyphTint,
-            )
+        Box(
+            modifier = Modifier
+                .padding(fillInset)
+                .fillMaxSize()
+                .clip(CircleShape)
+                .background(color),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (isSelected) {
+                Icon(
+                    imageVector = Icons.Rounded.Check,
+                    contentDescription = null,
+                    modifier = Modifier.size(CHECK_SIZE),
+                    tint = glyphTint,
+                )
+            }
         }
     }
 }

@@ -258,7 +258,6 @@ no se puede razonar, ni cambiar para un trabajo sin cambiarlo para los otros och
 | `attention` / `onAttention` | algo PENDIENTE que puedes arreglar: permiso sin dar, GPS pobre |
 | `danger` / `onDanger` | bloqueado, destructivo o fallido — **nunca** un CTA |
 | `live` | MOVIMIENTO sobre teselas: traza, origen, pin en-route, FAB sigue-coche |
-| `unknown` | un dato que NO tenemos — neutro a propósito |
 
 Varios roles resuelven hoy al mismo valor. **No es redundancia**: un rol con nombre puede divergir
 luego sin arqueología, y nombrarlo obliga a que compartir sea una decisión escrita en vez de un
@@ -363,6 +362,19 @@ entre patas; si un trabajo nuevo necesita otro par, se añade aquí, no en la pa
   hueco del check de M3 — el relleno `primaryContainer` del segmento ya dice cuál está elegida. No
   es una excepción a "el color va por historia": ahí el color **es** el dato, un muestrario, igual
   que en una carta de pinturas. No hay tokens nuevos y no se extiende a ningún otro ajuste.
+- **2026-09-03 (UI-COLOR-THE-DEFAULT-SWATCH-MUST-SHOW-ITS-PAINT-001)** — la fila de colores de
+  vehículo **es** el otro muestrario, y se le había aplicado la regla de los roles semánticos. La
+  muestra de "Predeterminado" se pintaba con el rol `unknown` («un dato que no tenemos»), pero con
+  `color = null` el coche se dibuja en verde marca (`defaultCarPalette`): la carta prometía gris y
+  entregaba verde, y el glifo de coche metido dentro de la burbuja existía sólo para disculparlo —
+  además prestado del eje de TIPO (`Icons.Rounded.DirectionsCar`, que dice coche-vs-moto en
+  `VehicleTypeSelector`). Aquí no había hueco al que ponerle ropa: el verde no es una etiqueta para
+  "no sé el color", es el color con el que se pinta. **Invariante: una muestra enseña el relleno que
+  aplicará, sin excepciones**, y lo cumple leyendo la MISMA función que pinta el coche, así que
+  muestra y pictograma no pueden divergir. El anillo de seleccionado (`selected` = verde marca) se
+  separa del relleno con un hueco de superficie, que es lo que le permite leerse sobre el verde — y
+  de paso despega el anillo del negro. El rol `unknown` se retira: no tenía **ni un** consumidor, y
+  su historia escrita era justo la decisión revertida.
 - **2026-08-27/28 (episodio cerrado: la v3 se reafirma)** — el user pregunta en device si en la
   ficha BT "chocan los azules con el verde" y si conviene uniformizar cada ficha con su color.
   Se probaron DOS alternativas en el Redmi y se revocaron AMBAS con él delante:

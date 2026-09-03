@@ -116,11 +116,10 @@ object PapColor {
      *  identity: a moving car is told by ANIMATION in its own identity colour. */
     val live: Color get() = PapLiveMap
 
-    // ── Absence ──────────────────────────────────────────────────────────────────────────────
-
-    /** A datum we do NOT have: a vehicle with no colour recorded, an empty slot. Neutral on
-     *  purpose. Painting an absent value with the brand green dresses a hole as identity — which is
-     *  exactly what `VehicleColorLabels.swatchColor()` did until this ticket. */
-    val unknown: Color
-        @Composable @ReadOnlyComposable get() = MaterialTheme.colorScheme.onSurfaceVariant
+    // An `unknown` role ("a datum we do NOT have") lived here and was read by nobody: the one call
+    // site it was written for, `VehicleColorLabels.swatchColor()`, always went straight to
+    // `onSurfaceVariant`. It was retired with the reasoning that created it — a vehicle with no
+    // chosen colour is not a hole to paint neutral, it is the factory green the car actually
+    // renders in, so the swatch shows that green. A role with no consumer and a false story is how
+    // the next person picks a colour by its NAME. [UI-COLOR-THE-DEFAULT-SWATCH-MUST-SHOW-ITS-PAINT-001]
 }
