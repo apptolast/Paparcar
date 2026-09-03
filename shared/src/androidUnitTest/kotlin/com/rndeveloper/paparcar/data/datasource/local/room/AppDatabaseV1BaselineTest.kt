@@ -9,7 +9,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 /**
@@ -17,21 +16,25 @@ import kotlin.test.assertTrue
  * v1 baseline. Three rows, because the collapse gave the v1 number **two** possible meanings and
  * only one of them opens.
  *
- * | file on the device                       | outcome            |
- * |------------------------------------------|--------------------|
- * | v2, hash `e8bc446…` (the bench build)    | downgrade → wiped  |
- * | v1, hash `e8bc446…` (fresh post-change)  | opens, row survives|
- * | v1, hash `03390c9c…` (the OLD bench v1)  | **refused, forever**|
+ * | file on the device                       | outcome                    |
+ * |------------------------------------------|----------------------------|
+ * | v2, hash `e8bc446…` (the bench build)    | downgrade → wiped          |
+ * | v1, hash `e8bc446…` (fresh post-change)  | opens, row survives        |
+ * | v1, hash `03390c9c…` (the OLD bench v1)  | **deleted → opens empty**  |
  *
- * The third row is the point. It is not a bug being pinned as correct — it is the boundary of what
- * `fallbackToDestructiveMigration` can do, measured instead of assumed, because the cost of
- * assuming it was already paid once: [DB-A-NEW-COLUMN-NEEDS-ITS-MIGRATION-001] (Redmi, 2026-09-01
- * 01:28) left the safety net unable to read sessions with a parked car being watched. Room decides
- * by VERSION; same version + different identity hash is invisible to it, so no code change can
- * rescue that file. Clearing the bench phones is therefore a step of the release, not advice.
+ * The third row is the point, and it changed on 2026-09-03. Room still cannot rescue that file —
+ * it decides by VERSION, and same version + different identity hash is invisible to it, exactly as
+ * this doc used to say. What was wrong was the conclusion drawn from it: the case was pinned as
+ * "refused, forever", which was true about Room and false about the product. In the field it meant
+ * *"No se pudo cargar tu cuenta"*, a sign-out, a sign-in, and the same dialog again — a loop with no
+ * exit inside the app. [DATA-A-DB-IT-CANNOT-OPEN-MUST-NOT-DEAD-END-THE-USER-001] moved the recovery
+ * one level up, into [buildAppDatabase]: if the file will not open, delete it and start from empty.
+ * The local database is a CACHE; its truth is re-fetched from Firestore.
  *
- * If someone ever makes the third row open, this test fails — and that failure is good news worth
- * reading before deleting the case.
+ * Clearing the bench phones is therefore no longer a step of the release — the app clears itself.
+ *
+ * The fourth case exists to keep that repair honest: a builder that deletes on failure must not
+ * delete when nothing failed.
  *
  * Every case drives [buildAppDatabase], the production builder, so a witness cannot drift from the
  * configuration it claims to describe.
@@ -80,21 +83,42 @@ class AppDatabaseV1BaselineTest {
     }
 
     @Test
-    fun should_refuseTheFile_when_theFileIsV1FromBeforeTheRetractedColumn() = runTest {
-        // The uncoverable shape, and the reason `pm clear` is part of the release.
+    fun should_deleteTheFileAndOpenEmpty_when_theFileIsV1FromBeforeTheRetractedColumn() = runTest {
+        // [DATA-A-DB-IT-CANNOT-OPEN-MUST-NOT-DEAD-END-THE-USER-001] This case used to assert the
+        // refusal was permanent, and the assertion was TRUE about Room while being wrong about the
+        // product: the user met "No se pudo cargar tu cuenta", got signed out, signed back in, and
+        // met it again — for ever. Room still cannot rescue this file; the BUILDER now does, by
+        // deleting it and starting from empty.
         val name = "baseline-v1-stale.db"
         seedBenchDatabase(name, version = 1, withRetractedColumn = false, identityHash = STALE_IDENTITY_HASH)
 
         val db = buildAppDatabase(context, name)
-        val failure = assertFailsWith<IllegalStateException> {
-            db.parkingSessionDao().getByUser("user-bench")
-        }
+        val rows = db.parkingSessionDao().getByUser("user-bench")
         db.close()
 
-        assertTrue(
-            "identity hash" in failure.message.orEmpty(),
-            "the refusal must be the integrity check, not some other failure; was: ${failure.message}",
+        assertTrue(rows.isEmpty(), "the unreadable file must be gone, not carried over")
+        assertEquals(
+            PAPARCAR_DB_VERSION,
+            readUserVersion(name),
+            "the recreated file must be at the declared version",
         )
+    }
+
+    @Test
+    fun should_notDeleteAnything_when_theFileOpensFine() = runTest {
+        // The other half of the recovery, and the one worth pinning: a builder that repairs must not
+        // repair what is not broken. Without this, "delete on failure" could quietly become
+        // "delete on every start" and nobody would notice — the app would work, and every user
+        // would silently lose their local cache on each launch.
+        val name = "baseline-v1-untouched.db"
+        seedBenchDatabase(name, version = 1, withRetractedColumn = true, identityHash = CURRENT_IDENTITY_HASH)
+
+        val db = buildAppDatabase(context, name)
+        val rows = db.parkingSessionDao().getByUser("user-bench")
+        db.close()
+
+        assertEquals(1, rows.size, "a healthy file must survive the open probe untouched")
+        assertEquals("pin-1", rows.single().id)
     }
 
     // ── seeding: the REAL bench schema, verbatim ────────────────────────────────────────────────
