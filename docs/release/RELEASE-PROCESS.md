@@ -10,8 +10,10 @@ si cambias la config de signing/distribution, actualízalo en el mismo PR.
 
 ### 0.1 Keystore release
 
-El keystore vive **fuera** del repo. Por convención local: `keystore/release.jks`
-dentro del proyecto (gitignored por `*.jks` en `.gitignore`).
+El keystore vive en `keystore/release.jks`, **dentro** del árbol del proyecto pero **fuera del
+control de versiones** (lo tapan `*.jks` y `keystore/` en `.gitignore`). Esta frase decía antes
+"vive fuera del repo" y luego daba una ruta de dentro: se contradecía, y es la clase de ambigüedad
+que acaba en dos keystores (ver el aviso de §0.2).
 
 Generar con `keytool`:
 
@@ -28,9 +30,27 @@ Responde a las preguntas (CN, OU, O, L, ST, C). **Guarda contraseñas en un gest
 Pierdes el keystore → pierdes el app: Play Store no acepta re-firma con otra key.
 Hacer backup en al menos dos sitios offline (USB encriptado + iCloud/1Password).
 
-### 0.2 `local.properties` — credenciales de signing
+### 0.2 `keystore.properties` — credenciales de signing
 
-Añadir (al `local.properties` raíz, **nunca al repo**):
+⛔ **Van en `keystore.properties`, NO en `local.properties`.** `app/build.gradle.kts:38-41` resuelve
+cada clave en este orden:
+
+```kotlin
+keystoreProps.getProperty(key)      // keystore.properties  ← GANA
+    ?: localProps.getProperty(key)  // local.properties     ← solo si falta arriba
+    ?: System.getenv(key)           // CI
+```
+
+Si las pones en `local.properties` y existe un `keystore.properties` con valores viejos, el build
+firma con el **keystore viejo sin avisar**. Pasó el 2026-09-03: la upload key nueva se configuró en
+`local.properties`, su SHA-1 se registró en Firebase, y el AAB salió firmado con un keystore de mayo.
+No se detecta mirando el build — `jar verified.` sale verde con cualquier keystore válido. La única
+comprobación que sirve es la del §"verificar la firma" de abajo.
+
+Regla: las 4 claves de firma existen **en un solo fichero**. Si alguna vez aparecen en los dos,
+sobra la de `local.properties`.
+
+Añadir (al `keystore.properties` raíz, **nunca al repo**):
 
 ```properties
 RELEASE_KEYSTORE_FILE=keystore/release.jks

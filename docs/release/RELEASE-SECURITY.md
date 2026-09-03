@@ -44,12 +44,20 @@ En la nueva key → "Application restrictions" → **Android apps**:
 - Package name: `com.rndeveloper.paparcar`
 - SHA-1 fingerprint del keystore debug + release. Obtener con:
   ```bash
+  # ⛔ El keytool del JBR crashea con locale español (MissingFormatArgumentException
+  #    al formatear el aviso de "weak constraint"): forzar inglés con -J-Duser.language=en
   # Debug
-  keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android | grep SHA1
-  # Release
-  keytool -list -v -keystore keystore/release.jks -alias paparcar-release | grep SHA1
+  keytool -J-Duser.language=en -J-Duser.country=US -list -v \
+    -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android | grep SHA1
+  # Release (upload key)
+  keytool -J-Duser.language=en -J-Duser.country=US -list -v \
+    -keystore keystore/release.jks -alias paparcar-release | grep SHA1
   ```
 - Añadir ambas entradas (debug + release).
+- ⛔ **La huella de la upload key no basta por sí sola.** Lo que restringe de verdad en producción
+  es el SHA-1 de la *app signing key* de Google, que solo existe tras el primer upload (Play Console
+  → Integridad de la app). Con Play App Signing, el APK que recibe el usuario NO lleva la huella de
+  arriba. Registrar las dos o el login de Google falla **solo en las builds de Play**.
 
 #### 1.3 API restrictions
 
@@ -134,10 +142,12 @@ Cuando salgamos de beta cerrada → activar [Firebase App Check](https://firebas
 
 Antes de subir el primer APK a App Distribution público:
 
-- [ ] §1.1 — Maps API key rotada
-- [ ] §1.2 — Application restrictions aplicadas (package + SHA-1 debug + release)
-- [ ] §1.3 — API restrictions limitadas a Maps SDK for Android
+- [x] §1.1 — Maps API key rotada (2026-09-03, por el user; la vieja `AIzaSyBpOJ6G-…` está muerta)
+- [x] §1.2 — Application restrictions aplicadas (package + SHA-1 debug + release) — 2026-09-03.
+      ⏳ Falta añadir el SHA de la *app signing key* de Google tras el primer upload (ver §1.2)
+- [x] §1.3 — API restrictions limitadas a Maps SDK for Android — 2026-09-03
 - [ ] §1.4 — Verificación: debug y release cargan el mapa correctamente
-- [ ] §2 — Reglas Firestore desplegadas y testeadas en Rules playground
+- [x] §2 — Reglas Firestore desplegadas (`firebase deploy --only firestore:rules`, 2026-09-03)
+      y validadas; ⏳ falta el paso por Rules playground
 - [ ] Verificación E2E: usuario A no puede leer datos de usuario B
 - [ ] (Opcional) §3 App Check activado
