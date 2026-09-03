@@ -7,6 +7,7 @@ import com.rndeveloper.paparcar.domain.connectivity.ConnectivityObserver
 import com.rndeveloper.paparcar.domain.connectivity.ConnectivityStatus
 import com.rndeveloper.paparcar.domain.detection.ports.DepartureWatchResumer
 import com.rndeveloper.paparcar.domain.detection.DetectionRuntimeState
+import com.rndeveloper.paparcar.domain.bluetooth.BluetoothScanner
 import com.rndeveloper.paparcar.domain.detection.ports.ManualParkingDetection
 import com.rndeveloper.paparcar.domain.detection.fence.VehicleFenceOwnershipPolicy
 import com.rndeveloper.paparcar.domain.diagnostics.UiLocationLogger
@@ -114,6 +115,10 @@ class HomeViewModel(
     // Consumer-location observability (local logcat always + gated Firestore mirror). Verifies the
     // foreground-scoped high-accuracy request actually refreshes the dot. [UI-LOC-FOREGROUND-001]
     private val uiLocationLogger: UiLocationLogger,
+    // [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001] Asked ONE question, once: does this
+    // phone have any bonded device? That is what decides whether the fortify step can offer to link
+    // the car by Bluetooth or would be sending the user to an empty list.
+    private val bluetoothScanner: BluetoothScanner,
 ) : BaseViewModel<HomeState, HomeIntent, HomeEffect>() {
 
     /**
@@ -174,10 +179,27 @@ class HomeViewModel(
         combine(
             appPreferences.observeFirstStepsDone(),
             appPreferences.observeFirstStepsDismissed(),
-        ) { done, dismissed -> done to dismissed }
-            .collectSafely("firstSteps") { (done, dismissed) ->
-                updateState { copy(firstStepsDone = done, firstStepsDismissed = dismissed) }
+            appPreferences.observeFirstStepsDeferred(),
+        ) { done, dismissed, deferred -> Triple(done, dismissed, deferred) }
+            .collectSafely("firstSteps") { (done, dismissed, deferred) ->
+                updateState {
+                    copy(
+                        firstStepsDone = done,
+                        firstStepsDismissed = dismissed,
+                        firstStepsDeferred = deferred,
+                    )
+                }
             }
+
+        // [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001] Whether linking a car by Bluetooth is
+        // even offerable: read ONCE, not per emission — it is an IPC call into the adapter, and the
+        // answer only changes when the user pairs a device in system settings. False while the
+        // permission is missing or Bluetooth is off, which is the honest answer for "can I pick a MAC
+        // from a list right now".
+        viewModelScope.launch {
+            val paired = runCatching { bluetoothScanner.getBondedDevices().isNotEmpty() }.getOrDefault(false)
+            updateState { copy(hasPairedBluetoothDevices = paired) }
+        }
 
         // A step whose signal is live RIGHT NOW gets written to the latch, so it survives the signal
         // going away (releasing the parking) and a process death. `distinctUntilChanged` + the
@@ -306,6 +328,8 @@ class HomeViewModel(
             // Guided first steps [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001]
             is HomeIntent.DismissFirstSteps,
             is HomeIntent.CompleteFirstStep,
+            is HomeIntent.DeferFirstStep,
+            is HomeIntent.ResumeFirstStep,
             -> handleFirstStepsIntent(intent)
         }
     }
@@ -317,6 +341,13 @@ class HomeViewModel(
             is HomeIntent.DismissFirstSteps -> appPreferences.setFirstStepsDismissed(true)
             is HomeIntent.CompleteFirstStep ->
                 appPreferences.setFirstStepsDone(state.value.firstStepsDone + intent.step)
+            // [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001] Written to its OWN set: the user
+            // said "not yet", which is an answer, not an achievement.
+            is HomeIntent.DeferFirstStep ->
+                appPreferences.setFirstStepsDeferred(state.value.firstStepsDeferred + intent.step)
+            // Changed their mind: the step goes back to being asked for.
+            is HomeIntent.ResumeFirstStep ->
+                appPreferences.setFirstStepsDeferred(state.value.firstStepsDeferred - intent.step)
             else -> Unit
         }
     }

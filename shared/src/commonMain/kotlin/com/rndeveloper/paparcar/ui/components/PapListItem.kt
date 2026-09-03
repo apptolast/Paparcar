@@ -33,6 +33,13 @@ import com.rndeveloper.paparcar.ui.theme.PapColor
  *
  * - [leading] / [trailing] are slots (an icon [PapIconTile], a vehicle glyph, a spot puck, a switch,
  *   a chevron, a badge, a status pin — anything).
+ * - ⛔ **[trailing] is a COMPACT affordance, never a sentence.** A glyph, a switch, a badge, a value,
+ *   or a one-word pill ("Pair", "Fix", "Done" — check the longest of the nine locales, not English).
+ *   A multi-word CTA belongs on its own line UNDER the row. This is measured, not taste: only the
+ *   text [Column] carries a weight, and Compose measures the un-weighted [trailing] FIRST, with the
+ *   whole row to spend — so a wide trailing child does not shrink, it starves the copy. A
+ *   "Marcar aparcamiento" button took ~190 dp of a 263 dp row and left the title wrapping one letter
+ *   per line. [ONBOARDING-FIRST-STEPS-MUST-BE-READABLE-AND-FOUND-001]
  * - [title] is plain text; pass [titleSlot] instead when the title line carries structure (an
  *   inline POI glyph before a place name) — same contract as [subtitle]/[subtitleSlot].
  * - [subtitle] is plain text; pass [subtitleSlot] instead for a structured meta row (chips/tokens).
@@ -64,7 +71,7 @@ fun PapListItem(
     overlineHighlight: String? = null,
     overlineHighlightColor: Color = overlineColor,
     contentPadding: PaddingValues = PaddingValues(horizontal = ROW_H_PAD_DP.dp, vertical = ROW_V_PAD_DP.dp),
-    gap: Dp = ROW_GAP_DP.dp,
+    gap: Dp = PapListItemGap,
 ) {
     Row(
         modifier = modifier.fillMaxWidth().padding(contentPadding),
@@ -133,7 +140,10 @@ internal fun annotatedWithHighlight(
 
 private const val ROW_H_PAD_DP = 16
 private const val ROW_V_PAD_DP = 14
-private const val ROW_GAP_DP = 14
+/** Gap between the leading slot and the text column. Public for the same reason [PapIconTileSize]
+ *  is: content rendered UNDER a row (a CTA on its own line) has to land on the text, and copying
+ *  the number is how the two drift apart. */
+val PapListItemGap: Dp = 14.dp
 private const val OVERLINE_GAP_DP = 2
 /** One breathing gap between title and its subtitle/meta row, uniform for every consumer. */
 private const val TITLE_SUBTITLE_GAP_DP = 4

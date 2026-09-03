@@ -37,7 +37,11 @@ import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.detection.DetectionPhase
 import com.rndeveloper.paparcar.domain.model.Spot
 import com.rndeveloper.paparcar.domain.model.VehicleSize
+import com.rndeveloper.paparcar.domain.onboarding.FindSpotAsk
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
+import com.rndeveloper.paparcar.domain.onboarding.FirstStepsOwnership
+import com.rndeveloper.paparcar.domain.onboarding.WatchAsk
+import com.rndeveloper.paparcar.domain.onboarding.WatchReinforcement
 import com.rndeveloper.paparcar.presentation.onboarding.FirstStepsCard
 import com.rndeveloper.paparcar.presentation.home.HomeBrowseListSlice
 import com.rndeveloper.paparcar.presentation.home.HomeIntent
@@ -106,10 +110,10 @@ fun LazyListScope.homeSheetItems(
     // ── -1. Guided first steps — above the detection story, and only for a new user.
     // [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001]
     val firstSteps = slice.firstSteps
-    // No vehicle means there is nothing to mark, and `DetectionStory.NoVehicle` already owns that
-    // ask with the right CTA — the checklist would be telling the user to park a car they have not
-    // registered.
-    val showFirstSteps = firstSteps.isVisible && slice.hasCorePermissions && vehicleCards.isNotEmpty()
+    // The gate lives on the slice: the sheet also OPENS ITSELF on this same question, and a second
+    // copy of the rule here is how the two would come to disagree.
+    // [ONBOARDING-FIRST-STEPS-MUST-BE-READABLE-AND-FOUND-001]
+    val showFirstSteps = slice.showsFirstSteps
     if (showFirstSteps) {
         item("first_steps") {
             FirstStepsCard(
@@ -124,15 +128,44 @@ fun LazyListScope.homeSheetItems(
                                 targetVehicleId = coldStartVehicleId,
                             ),
                         )
-                        // Unreachable: this step renders no CTA (see FirstStepsCard). It completes
-                        // by OBSERVING the honest watch line below, not by pressing anything.
-                        FirstStep.UNDERSTAND_WATCH -> Unit
-                        // The community half of the product, via its real entry point — the same
-                        // action the "Report a free spot" card at the bottom of the sheet fires.
-                        FirstStep.FIND_SPOT -> onAction(HomeSheetAction.RequestReportMode)
+                        // [ONBOARDING-STEPS-MUST-EXPLAIN-WHAT-REALLY-HAPPENS-001] Two faces here too.
+                        // With detection healthy the step only DESCRIBES and renders no CTA, so this
+                        // is unreachable and it completes by observing the honest watch line below.
+                        // With detection stopped the step is the one asking for it, and it fires the
+                        // very intent the row it took over fires — one action, one label, one voice.
+                        // [DET-TOGGLE-001]
+                        // [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001] Each reinforcement
+                        // fires the flow that grants it, and each is the SAME entry point the app
+                        // already had: the exemption request behind the fragile-watch row, and the
+                        // car-Bluetooth screen Settings deep-links to. NONE renders no CTA at all
+                        // (the step is not even applicable), so it cannot be pressed.
+                        FirstStep.FORTIFY_WATCH -> when (firstSteps.reinforcement) {
+                            WatchReinforcement.BATTERY -> onIntent(HomeIntent.RequestBatteryExemption)
+                            WatchReinforcement.BLUETOOTH -> coldStartVehicleId
+                                ?.let { onAction(HomeSheetAction.LinkVehicleBluetooth(it)) }
+                            WatchReinforcement.NONE -> Unit
+                        }
+                        FirstStep.UNDERSTAND_WATCH -> when (firstSteps.watchAsk) {
+                            WatchAsk.TURN_IT_ON -> onIntent(HomeIntent.EnableAutoDetection)
+                            WatchAsk.EXPLAIN_RELEASE -> Unit
+                        }
+                        // The community half, and it has TWO doors depending on whether the
+                        // community has anything to offer yet. Which one is open was decided by
+                        // the projection (`findSpotAsk`); here we only translate it into the app's
+                        // real entry point — the same list the sheet already renders, or the same
+                        // action the "Report a free spot" card at its bottom fires.
+                        // [ONBOARDING-STEPS-MUST-EXPLAIN-WHAT-REALLY-HAPPENS-001]
+                        FirstStep.FIND_SPOT -> when (firstSteps.findSpotAsk) {
+                            FindSpotAsk.SEE_NEARBY -> onAction(HomeSheetAction.RevealFreeSpots)
+                            FindSpotAsk.REPORT_ONE -> onAction(HomeSheetAction.RequestReportMode)
+                        }
                     }
                 },
                 onDismiss = { onIntent(HomeIntent.DismissFirstSteps) },
+                // "Not yet" — the step stops being the ask without pretending it was done.
+                // [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001]
+                onDeferStep = { step -> onIntent(HomeIntent.DeferFirstStep(step)) },
+                onResumeStep = { step -> onIntent(HomeIntent.ResumeFirstStep(step)) },
                 // [ONBOARDING-A-SPOT-IS-BORN-TWO-WAYS-001] Every row opens its explainer, done ones
                 // included — that is what makes replaying the checklist from Settings worth
                 // something once the live state already ticks all three.
@@ -146,9 +179,11 @@ fun LazyListScope.homeSheetItems(
         slice.detectionUiState, slice.drivingMeta, vehicleCards, slice.parkedWatchBadge,
         promptWindow = slice.promptWindow,
         showParkNudge = slice.showParkNudge,
-        // One voice: while the checklist is the one asking for the first parking, the cold-start row
-        // stands down. Decided in the projection, never with an `if` around the surface below.
-        firstStepsOwnsColdStart = showFirstSteps && firstSteps.current == FirstStep.MARK_PARKING,
+        // One voice: whichever of this surface's asks the checklist is currently making, THAT row
+        // stands down. Which one is derived by the projection (`owns`); all this line adds is that a
+        // checklist nobody can see owns nothing.
+        // [ONBOARDING-STEPS-MUST-EXPLAIN-WHAT-REALLY-HAPPENS-001]
+        firstStepsOwns = if (showFirstSteps) firstSteps.owns else FirstStepsOwnership.NOTHING,
     )
     if (detectionStory != DetectionStory.Hidden) {
         item("detection_surface") {
@@ -315,7 +350,7 @@ private fun LazyListScope.spotsSection(
     filteredSpots: List<Spot>,
     showFilterBar: Boolean,
 ) {
-    item("spots_header") {
+    item(FREE_SPOTS_SECTION_KEY) {
         PapSectionHeader(
             title = if (filteredSpots.isNotEmpty())
                 pluralStringResource(Res.plurals.home_feed_nearby_with_count, filteredSpots.size, filteredSpots.size)
@@ -424,6 +459,14 @@ private fun SpotsSkeletonList(
         }
     }
 }
+
+/**
+ * Item key of the free-spots section header. Public because
+ * [HomeSheetAction.RevealFreeSpots] scrolls the list to it — a second spelling of the
+ * string would be a scroll that silently stops working.
+ * [ONBOARDING-STEPS-MUST-EXPLAIN-WHAT-REALLY-HAPPENS-001]
+ */
+internal const val FREE_SPOTS_SECTION_KEY = "spots_header"
 
 private const val SKELETON_ITEM_COUNT = 4
 private const val SKELETON_TITLE_WIDTH = 140

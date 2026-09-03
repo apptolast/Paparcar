@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
@@ -66,6 +67,7 @@ import com.rndeveloper.paparcar.presentation.home.sections.sheet.HomeSheetSnap
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.SheetTransitionEffects
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.rememberSheetMotion
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.rememberSheetPositioning
+import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.FREE_SPOTS_SECTION_KEY
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.HomeReleaseDialog
 import com.rndeveloper.paparcar.presentation.util.rememberOpenExternalNavigation
 import com.rndeveloper.paparcar.presentation.util.zoneIconFor
@@ -74,7 +76,6 @@ import com.rndeveloper.paparcar.ui.components.ConfirmationBottomSheet
 import com.rndeveloper.paparcar.ui.components.LocalMapInteracting
 import com.rndeveloper.paparcar.ui.components.PapSpotlight
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
-import com.rndeveloper.paparcar.presentation.onboarding.FirstStepExplainerSheet
 import com.rndeveloper.paparcar.ui.theme.PapMotion
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -155,6 +156,12 @@ fun HomeScreen(
     // (reuses its disclosure + escalation) and to vehicle registration respectively.
     onActivateDetection: (focus: String) -> Unit = {},
     onAddVehicle: () -> Unit = {},
+    /** Deep link into the car-Bluetooth screen for a vehicle — the fortify step's Bluetooth face.
+     *  [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001] */
+    onLinkVehicleBluetooth: (vehicleId: String) -> Unit = {},
+    /** Open a first step's explanation on its own screen.
+     *  [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001] */
+    onOpenStepExplainer: (FirstStep) -> Unit = {},
     viewModel: HomeViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateLifecycleAware()
@@ -267,6 +274,8 @@ fun HomeScreen(
         bottomPadding = bottomPadding,
         onActivateDetection = onActivateDetection,
         onAddVehicle = onAddVehicle,
+        onLinkVehicleBluetooth = onLinkVehicleBluetooth,
+        onOpenStepExplainer = onOpenStepExplainer,
     )
 
     state.pendingParkingGps?.let { pending ->
@@ -302,6 +311,8 @@ private fun HomeContent(
     bottomPadding: Dp,
     onActivateDetection: (focus: String) -> Unit,
     onAddVehicle: () -> Unit,
+    onLinkVehicleBluetooth: (vehicleId: String) -> Unit,
+    onOpenStepExplainer: (FirstStep) -> Unit,
 ) {
     val uiController = rememberHomeUiController()
     // Per-field trip States derived from [tripState]. Held as State and read only in isolated scopes
@@ -471,8 +482,15 @@ private fun HomeContent(
                     mode = state.mode,
                     selection = state.selection,
                     navProgressState = navProgressState,
+                    // An automatic opening rewinds the list first: what the app opens the sheet for
+                    // is at the top. [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001]
+                    lazyListState = lazyListState,
                     // [DET-ASK-STATE-001] The open question opens the sheet on its own, once.
                     promptShownAtMs = state.promptWindow?.shownAtMs,
+                    // [ONBOARDING-FIRST-STEPS-MUST-BE-READABLE-AND-FOUND-001] So does the guided
+                    // checklist — otherwise the tutorial only exists for a user who already knows
+                    // to drag the sheet up. Same gate the card itself renders from.
+                    firstStepAnchor = browseSlice.firstStepAnchor,
                 )
 
                 // Tap-toggle, programmatic expand and nested-scroll collapse — see [SheetMotion].
@@ -732,8 +750,11 @@ private fun HomeContent(
                     },
                     onNavigateExternal = openExternalNav,
                     onToggle = motion.toggle,
+                    onExpandSheet = motion.animateToExpanded,
                     onActivateDetection = onActivateDetection,
                     onAddVehicle = onAddVehicle,
+                    onLinkVehicleBluetooth = onLinkVehicleBluetooth,
+                    onOpenStepExplainer = onOpenStepExplainer,
                     modifier = Modifier.align(Alignment.BottomCenter),
                 )
             }
@@ -994,19 +1015,21 @@ private fun HomeSheetSection(
     onRelease: (sessionId: String) -> Unit,
     onNavigateExternal: (lat: Double, lon: Double, walking: Boolean) -> Unit,
     onToggle: () -> Unit,
+    /** Open the sheet to its "expanded" anchor — the same motion a tap on the peek performs.
+     *  [ONBOARDING-STEPS-MUST-EXPLAIN-WHAT-REALLY-HAPPENS-001] */
+    onExpandSheet: () -> Unit,
     onActivateDetection: (focus: String) -> Unit,
     onAddVehicle: () -> Unit,
+    onLinkVehicleBluetooth: (vehicleId: String) -> Unit,
+    onOpenStepExplainer: (FirstStep) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // [ONBOARDING-A-SPOT-IS-BORN-TWO-WAYS-001] Which first-step explainer is open, or null. Local UI
-    // state on purpose: reading an explanation banks no progress and changes nothing the ViewModel
-    // owns, so putting it in HomeState would be a field that exists only to be true for four seconds.
-    var explainerStep by remember { mutableStateOf<FirstStep?>(null) }
-
     val onAction: (HomeSheetAction) -> Unit = { action ->
         when (action) {
             HomeSheetAction.ToggleSheet -> onToggle()
-            is HomeSheetAction.OpenFirstStepExplainer -> explainerStep = action.step
+            // [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001] Its own screen: no surface of
+            // Home stays on screen competing with what is being explained.
+            is HomeSheetAction.OpenFirstStepExplainer -> onOpenStepExplainer(action.step)
             is HomeSheetAction.SelectSpot -> onSelectSpot(action.spotId)
             // The car lane steps over VEHICLES; each stop resolves to its modal here, in the one
             // translation point. Parked → the very lambda a marker tap uses; unparked → the very
@@ -1041,6 +1064,19 @@ private fun HomeSheetSection(
             // intent). Focus the permissions screen on the essential tier. [DET-TOGGLE-001]
             HomeSheetAction.OpenCorePermissions -> onActivateDetection("core")
             HomeSheetAction.AddVehicle -> onAddVehicle()
+            // [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001] Same destination Settings uses.
+            is HomeSheetAction.LinkVehicleBluetooth -> onLinkVehicleBluetooth(action.vehicleId)
+            // [ONBOARDING-STEPS-MUST-EXPLAIN-WHAT-REALLY-HAPPENS-001] "See spots": open the sheet
+            // and walk the list down to the free-spots section. The step only wears this face when
+            // there ARE spots on offer, so this never lands on an empty section — with one honest
+            // exception: a size filter the user set can still leave it showing "none your size",
+            // which is the right thing to show them (the filter bar is right there).
+            HomeSheetAction.RevealFreeSpots -> {
+                onExpandSheet()
+                frame.coroutineScope.launch {
+                    frame.lazyListState.animateScrollToItem(frame.lazyListState.freeSpotsIndex())
+                }
+            }
         }
     }
     HomeBottomSheet(
@@ -1053,13 +1089,22 @@ private fun HomeSheetSection(
         modifier = modifier,
     )
 
-    // [ONBOARDING-A-SPOT-IS-BORN-TWO-WAYS-001] Where the two ways a spot is born are actually
-    // explained: the one you leave behind (automatically, or with "I'm leaving") and the one you
-    // saw in the street.
-    explainerStep?.let { step ->
-        FirstStepExplainerSheet(step = step, onDismiss = { explainerStep = null })
-    }
 }
+
+/**
+ * Where the free-spots section starts in the sheet list.
+ * [ONBOARDING-STEPS-MUST-EXPLAIN-WHAT-REALLY-HAPPENS-001]
+ *
+ * Resolved by the section header's own item KEY, so nothing here counts the items above it — that
+ * count depends on the checklist, the detection story and the vehicle strip all being present or
+ * not, and a second tally of those would be wrong the next time one of them changes.
+ *
+ * The fallback when the header is not composed yet is the LAST item, which is not a different
+ * destination: the free-spots section is the last thing in the sheet, so both roads end inside it.
+ */
+private fun LazyListState.freeSpotsIndex(): Int =
+    layoutInfo.visibleItemsInfo.firstOrNull { it.key == FREE_SPOTS_SECTION_KEY }?.index
+        ?: (layoutInfo.totalItemsCount - 1).coerceAtLeast(0)
 
 /** The right-side camera FAB column plus its actions (locate/car/midpoint). */
 @Composable

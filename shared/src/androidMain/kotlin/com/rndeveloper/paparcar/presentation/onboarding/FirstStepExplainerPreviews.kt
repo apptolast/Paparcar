@@ -21,7 +21,7 @@ import com.rndeveloper.paparcar.ui.theme.PaparcarTheme
 private fun Preview(step: FirstStep, dark: Boolean) {
     PaparcarTheme(darkTheme = dark) {
         Box(modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
-            FirstStepExplainerContent(step = step, onDismiss = {})
+            FirstStepExplainerScreen(step = step, onClose = {})
         }
     }
 }

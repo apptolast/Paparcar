@@ -15,6 +15,7 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -25,6 +26,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 import com.rndeveloper.paparcar.presentation.home.HomeMode
 import com.rndeveloper.paparcar.presentation.home.HomeSelection
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.papSheetHeaderBandHeight
@@ -262,12 +264,29 @@ internal fun SheetTransitionEffects(
     selection: HomeSelection?,
     navProgressState: MutableFloatState,
     /**
+     * The sheet's list. An AUTOMATIC opening rewinds it to the top before moving the sheet: the app
+     * is opening this surface to SHOW something, and everything it opens itself for — the guided
+     * checklist, the detection story behind a pending question — lives at the top. Left where it
+     * was, the sheet slid open onto whatever the user had scrolled to last, which reads as the sheet
+     * opening on the middle of nowhere. [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001]
+     *
+     * Only the automatic openings rewind. A tap or a drag is the user opening the sheet for their
+     * own reasons, and moving their scroll under them would be the app second-guessing that.
+     */
+    lazyListState: LazyListState,
+    /**
      * [DET-ASK-STATE-001] Identity of the open "did you park?" question (its post timestamp), or
      * null when there is none. Used as the KEY of the auto-open effect, not as a boolean: the sheet
      * opens once per QUESTION, so dragging it back down does not spring it open again, and a second
      * question later still gets its own opening.
      */
     promptShownAtMs: Long? = null,
+    /**
+     * [ONBOARDING-FIRST-STEPS-MUST-BE-READABLE-AND-FOUND-001] The first step the guided checklist is
+     * asking for while it is on screen, or null. Same role as [promptShownAtMs]: the KEY of an
+     * auto-open, not a boolean.
+     */
+    firstStepAnchor: FirstStep? = null,
 ) {
     val peekOffsetPx = positioning.peekOffsetPx
     val peekSnapTolerancePx = with(LocalDensity.current) { PEEK_LAYOUT_SNAP_TOLERANCE.toPx() }
@@ -353,7 +372,41 @@ internal fun SheetTransitionEffects(
     // resolves to a no-op instead of hijacking those surfaces.
     LaunchedEffect(promptShownAtMs) {
         if (promptShownAtMs != null) {
+            lazyListState.scrollToItem(0)
             sheetOffsetPx.animateTo(positioning.expandedOffsetPx, SheetSnapSpec)
+        }
+    }
+
+    // [ONBOARDING-FIRST-STEPS-MUST-BE-READABLE-AND-FOUND-001] The guided checklist opens the sheet
+    // the same way, and for the same reason the question does: it is the FIRST item of a list that
+    // lives above the peek, so a new user who does not think to drag never learns the app has a
+    // guide at all — and the guide is precisely what exists so they are not left to guess.
+    //
+    // Keyed by the STEP, so each step gets exactly one opening and a sheet dragged back down stays
+    // down; the step only ever moves forward (the latch banks a completed step), so this cannot
+    // flap. In pin modes / with something selected the geometry caps `expandedOffsetPx` at peek,
+    // which makes it a no-op instead of a hijack.
+    //
+    // The FIRST opening SNAPS instead of animating. The checklist cannot be shown before its data
+    // has loaded (preferences, the vehicle list, the permission tiers), so the anchor arrives a beat
+    // after Home does — and an animation on top of that beat is what made the user watch the sheet
+    // sit closed and then crawl open, long enough to conclude there was no tutorial. Snapping means
+    // the sheet is already open on the frame the checklist first exists.
+    //
+    // Later openings still animate: by then the sheet is a surface the user has seen, and a step
+    // advancing is a CHANGE worth showing rather than a state to be in.
+    // [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001]
+    var firstStepsOpenedOnce by remember { mutableStateOf(false) }
+    LaunchedEffect(firstStepAnchor) {
+        if (firstStepAnchor == null) return@LaunchedEffect
+        // Rewind BEFORE the sheet moves, so the checklist is already the first thing on screen when
+        // it arrives instead of scrolling into place afterwards.
+        lazyListState.scrollToItem(0)
+        if (firstStepsOpenedOnce) {
+            sheetOffsetPx.animateTo(positioning.expandedOffsetPx, SheetSnapSpec)
+        } else {
+            firstStepsOpenedOnce = true
+            sheetOffsetPx.snapTo(positioning.expandedOffsetPx)
         }
     }
 

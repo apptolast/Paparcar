@@ -7,9 +7,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material.icons.rounded.AddLocationAlt
+import androidx.compose.material.icons.rounded.BatteryAlert
+import androidx.compose.material.icons.rounded.Bluetooth
 import androidx.compose.material.icons.rounded.Campaign
 import androidx.compose.material.icons.rounded.Explore
 import androidx.compose.material.icons.rounded.Sensors
+import androidx.compose.material.icons.rounded.Verified
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -33,6 +36,13 @@ import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.first_steps_eyebrow
 import paparcar.composeapp.generated.resources.first_steps_explain_close
+import paparcar.composeapp.generated.resources.first_steps_explain_fortify_battery_body
+import paparcar.composeapp.generated.resources.first_steps_explain_fortify_battery_title
+import paparcar.composeapp.generated.resources.first_steps_explain_fortify_body
+import paparcar.composeapp.generated.resources.first_steps_explain_fortify_bt_body
+import paparcar.composeapp.generated.resources.first_steps_explain_fortify_bt_title
+import paparcar.composeapp.generated.resources.first_steps_explain_fortify_note
+import paparcar.composeapp.generated.resources.first_steps_explain_fortify_title
 import paparcar.composeapp.generated.resources.first_steps_explain_park_body
 import paparcar.composeapp.generated.resources.first_steps_explain_park_title
 import paparcar.composeapp.generated.resources.first_steps_explain_park_way_body
@@ -51,8 +61,20 @@ import paparcar.composeapp.generated.resources.first_steps_explain_watch_note
 import paparcar.composeapp.generated.resources.first_steps_explain_watch_title
 
 /**
- * The explainer behind a first step — opened by TAPPING the step's row.
+ * The explainer behind a first step — opened by TAPPING the step's row, on its OWN surface.
  * [ONBOARDING-A-SPOT-IS-BORN-TWO-WAYS-001]
+ *
+ * ### Why its own sheet and not inside Home's
+ * It WAS moved inside Home's sheet on 2026-09-03, to honour *«nunca abrimos modales encima de
+ * modales»*. Seen on device it was worse, and it taught what that rule is really about: the problem
+ * was never a second layer, it was **two visible surfaces competing**. Embedded, Home's peek ("TU
+ * ZONA · Calle Traíña 10") sat right above the explainer's title fighting it for the eye, while
+ * meaning nothing here; the content kept the peek's one-line limits and truncated prose with "…"
+ * with half a screen empty; and the sheet's full height left a hole under the button.
+ *
+ * On its own sheet the scrim puts Home to sleep behind it, the height wraps the content, and the
+ * page is the only thing on screen — which is what "not stacking" was after.
+ * [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001]
  *
  * ### What this sheet exists to say
  * A free spot is born in **two ways that have nothing to do with each other**, and until this
@@ -76,94 +98,13 @@ import paparcar.composeapp.generated.resources.first_steps_explain_watch_title
  * It also quotes the app's own buttons verbatim ("I'm leaving", "Just release") rather than
  * paraphrasing them, so a user who goes looking for what they just read finds that exact word.
  */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun FirstStepExplainerSheet(
-    step: FirstStep,
-    onDismiss: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val sheetState = rememberModalBottomSheetState()
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        modifier = modifier,
-    ) {
-        FirstStepExplainerContent(step = step, onDismiss = onDismiss)
-    }
-}
-
-/**
- * The sheet's BODY, without the modal host. Split out so the state gallery and the previews can
- * render it directly — `ModalBottomSheet` is a window-level composable and does not survive either.
- * Same `XxxContent(state = …)` shape the rest of the project uses for exactly this reason.
- *
- * Public, not internal: the Dev Catalog lives in `:app`, a different Gradle module.
- */
-@Composable
-fun FirstStepExplainerContent(
-    step: FirstStep,
-    onDismiss: () -> Unit,
-) {
-    val copy = step.explainer()
-    PapSheet(
-        lead = PapSheetLead.GenericIcon(icon = copy.icon),
-        eyebrow = stringResource(Res.string.first_steps_eyebrow),
-        eyebrowTone = PapSheetEyebrowTone.Action,
-        title = stringResource(copy.title),
-        titleMaxLines = TITLE_MAX_LINES,
-        subtitle = stringResource(copy.body),
-        onDismiss = onDismiss,
-        modifier = Modifier.padding(bottom = SHEET_BOTTOM_DP.dp),
-        content = {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(WAY_GAP_DP.dp),
-            ) {
-                copy.ways.forEach { way -> WayRow(way) }
-            }
-        },
-        // The nuance that keeps each explanation honest, in the slot the sheet reserves for exactly
-        // that. Step 2: releasing does NOT force publishing. Step 3: this is not your car.
-        banner = copy.note?.let { note ->
-            { PapSheetBanner(title = stringResource(note)) }
-        },
-        actions = {
-            PapFooterButton(
-                label = stringResource(Res.string.first_steps_explain_close),
-                onClick = onDismiss,
-                style = PapFooterButtonStyle.Filled,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        },
-    )
-}
-
-/** One WAY the step's thing happens — the two mechanisms of a departure, or the single act of
- *  reporting. Reuses the canonical row so it reads like every other list in the app. [UI-LIST-ITEM-001] */
-@Composable
-private fun WayRow(way: ExplainerWay) {
-    PapListItem(
-        title = stringResource(way.title),
-        subtitle = stringResource(way.body),
-        leading = {
-            PapIconTile(
-                icon = way.icon,
-                container = MaterialTheme.colorScheme.primary.copy(alpha = WAY_TILE_ALPHA),
-                tint = MaterialTheme.colorScheme.primary,
-            )
-        },
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = WAY_ROW_V_PAD_DP.dp),
-    )
-}
-
-private data class ExplainerWay(
+internal data class ExplainerWay(
     val title: StringResource,
     val body: StringResource,
     val icon: ImageVector,
 )
 
-private data class ExplainerCopy(
+internal data class ExplainerCopy(
     val title: StringResource,
     val body: StringResource,
     val ways: List<ExplainerWay>,
@@ -172,7 +113,7 @@ private data class ExplainerCopy(
     val icon: ImageVector,
 )
 
-private fun FirstStep.explainer(): ExplainerCopy = when (this) {
+internal fun FirstStep.explainerCopy(): ExplainerCopy = when (this) {
     FirstStep.MARK_PARKING -> ExplainerCopy(
         title = Res.string.first_steps_explain_park_title,
         body = Res.string.first_steps_explain_park_body,
@@ -185,6 +126,32 @@ private fun FirstStep.explainer(): ExplainerCopy = when (this) {
         ),
         note = null,
         icon = Icons.Rounded.AddLocationAlt,
+    )
+
+    // [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001] Its own page. It borrowed the watch
+    // explainer at first, and on device that read as a wrong answer: you tap "let it watch without
+    // interruptions" and get told what happens when you leave. Related, not the same question — this
+    // one is about the watch SURVIVING, and it names the two things that keep it alive without
+    // making the user care which one their car uses.
+    FirstStep.FORTIFY_WATCH -> ExplainerCopy(
+        title = Res.string.first_steps_explain_fortify_title,
+        body = Res.string.first_steps_explain_fortify_body,
+        ways = listOf(
+            ExplainerWay(
+                title = Res.string.first_steps_explain_fortify_bt_title,
+                body = Res.string.first_steps_explain_fortify_bt_body,
+                icon = Icons.Rounded.Bluetooth,
+            ),
+            ExplainerWay(
+                title = Res.string.first_steps_explain_fortify_battery_title,
+                body = Res.string.first_steps_explain_fortify_battery_body,
+                icon = Icons.Rounded.BatteryAlert,
+            ),
+        ),
+        // The caveat that keeps it honest: nothing here is required, and saying so is what makes the
+        // "not yet" an offer rather than a nag.
+        note = Res.string.first_steps_explain_fortify_note,
+        icon = Icons.Rounded.Verified,
     )
 
     // ── FORM 1: the spot you leave behind, and its TWO mechanisms ──

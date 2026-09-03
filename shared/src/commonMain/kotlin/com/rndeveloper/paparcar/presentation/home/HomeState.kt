@@ -11,8 +11,10 @@ import com.rndeveloper.paparcar.domain.model.DisabledReason
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 import com.rndeveloper.paparcar.domain.onboarding.FirstStepsProgress
 import com.rndeveloper.paparcar.domain.onboarding.resolveFirstSteps
+import com.rndeveloper.paparcar.domain.onboarding.resolveWatchReinforcement
 import com.rndeveloper.paparcar.presentation.home.model.DetectionUiState
 import com.rndeveloper.paparcar.presentation.home.model.ParkedWatchBadge
+import com.rndeveloper.paparcar.presentation.home.model.isDetectionStopped
 import com.rndeveloper.paparcar.presentation.home.model.resolveParkedWatchBadge
 import com.rndeveloper.paparcar.presentation.home.model.toUiState
 import com.rndeveloper.paparcar.domain.model.GpsPoint
@@ -190,6 +192,14 @@ data class HomeState(
      * tutorial at every returning user for one frame on every cold start.
      */
     val firstStepsDismissed: Boolean = true,
+    /** Steps answered with "not yet" — persisted, and NEVER folded into [firstStepsDone]: a declined
+     *  permission is not an accomplishment. [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001] */
+    val firstStepsDeferred: Set<FirstStep> = emptySet(),
+    /** The phone has at least one bonded Bluetooth device, so linking a car in Paparcar is picking
+     *  from a list instead of landing on an empty screen. Read once by the ViewModel; false while
+     *  the permission is missing or Bluetooth is off, which is the honest answer for this question.
+     *  [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001] */
+    val hasPairedBluetoothDevices: Boolean = false,
 
     // ── Mode ──────────────────────────────────────────────────────────────────
 
@@ -299,7 +309,10 @@ data class HomeState(
      *   [ParkedWatchBadge.WATCH_INTERRUPTED] and the step stays open, which is the truth.
      *   [DET-WATCH-HONEST-001]
      * - [FirstStep.FIND_SPOT] completes on having a community spot OPEN, not on having scrolled
-     *   past one; the ViewModel banks it so closing the peek does not undo it.
+     *   past one; the ViewModel banks it so closing the peek does not undo it. Its FACE (show spots
+     *   vs ask for one) rides on [spotsOnOffer] — the very list the sheet's free-spots section
+     *   renders, so the step cannot offer to show something that is not there.
+     *   [ONBOARDING-STEPS-MUST-EXPLAIN-WHAT-REALLY-HAPPENS-001]
      */
     val firstSteps: FirstStepsProgress
         get() = resolveFirstSteps(
@@ -308,7 +321,27 @@ data class HomeState(
             hasActiveSession = activeSessions.isNotEmpty(),
             isWatching = parkedWatchBadge == ParkedWatchBadge.WATCHING,
             hasTouchedSpots = selection is HomeSelection.Spot,
+            hasSpotsOnOffer = spotsOnOffer.isNotEmpty(),
+            // [ONBOARDING-STEPS-MUST-EXPLAIN-WHAT-REALLY-HAPPENS-001] Step 2 describes a departure
+            // watch. With detection stopped that description would be a promise the app is not
+            // keeping, so the step switches to asking for it — read from the SAME flag the release
+            // dialog uses to decide whether it can promise the same thing. [DET-WATCH-HONEST-001]
+            isAutoDetectionStopped = detectionUiState.isDetectionStopped,
+            // [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001] "Is it on?" and "is it solid?"
+            // are two questions and two steps. This is the second one, about the car the watch
+            // actually works for — the active vehicle. [VEH-ACTIVE-FENCE-001]
+            reinforcement = resolveWatchReinforcement(
+                vehicleHasBluetoothMac = activeVehicle?.bluetoothDeviceId != null,
+                hasPairedBluetoothDevices = hasPairedBluetoothDevices,
+                isReliabilityReduced = showBatteryOptimizationNudge,
+            ),
+            deferred = firstStepsDeferred,
         )
+
+    /** The vehicle the watch works for: the flagged active one, else the only sensible fallback —
+     *  the same resolution the cold-start CTAs use. [VEH-ACTIVE-FENCE-001] */
+    private val activeVehicle: Vehicle?
+        get() = vehicles.firstOrNull { it.isActive } ?: vehicles.firstOrNull()
 
     /**
      * Honest status badge for the parked/active vehicle's departure watch — real, not aspirational.

@@ -75,10 +75,11 @@ import com.rndeveloper.paparcar.presentation.map.HistoryDetailSheet
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.first_steps_spotlight_caption
-import com.rndeveloper.paparcar.presentation.onboarding.FirstStepExplainerContent
+import com.rndeveloper.paparcar.presentation.onboarding.FirstStepExplainerScreen
 import com.rndeveloper.paparcar.presentation.onboarding.FirstStepsCard
 import com.rndeveloper.paparcar.presentation.onboarding.OnboardingScreen
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
+import com.rndeveloper.paparcar.domain.onboarding.WatchReinforcement
 import com.rndeveloper.paparcar.domain.onboarding.resolveFirstSteps
 import com.rndeveloper.paparcar.ui.components.PapSpotlight
 import com.rndeveloper.paparcar.presentation.permissions.PermissionsContent
@@ -157,7 +158,13 @@ private val sampleProfile = UserProfile(
  * cannot actually reach. [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001]
  */
 @Composable
-private fun firstStepsCard(done: Set<FirstStep>) {
+private fun firstStepsCard(
+    done: Set<FirstStep>,
+    hasSpotsOnOffer: Boolean = false,
+    isAutoDetectionStopped: Boolean = false,
+    reinforcement: WatchReinforcement = WatchReinforcement.NONE,
+    deferred: Set<FirstStep> = emptySet(),
+) {
     FirstStepsCard(
         progress = resolveFirstSteps(
             done = done,
@@ -165,6 +172,13 @@ private fun firstStepsCard(done: Set<FirstStep>) {
             hasActiveSession = false,
             isWatching = false,
             hasTouchedSpots = false,
+            // [ONBOARDING-STEPS-MUST-EXPLAIN-WHAT-REALLY-HAPPENS-001] Decides the third step's face,
+            // so both faces are reachable from the gallery.
+            hasSpotsOnOffer = hasSpotsOnOffer,
+            isAutoDetectionStopped = isAutoDetectionStopped,
+            // [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001] El paso de refuerzo y su salida.
+            reinforcement = reinforcement,
+            deferred = deferred,
         ),
         onStartStep = {},
         onDismiss = {},
@@ -1736,16 +1750,63 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             Variant("Paso 1 · marcar aparcamiento", Placement.Surface) {
                 firstStepsCard(done = emptySet())
             },
-            Variant("Paso 2 · la vigilancia (sin CTA)", Placement.Surface) {
+            Variant("Paso 2 · con deteccion · solo explica", Placement.Surface) {
                 firstStepsCard(done = setOf(FirstStep.MARK_PARKING))
             },
-            Variant("Paso 3 · la comunidad", Placement.Surface) {
-                firstStepsCard(done = setOf(FirstStep.MARK_PARKING, FirstStep.UNDERSTAND_WATCH))
+            // La deteccion parada: el paso deja de describir y pide activarla, con el CTA de la
+            // fila que sustituye. [ONBOARDING-STEPS-MUST-EXPLAIN-WHAT-REALLY-HAPPENS-001]
+            Variant("Paso 2 · deteccion parada · activar", Placement.Surface) {
+                firstStepsCard(
+                    done = setOf(FirstStep.MARK_PARKING),
+                    isAutoDetectionStopped = true,
+                )
+            },
+            // El paso 3 tiene DOS caras según lo que la comunidad pueda ofrecer ahora mismo.
+            // [ONBOARDING-STEPS-MUST-EXPLAIN-WHAT-REALLY-HAPPENS-001]
+            Variant("Paso 3 · sin plazas · avisar de una", Placement.Surface) {
+                firstStepsCard(
+                    done = setOf(FirstStep.MARK_PARKING, FirstStep.UNDERSTAND_WATCH),
+                    hasSpotsOnOffer = false,
+                )
+            },
+            Variant("Paso 3 · con plazas · verlas", Placement.Surface) {
+                firstStepsCard(
+                    done = setOf(FirstStep.MARK_PARKING, FirstStep.UNDERSTAND_WATCH),
+                    hasSpotsOnOffer = true,
+                )
             },
             // Out-of-order progress: reported a spot before ever parking. Step 3 is banked and the
             // checklist STILL asks for step 1 — nothing is watching their car yet.
             Variant("Desordenado · avisó antes de aparcar", Placement.Surface) {
                 firstStepsCard(done = setOf(FirstStep.FIND_SPOT))
+            },
+            // El paso 2.5: solo existe cuando hay algo que reforzar, y con dos caras segun el coche.
+            // [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001]
+            Variant("Paso 2.5 · vincular BT", Placement.Surface) {
+                firstStepsCard(
+                    done = setOf(FirstStep.MARK_PARKING, FirstStep.UNDERSTAND_WATCH),
+                    reinforcement = WatchReinforcement.BLUETOOTH,
+                )
+            },
+            Variant("Paso 2.5 · exencion de bateria", Placement.Surface) {
+                firstStepsCard(
+                    done = setOf(FirstStep.MARK_PARKING, FirstStep.UNDERSTAND_WATCH),
+                    reinforcement = WatchReinforcement.BATTERY,
+                )
+            },
+            Variant("Aplazado · sigue guiando", Placement.Surface) {
+                firstStepsCard(
+                    done = setOf(FirstStep.MARK_PARKING, FirstStep.UNDERSTAND_WATCH),
+                    reinforcement = WatchReinforcement.BATTERY,
+                    deferred = setOf(FirstStep.FORTIFY_WATCH),
+                )
+            },
+            Variant("Cierre honesto · algo quedo aplazado", Placement.Surface) {
+                firstStepsCard(
+                    done = setOf(FirstStep.MARK_PARKING, FirstStep.UNDERSTAND_WATCH, FirstStep.FIND_SPOT),
+                    reinforcement = WatchReinforcement.BATTERY,
+                    deferred = setOf(FirstStep.FORTIFY_WATCH),
+                )
             },
             Variant("Completado · tarjeta de cierre", Placement.Surface) {
                 firstStepsCard(done = FirstStep.entries.toSet())
@@ -1764,13 +1825,18 @@ private val galleryGroups: List<ScreenGroup> = listOf(
         "Primeros pasos (explicadores)",
         listOf(
             Variant("Paso 1 · qué abre marcar tu aparcamiento", Placement.Surface) {
-                FirstStepExplainerContent(FirstStep.MARK_PARKING, onDismiss = {})
+                FirstStepExplainerScreen(FirstStep.MARK_PARKING, onClose = {})
             },
             Variant("Paso 2 · las 2 formas de liberar (auto + Me voy)", Placement.Surface) {
-                FirstStepExplainerContent(FirstStep.UNDERSTAND_WATCH, onDismiss = {})
+                FirstStepExplainerScreen(FirstStep.UNDERSTAND_WATCH, onClose = {})
             },
             Variant("Paso 3 · avisar de una plaza ajena", Placement.Surface) {
-                FirstStepExplainerContent(FirstStep.FIND_SPOT, onDismiss = {})
+                FirstStepExplainerScreen(FirstStep.FIND_SPOT, onClose = {})
+            },
+            // [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001] El 2.5 tiene la suya: reutilizar
+            // la del paso 2 respondia a otra pregunta.
+            Variant("Explicacion · reforzar la vigilancia") {
+                FirstStepExplainerScreen(FirstStep.FORTIFY_WATCH, onClose = {})
             },
         ),
     ),

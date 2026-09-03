@@ -126,6 +126,14 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
     override fun setFirstStepsDone(steps: Set<FirstStep>) =
         set(Keys.FIRST_STEPS_DONE, steps.map { it.name }.toSet())
 
+    // [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001] Its own key, never folded into
+    // FIRST_STEPS_DONE: deferred is not done.
+    override fun observeFirstStepsDeferred(): Flow<Set<FirstStep>> =
+        store.data.map { prefs -> prefs[Keys.FIRST_STEPS_DEFERRED].toFirstSteps() }.distinctUntilChanged()
+
+    override fun setFirstStepsDeferred(steps: Set<FirstStep>) =
+        set(Keys.FIRST_STEPS_DEFERRED, steps.map { it.name }.toSet())
+
     override fun observeFirstStepsDismissed(): Flow<Boolean> =
         store.data.map { it[Keys.FIRST_STEPS_DISMISSED] ?: false }.distinctUntilChanged()
 
@@ -290,6 +298,7 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
         val LAST_FIRST_PARK_NUDGE_AT = longPreferencesKey("last_first_park_nudge_at")
         val HAS_CONFIRMED_FIRST_PARK = booleanPreferencesKey("has_confirmed_first_park")
         val FIRST_STEPS_DONE        = stringSetPreferencesKey("first_steps_done")
+        val FIRST_STEPS_DEFERRED    = stringSetPreferencesKey("first_steps_deferred")
         val FIRST_STEPS_DISMISSED   = booleanPreferencesKey("first_steps_dismissed")
         val PENDING_NUDGE_CREATED_AT = longPreferencesKey("pending_park_nudge_created_at")
         val PENDING_NUDGE_SOURCE     = stringPreferencesKey("pending_park_nudge_source")

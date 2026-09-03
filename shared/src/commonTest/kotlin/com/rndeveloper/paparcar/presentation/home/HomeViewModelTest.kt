@@ -91,6 +91,9 @@ class HomeViewModelTest {
     private lateinit var manualParkingDetection: com.rndeveloper.paparcar.fakes.data.repository.FakeManualParkingDetection
     private lateinit var departureWatchResumer: com.rndeveloper.paparcar.fakes.data.repository.FakeDepartureWatchResumer
     private lateinit var uiLocationLogger: com.rndeveloper.paparcar.fakes.FakeUiLocationLogger
+    // [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001] Asked one question: has this phone any
+    // bonded device? A test that wants the Bluetooth face sets its pairedDevices.
+    private lateinit var bluetoothScanner: FakeBluetoothScanner
     private lateinit var geocoderFake: FakeGeocoderDataSource
     private lateinit var vm: HomeViewModel
 
@@ -200,6 +203,7 @@ class HomeViewModelTest {
             manualParkingDetection = manualParkingDetection,
             departureWatchResumer = departureWatchResumer,
             uiLocationLogger = uiLocationLogger,
+            bluetoothScanner = bluetoothScanner,
         ).also {
             // Default test fixture = map on screen, so the high-accuracy request is armed and location
             // emits reach state. The backgrounded case uses buildVm(foreground = false). [UI-LOC-FOREGROUND-001]
@@ -221,6 +225,7 @@ class HomeViewModelTest {
         reportScheduler = FakeReportSpotScheduler()
         zoneRepo = FakeZoneRepository()
         uiLocationLogger = com.rndeveloper.paparcar.fakes.FakeUiLocationLogger()
+        bluetoothScanner = FakeBluetoothScanner(bluetoothEnabled = false)
         vm = buildVm()
     }
 
@@ -497,6 +502,60 @@ class HomeViewModelTest {
         val saved = parkingRepo.observeActiveSessions().first().single()
         assertEquals(SpotType.AUTO_DETECTED, saved.spotType)
         assertEquals("nudge", saved.detectionPath)
+    }
+
+    // ── The DRAG is the pin ───────────────────────────────────────────────────
+    // Every test above confirms straight after entering the mode, so they all pass with a pin that
+    // never moved — the whole "user drags the map, THAT is the place" path was untested.
+
+    @Test
+    fun `should_save_the_dragged_place_not_the_users_own_position_on_ConfirmAddParking`() = runTest(testDispatcher) {
+        vehicleRepo.saveVehicle(
+            Vehicle(
+                id = "v1", userId = "mock_user_001", brand = "Ford", model = "Focus",
+                sizeCategory = com.rndeveloper.paparcar.domain.model.VehicleSize.MEDIUM_SUV,
+                vehicleType = com.rndeveloper.paparcar.domain.model.VehicleType.CAR, isActive = true,
+            ),
+        )
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        advanceUntilIdle()
+
+        // Enter pre-centred on the user, then drag the map ~350 m away, as the coach mark asks.
+        vm.handleIntent(HomeIntent.EnterAddParkingMode(initialGps = location))
+        vm.handleIntent(HomeIntent.CameraPositionChanged(lat = 40.419900, lon = -3.700100))
+        vm.handleIntent(HomeIntent.ConfirmAddParking())
+        advanceUntilIdle()
+
+        val saved = parkingRepo.observeActiveSessions().first().single()
+        assertEquals(40.419900, saved.location.latitude, absoluteTolerance = 1e-6)
+        assertEquals(-3.700100, saved.location.longitude, absoluteTolerance = 1e-6)
+    }
+
+    @Test
+    fun `should_keep_the_dragged_place_when_a_new_gps_fix_lands_before_the_user_confirms`() = runTest(testDispatcher) {
+        // The pin is placed for a car that is NOT where the phone is; a fix arriving mid-placement
+        // (they always do) must not drag the pending pin back onto the user.
+        vehicleRepo.saveVehicle(
+            Vehicle(
+                id = "v1", userId = "mock_user_001", brand = "Ford", model = "Focus",
+                sizeCategory = com.rndeveloper.paparcar.domain.model.VehicleSize.MEDIUM_SUV,
+                vehicleType = com.rndeveloper.paparcar.domain.model.VehicleType.CAR, isActive = true,
+            ),
+        )
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        advanceUntilIdle()
+
+        vm.handleIntent(HomeIntent.EnterAddParkingMode(initialGps = location))
+        vm.handleIntent(HomeIntent.CameraPositionChanged(lat = 40.419900, lon = -3.700100))
+        locationDataSource.emitHighAccuracy(location.copy(latitude = 40.416800, timestamp = 5_000L))
+        advanceUntilIdle()
+        vm.handleIntent(HomeIntent.ConfirmAddParking())
+        advanceUntilIdle()
+
+        val saved = parkingRepo.observeActiveSessions().first().single()
+        assertEquals(40.419900, saved.location.latitude, absoluteTolerance = 1e-6)
     }
 
     // ── ConfirmAddParking from EDIT: correct-in-place vs re-park ───────────────

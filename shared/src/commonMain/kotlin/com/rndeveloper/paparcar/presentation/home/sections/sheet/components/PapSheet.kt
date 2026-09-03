@@ -108,6 +108,13 @@ internal fun PapSheet(
      *  reserved header height); a MODAL sheet whose title carries a vehicle name may pass 2 so
      *  "¿Has aparcado el Škoda Kamiq?" doesn't truncate. [UX-PARK-FLOW-001 C4, device 06-08] */
     titleMaxLines: Int = 1,
+    /**
+     * Peeks keep ONE line: their header height is a fixed design derivation that the collapse cut
+     * depends on. A sheet that exists to EXPLAIN something passes Int.MAX_VALUE — there the height
+     * is free, and truncating prose with a "…" while half the screen is empty is the opposite of
+     * explaining. [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001] [UI-SHEET-006]
+     */
+    subtitleMaxLines: Int = 1,
     trailing: PapSheetTrailing? = PapSheetTrailing.Dismiss,
     /** Pager chrome: the ‹ / › that open the pin before/after this one. Null (the default) leaves
      *  the header at full width, exactly as it was before the stepper existed.
@@ -138,7 +145,10 @@ internal fun PapSheet(
         // cut and the peek/nav divider) is untouched. [UI-PEEK-STEPS-BETWEEN-PINS-001] [UI-SHEET-006]
         PapListItem(
             modifier = Modifier.defaultMinSize(minHeight = papSheetHeaderReservedHeight()),
-            overline = eyebrow,
+            // Blank = no eyebrow at all, not an empty line with its spacing. An embedded sheet (the
+            // first-step explainer inside Home's sheet) drops it so the surface does not read as two
+            // stacked headers. [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001]
+            overline = eyebrow.takeIf { it.isNotBlank() },
             overlineColor = eyebrowColor ?: eyebrowTone.color(),
             overlineStyle = PaparcarType.current.eyebrow,
             overlineHighlight = eyebrowHighlight,
@@ -149,7 +159,7 @@ internal fun PapSheet(
             subtitle = subtitle,
             subtitleStyle = PaparcarType.current.caption,
             subtitleColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            subtitleMaxLines = 1,
+            subtitleMaxLines = subtitleMaxLines,
             // Horizontal inset already applied by the parent Column; keep the sheet's own top/bottom.
             contentPadding = PaddingValues(top = 12.dp, bottom = 14.dp),
             gap = 12.dp,
@@ -466,6 +476,10 @@ private fun LeadTileBox(container: Color, content: @Composable () -> Unit) {
 internal fun PapSheetBanner(
     title: String,
     modifier: Modifier = Modifier,
+    /** Two lines by default (it sits under a header whose height is derived); an explainer passes
+     *  Int.MAX_VALUE so the caveat is READ, not cut mid-sentence.
+     *  [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001] */
+    maxLines: Int = 2,
     subtitle: String? = null,
     icon: ImageVector = Icons.Rounded.Info,
     iconTint: Color = PapColor.attention,
@@ -498,7 +512,7 @@ internal fun PapSheetBanner(
                 text = title,
                 style = PaparcarType.current.rowTitle,
                 color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 2,
+                maxLines = maxLines,
                 overflow = TextOverflow.Ellipsis,
             )
             if (!subtitle.isNullOrBlank()) {
@@ -507,7 +521,7 @@ internal fun PapSheetBanner(
                     text = subtitle,
                     style = PaparcarType.current.caption,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
+                    maxLines = maxLines,
                     overflow = TextOverflow.Ellipsis,
                 )
             }

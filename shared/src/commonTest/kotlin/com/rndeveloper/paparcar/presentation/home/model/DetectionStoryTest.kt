@@ -2,6 +2,7 @@ package com.rndeveloper.paparcar.presentation.home.model
 
 import com.rndeveloper.paparcar.domain.detection.DetectionPhase
 import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
+import com.rndeveloper.paparcar.domain.onboarding.FirstStepsOwnership
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.Vehicle
@@ -291,7 +292,7 @@ class DetectionStoryTest {
             DetectionStory.Hidden,
             resolveDetectionStory(
                 DetectionUiState.AwaitingFirstPark, null, listOf(activeCard),
-                firstStepsOwnsColdStart = true,
+                firstStepsOwns = FirstStepsOwnership.COLD_START,
             ),
         )
     }
@@ -303,21 +304,21 @@ class DetectionStoryTest {
         val cards = listOf(activeCard)
         assertEquals(
             DetectionStory.BlockedCore,
-            resolveDetectionStory(DetectionUiState.BlockedCore, null, cards, firstStepsOwnsColdStart = true),
+            resolveDetectionStory(DetectionUiState.BlockedCore, null, cards, firstStepsOwns = FirstStepsOwnership.COLD_START),
         )
         assertEquals(
             DetectionStory.NoVehicle,
-            resolveDetectionStory(DetectionUiState.NoVehicle, null, cards, firstStepsOwnsColdStart = true),
+            resolveDetectionStory(DetectionUiState.NoVehicle, null, cards, firstStepsOwns = FirstStepsOwnership.COLD_START),
         )
         assertEquals(
             DetectionStory.Inactive,
-            resolveDetectionStory(DetectionUiState.Inactive, null, cards, firstStepsOwnsColdStart = true),
+            resolveDetectionStory(DetectionUiState.Inactive, null, cards, firstStepsOwns = FirstStepsOwnership.COLD_START),
         )
         assertEquals(
             DetectionStory.Watching("Skoda Kamiq", isParked = true, watch = VehicleWatch.Assisted),
             resolveDetectionStory(
                 DetectionUiState.Parked, null, listOf(activeParkedCard),
-                firstStepsOwnsColdStart = true,
+                firstStepsOwns = FirstStepsOwnership.COLD_START,
             ),
         )
     }
@@ -330,14 +331,14 @@ class DetectionStoryTest {
             DetectionStory.AwaitingAnswer(window("Škoda Kamiq")),
             resolveDetectionStory(
                 DetectionUiState.AwaitingFirstPark, null, listOf(activeCard),
-                promptWindow = window("Škoda Kamiq"), firstStepsOwnsColdStart = true,
+                promptWindow = window("Škoda Kamiq"), firstStepsOwns = FirstStepsOwnership.COLD_START,
             ),
         )
         assertEquals(
             DetectionStory.PendingAsk,
             resolveDetectionStory(
                 DetectionUiState.AwaitingFirstPark, null, listOf(activeCard),
-                showParkNudge = true, firstStepsOwnsColdStart = true,
+                showParkNudge = true, firstStepsOwns = FirstStepsOwnership.COLD_START,
             ),
         )
     }
@@ -349,7 +350,60 @@ class DetectionStoryTest {
             DetectionStory.AwaitingFirstPark,
             resolveDetectionStory(
                 DetectionUiState.AwaitingFirstPark, null, listOf(activeCard),
-                firstStepsOwnsColdStart = false,
+                firstStepsOwns = FirstStepsOwnership.NOTHING,
+            ),
+        )
+    }
+
+    // ── The second row the checklist can take over ──
+    // [ONBOARDING-STEPS-MUST-EXPLAIN-WHAT-REALLY-HAPPENS-001]
+
+    @Test
+    fun should_standDownTheInactiveRow_when_theChecklistIsAskingToTurnDetectionOn() {
+        assertEquals(
+            DetectionStory.Hidden,
+            resolveDetectionStory(
+                DetectionUiState.Inactive, null, listOf(activeCard),
+                firstStepsOwns = FirstStepsOwnership.DETECTION_OFF,
+            ),
+        )
+    }
+
+    @Test
+    fun should_keepEachRow_when_theChecklistOwnsTheOtherOne() {
+        // Ownership is one value, not a blanket: the step asking to turn detection on must not
+        // silence the cold-start ask, and vice versa.
+        assertEquals(
+            DetectionStory.AwaitingFirstPark,
+            resolveDetectionStory(
+                DetectionUiState.AwaitingFirstPark, null, listOf(activeCard),
+                firstStepsOwns = FirstStepsOwnership.DETECTION_OFF,
+            ),
+        )
+        assertEquals(
+            DetectionStory.Inactive,
+            resolveDetectionStory(
+                DetectionUiState.Inactive, null, listOf(activeCard),
+                firstStepsOwns = FirstStepsOwnership.COLD_START,
+            ),
+        )
+    }
+
+    @Test
+    fun should_keepAnInterruptedWatchLoud_when_theChecklistOwnsDetectionOff() {
+        // A fragile or killed watch names its own cause; the step could only say something vaguer,
+        // so it never takes that row over. [DET-WATCH-HONEST-001]
+        assertEquals(
+            DetectionStory.Watching(
+                "Skoda Kamiq",
+                isParked = true,
+                watch = VehicleWatch.Assisted,
+                watchBadge = ParkedWatchBadge.WATCH_INTERRUPTED,
+            ),
+            resolveDetectionStory(
+                DetectionUiState.Parked, null, listOf(activeParkedCard),
+                parkedWatchBadge = ParkedWatchBadge.WATCH_INTERRUPTED,
+                firstStepsOwns = FirstStepsOwnership.DETECTION_OFF,
             ),
         )
     }

@@ -73,7 +73,9 @@ import com.rndeveloper.paparcar.presentation.map.ParkingHistoryDetailScreen
 import com.rndeveloper.paparcar.presentation.vehicles.VehiclesScreen
 import com.rndeveloper.paparcar.presentation.onboarding.OnboardingScreen
 import com.rndeveloper.paparcar.presentation.permissions.PermissionsScreen
+import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 import com.rndeveloper.paparcar.presentation.bluetooth.BluetoothConfigScreen
+import com.rndeveloper.paparcar.presentation.onboarding.FirstStepExplainerScreen
 import com.rndeveloper.paparcar.presentation.settings.SettingsScreen
 import com.rndeveloper.paparcar.presentation.util.DistanceUnit
 import com.rndeveloper.paparcar.presentation.util.LocalDistanceUnit
@@ -112,6 +114,9 @@ object Routes {
     const val VEHICLE_SIZE_EXPLAINER = "vehicle_size_explainer"
     const val BT_CONFIG = "bt_config"
     const val GPS_DISCLAIMER = "gps_disclaimer"
+    /** A guided first step's explanation. Its own screen, not a sheet over Home — see
+     *  `FirstStepExplainerScreen`. [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001] */
+    const val FIRST_STEP_EXPLAINER = "first_step_explainer"
 }
 
 private val BOTTOM_NAV_ROUTES = setOf(
@@ -563,7 +568,32 @@ private fun MainAppNavigation(
                     // Banner "Add" → vehicle registration. origin=vehicles so completion pops back
                     // to HOME (the screen below), instead of replaying the onboarding pop chain.
                     onAddVehicle = { navController.navigate("${Routes.VEHICLE_REGISTRATION}?origin=vehicles") },
+                    // [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001] The fortify step's
+                    // Bluetooth face → the same car-Bluetooth screen Settings deep-links to, so
+                    // there is one destination for "link this car", not two.
+                    onLinkVehicleBluetooth = { vehicleId ->
+                        navController.navigate("${Routes.BT_CONFIG}/$vehicleId")
+                    },
+                    // [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001] The explanation is a
+                    // page, so it gets a page. Back returns to Home with the checklist as it was.
+                    onOpenStepExplainer = { step ->
+                        navController.navigate("${Routes.FIRST_STEP_EXPLAINER}/${step.name}")
+                    },
                 )
+            }
+            composable(
+                route = "${Routes.FIRST_STEP_EXPLAINER}/{step}",
+                arguments = listOf(navArgument("step") { type = NavType.StringType }),
+            ) { backStack ->
+                val name = backStack.arguments?.read { getStringOrNull("step") }
+                // An unknown name means a build that renamed or retired a step: go back rather than
+                // crash, the same way the persisted set drops names it does not know.
+                val step = FirstStep.entries.firstOrNull { it.name == name }
+                if (step == null) {
+                    navController.popBackStack()
+                } else {
+                    FirstStepExplainerScreen(step = step, onClose = { navController.popBackStack() })
+                }
             }
             composable(
                 route = "${Routes.PARKING_HISTORY_DETAIL}?lat={lat}&lon={lon}&sessionId={sessionId}",

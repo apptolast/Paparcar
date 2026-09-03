@@ -168,6 +168,29 @@ sealed class HomeIntent {
      */
     data class CompleteFirstStep(val step: FirstStep) : HomeIntent()
 
+    /**
+     * "Not yet" on a step that asks for a permission. [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001]
+     *
+     * It does NOT complete the step — nothing was measured and nothing was granted. It records that
+     * the user answered, so the checklist stops asking THIS and moves on to what it can still teach.
+     * A permission the user declined is their decision; refusing to guide them any further is the
+     * app sulking about it.
+     *
+     * Reversible by construction: if the permission later arrives (from Settings, from the detection
+     * surface, from anywhere), the step's live signal completes it and the deferral stops mattering.
+     */
+    data class DeferFirstStep(val step: FirstStep) : HomeIntent()
+
+    /**
+     * Take a deferred step back. [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001]
+     *
+     * A step answered "not yet" CLOSES like every other one — one line, no buttons — so the
+     * checklist reads as having moved on. Tapping that line is how the user changes their mind: it
+     * comes back as the current ask with its own CTA. Leaving the button sitting there instead left
+     * two steps offering actions at once and nobody knowing which one the app was asking for.
+     */
+    data class ResumeFirstStep(val step: FirstStep) : HomeIntent()
+
     // ── Search ────────────────────────────────────────────────────────────────
 
     data class SearchQueryChanged(val query: String) : HomeIntent()

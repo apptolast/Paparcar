@@ -16,6 +16,7 @@ import com.rndeveloper.paparcar.domain.model.monitoringStatus
 import com.rndeveloper.paparcar.domain.model.Zone
 import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
 import com.rndeveloper.paparcar.domain.detection.shouldShowParkNudgeBanner
+import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 import com.rndeveloper.paparcar.domain.onboarding.FirstStepsProgress
 import com.rndeveloper.paparcar.presentation.home.model.DetectionUiState
 import com.rndeveloper.paparcar.presentation.home.model.ParkedWatchBadge
@@ -237,7 +238,30 @@ data class HomeBrowseListSlice(
      *  checklist. Already resolved by the pure projection — the sheet renders it, it does not decide
      *  it, and it is also what tells the detection surface to stand down on the cold start. */
     val firstSteps: FirstStepsProgress,
-)
+) {
+    /**
+     * Whether the guided checklist is actually ON SCREEN — visibility AND the two conditions that
+     * make it make sense. No vehicle means there is nothing to mark, and `DetectionStory.NoVehicle`
+     * already owns that ask with the right CTA; no core permissions means the app cannot do any of
+     * the three things the checklist teaches.
+     *
+     * Resolved HERE, not at the render site, because three surfaces ask the same question: the card
+     * itself, the cold-start detection row standing down for it, and the sheet opening itself on it.
+     * Three copies of the gate are three chances for the sheet to spring open on a checklist that
+     * is not there. [ONBOARDING-FIRST-STEPS-MUST-BE-READABLE-AND-FOUND-001]
+     */
+    val showsFirstSteps: Boolean
+        get() = firstSteps.isVisible && hasCorePermissions && vehicleCards.isNotEmpty()
+
+    /**
+     * The step the checklist is asking for right now, or null when it is not on screen / has nothing
+     * left to ask. The KEY of the sheet's auto-open: it only ever moves FORWARD (the latch in
+     * `subscribeFirstSteps` banks a done step, so a step never un-completes), so the sheet opens once
+     * per step and dragging it back down sticks until there is genuinely something new to show.
+     */
+    val firstStepAnchor: FirstStep?
+        get() = firstSteps.current.takeIf { showsFirstSteps }
+}
 
 // ── Projections ───────────────────────────────────────────────────────────────
 
@@ -341,10 +365,9 @@ fun HomeState.toBrowseListSlice() = HomeBrowseListSlice(
     isLoading = isLoading,
     sizeFilter = sizeFilter,
     filteredSpots = filteredNearbySpots(),
-    // The filter bar and the empty state ask "is there anything on offer at all" — a withdrawn
-    // spot is not [DET-HANDOFF-NOT-MANUAL-001 §B.3], and neither is my own still-parked car
-    // [UI-PROVISIONAL-SPOT-IS-NOT-ITS-SESSION-001].
-    hasAnySpots = nearbySpots.any { it.status.isAvailable && !isMyOwnLiveSession(it) },
+    // The filter bar and the empty state ask "is there anything on offer at all" — resolved by
+    // [spotsOnOffer], the same list the checklist's third step consults before offering to show any.
+    hasAnySpots = spotsOnOffer.isNotEmpty(),
     vehicleCards = vehicles.map { v ->
         VehicleCard(vehicle = v, session = activeSessions.firstOrNull { it.vehicleId == v.id })
     },
@@ -390,6 +413,22 @@ internal fun HomeState.filteredNearbySpots(): List<Spot> =
  */
 internal fun HomeState.isMyOwnLiveSession(spot: Spot): Boolean =
     activeSessions.any { it.id == spot.id }
+
+/**
+ * The community spots genuinely ON OFFER right now: available, and not my own still-parked car
+ * [UI-PROVISIONAL-SPOT-IS-NOT-ITS-SESSION-001] [DET-HANDOFF-NOT-MANUAL-001 §B.3].
+ *
+ * ONE definition, three consumers: the filter bar / empty states (`hasAnySpots`), the guided
+ * checklist's third step deciding whether it can offer to SHOW spots at all, and the spot that step
+ * opens when it does. The rule used to be spelled inline in the slice; a second copy for the
+ * checklist is how a step ends up promising a list that turns out to be empty.
+ * [ONBOARDING-STEPS-MUST-EXPLAIN-WHAT-REALLY-HAPPENS-001]
+ *
+ * NOT size-filtered on purpose: the size filter is a lens the user chose, and the question here is
+ * whether the community has anything at all.
+ */
+internal val HomeState.spotsOnOffer: List<Spot>
+    get() = nearbySpots.filter { it.status.isAvailable && !isMyOwnLiveSession(it) }
 
 /**
  * The vehicle an AddingParking session is being positioned FOR — edit resolves

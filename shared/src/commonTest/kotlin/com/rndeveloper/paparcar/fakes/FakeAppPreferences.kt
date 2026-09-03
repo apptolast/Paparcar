@@ -61,6 +61,9 @@ class FakeAppPreferences(
     val firstStepsDismissed = MutableStateFlow(false)
     override fun observeFirstStepsDone(): Flow<Set<FirstStep>> = firstStepsDone
     override fun setFirstStepsDone(steps: Set<FirstStep>) { firstStepsDone.value = steps }
+    val firstStepsDeferred = MutableStateFlow<Set<FirstStep>>(emptySet())
+    override fun observeFirstStepsDeferred(): Flow<Set<FirstStep>> = firstStepsDeferred
+    override fun setFirstStepsDeferred(steps: Set<FirstStep>) { firstStepsDeferred.value = steps }
     override fun observeFirstStepsDismissed(): Flow<Boolean> = firstStepsDismissed
     override fun setFirstStepsDismissed(dismissed: Boolean) { firstStepsDismissed.value = dismissed }
 

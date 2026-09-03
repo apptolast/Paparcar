@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.dp
 fun PapIconTile(
     icon: ImageVector,
     modifier: Modifier = Modifier,
-    size: Dp = TILE_DP.dp,
+    size: Dp = PapIconTileSize,
     shape: Shape = RoundedCornerShape(TILE_CORNER_DP.dp),
     container: Color = MaterialTheme.colorScheme.primaryContainer,
     tint: Color = MaterialTheme.colorScheme.primary,
@@ -45,6 +45,8 @@ fun PapIconTile(
     }
 }
 
-private const val TILE_DP = 40
+/** The tile's default edge. Public because a caller that has to LINE UP with the tile (the first
+ *  steps CTA sitting under its row) must read the size, not re-type it. */
+val PapIconTileSize: Dp = 40.dp
 private const val TILE_CORNER_DP = 12
 private const val ICON_DP = 20

@@ -4,6 +4,7 @@ import com.rndeveloper.paparcar.domain.detection.DetectionPhase
 import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
 import com.rndeveloper.paparcar.domain.model.displayName
 import com.rndeveloper.paparcar.domain.model.monitoringStatus
+import com.rndeveloper.paparcar.domain.onboarding.FirstStepsOwnership
 import com.rndeveloper.paparcar.presentation.home.DrivingMeta
 import com.rndeveloper.paparcar.presentation.home.VehicleCard
 import com.rndeveloper.paparcar.ui.theme.VehicleWatch
@@ -121,21 +122,29 @@ fun resolveDetectionStory(
     /** [DET-NUDGE-PERSIST-001] An unanswered "where did you leave your car?" nudge is pending. */
     showParkNudge: Boolean = false,
     /**
-     * [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001] The guided checklist is on screen and is
-     * currently asking for the first parking. It says exactly what [AwaitingFirstPark] says, with
-     * the context of the two steps that follow — so the cold-start row STANDS DOWN and the surface
-     * keeps its one voice.
+     * [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001] Which of this surface's asks the guided
+     * checklist is making right now — the matching row STANDS DOWN so the surface keeps its one
+     * voice. The checklist says the same thing with the context of the steps around it.
+     *
+     * Two rows can be taken over, each by the step that duplicates it
+     * [ONBOARDING-STEPS-MUST-EXPLAIN-WHAT-REALLY-HAPPENS-001]:
+     * - [FirstStepsOwnership.COLD_START] → [AwaitingFirstPark] ("mark your parking")
+     * - [FirstStepsOwnership.DETECTION_OFF] → [Inactive] ("turn on detection"), which the second step
+     *   wears only when detection is actually stopped — precisely when its own copy would otherwise
+     *   promise a watch that is not running.
      *
      * The suppression lives HERE, in the projection, and not as an `if` around the composable:
      * arbitrating precedence inside the surface is the mistake [DET-ASK-STATE-001] came back to
      * correct, and it would be the same mistake for the same reason — the chain would declare one
      * order and the screen would render another, with only one of the two testable.
      *
-     * It suppresses that ONE story and nothing else. A CORE block, a live question, a pending nudge
-     * and every watch alert still outrank the checklist: those are things the app cannot do its job
-     * without, and a tutorial is never a reason to go quiet about them.
+     * It suppresses the ONE matching story and nothing else. A CORE block, a live question, a pending
+     * nudge and every watch alert still outrank the checklist: those are things the app cannot do its
+     * job without, and a tutorial is never a reason to go quiet about them. A FRAGILE or interrupted
+     * watch is likewise never taken over — the row names the specific cause (battery, a killed
+     * service) and the step could only say something vaguer. [DET-WATCH-HONEST-001]
      */
-    firstStepsOwnsColdStart: Boolean = false,
+    firstStepsOwns: FirstStepsOwnership = FirstStepsOwnership.NOTHING,
 ): DetectionStory {
     val activeCard = vehicleCards.firstOrNull { it.vehicle.isActive }
 
@@ -152,6 +161,18 @@ fun resolveDetectionStory(
     }
 
     fun watchingStory(isParked: Boolean, badge: ParkedWatchBadge): DetectionStory {
+        // [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001] The fortify step says what the
+        // FRAGILE line says, with the context of the checklist around it — so while the step is the
+        // current ask, this line stands down and the surface keeps one voice.
+        //
+        // Only the fragile one. An INTERRUPTED watch is a different, louder fact (the OS killed the
+        // service) whose row names its own cause and offers its own repair; a tutorial step never
+        // takes THAT over. [DET-WATCH-HONEST-001]
+        if (badge == ParkedWatchBadge.WATCHING_FRAGILE &&
+            firstStepsOwns == FirstStepsOwnership.WATCH_FRAGILE
+        ) {
+            return DetectionStory.Hidden
+        }
         // Watching names the ACTIVE vehicle ONLY — never a ranked or first-of-list fallback.
         val card = activeCard ?: return DetectionStory.Hidden
         val name = card.vehicle.displayName().takeIf { it.isNotBlank() }
@@ -177,9 +198,12 @@ fun resolveDetectionStory(
     return when (uiState) {
         DetectionUiState.BlockedCore -> DetectionStory.BlockedCore
         DetectionUiState.NoVehicle -> DetectionStory.NoVehicle
-        DetectionUiState.Inactive -> DetectionStory.Inactive
+        DetectionUiState.Inactive ->
+            if (firstStepsOwns == FirstStepsOwnership.DETECTION_OFF) DetectionStory.Hidden
+            else DetectionStory.Inactive
         DetectionUiState.AwaitingFirstPark ->
-            if (firstStepsOwnsColdStart) DetectionStory.Hidden else DetectionStory.AwaitingFirstPark
+            if (firstStepsOwns == FirstStepsOwnership.COLD_START) DetectionStory.Hidden
+            else DetectionStory.AwaitingFirstPark
         DetectionUiState.Monitoring -> drivingStory()
         // Honest: the parked line reflects whether the watch is really live. [DET-WATCH-HONEST-001]
         DetectionUiState.Parked ->

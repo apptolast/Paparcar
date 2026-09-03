@@ -8,6 +8,7 @@ import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.VehicleMonitoringStatus
 import com.rndeveloper.paparcar.domain.model.VehicleSize
+import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -612,5 +613,82 @@ class HomeSlicesTest {
     @Test
     fun should_give_the_map_no_place_when_no_question_is_open() {
         assertNull(HomeState().toMapSlice().unconfirmedParking)
+    }
+
+    // ── The guided checklist's ONE gate [ONBOARDING-FIRST-STEPS-MUST-BE-READABLE-AND-FOUND-001] ──
+    // Three surfaces read it: the card, the cold-start row standing down, and the sheet opening
+    // itself. These tests are what stops the third from ever springing open on a checklist the
+    // first two are not rendering.
+
+    private fun newUser(
+        dismissed: Boolean = false,
+        hasCorePermissions: Boolean = true,
+        vehicles: List<Vehicle> = listOf(vehicle("veh-A")),
+    ) = HomeState(
+        vehicles = vehicles,
+        hasCorePermissions = hasCorePermissions,
+        firstStepsDismissed = dismissed,
+    )
+
+    @Test
+    fun should_show_the_checklist_to_a_new_user_with_a_car_and_permissions() {
+        val slice = newUser().toBrowseListSlice()
+
+        assertTrue(slice.showsFirstSteps)
+        assertEquals(FirstStep.MARK_PARKING, slice.firstStepAnchor, "the sheet opens on step one")
+    }
+
+    @Test
+    fun should_hide_the_checklist_when_the_user_skipped_it() {
+        val slice = newUser(dismissed = true).toBrowseListSlice()
+
+        assertFalse(slice.showsFirstSteps)
+        assertNull(slice.firstStepAnchor, "a skipped checklist must not open the sheet either")
+    }
+
+    @Test
+    fun should_hide_the_checklist_when_no_vehicle_is_registered() {
+        // `DetectionStory.NoVehicle` owns this ask with the right CTA — the checklist would be
+        // telling the user to park a car they have not registered.
+        val slice = newUser(vehicles = emptyList()).toBrowseListSlice()
+
+        assertFalse(slice.showsFirstSteps)
+        assertNull(slice.firstStepAnchor)
+    }
+
+    @Test
+    fun should_hide_the_checklist_without_core_permissions() {
+        val slice = newUser(hasCorePermissions = false).toBrowseListSlice()
+
+        assertFalse(slice.showsFirstSteps)
+        assertNull(slice.firstStepAnchor)
+    }
+
+    @Test
+    fun should_stop_offering_an_anchor_once_every_step_is_banked() {
+        // All three done and NOT dismissed: the closing card is still on screen (it does not vanish
+        // under the finger that finished it), but there is no step left to open the sheet for.
+        val slice = newUser()
+            .copy(firstStepsDone = FirstStep.entries.toSet())
+            .toBrowseListSlice()
+
+        assertTrue(slice.showsFirstSteps, "the closing card still shows")
+        assertNull(slice.firstStepAnchor, "…and asks for nothing, so the sheet stays put")
+    }
+
+    @Test
+    fun should_advance_the_anchor_to_the_next_step_once_the_car_is_marked() {
+        // With detection healthy, marking the car also settles the watch step, so the next thing to
+        // teach is the community one. Either way the anchor MOVED, which is what opens the sheet
+        // again. [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001]
+        val slice = newUser()
+            .copy(activeSessions = listOf(session("s-1", "veh-A")))
+            .toBrowseListSlice()
+
+        assertEquals(
+            FirstStep.FIND_SPOT,
+            slice.firstStepAnchor,
+            "a new step is new to teach — that is exactly when the sheet opens again",
+        )
     }
 }

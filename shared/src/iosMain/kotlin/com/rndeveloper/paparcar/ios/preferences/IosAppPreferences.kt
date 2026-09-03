@@ -20,6 +20,7 @@ private const val KEY_FIRST_PARK_NUDGE_COUNT = "first_park_nudge_count"
 private const val KEY_LAST_FIRST_PARK_NUDGE_AT = "last_first_park_nudge_at"
 private const val KEY_HAS_CONFIRMED_FIRST_PARK = "has_confirmed_first_park"
 private const val KEY_FIRST_STEPS_DONE = "first_steps_done"
+private const val KEY_FIRST_STEPS_DEFERRED = "first_steps_deferred"
 private const val KEY_FIRST_STEPS_DISMISSED = "first_steps_dismissed"
 private const val KEY_PENDING_NUDGE_CREATED_AT = "pending_park_nudge_created_at"
 private const val KEY_PENDING_NUDGE_SOURCE = "pending_park_nudge_source"
@@ -111,13 +112,14 @@ class IosAppPreferences : AppPreferences {
     // Same single-process StateFlow pattern as [observeAutoDetectParking].
 
     /** Unknown names are DROPPED, not crashed on — a retired step reads as "not banked". */
-    private fun storedFirstStepsDone(): Set<FirstStep> =
-        userDefaults.stringArrayForKey(KEY_FIRST_STEPS_DONE)
+    private fun storedFirstSteps(key: String): Set<FirstStep> =
+        userDefaults.stringArrayForKey(key)
             .orEmpty()
             .mapNotNull { stored -> FirstStep.entries.firstOrNull { it.name == stored } }
             .toSet()
 
-    private val firstStepsDoneFlow = MutableStateFlow(storedFirstStepsDone())
+    private val firstStepsDoneFlow = MutableStateFlow(storedFirstSteps(KEY_FIRST_STEPS_DONE))
+    private val firstStepsDeferredFlow = MutableStateFlow(storedFirstSteps(KEY_FIRST_STEPS_DEFERRED))
     private val firstStepsDismissedFlow = MutableStateFlow(userDefaults.boolForKey(KEY_FIRST_STEPS_DISMISSED))
 
     override fun observeFirstStepsDone(): Flow<Set<FirstStep>> = firstStepsDoneFlow.asStateFlow()
@@ -125,6 +127,15 @@ class IosAppPreferences : AppPreferences {
     override fun setFirstStepsDone(steps: Set<FirstStep>) {
         userDefaults.setObject(steps.map { it.name }, forKey = KEY_FIRST_STEPS_DONE)
         firstStepsDoneFlow.value = steps
+    }
+
+    // [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001] "Not yet" survives a relaunch here too;
+    // a deferral the app forgets puts the user back on the same wall.
+    override fun observeFirstStepsDeferred(): Flow<Set<FirstStep>> = firstStepsDeferredFlow.asStateFlow()
+
+    override fun setFirstStepsDeferred(steps: Set<FirstStep>) {
+        userDefaults.setObject(steps.map { it.name }, forKey = KEY_FIRST_STEPS_DEFERRED)
+        firstStepsDeferredFlow.value = steps
     }
 
     override fun observeFirstStepsDismissed(): Flow<Boolean> = firstStepsDismissedFlow.asStateFlow()

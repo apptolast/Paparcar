@@ -63,4 +63,21 @@ sealed interface HomeSheetAction {
      * orchestration, translated in one place.
      */
     data class OpenFirstStepExplainer(val step: FirstStep) : HomeSheetAction
+
+    /**
+     * Take the user to the free-spots section of this very sheet — expand it and scroll the list
+     * down to "PLAZAS LIBRES CERCA". Fired by the SEE_NEARBY face of the checklist's third step.
+     * [ONBOARDING-STEPS-MUST-EXPLAIN-WHAT-REALLY-HAPPENS-001]
+     *
+     * An action, not an intent, for the same reason as the explainer above: it moves this sheet, and
+     * the ViewModel owns nothing about where the sheet is resting.
+     */
+    data object RevealFreeSpots : HomeSheetAction
+
+    /**
+     * Link [vehicleId] to one of the phone's already-paired Bluetooth devices — the deep link into
+     * the car-Bluetooth screen, the same destination Settings uses.
+     * [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001]
+     */
+    data class LinkVehicleBluetooth(val vehicleId: String) : HomeSheetAction
 }

@@ -60,6 +60,21 @@ interface AppPreferences {
     fun observeFirstStepsDismissed(): Flow<Boolean>
     fun setFirstStepsDismissed(dismissed: Boolean)
 
+    /**
+     * Steps the user answered with "not yet" — a permission they chose not to grant.
+     * [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001]
+     *
+     * A SECOND set, never folded into [observeFirstStepsDone]: deferred is not done. Banking a
+     * declined step as completed would make the checklist claim the user did something they
+     * explicitly refused, and the closing card would congratulate them for it.
+     *
+     * Persisted for the reason the whole ticket exists: a deferral that only lived in memory would
+     * put the user back on the same wall at the next cold start. Replaying from Settings clears it
+     * with the rest.
+     */
+    fun observeFirstStepsDeferred(): Flow<Set<FirstStep>>
+    fun setFirstStepsDeferred(steps: Set<FirstStep>)
+
     // ── Pending "where did you leave your car?" nudge. [DET-NUDGE-PERSIST-001] ──
     /** The unanswered mark-parking nudge, or null. Single slot: a new set replaces the previous
      *  one (there is only ever one lost car to ask about). Written by the notification adapter at

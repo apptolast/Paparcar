@@ -187,6 +187,9 @@ class FakeAppPreferences(private val scenario: MockScenario? = null) : AppPrefer
     private val _firstStepsDismissed = MutableStateFlow(true)
     override fun observeFirstStepsDone(): kotlinx.coroutines.flow.Flow<Set<FirstStep>> = _firstStepsDone
     override fun setFirstStepsDone(steps: Set<FirstStep>) { _firstStepsDone.value = steps }
+    private val _firstStepsDeferred = kotlinx.coroutines.flow.MutableStateFlow<Set<FirstStep>>(emptySet())
+    override fun observeFirstStepsDeferred(): kotlinx.coroutines.flow.Flow<Set<FirstStep>> = _firstStepsDeferred
+    override fun setFirstStepsDeferred(steps: Set<FirstStep>) { _firstStepsDeferred.value = steps }
     override fun observeFirstStepsDismissed(): kotlinx.coroutines.flow.Flow<Boolean> =
         scenario?.firstStepsPending?.map { pending -> !pending } ?: _firstStepsDismissed
     override fun setFirstStepsDismissed(dismissed: Boolean) {
