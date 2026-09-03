@@ -5,6 +5,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -78,7 +79,8 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
+import coil3.compose.AsyncImagePainter
+import coil3.compose.rememberAsyncImagePainter
 import com.rndeveloper.paparcar.isBatteryOptimizationRelevant
 import com.rndeveloper.paparcar.domain.diagnostics.DiagnosticsReport
 import com.rndeveloper.paparcar.domain.error.PaparcarError
@@ -100,6 +102,7 @@ import com.rndeveloper.paparcar.ui.components.PapOutlinedCard
 import com.rndeveloper.paparcar.ui.components.PapSectionHeader
 import com.rndeveloper.paparcar.ui.components.PapSectionHeaderRow
 import com.rndeveloper.paparcar.ui.components.PapScrollToTopButton
+import com.rndeveloper.paparcar.ui.components.PapShimmerBox
 import com.rndeveloper.paparcar.ui.components.PapSwitchRow
 import com.rndeveloper.paparcar.ui.components.PapTextField
 import com.rndeveloper.paparcar.ui.theme.PapAlpha
@@ -804,10 +807,9 @@ private fun ProfileCardV2(
 }
 
 /**
- * Profile avatar: loads [photoUrl] when present, falling back to the display
- * name's initial on a brand-green disc while loading, on error, or when no URL
- * exists. The fallback is identical to the no-photo state so there's never an
- * empty circle. [photoUrl] image fills the disc (crop-to-fill).
+ * Profile avatar: loads [photoUrl] when present. Shows [PapShimmerBox] while it resolves, the
+ * display name's initial on a brand-green disc on error or when no URL exists, and the photo
+ * (crop-to-fill) on success — never an empty circle.
  */
 @Composable
 private fun ProfileAvatar(displayName: String, photoUrl: String?) {
@@ -819,20 +821,24 @@ private fun ProfileAvatar(displayName: String, photoUrl: String?) {
             .background(cs.primary),
         contentAlignment = Alignment.Center,
     ) {
-        // Initial sits underneath; the photo (when it resolves) paints over it,
-        // so loading/error/no-URL all degrade gracefully to the initial.
-        Text(
-            text = displayName.firstOrNull()?.uppercaseChar()?.toString() ?: "U",
-            style = PaparcarType.current.sectionTitle,
-            color = cs.onPrimary,
-        )
-        if (!photoUrl.isNullOrBlank()) {
-            AsyncImage(
-                model = photoUrl,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
-            )
+        val painter = photoUrl?.takeIf { it.isNotBlank() }?.let { rememberAsyncImagePainter(it) }
+        when {
+            painter == null || painter.state.value is AsyncImagePainter.State.Error ->
+                Text(
+                    text = displayName.firstOrNull()?.uppercaseChar()?.toString() ?: "U",
+                    style = PaparcarType.current.sectionTitle,
+                    color = cs.onPrimary,
+                )
+
+            painter.state.value is AsyncImagePainter.State.Success ->
+                Image(
+                    painter = painter,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+
+            else -> PapShimmerBox(modifier = Modifier.fillMaxSize())
         }
     }
 }
