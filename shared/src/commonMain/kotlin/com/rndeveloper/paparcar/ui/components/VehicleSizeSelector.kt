@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,7 +23,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.model.VehicleSize
-import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 
 private val IconSize = 24.dp
@@ -104,23 +102,14 @@ private fun SizeTile(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        if (option.size == VehicleSize.MOTORCYCLE) {
-            // Motorcycles have no isometric carbody pictogram → Material two-wheeler glyph.
-            Icon(
-                imageVector = PaparcarIcons.VehicleMotorcycle,
-                contentDescription = null,
-                modifier = Modifier.size(IconSize),
-                tint = contentColor,
-            )
-        } else {
-            // New isometric pictogram, flattened to the tile's status colour via tint.
-            VehicleIcon(
-                carbody = null,
-                size = option.size,
-                modifier = Modifier.size(IconSize),
-                tint = contentColor,
-            )
-        }
+        // Isometric pictogram, flattened to the tile's status colour via tint. Every tier resolves
+        // one, two-wheelers included. [UI-A-MOTORCYCLE-IS-DRAWN-LIKE-EVERY-OTHER-VEHICLE-001]
+        VehicleIcon(
+            carbody = null,
+            size = option.size,
+            modifier = Modifier.size(IconSize),
+            tint = contentColor,
+        )
         Spacer(Modifier.height(4.dp))
         Text(
             text = option.label,

@@ -15,22 +15,15 @@ import androidx.compose.ui.layout.ContentScale
 import com.rndeveloper.paparcar.domain.model.CarbodyType
 import com.rndeveloper.paparcar.domain.model.VehicleColor
 import com.rndeveloper.paparcar.domain.model.VehicleSize
-import com.rndeveloper.paparcar.domain.model.fallbackCarbody
 import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
-import com.rndeveloper.paparcar.ui.icons.icon
 
 /**
  * Resolves the icon to render for a vehicle given the bidimensional taxonomy.
  *
- * Resolution order:
- *  1. `carbody` → its [CarbodyType.icon] drawable (the new side-profile pictograms).
- *  2. `size.fallbackCarbody()` → the canonical body for that length tier.
- *     Lets vehicles registered before the carbody refactor (or via custom
- *     brand/model with no inference) still render a real pictogram instead
- *     of the legacy silhouette.
- *  3. `size.icon` ImageVector → only reachable for [VehicleSize.MOTORCYCLE]
- *     since every other tier resolves a fallback carbody.
- *  4. `fallback` → catch-all ImageVector (defaults to a generic car).
+ * Which artwork is drawn is [vehicleArtOf]'s call — a two-wheeler resolves its own pictogram, a car
+ * resolves its carbody (falling back to the canonical body for its length tier, so vehicles
+ * registered before the carbody refactor still render a real pictogram). Only a vehicle we know
+ * nothing about reaches [fallback], the catch-all ImageVector.
  *
  * Returning a [Painter] lets call sites use a single `Icon(painter = …)` overload
  * regardless of whether the underlying asset is a vector drawable or an inline
@@ -47,26 +40,23 @@ fun vehicleIconPainter(
     defaultCarbody: CarbodyType? = null,
     color: VehicleColor? = null,
 ): Painter {
-    val resolved = carbody ?: size?.fallbackCarbody() ?: defaultCarbody
+    val art = vehicleArtOf(carbody = carbody, size = size, defaultCarbody = defaultCarbody)
     // Theme-aware isometric pictogram: the dark variant adds a thin white outline on body + wheels
     // so the car lifts off a dark map/surface. Detect the active theme by surface luminance (honours
     // the app's ThemeMode override, not just the system -dark qualifier). [BOLT-MARKERS-001]
     val isDark = MaterialTheme.colorScheme.surface.luminance() < DARK_SURFACE_LUMINANCE
-    // Every carbody renders through the same geometry builder so it always carries the white body +
+    // Every vehicle renders through the same geometry builder so it always carries the white body +
     // wheel border (light and dark). A chosen [color] recolours only the body; with no colour we use
     // the identity brand-green palette, which reproduces the original artwork. [VEH-COLOR-001]
     // [CAR-WHITE-BORDER-001]
-    if (resolved != null) {
+    if (art != null) {
         val palette = color?.let { carPaletteOf(it, isDark) } ?: defaultCarPalette(topdown = false)
-        val image = remember(resolved, color, isDark) {
-            buildCarImageVector(isoCarSpec(resolved), palette, isDark, ISO_WHEEL_STROKE)
+        val image = remember(art, color, isDark) {
+            buildCarImageVector(art.isoSpec(), palette, isDark, ISO_WHEEL_STROKE)
         }
         return rememberVectorPainter(image)
     }
-    return when {
-        size != null -> rememberVectorPainter(size.icon)
-        else -> rememberVectorPainter(fallback)
-    }
+    return rememberVectorPainter(fallback)
 }
 
 /**

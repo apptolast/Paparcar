@@ -37,6 +37,7 @@ private const val SRC_GLASS = 0xFFCFE9F6
 private const val SRC_TIRE = 0xFF15281D
 private const val SRC_HUB = 0xFF5C7A6B
 private const val SRC_SHADOW = 0xFF0E1A2E
+private const val SRC_SADDLE = 0xFF1E2A24
 private const val DARK_GLASS = 0xFF16243C
 private const val DARK_TIRE = 0xFF0A130D
 private const val DARK_SHADOW = 0xFF7C8BA1
@@ -84,6 +85,8 @@ internal fun recolor(src: Long, palette: CarPalette, isDark: Boolean): Color = w
     SRC_HUB -> if (isDark) palette.bodyHi else Color(src)
     SRC_GLASS -> Color(if (isDark) DARK_GLASS else src)
     SRC_TIRE -> Color(if (isDark) DARK_TIRE else src)
+    // Saddle / fork / swingarm follow the tyres: they are the two-wheeler's dark parts.
+    SRC_SADDLE -> Color(if (isDark) DARK_TIRE else src)
     SRC_SHADOW -> Color(if (isDark) DARK_SHADOW else src)
     else -> Color(src)
 }

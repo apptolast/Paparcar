@@ -11,7 +11,6 @@ import androidx.compose.ui.layout.ContentScale
 import com.rndeveloper.paparcar.domain.model.CarbodyType
 import com.rndeveloper.paparcar.domain.model.VehicleColor
 import com.rndeveloper.paparcar.domain.model.VehicleSize
-import com.rndeveloper.paparcar.domain.model.fallbackCarbody
 
 /**
  * Top-down (aerial) vehicle pictogram with a baked heading wedge — used as the **location-active**
@@ -22,7 +21,8 @@ import com.rndeveloper.paparcar.domain.model.fallbackCarbody
  * Rendered through the shared geometry builder so it always carries the white body + wheel border in
  * both themes (theme-neutral colours still follow surface luminance for dark glass/shadow). A non-null
  * [color] recolours only the body; with no colour the identity brand-green palette reproduces the
- * original artwork. Falls back to the length tier's canonical carbody (then SEDAN). [CAR-WHITE-BORDER-001]
+ * original artwork. A two-wheeler draws its own aerial pictogram; a car with no carbody falls back to
+ * its length tier's canonical body, then SEDAN. [CAR-WHITE-BORDER-001]
  */
 @Composable
 fun VehicleTopdownIcon(
@@ -32,10 +32,11 @@ fun VehicleTopdownIcon(
     color: VehicleColor? = null,
 ) {
     val isDark = MaterialTheme.colorScheme.surface.luminance() < TOPDOWN_DARK_LUMINANCE
-    val resolved = carbody ?: size?.fallbackCarbody() ?: CarbodyType.SEDAN
+    val art = vehicleArtOf(carbody = carbody, size = size, defaultCarbody = CarbodyType.SEDAN)
+        ?: VehicleArt.Car(CarbodyType.SEDAN)
     val palette = color?.let { carPaletteOf(it, isDark) } ?: defaultCarPalette(topdown = true)
-    val image = remember(resolved, color, isDark) {
-        buildCarImageVector(topdownCarSpec(resolved), palette, isDark, TOPDOWN_WHEEL_STROKE)
+    val image = remember(art, color, isDark) {
+        buildCarImageVector(art.topdownSpec(), palette, isDark, TOPDOWN_WHEEL_STROKE)
     }
     Image(
         painter = rememberVectorPainter(image),

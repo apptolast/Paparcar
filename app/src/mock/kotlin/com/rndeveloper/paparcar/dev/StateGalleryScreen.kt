@@ -3,6 +3,7 @@ package com.rndeveloper.paparcar.dev
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -109,6 +110,8 @@ import com.rndeveloper.paparcar.ui.components.FreeSpotMarker
 import com.rndeveloper.paparcar.ui.components.LicensePlateMarker
 import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
 import com.rndeveloper.paparcar.ui.components.VehicleBadgeMarker
+import com.rndeveloper.paparcar.ui.components.VehicleTopdownIcon
+import com.rndeveloper.paparcar.ui.components.VehicleIcon
 import com.rndeveloper.paparcar.ui.components.VehicleMarkerDoubt
 import com.rndeveloper.paparcar.ui.components.MyVehicleMarker
 import com.rndeveloper.paparcar.ui.components.ParkingCenterPin
@@ -394,6 +397,27 @@ private fun markersShowcase() {
             LicensePlateMarker()
             LicensePlateMarker(plateText = "1234ABC")
             LicensePlateMarker(plateText = "1234ABC", selected = true)
+        }
+        // [UI-A-MOTORCYCLE-IS-DRAWN-LIKE-EVERY-OTHER-VEHICLE-001] La familia entera en una fila: aquí
+        // se ve de un vistazo que la moto es del MISMO mundo que los coches (misma rueda, mismo
+        // borde blanco, mismo verde) y no un glifo prestado. Se recorre `CarbodyType.entries`, así
+        // que una carrocería nueva sin arte aparece sola en vez de pasar desapercibida.
+        MarkerSectionLabel("Pictograma de vehículo · perfil — moto + todas las carrocerías")
+        Row(
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.Bottom,
+        ) {
+            VehicleIcon(carbody = null, size = VehicleSize.MOTORCYCLE, modifier = Modifier.size(44.dp))
+            CarbodyType.entries.forEach { body ->
+                VehicleIcon(carbody = body, size = null, modifier = Modifier.size(44.dp))
+            }
+        }
+        MarkerSectionLabel("Pictograma de vehículo · cenital (puck) — moto · hatchback · furgo")
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.Bottom) {
+            VehicleTopdownIcon(carbody = null, size = VehicleSize.MOTORCYCLE, modifier = Modifier.size(44.dp))
+            VehicleTopdownIcon(carbody = CarbodyType.HATCHBACK_MEDIUM, size = null, modifier = Modifier.size(44.dp))
+            VehicleTopdownIcon(carbody = CarbodyType.VAN_LIGHT, size = null, modifier = Modifier.size(44.dp))
         }
         MarkerSectionLabel("MyVehicle — normal · seleccionado")
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {

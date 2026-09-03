@@ -65,8 +65,16 @@ private fun MarkersShowcase() {
         // no gallery entry — the only marker on the map you could not look at without starting a
         // trip, which is exactly why nobody noticed it read small. Headings are the four cardinals
         // so the rotation is checkable at a glance.
-        SectionLabel("Driving puck — N · E · S · W (hatchback · SUV · van)")
+        // [UI-A-MOTORCYCLE-IS-DRAWN-LIKE-EVERY-OTHER-VEHICLE-001] The motorbike leads the row: until
+        // it had its own aerial artwork this puck answered SEDAN for it, so riding a bike drew a car
+        // and nothing here would have shown it.
+        SectionLabel("Driving puck — N · E · S · W (moto · hatchback · SUV · van)")
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            LocationActiveMarker(
+                carbody = null,
+                size = VehicleSize.MOTORCYCLE,
+                headingDegrees = 0f,
+            )
             LocationActiveMarker(
                 carbody = CarbodyType.HATCHBACK_MEDIUM,
                 size = VehicleSize.MEDIUM_SUV,

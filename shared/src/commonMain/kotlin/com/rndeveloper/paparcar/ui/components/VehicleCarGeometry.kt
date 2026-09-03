@@ -7,6 +7,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.model.CarbodyType
+import com.rndeveloper.paparcar.domain.model.VehicleSize
+import com.rndeveloper.paparcar.domain.model.fallbackCarbody
 
 /**
  * Vector geometry of the vehicle pictograms — the single source of truth for every car render
@@ -45,6 +47,10 @@ private const val HUB = 0xFF5C7A6B
 private const val HEAD = 0xFFEAFBF2
 private const val SHADOW = 0xFF0E1A2E
 private const val WHITE = 0xFFFFFFFF
+
+// Two-wheeler dark parts (saddle, fork, swingarm, handlebar). Deliberately NOT [TIRE]: the builder
+// gives any bare TIRE fill an automatic white wheel ring, which a saddle must not get.
+private const val SADDLE = 0xFF1E2A24
 
 private fun p(
     data: String,
@@ -192,6 +198,55 @@ private val ISO: Map<CarbodyType, CarSpec> = mapOf(
     )),
 )
 
+// ── Two-wheeler specs ─────────────────────────────────────────────────────────
+//
+// A motorcycle is not a car with a missing carbody, so it does not live in the [CarbodyType] maps —
+// it is its own artwork, reached through [VehicleArt.TwoWheeler]. It shares the cars' *world*: wheel
+// r=8 with an r=3.2 hub centred on y=50, ground shadow on y=57, same source colours, same white body
+// outline. It therefore draws shorter than a car in the same box, which is what a bike is. Heights
+// come from the art's own scale — a 16 px wheel is 0.6 m, so 26.7 px/m puts a 0.80 m saddle at y≈36.
+
+private val MOTO_ISO = CarSpec(68f, 62f, listOf(
+    p("M8,57 a26.5,3.8 0 1,0 53,0 a26.5,3.8 0 1,0 -53,0 Z", fill = SHADOW, fa = 0.22f),
+    p("M8,50 a8,8 0 1,0 16,0 a8,8 0 1,0 -16,0 Z", fill = TIRE),
+    p("M45,50 a8,8 0 1,0 16,0 a8,8 0 1,0 -16,0 Z", fill = TIRE),
+    p("M14.58 49.27 L23.08 32.77 L25.92 34.23 L17.42 50.73 Z", fill = SADDLE, stroke = WHITE, sw = 2f, round = true),
+    p("M53.45 48.57 L52.55 51.43 L43.05 48.43 L43.95 45.57 Z", fill = SADDLE, stroke = WHITE, sw = 2f, round = true),
+    // One silhouette — nose, tank and tail on the saddle line, engine block down between the wheels.
+    p(
+        "M20.6 37.5 Q20.6 34 24.4 32.8 L28 32.6 Q32 31 36.4 32.4 L41.6 34.6 L52 33.6 " +
+            "Q56 33.4 58.2 31.4 L58.8 35.4 Q58.4 39.4 55 40 L45.6 40.2 L44.4 42 " +
+            "Q45.2 48.8 41.4 49.8 Q37.8 50.6 34.2 50 Q30.8 49.4 30.2 47 L29.4 42.4 " +
+            "L21.6 41.6 Q20 40 20.6 37.5 Z",
+        fill = BODY, stroke = WHITE, sw = 3f, round = true,
+    ),
+    p("M21.4 37 Q21.4 34.6 24.8 33.6 L28.2 33.4 Q32 32 36.2 33.3 L41.4 35.4 L42.2 37 L22.2 38.2 Z", fill = HI),
+    p("M41.8 34.6 L52 33.8 Q54.4 33.6 56 32.4 L56.6 34.6 Q55 35.8 52.4 36 L42.4 37 Q41.2 36.4 41.8 34.6 Z", fill = SADDLE),
+    // Handlebar as a filled quad, not a stroked line: the builder leaves strokeLineCap at Butt, and
+    // a squared-off 2.4-wide line reads as a dash floating over the tank instead of a grip.
+    p("M22.77 31.18 L28.97 27.38 L30.23 29.42 L24.03 33.22 Z", fill = SADDLE),
+    p("M22.2 36.2 Q21.2 37.8 22 39.6 L24.6 38.9 L24.2 35.4 Z", fill = HEAD),
+    p("M12.8,50 a3.2,3.2 0 1,0 6.4,0 a3.2,3.2 0 1,0 -6.4,0 Z", fill = HUB),
+    p("M49.8,50 a3.2,3.2 0 1,0 6.4,0 a3.2,3.2 0 1,0 -6.4,0 Z", fill = HUB),
+))
+
+// Narrower viewport than the cars' 56 on purpose: seen from above a bike is a sliver, and a car-width
+// box would scale it down to an illegible stick inside the driving puck. The heading wedge is
+// re-centred to match, so it still reads as the same direction marker.
+private val MOTO_TOPDOWN = CarSpec(40f, 54f, listOf(
+    p("M13,52 a7,2.6 0 1,0 14,0 a7,2.6 0 1,0 -14,0 Z", fill = SHADOW, fa = 0.15f),
+    p("M20 0 L31 10 L20 4.5 L9 10 Z", fill = BODY2, fa = 0.22f),
+    p("M20,10 a2.2,2.2 0 0 1 2.2,2.2 v6.6 a2.2,2.2 0 0 1 -2.2,2.2 a2.2,2.2 0 0 1 -2.2,-2.2 v-6.6 a2.2,2.2 0 0 1 2.2,-2.2 Z", fill = TIRE),
+    p("M20,34 a2.2,2.2 0 0 1 2.2,2.2 v6.6 a2.2,2.2 0 0 1 -2.2,2.2 a2.2,2.2 0 0 1 -2.2,-2.2 v-6.6 a2.2,2.2 0 0 1 2.2,-2.2 Z", fill = TIRE),
+    p("M17.5,15 h5 a3,3 0 0 1 3,3 v19 a3,3 0 0 1 -3,3 h-5 a3,3 0 0 1 -3,-3 v-19 a3,3 0 0 1 3,-3 Z", fill = BODY2, stroke = WHITE, sw = 3f),
+    p("M17.5,16.5 h5 a1.5,1.5 0 0 1 1.5,1.5 v7 a1.5,1.5 0 0 1 -1.5,1.5 h-5 a1.5,1.5 0 0 1 -1.5,-1.5 v-7 a1.5,1.5 0 0 1 1.5,-1.5 Z", fill = HI),
+    p("M19.2,28 h1.6 a1.6,1.6 0 0 1 1.6,1.6 v6.3 a1.6,1.6 0 0 1 -1.6,1.6 h-1.6 a1.6,1.6 0 0 1 -1.6,-1.6 v-6.3 a1.6,1.6 0 0 1 1.6,-1.6 Z", fill = SADDLE),
+    p("M12.2,18.6 h15.6 a1.2,1.2 0 0 1 0,2.4 h-15.6 a1.2,1.2 0 0 1 0,-2.4 Z", fill = SADDLE, stroke = WHITE, sw = 1.6f),
+    p("M8.7,19.8 a1.7,1.7 0 1,0 3.4,0 a1.7,1.7 0 1,0 -3.4,0 Z", fill = BODY2, stroke = WHITE, sw = 1.1f),
+    p("M27.9,19.8 a1.7,1.7 0 1,0 3.4,0 a1.7,1.7 0 1,0 -3.4,0 Z", fill = BODY2, stroke = WHITE, sw = 1.1f),
+    p("M18.8 15.6 L21.2 15.6 L20.8 18 L19.2 18 Z", fill = HEAD),
+))
+
 // ── Top-down (aerial) specs ─────────────────────────────────────────────────────
 
 private val TOPDOWN: Map<CarbodyType, CarSpec> = mapOf(
@@ -335,9 +390,45 @@ private val TOPDOWN: Map<CarbodyType, CarSpec> = mapOf(
     )),
 )
 
-internal fun isoCarSpec(carbody: CarbodyType): CarSpec = ISO.getValue(carbody)
+/**
+ * Which artwork a vehicle is drawn with. The point of naming this is that *a motorcycle is not a car
+ * with a missing carbody* — before it existed, every renderer improvised its own ending for a
+ * bodyless vehicle (a black Material glyph in the lists, a sedan in the driving puck, a hatchback in
+ * the registration hero) and the three improvised differently.
+ * [UI-A-MOTORCYCLE-IS-DRAWN-LIKE-EVERY-OTHER-VEHICLE-001]
+ */
+internal sealed interface VehicleArt {
+    data object TwoWheeler : VehicleArt
+    data class Car(val carbody: CarbodyType) : VehicleArt
+}
 
-internal fun topdownCarSpec(carbody: CarbodyType): CarSpec = TOPDOWN.getValue(carbody)
+/**
+ * Resolves the artwork for a (carbody, size) pair, or null when the caller knows nothing about the
+ * vehicle and must fall back on its own.
+ *
+ * [VehicleSize.MOTORCYCLE] is answered **before** [defaultCarbody] on purpose: a default meant for
+ * cars must never dress a two-wheeler as a hatchback, which is exactly what the registration hero
+ * did while the user was registering a motorbike.
+ */
+internal fun vehicleArtOf(
+    carbody: CarbodyType?,
+    size: VehicleSize?,
+    defaultCarbody: CarbodyType? = null,
+): VehicleArt? = when {
+    size == VehicleSize.MOTORCYCLE -> VehicleArt.TwoWheeler
+    carbody != null -> VehicleArt.Car(carbody)
+    else -> (size?.fallbackCarbody() ?: defaultCarbody)?.let { VehicleArt.Car(it) }
+}
+
+internal fun VehicleArt.isoSpec(): CarSpec = when (this) {
+    VehicleArt.TwoWheeler -> MOTO_ISO
+    is VehicleArt.Car -> ISO.getValue(carbody)
+}
+
+internal fun VehicleArt.topdownSpec(): CarSpec = when (this) {
+    VehicleArt.TwoWheeler -> MOTO_TOPDOWN
+    is VehicleArt.Car -> TOPDOWN.getValue(carbody)
+}
 
 /**
  * Rebuilds [spec] as an [ImageVector], swapping the body-family colours for [palette]. Theme-neutral
