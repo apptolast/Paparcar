@@ -451,6 +451,9 @@
     <string name="settings_send_diagnostics_confirm_action">Wyślij</string>
     <string name="settings_send_diagnostics_sent">Diagnostyka wysłana. Dziękujemy, zajmiemy się tym.</string>
     <string name="settings_send_diagnostics_error">Nie udało się wysłać diagnostyki. Sprawdź połączenie i spróbuj ponownie.</string>
+    <string name="settings_send_diagnostics_message_label">Co poszło nie tak?</string>
+    <string name="settings_send_diagnostics_message_placeholder">Pinezka trafiła na poprzednią ulicę, wczoraj około 9:15</string>
+    <string name="settings_send_diagnostics_no_reply">Tutaj nie możemy odpowiedzieć. Napisz na support@paparcar.com, jeśli potrzebujesz odpowiedzi.</string>
     <!-- Settings v2 — refactor UI -->
     <string name="settings_danger_zone">Strefa zagrożenia</string>
     <string name="settings_danger_zone_subtitle">Działania nieodwracalne</string>
@@ -654,6 +657,12 @@
     <string name="vehicle_status_active">Aktywny</string>
     <string name="vehicle_status_active_cd">Wykrywanie aktywne</string>
     <string name="common_scroll_to_top_cd">Do góry</string>
+    <plurals name="common_chars_left">
+        <item quantity="one">Pozostał %1$d znak</item>
+        <item quantity="few">Pozostały %1$d znaki</item>
+        <item quantity="many">Pozostało %1$d znaków</item>
+        <item quantity="other">Pozostało %1$d znaków</item>
+    </plurals>
     <!-- Spot freshness / age [SPOT-FRESHNESS-IS-AGE-NOT-A-COUNTDOWN-001] -->
     <string name="spot_indicator_age_now">Przed chwilą</string>
     <string name="spot_indicator_age_minutes">%1$d min temu</string>

@@ -450,6 +450,9 @@
     <string name="settings_send_diagnostics_confirm_action">Trimite</string>
     <string name="settings_send_diagnostics_sent">Diagnosticare trimisă. Mulțumim, ne ocupăm de ea.</string>
     <string name="settings_send_diagnostics_error">Nu s-a putut trimite diagnosticarea. Verifică-ți conexiunea și încearcă din nou.</string>
+    <string name="settings_send_diagnostics_message_label">Ce nu a funcționat?</string>
+    <string name="settings_send_diagnostics_message_placeholder">Pinul a rămas pe strada anterioară, ieri pe la 9:15</string>
+    <string name="settings_send_diagnostics_no_reply">Nu putem răspunde aici. Scrie-ne la support@paparcar.com dacă ai nevoie de un răspuns.</string>
     <!-- Settings v2 — refactor UI -->
     <string name="settings_danger_zone">Zonă de pericol</string>
     <string name="settings_danger_zone_subtitle">Acțiuni ireversibile</string>
@@ -656,6 +659,11 @@
     <string name="vehicle_status_active">Activ</string>
     <string name="vehicle_status_active_cd">Detectare activă</string>
     <string name="common_scroll_to_top_cd">Înapoi sus</string>
+    <plurals name="common_chars_left">
+        <item quantity="one">A mai rămas %1$d caracter</item>
+        <item quantity="few">Au mai rămas %1$d caractere</item>
+        <item quantity="other">Au mai rămas %1$d de caractere</item>
+    </plurals>
     <!-- Spot freshness / age [SPOT-FRESHNESS-IS-AGE-NOT-A-COUNTDOWN-001] -->
     <string name="spot_indicator_age_now">Chiar acum</string>
     <string name="spot_indicator_age_minutes">Acum %1$d min</string>

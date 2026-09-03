@@ -27,6 +27,9 @@ sealed class SettingsIntent {
     data object OpenContact : SettingsIntent()
     /** "Report a problem" row — open the consent dialog. [SUPPORT-REPORT-SHIPS-THE-LOCAL-LOG-001] */
     data object RequestSendDiagnostics : SettingsIntent()
+    /** The user's description of what went wrong, as they type it.
+     *  [SUPPORT-A-REPORT-MUST-SAY-WHAT-WENT-WRONG-001] */
+    data class UpdateDiagnosticsMessage(val message: String) : SettingsIntent()
     data object ConfirmSendDiagnostics : SettingsIntent()
     data object DismissSendDiagnostics : SettingsIntent()
     data object RequestDeleteAccount : SettingsIntent()

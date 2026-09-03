@@ -444,6 +444,9 @@
     <string name="settings_send_diagnostics_confirm_action">Verzenden</string>
     <string name="settings_send_diagnostics_sent">Diagnose verzonden. Bedankt, we gaan ermee aan de slag.</string>
     <string name="settings_send_diagnostics_error">Kon de diagnose niet verzenden. Controleer je verbinding en probeer het opnieuw.</string>
+    <string name="settings_send_diagnostics_message_label">Wat ging er mis?</string>
+    <string name="settings_send_diagnostics_message_placeholder">De pin kwam in de vorige straat terecht, gisteren rond 9:15</string>
+    <string name="settings_send_diagnostics_no_reply">We kunnen hier niet antwoorden. Mail naar support@paparcar.com als je een reactie wilt.</string>
     <!-- Settings v2 — UI refactor -->
     <string name="settings_danger_zone">Gevarenzone</string>
     <string name="settings_danger_zone_subtitle">Onomkeerbare acties</string>
@@ -645,6 +648,10 @@
     <string name="vehicle_status_active">Actief</string>
     <string name="vehicle_status_active_cd">Detectie actief</string>
     <string name="common_scroll_to_top_cd">Naar boven</string>
+    <plurals name="common_chars_left">
+        <item quantity="one">Nog %1$d teken</item>
+        <item quantity="other">Nog %1$d tekens</item>
+    </plurals>
     <!-- Spot freshness / age [SPOT-FRESHNESS-IS-AGE-NOT-A-COUNTDOWN-001] -->
     <string name="spot_indicator_age_now">Zojuist</string>
     <string name="spot_indicator_age_minutes">%1$d min geleden</string>

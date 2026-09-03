@@ -110,6 +110,7 @@ import com.rndeveloper.paparcar.ui.components.FreeSpotClusterMarker
 import com.rndeveloper.paparcar.ui.components.FreeSpotMarker
 import com.rndeveloper.paparcar.ui.components.LicensePlateMarker
 import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
+import com.rndeveloper.paparcar.domain.diagnostics.DiagnosticsReport
 import com.rndeveloper.paparcar.ui.components.VehicleBadgeMarker
 import com.rndeveloper.paparcar.ui.components.VehicleTopdownIcon
 import com.rndeveloper.paparcar.ui.components.VehicleIcon
@@ -213,6 +214,16 @@ private fun detectionSurface(story: DetectionStory) {
 }
 
 private val sampleGps = GpsPoint(40.4165, -3.7030, 12f, 0L, 0f)
+
+// [SUPPORT-A-REPORT-MUST-SAY-WHAT-WENT-WRONG-001] Una queja como las que llegan de verdad: qué
+// esperaba, qué pasó y cuándo. Es lo que convierte horas de traza en una búsqueda acotada.
+private val sampleReportMessage =
+    "Ayer sobre las 9:15 aparqué en Fuencarral y el pin salió en la calle anterior. " +
+        "Tuve que moverlo a mano."
+
+// El contador solo se pinta en los últimos caracteres; esta muestra se queda a 30 del techo.
+private val sampleReportMessageNearLimit =
+    sampleReportMessage.repeat(4).take(DiagnosticsReport.MAX_MESSAGE_CHARS - 30)
 
 // [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] Sitio e instante fijos de la pregunta en la
 // galería: la hora es un valor estampado, no `now`, para que la captura de un estado sea la
@@ -1403,11 +1414,32 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             Variant("Diálogo enviar diagnóstico") {
                 SettingsContent(state = SettingsState(userProfile = sampleProfile, showSendDiagnosticsConfirmation = true))
             },
+            Variant("Diagnóstico con descripción") {
+                SettingsContent(
+                    state = SettingsState(
+                        userProfile = sampleProfile,
+                        showSendDiagnosticsConfirmation = true,
+                        diagnosticsMessage = sampleReportMessage,
+                    ),
+                )
+            },
+            // El contador solo aparece cerca del techo — esta variante existe para verlo.
+            // [SUPPORT-A-REPORT-MUST-SAY-WHAT-WENT-WRONG-001]
+            Variant("Diagnóstico al límite") {
+                SettingsContent(
+                    state = SettingsState(
+                        userProfile = sampleProfile,
+                        showSendDiagnosticsConfirmation = true,
+                        diagnosticsMessage = sampleReportMessageNearLimit,
+                    ),
+                )
+            },
             Variant("Enviando diagnóstico") {
                 SettingsContent(
                     state = SettingsState(
                         userProfile = sampleProfile,
                         showSendDiagnosticsConfirmation = true,
+                        diagnosticsMessage = sampleReportMessage,
                         isSendingDiagnostics = true,
                     ),
                 )

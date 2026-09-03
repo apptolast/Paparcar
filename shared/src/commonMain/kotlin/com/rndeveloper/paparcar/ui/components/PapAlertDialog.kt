@@ -14,10 +14,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import com.rndeveloper.paparcar.ui.theme.PapBorders
 import com.rndeveloper.paparcar.ui.theme.PapShapes
 import androidx.compose.material3.BasicAlertDialog
@@ -43,6 +46,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import com.rndeveloper.paparcar.ui.theme.PapAlpha
 
 /**
@@ -127,7 +131,16 @@ fun PapAlertDialog(
     // built-in transition). Centralised here → every dialog in the app inherits it.
     val visibleState = remember { MutableTransitionState(false) }.apply { targetState = true }
 
-    BasicAlertDialog(onDismissRequest = onDismiss, modifier = modifier) {
+    // A dialog gets its OWN window, and by default that window swallows the IME insets: measured on
+    // the Oppo, `imePadding()` inside it is a plain no-op and the keyboard covers the actions —
+    // with the report field full, "Cancel" sat below the IME and could not be reached. Opting the
+    // window out of the automatic fit is what makes `imePadding()` below mean anything.
+    // [SUPPORT-A-REPORT-MUST-SAY-WHAT-WENT-WRONG-001]
+    BasicAlertDialog(
+        onDismissRequest = onDismiss,
+        modifier = modifier,
+        properties = DialogProperties(decorFitsSystemWindows = false),
+    ) {
         AnimatedVisibility(
             visibleState = visibleState,
             enter = scaleIn(
@@ -140,8 +153,16 @@ fun PapAlertDialog(
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
         ) {
             Column(
+                // A dialog that CAPTURES text raises the keyboard on top of itself, and the
+                // actions are the part that goes under it — measured on the Oppo: with the report
+                // field full, "Cancel" sat 200 px below the IME and could not be reached. Insetting
+                // by the IME and letting the column scroll is the fix for every dialog with a
+                // `content` slot, not just the one that exposed it.
+                // [SUPPORT-A-REPORT-MUST-SAY-WHAT-WENT-WRONG-001]
                 modifier = Modifier
                     .fillMaxWidth()
+                    .imePadding()
+                    .verticalScroll(rememberScrollState())
                     .padding(horizontal = 20.dp, vertical = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {

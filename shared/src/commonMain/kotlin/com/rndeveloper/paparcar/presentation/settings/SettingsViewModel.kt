@@ -177,6 +177,11 @@ class SettingsViewModel(
                 sendEffect(SettingsEffect.OpenUrl(CONTACT_MAILTO))
             is SettingsIntent.RequestSendDiagnostics ->
                 updateState { copy(showSendDiagnosticsConfirmation = true) }
+            is SettingsIntent.UpdateDiagnosticsMessage ->
+                updateState { copy(diagnosticsMessage = intent.message) }
+            // Closing the dialog does NOT discard the draft: BasicAlertDialog dismisses on an
+            // outside tap, and that must not cost the user what they wrote.
+            // [SUPPORT-A-REPORT-MUST-SAY-WHAT-WENT-WRONG-001]
             is SettingsIntent.DismissSendDiagnostics ->
                 updateState { copy(showSendDiagnosticsConfirmation = false) }
             is SettingsIntent.ConfirmSendDiagnostics -> sendDiagnostics()
@@ -197,9 +202,17 @@ class SettingsViewModel(
     private fun sendDiagnostics() {
         updateState { copy(isSendingDiagnostics = true) }
         viewModelScope.launch {
-            sendDiagnosticsReport()
+            sendDiagnosticsReport(state.value.diagnosticsMessage)
                 .onSuccess {
-                    updateState { copy(isSendingDiagnostics = false, showSendDiagnosticsConfirmation = false) }
+                    // Only a delivered report clears the draft — anything else and the retry would
+                    // start from a blank field.
+                    updateState {
+                        copy(
+                            isSendingDiagnostics = false,
+                            showSendDiagnosticsConfirmation = false,
+                            diagnosticsMessage = "",
+                        )
+                    }
                     sendEffect(SettingsEffect.DiagnosticsSent)
                 }
                 .onFailure { e ->

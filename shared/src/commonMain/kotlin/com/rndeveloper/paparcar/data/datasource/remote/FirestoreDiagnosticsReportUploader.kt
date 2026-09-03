@@ -40,6 +40,7 @@ class FirestoreDiagnosticsReportUploader(
                 deviceModel = report.deviceModel,
                 appVersion = report.appVersion,
                 osVersion = report.osVersion,
+                message = report.message,
                 chunkCount = chunkCount,
                 gzipBytes = gzip.size,
             ),

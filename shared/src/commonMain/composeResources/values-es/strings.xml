@@ -279,6 +279,9 @@
     <string name="settings_send_diagnostics_confirm_action">Enviar</string>
     <string name="settings_send_diagnostics_sent">Diagnóstico enviado. Gracias, lo revisaremos.</string>
     <string name="settings_send_diagnostics_error">No se pudo enviar el diagnóstico. Revisa tu conexión e inténtalo de nuevo.</string>
+    <string name="settings_send_diagnostics_message_label">¿Qué ha fallado?</string>
+    <string name="settings_send_diagnostics_message_placeholder">El pin salió en la calle anterior, ayer sobre las 9:15</string>
+    <string name="settings_send_diagnostics_no_reply">Por aquí no podemos responderte. Escríbenos a support@paparcar.com si necesitas respuesta.</string>
     <!-- Settings v2 — UI refactorizada -->
     <string name="settings_danger_zone">Zona de peligro</string>
     <string name="settings_danger_zone_subtitle">Acciones irreversibles</string>
@@ -639,6 +642,10 @@
     <string name="vehicle_color_gold">Oro</string>
     <string name="vehicle_color_brown">Marrón</string>
     <string name="common_scroll_to_top_cd">Volver arriba</string>
+    <plurals name="common_chars_left">
+        <item quantity="one">Queda %1$d carácter</item>
+        <item quantity="other">Quedan %1$d caracteres</item>
+    </plurals>
     <!-- Spot freshness / age [SPOT-FRESHNESS-IS-AGE-NOT-A-COUNTDOWN-001] -->
     <string name="spot_indicator_age_now">Ahora mismo</string>
     <string name="spot_indicator_age_minutes">Hace %1$d min</string>

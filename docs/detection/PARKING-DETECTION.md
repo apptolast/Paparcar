@@ -6099,6 +6099,30 @@ Android release — that is the price of the file existing, and it is why the wr
 
 Spec: `docs/backlog/support-report-ships-the-local-log-001.md`.
 
+### SUPPORT-A-REPORT-MUST-SAY-WHAT-WENT-WRONG-001 — the log arrives with a complaint attached (pending)
+
+The channel above shipped evidence and nothing else. What landed was up to ~1 MB of gzip covering
+every recent session, and not one word about which of them went wrong, what the user expected, or
+whether the complaint was even about detection — for a UI or sync bug the parkdiag says nothing at
+all. Reading it meant guessing first.
+
+**Fix.** The consent dialog now also asks: a description field, ≤ 500 characters, in the SAME dialog
+that asks for consent — one surface asks and sends. It travels in the report's **header** doc
+(`DiagnosticsReportDto.message`), never inside the gzip, so a `collectionGroup("reports")` sweep
+reads every complaint without reassembling a single chunk, and so the log gains an index instead of
+being undifferentiated trace.
+
+**Where the ceiling lives.** `DiagnosticsReport.MAX_MESSAGE_CHARS` is domain policy applied twice:
+the field stops accepting past it, and the use case re-trims and re-cuts. A cap enforced only by the
+text field is not a cap — it is a habit of the one caller that happens to have one today.
+
+**Two asymmetries kept from the original ticket.** A blank description never blocks the upload:
+evidence without words is still the part that cannot be recovered later. And the draft survives both
+an outside tap and a failed upload — it is cleared only by a delivered report, because losing four
+typed sentences is what stops someone from retrying.
+
+Spec: `docs/backlog/support-a-report-must-say-what-went-wrong-001.md`.
+
 
 ### DET-WATCHDOG-DEPARTURE-KNOWS-NO-HOUR-001 — the user witnesses the fact, not the hour (pending)
 

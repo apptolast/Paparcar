@@ -76,9 +76,11 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.rndeveloper.paparcar.isBatteryOptimizationRelevant
+import com.rndeveloper.paparcar.domain.diagnostics.DiagnosticsReport
 import com.rndeveloper.paparcar.domain.error.PaparcarError
 import com.rndeveloper.paparcar.domain.permissions.RequiredPermission
 import com.rndeveloper.paparcar.domain.preferences.ThemeMode
@@ -99,6 +101,7 @@ import com.rndeveloper.paparcar.ui.components.PapSectionHeader
 import com.rndeveloper.paparcar.ui.components.PapSectionHeaderRow
 import com.rndeveloper.paparcar.ui.components.PapScrollToTopButton
 import com.rndeveloper.paparcar.ui.components.PapSwitchRow
+import com.rndeveloper.paparcar.ui.components.PapTextField
 import com.rndeveloper.paparcar.ui.theme.PapAlpha
 import com.rndeveloper.paparcar.ui.theme.PapBorders
 import com.rndeveloper.paparcar.ui.theme.PapCardLight
@@ -129,6 +132,9 @@ import paparcar.composeapp.generated.resources.settings_send_diagnostics_confirm
 import paparcar.composeapp.generated.resources.settings_send_diagnostics_confirm_message
 import paparcar.composeapp.generated.resources.settings_send_diagnostics_confirm_title
 import paparcar.composeapp.generated.resources.settings_send_diagnostics_error
+import paparcar.composeapp.generated.resources.settings_send_diagnostics_message_label
+import paparcar.composeapp.generated.resources.settings_send_diagnostics_message_placeholder
+import paparcar.composeapp.generated.resources.settings_send_diagnostics_no_reply
 import paparcar.composeapp.generated.resources.settings_send_diagnostics_sent
 import paparcar.composeapp.generated.resources.settings_danger_zone
 import paparcar.composeapp.generated.resources.settings_danger_zone_subtitle
@@ -293,6 +299,33 @@ fun SettingsContent(
             onPrimary = { onIntent(SettingsIntent.ConfirmSendDiagnostics) },
             cancelLabel = stringResource(Res.string.settings_delete_account_cancel),
             isLoading = state.isSendingDiagnostics,
+            // The description rides in the SAME dialog as the consent, never as a second step:
+            // one surface asks, one surface sends. Deliberately NOT auto-focused — raising the
+            // keyboard would cover the very paragraph the user has to read before consenting.
+            // The primary stays enabled while it is empty: evidence without words is still the
+            // part that cannot be recovered later.
+            // [SUPPORT-A-REPORT-MUST-SAY-WHAT-WENT-WRONG-001]
+            content = {
+                PapTextField(
+                    value = state.diagnosticsMessage,
+                    onValueChange = { onIntent(SettingsIntent.UpdateDiagnosticsMessage(it)) },
+                    label = stringResource(Res.string.settings_send_diagnostics_message_label),
+                    placeholder = stringResource(Res.string.settings_send_diagnostics_message_placeholder),
+                    singleLine = false,
+                    maxLines = DIAGNOSTICS_MESSAGE_MAX_LINES,
+                    maxChars = DiagnosticsReport.MAX_MESSAGE_CHARS,
+                    enabled = !state.isSendingDiagnostics,
+                    showClearButton = false,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = stringResource(Res.string.settings_send_diagnostics_no_reply),
+                    style = PaparcarType.current.caption,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
+            },
         )
     }
 
@@ -968,6 +1001,11 @@ private val CONTENT_H_PADDING = PaparcarSpacing.lg
 private val CONTENT_V_PADDING = PaparcarSpacing.sm
 
 private const val AVATAR_DP = 56
+
+/** Report description: tall enough for the three facts that make a report actionable (expected,
+ *  happened, roughly when), short enough that the dialog still fits above the keyboard.
+ *  [SUPPORT-A-REPORT-MUST-SAY-WHAT-WENT-WRONG-001] */
+private const val DIAGNOSTICS_MESSAGE_MAX_LINES = 5
 
 /** Theme swatch: a dot, not a badge — three segments share one row and the label needs the width. */
 private const val THEME_SWATCH_DP = 14

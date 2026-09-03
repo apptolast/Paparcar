@@ -443,6 +443,9 @@
     <string name="settings_send_diagnostics_confirm_action">Envoyer</string>
     <string name="settings_send_diagnostics_sent">Diagnostic envoyé. Merci, nous allons l'examiner.</string>
     <string name="settings_send_diagnostics_error">Impossible d'envoyer le diagnostic. Vérifiez votre connexion et réessayez.</string>
+    <string name="settings_send_diagnostics_message_label">Qu'est-ce qui n'a pas marché ?</string>
+    <string name="settings_send_diagnostics_message_placeholder">Le pin est tombé dans la rue précédente, hier vers 9h15</string>
+    <string name="settings_send_diagnostics_no_reply">Nous ne pouvons pas répondre ici. Écrivez à support@paparcar.com si vous attendez une réponse.</string>
     <!-- Settings v2 — refactor UI -->
     <string name="settings_danger_zone">Zone de danger</string>
     <string name="settings_danger_zone_subtitle">Actions irréversibles</string>
@@ -644,6 +647,10 @@
     <string name="vehicle_status_active">Actif</string>
     <string name="vehicle_status_active_cd">Détection active</string>
     <string name="common_scroll_to_top_cd">Revenir en haut</string>
+    <plurals name="common_chars_left">
+        <item quantity="one">Il reste %1$d caractère</item>
+        <item quantity="other">Il reste %1$d caractères</item>
+    </plurals>
     <!-- Spot freshness / age [SPOT-FRESHNESS-IS-AGE-NOT-A-COUNTDOWN-001] -->
     <string name="spot_indicator_age_now">À l'instant</string>
     <string name="spot_indicator_age_minutes">Il y a %1$d min</string>

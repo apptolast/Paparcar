@@ -15,6 +15,13 @@ data class DiagnosticsReportDto(
     val deviceModel: String,
     val appVersion: String,
     val osVersion: String,
+    /**
+     * What the user says went wrong, ≤ `DiagnosticsReport.MAX_MESSAGE_CHARS`. Lives in the HEADER
+     * so a `collectionGroup("reports")` sweep can read every complaint without downloading a single
+     * chunk — and so the log has an index instead of being hours of undifferentiated trace.
+     * Empty when the report was sent without a word. [SUPPORT-A-REPORT-MUST-SAY-WHAT-WENT-WRONG-001]
+     */
+    val message: String = "",
     /** Number of chunk docs written; 0 = report without a local log (fresh install / iOS). */
     val chunkCount: Int,
     /** Total gzip size in bytes across all chunks, before base64. */

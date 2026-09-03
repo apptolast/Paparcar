@@ -3,6 +3,7 @@ package com.rndeveloper.paparcar.presentation.settings
 import android.content.res.Configuration
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
+import com.rndeveloper.paparcar.domain.diagnostics.DiagnosticsReport
 import com.rndeveloper.paparcar.domain.model.UserProfile
 import com.rndeveloper.paparcar.domain.permissions.RequiredPermission
 import com.rndeveloper.paparcar.domain.preferences.ThemeMode
@@ -89,6 +90,41 @@ private fun SettingsSendDiagnosticsDialogPreview() {
         )
     }
 }
+
+@Preview(name = "Settings — diagnóstico con descripción", showBackground = true)
+@Composable
+private fun SettingsSendDiagnosticsWithMessagePreview() {
+    PaparcarTheme(darkTheme = false) {
+        SettingsContent(
+            state = SettingsState(
+                userProfile = loggedInProfile,
+                showSendDiagnosticsConfirmation = true,
+                diagnosticsMessage = PREVIEW_REPORT_MESSAGE,
+            ),
+        )
+    }
+}
+
+/** El contador solo se pinta cerca del techo; esta preview existe para verlo.
+ *  [SUPPORT-A-REPORT-MUST-SAY-WHAT-WENT-WRONG-001] */
+@Preview(name = "Settings — diagnóstico al límite", showBackground = true)
+@Composable
+private fun SettingsSendDiagnosticsNearLimitPreview() {
+    PaparcarTheme(darkTheme = false) {
+        SettingsContent(
+            state = SettingsState(
+                userProfile = loggedInProfile,
+                showSendDiagnosticsConfirmation = true,
+                diagnosticsMessage = PREVIEW_REPORT_MESSAGE.repeat(4)
+                    .take(DiagnosticsReport.MAX_MESSAGE_CHARS - 30),
+            ),
+        )
+    }
+}
+
+private const val PREVIEW_REPORT_MESSAGE =
+    "Ayer sobre las 9:15 aparqué en Fuencarral y el pin salió en la calle anterior. " +
+        "Tuve que moverlo a mano."
 
 @Preview(name = "Settings — permisos incompletos", showBackground = true,
     uiMode = Configuration.UI_MODE_NIGHT_YES)

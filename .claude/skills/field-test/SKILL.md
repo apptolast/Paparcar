@@ -43,6 +43,14 @@ pierde — sin cable y sin haber tenido el gate encendido durante el viaje. Reco
 concatenar los `chunks` por `index`, base64-decode, gunzip; la cabecera dice `chunkCount` y
 `gzipBytes` para verificar que está entero.
 
+**Leer `message` de la cabecera ANTES de bajar un solo chunk.**
+[SUPPORT-A-REPORT-MUST-SAY-WHAT-WENT-WRONG-001] Es lo que el usuario escribió (≤ 500 caracteres) y
+es el índice del log: dice qué viaje mirar y si la queja va siquiera de detección — un informe de UI
+o de sync trae un parkdiag que no habla del problema. Vacío = lo mandó sin describir; sigue siendo
+evidencia válida, pero entonces toca datar el bug por el `createdAt` de la cabecera. Para barrer
+todos los uids de una vez: `collectionGroup("reports")` ordenado por `createdAt desc` con Admin SDK
+(las rules solo dejan leer al dueño; el Admin las salta).
+
 - Listar sesiones con `firestore_list_documents`, `parent=...documents/diagnostics/{uid}`,
   `collectionId=sessions`, `orderBy` **`startedAt desc`**. Empezar por las más recientes.
 - **Leer `summary` (rollup de `SESSION_ENDED`) ANTES de bajar eventos** — trae `endedAt`,

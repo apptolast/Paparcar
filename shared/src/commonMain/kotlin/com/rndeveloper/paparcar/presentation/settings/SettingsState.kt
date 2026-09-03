@@ -19,6 +19,13 @@ data class SettingsState(
     val showSendDiagnosticsConfirmation: Boolean = false,
     /** Upload in flight; the consent dialog stays up showing progress until it resolves. */
     val isSendingDiagnostics: Boolean = false,
+    /**
+     * What the user is writing about the failure. Survives dismissing the dialog and a failed
+     * upload — it is cleared only once the report is actually sent. Losing four typed sentences to
+     * a stray tap outside the dialog, or to the network, is what stops someone from trying again.
+     * [SUPPORT-A-REPORT-MUST-SAY-WHAT-WENT-WRONG-001]
+     */
+    val diagnosticsMessage: String = "",
 
     // ── Detection & permissions (SETTINGS-REMODEL-001) ───────────────────────
     /** Detection-required permissions not yet granted (CORE + PRODUCER). Empty = all held. */

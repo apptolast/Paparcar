@@ -229,6 +229,58 @@ class SettingsViewModelTest {
         assertFalse(vm.state.value.isSendingDiagnostics)
     }
 
+    // ── The report's description [SUPPORT-A-REPORT-MUST-SAY-WHAT-WENT-WRONG-001] ──
+
+    @Test
+    fun `should_holdTheDraft_on_updateDiagnosticsMessage`() = runTest {
+        vm.handleIntent(SettingsIntent.UpdateDiagnosticsMessage("the pin was wrong"))
+        assertEquals("the pin was wrong", vm.state.value.diagnosticsMessage)
+    }
+
+    @Test
+    fun `should_shipTheDraft_when_confirmSendDiagnostics`() = runTest {
+        vm.handleIntent(SettingsIntent.UpdateDiagnosticsMessage("the pin was wrong"))
+        vm.effect.test {
+            vm.handleIntent(SettingsIntent.ConfirmSendDiagnostics)
+            assertIs<SettingsEffect.DiagnosticsSent>(awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals("the pin was wrong", reportUploader.lastReport?.message)
+    }
+
+    @Test
+    fun `should_clearTheDraft_when_theReportIsSent`() = runTest {
+        vm.handleIntent(SettingsIntent.UpdateDiagnosticsMessage("the pin was wrong"))
+        vm.effect.test {
+            vm.handleIntent(SettingsIntent.ConfirmSendDiagnostics)
+            assertIs<SettingsEffect.DiagnosticsSent>(awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals("", vm.state.value.diagnosticsMessage)
+    }
+
+    // Losing four typed sentences to the network is what stops someone from trying again.
+    @Test
+    fun `should_keepTheDraft_when_theUploadFails`() = runTest {
+        reportUploader.uploadResult = Result.failure(Exception("network error"))
+        vm.handleIntent(SettingsIntent.UpdateDiagnosticsMessage("the pin was wrong"))
+        vm.effect.test {
+            vm.handleIntent(SettingsIntent.ConfirmSendDiagnostics)
+            assertIs<SettingsEffect.ShowError>(awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals("the pin was wrong", vm.state.value.diagnosticsMessage)
+    }
+
+    // BasicAlertDialog dismisses on an outside tap; that must not cost the user what they wrote.
+    @Test
+    fun `should_keepTheDraft_when_theDialogIsDismissed`() = runTest {
+        vm.handleIntent(SettingsIntent.RequestSendDiagnostics)
+        vm.handleIntent(SettingsIntent.UpdateDiagnosticsMessage("the pin was wrong"))
+        vm.handleIntent(SettingsIntent.DismissSendDiagnostics)
+        assertEquals("the pin was wrong", vm.state.value.diagnosticsMessage)
+    }
+
     // ── Delete account flow ───────────────────────────────────────────────────
 
     @Test

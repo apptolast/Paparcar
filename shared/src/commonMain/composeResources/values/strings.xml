@@ -366,6 +366,9 @@
     <string name="settings_send_diagnostics_confirm_action">Send</string>
     <string name="settings_send_diagnostics_sent">Diagnostics sent. Thank you, we'll look into it.</string>
     <string name="settings_send_diagnostics_error">Couldn't send the diagnostics. Check your connection and try again.</string>
+    <string name="settings_send_diagnostics_message_label">What went wrong?</string>
+    <string name="settings_send_diagnostics_message_placeholder">The pin landed on the previous street, yesterday around 9:15</string>
+    <string name="settings_send_diagnostics_no_reply">We can't reply here. Write to support@paparcar.com if you need an answer.</string>
     <!-- Settings v2 — refactored UI -->
     <string name="settings_danger_zone">Danger zone</string>
     <string name="settings_danger_zone_subtitle">Irreversible actions</string>
@@ -676,6 +679,10 @@
     <string name="permissions_section_optional">Optional · reliability</string>
 
     <string name="common_scroll_to_top_cd">Scroll to top</string>
+    <plurals name="common_chars_left">
+        <item quantity="one">%1$d character left</item>
+        <item quantity="other">%1$d characters left</item>
+    </plurals>
     <!-- Spot freshness / age [SPOT-FRESHNESS-IS-AGE-NOT-A-COUNTDOWN-001] -->
     <string name="spot_indicator_age_now">Just now</string>
     <string name="spot_indicator_age_minutes">%1$d min ago</string>
