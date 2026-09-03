@@ -22,7 +22,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.ui.theme.VehicleWatch
 import com.rndeveloper.paparcar.ui.theme.vehicleIdentityColor
-import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_vehicle_status_inactive
@@ -39,7 +38,14 @@ import paparcar.composeapp.generated.resources.vehicle_status_active
  * ever shown; the glyph already says which tier. [HOME-VEH-REFINE-001] [UI-COLOR-DOCTRINE-001]
  */
 
-/** Localized pin label for a watch tier ("Active" / "Bluetooth" / "Inactive"). */
+/**
+ * Localized name of a watch tier ("Active" / "Bluetooth" / "Inactive").
+ *
+ * No surface prints this as visible text any more — the tier is a glyph plus a colour. It is the
+ * `contentDescription` of that glyph, which is the only channel left for a screen reader and for
+ * anyone who cannot tell the green tier from the grey one. Deleting the strings would have been the
+ * tempting cleanup and the wrong one. [UI-VEH-STATUS-IS-A-GLYPH-NOT-A-LABEL-001]
+ */
 @Composable
 fun vehicleWatchPinLabel(watch: VehicleWatch): String = when (watch) {
     VehicleWatch.Bluetooth -> stringResource(Res.string.vehicle_card_detection_bt)
@@ -48,15 +54,22 @@ fun vehicleWatchPinLabel(watch: VehicleWatch): String = when (watch) {
 }
 
 /**
- * The watch glyph shown immediately before the vehicle name. Placed inline (not as a corner badge,
- * which collides with the illustrative car glyph): the Bluetooth mark for the deterministic tier,
- * a radar (geofence sweep) for the assisted tier, a hollow ring for unwatched.
+ * The watch glyph shown immediately before the vehicle name — the ONE way any surface states the
+ * tier. Placed inline (not as a corner badge, which collides with the illustrative car glyph): the
+ * Bluetooth mark for the deterministic tier, a radar (geofence sweep) for the assisted tier, a
+ * hollow ring for unwatched. Three distinct SHAPES, deliberately: the colour reinforces the tier,
+ * it does not carry it alone.
+ *
+ * Pass [contentDescription] wherever no neighbouring text names the tier — with the label gone from
+ * every card, this glyph is what a screen reader has. `null` is for the decorative case only: a chip
+ * whose accessibility is already served by its own row. [UI-VEH-STATUS-IS-A-GLYPH-NOT-A-LABEL-001]
  */
 @Composable
 fun VehicleWatchLeadingIcon(
     watch: VehicleWatch,
     modifier: Modifier = Modifier,
     tint: Color = vehicleIdentityColor(watch),
+    contentDescription: String? = null,
 ) {
     val icon = when (watch) {
         VehicleWatch.Bluetooth -> Icons.Rounded.Bluetooth
@@ -65,43 +78,19 @@ fun VehicleWatchLeadingIcon(
     }
     Icon(
         imageVector = icon,
-        contentDescription = null,
+        contentDescription = contentDescription,
         tint = tint,
         modifier = modifier.size(STATUS_ICON_DP.dp),
     )
 }
 
-/**
- * THE single watch badge for a vehicle card — a tonal pill (icon + short uppercase label) tinted by
- * the vehicle's identity colour (method). It is deliberately the ONLY boxed element on the card row:
- * the decision-relevant fact earns the container, while static description (carbody · size) drops to
- * quiet subtitle text beside it. Tonal fill (identity colour at low alpha), never the full accent —
- * same muted language as the card border. [CARD-ONE-BADGE-001]
- */
-@Composable
-fun VehicleWatchBadge(
-    watch: VehicleWatch,
-    label: String,
-    modifier: Modifier = Modifier,
-) {
-    val accent = vehicleIdentityColor(watch)
-    val icon = when (watch) {
-        VehicleWatch.Bluetooth -> Icons.Rounded.Bluetooth
-        VehicleWatch.Assisted  -> Icons.Rounded.Radar
-        VehicleWatch.Off       -> Icons.Rounded.RadioButtonUnchecked
-    }
-    PapBadge(
-        label = label.uppercase(),
-        containerColor = accent.copy(alpha = STATUS_BADGE_BG_ALPHA),
-        contentColor = accent,
-        modifier = modifier,
-        icon = icon,
-        // Status token that competes horizontally with the name → the `badge` role. It used to be
-        // read as CIFRA (condensed) for that reason; taxonomy is something you READ, so it moved to
-        // LECTURA and the colour carries the tier. [UI-TYPE-TWO-VOICES-ONE-ROW-001]
-        textStyle = PaparcarType.current.badge,
-    )
-}
+// `VehicleWatchBadge` lived here — the tonal `ACTIVO` / `BT` pill of `CARD-ONE-BADGE-001`. It is
+// gone, not deprecated: with [VehicleWatchLeadingIcon] now serving every surface there was exactly
+// one call site left, and a component nobody renders is not a component (an allowance over dead
+// code is a hole, not an allowance — see UI-TYPE-SYSTEM-HYGIENE-001). The rule it implemented
+// ("one badge per card") existed to stop the carbody · size chip competing with the status; the
+// status wearing no box at all satisfies that more cheaply than the box did.
+// [UI-VEH-STATUS-IS-A-GLYPH-NOT-A-LABEL-001]
 
 /**
  * "Not marked" glyph — a dashed hollow ring with a centred "+", signalling the vehicle has no active
@@ -264,7 +253,6 @@ fun rememberDrivingStatePulse(): Float {
 }
 
 private const val STATUS_ICON_DP = 16
-private const val STATUS_BADGE_BG_ALPHA = 0.14f // tonal fill for the single watch badge, not neon
 
 // Breathing pulse for the driving-state words. [UI-COLOR-DOCTRINE-001]
 private const val STATE_PULSE_PERIOD_MS = 900
