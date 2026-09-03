@@ -552,6 +552,14 @@ private fun HomeContent(
                     state.mode is HomeMode.AddingZone ||
                     state.mode is HomeMode.AddingParking
 
+                // [PARK-A-DRAGGED-PIN-MUST-OUTRANK-AN-AUTOMATIC-CAMERA-001] The camera centre IS the
+                // pending pin while these modes are up, so every AUTOMATIC re-frame has to stand
+                // down — otherwise the first GPS fix plants the parking on the user, however far
+                // they dragged. Told to the controller from the SAME `isPinningMode` the pin, the
+                // dimmed spots and the sheet cap already read: a second definition of "a pin is
+                // being placed" is a second chance for one of them to disagree.
+                LaunchedEffect(isPinningMode) { uiController.setPinPlacementActive(isPinningMode) }
+
                 // Pin variant per mode. All three share the same white-teardrop
                 // molde — only the inner silhouette varies (P letter / car
                 // glyph / zone icon). Null in Browse → default crosshair.

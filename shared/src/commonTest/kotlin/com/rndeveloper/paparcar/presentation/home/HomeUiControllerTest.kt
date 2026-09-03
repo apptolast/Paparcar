@@ -238,4 +238,65 @@ class HomeUiControllerTest {
 
         assertFalse(controller.followingDriver)
     }
+
+    // ── A hand-panned camera is not up for grabs [PARK-A-DRAGGED-PIN-MUST-OUTRANK-AN-AUTOMATIC-CAMERA-001] ──
+    // The pin the user places IS the camera centre, so an automatic re-frame does not just move the
+    // map: it MOVES THE PIN. `refocusOnParkingArrival` has honoured the manual-pan guard since
+    // [FOCUS-002]; the initial focus never did, and it is the one that fires on the first GPS fix —
+    // i.e. seconds into a cold start, exactly while a new user is dragging the map onto their car.
+
+    @Test
+    fun should_notCentreOnTheUser_when_theyAlreadyPannedTheMapByHand() {
+        val controller = HomeUiController()
+
+        controller.onUserMapGesture()
+        controller.centerInitialFocus(parking = null, selectedSpot = null, user = USER_LAT to USER_LON)
+
+        assertNull(
+            controller.cameraTarget,
+            "the first fix must not fly the camera — and with it the pending pin — onto the user",
+        )
+    }
+
+    @Test
+    fun should_notFrameAnythingAutomatically_when_aPinIsBeingPlaced() {
+        // Not even without a pan: entering a pin mode pre-centred and waiting for the fix is the
+        // very sequence the tutorial walks a new user through.
+        val controller = HomeUiController()
+        controller.setPinPlacementActive(true)
+
+        controller.centerInitialFocus(parking = null, selectedSpot = null, user = USER_LAT to USER_LON)
+        controller.frameTheAsk(ASK_AT_MS, ASK_LAT to ASK_LON)
+        controller.refocusOnParkingArrival(CAR_LAT to CAR_LON, USER_LAT to USER_LON)
+
+        assertNull(controller.cameraTarget, "the finger owns the camera while a pin is in the air")
+    }
+
+    @Test
+    fun should_stillFlyToAPlaceTheUserAsksFor_when_aPinIsBeingPlaced() {
+        // The guard is about AUTOMATIC framing only. "My location" pressed mid-placement is the user
+        // asking to go there, and it must still work.
+        val controller = HomeUiController()
+        controller.setPinPlacementActive(true)
+
+        controller.goToPlace(SPOT_LAT, SPOT_LON)
+
+        val target = assertNotNull(controller.cameraTarget)
+        assertEquals(SPOT_LAT, target.lat)
+    }
+
+    @Test
+    fun should_frameTheUserAgain_when_thePinModeIsOverAndNothingWasFramedYet() {
+        // Standing down must not disarm the one-shot: leaving the mode without ever having framed
+        // anything should still let Home open on something meaningful.
+        val controller = HomeUiController()
+        controller.setPinPlacementActive(true)
+        controller.centerInitialFocus(parking = null, selectedSpot = null, user = USER_LAT to USER_LON)
+
+        controller.setPinPlacementActive(false)
+        controller.centerInitialFocus(parking = null, selectedSpot = null, user = USER_LAT to USER_LON)
+
+        val target = assertNotNull(controller.cameraTarget)
+        assertEquals(USER_LAT, target.lat)
+    }
 }

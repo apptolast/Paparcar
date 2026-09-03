@@ -64,6 +64,24 @@ class HomeUiController {
         followingDriver = false
     }
 
+    /**
+     * [PARK-A-DRAGGED-PIN-MUST-OUTRANK-AN-AUTOMATIC-CAMERA-001] Whether a pin is being POSITIONED
+     * right now (Reporting · AddingZone · AddingParking), reported by the host from its own
+     * `isPinningMode`.
+     *
+     * In those modes the camera centre is not a viewport, it is the ANSWER the user is giving: the
+     * confirm reads `pinCameraLat/Lon`, which is fed by camera frames. So an automatic re-frame does
+     * not merely move the map, it moves the pin — the first GPS fix used to fly the camera onto the
+     * user and plant the parking there, however far the user had dragged.
+     *
+     * Only the AUTOMATIC entries below honour it. A deliberate one ([goToPlace], [framePlaces],
+     * [resumeDriverFollow]) still flies: the user pressing "my location" while placing a pin is
+     * asking to go there.
+     */
+    fun setPinPlacementActive(active: Boolean) {
+        pinPlacementActive = active
+    }
+
     fun clearProgrammaticMove() {
         isProgrammaticMove = false
     }
@@ -71,6 +89,9 @@ class HomeUiController {
     private var centeredOnUser = false
     // True once the user pans/zooms by hand — disables every automatic re-frame thereafter. [FOCUS-002]
     private var userMovedCameraManually = false
+    // True while a pin is being positioned — see [setPinPlacementActive].
+    // [PARK-A-DRAGGED-PIN-MUST-OUTRANK-AN-AUTOMATIC-CAMERA-001]
+    private var pinPlacementActive = false
     // True when the initial focus already framed the parked car, so [FOCUS-002] needn't re-fire.
     // The ASK does not set it: framing a question is not framing a session, which is what lets the
     // session born from a "Yes" still re-frame. [UI-THE-ASK-IS-A-CAMERA-SUBJECT-001]
@@ -131,6 +152,14 @@ class HomeUiController {
      * never yanked out from under a user who has started panning. [FOCUS-002] extends this to re-fire
      * once if a parking session arrives after the first fix but before any manual pan.
      *
+     * ⚠️ That "never yanked out from under a user who has started panning" was, for a long time, only
+     * TRUE AFTER the first fix: `centeredOnUser` answers "did I already centre once", not "did the
+     * user already pan". A cold start whose first fix lands LATE — the normal case — left this
+     * one-shot armed while the user was already dragging the map, and then flew the camera onto them.
+     * With the pin being the camera centre in pin modes, that did not just move the map: it planted
+     * the parking on the user. Hence the two guards below.
+     * [PARK-A-DRAGGED-PIN-MUST-OUTRANK-AN-AUTOMATIC-CAMERA-001]
+     *
      * An open "did you park?" question consumes this one-shot before the first fix even arrives, so
      * Home opens on the place being asked about rather than on the user — there is no `ask` parameter
      * here because that framing already happened. [UI-THE-ASK-IS-A-CAMERA-SUBJECT-001]
@@ -146,7 +175,7 @@ class HomeUiController {
         selectedSpot: Pair<Double, Double>?,
         user: Pair<Double, Double>,
     ) {
-        if (centeredOnUser) return
+        if (centeredOnUser || userMovedCameraManually || pinPlacementActive) return
         centeredOnUser = true
         initialFocusWasParking = parking != null
         when {
@@ -183,11 +212,17 @@ class HomeUiController {
      * already opens itself for it without asking. A camera that obeyed the pan guard while the sheet
      * did not would put the two surfaces back on different places, which is the bug this fixes.
      *
+     * It DOES stand down for a pin being placed, which is not the same thing as a pan: there the
+     * camera centre is the user's pending answer, and this framing would overwrite it. The question
+     * loses its framing in that case (the effect is keyed per question and does not retry) — accepted,
+     * because confirming a parking by hand cancels the in-flight detection, so the pin answers the
+     * question in fact. [PARK-A-DRAGGED-PIN-MUST-OUTRANK-AN-AUTOMATIC-CAMERA-001]
+     *
      * AUTOMATIC framing, so it goes through the private setter and stays neutral on driver-follow, as
      * the rest of the focus machinery does. [UI-MAP-A-TAPPED-PLACE-OUTRANKS-THE-FOLLOWED-CAR-001]
      */
     fun frameTheAsk(shownAtMs: Long, candidate: Pair<Double, Double>) {
-        if (framedAskAtMs == shownAtMs) return
+        if (framedAskAtMs == shownAtMs || pinPlacementActive) return
         framedAskAtMs = shownAtMs
         centeredOnUser = true
         setTarget(candidate.first, candidate.second, zoom = FOCUS_PARKED_ZOOM)
@@ -200,9 +235,14 @@ class HomeUiController {
      *
      * It is also the path that answers a question: "Yes" creates the session, and the camera moves off
      * the asked place onto the pin that was actually planted. [UI-THE-ASK-IS-A-CAMERA-SUBJECT-001]
+     *
+     * Stands down while a pin is being placed too: a session born from a hand-placed pin is already
+     * under the camera — the pin WAS its centre — so there was never anything to re-frame.
+     * [PARK-A-DRAGGED-PIN-MUST-OUTRANK-AN-AUTOMATIC-CAMERA-001]
      */
     fun refocusOnParkingArrival(parking: Pair<Double, Double>, user: Pair<Double, Double>?) {
         if (!centeredOnUser || userMovedCameraManually || initialFocusWasParking || refocusedOnParking) return
+        if (pinPlacementActive) return
         refocusedOnParking = true
         frameParking(parking, user)
     }
