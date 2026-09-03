@@ -58,8 +58,11 @@ jobs:
       - name: Build Check
         run: ./gradlew :app:assembleProdDebug :app:compileMockDebugKotlin --no-daemon --stacktrace
 
+      # :app:testMockDebugUnitTest carries the mock-graph Koin verify — `mockModule` lives in
+      # :app, so :shared's KoinModuleVerifyTest (prod graph) cannot see it.
+      # [IOS-DI-A-MOCK-GRAPH-ONLY-PROD-IS-VERIFIED-001]
       - name: Run unit tests
-        run: ./gradlew :shared:testDebugUnitTest --no-daemon --stacktrace
+        run: ./gradlew :shared:testDebugUnitTest :app:testMockDebugUnitTest --no-daemon --stacktrace
 
       - name: Upload test results
         if: always()

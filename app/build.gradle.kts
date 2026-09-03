@@ -199,6 +199,13 @@ dependencies {
     implementation(libs.koin.android)
 
     debugImplementation(libs.ui.tooling)
+
+    // Mock-graph Koin verify [IOS-DI-A-MOCK-GRAPH-ONLY-PROD-IS-VERIFIED-001] — `mockModule` lives
+    // in this module, so its graph can only be verified from here (`:shared`'s
+    // KoinModuleVerifyTest covers the prod graph and cannot see `:app` sources).
+    testImplementation(libs.kotlin.test.junit)
+    testImplementation(libs.junit)
+    testImplementation(libs.koin.test)
 }
 
 // [build] The Crashlytics ProGuard-mapping upload runs after the APK is built and reaches Firebase
