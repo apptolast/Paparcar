@@ -540,6 +540,112 @@ class StopTrackingTest {
         assertEquals(0, result.state.anchorTrust.kinematicEgressFixes)
     }
 
+    // ── The second stop the trace never mentioned ────────────────────────────
+
+    /**
+     * [DET-A-HELD-ANCHOR-MUST-SAY-A-SECOND-STOP-HAPPENED-001] The repark shape: the car stopped at
+     * A, the anchor froze there, and a new stop opens 40 m on with nobody having walked. The pin
+     * stays at A — that part is the deliberate trade — but until now the trace said nothing at all,
+     * so the case could not be counted or sized in any field log.
+     *
+     * The second half of this test is the whole point of the line: it MEASURES, it does not decide.
+     */
+    @Test
+    fun should_report_a_second_stop_opening_near_the_anchor_it_holds() {
+        val frozenAtFirstStop = state(
+            anchorTrust = AnchorTrust(anchor = point(), capturedAtStop = 0L, frozenByRest = true),
+        )
+
+        val result = frozenAtFirstStop.updateStopTracking(
+            point(metersNorth = 40.0, at = 60_000L),
+            now = 60_000L,
+            config = config,
+        )
+
+        assertTrue(result.trace().contains("SECOND STOP"), result.trace())
+        assertTrue(result.trace().contains("candidate REPARK"), result.trace())
+        assertEquals(
+            frozenAtFirstStop.anchorTrust.anchor,
+            result.state.anchorTrust.anchor,
+            "the line reports the held anchor, it does not move it",
+        )
+        assertEquals(0L, result.state.anchorTrust.capturedAtStop, "…nor rebinds it to the new stop")
+        assertTrue(result.state.anchorTrust.frozenByRest, "…nor thaws it")
+    }
+
+    /** Steps since the anchor are the pedestrian pausing on the walk home, not a driver rectifying
+     *  into a nearer spot — and every such pause would otherwise leave a line. */
+    @Test
+    fun should_not_report_a_second_stop_when_steps_were_counted_since_the_anchor() {
+        val walkedAway = state(
+            anchorTrust = AnchorTrust(anchor = point(), capturedAtStop = 0L, frozenByRest = true),
+            steps = 3,
+        )
+
+        val result = walkedAway.updateStopTracking(
+            point(metersNorth = 40.0, at = 60_000L),
+            now = 60_000L,
+            config = config,
+        )
+
+        assertFalse(result.trace().contains("SECOND STOP"), result.trace())
+    }
+
+    /** Edge-triggered on the fix that OPENS the stop. Without that, the condition holds on every
+     *  fix of a parked hour and the line floods the log it exists to preserve. */
+    @Test
+    fun should_report_the_second_stop_once_and_not_again_within_the_same_stop() {
+        val frozenAtFirstStop = state(
+            anchorTrust = AnchorTrust(anchor = point(), capturedAtStop = 0L, frozenByRest = true),
+        )
+
+        val opening = frozenAtFirstStop.updateStopTracking(
+            point(metersNorth = 40.0, at = 60_000L),
+            now = 60_000L,
+            config = config,
+        )
+        val nextFix = opening.state.updateStopTracking(
+            point(metersNorth = 40.0, at = 65_000L),
+            now = 65_000L,
+            config = config,
+        )
+
+        assertTrue(opening.trace().contains("SECOND STOP"), opening.trace())
+        assertFalse(nextFix.trace().contains("SECOND STOP"), nextFix.trace())
+    }
+
+    /** Past `egressBirthFloorMeters` the far-anchor machinery already speaks (BORN_AWAY,
+     *  walk-entered). This line only fills the silence BELOW it. */
+    @Test
+    fun should_not_report_a_second_stop_beyond_the_silence_it_fills() {
+        val frozenAtFirstStop = state(
+            anchorTrust = AnchorTrust(anchor = point(), capturedAtStop = 0L, frozenByRest = true),
+        )
+
+        val result = frozenAtFirstStop.updateStopTracking(
+            point(metersNorth = 300.0, at = 60_000L),
+            now = 60_000L,
+            config = config,
+        )
+
+        assertFalse(result.trace().contains("SECOND STOP"), result.trace())
+    }
+
+    /** An UNPINNED anchor is free to be re-captured at the new stop, so there is no held anchor to
+     *  report and nothing was lost. */
+    @Test
+    fun should_not_report_a_second_stop_when_the_anchor_was_never_pinned() {
+        val openAnchor = state(anchorTrust = AnchorTrust(anchor = point(), capturedAtStop = 0L))
+
+        val result = openAnchor.updateStopTracking(
+            point(metersNorth = 40.0, at = 60_000L),
+            now = 60_000L,
+            config = config,
+        )
+
+        assertFalse(result.trace().contains("SECOND STOP"), result.trace())
+    }
+
     private companion object {
         const val BASE_LAT = 36.6119
         const val BASE_LON = -6.2805

@@ -11,6 +11,7 @@ import com.rndeveloper.paparcar.domain.detection.stages.DiagnosticNote
 import com.rndeveloper.paparcar.domain.detection.stages.plusAssign
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
+import com.rndeveloper.paparcar.domain.util.haversineMeters
 
 /**
  * [09 §5] **The fix reduction that runs before the precedence** — the last block of the coordinator
@@ -180,6 +181,41 @@ fun DetectionSessionState.updateStopTracking(
             // (better fixes arriving right after the door slam) stays allowed.
             // [ANCHOR-LOCK-001][DET-ANCHOR-FREEZE-001]
             val pinnedToOtherStop = s.isAnchorPinned(config) && anchorTrust.capturedAtStop != startedAt
+            // [DET-A-HELD-ANCHOR-MUST-SAY-A-SECOND-STOP-HAPPENED-001] The line the repark case never
+            // left. Stop at A, hesitate, then rectify into a spot a few metres on: the anchor frozen
+            // at A cannot be overturned by that hop — none of the pinned-anchor bars is reachable at
+            // repark scale (18 km/h across two fixes, a 150 m sustained departure, four stepless
+            // fixes) — so the pin stays at A and `judgeEgressBirth` still answers BORN_AT_ANCHOR,
+            // because 40 m sits far below its floor. Keeping the pin at A is a deliberate trade (one
+            // dragged into a house is worse), but it was also INVISIBLE: not one note said a second
+            // stop had happened at all, so the case could not be counted, sized, or told apart from
+            // a correct park in any field trace — which is how 2026-09-03 ended with a report and
+            // nothing to read.
+            //
+            // It decides NOTHING. No `claim`, so no decision can read it [DiagnosticNote.Claim].
+            // Edge-triggered on the fix that OPENS the stop: once per stop, no new state, and it
+            // survives a batched OEM stream where a maturity edge may never arrive. Zero counted
+            // steps is what separates the driver still in the car from the pedestrian pausing on
+            // the walk home — so a LOCKED anchor (egress steps) can never reach it, only a FROZEN
+            // one. The bound is `egressBirthFloorMeters` on purpose rather than a number of its
+            // own: above it the system already speaks (BORN_AWAY, walk-entered), below it nothing
+            // does, and that silence is what this line fills.
+            val stopJustOpened = s.anchorTrust.stopStartedAt == null
+            val heldAnchor = anchorTrust.anchor
+            if (stopJustOpened && pinnedToOtherStop && s.egress.stepCount == 0 && heldAnchor != null) {
+                val fromHeldAnchor = haversineMeters(
+                    heldAnchor.latitude, heldAnchor.longitude,
+                    location.latitude, location.longitude,
+                )
+                if (fromHeldAnchor <= config.egressBirthFloorMeters) {
+                    notes +=
+                        "  ⚓⤾ SECOND STOP opening ${fromHeldAnchor.toInt()}m from the anchor held " +
+                            "at the previous stop, 0 steps counted since it (acc=${location.accuracy}) " +
+                            "— candidate REPARK: the pin stays at the first stop, since only " +
+                            "re-measured real driving moves a pinned anchor " +
+                            "[DET-A-REPARK-LEAVES-THE-PIN-AT-THE-FIRST-STOP-001]"
+                }
+            }
             // [DET-ANCHOR-FREEZE-001] While no step has been counted, every fix of the SAME
             // continuous stop is still the parked car — accuracy refinement stays open for
             // the whole stop, not just the initial window. The 30-s cutoff kept a 260-m

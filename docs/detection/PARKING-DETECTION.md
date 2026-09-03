@@ -7505,3 +7505,47 @@ where there were none; falsified by removing the gate (3/7 fail).
 Spec: `docs/backlog/det-a-session-rollup-must-use-the-numbers-the-verdict-used-001.md`. The parent
 [DET-COARSE-FIX-DRIVE-PROOF-001] stays open for its larger half: admitting a coherent run of
 degraded fixes as proof of a drive.
+
+---
+
+### DET-A-HELD-ANCHOR-MUST-SAY-A-SECOND-STOP-HAPPENED-001 — the repark case stops being invisible
+
+**Not a detection change — a diagnostics one.** Field 2026-09-03 (Redmi), user: *«si nos paramos en
+un sitio y al poco rectificamos y aparcamos en otro más cercano, muchas veces el pin se queda en el
+primer lugar»*. Reported without data: the local `parkdiag.log` died with an app uninstall and the
+remote gate was off. But even with a log there would have been **nothing to read** — the system
+crosses this case in complete silence.
+
+**Why the pin stays at the first stop** (unchanged by this ticket, and a deliberate trade — a pin
+dragged into a house is worse): the anchor freezes at stop A after `anchorFreezeStableFixes = 3`
+stopped fixes (~15 s) [DET-SHORT-TRIP-FREEZE-001], and once pinned only three bars can overturn it,
+none of them reachable at repark scale — real driving ≥ 5 m/s across `pinnedAnchorRealDriveFixes`
+fixes, a `sustainedDepartureFloorMeters = 150 m` departure, or `frozenAnchorSteplessDepartureFixes`
+= 4 stepless fixes. The new stop then cannot re-capture (`pinnedToOtherStop`), and 40 m sits far
+below `egressBirthFloorMeters`, so `judgeEgressBirth` answers `BORN_AT_ANCHOR`: not even a doubt is
+recorded. ⛔ Note that **PARKING-001's reposition burst was written for exactly this scenario** and
+is vetoed by `!anchorPinned` — its window shrank to the ~15 s before the freeze when
+DET-SHORT-TRIP-FREEZE-001 landed. That veto is correct (a brisk mute-counter walk has the burst's
+signature) but its compound effect had never been written down.
+
+**Fix**: one diagnostic note in the stopped branch of `updateStopTracking`, and nothing else —
+`⚓⤾ SECOND STOP opening Nm from the anchor held at the previous stop, 0 steps counted since it`.
+Three properties make it inert, each verified against the code rather than assumed: `claim = null`
+(the `claim` field of `DiagnosticNote` **is** read as a decision input at
+`CoordinatorParkingDetector.kt:549`; the `notes += "…"` sugar always builds it null); edge-triggered
+on the fix that OPENS the stop, so one line per stop, no new state, and it survives a batched OEM
+stream where a maturity edge may never arrive; and computed inside the reduction, said by the caller
+once. `stepCount == 0` is part of the condition, not decoration — it separates the driver still in
+the car from the pedestrian pausing on the walk home, and it means a LOCKED anchor can never reach
+the line, only a FROZEN one. The distance bound is `config.egressBirthFloorMeters` rather than a
+constant of its own: above it the far-anchor machinery already speaks (`BORN_AWAY`, walk-entered),
+below it nothing does, and that silence is what the line fills.
+
+**Accompanying risk**: none to detection — the reduction returns identical state, which the test
+asserts (same anchor, same stop of record, still frozen). The real risk was log volume, and the
+edge-trigger is what bounds it: `parkdiag` keeps 6 × 5 MB rotating, so a per-fix line would erase
+the history it exists to preserve.
+
+Spec: `docs/backlog/det-a-held-anchor-must-say-a-second-stop-happened-001.md`. The behaviour itself
+stays open and explicitly **out of 1.0**:
+`docs/backlog/det-a-repark-leaves-the-pin-at-the-first-stop-001.md`.
