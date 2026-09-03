@@ -1,5 +1,7 @@
 # DET-A-DECLINED-ARM-IS-NOT-SILENCE-001 · un arm declinado no es silencio
 
+**Estado:** ✅ En master — implementado en `748648fc` (1 commit(s) citan el ID · 5 fichero(s) de código lo referencian) · línea añadida por el barrido [DOCS-BACKLOG-TRUTH-002] del 03-09-2026, verificado por COMMIT y por referencias en código, **no** releyendo su criterio de éxito uno a uno. ⏳ El propio doc anota pendientes: leerlo antes de darlo por terminado del todo.
+
 `bugfix/DET-A-DECLINED-ARM-IS-NOT-SILENCE-001-ar-recheck` · ⏳ **sin validar en campo**
 
 ## Problema

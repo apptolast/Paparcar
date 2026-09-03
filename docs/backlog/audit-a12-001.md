@@ -1,5 +1,7 @@
 # AUDIT-A12-001 — Coordinator readability + doc drift
 
+**Estado:** 📋 Hallazgo de auditoría (A12), no un ticket con criterio propio. ⚠️ La rama que cita **ya no existe**, y el `invoke()` de ~400 líneas que pedía extraer lo desmontó después el refactor F6 (`stages/`, `FixReduction`, `StopTracking`) — o sea que su petición está cubierta por otra vía, no por esta rama. · línea añadida por el barrido [DOCS-BACKLOG-TRUTH-002] del 03-09-2026.
+
 - **Rama:** `fix/AUDIT-A12-001-coordinator-extract-docs`
 - **Origen:** auditoría 2026-07-04, hallazgo A12 ("extraer las fases del invoke() de ~400 líneas +
   regenerar docs").

@@ -1,5 +1,7 @@
 # Paparcar — Detección real-world: 3 patrones de fallo encontrados — 2026-05-28
 
+**Estado:** 📚 ANÁLISIS de campo (28-05-2026) con *Status legend* y estado por patrón dentro; sin estado global por la misma razón. Su valor hoy es histórico: las tres causas que describe se cerraron por tickets propios posteriores. · línea añadida por el barrido [DOCS-BACKLOG-TRUTH-002] del 03-09-2026.
+
 Origen: test de campo del 2026-05-27 con **dos móviles juntos** (Oppo CPH2371 + Redmi Note 11) en la misma ruta a partir de las 18:00. Logs en `diagnostics/2026-05-27/{oppo,redmi-note-11}.log`.
 
 **Marcador del día:** Oppo 3/6 confirmaciones, Redmi 3/6, ambos 1/6 (solo trayecto 2 a las 19:02 confirmaron los dos). Cada móvil falló en trayectos distintos — perfecto para aislar causas porque el viaje fue idéntico.

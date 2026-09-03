@@ -1,5 +1,7 @@
 # AUDIT-RULES-001 — Contrato Firestore de `spots` (C4 + A4-rules)
 
+**Estado:** ✅ En master — implementado en `fe05ae98` (2 commit(s) citan el ID · 5 fichero(s) de código lo referencian) · línea añadida por el barrido [DOCS-BACKLOG-TRUTH-002] del 03-09-2026, verificado por COMMIT y por referencias en código, **no** releyendo su criterio de éxito uno a uno. ⏳ El propio doc anota pendientes: leerlo antes de darlo por terminado del todo.
+
 - **Rama:** `fix/AUDIT-RULES-001-firestore-contract`
 - **Origen:** auditoría 2026-07-04 (`docs/audits/AUDIT-2026-07-04-full.md`), re-verificado 12-07.
 

@@ -1,5 +1,7 @@
 # Icon & Logo — palette refresh — 2026-05-19
 
+**Estado:** ✅ En master — la repintada entró por el merge `00855d8b` (`feature/ICON-LOGO-PALETTE-001-dark-theme-repaint`) · línea añadida por el barrido [DOCS-BACKLOG-TRUTH-002] del 03-09-2026. ⚠️ El icono ha seguido moviéndose después (`889b50c5`, `0b5083da`): para el estado VIGENTE del launcher y del icono de Play, este doc ya no es la fuente.
+
 Adapt the 2022 source artwork (`Documents/Paparcar/2022/Icon Logo 2022/`) to the
 current Paparcar palette (`ui/theme/Color.kt`). The source artwork uses a legacy
 corporate blue gradient (`#2196F3 → #3F51B5`) plus a white car glyph; the new

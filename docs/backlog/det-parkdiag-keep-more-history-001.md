@@ -1,6 +1,6 @@
 # DET-PARKDIAG-KEEP-MORE-HISTORY-001 · una sola rotación no era una política de retención
 
-**Estado:** 🟢 En master · ⏳ instalado sólo en el **Redmi** (el Oppo se desenchufó a mitad)
+**Estado:** ✅ En master · ⏳ instalado sólo en el **Redmi** (el Oppo se desenchufó a mitad)
 
 ## Problema
 

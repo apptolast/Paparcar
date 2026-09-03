@@ -1,6 +1,6 @@
 # DET-NO-DEVICE-MUTE-IN-REMOTE-001 · ningún móvil puede nacer mudo en remoto
 
-**Estado:** 🟢 Hecho el 27-08 (los 7 uids activados) · **el ticket existe para que la regla tenga
+**Estado:** ✅ Hecho el 27-08 (los 7 uids activados) · **el ticket existe para que la regla tenga
 casa**, porque el trabajo estaba hecho y la regla no estaba escrita en ninguna parte
 
 ## El modo de fallo, que ya mordió dos veces

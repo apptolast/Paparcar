@@ -1,5 +1,7 @@
 # DET-TIERS-001 — Niveles de detección honestos + Bluetooth como árbitro
 
+**Estado:** ✅ En master — implementado en `40b7403d` (8 commit(s) citan el ID · 25 fichero(s) de código lo referencian) · línea añadida por el barrido [DOCS-BACKLOG-TRUTH-002] del 03-09-2026, verificado por COMMIT y por referencias en código, **no** releyendo su criterio de éxito uno a uno. ⏳ El propio doc anota pendientes: leerlo antes de darlo por terminado del todo.
+
 - **Rama:** `feature/DET-TIERS-001-detection-tiers`
 - **Origen:** decisión estratégica del usuario 2026-07-11 tras dos semanas de field-tests:
   "estaría bien asumir que la detección sin bluetooth es semi automática… replantear el

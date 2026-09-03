@@ -1,5 +1,7 @@
 # VEH-ADD-PILL-001 — Botón "añadir vehículo" invisible con 1 solo vehículo ✅ CLOSED
 
+**Estado:** ✅ Cerrado el 2026-06-05 — lo dice su propia cabecera: la rama `size == 1` que escondía el botón ya no existe, `VehiclesPager` la sustituyó. · línea añadida por el barrido [DOCS-BACKLOG-TRUTH-002] del 03-09-2026.
+
 **Fecha:** 2026-05-19 | **Cerrado:** 2026-06-05
 **Resolución:** Ya resuelto — el `size == 1` branch fue eliminado en un sprint anterior. `VehiclesPager` (con `VehicleTabRow` + `PaparcarAddChip`) se usa para todos los casos no vacíos.
 

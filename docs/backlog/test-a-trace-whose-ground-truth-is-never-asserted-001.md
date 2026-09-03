@@ -1,6 +1,6 @@
 # TEST-A-TRACE-WHOSE-GROUND-TRUTH-IS-NEVER-ASSERTED-001
 
-> **Estado:** 🟡 **cerrado 2026-09-01 — la REGLA se refuta, y la auditoría destapó un defecto real** ·
+> **Estado:** ✅ **Cerrado 2026-09-01 — la REGLA se refuta, y la auditoría destapó un defecto real** ·
 > rama `test/TEST-A-TRACE-WHOSE-GROUND-TRUTH-IS-NEVER-ASSERTED-001-audit` (base `f58e9d64`)
 > **Origen:** medición lateral de `TEST-AN-ORPHANED-FIELD-TRACE-STILL-LOOKS-LIKE-COVERAGE-001`.
 > **Sale de aquí:** `DET-A-USER-YES-DOES-NOT-SHRINK-A-WALK-ENTERED-DOUBT-001`.

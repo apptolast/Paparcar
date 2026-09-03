@@ -1,5 +1,7 @@
 # Vehicles — multi-marker + naming sprint — 2026-05-19
 
+**Estado:** 🟡 PARCIAL — sprint de 7 tickets con estado por ticket dentro. Los marcadores existen en código (`PaparcarMapMarkers.kt`), pero el resto quedó DIFERIDO y se sigue en la memoria `project_vehicles_multimarker_backlog`. · línea añadida por el barrido [DOCS-BACKLOG-TRUTH-002] del 03-09-2026.
+
 Seven tickets agreed with the user on 2026-05-19. Triggers:
 
 1. The Home map only renders **one** parked-car marker even when the user has multiple vehicles with active sessions.

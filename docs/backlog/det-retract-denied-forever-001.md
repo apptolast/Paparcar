@@ -1,6 +1,6 @@
 # DET-RETRACT-DENIED-FOREVER-001 · una retractación que Firestore niega 256 veces y nadie ve
 
-**Estado:** 🟢 Arreglado · **1.668 tests** (1.664 + 4) · hallado el 26-08 leyendo la captura
+**Estado:** ✅ Arreglado · **1.668 tests** (1.664 + 4) · hallado el 26-08 leyendo la captura
 `diagnostics/2026-08-26/oppo-cph2371*.log` · ⏳ sin conducir
 
 ## Qué se midió

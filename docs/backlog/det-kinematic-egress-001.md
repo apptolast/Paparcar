@@ -1,5 +1,7 @@
 # DET-KINEMATIC-EGRESS-001 — GPS-measured egress for mute-step-counter devices
 
+**Estado:** ✅ En master — implementado en `570c74fa` (1 commit(s) citan el ID · 10 fichero(s) de código lo referencian) · línea añadida por el barrido [DOCS-BACKLOG-TRUTH-002] del 03-09-2026, verificado por COMMIT y por referencias en código, **no** releyendo su criterio de éxito uno a uno.
+
 ## Field motivation (2026-07-11, Redmi)
 
 The coordinator SAW the real parking (78-s stop at Avenida Sanlúcar) but the step sensor

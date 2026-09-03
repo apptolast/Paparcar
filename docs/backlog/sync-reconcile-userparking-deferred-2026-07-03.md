@@ -1,5 +1,7 @@
 # SYNC-RECONCILE — UserParking / Profile
 
+**Estado:** ✅ En master — implementado en `51b8029a` (9 commit(s) citan el ID · 29 fichero(s) de código lo referencian) · línea añadida por el barrido [DOCS-BACKLOG-TRUTH-002] del 03-09-2026, verificado por COMMIT y por referencias en código, **no** releyendo su criterio de éxito uno a uno.
+
 **Fecha:** 2026-07-03 (diferido) → **2026-07-05 RESUELTO (UserParking)**
 **Estado UserParking:** ✅ EN MASTER (`a435ee07`; en la rama fue `450a6b58`).
 El field-test del 2026-07-05 (Redmi) demostró que el síntoma SÍ molesta (resurrección de sesión

@@ -1,5 +1,7 @@
 # Paparcar — Departure detection bugs + arquitectura — 2026-06-05
 
+**Estado:** 📚 ANÁLISIS de campo (05-06-2026), no un ticket: trae su propia *Status legend* y un estado POR BUG dentro. No se le pone un estado global porque no lo tiene. · línea añadida por el barrido [DOCS-BACKLOG-TRUTH-002] del 03-09-2026.
+
 Origen: test de campo real. Usuario pasó andando junto a su coche aparcado y la plaza se liberó sola.
 Segunda reproducción: usuario movió la posición manualmente y al pasar junto al coche también saltó.
 

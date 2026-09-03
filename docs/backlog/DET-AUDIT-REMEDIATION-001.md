@@ -1,5 +1,7 @@
 # DET-AUDIT-REMEDIATION-001 — Plan de endurecimiento de detección (post-auditoría)
 
+**Estado:** 📋 PLAN por tareas — el estado real de cada una vive en su §5, no aquí. ⚠️ La rama que cita (`fix/DET-AUDIT-002-detection-hardening`) **ya no existe** (verificado 03-09-2026), así que el puntero del doc está muerto aunque su contenido siga vigente. · línea añadida por el barrido [DOCS-BACKLOG-TRUTH-002] del 03-09-2026.
+
 > **RE-VERIFICADO 2026-07-12 contra master post-merge de la cadena de detección.**
 > Rama viva: `fix/DET-AUDIT-002-detection-hardening` (desde master `45a24675`; la 001 se
 > absorbió en la cadena y su puntero se borró). Estado actual de cada tarea en §5.

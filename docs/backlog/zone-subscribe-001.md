@@ -1,5 +1,7 @@
 # ZONE-SUBSCRIBE-001 — Suscripción a plazas por zona ("Avisarme cuando haya una")
 
+**Estado:** 🔵 Abierto — IDEA DE PRODUCTO, sin código y sin rama: 0 commits de implementación (verificado 03-09-2026). No es deuda técnica; pide una decisión de producto antes que un fix. · línea añadida por el barrido [DOCS-BACKLOG-TRUTH-002] del 03-09-2026.
+
 ## User story
 
 **Como** usuario sin plaza a la vista en mi zona, **quiero** suscribirme a

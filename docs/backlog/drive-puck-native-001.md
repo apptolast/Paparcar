@@ -1,5 +1,7 @@
 # DRIVE-PUCK-NATIVE-001 — Fork de kmpmaps para puck de conducción nativo
 
+**Estado:** ✅ En master — implementado en `b10af008` (18 commit(s) citan el ID · 6 fichero(s) de código lo referencian) · línea añadida por el barrido [DOCS-BACKLOG-TRUTH-002] del 03-09-2026, verificado por COMMIT y por referencias en código, **no** releyendo su criterio de éxito uno a uno. ⏳ El propio doc anota pendientes: leerlo antes de darlo por terminado del todo.
+
 - **Rama:** `feature/DRIVE-PUCK-NATIVE-001-kmpmaps-fork`
 - **Origen:** backlog de DET-PHASE-BANNER-001 (2026-07-01) + limitaciones de kmpmaps
   medidas en campo. Idea del usuario: clonar la librería y construir lógica propia.

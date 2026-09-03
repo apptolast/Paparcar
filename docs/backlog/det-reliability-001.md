@@ -1,5 +1,7 @@
 # DET-RELIABILITY-001 — Fiabilidad de detección como sistema (exención de batería opcional)
 
+**Estado:** ✅ En master — implementado en `7350f358` (2 commit(s) citan el ID · 17 fichero(s) de código lo referencian) · línea añadida por el barrido [DOCS-BACKLOG-TRUTH-002] del 03-09-2026, verificado por COMMIT y por referencias en código, **no** releyendo su criterio de éxito uno a uno. ⏳ El propio doc anota pendientes: leerlo antes de darlo por terminado del todo.
+
 **Fecha:** 2026-07-06 · **Estado:** ✅ F1–F3 EN MASTER (`7350f358`); **F4 sigue DIFERIDA**
 (gate = telemetría de campo). La rama `feature/DET-RELIABILITY-001-detection-reliability` ya no existe.
 **Nota de implementación:** gran parte del plumbing YA existía y se reutilizó tal cual —

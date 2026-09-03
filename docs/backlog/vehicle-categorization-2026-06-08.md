@@ -1,5 +1,7 @@
 # VEHICLE-CATEGORIZATION-001 — Bidimensional size + carbody
 
+**Estado:** ✅ En master — implementado en `961adf3a` (13 commit(s) citan el ID · 12 fichero(s) de código lo referencian) · línea añadida por el barrido [DOCS-BACKLOG-TRUTH-002] del 03-09-2026, verificado por COMMIT y por referencias en código, **no** releyendo su criterio de éxito uno a uno.
+
 **Status:** ✅ Shipped 2026-06-08
 **Branch:** `feature/VEHICLE-CATEGORIZATION-001-bidimensional-size-and-body`
 **Architecture spec:** [`docs/architecture/VEHICLE-CATEGORIZATION.md`](../architecture/VEHICLE-CATEGORIZATION.md)

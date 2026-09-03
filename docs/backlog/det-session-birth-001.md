@@ -1,5 +1,7 @@
 # DET-SESSION-BIRTH-001 · Regresión de salida 2026-07-08 — evidencia anclada al nacimiento de la sesión
 
+**Estado:** ✅ En master — implementado en `8167e79e` (2 commit(s) citan el ID · 13 fichero(s) de código lo referencian) · línea añadida por el barrido [DOCS-BACKLOG-TRUTH-002] del 03-09-2026, verificado por COMMIT y por referencias en código, **no** releyendo su criterio de éxito uno a uno. ⏳ El propio doc anota pendientes: leerlo antes de darlo por terminado del todo.
+
 **Origen:** field-test 2026-07-08 tarde+noche (Redmi + Oppo, viajes casa→playa→casa y casa→cine→copas→casa).
 Tres fallos de campo con una misma causa raíz y dos huecos estructurales. Auditoría completa de
 fiabilidad de triggers en los logs parkdiag de ambos devices (17:55 → 01:31).
