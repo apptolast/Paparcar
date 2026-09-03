@@ -5,6 +5,7 @@ import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.ParkingReleaseReason
 import com.rndeveloper.paparcar.domain.model.SearchResult
 import com.rndeveloper.paparcar.domain.model.VehicleSize
+import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 
 sealed class HomeIntent {
 
@@ -148,6 +149,24 @@ sealed class HomeIntent {
     data class SelectZone(val zoneId: String) : HomeIntent()
     data class DeleteZone(val zoneId: String) : HomeIntent()
     data class EnterEditZoneMode(val zoneId: String) : HomeIntent()
+
+    // ── Guided first steps. [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001] ──
+
+    /**
+     * The user closed the checklist — skipped it, or acknowledged its closing card.
+     *
+     * Note what this deliberately does NOT do: it does not mark any step done. Dismissing hides the
+     * surface, it does not fake progress, so replaying from Settings finds the real state.
+     */
+    data object DismissFirstSteps : HomeIntent()
+
+    /**
+     * Bank a step as done. Only for steps whose signal is a MOMENT rather than a state — opening a
+     * community spot is over as soon as the peek closes, so the latch is what makes it stick. The
+     * steps backed by lasting state (a live session, a live watch) need no intent: the projection
+     * reads them directly.
+     */
+    data class CompleteFirstStep(val step: FirstStep) : HomeIntent()
 
     // ── Search ────────────────────────────────────────────────────────────────
 

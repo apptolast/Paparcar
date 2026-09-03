@@ -18,4 +18,9 @@ sealed class SettingsEffect {
     /** The problem report reached the backend — confirm so the user knows it's on us now.
      *  [SUPPORT-REPORT-SHIPS-THE-LOCAL-LOG-001] */
     data object DiagnosticsSent : SettingsEffect()
+
+    /** The guided checklist was put back. Confirmed with a snackbar because the RESULT is on another
+     *  screen — without it, the row would look like it did nothing.
+     *  [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001] */
+    data object FirstStepsRestarted : SettingsEffect()
 }

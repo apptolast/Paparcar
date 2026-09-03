@@ -13,6 +13,15 @@ sealed class SettingsIntent {
     /** "Fix" on the REDUCED-reliability health row — jump to the optional-reliability section of
      *  the permissions flow (battery exemption + OEM autostart cards). [DET-RELIABILITY-001] */
     data object FixDetectionReliability : SettingsIntent()
+    /**
+     * "Replay the first steps" — bring the guided checklist back on Home.
+     * [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001]
+     *
+     * Clears the TUTORIAL's own flags and nothing else. In particular it does not touch
+     * `hasConfirmedFirstPark`, which arms the cold-start notification: replaying an explanation must
+     * not re-arm a reminder for something the user demonstrably already did.
+     */
+    data object RestartFirstSteps : SettingsIntent()
     data object OpenPrivacyPolicy : SettingsIntent()
     data object OpenLicenses : SettingsIntent()
     data object OpenContact : SettingsIntent()

@@ -3,6 +3,7 @@ package com.rndeveloper.paparcar.ios.preferences
 import com.rndeveloper.paparcar.domain.detection.PendingParkNudge
 import com.rndeveloper.paparcar.localePrefersImperialUnits
 import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
+import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import com.rndeveloper.paparcar.domain.preferences.ThemeMode
 import kotlinx.coroutines.flow.Flow
@@ -18,6 +19,8 @@ private const val KEY_AUTO_DETECT_PARKING = "auto_detect_parking"
 private const val KEY_FIRST_PARK_NUDGE_COUNT = "first_park_nudge_count"
 private const val KEY_LAST_FIRST_PARK_NUDGE_AT = "last_first_park_nudge_at"
 private const val KEY_HAS_CONFIRMED_FIRST_PARK = "has_confirmed_first_park"
+private const val KEY_FIRST_STEPS_DONE = "first_steps_done"
+private const val KEY_FIRST_STEPS_DISMISSED = "first_steps_dismissed"
 private const val KEY_PENDING_NUDGE_CREATED_AT = "pending_park_nudge_created_at"
 private const val KEY_PENDING_NUDGE_SOURCE = "pending_park_nudge_source"
 private const val KEY_PENDING_NUDGE_VEHICLE_ID = "pending_park_nudge_vehicle_id"
@@ -102,6 +105,33 @@ class IosAppPreferences : AppPreferences {
 
     override fun setHasConfirmedFirstPark() {
         userDefaults.setBool(true, forKey = KEY_HAS_CONFIRMED_FIRST_PARK)
+    }
+
+    // ── Guided first steps. [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001] ──
+    // Same single-process StateFlow pattern as [observeAutoDetectParking].
+
+    /** Unknown names are DROPPED, not crashed on — a retired step reads as "not banked". */
+    private fun storedFirstStepsDone(): Set<FirstStep> =
+        userDefaults.stringArrayForKey(KEY_FIRST_STEPS_DONE)
+            .orEmpty()
+            .mapNotNull { stored -> FirstStep.entries.firstOrNull { it.name == stored } }
+            .toSet()
+
+    private val firstStepsDoneFlow = MutableStateFlow(storedFirstStepsDone())
+    private val firstStepsDismissedFlow = MutableStateFlow(userDefaults.boolForKey(KEY_FIRST_STEPS_DISMISSED))
+
+    override fun observeFirstStepsDone(): Flow<Set<FirstStep>> = firstStepsDoneFlow.asStateFlow()
+
+    override fun setFirstStepsDone(steps: Set<FirstStep>) {
+        userDefaults.setObject(steps.map { it.name }, forKey = KEY_FIRST_STEPS_DONE)
+        firstStepsDoneFlow.value = steps
+    }
+
+    override fun observeFirstStepsDismissed(): Flow<Boolean> = firstStepsDismissedFlow.asStateFlow()
+
+    override fun setFirstStepsDismissed(dismissed: Boolean) {
+        userDefaults.setBool(dismissed, forKey = KEY_FIRST_STEPS_DISMISSED)
+        firstStepsDismissedFlow.value = dismissed
     }
 
     // ── Pending mark-parking nudge. [DET-NUDGE-PERSIST-001] ──────────────────

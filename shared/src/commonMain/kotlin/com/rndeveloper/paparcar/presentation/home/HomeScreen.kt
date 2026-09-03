@@ -72,6 +72,8 @@ import com.rndeveloper.paparcar.presentation.util.zoneIconFor
 import com.rndeveloper.paparcar.ui.components.CenterPinKind
 import com.rndeveloper.paparcar.ui.components.ConfirmationBottomSheet
 import com.rndeveloper.paparcar.ui.components.LocalMapInteracting
+import com.rndeveloper.paparcar.ui.components.PapSpotlight
+import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 import com.rndeveloper.paparcar.ui.theme.PapMotion
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -87,6 +89,7 @@ import paparcar.composeapp.generated.resources.error_load_spots
 import paparcar.composeapp.generated.resources.error_parking_save_failed
 import paparcar.composeapp.generated.resources.error_release_parking
 import paparcar.composeapp.generated.resources.error_search_failed
+import paparcar.composeapp.generated.resources.first_steps_spotlight_caption
 import paparcar.composeapp.generated.resources.location_approximate_near
 import paparcar.composeapp.generated.resources.error_unknown
 import paparcar.composeapp.generated.resources.error_watch_resume_failed
@@ -597,6 +600,38 @@ private fun HomeContent(
                     followingDriver = uiController.followingDriver,
                     previewZoneLat = if (isAddingZone) uiController.cameraLat else null,
                     previewZoneLon = if (isAddingZone) uiController.cameraLon else null,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .layout { measurable, constraints ->
+                            val heightPx = (sheetOffsetPx.value + mapBleedPx)
+                                .roundToInt().coerceAtLeast(0)
+                            val placeable = measurable.measure(
+                                constraints.copy(
+                                    minHeight = 0,
+                                    maxHeight = heightPx.coerceAtMost(constraints.maxHeight),
+                                )
+                            )
+                            layout(placeable.width, heightPx) { placeable.place(0, 0) }
+                        },
+                )
+
+                // ── First-steps spotlight over the centre pin ─────────────────
+                // [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001] The one gesture in the whole
+                // product that is not self-evident: the pin does not follow your finger, the MAP
+                // does. Shown only while the guided checklist is still asking for the first
+                // parking — after that the user has done it once and the coach mark would be noise.
+                //
+                // It repeats the SAME `Modifier.layout` as the map above on purpose: identical
+                // bounds mean the hole's centre and the pin's centre are the same point by
+                // construction, with nothing measured and nothing to keep in sync. [see PapSpotlight]
+                var spotlightSeen by remember(state.mode) { mutableStateOf(false) }
+                PapSpotlight(
+                    visible = state.mode is HomeMode.AddingParking &&
+                        state.firstSteps.isVisible &&
+                        state.firstSteps.current == FirstStep.MARK_PARKING &&
+                        !spotlightSeen,
+                    caption = stringResource(Res.string.first_steps_spotlight_caption),
+                    onDismiss = { spotlightSeen = true },
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .layout { measurable, constraints ->

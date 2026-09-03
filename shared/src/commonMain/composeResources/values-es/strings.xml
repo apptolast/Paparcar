@@ -653,4 +653,22 @@
     <!-- Spot vote outcome [SPOT-COMMUNITY-VOTES-NEED-A-CONSEQUENCE-001] -->
     <string name="home_spot_vote_retracted">Retirada. Gracias por ahorrarle el viaje a alguien.</string>
     <string name="home_spot_vote_refreshed">Confirmada libre ahora mismo. ¡Gracias!</string>
+    <!-- Guided first steps [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001] -->
+    <string name="first_steps_eyebrow">Primeros pasos</string>
+    <string name="first_steps_progress">%1$d de %2$d</string>
+    <string name="first_steps_skip">Saltar</string>
+    <string name="first_steps_done_cta">Hecho</string>
+    <string name="first_steps_complete_title">Ya lo tienes</string>
+    <string name="first_steps_complete_sub">Ya sabes cómo funciona Paparcar. Ahora solo conduce.</string>
+    <string name="first_steps_park_title">Marca dónde has dejado el coche</string>
+    <string name="first_steps_park_sub">Arrastra el mapa hasta tu coche y confirma. Eso es lo que Paparcar vigila.</string>
+    <string name="first_steps_park_cta">Marcar aparcamiento</string>
+    <string name="first_steps_watch_title">Deja que Paparcar lo vigile</string>
+    <string name="first_steps_watch_sub">Mientras tu coche está aparcado la app lo vigila, para que no tengas que recordar dónde lo dejaste.</string>
+    <string name="first_steps_spot_title">Encuentra una plaza libre, o avisa de una</string>
+    <string name="first_steps_spot_sub">Las plazas cercanas salen en el mapa. ¿Ves una libre? Avisa a los demás.</string>
+    <string name="first_steps_spot_cta">Ver plazas</string>
+    <string name="first_steps_spotlight_caption">El pin no se mueve: arrastra el MAPA hasta que quede sobre tu coche y confirma abajo.</string>
+    <string name="settings_replay_first_steps">Repetir los primeros pasos</string>
+    <string name="settings_replay_first_steps_done">Los primeros pasos vuelven a estar en Inicio</string>
 </resources>

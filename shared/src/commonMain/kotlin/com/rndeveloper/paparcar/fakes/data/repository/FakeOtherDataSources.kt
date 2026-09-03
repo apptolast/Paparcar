@@ -11,6 +11,7 @@ import com.rndeveloper.paparcar.domain.permissions.OemBackgroundReliabilityManag
 import com.rndeveloper.paparcar.domain.detection.PendingParkNudge
 import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
 import com.rndeveloper.paparcar.domain.model.GpsPoint
+import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import com.rndeveloper.paparcar.domain.preferences.ThemeMode
 import com.rndeveloper.paparcar.domain.bluetooth.BluetoothScanner
@@ -178,6 +179,20 @@ class FakeAppPreferences(private val scenario: MockScenario? = null) : AppPrefer
     private var _hasConfirmedFirstPark = false
     override val hasConfirmedFirstPark: Boolean get() = _hasConfirmedFirstPark
     override fun setHasConfirmedFirstPark() { _hasConfirmedFirstPark = true }
+
+    // [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001] Scenario-aware: flipping `firstStepsPending`
+    // in the Dev Catalog replays the checklist on the REAL Home. Default is "already dismissed" so
+    // the mock app keeps booting into the steady-state Home the other scenarios are written against.
+    private val _firstStepsDone = MutableStateFlow<Set<FirstStep>>(emptySet())
+    private val _firstStepsDismissed = MutableStateFlow(true)
+    override fun observeFirstStepsDone(): kotlinx.coroutines.flow.Flow<Set<FirstStep>> = _firstStepsDone
+    override fun setFirstStepsDone(steps: Set<FirstStep>) { _firstStepsDone.value = steps }
+    override fun observeFirstStepsDismissed(): kotlinx.coroutines.flow.Flow<Boolean> =
+        scenario?.firstStepsPending?.map { pending -> !pending } ?: _firstStepsDismissed
+    override fun setFirstStepsDismissed(dismissed: Boolean) {
+        _firstStepsDismissed.value = dismissed
+        if (dismissed) scenario?.firstStepsPending?.value = false
+    }
 
     // [DET-NUDGE-PERSIST-001]
     private val _pendingParkNudge = MutableStateFlow<PendingParkNudge?>(null)

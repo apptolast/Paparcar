@@ -57,6 +57,7 @@ fun DevCatalogScreen(
     val activeBt by scenario.activeVehicleBluetooth.collectAsStateWithLifecycle()
     val sentryAlive by scenario.sentryAlive.collectAsStateWithLifecycle()
     val approximate by scenario.approximateParking.collectAsStateWithLifecycle()
+    val firstStepsPending by scenario.firstStepsPending.collectAsStateWithLifecycle()
     // Shared detection runtime — toggling it simulates an in-progress trip in the real Home (moving
     // driving puck + "Conduciendo" chip + camera follow), no real drive needed. [DRIVE-SIM-001]
     val runtime: MutableDetectionRuntimeState = koinInject()
@@ -126,6 +127,14 @@ fun DevCatalogScreen(
             // Necesita "Sesión propia aparcada" activado.
             SwitchRow("Aparcamiento aproximado (zona, no pin)", approximate) {
                 scenario.approximateParking.value = it
+            }
+            // [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001] Devuelve el checklist guiado al Home
+            // REAL. A partir de ahí los pasos avanzan con las mismas señales que en producción, así
+            // que "Sesión propia aparcada" + "Centinela vivo" lo caminan hasta el final sin salir
+            // del emulador. Ojo: con el paso 1 pendiente, la fila de arranque en frío de la
+            // superficie de detección DESAPARECE — eso es el ticket funcionando, no un bug.
+            SwitchRow("Primeros pasos pendientes (checklist)", firstStepsPending) {
+                scenario.firstStepsPending.value = it
             }
             // [UI-MAP-PUCK-BELONGS-TO-THE-DRIVE-NOT-TO-ONE-LANE-001] Ya no es sólo "emparejado": el
             // coche activo queda CONECTADO, que es lo que el carril BT usa para decir que vas
@@ -201,6 +210,13 @@ fun DevCatalogScreen(
             PresetButton("Aparcado (vigilando)") {
                 scenario.reset(); scenario.ownParkedSession.value = true
                 runtime.setPresence(ServicePresence.Sentry); onEnter()
+            }
+            // [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001] Usuario recién llegado: coche
+            // registrado, permisos concedidos, nada aparcado todavía. Es el estado exacto en el que
+            // el checklist pide el paso 1 y el foco del pin aparece al entrar en "Marcar aparcamiento".
+            PresetButton("Usuario nuevo · primeros pasos") {
+                scenario.reset(); scenario.firstStepsPending.value = true
+                runtime.setPresence(ServicePresence.Dead); onEnter()
             }
             // [UI-APPROXIMATE-PARKING-DRAWS-ITS-DOUBT-001] Cierre honesto: la sesión es un ÁREA de
             // 154 m (la del caso real del 21-08). El mapa dibuja el anillo y el peek explica la duda,

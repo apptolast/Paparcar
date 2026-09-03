@@ -61,7 +61,14 @@ sealed interface DetectionStory {
     /** Detection off (Settings flag or producer permissions) — one-tap activate. Action row. */
     data object Inactive : DetectionStory
 
-    /** Coordinator cold-start — mark your spot or declare "I'm driving". Action row. */
+    /**
+     * Coordinator cold-start — mark your parking or declare "I'm driving". Action row.
+     *
+     * [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001] The ONLY story a surface above can take over
+     * from: while the guided checklist is asking for the first parking it says the same thing with
+     * more context, and two rows asking for one action is precisely the drift this projection
+     * exists to prevent. See `firstStepsOwnsColdStart`.
+     */
     data object AwaitingFirstPark : DetectionStory
 
     /** A trip is being followed right now. [isCandidate] = stopped, confirming the spot.
@@ -113,6 +120,22 @@ fun resolveDetectionStory(
     promptWindow: PendingPromptWindow? = null,
     /** [DET-NUDGE-PERSIST-001] An unanswered "where did you leave your car?" nudge is pending. */
     showParkNudge: Boolean = false,
+    /**
+     * [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001] The guided checklist is on screen and is
+     * currently asking for the first parking. It says exactly what [AwaitingFirstPark] says, with
+     * the context of the two steps that follow — so the cold-start row STANDS DOWN and the surface
+     * keeps its one voice.
+     *
+     * The suppression lives HERE, in the projection, and not as an `if` around the composable:
+     * arbitrating precedence inside the surface is the mistake [DET-ASK-STATE-001] came back to
+     * correct, and it would be the same mistake for the same reason — the chain would declare one
+     * order and the screen would render another, with only one of the two testable.
+     *
+     * It suppresses that ONE story and nothing else. A CORE block, a live question, a pending nudge
+     * and every watch alert still outrank the checklist: those are things the app cannot do its job
+     * without, and a tutorial is never a reason to go quiet about them.
+     */
+    firstStepsOwnsColdStart: Boolean = false,
 ): DetectionStory {
     val activeCard = vehicleCards.firstOrNull { it.vehicle.isActive }
 
@@ -155,7 +178,8 @@ fun resolveDetectionStory(
         DetectionUiState.BlockedCore -> DetectionStory.BlockedCore
         DetectionUiState.NoVehicle -> DetectionStory.NoVehicle
         DetectionUiState.Inactive -> DetectionStory.Inactive
-        DetectionUiState.AwaitingFirstPark -> DetectionStory.AwaitingFirstPark
+        DetectionUiState.AwaitingFirstPark ->
+            if (firstStepsOwnsColdStart) DetectionStory.Hidden else DetectionStory.AwaitingFirstPark
         DetectionUiState.Monitoring -> drivingStory()
         // Honest: the parked line reflects whether the watch is really live. [DET-WATCH-HONEST-001]
         DetectionUiState.Parked ->

@@ -658,4 +658,22 @@
     <!-- Spot vote outcome [SPOT-COMMUNITY-VOTES-NEED-A-CONSEQUENCE-001] -->
     <string name="home_spot_vote_retracted">Retirée. Merci d'avoir évité le trajet à quelqu'un.</string>
     <string name="home_spot_vote_refreshed">Confirmée libre à l'instant. Merci !</string>
+    <!-- Guided first steps [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001] -->
+    <string name="first_steps_eyebrow">Premiers pas</string>
+    <string name="first_steps_progress">%1$d sur %2$d</string>
+    <string name="first_steps_skip">Passer</string>
+    <string name="first_steps_done_cta">Terminé</string>
+    <string name="first_steps_complete_title">Tout est prêt</string>
+    <string name="first_steps_complete_sub">Vous savez comment marche Paparcar. Il ne reste qu'à conduire.</string>
+    <string name="first_steps_park_title">Indiquez où vous avez laissé la voiture</string>
+    <string name="first_steps_park_sub">Faites glisser la carte jusqu'à votre voiture et confirmez. C'est ce que Paparcar surveille.</string>
+    <string name="first_steps_park_cta">Marquer le stationnement</string>
+    <string name="first_steps_watch_title">Laissez Paparcar la surveiller</string>
+    <string name="first_steps_watch_sub">Tant que votre voiture est garée, l'appli la surveille, pour que vous n'ayez pas à retenir où vous l'avez laissée.</string>
+    <string name="first_steps_spot_title">Trouvez une place libre, ou signalez-en une</string>
+    <string name="first_steps_spot_sub">Les places proches apparaissent sur la carte. Vous en voyez une libre ? Dites-le aux autres.</string>
+    <string name="first_steps_spot_cta">Voir les places</string>
+    <string name="first_steps_spotlight_caption">Le repère ne bouge pas : faites glisser la CARTE jusqu'à ce qu'il soit sur votre voiture, puis confirmez en dessous.</string>
+    <string name="settings_replay_first_steps">Revoir les premiers pas</string>
+    <string name="settings_replay_first_steps_done">Les premiers pas sont de retour sur l'accueil</string>
 </resources>

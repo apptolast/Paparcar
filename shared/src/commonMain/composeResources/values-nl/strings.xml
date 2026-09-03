@@ -659,4 +659,22 @@
     <!-- Spot vote outcome [SPOT-COMMUNITY-VOTES-NEED-A-CONSEQUENCE-001] -->
     <string name="home_spot_vote_retracted">Verwijderd. Bedankt dat je iemand de rit bespaart.</string>
     <string name="home_spot_vote_refreshed">Zojuist bevestigd als vrij. Bedankt!</string>
+    <!-- Guided first steps [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001] -->
+    <string name="first_steps_eyebrow">Eerste stappen</string>
+    <string name="first_steps_progress">%1$d van %2$d</string>
+    <string name="first_steps_skip">Overslaan</string>
+    <string name="first_steps_done_cta">Klaar</string>
+    <string name="first_steps_complete_title">Je bent er klaar voor</string>
+    <string name="first_steps_complete_sub">Je weet nu hoe Paparcar werkt. Nu gewoon rijden.</string>
+    <string name="first_steps_park_title">Markeer waar je auto staat</string>
+    <string name="first_steps_park_sub">Sleep de kaart naar je auto en bevestig. Dat is wat Paparcar bewaakt.</string>
+    <string name="first_steps_park_cta">Parkeerplaats markeren</string>
+    <string name="first_steps_watch_title">Laat Paparcar erop letten</string>
+    <string name="first_steps_watch_sub">Zolang je auto geparkeerd staat houdt de app hem in de gaten, zodat je niet hoeft te onthouden waar je hem liet.</string>
+    <string name="first_steps_spot_title">Vind een vrije plek, of meld er een</string>
+    <string name="first_steps_spot_sub">Plekken in de buurt staan op de kaart. Zie je er een vrij? Vertel het de anderen.</string>
+    <string name="first_steps_spot_cta">Plekken bekijken</string>
+    <string name="first_steps_spotlight_caption">De speld blijft staan: sleep de KAART tot hij op je auto ligt en bevestig hieronder.</string>
+    <string name="settings_replay_first_steps">Eerste stappen opnieuw bekijken</string>
+    <string name="settings_replay_first_steps_done">De eerste stappen staan weer op Home</string>
 </resources>

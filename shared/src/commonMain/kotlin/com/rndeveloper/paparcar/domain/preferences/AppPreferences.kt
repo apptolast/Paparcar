@@ -2,6 +2,7 @@ package com.rndeveloper.paparcar.domain.preferences
 
 import com.rndeveloper.paparcar.domain.detection.PendingParkNudge
 import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
+import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 import kotlinx.coroutines.flow.Flow
 
 interface AppPreferences {
@@ -40,6 +41,24 @@ interface AppPreferences {
     /** True once the user has had a first parking confirmed — auto-disables the cold-start nudge. */
     val hasConfirmedFirstPark: Boolean
     fun setHasConfirmedFirstPark()
+
+    // ── Guided first steps. [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001] ──
+    /**
+     * Steps the guided checklist has already banked, so a completed step never walks backwards when
+     * the state that completed it goes away (releasing a parking must not un-teach step 1).
+     *
+     * ⛔ Deliberately NOT expressed through [hasConfirmedFirstPark]. That flag is the arming
+     * condition of the cold-start notification (`FirstParkNudgeWorker` → `isFirstParkNudgeSpent`),
+     * so clearing it to replay the tutorial from Settings would wake a machine that has nothing to
+     * do with onboarding. Two questions, two flags.
+     */
+    fun observeFirstStepsDone(): Flow<Set<FirstStep>>
+    fun setFirstStepsDone(steps: Set<FirstStep>)
+
+    /** The user skipped the checklist, or acknowledged its closing card. Replaying from Settings
+     *  clears this together with [setFirstStepsDone]. */
+    fun observeFirstStepsDismissed(): Flow<Boolean>
+    fun setFirstStepsDismissed(dismissed: Boolean)
 
     // ── Pending "where did you leave your car?" nudge. [DET-NUDGE-PERSIST-001] ──
     /** The unanswered mark-parking nudge, or null. Single slot: a new set replaces the previous

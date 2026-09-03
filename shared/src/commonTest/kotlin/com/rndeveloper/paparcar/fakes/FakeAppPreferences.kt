@@ -2,6 +2,7 @@ package com.rndeveloper.paparcar.fakes
 
 import com.rndeveloper.paparcar.domain.detection.PendingParkNudge
 import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
+import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import com.rndeveloper.paparcar.domain.preferences.ThemeMode
 import kotlinx.coroutines.flow.Flow
@@ -53,6 +54,15 @@ class FakeAppPreferences(
     private var _hasConfirmedFirstPark = false
     override val hasConfirmedFirstPark: Boolean get() = _hasConfirmedFirstPark
     override fun setHasConfirmedFirstPark() { _hasConfirmedFirstPark = true }
+
+    // [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001] Public so a test can assert what the
+    // controller BANKED, not just what it rendered — the latch is the half that survives a restart.
+    val firstStepsDone = MutableStateFlow<Set<FirstStep>>(emptySet())
+    val firstStepsDismissed = MutableStateFlow(false)
+    override fun observeFirstStepsDone(): Flow<Set<FirstStep>> = firstStepsDone
+    override fun setFirstStepsDone(steps: Set<FirstStep>) { firstStepsDone.value = steps }
+    override fun observeFirstStepsDismissed(): Flow<Boolean> = firstStepsDismissed
+    override fun setFirstStepsDismissed(dismissed: Boolean) { firstStepsDismissed.value = dismissed }
 
     // [DET-NUDGE-PERSIST-001]
     val pendingParkNudge = MutableStateFlow<PendingParkNudge?>(null)

@@ -62,6 +62,12 @@ class MockScenario {
      *  what it means. */
     val approximateParking = MutableStateFlow(false)
 
+    /** [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001] Replays the guided checklist on the REAL
+     *  Home: clears the banked steps and the dismissal, so the surface comes back at step 1. The
+     *  steps then advance off the same live signals as in production — pair with [ownParkedSession]
+     *  and [sentryAlive] to walk the checklist forward without leaving the emulator. */
+    val firstStepsPending = MutableStateFlow(false)
+
     fun reset() {
         session.value = Session.LoggedInWithVehicles
         onboardingCompleted.value = true
@@ -74,5 +80,6 @@ class MockScenario {
         sentryAlive.value = true
         promptOpen.value = false
         approximateParking.value = false
+        firstStepsPending.value = false
     }
 }

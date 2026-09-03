@@ -35,6 +35,7 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Description
+import androidx.compose.material.icons.rounded.School
 import androidx.compose.material.icons.rounded.Email
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.DarkMode
@@ -154,6 +155,8 @@ import paparcar.composeapp.generated.resources.settings_distance_unit_desc
 import paparcar.composeapp.generated.resources.settings_distance_unit_imperial
 import paparcar.composeapp.generated.resources.settings_distance_unit_metric
 import paparcar.composeapp.generated.resources.settings_licenses
+import paparcar.composeapp.generated.resources.settings_replay_first_steps
+import paparcar.composeapp.generated.resources.settings_replay_first_steps_done
 import paparcar.composeapp.generated.resources.settings_notif_parking
 import paparcar.composeapp.generated.resources.settings_notif_parking_desc
 import paparcar.composeapp.generated.resources.settings_privacy
@@ -203,6 +206,7 @@ fun SettingsScreen(
     val msgErrorUnknown = stringResource(Res.string.error_unknown)
     val msgDiagnosticsSent = stringResource(Res.string.settings_send_diagnostics_sent)
     val msgDiagnosticsError = stringResource(Res.string.settings_send_diagnostics_error)
+    val msgFirstStepsRestarted = stringResource(Res.string.settings_replay_first_steps_done)
 
     // Refresh pref-backed fields AND runtime permissions every time the screen re-enters
     // composition, so a pref mutated elsewhere (BT-config flow) or a permission granted in the
@@ -232,6 +236,12 @@ fun SettingsScreen(
                 // Problem report landed — tell the user it's on us now. [SUPPORT-REPORT-SHIPS-THE-LOCAL-LOG-001]
                 is SettingsEffect.DiagnosticsSent -> snackbarHostState.showSnackbar(
                     message = msgDiagnosticsSent,
+                    duration = SnackbarDuration.Short,
+                )
+                // The checklist is back, but it lives on Home — say so, or the row reads as inert.
+                // [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001]
+                is SettingsEffect.FirstStepsRestarted -> snackbarHostState.showSnackbar(
+                    message = msgFirstStepsRestarted,
                     duration = SnackbarDuration.Short,
                 )
                 // Turn-off confirmation with one-tap undo, right where the user flipped it. [DET-TOGGLE-002]
@@ -432,6 +442,15 @@ fun SettingsContent(
                                 icon = Icons.Rounded.Lock,
                                 label = stringResource(Res.string.settings_privacy),
                                 onClick = { onIntent(SettingsIntent.OpenPrivacyPolicy) },
+                            )
+                            PapDivider()
+                            // [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001] Above the legal rows:
+                            // this is the only one in the section a user might actually want, and
+                            // burying help under licences is how it never gets found.
+                            PapNavRow(
+                                icon = Icons.Rounded.School,
+                                label = stringResource(Res.string.settings_replay_first_steps),
+                                onClick = { onIntent(SettingsIntent.RestartFirstSteps) },
                             )
                             PapDivider()
                             PapNavRow(

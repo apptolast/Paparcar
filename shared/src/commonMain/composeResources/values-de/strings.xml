@@ -659,4 +659,22 @@
     <!-- Spot vote outcome [SPOT-COMMUNITY-VOTES-NEED-A-CONSEQUENCE-001] -->
     <string name="home_spot_vote_retracted">Entfernt. Danke, dass du jemandem die Fahrt ersparst.</string>
     <string name="home_spot_vote_refreshed">Gerade als frei bestätigt. Danke!</string>
+    <!-- Guided first steps [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001] -->
+    <string name="first_steps_eyebrow">Erste Schritte</string>
+    <string name="first_steps_progress">%1$d von %2$d</string>
+    <string name="first_steps_skip">Überspringen</string>
+    <string name="first_steps_done_cta">Fertig</string>
+    <string name="first_steps_complete_title">Alles bereit</string>
+    <string name="first_steps_complete_sub">Du weißt jetzt, wie Paparcar funktioniert. Jetzt einfach losfahren.</string>
+    <string name="first_steps_park_title">Markiere, wo dein Auto steht</string>
+    <string name="first_steps_park_sub">Zieh die Karte auf dein Auto und bestätige. Genau das überwacht Paparcar.</string>
+    <string name="first_steps_park_cta">Parkplatz markieren</string>
+    <string name="first_steps_watch_title">Paparcar behält es im Blick</string>
+    <string name="first_steps_watch_sub">Solange dein Auto geparkt ist, behält die App es im Blick, damit du dir nicht merken musst, wo es steht.</string>
+    <string name="first_steps_spot_title">Finde einen freien Platz oder melde einen</string>
+    <string name="first_steps_spot_sub">Plätze in der Nähe erscheinen auf der Karte. Einen freien gesehen? Sag es den anderen.</string>
+    <string name="first_steps_spot_cta">Plätze ansehen</string>
+    <string name="first_steps_spotlight_caption">Die Nadel bleibt stehen: Zieh die KARTE, bis sie auf deinem Auto liegt, und bestätige unten.</string>
+    <string name="settings_replay_first_steps">Erste Schritte erneut ansehen</string>
+    <string name="settings_replay_first_steps_done">Die ersten Schritte sind wieder auf der Startseite</string>
 </resources>

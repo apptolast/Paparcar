@@ -670,4 +670,22 @@
     <!-- Spot vote outcome [SPOT-COMMUNITY-VOTES-NEED-A-CONSEQUENCE-001] -->
     <string name="home_spot_vote_retracted">Retras. Mulțumim că ai scutit pe cineva de drum.</string>
     <string name="home_spot_vote_refreshed">Confirmat liber chiar acum. Mulțumim!</string>
+    <!-- Guided first steps [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001] -->
+    <string name="first_steps_eyebrow">Primii pași</string>
+    <string name="first_steps_progress">%1$d din %2$d</string>
+    <string name="first_steps_skip">Sari peste</string>
+    <string name="first_steps_done_cta">Gata</string>
+    <string name="first_steps_complete_title">Totul e pregătit</string>
+    <string name="first_steps_complete_sub">Știi cum funcționează Paparcar. Acum doar condu.</string>
+    <string name="first_steps_park_title">Marchează unde ai lăsat mașina</string>
+    <string name="first_steps_park_sub">Trage harta până la mașina ta și confirmă. Asta supraveghează Paparcar.</string>
+    <string name="first_steps_park_cta">Marchează parcarea</string>
+    <string name="first_steps_watch_title">Lasă Paparcar să o supravegheze</string>
+    <string name="first_steps_watch_sub">Cât timp mașina ta e parcată, aplicația o supraveghează, ca să nu trebuiască să ții minte unde ai lăsat-o.</string>
+    <string name="first_steps_spot_title">Găsește un loc liber sau anunță unul</string>
+    <string name="first_steps_spot_sub">Locurile din apropiere apar pe hartă. Vezi unul liber? Spune-le celorlalți.</string>
+    <string name="first_steps_spot_cta">Vezi locuri</string>
+    <string name="first_steps_spotlight_caption">Pinul rămâne pe loc: trage HARTA până ajunge peste mașina ta, apoi confirmă mai jos.</string>
+    <string name="settings_replay_first_steps">Reia primii pași</string>
+    <string name="settings_replay_first_steps_done">Primii pași sunt din nou pe pagina principală</string>
 </resources>

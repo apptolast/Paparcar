@@ -668,4 +668,22 @@
     <!-- Spot vote outcome [SPOT-COMMUNITY-VOTES-NEED-A-CONSEQUENCE-001] -->
     <string name="home_spot_vote_retracted">Usunięto. Dzięki za oszczędzenie komuś podróży.</string>
     <string name="home_spot_vote_refreshed">Potwierdzone jako wolne. Dzięki!</string>
+    <!-- Guided first steps [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001] -->
+    <string name="first_steps_eyebrow">Pierwsze kroki</string>
+    <string name="first_steps_progress">%1$d z %2$d</string>
+    <string name="first_steps_skip">Pomiń</string>
+    <string name="first_steps_done_cta">Gotowe</string>
+    <string name="first_steps_complete_title">Wszystko gotowe</string>
+    <string name="first_steps_complete_sub">Wiesz już, jak działa Paparcar. Teraz po prostu jedź.</string>
+    <string name="first_steps_park_title">Zaznacz, gdzie zostawiłeś samochód</string>
+    <string name="first_steps_park_sub">Przeciągnij mapę do swojego samochodu i potwierdź. To właśnie pilnuje Paparcar.</string>
+    <string name="first_steps_park_cta">Zaznacz parkowanie</string>
+    <string name="first_steps_watch_title">Niech Paparcar go pilnuje</string>
+    <string name="first_steps_watch_sub">Kiedy samochód stoi zaparkowany, aplikacja go pilnuje, żebyś nie musiał pamiętać, gdzie go zostawiłeś.</string>
+    <string name="first_steps_spot_title">Znajdź wolne miejsce albo zgłoś jedno</string>
+    <string name="first_steps_spot_sub">Miejsca w pobliżu widać na mapie. Widzisz wolne? Powiedz innym.</string>
+    <string name="first_steps_spot_cta">Zobacz miejsca</string>
+    <string name="first_steps_spotlight_caption">Pinezka stoi w miejscu: przeciągaj MAPĘ, aż znajdzie się na twoim samochodzie, i potwierdź poniżej.</string>
+    <string name="settings_replay_first_steps">Powtórz pierwsze kroki</string>
+    <string name="settings_replay_first_steps_done">Pierwsze kroki znów są na ekranie głównym</string>
 </resources>

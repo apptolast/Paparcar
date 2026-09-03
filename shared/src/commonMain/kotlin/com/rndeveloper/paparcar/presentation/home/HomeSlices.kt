@@ -16,6 +16,7 @@ import com.rndeveloper.paparcar.domain.model.monitoringStatus
 import com.rndeveloper.paparcar.domain.model.Zone
 import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
 import com.rndeveloper.paparcar.domain.detection.shouldShowParkNudgeBanner
+import com.rndeveloper.paparcar.domain.onboarding.FirstStepsProgress
 import com.rndeveloper.paparcar.presentation.home.model.DetectionUiState
 import com.rndeveloper.paparcar.presentation.home.model.ParkedWatchBadge
 
@@ -232,6 +233,10 @@ data class HomeBrowseListSlice(
     val vehicleCards: List<VehicleCard>,
     val userGpsPoint: GpsPoint?,
     val drivingMeta: DrivingMeta?,
+    /** [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001] Where the new user stands in the guided
+     *  checklist. Already resolved by the pure projection — the sheet renders it, it does not decide
+     *  it, and it is also what tells the detection surface to stand down on the cold start. */
+    val firstSteps: FirstStepsProgress,
 )
 
 // ── Projections ───────────────────────────────────────────────────────────────
@@ -345,6 +350,7 @@ fun HomeState.toBrowseListSlice() = HomeBrowseListSlice(
     },
     userGpsPoint = userGpsPoint,
     drivingMeta = drivingMeta,
+    firstSteps = firstSteps,
 )
 
 /**

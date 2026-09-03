@@ -37,6 +37,8 @@ import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.detection.DetectionPhase
 import com.rndeveloper.paparcar.domain.model.Spot
 import com.rndeveloper.paparcar.domain.model.VehicleSize
+import com.rndeveloper.paparcar.domain.onboarding.FirstStep
+import com.rndeveloper.paparcar.presentation.onboarding.FirstStepsCard
 import com.rndeveloper.paparcar.presentation.home.HomeBrowseListSlice
 import com.rndeveloper.paparcar.presentation.home.HomeIntent
 import com.rndeveloper.paparcar.presentation.home.HomeSelection
@@ -94,17 +96,58 @@ fun LazyListScope.homeSheetItems(
     // behind a tapped spot" branches (and the live-question exception to them) are gone with the
     // state that made them reachable. [UI-PEEK-STEPS-BETWEEN-PINS-001] [DET-ASK-STATE-001]
     // Both pending questions (prompt and nudge) are resolved by the projection, not arbitrated here.
+    // The car both cold-start CTAs are about: the active vehicle, or the first if none is flagged.
+    // Hoisted out of the detection item because the checklist's first step targets the SAME car —
+    // two resolutions of "which car is this about" would be two chances to disagree.
+    // [VEH-ACTIVE-FENCE-001]
+    val coldStartVehicleId = vehicleCards.firstOrNull { it.vehicle.isActive }?.vehicle?.id
+        ?: vehicleCards.firstOrNull()?.vehicle?.id
+
+    // ── -1. Guided first steps — above the detection story, and only for a new user.
+    // [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001]
+    val firstSteps = slice.firstSteps
+    // No vehicle means there is nothing to mark, and `DetectionStory.NoVehicle` already owns that
+    // ask with the right CTA — the checklist would be telling the user to park a car they have not
+    // registered.
+    val showFirstSteps = firstSteps.isVisible && slice.hasCorePermissions && vehicleCards.isNotEmpty()
+    if (showFirstSteps) {
+        item("first_steps") {
+            FirstStepsCard(
+                progress = firstSteps,
+                onStartStep = { step ->
+                    when (step) {
+                        // The REAL flow, with the same parameters the cold-start row passes — the
+                        // step teaches the app's own control, not a rehearsal of it.
+                        FirstStep.MARK_PARKING -> onIntent(
+                            HomeIntent.EnterAddParkingMode(
+                                initialGps = slice.userGpsPoint,
+                                targetVehicleId = coldStartVehicleId,
+                            ),
+                        )
+                        // Unreachable: this step renders no CTA (see FirstStepsCard). It completes
+                        // by OBSERVING the honest watch line below, not by pressing anything.
+                        FirstStep.UNDERSTAND_WATCH -> Unit
+                        // The community half of the product, via its real entry point — the same
+                        // action the "Report a free spot" card at the bottom of the sheet fires.
+                        FirstStep.FIND_SPOT -> onAction(HomeSheetAction.RequestReportMode)
+                    }
+                },
+                onDismiss = { onIntent(HomeIntent.DismissFirstSteps) },
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp),
+            )
+        }
+    }
+
     val detectionStory = resolveDetectionStory(
         slice.detectionUiState, slice.drivingMeta, vehicleCards, slice.parkedWatchBadge,
         promptWindow = slice.promptWindow,
         showParkNudge = slice.showParkNudge,
+        // One voice: while the checklist is the one asking for the first parking, the cold-start row
+        // stands down. Decided in the projection, never with an `if` around the surface below.
+        firstStepsOwnsColdStart = showFirstSteps && firstSteps.current == FirstStep.MARK_PARKING,
     )
     if (detectionStory != DetectionStory.Hidden) {
         item("detection_surface") {
-            // The car both cold-start CTAs are about: the active vehicle, or the first if none is
-            // flagged. "Mark spot" parks it; "I'm driving" declares it active + arms. [VEH-ACTIVE-FENCE-001]
-            val coldStartVehicleId = vehicleCards.firstOrNull { it.vehicle.isActive }?.vehicle?.id
-                ?: vehicleCards.firstOrNull()?.vehicle?.id
             HomeDetectionSurface(
                 story = detectionStory,
                 onAddVehicle = { onAction(HomeSheetAction.AddVehicle) },

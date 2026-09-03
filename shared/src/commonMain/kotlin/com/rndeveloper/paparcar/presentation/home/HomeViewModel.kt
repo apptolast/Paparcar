@@ -25,6 +25,7 @@ import com.rndeveloper.paparcar.domain.usecase.detection.ObserveDetectionReadine
 import com.rndeveloper.paparcar.domain.usecase.detection.ObserveDetectionReliabilityUseCase
 import com.rndeveloper.paparcar.domain.detection.isPromptWindowOpen
 import com.rndeveloper.paparcar.domain.detection.shouldShowParkNudgeBanner
+import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 import com.rndeveloper.paparcar.domain.usecase.parking.ClearParkNudgeUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.ObserveParkedVehiclesUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.ReleaseActiveParkingSessionUseCase
@@ -156,6 +157,39 @@ class HomeViewModel(
         subscribeServicePresence()
         subscribeParkNudge()
         subscribePromptWindow()
+        subscribeFirstSteps()
+    }
+
+    /**
+     * [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001] The guided checklist's persisted half → state,
+     * plus the LATCH: whenever the live projection reports more steps done than are banked, bank
+     * them.
+     *
+     * The banking has to happen somewhere with a coroutine scope, and it is deliberately NOT in the
+     * projection: `resolveFirstSteps` stays a pure function of what it is given, which is why the
+     * "when is a step done" rule can be tested without a ViewModel at all. Here we only WRITE what
+     * that function already concluded.
+     */
+    private fun subscribeFirstSteps() {
+        combine(
+            appPreferences.observeFirstStepsDone(),
+            appPreferences.observeFirstStepsDismissed(),
+        ) { done, dismissed -> done to dismissed }
+            .collectSafely("firstSteps") { (done, dismissed) ->
+                updateState { copy(firstStepsDone = done, firstStepsDismissed = dismissed) }
+            }
+
+        // A step whose signal is live RIGHT NOW gets written to the latch, so it survives the signal
+        // going away (releasing the parking) and a process death. `distinctUntilChanged` + the
+        // superset check keep this from writing on every state emission.
+        state
+            .map { it.firstSteps.done }
+            .distinctUntilChanged()
+            .collectSafely("firstStepsLatch") { effective ->
+                if (!state.value.firstStepsDone.containsAll(effective)) {
+                    appPreferences.setFirstStepsDone(effective)
+                }
+            }
     }
 
     /**
@@ -268,6 +302,22 @@ class HomeViewModel(
             is HomeIntent.ResumeWatch,
             is HomeIntent.DismissParkNudge,
             -> handleDetectionIntent(intent)
+
+            // Guided first steps [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001]
+            is HomeIntent.DismissFirstSteps,
+            is HomeIntent.CompleteFirstStep,
+            -> handleFirstStepsIntent(intent)
+        }
+    }
+
+    // ── Guided first steps ────────────────────────────────────────────────────
+
+    private fun handleFirstStepsIntent(intent: HomeIntent) {
+        when (intent) {
+            is HomeIntent.DismissFirstSteps -> appPreferences.setFirstStepsDismissed(true)
+            is HomeIntent.CompleteFirstStep ->
+                appPreferences.setFirstStepsDone(state.value.firstStepsDone + intent.step)
+            else -> Unit
         }
     }
 
@@ -394,6 +444,11 @@ class HomeViewModel(
             )
                 .onSuccess {
                     updateState { clearedModeFields().copy(isReporting = false) }
+                    // [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001] A REPORTED spot is the other
+                    // way to have met the community half, and it is banked on the write succeeding —
+                    // not on entering the mode. Pressing the step's button teaches nothing; getting
+                    // a spot published does.
+                    handleIntent(HomeIntent.CompleteFirstStep(FirstStep.FIND_SPOT))
                     sendEffect(HomeEffect.SpotReported)
                 }
                 .onFailure { e ->

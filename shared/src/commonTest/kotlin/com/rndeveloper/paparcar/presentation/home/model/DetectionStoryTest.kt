@@ -282,5 +282,77 @@ class DetectionStoryTest {
         )
     }
 
+    // ── Guided first steps take over the cold start [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001] ──
+
+    @Test
+    fun should_standDownTheColdStartRow_when_theChecklistIsAskingForTheFirstParking() {
+        // Two rows asking for one action is the drift this projection exists to prevent.
+        assertEquals(
+            DetectionStory.Hidden,
+            resolveDetectionStory(
+                DetectionUiState.AwaitingFirstPark, null, listOf(activeCard),
+                firstStepsOwnsColdStart = true,
+            ),
+        )
+    }
+
+    @Test
+    fun should_suppressNothingElse_when_theChecklistOwnsTheColdStart() {
+        // The flag takes over ONE story. Every other state keeps its voice — a tutorial is never a
+        // reason to go quiet about a blocked permission or a dead watch.
+        val cards = listOf(activeCard)
+        assertEquals(
+            DetectionStory.BlockedCore,
+            resolveDetectionStory(DetectionUiState.BlockedCore, null, cards, firstStepsOwnsColdStart = true),
+        )
+        assertEquals(
+            DetectionStory.NoVehicle,
+            resolveDetectionStory(DetectionUiState.NoVehicle, null, cards, firstStepsOwnsColdStart = true),
+        )
+        assertEquals(
+            DetectionStory.Inactive,
+            resolveDetectionStory(DetectionUiState.Inactive, null, cards, firstStepsOwnsColdStart = true),
+        )
+        assertEquals(
+            DetectionStory.Watching("Skoda Kamiq", isParked = true, watch = VehicleWatch.Assisted),
+            resolveDetectionStory(
+                DetectionUiState.Parked, null, listOf(activeParkedCard),
+                firstStepsOwnsColdStart = true,
+            ),
+        )
+    }
+
+    @Test
+    fun should_stillOutrankTheChecklist_when_aQuestionOrNudgeIsPending() {
+        // Both things the app is WAITING ON THE USER for keep beating the cold-start suppression:
+        // they are answers the app cannot do its job without.
+        assertEquals(
+            DetectionStory.AwaitingAnswer(window("Škoda Kamiq")),
+            resolveDetectionStory(
+                DetectionUiState.AwaitingFirstPark, null, listOf(activeCard),
+                promptWindow = window("Škoda Kamiq"), firstStepsOwnsColdStart = true,
+            ),
+        )
+        assertEquals(
+            DetectionStory.PendingAsk,
+            resolveDetectionStory(
+                DetectionUiState.AwaitingFirstPark, null, listOf(activeCard),
+                showParkNudge = true, firstStepsOwnsColdStart = true,
+            ),
+        )
+    }
+
+    @Test
+    fun should_keepTheColdStartRow_when_theChecklistIsNotOnThatStep() {
+        // The default, and the state every existing caller is in.
+        assertEquals(
+            DetectionStory.AwaitingFirstPark,
+            resolveDetectionStory(
+                DetectionUiState.AwaitingFirstPark, null, listOf(activeCard),
+                firstStepsOwnsColdStart = false,
+            ),
+        )
+    }
+
     private fun window(vehicleName: String?) = PendingPromptWindow(shownAtMs = 1L, vehicleName = vehicleName)
 }

@@ -11,8 +11,10 @@ import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.rndeveloper.paparcar.domain.detection.PendingParkNudge
+import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 import com.rndeveloper.paparcar.localePrefersImperialUnits
 import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
 import com.rndeveloper.paparcar.domain.model.GpsPoint
@@ -115,6 +117,24 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
         get() = get(Keys.HAS_CONFIRMED_FIRST_PARK, false)
 
     override fun setHasConfirmedFirstPark() = set(Keys.HAS_CONFIRMED_FIRST_PARK, true)
+
+    // ── Guided first steps. [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001] ──
+
+    override fun observeFirstStepsDone(): Flow<Set<FirstStep>> =
+        store.data.map { prefs -> prefs[Keys.FIRST_STEPS_DONE].toFirstSteps() }.distinctUntilChanged()
+
+    override fun setFirstStepsDone(steps: Set<FirstStep>) =
+        set(Keys.FIRST_STEPS_DONE, steps.map { it.name }.toSet())
+
+    override fun observeFirstStepsDismissed(): Flow<Boolean> =
+        store.data.map { it[Keys.FIRST_STEPS_DISMISSED] ?: false }.distinctUntilChanged()
+
+    override fun setFirstStepsDismissed(dismissed: Boolean) = set(Keys.FIRST_STEPS_DISMISSED, dismissed)
+
+    /** Unknown names are DROPPED, not crashed on: a build that renames or retires a step must read
+     *  an older device's set as "that step isn't banked", which is the honest answer. */
+    private fun Set<String>?.toFirstSteps(): Set<FirstStep> =
+        this.orEmpty().mapNotNull { name -> FirstStep.entries.firstOrNull { it.name == name } }.toSet()
 
     // ── Pending mark-parking nudge. [DET-NUDGE-PERSIST-001] ──────────────────
 
@@ -269,6 +289,8 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
         val FIRST_PARK_NUDGE_COUNT  = intPreferencesKey("first_park_nudge_count")
         val LAST_FIRST_PARK_NUDGE_AT = longPreferencesKey("last_first_park_nudge_at")
         val HAS_CONFIRMED_FIRST_PARK = booleanPreferencesKey("has_confirmed_first_park")
+        val FIRST_STEPS_DONE        = stringSetPreferencesKey("first_steps_done")
+        val FIRST_STEPS_DISMISSED   = booleanPreferencesKey("first_steps_dismissed")
         val PENDING_NUDGE_CREATED_AT = longPreferencesKey("pending_park_nudge_created_at")
         val PENDING_NUDGE_SOURCE     = stringPreferencesKey("pending_park_nudge_source")
         val PENDING_NUDGE_VEHICLE_ID = stringPreferencesKey("pending_park_nudge_vehicle_id")

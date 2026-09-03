@@ -160,6 +160,15 @@ class SettingsViewModel(
             // live in the same optional section of the permissions flow. [DET-RELIABILITY-001]
             is SettingsIntent.FixDetectionReliability ->
                 sendEffect(SettingsEffect.NavigateToPermissions(PermissionsFocus.Producer))
+            // [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001] Both halves of the tutorial's own
+            // state, and only those. The banked steps go because otherwise the checklist would come
+            // back already finished; `hasConfirmedFirstPark` deliberately stays, so the cold-start
+            // notification machine is not woken by someone re-reading an explanation.
+            is SettingsIntent.RestartFirstSteps -> {
+                prefs.setFirstStepsDone(emptySet())
+                prefs.setFirstStepsDismissed(false)
+                sendEffect(SettingsEffect.FirstStepsRestarted)
+            }
             is SettingsIntent.OpenPrivacyPolicy ->
                 sendEffect(SettingsEffect.OpenUrl(PRIVACY_POLICY_URL))
             is SettingsIntent.OpenLicenses ->

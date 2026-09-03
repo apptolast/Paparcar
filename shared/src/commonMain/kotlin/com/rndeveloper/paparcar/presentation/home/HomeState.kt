@@ -8,6 +8,9 @@ import com.rndeveloper.paparcar.domain.detection.ServicePresence
 import com.rndeveloper.paparcar.domain.model.DetectionReadiness
 import com.rndeveloper.paparcar.domain.model.DrivingPuck
 import com.rndeveloper.paparcar.domain.model.DisabledReason
+import com.rndeveloper.paparcar.domain.onboarding.FirstStep
+import com.rndeveloper.paparcar.domain.onboarding.FirstStepsProgress
+import com.rndeveloper.paparcar.domain.onboarding.resolveFirstSteps
 import com.rndeveloper.paparcar.presentation.home.model.DetectionUiState
 import com.rndeveloper.paparcar.presentation.home.model.ParkedWatchBadge
 import com.rndeveloper.paparcar.presentation.home.model.resolveParkedWatchBadge
@@ -175,6 +178,19 @@ data class HomeState(
      */
     val servicePresence: ServicePresence = ServicePresence.Dead,
 
+    // ── Guided first steps. [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001] ──
+
+    /** Steps the checklist has banked, straight from `AppPreferences`. Only the RAW persisted facts
+     *  live in the state; which step is current is a projection ([firstSteps]), so the rule sits in
+     *  one testable function instead of in whoever last touched the ViewModel. */
+    val firstStepsDone: Set<FirstStep> = emptySet(),
+    /**
+     * Whether the checklist has been skipped or closed. Defaults to **true**: before preferences
+     * resolve, the honest answer is "show nothing". Defaulting to false would flash a first-run
+     * tutorial at every returning user for one frame on every cold start.
+     */
+    val firstStepsDismissed: Boolean = true,
+
     // ── Mode ──────────────────────────────────────────────────────────────────
 
     val mode: HomeMode = HomeMode.Browse,
@@ -273,6 +289,26 @@ data class HomeState(
     /** Presentation projection of [detectionReadiness] for the Home detection surface. [DET-READY-001h] */
     val detectionUiState: DetectionUiState
         get() = detectionReadiness.toUiState()
+
+    /**
+     * Where the user stands in the guided first steps. [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001]
+     *
+     * Every live signal is read from the state the rest of Home already trusts, so a step can never
+     * be ticked by something the app is not really doing:
+     * - [FirstStep.UNDERSTAND_WATCH] rides on the HONEST badge — a killed foreground service reads
+     *   [ParkedWatchBadge.WATCH_INTERRUPTED] and the step stays open, which is the truth.
+     *   [DET-WATCH-HONEST-001]
+     * - [FirstStep.FIND_SPOT] completes on having a community spot OPEN, not on having scrolled
+     *   past one; the ViewModel banks it so closing the peek does not undo it.
+     */
+    val firstSteps: FirstStepsProgress
+        get() = resolveFirstSteps(
+            done = firstStepsDone,
+            dismissed = firstStepsDismissed,
+            hasActiveSession = activeSessions.isNotEmpty(),
+            isWatching = parkedWatchBadge == ParkedWatchBadge.WATCHING,
+            hasTouchedSpots = selection is HomeSelection.Spot,
+        )
 
     /**
      * Honest status badge for the parked/active vehicle's departure watch — real, not aspirational.

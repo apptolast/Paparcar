@@ -71,7 +71,14 @@ import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.presentation.map.FocusedParking
 import com.rndeveloper.paparcar.presentation.map.HistoryDetailSheet
+import org.jetbrains.compose.resources.stringResource
+import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.first_steps_spotlight_caption
+import com.rndeveloper.paparcar.presentation.onboarding.FirstStepsCard
 import com.rndeveloper.paparcar.presentation.onboarding.OnboardingScreen
+import com.rndeveloper.paparcar.domain.onboarding.FirstStep
+import com.rndeveloper.paparcar.domain.onboarding.resolveFirstSteps
+import com.rndeveloper.paparcar.ui.components.PapSpotlight
 import com.rndeveloper.paparcar.presentation.permissions.PermissionsContent
 import com.rndeveloper.paparcar.presentation.permissions.PermissionsState
 import com.rndeveloper.paparcar.presentation.preview.FakeData
@@ -140,6 +147,40 @@ private val sampleProfile = UserProfile(
 // Full HomeContent is private + map-bound, so the gallery renders the partial Home surfaces
 // (detection card / peek / SpotFit) on their own; the viewer hosts them
 // bottom-anchored (Placement.Surface) so they read like Home's sheet.
+/**
+ * The guided checklist at an arbitrary position. Goes through the REAL resolver rather than
+ * hand-building a progress object, so a gallery variant can never show a combination the product
+ * cannot actually reach. [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001]
+ */
+@Composable
+private fun firstStepsCard(done: Set<FirstStep>) {
+    FirstStepsCard(
+        progress = resolveFirstSteps(
+            done = done,
+            dismissed = false,
+            hasActiveSession = false,
+            isWatching = false,
+            hasTouchedSpots = false,
+        ),
+        onStartStep = {},
+        onDismiss = {},
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
+    )
+}
+
+/** The coach mark over the centre pin, on a stand-in map surface (the gallery has no tiles). */
+@Composable
+private fun firstStepsSpotlight() {
+    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant)) {
+        PapSpotlight(
+            visible = true,
+            caption = stringResource(Res.string.first_steps_spotlight_caption),
+            onDismiss = {},
+            modifier = Modifier.fillMaxSize(),
+        )
+    }
+}
+
 @Composable
 private fun detectionSurface(story: DetectionStory) {
     HomeDetectionSurface(
@@ -1660,6 +1701,36 @@ private val galleryGroups: List<ScreenGroup> = listOf(
         "Onboarding",
         listOf(
             Variant("Onboarding") { OnboardingScreen(onComplete = {}) },
+        ),
+    ),
+    // [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001] The guided checklist walked through every
+    // position the resolver can put it in. Surface placement: it lives in Home's sheet.
+    ScreenGroup(
+        "Primeros pasos (checklist)",
+        listOf(
+            Variant("Paso 1 · marcar aparcamiento", Placement.Surface) {
+                firstStepsCard(done = emptySet())
+            },
+            Variant("Paso 2 · la vigilancia (sin CTA)", Placement.Surface) {
+                firstStepsCard(done = setOf(FirstStep.MARK_PARKING))
+            },
+            Variant("Paso 3 · la comunidad", Placement.Surface) {
+                firstStepsCard(done = setOf(FirstStep.MARK_PARKING, FirstStep.UNDERSTAND_WATCH))
+            },
+            // Out-of-order progress: reported a spot before ever parking. Step 3 is banked and the
+            // checklist STILL asks for step 1 — nothing is watching their car yet.
+            Variant("Desordenado · avisó antes de aparcar", Placement.Surface) {
+                firstStepsCard(done = setOf(FirstStep.FIND_SPOT))
+            },
+            Variant("Completado · tarjeta de cierre", Placement.Surface) {
+                firstStepsCard(done = FirstStep.entries.toSet())
+            },
+        ),
+    ),
+    ScreenGroup(
+        "Primeros pasos (foco del pin)",
+        listOf(
+            Variant("Foco sobre el pin central") { firstStepsSpotlight() },
         ),
     ),
     ScreenGroup(
