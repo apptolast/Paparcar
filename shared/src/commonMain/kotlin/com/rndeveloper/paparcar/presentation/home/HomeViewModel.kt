@@ -293,9 +293,6 @@ class HomeViewModel(
             -> handleSpotIntent(intent)
 
             // Own parking sessions
-            is HomeIntent.ShowParkingConfirmation,
-            is HomeIntent.ConfirmDetectedParking,
-            is HomeIntent.DismissConfirmation,
             is HomeIntent.ReleaseParking,
             is HomeIntent.EnterAddParkingMode,
             is HomeIntent.ExitAddParkingMode,
@@ -531,9 +528,6 @@ class HomeViewModel(
 
     private fun handleParkingIntent(intent: HomeIntent) {
         when (intent) {
-            is HomeIntent.ShowParkingConfirmation -> updateState { copy(pendingParkingGps = intent.gps) }
-            is HomeIntent.ConfirmDetectedParking -> confirmDetectedParking()
-            is HomeIntent.DismissConfirmation -> updateState { copy(pendingParkingGps = null) }
             is HomeIntent.ReleaseParking -> releaseParking(intent.sessionId, intent.reason)
             is HomeIntent.EnterAddParkingMode -> updateState {
                 clearedModeFields().copy(
@@ -548,15 +542,6 @@ class HomeViewModel(
             is HomeIntent.ExitAddParkingMode -> updateState { clearedModeFields() }
             is HomeIntent.ConfirmAddParking -> confirmAddParking(intent.asNewSession)
             else -> Unit
-        }
-    }
-
-    private fun confirmDetectedParking() {
-        val gps = state.value.pendingParkingGps ?: return
-        updateState { copy(pendingParkingGps = null) }
-        viewModelScope.launch {
-            saveManualParking.confirmDetected(gps)
-                .onFailure { sendEffect(HomeEffect.ShowError(PaparcarError.Parking.SaveFailed)) }
         }
     }
 

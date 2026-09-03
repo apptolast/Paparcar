@@ -341,10 +341,6 @@
     <string name="home_size_filter_all">Tout</string>
 
     <!-- ConfirmationBottomSheet -->
-    <string name="confirmation_sheet_title">Stationnement détecté</string>
-    <string name="confirmation_sheet_confirm">Oui, je me suis garé</string>
-    <string name="confirmation_sheet_withdraw">Non, je ne me suis pas garé</string>
-    <string name="confirmation_sheet_autoconfirm_in">Confirmation automatique dans %1$s</string>
     <string name="settings_section_map">Carte</string>
     <string name="settings_distance_unit">Unités de distance</string>
     <string name="settings_distance_unit_desc">Pour les places, itinéraires et statistiques</string>
@@ -365,10 +361,6 @@
     <string name="vehicle_reg_cd_back">Retour</string>
 
     <!-- ConfirmationBottomSheet (détection de stationnement) -->
-    <string name="confirmation_sheet_question">Tu t'es garé ici ?</string>
-    <string name="confirmation_sheet_question_vehicle">Tu as garé ta %1$s ?</string>
-    <string name="confirmation_sheet_method_bt">Détecté par Bluetooth · il y a %1$s</string>
-    <string name="confirmation_sheet_method_ar">Détecté automatiquement · il y a %1$s</string>
 
     <!-- Connectivity banner / snackbar -->
     <string name="connectivity_offline_banner">Hors ligne</string>

@@ -392,54 +392,7 @@ class HomeViewModelTest {
         }
     }
 
-    // ── ShowParkingConfirmation / Dismiss ────────────────────────────────────
-
-    @Test
-    fun `should_set_pendingParkingGps_on_ShowParkingConfirmation`() = runTest {
-        vm.handleIntent(HomeIntent.ShowParkingConfirmation(location))
-        assertEquals(location, vm.state.value.pendingParkingGps)
-    }
-
-    @Test
-    fun `should_clear_pendingParkingGps_on_DismissConfirmation`() = runTest {
-        vm.handleIntent(HomeIntent.ShowParkingConfirmation(location))
-        vm.handleIntent(HomeIntent.DismissConfirmation)
-        assertNull(vm.state.value.pendingParkingGps)
-    }
-
     // ── ConfirmDetectedParking ────────────────────────────────────────────────
-
-    @Test
-    fun `should_clear_pendingParkingGps_on_ConfirmDetectedParking`() = runTest {
-        vm.handleIntent(HomeIntent.ShowParkingConfirmation(location))
-        vm.handleIntent(HomeIntent.ConfirmDetectedParking)
-        assertNull(vm.state.value.pendingParkingGps)
-    }
-
-    @Test
-    fun `should_cancel_detection_on_ConfirmDetectedParking`() = runTest(testDispatcher) {
-        // [DET-MANUAL-CANCEL-001] Resolving the park by hand ends the trip → the coordinator session
-        // must be torn down so a late auto-confirm cannot overwrite the pin (caso Oppo tras Glorieta).
-        // runTest(testDispatcher) shares the scheduler with setMain so the confirm coroutine settles.
-        vehicleRepo.saveVehicle(
-            com.rndeveloper.paparcar.domain.model.Vehicle(
-                id = "v1", userId = "mock_user_001", brand = "Ford", model = "Focus",
-                sizeCategory = com.rndeveloper.paparcar.domain.model.VehicleSize.MEDIUM_SUV,
-                vehicleType = com.rndeveloper.paparcar.domain.model.VehicleType.CAR, isActive = true,
-            ),
-        )
-        vm.handleIntent(HomeIntent.ShowParkingConfirmation(location))
-        vm.handleIntent(HomeIntent.ConfirmDetectedParking)
-        advanceUntilIdle()
-        assertEquals(1, parkingRepo.saveNewParkingSessionCallCount, "sanity: the park must save")
-        assertEquals(1, manualParkingDetection.stopCallCount, "manual confirm must cancel detection")
-    }
-
-    @Test
-    fun `should_do_nothing_on_ConfirmDetectedParking_when_no_pending_gps`() = runTest {
-        vm.handleIntent(HomeIntent.ConfirmDetectedParking)
-        assertNull(vm.state.value.pendingParkingGps)
-    }
 
     // ── AddingParking ─────────────────────────────────────────────────────────
     // `ManualPark` was retired — the empty-state CTA now opens AddingParking

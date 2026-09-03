@@ -481,15 +481,7 @@
     <string name="home_size_filter_all">Todos</string>
 
     <!-- ConfirmationBottomSheet (detección automática) -->
-    <string name="confirmation_sheet_title">Detectamos un aparcamiento</string>
-    <string name="confirmation_sheet_confirm">Sí, he aparcado</string>
-    <string name="confirmation_sheet_withdraw">No, no he aparcado</string>
-    <string name="confirmation_sheet_autoconfirm_in">Se confirmará sola en %1$s</string>
     <!-- Copy refrescada para el sheet de detección (diseño v1) -->
-    <string name="confirmation_sheet_question">¿Has aparcado aquí?</string>
-    <string name="confirmation_sheet_question_vehicle">¿Has aparcado el %1$s?</string>
-    <string name="confirmation_sheet_method_bt">Detección por Bluetooth · hace %1$s</string>
-    <string name="confirmation_sheet_method_ar">Detección automática · hace %1$s</string>
     <string name="settings_section_map">Mapa</string>
     <string name="settings_distance_unit">Unidades de distancia</string>
     <string name="settings_distance_unit_desc">Para plazas, rutas y estadísticas</string>

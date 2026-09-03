@@ -516,15 +516,7 @@
     <string name="home_size_filter_all">All</string>
 
     <!-- ConfirmationBottomSheet (auto-parking detection) -->
-    <string name="confirmation_sheet_title">Parking detected</string>
-    <string name="confirmation_sheet_confirm">Yes, I parked</string>
-    <string name="confirmation_sheet_withdraw">No, I didn’t park</string>
-    <string name="confirmation_sheet_autoconfirm_in">Will confirm on its own in %1$s</string>
     <!-- Refreshed copy for the detection sheet (v1 design) -->
-    <string name="confirmation_sheet_question">Did you park here?</string>
-    <string name="confirmation_sheet_question_vehicle">Did you park your %1$s?</string>
-    <string name="confirmation_sheet_method_bt">Detected by Bluetooth · %1$s ago</string>
-    <string name="confirmation_sheet_method_ar">Auto-detected · %1$s ago</string>
     <string name="settings_section_map">Map</string>
     <string name="settings_distance_unit">Distance units</string>
     <string name="settings_distance_unit_desc">For spots, routes and stats</string>

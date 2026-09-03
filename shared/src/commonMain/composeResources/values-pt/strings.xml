@@ -341,10 +341,6 @@
     <string name="home_size_filter_all">Todos</string>
 
     <!-- ConfirmationBottomSheet -->
-    <string name="confirmation_sheet_title">Estacionamento detetado</string>
-    <string name="confirmation_sheet_confirm">Sim, estacionei</string>
-    <string name="confirmation_sheet_withdraw">Não, não estacionei</string>
-    <string name="confirmation_sheet_autoconfirm_in">Confirma-se sozinha em %1$s</string>
     <string name="settings_section_map">Mapa</string>
     <string name="settings_distance_unit">Unidades de distância</string>
     <string name="settings_distance_unit_desc">Para lugares, rotas e estatísticas</string>
@@ -365,10 +361,6 @@
     <string name="vehicle_reg_cd_back">Voltar</string>
 
     <!-- ConfirmationBottomSheet (deteção de estacionamento) -->
-    <string name="confirmation_sheet_question">Estacionaste aqui?</string>
-    <string name="confirmation_sheet_question_vehicle">Estacionaste o %1$s?</string>
-    <string name="confirmation_sheet_method_bt">Detetado por Bluetooth · há %1$s</string>
-    <string name="confirmation_sheet_method_ar">Detetado automaticamente · há %1$s</string>
 
     <!-- Connectivity banner / snackbar -->
     <string name="connectivity_offline_banner">Estás offline</string>

@@ -341,10 +341,6 @@
     <string name="home_size_filter_all">Tutti</string>
 
     <!-- ConfirmationBottomSheet -->
-    <string name="confirmation_sheet_title">Parcheggio rilevato</string>
-    <string name="confirmation_sheet_confirm">Sì, ho parcheggiato</string>
-    <string name="confirmation_sheet_withdraw">No, non ho parcheggiato</string>
-    <string name="confirmation_sheet_autoconfirm_in">Si confermerà da sola tra %1$s</string>
     <string name="settings_section_map">Mappa</string>
     <string name="settings_distance_unit">Unità di distanza</string>
     <string name="settings_distance_unit_desc">Per posti, percorsi e statistiche</string>
@@ -365,10 +361,6 @@
     <string name="vehicle_reg_cd_back">Indietro</string>
 
     <!-- ConfirmationBottomSheet (rilevamento parcheggio) -->
-    <string name="confirmation_sheet_question">Hai parcheggiato qui?</string>
-    <string name="confirmation_sheet_question_vehicle">Hai parcheggiato il %1$s?</string>
-    <string name="confirmation_sheet_method_bt">Rilevato tramite Bluetooth · %1$s fa</string>
-    <string name="confirmation_sheet_method_ar">Rilevato automaticamente · %1$s fa</string>
 
     <!-- Connectivity banner / snackbar -->
     <string name="connectivity_offline_banner">Sei offline</string>

@@ -344,10 +344,6 @@
     <string name="home_size_filter_all">Toate</string>
 
     <!-- ConfirmationBottomSheet -->
-    <string name="confirmation_sheet_title">Parcare detectată</string>
-    <string name="confirmation_sheet_confirm">Da, am parcat</string>
-    <string name="confirmation_sheet_withdraw">Nu, nu am parcat</string>
-    <string name="confirmation_sheet_autoconfirm_in">Se confirmă automat în %1$s</string>
     <string name="settings_section_map">Hartă</string>
     <string name="settings_distance_unit">Unități de distanță</string>
     <string name="settings_distance_unit_desc">Pentru locuri, trasee și statistici</string>
@@ -368,10 +364,6 @@
     <string name="vehicle_reg_cd_back">Înapoi</string>
 
     <!-- ConfirmationBottomSheet (detectare parcare) -->
-    <string name="confirmation_sheet_question">Ai parcat aici?</string>
-    <string name="confirmation_sheet_question_vehicle">Ai parcat %1$s?</string>
-    <string name="confirmation_sheet_method_bt">Detectat prin Bluetooth · acum %1$s</string>
-    <string name="confirmation_sheet_method_ar">Detectat automat · acum %1$s</string>
 
     <!-- Connectivity banner / snackbar -->
     <string name="connectivity_offline_banner">Ești offline</string>

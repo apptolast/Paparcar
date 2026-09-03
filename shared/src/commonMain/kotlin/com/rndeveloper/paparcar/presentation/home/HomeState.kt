@@ -135,9 +135,6 @@ data class HomeState(
 
     // ── Detection ─────────────────────────────────────────────────────────────
 
-    /** Non-null when a parking event was detected and awaits user confirmation. */
-    val pendingParkingGps: GpsPoint? = null,
-
     /**
      * Readiness of the automatic-detection system, rendered in the persistent top banner.
      * Orthogonal to [mode]: this is *what detection is doing*, not *what the user is doing*.

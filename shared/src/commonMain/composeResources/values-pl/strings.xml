@@ -343,10 +343,6 @@
     <string name="home_size_filter_all">Wszystkie</string>
 
     <!-- ConfirmationBottomSheet -->
-    <string name="confirmation_sheet_title">Wykryto parkowanie</string>
-    <string name="confirmation_sheet_confirm">Tak, zaparkowałem</string>
-    <string name="confirmation_sheet_withdraw">Nie, nie zaparkowałem</string>
-    <string name="confirmation_sheet_autoconfirm_in">Potwierdzi się automatycznie za %1$s</string>
     <string name="settings_section_map">Mapa</string>
     <string name="settings_distance_unit">Jednostki odległości</string>
     <string name="settings_distance_unit_desc">Dla miejsc, tras i statystyk</string>
@@ -367,10 +363,6 @@
     <string name="vehicle_reg_cd_back">Wróć</string>
 
     <!-- ConfirmationBottomSheet (wykrywanie parkowania) -->
-    <string name="confirmation_sheet_question">Tu zaparkowałeś?</string>
-    <string name="confirmation_sheet_question_vehicle">Zaparkowałeś %1$s?</string>
-    <string name="confirmation_sheet_method_bt">Wykryto przez Bluetooth · %1$s temu</string>
-    <string name="confirmation_sheet_method_ar">Wykryto automatycznie · %1$s temu</string>
 
     <!-- Connectivity banner / snackbar -->
     <string name="connectivity_offline_banner">Jesteś offline</string>

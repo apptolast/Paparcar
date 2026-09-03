@@ -42,11 +42,6 @@ sealed class HomeIntent {
 
     // ── Detection lifecycle ───────────────────────────────────────────────────
 
-    /** Detection pipeline signals a parking event — shows the confirmation sheet. */
-    data class ShowParkingConfirmation(val gps: GpsPoint) : HomeIntent()
-    data object ConfirmDetectedParking : HomeIntent()
-    data object DismissConfirmation : HomeIntent()
-
     /**
      * Cold-start "I'm driving" — start automatic detection now so it catches where the user parks.
      * [vehicleId] is the car the user declares they are driving: if it isn't already the active

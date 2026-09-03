@@ -57,7 +57,6 @@ import com.rndeveloper.paparcar.presentation.home.HomeMode
 import com.rndeveloper.paparcar.presentation.home.HomeSelection
 import com.rndeveloper.paparcar.presentation.home.HomeState
 import com.rndeveloper.paparcar.presentation.home.sections.header.components.HomeSearchBar
-import com.rndeveloper.paparcar.ui.components.ConfirmationBottomSheet
 import com.rndeveloper.paparcar.presentation.home.model.DetectionStory
 import com.rndeveloper.paparcar.presentation.home.model.ParkedWatchBadge
 import com.rndeveloper.paparcar.presentation.home.toBrowseListSlice
@@ -601,66 +600,6 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             },
             Variant("Aparcando… (candidate)", Placement.Surface) {
                 detectionSurface(DetectionStory.Driving("Škoda Kamiq", isCandidate = true))
-            },
-            // [DET-NUDGE-PERSIST-001] Nudge pendiente "¿dónde has dejado el coche?" — la fila
-            // sustituye a la del estado normal hasta que el usuario marca plaza o descarta.
-            Variant("Nudge pendiente — ¿dónde has dejado el coche?", Placement.Surface) {
-                detectionSurface(DetectionStory.PendingAsk)
-            },
-            // [DET-ASK-STATE-001] La pregunta viva: manda sobre todo salvo el bloqueo de ubicación,
-            // y sus dos botones son los mismos comandos que los de la notificación.
-            Variant("¿Has aparcado? — con coche y sitio (AwaitingAnswer)", Placement.Surface) {
-                // [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] Con sitio: la card es pulsable y
-                // encuadra el pin fantasma. La hora del subtítulo sale del propio `shownAtMs`.
-                detectionSurface(
-                    DetectionStory.AwaitingAnswer(
-                        PendingPromptWindow(
-                            shownAtMs = GALLERY_ASK_SHOWN_AT_MS,
-                            vehicleName = "Škoda Kamiq",
-                            candidate = GALLERY_ASK_CANDIDATE,
-                            street = "Calle Padornelo 3",
-                        ),
-                    ),
-                )
-            },
-            Variant("¿Has aparcado? — sin sitio (ask antiguo, card inerte)", Placement.Surface) {
-                // La ventana persistida por una build anterior no lleva sitio: la card NO se puede
-                // pulsar y el mapa no dibuja fantasma. Es un estado real, no un caso imposible.
-                detectionSurface(
-                    DetectionStory.AwaitingAnswer(
-                        PendingPromptWindow(shownAtMs = GALLERY_ASK_SHOWN_AT_MS, vehicleName = "Škoda Kamiq"),
-                    ),
-                )
-            },
-            Variant("¿Has aparcado? — sin nombre de coche", Placement.Surface) {
-                detectionSurface(
-                    DetectionStory.AwaitingAnswer(PendingPromptWindow(shownAtMs = GALLERY_ASK_SHOWN_AT_MS)),
-                )
-            },
-        ),
-    ),
-    ScreenGroup(
-        "Home · búsqueda",
-        listOf(
-            Variant("Con resultados") { searchBar(results = sampleSearchResults) },
-            // [UX-PARK-FLOW-001 H3] Éxito con 0 resultados ≠ fallo del geocoder: fila explícita.
-            Variant("Sin resultados (fila explícita)") { searchBar(showNoResults = true) },
-            Variant("Buscando (spinner)") { searchBar(isSearching = true) },
-        ),
-    ),
-    ScreenGroup(
-        "Detección · confirmación",
-        listOf(
-            // [UX-PARK-FLOW-001 C5+C4] Auto-confirm con cuenta atrás visible (arranca en 4:00)
-            // y la MISMA voz que la notificación: pregunta con coche + "Sí, he aparcado".
-            Variant("Sheet ¿Has aparcado? + cuenta atrás") {
-                Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface))
-                ConfirmationBottomSheet(
-                    onConfirm = {},
-                    onDismiss = {},
-                    addressLine = "Calle de Alcalá, 12",
-                    vehicleName = "Škoda Kamiq",
-                )
             },
         ),
     ),

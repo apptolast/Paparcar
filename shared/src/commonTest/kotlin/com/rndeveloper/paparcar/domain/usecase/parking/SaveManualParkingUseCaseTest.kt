@@ -107,19 +107,6 @@ class SaveManualParkingUseCaseTest {
     }
 
     @Test
-    fun should_create_with_side_effects_when_confirming_a_detected_parking() = runTest {
-        val parkingRepo = FakeUserParkingRepository()
-        val (useCase, notifications, detection) = build(parkingRepo)
-
-        val result = useCase.confirmDetected(location)
-
-        assertTrue(result.isSuccess)
-        assertEquals(1, parkingRepo.observeActiveSessions().first().size)
-        assertEquals(1, notifications.parkingSpotSavedCallCount)
-        assertEquals(1, detection.stopCallCount)
-    }
-
-    @Test
     fun should_stamp_manual_report_when_placing_a_spontaneous_pin() = runTest {
         val parkingRepo = FakeUserParkingRepository()
         val (useCase, _, _) = build(parkingRepo)
@@ -150,19 +137,6 @@ class SaveManualParkingUseCaseTest {
         // Same CREATE side-effects as any user-confirmed pin.
         assertEquals(1, notifications.parkingSpotSavedCallCount)
         assertEquals(1, detection.stopCallCount)
-    }
-
-    @Test
-    fun should_stamp_user_path_when_confirming_a_detected_parking() = runTest {
-        val parkingRepo = FakeUserParkingRepository()
-        val (useCase, _, _) = build(parkingRepo)
-
-        val result = useCase.confirmDetected(location)
-
-        assertTrue(result.isSuccess)
-        val session = parkingRepo.observeActiveSessions().first().single()
-        assertEquals(SpotType.AUTO_DETECTED, session.spotType)
-        assertEquals("user", session.detectionPath)
     }
 
     @Test

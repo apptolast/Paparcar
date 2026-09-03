@@ -342,10 +342,6 @@
     <string name="home_size_filter_all">Alle</string>
 
     <!-- ConfirmationBottomSheet -->
-    <string name="confirmation_sheet_title">Parkeerplaats gedetecteerd</string>
-    <string name="confirmation_sheet_confirm">Ja, ik heb geparkeerd</string>
-    <string name="confirmation_sheet_withdraw">Nee, ik heb niet geparkeerd</string>
-    <string name="confirmation_sheet_autoconfirm_in">Wordt over %1$s automatisch bevestigd</string>
     <string name="settings_section_map">Kaart</string>
     <string name="settings_distance_unit">Afstandseenheden</string>
     <string name="settings_distance_unit_desc">Voor plekken, routes en statistieken</string>
@@ -366,10 +362,6 @@
     <string name="vehicle_reg_cd_back">Terug</string>
 
     <!-- ConfirmationBottomSheet (parkeerdetectie) -->
-    <string name="confirmation_sheet_question">Heb je hier geparkeerd?</string>
-    <string name="confirmation_sheet_question_vehicle">Heb je je %1$s geparkeerd?</string>
-    <string name="confirmation_sheet_method_bt">Gedetecteerd via Bluetooth · %1$s geleden</string>
-    <string name="confirmation_sheet_method_ar">Automatisch gedetecteerd · %1$s geleden</string>
 
     <!-- Connectivity banner / snackbar -->
     <string name="connectivity_offline_banner">Je bent offline</string>

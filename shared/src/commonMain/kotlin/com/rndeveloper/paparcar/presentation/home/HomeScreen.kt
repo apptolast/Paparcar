@@ -72,7 +72,6 @@ import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.Home
 import com.rndeveloper.paparcar.presentation.util.rememberOpenExternalNavigation
 import com.rndeveloper.paparcar.presentation.util.zoneIconFor
 import com.rndeveloper.paparcar.ui.components.CenterPinKind
-import com.rndeveloper.paparcar.ui.components.ConfirmationBottomSheet
 import com.rndeveloper.paparcar.ui.components.LocalMapInteracting
 import com.rndeveloper.paparcar.ui.components.PapSpotlight
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
@@ -278,22 +277,6 @@ fun HomeScreen(
         onOpenStepExplainer = onOpenStepExplainer,
     )
 
-    state.pendingParkingGps?.let { pending ->
-        ConfirmationBottomSheet(
-            onConfirm = { viewModel.handleIntent(HomeIntent.ConfirmDetectedParking) },
-            onDismiss = { viewModel.handleIntent(HomeIntent.DismissConfirmation) },
-            addressLine = state.cameraAddressAndPlace?.let { info ->
-                info.displayLine?.let { line ->
-                    // A borrowed-neighbour geocode says so. [GEO-CACHE-ANSWERS-NEARBY-001]
-                    if (info.approximate) stringResource(Res.string.location_approximate_near, line) else line
-                }
-            },
-            detectionTimestampMs = pending.timestamp,
-            // Same car the notification names (active vehicle) — one voice per event. [C4]
-            vehicleName = state.vehicles.firstOrNull { it.isActive }
-                ?.displayName(fallback = "")?.takeIf { it.isNotBlank() },
-        )
-    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -63,10 +63,6 @@ class SaveManualParkingUseCase(
         targetVehicleId = targetVehicleId,
     )
 
-    /** Detection-prompt confirm: the detected fix IS the pin (always a create). */
-    suspend fun confirmDetected(gps: GpsPoint): Result<Unit> =
-        save(gps, SpotType.AUTO_DETECTED, detectionPath = PATH_USER, editingParkingId = null, targetVehicleId = null)
-
     private suspend fun save(
         gps: GpsPoint,
         spotType: SpotType,
@@ -101,8 +97,12 @@ class SaveManualParkingUseCase(
         const val USER_CONFIRMED_RELIABILITY = 1.0f
         // Pin provenance paths, read off the TYPE so a path can never be spelled twice.
         // [DET-PIN-PROVENANCE-001][DET-NUDGE-PIN-PROVENANCE-001][PARK-A-PIN-MUST-SAY-WHO-PLACED-IT-001]
+        //
+        // `UserAnswered` is NOT here any more: it belonged to `confirmDetected`, the entry point of a
+        // modal nobody could reach [UI-THE-PARKING-CONFIRMATION-MODAL-IS-UNREACHABLE-001]. Answering
+        // the real question goes through the detection service (ACTION_PARKING_CONFIRMED), which
+        // stamps its own path.
         val PATH_MANUAL = DetectionPath.ManualPin.label
-        val PATH_USER = DetectionPath.UserAnswered.label
         val PATH_NUDGE = DetectionPath.Nudge.label
         // The MOVE branch has no path constant here on purpose: it does not build a pin, it hands
         // the id to [UpdateParkingLocationUseCase], which owns the provenance of a drag

@@ -342,10 +342,6 @@
     <string name="home_size_filter_all">Alle</string>
 
     <!-- ConfirmationBottomSheet -->
-    <string name="confirmation_sheet_title">Parkplatz erkannt</string>
-    <string name="confirmation_sheet_confirm">Ja, ich habe geparkt</string>
-    <string name="confirmation_sheet_withdraw">Nein, ich habe nicht geparkt</string>
-    <string name="confirmation_sheet_autoconfirm_in">Wird in %1$s automatisch bestätigt</string>
     <string name="settings_section_map">Karte</string>
     <string name="settings_distance_unit">Entfernungseinheiten</string>
     <string name="settings_distance_unit_desc">Für Plätze, Routen und Statistiken</string>
@@ -366,10 +362,6 @@
     <string name="vehicle_reg_cd_back">Zurück</string>
 
     <!-- ConfirmationBottomSheet (Parkerkennung) -->
-    <string name="confirmation_sheet_question">Hast du hier geparkt?</string>
-    <string name="confirmation_sheet_question_vehicle">Hast du deinen %1$s geparkt?</string>
-    <string name="confirmation_sheet_method_bt">Per Bluetooth erkannt · vor %1$s</string>
-    <string name="confirmation_sheet_method_ar">Automatisch erkannt · vor %1$s</string>
 
     <!-- Connectivity banner / snackbar -->
     <string name="connectivity_offline_banner">Du bist offline</string>
