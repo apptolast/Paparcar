@@ -46,7 +46,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.DialogProperties
 import com.rndeveloper.paparcar.ui.theme.PapAlpha
 
 /**
@@ -131,15 +130,10 @@ fun PapAlertDialog(
     // built-in transition). Centralised here → every dialog in the app inherits it.
     val visibleState = remember { MutableTransitionState(false) }.apply { targetState = true }
 
-    // A dialog gets its OWN window, and by default that window swallows the IME insets: measured on
-    // the Oppo, `imePadding()` inside it is a plain no-op and the keyboard covers the actions —
-    // with the report field full, "Cancel" sat below the IME and could not be reached. Opting the
-    // window out of the automatic fit is what makes `imePadding()` below mean anything.
-    // [SUPPORT-A-REPORT-MUST-SAY-WHAT-WENT-WRONG-001]
     BasicAlertDialog(
         onDismissRequest = onDismiss,
         modifier = modifier,
-        properties = DialogProperties(decorFitsSystemWindows = false),
+        properties = imeAwareDialogProperties(),
     ) {
         AnimatedVisibility(
             visibleState = visibleState,
