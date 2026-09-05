@@ -40,7 +40,7 @@ class FakeUserParkingRepository(
             ?.let { sessions.firstOrNull { s -> s.isActive && s.vehicleId == it } }
             ?.id
         if (vehicleId != null) {
-            sessions.replaceAll { s ->
+            sessions.mapInPlace { s ->
                 if (s.isActive && s.vehicleId == vehicleId) s.copy(isActive = false) else s
             }
         }
@@ -140,7 +140,7 @@ class FakeUserParkingRepository(
 
     override suspend fun markProvisionalDeparture(sessionId: String, atMs: Long?): Result<Unit> {
         provisionalDepartures[sessionId] = atMs
-        sessions.replaceAll { if (it.id == sessionId) it.copy(provisionalDepartureAtMs = atMs) else it }
+        sessions.mapInPlace { if (it.id == sessionId) it.copy(provisionalDepartureAtMs = atMs) else it }
         _sessionsFlow.value = sessions.toList()
         return Result.success(Unit)
     }
@@ -151,7 +151,7 @@ class FakeUserParkingRepository(
      *  above, exactly as Room does; the diagnostic reads still find it here.
      *  `COALESCE` semantics: the first withdrawal wins. */
     override suspend fun retractParkingSession(sessionId: String, retractedAtMs: Long): Result<Unit> {
-        sessions.replaceAll {
+        sessions.mapInPlace {
             if (it.id == sessionId && it.retractedAtMs == null) it.copy(retractedAtMs = retractedAtMs) else it
         }
         _sessionsFlow.value = sessions.toList()
@@ -168,7 +168,7 @@ class FakeUserParkingRepository(
         }
         // Mirrors the DAO's stamping: first close wins endedAtMs, publishedSpot only ever
         // confirms. [VEH-STATS-SAY-SOMETHING-USEFUL-001]
-        sessions.replaceAll {
+        sessions.mapInPlace {
             if (it.id == sessionId) it.copy(
                 isActive = false,
                 endedAtMs = it.endedAtMs ?: endedAtMs,
@@ -247,4 +247,11 @@ class FakeUserParkingRepository(
         _sessionsFlow.value = sessions.toList()
         return Result.success(updated)
     }
+}
+
+/** `java.util.List.replaceAll` sneaks through on the JVM but is not common-stdlib — on
+ * Kotlin/Native it resolves against an @ExperimentalNativeApi shim and breaks the iOS test
+ * compile. Same semantics, multiplatform. [TEST-A-KMP-SUITE-THAT-ONLY-RUNS-ON-JVM-IS-HALF-A-SUITE-001] */
+private fun <T> MutableList<T>.mapInPlace(transform: (T) -> T) {
+    for (i in indices) this[i] = transform(this[i])
 }

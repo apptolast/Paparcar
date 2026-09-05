@@ -84,7 +84,7 @@ class ConfirmParkingUseCaseTest {
     }
 
     @Test
-    fun `should not post any notification (caller's responsibility)`() = runTest {
+    fun `should not post any notification - the caller's responsibility`() = runTest {
         // [CONFIRM-NO-NOTIF-CLEANUP] Notification responsibility lives in the caller now:
         // coordinator owns showParkingSavedConfirm (REVERT card), BT detector + HomeViewModel
         // own showParkingSaved (legacy tap-to-open). The use case never posts.
@@ -701,7 +701,7 @@ class ConfirmParkingUseCaseTest {
     }
 
     @Test
-    fun `should save with no route when the store is empty (BT park - no drive tracked)`() = runTest {
+    fun `should save with no route when the store is empty - BT park with no drive tracked`() = runTest {
         val useCase = buildUseCase(routeStore = FakeDrivingRouteStore())
 
         val saved = useCase(location, detectionReliability = 0.95f, sealPoint = null).getOrNull()
