@@ -58,8 +58,11 @@ jobs:
       - name: Build Check
         run: ./gradlew :app:assembleProdDebug :app:compileMockDebugKotlin --no-daemon --stacktrace
 
+      # :app:testMockDebugUnitTest carries the mock-graph Koin verify — `mockModule` lives in
+      # :app, so :shared's KoinModuleVerifyTest (prod graph) cannot see it.
+      # [IOS-DI-A-MOCK-GRAPH-ONLY-PROD-IS-VERIFIED-001]
       - name: Run unit tests
-        run: ./gradlew :shared:testDebugUnitTest --no-daemon --stacktrace
+        run: ./gradlew :shared:testDebugUnitTest :app:testMockDebugUnitTest --no-daemon --stacktrace
 
       - name: Upload test results
         if: always()
@@ -116,10 +119,7 @@ jobs:
         run: chmod +x gradlew
 
       # Compiles iosMain with Kotlin/Native and links the ComposeApp framework. This is the half
-      # that catches what Windows can break. The Swift under iosApp/ is NOT built yet: xcodebuild
-      # needs a shared scheme and this project has none (schemes live in xcuserdata/, gitignored).
-      # Sharing it is a checkbox in Xcode's Manage Schemes and belongs to whoever has the Mac;
-      # the xcodebuild step joins this job the day that .xcscheme is committed.
+      # that catches what Windows can break.
       - name: Link iOS framework
         run: ./gradlew :shared:linkDebugFrameworkIosSimulatorArm64 --no-daemon --stacktrace
 
@@ -160,3 +160,22 @@ jobs:
           name: ios-test-results
           path: shared/build/reports/tests/iosSimulatorArm64Test/
           retention-days: 7
+
+      - name: Cache Swift packages
+        uses: actions/cache@v4
+        with:
+          path: ~/spm-packages
+          key: spm-${{ hashFiles('iosApp/iosApp.xcodeproj/project.pbxproj') }}
+          restore-keys: spm-
+
+      # Builds the ACTUAL app — Swift shell + the "Compile Kotlin Framework" phase (embedAndSign
+      # via Gradle) — the full path a human Mac walks. Simulator + unsigned, so neither TEAM_ID
+      # nor GoogleService-Info.plist is needed (the plist is a RUNTIME requirement; the Xcode 16
+      # synchronized folder bundles it automatically when present). Possible only since the shared
+      # .xcscheme was committed. [IOS-XCODE-A-PLIST-THAT-NEVER-ENTERS-THE-BUNDLE-001]
+      - name: Build iOS app (xcodebuild)
+        run: |
+          xcodebuild -project iosApp/iosApp.xcodeproj -scheme iosApp \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            -configuration Debug -clonedSourcePackagesDirPath ~/spm-packages \
+            CODE_SIGNING_ALLOWED=NO build

@@ -15,8 +15,15 @@ import com.rndeveloper.paparcar.domain.model.GpsPoint
  * available from the moment of parking.
  *
  * Backed by the same store the safety-net worker reads (keyed by geofence id), so a seal here and
- * a re-seal at a later cure are the same slot. Platform-specific (Android `Sensor.TYPE_STEP_COUNTER`
- * + persistent prefs); absent platforms bind nothing and the honest close stays silent.
+ * a re-seal at a later cure are the same slot.
+ *
+ * [IOS-F0-05] The PORTABLE contract is `seal(WHERE, WHEN)` → `stepsSinceSeal` — the cumulative
+ * counter baseline is an implementation detail of the Android impl (`Sensor.TYPE_STEP_COUNTER`
+ * + persistent prefs), NOT part of the contract. An iOS impl persists only the seal's position
+ * and moment and derives the delta with a pedometer date-range query over
+ * `[sealedAtMs, now]` (`CMPedometer.queryPedometerData`) at read time — which also sidesteps
+ * the frozen-counter pathology (the OS records steps with the app dead). Platforms with
+ * neither mechanism bind nothing and the honest close stays silent.
  */
 interface DetectionStepAnchors {
 

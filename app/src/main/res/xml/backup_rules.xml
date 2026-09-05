@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- [IOS-F0-07] Auto-backup exclusions for DETECTION STATE (API 31+; the API 26-30 twin is
+     full_backup_content.xml — keep both in sync).
+
+     Why: restoring these SharedPreferences on a NEW device resurrects anchors, pending arms,
+     heartbeats and BT identity from the OLD device — the app boots on a virgin phone believing
+     a detection from weeks ago is mid-flight (ghost state).
+
+     What is deliberately NOT excluded:
+     - Room DB (active parking session): the user's pin SHOULD survive a device migration —
+       the car is still parked where it was.
+     - DataStore app preferences: user settings (auto-detect toggle, etc.) must restore; the
+       pending nudge stored alongside them expires by age and is harmless.
+
+     File list verified against code (each name is a PREFS const in androidMain):
+     parking_safety_net · trip_trail · driving_route · departure_event_bus · exact_heartbeat ·
+     bt_identity. A NEW detection prefs file must be added to BOTH rules files. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="sharedpref" path="parking_safety_net.xml" />
+        <exclude domain="sharedpref" path="trip_trail.xml" />
+        <exclude domain="sharedpref" path="driving_route.xml" />
+        <exclude domain="sharedpref" path="departure_event_bus.xml" />
+        <exclude domain="sharedpref" path="exact_heartbeat.xml" />
+        <exclude domain="sharedpref" path="bt_identity.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="parking_safety_net.xml" />
+        <exclude domain="sharedpref" path="trip_trail.xml" />
+        <exclude domain="sharedpref" path="driving_route.xml" />
+        <exclude domain="sharedpref" path="departure_event_bus.xml" />
+        <exclude domain="sharedpref" path="exact_heartbeat.xml" />
+        <exclude domain="sharedpref" path="bt_identity.xml" />
+    </device-transfer>
+</data-extraction-rules>

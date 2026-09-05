@@ -1,5 +1,7 @@
 package com.rndeveloper.paparcar.domain.detection.coordinator.replay
 
+import com.rndeveloper.paparcar.domain.detection.coordinator.ingestion.TraceEvent
+
 /**
  * [DET-HONEST-CLOSE-001] Field trace of the **correctly-silent abort** that must STAY silent
  * (2026-07-15 02:11Z, Firestore `diagnostics/fiyp…/sessions/1784081508556`, Oppo CPH2371).

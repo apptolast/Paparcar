@@ -10,6 +10,7 @@ import com.rndeveloper.paparcar.di.iosDetectionModule
 import com.rndeveloper.paparcar.di.iosPlatformModule
 import com.rndeveloper.paparcar.di.paparcarLoginConfig
 import com.rndeveloper.paparcar.di.presentationModule
+import com.rndeveloper.paparcar.detection.IosDetectionController
 import com.rndeveloper.paparcar.notification.IosNotificationActionHandler
 import org.koin.mp.KoinPlatform
 import platform.UserNotifications.UNUserNotificationCenter
@@ -17,6 +18,10 @@ import platform.UserNotifications.UNUserNotificationCenter
 fun MainViewController() = run {
     initKoin()
     installNotificationDelegate()
+    // [IOS-F1-A-CONTROLLER-FOR-THE-HAPPY-PATH-001] Start the detection orchestrator: its
+    // geofence-bus subscription must exist before any region delegate can fire (the bus has no
+    // replay), and its start-of-life reconcile heals the region inventory. Idempotent.
+    KoinPlatform.getKoin().get<IosDetectionController>().start()
     ComposeUIViewController { App() }
 }
 
@@ -55,6 +60,7 @@ private fun installNotificationDelegate() {
         coordinator = koin.get(),
         revertParkingUseCase = koin.get(),
         notificationPort = koin.get(),
+        controller = koin.get(),
     )
     notificationDelegate = handler
     UNUserNotificationCenter.currentNotificationCenter().setDelegate(handler)

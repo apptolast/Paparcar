@@ -16,6 +16,7 @@ import com.rndeveloper.paparcar.domain.model.SpotVoteOutcome
 import com.rndeveloper.paparcar.domain.model.SpotType
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.Vehicle
+import com.rndeveloper.paparcar.domain.model.DeviceCapabilities
 import com.rndeveloper.paparcar.domain.usecase.detection.EvaluateDetectionReliabilityUseCase
 import com.rndeveloper.paparcar.domain.usecase.detection.ObserveDetectionReadinessUseCase
 import com.rndeveloper.paparcar.domain.usecase.detection.ObserveDetectionReliabilityUseCase
@@ -159,7 +160,9 @@ class HomeViewModelTest {
             permissionManager = permissions,
             oemBackgroundReliabilityManager = FakeOemBackgroundReliabilityManager(),
             strategyResolver = ParkingStrategyResolver(vehicleRepo, FakeBluetoothScanner(bluetoothEnabled = false)),
-            evaluateDetectionReliability = EvaluateDetectionReliabilityUseCase(),
+            evaluateDetectionReliability = EvaluateDetectionReliabilityUseCase(
+                capabilities = DeviceCapabilities(supportsBtStrategy = true, supportsBatteryExemption = true),
+            ),
         )
         return HomeViewModel(
             permissionManager = permissions,

@@ -1,5 +1,7 @@
 package com.rndeveloper.paparcar.domain.detection.coordinator.replay
 
+import com.rndeveloper.paparcar.domain.detection.coordinator.ingestion.TraceEvent
+
 /**
  * [DET-GUARDRAILS-KEEP-THE-DOCTRINE-001] Field 2026-08-30 01:20:28–01:49:36 (Redmi, uid `itmG…`,
  * session `825dcb60`): **the 250 m zone centred on a fix the car was passing through** — the second

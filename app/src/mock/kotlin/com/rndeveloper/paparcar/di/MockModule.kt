@@ -14,6 +14,7 @@ import com.rndeveloper.paparcar.data.repository.AddressAndPlaceRepositoryImpl
 import com.rndeveloper.paparcar.domain.geocoder.GeocoderDataSource
 import com.rndeveloper.paparcar.domain.geocoder.LocalAddressAndPlaceDataSource
 import com.rndeveloper.paparcar.domain.location.LocationDataSource
+import com.rndeveloper.paparcar.domain.model.DeviceCapabilities
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager
 import com.rndeveloper.paparcar.domain.diagnostics.DeviceInfoProvider
 import com.rndeveloper.paparcar.domain.diagnostics.UnknownDeviceInfoProvider
@@ -97,6 +98,11 @@ val mockModule = module {
     // Real Overpass road source so the mock sim exercises live OSM map-matching on-device. [ROUTE-SNAP-001]
     single<RoadNetworkDataSource> { OverpassRoadNetworkDataSourceImpl() }
     single<PermissionManager> { FakePermissionManager(get()) }
+    // Prod binds this in each PLATFORM module (Android true/true, iOS false/false), which the mock
+    // graph never loads — EvaluateDetectionReliabilityUseCase resolves it with get(), so without
+    // this line Home/Settings/Permissions crash on open. Same literals as the device the Dev
+    // Catalog runs on. [IOS-DI-A-MOCK-GRAPH-ONLY-PROD-IS-VERIFIED-001]
+    single { DeviceCapabilities(supportsBtStrategy = true, supportsBatteryExemption = true) }
     single<OemBackgroundReliabilityManager> { FakeOemBackgroundReliabilityManager(get()) }
     single<AppPreferences> { FakeAppPreferences(get()) }
     // Scenario-aware since [UI-MAP-PUCK-BELONGS-TO-THE-DRIVE-NOT-TO-ONE-LANE-001]: the connection is
@@ -154,6 +160,10 @@ val mockModule = module {
         com.rndeveloper.paparcar.fakes.data.repository.FakeDiagnosticsReportUploader()
     }
     single<AddressAndPlaceRepository> { AddressAndPlaceRepositoryImpl(get(), get(), get()) }
+    // Real impl: static in-code data, no platform deps — the licenses screen shows as it ships.
+    single<com.rndeveloper.paparcar.domain.repository.OpenSourceLicenseRepository> {
+        com.rndeveloper.paparcar.data.repository.OpenSourceLicenseRepositoryImpl()
+    }
 
     // Database (In-memory Room)
     single<AppDatabase> {

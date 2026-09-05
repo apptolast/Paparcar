@@ -70,6 +70,14 @@ class KoinModuleVerifyTest {
                 // assembled inline in the module lambda (`listOf(get(), …)`), so the element
                 // contract is what gets whitelisted, not List itself.
                 com.rndeveloper.paparcar.domain.repository.UserScopedRepository::class,
+                // [IOS-F0-03] `DeviceCapabilities(supportsBtStrategy, supportsBatteryExemption)`
+                // is built from LITERALS in each platform module (Android true/true, iOS
+                // false/false) — the flags describe the platform, so there is nothing to inject.
+                // verify() reflects the constructor without seeing inside the lambda and reads the
+                // Boolean as an unbound dependency. Whitelisting it costs nothing the other
+                // entries do not already cost: a bare Boolean can never be a legitimate Koin
+                // binding, so no real missing definition can hide behind this.
+                Boolean::class,
             ),
         )
     }

@@ -1,5 +1,7 @@
 package com.rndeveloper.paparcar.domain.detection.coordinator.replay
 
+import com.rndeveloper.paparcar.domain.detection.coordinator.ingestion.TraceEvent
+
 /**
  * [DET-NODRIVE-ZONE-001] Field trace of the **late-EXIT lost park** at home
  * (2026-07-27 18:36Z, Firestore `diagnostics/WZB7.../sessions/1785177396935`, Redmi

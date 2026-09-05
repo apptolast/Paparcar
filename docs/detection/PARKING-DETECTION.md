@@ -3985,6 +3985,12 @@ terrain is Doze + cached-kill + starved Play Services, where the worker used to 
 Converts "AR never fired and the process was dead" from a lost departure into a ≤5-15 min delay —
 which DET-ROUTE-ORIGIN-001's backdated origin then hides from the drawn route entirely.
 
+**Update 2026-08-13 [IOS-F0-09].** With targetSdk 36 the special access is denied by default, so
+in the field the net normally runs the INEXACT allow-while-idle variant. Accepted by decision:
+no permission-request UI (the "CTA special-access" piece of the original spec is discarded);
+"exact" names the capability ceiling, not a guarantee, and no consumer may assume the 5-min
+cadence — the 15-min periodic is the contractual floor.
+
 ### DET-JAM-WINDOW-001 — recent creep extends the no-movement budget; a jam at the exit no longer folds the session (2026-07-30)
 
 **Why (piece 3 of the Driversnote plan).** `maxNoMovementMs` (4 min) silently folds any session
@@ -7573,3 +7579,158 @@ the history it exists to preserve.
 Spec: `docs/backlog/det-a-held-anchor-must-say-a-second-stop-happened-001.md`. The behaviour itself
 stays open and explicitly **out of 1.0**:
 `docs/backlog/det-a-repark-leaves-the-pin-at-the-first-stop-001.md`.
+
+### IOS-F1-A-CONTROLLER-FOR-THE-HAPPY-PATH-001 — iOS gets its orchestrator (commit pending)
+
+**User report**: none — parity work. The iOS side had every sensor port real and nobody feeding
+the coordinator: the manual button was a no-op, the geofence bus emitted EXITs no one consumed,
+and the F0 side-records had no reader.
+
+**Root cause**: F0 built the enablers; the orchestrator itself (plan §8-F1) had never been
+written. iOS was a periphery without a heart.
+
+**Fix**: `IosDetectionController` (iosMain) — the functional mirror of
+`CoordinatorDetectionService`, reduced to what iOS needs. It reproduces the ONE invariant
+[DET-INTAKE-001] (unlimited channel, one command handled to completion at a time, a failing
+handler never kills the loop) and keeps every decision in commonMain: quiet period, strategy gate
+(which on iOS always answers COORDINATOR — emergent, not special-cased), exit adjudication,
+supersede (`notifySuperseded()` BEFORE cancel, inherited obligation), pre-arm evidence, and the
+whole confirmation pipeline inside `CoordinatorParkingDetector` (confirm + fence + notification —
+the Android service never called `ConfirmParkingUseCase` either; measured during the port). The
+geofence bus is the REAL delivery channel on iOS [IOS-F0-04]: subscription happens in `start()`
+before any delegate can fire, and a start-of-life reconcile (`FenceReconciliation.kt`, new pure
+function + 5 tests, budget of 20 regions explicit) heals what a replay-less bus can drop. The
+three ports stop being no-ops, each through its own door [DET-HANDOFF-NOT-MANUAL-001]; the
+resumer's answer is real (the OS-held region IS the watcher). New NSUserDefaults twin of the
+user-stop store keeps [DET-STOP-BUTTON-001]'s quiet period.
+
+**Deliberately absent** (F2, stated in code where each bites): departure dispatch on EXIT (the
+freed spot is NOT published yet — the inline check with its retry ladder is F2), honest close and
+witness seal (mute until the CMPedometer range query replaces `stepsSinceSeal() == null`),
+safety-net mesh, wake-and-query reconstruction. No FGS, no sentry, no keep-alive: the trip-scoped
+CLLocation session is what keeps the app alive, per the plan's §3 doctrine.
+
+**Accompanying risk**: Android behavior untouched (all-new files plus iosMain rewires; the shared
+suite stayed at the same green). The controller itself compiles only on the Mac lane — the PR's
+`apple` job is its compiler and its simulator suite runs the shared decisions it calls.
+
+Spec: `docs/backlog/ios-f1-a-controller-for-the-happy-path-001.md`.
+
+### IOS-F2-A-WAKE-MUST-QUERY-THE-PAST-001 (etapas 1-2) — the iOS EXIT frees the spot, and the step budget speaks (commit pending)
+
+**User report**: none — the F1 boundary stated in code: "a geofence EXIT arms the next-park
+tracking but does NOT dispatch the departure". This closes that half, plus the mute step budget.
+
+**Root cause**: no orchestration existed on iOS for the two lanes whose DECISIONS were already
+common: the departure ladder (`RunDepartureCheckUseCase` — publish gate, provisional
+double-publish guard, refuted-pin retract, follower handoff all live inside it) and the honest
+close (whose budget read `stepsSinceSeal() == null` since F0).
+
+**Fix (stage 1)**: the controller's EXIT lane launches an inline departure ladder in PARALLEL
+with the arm (never inside the intake — 105 s must not freeze the loop; the arm's trip-scoped GPS
+session is what keeps the app alive through the window, the plan's §2.5 substitution for
+WorkManager). Attempts at t=0/+15/+45/+105 s; per-fence REPLACE dedup (the real cross-wake dedup
+is the adjudication records). Two decisions Android leaves implicit are explicit here:
+`ProcessFailedRetry` capped at 3 (giving up never loses the session — the stage-3 reconcile
+re-derives an unprocessed departure) and `Dismissed` only logs (fence-poison→cure belongs to the
+mesh, stage 4). `Processed(followTrip)` arms `GEOFENCE_EXIT` + `ArmEvidence.DepartureFollowed`
+anchored to the just-closed pin [DET-A-JUST-DEPARTED-CAR-IS-NOT-NO-SESSION-001], with the same
+race guard as the Android handler.
+
+**Fix (stage 2)**: `IosDetectionStepAnchors.stepsSinceSeal` becomes a real
+`CMPedometer.queryPedometerDataFromDate` over `[sealedAtMs, now]` — the portable contract's
+intended shape (IOS-F0-05): the OS counts steps with the app dead, and there is no cumulative
+counter to freeze (DET-FROZEN-COUNTER has no iOS analogue). The controller's epilogue runs the
+honest close (then the arrival stamp — Android's order) WITHOUT the witness slot: iOS has no
+cumulative counter to stamp witnesses with, and the evaluator treats an absent witness as "no
+refutation", never as proof. Query errors and denied Motion permission answer null — mute, never
+a false verdict.
+
+**Deliberately absent still** (stages 3-4 of the same ticket): wake-and-query reconstruction via
+`DetectionTraceIngestion` (the production coordinator is a real-clock single; reconstruction
+needs a virtual-clock instance — design noted in the ticket) and the safety-net mesh
+(`EvaluateSafetyNetCheckUseCase` on app-start/ENTER-cure/SLC/BGAppRefresh wakes).
+
+**Accompanying risk**: Android untouched (iosMain-only). The ladder runs on the same common use
+case the Android worker runs — a behavior change there would show in the shared suite first.
+
+Spec: `docs/backlog/ios-f2-a-wake-must-query-the-past-001.md`.
+
+### IOS-F2 (etapa 3) — the wake queries the past and replays it into a virtual-clock coordinator (commit pending)
+
+**Root cause closed**: side-records were written and nobody re-derived the trip; a process death
+mid-trip lost the park silently.
+
+**Fix**: on every wake the controller scans STALE pending arms (`config.pendingDetectionDeadMs`,
+the same staleness rule the Android watchdog applies) and runs the plan's §4 protocol per arm:
+`queryTransitions` (new real iOS impl — CMMotionActivityManager history, up to 7 days recorded
+with the app dead, same edge synthesis as the live lane + the cycling edge as BICYCLE_ENTER, each
+transition stamped with the SAMPLE's own time) + one wake fix + CMPedometer steps over
+`[lastVehicleExit, now]` → `composeWakeTrace` (new PURE commonMain composer, 7 tests) →
+`DetectionTraceIngestion` → a SEPARATE coordinator instance built by the new qualified Koin
+factory (`RECONSTRUCTION_COORDINATOR`) with the trace's virtual clock and a replay-driven step
+source. ONE construction list feeds both the production single and this factory — a hand-copied
+second list is how they would silently diverge.
+
+**Doctrine, load-bearing choices** (each tested or stated in code):
+- The composer is conservative: transitions outside the arm window are clamped (a stale record
+  must not seed someone else's ride), a pre-arm cached fix is dropped, and steps are REFUSED
+  without a VEHICLE_EXIT anchor [DET-STEP-BUDGET-ORIGIN-001] — mis-anchored budgets are how
+  walks read as rides.
+- `reconstructedArmEvidence`: every automatic trigger re-enters as `Unverified` (everything
+  measured died with the process); only intent survives — MANUAL stays Manual, ARRIVAL_HANDOFF
+  keeps its own weak label. [DET-HANDOFF-NOT-MANUAL-001]
+- A session still undecided when the recorded past runs out is CANCELLED — the false-negative
+  side, never a ghost pin. What a cancelled reconstruction should surface (prompt? nudge?) is an
+  OPEN design tracked in the ticket doc; silence is the doctrine-safe floor, not the answer.
+- The pending arm is cleared terminally either way: a reconstruction is that arm's last word, or
+  every wake would replay the same past.
+
+**Deliberately absent still** (stage 4): the safety-net mesh — `EvaluateSafetyNetCheckUseCase` on
+app-start/ENTER-cure/SLC/CLVisit/BGAppRefresh wakes, with its verdict→side-effect table already
+mapped in the ticket doc.
+
+Spec: `docs/backlog/ios-f2-a-wake-must-query-the-past-001.md`.
+
+### IOS-F2 (etapa 4) — the safety-net mesh: iOS reconciles parked sessions against reality (commit pending)
+
+**Root cause closed**: nothing on iOS reconciled a parked session the OS never delivered an EXIT
+for — the last missing lane of the wake-and-query model.
+
+**Fix**: one tick of the Android worker's loop runs on the wakes iOS has — app-start,
+detection-end, and the new `IosWakeMonitors` (Significant Location Changes + CLVisit, both of
+which RELAUNCH the terminated app; the "sentry" the OS keeps for us, plan §2.1). Every DECISION
+is the common `EvaluateSafetyNetCheckUseCase`; the controller only gathers inputs and executes
+verdicts:
+
+- **Inputs, iOS-shaped and honest**: `stepsSinceAnchor` is a CMPedometer range query from the
+  anchor moment (no cumulative counter to diff); `stepsSinceLastWitness` is null — no witness
+  slot exists, so `backfillBounded` can never be true and **a silent backfill pin cannot happen
+  on iOS by construction**: the arrival is either followed live or ASKED about. The BT-gate
+  inputs are the platform truth (no BT identity → the BT veto never fires — emergent).
+- **Cure**: anchor always refreshed; fence re-registration throttled by the common
+  `shouldReregisterCure` (fresh-session skip + 6 h re-register interval), stamped only on
+  success. New `IosSafetyNetRecords` (NSUserDefaults) holds anchor/cure/adjudication/prompt
+  slots — with `anchor_at_` deliberately NOT sharing Android's bare `anchor_` prefix, the very
+  collision its worker has to prune around.
+- **Dispatch**: adjudicated first ([DET-TWO-DISPATCHES] — the common `adjudicateDeparture`, same
+  5-min window; a second observation ADHERES unless it upgrades to preconfirmed; the record is
+  written BEFORE side-effects), then the inline departure ladder (now `preconfirmed`-aware) and
+  the arrival handoff through its OWN door.
+- **Prompt**: held per tick and resolved against the whole tick's actions
+  ([DET-EXPLAINED-RIDE-ASKS-NO-OTHER-CAR-001] — a dispatched departure silences the other
+  sessions' questions), throttled at 6 h. The prompt itself is NEW on iOS: `showStillParkedPrompt`
+  was a silent default no-op — now an actionable notification ("I drove away" / "Still parked").
+  "I drove away" routes to a WITNESSED departure with `publishSpot = false` — the user attests
+  the FACT, never the HOUR, so nothing is ever published from an unknown exit time (the same
+  rule as Android's watchdog-departure handler). Copy hardcoded EN like the rest of the iOS
+  notification surface (IOS-NOTIF ticket owns the i18n).
+- **Stale EXITs** now write `ExitDeliveryRecords` (F0's store gets its first iOS writer) —
+  feeding the evaluator's EXIT∧ENTER conjunction.
+
+**Deliberately absent**: BGAppRefreshTask (registration must live in the Swift app delegate and
+its Info.plist identifiers land with IOS-SYNC-A-QUEUE-THAT-DIES-WITH-THE-PROCESS-001 — one
+registration site, not two); the witness slot (nothing to vouch for); sig-motion/exact-alarm
+mirrors (no iOS analogue).
+
+Spec: `docs/backlog/ios-f2-a-wake-must-query-the-past-001.md`.

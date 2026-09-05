@@ -1,4 +1,5 @@
 package com.rndeveloper.paparcar.domain.detection.coordinator.replay
+import com.rndeveloper.paparcar.domain.detection.coordinator.ingestion.TraceEvent
 
 /**
  * [DET-SUPERSEDE-CANNOT-DISCARD-A-MEASURED-DRIVE-001] Field trace of the **supersede that threw
