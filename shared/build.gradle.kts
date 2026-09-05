@@ -58,6 +58,16 @@ kotlin {
             baseName = "ComposeApp"
             isStatic = true
         }
+        // GitLive Firebase needs the native Firebase frameworks at LINK time. The app gets them
+        // from SPM inside the Xcode build; a bare Gradle test binary has no search path to them
+        // and dies with `ld: framework 'FirebaseCore' not found`. The suite never touches real
+        // Firebase (fakes only), so the TEST binary — and only it; the app framework above stays
+        // strict — resolves those symbols lazily instead of at link time.
+        // [TEST-A-KMP-SUITE-THAT-ONLY-RUNS-ON-JVM-IS-HALF-A-SUITE-001]
+        iosTarget.binaries.withType(org.jetbrains.kotlin.gradle.plugin.mpp.TestExecutable::class.java)
+            .configureEach {
+                linkerOpts("-undefined", "dynamic_lookup")
+            }
     }
 
     // ── Source Sets ──────────────────────────────────────────────────────────
