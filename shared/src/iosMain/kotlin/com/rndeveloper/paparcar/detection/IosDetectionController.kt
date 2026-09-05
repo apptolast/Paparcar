@@ -36,9 +36,19 @@ import com.rndeveloper.paparcar.domain.usecase.detection.EvaluateGeofenceExitUse
 import com.rndeveloper.paparcar.domain.usecase.detection.GeofenceExitLookup
 import com.rndeveloper.paparcar.domain.usecase.location.GetOneLocationUseCase
 import com.rndeveloper.paparcar.domain.usecase.location.ObserveAdaptiveLocationUseCase
+import com.rndeveloper.paparcar.domain.detection.DepartureAdjudicationVerdict
+import com.rndeveloper.paparcar.domain.detection.ExitDeliveryRecords
+import com.rndeveloper.paparcar.domain.detection.OpenDepartureAdjudication
+import com.rndeveloper.paparcar.domain.detection.adjudicateDeparture
+import com.rndeveloper.paparcar.domain.detection.stillParkedPromptsExplainedByDeparture
+import com.rndeveloper.paparcar.domain.notification.AppNotificationManager
+import com.rndeveloper.paparcar.domain.detection.DepartureProof
 import com.rndeveloper.paparcar.domain.usecase.parking.DepartureCheckOutcome
+import com.rndeveloper.paparcar.domain.usecase.parking.EvaluateSafetyNetCheckUseCase
+import com.rndeveloper.paparcar.domain.usecase.parking.ProcessConfirmedDepartureUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.RunDepartureCheckUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.RunHonestCloseUseCase
+import com.rndeveloper.paparcar.domain.usecase.parking.SafetyNetAction
 import com.rndeveloper.paparcar.domain.usecase.parking.VerifyDepartureEvidenceUseCase
 import io.github.aakira.napier.Napier
 import kotlin.coroutines.cancellation.CancellationException
@@ -107,6 +117,11 @@ class IosDetectionController(
     private val vehicleRepository: VehicleRepository,
     private val activityRecognitionManager: ActivityRecognitionManager,
     private val departureEventBus: com.rndeveloper.paparcar.domain.service.DepartureEventBus,
+    private val evaluateSafetyNetCheck: EvaluateSafetyNetCheckUseCase,
+    private val processConfirmedDeparture: ProcessConfirmedDepartureUseCase,
+    private val exitDeliveryRecords: ExitDeliveryRecords,
+    private val notificationPort: AppNotificationManager,
+    private val safetyNetRecords: IosSafetyNetRecords = IosSafetyNetRecords(),
     /** Builds the virtual-clock coordinator a reconstruction replays into (Koin factory,
      *  `RECONSTRUCTION_COORDINATOR`) — the production single ticks the real clock and recorded
      *  history must be judged on its own time. */
@@ -139,6 +154,14 @@ class IosDetectionController(
         /** Wake-and-query pass over stale pending arms — process death mid-trip, or a wake the
          *  live session never saw. [IOS-F2-A-WAKE-MUST-QUERY-THE-PAST-001] */
         data class ReconstructWake(val source: String) : Command
+
+        /** One safety-net tick: reconcile every parked session against reality. The iOS mesh's
+         *  wakes all funnel here. [IOS-F2-A-WAKE-MUST-QUERY-THE-PAST-001] */
+        data class SafetyNetCheck(val source: String) : Command
+
+        /** The user's answer to the still-parked prompt. `departed = true` is a WITNESSED
+         *  departure: the user attests the FACT, never the hour — nothing gets published. */
+        data class StillParkedAnswered(val geofenceId: String, val departed: Boolean) : Command
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -177,6 +200,20 @@ class IosDetectionController(
         }
         intake.trySend(Command.Reconcile("app-start"))
         intake.trySend(Command.ReconstructWake("app-start"))
+        intake.trySend(Command.SafetyNetCheck(SOURCE_APP_START))
+        // SLC + visit monitoring relaunch the DEAD app on coarse movement — the iOS mesh's
+        // between-trips wake primitive (plan §2.1). Each wake reconstructs, then checks.
+        wakeMonitors.start { source ->
+            intake.trySend(Command.ReconstructWake(source))
+            intake.trySend(Command.SafetyNetCheck(source))
+        }
+    }
+
+    private val wakeMonitors = IosWakeMonitors()
+
+    /** The still-parked prompt's door (notification actions route here). */
+    fun answerStillParked(geofenceId: String, departed: Boolean) {
+        intake.trySend(Command.StillParkedAnswered(geofenceId, departed))
     }
 
     // ── The ports' single doors — one per meaning [DET-HANDOFF-NOT-MANUAL-001] ──────────────────
@@ -226,6 +263,8 @@ class IosDetectionController(
             is Command.GeofenceDelivery -> handleGeofenceDelivery(command.event)
             is Command.Reconcile -> reconcileRegions(command.source)
             is Command.ReconstructWake -> reconstructStaleArms(command.source)
+            is Command.SafetyNetCheck -> runSafetyNetCheck(command.source)
+            is Command.StillParkedAnswered -> handleStillParkedAnswer(command)
         }
     }
 
@@ -294,6 +333,8 @@ class IosDetectionController(
                 detectionRuntime.setRunning(false)
                 // No sentry on iOS: the OS-held regions are the between-trips watcher.
                 detectionRuntime.setPresence(ServicePresence.Dead)
+                // Detection end is a mesh wake, same as Android's check-now at that moment.
+                intake.trySend(Command.SafetyNetCheck(SOURCE_DETECTION_END))
             }
         }
     }
@@ -364,6 +405,13 @@ class IosDetectionController(
         // app alive through the ladder's window, exactly the plan's §2.5 substitution for the
         // Android worker. Launched for boundary AND stale targets, before the strategy gate —
         // the gate guards the RE-ARM, never the departure (same order as the Android service).
+        val staleDelivery = decision.staleDepartures.any { it.geofenceId == target.geofenceId }
+        if (staleDelivery) {
+            // Same rule as Android: only FAR-delivered exits get a durable delivery record — it
+            // feeds the safety net's EXIT∧ENTER conjunction. (F0's ExitDeliveryRecords gets its
+            // first iOS writer here.)
+            exitDeliveryRecords.record(target.geofenceId, clock())
+        }
         launchDepartureLadder(target.geofenceId, exitAtMs = event.timestamp)
 
         if (!coordinatorMayArm(strategyResolver.resolve(), DetectionTrigger.GEOFENCE_EXIT)) return
@@ -407,11 +455,11 @@ class IosDetectionController(
 
     // ── The departure ladder — the freed spot gets published [IOS-F2-A-WAKE-MUST-QUERY-THE-PAST-001] ──
 
-    private fun launchDepartureLadder(geofenceId: String, exitAtMs: Long) {
+    private fun launchDepartureLadder(geofenceId: String, exitAtMs: Long, preconfirmed: Boolean = false) {
         departureLadders.remove(geofenceId)?.cancel()
         departureLadders[geofenceId] = scope.launch {
             try {
-                runDepartureLadder(geofenceId, exitAtMs)
+                runDepartureLadder(geofenceId, exitAtMs, preconfirmed)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Throwable) {
@@ -426,11 +474,11 @@ class IosDetectionController(
      *  differences vs Android, stated because each is a decision: `ProcessFailedRetry` gets an
      *  EXPLICIT cap (Android leans on WorkManager's implicit max-run-attempts), and a Dismissed
      *  fence is only logged — the fence-poison → cure repair is the safety-net mesh's job (F2.4). */
-    private suspend fun runDepartureLadder(geofenceId: String, exitAtMs: Long) {
+    private suspend fun runDepartureLadder(geofenceId: String, exitAtMs: Long, preconfirmed: Boolean) {
         var processFailures = 0
         var attempt = 0
         while (true) {
-            when (val outcome = runDepartureCheck(geofenceId, exitAtMs, attempt, preconfirmed = false)) {
+            when (val outcome = runDepartureCheck(geofenceId, exitAtMs, attempt, preconfirmed = preconfirmed)) {
                 DepartureCheckOutcome.Retry -> {
                     delay(LADDER_DELAYS_MS[attempt.coerceAtMost(LADDER_DELAYS_MS.lastIndex)])
                     attempt++
@@ -503,6 +551,135 @@ class IosDetectionController(
                 sessionMaxSpeedMps = coordinator.lastSessionMaxSpeedMps,
             )
         }.onFailure { e -> Napier.w("honest close failed (continuing)", e, tag = TAG) }
+    }
+
+    // ── The safety-net mesh [IOS-F2-A-WAKE-MUST-QUERY-THE-PAST-001] ─────────────────────────────
+
+    /** Fences already cured since this process was born — half of `shouldReregisterCure`'s input. */
+    private val curedThisProcess = mutableSetOf<String>()
+
+    /**
+     * One tick of the Android worker's loop, on the wakes iOS has (app-start, detection-end,
+     * SLC/visit relaunches). Every DECISION is the common evaluator's; this only gathers inputs
+     * and executes verdicts. iOS-shaped inputs, each an honest degradation, not a guess:
+     * `stepsSinceAnchor` is a pedometer range query from the anchor moment (no cumulative
+     * counter), `stepsSinceLastWitness` is null (no witness slot → `backfillBounded` can never be
+     * true → the arrival is NEVER backfilled silently here, it is asked about), and the BT gate
+     * inputs are the platform truth (no BT identity exists, so the BT veto never fires).
+     */
+    private suspend fun runSafetyNetCheck(source: String) {
+        if (detectionRuntime.isRunning.value) return // a live session owns the situation
+        val sessions = runCatching { userParkingRepository.observeActiveSessions().first() }
+            .getOrDefault(emptyList())
+        safetyNetRecords.pruneAllExcept(sessions.mapNotNull { it.geofenceId }.toSet())
+        if (sessions.isEmpty()) {
+            notificationPort.dismiss(AppNotificationManager.STILL_PARKED_NOTIFICATION_ID)
+            return
+        }
+        val fix = getOneLocation(maxAgeMs = config.freshFixMaxAgeMs) ?: return
+        val now = clock()
+
+        val actions = sessions.mapNotNull { session ->
+            val fenceId = session.geofenceId ?: return@mapNotNull null
+            val anchorAt = safetyNetRecords.lastSeenNearCarAtMs(fenceId)
+            evaluateSafetyNetCheck(
+                session = session,
+                fix = fix,
+                lastSeenNearCarAtMs = anchorAt,
+                nowMs = now,
+                stepsSinceAnchor = anchorAt?.let { queryPedometerStepsBetween(it, now) },
+                stepsSinceLastWitness = null,
+                lastVehicleEnteredAtMs = departureEventBus.lastVehicleEnteredAt,
+                exitDeliveredAtMs = exitDeliveryRecords.deliveredAt(fenceId),
+                userPresent = source == SOURCE_APP_START,
+                vehicleBtGated = false,
+                lastBtConnectedAtMs = null,
+            )
+        }
+
+        actions.forEach { action ->
+            when (action) {
+                is SafetyNetAction.CureGeofence -> executeCure(action, now)
+                is SafetyNetAction.DispatchDeparture -> executeDispatch(action, now)
+                is SafetyNetAction.PromptStillParked -> Unit // held; resolved against the whole tick below
+                SafetyNetAction.None -> Unit
+            }
+        }
+
+        // [DET-EXPLAINED-RIDE-ASKS-NO-OTHER-CAR-001] A dispatched departure explains the ride —
+        // the OTHER sessions' prompts stay quiet for this tick.
+        val explained = stillParkedPromptsExplainedByDeparture(actions)
+        actions.filterIsInstance<SafetyNetAction.PromptStillParked>()
+            .filter { it.geofenceId !in explained }
+            .forEach { prompt -> executePrompt(prompt, fix, now) }
+    }
+
+    private suspend fun executeCure(action: SafetyNetAction.CureGeofence, nowMs: Long) {
+        // The anchor is ALWAYS refreshed (the body is provably near the car right now); the fence
+        // re-registration is what gets throttled — same split as the Android worker.
+        safetyNetRecords.writeAnchor(action.geofenceId, nowMs)
+        val session = userParkingRepository.getActiveSessionByGeofence(action.geofenceId) ?: return
+        val shouldReregister = evaluateSafetyNetCheck.shouldReregisterCure(
+            alreadyCuredThisProcess = action.geofenceId in curedThisProcess,
+            lastCureAtMs = safetyNetRecords.lastCureAtMs(action.geofenceId) ?: 0L,
+            nowMs = nowMs,
+            sessionAgeMs = nowMs - session.location.timestamp,
+        )
+        if (!shouldReregister) return
+        geofenceManager.createGeofence(
+            geofenceId = action.geofenceId,
+            latitude = session.location.latitude,
+            longitude = session.location.longitude,
+            radiusMeters = action.radiusMeters,
+        ).onSuccess {
+            curedThisProcess += action.geofenceId
+            safetyNetRecords.stampCure(action.geofenceId, nowMs)
+        }
+    }
+
+    private fun executeDispatch(action: SafetyNetAction.DispatchDeparture, nowMs: Long) {
+        // [DET-TWO-DISPATCHES] One fact, one adjudication: a second observation of the same
+        // departure ADHERES unless it upgrades to preconfirmed. The record is written BEFORE the
+        // side-effects, same order as the Android worker.
+        val verdict = adjudicateDeparture(
+            open = safetyNetRecords.openAdjudication(action.geofenceId),
+            nowMs = nowMs,
+            observationPreconfirmed = action.preconfirmed,
+            windowMs = ADJUDICATION_WINDOW_MS,
+        )
+        if (verdict == DepartureAdjudicationVerdict.Adhere) return
+        safetyNetRecords.writeAdjudication(
+            action.geofenceId,
+            OpenDepartureAdjudication(openedAtMs = nowMs, preconfirmed = action.preconfirmed),
+        )
+        val exitAtMs = action.tripStartedAtMs ?: nowMs
+        launchDepartureLadder(action.geofenceId, exitAtMs, preconfirmed = action.preconfirmed)
+        // Hand the REST of the trip to live detection [DET-ARRIVAL-HANDOFF-001] — through the
+        // handoff door, never the manual one. With no witness slot on iOS `backfillBounded` is
+        // never true, so the arrival is either followed live (this arm) or asked about — a
+        // silent backfill pin cannot happen here by construction.
+        startTrackingArrivalHandoff()
+    }
+
+    private fun executePrompt(action: SafetyNetAction.PromptStillParked, fix: com.rndeveloper.paparcar.domain.model.GpsPoint, nowMs: Long) {
+        val lastPromptAt = safetyNetRecords.lastPromptAtMs(action.geofenceId)
+        if (lastPromptAt != null && nowMs - lastPromptAt in 0 until PROMPT_THROTTLE_MS) return
+        safetyNetRecords.stampPrompt(action.geofenceId, nowMs)
+        notificationPort.showStillParkedPrompt(action.geofenceId, fix.latitude, fix.longitude)
+    }
+
+    private suspend fun handleStillParkedAnswer(command: Command.StillParkedAnswered) {
+        if (!command.departed) return // "still parked" — the dismissal already happened at the handler
+        // Mirror of Android's watchdog-departure handler: the user attests the FACT, never the
+        // HOUR — `publishSpot = false` because an unknown exit time is never a recent one
+        // (freedSpotIsStillThere(exitAtMs = null) is false by definition). Session + fence close.
+        processConfirmedDeparture(
+            geofenceId = command.geofenceId,
+            publishSpot = false,
+            proof = DepartureProof.Witnessed,
+        ).onFailure { e ->
+            Napier.e("still-parked departure processing failed for ${command.geofenceId.take(8)}", e, tag = TAG)
+        }
     }
 
     // ── Wake-and-query reconstruction [IOS-F2-A-WAKE-MUST-QUERY-THE-PAST-001] ───────────────────
@@ -652,5 +829,17 @@ class IosDetectionController(
         /** Replay fixes are emitted into an unconsumed-yet flow; the buffer must hold a whole
          *  reconstruction batch (the composer caps steps, fixes are few). */
         const val RECONSTRUCTION_FIX_BUFFER = 256
+
+        // ── Safety-net mesh ──────────────────────────────────────────────────────────────────
+        const val SOURCE_APP_START = "app-start"
+        const val SOURCE_DETECTION_END = "detection-end"
+
+        /** Same window as the Android worker: bounds "the same fact", outliving the dispatch
+         *  chain's retries and staying far below a human's re-park cadence. [DET-TWO-DISPATCHES] */
+        const val ADJUDICATION_WINDOW_MS = 5 * 60 * 1_000L
+
+        /** Same throttle as the Android worker: an unanswered question repeated every tick is
+         *  nagging, not asking. */
+        const val PROMPT_THROTTLE_MS = 6 * 60 * 60 * 1_000L
     }
 }

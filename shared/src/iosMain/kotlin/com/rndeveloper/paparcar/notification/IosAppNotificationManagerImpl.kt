@@ -7,11 +7,13 @@ import com.rndeveloper.paparcar.domain.notification.AppNotificationManager
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager.Companion.CONFIRMATION_FAILED_NOTIFICATION_ID
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager.Companion.DEBUG_NOTIFICATION_ID
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager.Companion.PARKING_CONFIRMATION_NOTIFICATION_ID
+import com.rndeveloper.paparcar.domain.notification.AppNotificationManager.Companion.STILL_PARKED_NOTIFICATION_ID
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager.Companion.UPLOAD_NOTIFICATION_ID
 import platform.UserNotifications.UNMutableNotificationContent
 import platform.UserNotifications.UNNotificationAction
 import platform.UserNotifications.UNNotificationActionOptionDestructive
 import platform.UserNotifications.UNNotificationActionOptionForeground
+import platform.UserNotifications.UNNotificationActionOptionNone
 import platform.UserNotifications.UNNotificationCategory
 import platform.UserNotifications.UNNotificationCategoryOptionNone
 import platform.UserNotifications.UNNotificationRequest
@@ -86,6 +88,21 @@ class IosAppNotificationManagerImpl : AppNotificationManager {
         post(PARKING_CONFIRMATION_NOTIFICATION_ID, content)
     }
 
+    /** [IOS-F2-A-WAKE-MUST-QUERY-THE-PAST-001] The safety-net mesh's question — the assisted
+     *  tier's core surface: when the mesh sees signs the car moved but cannot prove it, it ASKS
+     *  instead of guessing. "I drove away" routes to a WITNESSED departure that frees the session
+     *  (never publishes — the user attests the fact, not the hour); "Still parked" dismisses. */
+    override fun showStillParkedPrompt(geofenceId: String, latitude: Double, longitude: Double) {
+        val content = UNMutableNotificationContent().apply {
+            setTitle("Are you still parked?")
+            setBody("It looks like your car may have moved. If you drove away, let us know so your old spot can be freed.")
+            setCategoryIdentifier(CATEGORY_STILL_PARKED)
+            setUserInfo(mapOf<Any?, Any?>(EXTRA_GEOFENCE_ID to geofenceId))
+            setSound(platform.UserNotifications.UNNotificationSound.defaultSound)
+        }
+        post(STILL_PARKED_NOTIFICATION_ID, content)
+    }
+
     override fun showConfirmationFailed() {
         val content = UNMutableNotificationContent().apply {
             setTitle("Could not save parking")
@@ -157,7 +174,23 @@ class IosAppNotificationManagerImpl : AppNotificationManager {
             intentIdentifiers = emptyList<String>(),
             options = UNNotificationCategoryOptionNone,
         )
-        center.setNotificationCategories(setOf(parkingCategory, savedConfirmCategory))
+        val departedAction = UNNotificationAction.actionWithIdentifier(
+            identifier = ACTION_DEPARTED,
+            title = "I drove away",
+            options = UNNotificationActionOptionForeground,
+        )
+        val stillParkedAction = UNNotificationAction.actionWithIdentifier(
+            identifier = ACTION_STILL_PARKED,
+            title = "Still parked",
+            options = UNNotificationActionOptionNone,
+        )
+        val stillParkedCategory = UNNotificationCategory.categoryWithIdentifier(
+            identifier = CATEGORY_STILL_PARKED,
+            actions = listOf(departedAction, stillParkedAction),
+            intentIdentifiers = emptyList<String>(),
+            options = UNNotificationCategoryOptionNone,
+        )
+        center.setNotificationCategories(setOf(parkingCategory, savedConfirmCategory, stillParkedCategory))
     }
 
     private fun identifierFor(notificationId: Int): String = "$ID_PREFIX$notificationId"
@@ -170,6 +203,10 @@ class IosAppNotificationManagerImpl : AppNotificationManager {
         const val ACTION_DENIED = "paparcar_action_denied"
         const val ACTION_ACK = "paparcar_action_ack"
         const val ACTION_REVERT = "paparcar_action_revert"
+        const val CATEGORY_STILL_PARKED = "paparcar_still_parked"
+        const val ACTION_DEPARTED = "paparcar_action_departed"
+        const val ACTION_STILL_PARKED = "paparcar_action_still_parked"
         const val EXTRA_PARKING_ID = "parkingId"
+        const val EXTRA_GEOFENCE_ID = "geofenceId"
     }
 }

@@ -54,6 +54,10 @@ val iosDetectionModule = module {
             vehicleRepository = get(),
             activityRecognitionManager = get(),
             departureEventBus = get(),
+            evaluateSafetyNetCheck = get(),
+            processConfirmedDeparture = get(),
+            exitDeliveryRecords = get(),
+            notificationPort = get(),
             reconstructionCoordinator = { clock, steps ->
                 get(org.koin.core.qualifier.named(RECONSTRUCTION_COORDINATOR)) {
                     org.koin.core.parameter.parametersOf(clock, steps)

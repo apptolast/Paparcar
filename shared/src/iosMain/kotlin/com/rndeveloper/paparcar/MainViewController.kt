@@ -60,6 +60,7 @@ private fun installNotificationDelegate() {
         coordinator = koin.get(),
         revertParkingUseCase = koin.get(),
         notificationPort = koin.get(),
+        controller = koin.get(),
     )
     notificationDelegate = handler
     UNUserNotificationCenter.currentNotificationCenter().setDelegate(handler)

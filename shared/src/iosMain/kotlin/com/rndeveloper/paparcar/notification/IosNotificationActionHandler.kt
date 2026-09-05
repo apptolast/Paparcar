@@ -34,6 +34,10 @@ class IosNotificationActionHandler(
     private val coordinator: CoordinatorParkingDetector,
     private val revertParkingUseCase: RevertParkingUseCase,
     private val notificationPort: AppNotificationManager,
+    /** [IOS-F2-A-WAKE-MUST-QUERY-THE-PAST-001] The still-parked prompt's answers go to the
+     *  orchestrator: "I drove away" is a WITNESSED departure (the user attests the fact, never
+     *  the hour — nothing gets published), "Still parked" just dismisses. */
+    private val controller: com.rndeveloper.paparcar.detection.IosDetectionController,
 ) : NSObject(), UNUserNotificationCenterDelegateProtocol {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -59,6 +63,18 @@ class IosNotificationActionHandler(
                     scope.launch { revertParkingUseCase(parkingId) }
                 }
             }
+            IosAppNotificationManagerImpl.ACTION_DEPARTED -> {
+                val geofenceId = didReceiveNotificationResponse.notification.request.content
+                    .userInfo[IosAppNotificationManagerImpl.EXTRA_GEOFENCE_ID] as? String
+                if (geofenceId == null) {
+                    PaparcarLogger.w(TAG, "ACTION_DEPARTED missing geofenceId in userInfo")
+                } else {
+                    controller.answerStillParked(geofenceId, departed = true)
+                }
+                notificationPort.dismiss(AppNotificationManager.STILL_PARKED_NOTIFICATION_ID)
+            }
+            IosAppNotificationManagerImpl.ACTION_STILL_PARKED ->
+                notificationPort.dismiss(AppNotificationManager.STILL_PARKED_NOTIFICATION_ID)
             // Includes UNNotificationDefaultActionIdentifier (tap on body) and dismiss — let the OS handle.
         }
         withCompletionHandler()

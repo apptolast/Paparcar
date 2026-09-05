@@ -84,8 +84,45 @@ de la etapa 1 es solo la escalera inline + 2 side-effects.
   fantasma); el pending se limpia terminalmente (o cada wake repetiría el mismo pasado).
   ⚠️ **Diseño ABIERTO**: qué superficie darle a una reconstrucción cancelada (¿prompt?
   ¿nudge?) — hoy silencio, que es el suelo seguro por doctrina, no la respuesta final.
-- **Etapa 4**: pendiente (mesh de safety-net — la tabla veredicto→side-effect y los 10 orígenes
-  de wake ya están mapeados arriba en este doc/memoria).
+- **Etapa 4 (hecha)**: un tick del bucle del worker Android sobre los wakes que iOS tiene
+  (app-start · detection-end · `IosWakeMonitors`: SLC + CLVisit, que RELANZAN la app muerta).
+  Toda decisión es del `EvaluateSafetyNetCheckUseCase` común; el controller junta inputs y
+  ejecuta veredictos. Inputs iOS honestos: `stepsSinceAnchor` = query CMPedometer desde el
+  momento del ancla; `stepsSinceLastWitness` = null → **`backfillBounded` nunca es true → el pin
+  de backfill silencioso es IMPOSIBLE en iOS por construcción** (el arrival se sigue en vivo o SE
+  PREGUNTA); gate BT = verdad de plataforma (nunca dispara — emergente).
+  - Cure: ancla siempre refrescada; re-registro de valla por `shouldReregisterCure` común.
+  - Dispatch: `adjudicateDeparture` común ANTES de side-effects [DET-TWO-DISPATCHES] → escalera
+    (`preconfirmed`-aware) + handoff por su PROPIA puerta.
+  - Prompt: retenido por tick y resuelto contra el tick entero
+    [DET-EXPLAINED-RIDE-ASKS-NO-OTHER-CAR-001], throttle 6 h. **`showStillParkedPrompt` era un
+    default no-op silencioso en iOS** — ahora notificación accionable; «Me fui» → departure
+    WITNESSED con `publishSpot = false` (el user atestigua el HECHO, nunca la HORA — la regla del
+    watchdog Android). Copy EN hardcoded (precedente del fichero; IOS-NOTIF posee el i18n).
+  - Los EXIT stale escriben `ExitDeliveryRecords` (primer escritor iOS del store de F0).
+  - `IosSafetyNetRecords` (NSUserDefaults): ancla/cure/adjudicación/prompt — prefijo `anchor_at_`
+    A PROPÓSITO distinto del `anchor_` pelado de Android (la colisión que su worker debe podar).
+  - ⛔ Fuera conscientes: BGAppRefreshTask (el registro vive en el delegate Swift y sus
+    identifiers llegan con IOS-SYNC — un solo sitio de registro), witness slot (nada que avalar),
+    sig-motion/exact-alarm (sin análogo).
+
+## Consumidores auditados (etapas 3-4)
+
+- `queryTransitions`: contrato F0-05, primer impl real; consumidor = compositor. Android sigue
+  con su default vacío honesto — convergencia.
+- `DetectionTraceIngestion`: tests de replay + reconstrucción iOS → mismo puerto, cero cambios.
+- `adjudicateDeparture`/`stillParkedPromptsExplainedByDeparture`/`shouldReregisterCure`: puros
+  comunes, ahora con segundo consumidor (iOS) — la razón de que fueran funciones de nivel
+  superior [DET-VERDICT-NOT-PREDICATE-001].
+- `showStillParkedPrompt`: puerto común con default no-op — Android (`:app`) ya lo implementa;
+  iOS gana el suyo. `STILL_PARKED_NOTIFICATION_ID` ya existía en el companion del puerto.
+- `ExitDeliveryRecords`: F0 tenía store sin escritor iOS — cerrado aquí (solo stale, como
+  Android).
+- `RECONSTRUCTION_COORDINATOR`: factory nueva en DetectionModule común — verify de Koin la
+  refleja (mismos extraTypes ya en lista blanca); Android no la consume (exenta con razón: su
+  carril push no reconstruye).
+- Strings: notificación nueva con copy EN hardcoded — MISMO patrón que todo el fichero iOS
+  (documentado ahí y en IOS-NOTIF); los 9 locales llegan con ese ticket, no aquí.
 
 ## Ejecutado (05-09) — etapas 1 y 2, pendiente de plegar
 

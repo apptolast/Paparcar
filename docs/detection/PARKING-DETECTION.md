@@ -7691,3 +7691,46 @@ app-start/ENTER-cure/SLC/CLVisit/BGAppRefresh wakes, with its verdict→side-eff
 mapped in the ticket doc.
 
 Spec: `docs/backlog/ios-f2-a-wake-must-query-the-past-001.md`.
+
+### IOS-F2 (etapa 4) — the safety-net mesh: iOS reconciles parked sessions against reality (commit pending)
+
+**Root cause closed**: nothing on iOS reconciled a parked session the OS never delivered an EXIT
+for — the last missing lane of the wake-and-query model.
+
+**Fix**: one tick of the Android worker's loop runs on the wakes iOS has — app-start,
+detection-end, and the new `IosWakeMonitors` (Significant Location Changes + CLVisit, both of
+which RELAUNCH the terminated app; the "sentry" the OS keeps for us, plan §2.1). Every DECISION
+is the common `EvaluateSafetyNetCheckUseCase`; the controller only gathers inputs and executes
+verdicts:
+
+- **Inputs, iOS-shaped and honest**: `stepsSinceAnchor` is a CMPedometer range query from the
+  anchor moment (no cumulative counter to diff); `stepsSinceLastWitness` is null — no witness
+  slot exists, so `backfillBounded` can never be true and **a silent backfill pin cannot happen
+  on iOS by construction**: the arrival is either followed live or ASKED about. The BT-gate
+  inputs are the platform truth (no BT identity → the BT veto never fires — emergent).
+- **Cure**: anchor always refreshed; fence re-registration throttled by the common
+  `shouldReregisterCure` (fresh-session skip + 6 h re-register interval), stamped only on
+  success. New `IosSafetyNetRecords` (NSUserDefaults) holds anchor/cure/adjudication/prompt
+  slots — with `anchor_at_` deliberately NOT sharing Android's bare `anchor_` prefix, the very
+  collision its worker has to prune around.
+- **Dispatch**: adjudicated first ([DET-TWO-DISPATCHES] — the common `adjudicateDeparture`, same
+  5-min window; a second observation ADHERES unless it upgrades to preconfirmed; the record is
+  written BEFORE side-effects), then the inline departure ladder (now `preconfirmed`-aware) and
+  the arrival handoff through its OWN door.
+- **Prompt**: held per tick and resolved against the whole tick's actions
+  ([DET-EXPLAINED-RIDE-ASKS-NO-OTHER-CAR-001] — a dispatched departure silences the other
+  sessions' questions), throttled at 6 h. The prompt itself is NEW on iOS: `showStillParkedPrompt`
+  was a silent default no-op — now an actionable notification ("I drove away" / "Still parked").
+  "I drove away" routes to a WITNESSED departure with `publishSpot = false` — the user attests
+  the FACT, never the HOUR, so nothing is ever published from an unknown exit time (the same
+  rule as Android's watchdog-departure handler). Copy hardcoded EN like the rest of the iOS
+  notification surface (IOS-NOTIF ticket owns the i18n).
+- **Stale EXITs** now write `ExitDeliveryRecords` (F0's store gets its first iOS writer) —
+  feeding the evaluator's EXIT∧ENTER conjunction.
+
+**Deliberately absent**: BGAppRefreshTask (registration must live in the Swift app delegate and
+its Info.plist identifiers land with IOS-SYNC-A-QUEUE-THAT-DIES-WITH-THE-PROCESS-001 — one
+registration site, not two); the witness slot (nothing to vouch for); sig-motion/exact-alarm
+mirrors (no iOS analogue).
+
+Spec: `docs/backlog/ios-f2-a-wake-must-query-the-past-001.md`.
