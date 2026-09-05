@@ -21,8 +21,17 @@ import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
 import com.rndeveloper.paparcar.domain.service.GeofenceEvent
 import com.rndeveloper.paparcar.domain.service.GeofenceEventBus
 import com.rndeveloper.paparcar.domain.service.GeofenceManager
+import com.rndeveloper.paparcar.detection.sensor.queryPedometerStepsBetween
+import com.rndeveloper.paparcar.domain.ActivityRecognitionManager
+import com.rndeveloper.paparcar.domain.detection.PendingArm
+import com.rndeveloper.paparcar.domain.detection.coordinator.ingestion.DetectionTraceIngestion
+import com.rndeveloper.paparcar.domain.detection.coordinator.ingestion.ReplayStepSource
+import com.rndeveloper.paparcar.domain.detection.coordinator.ingestion.TraceEvent
+import com.rndeveloper.paparcar.domain.detection.coordinator.ingestion.composeWakeTrace
+import com.rndeveloper.paparcar.domain.detection.coordinator.ingestion.reconstructedArmEvidence
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import com.rndeveloper.paparcar.domain.sensor.DetectionStepAnchors
+import com.rndeveloper.paparcar.domain.sensor.StepDetectorSource
 import com.rndeveloper.paparcar.domain.usecase.detection.EvaluateGeofenceExitUseCase
 import com.rndeveloper.paparcar.domain.usecase.detection.GeofenceExitLookup
 import com.rndeveloper.paparcar.domain.usecase.location.GetOneLocationUseCase
@@ -39,8 +48,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -94,6 +105,12 @@ class IosDetectionController(
     private val runHonestClose: RunHonestCloseUseCase,
     private val detectionStepAnchors: DetectionStepAnchors,
     private val vehicleRepository: VehicleRepository,
+    private val activityRecognitionManager: ActivityRecognitionManager,
+    private val departureEventBus: com.rndeveloper.paparcar.domain.service.DepartureEventBus,
+    /** Builds the virtual-clock coordinator a reconstruction replays into (Koin factory,
+     *  `RECONSTRUCTION_COORDINATOR`) — the production single ticks the real clock and recorded
+     *  history must be judged on its own time. */
+    private val reconstructionCoordinator: (clock: () -> Long, steps: StepDetectorSource) -> CoordinatorParkingDetector,
     private val clock: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) {
 
@@ -118,6 +135,10 @@ class IosDetectionController(
         data class GeofenceDelivery(val event: GeofenceEvent) : Command
 
         data class Reconcile(val source: String) : Command
+
+        /** Wake-and-query pass over stale pending arms — process death mid-trip, or a wake the
+         *  live session never saw. [IOS-F2-A-WAKE-MUST-QUERY-THE-PAST-001] */
+        data class ReconstructWake(val source: String) : Command
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -155,6 +176,7 @@ class IosDetectionController(
             geofenceEventBus.events.collect { intake.trySend(Command.GeofenceDelivery(it)) }
         }
         intake.trySend(Command.Reconcile("app-start"))
+        intake.trySend(Command.ReconstructWake("app-start"))
     }
 
     // ── The ports' single doors — one per meaning [DET-HANDOFF-NOT-MANUAL-001] ──────────────────
@@ -203,6 +225,7 @@ class IosDetectionController(
                 else coordinator.onUserDeniedParking()
             is Command.GeofenceDelivery -> handleGeofenceDelivery(command.event)
             is Command.Reconcile -> reconcileRegions(command.source)
+            is Command.ReconstructWake -> reconstructStaleArms(command.source)
         }
     }
 
@@ -482,6 +505,95 @@ class IosDetectionController(
         }.onFailure { e -> Napier.w("honest close failed (continuing)", e, tag = TAG) }
     }
 
+    // ── Wake-and-query reconstruction [IOS-F2-A-WAKE-MUST-QUERY-THE-PAST-001] ───────────────────
+
+    /** The §4 protocol over every STALE pending arm (heartbeat older than
+     *  `config.pendingDetectionDeadMs` — the same staleness rule the Android watchdog applies).
+     *  A live session owns the present: reconstruction only touches the past nobody followed. */
+    private suspend fun reconstructStaleArms(source: String) {
+        if (detectionJob?.isActive == true) return
+        val now = clock()
+        val stale = runCatching { pendingArmRecords.scanStale(now, config.pendingDetectionDeadMs) }
+            .getOrDefault(emptyList())
+        if (stale.isEmpty()) return
+        Napier.i("reconstruct($source): ${stale.size} stale arm(s)", tag = TAG)
+        for (arm in stale) {
+            try {
+                reconstructArm(arm, now)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                Napier.e("reconstruction failed for arm ${arm.armId}", e, tag = TAG)
+            } finally {
+                // Terminal either way: a reconstruction is this arm's LAST word. Leaving the
+                // record would replay the same past on every wake.
+                withContext(NonCancellable) { pendingArmRecords.clear(arm.armId) }
+            }
+        }
+    }
+
+    /**
+     * Steps 2-6 of the plan's §4: query the recorded past, compose the batch, replay it into a
+     * VIRTUAL-CLOCK coordinator instance, and let the evaluators decide with the same
+     * admissibility rules as a live session. The confirmation pipeline inside the coordinator is
+     * the real one — a reconstruction that proves a park saves it, one that cannot stays silent
+     * (asymmetric failure: the cancel path plants nothing).
+     */
+    private suspend fun reconstructArm(arm: PendingArm, nowMs: Long) {
+        val transitions = runCatching {
+            activityRecognitionManager.queryTransitions(arm.armedAt, nowMs)
+        }.getOrDefault(emptyList())
+        val wakeFix = getOneLocation(maxAgeMs = null)
+        val lastExitMs = transitions.lastOrNull { it.activity == TraceEvent.Activity.VEHICLE_EXIT }?.tMs
+        val steps = lastExitMs?.let { queryPedometerStepsBetween(it, nowMs) }
+        val trace = composeWakeTrace(
+            armedAtMs = arm.armedAt,
+            nowMs = nowMs,
+            transitions = transitions,
+            wakeFix = wakeFix,
+            stepsSinceLastVehicleExit = steps,
+        )
+        if (trace.isEmpty()) {
+            Napier.i("reconstruct: nothing reconstructable for arm ${arm.armId} (trigger=${arm.trigger})", tag = TAG)
+            return
+        }
+
+        val ingestion = DetectionTraceIngestion(trace)
+        val stepSource = ReplayStepSource()
+        val recon = reconstructionCoordinator({ ingestion.nowMs }, stepSource)
+        val locations = MutableSharedFlow<com.rndeveloper.paparcar.domain.model.GpsPoint>(
+            extraBufferCapacity = RECONSTRUCTION_FIX_BUFFER,
+        )
+        val job = scope.launch {
+            recon(
+                locations,
+                armEvidence = reconstructedArmEvidence(arm.trigger),
+            )
+        }
+        ingestion.replay(
+            emitFix = { locations.emit(it) },
+            emitStep = { stepSource.emit() },
+            emitActivity = { activity, trueTimeMs ->
+                when (activity) {
+                    TraceEvent.Activity.VEHICLE_ENTER -> departureEventBus.onVehicleEntered(trueTimeMs)
+                    TraceEvent.Activity.VEHICLE_EXIT -> recon.onVehicleExit(trueTimeMs)
+                    TraceEvent.Activity.BICYCLE_ENTER -> recon.onHumanPoweredRide(trueTimeMs)
+                }
+            },
+        )
+        // Same closure as the replay suite: a session still undecided when the recorded past runs
+        // out gets cancelled — its virtual clock cannot advance further, and an undecided
+        // reconstruction must fail toward the false NEGATIVE (no ghost pins from a guess). Any
+        // confirm that fired during the replay already ran NonCancellable. What a cancelled
+        // reconstruction should surface to the user (prompt? nudge?) is an OPEN design listed in
+        // the ticket doc — silence today is the doctrine-safe floor, not the final answer.
+        job.cancelAndJoin()
+        Napier.i(
+            "reconstruct: arm ${arm.armId} (trigger=${arm.trigger}) → ${recon.lastSessionOutcome}",
+            tag = TAG,
+        )
+    }
+
     // ── Reconcile — Room truth vs OS-monitored regions ───────────────────────────────────────────
 
     private suspend fun reconcileRegions(source: String) {
@@ -536,5 +648,9 @@ class IosDetectionController(
          *  session: the wake-and-query reconcile re-derives an unprocessed departure. */
         const val PROCESS_FAILED_MAX_RETRIES = 3
         const val PROCESS_FAILED_RETRY_DELAY_MS = 30_000L
+
+        /** Replay fixes are emitted into an unconsumed-yet flow; the buffer must hold a whole
+         *  reconstruction batch (the composer caps steps, fixes are few). */
+        const val RECONSTRUCTION_FIX_BUFFER = 256
     }
 }

@@ -68,11 +68,24 @@ de la etapa 1 es solo la escalera inline + 2 side-effects.
   Android **sin el slot de witness** (iOS no tiene contador acumulativo que estampe testigos;
   el evaluador trata witness ausente como "sin refutación", nunca como prueba) → después el
   arrival stamp, mismo orden que Android.
-- **Etapas 3-4**: pendientes (reconstrucción vía `DetectionTraceIngestion` — ya probada en
-  `ActivityRecognitionQueryTest` — y mesh de safety-net). ⚠️ Diseño abierto anotado para la 3:
-  el coordinator de producción es un single con reloj REAL; la reconstrucción exige reloj
-  virtual (`ingestion.nowMs`) → hará falta una instancia con reloj inyectado (factory), no el
-  singleton.
+- **Etapa 3 (hecha)**: el wake escanea pending arms RANCIOS (`pendingDetectionDeadMs`, el mismo
+  criterio del watchdog Android) y corre el protocolo §4 por arm: `queryTransitions` (impl iOS
+  real: historia de CMMotionActivityManager con la misma síntesis de flancos que el carril vivo +
+  BICYCLE_ENTER; cada transición con el tiempo de SU muestra) + fix del wake + pasos CMPedometer
+  `[últimoEXIT, now]` → `composeWakeTrace` (compositor PURO commonMain, 7 tests: clamp de
+  ventana, fix pre-arm fuera, pasos REHUSADOS sin ancla de egreso
+  [DET-STEP-BUDGET-ORIGIN-001], cap de eventos) → `DetectionTraceIngestion` → **instancia de
+  coordinator con reloj virtual** (factory Koin cualificada `RECONSTRUCTION_COORDINATOR`; UNA
+  sola lista de construcción compartida con el single — dos listas copiadas es como divergirían
+  en silencio) + `ReplayStepSource`. Evidencia re-entrante: `reconstructedArmEvidence` — todo
+  trigger automático degrada a `Unverified` (lo medido murió con el proceso); solo la intención
+  sobrevive (MANUAL→Manual, ARRIVAL_HANDOFF→ArrivalHandoff) [DET-HANDOFF-NOT-MANUAL-001].
+  Sesión sin decidir al agotarse el pasado → CANCEL (lado del falso negativo, jamás pin
+  fantasma); el pending se limpia terminalmente (o cada wake repetiría el mismo pasado).
+  ⚠️ **Diseño ABIERTO**: qué superficie darle a una reconstrucción cancelada (¿prompt?
+  ¿nudge?) — hoy silencio, que es el suelo seguro por doctrina, no la respuesta final.
+- **Etapa 4**: pendiente (mesh de safety-net — la tabla veredicto→side-effect y los 10 orígenes
+  de wake ya están mapeados arriba en este doc/memoria).
 
 ## Ejecutado (05-09) — etapas 1 y 2, pendiente de plegar
 

@@ -7655,3 +7655,39 @@ needs a virtual-clock instance — design noted in the ticket) and the safety-ne
 case the Android worker runs — a behavior change there would show in the shared suite first.
 
 Spec: `docs/backlog/ios-f2-a-wake-must-query-the-past-001.md`.
+
+### IOS-F2 (etapa 3) — the wake queries the past and replays it into a virtual-clock coordinator (commit pending)
+
+**Root cause closed**: side-records were written and nobody re-derived the trip; a process death
+mid-trip lost the park silently.
+
+**Fix**: on every wake the controller scans STALE pending arms (`config.pendingDetectionDeadMs`,
+the same staleness rule the Android watchdog applies) and runs the plan's §4 protocol per arm:
+`queryTransitions` (new real iOS impl — CMMotionActivityManager history, up to 7 days recorded
+with the app dead, same edge synthesis as the live lane + the cycling edge as BICYCLE_ENTER, each
+transition stamped with the SAMPLE's own time) + one wake fix + CMPedometer steps over
+`[lastVehicleExit, now]` → `composeWakeTrace` (new PURE commonMain composer, 7 tests) →
+`DetectionTraceIngestion` → a SEPARATE coordinator instance built by the new qualified Koin
+factory (`RECONSTRUCTION_COORDINATOR`) with the trace's virtual clock and a replay-driven step
+source. ONE construction list feeds both the production single and this factory — a hand-copied
+second list is how they would silently diverge.
+
+**Doctrine, load-bearing choices** (each tested or stated in code):
+- The composer is conservative: transitions outside the arm window are clamped (a stale record
+  must not seed someone else's ride), a pre-arm cached fix is dropped, and steps are REFUSED
+  without a VEHICLE_EXIT anchor [DET-STEP-BUDGET-ORIGIN-001] — mis-anchored budgets are how
+  walks read as rides.
+- `reconstructedArmEvidence`: every automatic trigger re-enters as `Unverified` (everything
+  measured died with the process); only intent survives — MANUAL stays Manual, ARRIVAL_HANDOFF
+  keeps its own weak label. [DET-HANDOFF-NOT-MANUAL-001]
+- A session still undecided when the recorded past runs out is CANCELLED — the false-negative
+  side, never a ghost pin. What a cancelled reconstruction should surface (prompt? nudge?) is an
+  OPEN design tracked in the ticket doc; silence is the doctrine-safe floor, not the answer.
+- The pending arm is cleared terminally either way: a reconstruction is that arm's last word, or
+  every wake would replay the same past.
+
+**Deliberately absent still** (stage 4): the safety-net mesh — `EvaluateSafetyNetCheckUseCase` on
+app-start/ENTER-cure/SLC/CLVisit/BGAppRefresh wakes, with its verdict→side-effect table already
+mapped in the ticket doc.
+
+Spec: `docs/backlog/ios-f2-a-wake-must-query-the-past-001.md`.

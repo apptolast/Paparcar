@@ -52,6 +52,13 @@ val iosDetectionModule = module {
             runHonestClose = get(),
             detectionStepAnchors = get(),
             vehicleRepository = get(),
+            activityRecognitionManager = get(),
+            departureEventBus = get(),
+            reconstructionCoordinator = { clock, steps ->
+                get(org.koin.core.qualifier.named(RECONSTRUCTION_COORDINATOR)) {
+                    org.koin.core.parameter.parametersOf(clock, steps)
+                }
+            },
         )
     }
     single<com.rndeveloper.paparcar.domain.detection.ports.ManualParkingDetection> {

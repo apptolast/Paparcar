@@ -5,13 +5,8 @@ package com.rndeveloper.paparcar.detection.sensor
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.sensor.DetectionStepAnchors
 import com.rndeveloper.paparcar.domain.sensor.StepsSinceSeal
-import com.rndeveloper.paparcar.domain.util.PaparcarLogger
-import kotlin.coroutines.resume
-import kotlinx.coroutines.suspendCancellableCoroutine
-import platform.CoreMotion.CMPedometer
 import platform.Foundation.NSDate
 import platform.Foundation.NSUserDefaults
-import platform.Foundation.dateWithTimeIntervalSince1970
 import platform.Foundation.timeIntervalSince1970
 
 /**
@@ -45,34 +40,16 @@ class IosDetectionStepAnchors(
     override suspend fun stepsSinceSeal(geofenceId: String): StepsSinceSeal? {
         val sealedAtMs = (defaults.objectForKey(KEY_NAMESPACE + SEAL_AT_PREFIX + geofenceId) as? String)
             ?.toLongOrNull() ?: return null
-        if (!CMPedometer.isStepCountingAvailable()) return null
         val nowMs = nowMillis()
         if (nowMs < sealedAtMs) return null // a clock jump backwards is never a verdict
 
-        val steps = queryStepsBetween(sealedAtMs, nowMs) ?: return null
+        val steps = queryPedometerStepsBetween(sealedAtMs, nowMs) ?: return null
         return StepsSinceSeal(
             steps = steps,
             sealPoint = readSealPoint(geofenceId, sealedAtMs),
             sealedAtMs = sealedAtMs,
         )
     }
-
-    private suspend fun queryStepsBetween(fromMs: Long, toMs: Long): Long? =
-        suspendCancellableCoroutine { cont ->
-            CMPedometer().queryPedometerDataFromDate(
-                NSDate.dateWithTimeIntervalSince1970(fromMs / MILLIS_PER_SECOND),
-                NSDate.dateWithTimeIntervalSince1970(toMs / MILLIS_PER_SECOND),
-            ) { data, error ->
-                if (!cont.isActive) return@queryPedometerDataFromDate
-                if (error != null || data == null) {
-                    // Denied Motion permission surfaces here as an error: mute, not a verdict.
-                    PaparcarLogger.w(TAG, "pedometer range query failed: ${error?.localizedDescription}")
-                    cont.resume(null)
-                } else {
-                    cont.resume(data.numberOfSteps.longLongValue)
-                }
-            }
-        }
 
     private fun readSealPoint(geofenceId: String, sealedAtMs: Long): GpsPoint? {
         val raw = defaults.objectForKey(KEY_NAMESPACE + SEAL_POS_PREFIX + geofenceId) as? String
@@ -88,7 +65,6 @@ class IosDetectionStepAnchors(
     private fun nowMillis(): Long = (NSDate().timeIntervalSince1970 * MILLIS_PER_SECOND).toLong()
 
     private companion object {
-        const val TAG = "IosDetectionStepAnchors"
         const val KEY_NAMESPACE = "parking_safety_net."
         const val SEAL_AT_PREFIX = "anchor_seal_at_"
         const val SEAL_POS_PREFIX = "anchor_seal_pos_"

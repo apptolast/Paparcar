@@ -3,15 +3,22 @@
 package com.rndeveloper.paparcar.detection
 
 import com.rndeveloper.paparcar.domain.ActivityRecognitionManager
+import com.rndeveloper.paparcar.domain.ActivityTransitionEvent
 import com.rndeveloper.paparcar.domain.detection.CoordinatorParkingDetector
+import com.rndeveloper.paparcar.domain.detection.coordinator.ingestion.TraceEvent
 import com.rndeveloper.paparcar.domain.service.DepartureEventBus
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
+import kotlin.coroutines.resume
 import kotlin.time.Clock
+import kotlinx.coroutines.suspendCancellableCoroutine
 import platform.CoreMotion.CMAuthorizationStatusAuthorized
 import platform.CoreMotion.CMMotionActivity
 import platform.CoreMotion.CMMotionActivityConfidenceLow
 import platform.CoreMotion.CMMotionActivityManager
+import platform.Foundation.NSDate
 import platform.Foundation.NSOperationQueue
+import platform.Foundation.dateWithTimeIntervalSince1970
+import platform.Foundation.timeIntervalSince1970
 
 /**
  * iOS implementation of [ActivityRecognitionManager] backed by [CMMotionActivityManager].
@@ -76,6 +83,56 @@ class IosActivityRecognitionManagerImpl(
         running = false
     }
 
+    /**
+     * [IOS-F2-A-WAKE-MUST-QUERY-THE-PAST-001] The pull lane: `CMMotionActivityManager` keeps up
+     * to 7 days of recorded samples with the app DEAD — the property the whole wake-and-query
+     * model rests on (plan §2.3). Historical snapshots get the SAME edge synthesis as the live
+     * lane above (automotive false→true ≡ ENTER, true→false ≡ EXIT, low-confidence filtered),
+     * plus the cycling edge as BICYCLE_ENTER — in a reconstruction the human-powered veto matters
+     * as much as the drive. Each transition is stamped with the SAMPLE's own start time, never
+     * the query's. Unavailable/unauthorized/error → empty: absence of evidence, not evidence.
+     */
+    override suspend fun queryTransitions(fromMs: Long, toMs: Long): List<ActivityTransitionEvent> {
+        if (!CMMotionActivityManager.isActivityAvailable()) return emptyList()
+        if (CMMotionActivityManager.authorizationStatus() != CMAuthorizationStatusAuthorized) return emptyList()
+        if (toMs <= fromMs) return emptyList()
+        val samples = suspendCancellableCoroutine<List<CMMotionActivity>?> { cont ->
+            manager.queryActivityStartingFromDate(
+                NSDate.dateWithTimeIntervalSince1970(fromMs / MILLIS_PER_SECOND),
+                NSDate.dateWithTimeIntervalSince1970(toMs / MILLIS_PER_SECOND),
+                NSOperationQueue.mainQueue,
+            ) { activities, error ->
+                if (!cont.isActive) return@queryActivityStartingFromDate
+                if (error != null) {
+                    PaparcarLogger.w(TAG, "activity history query failed: ${error.localizedDescription}")
+                    cont.resume(null)
+                } else {
+                    cont.resume(activities?.filterIsInstance<CMMotionActivity>())
+                }
+            }
+        } ?: return emptyList()
+
+        val transitions = mutableListOf<ActivityTransitionEvent>()
+        var previous: CMMotionActivity? = null
+        for (sample in samples) {
+            if (sample.confidence == CMMotionActivityConfidenceLow) continue
+            val prev = previous
+            previous = sample
+            if (prev == null) continue
+            val tMs = (sample.startDate.timeIntervalSince1970 * MILLIS_PER_SECOND).toLong()
+            if (!prev.automotive && sample.automotive) {
+                transitions += ActivityTransitionEvent(tMs, TraceEvent.Activity.VEHICLE_ENTER)
+            }
+            if (prev.automotive && !sample.automotive) {
+                transitions += ActivityTransitionEvent(tMs, TraceEvent.Activity.VEHICLE_EXIT)
+            }
+            if (!prev.cycling && sample.cycling) {
+                transitions += ActivityTransitionEvent(tMs, TraceEvent.Activity.BICYCLE_ENTER)
+            }
+        }
+        return transitions
+    }
+
     private fun handleUpdate(activity: CMMotionActivity?) {
         if (activity == null) return
         if (activity.confidence == CMMotionActivityConfidenceLow) return
@@ -99,5 +156,6 @@ class IosActivityRecognitionManagerImpl(
 
     private companion object {
         const val TAG = "IosActivityRecognitionManager"
+        const val MILLIS_PER_SECOND = 1_000.0
     }
 }

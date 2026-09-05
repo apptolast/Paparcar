@@ -71,6 +71,10 @@ import org.koin.dsl.module
  * platform binds its own (`androidDetectionModule` on Android, `iosDetectionModule` on iOS), and
  * `MockPaparcarApp` deliberately binds neither — its fakes come from `mockModule`.
  */
+/** Qualifier of the virtual-clock coordinator factory for wake-and-query reconstruction.
+ *  [IOS-F2-A-WAKE-MUST-QUERY-THE-PAST-001] */
+const val RECONSTRUCTION_COORDINATOR = "reconstruction-coordinator"
+
 val detectionModule = module {
 
     // ── Config: the one object every evaluator below reads its thresholds from ────────────────
@@ -130,28 +134,46 @@ val detectionModule = module {
     factory { NotifyParkingConfirmationUseCase(get(), get(), get()) }
 
     // ── The coordinator (probabilistic strategy) ──────────────────────────────────────────────
+    // ONE construction list for both registrations below — a second hand-copied list is how the
+    // production single and the reconstruction factory would silently diverge.
+    // [IOS-F2-A-WAKE-MUST-QUERY-THE-PAST-001]
+    fun org.koin.core.scope.Scope.buildCoordinator(
+        clock: () -> Long,
+        stepDetector: com.rndeveloper.paparcar.domain.sensor.StepDetectorSource,
+    ) = CoordinatorParkingDetector(
+        calculateParkingConfidence = get(),
+        confirmParking = get(),
+        notifyParkingConfirmation = get(),
+        resolveAskedStreet = get(),
+        notificationPort = get(),
+        vehicleRepository = get(),
+        stepDetector = stepDetector,
+        config = get(),
+        detectionEventLogger = get(),
+        evaluateParkingDecision = get(),
+        phaseSink = get(),
+        // [DET-DI-DETECTION-MODULE-001] Was a hand-built default inside the constructor.
+        evaluateUnattendedParkingSave = get(),
+        // [DET-HANDOFF-NOT-MANUAL-001 §B] The deduced departure's commit, deferred to the
+        // moment this session measures a drive.
+        finalizeDeducedDeparture = get(),
+        // [DET-HANDOFF-NOT-MANUAL-001 §B.3] …and its withdrawal, at the moment this session
+        // ends having measured none.
+        retractDeducedDeparture = get(),
+        clock = clock,
+    )
     single {
-        CoordinatorParkingDetector(
-            calculateParkingConfidence = get(),
-            confirmParking = get(),
-            notifyParkingConfirmation = get(),
-            resolveAskedStreet = get(),
-            notificationPort = get(),
-            vehicleRepository = get(),
+        buildCoordinator(
+            clock = { kotlin.time.Clock.System.now().toEpochMilliseconds() },
             stepDetector = get(),
-            config = get(),
-            detectionEventLogger = get(),
-            evaluateParkingDecision = get(),
-            phaseSink = get(),
-            // [DET-DI-DETECTION-MODULE-001] Was a hand-built default inside the constructor.
-            evaluateUnattendedParkingSave = get(),
-            // [DET-HANDOFF-NOT-MANUAL-001 §B] The deduced departure's commit, deferred to the
-            // moment this session measures a drive.
-            finalizeDeducedDeparture = get(),
-            // [DET-HANDOFF-NOT-MANUAL-001 §B.3] …and its withdrawal, at the moment this session
-            // ends having measured none.
-            retractDeducedDeparture = get(),
         )
+    }
+    // [IOS-F2-A-WAKE-MUST-QUERY-THE-PAST-001] The wake-and-query reconstruction runs a SEPARATE
+    // coordinator instance: the production single ticks the real clock, and a replay of recorded
+    // history must be judged on the trace's own time (`DetectionTraceIngestion.nowMs`) with a
+    // step source the replay can drive. Parameters: (clock: () -> Long, steps: StepDetectorSource).
+    factory(org.koin.core.qualifier.named(RECONSTRUCTION_COORDINATOR)) { params ->
+        buildCoordinator(clock = params.get(), stepDetector = params.get())
     }
     // [DET-SOLID-001] The departure-check seam, extracted from DepartureDetectionWorker.
     single<com.rndeveloper.paparcar.domain.detection.DepartureConfirmationListener> { get<CoordinatorParkingDetector>() }
