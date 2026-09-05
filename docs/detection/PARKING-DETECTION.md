@@ -7579,3 +7579,39 @@ the history it exists to preserve.
 Spec: `docs/backlog/det-a-held-anchor-must-say-a-second-stop-happened-001.md`. The behaviour itself
 stays open and explicitly **out of 1.0**:
 `docs/backlog/det-a-repark-leaves-the-pin-at-the-first-stop-001.md`.
+
+### IOS-F1-A-CONTROLLER-FOR-THE-HAPPY-PATH-001 — iOS gets its orchestrator (commit pending)
+
+**User report**: none — parity work. The iOS side had every sensor port real and nobody feeding
+the coordinator: the manual button was a no-op, the geofence bus emitted EXITs no one consumed,
+and the F0 side-records had no reader.
+
+**Root cause**: F0 built the enablers; the orchestrator itself (plan §8-F1) had never been
+written. iOS was a periphery without a heart.
+
+**Fix**: `IosDetectionController` (iosMain) — the functional mirror of
+`CoordinatorDetectionService`, reduced to what iOS needs. It reproduces the ONE invariant
+[DET-INTAKE-001] (unlimited channel, one command handled to completion at a time, a failing
+handler never kills the loop) and keeps every decision in commonMain: quiet period, strategy gate
+(which on iOS always answers COORDINATOR — emergent, not special-cased), exit adjudication,
+supersede (`notifySuperseded()` BEFORE cancel, inherited obligation), pre-arm evidence, and the
+whole confirmation pipeline inside `CoordinatorParkingDetector` (confirm + fence + notification —
+the Android service never called `ConfirmParkingUseCase` either; measured during the port). The
+geofence bus is the REAL delivery channel on iOS [IOS-F0-04]: subscription happens in `start()`
+before any delegate can fire, and a start-of-life reconcile (`FenceReconciliation.kt`, new pure
+function + 5 tests, budget of 20 regions explicit) heals what a replay-less bus can drop. The
+three ports stop being no-ops, each through its own door [DET-HANDOFF-NOT-MANUAL-001]; the
+resumer's answer is real (the OS-held region IS the watcher). New NSUserDefaults twin of the
+user-stop store keeps [DET-STOP-BUTTON-001]'s quiet period.
+
+**Deliberately absent** (F2, stated in code where each bites): departure dispatch on EXIT (the
+freed spot is NOT published yet — the inline check with its retry ladder is F2), honest close and
+witness seal (mute until the CMPedometer range query replaces `stepsSinceSeal() == null`),
+safety-net mesh, wake-and-query reconstruction. No FGS, no sentry, no keep-alive: the trip-scoped
+CLLocation session is what keeps the app alive, per the plan's §3 doctrine.
+
+**Accompanying risk**: Android behavior untouched (all-new files plus iosMain rewires; the shared
+suite stayed at the same green). The controller itself compiles only on the Mac lane — the PR's
+`apple` job is its compiler and its simulator suite runs the shared decisions it calls.
+
+Spec: `docs/backlog/ios-f1-a-controller-for-the-happy-path-001.md`.
