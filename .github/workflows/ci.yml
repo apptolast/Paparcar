@@ -134,13 +134,17 @@ jobs:
           path: ~/firebase-frameworks
           key: firebase-apple-11.8.0-simulator-slices
 
+      # The release asset is a SIGNED WRAPPER (carthage zips + build logs); the real payload is
+      # nested at 11_8_0/Firebase-11.8.0-latest.zip, stored uncompressed. Two unzips, then keep
+      # only the simulator slices.
       - name: Fetch Firebase Apple frameworks (simulator slices)
         if: steps.firebase-frameworks.outputs.cache-hit != 'true'
         run: |
-          curl -fsSL -o /tmp/Firebase.zip https://github.com/firebase/firebase-ios-sdk/releases/download/11.8.0/Firebase.zip
+          curl -fsSL -o /tmp/FirebaseOuter.zip https://github.com/firebase/firebase-ios-sdk/releases/download/11.8.0/Firebase.zip
+          unzip -q -j /tmp/FirebaseOuter.zip '*Firebase-11.8.0-latest.zip' -d /tmp/fbinner
           mkdir -p ~/firebase-frameworks
-          unzip -q /tmp/Firebase.zip '*ios-arm64_x86_64-simulator*' -d ~/firebase-frameworks
-          rm /tmp/Firebase.zip
+          unzip -q /tmp/fbinner/Firebase-11.8.0-latest.zip '*ios-arm64_x86_64-simulator*' -d ~/firebase-frameworks
+          rm -rf /tmp/FirebaseOuter.zip /tmp/fbinner
 
       # Runs commonTest on Kotlin/Native in the iOS simulator — the SAME suite the Linux job runs
       # on the JVM. Until this step existed the 2100+ tests had never even compiled for iOS: a
