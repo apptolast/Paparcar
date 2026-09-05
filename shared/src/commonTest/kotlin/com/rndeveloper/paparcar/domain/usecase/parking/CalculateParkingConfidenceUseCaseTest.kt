@@ -20,7 +20,7 @@ class CalculateParkingConfidenceUseCaseTest {
     // ── Fast path (activityExit + min stop) — tops out at Medium, never High ──
 
     @Test
-    fun `fast path with speed bonus returns Medium - opens the prompt, never auto-confirms`() {
+    fun `fast path with speed bonus returns Medium - opens the prompt and never auto-confirms`() {
         val signals = ParkingSignals(
             activityExit = true,
             stoppedDurationMs = config.fastPathMinStoppedMs,
@@ -134,7 +134,7 @@ class CalculateParkingConfidenceUseCaseTest {
     // ── [DET-EVIDENCE-MUST-NOT-LOWER-CONFIDENCE-001] evidence is additive ──────
 
     @Test
-    fun `adding an AR vehicle exit can never lower the confidence - the property, not a case`() {
+    fun `adding an AR vehicle exit can never lower the confidence - the property not a case`() {
         // The bug this ticket exists for, stated as an invariant instead of an anecdote: the same
         // stop scored 0,80 without an AR exit and 0,65 with one, and High is the only route into
         // the CANDIDATE phase. Swept across every tier and both bonus states, because the old bug

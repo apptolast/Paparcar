@@ -287,7 +287,7 @@ class ObserveDetectionReadinessUseCaseTest {
 
     @OptIn(ExperimentalCoroutinesApi::class)
     @Test
-    fun `should follow the trip as soon as BT connects, with nothing else emitting`() = runTest {
+    fun `should follow the trip as soon as BT connects with nothing else emitting`() = runTest {
         // Why ONE continuous collection and not three `.first()` calls: re-subscribing would re-read
         // the connection on each new flow, so even a snapshot source would pass and the test would
         // prove nothing. Here everything else — fleet, sessions, permissions, settings, coordinator

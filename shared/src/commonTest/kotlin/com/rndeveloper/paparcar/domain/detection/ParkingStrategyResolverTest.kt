@@ -39,7 +39,7 @@ class ParkingStrategyResolverTest {
     // ── BT strategy case ──────────────────────────────────────────────────────
 
     @Test
-    fun `resolves to BT strategy when vehicle has BT config, BT enabled AND connected`() = runTest {
+    fun `resolves to BT strategy when vehicle has BT config with BT enabled AND connected`() = runTest {
         // [DET-BT-CONNECTED-NOT-PAIRED-001] Connected to the paired car → BLUETOOTH owns detection.
         val vehicle = vehicleWith(id = "v-1", bluetoothDeviceId = "AA:BB:CC:DD:EE:FF")
         val resolver = buildResolver(defaultVehicle = vehicle, btEnabled = true, connectedVehicleIds = setOf("v-1"))
@@ -153,7 +153,7 @@ class ParkingStrategyResolverTest {
     }
 
     @Test
-    fun `MOTORCYCLE still resolves to coordinator (parks like a car)`() = runTest {
+    fun `MOTORCYCLE still resolves to coordinator - parks like a car`() = runTest {
         val vehicle = vehicleWith(
             bluetoothDeviceId = null,
             type = VehicleType.MOTORCYCLE,

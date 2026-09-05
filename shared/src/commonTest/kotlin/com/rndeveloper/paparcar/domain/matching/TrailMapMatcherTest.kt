@@ -153,7 +153,7 @@ class TrailMapMatcherTest {
     }
 
     @Test
-    fun `should drop a long off-road run and bridge it along the road, never drawing it raw`() {
+    fun `should drop a long off-road run and bridge it along the road - never drawing it raw`() {
         val road = RoadWay(listOf(gp(36.6000, -6.2400), gp(36.6000, -6.2300)))
         // Three consecutive fixes far north of any street (open ground) — a real off-road stretch.
         // v5 never draws these raw: they are dropped and the gap is bridged along the road.

@@ -14,6 +14,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Clock
 
 /**
  * [DET-SOLID-001] First coverage of the user's false-positive correction path: the REVERT
@@ -26,7 +27,7 @@ class RevertParkingUseCaseTest {
         id = id,
         userId = "user-42",
         vehicleId = "v-1",
-        location = GpsPoint(40.4, -3.7, 8f, System.currentTimeMillis() - 90_000L, 0f),
+        location = GpsPoint(40.4, -3.7, 8f, Clock.System.now().toEpochMilliseconds() - 90_000L, 0f),
         geofenceId = id,
         isActive = true,
     )
@@ -98,7 +99,7 @@ class RevertParkingUseCaseTest {
     @Test
     fun should_takeItOutWhateverPlacedIt_when_theUserRevertsAnOldMeasuredPin() = runTest {
         val old = activeSession().copy(
-            location = GpsPoint(40.4, -3.7, 8f, System.currentTimeMillis() - 6 * 60 * 60_000L, 0f),
+            location = GpsPoint(40.4, -3.7, 8f, Clock.System.now().toEpochMilliseconds() - 6 * 60 * 60_000L, 0f),
             detectionPath = "steps+egress",
         )
         val repo = FakeUserParkingRepository(initialSession = old)

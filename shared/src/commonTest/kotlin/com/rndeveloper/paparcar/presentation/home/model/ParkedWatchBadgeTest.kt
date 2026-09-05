@@ -33,7 +33,7 @@ class ParkedWatchBadgeTest {
     }
 
     @Test
-    fun `coordinator parked but service DEAD is watch interrupted, not watching`() {
+    fun `coordinator parked but service DEAD is watch interrupted - not watching`() {
         // The OS killed the resident watcher — the old surface would still claim "Vigilando". Honest.
         assertEquals(
             ParkedWatchBadge.WATCH_INTERRUPTED,
@@ -47,7 +47,7 @@ class ParkedWatchBadgeTest {
     }
 
     @Test
-    fun `coordinator parked, alive but fragile setup warns while still watching`() {
+    fun `coordinator parked and alive but fragile setup warns while still watching`() {
         assertEquals(
             ParkedWatchBadge.WATCHING_FRAGILE,
             resolveParkedWatchBadge(

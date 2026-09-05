@@ -1,7 +1,18 @@
 # TEST-A-KMP-SUITE-THAT-ONLY-RUNS-ON-JVM-IS-HALF-A-SUITE-001 · `commonTest` no compila para iOS
 
-**Estado:** 🟡 abierto, sin rama ni código · descubierto 31-08-2026 al migrar BaseLogin a Maven
-Central ([[deps-baselogin-leaves-jitpack-for-maven-central-001]])
+**Estado:** 🔵 En progreso (05-09-2026) · rama
+`bugfix/TEST-A-KMP-SUITE-THAT-ONLY-RUNS-ON-JVM-IS-HALF-A-SUITE-001-native-test-compile` ·
+worktree `../Paparcar-ios-tests` · descubierto 31-08-2026 al migrar BaseLogin a Maven Central.
+
+**Aplicado (05-09), re-barrido sobre master `f1371096`** — la medición del 31-08 había derivado:
+**18** nombres ilegales (4 nuevos aparecieron, otros se fueron), **5** relojes, y solo **2**
+`assert(` (los 4 de `FakeUserParkingRepository` ya no existen). Los 25 sitios arreglados:
+renombres mínimos (fuera `,`/`()`, prosa intacta), `Clock.System.now().toEpochMilliseconds()`
+(+ import en `RevertParkingUseCaseTest`), `assertTrue` de kotlin.test. Guardarraíl añadido:
+paso `:shared:iosSimulatorArm64Test` en el job `apple` (+ upload de resultados) — los tests
+**corren** en simulador, no solo compilan. JVM verificado verde en Windows.
+⚠️ **Pendiente el veredicto real**: K/N no compila en Windows — lo decide el job `apple` del PR
+de esta rama, iterando si el frontend destapa errores de fases posteriores (alcance §2).
 
 ## Problema
 

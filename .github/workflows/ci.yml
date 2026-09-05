@@ -122,3 +122,18 @@ jobs:
       # the xcodebuild step joins this job the day that .xcscheme is committed.
       - name: Link iOS framework
         run: ./gradlew :shared:linkDebugFrameworkIosSimulatorArm64 --no-daemon --stacktrace
+
+      # Runs commonTest on Kotlin/Native in the iOS simulator — the SAME suite the Linux job runs
+      # on the JVM. Until this step existed the 2100+ tests had never even compiled for iOS: a
+      # comma in a backticked test name is legal on the JVM and a compile error on Native, and
+      # nothing here would notice. [TEST-A-KMP-SUITE-THAT-ONLY-RUNS-ON-JVM-IS-HALF-A-SUITE-001]
+      - name: Run commonTest on iOS simulator
+        run: ./gradlew :shared:iosSimulatorArm64Test --no-daemon --stacktrace
+
+      - name: Upload iOS test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-test-results
+          path: shared/build/reports/tests/iosSimulatorArm64Test/
+          retention-days: 7
