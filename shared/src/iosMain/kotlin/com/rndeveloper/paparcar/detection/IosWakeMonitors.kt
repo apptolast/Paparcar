@@ -9,7 +9,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import platform.CoreLocation.CLLocationManager
 import platform.CoreLocation.CLLocationManagerDelegateProtocol
-import platform.CoreLocation.CLVisit
 import platform.darwin.NSObject
 
 /**
@@ -38,10 +37,14 @@ class IosWakeMonitors {
             val del = WakeDelegate(onWake)
             mgr.delegate = del
             mgr.startMonitoringSignificantLocationChanges()
-            mgr.startMonitoringVisits()
+            // CLVisit monitoring is DEFERRED, not forgotten: `startMonitoringVisits` is absent
+            // from this Kotlin/Native CoreLocation klib (measured on CI — the SLC call above
+            // resolves, this one does not). When a cinterop route lands, visits join this same
+            // callback with source "visit-wake". SLC alone still relaunches the dead app on
+            // coarse movement, which is the mesh's load-bearing wake.
             manager = mgr
             delegate = del
-            PaparcarLogger.d(TAG, "SLC + visit monitoring started")
+            PaparcarLogger.d(TAG, "SLC monitoring started")
         }
     }
 }
@@ -52,10 +55,6 @@ private class WakeDelegate(
 
     override fun locationManager(manager: CLLocationManager, didUpdateLocations: List<*>) {
         onWake("slc-wake")
-    }
-
-    override fun locationManager(manager: CLLocationManager, didVisit: CLVisit) {
-        onWake("visit-wake")
     }
 }
 
