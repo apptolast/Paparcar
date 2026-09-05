@@ -69,10 +69,25 @@ kotlin {
         iosTarget.binaries.withType(org.jetbrains.kotlin.gradle.plugin.mpp.TestExecutable::class.java)
             .configureEach {
                 linkerOpts("-undefined", "dynamic_lookup")
+                // Every framework in the set gets NAMED, not just put on the search path: the
+                // klib opts only name FirebaseCore/Auth/Firestore, whose ObjC class refs into
+                // sibling frameworks (FIRHeartbeatController lives in FirebaseCoreInternal) bind
+                // EAGERLY at image load — dynamic_lookup cannot defer those. Static archives make
+                // over-linking safe: ld only pulls objects that resolve something.
                 System.getenv("FIREBASE_IOS_FRAMEWORKS")?.let { root ->
+                    val named = mutableSetOf<String>()
                     File(root).walkTopDown()
                         .filter { it.isDirectory && it.name == "ios-arm64_x86_64-simulator" }
-                        .forEach { slice -> linkerOpts("-F${slice.absolutePath}") }
+                        .forEach { slice ->
+                            linkerOpts("-F${slice.absolutePath}")
+                            slice.listFiles().orEmpty()
+                                .filter { it.isDirectory && it.extension == "framework" }
+                                .forEach { fw ->
+                                    if (named.add(fw.nameWithoutExtension)) {
+                                        linkerOpts("-framework", fw.nameWithoutExtension)
+                                    }
+                                }
+                        }
                 }
             }
     }
