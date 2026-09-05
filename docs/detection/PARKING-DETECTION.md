@@ -7615,3 +7615,43 @@ suite stayed at the same green). The controller itself compiles only on the Mac 
 `apple` job is its compiler and its simulator suite runs the shared decisions it calls.
 
 Spec: `docs/backlog/ios-f1-a-controller-for-the-happy-path-001.md`.
+
+### IOS-F2-A-WAKE-MUST-QUERY-THE-PAST-001 (etapas 1-2) — the iOS EXIT frees the spot, and the step budget speaks (commit pending)
+
+**User report**: none — the F1 boundary stated in code: "a geofence EXIT arms the next-park
+tracking but does NOT dispatch the departure". This closes that half, plus the mute step budget.
+
+**Root cause**: no orchestration existed on iOS for the two lanes whose DECISIONS were already
+common: the departure ladder (`RunDepartureCheckUseCase` — publish gate, provisional
+double-publish guard, refuted-pin retract, follower handoff all live inside it) and the honest
+close (whose budget read `stepsSinceSeal() == null` since F0).
+
+**Fix (stage 1)**: the controller's EXIT lane launches an inline departure ladder in PARALLEL
+with the arm (never inside the intake — 105 s must not freeze the loop; the arm's trip-scoped GPS
+session is what keeps the app alive through the window, the plan's §2.5 substitution for
+WorkManager). Attempts at t=0/+15/+45/+105 s; per-fence REPLACE dedup (the real cross-wake dedup
+is the adjudication records). Two decisions Android leaves implicit are explicit here:
+`ProcessFailedRetry` capped at 3 (giving up never loses the session — the stage-3 reconcile
+re-derives an unprocessed departure) and `Dismissed` only logs (fence-poison→cure belongs to the
+mesh, stage 4). `Processed(followTrip)` arms `GEOFENCE_EXIT` + `ArmEvidence.DepartureFollowed`
+anchored to the just-closed pin [DET-A-JUST-DEPARTED-CAR-IS-NOT-NO-SESSION-001], with the same
+race guard as the Android handler.
+
+**Fix (stage 2)**: `IosDetectionStepAnchors.stepsSinceSeal` becomes a real
+`CMPedometer.queryPedometerDataFromDate` over `[sealedAtMs, now]` — the portable contract's
+intended shape (IOS-F0-05): the OS counts steps with the app dead, and there is no cumulative
+counter to freeze (DET-FROZEN-COUNTER has no iOS analogue). The controller's epilogue runs the
+honest close (then the arrival stamp — Android's order) WITHOUT the witness slot: iOS has no
+cumulative counter to stamp witnesses with, and the evaluator treats an absent witness as "no
+refutation", never as proof. Query errors and denied Motion permission answer null — mute, never
+a false verdict.
+
+**Deliberately absent still** (stages 3-4 of the same ticket): wake-and-query reconstruction via
+`DetectionTraceIngestion` (the production coordinator is a real-clock single; reconstruction
+needs a virtual-clock instance — design noted in the ticket) and the safety-net mesh
+(`EvaluateSafetyNetCheckUseCase` on app-start/ENTER-cure/SLC/BGAppRefresh wakes).
+
+**Accompanying risk**: Android untouched (iosMain-only). The ladder runs on the same common use
+case the Android worker runs — a behavior change there would show in the shared suite first.
+
+Spec: `docs/backlog/ios-f2-a-wake-must-query-the-past-001.md`.

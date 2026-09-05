@@ -1,19 +1,30 @@
+@file:OptIn(kotlinx.cinterop.ExperimentalForeignApi::class)
+
 package com.rndeveloper.paparcar.detection.sensor
 
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.sensor.DetectionStepAnchors
 import com.rndeveloper.paparcar.domain.sensor.StepsSinceSeal
+import com.rndeveloper.paparcar.domain.util.PaparcarLogger
+import kotlin.coroutines.resume
+import kotlinx.coroutines.suspendCancellableCoroutine
+import platform.CoreMotion.CMPedometer
 import platform.Foundation.NSDate
 import platform.Foundation.NSUserDefaults
+import platform.Foundation.dateWithTimeIntervalSince1970
 import platform.Foundation.timeIntervalSince1970
 
 /**
- * [IOS-F0-06] iOS step-seal SKELETON per the portable contract (`DetectionStepAnchors`,
- * IOS-F0-05): the seal persists only WHERE and WHEN — no counter baseline, because iOS has no
- * cumulative register. [stepsSinceSeal] must derive the delta with a CMPedometer date-range
- * query over `[sealedAtMs, now]` (port F2); until then it answers null, which the contract
- * defines as "counter mute → the honest close stays silent" — a safe degradation, never a
- * wrong verdict.
+ * [IOS-F0-06 → IOS-F2-A-WAKE-MUST-QUERY-THE-PAST-001] iOS step-seal per the portable contract
+ * (`DetectionStepAnchors`, IOS-F0-05): the seal persists only WHERE and WHEN, and the delta is
+ * derived at READ time with a CMPedometer date-range query over `[sealedAtMs, now]`.
+ *
+ * This is strictly better than Android's cumulative-counter baseline in two ways the contract
+ * predicted: the OS keeps recording steps with the app DEAD (a wake hours later still gets the
+ * true budget), and there is no counter to freeze or reboot below the baseline — the
+ * frozen-counter pathology (DET-FROZEN-COUNTER) has no iOS analogue. When the pedometer is
+ * unavailable or the query errors, the answer is null — "counter mute → the honest close stays
+ * silent", a safe degradation, never a wrong verdict.
  */
 class IosDetectionStepAnchors(
     private val defaults: NSUserDefaults = NSUserDefaults.standardUserDefaults,
@@ -32,16 +43,55 @@ class IosDetectionStepAnchors(
     }
 
     override suspend fun stepsSinceSeal(geofenceId: String): StepsSinceSeal? {
-        // TODO(F2): CMPedometer.queryPedometerData over [sealedAtMs, now] — the seal above
-        // already persists everything that query needs.
-        return null
+        val sealedAtMs = (defaults.objectForKey(KEY_NAMESPACE + SEAL_AT_PREFIX + geofenceId) as? String)
+            ?.toLongOrNull() ?: return null
+        if (!CMPedometer.isStepCountingAvailable()) return null
+        val nowMs = nowMillis()
+        if (nowMs < sealedAtMs) return null // a clock jump backwards is never a verdict
+
+        val steps = queryStepsBetween(sealedAtMs, nowMs) ?: return null
+        return StepsSinceSeal(
+            steps = steps,
+            sealPoint = readSealPoint(geofenceId, sealedAtMs),
+            sealedAtMs = sealedAtMs,
+        )
     }
 
-    private fun nowMillis(): Long = (NSDate().timeIntervalSince1970 * 1_000.0).toLong()
+    private suspend fun queryStepsBetween(fromMs: Long, toMs: Long): Long? =
+        suspendCancellableCoroutine { cont ->
+            CMPedometer().queryPedometerDataFromDate(
+                NSDate.dateWithTimeIntervalSince1970(fromMs / MILLIS_PER_SECOND),
+                NSDate.dateWithTimeIntervalSince1970(toMs / MILLIS_PER_SECOND),
+            ) { data, error ->
+                if (!cont.isActive) return@queryPedometerDataFromDate
+                if (error != null || data == null) {
+                    // Denied Motion permission surfaces here as an error: mute, not a verdict.
+                    PaparcarLogger.w(TAG, "pedometer range query failed: ${error?.localizedDescription}")
+                    cont.resume(null)
+                } else {
+                    cont.resume(data.numberOfSteps.longLongValue)
+                }
+            }
+        }
+
+    private fun readSealPoint(geofenceId: String, sealedAtMs: Long): GpsPoint? {
+        val raw = defaults.objectForKey(KEY_NAMESPACE + SEAL_POS_PREFIX + geofenceId) as? String
+            ?: return null
+        val parts = raw.split(",")
+        val lat = parts.getOrNull(0)?.toDoubleOrNull() ?: return null
+        val lon = parts.getOrNull(1)?.toDoubleOrNull() ?: return null
+        // The seal stores no accuracy/speed — the point exists to anchor the displacement origin
+        // [DET-STEP-BUDGET-ORIGIN-001], so neutral values are honest here.
+        return GpsPoint(lat, lon, accuracy = 0f, timestamp = sealedAtMs, speed = 0f)
+    }
+
+    private fun nowMillis(): Long = (NSDate().timeIntervalSince1970 * MILLIS_PER_SECOND).toLong()
 
     private companion object {
+        const val TAG = "IosDetectionStepAnchors"
         const val KEY_NAMESPACE = "parking_safety_net."
         const val SEAL_AT_PREFIX = "anchor_seal_at_"
         const val SEAL_POS_PREFIX = "anchor_seal_pos_"
+        const val MILLIS_PER_SECOND = 1_000.0
     }
 }

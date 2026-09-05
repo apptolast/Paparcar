@@ -47,6 +47,11 @@ val iosDetectionModule = module {
             userStopStore = com.rndeveloper.paparcar.detection.IosUserStopStore(),
             detectionEventLogger = get(),
             config = get(),
+            // F2 lanes [IOS-F2-A-WAKE-MUST-QUERY-THE-PAST-001]
+            runDepartureCheck = get(),
+            runHonestClose = get(),
+            detectionStepAnchors = get(),
+            vehicleRepository = get(),
         )
     }
     single<com.rndeveloper.paparcar.domain.detection.ports.ManualParkingDetection> {

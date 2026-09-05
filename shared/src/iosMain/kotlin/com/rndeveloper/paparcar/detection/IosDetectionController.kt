@@ -21,10 +21,15 @@ import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
 import com.rndeveloper.paparcar.domain.service.GeofenceEvent
 import com.rndeveloper.paparcar.domain.service.GeofenceEventBus
 import com.rndeveloper.paparcar.domain.service.GeofenceManager
+import com.rndeveloper.paparcar.domain.repository.VehicleRepository
+import com.rndeveloper.paparcar.domain.sensor.DetectionStepAnchors
 import com.rndeveloper.paparcar.domain.usecase.detection.EvaluateGeofenceExitUseCase
 import com.rndeveloper.paparcar.domain.usecase.detection.GeofenceExitLookup
 import com.rndeveloper.paparcar.domain.usecase.location.GetOneLocationUseCase
 import com.rndeveloper.paparcar.domain.usecase.location.ObserveAdaptiveLocationUseCase
+import com.rndeveloper.paparcar.domain.usecase.parking.DepartureCheckOutcome
+import com.rndeveloper.paparcar.domain.usecase.parking.RunDepartureCheckUseCase
+import com.rndeveloper.paparcar.domain.usecase.parking.RunHonestCloseUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.VerifyDepartureEvidenceUseCase
 import io.github.aakira.napier.Napier
 import kotlin.coroutines.cancellation.CancellationException
@@ -84,6 +89,11 @@ class IosDetectionController(
     private val userStopStore: IosUserStopStore,
     private val detectionEventLogger: DetectionEventLogger,
     private val config: ParkingDetectionConfig,
+    // ── F2 lanes [IOS-F2-A-WAKE-MUST-QUERY-THE-PAST-001] ────────────────────────────────────────
+    private val runDepartureCheck: RunDepartureCheckUseCase,
+    private val runHonestClose: RunHonestCloseUseCase,
+    private val detectionStepAnchors: DetectionStepAnchors,
+    private val vehicleRepository: VehicleRepository,
     private val clock: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) {
 
@@ -114,6 +124,11 @@ class IosDetectionController(
     private val intake = Channel<Command>(Channel.UNLIMITED)
     private var detectionJob: Job? = null
     private var started = false
+
+    /** One departure ladder per fence, REPLACE semantics — the same dedup WorkManager's
+     *  `enqueueUniqueWork(REPLACE)` gave the Android worker. The real cross-wake dedup lives in
+     *  the adjudication records, not here. */
+    private val departureLadders = mutableMapOf<String, Job>()
 
     /**
      * Idempotent. Subscribes to the geofence bus BEFORE any region delegate can fire (the bus has
@@ -244,9 +259,10 @@ class IosDetectionController(
                     armingGeofenceId = command.armingGeofenceId,
                 )
                 withContext(NonCancellable) {
-                    // The honest close and the witness-fix seal stay F2 on purpose: their step
-                    // budget needs `stepsSinceSeal()`, which is null until the CMPedometer range
-                    // query lands — running them mute here would fake a verdict.
+                    // Same epilogue order as the Android service: honest close first, then the
+                    // arrival stamp. The witness-fix seal has no iOS analogue (no cumulative
+                    // counter) — see maybeRunHonestClose. [IOS-F2-A-WAKE-MUST-QUERY-THE-PAST-001]
+                    maybeRunHonestClose()
                     maybeStampArrivalResolution()
                 }
             } finally {
@@ -319,6 +335,14 @@ class IosDetectionController(
         }
         val target = decision.armTarget ?: return
 
+        // [IOS-F2-A-WAKE-MUST-QUERY-THE-PAST-001] The freed-spot half of the exit, inline: the
+        // ladder runs in parallel with the arm below (never inside the intake — a 105 s ladder
+        // must not freeze the loop). The trip-scoped GPS session the arm opens is what keeps the
+        // app alive through the ladder's window, exactly the plan's §2.5 substitution for the
+        // Android worker. Launched for boundary AND stale targets, before the strategy gate —
+        // the gate guards the RE-ARM, never the departure (same order as the Android service).
+        launchDepartureLadder(target.geofenceId, exitAtMs = event.timestamp)
+
         if (!coordinatorMayArm(strategyResolver.resolve(), DetectionTrigger.GEOFENCE_EXIT)) return
 
         // Supersede-or-suppress against a live session; the hand-over question and what travels
@@ -356,6 +380,106 @@ class IosDetectionController(
                 armingGeofenceId = target.geofenceId,
             ),
         )
+    }
+
+    // ── The departure ladder — the freed spot gets published [IOS-F2-A-WAKE-MUST-QUERY-THE-PAST-001] ──
+
+    private fun launchDepartureLadder(geofenceId: String, exitAtMs: Long) {
+        departureLadders.remove(geofenceId)?.cancel()
+        departureLadders[geofenceId] = scope.launch {
+            try {
+                runDepartureLadder(geofenceId, exitAtMs)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                Napier.e("departure ladder failed for ${geofenceId.take(8)}", e, tag = TAG)
+            }
+        }
+    }
+
+    /** The Android worker's retry ladder, inline: attempts at t=0/+15s/+45s/+105s (~2 min window
+     *  for AR delivery), each one a full `RunDepartureCheckUseCase` pass — the decision, the
+     *  publish gate and the session close all live in that common use case. Two deliberate
+     *  differences vs Android, stated because each is a decision: `ProcessFailedRetry` gets an
+     *  EXPLICIT cap (Android leans on WorkManager's implicit max-run-attempts), and a Dismissed
+     *  fence is only logged — the fence-poison → cure repair is the safety-net mesh's job (F2.4). */
+    private suspend fun runDepartureLadder(geofenceId: String, exitAtMs: Long) {
+        var processFailures = 0
+        var attempt = 0
+        while (true) {
+            when (val outcome = runDepartureCheck(geofenceId, exitAtMs, attempt, preconfirmed = false)) {
+                DepartureCheckOutcome.Retry -> {
+                    delay(LADDER_DELAYS_MS[attempt.coerceAtMost(LADDER_DELAYS_MS.lastIndex)])
+                    attempt++
+                }
+                DepartureCheckOutcome.ProcessFailedRetry -> {
+                    if (++processFailures > PROCESS_FAILED_MAX_RETRIES) {
+                        Napier.w("departure processing kept failing for ${geofenceId.take(8)} — giving up this wake; the reconcile owns the session", tag = TAG)
+                        return
+                    }
+                    delay(PROCESS_FAILED_RETRY_DELAY_MS)
+                }
+                DepartureCheckOutcome.Dismissed -> {
+                    Napier.i("departure dismissed for ${geofenceId.take(8)} (fence cure is the mesh's job, F2.4)", tag = TAG)
+                    return
+                }
+                is DepartureCheckOutcome.Processed -> {
+                    outcome.followTrip?.let { follow ->
+                        // [DET-A-JUST-DEPARTED-CAR-IS-NOT-NO-SESSION-001] The departure cleared
+                        // the pin — somebody must follow the trip or the detector goes deaf.
+                        // Race guard as in the Android handler: something may have armed between
+                        // the check and this hand-off.
+                        if (detectionJob?.isActive == true) return
+                        val closedPin = runCatching {
+                            userParkingRepository.getSessionById(follow.geofenceId)
+                        }.getOrNull()
+                        intake.trySend(
+                            Command.StartTracking(
+                                trigger = DetectionTrigger.GEOFENCE_EXIT,
+                                evidence = ArmEvidence.DepartureFollowed(
+                                    speedKmh = follow.speedKmh,
+                                    accuracyM = follow.accuracyM,
+                                ),
+                                trip = closedPin?.let { TripContext(it.location, it.vehicleId) },
+                            ),
+                        )
+                    }
+                    return
+                }
+            }
+        }
+    }
+
+    /** Mirror of the Android service's `maybeRunHonestClose`, minus the witness slot: iOS has no
+     *  cumulative counter to stamp a witness with, so the ladder runs on the pedometer budget
+     *  alone (`stepsSinceSeal` is a real CMPedometer range query since this ticket) and the
+     *  witness inputs stay null — the evaluator already treats an absent witness as "no
+     *  refutation", never as proof. [DET-STEP-BUDGET-ORIGIN-001][DET-TRIP-WITNESS-001] */
+    private suspend fun maybeRunHonestClose() {
+        if (!coordinator.lastOutcome.triggersHonestClose) return
+        val abortFix = coordinator.lastSessionFix ?: return
+        val vehicleId = runCatching {
+            vehicleRepository.observeActiveVehicle().first()?.id
+        }.getOrNull() ?: return
+        val stalePin = runCatching {
+            userParkingRepository.getActiveSessionByVehicle(vehicleId)
+        }.getOrNull()
+        val staleGeofence = stalePin?.geofenceId ?: return
+        val budget = runCatching { detectionStepAnchors.stepsSinceSeal(staleGeofence) }.getOrNull()
+        val sealAgeMs = budget?.sealedAtMs?.let { clock() - it }
+        runCatching {
+            runHonestClose(
+                vehicleId = vehicleId,
+                abortFix = abortFix,
+                stepsSinceStalePin = budget?.steps,
+                stepSealPoint = budget?.sealPoint,
+                sealAgeMs = sealAgeMs,
+                lastWitnessedFix = null,
+                witnessAgeMs = null,
+                sessionStepEvents = coordinator.lastSessionStepEvents,
+                sessionMaxSpeedMps = coordinator.lastSessionMaxSpeedMps,
+            )
+        }.onFailure { e -> Napier.w("honest close failed (continuing)", e, tag = TAG) }
     }
 
     // ── Reconcile — Room truth vs OS-monitored regions ───────────────────────────────────────────
@@ -402,5 +526,15 @@ class IosDetectionController(
     private companion object {
         const val TAG = "IosDetectionController"
         const val MPS_TO_KMH = 3.6f
+
+        /** Inter-attempt delays of the departure ladder: attempts land at t=0/+15s/+45s/+105s —
+         *  the same ~2 min AR-delivery window the Android worker's exponential backoff yields. */
+        val LADDER_DELAYS_MS = listOf(15_000L, 30_000L, 60_000L)
+
+        /** Android leans on WorkManager's implicit max-run-attempts for a failing PROCESS step;
+         *  inline there is no such net, so the cap is explicit. Giving up never loses the
+         *  session: the wake-and-query reconcile re-derives an unprocessed departure. */
+        const val PROCESS_FAILED_MAX_RETRIES = 3
+        const val PROCESS_FAILED_RETRY_DELAY_MS = 30_000L
     }
 }
