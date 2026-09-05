@@ -84,7 +84,7 @@ class ConfirmParkingUseCaseTest {
     }
 
     @Test
-    fun `should not post any notification (caller's responsibility)`() = runTest {
+    fun `should not post any notification - the caller's responsibility`() = runTest {
         // [CONFIRM-NO-NOTIF-CLEANUP] Notification responsibility lives in the caller now:
         // coordinator owns showParkingSavedConfirm (REVERT card), BT detector + HomeViewModel
         // own showParkingSaved (legacy tap-to-open). The use case never posts.
@@ -419,7 +419,7 @@ class ConfirmParkingUseCaseTest {
 
     @Test
     fun `should reset departure event bus after successful parking confirmation`() = runTest {
-        val bus = FakeDepartureEventBus(initialTimestamp = System.currentTimeMillis() - 60_000L)
+        val bus = FakeDepartureEventBus(initialTimestamp = Clock.System.now().toEpochMilliseconds() - 60_000L)
         val useCase = buildUseCase(bus = bus)
 
         useCase(location, detectionReliability = 0.9f, sealPoint = null)
@@ -429,7 +429,7 @@ class ConfirmParkingUseCaseTest {
 
     @Test
     fun `should not reset departure event bus when parking save fails`() = runTest {
-        val bus = FakeDepartureEventBus(initialTimestamp = System.currentTimeMillis() - 60_000L)
+        val bus = FakeDepartureEventBus(initialTimestamp = Clock.System.now().toEpochMilliseconds() - 60_000L)
         val failingRepo = FakeUserParkingRepository().apply {
             saveNewParkingSessionResult = Result.failure(RuntimeException("db error"))
         }
@@ -450,7 +450,7 @@ class ConfirmParkingUseCaseTest {
         id = "prev-session",
         userId = "user-42",
         vehicleId = defaultVehicle.id,
-        location = GpsPoint(lat, lon, 5f, System.currentTimeMillis() - ageMs, 0f),
+        location = GpsPoint(lat, lon, 5f, Clock.System.now().toEpochMilliseconds() - ageMs, 0f),
         geofenceId = "prev-session",
         isActive = true,
     )
@@ -701,7 +701,7 @@ class ConfirmParkingUseCaseTest {
     }
 
     @Test
-    fun `should save with no route when the store is empty (BT park - no drive tracked)`() = runTest {
+    fun `should save with no route when the store is empty - BT park with no drive tracked`() = runTest {
         val useCase = buildUseCase(routeStore = FakeDrivingRouteStore())
 
         val saved = useCase(location, detectionReliability = 0.95f, sealPoint = null).getOrNull()

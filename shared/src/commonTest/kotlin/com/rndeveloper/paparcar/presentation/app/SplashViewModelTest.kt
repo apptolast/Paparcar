@@ -320,7 +320,7 @@ class SplashViewModelTest {
     }
 
     @Test
-    fun `startRoute resolves to PERMISSIONS when onboarding done but missing runtime perms (vehicle present)`() = runTest {
+    fun `startRoute resolves to PERMISSIONS when onboarding done but missing runtime perms with vehicle present`() = runTest {
         fakePrefs.setOnboardingCompleted()
         setProfileWithVehicle()
         // permissions remain default (none granted)
@@ -332,7 +332,7 @@ class SplashViewModelTest {
     }
 
     @Test
-    fun `startRoute resolves to PERMISSIONS when onboarding done and no perms (regardless of vehicle)`() = runTest {
+    fun `startRoute resolves to PERMISSIONS when onboarding done and no perms regardless of vehicle`() = runTest {
         // First-run flow: permissions take priority over vehicle. The user lands on the single
         // explain-and-grant permissions surface before being asked for a vehicle.
         fakePrefs.setOnboardingCompleted()
@@ -405,7 +405,7 @@ class SplashViewModelTest {
     }
 
     @Test
-    fun `enters app offline-first (resolves startRoute, no retry) when offline but data is cached`() = runTest {
+    fun `enters app offline-first resolving startRoute without retry when offline but data is cached`() = runTest {
         // Returning user: onboarding done, permissions granted, and a vehicle already cached in Room.
         fakePrefs.setOnboardingCompleted()
         setProfileWithVehicle()

@@ -58,6 +58,38 @@ kotlin {
             baseName = "ComposeApp"
             isStatic = true
         }
+        // GitLive Firebase's klibs embed `-framework FirebaseCore` (et al.) linker opts, so the
+        // TEST binary needs the native Firebase frameworks ON THE SEARCH PATH — the app gets them
+        // from SPM inside the Xcode build, a bare Gradle test binary gets nothing and dies with
+        // `ld: framework 'FirebaseCore' not found`. CI downloads the simulator slices of the
+        // firebase-ios-sdk release GitLive 2.6.0 pins (11.8.0) and points FIREBASE_IOS_FRAMEWORKS
+        // here. `dynamic_lookup` stays as the net for symbols of libs the opts do not name — the
+        // suite never touches real Firebase (fakes only). Only the test binary is relaxed; the
+        // app framework above stays strict. [TEST-A-KMP-SUITE-THAT-ONLY-RUNS-ON-JVM-IS-HALF-A-SUITE-001]
+        iosTarget.binaries.withType(org.jetbrains.kotlin.gradle.plugin.mpp.TestExecutable::class.java)
+            .configureEach {
+                linkerOpts("-undefined", "dynamic_lookup")
+                // Every framework in the set gets NAMED, not just put on the search path: the
+                // klib opts only name FirebaseCore/Auth/Firestore, whose ObjC class refs into
+                // sibling frameworks (FIRHeartbeatController lives in FirebaseCoreInternal) bind
+                // EAGERLY at image load — dynamic_lookup cannot defer those. Static archives make
+                // over-linking safe: ld only pulls objects that resolve something.
+                System.getenv("FIREBASE_IOS_FRAMEWORKS")?.let { root ->
+                    val named = mutableSetOf<String>()
+                    File(root).walkTopDown()
+                        .filter { it.isDirectory && it.name == "ios-arm64_x86_64-simulator" }
+                        .forEach { slice ->
+                            linkerOpts("-F${slice.absolutePath}")
+                            slice.listFiles().orEmpty()
+                                .filter { it.isDirectory && it.extension == "framework" }
+                                .forEach { fw ->
+                                    if (named.add(fw.nameWithoutExtension)) {
+                                        linkerOpts("-framework", fw.nameWithoutExtension)
+                                    }
+                                }
+                        }
+                }
+            }
     }
 
     // ── Source Sets ──────────────────────────────────────────────────────────

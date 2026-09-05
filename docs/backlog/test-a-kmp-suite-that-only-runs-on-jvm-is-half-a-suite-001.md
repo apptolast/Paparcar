@@ -1,7 +1,32 @@
 # TEST-A-KMP-SUITE-THAT-ONLY-RUNS-ON-JVM-IS-HALF-A-SUITE-001 · `commonTest` no compila para iOS
 
-**Estado:** 🟡 abierto, sin rama ni código · descubierto 31-08-2026 al migrar BaseLogin a Maven
-Central ([[deps-baselogin-leaves-jitpack-for-maven-central-001]])
+**Estado:** ✅ Done (05-09-2026) · mergeado a master con squash · **2.126 tests, 0 fallos, en el
+simulador iOS** (PR #4) · descubierto 31-08-2026 al migrar BaseLogin a Maven Central.
+
+**Aplicado (05-09), re-barrido sobre master `f1371096`** — la medición del 31-08 había derivado:
+**18** nombres ilegales (4 nuevos aparecieron, otros se fueron), **5** relojes, y solo **2**
+`assert(` (los 4 de `FakeUserParkingRepository` ya no existen). Los 25 sitios arreglados:
+renombres mínimos (fuera `,`/`()`, prosa intacta), `Clock.System.now().toEpochMilliseconds()`
+(+ import en `RevertParkingUseCaseTest`), `assertTrue` de kotlin.test. Guardarraíl añadido:
+paso `:shared:iosSimulatorArm64Test` en el job `apple` (+ upload de resultados) — los tests
+**corren** en simulador, no solo compilan. JVM verificado verde en Windows.
+✅ **VEREDICTO (05-09, PR #4 run `33966477425`): 2.126 tests, 0 fallos, 0 ignorados, en el
+simulador iOS.** Costó 6 iteraciones de CI, cada capa escondiendo la siguiente:
+1. Frontend: los renombres/relojes/asserts previstos… menos 2 nombres que el script olvidó.
+2. Los «4 asserts» medidos en `FakeUserParkingRepository` **no eran asserts**: eran
+   `sessions.replaceAll { }` — método de `java.util.List` que la JVM cuela y Native resuelve
+   contra una API experimental. Sustituido por un `mapInPlace` propio.
+3. Linker: `ld: framework 'FirebaseCore' not found` — los klibs de GitLive incrustan
+   `-framework FirebaseCore/Auth/Firestore` y el binario de test de Gradle no tiene el search
+   path de SPM. `dynamic_lookup` NO basta: es error de búsqueda, no de símbolos.
+4. El asset `Firebase.zip` de la release 11.8.0 (la que pina GitLive 2.6.0) es un **wrapper
+   firmado**; el payload real va anidado en `11_8_0/Firebase-11.8.0-latest.zip` (STORED).
+   CI extrae solo los slices `ios-arm64_x86_64-simulator`, con caché.
+5. dyld: `_OBJC_CLASS_$_FIRHeartbeatController` — las referencias de clase ObjC se atan AL
+   CARGAR, `dynamic_lookup` no las aplaza. Gradle ahora NOMBRA cada framework del set además
+   del `-F`; con archivos estáticos, sobre-enlazar es seguro.
+6. Verde: 2.126/2.126.
+Solo el binario de TEST se relaja; el framework de la app sigue estricto.
 
 ## Problema
 

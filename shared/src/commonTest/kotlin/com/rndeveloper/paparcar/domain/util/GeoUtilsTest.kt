@@ -31,7 +31,7 @@ class GeoUtilsTest {
     }
 
     @Test
-    fun `boundingBox longitude half-extent widens with latitude (cos scaling)`() {
+    fun `boundingBox longitude half-extent widens with latitude by cos scaling`() {
         val radius = 500.0
         val lat = 60.0
         val bbox = boundingBox(lat, 10.0, radius)

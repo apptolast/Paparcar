@@ -25,7 +25,7 @@ class DrivingRouteTest {
     }
 
     @Test
-    fun `should decimate a fix that barely moved, returning the same list reference`() {
+    fun `should decimate a fix that barely moved and return the same list reference`() {
         val start = listOf(p(40.0, -3.0, 1_000L))
         // ~1 m away — below MIN_POINT_DISTANCE_M.
         val out = DrivingRoute.append(start, p(40.00001, -3.0, 6_000L))
@@ -33,7 +33,7 @@ class DrivingRouteTest {
     }
 
     @Test
-    fun `should start a fresh route after a long silence (new trip)`() {
+    fun `should start a fresh route after a long silence - a new trip`() {
         val start = listOf(p(40.0, -3.0, 1_000L), p(40.001, -3.0, 6_000L))
         val afterGap = DrivingRoute.append(start, p(41.0, -4.0, 6_000L + DrivingRoute.NEW_TRIP_GAP_MS + 1))
         assertEquals(1, afterGap.size)
@@ -43,7 +43,7 @@ class DrivingRouteTest {
     // ── Hopeless-accuracy ingest gate [ROUTE-FIX-ACCURACY-001] ───────────────
 
     @Test
-    fun `should reject a hopeless-accuracy fix, returning the same list reference`() {
+    fun `should reject a hopeless-accuracy fix and return the same list reference`() {
         val start = listOf(p(40.0, -3.0, 1_000L))
         val junk = GpsPoint(40.001, -3.0, DrivingRoute.HOPELESS_ACCURACY_METERS + 1f, 6_000L, 0f)
         val out = DrivingRoute.append(start, junk)
@@ -101,7 +101,7 @@ class DrivingRouteTest {
     }
 
     @Test
-    fun `should cap the route to MAX_POINTS, dropping the oldest`() {
+    fun `should cap the route to MAX_POINTS dropping the oldest`() {
         var route = emptyList<GpsPoint>()
         // Each fix ~110 m apart and 5 s apart so none is decimated or gap-reset.
         for (i in 0..DrivingRoute.MAX_POINTS + 50) {

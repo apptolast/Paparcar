@@ -122,3 +122,41 @@ jobs:
       # the xcodebuild step joins this job the day that .xcscheme is committed.
       - name: Link iOS framework
         run: ./gradlew :shared:linkDebugFrameworkIosSimulatorArm64 --no-daemon --stacktrace
+
+      # GitLive's klibs embed `-framework FirebaseCore` linker opts: the test binary can only
+      # link if ld can FIND those frameworks. 11.8.0 is the firebase-ios-sdk version GitLive
+      # 2.6.0 is built against (its firebase-cocoapods pin). Only the simulator slices are
+      # extracted and cached — the full zip is gigabytes of device/catalyst slices we never link.
+      - name: Cache Firebase Apple frameworks
+        id: firebase-frameworks
+        uses: actions/cache@v4
+        with:
+          path: ~/firebase-frameworks
+          key: firebase-apple-11.8.0-simulator-slices
+
+      # The release asset is a SIGNED WRAPPER (carthage zips + build logs); the real payload is
+      # nested at 11_8_0/Firebase-11.8.0-latest.zip, stored uncompressed. Two unzips, then keep
+      # only the simulator slices.
+      - name: Fetch Firebase Apple frameworks (simulator slices)
+        if: steps.firebase-frameworks.outputs.cache-hit != 'true'
+        run: |
+          curl -fsSL -o /tmp/FirebaseOuter.zip https://github.com/firebase/firebase-ios-sdk/releases/download/11.8.0/Firebase.zip
+          unzip -q -j /tmp/FirebaseOuter.zip '*Firebase-11.8.0-latest.zip' -d /tmp/fbinner
+          mkdir -p ~/firebase-frameworks
+          unzip -q /tmp/fbinner/Firebase-11.8.0-latest.zip '*ios-arm64_x86_64-simulator*' -d ~/firebase-frameworks
+          rm -rf /tmp/FirebaseOuter.zip /tmp/fbinner
+
+      # Runs commonTest on Kotlin/Native in the iOS simulator — the SAME suite the Linux job runs
+      # on the JVM. Until this step existed the 2100+ tests had never even compiled for iOS: a
+      # comma in a backticked test name is legal on the JVM and a compile error on Native, and
+      # nothing here would notice. [TEST-A-KMP-SUITE-THAT-ONLY-RUNS-ON-JVM-IS-HALF-A-SUITE-001]
+      - name: Run commonTest on iOS simulator
+        run: FIREBASE_IOS_FRAMEWORKS="$HOME/firebase-frameworks" ./gradlew :shared:iosSimulatorArm64Test --no-daemon --stacktrace
+
+      - name: Upload iOS test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-test-results
+          path: shared/build/reports/tests/iosSimulatorArm64Test/
+          retention-days: 7

@@ -10,6 +10,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class ObserveAdaptiveLocationUseCaseTest {
 
@@ -91,7 +92,7 @@ class ObserveAdaptiveLocationUseCaseTest {
 
             job.cancelAndJoin()
             val latitudes = collected.map { it.latitude }
-            assert(99.0 !in latitudes) { "Balanced emission should be ignored while in HighAccuracy mode" }
+            assertTrue(99.0 !in latitudes, "Balanced emission should be ignored while in HighAccuracy mode")
             assertEquals(3, collected.size)
         }
 
@@ -120,7 +121,7 @@ class ObserveAdaptiveLocationUseCaseTest {
 
             job.cancelAndJoin()
             val lats = collected.map { it.latitude }
-            assert(99.0 !in lats) { "balanced emission inside the burst window must be ignored" }
+            assertTrue(99.0 !in lats, "balanced emission inside the burst window must be ignored")
             assertEquals(listOf(1.0, 2.0, 3.0, 4.0), lats)
         }
 
