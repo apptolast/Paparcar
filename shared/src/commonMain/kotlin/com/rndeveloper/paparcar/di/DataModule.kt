@@ -16,6 +16,9 @@ import com.rndeveloper.paparcar.data.datasource.remote.RemoteUserProfileDataSour
 import com.rndeveloper.paparcar.data.repository.AddressAndPlaceRepositoryImpl
 import com.rndeveloper.paparcar.data.repository.DiagnosticsRepositoryImpl
 import com.rndeveloper.paparcar.data.repository.OpenSourceLicenseRepositoryImpl
+import com.rndeveloper.paparcar.data.datasource.remote.RevenueCatDataSource
+import com.rndeveloper.paparcar.data.datasource.remote.RevenueCatDataSourceImpl
+import com.rndeveloper.paparcar.data.repository.RevenueCatEntitlementRepositoryImpl
 import com.rndeveloper.paparcar.data.repository.SpotRepositoryImpl
 import com.rndeveloper.paparcar.data.repository.UserParkingRepositoryImpl
 import com.rndeveloper.paparcar.data.repository.UserProfileRepositoryImpl
@@ -24,6 +27,7 @@ import com.rndeveloper.paparcar.data.repository.ZoneRepositoryImpl
 import com.rndeveloper.paparcar.data.session.RoomLocalSessionCache
 import com.rndeveloper.paparcar.domain.repository.AddressAndPlaceRepository
 import com.rndeveloper.paparcar.domain.repository.DiagnosticsRepository
+import com.rndeveloper.paparcar.domain.repository.EntitlementRepository
 import com.rndeveloper.paparcar.domain.repository.OpenSourceLicenseRepository
 import com.rndeveloper.paparcar.domain.repository.SpotRepository
 import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
@@ -88,6 +92,18 @@ val dataModule = module {
 
     single<ZoneRepository> {
         ZoneRepositoryImpl(get(), get(), get(), CoroutineScope(SupervisorJob() + Dispatchers.Default))
+    }
+    // Suscripción Paparcar Plus — RevenueCat es la ÚNICA fuente de verdad del entitlement;
+    // nada se replica en Firestore ni en Room. Depende de Purchases.configure() en la
+    // Application, ANTES de que Koin construya este grafo. [MONEY-001]
+    // El SDK vive detrás de un datasource inyectado — mismo patrón que FirebaseDataSource
+    // para Firestore — así el repositorio no nombra a RevenueCat directamente.
+    single<RevenueCatDataSource> { RevenueCatDataSourceImpl() }
+    single<EntitlementRepository> {
+        RevenueCatEntitlementRepositoryImpl(
+            dataSource = get(),
+            refreshScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
+        )
     }
     single<AddressAndPlaceRepository> { AddressAndPlaceRepositoryImpl(get(), get(), get()) }
     // Erasure port of the diagnostics telemetry — account deletion sweeps diagnostics/{uid} +

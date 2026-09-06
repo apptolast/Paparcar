@@ -99,6 +99,12 @@ interface AppPreferences {
     val notifyParkingDetected: Boolean
     fun setNotifyParkingDetected(enabled: Boolean)
 
+    /** Master gate for the Plus zone-alert notifications ("free spot in your zone"). ON by
+     *  default — subscribing a zone already expressed the wish; this switch exists so Settings
+     *  can silence the channel without touching any zone's own opt-in. [MONEY-001] */
+    val notifyZoneSpots: Boolean
+    fun setNotifyZoneSpots(enabled: Boolean)
+
     val themeMode: ThemeMode
     fun setThemeMode(mode: ThemeMode)
 

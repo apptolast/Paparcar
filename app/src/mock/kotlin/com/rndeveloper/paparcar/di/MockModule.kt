@@ -145,6 +145,11 @@ val mockModule = module {
     }
     single<UserProfileRepository> { FakeUserProfileRepository() }
     single<ZoneRepository> { FakeZoneRepository() }
+    // Scenario-aware: la palanca "Plus activo" del Dev Catalog mueve todos los gates de Plus
+    // en vivo, incluida la degradación Plus → free que la tienda real no deja ensayar. [MONEY-001]
+    single<com.rndeveloper.paparcar.domain.repository.EntitlementRepository> {
+        com.rndeveloper.paparcar.fakes.data.repository.FakeEntitlementRepository(get<MockScenario>())
+    }
     // DeleteAccountUseCase resolves this in its swept-repos list; the mock stack has no dataModule,
     // so the port must exist here or resolving it crashes. [ACCOUNT-DELETE-SWEEPS-DIAGNOSTICS-001]
     single<DiagnosticsRepository> { FakeDiagnosticsRepository() }

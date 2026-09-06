@@ -262,6 +262,11 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
 
     override fun setNotifyParkingDetected(enabled: Boolean) = set(Keys.NOTIFY_PARKING_DETECTED, enabled)
 
+    override val notifyZoneSpots: Boolean
+        get() = get(Keys.NOTIFY_ZONE_SPOTS, true)
+
+    override fun setNotifyZoneSpots(enabled: Boolean) = set(Keys.NOTIFY_ZONE_SPOTS, enabled)
+
     // ── Theme ────────────────────────────────────────────────────────────────
 
     override val themeMode: ThemeMode
@@ -314,6 +319,7 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
         val PENDING_PROMPT_AT = longPreferencesKey("pending_prompt_window_witnessed_at")
         val PENDING_PROMPT_STREET = stringPreferencesKey("pending_prompt_window_street")
         val NOTIFY_PARKING_DETECTED = booleanPreferencesKey("notify_parking_detected")
+        val NOTIFY_ZONE_SPOTS = booleanPreferencesKey("notify_zone_spots")
         // "notify_spot_freed" removed 2026-08-28: it gated a notification that never existed.
         // Stale values may linger in the DataStore file; they are inert. [SETTINGS-AUDIT-REMEDIATION-001]
         val THEME_MODE              = stringPreferencesKey("theme_mode")

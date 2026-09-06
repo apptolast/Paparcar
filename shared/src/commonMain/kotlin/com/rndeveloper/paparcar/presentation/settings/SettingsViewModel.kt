@@ -11,6 +11,7 @@ import com.rndeveloper.paparcar.domain.repository.UserProfileRepository
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import com.rndeveloper.paparcar.domain.usecase.detection.ObserveDetectionReliabilityUseCase
 import com.rndeveloper.paparcar.domain.usecase.diagnostics.SendDiagnosticsReportUseCase
+import com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase
 import com.rndeveloper.paparcar.domain.usecase.user.DeleteAccountUseCase
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import com.rndeveloper.paparcar.presentation.base.BaseViewModel
@@ -29,6 +30,7 @@ class SettingsViewModel(
     private val vehicleRepository: VehicleRepository,
     private val observeDetectionReliability: ObserveDetectionReliabilityUseCase,
     private val sendDiagnosticsReport: SendDiagnosticsReportUseCase,
+    private val observeIsPlus: ObserveIsPlusUseCase,
 ) : BaseViewModel<SettingsState, SettingsIntent, SettingsEffect>() {
 
     override fun initState(): SettingsState = SettingsState()
@@ -38,6 +40,7 @@ class SettingsViewModel(
         observePermissions()
         observeActiveVehicle()
         observeReliability()
+        observeEntitlement()
         viewModelScope.launch {
             val userId = authRepository.getCurrentSession()?.userId
             if (userId != null) {
@@ -83,6 +86,14 @@ class SettingsViewModel(
             .launchIn(viewModelScope)
     }
 
+    /** Live Plus entitlement — the Plus row and the zone-alert gate react without re-entering. [MONEY-001] */
+    private fun observeEntitlement() {
+        observeIsPlus()
+            .onEach { isPlus -> updateState { copy(isPlus = isPlus) } }
+            .catch { e -> PaparcarLogger.w(TAG, "Failed to observe entitlement", e) }
+            .launchIn(viewModelScope)
+    }
+
     /** Mirrors the single reliability evaluator into the health row. [DET-RELIABILITY-001] */
     private fun observeReliability() {
         observeDetectionReliability()
@@ -104,6 +115,7 @@ class SettingsViewModel(
             copy(
                 autoDetectParking = prefs.autoDetectParking,
                 notifyParkingDetected = prefs.notifyParkingDetected,
+                notifyZoneSpots = prefs.notifyZoneSpots,
             )
         }
     }
@@ -130,6 +142,17 @@ class SettingsViewModel(
                 prefs.setNotifyParkingDetected(intent.enabled)
                 updateState { copy(notifyParkingDetected = intent.enabled) }
             }
+            // [MONEY-001] Soft gate: enabling as free is the attempt that opens the paywall.
+            // Disabling is always allowed — silencing a channel needs no entitlement.
+            is SettingsIntent.ToggleZoneAlertsNotif -> {
+                if (intent.enabled && !state.value.isPlus) {
+                    sendEffect(SettingsEffect.NavigateToPaywall)
+                } else {
+                    prefs.setNotifyZoneSpots(intent.enabled)
+                    updateState { copy(notifyZoneSpots = intent.enabled) }
+                }
+            }
+            is SettingsIntent.OpenPlusPaywall -> sendEffect(SettingsEffect.NavigateToPaywall)
             is SettingsIntent.NavigateToVehicles ->
                 sendEffect(SettingsEffect.NavigateToVehicles)
             // Health "Fix": jump to CORE when a hard-blocker (foreground location) is missing OR the

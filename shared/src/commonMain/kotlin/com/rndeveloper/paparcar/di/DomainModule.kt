@@ -19,6 +19,10 @@ import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import com.rndeveloper.paparcar.domain.repository.ZoneRepository
 import com.rndeveloper.paparcar.domain.event.MapFocusEventBus
 import com.rndeveloper.paparcar.domain.event.StartAddParkingEventBus
+import com.rndeveloper.paparcar.domain.usecase.entitlement.IsStoreAvailableUseCase
+import com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase
+import com.rndeveloper.paparcar.domain.usecase.entitlement.PurchasePlusUseCase
+import com.rndeveloper.paparcar.domain.usecase.zone.ObserveZoneSpotAlertsUseCase
 import com.rndeveloper.paparcar.domain.usecase.zone.SaveOrUpdateZoneUseCase
 import com.rndeveloper.paparcar.domain.usecase.zone.SaveZoneUseCase
 import org.koin.dsl.module
@@ -71,10 +75,25 @@ val domainModule = module {
     factory { ReportManualSpotUseCase(reportSpotReleased = get(), vehicleRepository = get()) }
     factory { SendSpotSignalUseCase(get()) }
 
+    // Entitlement UseCases — Paparcar Plus [MONEY-001]
+    factory { ObserveIsPlusUseCase(entitlementRepository = get()) }
+    factory { PurchasePlusUseCase(entitlementRepository = get()) }
+    factory { IsStoreAvailableUseCase(entitlementRepository = get()) }
+
     // Zone UseCases
     factory { SaveZoneUseCase(repository = get(), authRepository = get()) }
     // Home's zone form (create + in-place edit). [HOME-ATOMIZE-001 F4]
     factory { SaveOrUpdateZoneUseCase(repository = get(), saveZone = get()) }
+    // Plus zone alerts — collected by AppViewModel, delivered as a local notification. [MONEY-001]
+    factory {
+        ObserveZoneSpotAlertsUseCase(
+            zoneRepository = get(),
+            spotRepository = get(),
+            observeIsPlus = get(),
+            appPreferences = get(),
+            authRepository = get(),
+        )
+    }
 
     // Location UseCases
     factory { GetAddressAndPlaceUseCase(repository = get()) }

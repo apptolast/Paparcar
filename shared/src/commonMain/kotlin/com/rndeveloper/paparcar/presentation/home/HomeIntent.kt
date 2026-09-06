@@ -141,6 +141,14 @@ sealed class HomeIntent {
     data class UpdateAddingZoneIcon(val iconKey: String) : HomeIntent()
     data class SetZoneRadius(val radius: Float) : HomeIntent()
     data class SetZoneIsPrivate(val isPrivate: Boolean) : HomeIntent()
+
+    /** Zone-form Plus alert opt-in; enabling as free routes to the paywall instead. [MONEY-001] */
+    data class SetZoneNotify(val notify: Boolean) : HomeIntent()
+
+    /** The bell next to the search bar: Plus opens the alert manager, free meets the paywall. */
+    data object OpenZoneAlerts : HomeIntent()
+    data object CloseZoneAlerts : HomeIntent()
+    data class ToggleZoneAlert(val zoneId: String, val enabled: Boolean) : HomeIntent()
     data class SelectZone(val zoneId: String) : HomeIntent()
     data class DeleteZone(val zoneId: String) : HomeIntent()
     data class EnterEditZoneMode(val zoneId: String) : HomeIntent()

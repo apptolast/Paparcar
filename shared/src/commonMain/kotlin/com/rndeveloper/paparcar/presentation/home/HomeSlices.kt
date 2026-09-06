@@ -142,6 +142,8 @@ data class HomePeekSlice(
     val addingZoneIconKey: String,
     val addingZoneRadius: Float,
     val addingZoneIsPrivate: Boolean,
+    /** Plus zone-alert opt-in of the zone being created/edited. [MONEY-001] */
+    val addingZoneNotify: Boolean,
     val editingZoneId: String?,
     // Parking form
     val isSavingParking: Boolean,
@@ -357,6 +359,7 @@ fun HomeState.toPeekSlice(): HomePeekSlice {
         addingZoneIconKey = addingZoneIconKey,
         addingZoneRadius = addingZoneRadius,
         addingZoneIsPrivate = addingZoneIsPrivate,
+        addingZoneNotify = addingZoneNotify,
         editingZoneId = editingZoneId,
         isSavingParking = isSavingParking,
         editingParkingId = editingParkingId,

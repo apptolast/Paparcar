@@ -733,4 +733,40 @@
     <string name="first_steps_explain_spot_way_title">Zgłoś wolne miejsce</string>
     <string name="first_steps_explain_spot_way_body">Zaznaczasz je na mapie, a kierowcy w pobliżu je widzą. Nic więcej nie trzeba.</string>
     <string name="first_steps_explain_spot_note">To nie dotyczy twojego samochodu: nie otwiera żadnego twojego parkowania ani nie włącza pilnowania.</string>
+
+    <!-- ── Paparcar Plus [MONEY-001] ── -->
+    <plurals name="history_plus_hidden_count">
+        <item quantity="one">Masz %1$d wcześniejszy parking</item>
+        <item quantity="few">Masz %1$d wcześniejsze parkingi</item>
+        <item quantity="many">Masz %1$d wcześniejszych parkingów</item>
+        <item quantity="other">Masz %1$d wcześniejszego parkingu</item>
+    </plurals>
+    <string name="history_plus_footer_cta">Zobacz wszystko z Plus</string>
+    <string name="history_plus_footer_hint">Pełna historia, zawsze pod ręką</string>
+    <string name="paywall_title">Paparcar Plus</string>
+    <string name="paywall_tagline">Pełna historia i alerty o wolnych miejscach w Twoich strefach</string>
+    <string name="paywall_close_cd">Zamknij</string>
+    <string name="paywall_store_unavailable">Subskrypcja jest teraz niedostępna — spróbuj później</string>
+    <string name="paywall_compare_title">Co zmienia Plus</string>
+    <string name="paywall_feature_history_title">Historia parkowania</string>
+    <string name="paywall_feature_history_free">Za darmo: ostatnie 30 dni</string>
+    <string name="paywall_feature_history_plus">Plus: wszystkie parkowania, bez limitu daty</string>
+    <string name="paywall_feature_alerts_title">Alerty o wolnych miejscach</string>
+    <string name="paywall_feature_alerts_free">Za darmo: niedostępne</string>
+    <string name="paywall_feature_alerts_plus">Plus: alert w wybranych strefach</string>
+    <string name="paywall_feature_support_title">Utrzymujesz Paparcar</string>
+    <string name="paywall_feature_support_free">Za darmo: aplikacja pozostaje bezpłatna dla wszystkich</string>
+    <string name="paywall_feature_support_plus">Plus: Twoja subskrypcja opłaca serwery</string>
+    <string name="paywall_unlimited_note">Pojazdy i strefy są nieograniczone w obu — Plus niczego nie ogranicza.</string>
+    <string name="settings_plus_title">Paparcar Plus</string>
+    <string name="settings_plus_subtitle_free">Pełna historia i alerty stref</string>
+    <string name="settings_plus_subtitle_active">Pełna historia i alerty stref, aktywne</string>
+    <string name="settings_plus_badge_active">AKTYWNY</string>
+    <string name="settings_notif_zone_alerts">Alerty stref</string>
+    <string name="settings_notif_zone_alerts_desc">Powiadomienie, gdy w Twoich strefach pojawi się wolne miejsce</string>
+    <string name="home_zone_alerts_cd">Alerty stref</string>
+    <string name="home_zone_alerts_title">Alerty stref</string>
+    <string name="home_zone_alerts_empty">Najpierw zapisz strefę, aby otrzymywać tam alerty</string>
+    <string name="home_zone_alerts_done">Gotowe</string>
+    <string name="home_zone_form_notify_label">Powiadamiaj o wolnych miejscach tutaj</string>
 </resources>

@@ -72,4 +72,7 @@
     <string name="notif_sentry_text">Cuando te vayas, liberaremos tu plaza para otros. Silencioso y con consumo mínimo. Se desactiva en Ajustes.</string>
     <string name="channel_sentry_name">Vigilancia aparcado</string>
     <string name="channel_sentry_desc">Notificación silenciosa mientras tu coche está aparcado</string>
+    <!-- Plus zone alert [MONEY-001] -->
+    <string name="notif_zone_spot_title">Plaza libre en %1$s</string>
+    <string name="notif_zone_spot_text">Alguien acaba de irse — abre el mapa para verla</string>
 </resources>

@@ -23,6 +23,13 @@ data class Zone(
     val radiusMeters: Float = DEFAULT_RADIUS_METERS,
     /** When true the zone is a private garage/parking — spot is never published on departure. */
     val isPrivate: Boolean = false,
+    /**
+     * The user asked to be alerted when a free spot appears inside this zone (Paparcar Plus).
+     * Losing Plus PAUSES the alert without touching this flag: delivery gates on the live
+     * entitlement, so the alert resumes by itself when Plus comes back. The data is never
+     * mutated on downgrade. [MONEY-001]
+     */
+    val notifyOnSpot: Boolean = false,
 ) {
     companion object {
         const val DEFAULT_RADIUS_METERS = 250f

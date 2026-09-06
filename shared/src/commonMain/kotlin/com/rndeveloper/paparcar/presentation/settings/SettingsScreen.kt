@@ -27,6 +27,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material.icons.rounded.BatteryFull
 import androidx.compose.material.icons.rounded.Bluetooth
@@ -43,9 +44,11 @@ import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Map
 import androidx.compose.material.icons.rounded.Notifications
+import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.Sensors
 import androidx.compose.material.icons.rounded.SensorsOff
 import androidx.compose.material.icons.rounded.Warning
+import androidx.compose.material.icons.rounded.WorkspacePremium
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -99,6 +102,7 @@ import com.rndeveloper.paparcar.ui.components.PapListItem
 import com.rndeveloper.paparcar.ui.components.PapNavChevron
 import com.rndeveloper.paparcar.ui.components.PapNavRow
 import com.rndeveloper.paparcar.ui.components.PapOutlinedCard
+import com.rndeveloper.paparcar.ui.components.PapPremiumSurface
 import com.rndeveloper.paparcar.ui.components.PapSectionHeader
 import com.rndeveloper.paparcar.ui.components.PapSectionHeaderRow
 import com.rndeveloper.paparcar.ui.components.PapScrollToTopButton
@@ -176,6 +180,12 @@ import paparcar.composeapp.generated.resources.settings_section_about
 import paparcar.composeapp.generated.resources.settings_section_appearance
 import paparcar.composeapp.generated.resources.settings_section_detection
 import paparcar.composeapp.generated.resources.settings_section_map
+import paparcar.composeapp.generated.resources.settings_notif_zone_alerts
+import paparcar.composeapp.generated.resources.settings_notif_zone_alerts_desc
+import paparcar.composeapp.generated.resources.settings_plus_badge_active
+import paparcar.composeapp.generated.resources.settings_plus_subtitle_active
+import paparcar.composeapp.generated.resources.settings_plus_subtitle_free
+import paparcar.composeapp.generated.resources.settings_plus_title
 import paparcar.composeapp.generated.resources.settings_section_notifications
 import paparcar.composeapp.generated.resources.settings_theme_mode
 import paparcar.composeapp.generated.resources.settings_theme_mode_dark
@@ -201,6 +211,7 @@ fun SettingsScreen(
     onNavigateToPermissions: (PermissionsFocus) -> Unit = {},
     onNavigateToBluetoothConfig: (String) -> Unit = {},
     onNavigateToLicenses: () -> Unit = {},
+    onOpenPaywall: () -> Unit = {},
     themeMode: ThemeMode = ThemeMode.SYSTEM,
     onSetThemeMode: (ThemeMode) -> Unit = {},
     imperialUnits: Boolean = false,
@@ -231,6 +242,7 @@ fun SettingsScreen(
                 is SettingsEffect.NavigateToPermissions -> onNavigateToPermissions(effect.focus)
                 is SettingsEffect.NavigateToBluetoothConfig -> onNavigateToBluetoothConfig(effect.vehicleId)
                 is SettingsEffect.NavigateToLicenses -> onNavigateToLicenses()
+                is SettingsEffect.NavigateToPaywall -> onOpenPaywall()
                 is SettingsEffect.OpenUrl -> uriHandler.openUri(effect.url)
                 // The only error this screen emits today is the account-deletion failure —
                 // surface it; anything new falls back to the generic message rather than
@@ -388,29 +400,96 @@ fun SettingsContent(
                     )
                 }
 
+                // ── 1b · Paparcar Plus [MONEY-001] — right under the account it belongs
+                // to, one line, no shouting: free users get the door to the paywall, Plus
+                // users get the quiet ACTIVE badge (the row then has nothing to sell, so
+                // it stops being tappable).
+                item {
+                    // The metallic Plus surface — same recipe as the history footer and the
+                    // paywall hero. [UI-COLOR-PLUS-WEARS-THE-BRAND-WITH-A-FINISH-001]
+                    PapPremiumSurface(
+                        modifier = Modifier.fillMaxWidth(),
+                        // Already Plus → nothing left to sell, so the row stops being a door.
+                        onClick = if (state.isPlus) null else {
+                            { onIntent(SettingsIntent.OpenPlusPaywall) }
+                        },
+                    ) {
+                        // On the filled brand bed the tile INVERTS — ink container, green glyph —
+                        // and every text takes the surface's ink, which PapPremiumSurface provides.
+                        PapListItem(
+                            leading = {
+                                PapIconTile(
+                                    icon = Icons.Rounded.WorkspacePremium,
+                                    container = MaterialTheme.colorScheme.onPrimary,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                )
+                            },
+                            title = stringResource(Res.string.settings_plus_title),
+                            titleColor = MaterialTheme.colorScheme.onPrimary,
+                            subtitle = if (state.isPlus) {
+                                stringResource(Res.string.settings_plus_subtitle_active)
+                            } else {
+                                stringResource(Res.string.settings_plus_subtitle_free)
+                            },
+                            subtitleColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = PapAlpha.body),
+                            trailing = {
+                                if (state.isPlus) {
+                                    Text(
+                                        text = stringResource(Res.string.settings_plus_badge_active),
+                                        style = PaparcarType.current.badge,
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onPrimary,
+                                    )
+                                }
+                            },
+                        )
+                    }
+                }
+
                 // ── 2 · Detection & permissions (heart of the app → sits high) ───
                 item { SectionHeaderMuted(stringResource(Res.string.settings_section_detection)) }
                 item { DetectionSectionCard(state = state, onIntent = onIntent) }
 
                 // ── 3 · Notifications ────────────────────────────────────────────
-                // One honest switch. The "spot freed nearby" toggle and its master died in
-                // SETTINGS-AUDIT-REMEDIATION-001: they persisted prefs no code ever read, and
-                // the spot notification does not exist yet. This one gates the informative
-                // "parking saved" notification at its single choke point (the notification
-                // adapter); safety asks are never silenced from here.
+                // Two honest switches. The old "spot freed nearby" toggle died in
+                // SETTINGS-AUDIT-REMEDIATION-001 for persisting a pref no code read; its
+                // successor below exists only because ObserveZoneSpotAlertsUseCase now READS
+                // it [MONEY-001]. The parking one gates the informative "parking saved"
+                // notification at its single choke point; safety asks are never silenced here.
                 item { SectionHeaderMuted(stringResource(Res.string.settings_section_notifications)) }
                 item {
+                    // PapOutlinedCard hands its content straight to a Surface (a Box, not a
+                    // Column) — TWO rows here need an explicit Column or they measure and
+                    // draw on top of each other instead of stacking. [UI-SETTINGS-NOTIF-ROWS-OVERLAPPED-001]
                     PapOutlinedCard(modifier = Modifier.fillMaxWidth()) {
-                        PapSwitchRow(
-                            icon = Icons.Rounded.Notifications,
-                            label = stringResource(Res.string.settings_notif_parking),
-                            description = stringResource(Res.string.settings_notif_parking_desc),
-                            checked = state.notifyParkingDetected,
-                            onCheckedChange = { onIntent(SettingsIntent.ToggleParkingDetectedNotif(it)) },
-                            subtitleColor = settingsSubtitleColor(),
-                            // Produced only by auto-detection — locked (not blanked) while OFF.
-                            enabled = state.autoDetectParking,
-                        )
+                        Column {
+                            PapSwitchRow(
+                                icon = Icons.Rounded.Notifications,
+                                label = stringResource(Res.string.settings_notif_parking),
+                                description = stringResource(Res.string.settings_notif_parking_desc),
+                                checked = state.notifyParkingDetected,
+                                onCheckedChange = { onIntent(SettingsIntent.ToggleParkingDetectedNotif(it)) },
+                                subtitleColor = settingsSubtitleColor(),
+                                // Produced only by auto-detection — locked (not blanked) while OFF.
+                                enabled = state.autoDetectParking,
+                            )
+                            PapDivider()
+                            // [MONEY-001] Master gate for the Plus zone alerts. Soft-gated in the
+                            // VM: a free user flipping it ON meets the paywall; OFF is always allowed.
+                            PapSwitchRow(
+                                icon = Icons.Rounded.NotificationsActive,
+                                label = stringResource(Res.string.settings_notif_zone_alerts),
+                                description = stringResource(Res.string.settings_notif_zone_alerts_desc),
+                                checked = state.isPlus && state.notifyZoneSpots,
+                                onCheckedChange = { onIntent(SettingsIntent.ToggleZoneAlertsNotif(it)) },
+                                subtitleColor = settingsSubtitleColor(),
+                            )
+                        }
                     }
                 }
 

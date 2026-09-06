@@ -107,6 +107,7 @@ fun VehiclesScreen(
     onEditVehicle: (vehicleId: String) -> Unit = {},
     onNavigateToMap: (lat: Double, lon: Double, sessionId: String) -> Unit = { _, _, _ -> },
     onShowExplainer: () -> Unit = {},
+    onOpenPaywall: () -> Unit = {},
     viewModel: VehiclesViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateLifecycleAware()
@@ -119,6 +120,7 @@ fun VehiclesScreen(
                 is VehiclesEffect.NavigateToAddVehicle -> onAddVehicle()
                 is VehiclesEffect.NavigateToEditVehicle -> onEditVehicle(effect.vehicleId)
                 is VehiclesEffect.NavigateToMap -> onNavigateToMap(effect.lat, effect.lon, effect.sessionId)
+                is VehiclesEffect.NavigateToPaywall -> onOpenPaywall()
                 is VehiclesEffect.ShowError -> snackbarHostState.showSnackbar(errorFallback)
             }
         }

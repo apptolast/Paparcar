@@ -4,14 +4,16 @@ package com.rndeveloper.paparcar.presentation.map
 
 import com.rndeveloper.paparcar.domain.error.PaparcarError
 import com.rndeveloper.paparcar.domain.model.RouteInferenceResolution
+import com.rndeveloper.paparcar.domain.entitlement.gateHistoryToEntitlement
 import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
+import com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase
 import com.rndeveloper.paparcar.domain.usecase.location.ObserveAdaptiveLocationUseCase
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import com.rndeveloper.paparcar.presentation.base.BaseViewModel
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
@@ -20,6 +22,7 @@ class ParkingHistoryViewModel(
     observeAdaptiveLocation: ObserveAdaptiveLocationUseCase,
     private val userParkingRepository: UserParkingRepository,
     private val vehicleRepository: VehicleRepository,
+    observeIsPlus: ObserveIsPlusUseCase,
 ) : BaseViewModel<ParkingHistoryState, ParkingHistoryIntent, ParkingHistoryEffect>() {
 
     init {
@@ -31,8 +34,18 @@ class ParkingHistoryViewModel(
         // deterministic regardless of the source's ordering (Room already sorts; fakes may not).
         // Observed unfiltered on purpose: the stepper's per-vehicle scope is DERIVED from the focused
         // session in the state, so changing focus never re-subscribes. [HISTORY-DETAIL-VEHICLE-SCOPE-001]
-        userParkingRepository.observeAllSessions()
-            .map { sessions -> sessions.sortedByDescending { it.location.timestamp } }
+        // Then gated by the SAME Plus window as the history list [MONEY-001]: a stepper that walks
+        // where the list cannot see would be a paywall with a hole in it.
+        combine(
+            userParkingRepository.observeAllSessions(),
+            observeIsPlus(),
+        ) { sessions, isPlus ->
+            gateHistoryToEntitlement(
+                sessions = sessions.sortedByDescending { it.location.timestamp },
+                isPlus = isPlus,
+                nowMs = Clock.System.now().toEpochMilliseconds(),
+            ).visible
+        }
             .onEach { sessions -> updateState { copy(allSessions = sessions) } }
             .catch { e -> PaparcarLogger.w(TAG, "observeAllSessions failed — prev/next unavailable", e) }
             .launchIn(viewModelScope)

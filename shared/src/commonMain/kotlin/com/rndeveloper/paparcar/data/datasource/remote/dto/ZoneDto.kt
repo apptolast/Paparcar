@@ -13,6 +13,8 @@ data class ZoneDto(
     val createdAt: Long = 0L,
     val radiusMeters: Float = 250f,
     val isPrivate: Boolean = false,
+    /** Plus zone alert opt-in. [MONEY-001] */
+    val notifyOnSpot: Boolean = false,
     /** Client epoch-ms stamp of the last write, set by the remote data source. [SYNC-RECONCILE-001] */
     val updatedAt: Long = 0,
 )

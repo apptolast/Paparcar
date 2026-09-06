@@ -52,6 +52,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filter
@@ -90,6 +91,9 @@ class HomeViewModel(
     private val declareActiveVehicle: DeclareActiveVehicleUseCase,
     private val zoneRepository: ZoneRepository,
     private val saveOrUpdateZone: SaveOrUpdateZoneUseCase,
+    // The Plus gate over the zone-alert surfaces: the bell and the form toggle route free
+    // users to the paywall instead of opening/enabling. [MONEY-001]
+    private val observeIsPlus: ObserveIsPlusUseCase,
     private val appPreferences: AppPreferences,
     // Resolves the pending "where did you leave your car?" nudge (record + tray notification) —
     // from the banner's explicit dismiss and from the reactive janitor. [DET-NUDGE-PERSIST-001]
@@ -153,6 +157,7 @@ class HomeViewModel(
         observeParkedVehicles().collectInto("parkedVehicles") { copy(parkedVehicles = it) }
         zoneRepository.observeZones().collectInto("zones") { copy(zones = it) }
         vehicleRepository.observeVehicles().collectInto("vehicles") { copy(vehicles = it) }
+        observeIsPlus().collectInto("isPlus") { copy(isPlus = it) }
         subscribePermissions()
         subscribeGpsLocation()
         subscribeMapFocusEvents()
@@ -307,6 +312,10 @@ class HomeViewModel(
             is HomeIntent.UpdateAddingZoneIcon,
             is HomeIntent.SetZoneRadius,
             is HomeIntent.SetZoneIsPrivate,
+            is HomeIntent.SetZoneNotify,
+            is HomeIntent.OpenZoneAlerts,
+            is HomeIntent.CloseZoneAlerts,
+            is HomeIntent.ToggleZoneAlert,
             is HomeIntent.SelectZone,
             is HomeIntent.DeleteZone,
             is HomeIntent.EnterEditZoneMode,
@@ -643,10 +652,54 @@ class HomeViewModel(
             is HomeIntent.UpdateAddingZoneIcon -> updateState { copy(addingZoneIconKey = intent.iconKey) }
             is HomeIntent.SetZoneRadius -> updateState { copy(addingZoneRadius = intent.radius) }
             is HomeIntent.SetZoneIsPrivate -> updateState { copy(addingZoneIsPrivate = intent.isPrivate) }
+            // [MONEY-001] Soft gate: the switch is visible to everyone; ENABLING it as free is the
+            // "attempt" that opens the paywall (the switch stays off). Disabling is always allowed.
+            is HomeIntent.SetZoneNotify ->
+                if (intent.notify && !state.value.isPlus) {
+                    sendEffect(HomeEffect.NavigateToPaywall)
+                } else {
+                    updateState { copy(addingZoneNotify = intent.notify) }
+                }
+            is HomeIntent.OpenZoneAlerts ->
+                if (state.value.isPlus) {
+                    updateState { copy(zoneAlertsDialogOpen = true) }
+                } else {
+                    sendEffect(HomeEffect.NavigateToPaywall)
+                }
+            is HomeIntent.CloseZoneAlerts -> updateState { copy(zoneAlertsDialogOpen = false) }
+            is HomeIntent.ToggleZoneAlert -> toggleZoneAlert(intent.zoneId, intent.enabled)
             is HomeIntent.SelectZone -> selectZone(intent.zoneId)
             is HomeIntent.DeleteZone -> deleteZone(intent.zoneId)
             is HomeIntent.EnterEditZoneMode -> enterEditZoneMode(intent.zoneId)
             else -> Unit
+        }
+    }
+
+    /**
+     * Flips one zone's alert opt-in from the bell dialog — the same persistence path as the
+     * zone form, so there is no second way to write the flag. [MONEY-001] Enabling stays behind
+     * the entitlement (the dialog is Plus-only, but state can change while it is open); disabling
+     * is always allowed, downgrade rules included.
+     */
+    private fun toggleZoneAlert(zoneId: String, enabled: Boolean) {
+        if (enabled && !state.value.isPlus) {
+            sendEffect(HomeEffect.NavigateToPaywall)
+            return
+        }
+        val zone = state.value.zones.find { it.id == zoneId } ?: return
+        viewModelScope.launch {
+            saveOrUpdateZone(
+                editingZoneId = zone.id,
+                name = zone.name,
+                lat = zone.lat,
+                lon = zone.lon,
+                iconKey = zone.iconKey,
+                radiusMeters = zone.radiusMeters,
+                isPrivate = zone.isPrivate,
+                notifyOnSpot = enabled,
+            ).onFailure { e ->
+                sendEffect(HomeEffect.ShowError(PaparcarError.Database.WriteError(e.message ?: "")))
+            }
         }
     }
 
@@ -665,6 +718,7 @@ class HomeViewModel(
                 iconKey = current.addingZoneIconKey,
                 radiusMeters = current.addingZoneRadius,
                 isPrivate = current.addingZoneIsPrivate,
+                notifyOnSpot = current.addingZoneNotify,
             )
                 .onSuccess {
                     updateState { clearedModeFields().copy(isSavingZone = false) }
@@ -702,6 +756,7 @@ class HomeViewModel(
                 addingZoneIconKey = zone.iconKey,
                 addingZoneRadius = zone.radiusMeters,
                 addingZoneIsPrivate = zone.isPrivate,
+                addingZoneNotify = zone.notifyOnSpot,
                 editingZoneId = zoneId,
             )
         }

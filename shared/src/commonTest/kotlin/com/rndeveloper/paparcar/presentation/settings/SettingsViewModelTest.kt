@@ -52,6 +52,7 @@ class SettingsViewModelTest {
     private lateinit var prefs: FakeAppPreferences
     private lateinit var permissions: FakePermissionManager
     private lateinit var reportUploader: FakeDiagnosticsReportUploader
+    private lateinit var entitlementRepo: com.rndeveloper.paparcar.fakes.FakeEntitlementRepository
     private lateinit var vm: SettingsViewModel
 
     @BeforeTest
@@ -65,6 +66,7 @@ class SettingsViewModelTest {
         prefs = FakeAppPreferences()
         permissions = FakePermissionManager()
         reportUploader = FakeDiagnosticsReportUploader()
+        entitlementRepo = com.rndeveloper.paparcar.fakes.FakeEntitlementRepository()
         vm = buildVm()
     }
 
@@ -105,6 +107,7 @@ class SettingsViewModelTest {
             customVehicles,
             observeReliability,
             sendDiagnostics,
+            com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase(entitlementRepo),
         )
     }
 
@@ -474,5 +477,47 @@ class SettingsViewModelTest {
     fun `should_callSignOut_on_logout`() = runTest {
         vm.handleIntent(SettingsIntent.Logout)
         assertEquals(1, auth.signOutCount)
+    }
+
+    // ── Paparcar Plus [MONEY-001] ─────────────────────────────────────────────
+
+    @Test
+    fun `should_routeToThePaywallAndLeaveThePrefAlone_when_freeEnablesZoneAlerts`() = runTest {
+        prefs.setNotifyZoneSpots(false)
+        vm.refreshFromPreferences()
+
+        vm.effect.test {
+            vm.handleIntent(SettingsIntent.ToggleZoneAlertsNotif(enabled = true))
+            assertEquals(SettingsEffect.NavigateToPaywall, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertFalse(prefs.notifyZoneSpots, "the attempt opens the paywall; it must not flip the pref")
+    }
+
+    @Test
+    fun `should_persistTheMasterSwitch_when_plusTogglesIt`() = runTest {
+        entitlementRepo.emitEntitlement(com.rndeveloper.paparcar.domain.model.Entitlement.PLUS)
+
+        vm.handleIntent(SettingsIntent.ToggleZoneAlertsNotif(enabled = false))
+        assertFalse(prefs.notifyZoneSpots)
+
+        vm.handleIntent(SettingsIntent.ToggleZoneAlertsNotif(enabled = true))
+        assertTrue(prefs.notifyZoneSpots)
+    }
+
+    @Test
+    fun `should_alwaysAllowSilencing_when_free`() = runTest {
+        // Silencing a channel needs no entitlement — only ENABLING is the gated attempt.
+        vm.handleIntent(SettingsIntent.ToggleZoneAlertsNotif(enabled = false))
+        assertFalse(prefs.notifyZoneSpots)
+    }
+
+    @Test
+    fun `should_openThePaywall_when_thePlusRowIsTapped`() = runTest {
+        vm.effect.test {
+            vm.handleIntent(SettingsIntent.OpenPlusPaywall)
+            assertEquals(SettingsEffect.NavigateToPaywall, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 }

@@ -231,6 +231,10 @@ class FakeAppPreferences(private val scenario: MockScenario? = null) : AppPrefer
     override val notifyParkingDetected: Boolean get() = _notifyParkingDetected.value
     override fun setNotifyParkingDetected(enabled: Boolean) { _notifyParkingDetected.value = enabled }
 
+    private val _notifyZoneSpots = MutableStateFlow(true)
+    override val notifyZoneSpots: Boolean get() = _notifyZoneSpots.value
+    override fun setNotifyZoneSpots(enabled: Boolean) { _notifyZoneSpots.value = enabled }
+
     private val _themeMode = MutableStateFlow(ThemeMode.SYSTEM)
     override val themeMode: ThemeMode get() = _themeMode.value
     override fun setThemeMode(mode: ThemeMode) { _themeMode.value = mode }

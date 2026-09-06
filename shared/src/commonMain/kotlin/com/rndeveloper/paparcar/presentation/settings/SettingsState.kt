@@ -9,6 +9,10 @@ data class SettingsState(
     val userProfile: UserProfile? = null,
     val autoDetectParking: Boolean = true,
     val notifyParkingDetected: Boolean = true,
+    /** Live Plus entitlement — the Plus row shows ACTIVO instead of inviting. [MONEY-001] */
+    val isPlus: Boolean = false,
+    /** Master gate for the Plus zone-alert notifications. [MONEY-001] */
+    val notifyZoneSpots: Boolean = true,
     // Single source: the platform build version. The old "1.0.0" literal was a second,
     // lying default that never matched the APK. [SETTINGS-AUDIT-REMEDIATION-001]
     val appVersion: String = platformAppVersion,

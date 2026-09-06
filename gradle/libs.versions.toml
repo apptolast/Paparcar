@@ -94,6 +94,11 @@ ktor = "3.5.2"
 # (`baselogin-android`, `baselogin-iosarm64`, `baselogin-iossimulatorarm64`); nunca declararlos.
 baselogin = "2.0.0"
 
+# ── Monetización — RevenueCat purchases-kmp ─────────────────────────────────
+# core (SDK) + ui (Paywalls con plantilla remota) van SIEMPRE a la misma versión.
+# Desde 3.x el versionado es semver plano (ya no lleva el sufijo +X.Y.Z del SDK iOS).
+purchases-kmp = "3.7.0"
+
 # ── Android-only ─────────────────────────────────────────────────────────────
 # play-services-location incluye Activity Recognition Transitions desde v17+
 play-services-location = "21.4.0"
@@ -202,6 +207,12 @@ ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "kto
 
 # ── Login Library (Maven Central) ─────────────────────────────────────────────
 baselogin = { module = "io.github.apptolast:baselogin", version.ref = "baselogin" }
+
+# ── Monetización — RevenueCat KMP ────────────────────────────────────────────
+# core en commonMain (repositorio de entitlements + configure); ui se cablea en la
+# fase del paywall. En Android arrastra Play Billing Library al APK. [MONEY-001]
+purchases-core = { module = "com.revenuecat.purchases:purchases-kmp-core", version.ref = "purchases-kmp" }
+purchases-ui = { module = "com.revenuecat.purchases:purchases-kmp-ui", version.ref = "purchases-kmp" }
 
 # ── Android-only: Detección ──────────────────────────────────────────────────
 # Incluye FusedLocationProviderClient + Activity Recognition Transitions API

@@ -5,9 +5,11 @@ import com.rndeveloper.paparcar.domain.connectivity.ConnectivityObserver
 import com.rndeveloper.paparcar.domain.connectivity.ConnectivityStatus
 import com.rndeveloper.paparcar.domain.permissions.PermissionManager
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
+import com.rndeveloper.paparcar.domain.notification.AppNotificationManager
 import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import com.rndeveloper.paparcar.domain.repository.ZoneRepository
+import com.rndeveloper.paparcar.domain.usecase.zone.ObserveZoneSpotAlertsUseCase
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import com.rndeveloper.paparcar.presentation.base.BaseViewModel
 import kotlinx.coroutines.Job
@@ -25,6 +27,10 @@ class AppViewModel(
     private val vehicleRepository: VehicleRepository,
     private val zoneRepository: ZoneRepository,
     private val userParkingRepository: UserParkingRepository,
+    // [MONEY-001] Plus zone alerts, client-side for 1.x: collected HERE because this is the one
+    // ViewModel alive for the whole UI session, whatever tab is open.
+    private val observeZoneSpotAlerts: ObserveZoneSpotAlertsUseCase,
+    private val appNotificationManager: AppNotificationManager,
 // `Nothing` as the effect type: the root ViewModel has no one-shot side effects to emit, and saying
 // so in the type stops one from being smuggled in. Its only effect used to be applying a language
 // the OS owns. [SETTINGS-LANGUAGE-LIVES-IN-THE-SYSTEM-001]
@@ -114,6 +120,19 @@ class AppViewModel(
         // On a fresh (online) start, drain any edits left un-synced by a previous offline session so
         // they reliably reach the cloud (and other devices). [SYNC-RECONCILE-001]
         if (connectivityObserver.status.value == ConnectivityStatus.Online) drainPendingSync()
+
+        // [MONEY-001] Plus zone alerts → local notification. The use case owns every rule (Plus
+        // gate, per-zone opt-in, master switch, dedupe, baseline); this collector only delivers.
+        observeZoneSpotAlerts()
+            .onEach { alert ->
+                appNotificationManager.showZoneSpotAlert(
+                    zoneName = alert.zoneName,
+                    latitude = alert.spot.location.latitude,
+                    longitude = alert.spot.location.longitude,
+                )
+            }
+            .catch { e -> PaparcarLogger.w(TAG, "zone-alert delivery stream failed", e) }
+            .launchIn(viewModelScope)
     }
 
     /** Auto-hide timer for the transient [ConnectivityBannerPhase.Restored] banner. */

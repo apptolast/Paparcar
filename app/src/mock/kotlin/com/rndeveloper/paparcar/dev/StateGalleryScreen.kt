@@ -103,7 +103,11 @@ import com.apptolast.baselogin.presentation.screens.components.DefaultAuthContai
 import com.apptolast.baselogin.presentation.slots.defaultslots.DefaultDivider
 import com.rndeveloper.paparcar.di.paparcarLoginConfig
 import com.rndeveloper.paparcar.di.paparcarSocialProviders
+import com.rndeveloper.paparcar.domain.model.Zone
 import com.rndeveloper.paparcar.domain.model.ZoneIcon
+import com.rndeveloper.paparcar.presentation.home.sections.header.components.ZoneAlertsDialog
+import com.rndeveloper.paparcar.presentation.paywall.PaywallContent
+import com.rndeveloper.paparcar.presentation.paywall.PaywallState
 import com.rndeveloper.paparcar.domain.model.SpotFreshness
 import com.rndeveloper.paparcar.presentation.util.zoneIconFor
 import com.rndeveloper.paparcar.ui.auth.paparcarAuthSlots
@@ -290,7 +294,29 @@ private fun sheet(state: HomeState) {
 private fun resolvedHistory(
     sessions: List<UserParking>,
     filter: HistoryFilter = HistoryFilter.All,
-) = HistoryTimeline.resolve(sessions, filter)
+    isPlus: Boolean = true,
+) = HistoryTimeline.resolve(sessions, filter, isPlus)
+
+// [MONEY-001] Sesiones envejecidas para las variantes free: el gate corta por
+// location.timestamp, así que empujar la marca 40 días atrás la saca de la ventana de 30.
+private const val BEYOND_FREE_WINDOW_MS = 40L * 86_400_000L
+
+private fun UserParking.agedBeyondFreeWindow(): UserParking =
+    copy(location = location.copy(timestamp = location.timestamp - BEYOND_FREE_WINDOW_MS))
+
+private fun agedHalfBeyondFreeWindow(): List<UserParking> =
+    FakeData.endedSessions.mapIndexed { i, s -> if (i % 2 == 0) s.agedBeyondFreeWindow() else s }
+
+private fun agedAllBeyondFreeWindow(): List<UserParking> =
+    FakeData.endedSessions.map { it.agedBeyondFreeWindow() }
+
+/** Zonas de muestra para el diálogo de alertas — una suscrita, otra no. [MONEY-001] */
+private val galleryZones = listOf(
+    Zone(id = "z-home", userId = "u", name = "Casa", lat = 40.4168, lon = -3.7038,
+        iconKey = ZoneIcon.HOME, createdAt = 0L, notifyOnSpot = true),
+    Zone(id = "z-work", userId = "u", name = "Trabajo", lat = 40.4200, lon = -3.7100,
+        iconKey = ZoneIcon.WORK, createdAt = 0L, notifyOnSpot = false),
+)
 
 /** Historial ya resuelto para TODOS los coches falsos, que es lo que espera la pantalla Vehicles. */
 private fun vehiclesHistoryCache(sessions: List<UserParking>) =
@@ -1389,6 +1415,53 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                         showSendDiagnosticsConfirmation = true,
                         diagnosticsMessage = sampleReportMessage,
                         isSendingDiagnostics = true,
+                    ),
+                )
+            },
+        ),
+    ),
+    // [MONEY-001] Paparcar Plus: el paywall y las superficies gateadas, en free y en plus.
+    // La variante de paywall con TIENDA es imposible aquí a propósito — el mock nunca configura
+    // el SDK, así que la plantilla remota solo se ve en un prodDebug con la key test_.
+    ScreenGroup(
+        "Paparcar Plus",
+        listOf(
+            // La oferta COMPLETA: hero metálico + comparativa Plus vs Free. Es lo que ve un
+            // build que no puede vender (mock, release sin key); con tienda, la plantilla
+            // remota de RevenueCat toma la pantalla entera y esto no se renderiza. [MONEY-001]
+            Variant("Paywall · oferta completa (sin tienda)") {
+                PaywallContent(state = PaywallState(storeAvailable = false), onIntent = {})
+            },
+            Variant("Historial free · pie \"Ver todo con Plus\"") {
+                history(
+                    HistoryState(timeline = resolvedHistory(agedHalfBeyondFreeWindow(), isPlus = false)),
+                )
+            },
+            Variant("Historial free · TODO más allá de la ventana") {
+                // Un historial OCULTO no puede decir "nunca has aparcado": el pie sustituye
+                // al empty state y cuenta lo que hay detrás del muro.
+                history(
+                    HistoryState(timeline = resolvedHistory(agedAllBeyondFreeWindow(), isPlus = false)),
+                )
+            },
+            Variant("Ajustes · Plus ACTIVO (badge, sin chevron)") {
+                SettingsContent(
+                    state = SettingsState(userProfile = sampleProfile, isPlus = true),
+                )
+            },
+            Variant("Diálogo de alertas de zona (Plus)") {
+                ZoneAlertsDialog(zones = galleryZones, onIntent = {})
+            },
+            Variant("Diálogo de alertas · sin zonas") {
+                ZoneAlertsDialog(zones = emptyList(), onIntent = {})
+            },
+            Variant("PapSheet · form de zona con alerta ON", Placement.Surface) {
+                peek(
+                    HomeState(
+                        mode = HomeMode.AddingZone,
+                        cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
+                        addingZoneName = "Casa",
+                        addingZoneNotify = true,
                     ),
                 )
             },

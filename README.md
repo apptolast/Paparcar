@@ -262,6 +262,11 @@ tarea (regla ⛔ en [`CLAUDE.md`](./CLAUDE.md)).
    ```properties
    MAPS_API_KEY=AIza...
    GOOGLE_WEB_CLIENT_ID=...
+   # RevenueCat (Paparcar Plus). Dashboard → Project settings → API keys.
+   # Debug usa la key del Test Store (test_...); release, la de Play (goog_...).
+   # Si una key está en blanco, ese build arranca sin configurar el SDK (sin crash).
+   REVENUECAT_TEST_API_KEY=test_...
+   REVENUECAT_GOOGLE_API_KEY=goog_...   # aún no existe: se crea al conectar la app de Play
    ```
 4. (Opcional para release) `keystore.properties` con `RELEASE_KEYSTORE_FILE`,
    `RELEASE_KEYSTORE_PASSWORD`, `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD`

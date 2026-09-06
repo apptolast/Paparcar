@@ -81,4 +81,7 @@
     <string name="notif_sentry_text">When you drive off we\'ll free your spot for others. Quiet, minimal battery. Turn off in Settings.</string>
     <string name="channel_sentry_name">Parked watch</string>
     <string name="channel_sentry_desc">Silent notification shown while your car is parked</string>
+    <!-- Plus zone alert [MONEY-001] -->
+    <string name="notif_zone_spot_title">Free spot in %1$s</string>
+    <string name="notif_zone_spot_text">Someone just left — open the map to see it</string>
 </resources>

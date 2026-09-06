@@ -70,4 +70,7 @@
     <string name="notif_sentry_text">Als je wegrijdt, geven we je plek vrij voor anderen. Stil, minimaal batterijgebruik. Uit te zetten in Instellingen.</string>
     <string name="channel_sentry_name">Parkeerwacht</string>
     <string name="channel_sentry_desc">Stille melding terwijl je auto geparkeerd staat</string>
+    <!-- Plus zone alert [MONEY-001] -->
+    <string name="notif_zone_spot_title">Vrije plek in %1$s</string>
+    <string name="notif_zone_spot_text">Er is net iemand vertrokken — open de kaart</string>
 </resources>

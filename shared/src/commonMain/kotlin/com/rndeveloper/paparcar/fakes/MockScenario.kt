@@ -68,6 +68,12 @@ class MockScenario {
      *  and [sentryAlive] to walk the checklist forward without leaving the emulator. */
     val firstStepsPending = MutableStateFlow(false)
 
+    /** [MONEY-001] The user holds the Paparcar Plus entitlement. Drives every gate in the real
+     *  graph through [com.rndeveloper.paparcar.fakes.data.repository.FakeEntitlementRepository]:
+     *  toggle it OFF while inside the app to exercise the live downgrade rules (history window
+     *  shrinks to 30 days, zone alerts pause) that a real store makes painful to reproduce. */
+    val isPlus = MutableStateFlow(false)
+
     fun reset() {
         session.value = Session.LoggedInWithVehicles
         onboardingCompleted.value = true
@@ -81,5 +87,6 @@ class MockScenario {
         promptOpen.value = false
         approximateParking.value = false
         firstStepsPending.value = false
+        isPlus.value = false
     }
 }

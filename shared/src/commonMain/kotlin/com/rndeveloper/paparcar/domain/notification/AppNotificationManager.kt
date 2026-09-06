@@ -168,6 +168,15 @@ interface AppNotificationManager {
     fun showBackgroundReliabilityWarning() {}
 
     /**
+     * A free community spot just appeared inside one of the user's alert-subscribed zones
+     * (Paparcar Plus). Tapping opens the app on the map focused there. Client-side delivery
+     * for 1.x — fed by ObserveZoneSpotAlertsUseCase while the app process is alive; see
+     * ZONE-SUBSCRIBE-001 for background delivery. Default no-op for non-Android impls and
+     * fakes. [MONEY-001]
+     */
+    fun showZoneSpotAlert(zoneName: String, latitude: Double, longitude: Double) {}
+
+    /**
      * Dismisses the notification with the given [notificationId].
      *
      * @param notificationId One of the [DETECTION_NOTIFICATION_ID], [UPLOAD_NOTIFICATION_ID],
@@ -209,5 +218,8 @@ interface AppNotificationManager {
 
         /** ID for the "where did you leave your car?" nudge (channel: ACTION). [DET-AR-FIRST-001] */
         const val MARK_PARKING_NUDGE_NOTIFICATION_ID = 2008
+
+        /** ID for the Plus zone-alert "free spot in your zone" notification. [MONEY-001] */
+        const val ZONE_SPOT_ALERT_NOTIFICATION_ID = 2009
     }
 }

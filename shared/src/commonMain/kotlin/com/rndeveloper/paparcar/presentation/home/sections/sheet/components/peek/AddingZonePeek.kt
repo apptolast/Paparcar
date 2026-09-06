@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Bookmark
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -70,6 +71,7 @@ import paparcar.composeapp.generated.resources.home_zone_name_dialog_body
 import paparcar.composeapp.generated.resources.home_zone_name_dialog_title
 import paparcar.composeapp.generated.resources.home_zone_name_placeholder
 import paparcar.composeapp.generated.resources.home_zone_private_hint
+import paparcar.composeapp.generated.resources.home_zone_form_notify_label
 import paparcar.composeapp.generated.resources.home_zone_private_label
 import paparcar.composeapp.generated.resources.home_zone_radius_meters
 import paparcar.composeapp.generated.resources.home_zone_radius_section
@@ -98,6 +100,8 @@ internal data class ZonePeekForm(
     val iconKey: String,
     val radius: Float,
     val isPrivate: Boolean,
+    /** Plus zone-alert opt-in — the VM gates ENABLING it behind the entitlement. [MONEY-001] */
+    val notifyOnSpot: Boolean,
     /** Non-null while an existing zone is being edited — it is also what "delete" acts on. */
     val editingZoneId: String?,
     val isSaving: Boolean,
@@ -157,6 +161,13 @@ internal fun AddingZonePeek(
             ZonePrivacyToggle(
                 isPrivate = form.isPrivate,
                 onToggle = { onIntent(HomeIntent.SetZoneIsPrivate(it)) },
+            )
+            Spacer(Modifier.height(14.dp))
+            // [MONEY-001] Visible to everyone (soft gate): enabling as free is the attempt
+            // that routes to the paywall — the VM decides, this row only asks.
+            ZoneNotifyToggle(
+                notifyOnSpot = form.notifyOnSpot,
+                onToggle = { onIntent(HomeIntent.SetZoneNotify(it)) },
             )
             Spacer(Modifier.height(14.dp))
         },
@@ -376,6 +387,38 @@ private fun ZonePrivacyToggle(
         }
         Switch(
             checked = isPrivate,
+            onCheckedChange = onToggle,
+        )
+    }
+}
+
+@Composable
+private fun ZoneNotifyToggle(
+    notifyOnSpot: Boolean,
+    onToggle: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.Notifications,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.size(18.dp),
+            )
+            Text(
+                text = stringResource(Res.string.home_zone_form_notify_label),
+                style = PaparcarType.current.body,
+            )
+        }
+        Switch(
+            checked = notifyOnSpot,
             onCheckedChange = onToggle,
         )
     }

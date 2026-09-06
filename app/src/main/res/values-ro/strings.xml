@@ -70,4 +70,7 @@
     <string name="notif_sentry_text">Când pleci, îți vom elibera locul pentru alții. Silențios, baterie minimă. Se dezactivează din Setări.</string>
     <string name="channel_sentry_name">Veghe parcare</string>
     <string name="channel_sentry_desc">Notificare silențioasă cât timp mașina ta este parcată</string>
+    <!-- Plus zone alert [MONEY-001] -->
+    <string name="notif_zone_spot_title">Loc liber în %1$s</string>
+    <string name="notif_zone_spot_text">Cineva tocmai a plecat — deschide harta</string>
 </resources>

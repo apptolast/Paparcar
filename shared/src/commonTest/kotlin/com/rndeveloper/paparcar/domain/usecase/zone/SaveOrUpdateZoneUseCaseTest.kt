@@ -38,6 +38,7 @@ class SaveOrUpdateZoneUseCaseTest {
             iconKey = "work",
             radiusMeters = 150f,
             isPrivate = true,
+            notifyOnSpot = false,
         )
 
         assertTrue(result.isSuccess)
@@ -59,6 +60,7 @@ class SaveOrUpdateZoneUseCaseTest {
             iconKey = "star",
             radiusMeters = 200f,
             isPrivate = true,
+            notifyOnSpot = false,
         )
 
         assertTrue(result.isSuccess)
@@ -84,9 +86,30 @@ class SaveOrUpdateZoneUseCaseTest {
             iconKey = "home",
             radiusMeters = 100f,
             isPrivate = false,
+            notifyOnSpot = false,
         )
 
         assertTrue(result.isFailure)
+    }
+
+    @Test
+    fun should_persistTheAlertOptIn_when_editing() = runTest {
+        // The bell dialog writes through this same path [MONEY-001]; the flag must land intact.
+        zoneRepo.zones = listOf(existing)
+
+        val result = useCase(
+            editingZoneId = "zone-1",
+            name = "Casa",
+            lat = 40.0,
+            lon = -3.0,
+            iconKey = "home",
+            radiusMeters = 100f,
+            isPrivate = false,
+            notifyOnSpot = true,
+        )
+
+        assertTrue(result.isSuccess)
+        assertTrue(zoneRepo.savedZone!!.notifyOnSpot)
     }
 
     @Test
@@ -99,6 +122,7 @@ class SaveOrUpdateZoneUseCaseTest {
             iconKey = "home",
             radiusMeters = 100f,
             isPrivate = false,
+            notifyOnSpot = false,
         )
 
         assertTrue(result.isFailure)

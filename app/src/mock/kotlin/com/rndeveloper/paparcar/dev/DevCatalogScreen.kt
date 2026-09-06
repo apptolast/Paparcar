@@ -58,6 +58,7 @@ fun DevCatalogScreen(
     val sentryAlive by scenario.sentryAlive.collectAsStateWithLifecycle()
     val approximate by scenario.approximateParking.collectAsStateWithLifecycle()
     val firstStepsPending by scenario.firstStepsPending.collectAsStateWithLifecycle()
+    val isPlus by scenario.isPlus.collectAsStateWithLifecycle()
     // Shared detection runtime — toggling it simulates an in-progress trip in the real Home (moving
     // driving puck + "Conduciendo" chip + camera follow), no real drive needed. [DRIVE-SIM-001]
     val runtime: MutableDetectionRuntimeState = koinInject()
@@ -106,6 +107,9 @@ fun DevCatalogScreen(
             SwitchRow("Conexión online", online) { scenario.online.value = it }
             // Fiabilidad REDUCED = OEM agresivo + sin exención (tier ≠ All) + sin BT. [DET-RELIABILITY-001]
             SwitchRow("OEM agresivo (MIUI/ColorOS)", aggressiveOem) { scenario.aggressiveOem.value = it }
+            // [MONEY-001] Entitlement de Paparcar Plus en el grafo real. Apagarlo con la app
+            // abierta ensaya la degradación en vivo (historial a 30 días, alertas pausadas).
+            SwitchRow("Plus activo (suscripción)", isPlus) { scenario.isPlus.value = it }
 
             SectionTitle("Simulación")
             // Own-parking loop in the REAL graph: watching line + parked card + ParkingPeek +

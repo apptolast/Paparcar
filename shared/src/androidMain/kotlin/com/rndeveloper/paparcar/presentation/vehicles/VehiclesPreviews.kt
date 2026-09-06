@@ -17,7 +17,9 @@ import com.rndeveloper.paparcar.ui.theme.PaparcarTheme
 private fun previewHistory(sessions: List<com.rndeveloper.paparcar.domain.model.UserParking>) =
     FakeData.vehiclesWithStats.associate { vws ->
         vws.vehicle.id to HistoryState(
-            timeline = HistoryTimeline.resolve(sessions, HistoryFilter.All),
+            // Plus on purpose: these previews are about the timeline itself, not the gate. The
+            // gated (free) variant lives in the Dev Catalog gallery. [MONEY-001]
+            timeline = HistoryTimeline.resolve(sessions, HistoryFilter.All, isPlus = true),
             activeFilter = HistoryFilter.All,
         )
     }

@@ -83,6 +83,10 @@ class FakeAppPreferences(
     override val notifyParkingDetected: Boolean get() = _notifyParkingDetected
     override fun setNotifyParkingDetected(enabled: Boolean) { _notifyParkingDetected = enabled }
 
+    private var _notifyZoneSpots = true
+    override val notifyZoneSpots: Boolean get() = _notifyZoneSpots
+    override fun setNotifyZoneSpots(enabled: Boolean) { _notifyZoneSpots = enabled }
+
     private var _themeMode = initialThemeMode
     override val themeMode: ThemeMode get() = _themeMode
     override fun setThemeMode(mode: ThemeMode) { _themeMode = mode }

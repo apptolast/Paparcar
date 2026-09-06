@@ -246,8 +246,17 @@ data class HomeState(
     val addingZoneIconKey: String = ZoneIcon.DEFAULT,
     val addingZoneRadius: Float = Zone.DEFAULT_RADIUS_METERS,
     val addingZoneIsPrivate: Boolean = false,
+    /** Plus zone-alert opt-in of the zone being created/edited. [MONEY-001] */
+    val addingZoneNotify: Boolean = false,
     /** Non-null when editing an existing zone instead of creating a new one. */
     val editingZoneId: String? = null,
+
+    // ── Paparcar Plus [MONEY-001] ─────────────────────────────────────────────
+
+    /** Live entitlement — decides whether Plus surfaces open or route to the paywall. */
+    val isPlus: Boolean = false,
+    /** The bell's zone-alert manager dialog (Plus only; free lands on the paywall instead). */
+    val zoneAlertsDialogOpen: Boolean = false,
 
     // ── AddingParking mode ────────────────────────────────────────────────────
 

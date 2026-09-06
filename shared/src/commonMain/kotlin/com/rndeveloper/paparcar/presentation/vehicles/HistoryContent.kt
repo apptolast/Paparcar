@@ -34,6 +34,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Event
 import androidx.compose.material.icons.rounded.Place
+import androidx.compose.material.icons.rounded.WorkspacePremium
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.presentation.util.distanceString
 import com.rndeveloper.paparcar.presentation.vehicles.components.ActiveSectionHeader
@@ -43,9 +44,14 @@ import com.rndeveloper.paparcar.presentation.vehicles.components.EndedSessionTim
 import com.rndeveloper.paparcar.presentation.vehicles.components.HistoryFilterBar
 import com.rndeveloper.paparcar.presentation.vehicles.components.ActivityCard
 import com.rndeveloper.paparcar.presentation.vehicles.components.ActivityFact
+import com.rndeveloper.paparcar.ui.components.PapIconTile
+import com.rndeveloper.paparcar.ui.components.PapOutlinedCard
+import com.rndeveloper.paparcar.ui.components.PapPremiumCta
+import com.rndeveloper.paparcar.ui.components.PapPremiumSurface
 import com.rndeveloper.paparcar.ui.components.PapScrollToTopButton
 import com.rndeveloper.paparcar.ui.components.PapShimmerBox
 import com.rndeveloper.paparcar.ui.components.PapShimmerBlockScale
+import com.rndeveloper.paparcar.ui.theme.PapAlpha
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.VehicleWatch
 import com.rndeveloper.paparcar.ui.theme.vehicleIdentityColor
@@ -55,10 +61,14 @@ import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.history_active_section
 import paparcar.composeapp.generated.resources.history_activity_title
+import paparcar.composeapp.generated.resources.history_plus_footer_cta
+import paparcar.composeapp.generated.resources.history_plus_footer_hint
+import paparcar.composeapp.generated.resources.history_plus_hidden_count
 import paparcar.composeapp.generated.resources.history_section_label
 import paparcar.composeapp.generated.resources.history_day_full_fri
 import paparcar.composeapp.generated.resources.history_day_full_mon
@@ -143,6 +153,8 @@ fun HistoryContent(
     // [UI-COLOR-DOCTRINE-001][UI-HISTORY-IDENTITY-AND-SOURCE-001]
     watch: VehicleWatch = VehicleWatch.Off,
     onFilterSelected: (HistoryFilter) -> Unit = {},
+    /** The "Ver todo con Plus" footer under a gated timeline. [MONEY-001] */
+    onOpenPlusPaywall: () -> Unit = {},
     modifier: Modifier = Modifier,
     header: (@Composable () -> Unit)? = null,
     onScrolledToTop: () -> Unit = {},
@@ -157,7 +169,10 @@ fun HistoryContent(
     // skeleton, and the empty state stays reserved for a history that really is empty.
     // [UI-HISTORY-A-LOADING-LIST-MUST-NOT-CLAIM-TO-BE-EMPTY-001]
     val resolved = state.timeline as? HistoryTimeline.Resolved
-    val sessions = resolved?.sessions.orEmpty()
+    // What the entitlement lets this screen SHOW — the full history stays intact underneath,
+    // and the footer below the timeline accounts for the rest. [MONEY-001]
+    val sessions = resolved?.visibleSessions.orEmpty()
+    val hiddenOlderCount = resolved?.hiddenOlderCount ?: 0
     val filteredSessions = resolved?.filteredSessions.orEmpty()
 
     val allEnded = remember(sessions) { sessions.filter { !it.isActive } }
@@ -229,7 +244,17 @@ fun HistoryContent(
                             modifier = Modifier.fillMaxWidth().weight(1f),
                             contentAlignment = Alignment.Center,
                         ) {
-                            EmptyHistoryState(modifier = Modifier.fillMaxWidth())
+                            // A history that is only HIDDEN must not claim to be empty: when the
+                            // free window covers nothing recent, the honest message is how much
+                            // exists beyond it, not "you never parked". [MONEY-001]
+                            if (hiddenOlderCount > 0) {
+                                PlusHistoryFooter(
+                                    hiddenCount = hiddenOlderCount,
+                                    onSeeAll = onOpenPlusPaywall,
+                                )
+                            } else {
+                                EmptyHistoryState(modifier = Modifier.fillMaxWidth())
+                            }
                         }
                     }
                 }
@@ -367,6 +392,17 @@ fun HistoryContent(
                         }
                     }
                 }
+
+                // [MONEY-001] Soft gate, not a wall: the timeline ends where the free window ends,
+                // and the footer SAYS how much lies beyond instead of pretending nothing does.
+                if (hiddenOlderCount > 0) {
+                    item(key = "plus_history_footer") {
+                        PlusHistoryFooter(
+                            hiddenCount = hiddenOlderCount,
+                            onSeeAll = onOpenPlusPaywall,
+                        )
+                    }
+                }
             }
         }
 
@@ -378,6 +414,59 @@ fun HistoryContent(
                 onScrolledToTop()
             },
         )
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Plus footer — what lies beyond the free window [MONEY-001]
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun PlusHistoryFooter(
+    hiddenCount: Int,
+    onSeeAll: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    // Same metallic Plus surface as the Settings row and the paywall hero — one recipe, so the
+    // premium look cannot drift between the places that sell it.
+    // [UI-COLOR-PLUS-WEARS-THE-BRAND-WITH-A-FINISH-001]
+    PapPremiumSurface(
+        modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            // Inverted on the filled brand bed: ink tile with a green glyph, ink text, and an
+            // ink-filled CTA — a green button on green would disappear. [MONEY-001]
+            PapIconTile(
+                icon = Icons.Rounded.WorkspacePremium,
+                container = MaterialTheme.colorScheme.onPrimary,
+                tint = MaterialTheme.colorScheme.primary,
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = pluralStringResource(
+                        Res.plurals.history_plus_hidden_count,
+                        hiddenCount,
+                        hiddenCount,
+                    ),
+                    style = PaparcarType.current.rowTitle,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                )
+                Text(
+                    text = stringResource(Res.string.history_plus_footer_hint),
+                    style = PaparcarType.current.caption,
+                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = PapAlpha.body),
+                )
+                Spacer(Modifier.height(10.dp))
+                PapPremiumCta(
+                    label = stringResource(Res.string.history_plus_footer_cta),
+                    onClick = onSeeAll,
+                )
+            }
+        }
     }
 }
 

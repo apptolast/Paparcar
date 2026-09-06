@@ -11,6 +11,9 @@ import com.apptolast.baselogin.appContext
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
 import com.apptolast.baselogin.di.initLoginKoin
+import com.revenuecat.purchases.kmp.LogLevel
+import com.revenuecat.purchases.kmp.Purchases
+import com.revenuecat.purchases.kmp.PurchasesConfiguration
 import com.rndeveloper.paparcar.di.paparcarLoginConfig
 import com.rndeveloper.paparcar.detection.worker.FirstParkNudgeWorker
 import com.rndeveloper.paparcar.detection.worker.GeofenceJanitorWorker
@@ -49,6 +52,20 @@ class PaparcarApp : Application() {
         // gone on uninstall. Logcat mirroring (DebugAntilog) stays debug-only.
         // [SUPPORT-REPORT-SHIPS-THE-LOCAL-LOG-001]
         Napier.base(FileAntilog(this))
+
+        // RevenueCat — configured BEFORE Koin so anything resolved from the graph can already
+        // reach the SDK. No Context parameter: the KMP SDK captures it through AndroidX App
+        // Startup, so androidx.startup.InitializationProvider must stay in the merged manifest.
+        // A blank key skips configuration instead of crashing — release has no goog_ key until
+        // the Play products exist, and the app must keep working without the SDK. [MONEY-001]
+        if (BuildConfig.REVENUECAT_API_KEY.isNotBlank()) {
+            if (BuildConfig.DEBUG) {
+                Purchases.logLevel = LogLevel.DEBUG
+            }
+            Purchases.configure(PurchasesConfiguration(BuildConfig.REVENUECAT_API_KEY))
+        } else {
+            Napier.w("REVENUECAT_API_KEY is blank — Purchases SDK not configured", tag = "PaparcarApp")
+        }
 
         // What Paparcar offers is declared in ONE place, shared with iOS and with the previews +
         // Dev Catalog gallery. Never inline a LoginLibraryConfig here: its flags default to

@@ -13,6 +13,8 @@ data class VehiclesState(
     val selectedVehicleIndex: Int = 0,
     val bluetoothConnectedVehicleId: String? = null,
     val historyCache: Map<String, HistoryState> = emptyMap(),
+    /** Live Plus entitlement — what SetHistoryFilter re-resolves the timeline with. [MONEY-001] */
+    val isPlus: Boolean = false,
 ) {
     val currentVehicleId: String?
         get() = vehicles.getOrNull(selectedVehicleIndex)?.vehicle?.id

@@ -3,6 +3,10 @@ package com.rndeveloper.paparcar.presentation.settings
 sealed class SettingsIntent {
     data class ToggleAutoDetect(val enabled: Boolean) : SettingsIntent()
     data class ToggleParkingDetectedNotif(val enabled: Boolean) : SettingsIntent()
+    /** Master switch for the Plus zone alerts; enabling as free routes to the paywall. [MONEY-001] */
+    data class ToggleZoneAlertsNotif(val enabled: Boolean) : SettingsIntent()
+    /** The Plus entry at the top of Settings (free users only — Plus shows a badge). [MONEY-001] */
+    data object OpenPlusPaywall : SettingsIntent()
     data object NavigateToVehicles : SettingsIntent()
     /** "Fix" on the detection health row — jump to the permissions flow focused on what's missing. */
     data object FixDetectionPermissions : SettingsIntent()

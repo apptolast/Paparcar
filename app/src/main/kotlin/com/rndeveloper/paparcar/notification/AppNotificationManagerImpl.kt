@@ -122,6 +122,26 @@ class AppNotificationManagerImpl(
     }
 
     /**
+     * [MONEY-001] Plus zone alert: a free spot just appeared in one of the user's subscribed
+     * zones. Informative (UPLOAD channel, default priority) — same tier as "parking saved" —
+     * and double-gated by the Settings master switch: the use case checks it at fire time and
+     * this choke point re-reads it, mirroring the [showParkingSaved] pattern.
+     */
+    override fun showZoneSpotAlert(zoneName: String, latitude: Double, longitude: Double) {
+        if (!appPreferences.notifyZoneSpots) return
+        val notification = NotificationCompat.Builder(context, UPLOAD_CHANNEL_ID)
+            .setContentTitle(context.getString(R.string.notif_zone_spot_title, zoneName))
+            .setContentText(context.getString(R.string.notif_zone_spot_text))
+            .setSmallIcon(R.drawable.ic_notification_logo)
+            .setColor(COLOR_SUCCESS)
+            .setCategory(NotificationCompat.CATEGORY_EVENT)
+            .setContentIntent(buildFocusIntent(RC_ZONE_SPOT_ALERT, latitude, longitude))
+            .setAutoCancel(true)
+            .build()
+        notificationManager.notify(AppNotificationManager.ZONE_SPOT_ALERT_NOTIFICATION_ID, notification)
+    }
+
+    /**
      * [REFACTOR-300] Single notification that replaces the "¿Has aparcado?" prompt at
      * the same ID. Two action buttons:
      *  - "Sí, confirmar" → ACTION_PARKING_ACK (just dismiss + stop service)
@@ -541,6 +561,7 @@ class AppNotificationManagerImpl(
         private const val RC_DEBUG = 14
         private const val RC_PERMISSION_REVOKED = 15
         private const val RC_CONFIRMATION_FAILED = 17
+        private const val RC_ZONE_SPOT_ALERT = 18
         private const val RC_CONFIRM_YES = 200
         private const val RC_CONFIRM_NO = 201
         // [REFACTOR-300] post-save notification request codes

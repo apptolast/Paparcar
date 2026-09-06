@@ -722,4 +722,38 @@
     <string name="first_steps_explain_spot_way_title">Freien Platz melden</string>
     <string name="first_steps_explain_spot_way_body">Du markierst ihn auf der Karte, und die Fahrer in der Nähe sehen ihn. Mehr braucht es nicht.</string>
     <string name="first_steps_explain_spot_note">Hier geht es nicht um dein Auto: Es öffnet keinen Parkplatz von dir und startet keine Überwachung.</string>
+
+    <!-- ── Paparcar Plus [MONEY-001] ── -->
+    <plurals name="history_plus_hidden_count">
+        <item quantity="one">Du hast %1$d früheren Parkplatz</item>
+        <item quantity="other">Du hast %1$d frühere Parkplätze</item>
+    </plurals>
+    <string name="history_plus_footer_cta">Alles mit Plus sehen</string>
+    <string name="history_plus_footer_hint">Dein kompletter Verlauf, immer griffbereit</string>
+    <string name="paywall_title">Paparcar Plus</string>
+    <string name="paywall_tagline">Kompletter Verlauf und Hinweise auf freie Plätze in deinen Zonen</string>
+    <string name="paywall_close_cd">Schließen</string>
+    <string name="paywall_store_unavailable">Das Abo ist gerade nicht verfügbar — versuch es später noch einmal</string>
+    <string name="paywall_compare_title">Was sich mit Plus ändert</string>
+    <string name="paywall_feature_history_title">Parkverlauf</string>
+    <string name="paywall_feature_history_free">Gratis: die letzten 30 Tage</string>
+    <string name="paywall_feature_history_plus">Plus: alle Parkvorgänge, ohne Zeitgrenze</string>
+    <string name="paywall_feature_alerts_title">Hinweise auf freie Plätze</string>
+    <string name="paywall_feature_alerts_free">Gratis: nicht enthalten</string>
+    <string name="paywall_feature_alerts_plus">Plus: Hinweis in den Zonen deiner Wahl</string>
+    <string name="paywall_feature_support_title">Du hältst Paparcar am Laufen</string>
+    <string name="paywall_feature_support_free">Gratis: die App bleibt für alle kostenlos</string>
+    <string name="paywall_feature_support_plus">Plus: dein Abo bezahlt die Server</string>
+    <string name="paywall_unlimited_note">Fahrzeuge und Zonen sind in beiden unbegrenzt — Plus deckelt nichts, was du schon hast.</string>
+    <string name="settings_plus_title">Paparcar Plus</string>
+    <string name="settings_plus_subtitle_free">Kompletter Verlauf und Zonen-Hinweise</string>
+    <string name="settings_plus_subtitle_active">Kompletter Verlauf und Zonen-Hinweise, aktiv</string>
+    <string name="settings_plus_badge_active">AKTIV</string>
+    <string name="settings_notif_zone_alerts">Zonen-Hinweise</string>
+    <string name="settings_notif_zone_alerts_desc">Hinweis, wenn in deinen Zonen ein Platz frei wird</string>
+    <string name="home_zone_alerts_cd">Zonen-Hinweise</string>
+    <string name="home_zone_alerts_title">Zonen-Hinweise</string>
+    <string name="home_zone_alerts_empty">Speichere zuerst eine Zone, um dort Hinweise zu erhalten</string>
+    <string name="home_zone_alerts_done">Fertig</string>
+    <string name="home_zone_form_notify_label">Bei freien Plätzen hier benachrichtigen</string>
 </resources>

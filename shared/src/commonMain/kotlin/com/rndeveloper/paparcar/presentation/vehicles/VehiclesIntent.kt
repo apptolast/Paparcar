@@ -8,4 +8,7 @@ sealed class VehiclesIntent {
     data object AddVehicle : VehiclesIntent()
     data class SetHistoryFilter(val filter: HistoryFilter) : VehiclesIntent()
     data class ViewOnMap(val lat: Double, val lon: Double, val sessionId: String = "") : VehiclesIntent()
+
+    /** The "Ver todo con Plus" footer under a gated history. [MONEY-001] */
+    data object OpenPlusPaywall : VehiclesIntent()
 }

@@ -58,6 +58,7 @@ import com.rndeveloper.paparcar.domain.model.ParkingReleaseReason
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.displayName
 import com.rndeveloper.paparcar.presentation.home.sections.header.HomeHeaderSection
+import com.rndeveloper.paparcar.presentation.home.sections.header.components.ZoneAlertsDialog
 import com.rndeveloper.paparcar.presentation.home.sections.map.HomeMapFabsLayer
 import com.rndeveloper.paparcar.presentation.home.sections.map.HomeMapSection
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.HomeBottomSheet
@@ -161,6 +162,8 @@ fun HomeScreen(
     /** Open a first step's explanation on its own screen.
      *  [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001] */
     onOpenStepExplainer: (FirstStep) -> Unit = {},
+    /** A Plus gate tapped by a free user — open the Paparcar Plus paywall. [MONEY-001] */
+    onOpenPaywall: () -> Unit = {},
     viewModel: HomeViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateLifecycleAware()
@@ -198,6 +201,15 @@ fun HomeScreen(
     // Home is the current destination AND the app is foreground. [UI-LOC-FOREGROUND-001]
     MapForegroundEffect { active -> viewModel.handleIntent(HomeIntent.SetMapForeground(active)) }
 
+    // [MONEY-001] The bell's alert manager. Only reachable as Plus (the free tap routed to the
+    // paywall in the VM), and never stacked on another modal: it opens from the map surface.
+    if (state.zoneAlertsDialogOpen) {
+        ZoneAlertsDialog(
+            zones = state.zones,
+            onIntent = viewModel::handleIntent,
+        )
+    }
+
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
@@ -228,6 +240,7 @@ fun HomeScreen(
                     SpotVoteOutcome.IGNORED_TOO_FAR -> Unit
                 }
                 HomeEffect.ZoneSaved -> snackbarHostState.showSnackbar(msgZoneSaved)
+                HomeEffect.NavigateToPaywall -> onOpenPaywall()
                 HomeEffect.DetectionEnabled -> snackbarHostState.showSnackbar(msgDetectionEnabled)
                 // [DET-STOP-BUTTON-001] The user stopped THIS trip — plain confirmation, no action:
                 // there is nothing to re-enable (the feature is still on) and the copy already says
@@ -988,6 +1001,7 @@ private fun HomeFloatingHeader(
                     )
                 },
                 onEditZone = { id -> onIntent(HomeIntent.EnterEditZoneMode(id)) },
+                onZoneAlertsClick = { onIntent(HomeIntent.OpenZoneAlerts) },
             )
         }
     }

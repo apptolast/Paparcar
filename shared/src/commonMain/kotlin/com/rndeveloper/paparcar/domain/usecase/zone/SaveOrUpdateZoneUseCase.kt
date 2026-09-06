@@ -23,6 +23,7 @@ class SaveOrUpdateZoneUseCase(
         iconKey: String,
         radiusMeters: Float,
         isPrivate: Boolean,
+        notifyOnSpot: Boolean,
     ): Result<Unit> {
         val trimmed = name.trim()
         if (trimmed.isEmpty()) {
@@ -39,6 +40,7 @@ class SaveOrUpdateZoneUseCase(
                     iconKey = iconKey,
                     radiusMeters = radiusMeters,
                     isPrivate = isPrivate,
+                    notifyOnSpot = notifyOnSpot,
                 ),
             )
         } else {
@@ -49,6 +51,7 @@ class SaveOrUpdateZoneUseCase(
                 iconKey = iconKey,
                 radiusMeters = radiusMeters,
                 isPrivate = isPrivate,
+                notifyOnSpot = notifyOnSpot,
             ).map { }
         }
     }

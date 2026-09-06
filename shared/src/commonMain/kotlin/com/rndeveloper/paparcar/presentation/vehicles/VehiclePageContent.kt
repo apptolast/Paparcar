@@ -75,6 +75,7 @@ internal fun VehiclePageContent(
         // [UI-HISTORY-IDENTITY-AND-SOURCE-001]
         watch = vehicleWithStats.vehicle.monitoringStatus().watch(),
         onFilterSelected = { filter -> onIntent(VehiclesIntent.SetHistoryFilter(filter)) },
+        onOpenPlusPaywall = { onIntent(VehiclesIntent.OpenPlusPaywall) },
         onScrolledToTop = onScrolledToTop,
         modifier = Modifier.fillMaxSize(),
         header = {

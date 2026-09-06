@@ -10,6 +10,7 @@ import com.rndeveloper.paparcar.domain.connectivity.ConnectivityStatus
 import com.rndeveloper.paparcar.fakes.FakeAppPreferences
 import com.rndeveloper.paparcar.fakes.FakeAuthRepository
 import com.rndeveloper.paparcar.fakes.FakeConnectivityObserver
+import com.rndeveloper.paparcar.fakes.FakeEntitlementRepository
 import com.rndeveloper.paparcar.fakes.FakeGeofenceManager
 import com.rndeveloper.paparcar.fakes.FakeLocalSessionCache
 import com.rndeveloper.paparcar.fakes.FakePermissionManager
@@ -51,6 +52,7 @@ class SplashViewModelTest {
     private lateinit var fakeSessionCache: FakeLocalSessionCache
     private lateinit var fakeConnectivity: FakeConnectivityObserver
     private lateinit var fakeGeofenceManager: FakeGeofenceManager
+    private lateinit var fakeEntitlementRepo: FakeEntitlementRepository
 
     @BeforeTest
     fun setUp() {
@@ -65,6 +67,7 @@ class SplashViewModelTest {
         fakeSessionCache = FakeLocalSessionCache()
         fakeConnectivity = FakeConnectivityObserver()
         fakeGeofenceManager = FakeGeofenceManager()
+        fakeEntitlementRepo = FakeEntitlementRepository()
     }
 
     @AfterTest
@@ -93,6 +96,7 @@ class SplashViewModelTest {
             localSessionCache = fakeSessionCache,
             connectivityObserver = fakeConnectivity,
             geofenceManager = fakeGeofenceManager,
+            entitlementRepository = fakeEntitlementRepo,
         )
     }
 
@@ -419,6 +423,52 @@ class SplashViewModelTest {
         assertNull(vm.state.value.bootstrapFailure)
         // The remote bootstrap (profile sync) must be skipped entirely while offline. [RETRY-GATE-001]
         assertEquals(0, fakeProfileRepo.getOrCreateCallCount)
+    }
+
+    // ── Store identity (RevenueCat logIn/logOut) [MONEY-001] ─────────────────
+
+    @Test
+    fun `should_bindStoreIdentityToTheUid_when_authenticated`() = runTest {
+        val vm = buildViewModel()
+
+        fakeAuth.emitState(AuthState.Authenticated(session))
+
+        assertEquals(1, fakeEntitlementRepo.logInCallCount)
+        assertEquals(session.userId, fakeEntitlementRepo.lastLoggedInUserId)
+        // And it never runs before the identity is known: no call on the Loading state.
+        assertNull(vm.state.value.bootstrapFailure)
+    }
+
+    @Test
+    fun `should_finishBootstrap_when_storeLogInFails`() = runTest {
+        fakeEntitlementRepo.logInResult = Result.failure(RuntimeException("RC unreachable"))
+        val vm = buildViewModel()
+
+        fakeAuth.emitState(AuthState.Authenticated(session))
+
+        // Non-fatal by contract: route resolved, nobody signed out, no failure surfaced.
+        assertEquals(Routes.ONBOARDING, vm.state.value.startRoute)
+        assertEquals(0, fakeAuth.signOutCount)
+        assertNull(vm.state.value.bootstrapFailure)
+    }
+
+    @Test
+    fun `should_unbindStoreIdentity_when_unauthenticated`() = runTest {
+        buildViewModel()
+
+        fakeAuth.emitState(AuthState.Unauthenticated)
+
+        assertEquals(1, fakeEntitlementRepo.logOutCallCount)
+    }
+
+    @Test
+    fun `should_stillWipeTheLocalCache_when_storeLogOutFails`() = runTest {
+        fakeEntitlementRepo.logOutResult = Result.failure(RuntimeException("RC unreachable"))
+        buildViewModel()
+
+        fakeAuth.emitState(AuthState.Unauthenticated)
+
+        assertEquals(1, fakeSessionCache.wipeCount)
     }
 
     /** Configures the fake profile repo to return a profile with a vehicle pointer set,

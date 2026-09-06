@@ -109,7 +109,15 @@ fun HomeSearchBar(
                 ),
                 keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
                 placeholder = {
-                    Text(stringResource(Res.string.home_search_placeholder), style = PaparcarType.current.body)
+                    // A search field that wraps to two lines reads as broken, whatever
+                    // squeezed its width — enforce one line regardless.
+                    // [UI-HOME-SEARCH-BAR-MUST-STAY-ONE-LINE-001]
+                    Text(
+                        stringResource(Res.string.home_search_placeholder),
+                        style = PaparcarType.current.body,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 },
                 leadingIcon = {
                     if (isSearching) {

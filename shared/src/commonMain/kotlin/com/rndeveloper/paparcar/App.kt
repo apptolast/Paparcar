@@ -70,6 +70,7 @@ import com.rndeveloper.paparcar.presentation.app.SplashEffect
 import com.rndeveloper.paparcar.presentation.app.SplashViewModel
 import com.rndeveloper.paparcar.presentation.home.HomeScreen
 import com.rndeveloper.paparcar.presentation.map.ParkingHistoryDetailScreen
+import com.rndeveloper.paparcar.presentation.paywall.PaywallScreen
 import com.rndeveloper.paparcar.presentation.vehicles.VehiclesScreen
 import com.rndeveloper.paparcar.presentation.onboarding.OnboardingScreen
 import com.rndeveloper.paparcar.presentation.permissions.PermissionsScreen
@@ -123,6 +124,9 @@ object Routes {
     /** A guided first step's explanation. Its own screen, not a sheet over Home — see
      *  `FirstStepExplainerScreen`. [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001] */
     const val FIRST_STEP_EXPLAINER = "first_step_explainer"
+    /** Paparcar Plus paywall — every gate (history footer, zone alerts, Settings) lands here.
+     *  [MONEY-001] */
+    const val PAYWALL = "paywall"
 }
 
 private val BOTTOM_NAV_ROUTES = setOf(
@@ -585,6 +589,7 @@ private fun MainAppNavigation(
                     onOpenStepExplainer = { step ->
                         navController.navigate("${Routes.FIRST_STEP_EXPLAINER}/${step.name}")
                     },
+                    onOpenPaywall = { navController.navigate(Routes.PAYWALL) },
                 )
             }
             composable(
@@ -637,6 +642,7 @@ private fun MainAppNavigation(
                         onShowExplainer = {
                             navController.navigate(Routes.VEHICLE_SIZE_EXPLAINER)
                         },
+                        onOpenPaywall = { navController.navigate(Routes.PAYWALL) },
                     )
                 }
             }
@@ -654,6 +660,7 @@ private fun MainAppNavigation(
                         // Deep-link into car-Bluetooth config for the active vehicle.
                         onNavigateToBluetoothConfig = { vehicleId -> navController.navigate("${Routes.BT_CONFIG}/$vehicleId") },
                         onNavigateToLicenses = { navController.navigate(Routes.LICENSES) },
+                        onOpenPaywall = { navController.navigate(Routes.PAYWALL) },
                         themeMode = themeMode,
                         onSetThemeMode = onSetThemeMode,
                         imperialUnits = imperialUnits,
@@ -691,6 +698,11 @@ private fun MainAppNavigation(
                 BluetoothConfigScreen(
                     vehicleId = vehicleId,
                     onNavigateBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.PAYWALL) {
+                PaywallScreen(
+                    onClose = { navController.popBackStack() },
                 )
             }
         }

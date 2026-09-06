@@ -23,6 +23,9 @@ sealed class HomeEffect {
         val frame: CameraFrame = CameraFrame.Navigate,
     ) : HomeEffect()
     data object ZoneSaved : HomeEffect()
+
+    /** A Plus gate was tapped by a free user — open the Paparcar Plus paywall. [MONEY-001] */
+    data object NavigateToPaywall : HomeEffect()
     /** Auto-detection just re-enabled from the Home banner — confirm with a snackbar. [DET-TOGGLE-001] */
     data object DetectionEnabled : HomeEffect()
     /** Auto-detection enabled but permissions still missing — open the permissions screen at [focus]

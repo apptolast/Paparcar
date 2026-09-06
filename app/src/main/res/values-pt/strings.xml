@@ -70,4 +70,7 @@
     <string name="notif_sentry_text">Quando saíres, libertaremos o teu lugar para outros. Silenciosa, bateria mínima. Desativa-se nas Definições.</string>
     <string name="channel_sentry_name">Vigilância estacionado</string>
     <string name="channel_sentry_desc">Notificação silenciosa enquanto o teu carro está estacionado</string>
+    <!-- Plus zone alert [MONEY-001] -->
+    <string name="notif_zone_spot_title">Lugar livre em %1$s</string>
+    <string name="notif_zone_spot_text">Alguém acabou de sair — abre o mapa para o ver</string>
 </resources>

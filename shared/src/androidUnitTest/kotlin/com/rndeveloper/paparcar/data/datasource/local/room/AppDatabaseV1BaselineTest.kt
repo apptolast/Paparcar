@@ -9,6 +9,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
@@ -42,6 +43,12 @@ import kotlin.test.assertTrue
  * The seeded DDL is copied verbatim from the actual bench database (`Redmi 2201117TY`, pulled
  * 2026-09-01), and both identity hashes are the real ones read off that phone and off the field
  * error message.
+ *
+ * Since [MONEY-001] the app declares **v2** (`zones.notifyOnSpot`), which re-reads this table
+ * without invalidating it: the v1-current files now travel through `MIGRATION_1_2` and must come
+ * out the other side with their rows intact (that IS the migration witness), while the old bench
+ * v2 file — v1-shaped schema under a v2 number — becomes the same-version-different-hash case the
+ * builder resolves by deleting.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -50,10 +57,11 @@ class AppDatabaseV1BaselineTest {
     private val context: Context get() = ApplicationProvider.getApplicationContext()
 
     @Test
-    fun should_wipeAndReopenAtV1_when_theFileIsTheV2BenchDatabase() = runTest {
-        // The path every field-test phone takes on the release build: a valid v2 file, one version
-        // ABOVE what the app now declares. Distinct from AppDatabaseDowngradeTest's hostile seed —
-        // here the schema is legitimate and only the number is ahead, which is the real case.
+    fun should_wipeAndReopen_when_theFileIsTheOldV2BenchDatabase() = runTest {
+        // The old bench v2 file: v1-shaped schema under a v2 number. When the app itself was v1
+        // this was a downgrade; now that [MONEY-001] declares v2 it is the same-version-different-
+        // hash shape, the ONE Room neither migrates nor wipes — the builder's delete-on-failure is
+        // what resolves it. Either way the outcome the user meets is identical: wiped, reopened.
         val name = "baseline-from-v2.db"
         seedBenchDatabase(name, version = 2, withRetractedColumn = true, identityHash = CURRENT_IDENTITY_HASH)
 
@@ -61,7 +69,7 @@ class AppDatabaseV1BaselineTest {
         val rows = db.parkingSessionDao().getByUser("user-bench")
         db.close()
 
-        assertTrue(rows.isEmpty(), "a downgrade wipes: the v2 row must not come back")
+        assertTrue(rows.isEmpty(), "the unreadable v2 file must not leak its row back")
         assertEquals(PAPARCAR_DB_VERSION, readUserVersion(name), "the file must end up at the declared version")
     }
 
@@ -75,10 +83,16 @@ class AppDatabaseV1BaselineTest {
 
         val db = buildAppDatabase(context, name)
         val rows = db.parkingSessionDao().getByUser("user-bench")
+        // The same open is also MIGRATION_1_2's witness [MONEY-001]: the zone must come across
+        // with the new alert flag OFF — existing zones never opt in alone.
+        val zones = db.zoneDao().getByUser("user-bench")
         db.close()
 
         assertEquals(1, rows.size, "an untouched schema must not cost the user their parked session")
         assertEquals("pin-1", rows.single().id)
+        assertEquals(1, zones.size, "the 1→2 migration must carry the zone across, not recreate the table")
+        assertEquals("zone-1", zones.single().id)
+        assertFalse(zones.single().notifyOnSpot, "existing zones default to alerts OFF")
         assertEquals(PAPARCAR_DB_VERSION, readUserVersion(name))
     }
 
@@ -201,6 +215,12 @@ class AppDatabaseV1BaselineTest {
                 "INSERT INTO parking_sessions (id, userId, latitude, longitude, accuracy, timestamp, " +
                     "isActive, routeSnapped, publishedSpot, updatedAt, pendingSync) " +
                     "VALUES ('pin-1', 'user-bench', 36.6084, -6.2781, 5.0, 1788204119405, 1, 0, 0, 1788204119405, 0)",
+            )
+            // A zone row too, so the v1→v2 migration ([MONEY-001]) has a subject to carry across.
+            seed.execSQL(
+                "INSERT INTO zones (id, userId, name, lat, lon, iconKey, createdAt, radiusMeters, " +
+                    "isPrivate, updatedAt, pendingSync) " +
+                    "VALUES ('zone-1', 'user-bench', 'Casa', 36.6084, -6.2781, 'HOME', 1788204119405, 250.0, 0, 1788204119405, 0)",
             )
             seed.version = version
         }

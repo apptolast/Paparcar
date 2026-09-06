@@ -3,6 +3,7 @@
 package com.rndeveloper.paparcar.presentation.vehicles
 
 import androidx.compose.runtime.Immutable
+import com.rndeveloper.paparcar.domain.entitlement.gateHistoryToEntitlement
 import com.rndeveloper.paparcar.domain.model.UserParking
 import kotlin.time.Clock
 
@@ -26,12 +27,17 @@ sealed interface HistoryTimeline {
     data object Unresolved : HistoryTimeline
 
     /**
-     * The vehicle's history as Room last told it. [sessions] is always the FULL list — the timeline
-     * is never scoped by the filter — while [filteredSessions] and [statsData] are the derived views
-     * the Activity card reads.
+     * The vehicle's history as Room last told it. [sessions] is always the FULL list — never
+     * scoped by the filter and never by the entitlement, so re-resolving from it loses nothing.
+     * What the screen may SHOW is [visibleSessions]: the Plus gate applied ([MONEY-001] — free
+     * sees the last 30 days, the data itself is untouched), with [hiddenOlderCount] feeding the
+     * "Ver todo con Plus" footer. [filteredSessions] and [statsData] derive from the visible
+     * set so the chart, the stats and the list can never disagree about what exists.
      */
     data class Resolved(
         val sessions: List<UserParking>,
+        val visibleSessions: List<UserParking>,
+        val hiddenOlderCount: Int,
         val filteredSessions: List<UserParking>,
         val statsData: HistoryStatsData?,
     ) : HistoryTimeline
@@ -40,16 +46,25 @@ sealed interface HistoryTimeline {
         /**
          * Resolves [sessions] together with its derived views in ONE place, so no call site can pair
          * a session list with a filtered list or a stats block that disagrees with it.
+         *
+         * [isPlus] has NO default on purpose — the same reason the timeline has no default: a
+         * silent answer here would quietly hand the full history to free or truncate it for Plus.
          */
         fun resolve(
             sessions: List<UserParking>,
             filter: HistoryFilter,
+            isPlus: Boolean,
             nowMs: Long = Clock.System.now().toEpochMilliseconds(),
-        ): Resolved = Resolved(
-            sessions = sessions,
-            filteredSessions = VehicleHistoryCalculator.filter(sessions, filter, nowMs),
-            statsData = VehicleHistoryCalculator.computeStats(sessions),
-        )
+        ): Resolved {
+            val gated = gateHistoryToEntitlement(sessions, isPlus = isPlus, nowMs = nowMs)
+            return Resolved(
+                sessions = sessions,
+                visibleSessions = gated.visible,
+                hiddenOlderCount = gated.hiddenOlderCount,
+                filteredSessions = VehicleHistoryCalculator.filter(gated.visible, filter, nowMs),
+                statsData = VehicleHistoryCalculator.computeStats(gated.visible),
+            )
+        }
     }
 }
 

@@ -95,6 +95,11 @@ val iosMockModule = module {
     single<UserParkingRepository> { FakeUserParkingRepository() }
     single<UserProfileRepository> { FakeUserProfileRepository() }
     single<ZoneRepository> { FakeZoneRepository() }
+    // SplashViewModel binds the store identity on auth transitions; without this binding the
+    // iOS catalog cannot even construct it. No scenario: the iOS catalog has no levers. [MONEY-001]
+    single<com.rndeveloper.paparcar.domain.repository.EntitlementRepository> {
+        com.rndeveloper.paparcar.fakes.data.repository.FakeEntitlementRepository()
+    }
 
     // Database (in-memory Room — no persistence, no migrations needed)
     single<AppDatabase> {

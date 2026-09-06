@@ -167,6 +167,7 @@ fun HomePeekHandle(
                         iconKey = slice.addingZoneIconKey,
                         radius = slice.addingZoneRadius,
                         isPrivate = slice.addingZoneIsPrivate,
+                        notifyOnSpot = slice.addingZoneNotify,
                         editingZoneId = slice.editingZoneId,
                         isSaving = slice.isSavingZone,
                     ),

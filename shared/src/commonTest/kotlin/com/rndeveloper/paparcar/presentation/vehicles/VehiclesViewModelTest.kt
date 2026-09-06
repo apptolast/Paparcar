@@ -1,4 +1,4 @@
-@file:OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+@file:OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class, kotlin.time.ExperimentalTime::class)
 
 package com.rndeveloper.paparcar.presentation.vehicles
 
@@ -43,6 +43,7 @@ class VehiclesViewModelTest {
 
     private lateinit var vehicleRepo: FakeVehicleRepository
     private lateinit var parkingRepo: FakeUserParkingRepository
+    private lateinit var entitlementRepo: com.rndeveloper.paparcar.fakes.FakeEntitlementRepository
     private lateinit var vm: VehiclesViewModel
 
     @BeforeTest
@@ -59,7 +60,17 @@ class VehiclesViewModelTest {
                 config = com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig(),
             ),
         )
-        vm = VehiclesViewModel(vehicleRepo, parkingRepo, declareActiveVehicle)
+        // PLUS: these tests pin the vehicles/timeline mechanics over arbitrary-age fixtures; the
+        // free window is covered by HistoryEntitlementGateTest + the gating test below. [MONEY-001]
+        entitlementRepo = com.rndeveloper.paparcar.fakes.FakeEntitlementRepository(
+            com.rndeveloper.paparcar.domain.model.Entitlement.PLUS,
+        )
+        vm = VehiclesViewModel(
+            vehicleRepo,
+            parkingRepo,
+            declareActiveVehicle,
+            com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase(entitlementRepo),
+        )
     }
 
     @AfterTest
@@ -123,6 +134,45 @@ class VehiclesViewModelTest {
         val timeline = vm.state.value.historyState.timeline
         assertIs<HistoryTimeline.Resolved>(timeline)
         assertEquals(listOf("s1"), timeline.sessions.map { it.id })
+    }
+
+    // ── Paparcar Plus: la ventana free se re-resuelve EN VIVO [MONEY-001] ─────
+
+    @Test
+    fun `should_narrowTheTimelineAndCountTheHidden_when_plusIsLost`() = runTest {
+        vehicleRepo.saveVehicle(vehicle("v1"))
+        val nowMs = kotlin.time.Clock.System.now().toEpochMilliseconds()
+        val recent = session("s-recent", "v1").let {
+            it.copy(location = it.location.copy(timestamp = nowMs))
+        }
+        parkingRepo.saveNewParkingSession(recent)
+        // The fixture timestamp is 0L — epoch 1970, far beyond any free window.
+        parkingRepo.saveNewParkingSession(session("s-ancient", "v1"))
+
+        var timeline = vm.state.value.historyState.timeline
+        assertIs<HistoryTimeline.Resolved>(timeline)
+        assertEquals(2, timeline.visibleSessions.size, "Plus sees everything")
+        assertEquals(0, timeline.hiddenOlderCount)
+
+        entitlementRepo.emitEntitlement(
+            com.rndeveloper.paparcar.domain.model.Entitlement.FREE,
+        )
+
+        timeline = vm.state.value.historyState.timeline
+        assertIs<HistoryTimeline.Resolved>(timeline)
+        assertEquals(listOf("s-recent"), timeline.visibleSessions.map { it.id })
+        assertEquals(1, timeline.hiddenOlderCount, "the footer must be able to count what is beyond")
+        // The FULL list stays underneath, intact: losing Plus filters, never deletes.
+        assertEquals(2, timeline.sessions.size)
+    }
+
+    @Test
+    fun `should_emitNavigateToPaywall_when_theHistoryFooterIsTapped`() = runTest {
+        vm.effect.test {
+            vm.handleIntent(VehiclesIntent.OpenPlusPaywall)
+            assertEquals(VehiclesEffect.NavigateToPaywall, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 
     // ── SetActiveVehicle ──────────────────────────────────────────────────────

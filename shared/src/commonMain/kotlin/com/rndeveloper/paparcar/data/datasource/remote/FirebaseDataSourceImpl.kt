@@ -123,6 +123,7 @@ class FirebaseDataSourceImpl(private val firestore: FirebaseFirestore) : Firebas
                 createdAt = getLongCompat(FIELD_CREATED_AT),
                 radiusMeters = get<Double?>(FIELD_RADIUS_METERS)?.toFloat() ?: DEFAULT_ZONE_RADIUS_M,
                 isPrivate = get<Boolean?>(FIELD_IS_PRIVATE) ?: false,
+                notifyOnSpot = get<Boolean?>(FIELD_NOTIFY_ON_SPOT) ?: false,
                 updatedAt = getLongCompat(FIELD_UPDATED_AT),
             )
         }.getOrElse { e ->
@@ -206,6 +207,7 @@ class FirebaseDataSourceImpl(private val firestore: FirebaseFirestore) : Firebas
         const val FIELD_CREATED_AT = "createdAt"
         const val FIELD_RADIUS_METERS = "radiusMeters"
         const val FIELD_IS_PRIVATE = "isPrivate"
+        const val FIELD_NOTIFY_ON_SPOT = "notifyOnSpot"
         const val FIELD_UPDATED_AT = "updatedAt"
 
         const val DEFAULT_SPOT_TYPE = "AUTO_DETECTED"

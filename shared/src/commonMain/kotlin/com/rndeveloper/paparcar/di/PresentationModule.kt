@@ -10,6 +10,7 @@ import com.rndeveloper.paparcar.presentation.home.HomeTripController
 import com.rndeveloper.paparcar.presentation.home.HomeViewModel
 import com.rndeveloper.paparcar.presentation.licenses.LicensesViewModel
 import com.rndeveloper.paparcar.presentation.map.ParkingHistoryViewModel
+import com.rndeveloper.paparcar.presentation.paywall.PaywallViewModel
 import com.rndeveloper.paparcar.presentation.permissions.PermissionsViewModel
 import com.rndeveloper.paparcar.presentation.bluetooth.BluetoothConfigViewModel
 import com.rndeveloper.paparcar.presentation.vehicles.VehiclesViewModel
@@ -49,10 +50,11 @@ val presentationModule = module {
         HomeViewModel(
             get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(),
             get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(),
-            get(), get(), get(), get(), get(), get(), get(),
+            get(), get(), get(), get(), get(), get(), get(), get(),
         )
     }
     viewModelOf(::ParkingHistoryViewModel)
+    viewModelOf(::PaywallViewModel)
     viewModelOf(::SettingsViewModel)
     viewModelOf(::LicensesViewModel)
     viewModelOf(::PermissionsViewModel)

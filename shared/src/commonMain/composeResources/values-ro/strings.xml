@@ -734,4 +734,39 @@
     <string name="first_steps_explain_spot_way_title">Anunță un loc liber</string>
     <string name="first_steps_explain_spot_way_body">Îl marchezi pe hartă și șoferii din apropiere îl văd. Nu e nevoie de mai mult.</string>
     <string name="first_steps_explain_spot_note">Asta nu e despre mașina ta: nu deschide nicio parcare de-a ta și nu pornește nicio supraveghere.</string>
+
+    <!-- ── Paparcar Plus [MONEY-001] ── -->
+    <plurals name="history_plus_hidden_count">
+        <item quantity="one">Ai %1$d parcare anterioară</item>
+        <item quantity="few">Ai %1$d parcări anterioare</item>
+        <item quantity="other">Ai %1$d de parcări anterioare</item>
+    </plurals>
+    <string name="history_plus_footer_cta">Vezi tot cu Plus</string>
+    <string name="history_plus_footer_hint">Istoricul tău complet, mereu la îndemână</string>
+    <string name="paywall_title">Paparcar Plus</string>
+    <string name="paywall_tagline">Istoric complet și alerte pentru locuri libere în zonele tale</string>
+    <string name="paywall_close_cd">Închide</string>
+    <string name="paywall_store_unavailable">Abonamentul nu este disponibil acum — încearcă mai târziu</string>
+    <string name="paywall_compare_title">Ce se schimbă cu Plus</string>
+    <string name="paywall_feature_history_title">Istoricul parcărilor</string>
+    <string name="paywall_feature_history_free">Gratuit: ultimele 30 de zile</string>
+    <string name="paywall_feature_history_plus">Plus: toate parcările, fără limită de dată</string>
+    <string name="paywall_feature_alerts_title">Alerte pentru locuri libere</string>
+    <string name="paywall_feature_alerts_free">Gratuit: neinclus</string>
+    <string name="paywall_feature_alerts_plus">Plus: alertă în zonele pe care le alegi</string>
+    <string name="paywall_feature_support_title">Ții Paparcar în funcțiune</string>
+    <string name="paywall_feature_support_free">Gratuit: aplicația rămâne gratuită pentru toți</string>
+    <string name="paywall_feature_support_plus">Plus: abonamentul tău plătește serverele</string>
+    <string name="paywall_unlimited_note">Vehiculele și zonele sunt nelimitate în ambele — Plus nu limitează nimic din ce ai deja.</string>
+    <string name="settings_plus_title">Paparcar Plus</string>
+    <string name="settings_plus_subtitle_free">Istoric complet și alerte de zonă</string>
+    <string name="settings_plus_subtitle_active">Istoric complet și alerte de zonă, activ</string>
+    <string name="settings_plus_badge_active">ACTIV</string>
+    <string name="settings_notif_zone_alerts">Alerte de zonă</string>
+    <string name="settings_notif_zone_alerts_desc">Notificare când apare un loc liber în zonele tale</string>
+    <string name="home_zone_alerts_cd">Alerte de zonă</string>
+    <string name="home_zone_alerts_title">Alerte de zonă</string>
+    <string name="home_zone_alerts_empty">Salvează mai întâi o zonă ca să primești alerte acolo</string>
+    <string name="home_zone_alerts_done">Gata</string>
+    <string name="home_zone_form_notify_label">Anunță-mă despre locuri libere aici</string>
 </resources>

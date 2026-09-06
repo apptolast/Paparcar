@@ -56,6 +56,7 @@ internal fun HomeState.clearedModeFields(): HomeState = copy(
     addingZoneIconKey = ZoneIcon.DEFAULT,
     addingZoneRadius = Zone.DEFAULT_RADIUS_METERS,
     addingZoneIsPrivate = false,
+    addingZoneNotify = false,
     editingZoneId = null,
     editingParkingId = null,
     addingParkingVehicleId = null,

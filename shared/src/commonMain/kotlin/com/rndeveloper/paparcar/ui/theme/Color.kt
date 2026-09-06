@@ -159,6 +159,51 @@ val PapSpotFreshDeep   = Color(0xFF398701)
  */
 val PapSpotFreshPuck   = Color(0xFF4FA80A)
 
+// ── Premium sheen — the metallic FINISH of the brand green, for Paparcar Plus ─────────────────
+// [UI-COLOR-PLUS-WEARS-THE-BRAND-WITH-A-FINISH-001]
+//
+// Plus is not a fourth identity: it is the BRAND, dressed up. A flat fourth green would have to
+// hold ≥14° of hue from the other three, and there is no room left on the green spectrum between
+// fresh (h≈128), brand (h≈151) and watch (h≈166) — a token squeezed in there would be exactly the
+// "same colour, weaker" mistake the three-greens doctrine was written to kill.
+//
+// So premium is carried by FINISH, not by hue: these two are the shadow and mid stops of a metallic
+// sweep whose highlight is [PapGreen] itself. A gradient is what reads as metal; a single flat tone
+// never does. Only `PapPremiumSurface` builds the brush — nothing else names these.
+// A gradient stop is not a content colour: text on this bed keeps using onSurface/onPrimary.
+
+/** Shadow stop of the Plus metallic sweep, dark theme — a deeper brand green for the sweep to
+ *  fall away to, 3.0° from the brand in Lab hue.
+ *
+ *  ⚠️ Two revocations on device live in this value. It first shipped at 161.5° and read as the
+ *  WATCHED-VEHICLE teal. Corrected to the brand's hue it was still wrong, for a different
+ *  reason: at L*≈10% a green reads as dark forest whatever its hue measures, so "Plus wears the
+ *  brand" was true on paper and invisible on screen. Premium is now a FILLED brand surface —
+ *  vivid green carrying dark ink, like the primary button — because that is what "verde marca
+ *  metálico" actually looks like. [UI-COLOR-PLUS-WEARS-THE-BRAND-WITH-A-FINISH-001] */
+val PapPremiumDeep        = Color(0xFF16BC70)
+
+/** Highlight stop of the Plus metallic sweep, dark theme — literally [PapGreen], declared as an
+ *  ALIAS rather than a second literal holding the same hex. "Plus wears the brand" is not a new
+ *  promise at the top of the sweep; it IS the brand, caught by the light. Same pattern as
+ *  `PapGreenOutlineLight`. [UI-COLOR-EVERY-HUE-EARNS-ITS-MEANING-001]
+ *
+ *  Readable because the CONTENT flips, not because the bed dims: dark ink on this measures
+ *  12.97:1, the same contract as a filled primary button. That is the trade the first version got
+ *  backwards — it dimmed the bed to keep light text, and lost the brand in the process. */
+val PapPremiumSheen       = PapGreen
+
+/** Shadow stop of the Plus metallic sweep, light theme — 0.8° from `PapGreenLight` in Lab hue.
+ *
+ *  The light legs are DEEPER than the brand's own fill, not paler, because their content is
+ *  white: `PapGreenLight` carries white at only 3.01:1, fine for a glyph and short of the floor
+ *  for prose. These two clear it (6.61:1 and 4.59:1) at the brand's hue. */
+val PapPremiumDeepLight   = Color(0xFF006B3F)
+
+/** Highlight stop of the Plus metallic sweep, light theme — the lightest the sweep may go while
+ *  white content still clears 4.5:1 (4.59:1). 0.0° from `PapGreenLight`. */
+val PapPremiumSheenLight  = Color(0xFF00874F)
+
 // ── Car blue — the BLUETOOTH-watched vehicle's identity colour. ───────────────────────────────
 // A vehicle's colour is its WATCH METHOD (green = active detection, blue = BT, grey = off) and it
 // never changes with state; [papCarBlue] is the blue leg, resolved via
@@ -297,6 +342,30 @@ val PapSpotExpiringContainerLight = Color(0xFFFFDAD6)
 // The cooling pill reuses `PapAmberContainerLight` + `PapOnAmberContainerLight` (11.05:1). A pale
 // amber bed IS a pale amber bed: minting a near-identical token to keep the story names apart would
 // be the duplicate-hex disease with better manners, which this system exists to prevent.
+
+/**
+ * The Plus metallic sweep, resolved for the active theme — shadow → lit → shadow.
+ *
+ * The ROLE `PapPremiumSurface` asks for, so no feature file ever names a premium leg and picks
+ * the theme by hand (the mistake the age pill made for months).
+ * [UI-COLOR-THE-RAMP-HAS-ONE-RESOLVER-001] [UI-COLOR-PLUS-WEARS-THE-BRAND-WITH-A-FINISH-001]
+ */
+val premiumSweep: List<Color>
+    @Composable get() =
+        if (MaterialTheme.colorScheme.surface.luminance() < SURFACE_DARK_LUMINANCE) {
+            listOf(PapPremiumDeep, PapPremiumSheen, PapPremiumDeep)
+        } else {
+            listOf(PapPremiumDeepLight, PapPremiumSheenLight, PapPremiumDeepLight)
+        }
+
+/**
+ * The polished rim of a Plus surface — the thin bright line along the lit corner of brushed
+ * metal. It is WHITE, not the brand green: once the bed itself became the brand green, a
+ * brand-green rim had nothing to sit against and vanished. A graphical object (3:1 floor),
+ * never text. [UI-COLOR-PLUS-WEARS-THE-BRAND-WITH-A-FINISH-001]
+ */
+val premiumEdge: Color
+    @Composable get() = Color.White
 
 /** Luminance below which a surface counts as "dark" for picking a theme variant. */
 internal const val SURFACE_DARK_LUMINANCE = 0.5f

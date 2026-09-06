@@ -7,6 +7,7 @@ import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.VehicleWithStats
 import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
+import com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase
 import com.rndeveloper.paparcar.domain.usecase.vehicle.DeclareActiveVehicleUseCase
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import com.rndeveloper.paparcar.presentation.base.BaseViewModel
@@ -22,6 +23,9 @@ class VehiclesViewModel(
     private val userParkingRepository: UserParkingRepository,
     // Declaring the active vehicle also swaps the OS geofences to it. [VEH-ACTIVE-FENCE-001]
     private val declareActiveVehicle: DeclareActiveVehicleUseCase,
+    // The Plus gate over the history window — observed LIVE so losing or regaining Plus
+    // re-resolves every timeline in place, no restart needed. [MONEY-001]
+    private val observeIsPlus: ObserveIsPlusUseCase,
 ) : BaseViewModel<VehiclesState, VehiclesIntent, VehiclesEffect>() {
 
     override fun initState(): VehiclesState = VehiclesState()
@@ -34,10 +38,11 @@ class VehiclesViewModel(
         combine(
             vehicleRepository.observeVehicles(),
             userParkingRepository.observeAllSessions(),
-        ) { vehicles, allSessions ->
-            vehicles to allSessions
+            observeIsPlus(),
+        ) { vehicles, allSessions, isPlus ->
+            Triple(vehicles, allSessions, isPlus)
         }
-            .onEach { (vehicles, allSessions) ->
+            .onEach { (vehicles, allSessions, isPlus) ->
                 val sessionsByVehicle = allSessions.groupBy { it.vehicleId }
                 val nowMs = Clock.System.now().toEpochMilliseconds()
                 val vehiclesWithStats = vehicles.map { vehicle ->
@@ -59,7 +64,7 @@ class VehiclesViewModel(
                         // here is what keeps the skeleton from being replaced by a false "no hay
                         // nada". [UI-HISTORY-A-LOADING-LIST-MUST-NOT-CLAIM-TO-BE-EMPTY-001]
                         vId to HistoryState(
-                            timeline = HistoryTimeline.resolve(vSessions, existingFilter, nowMs),
+                            timeline = HistoryTimeline.resolve(vSessions, existingFilter, isPlus, nowMs),
                             activeFilter = existingFilter,
                         )
                     }
@@ -68,6 +73,7 @@ class VehiclesViewModel(
                         isLoading = false,
                         selectedVehicleIndex = clampedIndex,
                         historyCache = updatedCache,
+                        isPlus = isPlus,
                     )
                 }
             }
@@ -100,7 +106,9 @@ class VehiclesViewModel(
                 val nowMs = Clock.System.now().toEpochMilliseconds()
                 updateState {
                     val updated = currentHistory.copy(
-                        timeline = HistoryTimeline.resolve(resolved.sessions, intent.filter, nowMs),
+                        // From the FULL list, never the visible one: re-gating a gated list would
+                        // report zero hidden and quietly erase the footer. [MONEY-001]
+                        timeline = HistoryTimeline.resolve(resolved.sessions, intent.filter, isPlus, nowMs),
                         activeFilter = intent.filter,
                     )
                     copy(historyCache = historyCache + (vehicleId to updated))
@@ -108,6 +116,7 @@ class VehiclesViewModel(
             }
             is VehiclesIntent.ViewOnMap ->
                 sendEffect(VehiclesEffect.NavigateToMap(intent.lat, intent.lon, intent.sessionId))
+            is VehiclesIntent.OpenPlusPaywall -> sendEffect(VehiclesEffect.NavigateToPaywall)
         }
     }
 

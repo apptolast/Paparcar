@@ -17,6 +17,10 @@ import com.rndeveloper.paparcar.ui.theme.PapGreenMuted
 import com.rndeveloper.paparcar.ui.theme.PapGreenOutline
 import com.rndeveloper.paparcar.ui.theme.PapGreenOutlineLight
 import com.rndeveloper.paparcar.ui.theme.PapLiveMap
+import com.rndeveloper.paparcar.ui.theme.PapPremiumDeep
+import com.rndeveloper.paparcar.ui.theme.PapPremiumDeepLight
+import com.rndeveloper.paparcar.ui.theme.PapPremiumSheen
+import com.rndeveloper.paparcar.ui.theme.PapPremiumSheenLight
 import com.rndeveloper.paparcar.ui.theme.PapNeutralOutline
 import com.rndeveloper.paparcar.ui.theme.PapNeutralOutlineLight
 import com.rndeveloper.paparcar.ui.theme.PapOnAmberContainerLight
@@ -130,6 +134,46 @@ class ColorGuardrailTest {
     }
 
     /**
+     * **Plus is the BRAND with a finish, so it must wear the brand's HUE.**
+     *
+     * The three-greens test above deliberately does not include the premium sweep — premium is a
+     * finish, not a fourth identity, so demanding ≥14° of separation from the brand would be
+     * demanding the opposite of what it is. But "not in that test" was read as "unconstrained",
+     * and the first cut of these tokens shipped at 158.8° and 161.5°: nearer the watch teal
+     * (167.4°) than the brand (149.9°). Nothing failed — the user saw it on device and asked
+     * whether the app's main green had been changed.
+     *
+     * So the constraint for premium is the MIRROR of the trio's: not "stay apart from the brand"
+     * but "stay ON the brand". A sweep that drifts toward another story's hue is that story
+     * wearing a different name, which is exactly what the colour system exists to prevent.
+     * [UI-COLOR-PLUS-WEARS-THE-BRAND-WITH-A-FINISH-001]
+     */
+    @Test
+    fun `the premium sweep keeps the brand's hue in both themes`() {
+        val stops = listOf(
+            Triple("PapPremiumDeep", PapPremiumDeep, PapGreen),
+            Triple("PapPremiumSheen", PapPremiumSheen, PapGreen),
+            Triple("PapPremiumDeepLight", PapPremiumDeepLight, PapGreenLight),
+            Triple("PapPremiumSheenLight", PapPremiumSheenLight, PapGreenLight),
+        )
+        // Measured on the SAME perceptual axis the trio uses, so "on the brand" and "apart from
+        // the brand" are stated in one language instead of two.
+        val drifted = stops.mapNotNull { (name, color, brand) ->
+            val toBrand = color.hueDistanceTo(brand)
+            val toWatch = color.hueDistanceTo(if (brand == PapGreen) PapWatchGreen else PapWatchGreenLight)
+            if (toBrand <= MAX_PREMIUM_HUE_DRIFT && toBrand < toWatch) null
+            else "  $name (${color.hex()}) — ${toBrand.toInt()}° from the brand " +
+                "(max ${MAX_PREMIUM_HUE_DRIFT.toInt()}°), ${toWatch.toInt()}° from the watch teal"
+        }
+        assertTrue(
+            drifted.isEmpty(),
+            "[the Plus sweep has drifted off the brand's hue — a premium finish that leans toward " +
+                "the watch teal reads as the watched-vehicle colour, not as the brand dressed up]\n" +
+                drifted.joinToString("\n"),
+        )
+    }
+
+    /**
      * **A vehicle's colour has ONE resolver.** Doctrine rule 2 says it in prose ("el color de un
      * vehículo sale SOLO del resolver único"), but the leg rule above only sees the `Light`, `Muted`
      * and `Dark` suffixes — the theme-aware identity accents (`papCarBlue`, `papWatchGreen`) slipped through
@@ -237,6 +281,10 @@ class ColorGuardrailTest {
         const val MIN_LAB_DISTANCE = 18.0
         const val MIN_HUE_DEGREES = 14.0
 
+        /** How far a Plus sweep stop may sit from the brand's hue. Half the trio's separation
+         *  floor: comfortably inside "the same green", nowhere near "a different one". */
+        const val MAX_PREMIUM_HUE_DRIFT = 7.0
+
         /**
          * Every accent token in `ui/theme/Color.kt`, with the STORY it tells. Tokens that share a
          * story string are declared aliases and are allowed to share a value; anything else is a
@@ -286,6 +334,14 @@ class ColorGuardrailTest {
             Triple("PapBlueMuted", PapBlueMuted, "bluetooth-container/dark"),
             Triple("PapBlueContainerLight", PapBlueContainerLight, "bluetooth-container/light"),
             Triple("PapOnBlue", PapOnBlue, "on-bluetooth/light"),
+            // Plus wears the BRAND with a metallic finish — stops of a sweep, not a fourth
+            // identity, which is why they are absent from the three-greens test above.
+            // [UI-COLOR-PLUS-WEARS-THE-BRAND-WITH-A-FINISH-001]
+            Triple("PapPremiumDeep", PapPremiumDeep, "premium-sweep-shadow/dark"),
+            // declared alias: the sweep's highlight IS the brand green, not a second promise
+            Triple("PapPremiumSheen", PapPremiumSheen, "brand-green/dark"),
+            Triple("PapPremiumDeepLight", PapPremiumDeepLight, "premium-sweep-shadow/light"),
+            Triple("PapPremiumSheenLight", PapPremiumSheenLight, "premium-sweep-mid/light"),
             Triple("PapLiveMap", PapLiveMap, "movement-on-map/fixed"),
             Triple("PapNeutralOutline", PapNeutralOutline, "neutral-outline/dark"),
             Triple("PapNeutralOutlineLight", PapNeutralOutlineLight, "neutral-outline/light"),

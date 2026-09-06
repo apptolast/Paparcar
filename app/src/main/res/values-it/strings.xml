@@ -70,4 +70,7 @@
     <string name="notif_sentry_text">Quando riparti libereremo il tuo posto per gli altri. Silenziosa, batteria minima. Si disattiva nelle Impostazioni.</string>
     <string name="channel_sentry_name">Sorveglianza parcheggio</string>
     <string name="channel_sentry_desc">Notifica silenziosa mentre la tua auto è parcheggiata</string>
+    <!-- Plus zone alert [MONEY-001] -->
+    <string name="notif_zone_spot_title">Posto libero in %1$s</string>
+    <string name="notif_zone_spot_text">Qualcuno se n\'è appena andato — apri la mappa per vederlo</string>
 </resources>

@@ -26,4 +26,7 @@ sealed class SettingsEffect {
      *  screen — without it, the row would look like it did nothing.
      *  [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001] */
     data object FirstStepsRestarted : SettingsEffect()
+
+    /** Open the Paparcar Plus paywall. [MONEY-001] */
+    data object NavigateToPaywall : SettingsEffect()
 }

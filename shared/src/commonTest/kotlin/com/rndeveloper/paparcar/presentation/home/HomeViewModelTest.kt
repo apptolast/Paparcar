@@ -88,6 +88,7 @@ class HomeViewModelTest {
     private lateinit var activityRecognition: FakeActivityRecognitionManager
     private lateinit var reportScheduler: FakeReportSpotScheduler
     private lateinit var zoneRepo: FakeZoneRepository
+    private lateinit var entitlementRepo: com.rndeveloper.paparcar.fakes.FakeEntitlementRepository
     private lateinit var manualParkingDetection: com.rndeveloper.paparcar.fakes.data.repository.FakeManualParkingDetection
     private lateinit var departureWatchResumer: com.rndeveloper.paparcar.fakes.data.repository.FakeDepartureWatchResumer
     private lateinit var uiLocationLogger: com.rndeveloper.paparcar.fakes.FakeUiLocationLogger
@@ -197,6 +198,7 @@ class HomeViewModelTest {
             connectivityObserver = connectivity,
             zoneRepository = zoneRepo,
             saveOrUpdateZone = SaveOrUpdateZoneUseCase(zoneRepo, SaveZoneUseCase(zoneRepo, authRepo)),
+            observeIsPlus = com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase(entitlementRepo),
             vehicleRepository = vehicleRepo,
             mapFocusEventBus = MapFocusEventBus(),
             startAddParkingEventBus = StartAddParkingEventBus(),
@@ -224,6 +226,7 @@ class HomeViewModelTest {
         activityRecognition = FakeActivityRecognitionManager()
         reportScheduler = FakeReportSpotScheduler()
         zoneRepo = FakeZoneRepository()
+        entitlementRepo = com.rndeveloper.paparcar.fakes.FakeEntitlementRepository()
         uiLocationLogger = com.rndeveloper.paparcar.fakes.FakeUiLocationLogger()
         bluetoothScanner = FakeBluetoothScanner(bluetoothEnabled = false)
         vm = buildVm()
@@ -1526,5 +1529,66 @@ class HomeViewModelTest {
             assertEquals(HomeEffect.ShowError(PaparcarError.Detection.WatchResumeFailed), awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    // ── Paparcar Plus: la campana y el toggle del form de zona [MONEY-001] ─────
+
+    @Test
+    fun `should_routeTheBellToThePaywall_when_free`() = runTest {
+        vm = buildVm()
+
+        vm.effect.test {
+            vm.handleIntent(HomeIntent.OpenZoneAlerts)
+            assertEquals(HomeEffect.NavigateToPaywall, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals(false, vm.state.value.zoneAlertsDialogOpen, "free must meet the paywall, not the manager")
+    }
+
+    @Test
+    fun `should_openAndCloseTheAlertsDialog_when_plus`() = runTest {
+        entitlementRepo.emitEntitlement(com.rndeveloper.paparcar.domain.model.Entitlement.PLUS)
+        vm = buildVm()
+
+        vm.handleIntent(HomeIntent.OpenZoneAlerts)
+        assertEquals(true, vm.state.value.zoneAlertsDialogOpen)
+
+        vm.handleIntent(HomeIntent.CloseZoneAlerts)
+        assertEquals(false, vm.state.value.zoneAlertsDialogOpen)
+    }
+
+    @Test
+    fun `should_gateEnablingTheFormToggle_when_free`() = runTest {
+        vm = buildVm()
+
+        vm.effect.test {
+            vm.handleIntent(HomeIntent.SetZoneNotify(true))
+            assertEquals(HomeEffect.NavigateToPaywall, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals(false, vm.state.value.addingZoneNotify, "the switch stays OFF after the gated attempt")
+    }
+
+    @Test
+    fun `should_writeTheZoneFlagThroughTheFormPath_when_plusTogglesFromTheDialog`() = runTest {
+        entitlementRepo.emitEntitlement(com.rndeveloper.paparcar.domain.model.Entitlement.PLUS)
+        zoneRepo.zones = listOf(
+            com.rndeveloper.paparcar.domain.model.Zone(
+                id = "z1",
+                userId = "u1",
+                name = "Casa",
+                lat = 40.0,
+                lon = -3.0,
+                iconKey = "home",
+                createdAt = 0L,
+            ),
+        )
+        vm = buildVm()
+
+        vm.handleIntent(HomeIntent.ToggleZoneAlert("z1", enabled = true))
+
+        // Same persistence path as the zone form — one way to write the flag, not two.
+        assertEquals("z1", zoneRepo.savedZone!!.id)
+        assertEquals(true, zoneRepo.savedZone!!.notifyOnSpot)
     }
 }

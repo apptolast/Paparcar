@@ -115,6 +115,16 @@ kotlin {
             // Login Library (JitPack)
             api(libs.baselogin)
 
+            // Monetización — RevenueCat KMP. `api` porque :app llama a Purchases.configure()
+            // en el arranque, antes de Koin. En Android este artefacto arrastra Play Billing
+            // Library, que es lo que Play Console necesita detectar para desbloquear la
+            // creación de productos de suscripción. [MONEY-001]
+            api(libs.purchases.core)
+            // Paywall con plantilla remota. `implementation` a propósito, contra la norma
+            // `api` de este bloque: sólo lo consume PaywallScreen y sus tipos no cruzan
+            // a :app. [MONEY-001]
+            implementation(libs.purchases.ui)
+
             // Logging — Napier (KMP structured logger)
             api(libs.napier)
 

@@ -17,6 +17,7 @@ fun Zone.toEntity(updatedAt: Long = 0, pendingSync: Boolean = false): ZoneEntity
     createdAt = createdAt,
     radiusMeters = radiusMeters,
     isPrivate = isPrivate,
+    notifyOnSpot = notifyOnSpot,
     updatedAt = updatedAt,
     pendingSync = pendingSync,
 )
@@ -31,6 +32,7 @@ fun ZoneEntity.toDomain(): Zone = Zone(
     createdAt = createdAt,
     radiusMeters = radiusMeters,
     isPrivate = isPrivate,
+    notifyOnSpot = notifyOnSpot,
 )
 
 // ── ZoneDto → Entity (sync from Firestore) ──────────────────────────────────
@@ -45,6 +47,7 @@ fun ZoneDto.toEntity(): ZoneEntity = ZoneEntity(
     createdAt = createdAt,
     radiusMeters = radiusMeters,
     isPrivate = isPrivate,
+    notifyOnSpot = notifyOnSpot,
     // Remote is authoritative & confirmed → clean row carrying the server stamp. [SYNC-RECONCILE-001]
     updatedAt = updatedAt,
     pendingSync = false,
@@ -62,4 +65,5 @@ fun Zone.toDto(): ZoneDto = ZoneDto(
     createdAt = createdAt,
     radiusMeters = radiusMeters,
     isPrivate = isPrivate,
+    notifyOnSpot = notifyOnSpot,
 )

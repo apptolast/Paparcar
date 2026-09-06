@@ -11,6 +11,7 @@ import com.rndeveloper.paparcar.domain.connectivity.ConnectivityObserver
 import com.rndeveloper.paparcar.domain.connectivity.ConnectivityStatus
 import com.rndeveloper.paparcar.domain.permissions.PermissionManager
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
+import com.rndeveloper.paparcar.domain.repository.EntitlementRepository
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import com.rndeveloper.paparcar.domain.service.GeofenceManager
 import com.rndeveloper.paparcar.domain.session.LocalSessionCache
@@ -72,6 +73,7 @@ class SplashViewModel(
     private val localSessionCache: LocalSessionCache,
     private val connectivityObserver: ConnectivityObserver,
     private val geofenceManager: GeofenceManager,
+    private val entitlementRepository: EntitlementRepository,
 ) : ViewModel() {
 
     /** Kept so [retry] can re-enter the bootstrap chain without waiting for a new auth emission. */
@@ -143,6 +145,11 @@ class SplashViewModel(
             .onFailure { e -> PaparcarLogger.e(TAG, "geofence drain failed", e) }
         runCatching { localSessionCache.wipe() }
             .onFailure { e -> PaparcarLogger.e(TAG, "Room wipe failed", e) }
+        // Unbind the store identity too, so the next account on this device never inherits
+        // this user's Plus. Best-effort like the rest of the wipe; on a logged-out cold
+        // start the repository sees an anonymous profile and no-ops. [MONEY-001]
+        entitlementRepository.logOut()
+            .onFailure { e -> PaparcarLogger.w(TAG, "store identity logOut failed", e) }
         // Reset splash state so the next Authenticated transition re-runs the bootstrap
         // (otherwise isReady would still see the stale startRoute from the previous user).
         _state.value = SplashState()
@@ -162,6 +169,13 @@ class SplashViewModel(
         val session = state.session
         PaparcarLogger.i(TAG, "[step 1/3] auth Authenticated — userId=${session.userId}")
         CrashReporter.setUserId(session.userId)
+
+        // Bind the store identity to this uid so the Plus subscription follows the ACCOUNT.
+        // Warm starts hit the same-uid guard inside (no network). Deliberately non-fatal:
+        // a failed logIn must never block bootstrap or sign the user out — the entitlement
+        // just stays as the store last knew it, whose safe side is FREE. [MONEY-001]
+        entitlementRepository.logIn(session.userId)
+            .onFailure { e -> PaparcarLogger.w(TAG, "store identity logIn failed", e) }
 
         // Fail-fast before touching Firestore: if the device is offline the round-trips will
         // time out anyway, but detecting it here gives a faster, differentiated error path

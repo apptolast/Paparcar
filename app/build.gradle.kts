@@ -144,11 +144,28 @@ extensions.configure<ApplicationExtension> {
         debug {
             isDebuggable = true
             isMinifyEnabled = false
+            // RevenueCat Test Store (key test_...): permite probar el flujo de compra completo
+            // sin que existan aún los productos reales en Play. [MONEY-001]
+            buildConfigField(
+                "String",
+                "REVENUECAT_API_KEY",
+                "\"${prop("REVENUECAT_TEST_API_KEY") ?: ""}\""
+            )
         }
         release {
             isDebuggable = false
             isMinifyEnabled = true
             isShrinkResources = true
+            // Key de producción de RevenueCat (goog_...). TODAVÍA NO EXISTE: se crea en el
+            // dashboard de RevenueCat al conectar la app de Play, y entonces se añade
+            // REVENUECAT_GOOGLE_API_KEY a local.properties. Mientras esté en blanco, el
+            // arranque simplemente NO configura el SDK (guard en PaparcarApp) — el build de
+            // desbloqueo solo necesita que Play Billing viaje dentro del bundle. [MONEY-001]
+            buildConfigField(
+                "String",
+                "REVENUECAT_API_KEY",
+                "\"${prop("REVENUECAT_GOOGLE_API_KEY") ?: ""}\""
+            )
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
