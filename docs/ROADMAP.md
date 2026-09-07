@@ -145,15 +145,30 @@ No esperan a un viaje: esperan a que vuelva a fallar lo que los originó.
 
 ## 🔮 Futuro (post-lanzamiento, no ahora)
 
+> 📌 **La ejecución inmediata es la ola 2 de Plus**:
+> [`backlog/plus-roadmap-001.md`](./backlog/plus-roadmap-001.md) (07-09-2026) — analytics, widget,
+> límites free (7 d · 1 coche · 2 zonas), combustible, estadísticas, gasolineras, parkings públicos
+> (Madrid+Málaga), tiempo de búsqueda y coche compartido. El horizonte de DESPUÉS vive en
+> [`ROADMAP-POST-PLUS.md`](./ROADMAP-POST-PLUS.md) (embudo de búsqueda, agregación por celda,
+> alertas SER — aparcada a propósito —, mapa de probabilidad), con los choques contra el código que
+> hay que leer al definir cualquiera. Las ideas de aquí abajo que sobreviven siguen listadas.
+
 - **Widget Android** del aparcamiento activo (dirección + tiempo transcurrido + tap al mapa).
+  ⬆️ **Entra como fase A2 al arranque de la ola 2** (07-09): 1 día, cero backend, y refuerza justo
+  la promesa que se vende ("encuentra tu coche").
 - **Android Auto** — soltar la plaza desde el infotainment al desconectar.
 - **WearOS / Apple Watch** — countdown del TTL de la última plaza publicada.
 - **Detección vía CarPlay / Android Auto pairing** — señal tan fuerte como el BT, para quien no
   empareja el móvil pero sí conecta multimedia.
 - **Modo "voy de camino"** con ETA, apoyado en el `enRouteCount` que ya existe en el modelo.
+  ⬆️ **Es el P1 de después de la ola 2**: deja de ser un extra y pasa a ser **prerrequisito** de la instrumentación — sin
+  este flujo no existe el hecho "búsqueda" ni "plaza encontrada", que es la métrica del piloto.
+  ⚠️ `enRouteCount` se lee y se pinta, pero **nadie lo incrementa** (verificado en master).
 - **4º tab Comunidad/Perfil** — posible, deliberadamente aplazado.
 - **Modularización** más allá de F7 — solo si el monolito escala mal.
-- **Detección server-side / ML** con eventos confirmados y denegados (privacy-first).
+- ~~**Detección server-side / ML** con eventos confirmados y denegados (privacy-first).~~ →
+  **sustituida** por las features 1 + 3 + 8 de [`ROADMAP-POST-PLUS.md`](./ROADMAP-POST-PLUS.md)
+  (instrumentar → agregar por celda → estimar), que dicen lo mismo con coste y orden.
 
 ---
 

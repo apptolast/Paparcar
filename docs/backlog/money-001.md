@@ -1,6 +1,9 @@
 # MONEY-001 · Suscripción "Paparcar Plus" con RevenueCat
 
 **Estado:** ✅ Done — mergeado a master (2026-09-06). Las 7 fases + la revisión visual en device.
+> ⚠️ **Superseded en los LÍMITES free por [`plus-roadmap-001.md`](plus-roadmap-001.md)** (07-09):
+> historial 30 d → 7 d · vehículos ilimitados → 1 propio · zonas ilimitadas → 2. El resto de
+> decisiones (gating soft, RC única fuente de verdad, nada se borra) siguen vigentes.
 
 ## Problema
 La app está publicada (versionCode 10) sin monetización. Hay que implementar la suscripción
