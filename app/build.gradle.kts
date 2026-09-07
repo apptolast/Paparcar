@@ -149,22 +149,21 @@ extensions.configure<ApplicationExtension> {
             buildConfigField(
                 "String",
                 "REVENUECAT_API_KEY",
-                "\"${prop("REVENUECAT_TEST_API_KEY") ?: ""}\""
+                "\"${prop("revenuecatKeyDebug") ?: ""}\""
             )
         }
         release {
             isDebuggable = false
             isMinifyEnabled = true
             isShrinkResources = true
-            // Key de producción de RevenueCat (goog_...). TODAVÍA NO EXISTE: se crea en el
-            // dashboard de RevenueCat al conectar la app de Play, y entonces se añade
-            // REVENUECAT_GOOGLE_API_KEY a local.properties. Mientras esté en blanco, el
-            // arranque simplemente NO configura el SDK (guard en PaparcarApp) — el build de
-            // desbloqueo solo necesita que Play Billing viaje dentro del bundle. [MONEY-001]
+            // Key de producción de RevenueCat (goog_...), la del dashboard al conectar la app de
+            // Play. Si está en blanco el arranque simplemente NO configura el SDK (guard en
+            // PaparcarApp) en vez de crashear — así un build de desbloqueo, que solo necesita que
+            // Play Billing viaje dentro del bundle, sigue saliendo. [MONEY-001]
             buildConfigField(
                 "String",
                 "REVENUECAT_API_KEY",
-                "\"${prop("REVENUECAT_GOOGLE_API_KEY") ?: ""}\""
+                "\"${prop("revenuecatKeyRelease") ?: ""}\""
             )
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
