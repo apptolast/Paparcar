@@ -24,9 +24,15 @@ fun UserProfileDto.toDomain() = UserProfile(
     createdAt = createdAt,
     updatedAt = updatedAt,
     defaultVehicleId = defaultVehicleId,
+    firstStepsDismissedAt = firstStepsDismissedAt,
 )
 
 // ── UserProfileEntity → Domain ─────────────────────────────────────────────────
+//
+// [ONBOARDING-A-TUTORIAL-IS-REMEMBERED-BY-THE-ACCOUNT-NOT-THE-DEVICE-001] `firstStepsDismissedAt`
+// is NOT carried here, and that is the design: the Room row does not store it (see the field's
+// KDoc). It reads as null from the cached path, which can only fail to restore a dismissal —
+// never clear one.
 
 fun UserProfileEntity.toDomain() = UserProfile(
     userId = userId,
@@ -48,4 +54,5 @@ fun UserProfile.toDto() = UserProfileDto(
     createdAt = createdAt,
     updatedAt = updatedAt,
     defaultVehicleId = defaultVehicleId,
+    firstStepsDismissedAt = firstStepsDismissedAt,
 )

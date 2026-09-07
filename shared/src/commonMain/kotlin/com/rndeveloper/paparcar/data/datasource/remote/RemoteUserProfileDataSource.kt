@@ -12,6 +12,11 @@ interface RemoteUserProfileDataSource {
     /** Field-targeted update — avoids overwriting the whole profile doc. */
     suspend fun updateDefaultVehicleId(userId: String, vehicleId: String?)
 
+    /** Field-targeted update of when the user closed the guided checklist. Pass null to put the
+     *  tutorial back on offer (Settings → replay).
+     *  [ONBOARDING-A-TUTORIAL-IS-REMEMBERED-BY-THE-ACCOUNT-NOT-THE-DEVICE-001] */
+    suspend fun updateFirstStepsDismissedAt(userId: String, dismissedAtMs: Long?)
+
     // ─── Parking History ──────────────────────────────────────────────────────
 
     suspend fun saveParkingSession(userId: String, session: ParkingHistoryDto)

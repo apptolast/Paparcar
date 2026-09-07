@@ -33,6 +33,7 @@ import com.rndeveloper.paparcar.domain.usecase.parking.ReleaseActiveParkingSessi
 import com.rndeveloper.paparcar.domain.usecase.parking.SaveManualParkingUseCase
 import com.rndeveloper.paparcar.domain.usecase.vehicle.DeclareActiveVehicleUseCase
 import com.rndeveloper.paparcar.domain.usecase.spot.ReportManualSpotUseCase
+import com.rndeveloper.paparcar.domain.usecase.user.SetFirstStepsDismissedUseCase
 import com.rndeveloper.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import com.rndeveloper.paparcar.domain.model.SpotVoteOutcome
 import com.rndeveloper.paparcar.domain.usecase.spot.SendSpotSignalUseCase
@@ -123,6 +124,10 @@ class HomeViewModel(
     // phone have any bonded device? That is what decides whether the fortify step can offer to link
     // the car by Bluetooth or would be sending the user to an empty list.
     private val bluetoothScanner: BluetoothScanner,
+    // [ONBOARDING-A-TUTORIAL-IS-REMEMBERED-BY-THE-ACCOUNT-NOT-THE-DEVICE-001] Closing the checklist
+    // is the one piece of tutorial state that belongs to the ACCOUNT, so it does not go straight to
+    // the device preference: this writes both, and it is the same verb Settings uses to replay it.
+    private val setFirstStepsDismissed: SetFirstStepsDismissedUseCase,
 ) : BaseViewModel<HomeState, HomeIntent, HomeEffect>() {
 
     /**
@@ -344,7 +349,10 @@ class HomeViewModel(
 
     private fun handleFirstStepsIntent(intent: HomeIntent) {
         when (intent) {
-            is HomeIntent.DismissFirstSteps -> appPreferences.setFirstStepsDismissed(true)
+            // [ONBOARDING-A-TUTORIAL-IS-REMEMBERED-BY-THE-ACCOUNT-NOT-THE-DEVICE-001] Device AND
+            // account: "I closed this" used to live only in the DataStore, so a reinstall handed the
+            // tutorial back to a user who had already finished it.
+            is HomeIntent.DismissFirstSteps -> viewModelScope.launch { setFirstStepsDismissed(true) }
             is HomeIntent.CompleteFirstStep ->
                 appPreferences.setFirstStepsDone(state.value.firstStepsDone + intent.step)
             // [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001] Written to its OWN set: the user

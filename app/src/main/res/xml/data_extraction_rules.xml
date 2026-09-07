@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  [ONBOARDING-A-TUTORIAL-IS-REMEMBERED-BY-THE-ACCOUNT-NOT-THE-DEVICE-001]
+
+  Android 12+ reads this file for BOTH transfer paths, and each needs its own answer even though
+  both answers are "nothing":
+
+   - cloud-backup: `android:allowBackup="false"` already covers it; the block is here so the two
+     cannot drift apart later.
+   - device-transfer: NOT covered by allowBackup — a phone-to-phone migration would still carry
+     `files/datastore/`, the detection SharedPreferences and the Room database across, which is the
+     same stale-install state under another name.
+
+  Everything Paparcar cares about is in Firestore and comes back with the sign-in.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
+    </device-transfer>
+</data-extraction-rules>

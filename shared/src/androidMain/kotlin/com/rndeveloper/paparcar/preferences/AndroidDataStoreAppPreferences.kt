@@ -69,6 +69,21 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
         scope.launch { store.edit { it[key] = value } }
     }
 
+    /**
+     * [ONBOARDING-A-TUTORIAL-IS-REMEMBERED-BY-THE-ACCOUNT-NOT-THE-DEVICE-001] The sign-out wipe of
+     * this store — see the interface for WHICH keys and why.
+     *
+     * Removes the listed keys instead of `clear()`ing the file: what stays has to survive by
+     * DECISION, key by key, and a blanket clear would silently start wiping every key a future
+     * ticket adds. The in-memory snapshot is updated first, for the same reason [set] does it — the
+     * synchronous getters must not keep answering with the previous user's state while the write
+     * flushes.
+     */
+    override fun clearUserScopedState() {
+        snapshot = snapshot.toMutablePreferences().apply { USER_SCOPED_KEYS.forEach { remove(it) } }
+        scope.launch { store.edit { prefs -> USER_SCOPED_KEYS.forEach { prefs.remove(it) } } }
+    }
+
     // ── Onboarding ──────────────────────────────────────────────────────────
 
     override val isOnboardingCompleted: Boolean
@@ -332,6 +347,41 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
 
     private companion object {
         const val DEFAULT_MAP_TYPE = "TERRAIN"
+
+        /**
+         * The keys that belong to the signed-in USER and die with their session — the list
+         * [clearUserScopedState] executes. [ONBOARDING-A-TUTORIAL-IS-REMEMBERED-BY-THE-ACCOUNT-NOT-THE-DEVICE-001]
+         *
+         * Everything NOT here stays on purpose: `ONBOARDING_COMPLETED`,
+         * `GPS_ACCURACY_DISCLAIMER_SEEN`, `LOCATION_PERMISSION_REQUESTED` and
+         * `LEGAL_CONSENT_ACCEPTED` describe this INSTALL (the consent is per-install by
+         * [AUTH-A-SIGN-IN-ASKS-FOR-CONSENT-FIRST-001]'s own decision, not by omission here), and
+         * `AUTO_DETECT_PARKING` / `NOTIFY_PARKING_DETECTED` / `THEME_MODE` / `USE_IMPERIAL_UNITS` /
+         * `DEFAULT_MAP_TYPE` describe this phone.
+         */
+        val USER_SCOPED_KEYS: List<Preferences.Key<*>> = listOf(
+            // The guided tutorial: all three halves, so nothing is left claiming progress the next
+            // account never made. The dismissal comes back from the ACCOUNT, not from here.
+            Keys.FIRST_STEPS_DONE,
+            Keys.FIRST_STEPS_DEFERRED,
+            Keys.FIRST_STEPS_DISMISSED,
+            // The cold-start nudge machine, which counts one user's parkings.
+            Keys.HAS_CONFIRMED_FIRST_PARK,
+            Keys.FIRST_PARK_NUDGE_COUNT,
+            Keys.LAST_FIRST_PARK_NUDGE_AT,
+            // Two questions posted about a car of the OUTGOING user. The Room wipe alongside this
+            // one deletes the vehicle they name, so left behind they would ask about nothing.
+            Keys.PENDING_NUDGE_CREATED_AT,
+            Keys.PENDING_NUDGE_SOURCE,
+            Keys.PENDING_NUDGE_VEHICLE_ID,
+            Keys.PENDING_PROMPT_SHOWN_AT,
+            Keys.PENDING_PROMPT_VEHICLE_NAME,
+            Keys.PENDING_PROMPT_LAT,
+            Keys.PENDING_PROMPT_LON,
+            Keys.PENDING_PROMPT_ACC,
+            Keys.PENDING_PROMPT_AT,
+            Keys.PENDING_PROMPT_STREET,
+        )
     }
 }
 

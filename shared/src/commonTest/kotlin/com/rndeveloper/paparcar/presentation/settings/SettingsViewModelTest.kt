@@ -11,7 +11,9 @@ import com.rndeveloper.paparcar.domain.usecase.detection.EvaluateDetectionReliab
 import com.rndeveloper.paparcar.domain.usecase.detection.ObserveDetectionReliabilityUseCase
 import com.rndeveloper.paparcar.domain.diagnostics.UnknownDeviceInfoProvider
 import com.rndeveloper.paparcar.domain.usecase.diagnostics.SendDiagnosticsReportUseCase
+import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 import com.rndeveloper.paparcar.domain.usecase.user.DeleteAccountUseCase
+import com.rndeveloper.paparcar.domain.usecase.user.SetFirstStepsDismissedUseCase
 import com.rndeveloper.paparcar.fakes.FakeAppPreferences
 import com.rndeveloper.paparcar.fakes.FakeAuthRepository
 import com.rndeveloper.paparcar.fakes.FakeBluetoothScanner
@@ -103,6 +105,7 @@ class SettingsViewModelTest {
             auth,
             profile,
             useCase,
+            SetFirstStepsDismissedUseCase(customPrefs, auth, profile),
             customPermissions,
             customVehicles,
             observeReliability,
@@ -519,5 +522,41 @@ class SettingsViewModelTest {
             assertEquals(SettingsEffect.NavigateToPaywall, awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    // ── Replaying the guided tutorial ─────────────────────────────────────────
+    // [ONBOARDING-A-TUTORIAL-IS-REMEMBERED-BY-THE-ACCOUNT-NOT-THE-DEVICE-001]
+
+    /**
+     * All THREE sets, and the deferred one is why this test exists: the replay cleared `done` and
+     * `dismissed` only, so a step the user had once answered with "not yet" stayed skipped in every
+     * replay afterwards — silently, since a deferred step is simply not asked for. The contract in
+     * `AppPreferences` had promised the opposite since the day it was written.
+     */
+    @Test
+    fun `should_clearAllThreeFirstStepsSets_when_restartingTheTutorial`() = runTest {
+        prefs.setFirstStepsDone(setOf(FirstStep.MARK_PARKING, FirstStep.UNDERSTAND_WATCH))
+        prefs.setFirstStepsDeferred(setOf(FirstStep.FORTIFY_WATCH))
+        prefs.setFirstStepsDismissed(true)
+
+        vm.handleIntent(SettingsIntent.RestartFirstSteps)
+
+        assertEquals(emptySet(), prefs.firstStepsDone.value)
+        assertEquals(emptySet(), prefs.firstStepsDeferred.value, "a declined step must be asked again")
+        assertFalse(prefs.firstStepsDismissed.value)
+    }
+
+    /**
+     * And the account has to forget it too: the dismissal now outlives the install, so a replay
+     * that only cleared the device would be undone by the very next cold start, which restores
+     * whatever the account still remembers.
+     */
+    @Test
+    fun `should_clearTheAccountDismissal_when_restartingTheTutorial`() = runTest {
+        prefs.setFirstStepsDismissed(true)
+
+        vm.handleIntent(SettingsIntent.RestartFirstSteps)
+
+        assertEquals(listOf<Long?>(null), profile.firstStepsDismissedWrites.toList())
     }
 }

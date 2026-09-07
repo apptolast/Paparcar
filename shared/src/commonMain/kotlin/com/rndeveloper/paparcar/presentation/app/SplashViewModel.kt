@@ -16,7 +16,9 @@ import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import com.rndeveloper.paparcar.domain.service.GeofenceManager
 import com.rndeveloper.paparcar.domain.session.LocalSessionCache
 import com.rndeveloper.paparcar.domain.usecase.user.BootstrapUserDataUseCase
+import com.rndeveloper.paparcar.domain.model.UserProfile
 import com.rndeveloper.paparcar.domain.usecase.user.GetOrCreateUserProfileUseCase
+import com.rndeveloper.paparcar.domain.usecase.user.SetFirstStepsDismissedUseCase
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,6 +26,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlin.concurrent.Volatile
@@ -74,6 +77,10 @@ class SplashViewModel(
     private val connectivityObserver: ConnectivityObserver,
     private val geofenceManager: GeofenceManager,
     private val entitlementRepository: EntitlementRepository,
+    // [ONBOARDING-A-TUTORIAL-IS-REMEMBERED-BY-THE-ACCOUNT-NOT-THE-DEVICE-001] Used for the repair
+    // direction of [reconcileFirstStepsMemory] — a dismissal this device knows and the account does
+    // not, because the write happened offline.
+    private val setFirstStepsDismissed: SetFirstStepsDismissedUseCase,
 ) : ViewModel() {
 
     /** Kept so [retry] can re-enter the bootstrap chain without waiting for a new auth emission. */
@@ -150,6 +157,14 @@ class SplashViewModel(
         // start the repository sees an anonymous profile and no-ops. [MONEY-001]
         entitlementRepository.logOut()
             .onFailure { e -> PaparcarLogger.w(TAG, "store identity logOut failed", e) }
+        // The third local store, and the one this hook forgot for as long as it has existed: the
+        // preferences. The guided tutorial, the first-park nudge counters and the two open
+        // questions ("where did you leave your car?", "did you park?") all belonged to the user who
+        // just left — and the last two name a vehicle the Room wipe above has just deleted.
+        // What stays is what describes this phone; see `AppPreferences.clearUserScopedState`.
+        // [ONBOARDING-A-TUTORIAL-IS-REMEMBERED-BY-THE-ACCOUNT-NOT-THE-DEVICE-001]
+        runCatching { appPreferences.clearUserScopedState() }
+            .onFailure { e -> PaparcarLogger.e(TAG, "preferences wipe failed", e) }
         // Reset splash state so the next Authenticated transition re-runs the bootstrap
         // (otherwise isReady would still see the stale startRoute from the previous user).
         _state.value = SplashState()
@@ -224,6 +239,8 @@ class SplashViewModel(
                     return
                 }
 
+            reconcileFirstStepsMemory(profile)
+
             PaparcarLogger.i(TAG, "[step 3a/3] starting user-data bootstrap (parallel)")
             bootstrapUserData(session.userId)
                 .onSuccess { PaparcarLogger.i(TAG, "user-data bootstrap OK") }
@@ -242,6 +259,43 @@ class SplashViewModel(
         } catch (e: Throwable) {
             PaparcarLogger.e(TAG, "bootstrap chain failed with uncaught exception", e)
             abortBootstrap()
+        }
+    }
+
+    /**
+     * Makes the account and this device agree on whether the user still wants the guided checklist.
+     * [ONBOARDING-A-TUTORIAL-IS-REMEMBERED-BY-THE-ACCOUNT-NOT-THE-DEVICE-001]
+     *
+     * Runs here because this is the one moment that holds both halves: the freshly pulled profile
+     * and the local preferences of the install that is booting. Two directions, and both are
+     * needed:
+     *
+     *  - **account → device** is the fix this ticket is about. A reinstall, a restored backup or a
+     *    new phone arrives with empty preferences, and without this the tutorial greets a user who
+     *    finished it months ago — halfway through, because the live half of the projection ticks
+     *    the steps their real parking already proves.
+     *  - **device → account** repairs the write that never landed: the dismissal is stamped
+     *    best-effort (offline, or a signed-out moment), so a device that knows and an account that
+     *    does not is a state that has to heal by itself rather than wait for the user to close the
+     *    checklist a second time.
+     *
+     * Never the reverse of the first direction: a null from the account can only fail to restore a
+     * dismissal, never clear one. That is what makes it safe for the profile to come from the Room
+     * fallback, where this field is not stored at all — the cost of a stale null is a re-stamped
+     * timestamp, and nothing reads that value beyond "is it there".
+     */
+    private suspend fun reconcileFirstStepsMemory(profile: UserProfile) {
+        val dismissedOnAccount = profile.firstStepsDismissedAt != null
+        val dismissedOnDevice = appPreferences.observeFirstStepsDismissed().first()
+        when {
+            dismissedOnAccount && !dismissedOnDevice -> {
+                PaparcarLogger.i(TAG, "first steps: account remembers the dismissal — restoring it locally")
+                appPreferences.setFirstStepsDismissed(true)
+            }
+            !dismissedOnAccount && dismissedOnDevice -> {
+                PaparcarLogger.i(TAG, "first steps: device knows, account does not — mirroring it up")
+                setFirstStepsDismissed(true)
+            }
         }
     }
 

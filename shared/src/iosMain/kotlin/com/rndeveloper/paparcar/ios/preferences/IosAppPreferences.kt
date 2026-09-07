@@ -36,12 +36,52 @@ private const val KEY_DEFAULT_MAP_TYPE = "default_map_type"
 private const val DEFAULT_MAP_TYPE = "TERRAIN"
 
 /**
+ * The defaults that belong to the signed-in USER and die with their session — the same list the
+ * Android store wipes, key string for key string.
+ * [ONBOARDING-A-TUTORIAL-IS-REMEMBERED-BY-THE-ACCOUNT-NOT-THE-DEVICE-001]
+ *
+ * Everything else stays on purpose: onboarding, the GPS disclaimer, the location-permission flag
+ * and the legal consent describe this INSTALL; theme, units, map type and the detection toggles
+ * describe this phone.
+ */
+private val USER_SCOPED_KEYS = listOf(
+    KEY_FIRST_STEPS_DONE,
+    KEY_FIRST_STEPS_DEFERRED,
+    KEY_FIRST_STEPS_DISMISSED,
+    KEY_HAS_CONFIRMED_FIRST_PARK,
+    KEY_FIRST_PARK_NUDGE_COUNT,
+    KEY_LAST_FIRST_PARK_NUDGE_AT,
+    KEY_PENDING_NUDGE_CREATED_AT,
+    KEY_PENDING_NUDGE_SOURCE,
+    KEY_PENDING_NUDGE_VEHICLE_ID,
+    KEY_PENDING_PROMPT_SHOWN_AT,
+    KEY_PENDING_PROMPT_VEHICLE_NAME,
+)
+
+/**
  * iOS implementation of [AppPreferences] backed by [NSUserDefaults].
  * Equivalent to Android's SharedPreferences.
  */
 class IosAppPreferences : AppPreferences {
 
     private val userDefaults = NSUserDefaults.standardUserDefaults
+
+    /**
+     * [ONBOARDING-A-TUTORIAL-IS-REMEMBERED-BY-THE-ACCOUNT-NOT-THE-DEVICE-001] The sign-out wipe —
+     * see the interface for which keys belong to the USER and which to this install.
+     *
+     * The in-memory flows are reset alongside the stored values, and not left to be re-seeded on
+     * the next launch: they are what Home is collecting RIGHT NOW, so a stale one would keep
+     * serving the previous account's checklist to the screen the sign-out just returned to.
+     */
+    override fun clearUserScopedState() {
+        USER_SCOPED_KEYS.forEach { userDefaults.removeObjectForKey(it) }
+        firstStepsDoneFlow.value = emptySet()
+        firstStepsDeferredFlow.value = emptySet()
+        firstStepsDismissedFlow.value = false
+        pendingParkNudgeFlow.value = null
+        pendingPromptWindowFlow.value = null
+    }
 
     override val isOnboardingCompleted: Boolean
         get() = userDefaults.boolForKey(KEY_ONBOARDING_COMPLETED)

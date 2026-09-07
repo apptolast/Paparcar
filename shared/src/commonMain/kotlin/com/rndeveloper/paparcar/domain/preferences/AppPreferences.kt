@@ -6,6 +6,29 @@ import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 import kotlinx.coroutines.flow.Flow
 
 interface AppPreferences {
+
+    /**
+     * Drops every preference that belonged to the user who just signed out.
+     * [ONBOARDING-A-TUTORIAL-IS-REMEMBERED-BY-THE-ACCOUNT-NOT-THE-DEVICE-001]
+     *
+     * The third arm of `SESSION-ISOLATION-001`, which until now covered Room and the OS geofences
+     * and left this store standing: the guided tutorial, the first-park nudge counters and the two
+     * open questions ("where did you leave your car?", "did you park?") all survived a sign-out and
+     * greeted the NEXT account — the last two pointing at a `vehicleId` the Room wipe had just
+     * deleted.
+     *
+     * The line it draws, and the one thing to think about before adding a key to either side: a
+     * preference that describes the USER goes; one that describes this DEVICE or this INSTALL
+     * stays. So `onboarding_completed`, the GPS disclaimer, the location-permission-asked flag and
+     * the legal consent are KEPT — they are facts about this phone, and wiping them would punish a
+     * user who merely signed out — while theme, units, map type and the detection toggles are kept
+     * for the same reason.
+     *
+     * What is lost stays lost: only the tutorial's dismissal comes back, and it comes back from
+     * the account (`UserProfile.firstStepsDismissedAt`), not from here.
+     */
+    fun clearUserScopedState()
+
     val isOnboardingCompleted: Boolean
     fun setOnboardingCompleted()
 

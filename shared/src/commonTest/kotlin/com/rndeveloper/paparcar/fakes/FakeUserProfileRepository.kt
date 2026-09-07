@@ -45,6 +45,16 @@ class FakeUserProfileRepository : UserProfileRepository {
         return _profileFlow.map { it[userId] }
     }
 
+    /** Every value handed to [setFirstStepsDismissedAt], newest last — a null being "the tutorial
+     *  goes back on offer". [ONBOARDING-A-TUTORIAL-IS-REMEMBERED-BY-THE-ACCOUNT-NOT-THE-DEVICE-001] */
+    val firstStepsDismissedWrites = mutableListOf<Long?>()
+    var firstStepsDismissedResult: Result<Unit> = Result.success(Unit)
+
+    override suspend fun setFirstStepsDismissedAt(userId: String, dismissedAtMs: Long?): Result<Unit> {
+        firstStepsDismissedWrites += dismissedAtMs
+        return firstStepsDismissedResult
+    }
+
     var deleteAllDataCallCount = 0
         private set
     var deleteAllDataResult: Result<Unit> = Result.success(Unit)

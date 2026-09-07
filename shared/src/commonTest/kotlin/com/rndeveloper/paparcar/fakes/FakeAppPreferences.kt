@@ -17,6 +17,27 @@ class FakeAppPreferences(
     initialDefaultMapType: String = "TERRAIN",
 ) : AppPreferences {
 
+    /**
+     * [ONBOARDING-A-TUTORIAL-IS-REMEMBERED-BY-THE-ACCOUNT-NOT-THE-DEVICE-001] The sign-out wipe,
+     * with a counter: the real store clears keys the fake has no way to distinguish, so a test that
+     * only asserted "the tutorial is empty" would pass on a fake that started empty. Counting the
+     * CALL is what proves the sign-out reached this store at all.
+     */
+    var clearUserScopedStateCount = 0
+        private set
+
+    override fun clearUserScopedState() {
+        clearUserScopedStateCount++
+        firstStepsDone.value = emptySet()
+        firstStepsDeferred.value = emptySet()
+        firstStepsDismissed.value = false
+        _hasConfirmedFirstPark = false
+        _firstParkNudgeCount = 0
+        _lastFirstParkNudgeAt = 0L
+        pendingParkNudge.value = null
+        pendingPromptWindow.value = null
+    }
+
     private var _isOnboardingCompleted = initialCompleted
     override val isOnboardingCompleted: Boolean get() = _isOnboardingCompleted
 

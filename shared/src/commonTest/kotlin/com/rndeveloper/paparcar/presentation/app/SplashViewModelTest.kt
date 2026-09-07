@@ -19,7 +19,9 @@ import com.rndeveloper.paparcar.fakes.FakeUserProfileRepository
 import com.rndeveloper.paparcar.fakes.FakeVehicleRepository
 import com.rndeveloper.paparcar.fakes.FakeZoneRepository
 import com.rndeveloper.paparcar.domain.usecase.user.BootstrapUserDataUseCase
+import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 import com.rndeveloper.paparcar.domain.usecase.user.GetOrCreateUserProfileUseCase
+import com.rndeveloper.paparcar.domain.usecase.user.SetFirstStepsDismissedUseCase
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -97,6 +99,11 @@ class SplashViewModelTest {
             connectivityObserver = fakeConnectivity,
             geofenceManager = fakeGeofenceManager,
             entitlementRepository = fakeEntitlementRepo,
+            setFirstStepsDismissed = SetFirstStepsDismissedUseCase(
+                appPreferences = fakePrefs,
+                authRepository = fakeAuth,
+                userProfileRepository = fakeProfileRepo,
+            ),
         )
     }
 
@@ -194,6 +201,100 @@ class SplashViewModelTest {
         // Geofences live in the OS, not in Room: signing out must deregister them so the
         // previous user's parking geofence cannot fire under the next account. [SESSION-ISOLATION-001]
         assertEquals(1, fakeGeofenceManager.removeAllCallCount)
+    }
+
+    /**
+     * The third local store. Room and the geofences were already covered above; the preferences
+     * were the one `wipeLocalUserData` never touched, which is how the outgoing user's guided
+     * tutorial — and their unanswered "where did you leave your car?" — greeted the next account on
+     * the same phone. [ONBOARDING-A-TUTORIAL-IS-REMEMBERED-BY-THE-ACCOUNT-NOT-THE-DEVICE-001]
+     *
+     * Asserted on the CALL and not only on the emptiness of the fake: a fake that starts empty
+     * would let a view model that never calls it pass.
+     * [TEST-A-GREEN-SUITE-MUST-PROVE-IT-LOOKED-001]
+     */
+    @Test
+    fun `user-scoped preferences are wiped when auth transitions to Unauthenticated`() = runTest {
+        buildViewModel()
+        fakeAuth.emitState(AuthState.Authenticated(session))
+        fakePrefs.firstStepsDone.value = setOf(FirstStep.MARK_PARKING, FirstStep.UNDERSTAND_WATCH)
+        fakePrefs.firstStepsDeferred.value = setOf(FirstStep.FORTIFY_WATCH)
+        fakePrefs.firstStepsDismissed.value = true
+
+        fakeAuth.emitState(AuthState.Unauthenticated)
+
+        assertEquals(1, fakePrefs.clearUserScopedStateCount, "the sign-out must reach the preferences")
+        assertEquals(emptySet(), fakePrefs.firstStepsDone.value)
+        assertEquals(emptySet(), fakePrefs.firstStepsDeferred.value)
+        assertFalse(fakePrefs.firstStepsDismissed.value)
+    }
+
+    /**
+     * The other half of the same rule: what describes this INSTALL survives the sign-out. Without
+     * this witness, "wipe the preferences" could quietly become `clear()` and send a user who
+     * merely signed out back through onboarding and the legal consent on their own phone.
+     * [ONBOARDING-A-TUTORIAL-IS-REMEMBERED-BY-THE-ACCOUNT-NOT-THE-DEVICE-001]
+     */
+    @Test
+    fun `device-scoped preferences survive the sign-out wipe`() = runTest {
+        fakePrefs = FakeAppPreferences(initialCompleted = true)
+        fakePrefs.setLegalConsentAccepted()
+        buildViewModel()
+        fakeAuth.emitState(AuthState.Authenticated(session))
+
+        fakeAuth.emitState(AuthState.Unauthenticated)
+
+        assertTrue(fakePrefs.isOnboardingCompleted, "onboarding is a fact about this install")
+        assertTrue(fakePrefs.hasAcceptedLegalConsent, "consent is per-install by AUTH-A-SIGN-IN-ASKS-FOR-CONSENT-FIRST-001")
+    }
+
+    // ── The tutorial's memory lives on the ACCOUNT ────────────────────────────
+    // [ONBOARDING-A-TUTORIAL-IS-REMEMBERED-BY-THE-ACCOUNT-NOT-THE-DEVICE-001]
+
+    /**
+     * The reported bug, in a test: reinstall (empty preferences) + sign in with an account that
+     * already closed the checklist → it must not come back. It used to, halfway through, because
+     * the live half of the projection ticks the steps the user's real parking already proves.
+     */
+    @Test
+    fun `a dismissal stored on the account is restored on a fresh install`() = runTest {
+        fakeProfileRepo.getOrCreateResult = Result.success(
+            FakeUserProfileRepository.defaultProfile().copy(firstStepsDismissedAt = 1_700_000_000_000L),
+        )
+        buildViewModel()
+
+        fakeAuth.emitState(AuthState.Authenticated(session))
+
+        assertTrue(fakePrefs.firstStepsDismissed.value, "the account remembered it; this device must too")
+        assertTrue(fakeProfileRepo.firstStepsDismissedWrites.isEmpty(), "restoring must not re-stamp the account")
+    }
+
+    /** An account that never dismissed it must not have the checklist hidden by the reconcile. */
+    @Test
+    fun `an account with no dismissal leaves the checklist on offer`() = runTest {
+        buildViewModel()
+
+        fakeAuth.emitState(AuthState.Authenticated(session))
+
+        assertFalse(fakePrefs.firstStepsDismissed.value)
+        assertTrue(fakeProfileRepo.firstStepsDismissedWrites.isEmpty())
+    }
+
+    /**
+     * The repair direction: the local write landed but the remote one did not (offline when the
+     * user closed it). The next online start mirrors it up by itself — otherwise the account would
+     * only learn about it if the user closed the same checklist a second time.
+     */
+    @Test
+    fun `a dismissal the account never learned is mirrored up at the next start`() = runTest {
+        fakePrefs.firstStepsDismissed.value = true
+        buildViewModel()
+
+        fakeAuth.emitState(AuthState.Authenticated(session))
+
+        assertEquals(1, fakeProfileRepo.firstStepsDismissedWrites.size)
+        assertTrue(fakeProfileRepo.firstStepsDismissedWrites.single() != null, "it is stamped, not cleared")
+        assertTrue(fakePrefs.firstStepsDismissed.value, "and the local answer does not change")
     }
 
     @Test

@@ -144,6 +144,21 @@ class FakeOemBackgroundReliabilityManager(
  * so the Dev Catalog can route into the onboarding flow. Other prefs keep their in-memory defaults.
  */
 class FakeAppPreferences(private val scenario: MockScenario? = null) : AppPreferences {
+
+    // [ONBOARDING-A-TUTORIAL-IS-REMEMBERED-BY-THE-ACCOUNT-NOT-THE-DEVICE-001] Sign-out wipe. The
+    // scenario's own switches are left alone on purpose: the Dev Catalog's preset IS the state
+    // under demo, and a mock sign-out must not silently undo what the operator just set.
+    override fun clearUserScopedState() {
+        _firstStepsDone.value = emptySet()
+        _firstStepsDeferred.value = emptySet()
+        _firstStepsDismissed.value = false
+        _hasConfirmedFirstPark = false
+        _firstParkNudgeCount = 0
+        _lastFirstParkNudgeAt = 0L
+        _pendingParkNudge.value = null
+        pendingPromptWindow.value = null
+    }
+
     private val _isOnboardingCompleted = MutableStateFlow(true)
     override val isOnboardingCompleted: Boolean
         get() = scenario?.onboardingCompleted?.value ?: _isOnboardingCompleted.value

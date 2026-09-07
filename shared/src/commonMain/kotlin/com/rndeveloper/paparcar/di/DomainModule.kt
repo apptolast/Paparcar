@@ -4,6 +4,7 @@ import com.rndeveloper.paparcar.domain.usecase.diagnostics.SendDiagnosticsReport
 import com.rndeveloper.paparcar.domain.usecase.user.BootstrapUserDataUseCase
 import com.rndeveloper.paparcar.domain.usecase.user.DeleteAccountUseCase
 import com.rndeveloper.paparcar.domain.usecase.user.GetOrCreateUserProfileUseCase
+import com.rndeveloper.paparcar.domain.usecase.user.SetFirstStepsDismissedUseCase
 import com.rndeveloper.paparcar.domain.usecase.location.GetAddressAndPlaceUseCase
 import com.rndeveloper.paparcar.domain.usecase.location.GetOneLocationUseCase
 import com.rndeveloper.paparcar.domain.usecase.location.ObserveAdaptiveLocationUseCase
@@ -39,6 +40,9 @@ val domainModule = module {
 
     // User UseCases
     factory { GetOrCreateUserProfileUseCase(get(), get()) }
+    // [ONBOARDING-A-TUTORIAL-IS-REMEMBERED-BY-THE-ACCOUNT-NOT-THE-DEVICE-001] Device preference +
+    // account fact behind one verb, so Home and Settings cannot drift.
+    factory { SetFirstStepsDismissedUseCase(get(), get(), get()) }
     factory { BootstrapUserDataUseCase(get(), get(), get()) }
     factory {
         DeleteAccountUseCase(

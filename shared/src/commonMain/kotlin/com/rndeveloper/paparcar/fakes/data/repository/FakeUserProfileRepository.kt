@@ -28,5 +28,8 @@ class FakeUserProfileRepository : UserProfileRepository {
     override fun observeProfile(userId: String): Flow<UserProfile?> =
         MutableStateFlow(mockProfile).asStateFlow()
 
+    override suspend fun setFirstStepsDismissedAt(userId: String, dismissedAtMs: Long?): Result<Unit> =
+        Result.success(Unit)
+
     override suspend fun deleteAllData(userId: String): Result<Unit> = Result.success(Unit)
 }

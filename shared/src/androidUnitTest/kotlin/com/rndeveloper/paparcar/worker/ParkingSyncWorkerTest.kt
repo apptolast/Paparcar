@@ -355,6 +355,7 @@ private class FakeUserProfileDataSource : RemoteUserProfileDataSource {
     override suspend fun getProfile(userId: String): UserProfileDto? = null
     override suspend fun createOrUpdateProfile(profile: UserProfileDto) = Unit
     override suspend fun updateDefaultVehicleId(userId: String, vehicleId: String?) = Unit
+    override suspend fun updateFirstStepsDismissedAt(userId: String, dismissedAtMs: Long?) = Unit
     override suspend fun getParkingHistory(userId: String): List<ParkingHistoryDto> = emptyList()
     override suspend fun deleteParkingSessionsForVehicle(userId: String, vehicleId: String) = Unit
     override suspend fun deleteUserData(userId: String) = Unit

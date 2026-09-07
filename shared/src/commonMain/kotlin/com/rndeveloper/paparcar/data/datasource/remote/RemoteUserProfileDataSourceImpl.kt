@@ -37,6 +37,13 @@ class RemoteUserProfileDataSourceImpl(
         usersCollection().document(userId).update(mapOf(FIELD_DEFAULT_VEHICLE_ID to vehicleId))
     }
 
+    // Field-targeted like the one above, and for the same reason: a set(profile) here would push
+    // the whole doc from whatever DTO the caller happens to hold.
+    // [ONBOARDING-A-TUTORIAL-IS-REMEMBERED-BY-THE-ACCOUNT-NOT-THE-DEVICE-001]
+    override suspend fun updateFirstStepsDismissedAt(userId: String, dismissedAtMs: Long?) {
+        usersCollection().document(userId).update(mapOf(FIELD_FIRST_STEPS_DISMISSED_AT to dismissedAtMs))
+    }
+
     override suspend fun saveParkingSession(userId: String, session: ParkingHistoryDto) {
         parkingHistoryCollection(userId).document(session.id).set(session)
     }
@@ -126,6 +133,9 @@ class RemoteUserProfileDataSourceImpl(
                 createdAt = getLongCompat(FIELD_CREATED_AT),
                 updatedAt = getLongCompat(FIELD_UPDATED_AT),
                 defaultVehicleId = runCatching { get<String?>(FIELD_DEFAULT_VEHICLE_ID) }.getOrNull(),
+                // Absent on every doc written before the tutorial became an account fact → null.
+                // [ONBOARDING-A-TUTORIAL-IS-REMEMBERED-BY-THE-ACCOUNT-NOT-THE-DEVICE-001]
+                firstStepsDismissedAt = getLongOrNullCompat(FIELD_FIRST_STEPS_DISMISSED_AT),
             )
         }.getOrElse { e ->
             PaparcarLogger.e(TAG, "toUserProfileDto failed — doc=$id", e)
@@ -211,9 +221,13 @@ class RemoteUserProfileDataSourceImpl(
 
     /** Reads a Long field tolerating Firestore's Double representation of integers. */
     private fun dev.gitlive.firebase.firestore.DocumentSnapshot.getLongCompat(field: String): Long =
+        getLongOrNullCompat(field) ?: 0L
+
+    /** Same tolerance, but keeping the ABSENT case distinguishable from a real 0 — for fields whose
+     *  null carries meaning ("never happened") rather than a default. */
+    private fun dev.gitlive.firebase.firestore.DocumentSnapshot.getLongOrNullCompat(field: String): Long? =
         runCatching { get<Long?>(field) }.getOrNull()
             ?: runCatching { get<Double?>(field)?.toLong() }.getOrNull()
-            ?: 0L
 
     // ─── Constants ────────────────────────────────────────────────────────────
 
@@ -231,6 +245,8 @@ class RemoteUserProfileDataSourceImpl(
         const val FIELD_CREATED_AT = "createdAt"
         const val FIELD_UPDATED_AT = "updatedAt"
         const val FIELD_DEFAULT_VEHICLE_ID = "defaultVehicleId"
+        // The tutorial's one account-scoped fact. [ONBOARDING-A-TUTORIAL-IS-REMEMBERED-BY-THE-ACCOUNT-NOT-THE-DEVICE-001]
+        const val FIELD_FIRST_STEPS_DISMISSED_AT = "firstStepsDismissedAt"
 
         const val FIELD_VEHICLE_ID = "vehicleId"
         const val FIELD_NAME = "name"

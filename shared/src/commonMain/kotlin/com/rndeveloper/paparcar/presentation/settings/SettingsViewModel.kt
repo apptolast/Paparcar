@@ -13,6 +13,7 @@ import com.rndeveloper.paparcar.domain.usecase.detection.ObserveDetectionReliabi
 import com.rndeveloper.paparcar.domain.usecase.diagnostics.SendDiagnosticsReportUseCase
 import com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase
 import com.rndeveloper.paparcar.domain.usecase.user.DeleteAccountUseCase
+import com.rndeveloper.paparcar.domain.usecase.user.SetFirstStepsDismissedUseCase
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import com.rndeveloper.paparcar.presentation.base.BaseViewModel
 import com.rndeveloper.paparcar.presentation.permissions.PermissionsFocus
@@ -26,6 +27,10 @@ class SettingsViewModel(
     private val authRepository: AuthRepository,
     private val userProfileRepository: UserProfileRepository,
     private val deleteAccountUseCase: DeleteAccountUseCase,
+    // [ONBOARDING-A-TUTORIAL-IS-REMEMBERED-BY-THE-ACCOUNT-NOT-THE-DEVICE-001] The same verb Home
+    // uses to close the checklist, run backwards to put it back on offer — on this device and on
+    // the account, which is what makes the replay survive the next cold start.
+    private val setFirstStepsDismissed: SetFirstStepsDismissedUseCase,
     private val permissionManager: PermissionManager,
     private val vehicleRepository: VehicleRepository,
     private val observeDetectionReliability: ObserveDetectionReliabilityUseCase,
@@ -183,13 +188,21 @@ class SettingsViewModel(
             // live in the same optional section of the permissions flow. [DET-RELIABILITY-001]
             is SettingsIntent.FixDetectionReliability ->
                 sendEffect(SettingsEffect.NavigateToPermissions(PermissionsFocus.Producer))
-            // [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001] Both halves of the tutorial's own
+            // [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001] ALL THREE halves of the tutorial's own
             // state, and only those. The banked steps go because otherwise the checklist would come
-            // back already finished; `hasConfirmedFirstPark` deliberately stays, so the cold-start
-            // notification machine is not woken by someone re-reading an explanation.
-            is SettingsIntent.RestartFirstSteps -> {
+            // back already finished, and the DEFERRED ones go because a "not yet" the replay kept
+            // would silently skip those steps forever — the contract in `AppPreferences` promised
+            // this from day one and the code only cleared two of the three.
+            // [ONBOARDING-A-TUTORIAL-IS-REMEMBERED-BY-THE-ACCOUNT-NOT-THE-DEVICE-001]
+            //
+            // `hasConfirmedFirstPark` deliberately stays, so the cold-start notification machine is
+            // not woken by someone re-reading an explanation.
+            is SettingsIntent.RestartFirstSteps -> viewModelScope.launch {
                 prefs.setFirstStepsDone(emptySet())
-                prefs.setFirstStepsDismissed(false)
+                prefs.setFirstStepsDeferred(emptySet())
+                // Device AND account: without clearing the remote fact the next cold start would
+                // helpfully restore the dismissal the user just asked us to undo.
+                setFirstStepsDismissed(false)
                 sendEffect(SettingsEffect.FirstStepsRestarted)
             }
             is SettingsIntent.OpenPrivacyPolicy ->

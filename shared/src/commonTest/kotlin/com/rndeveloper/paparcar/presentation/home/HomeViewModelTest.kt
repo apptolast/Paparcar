@@ -83,6 +83,9 @@ class HomeViewModelTest {
     private lateinit var parkingRepo: FakeUserParkingRepository
     private lateinit var vehicleRepo: FakeVehicleRepository
     private lateinit var authRepo: FakeAuthRepository
+    // [ONBOARDING-A-TUTORIAL-IS-REMEMBERED-BY-THE-ACCOUNT-NOT-THE-DEVICE-001] Where the tutorial's
+    // dismissal is remembered now that it has to outlive the install.
+    private lateinit var profileRepo: com.rndeveloper.paparcar.fakes.FakeUserProfileRepository
     private lateinit var connectivity: FakeConnectivityObserver
     private lateinit var prefs: FakeAppPreferences
     private lateinit var activityRecognition: FakeActivityRecognitionManager
@@ -206,6 +209,13 @@ class HomeViewModelTest {
             departureWatchResumer = departureWatchResumer,
             uiLocationLogger = uiLocationLogger,
             bluetoothScanner = bluetoothScanner,
+            // [ONBOARDING-A-TUTORIAL-IS-REMEMBERED-BY-THE-ACCOUNT-NOT-THE-DEVICE-001] Closing the
+            // checklist writes the device preference AND the account fact.
+            setFirstStepsDismissed = com.rndeveloper.paparcar.domain.usecase.user.SetFirstStepsDismissedUseCase(
+                appPreferences = prefs,
+                authRepository = authRepo,
+                userProfileRepository = profileRepo,
+            ),
         ).also {
             // Default test fixture = map on screen, so the high-accuracy request is armed and location
             // emits reach state. The backgrounded case uses buildVm(foreground = false). [UI-LOC-FOREGROUND-001]
@@ -222,6 +232,7 @@ class HomeViewModelTest {
         parkingRepo = FakeUserParkingRepository()
         vehicleRepo = FakeVehicleRepository()
         authRepo = FakeAuthRepository(FakeAuthRepository.authenticatedSession())
+        profileRepo = com.rndeveloper.paparcar.fakes.FakeUserProfileRepository()
         connectivity = FakeConnectivityObserver(ConnectivityStatus.Online)
         activityRecognition = FakeActivityRecognitionManager()
         reportScheduler = FakeReportSpotScheduler()
@@ -1590,5 +1601,43 @@ class HomeViewModelTest {
         // Same persistence path as the zone form — one way to write the flag, not two.
         assertEquals("z1", zoneRepo.savedZone!!.id)
         assertEquals(true, zoneRepo.savedZone!!.notifyOnSpot)
+    }
+
+    // ── Closing the guided checklist ──────────────────────────────────────────
+    // [ONBOARDING-A-TUTORIAL-IS-REMEMBERED-BY-THE-ACCOUNT-NOT-THE-DEVICE-001]
+
+    /**
+     * Both stores, from one tap. The device preference is what makes the card disappear now; the
+     * account is what stops it coming back on the next install — which is the whole bug: the user
+     * reinstalled, signed in, and the tutorial reappeared mid-way.
+     */
+    @Test
+    fun `should_rememberTheDismissalOnDeviceAndAccount_when_theChecklistIsClosed`() = runTest {
+        vm = buildVm()
+
+        vm.handleIntent(HomeIntent.DismissFirstSteps)
+
+        assertTrue(prefs.firstStepsDismissed.value, "the card must go now, without waiting for the network")
+        assertEquals(1, profileRepo.firstStepsDismissedWrites.size, "and the account has to learn it")
+        assertTrue(profileRepo.firstStepsDismissedWrites.single() != null, "stamped, not cleared")
+    }
+
+    /**
+     * A remote write that fails is logged, never surfaced: the user's tap already did what they
+     * asked. Pinned because the alternative — an error snackbar about a profile field — would be
+     * app plumbing shown to someone who just wanted the card gone, and the splash repairs the miss
+     * on its own at the next online start.
+     */
+    @Test
+    fun `should_stayQuiet_when_theAccountWriteFails`() = runTest {
+        vm = buildVm()
+        profileRepo.firstStepsDismissedResult = Result.failure(IllegalStateException("offline"))
+
+        vm.effect.test {
+            vm.handleIntent(HomeIntent.DismissFirstSteps)
+            expectNoEvents()
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertTrue(prefs.firstStepsDismissed.value, "the local half still landed")
     }
 }

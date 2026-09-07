@@ -47,9 +47,17 @@
          to avoid "attributionTag not declared in manifest" AppOps leak. [FGS-004] -->
     <attribution android:tag="detection" android:label="@string/attribution_detection_label" />
 
+    <!-- [ONBOARDING-A-TUTORIAL-IS-REMEMBERED-BY-THE-ACCOUNT-NOT-THE-DEVICE-001] Nothing local is
+         backed up, and nothing is device-transferred. Everything that matters about an account
+         lives in Firestore and comes back with the login; what Auto Backup used to carry — the
+         DataStore, the detection SharedPreferences and the Room cache — is state of an INSTALL,
+         and restoring it into a new one is how a user who uninstalled to start clean got the
+         guided tutorial back halfway through, on data that install never produced. The price is
+         theme / units / map type not following the user to a new phone. -->
     <application
         android:name=".PaparcarApp"
-        android:allowBackup="true"
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="Paparcar"
         android:localeConfig="@xml/locales_config"
