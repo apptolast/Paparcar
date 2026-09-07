@@ -1,7 +1,10 @@
 # IOS-PARITY-AUDIT — qué le falta a iOS para ser simétrico con Android
 
-**Estado:** 🔵 Auditoría completada 2026-09-03 · 8 tickets desglosados abajo, **0 empezados** ·
-los cerrados previos que esta auditoría confirma se citan, no se reabren.
+**Estado:** ✅ Done — auditoría 2026-09-03, **los 8 tickets cerrados el 2026-09-07** y plegados en
+`feature/IOS-F0-001-fase0` (PR #3, draft; merge bloqueado por el gate de campo del 14-08). La rama
+se rebaseó sobre master `175b1583` ese mismo día (tip `6627e649`, CI ✓✓) — los SHAs por-ticket se
+buscan por `[TICKET-ID]` en el `git log` de la rama, no por hash citado; el detalle de cada cierre
+vive en su `docs/backlog/<ticket>.md` EN LA RAMA y en MEMORY.md.
 
 **Base auditada:** rama `feature/IOS-F0-001-fase0` @ `f301914b` (worktree `../Paparcar-ios-f0`),
 en sync con `origin`, 2 commits detrás de master `6fd0b7c9` (solo los de onboarding).
@@ -44,7 +47,8 @@ los 13 workers de WorkManager como FORMA (su función sí se cubre, ver tickets 
 
 ### IOS-DI-A-MOCK-GRAPH-ONLY-PROD-IS-VERIFIED-001 — el flavor mock crashea y nadie lo verifica
 **Prioridad:** 🔴 P0 (rompe el Dev Catalog **también en Android**) · **Esfuerzo:** S ·
-**Estado:** ⚪ Pendiente · **Dónde:** la rama iOS (regresión de `87f08dbe`), no master.
+**Estado:** ✅ Done (en la rama iOS; + `MockKoinGraphVerifyTest`, que en su debut cazó drift real
+de master) · **Dónde:** la rama iOS (regresión de `87f08dbe`), no master.
 
 `DeviceCapabilities` [IOS-F0-03] solo se bindea en `androidPlatformModule` e `iosPlatformModule`,
 pero `DetectionModule.kt:276` lo pide con `get()` obligatorio
@@ -73,7 +77,8 @@ además inalcanzable: `ContentView.swift` llama a `MainViewController()`, nadie 
 
 ### IOS-XCODE-A-PLIST-THAT-NEVER-ENTERS-THE-BUNDLE-001 — el proyecto Xcode no puede ni arrancar
 **Prioridad:** 🔴 P0 (bloquea CUALQUIER validación en device) · **Esfuerzo:** S (pero necesita
-el Mac del compañero para verificar) · **Estado:** ⚪ Pendiente.
+el Mac del compañero para verificar) · **Estado:** ✅ Done (en la rama; `xcodebuild` construye
+`Paparcar.app` en CI sin firmar · ⏳ device: plist + TEAM_ID con el compañero).
 
 - La `PBXResourcesBuildPhase` del `project.pbxproj` está **vacía** (`files = ( );`): aunque el
   compañero copie `GoogleService-Info.plist` (gitignored a propósito, repo público), no entra en
@@ -85,7 +90,8 @@ el Mac del compañero para verificar) · **Estado:** ⚪ Pendiente.
   iPhone; el scheme compartido commiteado deja a CI listo para añadir el escalón `xcodebuild`.
 
 ### IOS-CRASH-A-BRIDGE-NOBODY-INSTALLS-001 — Crashlytics es un no-op silencioso en iOS
-**Prioridad:** 🟠 P1 · **Esfuerzo:** S · **Estado:** ⚪ Pendiente.
+**Prioridad:** 🟠 P1 · **Esfuerzo:** S · **Estado:** ✅ Done (en la rama · ⏳ non-fatal de prueba
+en device).
 
 `core/crash/CrashReporter.kt` (iosMain) es un bridge cuyo `bridge` nadie asigna: el propio KDoc
 documenta el wiring Swift necesario y `iOSApp.swift` no lo hace. `FirebaseCrashlytics` **ni
@@ -97,7 +103,8 @@ siquiera está entre los productos SPM linkados** (solo Core, Auth, Firestore, A
 - **Aceptación:** un non-fatal de prueba aparece en la consola de Crashlytics desde device.
 
 ### IOS-CI-A-BRANCH-THAT-NEVER-MEETS-THE-MAC-001 — la rama iOS nunca ha pasado por el job apple
-**Prioridad:** 🟠 P1 · **Esfuerzo:** XS · **Estado:** ⚪ Pendiente.
+**Prioridad:** 🟠 P1 · **Esfuerzo:** XS · **Estado:** ✅ Done (PR #3 draft abierto; el job `apple`
+compila Native, corre la suite en simulador y hace `xcodebuild` en cada push de la rama).
 
 `ci.yml` solo se dispara en push a `master`/`alpha`/`beta` y en PRs hacia ellas. La rama
 `feature/IOS-F0-001-fase0` está pusheada pero **sin PR**: sus ediciones de `iosMain` (el módulo
@@ -109,7 +116,7 @@ ticket de CI describía. Los minutos macOS son gratis (repo público).
 - **Aceptación:** cada push de la rama corre el job `apple` y el estado de `iosMain` es visible.
 
 ### IOS-TEST — la suite común nunca compiló en iOS (ticket YA existente, citado aquí)
-**Estado:** ⚪ abierto sin rama como
+**Estado:** ✅ EN MASTER `9eb66de0` como
 [TEST-A-KMP-SUITE-THAT-ONLY-RUNS-ON-JVM-IS-HALF-A-SUITE-001] — no se duplica aquí.
 29 errores mecánicos en 12 ficheros (nombres con `,`/`()`, `System.currentTimeMillis()`,
 `kotlin.assert`); tras arreglar, correr `:shared:iosSimulatorArm64Test` en macOS y meterlo en el
@@ -118,7 +125,9 @@ solo en JVM.
 
 ### IOS-F1-A-CONTROLLER-FOR-THE-HAPPY-PATH-001 — el orquestador: iOS aparca de verdad
 **Prioridad:** 🔴 P0 del port (el gap estructural) · **Esfuerzo:** L ·
-**Estado:** ⚪ Pendiente · **Plan:** `docs/IOS-IMPLEMENTATION-PLAN.md` §8-F1.
+**Estado:** ✅ Done (en la rama: `IosDetectionController`, el espejo funcional del service —
+hallazgo clave: la confirmación siempre fue del coordinator común) ·
+**Plan:** `docs/IOS-IMPLEMENTATION-PLAN.md` §8-F1.
 
 No existe análogo a `CoordinatorDetectionService`: **nadie alimenta
 `CoordinatorParkingDetector` con un stream GPS en iOS**. Por eso hoy son no-ops declarados
@@ -136,7 +145,9 @@ No existe análogo a `CoordinatorDetectionService`: **nadie alimenta
   reciente; los side-records F0 tienen consumidor; skill `det-change` obligatoria.
 
 ### IOS-F2-A-WAKE-MUST-QUERY-THE-PAST-001 — wake-and-query: el corazón del tier asistido
-**Prioridad:** 🟠 P1 del port · **Esfuerzo:** L · **Estado:** ⚪ Pendiente · **Dep:** F1 ·
+**Prioridad:** 🟠 P1 del port · **Esfuerzo:** L · **Estado:** ✅ Done (en la rama: departure
+inline con escalera de reintentos, presupuesto de podómetro, reconstrucción wake-and-query con
+reloj virtual y mesh de safety-net · ⏳ device) · **Dep:** F1 ·
 **Plan:** §4 y §8-F2 del plan.
 
 - Protocolo de reconstrucción: side-records + `CMMotionActivityManager.queryActivityStarting` +
@@ -150,7 +161,9 @@ No existe análogo a `CoordinatorDetectionService`: **nadie alimenta
   tabla S1–S12 de DET-SOLID en device; skill `det-change`.
 
 ### IOS-SYNC-A-QUEUE-THAT-DIES-WITH-THE-PROCESS-001 — colas durables + BGTaskScheduler
-**Prioridad:** 🟠 P1 · **Esfuerzo:** M · **Estado:** ⚪ Pendiente · **Dep:** F1 (para tener algo
+**Prioridad:** 🟠 P1 · **Esfuerzo:** M · **Estado:** ✅ Done (en la rama: outbox durable
+commonMain + BGTask en Swift + `PaparcarIosBootstrap`, el bootstrap que los relanzamientos en
+background nunca tuvieron · ⏳ device) · **Dep:** F1 (para tener algo
 que encolar de verdad).
 
 Los 3 schedulers de corrutina (`IosParkingSyncScheduler`, `IosParkingEnrichmentScheduler`,
@@ -168,7 +181,9 @@ siguiente sync.
   interrumpido no resucita el vehículo.
 
 ### IOS-NOTIF-A-SURFACE-THAT-SPEAKS-ONE-LANGUAGE-001 — strings hardcoded y un toggle ignorado
-**Prioridad:** 🟠 P1 (visible al usuario) · **Esfuerzo:** S · **Estado:** ⚪ Pendiente.
+**Prioridad:** 🟠 P1 (visible al usuario) · **Esfuerzo:** S · **Estado:** ✅ Done (en la rama:
+20 keys × 9 locales espejadas a composeResources con `NotificationCopyParityTest` blindando el
+espejo, gate `notifyParkingDetected` cableado · ⏳ device en español).
 
 - `IosAppNotificationManagerImpl` lleva la copy **hardcodeada en inglés** mientras Android sirve
   los 9 locales — mover a `composeResources/strings.xml` (deuda ya anotada en
@@ -180,7 +195,10 @@ siguiente sync.
   plataformas; keys compartidas, cero copy nueva.
 
 ### IOS-A-PARITY-TAIL-001 — la cola de paridad silenciosa (paraguas, trocear al ejecutar)
-**Prioridad:** 🟡 P2 · **Esfuerzo:** M en total · **Estado:** ⚪ Pendiente.
+**Prioridad:** 🟡 P2 · **Esfuerzo:** M en total · **Estado:** ✅ Done (en la rama,
+`docs/backlog/ios-a-parity-tail-001.md`: 6 filas implementadas, `observePassiveLocation` firmada
+asimetría-por-diseño, y 4 con ticket propio declarado — `ios-death-…`, `ios-diag-…`,
+`ios-devcat-…`, `ios-route-…`; la tabla de abajo queda a cero).
 
 Todo degrada vía `getOrNull()` o no-op documentado — nada crashea, todo resta:
 
