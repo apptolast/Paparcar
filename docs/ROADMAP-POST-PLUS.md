@@ -171,7 +171,7 @@ no un olvido. La tabla de fases de la ola vive SOLO en su doc; aquí queda el or
 | P | Qué | De dónde | Por qué aquí |
 |---|---|---|---|
 | **P0** | dashboard RC (plantilla del paywall con la comparativa nueva: 7 días, 1 coche, 2 zonas, stats avanzadas, coche compartido "próximamente") · AAB a Pruebas internas · `paparcar_plus` en Play · destino de la rama iOS (PR #3) | proyecto | Pendientes del user arrastrados de MONEY-001. El "plegar MONEY-001" del 06-09 ya está: mergeado |
-| **OLA 2** | A1 analytics · A2 widget · F1 límites free · F2 combustible · F3-F4 estadísticas · F5 gasolineras · F6 parkings (Madrid+Málaga) · F7 tiempo de búsqueda (oct) · F8 coche compartido (oct) | [`backlog/plus-roadmap-001.md`](./backlog/plus-roadmap-001.md) | Orden fijado por el user el 07-09. ⚠️ La dirección del modelo de F8 se decide ANTES de F2 (§3.7: con la base remota vacía es barato) |
+| **OLA 2** | A1 analytics · A2 widget · F1 límites free · F2 combustible · F3-F4 estadísticas · F5 gasolineras · F6 parkings (Madrid+Málaga) · F7 tiempo de búsqueda (oct) · F8 coche compartido (oct) | [`backlog/plus-roadmap-001.md`](./backlog/plus-roadmap-001.md) | Orden fijado por el user el 07-09. ✅ Dirección del modelo de F8 decidida el 08-09: PROYECCIÓN (espejo `sharedCars/`, sesión personal = fuente de verdad) — detalle en la F8 del doc de la ola |
 | **P1** | **1b · Embudo de búsqueda** + modo "voy de camino" | fichero #1 + ROADMAP viejo | Es la **métrica del piloto**. Sin esto, `spot_found` no se puede emitir con verdad (§3.2). F7 de la ola NO lo sustituye: mide *cuánto tardaste tú*, no *si la comunidad funciona* |
 | **P2** | **3 · Agregación por celda** | fichero #3 | Barata, y la elección de celda es irreversible: cuanto antes, más barata |
 | **P3** | **4 · Alertas SER (Plus)** — ⏸️ aparcada tras la ola (07-09) | fichero #4 | Sigue siendo el argumento de venta que no depende de tener usuarios. Cuando toque: empezar por 4a + 4b + **4f** (fuera de horario), que es donde el usuario percibe el valor sin hacer nada |
@@ -339,9 +339,16 @@ ubicación real, y privacidad (compartir el coche es compartir dónde estuvo qui
 `det-change`, y 7g necesita su ADR para no leerse como una violación de la regla de MONEY-001.
 
 → **07-09:** es **F8 · VEH-SHARED-001** de la ola 2 (octubre), con reglas de producto ya cerradas
-(solo BT, 4 miembros, dueño paga). La **dirección del modelo** (7a "sesiones cuelgan del coche" vs
-`ownerId`+`members`) se decide en sesión corta **ANTES de F2** — F2 migra Room a v3 y no se migra
-dos veces el mismo esquema en un mes.
+(solo BT, 4 miembros, dueño paga).
+→ **08-09:** dirección del modelo **DECIDIDA en sesión: PROYECCIÓN, no la 7a.** La sesión personal
+(`users/{uid}/parkingHistory`) sigue siendo la fuente de verdad; el coche compartido es un espejo
+top-level `sharedCars/{carId}` (núcleos de sesión sin ruta + `state` con la posición actual), que
+nace al activar la compartición y arranca vacío. Se midió en el código que lo caro de la 7a no era
+migrar datos sino re-cablear Room/outbox/reconcile/reglas/iOS — y aun así habría tenido que partir
+el doc de sesión para no exponer la ruta. Con la proyección, F2/F3/F7 construyen sin riesgo de
+re-keyado y **el argumento "decidir mientras la base está vacía" queda disuelto**: nunca hay
+migración de datos de sesión. Detalle completo en la F8 de
+[`backlog/plus-roadmap-001.md`](./backlog/plus-roadmap-001.md).
 
 ### 5.8 · Mapa de probabilidad por zonas
 

@@ -45,8 +45,8 @@ Cuatro, tomadas por el user al fusionar este plan (venido de una sesión en Clau
    (1 día, cero backend, refuerza la promesa "encuentra tu coche").
 2. **SER Madrid queda aparcada TRAS la ola 2** — decisión consciente, no un olvido. Su análisis
    completo (4a-4g) sigue intacto en el roadmap padre para cuando le toque.
-3. **La dirección del modelo de datos del coche compartido se decide AHORA** (sesión corta de diseño
-   antes de F2), aunque F8 se implemente en octubre — ver F8 abajo.
+3. **La dirección del modelo de datos del coche compartido se decide antes de F2** — ✅ decidida el
+   08-09 en su sesión: **proyección** (espejo `sharedCars/`), ver F8 abajo. F8 se implementa en octubre.
 4. **Dos docs, una tabla**: este fichero es la ejecución de la ola; el roadmap padre es el
    horizonte. La tabla de fases vive SOLO aquí; el padre la referencia como bloque.
 
@@ -399,24 +399,58 @@ estadística única de Paparcar ("este mes has perdido 2 h 40 min buscando plaza
 con Plus cubre a hasta **4 miembros** que no necesitan Plus; los compartidos no cuentan para el
 límite free del miembro (F1); rutas personales NO se comparten; historial y stats del coche sí.
 
-**⛔ Decisión de modelo PENDIENTE — se decide en sesión corta ANTES de F2 (acordado 07-09).**
-Hay dos arquitecturas candidatas y eligen cosas distintas:
-- **(a) Las sesiones cuelgan del coche** (`cars/{carId}/events`; el historial personal pasa a ser
-  una consulta filtrada) — la 7a del roadmap padre. Más profunda; toca Room + Firestore + outbox +
-  reconcile LWW. El roadmap padre (§3.7) avisa: **decidirla es barato AHORA con la base remota
-  vacía** (wipe 03-09) y caro en seis meses.
-- **(b) `Vehicle.ownerId` + `members[uid]`**, manteniendo `UserParking` por usuario con escritura
-  compartida — lo que esbozaba la versión de Claude web de este doc. Menos invasiva; deja el
-  historial como está.
-La sesión decide la DIRECCIÓN (qué esquema persigue F2 al migrar a Room v3 y F7 a v4); la
-implementación completa sigue siendo de octubre.
+**✅ Modelo DECIDIDO — sesión de diseño del 08-09 (3 decisiones del user):**
+
+**(B) PROYECCIÓN: la sesión personal sigue siendo la fuente de verdad; el coche compartido es un
+espejo.** Se descartó (a) "las sesiones cuelgan del coche" tras medir el coste real en el código:
+lo caro no era migrar datos (base vacía) sino re-cablear el eje usuario→sesión entero — Room/DAOs
+keyados por `(id, userId)`, los 6 caminos del outbox, el reconcile LWW multi-autor, `deleteUserData`,
+reglas, historial/stats e iOS — y aun así (a) tenía que partir el doc de sesión igualmente, porque
+la sesión bajo el coche expone `routePolyline` a los miembros y *las rutas personales NO se
+comparten*. (B) deja intacto el 100% del sistema para coches no compartidos y la privacidad de la
+ruta sale gratis por construcción.
+
+Esquema decidido (detalle fino en su ticket):
+```
+users/{uid}/vehicles/{id}        ← igual que hoy + sharedCarId? + ownerUid? (fila vinculada
+                                   del miembro: misma MAC ⇒ la detección BT no se toca)
+users/{uid}/parkingHistory/{id}  ← igual que hoy: fuente de verdad, CON ruta, outbox intacto
+sharedCars/{carId}               ← nace SOLO al activar compartir: ownerId, memberIds[]/accessUids[],
+                                   datos del coche, btMacHash, sharingEnabled (webhook RC),
+                                   state{location, parkedAtMs, authorUid, authorName, address}
+  └─ sessions/{mismoId}          ← ESPEJO: núcleo compartido (autor, ubicación, timestamps,
+                                   isActive, address) — SIN ruta, SIN armEvidence/detectionPath
+```
+- Quien aparca escribe su sesión personal como hoy y, si el vehículo tiene `sharedCarId`, el mismo
+  choke point encola un **segundo job de outbox** (patrón `ParkingSyncScheduler`) que empuja el
+  espejo + `state`. Deriva del espejo → job de reparación contra la fuente.
+- **Todo el grupo — dueño INCLUIDO — lee la posición del coche de `sharedCars.state`**: si aparcó
+  otro miembro, la sesión personal del dueño no sabe nada (su móvil no aparcó). `sharedCarId` en la
+  fila de `vehicles` marca el coche como compartido; el espejo es el punto de encuentro. El
+  historial personal (con rutas) sigue siendo de cada uno. El historial DEL COCHE = la subcolección
+  espejo, gateada en cliente por el entitlement de quien mira.
+- **Ruta compartida = opt-in del autor, default OFF** (08-09): el espejo va sin ruta; si el usuario
+  activa "compartir mis rutas en este coche" (pref por coche, con posible acción por viaje), el
+  MISMO job del espejo incluye `routePolyline`. La política de qué viaja vive en UN sitio: el write
+  del espejo.
+- Dedupe 60 s + FCM + webhook RC = Cloud Functions sobre `sharedCars` (el runtime lo estrena F6).
+- **Historial compartido DESDE LA ACTIVACIÓN**: el espejo nace vacío; nadie ve dónde estuvo el
+  coche antes de existir el grupo. Sin backfill (decisión 08-09, privacidad por defecto).
+- **Migraciones**: F2 migra solo combustible (v3) y F7 lo suyo (v4); **F8 hace su propio bump en
+  octubre** con `sharedCarId`/`ownerUid` — sin columnas muertas antes (decisión 08-09). Con (B),
+  nada de lo que construyan F2/F3/F7 se re-keya después.
+- ⚠️ Hallazgo de la sesión, a corregir en F2 (que ya toca `Vehicle.kt`): el KDoc de
+  `Vehicle.bluetoothDeviceId` dice *"On-device only, never synced"* y **miente** — el DTO, el
+  mapper y `RemoteUserProfileDataSourceImpl` lo suben a Firestore desde siempre. Para F8 además
+  importa: en `sharedCars` viaja `btMacHash`, no la MAC cruda.
 
 **Diseño (a detallar en su ticket):**
 - Invitación por enlace dinámico o código de 6 caracteres (caduca, un solo uso); aceptar = el móvil
   del miembro debe emparejar la MISMA MAC. Siempre con entrada manual del código (los deep links
   fallan). Lenguaje: *"unirme"*, nunca *"compartir"*.
 - Quién conduce = el móvil cuyo BT estaba conectado; su desconexión dispara la detección y
-  escribe el `UserParking` compartido; dedupe de dos móviles en ventana de 60 s por confianza.
+  escribe SU `UserParking` personal + el espejo del coche; dedupe de dos móviles en ventana de
+  60 s por confianza.
   Geocerca y Coordinator degradados a **sugerencia** en coche compartido (guard `[SHARE-DEDUP-*]`).
 - Push a los demás: "Marta ha aparcado el coche en C/ Ponzano, 14" (canal nuevo; strings ×9).
 - Si nadie del grupo detecta el movimiento → la última posición se mantiene con "hace 3 h" +
