@@ -112,7 +112,7 @@ El spot se construye con la ubicación de la SESIÓN (`ProcessConfirmedDeparture
   estaba.
 
 O sea: el fallo no es «un pin mal puesto», es **una plaza que no se publica y otra que se publica
-mal**. Reubicar la sesión desde el CONNECT no es un adorno para que Home enseñe bien el coche: es la
+mal**. Corregir la sesión desde el CONNECT no es un adorno para que Home enseñe bien el coche: es la
 **precondición para publicar la plaza correcta**. Si el CONNECT en B reubica antes de arrancar, la
 salida publica B, que es lo que el producto promete.
 
@@ -158,21 +158,57 @@ Dos matices que la regla necesita para no empeorar el caso normal:
    punto exacto desde un fix cacheado sería afirmar precisión que no tenemos — la misma línea que
    `ROUTE-GAP-HONEST-001` y que la prohibición de inventar radios.
 
-**Y dónde aplicarla, que es la decisión de verdad.** Hay dos formas de conseguir que la salida de B
+**Y dónde aplicarla, que es la decisión de verdad.** Tres formas de conseguir que la salida de B
 publique B:
 
-- **(a) Reubicar la SESIÓN cuando el connect la desmiente.** El publicador no se toca: sigue leyendo
-  `session.location`, sólo que ahora dice la verdad. Además se arreglan a la vez el pin de Home, el
-  historial y la geocerca.
-- **(b) Que el publicador lea el fix del connect** en vez de la sesión, sólo en el carril BT.
+- **(a) Que el publicador lea el fix del connect** en vez de la sesión, sólo en el carril BT.
+- **(b) Reubicar la SESIÓN de A** — mismo id, otra ubicación.
+- **(c) SESIÓN NUEVA en B**: cerrar la de A sin publicar y abrir una nueva donde el connect dice que
+  está el coche.
 
-**(a) es la buena**, y (b) es un parche con forma de arreglo: si sólo cambiamos el publicador, la
-plaza sale bien pero **Home te sigue enseñando el coche en A** — el usuario ve una mentira mientras
-la comunidad recibe la verdad. Un invariante, un sitio.
+**(c) es la buena, y es la que pide el user (09-09).** Descartadas las otras dos con su razón:
 
-⚠️ Esto convierte la decisión **B** de abajo («¿sustituye la ubicación de una sesión activa?») en la
-decisión CENTRAL del ticket, ya no en una duda lateral. Y sigue chocando con `sessionStartMs` y el
-gate de identidad de `DET-BT-VETO-MUST-NOT-ORPHAN-A-SESSION-001`: reubicar ≠ cerrar y abrir otra.
+- **(a) es un parche con forma de arreglo**: la plaza saldría bien, pero **Home te seguiría enseñando
+  el coche en A**. La comunidad recibiría la verdad y el dueño la mentira.
+- **(b) deja la sesión mintiendo en todo lo demás**: su hora de inicio, su duración y su ruta
+  seguirían describiendo el aparcamiento de A, que no es éste. Reubicar arregla un campo y corrompe
+  los otros cinco.
+- **(c) es lo que de verdad pasó**: *el coche fue aparcado en B, por otra persona, y nos enteramos
+  ahora*. Una sesión nueva tiene legítimamente su propio inicio, y de paso **no mueve
+  `sessionStartMs` de la vieja** — que era el choque con
+  `DET-BT-VETO-MUST-NOT-ORPHAN-A-SESSION-001`. Reutiliza además maquinaria ya probada: la rama de
+  re-park de `ConfirmParkingUseCase` ya cierra la sesión anterior **sin publicar** y le quita su
+  geocerca huérfana.
+
+**Y aquí está lo que mata el falso positivo, que es más importante que la sesión nueva:** la sesión
+de A tiene que cerrarse **sin publicar nada**. No porque la plaza de A no exista —existe, la liberó
+quien se llevó el coche— sino porque **no sabemos cuándo se liberó**: nadie lo vio. Anunciarla como
+recién liberada es exactamente la mentira. El filtro de frescura no puede protegernos aquí, porque
+mide desde NUESTRA salida, no desde la real.
+
+Tres condiciones para que la sesión nueva no abra un agujero nuevo:
+
+1. **No puede afirmar un aparcamiento MEDIDO.** Nadie midió ese park; sale de un fix cacheado. Zona,
+   fiabilidad baja, y **no publica nada por sí misma**: publicará cuando el usuario salga de B, que
+   eso sí se mide al conducir. Si no, se reabre justo lo que cerró
+   `DET-BT-A-RIDE-IS-MEASURED-NOT-TIMED-001`.
+2. **Se dispara con la DISCREPANCIA, no siempre.** Si el connect cae donde ya dice la sesión, no pasa
+   nada: la sesión sigue y su pin es mejor dato.
+3. **Sin preguntar en el peor momento.** En el CONNECT el usuario está arrancando; ahí no se
+   interrumpe. Se mide en el connect y se decide después, como manda su propia regla.
+
+## Plan: dos mitades con riesgos muy distintos
+
+**Mitad 1 — el guard (barato, seguro, primer paso implementable).** Si el connect dice que el coche
+no está donde dice la sesión, esa sesión **no puede publicar plaza al cerrarse**. Mata el falso
+positivo, no inventa ninguna posición, y **no depende de ninguna de las tres decisiones abiertas**.
+Asimétricamente seguro: como mucho deja de publicar una plaza que sí era buena — un falso negativo,
+que es el lado correcto.
+⛔ Sigue sin saberse **con qué frecuencia muerde hoy**: eso es campo. Pero el guard no necesita
+saberlo para ser correcto.
+
+**Mitad 2 — la sesión nueva en B (grande).** Toca el radio de zona, el gate de identidad del ticket
+del veto y la fiabilidad con la que nace. Necesita las tres decisiones abiertas y el viaje.
 
 ⛔ Alcance: sólo aplica al carril BT, que es donde existe un connect. Un vehículo sin MAC no tiene
 esta señal y su sesión sigue siendo la única respuesta.
@@ -194,17 +230,21 @@ sin guardar nada todavía; se decide en el DISCONNECT.*
 4. **Ni una plaza a la comunidad por este camino.** La posición es evidencia; el viaje, no. Lo que
    se publica al salir depende de la salida, y aquí no hay salida medida de nadie.
 5. **Si ya hay sesión activa para ese coche y el CONNECT cae lejos de ella**, el enganche es la única
-   prueba de que la sesión vieja miente. Es el caso del padre. Decidir si eso es (a) preguntar con
-   la posición nueva, (b) marcar la sesión como dudosa, o (c) no hacer nada hasta el disconnect.
-   Mi lectura: (a), y sólo en el disconnect — el CONNECT no habla.
+   prueba de que la sesión vieja miente. Es el caso del padre, y ya **no es una duda abierta**:
+   se resuelve arriba (§*Plan: dos mitades*) — primero el guard que le prohíbe publicar, después la
+   sesión nueva en B. Se decide con la DISCREPANCIA, y nunca interrumpiendo en el connect.
 
 **Decisiones abiertas:**
 
 - **A. Alcance de radio como número.** No lo tenemos medido. Clase 2 nominal ~10 m, en la práctica
   más y muy variable según coche y móvil. ⛔ No inventarlo: o se mide en campo con los dos móviles,
   o el radio se sostiene sólo sobre accuracy+edad y se declara así.
-- **B. ¿Reemplaza la ubicación de una sesión activa, o sólo pregunta?** Toca `sessionStartMs` y con
-  él el guard de `DET-BT-VETO-MUST-NOT-ORPHAN-A-SESSION-001`. No decidir sin leer ese ticket entero.
+- **B. ~~¿Reemplaza la ubicación de una sesión activa, o sólo pregunta?~~ DECIDIDA (09-09): ni una
+  cosa ni la otra — sesión NUEVA en B**, cerrando la de A sin publicar (§*Plan: dos mitades*). Lo que
+  queda de esta decisión es sólo su mitad 2: con qué fiabilidad y qué radio nace esa sesión. Al no
+  tocar el `sessionStartMs` de la sesión vieja, deja de chocar de frente con
+  `DET-BT-VETO-MUST-NOT-ORPHAN-A-SESSION-001` — pero ese ticket sigue habiendo que leerlo entero
+  antes, porque el gate de identidad lee el sello del CONNECT que aquí se usa.
 - **C. ¿Se ancla también el nudge del carril COORDINATOR**, o sólo el del BT? El coordinator suele
   tener mejor posición que este fix cacheado; anclarlo a lo peor sería un retroceso.
 
