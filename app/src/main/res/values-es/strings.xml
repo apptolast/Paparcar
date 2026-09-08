@@ -75,4 +75,12 @@
     <!-- Plus zone alert [MONEY-001] -->
     <string name="notif_zone_spot_title">Plaza libre en %1$s</string>
     <string name="notif_zone_spot_text">Alguien acaba de irse — abre el mapa para verla</string>
+
+    <!-- Home-screen widget [WIDGET-PARKED-001] -->
+    <string name="widget_label">Coche aparcado</string>
+    <string name="widget_description">Mira de un vistazo dónde dejaste el coche</string>
+    <string name="widget_empty_title">Ningún coche aparcado</string>
+    <string name="widget_empty_hint">Aparca y este widget te dirá dónde</string>
+    <string name="widget_location_pending">Ubicación guardada</string>
+    <string name="widget_more_parked">+%1$d más</string>
 </resources>

@@ -30,6 +30,7 @@ import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import com.rndeveloper.paparcar.domain.preferences.ThemeMode
 import com.rndeveloper.paparcar.domain.usecase.detection.isFirstParkNudgeSpent
 import com.rndeveloper.paparcar.logging.FileAntilog
+import com.rndeveloper.paparcar.widget.ParkedWidgetRefresher
 import org.koin.android.ext.android.get
 import org.koin.android.ext.koin.androidContext
 
@@ -134,6 +135,11 @@ class PaparcarApp : Application() {
         // stamp it into parkdiag + diagnostics, once per historical exit. A field gap can only
         // cite its cause if the cause was recorded before anyone knew the gap would matter.
         get<ProcessDeathAttributor>().reportPendingDeaths()
+
+        // [WIDGET-PARKED-001] Home-screen widget: re-render on every parked-state change. The
+        // state only changes from this process, so the observer covers all transitions; the
+        // provider's updatePeriodMillis floors the process-death case.
+        ParkedWidgetRefresher(this, get(), get()).start()
 
         // Daily cold-start nudge for users who enabled detection but never parked with it — and the
         // removal of that clock once the nudge is permanently spent (park confirmed / cap

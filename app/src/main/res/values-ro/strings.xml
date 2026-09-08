@@ -73,4 +73,12 @@
     <!-- Plus zone alert [MONEY-001] -->
     <string name="notif_zone_spot_title">Loc liber în %1$s</string>
     <string name="notif_zone_spot_text">Cineva tocmai a plecat — deschide harta</string>
+
+    <!-- Home-screen widget [WIDGET-PARKED-001] -->
+    <string name="widget_label">Mașină parcată</string>
+    <string name="widget_description">Vezi dintr-o privire unde ai lăsat mașina</string>
+    <string name="widget_empty_title">Nicio mașină parcată</string>
+    <string name="widget_empty_hint">Parchează și acest widget îți arată unde</string>
+    <string name="widget_location_pending">Locație salvată</string>
+    <string name="widget_more_parked">+%1$d în plus</string>
 </resources>

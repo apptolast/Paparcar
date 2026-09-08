@@ -73,4 +73,12 @@
     <!-- Plus zone alert [MONEY-001] -->
     <string name="notif_zone_spot_title">Vrije plek in %1$s</string>
     <string name="notif_zone_spot_text">Er is net iemand vertrokken — open de kaart</string>
+
+    <!-- Home-screen widget [WIDGET-PARKED-001] -->
+    <string name="widget_label">Geparkeerde auto</string>
+    <string name="widget_description">Zie in één oogopslag waar je auto staat</string>
+    <string name="widget_empty_title">Geen auto geparkeerd</string>
+    <string name="widget_empty_hint">Parkeer en deze widget laat zien waar</string>
+    <string name="widget_location_pending">Locatie opgeslagen</string>
+    <string name="widget_more_parked">+%1$d meer</string>
 </resources>

@@ -137,9 +137,18 @@ hosting** (`firebase deploy --only hosting` por CLI) para publicar la política 
 
 ### A2 · WIDGET-PARKED-001 — el widget del aparcamiento activo (del roadmap padre, P2)
 
-**Objetivo.** Widget Android con dirección + tiempo transcurrido + tap que abre el mapa. Cero
-backend. Refuerza la promesa que se vende ("encuentra tu coche"). Glance o RemoteViews a decidir en
-su ticket; lee la sesión activa de Room (misma consulta que Home), nunca dispara detección.
+**Estado: ✅ EN MASTER** (08-09) — ficha completa en [`widget-parked-001.md`](widget-parked-001.md).
+
+**Objetivo.** Widget Android con coche + dirección + hora y tap que abre el mapa centrado en el
+pin. Cero backend; lee Room vía los repos, nunca dispara detección.
+
+**Lo que quedó:** **Glance 1.2.0** (estable). Qué se muestra lo decide `resolveParkedWidgetState`
+(puro, commonMain, 6 tests): con varios coches gana el más reciente (+N), calle null →
+"Ubicación guardada". **Hora ABSOLUTA en vez de "hace X"** (desviación deliberada: un relativo
+congelado entre refrescos de 30 min miente). Tap = el mismo intent `EXTRA_FOCUS_LAT/LON` de las
+notificaciones. Refresco: `ParkedWidgetRefresher` observa los flows desde `PaparcarApp` (el estado
+solo cambia desde nuestro proceso) + `updatePeriodMillis` como suelo tras process death. Strings ×9
+en `app/src/main/res`. ⏳ En mano: colocar el widget en un `/run` y ver el ciclo aparcar→liberar.
 
 ---
 

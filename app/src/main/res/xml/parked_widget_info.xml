@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- [WIDGET-PARKED-001] Home-screen widget: which car is parked, where, since when.
+     updatePeriodMillis (30 min, the platform minimum) is only the floor for renders lost to
+     process death — real refreshes come from ParkedWidgetRefresher on every state change. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="180dp"
+    android:minHeight="40dp"
+    android:targetCellWidth="3"
+    android:targetCellHeight="1"
+    android:resizeMode="horizontal|vertical"
+    android:updatePeriodMillis="1800000"
+    android:initialLayout="@layout/glance_default_loading_layout"
+    android:description="@string/widget_description"
+    android:widgetCategory="home_screen" />

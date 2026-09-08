@@ -120,6 +120,20 @@
             android:permission="com.google.android.gms.permission.ACTIVITY_RECOGNITION">
         </receiver>
 
+        <!-- [WIDGET-PARKED-001] Home-screen widget del aparcamiento activo. exported=false: el
+             sistema entrega APPWIDGET_UPDATE igualmente; nadie más tiene que poder. -->
+        <receiver
+            android:name=".widget.ParkedWidgetReceiver"
+            android:exported="false"
+            android:label="@string/widget_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/parked_widget_info" />
+        </receiver>
+
         <!-- BootCompletedReceiver — re-arms geofences/AR/workers after the events that wipe them:
              reboot, app update (MY_PACKAGE_REPLACED drops Play Services geofences) and, on
              Android 15+, the synthetic BOOT_COMPLETED delivered when leaving the force-stopped

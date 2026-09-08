@@ -214,6 +214,9 @@ dependencies {
     // Koin Android (startKoin from the Application classes)
     implementation(libs.koin.android)
 
+    // Home-screen widget del aparcamiento activo. [WIDGET-PARKED-001]
+    implementation(libs.glance.appwidget)
+
     debugImplementation(libs.ui.tooling)
 }
 
