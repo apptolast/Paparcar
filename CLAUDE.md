@@ -197,6 +197,13 @@ color: el estado se escribe, no se tiñe).
   Resources, no `android:strings`: **no desescapa `\'`** y el usuario lee la barra
   («Paparcar\'s»). Medido en el `.cvr` del APK: `\n` sí se desescapa y el apóstrofo crudo sale
   limpio; `\'` es el único roto. Muerde en EN (contracciones) y FR/IT (elisiones).
+- **Un `%` literal se escribe `%`, nunca `%%`** [COPY-PERCENT-IS-NOT-ESCAPED-001]. Misma familia
+  que lo anterior y misma causa: el formateo de Compose Resources **no es `String.format`**. Leído
+  en la fuente de `components-resources` 1.12 (`StringResourcesUtils.kt`), es un solo
+  `Regex("""%(\d+)\$[ds]""").replace(...)` — sustituye `%1$s` / `%1$d` y **no toca nada más**. O sea:
+  `%%` sale impreso como `%%` (así salió «−41%%» en el badge de ahorro), y un `%` suelto es seguro,
+  no puede petar porque no hay `Formatter` que valide. Solo existen `$s` y `$d`: `%1$f` no se
+  sustituye — formatea el número en Kotlin y pásalo como `$s`.
 
 ### ⛔ Vocabulario: PLAZA es de la comunidad, APARCAMIENTO es tuyo [COPY-SPOT-IS-NOT-A-PARKING-001]
 Los dos conceptos centrales del producto se llamaban igual, y en el mismo flujo: la acción de

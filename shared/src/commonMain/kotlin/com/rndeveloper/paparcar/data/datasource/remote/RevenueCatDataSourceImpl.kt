@@ -7,6 +7,7 @@ import com.revenuecat.purchases.kmp.ktx.awaitLogIn
 import com.revenuecat.purchases.kmp.ktx.awaitLogOut
 import com.revenuecat.purchases.kmp.ktx.awaitOfferings
 import com.revenuecat.purchases.kmp.ktx.awaitPurchase
+import com.revenuecat.purchases.kmp.ktx.awaitRestore
 import com.revenuecat.purchases.kmp.models.CustomerInfo
 import com.revenuecat.purchases.kmp.models.Offerings
 import com.revenuecat.purchases.kmp.models.Package
@@ -64,6 +65,8 @@ class RevenueCatDataSourceImpl : RevenueCatDataSource {
     }
 
     override suspend fun getOfferings(): Offerings = Purchases.sharedInstance.awaitOfferings()
+
+    override suspend fun restore(): CustomerInfo = Purchases.sharedInstance.awaitRestore()
 
     override suspend fun purchase(pkg: Package): CustomerInfo =
         Purchases.sharedInstance.awaitPurchase(pkg).customerInfo

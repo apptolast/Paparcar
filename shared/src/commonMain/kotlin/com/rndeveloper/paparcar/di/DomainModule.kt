@@ -20,9 +20,10 @@ import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import com.rndeveloper.paparcar.domain.repository.ZoneRepository
 import com.rndeveloper.paparcar.domain.event.MapFocusEventBus
 import com.rndeveloper.paparcar.domain.event.StartAddParkingEventBus
-import com.rndeveloper.paparcar.domain.usecase.entitlement.IsStoreAvailableUseCase
+import com.rndeveloper.paparcar.domain.usecase.entitlement.GetPlusOffersUseCase
 import com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase
 import com.rndeveloper.paparcar.domain.usecase.entitlement.PurchasePlusUseCase
+import com.rndeveloper.paparcar.domain.usecase.entitlement.RestorePurchasesUseCase
 import com.rndeveloper.paparcar.domain.usecase.zone.ObserveZoneSpotAlertsUseCase
 import com.rndeveloper.paparcar.domain.usecase.zone.SaveOrUpdateZoneUseCase
 import com.rndeveloper.paparcar.domain.usecase.zone.SaveZoneUseCase
@@ -82,7 +83,8 @@ val domainModule = module {
     // Entitlement UseCases — Paparcar Plus [MONEY-001]
     factory { ObserveIsPlusUseCase(entitlementRepository = get()) }
     factory { PurchasePlusUseCase(entitlementRepository = get()) }
-    factory { IsStoreAvailableUseCase(entitlementRepository = get()) }
+    factory { GetPlusOffersUseCase(entitlementRepository = get()) }
+    factory { RestorePurchasesUseCase(entitlementRepository = get()) }
 
     // Zone UseCases
     factory { SaveZoneUseCase(repository = get(), authRepository = get()) }

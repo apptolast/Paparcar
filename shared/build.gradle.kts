@@ -123,7 +123,6 @@ kotlin {
             // Paywall con plantilla remota. `implementation` a propósito, contra la norma
             // `api` de este bloque: sólo lo consume PaywallScreen y sus tipos no cruzan
             // a :app. [MONEY-001]
-            implementation(libs.purchases.ui)
 
             // Logging — Napier (KMP structured logger)
             api(libs.napier)

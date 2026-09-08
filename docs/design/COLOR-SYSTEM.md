@@ -141,55 +141,52 @@ punto + pill) — decisión reafirmada en device el 28-08 tras probar la alterna
 rótulo "APARCADO ACTUALMENTE" sigue NEUTRO — es estado, ver §3.1; sólo su punto pulsante lleva la
 identidad. [UI-HISTORY-IDENTITY-AND-SOURCE-001][VEH-STATS-SAY-SOMETHING-USEFUL-001]
 
-| Token | Dark | Light |
+> 🔑 **El metal es EL MISMO en los dos temas, y eso es doctrina, no comodidad.**
+> [UI-PLUS-THE-METAL-IS-AN-OBJECT-NOT-A-BACKGROUND-001]
+>
+> Tuvo piernas claras y fueron un error, revocado en device («en tema claro chirría bastante»).
+> Dos motivos:
+> - **Una pierna de tema existe para que un color siga siendo legible contra la SUPERFICIE de
+>   detrás. Esta superficie es opaca y trae su propia tinta**, así que no tiene contra qué seguir
+>   siendo legible. Es un OBJETO sobre la página, no un fondo. Una chapa cepillada no cambia de
+>   aleación cuando enciendes la luz.
+> - Las piernas claras vivían a L\*25-49 sobre una página a L\*98: **59 L\* por debajo**. En oscuro
+>   el metal queda POR ENCIMA de la página y se lee como objeto iluminado; en claro quedaba muy por
+>   debajo y se leía como un agujero en sombra. El metal es brillante porque REFLEJA.
+>
+> ⚠️ Y la causa de que se fueran oscuras conviene recordarla: la superficie tomaba su tinta de
+> `colorScheme.onPrimary`, que en tema claro es **blanca**, y con tinta blanca el lecho TIENE que
+> ser oscuro. Se dobló el lecho para encajar una tinta PRESTADA. Por eso existe ahora el rol
+> `premiumInk`: la tinta es propiedad de esta superficie, no del primary del tema.
+
+| Token / rol | Valor (ambos temas) | Medida |
 |---|---|---|
-| `papCarBlue` (BT, theme-aware) | `#5B9EFF` (7.0:1 sobre `PapInk`) | `#0057CA` (6.5:1 sobre blanco) |
-| `PapLiveMap` (movimiento, fija solo-mapa) | `#2F6BFF` | `#2F6BFF` |
-| `vehicleIdentityContainer(watch)` / `onVehicleIdentityContainer(watch)` — relleno SÓLIDO de una tarjeta que ES un coche (la sesión viva del historial), y su color de contenido. Nace porque `primaryContainer` solo existe en verde: un coche BT anunciaba su sesión viva en el color del tier asistido. Se probó un wash traslúcido de la identidad y se descartó en device: la tarjeta viva tiene que leerse RELLENA. **Desde la fase 2 la pierna verde tiene su PROPIA cama** (`PapWatchGreenMuted` / `PapWatchGreenContainerLight` + `PapOnWatchGreenContainerLight`): era el `primaryContainer` del esquema, y al separarse los verdes eso habría rellenado la tarjeta de un coche vigilado con el verde de MARCA mientras su punto y su borde ya eran teal. | `PapBlueMuted` + `papCarBlue` | `PapBlueContainerLight` + `PapOnBlue` |
+| `premiumSweep.shadow` · `PapPremiumDeep` | `#36AA67` | L\*62,1 · C\*54,0 · 0,0° de la marca |
+| `premiumSweep.bed` · `PapPremiumBed` | `#44C479` | L\*70,9 · C\*58,8 · 0,0° |
+| `premiumSweep.sheen` · `PapPremiumSheen` | `#63F49D` | L\*86,9 · C\*65,5 · **0,1° del verde del LOGO** |
+| `premiumInk` | `PapInk` | 6,40:1 en la parada peor |
+| `premiumEdge` | blanco (oscuro) / `PapPremiumDeep` (claro) | ver abajo |
 
-### 3.0-bis Paparcar Plus lleva la MARCA con un acabado [UI-COLOR-PLUS-WEARS-THE-BRAND-WITH-A-FINISH-001]
+El **brillo se calibró contra el verde del LOGO** (`#25F48C`), no contra la pierna clara de la
+marca: el logo es el verde que el usuario reconoce y tampoco se invierte con el tema. Comparar la
+croma de un lecho de luminosidad media contra `PapGreenLight` (una pierna profunda, con la croma
+limitada por el gamut a esa luminosidad) era comparar peras con manzanas — justo lo que las
+matemáticas en Lab existen para evitar.
 
-Plus **no es una cuarta identidad**. Un verde plano nuevo tendría que guardar ≥14° de hue de los
-otros tres, y en el espectro verde no queda hueco entre fresh (h≈128), marca (h≈151) y watch
-(h≈166): meter uno ahí sería exactamente el "mismo color, más flojo" que la doctrina de los tres
-verdes existe para matar.
+⚠️ El **filo** sí cambia con el tema, y por una razón física, no decorativa: en oscuro es blanco
+(la esquina iluminada del metal); sobre página blanca un filo blanco es invisible y deja el card
+sin contorno, así que allí el filo es el tono de sombra del propio barrido — la misma idea (el
+borde que se aparta de la luz) apuntando al otro lado.
 
-Así que lo premium lo lleva el **ACABADO, no el hue**: un barrido metálico diagonal
-`profundo → luz → profundo` en el verde DE MARCA. Un degradado es lo que se lee como metal; un
-tono plano nunca.
-
-⛔ **Es una superficie RELLENA de marca, y por eso el contenido se invierte**: `PapPremiumSurface`
-aporta `onPrimary` como color de contenido, el tile del icono va al revés (cama de tinta, glifo
-verde) y el CTA es `PapPremiumCta` (relleno de tinta, texto verde) — un botón verde sobre verde
-desaparece. Mismo contrato que un `PapPrimaryButton`: tinta oscura sobre verde vivo, 12.97:1.
-
-⚠️ **Dos revocaciones en device viven en estos valores.** v1 salió a 158,8°/161,5° y se leía como
-el teal del coche vigilado. v2 corrigió la hue pero mantuvo el lecho oscuro (L*≈10-18%) "para que
-el texto claro siguiera encima": medía marca y se veía verde bosque — *"sigo viendo teal"*. La
-lección: **a esa luminosidad la hue no se percibe**; si Plus lleva la marca, la marca tiene que
-verse, y lo que se atenúa es el TEXTO, no el verde.
-
-Un único sitio construye el brush: `PapPremiumSurface` (`ui/components/`), que pide los ROLES
-`premiumSweep` / `premiumEdge` — nunca las piernas. Lo usan las tres superficies que venden Plus:
-la fila de Ajustes, el pie del historial gateado y el hero del paywall.
-
-| Token | Dark | Light |
-|---|---|---|
-| `premiumSweep` (rol; barrido metálico de Plus) | `PapPremiumDeep` `#16BC70` → `PapPremiumSheen` (= `PapGreen` `#25F48C`, alias) → `#16BC70` | `PapPremiumDeepLight` `#006B3F` → `PapPremiumSheenLight` `#00874F` → `#006B3F` |
-| `premiumEdge` (rol; el filo pulido) | blanco | blanco |
-| contenido sobre la superficie | `onPrimary` (`PapInk`) — 12,97:1 | `onPrimary` (blanco) — 4,59:1 en la parada más clara |
-
-Las piernas CLARAS son más PROFUNDAS que el verde de marca, no más pálidas: su contenido es
-blanco, y `PapGreenLight` lo lleva a 3,01:1 — suficiente para un glifo, corto para prosa.
 
 ⛔ **Y la restricción es la INVERSA de la del trío**: el premium no debe separarse de la marca, debe
 quedarse ENCIMA (≤7° de hue en Lab, y siempre más cerca de la marca que del teal de vigilancia).
 La primera versión de estos tokens salió a 158,8° y 161,5° — más cerca del teal (167°) que de la
 marca (150°) — y nadie lo detectó: el trío no los mira, precisamente porque premium no es una
 cuarta identidad. Lo vio el user en device y preguntó si habíamos cambiado el verde de la app.
-Ahora lo fija el test `the premium sweep keeps the brand's hue in both themes`. Ojo con las
-piernas CLARAS: un tinte pálido pierde croma y su ángulo de hue en Lab deriva con facilidad — es
-por lo que `#D6F7E6` parecía mint de marca y medía 7,2° fuera.
+Ahora lo fija el test `the premium sweep keeps the brand's hue in both themes`, que desde que el
+metal es único comprueba las MISMAS tres paradas contra las DOS piernas de marca: sin variantes de
+tema, el acabado tiene que vestir la hue de la marca esté en el tema que esté.
 
 ### 3.1 El estado NUNCA tiñe — se escribe y se anima
 

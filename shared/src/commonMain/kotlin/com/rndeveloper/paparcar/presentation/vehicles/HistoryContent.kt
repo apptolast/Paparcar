@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -44,9 +45,10 @@ import com.rndeveloper.paparcar.presentation.vehicles.components.EndedSessionTim
 import com.rndeveloper.paparcar.presentation.vehicles.components.HistoryFilterBar
 import com.rndeveloper.paparcar.presentation.vehicles.components.ActivityCard
 import com.rndeveloper.paparcar.presentation.vehicles.components.ActivityFact
-import com.rndeveloper.paparcar.ui.components.PapIconTile
 import com.rndeveloper.paparcar.ui.components.PapOutlinedCard
-import com.rndeveloper.paparcar.ui.components.PapPremiumCta
+import com.rndeveloper.paparcar.ui.components.PapPremiumEmphasis
+import com.rndeveloper.paparcar.ui.components.PapNavChevron
+import com.rndeveloper.paparcar.ui.theme.PapShapes
 import com.rndeveloper.paparcar.ui.components.PapPremiumSurface
 import com.rndeveloper.paparcar.ui.components.PapScrollToTopButton
 import com.rndeveloper.paparcar.ui.components.PapShimmerBox
@@ -67,7 +69,6 @@ import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.history_active_section
 import paparcar.composeapp.generated.resources.history_activity_title
 import paparcar.composeapp.generated.resources.history_plus_footer_cta
-import paparcar.composeapp.generated.resources.history_plus_footer_hint
 import paparcar.composeapp.generated.resources.history_plus_hidden_count
 import paparcar.composeapp.generated.resources.history_section_label
 import paparcar.composeapp.generated.resources.history_day_full_fri
@@ -427,23 +428,36 @@ private fun PlusHistoryFooter(
     onSeeAll: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Same metallic Plus surface as the Settings row and the paywall hero — one recipe, so the
-    // premium look cannot drift between the places that sell it.
-    // [UI-COLOR-PLUS-WEARS-THE-BRAND-WITH-A-FINISH-001]
+    // The same metal as the paywall, at the SUBDUED weight — because this one interrupts rather
+    // than sells. [UI-PLUS-EMPHASIS-MATCHES-THE-MOMENT-001]
+    //
+    // ⚠️ It used to be a FILLED slab composed as three full-width bands (header · explanation ·
+    // full-width CTA) and it was revoked on device as garish and oversized. The problem was never
+    // the colour — the same green is fine on the paywall. It was that a card whose job is to tap
+    // you on the shoulder while you read a list of parkings was wearing the weight of a card whose
+    // job is to close a sale, and taking a third of the screen to do it.
+    //
+    // So: one row, list-sized, on a tint. The WHOLE card is the tap target, which is what lets the
+    // CTA shrink from a full-width filled button to a line of text with a chevron — the card
+    // already says "this is pressable", so a button inside it was saying it twice.
     PapPremiumSurface(
         modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = PapShapes.card,
+        emphasis = PapPremiumEmphasis.Subdued,
+        onClick = onSeeAll,
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(FOOTER_PAD_DP.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            horizontalArrangement = Arrangement.spacedBy(FOOTER_GAP_DP.dp),
         ) {
-            // Inverted on the filled brand bed: ink tile with a green glyph, ink text, and an
-            // ink-filled CTA — a green button on green would disappear. [MONEY-001]
-            PapIconTile(
-                icon = Icons.Rounded.WorkspacePremium,
-                container = MaterialTheme.colorScheme.onPrimary,
+            // On a TINT the medal goes back to brand green: there is no filled bed to disappear
+            // against here, unlike the Settings row. [UI-PLUS-WEARS-THE-BRANDS-OWN-MARK-001]
+            Icon(
+                imageVector = Icons.Rounded.WorkspacePremium,
+                contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(FOOTER_MARK_DP.dp),
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -453,22 +467,28 @@ private fun PlusHistoryFooter(
                         hiddenCount,
                     ),
                     style = PaparcarType.current.rowTitle,
-                    color = MaterialTheme.colorScheme.onPrimary,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
-                    text = stringResource(Res.string.history_plus_footer_hint),
+                    text = stringResource(Res.string.history_plus_footer_cta),
                     style = PaparcarType.current.caption,
-                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = PapAlpha.body),
-                )
-                Spacer(Modifier.height(10.dp))
-                PapPremiumCta(
-                    label = stringResource(Res.string.history_plus_footer_cta),
-                    onClick = onSeeAll,
+                    color = MaterialTheme.colorScheme.primary,
                 )
             }
+            PapNavChevron()
         }
     }
 }
+
+/** Inner padding of the Plus footer. Matched to the history rows around it, NOT roomier: this
+ *  card sits inside the list and should belong to it. */
+private const val FOOTER_PAD_DP = 14
+
+/** Gap between the footer's glyph, its text and its chevron. */
+private const val FOOTER_GAP_DP = 12
+
+/** Sized to the two text lines beside it, like any other list-row glyph. */
+private const val FOOTER_MARK_DP = 24
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Skeleton loading section

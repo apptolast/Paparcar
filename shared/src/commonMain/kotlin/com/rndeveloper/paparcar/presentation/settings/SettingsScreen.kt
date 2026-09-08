@@ -102,6 +102,7 @@ import com.rndeveloper.paparcar.ui.components.PapListItem
 import com.rndeveloper.paparcar.ui.components.PapNavChevron
 import com.rndeveloper.paparcar.ui.components.PapNavRow
 import com.rndeveloper.paparcar.ui.components.PapOutlinedCard
+import com.rndeveloper.paparcar.ui.components.PapPremiumEmphasis
 import com.rndeveloper.paparcar.ui.components.PapPremiumSurface
 import com.rndeveloper.paparcar.ui.components.PapSectionHeader
 import com.rndeveloper.paparcar.ui.components.PapSectionHeaderRow
@@ -405,46 +406,47 @@ fun SettingsContent(
                 // users get the quiet ACTIVE badge (the row then has nothing to sell, so
                 // it stops being tappable).
                 item {
-                    // The metallic Plus surface — same recipe as the history footer and the
-                    // paywall hero. [UI-COLOR-PLUS-WEARS-THE-BRAND-WITH-A-FINISH-001]
+                    // SUBDUED, the same weight as the history footer — because it is the same
+                    // moment: a row inside a list you are scanning, not a screen you came to in
+                    // order to decide. A filled slab of brand metal here read as an advert
+                    // wedged between the account card and the detection settings.
+                    // [UI-PLUS-EMPHASIS-MATCHES-THE-MOMENT-001]
                     PapPremiumSurface(
                         modifier = Modifier.fillMaxWidth(),
+                        emphasis = PapPremiumEmphasis.Subdued,
                         // Already Plus → nothing left to sell, so the row stops being a door.
                         onClick = if (state.isPlus) null else {
                             { onIntent(SettingsIntent.OpenPlusPaywall) }
                         },
                     ) {
-                        // On the filled brand bed the tile INVERTS — ink container, green glyph —
-                        // and every text takes the surface's ink, which PapPremiumSurface provides.
+                        // On a tint the medal wears the brand green: there is no filled bed for
+                        // it to disappear against, and the row's text goes back to the page's own
+                        // ink like every other Settings row.
+                        // [UI-PLUS-WEARS-THE-BRANDS-OWN-MARK-001]
                         PapListItem(
                             leading = {
-                                PapIconTile(
-                                    icon = Icons.Rounded.WorkspacePremium,
-                                    container = MaterialTheme.colorScheme.onPrimary,
+                                Icon(
+                                    imageVector = Icons.Rounded.WorkspacePremium,
+                                    contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(PLUS_MARK_DP.dp),
                                 )
                             },
                             title = stringResource(Res.string.settings_plus_title),
-                            titleColor = MaterialTheme.colorScheme.onPrimary,
                             subtitle = if (state.isPlus) {
                                 stringResource(Res.string.settings_plus_subtitle_active)
                             } else {
                                 stringResource(Res.string.settings_plus_subtitle_free)
                             },
-                            subtitleColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = PapAlpha.body),
                             trailing = {
                                 if (state.isPlus) {
                                     Text(
                                         text = stringResource(Res.string.settings_plus_badge_active),
                                         style = PaparcarType.current.badge,
-                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        color = MaterialTheme.colorScheme.primary,
                                     )
                                 } else {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onPrimary,
-                                    )
+                                    PapNavChevron()
                                 }
                             },
                         )
@@ -1086,6 +1088,9 @@ private fun settingsSubtitleColor(): Color =
 /** Holgura del contenido con el borde de pantalla y con la cabecera/borde inferior. */
 private val CONTENT_H_PADDING = PaparcarSpacing.lg
 private val CONTENT_V_PADDING = PaparcarSpacing.sm
+
+/** The bare Plus mark, matched to the leading tile it replaced so the row keeps its rhythm. */
+private const val PLUS_MARK_DP = 32
 
 private const val AVATAR_DP = 56
 

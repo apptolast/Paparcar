@@ -43,6 +43,8 @@ import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.connectivity.ConnectivityBannerPhase
 import com.rndeveloper.paparcar.domain.model.CarbodyType
 import com.rndeveloper.paparcar.domain.model.DetectionReliabilityLevel
+import com.rndeveloper.paparcar.domain.model.PlusOffer
+import com.rndeveloper.paparcar.domain.model.PlusPlan
 import com.rndeveloper.paparcar.domain.model.UserProfile
 import com.rndeveloper.paparcar.domain.model.VehicleColor
 import com.rndeveloper.paparcar.domain.model.VehicleParkingFootprint
@@ -226,6 +228,25 @@ private fun detectionSurface(story: DetectionStory) {
 }
 
 private val sampleGps = GpsPoint(40.4165, -3.7030, 12f, 0L, 0f)
+
+// [MONEY-001] Los dos planes tal y como los devolvería la tienda. Mismos números que el
+// FakeEntitlementRepository, para que la galería y el flavor mock cuenten lo mismo.
+// ⛔ Precios de mentira: en producción los pone la tienda y el código nunca los escribe.
+private val samplePlusOffers = listOf(
+    PlusOffer(
+        plan = PlusPlan.MONTHLY,
+        price = "1,99 €",
+        amountMicros = 1_990_000L,
+        freeTrialDays = 7,
+    ),
+    PlusOffer(
+        plan = PlusPlan.YEARLY,
+        price = "13,99 €",
+        amountMicros = 13_990_000L,
+        pricePerMonth = "1,17 €",
+        freeTrialDays = 7,
+    ),
+)
 
 // [SUPPORT-A-REPORT-MUST-SAY-WHAT-WENT-WRONG-001] Una queja como las que llegan de verdad: qué
 // esperaba, qué pasó y cuándo. Es lo que convierte horas de traza en una búsqueda acotada.
@@ -1421,16 +1442,56 @@ private val galleryGroups: List<ScreenGroup> = listOf(
         ),
     ),
     // [MONEY-001] Paparcar Plus: el paywall y las superficies gateadas, en free y en plus.
-    // La variante de paywall con TIENDA es imposible aquí a propósito — el mock nunca configura
-    // el SDK, así que la plantilla remota solo se ve en un prodDebug con la key test_.
+    // Desde UI-PAYWALL-THE-PITCH-IS-OURS-... el paywall es NUESTRO en los dos casos, así que la
+    // galería ya puede enseñar la pantalla real y no solo un sucedáneo sin tienda: lo único que
+    // cambia entre un build que vende y uno que no son los precios, que vienen de la tienda.
     ScreenGroup(
         "Paparcar Plus",
         listOf(
-            // La oferta COMPLETA: hero metálico + comparativa Plus vs Free. Es lo que ve un
-            // build que no puede vender (mock, release sin key); con tienda, la plantilla
-            // remota de RevenueCat toma la pantalla entera y esto no se renderiza. [MONEY-001]
-            Variant("Paywall · oferta completa (sin tienda)") {
-                PaywallContent(state = PaywallState(storeAvailable = false), onIntent = {})
+            // Con planes: comparativa + las dos suscripciones con precio. Los precios salen del
+            // FakeEntitlementRepository — en prod los pone la tienda, nunca el código. [MONEY-001]
+            Variant("Paywall · con planes (anual preseleccionado)") {
+                PaywallContent(state = PaywallState(offers = samplePlusOffers), onIntent = {})
+            },
+            Variant("Paywall · plan mensual elegido") {
+                PaywallContent(
+                    state = PaywallState(
+                        offers = samplePlusOffers,
+                        selectedPlan = PlusPlan.MONTHLY,
+                    ),
+                    onIntent = {},
+                )
+            },
+            Variant("Paywall · comprando (botón en curso)") {
+                PaywallContent(
+                    state = PaywallState(offers = samplePlusOffers, purchasing = true),
+                    onIntent = {},
+                )
+            },
+            Variant("Paywall · compra fallida o cancelada") {
+                PaywallContent(
+                    state = PaywallState(offers = samplePlusOffers, purchaseFailed = true),
+                    onIntent = {},
+                )
+            },
+            // Sin tienda: la comparativa sigue en pie y NO aparece ni un precio. Es lo que ve un
+            // release sin key todavía, y lo que se vería si las ofertas no cargaran.
+            Variant("Paywall · restaurando compra") {
+                PaywallContent(
+                    state = PaywallState(offers = samplePlusOffers, restoring = true),
+                    onIntent = {},
+                )
+            },
+            // El caso honesto: pulsa "ya pagé" y esa cuenta de Google no tiene nada. No es un
+            // error, así que no va en rojo.
+            Variant("Paywall · restaurar no encontró nada") {
+                PaywallContent(
+                    state = PaywallState(offers = samplePlusOffers, restoreFoundNothing = true),
+                    onIntent = {},
+                )
+            },
+            Variant("Paywall · sin tienda (sin ningún precio)") {
+                PaywallContent(state = PaywallState(offers = emptyList()), onIntent = {})
             },
             Variant("Historial free · pie \"Ver todo con Plus\"") {
                 history(

@@ -2,8 +2,10 @@ package com.rndeveloper.paparcar.presentation.paywall
 
 import app.cash.turbine.test
 import com.rndeveloper.paparcar.domain.model.Entitlement
-import com.rndeveloper.paparcar.domain.usecase.entitlement.IsStoreAvailableUseCase
+import com.rndeveloper.paparcar.domain.usecase.entitlement.GetPlusOffersUseCase
 import com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase
+import com.rndeveloper.paparcar.domain.usecase.entitlement.PurchasePlusUseCase
+import com.rndeveloper.paparcar.domain.usecase.entitlement.RestorePurchasesUseCase
 import com.rndeveloper.paparcar.fakes.FakeEntitlementRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -37,7 +39,9 @@ class PaywallViewModelTest {
 
     private fun buildVm() = PaywallViewModel(
         ObserveIsPlusUseCase(entitlementRepo),
-        IsStoreAvailableUseCase(entitlementRepo),
+        GetPlusOffersUseCase(entitlementRepo),
+        PurchasePlusUseCase(entitlementRepo),
+        RestorePurchasesUseCase(entitlementRepo),
     )
 
     @Test
@@ -50,6 +54,45 @@ class PaywallViewModelTest {
         entitlementRepo.emitEntitlement(Entitlement.PLUS)
 
         assertTrue(vm.state.value.isPlus)
+    }
+
+    @Test
+    fun `should_grantPlus_when_theStoreAccountAlreadyOwnsIt`() = runTest {
+        // The reinstall / new-phone case: the user paid, the install knows nothing.
+        entitlementRepo.restoreResult = Result.success(true)
+        val vm = buildVm()
+
+        vm.handleIntent(PaywallIntent.Restore)
+
+        assertEquals(1, entitlementRepo.restoreCallCount)
+        // Plus arrives through the entitlement stream, exactly as a purchase does — which is what
+        // makes the screen dismiss itself without restore needing a success flag of its own.
+        assertTrue(vm.state.value.isPlus)
+        assertFalse(vm.state.value.restoreFoundNothing)
+    }
+
+    @Test
+    fun `should_sayItFoundNothing_when_theStoreAccountOwnsNoSubscription`() = runTest {
+        val vm = buildVm()
+
+        vm.handleIntent(PaywallIntent.Restore)
+
+        assertFalse(vm.state.value.isPlus)
+        assertTrue(vm.state.value.restoreFoundNothing)
+        assertFalse(vm.state.value.restoring)
+    }
+
+    @Test
+    fun `should_sayItFoundNothing_when_theRestoreCallItselfFails`() = runTest {
+        // A network failure and an empty account are the same sentence to the user: we could not
+        // give anything back. Nothing must be granted on a failure.
+        entitlementRepo.restoreResult = Result.failure(IllegalStateException("offline"))
+        val vm = buildVm()
+
+        vm.handleIntent(PaywallIntent.Restore)
+
+        assertFalse(vm.state.value.isPlus)
+        assertTrue(vm.state.value.restoreFoundNothing)
     }
 
     @Test

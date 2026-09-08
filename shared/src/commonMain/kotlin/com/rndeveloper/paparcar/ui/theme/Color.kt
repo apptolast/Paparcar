@@ -2,6 +2,7 @@ package com.rndeveloper.paparcar.ui.theme
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 
@@ -167,42 +168,55 @@ val PapSpotFreshPuck   = Color(0xFF4FA80A)
 // fresh (h≈128), brand (h≈151) and watch (h≈166) — a token squeezed in there would be exactly the
 // "same colour, weaker" mistake the three-greens doctrine was written to kill.
 //
-// So premium is carried by FINISH, not by hue: these two are the shadow and mid stops of a metallic
-// sweep whose highlight is [PapGreen] itself. A gradient is what reads as metal; a single flat tone
+// So premium is carried by FINISH, not by hue: these are the shadow, bed and specular stops of a
+// metallic sweep at the brand's own hue. A gradient is what reads as metal; a single flat tone
 // never does. Only `PapPremiumSurface` builds the brush — nothing else names these.
 // A gradient stop is not a content colour: text on this bed keeps using onSurface/onPrimary.
+//
+// ⛔ THREE device revocations live in this block, and the third is the one worth reading, because
+// the first two were the same mistake mirrored:
+//   1. Shipped at h≈161.5° → read as the WATCHED-VEHICLE teal. Hue fixed.
+//   2. Right hue, bed at L*≈10-18% → read as dark forest. At that luminosity hue is not perceived.
+//   3. Right hue, bed at L*≈76 and C*≈71 — the brand NEON filling a whole card — → «demasiado
+//      cantoso… apenas se le nota el brillo metálico».
+//
+// 🔑 The third revocation is TWO complaints with ONE cause, and it is the lesson this block exists
+// for. `PapGreen` is calibrated as an ACCENT: a button, a glyph, a 2 dp border. The chroma that
+// reads as energetic across 200 px² reads as garish across a 20 000 px² card — AREA AMPLIFIES
+// CHROMA, and the colour doctrine had no rule about that (it governs hue, and the hue was perfect:
+// 0.2° of drift). And because that bed already sat at the top of the lightness range, there was no
+// headroom left ABOVE it for a highlight — you cannot have a specular reflection on a surface that
+// is already at its maximum. Loud and flat were the same defect.
+//
+// So the fix is two-axis, at an unchanged hue: drop the chroma (71 → 55) so the bed reads as
+// BRUSHED brand green rather than neon, and drop the bed so the sweep spans 28 L* instead of 18,
+// leaving room for a narrow specular band.
+//
+// ⚠️ The dark ink is what makes that possible, so do not "fix" it back to light text: with dark
+// content, a brighter band can only IMPROVE contrast. Flip to white ink and every highlight becomes
+// a threat to legibility — which is the trap the dark-bed version (2) fell into.
+// [UI-PLUS-A-BRAND-FILL-IS-NOT-A-METALLIC-FINISH-001]
 
-/** Shadow stop of the Plus metallic sweep, dark theme — a deeper brand green for the sweep to
- *  fall away to, 3.0° from the brand in Lab hue.
+/** Deep stop of the Plus metal — L*62.0 · C*55.0 · 0.0° from the brand. The DARKEST the sweep
+ *  goes: the binding constraint for the ink, which clears 4.5:1 here with room (6.38:1). */
+val PapPremiumDeep   = Color(0xFF39B66E)
+
+/** Bed of the Plus metal — L*70.9 · C*58.8 · 0.0° from the brand. The tone that covers most of a
+ *  card, and therefore the one that decides whether Plus reads calm or loud. Sits between the
+ *  version revoked as garish (L*76 · C*71) and the muted one that followed (L*60 · C*50). */
+val PapPremiumBed    = Color(0xFF44C479)
+
+/** Lit stop of the Plus metal — L*86.1 · C*46.2 · 0.1° from the brand.
  *
- *  ⚠️ Two revocations on device live in this value. It first shipped at 161.5° and read as the
- *  WATCHED-VEHICLE teal. Corrected to the brand's hue it was still wrong, for a different
- *  reason: at L*≈10% a green reads as dark forest whatever its hue measures, so "Plus wears the
- *  brand" was true on paper and invisible on screen. Premium is now a FILLED brand surface —
- *  vivid green carrying dark ink, like the primary button — because that is what "verde marca
- *  metálico" actually looks like. [UI-COLOR-PLUS-WEARS-THE-BRAND-WITH-A-FINISH-001] */
-val PapPremiumDeep        = Color(0xFF16BC70)
-
-/** Highlight stop of the Plus metallic sweep, dark theme — literally [PapGreen], declared as an
- *  ALIAS rather than a second literal holding the same hex. "Plus wears the brand" is not a new
- *  promise at the top of the sweep; it IS the brand, caught by the light. Same pattern as
- *  `PapGreenOutlineLight`. [UI-COLOR-EVERY-HUE-EARNS-ITS-MEANING-001]
+ *  🔑 **Lighter AND less saturated than the bed** (+15 L*, −13 chroma), which is the whole trick:
+ *  a reflection tends toward the colour of the LIGHT, so a desaturating peak reads as light
+ *  landing on green, while a more-saturated one just reads as a greener green. An earlier cut had
+ *  the sheen MORE saturated than the bed and the surface looked like a gradient.
  *
- *  Readable because the CONTENT flips, not because the bed dims: dark ink on this measures
- *  12.97:1, the same contract as a filled primary button. That is the trade the first version got
- *  backwards — it dimmed the bed to keep light text, and lost the brand in the process. */
-val PapPremiumSheen       = PapGreen
-
-/** Shadow stop of the Plus metallic sweep, light theme — 0.8° from `PapGreenLight` in Lab hue.
- *
- *  The light legs are DEEPER than the brand's own fill, not paler, because their content is
- *  white: `PapGreenLight` carries white at only 3.01:1, fine for a glyph and short of the floor
- *  for prose. These two clear it (6.61:1 and 4.59:1) at the brand's hue. */
-val PapPremiumDeepLight   = Color(0xFF006B3F)
-
-/** Highlight stop of the Plus metallic sweep, light theme — the lightest the sweep may go while
- *  white content still clears 4.5:1 (4.59:1). 0.0° from `PapGreenLight`. */
-val PapPremiumSheenLight  = Color(0xFF00874F)
+ *  ⛔ Restraint still applies: this is ONE highlight, not the three bands plus brushed grain that
+ *  were revoked on device as exaggerated. At card size that much light-and-dark reads as stripes.
+ *  What carries the metal is the SHAPE of this band — see `metallicSweep`. */
+val PapPremiumSheen  = Color(0xFF64D48D)
 
 // ── Car blue — the BLUETOOTH-watched vehicle's identity colour. ───────────────────────────────
 // A vehicle's colour is its WATCH METHOD (green = active detection, blue = BT, grey = off) and it
@@ -344,28 +358,66 @@ val PapSpotExpiringContainerLight = Color(0xFFFFDAD6)
 // be the duplicate-hex disease with better manners, which this system exists to prevent.
 
 /**
- * The Plus metallic sweep, resolved for the active theme — shadow → lit → shadow.
+ * The three tones of the Plus metal. [UI-PLUS-THE-METAL-IS-AN-OBJECT-NOT-A-BACKGROUND-001]
  *
- * The ROLE `PapPremiumSurface` asks for, so no feature file ever names a premium leg and picks
- * the theme by hand (the mistake the age pill made for months).
- * [UI-COLOR-THE-RAMP-HAS-ONE-RESOLVER-001] [UI-COLOR-PLUS-WEARS-THE-BRAND-WITH-A-FINISH-001]
+ * ⛔ **The SAME in both themes, on purpose** — this used to have light legs and they were a
+ * mistake, revoked on device with «en tema claro chirría bastante». Two things were wrong:
+ *
+ *  · **A theme leg exists so a colour stays legible against the SURFACE behind it. This surface
+ *    is opaque and carries its own ink, so it has nothing to stay legible against.** It is an
+ *    OBJECT sitting on the page, not a background. A brushed-metal card does not change alloy
+ *    when you turn the lights on.
+ *  · The light legs sat at L*25-49 on a page at L*98 — a 59 L* drop. In the dark theme the metal
+ *    sits ABOVE the page and reads as a lit object; in the light theme it sat far below and read
+ *    as a hole in shadow. Metal is bright because it REFLECTS; a dark slab is not a finish.
+ *
+ * 🔑 The reason the light legs went dark in the first place is worth keeping: the surface took its
+ * content colour from `colorScheme.onPrimary`, which is WHITE in the light theme, and white ink
+ * forces a dark bed. The bed was bent to fit BORROWED ink. Hence [premiumInk] below — the ink is a
+ * property of this surface, not of the theme's primary.
+ *
+ * The sheen is 0.1° from the LOGO's green (`#25F48C`), which is the brand green the user actually
+ * sees — the logo does not theme-invert either.
+ *
+ * This says WHICH greens the finish is made of. It deliberately does NOT say where the highlight
+ * falls or how narrow it is: that is the shape of the reflection, it belongs to the surface, and
+ * `PapPremiumSurface` is the only thing that turns these into a brush.
+ * [UI-COLOR-THE-RAMP-HAS-ONE-RESOLVER-001] [UI-PLUS-A-BRAND-FILL-IS-NOT-A-METALLIC-FINISH-001]
  */
-val premiumSweep: List<Color>
-    @Composable get() =
-        if (MaterialTheme.colorScheme.surface.luminance() < SURFACE_DARK_LUMINANCE) {
-            listOf(PapPremiumDeep, PapPremiumSheen, PapPremiumDeep)
-        } else {
-            listOf(PapPremiumDeepLight, PapPremiumSheenLight, PapPremiumDeepLight)
-        }
+@Immutable
+data class PremiumSweep(val shadow: Color, val bed: Color, val sheen: Color)
+
+val premiumSweep: PremiumSweep
+    @Composable get() = PremiumSweep(PapPremiumDeep, PapPremiumBed, PapPremiumSheen)
 
 /**
- * The polished rim of a Plus surface — the thin bright line along the lit corner of brushed
- * metal. It is WHITE, not the brand green: once the bed itself became the brand green, a
- * brand-green rim had nothing to sit against and vanished. A graphical object (3:1 floor),
- * never text. [UI-COLOR-PLUS-WEARS-THE-BRAND-WITH-A-FINISH-001]
+ * The ink that rides ON the Plus metal — dark in both themes, because the metal is the same in
+ * both. [UI-PLUS-THE-METAL-IS-AN-OBJECT-NOT-A-BACKGROUND-001]
+ *
+ * ⛔ Not `colorScheme.onPrimary`. That is the ink for the THEME's primary fill, and the two only
+ * coincided in the dark theme by luck: in the light theme `onPrimary` is white, and every call
+ * site reading it was writing white text on what should be a bright green surface. Clears 6.40:1
+ * on the darkest stop of the sweep.
+ */
+val premiumInk: Color
+    @Composable get() = PapInk
+
+/**
+ * The polished rim of a Plus surface — the thin line that gives the metal an edge.
+ *
+ * White on a dark page: the lit corner of brushed metal. On a LIGHT page a white rim is invisible
+ * and leaves the card unbounded against the paper, so there the rim is the sweep's own shadow
+ * tone instead — the same physical idea (the edge turning away from the light), pointed the other
+ * way. A graphical object (3:1 floor), never text.
+ * [UI-PLUS-THE-METAL-IS-AN-OBJECT-NOT-A-BACKGROUND-001]
  */
 val premiumEdge: Color
-    @Composable get() = Color.White
+    @Composable get() =
+        if (MaterialTheme.colorScheme.surface.luminance() < SURFACE_DARK_LUMINANCE) {
+            Color.White
+        } else {
+            PapPremiumDeep
+        }
 
 /** Luminance below which a surface counts as "dark" for picking a theme variant. */
 internal const val SURFACE_DARK_LUMINANCE = 0.5f

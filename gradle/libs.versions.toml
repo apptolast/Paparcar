@@ -212,7 +212,6 @@ baselogin = { module = "io.github.apptolast:baselogin", version.ref = "baselogin
 # core en commonMain (repositorio de entitlements + configure); ui se cablea en la
 # fase del paywall. En Android arrastra Play Billing Library al APK. [MONEY-001]
 purchases-core = { module = "com.revenuecat.purchases:purchases-kmp-core", version.ref = "purchases-kmp" }
-purchases-ui = { module = "com.revenuecat.purchases:purchases-kmp-ui", version.ref = "purchases-kmp" }
 
 # ── Android-only: Detección ──────────────────────────────────────────────────
 # Incluye FusedLocationProviderClient + Activity Recognition Transitions API

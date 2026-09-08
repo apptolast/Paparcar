@@ -17,10 +17,9 @@ import com.rndeveloper.paparcar.ui.theme.PapGreenMuted
 import com.rndeveloper.paparcar.ui.theme.PapGreenOutline
 import com.rndeveloper.paparcar.ui.theme.PapGreenOutlineLight
 import com.rndeveloper.paparcar.ui.theme.PapLiveMap
+import com.rndeveloper.paparcar.ui.theme.PapPremiumBed
 import com.rndeveloper.paparcar.ui.theme.PapPremiumDeep
-import com.rndeveloper.paparcar.ui.theme.PapPremiumDeepLight
 import com.rndeveloper.paparcar.ui.theme.PapPremiumSheen
-import com.rndeveloper.paparcar.ui.theme.PapPremiumSheenLight
 import com.rndeveloper.paparcar.ui.theme.PapNeutralOutline
 import com.rndeveloper.paparcar.ui.theme.PapNeutralOutlineLight
 import com.rndeveloper.paparcar.ui.theme.PapOnAmberContainerLight
@@ -150,12 +149,12 @@ class ColorGuardrailTest {
      */
     @Test
     fun `the premium sweep keeps the brand's hue in both themes`() {
-        val stops = listOf(
-            Triple("PapPremiumDeep", PapPremiumDeep, PapGreen),
-            Triple("PapPremiumSheen", PapPremiumSheen, PapGreen),
-            Triple("PapPremiumDeepLight", PapPremiumDeepLight, PapGreenLight),
-            Triple("PapPremiumSheenLight", PapPremiumSheenLight, PapGreenLight),
-        )
+        // ONE set of stops, checked against BOTH brand legs: the metal no longer has theme
+        // variants, so it has to wear the brand's hue whichever theme it is sitting in.
+        val stops = listOf("PapPremiumDeep" to PapPremiumDeep, "PapPremiumBed" to PapPremiumBed, "PapPremiumSheen" to PapPremiumSheen)
+            .flatMap { (name, color) ->
+                listOf(Triple("$name/dark", color, PapGreen), Triple("$name/light", color, PapGreenLight))
+            }
         // Measured on the SAME perceptual axis the trio uses, so "on the brand" and "apart from
         // the brand" are stated in one language instead of two.
         val drifted = stops.mapNotNull { (name, color, brand) ->
@@ -170,6 +169,73 @@ class ColorGuardrailTest {
             "[the Plus sweep has drifted off the brand's hue — a premium finish that leans toward " +
                 "the watch teal reads as the watched-vehicle colour, not as the brand dressed up]\n" +
                 drifted.joinToString("\n"),
+        )
+    }
+
+    /**
+     * **A finish needs somewhere for the light to come from.**
+     *
+     * The hue test above passed with 0.2° of drift while the Plus card was, on device, both
+     * "demasiado cantoso" and visibly flat. Both complaints had one cause and neither was a hue
+     * problem, which is why nothing caught them: the sweep was built out of the brand ACCENT —
+     * `PapGreen` itself at C*≈79 — spread across a whole card, and it sat so high on the lightness
+     * axis (L* 67→85) that there was no headroom left above it for a highlight. You cannot put a
+     * specular reflection on a surface that is already at its maximum.
+     *
+     * So the colour system gains the axis it never had. Hue says what a colour MEANS; this says
+     * whether it can survive being stretched over a card:
+     *  · **chroma** — the accent's saturation is calibrated for a button or a glyph. Area amplifies
+     *    it, so a surface tone has to sit well below the accent or it shouts.
+     *  · **headroom** — the lit stop has to sit ABOVE the bed. A bed at the ceiling has nowhere for
+     *    a highlight to come from, which is the half of the original defect that was invisible.
+     *
+     * ⚠️ The span floor was 22 L* when this test was written, and it was lowered to 10 after the
+     * version that satisfied it — three specular bands plus a brushed grain across 25 L* — was
+     * revoked on device as exaggerated. The lesson is worth keeping straight: the original bug was
+     * never "not enough contrast inside the card", it was **no headroom above the bed**. A big span
+     * was one way to get headroom and it turned out to be the wrong-looking one at card size. What
+     * the guard defends is that a highlight can EXIST, not that it be dramatic.
+     *
+     * [UI-PLUS-A-BRAND-FILL-IS-NOT-A-METALLIC-FINISH-001]
+     */
+    @Test
+    fun `the premium sweep is calmer than the brand accent and leaves room for a highlight`() {
+        // The comparator is the LOGO's green — the one brand green the user actually sees, and the
+        // one that does not theme-invert either. Comparing a mid-lightness bed against the light
+        // theme's deep leg was comparing chroma at two different lightnesses, which is the
+        // apples-to-oranges the Lab maths exists to avoid.
+        val themes = listOf(Quad("shared", PapPremiumDeep, PapPremiumBed, PapPremiumSheen, PapGreen))
+        val failures = themes.flatMap { (theme, shadow, bed, sheen, accent) ->
+            val bedChroma = bed.chroma()
+            val accentChroma = accent.chroma()
+            val span = sheen.lightness() - shadow.lightness()
+            buildList {
+                if (bedChroma > accentChroma * MAX_BED_CHROMA_VS_ACCENT) {
+                    add(
+                        "  $theme bed ${bed.hex()} — C*=${bedChroma.toInt()} against the accent's " +
+                            "${accentChroma.toInt()}: a card-sized fill this saturated reads as garish, " +
+                            "not as premium",
+                    )
+                }
+                if (span < MIN_PREMIUM_LIGHTNESS_SPAN) {
+                    add(
+                        "  $theme sweep spans ${span.toInt()} L* (min " +
+                            "${MIN_PREMIUM_LIGHTNESS_SPAN.toInt()}): the highlight has nowhere to " +
+                            "come from, so the surface reads flat",
+                    )
+                }
+                if (sheen.lightness() <= bed.lightness()) {
+                    add(
+                        "  $theme lit stop ${sheen.hex()} is not above the bed ${bed.hex()}: " +
+                            "a highlight darker than what it crosses is not a highlight",
+                    )
+                }
+            }
+        }
+        assertTrue(
+            failures.isEmpty(),
+            "[the Plus finish has lost its headroom — a premium surface is a CALM bed with a bright " +
+                "band crossing it, not the brand accent enlarged]\n" + failures.joinToString("\n"),
         )
     }
 
@@ -276,6 +342,16 @@ class ColorGuardrailTest {
         )
     }
 
+    /** A sweep and the accent it must stay calmer than — four related colours read together, which
+     *  `Triple` cannot carry. Local to this test; no product code knows it. */
+    private data class Quad(
+        val theme: String,
+        val shadow: Color,
+        val bed: Color,
+        val sheen: Color,
+        val accent: Color,
+    )
+
     private companion object {
         /** Perceptual floors for the three greens. See the test above for why hue is the axis. */
         const val MIN_LAB_DISTANCE = 18.0
@@ -284,6 +360,16 @@ class ColorGuardrailTest {
         /** How far a Plus sweep stop may sit from the brand's hue. Half the trio's separation
          *  floor: comfortably inside "the same green", nowhere near "a different one". */
         const val MAX_PREMIUM_HUE_DRIFT = 7.0
+
+        /** The premium BED may carry at most this share of the brand accent's chroma. The revoked
+         *  version sat at 1.0 — it literally was the accent — and read as garish once stretched
+         *  over a card. Today's bed measures ≈0.64 of it. */
+        const val MAX_BED_CHROMA_VS_ACCENT = 0.80
+
+        /** How much L* the sweep must span. Enough that a sheen exists at all — the flat version
+         *  spanned 18 with its bed at the ceiling — but NOT enough to demand drama: 25 L* across
+         *  three bands was revoked as exaggerated. See the test's note. */
+        const val MIN_PREMIUM_LIGHTNESS_SPAN = 10.0
 
         /**
          * Every accent token in `ui/theme/Color.kt`, with the STORY it tells. Tokens that share a
@@ -337,11 +423,13 @@ class ColorGuardrailTest {
             // Plus wears the BRAND with a metallic finish — stops of a sweep, not a fourth
             // identity, which is why they are absent from the three-greens test above.
             // [UI-COLOR-PLUS-WEARS-THE-BRAND-WITH-A-FINISH-001]
-            Triple("PapPremiumDeep", PapPremiumDeep, "premium-sweep-shadow/dark"),
+            Triple("PapPremiumBed", PapPremiumBed, "premium-sweep-bed"),
+            Triple("PapPremiumDeep", PapPremiumDeep, "premium-sweep-shadow"),
             // declared alias: the sweep's highlight IS the brand green, not a second promise
-            Triple("PapPremiumSheen", PapPremiumSheen, "brand-green/dark"),
-            Triple("PapPremiumDeepLight", PapPremiumDeepLight, "premium-sweep-shadow/light"),
-            Triple("PapPremiumSheenLight", PapPremiumSheenLight, "premium-sweep-mid/light"),
+            // No longer an alias of PapGreen: the highlight now sits BELOW the brand accent, since
+            // the accent at full blast is what made the card garish.
+            // [UI-PLUS-A-BRAND-FILL-IS-NOT-A-METALLIC-FINISH-001]
+            Triple("PapPremiumSheen", PapPremiumSheen, "premium-sweep-sheen"),
             Triple("PapLiveMap", PapLiveMap, "movement-on-map/fixed"),
             Triple("PapNeutralOutline", PapNeutralOutline, "neutral-outline/dark"),
             Triple("PapNeutralOutlineLight", PapNeutralOutlineLight, "neutral-outline/light"),
@@ -406,6 +494,16 @@ class ColorGuardrailTest {
             val (l2, a2, b2) = other.toLab()
             return sqrt((l1 - l2).pow(2) + (a1 - a2).pow(2) + (b1 - b2).pow(2))
         }
+
+        /** Lab chroma — how saturated a colour is, independent of how light it is. The axis the
+         *  premium bed has to stay LOW on, because area amplifies saturation. */
+        fun Color.chroma(): Double {
+            val (_, a, b) = toLab()
+            return sqrt(a.pow(2) + b.pow(2))
+        }
+
+        /** Lab L* — perceptual lightness, the axis a highlight needs room on. */
+        fun Color.lightness(): Double = toLab().first
 
         /** Perceptual hue angle difference in degrees, the axis the separation must live on. */
         fun Color.hueDistanceTo(other: Color): Double {

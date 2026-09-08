@@ -31,6 +31,10 @@ interface RevenueCatDataSource {
 
     suspend fun getOfferings(): Offerings
 
+    /** Asks the store which purchases the signed-in Google account already owns, and re-grants
+     *  the entitlements they imply. Charges nothing. */
+    suspend fun restore(): CustomerInfo
+
     suspend fun purchase(pkg: Package): CustomerInfo
 
     suspend fun logIn(userId: String): CustomerInfo

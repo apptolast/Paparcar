@@ -1,6 +1,7 @@
 package com.rndeveloper.paparcar.domain.repository
 
 import com.rndeveloper.paparcar.domain.model.Entitlement
+import com.rndeveloper.paparcar.domain.model.PlusOffer
 import com.rndeveloper.paparcar.domain.model.PlusPlan
 import kotlinx.coroutines.flow.Flow
 
@@ -11,13 +12,6 @@ import kotlinx.coroutines.flow.Flow
  */
 interface EntitlementRepository {
 
-    /**
-     * Whether the store SDK is actually configured — false in the mock flavor (never calls
-     * `configure()`) and in a release build with no API key yet. Presentation reads this to
-     * decide between the real paywall template and a static fallback, instead of asking the
-     * vendor SDK directly. Constant for the process lifetime: a blank key never becomes one.
-     */
-    val isStoreAvailable: Boolean
 
     /**
      * The user's current entitlement. Emits [Entitlement.FREE] until the store says
@@ -27,10 +21,28 @@ interface EntitlementRepository {
     fun observeEntitlement(): Flow<Entitlement>
 
     /**
+     * The plans the store can currently sell, with their live localised prices.
+     *
+     * Empty is a normal answer, not an error: a build with no API key, or a store that has no
+     * products registered yet, has nothing to offer. The paywall reads that as "show the
+     * comparison, hide the price cards" — it never invents a price to fill the gap. [MONEY-001]
+     */
+    suspend fun loadOffers(): Result<List<PlusOffer>>
+
+    /**
      * Launches the store purchase flow for the given plan. Success means the `plus`
      * entitlement is active; a user-cancelled flow is a failure like any other.
      */
     suspend fun purchasePlus(plan: PlusPlan): Result<Unit>
+
+    /**
+     * Re-grants whatever the signed-in store account already paid for. [MONEY-001]
+     *
+     * Nothing is charged. Returns true when Plus is active AFTER the restore, false when the
+     * account genuinely owns nothing — a distinction the caller needs, because "we found nothing"
+     * is a normal answer that deserves a plain sentence, not an error.
+     */
+    suspend fun restorePurchases(): Result<Boolean>
 
     /**
      * Binds the store identity to the signed-in account's uid, so the subscription follows
