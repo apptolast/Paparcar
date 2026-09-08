@@ -207,7 +207,6 @@ fun VehicleBadgeMarker(
     isBluetoothPaired: Boolean = false,
     color: com.rndeveloper.paparcar.domain.model.VehicleColor? = null,
     contentAlpha: Float = 1f,
-    originDot: Boolean = false,
     /**
      * Which doubt this tag wears — see [VehicleMarkerDoubt] for the three dresses and the rule none
      * of them may break (the carbody never fades).
@@ -278,16 +277,12 @@ fun VehicleBadgeMarker(
                 topLeft = Offset((52f - 5f) * s, (82.5f - 1.6f) * s),
                 size = Size(10f * s, 3.2f * s),
             )
-            // 2 · position dot — the exact ground point. For the departure marker ([originDot]) it's a
-            // blue dot with a white halo: the clear point the trip breadcrumb line starts from. Otherwise
-            // the state-coloured dot, kept opaque even when [contentAlpha] fades the rest. [TRIP-TRAIL-001]
+            // 2 · position dot — the exact ground point, in the state colour and kept opaque even
+            // when [contentAlpha] fades the rest. The trip's ORIGIN is not drawn here: it has been
+            // its own centre-anchored marker ([DepartureDotMarker]) since [DEPART-CONSISTENCY-001],
+            // which is why this tag's blue variant had no caller left. [TRIP-TRAIL-001]
             val dotCenter = Offset(52f * s, TAG_DOT_CY * s)
-            if (originDot) {
-                drawCircle(color = Color.White, radius = TAG_DOT_R * s * ORIGIN_DOT_HALO_SCALE, center = dotCenter)
-                drawCircle(color = PapColor.live, radius = TAG_DOT_R * s * ORIGIN_DOT_SCALE, center = dotCenter)
-            } else {
-                drawCircle(color = borderColor, radius = TAG_DOT_R * s, center = dotCenter)
-            }
+            drawCircle(color = borderColor, radius = TAG_DOT_R * s, center = dotCenter)
             // 3 · the tag — rounded surface card + state/selection border (faded by contentAlpha)
             val tagTopLeft = Offset(10f * s, 6f * s)
             val tagSize = Size(84f * s, 66f * s)
@@ -409,8 +404,6 @@ private const val TAG_DOT_R         = 4.5f  // position-dot radius (viewBox unit
 private const val TAG_DOT_CY        = 80.5f // position-dot centre Y (viewBox units) — the visual ground point
 private const val TAG_SHADOW_ALPHA  = 0.18f
 private const val TAG_DARK_LUMINANCE = 0.5f // theme surface below this ⇒ dark ⇒ ink fill, else white
-private const val ORIGIN_DOT_SCALE      = 1.4f // blue trip-origin dot, larger than the normal dot [TRIP-TRAIL-001]
-private const val ORIGIN_DOT_HALO_SCALE = 1.9f // white halo behind the origin dot
 
 // [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] The unconfirmed dress (viewBox units).
 private const val UNCONFIRMED_TAG_ALPHA = 0.72f // the TAG's fill only — never the carbody
