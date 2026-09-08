@@ -66,7 +66,15 @@ class VehiclesViewModel(
                         // here is what keeps the skeleton from being replaced by a false "no hay
                         // nada". [UI-HISTORY-A-LOADING-LIST-MUST-NOT-CLAIM-TO-BE-EMPTY-001]
                         vId to HistoryState(
-                            timeline = HistoryTimeline.resolve(vSessions, existingFilter, isPlus, nowMs),
+                            timeline = HistoryTimeline.resolve(
+                                sessions = vSessions,
+                                filter = existingFilter,
+                                isPlus = isPlus,
+                                // Consumption, cost and CO₂ are computed with THIS car's figures
+                                // (its override, or the named FuelDefaults). [STATS-UI-001]
+                                vehicle = vws.vehicle,
+                                nowMs = nowMs,
+                            ),
                             activeFilter = existingFilter,
                         )
                     }
@@ -117,7 +125,13 @@ class VehiclesViewModel(
                     val updated = currentHistory.copy(
                         // From the FULL list, never the visible one: re-gating a gated list would
                         // report zero hidden and quietly erase the footer. [MONEY-001]
-                        timeline = HistoryTimeline.resolve(resolved.sessions, intent.filter, isPlus, nowMs),
+                        timeline = HistoryTimeline.resolve(
+                            sessions = resolved.sessions,
+                            filter = intent.filter,
+                            isPlus = isPlus,
+                            vehicle = vehicles.firstOrNull { it.vehicle.id == vehicleId }?.vehicle,
+                            nowMs = nowMs,
+                        ),
                         activeFilter = intent.filter,
                     )
                     copy(historyCache = historyCache + (vehicleId to updated))
@@ -126,6 +140,8 @@ class VehiclesViewModel(
             is VehiclesIntent.ViewOnMap ->
                 sendEffect(VehiclesEffect.NavigateToMap(intent.lat, intent.lon, intent.sessionId))
             is VehiclesIntent.OpenPlusPaywall -> sendEffect(VehiclesEffect.NavigateToPaywall(PaywallReason.HISTORY))
+            is VehiclesIntent.OpenStatsPaywall -> sendEffect(VehiclesEffect.NavigateToPaywall(PaywallReason.STATS))
+            is VehiclesIntent.OpenStatsPanel -> sendEffect(VehiclesEffect.NavigateToStats(intent.vehicleId))
         }
     }
 

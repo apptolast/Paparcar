@@ -72,6 +72,7 @@ import com.rndeveloper.paparcar.presentation.app.SplashViewModel
 import com.rndeveloper.paparcar.presentation.home.HomeScreen
 import com.rndeveloper.paparcar.presentation.map.ParkingHistoryDetailScreen
 import com.rndeveloper.paparcar.presentation.paywall.PaywallScreen
+import com.rndeveloper.paparcar.presentation.stats.StatsScreen
 import com.rndeveloper.paparcar.presentation.vehicles.VehiclesScreen
 import com.rndeveloper.paparcar.presentation.onboarding.OnboardingScreen
 import com.rndeveloper.paparcar.presentation.permissions.PermissionsScreen
@@ -128,6 +129,9 @@ object Routes {
     /** Paparcar Plus paywall — every gate (history footer, zone alerts, Settings) lands here.
      *  [MONEY-001] */
     const val PAYWALL = "paywall"
+    /** The full figures panel, opened from a vehicle's figures card. Carries which car was on
+     *  screen so the panel opens on the same one. [STATS-PANEL-001] */
+    const val STATS = "stats"
 }
 
 private val BOTTOM_NAV_ROUTES = setOf(
@@ -644,8 +648,25 @@ private fun MainAppNavigation(
                             navController.navigate(Routes.VEHICLE_SIZE_EXPLAINER)
                         },
                         onOpenPaywall = { reason -> navController.navigate("${Routes.PAYWALL}?reason=${reason.name}") },
+                        onOpenStats = { vehicleId ->
+                            navController.navigate("${Routes.STATS}?vehicleId=$vehicleId")
+                        },
                     )
                 }
+            }
+            composable(
+                route = "${Routes.STATS}?vehicleId={vehicleId}",
+                arguments = listOf(
+                    navArgument("vehicleId") { type = NavType.StringType; nullable = true; defaultValue = null },
+                ),
+            ) { backStack ->
+                StatsScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onOpenPaywall = { reason -> navController.navigate("${Routes.PAYWALL}?reason=${reason.name}") },
+                    // `read { getStringOrNull(...) }` and not Android's Bundle.getString: this
+                    // graph is commonMain and compiles for iOS too.
+                    vehicleId = backStack.arguments?.read { getStringOrNull("vehicleId") },
+                )
             }
             composable(Routes.SETTINGS) {
                 Box(

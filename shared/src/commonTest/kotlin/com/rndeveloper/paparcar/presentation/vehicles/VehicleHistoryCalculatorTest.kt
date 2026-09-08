@@ -2,6 +2,7 @@ package com.rndeveloper.paparcar.presentation.vehicles
 
 import com.rndeveloper.paparcar.domain.model.AddressInfo
 import com.rndeveloper.paparcar.domain.model.GpsPoint
+import com.rndeveloper.paparcar.domain.usecase.stats.ComputePeriodStatsUseCase
 import com.rndeveloper.paparcar.domain.model.SpotType
 import com.rndeveloper.paparcar.domain.model.UserParking
 import kotlin.test.Test
@@ -79,24 +80,23 @@ class VehicleHistoryCalculatorTest {
         assertEquals(7 * dayMs, currentStart - previous.first)
     }
 
-    // ── computeStats — MIGRATED [STATS-CORE-001]: the cases survive verbatim, now exercising
-    // the domain aggregator through the same derivation the production resolve uses, so the
-    // move could not silently drop a threshold.
+    // ── Threshold cases inherited from the old presentation-side computeStats [STATS-CORE-001].
+    // They asserted through HistoryStatsData while that mapper existed; STATS-UI-001 deleted it
+    // (the figures card reads PeriodStats directly), so they now assert on the aggregate itself —
+    // same inputs, same expectations, one less indirection to drift.
 
-    private val computePeriodStats = com.rndeveloper.paparcar.domain.usecase.stats.ComputePeriodStatsUseCase()
-    private fun legacyComputeStats(sessions: List<com.rndeveloper.paparcar.domain.model.UserParking>) =
-        computePeriodStats(sessions)?.toHistoryStatsData()
+    private val computePeriodStats = ComputePeriodStatsUseCase()
 
 
     @Test
     fun should_returnNull_whenNoSessions() {
-        assertNull(legacyComputeStats(emptyList()))
+        assertNull(computePeriodStats(emptyList()))
     }
 
     @Test
     fun should_suppressFavoriteStreet_whenNoStreetRepeatsThreeTimes() {
         // Winning a 2-1 tie is not a habit — below the threshold nothing is claimed.
-        val stats = legacyComputeStats(
+        val stats = computePeriodStats(
             listOf(
                 session(nowMs - 20 * dayMs, street = "Calle A"),
                 session(nowMs - 19 * dayMs, street = "Calle A"),
@@ -108,7 +108,7 @@ class VehicleHistoryCalculatorTest {
 
     @Test
     fun should_pickFavoriteStreet_whenAStreetReachesThreeSessions() {
-        val stats = legacyComputeStats(
+        val stats = computePeriodStats(
             listOf(
                 session(nowMs - 21 * dayMs, street = "Calle A"),
                 session(nowMs - 20 * dayMs, street = "Calle A"),
@@ -121,7 +121,7 @@ class VehicleHistoryCalculatorTest {
 
     @Test
     fun should_countSpotsReleased_overEndedSessionsOnly() {
-        val stats = legacyComputeStats(
+        val stats = computePeriodStats(
             listOf(
                 session(nowMs - 3 * dayMs, publishedSpot = true),
                 session(nowMs - 2 * dayMs, publishedSpot = false),
@@ -130,23 +130,23 @@ class VehicleHistoryCalculatorTest {
                 session(nowMs, active = true, publishedSpot = true),
             ),
         )
-        assertEquals(2, stats?.spotsReleasedCount)
+        assertEquals(2, stats?.spotsReleased)
     }
 
     @Test
     fun should_suppressAutoShare_whenFewerThanFiveKnownProvenanceSessions() {
-        val stats = legacyComputeStats(
+        val stats = computePeriodStats(
             List(4) { i -> session(nowMs - i * dayMs, detectionPath = DetectionPath.StepsEgress.label) } +
                 // Legacy rows (null path, AUTO_DETECTED) have UNKNOWN provenance — they neither
                 // count toward the threshold nor drag the ratio down.
                 List(10) { i -> session(nowMs - (20 + i) * dayMs) },
         )
-        assertNull(stats?.autoDetected)
+        assertEquals(0, stats?.detectionKnownCount, "below the threshold nothing is claimed")
     }
 
     @Test
     fun should_computeAutoShare_overKnownProvenanceSessions() {
-        val stats = legacyComputeStats(
+        val stats = computePeriodStats(
             listOf(
                 session(nowMs - 6 * dayMs, detectionPath = DetectionPath.StepsEgress.label),
                 session(nowMs - 5 * dayMs, detectionPath = DetectionPath.KinematicEgress.label),
@@ -158,12 +158,13 @@ class VehicleHistoryCalculatorTest {
                 session(nowMs - dayMs),
             ),
         )
-        assertEquals(AutoDetectedShare(auto = 4, known = 5), stats?.autoDetected)
+        assertEquals(4, stats?.autoDetectedCount)
+        assertEquals(5, stats?.detectionKnownCount)
     }
 
     @Test
     fun should_suppressPeakDay_belowFiveEndedSessions() {
-        val stats = legacyComputeStats(
+        val stats = computePeriodStats(
             List(4) { i -> session(nowMs - i * 7 * dayMs) },
         )
         assertNull(stats?.mostActiveDayOfWeek)

@@ -13,6 +13,8 @@ import com.rndeveloper.paparcar.domain.model.Spot
 import com.rndeveloper.paparcar.domain.model.SpotType
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.Vehicle
+import com.rndeveloper.paparcar.domain.model.EnergyLabel
+import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.domain.model.VehicleType
 import com.rndeveloper.paparcar.domain.model.VehicleWithStats
@@ -326,6 +328,11 @@ object FakeData {
         sizeCategory = VehicleSize.MEDIUM_SUV,
         vehicleType = VehicleType.CAR,
         isActive = true,
+        // Powertrain on every preview car since VEH-FUEL-001: without it the aggregate cannot turn
+        // kilometres into litres, cost or CO₂, and every stats surface in the gallery came out
+        // missing its two headline figures — a hole in the FIXTURE that reads as a hole in the UI.
+        fuelType = FuelType.GASOLINE,
+        energyLabel = EnergyLabel.C,
     )
 
     /** BT-configured vehicle — BluetoothDetectionStrategy. Currently parked (has active session). */
@@ -338,6 +345,9 @@ object FakeData {
         vehicleType = VehicleType.CAR,
         bluetoothDeviceId = "AA:BB:CC:DD:EE:FF",
         showBrandModelOnSpot = true,
+        // Hybrid: burns litres and draws no plug — the middle case between the Seat and an EV.
+        fuelType = FuelType.HYBRID,
+        energyLabel = EnergyLabel.ECO,
     )
 
     /** Motorcycle — no BT, manual detection only. Rarely used. */
@@ -349,6 +359,7 @@ object FakeData {
         model = "CBR 600",
         sizeCategory = VehicleSize.MOTORCYCLE,
         vehicleType = VehicleType.MOTORCYCLE,
+        fuelType = FuelType.GASOLINE,
     )
 
     /** Van with BT — BluetoothDetectionStrategy. Moderate use. */
@@ -361,6 +372,8 @@ object FakeData {
         sizeCategory = VehicleSize.VAN_HIGH,
         vehicleType = VehicleType.CAR,
         bluetoothDeviceId = "11:22:33:44:55:66",
+        fuelType = FuelType.DIESEL,
+        energyLabel = EnergyLabel.B,
     )
 
     /** Kept for backwards-compat with previews that reference this name. */

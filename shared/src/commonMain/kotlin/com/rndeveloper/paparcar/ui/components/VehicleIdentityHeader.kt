@@ -68,6 +68,18 @@ fun VehicleIdentityHeader(
      *  fuel data line. Same caption voice; the component stays agnostic of what it says.
      *  [VEH-FUEL-001] */
     metaSecondLine: String? = null,
+    /**
+     * How this car IS right now — "📍 Calle de Alcalá 42 · hace 2 h" when it is parked, "Último
+     * aparcamiento · hace 3 d" when it is not. Not a statistic: it moved here from the ficha's stats
+     * row precisely because "última vez" answers a question about STATE, and sitting among counters
+     * made the card mix the car's whole life with the selected period.
+     *
+     * A slot rather than a String because the parked line carries a place glyph, and this component
+     * has no business knowing what a parking looks like. Its only opinion is the extra air above it:
+     * the two lines over it are attributes of the car, this one is what the car is doing.
+     * [STATS-UI-001] [UI-COLOR-DOCTRINE-001]
+     */
+    statusLine: (@Composable () -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
 ) {
     val watch = vehicle.monitoringStatus().watch()
@@ -76,9 +88,15 @@ fun VehicleIdentityHeader(
     val identity = vehicleIdentityColor(watch)
     val cs = MaterialTheme.colorScheme
 
+    // Centred while the text is short (the Home card: name + status). Once the ficha adds the
+    // vehicle-data lines and the state line, centring floats the glyph halfway down a four-line
+    // block and the card stops reading as "this is the car, and these are its facts": the glyph's
+    // top belongs on the name's line. Derived from the CONTENT so no call site has to know.
+    // (User, 08-09-2026.) [STATS-UI-001]
+    val alignsWithFirstLine = metaSecondLine != null || statusLine != null
     Row(
         modifier = modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = if (alignsWithFirstLine) Alignment.Top else Alignment.CenterVertically,
     ) {
         Box(
             modifier = Modifier
@@ -153,6 +171,10 @@ fun VehicleIdentityHeader(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+            if (statusLine != null) {
+                Spacer(Modifier.height(STATUS_LINE_GAP_DP.dp))
+                statusLine()
+            }
         }
         if (trailing != null) {
             Spacer(Modifier.width(TRAILING_GAP_DP.dp))
@@ -166,6 +188,8 @@ private const val TILE_CORNER_DP = 14
 private const val GLYPH_DP = 44
 private const val TILE_TEXT_GAP_DP = 12
 private const val NAME_META_GAP_DP = 6
+/** A touch more air than between the two attribute lines: the state is a different KIND of fact. */
+private const val STATUS_LINE_GAP_DP = 7
 // 6 — the Home chip's glyph-to-name gap (`CHIP_TOP_GAP_DP`), duplicated as a value rather than
 // shared: it is the same NUMBER, not the same decision, and the chip owns its own rhythm.
 // [UI-VEH-STATUS-IS-A-GLYPH-NOT-A-LABEL-001]

@@ -13,6 +13,7 @@ import com.rndeveloper.paparcar.presentation.map.ParkingHistoryViewModel
 import com.rndeveloper.paparcar.presentation.paywall.PaywallViewModel
 import com.rndeveloper.paparcar.presentation.permissions.PermissionsViewModel
 import com.rndeveloper.paparcar.presentation.bluetooth.BluetoothConfigViewModel
+import com.rndeveloper.paparcar.presentation.stats.StatsViewModel
 import com.rndeveloper.paparcar.presentation.vehicles.VehiclesViewModel
 import com.rndeveloper.paparcar.presentation.settings.SettingsViewModel
 import com.rndeveloper.paparcar.presentation.vehicleregistration.VehicleRegistrationViewModel
@@ -62,6 +63,8 @@ val presentationModule = module {
     viewModelOf(::PermissionsViewModel)
     viewModelOf(::VehicleRegistrationViewModel)
     viewModelOf(::VehiclesViewModel)
+    // Panel de cifras: recibe por parametro el coche que estaba en pantalla. [STATS-PANEL-001]
+    viewModel { params -> StatsViewModel(get(), get(), get(), params.getOrNull()) }
     // vehicleId parameter passed via koinViewModel(parameters = { parametersOf(vehicleId) })
     viewModel { params -> BluetoothConfigViewModel(params.get(), get(), get(), get()) }
 }

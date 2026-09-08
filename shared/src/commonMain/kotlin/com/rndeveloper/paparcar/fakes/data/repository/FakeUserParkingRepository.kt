@@ -23,11 +23,17 @@ import com.rndeveloper.paparcar.domain.detection.DetectionPath
 
 /**
  * Fake repository for tests and debug DI.
- * Vehicles:
- *   mock_vehicle_001 — Seat León, no BT, isActive, most-used
- *   mock_vehicle_002 — Toyota Corolla, BT configured, active session
- *   mock_vehicle_003 — Honda CBR 600, motorcycle, rarely used
- *   mock_vehicle_004 — Ford Transit, van, BT configured, moderate use
+ *
+ * The four cars are four PROFILES, not four copies with different names — each one puts the
+ * vehicle ficha in a state worth looking at on a device: [STATS-UI-001]
+ *   mock_vehicle_001 — Seat León · FULL DATA. Dense and recent, so every figure clears its
+ *                      significance threshold and the free 7-day window is not empty either.
+ *   mock_vehicle_002 — Toyota Corolla · BLUETOOTH. Sessions without a route, so km, CO₂ and cost
+ *                      honestly disappear while the rest of the figures stay.
+ *   mock_vehicle_003 — Honda CBR 600 · EMPTY. No history at all: the empty-state illustration and
+ *                      "aún sin aparcar". Distinct from "hidden behind Plus", which the free
+ *                      window produces on any car whose parkings are all older than 7 days.
+ *   mock_vehicle_004 — Ford Transit · MODERATE. The ordinary middle case.
  */
 class FakeUserParkingRepository(
     private val runtime: DetectionRuntimeState? = null,
@@ -91,7 +97,16 @@ class FakeUserParkingRepository(
             "Av. de la Libertad", "Calle Santa Lucía", "Calle Ganado", "Calle Zarza",
         )
         for (i in 1..65) {
-            val daysAgo = i * 11L
+            // ⛔ NOT `i * 11` days. That spacing put the newest parking ELEVEN days back, so the
+            // free window (7 days) was empty on every car and the ficha opened on "no hay nada"
+            // for the one profile that is supposed to be full. A car in daily use parks several
+            // times a week; the first fortnight of sessions is dense on purpose, and the tail
+            // stretches back two years behind it. [STATS-UI-001]
+            val daysAgo = if (i <= 14) (i - 1) / 2L else 7L + (i - 14) * 11L
+            // The clock hour has to MOVE, or every session lands at the same time of day and
+            // "hora punta" becomes whatever hour the emulator was launched at. A mode plus a
+            // spread is what a real week looks like.
+            val hourJitter = listOf(0L, 0L, 0L, 2L, 5L, 7L, 9L)[i % 7] * 3_600_000L
             add(UserParking(
                 id = "parking_leon_$i",
                 userId = "mock_user_001",
@@ -100,7 +115,7 @@ class FakeUserParkingRepository(
                     36.5920 + (i % 7) * 0.0005,
                     -6.2290 - (i % 5) * 0.0008,
                     10f,
-                    now - daysAgo * 86_400_000L,
+                    now - daysAgo * 86_400_000L - hourJitter,
                     0f,
                 ),
                 isActive = false,
@@ -115,7 +130,9 @@ class FakeUserParkingRepository(
                 // [VEH-STATS-SAY-SOMETHING-USEFUL-001]
                 detectionPath = if (i % 6 == 0) "manual" else "steps+egress",
                 publishedSpot = i % 4 != 0,
-                endedAtMs = now - daysAgo * 86_400_000L + 5 * 3_600_000L,
+                // Varied stays (1 h to 8 h) so the average is a real average, not one number
+                // repeated 65 times.
+                endedAtMs = now - daysAgo * 86_400_000L - hourJitter + (1 + i % 8) * 3_600_000L,
                 routeDistanceMeters = 900f + (i % 9) * 850f,
                 address = AddressInfo(leonStreets[i % 9], "Puerto de Santa María", "Cádiz", "España", "ES"),
             ))
@@ -126,7 +143,9 @@ class FakeUserParkingRepository(
             "Calle Misericordia", "Calle Pagador", "Av. de la Bajamar", "Calle Cruces", "Calle Nevería",
         )
         for (i in 1..45) {
-            val daysAgo = i * 12L
+            // Same fix, gentler: this car is the BT profile (no route, so no km, no CO2 and no
+            // cost), and it needs recent sessions for that ABSENCE to be visible in free.
+            val daysAgo = if (i <= 6) (i - 1) / 2L else 4L + (i - 6) * 12L
             add(UserParking(
                 id = "parking_corolla_$i",
                 userId = "mock_user_001",
@@ -170,33 +189,13 @@ class FakeUserParkingRepository(
             address = AddressInfo("Calle Larga, 43", "Puerto de Santa María", "Cádiz", "España", "ES"),
         ))
 
-        // ── Honda CBR 600 (vehicle_003) — 12 sessions over 1 year ────────────
-        val motoStreets = listOf(
-            "Paseo de la Playa", "Calle Micaela Aramburu", "Plaza de las Galeras", "Ribera del Marisco",
-        )
-        for (i in 1..12) {
-            val daysAgo = i * 30L
-            add(UserParking(
-                id = "parking_moto_$i",
-                userId = "mock_user_001",
-                vehicleId = "mock_vehicle_003",
-                location = GpsPoint(
-                    36.5940 + i * 0.0003,
-                    -6.2270 - i * 0.0005,
-                    15f,
-                    now - daysAgo * 86_400_000L,
-                    0f,
-                ),
-                isActive = false,
-                spotType = SpotType.MANUAL_REPORT,
-                detectionReliability = 1.0f,
-                // All hand-marked, below the auto-share threshold's reach and never publishing —
-                // the moto page demos the facts footer at its emptiest.
-                detectionPath = "manual",
-                endedAtMs = now - daysAgo * 86_400_000L + 26 * 3_600_000L,
-                address = AddressInfo(motoStreets[i % 4], "El Puerto", "Cádiz", "España", "ES"),
-            ))
-        }
+        // ── Honda CBR 600 (vehicle_003) — DELIBERATELY EMPTY ────────────────
+        // A car with no history at all is a state the app has to draw (the empty-state
+        // illustration + "aún sin aparcar" on the identity card), and until now no mock vehicle
+        // was in it: the moto had 12 hand-marked parkings, all older than the free window, which
+        // renders the "hidden by Plus" footer instead — a DIFFERENT state that looks like a bug.
+        // The two must both be reachable in the mock, so this one is now truly empty.
+        // [UI-HISTORY-A-LOADING-LIST-MUST-NOT-CLAIM-TO-BE-EMPTY-001] [STATS-UI-001]
 
         // ── Ford Transit BT (vehicle_004) — 18 sessions over 6 months ────────
         val transitStreets = listOf("Polígono Las Salinas", "Calle Valdés", "Av. de Sanlúcar")

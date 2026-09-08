@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.presentation.vehicles.components
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -48,6 +49,8 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.presentation.vehicles.WeekDayStats
+import kotlin.math.roundToInt
+import com.rndeveloper.paparcar.ui.components.rememberCountUp
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -76,9 +79,6 @@ internal fun ActivityCard(
     // Pre-formatted, locale-correct "8,4 km" of the SCOPED sessions — null hides it (no distance
     // data must render as nothing, never as "0 km"). [VEH-STATS-SAY-SOMETHING-USEFUL-001]
     distanceText: String? = null,
-    // All-history facts (most active day · usual street · auto-detected share), already resolved
-    // to user copy by the caller; each one only exists above its significance threshold.
-    facts: List<ActivityFact> = emptyList(),
 ) {
     // Brand green, on EVERY vehicle's page — the chart is app chrome, not identity anatomy. An
     // identity-tinted chart (blue for BT, neutral for unwatched) was built and REVOKED by the
@@ -94,61 +94,60 @@ internal fun ActivityCard(
             Spacer(Modifier.height(CARD_TITLE_GAP_DP.dp))
             ActivityBarChart(data = data)
         }
-        if (facts.isNotEmpty()) {
-            Spacer(Modifier.height(FACTS_TOP_GAP_DP.dp))
-            ActivityFactsColumn(facts)
-        }
-    }
-}
-
-/** One secondary line under the activity chart — icon + resolved copy. */
-internal data class ActivityFact(val icon: ImageVector, val text: String)
-
-@Composable
-private fun ActivityFactsColumn(facts: List<ActivityFact>) {
-    val cs = MaterialTheme.colorScheme
-    Column(verticalArrangement = Arrangement.spacedBy(FACT_ROW_GAP_DP.dp)) {
-        facts.forEach { fact ->
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(FACT_ICON_GAP_DP.dp),
-            ) {
-                Icon(
-                    imageVector = fact.icon,
-                    contentDescription = null,
-                    tint = cs.onSurfaceVariant,
-                    modifier = Modifier.size(FACT_ICON_DP.dp),
-                )
-                Text(
-                    text = fact.text,
-                    // The `meta` role, kin to the chart labels above — the user weighed the
-                    // `caption` alternative on device (28-08) and preferred this. The DATA
-                    // reading: each line is icon + token + payload, kin to the chart it footers.
-                    style = PaparcarType.current.meta,
-                    color = cs.onSurfaceVariant,
-                    maxLines = 1,
-                )
-            }
-        }
     }
 }
 
 @Composable
 private fun ActivityCardTitle(total: Int, distanceText: String?) {
-    // No icon — the count in primary already carries the visual hierarchy. [CARD-META-POLISH-001]
-    Text(
-        text = buildAnnotatedString {
-            withStyle(SpanStyle(color = PapColor.actionText)) { append("$total ") }
-            append(pluralStringResource(Res.plurals.history_activity_noun, total))
-            if (distanceText != null) {
-                withStyle(SpanStyle(color = MaterialTheme.colorScheme.onSurfaceVariant)) {
-                    append(" · $distanceText")
-                }
+    // Two ends, not one sentence: the count is what the card is ABOUT and the distance is a
+    // qualifier. Run together ("12 aparcamientos · 84,2 km") they read as equals and the eye has to
+    // parse a middle dot to tell them apart; pushed to opposite edges, the hierarchy is the layout.
+    // (User, 08-09-2026.) [ACTIVITY-CARD-TITLE-001]
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(TITLE_GAP_DP.dp),
+    ) {
+        // ⛔ No glyph in front of the count, and the reason is worth keeping: there WAS one for a
+        // few hours on 08-09-2026 — a fixed `TrendingUp`, copied straight out of the HTML mock this
+        // layout came from. A permanently-up arrow has the SHAPE of information, so it reads as a
+        // trend, and half the time it says the opposite of the truth: a month with fewer parkings
+        // than the last still pointed up.
+        //
+        // Making it a real trend was the obvious repair and it is worse. This ticket's own rule for
+        // the figures below is that direction is a shape and never a colour, because up/down is a
+        // judgement the app has no business making — and on parkings it is nakedly false: parking
+        // MORE is not an achievement. It would also put a second comparison language (a tinted
+        // arrow) on a screen that already speaks one (neutral ▲/▼ + percent, in the tiles).
+        //
+        // And the colour settles it: a green glyph in front of a green number spends the accent
+        // twice on one fact. The number IS the fact; a glyph would only be labelling it.
+        // The count climbs to its new value when the period changes, with the same movement the
+        // figures below use — one screen, one speed. The NOUN comes from the target count, not from
+        // the number mid-flight, so it cannot flicker between singular and plural on the way there.
+        val shownTotal = rememberCountUp(total.toFloat()).roundToInt()
+        Text(
+            text = buildAnnotatedString {
+                withStyle(SpanStyle(color = PapColor.actionText)) { append("$shownTotal ") }
+                append(pluralStringResource(Res.plurals.history_activity_noun, total))
+            },
+            style = PaparcarType.current.cardTitle,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
+        )
+        if (distanceText != null) {
+            // A sentence ("56,0 km in 14 of them") cannot be interpolated, so it changes the way a
+            // sentence can. [STATS-PANEL-001]
+            Crossfade(targetState = distanceText, label = "activity_distance") { shown ->
+                Text(
+                    text = shown,
+                    style = PaparcarType.current.caption,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                )
             }
-        },
-        style = PaparcarType.current.cardTitle,
-        color = MaterialTheme.colorScheme.onSurface,
-    )
+        }
+    }
 }
 
 @Composable
@@ -270,17 +269,25 @@ private fun DrawScope.drawBarChart(
 
     val labelHeight = 22.dp.toPx()
     val chartHeight = size.height - labelHeight
-    val barAreaWidth = size.width / data.size
-    // Cap the bar width so a chart with few buckets (e.g. one week into the month) renders a normal,
-    // centred bar instead of a full-width blob. [VEHICLES-REDESIGN-001]
-    val barWidth = (barAreaWidth * BAR_WIDTH_FRACTION).coerceAtMost(MAX_BAR_WIDTH_DP.dp.toPx())
-    val corner = CornerRadius(barWidth / 2f, barWidth / 2f)
+    // ⛔ The GAP is the constant, not the bar. Before, each bucket owned width/n and the bar took a
+    // FRACTION of it, so the spacing between bars grew and shrank with the number of buckets: seven
+    // days sat tight and four weeks floated far apart, and neither reading was the one the chart
+    // meant. Now the breathing room is fixed and the bars share whatever is left — a month renders
+    // wide bars, a week narrow ones, and the rhythm between them never changes.
+    // (User, 08-09-2026.) [VEHICLES-REDESIGN-001]
+    val gap = BAR_GAP_DP.dp.toPx()
+    val barWidth = ((size.width - gap * (data.size - 1)) / data.size).coerceAtLeast(1f)
+    // Rounded like the rest of the app rather than a pill: at a month's width a half-width radius
+    // turns a bar into a capsule that no longer reads as a column. Thin bars still round fully,
+    // because the cap can never exceed half the width. [UI-SHEET-001]
+    val cornerPx = BAR_CORNER_DP.dp.toPx().coerceAtMost(barWidth / 2f)
+    val corner = CornerRadius(cornerPx, cornerPx)
 
     drawGridLines(chartHeight, onSurfaceColor)
 
     data.forEachIndexed { index, item ->
-        val centerX = barAreaWidth * index + barAreaWidth / 2f
-        val barLeft = centerX - barWidth / 2f
+        val barLeft = index * (barWidth + gap)
+        val centerX = barLeft + barWidth / 2f
         val fillRatio = if (maxValue > 0) item.sessions.toFloat() / maxValue else 0f
         // Reserve headroom above the tallest bar so the per-bar count label never clips off the top of
         // the canvas (a full-height bar would push its number to a negative y). [VEHICLES-REDESIGN-001]
@@ -318,6 +325,10 @@ private fun DrawScope.drawBar(
     primaryColor: Color,
     onSurfaceColor: Color,
 ) {
+    // The empty track stays. It was tried without (08-09-2026, at the user's request) and reverted
+    // the same evening: an unfilled bucket that draws NOTHING leaves the chart floating over its
+    // labels, and the eye loses the scale it is comparing the green column against. The track is
+    // the ruler; the fill is the reading.
     drawRoundRect(
         color = onSurfaceColor.copy(alpha = PLACEHOLDER_BAR_ALPHA),
         topLeft = Offset(barLeft, 0f),
@@ -384,10 +395,6 @@ private const val CARD_CORNER_DP = 16
 private const val CARD_INNER_PAD_DP = 16
 private const val CARD_TITLE_GAP_DP = 16     // gap from the card title down to the bars
 // Facts footer — secondary lines under the chart. [VEH-STATS-SAY-SOMETHING-USEFUL-001]
-private const val FACTS_TOP_GAP_DP = 12
-private const val FACT_ROW_GAP_DP = 6
-private const val FACT_ICON_GAP_DP = 6
-private const val FACT_ICON_DP = 14
 private const val CHART_HEIGHT_DP = 120
 // ≤ this many sessions in the selected window → compact summary instead of the full chart. [Task 3]
 private const val LOW_DATA_THRESHOLD = 2
@@ -398,9 +405,12 @@ private const val LOW_ICON_CIRCLE_DP = 44
 private const val LOW_ICON_DP = 22
 private const val BORDER_ALPHA = 0.5f
 private val SUBTITLE_ALPHA = PapAlpha.subtitle
-private const val BAR_WIDTH_FRACTION = 0.45f
+/** Fixed breathing room between bars, whatever the bucket count. */
+private const val TITLE_GAP_DP = 7
+private const val BAR_GAP_DP = 10
+/** Corner of a bar — the app's small-card rounding, capped at half the width for thin bars. */
+private const val BAR_CORNER_DP = 8
 // Max bar width so few-bucket charts don't render one giant full-width bar. [VEHICLES-REDESIGN-001]
-private const val MAX_BAR_WIDTH_DP = 32
 // Tallest bar fills this fraction of the chart height, leaving room for the count label above it.
 private const val BAR_MAX_HEIGHT_FRACTION = 0.82f
 private const val GRID_LINE_COUNT = 3

@@ -467,9 +467,6 @@
     <string name="auth_cd_hide_password">Ascunde parola</string>
 
     <!-- VehicleStatsRow inline cards -->
-    <string name="vehicle_stats_sessions">sesiuni totale</string>
-    <string name="vehicle_stats_last_session">ultima sesiune</string>
-    <string name="vehicle_stats_spots_shared">locuri cedate</string>
     <!-- Auth screens -->
     <string name="auth_header_app_name">Paparcar</string>
     <string name="auth_header_tagline">Găsește-ți locul, împarte spațiul</string>
@@ -627,9 +624,6 @@
     <string name="history_activity_distance_partial">%1$s la %2$d dintre ele</string>
     <string name="history_activity_low_hint">Activitate redusă în această perioadă</string>
     <!-- Facts footer under the activity chart. [VEH-STATS-SAY-SOMETHING-USEFUL-001] -->
-    <string name="history_fact_active_day">Cea mai activă zi: %1$s</string>
-    <string name="history_fact_favorite_street">Strada obișnuită: %1$s</string>
-    <string name="history_fact_auto_detected">Detectate automat: %1$d din %2$d</string>
     <string name="history_activity_title">Activitate</string>
     <string name="history_section_label">Istoric</string>
     <string name="home_vehicle_card_parked_at">Parcat la %1$s</string>
@@ -810,4 +804,33 @@
     <string name="paywall_free_widget">Mașina ta pe ecranul principal</string>
     <string name="paywall_plus_everything">Tot ce are Gratuit</string>
     <string name="settings_add_widget">Adaugă widgetul pe ecranul principal</string>
+    <!-- Vehicle figures block (STATS-UI-001) -->
+    <string name="stats_period_free_window">Ultimele %1$d zile</string>
+    <string name="stats_period_all">Tot istoricul</string>
+    <string name="stats_tile_cost">cost aprox.</string>
+    <string name="stats_tile_co2">CO₂ aprox.</string>
+    <string name="stats_tile_avg_duration">durată medie</string>
+    <string name="stats_tile_peak_hour">ora de vârf</string>
+    <string name="stats_tile_usual_day">ziua obișnuită</string>
+    <string name="stats_tile_favorite_street">strada obișnuită</string>
+    <string name="stats_tile_auto_detected">detectate singure</string>
+    <string name="stats_tile_spots_shared">locuri cedate</string>
+    <string name="stats_value_kg">%1$s kg</string>
+    <string name="stats_value_hours_minutes">%1$d h %2$d min</string>
+    <string name="stats_value_minutes">%1$d min</string>
+    <string name="stats_value_share">%1$d/%2$d</string>
+    <string name="stats_lifetime">Dintotdeauna: %1$s parcări · %2$s locuri cedate</string>
+    <string name="stats_plus_row_title">Vezi toate cifrele tale</string>
+    <string name="stats_plus_row_subtitle">Cost, CO₂ și obiceiuri, lună de lună</string>
+    <string name="stats_veiled_value">Ascuns — doar cu Plus</string>
+    <!-- Vehicle state line (STATS-UI-001) -->
+    <string name="vehicle_state_parked">Parcat · %1$s</string>
+    <string name="vehicle_state_last_parking">Ultima parcare · %1$s</string>
+    <string name="vehicle_state_never_parked">Încă neparcat</string>
+    <!-- Stats panel (STATS-PANEL-001) -->
+    <string name="stats_panel_title">Cifrele tale</string>
+    <string name="stats_panel_empty_body">Încă nu există parcări în această perioadă. Parchează de câteva ori și cifrele se vor completa.</string>
+    <string name="stats_open_panel">Vezi detalierea completă</string>
+    <!-- Where the car is parked, on the ficha state line (STATS-UI-001) -->
+    <string name="vehicle_state_parked_at">%1$s · %2$s</string>
 </resources>

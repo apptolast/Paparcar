@@ -32,9 +32,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.AutoAwesome
-import androidx.compose.material.icons.rounded.Event
-import androidx.compose.material.icons.rounded.Place
 import androidx.compose.material.icons.rounded.WorkspacePremium
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.presentation.util.distanceString
@@ -44,7 +41,6 @@ import com.rndeveloper.paparcar.presentation.vehicles.components.EmptyHistorySta
 import com.rndeveloper.paparcar.presentation.vehicles.components.EndedSessionTimelineNode
 import com.rndeveloper.paparcar.presentation.vehicles.components.HistoryFilterBar
 import com.rndeveloper.paparcar.presentation.vehicles.components.ActivityCard
-import com.rndeveloper.paparcar.presentation.vehicles.components.ActivityFact
 import com.rndeveloper.paparcar.ui.components.PapOutlinedCard
 import com.rndeveloper.paparcar.ui.components.PapPremiumEmphasis
 import com.rndeveloper.paparcar.ui.components.PapNavChevron
@@ -86,9 +82,6 @@ import paparcar.composeapp.generated.resources.history_day_short_thu
 import paparcar.composeapp.generated.resources.history_day_short_tue
 import paparcar.composeapp.generated.resources.history_day_short_wed
 import paparcar.composeapp.generated.resources.history_activity_distance_partial
-import paparcar.composeapp.generated.resources.history_fact_active_day
-import paparcar.composeapp.generated.resources.history_fact_auto_detected
-import paparcar.composeapp.generated.resources.history_fact_favorite_street
 import paparcar.composeapp.generated.resources.history_month_short_1
 import paparcar.composeapp.generated.resources.history_month_short_10
 import paparcar.composeapp.generated.resources.history_month_short_11
@@ -156,6 +149,14 @@ fun HistoryContent(
     onFilterSelected: (HistoryFilter) -> Unit = {},
     /** The "Ver todo con Plus" footer under a gated timeline. [MONEY-001] */
     onOpenPlusPaywall: () -> Unit = {},
+    /** Live entitlement: decides whether the figures card is veiled and how its period is named.
+     *  Defaults to free — the safe answer, the one that cannot hand Plus away by omission. */
+    isPlus: Boolean = false,
+    /** Tapping the figures card's Plus row. A DIFFERENT reason from the timeline footer's, so the
+     *  funnel can tell which surface sold the upgrade. [STATS-UI-001] */
+    onOpenStatsPaywall: () -> Unit = {},
+    /** Plus only: the figures card's link to the full panel. Null = no link. [STATS-PANEL-001] */
+    onOpenStatsPanel: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     header: (@Composable () -> Unit)? = null,
     onScrolledToTop: () -> Unit = {},
@@ -290,9 +291,11 @@ fun HistoryContent(
 
                 item(key = "chart_spacer") { Spacer(Modifier.height(8.dp)) }
                 item(key = "chart") {
-                    // Scoped km follow the same filter as the bars; all-history facts (day, street,
-                    // auto share) appear only above their significance thresholds — a metric
-                    // without data renders as nothing. [VEH-STATS-SAY-SOMETHING-USEFUL-001]
+                    // Scoped km follow the same filter as the bars. The three "facts" that used to
+                    // footer this card (day, street, auto share) moved to the figures card below:
+                    // they were computed over the WHOLE visible history while living inside a card
+                    // titled by the period's count, so changing the filter left them untouched.
+                    // [STATS-UI-001]
                     val scopeDistance = remember(filteredSessions) {
                         VehicleHistoryCalculator.sumDistanceMeters(filteredSessions)
                     }
@@ -309,33 +312,34 @@ fun HistoryContent(
                             distance.fromParkings,
                         )
                     }
-                    val facts = buildList {
-                        resolved.statsData?.mostActiveDayOfWeek?.let { day ->
-                            add(ActivityFact(
-                                icon = Icons.Rounded.Event,
-                                text = stringResource(Res.string.history_fact_active_day, dayFullLabels[day - 1]),
-                            ))
-                        }
-                        resolved.statsData?.favoriteStreet?.let { street ->
-                            add(ActivityFact(
-                                icon = Icons.Rounded.Place,
-                                text = stringResource(Res.string.history_fact_favorite_street, street),
-                            ))
-                        }
-                        resolved.statsData?.autoDetected?.let { share ->
-                            add(ActivityFact(
-                                icon = Icons.Rounded.AutoAwesome,
-                                text = stringResource(Res.string.history_fact_auto_detected, share.auto, share.known),
-                            ))
-                        }
-                    }
                     Box(Modifier.padding(horizontal = 16.dp)) {
                         ActivityCard(
                             data = activityBuckets,
                             total = scopeTotal,
                             distanceText = distanceText,
-                            facts = facts,
                         )
+                    }
+                }
+
+                // The Activity section's SECOND card: same filter, same scope, titled by the
+                // period instead of by the count. Under one heading so the filter's authority over
+                // both is legible without saying it. (User, 08-09.) [STATS-UI-001]
+                resolved.periodStats?.let { periodStats ->
+                    item(key = "period_stats") {
+                        Spacer(Modifier.height(STATS_CARD_GAP.dp))
+                        Box(Modifier.padding(horizontal = 16.dp)) {
+                            VehicleStatsBlock(
+                                stats = periodStats,
+                                periodLabel = vehicleStatsPeriodLabel(state.activeFilter, isPlus),
+                                lifetimeParkings = resolved.lifetimeParkings,
+                                lifetimeSpotsReleased = resolved.lifetimeSpotsReleased,
+                                // "All time" selected means the tiles ARE the whole life already.
+                                showLifetime = state.activeFilter != HistoryFilter.All,
+                                isPlus = isPlus,
+                                onOpenPaywall = onOpenStatsPaywall,
+                                onOpenPanel = onOpenStatsPanel,
+                            )
+                        }
                     }
                 }
 
@@ -553,6 +557,11 @@ private fun HistorySkeletonSection(fillMaxSize: Boolean, modifier: Modifier = Mo
 // title to what it heads. [HOME-VEH-REFINE-001]
 private const val SECTION_TITLE_TOP_GAP = 24
 private const val SECTION_TITLE_BOTTOM_GAP = 8
+
+/** Between the Activity section's two cards: more air than between a card and its own filter row
+ *  (8), less than between sections (24). They are siblings under one heading, and a sibling still
+ *  needs room to be its own object. (User, 08-09-2026.) [STATS-UI-001] */
+private const val STATS_CARD_GAP = 16
 
 private const val SKELETON_CHART_HEIGHT_DP = 148
 private const val SKELETON_CHIP_HEIGHT_DP = 32

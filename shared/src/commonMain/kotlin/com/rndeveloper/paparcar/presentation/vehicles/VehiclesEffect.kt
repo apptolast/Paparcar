@@ -11,4 +11,7 @@ sealed class VehiclesEffect {
 
     /** Open the Paparcar Plus paywall, stamped with WHY. [MONEY-001][FREE-LIMITS-001] */
     data class NavigateToPaywall(val reason: PaywallReason) : VehiclesEffect()
+
+    /** Open the full figures panel on a given car. [STATS-PANEL-001] */
+    data class NavigateToStats(val vehicleId: String) : VehiclesEffect()
 }

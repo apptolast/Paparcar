@@ -166,9 +166,6 @@
     <string name="history_activity_distance_partial">%1$s in %2$d of them</string>
     <string name="history_activity_low_hint">Not much activity in this period</string>
     <!-- Facts footer under the activity chart. [VEH-STATS-SAY-SOMETHING-USEFUL-001] -->
-    <string name="history_fact_active_day">Most active day: %1$s</string>
-    <string name="history_fact_favorite_street">Usual street: %1$s</string>
-    <string name="history_fact_auto_detected">Detected automatically: %1$d of %2$d</string>
     <!-- Section header above the time-filter chips, so they read as scoping the history below -->
     <string name="history_section_label">History</string>
     <string name="history_today">Today</string>
@@ -507,9 +504,6 @@
     <!-- Vehicle selector chip — status pin + Bluetooth glyph accessibility -->
     <string name="vehicle_status_active_cd">Detection active</string>
     <!-- VehicleStatsRow inline cards under the hero card -->
-    <string name="vehicle_stats_sessions">total sessions</string>
-    <string name="vehicle_stats_last_session">last session</string>
-    <string name="vehicle_stats_spots_shared">spots shared</string>
     <!-- SpotIndicators -->
     <string name="spot_indicator_en_route">%1$d en route</string>
     <!-- HomeScreen size filter chips -->
@@ -831,4 +825,33 @@
     <string name="paywall_free_widget">Your car on the home screen</string>
     <string name="paywall_plus_everything">Everything in Free</string>
     <string name="settings_add_widget">Add the widget to your home screen</string>
+    <!-- Vehicle figures block (STATS-UI-001) -->
+    <string name="stats_period_free_window">Last %1$d days</string>
+    <string name="stats_period_all">All time</string>
+    <string name="stats_tile_cost">approx. spend</string>
+    <string name="stats_tile_co2">approx. CO₂</string>
+    <string name="stats_tile_avg_duration">average stay</string>
+    <string name="stats_tile_peak_hour">busiest hour</string>
+    <string name="stats_tile_usual_day">usual day</string>
+    <string name="stats_tile_favorite_street">usual street</string>
+    <string name="stats_tile_auto_detected">detected for you</string>
+    <string name="stats_tile_spots_shared">spots shared</string>
+    <string name="stats_value_kg">%1$s kg</string>
+    <string name="stats_value_hours_minutes">%1$dh %2$dm</string>
+    <string name="stats_value_minutes">%1$d min</string>
+    <string name="stats_value_share">%1$d/%2$d</string>
+    <string name="stats_lifetime">All time: %1$s parkings · %2$s spots shared</string>
+    <string name="stats_plus_row_title">See all your figures</string>
+    <string name="stats_plus_row_subtitle">Spend, CO₂ and habits, month by month</string>
+    <string name="stats_veiled_value">Hidden — Plus only</string>
+    <!-- Vehicle state line (STATS-UI-001) -->
+    <string name="vehicle_state_parked">Parked · %1$s</string>
+    <string name="vehicle_state_last_parking">Last parking · %1$s</string>
+    <string name="vehicle_state_never_parked">Not parked yet</string>
+    <!-- Stats panel (STATS-PANEL-001) -->
+    <string name="stats_panel_title">Your figures</string>
+    <string name="stats_panel_empty_body">No parkings in this period yet. Park a few times and the figures will fill in.</string>
+    <string name="stats_open_panel">See full breakdown</string>
+    <!-- Where the car is parked, on the ficha state line (STATS-UI-001) -->
+    <string name="vehicle_state_parked_at">%1$s · %2$s</string>
 </resources>

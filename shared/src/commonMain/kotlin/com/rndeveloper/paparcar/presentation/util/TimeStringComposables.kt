@@ -126,3 +126,12 @@ fun formatClockTime(epochMs: Long): String {
         .toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault())
     return "${local.hour.toString().padStart(2, '0')}:${local.minute.toString().padStart(2, '0')}"
 }
+
+/**
+ * An hour of the day as a clock reading — `18` becomes `18:00`. [STATS-UI-001]
+ *
+ * Same 24-hour reasoning as [formatClockTime], and a sibling of it rather than a string resource:
+ * this is a time FORMAT, not copy anyone translates, and splitting the two across code and
+ * strings.xml is how one of them drifts.
+ */
+fun formatHourBucket(hourOfDay: Int): String = "${hourOfDay.toString().padStart(2, '0')}:00"

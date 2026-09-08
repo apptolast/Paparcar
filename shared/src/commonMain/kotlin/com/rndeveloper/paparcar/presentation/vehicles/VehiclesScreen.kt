@@ -109,6 +109,8 @@ fun VehiclesScreen(
     onNavigateToMap: (lat: Double, lon: Double, sessionId: String) -> Unit = { _, _, _ -> },
     onShowExplainer: () -> Unit = {},
     onOpenPaywall: (PaywallReason) -> Unit = {},
+    /** Plus opening the full figures panel on a given car. [STATS-PANEL-001] */
+    onOpenStats: (vehicleId: String) -> Unit = {},
     viewModel: VehiclesViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateLifecycleAware()
@@ -122,6 +124,7 @@ fun VehiclesScreen(
                 is VehiclesEffect.NavigateToEditVehicle -> onEditVehicle(effect.vehicleId)
                 is VehiclesEffect.NavigateToMap -> onNavigateToMap(effect.lat, effect.lon, effect.sessionId)
                 is VehiclesEffect.NavigateToPaywall -> onOpenPaywall(effect.reason)
+                is VehiclesEffect.NavigateToStats -> onOpenStats(effect.vehicleId)
                 is VehiclesEffect.ShowError -> snackbarHostState.showSnackbar(errorFallback)
             }
         }
@@ -273,6 +276,7 @@ private fun VehiclesPager(
                 vehicleWithStats = vehicleWithStats,
                 historyState = pageHistoryState,
                 isSettingActive = state.settingActiveVehicleId == vehicleWithStats.vehicle.id,
+                isPlus = state.isPlus,
                 onRequestSetActive = { pendingSetActive = vehicleWithStats.vehicle },
                 contentPadding = contentPadding,
                 onScrolledToTop = onScrolledToTop,

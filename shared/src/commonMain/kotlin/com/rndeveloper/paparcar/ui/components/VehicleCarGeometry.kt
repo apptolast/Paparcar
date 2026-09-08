@@ -33,6 +33,17 @@ internal class CarSpec(
     val viewportWidth: Float,
     val viewportHeight: Float,
     val paths: List<CarPath>,
+    /**
+     * Vertical shift of the artwork inside its viewport, in viewport units. Negative lifts it.
+     *
+     * Exists because the ink of a pictogram does not have to sit where its viewport's centre is,
+     * and `ContentScale.Fit` centres the VIEWPORT, not the drawing. Every car fills its 62-unit
+     * box from roof (y≈16) to shadow (y≈61), so its ink centre lands around y≈38. The two-wheeler
+     * is a short shape drawn on the same ground line: its ink runs y≈27→61, centre y≈44, and it
+     * therefore rendered visibly LOW in its tile — reported on device, 08-09-2026. Rather than
+     * re-drawing 13 path strings, the spec says how far its ink is off and the builder corrects it.
+     */
+    val inkYOffset: Float = 0f,
 )
 
 // Source colours baked into the artwork (opaque ARGB). Body-family ones (BODY/BODY2/HI/LO)
@@ -206,7 +217,10 @@ private val ISO: Map<CarbodyType, CarSpec> = mapOf(
 // outline. It therefore draws shorter than a car in the same box, which is what a bike is. Heights
 // come from the art's own scale — a 16 px wheel is 0.6 m, so 26.7 px/m puts a 0.80 m saddle at y≈36.
 
-private val MOTO_ISO = CarSpec(68f, 62f, listOf(
+// Lifted 5.7 units: see [CarSpec.inkYOffset]. That is the gap between this drawing's ink centre
+// (y≈44) and the one every car shares (y≈38.4), so the bike now sits in its tile exactly where a
+// car does instead of sinking to the bottom.
+private val MOTO_ISO = CarSpec(68f, 62f, inkYOffset = -5.7f, paths = listOf(
     p("M8,57 a26.5,3.8 0 1,0 53,0 a26.5,3.8 0 1,0 -53,0 Z", fill = SHADOW, fa = 0.22f),
     p("M8,50 a8,8 0 1,0 16,0 a8,8 0 1,0 -16,0 Z", fill = TIRE),
     p("M45,50 a8,8 0 1,0 16,0 a8,8 0 1,0 -16,0 Z", fill = TIRE),
@@ -449,6 +463,9 @@ internal fun buildCarImageVector(
         viewportWidth = spec.viewportWidth,
         viewportHeight = spec.viewportHeight,
     )
+    // The shift is a group transform, not 13 edited path strings: the drawing stays the source of
+    // truth and the correction stays one readable number. [UI-A-MOTORCYCLE-IS-DRAWN-LIKE-EVERY-OTHER-VEHICLE-001]
+    if (spec.inkYOffset != 0f) builder.addGroup(translationY = spec.inkYOffset)
     spec.paths.forEach { path ->
         // A bare tyre (filled, no stroke) always gets a white ring so the wheels carry the same white
         // border as the body, on every surface in light and dark. [CAR-WHITE-BORDER-001]
@@ -467,6 +484,7 @@ internal fun buildCarImageVector(
             strokeLineJoin = if (path.round) StrokeJoin.Round else StrokeJoin.Miter,
         )
     }
+    if (spec.inkYOffset != 0f) builder.clearGroup()
     return builder.build()
 }
 

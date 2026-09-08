@@ -460,9 +460,6 @@
     <string name="auth_cd_hide_password">Nascondi password</string>
 
     <!-- VehicleStatsRow inline cards -->
-    <string name="vehicle_stats_sessions">sessioni totali</string>
-    <string name="vehicle_stats_last_session">ultima sessione</string>
-    <string name="vehicle_stats_spots_shared">posti ceduti</string>
     <!-- Auth screens -->
     <string name="auth_header_app_name">Paparcar</string>
     <string name="auth_header_tagline">Trova il tuo posto, condividi lo spazio</string>
@@ -615,9 +612,6 @@
     <string name="history_activity_distance_partial">%1$s in %2$d di essi</string>
     <string name="history_activity_low_hint">Poca attività in questo periodo</string>
     <!-- Facts footer under the activity chart. [VEH-STATS-SAY-SOMETHING-USEFUL-001] -->
-    <string name="history_fact_active_day">Giorno più attivo: %1$s</string>
-    <string name="history_fact_favorite_street">Via abituale: %1$s</string>
-    <string name="history_fact_auto_detected">Rilevati automaticamente: %1$d su %2$d</string>
     <string name="history_activity_title">Attività</string>
     <string name="history_section_label">Cronologia</string>
     <string name="home_vehicle_card_parked_at">Parcheggiato in %1$s</string>
@@ -796,4 +790,33 @@
     <string name="paywall_free_widget">La tua auto nella schermata iniziale</string>
     <string name="paywall_plus_everything">Tutto quello di Gratis</string>
     <string name="settings_add_widget">Aggiungi il widget alla schermata iniziale</string>
+    <!-- Vehicle figures block (STATS-UI-001) -->
+    <string name="stats_period_free_window">Ultimi %1$d giorni</string>
+    <string name="stats_period_all">Tutto lo storico</string>
+    <string name="stats_tile_cost">spesa appross.</string>
+    <string name="stats_tile_co2">CO₂ appross.</string>
+    <string name="stats_tile_avg_duration">durata media</string>
+    <string name="stats_tile_peak_hour">ora di punta</string>
+    <string name="stats_tile_usual_day">giorno abituale</string>
+    <string name="stats_tile_favorite_street">via abituale</string>
+    <string name="stats_tile_auto_detected">rilevati da soli</string>
+    <string name="stats_tile_spots_shared">posti ceduti</string>
+    <string name="stats_value_kg">%1$s kg</string>
+    <string name="stats_value_hours_minutes">%1$d h %2$d min</string>
+    <string name="stats_value_minutes">%1$d min</string>
+    <string name="stats_value_share">%1$d/%2$d</string>
+    <string name="stats_lifetime">Da sempre: %1$s parcheggi · %2$s posti ceduti</string>
+    <string name="stats_plus_row_title">Vedi tutti i tuoi numeri</string>
+    <string name="stats_plus_row_subtitle">Spesa, CO₂ e abitudini, mese per mese</string>
+    <string name="stats_veiled_value">Nascosto — solo con Plus</string>
+    <!-- Vehicle state line (STATS-UI-001) -->
+    <string name="vehicle_state_parked">Parcheggiato · %1$s</string>
+    <string name="vehicle_state_last_parking">Ultimo parcheggio · %1$s</string>
+    <string name="vehicle_state_never_parked">Non ancora parcheggiato</string>
+    <!-- Stats panel (STATS-PANEL-001) -->
+    <string name="stats_panel_title">I tuoi numeri</string>
+    <string name="stats_panel_empty_body">Ancora nessun parcheggio in questo periodo. Parcheggia qualche volta e i numeri si riempiranno.</string>
+    <string name="stats_open_panel">Vedi il dettaglio completo</string>
+    <!-- Where the car is parked, on the ficha state line (STATS-UI-001) -->
+    <string name="vehicle_state_parked_at">%1$s · %2$s</string>
 </resources>

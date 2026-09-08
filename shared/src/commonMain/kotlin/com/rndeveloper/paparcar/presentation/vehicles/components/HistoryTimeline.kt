@@ -37,6 +37,9 @@ import com.rndeveloper.paparcar.presentation.util.locationDisplayText
 import com.rndeveloper.paparcar.presentation.util.relativeTimeText
 import com.rndeveloper.paparcar.ui.components.PapSectionHeaderRow
 import com.rndeveloper.paparcar.ui.theme.PapBorders
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.semantics
+import com.rndeveloper.paparcar.ui.components.PapNavChevron
 import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.VehicleWatch
@@ -183,8 +186,16 @@ private fun SessionCardContent(
     val textPrimary = if (isActive) onVehicleIdentityContainer(watch) else cs.onSurface
     val textMuted = textPrimary.copy(alpha = if (isActive) ACTIVE_META_ALPHA else META_ALPHA)
 
+    // The WHOLE row opens the parking on the map. It used to be a 48dp icon button in the corner of
+    // an inert card — a target you had to aim at, next to a card that looked pressable and was not.
+    // Once the card itself is the target, the button has nothing left to say that the card is not
+    // already saying, so it becomes a chevron: the app's own "this leads somewhere" mark. Same move
+    // the Plus footer made. (User, 08-09-2026.) [UI-LIST-ITEM-001]
+    val viewOnMapLabel = stringResource(Res.string.history_view_map)
     Card(
-        modifier = modifier,
+        onClick = { onViewOnMap(session.location.latitude, session.location.longitude, session.id) },
+        // The label rides the CARD, not the chevron: the chevron is a mark, the card is the button.
+        modifier = modifier.semantics { onClick(label = viewOnMapLabel, action = null) },
         shape = RoundedCornerShape(CARD_CORNER_DP.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isActive) vehicleIdentityContainer(watch) else cs.surfaceContainerHigh,
@@ -219,11 +230,7 @@ private fun SessionCardContent(
                     color = textMuted,
                 )
             }
-            IconButton(
-                onClick = { onViewOnMap(session.location.latitude, session.location.longitude, session.id) },
-            ) {
-                Icon(Icons.Rounded.Map, contentDescription = stringResource(Res.string.history_view_map), tint = PapColor.action)
-            }
+            PapNavChevron()
         }
     }
 }

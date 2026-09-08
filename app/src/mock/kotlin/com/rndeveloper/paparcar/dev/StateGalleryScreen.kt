@@ -98,6 +98,8 @@ import com.rndeveloper.paparcar.presentation.vehicleregistration.VehicleRegistra
 import com.rndeveloper.paparcar.presentation.vehicles.HistoryContent
 import com.rndeveloper.paparcar.presentation.vehicles.HistoryFilter
 import com.rndeveloper.paparcar.presentation.vehicles.HistoryState
+import com.rndeveloper.paparcar.presentation.stats.StatsContent
+import com.rndeveloper.paparcar.presentation.stats.StatsState
 import com.rndeveloper.paparcar.presentation.vehicles.HistoryTimeline
 import com.rndeveloper.paparcar.presentation.vehicles.VehiclesContent
 import com.rndeveloper.paparcar.presentation.vehicles.VehiclesState
@@ -316,10 +318,14 @@ private fun resolvedHistory(
     sessions: List<UserParking>,
     filter: HistoryFilter = HistoryFilter.All,
     isPlus: Boolean = true,
-) = HistoryTimeline.resolve(sessions, filter, isPlus)
+    // Sin coche no hay consumo, y sin consumo la tarjeta de cifras se queda sin CO2 ni gasto: la
+    // galeria pasa uno para ensenar el bloque como se ve de verdad. [STATS-UI-001]
+    vehicle: Vehicle? = FakeData.vehiclesWithStats.firstOrNull()?.vehicle,
+) = HistoryTimeline.resolve(sessions, filter, isPlus, vehicle)
 
 // [MONEY-001] Sesiones envejecidas para las variantes free: el gate corta por
-// location.timestamp, así que empujar la marca 40 días atrás la saca de la ventana de 30.
+// location.timestamp, así que empujar la marca 40 días atrás la saca de la ventana gratuita
+// (7 días desde FREE-LIMITS-001, no los 30 con los que nació MONEY-001).
 private const val BEYOND_FREE_WINDOW_MS = 40L * 86_400_000L
 
 private fun UserParking.agedBeyondFreeWindow(): UserParking =
@@ -339,6 +345,32 @@ private val galleryZones = listOf(
         iconKey = ZoneIcon.WORK, createdAt = 0L, notifyOnSpot = false),
 )
 
+/** Estado del panel de cifras, resuelto por el MISMO sitio que lo resuelve en produccion, para que
+ *  la galeria no pueda ensenar una rejilla que la pantalla real no daria. [STATS-PANEL-001] */
+private fun statsPanelState(
+    filter: HistoryFilter = HistoryFilter.ThisMonth,
+    isPlus: Boolean = true,
+    sessions: List<UserParking> = FakeData.allSessions,
+): StatsState {
+    val vehicles = FakeData.vehiclesWithStats
+    // Las sesiones de FakeData nacen sin vehicleId, y sin coche el agregador no puede convertir
+    // kilometros en litros ni en CO2: la tarjeta salia sin sus dos cifras principales SOLO en la
+    // galeria. Se las atamos al primer coche, que es el que la galeria pinta. [STATS-PANEL-001]
+    val ownerId = vehicles.firstOrNull()?.vehicle?.id
+    val owned = sessions.map { it.copy(vehicleId = ownerId) }
+    val resolved = resolvedHistory(owned, filter, isPlus)
+    return StatsState(
+        vehicles = vehicles,
+        selectedVehicleIndex = 0,
+        filter = filter,
+        filteredSessions = resolved.filteredSessions,
+        periodStats = resolved.periodStats,
+        lifetimeParkings = resolved.lifetimeParkings,
+        lifetimeSpotsReleased = resolved.lifetimeSpotsReleased,
+        isPlus = isPlus,
+    )
+}
+
 /** Historial ya resuelto para TODOS los coches falsos, que es lo que espera la pantalla Vehicles. */
 private fun vehiclesHistoryCache(sessions: List<UserParking>) =
     FakeData.vehiclesWithStats.associate { vws ->
@@ -346,13 +378,18 @@ private fun vehiclesHistoryCache(sessions: List<UserParking>) =
     }
 
 @Composable
-private fun history(state: HistoryState, watch: VehicleWatch = VehicleWatch.Assisted) {
+private fun history(
+    state: HistoryState,
+    watch: VehicleWatch = VehicleWatch.Assisted,
+    isPlus: Boolean = true,
+) {
     HistoryContent(
         state = state,
         contentPadding = PaddingValues(0.dp),
         onViewOnMap = { _, _, _ -> },
         watch = watch,
         onFilterSelected = {},
+        isPlus = isPlus,
     )
 }
 
@@ -1296,6 +1333,33 @@ private val galleryGroups: List<ScreenGroup> = listOf(
         ),
     ),
     ScreenGroup(
+        "Panel de cifras",
+        listOf(
+            Variant("Plus · mes completo") {
+                StatsContent(state = statsPanelState(), onNavigateBack = {}, onIntent = {})
+            },
+            // Free entra al panel: ve la primera cifra entera, el resto tapado y la fila Plus. No se
+            // le cierra la puerta, se le ensena la habitacion. [STATS-PANEL-001]
+            Variant("Free · una cifra y el resto tapado") {
+                StatsContent(
+                    state = statsPanelState(isPlus = false),
+                    onNavigateBack = {},
+                    onIntent = {},
+                )
+            },
+            Variant("Periodo sin aparcamientos") {
+                StatsContent(
+                    state = statsPanelState(sessions = emptyList()),
+                    onNavigateBack = {},
+                    onIntent = {},
+                )
+            },
+            Variant("Sin resolver (skeleton)") {
+                StatsContent(state = StatsState(), onNavigateBack = {}, onIntent = {})
+            },
+        ),
+    ),
+    ScreenGroup(
         "Historial",
         listOf(
             // El raíl, el punto pulsante y el wash de la sesión viva llevan la identidad del coche
@@ -1337,6 +1401,42 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                                 else session.copy(routeDistanceMeters = null)
                             },
                         ),
+                    ),
+                )
+            },
+            // ── Tarjeta de cifras: la SEGUNDA card de Actividad. [STATS-UI-001] ──────────────
+            // Titulada por su periodo, como la del gráfico lo está por su cuenta: las dos viven
+            // bajo el mismo encabezado porque el mismo filtro manda sobre ambas.
+            Variant("Cifras · Plus (todo visible)") {
+                history(
+                    HistoryState(
+                        timeline = resolvedHistory(FakeData.allSessions, HistoryFilter.ThisMonth),
+                        activeFilter = HistoryFilter.ThisMonth,
+                    ),
+                    isPlus = true,
+                )
+            },
+            // En free se ve ENTERA la primera cifra y el resto va tapado. El tapado es una barra,
+            // no un desenfoque: Modifier.blur no hace nada por debajo de API 31 y el velo se
+            // habría leído perfectamente en cualquier móvil viejo. [MONEY-001]
+            Variant("Cifras · free (una cifra + resto tapado)") {
+                history(
+                    HistoryState(
+                        timeline = resolvedHistory(
+                            FakeData.allSessions, HistoryFilter.ThisMonth, isPlus = false,
+                        ),
+                        activeFilter = HistoryFilter.ThisMonth,
+                    ),
+                    isPlus = false,
+                )
+            },
+            // Coche recién dado de alta: nada llega a su umbral, así que la tarjeta enseña sólo la
+            // cifra donde el cero SÍ es una respuesta (plazas cedidas). Ningún "0" de relleno.
+            Variant("Cifras · por debajo de los umbrales") {
+                history(
+                    HistoryState(
+                        timeline = resolvedHistory(FakeData.allSessions.take(2), HistoryFilter.ThisMonth),
+                        activeFilter = HistoryFilter.ThisMonth,
                     ),
                 )
             },

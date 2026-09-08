@@ -11,4 +11,11 @@ sealed class VehiclesIntent {
 
     /** The "Ver todo con Plus" footer under a gated history. [MONEY-001] */
     data object OpenPlusPaywall : VehiclesIntent()
+
+    /** The Plus row under the figures card. Distinct from [OpenPlusPaywall] so the funnel can tell
+     *  which of the two surfaces on this page sold the upgrade. [STATS-UI-001] */
+    data object OpenStatsPaywall : VehiclesIntent()
+
+    /** Plus tapping "ver desglose completo" — the panel opens on THIS car. [STATS-PANEL-001] */
+    data class OpenStatsPanel(val vehicleId: String) : VehiclesIntent()
 }

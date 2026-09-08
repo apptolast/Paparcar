@@ -5,7 +5,6 @@ package com.rndeveloper.paparcar.presentation.vehicles
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,11 +14,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.TrendingUp
+import androidx.compose.material.icons.rounded.Adjust
 import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material.icons.rounded.Schedule
-import androidx.compose.material.icons.rounded.VolunteerActivism
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -29,20 +28,20 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
-import kotlin.math.roundToInt
 import com.rndeveloper.paparcar.ui.components.PapDivider
-import com.rndeveloper.paparcar.ui.components.PapVerticalDivider
+import com.rndeveloper.paparcar.domain.model.UserParking
+import com.rndeveloper.paparcar.presentation.util.locationDisplayText
+import com.rndeveloper.paparcar.presentation.util.relativeTimeText
 import com.rndeveloper.paparcar.domain.model.VehicleMonitoringStatus
 import com.rndeveloper.paparcar.domain.model.VehicleWithStats
 import com.rndeveloper.paparcar.domain.model.monitoringStatus
-import com.rndeveloper.paparcar.presentation.util.compactRelativeTimeText
 import com.rndeveloper.paparcar.presentation.util.vehicleFuelMetaLine
 import com.rndeveloper.paparcar.ui.components.VehicleIdentityHeader
+import androidx.compose.ui.text.style.TextOverflow
+import com.rndeveloper.paparcar.ui.theme.VehicleWatch
 import com.rndeveloper.paparcar.ui.theme.vehicleChassisBorder
+import com.rndeveloper.paparcar.ui.theme.vehicleIdentityColor
 import com.rndeveloper.paparcar.ui.theme.watch
 import com.rndeveloper.paparcar.ui.theme.PapBorders
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
@@ -52,15 +51,17 @@ import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.my_car_edit_vehicle
 import paparcar.composeapp.generated.resources.vehicle_set_active_action
-import paparcar.composeapp.generated.resources.vehicle_stats_last_session
-import paparcar.composeapp.generated.resources.vehicle_stats_sessions
-import paparcar.composeapp.generated.resources.vehicle_stats_spots_shared
+import paparcar.composeapp.generated.resources.vehicle_state_last_parking
+import paparcar.composeapp.generated.resources.vehicle_state_never_parked
+import paparcar.composeapp.generated.resources.vehicle_state_parked
+import paparcar.composeapp.generated.resources.vehicle_state_parked_at
 
 @Composable
 internal fun VehiclePageContent(
     vehicleWithStats: VehicleWithStats,
     historyState: HistoryState,
     isSettingActive: Boolean,
+    isPlus: Boolean,
     onRequestSetActive: () -> Unit,
     contentPadding: PaddingValues,
     onScrolledToTop: () -> Unit,
@@ -77,14 +78,14 @@ internal fun VehiclePageContent(
         watch = vehicleWithStats.vehicle.monitoringStatus().watch(),
         onFilterSelected = { filter -> onIntent(VehiclesIntent.SetHistoryFilter(filter)) },
         onOpenPlusPaywall = { onIntent(VehiclesIntent.OpenPlusPaywall) },
+        isPlus = isPlus,
+        onOpenStatsPaywall = { onIntent(VehiclesIntent.OpenStatsPaywall) },
+        onOpenStatsPanel = { onIntent(VehiclesIntent.OpenStatsPanel(vehicleId)) },
         onScrolledToTop = onScrolledToTop,
         modifier = Modifier.fillMaxSize(),
         header = {
             VehicleHeroCard(
                 vehicleWithStats = vehicleWithStats,
-                // Closes that gave the community a spot — the user's contribution, not the
-                // detector's self-assessment. [VEH-STATS-SAY-SOMETHING-USEFUL-001]
-                spotsReleased = historyState.statsData?.spotsReleasedCount,
                 isSettingActive = isSettingActive,
                 // Making a vehicle active declares "I drive this" — confirm first (the screen owns
                 // the consequence dialog), never switch silently. [VEH-ACTIVE-FENCE-001]
@@ -95,14 +96,87 @@ internal fun VehiclePageContent(
     )
 }
 
+/**
+ * What this car is doing, in one line: parked at a place, last parked a while ago, or never parked.
+ * [STATS-UI-001]
+ *
+ * The ACTIVE session outranks the last one — a car parked since Tuesday is "aparcado en X", not
+ * "último aparcamiento hace 3 días", and that difference is the whole point of a state line. When
+ * it IS parked the line says WHERE, with the same place glyph and the same resolved name Home puts
+ * on its card, because a user who reads "Calle de Alcalá 42 · hace 2 h" in one screen should not
+ * have to re-read a different sentence in the other. (User, 08-09-2026.)
+ *
+ * "Never parked" is itself a state and gets its own words: a brand-new vehicle showing nothing at
+ * all reads as a card that failed to load.
+ */
+@Composable
+private fun VehicleStateLine(lastSession: UserParking?, watch: VehicleWatch) {
+    val cs = MaterialTheme.colorScheme
+    val parkedNow = lastSession?.isActive == true
+    // The glyph carries the vehicle's identity colour; the words stay onSurface. Same split the
+    // whole app uses — the state is written, never tinted. [UI-COLOR-DOCTRINE-001]
+    val place = lastSession?.let { locationDisplayText(placeInfo = it.placeInfo, address = it.address) }
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(STATE_ICON_GAP.dp),
+    ) {
+        Icon(
+            imageVector = when {
+                // An approximate close saved an AREA, and the zone glyph is how the rest of the app
+                // says so. [UI-APPROXIMATE-ZONE-IN-HISTORY-001]
+                parkedNow && lastSession.isApproximate -> Icons.Rounded.Adjust
+                parkedNow -> Icons.Rounded.LocationOn
+                else -> Icons.Rounded.Schedule
+            },
+            contentDescription = null,
+            tint = vehicleIdentityColor(watch),
+            modifier = Modifier.size(STATE_ICON_DP.dp),
+        )
+        Text(
+            text = when {
+                lastSession == null -> stringResource(Res.string.vehicle_state_never_parked)
+                parkedNow && place != null -> stringResource(
+                    Res.string.vehicle_state_parked_at,
+                    place,
+                    relativeTimeText(lastSession.location.timestamp),
+                )
+                parkedNow -> stringResource(
+                    Res.string.vehicle_state_parked,
+                    relativeTimeText(lastSession.location.timestamp),
+                )
+                else -> stringResource(
+                    Res.string.vehicle_state_last_parking,
+                    relativeTimeText(lastSession.location.timestamp),
+                )
+            },
+            // `meta` (LECTURA) rather than `caption`: this is not more quiet metadata about the car,
+            // it is what the car is DOING — and onSurface separates it from the two grey attribute
+            // lines above without spending a colour on it.
+            style = PaparcarType.current.meta,
+            color = cs.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
-// Hero card — glyph + name + status pin + size chip · stats row · set-active row
+// Hero card — WHO this car is and HOW it is being watched. Zone 01 of the ficha
+// layout signed off on 08-09-2026: no figures of USE live here any more.
+//
+// It used to close with three counters (total sessions · last session · spots
+// shared) and that row is what gave the screen two clocks: the card counted the
+// car's whole life while the Activity card below counted the selected period,
+// and neither said which. The counters moved to the figures card (period) and
+// its footer line (lifetime, and it says so); "last session" was never a
+// statistic at all — it is STATE, so it reads as one line under the car's data.
+// [STATS-UI-001]
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 private fun VehicleHeroCard(
     vehicleWithStats: VehicleWithStats,
-    spotsReleased: Int?,
     isSettingActive: Boolean,
     onSetActive: () -> Unit,
     onEdit: () -> Unit,
@@ -110,7 +184,6 @@ private fun VehicleHeroCard(
     val vehicle = vehicleWithStats.vehicle
     val monitoring = vehicle.monitoringStatus()
     val isInactive = monitoring == VehicleMonitoringStatus.Inactive
-    val hasStats = vehicleWithStats.sessionCount > 0
     val cs = MaterialTheme.colorScheme
 
     Surface(
@@ -137,6 +210,12 @@ private fun VehicleHeroCard(
                 // The fuel data joins the vehicle-data column, right under carbody · size — an
                 // attribute of the car, not a floating meta line. [VEH-FUEL-001]
                 metaSecondLine = vehicleFuelMetaLine(vehicle),
+                statusLine = {
+                    VehicleStateLine(
+                        lastSession = vehicleWithStats.lastSession,
+                        watch = monitoring.watch(),
+                    )
+                },
                 trailing = {
                     IconButton(onClick = onEdit, modifier = Modifier.size(EDIT_BOX_DP.dp)) {
                         Icon(
@@ -148,18 +227,6 @@ private fun VehicleHeroCard(
                 },
             )
 
-            // Stats — a divided bottom row (Sessions / Last / Reliability). Muted for an inactive
-            // vehicle that still has history. Hidden entirely with no sessions. [HOME-VEH-REFINE-001]
-            if (hasStats) {
-                PapDivider()
-                VehicleStatsRow(
-                    sessionCount = vehicleWithStats.sessionCount,
-                    lastSessionMs = vehicleWithStats.lastSession?.location?.timestamp,
-                    spotsReleased = spotsReleased,
-                    muted = isInactive,
-                )
-            }
-
             // "Set as active" is its own row — and only for an inactive vehicle. Active / Bluetooth
             // vehicles are already the tracked one, so the action never appears for them.
             if (isInactive) {
@@ -167,117 +234,6 @@ private fun VehicleHeroCard(
                 SetActiveRow(isLoading = isSettingActive, onClick = onSetActive)
             }
         }
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Stats row — three divided cells at the card foot
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Composable
-private fun VehicleStatsRow(
-    sessionCount: Int,
-    lastSessionMs: Long?,
-    spotsReleased: Int?,
-    muted: Boolean,
-) {
-    Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-        StatCell(
-            icon = Icons.AutoMirrored.Rounded.TrendingUp,
-            value = sessionCount.toString(),
-            label = stringResource(Res.string.vehicle_stats_sessions),
-            muted = muted,
-            modifier = Modifier.weight(1f),
-        )
-        StatDivider()
-        StatCell(
-            icon = Icons.Rounded.Schedule,
-            value = lastSessionMs?.let { compactRelativeTimeText(it) } ?: "—",
-            label = stringResource(Res.string.vehicle_stats_last_session),
-            muted = muted,
-            modifier = Modifier.weight(1f),
-        )
-        StatDivider()
-        // "Tu aparcamiento liberó una plaza" made countable — 0 is information (never shared),
-        // so the count shows whenever the row shows. [VEH-STATS-SAY-SOMETHING-USEFUL-001]
-        StatCell(
-            icon = Icons.Rounded.VolunteerActivism,
-            value = (spotsReleased ?: 0).toString(),
-            label = stringResource(Res.string.vehicle_stats_spots_shared),
-            muted = muted,
-            modifier = Modifier.weight(1f),
-        )
-    }
-}
-
-@Composable
-private fun StatDivider() {
-    PapVerticalDivider(modifier = Modifier.padding(vertical = STAT_DIVIDER_V_PAD.dp))
-}
-
-@Composable
-private fun StatCell(
-    icon: ImageVector,
-    value: String,
-    label: String,
-    muted: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    val cs = MaterialTheme.colorScheme
-    // Stats are app furniture, not vehicle identity → brand green, like the rest of the chrome.
-    // (Se probó neutro el 27-08 y el user lo revirtió: el choque de la ficha BT no era esta fila,
-    // era la masa del chart — ver COLOR-SYSTEM §3.) [UI-COLOR-DOCTRINE-001]
-    val accent = if (muted) cs.onSurfaceVariant else cs.primary
-    val valueColor = if (muted) cs.onSurfaceVariant else cs.onSurface
-    Column(
-        modifier = modifier.padding(vertical = STAT_CELL_V_PAD.dp, horizontal = STAT_CELL_H_PAD.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(STAT_ICON_GAP.dp)) {
-            // The icon centres on the DIGIT band (baseline − capHeight/2), not on the text's line
-            // box: statNumber's line box is baseline-asymmetric (ascent′ 22.5sp / descent′ 2.5sp
-            // at 25sp), so CenterVertically floats the icon ~1dp above the numerals. Anchoring to
-            // the baseline survives font scale, lineHeight and value length.
-            // [UI-STAT-ICON-CENTERS-ON-DIGITS-001]
-            val capHeightPx = with(LocalDensity.current) {
-                PaparcarType.current.statNumber.fontSize.toPx() *
-                    PaparcarType.current.figureCapHeightEm
-            }
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = accent,
-                modifier = Modifier
-                    .size(STAT_ICON_DP.dp)
-                    .alignBy { it.measuredHeight / 2 + (capHeightPx / 2).roundToInt() },
-            )
-            Text(
-                text = value,
-                // Condensed numerals straight from the token (25sp per the design spec) — no
-                // per-call size overrides. [HOME-VEH-REFINE-001]
-                style = PaparcarType.current.statNumber,
-                color = valueColor,
-                maxLines = 1,
-                modifier = Modifier.alignByBaseline(),
-            )
-        }
-        Spacer(Modifier.size(STAT_LABEL_GAP.dp))
-        Text(
-            // The label belongs to the figure's block: icon + number + label read as one data unit.
-            //
-            // `textAlign` is NOT decoration here. The Text fills the cell, so without it a label
-            // that wraps aligns to the start while the number above stays centred — which is
-            // exactly how "PLAZAS CEDIDAS" ended up looking detached from its 49. And two lines
-            // instead of one because a cell is a third of the card: at one line the second word was
-            // silently dropped (maxLines cut it, no ellipsis), so the stat lost half its meaning
-            // without ever looking broken. `IntrinsicSize.Min` on the row keeps all three cells
-            // the same height. [UI-STAT-ICON-CENTERS-ON-DIGITS-001]
-            text = label.uppercase(),
-            style = PaparcarType.current.statLabel,
-            color = cs.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            maxLines = 2,
-        )
     }
 }
 
@@ -324,6 +280,8 @@ private fun SetActiveRow(isLoading: Boolean, onClick: () -> Unit) {
     }
 }
 
+private const val STATE_ICON_DP = 15
+private const val STATE_ICON_GAP = 6
 private const val CARD_PADDING = 16
 // Identity block paddings per the design spec (15 top / 13 bottom).
 private const val IDENTITY_TOP_PAD = 15

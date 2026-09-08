@@ -461,9 +461,6 @@
     <string name="auth_cd_hide_password">Wachtwoord verbergen</string>
 
     <!-- VehicleStatsRow inline cards -->
-    <string name="vehicle_stats_sessions">sessies totaal</string>
-    <string name="vehicle_stats_last_session">laatste sessie</string>
-    <string name="vehicle_stats_spots_shared">plekken gedeeld</string>
     <!-- Auth screens -->
     <string name="auth_header_app_name">Paparcar</string>
     <string name="auth_header_tagline">Vind je plek, deel je ruimte</string>
@@ -616,9 +613,6 @@
     <string name="history_activity_distance_partial">%1$s bij %2$d ervan</string>
     <string name="history_activity_low_hint">Weinig activiteit in deze periode</string>
     <!-- Facts footer under the activity chart. [VEH-STATS-SAY-SOMETHING-USEFUL-001] -->
-    <string name="history_fact_active_day">Meest actieve dag: %1$s</string>
-    <string name="history_fact_favorite_street">Vaste straat: %1$s</string>
-    <string name="history_fact_auto_detected">Automatisch gedetecteerd: %1$d van %2$d</string>
     <string name="history_activity_title">Activiteit</string>
     <string name="history_section_label">Geschiedenis</string>
     <string name="home_vehicle_card_parked_at">Geparkeerd bij %1$s</string>
@@ -797,4 +791,33 @@
     <string name="paywall_free_widget">Je auto op het startscherm</string>
     <string name="paywall_plus_everything">Alles uit Gratis</string>
     <string name="settings_add_widget">Widget aan startscherm toevoegen</string>
+    <!-- Vehicle figures block (STATS-UI-001) -->
+    <string name="stats_period_free_window">Laatste %1$d dagen</string>
+    <string name="stats_period_all">Volledige geschiedenis</string>
+    <string name="stats_tile_cost">kosten ong.</string>
+    <string name="stats_tile_co2">CO₂ ong.</string>
+    <string name="stats_tile_avg_duration">gem. duur</string>
+    <string name="stats_tile_peak_hour">piekuur</string>
+    <string name="stats_tile_usual_day">vaste dag</string>
+    <string name="stats_tile_favorite_street">vaste straat</string>
+    <string name="stats_tile_auto_detected">vanzelf herkend</string>
+    <string name="stats_tile_spots_shared">gedeelde plekken</string>
+    <string name="stats_value_kg">%1$s kg</string>
+    <string name="stats_value_hours_minutes">%1$d u %2$d min</string>
+    <string name="stats_value_minutes">%1$d min</string>
+    <string name="stats_value_share">%1$d/%2$d</string>
+    <string name="stats_lifetime">Sinds het begin: %1$s parkeerplaatsen · %2$s gedeelde plekken</string>
+    <string name="stats_plus_row_title">Bekijk al je cijfers</string>
+    <string name="stats_plus_row_subtitle">Kosten, CO₂ en gewoonten, maand na maand</string>
+    <string name="stats_veiled_value">Verborgen — alleen met Plus</string>
+    <!-- Vehicle state line (STATS-UI-001) -->
+    <string name="vehicle_state_parked">Geparkeerd · %1$s</string>
+    <string name="vehicle_state_last_parking">Laatste parkeerplaats · %1$s</string>
+    <string name="vehicle_state_never_parked">Nog niet geparkeerd</string>
+    <!-- Stats panel (STATS-PANEL-001) -->
+    <string name="stats_panel_title">Jouw cijfers</string>
+    <string name="stats_panel_empty_body">Nog geen parkeerplaatsen in deze periode. Parkeer een paar keer en de cijfers vullen zich vanzelf.</string>
+    <string name="stats_open_panel">Volledig overzicht bekijken</string>
+    <!-- Where the car is parked, on the ficha state line (STATS-UI-001) -->
+    <string name="vehicle_state_parked_at">%1$s · %2$s</string>
 </resources>

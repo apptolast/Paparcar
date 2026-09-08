@@ -461,9 +461,6 @@
     <string name="auth_cd_hide_password">Passwort verbergen</string>
 
     <!-- VehicleStatsRow inline cards -->
-    <string name="vehicle_stats_sessions">Sitzungen gesamt</string>
-    <string name="vehicle_stats_last_session">letzte Sitzung</string>
-    <string name="vehicle_stats_spots_shared">Plätze geteilt</string>
     <!-- Auth screens -->
     <string name="auth_header_app_name">Paparcar</string>
     <string name="auth_header_tagline">Finden Sie Ihren Platz, teilen Sie den Raum</string>
@@ -616,9 +613,6 @@
     <string name="history_activity_distance_partial">%1$s bei %2$d davon</string>
     <string name="history_activity_low_hint">Wenig Aktivität in diesem Zeitraum</string>
     <!-- Facts footer under the activity chart. [VEH-STATS-SAY-SOMETHING-USEFUL-001] -->
-    <string name="history_fact_active_day">Aktivster Tag: %1$s</string>
-    <string name="history_fact_favorite_street">Übliche Straße: %1$s</string>
-    <string name="history_fact_auto_detected">Automatisch erkannt: %1$d von %2$d</string>
     <string name="history_activity_title">Aktivität</string>
     <string name="history_section_label">Verlauf</string>
     <string name="home_vehicle_card_parked_at">Geparkt bei %1$s</string>
@@ -797,4 +791,33 @@
     <string name="paywall_free_widget">Dein Auto auf dem Startbildschirm</string>
     <string name="paywall_plus_everything">Alles aus Kostenlos</string>
     <string name="settings_add_widget">Widget zum Startbildschirm hinzufügen</string>
+    <!-- Vehicle figures block (STATS-UI-001) -->
+    <string name="stats_period_free_window">Letzte %1$d Tage</string>
+    <string name="stats_period_all">Gesamter Verlauf</string>
+    <string name="stats_tile_cost">Kosten ca.</string>
+    <string name="stats_tile_co2">CO₂ ca.</string>
+    <string name="stats_tile_avg_duration">durchschn. Dauer</string>
+    <string name="stats_tile_peak_hour">Stoßzeit</string>
+    <string name="stats_tile_usual_day">üblicher Tag</string>
+    <string name="stats_tile_favorite_street">übliche Straße</string>
+    <string name="stats_tile_auto_detected">automatisch erkannt</string>
+    <string name="stats_tile_spots_shared">geteilte Plätze</string>
+    <string name="stats_value_kg">%1$s kg</string>
+    <string name="stats_value_hours_minutes">%1$d Std. %2$d Min.</string>
+    <string name="stats_value_minutes">%1$d Min.</string>
+    <string name="stats_value_share">%1$d/%2$d</string>
+    <string name="stats_lifetime">Seit Beginn: %1$s Parkvorgänge · %2$s geteilte Plätze</string>
+    <string name="stats_plus_row_title">Alle deine Zahlen ansehen</string>
+    <string name="stats_plus_row_subtitle">Kosten, CO₂ und Gewohnheiten, Monat für Monat</string>
+    <string name="stats_veiled_value">Verborgen — nur mit Plus</string>
+    <!-- Vehicle state line (STATS-UI-001) -->
+    <string name="vehicle_state_parked">Geparkt · %1$s</string>
+    <string name="vehicle_state_last_parking">Letzter Parkplatz · %1$s</string>
+    <string name="vehicle_state_never_parked">Noch nicht geparkt</string>
+    <!-- Stats panel (STATS-PANEL-001) -->
+    <string name="stats_panel_title">Deine Zahlen</string>
+    <string name="stats_panel_empty_body">In diesem Zeitraum gibt es noch keine Parkvorgänge. Park ein paar Mal, dann füllen sich die Zahlen.</string>
+    <string name="stats_open_panel">Vollständige Aufschlüsselung</string>
+    <!-- Where the car is parked, on the ficha state line (STATS-UI-001) -->
+    <string name="vehicle_state_parked_at">%1$s · %2$s</string>
 </resources>
