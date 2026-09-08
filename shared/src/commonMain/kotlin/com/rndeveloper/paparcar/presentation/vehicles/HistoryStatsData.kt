@@ -1,5 +1,7 @@
 package com.rndeveloper.paparcar.presentation.vehicles
 
+import com.rndeveloper.paparcar.domain.stats.PeriodStats
+
 /**
  * Aggregate insights over a vehicle's ENDED sessions, in USER terms — what the car did, never how
  * confident the detector felt. Each field is null (or absent from the UI) below its significance
@@ -17,3 +19,19 @@ data class HistoryStatsData(
  *  ([com.rndeveloper.paparcar.domain.detection.ParkingDetectionSource] != Unknown), so legacy rows
  *  can't drag the ratio down. */
 data class AutoDetectedShare(val auto: Int, val known: Int)
+
+/**
+ * [STATS-CORE-001] The history block's stats DERIVE from the one domain aggregate — never a second
+ * computation. Thresholds already applied upstream: a zero [PeriodStats.detectionKnownCount] means
+ * "below significance", which is exactly this type's null.
+ */
+fun PeriodStats.toHistoryStatsData(): HistoryStatsData = HistoryStatsData(
+    mostActiveDayOfWeek = mostActiveDayOfWeek,
+    favoriteStreet = favoriteStreet,
+    spotsReleasedCount = spotsReleased,
+    autoDetected = if (detectionKnownCount > 0) {
+        AutoDetectedShare(auto = autoDetectedCount, known = detectionKnownCount)
+    } else {
+        null
+    },
+)

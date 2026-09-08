@@ -5,6 +5,7 @@ package com.rndeveloper.paparcar.presentation.vehicles
 import androidx.compose.runtime.Immutable
 import com.rndeveloper.paparcar.domain.entitlement.gateHistoryToEntitlement
 import com.rndeveloper.paparcar.domain.model.UserParking
+import com.rndeveloper.paparcar.domain.usecase.stats.ComputePeriodStatsUseCase
 import kotlin.time.Clock
 
 /**
@@ -62,9 +63,13 @@ sealed interface HistoryTimeline {
                 visibleSessions = gated.visible,
                 hiddenOlderCount = gated.hiddenOlderCount,
                 filteredSessions = VehicleHistoryCalculator.filter(gated.visible, filter, nowMs),
-                statsData = VehicleHistoryCalculator.computeStats(gated.visible),
+                // [STATS-CORE-001] Derived from the ONE domain aggregate. No vehicles here on
+                // purpose: this block never shows fuel figures, and the mapper never reads them.
+                statsData = computePeriodStats(gated.visible)?.toHistoryStatsData(),
             )
         }
+
+        private val computePeriodStats = ComputePeriodStatsUseCase()
     }
 }
 

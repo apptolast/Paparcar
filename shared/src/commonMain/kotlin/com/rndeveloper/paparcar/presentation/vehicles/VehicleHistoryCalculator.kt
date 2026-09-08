@@ -2,9 +2,9 @@
 
 package com.rndeveloper.paparcar.presentation.vehicles
 
-import com.rndeveloper.paparcar.domain.detection.ParkingDetectionSource
-import com.rndeveloper.paparcar.domain.detection.detectionSource
 import com.rndeveloper.paparcar.domain.model.UserParking
+import com.rndeveloper.paparcar.domain.stats.ScopedDistance
+import com.rndeveloper.paparcar.domain.stats.sumMeasuredDistance
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -67,72 +67,36 @@ object VehicleHistoryCalculator {
         return sessions.filter { it.location.timestamp >= startMs }
     }
 
-    /** Aggregate insights over the ENDED sessions, or null when there is no history to speak of.
-     *  Everything here reads persisted fields — no polyline decoding in this hot path (it runs on
-     *  every Room emission, per vehicle). [VEH-STATS-SAY-SOMETHING-USEFUL-001] */
-    fun computeStats(sessions: List<UserParking>): HistoryStatsData? {
-        if (sessions.isEmpty()) return null
-        val ended = sessions.filter { !it.isActive }
-
-        val peakDay: Int? = run {
-            if (ended.size < MIN_SESSIONS_FOR_PEAK) return@run null
-            val tz = TimeZone.currentSystemDefault()
-            ended
-                .groupBy<UserParking, Int> {
-                    Instant.fromEpochMilliseconds(it.location.timestamp)
-                        .toLocalDateTime(tz).date.dayOfWeek.isoDayNumber
-                }
-                .maxByOrNull { it.value.size }
-                ?.key
-        }
-
-        // A street is "usual" when it repeats, not when it merely wins a 1-1 tie.
-        val topStreet: String? = ended
-            .mapNotNull { it.address?.street?.takeIf { s -> s.isNotBlank() } }
-            .groupBy { it }
-            .maxByOrNull { it.value.size }
-            ?.takeIf { it.value.size >= MIN_SESSIONS_FOR_STREET }
-            ?.key
-
-        // One resolver for "who placed this pin" — never a second set of path strings here.
-        // [UI-HISTORY-IDENTITY-AND-SOURCE-001]
-        val known = ended.filter { it.detectionSource() != ParkingDetectionSource.Unknown }
-        val autoDetected: AutoDetectedShare? = known
-            .takeIf { it.size >= MIN_SESSIONS_FOR_AUTO_SHARE }
-            ?.let { k ->
-                AutoDetectedShare(
-                    auto = k.count { it.detectionSource() != ParkingDetectionSource.Manual },
-                    known = k.size,
-                )
-            }
-
-        return HistoryStatsData(
-            mostActiveDayOfWeek = peakDay,
-            favoriteStreet = topStreet,
-            spotsReleasedCount = ended.count { it.publishedSpot },
-            autoDetected = autoDetected,
-        )
-    }
+    // computeStats moved to domain in [STATS-CORE-001]: ComputePeriodStatsUseCase is THE
+    // aggregator (the F4 panel, the teaser and HistoryStatsData all derive from it). This object
+    // keeps ONLY what is presentation-shaped: the window authority and the chart buckets.
 
     /**
-     * Distance covered by [sessions], **with how much of them it covers** — or null when not one
-     * of them carries a route ("no distance data" renders as nothing, never as 0 km).
-     *
-     * [UI-HISTORY-A-PARTIAL-SUM-IS-NOT-A-TOTAL-001] It used to return a bare `Float?`, summing only
-     * the sessions that carry `routeDistanceMeters` and handing the number to a screen that printed
-     * it next to a count of ALL of them. The per-session rule ("unknown, never 0") was kept and then
-     * broken on the way to the aggregate: the unknowns slipped into the sum as if they contributed
-     * zero. Returning the coverage alongside the sum is what stops a call site from being able to
-     * print the figure without it.
+     * Distance covered by [sessions], with coverage — delegates to the ONE implementation in
+     * domain/stats [STATS-CORE-001]; see [sumMeasuredDistance] for the partial-sum doctrine
+     * [UI-HISTORY-A-PARTIAL-SUM-IS-NOT-A-TOTAL-001].
      */
-    fun sumDistanceMeters(sessions: List<UserParking>): ScopedDistance? {
-        val measured = sessions.mapNotNull { it.routeDistanceMeters }
-        if (measured.isEmpty()) return null
-        return ScopedDistance(
-            meters = measured.sum(),
-            fromParkings = measured.size,
-            ofParkings = sessions.size,
-        )
+    fun sumDistanceMeters(sessions: List<UserParking>): ScopedDistance? = sumMeasuredDistance(sessions)
+
+    /**
+     * The [startMs, endMs) window of the period IMMEDIATELY BEFORE [filter]'s, for the ▲/▼
+     * comparison — or null for [HistoryFilter.All], which has no "previous everything".
+     * Same calendar-natural rules as [windowStartMs], same single owner. [STATS-CORE-001]
+     */
+    fun previousWindow(
+        filter: HistoryFilter,
+        nowMs: Long = Clock.System.now().toEpochMilliseconds(),
+    ): LongRange? {
+        val currentStart = windowStartMs(filter, nowMs) ?: return null
+        val tz = TimeZone.currentSystemDefault()
+        val currentStartDate = Instant.fromEpochMilliseconds(currentStart).toLocalDateTime(tz).date
+        val previousStartDate = when (filter) {
+            HistoryFilter.All -> return null
+            HistoryFilter.ThisWeek -> currentStartDate.minus(DAYS_PER_WEEK, DateTimeUnit.DAY)
+            HistoryFilter.ThisMonth -> currentStartDate.minus(1, DateTimeUnit.MONTH)
+            HistoryFilter.Last3Months -> currentStartDate.minus(MONTHLY_BUCKETS, DateTimeUnit.MONTH)
+        }
+        return previousStartDate.atStartOfDayIn(tz).toEpochMilliseconds() until currentStart
     }
 
     /**
@@ -236,7 +200,4 @@ object VehicleHistoryCalculator {
     /** How many months the "All" chart shows. Older sessions still count in the total — a
      *  deliberate, documented cap, unlike the two mismatches this ticket fixed. [Task 4] */
     private const val ALL_MONTHS_CAP = 6
-    private const val MIN_SESSIONS_FOR_PEAK = 5
-    private const val MIN_SESSIONS_FOR_STREET = 3
-    private const val MIN_SESSIONS_FOR_AUTO_SHARE = 5
 }

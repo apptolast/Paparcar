@@ -241,6 +241,12 @@ VEHICLE-CATEGORIZATION.md.
 
 ### F3 · STATS-CORE-001 — las cifras, en dominio, sin pantalla
 
+**Estado: ✅ Done (08-09-2026)** — ficha [`stats-core-001.md`](stats-core-001.md). Deltas sobre lo
+planeado aquí: el agregador no recibe periodo ni reloj (las sesiones llegan YA recortadas; la
+autoridad de ventanas sigue en `windowStartMs`, que gana `previousWindow` para la comparativa de
+F4) · `distanceMeters` es `distance: ScopedDistance?` (la cobertura viaja con la cifra y litros/
+kWh/gasto/CO₂ la heredan) · precios como `Money?` por energía (F5), gasto parcial ⇒ null.
+
 **Objetivo.** Un solo agregador puro de estadísticas por periodo y por vehículo (o todos), en
 `commonMain`, testeable, que F4 pinta. Reusa `VehicleHistoryCalculator`; no crea un segundo.
 

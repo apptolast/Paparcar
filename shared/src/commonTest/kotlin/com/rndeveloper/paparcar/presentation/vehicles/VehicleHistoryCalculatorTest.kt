@@ -7,6 +7,7 @@ import com.rndeveloper.paparcar.domain.model.UserParking
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import com.rndeveloper.paparcar.domain.detection.DetectionPath
 
 /** [AUDIT-M11-001] History filtering + stat aggregation, now testable outside the ViewModel.
@@ -52,17 +53,50 @@ class VehicleHistoryCalculatorTest {
         assertEquals(listOf(recent), result)
     }
 
-    // ── computeStats ────────────────────────────────────────────────────────
+    // ── previousWindow [STATS-CORE-001] ──────────────────────────────────────
+
+    @Test
+    fun should_haveNoPreviousWindow_forAllFilter() {
+        // "Everything ever" has no previous everything — the comparison simply does not exist.
+        assertNull(VehicleHistoryCalculator.previousWindow(HistoryFilter.All, nowMs))
+    }
+
+    @Test
+    fun should_endThePreviousWindow_exactlyWhereTheCurrentOneStarts() {
+        // ▲/▼ compares ADJACENT periods: a gap or an overlap would count a session twice or never.
+        listOf(HistoryFilter.ThisWeek, HistoryFilter.ThisMonth, HistoryFilter.Last3Months).forEach { f ->
+            val currentStart = VehicleHistoryCalculator.windowStartMs(f, nowMs)!!
+            val previous = VehicleHistoryCalculator.previousWindow(f, nowMs)!!
+            assertEquals(currentStart - 1, previous.last, "$f must touch the current window")
+            assertTrue(previous.first < previous.last, "$f previous window must not be empty")
+        }
+    }
+
+    @Test
+    fun should_spanExactlySevenDays_forThePreviousWeek() {
+        val currentStart = VehicleHistoryCalculator.windowStartMs(HistoryFilter.ThisWeek, nowMs)!!
+        val previous = VehicleHistoryCalculator.previousWindow(HistoryFilter.ThisWeek, nowMs)!!
+        assertEquals(7 * dayMs, currentStart - previous.first)
+    }
+
+    // ── computeStats — MIGRATED [STATS-CORE-001]: the cases survive verbatim, now exercising
+    // the domain aggregator through the same derivation the production resolve uses, so the
+    // move could not silently drop a threshold.
+
+    private val computePeriodStats = com.rndeveloper.paparcar.domain.usecase.stats.ComputePeriodStatsUseCase()
+    private fun legacyComputeStats(sessions: List<com.rndeveloper.paparcar.domain.model.UserParking>) =
+        computePeriodStats(sessions)?.toHistoryStatsData()
+
 
     @Test
     fun should_returnNull_whenNoSessions() {
-        assertNull(VehicleHistoryCalculator.computeStats(emptyList()))
+        assertNull(legacyComputeStats(emptyList()))
     }
 
     @Test
     fun should_suppressFavoriteStreet_whenNoStreetRepeatsThreeTimes() {
         // Winning a 2-1 tie is not a habit — below the threshold nothing is claimed.
-        val stats = VehicleHistoryCalculator.computeStats(
+        val stats = legacyComputeStats(
             listOf(
                 session(nowMs - 20 * dayMs, street = "Calle A"),
                 session(nowMs - 19 * dayMs, street = "Calle A"),
@@ -74,7 +108,7 @@ class VehicleHistoryCalculatorTest {
 
     @Test
     fun should_pickFavoriteStreet_whenAStreetReachesThreeSessions() {
-        val stats = VehicleHistoryCalculator.computeStats(
+        val stats = legacyComputeStats(
             listOf(
                 session(nowMs - 21 * dayMs, street = "Calle A"),
                 session(nowMs - 20 * dayMs, street = "Calle A"),
@@ -87,7 +121,7 @@ class VehicleHistoryCalculatorTest {
 
     @Test
     fun should_countSpotsReleased_overEndedSessionsOnly() {
-        val stats = VehicleHistoryCalculator.computeStats(
+        val stats = legacyComputeStats(
             listOf(
                 session(nowMs - 3 * dayMs, publishedSpot = true),
                 session(nowMs - 2 * dayMs, publishedSpot = false),
@@ -101,7 +135,7 @@ class VehicleHistoryCalculatorTest {
 
     @Test
     fun should_suppressAutoShare_whenFewerThanFiveKnownProvenanceSessions() {
-        val stats = VehicleHistoryCalculator.computeStats(
+        val stats = legacyComputeStats(
             List(4) { i -> session(nowMs - i * dayMs, detectionPath = DetectionPath.StepsEgress.label) } +
                 // Legacy rows (null path, AUTO_DETECTED) have UNKNOWN provenance — they neither
                 // count toward the threshold nor drag the ratio down.
@@ -112,7 +146,7 @@ class VehicleHistoryCalculatorTest {
 
     @Test
     fun should_computeAutoShare_overKnownProvenanceSessions() {
-        val stats = VehicleHistoryCalculator.computeStats(
+        val stats = legacyComputeStats(
             listOf(
                 session(nowMs - 6 * dayMs, detectionPath = DetectionPath.StepsEgress.label),
                 session(nowMs - 5 * dayMs, detectionPath = DetectionPath.KinematicEgress.label),
@@ -129,7 +163,7 @@ class VehicleHistoryCalculatorTest {
 
     @Test
     fun should_suppressPeakDay_belowFiveEndedSessions() {
-        val stats = VehicleHistoryCalculator.computeStats(
+        val stats = legacyComputeStats(
             List(4) { i -> session(nowMs - i * 7 * dayMs) },
         )
         assertNull(stats?.mostActiveDayOfWeek)

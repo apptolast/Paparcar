@@ -82,6 +82,9 @@ val domainModule = module {
     factory { ReportManualSpotUseCase(reportSpotReleased = get(), vehicleRepository = get()) }
     factory { SendSpotSignalUseCase(get()) }
 
+    // Stats — THE aggregator every stats surface derives from. [STATS-CORE-001]
+    factory { com.rndeveloper.paparcar.domain.usecase.stats.ComputePeriodStatsUseCase() }
+
     // Entitlement UseCases — Paparcar Plus [MONEY-001]
     factory { ObserveIsPlusUseCase(entitlementRepository = get()) }
     factory { PurchasePlusUseCase(entitlementRepository = get()) }
