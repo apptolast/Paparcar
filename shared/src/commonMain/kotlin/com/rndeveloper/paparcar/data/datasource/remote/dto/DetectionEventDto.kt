@@ -224,7 +224,10 @@ fun DetectionEvent.toDto(): DetectionEventDto {
             // surface change) — same reuse the Sentry event applies. [DET-UNWITNESSED-DISPLACEMENT-001]
             sessionAgeMs = witnessAgeMs,
         )
-        is DetectionEvent.DepartureVerdict -> base.copy(verdict = verdict, source = source, attempt = attempt, speedKmh = speedKmh, enterAgeMs = enterAgeMs)
+        // [DET-BT-A-RIDE-IS-MEASURED-NOT-TIMED-001] The ride proof's displacement rides the existing
+        // `distanceMeters` column — the same one Decision and SessionSuperseded already write their
+        // spatial numbers to. No serializer surface change for a field that only adds evidence.
+        is DetectionEvent.DepartureVerdict -> base.copy(verdict = verdict, source = source, attempt = attempt, speedKmh = speedKmh, enterAgeMs = enterAgeMs, distanceMeters = distanceMeters)
         is DetectionEvent.DepartureProcessed -> base.copy(published = published, sessionCleared = sessionCleared)
         // [DET-HANDOFF-NOT-MANUAL-001 §B.3] How long the withdrawn spot was live rides the existing
         // "how old" column, same reuse as Reverted — no serializer surface change.

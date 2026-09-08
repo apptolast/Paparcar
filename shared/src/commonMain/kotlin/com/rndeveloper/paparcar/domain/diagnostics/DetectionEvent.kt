@@ -271,6 +271,10 @@ sealed interface DetectionEvent {
         val attempt: Int? = null,
         val speedKmh: Float? = null,
         val enterAgeMs: Long? = null,
+        /** [DET-BT-A-RIDE-IS-MEASURED-NOT-TIMED-001] How far the vehicle was measured to have moved
+         *  for this verdict — the BT lane's ride proof. Rides the DTO's existing `distanceMeters`
+         *  column, so it reaches remote with no serializer surface change. */
+        val distanceMeters: Double? = null,
         override val location: GpsPoint? = null,
     ) : DetectionEvent
 

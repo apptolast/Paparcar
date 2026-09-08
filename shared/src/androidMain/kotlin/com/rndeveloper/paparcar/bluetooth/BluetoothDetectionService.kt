@@ -154,7 +154,14 @@ class BluetoothDetectionService : LifecycleService() {
                     this@BluetoothDetectionService,
                     vehicleId,
                 )
-                detector.detectParking(deviceAddress, vehicleId, connectedAtMs)
+                // [DET-BT-A-RIDE-IS-MEASURED-NOT-TIMED-001] …and WHERE that connect happened, the
+                // origin the ride is measured from. Read next to its timestamp because the two are
+                // one fact; same reason it stays out of the detector's decision core.
+                val connectFix = BtConnectionStore.lastConnectFix(
+                    this@BluetoothDetectionService,
+                    vehicleId,
+                )
+                detector.detectParking(deviceAddress, vehicleId, connectedAtMs, connectFix)
                 PaparcarLogger.d(DIAG, "  ✓ detectParking returned normally")
                 // [DET-RETURN-ANCHOR-001] Seal the anchor for the just-confirmed session right
                 // away (the coordinator path gets this via its detection-end check): the user is

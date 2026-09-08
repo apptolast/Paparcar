@@ -8,6 +8,7 @@ import android.os.Build
 import androidx.core.content.ContextCompat
 import com.rndeveloper.paparcar.detection.service.CoordinatorDetectionService
 import com.rndeveloper.paparcar.domain.detection.DetectionRuntimeState
+import com.rndeveloper.paparcar.domain.location.LocationDataSource
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import com.rndeveloper.paparcar.domain.usecase.detection.BtArbitrationEvent
@@ -19,6 +20,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
@@ -53,6 +55,9 @@ class BluetoothConnectionReceiver : BroadcastReceiver(), KoinComponent {
 
     private val vehicleRepository: VehicleRepository by inject()
     private val appPreferences: AppPreferences by inject()
+
+    // [DET-BT-A-RIDE-IS-MEASURED-NOT-TIMED-001] Origin of the ride, read passively at CONNECT.
+    private val locationDataSource: LocationDataSource by inject()
 
     // [DET-TIERS-001] Bluetooth as deterministic arbiter of the probabilistic coordinator.
     private val detectionRuntimeState: DetectionRuntimeState by inject()
@@ -147,7 +152,26 @@ class BluetoothConnectionReceiver : BroadcastReceiver(), KoinComponent {
                         // identity proof the parked-session safety net reads before it reconstructs
                         // a departure for a BT-paired vehicle. Disk-backed (survives the process
                         // kills the net wakes across); keyed by vehicleId, the join the net has.
-                        BtConnectionStore.recordConnected(context, pairedVehicle.id, System.currentTimeMillis())
+                        //
+                        // [DET-BT-A-RIDE-IS-MEASURED-NOT-TIMED-001] …and stamp WHERE that happened,
+                        // so the disconnect can ask whether the car actually went anywhere. A cached
+                        // last-known read: it requests no updates, adds no fix to the fused stream
+                        // (so it cannot provoke a geofence EXIT) and costs no foreground service —
+                        // the same passive read DET-AR-REARM-001 established. Bounded and swallowed:
+                        // a receiver must not stall on the location stack, and a missing origin is a
+                        // measurement we will report as missing, not a reason to drop the stamp.
+                        val originFix = withTimeoutOrNull(ORIGIN_FIX_TIMEOUT_MS) {
+                            runCatching { locationDataSource.getLastKnownLocation() }.getOrNull()
+                        }
+                        if (originFix == null) {
+                            PaparcarLogger.w(TAG, "  ⚠ no cached fix at connect — this ride will not be measurable")
+                        }
+                        BtConnectionStore.recordConnected(
+                            context,
+                            pairedVehicle.id,
+                            System.currentTimeMillis(),
+                            originFix,
+                        )
                         // [DET-BT-CONNECTED-NOT-PAIRED-001] Connected to THIS car → BLUETOOTH owns
                         // detection now; the resolver reads this live state to suppress the Coordinator.
                         BtConnectionStore.markConnected(context, pairedVehicle.id)
@@ -177,5 +201,10 @@ class BluetoothConnectionReceiver : BroadcastReceiver(), KoinComponent {
         /** PARKDIAG prefix: FileAntilog only persists PARKDIAG-tagged lines — without it the whole
          *  BT path was invisible in field captures, like SIGMOTION before 2026-07-07. */
         const val TAG = "PARKDIAG/BTReceiver"
+
+        /** [DET-BT-A-RIDE-IS-MEASURED-NOT-TIMED-001] Ceiling on the cached-fix read at CONNECT. The
+         *  read is a memory hit in practice; the bound exists because this runs inside a
+         *  BroadcastReceiver's `goAsync` window, where a hung location stack costs an ANR. */
+        const val ORIGIN_FIX_TIMEOUT_MS = 2_000L
     }
 }

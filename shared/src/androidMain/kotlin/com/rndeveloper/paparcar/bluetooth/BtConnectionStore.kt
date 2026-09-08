@@ -3,11 +3,13 @@ package com.rndeveloper.paparcar.bluetooth
 import android.content.Context
 import android.content.SharedPreferences
 import com.rndeveloper.paparcar.domain.bluetooth.BtConnection
+import com.rndeveloper.paparcar.domain.model.GpsPoint
 import androidx.core.content.edit
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.serialization.json.Json
 
 /**
  * Disk-backed record of the last time Bluetooth connected to each vehicle's paired car MAC.
@@ -25,14 +27,42 @@ import kotlinx.coroutines.flow.distinctUntilChanged
  */
 object BtConnectionStore {
 
-    /** Stamp a fresh ACL connection to [vehicleId]'s paired device. Called by the BT receiver. */
-    fun recordConnected(context: Context, vehicleId: String, atMs: Long) {
-        prefs(context).edit { putLong(KEY_PREFIX + vehicleId, atMs) }
+    /**
+     * Stamp a fresh ACL connection to [vehicleId]'s paired device. Called by the BT receiver.
+     *
+     * [fix] is where the phone was when the car connected — the ORIGIN the disconnect will measure
+     * the ride against. [DET-BT-A-RIDE-IS-MEASURED-NOT-TIMED-001] It is a cached last-known read,
+     * so it costs no GPS session and may legitimately be null (nothing cached, permission denied);
+     * null is recorded as absence, never as zero, because a (0,0) origin would fabricate a
+     * displacement across half the planet.
+     *
+     * Both keys are written in ONE edit so the stamp and its origin can never disagree: a reader
+     * that found a time without a place would measure a ride from nowhere.
+     */
+    fun recordConnected(context: Context, vehicleId: String, atMs: Long, fix: GpsPoint?) {
+        val encoded = fix?.let { runCatching { Json.encodeToString(GpsPoint.serializer(), it) }.getOrNull() }
+        prefs(context).edit {
+            putLong(KEY_PREFIX + vehicleId, atMs)
+            if (encoded != null) putString(KEY_FIX_PREFIX + vehicleId, encoded)
+            // A connect with no origin must ERASE the previous one — otherwise the next disconnect
+            // measures this ride from the place the car connected two trips ago.
+            else remove(KEY_FIX_PREFIX + vehicleId)
+        }
     }
 
     /** Epoch-ms of the last recorded connection to [vehicleId]'s device, or null if never. */
     fun lastConnectedAt(context: Context, vehicleId: String): Long? =
         prefs(context).getLong(KEY_PREFIX + vehicleId, 0L).takeIf { it > 0L }
+
+    /**
+     * Where the phone was at the last recorded connection to [vehicleId]'s device, or null when
+     * none was cached (or the stored value no longer decodes — an app upgrade that changed the fix
+     * shape must degrade to "unmeasurable", never to a crash in a BroadcastReceiver).
+     * [DET-BT-A-RIDE-IS-MEASURED-NOT-TIMED-001]
+     */
+    fun lastConnectFix(context: Context, vehicleId: String): GpsPoint? =
+        prefs(context).getString(KEY_FIX_PREFIX + vehicleId, null)
+            ?.let { runCatching { Json.decodeFromString(GpsPoint.serializer(), it) }.getOrNull() }
 
     // ── Live connection STATE (which paired cars are connected right now) ──────────────────────────
     // [DET-BT-CONNECTED-NOT-PAIRED-001] The strategy resolver reads this to let BLUETOOTH own
@@ -95,4 +125,7 @@ object BtConnectionStore {
     private const val PREFS_NAME = "bt_identity"
     private const val KEY_PREFIX = "bt_connected_"
     private const val KEY_CONNECTED_SET = "bt_connected_now"
+    /** [DET-BT-A-RIDE-IS-MEASURED-NOT-TIMED-001] Origin fix of the current engagement, JSON-encoded
+     *  next to its timestamp. One key per vehicle, same join as the stamp above. */
+    private const val KEY_FIX_PREFIX = "bt_connect_fix_"
 }

@@ -9,6 +9,7 @@ import com.rndeveloper.paparcar.domain.notification.AppNotificationManager
 import com.rndeveloper.paparcar.domain.usecase.detection.BtCandidateHunt
 import com.rndeveloper.paparcar.domain.usecase.detection.BtEngagement
 import com.rndeveloper.paparcar.domain.usecase.detection.BtParkVerdict
+import com.rndeveloper.paparcar.domain.usecase.detection.BtRideProof
 import com.rndeveloper.paparcar.domain.usecase.detection.EvaluateBtParkUseCase
 import com.rndeveloper.paparcar.domain.usecase.location.ObserveAdaptiveLocationUseCase
 import com.rndeveloper.paparcar.domain.usecase.parking.ConfirmParkingUseCase
@@ -72,7 +73,12 @@ class BluetoothParkingDetector(
     private val detectionEventLogger: DetectionEventLogger? = null,
 ) {
 
-    suspend fun detectParking(deviceAddress: String, vehicleId: String, connectedAtMs: Long?) {
+    suspend fun detectParking(
+        deviceAddress: String,
+        vehicleId: String,
+        connectedAtMs: Long?,
+        connectFix: GpsPoint?,
+    ) {
         PaparcarLogger.d(TAG, "BT disconnected ($deviceAddress, vehicle=$vehicleId) — debouncing for reconnect check")
 
         // [DET-BT-DISCONNECT-WITHOUT-RIDE-001] Was this the end of a RIDE, or just a car passing
@@ -136,6 +142,58 @@ class BluetoothParkingDetector(
 
         PaparcarLogger.d(TAG, "Got parking fix at (${parkingFix.latitude}, ${parkingFix.longitude}), accuracy=${parkingFix.accuracy}m, pin lag=${pinLagMs}ms")
 
+        // [DET-BT-A-RIDE-IS-MEASURED-NOT-TIMED-001] Did the car actually GO anywhere? Asked here,
+        // with the destination finally in hand and before either branch below can save: the
+        // walk-away confirm AND the timeout-save both inherit this gate, which is what makes the
+        // timeout-save legitimate again — it stops being "no evidence at all" and becomes "a
+        // measured ride whose walk we could not see".
+        //
+        // `Ride.durationMs` is `disconnectedAtMs - connectedAtMs` by construction, so the connect
+        // instant is recovered without carrying a nullable through the flow.
+        val rideProof = when (
+            val proof = evaluateBtPark.evaluateRideDisplacement(
+                origin = connectFix,
+                connectedAtMs = disconnectedAtMs - engagement.durationMs,
+                candidate = candidate,
+            )
+        ) {
+            is BtRideProof.Moved -> {
+                PaparcarLogger.i(
+                    TAG,
+                    "Ride measured: ${proof.displacementMeters.toInt()}m ≥ ${proof.requiredMeters.toInt()}m required " +
+                        "(origin ${proof.originAgeMs / 1000}s old) — the car went somewhere",
+                )
+                proof
+            }
+            is BtRideProof.DidNotMove -> {
+                PaparcarLogger.w(
+                    TAG,
+                    "The car did not move: ${proof.displacementMeters.toInt()}m < ${proof.requiredMeters.toInt()}m required " +
+                        "— engagement without a ride, asking instead of placing [DET-BT-A-RIDE-IS-MEASURED-NOT-TIMED-001]",
+                )
+                logRemote(
+                    sessionId = vehicleId,
+                    verdict = VERDICT_NO_MOVE_ASK,
+                    fix = parkingFix,
+                    ageMs = proof.originAgeMs,
+                    displacementMeters = proof.displacementMeters,
+                )
+                // Same ask as the no-ride branch, and for the same reason: the car IS near, but
+                // WHERE is the user's to say. [DET-NUDGE-PERSIST-001]
+                notificationPort.showMarkParkingNudge(source = NUDGE_SOURCE_BT_NO_MOVE, vehicleId = vehicleId)
+                return
+            }
+            is BtRideProof.Unmeasurable -> {
+                PaparcarLogger.w(
+                    TAG,
+                    "Ride not measurable (${proof.gap.label}) — asking instead of placing [DET-BT-A-RIDE-IS-MEASURED-NOT-TIMED-001]",
+                )
+                logRemote(sessionId = vehicleId, verdict = "${VERDICT_UNMEASURABLE_ASK}_${proof.gap.label}", fix = parkingFix)
+                notificationPort.showMarkParkingNudge(source = NUDGE_SOURCE_BT_UNMEASURABLE, vehicleId = vehicleId)
+                return
+            }
+        }
+
         // [DET-AUDIT-002 T2+T4] Walk-away watch, pure-evaluated (WALKED distance at pedestrian
         // rate — wheels covering it abort) and hard-bounded in time: without the ceiling, a
         // garage park (no usable GPS, never 30 m of measured walk) left this FGS + GPS pinned
@@ -184,7 +242,13 @@ class BluetoothParkingDetector(
                 sealPoint = parkingFix,
             )
                 .onSuccess { saved ->
-                    logRemote(sessionId = saved.id, verdict = "bt_timeout_save", fix = parkingFix, pinLagMs = pinLagMs)
+                    logRemote(
+                    sessionId = saved.id,
+                    verdict = "bt_timeout_save",
+                    fix = parkingFix,
+                    ageMs = pinLagMs,
+                    displacementMeters = rideProof.displacementMeters,
+                )
                     notificationPort.showParkingSaved(saved.location.latitude, saved.location.longitude)
                 }
                 .onFailure { e ->
@@ -212,7 +276,13 @@ class BluetoothParkingDetector(
             sealPoint = walkSettled,
         )
             .onSuccess { saved ->
-                logRemote(sessionId = saved.id, verdict = "bt_park_confirmed", fix = parkingFix, pinLagMs = pinLagMs)
+                logRemote(
+                    sessionId = saved.id,
+                    verdict = "bt_park_confirmed",
+                    fix = parkingFix,
+                    ageMs = pinLagMs,
+                    displacementMeters = rideProof.displacementMeters,
+                )
                 // Legacy tap-to-open-map notification. [BT-NOTIF-LEGACY-CLEANUP]
                 notificationPort.showParkingSaved(saved.location.latitude, saved.location.longitude)
             }
@@ -228,7 +298,8 @@ class BluetoothParkingDetector(
         sessionId: String,
         verdict: String,
         fix: GpsPoint? = null,
-        pinLagMs: Long? = null,
+        ageMs: Long? = null,
+        displacementMeters: Double? = null,
     ) {
         runCatching {
             detectionEventLogger?.log(
@@ -238,12 +309,19 @@ class BluetoothParkingDetector(
                     verdict = verdict,
                     source = "bt",
                     speedKmh = fix?.speed?.times(KMH_PER_MPS),
-                    // [DET-BT-PIN-IS-SAMPLED-AFTER-THE-WALK-001] How old the pinned fix already was
-                    // when the disconnect happened — the walk baked into the pin, in ms. Rides the
-                    // DTO's existing "how old was this signal" column, the same reuse
-                    // ActivityTransition, Cadence and the displacement witness already make, so the
-                    // number reaches remote with no serializer surface change.
-                    enterAgeMs = pinLagMs,
+                    // [DET-BT-PIN-IS-SAMPLED-AFTER-THE-WALK-001] How old the signal this verdict
+                    // judged already was, in ms — the walk baked into the pin on the confirm paths,
+                    // the age of the ride's origin fix on the ride-proof ones. Rides the DTO's
+                    // existing "how old was this signal" column, the same reuse ActivityTransition,
+                    // Cadence and the displacement witness already make, so the number reaches
+                    // remote with no serializer surface change.
+                    enterAgeMs = ageMs,
+                    // [DET-BT-A-RIDE-IS-MEASURED-NOT-TIMED-001] How far the car actually went during
+                    // the engagement. Stamped on the PASSING verdicts too, not only the refusals:
+                    // a threshold whose population nobody can see afterwards is a guess, and this
+                    // one ships without a corpus to calibrate it against. Rides `distanceMeters`,
+                    // the column SessionSuperseded and Decision already use — no serializer change.
+                    distanceMeters = displacementMeters,
                     location = fix,
                 )
             )
@@ -269,6 +347,18 @@ class BluetoothParkingDetector(
 
         /** Nudge provenance so the diagnostics can tell this ask from the coordinator's. */
         const val NUDGE_SOURCE_BT_NO_RIDE = "bt_no_ride"
+
+        /** [DET-BT-A-RIDE-IS-MEASURED-NOT-TIMED-001] The engagement was ride-SHAPED in time but the
+         *  car never left: measured, and it did not move. */
+        const val VERDICT_NO_MOVE_ASK = "bt_no_move_ask"
+        const val NUDGE_SOURCE_BT_NO_MOVE = "bt_no_move"
+
+        /** [DET-BT-A-RIDE-IS-MEASURED-NOT-TIMED-001] The displacement could not be measured at all.
+         *  The gap that prevented it is appended to the verdict, so the field can separate "we never
+         *  had an origin" from "the origin was too old" WITHOUT a new telemetry column — and so the
+         *  first calibration of this gate can be done by grouping on the verdict string. */
+        const val VERDICT_UNMEASURABLE_ASK = "bt_unmeasurable_ask"
+        const val NUDGE_SOURCE_BT_UNMEASURABLE = "bt_ride_unmeasurable"
 
         /** BT-005: Grace window before ACTING on a disconnect (brief stop / oscillation debounce).
          *  ⛔ Not a window before LOOKING: the hunt for the parked-car fix runs from the disconnect,

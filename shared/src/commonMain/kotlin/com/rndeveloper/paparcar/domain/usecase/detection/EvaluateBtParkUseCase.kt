@@ -73,6 +73,51 @@ sealed interface BtEngagement {
 }
 
 /**
+ * Why a ride could not be SIZED IN SPACE. [DET-BT-A-RIDE-IS-MEASURED-NOT-TIMED-001]
+ *
+ * Each value is a diagnostic label: it names which half of the measurement was missing, so the
+ * field can tell "we never had an origin" from "the origin we had was too old to mean anything".
+ */
+enum class BtRideOriginGap(val label: String) {
+    /** No fix was cached when the car connected — nothing to measure the displacement FROM. */
+    NO_FIX("no_origin_fix"),
+    /** The origin fix predates the connect by more than [ParkingDetectionConfig.btConnectFixMaxAgeMs].
+     *  Its walk allowance would swamp any real trip, so the arithmetic is skipped and named. */
+    STALE_FIX("origin_fix_stale"),
+    /** The origin is stamped AFTER the connect — a clock change between the two. Not a distance. */
+    INCOHERENT_CLOCK("origin_clock_incoherent"),
+}
+
+/**
+ * Did the car actually GO anywhere between connect and park?
+ * [DET-BT-A-RIDE-IS-MEASURED-NOT-TIMED-001]
+ *
+ * The BT lane cannot measure speed: it holds no stream while you drive, and that cheapness is the
+ * whole point of the tier. It CAN measure displacement — and a trip is, before anything else, a
+ * change of place. [displacementMeters] against [requiredMeters] is that measurement; both travel
+ * on every verdict so the field can see how close a decision was, not just which way it went.
+ */
+sealed interface BtRideProof {
+    /** The car is measurably somewhere else than where the engagement began. */
+    data class Moved(
+        val displacementMeters: Double,
+        val requiredMeters: Double,
+        val originAgeMs: Long,
+    ) : BtRideProof
+
+    /** Measured, and it did NOT move: the engagement happened with the car parked where it already
+     *  was (sitting in it with the radio on, waiting for someone, charging the phone). */
+    data class DidNotMove(
+        val displacementMeters: Double,
+        val requiredMeters: Double,
+        val originAgeMs: Long,
+    ) : BtRideProof
+
+    /** The displacement could not be measured at all. Doubt, never permission. */
+    data class Unmeasurable(val gap: BtRideOriginGap) : BtRideProof
+}
+
+/**
  * Pure decision core of the Bluetooth detection path. [DET-AUDIT-002 T2/T3]
  *
  * Extracted from [the Android `BluetoothParkingDetector`] so the deterministic-path rules are
@@ -88,6 +133,13 @@ sealed interface BtEngagement {
  *    learned this as BUG-WALK-DEPART-001's mirror image). The displacement must be at pedestrian
  *    rate; covering it faster than [ParkingDetectionConfig.maxPedestrianSpeedMps] means wheels,
  *    not feet — abort.
+ *
+ * And the hole neither of them could see, because both judge the END of a ride and never ask
+ * whether there WAS one [DET-BT-A-RIDE-IS-MEASURED-NOT-TIMED-001]:
+ *  - **Ride gate**: `evaluateEngagement` sizes the engagement in TIME (all that exists at the
+ *    disconnect), and time cannot tell a trip from sitting in a parked car. `evaluateRideDisplacement`
+ *    adds the measurement the lane never had — the car has to be somewhere ELSE — so the app's
+ *    ruling doctrine (*the event nominates, only MEASURED movement confirms*) finally holds here too.
  *
  * Asymmetric-error rule as everywhere: every ambiguous reading is a false NEGATIVE (KeepWaiting
  * or abort) — the BT tier's authority ("deterministic, 0.95") must be earned, never assumed.
@@ -125,6 +177,58 @@ class EvaluateBtParkUseCase(private val config: ParkingDetectionConfig) {
             BtEngagement.Ride(durationMs)
         } else {
             BtEngagement.ProximityOnly(durationMs)
+        }
+    }
+
+    /**
+     * Did the car MOVE during the engagement? Asked once the parked-car candidate is in hand.
+     * [DET-BT-A-RIDE-IS-MEASURED-NOT-TIMED-001]
+     *
+     * [evaluateEngagement] sizes the engagement in TIME because at the disconnect nothing has been
+     * measured yet — and time alone cannot tell a trip from sitting in a parked car with the radio
+     * on. That gap made this the one lane in the app that confirmed a park without a single metre
+     * of measured movement: 90 s of radio plus a stationary fix (the exact state of someone who has
+     * driven nowhere) plus a walk to the front door, and a 0.95 session was born, with a geofence
+     * whose EXIT armed the coordinator and a community spot released on the next departure.
+     *
+     * Measured HERE and not earlier on purpose: the origin is stamped at the connect, but the
+     * destination only exists once the hunt settles. Asking before the candidate would mean holding
+     * the foreground service to find out — exactly what the duration gate is there to avoid.
+     *
+     * **The required distance grows with the origin's age**, in the shape
+     * [ParkingDetectionConfig.isBeyondPedestrianReach] already uses: the origin is a CACHED fix, so
+     * between it and the connect the user may have walked toward the car — or toward wherever the
+     * car later parked. Charging that walk to the threshold is what keeps a stale origin from
+     * manufacturing a displacement nobody drove. Both accuracies are added for the same reason: a
+     * distance smaller than the error bars of its own endpoints is not a distance.
+     *
+     * @param origin last known fix at the moment the paired car connected, or null if none was
+     *   cached. Its [GpsPoint.timestamp] is the fix's own instant, not the connect's.
+     * @param connectedAtMs the connect this engagement began with.
+     * @param candidate the parked-car candidate — the destination of the alleged ride.
+     */
+    fun evaluateRideDisplacement(
+        origin: GpsPoint?,
+        connectedAtMs: Long,
+        candidate: BtCandidate,
+    ): BtRideProof {
+        if (origin == null) return BtRideProof.Unmeasurable(BtRideOriginGap.NO_FIX)
+        val originAgeMs = connectedAtMs - origin.timestamp
+        if (originAgeMs < 0) return BtRideProof.Unmeasurable(BtRideOriginGap.INCOHERENT_CLOCK)
+        if (originAgeMs > config.btConnectFixMaxAgeMs) {
+            return BtRideProof.Unmeasurable(BtRideOriginGap.STALE_FIX)
+        }
+        val displacementMeters = haversineMeters(
+            origin.latitude, origin.longitude,
+            candidate.fix.latitude, candidate.fix.longitude,
+        )
+        val requiredMeters = config.btMinRideDisplacementMeters +
+            origin.accuracy + candidate.fix.accuracy +
+            config.maxPedestrianSpeedMps * (originAgeMs / 1000.0)
+        return if (displacementMeters >= requiredMeters) {
+            BtRideProof.Moved(displacementMeters, requiredMeters, originAgeMs)
+        } else {
+            BtRideProof.DidNotMove(displacementMeters, requiredMeters, originAgeMs)
         }
     }
 

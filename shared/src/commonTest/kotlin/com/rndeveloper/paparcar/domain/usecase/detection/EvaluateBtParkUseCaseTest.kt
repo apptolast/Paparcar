@@ -5,6 +5,7 @@ import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -279,9 +280,103 @@ class EvaluateBtParkUseCaseTest {
         assertEquals(BtEngagement.Unknown, verdict)
     }
 
+    // ── Ride proof: the car has to GO somewhere [DET-BT-A-RIDE-IS-MEASURED-NOT-TIMED-001] ──────
+    //
+    // The hole the two gates above could not see: both judge the END of a ride, neither asks
+    // whether there WAS one. Ninety seconds of radio in a parked car satisfied every one of them.
+
+    /** The engagement's origin: a cached fix stamped at CONNECT, [ageMs] old by then. */
+    private fun origin(meters: Double = 0.0, ageMs: Long = 0L, accuracy: Float = 10f) =
+        fix(meters = meters, accuracy = accuracy, timestamp = CONNECTED_AT_MS - ageMs)
+
+    @Test
+    fun should_proveRide_when_carEndedFarFromWhereItConnected() {
+        val proof = useCase.evaluateRideDisplacement(
+            origin = origin(),
+            connectedAtMs = CONNECTED_AT_MS,
+            candidate = candidate(atMs = CONNECTED_AT_MS + 600_000L, meters = 400.0),
+        )
+        assertIs<BtRideProof.Moved>(proof, "400 m with a fresh origin is a ride")
+        // The threshold actually applied, spelled out: base + both accuracies + zero walk allowance.
+        assertEquals(170.0, proof.requiredMeters, 0.5)
+    }
+
+    @Test
+    fun should_refuseRide_when_theCarNeverLeftItsSpace() {
+        // THE case: 10 minutes in the car with the radio on, engine off, walk into the house.
+        // Ride-shaped in time, and the car is exactly where it was.
+        val proof = useCase.evaluateRideDisplacement(
+            origin = origin(),
+            connectedAtMs = CONNECTED_AT_MS,
+            candidate = candidate(atMs = CONNECTED_AT_MS + 600_000L, meters = 6.0),
+        )
+        assertIs<BtRideProof.DidNotMove>(proof, "6 m is not a trip")
+    }
+
+    @Test
+    fun should_refuseRide_when_theWalkBeforeBoardingCouldExplainTheWholeDisplacement() {
+        // A 250 m gap clears the bare threshold — but the origin was already 60 s old at the
+        // connect, and 60 s of walking is 150 m the user could have covered on FOOT toward the car.
+        // Charging that walk is what stops a stale origin from manufacturing a ride nobody drove.
+        val proof = useCase.evaluateRideDisplacement(
+            origin = origin(ageMs = 60_000L),
+            connectedAtMs = CONNECTED_AT_MS,
+            candidate = candidate(atMs = CONNECTED_AT_MS + 600_000L, meters = 250.0),
+        )
+        assertIs<BtRideProof.DidNotMove>(proof, "250 m against a 60 s-old origin is not proof")
+        assertEquals(320.0, proof.requiredMeters, 0.5) // 150 base + 20 accuracies + 150 walk
+    }
+
+    @Test
+    fun should_reportUnmeasurable_when_noFixWasCachedAtConnect() {
+        val proof = useCase.evaluateRideDisplacement(
+            origin = null,
+            connectedAtMs = CONNECTED_AT_MS,
+            candidate = candidate(atMs = CONNECTED_AT_MS + 600_000L, meters = 4_000.0),
+        )
+        // Even a 4 km gap decides nothing without an origin: it is unmeasured, not measured-large.
+        assertEquals(BtRideProof.Unmeasurable(BtRideOriginGap.NO_FIX), proof)
+    }
+
+    @Test
+    fun should_reportUnmeasurable_when_theOriginFixIsOlderThanTheCeiling() {
+        val proof = useCase.evaluateRideDisplacement(
+            origin = origin(ageMs = config.btConnectFixMaxAgeMs + 1),
+            connectedAtMs = CONNECTED_AT_MS,
+            candidate = candidate(atMs = CONNECTED_AT_MS + 600_000L, meters = 4_000.0),
+        )
+        assertEquals(BtRideProof.Unmeasurable(BtRideOriginGap.STALE_FIX), proof)
+    }
+
+    @Test
+    fun should_reportUnmeasurable_when_theOriginIsStampedAfterTheConnect() {
+        // Clock change between the cached fix and the connect — a negative age is not a distance.
+        val proof = useCase.evaluateRideDisplacement(
+            origin = origin(ageMs = -5_000L),
+            connectedAtMs = CONNECTED_AT_MS,
+            candidate = candidate(atMs = CONNECTED_AT_MS + 600_000L, meters = 400.0),
+        )
+        assertEquals(BtRideProof.Unmeasurable(BtRideOriginGap.INCOHERENT_CLOCK), proof)
+    }
+
+    @Test
+    fun should_refuseRide_when_bothFixesAreCoarseEnoughToExplainTheGap() {
+        // A distance smaller than the error bars of its own endpoints is not a distance.
+        val proof = useCase.evaluateRideDisplacement(
+            origin = origin(accuracy = 60f),
+            connectedAtMs = CONNECTED_AT_MS,
+            candidate = BtCandidate(fix(meters = 190.0, accuracy = 60f), CONNECTED_AT_MS + 600_000L),
+        )
+        assertIs<BtRideProof.DidNotMove>(proof, "190 m between two ±60 m fixes proves nothing")
+    }
+
     private companion object {
         const val BASE_LAT = 36.6024
         const val BASE_LON = -6.2766
         const val METERS_PER_DEGREE_LAT = 111_320.0
+
+        /** Wall-clock of the CONNECT the ride-proof tests measure from. Non-zero on purpose: a
+         *  zero epoch would let an unstamped fix pass the age checks by accident. */
+        const val CONNECTED_AT_MS = 1_756_000_000_000L
     }
 }

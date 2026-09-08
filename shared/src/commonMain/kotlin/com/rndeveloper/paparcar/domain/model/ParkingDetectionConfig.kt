@@ -735,6 +735,23 @@ data class ParkingDetectionConfig(
      *  far above any drive-by or key-turn handshake and far below the shortest real trip, which
      *  still has to start the engine, move and stop. */
     val btMinRideDurationMs: Long = 90_000L,
+    /** [DET-BT-A-RIDE-IS-MEASURED-NOT-TIMED-001] Base distance the car must be measurably AWAY from
+     *  where the engagement began before the BT lane may place a pin. The BT tier holds no stream
+     *  while you drive — that is what makes it cheap — so it cannot measure speed; it measures the
+     *  one thing a trip always leaves behind, a change of place. Sized to clear GPS noise and the
+     *  everyday non-trips (moving the car along the same kerb, the neighbouring space) while sitting
+     *  far below the shortest ride worth a session. A real trip under this still exists and falls to
+     *  the safe side: the lane ASKS instead of placing.
+     *  The threshold actually applied is this plus both fixes' accuracies plus the walk the origin's
+     *  age allows — see `EvaluateBtParkUseCase.evaluateRideDisplacement`. */
+    val btMinRideDisplacementMeters: Float = 150f,
+    /** [DET-BT-A-RIDE-IS-MEASURED-NOT-TIMED-001] Age above which the cached fix stamped at the
+     *  connect stops being an origin at all. It is a LAST KNOWN fix, so its age is how far the user
+     *  might have walked before getting in — charged to the threshold below this ceiling, and named
+     *  as unmeasurable above it. 10 min is well past the point where the walk allowance
+     *  ([maxPedestrianSpeedMps] ≈ 1.5 km per 10 min) already swamps any city trip: past here the
+     *  arithmetic has no verdict left to give, so it is skipped and reported honestly instead. */
+    val btConnectFixMaxAgeMs: Long = 10 * 60_000L,
     /** [DET-BT-DISCONNECT-WITHOUT-RIDE-001] Ceiling above which an engagement is no longer
      *  believable as a single ride and is treated as unmeasurable instead. The stamp it is
      *  measured against is written by a manifest receiver, and an OEM force-stop makes the app
@@ -1226,6 +1243,12 @@ data class ParkingDetectionConfig(
         }
         require(btMinRideDurationMs > 0) {
             "btMinRideDurationMs must be > 0, was $btMinRideDurationMs"
+        }
+        require(btMinRideDisplacementMeters > 0f) {
+            "btMinRideDisplacementMeters must be > 0, was $btMinRideDisplacementMeters"
+        }
+        require(btConnectFixMaxAgeMs > 0) {
+            "btConnectFixMaxAgeMs must be > 0, was $btConnectFixMaxAgeMs"
         }
         require(btMaxRideDurationMs > btMinRideDurationMs) {
             "btMaxRideDurationMs ($btMaxRideDurationMs) must exceed btMinRideDurationMs " +

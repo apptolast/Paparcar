@@ -7573,3 +7573,59 @@ the history it exists to preserve.
 Spec: `docs/backlog/det-a-held-anchor-must-say-a-second-stop-happened-001.md`. The behaviour itself
 stays open and explicitly **out of 1.0**:
 `docs/backlog/det-a-repark-leaves-the-pin-at-the-first-stop-001.md`.
+
+### DET-BT-A-RIDE-IS-MEASURED-NOT-TIMED-001 — the BT lane stops calling 90 s of radio a trip
+
+The Bluetooth lane was the only confirmation path in the app that placed a pin without measuring a
+single metre of movement. Everything separating "I just got home from a trip" from "I sat in the
+parked car with the radio on" was a DURATION: `evaluateEngagement` returned `Ride` as soon as
+`disconnect − connect ≥ btMinRideDurationMs` (90 s), and from there the detector was cleared to
+confirm. That is the ruling doctrine — *the event nominates, only MEASURED movement confirms* —
+holding everywhere except here.
+
+Two ways in, both live before this change. **One**: sit in the car ≥ 90 s (radio, hands-free,
+charging the phone, waiting for someone), disconnect, walk into the house. Ride-shaped in time; the
+candidate is pin-grade and STATIONARY, which it would be — the car has been parked there all
+afternoon; the walk-away clears 30 m; a 0.95 session is born with a geofence whose EXIT then arms
+the coordinator. **Two**, worse: the same, without covering the 30 m. At 15 minutes
+`bt_timeout_save` saved it anyway at reduced reliability — no measured drive AND no measured walk,
+which is the wrong side of the asymmetric-failure rule. The pin is not in the wrong PLACE (the car
+is where it says), but the SESSION is false, and a false session frees a community spot on the next
+departure.
+
+**The gate is displacement, not speed, and that is forced.** The BT tier holds no stream while you
+drive — the cheapness is the tier — so speed is not observable. Displacement is: the receiver
+already stamps the CONNECT, so it now stamps WHERE too, via the passive cached read
+`DET-AR-REARM-001` established (no updates requested, no fix added to the fused stream, no fence
+provoked, no foreground service). At the disconnect, `evaluateRideDisplacement` asks whether the
+candidate is measurably somewhere else.
+
+**The required distance grows with the origin's age.** The origin is a LAST KNOWN fix, so between it
+and the connect the user may have walked — possibly toward wherever the car later parked. The
+threshold is `btMinRideDisplacementMeters` + both fixes' accuracies + `maxPedestrianSpeedMps × age`,
+the same shape `isBeyondPedestrianReach` already uses. Without that term a stale origin manufactures
+a displacement nobody drove; with it, an origin old enough to be meaningless disqualifies itself by
+arithmetic, and `btConnectFixMaxAgeMs` (10 min) only spares the arithmetic from being run.
+
+**Placed after the candidate, deliberately.** The duration gate stays first and unchanged: it is
+what keeps a radio blip from costing a 15-minute foreground service. The displacement can only be
+asked once the destination exists. The consequence is the good one — the walk-away confirm and the
+timeout-save both inherit the gate, so `bt_timeout_save` stops meaning "no evidence at all" and
+starts meaning "a measured ride whose walk we could not see".
+
+**Doubt asks, it does not place.** No cached origin, an origin older than the ceiling, or an origin
+stamped after the connect (clock change) → `Unmeasurable` → the same durable nudge the no-ride
+branch raises. This is the doctrine's answer, not a measured one: **the corpus that would have
+calibrated it does not exist** — the 03-09 wipe took August's diagnostics, the remote gate has been
+off since, and the only two BT-paired setups produced zero `bt` pins in the surviving 61. So the
+gate ships INSTRUMENTED: the displacement rides the existing `distanceMeters` column and the origin
+age rides `enterAgeMs` on **every** verdict, including the ones that pass, and each `Unmeasurable`
+names its gap in the verdict string (`bt_unmeasurable_ask_no_origin_fix` …). A threshold whose
+population nobody can see afterwards is a guess.
+
+**Accompanying risk**: the ask rate. If cached fixes turn out to be commonly absent at CONNECT, the
+most reliable lane degrades into a nudge lane — recoverable in one tap by the user, and visible in
+telemetry from the first day. The fallback, if the field says so, is to degrade `Unmeasurable` to
+the timeout-save reliability instead of asking. Not chosen blind today.
+
+Spec: `docs/backlog/det-bt-a-ride-is-measured-not-timed-001.md`.
