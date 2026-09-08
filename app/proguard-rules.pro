@@ -64,9 +64,14 @@
 # anclarlo explícitamente. Comprobar los 13 antes de tocar nada de esto.
 
 # ─────────────────────────────────────────────────────────────────────────────
-# BaseLogin (JitPack lib) — keep public API so reflection-based init works.
+# BaseLogin
 # ─────────────────────────────────────────────────────────────────────────────
--keep class com.apptolast.baselogin.** { *; }
+# ⛔ NO lleva `-keep`. El que hubo aquí decía "keep public API so reflection-based init works", y
+# ese init reflexivo NO EXISTE: auditada la librería en su repo, no hay un solo `Class.forName`,
+# `newInstance`, `kotlin.reflect` ni `ServiceLoader`. Del lado de acá, los usos son imports directos
+# de tipos (AuthRepository, AuthState, LoginRoute, authRoutesFlow, IdentityProvider, appContext):
+# enlace estático, que R8 sigue solo. Anclaba 357 clases, de las que 164 eran UI de auth que no se
+# renderiza. [R8-BASELOGIN-IS-LINKED-NOT-REFLECTED-001]
 -dontwarn com.apptolast.baselogin.**
 
 # ─────────────────────────────────────────────────────────────────────────────

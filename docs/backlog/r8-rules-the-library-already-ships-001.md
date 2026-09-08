@@ -167,7 +167,8 @@ que predecía el diagnóstico — la regla de `@Composable` soltando su presa:
 | WorkManager programando trabajo | ✅ `dumpsys jobscheduler` lista jobs de nuestro paquete tras el arranque |
 | **los 13 workers conservan su nombre en el DEX** | ✅ verificado en `mapping.txt` uno a uno: los 13 salen `X -> X`. Es lo que necesita el `Class.forName(<nombre persistido en la BD de WorkManager>)` del `WorkerFactory`. |
 | **`AppDatabase` y `AppDatabase_Impl` conservan el suyo** | ✅ ambos `X -> X` en `mapping.txt`. Es lo que necesita el `Class.forName(canonicalName + "_Impl")` de `Room.databaseBuilder`. Los internos sintéticos sí se renombran, y da igual: nadie los busca por nombre. |
-| login, sesión de aparcamiento y process death en móvil real | ⏳ pendiente — el emulador no pasa del login por no tener cuenta, y el Oppo lleva el build de Play |
+| login y sesión de aparcamiento en móvil real | ✅ **cerrado el 08-09** en el Oppo, sobre el APK minificado de master (sha device ↔ local `ae36f3cd…`): login con Google vía Credential Manager, onboarding y permisos completos, y Home leyendo de Firestore el vehículo y la sesión activa. Ese último punto es el que valida el borrado de las reglas de serialización: los DTOs deserializan sin nuestras reglas artesanales. |
+| process death | ⏳ pendiente — requiere dejar la app instalada y matarla en frío tras un rato |
 
 Las dos filas en negrita son la verificación que de verdad cierra este ticket: las reglas borradas
 tapaban dos reflexiones **reales** (WorkManager y Room), y en vez de confiar en que la app arranque,
