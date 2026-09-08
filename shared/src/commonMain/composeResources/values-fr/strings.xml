@@ -760,10 +760,6 @@
     <string name="settings_plus_badge_active">ACTIF</string>
     <string name="settings_notif_zone_alerts">Alertes de zone</string>
     <string name="settings_notif_zone_alerts_desc">Alerte quand une place se libère dans tes zones</string>
-    <string name="home_zone_alerts_cd">Alertes de zone</string>
-    <string name="home_zone_alerts_title">Alertes de zone</string>
-    <string name="home_zone_alerts_empty">Enregistre d'abord une zone pour y recevoir des alertes</string>
-    <string name="home_zone_alerts_done">OK</string>
     <string name="home_zone_form_notify_label">M'alerter des places libres ici</string>
 
     <!-- Fuel block [VEH-FUEL-001] -->

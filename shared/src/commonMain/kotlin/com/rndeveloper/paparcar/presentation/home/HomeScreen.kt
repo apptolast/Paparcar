@@ -59,7 +59,6 @@ import com.rndeveloper.paparcar.domain.model.ParkingReleaseReason
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.displayName
 import com.rndeveloper.paparcar.presentation.home.sections.header.HomeHeaderSection
-import com.rndeveloper.paparcar.presentation.home.sections.header.components.ZoneAlertsDialog
 import com.rndeveloper.paparcar.presentation.home.sections.map.HomeMapFabsLayer
 import com.rndeveloper.paparcar.presentation.home.sections.map.HomeMapSection
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.HomeBottomSheet
@@ -201,15 +200,6 @@ fun HomeScreen(
     // Compose Navigation the lifecycle owner is Home's back-stack entry, so this is RESUMED only while
     // Home is the current destination AND the app is foreground. [UI-LOC-FOREGROUND-001]
     MapForegroundEffect { active -> viewModel.handleIntent(HomeIntent.SetMapForeground(active)) }
-
-    // [MONEY-001] The bell's alert manager. Only reachable as Plus (the free tap routed to the
-    // paywall in the VM), and never stacked on another modal: it opens from the map surface.
-    if (state.zoneAlertsDialogOpen) {
-        ZoneAlertsDialog(
-            zones = state.zones,
-            onIntent = viewModel::handleIntent,
-        )
-    }
 
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
@@ -1002,7 +992,6 @@ private fun HomeFloatingHeader(
                     )
                 },
                 onEditZone = { id -> onIntent(HomeIntent.EnterEditZoneMode(id)) },
-                onZoneAlertsClick = { onIntent(HomeIntent.OpenZoneAlerts) },
             )
         }
     }

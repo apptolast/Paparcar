@@ -761,10 +761,6 @@
     <string name="settings_plus_badge_active">ACTIEF</string>
     <string name="settings_notif_zone_alerts">Zonemeldingen</string>
     <string name="settings_notif_zone_alerts_desc">Melding wanneer er een vrije plek in je zones verschijnt</string>
-    <string name="home_zone_alerts_cd">Zonemeldingen</string>
-    <string name="home_zone_alerts_title">Zonemeldingen</string>
-    <string name="home_zone_alerts_empty">Sla eerst een zone op om daar meldingen te krijgen</string>
-    <string name="home_zone_alerts_done">Klaar</string>
     <string name="home_zone_form_notify_label">Waarschuw me voor vrije plekken hier</string>
 
     <!-- Fuel block [VEH-FUEL-001] -->

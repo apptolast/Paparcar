@@ -1794,34 +1794,9 @@ class HomeViewModelTest {
         }
     }
 
-    // ── Paparcar Plus: la campana y el toggle del form de zona [MONEY-001] ─────
-
-    @Test
-    fun `should_routeTheBellToThePaywall_when_free`() = runTest {
-        vm = buildVm()
-
-        vm.effect.test {
-            vm.handleIntent(HomeIntent.OpenZoneAlerts)
-            assertEquals(
-                HomeEffect.NavigateToPaywall(com.rndeveloper.paparcar.domain.entitlement.PaywallReason.ZONE_ALERTS),
-                awaitItem(),
-            )
-            cancelAndIgnoreRemainingEvents()
-        }
-        assertEquals(false, vm.state.value.zoneAlertsDialogOpen, "free must meet the paywall, not the manager")
-    }
-
-    @Test
-    fun `should_openAndCloseTheAlertsDialog_when_plus`() = runTest {
-        entitlementRepo.emitEntitlement(com.rndeveloper.paparcar.domain.model.Entitlement.PLUS)
-        vm = buildVm()
-
-        vm.handleIntent(HomeIntent.OpenZoneAlerts)
-        assertEquals(true, vm.state.value.zoneAlertsDialogOpen)
-
-        vm.handleIntent(HomeIntent.CloseZoneAlerts)
-        assertEquals(false, vm.state.value.zoneAlertsDialogOpen)
-    }
+    // ── Paparcar Plus: el toggle de alerta del form de zona [MONEY-001] ────────
+    // La campana de la cabecera y su diálogo se retiraron: el maestro vive en Ajustes y el
+    // por-zona en el modal de la zona. [UI-ZONE-ALERTS-ARE-CONFIGURED-IN-SETTINGS-001]
 
     @Test
     fun `should_gateEnablingTheFormToggle_when_free`() = runTest {
@@ -1838,25 +1813,23 @@ class HomeViewModelTest {
         assertEquals(false, vm.state.value.addingZoneNotify, "the switch stays OFF after the gated attempt")
     }
 
+    /**
+     * El escenario que cubría el test del diálogo — "un Plus enciende la alerta de UNA zona y
+     * queda escrita" — sigue existiendo: sólo cambió de puerta. Ahora se prueba por la que queda,
+     * el modal de la zona. Sin este test, retirar la campana habría borrado en silencio la única
+     * prueba de que `notifyOnSpot` llega al repositorio.
+     * [UI-ZONE-ALERTS-ARE-CONFIGURED-IN-SETTINGS-001]
+     */
     @Test
-    fun `should_writeTheZoneFlagThroughTheFormPath_when_plusTogglesFromTheDialog`() = runTest {
+    fun `should_writeTheZoneAlertFlag_when_plusEnablesItInTheZoneForm`() = runTest {
         entitlementRepo.emitEntitlement(com.rndeveloper.paparcar.domain.model.Entitlement.PLUS)
-        zoneRepo.zones = listOf(
-            com.rndeveloper.paparcar.domain.model.Zone(
-                id = "z1",
-                userId = "u1",
-                name = "Casa",
-                lat = 40.0,
-                lon = -3.0,
-                iconKey = "home",
-                createdAt = 0L,
-            ),
-        )
+        zoneRepo.zones = listOf(zoneFixture("z1", "Casa"))
         vm = buildVm()
 
-        vm.handleIntent(HomeIntent.ToggleZoneAlert("z1", enabled = true))
+        vm.handleIntent(HomeIntent.EnterEditZoneMode("z1"))
+        vm.handleIntent(HomeIntent.SetZoneNotify(true))
+        vm.handleIntent(HomeIntent.ConfirmAddZone)
 
-        // Same persistence path as the zone form — one way to write the flag, not two.
         assertEquals("z1", zoneRepo.savedZone!!.id)
         assertEquals(true, zoneRepo.savedZone!!.notifyOnSpot)
     }

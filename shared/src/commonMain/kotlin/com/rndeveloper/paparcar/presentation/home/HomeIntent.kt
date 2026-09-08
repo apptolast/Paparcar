@@ -146,9 +146,6 @@ sealed class HomeIntent {
     data class SetZoneNotify(val notify: Boolean) : HomeIntent()
 
     /** The bell next to the search bar: Plus opens the alert manager, free meets the paywall. */
-    data object OpenZoneAlerts : HomeIntent()
-    data object CloseZoneAlerts : HomeIntent()
-    data class ToggleZoneAlert(val zoneId: String, val enabled: Boolean) : HomeIntent()
     data class SelectZone(val zoneId: String) : HomeIntent()
     data class DeleteZone(val zoneId: String) : HomeIntent()
     data class EnterEditZoneMode(val zoneId: String) : HomeIntent()

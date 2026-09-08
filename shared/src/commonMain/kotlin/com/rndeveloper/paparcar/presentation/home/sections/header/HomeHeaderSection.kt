@@ -23,7 +23,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -57,7 +56,6 @@ import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_header_add_zone
 import paparcar.composeapp.generated.resources.home_header_add_zone_dismiss_cd
 import paparcar.composeapp.generated.resources.home_header_add_zone_hint
-import paparcar.composeapp.generated.resources.home_zone_alerts_cd
 import com.rndeveloper.paparcar.ui.theme.PapAlpha
 
 @Composable
@@ -70,9 +68,6 @@ internal fun HomeHeaderSection(
     onSelectZone: (String) -> Unit,
     onAddZone: () -> Unit,
     onEditZone: (String) -> Unit,
-    /** The zone-alerts bell (Paparcar Plus). The gate lives in the VM: free taps route to the
-     *  paywall, so the bell itself never hides. [MONEY-001] */
-    onZoneAlertsClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // Status-bar inset is applied by the parent column in HomeScreen (which also hosts the
@@ -88,10 +83,10 @@ internal fun HomeHeaderSection(
                 .padding(horizontal = 14.dp),
             verticalAlignment = Alignment.Top,
         ) {
-            // A third 56dp circle here squeezed the search bar's width below what its
-            // placeholder needs, wrapping it to two lines. The zone-alerts bell moved down
-            // into the zone-chips row it is actually about — see HeaderZoneChips.
-            // [MONEY-001][UI-HOME-SEARCH-BAR-MUST-STAY-ONE-LINE-001]
+            // Two controls, and only two: the search bar and the map-type toggle. A third 56dp
+            // circle here squeezed the search bar below what its placeholder needs and wrapped it
+            // to two lines — measured, and the reason nothing else is allowed into this row.
+            // [UI-HOME-SEARCH-BAR-MUST-STAY-ONE-LINE-001]
             HomeSearchBar(
                 query = slice.searchQuery,
                 results = slice.searchResults,
@@ -121,11 +116,8 @@ internal fun HomeHeaderSection(
                     onSelectZone = onSelectZone,
                     onAddZone = onAddZone,
                     onEditZone = onEditZone,
-                    onZoneAlertsClick = onZoneAlertsClick,
                 )
             } else {
-                // No zones yet → nothing to alert on: the bell only earns its place once
-                // HeaderZoneChips has a zone to point at. [MONEY-001]
                 HeaderAddZoneChip(onAddZone = onAddZone)
             }
         }
@@ -142,10 +134,6 @@ private fun HeaderZoneChips(
     onSelectZone: (String) -> Unit,
     onAddZone: () -> Unit,
     onEditZone: (String) -> Unit,
-    /** [MONEY-001] Manage which of these zones alert on a free spot. Sized and placed like
-     *  any other action in this row — a leading chip, not a top-level FAB fighting the
-     *  search bar for width — because it is an action ABOUT zones, not about the map. */
-    onZoneAlertsClick: () -> Unit,
 ) {
     LazyRow(
         modifier = Modifier.fillMaxWidth(),
@@ -156,15 +144,6 @@ private fun HeaderZoneChips(
         // scroll edge-to-edge. [MAP-GLASS-001]
         contentPadding = PaddingValues(horizontal = 14.dp, vertical = CHIP_SHADOW_ROOM_DP.dp),
     ) {
-        item("zone_alerts") {
-            MapCircleFab(
-                icon = Icons.Rounded.Notifications,
-                onClick = onZoneAlertsClick,
-                contentDescription = stringResource(Res.string.home_zone_alerts_cd),
-                size = ADD_ZONE_CHIP_SIZE_DP.dp,
-                iconSize = CHIP_ICON_DP.dp,
-            )
-        }
         items(zones, key = { it.id }) { zone ->
             ZoneChip(
                 label = zone.name,

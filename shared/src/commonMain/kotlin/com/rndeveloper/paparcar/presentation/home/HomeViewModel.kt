@@ -326,9 +326,6 @@ class HomeViewModel(
             is HomeIntent.SetZoneRadius,
             is HomeIntent.SetZoneIsPrivate,
             is HomeIntent.SetZoneNotify,
-            is HomeIntent.OpenZoneAlerts,
-            is HomeIntent.CloseZoneAlerts,
-            is HomeIntent.ToggleZoneAlert,
             is HomeIntent.SelectZone,
             is HomeIntent.DeleteZone,
             is HomeIntent.EnterEditZoneMode,
@@ -699,46 +696,10 @@ class HomeViewModel(
                 } else {
                     updateState { copy(addingZoneNotify = intent.notify) }
                 }
-            is HomeIntent.OpenZoneAlerts ->
-                if (state.value.isPlus) {
-                    updateState { copy(zoneAlertsDialogOpen = true) }
-                } else {
-                    sendEffect(HomeEffect.NavigateToPaywall(PaywallReason.ZONE_ALERTS))
-                }
-            is HomeIntent.CloseZoneAlerts -> updateState { copy(zoneAlertsDialogOpen = false) }
-            is HomeIntent.ToggleZoneAlert -> toggleZoneAlert(intent.zoneId, intent.enabled)
             is HomeIntent.SelectZone -> selectZone(intent.zoneId)
             is HomeIntent.DeleteZone -> deleteZone(intent.zoneId)
             is HomeIntent.EnterEditZoneMode -> enterEditZoneMode(intent.zoneId)
             else -> Unit
-        }
-    }
-
-    /**
-     * Flips one zone's alert opt-in from the bell dialog — the same persistence path as the
-     * zone form, so there is no second way to write the flag. [MONEY-001] Enabling stays behind
-     * the entitlement (the dialog is Plus-only, but state can change while it is open); disabling
-     * is always allowed, downgrade rules included.
-     */
-    private fun toggleZoneAlert(zoneId: String, enabled: Boolean) {
-        if (enabled && !state.value.isPlus) {
-            sendEffect(HomeEffect.NavigateToPaywall(PaywallReason.ZONE_ALERTS))
-            return
-        }
-        val zone = state.value.zones.find { it.id == zoneId } ?: return
-        viewModelScope.launch {
-            saveOrUpdateZone(
-                editingZoneId = zone.id,
-                name = zone.name,
-                lat = zone.lat,
-                lon = zone.lon,
-                iconKey = zone.iconKey,
-                radiusMeters = zone.radiusMeters,
-                isPrivate = zone.isPrivate,
-                notifyOnSpot = enabled,
-            ).onFailure { e ->
-                sendEffect(HomeEffect.ShowError(PaparcarError.Database.WriteError(e.message ?: "")))
-            }
         }
     }
 

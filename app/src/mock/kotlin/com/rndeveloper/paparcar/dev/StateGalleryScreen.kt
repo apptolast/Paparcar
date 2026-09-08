@@ -110,7 +110,6 @@ import com.rndeveloper.paparcar.di.paparcarLoginConfig
 import com.rndeveloper.paparcar.di.paparcarSocialProviders
 import com.rndeveloper.paparcar.domain.model.Zone
 import com.rndeveloper.paparcar.domain.model.ZoneIcon
-import com.rndeveloper.paparcar.presentation.home.sections.header.components.ZoneAlertsDialog
 import com.rndeveloper.paparcar.presentation.paywall.PaywallContent
 import com.rndeveloper.paparcar.presentation.paywall.PaywallState
 import com.rndeveloper.paparcar.domain.model.SpotFreshness
@@ -337,14 +336,6 @@ private fun agedHalfBeyondFreeWindow(): List<UserParking> =
 
 private fun agedAllBeyondFreeWindow(): List<UserParking> =
     FakeData.endedSessions.map { it.agedBeyondFreeWindow() }
-
-/** Zonas de muestra para el diálogo de alertas — una suscrita, otra no. [MONEY-001] */
-private val galleryZones = listOf(
-    Zone(id = "z-home", userId = "u", name = "Casa", lat = 40.4168, lon = -3.7038,
-        iconKey = ZoneIcon.HOME, createdAt = 0L, notifyOnSpot = true),
-    Zone(id = "z-work", userId = "u", name = "Trabajo", lat = 40.4200, lon = -3.7100,
-        iconKey = ZoneIcon.WORK, createdAt = 0L, notifyOnSpot = false),
-)
 
 /** Estado del panel de cifras, resuelto por el MISMO sitio que lo resuelve en produccion, para que
  *  la galeria no pueda ensenar una rejilla que la pantalla real no daria. [STATS-PANEL-001] */
@@ -1690,12 +1681,6 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                 SettingsContent(
                     state = SettingsState(userProfile = sampleProfile, isPlus = true),
                 )
-            },
-            Variant("Diálogo de alertas de zona (Plus)") {
-                ZoneAlertsDialog(zones = galleryZones, onIntent = {})
-            },
-            Variant("Diálogo de alertas · sin zonas") {
-                ZoneAlertsDialog(zones = emptyList(), onIntent = {})
             },
             Variant("PapSheet · form de zona con alerta ON", Placement.Surface) {
                 peek(

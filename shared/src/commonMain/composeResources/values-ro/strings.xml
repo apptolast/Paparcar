@@ -774,10 +774,6 @@
     <string name="settings_plus_badge_active">ACTIV</string>
     <string name="settings_notif_zone_alerts">Alerte de zonă</string>
     <string name="settings_notif_zone_alerts_desc">Notificare când apare un loc liber în zonele tale</string>
-    <string name="home_zone_alerts_cd">Alerte de zonă</string>
-    <string name="home_zone_alerts_title">Alerte de zonă</string>
-    <string name="home_zone_alerts_empty">Salvează mai întâi o zonă ca să primești alerte acolo</string>
-    <string name="home_zone_alerts_done">Gata</string>
     <string name="home_zone_form_notify_label">Anunță-mă despre locuri libere aici</string>
 
     <!-- Fuel block [VEH-FUEL-001] -->

@@ -257,7 +257,6 @@ data class HomeState(
     /** Live entitlement — decides whether Plus surfaces open or route to the paywall. */
     val isPlus: Boolean = false,
     /** The bell's zone-alert manager dialog (Plus only; free lands on the paywall instead). */
-    val zoneAlertsDialogOpen: Boolean = false,
 
     // ── AddingParking mode ────────────────────────────────────────────────────
 
