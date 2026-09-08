@@ -47,6 +47,7 @@ import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.Sensors
 import androidx.compose.material.icons.rounded.SensorsOff
 import androidx.compose.material.icons.rounded.Warning
+import androidx.compose.material.icons.rounded.Widgets
 import androidx.compose.material.icons.rounded.WorkspacePremium
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -131,6 +132,7 @@ import paparcar.composeapp.generated.resources.permissions_perm_background
 import paparcar.composeapp.generated.resources.permissions_perm_location
 import paparcar.composeapp.generated.resources.permissions_perm_location_services
 import paparcar.composeapp.generated.resources.permissions_perm_notifications
+import paparcar.composeapp.generated.resources.settings_add_widget
 import paparcar.composeapp.generated.resources.settings_auto_detect
 import paparcar.composeapp.generated.resources.settings_auto_detect_desc
 import paparcar.composeapp.generated.resources.settings_contact
@@ -565,6 +567,16 @@ fun SettingsContent(
                             // [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001] Above the legal rows:
                             // this is the only one in the section a user might actually want, and
                             // burying help under licences is how it never gets found.
+                            // [WIDGET-ACTIONS-002] Placing the widget is configuration → it lives
+                            // here, not in Home. Only when the launcher supports the pin sheet.
+                            if (state.canPinWidget) {
+                                PapNavRow(
+                                    icon = Icons.Rounded.Widgets,
+                                    label = stringResource(Res.string.settings_add_widget),
+                                    onClick = { onIntent(SettingsIntent.PinWidget) },
+                                )
+                                PapDivider()
+                            }
                             PapNavRow(
                                 icon = Icons.Rounded.School,
                                 label = stringResource(Res.string.settings_replay_first_steps),

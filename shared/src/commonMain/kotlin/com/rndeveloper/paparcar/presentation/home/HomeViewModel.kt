@@ -41,7 +41,9 @@ import com.rndeveloper.paparcar.domain.model.SpotVoteOutcome
 import com.rndeveloper.paparcar.domain.usecase.spot.SendSpotSignalUseCase
 import com.rndeveloper.paparcar.presentation.util.distanceMeters
 import com.rndeveloper.paparcar.domain.event.MapFocusEventBus
+import com.rndeveloper.paparcar.domain.event.ShowParkingAskEventBus
 import com.rndeveloper.paparcar.domain.event.StartAddParkingEventBus
+import kotlinx.coroutines.withTimeoutOrNull
 import com.rndeveloper.paparcar.domain.usecase.zone.SaveOrUpdateZoneUseCase
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import com.rndeveloper.paparcar.presentation.base.BaseViewModel
@@ -130,6 +132,9 @@ class HomeViewModel(
     // is the one piece of tutorial state that belongs to the ACCOUNT, so it does not go straight to
     // the device preference: this writes both, and it is the same verb Settings uses to replay it.
     private val setFirstStepsDismissed: SetFirstStepsDismissedUseCase,
+    // The widget's "show this parking" ask — nullable so existing test doubles need no change.
+    // [WIDGET-ACTIONS-002]
+    private val showParkingAskEventBus: ShowParkingAskEventBus? = null,
 ) : BaseViewModel<HomeState, HomeIntent, HomeEffect>() {
 
     /**
@@ -169,6 +174,7 @@ class HomeViewModel(
         subscribeGpsLocation()
         subscribeMapFocusEvents()
         subscribeStartAddParkingRequests()
+        subscribeShowParkingAsks()
         subscribeDetectionReadiness()
         subscribeDetectionReliability()
         subscribeServicePresence()
@@ -1032,6 +1038,25 @@ class HomeViewModel(
      *  data already synced at splash, so on cold start this resolves near-instantly with no
      *  generic-icon flash. The nudge only fires when a Coordinator vehicle exists, so it always
      *  arrives. [DET-TOGGLE-002] */
+    /** [WIDGET-ACTIONS-002] The widget's "more" SHOWS the parking — camera on the pin, card
+     *  selected — where every option lives with its own confirmations. The ask waits for the
+     *  sessions to land (cold start), is validated against what is STILL active, and a stale ask
+     *  (session already released) dies silently. */
+    private fun subscribeShowParkingAsks() {
+        showParkingAskEventBus?.asks
+            ?.collectSafely("showParkingAsk") { sessionId ->
+                // Bounded wait: on cold start the sessions have not landed yet, but "no sessions"
+                // can also be the TRUTH (released elsewhere since the widget rendered) — an
+                // unbounded first{isNotEmpty} would hang the collector on that truth forever.
+                val sessions = withTimeoutOrNull(RELEASE_ASK_SESSIONS_WAIT_MS) {
+                    state.map { it.activeSessions }.first { it.isNotEmpty() }
+                } ?: return@collectSafely
+                val session = sessions.firstOrNull { it.id == sessionId } ?: return@collectSafely
+                handleIntent(HomeIntent.SelectItem(HomeSelection.Parking(sessionId)))
+                sendEffect(HomeEffect.MoveCameraTo(session.location.latitude, session.location.longitude))
+            }
+    }
+
     private fun subscribeStartAddParkingRequests() {
         startAddParkingEventBus.requests
             .collectSafely("startAddParking") { request ->
@@ -1173,6 +1198,9 @@ class HomeViewModel(
 
         // Timing
         const val CAMERA_SETTLED_MS = 280L
+        // How long a widget release-ask waits for the sessions to land on cold start before
+        // concluding the garage is genuinely empty. [WIDGET-ACTIONS-002]
+        const val RELEASE_ASK_SESSIONS_WAIT_MS = 5_000L
 
         // Priority label stamped on UI-location samples — mirrors the android LocationRequest priority
         // behind observeHighAccuracyLocation(). [UI-LOC-FOREGROUND-001]

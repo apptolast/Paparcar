@@ -1355,6 +1355,11 @@ private val galleryGroups: List<ScreenGroup> = listOf(
         listOf(
             Variant("Con perfil") { SettingsContent(state = SettingsState(userProfile = sampleProfile)) },
             Variant("Sin perfil") { SettingsContent(state = SettingsState(userProfile = null)) },
+            // [WIDGET-ACTIONS-002] La fila "añadir el widget" solo existe cuando el launcher
+            // soporta el pin sheet — esta es su cara visible.
+            Variant("Con fila de widget (launcher con pin)") {
+                SettingsContent(state = SettingsState(userProfile = sampleProfile, canPinWidget = true))
+            },
             Variant("Detección/notif off, imperial") {
                 SettingsContent(
                     state = SettingsState(

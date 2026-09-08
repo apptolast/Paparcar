@@ -26,6 +26,8 @@ sealed class SettingsIntent {
      * not re-arm a reminder for something the user demonstrably already did.
      */
     data object RestartFirstSteps : SettingsIntent()
+    /** Open the system sheet to pin the parked-car widget. [WIDGET-ACTIONS-002] */
+    data object PinWidget : SettingsIntent()
     data object OpenPrivacyPolicy : SettingsIntent()
     data object OpenLicenses : SettingsIntent()
     data object OpenContact : SettingsIntent()

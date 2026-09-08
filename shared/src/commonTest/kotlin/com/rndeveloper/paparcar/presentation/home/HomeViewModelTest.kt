@@ -101,7 +101,11 @@ class HomeViewModelTest {
     private lateinit var geocoderFake: FakeGeocoderDataSource
     private lateinit var vm: HomeViewModel
 
-    private fun buildVm(initialMapType: String = "TERRAIN", foreground: Boolean = true): HomeViewModel {
+    private fun buildVm(
+        initialMapType: String = "TERRAIN",
+        foreground: Boolean = true,
+        showParkingAskBus: com.rndeveloper.paparcar.domain.event.ShowParkingAskEventBus? = null,
+    ): HomeViewModel {
         prefs = FakeAppPreferences(initialDefaultMapType = initialMapType)
         manualParkingDetection = com.rndeveloper.paparcar.fakes.data.repository.FakeManualParkingDetection()
         departureWatchResumer = com.rndeveloper.paparcar.fakes.data.repository.FakeDepartureWatchResumer()
@@ -216,6 +220,7 @@ class HomeViewModelTest {
                 authRepository = authRepo,
                 userProfileRepository = profileRepo,
             ),
+            showParkingAskEventBus = showParkingAskBus,
         ).also {
             // Default test fixture = map on screen, so the high-accuracy request is armed and location
             // emits reach state. The backgrounded case uses buildVm(foreground = false). [UI-LOC-FOREGROUND-001]
@@ -1309,6 +1314,52 @@ class HomeViewModelTest {
         assertEquals(150f, s.addingZoneRadius)
         assertEquals(true, s.addingZoneIsPrivate)
         assertEquals(false, s.isSavingZone)
+    }
+
+    // ── Widget "show parking" ask [WIDGET-ACTIONS-002] ───────────────────────
+
+    @Test
+    fun `should_selectTheParkingAndFocusTheCamera_when_theWidgetSessionIsStillActive`() = runTest(testDispatcher) {
+        val session = UserParking(
+            id = "session-widget", userId = "user-123", vehicleId = "veh-1",
+            location = location, isActive = true,
+        )
+        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(session))
+        val bus = com.rndeveloper.paparcar.domain.event.ShowParkingAskEventBus()
+        vm = buildVm(showParkingAskBus = bus)
+        advanceUntilIdle()
+
+        vm.effect.test {
+            bus.ask("session-widget")
+            advanceUntilIdle()
+            // The card opens with EVERY option — the launcher never got a one-tap verb.
+            assertEquals(HomeSelection.Parking("session-widget"), vm.state.value.selection)
+            val move = awaitItem()
+            assertIs<HomeEffect.MoveCameraTo>(move)
+            assertEquals(location.latitude, move.lat)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `should_stayQuiet_when_theWidgetSessionWasAlreadyReleased`() = runTest(testDispatcher) {
+        // A STALE ask has nothing left to show.
+        val other = UserParking(
+            id = "session-other", userId = "user-123", vehicleId = "veh-1",
+            location = location, isActive = true,
+        )
+        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(other))
+        val bus = com.rndeveloper.paparcar.domain.event.ShowParkingAskEventBus()
+        vm = buildVm(showParkingAskBus = bus)
+        advanceUntilIdle()
+
+        vm.effect.test {
+            bus.ask("session-gone")
+            advanceUntilIdle()
+            assertEquals(null, vm.state.value.selection)
+            expectNoEvents()
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 
     // ── Zone limit [FREE-LIMITS-001] ─────────────────────────────────────────

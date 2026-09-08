@@ -81,6 +81,7 @@ class SettingsViewModelTest {
         customPrefs: FakeAppPreferences = prefs,
         customVehicles: FakeVehicleRepository = vehicles,
         customPermissions: FakePermissionManager = permissions,
+        widgetPinRequester: com.rndeveloper.paparcar.domain.service.WidgetPinRequester? = null,
     ): SettingsViewModel {
         val useCase = DeleteAccountUseCase(
             authRepository = auth,
@@ -111,6 +112,7 @@ class SettingsViewModelTest {
             observeReliability,
             sendDiagnostics,
             com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase(entitlementRepo),
+            widgetPinRequester,
         )
     }
 
@@ -565,5 +567,35 @@ class SettingsViewModelTest {
         vm.handleIntent(SettingsIntent.RestartFirstSteps)
 
         assertEquals(listOf<Long?>(null), profile.firstStepsDismissedWrites.toList())
+    }
+
+    // ── Widget pin row [WIDGET-ACTIONS-002] ──────────────────────────────────
+
+    private class FakeWidgetPinRequester(
+        override val isPinSupported: Boolean = true,
+    ) : com.rndeveloper.paparcar.domain.service.WidgetPinRequester {
+        var pinRequests = 0
+        override fun requestPin() {
+            pinRequests++
+        }
+    }
+
+    @Test
+    fun `should_showTheRowAndForwardThePin_when_theLauncherSupportsIt`() = runTest {
+        val requester = FakeWidgetPinRequester()
+        val vm = buildVm(widgetPinRequester = requester)
+
+        assertTrue(vm.state.value.canPinWidget)
+        vm.handleIntent(SettingsIntent.PinWidget)
+        assertEquals(1, requester.pinRequests)
+    }
+
+    @Test
+    fun `should_hideTheRow_when_thereIsNoPinDoor`() = runTest {
+        // No requester (iOS, tests) or a launcher that answers no — the row never exists.
+        assertFalse(buildVm().state.value.canPinWidget)
+        assertFalse(
+            buildVm(widgetPinRequester = FakeWidgetPinRequester(isPinSupported = false)).state.value.canPinWidget,
+        )
     }
 }

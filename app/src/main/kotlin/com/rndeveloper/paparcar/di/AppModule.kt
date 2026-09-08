@@ -18,4 +18,8 @@ val appModule = module {
     single { AppNotificationManagerImpl(androidContext(), get(), get()) }
     single<AppNotificationManager> { get<AppNotificationManagerImpl>() }
     single<ForegroundNotificationProvider> { get<AppNotificationManagerImpl>() }
+    // In-app door to the launcher's widget pin sheet. [WIDGET-ACTIONS-002]
+    single<com.rndeveloper.paparcar.domain.service.WidgetPinRequester> {
+        com.rndeveloper.paparcar.widget.ParkedWidgetPinner(androidContext())
+    }
 }

@@ -116,6 +116,11 @@ val mockModule = module {
     single<com.rndeveloper.paparcar.domain.diagnostics.UiLocationLogger> { com.rndeveloper.paparcar.domain.diagnostics.NoOpUiLocationLogger() }
     // Product analytics never leaves the Dev Catalog. [ANALYTICS-EVENTS-001]
     single<com.rndeveloper.paparcar.domain.analytics.AnalyticsTracker> { com.rndeveloper.paparcar.domain.analytics.NoOpAnalyticsTracker() }
+    // The REAL pinner: pinning the widget is launcher behaviour worth testing from the mock too.
+    // [WIDGET-ACTIONS-002]
+    single<com.rndeveloper.paparcar.domain.service.WidgetPinRequester> {
+        com.rndeveloper.paparcar.widget.ParkedWidgetPinner(androidContext())
+    }
     single<ReportSpotScheduler> { FakeReportSpotScheduler() }
     single<com.rndeveloper.paparcar.domain.detection.ports.ManualParkingDetection> {
         // Same shared runtime, so the Home "I'm driving" CTA starts the sim too. [DRIVE-SIM-001]

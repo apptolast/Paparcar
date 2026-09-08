@@ -9,6 +9,7 @@ import com.rndeveloper.paparcar.domain.permissions.missingCorePermissions
 import com.rndeveloper.paparcar.domain.permissions.missingPermissions
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import com.rndeveloper.paparcar.domain.repository.UserProfileRepository
+import com.rndeveloper.paparcar.domain.service.WidgetPinRequester
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import com.rndeveloper.paparcar.domain.usecase.detection.ObserveDetectionReliabilityUseCase
 import com.rndeveloper.paparcar.domain.usecase.diagnostics.SendDiagnosticsReportUseCase
@@ -37,11 +38,15 @@ class SettingsViewModel(
     private val observeDetectionReliability: ObserveDetectionReliabilityUseCase,
     private val sendDiagnosticsReport: SendDiagnosticsReportUseCase,
     private val observeIsPlus: ObserveIsPlusUseCase,
+    // Android door for pinning the widget from here; null on platforms/launchers without it —
+    // the row simply does not exist. [WIDGET-ACTIONS-002]
+    private val widgetPinRequester: WidgetPinRequester? = null,
 ) : BaseViewModel<SettingsState, SettingsIntent, SettingsEffect>() {
 
     override fun initState(): SettingsState = SettingsState()
 
     init {
+        updateState { copy(canPinWidget = widgetPinRequester?.isPinSupported == true) }
         loadFromPreferences()
         observePermissions()
         observeActiveVehicle()
@@ -160,6 +165,8 @@ class SettingsViewModel(
             }
             // The Plus row is an OFFER, not a gate — GENERAL keeps the funnel honest. [FREE-LIMITS-001]
             is SettingsIntent.OpenPlusPaywall -> sendEffect(SettingsEffect.NavigateToPaywall(PaywallReason.GENERAL))
+            // Hands off to the system pin sheet — the launcher owns the rest. [WIDGET-ACTIONS-002]
+            is SettingsIntent.PinWidget -> widgetPinRequester?.requestPin()
             is SettingsIntent.NavigateToVehicles ->
                 sendEffect(SettingsEffect.NavigateToVehicles)
             // Health "Fix": jump to CORE when a hard-blocker (foreground location) is missing OR the

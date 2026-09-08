@@ -38,6 +38,8 @@ val domainModule = module {
 
     single { MapFocusEventBus() }
     single { StartAddParkingEventBus() }
+    // The widget's "show this parking" ask — same conflated-bus shape. [WIDGET-ACTIONS-002]
+    single { com.rndeveloper.paparcar.domain.event.ShowParkingAskEventBus() }
 
     // User UseCases
     factory { GetOrCreateUserProfileUseCase(get(), get()) }

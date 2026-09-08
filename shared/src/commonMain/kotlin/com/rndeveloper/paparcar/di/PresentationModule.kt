@@ -51,6 +51,8 @@ val presentationModule = module {
             get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(),
             get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(),
             get(), get(), get(), get(), get(), get(), get(), get(), get(),
+            // 34th: ReleaseAskEventBus [WIDGET-ACTIONS-002]
+            get(),
         )
     }
     viewModelOf(::ParkingHistoryViewModel)

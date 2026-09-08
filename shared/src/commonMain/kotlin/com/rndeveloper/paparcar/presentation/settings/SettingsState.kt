@@ -13,6 +13,9 @@ data class SettingsState(
     val isPlus: Boolean = false,
     /** Master gate for the Plus zone-alert notifications. [MONEY-001] */
     val notifyZoneSpots: Boolean = true,
+    /** True when this platform + launcher can pin the parked-car widget from in-app — gates the
+     *  "add the widget" row. [WIDGET-ACTIONS-002] */
+    val canPinWidget: Boolean = false,
     // Single source: the platform build version. The old "1.0.0" literal was a second,
     // lying default that never matched the APK. [SETTINGS-AUDIT-REMEDIATION-001]
     val appVersion: String = platformAppVersion,

@@ -26,6 +26,7 @@ import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Map
 import androidx.compose.material.icons.rounded.NotificationsActive
+import androidx.compose.material.icons.rounded.Widgets
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -87,7 +88,9 @@ import paparcar.composeapp.generated.resources.paywall_tier_free
 import paparcar.composeapp.generated.resources.paywall_tier_plus
 import paparcar.composeapp.generated.resources.paywall_title
 import paparcar.composeapp.generated.resources.paywall_free_vehicles
+import paparcar.composeapp.generated.resources.paywall_free_widget
 import paparcar.composeapp.generated.resources.paywall_free_zones
+import paparcar.composeapp.generated.resources.paywall_plus_everything
 import paparcar.composeapp.generated.resources.paywall_plus_vehicles
 import paparcar.composeapp.generated.resources.paywall_plus_zones
 import paparcar.composeapp.generated.resources.paywall_reason_history
@@ -384,11 +387,16 @@ private val FREE_LINES = listOf(
     TierLine(Icons.Rounded.History, Res.string.paywall_free_history),
     TierLine(Icons.Rounded.DirectionsCar, Res.string.paywall_free_vehicles),
     TierLine(Icons.Rounded.Map, Res.string.paywall_free_zones),
+    // [WIDGET-ACTIONS-002] A free value the pitch was not naming — the widget is FREE by doctrine
+    // (the present is never hidden) and the table says so.
+    TierLine(Icons.Rounded.Widgets, Res.string.paywall_free_widget),
     TierLine(Icons.Rounded.NotificationsActive, Res.string.paywall_free_alerts),
     TierLine(Icons.Rounded.Favorite, Res.string.paywall_free_support),
 )
 
 private val PLUS_LINES = listOf(
+    // Plus opens by SAYING it contains Free — nobody should have to infer it. [WIDGET-ACTIONS-002]
+    TierLine(Icons.Rounded.Check, Res.string.paywall_plus_everything),
     TierLine(Icons.Rounded.History, Res.string.paywall_plus_history),
     TierLine(Icons.Rounded.DirectionsCar, Res.string.paywall_plus_vehicles),
     TierLine(Icons.Rounded.Map, Res.string.paywall_plus_zones),

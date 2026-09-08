@@ -83,4 +83,7 @@
     <string name="widget_empty_hint">Aparca y este widget te dirá dónde</string>
     <string name="widget_location_pending">Ubicación guardada</string>
     <string name="widget_more_parked">+%1$d más</string>
+    <!-- Widget actions [WIDGET-ACTIONS-002] — same wording as in-app -->
+    <string name="widget_action_navigate">Cómo llegar</string>
+    <string name="widget_action_more">Más opciones</string>
 </resources>

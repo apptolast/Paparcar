@@ -47,6 +47,7 @@ class ParkedWidgetStateTest {
         )
 
         val parked = assertIs<ParkedWidgetState.Parked>(state)
+        assertEquals("s1", parked.sessionId, "the release ask needs to name the session [WIDGET-ACTIONS-002]")
         assertEquals("Mi Golf", parked.vehicleName)
         assertEquals("Calle Mayor", parked.street)
         assertEquals(1_000L, parked.parkedAtMs)

@@ -48,6 +48,7 @@ class MainActivity : ComponentActivity() {
     private val appPreferences: AppPreferences by inject()
     private val mapFocusEventBus: MapFocusEventBus by inject()
     private val startAddParkingEventBus: StartAddParkingEventBus by inject()
+    private val showParkingAskEventBus: com.rndeveloper.paparcar.domain.event.ShowParkingAskEventBus by inject()
 
     // [DET-WATCH-REACTIVATE-001] Departure-watch gap: the watcher should be live but the service is
     // dead. Closing it needs a foreground moment, which is exactly what this Activity being visible is.
@@ -189,6 +190,12 @@ class MainActivity : ComponentActivity() {
                 fromDetectionNudge = intent.getBooleanExtra(EXTRA_ADD_PARKING_FROM_DETECTION, false),
             )
         }
+
+        // [WIDGET-ACTIONS-002] The widget's "more": SHOW that parking (camera + card). Same
+        // conflated-bus shape as the nudge, so it survives a cold start.
+        intent?.getStringExtra(EXTRA_SHOW_PARKING_SESSION_ID)?.let { sessionId ->
+            showParkingAskEventBus.ask(sessionId)
+        }
     }
 
     companion object {
@@ -196,5 +203,7 @@ class MainActivity : ComponentActivity() {
         const val EXTRA_FOCUS_LON = "extra_focus_lon"
         const val EXTRA_START_ADD_PARKING = "extra_start_add_parking"
         const val EXTRA_ADD_PARKING_FROM_DETECTION = "extra_add_parking_from_detection"
+        /** The widget's "more" → show this parking (camera + selected card). [WIDGET-ACTIONS-002] */
+        const val EXTRA_SHOW_PARKING_SESSION_ID = "extra_show_parking_session_id"
     }
 }

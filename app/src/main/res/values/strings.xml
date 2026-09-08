@@ -92,4 +92,7 @@
     <string name="widget_empty_hint">Park and this widget will show where</string>
     <string name="widget_location_pending">Location saved</string>
     <string name="widget_more_parked">+%1$d more</string>
+    <!-- Widget actions [WIDGET-ACTIONS-002] — same wording as in-app -->
+    <string name="widget_action_navigate">Directions</string>
+    <string name="widget_action_more">More options</string>
 </resources>

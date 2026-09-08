@@ -15,6 +15,9 @@ sealed class ParkedWidgetState {
     data object Empty : ParkedWidgetState()
 
     data class Parked(
+        /** Id of the winning session — what the "I'm leaving" action asks Home to release.
+         *  [WIDGET-ACTIONS-002] */
+        val sessionId: String,
         val vehicleName: String,
         /** Street of the parked session, or null while background enrichment hasn't landed —
          *  the widget then shows a generic "saved location" line, never a blank. */
@@ -50,6 +53,7 @@ fun resolveParkedWidgetState(
     val (session, vehicle) = resolvable.maxByOrNull { (s, _) -> s.location.timestamp }
         ?: return ParkedWidgetState.Empty
     return ParkedWidgetState.Parked(
+        sessionId = session.id,
         vehicleName = vehicle.displayName(),
         street = session.address?.street?.takeIf { it.isNotBlank() },
         parkedAtMs = session.location.timestamp,

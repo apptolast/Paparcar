@@ -95,6 +95,7 @@ Orden fijado por el user (07-09) tras valorar éxito/riesgo/trabajo. **No se reo
 |---|---|---|---|---|
 | A1 | `ANALYTICS-EVENTS-001` | transversal | no (emite desde el punto que ya estampa `detectionPath`) | ½ día |
 | A2 | `WIDGET-PARKED-001` | free | no | 1 día |
+| A2b | `WIDGET-ACTIONS-002` (mini-fase pedida el 08-09) | free | no | ½ día |
 | F1 | `FREE-LIMITS-001` | gating | no | 1 día |
 | F2 | `VEH-FUEL-001` | free (dato) | no | 2 días |
 | F3 | `STATS-CORE-001` | dominio | no | 2-3 días |

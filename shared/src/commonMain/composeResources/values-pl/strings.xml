@@ -806,4 +806,8 @@
     <!-- Consumption units (universal notation, same in every locale) [VEH-FUEL-001] -->
     <string name="unit_l_per_100">l/100 km</string>
     <string name="unit_kwh_per_100">kWh/100 km</string>
+    <!-- Widget en la comparativa + fila de Ajustes [WIDGET-ACTIONS-002] -->
+    <string name="paywall_free_widget">Twoje auto na ekranie głównym</string>
+    <string name="paywall_plus_everything">Wszystko z planu Za darmo</string>
+    <string name="settings_add_widget">Dodaj widżet do ekranu głównego</string>
 </resources>
