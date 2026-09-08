@@ -42,8 +42,16 @@
 -keep class com.rndeveloper.paparcar.data.datasource.remote.dto.** { *; }
 -keep class com.rndeveloper.paparcar.domain.model.** { *; }
 
-# GitLive Firebase SDK (Kotlin Multiplatform wrappers).
--keep class dev.gitlive.firebase.** { *; }
+# GitLive Firebase SDK (wrappers KMP).
+# ⛔ NO lleva `-keep`, y ojo con el razonamiento porque es el que casi lo mantiene: GitLive SÍ usa
+# kotlinx.serialization, pero lo que decide no es que la use, sino CÓMO resuelve el serializador.
+# Todos sus tipos lo declaran con `@Serializable(with = XxxSerializer::class)` — FieldValue,
+# GeoPoint, Timestamp, DocumentReference — y eso se resuelve en COMPILACIÓN: el compilador emite la
+# referencia directa al INSTANCE del objeto. No genera `$$serializer` (verificado: cero en el DEX) y
+# no busca `Companion.serializer()`. Nada resuelve por descriptor en runtime, porque su
+# `serializersModule` es `EmptySerializersModule()` y no lo tocamos.
+# Hace falta regla solo cuando el serializador se resuelve por NOMBRE o por descriptor en runtime.
+# [R8-GITLIVE-NEEDS-ITS-SERIALIZERS-NOT-ITS-WHOLE-PACKAGE-001]
 -dontwarn dev.gitlive.firebase.**
 
 # Google Firebase native (Crashlytics, Firestore, Auth, GMS) — keep public API.
