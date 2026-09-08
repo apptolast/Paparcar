@@ -32,6 +32,7 @@ import com.rndeveloper.paparcar.ui.theme.watch
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetLead
 import com.rndeveloper.paparcar.ui.components.PapAlertDialog
 import com.rndeveloper.paparcar.ui.components.PapDialogAccent
+import com.rndeveloper.paparcar.ui.components.PapDialogAction
 import com.rndeveloper.paparcar.ui.components.PapFooterButton
 import com.rndeveloper.paparcar.ui.components.PapFooterButtonStyle
 import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
@@ -68,6 +69,10 @@ import paparcar.composeapp.generated.resources.home_vehicle_fallback_name
  *   [ParkingPeek], so an unparked car is a page of the same book instead of a dead end. The
  *   caller passes [PeekStep.None] in the flows where stepping away has a cost (edit, detection
  *   nudge). [UI-PEEK-STEPS-WALK-VEHICLES-NOT-SESSIONS-001]
+ * @param savingAsNewSession WHICH of the two confirms is in flight — `false` correct-in-place,
+ *   `true` re-park, `null` neither. Not a bare "is saving": in EDIT both confirms are on screen at
+ *   once, and a boolean could only ever spin the first of them.
+ *   [UI-A-SPINNER-LIVES-IN-THE-BUTTON-THAT-WAS-PRESSED-001]
  */
 @Composable
 internal fun AddingParkingPeek(
@@ -75,12 +80,19 @@ internal fun AddingParkingPeek(
     targetVehicle: Vehicle?,
     isEditing: Boolean,
     deleteTarget: UserParking?,
-    isSaving: Boolean,
+    savingAsNewSession: Boolean?,
+    /** Non-null while a release is running. Only [ParkingReleaseReason.RECORD_DELETED] can have
+     *  started here — that is the delete confirm's own spinner. */
+    releasingReason: ParkingReleaseReason?,
     isCameraMoving: Boolean,
     step: PeekStep,
     onIntent: (HomeIntent) -> Unit,
     onAction: (HomeSheetAction) -> Unit,
 ) {
+    val isDeleting = releasingReason == ParkingReleaseReason.RECORD_DELETED
+    // Everything that only needs to know that SOMETHING is running — the arrows, the disabled
+    // states — reads this; only the two confirms look at which one.
+    val isSaving = savingAsNewSession != null
     val fallbackVehicleName = stringResource(Res.string.home_vehicle_fallback_name)
     val genericHeader = if (isEditing) {
         stringResource(Res.string.home_add_parking_header_label_edit)
@@ -158,7 +170,7 @@ internal fun AddingParkingPeek(
                 onClick = { onIntent(HomeIntent.ConfirmAddParking(asNewSession = false)) },
                 style = PapFooterButtonStyle.Filled,
                 enabled = !isSaving && !isCameraMoving,
-                isLoading = isSaving,
+                isLoading = savingAsNewSession == false,
                 modifier = Modifier.fillMaxWidth(),
             )
             if (isEditing) {
@@ -172,6 +184,10 @@ internal fun AddingParkingPeek(
                     onClick = { onIntent(HomeIntent.ConfirmAddParking(asNewSession = true)) },
                     style = PapFooterButtonStyle.Outlined,
                     enabled = !isSaving && !isCameraMoving,
+                    // This confirm reports its OWN progress. It used to have no spinner at all, so
+                    // re-parking lit the button ABOVE it — the one that means the opposite thing.
+                    // [UI-A-SPINNER-LIVES-IN-THE-BUTTON-THAT-WAS-PRESSED-001]
+                    isLoading = savingAsNewSession == true,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(Modifier.height(8.dp))
@@ -193,7 +209,7 @@ internal fun AddingParkingPeek(
 
     if (confirmingDelete) {
         PapAlertDialog(
-            onDismiss = { confirmingDelete = false },
+            onDismiss = { if (!isDeleting) confirmingDelete = false },
             accent = PapDialogAccent.Destructive,
             icon = Icons.Rounded.Delete,
             title = stringResource(Res.string.home_parking_delete_confirm_title),
@@ -201,13 +217,19 @@ internal fun AddingParkingPeek(
             primaryLabel = stringResource(Res.string.home_parking_menu_delete),
             primaryLeadingIcon = Icons.Rounded.Delete,
             onPrimary = {
-                confirmingDelete = false
                 deleteTarget?.let { p ->
                     // "This record was wrong", not "I'm leaving": it must not publish a plaza and
                     // must not make this the car you drive. [PARK-DELETE-NO-DECLARE-001]
                     onIntent(HomeIntent.ReleaseParking(sessionId = p.id, reason = ParkingReleaseReason.RECORD_DELETED))
                 }
-                onIntent(HomeIntent.ExitAddParkingMode)
+                // Neither this dialog nor the peek closes here: a destructive, irreversible write
+                // keeps its surface until it lands, like deleting a vehicle or an account. Closing
+                // both in the same tap meant a failure arrived as a snackbar over a screen the user
+                // had already left, with the record apparently gone. The VM leaves AddingParking on
+                // success. [UI-A-SPINNER-LIVES-IN-THE-BUTTON-THAT-WAS-PRESSED-001]
+            },
+            loadingAction = PapDialogAction.Primary.takeIf {
+                releasingReason == ParkingReleaseReason.RECORD_DELETED
             },
             cancelLabel = stringResource(Res.string.home_release_dialog_cancel),
         )

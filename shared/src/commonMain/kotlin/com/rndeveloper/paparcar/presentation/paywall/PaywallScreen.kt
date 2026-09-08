@@ -27,6 +27,7 @@ import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Map
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.Widgets
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -492,11 +493,23 @@ private fun ColumnScope.PurchaseAction(state: PaywallState, onIntent: (PaywallIn
         enabled = !state.restoring && !state.purchasing,
         modifier = Modifier.align(Alignment.CenterHorizontally),
     ) {
-        Text(
-            text = stringResource(Res.string.paywall_restore),
-            style = PaparcarType.current.cta,
-            color = MaterialTheme.colorScheme.primary,
-        )
+        // A store round-trip with no visible progress reads as "the tap did nothing", and the
+        // answer to it arrives as a line of text below — so the wait has to be shown HERE, on the
+        // button that started it, exactly like the buy button above.
+        // [UI-A-SPINNER-LIVES-IN-THE-BUTTON-THAT-WAS-PRESSED-001]
+        if (state.restoring) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(RESTORE_SPINNER_DP.dp),
+                strokeWidth = RESTORE_SPINNER_STROKE_DP.dp,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        } else {
+            Text(
+                text = stringResource(Res.string.paywall_restore),
+                style = PaparcarType.current.cta,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
     }
     if (state.restoreFoundNothing) {
         Text(
@@ -609,6 +622,10 @@ private const val SECTION_GAP_DP = 28
 private const val COMPARE_TITLE_GAP_DP = 10
 private const val NOTE_GAP_DP = 12
 private const val CHECK_DP = 20
+
+/** Sized to the `cta` line it replaces, so the restore row doesn't change height mid-wait. */
+private const val RESTORE_SPINNER_DP = 18
+private const val RESTORE_SPINNER_STROKE_DP = 2
 
 private const val TIER_GAP_DP = 12
 private const val TIER_PADDING_DP = 14

@@ -52,6 +52,7 @@ import com.rndeveloper.paparcar.presentation.util.zoneIconFor
 import com.rndeveloper.paparcar.ui.components.PapAlertDialog
 import com.rndeveloper.paparcar.ui.components.PapClearIconButton
 import com.rndeveloper.paparcar.ui.components.PapDialogAccent
+import com.rndeveloper.paparcar.ui.components.PapDialogAction
 import com.rndeveloper.paparcar.ui.components.PapFooterButton
 import com.rndeveloper.paparcar.ui.components.PapFooterButtonStyle
 import com.rndeveloper.paparcar.ui.components.PapSectionHeader
@@ -105,6 +106,9 @@ internal data class ZonePeekForm(
     /** Non-null while an existing zone is being edited — it is also what "delete" acts on. */
     val editingZoneId: String?,
     val isSaving: Boolean,
+    /** True while the delete write for [editingZoneId] is in flight — the confirm dialog stays up
+     *  with its spinner until it lands. [UI-A-SPINNER-LIVES-IN-THE-BUTTON-THAT-WAS-PRESSED-001] */
+    val isDeleting: Boolean = false,
 ) {
     val isEditing: Boolean get() = editingZoneId != null
 }
@@ -180,7 +184,9 @@ internal fun AddingZonePeek(
                 // The pin has to be settled before the name is asked — a zone saved
                 // mid-fling lands wherever the camera happened to be.
                 enabled = !form.isSaving && !isCameraMoving,
-                isLoading = form.isSaving,
+                // No spinner here: this button OPENS the naming dialog, it does not save. The save
+                // is fired from inside that dialog and reports its progress there, on the button
+                // that was actually pressed. [UI-A-SPINNER-LIVES-IN-THE-BUTTON-THAT-WAS-PRESSED-001]
                 modifier = Modifier.fillMaxWidth(),
             )
             if (form.isEditing) {
@@ -212,7 +218,7 @@ internal fun AddingZonePeek(
 
     if (confirmingDelete) {
         PapAlertDialog(
-            onDismiss = { confirmingDelete = false },
+            onDismiss = { if (!form.isDeleting) confirmingDelete = false },
             accent = PapDialogAccent.Destructive,
             icon = Icons.Rounded.Delete,
             title = stringResource(Res.string.home_zone_delete_confirm_title),
@@ -220,10 +226,12 @@ internal fun AddingZonePeek(
             primaryLabel = stringResource(Res.string.home_zone_action_delete),
             primaryLeadingIcon = Icons.Rounded.Delete,
             onPrimary = {
-                confirmingDelete = false
-                // The VM closes this modal when the zone it is editing goes away.
+                // Not dismissed here: the confirm holds its own progress until the write lands, and
+                // the VM closes the whole peek once the zone is actually gone — which is also what
+                // takes this dialog with it. [UI-A-SPINNER-LIVES-IN-THE-BUTTON-THAT-WAS-PRESSED-001]
                 form.editingZoneId?.let { onIntent(HomeIntent.DeleteZone(it)) }
             },
+            loadingAction = PapDialogAction.Primary.takeIf { form.isDeleting },
             cancelLabel = stringResource(Res.string.home_release_dialog_cancel),
         )
     }
@@ -254,7 +262,7 @@ private fun ZoneNameDialog(
         primaryLeadingIcon = Icons.Rounded.Bookmark,
         onPrimary = onConfirm,
         primaryEnabled = form.name.isNotBlank(),
-        isLoading = form.isSaving,
+        loadingAction = PapDialogAction.Primary.takeIf { form.isSaving },
         cancelLabel = stringResource(Res.string.home_release_dialog_cancel),
         content = {
             OutlinedTextField(

@@ -583,7 +583,10 @@ class HomeViewModel(
         val targetVehicleId = if (asNewSession) editedSessionVehicleId else current.addingParkingVehicleId
         // No connectivity gate: sessions are local-first (Room now, Firestore mirrored by
         // the WorkManager sync queue), same as the auto-detection confirm. [OFFLINE-PARK-001]
-        updateState { copy(isSavingParking = true) }
+        // Record WHICH confirm is running — correct-in-place and re-park sit in the same peek, and
+        // the spinner has to land on the one that was pressed.
+        // [UI-A-SPINNER-LIVES-IN-THE-BUTTON-THAT-WAS-PRESSED-001]
+        updateState { copy(savingParkingAsNewSession = asNewSession) }
         viewModelScope.launch {
             saveManualParking(
                 lat = lat,
@@ -595,12 +598,12 @@ class HomeViewModel(
                 // meaningful on CREATE — a move keeps the session's own type. [DET-NUDGE-PIN-PROVENANCE-001]
                 fromDetectionNudge = current.addingParkingFromDetectionNudge,
             )
-                .onSuccess { updateState { clearedModeFields().copy(isSavingParking = false) } }
+                .onSuccess { updateState { clearedModeFields().copy(savingParkingAsNewSession = null) } }
                 .onFailure {
                     // [BUG-8] Keep the user in AddingParking with the pin intact so they
                     // can retry. Only flip the spinner off. Going back to Browse on failure
                     // would force the user to re-centre the camera and reconfirm.
-                    updateState { copy(isSavingParking = false) }
+                    updateState { copy(savingParkingAsNewSession = null) }
                     sendEffect(HomeEffect.ShowError(PaparcarError.Parking.SaveFailed))
                 }
         }
@@ -615,7 +618,10 @@ class HomeViewModel(
             sendEffect(HomeEffect.ShowError(PaparcarError.Parking.ReleaseFailed))
             return
         }
-        updateState { copy(isReleasingParking = true) }
+        // The reason came with the intent — keep it, so the dialog's spinner can sit on the option
+        // the user chose (publish the freed spot, or not).
+        // [UI-A-SPINNER-LIVES-IN-THE-BUTTON-THAT-WAS-PRESSED-001]
+        updateState { copy(releasingReason = reason) }
         viewModelScope.launch {
             // Leaving in this car IS the declaration that you drive it: declare it active (idempotent
             // when it already is) so detection + fences follow the right car. Same path as "I'm
@@ -636,7 +642,13 @@ class HomeViewModel(
             }
             releaseSession(target.location.latitude, target.location.longitude, target, reason)
                 .onSuccess { published ->
-                    updateState { copy(selection = null, isReleasingParking = false) }
+                    // `clearedModeFields()` and not just `selection = null`: the "delete record"
+                    // confirm lives INSIDE the AddingParking peek and no longer dismisses itself on
+                    // tap, so leaving the mode is what closes it — once the write actually landed.
+                    // From Browse (every departure release) this is the same no-op plus the
+                    // selection reset it already did.
+                    // [UI-A-SPINNER-LIVES-IN-THE-BUTTON-THAT-WAS-PRESSED-001]
+                    updateState { clearedModeFields().copy(releasingReason = null) }
                     // The use case says whether a spot ACTUALLY went out — a zone session wider
                     // than the publish ceiling withholds it, and thanking the user for a plaza
                     // that never existed would be the lie the gate removes.
@@ -644,7 +656,7 @@ class HomeViewModel(
                     if (published) sendEffect(HomeEffect.SpotReported)
                 }
                 .onFailure { e ->
-                    updateState { copy(isReleasingParking = false) }
+                    updateState { copy(releasingReason = null) }
                     sendEffect(HomeEffect.ShowError(PaparcarError.Database.WriteError(e.message ?: "")))
                 }
         }
@@ -762,11 +774,15 @@ class HomeViewModel(
     private fun deleteZone(zoneId: String) {
         if (zoneId in state.value.deletingZoneIds) return
         updateState { copy(deletingZoneIds = deletingZoneIds + zoneId) }
-        // Deleting the zone you are editing leaves the modal editing a ghost — close it
-        // here, once, instead of asking every caller to remember. [UI-ZONE-MANAGE-001]
-        if (state.value.editingZoneId == zoneId) updateState { clearedModeFields() }
         viewModelScope.launch {
             zoneRepository.deleteZone(zoneId)
+                // Deleting the zone you are editing leaves the modal editing a ghost — close it
+                // here, once, instead of asking every caller to remember. [UI-ZONE-MANAGE-001]
+                // On SUCCESS only, and no longer the moment the tap lands: the confirm dialog now
+                // holds its spinner until the write resolves, and a failure has to leave the peek
+                // standing so the retry is one tap away.
+                // [UI-A-SPINNER-LIVES-IN-THE-BUTTON-THAT-WAS-PRESSED-001]
+                .onSuccess { if (state.value.editingZoneId == zoneId) updateState { clearedModeFields() } }
                 .onFailure { e -> sendEffect(HomeEffect.ShowError(PaparcarError.Database.WriteError(e.message ?: ""))) }
             updateState { copy(deletingZoneIds = deletingZoneIds - zoneId) }
         }

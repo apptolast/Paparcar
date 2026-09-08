@@ -28,7 +28,9 @@ import com.rndeveloper.paparcar.fakes.FakeVehicleRepository
 import com.rndeveloper.paparcar.fakes.FakeZoneRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -305,16 +307,33 @@ class SettingsViewModelTest {
     }
 
     @Test
-    fun `should_setIsDeletingAccount_true_and_hide_dialog_on_confirm`() = runTest {
-        // The use case runs synchronously with UnconfinedTestDispatcher so
-        // isDeletingAccount snaps from true → false in the same runTest block.
-        // We verify the final effect instead of the transient state.
-        vm.effect.test {
-            vm.handleIntent(SettingsIntent.ConfirmDeleteAccount)
-            assertIs<SettingsEffect.NavigateToAuth>(awaitItem())
-            cancelAndIgnoreRemainingEvents()
-        }
-        assertFalse(vm.state.value.showDeleteAccountConfirmation)
+    fun `should_keep_the_confirmation_open_while_the_deletion_is_in_flight`() = runTest {
+        // [UI-A-SPINNER-LIVES-IN-THE-BUTTON-THAT-WAS-PRESSED-001] The dialog used to be dismissed
+        // in the very update that raised the flag, which left its own spinner unreachable and made
+        // the only visible one belong to the danger-zone button BEHIND it — a button that had not
+        // been pressed. It now stays up with its progress until the deletion resolves, the same
+        // contract as the diagnostics upload and the vehicle deletion.
+        // A StandardTestDispatcher on purpose: the suite's Unconfined one finishes the deletion
+        // before there is any in-flight window left to look at.
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        vm = buildVm()
+        advanceUntilIdle()
+
+        vm.handleIntent(SettingsIntent.RequestDeleteAccount)
+        vm.handleIntent(SettingsIntent.ConfirmDeleteAccount)
+
+        assertTrue(vm.state.value.isDeletingAccount)
+        assertTrue(vm.state.value.showDeleteAccountConfirmation)
+    }
+
+    @Test
+    fun `should_keep_the_confirmation_open_for_retry_on_deleteAccount_failure`() = runTest {
+        // A failed deletion has to leave the retry one tap away, on the same surface.
+        auth.deleteAccountResult = Result.failure(Exception("network error"))
+        vm.handleIntent(SettingsIntent.RequestDeleteAccount)
+        vm.handleIntent(SettingsIntent.ConfirmDeleteAccount)
+        assertFalse(vm.state.value.isDeletingAccount)
+        assertTrue(vm.state.value.showDeleteAccountConfirmation)
     }
 
     @Test

@@ -70,6 +70,7 @@ import com.rndeveloper.paparcar.ui.components.PapBottomActionBar
 import com.rndeveloper.paparcar.ui.components.PapButtonSize
 import com.rndeveloper.paparcar.ui.components.PapDangerCard
 import com.rndeveloper.paparcar.ui.components.PapDialogAccent
+import com.rndeveloper.paparcar.ui.components.PapDialogAction
 import com.rndeveloper.paparcar.ui.components.PapFooterButton
 import com.rndeveloper.paparcar.ui.components.PapIconTile
 import com.rndeveloper.paparcar.ui.components.PapListItem
@@ -617,7 +618,7 @@ fun VehicleRegistrationContent(
                         // resets isDeleting on failure (dialog stays open for retry).
                         onIntent(VehicleRegistrationIntent.DeleteVehicle)
                     },
-                    isLoading = state.isDeleting,
+                    loadingAction = PapDialogAction.Primary.takeIf { state.isDeleting },
                     cancelLabel = stringResource(Res.string.my_car_delete_cancel),
                     accent = PapDialogAccent.Destructive,
                 )

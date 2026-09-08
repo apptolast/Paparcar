@@ -20,6 +20,7 @@ import com.rndeveloper.paparcar.presentation.home.model.toUiState
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.AddressAndPlace
 import com.rndeveloper.paparcar.domain.model.ParkedVehicleSummary
+import com.rndeveloper.paparcar.domain.model.ParkingReleaseReason
 import com.rndeveloper.paparcar.domain.model.SearchResult
 import com.rndeveloper.paparcar.domain.model.Spot
 import com.rndeveloper.paparcar.domain.model.UserParking
@@ -260,8 +261,23 @@ data class HomeState(
 
     // ── AddingParking mode ────────────────────────────────────────────────────
 
-    val isSavingParking: Boolean = false,
-    val isReleasingParking: Boolean = false,
+    /**
+     * WHICH confirm is in flight, not merely that one is:
+     * `false` = correct this session's pin in place, `true` = re-park (a NEW session for the same
+     * car). Both live in the same peek, so a bare boolean could only ever put the spinner on the
+     * first of the two buttons — the one the user may not have pressed.
+     * [UI-A-SPINNER-LIVES-IN-THE-BUTTON-THAT-WAS-PRESSED-001]
+     */
+    val savingParkingAsNewSession: Boolean? = null,
+    /**
+     * WHICH release is in flight. The reason already travelled in
+     * [HomeIntent.ReleaseParking]; keeping it here is what lets the release dialog paint the
+     * spinner on the option the user chose. And the two options are not interchangeable — one
+     * publishes the freed spot for the community and the other does not, so a spinner on the wrong
+     * one states the opposite of the decision just taken.
+     * [UI-A-SPINNER-LIVES-IN-THE-BUTTON-THAT-WAS-PRESSED-001]
+     */
+    val releasingReason: ParkingReleaseReason? = null,
     /**
      * Non-null when moving an existing session; null when creating a new one.
      * When set, [addingParkingVehicleId] is ignored. [MULTI-PARKING-001]
@@ -282,6 +298,15 @@ data class HomeState(
     // (size-filtered spots, vehicle cards) moved to the per-section slices in
     // HomeSlices.kt so they are built once per state emission, not once per read.
     // [HOME-ATOMIZE-001 F1]
+
+    /** "A confirm is running" — for the guards that only need to know THAT, not which one.
+     *  [savingParkingAsNewSession] is what a button reads to decide whether the spinner is its. */
+    val isSavingParking: Boolean
+        get() = savingParkingAsNewSession != null
+
+    /** "A release is running" — same contract as [isSavingParking], over [releasingReason]. */
+    val isReleasingParking: Boolean
+        get() = releasingReason != null
 
     /** The user's PREFERRED session under multi-parking — see [preferredSession]. [MULTI-PARKING-001] */
     val userParking: UserParking?

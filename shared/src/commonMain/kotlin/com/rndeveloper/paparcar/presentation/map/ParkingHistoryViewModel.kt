@@ -83,13 +83,25 @@ class ParkingHistoryViewModel(
             // A retraction, straight to the repository — there is no decision to make here, exactly
             // like ResolveInferredRoute below. The row leaves the history and survives for
             // diagnostics. [PARK-A-HISTORIC-PARKING-CAN-BE-WITHDRAWN-001]
-            is ParkingHistoryIntent.WithdrawParking -> viewModelScope.launch {
-                userParkingRepository
-                    .retractParkingSession(intent.sessionId, Clock.System.now().toEpochMilliseconds())
-                    .onSuccess { sendEffect(ParkingHistoryEffect.Withdrawn) }
-                    .onFailure { e ->
-                        sendEffect(ParkingHistoryEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))
+            is ParkingHistoryIntent.WithdrawParking -> {
+                // The confirm dialog stays up with its spinner until the write lands — a destructive
+                // write that dismissed its own surface on tap left a failure arriving as a snackbar
+                // over a screen the user had already left.
+                // [UI-A-SPINNER-LIVES-IN-THE-BUTTON-THAT-WAS-PRESSED-001]
+                if (state.value.withdrawingSessionId == null) {
+                    updateState { copy(withdrawingSessionId = intent.sessionId) }
+                    viewModelScope.launch {
+                        userParkingRepository
+                            .retractParkingSession(intent.sessionId, Clock.System.now().toEpochMilliseconds())
+                            .onSuccess { sendEffect(ParkingHistoryEffect.Withdrawn) }
+                            .onFailure { e ->
+                                sendEffect(ParkingHistoryEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))
+                            }
+                        // Cleared on both outcomes: on success the screen is already leaving, on
+                        // failure the dialog has to come back to life for the retry.
+                        updateState { copy(withdrawingSessionId = null) }
                     }
+                }
             }
 
             // The user's verdict on a reconstructed stretch — persisted (and synced); the observed

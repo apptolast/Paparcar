@@ -55,6 +55,7 @@ import com.rndeveloper.paparcar.fakes.FakeVehicleRepository
 import com.rndeveloper.paparcar.fakes.FakeZoneRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -598,6 +599,63 @@ class HomeViewModelTest {
             assertIs<HomeEffect.SpotReported>(awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    // ── Which action is in flight [UI-A-SPINNER-LIVES-IN-THE-BUTTON-THAT-WAS-PRESSED-001] ─────
+    // The state used to hold a bare `isReleasingParking: Boolean`, so the release dialog could only
+    // ever spin its PRIMARY button — even when the user had pressed the secondary, which means the
+    // opposite thing (don't hand the freed space to the community). These two tests pin the
+    // discriminator itself, in flight and after: the reason the user chose is what the state holds.
+    // They run on a StandardTestDispatcher on purpose — the suite's Unconfined one would finish the
+    // release before there is any in-flight window left to look at.
+
+    @Test
+    fun `should_remember_the_chosen_reason_while_the_release_is_in_flight`() = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        val session = UserParking(
+            id = "session-1", userId = "user-1", vehicleId = "veh-1",
+            location = location, isActive = true,
+        )
+        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(session))
+        vm = buildVm()
+        advanceUntilIdle()
+
+        vm.handleIntent(
+            HomeIntent.ReleaseParking(
+                sessionId = session.id,
+                reason = ParkingReleaseReason.DEPARTURE_UNPUBLISHED,
+            ),
+        )
+
+        // Not merely "a release is running": WHICH one, so the secondary button can spin itself.
+        assertEquals(ParkingReleaseReason.DEPARTURE_UNPUBLISHED, vm.state.value.releasingReason)
+        assertTrue(vm.state.value.isReleasingParking)
+
+        advanceUntilIdle()
+        assertNull(vm.state.value.releasingReason)
+    }
+
+    @Test
+    fun `should_remember_which_confirm_is_in_flight_on_ConfirmAddParking_from_edit`() = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        val session = UserParking(
+            id = "session-1", userId = "user-123", vehicleId = "veh-1",
+            location = location, isActive = true,
+        )
+        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(session))
+        vm = buildVm()
+        advanceUntilIdle()
+
+        vm.handleIntent(HomeIntent.EnterAddParkingMode(initialGps = location, editingParkingId = session.id))
+        advanceUntilIdle()
+        vm.handleIntent(HomeIntent.ConfirmAddParking(asNewSession = true))
+
+        // Re-park and correct-in-place sit in the same peek: `true` is what lets the re-park button
+        // carry its own spinner instead of lighting the confirm above it.
+        assertEquals(true, vm.state.value.savingParkingAsNewSession)
+
+        advanceUntilIdle()
+        assertNull(vm.state.value.savingParkingAsNewSession)
     }
 
     @Test
@@ -1502,6 +1560,61 @@ class HomeViewModelTest {
         val s = vm.state.value
         assertEquals(HomeMode.Browse, s.mode)
         assertEquals(null, s.editingZoneId)
+    }
+
+    @Test
+    fun `should_keep_the_zone_peek_open_while_its_delete_is_in_flight`() = runTest {
+        // [UI-A-SPINNER-LIVES-IN-THE-BUTTON-THAT-WAS-PRESSED-001] The peek used to close the moment
+        // the tap landed, which left the destructive write running with nothing on screen saying so.
+        // It now holds — with the confirm's own spinner — until the zone is really gone.
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        zoneRepo.zones = listOf(
+            com.rndeveloper.paparcar.domain.model.Zone(
+                id = "z1", userId = "u1", name = "Casa", lat = 41.0, lon = -4.0,
+                iconKey = "home", createdAt = 0L,
+            ),
+        )
+        vm = buildVm()
+        advanceUntilIdle()
+        vm.handleIntent(HomeIntent.EnterEditZoneMode("z1"))
+        advanceUntilIdle()
+
+        vm.handleIntent(HomeIntent.DeleteZone("z1"))
+
+        assertEquals(HomeMode.AddingZone, vm.state.value.mode)
+        assertTrue("z1" in vm.state.value.deletingZoneIds)
+        assertTrue(vm.state.value.toPeekSlice().isDeletingZone)
+
+        advanceUntilIdle()
+        assertEquals(HomeMode.Browse, vm.state.value.mode)
+    }
+
+    @Test
+    fun `should_keep_the_parking_peek_open_while_the_record_delete_is_in_flight`() = runTest {
+        // The third button of the "correct parking" modal. Same contract as deleting a vehicle:
+        // the confirm holds its spinner and the peek only leaves once the write landed.
+        // [UI-A-SPINNER-LIVES-IN-THE-BUTTON-THAT-WAS-PRESSED-001]
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        val session = UserParking(
+            id = "session-1", userId = "user-123", vehicleId = "veh-1",
+            location = location, isActive = true,
+        )
+        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(session))
+        vm = buildVm()
+        advanceUntilIdle()
+        vm.handleIntent(HomeIntent.EnterAddParkingMode(initialGps = location, editingParkingId = session.id))
+        advanceUntilIdle()
+
+        vm.handleIntent(
+            HomeIntent.ReleaseParking(sessionId = session.id, reason = ParkingReleaseReason.RECORD_DELETED),
+        )
+
+        assertIs<HomeMode.AddingParking>(vm.state.value.mode)
+        assertEquals(ParkingReleaseReason.RECORD_DELETED, vm.state.value.releasingReason)
+
+        advanceUntilIdle()
+        assertEquals(HomeMode.Browse, vm.state.value.mode)
+        assertNull(vm.state.value.releasingReason)
     }
 
     @Test

@@ -59,6 +59,17 @@ import com.rndeveloper.paparcar.ui.theme.PapAlpha
 enum class PapDialogAccent { Primary, Destructive }
 
 /**
+ * WHICH action of a [PapAlertDialog] is in flight.
+ *
+ * [UI-A-SPINNER-LIVES-IN-THE-BUTTON-THAT-WAS-PRESSED-001] This replaced a plain `isLoading:
+ * Boolean`, and the boolean is the whole bug: it said "something is running", so the dialog had no
+ * choice but to paint the spinner on its primary — even when the user had pressed the secondary.
+ * In the release dialog the two actions publish or DON'T publish the spot, so a spinner on the
+ * wrong one claims the opposite of the decision just taken.
+ */
+enum class PapDialogAction { Primary, Secondary }
+
+/**
  * The app's single confirmation dialog molde. Drop-in for every "are you
  * sure?" surface so they all read as one family:
  *
@@ -82,14 +93,16 @@ enum class PapDialogAccent { Primary, Destructive }
  * @param secondaryLabel non-null adds an outlined middle action between
  *                       primary and cancel.
  * @param cancelLabel non-null adds a text-only cancel as the third action.
- * @param isLoading replaces the primary label with a spinner and disables
- *                  all actions — use while an async confirm is in flight.
+ * @param loadingAction names the action whose async work is in flight: its label is replaced by a
+ *                      spinner and every other action is disabled. A dialog can only ever be
+ *                      running ONE of its actions, and the spinner belongs to that one.
+ *                      [UI-A-SPINNER-LIVES-IN-THE-BUTTON-THAT-WAS-PRESSED-001]
  * @param content optional block between the body and the actions — the dialog's
  *                only escape hatch, for a confirm that also CAPTURES something
  *                (the zone name). A dialog with a form still is this molde, not
  *                a parallel one. [UI-ZONE-MANAGE-001]
  * @param primaryEnabled gates the primary action on that captured value (blank
- *                       name → can't save). [isLoading] still disables everything.
+ *                       name → can't save). [loadingAction] still disables everything.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -113,7 +126,7 @@ fun PapAlertDialog(
      *  "Delete") next to a green primary ("Move"). Null = inherit [accent]. [UI-SHEET-004] */
     secondaryAccent: PapDialogAccent? = null,
     cancelLabel: String? = null,
-    isLoading: Boolean = false,
+    loadingAction: PapDialogAction? = null,
     primaryEnabled: Boolean = true,
     content: (@Composable ColumnScope.() -> Unit)? = null,
     /** Replaces the tinted [icon] hero with a custom composable (e.g. the real vehicle pictogram).
@@ -213,8 +226,9 @@ fun PapAlertDialog(
                     leadingIcon = primaryLeadingIcon,
                     accentColor = accentColor,
                     onAccent = onAccent,
-                    isLoading = isLoading,
-                    enabled = primaryEnabled,
+                    isLoading = loadingAction == PapDialogAction.Primary,
+                    // Any action in flight freezes the others: the dialog is resolving ONE choice.
+                    enabled = primaryEnabled && loadingAction == null,
                 )
 
                 if (secondaryLabel != null && onSecondary != null) {
@@ -224,7 +238,8 @@ fun PapAlertDialog(
                         onClick = onSecondary,
                         leadingIcon = secondaryLeadingIcon,
                         accentColor = (secondaryAccent ?: accent).color(),
-                        enabled = !isLoading,
+                        isLoading = loadingAction == PapDialogAction.Secondary,
+                        enabled = loadingAction == null,
                     )
                 }
 
@@ -232,7 +247,7 @@ fun PapAlertDialog(
                     Spacer(Modifier.height(2.dp))
                     TextButton(
                         onClick = onDismiss,
-                        enabled = !isLoading,
+                        enabled = loadingAction == null,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         // No leading icon: cancel is generic flow-control, its meaning is
@@ -290,17 +305,24 @@ private fun PrimaryAction(
     }
 }
 
+/**
+ * The outlined middle action. It carries the SAME spinner path as [PrimaryAction] — an async action
+ * is an async action wherever it sits, and the ranking of the two buttons says which one advances
+ * the community loop, not which one is allowed to report its own progress.
+ * [UI-A-SPINNER-LIVES-IN-THE-BUTTON-THAT-WAS-PRESSED-001]
+ */
 @Composable
 private fun SecondaryAction(
     label: String,
     onClick: () -> Unit,
     leadingIcon: ImageVector?,
     accentColor: Color,
+    isLoading: Boolean,
     enabled: Boolean,
 ) {
     OutlinedButton(
         onClick = onClick,
-        enabled = enabled,
+        enabled = enabled && !isLoading,
         modifier = Modifier
             .fillMaxWidth()
             .height(BUTTON_HEIGHT_DP.dp),
@@ -308,7 +330,14 @@ private fun SecondaryAction(
         colors = ButtonDefaults.outlinedButtonColors(contentColor = accentColor),
         border = BorderStroke(PapBorders.medium, accentColor),
     ) {
-        if (leadingIcon != null) {
+        if (isLoading) {
+            // The outline's own accent, not `onAccent`: this button has no fill to read against.
+            CircularProgressIndicator(
+                modifier = Modifier.size(16.dp),
+                strokeWidth = 2.dp,
+                color = accentColor,
+            )
+        } else if (leadingIcon != null) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(leadingIcon, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(6.dp))

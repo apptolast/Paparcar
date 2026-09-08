@@ -5,6 +5,7 @@ import com.swmansion.kmpmaps.core.MapType
 import com.rndeveloper.paparcar.domain.model.AddressAndPlace
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.ParkedVehicleSummary
+import com.rndeveloper.paparcar.domain.model.ParkingReleaseReason
 import com.rndeveloper.paparcar.domain.model.SearchResult
 import com.rndeveloper.paparcar.domain.model.Spot
 import com.rndeveloper.paparcar.domain.model.SpotStatus
@@ -161,6 +162,9 @@ data class HomePeekSlice(
     val reportingSize: VehicleSize?,
     // Zone form
     val isSavingZone: Boolean,
+    /** True while the delete write for the zone being EDITED is in flight — the only zone this peek
+     *  can delete, so the whole id set never has to cross the boundary. */
+    val isDeletingZone: Boolean,
     val addingZoneName: String,
     val addingZoneIconKey: String,
     val addingZoneRadius: Float,
@@ -169,7 +173,11 @@ data class HomePeekSlice(
     val addingZoneNotify: Boolean,
     val editingZoneId: String?,
     // Parking form
-    val isSavingParking: Boolean,
+    /** WHICH confirm is in flight — see [HomeState.savingParkingAsNewSession]. The peek shows two
+     *  confirms, so the spinner needs to know which. [UI-A-SPINNER-LIVES-IN-THE-BUTTON-THAT-WAS-PRESSED-001] */
+    val savingParkingAsNewSession: Boolean?,
+    /** Non-null while a release runs — the edit peek's "delete record" confirm spins on it. */
+    val releasingReason: ParkingReleaseReason?,
     val editingParkingId: String?,
     val addingParkingVehicleId: String?,
     /** [DET-NUDGE-PIN-PROVENANCE-001] True when the open AddingParking came from a detection
@@ -401,13 +409,15 @@ fun HomeState.toPeekSlice(): HomePeekSlice {
         isReporting = isReporting,
         reportingSize = reportingSize,
         isSavingZone = isSavingZone,
+        isDeletingZone = editingZoneId != null && editingZoneId in deletingZoneIds,
         addingZoneName = addingZoneName,
         addingZoneIconKey = addingZoneIconKey,
         addingZoneRadius = addingZoneRadius,
         addingZoneIsPrivate = addingZoneIsPrivate,
         addingZoneNotify = addingZoneNotify,
         editingZoneId = editingZoneId,
-        isSavingParking = isSavingParking,
+        savingParkingAsNewSession = savingParkingAsNewSession,
+        releasingReason = releasingReason,
         editingParkingId = editingParkingId,
         addingParkingVehicleId = addingParkingVehicleId,
         addingParkingFromDetectionNudge = addingParkingFromDetectionNudge,

@@ -170,6 +170,7 @@ fun HomePeekHandle(
                         notifyOnSpot = slice.addingZoneNotify,
                         editingZoneId = slice.editingZoneId,
                         isSaving = slice.isSavingZone,
+                        isDeleting = slice.isDeletingZone,
                     ),
                     isCameraMoving = slice.isCameraMoving,
                     onIntent = onIntent,
@@ -185,7 +186,8 @@ fun HomePeekHandle(
                     deleteTarget = slice.editingParkingId
                         ?.let { id -> slice.activeSessions.firstOrNull { it.id == id } }
                         ?: slice.selectedSession ?: slice.userParking,
-                    isSaving = slice.isSavingParking,
+                    savingAsNewSession = slice.savingParkingAsNewSession,
+                    releasingReason = slice.releasingReason,
                     isCameraMoving = slice.isCameraMoving,
                     // No stepping out of the focused flows: EDIT corrects ONE session's pin, and a
                     // detection NUDGE is a question about ONE car — stepping away and back would

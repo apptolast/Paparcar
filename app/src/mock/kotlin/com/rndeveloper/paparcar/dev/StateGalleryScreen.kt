@@ -401,6 +401,7 @@ private fun parkingDetailSheet(
     hasOlder: Boolean = true,
     hasNewer: Boolean = true,
     canWithdraw: Boolean = false,
+    withdrawing: Boolean = false,
 ) {
     Box(Modifier.fillMaxSize()) {
         HistoryDetailSheet(
@@ -412,6 +413,7 @@ private fun parkingDetailSheet(
             onNewer = {},
             onNavigate = { _, _ -> },
             onWithdraw = if (canWithdraw) ({}) else null,
+            isWithdrawing = withdrawing,
             modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(),
         )
     }
@@ -814,6 +816,18 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     session = FakeData.endedSessions.first(),
                     vehicle = FakeData.vehicleSedan,
                     canWithdraw = true,
+                )
+            },
+            // El confirm de quitar vive en un `remember` dentro de la ficha, así que esta variante
+            // se mira PULSANDO «Quitar del historial»: el diálogo sale ya con su spinner. Es la
+            // única forma de ver este estado sin una retirada real.
+            // [UI-A-SPINNER-LIVES-IN-THE-BUTTON-THAT-WAS-PRESSED-001]
+            Variant("Cerrada · quitando del historial") {
+                parkingDetailSheet(
+                    session = FakeData.endedSessions.first(),
+                    vehicle = FakeData.vehicleSedan,
+                    canWithdraw = true,
+                    withdrawing = true,
                 )
             },
             Variant("Sin resolver (skeleton)") {
@@ -1540,6 +1554,18 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             },
             Variant("Diálogo borrar cuenta") {
                 SettingsContent(state = SettingsState(userProfile = sampleProfile, showDeleteAccountConfirmation = true))
+            },
+            // El estado que antes no existía: el diálogo se cerraba en el mismo update que levantaba
+            // la bandera, así que el spinner que se veía era el del botón de la danger zone, detrás.
+            // [UI-A-SPINNER-LIVES-IN-THE-BUTTON-THAT-WAS-PRESSED-001]
+            Variant("Borrando cuenta") {
+                SettingsContent(
+                    state = SettingsState(
+                        userProfile = sampleProfile,
+                        showDeleteAccountConfirmation = true,
+                        isDeletingAccount = true,
+                    ),
+                )
             },
             Variant("Diálogo enviar diagnóstico") {
                 SettingsContent(state = SettingsState(userProfile = sampleProfile, showSendDiagnosticsConfirmation = true))

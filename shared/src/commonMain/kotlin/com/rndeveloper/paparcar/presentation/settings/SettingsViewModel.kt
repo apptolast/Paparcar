@@ -268,8 +268,13 @@ class SettingsViewModel(
         }
     }
 
+    /** The confirmation stays up (with progress) until the deletion resolves — same contract as the
+     *  diagnostics upload above and as the vehicle deletion. Closing it here, in the very update
+     *  that raised the flag, is what left the dialog's own spinner unreachable and moved the only
+     *  visible one to the danger-zone button behind it.
+     *  [UI-A-SPINNER-LIVES-IN-THE-BUTTON-THAT-WAS-PRESSED-001] */
     private fun deleteAccount() {
-        updateState { copy(isDeletingAccount = true, showDeleteAccountConfirmation = false) }
+        updateState { copy(isDeletingAccount = true) }
         viewModelScope.launch {
             deleteAccountUseCase()
                 .onSuccess {
@@ -277,6 +282,7 @@ class SettingsViewModel(
                     sendEffect(SettingsEffect.NavigateToAuth)
                 }
                 .onFailure { e ->
+                    // Only the flag drops: the dialog stays open so the retry is one tap away.
                     updateState { copy(isDeletingAccount = false) }
                     PaparcarLogger.e(TAG, "Failed to delete account", e)
                     sendEffect(SettingsEffect.ShowError(PaparcarError.Auth.DeleteFailed))

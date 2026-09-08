@@ -77,6 +77,7 @@ import com.rndeveloper.paparcar.ui.components.PapFooterButton
 import com.rndeveloper.paparcar.ui.components.PapFooterButtonStyle
 import com.rndeveloper.paparcar.ui.components.PapAlertDialog
 import com.rndeveloper.paparcar.ui.components.PapDialogAccent
+import com.rndeveloper.paparcar.ui.components.PapDialogAction
 import com.rndeveloper.paparcar.ui.components.PaparcarMapConfig
 import com.rndeveloper.paparcar.ui.components.PaparcarMapView
 import com.rndeveloper.paparcar.ui.components.PapShimmerBox
@@ -334,6 +335,7 @@ fun ParkingHistoryDetailScreen(
             } else {
                 null
             },
+            isWithdrawing = state.isWithdrawingFocused,
         )
 
         // Los mandos del mapa, los mismos de Home: centrar en mí · centrar en ESTE aparcamiento ·
@@ -466,6 +468,9 @@ fun HistoryDetailSheet(
     modifier: Modifier = Modifier,
     /** Null hides the action: a LIVE session is not withdrawn from here (see `canWithdraw`). */
     onWithdraw: (() -> Unit)? = null,
+    /** True while THIS parking's retraction is in flight — the confirm dialog holds its spinner
+     *  instead of dismissing on tap. [UI-A-SPINNER-LIVES-IN-THE-BUTTON-THAT-WAS-PRESSED-001] */
+    isWithdrawing: Boolean = false,
 ) {
     Surface(
         modifier = modifier,
@@ -515,6 +520,7 @@ fun HistoryDetailSheet(
                         onNewer = onNewer,
                         onNavigate = onNavigate,
                         onWithdraw = onWithdraw,
+                        isWithdrawing = isWithdrawing,
                     )
                 }
             }
@@ -611,6 +617,7 @@ private fun HistoryParkingCard(
     onNewer: () -> Unit,
     onNavigate: (lat: Double, lon: Double) -> Unit,
     onWithdraw: (() -> Unit)?,
+    isWithdrawing: Boolean,
 ) {
     val cs = MaterialTheme.colorScheme
     var confirmingWithdraw by remember { mutableStateOf(false) }
@@ -711,17 +718,18 @@ private fun HistoryParkingCard(
 
     if (confirmingWithdraw && onWithdraw != null) {
         PapAlertDialog(
-            onDismiss = { confirmingWithdraw = false },
+            onDismiss = { if (!isWithdrawing) confirmingWithdraw = false },
             accent = PapDialogAccent.Destructive,
             icon = Icons.Rounded.Delete,
             title = stringResource(Res.string.parking_detail_withdraw_confirm_title),
             body = stringResource(Res.string.parking_detail_withdraw_confirm_body),
             primaryLabel = stringResource(Res.string.parking_detail_withdraw_action),
             primaryLeadingIcon = Icons.Rounded.Delete,
-            onPrimary = {
-                confirmingWithdraw = false
-                onWithdraw()
-            },
+            // No dismiss on tap: the retraction keeps this surface until it lands. On success the
+            // screen leaves (the `Withdrawn` effect); on failure the dialog is still here, with the
+            // retry one tap away. [UI-A-SPINNER-LIVES-IN-THE-BUTTON-THAT-WAS-PRESSED-001]
+            onPrimary = onWithdraw,
+            loadingAction = PapDialogAction.Primary.takeIf { isWithdrawing },
             cancelLabel = stringResource(Res.string.home_release_dialog_cancel),
         )
     }

@@ -41,6 +41,13 @@ data class ParkingHistoryState(
     // Which history entry is on screen. Kept as an id (not the object) so it survives list refreshes
     // and prev/next recomputes deterministically against [orderedSessions]. [HISTORY-DETAIL-001]
     val focusedSessionId: String? = null,
+    /**
+     * Id of the session whose retraction write is in flight. An id and not a flag, for the same
+     * reason every other in-flight marker in the app is one: the screen steps between sessions, and
+     * "a withdrawal is running" would let the spinner follow the user onto a different parking.
+     * [UI-A-SPINNER-LIVES-IN-THE-BUTTON-THAT-WAS-PRESSED-001]
+     */
+    val withdrawingSessionId: String? = null,
 ) {
     /**
      * The parking currently shown in the detail sheet + map, resolved against the FULL history so a
@@ -91,6 +98,10 @@ data class ParkingHistoryState(
      */
     val canWithdraw: Boolean
         get() = (focusedParking as? FocusedParking.Resolved)?.session?.isActive == false
+
+    /** True while THIS parking's retraction is running — what the confirm dialog's spinner reads. */
+    val isWithdrawingFocused: Boolean
+        get() = withdrawingSessionId != null && withdrawingSessionId == focusedSessionId
 
     /** The registered vehicle that owns the focused session, or null if it was deleted / unresolved. */
     val focusedVehicle: Vehicle?

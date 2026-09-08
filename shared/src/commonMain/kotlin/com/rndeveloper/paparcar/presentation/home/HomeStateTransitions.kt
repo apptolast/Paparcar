@@ -37,9 +37,11 @@ import com.rndeveloper.paparcar.domain.model.ZoneIcon
  * ([HomeState.selection]). Callers that need to set a selection or re-enter a mode
  * apply their fields via `.copy(...)` on top of this base.
  *
- * In-flight booleans (isReporting / isSavingZone / isSavingParking /
- * isReleasingParking) are intentionally left alone: they reflect a running
- * operation, not the user-facing mode.
+ * In-flight markers (isReporting / isSavingZone / savingParkingAsNewSession /
+ * releasingReason) are intentionally left alone: they reflect a running
+ * operation, not the user-facing mode. The last two name WHICH action is running rather than
+ * merely that one is, so the spinner can sit on the button that was pressed.
+ * [UI-A-SPINNER-LIVES-IN-THE-BUTTON-THAT-WAS-PRESSED-001]
  *
  * **Invariant enforced here:** `mode != Browse ⇒ selection == null`.
  * Every Enter*Mode / SelectItem path goes through this helper so the

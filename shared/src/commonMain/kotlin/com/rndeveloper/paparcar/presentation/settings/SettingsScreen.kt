@@ -96,6 +96,7 @@ import com.rndeveloper.paparcar.ui.components.PapAlertDialog
 import com.rndeveloper.paparcar.ui.components.PapCollapsingTopBarScaffold
 import com.rndeveloper.paparcar.ui.components.PapDangerCard
 import com.rndeveloper.paparcar.ui.components.PapDialogAccent
+import com.rndeveloper.paparcar.ui.components.PapDialogAction
 import com.rndeveloper.paparcar.ui.components.PapDivider
 import com.rndeveloper.paparcar.ui.components.PapIconTile
 import com.rndeveloper.paparcar.ui.components.PapInfoRow
@@ -318,7 +319,7 @@ fun SettingsContent(
             primaryLabel = stringResource(Res.string.settings_send_diagnostics_confirm_action),
             onPrimary = { onIntent(SettingsIntent.ConfirmSendDiagnostics) },
             cancelLabel = stringResource(Res.string.settings_delete_account_cancel),
-            isLoading = state.isSendingDiagnostics,
+            loadingAction = PapDialogAction.Primary.takeIf { state.isSendingDiagnostics },
             // The description rides in the SAME dialog as the consent, never as a second step:
             // one surface asks, one surface sends. Deliberately NOT auto-focused — raising the
             // keyboard would cover the very paragraph the user has to read before consenting.
@@ -360,7 +361,12 @@ fun SettingsContent(
             onPrimary = { onIntent(SettingsIntent.ConfirmDeleteAccount) },
             cancelLabel = stringResource(Res.string.settings_delete_account_cancel),
             accent = PapDialogAccent.Destructive,
-            isLoading = state.isDeletingAccount,
+            // The dialog stays up with its own spinner until the deletion resolves — same contract
+            // as the vehicle deletion. It used to be dismissed by the VM in the very update that
+            // raised the flag, so this spinner could never run and the one the user saw belonged to
+            // the danger-zone button behind it.
+            // [UI-A-SPINNER-LIVES-IN-THE-BUTTON-THAT-WAS-PRESSED-001]
+            loadingAction = PapDialogAction.Primary.takeIf { state.isDeletingAccount },
         )
     }
 
@@ -1058,6 +1064,13 @@ private fun ThemeModeSwatch(mode: ThemeMode) {
 // Danger zone
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * The entrance to account deletion — it OPENS the confirmation, it does not delete. So it carries
+ * no spinner: the deletion runs behind a modal that never leaves the screen while it does, and the
+ * progress belongs to that dialog's own button. This one used to animate into a spinner, which was
+ * the only one the user could see once the dialog was dismissed too early — a button reporting
+ * work it had not been asked to do. [UI-A-SPINNER-LIVES-IN-THE-BUTTON-THAT-WAS-PRESSED-001]
+ */
 @Composable
 private fun DangerZoneCard(
     deleting: Boolean,
@@ -1084,25 +1097,11 @@ private fun DangerZoneCard(
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = cs.error),
                 border = BorderStroke(PapBorders.medium, cs.error),
             ) {
-                AnimatedContent(
-                    targetState = deleting,
-                    transitionSpec = { fadeIn(PapMotion.fast()) togetherWith fadeOut(PapMotion.fast()) },
-                    label = "delete_account_button",
-                ) { isDeleting ->
-                    if (isDeleting) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
-                            strokeWidth = 2.dp,
-                            color = cs.error,
-                        )
-                    } else {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Rounded.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.size(6.dp))
-                            // Button text → cta, the app's button convention. [TYPO-AUDIT-001]
-                            Text(label, style = PaparcarType.current.cta)
-                        }
-                    }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Rounded.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.size(6.dp))
+                    // Button text → cta, the app's button convention. [TYPO-AUDIT-001]
+                    Text(label, style = PaparcarType.current.cta)
                 }
             }
         }

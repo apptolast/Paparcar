@@ -401,7 +401,7 @@ private fun HomeContent(
                 ?.let { vid -> state.vehicles.firstOrNull { it.id == vid } }
             HomeReleaseDialogHost(
                 visible = showReleaseDialog,
-                isReleasing = state.isReleasingParking,
+                releasingReason = state.releasingReason,
                 sessionId = releaseTargetSessionId,
                 vehicleName = releaseVehicle?.displayName(fallback = "")?.takeIf { it.isNotBlank() },
                 vehicleIsActive = releaseVehicle?.isActive != false,
@@ -925,7 +925,7 @@ private fun HomeCameraEffects(
 @Composable
 private fun HomeReleaseDialogHost(
     visible: Boolean,
-    isReleasing: Boolean,
+    releasingReason: ParkingReleaseReason?,
     sessionId: String?,
     vehicleName: String?,
     vehicleIsActive: Boolean,
@@ -954,8 +954,8 @@ private fun HomeReleaseDialogHost(
             stringResource(Res.string.home_release_dialog_detection_active)
     }
     HomeReleaseDialog(
-        isLoading = isReleasing,
-        onDismiss = { if (!isReleasing) onDismiss() },
+        releasingReason = releasingReason,
+        onDismiss = { if (releasingReason == null) onDismiss() },
         onPublishSpot = { release(ParkingReleaseReason.DEPARTURE_PUBLISHED) },
         onDeleteOnly = { release(ParkingReleaseReason.DEPARTURE_UNPUBLISHED) },
         detectionNote = detectionNote,

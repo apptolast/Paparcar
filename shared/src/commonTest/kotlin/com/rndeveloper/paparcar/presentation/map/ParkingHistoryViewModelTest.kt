@@ -12,7 +12,9 @@ import com.rndeveloper.paparcar.fakes.FakeUserParkingRepository
 import com.rndeveloper.paparcar.fakes.FakeVehicleRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.yield
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -147,6 +149,40 @@ class ParkingHistoryViewModelTest {
             assertIs<ParkingHistoryEffect.Withdrawn>(awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    @Test
+    fun `should_hold_the_withdraw_confirm_until_the_retraction_lands`() = runTest {
+        // [UI-A-SPINNER-LIVES-IN-THE-BUTTON-THAT-WAS-PRESSED-001] The confirm used to dismiss on
+        // tap, so a destructive write ran with nothing on screen saying so and a failure landed as
+        // a snackbar over a screen the user had already left. The id — not a flag — is what the
+        // dialog reads: this screen steps between parkings, and "a withdrawal is running" would let
+        // the spinner follow the user onto a different one.
+        // StandardTestDispatcher so there IS an in-flight window to look at.
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        val vm = buildVm(sessions = listOf(sessionAt("s1", 1_000L), sessionAt("s2", 2_000L)))
+        vm.handleIntent(ParkingHistoryIntent.SetFocusedSession("s1"))
+        advanceUntilIdle()
+
+        vm.handleIntent(ParkingHistoryIntent.WithdrawParking("s1"))
+
+        assertEquals("s1", vm.state.value.withdrawingSessionId)
+        assertTrue(vm.state.value.isWithdrawingFocused)
+
+        advanceUntilIdle()
+        assertEquals(null, vm.state.value.withdrawingSessionId)
+    }
+
+    @Test
+    fun `should_not_claim_the_focused_parking_is_being_withdrawn_when_another_one_is`() = runTest {
+        // The stepper can move while the write runs; the spinner belongs to the parking that was
+        // confirmed, not to whatever is on screen now.
+        val state = ParkingHistoryState(
+            allSessions = listOf(sessionAt("s1", 1_000L), sessionAt("s2", 2_000L)),
+            focusedSessionId = "s2",
+            withdrawingSessionId = "s1",
+        )
+        assertFalse(state.isWithdrawingFocused)
     }
 
     @Test
