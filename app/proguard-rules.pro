@@ -57,10 +57,6 @@
 -dontwarn com.google.firebase.**
 -dontwarn com.google.android.gms.**
 
-# GeoFire — used by location proximity queries.
--keep class com.firebase.geofire.** { *; }
--dontwarn com.firebase.geofire.**
-
 # ─────────────────────────────────────────────────────────────────────────────
 # WorkManager — workers are instantiated via reflection by name.
 # ─────────────────────────────────────────────────────────────────────────────

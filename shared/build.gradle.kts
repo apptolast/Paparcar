@@ -197,9 +197,6 @@ kotlin {
             // DataStore Preferences
             api(libs.androidx.datastore.preferences)
 
-            // GeoFirestore — proximity queries via geohash
-            implementation(libs.geofire.android)
-
             // Engine Ktor (OkHttp) para el fetcher de red de Coil en Android.
             implementation(libs.ktor.client.okhttp)
         }
