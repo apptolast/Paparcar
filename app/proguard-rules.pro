@@ -54,9 +54,18 @@
 # [R8-GITLIVE-NEEDS-ITS-SERIALIZERS-NOT-ITS-WHOLE-PACKAGE-001]
 -dontwarn dev.gitlive.firebase.**
 
-# Google Firebase native (Crashlytics, Firestore, Auth, GMS) — keep public API.
--keep class com.google.firebase.** { *; }
--keep class com.google.android.gms.** { *; }
+# Firebase nativo (Crashlytics, Firestore, Auth, Analytics).
+# ⛔ NO lleva `-keep`. Su único punto de entrada reflexivo es el `ComponentRegistrar`, y lo cubre la
+# consumer rule de `firebase-components`. El riesgo clásico —el mapeo POJO de Firestore vía
+# `toObject()` / `@PropertyName` / `.data<T>()`— no aplica: leemos campo a campo con `get<T?>()` de
+# GitLive (ver `FirebaseDataSourceImpl`). [R8-GOOGLE-SHIPS-ITS-OWN-KEEP-RULES-001]
+#
+# Google Play services (ubicación, mapas, auth, billing, measurement).
+# ⛔ Tampoco lleva `-keep`, y Google lo desaconseja explícitamente: sus SDK publican consumer rules
+# —23 artefactos en este proyecto— y `play-services-basement` cubre por sí sola todo lo reflexivo
+# que hay: `ReflectedParcelable`, el `CREATOR` de Parcelable, `@androidx.annotation.Keep`,
+# `@KeepName` y `@DynamiteApi`. Anclar el paquete no añadía seguridad: le quitaba el shrinking a
+# 4.202 clases. [R8-GOOGLE-SHIPS-ITS-OWN-KEEP-RULES-001]
 -dontwarn com.google.firebase.**
 -dontwarn com.google.android.gms.**
 
