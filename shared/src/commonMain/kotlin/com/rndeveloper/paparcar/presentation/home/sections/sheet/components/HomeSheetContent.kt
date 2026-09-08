@@ -329,6 +329,9 @@ private fun LazyListScope.vehiclesSection(
                 card = card,
                 isDriving = card.isDriving(),
                 isCandidate = card.isDriving() && isCandidatePhase,
+                // Already null unless a trip is live, so the card reads it only when it applies.
+                // [UI-A-LIVE-TRIP-NAMES-ITS-PLACE-001]
+                drivingPlace = slice.drivingPlace,
                 userLocation = userLocation,
                 onClick = cardClick(card),
                 modifier = Modifier.padding(horizontal = 16.dp),
@@ -349,6 +352,9 @@ private fun LazyListScope.vehiclesSection(
                         card = card,
                         isDriving = card.isDriving(),
                         isCandidate = card.isDriving() && isCandidatePhase,
+                        // One trip at a time, and the chip only reads it while it IS that trip.
+                        // [UI-A-LIVE-TRIP-NAMES-ITS-PLACE-001]
+                        drivingPlace = slice.drivingPlace,
                         onClick = onCardClick,
                     )
                 }

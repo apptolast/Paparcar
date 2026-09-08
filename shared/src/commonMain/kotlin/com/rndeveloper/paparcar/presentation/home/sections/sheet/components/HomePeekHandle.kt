@@ -207,6 +207,10 @@ fun HomePeekHandle(
                         drivingMeta = slice.drivingMeta,
                         drivingVehicle = slice.drivingMeta?.let { m -> slice.vehicles.firstOrNull { it.id == m.vehicleId } },
                         isAwaitingAnswer = slice.isAwaitingAnswer, // [DET-ASK-STATE-001]
+                        // Two subjects, two sources: the live trip names its own place, the zone
+                        // header names the camera's. [UI-A-LIVE-TRIP-NAMES-ITS-PLACE-001]
+                        drivingPlace = slice.drivingPlace,
+                        drivingSecondaryLine = slice.drivingSecondaryLine,
                         cameraInfo = slice.cameraAddressAndPlace,
                         userGpsPoint = slice.userGpsPoint,
                         freeCount = slice.freeCount,

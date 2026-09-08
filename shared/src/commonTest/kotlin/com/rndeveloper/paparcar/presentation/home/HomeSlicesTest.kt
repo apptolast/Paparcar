@@ -1,7 +1,12 @@
 package com.rndeveloper.paparcar.presentation.home
 
+import com.rndeveloper.paparcar.domain.detection.DetectionPhase
 import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
+import com.rndeveloper.paparcar.domain.model.AddressAndPlace
+import com.rndeveloper.paparcar.domain.model.AddressInfo
 import com.rndeveloper.paparcar.domain.model.GpsPoint
+import com.rndeveloper.paparcar.domain.model.PlaceCategory
+import com.rndeveloper.paparcar.domain.model.PlaceInfo
 import com.rndeveloper.paparcar.domain.model.Spot
 import com.rndeveloper.paparcar.domain.model.SpotStatus
 import com.rndeveloper.paparcar.domain.model.UserParking
@@ -694,5 +699,81 @@ class HomeSlicesTest {
             slice.firstStepsCue,
             "a new step is new to teach — that is exactly when the sheet opens again",
         )
+    }
+
+    // ── A live trip names its place ───────────────────────────────────────────
+    // [UI-A-LIVE-TRIP-NAMES-ITS-PLACE-001]
+
+    private fun address(street: String?, city: String? = "Madrid", place: String? = null) =
+        AddressAndPlace(
+            address = AddressInfo(street = street, city = city, region = "Madrid", country = "España"),
+            placeInfo = place?.let { PlaceInfo(name = it, category = PlaceCategory.OTHER) },
+        )
+
+    private fun driving(state: HomeState) = state.copy(
+        drivingMeta = DrivingMeta(vehicleId = "veh-A", phase = DetectionPhase.Driving),
+    )
+
+    @Test
+    fun should_not_name_a_place_when_no_trip_is_live() {
+        // The field costs nothing outside a drive — which is what keeps the browse list from
+        // re-emitting every time the user's own geocode lands.
+        val state = HomeState(userAddressAndPlace = address(street = "Gran Vía 28"))
+
+        assertNull(state.toBrowseListSlice().drivingPlace)
+        assertNull(state.toPeekSlice().drivingPlace)
+        assertNull(state.toPeekSlice().drivingSecondaryLine)
+    }
+
+    @Test
+    fun should_name_the_trip_from_the_cars_own_geocode_and_never_from_the_camera() {
+        // The bug this closes: with the camera panned away, the peek used to name the CAMERA's
+        // street and put the car's name next to it. Subject decides. [UI-SHEET-004]
+        val state = driving(
+            HomeState(
+                userAddressAndPlace = address(street = "Gran Vía 28"),
+                cameraAddressAndPlace = address(street = "Calle de Alcalá 100", city = "Barcelona"),
+            ),
+        )
+
+        assertEquals("Gran Vía 28", state.toBrowseListSlice().drivingPlace?.line)
+        assertEquals("Gran Vía 28", state.toPeekSlice().drivingPlace?.line)
+    }
+
+    @Test
+    fun should_prefer_the_place_name_over_the_street_and_keep_the_street_underneath() {
+        val state = driving(HomeState(userAddressAndPlace = address(street = "Gran Vía 28", place = "El Corte Inglés")))
+        val peek = state.toPeekSlice()
+
+        assertEquals("El Corte Inglés", peek.drivingPlace?.line)
+        assertEquals("Gran Vía 28", peek.drivingSecondaryLine, "the street explains the POI, it does not repeat it")
+    }
+
+    @Test
+    fun should_stay_silent_when_the_geocode_says_nothing_usable() {
+        // No place → the chip and the card say just "En ruta". A footer that spends its only line
+        // announcing that we do not know is worse than one that says nothing. Note every field is
+        // null: [AddressInfo.displayLine] falls back street → city → region → country, so a geocode
+        // that only resolved the province still HAS a line, and saying "Madrid" while driving
+        // through it is true.
+        val empty = AddressAndPlace(
+            address = AddressInfo(street = null, city = null, region = null, country = null),
+            placeInfo = null,
+        )
+        val state = driving(HomeState(userAddressAndPlace = empty))
+
+        assertNull(state.toBrowseListSlice().drivingPlace)
+        assertNull(state.toPeekSlice().drivingPlace)
+    }
+
+    @Test
+    fun should_not_re_emit_the_list_slice_while_the_street_stays_the_same() {
+        // The whole reason the slice carries a RESOLVED line instead of the AddressAndPlace: driving
+        // down one avenue re-geocodes every ~11 m, and every one of those would otherwise recompose
+        // the vehicles strip, the spots feed and the detection surface.
+        val first = driving(HomeState(userAddressAndPlace = address(street = "Gran Vía 28", city = "Madrid")))
+        val second = driving(HomeState(userAddressAndPlace = address(street = "Gran Vía 28", city = "MADRID")))
+
+        assertEquals(first.toBrowseListSlice(), second.toBrowseListSlice())
     }
 }

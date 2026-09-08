@@ -20,6 +20,9 @@ import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 import com.rndeveloper.paparcar.domain.onboarding.FirstStepsProgress
 import com.rndeveloper.paparcar.presentation.home.model.DetectionUiState
 import com.rndeveloper.paparcar.presentation.home.model.ParkedWatchBadge
+import com.rndeveloper.paparcar.presentation.util.PlaceLine
+import com.rndeveloper.paparcar.presentation.util.secondaryPlaceLine
+import com.rndeveloper.paparcar.presentation.util.toPlaceLine
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HomeSlices — per-section projections of [HomeState]. [HOME-ATOMIZE-001 F1]
@@ -131,6 +134,16 @@ data class HomePeekSlice(
      *  in its phase eyebrow, which is the peek's existing voice for the live trip. */
     val isAwaitingAnswer: Boolean,
     val cameraAddressAndPlace: AddressAndPlace?,
+    /**
+     * Where the car being driven RIGHT NOW is — its own geocode, null whenever no trip is live.
+     * NOT the camera: the camera is the subject of the ZONE header only. A moving car that borrows
+     * its address from wherever the map happens to be looking is the driving twin of the bug
+     * [UI-SHEET-004] already closed for the parked one ("one car parked in two places") — it just
+     * hides until you pan the map mid-trip. [UI-A-LIVE-TRIP-NAMES-ITS-PLACE-001]
+     */
+    val drivingPlace: PlaceLine?,
+    /** Street/city under [drivingPlace], same subject. Null when there is no trip or nothing to add. */
+    val drivingSecondaryLine: String?,
     val isCameraMoving: Boolean,
     val isCameraGeocoding: Boolean,
     // Reporting form
@@ -236,6 +249,13 @@ data class HomeBrowseListSlice(
     val vehicleCards: List<VehicleCard>,
     val userGpsPoint: GpsPoint?,
     val drivingMeta: DrivingMeta?,
+    /**
+     * Where the car being driven RIGHT NOW is, for the vehicle chip / card footer. Same subject and
+     * same resolver as the peek's [HomePeekSlice.drivingPlace], so the two surfaces cannot name two
+     * streets for one trip. Null whenever no trip is live — which is what keeps this list's slice
+     * from re-emitting outside a drive. [UI-A-LIVE-TRIP-NAMES-ITS-PLACE-001]
+     */
+    val drivingPlace: PlaceLine?,
     /** [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001] Where the new user stands in the guided
      *  checklist. Already resolved by the pure projection — the sheet renders it, it does not decide
      *  it, and it is also what tells the detection surface to stand down on the cold start. */
@@ -350,6 +370,11 @@ fun HomeState.toPeekSlice(): HomePeekSlice {
         drivingMeta = drivingMeta,
         isAwaitingAnswer = promptWindow != null,
         cameraAddressAndPlace = cameraAddressAndPlace,
+        // Resolved from the phone's OWN geocode — while a trip runs the phone is in the car, the
+        // same premise the whole detector stands on. Only while it runs: no trip, no field.
+        // [UI-A-LIVE-TRIP-NAMES-ITS-PLACE-001]
+        drivingPlace = drivingMeta?.let { userAddressAndPlace.toPlaceLine() },
+        drivingSecondaryLine = drivingMeta?.let { userAddressAndPlace.secondaryPlaceLine() },
         isCameraMoving = isCameraMoving,
         isCameraGeocoding = isCameraGeocoding,
         isReporting = isReporting,
@@ -386,6 +411,8 @@ fun HomeState.toBrowseListSlice() = HomeBrowseListSlice(
     },
     userGpsPoint = userGpsPoint,
     drivingMeta = drivingMeta,
+    // Same subject, same resolver as the peek's — one trip, one street. [UI-A-LIVE-TRIP-NAMES-ITS-PLACE-001]
+    drivingPlace = drivingMeta?.let { userAddressAndPlace.toPlaceLine() },
     firstSteps = firstSteps,
 )
 

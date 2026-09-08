@@ -27,9 +27,11 @@ import com.rndeveloper.paparcar.presentation.home.DrivingMeta
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheet
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetEyebrowTone
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetLead
+import com.rndeveloper.paparcar.presentation.util.PlaceLine
 import com.rndeveloper.paparcar.presentation.util.compactRelativeTimeText
 import com.rndeveloper.paparcar.presentation.util.distanceMeters
 import com.rndeveloper.paparcar.presentation.util.distanceString
+import com.rndeveloper.paparcar.presentation.util.placeLineText
 import com.rndeveloper.paparcar.ui.components.rememberDrivingStatePulse
 import com.rndeveloper.paparcar.ui.theme.VehicleWatch
 import com.rndeveloper.paparcar.ui.theme.vehicleIdentityColor
@@ -62,6 +64,8 @@ private const val BROWSE_ROW_HORIZONTAL_PAD_DP = 16
 /**
  * @param parkingVehicle the vehicle of [parking] (resolved by the orchestrator).
  * @param drivingVehicle the vehicle of [drivingMeta] (resolved by the orchestrator).
+ * @param drivingPlace where the live trip IS — the car's own geocode, not the camera's.
+ * @param drivingSecondaryLine the street/city under [drivingPlace].
  */
 @Composable
 internal fun BrowsePeek(
@@ -69,6 +73,8 @@ internal fun BrowsePeek(
     parkingVehicle: Vehicle?,
     drivingMeta: DrivingMeta?,
     drivingVehicle: Vehicle?,
+    drivingPlace: PlaceLine?,
+    drivingSecondaryLine: String?,
     /** [DET-ASK-STATE-001] A "did you park?" question is open — the phase eyebrow asks it. */
     isAwaitingAnswer: Boolean,
     cameraInfo: AddressAndPlace?,
@@ -101,15 +107,15 @@ internal fun BrowsePeek(
                 else -> Res.string.home_det_monitoring
             },
         )
-        val title = cameraInfo?.placeInfo?.name
-            ?: cameraInfo?.displayLine?.takeIf { it.isNotBlank() }
-            ?: stringResource(Res.string.home_address_unknown)
-        val secondaryLine = if (cameraInfo?.placeInfo != null) {
-            cameraInfo.address.displayLine?.takeIf { it != cameraInfo.placeInfo.name }
-        } else {
-            listOfNotNull(cameraInfo?.address?.city, cameraInfo?.address?.region)
-                .joinToString(", ").takeIf { it.isNotEmpty() }
-        }
+        // [UI-A-LIVE-TRIP-NAMES-ITS-PLACE-001] The subject here is the CAR, so the address comes
+        // from the car — its own geocode, resolved by the slice. It used to come from the camera,
+        // which reads right only while the camera happens to be following the trip: pan the map
+        // mid-drive and this header calmly told you your car was on the street you were looking at,
+        // with the car's name next to it. That is the driving twin of the "one car parked in two
+        // places" bug [UI-SHEET-004] already fixed for the parked branch below. The camera keeps
+        // exactly the subject it owns: the zone header at the bottom of this file.
+        val title = placeLineText(drivingPlace) ?: stringResource(Res.string.home_address_unknown)
+        val secondaryLine = drivingSecondaryLine
         val identity = vehicleIdentityColor(drivingVehicle?.monitoringStatus()?.watch() ?: VehicleWatch.Off)
         PapSheet(
             lead = PapSheetLead.Vehicle(

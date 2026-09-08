@@ -34,6 +34,8 @@ import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.Shee
 import com.rndeveloper.paparcar.domain.model.SpotFreshness
 import com.rndeveloper.paparcar.presentation.util.distanceString
 import com.rndeveloper.paparcar.presentation.util.driveTimeString
+import com.rndeveloper.paparcar.presentation.util.placeLineText
+import com.rndeveloper.paparcar.presentation.util.toPlaceLine
 import com.rndeveloper.paparcar.presentation.util.walkTimeString
 import com.rndeveloper.paparcar.ui.components.PapSectionHeader
 import com.rndeveloper.paparcar.ui.components.ReliabilityMeter
@@ -43,7 +45,6 @@ import kotlin.math.roundToInt
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_address_unknown
-import paparcar.composeapp.generated.resources.location_approximate_near
 import paparcar.composeapp.generated.resources.home_peek_parking_approximate
 import paparcar.composeapp.generated.resources.home_peek_spot_fresh
 import paparcar.composeapp.generated.resources.home_peek_spot_stale
@@ -273,12 +274,13 @@ internal fun cameraTitleWhileSettling(info: AddressAndPlace?, isSettling: Boolea
         cameraTitleOrFallback(info)
     }
 
-/** POI name > address line, wrapped in "Near X" when the answer is approximate. */
+/**
+ * POI name > address line, wrapped in "Near X" when the answer is approximate.
+ *
+ * Delegates to the one resolver every place-naming surface shares — the peek titles here, and the
+ * vehicle chip / card footers, which name the SAME point during a trip. This used to be its own
+ * copy of the fallback chain, which is how two surfaces get to disagree about one place.
+ * [UI-A-LIVE-TRIP-NAMES-ITS-PLACE-001]
+ */
 @Composable
-private fun cameraLine(info: AddressAndPlace?): String? {
-    if (info == null) return null
-    val line = info.placeInfo?.name?.takeIf { it.isNotBlank() }
-        ?: info.address.displayLine?.takeIf { it.isNotBlank() }
-        ?: return null
-    return if (info.approximate) stringResource(Res.string.location_approximate_near, line) else line
-}
+private fun cameraLine(info: AddressAndPlace?): String? = placeLineText(info.toPlaceLine())

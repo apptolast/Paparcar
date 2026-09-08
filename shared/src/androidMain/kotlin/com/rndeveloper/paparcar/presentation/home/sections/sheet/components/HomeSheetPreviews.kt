@@ -24,6 +24,7 @@ import com.rndeveloper.paparcar.presentation.home.VehicleCard
 import com.rndeveloper.paparcar.presentation.home.toBrowseListSlice
 import com.rndeveloper.paparcar.presentation.home.toPeekSlice
 import com.rndeveloper.paparcar.presentation.preview.FakeData
+import com.rndeveloper.paparcar.presentation.util.PlaceLine
 import com.rndeveloper.paparcar.ui.components.PapSectionHeader
 import com.rndeveloper.paparcar.ui.theme.PaparcarTheme
 import kotlin.time.Clock
@@ -272,6 +273,7 @@ private fun HomeVehicleCardDrivingLightPreview() {
             HomeVehicleCard(
                 card = VehicleCard(vehicle = FakeData.vehicleSedan, session = null),
                 isDriving = true,
+                drivingPlace = PREVIEW_DRIVING_PLACE,
                 onClick = {},
             )
         }
@@ -325,6 +327,7 @@ private fun HomeVehicleChipStatesLightPreview() {
             HomeVehicleChip(
                 card = VehicleCard(vehicle = FakeData.vehicleSedan, session = null),
                 isDriving = true,
+                drivingPlace = PREVIEW_DRIVING_PLACE,
                 onClick = {},
             )
         }
@@ -332,9 +335,10 @@ private fun HomeVehicleChipStatesLightPreview() {
 }
 
 // En ruta en las DOS anatomías a la vez (card de 1 coche + chip compacto), en oscuro: el pie deja
-// de enseñar el pin de aparcado y pinta la ruta que se dibuja sola. El trazo sólo se mueve en
-// preview interactiva o en device; el render estático deja ver el fantasma + la cabeza en el
-// origen. [UI-CHIP-ROUTE-GLYPH-001]
+// de enseñar el pin de aparcado y pinta la ruta que se dibuja sola, ahora sobre DÓNDE va el coche.
+// El trazo sólo se mueve en preview interactiva o en device; el render estático deja ver el
+// fantasma + la cabeza en el origen. El tercer chip va sin dirección a propósito: es el viaje al
+// que aún no le ha llegado el geocode. [UI-CHIP-ROUTE-GLYPH-001] [UI-A-LIVE-TRIP-NAMES-ITS-PLACE-001]
 @Preview(name = "A — En ruta: card + chip con glifo de ruta (oscuro)", showBackground = true,
     uiMode = Configuration.UI_MODE_NIGHT_YES, widthDp = 420)
 @Composable
@@ -347,15 +351,18 @@ private fun HomeDrivingRouteGlyphDarkPreview() {
             HomeVehicleCard(
                 card = VehicleCard(vehicle = FakeData.vehicleSedan, session = null),
                 isDriving = true,
+                drivingPlace = PREVIEW_DRIVING_PLACE,
                 onClick = {},
             )
             Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
                 HomeVehicleChip(
                     card = VehicleCard(vehicle = FakeData.vehicleCorolla, session = null),
                     isDriving = true,
+                    drivingPlace = PREVIEW_DRIVING_PLACE,
                     onClick = {},
                 )
-                // Candidate phase: same glyph, the words swap to "Aparcando…".
+                // Candidate phase: same glyph, the words swap to "Aparcando…". No geocode yet →
+                // the foot says just the phase, never a filler line.
                 HomeVehicleChip(
                     card = VehicleCard(vehicle = FakeData.vehicleSedan, session = null),
                     isDriving = true,
@@ -366,6 +373,9 @@ private fun HomeDrivingRouteGlyphDarkPreview() {
         }
     }
 }
+
+/** Where the previewed trip is — what the slice resolves from the car's own geocode on device. */
+private val PREVIEW_DRIVING_PLACE = PlaceLine("Gran Vía 28")
 
 // ─── A — PapSectionHeader ─────────────────────────────────────────────────────
 

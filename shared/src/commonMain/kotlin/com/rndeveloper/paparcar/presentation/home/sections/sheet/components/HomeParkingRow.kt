@@ -28,16 +28,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.ui.components.PapDivider
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.displayName
 import com.rndeveloper.paparcar.domain.model.monitoringStatus
 import com.rndeveloper.paparcar.presentation.home.VehicleCard
+import com.rndeveloper.paparcar.presentation.util.PlaceLine
 import com.rndeveloper.paparcar.presentation.util.distanceMeters
 import com.rndeveloper.paparcar.presentation.util.distanceString
+import com.rndeveloper.paparcar.presentation.util.placeLineText
 import com.rndeveloper.paparcar.presentation.util.relativeTimeText
 import com.rndeveloper.paparcar.ui.components.DrivingRadarHalo
 import com.rndeveloper.paparcar.ui.components.DrivingRouteGlyph
@@ -69,10 +73,11 @@ import paparcar.composeapp.generated.resources.location_approximate_near
  * (car glyph + **watch glyph + name in the identity colour** — green = active detection, blue = BT,
  * grey = unwatched) over a parking row. The parking row is the actionable fact: **parked →
  * location icon + address** (max 2 lines), **not marked → the "not marked" glyph**, **driving → a
- * self-drawing route glyph + the pulsing neutral state words**. No method label, no corner badge.
- * The border carries the same identity colour, dimmed. Tapping transforms the sheet to the
- * vehicle's state.
+ * self-drawing route glyph + the pulsing state words AND where the car is right now**. No method
+ * label, no corner badge. The border carries the same identity colour, dimmed. Tapping transforms
+ * the sheet to the vehicle's state.
  * [HOME-VEH-REFINE-001] [HOME-CARDS-001] [UI-COLOR-DOCTRINE-001] [UI-CHIP-ROUTE-GLYPH-001]
+ * [UI-A-LIVE-TRIP-NAMES-ITS-PLACE-001]
  */
 @Composable
 internal fun HomeVehicleChip(
@@ -82,6 +87,9 @@ internal fun HomeVehicleChip(
     isDriving: Boolean = false,
     // Candidate phase: the trip stopped and the user is walking away — a distinct "parking…" hint.
     isCandidate: Boolean = false,
+    /** Where the trip is right now, resolved by the slice from the car's OWN geocode. Only read
+     *  while [isDriving]; null until the first geocode lands. [UI-A-LIVE-TRIP-NAMES-ITS-PLACE-001] */
+    drivingPlace: PlaceLine? = null,
 ) {
     val vehicle = card.vehicle
     val session = card.session
@@ -150,14 +158,33 @@ internal fun HomeVehicleChip(
                     // breathing pulse, not a hue. [UI-CHIP-ROUTE-GLYPH-001] [UI-COLOR-DOCTRINE-001]
                     isDriving -> {
                         DrivingRouteGlyph(color = accent, glyphSize = FOOT_ICON_DP.dp)
+                        val phase = stringResource(
+                            if (isCandidate) Res.string.home_vehicle_chip_status_candidate
+                            else Res.string.home_det_monitoring,
+                        )
+                        // Same shape as the parked line ("place · time"), so the foot keeps ONE
+                        // anatomy across its three branches. The phase word breathes; the place
+                        // does NOT — a fact does not pulse — which is why the place carries its own
+                        // opaque span over the pulsing base colour. Weight can't do that job here:
+                        // it belongs to the role, not to the call site. [UI-COLOR-DOCTRINE-001]
+                        // [UI-TYPE-TWO-VOICES-ONE-ROW-001] [UI-A-LIVE-TRIP-NAMES-ITS-PLACE-001]
+                        val place = placeLineText(drivingPlace)
                         Text(
-                            text = stringResource(
-                                if (isCandidate) Res.string.home_vehicle_chip_status_candidate
-                                else Res.string.home_det_monitoring,
-                            ),
-                            style = PaparcarType.current.label,
+                            text = buildAnnotatedString {
+                                append(phase)
+                                if (place != null) {
+                                    withStyle(SpanStyle(color = cs.onSurface)) {
+                                        append(FOOT_SEPARATOR)
+                                        append(place)
+                                    }
+                                }
+                            },
+                            // Same voice as the other two branches — the foot is one line of fact,
+                            // whatever the state. [UI-TYPE-TWO-VOICES-ONE-ROW-001]
+                            style = PaparcarType.current.caption,
                             color = cs.onSurface.copy(alpha = rememberDrivingStatePulse()),
-                            maxLines = 1,
+                            maxLines = FOOT_MAX_LINES,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     }
                     session != null -> {
@@ -177,7 +204,7 @@ internal fun HomeVehicleChip(
                             // [CARD-ONE-BADGE-001]
                             style = PaparcarType.current.caption,
                             color = cs.onSurface,
-                            maxLines = 2,
+                            maxLines = FOOT_MAX_LINES,
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
@@ -200,8 +227,9 @@ internal fun HomeVehicleChip(
  * Full-width single-vehicle card (exactly one registered vehicle). Roomier identity — big glyph,
  * name, a **text status pin + size chip** — over a footer that carries the **parked address**
  * (location icon + "Parked at …" + relative time / distance + chevron), the **self-drawing route
- * glyph** while a trip runs, or a mark-parking CTA when the vehicle has no active session.
- * [HOME-VEH-REFINE-001] [HOME-CARDS-001] [UI-CHIP-ROUTE-GLYPH-001]
+ * glyph over where the trip is right now** while a trip runs, or a mark-parking CTA when the
+ * vehicle has no active session.
+ * [HOME-VEH-REFINE-001] [HOME-CARDS-001] [UI-CHIP-ROUTE-GLYPH-001] [UI-A-LIVE-TRIP-NAMES-ITS-PLACE-001]
  */
 @Composable
 internal fun HomeVehicleCard(
@@ -212,6 +240,9 @@ internal fun HomeVehicleCard(
     isCandidate: Boolean = false,
     // User position, to show the distance to the parked car ("2 h ago · 180 m away").
     userLocation: Pair<Double, Double>? = null,
+    /** Where the trip is right now — same subject and same resolver as the chip's and the peek's.
+     *  Only read while [isDriving]. [UI-A-LIVE-TRIP-NAMES-ITS-PLACE-001] */
+    drivingPlace: PlaceLine? = null,
 ) {
     val vehicle = card.vehicle
     val session = card.session
@@ -279,15 +310,32 @@ internal fun HomeVehicleCard(
                 Column(modifier = Modifier.weight(1f)) {
                     when {
                         // Neutral state words with the driving breath. [UI-COLOR-DOCTRINE-001]
-                        isDriving -> Text(
-                            text = stringResource(
-                                if (isCandidate) Res.string.home_vehicle_chip_status_candidate
-                                else Res.string.home_det_monitoring,
-                            ),
-                            style = PaparcarType.current.rowTitle,
-                            color = cs.onSurface.copy(alpha = rememberDrivingStatePulse()),
-                            maxLines = 1,
-                        )
+                        // The card has room for a subline, so the trip fills it with WHERE it is —
+                        // same skeleton as the parked branch below (fact on top, detail under it),
+                        // and the same place the peek is naming one surface above.
+                        // [UI-A-LIVE-TRIP-NAMES-ITS-PLACE-001]
+                        isDriving -> {
+                            Text(
+                                text = stringResource(
+                                    if (isCandidate) Res.string.home_vehicle_chip_status_candidate
+                                    else Res.string.home_det_monitoring,
+                                ),
+                                style = PaparcarType.current.rowTitle,
+                                color = cs.onSurface.copy(alpha = rememberDrivingStatePulse()),
+                                maxLines = 1,
+                            )
+                            // No geocode yet → no subline at all. A card that says "unknown
+                            // address" spends its only spare line saying nothing.
+                            placeLineText(drivingPlace)?.let { place ->
+                                Text(
+                                    text = place,
+                                    style = PaparcarType.current.caption,
+                                    color = cs.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
                         session != null -> {
                             // The wide card has room, so the address reads as LECTURA (rowTitle) for
                             // legibility — condensed is reserved for the tight compact chip. [UI-METRICS-POLISH-001]
@@ -352,8 +400,8 @@ private fun parkedPlaceLine(session: UserParking): String? {
 private fun parkedAddressLine(session: UserParking): String {
     val time = relativeTimeText(session.location.timestamp)
     val name = parkedPlaceLine(session)
-    return if (name != null) "$name · $time"
-    else "${stringResource(Res.string.home_peek_parked_label)} · $time"
+    return if (name != null) "$name$FOOT_SEPARATOR$time"
+    else "${stringResource(Res.string.home_peek_parked_label)}$FOOT_SEPARATOR$time"
 }
 
 /** Single-card footer title: "Parked at {address}" — or "Near {address}" for an approximate
@@ -391,6 +439,10 @@ private const val ICON_BOX_DP = 32
 private const val FOOT_MIN_HEIGHT_DP = 34
 private const val FOOT_GAP_DP = 7
 private const val FOOT_ICON_DP = 15
+// The foot's three branches share one line shape ("fact · detail") and one wrap budget, so a chip
+// in a trip and a chip parked next to it stay the same object. [UI-A-LIVE-TRIP-NAMES-ITS-PLACE-001]
+private const val FOOT_SEPARATOR = " · "
+private const val FOOT_MAX_LINES = 2
 // Full-width single-vehicle card. [HOME-CARDS-001]
 private const val CHEVRON_DP = 22
 private const val CARD_FOOT_ICON_BOX_DP = 34

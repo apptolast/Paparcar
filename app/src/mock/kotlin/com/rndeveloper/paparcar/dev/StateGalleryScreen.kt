@@ -1186,6 +1186,10 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                 peek(
                     HomeState(
                         cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
+                        // El título en ruta sale del coche, no de la cámara: sin esto el peek dice
+                        // "dirección desconocida" aunque la cámara tenga una.
+                        // [UI-A-LIVE-TRIP-NAMES-ITS-PLACE-001]
+                        userAddressAndPlace = FakeData.addressAndPlaceStreet,
                         vehicles = listOf(FakeData.vehicleSedan, FakeData.vehicleCorolla),
                         activeSessions = listOf(FakeData.activeSession.copy(vehicleId = FakeData.vehicleSedan.id)),
                         userGpsPoint = sampleGps,
@@ -1213,6 +1217,26 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             // Driving chip: the monitored vehicle's trip is in progress (drivingPuck.vehicleId == its
             // id, no active session) → chip shows "Conduciendo" + radar halo, floated first. [CHIP-DRIVING-001]
             Variant("Sheet · coche conduciendo (driving)") {
+                sheet(
+                    HomeState(
+                        hasCorePermissions = true,
+                        userGpsPoint = sampleGps,
+                        // En ruta la card rellena su sublínea con DÓNDE va el coche, sacada de su
+                        // propio geocode. [UI-A-LIVE-TRIP-NAMES-ITS-PLACE-001]
+                        userAddressAndPlace = FakeData.addressAndPlaceStreet,
+                        vehicles = listOf(FakeData.vehicleSedan),
+                        nearbySpots = FakeData.nearbySpots,
+                        drivingMeta = com.rndeveloper.paparcar.presentation.home.DrivingMeta(
+                            vehicleId = FakeData.vehicleSedan.id,
+                            phase = com.rndeveloper.paparcar.domain.detection.DetectionPhase.Driving,
+                        ),
+                    ),
+                )
+            },
+            // El caso que no puede romperse: viaje vivo con el geocode aún en vuelo. Ni sublínea de
+            // relleno ni "dirección desconocida" — la card dice "En ruta" y calla.
+            // [UI-A-LIVE-TRIP-NAMES-ITS-PLACE-001]
+            Variant("Sheet · en ruta sin dirección todavía") {
                 sheet(
                     HomeState(
                         hasCorePermissions = true,
@@ -1284,6 +1308,9 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     HomeState(
                         hasCorePermissions = true,
                         userGpsPoint = sampleGps,
+                        // El pie del chip en ruta dice "En ruta · <calle>": la palabra late, la
+                        // calle no. [UI-A-LIVE-TRIP-NAMES-ITS-PLACE-001]
+                        userAddressAndPlace = FakeData.addressAndPlaceStreet,
                         vehicles = listOf(FakeData.vehicleSedan, FakeData.vehicleCorolla),
                         activeSessions = listOf(
                             FakeData.activeSession.copy(vehicleId = FakeData.vehicleSedan.id),
