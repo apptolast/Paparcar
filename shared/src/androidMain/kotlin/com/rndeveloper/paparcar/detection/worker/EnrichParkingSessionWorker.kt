@@ -7,6 +7,7 @@ import androidx.work.OneTimeWorkRequest
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
+import com.rndeveloper.paparcar.domain.detection.DetectionPath
 import com.rndeveloper.paparcar.domain.matching.InferredRoute
 import com.rndeveloper.paparcar.domain.matching.TrailMapMatcher
 import com.rndeveloper.paparcar.domain.model.UserParking
@@ -139,7 +140,7 @@ class EnrichParkingSessionWorker(
      * [ROUTE-GAP-HONEST-001][ROUTE-MANUAL-PIN-INFERRED-001]
      */
     private suspend fun inferPinToPinRoute(session: UserParking): Boolean {
-        if (session.detectionPath !in PIN_TO_PIN_ELIGIBLE_PATHS) return true
+        if (!isPinToPinEligible(session.detectionPath)) return true
         val vehicleId = session.vehicleId ?: return true
         val previous = userParkingRepository.getPreviousSession(vehicleId, session.location.timestamp)
             ?: return true
@@ -197,12 +198,40 @@ class EnrichParkingSessionWorker(
         // outside the trace to snap onto. Mirrors the live fetch margin. [ROUTE-SNAP-001]
         private const val ROADS_BBOX_MARGIN_DEG = 0.004
 
-        // Confirmation PATHs whose routeless pins get the pin-to-pin reconstruction (marked
-        // inferred, user verdict pending): the safety net's reconciled backfill plus the three
-        // user-ground-truth placements. Values mirror [DET-PIN-PROVENANCE-001]'s vocabulary
-        // (SaveManualParkingUseCase / ParkingBackfillWorker own the writes).
-        // [ROUTE-GAP-HONEST-001][ROUTE-MANUAL-PIN-INFERRED-001]
-        private val PIN_TO_PIN_ELIGIBLE_PATHS = setOf("safety_net_backfill", "manual", "user", "nudge")
+        /**
+         * Confirmation PATHs whose routeless pins get the pin-to-pin reconstruction (marked
+         * inferred, user verdict pending): the safety net's reconciled backfill plus the three
+         * user-ground-truth placements.
+         * [ROUTE-GAP-HONEST-001][ROUTE-MANUAL-PIN-INFERRED-001]
+         *
+         * [DET-A-NUDGE-MUST-SAY-WHO-ASKED-001] PARSES the label instead of comparing it against a
+         * hand-kept set of strings. The set was equality-only, so the day `nudge` learned to carry
+         * who asked (`nudge_bt_no_move`), every nudge pin would have dropped silently out of
+         * eligibility and stayed routeless — the failure would have been a missing route nobody
+         * reported, not a crash. `DetectionPath.ofLabel` already fails closed on anything unknown,
+         * and the `when` is exhaustive, so a new path has to be classified rather than defaulted.
+         */
+        internal fun isPinToPinEligible(label: String?): Boolean =
+            when (DetectionPath.ofLabel(label)) {
+                is DetectionPath.SafetyNetBackfill,
+                is DetectionPath.ManualPin,
+                is DetectionPath.UserAnswered,
+                is DetectionPath.Nudge,
+                -> true
+
+                // Deliberately NOT eligible, per the doc above: "bt" (BT drives deserve a MEASURED
+                // route — separate gap), unattended/approximate pins (a guessed route to a guessed
+                // pin stacks doubt on doubt), the measured coordinator paths (they carry a real
+                // route), a user DRAG (the session already has its own route), and an unrecognised
+                // or absent label.
+                is DetectionPath.Bt, is DetectionPath.BtTimeout,
+                is DetectionPath.UnattendedTimeout, is DetectionPath.UnattendedZone,
+                is DetectionPath.ClosedApproximatePin, is DetectionPath.ClosedApproximateZone,
+                is DetectionPath.StepsEgress, is DetectionPath.KinematicEgress,
+                is DetectionPath.VehicleExitWindow, is DetectionPath.UserMovedPin,
+                null,
+                -> false
+            }
 
         // Meters per degree of latitude — scales the pin-to-pin road fetch margin with the hop.
         private const val METERS_PER_DEGREE_LAT = 111_000.0

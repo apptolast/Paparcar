@@ -420,7 +420,7 @@ fun HomeState.toPeekSlice(): HomePeekSlice {
         releasingReason = releasingReason,
         editingParkingId = editingParkingId,
         addingParkingVehicleId = addingParkingVehicleId,
-        addingParkingFromDetectionNudge = addingParkingFromDetectionNudge,
+        addingParkingFromDetectionNudge = addingParkingNudgeSource != null,
     )
 }
 

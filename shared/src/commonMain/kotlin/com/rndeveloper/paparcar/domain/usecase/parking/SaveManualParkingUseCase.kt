@@ -36,11 +36,15 @@ class SaveManualParkingUseCase(
      * @param editingParkingId non-null when MOVING an existing session; [targetVehicleId]
      *   is ignored in that case. [MULTI-PARKING-001]
      * @param targetVehicleId the vehicle a NEW session is created for; null → default vehicle.
-     * @param fromDetectionNudge true when a DETECTION nudge ("Marcar mi plaza" notification /
-     *   sheet row) opened this pin mode: detection nominated the park, the user confirmed it —
-     *   the session keeps detection provenance (`AUTO_DETECTED`, path `nudge`) so the freed spot
-     *   later publishes as auto (2 h TTL) instead of a 15-min manual report.
+     * @param nudgeSource non-null when a DETECTION nudge ("Marcar mi plaza" notification / sheet
+     *   row) opened this pin mode: detection nominated the park, the user confirmed it — the
+     *   session keeps detection provenance (`AUTO_DETECTED`, path `nudge`) so the freed spot later
+     *   publishes as auto (2 h TTL) instead of a 15-min manual report.
      *   [DET-NUDGE-PIN-PROVENANCE-001]
+     *   Its VALUE is which lane asked, and it lands in the path so the pin says who nominated it
+     *   and not merely that somebody did [DET-A-NUDGE-MUST-SAY-WHO-ASKED-001]. Blank is a legitimate
+     *   value — a nudge whose source we no longer hold — and writes the historical bare label.
+     *   Null is the other question entirely: nobody asked, the user placed a pin by hand.
      */
     suspend operator fun invoke(
         lat: Double,
@@ -48,7 +52,7 @@ class SaveManualParkingUseCase(
         accuracy: Float,
         editingParkingId: String? = null,
         targetVehicleId: String? = null,
-        fromDetectionNudge: Boolean = false,
+        nudgeSource: String? = null,
     ): Result<Unit> = save(
         gps = GpsPoint(
             latitude = lat,
@@ -57,8 +61,8 @@ class SaveManualParkingUseCase(
             timestamp = Clock.System.now().toEpochMilliseconds(),
             speed = 0f,
         ),
-        spotType = if (fromDetectionNudge) SpotType.AUTO_DETECTED else SpotType.MANUAL_REPORT,
-        detectionPath = if (fromDetectionNudge) PATH_NUDGE else PATH_MANUAL,
+        spotType = if (nudgeSource != null) SpotType.AUTO_DETECTED else SpotType.MANUAL_REPORT,
+        detectionPath = if (nudgeSource != null) DetectionPath.Nudge(nudgeSource).label else PATH_MANUAL,
         editingParkingId = editingParkingId,
         targetVehicleId = targetVehicleId,
     )
@@ -103,7 +107,9 @@ class SaveManualParkingUseCase(
         // the real question goes through the detection service (ACTION_PARKING_CONFIRMED), which
         // stamps its own path.
         val PATH_MANUAL = DetectionPath.ManualPin.label
-        val PATH_NUDGE = DetectionPath.Nudge.label
+        // [DET-A-NUDGE-MUST-SAY-WHO-ASKED-001] No `PATH_NUDGE` constant any more: the nudge path is
+        // no longer ONE word — it carries who asked — so a constant here would be a second place
+        // spelling a label the type composes. Built from `DetectionPath.Nudge(source)` at the site.
         // The MOVE branch has no path constant here on purpose: it does not build a pin, it hands
         // the id to [UpdateParkingLocationUseCase], which owns the provenance of a drag
         // (`user_moved`). A constant here would be a second place to spell it — the exact defect

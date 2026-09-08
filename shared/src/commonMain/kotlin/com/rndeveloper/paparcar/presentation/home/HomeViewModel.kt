@@ -561,7 +561,14 @@ class HomeViewModel(
                     pinCameraLon = intent.initialGps?.longitude,
                     editingParkingId = intent.editingParkingId,
                     addingParkingVehicleId = intent.targetVehicleId,
-                    addingParkingFromDetectionNudge = intent.fromDetectionNudge,
+                    // [DET-A-NUDGE-MUST-SAY-WHO-ASKED-001] Resolve WHO asked here and once, from the
+                    // pending nudge this VM already observes for the banner — not plumbed through
+                    // the notification intent and the event bus, which would be the same fact
+                    // travelling a second road. Captured at ENTER, not at save: the nudge is cleared
+                    // when a session confirms, and the user may sit in pin mode for minutes.
+                    // Empty string = asked, source unknown (nudge already gone); null = nobody asked.
+                    addingParkingNudgeSource =
+                        if (intent.fromDetectionNudge) pendingParkNudge?.source.orEmpty() else null,
                 )
             }
             is HomeIntent.ExitAddParkingMode -> updateState { clearedModeFields() }
@@ -596,7 +603,7 @@ class HomeViewModel(
                 targetVehicleId = targetVehicleId,
                 // Detection-nudge entry keeps detection provenance on the confirmed pin; only
                 // meaningful on CREATE — a move keeps the session's own type. [DET-NUDGE-PIN-PROVENANCE-001]
-                fromDetectionNudge = current.addingParkingFromDetectionNudge,
+                nudgeSource = current.addingParkingNudgeSource,
             )
                 .onSuccess { updateState { clearedModeFields().copy(savingParkingAsNewSession = null) } }
                 .onFailure {

@@ -477,6 +477,35 @@ class HomeViewModelTest {
         assertEquals("nudge", saved.detectionPath)
     }
 
+    @Test
+    fun `should_stamp_which_lane_asked_when_a_pending_nudge_is_on_record`() = runTest(testDispatcher) {
+        // [DET-A-NUDGE-MUST-SAY-WHO-ASKED-001] The source is resolved HERE, from the pending nudge
+        // this VM already observes for the banner — not plumbed through the notification intent.
+        vehicleRepo.saveVehicle(
+            com.rndeveloper.paparcar.domain.model.Vehicle(
+                id = "v1", userId = "mock_user_001", brand = "Ford", model = "Focus",
+                sizeCategory = com.rndeveloper.paparcar.domain.model.VehicleSize.MEDIUM_SUV,
+                vehicleType = com.rndeveloper.paparcar.domain.model.VehicleType.CAR, isActive = true,
+            ),
+        )
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        prefs.setPendingParkNudge(
+            com.rndeveloper.paparcar.domain.detection.PendingParkNudge(
+                createdAtMs = 1L, source = "bt_no_move", vehicleId = "v1",
+            ),
+        )
+        advanceUntilIdle()
+
+        vm.handleIntent(HomeIntent.EnterAddParkingMode(initialGps = location, fromDetectionNudge = true))
+        vm.handleIntent(HomeIntent.ConfirmAddParking())
+        advanceUntilIdle()
+
+        val saved = parkingRepo.observeActiveSessions().first().single()
+        assertEquals("nudge_bt_no_move", saved.detectionPath)
+        assertEquals(SpotType.AUTO_DETECTED, saved.spotType)
+    }
+
     // ── The DRAG is the pin ───────────────────────────────────────────────────
     // Every test above confirms straight after entering the mode, so they all pass with a pin that
     // never moved — the whole "user drags the map, THAT is the place" path was untested.

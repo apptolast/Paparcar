@@ -62,7 +62,7 @@ internal fun HomeState.clearedModeFields(): HomeState = copy(
     editingZoneId = null,
     editingParkingId = null,
     addingParkingVehicleId = null,
-    addingParkingFromDetectionNudge = false,
+    addingParkingNudgeSource = null,
 )
 
 /**

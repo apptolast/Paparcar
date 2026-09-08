@@ -255,24 +255,56 @@ sealed interface DetectionPath {
         override val mayBeWithdrawnByTheApp = false
     }
 
-    /** The user answered a nudge notification. */
-    data object Nudge : DetectionPath {
-        override val label = "nudge"
+    /**
+     * The user answered a nudge notification — and [askedBy] says WHICH lane asked.
+     * [DET-A-NUDGE-MUST-SAY-WHO-ASKED-001]
+     *
+     * The hand is the user's either way; what the source adds is the other half of the question a
+     * pin has to answer, *who nominated this park*. Every ask path already knows it and persists it
+     * (`PendingParkNudge.source`), and it died in the last step: the confirmed pin said `nudge` and
+     * `armEvidence = null`, so a BT ask and a coordinator ask were the same word. Measured 08-09-2026
+     * on the live corpus: one account with a paired car, 12 sessions in two days, **6 of them
+     * `nudge`**, and no way to attribute a single one.
+     *
+     * Composes exactly like [UnattendedZone], for the same reason and with the same parse — a bare
+     * `nudge` is not a different KIND of pin, it is this one with the source unknown, which is what
+     * every pin written before this ticket is. `askedBy == null` keeps the historical label, so the
+     * pins already in Firestore keep resolving.
+     *
+     * ⛔ Not `armEvidence`. That column is the closed vocabulary of an ARM ([ArmLabel]), whose words
+     * answer two doctrine questions about what a session may assume; a nudge answer has no arm at
+     * all — the user is the evidence. Writing a lane name there would have been a word the type
+     * cannot parse, in the one place the codebase forbids hand-kept label strings.
+     */
+    data class Nudge(val askedBy: String? = null) : DetectionPath {
+        override val label = if (askedBy.isNullOrBlank()) BARE_LABEL else LABEL_PREFIX + askedBy
         override val source = ParkingDetectionSource.Manual
         override fun confirmReliability(config: ParkingDetectionConfig): Float? = null
         /** `false` - the hand was the user's. */
         override val mayBeWithdrawnByTheApp = false
+
+        companion object {
+            const val BARE_LABEL = "nudge"
+            const val LABEL_PREFIX = "nudge_"
+        }
     }
 
     companion object {
 
-        /** Every path with a fixed label. [UnattendedZone] is absent on purpose — it composes. */
+        /**
+         * Every path with a fixed label. [UnattendedZone] is absent on purpose — it composes.
+         *
+         * [Nudge] appears in its SOURCELESS form, which is not an exception to that rule but the
+         * other half of it: `nudge` bare is a real persisted label (every pin written before
+         * [DET-A-NUDGE-MUST-SAY-WHO-ASKED-001]), so it resolves by exact match here, and only the
+         * composed `nudge_<source>` goes through the prefix branch of [ofLabel].
+         */
         val fixedLabelPaths: List<DetectionPath> = listOf(
             StepsEgress, KinematicEgress, VehicleExitWindow,
             UnattendedTimeout, SafetyNetBackfill,
             ClosedApproximatePin, ClosedApproximateZone,
             Bt, BtTimeout,
-            UserAnswered, ManualPin, UserMovedPin, Nudge,
+            UserAnswered, ManualPin, UserMovedPin, Nudge(),
         )
 
         /**
@@ -287,10 +319,14 @@ sealed interface DetectionPath {
         fun ofLabel(label: String?): DetectionPath? {
             if (label.isNullOrBlank()) return null
             fixedLabelPaths.firstOrNull { it.label == label }?.let { return it }
-            return if (label.startsWith(UnattendedZone.LABEL_PREFIX)) {
-                UnattendedZone(label.removePrefix(UnattendedZone.LABEL_PREFIX))
-            } else {
-                null
+            return when {
+                label.startsWith(UnattendedZone.LABEL_PREFIX) ->
+                    UnattendedZone(label.removePrefix(UnattendedZone.LABEL_PREFIX))
+                // [DET-A-NUDGE-MUST-SAY-WHO-ASKED-001] Same composition, same parse. Reached only by
+                // the sourced form — the bare `nudge` matched above.
+                label.startsWith(Nudge.LABEL_PREFIX) ->
+                    Nudge(label.removePrefix(Nudge.LABEL_PREFIX))
+                else -> null
             }
         }
     }

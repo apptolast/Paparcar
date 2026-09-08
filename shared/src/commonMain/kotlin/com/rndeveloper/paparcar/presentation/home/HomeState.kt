@@ -289,8 +289,13 @@ data class HomeState(
      * True when this pin mode was entered from a DETECTION nudge ("Marcar mi plaza" notification /
      * sheet row): the confirmed pin keeps detection provenance (`AUTO_DETECTED`, path `nudge`)
      * instead of being stamped a manual report. [DET-NUDGE-PIN-PROVENANCE-001]
+     *
+     * [DET-A-NUDGE-MUST-SAY-WHO-ASKED-001] Holds WHICH lane asked rather than merely that one did:
+     * null = nobody asked (a hand-placed pin), empty = asked but the source is no longer on record,
+     * otherwise the asking lane. One field because it is one fact — a boolean beside a string is two
+     * that can disagree.
      */
-    val addingParkingFromDetectionNudge: Boolean = false,
+    val addingParkingNudgeSource: String? = null,
 
 ) {
     // ── Computed properties ───────────────────────────────────────────────────

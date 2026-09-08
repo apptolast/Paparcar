@@ -127,7 +127,7 @@ class SaveManualParkingUseCaseTest {
         val parkingRepo = FakeUserParkingRepository()
         val (useCase, notifications, detection) = build(parkingRepo)
 
-        val result = useCase(lat = 40.0, lon = -3.0, accuracy = 12f, fromDetectionNudge = true)
+        val result = useCase(lat = 40.0, lon = -3.0, accuracy = 12f, nudgeSource = "")
 
         assertTrue(result.isSuccess)
         val session = parkingRepo.observeActiveSessions().first().single()
@@ -137,6 +137,37 @@ class SaveManualParkingUseCaseTest {
         // Same CREATE side-effects as any user-confirmed pin.
         assertEquals(1, notifications.parkingSpotSavedCallCount)
         assertEquals(1, detection.stopCallCount)
+    }
+
+    @Test
+    fun should_stampWhichLaneAsked_when_theNudgeCarriesItsSource() = runTest {
+        // [DET-A-NUDGE-MUST-SAY-WHO-ASKED-001] The pin is the only artefact that survives a wipe,
+        // and `nudge` alone could not tell a Bluetooth ask from a coordinator one.
+        val parkingRepo = FakeUserParkingRepository()
+        val (useCase, _, _) = build(parkingRepo)
+
+        val result = useCase(lat = 40.0, lon = -3.0, accuracy = 12f, nudgeSource = "bt_no_move")
+
+        assertTrue(result.isSuccess)
+        val session = parkingRepo.observeActiveSessions().first().single()
+        assertEquals("nudge_bt_no_move", session.detectionPath)
+        // Still a nudge in every other respect — provenance added, nothing reclassified.
+        assertEquals(SpotType.AUTO_DETECTED, session.spotType)
+        assertEquals(1.0f, session.detectionReliability)
+    }
+
+    @Test
+    fun should_stayAManualPin_when_nobodyAsked() = runTest {
+        // The null/blank distinction carries the whole meaning: blank = asked, asker unknown;
+        // null = nobody asked. A hand-placed pin must never claim detection nominated it.
+        val parkingRepo = FakeUserParkingRepository()
+        val (useCase, _, _) = build(parkingRepo)
+
+        useCase(lat = 40.0, lon = -3.0, accuracy = 12f, nudgeSource = null)
+
+        val session = parkingRepo.observeActiveSessions().first().single()
+        assertEquals("manual", session.detectionPath)
+        assertEquals(SpotType.MANUAL_REPORT, session.spotType)
     }
 
     @Test

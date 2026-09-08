@@ -92,7 +92,7 @@ class DetectionPathTest {
             DetectionPath.ClosedApproximatePin, DetectionPath.ClosedApproximateZone,
             DetectionPath.Bt, DetectionPath.BtTimeout,
             DetectionPath.UserAnswered, DetectionPath.ManualPin, DetectionPath.UserMovedPin,
-            DetectionPath.Nudge,
+            DetectionPath.Nudge(), DetectionPath.Nudge("bt_no_move"),
         ).forEach { assertNull(it.confirmReliability(config), "path=${it.label}") }
         assertNull(DetectionPath.UnattendedZone("gap_anchor").confirmReliability(config))
     }
@@ -104,7 +104,44 @@ class DetectionPathTest {
             "no declared path may present itself as Unknown — that value is for labels we do not write",
         )
         assertEquals(ParkingDetectionSource.Bluetooth, DetectionPath.Bt.source)
-        assertEquals(ParkingDetectionSource.Manual, DetectionPath.Nudge.source)
+        assertEquals(ParkingDetectionSource.Manual, DetectionPath.Nudge().source)
+        assertEquals(ParkingDetectionSource.Manual, DetectionPath.Nudge("bt_no_move").source)
         assertNotNull(DetectionPath.ofLabel("unattended_zone_walk_entered_anchor"))
+    }
+
+    // ── A nudge says who asked [DET-A-NUDGE-MUST-SAY-WHO-ASKED-001] ────────────────────────────
+
+    @Test
+    fun should_composeTheLabel_when_theNudgeKnowsWhichLaneAsked() {
+        assertEquals("nudge_bt_no_move", DetectionPath.Nudge("bt_no_move").label)
+        assertEquals(
+            DetectionPath.Nudge("unattended_walk_entered_anchor"),
+            DetectionPath.ofLabel("nudge_unattended_walk_entered_anchor"),
+        )
+    }
+
+    @Test
+    fun should_stillResolveTheBareLabel_when_thePinPredatesTheSource() {
+        // Every nudge pin written before this ticket says just `nudge`, and they are in Firestore.
+        // A bare label is not another KIND of pin — it is this one with the asker unknown.
+        assertEquals(DetectionPath.Nudge(), DetectionPath.ofLabel("nudge"))
+        assertEquals("nudge", DetectionPath.Nudge().label)
+        assertEquals("nudge", DetectionPath.Nudge("").label)
+        assertEquals("nudge", DetectionPath.Nudge(null).label)
+    }
+
+    @Test
+    fun should_roundTripEverySourceTheAskPathsActuallyWrite() {
+        // The real vocabulary, from the sites that call showMarkParkingNudge. If one of these ever
+        // stops resolving, its pins go back to being unattributable — which is the whole defect.
+        listOf(
+            "bt_no_ride", "bt_no_move", "bt_ride_unmeasurable",
+            "unattended_timeout", "unattended_walk_entered_anchor",
+            "stale_pending_watchdog",
+        ).forEach { source ->
+            val path = DetectionPath.Nudge(source)
+            assertEquals(path, DetectionPath.ofLabel(path.label), "source=$source")
+            assertEquals(ParkingDetectionSource.Manual, path.source, "source=$source")
+        }
     }
 }

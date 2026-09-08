@@ -7629,3 +7629,52 @@ telemetry from the first day. The fallback, if the field says so, is to degrade 
 the timeout-save reliability instead of asking. Not chosen blind today.
 
 Spec: `docs/backlog/det-bt-a-ride-is-measured-not-timed-001.md`.
+
+### DET-A-NUDGE-MUST-SAY-WHO-ASKED-001 — el nudge perdía quién preguntaba, justo en el último paso
+
+Toda vía de «no puedo colocarlo, pregúntale» pasa por `showMarkParkingNudge(source = …)`, y el
+`source` **se persiste**: el adapter lo escribe en `PendingParkNudge.source`, comentado allí mismo
+como *"which detection path asked — diagnostics only"*. Cuando el usuario responde, el pin se
+guardaba por `SaveManualParkingUseCase` con `detectionPath = "nudge"` y `armEvidence = null`: el
+origen se caía en el único artefacto que sobrevive a un wipe. Un nudge del carril BT y uno del
+coordinator eran la misma palabra.
+
+La factura, medida el 08-09-2026 sobre el corpus vivo mientras se cosechaba para
+`DET-BT-A-RIDE-IS-MEASURED-NOT-TIMED-001`: una cuenta con el coche emparejado por Bluetooth, 12
+sesiones en dos días, **6 de ellas `nudge`**, cero pines `bt` — y ninguna forma de decidir si el
+carril BT no llegaba a ejecutarse o si se ejecutaba y siempre acababa preguntando. La pregunta que
+los tres tickets de esa familia terminan haciendo, *¿cuánto preguntamos y quién pregunta de más?*,
+no tenía respuesta posible.
+
+**Dónde NO va, y por qué el diseño obvio estaba mal.** La ficha se abrió proponiendo estamparlo en
+`armEvidence`. `armEvidence` no es provenance libre: es el vocabulario CERRADO de un arm
+(`ArmLabel`), cuyas palabras contestan dos preguntas de doctrina con `when` exhaustivos, y cuyo
+guardarraíl prohíbe justo eso —conjuntos de etiquetas mantenidos a mano que deciden—
+[DET-AN-ARM-LABEL-IS-PARSED-ONCE-NOT-SPELLED-AT-EVERY-DOOR-001]. Además es falso de raíz: **una
+respuesta a un nudge no tiene arm**; la evidencia es el usuario.
+
+**Dónde sí, con precedente en el mismo fichero**: `DetectionPath.UnattendedZone` ya COMPONE su
+etiqueta y se parsea por prefijo. `Nudge(askedBy)` hace lo mismo — `nudge_<fuente>`, o `nudge` pelado
+cuando no hay fuente, que es lo que son todos los pines anteriores a este ticket y por eso siguen
+resolviendo. `fromDetectionNudge: Boolean` pasa a `nudgeSource: String?` de punta a punta: null =
+nadie preguntó, vacío = preguntaron y no consta quién, con valor = el carril. Un booleano al lado de
+un string son dos hechos que pueden discrepar.
+
+**Quién resuelve la fuente: el ViewModel, una vez, al ENTRAR en modo pin.** Ya observa
+`pendingParkNudge` para el banner. Al guardar sería tarde —el nudge se limpia cuando una sesión
+confirma y el usuario puede tardar minutos colocando el pin—, y plumbearlo por el intent de la
+notificación y el event bus habría sido la misma verdad viajando por dos caminos. Resolviéndolo ahí
+quedan cubiertas **las dos puertas** (notificación y banner) sin tocar `MainActivity` ni el bus.
+
+**Accompanying risk — el consumidor que mordía.** `EnrichParkingSessionWorker` decidía la
+elegibilidad del trazado pin-a-pin con `detectionPath !in setOf(…, "nudge")`, comparación por
+igualdad. El día que `nudge` compone, **todo pin de nudge se habría caído de esa lista y se habría
+quedado sin ruta para siempre, sin que nada fallase**: una ruta que falta es silencio, no un crash.
+Ahora parsea con `DetectionPath.ofLabel` sobre un `when` exhaustivo —un path nuevo no entra por
+defecto, hay que clasificarlo— y `PinToPinEligibilityTest` es el testigo de población que ese
+silencio no tenía: pregunta por TODAS las etiquetas que la app sabe escribir.
+
+Cero migraciones y cero cambios de serialización: `detectionPath` ya existía y ya viajaba a
+Firestore. 2 452 tests verdes (11 nuevos).
+
+Spec: `docs/backlog/det-a-nudge-must-say-who-asked-001.md`.
