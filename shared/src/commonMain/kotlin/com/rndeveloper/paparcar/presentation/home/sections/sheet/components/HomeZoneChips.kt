@@ -1,14 +1,27 @@
 package com.rndeveloper.paparcar.presentation.home.sections.sheet.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material3.Icon
@@ -18,15 +31,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.presentation.util.MAP_FLOATING_SHADOW_DP
 import com.rndeveloper.paparcar.presentation.util.zoneIconFor
 import com.rndeveloper.paparcar.ui.components.GlassSurface
+import com.rndeveloper.paparcar.ui.theme.PapMotion
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.zoneIdentityColor
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.home_header_add_zone
+import paparcar.composeapp.generated.resources.home_header_add_zone_dismiss_cd
+import paparcar.composeapp.generated.resources.home_header_add_zone_hint
 import paparcar.composeapp.generated.resources.home_zone_action_edit
 import paparcar.composeapp.generated.resources.home_zone_private_label
 import com.rndeveloper.paparcar.ui.theme.PapAlpha
@@ -73,7 +89,12 @@ fun ZoneChip(
         Row(
             // Tighter end inset than start: the pencil's 28dp touch box already carries
             // its own optical margin around the 16dp glyph.
-            modifier = Modifier.padding(start = 12.dp, end = 4.dp, top = 3.dp, bottom = 3.dp),
+            // The height is DECLARED, not left to whichever child happens to be tallest: the add
+            // chip next door has to match it, and an emergent height gives it nothing to match.
+            // [UI-THE-ADD-ZONE-CHIP-IS-ONE-CHIP-IN-EVERY-STATE-001]
+            modifier = Modifier
+                .height(ZONE_CHIP_HEIGHT)
+                .padding(start = 12.dp, end = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
@@ -121,9 +142,117 @@ fun ZoneChip(
     }
 }
 
+/**
+ * The "add a zone" control — the last thing on the zone row, in both of its states.
+ *
+ * [expanded] is an invitation, not a different widget: the same pill, showing its title, its hint
+ * and a × to put it away. Collapsed it is a circle of [ZONE_CHIP_HEIGHT], exactly as tall as the
+ * chips beside it, and the transition between the two is animated because it is the SAME thing
+ * changing size.
+ *
+ * It replaced two separate composables (a 56dp invitation card and a 32dp `MapCircleFab`) that
+ * swapped with `if (dismissed) … return` — an instant cut between two heights that never matched
+ * the row, positioned by two different paddings, so the "+" jumped the moment you saved your first
+ * zone. One component, one height, one geometry.
+ * [UI-THE-ADD-ZONE-CHIP-IS-ONE-CHIP-IN-EVERY-STATE-001]
+ *
+ * @param expanded show the invitation. Callers pass `false` once there is any zone to point at.
+ * @param onDismiss collapse it. Only reachable while [expanded].
+ */
+@Composable
+fun AddZoneChip(
+    expanded: Boolean,
+    onAddZone: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val cs = MaterialTheme.colorScheme
+    GlassSurface(
+        onClick = onAddZone,
+        shape = RoundedCornerShape(ZONE_CHIP_RADIUS_DP.dp),
+        shadowElevation = MAP_FLOATING_SHADOW_DP.dp,
+        modifier = modifier,
+    ) {
+        Row(
+            // `heightIn`, not `height`: COLLAPSED it must be exactly the row's height, but expanded
+            // it carries two 16sp lines (32dp) that a fixed 34dp box would clip the moment the user
+            // raises their font scale. The invitation is also the only thing on the row while it
+            // shows — there is nothing beside it to be taller than.
+            modifier = Modifier
+                .heightIn(min = ZONE_CHIP_HEIGHT)
+                .animateContentSize(PapMotion.medium()),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // The "+" sits in a square as wide as the chip is tall, so collapsed the pill IS a
+            // circle of the row's height — no separate size constant to keep in sync.
+            Box(
+                modifier = Modifier.size(ZONE_CHIP_HEIGHT),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Add,
+                    contentDescription = stringResource(Res.string.home_header_add_zone),
+                    tint = cs.primary,
+                    modifier = Modifier.size(ZONE_CHIP_ICON_DP.dp),
+                )
+            }
+            AnimatedVisibility(
+                visible = expanded,
+                enter = fadeIn(PapMotion.medium()) + expandHorizontally(PapMotion.medium()),
+                exit = fadeOut(PapMotion.fast()) + shrinkHorizontally(PapMotion.medium()),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(modifier = Modifier.padding(vertical = ADD_ZONE_TEXT_PAD_V_DP.dp)) {
+                        Text(
+                            text = stringResource(Res.string.home_header_add_zone),
+                            style = PaparcarType.current.label,
+                            color = cs.onSurface,
+                            maxLines = 1,
+                        )
+                        Text(
+                            text = stringResource(Res.string.home_header_add_zone_hint),
+                            style = PaparcarType.current.caption,
+                            color = cs.onSurface.copy(alpha = ADD_ZONE_HINT_ALPHA),
+                            maxLines = 1,
+                        )
+                    }
+                    Spacer(Modifier.width(ADD_ZONE_TEXT_GAP_DP.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(ZONE_CHIP_EDIT_TAP_DP.dp)
+                            .clip(CircleShape)
+                            .clickable(onClick = onDismiss),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Close,
+                            contentDescription = stringResource(Res.string.home_header_add_zone_dismiss_cd),
+                            tint = cs.onSurfaceVariant,
+                            modifier = Modifier.size(ZONE_CHIP_EDIT_DP.dp),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * THE height of everything that rides the zone row — chips and the add chip alike.
+ *
+ * It used to be emergent (3 + the pencil's 28dp touch box + 3 = 34), which is why the add "+"
+ * shipped at 32: there was no number to match, so someone picked one. Declared here, next to the
+ * chip that defines the row's rhythm, so the two can only agree.
+ * [UI-THE-ADD-ZONE-CHIP-IS-ONE-CHIP-IN-EVERY-STATE-001]
+ */
+internal val ZONE_CHIP_HEIGHT = 34.dp
+
 private const val ZONE_CHIP_RADIUS_DP = 999
 private const val ZONE_CHIP_ICON_DP = 18
 private const val ZONE_CHIP_LOCK_DP = 13
+private const val ADD_ZONE_TEXT_GAP_DP = 8
+private const val ADD_ZONE_TEXT_PAD_V_DP = 5
+private val ADD_ZONE_HINT_ALPHA = PapAlpha.muted
 private const val ZONE_CHIP_EDIT_DP = 16
 private const val ZONE_CHIP_EDIT_TAP_DP = 28
 private val ZONE_CHIP_TRAILING_ALPHA = PapAlpha.muted

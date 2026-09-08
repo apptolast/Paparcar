@@ -66,6 +66,7 @@ import com.rndeveloper.paparcar.presentation.home.toPeekSlice
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.HomeDetectionSurface
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.HomePeekHandle
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.SpotFitRow
+import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.AddZoneChip
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.ZoneChip
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.homeSheetItems
 import com.rndeveloper.paparcar.domain.model.SpotStatus
@@ -606,10 +607,22 @@ private fun markersShowcase() {
         // El chip de la cabecera vive aquí junto a la etiqueta del mapa a propósito: son la MISMA
         // zona en dos superficies, y verlos separados es lo que dejó al chip en verde de marca
         // mientras el mapa ya la pintaba neutral. [UI-A-PRIVATE-ZONE-IS-PRIVATE-ON-EVERY-SURFACE-001]
-        MarkerSectionLabel("Chip de zona — pública · privada")
+        MarkerSectionLabel("Chip de zona — pública · privada · el + a la misma altura")
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             ZoneChip(label = "Casa", iconKey = ZoneIcon.HOME, isPrivate = false, onClick = {}, onEdit = {})
             ZoneChip(label = "Garaje", iconKey = ZoneIcon.WORK, isPrivate = true, onClick = {}, onEdit = {})
+            AddZoneChip(expanded = false, onAddZone = {}, onDismiss = {})
+        }
+        // El colapso VIVO: es lo que el user reportó como "sin animación ni nada", y no se puede
+        // juzgar en una captura estática. [UI-THE-ADD-ZONE-CHIP-IS-ONE-CHIP-IN-EVERY-STATE-001]
+        MarkerSectionLabel("Invitación de zona — pulsa la × y mira el colapso")
+        var inviteExpanded by remember { mutableStateOf(true) }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            AddZoneChip(
+                expanded = inviteExpanded,
+                onAddZone = { inviteExpanded = !inviteExpanded },
+                onDismiss = { inviteExpanded = false },
+            )
         }
         MarkerSectionLabel("Pin central · Report (reposo · elevado)")
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(24.dp)) {

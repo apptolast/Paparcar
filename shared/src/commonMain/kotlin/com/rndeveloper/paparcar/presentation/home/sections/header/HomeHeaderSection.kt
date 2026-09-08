@@ -5,38 +5,24 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.swmansion.kmpmaps.core.MapType
 import com.rndeveloper.paparcar.domain.model.SearchResult
@@ -46,17 +32,8 @@ import com.rndeveloper.paparcar.presentation.home.sections.header.components.Hom
 import com.rndeveloper.paparcar.presentation.home.sections.header.components.HomeSearchBar
 import com.rndeveloper.paparcar.presentation.home.sections.header.components.MapTypeToggle
 import com.rndeveloper.paparcar.ui.theme.PapMotion
-import com.rndeveloper.paparcar.ui.theme.PaparcarType
+import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.AddZoneChip
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.ZoneChip
-import com.rndeveloper.paparcar.presentation.util.MAP_FLOATING_SHADOW_DP
-import com.rndeveloper.paparcar.presentation.util.MapCircleFab
-import com.rndeveloper.paparcar.ui.components.GlassSurface
-import org.jetbrains.compose.resources.stringResource
-import paparcar.composeapp.generated.resources.Res
-import paparcar.composeapp.generated.resources.home_header_add_zone
-import paparcar.composeapp.generated.resources.home_header_add_zone_dismiss_cd
-import paparcar.composeapp.generated.resources.home_header_add_zone_hint
-import com.rndeveloper.paparcar.ui.theme.PapAlpha
 
 @Composable
 internal fun HomeHeaderSection(
@@ -110,16 +87,22 @@ internal fun HomeHeaderSection(
             enter = fadeIn(PapMotion.medium()) + expandVertically(PapMotion.medium(), expandFrom = Alignment.Top),
             exit = fadeOut(PapMotion.medium()) + shrinkVertically(PapMotion.medium(), shrinkTowards = Alignment.Top),
         ) {
-            if (slice.zones.isNotEmpty()) {
-                HeaderZoneChips(
-                    zones = slice.zones,
-                    onSelectZone = onSelectZone,
-                    onAddZone = onAddZone,
-                    onEditZone = onEditZone,
-                )
-            } else {
-                HeaderAddZoneChip(onAddZone = onAddZone)
-            }
+            // ONE row in every state. The empty state used to be a separate composable with its
+            // own padding, so the add control sat at a different y depending on whether you had
+            // zones — and jumped the moment you saved your first one. The invitation is now just
+            // the same trailing chip, expanded. [UI-THE-ADD-ZONE-CHIP-IS-ONE-CHIP-IN-EVERY-STATE-001]
+            //
+            // Session-scoped dismissal (no preference plumbing): an invitation may come back on a
+            // fresh launch. [UI-SHEET-003]
+            var invitationDismissed by rememberSaveable { mutableStateOf(false) }
+            HeaderZoneChips(
+                zones = slice.zones,
+                inviteToAddZone = slice.zones.isEmpty() && !invitationDismissed,
+                onSelectZone = onSelectZone,
+                onAddZone = onAddZone,
+                onEditZone = onEditZone,
+                onDismissInvitation = { invitationDismissed = true },
+            )
         }
         HomeGpsAccuracyBanner(
             accuracy = slice.gpsAccuracy,
@@ -131,9 +114,12 @@ internal fun HomeHeaderSection(
 @Composable
 private fun HeaderZoneChips(
     zones: List<Zone>,
+    /** Show the add chip expanded into its invitation — only while there is no zone to point at. */
+    inviteToAddZone: Boolean,
     onSelectZone: (String) -> Unit,
     onAddZone: () -> Unit,
     onEditZone: (String) -> Unit,
+    onDismissInvitation: () -> Unit,
 ) {
     LazyRow(
         modifier = Modifier.fillMaxWidth(),
@@ -154,95 +140,13 @@ private fun HeaderZoneChips(
             )
         }
         item("add_zone") {
-            // Same glass-FAB contract as the zone chips and map FABs: surfaceContainer
-            // fill, FAB shadow, no resting border, glass-on-drag. [MAP-GLASS-001]
-            MapCircleFab(
-                icon = Icons.Rounded.Add,
-                onClick = onAddZone,
-                contentDescription = stringResource(Res.string.home_header_add_zone),
-                size = ADD_ZONE_CHIP_SIZE_DP.dp,
-                iconSize = CHIP_ICON_DP.dp,
+            AddZoneChip(
+                expanded = inviteToAddZone,
+                onAddZone = onAddZone,
+                onDismiss = onDismissInvitation,
             )
         }
     }
 }
 
-@Composable
-private fun HeaderAddZoneChip(onAddZone: () -> Unit) {
-    // The two-line invitation must not squat on the map forever: an × collapses it to the
-    // same compact "+" FAB used next to the zone chips. Session-scoped dismissal (no
-    // preference plumbing) — it may reappear on a fresh launch, which is fine for an
-    // invitation. [UI-SHEET-003]
-    var dismissed by rememberSaveable { mutableStateOf(false) }
-    if (dismissed) {
-        MapCircleFab(
-            icon = Icons.Rounded.Add,
-            onClick = onAddZone,
-            contentDescription = stringResource(Res.string.home_header_add_zone),
-            size = ADD_ZONE_CHIP_SIZE_DP.dp,
-            iconSize = CHIP_ICON_DP.dp,
-            modifier = Modifier.padding(start = 14.dp, top = 6.dp),
-        )
-        return
-    }
-    GlassSurface(
-        shape = RoundedCornerShape(28.dp),
-        shadowElevation = MAP_FLOATING_SHADOW_DP.dp,
-        onClick = onAddZone,
-        modifier = Modifier.padding(start = 14.dp, top = 6.dp),
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.primaryContainer,
-                modifier = Modifier.size(CHIP_ICON_BOX_DP.dp),
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Rounded.Add,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(CHIP_ICON_DP.dp),
-                    )
-                }
-            }
-            Column {
-                Text(
-                    text = stringResource(Res.string.home_header_add_zone),
-                    style = PaparcarType.current.label,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = stringResource(Res.string.home_header_add_zone_hint),
-                    style = PaparcarType.current.label,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = HINT_ALPHA),
-                )
-            }
-            Box(
-                modifier = Modifier
-                    .size(DISMISS_HIT_DP.dp)
-                    .clip(CircleShape)
-                    .clickable { dismissed = true },
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.Close,
-                    contentDescription = stringResource(Res.string.home_header_add_zone_dismiss_cd),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(CHIP_ICON_DP.dp),
-                )
-            }
-        }
-    }
-}
-
-private const val ADD_ZONE_CHIP_SIZE_DP = 32
 private const val CHIP_SHADOW_ROOM_DP = 8
-private const val CHIP_ICON_BOX_DP = 28
-private const val CHIP_ICON_DP = 16
-private val HINT_ALPHA = PapAlpha.muted
-private const val DISMISS_HIT_DP = 28

@@ -10,6 +10,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -46,6 +51,31 @@ private fun Gallery() {
                 isPrivate = true,
                 onClick = {},
                 onEdit = {},
+            )
+        }
+
+        // El "+" y los chips, en la MISMA fila y a la MISMA altura: el defecto que abrió el ticket
+        // (32 vs 34 dp) solo se ve poniéndolos a tocarse.
+        // [UI-THE-ADD-ZONE-CHIP-IS-ONE-CHIP-IN-EVERY-STATE-001]
+        Label("Fila con zonas — el + colapsado mide lo que los chips")
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            ZoneChip(label = "Casa", iconKey = ZoneIcon.HOME, isPrivate = false, onClick = {}, onEdit = {})
+            AddZoneChip(expanded = false, onAddZone = {}, onDismiss = {})
+        }
+
+        Label("Sin zonas — el MISMO chip, expandido en invitación")
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            AddZoneChip(expanded = true, onAddZone = {}, onDismiss = {})
+        }
+
+        // Interactivo: el colapso es lo que el user reporto como "sin animacion ni nada".
+        Label("Vivo — pulsa la × y mira el colapso")
+        var expanded by remember { mutableStateOf(true) }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            AddZoneChip(
+                expanded = expanded,
+                onAddZone = { expanded = !expanded },
+                onDismiss = { expanded = false },
             )
         }
     }
