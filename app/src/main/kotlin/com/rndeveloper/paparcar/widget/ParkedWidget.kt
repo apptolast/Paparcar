@@ -113,6 +113,11 @@ class ParkedWidget : GlanceAppWidget() {
     @Composable
     private fun WidgetContent(state: ParkedWidgetState) {
         val context = LocalContext.current
+        // A tall widget lists the cars; the short one keeps its single row. Read from the size the
+        // launcher actually gave us, not from the bucket we asked for — and read HERE, above the
+        // Column, because the alignment depends on it too.
+        val height = LocalSize.current.height
+        val tall = height >= TALL_SIZE.height
         Column(
             modifier = GlanceModifier
                 .fillMaxSize()
@@ -122,18 +127,28 @@ class ParkedWidget : GlanceAppWidget() {
                 // Asymmetric on purpose: the text keeps its 16dp inset; the action icons hug the
                 // right edge (their 40dp boxes already carry inner air). [WIDGET-ACTIONS-002]
                 .padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = END_PADDING_DP.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            // One row centres in its box; a LIST hangs from the top. Centring the list left two
+            // bands of dead air as tall as the rows themselves — caught on device, not by a test:
+            // the rows, their order and their per-car actions were all green while it looked wrong.
+            // [WIDGET-A-TALL-WIDGET-HANGS-FROM-THE-TOP-001]
+            verticalAlignment = if (tall) Alignment.Top else Alignment.CenterVertically,
         ) {
-            // A tall widget lists the cars; the short one keeps today's single row. The threshold is
-            // read from the size the launcher actually gave us, not from the bucket we asked for.
-            val tall = LocalSize.current.height >= TALL_SIZE.height
             when (state) {
                 is ParkedWidgetState.Empty -> Empty()
-                is ParkedWidgetState.Driving -> Driving(state, tall)
-                is ParkedWidgetState.Parked -> Parked(state, tall)
+                is ParkedWidgetState.Driving -> Driving(state, tall, height)
+                is ParkedWidgetState.Parked -> Parked(state, tall, height)
             }
         }
     }
+
+    /**
+     * How many car rows fit in [height]. A `Column` does not scroll, so without this the rows past
+     * the bottom edge would be silently cut — and a widget that hides a car is worse than one that
+     * says "+1 more", which is exactly what the leftovers fall back to.
+     * [WIDGET-A-TALL-WIDGET-HANGS-FROM-THE-TOP-001]
+     */
+    private fun rowsThatFit(height: androidx.compose.ui.unit.Dp): Int =
+        (((height.value - VERTICAL_PADDING_DP) / ROW_BLOCK_DP).toInt()).coerceAtLeast(1)
 
     @Composable
     private fun Empty() {
@@ -153,7 +168,7 @@ class ParkedWidget : GlanceAppWidget() {
      * glyph would only compete with the brand mark to say what the line already says in words.
      */
     @Composable
-    private fun Driving(state: ParkedWidgetState.Driving, tall: Boolean) {
+    private fun Driving(state: ParkedWidgetState.Driving, tall: Boolean, height: androidx.compose.ui.unit.Dp) {
         val context = LocalContext.current
         val phase = if (state.isCandidate) {
             context.getString(R.string.widget_driving_parking)
@@ -167,7 +182,8 @@ class ParkedWidget : GlanceAppWidget() {
         // reason to hide where the other one is. The short layout has no room and the trip wins.
         // [WIDGET-A-TRIP-IS-NOT-AN-EMPTY-WIDGET-001 D5]
         if (tall) {
-            state.alsoParked.forEach { car ->
+            // The trip line already took one row's worth of the height.
+            state.alsoParked.take(rowsThatFit(height) - 1).forEach { car ->
                 Spacer(GlanceModifier.height(ROW_GAP_DP.dp))
                 CarRow(car = car, othersCount = 0, showBrand = false)
             }
@@ -209,16 +225,19 @@ class ParkedWidget : GlanceAppWidget() {
      * row and Home's first chip are the same car). [WIDGET-A-TRIP-IS-NOT-AN-EMPTY-WIDGET-001 D5]
      */
     @Composable
-    private fun Parked(state: ParkedWidgetState.Parked, tall: Boolean) {
+    private fun Parked(state: ParkedWidgetState.Parked, tall: Boolean, height: androidx.compose.ui.unit.Dp) {
         if (!tall) {
             CarRow(car = state.subject, othersCount = state.othersCount, showBrand = true)
             return
         }
-        state.cars.forEachIndexed { index, car ->
+        // Only the rows that actually fit; whatever is left keeps being counted, never dropped.
+        val visible = state.cars.take(rowsThatFit(height))
+        val hidden = state.cars.size - visible.size
+        visible.forEachIndexed { index, car ->
             if (index > 0) Spacer(GlanceModifier.height(ROW_GAP_DP.dp))
             // The mark belongs to the WIDGET, not to each car: repeating it down the column would
             // read as a badge on every vehicle.
-            CarRow(car = car, othersCount = 0, showBrand = index == 0)
+            CarRow(car = car, othersCount = if (index == 0) hidden else 0, showBrand = index == 0)
         }
     }
 
@@ -343,10 +362,19 @@ class ParkedWidget : GlanceAppWidget() {
         const val ACTION_BUTTON_DP = 40
         const val END_PADDING_DP = 4
         const val ROW_GAP_DP = 10
-        // The two size buckets. COMPACT mirrors the provider's 3x1 target; TALL is the first height
-        // where a second car fits with air. [WIDGET-A-TRIP-IS-NOT-AN-EMPTY-WIDGET-001 D5]
+        // One car row + its gap: title (15sp) over body (13sp) plus the 40dp action buttons that
+        // set the real floor. Used to decide how many rows FIT, so none is silently cut.
+        const val ROW_BLOCK_DP = 50f
+        const val VERTICAL_PADDING_DP = 24f // 12 top + 12 bottom
+        // The two size buckets. COMPACT mirrors the provider's 3x1 target.
+        //
+        // TALL was 110dp and that was measured wrong: on the emulator (density 480) the 3x1 widget
+        // draws 108dp tall, so the threshold sat TWO dp above the layout it must never trigger --
+        // any launcher with a slightly taller cell would have served the list to a one-cell widget.
+        // 150dp sits clear of a single cell (~100-140dp across devices) and below any two-cell one.
+        // [WIDGET-A-TALL-WIDGET-HANGS-FROM-THE-TOP-001]
         val COMPACT_SIZE = DpSize(180.dp, 40.dp)
-        val TALL_SIZE = DpSize(180.dp, 110.dp)
+        val TALL_SIZE = DpSize(180.dp, 150.dp)
     }
 }
 
