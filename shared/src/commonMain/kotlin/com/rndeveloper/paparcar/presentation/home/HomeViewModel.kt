@@ -4,6 +4,8 @@ import com.swmansion.kmpmaps.core.MapType
 import com.rndeveloper.paparcar.isDebugBuild
 import com.rndeveloper.paparcar.domain.ActivityRecognitionManager
 import com.rndeveloper.paparcar.domain.connectivity.ConnectivityObserver
+import com.rndeveloper.paparcar.domain.entitlement.PaywallReason
+import com.rndeveloper.paparcar.domain.entitlement.canCreateZone
 import com.rndeveloper.paparcar.domain.connectivity.ConnectivityStatus
 import com.rndeveloper.paparcar.domain.detection.ports.DepartureWatchResumer
 import com.rndeveloper.paparcar.domain.detection.DetectionRuntimeState
@@ -664,7 +666,7 @@ class HomeViewModel(
             // "attempt" that opens the paywall (the switch stays off). Disabling is always allowed.
             is HomeIntent.SetZoneNotify ->
                 if (intent.notify && !state.value.isPlus) {
-                    sendEffect(HomeEffect.NavigateToPaywall)
+                    sendEffect(HomeEffect.NavigateToPaywall(PaywallReason.ZONE_ALERTS))
                 } else {
                     updateState { copy(addingZoneNotify = intent.notify) }
                 }
@@ -672,7 +674,7 @@ class HomeViewModel(
                 if (state.value.isPlus) {
                     updateState { copy(zoneAlertsDialogOpen = true) }
                 } else {
-                    sendEffect(HomeEffect.NavigateToPaywall)
+                    sendEffect(HomeEffect.NavigateToPaywall(PaywallReason.ZONE_ALERTS))
                 }
             is HomeIntent.CloseZoneAlerts -> updateState { copy(zoneAlertsDialogOpen = false) }
             is HomeIntent.ToggleZoneAlert -> toggleZoneAlert(intent.zoneId, intent.enabled)
@@ -691,7 +693,7 @@ class HomeViewModel(
      */
     private fun toggleZoneAlert(zoneId: String, enabled: Boolean) {
         if (enabled && !state.value.isPlus) {
-            sendEffect(HomeEffect.NavigateToPaywall)
+            sendEffect(HomeEffect.NavigateToPaywall(PaywallReason.ZONE_ALERTS))
             return
         }
         val zone = state.value.zones.find { it.id == zoneId } ?: return
@@ -715,6 +717,13 @@ class HomeViewModel(
         val current = state.value
         if (current.mode !is HomeMode.AddingZone || current.isSavingZone) return
         if (current.addingZoneName.isBlank()) return // save button is disabled; belt-and-braces
+        // [FREE-LIMITS-001] Soft gate on CREATION only (an edit carries editingZoneId): free at
+        // the limit → paywall, the zone is NOT saved and the form stays intact for after the
+        // upgrade. Zones already above the limit are conserved — gate the NEW, keep the created.
+        if (current.editingZoneId == null && !canCreateZone(current.zones.size, current.isPlus)) {
+            sendEffect(HomeEffect.NavigateToPaywall(PaywallReason.ZONES))
+            return
+        }
         val (lat, lon) = current.pinCoordinates() ?: return reportPinMissing()
         updateState { copy(isSavingZone = true) }
         viewModelScope.launch {

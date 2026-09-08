@@ -770,7 +770,16 @@
     <string name="paywall_compare_title">What changes with Plus</string>
     <string name="paywall_tier_free">Free</string>
     <string name="paywall_tier_plus">Plus</string>
-    <string name="paywall_free_history">The last 30 days</string>
+    <string name="paywall_free_history">The last 7 days</string>
+    <string name="paywall_free_vehicles">Your car</string>
+    <string name="paywall_plus_vehicles">All your cars</string>
+    <string name="paywall_free_zones">2 zones</string>
+    <string name="paywall_plus_zones">Unlimited zones</string>
+    <string name="paywall_reason_history">You wanted to see older parkings — Plus keeps your whole history.</string>
+    <string name="paywall_reason_vehicles">Free keeps one car — with Plus you can add more.</string>
+    <string name="paywall_reason_zones">Free keeps two zones — with Plus you can create more.</string>
+    <string name="paywall_reason_stats">Advanced statistics are part of Plus.</string>
+    <string name="paywall_reason_zone_alerts">Free-spot alerts in your zones are part of Plus.</string>
     <string name="paywall_free_alerts">Not included</string>
     <string name="paywall_free_support">Free for everyone</string>
     <string name="paywall_plus_history">Your full history</string>
@@ -786,7 +795,6 @@
     <string name="paywall_restore">Already subscribed? Restore</string>
     <string name="paywall_restore_none">No subscription found on this Google account.</string>
     <string name="paywall_purchase_failed">The purchase didn’t go through — nothing was charged.</string>
-    <string name="paywall_unlimited_note">Vehicles and zones are unlimited on both — Plus does not cap anything you already have.</string>
     <string name="settings_plus_title">Paparcar Plus</string>
     <string name="settings_plus_subtitle_free">Full history and zone alerts</string>
     <string name="settings_plus_subtitle_active">Full history and zone alerts, active</string>

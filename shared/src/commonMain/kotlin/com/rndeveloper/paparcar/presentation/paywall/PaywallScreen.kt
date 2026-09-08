@@ -21,8 +21,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.History
+import androidx.compose.material.icons.rounded.Map
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -57,7 +59,9 @@ import com.rndeveloper.paparcar.ui.theme.premiumInk
 import com.rndeveloper.paparcar.ui.theme.outlineSubtle
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
+import com.rndeveloper.paparcar.domain.entitlement.PaywallReason
 import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.parameter.parametersOf
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.paywall_billing_note
 import paparcar.composeapp.generated.resources.paywall_close_cd
@@ -82,7 +86,15 @@ import paparcar.composeapp.generated.resources.paywall_tagline
 import paparcar.composeapp.generated.resources.paywall_tier_free
 import paparcar.composeapp.generated.resources.paywall_tier_plus
 import paparcar.composeapp.generated.resources.paywall_title
-import paparcar.composeapp.generated.resources.paywall_unlimited_note
+import paparcar.composeapp.generated.resources.paywall_free_vehicles
+import paparcar.composeapp.generated.resources.paywall_free_zones
+import paparcar.composeapp.generated.resources.paywall_plus_vehicles
+import paparcar.composeapp.generated.resources.paywall_plus_zones
+import paparcar.composeapp.generated.resources.paywall_reason_history
+import paparcar.composeapp.generated.resources.paywall_reason_stats
+import paparcar.composeapp.generated.resources.paywall_reason_vehicles
+import paparcar.composeapp.generated.resources.paywall_reason_zone_alerts
+import paparcar.composeapp.generated.resources.paywall_reason_zones
 
 /**
  * Paparcar Plus paywall. [MONEY-001] [UI-PAYWALL-THE-PITCH-IS-OURS-THE-PRICE-IS-THE-STORES-001]
@@ -110,7 +122,9 @@ import paparcar.composeapp.generated.resources.paywall_unlimited_note
 @Composable
 fun PaywallScreen(
     onClose: () -> Unit,
-    viewModel: PaywallViewModel = koinViewModel(),
+    /** WHICH limit (or entrance) opened this paywall — see [PaywallReason]. [FREE-LIMITS-001] */
+    reason: PaywallReason = PaywallReason.GENERAL,
+    viewModel: PaywallViewModel = koinViewModel { parametersOf(reason) },
 ) {
     val state by viewModel.state.collectAsStateLifecycleAware()
 
@@ -127,7 +141,7 @@ fun PaywallScreen(
         if (state.isPlus) onClose()
     }
 
-    PaywallContent(state = state, onIntent = viewModel::handleIntent)
+    PaywallContent(state = state, onIntent = viewModel::handleIntent, reason = reason)
 }
 
 @Composable
@@ -135,6 +149,7 @@ fun PaywallContent(
     state: PaywallState,
     onIntent: (PaywallIntent) -> Unit,
     modifier: Modifier = Modifier,
+    reason: PaywallReason = PaywallReason.GENERAL,
 ) {
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
         Box(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
@@ -161,15 +176,6 @@ fun PaywallContent(
                     Spacer(Modifier.height(COMPARE_TITLE_GAP_DP.dp))
                     TierComparison()
 
-                    Spacer(Modifier.height(NOTE_GAP_DP.dp))
-                    Text(
-                        text = stringResource(Res.string.paywall_unlimited_note),
-                        style = PaparcarType.current.caption,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-
                     if (state.canPurchase) {
                         Spacer(Modifier.height(SECTION_GAP_DP.dp))
                         PlanPicker(state = state, onIntent = onIntent)
@@ -177,7 +183,7 @@ fun PaywallContent(
                     Spacer(Modifier.height(SECTION_GAP_DP.dp))
                 }
 
-                PaywallFooter(state = state, onIntent = onIntent)
+                PaywallFooter(state = state, onIntent = onIntent, reason = reason)
             }
 
             IconButton(
@@ -202,7 +208,7 @@ fun PaywallContent(
  * divider is what tells the eye "this part does not move".
  */
 @Composable
-private fun PaywallFooter(state: PaywallState, onIntent: (PaywallIntent) -> Unit) {
+private fun PaywallFooter(state: PaywallState, onIntent: (PaywallIntent) -> Unit, reason: PaywallReason) {
     Surface(color = MaterialTheme.colorScheme.surface) {
         Column {
             PapDivider()
@@ -225,6 +231,19 @@ private fun PaywallFooter(state: PaywallState, onIntent: (PaywallIntent) -> Unit
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth(),
                     )
+                    // [FREE-LIMITS-001] The MOTIVE that brought the user here still gets said,
+                    // even when nothing can be sold — a gate that opens onto a dead end without
+                    // explanation reads as a bug. GENERAL entrances add nothing.
+                    reasonLineRes(reason)?.let { res ->
+                        Spacer(Modifier.height(NOTE_GAP_DP.dp))
+                        Text(
+                            text = stringResource(res),
+                            style = PaparcarType.current.caption,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
                 }
             }
         }
@@ -363,15 +382,29 @@ private class TierLine(val icon: ImageVector, val text: StringResource)
 
 private val FREE_LINES = listOf(
     TierLine(Icons.Rounded.History, Res.string.paywall_free_history),
+    TierLine(Icons.Rounded.DirectionsCar, Res.string.paywall_free_vehicles),
+    TierLine(Icons.Rounded.Map, Res.string.paywall_free_zones),
     TierLine(Icons.Rounded.NotificationsActive, Res.string.paywall_free_alerts),
     TierLine(Icons.Rounded.Favorite, Res.string.paywall_free_support),
 )
 
 private val PLUS_LINES = listOf(
     TierLine(Icons.Rounded.History, Res.string.paywall_plus_history),
+    TierLine(Icons.Rounded.DirectionsCar, Res.string.paywall_plus_vehicles),
+    TierLine(Icons.Rounded.Map, Res.string.paywall_plus_zones),
     TierLine(Icons.Rounded.NotificationsActive, Res.string.paywall_plus_alerts),
     TierLine(Icons.Rounded.Favorite, Res.string.paywall_plus_support),
 )
+
+/** The one-line motive for a gated entrance; GENERAL entrances (the Settings row) have none. */
+private fun reasonLineRes(reason: PaywallReason): StringResource? = when (reason) {
+    PaywallReason.HISTORY -> Res.string.paywall_reason_history
+    PaywallReason.VEHICLES -> Res.string.paywall_reason_vehicles
+    PaywallReason.ZONES -> Res.string.paywall_reason_zones
+    PaywallReason.STATS -> Res.string.paywall_reason_stats
+    PaywallReason.ZONE_ALERTS -> Res.string.paywall_reason_zone_alerts
+    PaywallReason.GENERAL -> null
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Plans — monthly and yearly, priced by the store

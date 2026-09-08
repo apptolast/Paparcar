@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.presentation.settings
 
+import com.rndeveloper.paparcar.domain.entitlement.PaywallReason
 import com.rndeveloper.paparcar.domain.error.PaparcarError
 import com.rndeveloper.paparcar.presentation.permissions.PermissionsFocus
 
@@ -28,5 +29,5 @@ sealed class SettingsEffect {
     data object FirstStepsRestarted : SettingsEffect()
 
     /** Open the Paparcar Plus paywall. [MONEY-001] */
-    data object NavigateToPaywall : SettingsEffect()
+    data class NavigateToPaywall(val reason: PaywallReason) : SettingsEffect()
 }

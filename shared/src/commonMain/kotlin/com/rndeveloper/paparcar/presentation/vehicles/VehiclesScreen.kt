@@ -56,6 +56,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.absoluteValue
+import com.rndeveloper.paparcar.domain.entitlement.PaywallReason
 import com.rndeveloper.paparcar.domain.model.CarbodyType
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.VehicleColor
@@ -107,7 +108,7 @@ fun VehiclesScreen(
     onEditVehicle: (vehicleId: String) -> Unit = {},
     onNavigateToMap: (lat: Double, lon: Double, sessionId: String) -> Unit = { _, _, _ -> },
     onShowExplainer: () -> Unit = {},
-    onOpenPaywall: () -> Unit = {},
+    onOpenPaywall: (PaywallReason) -> Unit = {},
     viewModel: VehiclesViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateLifecycleAware()
@@ -120,7 +121,7 @@ fun VehiclesScreen(
                 is VehiclesEffect.NavigateToAddVehicle -> onAddVehicle()
                 is VehiclesEffect.NavigateToEditVehicle -> onEditVehicle(effect.vehicleId)
                 is VehiclesEffect.NavigateToMap -> onNavigateToMap(effect.lat, effect.lon, effect.sessionId)
-                is VehiclesEffect.NavigateToPaywall -> onOpenPaywall()
+                is VehiclesEffect.NavigateToPaywall -> onOpenPaywall(effect.reason)
                 is VehiclesEffect.ShowError -> snackbarHostState.showSnackbar(errorFallback)
             }
         }

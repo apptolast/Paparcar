@@ -1493,6 +1493,15 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             Variant("Paywall · sin tienda (sin ningún precio)") {
                 PaywallContent(state = PaywallState(offers = emptyList()), onIntent = {})
             },
+            // [FREE-LIMITS-001] El marco sin tienda dice el MOTIVO que trajo al usuario: aquí, el
+            // límite de coches. GENERAL (fila de Ajustes) no añade línea — es la variante de arriba.
+            Variant("Paywall · sin tienda, venía del límite de coches") {
+                PaywallContent(
+                    state = PaywallState(offers = emptyList()),
+                    onIntent = {},
+                    reason = com.rndeveloper.paparcar.domain.entitlement.PaywallReason.VEHICLES,
+                )
+            },
             Variant("Historial free · pie \"Ver todo con Plus\"") {
                 history(
                     HistoryState(timeline = resolvedHistory(agedHalfBeyondFreeWindow(), isPlus = false)),

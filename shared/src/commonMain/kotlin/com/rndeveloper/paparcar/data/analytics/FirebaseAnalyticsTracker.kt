@@ -47,6 +47,10 @@ class FirebaseAnalyticsTracker : AnalyticsTracker {
                     EVENT_SPOT_REPORTED,
                     mapOf(PARAM_CELL to event.location.cell()),
                 )
+                is AnalyticsEvent.PaywallShown -> log(
+                    EVENT_PAYWALL_SHOWN,
+                    mapOf(PARAM_REASON to event.reason.name.lowercase()),
+                )
             }
         }.onFailure { e ->
             PaparcarLogger.w(TAG, "analytics event dropped (${event::class.simpleName}): ${e.message}")
@@ -73,8 +77,10 @@ class FirebaseAnalyticsTracker : AnalyticsTracker {
         const val EVENT_PARKING_SESSION_ENDED = "parking_session_ended"
         const val EVENT_SPOT_RELEASED = "spot_released"
         const val EVENT_SPOT_REPORTED = "spot_reported"
+        const val EVENT_PAYWALL_SHOWN = "paywall_shown"
 
         const val PARAM_CELL = "cell"
+        const val PARAM_REASON = "reason"
         const val PARAM_SPOT_TYPE = "spot_type"
         const val PARAM_DETECTION_PATH = "detection_path"
         const val PARAM_END_REASON = "end_reason"

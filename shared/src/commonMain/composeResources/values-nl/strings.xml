@@ -736,7 +736,16 @@
     <string name="paywall_compare_title">Wat verandert met Plus</string>
     <string name="paywall_tier_free">Gratis</string>
     <string name="paywall_tier_plus">Plus</string>
-    <string name="paywall_free_history">De laatste 30 dagen</string>
+    <string name="paywall_free_history">De laatste 7 dagen</string>
+    <string name="paywall_free_vehicles">Je auto</string>
+    <string name="paywall_plus_vehicles">Al je auto's</string>
+    <string name="paywall_free_zones">2 zones</string>
+    <string name="paywall_plus_zones">Onbeperkt zones</string>
+    <string name="paywall_reason_history">Je wilde oudere parkeersessies zien – Plus bewaart je hele geschiedenis.</string>
+    <string name="paywall_reason_vehicles">Gratis houd je één auto – met Plus voeg je er meer toe.</string>
+    <string name="paywall_reason_zones">Gratis houd je twee zones – met Plus maak je er meer.</string>
+    <string name="paywall_reason_stats">Uitgebreide statistieken horen bij Plus.</string>
+    <string name="paywall_reason_zone_alerts">Meldingen van vrije plekken in je zones horen bij Plus.</string>
     <string name="paywall_free_alerts">Niet inbegrepen</string>
     <string name="paywall_free_support">Gratis voor iedereen</string>
     <string name="paywall_plus_history">Je volledige geschiedenis</string>
@@ -752,7 +761,6 @@
     <string name="paywall_restore">Al geabonneerd? Herstellen</string>
     <string name="paywall_restore_none">Geen abonnement gevonden op dit Google-account.</string>
     <string name="paywall_purchase_failed">De aankoop is niet gelukt — er is niets in rekening gebracht.</string>
-    <string name="paywall_unlimited_note">Voertuigen en zones zijn in beide onbeperkt — Plus beperkt niets van wat je al hebt.</string>
     <string name="settings_plus_title">Paparcar Plus</string>
     <string name="settings_plus_subtitle_free">Volledige geschiedenis en zonemeldingen</string>
     <string name="settings_plus_subtitle_active">Volledige geschiedenis en zonemeldingen, actief</string>

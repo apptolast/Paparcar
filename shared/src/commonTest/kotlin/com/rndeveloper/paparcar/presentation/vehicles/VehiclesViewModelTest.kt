@@ -170,7 +170,52 @@ class VehiclesViewModelTest {
     fun `should_emitNavigateToPaywall_when_theHistoryFooterIsTapped`() = runTest {
         vm.effect.test {
             vm.handleIntent(VehiclesIntent.OpenPlusPaywall)
-            assertEquals(VehiclesEffect.NavigateToPaywall, awaitItem())
+            assertEquals(
+                VehiclesEffect.NavigateToPaywall(com.rndeveloper.paparcar.domain.entitlement.PaywallReason.HISTORY),
+                awaitItem(),
+            )
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    // ── Vehicle limit [FREE-LIMITS-001] ──────────────────────────────────────
+
+    @Test
+    fun `should_openThePaywall_insteadOfTheForm_when_freeAlreadyHasACar`() = runTest {
+        entitlementRepo.emitEntitlement(com.rndeveloper.paparcar.domain.model.Entitlement.FREE)
+        vehicleRepo.saveVehicle(vehicle("v1"))
+
+        vm.effect.test {
+            vm.handleIntent(VehiclesIntent.AddVehicle)
+            assertEquals(
+                VehiclesEffect.NavigateToPaywall(com.rndeveloper.paparcar.domain.entitlement.PaywallReason.VEHICLES),
+                awaitItem(),
+            )
+            cancelAndIgnoreRemainingEvents()
+        }
+        // Soft gate: the car that exists is untouched.
+        assertEquals(1, vm.state.value.vehicles.size)
+    }
+
+    @Test
+    fun `should_openTheForm_when_freeHasNoCarYet`() = runTest {
+        entitlementRepo.emitEntitlement(com.rndeveloper.paparcar.domain.model.Entitlement.FREE)
+
+        vm.effect.test {
+            vm.handleIntent(VehiclesIntent.AddVehicle)
+            assertIs<VehiclesEffect.NavigateToAddVehicle>(awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `should_openTheForm_when_plusHasSeveralCars`() = runTest {
+        vehicleRepo.saveVehicle(vehicle("v1"))
+        vehicleRepo.saveVehicle(vehicle("v2"))
+
+        vm.effect.test {
+            vm.handleIntent(VehiclesIntent.AddVehicle)
+            assertIs<VehiclesEffect.NavigateToAddVehicle>(awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
     }

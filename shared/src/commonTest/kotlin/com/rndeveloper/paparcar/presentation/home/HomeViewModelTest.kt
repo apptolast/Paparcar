@@ -1311,6 +1311,65 @@ class HomeViewModelTest {
         assertEquals(false, s.isSavingZone)
     }
 
+    // ── Zone limit [FREE-LIMITS-001] ─────────────────────────────────────────
+
+    private fun zoneFixture(id: String, name: String) = com.rndeveloper.paparcar.domain.model.Zone(
+        id = id, userId = "u1", name = name, lat = 40.0, lon = -3.7,
+        iconKey = "home", createdAt = 0L,
+    )
+
+    @Test
+    fun `should_openThePaywall_andNotPersist_when_freeCreatesAThirdZone`() = runTest {
+        zoneRepo.zones = listOf(zoneFixture("z1", "Casa"), zoneFixture("z2", "Trabajo"))
+        vm = buildVm()
+
+        vm.handleIntent(HomeIntent.EnterAddZoneMode(lat = 40.0, lon = -3.7))
+        vm.handleIntent(HomeIntent.UpdateAddingZoneName("Gimnasio"))
+        vm.effect.test {
+            // EnterAddZoneMode frames the camera first — drain until the paywall shows up.
+            vm.handleIntent(HomeIntent.ConfirmAddZone)
+            var paywall = awaitItem()
+            while (paywall !is HomeEffect.NavigateToPaywall) paywall = awaitItem()
+            assertEquals(
+                HomeEffect.NavigateToPaywall(com.rndeveloper.paparcar.domain.entitlement.PaywallReason.ZONES),
+                paywall,
+            )
+            cancelAndIgnoreRemainingEvents()
+        }
+        // Soft gate: nothing persisted, and the form survives for after the upgrade.
+        assertNull(zoneRepo.savedZone)
+        val s = vm.state.value
+        assertEquals(HomeMode.AddingZone, s.mode)
+        assertEquals("Gimnasio", s.addingZoneName)
+        assertEquals(false, s.isSavingZone)
+    }
+
+    @Test
+    fun `should_stillSaveAnEdit_when_freeIsAtTheZoneLimit`() = runTest {
+        // Editing is always free — the limit gates CREATION only, zones above it are conserved.
+        zoneRepo.zones = listOf(zoneFixture("z1", "Casa"), zoneFixture("z2", "Trabajo"))
+        vm = buildVm()
+
+        vm.handleIntent(HomeIntent.EnterEditZoneMode("z1"))
+        vm.handleIntent(HomeIntent.UpdateAddingZoneName("Casa nueva"))
+        vm.handleIntent(HomeIntent.ConfirmAddZone)
+
+        assertEquals("Casa nueva", zoneRepo.savedZone?.name)
+    }
+
+    @Test
+    fun `should_saveTheThirdZone_when_plus`() = runTest {
+        zoneRepo.zones = listOf(zoneFixture("z1", "Casa"), zoneFixture("z2", "Trabajo"))
+        vm = buildVm()
+        entitlementRepo.emitEntitlement(com.rndeveloper.paparcar.domain.model.Entitlement.PLUS)
+
+        vm.handleIntent(HomeIntent.EnterAddZoneMode(lat = 40.0, lon = -3.7))
+        vm.handleIntent(HomeIntent.UpdateAddingZoneName("Gimnasio"))
+        vm.handleIntent(HomeIntent.ConfirmAddZone)
+
+        assertEquals("Gimnasio", zoneRepo.savedZone?.name)
+    }
+
     @Test
     fun `should_prefill_radius_and_isPrivate_on_EnterEditZoneMode`() = runTest {
         val zone = com.rndeveloper.paparcar.domain.model.Zone(
@@ -1550,7 +1609,10 @@ class HomeViewModelTest {
 
         vm.effect.test {
             vm.handleIntent(HomeIntent.OpenZoneAlerts)
-            assertEquals(HomeEffect.NavigateToPaywall, awaitItem())
+            assertEquals(
+                HomeEffect.NavigateToPaywall(com.rndeveloper.paparcar.domain.entitlement.PaywallReason.ZONE_ALERTS),
+                awaitItem(),
+            )
             cancelAndIgnoreRemainingEvents()
         }
         assertEquals(false, vm.state.value.zoneAlertsDialogOpen, "free must meet the paywall, not the manager")
@@ -1574,7 +1636,10 @@ class HomeViewModelTest {
 
         vm.effect.test {
             vm.handleIntent(HomeIntent.SetZoneNotify(true))
-            assertEquals(HomeEffect.NavigateToPaywall, awaitItem())
+            assertEquals(
+                HomeEffect.NavigateToPaywall(com.rndeveloper.paparcar.domain.entitlement.PaywallReason.ZONE_ALERTS),
+                awaitItem(),
+            )
             cancelAndIgnoreRemainingEvents()
         }
         assertEquals(false, vm.state.value.addingZoneNotify, "the switch stays OFF after the gated attempt")

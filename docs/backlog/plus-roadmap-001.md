@@ -154,7 +154,20 @@ en `app/src/main/res`. ⏳ En mano: colocar el widget en un `/run` y ver el cicl
 
 ### F1 · FREE-LIMITS-001 — tres límites, tres funciones puras, un paywall
 
+**Estado: ✅ EN MASTER** (08-09) — ficha completa en [`free-limits-001.md`](free-limits-001.md).
+
 **Objetivo.** Free = historial 7 días · 1 coche propio · 2 zonas. Todo lo demás igual.
+
+**Lo que quedó (deltas sobre lo previsto):** el paywall ya era PROPIO (`3ec0088a`), así que la
+comparativa se corrigió AQUÍ, no en la plantilla RC: "30 days" → "7 days", fuera la nota
+"unlimited on both" (quedaba falsa) y dos filas nuevas coches/zonas ×9. `PaywallReason` gana
+`GENERAL` (la fila de Ajustes es oferta, no gate) y alimenta **`paywall_shown(reason)`** vía el
+tracker de A1 — el embudo nace con los límites. Los `*_limit_free_hint` del spec se descartaron
+(el motivo se dice en el marco sin tienda del paywall; dos strings muertas menos). Gates puros en
+`domain/entitlement/` con el patrón del historial; chokepoints: `VehiclesIntent.AddVehicle` y
+`confirmAddZone` (creación); editar/borrar y todo lo YA creado, libre. 22 tests nuevos/adaptados.
+⏳ User: la plantilla/copy del dashboard RC si la tienda enseña comparativa propia (la in-app ya
+dice los límites nuevos).
 
 **Diseño.**
 - `HistoryEntitlementGate.kt`: `FREE_HISTORY_WINDOW_DAYS = 30 → 7`. Es el único cambio ahí: el pie

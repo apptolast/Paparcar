@@ -1,5 +1,8 @@
 package com.rndeveloper.paparcar.presentation.paywall
 
+import com.rndeveloper.paparcar.domain.analytics.AnalyticsEvent
+import com.rndeveloper.paparcar.domain.analytics.AnalyticsTracker
+import com.rndeveloper.paparcar.domain.entitlement.PaywallReason
 import com.rndeveloper.paparcar.domain.usecase.entitlement.GetPlusOffersUseCase
 import com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase
 import com.rndeveloper.paparcar.domain.usecase.entitlement.PurchasePlusUseCase
@@ -25,11 +28,18 @@ class PaywallViewModel(
     private val getPlusOffers: GetPlusOffersUseCase,
     private val purchasePlus: PurchasePlusUseCase,
     private val restorePurchases: RestorePurchasesUseCase,
+    /** WHICH limit (or entrance) opened this paywall — rides the route via
+     *  `koinViewModel { parametersOf(reason) }`. [FREE-LIMITS-001] */
+    reason: PaywallReason = PaywallReason.GENERAL,
+    // Fire-and-forget product analytics; nullable for test doubles. [ANALYTICS-EVENTS-001]
+    analyticsTracker: AnalyticsTracker? = null,
 ) : BaseViewModel<PaywallState, PaywallIntent, PaywallEffect>() {
 
     override fun initState(): PaywallState = PaywallState()
 
     init {
+        // One VM = one paywall open → exactly one funnel entry. [FREE-LIMITS-001]
+        analyticsTracker?.track(AnalyticsEvent.PaywallShown(reason))
         observeIsPlus()
             .onEach { isPlus -> updateState { copy(isPlus = isPlus) } }
             .launchIn(viewModelScope)

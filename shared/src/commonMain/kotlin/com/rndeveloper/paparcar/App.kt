@@ -62,6 +62,7 @@ import com.apptolast.baselogin.presentation.navigation.LoginRoute
 import com.apptolast.baselogin.presentation.navigation.NavTransitions
 import com.apptolast.baselogin.presentation.navigation.authRoutesFlow
 import com.rndeveloper.paparcar.domain.connectivity.ConnectivityBannerPhase
+import com.rndeveloper.paparcar.domain.entitlement.PaywallReason
 import com.rndeveloper.paparcar.domain.preferences.ThemeMode
 import com.rndeveloper.paparcar.presentation.app.AppIntent
 import com.rndeveloper.paparcar.presentation.app.AppViewModel
@@ -589,7 +590,7 @@ private fun MainAppNavigation(
                     onOpenStepExplainer = { step ->
                         navController.navigate("${Routes.FIRST_STEP_EXPLAINER}/${step.name}")
                     },
-                    onOpenPaywall = { navController.navigate(Routes.PAYWALL) },
+                    onOpenPaywall = { reason -> navController.navigate("${Routes.PAYWALL}?reason=${reason.name}") },
                 )
             }
             composable(
@@ -642,7 +643,7 @@ private fun MainAppNavigation(
                         onShowExplainer = {
                             navController.navigate(Routes.VEHICLE_SIZE_EXPLAINER)
                         },
-                        onOpenPaywall = { navController.navigate(Routes.PAYWALL) },
+                        onOpenPaywall = { reason -> navController.navigate("${Routes.PAYWALL}?reason=${reason.name}") },
                     )
                 }
             }
@@ -660,7 +661,7 @@ private fun MainAppNavigation(
                         // Deep-link into car-Bluetooth config for the active vehicle.
                         onNavigateToBluetoothConfig = { vehicleId -> navController.navigate("${Routes.BT_CONFIG}/$vehicleId") },
                         onNavigateToLicenses = { navController.navigate(Routes.LICENSES) },
-                        onOpenPaywall = { navController.navigate(Routes.PAYWALL) },
+                        onOpenPaywall = { reason -> navController.navigate("${Routes.PAYWALL}?reason=${reason.name}") },
                         themeMode = themeMode,
                         onSetThemeMode = onSetThemeMode,
                         imperialUnits = imperialUnits,
@@ -700,8 +701,15 @@ private fun MainAppNavigation(
                     onNavigateBack = { navController.popBackStack() },
                 )
             }
-            composable(Routes.PAYWALL) {
+            composable(
+                route = "${Routes.PAYWALL}?reason={reason}",
+                arguments = listOf(navArgument("reason") { type = NavType.StringType; defaultValue = "" }),
+            ) { backStack ->
+                // [FREE-LIMITS-001] WHICH limit asked — feeds paywall_shown and the storeless
+                // motive line. Unknown/absent parses to GENERAL, never a crash.
+                val reason = PaywallReason.ofName(backStack.arguments?.read { getStringOrNull("reason") })
                 PaywallScreen(
+                    reason = reason,
                     onClose = { navController.popBackStack() },
                 )
             }

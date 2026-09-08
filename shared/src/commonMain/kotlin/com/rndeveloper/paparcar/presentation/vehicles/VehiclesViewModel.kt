@@ -2,6 +2,8 @@
 
 package com.rndeveloper.paparcar.presentation.vehicles
 
+import com.rndeveloper.paparcar.domain.entitlement.PaywallReason
+import com.rndeveloper.paparcar.domain.entitlement.canAddOwnVehicle
 import com.rndeveloper.paparcar.domain.error.PaparcarError
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.VehicleWithStats
@@ -96,7 +98,14 @@ class VehiclesViewModel(
             }
             is VehiclesIntent.EditVehicle ->
                 sendEffect(VehiclesEffect.NavigateToEditVehicle(intent.vehicleId))
-            is VehiclesIntent.AddVehicle -> sendEffect(VehiclesEffect.NavigateToAddVehicle)
+            // [FREE-LIMITS-001] Soft gate at the ONE chokepoint (FAB and pill send this same
+            // intent): free with a car already → paywall. Nothing existing is ever touched.
+            is VehiclesIntent.AddVehicle ->
+                if (canAddOwnVehicle(ownedCount = state.value.vehicles.size, isPlus = state.value.isPlus)) {
+                    sendEffect(VehiclesEffect.NavigateToAddVehicle)
+                } else {
+                    sendEffect(VehiclesEffect.NavigateToPaywall(PaywallReason.VEHICLES))
+                }
             is VehiclesIntent.SetHistoryFilter -> {
                 val vehicleId = state.value.currentVehicleId ?: return
                 val currentHistory = state.value.historyCache[vehicleId] ?: return
@@ -116,7 +125,7 @@ class VehiclesViewModel(
             }
             is VehiclesIntent.ViewOnMap ->
                 sendEffect(VehiclesEffect.NavigateToMap(intent.lat, intent.lon, intent.sessionId))
-            is VehiclesIntent.OpenPlusPaywall -> sendEffect(VehiclesEffect.NavigateToPaywall)
+            is VehiclesIntent.OpenPlusPaywall -> sendEffect(VehiclesEffect.NavigateToPaywall(PaywallReason.HISTORY))
         }
     }
 

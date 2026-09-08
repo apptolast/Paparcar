@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
+import com.rndeveloper.paparcar.domain.entitlement.PaywallReason
 import com.rndeveloper.paparcar.domain.error.PaparcarError
 import com.rndeveloper.paparcar.domain.model.SpotVoteOutcome
 import com.rndeveloper.paparcar.presentation.home.model.isDetectionStopped
@@ -163,7 +164,7 @@ fun HomeScreen(
      *  [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001] */
     onOpenStepExplainer: (FirstStep) -> Unit = {},
     /** A Plus gate tapped by a free user — open the Paparcar Plus paywall. [MONEY-001] */
-    onOpenPaywall: () -> Unit = {},
+    onOpenPaywall: (PaywallReason) -> Unit = {},
     viewModel: HomeViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateLifecycleAware()
@@ -240,7 +241,7 @@ fun HomeScreen(
                     SpotVoteOutcome.IGNORED_TOO_FAR -> Unit
                 }
                 HomeEffect.ZoneSaved -> snackbarHostState.showSnackbar(msgZoneSaved)
-                HomeEffect.NavigateToPaywall -> onOpenPaywall()
+                is HomeEffect.NavigateToPaywall -> onOpenPaywall(effect.reason)
                 HomeEffect.DetectionEnabled -> snackbarHostState.showSnackbar(msgDetectionEnabled)
                 // [DET-STOP-BUTTON-001] The user stopped THIS trip — plain confirmation, no action:
                 // there is nothing to re-enable (the feature is still on) and the copy already says

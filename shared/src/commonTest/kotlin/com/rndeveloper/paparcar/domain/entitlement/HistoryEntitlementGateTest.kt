@@ -38,13 +38,29 @@ class HistoryEntitlementGateTest {
     }
 
     @Test
-    fun `should_hideOlderThanThirtyDaysAndCountThem_when_free`() {
-        val sessions = listOf(session("new", 1), session("edge", 29), session("old", 31), session("older", 200))
+    fun `should_hideOlderThanTheFreeWindowAndCountThem_when_free`() {
+        // Ages RELATIVE to the constant, so the product narrowing the window (30 → 7 on 07-09,
+        // FREE-LIMITS-001) moves the fixture with it instead of silently testing yesterday's rule.
+        val sessions = listOf(
+            session("new", 1),
+            session("edge", FREE_HISTORY_WINDOW_DAYS - 1),
+            session("old", FREE_HISTORY_WINDOW_DAYS + 1),
+            session("older", 200),
+        )
 
         val gated = gateHistoryToEntitlement(sessions, isPlus = false, nowMs = nowMs)
 
         assertEquals(listOf("new", "edge"), gated.visible.map { it.id })
         assertEquals(2, gated.hiddenOlderCount)
+    }
+
+    @Test
+    fun `should_useTheSevenDayWindow_when_free`() {
+        // The 07-09 product decision, pinned: a session 8 days old is OUTSIDE the free window.
+        assertEquals(7, FREE_HISTORY_WINDOW_DAYS)
+        val gated = gateHistoryToEntitlement(listOf(session("old", 8)), isPlus = false, nowMs = nowMs)
+        assertEquals(0, gated.visible.size)
+        assertEquals(1, gated.hiddenOlderCount)
     }
 
     @Test

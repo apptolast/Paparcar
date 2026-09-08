@@ -749,7 +749,16 @@
     <string name="paywall_compare_title">Co zmienia Plus</string>
     <string name="paywall_tier_free">Za darmo</string>
     <string name="paywall_tier_plus">Plus</string>
-    <string name="paywall_free_history">Ostatnie 30 dni</string>
+    <string name="paywall_free_history">Ostatnie 7 dni</string>
+    <string name="paywall_free_vehicles">Twoje auto</string>
+    <string name="paywall_plus_vehicles">Wszystkie twoje auta</string>
+    <string name="paywall_free_zones">2 strefy</string>
+    <string name="paywall_plus_zones">Strefy bez limitu</string>
+    <string name="paywall_reason_history">Chcesz zobaczyć starsze parkowania – Plus zachowuje całą historię.</string>
+    <string name="paywall_reason_vehicles">W wersji darmowej masz jedno auto – z Plus dodasz więcej.</string>
+    <string name="paywall_reason_zones">W wersji darmowej masz dwie strefy – z Plus utworzysz więcej.</string>
+    <string name="paywall_reason_stats">Zaawansowane statystyki są częścią Plus.</string>
+    <string name="paywall_reason_zone_alerts">Powiadomienia o wolnych miejscach w twoich strefach są częścią Plus.</string>
     <string name="paywall_free_alerts">Niedostępne</string>
     <string name="paywall_free_support">Darmowe dla wszystkich</string>
     <string name="paywall_plus_history">Cała Twoja historia</string>
@@ -765,7 +774,6 @@
     <string name="paywall_restore">Masz już subskrypcję? Przywróć</string>
     <string name="paywall_restore_none">Nie znaleziono subskrypcji na tym koncie Google.</string>
     <string name="paywall_purchase_failed">Zakup nie doszedł do skutku — nic nie zostało pobrane.</string>
-    <string name="paywall_unlimited_note">Pojazdy i strefy są nieograniczone w obu — Plus niczego nie ogranicza.</string>
     <string name="settings_plus_title">Paparcar Plus</string>
     <string name="settings_plus_subtitle_free">Pełna historia i alerty stref</string>
     <string name="settings_plus_subtitle_active">Pełna historia i alerty stref, aktywne</string>

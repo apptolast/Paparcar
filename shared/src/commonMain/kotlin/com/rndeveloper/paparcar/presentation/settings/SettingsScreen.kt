@@ -86,6 +86,7 @@ import coil3.compose.AsyncImagePainter
 import coil3.compose.rememberAsyncImagePainter
 import com.rndeveloper.paparcar.isBatteryOptimizationRelevant
 import com.rndeveloper.paparcar.domain.diagnostics.DiagnosticsReport
+import com.rndeveloper.paparcar.domain.entitlement.PaywallReason
 import com.rndeveloper.paparcar.domain.error.PaparcarError
 import com.rndeveloper.paparcar.domain.permissions.RequiredPermission
 import com.rndeveloper.paparcar.domain.preferences.ThemeMode
@@ -212,7 +213,7 @@ fun SettingsScreen(
     onNavigateToPermissions: (PermissionsFocus) -> Unit = {},
     onNavigateToBluetoothConfig: (String) -> Unit = {},
     onNavigateToLicenses: () -> Unit = {},
-    onOpenPaywall: () -> Unit = {},
+    onOpenPaywall: (PaywallReason) -> Unit = {},
     themeMode: ThemeMode = ThemeMode.SYSTEM,
     onSetThemeMode: (ThemeMode) -> Unit = {},
     imperialUnits: Boolean = false,
@@ -243,7 +244,7 @@ fun SettingsScreen(
                 is SettingsEffect.NavigateToPermissions -> onNavigateToPermissions(effect.focus)
                 is SettingsEffect.NavigateToBluetoothConfig -> onNavigateToBluetoothConfig(effect.vehicleId)
                 is SettingsEffect.NavigateToLicenses -> onNavigateToLicenses()
-                is SettingsEffect.NavigateToPaywall -> onOpenPaywall()
+                is SettingsEffect.NavigateToPaywall -> onOpenPaywall(effect.reason)
                 is SettingsEffect.OpenUrl -> uriHandler.openUri(effect.url)
                 // The only error this screen emits today is the account-deletion failure —
                 // surface it; anything new falls back to the generic message rather than

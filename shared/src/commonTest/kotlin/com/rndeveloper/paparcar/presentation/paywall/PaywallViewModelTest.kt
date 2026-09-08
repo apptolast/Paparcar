@@ -37,12 +37,32 @@ class PaywallViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun buildVm() = PaywallViewModel(
+    private fun buildVm(
+        reason: com.rndeveloper.paparcar.domain.entitlement.PaywallReason =
+            com.rndeveloper.paparcar.domain.entitlement.PaywallReason.GENERAL,
+        tracker: com.rndeveloper.paparcar.fakes.FakeAnalyticsTracker? = null,
+    ) = PaywallViewModel(
         ObserveIsPlusUseCase(entitlementRepo),
         GetPlusOffersUseCase(entitlementRepo),
         PurchasePlusUseCase(entitlementRepo),
         RestorePurchasesUseCase(entitlementRepo),
+        reason = reason,
+        analyticsTracker = tracker,
     )
+
+    // ── Funnel entry [FREE-LIMITS-001] ───────────────────────────────────────
+
+    @Test
+    fun `should_emitOnePaywallShownWithItsReason_when_opened`() = runTest {
+        val tracker = com.rndeveloper.paparcar.fakes.FakeAnalyticsTracker()
+
+        buildVm(reason = com.rndeveloper.paparcar.domain.entitlement.PaywallReason.ZONES, tracker = tracker)
+
+        val shown = tracker.events
+            .filterIsInstance<com.rndeveloper.paparcar.domain.analytics.AnalyticsEvent.PaywallShown>()
+            .single()
+        assertEquals(com.rndeveloper.paparcar.domain.entitlement.PaywallReason.ZONES, shown.reason)
+    }
 
     @Test
     fun `should_mirrorTheEntitlementStream_when_plusArrivesByAnyRoute`() = runTest {

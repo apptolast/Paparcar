@@ -735,7 +735,16 @@
     <string name="paywall_compare_title">O que muda com Plus</string>
     <string name="paywall_tier_free">Grátis</string>
     <string name="paywall_tier_plus">Plus</string>
-    <string name="paywall_free_history">Os últimos 30 dias</string>
+    <string name="paywall_free_history">Os últimos 7 dias</string>
+    <string name="paywall_free_vehicles">O seu carro</string>
+    <string name="paywall_plus_vehicles">Todos os seus carros</string>
+    <string name="paywall_free_zones">2 zonas</string>
+    <string name="paywall_plus_zones">Zonas sem limite</string>
+    <string name="paywall_reason_history">Queria ver estacionamentos anteriores: o Plus guarda todo o histórico.</string>
+    <string name="paywall_reason_vehicles">O plano gratuito fica com um carro: com o Plus pode adicionar mais.</string>
+    <string name="paywall_reason_zones">O plano gratuito fica com duas zonas: com o Plus pode criar mais.</string>
+    <string name="paywall_reason_stats">As estatísticas avançadas fazem parte do Plus.</string>
+    <string name="paywall_reason_zone_alerts">Os alertas de lugares livres nas suas zonas fazem parte do Plus.</string>
     <string name="paywall_free_alerts">Não incluídos</string>
     <string name="paywall_free_support">Grátis para todos</string>
     <string name="paywall_plus_history">O teu histórico completo</string>
@@ -751,7 +760,6 @@
     <string name="paywall_restore">Já subscreveste? Restaurar</string>
     <string name="paywall_restore_none">Nenhuma subscrição nesta conta Google.</string>
     <string name="paywall_purchase_failed">A compra não foi concluída — não te foi cobrado nada.</string>
-    <string name="paywall_unlimited_note">Veículos e zonas são ilimitados em ambos — o Plus não limita nada do que já tens.</string>
     <string name="settings_plus_title">Paparcar Plus</string>
     <string name="settings_plus_subtitle_free">Histórico completo e alertas de zona</string>
     <string name="settings_plus_subtitle_active">Histórico completo e alertas de zona, ativo</string>

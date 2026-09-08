@@ -730,7 +730,16 @@
     <string name="paywall_compare_title">Qué cambia con Plus</string>
     <string name="paywall_tier_free">Gratis</string>
     <string name="paywall_tier_plus">Plus</string>
-    <string name="paywall_free_history">Los últimos 30 días</string>
+    <string name="paywall_free_history">Los últimos 7 días</string>
+    <string name="paywall_free_vehicles">Tu coche</string>
+    <string name="paywall_plus_vehicles">Todos tus coches</string>
+    <string name="paywall_free_zones">2 zonas</string>
+    <string name="paywall_plus_zones">Zonas sin límite</string>
+    <string name="paywall_reason_history">Querías ver aparcamientos anteriores: Plus guarda todo tu historial.</string>
+    <string name="paywall_reason_vehicles">Free se queda con un coche: con Plus puedes añadir más.</string>
+    <string name="paywall_reason_zones">Free se queda con dos zonas: con Plus puedes crear más.</string>
+    <string name="paywall_reason_stats">Las estadísticas avanzadas son parte de Plus.</string>
+    <string name="paywall_reason_zone_alerts">Los avisos de plazas libres en tus zonas son parte de Plus.</string>
     <string name="paywall_free_alerts">No incluidos</string>
     <string name="paywall_free_support">Gratis para todos</string>
     <string name="paywall_plus_history">Tu historial completo</string>
@@ -746,7 +755,6 @@
     <string name="paywall_restore">¿Ya estás suscrito? Restaurar</string>
     <string name="paywall_restore_none">No hay ninguna suscripción en esta cuenta de Google.</string>
     <string name="paywall_purchase_failed">La compra no se completó — no se te ha cobrado nada.</string>
-    <string name="paywall_unlimited_note">Los vehículos y las zonas son ilimitados en ambos — Plus no limita nada de lo que ya tienes.</string>
     <string name="settings_plus_title">Paparcar Plus</string>
     <string name="settings_plus_subtitle_free">Historial completo y alertas de zona</string>
     <string name="settings_plus_subtitle_active">Historial completo y alertas de zona, activo</string>

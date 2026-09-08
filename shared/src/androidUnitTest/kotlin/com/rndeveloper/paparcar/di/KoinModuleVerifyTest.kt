@@ -62,6 +62,9 @@ class KoinModuleVerifyTest {
             extraTypes = listOf(
                 // Provided at runtime by startKoin { androidContext(...) }, not by a definition.
                 Context::class,
+                // Navigation parameter: the paywall's opening motive rides the route and reaches
+                // the VM via koinViewModel { parametersOf(reason) }. [FREE-LIMITS-001]
+                com.rndeveloper.paparcar.domain.entitlement.PaywallReason::class,
                 // Function-typed constructor params (`() -> T`, `(A) -> T`) are inline factories
                 // written in the module lambda itself — they cannot be "missing" as bindings.
                 Function0::class,

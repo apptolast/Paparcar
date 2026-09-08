@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.presentation.home
 
+import com.rndeveloper.paparcar.domain.entitlement.PaywallReason
 import com.rndeveloper.paparcar.domain.error.PaparcarError
 import com.rndeveloper.paparcar.domain.model.SpotVoteOutcome
 
@@ -24,8 +25,9 @@ sealed class HomeEffect {
     ) : HomeEffect()
     data object ZoneSaved : HomeEffect()
 
-    /** A Plus gate was tapped by a free user — open the Paparcar Plus paywall. [MONEY-001] */
-    data object NavigateToPaywall : HomeEffect()
+    /** A Plus gate was tapped by a free user — open the Paparcar Plus paywall, stamped with WHY.
+     *  [MONEY-001][FREE-LIMITS-001] */
+    data class NavigateToPaywall(val reason: PaywallReason) : HomeEffect()
     /** Auto-detection just re-enabled from the Home banner — confirm with a snackbar. [DET-TOGGLE-001] */
     data object DetectionEnabled : HomeEffect()
     /** Auto-detection enabled but permissions still missing — open the permissions screen at [focus]

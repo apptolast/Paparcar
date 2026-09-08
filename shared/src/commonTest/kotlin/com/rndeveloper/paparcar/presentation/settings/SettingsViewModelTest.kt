@@ -491,7 +491,10 @@ class SettingsViewModelTest {
 
         vm.effect.test {
             vm.handleIntent(SettingsIntent.ToggleZoneAlertsNotif(enabled = true))
-            assertEquals(SettingsEffect.NavigateToPaywall, awaitItem())
+            assertEquals(
+                SettingsEffect.NavigateToPaywall(com.rndeveloper.paparcar.domain.entitlement.PaywallReason.ZONE_ALERTS),
+                awaitItem(),
+            )
             cancelAndIgnoreRemainingEvents()
         }
         assertFalse(prefs.notifyZoneSpots, "the attempt opens the paywall; it must not flip the pref")
@@ -519,7 +522,11 @@ class SettingsViewModelTest {
     fun `should_openThePaywall_when_thePlusRowIsTapped`() = runTest {
         vm.effect.test {
             vm.handleIntent(SettingsIntent.OpenPlusPaywall)
-            assertEquals(SettingsEffect.NavigateToPaywall, awaitItem())
+            // The Plus row is an offer, not a gate — GENERAL keeps the funnel honest. [FREE-LIMITS-001]
+            assertEquals(
+                SettingsEffect.NavigateToPaywall(com.rndeveloper.paparcar.domain.entitlement.PaywallReason.GENERAL),
+                awaitItem(),
+            )
             cancelAndIgnoreRemainingEvents()
         }
     }

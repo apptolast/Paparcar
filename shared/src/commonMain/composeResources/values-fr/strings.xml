@@ -735,7 +735,16 @@
     <string name="paywall_compare_title">Ce qui change avec Plus</string>
     <string name="paywall_tier_free">Gratuit</string>
     <string name="paywall_tier_plus">Plus</string>
-    <string name="paywall_free_history">Les 30 derniers jours</string>
+    <string name="paywall_free_history">Les 7 derniers jours</string>
+    <string name="paywall_free_vehicles">Votre voiture</string>
+    <string name="paywall_plus_vehicles">Toutes vos voitures</string>
+    <string name="paywall_free_zones">2 zones</string>
+    <string name="paywall_plus_zones">Zones illimitées</string>
+    <string name="paywall_reason_history">Vous vouliez voir des stationnements plus anciens : Plus garde tout votre historique.</string>
+    <string name="paywall_reason_vehicles">La version gratuite garde une voiture : avec Plus, ajoutez-en davantage.</string>
+    <string name="paywall_reason_zones">La version gratuite garde deux zones : avec Plus, créez-en davantage.</string>
+    <string name="paywall_reason_stats">Les statistiques avancées font partie de Plus.</string>
+    <string name="paywall_reason_zone_alerts">Les alertes de places libres dans vos zones font partie de Plus.</string>
     <string name="paywall_free_alerts">Non inclus</string>
     <string name="paywall_free_support">Gratuit pour tous</string>
     <string name="paywall_plus_history">Tout ton historique</string>
@@ -751,7 +760,6 @@
     <string name="paywall_restore">Déjà abonné ? Restaurer</string>
     <string name="paywall_restore_none">Aucun abonnement sur ce compte Google.</string>
     <string name="paywall_purchase_failed">L'achat n'a pas abouti — rien ne t'a été facturé.</string>
-    <string name="paywall_unlimited_note">Les véhicules et les zones sont illimités dans les deux — Plus ne limite rien de ce que tu as déjà.</string>
     <string name="settings_plus_title">Paparcar Plus</string>
     <string name="settings_plus_subtitle_free">Historique complet et alertes de zone</string>
     <string name="settings_plus_subtitle_active">Historique complet et alertes de zone, actif</string>

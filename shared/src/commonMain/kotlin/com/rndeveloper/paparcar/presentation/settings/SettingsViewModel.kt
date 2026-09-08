@@ -2,6 +2,7 @@ package com.rndeveloper.paparcar.presentation.settings
 
 import com.apptolast.baselogin.domain.AuthRepository
 import com.rndeveloper.paparcar.core.crash.CrashReporter
+import com.rndeveloper.paparcar.domain.entitlement.PaywallReason
 import com.rndeveloper.paparcar.domain.error.PaparcarError
 import com.rndeveloper.paparcar.domain.permissions.PermissionManager
 import com.rndeveloper.paparcar.domain.permissions.missingCorePermissions
@@ -151,13 +152,14 @@ class SettingsViewModel(
             // Disabling is always allowed — silencing a channel needs no entitlement.
             is SettingsIntent.ToggleZoneAlertsNotif -> {
                 if (intent.enabled && !state.value.isPlus) {
-                    sendEffect(SettingsEffect.NavigateToPaywall)
+                    sendEffect(SettingsEffect.NavigateToPaywall(PaywallReason.ZONE_ALERTS))
                 } else {
                     prefs.setNotifyZoneSpots(intent.enabled)
                     updateState { copy(notifyZoneSpots = intent.enabled) }
                 }
             }
-            is SettingsIntent.OpenPlusPaywall -> sendEffect(SettingsEffect.NavigateToPaywall)
+            // The Plus row is an OFFER, not a gate — GENERAL keeps the funnel honest. [FREE-LIMITS-001]
+            is SettingsIntent.OpenPlusPaywall -> sendEffect(SettingsEffect.NavigateToPaywall(PaywallReason.GENERAL))
             is SettingsIntent.NavigateToVehicles ->
                 sendEffect(SettingsEffect.NavigateToVehicles)
             // Health "Fix": jump to CORE when a hard-blocker (foreground location) is missing OR the

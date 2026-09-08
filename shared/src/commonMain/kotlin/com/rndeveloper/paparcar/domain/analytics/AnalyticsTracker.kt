@@ -51,6 +51,12 @@ sealed class AnalyticsEvent {
     data class SpotReported(
         val location: GpsPoint,
     ) : AnalyticsEvent()
+
+    /** The paywall opened, and WHICH limit (or entrance) asked — the conversion funnel's first
+     *  column. No location: a paywall is not a place. [FREE-LIMITS-001] */
+    data class PaywallShown(
+        val reason: com.rndeveloper.paparcar.domain.entitlement.PaywallReason,
+    ) : AnalyticsEvent()
 }
 
 /** Why a session ended. A retraction ("I never parked") IS a fact and is emitted — analysis

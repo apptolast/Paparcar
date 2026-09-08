@@ -34,5 +34,7 @@ fun gateHistoryToEntitlement(
     )
 }
 
-const val FREE_HISTORY_WINDOW_DAYS = 30
+// 30 → 7 on 2026-09-07: the product review narrowed the free window (plus-roadmap-001 supersedes
+// MONEY-001 here). Everything downstream reads this constant, so the pie/stepper follow alone.
+const val FREE_HISTORY_WINDOW_DAYS = 7
 private const val MS_PER_DAY = 86_400_000L
