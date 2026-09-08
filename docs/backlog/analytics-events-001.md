@@ -1,7 +1,12 @@
 # ANALYTICS-EVENTS-001 · Los hechos que ya ocurren no dejan huella medible
 
-**Estado:** ✅ Done — mergeado a master (2026-09-08). ⏳ Del user (consola, sin código): GA
-habilitado en pap-26 + export BigQuery + redesplegar hosting (política actualizada).
+**Estado:** ✅ Done — mergeado a master (2026-09-08). Consola cerrada el mismo día: GA verificado
+habilitado por API (property `524957242`, 3 streams Android), hosting desplegado (política 08-09
+viva en paparcar.com), BigQuery API habilitada, y **enlace GA→BigQuery creado por el user** (GA
+Admin → BigQuery Links; la Analytics Admin API exige scope `analytics.edit` que el token del CLI
+no lleva, por eso esa parte fue manual). ⏳ Verificación final: el dataset `analytics_524957242`
+aparece en BigQuery con el PRIMER ciclo de export (hasta 24 h el diario) — a 08-09 aún no existía,
+comprobar al día siguiente con `GET /bigquery/v2/projects/pap-26/datasets`.
 
 Fase **A1 de la ola 2** ([`plus-roadmap-001.md`](plus-roadmap-001.md)) — feature 1a del roadmap
 padre ([`ROADMAP-POST-PLUS.md §5.1`](../ROADMAP-POST-PLUS.md)).
