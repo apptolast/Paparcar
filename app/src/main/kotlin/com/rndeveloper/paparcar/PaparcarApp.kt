@@ -139,7 +139,7 @@ class PaparcarApp : Application() {
         // [WIDGET-PARKED-001] Home-screen widget: re-render on every parked-state change. The
         // state only changes from this process, so the observer covers all transitions; the
         // provider's updatePeriodMillis floors the process-death case.
-        ParkedWidgetRefresher(this, get(), get()).start()
+        ParkedWidgetRefresher(this, get(), get(), get()).start()
 
         // Daily cold-start nudge for users who enabled detection but never parked with it — and the
         // removal of that clock once the nudge is permanently spent (park confirmed / cap

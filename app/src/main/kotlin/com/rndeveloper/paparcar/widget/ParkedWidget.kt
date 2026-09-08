@@ -5,6 +5,7 @@ import android.content.Intent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.ColorFilter
@@ -14,10 +15,12 @@ import androidx.glance.GlanceTheme
 import androidx.glance.Image
 import androidx.glance.ImageProvider
 import androidx.glance.LocalContext
+import androidx.glance.LocalSize
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.components.CircleIconButton
+import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
@@ -37,6 +40,8 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import com.rndeveloper.paparcar.MainActivity
 import com.rndeveloper.paparcar.R
+import com.rndeveloper.paparcar.domain.detection.DetectionPhase
+import com.rndeveloper.paparcar.domain.detection.DetectionRuntimeState
 import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import com.rndeveloper.paparcar.presentation.widget.ParkedWidgetState
@@ -64,12 +69,37 @@ import java.util.Date
  */
 class ParkedWidget : GlanceAppWidget() {
 
+    /**
+     * [WIDGET-A-TRIP-IS-NOT-AN-EMPTY-WIDGET-001 D5] The provider has always declared
+     * `resizeMode="horizontal|vertical"`, so a user could already stretch this widget — and got
+     * blank space for it, because the content painted one row whatever the height. Two buckets: the
+     * 3x1 it ships as, and a taller one that lists a row per parked car instead of collapsing them
+     * into "+N". Only reachable with more than one vehicle, which is a Plus situation
+     * [FREE-LIMITS-001], so the short layout stays the one everybody sees.
+     */
+    override val sizeMode = SizeMode.Responsive(setOf(COMPACT_SIZE, TALL_SIZE))
+
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val koin = GlobalContext.get()
+        // The live trip is NOT in Room — it lives in the detection runtime, in this same process.
+        // Without it a trip reads as Empty and the widget asks you to mark the car you are driving.
+        // [WIDGET-A-TRIP-IS-NOT-AN-EMPTY-WIDGET-001]
+        val runtime = koin.get<DetectionRuntimeState>()
         val stateFlow = combine(
             koin.get<UserParkingRepository>().observeActiveSessions(),
             koin.get<VehicleRepository>().observeVehicles(),
-        ) { sessions, vehicles -> resolveParkedWidgetState(sessions, vehicles) }
+            runtime.isRunning,
+            runtime.trip,
+            runtime.phase,
+        ) { sessions, vehicles, isRunning, trip, phase ->
+            resolveParkedWidgetState(
+                sessions = sessions,
+                vehicles = vehicles,
+                isDriving = isRunning,
+                drivingVehicleId = trip?.departingVehicleId,
+                isCandidate = phase == DetectionPhase.Candidate,
+            )
+        }
         // First value resolved before composing so a re-render never flashes the empty state.
         val initial = stateFlow.first()
         provideContent {
@@ -94,9 +124,13 @@ class ParkedWidget : GlanceAppWidget() {
                 .padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = END_PADDING_DP.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            // A tall widget lists the cars; the short one keeps today's single row. The threshold is
+            // read from the size the launcher actually gave us, not from the bucket we asked for.
+            val tall = LocalSize.current.height >= TALL_SIZE.height
             when (state) {
                 is ParkedWidgetState.Empty -> Empty()
-                is ParkedWidgetState.Parked -> Parked(state)
+                is ParkedWidgetState.Driving -> Driving(state, tall)
+                is ParkedWidgetState.Parked -> Parked(state, tall)
             }
         }
     }
@@ -104,24 +138,101 @@ class ParkedWidget : GlanceAppWidget() {
     @Composable
     private fun Empty() {
         val context = LocalContext.current
-        Text(
-            text = context.getString(R.string.widget_empty_title),
-            style = TextStyle(
-                color = GlanceTheme.colors.onSurface,
-                fontSize = TITLE_SP.sp,
-                fontWeight = FontWeight.Medium,
-            ),
+        TitleAndHint(
+            title = context.getString(R.string.widget_empty_title),
+            hint = context.getString(R.string.widget_empty_hint),
         )
+    }
+
+    /**
+     * A trip in progress. [WIDGET-A-TRIP-IS-NOT-AN-EMPTY-WIDGET-001]
+     *
+     * Same anatomy as [Empty] — brand mark, one line of fact, one line of hint — and **no action
+     * buttons**: this state has no session, so the two verbs [Parked] offers (directions, more)
+     * have nothing to point at. No route glyph either: `RemoteViews` cannot animate, so a second
+     * glyph would only compete with the brand mark to say what the line already says in words.
+     */
+    @Composable
+    private fun Driving(state: ParkedWidgetState.Driving, tall: Boolean) {
+        val context = LocalContext.current
+        val phase = if (state.isCandidate) {
+            context.getString(R.string.widget_driving_parking)
+        } else {
+            state.vehicleName
+                ?.let { context.getString(R.string.widget_driving_title, it) }
+                ?: context.getString(R.string.widget_driving_title_unknown)
+        }
+        TitleAndHint(title = phase, hint = context.getString(R.string.widget_driving_hint))
+        // With a second car parked, a tall widget keeps showing it: driving one vehicle is no
+        // reason to hide where the other one is. The short layout has no room and the trip wins.
+        // [WIDGET-A-TRIP-IS-NOT-AN-EMPTY-WIDGET-001 D5]
+        if (tall) {
+            state.alsoParked.forEach { car ->
+                Spacer(GlanceModifier.height(ROW_GAP_DP.dp))
+                CarRow(car = car, othersCount = 0, showBrand = false)
+            }
+        }
+    }
+
+    /**
+     * The shape both action-less states share: the brand mark, the fact, and one quiet line under
+     * it. The mark is here — and not only in [Parked] — because a freshly pinned widget with no
+     * parking yet used to be an anonymous grey rectangle on the launcher, at the exact moment the
+     * user has to recognise what they just placed there.
+     */
+    @Composable
+    private fun TitleAndHint(title: String, hint: String) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            BrandMark()
+            Spacer(GlanceModifier.width(BRAND_GAP_DP.dp))
+            Text(
+                text = title,
+                style = TextStyle(
+                    color = GlanceTheme.colors.onSurface,
+                    fontSize = TITLE_SP.sp,
+                    fontWeight = FontWeight.Medium,
+                ),
+                maxLines = 1,
+            )
+        }
         Spacer(GlanceModifier.height(2.dp))
         Text(
-            text = context.getString(R.string.widget_empty_hint),
+            text = hint,
             style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = BODY_SP.sp),
             maxLines = 1,
         )
     }
 
+    /**
+     * Parked cars. Short → the subject only, with the rest as "+N more"; tall → a row per car, in
+     * the order the projection already put them (the app's own preference, so the widget's first
+     * row and Home's first chip are the same car). [WIDGET-A-TRIP-IS-NOT-AN-EMPTY-WIDGET-001 D5]
+     */
     @Composable
-    private fun Parked(state: ParkedWidgetState.Parked) {
+    private fun Parked(state: ParkedWidgetState.Parked, tall: Boolean) {
+        if (!tall) {
+            CarRow(car = state.subject, othersCount = state.othersCount, showBrand = true)
+            return
+        }
+        state.cars.forEachIndexed { index, car ->
+            if (index > 0) Spacer(GlanceModifier.height(ROW_GAP_DP.dp))
+            // The mark belongs to the WIDGET, not to each car: repeating it down the column would
+            // read as a badge on every vehicle.
+            CarRow(car = car, othersCount = 0, showBrand = index == 0)
+        }
+    }
+
+    /**
+     * One parked car: name (+ "+N more" when a short widget is collapsing the rest), street and
+     * time, and its OWN actions on the right edge.
+     *
+     * Both verbs are per-car by construction — directions needs this car's coordinates and "more"
+     * needs this car's session — so a tall widget cannot offer an action that belongs to a
+     * different vehicle. Neither is irreversible: the launcher never holds a one-tap "I'm leaving".
+     * [WIDGET-ACTIONS-002]
+     */
+    @Composable
+    private fun CarRow(car: ParkedWidgetState.ParkedCar, othersCount: Int, showBrand: Boolean) {
         val context = LocalContext.current
         // fillMaxWidth is what pins the action icons to the card's right edge — a wrap-width Row
         // would leave them floating mid-card however the weights fall.
@@ -131,10 +242,12 @@ class ParkedWidget : GlanceAppWidget() {
         ) {
             Column(modifier = GlanceModifier.defaultWeight()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    BrandMark()
-                    Spacer(GlanceModifier.width(BRAND_GAP_DP.dp))
+                    if (showBrand) {
+                        BrandMark()
+                        Spacer(GlanceModifier.width(BRAND_GAP_DP.dp))
+                    }
                     Text(
-                        text = state.vehicleName,
+                        text = car.vehicleName,
                         style = TextStyle(
                             color = GlanceTheme.colors.onSurface,
                             fontSize = TITLE_SP.sp,
@@ -142,18 +255,18 @@ class ParkedWidget : GlanceAppWidget() {
                         ),
                         maxLines = 1,
                     )
-                    if (state.othersCount > 0) {
+                    if (othersCount > 0) {
                         Spacer(GlanceModifier.width(6.dp))
                         Text(
-                            text = context.getString(R.string.widget_more_parked, state.othersCount),
+                            text = context.getString(R.string.widget_more_parked, othersCount),
                             style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = BODY_SP.sp),
                             maxLines = 1,
                         )
                     }
                 }
                 Spacer(GlanceModifier.height(2.dp))
-                val street = state.street ?: context.getString(R.string.widget_location_pending)
-                val time = DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(state.parkedAtMs))
+                val street = car.street ?: context.getString(R.string.widget_location_pending)
+                val time = DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(car.parkedAtMs))
                 Text(
                     text = "$street · $time",
                     style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = BODY_SP.sp),
@@ -165,7 +278,7 @@ class ParkedWidget : GlanceAppWidget() {
             CircleIconButton(
                 imageProvider = ImageProvider(R.drawable.ic_widget_directions),
                 contentDescription = context.getString(R.string.widget_action_navigate),
-                onClick = actionStartActivity(navigateIntent(state)),
+                onClick = actionStartActivity(navigateIntent(car)),
                 backgroundColor = null,
                 contentColor = GlanceTheme.colors.onSurfaceVariant,
                 modifier = GlanceModifier.size(ACTION_BUTTON_DP.dp),
@@ -173,7 +286,7 @@ class ParkedWidget : GlanceAppWidget() {
             CircleIconButton(
                 imageProvider = ImageProvider(R.drawable.ic_widget_more),
                 contentDescription = context.getString(R.string.widget_action_more),
-                onClick = actionStartActivity(showParkingIntent(context, state)),
+                onClick = actionStartActivity(showParkingIntent(context, car)),
                 backgroundColor = null,
                 contentColor = GlanceTheme.colors.onSurfaceVariant,
                 modifier = GlanceModifier.size(ACTION_BUTTON_DP.dp),
@@ -192,20 +305,21 @@ class ParkedWidget : GlanceAppWidget() {
         )
     }
 
-    /** Straight to the maps app — read-only, no need to pass through Paparcar. */
-    private fun navigateIntent(state: ParkedWidgetState.Parked): Intent =
+    /** Straight to the maps app — read-only, no need to pass through Paparcar. Per CAR, so a tall
+     *  widget's second row navigates to the second car and not to the subject. */
+    private fun navigateIntent(car: ParkedWidgetState.ParkedCar): Intent =
         Intent(
             Intent.ACTION_VIEW,
-            android.net.Uri.parse("geo:${state.latitude},${state.longitude}?q=${state.latitude},${state.longitude}"),
+            android.net.Uri.parse("geo:${car.latitude},${car.longitude}?q=${car.latitude},${car.longitude}"),
         )
 
-    /** "More" → the app WITH the vehicle's card selected: every verb lives there. */
-    private fun showParkingIntent(context: Context, state: ParkedWidgetState.Parked): Intent =
+    /** "More" → the app WITH that car's session selected: every verb lives there. */
+    private fun showParkingIntent(context: Context, car: ParkedWidgetState.ParkedCar): Intent =
         Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            putExtra(MainActivity.EXTRA_SHOW_PARKING_SESSION_ID, state.sessionId)
-            putExtra(MainActivity.EXTRA_FOCUS_LAT, state.latitude)
-            putExtra(MainActivity.EXTRA_FOCUS_LON, state.longitude)
+            putExtra(MainActivity.EXTRA_SHOW_PARKING_SESSION_ID, car.sessionId)
+            putExtra(MainActivity.EXTRA_FOCUS_LAT, car.latitude)
+            putExtra(MainActivity.EXTRA_FOCUS_LON, car.longitude)
         }
 
     /** Parked → open the map centred on the pin; empty → just open the app. Same extras contract
@@ -214,8 +328,8 @@ class ParkedWidget : GlanceAppWidget() {
         Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
             if (state is ParkedWidgetState.Parked) {
-                putExtra(MainActivity.EXTRA_FOCUS_LAT, state.latitude)
-                putExtra(MainActivity.EXTRA_FOCUS_LON, state.longitude)
+                putExtra(MainActivity.EXTRA_FOCUS_LAT, state.subject.latitude)
+                putExtra(MainActivity.EXTRA_FOCUS_LON, state.subject.longitude)
             }
         }
 
@@ -228,6 +342,11 @@ class ParkedWidget : GlanceAppWidget() {
         const val ACTION_GAP_DP = 4
         const val ACTION_BUTTON_DP = 40
         const val END_PADDING_DP = 4
+        const val ROW_GAP_DP = 10
+        // The two size buckets. COMPACT mirrors the provider's 3x1 target; TALL is the first height
+        // where a second car fits with air. [WIDGET-A-TRIP-IS-NOT-AN-EMPTY-WIDGET-001 D5]
+        val COMPACT_SIZE = DpSize(180.dp, 40.dp)
+        val TALL_SIZE = DpSize(180.dp, 110.dp)
     }
 }
 

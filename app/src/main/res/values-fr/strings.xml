@@ -79,6 +79,10 @@
     <string name="widget_description">Voyez en un coup d\'œil où vous avez garé la voiture</string>
     <string name="widget_empty_title">Aucune voiture garée</string>
     <string name="widget_empty_hint">Garez-vous et ce widget vous dira où</string>
+    <string name="widget_driving_title">%1$s · En route</string>
+    <string name="widget_driving_title_unknown">En route</string>
+    <string name="widget_driving_parking">Stationnement…</string>
+    <string name="widget_driving_hint">On vous dira où vous êtes garé</string>
     <string name="widget_location_pending">Position enregistrée</string>
     <string name="widget_more_parked">+%1$d de plus</string>
     <!-- Widget actions [WIDGET-ACTIONS-002] — same wording as in-app -->

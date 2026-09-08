@@ -79,6 +79,10 @@
     <string name="widget_description">Zie in één oogopslag waar je auto staat</string>
     <string name="widget_empty_title">Geen auto geparkeerd</string>
     <string name="widget_empty_hint">Parkeer en deze widget laat zien waar</string>
+    <string name="widget_driving_title">%1$s · Onderweg</string>
+    <string name="widget_driving_title_unknown">Onderweg</string>
+    <string name="widget_driving_parking">Parkeren…</string>
+    <string name="widget_driving_hint">We laten zien waar je geparkeerd staat</string>
     <string name="widget_location_pending">Locatie opgeslagen</string>
     <string name="widget_more_parked">+%1$d meer</string>
     <!-- Widget actions [WIDGET-ACTIONS-002] — same wording as in-app -->

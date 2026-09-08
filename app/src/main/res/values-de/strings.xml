@@ -79,6 +79,10 @@
     <string name="widget_description">Auf einen Blick sehen, wo dein Auto steht</string>
     <string name="widget_empty_title">Kein Auto geparkt</string>
     <string name="widget_empty_hint">Parke und dieses Widget zeigt dir wo</string>
+    <string name="widget_driving_title">%1$s · Unterwegs</string>
+    <string name="widget_driving_title_unknown">Unterwegs</string>
+    <string name="widget_driving_parking">Parken…</string>
+    <string name="widget_driving_hint">Wir sagen dir, wo du geparkt hast</string>
     <string name="widget_location_pending">Standort gespeichert</string>
     <string name="widget_more_parked">+%1$d weitere</string>
     <!-- Widget actions [WIDGET-ACTIONS-002] — same wording as in-app -->

@@ -79,6 +79,10 @@
     <string name="widget_description">Vezi dintr-o privire unde ai lăsat mașina</string>
     <string name="widget_empty_title">Nicio mașină parcată</string>
     <string name="widget_empty_hint">Parchează și acest widget îți arată unde</string>
+    <string name="widget_driving_title">%1$s · Pe drum</string>
+    <string name="widget_driving_title_unknown">Pe drum</string>
+    <string name="widget_driving_parking">Parchez…</string>
+    <string name="widget_driving_hint">Îți spunem unde ai parcat</string>
     <string name="widget_location_pending">Locație salvată</string>
     <string name="widget_more_parked">+%1$d în plus</string>
     <!-- Widget actions [WIDGET-ACTIONS-002] — same wording as in-app -->

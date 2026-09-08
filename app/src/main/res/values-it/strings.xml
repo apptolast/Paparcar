@@ -79,6 +79,10 @@
     <string name="widget_description">Guarda a colpo d\'occhio dove hai lasciato l\'auto</string>
     <string name="widget_empty_title">Nessuna auto parcheggiata</string>
     <string name="widget_empty_hint">Parcheggia e questo widget ti dirà dove</string>
+    <string name="widget_driving_title">%1$s · In viaggio</string>
+    <string name="widget_driving_title_unknown">In viaggio</string>
+    <string name="widget_driving_parking">Sto parcheggiando…</string>
+    <string name="widget_driving_hint">Ti diciamo dove hai parcheggiato</string>
     <string name="widget_location_pending">Posizione salvata</string>
     <string name="widget_more_parked">+%1$d altre</string>
     <!-- Widget actions [WIDGET-ACTIONS-002] — same wording as in-app -->

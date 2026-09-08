@@ -2,6 +2,8 @@ package com.rndeveloper.paparcar.widget
 
 import android.content.Context
 import androidx.glance.appwidget.updateAll
+import com.rndeveloper.paparcar.domain.detection.DetectionPhase
+import com.rndeveloper.paparcar.domain.detection.DetectionRuntimeState
 import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
@@ -26,6 +28,9 @@ class ParkedWidgetRefresher(
     private val context: Context,
     private val userParkingRepository: UserParkingRepository,
     private val vehicleRepository: VehicleRepository,
+    /** The live trip, which is NOT in Room. Same process, same singleton the service writes to.
+     *  [WIDGET-A-TRIP-IS-NOT-AN-EMPTY-WIDGET-001] */
+    private val runtime: DetectionRuntimeState,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -34,7 +39,21 @@ class ParkedWidgetRefresher(
             combine(
                 userParkingRepository.observeActiveSessions(),
                 vehicleRepository.observeVehicles(),
-            ) { sessions, vehicles -> resolveParkedWidgetState(sessions, vehicles) }
+                runtime.isRunning,
+                runtime.trip,
+                runtime.phase,
+            ) { sessions, vehicles, isRunning, trip, phase ->
+                resolveParkedWidgetState(
+                    sessions = sessions,
+                    vehicles = vehicles,
+                    isDriving = isRunning,
+                    drivingVehicleId = trip?.departingVehicleId,
+                    isCandidate = phase == DetectionPhase.Candidate,
+                )
+            }
+                // Still the gate that keeps this cheap: a trip emits at its EDGES (start, candidate,
+                // park), not per GPS fix, so a drive costs a handful of re-renders.
+                // [WIDGET-A-TRIP-IS-NOT-AN-EMPTY-WIDGET-001]
                 .distinctUntilChanged()
                 .collect {
                     // Fire-and-forget: a failed widget update must never surface anywhere else.

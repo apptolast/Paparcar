@@ -79,6 +79,10 @@
     <string name="widget_description">Zobacz od razu, gdzie zostawiłeś auto</string>
     <string name="widget_empty_title">Brak zaparkowanego auta</string>
     <string name="widget_empty_hint">Zaparkuj, a ten widżet pokaże gdzie</string>
+    <string name="widget_driving_title">%1$s · W drodze</string>
+    <string name="widget_driving_title_unknown">W drodze</string>
+    <string name="widget_driving_parking">Parkowanie…</string>
+    <string name="widget_driving_hint">Powiemy Ci, gdzie zaparkowałeś</string>
     <string name="widget_location_pending">Lokalizacja zapisana</string>
     <string name="widget_more_parked">+%1$d więcej</string>
     <!-- Widget actions [WIDGET-ACTIONS-002] — same wording as in-app -->
