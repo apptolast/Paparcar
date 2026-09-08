@@ -1,6 +1,43 @@
 # ZONE-SUBSCRIBE-001 — Suscripción a plazas por zona ("Avisarme cuando haya una")
 
-**Estado:** 🔵 Abierto — IDEA DE PRODUCTO, sin código y sin rama: 0 commits de implementación (verificado 03-09-2026). No es deuda técnica; pide una decisión de producto antes que un fix. · línea añadida por el barrido [DOCS-BACKLOG-TRUTH-002] del 03-09-2026.
+**Estado:** 🟡 **ENTREGADO por la opción (a) vía MONEY-001 — queda ABIERTA solo la decisión (b), el TTL.**
+Reverificado contra el código el **09-09-2026**.
+
+> ⚠️ Este doc dijo «sin código, 0 commits de implementación» hasta el 09-09-2026, y para entonces
+> llevaba tiempo siendo **falso**: la premisa de abajo («no hay suscripción ni notificación de
+> plazas por zona en el domain») la derogó MONEY-001 sin que nadie volviera a esta ficha. Es
+> exactamente el fallo que el barrido [DOCS-BACKLOG-TRUTH-002] existía para evitar: un doc no se
+> queda obsoleto por estar mal escrito, sino porque **otro ticket le quita la razón de ser y no
+> pasa por aquí**.
+
+## Qué existe ya (verificado, no recordado)
+
+La **opción (a)** de la decisión de abajo está implementada:
+
+| Pieza | Dónde |
+|---|---|
+| Flag de suscripción por zona | `Zone.notifyOnSpot` (`domain/model/Zone.kt:32`) |
+| Observador que dispara el aviso | `domain/usecase/zone/ObserveZoneSpotAlertsUseCase.kt` |
+| Notificación al usuario | `AppViewModel:128` → `AppNotificationManager.showZoneSpotAlert` |
+| Interruptor maestro | Ajustes → Notificaciones (`settings_notif_zone_alerts`) |
+| Elección por zona | modal de la zona (`ZoneNotifyToggle` → `SetZoneNotify`) |
+| Gate de pago | Plus, con paywall (`PaywallReason.ZONE_ALERTS`) |
+
+## Lo que QUEDA de este ticket
+
+1. **La decisión (b), sin tomar: ¿la suscripción caduca?** Hoy es un opt-in **permanente** por zona.
+   La idea original proponía un TTL (~30 min) porque *el interés por aparcar es efímero*: te
+   suscribes cuando estás dando vueltas, no para siempre. Con una zona "Casa" suscrita para siempre,
+   el aviso llega también un martes a las 4 de la mañana. **Es la única parte con sustancia.**
+2. **Un comentario que miente** en `HomeSpotRows.kt:281`: justifica la ausencia del botón "Avisarme
+   cuando haya una" en el empty state de browse diciendo *«there is no zone-subscription backend
+   yet»*. El backend existe. Si ese botón sigue fuera hoy, es por otra razón (¿un empty state debe
+   ofrecer crear una zona?), y el comentario tiene que decir esa, o irse.
+
+---
+
+> Lo que sigue es el texto ORIGINAL (03-09-2026), conservado para que se lea de dónde venía la
+> decisión. **Su premisa ya no es cierta** — ver arriba.
 
 ## User story
 
