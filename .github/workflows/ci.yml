@@ -6,6 +6,9 @@ on:
       - master
       - alpha
       - beta
+      # The iOS work lives on its own branch and carries its own macOS check — see the `apple`
+      # job below for why it no longer runs on every push to master.
+      - 'feature/IOS-**'
   pull_request:
     branches:
       - master
@@ -72,11 +75,20 @@ jobs:
   # [CI-IOS-COMPILES-ON-A-MAC-NOT-ON-A-PROMISE-001] Until this job existed, NOTHING compiled
   # iosMain: development happens on Windows (Kotlin/Native for iOS needs macOS) and the job
   # above is ubuntu-only. iOS therefore broke in silence — a bad import, a missing `actual` or
-  # a stale type never failed any build we ran, only the one we never ran. macos-latest minutes
-  # are free here because the repository is public.
+  # a stale type never failed any build we ran, only the one we never ran.
+  #
+  # ⛔ It no longer runs on every push to master, and the reason is money, not confidence. The
+  # repository went PRIVATE on 08-09-2026, and on a private repo Actions minutes are metered with
+  # macOS charged at 10× — a ten-minute job bills a hundred minutes, so a normal week of pushing
+  # to master would eat the whole monthly allowance on a target nobody is shipping this month.
+  # (iOS is parked; see the backlog.) The check does not disappear, it moves to where iOS actually
+  # changes: its own branch and any pull request. What master gets is what master can break —
+  # commonMain — and that is caught by the ubuntu job on every push, plus by this one the moment
+  # the iOS branch rebases onto master.
   apple:
     name: iOS framework (Kotlin/Native)
     runs-on: macos-latest
+    if: github.event_name == 'pull_request' || startsWith(github.ref, 'refs/heads/feature/IOS-')
 
     steps:
       - name: Checkout
