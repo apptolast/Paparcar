@@ -100,6 +100,14 @@ baselogin = "2.0.1"
 # core (SDK) + ui (Paywalls con plantilla remota) van SIEMPRE a la misma versión.
 # Desde 3.x el versionado es semver plano (ya no lleva el sufijo +X.Y.Z del SDK iOS).
 purchases-kmp = "3.7.0"
+# ⛔ PUENTE, no destino: `purchases-kmp-core` 3.7.0 pina el artefacto Android `purchases` en 10.19.1
+# (scope runtime), y esa versión trae `-keep class com.revenuecat.** { *; }` en sus consumer rules —
+# 2.919 clases que R8 no puede tocar, el 14 % del bytecode de la app. En 10.20.0 esa regla YA NO
+# ESTÁ: la estrecharon en el PR #3557, mergeado el 01-09-2026. Se declara aquí para que Gradle
+# resuelva la buena por debajo del wrapper.
+# **Al subir `purchases-kmp` a una versión que ya pine ≥10.20.0, BORRAR esta línea y su alias.**
+# [R8-REVENUECAT-ALREADY-NARROWED-ITS-RULES-001]
+purchases-android = "10.20.0"
 
 # ── Android-only ─────────────────────────────────────────────────────────────
 # play-services-location incluye Activity Recognition Transitions desde v17+
@@ -215,6 +223,9 @@ baselogin = { module = "io.github.apptolast:baselogin", version.ref = "baselogin
 # core en commonMain (repositorio de entitlements + configure); ui se cablea en la
 # fase del paywall. En Android arrastra Play Billing Library al APK. [MONEY-001]
 purchases-core = { module = "com.revenuecat.purchases:purchases-kmp-core", version.ref = "purchases-kmp" }
+# Solo androidMain. Ver la nota de `purchases-android` arriba: es un puente hasta que el wrapper KMP
+# suba el pin. [R8-REVENUECAT-ALREADY-NARROWED-ITS-RULES-001]
+purchases-android = { module = "com.revenuecat.purchases:purchases", version.ref = "purchases-android" }
 
 # ── Android-only: Detección ──────────────────────────────────────────────────
 # Incluye FusedLocationProviderClient + Activity Recognition Transitions API

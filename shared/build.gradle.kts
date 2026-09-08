@@ -191,6 +191,13 @@ kotlin {
             api(project.dependencies.platform(libs.firebase.bom))
             api(libs.firebase.crashlytics)
 
+            // RevenueCat, artefacto Android. `purchases-kmp-core` lo arrastra transitivamente en
+            // 10.19.1, cuyas consumer rules anclan el SDK entero con `-keep class com.revenuecat.**`
+            // — 2.919 clases que R8 no puede tocar. En 10.20.0 esa regla ya no está. Se declara
+            // explícitamente para que Gradle resuelva la buena por debajo del wrapper; **se borra en
+            // cuanto `purchases-kmp` suba su pin**. [R8-REVENUECAT-ALREADY-NARROWED-ITS-RULES-001]
+            implementation(libs.purchases.android)
+
             // WorkManager
             api(libs.work.runtime.ktx)
 
