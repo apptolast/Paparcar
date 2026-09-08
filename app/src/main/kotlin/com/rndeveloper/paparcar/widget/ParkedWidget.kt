@@ -177,16 +177,19 @@ class ParkedWidget : GlanceAppWidget() {
                 ?.let { context.getString(R.string.widget_driving_title, it) }
                 ?: context.getString(R.string.widget_driving_title_unknown)
         }
-        TitleAndHint(title = phase, hint = context.getString(R.string.widget_driving_hint))
         // With a second car parked, a tall widget keeps showing it: driving one vehicle is no
         // reason to hide where the other one is. The short layout has no room and the trip wins.
         // [WIDGET-A-TRIP-IS-NOT-AN-EMPTY-WIDGET-001 D5]
-        if (tall) {
-            // The trip line already took one row's worth of the height.
-            state.alsoParked.take(rowsThatFit(height) - 1).forEach { car ->
-                Spacer(GlanceModifier.height(ROW_GAP_DP.dp))
-                CarRow(car = car, othersCount = 0, showBrand = false)
-            }
+        // The trip line already took one row's worth of the height.
+        val alsoShown = if (tall) state.alsoParked.take(rowsThatFit(height) - 1) else emptyList()
+        TitleAndHint(
+            title = phase,
+            hint = context.getString(R.string.widget_driving_hint),
+            showBrand = alsoShown.isEmpty(),
+        )
+        alsoShown.forEach { car ->
+            Spacer(GlanceModifier.height(ROW_GAP_DP.dp))
+            CarRow(car = car, othersCount = 0, showBrand = false)
         }
     }
 
@@ -197,10 +200,12 @@ class ParkedWidget : GlanceAppWidget() {
      * user has to recognise what they just placed there.
      */
     @Composable
-    private fun TitleAndHint(title: String, hint: String) {
+    private fun TitleAndHint(title: String, hint: String, showBrand: Boolean = true) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            BrandMark()
-            Spacer(GlanceModifier.width(BRAND_GAP_DP.dp))
+            if (showBrand) {
+                BrandMark()
+                Spacer(GlanceModifier.width(BRAND_GAP_DP.dp))
+            }
             Text(
                 text = title,
                 style = TextStyle(
@@ -235,9 +240,11 @@ class ParkedWidget : GlanceAppWidget() {
         val hidden = state.cars.size - visible.size
         visible.forEachIndexed { index, car ->
             if (index > 0) Spacer(GlanceModifier.height(ROW_GAP_DP.dp))
-            // The mark belongs to the WIDGET, not to each car: repeating it down the column would
-            // read as a badge on every vehicle.
-            CarRow(car = car, othersCount = if (index == 0) hidden else 0, showBrand = index == 0)
+            CarRow(
+                car = car,
+                othersCount = if (index == 0) hidden else 0,
+                showBrand = index == 0 && visible.size == 1,
+            )
         }
     }
 
@@ -313,7 +320,19 @@ class ParkedWidget : GlanceAppWidget() {
         }
     }
 
-    /** The brand's monochrome glyph, tinted like an icon — present, not shouting. */
+    /**
+     * The brand's monochrome glyph, tinted like an icon — present, not shouting.
+     *
+     * **Se pinta solo cuando el widget muestra UN bloque.** Con una lista desaparece, y no por
+     * ahorro: la marca va delante del primer nombre, así que con varias filas sangraba la primera y
+     * dejaba las demás pegadas al borde — una lista con un escalón. Repetirla en cada coche la
+     * convertiría en un badge del vehículo, que es lo contrario de lo que es; y reservarle su hueco
+     * en todas las filas le quitaría ancho a la calle, que **ya se trunca hoy** con dos coches.
+     *
+     * En la práctica sigue viéndose casi siempre: el plan gratis es un coche [FREE-LIMITS-001], así
+     * que solo falta en el caso Plus con el widget estirado a propósito — donde el contenido ya dice
+     * de sobra de quién es. [WIDGET-THE-MARK-ACCOMPANIES-ONE-FACT-001]
+     */
     @Composable
     private fun BrandMark() {
         Image(
