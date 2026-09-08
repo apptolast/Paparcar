@@ -44,6 +44,25 @@ class RemoteUserProfileDataSourceImpl(
         usersCollection().document(userId).update(mapOf(FIELD_FIRST_STEPS_DISMISSED_AT to dismissedAtMs))
     }
 
+    // Field-targeted for the same reason as the two above: a set(profile) would push the whole
+    // doc from whatever DTO the caller happens to hold. [PROFILE-PHOTO-STUCK-AND-STALE-001]
+    override suspend fun updateIdentityFields(
+        userId: String,
+        email: String?,
+        displayName: String?,
+        photoUrl: String?,
+        updatedAt: Long,
+    ) {
+        usersCollection().document(userId).update(
+            mapOf(
+                FIELD_EMAIL to email,
+                FIELD_DISPLAY_NAME to displayName,
+                FIELD_PHOTO_URL to photoUrl,
+                FIELD_UPDATED_AT to updatedAt,
+            ),
+        )
+    }
+
     override suspend fun saveParkingSession(userId: String, session: ParkingHistoryDto) {
         parkingHistoryCollection(userId).document(session.id).set(session)
     }

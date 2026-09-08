@@ -17,6 +17,18 @@ interface RemoteUserProfileDataSource {
      *  [ONBOARDING-A-TUTORIAL-IS-REMEMBERED-BY-THE-ACCOUNT-NOT-THE-DEVICE-001] */
     suspend fun updateFirstStepsDismissedAt(userId: String, dismissedAtMs: Long?)
 
+    /** Field-targeted update of the Google-account identity fields, so a doc created at first
+     *  sign-in follows later account changes (new photo, renamed account) without clobbering
+     *  sibling fields like defaultVehicleId or firstStepsDismissedAt.
+     *  [PROFILE-PHOTO-STUCK-AND-STALE-001] */
+    suspend fun updateIdentityFields(
+        userId: String,
+        email: String?,
+        displayName: String?,
+        photoUrl: String?,
+        updatedAt: Long,
+    )
+
     // ─── Parking History ──────────────────────────────────────────────────────
 
     suspend fun saveParkingSession(userId: String, session: ParkingHistoryDto)

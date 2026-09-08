@@ -259,6 +259,7 @@ private class RecordingRemote : RemoteUserProfileDataSource {
     override suspend fun createOrUpdateProfile(profile: UserProfileDto) = Unit
     override suspend fun updateDefaultVehicleId(userId: String, vehicleId: String?) = Unit
     override suspend fun updateFirstStepsDismissedAt(userId: String, dismissedAtMs: Long?) = Unit
+    override suspend fun updateIdentityFields(userId: String, email: String?, displayName: String?, photoUrl: String?, updatedAt: Long) = Unit
     override suspend fun saveParkingSession(userId: String, session: ParkingHistoryDto) = Unit
     override suspend fun clearParkingSessionActiveFlag(userId: String, sessionId: String) = Unit
     override suspend fun updateParkingSessionAddressAndPlace(

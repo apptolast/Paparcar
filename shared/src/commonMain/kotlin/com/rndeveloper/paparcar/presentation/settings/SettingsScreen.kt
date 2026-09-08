@@ -5,7 +5,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -82,8 +81,7 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImagePainter
-import coil3.compose.rememberAsyncImagePainter
+import coil3.compose.SubcomposeAsyncImage
 import com.rndeveloper.paparcar.isBatteryOptimizationRelevant
 import com.rndeveloper.paparcar.domain.diagnostics.DiagnosticsReport
 import com.rndeveloper.paparcar.domain.entitlement.PaywallReason
@@ -892,37 +890,47 @@ private fun ProfileCardV2(
  * Profile avatar: loads [photoUrl] when present. Shows [PapShimmerBox] while it resolves, the
  * display name's initial on a brand-green disc on error or when no URL exists, and the photo
  * (crop-to-fill) on success — never an empty circle.
+ *
+ * [SubcomposeAsyncImage] rather than gating a `rememberAsyncImagePainter` on its own state: the
+ * painter's request only starts on its first DRAW, so drawing it only after Success deadlocks the
+ * load forever (the eternal green disc). [PROFILE-PHOTO-STUCK-AND-STALE-001]
  */
 @Composable
 private fun ProfileAvatar(displayName: String, photoUrl: String?) {
-    val cs = MaterialTheme.colorScheme
     Box(
         modifier = Modifier
             .size(AVATAR_DP.dp)
             .clip(CircleShape)
-            .background(cs.primary),
+            .background(MaterialTheme.colorScheme.primary),
         contentAlignment = Alignment.Center,
     ) {
-        val painter = photoUrl?.takeIf { it.isNotBlank() }?.let { rememberAsyncImagePainter(it) }
-        when {
-            painter == null || painter.state.value is AsyncImagePainter.State.Error ->
-                Text(
-                    text = displayName.firstOrNull()?.uppercaseChar()?.toString() ?: "U",
-                    style = PaparcarType.current.sectionTitle,
-                    color = cs.onPrimary,
-                )
-
-            painter.state.value is AsyncImagePainter.State.Success ->
-                Image(
-                    painter = painter,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                )
-
-            else -> PapShimmerBox(modifier = Modifier.fillMaxSize())
+        val url = photoUrl?.takeIf { it.isNotBlank() }
+        if (url == null) {
+            AvatarInitial(displayName)
+        } else {
+            SubcomposeAsyncImage(
+                model = url,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+                loading = { PapShimmerBox(modifier = Modifier.fillMaxSize()) },
+                error = {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        AvatarInitial(displayName)
+                    }
+                },
+            )
         }
     }
+}
+
+@Composable
+private fun AvatarInitial(displayName: String) {
+    Text(
+        text = displayName.firstOrNull()?.uppercaseChar()?.toString() ?: "U",
+        style = PaparcarType.current.sectionTitle,
+        color = MaterialTheme.colorScheme.onPrimary,
+    )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

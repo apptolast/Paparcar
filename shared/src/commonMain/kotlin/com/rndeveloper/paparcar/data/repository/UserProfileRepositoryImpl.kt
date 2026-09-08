@@ -32,8 +32,28 @@ class UserProfileRepositoryImpl(
                 runCatching { remoteDataSource.getProfile(session.userId) }.getOrNull()
             }
             if (remoteDto != null) {
-                profileDao.insertOrUpdate(remoteDto.toEntity())
-                return@runCatching remoteDto.toDomain()
+                // 1b. The doc is a snapshot of the FIRST sign-in; the session is what Google says
+                //     TODAY. Reconcile identity fields (photo, name, email) so an account change
+                //     eventually lands in Firestore + Room. Field-targeted write, best-effort:
+                //     a failure (or timeout — same splash ceiling as the fetch) still serves the
+                //     merged profile locally, and the next launch retries because the remote doc
+                //     stays behind the session. [PROFILE-PHOTO-STUCK-AND-STALE-001]
+                val reconciled = remoteDto.reconciledWith(session)
+                if (reconciled != remoteDto) {
+                    withTimeoutOrNull(REMOTE_PROFILE_TIMEOUT_MS) {
+                        runCatching {
+                            remoteDataSource.updateIdentityFields(
+                                userId = session.userId,
+                                email = reconciled.email,
+                                displayName = reconciled.displayName,
+                                photoUrl = reconciled.photoUrl,
+                                updatedAt = reconciled.updatedAt,
+                            )
+                        }
+                    }
+                }
+                profileDao.insertOrUpdate(reconciled.toEntity())
+                return@runCatching reconciled.toDomain()
             }
 
             // 2. Offline fallback: serve whatever Room has.
@@ -65,6 +85,24 @@ class UserProfileRepositoryImpl(
     override suspend fun deleteAllData(userId: String): Result<Unit> = runCatching {
         remoteDataSource.deleteUserData(userId)
         profileDao.deleteByUser(userId)
+    }
+
+    /** The session only OVERWRITES, never ERASES: a blank/null value from the provider (e.g. an
+     *  account with no photo) keeps whatever the remote doc already has. Returns `this` unchanged
+     *  when nothing differs, so callers can compare by equality. */
+    private fun UserProfileDto.reconciledWith(session: UserSession): UserProfileDto {
+        val mergedEmail = session.email?.takeIf { it.isNotBlank() } ?: email
+        val mergedDisplayName = session.displayName?.takeIf { it.isNotBlank() } ?: displayName
+        val mergedPhotoUrl = session.photoUrl?.takeIf { it.isNotBlank() } ?: photoUrl
+        if (mergedEmail == email && mergedDisplayName == displayName && mergedPhotoUrl == photoUrl) {
+            return this
+        }
+        return copy(
+            email = mergedEmail,
+            displayName = mergedDisplayName,
+            photoUrl = mergedPhotoUrl,
+            updatedAt = Clock.System.now().toEpochMilliseconds(),
+        )
     }
 
     private companion object {
