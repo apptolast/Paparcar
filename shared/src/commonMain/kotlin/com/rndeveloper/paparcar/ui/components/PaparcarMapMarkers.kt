@@ -75,6 +75,7 @@ import com.rndeveloper.paparcar.ui.theme.PapWatchGreenLight
 import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PapInk
 import com.rndeveloper.paparcar.ui.theme.PapOutlineVariantLight
+import com.rndeveloper.paparcar.ui.theme.zoneIdentityColor
 import kotlinx.coroutines.launch
 
 /**
@@ -1015,16 +1016,17 @@ private const val SPOT_PUCK_CENTER_Y = 34f // puck circle centre Y (viewBox unit
  * @param icon the zone's chosen preset icon (resolved from `zone.iconKey`).
  * @param isPrivate when true the chip goes NEUTRAL and shows a small lock — private is a
  *   category, and a category is the glyph's job (tertiary is retired). [UI-COLOR-DOCTRINE-001 F6]
+ *   No default: the `= false` this used to carry is how two other surfaces stayed brand-green for
+ *   months without anyone writing a wrong line. [UI-A-PRIVATE-ZONE-IS-PRIVATE-ON-EVERY-SURFACE-001]
  */
 @Composable
 fun ZoneMarker(
     name: String,
     icon: ImageVector,
+    isPrivate: Boolean,
     modifier: Modifier = Modifier,
-    isPrivate: Boolean = false,
 ) {
-    val zoneColor = if (isPrivate) MaterialTheme.colorScheme.onSurfaceVariant
-                    else           MaterialTheme.colorScheme.primary
+    val zoneColor = zoneIdentityColor(isPrivate)
     val paper = MaterialTheme.colorScheme.surface
     val ink = MaterialTheme.colorScheme.onSurface
     // La familia de MARCA sale del tema, no de una llamada suelta: si la app cambia de
@@ -1253,16 +1255,24 @@ fun ParkingCenterPin(
     }
 }
 
+/**
+ * @param isPrivate the pin you are dragging wears the identity the zone will HAVE once saved. The
+ *   radius ring under it already went neutral from the same flag, so a `primary` pin here painted
+ *   one zone in two colours inside a single frame. No lock: a lone glyph over map tiles has no pill
+ *   to hang one from — the tint alone, matching the ring.
+ *   [UI-A-PRIVATE-ZONE-IS-PRIVATE-ON-EVERY-SURFACE-001]
+ */
 @Composable
 fun ZoneCenterPin(
     icon: ImageVector,
     @Suppress("UNUSED_PARAMETER") cameraMoving: Boolean,
+    isPrivate: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Icon(
         imageVector = icon,
         contentDescription = null,
-        tint = MaterialTheme.colorScheme.primary,
+        tint = zoneIdentityColor(isPrivate),
         // Geometric-centre alignment puts the bounding box centre on the circle
         // centre, but a teardrop glyph (the default location pin) carries its mass
         // up top and a tip below, so it reads as floating high. A small downward

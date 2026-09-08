@@ -66,6 +66,7 @@ import com.rndeveloper.paparcar.presentation.home.toPeekSlice
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.HomeDetectionSurface
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.HomePeekHandle
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.SpotFitRow
+import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.ZoneChip
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.homeSheetItems
 import com.rndeveloper.paparcar.domain.model.SpotStatus
 import com.rndeveloper.paparcar.domain.model.SpotType
@@ -607,9 +608,17 @@ private fun markersShowcase() {
         }
         MarkerSectionLabel("Zona — pública · privada · nombre largo")
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            ZoneMarker(name = "Casa", icon = zoneIconFor(ZoneIcon.HOME))
+            ZoneMarker(name = "Casa", icon = zoneIconFor(ZoneIcon.HOME), isPrivate = false)
             ZoneMarker(name = "Trabajo", icon = zoneIconFor(ZoneIcon.WORK), isPrivate = true)
-            ZoneMarker(name = "Gimnasio del barrio", icon = zoneIconFor(ZoneIcon.GYM))
+            ZoneMarker(name = "Gimnasio del barrio", icon = zoneIconFor(ZoneIcon.GYM), isPrivate = false)
+        }
+        // El chip de la cabecera vive aquí junto a la etiqueta del mapa a propósito: son la MISMA
+        // zona en dos superficies, y verlos separados es lo que dejó al chip en verde de marca
+        // mientras el mapa ya la pintaba neutral. [UI-A-PRIVATE-ZONE-IS-PRIVATE-ON-EVERY-SURFACE-001]
+        MarkerSectionLabel("Chip de zona — pública · privada")
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            ZoneChip(label = "Casa", iconKey = ZoneIcon.HOME, isPrivate = false, onClick = {}, onEdit = {})
+            ZoneChip(label = "Garaje", iconKey = ZoneIcon.WORK, isPrivate = true, onClick = {}, onEdit = {})
         }
         MarkerSectionLabel("Pin central · Report (reposo · elevado)")
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
@@ -621,10 +630,11 @@ private fun markersShowcase() {
             CenterPinSlot { ParkingCenterPin(cameraMoving = false) }
             CenterPinSlot { ParkingCenterPin(cameraMoving = true) }
         }
-        MarkerSectionLabel("Pin central · Zona (reposo · elevado)")
+        MarkerSectionLabel("Pin central · Zona (reposo · elevado · privada)")
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-            CenterPinSlot { ZoneCenterPin(icon = Icons.Rounded.LocalParking, cameraMoving = false) }
-            CenterPinSlot { ZoneCenterPin(icon = Icons.Rounded.LocalParking, cameraMoving = true) }
+            CenterPinSlot { ZoneCenterPin(icon = Icons.Rounded.LocalParking, cameraMoving = false, isPrivate = false) }
+            CenterPinSlot { ZoneCenterPin(icon = Icons.Rounded.LocalParking, cameraMoving = true, isPrivate = false) }
+            CenterPinSlot { ZoneCenterPin(icon = Icons.Rounded.LocalParking, cameraMoving = false, isPrivate = true) }
         }
         Spacer(Modifier.height(24.dp))
     }

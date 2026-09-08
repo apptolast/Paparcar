@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -23,9 +24,11 @@ import com.rndeveloper.paparcar.presentation.util.MAP_FLOATING_SHADOW_DP
 import com.rndeveloper.paparcar.presentation.util.zoneIconFor
 import com.rndeveloper.paparcar.ui.components.GlassSurface
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
+import com.rndeveloper.paparcar.ui.theme.zoneIdentityColor
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_zone_action_edit
+import paparcar.composeapp.generated.resources.home_zone_private_label
 import com.rndeveloper.paparcar.ui.theme.PapAlpha
 
 /**
@@ -39,16 +42,26 @@ import com.rndeveloper.paparcar.ui.theme.PapAlpha
  * privacy, name — and deleting it, behind a confirm). Deleting was never worth a
  * 14dp bullseye floating over the map, and the edit long-press it replaces was
  * undiscoverable. [ZONE-CHIPS-GLASS-001] [UI-ZONE-MANAGE-001]
+ *
+ * @param isPrivate carries the SAME identity the map already gives this zone — neutral tint plus a
+ *   lock. No default: a chip that forgets its zone is private is exactly the bug this parameter
+ *   exists to make impossible. [UI-A-PRIVATE-ZONE-IS-PRIVATE-ON-EVERY-SURFACE-001]
  */
+// Public, like every other component the Dev Catalog renders (`HomePeekHandle`, `SpotFitRow`…):
+// the state gallery lives in `:app` and cannot see `internal`. Being unreachable from the catalog
+// is what let this chip go a whole life without anyone putting its two variants side by side.
+// [UI-A-PRIVATE-ZONE-IS-PRIVATE-ON-EVERY-SURFACE-001]
 @Composable
-internal fun ZoneChip(
+fun ZoneChip(
     label: String,
     iconKey: String,
+    isPrivate: Boolean,
     onClick: () -> Unit,
     onEdit: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val cs = MaterialTheme.colorScheme
+    val zoneColor = zoneIdentityColor(isPrivate)
     GlassSurface(
         onClick = onClick,
         shape = RoundedCornerShape(ZONE_CHIP_RADIUS_DP.dp),
@@ -67,7 +80,7 @@ internal fun ZoneChip(
             Icon(
                 imageVector = zoneIconFor(iconKey),
                 contentDescription = null,
-                tint = cs.primary,
+                tint = zoneColor,
                 modifier = Modifier.size(ZONE_CHIP_ICON_DP.dp),
             )
             Text(
@@ -76,6 +89,18 @@ internal fun ZoneChip(
                 color = cs.onSurface,
                 maxLines = 1,
             )
+            if (isPrivate) {
+                // Same trailing lock the map label carries, sized down to the chip's scale. It sits
+                // BEFORE the pencil: the lock describes the zone, the pencil is an action on it.
+                Icon(
+                    imageVector = Icons.Rounded.Lock,
+                    // Reuses the label the zone editor's privacy switch already carries in all 9
+                    // locales — same concept, so it must not grow a second wording.
+                    contentDescription = stringResource(Res.string.home_zone_private_label),
+                    tint = zoneColor,
+                    modifier = Modifier.size(ZONE_CHIP_LOCK_DP.dp),
+                )
+            }
             // The pencil is now the way INTO zone management, so it gets a real
             // touch target instead of the old ×'s 14dp sliver.
             Box(
@@ -98,6 +123,7 @@ internal fun ZoneChip(
 
 private const val ZONE_CHIP_RADIUS_DP = 999
 private const val ZONE_CHIP_ICON_DP = 18
+private const val ZONE_CHIP_LOCK_DP = 13
 private const val ZONE_CHIP_EDIT_DP = 16
 private const val ZONE_CHIP_EDIT_TAP_DP = 28
 private val ZONE_CHIP_TRAILING_ALPHA = PapAlpha.muted

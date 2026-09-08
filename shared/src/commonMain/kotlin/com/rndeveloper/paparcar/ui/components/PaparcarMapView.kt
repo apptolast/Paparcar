@@ -79,6 +79,7 @@ import com.rndeveloper.paparcar.presentation.util.zoneIconFor
 import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.VehicleWatch
 import com.rndeveloper.paparcar.ui.theme.vehicleIdentityColor
+import com.rndeveloper.paparcar.ui.theme.zoneRingColor
 import com.rndeveloper.paparcar.ui.theme.PapGreen
 import com.rndeveloper.paparcar.ui.theme.PapCarBlueLight
 import com.rndeveloper.paparcar.ui.theme.PapWatchGreenLight
@@ -1431,9 +1432,11 @@ fun PaparcarMapView(
     // native Circle, so the ring the user positions is pixel-identical to the one
     // that appears once saved (no Web-Mercator Canvas approximation that drifts from
     // Google's geodesic circle). [ZONE-AREA-001]
-    val zoneRingPrimary = MaterialTheme.colorScheme.primary
-    // Private zone = neutral ring (the lock on the label is the category glyph). [F6]
-    val zoneRingPrivate = MaterialTheme.colorScheme.outline
+    // Private zone = neutral ring (the lock on the label is the category glyph). [F6] Both legs now
+    // come from the one zone resolver, like the label and the chip.
+    // [UI-A-PRIVATE-ZONE-IS-PRIVATE-ON-EVERY-SURFACE-001]
+    val zoneRingPrimary = zoneRingColor(isPrivate = false)
+    val zoneRingPrivate = zoneRingColor(isPrivate = true)
     val zoneRingStrokePx = with(LocalDensity.current) { ZONE_CIRCLE_STROKE_DP.dp.toPx() }
     val zoneRingDimFactor = if (dimSpots) ZONE_CIRCLE_DIM_FACTOR else 1f
     fun zoneCircle(lat: Double, lon: Double, radius: Float, isPrivate: Boolean, dim: Float): Circle {
@@ -1800,9 +1803,13 @@ fun PaparcarMapView(
                         .align(Alignment.Center)
                         .mapCenterPinAnchor(),
                 )
+                // Reads the SAME [previewZoneIsPrivate] that paints the ring below it, rather than
+                // carrying its own copy of the flag on [CenterPinKind.Zone]: pin and ring can then
+                // only ever agree. [UI-A-PRIVATE-ZONE-IS-PRIVATE-ON-EVERY-SURFACE-001]
                 is CenterPinKind.Zone -> ZoneCenterPin(
                     icon = pinKind.icon,
                     cameraMoving = isAiming,
+                    isPrivate = previewZoneIsPrivate,
                     modifier = Modifier.align(Alignment.Center),
                 )
             }

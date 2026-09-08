@@ -153,9 +153,9 @@ private fun MarkersShowcase() {
 
         SectionLabel("Zone marker — area label (public · private)")
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            ZoneMarker(name = "Casa", icon = zoneIconFor(ZoneIcon.HOME))
+            ZoneMarker(name = "Casa", icon = zoneIconFor(ZoneIcon.HOME), isPrivate = false)
             ZoneMarker(name = "Trabajo", icon = zoneIconFor(ZoneIcon.WORK), isPrivate = true)
-            ZoneMarker(name = "Gimnasio del barrio", icon = zoneIconFor(ZoneIcon.GYM))
+            ZoneMarker(name = "Gimnasio del barrio", icon = zoneIconFor(ZoneIcon.GYM), isPrivate = false)
         }
 
         SectionLabel("Centre pin · Report (rest · lifted)")
@@ -170,10 +170,12 @@ private fun MarkersShowcase() {
             CenterPinSlot { ParkingCenterPin(cameraMoving = true) }
         }
 
-        SectionLabel("Centre pin · Zone (rest · lifted)")
+        SectionLabel("Centre pin · Zone (rest · lifted · private)")
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-            CenterPinSlot { ZoneCenterPin(icon = Icons.Rounded.LocalParking, cameraMoving = false) }
-            CenterPinSlot { ZoneCenterPin(icon = Icons.Rounded.LocalParking, cameraMoving = true) }
+            CenterPinSlot { ZoneCenterPin(icon = Icons.Rounded.LocalParking, cameraMoving = false, isPrivate = false) }
+            CenterPinSlot { ZoneCenterPin(icon = Icons.Rounded.LocalParking, cameraMoving = true, isPrivate = false) }
+            // The private leg must match the ring it is dragged over, not the brand. [UI-A-PRIVATE-ZONE-IS-PRIVATE-ON-EVERY-SURFACE-001]
+            CenterPinSlot { ZoneCenterPin(icon = Icons.Rounded.LocalParking, cameraMoving = false, isPrivate = true) }
         }
     }
 }

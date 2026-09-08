@@ -169,6 +169,7 @@ private fun HeaderZoneChips(
             ZoneChip(
                 label = zone.name,
                 iconKey = zone.iconKey,
+                isPrivate = zone.isPrivate,
                 onClick = remember(zone.id, onSelectZone) { { onSelectZone(zone.id) } },
                 onEdit = remember(zone.id, onEditZone) { { onEditZone(zone.id) } },
             )
