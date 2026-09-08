@@ -36,6 +36,12 @@ sealed class VehicleRegistrationIntent {
     data class SetConsumption(val value: String) : VehicleRegistrationIntent()
     /** Free-text electric consumption override — plug-in hybrid only. */
     data class SetConsumptionElectric(val value: String) : VehicleRegistrationIntent()
+
+    /** What the user pays per litre / per kWh. Blank means "use my country's average".
+     *  [FUEL-PRICE-RESOLVER-001] */
+    data class SetFuelPrice(val value: String) : VehicleRegistrationIntent()
+
+    data class SetEnergyPrice(val value: String) : VehicleRegistrationIntent()
     /** Pick the environmental badge, or null to clear the answer. */
     data class SetEnergyLabel(val label: EnergyLabel?) : VehicleRegistrationIntent()
     data class SetLicensePlate(val value: String) : VehicleRegistrationIntent()

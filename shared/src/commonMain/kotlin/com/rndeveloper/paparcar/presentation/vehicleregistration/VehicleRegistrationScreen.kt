@@ -93,7 +93,10 @@ import paparcar.composeapp.generated.resources.error_unknown
 import paparcar.composeapp.generated.resources.vehicle_registration_consumption_kwh_label
 import paparcar.composeapp.generated.resources.vehicle_registration_consumption_liters_label
 import paparcar.composeapp.generated.resources.vehicle_registration_energy_label_title
+import paparcar.composeapp.generated.resources.vehicle_registration_energy_price_label
 import paparcar.composeapp.generated.resources.vehicle_registration_fuel_help
+import paparcar.composeapp.generated.resources.vehicle_registration_fuel_price_label
+import paparcar.composeapp.generated.resources.vehicle_registration_price_help
 import paparcar.composeapp.generated.resources.vehicle_registration_section_fuel
 import paparcar.composeapp.generated.resources.vehicle_reg_cd_back
 import paparcar.composeapp.generated.resources.my_car_delete_cancel
@@ -809,6 +812,36 @@ private fun FuelSection(
                 style = PaparcarType.current.caption,
                 color = cs.onSurfaceVariant,
             )
+            // What the user actually pays, in the money this phone is set in. Offered only when the
+            // platform can name that money — an amount whose currency nobody knows is worse than no
+            // amount. Blank keeps the national average, which the help line says out loud.
+            // [FUEL-PRICE-RESOLVER-001]
+            val currency = state.priceCurrency
+            if (currency != null) {
+                if (fuel.usesLiters) {
+                    PapTextField(
+                        value = state.fuelPriceText,
+                        onValueChange = { onIntent(VehicleRegistrationIntent.SetFuelPrice(it)) },
+                        label = stringResource(Res.string.vehicle_registration_fuel_price_label, currency),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                if (fuel.usesElectricity) {
+                    PapTextField(
+                        value = state.energyPriceText,
+                        onValueChange = { onIntent(VehicleRegistrationIntent.SetEnergyPrice(it)) },
+                        label = stringResource(Res.string.vehicle_registration_energy_price_label, currency),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                Text(
+                    text = stringResource(Res.string.vehicle_registration_price_help),
+                    style = PaparcarType.current.caption,
+                    color = cs.onSurfaceVariant,
+                )
+            }
             Text(
                 text = stringResource(Res.string.vehicle_registration_energy_label_title),
                 style = PaparcarType.current.label,

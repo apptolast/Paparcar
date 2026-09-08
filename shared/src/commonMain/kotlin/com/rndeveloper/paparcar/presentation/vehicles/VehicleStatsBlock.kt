@@ -30,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.entitlement.FREE_HISTORY_WINDOW_DAYS
+import com.rndeveloper.paparcar.domain.fuel.FuelPriceOrigin
 import com.rndeveloper.paparcar.domain.stats.PeriodStats
 import com.rndeveloper.paparcar.presentation.util.formatHourBucket
 import com.rndeveloper.paparcar.ui.components.PapDivider
@@ -56,6 +57,8 @@ import paparcar.composeapp.generated.resources.history_day_full_wed
 import paparcar.composeapp.generated.resources.history_filter_last_3_months
 import paparcar.composeapp.generated.resources.history_filter_this_month
 import paparcar.composeapp.generated.resources.history_filter_this_week
+import paparcar.composeapp.generated.resources.stats_cost_from_average
+import paparcar.composeapp.generated.resources.stats_cost_from_your_price
 import paparcar.composeapp.generated.resources.stats_lifetime
 import paparcar.composeapp.generated.resources.stats_open_panel
 import paparcar.composeapp.generated.resources.stats_period_all
@@ -106,6 +109,9 @@ internal fun VehicleStatsBlock(
     lifetimeSpotsReleased: Int,
     /** False when the selected period already IS the car's whole life. */
     showLifetime: Boolean,
+    /** Where the spend figure's price came from. Null = there is no spend figure to caveat.
+     *  [FUEL-PRICE-RESOLVER-001] */
+    costOrigin: FuelPriceOrigin? = null,
     isPlus: Boolean,
     onOpenPaywall: () -> Unit,
     modifier: Modifier = Modifier,
@@ -136,6 +142,31 @@ internal fun VehicleStatsBlock(
                 StatTileGrid(tiles = tiles, veilFromIndex = if (isPlus) null else 1)
                 // With the "all time" period selected the tiles ARE the car's whole life, so the
                 // footer would repeat the card in smaller type.
+                // ⛔ A spend figure has to say what price it used. An average and the user's own
+                // price are not the same claim, and only one of them is theirs. Same family as the
+                // partial-sum rule: a figure that cannot describe itself gets described by whoever
+                // reads it. [FUEL-PRICE-RESOLVER-001]
+                costOrigin?.let { origin ->
+                    PapDivider()
+                    Text(
+                        text = stringResource(
+                            when (origin) {
+                                FuelPriceOrigin.UserOverride -> Res.string.stats_cost_from_your_price
+                                // A pump price is still not the user's; until FUEL-STATIONS-001
+                                // lands nothing produces it, and when it does it gets its own line.
+                                FuelPriceOrigin.Station,
+                                FuelPriceOrigin.NationalAverage,
+                                -> Res.string.stats_cost_from_average
+                            },
+                        ),
+                        style = PaparcarType.current.caption,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(
+                            horizontal = LIFETIME_H_PAD_DP.dp,
+                            vertical = LIFETIME_V_PAD_DP.dp,
+                        ),
+                    )
+                }
                 if (showLifetime) {
                     PapDivider()
                     Text(
@@ -371,10 +402,10 @@ internal fun statTiles(stats: PeriodStats): List<StatTileData> {
                 val cost = requireNotNull(stats.costEstimate)
                 StatTileData(
                     icon = icon,
-                    value = "${formatDecimal(cost.amount)} ${cost.currency}",
+                    value = "${formatMoney(cost.amount)} ${cost.currency}",
                     label = stringResource(Res.string.stats_tile_cost),
                     delta = percentDelta(cost.amount, stats.previous?.costEstimate?.amount),
-                    animated = StatTileNumber(cost.amount) { v -> "${formatDecimal(v)} ${cost.currency}" },
+                    animated = StatTileNumber(cost.amount) { v -> "${formatMoney(v)} ${cost.currency}" },
                 )
             }
             StatTileKey.CO2 -> StatTileData(
@@ -449,6 +480,16 @@ private fun percentDelta(current: Double, previous: Double?): PapStatDelta? {
     return PapStatDelta(amountText = "${abs(changePercent)}%", isUp = changePercent > 0)
 }
 
+/**
+ * Money always keeps its two decimals. "5.6 EUR" reads as a broken number to anyone who has seen a
+ * price before — cents are not trailing noise to be trimmed, they are part of what a price IS.
+ * [FUEL-PRICE-RESOLVER-001]
+ */
+private fun formatMoney(value: Double): String {
+    val cents = (value * CENTS).roundToInt()
+    return "${cents / CENTS.toInt()}.${(cents % CENTS.toInt()).toString().padStart(2, '0')}"
+}
+
 /** One decimal, and no trailing ".0" — the same shape the fuel line already uses. */
 private fun formatDecimal(value: Double): String {
     val rounded = (value * DECIMAL_SCALE).roundToInt() / DECIMAL_SCALE
@@ -478,6 +519,7 @@ private const val HEAD_TOP_PAD_DP = 13
 private const val HEAD_BOTTOM_PAD_DP = 12
 private const val PERCENT = 100
 private const val DECIMAL_SCALE = 10.0
+private const val CENTS = 100.0
 private const val MS_PER_MINUTE = 60_000L
 private const val MINUTES_PER_HOUR = 60
 private const val LIFETIME_H_PAD_DP = 14

@@ -27,6 +27,9 @@ fun reconcileVehicles(
             fuelType = r.fuelType ?: l?.fuelType,
             consumptionPer100 = r.consumptionPer100 ?: l?.consumptionPer100,
             consumptionElectricPer100 = r.consumptionElectricPer100 ?: l?.consumptionElectricPer100,
+            fuelPricePerLiter = r.fuelPricePerLiter ?: l?.fuelPricePerLiter,
+            energyPricePerKwh = r.energyPricePerKwh ?: l?.energyPricePerKwh,
+            priceCurrency = r.priceCurrency ?: l?.priceCurrency,
             energyLabel = r.energyLabel ?: l?.energyLabel,
         )
     },

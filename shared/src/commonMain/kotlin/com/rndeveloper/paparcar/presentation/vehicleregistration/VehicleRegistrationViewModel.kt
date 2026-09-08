@@ -4,6 +4,7 @@ import com.apptolast.baselogin.domain.AuthRepository
 import com.rndeveloper.paparcar.domain.error.PaparcarError
 import com.rndeveloper.paparcar.domain.model.CarbodyType
 import com.rndeveloper.paparcar.domain.model.FuelType
+import com.rndeveloper.paparcar.domain.model.Money
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.domain.model.VehicleType
@@ -11,6 +12,7 @@ import com.rndeveloper.paparcar.domain.vehicle.VehicleActiveStatePolicy
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import com.rndeveloper.paparcar.presentation.base.BaseViewModel
+import com.rndeveloper.paparcar.presentation.util.platformCurrencyCode
 import com.rndeveloper.paparcar.presentation.vehicleregistration.data.VehicleCatalog
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -22,7 +24,10 @@ class VehicleRegistrationViewModel(
     private val authRepository: AuthRepository,
 ) : BaseViewModel<VehicleRegistrationState, VehicleRegistrationIntent, VehicleRegistrationEffect>() {
 
-    override fun initState(): VehicleRegistrationState = VehicleRegistrationState()
+    // The money this phone is set in, read once: it labels whatever the user types into the price
+    // fields, and its absence is what hides them. [FUEL-PRICE-RESOLVER-001]
+    override fun initState(): VehicleRegistrationState =
+        VehicleRegistrationState(priceCurrency = platformCurrencyCode())
 
     init {
         viewModelScope.launch {
@@ -175,6 +180,10 @@ class VehicleRegistrationViewModel(
             }
             is VehicleRegistrationIntent.SetConsumption ->
                 updateState { copy(consumptionText = intent.value) }
+            is VehicleRegistrationIntent.SetFuelPrice ->
+                updateState { copy(fuelPriceText = intent.value) }
+            is VehicleRegistrationIntent.SetEnergyPrice ->
+                updateState { copy(energyPriceText = intent.value) }
             is VehicleRegistrationIntent.SetConsumptionElectric ->
                 updateState { copy(consumptionElectricText = intent.value) }
             is VehicleRegistrationIntent.SetEnergyLabel ->
@@ -265,6 +274,8 @@ class VehicleRegistrationViewModel(
                         // stays visible and honest. [VEH-FUEL-001]
                         consumptionText = vehicle.consumptionPer100?.let { formatConsumption(it) } ?: "",
                         consumptionElectricText = vehicle.consumptionElectricPer100?.let { formatConsumption(it) } ?: "",
+                        fuelPriceText = vehicle.fuelPricePerLiter?.let { formatConsumption(it.amount.toFloat()) } ?: "",
+                        energyPriceText = vehicle.energyPricePerKwh?.let { formatConsumption(it.amount.toFloat()) } ?: "",
                         energyLabel = vehicle.energyLabel,
                     )
                 }
@@ -346,6 +357,22 @@ class VehicleRegistrationViewModel(
                         } else {
                             null
                         },
+                    // A price is only stored with the currency it was typed in; without one the
+                    // field was never offered. [FUEL-PRICE-RESOLVER-001]
+                    fuelPricePerLiter = current.priceCurrency?.let { c ->
+                        if (type.burnsFuel && current.fuelType?.usesLiters == true) {
+                            parseConsumption(current.fuelPriceText)?.let { Money(it.toDouble(), c) }
+                        } else {
+                            null
+                        }
+                    },
+                    energyPricePerKwh = current.priceCurrency?.let { c ->
+                        if (type.burnsFuel && current.fuelType?.usesElectricity == true) {
+                            parseConsumption(current.energyPriceText)?.let { Money(it.toDouble(), c) }
+                        } else {
+                            null
+                        }
+                    },
                     energyLabel = if (type.burnsFuel) current.energyLabel else null,
                 )
                 vehicleRepository.saveVehicle(vehicle).getOrThrow()

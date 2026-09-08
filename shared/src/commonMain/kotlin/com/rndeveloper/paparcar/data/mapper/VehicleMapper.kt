@@ -5,6 +5,7 @@ import com.rndeveloper.paparcar.data.datasource.remote.dto.VehicleDto
 import com.rndeveloper.paparcar.domain.model.CarbodyType
 import com.rndeveloper.paparcar.domain.model.EnergyLabel
 import com.rndeveloper.paparcar.domain.model.FuelType
+import com.rndeveloper.paparcar.domain.model.Money
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.VehicleColor
 import com.rndeveloper.paparcar.domain.model.VehicleSize
@@ -30,6 +31,9 @@ fun VehicleEntity.toDomain(): Vehicle = Vehicle(
     fuelType = fuelType?.toEnumOrNull<FuelType>(),
     consumptionPer100 = consumptionPer100,
     consumptionElectricPer100 = consumptionElectricPer100,
+    // Un importe sin moneda no se puede interpretar, asi que no se inventa una: se descarta.
+    fuelPricePerLiter = priceCurrency?.let { c -> fuelPricePerLiter?.let { Money(it, c) } },
+    energyPricePerKwh = priceCurrency?.let { c -> energyPricePerKwh?.let { Money(it, c) } },
     energyLabel = energyLabel?.toEnumOrNull<EnergyLabel>(),
 )
 
@@ -53,6 +57,9 @@ fun Vehicle.toEntity(updatedAt: Long = 0, pendingSync: Boolean = false): Vehicle
     fuelType = fuelType?.name,
     consumptionPer100 = consumptionPer100,
     consumptionElectricPer100 = consumptionElectricPer100,
+    fuelPricePerLiter = fuelPricePerLiter?.amount,
+    energyPricePerKwh = energyPricePerKwh?.amount,
+    priceCurrency = (fuelPricePerLiter ?: energyPricePerKwh)?.currency,
     energyLabel = energyLabel?.name,
     updatedAt = updatedAt,
     pendingSync = pendingSync,

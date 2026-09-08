@@ -4,9 +4,11 @@ package com.rndeveloper.paparcar.presentation.vehicles
 
 import androidx.compose.runtime.Immutable
 import com.rndeveloper.paparcar.domain.entitlement.gateHistoryToEntitlement
+import com.rndeveloper.paparcar.domain.fuel.FuelPriceOrigin
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.stats.PeriodStats
+import com.rndeveloper.paparcar.domain.usecase.fuel.ResolveFuelPriceUseCase
 import com.rndeveloper.paparcar.domain.usecase.stats.ComputePeriodStatsUseCase
 import kotlin.time.Clock
 
@@ -50,6 +52,12 @@ sealed interface HistoryTimeline {
          * Activity section answer to the same filter. Null when the period holds no session.
          */
         val periodStats: PeriodStats?,
+        /**
+         * Where the price behind [periodStats]'s cost came from, or null when there is no cost.
+         * The card says it out loud: a spend computed from a national average and one computed
+         * from what the user actually pays are not the same claim. [FUEL-PRICE-RESOLVER-001]
+         */
+        val costOrigin: FuelPriceOrigin?,
         /** Ended sessions of the car's WHOLE life — the footer line, and the only figures on the
          *  ficha that are not the period's. */
         val lifetimeParkings: Int,
@@ -87,6 +95,9 @@ sealed interface HistoryTimeline {
             // mean it, and for a free account the visible set is seven days. This discloses no
             // gated CONTENT — only two counts, and the Plus footer under the timeline already
             // states how many sessions lie beyond the window. [MONEY-001]
+            val countryCode = filtered.countryCode()
+            val litrePrice = vehicle?.let { resolveFuelPrice.litre(it, countryCode) }
+            val kwhPrice = vehicle?.let { resolveFuelPrice.kwh(it, countryCode) }
             val endedEver = sessions.filter { !it.isActive }
             return Resolved(
                 sessions = sessions,
@@ -97,13 +108,33 @@ sealed interface HistoryTimeline {
                     sessions = filtered,
                     vehicles = listOfNotNull(vehicle),
                     previousSessions = previousSessions,
+                    // The country comes from the parkings themselves — the reverse geocoder already
+                    // stamps it on every one — so a price is resolved where the car actually was,
+                    // and the user's country is never stored anywhere. [FUEL-PRICE-RESOLVER-001]
+                    fuelPricePerLiter = litrePrice?.perUnit,
+                    energyPricePerKwh = kwhPrice?.perUnit,
                 ),
+                // The two rungs cannot disagree — one resolver, one order — so either answers for
+                // the label. The litre is asked first because most cars only have that one.
+                costOrigin = (litrePrice ?: kwhPrice)?.source,
                 lifetimeParkings = endedEver.size,
                 lifetimeSpotsReleased = endedEver.count { it.publishedSpot },
             )
         }
 
         private val computePeriodStats = ComputePeriodStatsUseCase()
+        private val resolveFuelPrice = ResolveFuelPriceUseCase()
+
+        /**
+         * Where this period happened, for pricing purposes: the country of the MOST RECENT parking
+         * that knows its own. A period that straddles a border is priced where the driver ended up,
+         * which is both the likelier place they refuel and a decision worth naming — the
+         * alternative (pricing each session in its own country and summing) would produce a total
+         * in mixed currencies, and the aggregate already refuses those. [FUEL-PRICE-RESOLVER-001]
+         */
+        private fun List<UserParking>.countryCode(): String? =
+            maxByOrNull { it.location.timestamp }?.address?.countryCode
+                ?: firstNotNullOfOrNull { it.address?.countryCode }
     }
 }
 

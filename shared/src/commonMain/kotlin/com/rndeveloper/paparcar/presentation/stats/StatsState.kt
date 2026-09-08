@@ -1,6 +1,7 @@
 package com.rndeveloper.paparcar.presentation.stats
 
 import androidx.compose.runtime.Immutable
+import com.rndeveloper.paparcar.domain.fuel.FuelPriceOrigin
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.VehicleWithStats
 import com.rndeveloper.paparcar.domain.stats.PeriodStats
@@ -26,6 +27,10 @@ data class StatsState(
     val periodStats: PeriodStats? = null,
     /** The period's sessions, for the chart's buckets — the same list the figures came from. */
     val filteredSessions: List<UserParking> = emptyList(),
+    /** Where the spend figure's price came from — the panel owes the same caveat the ficha gives,
+     *  or the same number carries a warning on one screen and none on the other.
+     *  [FUEL-PRICE-RESOLVER-001] */
+    val costOrigin: FuelPriceOrigin? = null,
     /** Ended parkings and shared spots over the car's WHOLE life, gate or no gate. */
     val lifetimeParkings: Int = 0,
     val lifetimeSpotsReleased: Int = 0,

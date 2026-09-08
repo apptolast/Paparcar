@@ -79,6 +79,15 @@ data class VehicleRegistrationState(
     val consumptionText: String = "",
     /** Free-text kWh/100 override of the SECONDARY energy — only a plug-in hybrid shows it. */
     val consumptionElectricText: String = "",
+    /** Free-text price the user actually pays per litre. Blank ⇒ the national average applies.
+     *  [FUEL-PRICE-RESOLVER-001] */
+    val fuelPriceText: String = "",
+    /** Same, per kWh — shown to anything that plugs in. */
+    val energyPriceText: String = "",
+    /** ISO-4217 of the money this phone is set in, or null if the platform cannot say. The price
+     *  fields are only offered when it is known: an amount whose currency nobody knows means three
+     *  different things on three phones. */
+    val priceCurrency: String? = null,
     /** Optional environmental badge. Null = not answered. */
     val energyLabel: EnergyLabel? = null,
 ) {

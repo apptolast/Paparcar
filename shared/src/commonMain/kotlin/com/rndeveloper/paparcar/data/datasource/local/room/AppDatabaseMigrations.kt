@@ -52,4 +52,18 @@ private val MIGRATION_3_4 = object : Migration(3, 4) {
     }
 }
 
-val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+/**
+ * v4 → v5: the vehicle can carry what its owner actually PAYS — a litre price, a kWh price and the
+ * currency both are quoted in, all nullable (a pre-v5 row has not answered, and the national
+ * average answers for it). One currency column for both amounts: someone who refuels and charges
+ * in the same country pays in the same money. [FUEL-PRICE-RESOLVER-001]
+ */
+private val MIGRATION_4_5 = object : Migration(4, 5) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL("ALTER TABLE `vehicles` ADD COLUMN `fuelPricePerLiter` REAL")
+        connection.execSQL("ALTER TABLE `vehicles` ADD COLUMN `energyPricePerKwh` REAL")
+        connection.execSQL("ALTER TABLE `vehicles` ADD COLUMN `priceCurrency` TEXT")
+    }
+}
+
+val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)

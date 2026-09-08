@@ -329,6 +329,7 @@ fun HistoryContent(
                                 lifetimeSpotsReleased = resolved.lifetimeSpotsReleased,
                                 // "All time" selected means the tiles ARE the whole life already.
                                 showLifetime = state.activeFilter != HistoryFilter.All,
+                                costOrigin = resolved.costOrigin,
                                 isPlus = isPlus,
                                 onOpenPaywall = onOpenStatsPaywall,
                                 onOpenPanel = onOpenStatsPanel,

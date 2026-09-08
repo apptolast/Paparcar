@@ -833,4 +833,11 @@
     <string name="stats_open_panel">Zobacz pełne zestawienie</string>
     <!-- Where the car is parked, on the ficha state line (STATS-UI-001) -->
     <string name="vehicle_state_parked_at">%1$s · %2$s</string>
+    <!-- Price the user actually pays (FUEL-PRICE-RESOLVER-001) -->
+    <string name="vehicle_registration_fuel_price_label">Cena za litr (%1$s)</string>
+    <string name="vehicle_registration_energy_price_label">Cena za kWh (%1$s)</string>
+    <string name="vehicle_registration_price_help">Zostaw puste, a użyjemy średniej ceny w Twoim kraju.</string>
+    <!-- Where the spend figure's price came from (FUEL-PRICE-RESOLVER-001) -->
+    <string name="stats_cost_from_average">Koszt oszacowany na podstawie średniej ceny w Twoim kraju.</string>
+    <string name="stats_cost_from_your_price">Koszt oszacowany na podstawie Twojej ceny.</string>
 </resources>

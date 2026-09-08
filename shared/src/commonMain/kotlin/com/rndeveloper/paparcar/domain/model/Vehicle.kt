@@ -68,6 +68,17 @@ data class Vehicle(
     val consumptionPer100: Float? = null,
     /** User-overridden kWh/100 km of the SECONDARY energy — only meaningful for a plug-in hybrid. */
     val consumptionElectricPer100: Float? = null,
+    /**
+     * What the user actually pays for a litre. Null ⇒ the national average applies.
+     * [FUEL-PRICE-RESOLVER-001]
+     *
+     * Same shape as [consumptionPer100] and for the same reason: an override the user can give and
+     * a named default when they do not. `Money` and not a bare number because a price without its
+     * currency is not a price — and the app is installed in nine countries.
+     */
+    val fuelPricePerLiter: Money? = null,
+    /** What the user actually pays for a kWh. Null ⇒ the national average applies. */
+    val energyPricePerKwh: Money? = null,
     /** Environmental badge (DGT names in Spain). Optional; stored for the regulated-zone rules. */
     val energyLabel: EnergyLabel? = null,
 )

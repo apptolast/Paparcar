@@ -191,6 +191,7 @@ fun StatsContent(
                             lifetimeParkings = state.lifetimeParkings,
                             lifetimeSpotsReleased = state.lifetimeSpotsReleased,
                             showLifetime = state.filter != HistoryFilter.All,
+                            costOrigin = state.costOrigin,
                             isPlus = state.isPlus,
                             onOpenPaywall = { onIntent(StatsIntent.OpenPaywall) },
                         )
