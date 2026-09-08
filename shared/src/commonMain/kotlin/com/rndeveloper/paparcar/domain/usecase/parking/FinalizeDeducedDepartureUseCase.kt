@@ -2,6 +2,9 @@
 
 package com.rndeveloper.paparcar.domain.usecase.parking
 
+import com.rndeveloper.paparcar.domain.analytics.AnalyticsEvent
+import com.rndeveloper.paparcar.domain.analytics.AnalyticsTracker
+import com.rndeveloper.paparcar.domain.analytics.SessionEndReason
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEvent
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEventLogger
 import com.rndeveloper.paparcar.domain.model.AddressAndPlace
@@ -50,6 +53,8 @@ class FinalizeDeducedDepartureUseCase(
     private val reportSpotReleased: ReportSpotReleasedUseCase,
     private val geofenceService: GeofenceManager,
     private val detectionEventLogger: DetectionEventLogger? = null,
+    // Optional product-analytics sink; fire-and-forget, nullable for test doubles. [ANALYTICS-EVENTS-001]
+    private val analyticsTracker: AnalyticsTracker? = null,
 ) : FinalizeDeducedDeparture {
     /**
      * @param vehicleId the vehicle whose live session just proved a drive. The pending departure is
@@ -82,6 +87,9 @@ class FinalizeDeducedDepartureUseCase(
                 carbodyType = session.carbodyType,
                 prefetched = session.address?.let { AddressAndPlace(it, session.placeInfo) },
                 provisional = false,
+                // Same document, second publish — the provisional emission already counted this
+                // spot. [ANALYTICS-EVENTS-001]
+                promotion = true,
             )
         }
 
@@ -99,6 +107,14 @@ class FinalizeDeducedDepartureUseCase(
                 PaparcarLogger.e(TAG, "clearActiveParkingSession failed for session=${session.id}", e)
                 return false
             }
+
+        // [ANALYTICS-EVENTS-001] The close is durable → the fact is countable (cell-only).
+        analyticsTracker?.track(
+            AnalyticsEvent.ParkingSessionEnded(
+                location = session.location,
+                reason = SessionEndReason.DEPARTURE_DEDUCED,
+            )
+        )
         session.geofenceId?.let { geofenceService.removeGeofence(it) }
 
         detectionEventLogger?.log(

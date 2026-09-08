@@ -10,7 +10,10 @@ import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.usecase.location.GetAddressAndPlaceUseCase
 import com.rndeveloper.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
+import com.rndeveloper.paparcar.domain.analytics.AnalyticsEvent
+import com.rndeveloper.paparcar.domain.analytics.SessionEndReason
 import com.rndeveloper.paparcar.fakes.FakeAddressAndPlaceRepository
+import com.rndeveloper.paparcar.fakes.FakeAnalyticsTracker
 import com.rndeveloper.paparcar.fakes.FakeAuthRepository
 import com.rndeveloper.paparcar.fakes.FakeDepartureEventBus
 import com.rndeveloper.paparcar.fakes.FakeDetectionEventLogger
@@ -275,6 +278,7 @@ class ProcessConfirmedDepartureUseCaseTest {
         bus: FakeDepartureEventBus = FakeDepartureEventBus(),
         logger: FakeDetectionEventLogger = FakeDetectionEventLogger(),
         config: ParkingDetectionConfig = ParkingDetectionConfig(),
+        tracker: FakeAnalyticsTracker? = null,
     ) = ProcessConfirmedDepartureUseCase(
         userParkingRepository = repo,
         reportSpotReleased = ReportSpotReleasedUseCase(
@@ -286,5 +290,31 @@ class ProcessConfirmedDepartureUseCaseTest {
         departureEventBus = bus,
         detectionEventLogger = logger,
         config = config,
+        analyticsTracker = tracker,
     )
+
+    // ── Product analytics [ANALYTICS-EVENTS-001] ─────────────────────────────
+
+    @Test
+    fun should_emit_session_ended_as_departure_confirmed() = runTest {
+        val tracker = FakeAnalyticsTracker()
+        val repo = FakeUserParkingRepository(initialSession = activeSession())
+
+        buildUseCase(repo = repo, tracker = tracker)("session-1", publishSpot = true)
+
+        val ended = tracker.events.filterIsInstance<AnalyticsEvent.ParkingSessionEnded>().single()
+        assertEquals(SessionEndReason.DEPARTURE_CONFIRMED, ended.reason)
+    }
+
+    @Test
+    fun should_emit_no_session_ended_when_the_clear_fails() = runTest {
+        val tracker = FakeAnalyticsTracker()
+        val repo = FakeUserParkingRepository(initialSession = activeSession()).apply {
+            clearActiveParkingSessionResult = Result.failure(RuntimeException("db error"))
+        }
+
+        buildUseCase(repo = repo, tracker = tracker)("session-1", publishSpot = true)
+
+        assertTrue(tracker.events.filterIsInstance<AnalyticsEvent.ParkingSessionEnded>().isEmpty())
+    }
 }

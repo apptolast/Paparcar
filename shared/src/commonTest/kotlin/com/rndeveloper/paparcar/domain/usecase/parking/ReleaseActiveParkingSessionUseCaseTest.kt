@@ -8,6 +8,9 @@ import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.domain.usecase.location.GetAddressAndPlaceUseCase
 import com.rndeveloper.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEvent
+import com.rndeveloper.paparcar.domain.analytics.AnalyticsEvent
+import com.rndeveloper.paparcar.domain.analytics.SessionEndReason
+import com.rndeveloper.paparcar.fakes.FakeAnalyticsTracker
 import com.rndeveloper.paparcar.fakes.FakeAuthRepository
 import com.rndeveloper.paparcar.fakes.FakeAddressAndPlaceRepository
 import com.rndeveloper.paparcar.fakes.FakeDetectionEventLogger
@@ -34,8 +37,9 @@ class ReleaseActiveParkingSessionUseCaseTest {
     )
     private val geofence = com.rndeveloper.paparcar.fakes.FakeGeofenceManager()
     private val eventLogger = FakeDetectionEventLogger()
+    private val tracker = FakeAnalyticsTracker()
     private val useCase = ReleaseActiveParkingSessionUseCase(
-        reportSpotReleased, parkingRepo, geofence, eventLogger,
+        reportSpotReleased, parkingRepo, geofence, eventLogger, tracker,
     )
 
     private val location = GpsPoint(40.416775, -3.703790, 10f, 0L, 0f)
@@ -85,6 +89,23 @@ class ReleaseActiveParkingSessionUseCaseTest {
         val released = eventLogger.events.filterIsInstance<DetectionEvent.Released>().single()
         assertEquals(ParkingReleaseReason.RECORD_DELETED, released.reason)
         assertFalse(released.published)
+    }
+
+    // ── Product analytics [ANALYTICS-EVENTS-001] ─────────────────────────────
+
+    @Test
+    fun `should_emit_session_ended_as_manual_release_when_clear_succeeds`() = runTest {
+        useCase(lat = 40.5, lon = -3.6, currentSession = session(id = "sess-1"))
+
+        val ended = tracker.events.filterIsInstance<AnalyticsEvent.ParkingSessionEnded>().single()
+        assertEquals(SessionEndReason.MANUAL_RELEASE, ended.reason)
+    }
+
+    @Test
+    fun `should_emit_no_session_ended_when_there_is_no_session`() = runTest {
+        useCase(lat = 40.5, lon = -3.6, currentSession = null)
+
+        assertTrue(tracker.events.filterIsInstance<AnalyticsEvent.ParkingSessionEnded>().isEmpty())
     }
 
     // ── [DET-AUDIT-002 T5/M4] The release must unregister the session's fence ─

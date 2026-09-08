@@ -124,6 +124,7 @@ val detectionModule = module {
             detectionStepAnchors = getOrNull(),
             // Android-only route store — getOrNull so iOS binds null (no route snapshot). [DET-ROUTE-TRACK-001]
             drivingRouteStore = getOrNull(),
+            analyticsTracker = get(),
         )
     }
     factory { ResolveAskedStreetUseCase(get()) }
@@ -157,7 +158,7 @@ val detectionModule = module {
     single<com.rndeveloper.paparcar.domain.detection.DepartureConfirmationListener> { get<CoordinatorParkingDetector>() }
 
     // ── Parking session lifecycle ─────────────────────────────────────────────────────────────
-    factory { ReleaseActiveParkingSessionUseCase(reportSpotReleased = get(), userParkingRepository = get(), geofenceService = get(), detectionEventLogger = get()) }
+    factory { ReleaseActiveParkingSessionUseCase(reportSpotReleased = get(), userParkingRepository = get(), geofenceService = get(), detectionEventLogger = get(), analyticsTracker = get()) }
     // [VEH-ACTIVE-FENCE-001 · 2c] Active-vehicle declaration + geofence swap.
     factory { SwapActiveVehicleFencesUseCase(userParkingRepository = get(), vehicleRepository = get(), geofenceService = get(), config = get()) }
     factory { DeclareActiveVehicleUseCase(vehicleRepository = get(), swapFences = get()) }
@@ -168,6 +169,7 @@ val detectionModule = module {
             geofenceService = get(),
             notificationPort = get(),
             detectionEventLogger = get(),
+            analyticsTracker = get(),
         )
     }
     factory {
@@ -209,6 +211,7 @@ val detectionModule = module {
             reportSpotReleased = get(),
             geofenceService = get(),
             detectionEventLogger = get(),
+            analyticsTracker = get(),
         )
     } bind FinalizeDeducedDeparture::class
     // [DET-HANDOFF-NOT-MANUAL-001 §B.3] Withdraws that same provisional spot when the trip ends
@@ -228,6 +231,7 @@ val detectionModule = module {
             departureEventBus = get(),
             detectionEventLogger = get(),
             config = get(),
+            analyticsTracker = get(),
         )
     }
     factory {

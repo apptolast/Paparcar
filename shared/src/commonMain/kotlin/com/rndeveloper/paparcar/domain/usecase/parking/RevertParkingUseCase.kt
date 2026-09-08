@@ -2,6 +2,9 @@
 
 package com.rndeveloper.paparcar.domain.usecase.parking
 
+import com.rndeveloper.paparcar.domain.analytics.AnalyticsEvent
+import com.rndeveloper.paparcar.domain.analytics.AnalyticsTracker
+import com.rndeveloper.paparcar.domain.analytics.SessionEndReason
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEvent
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEventLogger
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager
@@ -56,6 +59,8 @@ class RevertParkingUseCase(
     private val notificationPort: AppNotificationManager,
     // Nullable so existing test doubles / call sites need no change. [DET-SOLID-001]
     private val detectionEventLogger: DetectionEventLogger? = null,
+    // Optional product-analytics sink; fire-and-forget, nullable for test doubles. [ANALYTICS-EVENTS-001]
+    private val analyticsTracker: AnalyticsTracker? = null,
 ) {
 
     suspend operator fun invoke(parkingId: String): Result<Unit> {
@@ -86,6 +91,16 @@ class RevertParkingUseCase(
             PaparcarLogger.e(DIAG, "  ✗ clearActiveParkingSession failed", e)
         }.onSuccess {
             PaparcarLogger.d(DIAG, "  ✓ session cleared (isActive=false in Room + queued for Firestore)")
+            // [ANALYTICS-EVENTS-001] A retraction IS a fact — analysis filters it by reason. Only
+            // emitted when the session was found (no location → nothing honest to report).
+            revertedSession?.location?.let { location ->
+                analyticsTracker?.track(
+                    AnalyticsEvent.ParkingSessionEnded(
+                        location = location,
+                        reason = SessionEndReason.REVERTED,
+                    )
+                )
+            }
         }
 
         // [PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001] …and the row LEAVES the history, which is the

@@ -1,7 +1,10 @@
 package com.rndeveloper.paparcar.domain.usecase.parking
 
+import com.rndeveloper.paparcar.domain.analytics.AnalyticsEvent
+import com.rndeveloper.paparcar.domain.analytics.SessionEndReason
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEvent
 import com.rndeveloper.paparcar.domain.model.GpsPoint
+import com.rndeveloper.paparcar.fakes.FakeAnalyticsTracker
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager
 import com.rndeveloper.paparcar.fakes.FakeAppNotificationManager
@@ -142,10 +145,25 @@ class RevertParkingUseCaseTest {
         geofence: FakeGeofenceManager = FakeGeofenceManager(),
         notification: FakeAppNotificationManager = FakeAppNotificationManager(),
         logger: FakeDetectionEventLogger = FakeDetectionEventLogger(),
+        tracker: FakeAnalyticsTracker? = null,
     ) = RevertParkingUseCase(
         userParkingRepository = repo,
         geofenceService = geofence,
         notificationPort = notification,
         detectionEventLogger = logger,
+        analyticsTracker = tracker,
     )
+
+    // ── Product analytics [ANALYTICS-EVENTS-001] ─────────────────────────────
+
+    @Test
+    fun should_emit_session_ended_as_reverted() = runTest {
+        val tracker = FakeAnalyticsTracker()
+        val repo = FakeUserParkingRepository(initialSession = activeSession())
+
+        buildUseCase(repo = repo, tracker = tracker)("parking-1")
+
+        val ended = tracker.events.filterIsInstance<AnalyticsEvent.ParkingSessionEnded>().single()
+        assertEquals(SessionEndReason.REVERTED, ended.reason)
+    }
 }

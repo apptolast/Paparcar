@@ -7,6 +7,8 @@ import com.rndeveloper.paparcar.domain.model.SpotType
 import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.apptolast.baselogin.domain.model.UserSession
 import com.rndeveloper.paparcar.domain.usecase.location.GetAddressAndPlaceUseCase
+import com.rndeveloper.paparcar.domain.analytics.AnalyticsEvent
+import com.rndeveloper.paparcar.fakes.FakeAnalyticsTracker
 import com.rndeveloper.paparcar.fakes.FakeAuthRepository
 import com.rndeveloper.paparcar.fakes.FakeAddressAndPlaceRepository
 import com.rndeveloper.paparcar.fakes.FakeReportSpotScheduler
@@ -27,10 +29,12 @@ class ReportSpotReleasedUseCaseTest {
             photoUrl = null,
         )
     )
+    private val tracker = FakeAnalyticsTracker()
     private val useCase = ReportSpotReleasedUseCase(
         reportSpotScheduler = scheduler,
         getAddressAndPlace = GetAddressAndPlaceUseCase(addressAndPlaceRepo),
         authRepository = auth,
+        analyticsTracker = tracker,
     )
 
     // ── Schedule always called ─────────────────────────────────────────────────
@@ -168,5 +172,32 @@ class ReportSpotReleasedUseCaseTest {
         ucNoAuth(40.416775, -3.703790, "spot-2")
 
         assertNull(scheduler.lastReportedBy)
+    }
+
+    // ── Product analytics [ANALYTICS-EVENTS-001] ──────────────────────────────
+
+    @Test
+    fun `should_emitSpotReleased_when_publicationIsNotManual`() = runTest {
+        useCase(40.416775, -3.703790, "spot-1", spotType = SpotType.AUTO_DETECTED)
+
+        assertEquals(1, tracker.events.size)
+        assertEquals(true, tracker.events.single() is AnalyticsEvent.SpotReleased)
+    }
+
+    @Test
+    fun `should_emitSpotReported_when_spotTypeIsManualReport`() = runTest {
+        useCase(40.416775, -3.703790, "spot-1", spotType = SpotType.MANUAL_REPORT)
+
+        assertEquals(1, tracker.events.size)
+        assertEquals(true, tracker.events.single() is AnalyticsEvent.SpotReported)
+    }
+
+    @Test
+    fun `should_emitNothing_when_callIsAPromotion`() = runTest {
+        // The promotion re-publishes the SAME document the provisional publish already counted.
+        useCase(40.416775, -3.703790, "spot-1", promotion = true)
+
+        assertEquals(0, tracker.events.size)
+        assertEquals(1, scheduler.scheduleCallCount, "the promotion must still re-publish the spot")
     }
 }

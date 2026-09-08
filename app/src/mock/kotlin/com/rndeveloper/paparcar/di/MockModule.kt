@@ -114,6 +114,8 @@ val mockModule = module {
     // so the port must exist here or resolving ConfirmParkingUseCase crashes Home. [MOCKQA-001]
     single<com.rndeveloper.paparcar.domain.diagnostics.DetectionEventLogger> { com.rndeveloper.paparcar.domain.diagnostics.NoOpDetectionEventLogger() }
     single<com.rndeveloper.paparcar.domain.diagnostics.UiLocationLogger> { com.rndeveloper.paparcar.domain.diagnostics.NoOpUiLocationLogger() }
+    // Product analytics never leaves the Dev Catalog. [ANALYTICS-EVENTS-001]
+    single<com.rndeveloper.paparcar.domain.analytics.AnalyticsTracker> { com.rndeveloper.paparcar.domain.analytics.NoOpAnalyticsTracker() }
     single<ReportSpotScheduler> { FakeReportSpotScheduler() }
     single<com.rndeveloper.paparcar.domain.detection.ports.ManualParkingDetection> {
         // Same shared runtime, so the Home "I'm driving" CTA starts the sim too. [DRIVE-SIM-001]

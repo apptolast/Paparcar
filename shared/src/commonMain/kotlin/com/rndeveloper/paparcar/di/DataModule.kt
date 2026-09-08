@@ -8,6 +8,7 @@ import com.rndeveloper.paparcar.data.geocoder.RoomLocalAddressAndPlaceDataSource
 import com.rndeveloper.paparcar.domain.geocoder.LocalAddressAndPlaceDataSource
 import com.rndeveloper.paparcar.data.datasource.remote.FirebaseDataSource
 import com.rndeveloper.paparcar.data.datasource.remote.FirebaseDataSourceImpl
+import com.rndeveloper.paparcar.data.analytics.FirebaseAnalyticsTracker
 import com.rndeveloper.paparcar.data.datasource.remote.FirestoreDetectionEventLogger
 import com.rndeveloper.paparcar.data.datasource.remote.FirestoreDiagnosticsReportUploader
 import com.rndeveloper.paparcar.data.datasource.remote.FirestoreUiLocationLogger
@@ -34,6 +35,7 @@ import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
 import com.rndeveloper.paparcar.domain.repository.UserProfileRepository
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import com.rndeveloper.paparcar.domain.repository.ZoneRepository
+import com.rndeveloper.paparcar.domain.analytics.AnalyticsTracker
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEventLogger
 import com.rndeveloper.paparcar.domain.diagnostics.DiagnosticsReportUploader
 import com.rndeveloper.paparcar.domain.diagnostics.UiLocationLogger
@@ -67,6 +69,10 @@ val dataModule = module {
             detectionConfig = get(),
         )
     }
+
+    // Product analytics — anonymous population-wide counters, cell-only location. A different
+    // system from the opt-in diagnostics above, on purpose. [ANALYTICS-EVENTS-001]
+    single<AnalyticsTracker> { FirebaseAnalyticsTracker() }
 
     // Consumer map-location diagnostics — local logcat always + gated Firestore mirror at
     // diagnostics/{userId}/uiLocation, same opt-in flag as detection. Verifies UI-LOC-FOREGROUND-001.

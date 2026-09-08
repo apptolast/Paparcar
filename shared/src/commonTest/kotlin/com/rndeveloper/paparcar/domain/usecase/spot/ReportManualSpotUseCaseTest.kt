@@ -5,7 +5,9 @@ import com.rndeveloper.paparcar.domain.model.SpotType
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.domain.usecase.location.GetAddressAndPlaceUseCase
+import com.rndeveloper.paparcar.domain.analytics.AnalyticsEvent
 import com.rndeveloper.paparcar.fakes.FakeAddressAndPlaceRepository
+import com.rndeveloper.paparcar.fakes.FakeAnalyticsTracker
 import com.rndeveloper.paparcar.fakes.FakeAuthRepository
 import com.rndeveloper.paparcar.fakes.FakeReportSpotScheduler
 import com.rndeveloper.paparcar.fakes.FakeVehicleRepository
@@ -18,10 +20,12 @@ import kotlin.test.assertTrue
 class ReportManualSpotUseCaseTest {
 
     private val scheduler = FakeReportSpotScheduler()
+    private val tracker = FakeAnalyticsTracker()
     private val reportSpotReleased = ReportSpotReleasedUseCase(
         reportSpotScheduler = scheduler,
         getAddressAndPlace = GetAddressAndPlaceUseCase(FakeAddressAndPlaceRepository()),
         authRepository = FakeAuthRepository(FakeAuthRepository.authenticatedSession()),
+        analyticsTracker = tracker,
     )
 
     private fun vehicle(id: String, isActive: Boolean, carbody: CarbodyType?) = Vehicle(
@@ -66,6 +70,18 @@ class ReportManualSpotUseCaseTest {
         assertNull(scheduler.lastCarbodyType)
         // Null size means the user explicitly picked "Indefinido" — never inferred.
         assertNull(scheduler.lastSizeCategory)
+    }
+
+    @Test
+    fun should_emit_exactly_one_spot_reported_through_the_wrapper() = runTest {
+        // The wrapper delegates to ReportSpotReleasedUseCase, which is the single emission point —
+        // one manual report must produce exactly ONE spot_reported event. [ANALYTICS-EVENTS-001]
+        val useCase = ReportManualSpotUseCase(reportSpotReleased, FakeVehicleRepository())
+
+        useCase(lat = 40.0, lon = -3.0, sizeCategory = null, prefetched = null)
+
+        assertEquals(1, tracker.events.size)
+        assertTrue(tracker.events.single() is AnalyticsEvent.SpotReported)
     }
 
     @Test

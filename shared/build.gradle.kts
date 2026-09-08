@@ -154,6 +154,9 @@ kotlin {
             api(libs.firebase.firestore)
             api(libs.firebase.auth)
             api(libs.firebase.common)
+            // Product analytics — los hechos que ya ocurren, como celda, nunca coordenada.
+            // [ANALYTICS-EVENTS-001]
+            api(libs.firebase.analytics)
 
             // KMP Maps — Google Maps en Android + Apple Maps en iOS
             api(libs.kmp.maps.core)

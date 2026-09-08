@@ -2,6 +2,9 @@
 
 package com.rndeveloper.paparcar.domain.usecase.parking
 
+import com.rndeveloper.paparcar.domain.analytics.AnalyticsEvent
+import com.rndeveloper.paparcar.domain.analytics.AnalyticsTracker
+import com.rndeveloper.paparcar.domain.analytics.SessionEndReason
 import com.rndeveloper.paparcar.domain.detection.DepartureProof
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEvent
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEventLogger
@@ -49,6 +52,8 @@ class ProcessConfirmedDepartureUseCase(
     // [DET-A-DOUBT-FIELD-MUST-NOT-DEFAULT-TO-CERTAINTY-001] — three call sites, all of which have
     // a config to hand.
     private val config: ParkingDetectionConfig,
+    // Optional product-analytics sink; fire-and-forget, nullable for test doubles. [ANALYTICS-EVENTS-001]
+    private val analyticsTracker: AnalyticsTracker? = null,
 ) {
     private companion object {
         const val TAG = "ProcessConfirmedDeparture"
@@ -172,6 +177,14 @@ class ProcessConfirmedDepartureUseCase(
                     PaparcarLogger.e(TAG, "clearActiveParkingSession failed for session=${session.id}", e)
                     return Result.failure(e)
                 }
+
+            // [ANALYTICS-EVENTS-001] The close is durable → the fact is countable (cell-only).
+            analyticsTracker?.track(
+                AnalyticsEvent.ParkingSessionEnded(
+                    location = session.location,
+                    reason = SessionEndReason.DEPARTURE_CONFIRMED,
+                )
+            )
 
             // [PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001] The departure we just committed can be
             // the REFUTATION of the pin it departed from, not its ending: a backfill reconstruction

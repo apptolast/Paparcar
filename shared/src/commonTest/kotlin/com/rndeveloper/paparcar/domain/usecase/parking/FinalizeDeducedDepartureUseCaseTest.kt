@@ -4,7 +4,10 @@ import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.usecase.location.GetAddressAndPlaceUseCase
 import com.rndeveloper.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
+import com.rndeveloper.paparcar.domain.analytics.AnalyticsEvent
+import com.rndeveloper.paparcar.domain.analytics.SessionEndReason
 import com.rndeveloper.paparcar.fakes.FakeAddressAndPlaceRepository
+import com.rndeveloper.paparcar.fakes.FakeAnalyticsTracker
 import com.rndeveloper.paparcar.fakes.FakeAuthRepository
 import com.rndeveloper.paparcar.fakes.FakeDetectionEventLogger
 import com.rndeveloper.paparcar.fakes.FakeGeofenceManager
@@ -124,14 +127,38 @@ class FinalizeDeducedDepartureUseCaseTest {
         repo: FakeUserParkingRepository = FakeUserParkingRepository(),
         spotScheduler: FakeReportSpotScheduler = FakeReportSpotScheduler(),
         geofence: FakeGeofenceManager = FakeGeofenceManager(),
+        tracker: FakeAnalyticsTracker? = null,
     ) = FinalizeDeducedDepartureUseCase(
         userParkingRepository = repo,
         reportSpotReleased = ReportSpotReleasedUseCase(
             reportSpotScheduler = spotScheduler,
             getAddressAndPlace = GetAddressAndPlaceUseCase(repository = FakeAddressAndPlaceRepository()),
             authRepository = FakeAuthRepository(initialSession = FakeAuthRepository.authenticatedSession(userId = "user-42")),
+            // The SAME tracker as the outer use case: proves the promotion emits no spot event
+            // while the close emits its session_ended. [ANALYTICS-EVENTS-001]
+            analyticsTracker = tracker,
         ),
         geofenceService = geofence,
         detectionEventLogger = FakeDetectionEventLogger(),
+        analyticsTracker = tracker,
     )
+
+    // ── Product analytics [ANALYTICS-EVENTS-001] ─────────────────────────────
+
+    @Test
+    fun should_emit_session_ended_as_departure_deduced_and_no_second_spot_event() = runTest {
+        // The provisional publish already counted this spot when the deduction fired; the
+        // promotion here must add only the session close.
+        val tracker = FakeAnalyticsTracker()
+        val repo = FakeUserParkingRepository(initialSession = session())
+
+        buildUseCase(repo = repo, tracker = tracker)("v-1")
+
+        val ended = tracker.events.filterIsInstance<AnalyticsEvent.ParkingSessionEnded>().single()
+        assertEquals(SessionEndReason.DEPARTURE_DEDUCED, ended.reason)
+        assertTrue(
+            tracker.events.filterIsInstance<AnalyticsEvent.SpotReleased>().isEmpty(),
+            "the promotion re-publishes the same document and must not count a second spot",
+        )
+    }
 }

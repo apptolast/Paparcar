@@ -186,6 +186,7 @@ firebase-crashlytics = { module = "com.google.firebase:firebase-crashlytics" }
 firebase-firestore = { module = "dev.gitlive:firebase-firestore", version.ref = "firebase-gitlive" }
 firebase-auth = { module = "dev.gitlive:firebase-auth", version.ref = "firebase-gitlive" }
 firebase-common = { module = "dev.gitlive:firebase-common", version.ref = "firebase-gitlive" }
+firebase-analytics = { module = "dev.gitlive:firebase-analytics", version.ref = "firebase-gitlive" }
 
 # ── KMP Maps (fork propio) ───────────────────────────────────────────────────
 # El paquete del código sigue siendo com.swmansion.kmpmaps.core; solo cambian las coordenadas.

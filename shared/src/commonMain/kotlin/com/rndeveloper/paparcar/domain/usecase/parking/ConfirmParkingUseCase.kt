@@ -3,6 +3,8 @@
 package com.rndeveloper.paparcar.domain.usecase.parking
 
 import com.apptolast.baselogin.domain.AuthRepository
+import com.rndeveloper.paparcar.domain.analytics.AnalyticsEvent
+import com.rndeveloper.paparcar.domain.analytics.AnalyticsTracker
 import com.rndeveloper.paparcar.domain.detection.ArmLabel
 import com.rndeveloper.paparcar.domain.detection.assertionBlocksRelocation
 import com.rndeveloper.paparcar.domain.detection.DrivingRoute
@@ -69,6 +71,11 @@ class ConfirmParkingUseCase(
     // saved parking (local + remote) and cleared here so the next trip starts fresh. Nullable for
     // test doubles / platforms without a route store. [DET-ROUTE-TRACK-001]
     private val drivingRouteStore: DrivingRouteStore? = null,
+    // Optional: product-analytics sink. Every park converges on this use case, so the
+    // parking_session_started fact is emitted HERE with the same provenance the session persists —
+    // never from a parallel path that could count the same trip differently. Fire-and-forget;
+    // nullable for test doubles. [ANALYTICS-EVENTS-001]
+    private val analyticsTracker: AnalyticsTracker? = null,
 ) {
 
     /**
@@ -319,6 +326,16 @@ class ConfirmParkingUseCase(
             PaparcarLogger.e(DIAG, "  ✗ saveNewParkingSession failed", saved.exceptionOrNull())
             return Result.failure(PaparcarError.Parking.SaveFailed)
         }
+
+        // [ANALYTICS-EVENTS-001] The park is durable → the fact is countable. The tracker reduces
+        // the location to a coarse cell; no coordinate leaves the device.
+        analyticsTracker?.track(
+            AnalyticsEvent.ParkingSessionStarted(
+                location = gpsPoint,
+                spotType = resolvedSpotType,
+                detectionPath = detectionPath,
+            )
+        )
 
         // [DET-ROUTE-TRACK-001] The route is now durable on the parking → clear the live store so the
         // NEXT trip starts fresh. Cleared here (route consumed) rather than on abort, so a spurious

@@ -238,6 +238,9 @@ probabilidad futura, privada por construcción. **v12** · infraestructura · al
 media (**el sistema de celdas no se puede cambiar después**) · depende de 5.1.
 
 - **3a · Sistema de celdas**: geohash p7 o H3 r9 (~150 m). Decidir **una vez, para siempre**.
+  → **08-09:** decidido **de facto por A1** ([ANALYTICS-EVENTS-001]): los eventos ya emiten
+  **geohash p7** (coherente con el índice de spots, y un prefijo geohash siempre se puede truncar a
+  celda más gruesa — H3 no se deriva de él). La agregación hereda geohash.
 - **3b · Cloud Function de agregación**: incrementa `cells/{cellId}/stats/{dow}_{hour}` (sessions,
   releases, searches, found). Sin uid, sin coordenada.
 - **3c · Export a BigQuery** (gratis): el análisis pesado vive ahí, no en Firestore.

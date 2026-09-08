@@ -2,7 +2,8 @@
 
 > Estas respuestas tienen que decir LO MISMO que la política publicada. Si cambia lo que la app
 > recoge, se actualizan los dos en la MISMA tarea. Inventario verificado contra el manifest
-> prodRelease y los data sources de Firestore el 28-08-2026.
+> prodRelease y los data sources de Firestore el 28-08-2026; ampliado el 08-09-2026 con los
+> eventos de producto de Firebase Analytics [ANALYTICS-EVENTS-001].
 >
 > **Política publicada (28-08-2026): <https://paparcar.com/privacy-policy>** — dominio custom
 > conectado el 02-09-2026 al site por defecto de pap-26 (`pap-26.web.app` sigue sirviendo lo mismo
@@ -32,10 +33,16 @@ tampoco. → **Compartido = No** en todo.
 | Personal info → **Name** | displayName del proveedor | Obligatorio | Account management |
 | Photos → **Photos** | photoUrl del perfil Google (solo URL, no subimos fotos) — declarar como Personal info/other o Photos según criterio; lo defendible: **Personal info → Other info** | Opcional | Account management |
 | Health & fitness → **Physical activity** | Activity Recognition + pasos (se procesa en device; el RESUMEN viaja en diagnósticos/armEvidence → se declara) | Obligatorio para el carril Coordinator | App functionality |
+| App activity → **App interactions** | Eventos de producto (Firebase Analytics): aparcamiento confirmado/cerrado, plaza liberada/avisada. La ubicación viaja SOLO como celda geohash de ~150 m (nunca coordenada — invariante en `FirebaseAnalyticsTracker`, único traductor); sin uid en los params, identificados por el app-instance id de Firebase. Destino: Firebase Analytics (+ export a BigQuery cuando se active en consola); retención GA por defecto (14 meses). [ANALYTICS-EVENTS-001] | Obligatorio | Analytics |
 | App activity → **Other user-generated content** | Vehículos (marca/modelo/matrícula opcional), zonas privadas, plazas avisadas | Opcional | App functionality |
 | App info & performance → **Crash logs** | Crashlytics | Obligatorio | Analytics |
 | App info & performance → **Diagnostics** | Telemetría de detección (Firestore `diagnostics/`) + parkdiag | Obligatorio | Analytics |
-| Device or other IDs → **Device or other IDs** | MAC/nombre del BT del coche del usuario; ids de instalación de Firebase | Opcional (BT) | App functionality |
+| Device or other IDs → **Device or other IDs** | MAC/nombre del BT del coche del usuario; ids de instalación de Firebase (incluye el app-instance id de Analytics) | Opcional (BT) | App functionality, Analytics |
+
+⛔ **Advertising ID: NO se declara y NO se recoge.** `play-services-measurement` (lo arrastra
+Firebase Analytics) fusiona el permiso `com.google.android.gms.permission.AD_ID`; el manifest lo
+elimina con `tools:node="remove"` — Paparcar no muestra anuncios. Si algún día entra AdMob, esto
+cambia aquí y en la política en la MISMA tarea. [ANALYTICS-EVENTS-001]
 
 **No se recoge** (no declarar): contactos, SMS, archivos, micrófono, cámara, historial web,
 información financiera, datos de salud médicos.

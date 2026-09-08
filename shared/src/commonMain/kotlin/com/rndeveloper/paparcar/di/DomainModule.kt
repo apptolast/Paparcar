@@ -75,7 +75,7 @@ val domainModule = module {
 
     // Spot UseCases
     factory { ObserveNearbySpotsUseCase(get()) }
-    factory { ReportSpotReleasedUseCase(reportSpotScheduler = get(), getAddressAndPlace = get(), authRepository = get()) }
+    factory { ReportSpotReleasedUseCase(reportSpotScheduler = get(), getAddressAndPlace = get(), authRepository = get(), analyticsTracker = get()) }
     // Home's manual "avisar plaza libre" policy (id, MANUAL type, carbody fallback). [HOME-ATOMIZE-001 F4]
     factory { ReportManualSpotUseCase(reportSpotReleased = get(), vehicleRepository = get()) }
     factory { SendSpotSignalUseCase(get()) }

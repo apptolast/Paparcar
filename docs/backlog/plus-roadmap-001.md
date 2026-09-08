@@ -115,17 +115,25 @@ al cerrar cada una**.
 
 ### A1 · ANALYTICS-EVENTS-001 — los eventos que ya son hecho (del roadmap padre, feature 1a)
 
-**Objetivo.** Emitir `parking_session_started`, `parking_session_ended`, `spot_released`,
-`spot_reported` con timestamp, celda geográfica (nunca coordenada exacta), fuente de detección y
-confianza. Es lo único de toda la ola que se acumula solo con el tiempo.
+**Estado: ✅ EN MASTER** (08-09) — ficha completa en
+[`analytics-events-001.md`](analytics-events-001.md).
 
-**Restricciones ya investigadas** (detalle en roadmap padre §3.3): un solo punto de emisión — el
-mismo donde ya se estampan `detectionPath`/`outcome`/`sessionOutcome`, NUNCA un camino paralelo (ya
-hay dos telemetrías: Firestore diagnostics y `parkdiag.log`); Firebase Analytics **no está en el
-catálogo** → dependencia nueva + `expect/actual` (patrón `CrashReporter`); la celda geográfica es
-ubicación → fila en `docs/legal/DATA-SAFETY-FORM.md` **en la misma tarea**. Los eventos de búsqueda
-(`search_started`/`spot_found`) NO van aquí: no existe el hecho que los produzca (embudo 1b, tras la
-ola).
+**Objetivo.** Emitir `parking_session_started`, `parking_session_ended` (con `end_reason`),
+`spot_released`, `spot_reported` con celda geográfica (nunca coordenada). Es lo único de toda la
+ola que se acumula solo con el tiempo.
+
+**Lo que quedó (deltas sobre lo previsto):** GitLive publica `firebase-analytics` en 2.6.0 → API
+común, **sin expect/actual** (esa suposición era pre-verificación). Puerto
+`domain/analytics/AnalyticsTracker` + `FirebaseAnalyticsTracker` en data — el ÚNICO traductor
+GpsPoint→celda (**geohash p7**, lo que decide de facto geohash para la agregación futura, anotado
+en el padre §5.3). Emisión desde los choke points reales: `ConfirmParkingUseCase` (alta), los 4
+cerradores (cada uno su `end_reason`, incluida la retractación), y `ReportSpotReleasedUseCase`
+(released/reported por `SpotType`; la promoción de una salida deducida pasa `promotion = true` y no
+cuenta doble). ⛔ Los 3 permisos de advertising-id que arrastra `play-services-measurement` se
+eliminan del manifest (`tools:node="remove"`, verificado en el fusionado): sin anuncios no se
+recoge el ad id. Data Safety + política de privacidad (EN/ES) actualizadas en la misma tarea.
+⏳ User: activar el export a BigQuery en la consola de Firebase (sin código) y **redesplegar el
+hosting** (`firebase deploy --only hosting` por CLI) para publicar la política actualizada.
 
 ### A2 · WIDGET-PARKED-001 — el widget del aparcamiento activo (del roadmap padre, P2)
 

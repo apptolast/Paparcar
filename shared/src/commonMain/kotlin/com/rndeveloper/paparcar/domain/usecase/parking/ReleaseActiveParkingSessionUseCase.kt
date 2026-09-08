@@ -2,6 +2,9 @@
 
 package com.rndeveloper.paparcar.domain.usecase.parking
 
+import com.rndeveloper.paparcar.domain.analytics.AnalyticsEvent
+import com.rndeveloper.paparcar.domain.analytics.AnalyticsTracker
+import com.rndeveloper.paparcar.domain.analytics.SessionEndReason
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEvent
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEventLogger
 import com.rndeveloper.paparcar.domain.model.AddressAndPlace
@@ -32,6 +35,8 @@ class ReleaseActiveParkingSessionUseCase(
     private val userParkingRepository: UserParkingRepository,
     private val geofenceService: GeofenceManager,
     private val detectionEventLogger: DetectionEventLogger,
+    // Optional product-analytics sink; fire-and-forget, nullable for test doubles. [ANALYTICS-EVENTS-001]
+    private val analyticsTracker: AnalyticsTracker? = null,
 ) {
     suspend operator fun invoke(
         lat: Double,
@@ -90,6 +95,17 @@ class ReleaseActiveParkingSessionUseCase(
         val cleared = userParkingRepository.clearActiveParkingSession(
             sessionId, endedAtMs = nowMs, publishedSpot = reason.publishesSpot,
         )
+
+        // [ANALYTICS-EVENTS-001] The close is durable → the fact is countable (cell-only). All
+        // user-initiated closes count as MANUAL_RELEASE regardless of whether a spot went out.
+        if (cleared.isSuccess) {
+            analyticsTracker?.track(
+                AnalyticsEvent.ParkingSessionEnded(
+                    location = currentSession.location,
+                    reason = SessionEndReason.MANUAL_RELEASE,
+                )
+            )
+        }
 
         // [DET-AUDIT-002 T5/M4] A manual release must also unregister the session's fences:
         // revert and departure already do, but this path left a NEVER_EXPIRE orphan behind on

@@ -2,8 +2,11 @@
 
 package com.rndeveloper.paparcar.domain.usecase.parking
 
+import com.rndeveloper.paparcar.domain.analytics.AnalyticsEvent
 import com.rndeveloper.paparcar.domain.detection.ArmLabel
 import com.rndeveloper.paparcar.domain.model.GpsPoint
+import com.rndeveloper.paparcar.domain.model.SpotType
+import com.rndeveloper.paparcar.fakes.FakeAnalyticsTracker
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.VehicleSize
@@ -652,6 +655,7 @@ class ConfirmParkingUseCaseTest {
         bus: FakeDepartureEventBus = FakeDepartureEventBus(),
         scheduler: com.rndeveloper.paparcar.domain.service.ParkingSyncScheduler? = null,
         routeStore: DrivingRouteStore? = null,
+        tracker: FakeAnalyticsTracker? = null,
     ) = ConfirmParkingUseCase(
         userParkingRepository = repo,
         vehicleRepository = vehicles,
@@ -663,7 +667,40 @@ class ConfirmParkingUseCaseTest {
         departureEventBus = bus,
         parkingSyncScheduler = scheduler,
         drivingRouteStore = routeStore,
+        analyticsTracker = tracker,
     )
+
+    // ── Product analytics [ANALYTICS-EVENTS-001] ──────────────────────────────
+
+    @Test
+    fun `should emit one parking_session_started with provenance when the save succeeds`() = runTest {
+        val tracker = FakeAnalyticsTracker()
+        val useCase = buildUseCase(tracker = tracker)
+
+        val saved = useCase(
+            location,
+            detectionReliability = 0.9f,
+            detectionPath = "steps+egress",
+            sealPoint = null,
+        ).getOrNull()
+
+        assertNotNull(saved)
+        val event = tracker.events.filterIsInstance<AnalyticsEvent.ParkingSessionStarted>().single()
+        assertEquals(SpotType.AUTO_DETECTED, event.spotType)
+        assertEquals("steps+egress", event.detectionPath)
+        assertEquals(1, tracker.events.size)
+    }
+
+    @Test
+    fun `should emit no analytics when the confirm aborts before saving`() = runTest {
+        val tracker = FakeAnalyticsTracker()
+        val useCase = buildUseCase(auth = FakeAuthRepository(initialSession = null), tracker = tracker)
+
+        val result = useCase(location, detectionReliability = 0.9f, sealPoint = null)
+
+        assertTrue(result.isFailure)
+        assertTrue(tracker.events.isEmpty(), "an aborted confirm is not a countable fact")
+    }
 
     // ── Driven route snapshot [DET-ROUTE-TRACK-001] ─────────────────────────────
 

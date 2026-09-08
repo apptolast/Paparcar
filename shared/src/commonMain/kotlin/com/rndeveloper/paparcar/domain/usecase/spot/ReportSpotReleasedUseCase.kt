@@ -1,8 +1,13 @@
+@file:OptIn(kotlin.time.ExperimentalTime::class)
+
 package com.rndeveloper.paparcar.domain.usecase.spot
 
 import com.apptolast.baselogin.domain.AuthRepository
+import com.rndeveloper.paparcar.domain.analytics.AnalyticsEvent
+import com.rndeveloper.paparcar.domain.analytics.AnalyticsTracker
 import com.rndeveloper.paparcar.domain.model.AddressAndPlace
 import com.rndeveloper.paparcar.domain.model.AddressInfo
+import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.CarbodyType
 import com.rndeveloper.paparcar.domain.model.PlaceInfo
 import com.rndeveloper.paparcar.domain.model.SpotType
@@ -11,6 +16,7 @@ import com.rndeveloper.paparcar.domain.service.ReportSpotScheduler
 import com.rndeveloper.paparcar.domain.usecase.location.GetAddressAndPlaceUseCase
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
 
 /**
@@ -34,6 +40,11 @@ class ReportSpotReleasedUseCase(
     private val reportSpotScheduler: ReportSpotScheduler,
     private val getAddressAndPlace: GetAddressAndPlaceUseCase,
     private val authRepository: AuthRepository,
+    // Optional product-analytics sink. This use case is the single choke point for every spot
+    // publication, so spot_released / spot_reported (by [SpotType]) are emitted HERE — the manual
+    // wrapper inherits it and can never double-count. Fire-and-forget; nullable for test doubles.
+    // [ANALYTICS-EVENTS-001]
+    private val analyticsTracker: AnalyticsTracker? = null,
 ) {
     suspend operator fun invoke(
         lat: Double,
@@ -47,6 +58,10 @@ class ReportSpotReleasedUseCase(
         /** [DET-HANDOFF-NOT-MANUAL-001 §B] The departure behind this spot was deduced, not measured:
          *  publish now (freshness is the value) but with the provisional lifetime. */
         provisional: Boolean = false,
+        /** True when this call RE-publishes an already-published provisional spot under the same id
+         *  (the promotion of a deduced departure, REPLACE on the same document). The community sees
+         *  one spot, so analytics must count one: a promotion emits nothing. [ANALYTICS-EVENTS-001] */
+        promotion: Boolean = false,
     ) {
         // [AUDIT-RULES-001 C4] The spot's identity is the reporter's UID, not their display name —
         // the Firestore rules key owner-only edit/delete off `reportedBy == request.auth.uid`.
@@ -85,6 +100,20 @@ class ReportSpotReleasedUseCase(
             reportedBy = reportedByUid,
             provisional = provisional,
         )
+
+        // [ANALYTICS-EVENTS-001] The publication is durably enqueued → the fact is countable
+        // (cell-only). A promotion re-publishes the same document and counts nothing.
+        if (!promotion) {
+            val nowMs = Clock.System.now().toEpochMilliseconds()
+            val location = GpsPoint(latitude = lat, longitude = lon, accuracy = 0f, timestamp = nowMs, speed = 0f)
+            analyticsTracker?.track(
+                if (spotType == SpotType.MANUAL_REPORT) {
+                    AnalyticsEvent.SpotReported(location)
+                } else {
+                    AnalyticsEvent.SpotReleased(location)
+                }
+            )
+        }
     }
 
     companion object {
