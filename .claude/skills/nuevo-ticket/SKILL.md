@@ -16,10 +16,20 @@ description: Abrir y cerrar una tarea de código en Paparcar con el flujo correc
 git worktree add -b <rama> ../Paparcar-<tarea> master
 cp local.properties ../Paparcar-<tarea>/
 cp app/google-services.json ../Paparcar-<tarea>/app/
+# Solo si la tarea va a compilar un build de RELEASE (bundle/AAB, medir R8, firmar):
+cp keystore.properties ../Paparcar-<tarea>/
+cp -r keystore ../Paparcar-<tarea>/
 ```
 
-Sin esos dos ficheros gitignored el build falla con *"SDK location not found"* /
-*"google-services.json is missing"*.
+Sin los dos primeros el build falla con *"SDK location not found"* / *"google-services.json is
+missing"*. Los otros dos **son cuatro ficheros gitignored, no dos**: `keystore.properties` sin el
+`keystore/release.jks` al que apunta deja el build de release muerto en
+`validateSigningProdRelease` → *"Keystore file '…/keystore/release.jks' not found"*. Copiar el
+`.properties` solo es peor que no copiarlo: activa `hasReleaseSigning` y convierte un build sin
+firmar (que sale, con warning) en un build que falla.
+
+> Medido el 08-09-2026 abriendo R8-AN-UNUSED-GEOFIRE-DRAGS-REALTIME-DATABASE-001, cuyo baseline
+> exigía un `:app:bundleProdRelease` en el worktree.
 
 Desde ese momento, **editar, compilar e instalar SIEMPRE desde el worktree**, nunca desde el
 principal. Nada de `git stash` / `git checkout --` / cambios de rama en el árbol principal.

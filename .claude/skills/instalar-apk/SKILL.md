@@ -36,8 +36,28 @@ adb devices -l
 | `LNRCMZ8H6HBITWNJ` | `CPH2371` | **Oppo** — cuenta principal, Škoda Kamiq con **BT real** (estrategia BLUETOOTH) |
 | `5f8991cb` | `2201117TY` | **Redmi** — **OTRA cuenta**, C5 Aircross ficticio sin BT (estrategia COORDINATOR) |
 
-Ninguno conectado → decirlo y parar. `unauthorized` → el móvil tiene el diálogo de depuración
-esperando; pedir al user que lo acepte.
+Ninguno conectado → decirlo y parar. Un **emulador no cuenta** como "conectado" a estos efectos:
+sirve para ver que el proceso arranca, no para lo que este `/run` existe (cuenta real, GPS real, BT
+real, OEM-kill real). Si solo hay emulador, decir que faltan los móviles y **preguntar** si vale
+igualmente. `unauthorized` → el móvil tiene el diálogo de depuración esperando; pedir al user que
+lo acepte.
+
+⛔ **Antes de instalar, mirar quién instaló lo que ya hay:**
+
+```bash
+adb -s $D shell dumpsys package com.rndeveloper.paparcar | grep -iE "versionCode|versionName|installerPackageName"
+```
+
+`installerPackageName=com.android.vending` significa que ese móvil lleva **el build de Play**, y
+entonces **ningún APK nuestro entra**: Play re-firma con su propia llave (`6B:E0:73` en Android 17+,
+`E2:A6:11` en el resto) y la del repo es solo la de SUBIDA. Ni `prodDebug` ni `assembleProdRelease`
+coinciden — los dos salen con `INSTALL_FAILED_UPDATE_INCOMPATIBLE`. La única vía es desinstalar, que
+**se pregunta siempre** porque se lleva login, sesión de aparcamiento y estado de detección.
+
+> Medido el 08-09-2026: el Oppo llevaba el 1.1.0 de Play (versionCode 11, instalado a las 04:16) y
+> rechazó el `prodDebug` del worktree. Es la nota que ya avisaba
+> `project_release_first_production_2026_09_03`: tras publicar, el móvil de campo se queda con el
+> build de la tienda hasta que alguien lo reinstala a mano.
 
 ## 2 · Compilar
 
@@ -114,9 +134,17 @@ para que Git Bash no reescriba la ruta REMOTA `/data/app/…`.
 > DET-PARKDIAG-KEEP-MORE-HISTORY-001 — el literal `parkdiag.log.old` desapareció al pasar a construir
 > los nombres en runtime, así que su ausencia en el dex **es** la firma del build nuevo.
 
-**Si `INSTALL_FAILED_UPDATE_INCOMPATIBLE`** (firma distinta — pasó con una beta02 en el Oppo): NO
-desinstalar por tu cuenta. Compilar `:app:assembleProdRelease`, que va firmado con el keystore
-del repo, e instalar ese con `-r`; conserva los datos. Si tampoco entra, preguntar al user.
+**Si `INSTALL_FAILED_UPDATE_INCOMPATIBLE`** (firma distinta): NO desinstalar por tu cuenta. Mirar
+primero el `installerPackageName` del paso 1, porque hay **dos casos y solo uno tiene salida**:
+
+- `installerPackageName=null` — sideload previo con la llave del repo (pasó con una beta02 en el
+  Oppo). Compilar `:app:assembleProdRelease`, firmado con ese mismo keystore, e instalar con `-r`:
+  conserva los datos.
+- `installerPackageName=com.android.vending` — **el build de Play, y aquí `assembleProdRelease`
+  tampoco entra**, porque Play re-firma con su llave y la nuestra es la de subida. No hay APK que
+  encaje. **Preguntar al user** si se desinstala, diciéndole qué se pierde (login, sesión de
+  aparcamiento activa, estado de detección) — y que tendrá que reinstalar de Play al terminar si
+  quiere volver al build de la tienda.
 
 ## 4 · Arrancar y mirar
 
