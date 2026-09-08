@@ -584,6 +584,13 @@ private fun markersShowcase() {
             FreeSpotMarker(isManual = true)
             FreeSpotMarker(reliability = SpotFreshness.FRESH, selected = true)
         }
+        // [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001] Area spot: the ground dot becomes the target ⊙.
+        MarkerSectionLabel("FreeSpot · zona — FRESH · RECENT · seleccionado")
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Bottom) {
+            FreeSpotMarker(reliability = SpotFreshness.FRESH, approximate = true)
+            FreeSpotMarker(reliability = SpotFreshness.RECENT, approximate = true)
+            FreeSpotMarker(reliability = SpotFreshness.FRESH, selected = true, approximate = true)
+        }
         MarkerSectionLabel("FreeSpot · en route — 2 · 5 · 9+ · seleccionado")
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Bottom) {
             FreeSpotMarker(enRouteCount = 2)

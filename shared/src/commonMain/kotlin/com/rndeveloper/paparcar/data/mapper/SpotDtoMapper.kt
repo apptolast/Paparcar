@@ -42,6 +42,7 @@ fun SpotDto.toDomain(): Spot = Spot(
     enRouteCount = enRouteCount.coerceAtLeast(0),
     expiresAt = expiresAt,
     status = status.toEnumOrDefault(SpotStatus.CONFIRMED),
+    zoneRadiusMeters = zoneRadiusMeters,
 )
 
 fun Spot.toDto(): SpotDto = SpotDto(
@@ -66,6 +67,7 @@ fun Spot.toDto(): SpotDto = SpotDto(
     enRouteCount = enRouteCount,
     expiresAt = expiresAt,
     status = status.name,
+    zoneRadiusMeters = zoneRadiusMeters,
     // Note: acceptCount/rejectCount are NOT written back through Spot.toDto()
     // — signals are written via FirebaseDataSource.sendSpotSignal() with FieldValue.increment.
 )
@@ -97,6 +99,7 @@ fun SpotDto.toEntity(): SpotEntity = SpotEntity(
     acceptCount = acceptCount,
     rejectCount = rejectCount,
     status = status,
+    zoneRadiusMeters = zoneRadiusMeters,
 )
 
 fun SpotEntity.toDomain(): Spot = Spot(
@@ -126,6 +129,7 @@ fun SpotEntity.toDomain(): Spot = Spot(
     enRouteCount = enRouteCount.coerceAtLeast(0),
     expiresAt = expiresAt,
     status = status.toEnumOrDefault(SpotStatus.CONFIRMED),
+    zoneRadiusMeters = zoneRadiusMeters,
 )
 
 // ─── Community confidence ─────────────────────────────────────────────────────

@@ -522,6 +522,7 @@
     <string name="home_peek_parking_duration_min">Zaparkowano %1$d min temu</string>
     <string name="home_peek_parking_duration_now">Zaparkowano przed chwilą</string>
     <string name="home_peek_parking_approximate">Gdzieś w promieniu %1$d m: zgubiliśmy koniec trasy. Edytuj, aby ustawić dokładnie.</string>
+    <string name="home_peek_spot_approximate">Gdzieś w promieniu %1$d m: osoba, która je zwolniła, nie mogła wskazać dokładnego punktu. Poszukaj w okolicy.</string>
     <string name="home_peek_spot_age_hour">Dodano %1$d godz. temu</string>
     <string name="home_peek_spot_age_min">Dodano %1$d min temu</string>
     <string name="home_peek_spot_age_now">Dodano przed chwilą</string>

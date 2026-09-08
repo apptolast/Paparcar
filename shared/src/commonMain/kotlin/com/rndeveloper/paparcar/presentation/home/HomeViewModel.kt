@@ -635,9 +635,13 @@ class HomeViewModel(
                 }
             }
             releaseSession(target.location.latitude, target.location.longitude, target, reason)
-                .onSuccess {
+                .onSuccess { published ->
                     updateState { copy(selection = null, isReleasingParking = false) }
-                    if (reason.publishesSpot) sendEffect(HomeEffect.SpotReported)
+                    // The use case says whether a spot ACTUALLY went out — a zone session wider
+                    // than the publish ceiling withholds it, and thanking the user for a plaza
+                    // that never existed would be the lie the gate removes.
+                    // [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001]
+                    if (published) sendEffect(HomeEffect.SpotReported)
                 }
                 .onFailure { e ->
                     updateState { copy(isReleasingParking = false) }

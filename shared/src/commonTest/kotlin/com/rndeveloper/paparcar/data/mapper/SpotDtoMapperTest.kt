@@ -154,6 +154,26 @@ class SpotDtoMapperTest {
         assertEquals(SpotStatus.CONFIRMED, buildDto(status = "SOMETHING_ELSE").toDomain().status)
     }
 
+    // ── Zone spot [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001] ───────────────────
+
+    @Test
+    fun `zoneRadius_should_surviveEveryHop_dto_domain_entity`() {
+        // A radius that drops anywhere on this path silently redraws an area spot as an exact pin —
+        // the exact lie this ticket removes at the publish boundary.
+        val dto = buildDto(zoneRadiusMeters = 60f)
+
+        assertEquals(60f, dto.toDomain().zoneRadiusMeters, "wire → domain")
+        assertEquals(60f, buildSpot(zoneRadiusMeters = 60f).toDto().zoneRadiusMeters, "domain → wire")
+        assertEquals(60f, dto.toEntity().zoneRadiusMeters, "wire → cache")
+        assertEquals(60f, dto.toEntity().toDomain().zoneRadiusMeters, "cache → domain")
+    }
+
+    @Test
+    fun `zoneRadius_should_readAsExact_for_everyDocumentWrittenBeforeTheFieldExisted`() {
+        assertNull(buildDto().toDomain().zoneRadiusMeters)
+        assertNull(buildDto().toEntity().toDomain().zoneRadiusMeters)
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun buildDto(
@@ -166,6 +186,7 @@ class SpotDtoMapperTest {
         reportedAt: Long = 0L,
         acceptCount: Int = 0,
         rejectCount: Int = 0,
+        zoneRadiusMeters: Float? = null,
     ) = SpotDto(
         id = "spot-test",
         latitude = 40.416775,
@@ -182,6 +203,7 @@ class SpotDtoMapperTest {
         status = status,
         acceptCount = acceptCount,
         rejectCount = rejectCount,
+        zoneRadiusMeters = zoneRadiusMeters,
     )
 
     private fun buildSpot(
@@ -191,6 +213,7 @@ class SpotDtoMapperTest {
         enRouteCount: Int = 0,
         expiresAt: Long = 0L,
         status: SpotStatus = SpotStatus.CONFIRMED,
+        zoneRadiusMeters: Float? = null,
     ) = Spot(
         id = "spot-test",
         location = GpsPoint(
@@ -207,5 +230,6 @@ class SpotDtoMapperTest {
         enRouteCount = enRouteCount,
         expiresAt = expiresAt,
         status = status,
+        zoneRadiusMeters = zoneRadiusMeters,
     )
 }

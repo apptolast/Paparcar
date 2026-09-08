@@ -33,11 +33,12 @@ class WorkManagerReportSpotScheduler(
         carbodyType: CarbodyType?,
         reportedBy: String?,
         provisional: Boolean,
+        zoneRadiusMeters: Float?,
     ) {
         WorkManager.getInstance(context).enqueueUniqueWork(
             "${ReportSpotWorker.TAG}_$spotId",
             ExistingWorkPolicy.REPLACE,
-            ReportSpotWorker.buildRequest(spotId, lat, lon, address, placeInfo, spotType, confidence, sizeCategory, carbodyType, reportedBy, provisional),
+            ReportSpotWorker.buildRequest(spotId, lat, lon, address, placeInfo, spotType, confidence, sizeCategory, carbodyType, reportedBy, provisional, zoneRadiusMeters),
         )
     }
 }

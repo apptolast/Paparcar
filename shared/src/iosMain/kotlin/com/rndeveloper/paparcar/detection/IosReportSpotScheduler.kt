@@ -56,6 +56,7 @@ class IosReportSpotScheduler(
         carbodyType: CarbodyType?,
         reportedBy: String?,
         provisional: Boolean,
+        zoneRadiusMeters: Float?,
     ) {
         val nowMs = Clock.System.now().toEpochMilliseconds()
         // [DET-HANDOFF-NOT-MANUAL-001 §B] A deduced departure buys a short lifetime, same as Android.
@@ -80,6 +81,7 @@ class IosReportSpotScheduler(
             // [DET-HANDOFF-NOT-MANUAL-001 §B.3] Same statement as Android: how well this
             // departure is proven travels with the spot.
             status = if (provisional) SpotStatus.PROVISIONAL else SpotStatus.CONFIRMED,
+            zoneRadiusMeters = zoneRadiusMeters, // [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001]
         )
 
         scope.launch { reportWithRetry(spot) }

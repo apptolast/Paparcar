@@ -30,6 +30,11 @@ class FakeReportSpotScheduler : ReportSpotScheduler {
     var lastProvisional: Boolean? = null
         private set
 
+    /** [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001] Radius of the last publish when it was a zone
+     *  spot; null = exact. */
+    var lastZoneRadiusMeters: Float? = null
+        private set
+
     override fun enqueueReportSpot(
         spotId: String,
         lat: Double,
@@ -42,9 +47,11 @@ class FakeReportSpotScheduler : ReportSpotScheduler {
         carbodyType: CarbodyType?,
         reportedBy: String?,
         provisional: Boolean,
+        zoneRadiusMeters: Float?,
     ) {
         scheduleCallCount++
         lastProvisional = provisional
+        lastZoneRadiusMeters = zoneRadiusMeters
         lastSpotId = spotId
         lastLat = lat
         lastLon = lon

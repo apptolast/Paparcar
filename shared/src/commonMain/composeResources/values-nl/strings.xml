@@ -515,6 +515,7 @@
     <string name="home_peek_parking_duration_min">%1$d min geleden geparkeerd</string>
     <string name="home_peek_parking_duration_now">Zojuist geparkeerd</string>
     <string name="home_peek_parking_approximate">Ergens binnen %1$d m: we zijn het einde van de rit kwijtgeraakt. Bewerk om hem te plaatsen.</string>
+    <string name="home_peek_spot_approximate">Ergens binnen %1$d m: wie hem vrijmaakte kon de exacte plek niet vastleggen. Zoek in de buurt.</string>
     <string name="home_peek_spot_age_hour">%1$d u geleden geplaatst</string>
     <string name="home_peek_spot_age_min">%1$d min geleden geplaatst</string>
     <string name="home_peek_spot_age_now">Zojuist geplaatst</string>

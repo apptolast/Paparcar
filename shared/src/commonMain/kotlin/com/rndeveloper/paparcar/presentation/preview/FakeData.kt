@@ -314,6 +314,20 @@ object FakeData {
             enRouteCount = 0,
             sizeCategory = VehicleSize.MEDIUM_SUV,
         ),
+        // AREA spot — freed by an approximate session: capped confidence, doubt radius, target ⊙
+        // ground point on the marker and the caveat row in the peek.
+        // [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001]
+        Spot(
+            id = "sp_7_zone",
+            location = gps(agoMs = 3 * 60_000L, lat = 40.4172, lon = -3.7035),
+            reportedBy = "user_7",
+            address = addrStreet,
+            placeInfo = null,
+            confidence = 0.5f,
+            enRouteCount = 0,
+            sizeCategory = VehicleSize.MEDIUM_SUV,
+            zoneRadiusMeters = 60f,
+        ),
     )
 
     // ── Vehicles ──────────────────────────────────────────────────────────────

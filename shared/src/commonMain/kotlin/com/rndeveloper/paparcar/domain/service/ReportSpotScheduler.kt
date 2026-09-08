@@ -44,5 +44,9 @@ interface ReportSpotScheduler {
          *  one expires in minutes instead of two hours. Re-publishing the same id with false once
          *  the drive is proven promotes it to the full TTL (REPLACE policy, same doc). */
         provisional: Boolean = false,
+        /** [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001] Non-null → the spot is an AREA of this radius
+         *  (the freeing session was approximate). Callers pass it pre-gated by
+         *  [com.rndeveloper.paparcar.domain.spot.SpotReleasePolicy] — never raw session state. */
+        zoneRadiusMeters: Float? = null,
     )
 }

@@ -9,6 +9,7 @@ import com.rndeveloper.paparcar.domain.diagnostics.DetectionEvent
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEventLogger
 import com.rndeveloper.paparcar.domain.model.AddressAndPlace
 import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
+import com.rndeveloper.paparcar.domain.spot.SpotReleasePolicy
 import com.rndeveloper.paparcar.domain.service.GeofenceManager
 import com.rndeveloper.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
@@ -76,20 +77,32 @@ class FinalizeDeducedDepartureUseCase(
 
         // Same spot id → the worker's REPLACE policy rewrites the SAME document with the full TTL.
         // Private zones were never published, so there is nothing to promote for them.
-        if (session.privateZoneId == null) {
+        // [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001] Same shape rule as the departure that deduced
+        // it: a withheld zone published nothing then and promotes nothing now, and a bounded zone
+        // stays a ZONE spot — the drive just measured proves the HOUR of the departure, never the
+        // place, so the promotion keeps the radius, the capped confidence and the provisional
+        // (short) lifetime.
+        val shape = SpotReleasePolicy.shapeFor(session.zoneRadiusMeters, session.detectionReliability)
+        val publishes = session.privateZoneId == null && shape != SpotReleasePolicy.Shape.Withheld
+        if (publishes) {
             reportSpotReleased(
                 lat = session.location.latitude,
                 lon = session.location.longitude,
                 spotId = session.id,
                 spotType = session.spotType,
-                confidence = session.detectionReliability ?: 1f,
+                confidence = when (shape) {
+                    is SpotReleasePolicy.Shape.Exact -> shape.confidence
+                    is SpotReleasePolicy.Shape.Zone -> shape.confidence
+                    SpotReleasePolicy.Shape.Withheld -> 0f // unreachable — gated above
+                },
                 sizeCategory = session.sizeCategory,
                 carbodyType = session.carbodyType,
                 prefetched = session.address?.let { AddressAndPlace(it, session.placeInfo) },
-                provisional = false,
+                provisional = shape is SpotReleasePolicy.Shape.Zone,
                 // Same document, second publish — the provisional emission already counted this
                 // spot. [ANALYTICS-EVENTS-001]
                 promotion = true,
+                zoneRadiusMeters = (shape as? SpotReleasePolicy.Shape.Zone)?.radiusMeters,
             )
         }
 
@@ -99,7 +112,7 @@ class FinalizeDeducedDepartureUseCase(
         userParkingRepository.clearActiveParkingSession(
             session.id,
             endedAtMs = deducedAtMs,
-            publishedSpot = session.privateZoneId == null,
+            publishedSpot = publishes,
         )
             .onFailure { e ->
                 // The marker stays, so a later proof (or the safety net's next pass) retries. The
@@ -121,7 +134,7 @@ class FinalizeDeducedDepartureUseCase(
             DetectionEvent.DepartureProcessed(
                 sessionId = session.geofenceId ?: session.id,
                 timestampMs = now,
-                published = session.privateZoneId == null,
+                published = publishes,
                 sessionCleared = true,
                 location = session.location,
             )

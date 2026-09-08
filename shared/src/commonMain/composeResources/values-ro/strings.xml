@@ -521,6 +521,7 @@
     <string name="home_peek_parking_duration_min">Parcat acum %1$d min</string>
     <string name="home_peek_parking_duration_now">Parcat chiar acum</string>
     <string name="home_peek_parking_approximate">Undeva pe o rază de %1$d m: am pierdut finalul călătoriei. Editează pentru a-l plasa.</string>
+    <string name="home_peek_spot_approximate">Undeva pe o rază de %1$d m: cine l-a eliberat nu a putut fixa punctul exact. Caută prin zonă.</string>
     <string name="home_peek_spot_age_hour">Postat acum %1$d h</string>
     <string name="home_peek_spot_age_min">Postat acum %1$d min</string>
     <string name="home_peek_spot_age_now">Postat chiar acum</string>

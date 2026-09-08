@@ -46,6 +46,9 @@ data class SpotDto(
     // [DET-HANDOFF-NOT-MANUAL-001 §B.3] CONFIRMED / PROVISIONAL / RETRACTED. The default keeps
     // every pre-existing document reading as what it was: a witnessed departure.
     val status: String = DEFAULT_SPOT_STATUS,
+    // [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001] Non-null → area spot. Default keeps every
+    // pre-existing document reading as what it was: an exact pin.
+    val zoneRadiusMeters: Float? = null,
 ) {
     companion object {
         const val DEFAULT_SPOT_STATUS = "CONFIRMED"

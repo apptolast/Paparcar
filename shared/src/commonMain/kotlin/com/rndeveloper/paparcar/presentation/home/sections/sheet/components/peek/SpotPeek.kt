@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Adjust
 import androidx.compose.material.icons.rounded.Block
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Group
@@ -36,10 +37,12 @@ import com.rndeveloper.paparcar.presentation.util.freshness
 import com.rndeveloper.paparcar.ui.components.PapFooterButton
 import com.rndeveloper.paparcar.ui.components.PapFooterButtonStyle
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
+import kotlin.math.roundToInt
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.common_directions
 import paparcar.composeapp.generated.resources.home_peek_spot_age_hour
+import paparcar.composeapp.generated.resources.home_peek_spot_approximate
 import paparcar.composeapp.generated.resources.home_peek_spot_age_min
 import paparcar.composeapp.generated.resources.home_peek_spot_age_now
 import paparcar.composeapp.generated.resources.home_peek_spot_en_route
@@ -60,6 +63,7 @@ import paparcar.composeapp.generated.resources.home_spot_unconfirmed_note
 private const val WALK_DISTANCE_THRESHOLD_M = 400f
 private const val NOTE_ALPHA = 0.75f
 private const val MINUTES_PER_HOUR = 60
+private const val SPOT_APPROXIMATE_ROW_MAX_LINES = 3
 
 @Composable
 internal fun SpotPeek(
@@ -147,6 +151,17 @@ internal fun SpotPeek(
                 DistanceRow(distanceM = distM, mode = travelMode, accentColor = palette.accent)
                 if (spot.enRouteCount > 0) {
                     SpotEnRouteRow(count = spot.enRouteCount, accentColor = palette.accent)
+                }
+                // Last row, and only when the spot is an AREA: the distance above is measured to
+                // the centre of a circle nobody pinned, so the caveat has to follow it — the same
+                // order the own-parking peek uses. [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001]
+                spot.zoneRadiusMeters?.let { radius ->
+                    PeekMetaRow(
+                        icon = Icons.Rounded.Adjust,
+                        text = stringResource(Res.string.home_peek_spot_approximate, radius.roundToInt()),
+                        tint = palette.accent,
+                        maxLines = SPOT_APPROXIMATE_ROW_MAX_LINES,
+                    )
                 }
             }
         },

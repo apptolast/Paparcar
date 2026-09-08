@@ -514,6 +514,7 @@
     <string name="home_peek_parking_duration_min">Parcheggiato %1$d min fa</string>
     <string name="home_peek_parking_duration_now">Parcheggiato proprio ora</string>
     <string name="home_peek_parking_approximate">Da qualche parte entro %1$d m: abbiamo perso la fine del viaggio. Modifica per posizionarlo.</string>
+    <string name="home_peek_spot_approximate">Da qualche parte entro %1$d m: chi l'ha liberato non ha potuto fissare il punto esatto. Cerca nella zona.</string>
     <string name="home_peek_spot_age_hour">Pubblicato %1$d h fa</string>
     <string name="home_peek_spot_age_min">Pubblicato %1$d min fa</string>
     <string name="home_peek_spot_age_now">Pubblicato proprio ora</string>

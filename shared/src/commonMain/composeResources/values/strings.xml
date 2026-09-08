@@ -556,6 +556,7 @@
     <string name="home_peek_parking_duration_min">Parked %1$d min ago</string>
     <string name="home_peek_parking_duration_now">Parked just now</string>
     <string name="home_peek_parking_approximate">Somewhere within %1$d m — we lost the end of the trip. Edit to place it exactly.</string>
+    <string name="home_peek_spot_approximate">Somewhere within %1$d m — the driver who freed it couldn't mark the exact spot. Search around this area.</string>
     <string name="home_peek_parking_duration_hm">Parked %1$dh %2$dm ago</string>
     <string name="home_report_size_section">Space size (optional)</string>
     <string name="home_zone_saved_message">Zone saved</string>

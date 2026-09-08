@@ -250,6 +250,37 @@ class ReleaseActiveParkingSessionUseCaseTest {
         assertFalse(closed.publishedSpot, "a kept-private departure must not count as a shared spot")
     }
 
+    // ── [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001] "Me voy" inherits the session's shape ───
+
+    @Test
+    fun `should_publishAZoneSpot_when_theReleasedSessionWasABoundedZone`() = runTest {
+        useCase(40.0, -3.0, session(reliability = 1f).copy(zoneRadiusMeters = 60f))
+
+        assertEquals(60f, scheduler.lastZoneRadiusMeters)
+        assertEquals(0.5f, scheduler.lastConfidence, "the release witnesses the departure, not the place")
+        assertEquals(true, scheduler.lastProvisional)
+    }
+
+    @Test
+    fun `should_withholdTheSpotButStillClear_when_theZoneIsWiderThanTheCeiling`() = runTest {
+        parkingRepo.saveNewParkingSession(session(id = "sess-wide").copy(zoneRadiusMeters = 250f))
+
+        val result = useCase(40.0, -3.0, parkingRepo.getActiveSession(), reason = ParkingReleaseReason.DEPARTURE_PUBLISHED)
+
+        assertEquals(0, scheduler.scheduleCallCount, "a neighbourhood is not a plaza")
+        assertEquals(false, result.getOrNull(), "the caller must learn nothing went out — no thank-you toast")
+        val closed = parkingRepo.getSessionById("sess-wide")!!
+        assertNotNull(closed.endedAtMs, "the session still closes")
+        assertFalse(closed.publishedSpot, "and its row must not claim a spot it never gave")
+    }
+
+    @Test
+    fun `should_returnTrue_when_aSpotActuallyWentOut`() = runTest {
+        val result = useCase(40.0, -3.0, session())
+
+        assertEquals(true, result.getOrNull())
+    }
+
     // ── Session cleared after report ──────────────────────────────────────────
 
     @Test

@@ -13,6 +13,7 @@ import com.rndeveloper.paparcar.domain.detection.pinIsRefutedByItsOwnDeparture
 import com.rndeveloper.paparcar.domain.model.AddressAndPlace
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
 import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
+import com.rndeveloper.paparcar.domain.spot.SpotReleasePolicy
 import com.rndeveloper.paparcar.domain.service.DepartureEventBus
 import com.rndeveloper.paparcar.domain.service.GeofenceManager
 import com.rndeveloper.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
@@ -106,9 +107,17 @@ class ProcessConfirmedDepartureUseCase(
         // re-derived, because the two readers below run after it and cannot re-test it safely.
         var publishesNow = false
 
+        // [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001] The published spot inherits the SESSION's shape:
+        // exact stays exact; a bounded zone goes out as an AREA with capped confidence and the
+        // provisional lifetime; a zone wider than the ceiling publishes NOTHING (sending a seeker
+        // to scan a 250 m circle is the ghost pin's damage, on foot). The witnessed departure only
+        // ever validated the area — the car left the fence — never the centre coordinate.
+        val shape = SpotReleasePolicy.shapeFor(session?.zoneRadiusMeters, session?.detectionReliability)
+
         // Public spots are published to the community; private zones are not reported.
         if (publishSpot && !alreadyPublishedProvisionally &&
-            session != null && lat != null && lon != null && session.privateZoneId == null
+            session != null && lat != null && lon != null && session.privateZoneId == null &&
+            shape != SpotReleasePolicy.Shape.Withheld
         ) {
             publishesNow = true
             // Reuse the address/POI enriched on the session at park time instead of
@@ -120,12 +129,26 @@ class ProcessConfirmedDepartureUseCase(
                 lon = lon,
                 spotId = spotId,
                 spotType = session.spotType,
-                confidence = session.detectionReliability ?: 1f,
+                confidence = when (shape) {
+                    is SpotReleasePolicy.Shape.Exact -> shape.confidence
+                    is SpotReleasePolicy.Shape.Zone -> shape.confidence
+                    SpotReleasePolicy.Shape.Withheld -> 0f // unreachable — gated above
+                },
                 sizeCategory = session.sizeCategory,
                 carbodyType = session.carbodyType,
                 prefetched = prefetched,
-                // [DET-HANDOFF-NOT-MANUAL-001 §B] Same instant, shorter life.
-                provisional = proof == DepartureProof.Deduced,
+                // [DET-HANDOFF-NOT-MANUAL-001 §B] Same instant, shorter life. A zone spot is
+                // provisional whatever proved the departure: the hour may be witnessed, the PLACE
+                // never was, and the doubt about the place does not expire with a drive.
+                provisional = proof == DepartureProof.Deduced || shape is SpotReleasePolicy.Shape.Zone,
+                zoneRadiusMeters = (shape as? SpotReleasePolicy.Shape.Zone)?.radiusMeters,
+            )
+        } else if (shape == SpotReleasePolicy.Shape.Withheld && publishSpot && session != null) {
+            PaparcarLogger.d(
+                TAG,
+                "⊘ zone r=${session.zoneRadiusMeters}m > ${SpotReleasePolicy.ZONE_PUBLISH_MAX_RADIUS_METERS}m " +
+                    "— freed spot WITHHELD (area too wide to be worth a stranger's walk); session cleanup " +
+                    "continues [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001]",
             )
         }
 
@@ -167,7 +190,8 @@ class ProcessConfirmedDepartureUseCase(
             // promotion of that same document). Private zones never published either way.
             // [VEH-STATS-SAY-SOMETHING-USEFUL-001]
             val gaveSpot = publishesNow ||
-                (session.provisionalDepartureAtMs != null && session.privateZoneId == null)
+                (session.provisionalDepartureAtMs != null && session.privateZoneId == null &&
+                    shape != SpotReleasePolicy.Shape.Withheld)
             userParkingRepository.clearActiveParkingSession(
                 session.id,
                 endedAtMs = Clock.System.now().toEpochMilliseconds(),
@@ -224,11 +248,14 @@ class ProcessConfirmedDepartureUseCase(
         geofenceService.removeGeofence(geofenceId)
 
         // [DET-SOLID-001] Observability: the publish+clear outcome, traced by geofenceId.
+        // [DET-RETRACT-DENIED-FOREVER-001] Reads the ONE recorded decision — this line used to
+        // re-derive it without the coordinate check, and now it would also miss the withheld-zone
+        // branch. [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001]
         detectionEventLogger?.log(
             DetectionEvent.DepartureProcessed(
                 sessionId = geofenceId,
                 timestampMs = Clock.System.now().toEpochMilliseconds(),
-                published = publishSpot && session != null && session.privateZoneId == null,
+                published = publishesNow,
                 sessionCleared = session != null,
                 location = session?.location,
             )

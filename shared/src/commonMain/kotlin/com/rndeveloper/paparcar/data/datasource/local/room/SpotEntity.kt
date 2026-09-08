@@ -37,4 +37,6 @@ data class SpotEntity(
     val rejectCount: Int = 0,
     // [DET-HANDOFF-NOT-MANUAL-001 §B.3] CONFIRMED / PROVISIONAL / RETRACTED.
     val status: String = "CONFIRMED",
+    // [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001] Non-null → area spot. v4 column.
+    val zoneRadiusMeters: Float? = null,
 )

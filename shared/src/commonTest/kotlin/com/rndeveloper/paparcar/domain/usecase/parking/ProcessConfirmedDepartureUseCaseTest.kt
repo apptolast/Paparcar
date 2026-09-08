@@ -8,6 +8,7 @@ import com.rndeveloper.paparcar.domain.diagnostics.DetectionEvent
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
 import com.rndeveloper.paparcar.domain.model.UserParking
+import com.rndeveloper.paparcar.domain.spot.SpotReleasePolicy
 import com.rndeveloper.paparcar.domain.usecase.location.GetAddressAndPlaceUseCase
 import com.rndeveloper.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import com.rndeveloper.paparcar.domain.analytics.AnalyticsEvent
@@ -201,6 +202,79 @@ class ProcessConfirmedDepartureUseCaseTest {
         assertEquals(false, spotScheduler.lastProvisional)
         assertFalse(repo.getActiveSessionByGeofence("session-1") != null)
         assertEquals(listOf("session-1"), geofence.removedIds)
+    }
+
+    // ── [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001] The spot inherits the session's shape ───
+
+    @Test
+    fun should_publishAZoneSpot_when_theFreedSessionWasABoundedZone() = runTest {
+        // Field corpus 08-29→09-01: a walk-entered anchor saved the park as a 60 m zone. Its
+        // departure used to publish an EXACT pin at the circle's centre.
+        val repo = FakeUserParkingRepository(
+            initialSession = activeSession().copy(zoneRadiusMeters = 60f, detectionReliability = 0.5f),
+        )
+        val spotScheduler = FakeReportSpotScheduler()
+
+        buildUseCase(repo = repo, spotScheduler = spotScheduler)("session-1", publishSpot = true)
+
+        assertEquals(1, spotScheduler.scheduleCallCount)
+        assertEquals(60f, spotScheduler.lastZoneRadiusMeters, "the spot must carry the session's doubt radius")
+        assertEquals(0.5f, spotScheduler.lastConfidence)
+        assertEquals(true, spotScheduler.lastProvisional, "a zone spot lives short: the place was never proven")
+    }
+
+    @Test
+    fun should_capAZoneSpotsConfidence_when_theUserConfirmedTheSessionWithFullReliability() = runTest {
+        // The "Sí" proves the park, not the spot — reliability 1.0 must not reach the community
+        // attached to a coordinate the machine chose. [DET-USER-YES-IS-NOT-A-COORDINATE-001]
+        val repo = FakeUserParkingRepository(
+            initialSession = activeSession().copy(zoneRadiusMeters = 60f, detectionReliability = 1f),
+        )
+        val spotScheduler = FakeReportSpotScheduler()
+
+        buildUseCase(repo = repo, spotScheduler = spotScheduler)("session-1", publishSpot = true)
+
+        assertEquals(SpotReleasePolicy.ZONE_MAX_CONFIDENCE, spotScheduler.lastConfidence)
+    }
+
+    @Test
+    fun should_withholdTheSpotButStillReleaseTheCar_when_theZoneIsWiderThanTheCeiling() = runTest {
+        // The measured gap-anchor zones (r=250 m): sending a seeker to scan a neighbourhood is the
+        // ghost pin's damage on foot. The user's own session cleanup is untouched.
+        val logger = FakeDetectionEventLogger()
+        val repo = FakeUserParkingRepository(
+            initialSession = activeSession().copy(zoneRadiusMeters = 250f, detectionReliability = 0.5f),
+        )
+        val spotScheduler = FakeReportSpotScheduler()
+        val geofence = FakeGeofenceManager()
+
+        val result = buildUseCase(repo = repo, spotScheduler = spotScheduler, geofence = geofence, logger = logger)(
+            "session-1", publishSpot = true,
+        )
+
+        assertTrue(result.isSuccess)
+        assertEquals(0, spotScheduler.scheduleCallCount, "a neighbourhood is not a plaza")
+        assertFalse(repo.getActiveSessionByGeofence("session-1") != null, "the session still closes")
+        assertEquals(listOf("session-1"), geofence.removedIds, "and its geofence still comes down")
+        val event = logger.events.filterIsInstance<DetectionEvent.DepartureProcessed>().single()
+        assertFalse(event.published, "the trace must record the withheld publish")
+    }
+
+    @Test
+    fun should_deduceWithoutPublishing_when_theZoneIsWiderThanTheCeiling() = runTest {
+        // A deduced departure of a wide-zone session keeps the car AND publishes nothing — the
+        // freshness argument for provisional publishing does not buy back the position doubt.
+        val repo = FakeUserParkingRepository(
+            initialSession = activeSession().copy(zoneRadiusMeters = 250f, detectionReliability = 0.5f),
+        )
+        val spotScheduler = FakeReportSpotScheduler()
+
+        buildUseCase(repo = repo, spotScheduler = spotScheduler)(
+            "session-1", publishSpot = true, proof = DepartureProof.Deduced,
+        )
+
+        assertEquals(0, spotScheduler.scheduleCallCount)
+        assertTrue(repo.getActiveSessionByGeofence("session-1") != null, "the car stays parked")
     }
 
     // ── [PARK-A-REFUTED-PIN-LEAVES-THE-HISTORY-001] A pin its own departure refuted ──────

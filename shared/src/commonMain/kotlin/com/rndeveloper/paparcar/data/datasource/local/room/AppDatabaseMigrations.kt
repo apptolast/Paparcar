@@ -42,4 +42,14 @@ private val MIGRATION_2_3 = object : Migration(2, 3) {
     }
 }
 
-val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
+/**
+ * v3 → v4: a cached community spot can be an AREA — `cached_spots.zoneRadiusMeters`, nullable
+ * (a pre-v4 row is what it always was: an exact pin). [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001]
+ */
+private val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL("ALTER TABLE `cached_spots` ADD COLUMN `zoneRadiusMeters` REAL")
+    }
+}
+
+val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)

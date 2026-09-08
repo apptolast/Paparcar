@@ -76,6 +76,42 @@ class FinalizeDeducedDepartureUseCaseTest {
         assertEquals(emptyList(), geofence.removedIds)
     }
 
+    // ── [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001] The promotion keeps the session's shape ─
+
+    @Test
+    fun should_promoteAsAZoneSpot_when_theSessionWasABoundedZone() = runTest {
+        // The drive just measured proves the HOUR of the departure, never the PLACE — the
+        // promotion keeps the radius, the capped confidence and the short lifetime.
+        val repo = FakeUserParkingRepository(
+            initialSession = session().copy(zoneRadiusMeters = 60f, detectionReliability = 1f),
+        )
+        val spotScheduler = FakeReportSpotScheduler()
+
+        val finalized = buildUseCase(repo, spotScheduler)("v-1")
+
+        assertTrue(finalized)
+        assertEquals(60f, spotScheduler.lastZoneRadiusMeters)
+        assertEquals(true, spotScheduler.lastProvisional, "position doubt does not expire with a drive")
+        assertEquals(0.5f, spotScheduler.lastConfidence, "a user 'Sí' proves the park, not the spot")
+    }
+
+    @Test
+    fun should_promoteNothingButStillReleaseTheCar_when_theZoneIsWiderThanTheCeiling() = runTest {
+        // A withheld zone published nothing at deduction time, so there is nothing to promote —
+        // exactly the private-zone shape of this flow.
+        val repo = FakeUserParkingRepository(
+            initialSession = session().copy(zoneRadiusMeters = 250f, detectionReliability = 0.5f),
+        )
+        val spotScheduler = FakeReportSpotScheduler()
+        val geofence = FakeGeofenceManager()
+
+        val finalized = buildUseCase(repo, spotScheduler, geofence)("v-1")
+
+        assertTrue(finalized)
+        assertEquals(0, spotScheduler.scheduleCallCount)
+        assertFalse(repo.getActiveSessionByGeofence("session-1") != null, "the car is still released")
+    }
+
     @Test
     fun should_do_nothing_when_the_vehicle_is_unknown_or_has_no_active_session() = runTest {
         val repo = FakeUserParkingRepository(initialSession = session(vehicleId = "other-car"))

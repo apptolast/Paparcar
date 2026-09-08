@@ -256,14 +256,22 @@ fun VehicleBadgeMarker(
         null
     }
 
+    // The corner badge (`?` / ⊙) half-rides OUTSIDE the 104×88 design viewBox (centre (90,12),
+    // radius 16+ring → x up to 107.5, y down to −5.5), and Canvas clips to its bounds — on device
+    // the disc rendered square-cut. The badge belongs on the corner; what was wrong was the
+    // canvas, so the canvas grows breathing room (symmetric sides + top, none at the bottom) and
+    // the drawing translates into it. `u` (px per design unit) is untouched: the tag renders the
+    // same size, the anchor's bottom-centre ground point stays put, and [TAG_PIN_GROUND_INSET]
+    // still measures from an unpadded bottom. [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001]
     Box(
         modifier = modifier.size(
-            width  = TAG_MARKER_W,
-            height = TAG_MARKER_W * (TAG_VB_H / TAG_VB_W),
+            width  = TAG_MARKER_W * (TAG_CANVAS_VB_W / TAG_VB_W),
+            height = TAG_MARKER_W * (TAG_CANVAS_VB_H / TAG_VB_W),
         ),
     ) {
         Canvas(modifier = Modifier.matchParentSize()) {
-            val s = size.width / TAG_VB_W // px per unit
+            val s = size.width / TAG_CANVAS_VB_W // px per unit
+            translate(left = TAG_PAD_X * s, top = TAG_PAD_TOP * s) {
             // 1 · contact shadow under the dome
             drawOval(
                 color = shadowColor,
@@ -365,15 +373,17 @@ fun VehicleBadgeMarker(
                     }
                 }
             }
+            } // translate — the badge's breathing room
         }
-        // 4 · the isometric carbody, centred in the tag interior (ContentScale.Fit); faded with the tag.
+        // 4 · the isometric carbody, centred in the tag interior (ContentScale.Fit); faded with the
+        // tag. Offsets are design-viewBox coords, so they shift by the same pads the Canvas does.
         VehicleIcon(
             carbody = carbodyType,
             size = sizeCategory,
             tint = Color.Unspecified,
             color = color,
             modifier = Modifier
-                .offset(x = u * 16f, y = u * 13f)
+                .offset(x = u * (16f + TAG_PAD_X), y = u * (13f + TAG_PAD_TOP))
                 .size(width = u * 72f, height = u * 52f)
                 .alpha(contentAlpha),
         )
@@ -385,6 +395,14 @@ fun VehicleBadgeMarker(
 private val TAG_MARKER_W   = 62.dp
 private const val TAG_VB_W = 104f
 private const val TAG_VB_H = 88f
+// Breathing room around the design viewBox so the corner badge's disc (centre (90,12), r 16 + its
+// ring) is never clipped by the Canvas bounds: it needs 3.5u past the right edge and 5.5u above the
+// top. Symmetric sides keep the bottom-centre anchor centred; no bottom pad keeps the dome base ON
+// the bitmap's bottom edge (the ground point). [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001]
+private const val TAG_PAD_X   = 5f
+private const val TAG_PAD_TOP = 7f
+private const val TAG_CANVAS_VB_W = TAG_VB_W + 2f * TAG_PAD_X
+private const val TAG_CANVAS_VB_H = TAG_VB_H + TAG_PAD_TOP
 private const val TAG_BORDER_U      = 3.6f  // default state-colour border — matches the selected weight, a touch thicker (viewBox units)
 private const val TAG_SEL_BORDER_U  = 4f    // selected onSurface border
 private const val TAG_DOT_R         = 4.5f  // position-dot radius (viewBox units)
@@ -712,6 +730,11 @@ fun FreeSpotMarker(
     selected: Boolean = false,
     enRouteCount: Int = 0,
     isManual: Boolean = false,
+    /** [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001] Area spot: the freeing session only knew its rest
+     *  to a radius, so the ground point is a CENTRE, not a point — the solid dot becomes the
+     *  target ⊙, the same word the saved approximate parking's corner badge already speaks
+     *  [UI-A-SAVED-ZONE-WEARS-ITS-DOUBT-TOO-001]. */
+    approximate: Boolean = false,
 ) {
     // La familia de MARCA sale del tema, no de una llamada suelta: si la app cambia de
     // tipografía, las etiquetas del mapa cambian con ella. [UI-TYPE-ONE-VOICE-REACHES-MATERIAL-001]
@@ -745,7 +768,24 @@ fun FreeSpotMarker(
         } else {
             drawTierPin(s, reliability.tierVisual(isManual), selected, pPath, paper, ink)
         }
+        if (approximate) {
+            val targetColor = if (enRouteCount > 0) PapColor.live else reliability.tierVisual(isManual).color
+            drawApproximateSpotDot(s, targetColor, paper)
+        }
     }
+}
+
+/**
+ * [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001] The ground point of an AREA spot: the exact dot is
+ * knocked out and replaced by the target ⊙ (ring + centre) — "this pin is a centre, not a point".
+ * Same two-circle language as the saved approximate parking's corner badge, so both layers of the
+ * map say the same word about the same kind of doubt. [UI-A-SAVED-ZONE-WEARS-ITS-DOUBT-TOO-001]
+ */
+private fun DrawScope.drawApproximateSpotDot(s: Float, color: Color, paper: Color) {
+    val center = Offset(36f * s, SPOT_DOT_CY * s)
+    drawCircle(paper, radius = SPOT_TARGET_R * s, center = center)
+    drawCircle(color, radius = SPOT_TARGET_R * s, center = center, style = Stroke(width = SPOT_TARGET_STROKE_U * s))
+    drawCircle(color, radius = SPOT_TARGET_CENTER_R * s, center = center)
 }
 
 /**
@@ -948,6 +988,11 @@ private const val SPOT_VIEWBOX_W = 72f
 private const val SPOT_VIEWBOX_H = 82f
 private const val SPOT_DOT_R = 4.5f // position-dot radius (viewBox units)
 private const val SPOT_DOT_CY = 71f // position-dot centre Y (viewBox units) — the visual ground point
+// [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001] Target ⊙ of an area spot's ground point (viewBox units):
+// outer ring sized to knock out the solid dot with clear air, centre dot well under the ring.
+private const val SPOT_TARGET_R = 6.5f
+private const val SPOT_TARGET_STROKE_U = 2.2f
+private const val SPOT_TARGET_CENTER_R = 2f
 private const val SPOT_PUCK_CENTER_Y = 34f // puck circle centre Y (viewBox units) — used to centre the tail-less icon
 
 // ─── Marker 3 — Zone (ZoneMarker) ────────────────────────────────────────────

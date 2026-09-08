@@ -405,6 +405,7 @@ internal fun freeSpotContentId(
     dim: Boolean,
     enRouteCount: Int = 0,
     manual: Boolean = false,
+    approximate: Boolean = false,
 ): String {
     val state = when {
         selected -> "sel"
@@ -416,10 +417,15 @@ internal fun freeSpotContentId(
     // (bucket × state) rather than per (tier × state). [BOLT-MARKERS-001]
     // Manual provenance adds the person badge, so it needs its own bitmap per
     // (tier × state) — encoded as an "m" segment. [UI-COLOR-DOCTRINE-001 F5]
+    // An AREA spot swaps the ground dot for the target ⊙, so it needs its own bitmap too — the
+    // "a" segment. Deliberately NOT encoded on the en-route branch: a reserved pin already
+    // dominates its slot, and the rare zone+en-route combination keeps the pill (bounded key set).
+    // [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001]
+    val approxSeg = if (approximate) "a_" else ""
     return when {
         enRouteCount > 0 -> "${MARKER_FREE_SPOT_PREFIX}er${enRouteCount.coerceAtMost(EN_ROUTE_BUCKET_MAX)}_$state"
-        manual -> "${MARKER_FREE_SPOT_PREFIX}${tier.name.lowercase()}_m_$state"
-        else -> "${MARKER_FREE_SPOT_PREFIX}${tier.name.lowercase()}_$state"
+        manual -> "${MARKER_FREE_SPOT_PREFIX}${tier.name.lowercase()}_m_$approxSeg$state"
+        else -> "${MARKER_FREE_SPOT_PREFIX}${tier.name.lowercase()}_$approxSeg$state"
     }
 }
 
@@ -971,6 +977,7 @@ fun PaparcarMapView(
                         dim = dimSpots,
                         enRouteCount = spot.enRouteCount,
                         manual = spot.isManualReport,
+                        approximate = spot.zoneRadiusMeters != null,
                     )
                     add(
                         Marker(
@@ -1131,14 +1138,18 @@ fun PaparcarMapView(
             // person badge over the same freshness tier. [MAP-MARKERS-RELIABILITY-001] [F5]
             SpotFreshness.entries.forEach { tier ->
                 listOf(false, true).forEach { manual ->
-                    put(freeSpotContentId(tier, selected = false, dim = false, manual = manual)) { _ ->
-                        FreeSpotWithOverlays(reliability = tier, selected = false, isManual = manual)
-                    }
-                    put(freeSpotContentId(tier, selected = false, dim = true, manual = manual)) { _ ->
-                        DimWrapper { FreeSpotWithOverlays(reliability = tier, selected = false, isManual = manual) }
-                    }
-                    put(freeSpotContentId(tier, selected = true, dim = false, manual = manual)) { _ ->
-                        FreeSpotWithOverlays(reliability = tier, selected = true, isManual = manual)
+                    // Area spots need their own bitmaps (target ⊙ ground point).
+                    // [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001]
+                    listOf(false, true).forEach { approx ->
+                        put(freeSpotContentId(tier, selected = false, dim = false, manual = manual, approximate = approx)) { _ ->
+                            FreeSpotWithOverlays(reliability = tier, selected = false, isManual = manual, approximate = approx)
+                        }
+                        put(freeSpotContentId(tier, selected = false, dim = true, manual = manual, approximate = approx)) { _ ->
+                            DimWrapper { FreeSpotWithOverlays(reliability = tier, selected = false, isManual = manual, approximate = approx) }
+                        }
+                        put(freeSpotContentId(tier, selected = true, dim = false, manual = manual, approximate = approx)) { _ ->
+                            FreeSpotWithOverlays(reliability = tier, selected = true, isManual = manual, approximate = approx)
+                        }
                     }
                 }
             }
@@ -2002,8 +2013,15 @@ private fun FreeSpotWithOverlays(
     selected: Boolean = false,
     enRouteCount: Int = 0,
     isManual: Boolean = false,
+    approximate: Boolean = false,
 ) {
-    FreeSpotMarker(reliability = reliability, selected = selected, enRouteCount = enRouteCount, isManual = isManual)
+    FreeSpotMarker(
+        reliability = reliability,
+        selected = selected,
+        enRouteCount = enRouteCount,
+        isManual = isManual,
+        approximate = approximate,
+    )
 }
 
 

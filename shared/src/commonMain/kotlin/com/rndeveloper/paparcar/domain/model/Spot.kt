@@ -33,4 +33,8 @@ data class Spot(
      *  [SpotStatus.CONFIRMED] so every document written before this field existed reads as what it
      *  was: a spot published on a witnessed departure. */
     val status: SpotStatus = SpotStatus.CONFIRMED,
+    /** [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001] Non-null → this spot is an AREA: the freeing
+     *  session only knew its car's rest to this radius, so the community sees a circle with low
+     *  odds, never an exact pin. Mirrors [UserParking.zoneRadiusMeters]; null = exact spot. */
+    val zoneRadiusMeters: Float? = null,
 )

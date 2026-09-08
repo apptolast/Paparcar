@@ -2,6 +2,7 @@
 
 package com.rndeveloper.paparcar.presentation.home.sections.sheet.components.peek
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.DirectionsWalk
 import androidx.compose.material.icons.rounded.Adjust
+import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Navigation
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -75,9 +77,19 @@ internal fun vehicleSummary(vehicle: Vehicle?): String? {
  * this molde so their visuals can't drift apart. [HOME-VEH-REFINE-001]
  */
 @Composable
-internal fun PeekMetaRow(icon: ImageVector, text: String, tint: Color, maxLines: Int = 1) {
+internal fun PeekMetaRow(
+    icon: ImageVector,
+    text: String,
+    tint: Color,
+    maxLines: Int = 1,
+    /** Non-null → the whole row is tappable and wears a trailing chevron. The row's own copy must
+     *  already say what tapping does — the chevron only signals that it CAN be done.
+     *  [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001] */
+    onClick: (() -> Unit)? = null,
+) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth()
+            .let { if (onClick != null) it.clickable(onClick = onClick) else it },
         // A one-liner centres against its icon; a wrapped explanation (the approximate-zone row)
         // has to hang from the top or the icon floats in the middle of the paragraph.
         verticalAlignment = if (maxLines == 1) Alignment.CenterVertically else Alignment.Top,
@@ -98,7 +110,16 @@ internal fun PeekMetaRow(icon: ImageVector, text: String, tint: Color, maxLines:
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = SheetTokens.META_VALUE_ALPHA),
             maxLines = maxLines,
             overflow = TextOverflow.Ellipsis,
+            modifier = if (onClick != null) Modifier.weight(1f) else Modifier,
         )
+        if (onClick != null) {
+            Icon(
+                imageVector = Icons.Rounded.ChevronRight,
+                contentDescription = null,
+                tint = tint,
+                modifier = Modifier.size(META_ICON_DP.dp),
+            )
+        }
     }
 }
 
@@ -109,13 +130,22 @@ internal fun PeekMetaRow(icon: ImageVector, text: String, tint: Color, maxLines:
  * [UI-APPROXIMATE-PARKING-DRAWS-ITS-DOUBT-001]
  */
 @Composable
-internal fun ApproximateZoneRow(zoneRadiusMeters: Float?, accentColor: Color) {
+internal fun ApproximateZoneRow(
+    zoneRadiusMeters: Float?,
+    accentColor: Color,
+    /** Non-null → the row honours its own copy ("Edit to place it exactly"): one tap opens the
+     *  pin-positioning flow, instead of making the user hunt for the round edit button. Validating
+     *  WHERE the car really is turns the zone back into an exact pin — which is also what lets the
+     *  eventual freed spot publish exactly. [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001] */
+    onAdjust: (() -> Unit)? = null,
+) {
     val radius = zoneRadiusMeters ?: return
     PeekMetaRow(
         icon = Icons.Rounded.Adjust,
         text = stringResource(Res.string.home_peek_parking_approximate, radius.roundToInt()),
         tint = accentColor,
         maxLines = APPROXIMATE_ROW_MAX_LINES,
+        onClick = onAdjust,
     )
 }
 

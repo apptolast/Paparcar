@@ -63,6 +63,9 @@ class ReportSpotWorker(
         // [DET-HANDOFF-NOT-MANUAL-001 §B] A spot published on a DEDUCED departure lives minutes,
         // not hours: the short TTL is the floor under a retraction that can always fail.
         val provisional = inputData.getBoolean(KEY_PROVISIONAL, false)
+        // [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001] NaN sentinel because workData has no nullable
+        // float — absent key reads NaN reads null, same trick as lat/lon above.
+        val zoneRadiusMeters = inputData.getFloat(KEY_ZONE_RADIUS, Float.NaN).takeIf { !it.isNaN() }
         val ttlMs = SpotTtlPolicy.ttlMs(provisional) // [AUDIT-ARCH-001 M13] shared with iOS
 
         // [SPOT-OFFLINE-TTL-001] The TTL is anchored to the RELEASE time (enqueue), not to delivery.
@@ -97,6 +100,7 @@ class ReportSpotWorker(
             // proven, so the community UI can rank it honestly and a later promotion (or
             // retraction) is a state change on this same document rather than a second spot.
             status = if (provisional) SpotStatus.PROVISIONAL else SpotStatus.CONFIRMED,
+            zoneRadiusMeters = zoneRadiusMeters,
         )
 
         return spotRepository.reportSpotReleased(spot).fold(
@@ -132,6 +136,7 @@ class ReportSpotWorker(
         private const val KEY_CARBODY_TYPE = "carbody_type"
         private const val KEY_REPORTED_BY = "reported_by"
         private const val KEY_PROVISIONAL = "provisional"
+        private const val KEY_ZONE_RADIUS = "zone_radius_meters"
 
         fun buildRequest(
             spotId: String,
@@ -145,6 +150,7 @@ class ReportSpotWorker(
             carbodyType: CarbodyType? = null,
             reportedBy: String? = null,
             provisional: Boolean = false,
+            zoneRadiusMeters: Float? = null,
         ): OneTimeWorkRequest =
             OneTimeWorkRequestBuilder<ReportSpotWorker>()
                 .setInputData(
@@ -166,6 +172,7 @@ class ReportSpotWorker(
                         KEY_CARBODY_TYPE to carbodyType?.name,
                         KEY_REPORTED_BY to reportedBy,
                         KEY_PROVISIONAL to provisional,
+                        KEY_ZONE_RADIUS to zoneRadiusMeters,
                     )
                 )
                 .setConstraints(

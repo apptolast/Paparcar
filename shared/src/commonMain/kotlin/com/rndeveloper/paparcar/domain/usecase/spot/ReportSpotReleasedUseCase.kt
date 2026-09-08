@@ -62,6 +62,10 @@ class ReportSpotReleasedUseCase(
          *  (the promotion of a deduced departure, REPLACE on the same document). The community sees
          *  one spot, so analytics must count one: a promotion emits nothing. [ANALYTICS-EVENTS-001] */
         promotion: Boolean = false,
+        /** [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001] Non-null → the spot goes out as an AREA of this
+         *  radius. Callers derive it (and the capped confidence) from
+         *  [com.rndeveloper.paparcar.domain.spot.SpotReleasePolicy] — this use case only carries it. */
+        zoneRadiusMeters: Float? = null,
     ) {
         // [AUDIT-RULES-001 C4] The spot's identity is the reporter's UID, not their display name —
         // the Firestore rules key owner-only edit/delete off `reportedBy == request.auth.uid`.
@@ -99,6 +103,7 @@ class ReportSpotReleasedUseCase(
             carbodyType = carbodyType,
             reportedBy = reportedByUid,
             provisional = provisional,
+            zoneRadiusMeters = zoneRadiusMeters,
         )
 
         // [ANALYTICS-EVENTS-001] The publication is durably enqueued → the fact is countable

@@ -162,5 +162,5 @@ class FakeParkingSyncScheduler : ParkingSyncScheduler {
 }
 
 class FakeReportSpotScheduler : ReportSpotScheduler {
-    override fun enqueueReportSpot(spotId: String, lat: Double, lon: Double, address: AddressInfo?, placeInfo: PlaceInfo?, spotType: SpotType, confidence: Float, sizeCategory: VehicleSize?, carbodyType: CarbodyType?, reportedBy: String?, provisional: Boolean) {}
+    override fun enqueueReportSpot(spotId: String, lat: Double, lon: Double, address: AddressInfo?, placeInfo: PlaceInfo?, spotType: SpotType, confidence: Float, sizeCategory: VehicleSize?, carbodyType: CarbodyType?, reportedBy: String?, provisional: Boolean, zoneRadiusMeters: Float?) {}
 }

@@ -161,6 +161,9 @@ class FirebaseDataSourceImpl(private val firestore: FirebaseFirestore) : Firebas
                 // [DET-HANDOFF-NOT-MANUAL-001 §B.3] Missing on every document written before the
                 // field existed → CONFIRMED, which is what those departures were.
                 status = get<String?>(FIELD_STATUS) ?: SpotDto.DEFAULT_SPOT_STATUS,
+                // [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001] Missing → exact pin, which is what
+                // every pre-existing document was.
+                zoneRadiusMeters = get<Double?>(FIELD_ZONE_RADIUS_METERS)?.toFloat(),
             )
         }.getOrElse { e ->
             PaparcarLogger.e(TAG, "toSpotDto failed for doc=$id", e)
@@ -191,6 +194,7 @@ class FirebaseDataSourceImpl(private val firestore: FirebaseFirestore) : Firebas
         const val FIELD_CARBODY_TYPE = "carbodyType"
         const val FIELD_EN_ROUTE_COUNT = "enRouteCount"
         const val FIELD_EXPIRES_AT = "expiresAt"
+        const val FIELD_ZONE_RADIUS_METERS = "zoneRadiusMeters"
         const val FIELD_ACCEPT_COUNT = "acceptCount"
         const val FIELD_REJECT_COUNT = "rejectCount"
         const val FIELD_COUNTRY_CODE = "countryCode"
