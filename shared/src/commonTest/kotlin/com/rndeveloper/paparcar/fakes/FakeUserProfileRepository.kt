@@ -18,6 +18,11 @@ class FakeUserProfileRepository : UserProfileRepository {
     var getOrCreateResult: Result<UserProfile> = Result.success(defaultProfile())
     var observedUserId: String? = null
 
+    /** The session the last [getOrCreateProfile] call actually received — what the freshness
+     *  tests assert against. [PROFILE-PHOTO-STUCK-AND-STALE-001] */
+    var lastSession: UserSession? = null
+        private set
+
     /**
      * Optional latch held INSIDE [getOrCreateProfile], after the call is counted and before it
      * returns. Null (the default) leaves the fake synchronous, which is what every other test wants.
@@ -32,6 +37,7 @@ class FakeUserProfileRepository : UserProfileRepository {
 
     override suspend fun getOrCreateProfile(session: UserSession): Result<UserProfile> {
         getOrCreateCallCount++
+        lastSession = session
         profileGate?.await()
         getOrCreateResult.getOrNull()?.let {
             profiles[session.userId] = it

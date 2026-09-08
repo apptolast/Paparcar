@@ -44,6 +44,7 @@ import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Map
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.NotificationsActive
+import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Sensors
 import androidx.compose.material.icons.rounded.SensorsOff
 import androidx.compose.material.icons.rounded.Warning
@@ -394,7 +395,10 @@ fun SettingsContent(
                 // ── 1 · Account (no section header — the card speaks for itself) ─
                 item {
                     ProfileCardV2(
-                        displayName = state.userProfile?.displayName
+                        // isNotBlank, not just null: a profile can carry displayName = "" and an
+                        // empty name must fall back to the localized placeholder exactly like a
+                        // missing one. [PROFILE-AVATAR-INITIAL-NOT-INVENTED-001]
+                        displayName = state.userProfile?.displayName?.takeIf { it.isNotBlank() }
                             ?: stringResource(Res.string.settings_profile_name_placeholder),
                         email = state.userProfile?.email,
                         photoUrl = state.userProfile?.photoUrl,
@@ -936,13 +940,25 @@ private fun ProfileAvatar(displayName: String, photoUrl: String?) {
     }
 }
 
+/** The initial of the name on the brand disc — and when there is no usable character, a person
+ *  glyph, never an invented letter: "U" only spells "User" in English, and hardcoded UI text is
+ *  banned anyway. [PROFILE-AVATAR-INITIAL-NOT-INVENTED-001] */
 @Composable
 private fun AvatarInitial(displayName: String) {
-    Text(
-        text = displayName.firstOrNull()?.uppercaseChar()?.toString() ?: "U",
-        style = PaparcarType.current.sectionTitle,
-        color = MaterialTheme.colorScheme.onPrimary,
-    )
+    val initial = displayName.trim().firstOrNull()?.uppercaseChar()
+    if (initial != null) {
+        Text(
+            text = initial.toString(),
+            style = PaparcarType.current.sectionTitle,
+            color = MaterialTheme.colorScheme.onPrimary,
+        )
+    } else {
+        Icon(
+            imageVector = Icons.Rounded.Person,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onPrimary,
+        )
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

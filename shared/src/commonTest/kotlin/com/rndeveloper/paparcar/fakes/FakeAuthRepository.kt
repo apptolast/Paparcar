@@ -59,8 +59,14 @@ class FakeAuthRepository(
     override suspend fun confirmPasswordReset(data: PasswordResetData): AuthResult =
         AuthResult.PasswordResetSuccess
 
-    override suspend fun refreshSession(): AuthResult =
-        AuthResult.Failure(AuthError.Unknown("stub"))
+    var refreshSessionResult: AuthResult = AuthResult.Failure(AuthError.Unknown("stub"))
+    var refreshSessionCallCount = 0
+        private set
+
+    override suspend fun refreshSession(): AuthResult {
+        refreshSessionCallCount++
+        return refreshSessionResult
+    }
 
     override suspend fun deleteAccount(): Result<Unit> {
         deleteAccountCallCount++

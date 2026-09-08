@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.milliseconds
 
 class UserProfileRepositoryImpl(
     private val remoteDataSource: RemoteUserProfileDataSource,
@@ -28,7 +29,7 @@ class UserProfileRepositoryImpl(
             //    withTimeoutOrNull so a network that HANGS (not just fails) can't block
             //    the splash forever — a failure OR a timeout falls through to cached state
             //    in step 2. [AUDIT-DATA-001 M9]
-            val remoteDto = withTimeoutOrNull(REMOTE_PROFILE_TIMEOUT_MS) {
+            val remoteDto = withTimeoutOrNull(REMOTE_PROFILE_TIMEOUT_MS.milliseconds) {
                 runCatching { remoteDataSource.getProfile(session.userId) }.getOrNull()
             }
             if (remoteDto != null) {
@@ -40,7 +41,7 @@ class UserProfileRepositoryImpl(
                 //     stays behind the session. [PROFILE-PHOTO-STUCK-AND-STALE-001]
                 val reconciled = remoteDto.reconciledWith(session)
                 if (reconciled != remoteDto) {
-                    withTimeoutOrNull(REMOTE_PROFILE_TIMEOUT_MS) {
+                    withTimeoutOrNull(REMOTE_PROFILE_TIMEOUT_MS.milliseconds) {
                         runCatching {
                             remoteDataSource.updateIdentityFields(
                                 userId = session.userId,

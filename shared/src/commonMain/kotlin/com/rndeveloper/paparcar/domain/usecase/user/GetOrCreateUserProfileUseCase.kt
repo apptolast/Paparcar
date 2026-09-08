@@ -1,8 +1,12 @@
 package com.rndeveloper.paparcar.domain.usecase.user
 
 import com.apptolast.baselogin.domain.AuthRepository
+import com.apptolast.baselogin.domain.model.AuthResult
+import com.apptolast.baselogin.domain.model.UserSession
 import com.rndeveloper.paparcar.domain.model.UserProfile
 import com.rndeveloper.paparcar.domain.repository.UserProfileRepository
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Returns the existing user profile from Firestore or creates one from the active
@@ -14,8 +18,28 @@ class GetOrCreateUserProfileUseCase(
     private val userProfileRepository: UserProfileRepository,
 ) {
     suspend operator fun invoke(): Result<UserProfile> = runCatching {
-        val session = authRepository.getCurrentSession()
-            ?: error("no authenticated session")
+        val session = freshestSession() ?: error("no authenticated session")
         userProfileRepository.getOrCreateProfile(session).getOrThrow()
+    }
+
+    /**
+     * The cached session comes from Firebase Auth's local cache, which only learns about identity
+     * changes made at the provider (a new Google photo) on a reload — and
+     * [AuthRepository.refreshSession] is the verb that reloads (BaseLogin ≥ 2.0.1). Best-effort
+     * and bounded: offline, failing or slow, the cached session is still a valid identity, just
+     * possibly stale — the reconcile downstream retries on the next start.
+     * [PROFILE-PHOTO-STUCK-AND-STALE-001]
+     */
+    private suspend fun freshestSession(): UserSession? {
+        val cached = authRepository.getCurrentSession() ?: return null
+        val refreshed = withTimeoutOrNull(REFRESH_SESSION_TIMEOUT_MS.milliseconds) {
+            runCatching { authRepository.refreshSession() }.getOrNull()
+        }
+        return (refreshed as? AuthResult.Success)?.session ?: cached
+    }
+
+    private companion object {
+        /** Same splash-blocking ceiling philosophy as the remote profile fetch. [AUDIT-DATA-001 M9] */
+        const val REFRESH_SESSION_TIMEOUT_MS = 8_000L
     }
 }

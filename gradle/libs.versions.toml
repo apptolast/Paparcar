@@ -92,7 +92,9 @@ ktor = "3.5.2"
 # Grupo `io.github.apptolast`, artifact id `baselogin` — el mismo id que el módulo Gradle.
 # ⚠️ Depender SIEMPRE de la publicación raíz: Gradle resuelve solo los artefactos por target
 # (`baselogin-android`, `baselogin-iosarm64`, `baselogin-iossimulatorarm64`); nunca declararlos.
-baselogin = "2.0.0"
+# 2.0.1: la foto de la sesión sigue al proveedor (providerData sobre el photoURL congelado) y
+# refreshSession() recarga el usuario antes de leerlo. [PROFILE-PHOTO-STUCK-AND-STALE-001]
+baselogin = "2.0.1"
 
 # ── Monetización — RevenueCat purchases-kmp ─────────────────────────────────
 # core (SDK) + ui (Paywalls con plantilla remota) van SIEMPRE a la misma versión.

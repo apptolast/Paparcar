@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.domain.usecase.user
 
+import com.apptolast.baselogin.domain.model.AuthResult
 import com.rndeveloper.paparcar.fakes.FakeAuthRepository
 import com.rndeveloper.paparcar.fakes.FakeUserProfileRepository
 import kotlinx.coroutines.test.runTest
@@ -59,5 +60,42 @@ class GetOrCreateUserProfileUseCaseTest {
         val result = useCase()
 
         assertTrue(result.isFailure)
+    }
+
+    // ── Freshness: the profile sees the freshest session available ────────────
+    // [PROFILE-PHOTO-STUCK-AND-STALE-001]
+
+    @Test
+    fun `uses the refreshed session when refreshSession succeeds`() = runTest {
+        fakeAuth.refreshSessionResult =
+            AuthResult.Success(session.copy(photoUrl = "https://new/photo.jpg"))
+
+        val result = useCase()
+
+        assertTrue(result.isSuccess)
+        assertEquals("https://new/photo.jpg", fakeProfileRepo.lastSession?.photoUrl)
+    }
+
+    @Test
+    fun `falls back to the cached session when refreshSession fails`() = runTest {
+        // The fake's default refreshSessionResult is a Failure — offline, expired, whatever.
+        val result = useCase()
+
+        assertTrue(result.isSuccess)
+        assertEquals(1, fakeAuth.refreshSessionCallCount)
+        assertEquals(session.userId, fakeProfileRepo.lastSession?.userId)
+    }
+
+    @Test
+    fun `does not attempt a refresh when there is no session at all`() = runTest {
+        val noAuth = FakeAuthRepository(initialSession = null)
+        val noAuthCase = GetOrCreateUserProfileUseCase(
+            userProfileRepository = fakeProfileRepo,
+            authRepository = noAuth,
+        )
+
+        noAuthCase()
+
+        assertEquals(0, noAuth.refreshSessionCallCount)
     }
 }
