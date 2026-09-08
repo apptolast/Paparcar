@@ -1,8 +1,9 @@
 # DET-A-BT-CONNECT-KNOWS-WHERE-THE-CAR-IS-001 · Cada CONNECT dice dónde está el coche, y lo estamos tirando
 
-**Estado:** 🟡 Abierto · **sin rama · sin worktree · diseño escrito, SIN empezar** — bloqueado a
-propósito por un **viaje con el Kamiq** (decisión del user, 08-09-2026): las tres decisiones abiertas
-de abajo se contestan con campo, no de cabeza. Mismo bloqueo que
+**Estado:** 🟡 Abierto · **sin empezar en producción** — bloqueado a propósito por un **viaje con el
+Kamiq** (decisión del user, 08-09-2026): las tres decisiones abiertas de abajo se contestan con
+campo, no de cabeza. Lo que NO necesitaba campo ya está medido en test (ver §DEMOSTRADO): rama
+`experiment/DET-A-BT-CONNECT-KNOWS-WHERE-THE-CAR-IS-001-ab-scenario`, sólo tests, cero producción. Mismo bloqueo que
 [DET-BT-VETO-MUST-NOT-ORPHAN-A-SESSION-001](det-bt-veto-must-not-orphan-a-session-001.md), y el mismo
 viaje los desbloquea a los dos.
 **Origen:** duda del user (08-09-2026), justo después de mergear
@@ -97,14 +98,84 @@ cuando yo lo cojo en B y conduzco, ¿se libera el spot de A?»* Trazado en códi
   que era justo lo que hasta ese momento degradaba toda liberación de A a pregunta
   [DET-BT-IDENTITY-GATE-001]. Conectar en B **quita el veto** que protegía a la sesión de A.
 
-⛔ **Lo que NO está demostrado**: que en ese escenario el EXIT de A llegue efectivamente a armar y
-confirmar (depende de que el trayecto a B se mida como conducción). Lo verificado es que **el camino
-existe y nada lo impide**, no que ocurra siempre. Se mide en el mismo viaje con el Kamiq que bloquea
-este ticket, con un paso extra: mover el coche con otra persona antes.
+**Y la mitad que más importa, que la redacción anterior dejaba en segundo plano** (el user, 09-09:
+*«si me monto en el vehículo en B y conduzco, debería mandarse spot de B»* — y tiene razón):
+
+> **La plaza de B no se publica NUNCA.**
+
+El spot se construye con la ubicación de la SESIÓN (`ProcessConfirmedDepartureUseCase` lo arma desde
+`session.location`, su radio y su fiabilidad), y la sesión dice A. Así que:
+
+- la plaza REAL que el usuario deja libre al salir de B **no llega a la comunidad**, con salida
+  medida o sin ella;
+- y si además se mide una salida con A activa, encima se anuncia una plaza en A donde el coche ya no
+  estaba.
+
+O sea: el fallo no es «un pin mal puesto», es **una plaza que no se publica y otra que se publica
+mal**. Reubicar la sesión desde el CONNECT no es un adorno para que Home enseñe bien el coche: es la
+**precondición para publicar la plaza correcta**. Si el CONNECT en B reubica antes de arrancar, la
+salida publica B, que es lo que el producto promete.
+
+### ✅ DEMOSTRADO en test, no supuesto (09-09-2026)
+
+El user señaló, con razón, que esto no hacía falta esperarlo a un viaje: el código lo contesta. Dos
+tests en `ProcessConfirmedDepartureUseCaseTest` montan el escenario y MIDEN lo que la app hace hoy —
+no proponen nada, no cambian producción:
+
+- `should_publishTheFreedSpotAtA_when_theCarWasAlreadyMovedToB` — con la sesión en A y el coche ya en
+  B, una salida procesada **publica la plaza en A**, coordenada a coordenada. Confirma que el spot
+  sale de `session.location` y que la firma del caso de uso **no admite ninguna posición actual**.
+- `should_neverPublishTheSpotAtB_when_thatIsThePlaceActuallyFreed` — lo publicado cae a **más de 1 km**
+  de donde el coche estaba de verdad. La plaza real no se publica nunca.
+
+⛔ **Lo que sigue SIN demostrar, y esto sí es físico**: si en ese escenario el EXIT de la geocerca de
+A llega a armar y confirmar (depende de que el OS lo entregue y de que el trayecto hasta B se mida
+como conducción). O sea: está demostrado **qué pasa cuando la salida se procesa**; falta saber **con
+qué frecuencia se procesa**. Eso se mide en el viaje con el Kamiq, con un paso extra: mover el coche
+con otra persona antes de cogerlo.
 
 **La raíz es la misma que el resto de la ficha**: la app no tiene el concepto de *«el coche se movió
 sin mí»*, y el enganche BT es la única señal que lo delata. Refuerza el punto 5 del diseño y lo
 convierte en el caso principal, no en un borde.
+
+## La regla que se deduce de todo lo anterior (user, 09-09)
+
+> *«Si el coche sale de B y se publica A, entonces por BT deberíamos publicar siempre la ubicación
+> de donde nos conectamos, no la de la sesión de aparcamiento actual.»*
+
+**Correcto en el fondo, y es el principio que le faltaba a la ficha:** en el carril BT, la autoridad
+sobre DÓNDE ESTABA EL COCHE es el CONNECT, no lo que la sesión recuerde. La sesión es memoria; el
+connect es medición, y la medición gana sobre la memoria cuando se contradicen.
+
+Dos matices que la regla necesita para no empeorar el caso normal:
+
+1. **Cuando connect y sesión coinciden, el pin de la sesión es MEJOR dato.** El fix del connect es un
+   *last known* cacheado, de accuracy y edad desconocidas; el pin de la sesión se eligió pin-grade a
+   propósito. Así que la regla operativa no es *«usa siempre el connect»* sino **«el connect decide
+   SI la sesión sigue siendo válida»**: si coinciden dentro de tolerancia, publica el pin (más
+   preciso); si discrepan, la sesión está caducada y manda el connect.
+2. **Si manda el connect, se publica lo que ese fix sostiene: una ZONA, no un punto.** Publicar un
+   punto exacto desde un fix cacheado sería afirmar precisión que no tenemos — la misma línea que
+   `ROUTE-GAP-HONEST-001` y que la prohibición de inventar radios.
+
+**Y dónde aplicarla, que es la decisión de verdad.** Hay dos formas de conseguir que la salida de B
+publique B:
+
+- **(a) Reubicar la SESIÓN cuando el connect la desmiente.** El publicador no se toca: sigue leyendo
+  `session.location`, sólo que ahora dice la verdad. Además se arreglan a la vez el pin de Home, el
+  historial y la geocerca.
+- **(b) Que el publicador lea el fix del connect** en vez de la sesión, sólo en el carril BT.
+
+**(a) es la buena**, y (b) es un parche con forma de arreglo: si sólo cambiamos el publicador, la
+plaza sale bien pero **Home te sigue enseñando el coche en A** — el usuario ve una mentira mientras
+la comunidad recibe la verdad. Un invariante, un sitio.
+
+⚠️ Esto convierte la decisión **B** de abajo («¿sustituye la ubicación de una sesión activa?») en la
+decisión CENTRAL del ticket, ya no en una duda lateral. Y sigue chocando con `sessionStartMs` y el
+gate de identidad de `DET-BT-VETO-MUST-NOT-ORPHAN-A-SESSION-001`: reubicar ≠ cerrar y abrir otra.
+
+⛔ Alcance: sólo aplica al carril BT, que es donde existe un connect. Un vehículo sin MAC no tiene
+esta señal y su sesión sigue siendo la única respuesta.
 
 ## Diseño
 

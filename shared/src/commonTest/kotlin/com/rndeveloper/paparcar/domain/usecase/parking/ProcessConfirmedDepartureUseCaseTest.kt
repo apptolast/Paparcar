@@ -11,6 +11,7 @@ import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.spot.SpotReleasePolicy
 import com.rndeveloper.paparcar.domain.usecase.location.GetAddressAndPlaceUseCase
 import com.rndeveloper.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
+import com.rndeveloper.paparcar.domain.util.haversineMeters
 import com.rndeveloper.paparcar.domain.analytics.AnalyticsEvent
 import com.rndeveloper.paparcar.domain.analytics.SessionEndReason
 import com.rndeveloper.paparcar.fakes.FakeAddressAndPlaceRepository
@@ -43,7 +44,7 @@ class ProcessConfirmedDepartureUseCaseTest {
         id = id,
         userId = "user-42",
         vehicleId = vehicleId,
-        location = GpsPoint(40.4, -3.7, 8f, 1_000_000L, 0f),
+        location = PARK_A,
         geofenceId = id,
         isActive = true,
         privateZoneId = privateZoneId,
@@ -345,6 +346,52 @@ class ProcessConfirmedDepartureUseCaseTest {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
+    // ── El coche se movió sin mí: A → B → C [DET-A-BT-CONNECT-KNOWS-WHERE-THE-CAR-IS-001] ────────
+    //
+    // Escenario del user (09-09-2026): el coche está aparcado en A y la app lo sabe. Un familiar lo
+    // coge y lo aparca en B, sin que el móvil del user se entere de nada. Después el user se monta
+    // en B, conduce y aparca en C.
+    //
+    // Estos dos tests no proponen nada: MIDEN qué hace hoy la app, para que la ficha deje de decir
+    // "no demostrado" sobre algo que el código ya contesta. La pregunta se hizo en campo y se
+    // responde aquí, que es donde es determinista.
+
+    @Test
+    fun should_publishTheFreedSpotAtA_when_theCarWasAlreadyMovedToB() = runTest {
+        // La sesión dice A. El coche lleva horas en B. Alguien mide una salida (el EXIT de la
+        // geocerca de A al salir de casa, el trayecto a B contado como conducción) y se procesa.
+        val repo = FakeUserParkingRepository(initialSession = activeSession(id = "session-A"))
+        val spotScheduler = FakeReportSpotScheduler()
+
+        buildUseCase(repo = repo, spotScheduler = spotScheduler)("session-A", publishSpot = true)
+
+        // Se publica, y se publica EN A: la plaza sale de la sesión que se cierra, no de donde el
+        // coche esté. Nada en la firma de este caso de uso admite una posición actual.
+        assertEquals(1, spotScheduler.scheduleCallCount)
+        assertEquals(PARK_A.latitude, spotScheduler.lastLat, 1e-9)
+        assertEquals(PARK_A.longitude, spotScheduler.lastLon, 1e-9)
+    }
+
+    @Test
+    fun should_neverPublishTheSpotAtB_when_thatIsThePlaceActuallyFreed() = runTest {
+        // La otra mitad, y la que más importa: la plaza que el user deja REALMENTE libre al salir
+        // de B no se publica nunca — porque B no existe para la app. Aquí se mide como distancia:
+        // lo publicado está a ~1,4 km de donde el coche estaba de verdad.
+        val repo = FakeUserParkingRepository(initialSession = activeSession(id = "session-A"))
+        val spotScheduler = FakeReportSpotScheduler()
+
+        buildUseCase(repo = repo, spotScheduler = spotScheduler)("session-A", publishSpot = true)
+
+        val offByMeters = haversineMeters(
+            spotScheduler.lastLat, spotScheduler.lastLon,
+            PARK_B.latitude, PARK_B.longitude,
+        )
+        assertTrue(
+            offByMeters > 1_000.0,
+            "hoy la plaza publicada cae a ${offByMeters.toInt()} m de la que se liberó de verdad",
+        )
+    }
+
     private fun buildUseCase(
         repo: FakeUserParkingRepository = FakeUserParkingRepository(),
         spotScheduler: FakeReportSpotScheduler = FakeReportSpotScheduler(),
@@ -390,5 +437,14 @@ class ProcessConfirmedDepartureUseCaseTest {
         buildUseCase(repo = repo, tracker = tracker)("session-1", publishSpot = true)
 
         assertTrue(tracker.events.filterIsInstance<AnalyticsEvent.ParkingSessionEnded>().isEmpty())
+    }
+
+    private companion object {
+        /** Donde la app CREE que está el coche: la sesión activa. */
+        val PARK_A = GpsPoint(40.4, -3.7, 8f, 1_000_000L, 0f)
+
+        /** Donde el coche está DE VERDAD después de que otra persona lo moviera — ~1,4 km al norte.
+         *  La app nunca se enteró: no hubo sesión, ni pin, ni evento. */
+        val PARK_B = GpsPoint(40.4126, -3.7, 8f, 2_000_000L, 0f)
     }
 }
