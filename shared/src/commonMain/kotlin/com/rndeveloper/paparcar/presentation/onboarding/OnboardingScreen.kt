@@ -20,8 +20,9 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Campaign
 import androidx.compose.material.icons.rounded.DirectionsCar
-import androidx.compose.material.icons.rounded.LocationOn
+import androidx.compose.material.icons.rounded.Navigation
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -36,7 +37,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.ui.components.PapCard
 import com.rndeveloper.paparcar.ui.components.PapPrimaryButton
-import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
 import com.rndeveloper.paparcar.ui.illustrations.OnboardingHero
 import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
@@ -176,20 +176,34 @@ private fun OnboardingPage2() {
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(PaparcarSpacing.xxl + PaparcarSpacing.md))
+        // [UI-ONBOARDING-STEP-ICONS-SAY-WHAT-THE-APP-SAYS-001] Los tres glifos NO se eligen por
+        // parecido con el título, sino por el significado que ya tienen dentro de la app: esta
+        // pantalla es la primera vez que el usuario los ve, y los volverá a encontrar en Home
+        // queriendo decir lo mismo. La flecha se mueve, el coche descansa, el megáfono avisa.
         OnboardingStep(
-            icon = Icons.Rounded.DirectionsCar,
+            // El glifo de `DetectionStory.Driving` en HomeDetectionSurface: "este coche circula
+            // ahora". El coche quieto no dice conducir — y aquí ya está adjudicado al paso 2.
+            icon = Icons.Rounded.Navigation,
             title = stringResource(Res.string.onboarding_step1_title),
             desc = stringResource(Res.string.onboarding_step1_desc),
         )
         Spacer(Modifier.height(PaparcarSpacing.lg))
         OnboardingStep(
-            icon = PaparcarIcons.ParkingPlace,
+            // Tu aparcamiento se dibuja con TU COCHE en toda la app (FAB de Home, FAB del
+            // historial, fila de pregunta). Aquí había una "P", que es `PaparcarIcons.ParkingPlace`
+            // = la categoría de POI "parking público": el único sitio de la app donde el
+            // aparcamiento se dibujaba como señalética, justo sobre el paso que habla de lo TUYO.
+            icon = Icons.Rounded.DirectionsCar,
             title = stringResource(Res.string.onboarding_step2_title),
             desc = stringResource(Res.string.onboarding_step2_desc),
         )
         Spacer(Modifier.height(PaparcarSpacing.lg))
         OnboardingStep(
-            icon = Icons.Rounded.LocationOn,
+            // El megáfono de "avisar de una plaza" (HomeSpotRows) y del diálogo que libera la tuya
+            // al irte (HomeReleaseDialog): literalmente la pantalla que este paso promete. Un
+            // `LocationOn` decía "el pin de TU aparcamiento" (HomeParkingRow) sobre la frase que
+            // habla de la COMUNIDAD — el cruce que COPY-SPOT-IS-NOT-A-PARKING-001 quitó del copy.
+            icon = Icons.Rounded.Campaign,
             title = stringResource(Res.string.onboarding_step3_title),
             desc = stringResource(Res.string.onboarding_step3_desc),
         )
