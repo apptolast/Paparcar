@@ -446,10 +446,14 @@ fun LocationActiveMarker(
     headingDegrees: Float,
     modifier: Modifier = Modifier,
     color: com.rndeveloper.paparcar.domain.model.VehicleColor? = null,
+    /** The halo says HOW this car is being watched — green = assisted, blue = Bluetooth. Defaults to
+     *  the movement blue for callers with no watch to declare (and for an unwatched car, whose grey
+     *  would vanish over map tiles). [UI-A-TRACKED-TRIP-WEARS-ITS-WATCH-001] */
+    haloColor: Color = PapColor.live,
 ) {
     Box(modifier.size(LOC_ACTIVE_DIAM), contentAlignment = Alignment.Center) {
         Canvas(Modifier.matchParentSize()) {
-            drawCircle(color = PapColor.live, alpha = LOC_HALO_ALPHA, radius = this.size.minDimension / 2f)
+            drawCircle(color = haloColor, alpha = LOC_HALO_ALPHA, radius = this.size.minDimension / 2f)
         }
         VehicleTopdownIcon(
             carbody = carbody,
@@ -479,12 +483,17 @@ private const val LOC_HALO_ALPHA = 0.16f
  * share this one visual language. [DEPART-CONSISTENCY-001] [TRIP-TRAIL-001] [ROUTE-END-AT-CAR-001]
  */
 @Composable
-fun DepartureDotMarker(modifier: Modifier = Modifier) {
+fun DepartureDotMarker(
+    modifier: Modifier = Modifier,
+    /** Where the trip started belongs to the trip, so it wears the same watch colour as its trail.
+     *  [UI-A-TRACKED-TRIP-WEARS-ITS-WATCH-001] */
+    color: Color = PapColor.live,
+) {
     Box(modifier.size(DEPARTURE_DOT_BOX), contentAlignment = Alignment.Center) {
         Canvas(Modifier.matchParentSize()) {
             val r = size.minDimension / 2f
             drawCircle(color = Color.White, radius = r)
-            drawCircle(color = PapColor.live, radius = r * DEPARTURE_DOT_INNER_SCALE)
+            drawCircle(color = color, radius = r * DEPARTURE_DOT_INNER_SCALE)
         }
     }
 }
@@ -672,8 +681,11 @@ private val MY_VEHICLE_H = 55.dp
 
 /** Bolt-green spot palette — fixed brand tones (independent of [MaterialTheme]). */
 // Brand tier colours — kept fixed across themes (neutrals invert via `paper`/`ink`). [BOLT-MARKERS-001]
-// The en-route tone is NOT here: "someone is moving toward this spot" is the same semantic as the
-// driving car and the trip trail, so it reads the shared [PapColor.live]. [UI-COLOR-DOCTRINE-001]
+// The en-route tone is NOT here: it reads the shared [PapColor.live], which is now what that blue
+// means — movement that is NOT yours. It used to be justified as "the same semantic as the driving
+// car and the trip trail"; that equivalence is gone. Your own trip wears its car's watch colour,
+// and this pin stays blue precisely because the person driving toward this spot is a stranger.
+// [UI-COLOR-DOCTRINE-001] [UI-A-TRACKED-TRIP-WEARS-ITS-WATCH-001]
 private object SpotPalette {
     // `Green` was #009F5E — the EXACT value the active-vehicle marker used two hundred lines up.
     // A stranger's free spot and your own watched car were the same pixel on the same layer,

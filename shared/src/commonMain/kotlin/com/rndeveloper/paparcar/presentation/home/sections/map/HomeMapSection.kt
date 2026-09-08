@@ -28,6 +28,7 @@ import com.rndeveloper.paparcar.ui.components.CenterPinKind
 import com.rndeveloper.paparcar.ui.components.PaparcarMapConfig
 import com.rndeveloper.paparcar.ui.components.PaparcarMapView
 import com.rndeveloper.paparcar.ui.theme.PapMotion
+import com.rndeveloper.paparcar.ui.theme.watch
 
 /**
  * The map tile layer with its right-side floating FAB column (location,
@@ -76,6 +77,8 @@ internal fun HomeMapSection(
         tripTrail = tripTrail,
         matchedTrail = matchedTrail,
         departurePoint = departurePoint,
+        // The trip wears the identity of the car it belongs to. [UI-A-TRACKED-TRIP-WEARS-ITS-WATCH-001]
+        tripWatch = slice.drivingWatch?.watch(),
         centerDrivingPuck = followingDriver,
         parkingLocation = slice.parkingLocation,
         // [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] The open question's place.
@@ -152,6 +155,7 @@ internal fun HomeMapFabsLayer(
                 hasActiveParking = slice.hasActiveParking,
                 hasGpsFix = slice.hasGpsFix,
                 selectedParkingWatch = slice.selectedParkingWatch,
+                drivingWatch = slice.drivingWatch,
                 // During a monitored trip the MyLocation FAB re-engages driver-follow instead of GPS. [DET-STATUS-SHEET-001]
                 followsCar = isDriving,
                 onMyLocation = onMyLocation,

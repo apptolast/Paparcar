@@ -77,6 +77,8 @@ import com.rndeveloper.paparcar.presentation.util.isManualReport
 import com.rndeveloper.paparcar.presentation.util.freshness
 import com.rndeveloper.paparcar.presentation.util.zoneIconFor
 import com.rndeveloper.paparcar.ui.theme.PapColor
+import com.rndeveloper.paparcar.ui.theme.VehicleWatch
+import com.rndeveloper.paparcar.ui.theme.vehicleIdentityColor
 import com.rndeveloper.paparcar.ui.theme.PapGreen
 import com.rndeveloper.paparcar.ui.theme.PapCarBlueLight
 import com.rndeveloper.paparcar.ui.theme.PapWatchGreenLight
@@ -448,8 +450,33 @@ internal const val LOCATION_ACTIVE_PREFIX = "loc_active_"
 internal fun locationActiveContentId(
     carbody: CarbodyType?,
     color: com.rndeveloper.paparcar.domain.model.VehicleColor? = null,
+    // The halo is painted with the watch colour, and kmpmaps caches this bitmap by id: without the
+    // watch in the key, a car that gains or loses its Bluetooth pairing mid-trip would keep serving
+    // the previous halo. Same reason the theme and the dim state are in here.
+    // [UI-A-TRACKED-TRIP-WEARS-ITS-WATCH-001]
+    watchKey: String = WATCH_KEY_MOVEMENT,
 ): String =
-    "$LOCATION_ACTIVE_PREFIX${carbody?.name ?: "def"}_${color?.name ?: "def"}"
+    "$LOCATION_ACTIVE_PREFIX${carbody?.name ?: "def"}_${color?.name ?: "def"}_$watchKey"
+
+/**
+ * The trip's own dots — origin and stored-route end — keyed by watch for the same reason as
+ * [locationActiveContentId]: the fill IS the watch colour. [UI-A-TRACKED-TRIP-WEARS-ITS-WATCH-001]
+ */
+internal fun departureContentId(watchKey: String): String = "${MARKER_DEPARTURE}_$watchKey"
+internal fun arrivalContentId(watchKey: String): String = "${MARKER_ARRIVAL}_$watchKey"
+
+/**
+ * How the car being followed is watched, as one segment of a marker cache key. `mv` is the movement
+ * fallback: no trip context, or an unwatched car — whose identity grey would disappear over map
+ * tiles, so the trip keeps the movement blue instead. [UI-A-TRACKED-TRIP-WEARS-ITS-WATCH-001]
+ */
+internal fun VehicleWatch?.tripWatchKey(): String = when (this) {
+    VehicleWatch.Bluetooth -> "bt"
+    VehicleWatch.Assisted -> "as"
+    VehicleWatch.Off, null -> WATCH_KEY_MOVEMENT
+}
+
+internal const val WATCH_KEY_MOVEMENT = "mv"
 
 /**
  * Brand user-position dot: green core + light ring + 15% green halo — the "you"
@@ -663,6 +690,14 @@ fun PaparcarMapView(
     tripSegments: State<List<RouteSegment>> = EMPTY_SEGMENTS_STATE,
     /** Faded "departure" point — where the car left from, shown while a trip runs. [TRIP-TRAIL-001] */
     departurePoint: State<GpsPoint?> = EMPTY_DEPARTURE_STATE,
+    /**
+     * How the car whose trip is drawn here is watched — the trail, its origin dot and the puck's
+     * halo wear that identity (green = assisted, blue = Bluetooth) instead of a generic movement
+     * blue. Null (or an unwatched car) keeps [PapColor.live]: the movement blue stays the language
+     * of what is NOT yours — the spot someone else is driving to.
+     * [UI-A-TRACKED-TRIP-WEARS-ITS-WATCH-001]
+     */
+    tripWatch: VehicleWatch? = null,
     /**
      * [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] Where an OPEN "did you park?" question is
      * about — the witnessed car stop carried by the durable `PendingPromptWindow`. Drawn as the
@@ -890,9 +925,22 @@ fun PaparcarMapView(
     val isThemeDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
     val themeKey = if (isThemeDark) "dk" else "lt"
 
+    // The trip's own colour: how its car is watched. Resolved here, in the composable body, because
+    // the trail polylines are built inside a coroutine where `@Composable` cannot be called — and
+    // baked into the marker keys below, because kmpmaps caches bitmaps by contentId.
+    // [UI-A-TRACKED-TRIP-WEARS-ITS-WATCH-001]
+    val tripAccent = when (tripWatch) {
+        null, VehicleWatch.Off -> PapColor.live
+        else -> vehicleIdentityColor(tripWatch)
+    }
+    val watchKey = tripWatch.tripWatchKey()
+
     val markers = remember(
         clusters, parkingLocation, parkedVehicles, selectedSpotId, selectedSessionId, zones, dimSpots,
         departure, arrival, freshnessMinute, themeKey,
+        // The trip dots' ids carry the watch, so a change of watch has to rebuild this list — same
+        // reason `themeKey` is here. [UI-A-TRACKED-TRIP-WEARS-ITS-WATCH-001]
+        watchKey,
         // Without this key the ask marker would appear only when something ELSE changed the list —
         // and would outlive the question it draws. [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001]
         unconfirmedParking,
@@ -1018,7 +1066,7 @@ fun PaparcarMapView(
                     Marker(
                         coordinates = Coordinates(dp.latitude, dp.longitude),
                         title = null,
-                        contentId = MARKER_DEPARTURE,
+                        contentId = departureContentId(watchKey),
                         androidMarkerOptions = DEPARTURE_MARKER_OPTIONS,
                     ),
                 )
@@ -1030,7 +1078,7 @@ fun PaparcarMapView(
                     Marker(
                         coordinates = Coordinates(ap.latitude, ap.longitude),
                         title = null,
-                        contentId = MARKER_ARRIVAL,
+                        contentId = arrivalContentId(watchKey),
                         androidMarkerOptions = DEPARTURE_MARKER_OPTIONS,
                     ),
                 )
@@ -1120,13 +1168,13 @@ fun PaparcarMapView(
             }
             // Departure point: a small blue dot with a white halo — a clean "you left from here"
             // origin where the breadcrumb trail starts. [DEPART-CONSISTENCY-001] [TRIP-TRAIL-001]
-            put(MARKER_DEPARTURE) { _ ->
-                DepartureDotMarker()
+            put(departureContentId(watchKey)) { _ ->
+                DepartureDotMarker(color = tripAccent)
             }
             // Route end vertex: deliberately the SAME dot as the origin — both ends of the stored
             // line share one visual language (white ring, drive-blue fill). [ROUTE-END-AT-CAR-001]
-            put(MARKER_ARRIVAL) { _ ->
-                DepartureDotMarker()
+            put(arrivalContentId(watchKey)) { _ ->
+                DepartureDotMarker(color = tripAccent)
             }
             // User-location "you" dot — one stable bitmap, no per-fix churn. [DRIVE-PUCK-NATIVE-001]
             put(MARKER_USER_DOT) { _ ->
@@ -1244,12 +1292,13 @@ fun PaparcarMapView(
         // [DRIVE-PUCK-NATIVE-001]
         val drivingHandler: Map<String, @Composable (Marker) -> Unit> = puckMeta?.let { meta ->
             mapOf(
-                locationActiveContentId(meta.carbodyType, meta.color) to { _: Marker ->
+                locationActiveContentId(meta.carbodyType, meta.color, watchKey) to { _: Marker ->
                     LocationActiveMarker(
                         carbody = meta.carbodyType,
                         size = meta.sizeCategory,
                         headingDegrees = 0f,
                         color = meta.color,
+                        haloColor = tripAccent,
                     )
                 },
             )
@@ -1454,12 +1503,20 @@ fun PaparcarMapView(
     // growing trail redraws a few times a second instead of on every GPS fix — the map recomposes at most
     // ~2 Hz from the trail, not per fix, which keeps pans smooth. [DRIVE-PUCK-NATIVE-001] [ROUTE-SNAP-001]
     val tripPolylines = remember { mutableStateOf<List<Polyline>>(emptyList()) }
+    // The trail's colour is the trip's watch (resolved above, in composition). It rides the same
+    // snapshotFlow as the geometry so a watch that changes mid-trip repaints the line on the next
+    // sample instead of waiting for the next fix. [UI-A-TRACKED-TRIP-WEARS-ITS-WATCH-001]
+    val currentTripAccent = rememberUpdatedState(tripAccent)
     LaunchedEffect(Unit) {
         snapshotFlow {
-            listOf(currentTripSegments.value, currentMatchedTrail.value, currentTripTrail.value, currentDeparturePoint.value)
+            listOf(
+                currentTripSegments.value, currentMatchedTrail.value, currentTripTrail.value,
+                currentDeparturePoint.value, currentTripAccent.value,
+            )
         }
             .sample(TRAIL_SAMPLE_MS)
-            .collect { (segmentsAny, matchedAny, rawAny, depAny) ->
+            .collect { (segmentsAny, matchedAny, rawAny, depAny, accentAny) ->
+                val accent = accentAny as Color
                 @Suppress("UNCHECKED_CAST")
                 val segments = segmentsAny as List<RouteSegment>
                 @Suppress("UNCHECKED_CAST")
@@ -1474,7 +1531,7 @@ fun PaparcarMapView(
                         Polyline(
                             coordinates = segment.points.map { Coordinates(it.latitude, it.longitude) },
                             width = TRIP_TRAIL_WIDTH,
-                            lineColor = if (segment.inferred) PapColor.live.copy(alpha = INFERRED_ROUTE_ALPHA) else PapColor.live,
+                            lineColor = if (segment.inferred) accent.copy(alpha = INFERRED_ROUTE_ALPHA) else accent,
                         )
                     }
                 } else if (matched.size >= 2) {
@@ -1482,7 +1539,7 @@ fun PaparcarMapView(
                     listOf(Polyline(
                         coordinates = matched.map { Coordinates(it.latitude, it.longitude) },
                         width = TRIP_TRAIL_WIDTH,
-                        lineColor = PapColor.live,
+                        lineColor = accent,
                     ))
                 } else {
                     val coords = buildList {
@@ -1490,7 +1547,7 @@ fun PaparcarMapView(
                         raw.forEach { add(Coordinates(it.latitude, it.longitude)) }
                     }
                     if (coords.size < 2) emptyList()
-                    else listOf(Polyline(coordinates = smoothTrail(coords), width = TRIP_TRAIL_WIDTH, lineColor = PapColor.live))
+                    else listOf(Polyline(coordinates = smoothTrail(coords), width = TRIP_TRAIL_WIDTH, lineColor = accent))
                 }
             }
     }
@@ -1541,12 +1598,14 @@ fun PaparcarMapView(
     // reads in its OWN scope and glides natively — so the puck moving at any fix rate never recomposes
     // the map. The list is stable across position changes (keyed only on the puck's visual identity, via
     // [puckMeta]). [DRIVE-PUCK-NATIVE-001]
-    val puckLiveMarkers = remember(puckMeta) {
+    // Keyed on the watch too: the halo is the watch colour, so a car that pairs its Bluetooth
+    // mid-trip must point at a bitmap the cache has never seen. [UI-A-TRACKED-TRIP-WEARS-ITS-WATCH-001]
+    val puckLiveMarkers = remember(puckMeta, watchKey) {
         puckMeta?.let { meta ->
             listOf(
                 LiveMarker(
                     id = MARKER_PUCK_ID,
-                    contentId = locationActiveContentId(meta.carbodyType, meta.color),
+                    contentId = locationActiveContentId(meta.carbodyType, meta.color, watchKey),
                     position = puckPositionState,
                     rotation = puckRotationState,
                     androidMarkerOptions = PUCK_MARKER_OPTIONS,

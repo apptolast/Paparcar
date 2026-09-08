@@ -68,6 +68,10 @@ data class HomeFabsSlice(
      * active detection, grey = unwatched) instead of a flat brand green. [UI-FAB-CAR-IDENTITY-001]
      */
     val selectedParkingWatch: VehicleMonitoringStatus?,
+    /** How the car being FOLLOWED right now is watched — the `MyLocation` FAB wears that identity
+     *  while it re-engages driver-follow, the same colour its trail and puck carry on the map.
+     *  Null when no trip is live. [UI-A-TRACKED-TRIP-WEARS-ITS-WATCH-001] */
+    val drivingWatch: VehicleMonitoringStatus?,
 )
 
 /** What the map tile layer sees. [addParkingVehicle] is the vehicle being
@@ -97,6 +101,12 @@ data class HomeMapSlice(
      *  marker wears the real vehicle instead of the generic silhouette. The ACTIVE vehicle: both
      *  paths that post the question name that one, so glyph and title cannot disagree. */
     val askVehicle: Vehicle?,
+    /**
+     * How the car whose trip is being drawn is watched — the trail, its origin dot and the puck's
+     * halo wear that identity instead of a generic movement blue. Null when no trip is live.
+     * [UI-A-TRACKED-TRIP-WEARS-ITS-WATCH-001]
+     */
+    val drivingWatch: VehicleMonitoringStatus?,
 )
 
 /**
@@ -318,6 +328,10 @@ internal fun HomeState.toFabsSlice() = HomeFabsSlice(
         vehicles.firstOrNull { it.id == session.vehicleId }?.monitoringStatus()
             ?: VehicleMonitoringStatus.Inactive
     },
+    drivingWatch = drivingMeta?.let { meta ->
+        vehicles.firstOrNull { it.id == meta.vehicleId }?.monitoringStatus()
+            ?: VehicleMonitoringStatus.Inactive
+    },
 )
 
 internal fun HomeState.toMapSlice() = HomeMapSlice(
@@ -340,6 +354,13 @@ internal fun HomeState.toMapSlice() = HomeMapSlice(
     addingZoneIsPrivate = addingZoneIsPrivate,
     unconfirmedParking = promptWindow?.candidate,
     askVehicle = promptWindow?.let { vehicles.firstOrNull { v -> v.isActive } },
+    // Same shape as [HomeFabsSlice.selectedParkingWatch]: a trip whose vehicle no longer resolves
+    // (deleted mid-trip) still has a watch to declare — the unwatched one.
+    // [UI-A-TRACKED-TRIP-WEARS-ITS-WATCH-001]
+    drivingWatch = drivingMeta?.let { meta ->
+        vehicles.firstOrNull { it.id == meta.vehicleId }?.monitoringStatus()
+            ?: VehicleMonitoringStatus.Inactive
+    },
 )
 
 fun HomeState.toPeekSlice(): HomePeekSlice {

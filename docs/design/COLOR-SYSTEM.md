@@ -83,7 +83,8 @@ su método (estable), y "aparcado / en ruta" es texto neutro que se anima.
 | 🟩 **Verde vigilancia** `PapWatchGreen*` | Vehículo con **detección activa** (tier asistido) | Glifo/badge/borde/marcador del coche asistido |
 | 🟢 **Verde frescura** `PapSpotFresh*` | Cabeza de la rampa de plazas — ver fila de la rampa | Puck de plaza libre fresca, chip de fiabilidad ALTA, anillo TTL |
 | 🔵 **Azul `papCarBlue`** | Vehículo vigilado por **Bluetooth** | Nombre, glifo BT, badge, borde, marcador del coche BT |
-| 🔵 **Azul `PapLiveMap`** (solo mapa) | Movimiento sobre tiles | Traza del viaje, punto de origen, pin en-route, FAB sigue-coche |
+| 🔵 **Azul `PapLiveMap`** (solo mapa) | Movimiento sobre tiles **que NO es tuyo** | Pin de plaza a la que va OTRO usuario. También el repliegue de un viaje sin vigilancia declarada (el gris de "sin vigilar" desaparece sobre los tiles) |
+| 🟢🔵 **Identidad del coche seguido** (solo mapa) | Un viaje TUYO lleva el color de **cómo se le vigila** | Traza, punto de origen, punto de salida, halo del puck y FAB `MyLocation` mientras sigue al coche — `papWatchGreen` asistido, `papCarBlue` BT |
 | ⚪ **Gris** | Vehículo **sin vigilancia** / ausencias | Nombre gris, anillo hueco, borde neutro |
 | ⬛ **`onSurface`** | El ESTADO: aparcado · en ruta · sin aparcar | Texto neutro; en ruta se ANIMA (pulso + halo radar en el color de identidad) |
 | 🟢🟡🔴 **Rampa frescura** | Caducidad de plazas comunitarias — EXCLUSIVA | Pucks/badges de spots; manual = badge persona sobre su tier |
@@ -203,8 +204,17 @@ en bordes como señal (ilegible en device, probado en v1).
 
 El mapa usa tonos fijos (`PapGreenLight`/`PapBlueLight`, `SpotPalette`, `PapLiveMap`) porque los
 marcadores van sobre imagen de calles, no sobre nuestra superficie; la UI usa `primary`/theme-aware.
-Cambian juntas. `PapLiveMap` queda SOLO para movimiento sobre el mapa (traza, origen, en-route,
-FAB sigue-coche); el punto de usuario es verde marca, como siempre.
+Cambian juntas. `PapLiveMap` queda SOLO para **movimiento que no es tuyo** sobre el mapa: la plaza
+a la que va otro usuario. Tu propio viaje —traza, origen, salida, halo del puck y el FAB que lo
+sigue— lleva la **identidad de vigilancia** de su coche.
+
+> **Por qué cambió** [UI-A-TRACKED-TRIP-WEARS-ITS-WATCH-001]: mientras `PapLiveMap` cubría las dos
+> cosas, la traza de un coche BT quedaba a ΔE00 **10,0** de `PapCarBlueLight` — dos azules casi
+> iguales, dos significados, la misma pantalla; medido y declarado como defecto abierto en
+> `UI-COLOR-EVERY-HUE-EARNS-ITS-MEANING-001` §5. Al vestir el viaje con la identidad de su coche,
+> el par deja de existir: en un viaje BT los dos azules pasan a decir lo mismo. Y el verde asistido
+> no invade la rampa de plazas — `papWatchGreen` está a ΔE00 19,7–27,7 de toda la rampa, porque es
+> un teal, no el verde de marca.
 
 ## 5. La procedencia de un DATO es un glifo
 
@@ -236,7 +246,8 @@ anillo de TTL recuperado**.
 | Historial / stats / gráfica | verde `primary` (mobiliario de la app, como siempre) |
 | Plaza libre fresca / enfriándose / caducando | verde / ámbar / rojo |
 | Reporte manual | color de frescura + badge persona + anillo TTL (F5) |
-| Plaza en ruta · traza · origen | `PapLiveMap` (movimiento, solo mapa) |
+| Plaza a la que va otro usuario | `PapLiveMap` (movimiento ajeno, solo mapa) |
+| Traza · origen · salida · halo del puck · FAB que sigue al coche | identidad de vigilancia del coche seguido [UI-A-TRACKED-TRIP-WEARS-ITS-WATCH-001] |
 | Marcador de mi coche en mapa | tag cuadrado con marco verde/azul/gris según método |
 | CTA | verde `primary`, pastilla rellena |
 | Opción de Tema en Ajustes | círculo con anillo: blanco (`PapCardLight`) / tinta (`PapInk`) / mitad y mitad — es una MUESTRA de la superficie que pintaría, no identidad ni estado |

@@ -243,6 +243,10 @@ fun ParkingHistoryDetailScreen(
             tripSegments = routeSegments,
             departurePoint = routeStart,
             arrivalPoint = routeEnd,
+            // A remembered route wears the same colour it wore live — the watch of the car that
+            // drove it. Otherwise the same trip would be one colour while it happens and another
+            // when you look it up. [UI-A-TRACKED-TRIP-WEARS-ITS-WATCH-001]
+            tripWatch = state.focusedVehicle?.monitoringStatus()?.watch(),
             // The caller's coords seed the first frame (they ARE this parking's), but there is no
             // third fallback: painting the ACTIVE session here put today's pin on a historic map.
             // No resolved session and no seed ⇒ no pin. [UI-HISTORY-DETAIL-MUST-NOT-SPEAK-BEFORE-IT-KNOWS-001]

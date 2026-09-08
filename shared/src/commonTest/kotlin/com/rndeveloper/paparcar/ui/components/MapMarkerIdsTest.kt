@@ -6,6 +6,7 @@ import com.rndeveloper.paparcar.domain.model.ParkedVehicleSummary
 import com.rndeveloper.paparcar.domain.model.SpotFreshness
 import com.rndeveloper.paparcar.domain.model.VehicleColor
 import com.rndeveloper.paparcar.domain.model.VehicleSize
+import com.rndeveloper.paparcar.ui.theme.VehicleWatch
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -105,9 +106,26 @@ class MapMarkerIdsTest {
     private val inertIds: List<EmittedId> = buildList {
         add(MARKER_CLUSTER)
         add(MARKER_CLUSTER_DIM)
-        add(MARKER_DEPARTURE)
-        add(MARKER_ARRIVAL)
         add(MARKER_USER_DOT)
+        // [UI-A-TRACKED-TRIP-WEARS-ITS-WATCH-001] The trip's own markers are painted with the watch
+        // colour of the car being followed, and kmpmaps caches bitmaps by contentId — so the watch
+        // is a segment of the key, and every variant has to be in the corpus. A car that pairs its
+        // Bluetooth mid-trip must land on an id the cache has never seen; if these collapsed to one
+        // id the map would keep serving the previous halo and the check would not notice.
+        // Off is deliberately absent from this loop: an unwatched car keeps the movement blue, so
+        // its key IS the default one added below. Listing it here would emit a duplicate and the
+        // distinctness check — which exists to catch two builders shadowing each other — would read
+        // that as a collision.
+        listOf(VehicleWatch.Bluetooth, VehicleWatch.Assisted).forEach { watch ->
+            val key = watch.tripWatchKey()
+            add(departureContentId(key))
+            add(arrivalContentId(key))
+            add(locationActiveContentId(CarbodyType.SEDAN, VehicleColor.BLACK, key))
+            add(locationActiveContentId(null, null, key))
+        }
+        // …and the no-trip-context default, which every other caller of the map gets.
+        add(departureContentId(WATCH_KEY_MOVEMENT))
+        add(arrivalContentId(WATCH_KEY_MOVEMENT))
         add(locationActiveContentId(CarbodyType.SEDAN, VehicleColor.BLACK))
         add(locationActiveContentId(null, null))
     }.map { EmittedId(it, MarkerTapTarget.Inert) }

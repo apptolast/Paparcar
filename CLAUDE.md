@@ -169,7 +169,9 @@ color: el estado se escribe, no se tiñe).
 (aparcado / en ruta / sin aparcar) se ESCRIBE en `onSurface` y se anima — nunca se tiñe.*
 
 - 🟢 verde = marca y acción (CTA, links, nav, spinners) + identidad de vehículo con detección activa
-- 🔵 `papCarBlue` = vehículo vigilado por Bluetooth · `PapLiveMap` solo para mapa en movimiento
+- 🔵 `papCarBlue` = vehículo vigilado por Bluetooth · `PapLiveMap` = movimiento sobre el mapa que
+  **NO es tuyo** (la plaza a la que va otro). Tu viaje —traza, origen, salida, halo del puck, FAB
+  que lo sigue— lleva la identidad de vigilancia de SU coche [UI-A-TRACKED-TRIP-WEARS-ITS-WATCH-001]
 - ⚪ gris = vehículo sin vigilancia · ⬛ estado siempre en `onSurface` (animado, nunca teñido)
 - 🟢🟡🔴+🔵 spots: rampa de frescura **exclusiva** de la caducidad de plazas. `PapRed` NUNCA en un CTA
 - 🚗 multicolor = QUÉ coche es (glifo ilustrado), jamás mezclado con estado

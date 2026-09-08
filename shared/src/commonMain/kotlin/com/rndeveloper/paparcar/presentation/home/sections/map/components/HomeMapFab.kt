@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.model.VehicleMonitoringStatus
 import com.rndeveloper.paparcar.presentation.util.MapCircleFab
 import com.rndeveloper.paparcar.ui.theme.PapColor
+import com.rndeveloper.paparcar.ui.theme.VehicleWatch
 import com.rndeveloper.paparcar.ui.theme.PapMotion
 import com.rndeveloper.paparcar.ui.theme.vehicleIdentityColor
 import com.rndeveloper.paparcar.ui.theme.watch
@@ -49,6 +50,9 @@ internal fun HomeMapFabColumn(
     hasGpsFix: Boolean,
     // How the selected parked vehicle is watched; null when no session is selected.
     selectedParkingWatch: VehicleMonitoringStatus?,
+    /** How the car being followed is watched — tints the `MyLocation` FAB while [followsCar].
+     *  [UI-A-TRACKED-TRIP-WEARS-ITS-WATCH-001] */
+    drivingWatch: VehicleMonitoringStatus?,
     onMyLocation: () -> Unit,
     onParkedCar: () -> Unit,
     onMidpoint: () -> Unit,
@@ -91,8 +95,19 @@ internal fun HomeMapFabColumn(
         // otherwise it recenters on GPS. Replaces the old floating "Following your trip" pill. [DET-STATUS-SHEET-001]
         MapCircleFab(
             icon = Icons.Rounded.MyLocation,
-            // Following the LIVE car — the map-movement blue, same as the puck it chases.
-            iconTint = if (followsCar) PapColor.live else Color.Unspecified,
+            // Following the LIVE car — it wears THAT car's watch colour, the same one its trail and
+            // puck carry on the map. It used to be the movement blue, which on a Bluetooth car sat
+            // 10.0 ΔE00 from the BT identity: two blues, two meanings, one screen. This FAB was
+            // exempted from the identity resolver back when identity meant the BRAND green; now
+            // that a watched car has its own hue, the exemption has no argument left.
+            // [UI-A-TRACKED-TRIP-WEARS-ITS-WATCH-001] [UI-FAB-CAR-IDENTITY-001]
+            iconTint = when {
+                !followsCar -> Color.Unspecified
+                // No watch to declare (or an unwatched car, whose grey vanishes over tiles) →
+                // the movement blue it always had.
+                drivingWatch == null || drivingWatch.watch() == VehicleWatch.Off -> PapColor.live
+                else -> vehicleIdentityColor(drivingWatch.watch())
+            },
             onClick = onMyLocation,
             contentDescription = stringResource(Res.string.map_cd_my_location),
         )
