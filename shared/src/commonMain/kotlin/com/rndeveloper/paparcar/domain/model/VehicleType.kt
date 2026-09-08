@@ -92,4 +92,28 @@ enum class VehicleType {
             CAR -> true
             MOTORCYCLE, SCOOTER, BIKE -> false
         }
+
+    /**
+     * Has a powertrain worth costing: registration asks for a [FuelType] (mandatory) and the stats
+     * pipeline estimates fuel spend and CO₂ from it. Human-powered types persist a null fuel and
+     * never see the selector. Deliberately NOT a synonym of ![isHumanPowered] by meaning — a future
+     * moped would answer both, but this question is about the COST MODEL, not the detection lane.
+     * [VEH-FUEL-001]
+     */
+    val burnsFuel: Boolean
+        get() = when (this) {
+            CAR, MOTORCYCLE -> true
+            SCOOTER, BIKE -> false
+        }
+
+    /**
+     * Consumption defaults are computed at motorcycle scale (a small motorised two-wheeler burns
+     * roughly half a car), not car scale. Only meaningful when [burnsFuel]; the human-powered
+     * types answer false vacuously. [VEH-FUEL-001]
+     */
+    val consumesAtMotorcycleScale: Boolean
+        get() = when (this) {
+            MOTORCYCLE -> true
+            CAR, SCOOTER, BIKE -> false
+        }
 }

@@ -1,6 +1,8 @@
 package com.rndeveloper.paparcar.presentation.vehicleregistration
 
 import com.rndeveloper.paparcar.domain.model.CarbodyType
+import com.rndeveloper.paparcar.domain.model.EnergyLabel
+import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.model.VehicleColor
 import com.rndeveloper.paparcar.domain.model.VehicleParkingFootprint
 import com.rndeveloper.paparcar.domain.model.VehicleSize
@@ -69,6 +71,16 @@ data class VehicleRegistrationState(
     val licensePlate: String = "",
     /** Chosen paint colour. Null = undefined → the default green icon. [VEH-COLOR-001] */
     val color: VehicleColor? = null,
+    /** What the vehicle burns — mandatory when [expectsFuel]; null (and no selector) otherwise.
+     *  [VEH-FUEL-001] */
+    val fuelType: FuelType? = null,
+    /** Free-text consumption override of the PRIMARY energy. Blank ⇒ the FuelDefaults figure shows
+     *  as placeholder and null is persisted. */
+    val consumptionText: String = "",
+    /** Free-text kWh/100 override of the SECONDARY energy — only a plug-in hybrid shows it. */
+    val consumptionElectricText: String = "",
+    /** Optional environmental badge. Null = not answered. */
+    val energyLabel: EnergyLabel? = null,
 ) {
     /**
      * The "Car N" placeholder shown in the name field and used as the default name when
@@ -88,6 +100,11 @@ data class VehicleRegistrationState(
      */
     val expectsCarbody: Boolean get() = vehicleType?.hasCarbody == true
 
+    /** True when this vehicle has a powertrain worth costing — the fuel section is shown and a
+     *  [fuelType] is required to submit. Asked of the type, not spelled as `== CAR`.
+     *  [VEH-FUEL-001] */
+    val expectsFuel: Boolean get() = vehicleType?.burnsFuel == true
+
     /**
      * CTA is enabled when:
      *  - brand is filled (catalog or custom)
@@ -99,7 +116,10 @@ data class VehicleRegistrationState(
         get() = brand.isNotBlank() &&
                 (isBrandOther || model.isNotBlank()) &&
                 sizeCategory != null &&
-                (!expectsCarbody || carbodyType != null)
+                (!expectsCarbody || carbodyType != null) &&
+                // Mandatory at registration: the stats pipeline can default a consumption but
+                // cannot guess a powertrain. [VEH-FUEL-001]
+                (!expectsFuel || fuelType != null)
 
     /** Drives inline error on the brand field — only after the user has started filling the form. */
     val brandError: Boolean

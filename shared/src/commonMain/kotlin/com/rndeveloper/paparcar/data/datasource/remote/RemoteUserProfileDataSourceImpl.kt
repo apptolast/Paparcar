@@ -160,6 +160,11 @@ class RemoteUserProfileDataSourceImpl(
                 showBrandModelOnSpot = get<Boolean?>(FIELD_SHOW_BRAND_MODEL_ON_SPOT) ?: false,
                 isActive = get<Boolean?>(FIELD_IS_ACTIVE) ?: false,
                 color = get<String?>(FIELD_COLOR).orEmpty(),
+                // Fuel block — defensive: absent on every doc written before VEH-FUEL-001.
+                fuelType = runCatching { get<String?>(FIELD_FUEL_TYPE) }.getOrNull().orEmpty(),
+                consumptionPer100 = runCatching { get<Double?>(FIELD_CONSUMPTION_PER_100)?.toFloat() }.getOrNull(),
+                consumptionElectricPer100 = runCatching { get<Double?>(FIELD_CONSUMPTION_ELECTRIC_PER_100)?.toFloat() }.getOrNull(),
+                energyLabel = runCatching { get<String?>(FIELD_ENERGY_LABEL) }.getOrNull().orEmpty(),
                 updatedAt = getLongCompat(FIELD_UPDATED_AT),
             )
         }.getOrElse { e ->
@@ -258,6 +263,11 @@ class RemoteUserProfileDataSourceImpl(
         const val FIELD_COLOR = "color"
         const val FIELD_BLUETOOTH_DEVICE_ID = "bluetoothDeviceId"
         const val FIELD_SHOW_BRAND_MODEL_ON_SPOT = "showBrandModelOnSpot"
+        // Fuel block. [VEH-FUEL-001]
+        const val FIELD_FUEL_TYPE = "fuelType"
+        const val FIELD_CONSUMPTION_PER_100 = "consumptionPer100"
+        const val FIELD_CONSUMPTION_ELECTRIC_PER_100 = "consumptionElectricPer100"
+        const val FIELD_ENERGY_LABEL = "energyLabel"
         const val FIELD_LATITUDE = "latitude"
         const val FIELD_LONGITUDE = "longitude"
         const val FIELD_ACCURACY = "accuracy"

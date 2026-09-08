@@ -34,7 +34,10 @@ data class Vehicle(
     /** Mandatory vehicle type. Controls whether automatic detection runs (CAR/MOTORCYCLE) or is
      *  suppressed (SCOOTER/BIKE), and feeds the vehicle-mismatch prompt heuristic. [BUG-SCOOTER-001] */
     val vehicleType: VehicleType = VehicleType.CAR,
-    /** BT Classic / BLE device address paired with this vehicle. On-device only, never synced. */
+    /** BT Classic / BLE device address paired with this vehicle. Synced to Firestore — it IS the
+     *  pairing identity the BT strategy resolves against, on every device. (This KDoc claimed
+     *  "never synced" until 08-09-2026; the DTO, mapper and datasource had synced it all along.)
+     *  [VEH-FUEL-001] */
     val bluetoothDeviceId: String? = null,
     /** Whether this vehicle's brand/model should appear on the public Spot. */
     val showBrandModelOnSpot: Boolean = false,
@@ -52,4 +55,19 @@ data class Vehicle(
      * does not affect detection, sizing, geofence or spot publishing.
      */
     val color: VehicleColor? = null,
+    /**
+     * What this vehicle burns. Mandatory at registration for [VehicleType.burnsFuel] types, null
+     * for human-powered ones. Feeds cost/CO₂ estimates ONLY — never detection, sizing or identity.
+     * Synced (not PII). [VEH-FUEL-001]
+     */
+    val fuelType: FuelType? = null,
+    /**
+     * User-overridden consumption per 100 km of the PRIMARY energy (litres, or kWh for an EV).
+     * Null ⇒ the named default in [com.rndeveloper.paparcar.domain.vehicle.FuelDefaults] applies.
+     */
+    val consumptionPer100: Float? = null,
+    /** User-overridden kWh/100 km of the SECONDARY energy — only meaningful for a plug-in hybrid. */
+    val consumptionElectricPer100: Float? = null,
+    /** Environmental badge (DGT names in Spain). Optional; stored for the regulated-zone rules. */
+    val energyLabel: EnergyLabel? = null,
 )

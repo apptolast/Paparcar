@@ -785,4 +785,25 @@
     <string name="home_zone_alerts_empty">Salvează mai întâi o zonă ca să primești alerte acolo</string>
     <string name="home_zone_alerts_done">Gata</string>
     <string name="home_zone_form_notify_label">Anunță-mă despre locuri libere aici</string>
+
+    <!-- Fuel block [VEH-FUEL-001] -->
+    <string name="vehicle_registration_section_fuel">Combustibil</string>
+    <string name="fuel_type_gasoline">Benzină</string>
+    <string name="fuel_type_diesel">Motorină</string>
+    <string name="fuel_type_lpg_cng">GPL / GNC</string>
+    <string name="fuel_type_hybrid">Hibrid</string>
+    <string name="fuel_type_plug_in_hybrid">Hibrid plug-in</string>
+    <string name="fuel_type_electric">Electric</string>
+    <string name="vehicle_registration_consumption_liters_label">Consum (l/100 km)</string>
+    <string name="vehicle_registration_consumption_kwh_label">Consum (kWh/100 km)</string>
+    <string name="vehicle_registration_fuel_help">Cu aceasta estimăm costurile și emisiile.</string>
+    <string name="vehicle_registration_energy_label_title">Etichetă de mediu (opțional)</string>
+    <string name="energy_label_zero">Zero</string>
+    <string name="energy_label_eco">ECO</string>
+    <string name="energy_label_c">C</string>
+    <string name="energy_label_b">B</string>
+    <string name="energy_label_none">Fără etichetă</string>
+    <!-- Consumption units (universal notation, same in every locale) [VEH-FUEL-001] -->
+    <string name="unit_l_per_100">l/100 km</string>
+    <string name="unit_kwh_per_100">kWh/100 km</string>
 </resources>

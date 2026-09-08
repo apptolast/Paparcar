@@ -195,9 +195,19 @@ dice los límites nuevos).
 
 ### F2 · VEH-FUEL-001 — el coche sabe qué quema
 
+**Estado: ✅ EN MASTER** (08-09) — ficha completa en [`veh-fuel-001.md`](veh-fuel-001.md).
+
 **Objetivo.** `Vehicle` gana `fuelType` (obligatorio en alta), `consumptionPer100`
 (editable, con default por tipo) y `energyLabel` (opcional). Sin validar contra marca/modelo:
 no hay catálogo fiable y el Clio E-Tech demuestra que la validación miente.
+
+**Lo que quedó (deltas):** las implicaciones se declaran EN `VehicleType`/`FuelType` como `when`
+exhaustivos (`burnsFuel`, `consumesAtMotorcycleScale`, `hasSecondaryElectric`) — el guardarraíl de
+vocabulario obligó a preguntarle al tipo, no compararlo, y salió mejor. Room v3 con testigo
+endurecido (el baseline escribe y relee un vehículo CON fuel tras migrar). Selector = chips
+(`PaparcarFilterChip`), no dropdown; etiqueta ambiental con toggle-para-quitar. KDoc mentiroso de
+`bluetoothDeviceId` corregido (síncroniza desde siempre). Sección "Combustible NO es categoría" en
+VEHICLE-CATEGORIZATION.md.
 
 **Diseño.**
 - `domain/model/FuelType.kt` (enum, Kotlin puro): `GASOLINE`, `DIESEL`, `LPG_CNG`, `HYBRID`,
@@ -260,6 +270,12 @@ no hay catálogo fiable y el Clio E-Tech demuestra que la validación miente.
 **Objetivo.** (1) **Tarjeta teaser** en free con UNA cifra real y CTA a Plus; (2) **panel
 Estadísticas** completo para Plus; (3) las cifras que ya existen en Vehículos se integran, no se
 duplican.
+
+**⛔ Primer paso OBLIGADO de F4 (acordado 08-09, al colocar el dato de combustible):** una
+**propuesta de layout completa de la ficha del vehículo** — identidad, columna de datos del coche
+(carrocería · tamaño · combustible), stats, teaser/panel, set-active — para visto bueno del user
+ANTES de código. La pantalla va a ganar piezas en F4 y el user pidió definir dónde va cada elemento
+una vez, no ir apilando.
 
 **Dónde va cada cosa — Claude Code razona y propone antes de codificar** (el user lo pidió así):
 - Regla editorial de navegación (`CLAUDE.md` §Navegación): *si pasa AHORA → Home; si pasó o es

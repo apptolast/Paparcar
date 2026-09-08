@@ -2,6 +2,8 @@ package com.rndeveloper.paparcar.presentation.vehicleregistration
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -45,10 +47,19 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.error.PaparcarError
 import com.rndeveloper.paparcar.domain.model.CarbodyType
+import com.rndeveloper.paparcar.domain.model.EnergyLabel
+import com.rndeveloper.paparcar.domain.model.FuelType
+import com.rndeveloper.paparcar.domain.model.VehicleType
+import com.rndeveloper.paparcar.domain.vehicle.FuelDefaults
+import com.rndeveloper.paparcar.presentation.util.energyLabelText
+import com.rndeveloper.paparcar.presentation.util.formatPer100
+import com.rndeveloper.paparcar.presentation.util.fuelTypeLabel
+import com.rndeveloper.paparcar.ui.components.chips.PaparcarFilterChip
 import com.rndeveloper.paparcar.presentation.vehicleregistration.data.VehicleCatalog
 import com.rndeveloper.paparcar.ui.components.PapCollapsingTopBarScaffold
 import com.rndeveloper.paparcar.ui.components.CarbodyInfoCard
@@ -78,6 +89,11 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.error_unknown
+import paparcar.composeapp.generated.resources.vehicle_registration_consumption_kwh_label
+import paparcar.composeapp.generated.resources.vehicle_registration_consumption_liters_label
+import paparcar.composeapp.generated.resources.vehicle_registration_energy_label_title
+import paparcar.composeapp.generated.resources.vehicle_registration_fuel_help
+import paparcar.composeapp.generated.resources.vehicle_registration_section_fuel
 import paparcar.composeapp.generated.resources.vehicle_reg_cd_back
 import paparcar.composeapp.generated.resources.my_car_delete_cancel
 import paparcar.composeapp.generated.resources.my_car_delete_confirm_action
@@ -428,6 +444,11 @@ fun VehicleRegistrationContent(
                 }
             }
 
+            // ── Fuel section — what the powertrain burns; mandatory pick [VEH-FUEL-001] ──
+            if (state.expectsFuel) {
+                FuelSection(state = state, onIntent = onIntent)
+            }
+
             // ── Nickname section — optional ───────────────────────────────────
             Column(
                 modifier = Modifier.padding(horizontal = SCREEN_H_PADDING),
@@ -717,6 +738,97 @@ private fun VehicleRegistrationBottomBar(
                 color = cs.onSurface.copy(alpha = PapAlpha.muted),
                 textAlign = TextAlign.Center,
             )
+        }
+    }
+}
+
+// ── Fuel section [VEH-FUEL-001] ──────────────────────────────────────────────
+// The selector is chips, not a dropdown: six options fit two rows, and seeing them all is what
+// makes "which one is my hybrid" answerable without opening anything. Consumption is free text
+// with the NAMED default as placeholder — blank persists null and the default applies downstream,
+// so the field never lies about where the number came from. A PHEV carries two fields (one per
+// energy); the environmental badge is optional and tapping the selected chip clears the answer.
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun FuelSection(
+    state: VehicleRegistrationState,
+    onIntent: (VehicleRegistrationIntent) -> Unit,
+) {
+    val cs = MaterialTheme.colorScheme
+    Column(
+        modifier = Modifier.padding(horizontal = SCREEN_H_PADDING),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        PapSectionHeader(title = stringResource(Res.string.vehicle_registration_section_fuel))
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            FuelType.entries.forEach { fuel ->
+                PaparcarFilterChip(
+                    label = fuelTypeLabel(fuel),
+                    selected = state.fuelType == fuel,
+                    onClick = { onIntent(VehicleRegistrationIntent.SetFuelType(fuel)) },
+                )
+            }
+        }
+        val fuel = state.fuelType
+        if (fuel != null) {
+            val primaryDefault = FuelDefaults.defaultConsumptionPer100(
+                fuelType = fuel,
+                vehicleType = state.vehicleType ?: VehicleType.CAR,
+            )
+            PapTextField(
+                value = state.consumptionText,
+                onValueChange = { onIntent(VehicleRegistrationIntent.SetConsumption(it)) },
+                label = stringResource(
+                    if (fuel.usesLiters) {
+                        Res.string.vehicle_registration_consumption_liters_label
+                    } else {
+                        Res.string.vehicle_registration_consumption_kwh_label
+                    },
+                ),
+                placeholder = formatPer100(primaryDefault),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            if (fuel.hasSecondaryElectric) {
+                PapTextField(
+                    value = state.consumptionElectricText,
+                    onValueChange = { onIntent(VehicleRegistrationIntent.SetConsumptionElectric(it)) },
+                    label = stringResource(Res.string.vehicle_registration_consumption_kwh_label),
+                    placeholder = formatPer100(FuelDefaults.PHEV_KWH_PER_100),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            Text(
+                text = stringResource(Res.string.vehicle_registration_fuel_help),
+                style = PaparcarType.current.caption,
+                color = cs.onSurfaceVariant,
+            )
+            Text(
+                text = stringResource(Res.string.vehicle_registration_energy_label_title),
+                style = PaparcarType.current.label,
+                color = cs.onSurfaceVariant,
+            )
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                EnergyLabel.entries.forEach { label ->
+                    val selected = state.energyLabel == label
+                    PaparcarFilterChip(
+                        label = energyLabelText(label),
+                        selected = selected,
+                        // Tapping the selected chip withdraws the answer — optional means optional.
+                        onClick = {
+                            onIntent(VehicleRegistrationIntent.SetEnergyLabel(if (selected) null else label))
+                        },
+                    )
+                }
+            }
         }
     }
 }

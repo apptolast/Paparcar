@@ -86,6 +86,20 @@ class AppDatabaseV1BaselineTest {
         // The same open is also MIGRATION_1_2's witness [MONEY-001]: the zone must come across
         // with the new alert flag OFF — existing zones never opt in alone.
         val zones = db.zoneDao().getByUser("user-bench")
+        // …and MIGRATION_2_3's witness [VEH-FUEL-001]: a vehicle written WITH the fuel block must
+        // round-trip through the migrated file — proof the four columns actually exist, not just
+        // that nothing crashed on the way here.
+        db.vehicleDao().insert(
+            VehicleEntity(
+                id = "v-fuel-witness",
+                userId = "user-bench",
+                sizeCategory = "MEDIUM_SUV",
+                fuelType = "DIESEL",
+                consumptionPer100 = 5.1f,
+                energyLabel = "C",
+            ),
+        )
+        val fuelRow = db.vehicleDao().getById("v-fuel-witness", "user-bench")
         db.close()
 
         assertEquals(1, rows.size, "an untouched schema must not cost the user their parked session")
@@ -93,6 +107,8 @@ class AppDatabaseV1BaselineTest {
         assertEquals(1, zones.size, "the 1→2 migration must carry the zone across, not recreate the table")
         assertEquals("zone-1", zones.single().id)
         assertFalse(zones.single().notifyOnSpot, "existing zones default to alerts OFF")
+        assertEquals("DIESEL", fuelRow?.fuelType, "the 2→3 migration must add the fuel columns")
+        assertEquals(5.1f, fuelRow?.consumptionPer100)
         assertEquals(PAPARCAR_DB_VERSION, readUserVersion(name))
     }
 

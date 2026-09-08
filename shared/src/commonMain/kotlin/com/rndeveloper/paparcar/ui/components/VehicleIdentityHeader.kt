@@ -64,6 +64,10 @@ fun VehicleIdentityHeader(
     // glanceable Home card hides it (name → status → parked-at is what matters). The status badge
     // itself always shows. [CARD-META-POLISH-001]
     showSize: Boolean = true,
+    /** Optional second quiet line under the carbody · size subtitle — the ficha uses it for the
+     *  fuel data line. Same caption voice; the component stays agnostic of what it says.
+     *  [VEH-FUEL-001] */
+    metaSecondLine: String? = null,
     trailing: (@Composable () -> Unit)? = null,
 ) {
     val watch = vehicle.monitoringStatus().watch()
@@ -133,6 +137,16 @@ fun VehicleIdentityHeader(
                     text = subtitle,
                     // App convention for an icon·title·subtitle row: subtitle is quiet PROSE (LECTURA
                     // caption), same as PapListItem — NOT a CIFRA data token. [CARD-ONE-BADGE-001]
+                    style = PaparcarType.current.caption,
+                    color = cs.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            if (metaSecondLine != null) {
+                Spacer(Modifier.height(NAME_META_GAP_DP.dp))
+                Text(
+                    text = metaSecondLine,
                     style = PaparcarType.current.caption,
                     color = cs.onSurfaceVariant,
                     maxLines = 1,

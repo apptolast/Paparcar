@@ -1777,6 +1777,33 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             Variant("Error de validación (marca vacía)") {
                 VehicleRegistrationContent(state = VehicleRegistrationState(hasInteractedWithForm = true))
             },
+            // [VEH-FUEL-001] La sección de combustible: el PHEV es la variante más completa (dos
+            // consumos), y la moto prueba que un tipo sin carrocería sigue preguntando combustible.
+            Variant("Nuevo · PHEV con dos consumos") {
+                VehicleRegistrationContent(
+                    state = VehicleRegistrationState(
+                        brand = "Cupra",
+                        model = "Formentor",
+                        vehicleType = com.rndeveloper.paparcar.domain.model.VehicleType.CAR,
+                        carbodyType = com.rndeveloper.paparcar.domain.model.CarbodyType.SUV_MEDIUM,
+                        sizeCategory = VehicleSize.MEDIUM_SUV,
+                        fuelType = com.rndeveloper.paparcar.domain.model.FuelType.PLUG_IN_HYBRID,
+                        energyLabel = com.rndeveloper.paparcar.domain.model.EnergyLabel.ZERO,
+                    ),
+                )
+            },
+            Variant("Nuevo · moto (combustible sin carrocería)") {
+                VehicleRegistrationContent(
+                    state = VehicleRegistrationState(
+                        brand = "Honda",
+                        model = "CBR 600",
+                        isBrandOther = true,
+                        vehicleType = com.rndeveloper.paparcar.domain.model.VehicleType.MOTORCYCLE,
+                        sizeCategory = VehicleSize.MOTORCYCLE,
+                        fuelType = com.rndeveloper.paparcar.domain.model.FuelType.GASOLINE,
+                    ),
+                )
+            },
             Variant("Edición") {
                 VehicleRegistrationContent(
                     state = VehicleRegistrationState(

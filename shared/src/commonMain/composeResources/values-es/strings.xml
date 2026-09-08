@@ -766,4 +766,25 @@
     <string name="home_zone_alerts_empty">Guarda una zona primero para recibir avisos allí</string>
     <string name="home_zone_alerts_done">Listo</string>
     <string name="home_zone_form_notify_label">Avisarme de plazas libres aquí</string>
+
+    <!-- Fuel block [VEH-FUEL-001] -->
+    <string name="vehicle_registration_section_fuel">Combustible</string>
+    <string name="fuel_type_gasoline">Gasolina</string>
+    <string name="fuel_type_diesel">Diésel</string>
+    <string name="fuel_type_lpg_cng">GLP / GNC</string>
+    <string name="fuel_type_hybrid">Híbrido</string>
+    <string name="fuel_type_plug_in_hybrid">Híbrido enchufable</string>
+    <string name="fuel_type_electric">Eléctrico</string>
+    <string name="vehicle_registration_consumption_liters_label">Consumo (l/100 km)</string>
+    <string name="vehicle_registration_consumption_kwh_label">Consumo (kWh/100 km)</string>
+    <string name="vehicle_registration_fuel_help">Con esto estimamos tu gasto y tus emisiones.</string>
+    <string name="vehicle_registration_energy_label_title">Etiqueta ambiental (opcional)</string>
+    <string name="energy_label_zero">CERO</string>
+    <string name="energy_label_eco">ECO</string>
+    <string name="energy_label_c">C</string>
+    <string name="energy_label_b">B</string>
+    <string name="energy_label_none">Sin etiqueta</string>
+    <!-- Consumption units (universal notation, same in every locale) [VEH-FUEL-001] -->
+    <string name="unit_l_per_100">l/100 km</string>
+    <string name="unit_kwh_per_100">kWh/100 km</string>
 </resources>

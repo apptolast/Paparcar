@@ -40,6 +40,7 @@ import com.rndeveloper.paparcar.domain.model.VehicleMonitoringStatus
 import com.rndeveloper.paparcar.domain.model.VehicleWithStats
 import com.rndeveloper.paparcar.domain.model.monitoringStatus
 import com.rndeveloper.paparcar.presentation.util.compactRelativeTimeText
+import com.rndeveloper.paparcar.presentation.util.vehicleFuelMetaLine
 import com.rndeveloper.paparcar.ui.components.VehicleIdentityHeader
 import com.rndeveloper.paparcar.ui.theme.vehicleChassisBorder
 import com.rndeveloper.paparcar.ui.theme.watch
@@ -133,6 +134,9 @@ private fun VehicleHeroCard(
                     start = CARD_PADDING.dp, end = CARD_PADDING.dp,
                     top = IDENTITY_TOP_PAD.dp, bottom = IDENTITY_BOTTOM_PAD.dp,
                 ),
+                // The fuel data joins the vehicle-data column, right under carbody · size — an
+                // attribute of the car, not a floating meta line. [VEH-FUEL-001]
+                metaSecondLine = vehicleFuelMetaLine(vehicle),
                 trailing = {
                     IconButton(onClick = onEdit, modifier = Modifier.size(EDIT_BOX_DP.dp)) {
                         Icon(

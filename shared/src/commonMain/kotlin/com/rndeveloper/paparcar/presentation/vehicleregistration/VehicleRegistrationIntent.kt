@@ -1,6 +1,8 @@
 package com.rndeveloper.paparcar.presentation.vehicleregistration
 
 import com.rndeveloper.paparcar.domain.model.CarbodyType
+import com.rndeveloper.paparcar.domain.model.EnergyLabel
+import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.model.VehicleColor
 import com.rndeveloper.paparcar.domain.model.VehicleType
 
@@ -28,6 +30,14 @@ sealed class VehicleRegistrationIntent {
     data class SetVehicleType(val type: VehicleType) : VehicleRegistrationIntent()
     /** Pick the vehicle's paint colour, or null to reset to the default green. [VEH-COLOR-001] */
     data class SetColor(val color: VehicleColor?) : VehicleRegistrationIntent()
+    /** Pick what the vehicle burns — mandatory for a fuel-burning type. [VEH-FUEL-001] */
+    data class SetFuelType(val fuel: FuelType) : VehicleRegistrationIntent()
+    /** Free-text consumption override (primary energy). Blank clears back to the default. */
+    data class SetConsumption(val value: String) : VehicleRegistrationIntent()
+    /** Free-text electric consumption override — plug-in hybrid only. */
+    data class SetConsumptionElectric(val value: String) : VehicleRegistrationIntent()
+    /** Pick the environmental badge, or null to clear the answer. */
+    data class SetEnergyLabel(val label: EnergyLabel?) : VehicleRegistrationIntent()
     data class SetLicensePlate(val value: String) : VehicleRegistrationIntent()
     data class SetShowOnSpot(val enabled: Boolean) : VehicleRegistrationIntent()
     data class LoadVehicle(val vehicleId: String) : VehicleRegistrationIntent()

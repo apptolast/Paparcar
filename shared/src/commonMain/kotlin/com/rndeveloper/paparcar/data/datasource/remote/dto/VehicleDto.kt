@@ -20,6 +20,14 @@ data class VehicleDto(
     val isActive: Boolean = false,
     /** [VehicleColor] enum name. Empty string when undefined (default green). */
     val color: String = "",
+    /** [FuelType] enum name. Empty string for human-powered vehicles and pre-feature docs. [VEH-FUEL-001] */
+    val fuelType: String = "",
+    /** User consumption override (l or kWh /100 km); null ⇒ FuelDefaults applies. [VEH-FUEL-001] */
+    val consumptionPer100: Float? = null,
+    /** PHEV-only secondary kWh/100 km override. [VEH-FUEL-001] */
+    val consumptionElectricPer100: Float? = null,
+    /** [EnergyLabel] enum name. Empty string when not answered. [VEH-FUEL-001] */
+    val energyLabel: String = "",
     /**
      * Client epoch-ms stamp of the last write, set by the remote data source on every vehicle write.
      * Read back by the inbound sync so the merge can tell when the server has caught up with a local

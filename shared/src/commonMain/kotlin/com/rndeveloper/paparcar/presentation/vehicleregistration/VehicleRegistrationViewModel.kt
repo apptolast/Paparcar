@@ -3,6 +3,7 @@ package com.rndeveloper.paparcar.presentation.vehicleregistration
 import com.apptolast.baselogin.domain.AuthRepository
 import com.rndeveloper.paparcar.domain.error.PaparcarError
 import com.rndeveloper.paparcar.domain.model.CarbodyType
+import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.domain.model.VehicleType
@@ -152,10 +153,32 @@ class VehicleRegistrationViewModel(
                         carbodyType = null,
                         sizeCategory = VehicleSize.MOTORCYCLE,
                         isCarbodyManualOverride = false,
+                        // A human-powered type burns nothing: drop the fuel block so a car→bike
+                        // switch does not persist a ghost powertrain. [VEH-FUEL-001]
+                        fuelType = if (newType.burnsFuel) fuelType else null,
+                        consumptionText = if (newType.burnsFuel) consumptionText else "",
+                        consumptionElectricText = if (newType.burnsFuel) consumptionElectricText else "",
+                        energyLabel = if (newType.burnsFuel) energyLabel else null,
                         hasInteractedWithForm = true,
                     )
                 }
             }
+            is VehicleRegistrationIntent.SetFuelType -> updateState {
+                copy(
+                    fuelType = intent.fuel,
+                    // The secondary field only exists for a PHEV — a leftover value from a
+                    // previous pick must not survive the switch. [VEH-FUEL-001]
+                    consumptionElectricText =
+                        if (intent.fuel.hasSecondaryElectric) consumptionElectricText else "",
+                    hasInteractedWithForm = true,
+                )
+            }
+            is VehicleRegistrationIntent.SetConsumption ->
+                updateState { copy(consumptionText = intent.value) }
+            is VehicleRegistrationIntent.SetConsumptionElectric ->
+                updateState { copy(consumptionElectricText = intent.value) }
+            is VehicleRegistrationIntent.SetEnergyLabel ->
+                updateState { copy(energyLabel = intent.label, hasInteractedWithForm = true) }
             is VehicleRegistrationIntent.SetColor ->
                 updateState { copy(color = intent.color, hasInteractedWithForm = true) }
             is VehicleRegistrationIntent.SetLicensePlate ->
@@ -237,6 +260,12 @@ class VehicleRegistrationViewModel(
                         showBrandModelOnSpot = vehicle.showBrandModelOnSpot,
                         licensePlate = vehicle.licensePlate ?: "",
                         color = vehicle.color,
+                        fuelType = vehicle.fuelType,
+                        // An override shows as text; a null shows blank so the DEFAULT placeholder
+                        // stays visible and honest. [VEH-FUEL-001]
+                        consumptionText = vehicle.consumptionPer100?.let { formatConsumption(it) } ?: "",
+                        consumptionElectricText = vehicle.consumptionElectricPer100?.let { formatConsumption(it) } ?: "",
+                        energyLabel = vehicle.energyLabel,
                     )
                 }
                 // What deleting this car would cost, read AFTER the form is on screen: the warning
@@ -307,6 +336,17 @@ class VehicleRegistrationViewModel(
                     isActive = shouldBeDefault,
                     licensePlate = current.licensePlate.trim().ifBlank { null },
                     color = current.color,
+                    // The fuel block only exists for a burning type; a typed value is an override
+                    // even when it equals the default (the user ANSWERED). [VEH-FUEL-001]
+                    fuelType = if (type.burnsFuel) current.fuelType else null,
+                    consumptionPer100 = if (type.burnsFuel) parseConsumption(current.consumptionText) else null,
+                    consumptionElectricPer100 =
+                        if (type.burnsFuel && current.fuelType?.hasSecondaryElectric == true) {
+                            parseConsumption(current.consumptionElectricText)
+                        } else {
+                            null
+                        },
+                    energyLabel = if (type.burnsFuel) current.energyLabel else null,
                 )
                 vehicleRepository.saveVehicle(vehicle).getOrThrow()
                 if (!isEditing && shouldBeDefault) vehicleRepository.setActiveVehicle(vehicle.id).getOrThrow()
@@ -351,6 +391,15 @@ class VehicleRegistrationViewModel(
                 }
         }
     }
+
+    /** Locale-tolerant parse of a consumption field: comma or dot, must be a positive number.
+     *  Anything else (blank, junk, zero, negative) means "no override" → the default applies. */
+    private fun parseConsumption(text: String): Float? =
+        text.trim().replace(',', '.').toFloatOrNull()?.takeIf { it > 0f }
+
+    /** Renders a stored override back into the field without a trailing ".0" for whole numbers. */
+    private fun formatConsumption(value: Float): String =
+        if (value == value.toInt().toFloat()) value.toInt().toString() else value.toString()
 
     private companion object {
         const val TAG = "VehicleRegistrationVM"

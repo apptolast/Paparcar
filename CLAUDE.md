@@ -301,7 +301,9 @@ tarea, o queda fuera del set probable:
 ## Modelos de datos clave
 - `Spot` — plaza comunitaria: location, type (AUTO_DETECTED/MANUAL_REPORT), status, confidence, sizeCategory, carbodyType, enRouteCount, TTL
 - `UserParking` — sesión propia: vehicleId, location, geofenceId, isActive, detectionMethod, detectionPath, armEvidence, routePolyline, sizeCategory, carbodyType
-- `Vehicle` — brand, model, licensePlate?, bluetoothDeviceId?, isDefault, sizeCategory, carbodyType?
+- `Vehicle` — brand, model, licensePlate? (on-device), bluetoothDeviceId?, isDefault, sizeCategory,
+  carbodyType?, fuelType? (obligatorio en alta si `burnsFuel`), consumptionPer100? (override;
+  null ⇒ `FuelDefaults`), consumptionElectricPer100? (solo PHEV), energyLabel?
 - `UserProfile` — perfil Firebase: userId, email, displayName, photoUrl
 
 ### Categorización bidimensional de vehículos

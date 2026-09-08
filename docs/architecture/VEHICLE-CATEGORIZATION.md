@@ -142,6 +142,25 @@ or spot publishing.
   defensively (unknown/blank → null), mirroring `carbodyType`. (The `MIGRATION_6_7` this line used to
   cite went away with the collapse to v1 — the column is born with the schema now.)
 
+## Combustible NO es categoría [VEH-FUEL-001]
+
+Desde F2 de la ola 2 (09-2026) el vehículo lleva un bloque de combustible — `fuelType` (obligatorio
+en alta para `VehicleType.burnsFuel`), `consumptionPer100`/`consumptionElectricPer100` (overrides;
+null ⇒ `FuelDefaults`) y `energyLabel` (opcional, nombres DGT). Es un **tercer dato, no un tercer
+eje**: alimenta exclusivamente el cálculo de gasto y CO₂ de las estadísticas.
+
+⛔ Lo que el combustible NUNCA toca, a propósito:
+- **Detección**: ningún evaluador lee `fuelType` (mismo contrato que el color).
+- **`SpotFit` y geofence**: siguen decididos por `VehicleSize`/`CarbodyType`.
+- **Identidad visual**: el arte del vehículo no cambia por combustible.
+- **Inferencia por marca/modelo**: no existe y no se añade — el mismo modelo se vende con varias
+  motorizaciones (un Clio E-Tech es híbrido; cualquier regex diría gasolina). Se pregunta, no se
+  adivina.
+
+Las implicaciones por tipo se declaran en `VehicleType` como `when` exhaustivos (`burnsFuel`,
+`consumesAtMotorcycleScale`) — un tipo nuevo no compila sin contestarlas
+[VEH-A-NEW-VEHICLE-TYPE-MUST-NOT-BE-A-CAR-BY-OMISSION-001].
+
 ## Open follow-ups
 
 > Revisados el 2026-08-30. Dos de los tres quedaron **sin objeto** — no "cerrados": el problema

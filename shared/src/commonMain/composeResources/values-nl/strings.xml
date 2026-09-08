@@ -772,4 +772,25 @@
     <string name="home_zone_alerts_empty">Sla eerst een zone op om daar meldingen te krijgen</string>
     <string name="home_zone_alerts_done">Klaar</string>
     <string name="home_zone_form_notify_label">Waarschuw me voor vrije plekken hier</string>
+
+    <!-- Fuel block [VEH-FUEL-001] -->
+    <string name="vehicle_registration_section_fuel">Brandstof</string>
+    <string name="fuel_type_gasoline">Benzine</string>
+    <string name="fuel_type_diesel">Diesel</string>
+    <string name="fuel_type_lpg_cng">LPG / CNG</string>
+    <string name="fuel_type_hybrid">Hybride</string>
+    <string name="fuel_type_plug_in_hybrid">Plug-in hybride</string>
+    <string name="fuel_type_electric">Elektrisch</string>
+    <string name="vehicle_registration_consumption_liters_label">Verbruik (l/100 km)</string>
+    <string name="vehicle_registration_consumption_kwh_label">Verbruik (kWh/100 km)</string>
+    <string name="vehicle_registration_fuel_help">Hiermee schatten we kosten en uitstoot.</string>
+    <string name="vehicle_registration_energy_label_title">Milieulabel (optioneel)</string>
+    <string name="energy_label_zero">Zero</string>
+    <string name="energy_label_eco">ECO</string>
+    <string name="energy_label_c">C</string>
+    <string name="energy_label_b">B</string>
+    <string name="energy_label_none">Geen label</string>
+    <!-- Consumption units (universal notation, same in every locale) [VEH-FUEL-001] -->
+    <string name="unit_l_per_100">l/100 km</string>
+    <string name="unit_kwh_per_100">kWh/100 km</string>
 </resources>

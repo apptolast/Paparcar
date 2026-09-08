@@ -28,4 +28,18 @@ private val MIGRATION_1_2 = object : Migration(1, 2) {
     }
 }
 
-val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2)
+/**
+ * v2 → v3: the vehicle learns what it burns — `fuelType`, the two consumption overrides and the
+ * environmental label, all nullable (a pre-v3 row simply has not answered yet; the registration
+ * edit screen asks). [VEH-FUEL-001]
+ */
+private val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL("ALTER TABLE `vehicles` ADD COLUMN `fuelType` TEXT")
+        connection.execSQL("ALTER TABLE `vehicles` ADD COLUMN `consumptionPer100` REAL")
+        connection.execSQL("ALTER TABLE `vehicles` ADD COLUMN `consumptionElectricPer100` REAL")
+        connection.execSQL("ALTER TABLE `vehicles` ADD COLUMN `energyLabel` TEXT")
+    }
+}
+
+val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3)

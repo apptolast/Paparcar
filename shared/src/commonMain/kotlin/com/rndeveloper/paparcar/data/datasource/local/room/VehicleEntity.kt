@@ -17,7 +17,8 @@ data class VehicleEntity(
     /** [VehicleType] enum name (e.g. "CAR"). Defaulted to "CAR" by the v3→v4 migration
      *  for pre-existing rows. [BUG-SCOOTER-001] */
     val vehicleType: String = "CAR",
-    /** BT device address — on-device only, never synced to Firestore. */
+    /** BT device address — synced to Firestore (it is the pairing identity the BT strategy
+     *  resolves against on every device; the old "never synced" note here was wrong). */
     val bluetoothDeviceId: String? = null,
     val showBrandModelOnSpot: Boolean = false,
     val isActive: Boolean = false,
@@ -25,6 +26,14 @@ data class VehicleEntity(
     val licensePlate: String? = null,
     /** [VehicleColor] enum name (e.g. "RED"). Null = undefined → default green icon. */
     val color: String? = null,
+    /** [FuelType] enum name. Null for human-powered vehicles and pre-v3 rows. [VEH-FUEL-001] */
+    val fuelType: String? = null,
+    /** User-overridden l (or kWh) per 100 km; null ⇒ FuelDefaults. [VEH-FUEL-001] */
+    val consumptionPer100: Float? = null,
+    /** PHEV-only secondary kWh/100 km override. [VEH-FUEL-001] */
+    val consumptionElectricPer100: Float? = null,
+    /** [EnergyLabel] enum name. Null = not answered. [VEH-FUEL-001] */
+    val energyLabel: String? = null,
     /**
      * Wall-clock (client epoch ms) of the last LOCAL mutation to this row. Drives Last-Write-Wins
      * reconciliation against the remote copy in `syncFromRemote`, so an offline edit is not

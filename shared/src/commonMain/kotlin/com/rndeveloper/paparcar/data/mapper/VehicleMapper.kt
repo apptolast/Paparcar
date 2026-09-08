@@ -3,6 +3,8 @@ package com.rndeveloper.paparcar.data.mapper
 import com.rndeveloper.paparcar.data.datasource.local.room.VehicleEntity
 import com.rndeveloper.paparcar.data.datasource.remote.dto.VehicleDto
 import com.rndeveloper.paparcar.domain.model.CarbodyType
+import com.rndeveloper.paparcar.domain.model.EnergyLabel
+import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.VehicleColor
 import com.rndeveloper.paparcar.domain.model.VehicleSize
@@ -25,6 +27,10 @@ fun VehicleEntity.toDomain(): Vehicle = Vehicle(
     isActive = isActive,
     licensePlate = licensePlate,
     color = VehicleColor.fromNameOrNull(color),
+    fuelType = fuelType?.toEnumOrNull<FuelType>(),
+    consumptionPer100 = consumptionPer100,
+    consumptionElectricPer100 = consumptionElectricPer100,
+    energyLabel = energyLabel?.toEnumOrNull<EnergyLabel>(),
 )
 
 // [updatedAt]/[pendingSync] are persistence-only reconciliation metadata (not on the domain model):
@@ -44,6 +50,10 @@ fun Vehicle.toEntity(updatedAt: Long = 0, pendingSync: Boolean = false): Vehicle
     isActive = isActive,
     licensePlate = licensePlate,
     color = color?.name,
+    fuelType = fuelType?.name,
+    consumptionPer100 = consumptionPer100,
+    consumptionElectricPer100 = consumptionElectricPer100,
+    energyLabel = energyLabel?.name,
     updatedAt = updatedAt,
     pendingSync = pendingSync,
 )
@@ -67,6 +77,10 @@ fun VehicleDto.toEntity(): VehicleEntity = VehicleEntity(
     isActive = isActive,
     licensePlate = null,
     color = color.ifBlank { null },
+    fuelType = fuelType.ifBlank { null },
+    consumptionPer100 = consumptionPer100,
+    consumptionElectricPer100 = consumptionElectricPer100,
+    energyLabel = energyLabel.ifBlank { null },
     // Remote is authoritative & confirmed by definition → clean row, carrying the server's stamp so
     // the merge can compare it against a local pending edit. [SYNC-RECONCILE-001]
     updatedAt = updatedAt,
@@ -89,4 +103,8 @@ fun Vehicle.toDto(): VehicleDto = VehicleDto(
     showBrandModelOnSpot = showBrandModelOnSpot,
     isActive = isActive,
     color = color?.name ?: "",
+    fuelType = fuelType?.name ?: "",
+    consumptionPer100 = consumptionPer100,
+    consumptionElectricPer100 = consumptionElectricPer100,
+    energyLabel = energyLabel?.name ?: "",
 )

@@ -5,6 +5,8 @@ package com.rndeveloper.paparcar.presentation.vehicleregistration
 import app.cash.turbine.test
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.CarbodyType
+import com.rndeveloper.paparcar.domain.model.EnergyLabel
+import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.model.VehicleColor
 import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.fakes.FakeAuthRepository
@@ -96,7 +98,10 @@ class VehicleRegistrationViewModelTest {
         assertEquals(VehicleSize.MEDIUM_SUV, s.sizeCategory)
         assertTrue(s.expectsCarbody, "Typing a brand/model implies a CAR")
         assertFalse(s.isCarbodyManualOverride, "Default is an auto fallback, not a manual pick")
-        assertTrue(s.canSubmit, "Free-text car with a default carbody must be submittable")
+        assertFalse(s.canSubmit, "A car without a fuel pick must stay gated [VEH-FUEL-001]")
+
+        vm.handleIntent(VehicleRegistrationIntent.SetFuelType(com.rndeveloper.paparcar.domain.model.FuelType.GASOLINE))
+        assertTrue(vm.state.value.canSubmit, "Free-text car with carbody + fuel must be submittable")
     }
 
     @Test
@@ -238,5 +243,94 @@ class VehicleRegistrationViewModelTest {
             vehicleRepo.savedVehicleIds[1],
             "Retry must reuse the memoized pendingNewVehicleId — generating a new UUID corrupts Firestore.",
         )
+    }
+
+    // ── Fuel block [VEH-FUEL-001] ────────────────────────────────────────────
+
+    private fun fillCarForm() {
+        vm.handleIntent(VehicleRegistrationIntent.SelectBrand("Seat"))
+        vm.handleIntent(VehicleRegistrationIntent.SelectModel("Ibiza"))
+        vm.handleIntent(VehicleRegistrationIntent.SetCarbody(CarbodyType.HATCHBACK_SMALL))
+    }
+
+    @Test
+    fun `should_persistFuelAndParsedOverride_on_save`() = runTest {
+        fillCarForm()
+        vm.handleIntent(VehicleRegistrationIntent.SetFuelType(FuelType.DIESEL))
+        // Comma-typed override (Spanish keyboard) must parse; it is an ANSWER, so it persists
+        // even if it happened to equal the default.
+        vm.handleIntent(VehicleRegistrationIntent.SetConsumption("5,1"))
+        vm.handleIntent(VehicleRegistrationIntent.SetEnergyLabel(EnergyLabel.C))
+
+        vm.handleIntent(VehicleRegistrationIntent.Save)
+
+        val saved = vehicleRepo.observeVehicles().first().single()
+        assertEquals(FuelType.DIESEL, saved.fuelType)
+        assertEquals(5.1f, saved.consumptionPer100)
+        assertEquals(EnergyLabel.C, saved.energyLabel)
+        assertEquals(null, saved.consumptionElectricPer100, "only a PHEV carries the second figure")
+    }
+
+    @Test
+    fun `should_persistNullOverride_when_theConsumptionFieldStaysBlank`() = runTest {
+        fillCarForm()
+        vm.handleIntent(VehicleRegistrationIntent.SetFuelType(FuelType.GASOLINE))
+
+        vm.handleIntent(VehicleRegistrationIntent.Save)
+
+        val saved = vehicleRepo.observeVehicles().first().single()
+        assertEquals(null, saved.consumptionPer100, "blank means no override — the default applies downstream")
+    }
+
+    @Test
+    fun `should_persistBothFigures_when_thePlugInHybridFillsBoth`() = runTest {
+        fillCarForm()
+        vm.handleIntent(VehicleRegistrationIntent.SetFuelType(FuelType.PLUG_IN_HYBRID))
+        vm.handleIntent(VehicleRegistrationIntent.SetConsumption("2.8"))
+        vm.handleIntent(VehicleRegistrationIntent.SetConsumptionElectric("14"))
+
+        vm.handleIntent(VehicleRegistrationIntent.Save)
+
+        val saved = vehicleRepo.observeVehicles().first().single()
+        assertEquals(2.8f, saved.consumptionPer100)
+        assertEquals(14f, saved.consumptionElectricPer100)
+    }
+
+    @Test
+    fun `should_dropTheFuelBlock_when_theTypeSwitchesToHumanPowered`() = runTest {
+        fillCarForm()
+        vm.handleIntent(VehicleRegistrationIntent.SetFuelType(FuelType.GASOLINE))
+        vm.handleIntent(VehicleRegistrationIntent.SetEnergyLabel(EnergyLabel.ECO))
+
+        vm.handleIntent(VehicleRegistrationIntent.SetVehicleType(com.rndeveloper.paparcar.domain.model.VehicleType.BIKE))
+
+        val s = vm.state.value
+        assertEquals(null, s.fuelType, "a bike burns nothing — no ghost powertrain survives the switch")
+        assertEquals(null, s.energyLabel)
+        assertFalse(s.expectsFuel)
+        assertTrue(s.canSubmit, "a bike needs no fuel to submit")
+    }
+
+    @Test
+    fun `should_prefillTheFuelBlock_when_editingAnExistingVehicle`() = runTest {
+        val existing = Vehicle(
+            id = "v-fuel",
+            userId = "user-1",
+            brand = "Renault",
+            model = "Clio",
+            sizeCategory = VehicleSize.MICRO_SMALL,
+            carbodyType = CarbodyType.HATCHBACK_SMALL,
+            fuelType = FuelType.HYBRID,
+            consumptionPer100 = 4.5f,
+            energyLabel = EnergyLabel.ECO,
+        )
+        vehicleRepo.saveVehicle(existing)
+
+        vm.handleIntent(VehicleRegistrationIntent.LoadVehicle("v-fuel"))
+
+        val s = vm.state.value
+        assertEquals(FuelType.HYBRID, s.fuelType)
+        assertEquals("4.5", s.consumptionText)
+        assertEquals(EnergyLabel.ECO, s.energyLabel)
     }
 }

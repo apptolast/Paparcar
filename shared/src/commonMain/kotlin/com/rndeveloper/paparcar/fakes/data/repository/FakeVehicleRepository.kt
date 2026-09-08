@@ -1,5 +1,8 @@
 package com.rndeveloper.paparcar.fakes.data.repository
 
+import com.rndeveloper.paparcar.domain.model.CarbodyType
+import com.rndeveloper.paparcar.domain.model.EnergyLabel
+import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.VehicleParkingFootprint
 import com.rndeveloper.paparcar.domain.model.VehicleSize
@@ -30,6 +33,8 @@ class FakeVehicleRepository(private val scenario: MockScenario? = null) : Vehicl
             model = "León",
             sizeCategory = VehicleSize.MEDIUM_SUV,
             vehicleType = VehicleType.CAR,
+            carbodyType = CarbodyType.HATCHBACK_MEDIUM,
+            fuelType = FuelType.GASOLINE,
             isActive = true,
         ),
         Vehicle(
@@ -40,6 +45,9 @@ class FakeVehicleRepository(private val scenario: MockScenario? = null) : Vehicl
             sizeCategory = VehicleSize.MEDIUM_SUV,
             vehicleType = VehicleType.CAR,
             bluetoothDeviceId = "AA:BB:CC:DD:EE:FF",
+            carbodyType = CarbodyType.SEDAN,
+            fuelType = FuelType.HYBRID,
+            energyLabel = EnergyLabel.ECO,
             isActive = false,
         ),
         Vehicle(
@@ -50,6 +58,7 @@ class FakeVehicleRepository(private val scenario: MockScenario? = null) : Vehicl
             model = "CBR 600",
             sizeCategory = VehicleSize.MOTORCYCLE,
             vehicleType = VehicleType.MOTORCYCLE,
+            fuelType = FuelType.GASOLINE,
             isActive = false,
         ),
         Vehicle(
@@ -61,6 +70,9 @@ class FakeVehicleRepository(private val scenario: MockScenario? = null) : Vehicl
             sizeCategory = VehicleSize.VAN_HIGH,
             vehicleType = VehicleType.CAR,
             bluetoothDeviceId = "11:22:33:44:55:66",
+            carbodyType = CarbodyType.VAN_COMMERCIAL,
+            fuelType = FuelType.DIESEL,
+            consumptionPer100 = 8.5f,
             isActive = false,
         ),
     )
