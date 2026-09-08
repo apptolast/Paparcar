@@ -380,14 +380,12 @@ private fun vehiclesHistoryCache(sessions: List<UserParking>) =
 @Composable
 private fun history(
     state: HistoryState,
-    watch: VehicleWatch = VehicleWatch.Assisted,
     isPlus: Boolean = true,
 ) {
     HistoryContent(
         state = state,
         contentPadding = PaddingValues(0.dp),
         onViewOnMap = { _, _, _ -> },
-        watch = watch,
         onFilterSelected = {},
         isPlus = isPlus,
     )
@@ -1377,13 +1375,11 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             Variant("Lista · coche Bluetooth (azul)") {
                 history(
                     HistoryState(timeline = resolvedHistory(FakeData.allSessions)),
-                    watch = VehicleWatch.Bluetooth,
                 )
             },
             Variant("Lista · coche sin vigilancia (gris)") {
                 history(
                     HistoryState(timeline = resolvedHistory(FakeData.allSessions)),
-                    watch = VehicleWatch.Off,
                 )
             },
             Variant("Filtro: esta semana") {

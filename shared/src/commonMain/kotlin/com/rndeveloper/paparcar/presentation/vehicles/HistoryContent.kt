@@ -50,9 +50,8 @@ import com.rndeveloper.paparcar.ui.components.PapScrollToTopButton
 import com.rndeveloper.paparcar.ui.components.PapShimmerBox
 import com.rndeveloper.paparcar.ui.components.PapShimmerBlockScale
 import com.rndeveloper.paparcar.ui.theme.PapAlpha
+import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
-import com.rndeveloper.paparcar.ui.theme.VehicleWatch
-import com.rndeveloper.paparcar.ui.theme.vehicleIdentityColor
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.isoDayNumber
@@ -141,11 +140,6 @@ fun HistoryContent(
     state: HistoryState,
     contentPadding: PaddingValues,
     onViewOnMap: (lat: Double, lon: Double, sessionId: String) -> Unit,
-    // How the vehicle owning this timeline is monitored. Vehículos is a per-vehicle pager, so the
-    // whole list belongs to one car and carries that car's identity colour — brand green is left to
-    // the chrome (day headers, the "view on map" action, the activity chart).
-    // [UI-COLOR-DOCTRINE-001][UI-HISTORY-IDENTITY-AND-SOURCE-001]
-    watch: VehicleWatch = VehicleWatch.Off,
     onFilterSelected: (HistoryFilter) -> Unit = {},
     /** The "Ver todo con Plus" footer under a gated timeline. [MONEY-001] */
     onOpenPlusPaywall: () -> Unit = {},
@@ -364,7 +358,7 @@ fun HistoryContent(
                         Box(Modifier.padding(horizontal = 16.dp)) {
                             ActiveSectionHeader(
                                 text = stringResource(Res.string.history_active_section),
-                                accent = vehicleIdentityColor(watch),
+                                accent = PapColor.brandData,
                             )
                         }
                     }
@@ -373,7 +367,6 @@ fun HistoryContent(
                             EndedSessionTimelineNode(
                                 session = activeSession,
                                 isLast = timelineItems.isEmpty(),
-                                watch = watch,
                                 isActive = true,
                                 onViewOnMap = onViewOnMap,
                             )
@@ -390,7 +383,6 @@ fun HistoryContent(
                             is TimelineItem.Session -> EndedSessionTimelineNode(
                                 session = timelineItem.parking,
                                 isLast = timelineItem.isLast,
-                                watch = watch,
                                 isActive = false,
                                 onViewOnMap = onViewOnMap,
                             )

@@ -152,6 +152,12 @@ class TypographyGuardrailTest {
         // Same chrome/canvas exceptions as rule 2, plus HistoryWeeklyChart: it emphasises a number
         // INSIDE a sentence via `SpanStyle` in a `buildAnnotatedString`, and draws its axis labels
         // through a `TextMeasurer`. Neither is styling a role at a call site.
-        val WEIGHT_ALLOWLIST = INLINE_SP_ALLOWLIST + setOf("HistoryWeeklyChart")
+        // Solo el fichero del CANVAS. Estuvo aqui "HistoryWeeklyChart" entero porque su Canvas mide
+        // texto con TextMeasurer (que toma un TextStyle, no un rol), y esa exencion por fichero
+        // acabo tapando un FontWeight.Bold de Compose corriente en su tarjeta de poca actividad
+        // -- el mismo fallo que este fichero ya documenta con ConnectivityBanner. El dibujo vive
+        // ahora en ActivityBarCanvas y la exencion es tan pequena como su motivo.
+        // [UI-IDENTITY-IS-SAID-ONCE-001]
+        val WEIGHT_ALLOWLIST = INLINE_SP_ALLOWLIST + setOf("ActivityBarCanvas")
     }
 }

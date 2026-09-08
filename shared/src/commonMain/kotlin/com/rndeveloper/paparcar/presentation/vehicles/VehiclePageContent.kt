@@ -40,7 +40,6 @@ import com.rndeveloper.paparcar.presentation.util.vehicleFuelMetaLine
 import com.rndeveloper.paparcar.ui.components.VehicleIdentityHeader
 import androidx.compose.ui.text.style.TextOverflow
 import com.rndeveloper.paparcar.ui.theme.VehicleWatch
-import com.rndeveloper.paparcar.ui.theme.vehicleChassisBorder
 import com.rndeveloper.paparcar.ui.theme.vehicleIdentityColor
 import com.rndeveloper.paparcar.ui.theme.watch
 import com.rndeveloper.paparcar.ui.theme.PapBorders
@@ -73,9 +72,6 @@ internal fun VehiclePageContent(
         state = historyState,
         contentPadding = contentPadding,
         onViewOnMap = { lat, lon, sessionId -> onIntent(VehiclesIntent.ViewOnMap(lat, lon, sessionId)) },
-        // This page IS one vehicle, so its timeline wears that vehicle's watch colour.
-        // [UI-HISTORY-IDENTITY-AND-SOURCE-001]
-        watch = vehicleWithStats.vehicle.monitoringStatus().watch(),
         onFilterSelected = { filter -> onIntent(VehiclesIntent.SetHistoryFilter(filter)) },
         onOpenPlusPaywall = { onIntent(VehiclesIntent.OpenPlusPaywall) },
         isPlus = isPlus,
@@ -192,10 +188,14 @@ private fun VehicleHeroCard(
             .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
         shape = PapShapes.cardLarge,
         color = cs.surfaceContainerHigh,
-        // The frame says "this car is watched" — one calm my-car blue for both tiers (WHICH tier
-        // is the glyph's job), neutral when unwatched. Same border language as the Home chips.
-        // [UI-COLOR-DOCTRINE-001]
-        border = BorderStroke(PapBorders.thin, vehicleChassisBorder(monitoring.watch())),
+        // ⛔ Neutral border, not the watch colour. This card already says "vigilado por Bluetooth"
+        // three other ways — the dot on its tab chip, the glyph before the name and the state
+        // line's own icon — and of the four the frame is the only one nobody looks AT: it surrounds
+        // everything, so instead of delivering a fact it tints the reading of the fuel line and the
+        // state, which are not about the watch tier at all. The card keeps an edge; it stops
+        // shouting a method. HOME KEEPS ITS COLOURED BORDER: there several cards coexist and the
+        // frame does real work telling one from another. [UI-IDENTITY-IS-SAID-ONCE-001]
+        border = BorderStroke(PapBorders.thin, cs.outlineVariant),
     ) {
         Column {
             // Shared identity anatomy (tile glyph + name + size chip + status pin) — single source

@@ -42,10 +42,6 @@ import androidx.compose.ui.semantics.semantics
 import com.rndeveloper.paparcar.ui.components.PapNavChevron
 import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
-import com.rndeveloper.paparcar.ui.theme.VehicleWatch
-import com.rndeveloper.paparcar.ui.theme.onVehicleIdentityContainer
-import com.rndeveloper.paparcar.ui.theme.vehicleIdentityColor
-import com.rndeveloper.paparcar.ui.theme.vehicleIdentityContainer
 import com.rndeveloper.paparcar.presentation.util.formatClockTime
 import kotlinx.datetime.TimeZone
 import org.jetbrains.compose.resources.stringResource
@@ -86,19 +82,23 @@ internal fun DayHeaderRow(label: String) {
 }
 
 /**
- * @param watch how the page's vehicle is monitored — the timeline belongs to ONE car (Vehículos is a
- *   per-vehicle pager), so its rail and its live card carry that car's identity colour instead of a
- *   fixed brand green. [UI-COLOR-DOCTRINE-001][UI-HISTORY-IDENTITY-AND-SOURCE-001]
+ * ⛔ The timeline carries NO vehicle identity. Vehículos is a pager per car, so inside this page
+ * the identity is a CONSTANT — the header states it and every row below belongs to that car by
+ * construction. Colour spent on a constant says nothing, while what actually varies here (which
+ * session is LIVE) had no channel of its own. Now the fill, the dot and the rail all say "live", in
+ * the app's own brand. The chart above has worked this way since 28-08, when an identity-tinted
+ * chart was built and revoked on device: the timeline is the same kind of object — chrome, not
+ * anatomy. [UI-IDENTITY-IS-SAID-ONCE-001] [UI-COLOR-DOCTRINE-001]
  */
 @Composable
 internal fun EndedSessionTimelineNode(
     session: UserParking,
     isLast: Boolean,
-    watch: VehicleWatch,
     isActive: Boolean = false,
     onViewOnMap: (lat: Double, lon: Double, sessionId: String) -> Unit,
 ) {
-    val identity = vehicleIdentityColor(watch)
+    // "Live" is the only thing this list has to tell apart, so that is what wears the brand.
+    val liveAccent = PapColor.brandData
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -114,12 +114,12 @@ internal fun EndedSessionTimelineNode(
             // (card top padding + ~half a line ≈ DOT_CENTER_Y): spacer = center − dot radius.
             Spacer(Modifier.height(if (isActive) ACTIVE_DOT_TOP_SPACER_DP.dp else DOT_TOP_SPACER_DP.dp))
             if (isActive) {
-                PulsingDot(color = identity, modifier = Modifier.size(ACTIVE_DOT_SIZE_DP.dp))
+                PulsingDot(color = liveAccent, modifier = Modifier.size(ACTIVE_DOT_SIZE_DP.dp))
             } else {
                 Box(
                     Modifier
                         .size(DOT_SIZE_DP.dp)
-                        .background(identity.copy(alpha = DOT_ALPHA), CircleShape)
+                        .background(liveAccent.copy(alpha = DOT_ALPHA), CircleShape)
                 )
             }
             if (!isLast) {
@@ -137,7 +137,6 @@ internal fun EndedSessionTimelineNode(
         SessionCardContent(
             session = session,
             isActive = isActive,
-            watch = watch,
             onViewOnMap = onViewOnMap,
             modifier = Modifier
                 .weight(1f)
@@ -150,7 +149,6 @@ internal fun EndedSessionTimelineNode(
 private fun SessionCardContent(
     session: UserParking,
     isActive: Boolean,
-    watch: VehicleWatch,
     onViewOnMap: (lat: Double, lon: Double, sessionId: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -179,11 +177,12 @@ private fun SessionCardContent(
     val secondaryText = if (isActive) activeRelativeTime
         else session.address?.city?.let { "$it · $timeStr" } ?: timeStr
 
-    // The live card keeps the filled container it always had — only its HUE now follows the
-    // vehicle's watch, because `primaryContainer` exists in green alone and a BT-watched car was
-    // announcing itself in the assisted tier's colour. Container and content resolve as a pair.
-    // [UI-HISTORY-IDENTITY-AND-SOURCE-001]
-    val textPrimary = if (isActive) onVehicleIdentityContainer(watch) else cs.onSurface
+    // The live card keeps its filled container, and the fill now means LIVE — not "watched by
+    // Bluetooth". It followed the watch tier until 08-09-2026, so that a BT car would not announce
+    // itself in the assisted tier's green; the real fix was the other way round, because on a
+    // per-vehicle page the tier is already a constant and "live" is not.
+    // [UI-IDENTITY-IS-SAID-ONCE-001]
+    val textPrimary = if (isActive) cs.onPrimaryContainer else cs.onSurface
     val textMuted = textPrimary.copy(alpha = if (isActive) ACTIVE_META_ALPHA else META_ALPHA)
 
     // The WHOLE row opens the parking on the map. It used to be a 48dp icon button in the corner of
@@ -198,7 +197,7 @@ private fun SessionCardContent(
         modifier = modifier.semantics { onClick(label = viewOnMapLabel, action = null) },
         shape = RoundedCornerShape(CARD_CORNER_DP.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isActive) vehicleIdentityContainer(watch) else cs.surfaceContainerHigh,
+            containerColor = if (isActive) cs.primaryContainer else cs.surfaceContainerHigh,
         ),
     ) {
         Row(

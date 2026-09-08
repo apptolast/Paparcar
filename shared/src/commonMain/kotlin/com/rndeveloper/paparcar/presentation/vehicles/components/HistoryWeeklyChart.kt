@@ -17,10 +17,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -31,20 +28,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.drawText
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
@@ -55,7 +45,6 @@ import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
-import paparcar.composeapp.generated.resources.history_activity_low_hint
 import paparcar.composeapp.generated.resources.history_activity_noun
 import com.rndeveloper.paparcar.ui.theme.PapAlpha
 import com.rndeveloper.paparcar.ui.theme.PapColor
@@ -85,15 +74,15 @@ internal fun ActivityCard(
     // user on device (28-08): the theme stays green everywhere and the car's identity lives only
     // in its method glyphs (border/badge/dot/pill). See COLOR-SYSTEM §8. [UI-COLOR-DOCTRINE-001]
     ActivityCardShell {
-        if (total <= LOW_DATA_THRESHOLD) {
-            LowActivitySummary(total = total)
-        } else {
-            // The scoped count is the card's title (icon + "N parkings"), so the graph card reads as
-            // a titled block, not a bare chart. [ACTIVITY-CARD-TITLE-001]
-            ActivityCardTitle(total = total, distanceText = distanceText)
-            Spacer(Modifier.height(CARD_TITLE_GAP_DP.dp))
-            ActivityBarChart(data = data)
-        }
+        // ⛔ No separate "low activity" body any more. It existed because a chart with few buckets
+        // used to render "a full-width blob" — the symptom of bars taking a FRACTION of the space
+        // each bucket owned. Since the gap became the constant (STATS-UI-001), a week with one
+        // parking draws one short bar among seven and reads fine, so the branch was buying nothing
+        // and costing plenty: a second implementation of the "N parkings" phrase, an inline
+        // FontWeight.Bold and a decorative arrow. [UI-IDENTITY-IS-SAID-ONCE-001]
+        ActivityCardTitle(total = total, distanceText = distanceText)
+        Spacer(Modifier.height(CARD_TITLE_GAP_DP.dp))
+        ActivityBarChart(data = data)
     }
 }
 
@@ -173,47 +162,6 @@ private fun ActivityCardShell(content: @Composable () -> Unit) {
  * when the selected window has 0–2 sessions. [VEHICLES-REDESIGN-001]
  */
 @Composable
-private fun LowActivitySummary(total: Int) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            modifier = Modifier
-                .size(LOW_ICON_CIRCLE_DP.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primaryContainer),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Rounded.TrendingUp,
-                contentDescription = null,
-                tint = PapColor.brandData,
-                modifier = Modifier.size(LOW_ICON_DP.dp),
-            )
-        }
-        Spacer(Modifier.width(14.dp))
-        Column {
-            Text(
-                text = buildAnnotatedString {
-                    withStyle(
-                        SpanStyle(
-                            color = PapColor.actionText,
-                            fontWeight = FontWeight.Bold,
-                        ),
-                    ) { append("$total ") }
-                    append(pluralStringResource(Res.plurals.history_activity_noun, total))
-                },
-                style = PaparcarType.current.cardTitle,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                text = stringResource(Res.string.history_activity_low_hint),
-                style = PaparcarType.current.caption,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = SUBTITLE_ALPHA),
-            )
-        }
-    }
-}
-
-@Composable
 private fun ActivityBarChart(data: List<WeekDayStats>) {
     // Scale floor: a lone bar (value 1) shouldn't fill the whole chart height and leave the rest blank,
     // so the max is clamped up to MIN_SCALE_MAX. [VEHICLES-REDESIGN-001]
@@ -255,168 +203,14 @@ private fun ActivityBarChart(data: List<WeekDayStats>) {
     }
 }
 
-private fun DrawScope.drawBarChart(
-    data: List<WeekDayStats>,
-    maxValue: Int,
-    progress: Float,
-    textMeasurer: TextMeasurer,
-    primaryColor: Color,
-    onSurfaceColor: Color,
-    labelStyle: TextStyle,
-    countStyle: TextStyle,
-) {
-    if (data.isEmpty()) return
-
-    val labelHeight = 22.dp.toPx()
-    val chartHeight = size.height - labelHeight
-    // ⛔ The GAP is the constant, not the bar. Before, each bucket owned width/n and the bar took a
-    // FRACTION of it, so the spacing between bars grew and shrank with the number of buckets: seven
-    // days sat tight and four weeks floated far apart, and neither reading was the one the chart
-    // meant. Now the breathing room is fixed and the bars share whatever is left — a month renders
-    // wide bars, a week narrow ones, and the rhythm between them never changes.
-    // (User, 08-09-2026.) [VEHICLES-REDESIGN-001]
-    val gap = BAR_GAP_DP.dp.toPx()
-    val barWidth = ((size.width - gap * (data.size - 1)) / data.size).coerceAtLeast(1f)
-    // Rounded like the rest of the app rather than a pill: at a month's width a half-width radius
-    // turns a bar into a capsule that no longer reads as a column. Thin bars still round fully,
-    // because the cap can never exceed half the width. [UI-SHEET-001]
-    val cornerPx = BAR_CORNER_DP.dp.toPx().coerceAtMost(barWidth / 2f)
-    val corner = CornerRadius(cornerPx, cornerPx)
-
-    drawGridLines(chartHeight, onSurfaceColor)
-
-    data.forEachIndexed { index, item ->
-        val barLeft = index * (barWidth + gap)
-        val centerX = barLeft + barWidth / 2f
-        val fillRatio = if (maxValue > 0) item.sessions.toFloat() / maxValue else 0f
-        // Reserve headroom above the tallest bar so the per-bar count label never clips off the top of
-        // the canvas (a full-height bar would push its number to a negative y). [VEHICLES-REDESIGN-001]
-        val barHeight = chartHeight * BAR_MAX_HEIGHT_FRACTION * fillRatio * progress
-        val isToday = item.isCurrent
-
-        drawBar(barLeft, barWidth, barHeight, chartHeight, corner, isToday, primaryColor, onSurfaceColor)
-        drawDayLabel(centerX, item.label, isToday, textMeasurer, labelStyle, onSurfaceColor)
-        if (item.sessions > 0 && progress > COUNT_FADE_START) {
-            drawCountLabel(centerX, barHeight, chartHeight, item.sessions, progress, textMeasurer, countStyle, primaryColor)
-        }
-    }
-}
-
-private fun DrawScope.drawGridLines(chartHeight: Float, onSurfaceColor: Color) {
-    repeat(GRID_LINE_COUNT) { i ->
-        val y = chartHeight * (1f - (i + 1).toFloat() / GRID_LINE_COUNT)
-        drawLine(
-            color = onSurfaceColor.copy(alpha = GRID_LINE_ALPHA),
-            start = Offset(0f, y),
-            end = Offset(size.width, y),
-            strokeWidth = 1.dp.toPx(),
-            cap = StrokeCap.Round,
-        )
-    }
-}
-
-private fun DrawScope.drawBar(
-    barLeft: Float,
-    barWidth: Float,
-    barHeight: Float,
-    chartHeight: Float,
-    corner: CornerRadius,
-    isToday: Boolean,
-    primaryColor: Color,
-    onSurfaceColor: Color,
-) {
-    // The empty track stays. It was tried without (08-09-2026, at the user's request) and reverted
-    // the same evening: an unfilled bucket that draws NOTHING leaves the chart floating over its
-    // labels, and the eye loses the scale it is comparing the green column against. The track is
-    // the ruler; the fill is the reading.
-    drawRoundRect(
-        color = onSurfaceColor.copy(alpha = PLACEHOLDER_BAR_ALPHA),
-        topLeft = Offset(barLeft, 0f),
-        size = Size(barWidth, chartHeight),
-        cornerRadius = corner,
-    )
-    if (barHeight > 0f) {
-        drawRoundRect(
-            color = if (isToday) primaryColor else primaryColor.copy(alpha = INACTIVE_BAR_ALPHA),
-            topLeft = Offset(barLeft, chartHeight - barHeight),
-            size = Size(barWidth, barHeight),
-            cornerRadius = corner,
-        )
-    }
-}
-
-private fun DrawScope.drawDayLabel(
-    centerX: Float,
-    label: String,
-    isToday: Boolean,
-    textMeasurer: TextMeasurer,
-    labelStyle: TextStyle,
-    onSurfaceColor: Color,
-) {
-    val result = textMeasurer.measure(
-        label,
-        labelStyle.copy(
-            fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
-            color = if (isToday) onSurfaceColor.copy(alpha = LABEL_ALPHA_TODAY)
-                    else onSurfaceColor.copy(alpha = LABEL_ALPHA_MUTED),
-        ),
-    )
-    drawText(
-        textLayoutResult = result,
-        topLeft = Offset(x = centerX - result.size.width / 2f, y = size.height - result.size.height),
-    )
-}
-
-private fun DrawScope.drawCountLabel(
-    centerX: Float,
-    barHeight: Float,
-    chartHeight: Float,
-    sessionCount: Int,
-    progress: Float,
-    textMeasurer: TextMeasurer,
-    countStyle: TextStyle,
-    primaryColor: Color,
-) {
-    val fade = ((progress - COUNT_FADE_START) / (1f - COUNT_FADE_START)).coerceIn(0f, 1f)
-    val result = textMeasurer.measure(
-        sessionCount.toString(),
-        countStyle.copy(color = primaryColor.copy(alpha = fade)),
-    )
-    drawText(
-        textLayoutResult = result,
-        topLeft = Offset(
-            x = centerX - result.size.width / 2f,
-            y = chartHeight - barHeight - result.size.height - 4.dp.toPx(),
-        ),
-    )
-}
-
 private const val CARD_CORNER_DP = 16
 private const val CARD_INNER_PAD_DP = 16
 private const val CARD_TITLE_GAP_DP = 16     // gap from the card title down to the bars
-// Facts footer — secondary lines under the chart. [VEH-STATS-SAY-SOMETHING-USEFUL-001]
-private const val CHART_HEIGHT_DP = 120
 // ≤ this many sessions in the selected window → compact summary instead of the full chart. [Task 3]
 private const val LOW_DATA_THRESHOLD = 2
-// Bar-scale floor: the max value used for bar heights never drops below this, so a single session
-// doesn't render as a full-height bar. [Task 3]
-private const val MIN_SCALE_MAX = 3
 private const val LOW_ICON_CIRCLE_DP = 44
 private const val LOW_ICON_DP = 22
 private const val BORDER_ALPHA = 0.5f
 private val SUBTITLE_ALPHA = PapAlpha.subtitle
 /** Fixed breathing room between bars, whatever the bucket count. */
 private const val TITLE_GAP_DP = 7
-private const val BAR_GAP_DP = 10
-/** Corner of a bar — the app's small-card rounding, capped at half the width for thin bars. */
-private const val BAR_CORNER_DP = 8
-// Max bar width so few-bucket charts don't render one giant full-width bar. [VEHICLES-REDESIGN-001]
-// Tallest bar fills this fraction of the chart height, leaving room for the count label above it.
-private const val BAR_MAX_HEIGHT_FRACTION = 0.82f
-private const val GRID_LINE_COUNT = 3
-private const val GRID_LINE_ALPHA = 0.07f
-private const val PLACEHOLDER_BAR_ALPHA = 0.06f
-private const val INACTIVE_BAR_ALPHA = 0.5f
-private const val LABEL_ALPHA_MUTED = 0.45f
-private const val LABEL_ALPHA_TODAY = 0.8f
-private const val COUNT_FADE_START = 0.8f

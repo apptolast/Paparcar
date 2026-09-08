@@ -621,7 +621,6 @@
         <item quantity="other">parkingu</item>
     </plurals>
     <string name="history_activity_distance_partial">%1$s w %2$d z nich</string>
-    <string name="history_activity_low_hint">Mała aktywność w tym okresie</string>
     <!-- Facts footer under the activity chart. [VEH-STATS-SAY-SOMETHING-USEFUL-001] -->
     <string name="history_activity_title">Aktywność</string>
     <string name="history_section_label">Historia</string>
