@@ -4,7 +4,7 @@
 
 # Crashlytics — keep source line numbers in stack traces.
 -keepattributes SourceFile,LineNumberTable
--keep public class * extends java.lang.Exception
+-keepnames public class * extends java.lang.Exception
 
 # Allow Crashlytics to obfuscate but keep enough info to deobfuscate later via mapping.txt.
 -renamesourcefileattribute SourceFile
@@ -25,7 +25,6 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # ⛔ El grafo de DI NO necesita reglas. Lo dice la consumer rule del propio Koin: la resolución de
 # koinViewModel() es en COMPILACIÓN (get() inline reificado), no hay reflexión sobre constructores.
--keep class com.rndeveloper.paparcar.data.datasource.remote.FirebaseDataSourceImpl { *; }
 -keepnames class kotlin.coroutines.Continuation
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -37,10 +36,13 @@
 # converters los referencia el código generado directamente, sin reflexión.
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Firestore DTOs — used by reflection when (de)serialising documents.
+# DTOs de Firestore y modelo de dominio
 # ─────────────────────────────────────────────────────────────────────────────
--keep class com.rndeveloper.paparcar.data.datasource.remote.dto.** { *; }
--keep class com.rndeveloper.paparcar.domain.model.** { *; }
+# ⛔ NO llevan `-keep`. El comentario que había aquí decía "used by reflection when (de)serialising
+# documents" y era falso: los documentos se leen campo a campo con `get<T?>()` (ver
+# `FirebaseDataSourceImpl`), y la serialización de los 8 DTOs `@Serializable` la cubren las consumer
+# rules de `kotlinx-serialization-core`, acotadas a las clases anotadas.
+# [R8-OUR-OWN-LEFTOVER-KEEPS-001]
 
 # GitLive Firebase SDK (wrappers KMP).
 # ⛔ NO lleva `-keep`, y ojo con el razonamiento porque es el que casi lo mantiene: GitLive SÍ usa
