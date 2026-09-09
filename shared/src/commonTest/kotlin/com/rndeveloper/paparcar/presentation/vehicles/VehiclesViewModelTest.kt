@@ -70,6 +70,9 @@ class VehiclesViewModelTest {
             parkingRepo,
             declareActiveVehicle,
             com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase(entitlementRepo),
+            // The offline ladder: averages from the binary, no network. What every screen falls
+            // back to anyway. [FUEL-NATIONAL-AVERAGE-FROM-OPENVAN-001]
+            com.rndeveloper.paparcar.domain.usecase.fuel.ResolveFuelPriceUseCase(),
         )
     }
 

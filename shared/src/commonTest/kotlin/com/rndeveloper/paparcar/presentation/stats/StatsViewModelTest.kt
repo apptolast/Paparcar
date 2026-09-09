@@ -9,6 +9,7 @@ import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.VehicleSize
+import com.rndeveloper.paparcar.domain.usecase.fuel.ResolveFuelPriceUseCase
 import com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase
 import com.rndeveloper.paparcar.fakes.FakeEntitlementRepository
 import com.rndeveloper.paparcar.fakes.FakeUserParkingRepository
@@ -73,6 +74,9 @@ class StatsViewModelTest {
         vehicleRepository = vehicleRepo,
         userParkingRepository = parkingRepo,
         observeIsPlus = ObserveIsPlusUseCase(FakeEntitlementRepository(entitlement)),
+        // The offline ladder: averages from the binary, no network. What every screen falls back
+        // to anyway. [FUEL-NATIONAL-AVERAGE-FROM-OPENVAN-001]
+        resolveFuelPrice = ResolveFuelPriceUseCase(),
         initialVehicleId = initialVehicleId,
     )
 

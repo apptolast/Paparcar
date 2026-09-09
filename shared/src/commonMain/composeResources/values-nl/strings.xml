@@ -210,6 +210,10 @@
     <string name="licenses_error">Deze versie bevat de licentielijst niet, dus die kan niet worden getoond. Paparcar opnieuw installeren herstelt hem.</string>
     <string name="licenses_detail_no_text">Deze voorwaarden zijn van hun eigenaar en worden niet met de app meegeleverd. Open ze om de volledige tekst te lezen.</string>
     <string name="licenses_detail_open_terms">Volledige voorwaarden lezen</string>
+    <string name="licenses_data_sources_header">Gegevensbronnen</string>
+    <string name="licenses_source_openvan_purpose">Gemiddelde brandstofprijzen</string>
+    <string name="licenses_source_osm_purpose">Tankstations en plekken in de buurt</string>
+    <string name="licenses_source_minetur_purpose">Pompprijzen in Spanje</string>
 
     <!-- Generic error messages -->
     <string name="error_unknown">Er is iets misgegaan</string>

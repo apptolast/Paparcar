@@ -8,6 +8,7 @@ import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.VehicleWithStats
 import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
+import com.rndeveloper.paparcar.domain.usecase.fuel.ResolveFuelPriceUseCase
 import com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import com.rndeveloper.paparcar.presentation.base.BaseViewModel
@@ -31,6 +32,14 @@ class StatsViewModel(
     private val vehicleRepository: VehicleRepository,
     private val userParkingRepository: UserParkingRepository,
     private val observeIsPlus: ObserveIsPlusUseCase,
+    /**
+     * The price ladder behind the cost tile. [FUEL-NATIONAL-AVERAGE-FROM-OPENVAN-001]
+     *
+     * Injected rather than built inside `HistoryTimeline.resolve`, because the national average is
+     * no longer a constant compiled into the app: it is a table a refresh can replace, held by one
+     * repository so every screen quotes the same one.
+     */
+    private val resolveFuelPrice: ResolveFuelPriceUseCase,
     /** Which car the ficha was showing when the panel was opened; null = the active one. */
     private val initialVehicleId: String? = null,
 ) : BaseViewModel<StatsState, StatsIntent, StatsEffect>() {
@@ -122,6 +131,7 @@ class StatsViewModel(
             isPlus = isPlus,
             vehicle = vehicle,
             nowMs = Clock.System.now().toEpochMilliseconds(),
+            resolveFuelPrice = resolveFuelPrice,
         )
         return copy(
             periodStats = resolved.periodStats,

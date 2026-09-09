@@ -210,6 +210,10 @@
     <string name="licenses_error">Diese Version enthält die Lizenzliste nicht, deshalb kann sie nicht angezeigt werden. Eine Neuinstallation von Paparcar stellt sie wieder her.</string>
     <string name="licenses_detail_no_text">Diese Bedingungen gehören ihrem Anbieter und werden nicht in der App mitgeliefert. Öffne sie, um den vollständigen Text zu lesen.</string>
     <string name="licenses_detail_open_terms">Vollständige Bedingungen lesen</string>
+    <string name="licenses_data_sources_header">Datenquellen</string>
+    <string name="licenses_source_openvan_purpose">Durchschnittliche Kraftstoffpreise</string>
+    <string name="licenses_source_osm_purpose">Tankstellen und Orte in der Nähe</string>
+    <string name="licenses_source_minetur_purpose">Zapfsäulenpreise in Spanien</string>
 
     <!-- Fehlermeldungen -->
     <string name="error_unknown">Etwas ist schiefgelaufen</string>

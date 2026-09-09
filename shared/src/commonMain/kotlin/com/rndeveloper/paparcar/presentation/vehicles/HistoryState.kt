@@ -82,6 +82,19 @@ sealed interface HistoryTimeline {
             isPlus: Boolean,
             vehicle: Vehicle? = null,
             nowMs: Long = Clock.System.now().toEpochMilliseconds(),
+            /**
+             * The price ladder to quote. [FUEL-NATIONAL-AVERAGE-FROM-OPENVAN-001]
+             *
+             * A PARAMETER since the national average stopped being a constant in the binary: the
+             * production resolver reads a table that a refresh can replace, and it is Koin that
+             * holds it. This used to be built here, which meant nothing could ever hand this
+             * function a different one.
+             *
+             * The default is the offline resolver — the snapshot shipped in the binary — so tests,
+             * previews and the state gallery still call `resolve(...)` with nothing extra and get
+             * a real figure rather than a blank.
+             */
+            resolveFuelPrice: ResolveFuelPriceUseCase = OfflineFuelPrice,
         ): Resolved {
             val gated = gateHistoryToEntitlement(sessions, isPlus = isPlus, nowMs = nowMs)
             val filtered = VehicleHistoryCalculator.filter(gated.visible, filter, nowMs)
@@ -123,7 +136,15 @@ sealed interface HistoryTimeline {
         }
 
         private val computePeriodStats = ComputePeriodStatsUseCase()
-        private val resolveFuelPrice = ResolveFuelPriceUseCase()
+
+        /**
+         * The resolver used when a caller names none: averages from the binary, no network.
+         *
+         * Named "offline" rather than "default" because that is the claim it makes — it is the
+         * floor of the ladder, not a placeholder, and a screen that ends up on it is showing a real
+         * (if unrefreshed) figure.
+         */
+        private val OfflineFuelPrice = ResolveFuelPriceUseCase()
 
         /**
          * Where this period happened, for pricing purposes: the country of the MOST RECENT parking

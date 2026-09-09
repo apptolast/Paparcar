@@ -29,11 +29,17 @@ import com.rndeveloper.paparcar.ui.components.PapCollapsingTopBarScaffold
 import com.rndeveloper.paparcar.ui.components.PapListItem
 import com.rndeveloper.paparcar.ui.components.PapNavChevron
 import com.rndeveloper.paparcar.ui.components.PapOutlinedCard
+import com.rndeveloper.paparcar.ui.components.PapSectionHeader
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.licenses_cd_back
+import paparcar.composeapp.generated.resources.licenses_data_sources_header
+import paparcar.composeapp.generated.resources.licenses_source_minetur_purpose
+import paparcar.composeapp.generated.resources.licenses_source_openvan_purpose
+import paparcar.composeapp.generated.resources.licenses_source_osm_purpose
 import paparcar.composeapp.generated.resources.licenses_count
 import paparcar.composeapp.generated.resources.licenses_error
 import paparcar.composeapp.generated.resources.licenses_subtitle
@@ -90,16 +96,24 @@ fun LicensesContent(
                 contentAlignment = Alignment.Center,
             ) { CircularProgressIndicator() }
 
-            state.failedToLoad || state.libraries.isEmpty() -> Box(
+            // ⛔ The data-source attribution survives this branch on purpose.
+            // [FUEL-NATIONAL-AVERAGE-FROM-OPENVAN-001] The OSS list is read from a file the build
+            // generates, and it can fail to load. The three data sources are not read from
+            // anything — they are compiled in — and two of their licences (CC BY 4.0, ODbL)
+            // REQUIRE the credit to be shown. Letting a missing library file take the attribution
+            // down with it would turn a cosmetic failure into a licence breach.
+            state.failedToLoad || state.libraries.isEmpty() -> Column(
                 modifier = Modifier.fillMaxSize().padding(padding).padding(SCREEN_H_PADDING),
-                contentAlignment = Alignment.Center,
+                verticalArrangement = Arrangement.spacedBy(ROW_GAP),
             ) {
                 Text(
                     text = stringResource(Res.string.licenses_error),
                     style = PaparcarType.current.body,
                     color = cs.onSurfaceVariant,
                     textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
                 )
+                DataSourcesSection()
             }
 
             else -> LazyColumn(
@@ -129,6 +143,8 @@ fun LicensesContent(
                     }
                 }
 
+                item { DataSourcesSection() }
+
                 items(items = state.libraries, key = { it.id }) { library ->
                     LibraryRow(
                         library = library,
@@ -143,6 +159,74 @@ fun LicensesContent(
         }
     }
 }
+
+/**
+ * The data Paparcar shows that somebody else measured. [FUEL-NATIONAL-AVERAGE-FROM-OPENVAN-001]
+ *
+ * Separate from the library list above it because these are different things wearing the same word:
+ * the libraries are SOFTWARE compiled into the app, read from a file the Gradle build generates;
+ * these are DATASETS the app queries at runtime, and no dependency graph knows about them. Two of
+ * the three licences oblige us to say so — CC BY 4.0 for OpenVan.camp, ODbL for OpenStreetMap —
+ * and an obligation that depends on a generated file having loaded is not being met.
+ *
+ * The names, licences and URLs are DATA, not copy: they are proper nouns and they are identical in
+ * every language, exactly like the library names in the list below. Only the "what we use it for"
+ * line is translated.
+ */
+@Composable
+private fun DataSourcesSection() {
+    Column(verticalArrangement = Arrangement.spacedBy(ROW_GAP)) {
+        PapSectionHeader(title = stringResource(Res.string.licenses_data_sources_header))
+        DATA_SOURCES.forEach { source ->
+            PapOutlinedCard(modifier = Modifier.fillMaxWidth()) {
+                PapListItem(
+                    title = source.name,
+                    // The name of a real thing → MARCA, same as a library or a vehicle.
+                    titleStyle = PaparcarType.current.rowName,
+                    titleMaxLines = 2,
+                    subtitle = stringResource(source.purpose) + SEPARATOR + source.license,
+                    subtitleStyle = PaparcarType.current.label,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * One dataset the app reads, and the credit its licence asks for.
+ *
+ * [license] is spelled as the licence NAMES it, not as we would summarise it: "CC BY 4.0" is the
+ * string a reader can look up, "free to use" is one they cannot.
+ */
+private data class DataSourceCredit(
+    val name: String,
+    val purpose: StringResource,
+    val license: String,
+)
+
+/**
+ * ⛔ A dataset added to the app is added HERE in the same task.
+ *
+ * There is no build step that can discover these — that is the whole difference from the library
+ * list — so the only thing keeping it honest is putting the row in when the source goes in.
+ */
+private val DATA_SOURCES = listOf(
+    DataSourceCredit(
+        name = "OpenVan.camp",
+        purpose = Res.string.licenses_source_openvan_purpose,
+        license = "CC BY 4.0",
+    ),
+    DataSourceCredit(
+        name = "OpenStreetMap",
+        purpose = Res.string.licenses_source_osm_purpose,
+        license = "ODbL 1.0",
+    ),
+    DataSourceCredit(
+        name = "Ministerio para la Transición Ecológica",
+        purpose = Res.string.licenses_source_minetur_purpose,
+        license = "Datos abiertos",
+    ),
+)
 
 @Composable
 private fun LibraryRow(

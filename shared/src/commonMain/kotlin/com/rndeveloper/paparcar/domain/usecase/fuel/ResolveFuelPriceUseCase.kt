@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.domain.usecase.fuel
 
+import com.rndeveloper.paparcar.domain.fuel.AverageFuelPriceTable
 import com.rndeveloper.paparcar.domain.fuel.FuelPrice
 import com.rndeveloper.paparcar.domain.fuel.FuelPriceOrigin
 import com.rndeveloper.paparcar.domain.fuel.StaticAverageFuelPrices
@@ -25,7 +26,21 @@ import com.rndeveloper.paparcar.domain.model.Vehicle
  * PARAMETER: whoever has a station price passes it, and today nobody does. The order lives here
  * regardless, and it is what the tests pin.
  */
-class ResolveFuelPriceUseCase {
+class ResolveFuelPriceUseCase(
+    /**
+     * The national averages to quote, read at the MOMENT of the call. [FUEL-NATIONAL-AVERAGE-FROM-OPENVAN-001]
+     *
+     * A provider and not an [AverageFuelPriceTable] because this use case outlives a refresh: hold
+     * the table itself and whichever instance was built before the fetch landed would keep quoting
+     * the snapshot in the binary forever, on one screen but not the other. Reading through the
+     * lambda means there is one live answer and every screen sees the same one.
+     *
+     * Defaults to the embedded snapshot so tests, previews and the state gallery need no wiring —
+     * and the default is the FLOOR, never a blank: a caller that forgets to inject gets the honest
+     * offline answer rather than a null that would silently hide every cost figure.
+     */
+    private val averages: () -> AverageFuelPriceTable = { AverageFuelPriceTable.Embedded },
+) {
 
     /**
      * Price of one litre for [vehicle], or null when nothing can answer honestly.
@@ -42,7 +57,7 @@ class ResolveFuelPriceUseCase {
         if (!fuel.usesLiters) return null
         vehicle.fuelPricePerLiter?.let { return FuelPrice(it, FuelPriceOrigin.UserOverride) }
         stationPrice?.let { return FuelPrice(it, FuelPriceOrigin.Station) }
-        return StaticAverageFuelPrices.averageLitre(countryCode, fuel)
+        return averages().averageLitre(countryCode, fuel)
             ?.let { FuelPrice(it, FuelPriceOrigin.NationalAverage) }
     }
 

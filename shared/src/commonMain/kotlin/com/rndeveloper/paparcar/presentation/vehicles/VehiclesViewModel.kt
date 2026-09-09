@@ -9,6 +9,7 @@ import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.VehicleWithStats
 import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
+import com.rndeveloper.paparcar.domain.usecase.fuel.ResolveFuelPriceUseCase
 import com.rndeveloper.paparcar.domain.usecase.entitlement.ObserveIsPlusUseCase
 import com.rndeveloper.paparcar.domain.usecase.vehicle.DeclareActiveVehicleUseCase
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
@@ -28,6 +29,14 @@ class VehiclesViewModel(
     // The Plus gate over the history window — observed LIVE so losing or regaining Plus
     // re-resolves every timeline in place, no restart needed. [MONEY-001]
     private val observeIsPlus: ObserveIsPlusUseCase,
+    /**
+     * The price ladder behind the cost figures. [FUEL-NATIONAL-AVERAGE-FROM-OPENVAN-001]
+     *
+     * Injected rather than built inside `HistoryTimeline.resolve`, because the national average is
+     * no longer a constant compiled into the app: it is a table a refresh can replace, held by one
+     * repository so every screen quotes the same one.
+     */
+    private val resolveFuelPrice: ResolveFuelPriceUseCase,
 ) : BaseViewModel<VehiclesState, VehiclesIntent, VehiclesEffect>() {
 
     override fun initState(): VehiclesState = VehiclesState()
@@ -74,6 +83,7 @@ class VehiclesViewModel(
                                 // (its override, or the named FuelDefaults). [STATS-UI-001]
                                 vehicle = vws.vehicle,
                                 nowMs = nowMs,
+                                resolveFuelPrice = resolveFuelPrice,
                             ),
                             activeFilter = existingFilter,
                         )
@@ -131,6 +141,7 @@ class VehiclesViewModel(
                             isPlus = isPlus,
                             vehicle = vehicles.firstOrNull { it.vehicle.id == vehicleId }?.vehicle,
                             nowMs = nowMs,
+                            resolveFuelPrice = resolveFuelPrice,
                         ),
                         activeFilter = intent.filter,
                     )

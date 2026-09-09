@@ -211,6 +211,10 @@
     <string name="licenses_error">Ta wersja nie zawiera listy licencji, więc nie można jej pokazać. Ponowna instalacja Paparcar ją przywraca.</string>
     <string name="licenses_detail_no_text">Te warunki należą do ich właściciela i nie są dołączane do aplikacji. Otwórz je, aby przeczytać pełny tekst.</string>
     <string name="licenses_detail_open_terms">Przeczytaj pełne warunki</string>
+    <string name="licenses_data_sources_header">Źródła danych</string>
+    <string name="licenses_source_openvan_purpose">Średnie ceny paliw</string>
+    <string name="licenses_source_osm_purpose">Stacje paliw i miejsca w pobliżu</string>
+    <string name="licenses_source_minetur_purpose">Ceny na dystrybutorach w Hiszpanii</string>
 
     <!-- Generic error messages -->
     <string name="error_unknown">Coś poszło nie tak</string>

@@ -27,6 +27,7 @@ import com.rndeveloper.paparcar.data.repository.VehicleRepositoryImpl
 import com.rndeveloper.paparcar.data.repository.ZoneRepositoryImpl
 import com.rndeveloper.paparcar.data.session.RoomLocalSessionCache
 import com.rndeveloper.paparcar.domain.repository.AddressAndPlaceRepository
+import com.rndeveloper.paparcar.domain.repository.AverageFuelPricesRepository
 import com.rndeveloper.paparcar.domain.repository.DiagnosticsRepository
 import com.rndeveloper.paparcar.domain.repository.EntitlementRepository
 import com.rndeveloper.paparcar.domain.repository.OpenSourceLicenseRepository
@@ -43,11 +44,14 @@ import com.rndeveloper.paparcar.domain.session.LocalSessionCache
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import org.koin.dsl.module
 import com.rndeveloper.paparcar.data.fuel.CachingFuelStationsSource
+import com.rndeveloper.paparcar.data.fuel.AverageFuelPricesRepositoryImpl
 import com.rndeveloper.paparcar.data.fuel.FuelStationsRegistry
 import com.rndeveloper.paparcar.data.fuel.fuelHttpClient
 import com.rndeveloper.paparcar.data.fuel.MineturStationsSource
+import com.rndeveloper.paparcar.data.fuel.OpenVanAverageFuelPricesSource
 import com.rndeveloper.paparcar.data.fuel.OsmFuelStationsSource
 import com.rndeveloper.paparcar.domain.fuel.FuelStationsSource
 
@@ -165,6 +169,36 @@ val dataModule = module {
                 fallback = OsmFuelStationsSource(http),
             ),
         )
+    }
+
+    // ── Media nacional de precios [FUEL-NATIONAL-AVERAGE-FROM-OPENVAN-001] ────
+    // El escalón 2 del precio: lo que vale un litro de media en el país donde aparcó el coche.
+    // Alimenta el GASTO ESTIMADO de los viajes, no las filas de gasolineras — son dos escalones
+    // distintos de la misma escalera y no se tocan entre sí.
+    //
+    // ⛔ `single`, no `factory`: la tabla refrescada vive AQUÍ. Con `factory` cada pantalla tendría
+    // su propio caché, refrescaría por su cuenta y dos pantallas podrían citar medias distintas
+    // para el mismo viaje.
+    //
+    // ⛔ La red NUNCA está en el camino del cálculo: `current()` es síncrono y siempre contesta
+    // (el suelo es el snapshot generado que va en el binario), y `refresh()` solo lo sustituye
+    // más tarde. Es lo que mantiene cierto el invariante de F5a.
+    //
+    // El refresco se lanza AQUÍ y no en el constructor del repositorio, que se queda puro: un
+    // `single` de Koin es perezoso, así que esto arranca justo cuando alguien pide precios por
+    // primera vez, y el repositorio sigue siendo construible en un test sin que salga a la red.
+    // ⚠️ La primera resolución de una pantalla puede usar todavía el snapshot del binario: el
+    // refresco no bloquea a nadie, y la cifra fresca entra en la siguiente emisión. Es el precio
+    // asumido de no tener la red en el camino del cálculo, y por eso el snapshot se regenera en
+    // cada release en vez de envejecer.
+    // ⛔ `fuelHttpClient()`, no `HttpClient()` a pelo — y aquí el motivo que manda no es el
+    // User-Agent sino el DEADLINE. [FUEL-LAYER-FOLLOWS-THE-CAMERA-001] Un cliente sin timeout no
+    // puede fallar nunca, y `refresh()` sostiene su Mutex mientras espera: una petición colgada
+    // dejaría el candado tomado para siempre y ningún refresco posterior volvería a entrar.
+    single<AverageFuelPricesRepository> {
+        AverageFuelPricesRepositoryImpl(OpenVanAverageFuelPricesSource(fuelHttpClient())).also { repo ->
+            CoroutineScope(SupervisorJob() + Dispatchers.Default).launch { repo.refresh() }
+        }
     }
 
     // NOTA: LocationDataSource se provee en los módulos de plataforma.

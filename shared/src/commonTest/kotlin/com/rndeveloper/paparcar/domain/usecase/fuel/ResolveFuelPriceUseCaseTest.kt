@@ -1,6 +1,7 @@
 package com.rndeveloper.paparcar.domain.usecase.fuel
 
 import com.rndeveloper.paparcar.domain.fuel.FuelPriceOrigin
+import com.rndeveloper.paparcar.domain.fuel.AverageFuelPriceTable
 import com.rndeveloper.paparcar.domain.fuel.StaticAverageFuelPrices
 import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.model.Money
@@ -9,6 +10,7 @@ import com.rndeveloper.paparcar.domain.model.VehicleSize
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 import kotlin.test.assertNull
 
 /**
@@ -60,19 +62,35 @@ class ResolveFuelPriceUseCaseTest {
 
     @Test
     fun `should_answerNothing_where_theTableHasNoIdea`() {
-        // Outside the table the app does not know what fuel costs, and a drive in Tokyo priced in
-        // Madrid euros would be worse than no figure at all.
-        assertNull(resolve.litre(vehicle(), countryCode = "JP"))
+        // Outside the table the app does not know what fuel costs, and a drive priced in Madrid
+        // euros because nothing better was known would be worse than no figure at all.
+        //
+        // ⛔ The subject used to be Japan, which the hand-written table had never heard of. The
+        // generated one prices 161 countries INCLUDING Japan, so the old assertion was passing for
+        // a reason that had stopped being true — a witness that no longer witnessed anything.
+        // "ZZ" is reserved by ISO 3166 and can never be a country, so it stays absent by
+        // construction rather than by luck. [FUEL-NATIONAL-AVERAGE-FROM-OPENVAN-001]
+        assertNull(resolve.litre(vehicle(), countryCode = "ZZ"))
         assertNull(resolve.litre(vehicle(), countryCode = null))
     }
 
     @Test
-    fun `should_readTheEuroAreaRow_forACountryTheTableDoesNotPriceOneByOne`() {
-        // Ireland is not a row of its own, but a euro is a euro: an Irish user gets a figure
-        // labelled "average" instead of a blank.
-        val price = resolve.litre(vehicle(), countryCode = "IE")
-        assertNotNull(price)
-        assertEquals(FuelPriceOrigin.NationalAverage, price.source)
+    fun `should_priceEachEuroAreaCountryWithItsOwnFigure`() {
+        // Ireland used to read a shared "EU" row because the hand-written table could not afford
+        // fourteen more. It has its own now — and so do the other thirteen, which matters because
+        // the real spread between them reached 0.80 €/L: Malta at 1.34 and Finland at 2.16 were
+        // both being quoted the same flattened average.
+        // [FUEL-NATIONAL-AVERAGE-FROM-OPENVAN-001]
+        val ireland = resolve.litre(vehicle(), countryCode = "IE")
+        assertNotNull(ireland)
+        assertEquals(FuelPriceOrigin.NationalAverage, ireland.source)
+
+        val malta = assertNotNull(resolve.litre(vehicle(), countryCode = "MT")).perUnit.amount
+        val finland = assertNotNull(resolve.litre(vehicle(), countryCode = "FI")).perUnit.amount
+        assertTrue(
+            malta != finland,
+            "Malta and Finland are quoting the same figure — the shared euro row is back",
+        )
     }
 
     @Test
@@ -109,7 +127,7 @@ class ResolveFuelPriceUseCaseTest {
         // table quietly excluding them. Nine locales ship; nine locales price.
         listOf("ES", "PT", "FR", "IT", "DE", "NL", "PL", "RO").forEach { country ->
             assertNotNull(
-                StaticAverageFuelPrices.averageLitre(country, FuelType.GASOLINE),
+                AverageFuelPriceTable.Embedded.averageLitre(country, FuelType.GASOLINE),
                 "$country has no petrol average",
             )
             assertNotNull(
@@ -121,8 +139,62 @@ class ResolveFuelPriceUseCaseTest {
 
     @Test
     fun `should_quoteEachCountryInItsOwnMoney`() {
-        assertEquals("EUR", StaticAverageFuelPrices.averageLitre("ES", FuelType.GASOLINE)?.currency)
-        assertEquals("PLN", StaticAverageFuelPrices.averageLitre("PL", FuelType.GASOLINE)?.currency)
-        assertEquals("RON", StaticAverageFuelPrices.averageLitre("RO", FuelType.GASOLINE)?.currency)
+        val table = AverageFuelPriceTable.Embedded
+        assertEquals("EUR", table.averageLitre("ES", FuelType.GASOLINE)?.currency)
+        assertEquals("PLN", table.averageLitre("PL", FuelType.GASOLINE)?.currency)
+        assertEquals("RON", table.averageLitre("RO", FuelType.GASOLINE)?.currency)
+    }
+
+    /**
+     * ⛔ The country list may only ever GROW. [FUEL-NATIONAL-AVERAGE-FROM-OPENVAN-001]
+     *
+     * Swapping a hand-written table for a generated one is exactly the change that can shrink
+     * coverage without anyone noticing — a user in Croatia losing their spend figure produces no
+     * error, just a tile that stops appearing. These are every country the OLD table could answer:
+     * the eight it priced by name, plus the fourteen euro-area members that read its shared `EU`
+     * row. All twenty-two must still answer, and now they answer with their own figures rather
+     * than a flattened euro average.
+     */
+    @Test
+    fun `should_keepPricingEveryCountryTheOldTableCould`() {
+        val table = AverageFuelPriceTable.Embedded
+        val pricedByName = listOf("ES", "PT", "FR", "IT", "DE", "NL", "PL", "RO")
+        val readTheSharedEuroRow = listOf(
+            "AT", "BE", "CY", "EE", "FI", "GR", "HR", "IE", "LT", "LU", "LV", "MT", "SI", "SK",
+        )
+        (pricedByName + readTheSharedEuroRow).forEach { country ->
+            assertNotNull(
+                table.averageLitre(country, FuelType.GASOLINE),
+                "$country lost its petrol average in the swap",
+            )
+            assertNotNull(
+                table.averageLitre(country, FuelType.DIESEL),
+                "$country lost its diesel average in the swap",
+            )
+        }
+    }
+
+    /**
+     * The embedded table is what answers with no network, so it has to BE there.
+     *
+     * A generator that failed silently would leave a valid, empty Kotlin file and every cost tile
+     * in the app would go blank at once — with nothing to read in a stack trace, because an empty
+     * map is not an error. This is the witness that the generated file actually carries countries.
+     */
+    @Test
+    fun `should_shipAnEmbeddedTableThatIsNotEmpty`() {
+        assertTrue(
+            AverageFuelPriceTable.Embedded.rows.size > MIN_EMBEDDED_COUNTRIES,
+            "the generated table carries only ${AverageFuelPriceTable.Embedded.rows.size} countries",
+        )
+    }
+
+    private companion object {
+        /**
+         * Comfortably below the 161 the generator produced, and far above the 22 the hand-written
+         * table reached — so this catches a truncated or failed generation without breaking every
+         * time a country drops out of the feed for a day.
+         */
+        const val MIN_EMBEDDED_COUNTRIES = 100
     }
 }

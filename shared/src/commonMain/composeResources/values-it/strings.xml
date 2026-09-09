@@ -209,6 +209,10 @@
     <string name="licenses_error">Questa versione non include l'elenco delle licenze, quindi non può essere mostrato. Si ripristina reinstallando Paparcar.</string>
     <string name="licenses_detail_no_text">Questi termini appartengono al loro proprietario e non sono distribuiti nell'app. Aprili per leggere il testo completo.</string>
     <string name="licenses_detail_open_terms">Leggi i termini completi</string>
+    <string name="licenses_data_sources_header">Fonti dei dati</string>
+    <string name="licenses_source_openvan_purpose">Prezzi medi dei carburanti</string>
+    <string name="licenses_source_osm_purpose">Distributori e luoghi vicini</string>
+    <string name="licenses_source_minetur_purpose">Prezzi alla pompa in Spagna</string>
 
     <!-- Messaggi di errore generici -->
     <string name="error_unknown">Qualcosa è andato storto</string>

@@ -212,6 +212,10 @@
     <string name="licenses_error">Această versiune nu include lista de licențe, deci nu poate fi afișată. Reinstalarea Paparcar o restaurează.</string>
     <string name="licenses_detail_no_text">Acești termeni aparțin proprietarului lor și nu sunt distribuiți în aplicație. Deschide-i pentru a citi textul complet.</string>
     <string name="licenses_detail_open_terms">Citește termenii compleți</string>
+    <string name="licenses_data_sources_header">Surse de date</string>
+    <string name="licenses_source_openvan_purpose">Prețuri medii la carburanți</string>
+    <string name="licenses_source_osm_purpose">Benzinării și locuri din apropiere</string>
+    <string name="licenses_source_minetur_purpose">Prețuri la pompă în Spania</string>
 
     <!-- Generic error messages -->
     <string name="error_unknown">Ceva a mers greșit</string>

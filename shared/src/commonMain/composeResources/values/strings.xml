@@ -363,6 +363,10 @@
     <string name="licenses_error">This build did not ship the license list, so it cannot be shown. Reinstalling Paparcar restores it.</string>
     <string name="licenses_detail_no_text">These terms belong to their vendor and are not distributed inside the app. Open them to read the full text.</string>
     <string name="licenses_detail_open_terms">Read the full terms</string>
+    <string name="licenses_data_sources_header">Data sources</string>
+    <string name="licenses_source_openvan_purpose">National average fuel prices</string>
+    <string name="licenses_source_osm_purpose">Fuel stations and nearby places</string>
+    <string name="licenses_source_minetur_purpose">Pump prices in Spain</string>
     <string name="settings_contact">Contact</string>
     <string name="settings_send_diagnostics">Report a problem</string>
     <string name="settings_send_diagnostics_confirm_title">Send diagnostics?</string>
