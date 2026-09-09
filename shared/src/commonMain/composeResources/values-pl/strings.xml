@@ -620,7 +620,12 @@
         <item quantity="many">parkingów</item>
         <item quantity="other">parkingu</item>
     </plurals>
-    <string name="history_activity_distance_partial">%1$s w %2$d z nich</string>
+    <plurals name="history_activity_distance_partial">
+        <item quantity="one">%1$s (%2$d przejazd)</item>
+        <item quantity="few">%1$s (%2$d przejazdy)</item>
+        <item quantity="many">%1$s (%2$d przejazdów)</item>
+        <item quantity="other">%1$s (%2$d przejazdu)</item>
+    </plurals>
     <!-- Facts footer under the activity chart. [VEH-STATS-SAY-SOMETHING-USEFUL-001] -->
     <string name="history_activity_title">Aktywność</string>
     <string name="history_section_label">Historia</string>

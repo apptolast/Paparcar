@@ -1,6 +1,5 @@
 package com.rndeveloper.paparcar.presentation.vehicles.components
 
-import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -18,6 +17,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -44,6 +44,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.presentation.vehicles.WeekDayStats
 import kotlin.math.roundToInt
+import com.rndeveloper.paparcar.ui.components.PapTextSwap
 import com.rndeveloper.paparcar.ui.components.rememberCountUp
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.pluralStringResource
@@ -119,20 +120,48 @@ private fun ActivityCardTitle(total: Int, distanceText: String?) {
         // figures below use — one screen, one speed. The NOUN comes from the target count, not from
         // the number mid-flight, so it cannot flicker between singular and plural on the way there.
         val shownTotal = rememberCountUp(total.toFloat()).roundToInt()
+        val noun = pluralStringResource(Res.plurals.history_activity_noun, total)
         // The SUBJECT never wraps; the qualifier bends around it. Flexibility used to sit on the
         // wrong side: the count carried the weight and the distance pinned itself to one line, so
         // "20 aparcamientos" broke in two while "118,3 km en 18 de ellos" held firm. The count is
         // what the card is about — it keeps its intrinsic width on one line, and the sentence takes
         // whatever is left, wrapping to a second line before it ellipsizes.
         // [UI-STATS-HEADER-WRAPS-THE-WRONG-SIDE-001]
+        //
+        // …but "whatever is left" cannot be a MOVING quantity. The count has intrinsic width, so
+        // the gap the km sentence gets used to be measured against the number IN FLIGHT: while the
+        // count-up ran, the sentence was re-flowed on every frame, wrapping to two lines the moment
+        // the number reached two digits and unwrapping when it landed. Measured on device
+        // (09-09-2026, 360dp): the count owns 104dp and leaves 185dp — enough for one line at the
+        // TARGET, not enough halfway there.
+        //
+        // So the column is sized by the target and the animated number is drawn inside that slot
+        // without contributing to it. ⛔ NOT by the widest number of the flight: narrowing the
+        // period (20 → 3) passes through numbers wider than where it lands, and reserving the widest
+        // would leave the sentence wrapped for good — quiet, but wrong. Reserving the TARGET is what
+        // makes the km line final from the first frame; `unbounded` lets a briefly-wider number
+        // spill into the 7dp gap instead of shoving the sentence. The noun is already fixed by the
+        // target, so only the digits move. [UI-THE-KM-LINE-CHANGES-ONCE-001]
+        val titleStyle = PaparcarType.current.cardTitle
+        val measurer = rememberTextMeasurer()
+        val density = LocalDensity.current
+        val subjectSlot = remember(total, noun, titleStyle, density) {
+            with(density) {
+                measurer.measure(text = "$total $noun", style = titleStyle, maxLines = 1)
+                    .size.width.toDp()
+            }
+        }
         Text(
             text = buildAnnotatedString {
                 withStyle(SpanStyle(color = PapColor.actionText)) { append("$shownTotal ") }
-                append(pluralStringResource(Res.plurals.history_activity_noun, total))
+                append(noun)
             },
-            style = PaparcarType.current.cardTitle,
+            style = titleStyle,
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
+            modifier = Modifier
+                .width(subjectSlot)
+                .wrapContentWidth(align = Alignment.Start, unbounded = true),
         )
         if (distanceText != null) {
             // The row RESERVES the height of its worst case instead of deducing it from what the
@@ -142,7 +171,8 @@ private fun ActivityCardTitle(total: Int, distanceText: String?) {
             //    after "20 aparcamientos", so it wraps while a bare "84,2 km" does not;
             //  · the count-up — `shownTotal` has intrinsic width, so the gap left for the qualifier
             //    NARROWS as 5 climbs to 20, flipping the wrap mid-flight and back;
-            //  · the Crossfade — while fading it measures both phrases and keeps the taller.
+            //  · the transition between two sentences — while both are composed, the container
+            //    measures the pair and keeps the taller.
             // Two caption lines is the ceiling (maxLines = 2), so reserving two caption lines makes
             // the row a constant: it can no longer grow, and the short case centres inside the space
             // rather than sitting a line high. The figure comes from the ROLE's own lineHeight, so
@@ -156,8 +186,13 @@ private fun ActivityCardTitle(total: Int, distanceText: String?) {
                 contentAlignment = Alignment.CenterEnd,
             ) {
                 // A sentence ("56,0 km in 14 of them") cannot be interpolated, so it changes the way
-                // a sentence can. [STATS-PANEL-001]
-                Crossfade(targetState = distanceText, label = "activity_distance") { shown ->
+                // a sentence can — but it changes ONCE. It used to be a `Crossfade`, which draws
+                // both sentences superimposed for the whole fade; two right-aligned phrases of
+                // different lengths (and, since the row reserves two lines, at different heights)
+                // interleaved into a smear that read as the text changing several times per filter
+                // tap. Why sequencing is the fix lives in PapTextSwap.
+                // [STATS-PANEL-001 · UI-THE-KM-LINE-CHANGES-ONCE-001]
+                PapTextSwap(targetState = distanceText, label = "activity_distance") { shown ->
                     Text(
                         text = shown,
                         style = PaparcarType.current.caption,

@@ -611,7 +611,10 @@
         <item quantity="one">parkeerplaats</item>
         <item quantity="other">parkeerplaatsen</item>
     </plurals>
-    <string name="history_activity_distance_partial">%1$s bij %2$d ervan</string>
+    <plurals name="history_activity_distance_partial">
+        <item quantity="one">%1$s (%2$d rit)</item>
+        <item quantity="other">%1$s (%2$d ritten)</item>
+    </plurals>
     <!-- Facts footer under the activity chart. [VEH-STATS-SAY-SOMETHING-USEFUL-001] -->
     <string name="history_activity_title">Activiteit</string>
     <string name="history_section_label">Geschiedenis</string>

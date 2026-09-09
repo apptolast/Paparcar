@@ -610,7 +610,10 @@
         <item quantity="one">estacionamento</item>
         <item quantity="other">estacionamentos</item>
     </plurals>
-    <string name="history_activity_distance_partial">%1$s em %2$d deles</string>
+    <plurals name="history_activity_distance_partial">
+        <item quantity="one">%1$s (%2$d viagem)</item>
+        <item quantity="other">%1$s (%2$d viagens)</item>
+    </plurals>
     <!-- Facts footer under the activity chart. [VEH-STATS-SAY-SOMETHING-USEFUL-001] -->
     <string name="history_activity_title">Atividade</string>
     <string name="history_section_label">Histórico</string>

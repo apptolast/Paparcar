@@ -1,6 +1,5 @@
 package com.rndeveloper.paparcar.ui.components
 
-import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -98,9 +97,15 @@ fun PapStatTile(
                 } else {
                     // "Martes" cannot count up to "Jueves", but it still CHANGED when the period
                     // did, and a figure that swaps in place without a word of transition reads as a
-                    // glitch. Words cross-fade, numbers climb — every tile moves, each in the way
-                    // its own value can. (User, 08-09-2026.)
-                    Crossfade(targetState = value, label = "stat_value") { shown ->
+                    // glitch. Words swap, numbers climb — every tile moves, each in the way its own
+                    // value can. (User, 08-09-2026.)
+                    //
+                    // The swap is SEQUENCED, not a `Crossfade`: a crossfade drew "Martes" and
+                    // "Jueves" on top of each other for the whole fade. It went unnoticed here
+                    // because two short centred words overlap into something that still looks like
+                    // a word — the same overlap on the Activity card's km sentence was read on
+                    // device as the text changing several times. [UI-THE-KM-LINE-CHANGES-ONCE-001]
+                    PapTextSwap(targetState = value, label = "stat_value") { shown ->
                         Text(
                             text = shown,
                             style = valueStyle,

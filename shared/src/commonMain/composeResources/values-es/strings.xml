@@ -144,7 +144,10 @@
         <item quantity="one">aparcamiento</item>
         <item quantity="other">aparcamientos</item>
     </plurals>
-    <string name="history_activity_distance_partial">%1$s en %2$d de ellos</string>
+    <plurals name="history_activity_distance_partial">
+        <item quantity="one">%1$s (%2$d viaje)</item>
+        <item quantity="other">%1$s (%2$d viajes)</item>
+    </plurals>
     <!-- Facts footer under the activity chart. [VEH-STATS-SAY-SOMETHING-USEFUL-001] -->
     <!-- Section header over the time-filter chips -->
     <string name="history_section_label">Historial</string>

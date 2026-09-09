@@ -622,7 +622,11 @@
         <item quantity="few">parcări</item>
         <item quantity="other">de parcări</item>
     </plurals>
-    <string name="history_activity_distance_partial">%1$s la %2$d dintre ele</string>
+    <plurals name="history_activity_distance_partial">
+        <item quantity="one">%1$s (%2$d călătorie)</item>
+        <item quantity="few">%1$s (%2$d călătorii)</item>
+        <item quantity="other">%1$s (%2$d de călătorii)</item>
+    </plurals>
     <!-- Facts footer under the activity chart. [VEH-STATS-SAY-SOMETHING-USEFUL-001] -->
     <string name="history_activity_title">Activitate</string>
     <string name="history_section_label">Istoric</string>

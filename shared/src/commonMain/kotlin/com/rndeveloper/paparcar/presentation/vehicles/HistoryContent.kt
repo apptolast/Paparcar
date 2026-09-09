@@ -300,8 +300,9 @@ fun HistoryContent(
                     val distanceText = scopeDistance?.let { distance ->
                         val km = distanceString(distance.meters)
                         if (distance.isComplete) km
-                        else stringResource(
-                            Res.string.history_activity_distance_partial,
+                        else pluralStringResource(
+                            Res.plurals.history_activity_distance_partial,
+                            distance.fromParkings,
                             km,
                             distance.fromParkings,
                         )

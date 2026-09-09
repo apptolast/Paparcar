@@ -46,6 +46,7 @@ import com.rndeveloper.paparcar.ui.components.PapShimmerBlockScale
 import com.rndeveloper.paparcar.ui.components.PapShimmerBox
 import com.rndeveloper.paparcar.ui.components.chips.PaparcarFilterChip
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -162,8 +163,9 @@ fun StatsContent(
                             distanceText = stats.distance?.let { distance ->
                                 val km = distanceString(distance.meters)
                                 if (distance.isComplete) km
-                                else stringResource(
-                                    Res.string.history_activity_distance_partial,
+                                else pluralStringResource(
+                                    Res.plurals.history_activity_distance_partial,
+                                    distance.fromParkings,
                                     km,
                                     distance.fromParkings,
                                 )
