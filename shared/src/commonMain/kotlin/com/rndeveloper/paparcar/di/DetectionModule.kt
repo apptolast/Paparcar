@@ -302,6 +302,7 @@ val detectionModule = module {
             strategyResolver = get(),
             appPreferences = get(),
             detectionRuntime = get(),
+            permissionManager = get(),
         )
     }
 

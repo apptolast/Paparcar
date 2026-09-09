@@ -85,7 +85,10 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -133,6 +136,9 @@ class CoordinatorDetectionService : LifecycleService() {
     // [DET-RESIDENT-FGS-001 · F3] The Settings auto-detect toggle governs residency — the sentry has
     // no switch of its own (user decision 2026-08-06: one concept, one switch).
     private val appPreferences: AppPreferences by inject()
+    // [DET-A-GRANTED-PERMISSION-MUST-REOPEN-THE-WATCH-001] Only for the sentry's notification
+    // re-post lane — every promote decision keeps reading hasRequiredPermissions() live.
+    private val permissionManager: com.rndeveloper.paparcar.domain.permissions.PermissionManager by inject()
 
     // [REFACTOR: extract FGS lifecycle into ForegroundServiceController]
     private val fgs by lazy { ForegroundServiceController(this) }
@@ -1561,24 +1567,59 @@ class CoordinatorDetectionService : LifecycleService() {
      * both facts and resolves Stop) — so "turn detection off in Settings" or "free my spot from Home"
      * tears the resident watcher down within the same second, with the residency stamp cleared as the
      * deliberate exit it is. The job is cancelled on every exit from SENTRY (wake or teardown).
+     *
+     * [DET-A-GRANTED-PERMISSION-MUST-REOPEN-THE-WATCH-001] A second lane watches the notification
+     * permission: a sentry that rises before POST_NOTIFICATIONS is granted (clean install — the map
+     * asks for location first, the detection checklist asks for notifications later) posts its FGS
+     * notification into a blocked app, and Android 13+ DROPS it at post time — granting later does
+     * NOT resurface it (measured 2026-09-09: after `pm grant`, `isForeground=true` but no
+     * NotificationRecord). Re-promoting with the same id is the only way to make the promise
+     * visible, and it is idempotent — the same call every onStartCommand already makes.
      */
     private fun watchSentryPreconditions() {
         sentryWatchJob?.cancel()
         sentryWatchJob = lifecycleScope.launch {
-            combine(
-                appPreferences.observeAutoDetectParking(),
-                userParkingRepository.observeActiveSessions(),
-            ) { enabled, sessions -> enabled && sessions.isNotEmpty() }
-                .distinctUntilChanged()
-                .collect { residencyStillWanted ->
-                    if (!residencyStillWanted && detectionRuntime.presence.value == ServicePresence.Sentry) {
-                        PaparcarLogger.d(DIAG, "  ⏻ sentry stand-down (detection off or nothing parked) → STOP_TRACKING")
-                        startService(
-                            Intent(this@CoordinatorDetectionService, CoordinatorDetectionService::class.java)
-                                .setAction(ACTION_STOP_TRACKING),
-                        )
+            launch {
+                combine(
+                    appPreferences.observeAutoDetectParking(),
+                    userParkingRepository.observeActiveSessions(),
+                ) { enabled, sessions -> enabled && sessions.isNotEmpty() }
+                    .distinctUntilChanged()
+                    .collect { residencyStillWanted ->
+                        if (!residencyStillWanted && detectionRuntime.presence.value == ServicePresence.Sentry) {
+                            PaparcarLogger.d(DIAG, "  ⏻ sentry stand-down (detection off or nothing parked) → STOP_TRACKING")
+                            startService(
+                                Intent(this@CoordinatorDetectionService, CoordinatorDetectionService::class.java)
+                                    .setAction(ACTION_STOP_TRACKING),
+                            )
+                        }
                     }
-                }
+            }
+            launch {
+                permissionManager.permissionState
+                    .map { it.hasNotificationPermission }
+                    .distinctUntilChanged()
+                    // The state at entry already produced this notification (visible or dropped);
+                    // only a CHANGE while resident warrants a re-post.
+                    .drop(1)
+                    .filter { granted -> granted }
+                    .collect {
+                        if (detectionRuntime.presence.value != ServicePresence.Sentry) return@collect
+                        PaparcarLogger.d(
+                            DIAG,
+                            "  ↻ notification permission granted while resident — re-posting the sentry notification " +
+                                "[DET-A-GRANTED-PERMISSION-MUST-REOPEN-THE-WATCH-001]",
+                        )
+                        val repost = fgs.promote(
+                            notificationId = AppNotificationManager.DETECTION_NOTIFICATION_ID,
+                            notification = foregroundNotificationProvider.buildSentryNotification(),
+                            hasLocationPermission = hasRequiredPermissions(),
+                        )
+                        if (!repost.isPromoted) {
+                            PaparcarLogger.w(DIAG, "  ⚠ sentry notification re-post refused (outcome=$repost)")
+                        }
+                    }
+            }
         }
     }
 

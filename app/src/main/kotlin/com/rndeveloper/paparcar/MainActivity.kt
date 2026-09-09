@@ -131,11 +131,18 @@ class MainActivity : ComponentActivity() {
      * Scoped to STARTED (not `onCreate` alone) so it re-checks every time the app comes back to the
      * foreground, and collected as a STREAM so a clean install heals by itself the moment the Firestore
      * sync delivers the parked session — the one-shot read this replaces missed exactly that case.
+     *
+     * [DET-A-GRANTED-PERMISSION-MUST-REOPEN-THE-WATCH-001] Collects `closeableFromForeground()`, not
+     * the raw gap: on a clean install the gap opens BEFORE the user grants location (the session
+     * syncs first), the FGS promote is refused by the OS, and granting the permission changes none
+     * of the raw gap's inputs — so the one attempt was spent and nothing ever retried. The
+     * permission is part of the collected stream so the grant itself is the emission that resumes
+     * the watch, and the doomed pre-grant dispatch never happens at all.
      */
     private fun closeDepartureWatchGapWhileVisible() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                observeDepartureWatchGap()
+                observeDepartureWatchGap.closeableFromForeground()
                     .filter { hasGap -> hasGap }
                     // Never kill the collector on a repo hiccup: without the watcher the session still
                     // has the safety net, but we want the next emission to get its chance.

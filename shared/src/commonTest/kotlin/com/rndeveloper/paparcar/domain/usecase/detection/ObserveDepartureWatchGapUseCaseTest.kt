@@ -8,8 +8,10 @@ import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.domain.model.VehicleType
+import com.rndeveloper.paparcar.domain.permissions.AppPermissionState
 import com.rndeveloper.paparcar.fakes.FakeAppPreferences
 import com.rndeveloper.paparcar.fakes.FakeBluetoothScanner
+import com.rndeveloper.paparcar.fakes.FakePermissionManager
 import com.rndeveloper.paparcar.fakes.FakeUserParkingRepository
 import com.rndeveloper.paparcar.fakes.FakeVehicleRepository
 import kotlinx.coroutines.flow.first
@@ -100,6 +102,53 @@ class ObserveDepartureWatchGapUseCaseTest {
         assertEquals(true, useCase().first())
     }
 
+    // ── closeableFromForeground(): the stream the foreground lane collects ─────────────────────
+    // [DET-A-GRANTED-PERMISSION-MUST-REOPEN-THE-WATCH-001]
+
+    @Test
+    fun should_holdTheForegroundLaneClosed_when_locationIsNotGrantedYet() = runTest {
+        // A clean install: the synced session opens the RAW gap before the user has granted
+        // anything. Dispatching then is a guaranteed OS refusal, and the attempt would stamp the
+        // resumer's cooldown — so the foreground lane must simply not fire yet.
+        val closeable = buildUseCase().closeableFromForeground().first()
+        assertFalse(closeable, "without the location permission a resume attempt is a guaranteed refusal")
+    }
+
+    @Test
+    fun should_openTheForegroundLane_when_locationIsGrantedWhileTheGapIsOpen() = runTest {
+        // THE regression: the user grants location from inside the app (map ask / checklist), none
+        // of the raw gap's inputs change, and the watch stayed dead for the whole app session
+        // (measured 2026-09-09, clean-install repro). The grant itself must be an emission.
+        val permissions = FakePermissionManager()
+        val useCase = buildUseCase(permissionManager = permissions)
+        assertFalse(useCase.closeableFromForeground().first(), "nothing granted yet")
+
+        permissions.emit(AppPermissionState(hasLocationPermission = true))
+
+        assertTrue(
+            useCase.closeableFromForeground().first(),
+            "granting location while the gap is open must be the emission that resumes the watch",
+        )
+    }
+
+    @Test
+    fun should_holdTheForegroundLaneClosed_when_permissionIsGrantedButNothingIsParked() = runTest {
+        val permissions = FakePermissionManager().apply { emit(AppPermissionState(hasLocationPermission = true)) }
+        val closeable = buildUseCase(parked = false, permissionManager = permissions)
+            .closeableFromForeground().first()
+        assertFalse(closeable, "a permission without a gap is not a reason to start anything")
+    }
+
+    @Test
+    fun should_keepTheRawGapPermissionBlind_when_locationIsNotGranted() = runTest {
+        // The resumer's gate and the home-cta force path read the RAW gap on purpose: a gap without
+        // permissions is still a real gap (Readiness reports it as Blocked), and a forced dispatch
+        // must reach the service so it can answer with its honest refusal.
+        val useCase = buildUseCase()
+        assertTrue(useCase().first(), "the raw stream must not hide the gap behind permissions")
+        assertTrue(useCase.current(), "the one-shot read must agree with the raw stream")
+    }
+
     // ── current(): the one-shot read the resumer uses [DET-WATCH-RESUME-RACE-001] ──────────────
 
     @Test
@@ -155,6 +204,7 @@ class ObserveDepartureWatchGapUseCaseTest {
         parkingRepository: FakeUserParkingRepository = FakeUserParkingRepository(
             initialSession = if (parked) session() else null,
         ),
+        permissionManager: FakePermissionManager = FakePermissionManager(),
     ): ObserveDepartureWatchGapUseCase {
         val vehicle = Vehicle(
             id = VEHICLE_ID,
@@ -177,6 +227,7 @@ class ObserveDepartureWatchGapUseCaseTest {
             ),
             appPreferences = FakeAppPreferences(initialAutoDetect = autoDetectEnabled),
             detectionRuntime = runtime,
+            permissionManager = permissionManager,
         )
     }
 

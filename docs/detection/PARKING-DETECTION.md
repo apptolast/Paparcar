@@ -7791,3 +7791,45 @@ de proceso mientras el permiso siga denegado (9 sesiones en el issue de arriba) 
 rechazo sería una tormenta. ⚠️ De los dos rastros, el fiable es la **línea `PARKDIAG`**, que se
 escribe síncrona antes de parar; el evento del ledger sale por `lifecycleScope.launch` y el
 `onDestroy` de la línea siguiente puede cancelarlo, así que **no se puede razonar por su ausencia**.
+
+### DET-A-GRANTED-PERMISSION-MUST-REOPEN-THE-WATCH-001 — el carril de resurrección gastaba su único disparo antes del permiso, y concederlo no re-disparaba nada
+
+**Commit:** pending. **Reporte:** *«cuando borro datos o instalo la app, teniendo permisos aceptados
+y coche aparcado, no tengo la notificación FGS y no detecta»* (09-09-2026, build de Play, preparando
+el vídeo de detección de la ficha).
+
+**Causa raíz.** En una instalación limpia el bootstrap restaura la sesión activa de Firestore antes
+de que el usuario conceda nada, así que el gap de [DET-WATCH-REACTIVATE-001] abre y
+`MainActivity` despacha `RESUME_SENTRY` **sin permiso de ubicación**. El promote es rechazado
+(`REFUSED_MISSING_LOCATION_PERMISSION`, el rechazo-como-valor de
+[DET-A-LOCATION-FGS-MUST-NOT-KILL-THE-APP-001]) y el servicio muere sin cambiar `presence`. El
+usuario concede después los permisos SIN salir de la app (mapa pide core; checklist pide producer,
+[ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001]) y ninguna de las 4 entradas del gap cambia →
+`distinctUntilChanged` no re-emite → cero reintentos en toda la vida del proceso, con el cooldown de
+60 s del resumer además estampado por el intento condenado. Reproducido en emulador: `resume` a las
+16:28:36, rechazo, y ni un `resume` más en 3 min tras conceder TODOS los permisos runtime. El
+contraste que lo delataba: el armado de AR en `MainActivity` sí combina `permissionState`.
+
+**Fix.** La pregunta del carril de foreground no es «¿hay gap?» sino «¿hay un gap que ESTE momento
+pueda cerrar?», y se contesta donde vive el contestador del gap [DET-WATCH-RESUME-RACE-001]:
+`ObserveDepartureWatchGapUseCase.closeableFromForeground()` = gap crudo ∧
+`permissionState.hasCorePermissions`. El flanco de conceder la ubicación ES la emisión que reanuda
+el watch, y el despacho condenado pre-permiso desaparece (ya no estampa el cooldown). El gap CRUDO
+(`invoke()`/`current()`) queda ciego a permisos a propósito: es lo que Readiness reporta como
+`Blocked`, y el force de `home-cta` debe seguir despachando para que el servicio conteste con su
+rechazo honesto.
+
+**Mitad B — la notificación tragada.** Si la ubicación se concede antes que las notificaciones, el
+centinela sube con `POST_NOTIFICATIONS` denegado y Android 13+ **descarta** la notificación FGS al
+publicarla; conceder después NO la resucita (medido 09-09: tras `pm grant`, `isForeground=true` y
+ningún `NotificationRecord`). `watchSentryPreconditions` gana un segundo carril: al flanco
+denegado→concedido de `hasNotificationPermission` con el servicio residente, re-promociona con el
+mismo id (idempotente — la misma llamada de cada `onStartCommand`), que re-publica la notificación.
+El flanco llega porque `refreshPermissions()` corre en cada `onResume` y el StateFlow es el mismo
+singleton de proceso.
+
+**Riesgo del fix.** `closeableFromForeground()` filtra SOLO el carril automático de foreground; si
+algún día un caller nuevo necesitara despachar sin permisos (p. ej. para provocar la notificación de
+permiso revocado), debe leer el gap crudo como hace `home-cta`. Servicios de vida corta
+(`BluetoothDetectionService`) quedan exentos del re-post: re-promocionan en cada arranque y viven
+minutos, no horas.

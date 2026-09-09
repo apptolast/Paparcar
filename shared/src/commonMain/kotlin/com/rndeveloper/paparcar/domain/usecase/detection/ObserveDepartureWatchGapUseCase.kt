@@ -5,6 +5,7 @@ import com.rndeveloper.paparcar.domain.detection.ParkingStrategyResolver
 import com.rndeveloper.paparcar.domain.detection.sentry.PostDetectionLifecycle
 import com.rndeveloper.paparcar.domain.detection.ServicePresence
 import com.rndeveloper.paparcar.domain.detection.sentry.resolvePostDetectionLifecycle
+import com.rndeveloper.paparcar.domain.permissions.PermissionManager
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
@@ -12,6 +13,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 
 /**
  * Emits `true` while there is a WATCH GAP: the departure watcher SHOULD be live (a Coordinator car is
@@ -32,6 +34,7 @@ class ObserveDepartureWatchGapUseCase(
     private val strategyResolver: ParkingStrategyResolver,
     private val appPreferences: AppPreferences,
     private val detectionRuntime: DetectionRuntimeState,
+    private val permissionManager: PermissionManager,
 ) {
     operator fun invoke(): Flow<Boolean> = combine(
         userParkingRepository.observeActiveSessions(),
@@ -50,6 +53,31 @@ class ObserveDepartureWatchGapUseCase(
                 strategy = strategyResolver.strategyFor(vehicles),
             ) == PostDetectionLifecycle.EnterSentry
     }.distinctUntilChanged()
+
+    /**
+     * The gap, but only while a foreground moment can actually CLOSE it: the FGS promote needs the
+     * runtime location permission, so an attempt without it is a guaranteed OS refusal
+     * (`SecurityException` from `validateForegroundServiceType`, measured 2026-09-09 on a clean
+     * install). [DET-A-GRANTED-PERMISSION-MUST-REOPEN-THE-WATCH-001]
+     *
+     * This is the stream the FOREGROUND lane collects, and the permission is part of it for two
+     * reasons:
+     *  - A clean install grants permissions WITHOUT ever leaving the app (the map asks for core,
+     *    the detection checklist asks for producer), so the grant itself must be an emission — the
+     *    raw gap never re-emits on it, and the one attempt the lane used to fire was spent on a
+     *    refusal before the user could possibly have granted anything.
+     *  - Filtering here also means the doomed pre-grant dispatch never happens, so the resumer's
+     *    automatic cooldown is never stamped by an attempt that could not have worked.
+     *
+     * The RAW gap ([invoke]/[current]) deliberately stays permission-blind: a gap without
+     * permissions is still a real gap (Readiness reports it as Blocked), and the `home-cta` force
+     * path must keep dispatching so the service can answer with its honest refusal + the
+     * permission-revoked notification.
+     */
+    fun closeableFromForeground(): Flow<Boolean> = combine(
+        invoke(),
+        permissionManager.permissionState.map { it.hasCorePermissions }.distinctUntilChanged(),
+    ) { gap, canPromote -> gap && canPromote }.distinctUntilChanged()
 
     /**
      * The gap RIGHT NOW, for callers that act once instead of subscribing (the resumer's own guard).
