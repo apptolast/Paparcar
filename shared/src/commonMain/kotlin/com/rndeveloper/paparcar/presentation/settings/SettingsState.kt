@@ -55,6 +55,23 @@ data class SettingsState(
     val detectionHealthy: Boolean
         get() = missingDetectionPermissions.isEmpty() && isLocationServicesEnabled
 
+    /**
+     * What the master switch (and everything that hangs off it) is allowed to CLAIM: the user wants
+     * detection AND detection can actually run. [DET-TOGGLE-A-SWITCH-THAT-CANNOT-RUN-IS-NOT-ON-001]
+     *
+     * [autoDetectParking] alone is the stored *intent*, and it defaults to true — so a switch bound
+     * to it read "on" on a fresh install, right above its own health row saying "Missing background
+     * location". Same shape as the zone-alerts row a section below (`isPlus && notifyZoneSpots`): a
+     * switch is on only while what it promises is in force, and flipping it on when it isn't opens
+     * the flow that grants what's missing.
+     *
+     * The intent itself is NOT overwritten — the detection lanes still gate on it (that is the
+     * F3 sentry gate), and forgetting a deliberate OFF because a permission lapsed would silently
+     * re-arm detection behind the user's back.
+     */
+    val autoDetectActive: Boolean
+        get() = autoDetectParking && detectionHealthy
+
     /** Permissions fine but the device environment untrusted — the amber reliability case.
      *  Permission health takes precedence: a hard blocker outranks a reliability warning. */
     val detectionReliabilityReduced: Boolean

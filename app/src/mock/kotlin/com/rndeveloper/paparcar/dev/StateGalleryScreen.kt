@@ -1538,13 +1538,27 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     imperialUnits = true,
                 )
             },
-            Variant("Permisos incompletos") {
+            // [DET-TOGGLE-A-SWITCH-THAT-CANNOT-RUN-IS-NOT-ON-001] La preferencia sigue en true (su
+            // default) y aun así el maestro se pinta APAGADO: no puede afirmar que la detección
+            // corre justo encima de su propia fila de salud diciendo qué le falta. La fila
+            // "Aparcamiento detectado" cae con él.
+            Variant("Permisos incompletos (el maestro se apaga)") {
                 SettingsContent(
                     state = SettingsState(
                         userProfile = sampleProfile,
                         // Amber health row + "Fix"
                         missingDetectionPermissions = setOf(RequiredPermission.BACKGROUND_LOCATION),
                         isLocationServicesEnabled = true,
+                    ),
+                )
+            },
+            // El otro camino al mismo apagado: permisos completos pero el GPS del sistema off.
+            Variant("GPS apagado (el maestro se apaga)") {
+                SettingsContent(
+                    state = SettingsState(
+                        userProfile = sampleProfile,
+                        missingDetectionPermissions = emptySet(),
+                        isLocationServicesEnabled = false,
                     ),
                 )
             },

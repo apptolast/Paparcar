@@ -126,7 +126,10 @@ private const val PREVIEW_REPORT_MESSAGE =
     "Ayer sobre las 9:15 aparqué en Fuencarral y el pin salió en la calle anterior. " +
         "Tuve que moverlo a mano."
 
-@Preview(name = "Settings — permisos incompletos", showBackground = true,
+/** La preferencia sigue en su default `true` y el maestro se pinta APAGADO: un interruptor no puede
+ *  afirmar que la detección corre encima de su propia fila de salud diciendo qué le falta.
+ *  [DET-TOGGLE-A-SWITCH-THAT-CANNOT-RUN-IS-NOT-ON-001] */
+@Preview(name = "Settings — permisos incompletos (el maestro se apaga)", showBackground = true,
     uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 private fun SettingsMissingPermissionsPreview() {
@@ -137,6 +140,22 @@ private fun SettingsMissingPermissionsPreview() {
                 // Amber health row + "Fix"
                 missingDetectionPermissions = setOf(RequiredPermission.BACKGROUND_LOCATION),
                 isLocationServicesEnabled = true,
+            ),
+        )
+    }
+}
+
+/** El otro camino al mismo apagado: permisos completos, GPS del sistema off.
+ *  [DET-TOGGLE-A-SWITCH-THAT-CANNOT-RUN-IS-NOT-ON-001] */
+@Preview(name = "Settings — GPS apagado (el maestro se apaga)", showBackground = true)
+@Composable
+private fun SettingsGpsOffPreview() {
+    PaparcarTheme(darkTheme = false) {
+        SettingsContent(
+            state = SettingsState(
+                userProfile = loggedInProfile,
+                missingDetectionPermissions = emptySet(),
+                isLocationServicesEnabled = false,
             ),
         )
     }

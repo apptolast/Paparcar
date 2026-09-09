@@ -489,7 +489,10 @@ fun SettingsContent(
                                 onCheckedChange = { onIntent(SettingsIntent.ToggleParkingDetectedNotif(it)) },
                                 subtitleColor = settingsSubtitleColor(),
                                 // Produced only by auto-detection — locked (not blanked) while OFF.
-                                enabled = state.autoDetectParking,
+                                // Same reading as the master switch it depends on: detection that
+                                // cannot run produces no "parking saved" notification either.
+                                // [DET-TOGGLE-A-SWITCH-THAT-CANNOT-RUN-IS-NOT-ON-001]
+                                enabled = state.autoDetectActive,
                             )
                             PapDivider()
                             // [MONEY-001] Master gate for the Plus zone alerts. Soft-gated in the
@@ -667,12 +670,15 @@ private fun SectionHeaderDanger(title: String) {
 private fun DetectionSectionCard(state: SettingsState, onIntent: (SettingsIntent) -> Unit) {
     PapOutlinedCard(modifier = Modifier.fillMaxWidth()) {
         Column {
-            // Master toggle
+            // Master toggle. It reports `autoDetectActive`, NOT the stored preference: a switch
+            // that says "on" above its own health row saying "Missing background location" is a
+            // false statement. Flipping it on while blocked banks the intent and opens the
+            // permissions flow. [DET-TOGGLE-A-SWITCH-THAT-CANNOT-RUN-IS-NOT-ON-001]
             PapSwitchRow(
-                icon = if (state.autoDetectParking) Icons.Rounded.Sensors else Icons.Rounded.SensorsOff,
+                icon = if (state.autoDetectActive) Icons.Rounded.Sensors else Icons.Rounded.SensorsOff,
                 label = stringResource(Res.string.settings_auto_detect),
                 description = stringResource(Res.string.settings_auto_detect_desc),
-                checked = state.autoDetectParking,
+                checked = state.autoDetectActive,
                 onCheckedChange = { onIntent(SettingsIntent.ToggleAutoDetect(it)) },
                 subtitleColor = settingsSubtitleColor(),
             )

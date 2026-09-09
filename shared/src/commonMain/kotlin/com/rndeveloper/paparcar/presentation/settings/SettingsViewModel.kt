@@ -143,11 +143,21 @@ class SettingsViewModel(
 
     override fun handleIntent(intent: SettingsIntent) {
         when (intent) {
+            // [DET-TOGGLE-A-SWITCH-THAT-CANNOT-RUN-IS-NOT-ON-001] The switch reports
+            // `autoDetectActive` (intent AND permissions), so turning it ON while detection is
+            // blocked is an ASK, not a claim: bank the intent and open the very flow that grants
+            // what is missing — the same single action Home's `EnableAutoDetection` performs, so
+            // both surfaces bring detection online in one tap whatever was in the way.
             is SettingsIntent.ToggleAutoDetect -> {
                 prefs.setAutoDetectParking(intent.enabled)
                 updateState { copy(autoDetectParking = intent.enabled) }
-                // Confirm a turn-OFF at the point of action with a one-tap undo. [DET-TOGGLE-002]
-                if (!intent.enabled) sendEffect(SettingsEffect.DetectionTurnedOff)
+                val gap = detectionGapFocus()
+                when {
+                    intent.enabled && gap != null -> sendEffect(SettingsEffect.NavigateToPermissions(gap))
+                    // Confirm a turn-OFF at the point of action with a one-tap undo. [DET-TOGGLE-002]
+                    // Only reachable while the switch reads ON, i.e. while detection really ran.
+                    !intent.enabled -> sendEffect(SettingsEffect.DetectionTurnedOff)
+                }
             }
             is SettingsIntent.ToggleParkingDetectedNotif -> {
                 prefs.setNotifyParkingDetected(intent.enabled)
@@ -169,18 +179,10 @@ class SettingsViewModel(
             is SettingsIntent.PinWidget -> widgetPinRequester?.requestPin()
             is SettingsIntent.NavigateToVehicles ->
                 sendEffect(SettingsEffect.NavigateToVehicles)
-            // Health "Fix": jump to CORE when a hard-blocker (foreground location) is missing OR the
-            // GPS master switch is off (the "Enable GPS" row lives in the essential/CORE section);
-            // otherwise the PRODUCER section holds the remaining detection permissions. [SETTINGS-REMODEL-001]
-            is SettingsIntent.FixDetectionPermissions -> {
-                val perms = permissionManager.permissionState.value
-                val focus = if (perms.missingCorePermissions().isNotEmpty() || !perms.isLocationServicesEnabled) {
-                    PermissionsFocus.Core
-                } else {
-                    PermissionsFocus.Producer
-                }
-                sendEffect(SettingsEffect.NavigateToPermissions(focus))
-            }
+            // Health "Fix" — the row only offers it while something IS missing, so the fallback is
+            // just belt-and-braces: PRODUCER is where the optional detection setup lives.
+            is SettingsIntent.FixDetectionPermissions ->
+                sendEffect(SettingsEffect.NavigateToPermissions(detectionGapFocus() ?: PermissionsFocus.Producer))
             // BT setup needs a vehicle to attach to; send them to add one first if none exists.
             is SettingsIntent.ConfigureBluetooth -> {
                 val vehicleId = state.value.activeVehicleId
@@ -239,6 +241,29 @@ class SettingsViewModel(
                 CrashReporter.setUserId(null)
                 authRepository.signOut()
             }
+        }
+    }
+
+    /**
+     * Where the permissions flow has to open for whatever is missing RIGHT NOW, or null when
+     * detection is fully permitted. Read from the manager rather than from state so it is never a
+     * frame behind a grant made in system settings.
+     *
+     * CORE when a hard blocker (foreground location) is missing OR the GPS master switch is off
+     * (the "Enable GPS" row lives in the essential/CORE section); otherwise the PRODUCER section
+     * holds the remaining detection permissions. [SETTINGS-REMODEL-001]
+     *
+     * One decision, two callers — the health row's "Fix" and the master toggle turning ON while
+     * detection cannot run, which must land in the same place.
+     * [DET-TOGGLE-A-SWITCH-THAT-CANNOT-RUN-IS-NOT-ON-001]
+     */
+    private fun detectionGapFocus(): PermissionsFocus? {
+        val perms = permissionManager.permissionState.value
+        return when {
+            perms.missingCorePermissions().isNotEmpty() || !perms.isLocationServicesEnabled ->
+                PermissionsFocus.Core
+            perms.missingPermissions().isNotEmpty() -> PermissionsFocus.Producer
+            else -> null
         }
     }
 

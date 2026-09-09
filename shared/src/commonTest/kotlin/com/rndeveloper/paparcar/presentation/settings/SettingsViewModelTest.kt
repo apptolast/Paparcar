@@ -169,13 +169,98 @@ class SettingsViewModelTest {
     }
 
     @Test
-    fun `should_notEmitEffect_when_autoDetect_toggled_on`() = runTest {
+    fun `should_notEmitEffect_when_autoDetect_toggled_on_and_detectionPermitted`() = runTest {
+        permissions.emit(FakePermissionManager.allGranted())
         prefs.setAutoDetectParking(false)
         vm.effect.test {
             vm.handleIntent(SettingsIntent.ToggleAutoDetect(true))
             expectNoEvents()
         }
         assertTrue(vm.state.value.autoDetectParking)
+        assertTrue(vm.state.value.autoDetectActive)
+    }
+
+    // ── The switch reports what detection CAN do, not what was stored ──────────
+    // [DET-TOGGLE-A-SWITCH-THAT-CANNOT-RUN-IS-NOT-ON-001]
+
+    @Test
+    fun `should_readOff_when_autoDetectPreferred_but_permissionsMissing`() = runTest {
+        permissions.emit(FakePermissionManager.allDenied())
+        // The stored intent is untouched — only what the screen CLAIMS changes.
+        assertTrue(vm.state.value.autoDetectParking)
+        assertFalse(vm.state.value.autoDetectActive)
+    }
+
+    @Test
+    fun `should_readOff_when_autoDetectPreferred_but_gpsOff`() = runTest {
+        permissions.emit(FakePermissionManager.permissionsOnlyNoGps())
+        assertTrue(vm.state.value.autoDetectParking)
+        assertFalse(vm.state.value.autoDetectActive)
+    }
+
+    @Test
+    fun `should_readOn_when_autoDetectPreferred_and_detectionPermitted`() = runTest {
+        permissions.emit(FakePermissionManager.allGranted())
+        assertTrue(vm.state.value.autoDetectActive)
+    }
+
+    @Test
+    fun `should_readOff_when_detectionPermitted_but_autoDetectTurnedOff`() = runTest {
+        permissions.emit(FakePermissionManager.allGranted())
+        vm.handleIntent(SettingsIntent.ToggleAutoDetect(false))
+        assertFalse(vm.state.value.autoDetectActive)
+    }
+
+    @Test
+    fun `should_bankIntent_and_openCorePermissions_when_toggledOn_while_blocked`() = runTest {
+        permissions.emit(FakePermissionManager.allDenied()) // foreground location missing → CORE
+        prefs.setAutoDetectParking(false)
+        vm.effect.test {
+            vm.handleIntent(SettingsIntent.ToggleAutoDetect(true))
+            val effect = awaitItem()
+            assertIs<SettingsEffect.NavigateToPermissions>(effect)
+            assertEquals(PermissionsFocus.Core, effect.focus)
+            cancelAndIgnoreRemainingEvents()
+        }
+        // The intent IS banked, so granting the permission is enough — no second tap.
+        assertTrue(prefs.autoDetectParking)
+        assertTrue(vm.state.value.autoDetectParking)
+    }
+
+    @Test
+    fun `should_openProducerPermissions_when_toggledOn_and_onlyProducerMissing`() = runTest {
+        permissions.emit(AppPermissionState(hasLocationPermission = true, isLocationServicesEnabled = true))
+        vm.effect.test {
+            vm.handleIntent(SettingsIntent.ToggleAutoDetect(true))
+            val effect = awaitItem()
+            assertIs<SettingsEffect.NavigateToPermissions>(effect)
+            assertEquals(PermissionsFocus.Producer, effect.focus)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `should_openCorePermissions_when_toggledOn_and_onlyGpsOff`() = runTest {
+        // GPS master switch off is a CORE problem: the "Enable GPS" row lives in that section.
+        permissions.emit(FakePermissionManager.permissionsOnlyNoGps())
+        vm.effect.test {
+            vm.handleIntent(SettingsIntent.ToggleAutoDetect(true))
+            val effect = awaitItem()
+            assertIs<SettingsEffect.NavigateToPermissions>(effect)
+            assertEquals(PermissionsFocus.Core, effect.focus)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `should_emitDetectionTurnedOff_not_permissions_when_toggled_off_while_blocked`() = runTest {
+        // Turning OFF is never an ask for permissions, whatever is missing.
+        permissions.emit(FakePermissionManager.allDenied())
+        vm.effect.test {
+            vm.handleIntent(SettingsIntent.ToggleAutoDetect(false))
+            assertIs<SettingsEffect.DetectionTurnedOff>(awaitItem())
+            expectNoEvents()
+        }
     }
 
     @Test
