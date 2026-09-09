@@ -214,6 +214,7 @@ fun HomePeekHandle(
                             nearby = nearby,
                             userLocation = slice.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
                             reportedAt = slice.fuelReportedAt,
+                            step = slice.fuelStationStep,
                             onIntent = onIntent,
                             onAction = onAction,
                         )
@@ -279,6 +280,10 @@ private sealed class PeekState {
 private fun HomePeekSlice.stepDirection(from: PeekState, to: PeekState): Int = when {
     from is PeekState.SelectedSpot && to is PeekState.SelectedSpot ->
         browsableSpotIds.direction(from.spotId, to.spotId)
+    // The fuel lane: same order that feeds its chevrons, so arrow and slide cannot disagree.
+    // [FUEL-PEEK-STEPS-BETWEEN-STATIONS-001]
+    from is PeekState.SelectedFuelStation && to is PeekState.SelectedFuelStation ->
+        fuelStations.map { it.station.id }.direction(from.stationId, to.stationId)
     // The car lane walks VEHICLES, so a parked peek and an unparked add-parking peek are pages of
     // the same book — all four parked↔unparked combos resolve through the one vehicle order.
     // [UI-PEEK-STEPS-WALK-VEHICLES-NOT-SESSIONS-001]

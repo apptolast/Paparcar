@@ -836,6 +836,8 @@
     <string name="home_fuel_missing_fuel_type">Indique le carburant de cette voiture dans Véhicules pour voir les stations-service proches et leurs prix.</string>
     <string name="fuel_peek_eyebrow">Station-service</string>
     <string name="fuel_peek_not_sold">Non vendu ici</string>
+    <string name="fuel_peek_step_prev">Station précédente</string>
+    <string name="fuel_peek_step_next">Station suivante</string>
     <string name="home_fuel_error">Impossible de charger les stations. Vérifie ta connexion et rouvre cette section.</string>
     <string name="home_fuel_no_prices">Les prix ne sont pas publiés dans ce pays. Voici les stations à proximité.</string>
     <string name="home_fuel_reported_at">Prix communiqués à %1$s</string>

@@ -18,9 +18,11 @@ import com.rndeveloper.paparcar.domain.fuel.FuelAvailability
 import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.usecase.fuel.NearbyFuelStation
 import com.rndeveloper.paparcar.presentation.home.HomeIntent
+import com.rndeveloper.paparcar.presentation.home.PeekStep
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.HomeSheetAction
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheet
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetLead
+import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetStepper
 import com.rndeveloper.paparcar.presentation.home.model.pumpPriceLabel
 import com.rndeveloper.paparcar.presentation.util.distanceMeters
 import com.rndeveloper.paparcar.presentation.util.fuelTypeLabel
@@ -32,6 +34,8 @@ import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.common_directions
 import paparcar.composeapp.generated.resources.fuel_peek_eyebrow
 import paparcar.composeapp.generated.resources.fuel_peek_not_sold
+import paparcar.composeapp.generated.resources.fuel_peek_step_next
+import paparcar.composeapp.generated.resources.fuel_peek_step_prev
 import paparcar.composeapp.generated.resources.home_fuel_reported_at
 import paparcar.composeapp.generated.resources.location_fallback_station
 
@@ -55,6 +59,9 @@ internal fun FuelStationPeek(
     userLocation: Pair<Double, Double>?,
     /** The feed's own hour for the prices below, verbatim; null when the source has none (OSM). */
     reportedAt: String?,
+    /** Neighbours in the "nearest first" order — the footer ‹ / ›.
+     *  [FUEL-PEEK-STEPS-BETWEEN-STATIONS-001] */
+    step: PeekStep,
     onIntent: (HomeIntent) -> Unit,
     onAction: (HomeSheetAction) -> Unit,
 ) {
@@ -82,6 +89,14 @@ internal fun FuelStationPeek(
         subtitle = station.address?.takeIf { it != title }
             ?: station.town?.takeIf { it != title },
         onDismiss = { onIntent(HomeIntent.SelectItem(null)) },
+        // Step through the SAME action a row or a capsule fires — select, fly the camera, peek —
+        // so the arrows cannot mean something a tap does not. [FUEL-PEEK-STEPS-BETWEEN-STATIONS-001]
+        stepper = PapSheetStepper(
+            prevContentDescription = stringResource(Res.string.fuel_peek_step_prev),
+            nextContentDescription = stringResource(Res.string.fuel_peek_step_next),
+            onPrev = step.prevId?.let { id -> { onAction(HomeSheetAction.SelectFuelStation(id)) } },
+            onNext = step.nextId?.let { id -> { onAction(HomeSheetAction.SelectFuelStation(id)) } },
+        ),
         meta = {
             DistanceRow(
                 distanceM = distM,

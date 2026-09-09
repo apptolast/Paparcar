@@ -852,6 +852,8 @@
     <string name="home_fuel_missing_fuel_type">Ustaw paliwo tego auta w zakładce Pojazdy, aby zobaczyć pobliskie stacje i ich ceny.</string>
     <string name="fuel_peek_eyebrow">Stacja paliw</string>
     <string name="fuel_peek_not_sold">Tu niedostępne</string>
+    <string name="fuel_peek_step_prev">Poprzednia stacja</string>
+    <string name="fuel_peek_step_next">Następna stacja</string>
     <string name="home_fuel_error">Nie udało się wczytać stacji. Sprawdź połączenie i otwórz to ponownie.</string>
     <string name="home_fuel_no_prices">W tym kraju ceny nie są publikowane. Oto stacje w pobliżu.</string>
     <string name="home_fuel_reported_at">Ceny zgłoszone o %1$s</string>

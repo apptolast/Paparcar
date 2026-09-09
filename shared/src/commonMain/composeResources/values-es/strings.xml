@@ -831,6 +831,8 @@
     <string name="home_fuel_missing_fuel_type">Indica el combustible de este coche en Vehículos para ver las gasolineras cercanas y sus precios.</string>
     <string name="fuel_peek_eyebrow">Gasolinera</string>
     <string name="fuel_peek_not_sold">No lo venden aquí</string>
+    <string name="fuel_peek_step_prev">Gasolinera anterior</string>
+    <string name="fuel_peek_step_next">Gasolinera siguiente</string>
     <string name="home_fuel_error">No hemos podido cargar las gasolineras. Comprueba la conexión y vuelve a abrir esto.</string>
     <string name="home_fuel_no_prices">En este país no se publican los precios. Estas son las gasolineras cercanas.</string>
     <string name="home_fuel_reported_at">Precios comunicados a las %1$s</string>

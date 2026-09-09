@@ -792,6 +792,46 @@ class HomeSlicesTest {
         )
     }
 
+    // ── El stepper del peek de gasolinera camina el orden de la lista ────────
+    // [FUEL-PEEK-STEPS-BETWEEN-STATIONS-001]
+
+    private fun fuelStation(id: String, dist: Double) =
+        com.rndeveloper.paparcar.domain.usecase.fuel.NearbyFuelStation(
+            station = com.rndeveloper.paparcar.domain.fuel.FuelStation(
+                id = id, name = id, address = null, town = null,
+                latitude = 40.0, longitude = -3.0, prices = emptyMap(),
+            ),
+            distanceMeters = dist,
+            price = null,
+        )
+
+    @Test
+    fun should_stepBetweenStations_inTheNearestFirstOrder() {
+        val state = HomeState(
+            fuel = com.rndeveloper.paparcar.presentation.home.model.HomeFuelSlice(
+                stations = listOf(fuelStation("a", 100.0), fuelStation("b", 200.0), fuelStation("c", 300.0)),
+            ),
+            selection = HomeSelection.FuelStation("b"),
+        )
+        assertEquals(PeekStep(prevId = "a", nextId = "c"), state.toPeekSlice().fuelStationStep)
+    }
+
+    @Test
+    fun should_offerNoStep_when_theStationLeftTheList_orSitsAtAnEdge() {
+        val two = com.rndeveloper.paparcar.presentation.home.model.HomeFuelSlice(
+            stations = listOf(fuelStation("a", 100.0), fuelStation("b", 200.0)),
+        )
+        // First station: nothing before it. A refreshed-away id yields None, never invented edges.
+        assertEquals(
+            PeekStep(prevId = null, nextId = "b"),
+            HomeState(fuel = two, selection = HomeSelection.FuelStation("a")).toPeekSlice().fuelStationStep,
+        )
+        assertEquals(
+            PeekStep.None,
+            HomeState(fuel = two, selection = HomeSelection.FuelStation("gone")).toPeekSlice().fuelStationStep,
+        )
+    }
+
     @Test
     fun should_letTheUsersFold_outrankTheData() {
         // An explicit choice wins in both directions — the data only decides while nobody has said.

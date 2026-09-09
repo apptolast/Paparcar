@@ -235,6 +235,12 @@ data class HomePeekSlice(
     val spotStep: PeekStep
         get() = PeekStep.of(browsableSpotIds, selectedSpot?.id)
 
+    /** Neighbours of the selected fuel station in the "nearest first" order the sheet lists — the
+     *  fuel lane's ‹ / ›. A station that dropped out on a refresh yields [PeekStep.None], never
+     *  invented edges. [FUEL-PEEK-STEPS-BETWEEN-STATIONS-001] */
+    val fuelStationStep: PeekStep
+        get() = PeekStep.of(fuelStations.map { it.station.id }, selectedFuelStation?.station?.id)
+
     /** Neighbours of [currentVehicleId] among ALL registered vehicles — what the car-lane ‹ / ›
      *  offer. The ids are VEHICLE ids: the caller resolves each into its modal (session or
      *  add-parking). [MULTI-PARKING-001] [UI-PEEK-STEPS-WALK-VEHICLES-NOT-SESSIONS-001] */
