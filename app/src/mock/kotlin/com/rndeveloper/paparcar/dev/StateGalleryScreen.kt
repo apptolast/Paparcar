@@ -121,6 +121,7 @@ import com.rndeveloper.paparcar.presentation.util.zoneIconFor
 import com.rndeveloper.paparcar.ui.auth.paparcarAuthSlots
 import com.rndeveloper.paparcar.ui.components.ConnectivityBanner
 import com.rndeveloper.paparcar.ui.components.FreeSpotClusterMarker
+import com.rndeveloper.paparcar.ui.components.FuelStationMarker
 import com.rndeveloper.paparcar.ui.components.FreeSpotMarker
 import com.rndeveloper.paparcar.ui.components.LicensePlateMarker
 import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
@@ -2325,8 +2326,67 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     onToggle = {},
                 )
             },
+            // ── F5b-2: capa de mapa + peek [FUEL-STATIONS-MAP-AND-PEEK-001] ──
+            Variant("Peek de gasolinera (España, con precios)", Placement.Surface) {
+                peek(
+                    HomeState(
+                        fuel = HomeFuelSlice(
+                            stations = galleryFuelStations,
+                            reportedAt = "09/09/2026 08:30:00",
+                        ),
+                        selection = HomeSelection.FuelStation("1"),
+                        userGpsPoint = sampleGps,
+                    ),
+                )
+            },
+            // OSM: la estación existe, ningún precio y ninguna afirmación sobre surtidores.
+            Variant("Peek de gasolinera (OSM, sin precios)", Placement.Surface) {
+                peek(
+                    HomeState(
+                        fuel = HomeFuelSlice(stations = listOf(galleryOsmStation)),
+                        selection = HomeSelection.FuelStation("osm/node/99"),
+                        userGpsPoint = sampleGps,
+                    ),
+                )
+            },
+            // La cápsula del marcador: con precio y su combustible, sin precio, y seleccionada.
+            Variant("Marcadores de la capa", Placement.Surface) {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    FuelStationMarker(priceText = "1.879", fuelLabel = "Gasoline", selected = false)
+                    FuelStationMarker(priceText = null, selected = false)
+                    FuelStationMarker(priceText = "1.759", fuelLabel = "Diesel", selected = true)
+                }
+            },
+            // Con 0 plazas la sección de plazas arranca PLEGADA (una línea con chevron) y las
+            // gasolineras quedan una fila más abajo — el orden NUNCA cambia; lo que se pliega es
+            // el cuerpo. [FUEL-STATIONS-MAP-AND-PEEK-001]
+            Variant("Sheet con 0 plazas: plazas plegadas, gasolineras a mano") {
+                sheet(
+                    HomeState(
+                        hasCorePermissions = true,
+                        fuel = HomeFuelSlice(
+                            isExpanded = true,
+                            stations = galleryFuelStations,
+                            reportedAt = "09/09/2026 08:30:00",
+                        ),
+                        userGpsPoint = sampleGps,
+                    ),
+                )
+            },
         ),
     ),
+)
+
+/** Una gasolinera del suelo mundial: nombre sí, precios no, y ninguna afirmación de surtidor. */
+private val galleryOsmStation = NearbyFuelStation(
+    station = FuelStation(
+        id = "osm/node/99", name = "Shell", address = "Hauptstraße 12", town = "Berlin",
+        latitude = 52.52, longitude = 13.405,
+        prices = emptyMap(),
+        schedule = "24/7",
+    ),
+    distanceMeters = 890.0,
+    price = null,
 )
 
 /** Tres surtidores con la forma real del feed: precio a TRES decimales y uno sin marca. */

@@ -145,6 +145,28 @@ class GetNearbyFuelStationsUseCaseTest {
     }
 
     @Test
+    fun `should_answerUnpriced_andHideNothing_when_noFuelWasDeclared`() = runTest {
+        // The map layer's fuel-less ask [FUEL-STATIONS-MAP-AND-PEEK-001]: with no fuel there is
+        // nothing to price and nothing that may be hidden — even a station with a DECLARED negative
+        // stays, because the negative is about a fuel nobody asked for.
+        val source = FakeSource(
+            FuelStationsResult(
+                listOf(
+                    station("SAYS_NO_LPG", availability = mapOf(FuelType.LPG_CNG to FuelAvailability.NOT_SOLD)),
+                    station("PRICED", prices = mapOf(FuelType.DIESEL to Money(1.879, "EUR"))),
+                ),
+            ),
+        )
+
+        val result = GetNearbyFuelStationsUseCase(source, FakeGeocoder(madrid))
+            .invoke(40.4168, -3.7038, fuel = null).getOrThrow()
+
+        assertEquals(2, result.stations.size)
+        assertTrue(result.stations.all { it.price == null })
+        assertNull(result.fuel)
+    }
+
+    @Test
     fun `should_reportNoPrices_whenTheSourceCarriesNone`() = runTest {
         // The OSM case: real stations, no prices, no timestamp. The UI needs to know so it says
         // "here is where" instead of pretending the pumps are free.

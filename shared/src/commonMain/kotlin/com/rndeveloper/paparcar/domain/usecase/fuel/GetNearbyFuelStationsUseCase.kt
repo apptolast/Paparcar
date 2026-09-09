@@ -22,7 +22,8 @@ data class NearbyFuelStation(
 /** The answer, with the two things that make it readable: what was asked, and when it was said. */
 data class NearbyFuelStations(
     val stations: List<NearbyFuelStation>,
-    val fuel: FuelType,
+    /** Null when nobody declared what the car burns — nothing was priced, nothing was hidden. */
+    val fuel: FuelType?,
     /** The feed's own timestamp; null when the source carries no prices at all (OSM). */
     val reportedAt: String?,
 ) {
@@ -44,10 +45,16 @@ class GetNearbyFuelStationsUseCase(
     private val geocoder: GeocoderDataSource,
 ) {
 
+    /**
+     * [fuel] is nullable since the map layer: "where can I refuel" is a fair question for a car
+     * whose fuel nobody has declared. With no fuel there is nothing to price and nothing that may
+     * be hidden — every station stays visible, unpriced, which is honest either way.
+     * [FUEL-STATIONS-MAP-AND-PEEK-001]
+     */
     suspend operator fun invoke(
         latitude: Double,
         longitude: Double,
-        fuel: FuelType,
+        fuel: FuelType?,
         radiusMeters: Int = FuelStationsQuery.DEFAULT_RADIUS_METERS,
     ): Result<NearbyFuelStations> {
         // A failed geocode is not a failed request: the fallback covers the world and does not need
@@ -73,14 +80,14 @@ class GetNearbyFuelStationsUseCase(
                     // ⛔ Hidden ONLY when the source states a negative. An untagged OSM station is
                     // UNKNOWN, and hiding those would empty the list in most of the world — 56% of
                     // stations measured carry no fuel tag at all.
-                    .filterNot { it.isKnownNotToSell(fuel) }
+                    .filterNot { fuel != null && it.isKnownNotToSell(fuel) }
                     .map { station ->
                         NearbyFuelStation(
                             station = station,
                             distanceMeters = haversineMeters(
                                 latitude, longitude, station.latitude, station.longitude,
                             ),
-                            price = station.prices[fuel],
+                            price = fuel?.let { station.prices[it] },
                         )
                     },
                 fuel = fuel,

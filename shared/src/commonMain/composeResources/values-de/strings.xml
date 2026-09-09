@@ -32,7 +32,7 @@
     <string name="home_browse_hint_swipe_report">Wische ↑, um einen Platz zu melden</string>
     <string name="common_directions">Route</string>
     <string name="home_navigate_to_vehicle_cd">Route zum Auto</string>
-    <string name="home_feed_nearby">In deiner Nähe</string>
+    <string name="home_feed_nearby">Freie Stellplätze in der Nähe</string>
     <plurals name="home_feed_nearby_with_count">
         <item quantity="one">%1$d freier Stellplatz in deiner Nähe</item>
         <item quantity="other">%1$d freie Stellplätze in deiner Nähe</item>
@@ -182,6 +182,7 @@
     <string name="map_cd_go_to_parking">Auf diesen Parkplatz zentrieren</string>
     <string name="map_cd_midpoint_parking">Mittelpunkt zwischen mir und diesem Parkplatz</string>
     <string name="map_cd_my_location">Auf meinen Standort zentrieren</string>
+    <string name="map_cd_fuel_layer">Tankstellen auf der Karte ein- oder ausblenden</string>
 
     <!-- SettingsScreen -->
     <string name="settings_title">Einstellungen</string>
@@ -834,6 +835,8 @@
     <string name="home_fuel_title">Wo tanken</string>
     <string name="home_fuel_empty">Keine Tankstellen im Umkreis von 5 km.</string>
     <string name="home_fuel_missing_fuel_type">Lege den Kraftstoff dieses Autos unter Fahrzeuge fest, um Tankstellen in der Nähe und ihre Preise zu sehen.</string>
+    <string name="fuel_peek_eyebrow">Tankstelle</string>
+    <string name="fuel_peek_not_sold">Hier nicht im Verkauf</string>
     <string name="home_fuel_error">Die Tankstellen konnten nicht geladen werden. Prüfe die Verbindung und öffne das erneut.</string>
     <string name="home_fuel_no_prices">In diesem Land werden keine Preise veröffentlicht. Das sind die Tankstellen in der Nähe.</string>
     <string name="home_fuel_reported_at">Preise gemeldet um %1$s</string>

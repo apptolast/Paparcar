@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.presentation.home.model
 
+import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.usecase.fuel.NearbyFuelStation
 
 /**
@@ -28,6 +29,12 @@ data class HomeFuelSlice(
      * [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
      */
     val missingFuelType: Boolean = false,
+    /**
+     * Which fuel [stations] were priced FOR (null: fetched with no fuel — the map layer's fuel-less
+     * ask). The section refetches when the car's fuel no longer matches, instead of showing a list
+     * priced for a different question. [FUEL-STATIONS-MAP-AND-PEEK-001]
+     */
+    val fetchedFor: FuelType? = null,
 ) {
     /** True when at least one station could be priced — decides which sentence the section says. */
     val hasPrices: Boolean get() = stations.any { it.price != null }

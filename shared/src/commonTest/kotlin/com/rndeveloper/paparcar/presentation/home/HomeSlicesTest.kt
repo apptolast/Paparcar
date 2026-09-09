@@ -776,4 +776,35 @@ class HomeSlicesTest {
 
         assertEquals(first.toBrowseListSlice(), second.toBrowseListSlice())
     }
+
+    // ── La sección de plazas se pliega sola sobre un vacío de verdad ─────────
+    // [FUEL-STATIONS-MAP-AND-PEEK-001]
+
+    @Test
+    fun should_foldTheSpotsSection_when_thereIsNothingOnOffer() {
+        // A true empty folds to one header line, so the refuel section sits one row below instead
+        // of under a full-height empty block. Loading is NOT an empty: the skeleton stays visible.
+        assertEquals(false, HomeState(isLoading = false).freeSpotsSectionExpanded)
+        assertEquals(true, HomeState(isLoading = true).freeSpotsSectionExpanded)
+        assertEquals(
+            true,
+            HomeState(isLoading = false, nearbySpots = listOf(spot("a"))).freeSpotsSectionExpanded,
+        )
+    }
+
+    @Test
+    fun should_letTheUsersFold_outrankTheData() {
+        // An explicit choice wins in both directions — the data only decides while nobody has said.
+        assertEquals(
+            true,
+            HomeState(isLoading = false, freeSpotsExpandedOverride = true).freeSpotsSectionExpanded,
+        )
+        assertEquals(
+            false,
+            HomeState(
+                nearbySpots = listOf(spot("a")),
+                freeSpotsExpandedOverride = false,
+            ).freeSpotsSectionExpanded,
+        )
+    }
 }

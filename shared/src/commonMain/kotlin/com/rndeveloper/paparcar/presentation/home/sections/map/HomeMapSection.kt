@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.presentation.home.HomeFabsSlice
 import com.rndeveloper.paparcar.presentation.home.HomeMapSlice
 import com.rndeveloper.paparcar.presentation.map.CameraTarget
+import com.rndeveloper.paparcar.presentation.util.fuelTypeLabel
 import com.rndeveloper.paparcar.ui.components.CenterPinKind
 import com.rndeveloper.paparcar.ui.components.PaparcarMapConfig
 import com.rndeveloper.paparcar.ui.components.PaparcarMapView
@@ -55,6 +56,7 @@ internal fun HomeMapSection(
     onSpotClick: (String) -> Unit,
     onMyCarClick: (sessionId: String) -> Unit,
     onZoneClick: (String) -> Unit,
+    onFuelStationClick: (String) -> Unit = {},
     onCameraMove: (lat: Double, lon: Double) -> Unit,
     /** [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] Tap on the unconfirmed-parking marker. */
     onAskMarkerClick: () -> Unit = {},
@@ -104,6 +106,12 @@ internal fun HomeMapSection(
         isAnyItemSelected = slice.isAnyItemSelected,
         isLoading = slice.isLoading,
         dimSpots = dimSpots,
+        fuelStations = slice.fuelStations,
+        selectedFuelStationId = slice.selectedFuelStationId,
+        // Resolved HERE because the map's marker builders run outside composition and cannot call
+        // stringResource. [FUEL-STATIONS-MAP-AND-PEEK-001]
+        fuelPricesLabel = slice.fuelPricesFor?.let { fuelTypeLabel(it) },
+        onFuelStationClick = onFuelStationClick,
         onSpotClick = onSpotClick,
         onMyCarClick = onMyCarClick,
         onZoneClick = onZoneClick,
@@ -138,6 +146,7 @@ internal fun HomeMapFabsLayer(
     onMyLocation: () -> Unit,
     onParkedCar: () -> Unit,
     onMidpoint: () -> Unit,
+    onToggleFuelLayer: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     AnimatedVisibility(
@@ -158,9 +167,11 @@ internal fun HomeMapFabsLayer(
                 drivingWatch = slice.drivingWatch,
                 // During a monitored trip the MyLocation FAB re-engages driver-follow instead of GPS. [DET-STATUS-SHEET-001]
                 followsCar = isDriving,
+                fuelLayerOn = slice.showFuelStationsLayer,
                 onMyLocation = onMyLocation,
                 onParkedCar = onParkedCar,
                 onMidpoint = onMidpoint,
+                onToggleFuelLayer = onToggleFuelLayer,
             )
         }
     }

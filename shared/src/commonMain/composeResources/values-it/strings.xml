@@ -31,7 +31,7 @@
     <string name="home_browse_hint_swipe_report">Scorri ↑ per segnalare un posto</string>
     <string name="common_directions">Indicazioni</string>
     <string name="home_navigate_to_vehicle_cd">Indicazioni per l&#8217;auto</string>
-    <string name="home_feed_nearby">Vicino a te</string>
+    <string name="home_feed_nearby">Posti liberi vicino a te</string>
     <plurals name="home_feed_nearby_with_count">
         <item quantity="one">%1$d posto libero vicino a te</item>
         <item quantity="other">%1$d posti liberi vicino a te</item>
@@ -181,6 +181,7 @@
     <string name="map_cd_go_to_parking">Centra su questo parcheggio</string>
     <string name="map_cd_midpoint_parking">Punto medio tra me e questo parcheggio</string>
     <string name="map_cd_my_location">Centra sulla mia posizione</string>
+    <string name="map_cd_fuel_layer">Mostra o nascondi i distributori sulla mappa</string>
 
     <!-- SettingsScreen -->
     <string name="settings_title">Impostazioni</string>
@@ -833,6 +834,8 @@
     <string name="home_fuel_title">Dove fare rifornimento</string>
     <string name="home_fuel_empty">Nessun distributore entro 5 km.</string>
     <string name="home_fuel_missing_fuel_type">Imposta il carburante di quest'auto in Veicoli per vedere i distributori vicini e i loro prezzi.</string>
+    <string name="fuel_peek_eyebrow">Distributore</string>
+    <string name="fuel_peek_not_sold">Non venduto qui</string>
     <string name="home_fuel_error">Non siamo riusciti a caricare i distributori. Controlla la connessione e riapri.</string>
     <string name="home_fuel_no_prices">In questo Paese i prezzi non sono pubblicati. Questi sono i distributori vicini.</string>
     <string name="home_fuel_reported_at">Prezzi comunicati alle %1$s</string>

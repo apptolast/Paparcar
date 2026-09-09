@@ -261,6 +261,10 @@ class FakeAppPreferences(private val scenario: MockScenario? = null) : AppPrefer
     private val _defaultMapType = MutableStateFlow("TERRAIN")
     override val defaultMapType: String get() = _defaultMapType.value
     override fun setDefaultMapType(type: String) { _defaultMapType.value = type }
+
+    private val _showFuelStationsLayer = MutableStateFlow(false)
+    override val showFuelStationsLayer: Boolean get() = _showFuelStationsLayer.value
+    override fun setShowFuelStationsLayer(enabled: Boolean) { _showFuelStationsLayer.value = enabled }
 }
 
 /**

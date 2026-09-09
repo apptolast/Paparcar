@@ -1095,6 +1095,119 @@ private val ZONE_LABEL_TEXT_SP    = 11.sp
 private const val ZONE_LABEL_BG_ALPHA     = 0.92f
 private const val ZONE_LABEL_BORDER_ALPHA = 0.55f
 
+// ─── Fuel-station layer ──────────────────────────────────────────────────────
+
+/**
+ * A fuel station on the map: capsule with our own pump glyph and, when the active car's fuel has a
+ * price here, the price WRITTEN beside it. [FUEL-STATIONS-MAP-AND-PEEK-001]
+ *
+ * ⛔ The price is never coloured cheap/expensive — the green/amber/red ramp belongs exclusively to
+ * spot freshness [UI-COLOR-DOCTRINE-001] — and an unpriced station shows the glyph alone, never a
+ * zero. Same capsule grammar as [ZoneMarker] so the map's labels read as one family; the glyph is a
+ * level-3 vector of our own (drawn, multicolor, untinted), not a tinted Material icon.
+ */
+@Composable
+fun FuelStationMarker(
+    priceText: String?,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+    /** WHICH fuel the price is — a figure with no subject makes the reader remember what their car
+     *  burns. Muted beside the price; drawn only when there IS a price to qualify. */
+    fuelLabel: String? = null,
+) {
+    val paper = MaterialTheme.colorScheme.surface
+    val ink = MaterialTheme.colorScheme.onSurface
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    val brand = PapGreen
+    val labelFamily = PaparcarType.current.cardTitle.fontFamily
+
+    Box(modifier = modifier) {
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(FUEL_LABEL_CORNER))
+                .background(paper.copy(alpha = ZONE_LABEL_BG_ALPHA))
+                .border(
+                    width = if (selected) FUEL_LABEL_BORDER_SEL else ZONE_LABEL_BORDER,
+                    color = brand.copy(alpha = if (selected) 1f else ZONE_LABEL_BORDER_ALPHA),
+                    shape = RoundedCornerShape(FUEL_LABEL_CORNER),
+                )
+                .padding(horizontal = ZONE_LABEL_PAD_H, vertical = ZONE_LABEL_PAD_V),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            FuelPumpGlyph(dark = paper.luminance() < 0.5f)
+            if (priceText != null) {
+                Spacer(Modifier.width(ZONE_LABEL_GAP))
+                Text(
+                    text = priceText,
+                    color = ink,
+                    maxLines = 1,
+                    style = TextStyle(
+                        fontFamily = labelFamily,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = ZONE_LABEL_TEXT_SP,
+                    ),
+                )
+                if (fuelLabel != null) {
+                    Spacer(Modifier.width(ZONE_LABEL_GAP))
+                    Text(
+                        text = fuelLabel,
+                        color = muted,
+                        maxLines = 1,
+                        style = TextStyle(
+                            fontFamily = labelFamily,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = ZONE_LABEL_TEXT_SP,
+                        ),
+                        modifier = Modifier.widthIn(max = ZONE_LABEL_MAX_TEXT_W),
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** The pump, drawn: green body, paper screen, hose to the right. Brings its own colors. */
+@Composable
+private fun FuelPumpGlyph(dark: Boolean) {
+    val body = if (dark) Color(0xFF2DF58E) else Color(0xFF009F5E)
+    val screen = if (dark) Color(0xFF0E2A1E) else Color(0xFFE7F6EE)
+    val hose = if (dark) Color(0xFF0E8C57) else Color(0xFF23C47D)
+    Canvas(Modifier.size(FUEL_GLYPH_SIZE)) {
+        val w = size.width
+        val h = size.height
+        // Cuerpo del surtidor (deja sitio a la derecha para la manguera)
+        drawRoundRect(
+            color = body,
+            topLeft = Offset(0f, h * 0.08f),
+            size = Size(w * 0.62f, h * 0.86f),
+            cornerRadius = CornerRadius(w * 0.14f, w * 0.14f),
+        )
+        // Pantalla
+        drawRoundRect(
+            color = screen,
+            topLeft = Offset(w * 0.12f, h * 0.22f),
+            size = Size(w * 0.38f, h * 0.26f),
+            cornerRadius = CornerRadius(w * 0.08f, w * 0.08f),
+        )
+        // Manguera con pistola
+        val path = Path().apply {
+            moveTo(w * 0.62f, h * 0.30f)
+            cubicTo(w * 0.88f, h * 0.30f, w * 0.90f, h * 0.52f, w * 0.90f, h * 0.72f)
+        }
+        drawPath(path, hose, style = Stroke(w * 0.12f, cap = StrokeCap.Round))
+        drawRoundRect(
+            color = hose,
+            topLeft = Offset(w * 0.80f, h * 0.68f),
+            size = Size(w * 0.20f, h * 0.26f),
+            cornerRadius = CornerRadius(w * 0.06f, w * 0.06f),
+        )
+    }
+}
+
+private val FUEL_LABEL_CORNER = 999.dp
+private val FUEL_LABEL_BORDER_SEL = 2.dp
+private val FUEL_GLYPH_SIZE = 14.dp
+
 // ─── Centre-pin family ───────────────────────────────────────────────────────
 
 /**

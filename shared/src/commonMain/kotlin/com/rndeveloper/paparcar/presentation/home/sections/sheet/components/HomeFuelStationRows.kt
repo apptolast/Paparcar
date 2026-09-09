@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.presentation.home.sections.sheet.components
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
@@ -11,13 +12,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.model.Money
 import com.rndeveloper.paparcar.domain.usecase.fuel.NearbyFuelStation
+import com.rndeveloper.paparcar.presentation.home.model.pumpPriceLabel
 import com.rndeveloper.paparcar.presentation.util.formatDistance
 import com.rndeveloper.paparcar.ui.components.PapDivider
 import com.rndeveloper.paparcar.ui.components.PapIconTile
 import com.rndeveloper.paparcar.ui.components.PapListItem
 import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
-import kotlin.math.roundToInt
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.location_fallback_station
@@ -32,6 +33,9 @@ import paparcar.composeapp.generated.resources.location_fallback_station
 fun HomeFuelStationRow(
     station: NearbyFuelStation,
     modifier: Modifier = Modifier,
+    /** Non-null → the row opens the station's peek, the same one its map capsule opens.
+     *  [FUEL-STATIONS-MAP-AND-PEEK-001] */
+    onClick: (() -> Unit)? = null,
 ) {
     // A source can hold a forecourt with no name — France's official feed carries none at all, and
     // 1 in 25 OSM entries has neither name nor brand. Where it cannot name itself it is placed
@@ -43,7 +47,10 @@ fun HomeFuelStationRow(
 
     PapListItem(
         title = title,
-        modifier = modifier,
+        // Clickable OUTSIDE the caller's padding, so the ripple and the touch target are the
+        // whole row, not the inset text block.
+        modifier = (if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .then(modifier),
         contentPadding = PaddingValues(0.dp),
         titleStyle = PaparcarType.current.rowName,
         titleMaxLines = 1,
@@ -83,7 +90,9 @@ private fun subtitleFor(station: NearbyFuelStation, title: String): String {
 @Composable
 private fun FuelPriceLabel(price: Money) {
     Text(
-        text = "${formatPumpPrice(price.amount)} ${price.currency}",
+        // The shared formatter: row, map capsule and peek must quote one price the same way.
+        // [FUEL-STATIONS-MAP-AND-PEEK-001]
+        text = price.pumpPriceLabel(),
         style = PaparcarType.current.subtitle,
         color = MaterialTheme.colorScheme.onSurface,
         maxLines = 1,
@@ -91,28 +100,19 @@ private fun FuelPriceLabel(price: Money) {
     )
 }
 
-/** `1.879` — always three decimals, so a column of prices lines up digit for digit. */
-private fun formatPumpPrice(amount: Double): String {
-    val thousandths = (amount * PRICE_SCALE).roundToInt()
-    val whole = thousandths / PRICE_SCALE.toInt()
-    val fraction = (thousandths % PRICE_SCALE.toInt()).toString().padStart(PRICE_DECIMALS, '0')
-    return "$whole.$fraction"
-}
-
-private const val PRICE_SCALE = 1_000.0
-private const val PRICE_DECIMALS = 3
-
 /** Divider inset to clear the glyph, so the rows read as one column of names. */
 @Composable
 fun HomeFuelStationRows(
     stations: List<NearbyFuelStation>,
     modifier: Modifier = Modifier,
+    onStationClick: ((String) -> Unit)? = null,
 ) {
     Column(modifier = modifier) {
         stations.forEachIndexed { index, station ->
             HomeFuelStationRow(
                 station = station,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                onClick = onStationClick?.let { cb -> { cb(station.station.id) } },
             )
             if (index < stations.lastIndex) {
                 PapDivider(modifier = Modifier.padding(start = 70.dp, end = 16.dp))

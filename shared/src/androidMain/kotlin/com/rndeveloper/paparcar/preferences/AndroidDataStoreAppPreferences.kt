@@ -306,6 +306,12 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
 
     override fun setDefaultMapType(type: String) = set(Keys.DEFAULT_MAP_TYPE, type)
 
+    override val showFuelStationsLayer: Boolean
+        get() = get(Keys.SHOW_FUEL_STATIONS_LAYER, false)
+
+    override fun setShowFuelStationsLayer(enabled: Boolean) =
+        set(Keys.SHOW_FUEL_STATIONS_LAYER, enabled)
+
     // ── Keys ─────────────────────────────────────────────────────────────────
 
     private object Keys {
@@ -340,6 +346,7 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
         val THEME_MODE              = stringPreferencesKey("theme_mode")
         val USE_IMPERIAL_UNITS      = booleanPreferencesKey("use_imperial_units")
         val DEFAULT_MAP_TYPE        = stringPreferencesKey("default_map_type")
+        val SHOW_FUEL_STATIONS_LAYER = booleanPreferencesKey("show_fuel_stations_layer")
         // "selected_language" removed 2026-08-29: the in-app picker never applied anything and the
         // OS owns the app language now. Stale values linger in the file; they are inert.
         // [SETTINGS-LANGUAGE-LIVES-IN-THE-SYSTEM-001]

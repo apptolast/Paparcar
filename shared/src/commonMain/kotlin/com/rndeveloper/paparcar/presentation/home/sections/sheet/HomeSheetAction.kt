@@ -23,6 +23,10 @@ sealed interface HomeSheetAction {
      */
     data class SelectSpot(val spotId: String) : HomeSheetAction
 
+    /** A fuel-station row or capsule was chosen: select it, fly the camera, open its peek.
+     *  [FUEL-STATIONS-MAP-AND-PEEK-001] */
+    data class SelectFuelStation(val stationId: String) : HomeSheetAction
+
     /**
      * Step the car lane of the peek to [vehicleId] — EVERY registered vehicle is a stop, and each
      * one resolves to ITS modal: with an active session it opens that session's peek exactly as

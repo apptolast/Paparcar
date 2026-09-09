@@ -22,6 +22,8 @@ import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import com.rndeveloper.paparcar.domain.repository.ZoneRepository
 import com.rndeveloper.paparcar.domain.model.DetectionReliabilityLevel
+import com.rndeveloper.paparcar.domain.model.FuelType
+import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
 import com.rndeveloper.paparcar.domain.model.ParkingReleaseReason
 import com.rndeveloper.paparcar.domain.usecase.detection.ObserveDetectionReadinessUseCase
@@ -161,7 +163,12 @@ class HomeViewModel(
     // ── Init ──────────────────────────────────────────────────────────────────
 
     init {
-        updateState { copy(mapType = appPreferences.defaultMapType.toMapType()) }
+        updateState {
+            copy(
+                mapType = appPreferences.defaultMapType.toMapType(),
+                showFuelStationsLayer = appPreferences.showFuelStationsLayer,
+            )
+        }
         geocoder.attach(viewModelScope)
         subscribeControllerUpdates()
         // Repo streams → state slices, one line each ([collectInto] isolates stream errors so the UI
@@ -330,8 +337,10 @@ class HomeViewModel(
             is HomeIntent.SelectItem,
             is HomeIntent.SetSizeFilter,
             // Rides with the spots: same sheet, same CORE gate, same "what is around me" question.
-            // [FUEL-STATIONS-LIST-001]
+            // [FUEL-STATIONS-LIST-001] [FUEL-STATIONS-MAP-AND-PEEK-001]
             is HomeIntent.ToggleFuelStations,
+            is HomeIntent.ToggleFuelStationsLayer,
+            is HomeIntent.SetFreeSpotsSectionExpanded,
             is HomeIntent.SendSpotSignal,
             is HomeIntent.EnterReportMode,
             is HomeIntent.ExitReportMode,
@@ -510,22 +519,23 @@ class HomeViewModel(
             return
         }
 
-        // Already answered, or already asking: unfolding again must not re-ask.
-        if (slice.isLoading || slice.stations.isNotEmpty()) {
-            updateState { copy(fuel = fuel.copy(isExpanded = true)) }
-            return
-        }
-
         // The fuel of the car being driven, or the active one — the price shown has to be the price
         // of what THIS driver actually puts in. ⛔ Without one there is no question to ask, and that
-        // is SAID as its own state: rendering it as an empty list fabricated a "no stations within
-        // 5 km" no source ever answered. [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
-        val fuelType = state.value.vehicles.firstOrNull { it.isActive }?.fuelType
-            ?: state.value.vehicles.firstOrNull()?.fuelType
+        // is SAID as its own state, EVEN when the map layer already loaded unpriced stations:
+        // rendering it as an empty (or priceless) list fabricated a claim no source ever answered.
+        // [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
+        val fuelType = activeFuelType()
         if (fuelType == null) {
             updateState {
                 copy(fuel = fuel.copy(isExpanded = true, missingFuelType = true, failed = false))
             }
+            return
+        }
+
+        // Already answered FOR THIS FUEL, or already asking: unfolding again must not re-ask. An
+        // answer the layer fetched fuel-less is a different question — repriced below.
+        if (slice.isLoading || (slice.stations.isNotEmpty() && slice.fetchedFor == fuelType)) {
+            updateState { copy(fuel = fuel.copy(isExpanded = true, missingFuelType = false)) }
             return
         }
 
@@ -538,15 +548,45 @@ class HomeViewModel(
             return
         }
 
+        updateState { copy(fuel = fuel.copy(isExpanded = true)) }
+        loadFuelStations(gps, fuelType)
+    }
+
+    /**
+     * Show or hide the fuel-stations map layer. [FUEL-STATIONS-MAP-AND-PEEK-001]
+     *
+     * Turning it on loads the same store the sheet section reads — with the car's fuel when there
+     * is one, fuel-less otherwise (markers without a figure are honest; a hidden layer is not).
+     * Turning it off clears a fuel-station selection so no peek keeps talking about an invisible pin.
+     */
+    private fun toggleFuelStationsLayer() {
+        val show = !state.value.showFuelStationsLayer
+        appPreferences.setShowFuelStationsLayer(show)
         updateState {
             copy(
-                fuel = fuel.copy(
-                    isExpanded = true,
-                    isLoading = true,
-                    failed = false,
-                    missingFuelType = false,
-                ),
+                showFuelStationsLayer = show,
+                selection = selection.takeUnless { !show && it is HomeSelection.FuelStation },
             )
+        }
+        if (show) ensureFuelStationsForLayer()
+    }
+
+    /** Loads stations for the layer if it is on and nothing is loaded or in flight yet. */
+    private fun ensureFuelStationsForLayer() {
+        val s = state.value
+        if (!s.showFuelStationsLayer) return
+        if (s.fuel.isLoading || s.fuel.stations.isNotEmpty()) return
+        val gps = s.userGpsPoint ?: return
+        loadFuelStations(gps, activeFuelType())
+    }
+
+    private fun activeFuelType() = state.value.vehicles.firstOrNull { it.isActive }?.fuelType
+        ?: state.value.vehicles.firstOrNull()?.fuelType
+
+    /** The ONE fetch both surfaces share — section rows and map markers read the same answer. */
+    private fun loadFuelStations(gps: GpsPoint, fuelType: FuelType?) {
+        updateState {
+            copy(fuel = fuel.copy(isLoading = true, failed = false, missingFuelType = false))
         }
         viewModelScope.launch {
             getNearbyFuelStations(gps.latitude, gps.longitude, fuelType)
@@ -558,6 +598,7 @@ class HomeViewModel(
                                 failed = false,
                                 stations = nearby.stations,
                                 reportedAt = nearby.reportedAt,
+                                fetchedFor = nearby.fuel,
                             ),
                         )
                     }
@@ -586,6 +627,9 @@ class HomeViewModel(
             }
             is HomeIntent.SetSizeFilter -> updateState { copy(sizeFilter = intent.size) }
             is HomeIntent.ToggleFuelStations -> toggleFuelStations()
+            is HomeIntent.ToggleFuelStationsLayer -> toggleFuelStationsLayer()
+            is HomeIntent.SetFreeSpotsSectionExpanded ->
+                updateState { copy(freeSpotsExpandedOverride = intent.expanded) }
             is HomeIntent.SendSpotSignal -> submitSpotSignal(intent.spotId, intent.accepted)
             is HomeIntent.EnterReportMode -> updateState {
                 clearedModeFields().copy(
@@ -1089,6 +1133,9 @@ class HomeViewModel(
             .onStart { updateState { copy(isLoading = true) } }
             .collectSafely("gpsLocation", notify = { e -> PaparcarError.Location.Unknown(e.message ?: "") }) { location ->
                 updateState { copy(isLoading = false, userGpsPoint = location) }
+                // A persisted fuel layer that outlived the process gets its stations back as soon
+                // as there is a fix to ask around. [FUEL-STATIONS-MAP-AND-PEEK-001]
+                ensureFuelStationsForLayer()
                 geocodeUserLocation(location.latitude, location.longitude)
                 if (state.value.cameraAddressAndPlace == null) {
                     geocodeCameraLocation(location.latitude, location.longitude)

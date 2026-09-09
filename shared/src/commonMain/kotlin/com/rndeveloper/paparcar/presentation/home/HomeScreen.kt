@@ -359,6 +359,7 @@ private fun HomeContent(
     // [UI-PROVISIONAL-SPOT-IS-NOT-ITS-SESSION-001] The kind is carried, not inferred from which
     // list happens to contain the id.
     val selectedSpotId = (state.selection as? HomeSelection.Spot)?.id
+    val selectedFuelStationId = (state.selection as? HomeSelection.FuelStation)?.id
     var showReleaseDialog by remember { mutableStateOf(false) }
     // The session the release dialog acts on — set from the peek that opened it, so the release
     // targets THAT card, never a ranked fallback. [VEH-ACTIVE-FENCE-001]
@@ -460,7 +461,8 @@ private fun HomeContent(
 
                 // The five snap points + chrome threshold, derived in one place —
                 // see HomeSheetPositioning.kt for the geometry. [HOME-ATOMIZE-001 F2]
-                val isPureBrowsePeek = state.mode is HomeMode.Browse && !isParkingSelected && selectedSpotId == null
+                val isPureBrowsePeek = state.mode is HomeMode.Browse && !isParkingSelected &&
+                    selectedSpotId == null && selectedFuelStationId == null
                 val positioning = rememberSheetPositioning(
                     containerHeightPx = containerHeightPx,
                     peekHeightPx = peekHeightPx,
@@ -476,7 +478,8 @@ private fun HomeContent(
                     // [UI-SHEET-SPOT-PEEK-RESTS-ON-ITS-CONTENT-001]
                     capExpandAtPeek = state.mode !is HomeMode.Browse ||
                         isParkingSelected ||
-                        selectedSpotId != null,
+                        selectedSpotId != null ||
+                        selectedFuelStationId != null,
                 )
                 val peekOffsetPx = positioning.peekOffsetPx
                 val sheetOffsetPx = remember { Animatable(peekOffsetPx) }
@@ -571,6 +574,20 @@ private fun HomeContent(
                     }
                 }
 
+                // Same gesture as a spot: select, frame, open the peek. The station is resolved
+                // from the fuel slice at call-time so the lambda stays identity-stable.
+                // [FUEL-STATIONS-MAP-AND-PEEK-001]
+                val currentFuelStations = rememberUpdatedState(state.fuel.stations)
+                val onFuelStationMarkerClick: (String) -> Unit = remember(uiController, motion) {
+                    { stationId ->
+                        currentFuelStations.value.firstOrNull { it.station.id == stationId }?.let { s ->
+                            onIntent(HomeIntent.SelectItem(HomeSelection.FuelStation(stationId)))
+                            uiController.goToPlace(s.station.latitude, s.station.longitude)
+                            motion.animateToExpanded()
+                        }
+                    }
+                }
+
                 // [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] Tapping the unconfirmed marker
                 // opens the sheet on the question, the same gesture a spot or a parked car already
                 // gets. It does NOT select anything: there is no session to select — the question is
@@ -646,6 +663,7 @@ private fun HomeContent(
                     onMyCarClick = onMyCarMarkerClick,
                     onAskMarkerClick = onAskMarkerClick,
                     onZoneClick = onZoneClick,
+                    onFuelStationClick = onFuelStationMarkerClick,
                     onCameraMove = onMapCameraMove,
                     // El foco del primer aparcamiento se cierra AQUI, no en su propia capa: el
                     // observador del mapa es el que ve el toque de verdad, y no lo consume, asi que
@@ -731,6 +749,7 @@ private fun HomeContent(
                     activeSessions = state.activeSessions,
                     selectedSession = state.selectedSession,
                     onMyCarMarkerClick = onMyCarMarkerClick,
+                    onToggleFuelLayer = { onIntent(HomeIntent.ToggleFuelStationsLayer) },
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .offset {
@@ -774,6 +793,7 @@ private fun HomeContent(
                     // can't drift between the two. [UI-PEEK-STEPS-BETWEEN-PINS-001]
                     onSelectSpot = onSpotMarkerClick,
                     onSelectParking = onMyCarMarkerClick,
+                    onSelectFuelStation = onFuelStationMarkerClick,
                     onRelease = { sessionId ->
                         releaseTargetSessionId = sessionId
                         showReleaseDialog = true
@@ -1042,6 +1062,8 @@ private fun HomeSheetSection(
     uiController: HomeUiController,
     onSelectSpot: (spotId: String) -> Unit,
     onSelectParking: (sessionId: String) -> Unit,
+    /** Same gesture as a marker tap: select, frame, open the peek. [FUEL-STATIONS-MAP-AND-PEEK-001] */
+    onSelectFuelStation: (stationId: String) -> Unit,
     onRelease: (sessionId: String) -> Unit,
     onNavigateExternal: (lat: Double, lon: Double, walking: Boolean) -> Unit,
     onToggle: () -> Unit,
@@ -1061,6 +1083,7 @@ private fun HomeSheetSection(
             // Home stays on screen competing with what is being explained.
             is HomeSheetAction.OpenFirstStepExplainer -> onOpenStepExplainer(action.step)
             is HomeSheetAction.SelectSpot -> onSelectSpot(action.spotId)
+            is HomeSheetAction.SelectFuelStation -> onSelectFuelStation(action.stationId)
             // The car lane steps over VEHICLES; each stop resolves to its modal here, in the one
             // translation point. Parked → the very lambda a marker tap uses; unparked → the very
             // intent the vehicle's "Aparcar" chip sends, plus a camera fly to the user's GPS so
@@ -1104,6 +1127,9 @@ private fun HomeSheetSection(
             // exception: a size filter the user set can still leave it showing "none your size",
             // which is the right thing to show them (the filter bar is right there).
             HomeSheetAction.RevealFreeSpots -> {
+                // A folded section cannot be "revealed" folded: open it before scrolling to it.
+                // [FUEL-STATIONS-MAP-AND-PEEK-001]
+                onIntent(HomeIntent.SetFreeSpotsSectionExpanded(true))
                 onExpandSheet()
                 frame.coroutineScope.launch {
                     frame.lazyListState.animateScrollToItem(frame.lazyListState.freeSpotsIndex())
@@ -1166,6 +1192,7 @@ private fun HomeMapFabsSection(
     activeSessions: List<UserParking>,
     selectedSession: UserParking?,
     onMyCarMarkerClick: (sessionId: String) -> Unit,
+    onToggleFuelLayer: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     // Stable lambdas — GPS and parking read via rememberUpdatedState at call-time.
@@ -1218,6 +1245,7 @@ private fun HomeMapFabsSection(
             }
         },
         onMidpoint = onMidpoint,
+        onToggleFuelLayer = onToggleFuelLayer,
         modifier = modifier,
     )
 }

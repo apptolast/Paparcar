@@ -23,6 +23,11 @@ import com.rndeveloper.paparcar.ui.components.PapDivider
 import com.rndeveloper.paparcar.ui.components.PapShimmerBox
 import com.rndeveloper.paparcar.ui.components.PapShimmerBlockScale
 import com.rndeveloper.paparcar.ui.components.chips.PaparcarFilterChip
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.ExpandLess
+import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -286,6 +291,12 @@ fun LazyListScope.homeSheetItems(
             HomeFuelSection(
                 slice = slice.fuel,
                 onToggle = { onIntent(HomeIntent.ToggleFuelStations) },
+                // A row selects the station THROUGH the same lambda its map capsule uses, so the
+                // camera flies to it and the peek opens — a selection the map doesn't acknowledge
+                // reads as a dead tap. [FUEL-STATIONS-MAP-AND-PEEK-001]
+                onStationClick = { stationId ->
+                    onAction(HomeSheetAction.SelectFuelStation(stationId))
+                },
             )
         }
     }
@@ -381,14 +392,37 @@ private fun LazyListScope.spotsSection(
     showFilterBar: Boolean,
 ) {
     item(FREE_SPOTS_SECTION_KEY) {
-        PapSectionHeader(
-            title = if (filteredSpots.isNotEmpty())
-                pluralStringResource(Res.plurals.home_feed_nearby_with_count, filteredSpots.size, filteredSpots.size)
-            else
-                stringResource(Res.string.home_feed_nearby),
-            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
-        )
+        // Foldable, same molde as the refuel header (weight(1f) or the chevron leaves the screen —
+        // learnt on device in FUEL-STATIONS-LIST-001). The section keeps its PLACE whether folded
+        // or not: an empty feed folds to this one line so the refuel section sits right below,
+        // instead of the sections swapping order under the user's finger.
+        // [FUEL-STATIONS-MAP-AND-PEEK-001]
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable {
+                    onIntent(HomeIntent.SetFreeSpotsSectionExpanded(!slice.spotsSectionExpanded))
+                }
+                .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            PapSectionHeader(
+                title = if (filteredSpots.isNotEmpty())
+                    pluralStringResource(Res.plurals.home_feed_nearby_with_count, filteredSpots.size, filteredSpots.size)
+                else
+                    stringResource(Res.string.home_feed_nearby),
+                modifier = Modifier.weight(1f),
+            )
+            Icon(
+                imageVector = if (slice.spotsSectionExpanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
+
+    if (!slice.spotsSectionExpanded) return
 
     if (showFilterBar) {
         item(key = "filter_bar") {

@@ -137,4 +137,10 @@ interface AppPreferences {
     /** Stores map type as a plain string ("TERRAIN" | "SATELLITE" | "HYBRID"). */
     val defaultMapType: String
     fun setDefaultMapType(type: String)
+
+    /** The fuel-stations map layer. OFF by default — it is a tool you reach for, not furniture —
+     *  and a device preference like the map type, so it survives sign-out.
+     *  [FUEL-STATIONS-MAP-AND-PEEK-001] */
+    val showFuelStationsLayer: Boolean
+    fun setShowFuelStationsLayer(enabled: Boolean)
 }

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.DirectionsCar
+import androidx.compose.material.icons.rounded.LocalGasStation
 import androidx.compose.material.icons.rounded.MyLocation
 import androidx.compose.material.icons.rounded.Route
 import androidx.compose.runtime.Composable
@@ -18,18 +19,23 @@ import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.model.VehicleMonitoringStatus
 import com.rndeveloper.paparcar.presentation.util.MapCircleFab
 import com.rndeveloper.paparcar.ui.theme.PapColor
+import com.rndeveloper.paparcar.ui.theme.PapGreen
 import com.rndeveloper.paparcar.ui.theme.VehicleWatch
 import com.rndeveloper.paparcar.ui.theme.PapMotion
 import com.rndeveloper.paparcar.ui.theme.vehicleIdentityColor
 import com.rndeveloper.paparcar.ui.theme.watch
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.map_cd_fuel_layer
 import paparcar.composeapp.generated.resources.map_cd_go_to_car
 import paparcar.composeapp.generated.resources.map_cd_midpoint
 import paparcar.composeapp.generated.resources.map_cd_my_location
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Right-side map control column — strictly "where am I" affordances:
+// Right-side map control column — "where am I" affordances plus the one LAYER
+// toggle (fuel stations). The layer toggle cannot live beside MapTypeToggle in
+// the header: a third 56dp circle there squeezed the search bar to two lines,
+// measured. [UI-HOME-SEARCH-BAR-MUST-STAY-ONE-LINE-001] [FUEL-STATIONS-MAP-AND-PEEK-001]
 //   • Coche (only when a parking session is active) → recenters on the spot. It
 //     cycles between parked sessions [MULTI-PARKING-001], so it wears the
 //     selected vehicle's IDENTITY colour (blue = Bluetooth, green = active
@@ -59,11 +65,21 @@ internal fun HomeMapFabColumn(
     modifier: Modifier = Modifier,
     // True while a trip is being monitored — tapping MyLocation follows the moving car, not GPS.
     followsCar: Boolean = false,
+    /** The fuel-stations layer toggle. Brand green while ON — a layer you switched on is an action
+     *  in effect, which is exactly what the green means. [FUEL-STATIONS-MAP-AND-PEEK-001] */
+    fuelLayerOn: Boolean = false,
+    onToggleFuelLayer: () -> Unit = {},
 ) {
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
+        MapCircleFab(
+            icon = Icons.Rounded.LocalGasStation,
+            iconTint = if (fuelLayerOn) PapGreen else Color.Unspecified,
+            onClick = onToggleFuelLayer,
+            contentDescription = stringResource(Res.string.map_cd_fuel_layer),
+        )
         AnimatedVisibility(
             visible = hasActiveParking,
             enter = slideInVertically(PapMotion.medium(), initialOffsetY = { it }) + fadeIn(PapMotion.medium()),

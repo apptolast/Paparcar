@@ -130,8 +130,23 @@ class MapMarkerIdsTest {
         add(locationActiveContentId(null, null))
     }.map { EmittedId(it, MarkerTapTarget.Inert) }
 
+    /** The fuel layer — price text, selection and theme all baked into the key.
+     *  [FUEL-STATIONS-MAP-AND-PEEK-001] */
+    private val fuelStationIds: List<EmittedId> =
+        listOf("es-4021", "osm/node/99").flatMap { stationId ->
+            themes.flatMap { theme ->
+                // Price and fuel label travel TOGETHER (an unpriced capsule carries no label), so
+                // the corpus emits the pairs the builder actually produces.
+                listOf("1.879" to "Diesel", null to null).flatMap { (price, label) ->
+                    listOf(true, false).map { selected ->
+                        fuelStationContentId(stationId, price, label, selected, theme)
+                    }
+                }
+            }
+        }.map { EmittedId(it, MarkerTapTarget.FuelStation) }
+
     private val corpus: List<EmittedId> =
-        badgeIds + fallbackIds + askIds + zoneIds + freeSpotIds + inertIds
+        badgeIds + fallbackIds + askIds + zoneIds + freeSpotIds + fuelStationIds + inertIds
 
     // ── The population witness ──────────────────────────────────────────────
     // A suite that asserts a prohibition over an empty corpus is green for the wrong reason. These
@@ -153,6 +168,7 @@ class MapMarkerIdsTest {
             MarkerTapTarget.ParkingAsk to 2,
             MarkerTapTarget.Zone to 4,
             MarkerTapTarget.FreeSpot to 12,
+            MarkerTapTarget.FuelStation to 8,
             MarkerTapTarget.Inert to 4,
         ).forEach { (target, floor) ->
             val found = byTarget[target].orEmpty().size
@@ -194,6 +210,7 @@ class MapMarkerIdsTest {
             MarkerTapTarget.ParkingAsk to listOf(MARKER_PARKING_ASK),
             MarkerTapTarget.Zone to listOf(MARKER_ZONE_PREFIX),
             MarkerTapTarget.FreeSpot to listOf(MARKER_FREE_SPOT_PREFIX),
+            MarkerTapTarget.FuelStation to listOf(MARKER_FUEL_STATION_PREFIX),
         )
         corpus.forEach { (id, expected) ->
             prefixesByTarget.forEach { (target, prefixes) ->

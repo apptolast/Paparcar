@@ -31,7 +31,7 @@
     <string name="home_browse_hint_swipe_report">Desliza ↑ para reportar um lugar</string>
     <string name="common_directions">Como chegar</string>
     <string name="home_navigate_to_vehicle_cd">Como chegar ao carro</string>
-    <string name="home_feed_nearby">Perto de si</string>
+    <string name="home_feed_nearby">Lugares livres perto de si</string>
     <plurals name="home_feed_nearby_with_count">
         <item quantity="one">%1$d lugar livre perto de si</item>
         <item quantity="other">%1$d lugares livres perto de si</item>
@@ -181,6 +181,7 @@
     <string name="map_cd_go_to_parking">Centrar neste estacionamento</string>
     <string name="map_cd_midpoint_parking">Ponto médio entre mim e este estacionamento</string>
     <string name="map_cd_my_location">Centrar na minha localização</string>
+    <string name="map_cd_fuel_layer">Mostrar ou ocultar postos no mapa</string>
 
     <!-- SettingsScreen -->
     <string name="settings_title">Definições</string>
@@ -833,6 +834,8 @@
     <string name="home_fuel_title">Onde abastecer</string>
     <string name="home_fuel_empty">Não há postos num raio de 5 km.</string>
     <string name="home_fuel_missing_fuel_type">Indica o combustível deste carro em Veículos para ver os postos próximos e os seus preços.</string>
+    <string name="fuel_peek_eyebrow">Posto de combustível</string>
+    <string name="fuel_peek_not_sold">Não vendem aqui</string>
     <string name="home_fuel_error">Não conseguimos carregar os postos. Verifica a ligação e abre isto outra vez.</string>
     <string name="home_fuel_no_prices">Neste país os preços não são publicados. Estes são os postos por perto.</string>
     <string name="home_fuel_reported_at">Preços comunicados às %1$s</string>

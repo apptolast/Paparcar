@@ -119,4 +119,8 @@ class FakeAppPreferences(
     private var _defaultMapType = initialDefaultMapType
     override val defaultMapType: String get() = _defaultMapType
     override fun setDefaultMapType(type: String) { _defaultMapType = type }
+
+    private var _showFuelStationsLayer = false
+    override val showFuelStationsLayer: Boolean get() = _showFuelStationsLayer
+    override fun setShowFuelStationsLayer(enabled: Boolean) { _showFuelStationsLayer = enabled }
 }

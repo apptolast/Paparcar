@@ -31,6 +31,21 @@ sealed class HomeIntent {
      * section be open with nothing in it, which is the state that has to be impossible.
      */
     data object ToggleFuelStations : HomeIntent()
+
+    /**
+     * Show or hide the fuel-stations MAP layer. Persisted as a device preference, and turning it
+     * on loads the same stations the sheet section reads — one fetch feeds both surfaces.
+     * [FUEL-STATIONS-MAP-AND-PEEK-001]
+     */
+    data object ToggleFuelStationsLayer : HomeIntent()
+
+    /**
+     * Fold or unfold the free-spots section. Carries the DESIRED state (not a toggle) because two
+     * callers want different things: the header chevron sends the opposite of what it shows, and
+     * the checklist's "see nearby spots" must land on an OPEN section, never flip a closed one
+     * closed-er. [FUEL-STATIONS-MAP-AND-PEEK-001]
+     */
+    data class SetFreeSpotsSectionExpanded(val expanded: Boolean) : HomeIntent()
     /** null clears the selection; a spot or session id sets it. */
     /** [UI-PROVISIONAL-SPOT-IS-NOT-ITS-SESSION-001] Carries WHAT was tapped, not just its id — the
      *  kind is free at every tap site and a spot may legitimately share its session's id. */

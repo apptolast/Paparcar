@@ -31,7 +31,7 @@
     <string name="home_browse_hint_swipe_report">Glisează ↑ pentru a anunța un loc</string>
     <string name="common_directions">Indicații</string>
     <string name="home_navigate_to_vehicle_cd">Indicații către mașină</string>
-    <string name="home_feed_nearby">În apropierea ta</string>
+    <string name="home_feed_nearby">Locuri libere în apropiere</string>
     <!-- Romanian takes "de" from 20 up (20 de locuri), not below it (3 locuri). What used to sit in
          `other` was the few form, so counts of 20+ read wrong. [I18N-PLURAL-CATEGORIES-FOLLOW-THE-LANGUAGE-NOT-ENGLISH-001] -->
     <plurals name="home_feed_nearby_with_count">
@@ -184,6 +184,7 @@
     <string name="map_cd_go_to_parking">Centrează pe această parcare</string>
     <string name="map_cd_midpoint_parking">Punct de mijloc între mine și această parcare</string>
     <string name="map_cd_my_location">Centrează pe locația mea</string>
+    <string name="map_cd_fuel_layer">Arată sau ascunde benzinăriile pe hartă</string>
 
     <!-- SettingsScreen -->
     <string name="settings_title">Setări</string>
@@ -848,6 +849,8 @@
     <string name="home_fuel_title">Unde alimentezi</string>
     <string name="home_fuel_empty">Nicio benzinărie pe o rază de 5 km.</string>
     <string name="home_fuel_missing_fuel_type">Setează combustibilul acestei mașini în Vehicule ca să vezi benzinăriile din apropiere și prețurile lor.</string>
+    <string name="fuel_peek_eyebrow">Benzinărie</string>
+    <string name="fuel_peek_not_sold">Nu se vinde aici</string>
     <string name="home_fuel_error">Nu am putut încărca benzinăriile. Verifică conexiunea și deschide din nou.</string>
     <string name="home_fuel_no_prices">În această țară prețurile nu sunt publicate. Acestea sunt benzinăriile din apropiere.</string>
     <string name="home_fuel_reported_at">Prețuri raportate la %1$s</string>

@@ -31,7 +31,7 @@
     <string name="home_browse_hint_swipe_report">Przesuń ↑, aby zgłosić miejsce</string>
     <string name="common_directions">Trasa</string>
     <string name="home_navigate_to_vehicle_cd">Trasa do auta</string>
-    <string name="home_feed_nearby">W pobliżu</string>
+    <string name="home_feed_nearby">Wolne miejsca w pobliżu</string>
     <plurals name="home_feed_nearby_with_count">
         <item quantity="one">%1$d wolne miejsce w pobliżu</item>
         <item quantity="few">%1$d wolne miejsca w pobliżu</item>
@@ -183,6 +183,7 @@
     <string name="map_cd_go_to_parking">Wyśrodkuj na tym parkowaniu</string>
     <string name="map_cd_midpoint_parking">Punkt środkowy między mną a tym parkowaniem</string>
     <string name="map_cd_my_location">Wyśrodkuj na mojej lokalizacji</string>
+    <string name="map_cd_fuel_layer">Pokaż lub ukryj stacje paliw na mapie</string>
 
     <!-- SettingsScreen -->
     <string name="settings_title">Ustawienia</string>
@@ -849,6 +850,8 @@
     <string name="home_fuel_title">Gdzie zatankować</string>
     <string name="home_fuel_empty">Brak stacji paliw w promieniu 5 km.</string>
     <string name="home_fuel_missing_fuel_type">Ustaw paliwo tego auta w zakładce Pojazdy, aby zobaczyć pobliskie stacje i ich ceny.</string>
+    <string name="fuel_peek_eyebrow">Stacja paliw</string>
+    <string name="fuel_peek_not_sold">Tu niedostępne</string>
     <string name="home_fuel_error">Nie udało się wczytać stacji. Sprawdź połączenie i otwórz to ponownie.</string>
     <string name="home_fuel_no_prices">W tym kraju ceny nie są publikowane. Oto stacje w pobliżu.</string>
     <string name="home_fuel_reported_at">Ceny zgłoszone o %1$s</string>

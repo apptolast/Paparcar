@@ -2045,6 +2045,97 @@ class HomeViewModelTest {
         assertTrue(!fuel.missingFuelType)
     }
 
+    // ── La capa de gasolineras del mapa [FUEL-STATIONS-MAP-AND-PEEK-001] ─────
+
+    private fun spyStation(id: String = "st1") = com.rndeveloper.paparcar.domain.fuel.FuelStation(
+        id = id, name = "Repsol", address = null, town = null,
+        latitude = 40.4268, longitude = -3.7038,
+        prices = mapOf(
+            com.rndeveloper.paparcar.domain.model.FuelType.GASOLINE to
+                com.rndeveloper.paparcar.domain.model.Money(1.789, "EUR"),
+        ),
+    )
+
+    @Test
+    fun `should_loadStations_andPersistTheChoice_when_theLayerTurnsOn`() = runTest(testDispatcher) {
+        fuelSource.result = FuelStationsResult(listOf(spyStation()))
+        saveActiveCar(fuelType = com.rndeveloper.paparcar.domain.model.FuelType.GASOLINE)
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        advanceUntilIdle()
+
+        vm.handleIntent(HomeIntent.ToggleFuelStationsLayer)
+        advanceUntilIdle()
+
+        assertTrue(vm.state.value.showFuelStationsLayer)
+        assertTrue(prefs.showFuelStationsLayer, "the choice must survive the process")
+        assertEquals(1, fuelSource.askCount)
+        assertEquals(1, vm.state.value.fuel.stations.size)
+    }
+
+    @Test
+    fun `should_askFuelLess_when_theLayerTurnsOn_withACarWithoutFuel`() = runTest(testDispatcher) {
+        // The layer wants markers even for a fuel-less car — unpriced capsules are honest; the
+        // SECTION keeps its missingFuelType sentence for the priced list.
+        fuelSource.result = FuelStationsResult(listOf(spyStation()))
+        saveActiveCar(fuelType = null)
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        advanceUntilIdle()
+
+        vm.handleIntent(HomeIntent.ToggleFuelStationsLayer)
+        advanceUntilIdle()
+
+        assertEquals(1, fuelSource.askCount)
+        assertEquals(1, vm.state.value.fuel.stations.size)
+        assertTrue(!vm.state.value.fuel.missingFuelType)
+    }
+
+    @Test
+    fun `should_reprice_when_theSectionOpens_afterAFuelLessLayerLoad`() = runTest(testDispatcher) {
+        // The layer's fuel-less answer is a DIFFERENT question from the section's priced one —
+        // fetchedFor is what stops a priceless list from posing as Spain without prices.
+        fuelSource.result = FuelStationsResult(listOf(spyStation()))
+        saveActiveCar(fuelType = null)
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        advanceUntilIdle()
+        vm.handleIntent(HomeIntent.ToggleFuelStationsLayer)
+        advanceUntilIdle()
+        assertEquals(1, fuelSource.askCount)
+
+        saveActiveCar(fuelType = com.rndeveloper.paparcar.domain.model.FuelType.GASOLINE)
+        advanceUntilIdle()
+        vm.handleIntent(HomeIntent.ToggleFuelStations)
+        advanceUntilIdle()
+
+        assertEquals(2, fuelSource.askCount, "a priced section cannot serve the fuel-less answer")
+        assertEquals(
+            com.rndeveloper.paparcar.domain.model.FuelType.GASOLINE,
+            vm.state.value.fuel.fetchedFor,
+        )
+    }
+
+    @Test
+    fun `should_dropAStationSelection_when_theLayerTurnsOff`() = runTest(testDispatcher) {
+        fuelSource.result = FuelStationsResult(listOf(spyStation()))
+        saveActiveCar(fuelType = com.rndeveloper.paparcar.domain.model.FuelType.GASOLINE)
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        advanceUntilIdle()
+        vm.handleIntent(HomeIntent.ToggleFuelStationsLayer)
+        advanceUntilIdle()
+        vm.handleIntent(HomeIntent.SelectItem(HomeSelection.FuelStation("st1")))
+        advanceUntilIdle()
+        assertTrue(vm.state.value.selectedFuelStation != null)
+
+        vm.handleIntent(HomeIntent.ToggleFuelStationsLayer)
+        advanceUntilIdle()
+
+        assertTrue(!vm.state.value.showFuelStationsLayer)
+        assertEquals(null, vm.state.value.selection, "no peek may keep talking about an invisible pin")
+    }
+
     /** Counts the questions actually asked — what separates an honest empty from a fabricated one. */
     private class SpyFuelStationsSource : FuelStationsSource {
         var askCount = 0

@@ -10,6 +10,7 @@ import com.rndeveloper.paparcar.domain.model.DrivingPuck
 import com.rndeveloper.paparcar.domain.model.DisabledReason
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 import com.rndeveloper.paparcar.domain.onboarding.FirstStepsProgress
+import com.rndeveloper.paparcar.domain.usecase.fuel.NearbyFuelStation
 import com.rndeveloper.paparcar.domain.onboarding.resolveFirstSteps
 import com.rndeveloper.paparcar.domain.onboarding.resolveWatchReinforcement
 import com.rndeveloper.paparcar.presentation.home.model.DetectionUiState
@@ -312,6 +313,19 @@ data class HomeState(
      */
     val fuel: HomeFuelSlice = HomeFuelSlice(),
 
+    /** The fuel-stations map layer, mirroring its [AppPreferences] switch. OFF by default.
+     *  [FUEL-STATIONS-MAP-AND-PEEK-001] */
+    val showFuelStationsLayer: Boolean = false,
+
+    /**
+     * The user's explicit fold/unfold of the free-spots section, or null while they have not
+     * touched it — in which case [freeSpotsSectionExpanded] decides from the data: open with spots
+     * to show, folded when there are none, so an empty feed is one header line instead of a block
+     * the refuel section hides under. Session-only on purpose (like the fuel section's fold).
+     * [FUEL-STATIONS-MAP-AND-PEEK-001]
+     */
+    val freeSpotsExpandedOverride: Boolean? = null,
+
 ) {
     // ── Computed properties ───────────────────────────────────────────────────
     // Only cheap, non-allocating lookups live here. List-materialising projections
@@ -344,8 +358,22 @@ data class HomeState(
         get() = (selection as? HomeSelection.Spot)
             ?.let { sel -> nearbySpots.firstOrNull { it.id == sel.id } }
 
+    /** The selected fuel station, or null when the selection is another kind / stale.
+     *  Resolves inside its OWN arm, like the other two. [FUEL-STATIONS-MAP-AND-PEEK-001] */
+    val selectedFuelStation: NearbyFuelStation?
+        get() = (selection as? HomeSelection.FuelStation)
+            ?.let { sel -> fuel.stations.firstOrNull { it.station.id == sel.id } }
+
     val isParkingSelected: Boolean
         get() = selectedSession != null
+
+    /** Whether the free-spots section shows its body. The user's explicit choice wins; otherwise
+     *  the data decides — open with spots (or while still loading), folded on a true empty.
+     *  ⛔ Stable order, folding body: the section never CHANGES PLACE when spots appear — a list
+     *  that reorders under the finger is the failure this design refuses.
+     *  [FUEL-STATIONS-MAP-AND-PEEK-001] */
+    val freeSpotsSectionExpanded: Boolean
+        get() = freeSpotsExpandedOverride ?: (spotsOnOffer.isNotEmpty() || isLoading)
 
     /** Presentation projection of [detectionReadiness] for the Home detection surface. [DET-READY-001h] */
     val detectionUiState: DetectionUiState

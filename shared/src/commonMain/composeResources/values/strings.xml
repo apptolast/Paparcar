@@ -61,7 +61,7 @@
     <string name="common_directions">Directions</string>
     <!-- The icon-only twin on the parking peek: a screen reader needs the destination too. -->
     <string name="home_navigate_to_vehicle_cd">Directions to your car</string>
-    <string name="home_feed_nearby">Near you</string>
+    <string name="home_feed_nearby">Free spots nearby</string>
     <plurals name="home_feed_nearby_with_count">
         <item quantity="one">%1$d free spot near you</item>
         <item quantity="other">%1$d free spots near you</item>
@@ -247,6 +247,7 @@
     <string name="map_cd_go_to_parking">Center on this parking</string>
     <string name="map_cd_midpoint_parking">Midpoint between me and this parking</string>
     <string name="map_cd_my_location">Center on my location</string>
+    <string name="map_cd_fuel_layer">Show or hide fuel stations on the map</string>
 
     <!-- Generic error messages -->
     <string name="error_unknown">Something went wrong</string>
@@ -868,6 +869,8 @@
     <string name="home_fuel_title">Where to refuel</string>
     <string name="home_fuel_empty">No fuel stations within 5 km.</string>
     <string name="home_fuel_missing_fuel_type">Set this car's fuel type in Vehicles to see nearby stations and their prices.</string>
+    <string name="fuel_peek_eyebrow">Fuel station</string>
+    <string name="fuel_peek_not_sold">Not sold here</string>
     <string name="home_fuel_error">We could not load the stations. Check your connection and open this again.</string>
     <string name="home_fuel_no_prices">Prices are not published in this country. These are the stations nearby.</string>
     <string name="home_fuel_reported_at">Prices reported at %1$s</string>

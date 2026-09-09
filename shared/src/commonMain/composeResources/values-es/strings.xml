@@ -48,7 +48,7 @@
          [COPY-PARKING-EDIT-THREE-ANSWERS-ONE-QUESTION-001] -->
     <string name="common_directions">Cómo llegar</string>
     <string name="home_navigate_to_vehicle_cd">Cómo llegar al coche</string>
-    <string name="home_feed_nearby">Cerca de ti</string>
+    <string name="home_feed_nearby">Plazas libres cerca</string>
     <plurals name="home_feed_nearby_with_count">
         <item quantity="one">%1$d plaza libre cerca de ti</item>
         <item quantity="other">%1$d plazas libres cerca de ti</item>
@@ -229,6 +229,7 @@
     <string name="map_cd_go_to_parking">Centrar en este aparcamiento</string>
     <string name="map_cd_midpoint_parking">Punto medio entre mi posición y este aparcamiento</string>
     <string name="map_cd_my_location">Centrar en mi ubicación</string>
+    <string name="map_cd_fuel_layer">Mostrar u ocultar gasolineras en el mapa</string>
 
     <!-- SettingsScreen -->
     <string name="settings_title">Ajustes</string>
@@ -828,6 +829,8 @@
     <string name="home_fuel_title">Dónde repostar</string>
     <string name="home_fuel_empty">No hay gasolineras a menos de 5 km.</string>
     <string name="home_fuel_missing_fuel_type">Indica el combustible de este coche en Vehículos para ver las gasolineras cercanas y sus precios.</string>
+    <string name="fuel_peek_eyebrow">Gasolinera</string>
+    <string name="fuel_peek_not_sold">No lo venden aquí</string>
     <string name="home_fuel_error">No hemos podido cargar las gasolineras. Comprueba la conexión y vuelve a abrir esto.</string>
     <string name="home_fuel_no_prices">En este país no se publican los precios. Estas son las gasolineras cercanas.</string>
     <string name="home_fuel_reported_at">Precios comunicados a las %1$s</string>

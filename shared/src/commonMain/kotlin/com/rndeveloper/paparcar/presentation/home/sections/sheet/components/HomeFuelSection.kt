@@ -48,6 +48,9 @@ fun HomeFuelSection(
     slice: HomeFuelSlice,
     onToggle: () -> Unit,
     modifier: Modifier = Modifier,
+    /** A row opens the station's peek — the same one its map capsule opens.
+     *  [FUEL-STATIONS-MAP-AND-PEEK-001] */
+    onStationClick: ((String) -> Unit)? = null,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
@@ -107,7 +110,10 @@ fun HomeFuelSection(
                         if (!slice.hasPrices) {
                             SectionNote(stringResource(Res.string.home_fuel_no_prices))
                         }
-                        HomeFuelStationRows(stations = slice.stations)
+                        HomeFuelStationRows(
+                            stations = slice.stations,
+                            onStationClick = onStationClick,
+                        )
                         // A price with no hour beside it is a price nobody can weigh — this whole
                         // phase exists because a proxy of the same data ran twelve hours behind.
                         slice.reportedAt?.let { reportedAt ->

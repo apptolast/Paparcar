@@ -29,4 +29,7 @@ sealed interface HomeSelection {
 
     /** One of the user's own active parking sessions. */
     data class Parking(override val id: String) : HomeSelection
+
+    /** A fuel station from the layer / the refuel section. [FUEL-STATIONS-MAP-AND-PEEK-001] */
+    data class FuelStation(override val id: String) : HomeSelection
 }

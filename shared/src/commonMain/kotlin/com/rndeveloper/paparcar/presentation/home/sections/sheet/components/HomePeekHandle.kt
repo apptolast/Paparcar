@@ -27,6 +27,7 @@ import com.rndeveloper.paparcar.presentation.home.PeekStep
 import com.rndeveloper.paparcar.presentation.home.model.DetectionUiState
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.HomeSheetAction
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.peek.AddingParkingPeek
+import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.peek.FuelStationPeek
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.peek.AddingZonePeek
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.peek.BrowsePeek
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.peek.ParkingPeek
@@ -54,6 +55,7 @@ fun HomePeekHandle(
     // Under multi-parking pick the *specific* selected session, not just the first active one,
     // so the peek's title, address and actions refer to the vehicle the user actually tapped.
     val selectedSession = slice.selectedSession
+    val selectedFuelStation = slice.selectedFuelStation
     val peekState: PeekState = when {
         slice.mode is HomeMode.AddingParking ->
             PeekState.AddingParking(
@@ -73,6 +75,8 @@ fun HomePeekHandle(
         // which is how a spot sharing its session's id opened the car's peek.
         selectedSpot != null -> PeekState.SelectedSpot(selectedSpot.id)
         selectedSession != null -> PeekState.SelectedParking(selectedSession.id)
+        selectedFuelStation != null ->
+            PeekState.SelectedFuelStation(selectedFuelStation.station.id)
         else -> PeekState.Browse
     }
 
@@ -201,6 +205,20 @@ fun HomePeekHandle(
                     onIntent = onIntent,
                     onAction = onAction,
                 )
+                is PeekState.SelectedFuelStation -> {
+                    // Identity only in the state; the live station re-reads from the slice.
+                    // [BUG-PEEK-JITTER-001] [FUEL-STATIONS-MAP-AND-PEEK-001]
+                    val nearby = slice.fuelStations.firstOrNull { it.station.id == target.stationId }
+                    if (nearby != null) {
+                        FuelStationPeek(
+                            nearby = nearby,
+                            userLocation = slice.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
+                            reportedAt = slice.fuelReportedAt,
+                            onIntent = onIntent,
+                            onAction = onAction,
+                        )
+                    }
+                }
                 PeekState.Browse -> {
                     val parking = slice.userParking
                     BrowsePeek(
@@ -241,6 +259,7 @@ private fun HomePeekSlice.settlingCameraTitle(): String =
 private sealed class PeekState {
     data class SelectedSpot(val spotId: String) : PeekState()
     data class SelectedParking(val sessionId: String) : PeekState()
+    data class SelectedFuelStation(val stationId: String) : PeekState()
     data object Reporting : PeekState()
     data object AddingZone : PeekState()
     /** [vehicleId] is the car being positioned — identity for the car-lane page-turn: two unparked

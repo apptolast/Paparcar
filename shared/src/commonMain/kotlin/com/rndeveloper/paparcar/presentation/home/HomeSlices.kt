@@ -24,6 +24,8 @@ import com.rndeveloper.paparcar.presentation.home.model.ParkedWatchBadge
 import com.rndeveloper.paparcar.presentation.util.PlaceLine
 import com.rndeveloper.paparcar.presentation.util.secondaryPlaceLine
 import com.rndeveloper.paparcar.presentation.util.toPlaceLine
+import com.rndeveloper.paparcar.domain.model.FuelType
+import com.rndeveloper.paparcar.domain.usecase.fuel.NearbyFuelStation
 import com.rndeveloper.paparcar.presentation.home.model.HomeFuelSlice
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -74,6 +76,9 @@ data class HomeFabsSlice(
      *  while it re-engages driver-follow, the same colour its trail and puck carry on the map.
      *  Null when no trip is live. [UI-A-TRACKED-TRIP-WEARS-ITS-WATCH-001] */
     val drivingWatch: VehicleMonitoringStatus?,
+    /** Whether the fuel-stations layer is on — its toggle FAB shows the state.
+     *  [FUEL-STATIONS-MAP-AND-PEEK-001] */
+    val showFuelStationsLayer: Boolean,
 )
 
 /** What the map tile layer sees. [addParkingVehicle] is the vehicle being
@@ -109,6 +114,14 @@ data class HomeMapSlice(
      * [UI-A-TRACKED-TRIP-WEARS-ITS-WATCH-001]
      */
     val drivingWatch: VehicleMonitoringStatus?,
+    /** The fuel-stations layer: empty whenever it is OFF, so the map never has to ask why.
+     *  [FUEL-STATIONS-MAP-AND-PEEK-001] */
+    val fuelStations: List<NearbyFuelStation>,
+    /** Which station wears the selected capsule, or null. */
+    val selectedFuelStationId: String?,
+    /** Which fuel those capsule prices ARE — a figure with no subject forces the reader to
+     *  remember what their car burns. Null when the answer was fetched fuel-less (unpriced). */
+    val fuelPricesFor: FuelType?,
 )
 
 /**
@@ -138,6 +151,12 @@ data class HomePeekSlice(
     val selection: HomeSelection?,
     val vehicles: List<Vehicle>,
     val userGpsPoint: GpsPoint?,
+    /** The fuel answer the peek resolves a station selection against — the LIST stays in the slice
+     *  (same reason as [nearbySpots]): the outgoing peek keeps resolving while it animates away.
+     *  [BUG-PEEK-JITTER-001] [FUEL-STATIONS-MAP-AND-PEEK-001] */
+    val fuelStations: List<NearbyFuelStation>,
+    /** The feed's own hour for those prices, verbatim; null where the source has none. */
+    val fuelReportedAt: String?,
     /** Spots already voted on this session — their vote buttons stop being offered.
      *  [SPOT-COMMUNITY-VOTES-NEED-A-CONSEQUENCE-001] */
     val votedSpotIds: Set<String>,
@@ -204,6 +223,12 @@ data class HomePeekSlice(
 
     val isParkingSelected: Boolean
         get() = selectedSession != null
+
+    /** The selected fuel station, resolved inside its own arm like the other two.
+     *  [FUEL-STATIONS-MAP-AND-PEEK-001] */
+    val selectedFuelStation: NearbyFuelStation?
+        get() = (selection as? HomeSelection.FuelStation)
+            ?.let { sel -> fuelStations.firstOrNull { it.station.id == sel.id } }
 
     /** Neighbours of the selected spot in the browse order — what the peek's ‹ / › offer.
      *  [UI-PEEK-STEPS-BETWEEN-PINS-001] */
@@ -281,6 +306,9 @@ data class HomeBrowseListSlice(
     val firstSteps: FirstStepsProgress,
     /** "Where to refuel", folded until asked for. [FUEL-STATIONS-LIST-001] */
     val fuel: HomeFuelSlice,
+    /** Whether the free-spots section shows its body — resolved by [HomeState.freeSpotsSectionExpanded]
+     *  (user override, else data). [FUEL-STATIONS-MAP-AND-PEEK-001] */
+    val spotsSectionExpanded: Boolean,
 ) {
     /**
      * Whether the guided checklist is actually ON SCREEN — visibility AND the two conditions that
@@ -343,6 +371,7 @@ internal fun HomeState.toFabsSlice() = HomeFabsSlice(
         vehicles.firstOrNull { it.id == meta.vehicleId }?.monitoringStatus()
             ?: VehicleMonitoringStatus.Inactive
     },
+    showFuelStationsLayer = showFuelStationsLayer,
 )
 
 internal fun HomeState.toMapSlice() = HomeMapSlice(
@@ -372,6 +401,9 @@ internal fun HomeState.toMapSlice() = HomeMapSlice(
         vehicles.firstOrNull { it.id == meta.vehicleId }?.monitoringStatus()
             ?: VehicleMonitoringStatus.Inactive
     },
+    fuelStations = if (showFuelStationsLayer) fuel.stations else emptyList(),
+    selectedFuelStationId = (selection as? HomeSelection.FuelStation)?.id,
+    fuelPricesFor = fuel.fetchedFor,
 )
 
 fun HomeState.toPeekSlice(): HomePeekSlice {
@@ -398,6 +430,8 @@ fun HomeState.toPeekSlice(): HomePeekSlice {
         selection = selection,
         vehicles = vehicles,
         userGpsPoint = userGpsPoint,
+        fuelStations = fuel.stations,
+        fuelReportedAt = fuel.reportedAt,
         votedSpotIds = votedSpotIds,
         drivingMeta = drivingMeta,
         isAwaitingAnswer = promptWindow != null,
@@ -429,6 +463,7 @@ fun HomeState.toPeekSlice(): HomePeekSlice {
 
 fun HomeState.toBrowseListSlice() = HomeBrowseListSlice(
     fuel = fuel,
+    spotsSectionExpanded = freeSpotsSectionExpanded,
     detectionUiState = detectionUiState,
     parkedWatchBadge = parkedWatchBadge,
     showParkNudge = shouldShowParkNudgeBanner(pendingParkNudge, activeSessions),

@@ -49,6 +49,9 @@ internal const val MARKER_FREE_SPOT_PREFIX = "free_spot_"
 internal const val MARKER_CLUSTER = "cluster"
 internal const val MARKER_CLUSTER_DIM = "cluster_dim"
 
+/** The fuel-stations layer. [FUEL-STATIONS-MAP-AND-PEEK-001] */
+internal const val MARKER_FUEL_STATION_PREFIX = "fuel_station_"
+
 // ── Id builders shared by the marker list and its bitmap registry ────────────
 // Both sides must agree exactly or kmpmaps finds no handler and renders the default pin, so
 // neither builds its own string.
@@ -59,6 +62,21 @@ internal fun parkingAskContentId(themeKey: String): String = "${MARKER_PARKING_A
 /** Per-zone × dim: each zone has two cached bitmaps. [MAP-MARKERS-DIM-002] */
 internal fun zoneContentId(zoneId: String, isPrivate: Boolean, dim: Boolean): String =
     "$MARKER_ZONE_PREFIX${zoneId}_${if (isPrivate) "prv" else "pub"}_${if (dim) "dim" else "nrm"}"
+
+/**
+ * One bitmap per station × price text × fuel label × selection × theme, because everything visible
+ * is DRAWN into the bitmap and kmpmaps refreshes nothing the key does not change. Price and label
+ * travel as their display strings so a repriced station — or a switch to a car that burns something
+ * else — gets a new key, not a stale capsule. [FUEL-STATIONS-MAP-AND-PEEK-001]
+ */
+internal fun fuelStationContentId(
+    stationId: String,
+    priceText: String?,
+    fuelLabel: String?,
+    selected: Boolean,
+    themeKey: String,
+): String = "$MARKER_FUEL_STATION_PREFIX${stationId}_${priceText.orEmpty()}_${fuelLabel.orEmpty()}_" +
+    "${if (selected) "sel" else "nrm"}_$themeKey"
 
 // ── What a tap on a marker means ────────────────────────────────────────────
 
@@ -75,6 +93,9 @@ internal sealed interface MarkerTapTarget {
 
     /** A free spot published by the community. */
     data object FreeSpot : MarkerTapTarget
+
+    /** A fuel station from the layer. Selects it and opens its peek. */
+    data object FuelStation : MarkerTapTarget
 
     /**
      * Deliberately unhandled: clusters (tapping one would be ambiguous — zoom in instead), the
@@ -97,5 +118,6 @@ internal fun resolveMarkerTapTarget(contentId: String?): MarkerTapTarget = when 
     // Checked before the free-spot prefix only for readability; `cluster` shares no prefix with it.
     contentId == MARKER_CLUSTER || contentId == MARKER_CLUSTER_DIM -> MarkerTapTarget.Inert
     contentId.startsWith(MARKER_FREE_SPOT_PREFIX) -> MarkerTapTarget.FreeSpot
+    contentId.startsWith(MARKER_FUEL_STATION_PREFIX) -> MarkerTapTarget.FuelStation
     else -> MarkerTapTarget.Inert
 }
