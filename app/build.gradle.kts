@@ -218,6 +218,13 @@ dependencies {
     implementation(libs.glance.appwidget)
 
     debugImplementation(libs.ui.tooling)
+
+    // El grafo del flavor mock se verifica como el de prod. `:shared` no puede hacerlo: mockModule
+    // vive aquí, y sin dataModule cada puerto que domainModule consume está declarado DOS veces.
+    // [MOCK-A-SECOND-GRAPH-NEEDS-A-SECOND-VERIFY-001]
+    testImplementation(libs.kotlin.test)
+    testImplementation(libs.kotlin.test.junit)
+    testImplementation(libs.koin.test)
 }
 
 // [build] The Crashlytics ProGuard-mapping upload runs after the APK is built and reaches Firebase

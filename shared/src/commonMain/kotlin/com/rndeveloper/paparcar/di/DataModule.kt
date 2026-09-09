@@ -44,6 +44,12 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import org.koin.dsl.module
+import com.rndeveloper.paparcar.data.fuel.CachingFuelStationsSource
+import com.rndeveloper.paparcar.data.fuel.FuelStationsRegistry
+import com.rndeveloper.paparcar.data.fuel.MineturStationsSource
+import com.rndeveloper.paparcar.data.fuel.OsmFuelStationsSource
+import com.rndeveloper.paparcar.domain.fuel.FuelStationsSource
+import io.ktor.client.HttpClient
 
 val dataModule = module {
 
@@ -133,6 +139,28 @@ val dataModule = module {
 
     // Local datasources
     single<LocalAddressAndPlaceDataSource> { RoomLocalAddressAndPlaceDataSource(get()) }
+
+    // ── Gasolineras cercanas [FUEL-STATIONS-LIST-001] ─────────────────────────
+    // Un solo HttpClient en commonMain: Ktor ya viene con el fetcher de red de Coil y los dos
+    // motores están declarados por plataforma, así que cada país es UN fichero en vez de una clase
+    // de transporte por plataforma (con ocho países, dieciséis).
+    // ⛔ El cliente NO se registra como definición propia: `HttpClient()` es una FÁBRICA que resuelve
+    // su motor del classpath, pero el verificador de Koin mira el CONSTRUCTOR y exige entonces un
+    // `HttpClientEngine` que nadie provee — lo cazó `KoinModuleVerifyTest`, no el runtime. Creado
+    // aquí dentro lo comparten igualmente todos los adaptadores de país, que es lo que se quería.
+    //
+    // Una fuente por país; OSM es el suelo del resto del mundo, y el registro decide quién contesta
+    // y cuándo se cae al suelo. La caché envuelve al registro, no al revés: así vale para todos los
+    // países y nunca guarda un fallo.
+    single<FuelStationsSource> {
+        val http = HttpClient()
+        CachingFuelStationsSource(
+            FuelStationsRegistry(
+                national = listOf(MineturStationsSource(http)),
+                fallback = OsmFuelStationsSource(http),
+            ),
+        )
+    }
 
     // NOTA: LocationDataSource se provee en los módulos de plataforma.
 }

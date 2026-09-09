@@ -838,4 +838,12 @@
     <!-- Where the spend figure's price came from (FUEL-PRICE-RESOLVER-001) -->
     <string name="stats_cost_from_average">Cost estimat cu prețul mediu din țara ta.</string>
     <string name="stats_cost_from_your_price">Cost estimat cu prețul tău.</string>
+
+    <!-- Gasolineras cercanas [FUEL-STATIONS-LIST-001] -->
+    <string name="location_fallback_station">Benzinărie</string>
+    <string name="home_fuel_title">Unde alimentezi</string>
+    <string name="home_fuel_empty">Nicio benzinărie pe o rază de 5 km.</string>
+    <string name="home_fuel_error">Nu am putut încărca benzinăriile. Verifică conexiunea și deschide din nou.</string>
+    <string name="home_fuel_no_prices">În această țară prețurile nu sunt publicate. Acestea sunt benzinăriile din apropiere.</string>
+    <string name="home_fuel_reported_at">Prețuri raportate la %1$s</string>
 </resources>

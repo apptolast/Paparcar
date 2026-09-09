@@ -819,4 +819,12 @@
     <!-- Where the spend figure's price came from (FUEL-PRICE-RESOLVER-001) -->
     <string name="stats_cost_from_average">Gasto estimado con el precio medio de tu país.</string>
     <string name="stats_cost_from_your_price">Gasto estimado con tu precio.</string>
+
+    <!-- Gasolineras cercanas [FUEL-STATIONS-LIST-001] -->
+    <string name="location_fallback_station">Gasolinera</string>
+    <string name="home_fuel_title">Dónde repostar</string>
+    <string name="home_fuel_empty">No hay gasolineras a menos de 5 km.</string>
+    <string name="home_fuel_error">No hemos podido cargar las gasolineras. Comprueba la conexión y vuelve a abrir esto.</string>
+    <string name="home_fuel_no_prices">En este país no se publican los precios. Estas son las gasolineras cercanas.</string>
+    <string name="home_fuel_reported_at">Precios comunicados a las %1$s</string>
 </resources>

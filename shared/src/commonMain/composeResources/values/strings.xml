@@ -859,4 +859,12 @@
     <!-- Where the spend figure's price came from (FUEL-PRICE-RESOLVER-001) -->
     <string name="stats_cost_from_average">Spend estimated with your country's average price.</string>
     <string name="stats_cost_from_your_price">Spend estimated with your own price.</string>
+
+    <!-- Gasolineras cercanas [FUEL-STATIONS-LIST-001] -->
+    <string name="location_fallback_station">Fuel station</string>
+    <string name="home_fuel_title">Where to refuel</string>
+    <string name="home_fuel_empty">No fuel stations within 5 km.</string>
+    <string name="home_fuel_error">We could not load the stations. Check your connection and open this again.</string>
+    <string name="home_fuel_no_prices">Prices are not published in this country. These are the stations nearby.</string>
+    <string name="home_fuel_reported_at">Prices reported at %1$s</string>
 </resources>

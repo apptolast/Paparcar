@@ -278,6 +278,16 @@ fun LazyListScope.homeSheetItems(
             filteredSpots = filteredSpots,
             showFilterBar = showFilterBar,
         )
+
+        // ── 4. Where to refuel — under the spots, folded. [FUEL-STATIONS-LIST-001]
+        // Same CORE gate as the spots and for the same reason: without a location there is no
+        // "nearby" to answer, and nothing is fetched until the header is actually unfolded.
+        item("fuel_stations") {
+            HomeFuelSection(
+                slice = slice.fuel,
+                onToggle = { onIntent(HomeIntent.ToggleFuelStations) },
+            )
+        }
     }
 }
 

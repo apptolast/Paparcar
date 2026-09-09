@@ -134,6 +134,12 @@ import com.rndeveloper.paparcar.ui.components.ZoneMarker
 import com.rndeveloper.paparcar.ui.theme.PaparcarTheme
 import com.rndeveloper.paparcar.ui.theme.VehicleWatch
 import com.rndeveloper.paparcar.domain.detection.DetectionPath
+import com.rndeveloper.paparcar.domain.fuel.FuelStation
+import com.rndeveloper.paparcar.domain.usecase.fuel.NearbyFuelStation
+import com.rndeveloper.paparcar.presentation.home.model.HomeFuelSlice
+import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.HomeFuelSection
+import com.rndeveloper.paparcar.domain.model.FuelType
+import com.rndeveloper.paparcar.domain.model.Money
 
 /**
  * How a variant should be presented in the viewer.
@@ -2208,6 +2214,89 @@ private val galleryGroups: List<ScreenGroup> = listOf(
         listOf(
             Variant("Showcase completo (sin tiles)") { markersShowcase() },
         ),
+    ),
+    // Las cuatro frases de la sección son DISTINTAS a propósito: lista vacía, fallo y país sin
+    // precios publicados se leen igual ("no hay precios") si se les deja colapsar en una.
+    // [FUEL-STATIONS-LIST-001]
+    ScreenGroup(
+        "Home · dónde repostar",
+        listOf(
+            Variant("Plegada (nada pedido todavía)", Placement.Surface) {
+                HomeFuelSection(slice = HomeFuelSlice(), onToggle = {})
+            },
+            Variant("Cargando", Placement.Surface) {
+                HomeFuelSection(
+                    slice = HomeFuelSlice(isExpanded = true, isLoading = true),
+                    onToggle = {},
+                )
+            },
+            // España: precio real por surtidor y la hora del feed al pie.
+            Variant("Con precios (España)", Placement.Surface) {
+                HomeFuelSection(
+                    slice = HomeFuelSlice(
+                        isExpanded = true,
+                        stations = galleryFuelStations,
+                        reportedAt = "09/09/2026 08:30:00",
+                    ),
+                    onToggle = {},
+                )
+            },
+            // El resto del mundo: gasolineras reales de OSM y ni un precio. Se dice ANTES de las
+            // filas, para que una columna de distancias sin cifras no se lea como un fallo de carga.
+            Variant("Sin precios publicados (resto del mundo)", Placement.Surface) {
+                HomeFuelSection(
+                    slice = HomeFuelSlice(
+                        isExpanded = true,
+                        stations = galleryFuelStations.map { it.copy(price = null) },
+                    ),
+                    onToggle = {},
+                )
+            },
+            Variant("Ninguna a menos de 5 km", Placement.Surface) {
+                HomeFuelSection(slice = HomeFuelSlice(isExpanded = true), onToggle = {})
+            },
+            // ⛔ No es lo mismo que la anterior: decir "no hay ninguna" cuando no se pudo preguntar
+            // manda al usuario a conducir sobre algo que nadie comprobó.
+            Variant("No se pudo preguntar", Placement.Surface) {
+                HomeFuelSection(
+                    slice = HomeFuelSlice(isExpanded = true, failed = true),
+                    onToggle = {},
+                )
+            },
+        ),
+    ),
+)
+
+/** Tres surtidores con la forma real del feed: precio a TRES decimales y uno sin marca. */
+private val galleryFuelStations: List<NearbyFuelStation> = listOf(
+    NearbyFuelStation(
+        station = FuelStation(
+            id = "1", name = "Repsol", address = "Calle Mayor 12", town = "Madrid",
+            latitude = 40.4168, longitude = -3.7038,
+            prices = mapOf(FuelType.DIESEL to Money(1.879, "EUR")),
+        ),
+        distanceMeters = 420.0,
+        price = Money(1.879, "EUR"),
+    ),
+    NearbyFuelStation(
+        station = FuelStation(
+            id = "2", name = "Petroprix", address = "Avenida de América 48", town = "Madrid",
+            latitude = 40.4268, longitude = -3.7038,
+            prices = mapOf(FuelType.DIESEL to Money(1.759, "EUR")),
+        ),
+        distanceMeters = 1_240.0,
+        price = Money(1.759, "EUR"),
+    ),
+    // Sin nombre ni marca: se la ubica, no se le inventa un nombre. Pasa en el feed francés (que no
+    // trae nombre ninguno) y en 1 de cada 25 de OSM.
+    NearbyFuelStation(
+        station = FuelStation(
+            id = "3", name = null, address = "Carretera de Burgos km 14", town = "Alcobendas",
+            latitude = 40.5400, longitude = -3.6400,
+            prices = mapOf(FuelType.DIESEL to Money(1.765, "EUR")),
+        ),
+        distanceMeters = 3_100.0,
+        price = Money(1.765, "EUR"),
     ),
 )
 

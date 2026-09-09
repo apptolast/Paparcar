@@ -22,6 +22,15 @@ sealed class HomeIntent {
     // ── Spot interactions ─────────────────────────────────────────────────────
 
     data object LoadNearbySpots : HomeIntent()
+
+    /**
+     * Fold or unfold "where to refuel" — and, the first time it unfolds, go and ask.
+     * [FUEL-STATIONS-LIST-001]
+     *
+     * One intent for both because they are one user action. A separate "load" intent would let the
+     * section be open with nothing in it, which is the state that has to be impossible.
+     */
+    data object ToggleFuelStations : HomeIntent()
     /** null clears the selection; a spot or session id sets it. */
     /** [UI-PROVISIONAL-SPOT-IS-NOT-ITS-SESSION-001] Carries WHAT was tapped, not just its id — the
      *  kind is free at every tap site and a spot may legitimately share its session's id. */

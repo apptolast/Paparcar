@@ -838,4 +838,12 @@
     <!-- Where the spend figure's price came from (FUEL-PRICE-RESOLVER-001) -->
     <string name="stats_cost_from_average">Koszt oszacowany na podstawie średniej ceny w Twoim kraju.</string>
     <string name="stats_cost_from_your_price">Koszt oszacowany na podstawie Twojej ceny.</string>
+
+    <!-- Gasolineras cercanas [FUEL-STATIONS-LIST-001] -->
+    <string name="location_fallback_station">Stacja paliw</string>
+    <string name="home_fuel_title">Gdzie zatankować</string>
+    <string name="home_fuel_empty">Brak stacji paliw w promieniu 5 km.</string>
+    <string name="home_fuel_error">Nie udało się wczytać stacji. Sprawdź połączenie i otwórz to ponownie.</string>
+    <string name="home_fuel_no_prices">W tym kraju ceny nie są publikowane. Oto stacje w pobliżu.</string>
+    <string name="home_fuel_reported_at">Ceny zgłoszone o %1$s</string>
 </resources>

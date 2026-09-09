@@ -74,6 +74,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
+import com.rndeveloper.paparcar.domain.usecase.fuel.GetNearbyFuelStationsUseCase
 
 @OptIn(ExperimentalCoroutinesApi::class, ExperimentalTime::class)
 class HomeViewModel(
@@ -107,6 +108,9 @@ class HomeViewModel(
     // answerable. Taken from the detector's own config rather than restated here, so the row can
     // never outlive the window the coordinator is still honouring.
     private val detectionConfig: ParkingDetectionConfig,
+    // "Where to refuel": only consulted when the user unfolds the section.
+    // [FUEL-STATIONS-LIST-001]
+    private val getNearbyFuelStations: GetNearbyFuelStationsUseCase,
     private val mapFocusEventBus: MapFocusEventBus,
     private val startAddParkingEventBus: StartAddParkingEventBus,
     private val manualParkingDetection: ManualParkingDetection,
@@ -302,6 +306,9 @@ class HomeViewModel(
             is HomeIntent.LoadNearbySpots,
             is HomeIntent.SelectItem,
             is HomeIntent.SetSizeFilter,
+            // Rides with the spots: same sheet, same CORE gate, same "what is around me" question.
+            // [FUEL-STATIONS-LIST-001]
+            is HomeIntent.ToggleFuelStations,
             is HomeIntent.SendSpotSignal,
             is HomeIntent.EnterReportMode,
             is HomeIntent.ExitReportMode,
@@ -449,6 +456,53 @@ class HomeViewModel(
 
     // ── Community spots ───────────────────────────────────────────────────────
 
+    /**
+     * Folds the refuel section, or unfolds it and — the first time only — goes and asks.
+     * [FUEL-STATIONS-LIST-001]
+     *
+     * Nothing is fetched while it stays folded: most sessions never ask this question, and Spain's
+     * feed is downloaded a province at a time. Closing it keeps what was already fetched, so folding
+     * and unfolding again costs nothing.
+     */
+    private fun toggleFuelStations() {
+        val slice = state.value.fuel
+        val opening = !slice.isExpanded
+        updateState { copy(fuel = fuel.copy(isExpanded = opening)) }
+
+        // Already answered, or already asking: unfolding again must not re-ask.
+        if (!opening || slice.isLoading || slice.stations.isNotEmpty()) return
+
+        val gps = state.value.userGpsPoint ?: return
+        // The fuel of the car being driven, or the active one — the price shown has to be the price
+        // of what THIS driver actually puts in. Without a fuel there is nothing to price, and the
+        // section stays folded rather than showing a list it cannot caption.
+        val fuelType = state.value.vehicles.firstOrNull { it.isActive }?.fuelType
+            ?: state.value.vehicles.firstOrNull()?.fuelType
+            ?: return
+
+        updateState { copy(fuel = fuel.copy(isLoading = true, failed = false)) }
+        viewModelScope.launch {
+            getNearbyFuelStations(gps.latitude, gps.longitude, fuelType)
+                .onSuccess { nearby ->
+                    updateState {
+                        copy(
+                            fuel = fuel.copy(
+                                isLoading = false,
+                                failed = false,
+                                stations = nearby.stations,
+                                reportedAt = nearby.reportedAt,
+                            ),
+                        )
+                    }
+                }
+                // ⛔ A failure is NOT an empty list: the section says "we could not ask", never
+                // "there are none nearby", which would send the user driving on an unchecked claim.
+                .onFailure {
+                    updateState { copy(fuel = fuel.copy(isLoading = false, failed = true)) }
+                }
+        }
+    }
+
     private fun handleSpotIntent(intent: HomeIntent) {
         when (intent) {
             is HomeIntent.LoadNearbySpots -> {
@@ -460,6 +514,7 @@ class HomeViewModel(
                 clearedModeFields().copy(selection = intent.selection)
             }
             is HomeIntent.SetSizeFilter -> updateState { copy(sizeFilter = intent.size) }
+            is HomeIntent.ToggleFuelStations -> toggleFuelStations()
             is HomeIntent.SendSpotSignal -> submitSpotSignal(intent.spotId, intent.accepted)
             is HomeIntent.EnterReportMode -> updateState {
                 clearedModeFields().copy(

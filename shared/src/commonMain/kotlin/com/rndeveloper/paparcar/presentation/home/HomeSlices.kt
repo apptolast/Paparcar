@@ -24,6 +24,7 @@ import com.rndeveloper.paparcar.presentation.home.model.ParkedWatchBadge
 import com.rndeveloper.paparcar.presentation.util.PlaceLine
 import com.rndeveloper.paparcar.presentation.util.secondaryPlaceLine
 import com.rndeveloper.paparcar.presentation.util.toPlaceLine
+import com.rndeveloper.paparcar.presentation.home.model.HomeFuelSlice
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HomeSlices — per-section projections of [HomeState]. [HOME-ATOMIZE-001 F1]
@@ -278,6 +279,8 @@ data class HomeBrowseListSlice(
      *  checklist. Already resolved by the pure projection — the sheet renders it, it does not decide
      *  it, and it is also what tells the detection surface to stand down on the cold start. */
     val firstSteps: FirstStepsProgress,
+    /** "Where to refuel", folded until asked for. [FUEL-STATIONS-LIST-001] */
+    val fuel: HomeFuelSlice,
 ) {
     /**
      * Whether the guided checklist is actually ON SCREEN — visibility AND the two conditions that
@@ -425,6 +428,7 @@ fun HomeState.toPeekSlice(): HomePeekSlice {
 }
 
 fun HomeState.toBrowseListSlice() = HomeBrowseListSlice(
+    fuel = fuel,
     detectionUiState = detectionUiState,
     parkedWatchBadge = parkedWatchBadge,
     showParkNudge = shouldShowParkNudgeBanner(pendingParkNudge, activeSessions),

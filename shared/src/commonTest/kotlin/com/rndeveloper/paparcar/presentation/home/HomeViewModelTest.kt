@@ -71,6 +71,13 @@ import kotlin.test.assertNull
 import kotlin.time.Clock
 import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
 import kotlin.test.assertTrue
+import com.rndeveloper.paparcar.domain.fuel.FuelStationsQuery
+import com.rndeveloper.paparcar.domain.fuel.FuelStationsResult
+import com.rndeveloper.paparcar.domain.fuel.FuelStationsSource
+import com.rndeveloper.paparcar.domain.geocoder.GeocoderDataSource
+import com.rndeveloper.paparcar.domain.model.AddressInfo
+import com.rndeveloper.paparcar.domain.model.SearchResult
+import com.rndeveloper.paparcar.domain.usecase.fuel.GetNearbyFuelStationsUseCase
 
 class HomeViewModelTest {
 
@@ -222,6 +229,22 @@ class HomeViewModelTest {
                 userProfileRepository = profileRepo,
             ),
             showParkingAskEventBus = showParkingAskBus,
+            // Answers nothing: the fixture never unfolds the refuel section, and a fake that
+            // returned stations would put data on screen no test asked for.
+            // [FUEL-STATIONS-LIST-001]
+            getNearbyFuelStations = GetNearbyFuelStationsUseCase(
+                stations = object : FuelStationsSource {
+                    override fun covers(countryCode: String) = true
+                    override suspend fun stationsNear(query: FuelStationsQuery) =
+                        Result.success(FuelStationsResult(emptyList()))
+                },
+                geocoder = object : GeocoderDataSource {
+                    override suspend fun getAddress(lat: Double, lon: Double) =
+                        Result.failure<AddressInfo>(IllegalStateException("no geocoder in tests"))
+                    override suspend fun searchByName(query: String, maxResults: Int) =
+                        Result.success(emptyList<SearchResult>())
+                },
+            ),
         ).also {
             // Default test fixture = map on screen, so the high-accuracy request is armed and location
             // emits reach state. The backgrounded case uses buildVm(foreground = false). [UI-LOC-FOREGROUND-001]

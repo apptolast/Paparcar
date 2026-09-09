@@ -1,0 +1,81 @@
+package com.rndeveloper.paparcar.domain.fuel
+
+/**
+ * Where to look for stations, as one value. [FUEL-STATIONS-LIST-001]
+ *
+ * [countryCode] and [regionName] travel together because they come from the same place — the
+ * address lookup the app already did — and because the sources need different halves of it: the
+ * registry routes on the country, and Spain's feed is queried by province, so it cannot answer
+ * without the region. Passing them as one value is what stopped the registry from having to guess a
+ * country from coordinates it has no business geocoding.
+ */
+data class FuelStationsQuery(
+    val latitude: Double,
+    val longitude: Double,
+    /** ISO 3166-1 alpha-2. Empty when the lookup failed — which routes straight to the fallback. */
+    val countryCode: String,
+    /** Province/region as a geocoder wrote it. Null is normal; only some sources need it. */
+    val regionName: String? = null,
+    val radiusMeters: Int = DEFAULT_RADIUS_METERS,
+) {
+    companion object {
+        /**
+         * Walking to a forecourt is not the point — you drive there — but a list of everything
+         * within half a province is not a list, it is a search result. Five km is the range at which
+         * "on my way" is still true.
+         */
+        const val DEFAULT_RADIUS_METERS = 5_000
+    }
+}
+
+/**
+ * Whether a station serves a given fuel is answered by [FuelAvailability]; this is where the
+ * stations themselves come from.
+ *
+ * **One source per country, and that source answers whole.** A national feed returns the complete
+ * object — brand, coordinates, opening hours AND prices in the same response — so in Spain a single
+ * call is the entire answer and there is nothing to join. The registry is `countryCode → source`,
+ * not a stack of layers merged object by object.
+ *
+ * That matters because the obvious design is the wrong one here: "OSM for the world, prices layered
+ * on top" means matching two catalogues by proximity, and two stations across a dual carriageway are
+ * ~30 m apart. A mismatch there does not look like a bug — it looks like a price.
+ *
+ * The floor under the registry is OSM: 567.615 stations worldwide and **no prices at all**. So
+ * outside a covered country the answer is honest and useful — here is where you can refuel — and the
+ * price question is answered by the national average instead, which is a different sentence and is
+ * said differently in the UI.
+ *
+ * ⚠️ Joining two sources will become necessary exactly once: France's official feed carries no
+ * station name, and OSM names 100% of what it holds. That is a France problem, to be solved when
+ * France ships, not a shape to impose on every country up front.
+ */
+interface FuelStationsSource {
+
+    /** True when this source can answer for [countryCode] (ISO 3166-1 alpha-2, any case). */
+    fun covers(countryCode: String): Boolean
+
+    /**
+     * Stations matching [query], nearest first.
+     *
+     * Returns a failure rather than an empty list when the network or the feed failed: "no stations
+     * near you" and "we could not ask" are different answers and the UI must not say the first when
+     * it means the second. That distinction is also what lets the registry know when to fall back.
+     */
+    suspend fun stationsNear(query: FuelStationsQuery): Result<FuelStationsResult>
+}
+
+/**
+ * Stations plus the hour their prices were reported.
+ *
+ * [reportedAt] travels WITH the stations rather than being fetched apart, because it is the
+ * property that makes the list trustworthy — this feature exists because a proxy of the same data
+ * ran twelve hours behind and disagreed with 30% of stations. A price with no hour beside it is a
+ * price nobody can weigh, so the source that produces the price also produces its timestamp.
+ *
+ * Null when the source has no prices to date — OSM, for one, has stations and no prices.
+ */
+data class FuelStationsResult(
+    val stations: List<FuelStation>,
+    val reportedAt: String? = null,
+)

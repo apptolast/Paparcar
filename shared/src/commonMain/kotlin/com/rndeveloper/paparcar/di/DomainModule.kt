@@ -28,6 +28,7 @@ import com.rndeveloper.paparcar.domain.usecase.zone.ObserveZoneSpotAlertsUseCase
 import com.rndeveloper.paparcar.domain.usecase.zone.SaveOrUpdateZoneUseCase
 import com.rndeveloper.paparcar.domain.usecase.zone.SaveZoneUseCase
 import org.koin.dsl.module
+import com.rndeveloper.paparcar.domain.usecase.fuel.GetNearbyFuelStationsUseCase
 
 val domainModule = module {
 
@@ -112,5 +113,9 @@ val domainModule = module {
     factory { GetOneLocationUseCase(get(), tripTrail = getOrNull()) }
     factory { ObserveAdaptiveLocationUseCase(get()) }
     factory { SearchAddressUseCase(get()) }
+
+    // Gasolineras cercanas — el geocoder da país Y provincia de una sola consulta, que es lo
+    // que enruta la petición. [FUEL-STATIONS-LIST-001]
+    factory { GetNearbyFuelStationsUseCase(stations = get(), geocoder = get()) }
 
 }

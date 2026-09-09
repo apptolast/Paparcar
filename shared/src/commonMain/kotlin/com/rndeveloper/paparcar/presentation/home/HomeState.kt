@@ -32,6 +32,7 @@ import com.rndeveloper.paparcar.domain.model.monitoringStatus
 import com.rndeveloper.paparcar.domain.model.parkedSessionPreference
 import com.rndeveloper.paparcar.domain.model.preferredParkingSession
 import com.rndeveloper.paparcar.domain.model.sortRank
+import com.rndeveloper.paparcar.presentation.home.model.HomeFuelSlice
 
 /**
  * Per-vehicle row used by the "TUS VEHÍCULOS" section.
@@ -295,6 +296,15 @@ data class HomeState(
      * that can disagree.
      */
     val addingParkingNudgeSource: String? = null,
+
+    /**
+     * "Where to refuel", folded until asked for. [FUEL-STATIONS-LIST-001]
+     *
+     * Its own value rather than four loose fields on the state: the section has to keep
+     * "nothing within 5 km" and "we could not ask" apart, and a pair of booleans beside a list
+     * is two facts that can disagree.
+     */
+    val fuel: HomeFuelSlice = HomeFuelSlice(),
 
 ) {
     // ── Computed properties ───────────────────────────────────────────────────

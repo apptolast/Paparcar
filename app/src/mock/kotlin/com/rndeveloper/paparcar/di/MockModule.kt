@@ -11,6 +11,7 @@ import com.rndeveloper.paparcar.domain.bluetooth.BluetoothScanner
 import com.rndeveloper.paparcar.domain.connectivity.ConnectivityObserver
 import com.rndeveloper.paparcar.data.geocoder.RoomLocalAddressAndPlaceDataSource
 import com.rndeveloper.paparcar.data.repository.AddressAndPlaceRepositoryImpl
+import com.rndeveloper.paparcar.data.repository.OpenSourceLicenseRepositoryImpl
 import com.rndeveloper.paparcar.domain.geocoder.GeocoderDataSource
 import com.rndeveloper.paparcar.domain.geocoder.LocalAddressAndPlaceDataSource
 import com.rndeveloper.paparcar.domain.location.LocationDataSource
@@ -25,6 +26,7 @@ import com.rndeveloper.paparcar.location.OverpassRoadNetworkDataSourceImpl
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import com.rndeveloper.paparcar.domain.repository.AddressAndPlaceRepository
 import com.rndeveloper.paparcar.domain.repository.DiagnosticsRepository
+import com.rndeveloper.paparcar.domain.repository.OpenSourceLicenseRepository
 import com.rndeveloper.paparcar.domain.repository.SpotRepository
 import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
 import com.rndeveloper.paparcar.domain.repository.UserProfileRepository
@@ -121,6 +123,14 @@ val mockModule = module {
     single<com.rndeveloper.paparcar.domain.service.WidgetPinRequester> {
         com.rndeveloper.paparcar.widget.ParkedWidgetPinner(androidContext())
     }
+    // El almacén de la ruta conducida vive en androidDetectionModule, que el arranque mock NO carga
+    // — así que `HomeTripController` moría al resolverse en cuanto un viaje se ponía en marcha.
+    // Lo destapó el verify del grafo mock, no una pasada a mano. Va el REAL, como el pinner del
+    // widget: son SharedPreferences y un contexto, y con el falso el sim de conducción no
+    // redibujaría su propia ruta. [DET-ROUTE-TRACK-001] [MOCK-A-SECOND-GRAPH-NEEDS-A-SECOND-VERIFY-001]
+    single<com.rndeveloper.paparcar.domain.detection.ports.DrivingRouteStore> {
+        com.rndeveloper.paparcar.detection.DrivingRouteStoreImpl(androidContext())
+    }
     single<ReportSpotScheduler> { FakeReportSpotScheduler() }
     single<com.rndeveloper.paparcar.domain.detection.ports.ManualParkingDetection> {
         // Same shared runtime, so the Home "I'm driving" CTA starts the sim too. [DRIVE-SIM-001]
@@ -157,9 +167,28 @@ val mockModule = module {
     single<com.rndeveloper.paparcar.domain.repository.EntitlementRepository> {
         com.rndeveloper.paparcar.fakes.data.repository.FakeEntitlementRepository(get<MockScenario>())
     }
+    // GetNearbyFuelStationsUseCase resolves this; same no-dataModule rule as above, and it is the
+    // one that actually bit: entering Home died with NoDefinitionFoundException while the state
+    // gallery kept rendering the section fine, because the gallery never builds a ViewModel.
+    // [FUEL-STATIONS-LIST-001]
+    single<com.rndeveloper.paparcar.domain.fuel.FuelStationsSource> {
+        com.rndeveloper.paparcar.fakes.data.repository.FakeFuelStationsSource()
+    }
     // DeleteAccountUseCase resolves this in its swept-repos list; the mock stack has no dataModule,
     // so the port must exist here or resolving it crashes. [ACCOUNT-DELETE-SWEEPS-DIAGNOSTICS-001]
     single<DiagnosticsRepository> { FakeDiagnosticsRepository() }
+    // La pantalla de licencias moría al abrirse en mock: su repo solo estaba en dataModule. El REAL,
+    // que no tiene dependencias y lee el fichero generado en build — un falso enseñaría una lista de
+    // atribución inventada, que es justo lo que esa pantalla no puede hacer.
+    // [SET-LICENSES-ARE-SHOWN-IN-THE-APP-001] [MOCK-A-SECOND-GRAPH-NEEDS-A-SECOND-VERIFY-001]
+    single<OpenSourceLicenseRepository> { OpenSourceLicenseRepositoryImpl() }
+    // El log local del reporte de soporte lo ata androidPlatformModule, que el mock NO carga: "Enviar
+    // reporte" moria al resolverse. El REAL, que solo necesita contexto — un falso enviaria un
+    // reporte sin el log, que es LO UNICO que ese reporte lleva.
+    // [SUPPORT-REPORT-SHIPS-THE-LOCAL-LOG-001] [MOCK-A-SECOND-GRAPH-NEEDS-A-SECOND-VERIFY-001]
+    single<com.rndeveloper.paparcar.domain.diagnostics.LocalDiagnosticsLog> {
+        com.rndeveloper.paparcar.logging.AndroidLocalDiagnosticsLog(androidContext())
+    }
     // SendDiagnosticsReportUseCase resolves the uploader; same no-dataModule rule as above.
     // [SUPPORT-REPORT-SHIPS-THE-LOCAL-LOG-001]
     single<com.rndeveloper.paparcar.domain.diagnostics.DiagnosticsReportUploader> {

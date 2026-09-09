@@ -219,6 +219,11 @@ kotlin {
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
             implementation(libs.turbine)
+
+            // Motor Ktor de mentira: deja probar los adaptadores de país enteros —petición
+            // incluida— en commonMain, sin red y sin duplicar transporte por plataforma.
+            // [FUEL-STATIONS-LIST-001]
+            implementation(libs.ktor.client.mock)
         }
 
         // ── androidUnitTest ───────────────────────────────────────────────────
