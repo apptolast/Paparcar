@@ -731,6 +731,8 @@
     <string name="paywall_tier_free">Gratis</string>
     <string name="paywall_tier_plus">Plus</string>
     <string name="paywall_free_history">De laatste 7 dagen</string>
+    <string name="paywall_free_stats">Eén cijfer</string>
+    <string name="paywall_plus_stats">Al je cijfers</string>
     <string name="paywall_free_vehicles">Je auto</string>
     <string name="paywall_plus_vehicles">Al je auto's</string>
     <string name="paywall_free_zones">2 zones</string>
@@ -785,7 +787,7 @@
     <string name="unit_kwh_per_100">kWh/100 km</string>
     <!-- Widget en la comparativa + fila de Ajustes [WIDGET-ACTIONS-002] -->
     <string name="paywall_free_widget">Je auto op het startscherm</string>
-    <string name="paywall_plus_everything">Alles uit Gratis</string>
+    <string name="paywall_plus_widget">Al je auto's op het startscherm</string>
     <string name="settings_add_widget">Widget aan startscherm toevoegen</string>
     <!-- Vehicle figures block (STATS-UI-001) -->
     <string name="stats_period_free_window">Laatste %1$d dagen</string>

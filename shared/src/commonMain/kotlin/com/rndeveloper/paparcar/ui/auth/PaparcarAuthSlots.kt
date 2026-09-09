@@ -27,6 +27,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import com.rndeveloper.paparcar.ui.components.PapPrimaryButton
 import com.rndeveloper.paparcar.ui.components.PapProviderButton
+import com.rndeveloper.paparcar.ui.components.PAPARCAR_LOGO_BESIDE_NAME_SIZE
 import com.rndeveloper.paparcar.ui.components.PaparcarLogo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -91,7 +92,6 @@ import paparcar.composeapp.generated.resources.auth_header_tagline
  *  domain sweep lands. [AUTH-A-SIGN-IN-ASKS-FOR-CONSENT-FIRST-001] */
 private const val LEGAL_PRIVACY_POLICY_URL = "https://paparcar.com/privacy-policy"
 
-private val LOGO_BADGE_SIZE = 72.dp
 private val LOGO_BADGE_ELEVATION = 6.dp
 private val HEADER_TOP_SPACING = 4.dp
 private val HEADER_LOGO_TEXT_GAP = 14.dp
@@ -290,7 +290,9 @@ private fun PaparcarAuthHeader() {
             // raised "app icon" reading without an extra coloured Surface behind it.
             PaparcarLogo(
                 modifier = Modifier.shadow(LOGO_BADGE_ELEVATION, CircleShape),
-                size = LOGO_BADGE_SIZE,
+                // Shared with the paywall's crest: same composition, one number.
+                // [UI-PAYWALL-THE-CREST-STANDS-BESIDE-ITS-NAME-001]
+                size = PAPARCAR_LOGO_BESIDE_NAME_SIZE,
             )
 
             Column(horizontalAlignment = Alignment.Start) {

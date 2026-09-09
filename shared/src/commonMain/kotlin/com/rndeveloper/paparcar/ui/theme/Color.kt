@@ -213,9 +213,13 @@ val PapPremiumBed    = Color(0xFF44C479)
  *  landing on green, while a more-saturated one just reads as a greener green. An earlier cut had
  *  the sheen MORE saturated than the bed and the surface looked like a gradient.
  *
- *  ⛔ Restraint still applies: this is ONE highlight, not the three bands plus brushed grain that
- *  were revoked on device as exaggerated. At card size that much light-and-dark reads as stripes.
- *  What carries the metal is the SHAPE of this band — see `metallicSweep`. */
+ *  ⛔ Restraint lives HERE, in the lightness range, and nowhere else. This paragraph used to say
+ *  the finish was "ONE highlight, not the three bands plus brushed grain that were revoked" — and
+ *  the surface that ships has had the bands AND the grain since `3ec0088a`. What was revoked on
+ *  device was spreading them over 25 L*, not having them: the same structure compressed into this
+ *  range reads as a finish. Believing the old sentence would mean undoing the fix.
+ *  What carries the metal is the SHAPE of these bands — see `metallicSweep`.
+ *  [UI-PAYWALL-THE-CREST-STANDS-BESIDE-ITS-NAME-001] */
 val PapPremiumSheen  = Color(0xFF64D48D)
 
 // ── Car blue — the BLUETOOTH-watched vehicle's identity colour. ───────────────────────────────

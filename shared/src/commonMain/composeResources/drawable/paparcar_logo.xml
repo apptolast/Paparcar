@@ -48,7 +48,7 @@
             <path
                 android:fillColor="#00000000"
                 android:strokeColor="#25F48C"
-                android:strokeWidth="6"
+                android:strokeWidth="7"
                 android:pathData="M66.01,82.86a8.73,6.15 0 1 0 17.46,0a8.73,6.15 0 1 0 -17.46,0Z" />
         </group>
 
@@ -61,7 +61,7 @@
             <path
                 android:fillColor="#00000000"
                 android:strokeColor="#25F48C"
-                android:strokeWidth="6"
+                android:strokeWidth="7"
                 android:pathData="M30.45,82.86a8.73,6.15 0 1 0 17.46,0a8.73,6.15 0 1 0 -17.46,0Z" />
         </group>
     </group>

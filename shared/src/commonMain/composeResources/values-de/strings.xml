@@ -731,6 +731,8 @@
     <string name="paywall_tier_free">Kostenlos</string>
     <string name="paywall_tier_plus">Plus</string>
     <string name="paywall_free_history">Die letzten 7 Tage</string>
+    <string name="paywall_free_stats">Eine Zahl</string>
+    <string name="paywall_plus_stats">Alle deine Zahlen</string>
     <string name="paywall_free_vehicles">Dein Auto</string>
     <string name="paywall_plus_vehicles">Alle deine Autos</string>
     <string name="paywall_free_zones">2 Zonen</string>
@@ -785,7 +787,7 @@
     <string name="unit_kwh_per_100">kWh/100 km</string>
     <!-- Widget en la comparativa + fila de Ajustes [WIDGET-ACTIONS-002] -->
     <string name="paywall_free_widget">Dein Auto auf dem Startbildschirm</string>
-    <string name="paywall_plus_everything">Alles aus Kostenlos</string>
+    <string name="paywall_plus_widget">Alle deine Autos auf dem Startbildschirm</string>
     <string name="settings_add_widget">Widget zum Startbildschirm hinzufügen</string>
     <!-- Vehicle figures block (STATS-UI-001) -->
     <string name="stats_period_free_window">Letzte %1$d Tage</string>

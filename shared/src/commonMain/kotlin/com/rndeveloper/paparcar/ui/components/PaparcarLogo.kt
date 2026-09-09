@@ -37,6 +37,18 @@ import paparcar.composeapp.generated.resources.paparcar_iconmark_white
  */
 val PAPARCAR_LOGO_SIZE = 96.dp
 
+/**
+ * The size the brand mark stands at when it sits BESIDE the product's name, in a header row — the
+ * auth screen, the paywall.
+ *
+ * A second number rather than a second opinion: standing alone the mark IS the composition and can
+ * fill 96 dp; standing next to a 24 sp title it has to agree with a line of text, and 96 dp there
+ * turns a header into a banner. What must not happen is each screen picking its own — this lived as
+ * a `private val` inside the auth file, which is exactly the shape of the mistake that let the Plus
+ * crest invent a 60 dp of its own. [UI-PAYWALL-THE-CREST-STANDS-BESIDE-ITS-NAME-001]
+ */
+val PAPARCAR_LOGO_BESIDE_NAME_SIZE = 72.dp
+
 @Composable
 fun PaparcarLogo(
     modifier: Modifier = Modifier,

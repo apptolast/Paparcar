@@ -744,6 +744,8 @@
     <string name="paywall_tier_free">Gratuit</string>
     <string name="paywall_tier_plus">Plus</string>
     <string name="paywall_free_history">Ultimele 7 zile</string>
+    <string name="paywall_free_stats">O singură cifră</string>
+    <string name="paywall_plus_stats">Toate cifrele tale</string>
     <string name="paywall_free_vehicles">Mașina ta</string>
     <string name="paywall_plus_vehicles">Toate mașinile tale</string>
     <string name="paywall_free_zones">2 zone</string>
@@ -798,7 +800,7 @@
     <string name="unit_kwh_per_100">kWh/100 km</string>
     <!-- Widget en la comparativa + fila de Ajustes [WIDGET-ACTIONS-002] -->
     <string name="paywall_free_widget">Mașina ta pe ecranul principal</string>
-    <string name="paywall_plus_everything">Tot ce are Gratuit</string>
+    <string name="paywall_plus_widget">Toate mașinile tale pe ecranul principal</string>
     <string name="settings_add_widget">Adaugă widgetul pe ecranul principal</string>
     <!-- Vehicle figures block (STATS-UI-001) -->
     <string name="stats_period_free_window">Ultimele %1$d zile</string>

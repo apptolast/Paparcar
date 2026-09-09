@@ -95,6 +95,13 @@ fun PapPremiumSurface(
     //     shade. Shaded in the sweep's OWN deep tone rather than neutral black, because metal
     //     shades toward its own colour.
     //
+    // A later pass asked for "more metal, still not exaggerated", and the two knobs above are
+    // exactly what makes that a sentence with an answer: every band got NARROWER and better
+    // separated (a third faint band, a dark stop pressed against the specular one, tighter bevel
+    // shoulders, a second lit corner, slightly more grain) and the three tones in `Color.kt` were
+    // not touched at all. Structure up, amplitude flat.
+    // [UI-PAYWALL-THE-CREST-STANDS-BESIDE-ITS-NAME-001]
+    //
     // Corner-to-corner: `Brush.linearGradient` with no explicit start/end runs top-left →
     // bottom-right by default, which is exactly the diagonal a sheen needs.
     val tones = premiumSweep
@@ -112,14 +119,21 @@ fun PapPremiumSurface(
     )
     val bevel = Brush.verticalGradient(
         0.00f to premiumEdge.copy(alpha = BEVEL_TOP_ALPHA),
-        0.18f to Color.Transparent,
-        0.82f to Color.Transparent,
+        0.13f to Color.Transparent,
+        0.87f to Color.Transparent,
         1.00f to tones.shadow.copy(alpha = BEVEL_BOTTOM_ALPHA),
     )
     val edge = BorderStroke(
         width = PapBorders.thin,
         brush = Brush.linearGradient(
-            listOf(premiumEdge.copy(alpha = EDGE_BRIGHT_ALPHA), Color.Transparent),
+            // Two lit corners, not one fading to nothing: real metal catches the light at the
+            // corner facing it AND, faintly, at the one opposite. That second catch is a large part
+            // of why an edge reads as an OBJECT's rim rather than as a card's border — and it costs
+            // no extra lightness range, which is the axis that must not grow.
+            // [UI-PAYWALL-THE-CREST-STANDS-BESIDE-ITS-NAME-001]
+            0.00f to premiumEdge.copy(alpha = EDGE_BRIGHT_ALPHA),
+            0.55f to Color.Transparent,
+            1.00f to premiumEdge.copy(alpha = EDGE_COUNTER_ALPHA),
         ),
     )
     val subdued = emphasis == PapPremiumEmphasis.Subdued
@@ -177,10 +191,12 @@ fun PapPremiumSurface(
  *
  *  · [Filled] is for a surface whose JOB is to be the product: the paywall's Plus tier, its buy
  *    button, the crest. You came here to decide.
- *  · [Subdued] is for a surface that INTERRUPTS something else — the footer under a history list.
- *    There the metal is a tap on the shoulder, and a full slab of brand green in the middle of a
- *    list of parkings reads as an advert, not as part of the app. Same brushed sweep, drawn as a
- *    tint over the page, with the page's own ink.
+ *  · [Subdued] is for a surface that INTERRUPTS something else — the footer under a history list,
+ *    the Settings row, the stats row on a vehicle. There the metal is a tap on the shoulder, and a
+ *    full slab of brand green in the middle of a list of parkings reads as an advert, not as part
+ *    of the app. Same brushed sweep, drawn as a tint over the page, with the page's own ink.
+ *    ⚠️ Same METAL though: the weight changes how opaque it is, never whether the bands and the
+ *    grain are there to see. See [SUBDUED_ALPHA] for the time that distinction was lost.
  *
  * This is the axis the finish was missing: every earlier revocation tried to fix "too loud" by
  * changing the COLOUR, when the surface that was too loud was simply the wrong weight for where
@@ -188,9 +204,22 @@ fun PapPremiumSurface(
  */
 enum class PapPremiumEmphasis { Filled, Subdued }
 
-/** How much of the metal survives in [PapPremiumEmphasis.Subdued]. Enough to read as the same
- *  material, little enough to sit inside a list without taking it over. */
-private const val SUBDUED_ALPHA = 0.20f
+/**
+ * How much of the metal survives in [PapPremiumEmphasis.Subdued]. Enough to read as the same
+ * material, little enough to sit inside a list without taking it over.
+ *
+ * 🔑 **Less opaque is not the same as less metallic**, and 0.20 was quietly conflating them.
+ * [UI-PAYWALL-THE-CREST-STANDS-BESIDE-ITS-NAME-001] At a fifth, the bands and the grain — the whole
+ * reason the surface reads as worked metal rather than as a green tint — fell under the threshold
+ * where the eye picks them out, so the Settings row and the history footer were a flat wash while
+ * the paywall was metal. Two materials for one product.
+ *
+ * At 0.34 the same sweep is legible as a finish and the surface is still plainly a TINT over the
+ * page: the ink stays `onSurface`, the rim stays faint, and it still reads as a tap on the
+ * shoulder inside a list rather than as a slab of brand green. Judged on device against both the
+ * Settings row and the history footer.
+ */
+private const val SUBDUED_ALPHA = 0.34f
 
 /** The subdued rim: the bed itself, faint. White would be the FILLED surface's lit corner, and on
  *  a tint there is no lit corner to speak of — just an edge. */
@@ -212,17 +241,26 @@ private const val SUBDUED_EDGE_ALPHA = 0.45f
  */
 private fun metallicSweep(tones: PremiumSweep): Brush = Brush.linearGradient(
     0.00f to tones.bed,
-    0.13f to tones.shadow,
-    0.20f to tones.sheen.copy(alpha = SECONDARY_BAND_ALPHA).compositeOver(tones.bed),
-    0.26f to tones.bed,
-    0.34f to tones.shadow,
-    0.44f to tones.bed,
+    0.09f to tones.shadow,
+    0.15f to tones.sheen.copy(alpha = SECONDARY_BAND_ALPHA).compositeOver(tones.bed),
+    0.20f to tones.bed,
+    0.29f to tones.shadow,
+    0.35f to tones.sheen.copy(alpha = FAINT_BAND_ALPHA).compositeOver(tones.bed),
+    0.40f to tones.bed,
+    // The specular band, and the two stops that make it read as one. `0.46 bed` is a flat run-up,
+    // so the climb into the sheen happens over 0.03 instead of 0.05 — a reflection has a hard
+    // leading edge; a gradient does not. `0.58 bed → 0.63 shadow` is the fall on the other side:
+    // the eye judges a highlight against what sits immediately beside it, so putting the darkest
+    // tone right after the brightest buys contrast that costs no extra lightness range.
+    // [UI-PAYWALL-THE-CREST-STANDS-BESIDE-ITS-NAME-001]
+    0.46f to tones.bed,
     0.49f to tones.sheen,
     0.53f to tones.sheen,
-    0.62f to tones.bed,
-    0.70f to tones.shadow,
-    0.76f to tones.sheen.copy(alpha = FAINT_BAND_ALPHA).compositeOver(tones.shadow),
-    0.83f to tones.shadow,
+    0.58f to tones.bed,
+    0.63f to tones.shadow,
+    0.71f to tones.bed,
+    0.78f to tones.sheen.copy(alpha = FAINT_BAND_ALPHA).compositeOver(tones.shadow),
+    0.84f to tones.shadow,
     1.00f to tones.bed,
 )
 
@@ -336,24 +374,35 @@ private const val PREMIUM_BUTTON_SPINNER_STROKE_DP = 2
 
 /** How present the lit edge is at the highlight corner. Below this the metal reads flat; above
  *  it the border competes with the CTA inside the card. */
-private const val EDGE_BRIGHT_ALPHA = 0.55f
+private const val EDGE_BRIGHT_ALPHA = 0.72f
+
+/** The far corner's catch. Deliberately a fifth of the near one: equals would read as a uniform
+ *  outline, which is the opposite of what a rim is for. */
+private const val EDGE_COUNTER_ALPHA = 0.14f
 
 /** The secondary and third bands, as a fraction of the primary. Metal throws several highlights,
  *  but they are not equals — matched bands read as stripes, not as light. */
-private const val SECONDARY_BAND_ALPHA = 0.42f
-private const val FAINT_BAND_ALPHA = 0.20f
+private const val SECONDARY_BAND_ALPHA = 0.48f
+private const val FAINT_BAND_ALPHA = 0.26f
 
 /** Spacing of the brushed micro-grooves — small enough to read as texture rather than as lines,
  *  fixed in dp so the grain keeps its size on a small card and on a full-width hero. */
 private const val GRAIN_PERIOD_DP = 2
 
-/** The grooves are barely there on purpose: this is texture, not decoration. */
-private const val GRAIN_LIGHT_ALPHA = 0.05f
-private const val GRAIN_DARK_ALPHA = 0.035f
+/** The grooves are barely there on purpose: this is texture, not decoration. Raised a notch from
+ *  0.05/0.035 — brushed metal is a texture you can SEE, and at the old alphas it only survived on
+ *  the full-width Plus card, disappearing entirely on the crest and the button.
+ *  [UI-PAYWALL-THE-CREST-STANDS-BESIDE-ITS-NAME-001] */
+private const val GRAIN_LIGHT_ALPHA = 0.075f
+private const val GRAIN_DARK_ALPHA = 0.05f
 
 
 
 
-/** Light falls from above: the top edge catches it, the bottom sits in its own shade. */
-private const val BEVEL_TOP_ALPHA = 0.16f
-private const val BEVEL_BOTTOM_ALPHA = 0.28f
+/** Light falls from above: the top edge catches it, the bottom sits in its own shade.
+ *
+ *  The shoulders were tightened (0.18/0.82 → 0.13/0.87) rather than the alphas raised. Same idea as
+ *  the sweep: a NARROWER catch reads as a harder, more metallic edge, while a stronger one just
+ *  reads as a darker card. [UI-PAYWALL-THE-CREST-STANDS-BESIDE-ITS-NAME-001] */
+private const val BEVEL_TOP_ALPHA = 0.18f
+private const val BEVEL_BOTTOM_ALPHA = 0.30f

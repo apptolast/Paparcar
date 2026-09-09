@@ -3,15 +3,16 @@ package com.rndeveloper.paparcar.presentation.paywall
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
@@ -24,6 +25,7 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.History
+import androidx.compose.material.icons.rounded.Insights
 import androidx.compose.material.icons.rounded.Map
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.Widgets
@@ -47,6 +49,7 @@ import com.rndeveloper.paparcar.domain.entitlement.annualSavingsPercent
 import com.rndeveloper.paparcar.domain.model.PlusOffer
 import com.rndeveloper.paparcar.domain.model.PlusPlan
 import com.rndeveloper.paparcar.presentation.util.collectAsStateLifecycleAware
+import com.rndeveloper.paparcar.ui.components.PAPARCAR_LOGO_BESIDE_NAME_SIZE
 import com.rndeveloper.paparcar.ui.components.PapDivider
 import com.rndeveloper.paparcar.ui.components.PapOutlinedCard
 import com.rndeveloper.paparcar.ui.components.PapPremiumButton
@@ -72,6 +75,7 @@ import paparcar.composeapp.generated.resources.paywall_cta_buy
 import paparcar.composeapp.generated.resources.paywall_cta_trial
 import paparcar.composeapp.generated.resources.paywall_free_alerts
 import paparcar.composeapp.generated.resources.paywall_free_history
+import paparcar.composeapp.generated.resources.paywall_free_stats
 import paparcar.composeapp.generated.resources.paywall_free_support
 import paparcar.composeapp.generated.resources.paywall_plan_monthly
 import paparcar.composeapp.generated.resources.paywall_plan_per_month
@@ -79,6 +83,7 @@ import paparcar.composeapp.generated.resources.paywall_plan_savings_badge
 import paparcar.composeapp.generated.resources.paywall_plan_yearly
 import paparcar.composeapp.generated.resources.paywall_plus_alerts
 import paparcar.composeapp.generated.resources.paywall_plus_history
+import paparcar.composeapp.generated.resources.paywall_plus_stats
 import paparcar.composeapp.generated.resources.paywall_plus_support
 import paparcar.composeapp.generated.resources.paywall_purchase_failed
 import paparcar.composeapp.generated.resources.paywall_restore
@@ -91,8 +96,8 @@ import paparcar.composeapp.generated.resources.paywall_title
 import paparcar.composeapp.generated.resources.paywall_free_vehicles
 import paparcar.composeapp.generated.resources.paywall_free_widget
 import paparcar.composeapp.generated.resources.paywall_free_zones
-import paparcar.composeapp.generated.resources.paywall_plus_everything
 import paparcar.composeapp.generated.resources.paywall_plus_vehicles
+import paparcar.composeapp.generated.resources.paywall_plus_widget
 import paparcar.composeapp.generated.resources.paywall_plus_zones
 import paparcar.composeapp.generated.resources.paywall_reason_history
 import paparcar.composeapp.generated.resources.paywall_reason_stats
@@ -166,25 +171,51 @@ fun PaywallContent(
             // to be permanently visible is what you are about to pay, and that travels with the
             // button.
             Column(modifier = Modifier.fillMaxSize()) {
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = SCREEN_H_PADDING_DP.dp),
-                ) {
-                    Spacer(Modifier.height(CLOSE_ROW_HEIGHT_DP.dp))
-                    PaywallHeader()
+                BoxWithConstraints(modifier = Modifier.weight(1f)) {
+                    // 🔑 The slack goes in ONE place, and it is between the pitch and the price.
+                    // [UI-PAYWALL-THE-CREST-STANDS-BESIDE-ITS-NAME-001]
+                    //
+                    // A paywall is short — a brand block, a comparison, two plans, a pinned button
+                    // — so on a tall phone the content simply ended and left a dead field of
+                    // surface above the footer, which reads as a screen that failed to load.
+                    // `heightIn(min = maxHeight)` + `SpaceBetween` over exactly TWO children hands
+                    // that leftover to the single gap between them. On a screen with no leftover
+                    // there is nothing to distribute and the column just scrolls: one rule, both
+                    // cases, no branch.
+                    //
+                    // ⛔ Two children and not three. Distributing across all three blocks was the
+                    // first cut, and it pushed the section header a third of a screen away from
+                    // the crest — the brand block reads as the TOP of the screen, so it must stay
+                    // attached to it. What may float is the price, and floating it down towards
+                    // the button it belongs to is the arrangement saying something true.
+                    //
+                    // ⚠️ Each block carries its OWN minimum gap ([SECTION_GAP_DP] as bottom
+                    // padding): `SpaceBetween` only distributes the surplus, so with the gaps left
+                    // to it alone a screen with no surplus would have its sections touching.
+                    Column(
+                        modifier = Modifier
+                            .verticalScroll(rememberScrollState())
+                            .heightIn(min = maxHeight)
+                            .padding(horizontal = SCREEN_H_PADDING_DP.dp),
+                        verticalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Column(modifier = Modifier.padding(bottom = SECTION_GAP_DP.dp)) {
+                            Spacer(Modifier.height(CLOSE_ROW_HEIGHT_DP.dp))
+                            PaywallHeader()
+                            Spacer(Modifier.height(SECTION_GAP_DP.dp))
+                            PapSectionHeader(stringResource(Res.string.paywall_compare_title))
+                            Spacer(Modifier.height(COMPARE_TITLE_GAP_DP.dp))
+                            TierComparison()
+                        }
 
-                    Spacer(Modifier.height(SECTION_GAP_DP.dp))
-                    PapSectionHeader(stringResource(Res.string.paywall_compare_title))
-                    Spacer(Modifier.height(COMPARE_TITLE_GAP_DP.dp))
-                    TierComparison()
-
-                    if (state.canPurchase) {
-                        Spacer(Modifier.height(SECTION_GAP_DP.dp))
-                        PlanPicker(state = state, onIntent = onIntent)
+                        // No store, no plans — and then the comparison is the only block, which
+                        // `SpaceBetween` leaves at the top exactly as it should.
+                        if (state.canPurchase) {
+                            Column(modifier = Modifier.padding(bottom = SECTION_GAP_DP.dp)) {
+                                PlanPicker(state = state, onIntent = onIntent)
+                            }
+                        }
                     }
-                    Spacer(Modifier.height(SECTION_GAP_DP.dp))
                 }
 
                 PaywallFooter(state = state, onIntent = onIntent, reason = reason)
@@ -255,40 +286,57 @@ private fun PaywallFooter(state: PaywallState, onIntent: (PaywallIntent) -> Unit
 }
 
 /**
- * The opening of the screen — a centred crest, the name, the promise.
+ * The opening of the screen — the crest, and beside it the name and the promise.
+ * [UI-PAYWALL-THE-CREST-STANDS-BESIDE-ITS-NAME-001]
  *
- * Centred and given room on purpose. A paywall opens by asking for money, and a left-aligned
- * title tucked under the close button reads like a settings page making a request; the same words
- * centred under a crest read like an offer. Ceremony is most of what "premium" means in a layout:
- * it is space and symmetry, not more ornament.
+ * ⚠️ This used to be centred, stacked and 96 dp tall, argued as ceremony: "a paywall opens by
+ * asking for money, and ceremony is space and symmetry". Two things were wrong with that.
+ *
+ *  · **It cost about 260 dp** before the comparison started — a third of a 360×800 phone spent on
+ *    the introduction, squeezing the thing that actually sells (Free versus Plus). Space is only
+ *    ceremony while there is space to spare.
+ *  · **The screen lays every other child out full-width from the same left edge** — the section
+ *    header, both tier cards, the plan rows, the CTA. A centred header floats on an axis of its
+ *    own above all of them. This is the identical argument that put the auth header on the left
+ *    edge of its own fields [UI-AUTH-HEADER-ALIGNS-WITH-ITS-FIELDS-001], and the paywall had no
+ *    reason to be the exception.
+ *
+ * So it is now literally the login's header composition: mark on the left at
+ * [PAPARCAR_LOGO_BESIDE_NAME_SIZE], name and tagline stacked to its right, everything on the same
+ * left edge. The title moves from `heroTitle` to `screenTitle` for the same reason — the ROLE
+ * follows the composition, and this composition already had its role chosen on the auth screen.
  *
  * The crest is a small [PapPremiumSurface], so the metal is introduced at the top of the screen
  * and then paid off by the Plus card below — one material, stated twice.
  */
 @Composable
 private fun PaywallHeader() {
-    Column(
+    Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(CREST_TEXT_GAP_DP.dp),
     ) {
         // The BRAND cast in metal, not a medal in a box. A trophy glyph said "achievement" and
         // nothing is unlocked by subscribing; and dropping the tile lets the mark itself be the
         // metallic object, instead of a plain glyph sitting on one.
-        PapPremiumMark()
-        Spacer(Modifier.height(CREST_GAP_DP.dp))
-        Text(
-            text = stringResource(Res.string.paywall_title),
-            style = PaparcarType.current.heroTitle,
-            color = MaterialTheme.colorScheme.onSurface,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(Modifier.height(TITLE_GAP_DP.dp))
-        Text(
-            text = stringResource(Res.string.paywall_tagline),
-            style = PaparcarType.current.body,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
+        PapPremiumMark(size = PAPARCAR_LOGO_BESIDE_NAME_SIZE)
+        // `weight(1f)` and not intrinsic width: the tagline is a full sentence and it WILL wrap in
+        // the longer locales. Wrapping is fine; being pushed off the edge is not.
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = stringResource(Res.string.paywall_title),
+                style = PaparcarType.current.screenTitle,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Start,
+            )
+            Spacer(Modifier.height(TITLE_GAP_DP.dp))
+            Text(
+                text = stringResource(Res.string.paywall_tagline),
+                style = PaparcarType.current.body,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Start,
+            )
+        }
     }
 }
 
@@ -297,112 +345,130 @@ private fun PaywallHeader() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * The comparison, as two cards side by side: what you have on the left, what you could have on
- * the right, wearing the metal.
+ * The comparison: what you have on the left, what you could have on the right, wearing the metal.
  *
- * Chosen over a shared-label table because this is a SALES screen, not a spec sheet. A table is
- * more scannable, but it reduces the premium surface to a thin column, and the finish only sells
- * when the Plus tier is a whole OBJECT you could point at.
+ * Two facing CARDS and not a shared-label table, because this is a SALES screen, not a spec sheet.
+ * A label column is more scannable, but it reduces the premium surface to a thin strip, and the
+ * finish only sells when the Plus tier is a whole OBJECT you could point at.
  *
- * ⚠️ The price of that choice is width: on a 360 dp phone each card is about 150 dp, so every
- * line inside has to survive being wrapped across nine locales. That is why the values are terse
- * fragments ("The last 30 days") instead of the sentences the old stacked layout could afford —
- * the layout constrains the copy, so the copy was rewritten rather than left to overflow.
+ * 🔑 **The two beds are painted behind ONE grid, not filled with two independent lists.**
+ * [UI-PAYWALL-THE-CREST-STANDS-BESIDE-ITS-NAME-001] That is what makes the pairing real rather than
+ * lucky: each [TierRow] emits a single `Row` holding both cells, so the Free value and the Plus
+ * value that replaces it share a height by construction — one wrapping to two lines and its partner
+ * to one can no longer shift everything below it. The earlier version had two `Column`s inside two
+ * cards, and it drifted twice over: Plus carried an extra opening row and was missing the widget,
+ * which cancelled out in the row COUNT while every value from row two down sat beside the wrong
+ * partner. A layout where that mistake is possible will make it again.
  *
- * `IntrinsicSize.Min` + `fillMaxHeight` keeps both cards the same height whichever locale wraps
- * more, so the two never sit at different depths.
+ * The beds are `matchParentSize` behind the grid, so the cards are exactly as tall as the content
+ * and neither can end up deeper than the other.
+ *
+ * ⚠️ Width is still the constraint: on a 360 dp phone each half is about 150 dp, so every value has
+ * to survive wrapping across nine locales. The values are terse fragments for that reason — the
+ * layout constrains the copy, so the copy is written to fit rather than left to overflow.
  */
 @Composable
 private fun TierComparison() {
-    Row(
-        modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
-        horizontalArrangement = Arrangement.spacedBy(TIER_GAP_DP.dp),
-    ) {
-        PapOutlinedCard(
-            modifier = Modifier.weight(1f).fillMaxHeight(),
-            shape = PapShapes.cardLarge,
+    // ⛔ The metal keeps its own ink: with the content lifted out of `PapPremiumSurface`, nothing
+    // inherits `premiumInk` any more, so the Plus cells state it. Free takes the page's colours.
+    Box(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.matchParentSize(),
+            horizontalArrangement = Arrangement.spacedBy(TIER_GAP_DP.dp),
         ) {
-            TierCardBody(
-                title = stringResource(Res.string.paywall_tier_free),
-                titleColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                lines = FREE_LINES,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                textColor = MaterialTheme.colorScheme.onSurface,
-            )
+            PapOutlinedCard(
+                modifier = Modifier.weight(1f).fillMaxHeight(),
+                shape = PapShapes.cardLarge,
+            ) {}
+            PapPremiumSurface(modifier = Modifier.weight(1f).fillMaxHeight()) {}
         }
-        PapPremiumSurface(modifier = Modifier.weight(1f).fillMaxHeight()) {
-            // On the metallic bed the ink inverts, exactly as on the Settings row and the
-            // history footer — `PapPremiumSurface` provides `onPrimary` to everything inside.
-            TierCardBody(
-                title = stringResource(Res.string.paywall_tier_plus),
-                titleColor = premiumInk,
-                lines = PLUS_LINES,
-                tint = premiumInk,
-                textColor = premiumInk,
-            )
-        }
-    }
-}
-
-@Composable
-private fun TierCardBody(
-    title: String,
-    titleColor: Color,
-    lines: List<TierLine>,
-    tint: Color,
-    textColor: Color,
-) {
-    Column(modifier = Modifier.padding(TIER_PADDING_DP.dp)) {
-        Text(text = title, style = PaparcarType.current.cardTitle, color = titleColor)
-        Spacer(Modifier.height(TIER_TITLE_GAP_DP.dp))
-        lines.forEach { line ->
-            Row(
-                modifier = Modifier.padding(vertical = TIER_LINE_PAD_DP.dp),
-                horizontalArrangement = Arrangement.spacedBy(TIER_ICON_GAP_DP.dp),
-                // Top, so the icon marks the first line of a value that wraps to two or three.
-                verticalAlignment = Alignment.Top,
-            ) {
-                Icon(
-                    imageVector = line.icon,
-                    contentDescription = null,
-                    tint = tint.copy(alpha = PapAlpha.body),
-                    modifier = Modifier
-                        .padding(top = TIER_ICON_NUDGE_DP.dp)
-                        .size(TIER_ICON_DP.dp),
-                )
+        Column(modifier = Modifier.fillMaxWidth().padding(vertical = TIER_PADDING_DP.dp)) {
+            TierGridRow { half ->
                 Text(
-                    text = stringResource(line.text),
-                    style = PaparcarType.current.caption,
-                    color = textColor,
+                    text = stringResource(if (half == TierHalf.FREE) Res.string.paywall_tier_free else Res.string.paywall_tier_plus),
+                    style = PaparcarType.current.cardTitle,
+                    color = if (half == TierHalf.FREE) MaterialTheme.colorScheme.onSurfaceVariant else premiumInk,
                 )
+            }
+            Spacer(Modifier.height(TIER_TITLE_GAP_DP.dp))
+            TIER_ROWS.forEach { row ->
+                TierGridRow { half ->
+                    TierCell(
+                        icon = row.icon,
+                        text = stringResource(if (half == TierHalf.FREE) row.free else row.plus),
+                        ink = if (half == TierHalf.FREE) MaterialTheme.colorScheme.onSurface else premiumInk,
+                        tint = if (half == TierHalf.FREE) MaterialTheme.colorScheme.onSurfaceVariant else premiumInk,
+                    )
+                }
             }
         }
     }
 }
 
-/** One value inside a tier card. The icon is what pairs a Free line with its Plus counterpart:
- *  with no shared label column, the glyph is the only thing saying "these two are the same row". */
-private class TierLine(val icon: ImageVector, val text: StringResource)
+/** Which side of the grid a cell is being emitted for. */
+private enum class TierHalf { FREE, PLUS }
 
-private val FREE_LINES = listOf(
-    TierLine(Icons.Rounded.History, Res.string.paywall_free_history),
-    TierLine(Icons.Rounded.DirectionsCar, Res.string.paywall_free_vehicles),
-    TierLine(Icons.Rounded.Map, Res.string.paywall_free_zones),
-    // [WIDGET-ACTIONS-002] A free value the pitch was not naming — the widget is FREE by doctrine
-    // (the present is never hidden) and the table says so.
-    TierLine(Icons.Rounded.Widgets, Res.string.paywall_free_widget),
-    TierLine(Icons.Rounded.NotificationsActive, Res.string.paywall_free_alerts),
-    TierLine(Icons.Rounded.Favorite, Res.string.paywall_free_support),
-)
+/** One line of the grid: the Free cell and the Plus cell, side by side and therefore the same
+ *  height. The horizontal padding lives here rather than on the beds so both halves inset
+ *  identically. */
+@Composable
+private fun TierGridRow(cell: @Composable (TierHalf) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = TIER_LINE_PAD_DP.dp),
+        horizontalArrangement = Arrangement.spacedBy(TIER_GAP_DP.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Box(modifier = Modifier.weight(1f).padding(horizontal = TIER_PADDING_DP.dp)) {
+            cell(TierHalf.FREE)
+        }
+        Box(modifier = Modifier.weight(1f).padding(horizontal = TIER_PADDING_DP.dp)) {
+            cell(TierHalf.PLUS)
+        }
+    }
+}
 
-private val PLUS_LINES = listOf(
-    // Plus opens by SAYING it contains Free — nobody should have to infer it. [WIDGET-ACTIONS-002]
-    TierLine(Icons.Rounded.Check, Res.string.paywall_plus_everything),
-    TierLine(Icons.Rounded.History, Res.string.paywall_plus_history),
-    TierLine(Icons.Rounded.DirectionsCar, Res.string.paywall_plus_vehicles),
-    TierLine(Icons.Rounded.Map, Res.string.paywall_plus_zones),
-    TierLine(Icons.Rounded.NotificationsActive, Res.string.paywall_plus_alerts),
-    TierLine(Icons.Rounded.Favorite, Res.string.paywall_plus_support),
+@Composable
+private fun TierCell(icon: ImageVector, text: String, ink: Color, tint: Color) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(TIER_ICON_GAP_DP.dp),
+        // Top, so the icon marks the first line of a value that wraps to two or three.
+        verticalAlignment = Alignment.Top,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = tint.copy(alpha = PapAlpha.body),
+            modifier = Modifier
+                .padding(top = TIER_ICON_NUDGE_DP.dp)
+                .size(TIER_ICON_DP.dp),
+        )
+        Text(text = text, style = PaparcarType.current.caption, color = ink)
+    }
+}
+
+/**
+ * One line of the comparison: an icon and the SAME value said twice, once per tier.
+ *
+ * ⛔ The Free and Plus wordings live in one object on purpose. They used to be two parallel lists,
+ * and a row added to one of them and not the other re-paired everything below it in silence — the
+ * defect this row type makes unrepresentable. [UI-PAYWALL-THE-CREST-STANDS-BESIDE-ITS-NAME-001]
+ */
+private class TierRow(val icon: ImageVector, val free: StringResource, val plus: StringResource)
+
+private val TIER_ROWS = listOf(
+    TierRow(Icons.Rounded.History, Res.string.paywall_free_history, Res.string.paywall_plus_history),
+    // The figures sit right after the history they are computed from. Free sees the first tile
+    // whole and the rest redacted — enough to know the block is real and about their own car,
+    // never enough to have the answer. [MONEY-001] [FREE-LIMITS-001]
+    TierRow(Icons.Rounded.Insights, Res.string.paywall_free_stats, Res.string.paywall_plus_stats),
+    TierRow(Icons.Rounded.DirectionsCar, Res.string.paywall_free_vehicles, Res.string.paywall_plus_vehicles),
+    TierRow(Icons.Rounded.Map, Res.string.paywall_free_zones, Res.string.paywall_plus_zones),
+    // The widget is FREE by doctrine — the present is never hidden [WIDGET-ACTIONS-002] — and what
+    // Plus adds is the cars: having more than one is itself a Plus situation, so a Plus widget is
+    // the one that can list them. [WIDGET-A-TRIP-IS-NOT-AN-EMPTY-WIDGET-001]
+    TierRow(Icons.Rounded.Widgets, Res.string.paywall_free_widget, Res.string.paywall_plus_widget),
+    TierRow(Icons.Rounded.NotificationsActive, Res.string.paywall_free_alerts, Res.string.paywall_plus_alerts),
+    TierRow(Icons.Rounded.Favorite, Res.string.paywall_free_support, Res.string.paywall_plus_support),
 )
 
 /** The one-line motive for a gated entrance; GENERAL entrances (the Settings row) have none. */
@@ -610,14 +676,21 @@ private fun PlanRow(
 
 private const val SCREEN_H_PADDING_DP = 20
 
-/** Room above the crest. Generous on purpose — the header is the ceremony, and ceremony is
- *  mostly space. */
-private const val CLOSE_ROW_HEIGHT_DP = 64
+/**
+ * Room above the header: EXACTLY the close button's footprint — a 48 dp `IconButton` plus its
+ * [CLOSE_PADDING_DP]. Not a round number and not ceremony; it is the one height at which a
+ * left-aligned header cannot collide with the button floating at the top-end, whatever a locale
+ * does to the title. The alternative — reserving end padding on the text column — is the same
+ * guarantee written in a way that breaks in whichever language wraps widest.
+ * [UI-PAYWALL-THE-CREST-STANDS-BESIDE-ITS-NAME-001]
+ */
+private const val CLOSE_ROW_HEIGHT_DP = 52
 private const val CLOSE_PADDING_DP = 4
 /** Breathing room around the pinned footer. */
 private const val FOOTER_V_PADDING_DP = 14
-private const val CREST_GAP_DP = 16
-private const val TITLE_GAP_DP = 8
+/** Mark-to-text gap, the login header's own. */
+private const val CREST_TEXT_GAP_DP = 14
+private const val TITLE_GAP_DP = 4
 private const val SECTION_GAP_DP = 28
 private const val COMPARE_TITLE_GAP_DP = 10
 private const val NOTE_GAP_DP = 12
