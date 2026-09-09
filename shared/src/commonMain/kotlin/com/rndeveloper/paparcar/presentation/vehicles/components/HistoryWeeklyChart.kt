@@ -36,6 +36,8 @@ import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.presentation.vehicles.WeekDayStats
@@ -115,6 +117,12 @@ private fun ActivityCardTitle(total: Int, distanceText: String?) {
         // figures below use — one screen, one speed. The NOUN comes from the target count, not from
         // the number mid-flight, so it cannot flicker between singular and plural on the way there.
         val shownTotal = rememberCountUp(total.toFloat()).roundToInt()
+        // The SUBJECT never wraps; the qualifier bends around it. Flexibility used to sit on the
+        // wrong side: the count carried the weight and the distance pinned itself to one line, so
+        // "20 aparcamientos" broke in two while "118,3 km en 18 de ellos" held firm. The count is
+        // what the card is about — it keeps its intrinsic width on one line, and the sentence takes
+        // whatever is left, wrapping to a second line before it ellipsizes.
+        // [UI-STATS-HEADER-WRAPS-THE-WRONG-SIDE-001]
         Text(
             text = buildAnnotatedString {
                 withStyle(SpanStyle(color = PapColor.actionText)) { append("$shownTotal ") }
@@ -122,17 +130,24 @@ private fun ActivityCardTitle(total: Int, distanceText: String?) {
             },
             style = PaparcarType.current.cardTitle,
             color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f),
+            maxLines = 1,
         )
         if (distanceText != null) {
             // A sentence ("56,0 km in 14 of them") cannot be interpolated, so it changes the way a
             // sentence can. [STATS-PANEL-001]
-            Crossfade(targetState = distanceText, label = "activity_distance") { shown ->
+            Crossfade(
+                targetState = distanceText,
+                label = "activity_distance",
+                modifier = Modifier.weight(1f),
+            ) { shown ->
                 Text(
                     text = shown,
                     style = PaparcarType.current.caption,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.End,
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
         }

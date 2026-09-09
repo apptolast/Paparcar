@@ -151,7 +151,10 @@ private fun VehicleStateLine(lastSession: UserParking?, watch: VehicleWatch) {
             // lines above without spending a colour on it.
             style = PaparcarType.current.meta,
             color = cs.onSurface,
-            maxLines = 1,
+            // Two lines before truncating: an address plus its relative time rarely fits one line
+            // on a narrow device, and eating the WHERE to keep the height is backwards — the place
+            // is the payload of this line. [UI-STATS-HEADER-WRAPS-THE-WRONG-SIDE-001]
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
     }
