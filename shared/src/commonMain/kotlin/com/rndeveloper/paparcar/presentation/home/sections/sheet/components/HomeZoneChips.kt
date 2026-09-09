@@ -2,6 +2,7 @@ package com.rndeveloper.paparcar.presentation.home.sections.sheet.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -28,6 +29,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -185,8 +187,21 @@ fun AddZoneChip(
         ) {
             // The "+" sits in a square as wide as the chip is tall, so collapsed the pill IS a
             // circle of the row's height — no separate size constant to keep in sync.
+            //
+            // Expanded, that square alone put the glyph's centre at 17dp: dead centre of the round
+            // cap, and further into the corner than any other leading icon on the row (a zone chip
+            // puts its own at 12 + 9 = 21). It gains the difference — but ONLY expanded, because
+            // collapsed the same padding would stretch the circle into an oval. Animated, so the
+            // "+" glides across those 4dp instead of jumping the moment the invitation opens.
+            // [UI-HEADER-PILLS-SHARE-ONE-GEOMETRY-001]
+            val leadingInset by animateDpAsState(
+                targetValue = if (expanded) ADD_ZONE_EXPANDED_LEADING_PAD_DP.dp else 0.dp,
+                animationSpec = PapMotion.medium(),
+            )
             Box(
-                modifier = Modifier.size(ZONE_CHIP_HEIGHT),
+                modifier = Modifier
+                    .padding(start = leadingInset)
+                    .size(ZONE_CHIP_HEIGHT),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -201,7 +216,14 @@ fun AddZoneChip(
                 enter = fadeIn(PapMotion.medium()) + expandHorizontally(PapMotion.medium()),
                 exit = fadeOut(PapMotion.fast()) + shrinkHorizontally(PapMotion.medium()),
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                // The × carries 6dp of optical margin inside its 28dp touch box and the row ended
+                // flush, so it had 6dp of air where the zone chip's pencil has 10. Same trailing
+                // inset as that chip: the two pills end the same way.
+                // [UI-HEADER-PILLS-SHARE-ONE-GEOMETRY-001]
+                Row(
+                    modifier = Modifier.padding(end = ADD_ZONE_TRAILING_PAD_DP.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     Column(modifier = Modifier.padding(vertical = ADD_ZONE_TEXT_PAD_V_DP.dp)) {
                         Text(
                             text = stringResource(Res.string.home_header_add_zone),
@@ -252,6 +274,12 @@ private const val ZONE_CHIP_ICON_DP = 18
 private const val ZONE_CHIP_LOCK_DP = 13
 private const val ADD_ZONE_TEXT_GAP_DP = 8
 private const val ADD_ZONE_TEXT_PAD_V_DP = 5
+
+/** Brings the expanded "+" to the same 21dp from the edge as a zone chip's leading icon. */
+private const val ADD_ZONE_EXPANDED_LEADING_PAD_DP = 4
+
+/** The same trailing inset [ZoneChip] gives its pencil — 4 + the glyph's own 6 = 10dp of air. */
+private const val ADD_ZONE_TRAILING_PAD_DP = 4
 private val ADD_ZONE_HINT_ALPHA = PapAlpha.muted
 private const val ZONE_CHIP_EDIT_DP = 16
 private const val ZONE_CHIP_EDIT_TAP_DP = 28
