@@ -62,6 +62,12 @@ val androidDetectionModule = module {
 
     // --- Driving route: the dense tracked route persisted so the drawn line survives background /
     // cold-start mid-trip; fed by the service, restored by the trip controller [DET-ROUTE-TRACK-001] ---
+    // [DET-A-BT-CONNECT-KNOWS-WHERE-THE-CAR-IS-001] The paired car's CONNECT stamp, read by the
+    // departure processor to know whether the session still knows where its car is.
+    single<com.rndeveloper.paparcar.domain.detection.ports.BtConnectStampReader> {
+        com.rndeveloper.paparcar.bluetooth.AndroidBtConnectStampReader(androidContext())
+    }
+
     single<com.rndeveloper.paparcar.domain.detection.ports.DrivingRouteStore> {
         com.rndeveloper.paparcar.detection.DrivingRouteStoreImpl(androidContext())
     }

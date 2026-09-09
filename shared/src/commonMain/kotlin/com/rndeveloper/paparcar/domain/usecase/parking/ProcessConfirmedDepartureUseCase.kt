@@ -6,6 +6,9 @@ import com.rndeveloper.paparcar.domain.analytics.AnalyticsEvent
 import com.rndeveloper.paparcar.domain.analytics.AnalyticsTracker
 import com.rndeveloper.paparcar.domain.analytics.SessionEndReason
 import com.rndeveloper.paparcar.domain.detection.DepartureProof
+import com.rndeveloper.paparcar.domain.detection.parkedSessionIsContradictedByBtConnect
+import com.rndeveloper.paparcar.domain.detection.ports.BtConnectStamp
+import com.rndeveloper.paparcar.domain.detection.ports.BtConnectStampReader
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEvent
 import com.rndeveloper.paparcar.domain.diagnostics.DetectionEventLogger
 import com.rndeveloper.paparcar.domain.detection.DetectionPath
@@ -55,6 +58,10 @@ class ProcessConfirmedDepartureUseCase(
     private val config: ParkingDetectionConfig,
     // Optional product-analytics sink; fire-and-forget, nullable for test doubles. [ANALYTICS-EVENTS-001]
     private val analyticsTracker: AnalyticsTracker? = null,
+    /** [DET-A-BT-CONNECT-KNOWS-WHERE-THE-CAR-IS-001] The paired car's last CONNECT, which is the only
+     *  signal that can tell this session its pin is stale. Nullable: a platform or a vehicle without
+     *  a Bluetooth lane simply has no stamp, and "no stamp" already means "cannot know". */
+    private val btConnectStamps: BtConnectStampReader? = null,
 ) {
     private companion object {
         const val TAG = "ProcessConfirmedDeparture"
@@ -107,6 +114,25 @@ class ProcessConfirmedDepartureUseCase(
         // re-derived, because the two readers below run after it and cannot re-test it safely.
         var publishesNow = false
 
+        // [DET-A-BT-CONNECT-KNOWS-WHERE-THE-CAR-IS-001] Does this session still know where its car
+        // is? The freed spot is built from `session.location`, and nothing downstream can tell that
+        // coordinate is stale: the plaza at A was real, it was just freed by somebody else at an
+        // hour nobody witnessed. The freshness gate cannot see it either — it measures from OUR
+        // exit. Only the paired car's own CONNECT can contradict the pin, and when it does, this
+        // session has lost the right to advertise anything.
+        //
+        // Refusing costs a plaza we decline to publish (a false negative, the safe side); allowing
+        // costs a stranger a walk to a space taken hours ago.
+        val staleStamp: BtConnectStamp? = session?.vehicleId?.let { vehicleId ->
+            runCatching { btConnectStamps?.lastConnect(vehicleId) }.getOrNull()
+        }
+        val sessionPinIsContradicted = session != null && parkedSessionIsContradictedByBtConnect(
+            sessionLocation = session.location,
+            connectFix = staleStamp?.fix,
+            connectedAtMs = staleStamp?.atMs,
+            config = config,
+        )
+
         // [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001] The published spot inherits the SESSION's shape:
         // exact stays exact; a bounded zone goes out as an AREA with capped confidence and the
         // provisional lifetime; a zone wider than the ceiling publishes NOTHING (sending a seeker
@@ -115,7 +141,7 @@ class ProcessConfirmedDepartureUseCase(
         val shape = SpotReleasePolicy.shapeFor(session?.zoneRadiusMeters, session?.detectionReliability)
 
         // Public spots are published to the community; private zones are not reported.
-        if (publishSpot && !alreadyPublishedProvisionally &&
+        if (publishSpot && !alreadyPublishedProvisionally && !sessionPinIsContradicted &&
             session != null && lat != null && lon != null && session.privateZoneId == null &&
             shape != SpotReleasePolicy.Shape.Withheld
         ) {
@@ -143,6 +169,17 @@ class ProcessConfirmedDepartureUseCase(
                 provisional = proof == DepartureProof.Deduced || shape is SpotReleasePolicy.Shape.Zone,
                 zoneRadiusMeters = (shape as? SpotReleasePolicy.Shape.Zone)?.radiusMeters,
             )
+        } else if (sessionPinIsContradicted && publishSpot) {
+            // [DET-A-BT-CONNECT-KNOWS-WHERE-THE-CAR-IS-001] Named apart from every other "nothing
+            // published" so the field can count it: this is not a stale hour nor a private zone, it
+            // is a session that no longer knows where its car is. The cleanup below still runs — the
+            // app's own state has to converge either way.
+            PaparcarLogger.w(
+                TAG,
+                "⊘ the paired car CONNECTED somewhere else since this park — session pin is stale, " +
+                    "freed spot NOT published (it would advertise a plaza freed by someone else, at " +
+                    "an hour nobody witnessed); session cleanup continues",
+            )
         } else if (shape == SpotReleasePolicy.Shape.Withheld && publishSpot && session != null) {
             PaparcarLogger.d(
                 TAG,
@@ -158,7 +195,11 @@ class ProcessConfirmedDepartureUseCase(
         // catches the real departure when it comes. Field 2026-08-19: a bicycle ride released two
         // cars that never moved, and the geofence removal took their next EXIT trigger with them.
         if (proof == DepartureProof.Deduced) {
-            if (session != null) {
+            // [DET-A-BT-CONNECT-KNOWS-WHERE-THE-CAR-IS-001] …and a session whose pin the CONNECT
+            // contradicts does not get MARKED either. The mark is a promise to promote this spot
+            // later ([FinalizeDeducedDepartureUseCase]), so marking a session that just declined to
+            // publish would hand the phantom plaza to the other door and let it out there instead.
+            if (session != null && !sessionPinIsContradicted) {
                 userParkingRepository.markProvisionalDeparture(session.id, Clock.System.now().toEpochMilliseconds())
             }
             // [DET-RETRACT-DENIED-FOREVER-001] Say which of the two actually happened. This line

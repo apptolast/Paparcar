@@ -199,7 +199,17 @@ Tres condiciones para que la sesión nueva no abra un agujero nuevo:
 
 ## Plan: dos mitades con riesgos muy distintos
 
-**Mitad 1 — el guard (barato, seguro, primer paso implementable).** Si el connect dice que el coche
+**Mitad 1 — el guard. ✅ HECHA (09-09-2026).** `parkedSessionIsContradictedByBtConnect` en
+`domain/detection/`, gemelo espacial de `freedSpotIsStillThere`, leído por las DOS puertas a la
+comunidad. Falla cerrado sin fix, sin instante y con un connect anterior al aparcamiento.
+El barrido encontró que `ProcessConfirmedDepartureUseCase` no era la única puerta:
+`FinalizeDeducedDepartureUseCase` promueve el spot provisional a vida completa más tarde y necesitaba
+el mismo gate, y la marca `markProvisionalDeparture` corría incondicionalmente —bloquear sólo la
+publicación habría dejado la sesión prometida a la otra puerta—. `ReleaseActiveParkingSession` y
+`ReportManualSpot` quedan exentos: son afirmaciones del usuario.
+2 461 tests verdes (+9). Detalle en `docs/detection/PARKING-DETECTION.md`.
+
+**Lo que era, para el registro:** Si el connect dice que el coche
 no está donde dice la sesión, esa sesión **no puede publicar plaza al cerrarse**. Mata el falso
 positivo, no inventa ninguna posición, y **no depende de ninguna de las tres decisiones abiertas**.
 Asimétricamente seguro: como mucho deja de publicar una plaza que sí era buena — un falso negativo,
@@ -207,7 +217,25 @@ que es el lado correcto.
 ⛔ Sigue sin saberse **con qué frecuencia muerde hoy**: eso es campo. Pero el guard no necesita
 saberlo para ser correcto.
 
-**Mitad 2 — la sesión nueva en B (grande).** Toca el radio de zona, el gate de identidad del ticket
+**Mitad 2 — la sesión nueva en B (grande). El estado final, en palabras del user (09-09):**
+
+> *«Si el parking que dejé en A, conduzco desde B y no coinciden las posiciones, se lanza plaza
+> DUDOSA desde B.»*
+
+Exacto, y conviene que quede escrito así porque la mitad 1 sola **no llega ahí**: hoy, cuando las
+posiciones no coinciden, no se publica nada — la plaza de B se pierde. Eso es un falso negativo, que
+es el lado correcto para vivir mientras tanto, pero **no es el destino**: la plaza de B existe, la
+está liberando el usuario en ese mismo momento y es la única que la comunidad debería recibir.
+
+«Dudosa» ya tiene vocabulario en la app y no hay que inventarlo: `SpotReleasePolicy.Shape.Zone` —
+radio, confianza capada y vida provisional. La posición sale del fix del CONNECT; la salida de B sí
+se mide (el usuario conduce). Lo que falta para poder escribirlo:
+
+- **el radio**, que es la decisión A y no se puede inventar (alcance del enlace sin medir);
+- **la fiabilidad** con la que nace esa sesión;
+- y decidir si la plaza la publica la sesión nueva al cerrarse o el propio disconnect.
+
+**Mitad 2 — resto del alcance.** Toca el radio de zona, el gate de identidad del ticket
 del veto y la fiabilidad con la que nace. Necesita las tres decisiones abiertas y el viaje.
 
 ⛔ Alcance: sólo aplica al carril BT, que es donde existe un connect. Un vehículo sin MAC no tiene

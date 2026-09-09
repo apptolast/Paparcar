@@ -745,6 +745,15 @@ data class ParkingDetectionConfig(
      *  The threshold actually applied is this plus both fixes' accuracies plus the walk the origin's
      *  age allows — see `EvaluateBtParkUseCase.evaluateRideDisplacement`. */
     val btMinRideDisplacementMeters: Float = 150f,
+    /** [DET-A-BT-CONNECT-KNOWS-WHERE-THE-CAR-IS-001] Slack, on top of both fixes' accuracies, before
+     *  a Bluetooth CONNECT is read as CONTRADICTING the parked session's pin — the gate that stops a
+     *  session at A from advertising a plaza after somebody else moved the car to B.
+     *  Sized from the link, not from the map: the phone pairs from the pavement or through a wall,
+     *  so a connect happens tens of metres from the pin with the car exactly where it was. 100 m
+     *  clears that comfortably and is far below "another street".
+     *  ⛔ Errar por ARRIBA es el lado inseguro: un umbral grande no ve la contradicción y publica la
+     *  plaza fantasma. Bajar antes que subir. */
+    val btConnectContradictsSessionMeters: Float = 100f,
     /** [DET-BT-A-RIDE-IS-MEASURED-NOT-TIMED-001] Age above which the cached fix stamped at the
      *  connect stops being an origin at all. It is a LAST KNOWN fix, so its age is how far the user
      *  might have walked before getting in — charged to the threshold below this ceiling, and named
@@ -1249,6 +1258,9 @@ data class ParkingDetectionConfig(
         }
         require(btConnectFixMaxAgeMs > 0) {
             "btConnectFixMaxAgeMs must be > 0, was $btConnectFixMaxAgeMs"
+        }
+        require(btConnectContradictsSessionMeters > 0f) {
+            "btConnectContradictsSessionMeters must be > 0, was $btConnectContradictsSessionMeters"
         }
         require(btMaxRideDurationMs > btMinRideDurationMs) {
             "btMaxRideDurationMs ($btMaxRideDurationMs) must exceed btMinRideDurationMs " +

@@ -16,6 +16,7 @@ import com.rndeveloper.paparcar.domain.analytics.AnalyticsEvent
 import com.rndeveloper.paparcar.domain.analytics.SessionEndReason
 import com.rndeveloper.paparcar.fakes.FakeAddressAndPlaceRepository
 import com.rndeveloper.paparcar.fakes.FakeAnalyticsTracker
+import com.rndeveloper.paparcar.fakes.FakeBtConnectStampReader
 import com.rndeveloper.paparcar.fakes.FakeAuthRepository
 import com.rndeveloper.paparcar.fakes.FakeDepartureEventBus
 import com.rndeveloper.paparcar.fakes.FakeDetectionEventLogger
@@ -357,7 +358,9 @@ class ProcessConfirmedDepartureUseCaseTest {
     // responde aquí, que es donde es determinista.
 
     @Test
-    fun should_publishTheFreedSpotAtA_when_theCarWasAlreadyMovedToB() = runTest {
+    fun should_publishTheFreedSpotAtA_when_nothingCanContradictTheSession() = runTest {
+        // Sin carril BT no hay quien desmienta a la sesión: se publica en A, como siempre. Este es
+        // el comportamiento que el guard NO puede cambiar — un coche sin MAC emparejada vive aquí.
         // La sesión dice A. El coche lleva horas en B. Alguien mide una salida (el EXIT de la
         // geocerca de A al salir de casa, el trayecto a B contado como conducción) y se procesa.
         val repo = FakeUserParkingRepository(initialSession = activeSession(id = "session-A"))
@@ -392,6 +395,48 @@ class ProcessConfirmedDepartureUseCaseTest {
         )
     }
 
+    @Test
+    fun should_refuseToPublishAnything_when_theCarConnectedSomewhereElseSinceThisPark() = runTest {
+        // [DET-A-BT-CONNECT-KNOWS-WHERE-THE-CAR-IS-001 · mitad 1] El guard. Mismo escenario que los
+        // dos de arriba, con la única diferencia que importa: el coche ENGANCHÓ en B después de que
+        // esta sesión naciera en A. Eso desmiente al pin, y una sesión que ya no sabe dónde está su
+        // coche pierde el derecho a anunciar plaza.
+        val repo = FakeUserParkingRepository(initialSession = activeSession(id = "session-A"))
+        val spotScheduler = FakeReportSpotScheduler()
+        val stamps = FakeBtConnectStampReader().apply {
+            stamp("v-1", atMs = PARK_A.timestamp + 3 * 60 * 60_000L, fix = PARK_B)
+        }
+
+        val result = buildUseCase(repo = repo, spotScheduler = spotScheduler, btConnectStamps = stamps)(
+            "session-A",
+            publishSpot = true,
+        )
+
+        assertTrue(result.isSuccess)
+        assertEquals(0, spotScheduler.scheduleCallCount, "no se anuncia una plaza que otro liberó a una hora que nadie vio")
+        // Y el resto del cierre SÍ corre: el estado propio tiene que converger igual.
+        assertFalse(repo.getActiveSessionByGeofence("session-A") != null, "la sesión se cierra igual")
+    }
+
+    @Test
+    fun should_stillPublish_when_theCarConnectedRightWhereItWasParked() = runTest {
+        // El caso normal, que es el que el guard no puede romper: vuelves a tu coche, el enlace
+        // engancha a unos metros del pin, conduces. Eso no es una contradicción.
+        val repo = FakeUserParkingRepository(initialSession = activeSession(id = "session-A"))
+        val spotScheduler = FakeReportSpotScheduler()
+        val stamps = FakeBtConnectStampReader().apply {
+            stamp("v-1", atMs = PARK_A.timestamp + 60 * 60_000L, fix = PARK_A.copy(timestamp = PARK_A.timestamp + 60 * 60_000L))
+        }
+
+        buildUseCase(repo = repo, spotScheduler = spotScheduler, btConnectStamps = stamps)(
+            "session-A",
+            publishSpot = true,
+        )
+
+        assertEquals(1, spotScheduler.scheduleCallCount)
+        assertEquals(PARK_A.latitude, spotScheduler.lastLat, 1e-9)
+    }
+
     private fun buildUseCase(
         repo: FakeUserParkingRepository = FakeUserParkingRepository(),
         spotScheduler: FakeReportSpotScheduler = FakeReportSpotScheduler(),
@@ -400,6 +445,7 @@ class ProcessConfirmedDepartureUseCaseTest {
         logger: FakeDetectionEventLogger = FakeDetectionEventLogger(),
         config: ParkingDetectionConfig = ParkingDetectionConfig(),
         tracker: FakeAnalyticsTracker? = null,
+        btConnectStamps: FakeBtConnectStampReader? = null,
     ) = ProcessConfirmedDepartureUseCase(
         userParkingRepository = repo,
         reportSpotReleased = ReportSpotReleasedUseCase(
@@ -412,6 +458,7 @@ class ProcessConfirmedDepartureUseCaseTest {
         detectionEventLogger = logger,
         config = config,
         analyticsTracker = tracker,
+        btConnectStamps = btConnectStamps,
     )
 
     // ── Product analytics [ANALYTICS-EVENTS-001] ─────────────────────────────

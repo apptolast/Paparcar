@@ -8,6 +8,7 @@ import com.rndeveloper.paparcar.domain.analytics.AnalyticsEvent
 import com.rndeveloper.paparcar.domain.analytics.SessionEndReason
 import com.rndeveloper.paparcar.fakes.FakeAddressAndPlaceRepository
 import com.rndeveloper.paparcar.fakes.FakeAnalyticsTracker
+import com.rndeveloper.paparcar.fakes.FakeBtConnectStampReader
 import com.rndeveloper.paparcar.fakes.FakeAuthRepository
 import com.rndeveloper.paparcar.fakes.FakeDetectionEventLogger
 import com.rndeveloper.paparcar.fakes.FakeGeofenceManager
@@ -164,6 +165,7 @@ class FinalizeDeducedDepartureUseCaseTest {
         spotScheduler: FakeReportSpotScheduler = FakeReportSpotScheduler(),
         geofence: FakeGeofenceManager = FakeGeofenceManager(),
         tracker: FakeAnalyticsTracker? = null,
+        btConnectStamps: FakeBtConnectStampReader? = null,
     ) = FinalizeDeducedDepartureUseCase(
         userParkingRepository = repo,
         reportSpotReleased = ReportSpotReleasedUseCase(
@@ -177,6 +179,7 @@ class FinalizeDeducedDepartureUseCaseTest {
         geofenceService = geofence,
         detectionEventLogger = FakeDetectionEventLogger(),
         analyticsTracker = tracker,
+        btConnectStamps = btConnectStamps,
     )
 
     // ── Product analytics [ANALYTICS-EVENTS-001] ─────────────────────────────
@@ -196,5 +199,26 @@ class FinalizeDeducedDepartureUseCaseTest {
             tracker.events.filterIsInstance<AnalyticsEvent.SpotReleased>().isEmpty(),
             "the promotion re-publishes the same document and must not count a second spot",
         )
+    }
+
+    @Test
+    fun should_promoteNothing_when_thePairedCarConnectedElsewhereSinceThePark() = runTest {
+        // [DET-A-BT-CONNECT-KNOWS-WHERE-THE-CAR-IS-001] La SEGUNDA puerta a la comunidad. Una sesión
+        // puede haberse marcado provisional legítimamente y que el coche lo mueva otra persona
+        // DESPUÉS; promover entonces publicaría la plaza fantasma con la vida COMPLETA, que es peor
+        // que la provisional. El barrido de consumidores es lo que encontró esta puerta.
+        val repo = FakeUserParkingRepository(initialSession = session(pendingAtMs = 1_500_000L))
+        val spotScheduler = FakeReportSpotScheduler()
+        val stamps = FakeBtConnectStampReader().apply {
+            stamp(
+                "v-1",
+                atMs = 2_000_000L,
+                fix = GpsPoint(40.4126, -3.7, 8f, 2_000_000L, 0f), // ~1,4 km al norte del pin
+            )
+        }
+
+        buildUseCase(repo, spotScheduler, btConnectStamps = stamps)("v-1")
+
+        assertEquals(0, spotScheduler.scheduleCallCount, "no se promueve una plaza que el coche ya no ocupa")
     }
 }

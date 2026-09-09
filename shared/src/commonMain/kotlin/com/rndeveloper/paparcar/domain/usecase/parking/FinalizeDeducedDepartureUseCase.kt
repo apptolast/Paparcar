@@ -10,6 +10,9 @@ import com.rndeveloper.paparcar.domain.diagnostics.DetectionEventLogger
 import com.rndeveloper.paparcar.domain.model.AddressAndPlace
 import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
 import com.rndeveloper.paparcar.domain.spot.SpotReleasePolicy
+import com.rndeveloper.paparcar.domain.detection.parkedSessionIsContradictedByBtConnect
+import com.rndeveloper.paparcar.domain.detection.ports.BtConnectStampReader
+import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
 import com.rndeveloper.paparcar.domain.service.GeofenceManager
 import com.rndeveloper.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
@@ -56,6 +59,12 @@ class FinalizeDeducedDepartureUseCase(
     private val detectionEventLogger: DetectionEventLogger? = null,
     // Optional product-analytics sink; fire-and-forget, nullable for test doubles. [ANALYTICS-EVENTS-001]
     private val analyticsTracker: AnalyticsTracker? = null,
+    /** [DET-A-BT-CONNECT-KNOWS-WHERE-THE-CAR-IS-001] The SECOND door out to the community, and it
+     *  needed the same gate: a session can have been marked provisional legitimately and have the
+     *  car moved by somebody else afterwards, so the promotion has to re-ask whether the pin still
+     *  knows where the car is. Nullable for the same reason as everywhere: no stamp = cannot know. */
+    private val btConnectStamps: BtConnectStampReader? = null,
+    private val config: ParkingDetectionConfig = ParkingDetectionConfig(),
 ) : FinalizeDeducedDeparture {
     /**
      * @param vehicleId the vehicle whose live session just proved a drive. The pending departure is
@@ -83,7 +92,26 @@ class FinalizeDeducedDepartureUseCase(
         // place, so the promotion keeps the radius, the capped confidence and the provisional
         // (short) lifetime.
         val shape = SpotReleasePolicy.shapeFor(session.zoneRadiusMeters, session.detectionReliability)
-        val publishes = session.privateZoneId == null && shape != SpotReleasePolicy.Shape.Withheld
+        // [DET-A-BT-CONNECT-KNOWS-WHERE-THE-CAR-IS-001] The pin may have gone stale between the
+        // deduction and this promotion: the paired car connecting somewhere else is the only signal
+        // that says so, and promoting on top of it would publish a plaza freed by another person at
+        // an hour nobody witnessed — with the FULL lifetime, which is worse than the provisional one.
+        val stamp = session.vehicleId?.let { runCatching { btConnectStamps?.lastConnect(it) }.getOrNull() }
+        val pinIsContradicted = parkedSessionIsContradictedByBtConnect(
+            sessionLocation = session.location,
+            connectFix = stamp?.fix,
+            connectedAtMs = stamp?.atMs,
+            config = config,
+        )
+        if (pinIsContradicted) {
+            PaparcarLogger.w(
+                TAG,
+                "⊘ the paired car CONNECTED elsewhere since this park — promoting nothing, the " +
+                    "provisional spot's own TTL is left to expire [DET-A-BT-CONNECT-KNOWS-WHERE-THE-CAR-IS-001]",
+            )
+        }
+        val publishes = !pinIsContradicted &&
+            session.privateZoneId == null && shape != SpotReleasePolicy.Shape.Withheld
         if (publishes) {
             reportSpotReleased(
                 lat = session.location.latitude,

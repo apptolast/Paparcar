@@ -7678,3 +7678,55 @@ Cero migraciones y cero cambios de serialización: `detectionPath` ya existía y
 Firestore. 2 452 tests verdes (11 nuevos).
 
 Spec: `docs/backlog/det-a-nudge-must-say-who-asked-001.md`.
+
+### DET-A-BT-CONNECT-KNOWS-WHERE-THE-CAR-IS-001 (mitad 1) — una sesión que ya no sabe dónde está su coche no anuncia plaza
+
+Caso del user (08-09): el coche está aparcado en A y la app lo sabe. Otra persona lo coge y lo
+aparca en B, sin que el móvil se entere de nada. La sesión de A sigue viva y sigue equivocada, y
+cuando se procesa una salida la plaza sale **de `session.location`**, o sea en A.
+
+Medido en test antes de tocar nada (`6678713a`): la plaza publicada cae a más de un kilómetro de
+donde el coche estaba de verdad, y la firma de `ProcessConfirmedDepartureUseCase` **no admite
+ninguna posición actual** — no es que se olvide de mirar dónde está el coche, es que no tiene por
+dónde recibirlo.
+
+Es un falso positivo del tipo que la regla asimétrica existe para evitar, y no se puede cazar aguas
+abajo: la plaza de A **era real**, así que las coordenadas no tienen nada de sospechoso. Lo que está
+mal es la HORA — la liberó otra persona, en un momento que nadie presenció — y el filtro de frescura
+no puede verlo porque mide desde NUESTRA salida.
+
+**Lo único que puede desmentir al pin es el CONNECT del propio coche emparejado.** Un enganche
+Bluetooth no es un viaje, pero es una MEDICIÓN de dónde estaba el coche, y una medición gana a lo
+que una sesión meramente RECUERDA. `parkedSessionIsContradictedByBtConnect` es el gemelo espacial de
+`freedSpotIsStillThere`: aquél pregunta si la plaza sigue ahí en el TIEMPO, éste si está donde
+creemos en el ESPACIO. Los dos guardan el mismo acto —anunciar una plaza a desconocidos— y los dos
+responden `false` cuando no pueden saberlo.
+
+Falla cerrado tres veces: sin fix, sin instante, o con un connect ANTERIOR al aparcamiento (que
+describe el viaje que trajo el coche hasta aquí, no dónde está ahora — la misma regla que el gate de
+identidad de la red de seguridad). La tolerancia suma las dos accuracies más
+`btConnectContradictsSessionMeters`, porque el enlace engancha desde la acera: un connect ocurre a
+decenas de metros del pin sin que el coche se haya movido. ⛔ Y errar por ARRIBA es el lado
+inseguro: un umbral grande no ve la contradicción y publica la plaza fantasma.
+
+**El barrido de consumidores encontró la segunda puerta, que es el motivo de que este guard no sea
+una línea.** `ProcessConfirmedDepartureUseCase` no es el único camino a la comunidad:
+
+- `FinalizeDeducedDepartureUseCase` **promueve** un spot provisional a vida completa cuando después
+  se mide una conducción. Una sesión puede haberse marcado provisional legítimamente y que le muevan
+  el coche DESPUÉS: promover ahí publicaría la misma plaza fantasma, y encima con el TTL entero.
+  Lleva el mismo gate.
+- Y dentro del propio procesador: la marca `markProvisionalDeparture` corría **incondicionalmente**.
+  Bloquear sólo la publicación habría dejado la sesión marcada, o sea prometida a la otra puerta.
+  Ahora una sesión contradicha tampoco se marca.
+- `ReleaseActiveParkingSessionUseCase` (el usuario suelta su plaza a mano) y `ReportManualSpotUseCase`
+  quedan **exentos con razón**: son afirmaciones del usuario, y una inferencia no depone una
+  afirmación [DET-ASSERTION-OUTRANKS-INFERENCE-001].
+
+**Accompanying risk:** el guard puede callar una plaza buena si el fix del connect llega muy
+desviado. Es un falso negativo — el lado correcto — y el `⊘` que lo registra está redactado aparte
+de los otros "nothing published" precisamente para poder contarlo en campo.
+
+⛔ Esto es la **mitad 1** del ticket. La mitad 2 —abrir sesión NUEVA en B, en vez de limitarse a
+callar la vieja— sigue abierta y bloqueada por el viaje con el Kamiq: necesita el radio de la zona y
+la fiabilidad con la que nace. Ficha: `docs/backlog/det-a-bt-connect-knows-where-the-car-is-001.md`.

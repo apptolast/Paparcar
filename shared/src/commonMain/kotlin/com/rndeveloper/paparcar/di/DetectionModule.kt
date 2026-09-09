@@ -212,6 +212,10 @@ val detectionModule = module {
             geofenceService = get(),
             detectionEventLogger = get(),
             analyticsTracker = get(),
+            // [DET-A-BT-CONNECT-KNOWS-WHERE-THE-CAR-IS-001] Same gate as the departure processor:
+            // this is the other door out to the community.
+            btConnectStamps = getOrNull(),
+            config = get(),
         )
     } bind FinalizeDeducedDeparture::class
     // [DET-HANDOFF-NOT-MANUAL-001 §B.3] Withdraws that same provisional spot when the trip ends
@@ -232,6 +236,10 @@ val detectionModule = module {
             detectionEventLogger = get(),
             config = get(),
             analyticsTracker = get(),
+            // [DET-A-BT-CONNECT-KNOWS-WHERE-THE-CAR-IS-001] `getOrNull`: the stamp reader only
+            // exists where there is a Bluetooth lane. Absent = no stamp = "cannot know", which the
+            // rule already treats as "publish as before".
+            btConnectStamps = getOrNull(),
         )
     }
     factory {
