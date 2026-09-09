@@ -58,7 +58,12 @@ class GetNearbyFuelStationsUseCase(
             latitude = latitude,
             longitude = longitude,
             countryCode = address?.countryCode.orEmpty(),
-            regionName = address?.region,
+            // Province first: in Spain `region` is the autonomous community ("Comunidad de
+            // Madrid") and the feed is indexed by PROVINCE, so routing on the region left every
+            // multi-province community silently unpriced. The fallback keeps single-province
+            // communities working where the geocoder emits no province at all.
+            // [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
+            regionName = address?.province ?: address?.region,
             radiusMeters = radiusMeters,
         )
 

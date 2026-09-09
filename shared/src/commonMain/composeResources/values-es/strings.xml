@@ -824,6 +824,7 @@
     <string name="location_fallback_station">Gasolinera</string>
     <string name="home_fuel_title">Dónde repostar</string>
     <string name="home_fuel_empty">No hay gasolineras a menos de 5 km.</string>
+    <string name="home_fuel_missing_fuel_type">Indica el combustible de este coche en Vehículos para ver las gasolineras cercanas y sus precios.</string>
     <string name="home_fuel_error">No hemos podido cargar las gasolineras. Comprueba la conexión y vuelve a abrir esto.</string>
     <string name="home_fuel_no_prices">En este país no se publican los precios. Estas son las gasolineras cercanas.</string>
     <string name="home_fuel_reported_at">Precios comunicados a las %1$s</string>

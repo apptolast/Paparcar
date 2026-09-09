@@ -135,5 +135,9 @@ class AndroidGeocoderDataSourceImpl(private val context: Context) : GeocoderData
         region = adminArea,
         country = countryName,
         countryCode = countryCode?.lowercase(),
+        // In Spain `adminArea` is the autonomous community and `subAdminArea` the province — the
+        // level the fuel feed routes on. Measured on device: Sol geocodes to
+        // adminArea="Comunidad de Madrid". [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
+        province = subAdminArea,
     )
 }

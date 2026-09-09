@@ -42,18 +42,38 @@ class GetNearbyFuelStationsUseCaseTest {
         availability: Map<FuelType, FuelAvailability> = emptyMap(),
     ) = FuelStation(id, id, null, null, lat, lon, prices, availability)
 
+    // The REAL shape Android's geocoder emits for Sol, read from a device: `region` is the
+    // autonomous community and the province rides apart. Routing on the region left the whole
+    // country unpriced — this fixture is the regression pin.
+    // [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
     private val madrid = AddressInfo(
-        street = null, city = "Madrid", region = "Madrid", country = "España", countryCode = "ES",
+        street = null, city = "Madrid", region = "Comunidad de Madrid", country = "España",
+        countryCode = "ES", province = "Madrid",
     )
 
     @Test
-    fun `should_routeTheRequest_withTheCountryAndRegionTheGeocoderGave`() = runTest {
+    fun `should_routeTheRequest_withTheProvince_notTheAutonomousCommunity`() = runTest {
         val source = FakeSource(FuelStationsResult(emptyList()))
         GetNearbyFuelStationsUseCase(source, FakeGeocoder(madrid))
             .invoke(40.4168, -3.7038, FuelType.DIESEL)
 
         assertEquals("ES", source.seen?.countryCode)
         assertEquals("Madrid", source.seen?.regionName)
+    }
+
+    @Test
+    fun `should_fallBackToTheRegion_whenTheGeocoderEmitsNoProvince`() = runTest {
+        // Single-province communities: the geocoder may carry no subAdminArea, and there the
+        // community name IS the province name, so the region keeps them routable.
+        val cantabria = AddressInfo(
+            street = null, city = "Santander", region = "Cantabria", country = "España",
+            countryCode = "ES", province = null,
+        )
+        val source = FakeSource(FuelStationsResult(emptyList()))
+        GetNearbyFuelStationsUseCase(source, FakeGeocoder(cantabria))
+            .invoke(43.4623, -3.8098, FuelType.DIESEL)
+
+        assertEquals("Cantabria", source.seen?.regionName)
     }
 
     @Test

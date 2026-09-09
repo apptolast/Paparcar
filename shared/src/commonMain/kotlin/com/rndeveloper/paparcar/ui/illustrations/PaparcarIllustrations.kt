@@ -127,6 +127,65 @@ fun EmptySpotsIllustration(
     }
 }
 
+/**
+ * "No hay gasolineras cerca" — surtidor + anillo punteado (el radio buscado) + coche. Empty state
+ * de la sección «dónde repostar». [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
+ */
+@Composable
+fun EmptyFuelStationsIllustration(
+    modifier: Modifier = Modifier,
+    dark: Boolean = isAppDark(),
+) {
+    Canvas(modifier.size(140.dp, 120.dp)) {
+        viewBox {
+            drawShadowEllipse(56f, 106f, 34f, 6f, dark)
+            // Anillo punteado: el radio en el que se buscó y no había nada
+            val ring = if (dark) Color(0xFF2DF58E) else Color(0xFF009F5E)
+            drawCircle(
+                ring.copy(alpha = if (dark) 0.5f else 0.45f),
+                40f,
+                Offset(56f, 62f),
+                style = Stroke(2f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(2.5f, 7f))),
+            )
+            // Surtidor
+            val hardware = if (dark) Color(0xFF2A3A55) else Color(0xFFE7EEF8)
+            val hardwareEdge = if (dark) Color(0xFF16243C) else Color.White
+            val cap = if (dark) Color(0xFF3A4D6B) else Color(0xFFD9E2F0)
+            val screenFill = if (dark) Color(0xFF0E2A1E) else Color(0xFFE7F6EE)
+            val bar = if (dark) Color(0xFF3A4D6B) else Color(0xFFC6D3E6)
+            val body = Path().apply {
+                addRoundRect(RoundRect(38f, 40f, 74f, 100f, 7f, 7f))
+            }
+            drawPath(body, hardware)
+            drawPath(body, hardwareEdge, style = Stroke(3f, join = StrokeJoin.Round))
+            // Remate superior
+            val top = Path().apply { addRoundRect(RoundRect(42f, 33f, 70f, 42f, 4f, 4f)) }
+            drawPath(top, cap)
+            // Pantalla con su marco verde
+            val screen = Path().apply { addRoundRect(RoundRect(44f, 48f, 68f, 64f, 4f, 4f)) }
+            drawPath(screen, screenFill)
+            drawPath(screen, ring, style = Stroke(2.4f))
+            // Barras de precio dentro del cuerpo
+            val barShape = Path().apply { addRoundRect(RoundRect(44f, 72f, 62f, 77f, 2.5f, 2.5f)) }
+            drawPath(barShape, bar)
+            val barShape2 = Path().apply { addRoundRect(RoundRect(44f, 82f, 55f, 87f, 2.5f, 2.5f)) }
+            drawPath(barShape2, bar)
+            // Manguera hasta la pistola, en verde de marca
+            val hose = Path().apply {
+                moveTo(74f, 52f)
+                cubicTo(84f, 52f, 88f, 60f, 88f, 70f)
+                lineTo(88f, 80f)
+            }
+            drawPath(hose, ring, style = Stroke(3f, cap = StrokeCap.Round))
+            val nozzle = Path().apply { addRoundRect(RoundRect(84f, 79f, 92f, 90f, 2.5f, 2.5f)) }
+            drawPath(nozzle, ring)
+            drawPath(nozzle, hardwareEdge, style = Stroke(2f, join = StrokeJoin.Round))
+            // Coche
+            miniCar(translateX = 92f, translateY = 76f, scale = 0.58f, dark = dark)
+        }
+    }
+}
+
 // region — helpers de dibujo
 
 /** Aplica el transform viewBox→canvas (escala con aspecto + centrado) y ejecuta [block]. */

@@ -505,21 +505,49 @@ class HomeViewModel(
      */
     private fun toggleFuelStations() {
         val slice = state.value.fuel
-        val opening = !slice.isExpanded
-        updateState { copy(fuel = fuel.copy(isExpanded = opening)) }
+        if (slice.isExpanded) {
+            updateState { copy(fuel = fuel.copy(isExpanded = false)) }
+            return
+        }
 
         // Already answered, or already asking: unfolding again must not re-ask.
-        if (!opening || slice.isLoading || slice.stations.isNotEmpty()) return
+        if (slice.isLoading || slice.stations.isNotEmpty()) {
+            updateState { copy(fuel = fuel.copy(isExpanded = true)) }
+            return
+        }
 
-        val gps = state.value.userGpsPoint ?: return
         // The fuel of the car being driven, or the active one — the price shown has to be the price
-        // of what THIS driver actually puts in. Without a fuel there is nothing to price, and the
-        // section stays folded rather than showing a list it cannot caption.
+        // of what THIS driver actually puts in. ⛔ Without one there is no question to ask, and that
+        // is SAID as its own state: rendering it as an empty list fabricated a "no stations within
+        // 5 km" no source ever answered. [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
         val fuelType = state.value.vehicles.firstOrNull { it.isActive }?.fuelType
             ?: state.value.vehicles.firstOrNull()?.fuelType
-            ?: return
+        if (fuelType == null) {
+            updateState {
+                copy(fuel = fuel.copy(isExpanded = true, missingFuelType = true, failed = false))
+            }
+            return
+        }
 
-        updateState { copy(fuel = fuel.copy(isLoading = true, failed = false)) }
+        // No fix means the question could not be asked — the failure sentence, never the empty one.
+        val gps = state.value.userGpsPoint
+        if (gps == null) {
+            updateState {
+                copy(fuel = fuel.copy(isExpanded = true, failed = true, missingFuelType = false))
+            }
+            return
+        }
+
+        updateState {
+            copy(
+                fuel = fuel.copy(
+                    isExpanded = true,
+                    isLoading = true,
+                    failed = false,
+                    missingFuelType = false,
+                ),
+            )
+        }
         viewModelScope.launch {
             getNearbyFuelStations(gps.latitude, gps.longitude, fuelType)
                 .onSuccess { nearby ->
@@ -536,7 +564,10 @@ class HomeViewModel(
                 }
                 // ⛔ A failure is NOT an empty list: the section says "we could not ask", never
                 // "there are none nearby", which would send the user driving on an unchecked claim.
-                .onFailure {
+                // And it is logged: a swallowed exception here left a real device failure
+                // undiagnosable. [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
+                .onFailure { e ->
+                    PaparcarLogger.w(TAG, "fuel stations lookup failed", e)
                     updateState { copy(fuel = fuel.copy(isLoading = false, failed = true)) }
                 }
         }

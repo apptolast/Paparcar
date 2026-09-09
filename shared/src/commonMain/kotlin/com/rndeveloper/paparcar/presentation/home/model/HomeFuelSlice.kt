@@ -21,10 +21,14 @@ data class HomeFuelSlice(
      * means the second.
      */
     val failed: Boolean = false,
+    /**
+     * Set when the active car has no fuel type, so there was no question to ask. Its own state on
+     * purpose: rendering it as an empty list fabricated a "no stations within 5 km" that no source
+     * ever said — measured on device with a pre-fuelType car.
+     * [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
+     */
+    val missingFuelType: Boolean = false,
 ) {
     /** True when at least one station could be priced — decides which sentence the section says. */
     val hasPrices: Boolean get() = stations.any { it.price != null }
-
-    /** Nothing to draw and nothing to explain: the section has not been opened yet. */
-    val isIdle: Boolean get() = !isExpanded && stations.isEmpty() && !failed
 }

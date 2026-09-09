@@ -2285,6 +2285,15 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     onToggle = {},
                 )
             },
+            // ⛔ Tampoco es la vacía: sin combustible en el coche NO hubo pregunta. Con un coche
+            // pre-fuelType este estado salía como "no hay ninguna a 5 km", fabricado.
+            // [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
+            Variant("Sin combustible en el coche", Placement.Surface) {
+                HomeFuelSection(
+                    slice = HomeFuelSlice(isExpanded = true, missingFuelType = true),
+                    onToggle = {},
+                )
+            },
         ),
     ),
 )

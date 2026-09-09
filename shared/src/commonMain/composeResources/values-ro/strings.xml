@@ -843,6 +843,7 @@
     <string name="location_fallback_station">Benzinărie</string>
     <string name="home_fuel_title">Unde alimentezi</string>
     <string name="home_fuel_empty">Nicio benzinărie pe o rază de 5 km.</string>
+    <string name="home_fuel_missing_fuel_type">Setează combustibilul acestei mașini în Vehicule ca să vezi benzinăriile din apropiere și prețurile lor.</string>
     <string name="home_fuel_error">Nu am putut încărca benzinăriile. Verifică conexiunea și deschide din nou.</string>
     <string name="home_fuel_no_prices">În această țară prețurile nu sunt publicate. Acestea sunt benzinăriile din apropiere.</string>
     <string name="home_fuel_reported_at">Prețuri raportate la %1$s</string>

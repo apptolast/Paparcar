@@ -830,6 +830,7 @@
     <string name="location_fallback_station">Tankstation</string>
     <string name="home_fuel_title">Waar tanken</string>
     <string name="home_fuel_empty">Geen tankstations binnen 5 km.</string>
+    <string name="home_fuel_missing_fuel_type">Stel de brandstof van deze auto in bij Voertuigen om tankstations in de buurt en hun prijzen te zien.</string>
     <string name="home_fuel_error">We konden de tankstations niet laden. Controleer je verbinding en open dit opnieuw.</string>
     <string name="home_fuel_no_prices">In dit land worden geen prijzen gepubliceerd. Dit zijn de tankstations in de buurt.</string>
     <string name="home_fuel_reported_at">Prijzen gemeld om %1$s</string>

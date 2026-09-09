@@ -2,9 +2,10 @@
 
 **Estado:** ✅ Done — en master · verificado en el Pixel 8 Pro (mockDebug, hash comprobado)
 
-⏳ Lo único que no se ha visto: la sección con datos **reales del Ministerio** en device, que necesita
-`prodDebug` y un fix GPS español. La capa de datos sí está probada contra la respuesta real (fixture
-del feed + `MockEngine` con la petición incluida).
+⛔ **La verificación con datos reales (09-09, prodDebug `512ad54a…`, fix GPS en Sol) FALLÓ** — ver
+«Verificación en device con datos reales» al final: tres fallos distintos, dos confirmados con el
+Room del propio device y uno pendiente de un build con log. La capa de datos sí está probada contra
+la respuesta real (fixture del feed + `MockEngine` con la petición incluida).
 
 Primera mitad de la **F5b de la ola 2** ([`plus-roadmap-001.md`](plus-roadmap-001.md)); la capa del
 mapa y el peek van después. Continúa [`fuel-price-resolver-001.md`](fuel-price-resolver-001.md),
@@ -241,5 +242,50 @@ build creyendo que era el mío.
 - Tests del parser con fixture real: coma decimal, clave acentuada, vacío ≠ cero, BOM.
 - Test de que la provincia se resuelve sin acentos ni mayúsculas ("Cádiz" → "11").
 - Test de que una estación sin el producto del coche activo no se pinta con precio.
-- La sección sale en device con datos reales de España.
+- ❌ La sección sale en device con datos reales de España — **falló; abajo**.
 - Strings ×9 · galería · Konsist · suite · assembles · klib iOS.
+
+## Verificación en device con datos reales (09-09-2026) — FALLÓ, tres fallos distintos
+
+prodDebug `512ad54a…` (sha256 verificado en device antes y después), fix GPS en la Puerta del Sol.
+La sección dijo **«No fuel stations within 5 km»** donde el propio feed del Ministerio tiene **63
+estaciones a menos de 5 km** (medido con la misma provincia 28 y el mismo haversine) y Overpass
+devuelve 60. Diagnóstico, por capas y con la evidencia de cada una:
+
+1. ⛔ **El «0» era fabricado: no salió ni una petición del móvil.** El coche activo (el Acura EL de
+   pruebas, alta anterior a que `fuelType` fuera obligatorio) tiene `fuelType = NULL` en Room —
+   leído del device con `run-as`. En `HomeViewModel.toggleFuelStations()` el guard
+   `?: return` corre DESPUÉS de `isExpanded = true`: la sección queda desplegada, sin loading y sin
+   fallo, y la UI pinta el estado vacío — una afirmación («no hay gasolineras») que nadie verificó.
+   El comentario del propio método dice «the section stays folded», y el código hace lo contrario.
+   Sin spinner en pantalla es indistinguible de una respuesta real.
+
+2. ⛔ **España multiprovincial NUNCA alcanza Minetur: `region` lleva la comunidad, no la provincia.**
+   `AndroidGeocoderDataSourceImpl` mapea `region = adminArea`, y `adminArea` en España es la
+   comunidad autónoma — el `geocoder_cache` del device guarda literalmente
+   `region='Comunidad de Madrid'` para Sol. `SpanishProvinces` indexa por nombre de PROVINCIA
+   («MADRID»), así que `idFor()` devuelve null, Minetur lanza y el registro cae en silencio a OSM
+   **sin precios** — la degradación exacta que la doctrina de este ticket llama «la función rota».
+   Afecta a toda comunidad multiprovincial (Madrid, Andalucía, Cataluña…); solo las uniprovinciales
+   cuyo `adminArea` coincide con el nombre de la provincia se salvan de rebote. El test
+   «"Cádiz" → "11"» pasa un valor que el geocoder real no produce jamás: para Cádiz emite
+   «Andalucía». Es el patrón del guard sin testigo: el matching está testeado contra un input que
+   la producción no genera.
+
+3. ⚠️ **Con `fuelType` puesto (editado en Room para poder seguir), la petición real FALLA** — la
+   sección pasa a «We could not load the stations…» — **y la excepción se traga sin dejar rastro**:
+   el `onFailure` solo cambia estado, ni un log. DNS resuelve ambos hosts desde el emulador y
+   Overpass responde a ping; la causa exacta es indiagnosticable en device sin un build que loguee
+   el error. Ese silencio viola el «cero catch silenciosos» de CLAUDE.md y es lo primero que
+   arreglar, porque tapa cualquier otro fallo de red presente o futuro.
+
+Nota de estado del device: el Acura EL del emulador quedó con `fuelType='GASOLINE'` (solo local,
+`pendingSync=0`) para que la próxima verificación pueda ejercitar el fetch real.
+
+Pedido aparte del user (09-09): **ilustración propia de empty state** para esta sección (Nivel 3,
+vector multicolor con `_dark`), en vez del texto a secas.
+
+→ **Los tres fallos y la ilustración se resuelven en
+[`fuel-a-section-answers-only-what-it-asked-001.md`](fuel-a-section-answers-only-what-it-asked-001.md)**,
+verificado en device el 09-09: la sección enseña 63 gasolineras reales del Ministerio con precio y
+la hora del feed al pie.

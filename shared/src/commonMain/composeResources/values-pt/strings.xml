@@ -829,6 +829,7 @@
     <string name="location_fallback_station">Posto de combustível</string>
     <string name="home_fuel_title">Onde abastecer</string>
     <string name="home_fuel_empty">Não há postos num raio de 5 km.</string>
+    <string name="home_fuel_missing_fuel_type">Indica o combustível deste carro em Veículos para ver os postos próximos e os seus preços.</string>
     <string name="home_fuel_error">Não conseguimos carregar os postos. Verifica a ligação e abre isto outra vez.</string>
     <string name="home_fuel_no_prices">Neste país os preços não são publicados. Estes são os postos por perto.</string>
     <string name="home_fuel_reported_at">Preços comunicados às %1$s</string>

@@ -829,6 +829,7 @@
     <string name="location_fallback_station">Distributore</string>
     <string name="home_fuel_title">Dove fare rifornimento</string>
     <string name="home_fuel_empty">Nessun distributore entro 5 km.</string>
+    <string name="home_fuel_missing_fuel_type">Imposta il carburante di quest'auto in Veicoli per vedere i distributori vicini e i loro prezzi.</string>
     <string name="home_fuel_error">Non siamo riusciti a caricare i distributori. Controlla la connessione e riapri.</string>
     <string name="home_fuel_no_prices">In questo Paese i prezzi non sono pubblicati. Questi sono i distributori vicini.</string>
     <string name="home_fuel_reported_at">Prezzi comunicati alle %1$s</string>

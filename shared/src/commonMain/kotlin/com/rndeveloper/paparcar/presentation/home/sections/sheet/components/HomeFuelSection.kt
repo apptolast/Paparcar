@@ -21,11 +21,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.presentation.home.model.HomeFuelSlice
 import com.rndeveloper.paparcar.ui.components.PapSectionHeader
+import com.rndeveloper.paparcar.ui.illustrations.EmptyFuelStationsIllustration
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_fuel_empty
 import paparcar.composeapp.generated.resources.home_fuel_error
+import paparcar.composeapp.generated.resources.home_fuel_missing_fuel_type
 import paparcar.composeapp.generated.resources.home_fuel_no_prices
 import paparcar.composeapp.generated.resources.home_fuel_reported_at
 import paparcar.composeapp.generated.resources.home_fuel_title
@@ -85,13 +87,19 @@ fun HomeFuelSection(
         AnimatedVisibility(visible = slice.isExpanded) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 when {
+                    // ⛔ No fuel on the car means NO question was asked — its own sentence, never
+                    // the empty state, which is a verdict about the world.
+                    // [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
+                    slice.missingFuelType ->
+                        SectionNote(stringResource(Res.string.home_fuel_missing_fuel_type))
+
                     // ⛔ A failure is NOT an empty list. Saying "none nearby" when we could not ask
                     // sends the user driving on a claim we never verified.
                     slice.failed -> SectionNote(stringResource(Res.string.home_fuel_error))
 
                     slice.isLoading -> Unit
 
-                    slice.stations.isEmpty() -> SectionNote(stringResource(Res.string.home_fuel_empty))
+                    slice.stations.isEmpty() -> EmptyFuelStations()
 
                     else -> {
                         // Said BEFORE the rows where a country publishes no prices, so nobody reads
@@ -122,5 +130,28 @@ private fun SectionNote(text: String) {
     )
 }
 
+/** The honest "none within 5 km": illustrated, because it is the sentence this section says most. */
+@Composable
+private fun EmptyFuelStations() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        EmptyFuelStationsIllustration(
+            modifier = Modifier.size(EMPTY_ILLUSTRATION_W.dp, EMPTY_ILLUSTRATION_H.dp),
+        )
+        Text(
+            text = stringResource(Res.string.home_fuel_empty),
+            style = PaparcarType.current.caption,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
 private const val SPINNER_DP = 18
 private const val SPINNER_STROKE_DP = 2
+private const val EMPTY_ILLUSTRATION_W = 112
+private const val EMPTY_ILLUSTRATION_H = 96

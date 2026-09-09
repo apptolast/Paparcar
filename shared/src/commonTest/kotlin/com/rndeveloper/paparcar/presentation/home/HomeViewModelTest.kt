@@ -107,6 +107,7 @@ class HomeViewModelTest {
     // [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001] Asked one question: has this phone any
     // bonded device? A test that wants the Bluetooth face sets its pairedDevices.
     private lateinit var bluetoothScanner: FakeBluetoothScanner
+    private lateinit var fuelSource: SpyFuelStationsSource
     private lateinit var geocoderFake: FakeGeocoderDataSource
     private lateinit var vm: HomeViewModel
 
@@ -235,15 +236,11 @@ class HomeViewModelTest {
                 userProfileRepository = profileRepo,
             ),
             showParkingAskEventBus = showParkingAskBus,
-            // Answers nothing: the fixture never unfolds the refuel section, and a fake that
-            // returned stations would put data on screen no test asked for.
-            // [FUEL-STATIONS-LIST-001]
+            // A spy, so the toggle tests can assert the ONE thing that separates an honest empty
+            // from a fabricated one: whether a question was actually asked.
+            // [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
             getNearbyFuelStations = GetNearbyFuelStationsUseCase(
-                stations = object : FuelStationsSource {
-                    override fun covers(countryCode: String) = true
-                    override suspend fun stationsNear(query: FuelStationsQuery) =
-                        Result.success(FuelStationsResult(emptyList()))
-                },
+                stations = fuelSource,
                 geocoder = object : GeocoderDataSource {
                     override suspend fun getAddress(lat: Double, lon: Double) =
                         Result.failure<AddressInfo>(IllegalStateException("no geocoder in tests"))
@@ -275,6 +272,7 @@ class HomeViewModelTest {
         entitlementRepo = com.rndeveloper.paparcar.fakes.FakeEntitlementRepository()
         uiLocationLogger = com.rndeveloper.paparcar.fakes.FakeUiLocationLogger()
         bluetoothScanner = FakeBluetoothScanner(bluetoothEnabled = false)
+        fuelSource = SpyFuelStationsSource()
         vm = buildVm()
     }
 
@@ -1941,5 +1939,120 @@ class HomeViewModelTest {
             cancelAndIgnoreRemainingEvents()
         }
         assertTrue(prefs.firstStepsDismissed.value, "the local half still landed")
+    }
+
+    // ── Dónde repostar — la sección solo responde lo que preguntó ─────────────
+    // [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
+
+    private suspend fun saveActiveCar(fuelType: com.rndeveloper.paparcar.domain.model.FuelType?) {
+        vehicleRepo.saveVehicle(
+            com.rndeveloper.paparcar.domain.model.Vehicle(
+                id = "v1", userId = "mock_user_001", brand = "Acura", model = "EL",
+                sizeCategory = com.rndeveloper.paparcar.domain.model.VehicleSize.LARGE_SEDAN,
+                vehicleType = com.rndeveloper.paparcar.domain.model.VehicleType.CAR, isActive = true,
+                fuelType = fuelType,
+            ),
+        )
+    }
+
+    @Test
+    fun `should_sayMissingFuel_andAskNobody_when_theActiveCarHasNoFuelType`() = runTest(testDispatcher) {
+        // ⛔ Measured on device: a pre-fuelType car made the section unfold into a fabricated
+        // "no stations within 5 km" without a single request leaving the phone. The empty state is
+        // a verdict about the world; this is its own sentence.
+        saveActiveCar(fuelType = null)
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        advanceUntilIdle()
+
+        vm.handleIntent(HomeIntent.ToggleFuelStations)
+        advanceUntilIdle()
+
+        val fuel = vm.state.value.fuel
+        assertTrue(fuel.isExpanded, "the user tapped — the section opens, honestly")
+        assertTrue(fuel.missingFuelType)
+        assertTrue(!fuel.failed)
+        assertEquals(0, fuelSource.askCount, "no fuel type means there was no question to ask")
+    }
+
+    @Test
+    fun `should_reportFailure_notAnEmptyList_when_thereIsNoFix`() = runTest(testDispatcher) {
+        // No fix means the question could not be asked — that is the failure sentence, and it must
+        // never surface as "no stations within 5 km".
+        saveActiveCar(fuelType = com.rndeveloper.paparcar.domain.model.FuelType.GASOLINE)
+        advanceUntilIdle()
+
+        vm.handleIntent(HomeIntent.ToggleFuelStations)
+        advanceUntilIdle()
+
+        val fuel = vm.state.value.fuel
+        assertTrue(fuel.isExpanded)
+        assertTrue(fuel.failed)
+        assertTrue(!fuel.missingFuelType)
+        assertEquals(0, fuelSource.askCount)
+    }
+
+    @Test
+    fun `should_ask_andShowTheAnswer_when_theCarHasFuelAndAFix`() = runTest(testDispatcher) {
+        fuelSource.result = FuelStationsResult(
+            listOf(
+                com.rndeveloper.paparcar.domain.fuel.FuelStation(
+                    id = "1", name = "Repsol", address = null, town = null,
+                    latitude = 40.4268, longitude = -3.7038,
+                    prices = mapOf(
+                        com.rndeveloper.paparcar.domain.model.FuelType.GASOLINE to
+                            com.rndeveloper.paparcar.domain.model.Money(1.789, "EUR"),
+                    ),
+                ),
+            ),
+        )
+        saveActiveCar(fuelType = com.rndeveloper.paparcar.domain.model.FuelType.GASOLINE)
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        advanceUntilIdle()
+
+        vm.handleIntent(HomeIntent.ToggleFuelStations)
+        advanceUntilIdle()
+
+        val fuel = vm.state.value.fuel
+        assertEquals(1, fuelSource.askCount)
+        assertEquals(1, fuel.stations.size)
+        assertTrue(!fuel.missingFuelType)
+        assertTrue(!fuel.failed)
+    }
+
+    @Test
+    fun `should_askAgain_onReopen_after_theCarGainsAFuelType`() = runTest(testDispatcher) {
+        // The recovery path the state exists for: the user follows the sentence, sets the fuel in
+        // Vehicles, comes back, and reopening now asks instead of repeating the excuse.
+        saveActiveCar(fuelType = null)
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        advanceUntilIdle()
+
+        vm.handleIntent(HomeIntent.ToggleFuelStations)
+        advanceUntilIdle()
+        assertTrue(vm.state.value.fuel.missingFuelType)
+
+        saveActiveCar(fuelType = com.rndeveloper.paparcar.domain.model.FuelType.GASOLINE)
+        advanceUntilIdle()
+        vm.handleIntent(HomeIntent.ToggleFuelStations) // fold
+        vm.handleIntent(HomeIntent.ToggleFuelStations) // unfold — now there is a question
+        advanceUntilIdle()
+
+        val fuel = vm.state.value.fuel
+        assertEquals(1, fuelSource.askCount)
+        assertTrue(!fuel.missingFuelType)
+    }
+
+    /** Counts the questions actually asked — what separates an honest empty from a fabricated one. */
+    private class SpyFuelStationsSource : FuelStationsSource {
+        var askCount = 0
+        var result = FuelStationsResult(emptyList())
+        override fun covers(countryCode: String) = true
+        override suspend fun stationsNear(query: FuelStationsQuery): Result<FuelStationsResult> {
+            askCount++
+            return Result.success(result)
+        }
     }
 }
