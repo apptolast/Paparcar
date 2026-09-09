@@ -25,21 +25,17 @@ sealed class PermissionsIntent {
     data object RequestOemBatterySettings : PermissionsIntent()
     data object RefreshPermissions : PermissionsIntent()
     /**
-     * "Maybe later" — enter the app with CORE (foreground location + notifications) only,
-     * deferring the PRODUCER tier (background + activity recognition). The Home banner nudges
-     * the user to enable detection afterwards. [DET-READY-001e]
+     * "Not now" — decline the producer visit's "activate detection" ask and leave, one tap, no
+     * guilt dialog. The Home banner / guided checklist keep owning the ask afterwards.
+     * [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001]
      */
-    data object ContinueWithCore : PermissionsIntent()
+    data object NotNow : PermissionsIntent()
     /**
-     * "Continue" — every required permission is granted; enter the app. Unlike [ContinueWithCore]
-     * (which defers the producer tier), this fires once the full required set is complete and the
-     * optional reliability toggles have been offered. [PERM-FOOTER-001]
+     * "Continue" — everything the current focus asks for is granted; leave the screen. On the
+     * producer visit this fires after the optional reliability toggles have been offered.
+     * [PERM-FOOTER-001]
      */
     data object FinishSetup : PermissionsIntent()
-    /** "Maybe later" tapped — show the educational "you'll miss auto-detection" dialog first. [DET-TOGGLE-002] */
-    data object RequestSkipDetection : PermissionsIntent()
-    /** Dismiss the skip-detection dialog and stay on the permissions screen (user chose to activate). */
-    data object DismissSkipDetectionDialog : PermissionsIntent()
     /** User confirmed the background-location guide and wants to open system Settings now. */
     data object ConfirmBackgroundLocationGuide : PermissionsIntent()
     /** User dismissed the background-location guide without opening Settings. */

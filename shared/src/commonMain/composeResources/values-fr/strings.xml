@@ -64,14 +64,14 @@
     <string name="onboarding_step2_desc">Quand vous vous garez, nous enregistrons silencieusement votre stationnement</string>
     <string name="onboarding_step3_title">Nous partageons la place</string>
     <string name="onboarding_step3_desc">Quand vous partez, votre place devient disponible pour les autres à proximité</string>
-    <string name="onboarding_page3_title">Pourquoi nous avons besoin de vos permissions</string>
-    <string name="onboarding_page3_subtitle">Paparcar collecte des données de position même quand l'app est fermée ou n'est pas utilisée, pour détecter automatiquement votre stationnement. Votre position n'est jamais vendue ni utilisée à des fins publicitaires.</string>
     <string name="onboarding_cta_next">Suivant</string>
-    <string name="onboarding_cta_setup">Configurer les permissions</string>
+    <string name="onboarding_cta_start">Commencer</string>
 
     <!-- PermissionsScreen -->
     <string name="permissions_title">Automatisez votre stationnement</string>
-    <string name="permissions_subtitle">Seule la localisation est obligatoire ; le reste active la détection automatique.</string>
+    <string name="permissions_subtitle">Paparcar retient où vous vous êtes garé — et quand vous partez, la place que vous laissez se libère pour quelqu'un d'autre.</string>
+    <string name="permissions_core_title">Voyez les places libres autour de vous</string>
+    <string name="permissions_core_subtitle">Paparcar utilise votre position pour afficher la carte et les places près de vous.</string>
     <string name="permissions_perm_location">Position précise</string>
     <string name="permissions_perm_location_desc">Pour enregistrer précisément où vous avez garé votre véhicule</string>
     <string name="permissions_perm_background">Position en arrière-plan</string>
@@ -93,15 +93,13 @@
     <string name="permissions_btn_grant">Accorder les permissions</string>
     <!-- DET-READY-001e -->
     <string name="permissions_btn_activate_detection">Activer la détection automatique</string>
-    <string name="permissions_continue_with_core">Peut-être plus tard</string>
+    <string name="permissions_btn_not_now">Pas maintenant</string>
+    <string name="permissions_core_detection_teaser">Paparcar peut aussi détecter votre stationnement automatiquement et libérer la place quand vous partez. Vous pourrez l'activer plus tard depuis la carte.</string>
+    <string name="permissions_bg_disclosure">Paparcar collecte des données de position même quand l'app est fermée ou n'est pas utilisée, pour détecter automatiquement votre stationnement. Votre position n'est jamais vendue ni utilisée à des fins publicitaires.</string>
     <!-- PERM-FOOTER-001 -->
     <string name="permissions_btn_allow_background">Autoriser en arrière-plan</string>
     <string name="permissions_btn_continue">Continuer</string>
     <!-- DET-TOGGLE-002: educational dialog when tapping "Maybe later" -->
-    <string name="permissions_skip_dialog_title">Ignorer la détection automatique ?</string>
-    <string name="permissions_skip_dialog_body">La meilleure fonction de Paparcar détecte et libère votre place automatiquement quand vous partez. Sans elle, vous devrez tout faire à la main.</string>
-    <string name="permissions_skip_dialog_activate">Activer maintenant</string>
-    <string name="permissions_skip_dialog_later">Peut-être plus tard</string>
     <string name="permissions_btn_settings">Ouvrir les paramètres système</string>
     <string name="permissions_rationale">Certaines permissions ont été refusées. Veuillez les accorder pour continuer.</string>
     <string name="permissions_perm_location_services">Services de localisation</string>
@@ -542,8 +540,10 @@
     <string name="home_det_core_sub">Paparcar en a besoin pour fonctionner</string>
     <string name="home_det_core_cta">Activer</string>
     <string name="home_det_producer_title">Activez la détection</string>
-    <string name="home_det_producer_sub">Libère votre place quand vous partez</string>
+    <string name="home_det_producer_sub">Retient où vous êtes garé, libère la place</string>
     <string name="home_det_producer_cta">Activer</string>
+    <string name="home_det_pitch_title">Le meilleur de Paparcar</string>
+    <string name="home_det_pitch_body">La détection automatique retient où vous êtes garé pour que vous n'ayez pas à le faire — et quand vous partez, la place que vous laissez se libère pour quelqu'un d'autre. Activez-la et n'y pensez plus.</string>
     <string name="home_det_enabled_confirm">Détection automatique activée</string>
     <!-- DET-TOGGLE-002: in-app snackbar when detection drops to a stopped state -->
     <string name="home_det_stopped_msg">Détection automatique arrêtée</string>
@@ -679,8 +679,8 @@
     <string name="first_steps_park_cta">Marquer le stationnement</string>
     <string name="first_steps_watch_title">Laissez Paparcar la surveiller</string>
     <string name="first_steps_watch_sub">Tant que votre voiture est garée, l'appli la surveille. Quand vous repartez, votre stationnement libère une place pour un autre conducteur — ou vous le fermez vous-même avec 'Je pars'.</string>
-    <string name="first_steps_watch_on_title">Activez la détection et tout se fait seul</string>
-    <string name="first_steps_watch_on_sub">Pour l'instant, votre place n'est libérée que si vous le dites avec 'Je pars'. Avec la détection active, Paparcar voit que vous êtes reparti et la libère pour vous.</string>
+    <string name="first_steps_watch_on_title">Laissez Paparcar retenir votre stationnement pour vous</string>
+    <string name="first_steps_watch_on_sub">Avec la détection activée, Paparcar retient où vous vous êtes garé pour que vous n'ayez pas à le faire — et quand vous partez, la place que vous laissez profite à quelqu'un qui en cherche une, comme vous.</string>
     <string name="first_steps_spot_title">Trouvez une place libre près de vous</string>
     <string name="first_steps_spot_sub">Les places libérées par d'autres apparaissent sur la carte. Ouvrez la liste et choisissez-en une.</string>
     <string name="first_steps_spot_cta">Voir les places</string>

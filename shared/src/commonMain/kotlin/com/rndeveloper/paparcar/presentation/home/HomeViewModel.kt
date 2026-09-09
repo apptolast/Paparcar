@@ -188,6 +188,29 @@ class HomeViewModel(
     }
 
     /**
+     * First-run location ask, ON the map — the map behind the dialog is its own context, so there
+     * is no permissions screen in the cold-start chain any more. Fired from the first
+     * [HomeIntent.SetMapForeground] with the map visible. One shot for the whole install:
+     * [AppPreferences.hasRequestedLocationPermission] is stamped before launching, so a denial is
+     * never re-asked at every entry — after that, the Blocked·CORE row and Settings own the
+     * re-ask (via the Focus.Core repair screen). [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001]
+     */
+    private fun askFineLocationOnFirstEntry() {
+        val hasLocation = permissionManager.permissionState.value.hasLocationPermission
+        if (hasLocation || appPreferences.hasRequestedLocationPermission) return
+        appPreferences.setLocationPermissionRequested()
+        // If this very ask is granted, pitch auto-detection right after (see subscribePermissions):
+        // the user just granted location and is looking at the map — peak engagement for the app's
+        // star feature, which no longer has a first-run screen to introduce it.
+        pitchDetectionAfterGrant = true
+        sendEffect(HomeEffect.RequestLocationPermission)
+    }
+
+    /** Armed by [askFineLocationOnFirstEntry]; consumed on the grant. Session-scoped on purpose:
+     *  losing the pitch to process death costs nothing — the banner and checklist keep the ask. */
+    private var pitchDetectionAfterGrant = false
+
+    /**
      * [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001] The guided checklist's persisted half → state,
      * plus the LATCH: whenever the live projection reports more steps done than are banked, bank
      * them.
@@ -348,6 +371,15 @@ class HomeViewModel(
             is HomeIntent.DismissParkNudge,
             -> handleDetectionIntent(intent)
 
+            // One-time detection pitch (post first-entry location grant).
+            // [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001]
+            is HomeIntent.AcceptDetectionPitch -> {
+                updateState { copy(showDetectionPitch = false) }
+                handleIntent(HomeIntent.EnableAutoDetection)
+            }
+            is HomeIntent.DismissDetectionPitch ->
+                updateState { copy(showDetectionPitch = false) }
+
             // Guided first steps [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001]
             is HomeIntent.DismissFirstSteps,
             is HomeIntent.CompleteFirstStep,
@@ -385,7 +417,14 @@ class HomeViewModel(
             is HomeIntent.CameraPositionChanged -> onCameraPositionChanged(intent.lat, intent.lon)
             is HomeIntent.RecenterSpots -> onRecenterSpots()
             is HomeIntent.SetMapType -> setMapType(intent.type)
-            is HomeIntent.SetMapForeground -> mapForeground.value = intent.active
+            is HomeIntent.SetMapForeground -> {
+                mapForeground.value = intent.active
+                // The map just came on screen — the one moment the first-run location ask belongs
+                // to (the dialog opens OVER the map, its own context). NOT in init: an effect sent
+                // there is emitted before the screen collects and a replay-less SharedFlow drops
+                // it. [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001]
+                if (intent.active) askFineLocationOnFirstEntry()
+            }
             else -> Unit
         }
     }
@@ -506,9 +545,10 @@ class HomeViewModel(
     private fun handleSpotIntent(intent: HomeIntent) {
         when (intent) {
             is HomeIntent.LoadNearbySpots -> {
-                if (!permissionManager.permissionState.value.hasCorePermissions) {
-                    sendEffect(HomeEffect.RequestLocationPermission)
-                }
+                // No permission nag here: the first-entry ask lives in askFineLocationOnFirstEntry
+                // and later re-asks belong to the Blocked·CORE row. (This branch used to emit
+                // RequestLocationPermission into a no-op handler — asking into the void.)
+                // [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001]
             }
             is HomeIntent.SelectItem -> updateState {
                 clearedModeFields().copy(selection = intent.selection)
@@ -981,6 +1021,16 @@ class HomeViewModel(
             .collectSafely("permissions") { perm ->
                 // Consumer UI (map, spots) is driven by CORE. [DET-READY-001d]
                 updateState { copy(hasCorePermissions = perm.hasCorePermissions) }
+                // The first-entry ask was just granted → offer the star feature ONCE, at the
+                // moment of maximum engagement. Declining is one tap and never comes back — the
+                // banner and the checklist keep owning the ask.
+                // [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001]
+                if (pitchDetectionAfterGrant && perm.hasLocationPermission) {
+                    pitchDetectionAfterGrant = false
+                    if (!perm.hasProducerPermissions) {
+                        updateState { copy(showDetectionPitch = true) }
+                    }
+                }
                 // AR registration needs the PRODUCER tier (activity recognition); register only
                 // when it is granted. Best-effort: AR failure degrades gracefully to GPS-only.
                 if (perm.hasProducerPermissions) {

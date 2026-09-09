@@ -7,6 +7,9 @@ import com.rndeveloper.paparcar.domain.preferences.ThemeMode
 data class AppState(
     val permissionsGranted: Boolean = false,
     val locationServicesEnabled: Boolean = false,
+    /** Every PRODUCER permission (background location, activity recognition, notifications) is
+     *  granted — detection can genuinely run. [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001] */
+    val detectionPermissionsGranted: Boolean = false,
     val hasVehicle: Boolean = false,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val imperialUnits: Boolean = false,
@@ -22,10 +25,16 @@ data class AppState(
     val isFullyOperational: Boolean
         get() = permissionsGranted && locationServicesEnabled
 
+    /** Detection is fully armed: CORE + GPS + every PRODUCER permission. Drives the one-time
+     *  GPS-accuracy disclaimer — it talks about detection, so it waits for detection.
+     *  [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001] */
+    val isDetectionReady: Boolean
+        get() = isFullyOperational && detectionPermissionsGranted
+
     val isOffline: Boolean
         get() = connectivity == ConnectivityStatus.Offline
 
-    /** Show once when the user is fully operational and hasn't dismissed the disclaimer yet. */
+    /** Show once when detection is ready and the disclaimer hasn't been dismissed yet. */
     val showGpsAccuracyDisclaimer: Boolean
-        get() = isFullyOperational && !hasSeenGpsAccuracyDisclaimer
+        get() = isDetectionReady && !hasSeenGpsAccuracyDisclaimer
 }

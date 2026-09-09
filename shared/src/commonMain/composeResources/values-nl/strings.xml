@@ -65,14 +65,14 @@
     <string name="onboarding_step2_desc">Wanneer u parkeert, slaan wij stilletjes uw parkeerplaats op</string>
     <string name="onboarding_step3_title">Wij delen de parkeerplaats</string>
     <string name="onboarding_step3_desc">Wanneer u vertrekt, wordt uw parkeerplaats beschikbaar voor anderen in de buurt</string>
-    <string name="onboarding_page3_title">Waarom we uw machtigingen nodig hebben</string>
-    <string name="onboarding_page3_subtitle">Paparcar verzamelt locatiegegevens ook wanneer de app gesloten of niet in gebruik is, om automatisch te detecteren waar u parkeert. Uw locatie wordt nooit verkocht of voor advertenties gebruikt.</string>
     <string name="onboarding_cta_next">Volgende</string>
-    <string name="onboarding_cta_setup">Machtigingen instellen</string>
+    <string name="onboarding_cta_start">Aan de slag</string>
 
     <!-- PermissionsScreen -->
     <string name="permissions_title">Automatiseer je parkeren</string>
-    <string name="permissions_subtitle">Alleen locatie is verplicht; de rest activeert de automatische detectie.</string>
+    <string name="permissions_subtitle">Paparcar onthoudt voor jou waar je geparkeerd staat — en als je wegrijdt, komt de plek vrij voor iemand anders.</string>
+    <string name="permissions_core_title">Zie vrije plekken om je heen</string>
+    <string name="permissions_core_subtitle">Paparcar gebruikt je locatie om de kaart en plekken bij jou in de buurt te tonen.</string>
     <string name="permissions_perm_location">Nauwkeurige locatie</string>
     <string name="permissions_perm_location_desc">Om nauwkeurig op te slaan waar u uw voertuig heeft geparkeerd</string>
     <string name="permissions_perm_background">Achtergrondlocatie</string>
@@ -94,15 +94,13 @@
     <string name="permissions_btn_grant">Machtigingen verlenen</string>
     <!-- DET-READY-001e -->
     <string name="permissions_btn_activate_detection">Automatische detectie inschakelen</string>
-    <string name="permissions_continue_with_core">Misschien later</string>
+    <string name="permissions_btn_not_now">Niet nu</string>
+    <string name="permissions_core_detection_teaser">Paparcar kan je parkeren ook automatisch detecteren en de plek vrijgeven wanneer je wegrijdt. Je kunt dit later via de kaart inschakelen.</string>
+    <string name="permissions_bg_disclosure">Paparcar verzamelt locatiegegevens ook wanneer de app gesloten of niet in gebruik is, om automatisch te detecteren waar u parkeert. Uw locatie wordt nooit verkocht of voor advertenties gebruikt.</string>
     <!-- PERM-FOOTER-001 -->
     <string name="permissions_btn_allow_background">Op achtergrond toestaan</string>
     <string name="permissions_btn_continue">Doorgaan</string>
     <!-- DET-TOGGLE-002: educational dialog when tapping "Maybe later" -->
-    <string name="permissions_skip_dialog_title">Automatische detectie overslaan?</string>
-    <string name="permissions_skip_dialog_body">De beste functie van Paparcar vindt en geeft je parkeerplek automatisch vrij wanneer je wegrijdt. Zonder moet je alles handmatig doen.</string>
-    <string name="permissions_skip_dialog_activate">Nu activeren</string>
-    <string name="permissions_skip_dialog_later">Misschien later</string>
     <string name="permissions_btn_settings">Systeeminstellingen openen</string>
     <string name="permissions_rationale">Sommige machtigingen zijn geweigerd. Verleen ze om door te gaan.</string>
     <string name="permissions_perm_location_services">Locatieservices</string>
@@ -543,8 +541,10 @@
     <string name="home_det_core_sub">Paparcar werkt er niet zonder</string>
     <string name="home_det_core_cta">Inschakelen</string>
     <string name="home_det_producer_title">Detectie inschakelen</string>
-    <string name="home_det_producer_sub">Geeft je plek vrij als je wegrijdt</string>
+    <string name="home_det_producer_sub">Onthoudt waar je parkeert, geeft de plek vrij</string>
     <string name="home_det_producer_cta">Inschakelen</string>
+    <string name="home_det_pitch_title">Het beste van Paparcar</string>
+    <string name="home_det_pitch_body">Automatische detectie onthoudt voor jou waar je geparkeerd staat — en als je wegrijdt, komt de plek vrij voor iemand anders. Zet het nu aan en kijk er niet meer naar om.</string>
     <string name="home_det_enabled_confirm">Automatische detectie geactiveerd</string>
     <!-- DET-TOGGLE-002: in-app snackbar when detection drops to a stopped state -->
     <string name="home_det_stopped_msg">Automatische detectie gestopt</string>
@@ -680,8 +680,8 @@
     <string name="first_steps_park_cta">Parkeerplaats markeren</string>
     <string name="first_steps_watch_title">Laat Paparcar erop letten</string>
     <string name="first_steps_watch_sub">Zolang je auto geparkeerd staat houdt de app hem in de gaten. Als je wegrijdt, maakt je parkeerplaats een plek vrij voor iemand anders — of je sluit hem zelf met 'Ik vertrek'.</string>
-    <string name="first_steps_watch_on_title">Zet detectie aan en het gaat vanzelf</string>
-    <string name="first_steps_watch_on_sub">Nu komt je plek alleen vrij als je het zelf zegt met 'Ik vertrek'. Met detectie aan merkt Paparcar dat je weggereden bent en maakt hem voor je vrij.</string>
+    <string name="first_steps_watch_on_title">Laat Paparcar je parkeerplaats voor je onthouden</string>
+    <string name="first_steps_watch_on_sub">Met detectie aan onthoudt Paparcar waar je geparkeerd staat — en als je wegrijdt, gaat de plek die je achterlaat naar iemand die er een zoekt, net als jij.</string>
     <string name="first_steps_spot_title">Vind een vrije plek in de buurt</string>
     <string name="first_steps_spot_sub">Plekken die anderen vrijmaken staan op de kaart. Open de lijst en kies er een.</string>
     <string name="first_steps_spot_cta">Plekken bekijken</string>

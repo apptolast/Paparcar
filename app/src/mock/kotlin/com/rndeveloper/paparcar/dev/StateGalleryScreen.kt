@@ -86,6 +86,7 @@ import com.rndeveloper.paparcar.domain.onboarding.WatchReinforcement
 import com.rndeveloper.paparcar.domain.onboarding.resolveFirstSteps
 import com.rndeveloper.paparcar.ui.components.PapSpotlight
 import com.rndeveloper.paparcar.presentation.permissions.PermissionsContent
+import com.rndeveloper.paparcar.presentation.permissions.PermissionsFocus
 import com.rndeveloper.paparcar.presentation.permissions.PermissionsState
 import com.rndeveloper.paparcar.presentation.preview.FakeData
 import com.rndeveloper.paparcar.domain.model.DetectionTier
@@ -1807,7 +1808,34 @@ private val galleryGroups: List<ScreenGroup> = listOf(
     ScreenGroup(
         "Permisos",
         listOf(
-            Variant("Todo denegado") { PermissionsContent(state = PermissionsState(), onRequestPermissions = {}) },
+            // ── Foco Core: la vista del primer arranque — esencial + teaser, sin muro producer.
+            //    [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001]
+            Variant("Primer arranque (todo pendiente)") {
+                PermissionsContent(state = PermissionsState(), onRequestPermissions = {})
+            },
+            Variant("Primer arranque · concedido (Continuar)") {
+                PermissionsContent(
+                    state = PermissionsState(
+                        hasFineLocation = true,
+                        isLocationServicesEnabled = true,
+                    ),
+                    onRequestPermissions = {},
+                )
+            },
+            Variant("Prompt de ajustes") {
+                PermissionsContent(state = PermissionsState(showSettingsPrompt = true), onRequestPermissions = {})
+            },
+            // ── Foco Producer: la visita "Activar detección" desde Home/Ajustes.
+            Variant("Activar detección (todo pendiente)") {
+                PermissionsContent(
+                    state = PermissionsState(
+                        hasFineLocation = true,
+                        isLocationServicesEnabled = true,
+                    ),
+                    onRequestPermissions = {},
+                    focus = PermissionsFocus.Producer,
+                )
+            },
             Variant("Parcial (falta background)") {
                 PermissionsContent(
                     state = PermissionsState(
@@ -1818,6 +1846,7 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                         hasBackgroundLocation = false,
                     ),
                     onRequestPermissions = {},
+                    focus = PermissionsFocus.Producer,
                 )
             },
             Variant("Críticos concedidos") {
@@ -1830,6 +1859,7 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                         isLocationServicesEnabled = true,
                     ),
                     onRequestPermissions = {},
+                    focus = PermissionsFocus.Producer,
                 )
             },
             Variant("Todo + Bluetooth") {
@@ -1843,21 +1873,7 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                         hasBluetoothConnect = true,
                     ),
                     onRequestPermissions = {},
-                )
-            },
-            Variant("Prompt de ajustes") {
-                PermissionsContent(state = PermissionsState(showSettingsPrompt = true), onRequestPermissions = {})
-            },
-            // [DET-TOGGLE-002] Diálogo educativo "Maybe later" — core+GPS concedidos, producer pendiente.
-            Variant("Diálogo saltar detección") {
-                PermissionsContent(
-                    state = PermissionsState(
-                        hasFineLocation = true,
-                        isLocationServicesEnabled = true,
-                        hasBackgroundLocation = false,
-                        showSkipDetectionDialog = true,
-                    ),
-                    onRequestPermissions = {},
+                    focus = PermissionsFocus.Producer,
                 )
             },
             Variant("Tarjeta autostart (OEM)") {
@@ -1872,6 +1888,7 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                         showAutostartCard = true,
                     ),
                     onRequestPermissions = {},
+                    focus = PermissionsFocus.Producer,
                 )
             },
             Variant("Autostart + batería pendiente") {
@@ -1888,6 +1905,7 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                         showAutostartCard = true,
                     ),
                     onRequestPermissions = {},
+                    focus = PermissionsFocus.Producer,
                 )
             },
             Variant("Fiabilidad REDUCED (callout honesto)") {
@@ -1906,6 +1924,7 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                         isReliabilityReduced = true,
                     ),
                     onRequestPermissions = {},
+                    focus = PermissionsFocus.Producer,
                 )
             },
             // Cabecera de nivel de detección — la promesa honesta según el setup. [DET-TIERS-001]
@@ -1919,6 +1938,7 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                         currentTier = DetectionTier.AUTOMATIC,
                     ),
                     onRequestPermissions = {},
+                    focus = PermissionsFocus.Producer,
                 )
             },
             Variant("Nivel Asistido + (exención batería)") {
@@ -1931,6 +1951,7 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                         currentTier = DetectionTier.ASSISTED_PLUS,
                     ),
                     onRequestPermissions = {},
+                    focus = PermissionsFocus.Producer,
                 )
             },
             Variant("Nivel Asistido (base, sin BT ni exención)") {
@@ -1942,6 +1963,7 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                         currentTier = DetectionTier.ASSISTED,
                     ),
                     onRequestPermissions = {},
+                    focus = PermissionsFocus.Producer,
                 )
             },
         ),

@@ -9,7 +9,6 @@ import com.rndeveloper.paparcar.core.crash.CrashReporter
 import com.rndeveloper.paparcar.domain.error.PaparcarError
 import com.rndeveloper.paparcar.domain.connectivity.ConnectivityObserver
 import com.rndeveloper.paparcar.domain.connectivity.ConnectivityStatus
-import com.rndeveloper.paparcar.domain.permissions.PermissionManager
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import com.rndeveloper.paparcar.domain.repository.EntitlementRepository
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
@@ -53,11 +52,12 @@ data class SplashState(
      */
     val startRoute: String? = null,
     /**
-     * Route to navigate to after the user completes the permissions + GPS-disclaimer flow.
-     * Resolved during bootstrap: HOME if the user already has a vehicle, VEHICLE_SIZE_EXPLAINER
-     * if they still need to register one. Navigation decision lives here, not in App.kt. [NAV-001]
+     * Route to navigate to after any first-run setup screen completes (onboarding, or a stray
+     * gate screen's fallback). Resolved during bootstrap: HOME if the user already has a vehicle,
+     * VEHICLE_SIZE_EXPLAINER if they still need to register one. Navigation decision lives here,
+     * not in App.kt. [NAV-001]
      */
-    val postPermissionsRoute: String = Routes.HOME,
+    val postSetupRoute: String = Routes.HOME,
     /**
      * Non-null when bootstrap failed before resolving [startRoute]. The UI should surface a
      * recoverable error for [BootstrapFailure.Offline] (retry button) or redirect to login
@@ -72,7 +72,6 @@ class SplashViewModel(
     private val bootstrapUserData: BootstrapUserDataUseCase,
     private val vehicleRepository: VehicleRepository,
     private val appPreferences: AppPreferences,
-    private val permissionManager: PermissionManager,
     private val localSessionCache: LocalSessionCache,
     private val connectivityObserver: ConnectivityObserver,
     private val geofenceManager: GeofenceManager,
@@ -308,32 +307,25 @@ class SplashViewModel(
 
     private fun resolveStartRoute(hasVehicle: Boolean) {
         val isOnboardingCompleted = appPreferences.isOnboardingCompleted
-        val perms = permissionManager.permissionState.value
 
-        // Destination once the full onboarding+permissions flow is complete.
-        // Computed separately from route because route may short-circuit to ONBOARDING
-        // before reaching the hasVehicle check — the two are independent decisions.
-        val postPermissionsRoute = if (hasVehicle) Routes.HOME else Routes.VEHICLE_SIZE_EXPLAINER
+        // Destination once first-run setup is complete. Computed separately from route because
+        // route may short-circuit to ONBOARDING before reaching the hasVehicle check.
+        val postSetupRoute = if (hasVehicle) Routes.HOME else Routes.VEHICLE_SIZE_EXPLAINER
 
-        // [DET-READY-001d] Cold-start gate on CORE only: a returning user who granted CORE but
-        // not PRODUCER lands straight on Home (banner nudges them to enable detection) instead of
-        // being re-routed through the permission rationale on every launch.
+        // [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001] No permission gate on cold start:
+        // Home knows how to live without location (DetectionStory.BlockedCore), and the fine
+        // location ask happens ON the map on first entry — the map is its own context. A gate
+        // screen here was the app leading with locks instead of spots.
         val route = when {
             !isOnboardingCompleted -> Routes.ONBOARDING
-            // Single explain-and-grant permissions surface (rationale screen retired). [ONB-SCAFFOLD-001]
-            !perms.hasCorePermissions -> Routes.PERMISSIONS
-            !perms.isLocationServicesEnabled -> Routes.PERMISSIONS
-            else -> postPermissionsRoute
+            else -> postSetupRoute
         }
         PaparcarLogger.i(
             TAG,
             "startRoute decision — onboarding=$isOnboardingCompleted, " +
-                "hasVehicle=$hasVehicle, " +
-                "coreGranted=${perms.hasCorePermissions}, " +
-                "gpsEnabled=${perms.isLocationServicesEnabled} " +
-                "→ route=$route",
+                "hasVehicle=$hasVehicle → route=$route",
         )
-        _state.value = SplashState(startRoute = route, postPermissionsRoute = postPermissionsRoute)
+        _state.value = SplashState(startRoute = route, postSetupRoute = postSetupRoute)
     }
 
     private companion object {

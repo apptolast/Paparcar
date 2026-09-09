@@ -4,6 +4,7 @@ import com.rndeveloper.paparcar.domain.connectivity.ConnectivityBannerPhase
 import com.rndeveloper.paparcar.domain.connectivity.ConnectivityObserver
 import com.rndeveloper.paparcar.domain.connectivity.ConnectivityStatus
 import com.rndeveloper.paparcar.domain.permissions.PermissionManager
+import com.rndeveloper.paparcar.domain.permissions.missingProducerPermissions
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager
 import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
@@ -43,10 +44,11 @@ class AppViewModel(
         permissionManager.permissionState.value.let { current ->
             updateState {
                 copy(
-                    // [DET-READY-001d] Gate on CORE only (foreground location + notifications).
-                    // PRODUCER (background + AR) no longer blocks the app — its absence is surfaced
-                    // in the Home detection banner, not by ejecting the user to the permission gate.
+                    // [DET-READY-001d] CORE tracks the map's minimum; PRODUCER feeds
+                    // isDetectionReady (the GPS-accuracy disclaimer's trigger). Neither blocks
+                    // navigation — absence is surfaced in the Home detection banner.
                     permissionsGranted = current.hasCorePermissions,
+                    detectionPermissionsGranted = current.missingProducerPermissions().isEmpty(),
                     locationServicesEnabled = current.isLocationServicesEnabled,
                     themeMode = appPreferences.themeMode,
                     imperialUnits = appPreferences.useImperialUnits,
@@ -67,7 +69,8 @@ class AppViewModel(
             permissionManager.permissionState.collect { permState ->
                 updateState {
                     copy(
-                        permissionsGranted = permState.hasCorePermissions, // CORE-only gate [DET-READY-001d]
+                        permissionsGranted = permState.hasCorePermissions, // [DET-READY-001d]
+                        detectionPermissionsGranted = permState.missingProducerPermissions().isEmpty(),
                         locationServicesEnabled = permState.isLocationServicesEnabled,
                     )
                 }

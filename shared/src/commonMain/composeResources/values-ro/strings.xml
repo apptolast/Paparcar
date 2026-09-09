@@ -67,14 +67,14 @@
     <string name="onboarding_step2_desc">Când parchezi, salvăm silențios parcarea ta</string>
     <string name="onboarding_step3_title">Partajăm locul</string>
     <string name="onboarding_step3_desc">Când pleci, locul tău devine disponibil pentru alții din apropiere</string>
-    <string name="onboarding_page3_title">De ce avem nevoie de permisiunile tale</string>
-    <string name="onboarding_page3_subtitle">Paparcar colectează date de localizare chiar și când aplicația este închisă sau nu este în uz, pentru a detecta automat unde parchezi. Locația ta nu este niciodată vândută și nici folosită pentru publicitate.</string>
     <string name="onboarding_cta_next">Înainte</string>
-    <string name="onboarding_cta_setup">Configurează permisiunile</string>
+    <string name="onboarding_cta_start">Începe</string>
 
     <!-- PermissionsScreen -->
     <string name="permissions_title">Automatizează-ți parcarea</string>
-    <string name="permissions_subtitle">Doar locația este obligatorie — restul activează detectarea automată.</string>
+    <string name="permissions_subtitle">Paparcar ține minte pentru tine unde ai parcat — iar când pleci, locul se eliberează pentru altcineva.</string>
+    <string name="permissions_core_title">Vezi locurile libere din jurul tău</string>
+    <string name="permissions_core_subtitle">Paparcar folosește locația ta pentru a-ți arăta harta și locurile din apropiere.</string>
     <string name="permissions_perm_location">Locație precisă</string>
     <string name="permissions_perm_location_desc">Pentru a salva cu precizie unde ai parcat vehiculul</string>
     <string name="permissions_perm_background">Locație în fundal</string>
@@ -96,15 +96,13 @@
     <string name="permissions_btn_grant">Acordă permisiunile</string>
     <!-- DET-READY-001e -->
     <string name="permissions_btn_activate_detection">Activează detectarea automată</string>
-    <string name="permissions_continue_with_core">Poate mai târziu</string>
+    <string name="permissions_btn_not_now">Nu acum</string>
+    <string name="permissions_core_detection_teaser">Paparcar poate detecta automat și parcarea ta, eliberând locul când pleci. Poți activa asta mai târziu din hartă.</string>
+    <string name="permissions_bg_disclosure">Paparcar colectează date de localizare chiar și când aplicația este închisă sau nu este în uz, pentru a detecta automat unde parchezi. Locația ta nu este niciodată vândută și nici folosită pentru publicitate.</string>
     <!-- PERM-FOOTER-001 -->
     <string name="permissions_btn_allow_background">Permite în fundal</string>
     <string name="permissions_btn_continue">Continuă</string>
     <!-- DET-TOGGLE-002: educational dialog when tapping "Maybe later" -->
-    <string name="permissions_skip_dialog_title">Sari peste detectarea automată?</string>
-    <string name="permissions_skip_dialog_body">Cea mai bună funcție Paparcar găsește și eliberează automat locul tău când pleci. Fără ea, va trebui să faci totul manual.</string>
-    <string name="permissions_skip_dialog_activate">Activează acum</string>
-    <string name="permissions_skip_dialog_later">Poate mai târziu</string>
     <string name="permissions_btn_settings">Deschide setările sistemului</string>
     <string name="permissions_rationale">Unele permisiuni au fost refuzate. Acordă-le pentru a continua.</string>
     <string name="permissions_perm_location_services">Servicii de locație</string>
@@ -553,8 +551,10 @@
     <string name="home_det_core_sub">Paparcar nu merge fără ea</string>
     <string name="home_det_core_cta">Activează</string>
     <string name="home_det_producer_title">Activează detecția</string>
-    <string name="home_det_producer_sub">Eliberează locul când pleci</string>
+    <string name="home_det_producer_sub">Ține minte unde parchezi și eliberează locul</string>
     <string name="home_det_producer_cta">Activează</string>
+    <string name="home_det_pitch_title">Ce are Paparcar mai bun</string>
+    <string name="home_det_pitch_body">Detectarea automată ține minte pentru tine unde ai parcat — iar când pleci, locul se eliberează pentru altcineva. Activeaz-o acum și uită de griji.</string>
     <string name="home_det_enabled_confirm">Detectare automată activată</string>
     <!-- DET-TOGGLE-002: in-app snackbar when detection drops to a stopped state -->
     <string name="home_det_stopped_msg">Detectarea automată oprită</string>
@@ -692,8 +692,8 @@
     <string name="first_steps_park_cta">Marchează parcarea</string>
     <string name="first_steps_watch_title">Lasă Paparcar să o supravegheze</string>
     <string name="first_steps_watch_sub">Cât timp mașina ta e parcată, aplicația o supraveghează. Când pleci, parcarea ta eliberează un loc pentru alt șofer — sau o închizi tu cu 'Plec'.</string>
-    <string name="first_steps_watch_on_title">Activează detecția și merge singură</string>
-    <string name="first_steps_watch_on_sub">Acum locul tău se eliberează doar când spui tu cu 'Plec'. Cu detecția activă, Paparcar observă că ai plecat și îl eliberează pentru tine.</string>
+    <string name="first_steps_watch_on_title">Lasă Paparcar să-ți țină minte parcarea</string>
+    <string name="first_steps_watch_on_sub">Cu detectarea activată, Paparcar ține minte unde ai parcat — iar când pleci, locul pe care îl lași ajunge la cineva care caută unul, la fel ca tine.</string>
     <string name="first_steps_spot_title">Găsește un loc liber în apropiere</string>
     <string name="first_steps_spot_sub">Locurile eliberate de alții apar pe hartă. Deschide lista și alege unul.</string>
     <string name="first_steps_spot_cta">Vezi locuri</string>

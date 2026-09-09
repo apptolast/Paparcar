@@ -94,7 +94,6 @@ class SplashViewModelTest {
             ),
             vehicleRepository = fakeVehicleRepo,
             appPreferences = fakePrefs,
-            permissionManager = fakePerms,
             localSessionCache = fakeSessionCache,
             connectivityObserver = fakeConnectivity,
             geofenceManager = fakeGeofenceManager,
@@ -425,7 +424,9 @@ class SplashViewModelTest {
     }
 
     @Test
-    fun `startRoute resolves to PERMISSIONS when onboarding done but missing runtime perms with vehicle present`() = runTest {
+    fun `startRoute resolves to HOME even with no runtime permissions granted`() = runTest {
+        // [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001] No cold-start permission gate: Home
+        // leads (BlockedCore surfaces the absence) and the fine-location ask happens on the map.
         fakePrefs.setOnboardingCompleted()
         setProfileWithVehicle()
         // permissions remain default (none granted)
@@ -433,24 +434,25 @@ class SplashViewModelTest {
         val vm = buildViewModel()
         fakeAuth.emitState(AuthState.Authenticated(session))
 
-        assertEquals(Routes.PERMISSIONS, vm.state.value.startRoute)
+        assertEquals(Routes.HOME, vm.state.value.startRoute)
     }
 
     @Test
-    fun `startRoute resolves to PERMISSIONS when onboarding done and no perms regardless of vehicle`() = runTest {
-        // First-run flow: permissions take priority over vehicle. The user lands on the single
-        // explain-and-grant permissions surface before being asked for a vehicle.
+    fun `startRoute resolves to VEHICLE_SIZE_EXPLAINER when no vehicle and no perms`() = runTest {
+        // Vehicle registration outranks permissions now: the garage is needed for the product,
+        // the location ask waits for the map. [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001]
         fakePrefs.setOnboardingCompleted()
         // No vehicle, no permissions granted.
 
         val vm = buildViewModel()
         fakeAuth.emitState(AuthState.Authenticated(session))
 
-        assertEquals(Routes.PERMISSIONS, vm.state.value.startRoute)
+        assertEquals(Routes.VEHICLE_SIZE_EXPLAINER, vm.state.value.startRoute)
     }
 
     @Test
-    fun `startRoute resolves to PERMISSIONS when permissions granted but GPS services disabled`() = runTest {
+    fun `startRoute resolves to HOME when permissions granted but GPS services disabled`() = runTest {
+        // GPS off is Home's BlockedCore story to tell, not a gate. [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001]
         fakePrefs.setOnboardingCompleted()
         setProfileWithVehicle()
         fakePerms.emit(FakePermissionManager.permissionsOnlyNoGps())
@@ -458,7 +460,7 @@ class SplashViewModelTest {
         val vm = buildViewModel()
         fakeAuth.emitState(AuthState.Authenticated(session))
 
-        assertEquals(Routes.PERMISSIONS, vm.state.value.startRoute)
+        assertEquals(Routes.HOME, vm.state.value.startRoute)
     }
 
     @Test

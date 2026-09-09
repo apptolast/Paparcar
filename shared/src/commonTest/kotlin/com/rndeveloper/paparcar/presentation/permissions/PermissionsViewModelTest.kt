@@ -98,7 +98,7 @@ class PermissionsViewModelTest {
 
     @Test
     fun `NavigateToHome NOT auto-emitted even when all permissions and GPS are granted`() = runTest {
-        // Departure is now an explicit tap (FinishSetup / ContinueWithCore) so the user gets the
+        // Departure is now an explicit tap (FinishSetup / NotNow) so the user gets the
         // chance to opt into the optional background-reliability toggles first. [PERM-FOOTER-001]
         val vm = viewModel()
 
@@ -115,6 +115,19 @@ class PermissionsViewModelTest {
 
         vm.effect.test {
             vm.handleIntent(PermissionsIntent.FinishSetup)
+            assertIs<PermissionsEffect.NavigateToHome>(awaitItem())
+        }
+    }
+
+    @Test
+    fun `NavigateToHome emitted on NotNow without any confirmation dialog`() = runTest {
+        // Declining the producer visit's ask is one tap out — the Home banner keeps owning the
+        // ask, so no guilt dialog stands in the way. [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001]
+        fakePermissions.emit(FakePermissionManager.permissionsOnlyNoGps())
+        val vm = viewModel()
+
+        vm.effect.test {
+            vm.handleIntent(PermissionsIntent.NotNow)
             assertIs<PermissionsEffect.NavigateToHome>(awaitItem())
         }
     }

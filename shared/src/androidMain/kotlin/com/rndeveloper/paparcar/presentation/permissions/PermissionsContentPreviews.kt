@@ -49,6 +49,7 @@ private fun PermissionsPartialLightPreview() {
                 hasBackgroundLocation = false,
             ),
             onRequestPermissions = {},
+            focus = PermissionsFocus.Producer,
         )
     }
 }
@@ -69,6 +70,7 @@ private fun PermissionsAllCriticalGrantedLightPreview() {
                 hasBluetoothConnect = false,
             ),
             onRequestPermissions = {},
+            focus = PermissionsFocus.Producer,
         )
     }
 }
@@ -89,6 +91,7 @@ private fun PermissionsAllGrantedLightPreview() {
                 hasBluetoothConnect = true,
             ),
             onRequestPermissions = {},
+            focus = PermissionsFocus.Producer,
         )
     }
 }
@@ -142,6 +145,7 @@ private fun PermissionsAutostartCardLightPreview() {
                 showAutostartCard = true,
             ),
             onRequestPermissions = {},
+            focus = PermissionsFocus.Producer,
         )
     }
 }
@@ -165,6 +169,7 @@ private fun PermissionsAutostartCardDarkPreview() {
                 showAutostartCard = true,
             ),
             onRequestPermissions = {},
+            focus = PermissionsFocus.Producer,
         )
     }
 }
@@ -186,6 +191,7 @@ private fun PermissionsAutostartAndBatteryLightPreview() {
                 showAutostartCard = true,
             ),
             onRequestPermissions = {},
+            focus = PermissionsFocus.Producer,
         )
     }
 }
@@ -207,7 +213,7 @@ private fun tierState(tier: DetectionTier) = PermissionsState(
 @Composable
 private fun PermissionsTierAutomaticLightPreview() {
     PaparcarTheme(darkTheme = false) {
-        PermissionsContent(state = tierState(DetectionTier.AUTOMATIC), onRequestPermissions = {})
+        PermissionsContent(state = tierState(DetectionTier.AUTOMATIC), onRequestPermissions = {}, focus = PermissionsFocus.Producer)
     }
 }
 
@@ -215,7 +221,7 @@ private fun PermissionsTierAutomaticLightPreview() {
 @Composable
 private fun PermissionsTierAssistedPlusLightPreview() {
     PaparcarTheme(darkTheme = false) {
-        PermissionsContent(state = tierState(DetectionTier.ASSISTED_PLUS), onRequestPermissions = {})
+        PermissionsContent(state = tierState(DetectionTier.ASSISTED_PLUS), onRequestPermissions = {}, focus = PermissionsFocus.Producer)
     }
 }
 
@@ -227,6 +233,6 @@ private fun PermissionsTierAssistedPlusLightPreview() {
 @Composable
 private fun PermissionsTierAssistedDarkPreview() {
     PaparcarTheme(darkTheme = true) {
-        PermissionsContent(state = tierState(DetectionTier.ASSISTED), onRequestPermissions = {})
+        PermissionsContent(state = tierState(DetectionTier.ASSISTED), onRequestPermissions = {}, focus = PermissionsFocus.Producer)
     }
 }

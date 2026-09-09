@@ -17,5 +17,5 @@ import androidx.compose.runtime.Composable
  */
 expect @Composable fun PermissionsScreen(
     onPermissionsGranted: () -> Unit,
-    focus: PermissionsFocus = PermissionsFocus.All,
+    focus: PermissionsFocus = PermissionsFocus.Core,
 )

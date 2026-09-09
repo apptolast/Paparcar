@@ -190,10 +190,13 @@ fun DevCatalogScreen(
             PresetButton("Onboarding") {
                 scenario.reset(); scenario.onboardingCompleted.value = false; onEnter()
             }
-            PresetButton("Permisos · rationale (sin permisos)") {
+            // [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001] Home-first: sin permisos ya no hay
+            // pantalla-gate — se entra a Home, el mapa pide fine location y la fila BlockedCore
+            // cuenta lo que falte.
+            PresetButton("Sin permisos (Home pide en el mapa)") {
                 scenario.reset(); scenario.permissionTier.value = MockScenario.PermissionTier.None; onEnter()
             }
-            PresetButton("Pantalla de permisos (GPS off)") {
+            PresetButton("GPS apagado (Home · BlockedCore)") {
                 scenario.reset()
                 scenario.permissionTier.value = MockScenario.PermissionTier.Core
                 scenario.gpsEnabled.value = false

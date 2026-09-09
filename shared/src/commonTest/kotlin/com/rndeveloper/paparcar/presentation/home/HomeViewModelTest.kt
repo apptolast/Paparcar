@@ -65,6 +65,7 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -113,8 +114,13 @@ class HomeViewModelTest {
         initialMapType: String = "TERRAIN",
         foreground: Boolean = true,
         showParkingAskBus: com.rndeveloper.paparcar.domain.event.ShowParkingAskEventBus? = null,
+        // Default fixture = a Home past its very first entry, so the one-shot map location ask
+        // stays quiet and effect tests see only what they trigger. The first-entry tests opt out.
+        // [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001]
+        locationAlreadyAsked: Boolean = true,
     ): HomeViewModel {
         prefs = FakeAppPreferences(initialDefaultMapType = initialMapType)
+        if (locationAlreadyAsked) prefs.setLocationPermissionRequested()
         manualParkingDetection = com.rndeveloper.paparcar.fakes.data.repository.FakeManualParkingDetection()
         departureWatchResumer = com.rndeveloper.paparcar.fakes.data.repository.FakeDepartureWatchResumer()
         val addressAndPlaceRepo = FakeAddressAndPlaceRepository()
@@ -417,12 +423,54 @@ class HomeViewModelTest {
     // ── LoadNearbySpots ───────────────────────────────────────────────────────
 
     @Test
-    fun `should_emit_RequestLocationPermission_on_LoadNearbySpots_when_denied`() = runTest {
-        vm.effect.test {
-            vm.handleIntent(HomeIntent.LoadNearbySpots)
+    fun `should_emit_RequestLocationPermission_when_map_first_comes_on_screen_and_never_asked`() = runTest {
+        // [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001] The ask fires when the map comes on
+        // screen (SetMapForeground(true)) — the dialog opens OVER the map, its own context — and
+        // the one-shot latch is stamped so a denial is never re-asked at every entry.
+        val freshVm = buildVm(foreground = false, locationAlreadyAsked = false)
+        freshVm.effect.test {
+            freshVm.handleIntent(HomeIntent.SetMapForeground(true))
             assertIs<HomeEffect.RequestLocationPermission>(awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
+        assertTrue(prefs.hasRequestedLocationPermission)
+    }
+
+    @Test
+    fun `should_not_emit_RequestLocationPermission_when_already_asked_once`() = runTest {
+        // Default fixture = already-asked: coming on screen again must stay quiet.
+        vm.effect.test {
+            vm.handleIntent(HomeIntent.SetMapForeground(true))
+            expectNoEvents()
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `should_show_detection_pitch_after_first_entry_grant`() = runTest {
+        // Location granted right after the first-entry ask → the one-time star-feature pitch.
+        // [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001]
+        val freshVm = buildVm(foreground = false, locationAlreadyAsked = false)
+        freshVm.handleIntent(HomeIntent.SetMapForeground(true))
+        permissions.emit(
+            com.rndeveloper.paparcar.domain.permissions.AppPermissionState(
+                hasLocationPermission = true,
+                isLocationServicesEnabled = true,
+            ),
+        )
+        assertTrue(freshVm.state.value.showDetectionPitch)
+
+        // "Ahora no" is one tap out and it never comes back on later grants.
+        freshVm.handleIntent(HomeIntent.DismissDetectionPitch)
+        assertFalse(freshVm.state.value.showDetectionPitch)
+    }
+
+    @Test
+    fun `should_not_show_detection_pitch_when_grant_was_not_the_first_entry_ask`() = runTest {
+        // Default fixture never armed the ask — a grant from anywhere else stays silent.
+        vm.handleIntent(HomeIntent.SetMapForeground(true))
+        permissions.emit(FakePermissionManager.allGranted())
+        assertFalse(vm.state.value.showDetectionPitch)
     }
 
     @Test

@@ -99,6 +99,33 @@ class AppViewModelTest {
         assertFalse(vm.state.value.isFullyOperational)
     }
 
+    // ── isDetectionReady (GPS-accuracy disclaimer trigger) ───────────────────
+
+    @Test
+    fun `isDetectionReady false when only CORE is granted`() {
+        // Fully operational for the map ≠ detection ready: the disclaimer talks about detection,
+        // so it must wait for the producer grant. [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001]
+        fakePermissions.emit(
+            com.rndeveloper.paparcar.domain.permissions.AppPermissionState(
+                hasLocationPermission = true,
+                isLocationServicesEnabled = true,
+            ),
+        )
+        val vm = AppViewModel(fakePermissions, fakePrefs, fakeConnectivity, fakeVehicleRepo, fakeZoneRepo, fakeParkingRepo, zoneAlerts, fakeNotifications)
+
+        assertTrue(vm.state.value.isFullyOperational)
+        assertFalse(vm.state.value.isDetectionReady)
+        assertFalse(vm.state.value.showGpsAccuracyDisclaimer)
+    }
+
+    @Test
+    fun `isDetectionReady true when producer permissions complete`() {
+        fakePermissions.emit(FakePermissionManager.allGranted())
+        val vm = AppViewModel(fakePermissions, fakePrefs, fakeConnectivity, fakeVehicleRepo, fakeZoneRepo, fakeParkingRepo, zoneAlerts, fakeNotifications)
+
+        assertTrue(vm.state.value.isDetectionReady)
+    }
+
     // ── State updates ─────────────────────────────────────────────────────────
 
     @Test

@@ -38,6 +38,7 @@ import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.permissions_bg_disclosure
 import paparcar.composeapp.generated.resources.permissions_bg_guide_body
 import paparcar.composeapp.generated.resources.permissions_bg_guide_cta
 import paparcar.composeapp.generated.resources.permissions_bg_guide_dismiss
@@ -47,12 +48,11 @@ import paparcar.composeapp.generated.resources.permissions_btn_allow_background
 import paparcar.composeapp.generated.resources.permissions_btn_continue
 import paparcar.composeapp.generated.resources.permissions_btn_grant
 import paparcar.composeapp.generated.resources.permissions_btn_location_settings
+import paparcar.composeapp.generated.resources.permissions_btn_not_now
 import paparcar.composeapp.generated.resources.permissions_btn_settings
-import paparcar.composeapp.generated.resources.permissions_continue_with_core
-import paparcar.composeapp.generated.resources.permissions_skip_dialog_activate
-import paparcar.composeapp.generated.resources.permissions_skip_dialog_body
-import paparcar.composeapp.generated.resources.permissions_skip_dialog_later
-import paparcar.composeapp.generated.resources.permissions_skip_dialog_title
+import paparcar.composeapp.generated.resources.permissions_core_detection_teaser
+import paparcar.composeapp.generated.resources.permissions_core_subtitle
+import paparcar.composeapp.generated.resources.permissions_core_title
 import paparcar.composeapp.generated.resources.permissions_perm_activity
 import paparcar.composeapp.generated.resources.permissions_perm_activity_desc
 import paparcar.composeapp.generated.resources.permissions_perm_autostart
@@ -104,11 +104,9 @@ fun PermissionsContent(
     onRequestOemBatterySettings: () -> Unit = {},
     onConfirmBackgroundLocationGuide: () -> Unit = {},
     onDismissBackgroundLocationGuide: () -> Unit = {},
-    onContinueWithCore: () -> Unit = {},
-    onRequestSkipDetection: () -> Unit = {},
-    onDismissSkipDetectionDialog: () -> Unit = {},
+    onNotNow: () -> Unit = {},
     onFinish: () -> Unit = {},
-    focus: PermissionsFocus = PermissionsFocus.All,
+    focus: PermissionsFocus = PermissionsFocus.Core,
 ) {
     if (state.showBackgroundLocationGuide) {
         PapAlertDialog(
@@ -122,34 +120,25 @@ fun PermissionsContent(
         )
     }
 
-    // "Maybe later" confirmation — nudge the user to activate before deferring auto-detection. The
-    // emphasised primary keeps them here; the secondary lets them skip. Outside-tap is safe (stays).
-    // [DET-TOGGLE-002]
-    if (state.showSkipDetectionDialog) {
-        PapAlertDialog(
-            onDismiss = onDismissSkipDetectionDialog,
-            icon = Icons.Rounded.Sensors,
-            title = stringResource(Res.string.permissions_skip_dialog_title),
-            body = stringResource(Res.string.permissions_skip_dialog_body),
-            primaryLabel = stringResource(Res.string.permissions_skip_dialog_activate),
-            onPrimary = onDismissSkipDetectionDialog,
-            secondaryLabel = stringResource(Res.string.permissions_skip_dialog_later),
-            onSecondary = onContinueWithCore,
-        )
-    }
-
-    val showEssential = focus != PermissionsFocus.Producer
-    val showProducer = focus != PermissionsFocus.Core
+    // One focus, one tier: first-run and CORE repairs see the essential section only (the detection
+    // wall is what made the old first-run aggressive); "activate detection" visits see the producer
+    // sections only. [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001]
+    val showEssential = focus == PermissionsFocus.Core
+    val showProducer = focus == PermissionsFocus.Producer
 
     // Bottom action button state. CORE = foreground location; GPS = essential toggle; PRODUCER =
-    // background + AR + notifications. The first ask is CORE-only; PRODUCER is requested via the
-    // "Activate detection" button. [DET-READY-001i]
+    // background + AR + notifications, requested via the "Activate detection" button. [DET-READY-001i]
     val isCorePending = !state.hasFineLocation
     val isGpsPending = !state.isLocationServicesEnabled
-    // Every required tier granted → the screen no longer *blocks* entry; the footer switches from
-    // "grant" actions to the optional reliability toggle + an explicit "Continue". [PERM-FOOTER-001]
-    val requiredComplete = state.hasFineLocation && state.isLocationServicesEnabled &&
-        state.hasBackgroundLocation && state.hasActivityRecognition && state.hasNotifications
+    // Everything THIS focus asks for is granted → the footer switches from "grant" actions to the
+    // exit ("Continue" / optional reliability toggle). The producer visit still checks the core
+    // pair: its permissions are useless without location, and Android won't even grant background
+    // without foreground. [PERM-FOOTER-001]
+    val requiredComplete = when (focus) {
+        PermissionsFocus.Core -> state.hasFineLocation && state.isLocationServicesEnabled
+        PermissionsFocus.Producer -> state.hasFineLocation && state.isLocationServicesEnabled &&
+            state.hasBackgroundLocation && state.hasActivityRecognition && state.hasNotifications
+    }
 
     // The footer is ALWAYS present: it either drives the next pending grant or, once everything
     // required is done, offers the optional background toggle + a "Continue" to enter the app. This
@@ -158,11 +147,12 @@ fun PermissionsContent(
         footer = {
             PermissionsFooter(
                 state = state,
+                focus = focus,
                 isCorePending = isCorePending,
                 isGpsPending = isGpsPending,
                 requiredComplete = requiredComplete,
                 onRequestPermissions = onRequestPermissions,
-                onRequestSkipDetection = onRequestSkipDetection,
+                onNotNow = onNotNow,
                 onRequestBatteryOptimization = onRequestBatteryOptimization,
                 onFinish = onFinish,
             )
@@ -180,15 +170,24 @@ fun PermissionsContent(
                 modifier = Modifier.size(HERO_ILLUSTRATION_W, HERO_ILLUSTRATION_H),
             )
             Spacer(Modifier.height(PaparcarSpacing.sm))
+            // Each focus narrates ITS ask: the core visit is about seeing the map (consumer side),
+            // the producer visit is about automating your parking (producer side). One shared
+            // header lied to both. [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001]
             Text(
-                text = stringResource(Res.string.permissions_title),
+                text = stringResource(
+                    if (showEssential) Res.string.permissions_core_title
+                    else Res.string.permissions_title,
+                ),
                 style = PaparcarType.current.heroTitle,
                 color = MaterialTheme.colorScheme.onBackground,
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(PaparcarSpacing.sm))
             Text(
-                text = stringResource(Res.string.permissions_subtitle),
+                text = stringResource(
+                    if (showEssential) Res.string.permissions_core_subtitle
+                    else Res.string.permissions_subtitle,
+                ),
                 style = PaparcarType.current.body,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -200,6 +199,17 @@ fun PermissionsContent(
         // Sólo cuando la sección de detección es visible: en foco Core-only (GPS apagado) la
         // detección no puede correr, así que el nivel no aplica. [DET-TIERS-001]
         if (showProducer) {
+            // Prominent disclosure de ubicación en segundo plano (política de Play): vive aquí,
+            // ANTES de la petición de background — no en el onboarding, donde sermoneaba a todo
+            // usuario nuevo por una detección que aún no había pedido activar.
+            // [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001]
+            Text(
+                text = stringResource(Res.string.permissions_bg_disclosure),
+                style = PaparcarType.current.caption,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.height(PaparcarSpacing.xl))
             DetectionTierStatusCard(tier = state.currentTier)
             Spacer(Modifier.height(PaparcarSpacing.xxl))
         }
@@ -212,7 +222,6 @@ fun PermissionsContent(
                 title = stringResource(Res.string.permissions_section_essential),
                 benefit = stringResource(Res.string.permissions_tier_essential_benefit),
                 satisfied = state.hasFineLocation && state.isLocationServicesEnabled,
-                isLast = !showProducer,
             ) {
                 PermissionRow(
                     icon = Icons.Rounded.LocationOn,
@@ -230,6 +239,16 @@ fun PermissionsContent(
                     onGrant = onOpenLocationServices,
                 )
             }
+
+            // The teaser that replaces the old wall: auto-detection exists, and it is activated
+            // later from the map, when there is a parking to watch — not granted here up-front.
+            // [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001]
+            Spacer(Modifier.height(PaparcarSpacing.xl))
+            Text(
+                text = stringResource(Res.string.permissions_core_detection_teaser),
+                style = PaparcarType.current.caption,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
 
         if (showProducer) {
@@ -239,7 +258,6 @@ fun PermissionsContent(
                 benefit = stringResource(Res.string.permissions_tier_detection_benefit),
                 satisfied = state.hasBackgroundLocation &&
                     state.hasActivityRecognition && state.hasNotifications,
-                isLast = false,
             ) {
                 PermissionRow(
                     icon = Icons.Rounded.Explore,
@@ -266,12 +284,14 @@ fun PermissionsContent(
                 )
             }
 
+            // El respiro entre secciones que antes ponía el conector de la timeline.
+            Spacer(Modifier.height(PaparcarSpacing.xxl))
+
             PermissionTier(
                 icon = Icons.Rounded.Shield,
                 title = stringResource(Res.string.permissions_section_optional),
                 benefit = stringResource(Res.string.permissions_tier_optional_benefit),
                 satisfied = state.hasBluetoothConnect && state.isBatteryOptimizationExempt,
-                isLast = true,
             ) {
                 PermissionRow(
                     icon = Icons.Rounded.Bluetooth,
@@ -362,20 +382,23 @@ fun PermissionsContent(
 @Composable
 private fun ColumnScope.PermissionsFooter(
     state: PermissionsState,
+    focus: PermissionsFocus,
     isCorePending: Boolean,
     isGpsPending: Boolean,
     requiredComplete: Boolean,
     onRequestPermissions: () -> Unit,
-    onRequestSkipDetection: () -> Unit,
+    onNotNow: () -> Unit,
     onRequestBatteryOptimization: () -> Unit,
     onFinish: () -> Unit,
 ) {
-    // Everything required is granted. Surface the optional background-reliability toggle the copy
-    // promises ("permite la actividad en segundo plano aquí abajo") as the emphasised action —
-    // it's the highest-impact opt-in on Doze-aggressive OEMs — with a plain "Continue" underneath
-    // to enter the app. Battery exemption is Android-only, so hide that button on iOS. [PERM-FOOTER-001]
+    // Everything THIS focus asks for is granted. On the producer visit, surface the optional
+    // background-reliability toggle the copy promises ("permite la actividad en segundo plano aquí
+    // abajo") as the emphasised action — it's the highest-impact opt-in on Doze-aggressive OEMs —
+    // with a plain "Continue" underneath. The core visit exits plainly: battery reliability props
+    // up a detection the user hasn't activated yet, so it has no business there. [PERM-FOOTER-001]
     if (requiredComplete) {
-        val batteryPending = isBatteryOptimizationRelevant && !state.isBatteryOptimizationExempt
+        val batteryPending = focus == PermissionsFocus.Producer &&
+            isBatteryOptimizationRelevant && !state.isBatteryOptimizationExempt
         if (batteryPending) {
             PapFooterButton(
                 label = stringResource(Res.string.permissions_btn_allow_background),
@@ -419,15 +442,17 @@ private fun ColumnScope.PermissionsFooter(
         containerColor = if (isAmber) PapColor.attention else null,
         contentColor = if (isAmber) PapColor.onAttention else null,
     )
-    // "Maybe later" — enter with CORE only, defer PRODUCER. Shown once the minimum (CORE + GPS) is
-    // met so the user is never stranded below it. [DET-READY-001e]
-    if (state.canContinueWithCore) {
+    // "Not now" — the producer visit is voluntary (the user tapped an "activate detection" CTA in
+    // Home/Settings), so declining is one tap back to where they came from, with no guilt dialog:
+    // the Home banner keeps owning the ask. The core visit has no producer ask to decline.
+    // [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001]
+    if (focus == PermissionsFocus.Producer) {
         TextButton(
-            onClick = onRequestSkipDetection,
+            onClick = onNotNow,
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text(
-                text = stringResource(Res.string.permissions_continue_with_core),
+                text = stringResource(Res.string.permissions_btn_not_now),
                 // TextButton text → cta, the app's button convention. [TYPO-AUDIT-001]
                 style = PaparcarType.current.cta,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

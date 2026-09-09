@@ -64,14 +64,14 @@
     <string name="onboarding_step2_desc">Quando estaciona, guardamos silenciosamente o seu estacionamento</string>
     <string name="onboarding_step3_title">Partilhamos o lugar</string>
     <string name="onboarding_step3_desc">Quando sai, o seu lugar fica disponível para outros próximos</string>
-    <string name="onboarding_page3_title">Por que precisamos das suas permissões</string>
-    <string name="onboarding_page3_subtitle">A Paparcar recolhe dados de localização mesmo quando a app está fechada ou não está em uso, para detetar automaticamente onde estaciona. A sua localização nunca é vendida nem usada para publicidade.</string>
     <string name="onboarding_cta_next">Seguinte</string>
-    <string name="onboarding_cta_setup">Configurar permissões</string>
+    <string name="onboarding_cta_start">Começar</string>
 
     <!-- PermissionsScreen -->
     <string name="permissions_title">Automatize o seu estacionamento</string>
-    <string name="permissions_subtitle">Apenas a localização é obrigatória; o resto ativa a deteção automática.</string>
+    <string name="permissions_subtitle">O Paparcar lembra-se de onde estacionaste por ti — e quando sais, o lugar que deixas fica livre para outra pessoa.</string>
+    <string name="permissions_core_title">Vê os lugares livres à tua volta</string>
+    <string name="permissions_core_subtitle">O Paparcar usa a tua localização para mostrar o mapa e os lugares perto de ti.</string>
     <string name="permissions_perm_location">Localização precisa</string>
     <string name="permissions_perm_location_desc">Para guardar com precisão onde estacionou o veículo</string>
     <string name="permissions_perm_background">Localização em segundo plano</string>
@@ -93,15 +93,13 @@
     <string name="permissions_btn_grant">Conceder permissões</string>
     <!-- DET-READY-001e -->
     <string name="permissions_btn_activate_detection">Ativar deteção automática</string>
-    <string name="permissions_continue_with_core">Talvez mais tarde</string>
+    <string name="permissions_btn_not_now">Agora não</string>
+    <string name="permissions_core_detection_teaser">O Paparcar também pode detetar o teu estacionamento automaticamente e libertar o lugar quando sais. Podes ativá-lo mais tarde a partir do mapa.</string>
+    <string name="permissions_bg_disclosure">A Paparcar recolhe dados de localização mesmo quando a app está fechada ou não está em uso, para detetar automaticamente onde estaciona. A sua localização nunca é vendida nem usada para publicidade.</string>
     <!-- PERM-FOOTER-001 -->
     <string name="permissions_btn_allow_background">Permitir em segundo plano</string>
     <string name="permissions_btn_continue">Continuar</string>
     <!-- DET-TOGGLE-002: educational dialog when tapping "Maybe later" -->
-    <string name="permissions_skip_dialog_title">Ignorar a deteção automática?</string>
-    <string name="permissions_skip_dialog_body">O melhor do Paparcar deteta e liberta o teu lugar automaticamente quando sais. Sem isto, terás de fazer tudo à mão.</string>
-    <string name="permissions_skip_dialog_activate">Ativar agora</string>
-    <string name="permissions_skip_dialog_later">Talvez mais tarde</string>
     <string name="permissions_btn_settings">Abrir definições do sistema</string>
     <string name="permissions_rationale">Algumas permissões foram negadas. Conceda-as para continuar.</string>
     <string name="permissions_perm_location_services">Serviços de localização</string>
@@ -542,8 +540,10 @@
     <string name="home_det_core_sub">O Paparcar não funciona sem ela</string>
     <string name="home_det_core_cta">Ativar</string>
     <string name="home_det_producer_title">Ative a deteção</string>
-    <string name="home_det_producer_sub">Liberta o seu lugar quando arranca</string>
+    <string name="home_det_producer_sub">Lembra onde estacionas e liberta o lugar</string>
     <string name="home_det_producer_cta">Ativar</string>
+    <string name="home_det_pitch_title">O melhor do Paparcar</string>
+    <string name="home_det_pitch_body">A deteção automática lembra-se de onde estacionas para que não tenhas de o fazer — e quando sais, o lugar que deixas fica livre para outra pessoa. Ativa-a agora e esquece.</string>
     <string name="home_det_enabled_confirm">Deteção automática ativada</string>
     <!-- DET-TOGGLE-002: in-app snackbar when detection drops to a stopped state -->
     <string name="home_det_stopped_msg">Deteção automática parada</string>
@@ -679,8 +679,8 @@
     <string name="first_steps_park_cta">Marcar estacionamento</string>
     <string name="first_steps_watch_title">Deixa o Paparcar vigiar</string>
     <string name="first_steps_watch_sub">Enquanto o teu carro está estacionado a app vigia-o. Quando sais, o teu estacionamento liberta um lugar para outro condutor — ou fechas tu com 'Vou-me embora'.</string>
-    <string name="first_steps_watch_on_title">Ativa a deteção e funciona sozinha</string>
-    <string name="first_steps_watch_on_sub">Agora o teu lugar só é libertado quando tu o dizes com 'Vou-me embora'. Com a deteção ativa, o Paparcar nota que saíste e liberta-o por ti.</string>
+    <string name="first_steps_watch_on_title">Deixa o Paparcar lembrar-se do teu estacionamento por ti</string>
+    <string name="first_steps_watch_on_sub">Com a deteção ativa, o Paparcar lembra-se de onde estacionaste para que não tenhas de o fazer — e quando sais, o lugar que deixas chega a alguém que o procura, tal como tu.</string>
     <string name="first_steps_spot_title">Encontra um lugar livre perto</string>
     <string name="first_steps_spot_sub">Os lugares que outros deixam livres aparecem no mapa. Abre a lista e escolhe um.</string>
     <string name="first_steps_spot_cta">Ver lugares</string>

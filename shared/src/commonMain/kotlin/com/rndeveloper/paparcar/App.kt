@@ -239,9 +239,9 @@ fun App(
                             } else {
                                 MainAppNavigation(
                                     startRoute = startRoute,
-                                    isFullyOperational = appState.isFullyOperational,
+                                    isDetectionReady = appState.isDetectionReady,
                                     hasSeenGpsAccuracyDisclaimer = appState.hasSeenGpsAccuracyDisclaimer,
-                                    postPermissionsRoute = splashState.postPermissionsRoute,
+                                    postSetupRoute = splashState.postSetupRoute,
                                     onMarkOnboardingCompleted = { appViewModel.handleIntent(AppIntent.MarkOnboardingCompleted) },
                                     themeMode = appState.themeMode,
                                     onSetThemeMode = { appViewModel.handleIntent(AppIntent.SetThemeMode(it)) },
@@ -361,9 +361,9 @@ private fun AuthNavigation(
 @Composable
 private fun MainAppNavigation(
     startRoute: String,
-    isFullyOperational: Boolean,
+    isDetectionReady: Boolean,
     hasSeenGpsAccuracyDisclaimer: Boolean,
-    postPermissionsRoute: String,
+    postSetupRoute: String,
     onMarkOnboardingCompleted: () -> Unit,
     themeMode: ThemeMode,
     onSetThemeMode: (ThemeMode) -> Unit,
@@ -375,19 +375,18 @@ private fun MainAppNavigation(
     val currentBackStack by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStack?.destination?.route
 
-    // Permission gate guard. [DET-READY-001i]
     // We deliberately do NOT force-navigate to PERMISSIONS when a permission or GPS is lost
     // mid-session: that ejected the user to a full-screen gate even for non-blocking losses
-    // (e.g. notifications). Runtime loss now stays in Home, where the detection surfaces
+    // (e.g. notifications). Runtime loss stays in Home, where the detection surfaces
     // (Blocked·CORE / Blocked·PRODUCER) report it and route to permissions on the user's action.
-    // The cold-start gate (SplashViewModel) still requires CORE before the first entry.
-    LaunchedEffect(isFullyOperational, hasSeenGpsAccuracyDisclaimer, currentRoute) {
-        // Only safety net left: a fully-operational user sitting on a normal screen who has never
-        // seen the mandatory GPS disclaimer (e.g. granted permissions outside the first-run chain).
-        // The old "operational + on a gate screen → HOME" branch was removed: it duplicated Home
-        // when the user voluntarily opened PERMISSIONS from an in-Home CTA while already operational.
-        // Forward navigation is owned by each screen's own onComplete (context-aware, see below). [NAV-DEDUP-001]
-        if (isFullyOperational && !hasSeenGpsAccuracyDisclaimer &&
+    // There is no cold-start gate either: Home leads, and asks on the map.
+    // [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001]
+    LaunchedEffect(isDetectionReady, hasSeenGpsAccuracyDisclaimer, currentRoute) {
+        // GPS-accuracy disclaimer — it talks about DETECTION, so it fires the first time detection
+        // becomes fully armed (producer permissions granted), not the first time the map gets a
+        // location fix. A user who never activates detection never sees it. Reactive rather than
+        // chained so it fires no matter which surface completed the producer grant. [NAV-DEDUP-001]
+        if (isDetectionReady && !hasSeenGpsAccuracyDisclaimer &&
             currentRoute != Routes.GPS_DISCLAIMER && currentRoute !in GATE_SCREENS
         ) {
             navController.navigate(Routes.GPS_DISCLAIMER)
@@ -513,9 +512,10 @@ private fun MainAppNavigation(
                 OnboardingScreen(
                     onComplete = {
                         onMarkOnboardingCompleted()
-                        // The onboarding's last page narrates "set up permissions". The permissions
-                        // screen is now the single explain-and-grant surface (no separate rationale).
-                        navController.navigate(Routes.PERMISSIONS) {
+                        // Straight into the product: vehicle registration if needed, else Home —
+                        // where the map asks for location itself. No permissions stop.
+                        // [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001]
+                        navController.navigate(postSetupRoute) {
                             popUpTo(Routes.ONBOARDING) { inclusive = true }
                         }
                     },
@@ -526,7 +526,7 @@ private fun MainAppNavigation(
                 arguments = listOf(
                     navArgument("focus") {
                         type = NavType.StringType
-                        defaultValue = com.rndeveloper.paparcar.presentation.permissions.PermissionsFocus.All.name
+                        defaultValue = com.rndeveloper.paparcar.presentation.permissions.PermissionsFocus.Core.name
                     },
                 ),
             ) { backStackEntry ->
@@ -535,11 +535,13 @@ private fun MainAppNavigation(
                 PermissionsScreen(
                     focus = focus,
                     onPermissionsGranted = {
-                        // Voluntary visit (an in-Home "Activar" CTA — Home already in the back stack):
-                        // pop straight back to the existing Home, never push a duplicate. Cold-start
-                        // chain (no Home below): continue forward to the mandatory GPS disclaimer. [NAV-DEDUP-001]
+                        // Every visit is voluntary now (an in-Home/Settings CTA — Home already in
+                        // the back stack): pop straight back, never push a duplicate. The GPS
+                        // disclaimer is no longer chained here — it fires reactively when detection
+                        // becomes ready (see MainAppNavigation's LaunchedEffect). The fallback
+                        // covers a stray deep-link with no Home below. [NAV-DEDUP-001]
                         if (!navController.popBackStack(Routes.HOME, inclusive = false)) {
-                            navController.navigate(Routes.GPS_DISCLAIMER) {
+                            navController.navigate(postSetupRoute) {
                                 popUpTo(PERMISSIONS_ROUTE) { inclusive = true }
                             }
                         }
@@ -550,10 +552,10 @@ private fun MainAppNavigation(
                 com.rndeveloper.paparcar.presentation.permissions.GpsDisclaimerScreen(
                     onAccepted = {
                         onDismissGpsDisclaimer()
-                        // Same dedup rule: return to an existing Home if present, else continue the
-                        // cold-start chain forward to the resolved post-permissions route. [NAV-DEDUP-001]
+                        // Same dedup rule: return to an existing Home if present, else fall back to
+                        // the resolved post-setup route. [NAV-DEDUP-001]
                         if (!navController.popBackStack(Routes.HOME, inclusive = false)) {
-                            navController.navigate(postPermissionsRoute) {
+                            navController.navigate(postSetupRoute) {
                                 popUpTo(Routes.GPS_DISCLAIMER) { inclusive = true }
                             }
                         }

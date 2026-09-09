@@ -65,14 +65,14 @@
     <string name="onboarding_step2_desc">Wenn du parkst, speichern wir deinen Parkplatz</string>
     <string name="onboarding_step3_title">Wir teilen den Stellplatz</string>
     <string name="onboarding_step3_desc">Wenn du fährst, wird dein Stellplatz für andere in der Nähe verfügbar</string>
-    <string name="onboarding_page3_title">Warum wir deine Berechtigungen benötigen</string>
-    <string name="onboarding_page3_subtitle">Paparcar erfasst Standortdaten auch dann, wenn die App geschlossen oder nicht in Gebrauch ist, um automatisch zu erkennen, wo du parkst. Dein Standort wird niemals verkauft oder für Werbung genutzt.</string>
     <string name="onboarding_cta_next">Weiter</string>
-    <string name="onboarding_cta_setup">Berechtigungen einrichten</string>
+    <string name="onboarding_cta_start">Los geht's</string>
 
     <!-- PermissionsScreen -->
     <string name="permissions_title">Automatisiere dein Parken</string>
-    <string name="permissions_subtitle">Nur der Standort ist erforderlich – der Rest ermöglicht die automatische Erkennung.</string>
+    <string name="permissions_subtitle">Paparcar merkt sich für dich, wo du geparkt hast — und wenn du losfährst, wird der Platz für jemand anderen frei.</string>
+    <string name="permissions_core_title">Sieh freie Plätze in deiner Nähe</string>
+    <string name="permissions_core_subtitle">Paparcar nutzt deinen Standort, um die Karte und Plätze in deiner Nähe zu zeigen.</string>
     <string name="permissions_perm_location">Genaue Position</string>
     <string name="permissions_perm_location_desc">Um genau zu speichern, wo du dein Fahrzeug geparkt hast</string>
     <string name="permissions_perm_background">Hintergrundstandort</string>
@@ -94,15 +94,13 @@
     <string name="permissions_btn_grant">Berechtigungen erteilen</string>
     <!-- DET-READY-001e -->
     <string name="permissions_btn_activate_detection">Automatische Erkennung aktivieren</string>
-    <string name="permissions_continue_with_core">Vielleicht später</string>
+    <string name="permissions_btn_not_now">Jetzt nicht</string>
+    <string name="permissions_core_detection_teaser">Paparcar kann dein Parken auch automatisch erkennen und den Platz freigeben, wenn du losfährst. Du kannst das später über die Karte aktivieren.</string>
+    <string name="permissions_bg_disclosure">Paparcar erfasst Standortdaten auch dann, wenn die App geschlossen oder nicht in Gebrauch ist, um automatisch zu erkennen, wo du parkst. Dein Standort wird niemals verkauft oder für Werbung genutzt.</string>
     <!-- PERM-FOOTER-001 -->
     <string name="permissions_btn_allow_background">Im Hintergrund erlauben</string>
     <string name="permissions_btn_continue">Weiter</string>
     <!-- DET-TOGGLE-002: educational dialog when tapping "Maybe later" -->
-    <string name="permissions_skip_dialog_title">Automatische Erkennung überspringen?</string>
-    <string name="permissions_skip_dialog_body">Die beste Funktion von Paparcar erkennt und gibt deinen Parkplatz automatisch frei, wenn du losfährst. Ohne sie musst du alles von Hand erledigen.</string>
-    <string name="permissions_skip_dialog_activate">Jetzt aktivieren</string>
-    <string name="permissions_skip_dialog_later">Vielleicht später</string>
     <string name="permissions_btn_settings">Systemeinstellungen öffnen</string>
     <string name="permissions_rationale">Einige Berechtigungen wurden verweigert. Bitte erteile sie, um fortzufahren.</string>
     <string name="permissions_perm_location_services">Standortdienste</string>
@@ -543,8 +541,10 @@
     <string name="home_det_core_sub">Paparcar braucht ihn dafür</string>
     <string name="home_det_core_cta">Aktivieren</string>
     <string name="home_det_producer_title">Erkennung aktivieren</string>
-    <string name="home_det_producer_sub">Gibt deinen Platz frei, wenn du losfährst</string>
+    <string name="home_det_producer_sub">Merkt sich dein Parken, gibt den Platz frei</string>
     <string name="home_det_producer_cta">Aktivieren</string>
+    <string name="home_det_pitch_title">Das Beste an Paparcar</string>
+    <string name="home_det_pitch_body">Die automatische Erkennung merkt sich für dich, wo du geparkt hast — und wenn du losfährst, wird der Platz für jemand anderen frei. Schalte sie jetzt ein und vergiss sie.</string>
     <string name="home_det_enabled_confirm">Automatische Erkennung aktiviert</string>
     <!-- DET-TOGGLE-002: in-app snackbar when detection drops to a stopped state -->
     <string name="home_det_stopped_msg">Automatische Erkennung gestoppt</string>
@@ -680,8 +680,8 @@
     <string name="first_steps_park_cta">Parkplatz markieren</string>
     <string name="first_steps_watch_title">Paparcar behält es im Blick</string>
     <string name="first_steps_watch_sub">Solange dein Auto geparkt ist, behält die App es im Blick. Wenn du losfährst, wird dein Parkplatz zu einem freien Platz für andere — oder du beendest ihn selbst mit 'Ich fahre los'.</string>
-    <string name="first_steps_watch_on_title">Erkennung aktivieren, dann läuft es allein</string>
-    <string name="first_steps_watch_on_sub">Im Moment wird dein Platz nur frei, wenn du es mit 'Ich fahre los' sagst. Mit aktiver Erkennung merkt Paparcar, dass du losgefahren bist, und gibt ihn für dich frei.</string>
+    <string name="first_steps_watch_on_title">Lass Paparcar sich deinen Parkplatz für dich merken</string>
+    <string name="first_steps_watch_on_sub">Mit aktivierter Erkennung merkt sich Paparcar, wo du geparkt hast — und wenn du losfährst, geht der Platz, den du freigibst, an jemanden, der gerade einen sucht, so wie du.</string>
     <string name="first_steps_spot_title">Finde einen freien Platz in der Nähe</string>
     <string name="first_steps_spot_sub">Plätze, die andere frei gemacht haben, erscheinen auf der Karte. Öffne die Liste und wähle einen.</string>
     <string name="first_steps_spot_cta">Plätze ansehen</string>

@@ -55,7 +55,7 @@ class PermissionsViewModel(
                 // Doing so yanked the user off the screen before they could opt into the optional
                 // background-reliability toggles (battery/autostart) — the ones that matter most on
                 // Doze-aggressive OEMs. Departure is now an explicit tap: the footer's "Continue"
-                // (FinishSetup) or "Maybe later" (ContinueWithCore). [PERM-FOOTER-001]
+                // (FinishSetup) or "Not now" (NotNow). [PERM-FOOTER-001]
             }
         }
         // Single reliability evaluator — REDUCED swaps the optional tier's generic battery hint
@@ -112,23 +112,15 @@ class PermissionsViewModel(
                 sendEffect(PermissionsEffect.LaunchOemBatterySettings)
             }
             PermissionsIntent.RefreshPermissions -> permissionManager.refreshPermissions()
-            PermissionsIntent.RequestSkipDetection ->
-                // "Maybe later" → confirm the user really wants to skip auto-detection first. [DET-TOGGLE-002]
-                updateState { copy(showSkipDetectionDialog = true) }
-            PermissionsIntent.DismissSkipDetectionDialog ->
-                updateState { copy(showSkipDetectionDialog = false) }
-            PermissionsIntent.ContinueWithCore -> {
-                // Enter with CORE only; PRODUCER stays pending and is nudged from the Home banner.
-                // Guard on CORE + GPS so we never navigate into a non-operational app. [DET-READY-001e]
-                updateState { copy(showSkipDetectionDialog = false) }
-                if (state.value.canContinueWithCore) {
-                    sendEffect(PermissionsEffect.NavigateToHome)
-                }
-            }
+            PermissionsIntent.NotNow ->
+                // Decline the producer visit's ask and leave — no confirmation dialog. PRODUCER
+                // stays pending and the Home banner / checklist keep owning the ask.
+                // [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001]
+                sendEffect(PermissionsEffect.NavigateToHome)
             PermissionsIntent.FinishSetup ->
-                // "Continue" — every required permission is granted; enter the app. Optional
-                // reliability toggles (battery/autostart) were offered and can still be enabled
-                // later from Settings. [PERM-FOOTER-001]
+                // "Continue" — everything the current focus asks for is granted; leave the screen.
+                // Optional reliability toggles (battery/autostart) were offered on the producer
+                // visit and can still be enabled later from Settings. [PERM-FOOTER-001]
                 sendEffect(PermissionsEffect.NavigateToHome)
             PermissionsIntent.ConfirmBackgroundLocationGuide -> {
                 updateState { copy(showBackgroundLocationGuide = false) }

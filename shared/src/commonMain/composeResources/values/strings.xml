@@ -103,14 +103,14 @@
     <string name="onboarding_step2_desc">When you park, we silently save your parking</string>
     <string name="onboarding_step3_title">We share the spot</string>
     <string name="onboarding_step3_desc">When you leave, your spot becomes available to others nearby</string>
-    <string name="onboarding_page3_title">Why we need your permissions</string>
-    <string name="onboarding_page3_subtitle">Paparcar collects location data even when the app is closed or not in use, to automatically detect where you park. Your location is never sold or used for advertising.</string>
     <string name="onboarding_cta_next">Next</string>
-    <string name="onboarding_cta_setup">Set up permissions</string>
+    <string name="onboarding_cta_start">Get started</string>
 
     <!-- PermissionsScreen -->
     <string name="permissions_title">Automate your parking</string>
-    <string name="permissions_subtitle">Only location is required — the rest powers automatic detection.</string>
+    <string name="permissions_subtitle">Paparcar remembers where you parked for you — and when you drive off, the spot you leave is freed for someone else.</string>
+    <string name="permissions_core_title">See free spots around you</string>
+    <string name="permissions_core_subtitle">Paparcar uses your location to show the map and the spots near you.</string>
     <string name="permissions_perm_location">Precise location</string>
     <string name="permissions_perm_location_desc">To precisely save where you parked your vehicle</string>
     <string name="permissions_perm_background">Background location</string>
@@ -133,15 +133,13 @@
     <string name="permissions_btn_grant">Grant permissions</string>
     <!-- DET-READY-001e: CORE-required, PRODUCER-optional onboarding -->
     <string name="permissions_btn_activate_detection">Turn on auto-detection</string>
-    <string name="permissions_continue_with_core">Maybe later</string>
+    <string name="permissions_btn_not_now">Not now</string>
+    <string name="permissions_core_detection_teaser">Paparcar can also detect your parking automatically and free the spot when you drive away. You can turn this on later from the map.</string>
+    <string name="permissions_bg_disclosure">Paparcar collects location data even when the app is closed or not in use, to automatically detect where you park. Your location is never sold or used for advertising.</string>
     <!-- PERM-FOOTER-001: required tier complete → optional reliability opt-in + explicit continue -->
     <string name="permissions_btn_allow_background">Allow background activity</string>
     <string name="permissions_btn_continue">Continue</string>
     <!-- DET-TOGGLE-002: educational dialog when tapping "Maybe later" -->
-    <string name="permissions_skip_dialog_title">Skip automatic detection?</string>
-    <string name="permissions_skip_dialog_body">Paparcar’s best feature finds and frees your parking spot automatically when you drive off. Without it, you’ll have to do everything by hand.</string>
-    <string name="permissions_skip_dialog_activate">Activate now</string>
-    <string name="permissions_skip_dialog_later">Maybe later</string>
     <string name="permissions_btn_settings">Open system settings</string>
     <string name="permissions_rationale">Some permissions were denied. Please grant them to continue.</string>
     <string name="permissions_perm_location_services">Location services</string>
@@ -623,8 +621,10 @@
     <string name="home_det_core_sub">Paparcar needs it to work</string>
     <string name="home_det_core_cta">Turn on</string>
     <string name="home_det_producer_title">Turn on detection</string>
-    <string name="home_det_producer_sub">Frees your spot when you drive off</string>
+    <string name="home_det_producer_sub">Remembers where you park, frees the spot</string>
     <string name="home_det_producer_cta">Turn on</string>
+    <string name="home_det_pitch_title">Paparcar's best feature</string>
+    <string name="home_det_pitch_body">Automatic detection remembers where you parked so you don't have to — and when you drive off, the spot you leave is freed for someone else. Turn it on now and forget about it.</string>
     <string name="home_det_enabled_confirm">Auto-detection activated</string>
     <!-- DET-TOGGLE-002: in-app snackbar when detection drops to a stopped state -->
     <string name="home_det_stopped_msg">Auto-detection stopped</string>
@@ -711,8 +711,8 @@
     <string name="first_steps_park_cta">Mark parking</string>
     <string name="first_steps_watch_title">Let Paparcar keep an eye on it</string>
     <string name="first_steps_watch_sub">While your car is parked the app watches it. When you drive off, your parking frees a spot for another driver — or you close it yourself with 'I’m leaving'.</string>
-    <string name="first_steps_watch_on_title">Turn detection on and it works by itself</string>
-    <string name="first_steps_watch_on_sub">Right now your spot is only freed when you say so with 'I’m leaving'. With detection on, Paparcar notices you drove off and frees it for you.</string>
+    <string name="first_steps_watch_on_title">Let Paparcar remember your parking for you</string>
+    <string name="first_steps_watch_on_sub">With detection on, Paparcar remembers where you parked so you don't have to — and when you drive off, the spot you leave goes to someone looking for one, just like you.</string>
     <string name="first_steps_spot_title">Find a free spot near you</string>
     <string name="first_steps_spot_sub">Spots other drivers left free show on the map. Open the list and pick one.</string>
     <string name="first_steps_spot_cta">See spots</string>

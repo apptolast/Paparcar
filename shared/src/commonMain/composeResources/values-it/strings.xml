@@ -64,14 +64,14 @@
     <string name="onboarding_step2_desc">Quando parcheggi, salviamo silenziosamente il tuo parcheggio</string>
     <string name="onboarding_step3_title">Condividiamo il posto</string>
     <string name="onboarding_step3_desc">Quando esci, il tuo posto diventa disponibile per gli altri vicini</string>
-    <string name="onboarding_page3_title">Perché abbiamo bisogno dei tuoi permessi</string>
-    <string name="onboarding_page3_subtitle">Paparcar raccoglie dati di posizione anche quando l'app è chiusa o non in uso, per rilevare automaticamente dove parcheggi. La tua posizione non viene mai venduta né usata per pubblicità.</string>
     <string name="onboarding_cta_next">Avanti</string>
-    <string name="onboarding_cta_setup">Configura i permessi</string>
+    <string name="onboarding_cta_start">Inizia</string>
 
     <!-- PermissionsScreen -->
     <string name="permissions_title">Automatizza il tuo parcheggio</string>
-    <string name="permissions_subtitle">È obbligatoria solo la posizione; il resto attiva il rilevamento automatico.</string>
+    <string name="permissions_subtitle">Paparcar ricorda dove hai parcheggiato per te — e quando parti, il posto che lasci resta libero per qualcun altro.</string>
+    <string name="permissions_core_title">Vedi i posti liberi intorno a te</string>
+    <string name="permissions_core_subtitle">Paparcar usa la tua posizione per mostrarti la mappa e i posti vicino a te.</string>
     <string name="permissions_perm_location">Posizione precisa</string>
     <string name="permissions_perm_location_desc">Per salvare con precisione dove hai parcheggiato il veicolo</string>
     <string name="permissions_perm_background">Posizione in background</string>
@@ -93,15 +93,13 @@
     <string name="permissions_btn_grant">Concedi permessi</string>
     <!-- DET-READY-001e -->
     <string name="permissions_btn_activate_detection">Attiva il rilevamento automatico</string>
-    <string name="permissions_continue_with_core">Forse più tardi</string>
+    <string name="permissions_btn_not_now">Non ora</string>
+    <string name="permissions_core_detection_teaser">Paparcar può anche rilevare il tuo parcheggio automaticamente e liberare il posto quando parti. Potrai attivarlo più avanti dalla mappa.</string>
+    <string name="permissions_bg_disclosure">Paparcar raccoglie dati di posizione anche quando l'app è chiusa o non in uso, per rilevare automaticamente dove parcheggi. La tua posizione non viene mai venduta né usata per pubblicità.</string>
     <!-- PERM-FOOTER-001 -->
     <string name="permissions_btn_allow_background">Consenti in background</string>
     <string name="permissions_btn_continue">Continua</string>
     <!-- DET-TOGGLE-002: educational dialog when tapping "Maybe later" -->
-    <string name="permissions_skip_dialog_title">Saltare il rilevamento automatico?</string>
-    <string name="permissions_skip_dialog_body">La funzione migliore di Paparcar trova e libera il tuo posto automaticamente quando esci. Senza, dovrai fare tutto a mano.</string>
-    <string name="permissions_skip_dialog_activate">Attiva ora</string>
-    <string name="permissions_skip_dialog_later">Forse più tardi</string>
     <string name="permissions_btn_settings">Apri impostazioni di sistema</string>
     <string name="permissions_rationale">Alcuni permessi sono stati negati. Concedili per continuare.</string>
     <string name="permissions_perm_location_services">Servizi di localizzazione</string>
@@ -542,8 +540,10 @@
     <string name="home_det_core_sub">Paparcar non funziona senza</string>
     <string name="home_det_core_cta">Attiva</string>
     <string name="home_det_producer_title">Attiva il rilevamento</string>
-    <string name="home_det_producer_sub">Libera il posto quando riparti</string>
+    <string name="home_det_producer_sub">Ricorda dove parcheggi e libera il posto</string>
     <string name="home_det_producer_cta">Attiva</string>
+    <string name="home_det_pitch_title">Il meglio di Paparcar</string>
+    <string name="home_det_pitch_body">Il rilevamento automatico ricorda dove parcheggi così non devi farlo tu — e quando parti, il posto che lasci resta libero per qualcun altro. Attivalo ora e non pensarci più.</string>
     <string name="home_det_enabled_confirm">Rilevamento automatico attivato</string>
     <!-- DET-TOGGLE-002: in-app snackbar when detection drops to a stopped state -->
     <string name="home_det_stopped_msg">Rilevamento automatico interrotto</string>
@@ -679,8 +679,8 @@
     <string name="first_steps_park_cta">Segna parcheggio</string>
     <string name="first_steps_watch_title">Lascia che Paparcar la sorvegli</string>
     <string name="first_steps_watch_sub">Mentre la tua auto è parcheggiata l'app la sorveglia. Quando riparti, il tuo parcheggio libera un posto per un altro automobilista — o lo chiudi tu con 'Me ne vado'.</string>
-    <string name="first_steps_watch_on_title">Attiva il rilevamento e funziona da solo</string>
-    <string name="first_steps_watch_on_sub">Adesso il tuo posto si libera solo quando lo dici tu con 'Me ne vado'. Con il rilevamento attivo, Paparcar si accorge che sei ripartito e lo libera per te.</string>
+    <string name="first_steps_watch_on_title">Lascia che Paparcar ricordi il tuo parcheggio per te</string>
+    <string name="first_steps_watch_on_sub">Con il rilevamento attivo, Paparcar ricorda dove hai parcheggiato così non devi farlo tu — e quando parti, il posto che lasci arriva a qualcuno che lo cerca, proprio come te.</string>
     <string name="first_steps_spot_title">Trova un posto libero vicino</string>
     <string name="first_steps_spot_sub">I posti che altri lasciano liberi compaiono sulla mappa. Apri la lista e scegline uno.</string>
     <string name="first_steps_spot_cta">Vedi posti</string>

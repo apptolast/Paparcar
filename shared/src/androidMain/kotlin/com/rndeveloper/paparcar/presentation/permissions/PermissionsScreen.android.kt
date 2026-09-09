@@ -191,9 +191,7 @@ actual @Composable fun PermissionsScreen(onPermissionsGranted: () -> Unit, focus
         onRequestOemBatterySettings = { viewModel.handleIntent(PermissionsIntent.RequestOemBatterySettings) },
         onConfirmBackgroundLocationGuide = { viewModel.handleIntent(PermissionsIntent.ConfirmBackgroundLocationGuide) },
         onDismissBackgroundLocationGuide = { viewModel.handleIntent(PermissionsIntent.DismissBackgroundLocationGuide) },
-        onContinueWithCore = { viewModel.handleIntent(PermissionsIntent.ContinueWithCore) },
-        onRequestSkipDetection = { viewModel.handleIntent(PermissionsIntent.RequestSkipDetection) },
-        onDismissSkipDetectionDialog = { viewModel.handleIntent(PermissionsIntent.DismissSkipDetectionDialog) },
+        onNotNow = { viewModel.handleIntent(PermissionsIntent.NotNow) },
         onFinish = { viewModel.handleIntent(PermissionsIntent.FinishSetup) },
         focus = focus,
     )

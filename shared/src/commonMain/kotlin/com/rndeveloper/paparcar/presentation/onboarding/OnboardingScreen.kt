@@ -32,7 +32,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.ui.components.PapCard
@@ -45,12 +44,10 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.onboarding_cta_next
-import paparcar.composeapp.generated.resources.onboarding_cta_setup
+import paparcar.composeapp.generated.resources.onboarding_cta_start
 import paparcar.composeapp.generated.resources.onboarding_page1_subtitle
 import paparcar.composeapp.generated.resources.onboarding_page1_title
 import paparcar.composeapp.generated.resources.onboarding_page2_title
-import paparcar.composeapp.generated.resources.onboarding_page3_subtitle
-import paparcar.composeapp.generated.resources.onboarding_page3_title
 import paparcar.composeapp.generated.resources.onboarding_step1_desc
 import paparcar.composeapp.generated.resources.onboarding_step1_title
 import paparcar.composeapp.generated.resources.onboarding_step2_desc
@@ -58,7 +55,11 @@ import paparcar.composeapp.generated.resources.onboarding_step2_title
 import paparcar.composeapp.generated.resources.onboarding_step3_desc
 import paparcar.composeapp.generated.resources.onboarding_step3_title
 
-private const val PAGE_COUNT                 = 3
+// Two pages of VALUE — welcome + how it works. The old page 3 ("Why we need your permissions",
+// padlock hero) made the last thing a new user saw before the app a security lecture; its
+// background-location disclosure now lives where background is actually requested (the "activate
+// detection" visit). [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001]
+private const val PAGE_COUNT                 = 2
 private const val DOT_ANIM_MS                = 300
 private val       PAGE_CONTENT_BOTTOM_CLEARANCE = 140.dp
 private val       HERO_ILLUSTRATION_W        = 140.dp
@@ -83,8 +84,7 @@ fun OnboardingScreen(onComplete: () -> Unit) {
         ) { page ->
             when (page) {
                 0 -> OnboardingPage1()
-                1 -> OnboardingPage2()
-                else -> OnboardingPage3()
+                else -> OnboardingPage2()
             }
         }
 
@@ -106,7 +106,7 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                 label = if (pagerState.currentPage < PAGE_COUNT - 1) {
                     stringResource(Res.string.onboarding_cta_next)
                 } else {
-                    stringResource(Res.string.onboarding_cta_setup)
+                    stringResource(Res.string.onboarding_cta_start)
                 },
                 onClick = {
                     if (pagerState.currentPage < PAGE_COUNT - 1) {
@@ -206,38 +206,6 @@ private fun OnboardingPage2() {
             icon = Icons.Rounded.Campaign,
             title = stringResource(Res.string.onboarding_step3_title),
             desc = stringResource(Res.string.onboarding_step3_desc),
-        )
-    }
-}
-
-@Composable
-private fun OnboardingPage3() {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .statusBarsPadding()
-            .padding(horizontal = PaparcarSpacing.xxxl)
-            .padding(top = PaparcarSpacing.huge, bottom = PAGE_CONTENT_BOTTOM_CLEARANCE),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        OnboardingHero(
-            hero = OnboardingHero.PRIVACY,
-            modifier = Modifier.size(HERO_ILLUSTRATION_W, HERO_ILLUSTRATION_H),
-        )
-        Spacer(Modifier.height(PaparcarSpacing.sm))
-        Text(
-            text = stringResource(Res.string.onboarding_page3_title),
-            style = PaparcarType.current.heroTitle,
-            color = PapColor.actionText,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(Modifier.height(PaparcarSpacing.lg))
-        Text(
-            text = stringResource(Res.string.onboarding_page3_subtitle),
-            style = PaparcarType.current.subtitle,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
         )
     }
 }

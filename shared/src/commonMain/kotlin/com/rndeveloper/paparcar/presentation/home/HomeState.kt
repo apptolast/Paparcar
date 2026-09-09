@@ -79,6 +79,12 @@ data class HomeState(
      */
     val hasCorePermissions: Boolean = false,
 
+    /** One-time pitch dialog for auto-detection, shown right after the first-entry location grant
+     *  on the map — the app's star feature no longer has a first-run screen to introduce it, so
+     *  this is its introduction. Declining is one tap and never returns; the banner and checklist
+     *  keep the ask. [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001] */
+    val showDetectionPitch: Boolean = false,
+
     // ── User location ─────────────────────────────────────────────────────────
 
     val userGpsPoint: GpsPoint? = null,

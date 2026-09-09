@@ -80,6 +80,15 @@ sealed class HomeIntent {
      *  (independent of permissions). [DET-TOGGLE-001] */
     data object EnableAutoDetection : HomeIntent()
 
+    /** "Activar" on the one-time detection pitch dialog (shown right after the first-entry
+     *  location grant) — dismisses it and runs the same [EnableAutoDetection] flow as the banner.
+     *  [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001] */
+    data object AcceptDetectionPitch : HomeIntent()
+
+    /** "Ahora no" on the detection pitch dialog — one tap out, no guilt; the banner and the
+     *  checklist keep owning the ask. */
+    data object DismissDetectionPitch : HomeIntent()
+
     /** "Activate now" on the battery nudge — request the OS battery-optimization exemption (and the
      *  OEM foreground/autostart page) so the detection service survives on aggressive OEMs.
      *  [DET-BATTERY-EXEMPTION-NUDGE-001] */

@@ -25,6 +25,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableFloatState
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.Stable
+import com.rndeveloper.paparcar.presentation.permissions.rememberRequestFineLocationAction
 import com.rndeveloper.paparcar.presentation.util.collectAsStateLifecycleAware
 import com.rndeveloper.paparcar.presentation.util.MapForegroundEffect
 import androidx.compose.runtime.State
@@ -74,6 +75,9 @@ import com.rndeveloper.paparcar.presentation.util.rememberOpenExternalNavigation
 import com.rndeveloper.paparcar.presentation.util.zoneIconFor
 import com.rndeveloper.paparcar.ui.components.CenterPinKind
 import com.rndeveloper.paparcar.ui.components.LocalMapInteracting
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Sensors
+import com.rndeveloper.paparcar.ui.components.PapAlertDialog
 import com.rndeveloper.paparcar.ui.components.PapSpotlight
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 import com.rndeveloper.paparcar.ui.theme.PapMotion
@@ -96,9 +100,13 @@ import paparcar.composeapp.generated.resources.location_approximate_near
 import paparcar.composeapp.generated.resources.error_unknown
 import paparcar.composeapp.generated.resources.error_watch_resume_failed
 import paparcar.composeapp.generated.resources.home_det_enabled_confirm
+import paparcar.composeapp.generated.resources.home_det_pitch_body
+import paparcar.composeapp.generated.resources.home_det_pitch_title
+import paparcar.composeapp.generated.resources.home_det_producer_cta
 import paparcar.composeapp.generated.resources.home_det_stopped_action
 import paparcar.composeapp.generated.resources.home_det_stopped_msg
 import paparcar.composeapp.generated.resources.home_det_trip_stopped_msg
+import paparcar.composeapp.generated.resources.permissions_btn_not_now
 import paparcar.composeapp.generated.resources.home_release_dialog_detection_active
 import paparcar.composeapp.generated.resources.home_release_dialog_detection_inactive
 import paparcar.composeapp.generated.resources.home_release_dialog_detection_unavailable
@@ -173,6 +181,9 @@ fun HomeScreen(
     // fix-rate updates flow untouched to the map's isolated scopes. [DRIVE-PUCK-NATIVE-001]
     val tripState = viewModel.tripRender.collectAsStateLifecycleAware()
     val snackbarHostState = remember { SnackbarHostState() }
+    // First-entry location ask, launched OVER the map — no permissions screen in front of it.
+    // [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001]
+    val requestFineLocation = rememberRequestFineLocationAction()
 
     // Pre-resolve strings in Composable scope — cannot use stringResource inside LaunchedEffect.
     val msgErrorUnknown = stringResource(Res.string.error_unknown)
@@ -195,11 +206,6 @@ fun HomeScreen(
     val msgDetectionStopped = stringResource(Res.string.home_det_stopped_msg)
     val msgTripDetectionStopped = stringResource(Res.string.home_det_trip_stopped_msg)
     val msgDetectionStoppedAction = stringResource(Res.string.home_det_stopped_action)
-
-    // Scope the high-accuracy user-location request to when this screen is actually on-screen: under
-    // Compose Navigation the lifecycle owner is Home's back-stack entry, so this is RESUMED only while
-    // Home is the current destination AND the app is foreground. [UI-LOC-FOREGROUND-001]
-    MapForegroundEffect { active -> viewModel.handleIntent(HomeIntent.SetMapForeground(active)) }
 
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
@@ -254,13 +260,21 @@ fun HomeScreen(
                 is HomeEffect.OpenDetectionPermissions -> onActivateDetection(effect.focus)
                 // [DET-WATCH-HONEST-001] Launch the OS battery-optimization exemption dialog (expect/actual).
                 HomeEffect.RequestBatteryOptimizationExemption -> requestIgnoreBatteryOptimizations()
-                HomeEffect.RequestLocationPermission -> {}
+                HomeEffect.RequestLocationPermission -> requestFineLocation()
                 // MoveCameraTo needs the HomeUiController which lives inside
                 // HomeContent; a dedicated collector down there handles it.
                 is HomeEffect.MoveCameraTo -> Unit
             }
         }
     }
+
+    // Scope the high-accuracy user-location request to when this screen is actually on-screen: under
+    // Compose Navigation the lifecycle owner is Home's back-stack entry, so this is RESUMED only while
+    // Home is the current destination AND the app is foreground. [UI-LOC-FOREGROUND-001]
+    // Declared AFTER the effect collector on purpose: SetMapForeground(true) can trigger the
+    // first-run location ask, and a replay-less SharedFlow drops effects emitted before the
+    // collector above subscribes. [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001]
+    MapForegroundEffect { active -> viewModel.handleIntent(HomeIntent.SetMapForeground(active)) }
 
     // Stable function reference — viewModel instance never changes so this
     // is safe to remember once. Prevents HomeContent from getting a new
@@ -401,6 +415,21 @@ private fun HomeContent(
                 onIntent = onIntent,
                 onDismiss = { showReleaseDialog = false },
             )
+
+            // One-time pitch of the star feature, fired right after the first-entry location grant
+            // on the map. Not the old guilt dialog: declining is one tap and never comes back — the
+            // banner and the checklist keep owning the ask. [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001]
+            if (state.showDetectionPitch) {
+                PapAlertDialog(
+                    onDismiss = { onIntent(HomeIntent.DismissDetectionPitch) },
+                    icon = Icons.Rounded.Sensors,
+                    title = stringResource(Res.string.home_det_pitch_title),
+                    body = stringResource(Res.string.home_det_pitch_body),
+                    primaryLabel = stringResource(Res.string.home_det_producer_cta),
+                    onPrimary = { onIntent(HomeIntent.AcceptDetectionPitch) },
+                    cancelLabel = stringResource(Res.string.permissions_btn_not_now),
+                )
+            }
 
             BoxWithConstraints(
                 modifier = Modifier
