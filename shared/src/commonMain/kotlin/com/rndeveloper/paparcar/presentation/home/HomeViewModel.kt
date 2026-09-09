@@ -21,9 +21,11 @@ import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import com.rndeveloper.paparcar.domain.repository.UserParkingRepository
 import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import com.rndeveloper.paparcar.domain.repository.ZoneRepository
+import com.rndeveloper.paparcar.domain.fuel.FuelStationsQuery
 import com.rndeveloper.paparcar.domain.model.DetectionReliabilityLevel
 import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.model.GpsPoint
+import com.rndeveloper.paparcar.presentation.home.model.ViewportRefetch
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
 import com.rndeveloper.paparcar.domain.model.ParkingReleaseReason
 import com.rndeveloper.paparcar.domain.usecase.detection.ObserveDetectionReadinessUseCase
@@ -154,6 +156,12 @@ class HomeViewModel(
         trip.updates.stateIn(viewModelScope, SharingStarted.Eagerly, TripUpdate.IDLE)
 
     private var cameraSettledJob: Job? = null
+
+    // [FUEL-LAYER-FOLLOWS-THE-CAMERA-001] Debounce of the viewport ask, and the last camera centre
+    // (for the moments the layer needs a centre before any settle — toggle-on, first fix).
+    private var fuelViewportJob: Job? = null
+    private var lastCameraLat: Double? = null
+    private var lastCameraLon: Double? = null
 
     /** Whether the Home map is foreground (RESUMED). Drives [subscribeGpsLocation]: the high-accuracy
      *  user-location request runs ONLY while true, so a backgrounded map costs no GPS. Starts false;
@@ -439,12 +447,17 @@ class HomeViewModel(
     }
 
     private fun onCameraPositionChanged(lat: Double, lon: Double) {
+        lastCameraLat = lat
+        lastCameraLon = lon
         if (state.value.mode !is HomeMode.Browse) {
             updatePinDuringMode(lat, lon)
         } else if (spots.maybeRecenterOnPan(lat, lon)) {
             updateState { copy(isSpotQueryCenteredOnUser = false) }
         }
         geocodeCameraLocation(lat, lon)
+        // Browse only: while a pin is being placed the map is the pin's canvas, not a browser.
+        // [FUEL-LAYER-FOLLOWS-THE-CAMERA-001]
+        if (state.value.mode is HomeMode.Browse) scheduleFuelViewportRefetch(lat, lon)
     }
 
     /**
@@ -555,9 +568,10 @@ class HomeViewModel(
     /**
      * Show or hide the fuel-stations map layer. [FUEL-STATIONS-MAP-AND-PEEK-001]
      *
-     * Turning it on loads the same store the sheet section reads — with the car's fuel when there
-     * is one, fuel-less otherwise (markers without a figure are honest; a hidden layer is not).
-     * Turning it off clears a fuel-station selection so no peek keeps talking about an invisible pin.
+     * Turning it on asks around the CAMERA's centre (what you are looking at), fuel-less when the
+     * car declares none — markers without a figure are honest; a hidden layer is not. Turning it
+     * off clears a fuel-station selection so no peek keeps talking about an invisible pin.
+     * [FUEL-LAYER-FOLLOWS-THE-CAMERA-001]
      */
     private fun toggleFuelStationsLayer() {
         val show = !state.value.showFuelStationsLayer
@@ -568,17 +582,110 @@ class HomeViewModel(
                 selection = selection.takeUnless { !show && it is HomeSelection.FuelStation },
             )
         }
-        if (show) ensureFuelStationsForLayer()
+        if (show) viewportCentreOrGps()?.let { (lat, lon) -> maybeFetchFuelViewport(lat, lon) }
     }
 
-    /** Loads stations for the layer if it is on and nothing is loaded or in flight yet. */
-    private fun ensureFuelStationsForLayer() {
+    /**
+     * The layer follows the CAMERA. [FUEL-LAYER-FOLLOWS-THE-CAMERA-001]
+     *
+     * Called with the point the camera settled on (debounced by [scheduleFuelViewportRefetch]) or
+     * with the best-known centre when the layer turns on / the first fix lands. The pure
+     * [ViewportRefetch] decides whether the move earns a fresh ask.
+     *
+     * ⛔ **A failed ask puts the anchor BACK.** Advancing it on the attempt looked like sensible
+     * anti-hammering until a transient Overpass 504 left Paris permanently blank: the layer had
+     * "already asked here" and would not try again until the user panned kilometres away. There is
+     * no hammering to prevent — asks only fire on camera events, which only exist while the user
+     * moves the map. Failure logs and keeps whatever stations were showing (the layer has no error
+     * sentence of its own; the section owns those).
+     */
+    private fun maybeFetchFuelViewport(lat: Double, lon: Double) {
         val s = state.value
-        if (!s.showFuelStationsLayer) return
-        if (s.fuel.isLoading || s.fuel.stations.isNotEmpty()) return
-        val gps = s.userGpsPoint ?: return
-        loadFuelStations(gps, activeFuelType())
+        if (!s.showFuelStationsLayer || s.fuelLayer.isLoading) return
+        // Not a place (0,0 before the map has a camera), or too far from the user to be a refuel
+        // question. Past the limit the layer EMPTIES: showing your own city's stations over a
+        // distant one is the lie this ticket exists to stop.
+        if (!ViewportRefetch.isWorthAsking(lat, lon, s.userGpsPoint?.latitude, s.userGpsPoint?.longitude)) {
+            if (s.fuelLayer.stations.isNotEmpty()) {
+                updateState {
+                    copy(
+                        // The anchor goes too: coming back must ASK again, not restore a store the
+                        // layer already emptied.
+                        fuelLayer = fuelLayer.copy(
+                            stations = emptyList(),
+                            anchorLat = null,
+                            anchorLon = null,
+                        ),
+                        selection = selection.takeUnless { it is HomeSelection.FuelStation },
+                    )
+                }
+            }
+            return
+        }
+        val previousAnchorLat = s.fuelLayer.anchorLat
+        val previousAnchorLon = s.fuelLayer.anchorLon
+        if (!ViewportRefetch.shouldRefetch(
+                s.fuelLayer.anchorLat, s.fuelLayer.anchorLon,
+                lat, lon,
+                FuelStationsQuery.DEFAULT_RADIUS_METERS,
+            )
+        ) return
+
+        updateState {
+            copy(fuelLayer = fuelLayer.copy(anchorLat = lat, anchorLon = lon, isLoading = true))
+        }
+        viewModelScope.launch {
+            getNearbyFuelStations(lat, lon, activeFuelType())
+                .onSuccess { nearby ->
+                    // The layer's own verdict, quotable in a diagnosis: WHERE it asked and what
+                    // came back. Silence used to be ambiguous between "it worked" and "it never
+                    // fired", which cost a device session. [FUEL-LAYER-FOLLOWS-THE-CAMERA-001]
+                    PaparcarLogger.d(
+                        TAG,
+                        "fuel viewport: ${nearby.stations.size} stations around $lat,$lon",
+                    )
+                    updateState {
+                        copy(
+                            fuelLayer = fuelLayer.copy(isLoading = false, stations = nearby.stations),
+                            // A selection that survives in NEITHER store is orphaned — same pruning
+                            // rule as applyNewSpots, scoped to its own kind.
+                            selection = selection.takeUnless { sel ->
+                                sel is HomeSelection.FuelStation &&
+                                    nearby.stations.none { it.station.id == sel.id } &&
+                                    fuel.stations.none { it.station.id == sel.id }
+                            },
+                        )
+                    }
+                }
+                .onFailure { e ->
+                    PaparcarLogger.w(TAG, "fuel viewport lookup failed", e)
+                    updateState {
+                        copy(
+                            fuelLayer = fuelLayer.copy(
+                                isLoading = false,
+                                anchorLat = previousAnchorLat,
+                                anchorLon = previousAnchorLon,
+                            ),
+                        )
+                    }
+                }
+        }
     }
+
+    /** Debounced camera-settle trigger for the viewport ask — a nervous pan is not a question. */
+    private fun scheduleFuelViewportRefetch(lat: Double, lon: Double) {
+        if (!state.value.showFuelStationsLayer) return
+        fuelViewportJob?.cancel()
+        fuelViewportJob = viewModelScope.launch {
+            delay(FUEL_VIEWPORT_SETTLE_MS)
+            maybeFetchFuelViewport(lat, lon)
+        }
+    }
+
+    /** Best-known viewport centre for the moments no camera event has fired yet (cold start). */
+    private fun viewportCentreOrGps(): Pair<Double, Double>? =
+        lastCameraLat?.let { lat -> lastCameraLon?.let { lon -> lat to lon } }
+            ?: state.value.userGpsPoint?.let { it.latitude to it.longitude }
 
     private fun activeFuelType() = state.value.vehicles.firstOrNull { it.isActive }?.fuelType
         ?: state.value.vehicles.firstOrNull()?.fuelType
@@ -1134,8 +1241,9 @@ class HomeViewModel(
             .collectSafely("gpsLocation", notify = { e -> PaparcarError.Location.Unknown(e.message ?: "") }) { location ->
                 updateState { copy(isLoading = false, userGpsPoint = location) }
                 // A persisted fuel layer that outlived the process gets its stations back as soon
-                // as there is a fix to ask around. [FUEL-STATIONS-MAP-AND-PEEK-001]
-                ensureFuelStationsForLayer()
+                // as there is a centre to ask around — the camera's if it already spoke, this fix
+                // otherwise. [FUEL-LAYER-FOLLOWS-THE-CAMERA-001]
+                viewportCentreOrGps()?.let { (lat, lon) -> maybeFetchFuelViewport(lat, lon) }
                 geocodeUserLocation(location.latitude, location.longitude)
                 if (state.value.cameraAddressAndPlace == null) {
                     geocodeCameraLocation(location.latitude, location.longitude)
@@ -1369,6 +1477,10 @@ class HomeViewModel(
 
         // Timing
         const val CAMERA_SETTLED_MS = 280L
+
+        /** Longer than [CAMERA_SETTLED_MS]: a viewport ask costs a network round-trip, so the
+         *  camera has to REST, not merely pause between flicks. [FUEL-LAYER-FOLLOWS-THE-CAMERA-001] */
+        const val FUEL_VIEWPORT_SETTLE_MS = 600L
         // How long a widget release-ask waits for the sessions to land on cold start before
         // concluding the garage is genuinely empty. [WIDGET-ACTIONS-002]
         const val RELEASE_ASK_SESSIONS_WAIT_MS = 5_000L

@@ -39,3 +39,21 @@ data class HomeFuelSlice(
     /** True when at least one station could be priced — decides which sentence the section says. */
     val hasPrices: Boolean get() = stations.any { it.price != null }
 }
+
+/**
+ * The map layer's OWN store: what the camera is looking at, not where the user stands.
+ * [FUEL-LAYER-FOLLOWS-THE-CAMERA-001]
+ *
+ * Separate from [HomeFuelSlice] on purpose — they answer different questions ("what is HERE where
+ * I look" vs "where do I refuel") and folding them into one store is exactly what made the layer
+ * paint Madrid's capsules over Paris. No `failed` here: the layer has no sentence to say — a
+ * failed viewport keeps the previous stations, logs, and the anchor still advances so a broken
+ * area is not hammered on every settle.
+ */
+data class HomeFuelLayerSlice(
+    /** Centre of the last ask (attempted, not just succeeded), or null before the first one. */
+    val anchorLat: Double? = null,
+    val anchorLon: Double? = null,
+    val stations: List<NearbyFuelStation> = emptyList(),
+    val isLoading: Boolean = false,
+)

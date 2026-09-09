@@ -25,6 +25,7 @@ import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapS
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetStepper
 import com.rndeveloper.paparcar.presentation.home.model.pumpPriceLabel
 import com.rndeveloper.paparcar.presentation.util.distanceMeters
+import com.rndeveloper.paparcar.presentation.util.formatDistance
 import com.rndeveloper.paparcar.presentation.util.fuelTypeLabel
 import com.rndeveloper.paparcar.ui.components.PapFooterButton
 import com.rndeveloper.paparcar.ui.components.PapFooterButtonStyle
@@ -45,6 +46,9 @@ import paparcar.composeapp.generated.resources.location_fallback_station
 // ═════════════════════════════════════════════════════════════════════════════
 
 private const val NOT_SOLD_ALPHA = 0.6f
+
+/** Past this, no drive-time estimate: an urban heuristic stretched over 100 km is a made-up number. */
+private const val FAR_FOR_DRIVE_TIME_M = 100_000f
 
 /**
  * The whole station, not one price: the list row quotes only the active car's fuel, so this is
@@ -98,11 +102,22 @@ internal fun FuelStationPeek(
             onNext = step.nextId?.let { id -> { onAction(HomeSheetAction.SelectFuelStation(id)) } },
         ),
         meta = {
-            DistanceRow(
-                distanceM = distM,
-                mode = travelMode,
-                accentColor = MaterialTheme.colorScheme.primary,
-            )
+            // Beyond a real trip's distance the drive-time heuristic is an invented figure — the
+            // distance alone already says "you are looking far away".
+            // [FUEL-LAYER-FOLLOWS-THE-CAMERA-001]
+            if (distM != null && distM > FAR_FOR_DRIVE_TIME_M) {
+                PeekMetaRow(
+                    icon = Icons.Rounded.Navigation,
+                    text = formatDistance(distM),
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            } else {
+                DistanceRow(
+                    distanceM = distM,
+                    mode = travelMode,
+                    accentColor = MaterialTheme.colorScheme.primary,
+                )
+            }
             station.schedule?.let { schedule ->
                 // As the source words it — "24H", "L-D: 07:00-22:00"… never parsed, never judged.
                 PeekMetaRow(

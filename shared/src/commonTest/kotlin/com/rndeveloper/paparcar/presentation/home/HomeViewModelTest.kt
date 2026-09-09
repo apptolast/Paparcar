@@ -2070,7 +2070,7 @@ class HomeViewModelTest {
         assertTrue(vm.state.value.showFuelStationsLayer)
         assertTrue(prefs.showFuelStationsLayer, "the choice must survive the process")
         assertEquals(1, fuelSource.askCount)
-        assertEquals(1, vm.state.value.fuel.stations.size)
+        assertEquals(1, vm.state.value.fuelLayer.stations.size)
     }
 
     @Test
@@ -2087,7 +2087,7 @@ class HomeViewModelTest {
         advanceUntilIdle()
 
         assertEquals(1, fuelSource.askCount)
-        assertEquals(1, vm.state.value.fuel.stations.size)
+        assertEquals(1, vm.state.value.fuelLayer.stations.size)
         assertTrue(!vm.state.value.fuel.missingFuelType)
     }
 
@@ -2136,13 +2136,149 @@ class HomeViewModelTest {
         assertEquals(null, vm.state.value.selection, "no peek may keep talking about an invisible pin")
     }
 
+    // ── La capa sigue a la cámara [FUEL-LAYER-FOLLOWS-THE-CAMERA-001] ────────
+
+    @Test
+    fun `should_askAroundTheSettledCamera_when_itMovedPastHalfTheRadius`() = runTest(testDispatcher) {
+        fuelSource.result = FuelStationsResult(listOf(spyStation()))
+        saveActiveCar(fuelType = com.rndeveloper.paparcar.domain.model.FuelType.GASOLINE)
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        advanceUntilIdle()
+        vm.handleIntent(HomeIntent.ToggleFuelStationsLayer)
+        advanceUntilIdle()
+        assertEquals(1, fuelSource.askCount)
+
+        // The camera settles on Alcalá (~30 km — "I am driving there"): a different question,
+        // asked exactly once, THERE.
+        vm.handleIntent(HomeIntent.CameraPositionChanged(lat = 40.4820, lon = -3.3635))
+        advanceUntilIdle()
+
+        assertEquals(2, fuelSource.askCount)
+        assertEquals(40.4820, fuelSource.lastQuery?.latitude)
+        assertEquals(-3.3635, fuelSource.lastQuery?.longitude)
+    }
+
+    @Test
+    fun `should_stayQuiet_when_theCameraBarelyMoved_orTheLayerIsOff`() = runTest(testDispatcher) {
+        fuelSource.result = FuelStationsResult(listOf(spyStation()))
+        saveActiveCar(fuelType = com.rndeveloper.paparcar.domain.model.FuelType.GASOLINE)
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        advanceUntilIdle()
+
+        // Layer OFF: panning asks nobody.
+        vm.handleIntent(HomeIntent.CameraPositionChanged(lat = 40.4820, lon = -3.3635))
+        advanceUntilIdle()
+        assertEquals(0, fuelSource.askCount)
+
+        vm.handleIntent(HomeIntent.ToggleFuelStationsLayer)
+        advanceUntilIdle()
+        assertEquals(1, fuelSource.askCount)
+
+        // A nervous ~1 km pan is not a new question.
+        vm.handleIntent(
+            HomeIntent.CameraPositionChanged(
+                lat = fuelSource.lastQuery!!.latitude + 0.01,
+                lon = fuelSource.lastQuery!!.longitude,
+            ),
+        )
+        advanceUntilIdle()
+        assertEquals(1, fuelSource.askCount)
+    }
+
+    @Test
+    fun `should_pruneAnOrphanedStationSelection_when_theViewportMovesOn`() = runTest(testDispatcher) {
+        fuelSource.result = FuelStationsResult(listOf(spyStation("st1")))
+        saveActiveCar(fuelType = com.rndeveloper.paparcar.domain.model.FuelType.GASOLINE)
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        advanceUntilIdle()
+        vm.handleIntent(HomeIntent.ToggleFuelStationsLayer)
+        advanceUntilIdle()
+        vm.handleIntent(HomeIntent.SelectItem(HomeSelection.FuelStation("st1")))
+        advanceUntilIdle()
+        assertTrue(vm.state.value.selectedFuelStation != null)
+
+        // The next town has other stations; st1 survives in NEITHER store → the selection goes too.
+        fuelSource.result = FuelStationsResult(listOf(spyStation("st2")))
+        vm.handleIntent(HomeIntent.CameraPositionChanged(lat = 40.4820, lon = -3.3635))
+        advanceUntilIdle()
+
+        assertEquals(null, vm.state.value.selection)
+    }
+
+    @Test
+    fun `should_emptyTheLayer_when_theCameraLeavesTheUsersRegion`() = runTest(testDispatcher) {
+        // Beyond the follow limit the layer shows NOTHING — never your own city's stations over a
+        // distant one. Coming back must ask again, so the anchor is dropped with them.
+        fuelSource.result = FuelStationsResult(listOf(spyStation()))
+        saveActiveCar(fuelType = com.rndeveloper.paparcar.domain.model.FuelType.GASOLINE)
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        advanceUntilIdle()
+        vm.handleIntent(HomeIntent.ToggleFuelStationsLayer)
+        advanceUntilIdle()
+        vm.handleIntent(HomeIntent.SelectItem(HomeSelection.FuelStation("st1")))
+        advanceUntilIdle()
+        assertEquals(1, vm.state.value.fuelLayer.stations.size)
+
+        // Paris, from Madrid: far past the limit.
+        vm.handleIntent(HomeIntent.CameraPositionChanged(48.8566, 2.3522))
+        advanceUntilIdle()
+
+        assertTrue(vm.state.value.fuelLayer.stations.isEmpty())
+        assertEquals(null, vm.state.value.selection, "no peek may survive its pin")
+        assertEquals(1, fuelSource.askCount, "nothing was asked out there")
+
+        // Back home: the emptied layer asks again instead of restoring a store it threw away.
+        vm.handleIntent(HomeIntent.CameraPositionChanged(location.latitude, location.longitude))
+        advanceUntilIdle()
+        assertEquals(2, fuelSource.askCount)
+        assertEquals(1, vm.state.value.fuelLayer.stations.size)
+    }
+
+    @Test
+    fun `should_askAgainInTheSamePlace_when_theFirstAskFailed`() = runTest(testDispatcher) {
+        // ⛔ A transient Overpass 504 must not leave the area permanently blank. Measured on device:
+        // with the anchor advancing on the ATTEMPT, Paris stayed empty and no pan short of
+        // kilometres would retry. Asks only fire on camera events, so nothing is being hammered.
+        saveActiveCar(fuelType = com.rndeveloper.paparcar.domain.model.FuelType.GASOLINE)
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        advanceUntilIdle()
+        fuelSource.failNext = true
+        vm.handleIntent(HomeIntent.ToggleFuelStationsLayer)
+        advanceUntilIdle()
+        assertEquals(1, fuelSource.askCount)
+        assertTrue(vm.state.value.fuelLayer.stations.isEmpty())
+
+        // A nudge of the camera — far too small to count as a new area — retries the failed one.
+        fuelSource.result = FuelStationsResult(listOf(spyStation()))
+        vm.handleIntent(
+            HomeIntent.CameraPositionChanged(location.latitude + 0.001, location.longitude),
+        )
+        advanceUntilIdle()
+
+        assertEquals(2, fuelSource.askCount)
+        assertEquals(1, vm.state.value.fuelLayer.stations.size)
+    }
+
     /** Counts the questions actually asked — what separates an honest empty from a fabricated one. */
     private class SpyFuelStationsSource : FuelStationsSource {
         var askCount = 0
         var result = FuelStationsResult(emptyList())
+        var lastQuery: FuelStationsQuery? = null
+        /** One-shot failure — the transient-outage case. */
+        var failNext = false
         override fun covers(countryCode: String) = true
         override suspend fun stationsNear(query: FuelStationsQuery): Result<FuelStationsResult> {
             askCount++
+            lastQuery = query
+            if (failNext) {
+                failNext = false
+                return Result.failure(IllegalStateException("Overpass answered 504"))
+            }
             return Result.success(result)
         }
     }

@@ -46,10 +46,10 @@ import kotlinx.coroutines.SupervisorJob
 import org.koin.dsl.module
 import com.rndeveloper.paparcar.data.fuel.CachingFuelStationsSource
 import com.rndeveloper.paparcar.data.fuel.FuelStationsRegistry
+import com.rndeveloper.paparcar.data.fuel.fuelHttpClient
 import com.rndeveloper.paparcar.data.fuel.MineturStationsSource
 import com.rndeveloper.paparcar.data.fuel.OsmFuelStationsSource
 import com.rndeveloper.paparcar.domain.fuel.FuelStationsSource
-import io.ktor.client.HttpClient
 
 val dataModule = module {
 
@@ -153,7 +153,12 @@ val dataModule = module {
     // y cuándo se cae al suelo. La caché envuelve al registro, no al revés: así vale para todos los
     // países y nunca guarda un fallo.
     single<FuelStationsSource> {
-        val http = HttpClient()
+        // ⛔ NO `HttpClient()` a pelo: Overpass responde 406 al User-Agent por defecto de OkHttp
+        // (`okhttp/x.y.z` cae en su filtro de bots) — medido bisecando cabeceras el 09-09 contra el
+        // endpoint real, y era el fallo de red inexplicado de FUEL-STATIONS-LIST-001. España nunca
+        // lo notó porque el Ministerio contesta primero y no filtra.
+        // [FUEL-LAYER-FOLLOWS-THE-CAMERA-001]
+        val http = fuelHttpClient()
         CachingFuelStationsSource(
             FuelStationsRegistry(
                 national = listOf(MineturStationsSource(http)),

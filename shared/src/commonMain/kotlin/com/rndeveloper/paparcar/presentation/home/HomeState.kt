@@ -33,6 +33,7 @@ import com.rndeveloper.paparcar.domain.model.monitoringStatus
 import com.rndeveloper.paparcar.domain.model.parkedSessionPreference
 import com.rndeveloper.paparcar.domain.model.preferredParkingSession
 import com.rndeveloper.paparcar.domain.model.sortRank
+import com.rndeveloper.paparcar.presentation.home.model.HomeFuelLayerSlice
 import com.rndeveloper.paparcar.presentation.home.model.HomeFuelSlice
 
 /**
@@ -313,6 +314,10 @@ data class HomeState(
      */
     val fuel: HomeFuelSlice = HomeFuelSlice(),
 
+    /** What the CAMERA is looking at — the map layer's own store, refilled as the camera settles.
+     *  [FUEL-LAYER-FOLLOWS-THE-CAMERA-001] */
+    val fuelLayer: HomeFuelLayerSlice = HomeFuelLayerSlice(),
+
     /** The fuel-stations map layer, mirroring its [AppPreferences] switch. OFF by default.
      *  [FUEL-STATIONS-MAP-AND-PEEK-001] */
     val showFuelStationsLayer: Boolean = false,
@@ -359,10 +364,14 @@ data class HomeState(
             ?.let { sel -> nearbySpots.firstOrNull { it.id == sel.id } }
 
     /** The selected fuel station, or null when the selection is another kind / stale.
-     *  Resolves inside its OWN arm, like the other two. [FUEL-STATIONS-MAP-AND-PEEK-001] */
+     *  Resolves inside its OWN arm, like the other two — against BOTH stores, viewport first
+     *  (a capsule tapped in Paris lives only in the layer's store).
+     *  [FUEL-STATIONS-MAP-AND-PEEK-001] [FUEL-LAYER-FOLLOWS-THE-CAMERA-001] */
     val selectedFuelStation: NearbyFuelStation?
-        get() = (selection as? HomeSelection.FuelStation)
-            ?.let { sel -> fuel.stations.firstOrNull { it.station.id == sel.id } }
+        get() = (selection as? HomeSelection.FuelStation)?.let { sel ->
+            fuelLayer.stations.firstOrNull { it.station.id == sel.id }
+                ?: fuel.stations.firstOrNull { it.station.id == sel.id }
+        }
 
     val isParkingSelected: Boolean
         get() = selectedSession != null

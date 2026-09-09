@@ -407,7 +407,9 @@ internal fun HomeState.toMapSlice() = HomeMapSlice(
         vehicles.firstOrNull { it.id == meta.vehicleId }?.monitoringStatus()
             ?: VehicleMonitoringStatus.Inactive
     },
-    fuelStations = if (showFuelStationsLayer) fuel.stations else emptyList(),
+    // The layer draws what the CAMERA is looking at, not where the user stands.
+    // [FUEL-LAYER-FOLLOWS-THE-CAMERA-001]
+    fuelStations = if (showFuelStationsLayer) fuelLayer.stations else emptyList(),
     selectedFuelStationId = (selection as? HomeSelection.FuelStation)?.id,
     fuelPricesFor = fuel.fetchedFor,
 )
@@ -436,7 +438,10 @@ fun HomeState.toPeekSlice(): HomePeekSlice {
         selection = selection,
         vehicles = vehicles,
         userGpsPoint = userGpsPoint,
-        fuelStations = fuel.stations,
+        // The UNION, viewport first: a capsule tapped in Paris lives only in the layer's store,
+        // and the stepper walks "what you are looking at". With the layer off the union IS the
+        // section's list. [FUEL-LAYER-FOLLOWS-THE-CAMERA-001]
+        fuelStations = (fuelLayer.stations + fuel.stations).distinctBy { it.station.id },
         fuelReportedAt = fuel.reportedAt,
         votedSpotIds = votedSpotIds,
         drivingMeta = drivingMeta,
