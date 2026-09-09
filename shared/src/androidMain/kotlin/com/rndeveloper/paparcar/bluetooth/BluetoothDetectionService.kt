@@ -1,10 +1,14 @@
 package com.rndeveloper.paparcar.bluetooth
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import androidx.work.WorkManager
 import com.apptolast.baselogin.domain.AuthRepository
+import com.rndeveloper.paparcar.detection.service.ForegroundPromotion
 import com.rndeveloper.paparcar.detection.service.ForegroundServiceController
 import com.rndeveloper.paparcar.detection.worker.ParkingSafetyNetWorker
 import com.rndeveloper.paparcar.domain.model.displayName
@@ -113,11 +117,26 @@ class BluetoothDetectionService : LifecycleService() {
 
         // Must promote before any suspending work — Android 8+ enforces the 5-second
         // window from startForegroundService(). [BUG-FGS-001]
-        fgs.promote(
+        //
+        // [DET-A-LOCATION-FGS-MUST-NOT-KILL-THE-APP-001] This lane used to hard-code
+        // `withLocationPermission = true` — it did not check the permission at all, so on Android 14+
+        // a BT disconnect with location revoked took the app down exactly like the Coordinator's
+        // ACTION_RESUME_SENTRY did. The whole point of this service is a GPS fix; without the
+        // permission there is no detection to run, so stand down and let the user be told.
+        val promotion = fgs.promote(
             notificationId = AppNotificationManager.BT_DETECTION_NOTIFICATION_ID,
             notification = foregroundNotificationProvider.buildDetectionNotification(),
-            withLocationPermission = true,
+            hasLocationPermission = hasLocationPermission(),
         )
+        if (!promotion.isPromoted) {
+            PaparcarLogger.e(DIAG, "  ✗ FGS promote refused (outcome=$promotion) — BT detection stands down")
+            if (promotion == ForegroundPromotion.REFUSED_MISSING_LOCATION_PERMISSION) {
+                runCatching { notificationPort.showPermissionRevoked() }
+                    .onFailure { e -> PaparcarLogger.w(DIAG, "  ⚠ permission-revoked notification failed: ${e.message}") }
+            }
+            fgs.stopForegroundAndSelf()
+            return
+        }
         PaparcarLogger.d(DIAG, "  ✓ startForeground done (notif ${AppNotificationManager.BT_DETECTION_NOTIFICATION_ID})")
 
         PaparcarLogger.d(DIAG, "  → BT_DISCONNECTED device=$deviceAddress vehicle=$vehicleId — launching detector")
@@ -210,6 +229,19 @@ class BluetoothDetectionService : LifecycleService() {
         )
         fgs.stopForegroundAndSelf() // [FIX BT-BUG-100]
     }
+
+    /**
+     * [DET-A-LOCATION-FGS-MUST-NOT-KILL-THE-APP-001] What the SYSTEM checks before allowing a
+     * `location`-typed foreground service: either coarse or fine. Deliberately not the Coordinator's
+     * stricter fine + background gate — that one says whether detection can usefully RUN, this one
+     * says whether the promotion can be granted at all, and conflating them would refuse a promotion
+     * the OS would have allowed.
+     */
+    private fun hasLocationPermission(): Boolean =
+        ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED
 
     override fun onDestroy() {
         PaparcarLogger.d(DIAG, "■ Service onDestroy — cancelling detectionJob")

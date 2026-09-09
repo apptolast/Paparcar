@@ -7730,3 +7730,64 @@ de los otros "nothing published" precisamente para poder contarlo en campo.
 ⛔ Esto es la **mitad 1** del ticket. La mitad 2 —abrir sesión NUEVA en B, en vez de limitarse a
 callar la vieja— sigue abierta y bloqueada por el viaje con el Kamiq: necesita el radio de la zona y
 la fiabilidad con la que nace. Ficha: `docs/backlog/det-a-bt-connect-knows-where-the-car-is-001.md`.
+
+### DET-A-LOCATION-FGS-MUST-NOT-KILL-THE-APP-001 — el fallback "sin tipo" pedía el tipo que evitaba, y la excepción no era la que se capturaba
+
+**Commit:** pending. **Reporte:** *«la app peta al abrirla, en bucle, en un emulador sin ubicación
+concedida; concediendo FINE/COARSE/BACKGROUND por `pm grant` arranca a Home sin un solo FATAL»*
+(09-09-2026). Confirmado además en Crashlytics: issue `8c03bc6614b4031ddf88d6e44d6302dd`, 14 eventos
+en 9 sesiones, `1.1.0 (12)`, con el `blameFrame` en `ForegroundServiceController.kt:43`.
+
+**Causa raíz — dos mitades, y cada una sola habría bastado.**
+
+1. `promote()` creía que pasar `withLocationPermission = false` y caer al
+   `startForeground(id, notification)` de dos argumentos dejaba el servicio sin tipo. **No lo deja:**
+   desde Android 14 esa sobrecarga promociona con **los tipos declarados en el manifest**, y los tres
+   servicios que usan esta clase declaran `android:foregroundServiceType="location"`. El
+   `blameFrame` de producción cae exactamente en esa línea — el `else` — así que no es deducción: el
+   fallback pidió `location` y `ActiveServices.validateForegroundServiceType` lo rechazó.
+2. El `catch` de al lado sólo cubría `IllegalStateException` (el
+   `ForegroundServiceStartNotAllowedException` de `[DET-G-01]`). Un rechazo por tipo es
+   `SecurityException`, que no hereda de él → excepción no capturada en el hilo principal → FATAL.
+
+Y hay una tercera pieza que ninguna comprobación previa puede cubrir: el propio mensaje del OS acaba
+con *«and the app must be in the eligible state/exemptions»*. La elegibilidad es estado de proceso en
+el instante del IPC, no un permiso — ningún `checkSelfPermission` la predice. Uno de los eventos de
+Crashlytics ocurrió con `processState: FOREGROUND`, o sea que ahí bastaba con la falta de permiso;
+pero la cláusula garantiza que capturar es la única red completa.
+
+Que el crash llegara por `ACTION_RESUME_SENTRY` es lo que lo convirtió en bucle en vez de en una
+molestia: el centinela de `DET-RESIDENT-FGS-001` se reanuda en cada arranque de proceso, así que la
+app moría antes de dibujar la pantalla de permisos que lo arreglaba.
+
+**Fix.** El invariante en UN sitio: **`promote()` no lanza — devuelve `ForegroundPromotion`**
+(`PROMOTED` / `REFUSED_MISSING_LOCATION_PERMISSION` / `REFUSED_NOT_FOREGROUND_ELIGIBLE`). Cada
+llamante decide qué hacer con el "no", y los tres estaban en un estado distinto:
+`CoordinatorDetectionService.onStartCommand` capturaba la excepción equivocada;
+`BluetoothDetectionService.handleDisconnected` pasaba `withLocationPermission = true` **hardcodeado**
+y no capturaba nada (mismo crash, en un carril que nadie había mirado); el swap de notificación de
+`enterSentry` ya iba en `runCatching`. Un rechazo por permiso = stand-down limpio: parar el servicio
+(obligatorio — un `startForegroundService()` que no llega a foreground muere con
+`ForegroundServiceDidNotStartInTimeException` a los ~5 s), emitir
+`logTrigger(<acción>, REFUSED_PERMISSIONS, detail = "fgs_promote=…")` y dejar que
+`showPermissionRevoked()` —la misma notificación que `guardPermissions()` usa en el intake— haga la
+pregunta. La decisión NO se toca: sin ubicación no hay nada que detectar.
+
+**Descartado a propósito:** promocionar con un tipo neutro (`shortService`/`dataSync`) para
+"sobrevivir". No hay trabajo que hacer sin GPS, así que sería una notificación permanente con cero
+trabajo detrás — el orphan-FGS que `[DET-B-02]` prohíbe — y `dataSync` además caduca por duración
+desde Android 15, que es justo lo que arregló `DET-SAFETY-NET-FGS-IS-TYPED-DATA-SYNC-001`.
+
+**Exento con razón:** `ParkingSafetyNetWorker.getForegroundInfo()` también promociona con tipo
+`location`, pero lo cubre la librería: `SystemForegroundService.Api31Impl.startForeground` de
+`androidx.work 2.11.2` captura `ForegroundServiceStartNotAllowedException` **y** `SecurityException`.
+⚠️ Lo hace en silencio (`Logger.warning`), así que un safety-net que no logra promocionarse no deja
+rastro NUESTRO — el riesgo que ya apuntaba `DET-SAFETY-NET-FGS-IS-TYPED-DATA-SYNC-001`. No crashea,
+que era el encargo; queda apuntado en la ficha como follow-up.
+
+**Accompanying risk:** un rechazo deja de ser ruidoso. Antes se veía como FATAL en Crashlytics; ahora
+sólo como línea `PARKDIAG` + evento del ledger. Es deliberado: el rechazo se repite en cada arranque
+de proceso mientras el permiso siga denegado (9 sesiones en el issue de arriba) y un non-fatal por
+rechazo sería una tormenta. ⚠️ De los dos rastros, el fiable es la **línea `PARKDIAG`**, que se
+escribe síncrona antes de parar; el evento del ledger sale por `lifecycleScope.launch` y el
+`onDestroy` de la línea siguiente puede cancelarlo, así que **no se puede razonar por su ausencia**.

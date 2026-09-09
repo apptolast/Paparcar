@@ -243,25 +243,39 @@ class CoordinatorDetectionService : LifecycleService() {
 
         // Promote to foreground immediately — Android 8+ enforces a 5 s window for any
         // startForegroundService() call, including those from notification action receivers.
-        // Use FOREGROUND_SERVICE_TYPE_LOCATION only when we actually hold location permission:
-        // on Android 14+ calling startForeground() with type LOCATION without the runtime
-        // permission throws SecurityException. [BUG-FGS-001a]
+        //
+        // [DET-A-LOCATION-FGS-MUST-NOT-KILL-THE-APP-001] The promotion can be REFUSED, and a refusal
+        // is a value, not an exception (see ForegroundServiceController). Two refusals matter here:
+        //  - No location permission. The old code believed passing `withLocationPermission=false`
+        //    dropped the type; the manifest pins it, so the untyped call was refused all the same and
+        //    the SecurityException — which this `catch` never covered — killed the app. Fatal in
+        //    production on ACTION_RESUME_SENTRY: a sentry armed by a previous session woke on every
+        //    process start, so the crash repeated before any Activity could show the permission
+        //    screen that fixes it. Detection without location is impossible anyway: stop, and let the
+        //    existing revoked-permission notification do the asking (fail asymmetrically, never die).
+        //  - [DET-G-01] A non-privileged FGS start on Android 12+. Validated on real devices: Play
+        //    Services does grant the privileged start for geofence PendingIntents, so the
+        //    getBroadcast fallback receiver was removed. If a future OEM regresses this, re-add a
+        //    BroadcastReceiver + getBroadcast path.
         val hasPerms = hasRequiredPermissions()
-        try {
-            fgs.promote(
-                notificationId = AppNotificationManager.DETECTION_NOTIFICATION_ID,
-                notification = foregroundNotificationProvider.buildDetectionNotification(),
-                withLocationPermission = hasPerms,
+        val promotion = fgs.promote(
+            notificationId = AppNotificationManager.DETECTION_NOTIFICATION_ID,
+            notification = foregroundNotificationProvider.buildDetectionNotification(),
+            hasLocationPermission = hasPerms,
+        )
+        if (!promotion.isPromoted) {
+            PaparcarLogger.e(DIAG, "  ✗ FGS promote refused (action=${intent.action}, outcome=$promotion) — standing down")
+            // Same trace and same user-visible remedy the intake's guardPermissions() would have
+            // produced, emitted here because the refusal happens before any command is delivered.
+            logTrigger(
+                trigger = intent.action?.substringAfterLast('.') ?: "UNKNOWN",
+                disposition = TriggerDisposition.REFUSED_PERMISSIONS,
+                detail = "fgs_promote=$promotion",
             )
-        } catch (e: IllegalStateException) {
-            // [DET-G-01] On Android 12+ a non-privileged FGS start throws
-            // ForegroundServiceStartNotAllowedException (an IllegalStateException). This is the ONE
-            // open unknown for the geofence path: if Play Services does not deliver the geofence
-            // PendingIntent with the same FGS privilege it grants AR (BUG-FGS-001), the promote fails
-            // here. Degrade gracefully — log + stop, never crash. Validated on real devices: Play
-            // Services does grant the privileged start, so the getBroadcast fallback receiver was
-            // removed. If a future OEM regresses this, re-add a BroadcastReceiver + getBroadcast path.
-            PaparcarLogger.e(DIAG, "  ✗ FGS promote blocked (action=${intent.action}) — start not foreground-eligible", e)
+            if (promotion == ForegroundPromotion.REFUSED_MISSING_LOCATION_PERMISSION) {
+                runCatching { notificationPort.showPermissionRevoked() }
+                    .onFailure { e -> PaparcarLogger.w(DIAG, "  ⚠ permission-revoked notification failed: ${e.message}") }
+            }
             fgs.stopForegroundAndSelf(startId) // yielding — never behead an older command's in-flight work
             return START_NOT_STICKY
         }
@@ -1518,13 +1532,17 @@ class CoordinatorDetectionService : LifecycleService() {
         // [F3] Swap the FGS notification for the low-profile sentry one (own MIN-importance silent
         // channel, plain-language copy). startForeground with the same id replaces it in place; the
         // next wake's promote (every onStartCommand) swaps the active-detection one back.
-        runCatching {
-            fgs.promote(
-                notificationId = AppNotificationManager.DETECTION_NOTIFICATION_ID,
-                notification = foregroundNotificationProvider.buildSentryNotification(),
-                withLocationPermission = hasRequiredPermissions(),
-            )
-        }.onFailure { e -> PaparcarLogger.w(DIAG, "  ⚠ enterSentry notification swap failed: ${e.message}") }
+        // [DET-A-LOCATION-FGS-MUST-NOT-KILL-THE-APP-001] A refused swap is survivable here and only
+        // here: we are ALREADY foreground, so the worst case is the previous notification staying up.
+        // Nothing to tear down — the epilogue owns this service's lifetime.
+        val swap = fgs.promote(
+            notificationId = AppNotificationManager.DETECTION_NOTIFICATION_ID,
+            notification = foregroundNotificationProvider.buildSentryNotification(),
+            hasLocationPermission = hasRequiredPermissions(),
+        )
+        if (!swap.isPromoted) {
+            PaparcarLogger.w(DIAG, "  ⚠ enterSentry notification swap refused (outcome=$swap) — keeping the active-detection notification")
+        }
         runCatching { significantMotionMonitor.sync(shouldBeArmed = true) }
             .onFailure { e -> PaparcarLogger.w(DIAG, "  ⚠ enterSentry sig-motion arm failed: ${e.message}") }
         runCatching {
