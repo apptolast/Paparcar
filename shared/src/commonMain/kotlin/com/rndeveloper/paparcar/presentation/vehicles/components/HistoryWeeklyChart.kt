@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -31,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
@@ -133,22 +135,39 @@ private fun ActivityCardTitle(total: Int, distanceText: String?) {
             maxLines = 1,
         )
         if (distanceText != null) {
-            // A sentence ("56,0 km in 14 of them") cannot be interpolated, so it changes the way a
-            // sentence can. [STATS-PANEL-001]
-            Crossfade(
-                targetState = distanceText,
-                label = "activity_distance",
-                modifier = Modifier.weight(1f),
-            ) { shown ->
-                Text(
-                    text = shown,
-                    style = PaparcarType.current.caption,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.End,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+            // The row RESERVES the height of its worst case instead of deducing it from what the
+            // text happens to measure today, because three separate things make that measurement
+            // move and every one of them shoved the chart 8dp:
+            //  · the sentence itself — "118,3 km en 18 de ellos" lands right on the width left over
+            //    after "20 aparcamientos", so it wraps while a bare "84,2 km" does not;
+            //  · the count-up — `shownTotal` has intrinsic width, so the gap left for the qualifier
+            //    NARROWS as 5 climbs to 20, flipping the wrap mid-flight and back;
+            //  · the Crossfade — while fading it measures both phrases and keeps the taller.
+            // Two caption lines is the ceiling (maxLines = 2), so reserving two caption lines makes
+            // the row a constant: it can no longer grow, and the short case centres inside the space
+            // rather than sitting a line high. The figure comes from the ROLE's own lineHeight, so
+            // it tracks the role (and the user's font scale) instead of freezing a dp.
+            // [UI-ACTIVITY-HEADER-RESERVES-ITS-HEIGHT-001]
+            val reservedHeight = with(LocalDensity.current) {
+                (PaparcarType.current.caption.lineHeight * QUALIFIER_LINES).toDp()
+            }
+            Box(
+                modifier = Modifier.weight(1f).heightIn(min = reservedHeight),
+                contentAlignment = Alignment.CenterEnd,
+            ) {
+                // A sentence ("56,0 km in 14 of them") cannot be interpolated, so it changes the way
+                // a sentence can. [STATS-PANEL-001]
+                Crossfade(targetState = distanceText, label = "activity_distance") { shown ->
+                    Text(
+                        text = shown,
+                        style = PaparcarType.current.caption,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = QUALIFIER_LINES,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.End,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
         }
     }
@@ -229,3 +248,9 @@ private const val BORDER_ALPHA = 0.5f
 private val SUBTITLE_ALPHA = PapAlpha.subtitle
 /** Fixed breathing room between bars, whatever the bucket count. */
 private const val TITLE_GAP_DP = 7
+/**
+ * Both the ceiling the distance sentence may wrap to AND the height the title row reserves for it —
+ * one number, so the reserved space can never disagree with what the text is allowed to occupy.
+ * [UI-ACTIVITY-HEADER-RESERVES-ITS-HEIGHT-001]
+ */
+private const val QUALIFIER_LINES = 2
