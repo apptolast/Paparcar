@@ -39,6 +39,7 @@ class RoomLocalAddressAndPlaceDataSource(
                 addressRegion = info.address.region,
                 addressCountry = info.address.country,
                 addressCountryCode = info.address.countryCode,
+                addressProvince = info.address.province,
                 placeInfoName = info.placeInfo?.name,
                 placeInfoCategory = info.placeInfo?.category?.name,
                 cachedAt = Clock.System.now().toEpochMilliseconds(),
@@ -59,6 +60,7 @@ class RoomLocalAddressAndPlaceDataSource(
             region = addressRegion,
             country = addressCountry,
             countryCode = addressCountryCode,
+            province = addressProvince,
         )
         val placeInfoName = placeInfoName
         val placeInfoCategory = placeInfoCategory

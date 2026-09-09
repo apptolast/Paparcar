@@ -67,7 +67,8 @@ class AndroidGeocoderDataSourceImpl(private val context: Context) : GeocoderData
             } else {
                 fetchAddressLegacy(geocoder, lat, lon)
             }
-            address?.toAddressInfo() ?: AddressInfo(null, null, null, null)
+            address?.toAddressInfo()
+                ?: AddressInfo(street = null, city = null, region = null, country = null)
         }
 
     private suspend fun fetchAddressApi33(

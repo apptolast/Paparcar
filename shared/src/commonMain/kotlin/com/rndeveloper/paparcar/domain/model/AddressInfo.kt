@@ -12,9 +12,18 @@ data class AddressInfo(
      * feed is queried by province, and feeding it the community left the whole country silently
      * unpriced. [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
      *
-     * ⛔ Deliberately NOT persisted (geocoder cache, parking/spot entities, workData): no persisted
-     * consumer reads it, and there a null is honest — "not captured", never a claim. A reader that
-     * needs it must take it from a live geocode, like the fuel lookup does.
+     * ⛔ **Persisted since v6, and the reversal is the point.** [FUEL-A-PARKING-WITHOUT-A-COUNTRY-HAS-NO-PRICE-001]
+     *
+     * It used to be deliberately left out of the geocoder cache, the parking/spot entities and
+     * workData, on the argument that no persisted consumer read it. That argument was correct and
+     * still cost us: [countryCode] fell out of four write paths for the same reason nobody could
+     * state — each of them enumerated the fields somebody thought mattered, and the enumeration
+     * quietly became the definition. A spend figure then failed to render in every country on
+     * earth, with no error anywhere.
+     *
+     * So the rule is now simpler than any argument about consumers: **an address travels whole.**
+     * There is no field-by-field judgement call left to get wrong, and no exemption list for the
+     * next reader to inherit.
      */
     val province: String? = null,
 ) {

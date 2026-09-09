@@ -9,6 +9,7 @@ data class AddressDto(
     val region: String? = null,
     val country: String? = null,
     val countryCode: String? = null,
+    val province: String? = null,
 )
 
 @Serializable

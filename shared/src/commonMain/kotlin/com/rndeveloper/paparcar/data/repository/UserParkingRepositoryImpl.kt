@@ -195,6 +195,8 @@ class UserParkingRepositoryImpl(
             city = address?.city,
             region = address?.region,
             country = address?.country,
+            countryCode = address?.countryCode,
+            province = address?.province,
             placeInfoName = placeInfo?.name,
             placeInfoCategory = placeInfo?.category?.name,
             now = Clock.System.now().toEpochMilliseconds(),

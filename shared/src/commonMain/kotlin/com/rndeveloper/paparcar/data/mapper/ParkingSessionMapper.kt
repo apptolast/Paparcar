@@ -55,14 +55,27 @@ fun UserParkingEntity.toDomain(): UserParking = UserParking(
     retractedAtMs = retractedAtMs,
 )
 
+/**
+ * The stored address, or null when the row carries none.
+ *
+ * ⛔ `addressCountryCode` counts. [FUEL-A-PARKING-WITHOUT-A-COUNTRY-HAS-NO-PRICE-001]
+ *
+ * It was left out of this condition, which meant a row holding ONLY a country code read back as "no
+ * address at all" — the field discarded by the very function whose job is to return it. Same shape
+ * as the four write paths this ticket swept: somebody enumerated a subset of the address and the
+ * subset became the definition.
+ */
 private fun UserParkingEntity.addressOrNull(): AddressInfo? =
-    if (addressStreet != null || addressCity != null || addressRegion != null || addressCountry != null) {
+    if (addressStreet != null || addressCity != null || addressRegion != null ||
+        addressCountry != null || addressCountryCode != null
+    ) {
         AddressInfo(
             street = addressStreet,
             city = addressCity,
             region = addressRegion,
             country = addressCountry,
             countryCode = addressCountryCode,
+            province = addressProvince,
         )
     } else null
 
@@ -95,6 +108,7 @@ fun UserParking.toEntity(updatedAt: Long = 0, pendingSync: Boolean = false): Use
     addressRegion = address?.region,
     addressCountry = address?.country,
     addressCountryCode = address?.countryCode,
+    addressProvince = address?.province,
     placeInfoName = placeInfo?.name,
     placeInfoCategory = placeInfo?.category?.name,
     detectionReliability = detectionReliability,
@@ -199,6 +213,7 @@ fun ParkingHistoryDto.toEntity() = UserParkingEntity(
     addressRegion = address?.region,
     addressCountry = address?.country,
     addressCountryCode = address?.countryCode,
+    addressProvince = address?.province,
     placeInfoName = placeInfo?.name,
     placeInfoCategory = placeInfo?.category,
     detectionReliability = detectionReliability,
@@ -238,6 +253,7 @@ fun AddressInfo.toAddressDto() = AddressDto(
     region = region,
     country = country,
     countryCode = countryCode,
+    province = province,
 )
 
 fun PlaceInfo.toPlaceInfoDto() = PlaceInfoDto(

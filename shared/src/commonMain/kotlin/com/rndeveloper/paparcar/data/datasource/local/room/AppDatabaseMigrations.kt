@@ -66,4 +66,22 @@ private val MIGRATION_4_5 = object : Migration(4, 5) {
     }
 }
 
-val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+/**
+ * v5 → v6: the address carries its PROVINCE, in all three places an address is stored.
+ * [FUEL-A-PARKING-WITHOUT-A-COUNTRY-HAS-NO-PRICE-001]
+ *
+ * It was the last field the geocoder produced and nothing kept — deliberately, while no persisted
+ * consumer read it. That reasoning ends here: an address now travels whole, so the "which fields
+ * count" question that produced the country bug cannot be asked again field by field. Nullable,
+ * because a pre-v6 row genuinely never captured one — and null keeps meaning "not captured", never
+ * a claim.
+ */
+private val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL("ALTER TABLE `parking_sessions` ADD COLUMN `addressProvince` TEXT")
+        connection.execSQL("ALTER TABLE `cached_spots` ADD COLUMN `addressProvince` TEXT")
+        connection.execSQL("ALTER TABLE `geocoder_cache` ADD COLUMN `addressProvince` TEXT")
+    }
+}
+
+val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)

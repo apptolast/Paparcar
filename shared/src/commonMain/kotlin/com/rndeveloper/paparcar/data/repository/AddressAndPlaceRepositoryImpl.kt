@@ -67,7 +67,11 @@ class AddressAndPlaceRepositoryImpl(
         // allowed to name a place, and it measures.
         val nearest = if (fetchedAddress == null) local.getNearest(lat, lon) else null
         val approximate = nearest != null
-        val address = fetchedAddress ?: nearest?.address ?: AddressInfo(null, null, null, null)
+        // Argumentos con NOMBRE: `AddressInfo(null, null, null, null)` eran cuatro posicionales para una
+        // clase de seis campos, que es exactamente la forma del bug que este ticket persigue — hoy
+        // inofensiva porque todo es null, mañana no. [FUEL-A-PARKING-WITHOUT-A-COUNTRY-HAS-NO-PRICE-001]
+        val address = fetchedAddress ?: nearest?.address
+            ?: AddressInfo(street = null, city = null, region = null, country = null)
         emit(AddressAndPlace(address = address, placeInfo = null, approximate = approximate))
 
         // Phase 2: POI (network, best-effort). Seals the entry with poiChecked=true

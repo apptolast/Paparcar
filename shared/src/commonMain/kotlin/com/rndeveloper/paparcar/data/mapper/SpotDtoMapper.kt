@@ -26,7 +26,7 @@ fun SpotDto.toDomain(): Spot = Spot(
     ),
     reportedBy = reportedBy,
     address = address?.let {
-        AddressInfo(street = it.street, city = it.city, region = it.region, country = it.country, countryCode = it.countryCode)
+        AddressInfo(street = it.street, city = it.city, region = it.region, country = it.country, countryCode = it.countryCode, province = it.province)
     },
     placeInfo = placeInfo?.let { dto ->
         dto.category.toEnumOrNull<PlaceCategory>()?.let { PlaceInfo(dto.name, it) }
@@ -54,7 +54,14 @@ fun Spot.toDto(): SpotDto = SpotDto(
     reportedBy = reportedBy,
     speed = location.speed,
     address = address?.let {
-        AddressDto(street = it.street, city = it.city, region = it.region, country = it.country, countryCode = it.countryCode)
+        AddressDto(
+            street = it.street,
+            city = it.city,
+            region = it.region,
+            country = it.country,
+            countryCode = it.countryCode,
+            province = it.province,
+        )
     },
     countryCode = address?.countryCode,
     citySlug = address?.city?.toCitySlug(),
@@ -87,6 +94,7 @@ fun SpotDto.toEntity(): SpotEntity = SpotEntity(
     addressRegion = address?.region,
     addressCountry = address?.country,
     addressCountryCode = address?.countryCode,
+    addressProvince = address?.province,
     geohash = geohash,
     placeInfoName = placeInfo?.name,
     placeInfoCategory = placeInfo?.category,
@@ -112,8 +120,13 @@ fun SpotEntity.toDomain(): Spot = Spot(
         speed = speed,
     ),
     reportedBy = reportedBy,
-    address = if (addressStreet != null || addressCity != null || addressRegion != null || addressCountry != null)
-        AddressInfo(street = addressStreet, city = addressCity, region = addressRegion, country = addressCountry, countryCode = addressCountryCode)
+    // ⛔ El país y la provincia CUENTAN. [FUEL-A-PARKING-WITHOUT-A-COUNTRY-HAS-NO-PRICE-001]
+    // Tercera copia de la misma condición incompleta (las otras dos: `addressOrNull` y
+    // `ReportSpotWorker.toAddressInfo`). Una fila con solo esos campos se leía como "sin dirección".
+    address = if (addressStreet != null || addressCity != null || addressRegion != null ||
+        addressCountry != null || addressCountryCode != null || addressProvince != null
+    )
+        AddressInfo(street = addressStreet, city = addressCity, region = addressRegion, country = addressCountry, countryCode = addressCountryCode, province = addressProvince)
     else null,
     placeInfo = placeInfoName?.let { name ->
         placeInfoCategory.toEnumOrNull<PlaceCategory>()?.let { PlaceInfo(name, it) }

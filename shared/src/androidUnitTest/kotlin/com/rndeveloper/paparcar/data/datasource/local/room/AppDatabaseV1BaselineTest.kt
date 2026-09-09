@@ -100,6 +100,23 @@ class AppDatabaseV1BaselineTest {
             ),
         )
         val fuelRow = db.vehicleDao().getById("v-fuel-witness", "user-bench")
+        // …and MIGRATION_5_6's witness [FUEL-A-PARKING-WITHOUT-A-COUNTRY-HAS-NO-PRICE-001]: the
+        // address province must round-trip through the migrated file. Same argument as the fuel
+        // block above — running the chain without throwing only proves nothing threw, and the whole
+        // point of this ticket is that a column can exist while nothing ever writes it.
+        db.parkingSessionDao().updateAddressAndPlace(
+            id = "pin-1",
+            street = "Calle Mayor 1",
+            city = "Madrid",
+            region = "Comunidad de Madrid",
+            country = "España",
+            countryCode = "es",
+            province = "Madrid",
+            placeInfoName = null,
+            placeInfoCategory = null,
+            now = 1L,
+        )
+        val migratedAddress = db.parkingSessionDao().getByUser("user-bench").single()
         db.close()
 
         assertEquals(1, rows.size, "an untouched schema must not cost the user their parked session")
@@ -109,6 +126,12 @@ class AppDatabaseV1BaselineTest {
         assertFalse(zones.single().notifyOnSpot, "existing zones default to alerts OFF")
         assertEquals("DIESEL", fuelRow?.fuelType, "the 2→3 migration must add the fuel columns")
         assertEquals(5.1f, fuelRow?.consumptionPer100)
+        assertEquals(
+            "Madrid",
+            migratedAddress.addressProvince,
+            "the 5→6 migration must add the province column, and the write path must fill it",
+        )
+        assertEquals("es", migratedAddress.addressCountryCode, "the country must survive the chain")
         assertEquals(PAPARCAR_DB_VERSION, readUserVersion(name))
     }
 

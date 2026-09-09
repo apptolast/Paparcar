@@ -81,6 +81,18 @@ class UpdateParkingSessionAddressAndPlaceWorker(
         private const val KEY_ADDRESS_CITY = "addr_city"
         private const val KEY_ADDRESS_REGION = "addr_region"
         private const val KEY_ADDRESS_COUNTRY = "addr_country"
+
+        /**
+         * ⛔ El país viaja en su propia key porque `workData` es una lista de campos escrita a mano,
+         * y una lista escrita a mano es un contrato que no compila.
+         * [FUEL-A-PARKING-WITHOUT-A-COUNTRY-HAS-NO-PRICE-001]
+         *
+         * Faltaba aquí — y solo aquí, porque `ReportSpotWorker` sí la lleva — así que el camino de
+         * la PLAZA conservaba el país y el del APARCAMIENTO lo tiraba. Sin país no hay precio, y sin
+         * precio el gasto estimado de cada viaje no se dibujaba en ningún país del mundo.
+         */
+        private const val KEY_ADDRESS_COUNTRY_CODE = "addr_country_code"
+        private const val KEY_ADDRESS_PROVINCE = "addr_province"
         private const val KEY_PLACE_NAME = "place_name"
         private const val KEY_PLACE_CATEGORY = "place_category"
 
@@ -97,6 +109,8 @@ class UpdateParkingSessionAddressAndPlaceWorker(
                         KEY_ADDRESS_CITY to address?.city,
                         KEY_ADDRESS_REGION to address?.region,
                         KEY_ADDRESS_COUNTRY to address?.country,
+                        KEY_ADDRESS_COUNTRY_CODE to address?.countryCode,
+                        KEY_ADDRESS_PROVINCE to address?.province,
                         KEY_PLACE_NAME to placeInfo?.name,
                         KEY_PLACE_CATEGORY to placeInfo?.category?.name,
                     )
@@ -115,8 +129,25 @@ class UpdateParkingSessionAddressAndPlaceWorker(
             val city = getString(KEY_ADDRESS_CITY)
             val region = getString(KEY_ADDRESS_REGION)
             val country = getString(KEY_ADDRESS_COUNTRY)
-            return if (street == null && city == null && region == null && country == null) null
-            else AddressDto(street = street, city = city, region = region, country = country)
+            val countryCode = getString(KEY_ADDRESS_COUNTRY_CODE)
+            val province = getString(KEY_ADDRESS_PROVINCE)
+            // El país NO entra en la condición de "no hay dirección": una fila con solo código de
+            // país es una dirección igualmente, y dejarlo fuera reproduciría en pequeño el mismo
+            // bug — decidir por omisión qué campos cuentan.
+            return if (street == null && city == null && region == null &&
+                country == null && countryCode == null && province == null
+            ) {
+                null
+            } else {
+                AddressDto(
+                    street = street,
+                    city = city,
+                    region = region,
+                    country = country,
+                    countryCode = countryCode,
+                    province = province,
+                )
+            }
         }
 
         private fun androidx.work.Data.toPlaceInfoDto(): PlaceInfoDto? {

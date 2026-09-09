@@ -16,6 +16,7 @@ data class GeocoderCacheEntity(
     val addressRegion: String?,
     val addressCountry: String?,
     val addressCountryCode: String?,
+    val addressProvince: String?,
     val placeInfoName: String?,
     val placeInfoCategory: String?,
     val cachedAt: Long,

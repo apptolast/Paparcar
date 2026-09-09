@@ -18,6 +18,7 @@ class RoomLocalAddressAndPlaceDataSourceTest {
             addressRegion = null,
             addressCountry = "ES",
             addressCountryCode = "ES",
+            addressProvince = "Madrid",
             placeInfoName = null,
             placeInfoCategory = null,
             cachedAt = 0L,

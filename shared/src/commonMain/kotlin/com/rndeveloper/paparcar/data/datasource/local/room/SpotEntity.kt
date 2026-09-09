@@ -23,6 +23,7 @@ data class SpotEntity(
     val addressRegion: String? = null,
     val addressCountry: String? = null,
     val addressCountryCode: String? = null,
+    val addressProvince: String? = null,
     val geohash: String? = null,
     val placeInfoName: String? = null,
     val placeInfoCategory: String? = null,
