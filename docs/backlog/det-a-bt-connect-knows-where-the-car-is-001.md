@@ -1,9 +1,10 @@
 # DET-A-BT-CONNECT-KNOWS-WHERE-THE-CAR-IS-001 · Cada CONNECT dice dónde está el coche, y lo estamos tirando
 
-**Estado:** 🟡 Abierto · **sin empezar en producción** — bloqueado a propósito por un **viaje con el
-Kamiq** (decisión del user, 08-09-2026): las tres decisiones abiertas de abajo se contestan con
-campo, no de cabeza. Lo que NO necesitaba campo ya está medido en test (ver §DEMOSTRADO): rama
-`experiment/DET-A-BT-CONNECT-KNOWS-WHERE-THE-CAR-IS-001-ab-scenario`, sólo tests, cero producción. Mismo bloqueo que
+**Estado:** 🟡 **MITAD 1 EN MASTER, mitad 2 abierta** — el guard (una sesión que el CONNECT desmiente
+no anuncia plaza) está en producción; publicar la **plaza dudosa desde B** sigue bloqueado por un
+**viaje con el Kamiq** (decisión del user, 08-09-2026): las decisiones abiertas de abajo se contestan
+con campo, no de cabeza. Lo que NO necesitaba campo se midió en test antes de tocar nada
+(ver §DEMOSTRADO). Mismo bloqueo que
 [DET-BT-VETO-MUST-NOT-ORPHAN-A-SESSION-001](det-bt-veto-must-not-orphan-a-session-001.md), y el mismo
 viaje los desbloquea a los dos.
 **Origen:** duda del user (08-09-2026), justo después de mergear
