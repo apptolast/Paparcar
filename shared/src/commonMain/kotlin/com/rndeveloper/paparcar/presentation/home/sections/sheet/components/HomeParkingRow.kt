@@ -53,6 +53,7 @@ import com.rndeveloper.paparcar.ui.components.rememberDrivingStatePulse
 import com.rndeveloper.paparcar.ui.theme.vehicleChassisBorder
 import com.rndeveloper.paparcar.ui.theme.vehicleIdentityColor
 import com.rndeveloper.paparcar.ui.theme.watch
+import com.rndeveloper.paparcar.ui.theme.PapBorders
 import com.rndeveloper.paparcar.ui.theme.PapShapes
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.PapColor
@@ -104,7 +105,7 @@ internal fun HomeVehicleChip(
         onClick = onClick,
         // Adaptive width so the name breathes without truncating in the horizontal strip.
         modifier = modifier.widthIn(min = CHIP_MIN_WIDTH_DP.dp, max = CHIP_MAX_WIDTH_DP.dp),
-        shape = PapShapes.cardSmall,
+        shape = PapShapes.card,
         // A trip in motion thickens the frame to the full identity colour — more energy, same hue.
         border = BorderStroke(
             if (isDriving) DRIVING_BORDER_DP.dp else BORDER_DP.dp,
@@ -254,81 +255,80 @@ internal fun HomeVehicleCard(
     Surface(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
-        shape = PapShapes.cardLarge,
+        shape = PapShapes.card,
+        // La identidad la lleva el GLIFO de vigilancia, no el marco. Un borde teñido alrededor de la
+        // card entera era otro verde compitiendo con el CTA, y encima repetia lo que el glifo ya
+        // dice. Conduciendo SI se tine: ahi el marco no marca identidad, marca que esto esta pasando
+        // AHORA. [UI-ONE-SKELETON-ONE-EMPHASIS-ONE-GREEN-001] [UI-COLOR-DOCTRINE-001]
         border = BorderStroke(
             if (isDriving) DRIVING_BORDER_DP.dp else BORDER_DP.dp,
-            if (isDriving) accent else vehicleChassisBorder(watch),
+            if (isDriving) accent else cs.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA),
         ),
         color = cs.surfaceContainerHigh,
     ) {
-        Column {
-            // Shared identity anatomy — same composable as the Vehicles ficha, so both cards keep
-            // identical tile/name/meta rhythm. [HOME-VEH-REFINE-001]
-            VehicleIdentityHeader(
-                vehicle = vehicle,
-                isDriving = isDriving,
-                // Home is glanceable — size lives on the Vehicles ficha, not here. [CARD-META-POLISH-001]
-                showSize = false,
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 15.dp, bottom = 13.dp),
-            )
-
-            PapDivider()
-
-            Row(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp).fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(11.dp),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(CARD_FOOT_ICON_BOX_DP.dp)
-                        .clip(RoundedCornerShape(CARD_FOOT_ICON_CORNER_DP.dp))
-                        .background(accent.copy(alpha = FOOT_ICON_BOX_ALPHA)),
-                    contentAlignment = Alignment.Center,
+        // ⛔ ONE row, not a header + divider + foot row. The card used to stack the identity block
+        // over a second full-width row with its own 44dp glyph box, and with a single vehicle that is
+        // ~230dp of a sheet whose whole point is now that everything is reachable without scrolling
+        // (user, 10-09). What it says is unchanged: the same name, the same status line, the same
+        // tap target — [VehicleIdentityHeader] already had the `statusLine` and `trailing` slots this
+        // needed, so the discreet version is the component used as designed, not a second anatomy.
+        // [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001] [UI-LIST-ITEM-001]
+        VehicleIdentityHeader(
+            vehicle = vehicle,
+            isDriving = isDriving,
+            // Home is glanceable — size lives on the Vehicles ficha, not here. [CARD-META-POLISH-001]
+            showSize = false,
+            modifier = Modifier.padding(start = 14.dp, end = 12.dp, top = 12.dp, bottom = 12.dp),
+            trailing = {
+                Icon(
+                    imageVector = Icons.Rounded.ChevronRight,
+                    contentDescription = null,
+                    tint = cs.onSurfaceVariant,
+                    modifier = Modifier.size(CHEVRON_DP.dp),
+                )
+            },
+            statusLine = {
+                Row(
+                    verticalAlignment = if (session != null) Alignment.Top else Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    // Same priority order as the text beside it: a running trip outranks the parked
-                    // session, so the pin (a place) yields to the route (a journey) while driving.
-                    // [UI-CHIP-ROUTE-GLYPH-001]
-                    Box(contentAlignment = Alignment.Center) {
-                        when {
-                            isDriving -> DrivingRouteGlyph(
-                                color = accent,
-                                glyphSize = CARD_FOOT_ICON_DP.dp,
-                            )
-                            session != null -> Icon(
-                                // Same rule as the chip: an approximate session shows the zone
-                                // glyph, not the pin. [UI-APPROXIMATE-ZONE-IN-HISTORY-001]
-                                imageVector = if (session.isApproximate) Icons.Rounded.Adjust else Icons.Rounded.LocationOn,
-                                contentDescription = null,
-                                tint = accent,
-                                modifier = Modifier.size(CARD_FOOT_ICON_DP.dp),
-                            )
-                            else -> UnmarkedParkingIcon(tint = accent)
-                        }
+                    // The glyph keeps its meaning and its identity colour; what it loses is the
+                    // 44dp tinted box it used to sit in. Same priority as the text beside it: a
+                    // running trip outranks the parked session. [UI-CHIP-ROUTE-GLYPH-001]
+                    when {
+                        isDriving -> DrivingRouteGlyph(
+                            color = accent,
+                            glyphSize = CARD_FOOT_ICON_DP.dp,
+                        )
+                        session != null -> Icon(
+                            // Same rule as the chip: an approximate session shows the zone glyph,
+                            // not the pin. [UI-APPROXIMATE-ZONE-IN-HISTORY-001]
+                            imageVector = if (session.isApproximate) Icons.Rounded.Adjust else Icons.Rounded.LocationOn,
+                            contentDescription = null,
+                            tint = accent,
+                            modifier = Modifier.size(CARD_FOOT_ICON_DP.dp),
+                        )
+                        else -> UnmarkedParkingIcon(tint = accent)
                     }
-                }
-                Column(modifier = Modifier.weight(1f)) {
                     when {
                         // Neutral state words with the driving breath. [UI-COLOR-DOCTRINE-001]
-                        // The card has room for a subline, so the trip fills it with WHERE it is —
-                        // same skeleton as the parked branch below (fact on top, detail under it),
-                        // and the same place the peek is naming one surface above.
-                        // [UI-A-LIVE-TRIP-NAMES-ITS-PLACE-001]
+                        // WHERE the trip is rides on the same line now, after the state, instead of
+                        // costing a second one. [UI-A-LIVE-TRIP-NAMES-ITS-PLACE-001]
                         isDriving -> {
                             Text(
                                 text = stringResource(
                                     if (isCandidate) Res.string.home_vehicle_chip_status_candidate
                                     else Res.string.home_det_monitoring,
                                 ),
-                                style = PaparcarType.current.rowTitle,
+                                style = PaparcarType.current.caption,
                                 color = cs.onSurface.copy(alpha = rememberDrivingStatePulse()),
                                 maxLines = 1,
                             )
-                            // No geocode yet → no subline at all. A card that says "unknown
-                            // address" spends its only spare line saying nothing.
+                            // No geocode yet → no place at all. A line that says "unknown address"
+                            // spends its width saying nothing.
                             placeLineText(drivingPlace)?.let { place ->
                                 Text(
-                                    text = place,
+                                    text = "· $place",
                                     style = PaparcarType.current.caption,
                                     color = cs.onSurfaceVariant,
                                     maxLines = 1,
@@ -337,40 +337,36 @@ internal fun HomeVehicleCard(
                             }
                         }
                         session != null -> {
-                            // The wide card has room, so the address reads as LECTURA (rowTitle) for
-                            // legibility — condensed is reserved for the tight compact chip. [UI-METRICS-POLISH-001]
-                            Text(
-                                text = parkedTitle(session),
-                                style = PaparcarType.current.rowTitle,
-                                color = cs.onSurface,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            Text(
-                                text = parkedMeta(session, userLocation),
-                                // Secondary subline under a LECTURA title — same voice as its title
-                                // so the selected-car block doesn't mix voices. [PEEK-META-INTER-001]
-                                style = PaparcarType.current.caption,
-                                color = cs.onSurfaceVariant,
-                                maxLines = 1,
-                            )
+                            // Dos lineas, y la de arriba es la CALLE entera. Con las dos apretadas en
+                            // una sola, la meta (hora + distancia) se quedaba con el ancho y la
+                            // direccion se cortaba en "Route d..." — justo el dato por el que uno mira
+                            // la card. Una linea mas es mas barata que un nombre partido.
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = parkedTitle(session),
+                                    style = PaparcarType.current.caption,
+                                    color = cs.onSurface,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                Text(
+                                    text = parkedMeta(session, userLocation),
+                                    style = PaparcarType.current.caption,
+                                    color = cs.onSurfaceVariant,
+                                    maxLines = 1,
+                                )
+                            }
                         }
                         else -> Text(
                             text = stringResource(Res.string.home_vehicle_chip_mark_parking),
-                            style = PaparcarType.current.rowTitle,
+                            style = PaparcarType.current.caption,
                             color = PapColor.actionText,
                             maxLines = 1,
                         )
                     }
                 }
-                Icon(
-                    imageVector = Icons.Rounded.ChevronRight,
-                    contentDescription = null,
-                    tint = cs.onSurfaceVariant,
-                    modifier = Modifier.size(CHEVRON_DP.dp),
-                )
-            }
-        }
+            },
+        )
     }
 }
 

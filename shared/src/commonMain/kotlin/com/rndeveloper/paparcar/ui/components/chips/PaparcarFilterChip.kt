@@ -96,10 +96,13 @@ fun PaparcarFilterChip(
                 Icon(
                     imageVector = leadingIcon,
                     contentDescription = null,
-                    // Leading icons always render in primary (green) so chips read
-                    // as branded accents rather than monochrome labels. Disabled
-                    // chips fade with the rest of the foreground.
-                    tint = if (!enabled) contentColor else PapColor.brandData,
+                    // ⛔ The glyph wears the CHIP's own content colour — green only when the chip is
+                    // selected, because then the green means "this one is on". It used to be green
+                    // always, "so chips read as branded accents": with a row of chips that painted
+                    // five greens whose only message was that they were chips, and left the selected
+                    // one competing with its own unselected siblings.
+                    // [UI-ONE-SKELETON-ONE-EMPHASIS-ONE-GREEN-001]
+                    tint = contentColor,
                     modifier = Modifier.size(CHIP_ICON_SIZE),
                 )
             }

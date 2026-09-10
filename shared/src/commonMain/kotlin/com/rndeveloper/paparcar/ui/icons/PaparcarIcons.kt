@@ -237,6 +237,153 @@ object PaparcarIcons {
         ).build()
     }
 
+    // ── Las tres marcas de "cerca de ti" ──────────────────────────────────────
+    // [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
+    //
+    // Una por sujeto (plaza de la comunidad · parking público · gasolinera), y las tres en el MISMO
+    // lenguaje que las marcas que ya tiene la app —[SpotPin], [SpotParkingP], los pictogramas de
+    // coche—: silueta RELLENA con sus huecos por `EvenOdd`, viewport 24×24, un solo path para que
+    // el `Icon` anfitrión las tiña. ⛔ No son Material: estos tres no son plumbing de UI, son los
+    // productos que la app enseña, y con glifos genéricos las pestañas se leían como un filtro más.
+    //
+    // ⛔ Y no se dibujan las tres cosas "en general": se dibuja lo que cada una es en Paparcar —
+    // la plaza es el HUECO entre dos marcas viales (lo que se libera al irte), el parking público es
+    // una instalación con su P (se entra con el coche), y la gasolinera es su surtidor.
+
+    /**
+     * Plaza libre de la comunidad: la boca del hueco entre dos marcas viales, vista desde arriba.
+     * Hermana rellena de [ParkingBay], que es la misma idea en trazo y ya vive en las filas de plaza.
+     */
+    val SpotBayMark: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "SpotBayMark",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        ).apply {
+            // La plaza es una **U**: dos marcas viales y el fondo, abiertas por donde entra el coche.
+            // ⛔ Cerrarla por arriba fue el primer intento y en device (22 dp) salía un bloque macizo:
+            // con paredes de 5 unidades el hueco desaparecía y la marca no decía nada. Lo que hace
+            // legible una plaza a este tamaño es exactamente lo que la hace ser una plaza — que está
+            // ABIERTA. Medido en el Pixel 8 Pro, 10-09.
+            path(fill = SolidColor(Color.Black), pathFillType = PathFillType.EvenOdd) {
+                // Marca vial izquierda.
+                moveTo(4.5f, 3.5f)
+                lineTo(7.5f, 3.5f)
+                lineTo(7.5f, 17.5f)
+                lineTo(4.5f, 17.5f)
+                close()
+                // Marca vial derecha.
+                moveTo(16.5f, 3.5f)
+                lineTo(19.5f, 3.5f)
+                lineTo(19.5f, 17.5f)
+                lineTo(16.5f, 17.5f)
+                close()
+                // Fondo de la plaza, uniendo las dos marcas.
+                moveTo(4.5f, 17.5f)
+                lineTo(19.5f, 17.5f)
+                lineTo(19.5f, 20.5f)
+                lineTo(4.5f, 20.5f)
+                close()
+            }
+        }.build()
+    }
+
+    /**
+     * Parking público: instalación con su P. ⛔ NO es [SpotParkingP] — esa es la P de PAPARCAR, la
+     * que llevan los pucks de plaza; ésta es señalética de un tercero, y por eso va dentro de un
+     * volumen con tejado en vez de suelta. [COPY-SPOT-IS-NOT-A-PARKING-001]
+     */
+    val CarParkMark: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "CarParkMark",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        ).apply {
+            path(fill = SolidColor(Color.Black), pathFillType = PathFillType.EvenOdd) {
+                // Volumen del edificio, con el techo en voladizo hacia la entrada.
+                moveTo(4f, 6f)
+                lineTo(12f, 2.5f)
+                lineTo(20f, 6f)
+                lineTo(20f, 20.5f)
+                curveTo(20f, 21.05f, 19.55f, 21.5f, 19f, 21.5f)
+                lineTo(5f, 21.5f)
+                curveTo(4.45f, 21.5f, 4f, 21.05f, 4f, 20.5f)
+                close()
+                // Asta de la P.
+                moveTo(9.6f, 7.6f)
+                lineTo(11.9f, 7.6f)
+                curveTo(14.1f, 7.6f, 15.3f, 8.9f, 15.3f, 10.9f)
+                curveTo(15.3f, 12.9f, 14.1f, 14.2f, 11.9f, 14.2f)
+                lineTo(11.5f, 14.2f)
+                lineTo(11.5f, 18f)
+                lineTo(9.6f, 18f)
+                close()
+                // Ojo de la P — devuelto a relleno por winding par/impar.
+                moveTo(11.5f, 9.3f)
+                lineTo(11.9f, 9.3f)
+                curveTo(12.9f, 9.3f, 13.4f, 9.9f, 13.4f, 10.9f)
+                curveTo(13.4f, 11.9f, 12.9f, 12.5f, 11.9f, 12.5f)
+                lineTo(11.5f, 12.5f)
+                close()
+            }
+        }.build()
+    }
+
+    /**
+     * Gasolinera: el surtidor con su manguera. Relleno con el visor recortado, mismo peso visual que
+     * las otras dos para que la fila de pestañas lea como UNA familia. [FUEL-STATIONS-LIST-001]
+     */
+    val FuelPumpMark: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "FuelPumpMark",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        ).apply {
+            path(fill = SolidColor(Color.Black), pathFillType = PathFillType.EvenOdd) {
+                // Cuerpo del surtidor + peana.
+                moveTo(5f, 4f)
+                curveTo(5f, 2.9f, 5.9f, 2f, 7f, 2f)
+                lineTo(12f, 2f)
+                curveTo(13.1f, 2f, 14f, 2.9f, 14f, 4f)
+                lineTo(14f, 20f)
+                lineTo(15f, 20f)
+                lineTo(15f, 22f)
+                lineTo(4f, 22f)
+                lineTo(4f, 20f)
+                lineTo(5f, 20f)
+                close()
+                // Visor: el hueco donde se lee el precio, que es de lo que va esta sección.
+                moveTo(7.2f, 4.6f)
+                lineTo(11.8f, 4.6f)
+                lineTo(11.8f, 8.4f)
+                lineTo(7.2f, 8.4f)
+                close()
+                // Manguera y boquilla, colgando por el lado derecho.
+                moveTo(16f, 8f)
+                curveTo(16f, 6.6f, 17.1f, 5.5f, 18.5f, 5.5f)
+                curveTo(19.9f, 5.5f, 21f, 6.6f, 21f, 8f)
+                lineTo(21f, 15.5f)
+                curveTo(21f, 16.9f, 19.9f, 18f, 18.5f, 18f)
+                curveTo(17.6f, 18f, 16.8f, 17.5f, 16.4f, 16.8f)
+                lineTo(18.1f, 15.8f)
+                curveTo(18.2f, 15.9f, 18.3f, 16f, 18.5f, 16f)
+                curveTo(18.8f, 16f, 19f, 15.8f, 19f, 15.5f)
+                lineTo(19f, 8f)
+                curveTo(19f, 7.7f, 18.8f, 7.5f, 18.5f, 7.5f)
+                curveTo(18.2f, 7.5f, 18f, 7.7f, 18f, 8f)
+                lineTo(18f, 11f)
+                lineTo(16f, 11f)
+                close()
+            }
+        }.build()
+    }
+
     private const val GLYPH_P_PATH =
         "M11.46 11.08 a6.08 6.08 0 0 1 12.16 0 L23.62 36.92 a6.08 6.08 0 0 1 -12.16 0 Z " +
             "M11.46 17.16 a14.06 12.16 0 1 1 28.12 0 a14.06 12.16 0 1 1 -28.12 0 Z " +

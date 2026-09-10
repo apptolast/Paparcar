@@ -5,6 +5,7 @@ package com.rndeveloper.paparcar.presentation.home
 import app.cash.turbine.test
 import com.swmansion.kmpmaps.core.MapType
 import com.rndeveloper.paparcar.domain.connectivity.ConnectivityStatus
+import com.rndeveloper.paparcar.presentation.home.model.HomeNearbyLens
 import com.rndeveloper.paparcar.domain.detection.ParkingStrategyResolver
 import com.rndeveloper.paparcar.domain.error.PaparcarError
 import com.rndeveloper.paparcar.domain.detection.StaticDetectionRuntimeState
@@ -1977,19 +1978,26 @@ class HomeViewModelTest {
         // ⛔ Measured on device: a pre-fuelType car made the section unfold into a fabricated
         // "no stations within 5 km" without a single request leaving the phone. The empty state is
         // a verdict about the world; this is its own sentence.
+        fuelSource.result = FuelStationsResult(listOf(spyStation()))
         saveActiveCar(fuelType = null)
         permissions.emit(FakePermissionManager.allGranted())
         locationDataSource.emitHighAccuracy(location)
         advanceUntilIdle()
 
-        vm.handleIntent(HomeIntent.ToggleFuelStations)
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.FUEL))
         advanceUntilIdle()
 
         val fuel = vm.state.value.fuel
-        assertTrue(fuel.isExpanded, "the user tapped — the section opens, honestly")
+        assertEquals(HomeNearbyLens.FUEL, vm.state.value.nearbyLens, "the user tapped the chip")
         assertTrue(fuel.missingFuelType)
         assertTrue(!fuel.failed)
-        assertEquals(0, fuelSource.askCount, "no fuel type means there was no question to ask")
+        assertTrue(fuel.stations.isEmpty(), "no fuel type means the LIST had no question to ask")
+        // …but the MAP still does: the stations are there whatever the car burns, and capsules
+        // without a figure are honest where an empty map would just be wrong. That fuel-less ask is
+        // the one request this entry is allowed to make.
+        // [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
+        assertEquals(1, fuelSource.askCount)
+        assertTrue(vm.state.value.toMapSlice().fuelStations.isNotEmpty())
     }
 
     @Test
@@ -1999,13 +2007,14 @@ class HomeViewModelTest {
         saveActiveCar(fuelType = com.rndeveloper.paparcar.domain.model.FuelType.GASOLINE)
         advanceUntilIdle()
 
-        vm.handleIntent(HomeIntent.ToggleFuelStations)
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.FUEL))
         advanceUntilIdle()
 
         val fuel = vm.state.value.fuel
-        assertTrue(fuel.isExpanded)
+        assertEquals(HomeNearbyLens.FUEL, vm.state.value.nearbyLens)
         assertTrue(fuel.failed)
         assertTrue(!fuel.missingFuelType)
+        // Not even the map asked: with no fix there is no centre to ask around.
         assertEquals(0, fuelSource.askCount)
     }
 
@@ -2030,7 +2039,7 @@ class HomeViewModelTest {
         locationDataSource.emitHighAccuracy(location)
         advanceUntilIdle()
 
-        vm.handleIntent(HomeIntent.ToggleFuelStations)
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.FUEL))
         advanceUntilIdle()
 
         val fuel = vm.state.value.fuel
@@ -2049,19 +2058,58 @@ class HomeViewModelTest {
         locationDataSource.emitHighAccuracy(location)
         advanceUntilIdle()
 
-        vm.handleIntent(HomeIntent.ToggleFuelStations)
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.FUEL))
         advanceUntilIdle()
         assertTrue(vm.state.value.fuel.missingFuelType)
 
         saveActiveCar(fuelType = com.rndeveloper.paparcar.domain.model.FuelType.GASOLINE)
         advanceUntilIdle()
-        vm.handleIntent(HomeIntent.ToggleFuelStations) // fold
-        vm.handleIntent(HomeIntent.ToggleFuelStations) // unfold — now there is a question
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.SPOTS)) // leave the lane
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.FUEL))  // come back — now there is a question
         advanceUntilIdle()
 
         val fuel = vm.state.value.fuel
-        assertEquals(1, fuelSource.askCount)
+        // The fuel-less car's entry asked ONCE for the map (capsules without a figure are honest);
+        // coming back with a fuel type asks the priced question. Two questions, two asks.
+        assertEquals(2, fuelSource.askCount)
         assertTrue(!fuel.missingFuelType)
+        assertEquals(
+            com.rndeveloper.paparcar.domain.model.FuelType.GASOLINE,
+            fuel.fetchedFor,
+        )
+    }
+
+    // ── El carril de "cerca de ti" [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001] ──
+
+    @Test
+    fun `should_openOnSpots_when_theViewModelStarts`() = runTest(testDispatcher) {
+        // ⛔ Nothing is restored: the lens is not a preference. Home is the AHORA, and a cold start
+        // opens on the spots the community is offering — never on wherever the last session wandered.
+        advanceUntilIdle()
+        assertEquals(HomeNearbyLens.SPOTS, vm.state.value.nearbyLens)
+        // …and with no complement painted, so a fresh map is spot pins and nothing else.
+        assertTrue(vm.state.value.toMapSlice().fuelStations.isEmpty())
+        assertTrue(vm.state.value.toMapSlice().publicParkings.isEmpty())
+    }
+
+    @Test
+    fun `should_notReask_when_theSameLensIsChosenTwice`() = runTest(testDispatcher) {
+        // The chip of the lane you are already in is a no-op, not a second request. A toggle here
+        // would have made a double tap mean "leave", which is not what a chip that names its
+        // destination says.
+        fuelSource.result = FuelStationsResult(listOf(spyStation()))
+        saveActiveCar(fuelType = com.rndeveloper.paparcar.domain.model.FuelType.GASOLINE)
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        advanceUntilIdle()
+
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.FUEL))
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.FUEL))
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.FUEL))
+        advanceUntilIdle()
+
+        assertEquals(HomeNearbyLens.FUEL, vm.state.value.nearbyLens)
+        assertEquals(1, fuelSource.askCount)
     }
 
     // ── La capa de gasolineras del mapa [FUEL-STATIONS-MAP-AND-PEEK-001] ─────
@@ -2085,31 +2133,39 @@ class HomeViewModelTest {
         locationDataSource.emitHighAccuracy(location)
         advanceUntilIdle()
 
-        vm.handleIntent(HomeIntent.ToggleFuelStationsLayer)
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.FUEL))
         advanceUntilIdle()
 
-        assertTrue(vm.state.value.showFuelStationsLayer)
-        assertTrue(prefs.showFuelStationsLayer, "the choice must survive the process")
+        assertEquals(HomeNearbyLens.FUEL, vm.state.value.nearbyLens)
+        // ⛔ Nothing persisted to check any more: the lane is where you are LOOKING, and every cold
+        // start opens on the spots. And ONE request, not two: the lane asks around the user and the
+        // map reads that same answer. [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
         assertEquals(1, fuelSource.askCount)
-        assertEquals(1, vm.state.value.fuelLayer.stations.size)
+        // Asserted on the MAP SLICE — what the user actually sees — and not on one store: which of
+        // the two holds the answer is an implementation detail, "there are pins on the map" is not.
+        assertEquals(1, vm.state.value.toMapSlice().fuelStations.size)
     }
 
     @Test
     fun `should_askFuelLess_when_theLayerTurnsOn_withACarWithoutFuel`() = runTest(testDispatcher) {
-        // The layer wants markers even for a fuel-less car — unpriced capsules are honest; the
-        // SECTION keeps its missingFuelType sentence for the priced list.
+        // The map wants markers even for a fuel-less car, and they come UNPRICED — a capsule with no
+        // figure is honest, an empty map is not. (That the LIST says its own sentence instead is
+        // covered by should_sayMissingFuel_andAskNobody_when_theActiveCarHasNoFuelType; this test is
+        // about what the pins carry.) [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
         fuelSource.result = FuelStationsResult(listOf(spyStation()))
         saveActiveCar(fuelType = null)
         permissions.emit(FakePermissionManager.allGranted())
         locationDataSource.emitHighAccuracy(location)
         advanceUntilIdle()
 
-        vm.handleIntent(HomeIntent.ToggleFuelStationsLayer)
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.FUEL))
         advanceUntilIdle()
 
         assertEquals(1, fuelSource.askCount)
-        assertEquals(1, vm.state.value.fuelLayer.stations.size)
-        assertTrue(!vm.state.value.fuel.missingFuelType)
+        val map = vm.state.value.toMapSlice()
+        assertEquals(1, map.fuelStations.size)
+        assertEquals(null, map.fuelStations.first().price, "no car fuel, no figure on the capsule")
+        assertEquals(null, map.fuelPricesFor, "and no fuel label to put beside a price nobody has")
     }
 
     @Test
@@ -2121,16 +2177,17 @@ class HomeViewModelTest {
         permissions.emit(FakePermissionManager.allGranted())
         locationDataSource.emitHighAccuracy(location)
         advanceUntilIdle()
-        vm.handleIntent(HomeIntent.ToggleFuelStationsLayer)
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.FUEL))
         advanceUntilIdle()
         assertEquals(1, fuelSource.askCount)
 
         saveActiveCar(fuelType = com.rndeveloper.paparcar.domain.model.FuelType.GASOLINE)
         advanceUntilIdle()
-        vm.handleIntent(HomeIntent.ToggleFuelStations)
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.SPOTS))
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.FUEL))
         advanceUntilIdle()
 
-        assertEquals(2, fuelSource.askCount, "a priced section cannot serve the fuel-less answer")
+        assertEquals(2, fuelSource.askCount, "a priced lane cannot serve the fuel-less answer")
         assertEquals(
             com.rndeveloper.paparcar.domain.model.FuelType.GASOLINE,
             vm.state.value.fuel.fetchedFor,
@@ -2144,16 +2201,18 @@ class HomeViewModelTest {
         permissions.emit(FakePermissionManager.allGranted())
         locationDataSource.emitHighAccuracy(location)
         advanceUntilIdle()
-        vm.handleIntent(HomeIntent.ToggleFuelStationsLayer)
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.FUEL))
         advanceUntilIdle()
         vm.handleIntent(HomeIntent.SelectItem(HomeSelection.FuelStation("st1")))
         advanceUntilIdle()
         assertTrue(vm.state.value.selectedFuelStation != null)
 
-        vm.handleIntent(HomeIntent.ToggleFuelStationsLayer)
+        // Leaving the lane is what stops the pins being drawn, so it is what drops the selection.
+        // [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.SPOTS))
         advanceUntilIdle()
 
-        assertTrue(!vm.state.value.showFuelStationsLayer)
+        assertEquals(HomeNearbyLens.SPOTS, vm.state.value.nearbyLens)
         assertEquals(null, vm.state.value.selection, "no peek may keep talking about an invisible pin")
     }
 
@@ -2166,7 +2225,7 @@ class HomeViewModelTest {
         permissions.emit(FakePermissionManager.allGranted())
         locationDataSource.emitHighAccuracy(location)
         advanceUntilIdle()
-        vm.handleIntent(HomeIntent.ToggleFuelStationsLayer)
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.FUEL))
         advanceUntilIdle()
         assertEquals(1, fuelSource.askCount)
 
@@ -2193,7 +2252,7 @@ class HomeViewModelTest {
         advanceUntilIdle()
         assertEquals(0, fuelSource.askCount)
 
-        vm.handleIntent(HomeIntent.ToggleFuelStationsLayer)
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.FUEL))
         advanceUntilIdle()
         assertEquals(1, fuelSource.askCount)
 
@@ -2211,11 +2270,15 @@ class HomeViewModelTest {
     @Test
     fun `should_pruneAnOrphanedStationSelection_when_theViewportMovesOn`() = runTest(testDispatcher) {
         fuelSource.result = FuelStationsResult(listOf(spyStation("st1")))
-        saveActiveCar(fuelType = com.rndeveloper.paparcar.domain.model.FuelType.GASOLINE)
+        // ⛔ A car with no fuel type on purpose: then the LIST asks nothing and only the
+        // camera-anchored store holds stations, which is what makes "in neither store" reachable. With
+        // a priced list the station also lives in the lane's own answer — and a selection the lane
+        // still lists is not orphaned, it is on show. [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
+        saveActiveCar(fuelType = null)
         permissions.emit(FakePermissionManager.allGranted())
         locationDataSource.emitHighAccuracy(location)
         advanceUntilIdle()
-        vm.handleIntent(HomeIntent.ToggleFuelStationsLayer)
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.FUEL))
         advanceUntilIdle()
         vm.handleIntent(HomeIntent.SelectItem(HomeSelection.FuelStation("st1")))
         advanceUntilIdle()
@@ -2233,12 +2296,15 @@ class HomeViewModelTest {
     fun `should_emptyTheLayer_when_theCameraLeavesTheUsersRegion`() = runTest(testDispatcher) {
         // Beyond the follow limit the layer shows NOTHING — never your own city's stations over a
         // distant one. Coming back must ask again, so the anchor is dropped with them.
+        // Fuel-less car so the camera-anchored store is the ONLY holder, which is what this test is
+        // about; a priced lane keeps its own user-anchored answer, drawn at its own coordinates far
+        // off-screen. [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
         fuelSource.result = FuelStationsResult(listOf(spyStation()))
-        saveActiveCar(fuelType = com.rndeveloper.paparcar.domain.model.FuelType.GASOLINE)
+        saveActiveCar(fuelType = null)
         permissions.emit(FakePermissionManager.allGranted())
         locationDataSource.emitHighAccuracy(location)
         advanceUntilIdle()
-        vm.handleIntent(HomeIntent.ToggleFuelStationsLayer)
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.FUEL))
         advanceUntilIdle()
         vm.handleIntent(HomeIntent.SelectItem(HomeSelection.FuelStation("st1")))
         advanceUntilIdle()
@@ -2269,10 +2335,15 @@ class HomeViewModelTest {
         locationDataSource.emitHighAccuracy(location)
         advanceUntilIdle()
         fuelSource.failNext = true
-        vm.handleIntent(HomeIntent.ToggleFuelStationsLayer)
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.FUEL))
         advanceUntilIdle()
         assertEquals(1, fuelSource.askCount)
-        assertTrue(vm.state.value.fuelLayer.stations.isEmpty())
+        // Asertado sobre el MAPA — lo que el usuario ve — y no sobre una tienda concreta: tras el
+        // rebase quien sigue a la cámara es el CARRIL, así que el reintento aterriza en su almacén y
+        // el mapa lo lee por la unión. Cuál de las dos tiendas lo guarda es un detalle de
+        // implementación; "hay o no hay pines" no lo es.
+        // [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
+        assertTrue(vm.state.value.toMapSlice().fuelStations.isEmpty())
 
         // A nudge of the camera — far too small to count as a new area — retries the failed one.
         fuelSource.result = FuelStationsResult(listOf(spyStation()))
@@ -2282,7 +2353,7 @@ class HomeViewModelTest {
         advanceUntilIdle()
 
         assertEquals(2, fuelSource.askCount)
-        assertEquals(1, vm.state.value.fuelLayer.stations.size)
+        assertEquals(1, vm.state.value.toMapSlice().fuelStations.size)
     }
 
     /** Counts the questions actually asked — what separates an honest empty from a fabricated one. */
@@ -2322,17 +2393,18 @@ class HomeViewModelTest {
         locationDataSource.emitHighAccuracy(location)
         advanceUntilIdle()
 
-        vm.handleIntent(HomeIntent.TogglePublicParkingsLayer)
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.PARKINGS))
         advanceUntilIdle()
 
-        assertTrue(vm.state.value.showPublicParkingsLayer)
-        assertTrue(prefs.showPublicParkingsLayer, "the choice must survive the process")
-        assertEquals(1, parkingsSource.askCount)
-        // ⛔ Into the LAYER store, not the section's: they answer different questions ("what is
-        // where I look" vs "where do I park near me") and folding them into one is what painted
-        // Madrid over Paris in the fuel lane. [PARKINGS-ON-THE-MAP-001]
-        assertEquals(1, vm.state.value.parkingsLayer.parkings.size)
-        assertTrue(vm.state.value.parkings.parkings.isEmpty(), "the section asked nothing yet")
+        assertEquals(HomeNearbyLens.PARKINGS, vm.state.value.nearbyLens)
+        assertEquals(1, parkingsSource.askCount, "one entry, ONE request")
+        // The answer lands in the LANE's store (asked around the USER, which is what a "nearby" list
+        // means) and the map reads it from there through the union. The two stores still answer
+        // different questions and still keep their own anchors — what changed is that entering a lane
+        // no longer costs a second, camera-anchored request for the same ground.
+        // [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001] [PARKINGS-ON-THE-MAP-001]
+        assertEquals(1, vm.state.value.parkings.parkings.size)
+        assertEquals(1, vm.state.value.toMapSlice().publicParkings.size, "and the pins are drawn")
     }
 
     @Test
@@ -2343,17 +2415,21 @@ class HomeViewModelTest {
         permissions.emit(FakePermissionManager.allGranted())
         locationDataSource.emitHighAccuracy(location)
         advanceUntilIdle()
-        vm.handleIntent(HomeIntent.TogglePublicParkingsLayer)
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.PARKINGS))
         advanceUntilIdle()
 
-        vm.handleIntent(HomeIntent.TogglePublicParkings)
+        // Re-entering the lane you are already in, and then again after leaving and returning.
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.PARKINGS))
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.SPOTS))
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.PARKINGS))
         advanceUntilIdle()
 
-        // ⛔ TWO asks, and that is correct now: the layer answered for the CAMERA and the section
-        // asks for the USER. Reusing one answer for both is what made the fuel layer lie about
-        // where its stations were. [FUEL-LAYER-FOLLOWS-THE-CAMERA-001]
-        assertEquals(2, parkingsSource.askCount)
-        assertTrue(vm.state.value.parkings.isExpanded)
+        // ⛔ ONE ask, and this is the change: the lane asks around the USER and the map reads that
+        // same answer, so entering costs one request instead of two — and coming back costs none,
+        // because a car park is a car park whatever the car burns.
+        // [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001] [FUEL-LAYER-FOLLOWS-THE-CAMERA-001]
+        assertEquals(1, parkingsSource.askCount)
+        assertEquals(HomeNearbyLens.PARKINGS, vm.state.value.nearbyLens)
         assertEquals(1, vm.state.value.parkings.parkings.size)
     }
 
@@ -2366,7 +2442,7 @@ class HomeViewModelTest {
         locationDataSource.emitHighAccuracy(location)
         advanceUntilIdle()
 
-        vm.handleIntent(HomeIntent.TogglePublicParkings)
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.PARKINGS))
         advanceUntilIdle()
 
         val slice = vm.state.value.parkings
@@ -2380,7 +2456,7 @@ class HomeViewModelTest {
         permissions.emit(FakePermissionManager.allGranted())
         advanceUntilIdle()
 
-        vm.handleIntent(HomeIntent.TogglePublicParkings)
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.PARKINGS))
         advanceUntilIdle()
 
         assertEquals(0, parkingsSource.askCount, "with no fix there was no question to ask")
@@ -2393,16 +2469,17 @@ class HomeViewModelTest {
         permissions.emit(FakePermissionManager.allGranted())
         locationDataSource.emitHighAccuracy(location)
         advanceUntilIdle()
-        vm.handleIntent(HomeIntent.TogglePublicParkingsLayer)
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.PARKINGS))
         advanceUntilIdle()
         vm.handleIntent(HomeIntent.SelectItem(HomeSelection.PublicParking("osm/node/1")))
         advanceUntilIdle()
         assertTrue(vm.state.value.selectedPublicParking != null)
 
-        vm.handleIntent(HomeIntent.TogglePublicParkingsLayer)
+        // Leaving the lane is what stops the pins being drawn, so it is what drops the selection.
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.SPOTS))
         advanceUntilIdle()
 
-        assertTrue(!vm.state.value.showPublicParkingsLayer)
+        assertEquals(HomeNearbyLens.SPOTS, vm.state.value.nearbyLens)
         assertEquals(null, vm.state.value.selection, "no peek may keep talking about an invisible pin")
     }
 
@@ -2418,7 +2495,7 @@ class HomeViewModelTest {
         permissions.emit(FakePermissionManager.allGranted())
         locationDataSource.emitHighAccuracy(location)
         advanceUntilIdle()
-        vm.handleIntent(HomeIntent.TogglePublicParkingsLayer)
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.PARKINGS))
         advanceUntilIdle()
         assertEquals(1, parkingsSource.askCount)
 
@@ -2440,7 +2517,7 @@ class HomeViewModelTest {
         permissions.emit(FakePermissionManager.allGranted())
         locationDataSource.emitHighAccuracy(location)
         advanceUntilIdle()
-        vm.handleIntent(HomeIntent.TogglePublicParkingsLayer)
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.PARKINGS))
         advanceUntilIdle()
         assertEquals(1, parkingsSource.askCount)
         assertEquals(null, vm.state.value.parkingsLayer.anchorLat, "a failed ask keeps no anchor")
@@ -2457,7 +2534,7 @@ class HomeViewModelTest {
     // ── La sección responde sobre DONDE MIRAS [A-SECTION-ANSWERS-ABOUT-WHERE-YOU-LOOK-001] ──
 
     @Test
-    fun `should_askAboutTheCamera_not_theUser_when_theSectionOpens`() = runTest(testDispatcher) {
+    fun `should_askAboutTheCamera_not_theUser_when_theLaneOpens`() = runTest(testDispatcher) {
         // ⛔ EL bug, visto en device: con el usuario en Lugar la Cañada y el mapa arrastrado sobre
         // Jerez, el mapa pintaba seis parkings mientras la sección decía "no hay ninguno a 1,5 km".
         // Las dos afirmaciones eran ciertas y juntas eran inútiles.
@@ -2469,7 +2546,7 @@ class HomeViewModelTest {
         // El usuario arrastra el mapa lejos y despliega la sección.
         vm.handleIntent(HomeIntent.CameraPositionChanged(LEJOS_LAT, LEJOS_LON))
         advanceUntilIdle()
-        vm.handleIntent(HomeIntent.TogglePublicParkings)
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.PARKINGS))
         advanceUntilIdle()
 
         assertEquals(LEJOS_LAT, parkingsSource.seen?.latitude)
@@ -2477,12 +2554,12 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `should_refetchTheOpenSection_when_theCameraSettlesFarEnough`() = runTest(testDispatcher) {
+    fun `should_refetchTheOpenLane_when_theCameraSettlesFarEnough`() = runTest(testDispatcher) {
         parkingsSource.result = Result.success(listOf(spyParking()))
         permissions.emit(FakePermissionManager.allGranted())
         locationDataSource.emitHighAccuracy(location)
         advanceUntilIdle()
-        vm.handleIntent(HomeIntent.TogglePublicParkings)
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.PARKINGS))
         advanceUntilIdle()
         val tras = parkingsSource.askCount
 
@@ -2494,9 +2571,10 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `should_notRefetch_when_theSectionIsFolded`() = runTest(testDispatcher) {
-        // ⛔ Sigue valiendo la regla que sostiene todo esto: plegada no descarga NADA. Un usuario que
-        // solo mueve el mapa no paga peticiones por una lista que nunca abrió.
+    fun `should_notRefetch_when_theLaneIsElsewhere`() = runTest(testDispatcher) {
+        // ⛔ Sigue valiendo la regla que sostiene todo esto: un sujeto que no está a la vista no
+        // descarga NADA. Antes lo decía el pliegue; ahora lo dice la lente, que arranca en plazas.
+        // Un usuario que solo mueve el mapa no paga peticiones por una lista que nunca abrió.
         parkingsSource.result = Result.success(listOf(spyParking()))
         permissions.emit(FakePermissionManager.allGranted())
         locationDataSource.emitHighAccuracy(location)
@@ -2506,7 +2584,7 @@ class HomeViewModelTest {
         vm.handleIntent(HomeIntent.CameraPositionChanged(LEJOS_LAT, LEJOS_LON))
         advanceUntilIdle()
 
-        assertEquals(0, parkingsSource.askCount, "plegada no pregunta ni aunque la cámara viaje")
+        assertEquals(0, parkingsSource.askCount, "otro carril no pregunta ni aunque la cámara viaje")
     }
 
     @Test
@@ -2516,7 +2594,7 @@ class HomeViewModelTest {
         permissions.emit(FakePermissionManager.allGranted())
         locationDataSource.emitHighAccuracy(location)
         advanceUntilIdle()
-        vm.handleIntent(HomeIntent.TogglePublicParkings)
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.PARKINGS))
         advanceUntilIdle()
         val tras = parkingsSource.askCount
 

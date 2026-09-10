@@ -61,11 +61,6 @@
     <string name="common_directions">Directions</string>
     <!-- The icon-only twin on the parking peek: a screen reader needs the destination too. -->
     <string name="home_navigate_to_vehicle_cd">Directions to your car</string>
-    <string name="home_feed_nearby">Free spots nearby</string>
-    <plurals name="home_feed_nearby_with_count">
-        <item quantity="one">%1$d free spot near you</item>
-        <item quantity="other">%1$d free spots near you</item>
-    </plurals>
     <string name="home_empty_title">No spots reported yet</string>
     <string name="home_empty_subtitle">Be the first to report one</string>
     <!-- Browse header (PapSheet): neutral zone eyebrow + parked subtitle + 0-spots hint. [UI-SHEET-001] -->
@@ -874,7 +869,6 @@
 
     <!-- Gasolineras cercanas [FUEL-STATIONS-LIST-001] -->
     <string name="location_fallback_station">Fuel station</string>
-    <string name="home_fuel_title">Where to refuel</string>
     <string name="home_fuel_empty">No fuel stations within 5 km.</string>
     <string name="home_fuel_missing_fuel_type">Set this car's fuel type in Vehicles to see nearby stations and their prices.</string>
     <string name="fuel_peek_eyebrow">Fuel station</string>
@@ -887,10 +881,13 @@
     <string name="home_fuel_oldest_price">Oldest price: %1$s</string>
     <string name="home_fuel_remembered">No connection: these are the stations we saw here %1$s.</string>
     <!-- Parkings publicos [PARKINGS-ON-THE-MAP-001] -->
-    <string name="map_cd_layers">Show or hide map layers</string>
-    <string name="map_layer_fuel_stations">Fuel stations</string>
-    <string name="map_layer_public_parkings">Car parks</string>
-    <string name="home_parkings_title">Car parks nearby</string>
+    <string name="subject_fuel_stations">Fuel stations</string>
+    <string name="subject_public_parkings">Car parks</string>
+    <!-- El NOMBRE de cada sujeto de "cerca de ti": una sola key por sujeto, leida por los
+         chips de la lente del sheet Y por el menu de capas del mapa. Dos deletreos del mismo
+         sujeto es como las dos superficies acaban llamandolo distinto.
+         [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001] -->
+    <string name="subject_free_spots">Free spots</string>
     <string name="home_parkings_empty">No public car parks within 1.5 km.</string>
     <string name="home_parkings_error">We could not load the car parks. Check your connection and open this again.</string>
     <string name="home_parkings_remembered">No connection: these are the car parks we saw here %1$s.</string>

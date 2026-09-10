@@ -31,11 +31,6 @@
     <string name="home_browse_hint_swipe_report">Scorri ↑ per segnalare un posto</string>
     <string name="common_directions">Indicazioni</string>
     <string name="home_navigate_to_vehicle_cd">Indicazioni per l&#8217;auto</string>
-    <string name="home_feed_nearby">Posti liberi vicino a te</string>
-    <plurals name="home_feed_nearby_with_count">
-        <item quantity="one">%1$d posto libero vicino a te</item>
-        <item quantity="other">%1$d posti liberi vicino a te</item>
-    </plurals>
     <string name="home_empty_title">Ancora nessun posto segnalato</string>
     <string name="home_empty_subtitle">Sii il primo a segnalarne uno</string>
     <string name="home_address_unknown">Posizione sconosciuta</string>
@@ -839,7 +834,6 @@
 
     <!-- Gasolineras cercanas [FUEL-STATIONS-LIST-001] -->
     <string name="location_fallback_station">Distributore</string>
-    <string name="home_fuel_title">Dove fare rifornimento</string>
     <string name="home_fuel_empty">Nessun distributore entro 5 km.</string>
     <string name="home_fuel_missing_fuel_type">Imposta il carburante di quest'auto in Veicoli per vedere i distributori vicini e i loro prezzi.</string>
     <string name="fuel_peek_eyebrow">Distributore</string>
@@ -852,10 +846,9 @@
     <string name="home_fuel_oldest_price">Prezzo più vecchio: %1$s</string>
     <string name="home_fuel_remembered">Nessuna connessione: questi sono i distributori visti qui %1$s.</string>
     <!-- Parkings publicos [PARKINGS-ON-THE-MAP-001] -->
-    <string name="map_cd_layers">Mostra o nascondi i livelli della mappa</string>
-    <string name="map_layer_fuel_stations">Distributori</string>
-    <string name="map_layer_public_parkings">Parcheggi pubblici</string>
-    <string name="home_parkings_title">Parcheggi pubblici vicini</string>
+    <string name="subject_fuel_stations">Distributori</string>
+    <string name="subject_public_parkings">Parcheggi</string>
+    <string name="subject_free_spots">Posti</string>
     <string name="home_parkings_empty">Nessun parcheggio pubblico entro 1,5 km.</string>
     <string name="home_parkings_error">Non siamo riusciti a caricare i parcheggi. Controlla la connessione e riapri.</string>
     <string name="home_parkings_remembered">Nessuna connessione: questi sono i parcheggi pubblici visti qui %1$s.</string>

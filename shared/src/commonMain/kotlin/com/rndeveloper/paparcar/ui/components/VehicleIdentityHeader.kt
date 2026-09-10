@@ -83,7 +83,13 @@ fun VehicleIdentityHeader(
     trailing: (@Composable () -> Unit)? = null,
 ) {
     val watch = vehicle.monitoringStatus().watch()
-    // The vehicle's identity colour — its watch method — paints the NAME itself.
+    // The vehicle's identity colour — its watch method. ⛔ NO pinta el nombre: pinta el GLIFO de
+    // vigilancia que va delante (y el halo mientras conduce). El nombre se queda en `onSurface`,
+    // como se lee 50 líneas más abajo y como hace el chip de Home.
+    //
+    // Este comentario decía lo contrario y sobrevivió al cambio que lo desmintió. Costó una
+    // auditoría de color entera: al ver verde junto al nombre en device, el comentario "confirmaba"
+    // que el nombre era el teñido — y la propuesta era arreglar algo que ya estaba bien.
     // [UI-COLOR-DOCTRINE-001]
     val identity = vehicleIdentityColor(watch)
     val cs = MaterialTheme.colorScheme

@@ -672,7 +672,7 @@ private fun VehicleHeroCard(
 
     PapOutlinedCard(
         modifier = modifier.fillMaxWidth(),
-        shape = PapShapes.cardLarge,
+        shape = PapShapes.card,
         containerColor = cs.primaryContainer.copy(alpha = HERO_CARD_BG_ALPHA),
     ) {
         Column(

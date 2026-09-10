@@ -270,7 +270,7 @@ private fun SilentNote(text: String) {
 @Composable
 private fun ActionCard(v: RVisual, onCta: () -> Unit = {}, onSecondary: () -> Unit = {}) {
     Surface(
-        shape = PapShapes.cardLarge,
+        shape = PapShapes.card,
         color = v.softContainer(),
         modifier = Modifier.fillMaxWidth(),
     ) {
@@ -356,7 +356,7 @@ private fun CapsulePill(v: RVisual) {
 @Composable
 private fun AccentRow(v: RVisual, onCta: () -> Unit = {}, onSecondary: () -> Unit = {}) {
     Surface(
-        shape = PapShapes.cardSmall,
+        shape = PapShapes.card,
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
         modifier = Modifier.fillMaxWidth(),
     ) {
@@ -594,7 +594,7 @@ private fun HomeAwaitingLight() = PaparcarTheme(darkTheme = false) { MockHome(Pl
 private fun MockVehicleChip(name: String, parked: Boolean, status: @Composable () -> Unit) {
     val border = if (parked) PapGreen else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
     Surface(
-        shape = PapShapes.cardSmall,
+        shape = PapShapes.card,
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         border = BorderStroke(1.dp, border),
         modifier = Modifier.width(160.dp),

@@ -138,7 +138,7 @@ private fun CarbodyRow(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
-        shape = PapShapes.button,
+        shape = PapShapes.row,
         color = bg,
         border = BorderStroke(if (isSelected) 1.5.dp else 1.dp, border),
     ) {

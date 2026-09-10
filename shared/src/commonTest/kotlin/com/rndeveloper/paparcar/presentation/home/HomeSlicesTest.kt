@@ -14,6 +14,7 @@ import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.VehicleMonitoringStatus
 import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
+import com.rndeveloper.paparcar.presentation.home.model.HomeNearbyLens
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -784,15 +785,26 @@ class HomeSlicesTest {
     // [FUEL-STATIONS-MAP-AND-PEEK-001]
 
     @Test
-    fun should_foldTheSpotsSection_when_thereIsNothingOnOffer() {
-        // A true empty folds to one header line, so the refuel section sits one row below instead
-        // of under a full-height empty block. Loading is NOT an empty: the skeleton stays visible.
-        assertEquals(false, HomeState(isLoading = false).freeSpotsSectionExpanded)
-        assertEquals(true, HomeState(isLoading = true).freeSpotsSectionExpanded)
-        assertEquals(
-            true,
-            HomeState(isLoading = false, nearbySpots = listOf(spot("a"))).freeSpotsSectionExpanded,
-        )
+    fun should_openOnSpots_andPaintNoComplementOnTheMap_when_nobodyHasChosenALens() {
+        // The lane a cold start opens on, whatever the data says. The rule that used to live here
+        // folded the spots section on a true empty so the refuel section would sit one row below it —
+        // a rule that only existed because the subjects were stacked. Nothing is stacked now.
+        val fresh = HomeState(isLoading = false)
+        assertEquals(HomeNearbyLens.SPOTS, fresh.nearbyLens)
+        assertEquals(false, fresh.showsFuelOnMap)
+        assertEquals(false, fresh.showsParkingsOnMap)
+    }
+
+    @Test
+    fun should_paintOnlyTheLanesOwnComplement_when_theLensMoves() {
+        // ⛔ Never both: two label layers over the spot pins is what the single lens prevents.
+        val onFuel = HomeState(nearbyLens = HomeNearbyLens.FUEL)
+        assertEquals(true, onFuel.showsFuelOnMap)
+        assertEquals(false, onFuel.showsParkingsOnMap)
+
+        val onParkings = HomeState(nearbyLens = HomeNearbyLens.PARKINGS)
+        assertEquals(false, onParkings.showsFuelOnMap)
+        assertEquals(true, onParkings.showsParkingsOnMap)
     }
 
     // ── El stepper del peek de gasolinera camina el orden de la lista ────────
@@ -807,6 +819,31 @@ class HomeSlicesTest {
             distanceMeters = dist,
             price = null,
         )
+
+    @Test
+    fun should_paintBothStores_when_theLaneIsOnFuel_andNothingWhenItIsNot() {
+        // The union is what keeps ENTERING a lane down to one request: the list's user-anchored
+        // answer already covers the pins around the user, and the camera-anchored store fills in once
+        // the camera moves. Same station in both stores = one pin.
+        // [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
+        val state = HomeState(
+            nearbyLens = HomeNearbyLens.FUEL,
+            fuel = com.rndeveloper.paparcar.presentation.home.model.HomeFuelSlice(
+                stations = listOf(fuelStation("a", 100.0), fuelStation("b", 200.0)),
+            ),
+            fuelLayer = com.rndeveloper.paparcar.presentation.home.model.HomeFuelLayerSlice(
+                stations = listOf(fuelStation("b", 200.0), fuelStation("c", 300.0)),
+            ),
+        )
+        assertEquals(listOf("b", "c", "a"), state.toMapSlice().fuelStations.map { it.station.id })
+
+        // ⛔ And nothing at all once the lane is elsewhere, however full the stores are: the map shows
+        // the complement you are LOOKING AT, never two label layers stacked over the spot pins.
+        assertEquals(
+            emptyList(),
+            state.copy(nearbyLens = HomeNearbyLens.SPOTS).toMapSlice().fuelStations,
+        )
+    }
 
     @Test
     fun should_stepBetweenStations_inTheNearestFirstOrder() {
@@ -836,18 +873,11 @@ class HomeSlicesTest {
     }
 
     @Test
-    fun should_letTheUsersFold_outrankTheData() {
-        // An explicit choice wins in both directions — the data only decides while nobody has said.
+    fun should_carryTheLens_intoTheSheetSlice() {
+        // The sheet renders the lane the state names; it does not re-decide it.
         assertEquals(
-            true,
-            HomeState(isLoading = false, freeSpotsExpandedOverride = true).freeSpotsSectionExpanded,
-        )
-        assertEquals(
-            false,
-            HomeState(
-                nearbySpots = listOf(spot("a")),
-                freeSpotsExpandedOverride = false,
-            ).freeSpotsSectionExpanded,
+            HomeNearbyLens.PARKINGS,
+            HomeState(nearbyLens = HomeNearbyLens.PARKINGS).toBrowseListSlice().nearbyLens,
         )
     }
 }

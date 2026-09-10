@@ -4,14 +4,16 @@ import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.usecase.fuel.NearbyFuelStation
 
 /**
- * The "where to refuel" section, as the sheet needs it. [FUEL-STATIONS-LIST-001]
+ * The "where to refuel" lane, as the sheet needs it. [FUEL-STATIONS-LIST-001]
  *
- * **Nothing is fetched until the section is opened.** Most sessions never ask this question, and a
- * province of stations downloaded for a list nobody unfolded is the user's data spent on our
- * convenience. [isExpanded] is therefore the trigger, not just a visual state.
+ * **Nothing is fetched until the lane is entered.** Most sessions never ask this question, and a
+ * province of stations downloaded for a list nobody opened is the user's data spent on our
+ * convenience. The trigger is therefore entering the lane — `HomeNearbyLens.FUEL` — and this value
+ * only ever holds the ANSWER. ⛔ It used to hold an `isExpanded` of its own; two places saying
+ * whether fuel is on show is how they come to disagree.
+ * [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
  */
 data class HomeFuelSlice(
-    val isExpanded: Boolean = false,
     val isLoading: Boolean = false,
     val stations: List<NearbyFuelStation> = emptyList(),
     /** The feed's own hour, verbatim. Null where the source publishes no prices at all. */

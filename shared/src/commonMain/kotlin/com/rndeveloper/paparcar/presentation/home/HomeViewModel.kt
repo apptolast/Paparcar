@@ -51,6 +51,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import com.rndeveloper.paparcar.domain.usecase.zone.SaveOrUpdateZoneUseCase
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import com.rndeveloper.paparcar.presentation.base.BaseViewModel
+import com.rndeveloper.paparcar.presentation.home.model.HomeNearbyLens
 import com.rndeveloper.paparcar.presentation.home.model.isDetectionStopped
 import com.rndeveloper.paparcar.presentation.home.model.isDetectionWorking
 import com.rndeveloper.paparcar.presentation.home.model.toUiState
@@ -179,13 +180,10 @@ class HomeViewModel(
     // ── Init ──────────────────────────────────────────────────────────────────
 
     init {
-        updateState {
-            copy(
-                mapType = appPreferences.defaultMapType.toMapType(),
-                showFuelStationsLayer = appPreferences.showFuelStationsLayer,
-                showPublicParkingsLayer = appPreferences.showPublicParkingsLayer,
-            )
-        }
+        // ⛔ The lens is NOT restored here, and that is the rule: Home is the AHORA and every cold
+        // start opens on the spots the community is offering.
+        // [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
+        updateState { copy(mapType = appPreferences.defaultMapType.toMapType()) }
         geocoder.attach(viewModelScope)
         subscribeControllerUpdates()
         // Repo streams → state slices, one line each ([collectInto] isolates stream errors so the UI
@@ -353,13 +351,11 @@ class HomeViewModel(
             is HomeIntent.LoadNearbySpots,
             is HomeIntent.SelectItem,
             is HomeIntent.SetSizeFilter,
-            // Rides with the spots: same sheet, same CORE gate, same "what is around me" question.
+            // Rides with the spots: same sheet, same CORE gate, same "what is around me" question —
+            // and since [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001] the three subjects
+            // share ONE lane, so choosing between them is a spots-family intent too.
             // [FUEL-STATIONS-LIST-001] [FUEL-STATIONS-MAP-AND-PEEK-001]
-            is HomeIntent.ToggleFuelStations,
-            is HomeIntent.ToggleFuelStationsLayer,
-            is HomeIntent.TogglePublicParkings,
-            is HomeIntent.TogglePublicParkingsLayer,
-            is HomeIntent.SetFreeSpotsSectionExpanded,
+            is HomeIntent.SetNearbyLens,
             is HomeIntent.SendSpotSignal,
             is HomeIntent.EnterReportMode,
             is HomeIntent.ExitReportMode,
@@ -535,77 +531,113 @@ class HomeViewModel(
     // ── Community spots ───────────────────────────────────────────────────────
 
     /**
-     * Folds the refuel section, or unfolds it and — the first time only — goes and asks.
-     * [FUEL-STATIONS-LIST-001]
+     * Points the sheet's nearby lane at a subject, and — the first time only — goes and asks it.
+     * [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
      *
-     * Nothing is fetched while it stays folded: most sessions never ask this question, and Spain's
-     * feed is downloaded a province at a time. Closing it keeps what was already fetched, so folding
-     * and unfolding again costs nothing.
+     * The single place where "which subject is on show" is decided, which is what the three separate
+     * folds it replaces could not be: with a section per subject, the `y` of each one depended on how
+     * many rows the one above it held, and the free-spots feed has no cap.
+     *
+     * Nothing is fetched for a lane nobody enters: most sessions never ask for fuel or car parks, and
+     * Spain's fuel feed is downloaded a province at a time. Leaving a lane keeps its answer, so coming
+     * back costs nothing.
+     *
+     * **The lane is also what the MAP paints of the two complements** — there is no layers menu any
+     * more, and no persisted switch behind it. Two controls for one subject is what let the map show
+     * price capsules while the sheet listed car parks, and what let both label layers stack over the
+     * spot pins that are the product. So entering a lane asks around the camera for that subject, and
+     * leaving it drops a selection of the subject being left: a peek that kept talking about a pin no
+     * longer drawn is the state this replaces, not a new one.
+     * [PARKINGS-ON-THE-MAP-001] [FUEL-LAYER-FOLLOWS-THE-CAMERA-001]
      */
-    private fun toggleFuelStations() {
-        val slice = state.value.fuel
-        if (slice.isExpanded) {
-            updateState { copy(fuel = fuel.copy(isExpanded = false)) }
-            return
+    private fun setNearbyLens(lens: HomeNearbyLens) {
+        // Already there: the chip of the lane you are in is a no-op, not a second ask.
+        if (state.value.nearbyLens == lens) return
+        updateState {
+            copy(
+                nearbyLens = lens,
+                // The complement being left stops being drawn, so a selection of it stops having a
+                // subject. Own sessions, spots and zones are untouched — they are not lane-governed.
+                selection = selection.takeUnless {
+                    (it is HomeSelection.FuelStation && lens != HomeNearbyLens.FUEL) ||
+                        (it is HomeSelection.PublicParking && lens != HomeNearbyLens.PARKINGS)
+                },
+            )
         }
+        when (lens) {
+            // The spots feed is already live — it is the app's standing subscription, not an ask.
+            HomeNearbyLens.SPOTS -> Unit
+            // ⛔ ONE request per entry, not two. The lane asks around the USER and the map reads that
+            // same answer (the map slice unions both stores), so the camera-anchored layer only asks
+            // once the camera has actually moved. Firing both here would double every entry against a
+            // free shared service — the cost this project already paid once for.
+            // [FUEL-LAYER-FOLLOWS-THE-CAMERA-001]
+            //
+            // The fallback is the case where the LIST has no question to ask: a car with no fuel type
+            // has no priced question, but the stations are there whatever the car burns, so the map
+            // asks fuel-less. Markers without a figure are honest; an empty map is not.
+            HomeNearbyLens.FUEL -> {
+                val listCoversTheMap = askFuelForLane()
+                if (!listCoversTheMap) {
+                    viewportCentreOrGps()?.let { (lat, lon) -> maybeFetchFuelViewport(lat, lon) }
+                }
+            }
+            HomeNearbyLens.PARKINGS -> askParkingsForLane()
+        }
+    }
+
+    /**
+     * The refuel ask, as the lane needs it. [FUEL-STATIONS-LIST-001]
+     *
+     * Every early return here is a SENTENCE the lane will say, and they are different sentences on
+     * purpose. [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
+     *
+     * @return whether a request actually went out. The caller needs to know: when the list had no
+     * question to ask, the MAP still does.
+     */
+    private fun askFuelForLane(): Boolean {
+        val slice = state.value.fuel
 
         // The fuel of the car being driven, or the active one — the price shown has to be the price
         // of what THIS driver actually puts in. ⛔ Without one there is no question to ask, and that
         // is SAID as its own state, EVEN when the map layer already loaded unpriced stations:
         // rendering it as an empty (or priceless) list fabricated a claim no source ever answered.
-        // [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
         val fuelType = activeFuelType()
         if (fuelType == null) {
-            updateState {
-                copy(fuel = fuel.copy(isExpanded = true, missingFuelType = true, failed = false))
-            }
-            return
+            updateState { copy(fuel = fuel.copy(missingFuelType = true, failed = false)) }
+            return false
         }
 
-        // Already answered FOR THIS FUEL, or already asking: unfolding again must not re-ask. An
-        // answer the layer fetched fuel-less is a different question — repriced below.
+        // Already answered FOR THIS FUEL, or already asking: re-entering must not re-ask. An answer
+        // the layer fetched fuel-less is a different question — repriced below.
         if (slice.isLoading || (slice.stations.isNotEmpty() && slice.fetchedFor == fuelType)) {
-            updateState { copy(fuel = fuel.copy(isExpanded = true, missingFuelType = false)) }
-            return
+            updateState { copy(fuel = fuel.copy(missingFuelType = false)) }
+            // Nothing went out, and nothing needs to: the answer is already here and the map reads it.
+            return true
         }
 
-        // ⛔ Around the CAMERA, not around the user. A sheet whose own header says "Calle Ronda de
-        // los Alunados" cannot list what is near a house six kilometres away — and it did: the map
-        // painted six car parks over Jerez while the section said "none within 1,5 km", both true
-        // and both useless together. [A-SECTION-ANSWERS-ABOUT-WHERE-YOU-LOOK-001]
-        // Nothing to look at yet (no camera, no fix) means the question could not be asked — the
-        // failure sentence, never the empty one.
+        // ⛔ Alrededor de la CÁMARA, no de ti. Un sheet cuya cabecera dice "Calle Ronda de los
+        // Alunados" no puede listar lo que hay junto a una casa a seis kilómetros — y lo hacía: el
+        // mapa pintaba seis parkings sobre Jerez mientras la lista decía "ninguno a 1,5 km", las dos
+        // afirmaciones ciertas y las dos inútiles juntas. [A-SECTION-ANSWERS-ABOUT-WHERE-YOU-LOOK-001]
+        //
+        // El carril hereda esa regla entera, y encima la simplifica: con UN sujeto a la vista, el
+        // mapa y la lista preguntan por el MISMO sitio con el MISMO radio, así que la contradicción
+        // ya no tiene dónde nacer. [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
+        //
+        // Sin nada que mirar todavía (ni cámara ni fix) la pregunta no se pudo hacer: esa es la
+        // frase de fallo, nunca la de vacío.
         val centre = viewportCentreOrGps()
         if (centre == null) {
-            updateState {
-                copy(fuel = fuel.copy(isExpanded = true, failed = true, missingFuelType = false))
-            }
-            return
+            updateState { copy(fuel = fuel.copy(failed = true, missingFuelType = false)) }
+            // Sin centro tampoco puede preguntar el MAPA: no hay alrededor de qué.
+            return true
         }
 
-        updateState { copy(fuel = fuel.copy(isExpanded = true)) }
         loadFuelStations(centre.first, centre.second, fuelType)
+        return true
     }
 
-    /**
-     * Show or hide the fuel-stations map layer. [FUEL-STATIONS-MAP-AND-PEEK-001]
-     *
-     * Turning it on asks around the CAMERA's centre (what you are looking at), fuel-less when the
-     * car declares none — markers without a figure are honest; a hidden layer is not. Turning it
-     * off clears a fuel-station selection so no peek keeps talking about an invisible pin.
-     * [FUEL-LAYER-FOLLOWS-THE-CAMERA-001]
-     */
-    private fun toggleFuelStationsLayer() {
-        val show = !state.value.showFuelStationsLayer
-        appPreferences.setShowFuelStationsLayer(show)
-        updateState {
-            copy(
-                showFuelStationsLayer = show,
-                selection = selection.takeUnless { !show && it is HomeSelection.FuelStation },
-            )
-        }
-        if (show) viewportCentreOrGps()?.let { (lat, lon) -> maybeFetchFuelViewport(lat, lon) }
-    }
 
     /**
      * The layer follows the CAMERA. [FUEL-LAYER-FOLLOWS-THE-CAMERA-001]
@@ -623,7 +655,7 @@ class HomeViewModel(
      */
     private fun maybeFetchFuelViewport(lat: Double, lon: Double) {
         val s = state.value
-        if (!s.showFuelStationsLayer || s.fuelLayer.isLoading) return
+        if (!s.showsFuelOnMap || s.fuelLayer.isLoading) return
         // Not a place (0,0 before the map has a camera), or too far from the user to be a refuel
         // question. Past the limit the layer EMPTIES: showing your own city's stations over a
         // distant one is the lie this ticket exists to stop.
@@ -700,7 +732,19 @@ class HomeViewModel(
 
     /** Debounced camera-settle trigger for the viewport ask — a nervous pan is not a question. */
     private fun scheduleFuelViewportRefetch(lat: Double, lon: Double) {
-        if (!state.value.showFuelStationsLayer) return
+        if (!state.value.showsFuelOnMap) return
+        // ⛔ Si el carril de este sujeto es el que está a la vista, NO pregunta la capa: ya lo hace
+        // el carril, por el mismo centro y con el mismo radio ([maybeRefetchOpenSections]). Sin este
+        // corte, cada asentamiento de cámara costaba DOS peticiones al mismo servicio gratuito por el
+        // mismo suelo — lo midieron `should_refetchTheOpenLane_when_theCameraSettlesFarEnough` y
+        // `should_askAroundTheSettledCamera_when_itMovedPastHalfTheRadius` al rebasar, contando tres
+        // donde debía haber dos. La capa conserva su camino para la ÚNICA entrada en que el carril no
+        // puede preguntar: un coche SIN COMBUSTIBLE, donde `loadFuelStations` no llega a salir porque
+        // no hay precio que pedir. Por eso el corte comprueba las dos cosas y no solo la lente — con
+        // solo la lente, un coche sin combustible se quedaba sin nadie que siguiera a la cámara y el
+        // mapa dejaba de refrescar sus cápsulas al panear.
+        // [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001] [A-SECTION-ANSWERS-ABOUT-WHERE-YOU-LOOK-001]
+        if (state.value.nearbyLens == HomeNearbyLens.FUEL && activeFuelType() != null) return
         fuelViewportJob?.cancel()
         fuelViewportJob = viewModelScope.launch {
             delay(FUEL_VIEWPORT_SETTLE_MS)
@@ -718,6 +762,8 @@ class HomeViewModel(
 
     /** The ONE fetch both surfaces share — section rows and map markers read the same answer. */
     private fun loadFuelStations(lat: Double, lon: Double, fuelType: FuelType?) {
+        val previousAnchorLat = state.value.fuel.anchorLat
+        val previousAnchorLon = state.value.fuel.anchorLon
         updateState {
             copy(
                 fuel = fuel.copy(
@@ -741,6 +787,17 @@ class HomeViewModel(
                                 rememberedAtMs = nearby.rememberedAtMs,
                                 fetchedFor = nearby.fuel,
                             ),
+                            // El mapa lee TAMBIÉN esta respuesta (el slice del mapa une las dos
+                            // tiendas), así que la capa anclada a la cámara apunta DÓNDE se preguntó y
+                            // deja de pedir por el mismo suelo. Sin esto, el primer paneo nervioso tras
+                            // entrar en el carril disparaba una segunda petición por terreno ya
+                            // cubierto — lo mide `should_notReaskOnEveryFix_when_theCameraHasNotMoved`.
+                            //
+                            // Desde el rebase las dos preguntan por la CÁMARA, así que el sitio es
+                            // literalmente el mismo y el sello es exacto, no una aproximación.
+                            // [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
+                            // [A-SECTION-ANSWERS-ABOUT-WHERE-YOU-LOOK-001]
+                            fuelLayer = fuelLayer.copy(anchorLat = lat, anchorLon = lon),
                         )
                     }
                 }
@@ -750,7 +807,24 @@ class HomeViewModel(
                 // undiagnosable. [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
                 .onFailure { e ->
                     PaparcarLogger.w(TAG, "fuel stations lookup failed", e)
-                    updateState { copy(fuel = fuel.copy(isLoading = false, failed = true)) }
+                    // ⛔ **Una petición fallida devuelve el ANCLA a donde estaba.** Es la misma regla
+                    // que la capa ya pagó en campo: con el ancla avanzada sobre el INTENTO, un 504
+                    // pasajero de Overpass dejaba París en blanco y ningún paneo por debajo de medio
+                    // radio volvía a intentarlo. Master estrenó el carril anclado a la cámara sin esta
+                    // vuelta atrás — no se veía porque la capa seguía preguntando por su cuenta; al
+                    // pasar el carril a ser quien sigue a la cámara, el agujero queda al descubierto.
+                    // Lo caza `should_askAgainInTheSamePlace_when_theFirstAskFailed`.
+                    // [FUEL-LAYER-FOLLOWS-THE-CAMERA-001] [A-SECTION-ANSWERS-ABOUT-WHERE-YOU-LOOK-001]
+                    updateState {
+                        copy(
+                            fuel = fuel.copy(
+                                isLoading = false,
+                                failed = true,
+                                anchorLat = previousAnchorLat,
+                                anchorLon = previousAnchorLon,
+                            ),
+                        )
+                    }
                 }
         }
     }
@@ -760,38 +834,25 @@ class HomeViewModel(
     // a failure is never rendered as "none nearby", and switching the layer off drops a selection
     // that would otherwise keep a peek talking about an invisible pin. [PARKINGS-ON-THE-MAP-001]
 
-    private fun togglePublicParkings() {
+    /**
+     * The car-parks ask, as the lane needs it — twin of [askFuelForLane].
+     *
+     * ⛔ No return value here, unlike the fuel one, and that is not an oversight: fuel has a case
+     * where the LIST has no question but the MAP does (a car with no fuel type). A car park is a car
+     * park whatever the car burns, so this lane and its map always want the same answer.
+     */
+    private fun askParkingsForLane() {
         val slice = state.value.parkings
-        if (slice.isExpanded) {
-            updateState { copy(parkings = parkings.copy(isExpanded = false)) }
-            return
-        }
-        // Already answered, or already asking: unfolding again must not re-ask. Unlike fuel there is
-        // no per-vehicle question here — a car park is a car park whatever the car burns.
-        if (slice.isLoading || slice.parkings.isNotEmpty()) {
-            updateState { copy(parkings = parkings.copy(isExpanded = true)) }
-            return
-        }
-        // Around the CAMERA, for the reason above.
+        // Ya respondido, o preguntando: volver a entrar no re-pregunta.
+        if (slice.isLoading || slice.parkings.isNotEmpty()) return
+        // Alrededor de la CÁMARA, por lo mismo que el combustible.
+        // [A-SECTION-ANSWERS-ABOUT-WHERE-YOU-LOOK-001]
         val centre = viewportCentreOrGps()
         if (centre == null) {
-            updateState { copy(parkings = parkings.copy(isExpanded = true, failed = true)) }
+            updateState { copy(parkings = parkings.copy(failed = true)) }
             return
         }
-        updateState { copy(parkings = parkings.copy(isExpanded = true)) }
         loadPublicParkings(centre.first, centre.second)
-    }
-
-    private fun togglePublicParkingsLayer() {
-        val show = !state.value.showPublicParkingsLayer
-        appPreferences.setShowPublicParkingsLayer(show)
-        updateState {
-            copy(
-                showPublicParkingsLayer = show,
-                selection = selection.takeUnless { !show && it is HomeSelection.PublicParking },
-            )
-        }
-        if (show) viewportCentreOrGps()?.let { (lat, lon) -> maybeFetchParkingsViewport(lat, lon) }
     }
 
     /**
@@ -810,7 +871,7 @@ class HomeViewModel(
      */
     private fun maybeFetchParkingsViewport(lat: Double, lon: Double) {
         val s = state.value
-        if (!s.showPublicParkingsLayer || s.parkingsLayer.isLoading) return
+        if (!s.showsParkingsOnMap || s.parkingsLayer.isLoading) return
         // Not a place (0,0 before the map has a camera), or so far from the user that showing your
         // own city's car parks over a distant one would be the lie, not the service.
         if (!ViewportRefetch.isWorthAsking(lat, lon, s.userGpsPoint?.latitude, s.userGpsPoint?.longitude)) {
@@ -881,17 +942,20 @@ class HomeViewModel(
     }
 
     /**
-     * The open sections follow the settled camera. [A-SECTION-ANSWERS-ABOUT-WHERE-YOU-LOOK-001]
+     * El CARRIL abierto sigue a la cámara asentada. [A-SECTION-ANSWERS-ABOUT-WHERE-YOU-LOOK-001]
      *
-     * ⛔ Only while UNFOLDED: a folded section still fetches nothing, which is the rule that keeps a
-     * province of stations from being downloaded for a list nobody opened.
+     * ⛔ Solo el carril en el que estás: un sujeto que nadie mira no pide nada, que es la regla que
+     * impide descargarse una provincia de gasolineras para una lista que nadie abrió.
      *
-     * The move has to earn the ask, exactly like the layers do — [ViewportRefetch] over the section's
-     * own last centre — or every flick of the map would spend a request.
+     * El movimiento tiene que GANARSE la pregunta, igual que en las capas — [ViewportRefetch] sobre
+     * el ancla del propio carril — o cada golpe de mapa costaría una petición.
+     *
+     * 🔑 Con la lente, esto se simplifica solo: antes había que preguntar por DOS secciones que podían
+     * estar desplegadas a la vez; ahora, como mucho, hay una a la vista.
+     * [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
      */
     private fun scheduleSectionsRefetch(lat: Double, lon: Double) {
-        val s = state.value
-        if (!s.fuel.isExpanded && !s.parkings.isExpanded) return
+        if (state.value.nearbyLens == HomeNearbyLens.SPOTS) return
         sectionsRefetchJob?.cancel()
         sectionsRefetchJob = viewModelScope.launch {
             delay(FUEL_VIEWPORT_SETTLE_MS)
@@ -903,28 +967,35 @@ class HomeViewModel(
         val s = state.value
         if (!ViewportRefetch.isWorthAsking(lat, lon, s.userGpsPoint?.latitude, s.userGpsPoint?.longitude)) return
 
-        if (s.fuel.isExpanded && !s.fuel.isLoading &&
-            ViewportRefetch.shouldRefetch(
-                s.fuel.anchorLat, s.fuel.anchorLon, lat, lon,
-                FuelStationsQuery.DEFAULT_RADIUS_METERS,
-            )
-        ) {
-            activeFuelType()?.let { loadFuelStations(lat, lon, it) }
-        }
+        when (s.nearbyLens) {
+            // Las plazas ya son una suscripción viva a lo que hay alrededor: no tienen que repreguntar.
+            HomeNearbyLens.SPOTS -> Unit
 
-        if (s.parkings.isExpanded && !s.parkings.isLoading &&
-            ViewportRefetch.shouldRefetch(
-                s.parkings.anchorLat, s.parkings.anchorLon, lat, lon,
-                PublicParkingsQuery.DEFAULT_RADIUS_METERS,
-            )
-        ) {
-            loadPublicParkings(lat, lon)
+            HomeNearbyLens.FUEL -> if (!s.fuel.isLoading &&
+                ViewportRefetch.shouldRefetch(
+                    s.fuel.anchorLat, s.fuel.anchorLon, lat, lon,
+                    FuelStationsQuery.DEFAULT_RADIUS_METERS,
+                )
+            ) {
+                activeFuelType()?.let { loadFuelStations(lat, lon, it) }
+            }
+
+            HomeNearbyLens.PARKINGS -> if (!s.parkings.isLoading &&
+                ViewportRefetch.shouldRefetch(
+                    s.parkings.anchorLat, s.parkings.anchorLon, lat, lon,
+                    PublicParkingsQuery.DEFAULT_RADIUS_METERS,
+                )
+            ) {
+                loadPublicParkings(lat, lon)
+            }
         }
     }
 
     /** Debounced camera-settle trigger, the twin of the fuel one. */
     private fun scheduleParkingsViewportRefetch(lat: Double, lon: Double) {
-        if (!state.value.showPublicParkingsLayer) return
+        if (!state.value.showsParkingsOnMap) return
+        // Gemelo del de combustible, y por lo mismo: el carril a la vista ya pregunta por este sitio.
+        if (state.value.nearbyLens == HomeNearbyLens.PARKINGS) return
         parkingsViewportJob?.cancel()
         parkingsViewportJob = viewModelScope.launch {
             delay(FUEL_VIEWPORT_SETTLE_MS)
@@ -932,8 +1003,10 @@ class HomeViewModel(
         }
     }
 
-    /** The section's own fetch. Same PLACE as the layer, still its own store and its own copy. */
+    /** La petición del carril. MISMO sitio que la capa, y aun así su propia tienda y su propia copia. */
     private fun loadPublicParkings(lat: Double, lon: Double) {
+        val previousAnchorLat = state.value.parkings.anchorLat
+        val previousAnchorLon = state.value.parkings.anchorLon
         updateState {
             copy(parkings = parkings.copy(isLoading = true, failed = false, anchorLat = lat, anchorLon = lon))
         }
@@ -947,7 +1020,12 @@ class HomeViewModel(
                                 failed = false,
                                 parkings = found.parkings,
                                 rememberedAtMs = found.rememberedAtMs,
-                            )
+                            ),
+                            // El mapa lee esta misma respuesta (la unión de las dos tiendas), así que
+                            // la capa anclada a la cámara apunta DÓNDE se preguntó y no vuelve a pedir
+                            // por el mismo suelo. Con las dos ancladas ya a la cámara, el sitio es
+                            // literalmente el mismo. [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
+                            parkingsLayer = parkingsLayer.copy(anchorLat = lat, anchorLon = lon),
                         )
                     }
                 }
@@ -955,7 +1033,17 @@ class HomeViewModel(
                 // "there are none nearby". [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
                 .onFailure { e ->
                     PaparcarLogger.w(TAG, "public parkings lookup failed", e)
-                    updateState { copy(parkings = parkings.copy(isLoading = false, failed = true)) }
+                    // Misma vuelta atrás del ancla que en el carril de combustible, y por lo mismo.
+                    updateState {
+                        copy(
+                            parkings = parkings.copy(
+                                isLoading = false,
+                                failed = true,
+                                anchorLat = previousAnchorLat,
+                                anchorLon = previousAnchorLon,
+                            ),
+                        )
+                    }
                 }
         }
     }
@@ -972,12 +1060,7 @@ class HomeViewModel(
                 clearedModeFields().copy(selection = intent.selection)
             }
             is HomeIntent.SetSizeFilter -> updateState { copy(sizeFilter = intent.size) }
-            is HomeIntent.ToggleFuelStations -> toggleFuelStations()
-            is HomeIntent.ToggleFuelStationsLayer -> toggleFuelStationsLayer()
-            is HomeIntent.TogglePublicParkings -> togglePublicParkings()
-            is HomeIntent.TogglePublicParkingsLayer -> togglePublicParkingsLayer()
-            is HomeIntent.SetFreeSpotsSectionExpanded ->
-                updateState { copy(freeSpotsExpandedOverride = intent.expanded) }
+            is HomeIntent.SetNearbyLens -> setNearbyLens(intent.lens)
             is HomeIntent.SendSpotSignal -> submitSpotSignal(intent.spotId, intent.accepted)
             is HomeIntent.EnterReportMode -> updateState {
                 clearedModeFields().copy(

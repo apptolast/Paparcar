@@ -39,6 +39,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.model.Spot
@@ -273,58 +274,23 @@ private fun SpotMetaRow(spot: Spot, distanceM: Float?) {
 
 @Composable
 internal fun HomeEmptySpots(
-    onReport: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Dashed border = "this slot is waiting to be filled" — an invitation, not a card.
-    // "Notify me when there's one" (bell → zone subscription) is deliberately absent:
-    // there is no zone-subscription backend yet. [ZONE-SUBSCRIBE-001] [UI-SHEET-001]
-    val outline = MaterialTheme.colorScheme.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA)
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .drawBehind {
-                val strokeW = PapBorders.thin.toPx()
-                drawRoundRect(
-                    color = outline,
-                    cornerRadius = CornerRadius(EMPTY_DASH_CORNER_DP.dp.toPx()),
-                    style = Stroke(
-                        width = strokeW,
-                        pathEffect = PathEffect.dashPathEffect(
-                            floatArrayOf(EMPTY_DASH_ON_DP.dp.toPx(), EMPTY_DASH_OFF_DP.dp.toPx()),
-                        ),
-                    ),
-                )
-            }
-            .padding(horizontal = 16.dp, vertical = 18.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        EmptySpotsIllustration(
-            modifier = Modifier.size(EMPTY_ILLUSTRATION_W.dp, EMPTY_ILLUSTRATION_H.dp),
-        )
-        Spacer(Modifier.height(2.dp))
-        // Shared empty-state recipe (titleSmall Bold + bodySmall) — same hierarchy as
-        // HomeEmptyFilteredSpots so the two states read as one family. [HOME-VEH-REFINE-001]
-        Text(
-            stringResource(Res.string.home_empty_title),
-            style = PaparcarType.current.rowTitle,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        Text(
-            stringResource(Res.string.home_empty_subtitle),
-            style = PaparcarType.current.caption,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = EMPTY_SUBTITLE_ALPHA),
-        )
-        Spacer(Modifier.height(8.dp))
-        PapFooterButton(
-            label = stringResource(Res.string.home_report_fab_cd),
-            leadingIcon = Icons.Rounded.Campaign,
-            onClick = onReport,
-            style = PapFooterButtonStyle.Filled,
-            modifier = Modifier.fillMaxWidth(),
-        )
-    }
+    // Una LINEA, no una caja.
+    //
+    // Esto era un bloque con borde discontinuo, ilustracion, titulo, subtitulo y su propio CTA
+    // relleno: ~150dp y el septimo lenguaje de contenedor del sheet, para decir que no hay nada.
+    // El borde punteado ademas prometia "hueco por rellenar", que es justo lo que el usuario no
+    // puede hacer desde aqui. Lo que si puede hacer ya se lo ofrece la tarjeta de avisar que va
+    // debajo - y esa tarjeta ahora se muestra tambien en vacio, porque este estado dejo de tener
+    // un CTA que la duplicara. [UI-ONE-SKELETON-ONE-EMPHASIS-ONE-GREEN-001]
+    Text(
+        text = stringResource(Res.string.home_empty_title),
+        style = PaparcarType.current.caption,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+        modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 20.dp),
+    )
 }
 
 @Composable
@@ -332,28 +298,21 @@ internal fun HomeEmptyFilteredSpots(
     onClearFilter: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    PapEmptyStateCard(modifier = modifier) {
-        Icon(
-            Icons.Rounded.FilterAltOff,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = EMPTY_ICON_ALPHA),
-            modifier = Modifier.size(36.dp),
-        )
-        Spacer(Modifier.height(2.dp))
-        // Same recipe as HomeEmptySpots (titleSmall Bold + bodySmall). [HOME-VEH-REFINE-001]
+    // Misma receta que su hermana: una linea. La diferencia es que aqui SI hay algo que hacer sin
+    // salir del carril - quitar el filtro -, asi que la accion va en la misma linea, en texto.
+    Row(
+        modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 20.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Text(
-            stringResource(Res.string.home_filter_empty_title),
-            style = PaparcarType.current.rowTitle,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        Text(
-            stringResource(Res.string.home_filter_empty_subtitle),
+            text = stringResource(Res.string.home_filter_empty_title),
             style = PaparcarType.current.caption,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = EMPTY_SUBTITLE_ALPHA),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(Modifier.width(6.dp))
         Text(
-            stringResource(Res.string.home_filter_empty_clear),
+            text = stringResource(Res.string.home_filter_empty_clear),
             style = PaparcarType.current.label,
             color = PapColor.actionText,
             modifier = Modifier.clickable(onClick = onClearFilter),
@@ -378,7 +337,7 @@ internal fun HomeReportSpotCard(
     PapOutlinedCard(
         onClick = onReport.takeIf { enabled },
         modifier = modifier.fillMaxWidth(),
-        shape = PapShapes.cardSmall,
+        shape = PapShapes.card,
     ) {
         PapListItem(
             title = stringResource(Res.string.home_report_fab_cd),
@@ -391,11 +350,16 @@ internal fun HomeReportSpotCard(
             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp),
             gap = 12.dp,
             leading = {
+                // ⛔ Verde, y es una de las dos excepciones del presupuesto: esta tarjeta ES una
+                // acción — toda ella avisa de una plaza — así que su glifo dice lo mismo que su "+".
+                // Al pasar el tile canónico a neutro por defecto, este megáfono se quedó gris y en
+                // device leía como un control APAGADO, que es lo contrario de lo que ofrece.
+                // (User, 10-09.) [UI-ONE-SKELETON-ONE-EMPHASIS-ONE-GREEN-001]
                 PapIconTile(
                     icon = Icons.Rounded.Campaign,
                     size = PRIMARY_CARD_ICON_BOX_DP.dp,
-                    shape = RoundedCornerShape(PRIMARY_CARD_ICON_CORNER_DP.dp),
-                    container = MaterialTheme.colorScheme.surfaceContainer,
+                    container = MaterialTheme.colorScheme.primaryContainer,
+                    tint = PapColor.action,
                     iconSize = 22.dp,
                 )
             },

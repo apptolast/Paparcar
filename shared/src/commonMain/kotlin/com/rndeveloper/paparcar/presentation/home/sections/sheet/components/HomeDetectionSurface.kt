@@ -1,6 +1,8 @@
 package com.rndeveloper.paparcar.presentation.home.sections.sheet.components
 
 import com.rndeveloper.paparcar.ui.components.PapIconTile
+import com.rndeveloper.paparcar.ui.components.PapListItem
+import com.rndeveloper.paparcar.ui.components.PapOutlinedCard
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -8,6 +10,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -380,10 +383,15 @@ private fun ActionRow(
      */
     onClick: (() -> Unit)? = null,
 ) {
+    // El enfasis es UNA variable, no un contenedor.
+    // Dos niveles y nada mas: la fila que PIDE algo ahora se tine (contenedor + borde del acento) y
+    // la que solo cuenta lo que pasa va en la tarjeta neutra que usa el resto del sheet.
+    //
+    // Se fue la BARRA DE ACENTO de 4dp que recorria la tarjeta entera. No decia "importante": decia
+    // "esta la escribimos en agosto" - era un septimo lenguaje de contenedor en una pantalla que ya
+    // tenia seis, y el color que gastaba competia con el unico verde que debe llamar, el de la
+    // accion. [UI-ONE-SKELETON-ONE-EMPHASIS-ONE-GREEN-001]
     val cardColor = if (tone.isError) tone.container else MaterialTheme.colorScheme.surfaceContainerHigh
-    // Error: a stronger accent-tinted border (urgent). Otherwise the SAME neutral card border the
-    // rest of the sheet sections use, so it reads as one card family. The colour stays on the accent
-    // bar — a coloured border on top would be a third accent and over-saturate the row. [DET-READY-001h]
     val border = if (tone.isError) {
         BorderStroke(BORDER_DP.dp, tone.accent.copy(alpha = ERROR_BORDER_ALPHA))
     } else {
@@ -396,55 +404,35 @@ private fun ActionRow(
         // of leaving a screen reader three peers with no hierarchy.
         .then(onClick?.let { Modifier.clickable(onClick = it) } ?: Modifier)
 
-    Surface(
-        shape = PapShapes.card,
-        color = cardColor,
-        border = border,
+    PapOutlinedCard(
         modifier = cardModifier,
+        containerColor = cardColor,
+        border = border,
     ) {
-        Row(modifier = Modifier.height(IntrinsicSize.Min)) {
-            // Accent bar spans the full row height.
-            Box(
-                modifier = Modifier
-                    .width(ACCENT_BAR_DP.dp)
-                    .fillMaxHeight()
-                    .background(tone.accent),
-            )
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(
-                        start = CONTENT_START_DP.dp,
-                        end = CONTENT_END_DP.dp,
-                        top = CONTENT_VERTICAL_DP.dp,
-                        bottom = CONTENT_VERTICAL_DP.dp,
-                    ),
-                verticalArrangement = Arrangement.spacedBy(CTA_ROW_GAP_DP.dp),
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(CONTENT_GAP_DP.dp),
-                ) {
-                    IconTile(icon = icon, tone = tone)
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = title,
-                            style = PaparcarType.current.rowTitle,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Text(
-                            text = subtitle,
-                            style = PaparcarType.current.caption,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                    // Single-CTA states keep the button INLINE on the right (the subtitle wraps to two
-                    // lines instead of truncating). Filled on error, tonal otherwise. [DET-READY-001h]
-                    if (secondaryLabel == null && primaryLabel != null && !primaryStacksBelow) {
+        Column(
+            modifier = Modifier.padding(bottom = CONTENT_VERTICAL_DP.dp),
+            verticalArrangement = Arrangement.spacedBy(CTA_ROW_GAP_DP.dp),
+        ) {
+            // La MISMA fila que las plazas, las gasolineras y los parkings: tile - titulo - sublinea
+            // - trailing. Este bloque tenia su propia anatomia a mano, y era (con la card del coche)
+            // uno de los dos unicos sitios del sheet que no usaba el esqueleto que el proyecto
+            // declara obligatorio. [UI-LIST-ITEM-001]
+            PapListItem(
+                title = title,
+                subtitle = subtitle,
+                titleMaxLines = 2,
+                subtitleMaxLines = 2,
+                leading = { IconTile(icon = icon, tone = tone) },
+                contentPadding = PaddingValues(
+                    start = CONTENT_START_DP.dp,
+                    end = CONTENT_END_DP.dp,
+                    top = CONTENT_VERTICAL_DP.dp,
+                    bottom = 0.dp,
+                ),
+                // Single-CTA states keep the button INLINE on the right (the subtitle wraps to two
+                // lines instead of truncating). Filled on error, tonal otherwise. [DET-READY-001h]
+                trailing = if (secondaryLabel == null && primaryLabel != null && !primaryStacksBelow) {
+                    {
                         CtaPill(
                             label = primaryLabel,
                             container = if (tone.isError) tone.accent else tone.container,
@@ -452,8 +440,15 @@ private fun ActionRow(
                             onClick = onPrimary,
                         )
                     }
-                }
-                // Single CTA stacked full-width below → title + subtitle got the full row width above.
+                } else {
+                    null
+                },
+            )
+            Column(
+                modifier = Modifier.padding(horizontal = CONTENT_START_DP.dp),
+                verticalArrangement = Arrangement.spacedBy(CTA_ROW_GAP_DP.dp),
+            ) {
+                // Single CTA stacked full-width below: title + subtitle got the full row width above.
                 // For the alert watch rows (fragile / interrupted). [DET-WATCH-HONEST-001]
                 if (secondaryLabel == null && primaryLabel != null && primaryStacksBelow) {
                     CtaPill(
@@ -465,7 +460,7 @@ private fun ActionRow(
                         fillWidth = true,
                     )
                 }
-                // Only the two-CTA cold-start stacks its actions full-width below (both need the room).
+                // Only the two-CTA cold-start stacks its actions full-width below (both need room).
                 if (secondaryLabel != null && primaryLabel != null) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -506,15 +501,13 @@ private fun ActionRow(
 
 @Composable
 private fun IconTile(icon: ImageVector, tone: Tone) {
-    // Error = filled (loud); otherwise a light tint so the accent bar carries the colour and the two
-    // accent elements don't compete. Uses the shared PapIconTile with tone-driven colours.
+    // Con la barra de acento retirada, el tono de la fila vive AQUI y en el CTA: dos sitios, no
+    // tres. Error = relleno (fuerte); el resto, un tinte ligero del mismo acento. Tamano y radio los
+    // pone el tile canonico. [UI-LIST-ITEM-001]
     PapIconTile(
         icon = icon,
-        size = TILE_DP.dp,
-        shape = RoundedCornerShape(TILE_RADIUS_DP.dp),
         container = if (tone.isError) tone.accent else tone.accent.copy(alpha = TILE_TINT_ALPHA),
         tint = if (tone.isError) tone.onAccent else tone.accent,
-        iconSize = TILE_ICON_DP.dp,
     )
 }
 

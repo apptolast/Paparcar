@@ -3,18 +3,17 @@ package com.rndeveloper.paparcar.presentation.home.model
 import com.rndeveloper.paparcar.domain.usecase.parkings.NearbyPublicParking
 
 /**
- * The "car parks nearby" section, as the sheet needs it. [PARKINGS-ON-THE-MAP-001]
+ * The "car parks nearby" lane, as the sheet needs it. [PARKINGS-ON-THE-MAP-001]
  *
- * Same contract as [HomeFuelSlice], and deliberately so: **nothing is fetched until the section is
- * opened**, because most sessions never ask this question.
+ * Same contract as [HomeFuelSlice], and deliberately so: **nothing is fetched until the lane is
+ * entered** (`HomeNearbyLens.PARKINGS`), because most sessions never ask this question.
  */
 data class HomeParkingsSlice(
-    val isExpanded: Boolean = false,
     val isLoading: Boolean = false,
     val parkings: List<NearbyPublicParking> = emptyList(),
     /**
      * Set when the lookup failed. Distinct from an empty list on purpose: "none within 1,5 km" and
-     * "we could not ask" are different sentences, and the section must never say the first when it
+     * "we could not ask" are different sentences, and the lane must never say the first when it
      * means the second. [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
      */
     val failed: Boolean = false,

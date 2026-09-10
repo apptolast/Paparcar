@@ -28,6 +28,7 @@ import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.usecase.fuel.NearbyFuelStation
 import com.rndeveloper.paparcar.domain.usecase.parkings.NearbyPublicParking
 import com.rndeveloper.paparcar.presentation.home.model.HomeFuelSlice
+import com.rndeveloper.paparcar.presentation.home.model.HomeNearbyLens
 import com.rndeveloper.paparcar.presentation.home.model.HomeParkingsSlice
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -76,17 +77,11 @@ data class HomeFabsSlice(
      *  while it re-engages driver-follow, the same colour its trail and puck carry on the map.
      *  Null when no trip is live. [UI-A-TRACKED-TRIP-WEARS-ITS-WATCH-001] */
     val drivingWatch: VehicleMonitoringStatus?,
-    /** Whether the fuel-stations layer is on — its toggle FAB shows the state.
-     *  [FUEL-STATIONS-MAP-AND-PEEK-001] */
-    val showFuelStationsLayer: Boolean,
     /** Accuracy of the last GPS fix (metres) — the pill on the band's start edge speaks when it is
      *  too coarse to trust. It rides in THIS slice, not the header's, because the band is where it
      *  is drawn and the band's visibility is the one it must follow: the header hides for every pin
      *  mode, which is when the warning matters most. [UI-A-WARNING-COSTS-NOTHING-WHEN-SILENT-001] */
     val gpsAccuracy: Float?,
-    /** Whether the public-parkings layer is on — the same layers menu shows both.
-     *  [PARKINGS-ON-THE-MAP-001] */
-    val showPublicParkingsLayer: Boolean,
 )
 
 /** What the map tile layer sees. [addParkingVehicle] is the vehicle being
@@ -330,13 +325,14 @@ data class HomeBrowseListSlice(
      *  checklist. Already resolved by the pure projection — the sheet renders it, it does not decide
      *  it, and it is also what tells the detection surface to stand down on the cold start. */
     val firstSteps: FirstStepsProgress,
-    /** "Where to refuel", folded until asked for. [FUEL-STATIONS-LIST-001] */
+    /** "Where to refuel" — the answer only; whether it is ON SHOW is [nearbyLens].
+     *  [FUEL-STATIONS-LIST-001] */
     val fuel: HomeFuelSlice,
-    /** "Public parkings", the section under it — same fold, same rule. [PARKINGS-ON-THE-MAP-001] */
+    /** "Car parks nearby" — same contract, same rule. [PARKINGS-ON-THE-MAP-001] */
     val parkings: HomeParkingsSlice,
-    /** Whether the free-spots section shows its body — resolved by [HomeState.freeSpotsSectionExpanded]
-     *  (user override, else data). [FUEL-STATIONS-MAP-AND-PEEK-001] */
-    val spotsSectionExpanded: Boolean,
+    /** WHICH of the three nearby subjects the lane is answering. One lane at a time, so a subject
+     *  never sits behind another's list. [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001] */
+    val nearbyLens: HomeNearbyLens,
 ) {
     /**
      * Whether the guided checklist is actually ON SCREEN — visibility AND the two conditions that
@@ -398,9 +394,7 @@ internal fun HomeState.toFabsSlice() = HomeFabsSlice(
         vehicles.firstOrNull { it.id == meta.vehicleId }?.monitoringStatus()
             ?: VehicleMonitoringStatus.Inactive
     },
-    showFuelStationsLayer = showFuelStationsLayer,
     gpsAccuracy = userGpsPoint?.accuracy,
-    showPublicParkingsLayer = showPublicParkingsLayer,
 )
 
 internal fun HomeState.toMapSlice() = HomeMapSlice(
@@ -430,12 +424,28 @@ internal fun HomeState.toMapSlice() = HomeMapSlice(
         vehicles.firstOrNull { it.id == meta.vehicleId }?.monitoringStatus()
             ?: VehicleMonitoringStatus.Inactive
     },
-    // The layer draws what the CAMERA is looking at, not where the user stands.
-    // [FUEL-LAYER-FOLLOWS-THE-CAMERA-001]
-    fuelStations = if (showFuelStationsLayer) fuelLayer.stations else emptyList(),
+    // Only while the LANE is on this subject: the map shows the complement you are LOOKING AT, never
+    // two label layers stacked over the spot pins that are the product.
+    // [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
+    //
+    // BOTH stores, exactly as the peek already reads them — the camera-anchored layer
+    // ([FUEL-LAYER-FOLLOWS-THE-CAMERA-001]) plus the lane's own user-anchored answer. The union is
+    // what keeps entering the lane to ONE request against a free shared service: the answer the list
+    // just got is already the answer for the pins around the user, and the layer only asks for itself
+    // once the camera has actually moved somewhere else. Each store keeps its own anchor, so neither
+    // ever answers for the other's area — every marker is drawn at its own coordinates.
+    fuelStations = if (showsFuelOnMap) {
+        (fuelLayer.stations + fuel.stations).distinctBy { it.station.id }
+    } else {
+        emptyList()
+    },
     selectedFuelStationId = (selection as? HomeSelection.FuelStation)?.id,
     fuelPricesFor = fuel.fetchedFor,
-    publicParkings = if (showPublicParkingsLayer) parkingsLayer.parkings else emptyList(),
+    publicParkings = if (showsParkingsOnMap) {
+        (parkingsLayer.parkings + parkings.parkings).distinctBy { it.parking.id }
+    } else {
+        emptyList()
+    },
     selectedPublicParkingId = (selection as? HomeSelection.PublicParking)?.id,
 )
 
@@ -501,7 +511,7 @@ fun HomeState.toPeekSlice(): HomePeekSlice {
 fun HomeState.toBrowseListSlice() = HomeBrowseListSlice(
     fuel = fuel,
     parkings = parkings,
-    spotsSectionExpanded = freeSpotsSectionExpanded,
+    nearbyLens = nearbyLens,
     detectionUiState = detectionUiState,
     parkedWatchBadge = parkedWatchBadge,
     showParkNudge = shouldShowParkNudgeBanner(pendingParkNudge, activeSessions),

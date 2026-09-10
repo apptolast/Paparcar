@@ -32,11 +32,6 @@
     <string name="home_browse_hint_swipe_report">Wische ↑, um einen Platz zu melden</string>
     <string name="common_directions">Route</string>
     <string name="home_navigate_to_vehicle_cd">Route zum Auto</string>
-    <string name="home_feed_nearby">Freie Stellplätze in der Nähe</string>
-    <plurals name="home_feed_nearby_with_count">
-        <item quantity="one">%1$d freier Stellplatz in deiner Nähe</item>
-        <item quantity="other">%1$d freie Stellplätze in deiner Nähe</item>
-    </plurals>
     <string name="home_empty_title">Noch keine Plätze gemeldet</string>
     <string name="home_empty_subtitle">Sei der Erste, der einen meldet</string>
     <string name="home_address_unknown">Unbekannter Standort</string>
@@ -840,7 +835,6 @@
 
     <!-- Gasolineras cercanas [FUEL-STATIONS-LIST-001] -->
     <string name="location_fallback_station">Tankstelle</string>
-    <string name="home_fuel_title">Wo tanken</string>
     <string name="home_fuel_empty">Keine Tankstellen im Umkreis von 5 km.</string>
     <string name="home_fuel_missing_fuel_type">Lege den Kraftstoff dieses Autos unter Fahrzeuge fest, um Tankstellen in der Nähe und ihre Preise zu sehen.</string>
     <string name="fuel_peek_eyebrow">Tankstelle</string>
@@ -853,10 +847,9 @@
     <string name="home_fuel_oldest_price">Ältester Preis: %1$s</string>
     <string name="home_fuel_remembered">Keine Verbindung: Das sind die Tankstellen, die wir hier %1$s gesehen haben.</string>
     <!-- Parkings publicos [PARKINGS-ON-THE-MAP-001] -->
-    <string name="map_cd_layers">Kartenebenen ein- oder ausblenden</string>
-    <string name="map_layer_fuel_stations">Tankstellen</string>
-    <string name="map_layer_public_parkings">Parkhäuser</string>
-    <string name="home_parkings_title">Parkhäuser in der Nähe</string>
+    <string name="subject_fuel_stations">Tankstellen</string>
+    <string name="subject_public_parkings">Parkhäuser</string>
+    <string name="subject_free_spots">Stellplätze</string>
     <string name="home_parkings_empty">Keine öffentlichen Parkhäuser im Umkreis von 1,5 km.</string>
     <string name="home_parkings_error">Die Parkhäuser konnten nicht geladen werden. Prüfe deine Verbindung und öffne das erneut.</string>
     <string name="home_parkings_remembered">Keine Verbindung: Das sind die Parkhäuser, die wir hier %1$s gesehen haben.</string>

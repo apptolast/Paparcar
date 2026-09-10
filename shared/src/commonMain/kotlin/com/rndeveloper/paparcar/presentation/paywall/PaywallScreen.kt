@@ -378,7 +378,7 @@ private fun TierComparison() {
         ) {
             PapOutlinedCard(
                 modifier = Modifier.weight(1f).fillMaxHeight(),
-                shape = PapShapes.cardLarge,
+                shape = PapShapes.card,
             ) {}
             PapPremiumSurface(modifier = Modifier.weight(1f).fillMaxHeight()) {}
         }

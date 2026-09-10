@@ -189,7 +189,7 @@ private fun VehicleHeroCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
-        shape = PapShapes.cardLarge,
+        shape = PapShapes.card,
         color = cs.surfaceContainerHigh,
         // ⛔ Neutral border, not the watch colour. This card already says "vigilado por Bluetooth"
         // three other ways — the dot on its tab chip, the glyph before the name and the state

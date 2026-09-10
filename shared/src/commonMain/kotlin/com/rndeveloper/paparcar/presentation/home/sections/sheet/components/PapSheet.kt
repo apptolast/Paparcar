@@ -383,8 +383,13 @@ private fun PapSheetLeadTile(lead: PapSheetLead) {
 
         is PapSheetLead.SpotCounter -> {
             val hasSpots = lead.count > 0
-            val accent = if (hasSpots) PapColor.brandData else PapColor.attention
-            LeadTileBox(container = if (hasSpots) cs.primaryContainer else cs.secondaryContainer) {
+            // ⛔ Cero plazas NO es ámbar. El ámbar es "esto te va a caducar" — la rampa de frescura de
+            // las plazas — y un contador a cero no es una advertencia: es un hecho tranquilo sobre el
+            // mundo, del que además el usuario no tiene la culpa ni el remedio. Pintarlo de alerta era
+            // gastar el segundo acento de la app en no decir nada.
+            // [UI-ONE-SKELETON-ONE-EMPHASIS-ONE-GREEN-001] [UI-COLOR-DOCTRINE-001]
+            val accent = if (hasSpots) PapColor.brandData else cs.onSurfaceVariant
+            LeadTileBox(container = if (hasSpots) cs.primaryContainer else cs.surfaceContainerHighest) {
                 // Centrar la CAJA de texto no centra lo que se ve: encima del dígito sobra el
                 // ascenso que no usa, y debajo de las mayúsculas sobra el descenso. Con Jakarta ese
                 // hueco es 0.29 em y el bloque quedaba pegado al borde inferior del tile. La
@@ -460,7 +465,7 @@ private fun LeadTileBox(container: Color, content: @Composable () -> Unit) {
     Box(
         modifier = Modifier
             .size(LEAD_TILE_DP.dp)
-            .clip(PapShapes.cardSmall)
+            .clip(PapShapes.card)
             .background(container),
         contentAlignment = Alignment.Center,
     ) {
@@ -487,7 +492,7 @@ internal fun PapSheetBanner(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(PapShapes.cardSmall)
+            .clip(PapShapes.card)
             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.Top,

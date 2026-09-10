@@ -306,18 +306,6 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
 
     override fun setDefaultMapType(type: String) = set(Keys.DEFAULT_MAP_TYPE, type)
 
-    override val showFuelStationsLayer: Boolean
-        get() = get(Keys.SHOW_FUEL_STATIONS_LAYER, false)
-
-    override fun setShowFuelStationsLayer(enabled: Boolean) =
-        set(Keys.SHOW_FUEL_STATIONS_LAYER, enabled)
-
-    override val showPublicParkingsLayer: Boolean
-        get() = get(Keys.SHOW_PUBLIC_PARKINGS_LAYER, false)
-
-    override fun setShowPublicParkingsLayer(enabled: Boolean) =
-        set(Keys.SHOW_PUBLIC_PARKINGS_LAYER, enabled)
-
     // ── Keys ─────────────────────────────────────────────────────────────────
 
     private object Keys {
@@ -352,11 +340,13 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
         val THEME_MODE              = stringPreferencesKey("theme_mode")
         val USE_IMPERIAL_UNITS      = booleanPreferencesKey("use_imperial_units")
         val DEFAULT_MAP_TYPE        = stringPreferencesKey("default_map_type")
-        val SHOW_FUEL_STATIONS_LAYER = booleanPreferencesKey("show_fuel_stations_layer")
-        val SHOW_PUBLIC_PARKINGS_LAYER = booleanPreferencesKey("show_public_parkings_layer")
         // "selected_language" removed 2026-08-29: the in-app picker never applied anything and the
         // OS owns the app language now. Stale values linger in the file; they are inert.
         // [SETTINGS-LANGUAGE-LIVES-IN-THE-SYSTEM-001]
+        // "show_fuel_stations_layer" / "show_public_parkings_layer" removed 2026-09-10: what the map
+        // paints of the two complements is now the sheet's LENS — where the user is looking — not a
+        // switch that outlives the session. Stale values linger in the file; they are inert.
+        // [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
     }
 
     private companion object {

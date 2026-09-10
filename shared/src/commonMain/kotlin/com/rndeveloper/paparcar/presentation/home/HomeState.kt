@@ -36,6 +36,7 @@ import com.rndeveloper.paparcar.domain.model.preferredParkingSession
 import com.rndeveloper.paparcar.domain.model.sortRank
 import com.rndeveloper.paparcar.presentation.home.model.HomeFuelLayerSlice
 import com.rndeveloper.paparcar.presentation.home.model.HomeFuelSlice
+import com.rndeveloper.paparcar.presentation.home.model.HomeNearbyLens
 import com.rndeveloper.paparcar.presentation.home.model.HomeParkingsLayerSlice
 import com.rndeveloper.paparcar.presentation.home.model.HomeParkingsSlice
 
@@ -309,9 +310,17 @@ data class HomeState(
     val addingParkingNudgeSource: String? = null,
 
     /**
-     * "Where to refuel", folded until asked for. [FUEL-STATIONS-LIST-001]
+     * Which nearby subject the sheet's lane is showing. ONE lane at a time, so no subject sits
+     * behind another's list. [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
      *
-     * Its own value rather than four loose fields on the state: the section has to keep
+     * Session-only and always [HomeNearbyLens.SPOTS] on a cold start: Home is the AHORA.
+     */
+    val nearbyLens: HomeNearbyLens = HomeNearbyLens.SPOTS,
+
+    /**
+     * "Where to refuel", unasked until its lane is entered. [FUEL-STATIONS-LIST-001]
+     *
+     * Its own value rather than four loose fields on the state: the lane has to keep
      * "nothing within 5 km" and "we could not ask" apart, and a pair of booleans beside a list
      * is two facts that can disagree.
      */
@@ -321,27 +330,11 @@ data class HomeState(
      *  [FUEL-LAYER-FOLLOWS-THE-CAMERA-001] */
     val fuelLayer: HomeFuelLayerSlice = HomeFuelLayerSlice(),
 
-    /** The fuel-stations map layer, mirroring its [AppPreferences] switch. OFF by default.
-     *  [FUEL-STATIONS-MAP-AND-PEEK-001] */
-    val showFuelStationsLayer: Boolean = false,
-
-    /** "Car parks nearby", the browse section. [PARKINGS-ON-THE-MAP-001] */
+    /** "Car parks nearby", the browse lane. [PARKINGS-ON-THE-MAP-001] */
     val parkings: HomeParkingsSlice = HomeParkingsSlice(),
 
-    /** The car-parks LAYER, anchored to the camera — a different question from the section. */
+    /** The car-parks LAYER, anchored to the camera — a different question from the lane. */
     val parkingsLayer: HomeParkingsLayerSlice = HomeParkingsLayerSlice(),
-
-    /** The public-parkings map layer, mirroring its [AppPreferences] switch. OFF by default. */
-    val showPublicParkingsLayer: Boolean = false,
-
-    /**
-     * The user's explicit fold/unfold of the free-spots section, or null while they have not
-     * touched it — in which case [freeSpotsSectionExpanded] decides from the data: open with spots
-     * to show, folded when there are none, so an empty feed is one header line instead of a block
-     * the refuel section hides under. Session-only on purpose (like the fuel section's fold).
-     * [FUEL-STATIONS-MAP-AND-PEEK-001]
-     */
-    val freeSpotsExpandedOverride: Boolean? = null,
 
 ) {
     // ── Computed properties ───────────────────────────────────────────────────
@@ -395,13 +388,26 @@ data class HomeState(
     val isParkingSelected: Boolean
         get() = selectedSession != null
 
-    /** Whether the free-spots section shows its body. The user's explicit choice wins; otherwise
-     *  the data decides — open with spots (or while still loading), folded on a true empty.
-     *  ⛔ Stable order, folding body: the section never CHANGES PLACE when spots appear — a list
-     *  that reorders under the finger is the failure this design refuses.
-     *  [FUEL-STATIONS-MAP-AND-PEEK-001] */
-    val freeSpotsSectionExpanded: Boolean
-        get() = freeSpotsExpandedOverride ?: (spotsOnOffer.isNotEmpty() || isLoading)
+    // ── What the map paints of the two complements ────────────────────────────
+    // The LANE decides, and nothing else does. [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
+    //
+    // These replaced two persisted switches (`showFuelStationsLayer`, `showPublicParkingsLayer`) fed
+    // by a layers menu on the map. Two controls for one subject is what let the map paint price
+    // capsules while the sheet listed car parks — and, with both switches on, stack two label layers
+    // over the spot pins that ARE the product. Now the answer to "what is on the map" is the answer to
+    // "what am I looking at", which cannot disagree with itself.
+    //
+    // ⛔ Only the COMPLEMENTS are governed this way. Free spots, your parked cars, your zones and the
+    // live trip are painted always: they were never layers, and nothing the user picks here hides
+    // their own car.
+
+    /** True while the lane is fuel — the only state in which price capsules exist. */
+    val showsFuelOnMap: Boolean
+        get() = nearbyLens == HomeNearbyLens.FUEL
+
+    /** True while the lane is car parks — the only state in which "P" capsules exist. */
+    val showsParkingsOnMap: Boolean
+        get() = nearbyLens == HomeNearbyLens.PARKINGS
 
     /** Presentation projection of [detectionReadiness] for the Home detection surface. [DET-READY-001h] */
     val detectionUiState: DetectionUiState

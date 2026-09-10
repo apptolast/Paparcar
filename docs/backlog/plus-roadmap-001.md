@@ -421,9 +421,13 @@ gratuita. Paparcar replica el modelo:
 - UI: marcador nivel 3 "P" con **rampa de ocupación PROPIA** — ⛔ NO reutilizar la rampa de
   frescura de plazas (`PapSpotFresh…` es EXCLUSIVA de la caducidad de plazas,
   `UI-COLOR-DOCTRINE-001`): usar `onSurface` + cifra de libres en el glifo, gris si solo estático,
-  y "hace X min" en el peek. Sección "Parkings cercanos" en el sheet bajo Gasolineras (o pestañas
-  Plazas · Gasolineras · Parkings si el sheet se alarga — Claude propone tras medir en device).
-  Capa activable como la de gasolineras. Nunca en la superficie de detección ni en aparcar/liberar.
+  y "hace X min" en el peek. Nunca en la superficie de detección ni en aparcar/liberar.
+  ✅ **La pregunta abierta ("¿sección bajo gasolineras o pestañas?") está RESUELTA: pestañas** —
+  `HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001` (10-09). Con la lista de plazas sin cap, la
+  `y` de cada complemento dependía de cuántas plazas hubiera cerca (~1.100 dp con 10, ~2.100 dp con
+  25). El sheet pasa a bloque fijo + UN carril elegido por una fila de chips pegada, y **el menú de
+  capas del mapa se retira**: la capa del complemento la manda el carril, así que ya no hay dos
+  controles para el mismo sujeto ni dos capas de etiquetas apiladas sobre los pines de plaza.
 - Vocabulario: F6 añade su fila a la tabla de `COPY-SPOT-IS-NOT-A-PARKING-001` ("parking público"
   vs "aparcamiento" vs "plaza") en `CLAUDE.md`, ×9 locales.
 - Free. Es lo que evita el mapa vacío el primer día.

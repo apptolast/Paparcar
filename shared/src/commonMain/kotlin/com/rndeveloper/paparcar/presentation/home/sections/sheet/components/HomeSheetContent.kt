@@ -1,16 +1,14 @@
 
 package com.rndeveloper.paparcar.presentation.home.sections.sheet.components
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
@@ -18,16 +16,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import com.rndeveloper.paparcar.ui.components.PapDivider
-import com.rndeveloper.paparcar.ui.components.PapShimmerBox
-import com.rndeveloper.paparcar.ui.components.PapShimmerBlockScale
 import com.rndeveloper.paparcar.ui.components.chips.PaparcarFilterChip
-import androidx.compose.foundation.clickable
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ExpandLess
-import androidx.compose.material.icons.rounded.ExpandMore
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -55,14 +45,13 @@ import com.rndeveloper.paparcar.presentation.home.VehicleCard
 import com.rndeveloper.paparcar.presentation.home.isDriving
 import com.rndeveloper.paparcar.presentation.home.vehiclesRowOrder
 import com.rndeveloper.paparcar.presentation.home.model.DetectionStory
+import com.rndeveloper.paparcar.presentation.home.model.HomeNearbyLens
 import com.rndeveloper.paparcar.presentation.home.model.resolveDetectionStory
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.HomeSheetAction
 import com.rndeveloper.paparcar.ui.components.PapSectionHeader
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
-import paparcar.composeapp.generated.resources.home_feed_nearby
-import paparcar.composeapp.generated.resources.home_feed_nearby_with_count
 import paparcar.composeapp.generated.resources.home_vehicles_section_header
 import paparcar.composeapp.generated.resources.home_size_filter_all
 import paparcar.composeapp.generated.resources.vehicle_size_large
@@ -74,16 +63,18 @@ import paparcar.composeapp.generated.resources.vehicle_size_van
 /**
  * Emits the sheet content items into a [LazyListScope].
  *
- * Section order:
- *  1. **"TUS VEHÍCULOS" header + per-vehicle rows** — one row per registered
- *     vehicle. Vehicles with an active session show their park status; others
- *     show a "Park" pill that enters AddingParking for that specific vehicle.
- *     The section is hidden entirely when the user has no vehicles registered
- *     yet (onboarding edge — should not happen in steady state).
- *     [MULTI-PARKING-001]
- *  2. **"PLAZAS LIBRES CERCA · N" header + filter bar + spots list** — the
- *     community discovery feed, capped by a "Report a free spot" CTA after
- *     the list.
+ * **Two blocks, two different rules** — the split that
+ * [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001] introduced:
+ *
+ *  1. **The FIXED block — lo MÍO ahora.** Guided first steps, the detection story, then "TUS
+ *     VEHÍCULOS" and one row per registered vehicle (vehicles with an active session show their park
+ *     status; the others show a "Park" pill that enters AddingParking for that specific vehicle). It
+ *     never folds and never changes height with anybody else's data. Hidden only when there is no
+ *     vehicle at all (onboarding edge). [MULTI-PARKING-001]
+ *  2. **The LANE — qué hay cerca.** One sticky chip row picks the subject (free spots · car parks ·
+ *     fuel) and exactly ONE of the three lists follows. Before this, the three were stacked and
+ *     foldable, so each subject's distance from the top depended on how many rows the subjects above
+ *     it held — and the spots feed has no cap.
  *
  * Zone chips have moved to [HomeHeaderSection] (below the search bar).
  */
@@ -204,6 +195,31 @@ fun LazyListScope.homeSheetItems(
         // [ONBOARDING-STEPS-MUST-EXPLAIN-WHAT-REALLY-HAPPENS-001]
         firstStepsOwns = if (showFirstSteps) firstSteps.owns else FirstStepsOwnership.NOTHING,
     )
+    // ── 1. TU COCHE ────────────────────────────────────────────────────────────────────────────
+    // Primero, porque es el SUJETO de esta pantalla; la detección de abajo es algo que se le hace a
+    // él, y leerlas en ese orden es leer una frase. Antes iba al revés y el bloque más importante
+    // aparecía después de un aviso sobre él.
+    //
+    // ⛔ Sin cabecera de sección con UN solo coche: la card lleva su nombre, su glifo y su estado —
+    // un rótulo "TU VEHÍCULO" encima solo repetía en mayúsculas lo que la fila ya dice. Con dos o
+    // más sí, porque entonces la fila es una tira y necesita quién la nombra.
+    // [UI-ONE-SKELETON-ONE-EMPHASIS-ONE-GREEN-001]
+    if (showPersonalBlocks) {
+        if (vehicleCards.size > 1) {
+            item("vehicles_header") {
+                PapSectionHeader(
+                    // Singular/plural header by vehicle count via plurals. [HOME-CARDS-001]
+                    title = pluralStringResource(
+                        Res.plurals.home_vehicles_section_header,
+                        vehicleCards.size,
+                    ),
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
+                )
+            }
+        }
+        vehiclesSection(slice, vehicleCards, onIntent, onAction)
+    }
+
     if (detectionStory != DetectionStory.Hidden) {
         item("detection_surface") {
             HomeDetectionSurface(
@@ -256,67 +272,18 @@ fun LazyListScope.homeSheetItems(
         }
     }
 
-    // ── 1. "TUS VEHÍCULOS" header + per-vehicle rows
-    if (showPersonalBlocks) {
-        item("vehicles_header") {
-            PapSectionHeader(
-                // Singular/plural header by vehicle count via plurals. [HOME-CARDS-001]
-                title = pluralStringResource(
-                    Res.plurals.home_vehicles_section_header,
-                    vehicleCards.size,
-                ),
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
-            )
-        }
-        vehiclesSection(slice, vehicleCards, onIntent, onAction)
-    }
-
-    // ── 3. Spots (header + filter bar + list + report CTA) ─────────────────
-    // Hidden entirely without CORE: the nearby feed is meaningless with no location, and the
-    // red Blocked·CORE surface above is already the single "turn on location" prompt — no need
-    // for the old HomePermissionsCard duplicating it. [DET-READY-001i]
+    // ── 3. The nearby LANE: the chip row that picks a subject, and that subject's list ───────
+    // Hidden entirely without CORE: "nearby" is meaningless with no location, and the red
+    // Blocked·CORE surface above is already the single "turn on location" prompt — no need for the
+    // old HomePermissionsCard duplicating it. [DET-READY-001i]
     if (slice.hasCorePermissions) {
-        spotsSection(
+        nearbyLane(
             slice = slice,
             onIntent = onIntent,
             onAction = onAction,
             filteredSpots = filteredSpots,
             showFilterBar = showFilterBar,
         )
-
-        // ── 4. Car parks — first of the two complements, and that order is a PRODUCT decision, not
-        // an accident: this app is about leaving the car somewhere, so "where do I park" sits closer
-        // to what the user came for than "where do I refuel". Both are complements to the free
-        // spots above them; neither is the product. [PARKINGS-ON-THE-MAP-001]
-        //
-        // Same CORE gate as the spots and for the same reason: without a location there is no
-        // "nearby" to answer, and nothing is fetched until the header is actually unfolded.
-        item("public_parkings") {
-            HomeParkingsSection(
-                slice = slice.parkings,
-                onToggle = { onIntent(HomeIntent.TogglePublicParkings) },
-                // A row selects the car park THROUGH the same lambda its map capsule uses, so the
-                // camera flies to it and the peek opens — a selection the map does not acknowledge
-                // reads as a dead tap. [FUEL-STATIONS-MAP-AND-PEEK-001]
-                onParkingClick = { parkingId ->
-                    onAction(HomeSheetAction.SelectPublicParking(parkingId))
-                },
-            )
-        }
-
-        // ── 5. Where to refuel — the second complement. [FUEL-STATIONS-LIST-001]
-        // ⛔ The order of these sections is FIXED and never changes at runtime; only their bodies
-        // fold. A list that reorders itself under the finger was the shape rejected in
-        // [FUEL-STATIONS-MAP-AND-PEEK-001] — deciding the fixed order is a different thing.
-        item("fuel_stations") {
-            HomeFuelSection(
-                slice = slice.fuel,
-                onToggle = { onIntent(HomeIntent.ToggleFuelStations) },
-                onStationClick = { stationId ->
-                    onAction(HomeSheetAction.SelectFuelStation(stationId))
-                },
-            )
-        }
     }
 }
 
@@ -402,46 +369,77 @@ private fun LazyListScope.vehiclesSection(
     }
 }
 
-private fun LazyListScope.spotsSection(
+/**
+ * The nearby lane: ONE sticky chip row that picks the subject, then that subject's list.
+ * [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
+ *
+ * What this replaced: three foldable sections stacked in a fixed order (spots → car parks → fuel),
+ * where the `y` of each one was a function of how many rows the ones above it held. The free-spots
+ * feed has no cap, so "where to refuel" sat ~1.100 dp down with 10 spots nearby and ~2.100 dp with 25
+ * — measured off this file's own paddings. A subject the user asks for cannot live behind another
+ * subject's list, and folding never fixed it: to fold spots you first have to reach its chevron.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+private fun LazyListScope.nearbyLane(
     slice: HomeBrowseListSlice,
     onIntent: (HomeIntent) -> Unit,
     onAction: (HomeSheetAction) -> Unit,
     filteredSpots: List<Spot>,
     showFilterBar: Boolean,
 ) {
-    item(FREE_SPOTS_SECTION_KEY) {
-        // Foldable, same molde as the refuel header (weight(1f) or the chevron leaves the screen —
-        // learnt on device in FUEL-STATIONS-LIST-001). The section keeps its PLACE whether folded
-        // or not: an empty feed folds to this one line so the refuel section sits right below,
-        // instead of the sections swapping order under the user's finger.
-        // [FUEL-STATIONS-MAP-AND-PEEK-001]
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable {
-                    onIntent(HomeIntent.SetFreeSpotsSectionExpanded(!slice.spotsSectionExpanded))
-                }
-                .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            PapSectionHeader(
-                title = if (filteredSpots.isNotEmpty())
-                    pluralStringResource(Res.plurals.home_feed_nearby_with_count, filteredSpots.size, filteredSpots.size)
-                else
-                    stringResource(Res.string.home_feed_nearby),
-                modifier = Modifier.weight(1f),
+    // STICKY, and that is the half of this design that makes switching back cheap: from the bottom of
+    // a car-park list the way back to the spots is the row already pinned above, not a scroll to the
+    // top. Its key is public because RevealFreeSpots walks the list to it. [ONBOARDING-STEPS-MUST-EXPLAIN-WHAT-REALLY-HAPPENS-001]
+    stickyHeader(NEARBY_LENS_KEY) {
+        HomeNearbyLensRow(
+            lens = slice.nearbyLens,
+            // Spots always know their count — the feed is a live subscription. The complements only
+            // know theirs once their lane has been asked, and a `· 0` before that would be a verdict
+            // no source gave. [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
+            spotCount = filteredSpots.size,
+            fuelCount = slice.fuel.stations.size,
+            parkingsCount = slice.parkings.parkings.size,
+            onSelect = { lens -> onIntent(HomeIntent.SetNearbyLens(lens)) },
+        )
+    }
+
+    when (slice.nearbyLens) {
+        HomeNearbyLens.SPOTS -> spotsLane(slice, onIntent, onAction, filteredSpots, showFilterBar)
+
+        // Car parks before fuel in the chip row, and that order is a PRODUCT decision, not an
+        // accident: this app is about leaving the car somewhere, so "where do I park" sits closer to
+        // what the user came for than "where do I refuel". Both are complements to the free spots;
+        // neither is the product. [PARKINGS-ON-THE-MAP-001]
+        HomeNearbyLens.PARKINGS -> item("parkings_lane") {
+            HomeParkingsLane(
+                slice = slice.parkings,
+                // A row selects the car park THROUGH the same lambda its map capsule uses, so the
+                // camera flies to it and the peek opens — a selection the map does not acknowledge
+                // reads as a dead tap. [FUEL-STATIONS-MAP-AND-PEEK-001]
+                onParkingClick = { parkingId ->
+                    onAction(HomeSheetAction.SelectPublicParking(parkingId))
+                },
             )
-            Icon(
-                imageVector = if (slice.spotsSectionExpanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        }
+
+        HomeNearbyLens.FUEL -> item("fuel_lane") {
+            HomeFuelLane(
+                slice = slice.fuel,
+                onStationClick = { stationId ->
+                    onAction(HomeSheetAction.SelectFuelStation(stationId))
+                },
             )
         }
     }
+}
 
-    if (!slice.spotsSectionExpanded) return
-
+private fun LazyListScope.spotsLane(
+    slice: HomeBrowseListSlice,
+    onIntent: (HomeIntent) -> Unit,
+    onAction: (HomeSheetAction) -> Unit,
+    filteredSpots: List<Spot>,
+    showFilterBar: Boolean,
+) {
     if (showFilterBar) {
         item(key = "filter_bar") {
             HomeSizeFilterBar(
@@ -455,7 +453,7 @@ private fun LazyListScope.spotsSection(
     }
 
     when {
-        slice.isLoading -> item("skeleton") { SpotsSkeletonList() }
+        slice.isLoading -> item("skeleton") { NearbyRowsSkeleton() }
         filteredSpots.isEmpty() && slice.sizeFilter != null && slice.hasAnySpots ->
             item("empty_filtered") {
                 HomeEmptyFilteredSpots(
@@ -463,12 +461,7 @@ private fun LazyListScope.spotsSection(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                 )
             }
-        filteredSpots.isEmpty() -> item("empty") {
-            HomeEmptySpots(
-                onReport = { onAction(HomeSheetAction.RequestReportMode) },
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-            )
-        }
+        filteredSpots.isEmpty() -> item("empty") { HomeEmptySpots() }
         else -> itemsIndexed(filteredSpots, key = { _, spot -> spot.id }) { index, spot ->
             Column {
                 HomeSpotRow(
@@ -486,11 +479,10 @@ private fun LazyListScope.spotsSection(
         }
     }
 
-    // The plain empty state already carries its own "Report a free spot" primary —
-    // don't double the CTA below it. [UI-SHEET-001]
-    val emptyShowsReportCta = !slice.isLoading && filteredSpots.isEmpty() &&
-        !(slice.sizeFilter != null && slice.hasAnySpots)
-    if (slice.hasCorePermissions && !emptyShowsReportCta) {
+    // El estado vacio ya no lleva CTA propio (es una linea), asi que la tarjeta de avisar se
+    // muestra SIEMPRE: antes se suprimia justo cuando mas falta hacia, para no duplicar el boton que
+    // vivia dentro de la caja discontinua. [UI-ONE-SKELETON-ONE-EMPHASIS-ONE-GREEN-001]
+    if (slice.hasCorePermissions) {
         item("report_spot_cta") {
             HomeReportSpotCard(
                 onReport = { onAction(HomeSheetAction.RequestReportMode) },
@@ -503,60 +495,12 @@ private fun LazyListScope.spotsSection(
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Loading skeleton
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Composable
-private fun SpotsSkeletonList(
-    itemCount: Int = SKELETON_ITEM_COUNT,
-) {
-    Column {
-        repeat(itemCount) { index ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                PapShimmerBox(
-                    modifier = Modifier.size(42.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    alphaScale = PapShimmerBlockScale,
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    PapShimmerBox(
-                        modifier = Modifier.width(SKELETON_TITLE_WIDTH.dp).height(12.dp),
-                        shape = RoundedCornerShape(4.dp),
-                        alphaScale = PapShimmerBlockScale,
-                    )
-                    PapShimmerBox(
-                        modifier = Modifier.width(SKELETON_SUBTITLE_WIDTH.dp).height(10.dp),
-                        shape = RoundedCornerShape(4.dp),
-                        alphaScale = PapShimmerBlockScale * SKELETON_SUBTITLE_ALPHA_FACTOR,
-                    )
-                }
-            }
-            if (index < itemCount - 1) {
-                PapDivider(modifier = Modifier.padding(start = 70.dp, end = 16.dp))
-            }
-        }
-    }
-}
-
 /**
- * Item key of the free-spots section header. Public because
- * [HomeSheetAction.RevealFreeSpots] scrolls the list to it — a second spelling of the
- * string would be a scroll that silently stops working.
+ * Item key of the sticky lens row. Public because [HomeSheetAction.RevealFreeSpots] walks the list to
+ * it — a second spelling of the string would be a scroll that silently stops working.
  * [ONBOARDING-STEPS-MUST-EXPLAIN-WHAT-REALLY-HAPPENS-001]
  */
-internal const val FREE_SPOTS_SECTION_KEY = "spots_header"
-
-private const val SKELETON_ITEM_COUNT = 4
-private const val SKELETON_TITLE_WIDTH = 140
-private const val SKELETON_SUBTITLE_WIDTH = 100
-private const val SKELETON_SUBTITLE_ALPHA_FACTOR = 0.7f
+internal const val NEARBY_LENS_KEY = "nearby_lens"
 
 // Width of the right-edge scroll-hint fade on the size filter bar. [HOME-POLISH-001]
 private const val FILTER_FADE_WIDTH_DP = 28

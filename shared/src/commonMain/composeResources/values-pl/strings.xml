@@ -31,13 +31,6 @@
     <string name="home_browse_hint_swipe_report">Przesuń ↑, aby zgłosić miejsce</string>
     <string name="common_directions">Trasa</string>
     <string name="home_navigate_to_vehicle_cd">Trasa do auta</string>
-    <string name="home_feed_nearby">Wolne miejsca w pobliżu</string>
-    <plurals name="home_feed_nearby_with_count">
-        <item quantity="one">%1$d wolne miejsce w pobliżu</item>
-        <item quantity="few">%1$d wolne miejsca w pobliżu</item>
-        <item quantity="many">%1$d wolnych miejsc w pobliżu</item>
-        <item quantity="other">%1$d wolnych miejsc w pobliżu</item>
-    </plurals>
     <string name="home_empty_title">Nie zgłoszono jeszcze żadnych miejsc</string>
     <string name="home_empty_subtitle">Bądź pierwszym, który je zgłosi</string>
     <string name="home_address_unknown">Nieznana lokalizacja</string>
@@ -855,7 +848,6 @@
 
     <!-- Gasolineras cercanas [FUEL-STATIONS-LIST-001] -->
     <string name="location_fallback_station">Stacja paliw</string>
-    <string name="home_fuel_title">Gdzie zatankować</string>
     <string name="home_fuel_empty">Brak stacji paliw w promieniu 5 km.</string>
     <string name="home_fuel_missing_fuel_type">Ustaw paliwo tego auta w zakładce Pojazdy, aby zobaczyć pobliskie stacje i ich ceny.</string>
     <string name="fuel_peek_eyebrow">Stacja paliw</string>
@@ -868,10 +860,9 @@
     <string name="home_fuel_oldest_price">Najstarsza cena: %1$s</string>
     <string name="home_fuel_remembered">Brak połączenia: to stacje, które widzieliśmy tutaj %1$s.</string>
     <!-- Parkings publicos [PARKINGS-ON-THE-MAP-001] -->
-    <string name="map_cd_layers">Pokaż lub ukryj warstwy mapy</string>
-    <string name="map_layer_fuel_stations">Stacje paliw</string>
-    <string name="map_layer_public_parkings">Parkingi</string>
-    <string name="home_parkings_title">Parkingi w pobliżu</string>
+    <string name="subject_fuel_stations">Stacje paliw</string>
+    <string name="subject_public_parkings">Parkingi</string>
+    <string name="subject_free_spots">Miejsca</string>
     <string name="home_parkings_empty">Brak publicznych parkingów w promieniu 1,5 km.</string>
     <string name="home_parkings_error">Nie udało się wczytać parkingów. Sprawdź połączenie i otwórz to ponownie.</string>
     <string name="home_parkings_remembered">Brak połączenia: to parkingi, które widzieliśmy tutaj %1$s.</string>

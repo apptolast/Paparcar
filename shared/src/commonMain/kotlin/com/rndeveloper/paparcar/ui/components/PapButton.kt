@@ -96,7 +96,7 @@ fun PapPrimaryButton(
         enabled = enabled && !isLoading,
         shape = when (size) {
             PapButtonSize.Regular -> ButtonDefaults.shape
-            PapButtonSize.Compact -> PapShapes.cardSmall
+            PapButtonSize.Compact -> PapShapes.card
         },
         colors = when (tone) {
             PapButtonTone.Brand -> ButtonDefaults.buttonColors()

@@ -138,14 +138,10 @@ interface AppPreferences {
     val defaultMapType: String
     fun setDefaultMapType(type: String)
 
-    /** The fuel-stations map layer. OFF by default — it is a tool you reach for, not furniture —
-     *  and a device preference like the map type, so it survives sign-out.
-     *  [FUEL-STATIONS-MAP-AND-PEEK-001] */
-    val showFuelStationsLayer: Boolean
-    fun setShowFuelStationsLayer(enabled: Boolean)
-
-    /** The public-parkings map layer. Same contract as the fuel one: OFF by default, per device.
-     *  [PARKINGS-ON-THE-MAP-001] */
-    val showPublicParkingsLayer: Boolean
-    fun setShowPublicParkingsLayer(enabled: Boolean)
+    // ⛔ There are no map-LAYER preferences here any more (`showFuelStationsLayer`,
+    // `showPublicParkingsLayer`). What the map paints of fuel and car parks is decided by the sheet's
+    // lens — where the user is LOOKING — not by a switch that outlives the session. A subject visible
+    // in one surface and hidden in the other was two controls for one concept, and the pair could
+    // also stack two label layers over the spot pins that are the product.
+    // [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
 }

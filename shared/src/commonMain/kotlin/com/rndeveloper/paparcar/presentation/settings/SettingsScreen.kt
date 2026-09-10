@@ -752,7 +752,7 @@ private fun DetectionHealthRow(state: SettingsState, onFix: () -> Unit, onFixRel
             if (amber) {
                 OutlinedButton(
                     onClick = if (healthy) onFixReliability else onFix,
-                    shape = PapShapes.button,
+                    shape = PapShapes.row,
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = PapColor.attention),
                     border = BorderStroke(PapBorders.thin, PapColor.attention),
                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
@@ -901,7 +901,7 @@ private fun ProfileCardV2(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp),
-                shape = PapShapes.button,
+                shape = PapShapes.row,
             ) {
                 Icon(Icons.AutoMirrored.Rounded.Logout, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.size(6.dp))
@@ -1099,7 +1099,7 @@ private fun DangerZoneCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp),
-                shape = PapShapes.button,
+                shape = PapShapes.row,
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = cs.error),
                 border = BorderStroke(PapBorders.medium, cs.error),
             ) {

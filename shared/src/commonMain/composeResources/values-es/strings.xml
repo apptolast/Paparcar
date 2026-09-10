@@ -48,11 +48,6 @@
          [COPY-PARKING-EDIT-THREE-ANSWERS-ONE-QUESTION-001] -->
     <string name="common_directions">Cómo llegar</string>
     <string name="home_navigate_to_vehicle_cd">Cómo llegar al coche</string>
-    <string name="home_feed_nearby">Plazas libres cerca</string>
-    <plurals name="home_feed_nearby_with_count">
-        <item quantity="one">%1$d plaza libre cerca de ti</item>
-        <item quantity="other">%1$d plazas libres cerca de ti</item>
-    </plurals>
     <string name="home_empty_title">Aún no hay plazas reportadas</string>
     <string name="home_empty_subtitle">Sé el primero en avisar de una</string>
     <!-- Header de browse (PapSheet): eyebrow de zona + subtítulo aparcado + hint sin plazas. [UI-SHEET-001] -->
@@ -834,7 +829,6 @@
 
     <!-- Gasolineras cercanas [FUEL-STATIONS-LIST-001] -->
     <string name="location_fallback_station">Gasolinera</string>
-    <string name="home_fuel_title">Dónde repostar</string>
     <string name="home_fuel_empty">No hay gasolineras a menos de 5 km.</string>
     <string name="home_fuel_missing_fuel_type">Indica el combustible de este coche en Vehículos para ver las gasolineras cercanas y sus precios.</string>
     <string name="fuel_peek_eyebrow">Gasolinera</string>
@@ -847,10 +841,9 @@
     <string name="home_fuel_oldest_price">Precio más antiguo: %1$s</string>
     <string name="home_fuel_remembered">Sin conexión: estas son las gasolineras que vimos aquí %1$s.</string>
     <!-- Parkings publicos [PARKINGS-ON-THE-MAP-001] -->
-    <string name="map_cd_layers">Mostrar u ocultar capas del mapa</string>
-    <string name="map_layer_fuel_stations">Gasolineras</string>
-    <string name="map_layer_public_parkings">Parkings</string>
-    <string name="home_parkings_title">Parkings cerca</string>
+    <string name="subject_fuel_stations">Gasolineras</string>
+    <string name="subject_public_parkings">Parkings</string>
+    <string name="subject_free_spots">Plazas</string>
     <string name="home_parkings_empty">No hay parkings públicos a menos de 1,5 km.</string>
     <string name="home_parkings_error">No hemos podido cargar los parkings. Revisa la conexión y vuelve a abrir esto.</string>
     <string name="home_parkings_remembered">Sin conexión: estos son los parkings que vimos aquí %1$s.</string>

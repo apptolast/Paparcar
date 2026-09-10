@@ -93,7 +93,7 @@ fun PapOutlinedCard(
 }
 
 /**
- * Empty-state card shell: a [PapOutlinedCard] ([PapShapes.cardSmall]) wrapping a centred,
+ * Empty-state card shell: a [PapOutlinedCard] ([PapShapes.card]) wrapping a centred,
  * full-width [Column] with the standard vertical padding + item spacing. Callers fill in
  * the leading visual (illustration/icon), title, subtitle and optional action — keeping
  * their own text styles. Centralises only the repeated card+column scaffold.
@@ -103,7 +103,7 @@ fun PapEmptyStateCard(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    PapOutlinedCard(modifier = modifier.fillMaxWidth(), shape = PapShapes.cardSmall) {
+    PapOutlinedCard(modifier = modifier.fillMaxWidth(), shape = PapShapes.card) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(vertical = EmptyStateVerticalPadding),
             horizontalAlignment = Alignment.CenterHorizontally,

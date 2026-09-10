@@ -150,8 +150,6 @@ internal fun HomeMapFabsLayer(
     onMyLocation: () -> Unit,
     onParkedCar: () -> Unit,
     onMidpoint: () -> Unit,
-    onToggleFuelLayer: () -> Unit = {},
-    onTogglePublicParkingsLayer: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     AnimatedVisibility(
@@ -168,13 +166,9 @@ internal fun HomeMapFabsLayer(
             drivingWatch = slice.drivingWatch,
             // During a monitored trip the MyLocation FAB re-engages driver-follow instead of GPS. [DET-STATUS-SHEET-001]
             followsCar = isDriving,
-            fuelLayerOn = slice.showFuelStationsLayer,
-            parkingsLayerOn = slice.showPublicParkingsLayer,
             onMyLocation = onMyLocation,
             onParkedCar = onParkedCar,
             onMidpoint = onMidpoint,
-            onToggleFuelLayer = onToggleFuelLayer,
-            onTogglePublicParkingsLayer = onTogglePublicParkingsLayer,
             modifier = Modifier.padding(end = MAP_FLOATING_SIDE_INSET_DP.dp),
         )
     }

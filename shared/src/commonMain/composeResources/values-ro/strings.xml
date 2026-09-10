@@ -31,14 +31,8 @@
     <string name="home_browse_hint_swipe_report">Glisează ↑ pentru a anunța un loc</string>
     <string name="common_directions">Indicații</string>
     <string name="home_navigate_to_vehicle_cd">Indicații către mașină</string>
-    <string name="home_feed_nearby">Locuri libere în apropiere</string>
     <!-- Romanian takes "de" from 20 up (20 de locuri), not below it (3 locuri). What used to sit in
          `other` was the few form, so counts of 20+ read wrong. [I18N-PLURAL-CATEGORIES-FOLLOW-THE-LANGUAGE-NOT-ENGLISH-001] -->
-    <plurals name="home_feed_nearby_with_count">
-        <item quantity="one">%1$d loc liber în apropierea ta</item>
-        <item quantity="few">%1$d locuri libere în apropierea ta</item>
-        <item quantity="other">%1$d de locuri libere în apropierea ta</item>
-    </plurals>
     <string name="home_empty_title">Niciun loc anunțat încă</string>
     <string name="home_empty_subtitle">Fii primul care raportează unul</string>
     <string name="home_address_unknown">Locație necunoscută</string>
@@ -854,7 +848,6 @@
 
     <!-- Gasolineras cercanas [FUEL-STATIONS-LIST-001] -->
     <string name="location_fallback_station">Benzinărie</string>
-    <string name="home_fuel_title">Unde alimentezi</string>
     <string name="home_fuel_empty">Nicio benzinărie pe o rază de 5 km.</string>
     <string name="home_fuel_missing_fuel_type">Setează combustibilul acestei mașini în Vehicule ca să vezi benzinăriile din apropiere și prețurile lor.</string>
     <string name="fuel_peek_eyebrow">Benzinărie</string>
@@ -867,10 +860,9 @@
     <string name="home_fuel_oldest_price">Cel mai vechi preț: %1$s</string>
     <string name="home_fuel_remembered">Fără conexiune: acestea sunt benzinăriile văzute aici %1$s.</string>
     <!-- Parkings publicos [PARKINGS-ON-THE-MAP-001] -->
-    <string name="map_cd_layers">Afișează sau ascunde straturile hărții</string>
-    <string name="map_layer_fuel_stations">Benzinării</string>
-    <string name="map_layer_public_parkings">Parcări publice</string>
-    <string name="home_parkings_title">Parcări publice în apropiere</string>
+    <string name="subject_fuel_stations">Benzinării</string>
+    <string name="subject_public_parkings">Parcări</string>
+    <string name="subject_free_spots">Locuri</string>
     <string name="home_parkings_empty">Nicio parcare publică pe o rază de 1,5 km.</string>
     <string name="home_parkings_error">Nu am putut încărca parcările. Verifică conexiunea și deschide din nou.</string>
     <string name="home_parkings_remembered">Fără conexiune: acestea sunt parcările văzute aici %1$s.</string>

@@ -12,8 +12,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import platform.Foundation.NSUserDefaults
 
 private const val KEY_ONBOARDING_COMPLETED = "onboarding_completed"
-private const val KEY_SHOW_FUEL_STATIONS_LAYER = "show_fuel_stations_layer"
-private const val KEY_SHOW_PUBLIC_PARKINGS_LAYER = "show_public_parkings_layer"
 private const val KEY_GPS_ACCURACY_DISCLAIMER_SEEN = "gps_accuracy_disclaimer_seen"
 private const val KEY_LEGAL_CONSENT_ACCEPTED = "legal_consent_accepted"
 private const val KEY_LOCATION_PERMISSION_REQUESTED = "location_permission_requested"
@@ -303,17 +301,4 @@ class IosAppPreferences : AppPreferences {
         userDefaults.setObject(type, forKey = KEY_DEFAULT_MAP_TYPE)
     }
 
-    override val showFuelStationsLayer: Boolean
-        get() = userDefaults.boolForKey(KEY_SHOW_FUEL_STATIONS_LAYER)
-
-    override fun setShowFuelStationsLayer(enabled: Boolean) {
-        userDefaults.setBool(enabled, forKey = KEY_SHOW_FUEL_STATIONS_LAYER)
-    }
-
-    override val showPublicParkingsLayer: Boolean
-        get() = userDefaults.boolForKey(KEY_SHOW_PUBLIC_PARKINGS_LAYER)
-
-    override fun setShowPublicParkingsLayer(enabled: Boolean) {
-        userDefaults.setBool(enabled, forKey = KEY_SHOW_PUBLIC_PARKINGS_LAYER)
-    }
 }

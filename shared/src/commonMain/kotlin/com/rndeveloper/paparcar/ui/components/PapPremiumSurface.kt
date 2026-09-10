@@ -69,7 +69,7 @@ import paparcar.composeapp.generated.resources.paparcar_iconmark_white
 @Composable
 fun PapPremiumSurface(
     modifier: Modifier = Modifier,
-    shape: Shape = PapShapes.cardLarge,
+    shape: Shape = PapShapes.card,
     onClick: (() -> Unit)? = null,
     enabled: Boolean = true,
     emphasis: PapPremiumEmphasis = PapPremiumEmphasis.Filled,

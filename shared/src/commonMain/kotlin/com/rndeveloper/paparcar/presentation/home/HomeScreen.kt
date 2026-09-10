@@ -71,7 +71,8 @@ import com.rndeveloper.paparcar.presentation.home.sections.sheet.HomeSheetSnap
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.SheetTransitionEffects
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.rememberSheetMotion
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.rememberSheetPositioning
-import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.FREE_SPOTS_SECTION_KEY
+import com.rndeveloper.paparcar.presentation.home.model.HomeNearbyLens
+import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.NEARBY_LENS_KEY
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.HomeReleaseDialog
 import com.rndeveloper.paparcar.presentation.util.rememberOpenExternalNavigation
 import com.rndeveloper.paparcar.presentation.util.zoneIconFor
@@ -803,8 +804,6 @@ private fun HomeContent(
                     activeSessions = state.activeSessions,
                     selectedSession = state.selectedSession,
                     onMyCarMarkerClick = onMyCarMarkerClick,
-                    onToggleFuelLayer = { onIntent(HomeIntent.ToggleFuelStationsLayer) },
-                    onTogglePublicParkingsLayer = { onIntent(HomeIntent.TogglePublicParkingsLayer) },
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .offset(fabBandOffset),
@@ -1175,12 +1174,13 @@ private fun HomeSheetSection(
             // exception: a size filter the user set can still leave it showing "none your size",
             // which is the right thing to show them (the filter bar is right there).
             HomeSheetAction.RevealFreeSpots -> {
-                // A folded section cannot be "revealed" folded: open it before scrolling to it.
-                // [FUEL-STATIONS-MAP-AND-PEEK-001]
-                onIntent(HomeIntent.SetFreeSpotsSectionExpanded(true))
+                // Point the lane AT the spots — never a toggle, so this cannot flip a lane the user
+                // is already on into something else.
+                // [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
+                onIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.SPOTS))
                 onExpandSheet()
                 frame.coroutineScope.launch {
-                    frame.lazyListState.animateScrollToItem(frame.lazyListState.freeSpotsIndex())
+                    frame.lazyListState.animateScrollToItem(frame.lazyListState.nearbyLensIndex())
                 }
             }
         }
@@ -1213,18 +1213,18 @@ internal fun pinStartPoint(uiController: HomeUiController, state: HomeState): Pa
 }
 
 /**
- * Where the free-spots section starts in the sheet list.
+ * Where the nearby lane starts in the sheet list — its sticky chip row.
  * [ONBOARDING-STEPS-MUST-EXPLAIN-WHAT-REALLY-HAPPENS-001]
  *
- * Resolved by the section header's own item KEY, so nothing here counts the items above it — that
- * count depends on the checklist, the detection story and the vehicle strip all being present or
- * not, and a second tally of those would be wrong the next time one of them changes.
+ * Resolved by that row's own item KEY, so nothing here counts the items above it — that count depends
+ * on the checklist, the detection story and the vehicle strip all being present or not, and a second
+ * tally of those would be wrong the next time one of them changes.
  *
- * The fallback when the header is not composed yet is the LAST item, which is not a different
- * destination: the free-spots section is the last thing in the sheet, so both roads end inside it.
+ * The fallback when the row is not composed yet is the LAST item, which is not a different
+ * destination: everything below the lens row belongs to the lane, so both roads end inside it.
  */
-private fun LazyListState.freeSpotsIndex(): Int =
-    layoutInfo.visibleItemsInfo.firstOrNull { it.key == FREE_SPOTS_SECTION_KEY }?.index
+private fun LazyListState.nearbyLensIndex(): Int =
+    layoutInfo.visibleItemsInfo.firstOrNull { it.key == NEARBY_LENS_KEY }?.index
         ?: (layoutInfo.totalItemsCount - 1).coerceAtLeast(0)
 
 /** The right-side camera FAB column plus its actions (locate/car/midpoint). */
@@ -1240,8 +1240,6 @@ private fun HomeMapFabsSection(
     activeSessions: List<UserParking>,
     selectedSession: UserParking?,
     onMyCarMarkerClick: (sessionId: String) -> Unit,
-    onToggleFuelLayer: () -> Unit = {},
-    onTogglePublicParkingsLayer: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     // Stable lambdas — GPS and parking read via rememberUpdatedState at call-time.
@@ -1294,8 +1292,6 @@ private fun HomeMapFabsSection(
             }
         },
         onMidpoint = onMidpoint,
-        onToggleFuelLayer = onToggleFuelLayer,
-        onTogglePublicParkingsLayer = onTogglePublicParkingsLayer,
         modifier = modifier,
     )
 }

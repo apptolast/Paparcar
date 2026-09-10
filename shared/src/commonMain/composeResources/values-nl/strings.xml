@@ -32,11 +32,6 @@
     <string name="home_browse_hint_swipe_report">Veeg ↑ om een plek te melden</string>
     <string name="common_directions">Route</string>
     <string name="home_navigate_to_vehicle_cd">Route naar je auto</string>
-    <string name="home_feed_nearby">Vrije plekken in de buurt</string>
-    <plurals name="home_feed_nearby_with_count">
-        <item quantity="one">%1$d vrije parkeerplaats in uw buurt</item>
-        <item quantity="other">%1$d vrije parkeerplaatsen in uw buurt</item>
-    </plurals>
     <string name="home_empty_title">Nog geen plekken gemeld</string>
     <string name="home_empty_subtitle">Wees de eerste die er een meldt</string>
     <string name="home_address_unknown">Onbekende locatie</string>
@@ -840,7 +835,6 @@
 
     <!-- Gasolineras cercanas [FUEL-STATIONS-LIST-001] -->
     <string name="location_fallback_station">Tankstation</string>
-    <string name="home_fuel_title">Waar tanken</string>
     <string name="home_fuel_empty">Geen tankstations binnen 5 km.</string>
     <string name="home_fuel_missing_fuel_type">Stel de brandstof van deze auto in bij Voertuigen om tankstations in de buurt en hun prijzen te zien.</string>
     <string name="fuel_peek_eyebrow">Tankstation</string>
@@ -853,10 +847,9 @@
     <string name="home_fuel_oldest_price">Oudste prijs: %1$s</string>
     <string name="home_fuel_remembered">Geen verbinding: dit zijn de tankstations die we hier %1$s zagen.</string>
     <!-- Parkings publicos [PARKINGS-ON-THE-MAP-001] -->
-    <string name="map_cd_layers">Kaartlagen tonen of verbergen</string>
-    <string name="map_layer_fuel_stations">Tankstations</string>
-    <string name="map_layer_public_parkings">Parkeergarages</string>
-    <string name="home_parkings_title">Parkeergarages in de buurt</string>
+    <string name="subject_fuel_stations">Tankstations</string>
+    <string name="subject_public_parkings">Parkeergarages</string>
+    <string name="subject_free_spots">Plekken</string>
     <string name="home_parkings_empty">Geen openbare parkeergarages binnen 1,5 km.</string>
     <string name="home_parkings_error">We konden de parkeergarages niet laden. Controleer je verbinding en open dit opnieuw.</string>
     <string name="home_parkings_remembered">Geen verbinding: dit zijn de parkeergarages die we hier %1$s zagen.</string>

@@ -460,13 +460,13 @@ private fun HomeSpotRowSelectedNoDistanceLightPreview() {
     uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 private fun HomeEmptySpotsDarkPreview() {
-    PaparcarTheme(darkTheme = true) { Column(Modifier.padding(16.dp)) { HomeEmptySpots(onReport = {}) } }
+    PaparcarTheme(darkTheme = true) { Column(Modifier.padding(16.dp)) { HomeEmptySpots() } }
 }
 
 @Preview(name = "A — HomeEmptySpots (claro)", showBackground = true)
 @Composable
 private fun HomeEmptySpotsLightPreview() {
-    PaparcarTheme(darkTheme = false) { Column(Modifier.padding(16.dp)) { HomeEmptySpots(onReport = {}) } }
+    PaparcarTheme(darkTheme = false) { Column(Modifier.padding(16.dp)) { HomeEmptySpots() } }
 }
 
 // ─── A — HomeSheetContent: pantallas completas ────────────────────────────────

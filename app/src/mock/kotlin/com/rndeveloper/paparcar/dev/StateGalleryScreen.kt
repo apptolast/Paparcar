@@ -143,9 +143,10 @@ import com.rndeveloper.paparcar.domain.fuel.FuelStation
 import com.rndeveloper.paparcar.domain.fuel.StationPrice
 import com.rndeveloper.paparcar.domain.usecase.fuel.NearbyFuelStation
 import com.rndeveloper.paparcar.presentation.home.model.HomeFuelSlice
+import com.rndeveloper.paparcar.presentation.home.model.HomeNearbyLens
 import com.rndeveloper.paparcar.presentation.home.model.HomeParkingsSlice
-import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.HomeFuelSection
-import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.HomeParkingsSection
+import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.HomeFuelLane
+import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.HomeParkingsLane
 import com.rndeveloper.paparcar.domain.parkings.FeeInfo
 import com.rndeveloper.paparcar.domain.parkings.PublicParking
 import com.rndeveloper.paparcar.domain.parkings.PublicParkingKind
@@ -2312,41 +2313,35 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             Variant("Showcase completo (sin tiles)") { markersShowcase() },
         ),
     ),
-    // Las cuatro frases de la sección son DISTINTAS a propósito: lista vacía, fallo y país sin
+    // Las cuatro frases del carril son DISTINTAS a propósito: lista vacía, fallo y país sin
     // precios publicados se leen igual ("no hay precios") si se les deja colapsar en una.
     // [FUEL-STATIONS-LIST-001]
+    //
+    // ⛔ Ya no hay variante "plegada": el carril no tiene pliegue — quién está a la vista lo dice la
+    // lente, y su fila de chips tiene su propio grupo abajo.
+    // [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
     ScreenGroup(
         "Home · dónde repostar",
         listOf(
-            Variant("Plegada (nada pedido todavía)", Placement.Surface) {
-                HomeFuelSection(slice = HomeFuelSlice(), onToggle = {})
-            },
             Variant("Cargando", Placement.Surface) {
-                HomeFuelSection(
-                    slice = HomeFuelSlice(isExpanded = true, isLoading = true),
-                    onToggle = {},
-                )
+                HomeFuelLane(slice = HomeFuelSlice(isLoading = true))
             },
             // España: precio real por surtidor y la hora del feed al pie.
             Variant("Con precios (España)", Placement.Surface) {
-                HomeFuelSection(
+                HomeFuelLane(
                     slice = HomeFuelSlice(
-                        isExpanded = true,
                         stations = galleryFuelStations,
                         reportedAt = "09/09/2026 08:30:00",
                     ),
-                    onToggle = {},
                 )
             },
             // El resto del mundo: gasolineras reales de OSM y ni un precio. Se dice ANTES de las
             // filas, para que una columna de distancias sin cifras no se lea como un fallo de carga.
             Variant("Sin precios publicados (resto del mundo)", Placement.Surface) {
-                HomeFuelSection(
+                HomeFuelLane(
                     slice = HomeFuelSlice(
-                        isExpanded = true,
                         stations = galleryFuelStations.map { it.copy(price = null) },
                     ),
-                    onToggle = {},
                 )
             },
             // Francia: la fuente NO sella la respuesta, sella cada precio. El pie acota la edad
@@ -2354,17 +2349,15 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             // de la tercera fila es justo el que un sello único taparía.
             // [FUEL-FRANCE-A-PRICE-CARRIES-ITS-OWN-HOUR-001]
             Variant("Precio con hora PROPIA (Francia)", Placement.Surface) {
-                HomeFuelSection(
+                HomeFuelLane(
                     slice = HomeFuelSlice(
-                        isExpanded = true,
                         stations = galleryFrenchStations,
                         reportedAt = null,
                     ),
-                    onToggle = {},
                 )
             },
             Variant("Ninguna a menos de 5 km", Placement.Surface) {
-                HomeFuelSection(slice = HomeFuelSlice(isExpanded = true), onToggle = {})
+                HomeFuelLane(slice = HomeFuelSlice())
             },
             // ⛔ Recordado del disco: la tercera frase, y la unica que dice que HOY no se pudo
             // preguntar. [CACHE-A-MAP-MUST-NOT-EMPTY-ON-COLD-START-001]
@@ -2375,32 +2368,24 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             //
             // ⛔ Fecha calculada, no el valor por defecto — si no, la variante no ejercita su caso.
             Variant("Recordado del disco (sin conexion)", Placement.Surface) {
-                HomeFuelSection(
+                HomeFuelLane(
                     slice = HomeFuelSlice(
-                        isExpanded = true,
                         stations = galleryFrenchStations,
                         reportedAt = null,
                         rememberedAtMs = Clock.System.now().toEpochMilliseconds() - THREE_DAYS_MS,
                     ),
-                    onToggle = {},
                 )
             },
             // ⛔ No es lo mismo que la anterior: decir "no hay ninguna" cuando no se pudo preguntar
             // manda al usuario a conducir sobre algo que nadie comprobó.
             Variant("No se pudo preguntar", Placement.Surface) {
-                HomeFuelSection(
-                    slice = HomeFuelSlice(isExpanded = true, failed = true),
-                    onToggle = {},
-                )
+                HomeFuelLane(slice = HomeFuelSlice(failed = true))
             },
             // ⛔ Tampoco es la vacía: sin combustible en el coche NO hubo pregunta. Con un coche
             // pre-fuelType este estado salía como "no hay ninguna a 5 km", fabricado.
             // [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
             Variant("Sin combustible en el coche", Placement.Surface) {
-                HomeFuelSection(
-                    slice = HomeFuelSlice(isExpanded = true, missingFuelType = true),
-                    onToggle = {},
-                )
+                HomeFuelLane(slice = HomeFuelSlice(missingFuelType = true))
             },
             // ── F5b-2: capa de mapa + peek [FUEL-STATIONS-MAP-AND-PEEK-001] ──
             Variant("Peek de gasolinera (España, con precios)", Placement.Surface) {
@@ -2433,15 +2418,17 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     FuelStationMarker(priceText = "1.759", fuelLabel = "Diesel", selected = true)
                 }
             },
-            // Con 0 plazas la sección de plazas arranca PLEGADA (una línea con chevron) y las
-            // gasolineras quedan una fila más abajo — el orden NUNCA cambia; lo que se pliega es
-            // el cuerpo. [FUEL-STATIONS-MAP-AND-PEEK-001]
-            Variant("Sheet con 0 plazas: plazas plegadas, gasolineras a mano") {
+            // ⛔ La variante que EJERCITA el ticket, y por eso lleva la lista de plazas LLENA: es el
+            // caso en el que repostar quedaba a dos o tres swipes. Con el carril, las gasolineras
+            // arrancan a la misma altura tenga la comunidad 0 plazas o 25.
+            // [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
+            Variant("Sheet en gasolineras CON plazas de sobra encima") {
                 sheet(
                     HomeState(
                         hasCorePermissions = true,
+                        nearbyLens = HomeNearbyLens.FUEL,
+                        nearbySpots = FakeData.nearbySpots,
                         fuel = HomeFuelSlice(
-                            isExpanded = true,
                             stations = galleryFuelStations,
                             reportedAt = "09/09/2026 08:30:00",
                         ),
@@ -2457,31 +2444,19 @@ private val galleryGroups: List<ScreenGroup> = listOf(
     ScreenGroup(
         "Home · parkings publicos",
         listOf(
-            Variant("Plegada (nada pedido todavia)", Placement.Surface) {
-                HomeParkingsSection(slice = HomeParkingsSlice(), onToggle = {})
-            },
             Variant("Cargando", Placement.Surface) {
-                HomeParkingsSection(
-                    slice = HomeParkingsSlice(isExpanded = true, isLoading = true),
-                    onToggle = {},
-                )
+                HomeParkingsLane(slice = HomeParkingsSlice(isLoading = true))
             },
             Variant("Con parkings (nombrados y sin nombre)", Placement.Surface) {
-                HomeParkingsSection(
-                    slice = HomeParkingsSlice(isExpanded = true, parkings = galleryParkings),
-                    onToggle = {},
-                )
+                HomeParkingsLane(slice = HomeParkingsSlice(parkings = galleryParkings))
             },
             Variant("Ninguno a menos de 1,5 km", Placement.Surface) {
-                HomeParkingsSection(slice = HomeParkingsSlice(isExpanded = true), onToggle = {})
+                HomeParkingsLane(slice = HomeParkingsSlice())
             },
             // ⛔ No es lo mismo que la anterior: decir "no hay ninguno" cuando no se pudo preguntar
             // manda al usuario a conducir sobre algo que nadie comprobo.
             Variant("No se pudo preguntar", Placement.Surface) {
-                HomeParkingsSection(
-                    slice = HomeParkingsSlice(isExpanded = true, failed = true),
-                    onToggle = {},
-                )
+                HomeParkingsLane(slice = HomeParkingsSlice(failed = true))
             },
             // ⛔ Y esta es la TERCERA frase, que no es un matiz de las dos anteriores: tampoco se
             // pudo preguntar, pero la app ya estuvo aqui y ensena lo que habia, diciendo cuando.
@@ -2491,13 +2466,11 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             // ejercita su caso se ve identica a la de al lado y no vigila nada — es exactamente lo
             // que paso en DEV-A-GALLERY-VARIANT-MUST-EXERCISE-ITS-CASE-001.
             Variant("Recordado del disco (sin conexion)", Placement.Surface) {
-                HomeParkingsSection(
+                HomeParkingsLane(
                     slice = HomeParkingsSlice(
-                        isExpanded = true,
                         parkings = galleryParkings,
                         rememberedAtMs = Clock.System.now().toEpochMilliseconds() - THREE_DAYS_MS,
                     ),
-                    onToggle = {},
                 )
             },
             // Todo declarado: tarifa, aforo, galibo y horario.
@@ -2528,6 +2501,57 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     PublicParkingMarker(selected = false)
                     PublicParkingMarker(selected = true)
                 }
+            },
+        ),
+    ),
+    // El carril de "cerca de ti" y su fila de chips. Las tres variantes llevan la lista de plazas
+    // LLENA a propósito: el ticket existe porque con plazas de sobra los complementos se iban a dos
+    // o tres swipes, así que una variante con 0 plazas no ejercitaría su caso.
+    // [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
+    // [DEV-A-GALLERY-VARIANT-MUST-EXERCISE-ITS-CASE-001]
+    ScreenGroup(
+        "Home · carril de cerca de ti",
+        listOf(
+            // Plazas: la lente por defecto, y la única que lleva cifra desde el primer frame.
+            Variant("Lente en PLAZAS (por defecto)") {
+                sheet(
+                    HomeState(
+                        hasCorePermissions = true,
+                        nearbySpots = FakeData.nearbySpots,
+                        userGpsPoint = sampleGps,
+                    ),
+                )
+            },
+            // Un complemento YA preguntado lleva su cifra; el otro, ninguna — porque de ese nadie ha
+            // preguntado nada. ⛔ Un "· 0" ahí sería un veredicto que ninguna fuente dio.
+            // [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
+            Variant("Lente en PARKINGS (gasolineras aún sin cifra)") {
+                sheet(
+                    HomeState(
+                        hasCorePermissions = true,
+                        nearbyLens = HomeNearbyLens.PARKINGS,
+                        nearbySpots = FakeData.nearbySpots,
+                        parkings = HomeParkingsSlice(parkings = galleryParkings),
+                        userGpsPoint = sampleGps,
+                    ),
+                )
+            },
+            // El caso peor de la fila: los tres chips con su cifra y las etiquetas más largas de los
+            // 9 locales (PT "Parques de estacionamento"). La fila SCROLLEA — por eso es un LazyRow.
+            Variant("Los tres chips con cifra (fila al límite)") {
+                sheet(
+                    HomeState(
+                        hasCorePermissions = true,
+                        nearbyLens = HomeNearbyLens.FUEL,
+                        nearbySpots = FakeData.nearbySpots,
+                        parkings = HomeParkingsSlice(parkings = galleryParkings),
+                        fuel = HomeFuelSlice(
+                            stations = galleryFuelStations,
+                            reportedAt = "09/09/2026 08:30:00",
+                        ),
+                        userGpsPoint = sampleGps,
+                    ),
+                )
             },
         ),
     ),

@@ -262,13 +262,7 @@ class FakeAppPreferences(private val scenario: MockScenario? = null) : AppPrefer
     override val defaultMapType: String get() = _defaultMapType.value
     override fun setDefaultMapType(type: String) { _defaultMapType.value = type }
 
-    private val _showFuelStationsLayer = MutableStateFlow(false)
-    override val showFuelStationsLayer: Boolean get() = _showFuelStationsLayer.value
-    override fun setShowFuelStationsLayer(enabled: Boolean) { _showFuelStationsLayer.value = enabled }
 
-    private val _showPublicParkingsLayer = MutableStateFlow(false)
-    override val showPublicParkingsLayer: Boolean get() = _showPublicParkingsLayer.value
-    override fun setShowPublicParkingsLayer(enabled: Boolean) { _showPublicParkingsLayer.value = enabled }
 }
 
 /**

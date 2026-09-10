@@ -6,6 +6,7 @@ import com.rndeveloper.paparcar.domain.model.ParkingReleaseReason
 import com.rndeveloper.paparcar.domain.model.SearchResult
 import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
+import com.rndeveloper.paparcar.presentation.home.model.HomeNearbyLens
 
 sealed class HomeIntent {
 
@@ -24,35 +25,20 @@ sealed class HomeIntent {
     data object LoadNearbySpots : HomeIntent()
 
     /**
-     * Fold or unfold "where to refuel" — and, the first time it unfolds, go and ask.
-     * [FUEL-STATIONS-LIST-001]
+     * Point the sheet's nearby lane at a subject — and, if that subject has never been asked, go and
+     * ask. [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
      *
-     * One intent for both because they are one user action. A separate "load" intent would let the
-     * section be open with nothing in it, which is the state that has to be impossible.
+     * ONE intent for both because they are one user action, the same reason the three fold intents
+     * this replaces carried their own fetch: a lane that could be open with nothing in it is the
+     * state that has to be impossible. Carries the DESIRED lens, never a toggle — the chip row shows
+     * three destinations and each says which one it is, and the checklist's "see nearby spots" must
+     * land ON spots rather than flip whatever was showing.
+     *
+     * It is also what the MAP paints of the two complements — there is no layer switch any more, and
+     * that is the point: a subject shown in one surface and hidden in the other was two controls for
+     * one concept. [FUEL-STATIONS-MAP-AND-PEEK-001] [PARKINGS-ON-THE-MAP-001]
      */
-    data object ToggleFuelStations : HomeIntent()
-
-    /**
-     * Show or hide the fuel-stations MAP layer. Persisted as a device preference, and turning it
-     * on loads the same stations the sheet section reads — one fetch feeds both surfaces.
-     * [FUEL-STATIONS-MAP-AND-PEEK-001]
-     */
-    data object ToggleFuelStationsLayer : HomeIntent()
-
-    /** Fold or unfold "public parkings" — and, the first time it unfolds, go and ask.
-     *  [PARKINGS-ON-THE-MAP-001] */
-    data object TogglePublicParkings : HomeIntent()
-
-    /** Show or hide the public-parkings MAP layer; same one-fetch-two-surfaces rule as fuel. */
-    data object TogglePublicParkingsLayer : HomeIntent()
-
-    /**
-     * Fold or unfold the free-spots section. Carries the DESIRED state (not a toggle) because two
-     * callers want different things: the header chevron sends the opposite of what it shows, and
-     * the checklist's "see nearby spots" must land on an OPEN section, never flip a closed one
-     * closed-er. [FUEL-STATIONS-MAP-AND-PEEK-001]
-     */
-    data class SetFreeSpotsSectionExpanded(val expanded: Boolean) : HomeIntent()
+    data class SetNearbyLens(val lens: HomeNearbyLens) : HomeIntent()
     /** null clears the selection; a spot or session id sets it. */
     /** [UI-PROVISIONAL-SPOT-IS-NOT-ITS-SESSION-001] Carries WHAT was tapped, not just its id — the
      *  kind is free at every tap site and a spot may legitimately share its session's id. */
