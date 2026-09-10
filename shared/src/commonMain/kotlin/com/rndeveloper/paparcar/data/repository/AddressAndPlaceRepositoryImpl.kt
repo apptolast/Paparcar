@@ -93,7 +93,18 @@ class AddressAndPlaceRepositoryImpl(
     private companion object {
         /** Phase 1 is a local/GMS lookup — healthy answers arrive in well under a second. */
         const val PHASE1_TIMEOUT_MS = 5_000L
-        /** Safety net ABOVE Overpass's own HTTP timeouts (6s connect + 10s read). */
-        const val PHASE2_TIMEOUT_MS = 20_000L
+        /**
+         * Safety net ABOVE Overpass's own budget — and *above the whole mirror walk*, not one
+         * request. [OVERPASS-A-SINGLE-MIRROR-HAS-NO-FAILOVER-001]
+         *
+         * ⛔ Este número tiene que quedar por encima de `OverpassEndpoints.ALL.size` × el
+         * `requestTimeoutMillis` de `fuelHttpClient()` (3 × 25 s). Valía 20 s cuando la vía hablaba
+         * con UN espejo; dejarlo ahí habría cortado el failover a mitad del segundo y el tercero no
+         * se habría preguntado nunca — el arreglo entero, invisible desde aquí.
+         *
+         * Que sea largo no lo paga nadie mirando: la fase 1 ya emitió, y esto es enriquecimiento
+         * de fondo (un worker con reintentos) cuyo fallo se limita a no sellar la celda.
+         */
+        const val PHASE2_TIMEOUT_MS = 80_000L
     }
 }

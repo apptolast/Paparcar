@@ -22,7 +22,8 @@ import com.rndeveloper.paparcar.domain.permissions.OemBackgroundReliabilityManag
 import com.rndeveloper.paparcar.domain.permissions.PermissionManager
 import com.rndeveloper.paparcar.domain.places.PlacesDataSource
 import com.rndeveloper.paparcar.domain.places.RoadNetworkDataSource
-import com.rndeveloper.paparcar.location.OverpassRoadNetworkDataSourceImpl
+import com.rndeveloper.paparcar.data.fuel.fuelHttpClient
+import com.rndeveloper.paparcar.data.places.OverpassRoadNetworkDataSource
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import com.rndeveloper.paparcar.domain.repository.AddressAndPlaceRepository
 import com.rndeveloper.paparcar.domain.repository.DiagnosticsRepository
@@ -97,7 +98,10 @@ val mockModule = module {
     single<GeocoderDataSource> { FakeGeocoderDataSource() }
     single<PlacesDataSource> { FakePlacesDataSource() }
     // Real Overpass road source so the mock sim exercises live OSM map-matching on-device. [ROUTE-SNAP-001]
-    single<RoadNetworkDataSource> { OverpassRoadNetworkDataSourceImpl() }
+    // ⛔ Con `fuelHttpClient()`, igual que en produccion: es el cliente que trae el User-Agent con el
+    // que Overpass contesta, y ahora ademas el que recorre los espejos.
+    // [OVERPASS-A-SINGLE-MIRROR-HAS-NO-FAILOVER-001]
+    single<RoadNetworkDataSource> { OverpassRoadNetworkDataSource(fuelHttpClient()) }
     single<PermissionManager> { FakePermissionManager(get()) }
     single<OemBackgroundReliabilityManager> { FakeOemBackgroundReliabilityManager(get()) }
     single<AppPreferences> { FakeAppPreferences(get()) }

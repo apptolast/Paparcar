@@ -7,8 +7,6 @@ import com.rndeveloper.paparcar.data.datasource.local.room.AppDatabase
 import com.rndeveloper.paparcar.data.datasource.local.room.buildAppDatabase
 import com.rndeveloper.paparcar.domain.location.LocationDataSource
 import com.rndeveloper.paparcar.domain.geocoder.GeocoderDataSource
-import com.rndeveloper.paparcar.domain.places.PlacesDataSource
-import com.rndeveloper.paparcar.domain.places.RoadNetworkDataSource
 import com.rndeveloper.paparcar.domain.permissions.OemBackgroundReliabilityManager
 import com.rndeveloper.paparcar.domain.permissions.PermissionManager
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
@@ -22,8 +20,6 @@ import com.rndeveloper.paparcar.domain.diagnostics.LocalDiagnosticsLog
 import com.rndeveloper.paparcar.logging.AndroidLocalDiagnosticsLog
 import com.rndeveloper.paparcar.location.AndroidGeocoderDataSourceImpl
 import com.rndeveloper.paparcar.location.AndroidLocationDataSourceImpl
-import com.rndeveloper.paparcar.location.OverpassPlacesDataSourceImpl
-import com.rndeveloper.paparcar.location.OverpassRoadNetworkDataSourceImpl
 import com.rndeveloper.paparcar.permissions.OemBackgroundReliabilityManagerImpl
 import com.rndeveloper.paparcar.permissions.PermissionManagerImpl
 import com.rndeveloper.paparcar.preferences.AndroidDataStoreAppPreferences
@@ -42,8 +38,9 @@ val androidPlatformModule = module {
     single { LocationServices.getFusedLocationProviderClient(androidContext()) }
     single<LocationDataSource> { AndroidLocationDataSourceImpl(get()) }
     single<GeocoderDataSource> { AndroidGeocoderDataSourceImpl(androidContext()) }
-    single<PlacesDataSource> { OverpassPlacesDataSourceImpl() }
-    single<RoadNetworkDataSource> { OverpassRoadNetworkDataSourceImpl() }
+    // ⛔ Places y carreteras NO están aquí: los dos hablan con Overpass, y una implementación por
+    // plataforma es lo que dejó a tres vías usando un solo espejo sin failover. Viven en commonMain
+    // y se registran en `dataModule`. [OVERPASS-A-SINGLE-MIRROR-HAS-NO-FAILOVER-001]
 
     // Notification plumbing — the manager impl itself is bound in appModule (:app owns it)
     single { androidContext().getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager }

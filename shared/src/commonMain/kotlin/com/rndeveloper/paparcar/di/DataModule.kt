@@ -60,8 +60,12 @@ import com.rndeveloper.paparcar.data.parkings.CachingPublicParkingsSource
 import com.rndeveloper.paparcar.data.parkings.DiskBackedPublicParkingsSource
 import com.rndeveloper.paparcar.data.parkings.OsmPublicParkingsSource
 import com.rndeveloper.paparcar.data.parkings.RoomPublicParkingsCache
+import com.rndeveloper.paparcar.data.places.OverpassPlacesDataSource
+import com.rndeveloper.paparcar.data.places.OverpassRoadNetworkDataSource
 import com.rndeveloper.paparcar.domain.fuel.FuelStationsSource
 import com.rndeveloper.paparcar.domain.parkings.PublicParkingsSource
+import com.rndeveloper.paparcar.domain.places.PlacesDataSource
+import com.rndeveloper.paparcar.domain.places.RoadNetworkDataSource
 
 val dataModule = module {
 
@@ -250,6 +254,21 @@ val dataModule = module {
             )
         )
     }
+
+    // ── Las otras dos preguntas a Overpass [OVERPASS-A-SINGLE-MIRROR-HAS-NO-FAILOVER-001] ────
+    // Estaban en los módulos de plataforma porque cada una traía su propio POST a mano
+    // (HttpURLConnection en Android, NSURLSession en iOS) — y por eso las dos se quedaron fuera del
+    // failover de espejos, usando `OverpassEndpoints.ALL.first()` mientras lo compartían.
+    //
+    // ⛔ El MISMO `fuelHttpClient()` que gasolineras y parkings, y aquí no es reutilización por
+    // pereza: es lo que hace SEGURA la migración. Medido el 10-09-2026 contra el endpoint real, el
+    // User-Agent por defecto de OkHttp devuelve **406**, así que un `HttpClient()` a pelo convertiría
+    // dos vías que hoy funcionan (`HttpURLConnection` manda el agente de Dalvik, que pasa) en dos
+    // vías rotas al 100 %. [FUEL-LAYER-FOLLOWS-THE-CAMERA-001]
+    single<PlacesDataSource> { OverpassPlacesDataSource(fuelHttpClient()) }
+    // Con la implementación en commonMain, iOS deja de ser la única plataforma sin map-matching: no
+    // lo tenía porque el fichero vivía en androidMain, no porque se hubiera decidido que no.
+    single<RoadNetworkDataSource> { OverpassRoadNetworkDataSource(fuelHttpClient()) }
 
     // NOTA: LocationDataSource se provee en los módulos de plataforma.
 }
