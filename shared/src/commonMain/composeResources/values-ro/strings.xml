@@ -865,6 +865,7 @@
     <string name="home_fuel_no_prices">În această țară prețurile nu sunt publicate. Acestea sunt benzinăriile din apropiere.</string>
     <string name="home_fuel_reported_at">Prețuri raportate la %1$s</string>
     <string name="home_fuel_oldest_price">Cel mai vechi preț: %1$s</string>
+    <string name="home_fuel_remembered">Fără conexiune: acestea sunt benzinăriile văzute aici %1$s.</string>
     <!-- Parkings publicos [PARKINGS-ON-THE-MAP-001] -->
     <string name="map_cd_layers">Afișează sau ascunde straturile hărții</string>
     <string name="map_layer_fuel_stations">Benzinării</string>
@@ -872,6 +873,7 @@
     <string name="home_parkings_title">Parcări publice în apropiere</string>
     <string name="home_parkings_empty">Nicio parcare publică pe o rază de 1,5 km.</string>
     <string name="home_parkings_error">Nu am putut încărca parcările. Verifică conexiunea și deschide din nou.</string>
+    <string name="home_parkings_remembered">Fără conexiune: acestea sunt parcările văzute aici %1$s.</string>
     <string name="parking_peek_eyebrow">Parcare publică</string>
     <string name="parking_kind_underground">Parcare subterană</string>
     <string name="parking_kind_multi_storey">Parcare supraetajată</string>

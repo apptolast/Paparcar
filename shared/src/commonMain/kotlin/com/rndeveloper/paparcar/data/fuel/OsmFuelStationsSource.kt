@@ -38,16 +38,23 @@ class OsmFuelStationsSource(
             // Every server refused or lied → a FAILURE arrives here untouched, never an empty list.
             // "We could not ask" and "there are none" are different sentences and the UI says them
             // differently.
+            val parsed = OsmFuelStationParser.parse(body)
             FuelStationsResult(
-                stations = OsmFuelStationParser.parse(body).sortedBy {
+                stations = parsed.sortedBy {
                     haversineMeters(query.latitude, query.longitude, it.latitude, it.longitude)
                 },
                 reportedAt = null,
+                source = SOURCE,
+                // At the cap Overpass stopped counting, so this answer only speaks out to its
+                // farthest station. [CACHE-A-MAP-MUST-NOT-EMPTY-ON-COLD-START-001]
+                isTruncated = parsed.size >= OsmFuelStationParser.MAX_RESULTS,
             )
         }
 
-    private companion object {
-        const val TIMEOUT_S = 20
-        const val TAG = "OsmFuelStations"
+    companion object {
+        /** ⛔ Part of the disk cache's key: ids are only unique WITHIN a source. */
+        const val SOURCE = "osm"
+        private const val TIMEOUT_S = 20
+        private const val TAG = "OsmFuelStations"
     }
 }

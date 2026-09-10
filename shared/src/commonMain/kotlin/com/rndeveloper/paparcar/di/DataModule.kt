@@ -47,6 +47,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import org.koin.dsl.module
 import com.rndeveloper.paparcar.data.fuel.CachingFuelStationsSource
+import com.rndeveloper.paparcar.data.fuel.DiskBackedFuelStationsSource
+import com.rndeveloper.paparcar.data.fuel.RoomFuelStationsCache
 import com.rndeveloper.paparcar.data.fuel.AverageFuelPricesRepositoryImpl
 import com.rndeveloper.paparcar.data.fuel.FranceFuelStationsSource
 import com.rndeveloper.paparcar.data.fuel.FuelStationsRegistry
@@ -55,7 +57,9 @@ import com.rndeveloper.paparcar.data.fuel.MineturStationsSource
 import com.rndeveloper.paparcar.data.fuel.OpenVanAverageFuelPricesSource
 import com.rndeveloper.paparcar.data.fuel.OsmFuelStationsSource
 import com.rndeveloper.paparcar.data.parkings.CachingPublicParkingsSource
+import com.rndeveloper.paparcar.data.parkings.DiskBackedPublicParkingsSource
 import com.rndeveloper.paparcar.data.parkings.OsmPublicParkingsSource
+import com.rndeveloper.paparcar.data.parkings.RoomPublicParkingsCache
 import com.rndeveloper.paparcar.domain.fuel.FuelStationsSource
 import com.rndeveloper.paparcar.domain.parkings.PublicParkingsSource
 
@@ -144,6 +148,9 @@ val dataModule = module {
     single<SpotDao> { get<AppDatabase>().spotDao() }
     single { get<AppDatabase>().zoneDao() }
     single { get<AppDatabase>().geocoderCacheDao() }
+    single { get<AppDatabase>().publicParkingCacheDao() }
+    single { get<AppDatabase>().osmCoverageDao() }
+    single { get<AppDatabase>().fuelStationCacheDao() }
 
     // Local datasources
     single<LocalAddressAndPlaceDataSource> { RoomLocalAddressAndPlaceDataSource(get()) }
@@ -167,15 +174,25 @@ val dataModule = module {
         // lo notó porque el Ministerio contesta primero y no filtra.
         // [FUEL-LAYER-FOLLOWS-THE-CAMERA-001]
         val http = fuelHttpClient()
+        // Tres capas, cada una con SU pregunta [CACHE-A-MAP-MUST-NOT-EMPTY-ON-COLD-START-001]:
+        //   Caching  → «¿vuelvo a preguntar?»                 (memoria, 15 min)
+        //   Disk     → «¿qué enseño si NO puedo preguntar?»    (Room, 30 días de GEOGRAFÍA)
+        //   Registry → la red, un país una fuente
+        // ⛔ El disco envuelve al REGISTRO, no a una fuente: así hereda a quien haya contestado, y
+        // esa fuente se nombra en el resultado — que es lo que impide que el id de una estación
+        // española pise el de una de OSM en una tabla compartida.
         CachingFuelStationsSource(
-            FuelStationsRegistry(
-                // Un país = una entrada. El orden no decide nada: cada fuente declara a quién
-                // cubre y sólo una responde por país. [FUEL-FRANCE-A-PRICE-CARRIES-ITS-OWN-HOUR-001]
-                national = listOf(
-                    MineturStationsSource(http),
-                    FranceFuelStationsSource(http),
+            DiskBackedFuelStationsSource(
+                delegate = FuelStationsRegistry(
+                    // Un país = una entrada. El orden no decide nada: cada fuente declara a quién
+                    // cubre y sólo una responde por país. [FUEL-FRANCE-A-PRICE-CARRIES-ITS-OWN-HOUR-001]
+                    national = listOf(
+                        MineturStationsSource(http),
+                        FranceFuelStationsSource(http),
+                    ),
+                    fallback = OsmFuelStationsSource(http),
                 ),
-                fallback = OsmFuelStationsSource(http),
+                disk = RoomFuelStationsCache(dao = get(), coverageDao = get()),
             ),
         )
     }
@@ -218,8 +235,20 @@ val dataModule = module {
     // los dos hablan con Overpass, que responde **406 al User-Agent por defecto de OkHttp**, y los
     // dos necesitan el deadline que impide que un `isLoading` se quede clavado. Un cliente propio
     // aquí habría repetido el mismo fallo desde cero. [FUEL-LAYER-FOLLOWS-THE-CAMERA-001]
+    //
+    // Tres capas, y cada una contesta a UNA pregunta distinta — reutilizar el TTL de una para otra
+    // es el error que esta pila evita [CACHE-A-MAP-MUST-NOT-EMPTY-ON-COLD-START-001]:
+    //   CachingPublicParkingsSource  → «¿vuelvo a preguntar?»            (memoria, 30 min)
+    //   DiskBackedPublicParkingsSource → «¿qué enseño si NO puedo preguntar?» (Room, 30 días)
+    //   OsmPublicParkingsSource      → la red
+    // El disco va DEBAJO de la red y solo se lee cuando esta falla: la respuesta de hoy gana siempre.
     single<PublicParkingsSource> {
-        CachingPublicParkingsSource(OsmPublicParkingsSource(fuelHttpClient()))
+        CachingPublicParkingsSource(
+            DiskBackedPublicParkingsSource(
+                delegate = OsmPublicParkingsSource(fuelHttpClient()),
+                disk = RoomPublicParkingsCache(parkingDao = get(), coverageDao = get()),
+            )
+        )
     }
 
     // NOTA: LocationDataSource se provee en los módulos de plataforma.

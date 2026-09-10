@@ -2,8 +2,8 @@ package com.rndeveloper.paparcar.data.parkings
 
 import com.rndeveloper.paparcar.data.cache.LocationKeyedCache
 import com.rndeveloper.paparcar.data.cache.locationCacheKey
-import com.rndeveloper.paparcar.domain.parkings.PublicParking
 import com.rndeveloper.paparcar.domain.parkings.PublicParkingsQuery
+import com.rndeveloper.paparcar.domain.parkings.PublicParkingsResult
 import com.rndeveloper.paparcar.domain.parkings.PublicParkingsSource
 
 /**
@@ -25,12 +25,12 @@ class CachingPublicParkingsSource(
 ) : PublicParkingsSource {
 
     private val cache = clock
-        ?.let { LocationKeyedCache<List<PublicParking>>(ttlMs, it) }
+        ?.let { LocationKeyedCache<PublicParkingsResult>(ttlMs, it) }
         ?: LocationKeyedCache(ttlMs)
 
     override fun covers(countryCode: String): Boolean = delegate.covers(countryCode)
 
-    override suspend fun parkingsNear(query: PublicParkingsQuery): Result<List<PublicParking>> {
+    override suspend fun parkingsNear(query: PublicParkingsQuery): Result<PublicParkingsResult> {
         val key = with(query) {
             locationCacheKey(latitude, longitude, radiusMeters, countryCode, regionName)
         }

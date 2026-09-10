@@ -31,6 +31,7 @@ import paparcar.composeapp.generated.resources.home_fuel_error
 import paparcar.composeapp.generated.resources.home_fuel_missing_fuel_type
 import paparcar.composeapp.generated.resources.home_fuel_no_prices
 import paparcar.composeapp.generated.resources.home_fuel_oldest_price
+import paparcar.composeapp.generated.resources.home_fuel_remembered
 import paparcar.composeapp.generated.resources.home_fuel_reported_at
 import paparcar.composeapp.generated.resources.home_fuel_title
 
@@ -128,6 +129,25 @@ fun HomeFuelSection(
                         val reportedAt = slice.reportedAt
                         val oldestMs = slice.oldestPriceAtMs
                         when {
+                            // ⛔ First, because it outranks the others: when the list came off the
+                            // disk there was no response to stamp, so `reportedAt` is null by
+                            // construction and the sentence to say is a different one — we could not
+                            // ask, this is what was here.
+                            // [CACHE-A-MAP-MUST-NOT-EMPTY-ON-COLD-START-001]
+                            //
+                            // ⛔ The per-price hours are NOT suppressed underneath: each price still
+                            // carries and shows its own age, exactly as in a live answer. A price
+                            // read off disk is no less honest than one off the wire — it says when
+                            // it was measured either way. What the disk adds is that TODAY's asking
+                            // failed, which is what this line says and nothing else does.
+                            slice.rememberedAtMs != null ->
+                                SectionNote(
+                                    stringResource(
+                                        Res.string.home_fuel_remembered,
+                                        relativeTimeText(slice.rememberedAtMs),
+                                    ),
+                                )
+
                             reportedAt != null ->
                                 SectionNote(
                                     stringResource(Res.string.home_fuel_reported_at, reportedAt),

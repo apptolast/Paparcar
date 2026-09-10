@@ -851,6 +851,7 @@
     <string name="home_fuel_no_prices">In dit land worden geen prijzen gepubliceerd. Dit zijn de tankstations in de buurt.</string>
     <string name="home_fuel_reported_at">Prijzen gemeld om %1$s</string>
     <string name="home_fuel_oldest_price">Oudste prijs: %1$s</string>
+    <string name="home_fuel_remembered">Geen verbinding: dit zijn de tankstations die we hier %1$s zagen.</string>
     <!-- Parkings publicos [PARKINGS-ON-THE-MAP-001] -->
     <string name="map_cd_layers">Kaartlagen tonen of verbergen</string>
     <string name="map_layer_fuel_stations">Tankstations</string>
@@ -858,6 +859,7 @@
     <string name="home_parkings_title">Parkeergarages in de buurt</string>
     <string name="home_parkings_empty">Geen openbare parkeergarages binnen 1,5 km.</string>
     <string name="home_parkings_error">We konden de parkeergarages niet laden. Controleer je verbinding en open dit opnieuw.</string>
+    <string name="home_parkings_remembered">Geen verbinding: dit zijn de parkeergarages die we hier %1$s zagen.</string>
     <string name="parking_peek_eyebrow">Openbare parkeergarage</string>
     <string name="parking_kind_underground">Ondergrondse parkeergarage</string>
     <string name="parking_kind_multi_storey">Parkeergarage met verdiepingen</string>

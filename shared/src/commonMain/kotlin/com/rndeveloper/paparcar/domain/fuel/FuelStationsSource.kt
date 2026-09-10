@@ -78,4 +78,37 @@ interface FuelStationsSource {
 data class FuelStationsResult(
     val stations: List<FuelStation>,
     val reportedAt: String? = null,
-)
+    /**
+     * Which feed answered. [CACHE-A-MAP-MUST-NOT-EMPTY-ON-COLD-START-001]
+     *
+     * ⛔ Needed because [FuelStation.id] is only stable *within* its source and all three feeds land
+     * in ONE cache table: without the source in the key, Spain's station `1234` would overwrite an
+     * OSM station `1234` in another country. Only the source that answered knows its own name, which
+     * is why this rides on the result rather than being guessed downstream.
+     */
+    val source: String = UNKNOWN_SOURCE,
+    /**
+     * True when the feed stopped at its own output cap, so this answer only speaks for the ground
+     * out to its farthest station — not for the radius that was asked.
+     *
+     * Also something only the answering source can know: OSM caps at `out center 60`, France at
+     * `limit=100`, and Spain does not cap at all because it filters a whole province on the phone.
+     * A cache that guessed a single cap would either shrink Spain's honest coverage or let a
+     * truncated OSM answer promise a ring it never looked at.
+     */
+    val isTruncated: Boolean = false,
+    /**
+     * Null when this was just fetched; otherwise when the app last actually managed to ask about
+     * this area. [CACHE-A-MAP-MUST-NOT-EMPTY-ON-COLD-START-001]
+     *
+     * ⛔ Distinct from [reportedAt], and conflating them would be the subtle lie: `reportedAt` is
+     * the FEED's stamp on a response, this is OURS on the asking. A remembered answer has the
+     * second and, by construction, no longer has the first.
+     */
+    val rememberedAtMs: Long? = null,
+) {
+    companion object {
+        /** For sources that have not been taught to name themselves — never written to disk. */
+        const val UNKNOWN_SOURCE = "unknown"
+    }
+}

@@ -117,6 +117,74 @@ class AppDatabaseV1BaselineTest {
             now = 1L,
         )
         val migratedAddress = db.parkingSessionDao().getByUser("user-bench").single()
+        // …and MIGRATION_6_7's witness [CACHE-A-MAP-MUST-NOT-EMPTY-ON-COLD-START-001]: the two new
+        // tables must be REACHABLE through the migrated file, not merely created without throwing.
+        // This step is the first CREATE TABLE of the chain and its DDL is hand-written, so "the
+        // migration ran" and "the schema Room expects is the schema that exists" are two different
+        // claims — a column typed by hand where Room wanted another would only surface on the write.
+        db.publicParkingCacheDao().upsertAll(
+            listOf(
+                PublicParkingCacheEntity(
+                    id = "osm-witness",
+                    name = "Parking Mayor",
+                    operator = null,
+                    kind = "UNDERGROUND",
+                    latitude = 36.6084,
+                    longitude = -6.2781,
+                    capacity = 120,
+                    fee = "PAID",
+                    maxHeightMeters = 2.1,
+                    openingHours = null,
+                    cachedAt = 1L,
+                ),
+            ),
+        )
+        db.osmCoverageDao().upsert(
+            OsmCoverageEntity(
+                discKey = "parkings|1500|36.608,-6.278",
+                layer = "parkings",
+                latitude = 36.6084,
+                longitude = -6.2781,
+                radiusMeters = 1_500,
+                fetchedAt = 1L,
+            ),
+        )
+        val cachedParking = db.publicParkingCacheDao()
+            .getInBoundingBox(36.60, 36.61, -6.28, -6.27)
+        val cachedDisc = db.osmCoverageDao().getLive("parkings", minFetchedAt = 0L)
+        // The fuel half of the same step, and its own witness: two tables whose rows are joined by
+        // `stationKey`, so "the station survived" and "its price survived" are separate claims.
+        db.fuelStationCacheDao().upsertStations(
+            listOf(
+                FuelStationCacheEntity(
+                    stationKey = "es-minetur|1234",
+                    source = "es-minetur",
+                    id = "1234",
+                    name = "Repsol Cádiz",
+                    address = "Avenida Principal 1",
+                    town = "Cádiz",
+                    latitude = 36.6084,
+                    longitude = -6.2781,
+                    schedule = "24H",
+                    cachedAt = 1L,
+                ),
+            ),
+        )
+        db.fuelStationCacheDao().upsertFuels(
+            listOf(
+                FuelStationFuelEntity(
+                    stationKey = "es-minetur|1234",
+                    fuelType = "DIESEL",
+                    priceAmount = 1.539,
+                    priceCurrency = "EUR",
+                    reportedAtMs = 1_788_204_119_405,
+                    availability = null,
+                ),
+            ),
+        )
+        val cachedStation = db.fuelStationCacheDao()
+            .getInBoundingBox(36.60, 36.61, -6.28, -6.27)
+        val cachedFuels = db.fuelStationCacheDao().getFuelsFor(listOf("es-minetur|1234"))
         db.close()
 
         assertEquals(1, rows.size, "an untouched schema must not cost the user their parked session")
@@ -132,6 +200,32 @@ class AppDatabaseV1BaselineTest {
             "the 5→6 migration must add the province column, and the write path must fill it",
         )
         assertEquals("es", migratedAddress.addressCountryCode, "the country must survive the chain")
+        assertEquals(
+            "Parking Mayor",
+            cachedParking.singleOrNull()?.name,
+            "the 6→7 migration must create osm_public_parkings with the columns Room expects",
+        )
+        assertEquals(2.1, cachedParking.single().maxHeightMeters)
+        assertEquals(
+            1_500,
+            cachedDisc.singleOrNull()?.radiusMeters,
+            "the 6→7 migration must create osm_coverage — without it nothing can be removed or aged",
+        )
+        assertEquals(
+            "Repsol Cádiz",
+            cachedStation.singleOrNull()?.name,
+            "the 6→7 migration must create fuel_stations with the columns Room expects",
+        )
+        assertEquals(
+            1.539,
+            cachedFuels.singleOrNull()?.priceAmount,
+            "the 6→7 migration must create fuel_station_fuels — the perishable half of a station",
+        )
+        assertEquals(
+            1_788_204_119_405,
+            cachedFuels.single().reportedAtMs,
+            "a stored price keeps its own hour, which is what makes storing it honest at all",
+        )
         assertEquals(PAPARCAR_DB_VERSION, readUserVersion(name))
     }
 

@@ -38,6 +38,22 @@ data class PublicParkingsQuery(
  * that is a live feed per city, it arrives with `PARKINGS-LIVE-OCCUPANCY-001`, and it arrives as
  * another implementation of this same port.
  */
+/**
+ * An answer about an area, and **whether it is today's**.
+ * [CACHE-A-MAP-MUST-NOT-EMPTY-ON-COLD-START-001]
+ *
+ * ⛔ [rememberedAtMs] is not bookkeeping: without it a car park read off the disk arrives at the map
+ * indistinguishable from one fetched a second ago, and the layer claims to be live while it is
+ * remembering. The same rule the fuel lane learned about a price
+ * [FUEL-AN-AVERAGE-MUST-SAY-WHEN-IT-WAS-MEASURED-001], one layer out: what cannot describe itself
+ * ends up described by whoever reads it.
+ */
+data class PublicParkingsResult(
+    val parkings: List<PublicParking>,
+    /** Null when this was just fetched; otherwise when the app last actually asked about this area. */
+    val rememberedAtMs: Long? = null,
+)
+
 interface PublicParkingsSource {
 
     /** True when this source can answer for [countryCode] (ISO 3166-1 alpha-2, any case). */
@@ -48,7 +64,7 @@ interface PublicParkingsSource {
      *
      * Returns a failure rather than an empty list when the network or the feed failed: "none near
      * you" and "we could not ask" are different answers, and the UI must never say the first when it
-     * means the second.
+     * means the second. A remembered answer is a third: it says something, and says how old it is.
      */
-    suspend fun parkingsNear(query: PublicParkingsQuery): Result<List<PublicParking>>
+    suspend fun parkingsNear(query: PublicParkingsQuery): Result<PublicParkingsResult>
 }

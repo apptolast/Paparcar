@@ -25,6 +25,15 @@ data class HomeParkingsSlice(
      */
     val anchorLat: Double? = null,
     val anchorLon: Double? = null,
+    /**
+     * Set when this list came off the DISK because the live answer failed — the moment the app last
+     * actually managed to ask. [CACHE-A-MAP-MUST-NOT-EMPTY-ON-COLD-START-001]
+     *
+     * ⛔ A third sentence, not a shade of the other two. `failed` means "we could not ask and have
+     * nothing"; this means "we could not ask, and here is what was there when we last could". The
+     * section must be able to tell them apart, because a driver acts differently on each.
+     */
+    val rememberedAtMs: Long? = null,
 )
 
 /**
@@ -45,4 +54,14 @@ data class HomeParkingsLayerSlice(
     val anchorLon: Double? = null,
     val parkings: List<NearbyPublicParking> = emptyList(),
     val isLoading: Boolean = false,
+    /**
+     * When these pins came off the disk rather than the wire.
+     * [CACHE-A-MAP-MUST-NOT-EMPTY-ON-COLD-START-001]
+     *
+     * Carried here even though the layer has no sentence of its own, because the alternative is a
+     * map drawing remembered pins with no way for anything to know. ⏳ WHERE the map says it is an
+     * open design decision — it belongs in the FAB band with the GPS capsule
+     * [UI-A-WARNING-COSTS-NOTHING-WHEN-SILENT-001], not in a new floating surface invented here.
+     */
+    val rememberedAtMs: Long? = null,
 )

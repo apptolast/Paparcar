@@ -82,6 +82,7 @@ import com.rndeveloper.paparcar.domain.usecase.fuel.GetNearbyFuelStationsUseCase
 import com.rndeveloper.paparcar.domain.parkings.PublicParking
 import com.rndeveloper.paparcar.domain.parkings.PublicParkingKind
 import com.rndeveloper.paparcar.domain.parkings.PublicParkingsQuery
+import com.rndeveloper.paparcar.domain.parkings.PublicParkingsResult
 import com.rndeveloper.paparcar.domain.parkings.PublicParkingsSource
 import com.rndeveloper.paparcar.domain.usecase.parkings.GetNearbyPublicParkingsUseCase
 
@@ -2537,11 +2538,14 @@ class HomeViewModelTest {
          *  correcto". [A-SECTION-ANSWERS-ABOUT-WHERE-YOU-LOOK-001] */
         var seen: PublicParkingsQuery? = null
         var result: Result<List<PublicParking>> = Result.success(emptyList())
+
+        /** Non-null makes the spy answer as the DISK does. [CACHE-A-MAP-MUST-NOT-EMPTY-ON-COLD-START-001] */
+        var rememberedAtMs: Long? = null
         override fun covers(countryCode: String) = true
-        override suspend fun parkingsNear(query: PublicParkingsQuery): Result<List<PublicParking>> {
+        override suspend fun parkingsNear(query: PublicParkingsQuery): Result<PublicParkingsResult> {
             askCount++
             seen = query
-            return result
+            return result.map { PublicParkingsResult(it, rememberedAtMs) }
         }
     }
 }

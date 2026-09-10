@@ -32,6 +32,14 @@ data class NearbyFuelStations(
     val fuel: FuelType?,
     /** The feed's own timestamp; null when the source carries no prices at all (OSM). */
     val reportedAt: String?,
+    /**
+     * Set when this list came off the DISK because the live answer failed — when the app last
+     * managed to ask. [CACHE-A-MAP-MUST-NOT-EMPTY-ON-COLD-START-001]
+     *
+     * ⛔ Not a flavour of [reportedAt]: that one is the feed's stamp on a response, this one is ours
+     * on the asking, and a remembered answer has no response to stamp.
+     */
+    val rememberedAtMs: Long? = null,
 ) {
     /** True when at least one station could be priced — what tells the UI which sentence to say. */
     val hasPrices: Boolean get() = stations.any { it.price != null }
@@ -98,6 +106,9 @@ class GetNearbyFuelStationsUseCase(
                     },
                 fuel = fuel,
                 reportedAt = result.reportedAt,
+                // Carried through untouched: which stations are worth showing and when the app last
+                // managed to ask are unrelated questions.
+                rememberedAtMs = result.rememberedAtMs,
             )
         }
     }

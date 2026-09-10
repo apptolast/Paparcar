@@ -851,6 +851,7 @@
     <string name="home_fuel_no_prices">In diesem Land werden keine Preise veröffentlicht. Das sind die Tankstellen in der Nähe.</string>
     <string name="home_fuel_reported_at">Preise gemeldet um %1$s</string>
     <string name="home_fuel_oldest_price">Ältester Preis: %1$s</string>
+    <string name="home_fuel_remembered">Keine Verbindung: Das sind die Tankstellen, die wir hier %1$s gesehen haben.</string>
     <!-- Parkings publicos [PARKINGS-ON-THE-MAP-001] -->
     <string name="map_cd_layers">Kartenebenen ein- oder ausblenden</string>
     <string name="map_layer_fuel_stations">Tankstellen</string>
@@ -858,6 +859,7 @@
     <string name="home_parkings_title">Parkhäuser in der Nähe</string>
     <string name="home_parkings_empty">Keine öffentlichen Parkhäuser im Umkreis von 1,5 km.</string>
     <string name="home_parkings_error">Die Parkhäuser konnten nicht geladen werden. Prüfe deine Verbindung und öffne das erneut.</string>
+    <string name="home_parkings_remembered">Keine Verbindung: Das sind die Parkhäuser, die wir hier %1$s gesehen haben.</string>
     <string name="parking_peek_eyebrow">Öffentliches Parkhaus</string>
     <string name="parking_kind_underground">Tiefgarage</string>
     <string name="parking_kind_multi_storey">Parkhaus</string>

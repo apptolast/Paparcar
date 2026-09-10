@@ -17,6 +17,14 @@ data class HomeFuelSlice(
     /** The feed's own hour, verbatim. Null where the source publishes no prices at all. */
     val reportedAt: String? = null,
     /**
+     * Set when this list came off the disk because the live answer failed — the moment the app last
+     * managed to ask. [CACHE-A-MAP-MUST-NOT-EMPTY-ON-COLD-START-001]
+     *
+     * A third sentence, beside `failed` and an empty list: "we could not ask, and this is what was
+     * here when we last could".
+     */
+    val rememberedAtMs: Long? = null,
+    /**
      * Set when the lookup failed. Distinct from an empty list on purpose: "nothing within 5 km" and
      * "we could not ask" are different sentences, and the section must never say the first when it
      * means the second.
@@ -74,4 +82,14 @@ data class HomeFuelLayerSlice(
     val anchorLon: Double? = null,
     val stations: List<NearbyFuelStation> = emptyList(),
     val isLoading: Boolean = false,
+    /**
+     * When these markers came off the disk rather than the wire.
+     * [CACHE-A-MAP-MUST-NOT-EMPTY-ON-COLD-START-001]
+     *
+     * Carried for the same reason as its car-park twin, and kept symmetrical with it on purpose:
+     * one lane knowing and the other not would make the open question — where the MAP says it —
+     * answerable for half the map. ⏳ That placement is still undecided; it belongs in the FAB band
+     * with the GPS capsule [UI-A-WARNING-COSTS-NOTHING-WHEN-SILENT-001], not in a new surface.
+     */
+    val rememberedAtMs: Long? = null,
 )

@@ -44,6 +44,10 @@ class MineturStationsSource(
                 stations = MineturStationParser.parseStations(body)
                     .withinRadius(query.latitude, query.longitude, query.radiusMeters),
                 reportedAt = MineturStationParser.parseReportedAt(body),
+                source = SOURCE,
+                // Spain downloads a WHOLE province and filters it on the phone, so it never stops
+                // short of the radius it was asked for. There is nothing to shrink.
+                isTruncated = false,
             )
         }
 
@@ -83,8 +87,10 @@ class MineturStationsSource(
         return response.bodyAsText()
     }
 
-    private companion object {
-        const val COUNTRY = "ES"
+    companion object {
+        /** ⛔ Part of the disk cache's key: ids are only unique WITHIN a source. */
+        const val SOURCE = "es-minetur"
+        private const val COUNTRY = "ES"
 
         /**
          * ⛔ `PreciosCarburantes`, **plural**. The singular returns 404, and that one missing letter

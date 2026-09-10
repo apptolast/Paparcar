@@ -139,8 +139,15 @@ object OsmPublicParkingParser {
     private val ROADSIDE_PATTERN = ROADSIDE.joinToString("|", prefix = "^(", postfix = ")$")
     private val CLOSED_ACCESS_PATTERN = CLOSED_ACCESS.joinToString("|", prefix = "^(", postfix = ")$")
 
-    /** A ceiling on the payload, not on the map: the nearest ones are what a driver acts on. */
-    private const val MAX_RESULTS = 80
+    /**
+     * A ceiling on the payload, not on the map: the nearest ones are what a driver acts on.
+     *
+     * Visible beyond this file because the disk cache has to know it: a response that came back AT
+     * the cap was truncated, so the area it can honestly claim to have seen ends at its farthest
+     * element rather than at the radius it asked for.
+     * [CACHE-A-MAP-MUST-NOT-EMPTY-ON-COLD-START-001]
+     */
+    internal const val MAX_RESULTS = 80
 
     private const val MIN_CLEARANCE_M = 1.4
     private const val MAX_CLEARANCE_M = 6.0

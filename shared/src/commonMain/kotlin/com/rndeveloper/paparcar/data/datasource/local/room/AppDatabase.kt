@@ -7,7 +7,7 @@ import androidx.room.RoomDatabaseConstructor
 
 /** The declared schema version — single source for the annotation and the tests that pin what an
  *  opened file must end up at. [DB-A-NEW-COLUMN-NEEDS-ITS-MIGRATION-001] */
-const val PAPARCAR_DB_VERSION = 6  // v6: address province persisted [FUEL-A-PARKING-WITHOUT-A-COUNTRY-HAS-NO-PRICE-001] — MIGRATION_5_6 in ALL_MIGRATIONS
+const val PAPARCAR_DB_VERSION = 7  // v7: public car parks survive a cold start [CACHE-A-MAP-MUST-NOT-EMPTY-ON-COLD-START-001] — MIGRATION_6_7 in ALL_MIGRATIONS
 
 @Database(
     entities = [
@@ -17,6 +17,10 @@ const val PAPARCAR_DB_VERSION = 6  // v6: address province persisted [FUEL-A-PAR
         SpotEntity::class,
         ZoneEntity::class,
         GeocoderCacheEntity::class,
+        PublicParkingCacheEntity::class,
+        OsmCoverageEntity::class,
+        FuelStationCacheEntity::class,
+        FuelStationFuelEntity::class,
     ],
     // v1 is the baseline of [DATA-ROOM-STARTS-AT-VERSION-ONE-001]: Paparcar had never shipped, so
     // the old v2..v20 chain described upgrades of databases that only ever existed on our own test
@@ -44,6 +48,9 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun spotDao(): SpotDao
     abstract fun zoneDao(): ZoneDao
     abstract fun geocoderCacheDao(): GeocoderCacheDao
+    abstract fun publicParkingCacheDao(): PublicParkingCacheDao
+    abstract fun osmCoverageDao(): OsmCoverageDao
+    abstract fun fuelStationCacheDao(): FuelStationCacheDao
 }
 
 @Suppress("NO_ACTUAL_FOR_EXPECT")

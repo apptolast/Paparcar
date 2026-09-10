@@ -22,10 +22,12 @@ import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.presentation.home.model.HomeParkingsSlice
 import com.rndeveloper.paparcar.ui.components.PapSectionHeader
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
+import com.rndeveloper.paparcar.presentation.util.relativeTimeText
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_parkings_empty
 import paparcar.composeapp.generated.resources.home_parkings_error
+import paparcar.composeapp.generated.resources.home_parkings_remembered
 import paparcar.composeapp.generated.resources.home_parkings_title
 
 /**
@@ -97,6 +99,27 @@ fun HomeParkingsSection(
                     else -> HomePublicParkingRows(
                         parkings = slice.parkings,
                         onParkingClick = onParkingClick,
+                    )
+                }
+
+                // ⛔ A remembered list must SAY it is remembered.
+                // [CACHE-A-MAP-MUST-NOT-EMPTY-ON-COLD-START-001]
+                //
+                // This is the third sentence, under the rows rather than instead of them: the app
+                // could not ask just now, but it has been here before and this is what was there.
+                // Without it the section shows month-old car parks with exactly the face it uses for
+                // a list fetched a second ago — the same defect the fuel lane fixed one layer up,
+                // where an average travelled with a date nobody read.
+                // [FUEL-AN-AVERAGE-MUST-SAY-WHEN-IT-WAS-MEASURED-001]
+                //
+                // The AGE, not the date: `relativeTimeText` already answers "how old is this" in all
+                // nine locales, so this costs one key instead of a month formatter times nine.
+                slice.rememberedAtMs?.takeUnless { slice.isLoading }?.let { rememberedAt ->
+                    SectionNote(
+                        stringResource(
+                            Res.string.home_parkings_remembered,
+                            relativeTimeText(rememberedAt),
+                        ),
                     )
                 }
             }

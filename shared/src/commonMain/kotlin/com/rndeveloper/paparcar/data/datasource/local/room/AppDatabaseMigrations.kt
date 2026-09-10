@@ -84,4 +84,67 @@ private val MIGRATION_5_6 = object : Migration(5, 6) {
     }
 }
 
-val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+/**
+ * v6 → v7: the public-car-park layer gets a disk, so the map is not empty on a cold start or without
+ * a radio. [CACHE-A-MAP-MUST-NOT-EMPTY-ON-COLD-START-001]
+ *
+ * ⚠️ The **first `CREATE TABLE`** of this chain — every step before it adds a column. Two tables and
+ * not one, and the second is the point: `osm_public_parkings` holds the facilities,
+ * [OsmCoverageEntity] holds *having asked about an area*, which is the only thing that actually has
+ * an age. Without it a bounding-box read is the union of everything ever written there, so nothing
+ * can ever be removed and an empty area cannot be told from an unvisited one.
+ *
+ * Nothing is back-filled: a pre-v7 device simply has not cached anything yet, which is exactly what
+ * empty tables say. The first answer the app receives fills them.
+ */
+private val MIGRATION_6_7 = object : Migration(6, 7) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL(
+            "CREATE TABLE IF NOT EXISTS `osm_public_parkings` (" +
+                "`id` TEXT NOT NULL, `name` TEXT, `operator` TEXT, `kind` TEXT NOT NULL, " +
+                "`latitude` REAL NOT NULL, `longitude` REAL NOT NULL, `capacity` INTEGER, " +
+                "`fee` TEXT NOT NULL, `maxHeightMeters` REAL, `openingHours` TEXT, " +
+                "`cachedAt` INTEGER NOT NULL, PRIMARY KEY(`id`))"
+        )
+        connection.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_osm_public_parkings_latitude_longitude` " +
+                "ON `osm_public_parkings` (`latitude`, `longitude`)"
+        )
+        connection.execSQL(
+            "CREATE TABLE IF NOT EXISTS `osm_coverage` (" +
+                "`discKey` TEXT NOT NULL, `layer` TEXT NOT NULL, `latitude` REAL NOT NULL, " +
+                "`longitude` REAL NOT NULL, `radiusMeters` INTEGER NOT NULL, " +
+                "`fetchedAt` INTEGER NOT NULL, PRIMARY KEY(`discKey`))"
+        )
+        // The fuel half, in the SAME version rather than a v8: v7 has never shipped, so splitting
+        // one ticket across two numbers would invent a migration step no device will ever take.
+        //
+        // ⛔ Two tables and not one: `fuel_stations` is geography and keeps a long retention, while
+        // `fuel_station_fuels` is the perishable half and keeps NO ttl at all — it stores the hour
+        // the source stamped and lets the reader decide. That split is what answers the objection
+        // `CachingFuelStationsSource` recorded against ever persisting this.
+        connection.execSQL(
+            "CREATE TABLE IF NOT EXISTS `fuel_stations` (" +
+                "`stationKey` TEXT NOT NULL, `source` TEXT NOT NULL, `id` TEXT NOT NULL, " +
+                "`name` TEXT, `address` TEXT, `town` TEXT, `latitude` REAL NOT NULL, " +
+                "`longitude` REAL NOT NULL, `schedule` TEXT, `cachedAt` INTEGER NOT NULL, " +
+                "PRIMARY KEY(`stationKey`))"
+        )
+        connection.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_fuel_stations_latitude_longitude` " +
+                "ON `fuel_stations` (`latitude`, `longitude`)"
+        )
+        connection.execSQL(
+            "CREATE TABLE IF NOT EXISTS `fuel_station_fuels` (" +
+                "`stationKey` TEXT NOT NULL, `fuelType` TEXT NOT NULL, `priceAmount` REAL, " +
+                "`priceCurrency` TEXT, `reportedAtMs` INTEGER, `availability` TEXT, " +
+                "PRIMARY KEY(`stationKey`, `fuelType`))"
+        )
+        connection.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_fuel_station_fuels_stationKey` " +
+                "ON `fuel_station_fuels` (`stationKey`)"
+        )
+    }
+}
+
+val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)

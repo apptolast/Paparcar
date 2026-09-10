@@ -850,6 +850,7 @@
     <string name="home_fuel_no_prices">In questo Paese i prezzi non sono pubblicati. Questi sono i distributori vicini.</string>
     <string name="home_fuel_reported_at">Prezzi comunicati alle %1$s</string>
     <string name="home_fuel_oldest_price">Prezzo più vecchio: %1$s</string>
+    <string name="home_fuel_remembered">Nessuna connessione: questi sono i distributori visti qui %1$s.</string>
     <!-- Parkings publicos [PARKINGS-ON-THE-MAP-001] -->
     <string name="map_cd_layers">Mostra o nascondi i livelli della mappa</string>
     <string name="map_layer_fuel_stations">Distributori</string>
@@ -857,6 +858,7 @@
     <string name="home_parkings_title">Parcheggi pubblici vicini</string>
     <string name="home_parkings_empty">Nessun parcheggio pubblico entro 1,5 km.</string>
     <string name="home_parkings_error">Non siamo riusciti a caricare i parcheggi. Controlla la connessione e riapri.</string>
+    <string name="home_parkings_remembered">Nessuna connessione: questi sono i parcheggi pubblici visti qui %1$s.</string>
     <string name="parking_peek_eyebrow">Parcheggio pubblico</string>
     <string name="parking_kind_underground">Parcheggio sotterraneo</string>
     <string name="parking_kind_multi_storey">Parcheggio multipiano</string>

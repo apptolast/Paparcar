@@ -48,6 +48,10 @@ class FranceFuelStationsSource(
                 // 0,7 h to thirteen months, so any single hour quoted for the list as a whole would
                 // be a claim no station made. The hour rides with the price instead.
                 reportedAt = null,
+                source = SOURCE,
+                // The feed's own `limit`: at it, the answer stops short of the radius asked for.
+                // [CACHE-A-MAP-MUST-NOT-EMPTY-ON-COLD-START-001]
+                isTruncated = stations.size >= MAX_RESULTS,
             )
         }
 
@@ -85,9 +89,11 @@ class FranceFuelStationsSource(
     private fun point(query: FuelStationsQuery): String =
         "geom'POINT(${query.longitude} ${query.latitude})'"
 
-    private companion object {
-        const val COUNTRY = "FR"
-        const val MAX_RESULTS = 100
+    companion object {
+        /** ⛔ Part of the disk cache's key: ids are only unique WITHIN a source. */
+        const val SOURCE = "fr-prix-carburants"
+        private const val COUNTRY = "FR"
+        private const val MAX_RESULTS = 100
         const val ENDPOINT = "https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/" +
             "prix-des-carburants-en-france-flux-instantane-v2/records"
     }

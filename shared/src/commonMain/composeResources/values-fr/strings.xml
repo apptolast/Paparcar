@@ -850,6 +850,7 @@
     <string name="home_fuel_no_prices">Les prix ne sont pas publiés dans ce pays. Voici les stations à proximité.</string>
     <string name="home_fuel_reported_at">Prix communiqués à %1$s</string>
     <string name="home_fuel_oldest_price">Prix le plus ancien : %1$s</string>
+    <string name="home_fuel_remembered">Pas de connexion : voici les stations vues ici %1$s.</string>
     <!-- Parkings publicos [PARKINGS-ON-THE-MAP-001] -->
     <string name="map_cd_layers">Afficher ou masquer les calques de la carte</string>
     <string name="map_layer_fuel_stations">Stations-service</string>
@@ -857,6 +858,7 @@
     <string name="home_parkings_title">Parkings à proximité</string>
     <string name="home_parkings_empty">Aucun parking public à moins de 1,5 km.</string>
     <string name="home_parkings_error">Impossible de charger les parkings. Vérifiez votre connexion et rouvrez cette section.</string>
+    <string name="home_parkings_remembered">Pas de connexion : voici les parkings vus ici %1$s.</string>
     <string name="parking_peek_eyebrow">Parking public</string>
     <string name="parking_kind_underground">Parking souterrain</string>
     <string name="parking_kind_multi_storey">Parking à étages</string>

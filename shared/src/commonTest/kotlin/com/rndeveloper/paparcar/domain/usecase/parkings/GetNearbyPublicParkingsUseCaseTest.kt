@@ -7,10 +7,12 @@ import com.rndeveloper.paparcar.domain.parkings.FeeInfo
 import com.rndeveloper.paparcar.domain.parkings.PublicParking
 import com.rndeveloper.paparcar.domain.parkings.PublicParkingKind
 import com.rndeveloper.paparcar.domain.parkings.PublicParkingsQuery
+import com.rndeveloper.paparcar.domain.parkings.PublicParkingsResult
 import com.rndeveloper.paparcar.domain.parkings.PublicParkingsSource
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class GetNearbyPublicParkingsUseCaseTest {
@@ -24,14 +26,15 @@ class GetNearbyPublicParkingsUseCaseTest {
 
     private class FakeSource(
         private val result: Result<List<PublicParking>>,
+        private val rememberedAtMs: Long? = null,
     ) : PublicParkingsSource {
         var seen: PublicParkingsQuery? = null
         var asked = 0
         override fun covers(countryCode: String) = true
-        override suspend fun parkingsNear(query: PublicParkingsQuery): Result<List<PublicParking>> {
+        override suspend fun parkingsNear(query: PublicParkingsQuery): Result<PublicParkingsResult> {
             seen = query
             asked++
-            return result
+            return result.map { PublicParkingsResult(it, rememberedAtMs) }
         }
     }
 
@@ -75,7 +78,7 @@ class GetNearbyPublicParkingsUseCaseTest {
 
         assertEquals(
             listOf("named", "run-by", "underground", "priced", "counted").sorted(),
-            result.map { it.parking.id }.sorted(),
+            result.parkings.map { it.parking.id }.sorted(),
         )
     }
 
@@ -95,8 +98,8 @@ class GetNearbyPublicParkingsUseCaseTest {
                 .invoke(SOL_LAT, SOL_LON).getOrNull(),
         )
 
-        assertEquals(listOf("near", "far"), result.map { it.parking.id })
-        assertTrue(result.first().distanceMeters < result.last().distanceMeters)
+        assertEquals(listOf("near", "far"), result.parkings.map { it.parking.id })
+        assertTrue(result.parkings.first().distanceMeters < result.parkings.last().distanceMeters)
     }
 
     @Test
@@ -106,7 +109,7 @@ class GetNearbyPublicParkingsUseCaseTest {
         val result = GetNearbyPublicParkingsUseCase(source, FakeGeocoder(null))
             .invoke(SOL_LAT, SOL_LON)
 
-        assertEquals(1, result.getOrNull()?.size)
+        assertEquals(1, result.getOrNull()?.parkings?.size)
         assertEquals("", source.seen?.countryCode)
         assertEquals(1, source.asked)
     }
@@ -131,6 +134,44 @@ class GetNearbyPublicParkingsUseCaseTest {
             .invoke(SOL_LAT, SOL_LON)
 
         assertTrue(result.isFailure)
+    }
+
+    /**
+     * ⛔ The age survives the filtering. [CACHE-A-MAP-MUST-NOT-EMPTY-ON-COLD-START-001]
+     *
+     * This use case drops the anonymous patches of ground, and it would be easy to rebuild the
+     * answer around the surviving list and lose the stamp on the way — the exact defect
+     * [FUEL-AN-AVERAGE-MUST-SAY-WHEN-IT-WAS-MEASURED-001] found twice: a field that travels with no
+     * reader. Which car parks are worth showing and when the app last managed to ask are unrelated
+     * questions, and answering the first must not silently answer the second.
+     */
+    @Test
+    fun `should_carryTheRememberedStamp_when_theAnswerCameOffTheDisk`() = runTest {
+        val source = FakeSource(
+            result = Result.success(listOf(parking("anonymous"), parking("named", name = "Parking"))),
+            rememberedAtMs = 1_725_000_000_000,
+        )
+
+        val result = requireNotNull(
+            GetNearbyPublicParkingsUseCase(source, FakeGeocoder(madrid))
+                .invoke(SOL_LAT, SOL_LON).getOrNull(),
+        )
+
+        assertEquals(listOf("named"), result.parkings.map { it.parking.id })
+        assertEquals(1_725_000_000_000, result.rememberedAtMs)
+    }
+
+    /** And a live answer says so by saying nothing — null is not "unknown", it is "just fetched". */
+    @Test
+    fun `should_leaveTheStampNull_when_theAnswerCameOffTheWire`() = runTest {
+        val source = FakeSource(Result.success(listOf(parking("named", name = "Parking"))))
+
+        val result = requireNotNull(
+            GetNearbyPublicParkingsUseCase(source, FakeGeocoder(madrid))
+                .invoke(SOL_LAT, SOL_LON).getOrNull(),
+        )
+
+        assertNull(result.rememberedAtMs)
     }
 
     private companion object {

@@ -1,8 +1,8 @@
 package com.rndeveloper.paparcar.data.parkings
 
 import com.rndeveloper.paparcar.data.overpass.OverpassClient
-import com.rndeveloper.paparcar.domain.parkings.PublicParking
 import com.rndeveloper.paparcar.domain.parkings.PublicParkingsQuery
+import com.rndeveloper.paparcar.domain.parkings.PublicParkingsResult
 import com.rndeveloper.paparcar.domain.parkings.PublicParkingsSource
 import com.rndeveloper.paparcar.domain.util.haversineMeters
 import io.ktor.client.HttpClient
@@ -23,10 +23,9 @@ import io.ktor.client.HttpClient
  * after Spain's OSM fallback and France's name lookup.
  * [OSM-ONE-MIRROR-IS-A-SINGLE-POINT-OF-FAILURE-001]
  *
- * ⚠️ [OverpassClient] still lives in `data/fuel/` because that is where it was born. Now that a
- * non-fuel lane uses it, its home should become a neutral `data/overpass/` — noted rather than done
- * mid-merge, because moving a file another session is actively building on buys a conflict and no
- * behaviour.
+ * [OverpassClient] lives in the neutral `data/overpass/` since
+ * [OVERPASS-CLIENT-IS-NOT-FUEL-001] — this lane was the one that made its old home under
+ * `data/fuel/` a lie.
  */
 class OsmPublicParkingsSource(
     client: HttpClient,
@@ -37,7 +36,7 @@ class OsmPublicParkingsSource(
     /** The floor: it covers wherever nothing better does — which today is everywhere. */
     override fun covers(countryCode: String): Boolean = true
 
-    override suspend fun parkingsNear(query: PublicParkingsQuery): Result<List<PublicParking>> =
+    override suspend fun parkingsNear(query: PublicParkingsQuery): Result<PublicParkingsResult> =
         overpass
             .fetch(
                 query = OsmPublicParkingParser
@@ -47,9 +46,13 @@ class OsmPublicParkingsSource(
             // ⛔ A failure stays a FAILURE, never an empty list: "we could not ask" and "there are
             // none" are different sentences, and the section says them differently.
             .map { body ->
-                OsmPublicParkingParser.parse(body).sortedBy {
-                    haversineMeters(query.latitude, query.longitude, it.latitude, it.longitude)
-                }
+                PublicParkingsResult(
+                    parkings = OsmPublicParkingParser.parse(body).sortedBy {
+                        haversineMeters(query.latitude, query.longitude, it.latitude, it.longitude)
+                    },
+                    // This one came off the wire just now, and says so by saying nothing.
+                    rememberedAtMs = null,
+                )
             }
 
     private companion object {

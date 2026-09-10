@@ -87,7 +87,12 @@ object OsmFuelStationParser {
         "fuel:cng" to FuelType.LPG_CNG,
     )
 
-    private const val MAX_RESULTS = 60
+    /**
+     * Visible beyond this file: a response that came back AT the cap was truncated, and the disk
+     * cache has to know — otherwise a saved disc promises a ring nobody ever looked at.
+     * [CACHE-A-MAP-MUST-NOT-EMPTY-ON-COLD-START-001]
+     */
+    internal const val MAX_RESULTS = 60
 
     @Serializable
     private data class OsmResponse(val elements: List<OsmElement> = emptyList())

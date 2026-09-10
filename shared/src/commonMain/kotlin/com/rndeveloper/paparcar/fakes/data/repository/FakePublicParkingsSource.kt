@@ -4,6 +4,7 @@ import com.rndeveloper.paparcar.domain.parkings.FeeInfo
 import com.rndeveloper.paparcar.domain.parkings.PublicParking
 import com.rndeveloper.paparcar.domain.parkings.PublicParkingKind
 import com.rndeveloper.paparcar.domain.parkings.PublicParkingsQuery
+import com.rndeveloper.paparcar.domain.parkings.PublicParkingsResult
 import com.rndeveloper.paparcar.domain.parkings.PublicParkingsSource
 
 /**
@@ -18,13 +19,25 @@ import com.rndeveloper.paparcar.domain.parkings.PublicParkingsSource
  * real world says all four: named and priced, named and free, **nameless** (the majority worldwide —
  * only 2,6% of Cuenca's car parks carry a name), and known-nothing beyond its kind.
  */
-class FakePublicParkingsSource : PublicParkingsSource {
+class FakePublicParkingsSource(
+    /**
+     * When set, the fake answers as the DISK would: the same car parks, plus the moment the app last
+     * managed to ask. [CACHE-A-MAP-MUST-NOT-EMPTY-ON-COLD-START-001]
+     *
+     * ⛔ A knob rather than a second fake, because the remembered answer is not a different SHAPE of
+     * answer — it is the same list wearing its age. Building it as a separate fake would let the two
+     * drift, which is how a state ends up impossible to reach in the gallery while being reachable
+     * in the field.
+     */
+    private val rememberedAtMs: Long? = null,
+) : PublicParkingsSource {
 
     override fun covers(countryCode: String): Boolean = true
 
-    override suspend fun parkingsNear(query: PublicParkingsQuery): Result<List<PublicParking>> =
+    override suspend fun parkingsNear(query: PublicParkingsQuery): Result<PublicParkingsResult> =
         Result.success(
-            listOf(
+            PublicParkingsResult(
+            parkings = listOf(
                 parking(
                     query = query,
                     id = "mock-p1",
@@ -79,6 +92,8 @@ class FakePublicParkingsSource : PublicParkingsSource {
                     maxHeightMeters = null,
                     openingHours = null,
                 ),
+            ),
+                rememberedAtMs = rememberedAtMs,
             ),
         )
 

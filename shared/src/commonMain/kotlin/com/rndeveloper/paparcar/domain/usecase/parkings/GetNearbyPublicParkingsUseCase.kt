@@ -14,6 +14,19 @@ data class NearbyPublicParking(
 )
 
 /**
+ * The answer for an area: the car parks, and whether the app is **looking or remembering**.
+ * [CACHE-A-MAP-MUST-NOT-EMPTY-ON-COLD-START-001]
+ *
+ * Shaped like [com.rndeveloper.paparcar.domain.usecase.fuel.NearbyFuelStations], which already had
+ * to carry a stamp beside its list for the same reason.
+ */
+data class NearbyPublicParkings(
+    val parkings: List<NearbyPublicParking>,
+    /** Null when this was just fetched; otherwise when the app last actually asked about this area. */
+    val rememberedAtMs: Long? = null,
+)
+
+/**
  * Where can I leave the car around here. [PARKINGS-ON-THE-MAP-001]
  *
  * A verdict, not a predicate: its result is what the sheet lists, what the layer draws, and what a
@@ -32,7 +45,7 @@ class GetNearbyPublicParkingsUseCase(
         latitude: Double,
         longitude: Double,
         radiusMeters: Int = PublicParkingsQuery.DEFAULT_RADIUS_METERS,
-    ): Result<List<NearbyPublicParking>> {
+    ): Result<NearbyPublicParkings> {
         val address = geocoder.getAddress(latitude, longitude).getOrNull()
 
         val query = PublicParkingsQuery(
@@ -44,15 +57,20 @@ class GetNearbyPublicParkingsUseCase(
         )
 
         return parkings.parkingsNear(query).map { found ->
-            found
-                .filter { it.isIdentifiable }
-                .map {
-                    NearbyPublicParking(
-                        parking = it,
-                        distanceMeters = haversineMeters(latitude, longitude, it.latitude, it.longitude),
-                    )
-                }
-                .sortedBy { it.distanceMeters }
+            NearbyPublicParkings(
+                parkings = found.parkings
+                    .filter { it.isIdentifiable }
+                    .map {
+                        NearbyPublicParking(
+                            parking = it,
+                            distanceMeters = haversineMeters(latitude, longitude, it.latitude, it.longitude),
+                        )
+                    }
+                    .sortedBy { it.distanceMeters },
+                // Carried through untouched: the filtering above changes WHICH car parks are worth
+                // showing, never when the app last managed to ask.
+                rememberedAtMs = found.rememberedAtMs,
+            )
         }
     }
 }

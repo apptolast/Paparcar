@@ -668,7 +668,11 @@ class HomeViewModel(
                     )
                     updateState {
                         copy(
-                            fuelLayer = fuelLayer.copy(isLoading = false, stations = nearby.stations),
+                            fuelLayer = fuelLayer.copy(
+                                isLoading = false,
+                                stations = nearby.stations,
+                                rememberedAtMs = nearby.rememberedAtMs,
+                            ),
                             // A selection that survives in NEITHER store is orphaned — same pruning
                             // rule as applyNewSpots, scoped to its own kind.
                             selection = selection.takeUnless { sel ->
@@ -734,6 +738,7 @@ class HomeViewModel(
                                 failed = false,
                                 stations = nearby.stations,
                                 reportedAt = nearby.reportedAt,
+                                rememberedAtMs = nearby.rememberedAtMs,
                                 fetchedFor = nearby.fuel,
                             ),
                         )
@@ -838,15 +843,23 @@ class HomeViewModel(
         viewModelScope.launch {
             getNearbyPublicParkings(lat, lon)
                 .onSuccess { found ->
-                    PaparcarLogger.d(TAG, "parkings viewport: ${found.size} car parks around $lat,$lon")
+                    PaparcarLogger.d(
+                        TAG,
+                        "parkings viewport: ${found.parkings.size} car parks around $lat,$lon" +
+                            (found.rememberedAtMs?.let { " (remembered from $it)" } ?: ""),
+                    )
                     updateState {
                         copy(
-                            parkingsLayer = parkingsLayer.copy(isLoading = false, parkings = found),
+                            parkingsLayer = parkingsLayer.copy(
+                                isLoading = false,
+                                parkings = found.parkings,
+                                rememberedAtMs = found.rememberedAtMs,
+                            ),
                             // A selection alive in NEITHER store is orphaned — same pruning rule as
                             // the fuel lane, scoped to its own kind.
                             selection = selection.takeUnless { sel ->
                                 sel is HomeSelection.PublicParking &&
-                                    found.none { it.parking.id == sel.id } &&
+                                    found.parkings.none { it.parking.id == sel.id } &&
                                     parkings.parkings.none { it.parking.id == sel.id }
                             },
                         )
@@ -928,7 +941,14 @@ class HomeViewModel(
             getNearbyPublicParkings(lat, lon)
                 .onSuccess { found ->
                     updateState {
-                        copy(parkings = parkings.copy(isLoading = false, failed = false, parkings = found))
+                        copy(
+                            parkings = parkings.copy(
+                                isLoading = false,
+                                failed = false,
+                                parkings = found.parkings,
+                                rememberedAtMs = found.rememberedAtMs,
+                            )
+                        )
                     }
                 }
                 // ⛔ A failure is NOT an empty list: the section says "we could not ask", never

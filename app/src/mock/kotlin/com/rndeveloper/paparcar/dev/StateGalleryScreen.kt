@@ -2366,6 +2366,25 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             Variant("Ninguna a menos de 5 km", Placement.Surface) {
                 HomeFuelSection(slice = HomeFuelSlice(isExpanded = true), onToggle = {})
             },
+            // ⛔ Recordado del disco: la tercera frase, y la unica que dice que HOY no se pudo
+            // preguntar. [CACHE-A-MAP-MUST-NOT-EMPTY-ON-COLD-START-001]
+            //
+            // Las filas conservan la hora de CADA precio: un precio leido del disco no es menos
+            // honesto que uno de la red, porque dice cuando se midio igual que el otro. Lo que
+            // anade el disco es que la pregunta de hoy fallo, y eso lo dice el pie.
+            //
+            // ⛔ Fecha calculada, no el valor por defecto — si no, la variante no ejercita su caso.
+            Variant("Recordado del disco (sin conexion)", Placement.Surface) {
+                HomeFuelSection(
+                    slice = HomeFuelSlice(
+                        isExpanded = true,
+                        stations = galleryFrenchStations,
+                        reportedAt = null,
+                        rememberedAtMs = Clock.System.now().toEpochMilliseconds() - THREE_DAYS_MS,
+                    ),
+                    onToggle = {},
+                )
+            },
             // ⛔ No es lo mismo que la anterior: decir "no hay ninguna" cuando no se pudo preguntar
             // manda al usuario a conducir sobre algo que nadie comprobó.
             Variant("No se pudo preguntar", Placement.Surface) {
@@ -2461,6 +2480,23 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             Variant("No se pudo preguntar", Placement.Surface) {
                 HomeParkingsSection(
                     slice = HomeParkingsSlice(isExpanded = true, failed = true),
+                    onToggle = {},
+                )
+            },
+            // ⛔ Y esta es la TERCERA frase, que no es un matiz de las dos anteriores: tampoco se
+            // pudo preguntar, pero la app ya estuvo aqui y ensena lo que habia, diciendo cuando.
+            // [CACHE-A-MAP-MUST-NOT-EMPTY-ON-COLD-START-001]
+            //
+            // ⛔ La fecha se calcula AQUI, no se deja en su valor por defecto: una variante que no
+            // ejercita su caso se ve identica a la de al lado y no vigila nada — es exactamente lo
+            // que paso en DEV-A-GALLERY-VARIANT-MUST-EXERCISE-ITS-CASE-001.
+            Variant("Recordado del disco (sin conexion)", Placement.Surface) {
+                HomeParkingsSection(
+                    slice = HomeParkingsSlice(
+                        isExpanded = true,
+                        parkings = galleryParkings,
+                        rememberedAtMs = Clock.System.now().toEpochMilliseconds() - THREE_DAYS_MS,
+                    ),
                     onToggle = {},
                 )
             },
@@ -2615,6 +2651,7 @@ private fun frenchStation(
 }
 
 private const val TWO_HOURS_MS = 2 * 60 * 60 * 1000L
+private const val THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000L
 private const val FOUR_DAYS_MS = 4 * 24 * 60 * 60 * 1000L
 private const val THIRTEEN_MONTHS_MS = 395 * 24 * 60 * 60 * 1000L
 
