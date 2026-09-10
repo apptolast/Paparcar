@@ -143,6 +143,7 @@ import com.rndeveloper.paparcar.domain.usecase.fuel.NearbyFuelStation
 import com.rndeveloper.paparcar.presentation.home.model.HomeFuelSlice
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.HomeFuelSection
 import com.rndeveloper.paparcar.domain.model.FuelType
+import com.rndeveloper.paparcar.domain.model.VehicleWithStats
 import com.rndeveloper.paparcar.domain.model.Money
 
 /**
@@ -348,14 +349,31 @@ private fun agedHalfBeyondFreeWindow(): List<UserParking> =
 private fun agedAllBeyondFreeWindow(): List<UserParking> =
     FakeData.endedSessions.map { it.agedBeyondFreeWindow() }
 
+/**
+ * El primer coche de los fakes, convertido en enchufable: es el unico tipo que consume las DOS
+ * energias, asi que es el unico que enciende a la vez el tile de litros y el de kWh.
+ * [STATS-A-COMPUTED-LITRE-WITH-NO-READER-001]
+ */
+private fun plugInHybridFleet(): List<VehicleWithStats> =
+    FakeData.vehiclesWithStats.take(1).map { withStats ->
+        withStats.copy(
+            vehicle = withStats.vehicle.copy(
+                fuelType = FuelType.PLUG_IN_HYBRID,
+                consumptionPer100 = 4.2f,
+                consumptionElectricPer100 = 17.5f,
+            ),
+        )
+    }
+
 /** Estado del panel de cifras, resuelto por el MISMO sitio que lo resuelve en produccion, para que
  *  la galeria no pueda ensenar una rejilla que la pantalla real no daria. [STATS-PANEL-001] */
 private fun statsPanelState(
     filter: HistoryFilter = HistoryFilter.ThisMonth,
     isPlus: Boolean = true,
     sessions: List<UserParking> = FakeData.allSessions,
+    vehiclesOverride: List<VehicleWithStats>? = null,
 ): StatsState {
-    val vehicles = FakeData.vehiclesWithStats
+    val vehicles = vehiclesOverride ?: FakeData.vehiclesWithStats
     // Las sesiones de FakeData nacen sin vehicleId, y sin coche el agregador no puede convertir
     // kilometros en litros ni en CO2: la tarjeta salia sin sus dos cifras principales SOLO en la
     // galeria. Se las atamos al primer coche, que es el que la galeria pinta. [STATS-PANEL-001]
@@ -1429,6 +1447,17 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             Variant("Free · una cifra y el resto tapado") {
                 StatsContent(
                     state = statsPanelState(isPlus = false),
+                    onNavigateBack = {},
+                    onIntent = {},
+                )
+            },
+            // Un enchufable es el UNICO caso que enciende los dos tiles de consumo a la vez, y no
+            // habia ninguno en los fakes (gasolina, hibrido, gasolina, diesel). Sin esta variante,
+            // el tile de kWh no se veria nunca en la galeria.
+            // [STATS-A-COMPUTED-LITRE-WITH-NO-READER-001]
+            Variant("Enchufable · litros Y kWh") {
+                StatsContent(
+                    state = statsPanelState(vehiclesOverride = plugInHybridFleet()),
                     onNavigateBack = {},
                     onIntent = {},
                 )

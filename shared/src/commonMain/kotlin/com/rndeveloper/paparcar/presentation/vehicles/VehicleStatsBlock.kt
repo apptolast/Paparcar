@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Cloud
+import androidx.compose.material.icons.rounded.ElectricBolt
+import androidx.compose.material.icons.rounded.LocalGasStation
 import androidx.compose.material.icons.rounded.Event
 import androidx.compose.material.icons.rounded.HourglassBottom
 import androidx.compose.material.icons.rounded.Payments
@@ -68,6 +70,8 @@ import paparcar.composeapp.generated.resources.stats_plus_row_title
 import paparcar.composeapp.generated.resources.stats_tile_auto_detected
 import paparcar.composeapp.generated.resources.stats_tile_avg_duration
 import paparcar.composeapp.generated.resources.stats_tile_co2
+import paparcar.composeapp.generated.resources.stats_tile_energy
+import paparcar.composeapp.generated.resources.stats_tile_fuel
 import paparcar.composeapp.generated.resources.stats_tile_cost
 import paparcar.composeapp.generated.resources.stats_tile_favorite_street
 import paparcar.composeapp.generated.resources.stats_tile_peak_hour
@@ -75,6 +79,8 @@ import paparcar.composeapp.generated.resources.stats_tile_spots_shared
 import paparcar.composeapp.generated.resources.stats_tile_usual_day
 import paparcar.composeapp.generated.resources.stats_value_hours_minutes
 import paparcar.composeapp.generated.resources.stats_value_kg
+import paparcar.composeapp.generated.resources.stats_value_kwh
+import paparcar.composeapp.generated.resources.stats_value_liters
 import paparcar.composeapp.generated.resources.stats_value_minutes
 import paparcar.composeapp.generated.resources.stats_value_share
 import paparcar.composeapp.generated.resources.stats_veiled_value
@@ -345,7 +351,8 @@ internal data class StatTileData(
  * rule no test can reach.
  */
 internal enum class StatTileKey {
-    COST, CO2, AVG_DURATION, PEAK_HOUR, USUAL_DAY, USUAL_STREET, AUTO_DETECTED, SPOTS_SHARED
+    COST, FUEL, ENERGY, CO2, AVG_DURATION, PEAK_HOUR, USUAL_DAY, USUAL_STREET, AUTO_DETECTED,
+    SPOTS_SHARED
 }
 
 /**
@@ -356,6 +363,8 @@ internal enum class StatTileKey {
  */
 private fun StatTileKey.icon(): ImageVector = when (this) {
     StatTileKey.COST -> Icons.Rounded.Payments
+    StatTileKey.FUEL -> Icons.Rounded.LocalGasStation
+    StatTileKey.ENERGY -> Icons.Rounded.ElectricBolt
     StatTileKey.CO2 -> Icons.Rounded.Cloud
     StatTileKey.AVG_DURATION -> Icons.Rounded.HourglassBottom
     StatTileKey.PEAK_HOUR -> Icons.Rounded.Schedule
@@ -368,6 +377,12 @@ private fun StatTileKey.icon(): ImageVector = when (this) {
 internal fun statTileKeys(stats: PeriodStats): List<StatTileKey> = buildList {
     // Spend leads when it exists — it is the figure a person can act on, so it is what free sees.
     if (stats.costEstimate != null) add(StatTileKey.COST)
+    // El combustible va DETRAS del coste y DELANTE de las emisiones: es la magnitud de la que sale
+    // el coste, así que se lee antes que el CO₂. Dos claves y no una porque un híbrido enchufable
+    // consume las DOS energías y el agregado ya las lleva separadas — fundirlas obligaría a
+    // inventar una unidad común. [STATS-A-COMPUTED-LITRE-WITH-NO-READER-001]
+    if (stats.fuelLiters != null) add(StatTileKey.FUEL)
+    if (stats.energyKwh != null) add(StatTileKey.ENERGY)
     if (stats.co2Kg != null) add(StatTileKey.CO2)
     if (stats.avgParkedDurationMs != null) add(StatTileKey.AVG_DURATION)
     if (stats.peakHourBucket != null) add(StatTileKey.PEAK_HOUR)
@@ -394,6 +409,8 @@ internal fun statTiles(stats: PeriodStats): List<StatTileData> {
     // per frame is pure. The locale still decides where the unit sits relative to the number,
     // which a hardcoded "$value kg" would have quietly taken away from it.
     val kgTemplate = stringResource(Res.string.stats_value_kg, NUMBER_SLOT)
+    val litersTemplate = stringResource(Res.string.stats_value_liters, NUMBER_SLOT)
+    val kwhTemplate = stringResource(Res.string.stats_value_kwh, NUMBER_SLOT)
 
     return statTileKeys(stats).map { key ->
         val icon = key.icon()
@@ -408,6 +425,29 @@ internal fun statTiles(stats: PeriodStats): List<StatTileData> {
                     animated = StatTileNumber(cost.amount) { v -> "${formatMoney(v)} ${cost.currency}" },
                 )
             }
+            // ⛔ LITROS, no «consumo medio en l/100 km». Los litros se derivan del consumo
+            // declarado (`km * consumptionPer100 / 100`), así que litros/km × 100 devolvería
+            // EXACTAMENTE la cifra que el usuario tecleó — y que ya está escrita en la ficha, dos
+            // dedos más arriba. Sería una constante disfrazada de medición. Los litros del periodo
+            // sí se mueven con los kilómetros. [STATS-A-COMPUTED-LITRE-WITH-NO-READER-001]
+            StatTileKey.FUEL -> StatTileData(
+                icon = icon,
+                value = litersTemplate.replace(NUMBER_SLOT, formatDecimal(requireNotNull(stats.fuelLiters))),
+                label = stringResource(Res.string.stats_tile_fuel),
+                delta = percentDelta(requireNotNull(stats.fuelLiters), stats.previous?.fuelLiters),
+                animated = StatTileNumber(requireNotNull(stats.fuelLiters)) { v ->
+                    litersTemplate.replace(NUMBER_SLOT, formatDecimal(v))
+                },
+            )
+            StatTileKey.ENERGY -> StatTileData(
+                icon = icon,
+                value = kwhTemplate.replace(NUMBER_SLOT, formatDecimal(requireNotNull(stats.energyKwh))),
+                label = stringResource(Res.string.stats_tile_energy),
+                delta = percentDelta(requireNotNull(stats.energyKwh), stats.previous?.energyKwh),
+                animated = StatTileNumber(requireNotNull(stats.energyKwh)) { v ->
+                    kwhTemplate.replace(NUMBER_SLOT, formatDecimal(v))
+                },
+            )
             StatTileKey.CO2 -> StatTileData(
                 icon = icon,
                 value = kgTemplate.replace(NUMBER_SLOT, formatDecimal(requireNotNull(stats.co2Kg))),
@@ -510,9 +550,20 @@ private fun durationText(durationMs: Long): String {
     }
 }
 
-/** Stands in for the figure inside a resolved unit template while it is being animated. A
- *  control character, so no translation can contain it by accident. */
-private const val NUMBER_SLOT = " "
+/**
+ * Stands in for the figure inside a resolved unit template while it is being animated. A
+ * control character, so no translation can contain it by accident.
+ *
+ * ⛔ Written as the ESCAPE `\u0000`, never as a raw NUL byte in the source.
+ * [STATS-A-COMPUTED-LITRE-WITH-NO-READER-001]
+ *
+ * The sentinel is a good idea; embedding the byte itself was not. A NUL makes every tool that
+ * sniffs for one treat the file as binary — `grep` refuses to print matches without `-a`, which
+ * is how this was found: reading this file needed a flag no other file in the repo needs. Git's
+ * own check only sniffs the first 8 KB, so it kept diffing this file and the damage stayed
+ * invisible. Same value at runtime, and the file is ordinary text again.
+ */
+private const val NUMBER_SLOT = "\u0000"
 private const val COLUMNS = 2
 private const val HEAD_H_PAD_DP = 14
 private const val HEAD_TOP_PAD_DP = 13

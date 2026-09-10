@@ -809,6 +809,10 @@
     <string name="stats_tile_auto_detected">automatisch erkannt</string>
     <string name="stats_tile_spots_shared">geteilte Plätze</string>
     <string name="stats_value_kg">%1$s kg</string>
+    <string name="stats_tile_fuel">Kraftstoff</string>
+    <string name="stats_tile_energy">Energie</string>
+    <string name="stats_value_liters">%1$s L</string>
+    <string name="stats_value_kwh">%1$s kWh</string>
     <string name="stats_value_hours_minutes">%1$d Std. %2$d Min.</string>
     <string name="stats_value_minutes">%1$d Min.</string>
     <string name="stats_value_share">%1$d/%2$d</string>

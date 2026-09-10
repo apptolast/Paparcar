@@ -17,6 +17,8 @@ class VehicleStatsBlockTest {
 
     private fun stats(
         cost: Money? = null,
+        fuelLiters: Double? = null,
+        energyKwh: Double? = null,
         co2: Double? = null,
         avgDurationMs: Long? = null,
         peakHour: Int? = null,
@@ -29,8 +31,8 @@ class VehicleStatsBlockTest {
         parkings = 10,
         endedParkings = 10,
         distance = null,
-        fuelLiters = null,
-        energyKwh = null,
+        fuelLiters = fuelLiters,
+        energyKwh = energyKwh,
         costEstimate = cost,
         co2Kg = co2,
         avgParkedDurationMs = avgDurationMs,
@@ -111,4 +113,60 @@ class VehicleStatsBlockTest {
             keys,
         )
     }
+    /**
+     * ⛔ El combustible del periodo aparece — y aparece como CANTIDAD, no como tasa.
+     * [STATS-A-COMPUTED-LITRE-WITH-NO-READER-001]
+     *
+     * `fuelLiters` y `energyKwh` se calculaban en cada resolución del historial y NADIE los leía:
+     * un grep sobre `presentation/` no devolvía una sola línea. No fallaba ningún cálculo, es que
+     * no existía la superficie.
+     */
+    @Test
+    fun `should_showTheFuelBurned_when_thePeriodHasMeasuredLitres`() {
+        val keys = statTileKeys(stats(fuelLiters = 6.5))
+        assertTrue(StatTileKey.FUEL in keys)
+        assertFalse(StatTileKey.ENERGY in keys, "a petrol car draws no kWh")
+    }
+
+    @Test
+    fun `should_showTheEnergyDrawn_when_theCarIsElectric`() {
+        val keys = statTileKeys(stats(energyKwh = 12.4))
+        assertTrue(StatTileKey.ENERGY in keys)
+        assertFalse(StatTileKey.FUEL in keys, "an EV burns no litres")
+    }
+
+    /**
+     * Un híbrido enchufable consume las DOS energías, y por eso son dos claves y no una: fundirlas
+     * obligaría a inventar una unidad común para litros y kilovatios-hora.
+     */
+    @Test
+    fun `should_showBothEnergies_forAPlugInHybrid`() {
+        val keys = statTileKeys(stats(fuelLiters = 3.1, energyKwh = 8.0))
+        assertTrue(StatTileKey.FUEL in keys)
+        assertTrue(StatTileKey.ENERGY in keys)
+    }
+
+    @Test
+    fun `should_showNoConsumption_when_noSessionCarriesAMeasuredRoute`() {
+        val keys = statTileKeys(stats())
+        assertFalse(StatTileKey.FUEL in keys)
+        assertFalse(StatTileKey.ENERGY in keys)
+    }
+
+    /**
+     * ⛔ El coste SIGUE encabezando. El tier gratuito ve UNA cifra, y es la primera de esta lista:
+     * meter el combustible por delante le habría cambiado en silencio la única cifra accionable que
+     * tiene. El combustible va detrás del coste y delante de las emisiones.
+     */
+    @Test
+    fun `should_keepSpendLeading_when_theConsumptionTilesAppear`() {
+        val keys = statTileKeys(
+            stats(cost = Money(12.07, "EUR"), fuelLiters = 6.5, energyKwh = 8.0, co2 = 17.2),
+        )
+        assertEquals(
+            listOf(StatTileKey.COST, StatTileKey.FUEL, StatTileKey.ENERGY, StatTileKey.CO2),
+            keys.take(4),
+        )
+    }
+
 }
