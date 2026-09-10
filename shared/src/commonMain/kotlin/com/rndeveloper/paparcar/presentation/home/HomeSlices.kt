@@ -428,19 +428,21 @@ internal fun HomeState.toMapSlice() = HomeMapSlice(
     // two label layers stacked over the spot pins that are the product.
     // [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
     //
-    // BOTH stores, exactly as the peek already reads them — the camera-anchored layer
-    // ([FUEL-LAYER-FOLLOWS-THE-CAMERA-001]) plus the lane's own user-anchored answer. The union is
-    // what keeps entering the lane to ONE request against a free shared service: the answer the list
-    // just got is already the answer for the pins around the user, and the layer only asks for itself
-    // once the camera has actually moved somewhere else. Each store keeps its own anchor, so neither
-    // ever answers for the other's area — every marker is drawn at its own coordinates.
-    fuelStations = if (showsFuelOnMap) {
-        (fuelLayer.stations + fuel.stations).distinctBy { it.station.id }
-    } else {
-        emptyList()
-    },
+    // BOTH stores, exactly as the peek and the selection read them — the camera-anchored layer
+    // ([FUEL-LAYER-FOLLOWS-THE-CAMERA-001]) plus the lane's own answer. The union is what keeps
+    // entering the lane to ONE request against a free shared service: the answer the list just got is
+    // already the answer for the pins around the user, and the layer only asks for itself once the
+    // camera has actually moved somewhere else. Each store keeps its own anchor, so neither ever
+    // answers for the other's area — every marker is drawn at its own coordinates.
+    //
+    // Priced by [HomeState.fuelStationsShown] rather than inherited from whichever copy survived the
+    // dedup: the layer is asked fuel-less and its stations carried no figure, which is how the rows
+    // showed a price under a blank capsule. [MAP-A-PIN-IS-PRICED-FOR-THE-CAR-YOU-DRIVE-001]
+    fuelStations = if (showsFuelOnMap) fuelStationsShown else emptyList(),
     selectedFuelStationId = (selection as? HomeSelection.FuelStation)?.id,
-    fuelPricesFor = fuel.fetchedFor,
+    // The label of the figure comes from the same place the figure does — a capsule that reads
+    // "1,529 Diésel" while quoting petrol is the one failure this pairing exists to prevent.
+    fuelPricesFor = pricedFuelType,
     publicParkings = if (showsParkingsOnMap) {
         (parkingsLayer.parkings + parkings.parkings).distinctBy { it.parking.id }
     } else {
@@ -473,10 +475,11 @@ fun HomeState.toPeekSlice(): HomePeekSlice {
         selection = selection,
         vehicles = vehicles,
         userGpsPoint = userGpsPoint,
-        // The UNION, viewport first: a capsule tapped in Paris lives only in the layer's store,
+        // The UNION, priced for this car: a capsule tapped in Paris lives only in the layer's store,
         // and the stepper walks "what you are looking at". With the layer off the union IS the
         // section's list. [FUEL-LAYER-FOLLOWS-THE-CAMERA-001]
-        fuelStations = (fuelLayer.stations + fuel.stations).distinctBy { it.station.id },
+        // [MAP-A-PIN-IS-PRICED-FOR-THE-CAR-YOU-DRIVE-001]
+        fuelStations = fuelStationsShown,
         fuelReportedAt = fuel.reportedAt,
         publicParkings = (parkingsLayer.parkings + parkings.parkings).distinctBy { it.parking.id },
         votedSpotIds = votedSpotIds,

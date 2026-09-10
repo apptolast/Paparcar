@@ -4,7 +4,9 @@ import com.rndeveloper.paparcar.domain.detection.DetectionPhase
 import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
 import com.rndeveloper.paparcar.domain.model.AddressAndPlace
 import com.rndeveloper.paparcar.domain.model.AddressInfo
+import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.model.GpsPoint
+import com.rndeveloper.paparcar.domain.model.Money
 import com.rndeveloper.paparcar.domain.model.PlaceCategory
 import com.rndeveloper.paparcar.domain.model.PlaceInfo
 import com.rndeveloper.paparcar.domain.model.Spot
@@ -843,6 +845,111 @@ class HomeSlicesTest {
             emptyList(),
             state.copy(nearbyLens = HomeNearbyLens.SPOTS).toMapSlice().fuelStations,
         )
+    }
+
+    // ── El precio de una cápsula es el del coche que conduces ────────────────
+    // [MAP-A-PIN-IS-PRICED-FOR-THE-CAR-YOU-DRIVE-001]
+
+    /** A forecourt that charges for BOTH fuels, which is the normal case in every feed. */
+    private fun pricedStation(id: String, dist: Double, gasoline: Double, diesel: Double) =
+        com.rndeveloper.paparcar.domain.usecase.fuel.NearbyFuelStation(
+            station = com.rndeveloper.paparcar.domain.fuel.FuelStation(
+                id = id, name = id, address = null, town = null,
+                latitude = 40.0, longitude = -3.0,
+                prices = mapOf(
+                    FuelType.GASOLINE to com.rndeveloper.paparcar.domain.fuel.StationPrice(
+                        Money(gasoline, "EUR"),
+                    ),
+                    FuelType.DIESEL to com.rndeveloper.paparcar.domain.fuel.StationPrice(
+                        Money(diesel, "EUR"),
+                    ),
+                ),
+            ),
+            distanceMeters = dist,
+            // ⛔ Null on purpose: this is the copy the LAYER holds, and the layer is asked fuel-less.
+            price = null,
+        )
+
+    private fun carBurning(fuel: FuelType) = vehicle("v1", isActive = true).copy(fuelType = fuel)
+
+    @Test
+    fun should_priceTheCapsule_when_onlyTheFuelLessLayerHoldsThatStation() {
+        // The device report: rows with a price, capsules without one. `distinctBy` keeps the FIRST
+        // copy — always the layer's — and the layer asked with no fuel, so its price was null.
+        val state = HomeState(
+            nearbyLens = HomeNearbyLens.FUEL,
+            vehicles = listOf(carBurning(FuelType.GASOLINE)),
+            fuelLayer = com.rndeveloper.paparcar.presentation.home.model.HomeFuelLayerSlice(
+                stations = listOf(pricedStation("a", 100.0, gasoline = 1.529, diesel = 1.419)),
+            ),
+            fuel = com.rndeveloper.paparcar.presentation.home.model.HomeFuelSlice(
+                stations = listOf(pricedStation("a", 100.0, gasoline = 1.529, diesel = 1.419)),
+            ),
+        )
+
+        val map = state.toMapSlice()
+        assertEquals(listOf(1.529), map.fuelStations.map { it.price?.perUnit?.amount })
+        assertEquals(FuelType.GASOLINE, map.fuelPricesFor, "the figure and its subject share a source")
+        // The peek and the selection read the same repriced list, not a fourth opinion.
+        assertEquals(
+            1.529,
+            state.copy(selection = HomeSelection.FuelStation("a")).selectedFuelStation?.price?.perUnit?.amount,
+        )
+    }
+
+    @Test
+    fun should_quoteTheNewCarsFuel_when_theActiveVehicleChanges_withoutAskingAgain() {
+        // ⛔ Swapping the two halves of the union would have fixed the blank capsule and left this:
+        // changing car does not refetch the layer, so the map would go on quoting the old fuel.
+        val stores = HomeState(
+            nearbyLens = HomeNearbyLens.FUEL,
+            fuelLayer = com.rndeveloper.paparcar.presentation.home.model.HomeFuelLayerSlice(
+                stations = listOf(pricedStation("a", 100.0, gasoline = 1.529, diesel = 1.419)),
+            ),
+        )
+
+        assertEquals(
+            listOf(1.529),
+            stores.copy(vehicles = listOf(carBurning(FuelType.GASOLINE))).toMapSlice()
+                .fuelStations.map { it.price?.perUnit?.amount },
+        )
+        assertEquals(
+            listOf(1.419),
+            stores.copy(vehicles = listOf(carBurning(FuelType.DIESEL))).toMapSlice()
+                .fuelStations.map { it.price?.perUnit?.amount },
+        )
+    }
+
+    @Test
+    fun should_showTheGlyphAlone_when_nobodyDeclaredWhatTheCarBurns() {
+        // No fuel, no figure — and no invented zero. The stations still show: where to refuel is a
+        // fair question whatever the car burns.
+        val state = HomeState(
+            nearbyLens = HomeNearbyLens.FUEL,
+            vehicles = listOf(vehicle("v1", isActive = true)),
+            fuelLayer = com.rndeveloper.paparcar.presentation.home.model.HomeFuelLayerSlice(
+                stations = listOf(pricedStation("a", 100.0, gasoline = 1.529, diesel = 1.419)),
+            ),
+        )
+
+        val map = state.toMapSlice()
+        assertEquals(1, map.fuelStations.size)
+        assertNull(map.fuelStations.single().price)
+        assertNull(map.fuelPricesFor)
+    }
+
+    @Test
+    fun should_leaveAnUnpricedStationUnpriced_when_theSourceCarriesNoPrices() {
+        // OSM answers stations and never prices. Repricing must not invent one for them.
+        val state = HomeState(
+            nearbyLens = HomeNearbyLens.FUEL,
+            vehicles = listOf(carBurning(FuelType.DIESEL)),
+            fuelLayer = com.rndeveloper.paparcar.presentation.home.model.HomeFuelLayerSlice(
+                stations = listOf(fuelStation("osm-1", 100.0)),
+            ),
+        )
+
+        assertNull(state.toMapSlice().fuelStations.single().price)
     }
 
     @Test

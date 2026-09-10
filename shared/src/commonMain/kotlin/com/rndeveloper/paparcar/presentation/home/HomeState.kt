@@ -8,6 +8,7 @@ import com.rndeveloper.paparcar.domain.detection.ServicePresence
 import com.rndeveloper.paparcar.domain.model.DetectionReadiness
 import com.rndeveloper.paparcar.domain.model.DrivingPuck
 import com.rndeveloper.paparcar.domain.model.DisabledReason
+import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 import com.rndeveloper.paparcar.domain.onboarding.FirstStepsProgress
 import com.rndeveloper.paparcar.domain.usecase.fuel.NearbyFuelStation
@@ -368,14 +369,49 @@ data class HomeState(
         get() = (selection as? HomeSelection.Spot)
             ?.let { sel -> nearbySpots.firstOrNull { it.id == sel.id } }
 
-    /** The selected fuel station, or null when the selection is another kind / stale.
-     *  Resolves inside its OWN arm, like the other two — against BOTH stores, viewport first
-     *  (a capsule tapped in Paris lives only in the layer's store).
-     *  [FUEL-STATIONS-MAP-AND-PEEK-001] [FUEL-LAYER-FOLLOWS-THE-CAMERA-001] */
+    /**
+     * The fuel every figure on this screen is quoting. [MAP-A-PIN-IS-PRICED-FOR-THE-CAR-YOU-DRIVE-001]
+     *
+     * ⛔ The one definition of "what this driver puts in", read by the map, the peek AND the
+     * view model's own ask — which used to keep a second copy of these two lines. Two definitions of
+     * the same thing is how the map ended up labelling one fuel and pricing another.
+     */
+    val pricedFuelType: FuelType?
+        get() = vehicles.firstOrNull { it.isActive }?.fuelType ?: vehicles.firstOrNull()?.fuelType
+
+    /**
+     * The stations the map, the peek and the selection all read: BOTH stores, deduplicated, and each
+     * one **priced for the car you drive**. [MAP-A-PIN-IS-PRICED-FOR-THE-CAR-YOU-DRIVE-001]
+     *
+     * The union is what keeps a capsule tapped in Paris alive in the peek (it lives only in the
+     * layer's store) while the lane answers for where you are.
+     * [FUEL-STATIONS-MAP-AND-PEEK-001] [FUEL-LAYER-FOLLOWS-THE-CAMERA-001]
+     *
+     * ⛔ **The repricing is the point, not the dedup order.** `distinctBy` keeps the FIRST copy, which
+     * is always the layer's — and the layer is asked fuel-less whenever the lane had no question to
+     * ask (`HomeViewModel.askFuelForLane`), so its copy carries `price = null` for every station.
+     * That is how Spain ended up with priced rows under blank capsules. Swapping the two halves of
+     * the sum would have hidden today's symptom and kept tomorrow's: switching the active car does
+     * not refetch the layer either, so the map would have gone on quoting the previous car's fuel.
+     *
+     * A price is a property of the FORECOURT, never of the request — `FuelStation.prices` carries
+     * everything that station is known to charge — so the honest projection resolves it here instead
+     * of inheriting whichever copy won a deduplication.
+     */
+    val fuelStationsShown: List<NearbyFuelStation>
+        get() {
+            val fuelType = pricedFuelType
+            return (fuelLayer.stations + fuel.stations)
+                .distinctBy { it.station.id }
+                .map { nearby -> nearby.copy(price = fuelType?.let { nearby.station.prices[it] }) }
+        }
+
+    /** The selected fuel station, or null when the selection is another kind / stale. Resolves
+     *  inside its OWN arm, like the other two, and against the same repriced list everything else
+     *  reads. [MAP-A-PIN-IS-PRICED-FOR-THE-CAR-YOU-DRIVE-001] */
     val selectedFuelStation: NearbyFuelStation?
         get() = (selection as? HomeSelection.FuelStation)?.let { sel ->
-            fuelLayer.stations.firstOrNull { it.station.id == sel.id }
-                ?: fuel.stations.firstOrNull { it.station.id == sel.id }
+            fuelStationsShown.firstOrNull { it.station.id == sel.id }
         }
 
     /** The selected public car park, resolved inside its OWN arm. [PARKINGS-ON-THE-MAP-001] */

@@ -757,8 +757,12 @@ class HomeViewModel(
         lastCameraLat?.let { lat -> lastCameraLon?.let { lon -> lat to lon } }
             ?: state.value.userGpsPoint?.let { it.latitude to it.longitude }
 
-    private fun activeFuelType() = state.value.vehicles.firstOrNull { it.isActive }?.fuelType
-        ?: state.value.vehicles.firstOrNull()?.fuelType
+    /**
+     * ⛔ One definition, in the state, read by the ask AND by every surface that shows a figure.
+     * This used to be a second copy of the same two lines, which is how the map could label one fuel
+     * and price another. [MAP-A-PIN-IS-PRICED-FOR-THE-CAR-YOU-DRIVE-001]
+     */
+    private fun activeFuelType() = state.value.pricedFuelType
 
     /** The ONE fetch both surfaces share — section rows and map markers read the same answer. */
     private fun loadFuelStations(lat: Double, lon: Double, fuelType: FuelType?) {
