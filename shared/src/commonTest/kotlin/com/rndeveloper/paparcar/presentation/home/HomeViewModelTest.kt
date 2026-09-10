@@ -2453,13 +2453,94 @@ class HomeViewModelTest {
         assertEquals(1, vm.state.value.parkingsLayer.parkings.size)
     }
 
+    // ── La sección responde sobre DONDE MIRAS [A-SECTION-ANSWERS-ABOUT-WHERE-YOU-LOOK-001] ──
+
+    @Test
+    fun `should_askAboutTheCamera_not_theUser_when_theSectionOpens`() = runTest(testDispatcher) {
+        // ⛔ EL bug, visto en device: con el usuario en Lugar la Cañada y el mapa arrastrado sobre
+        // Jerez, el mapa pintaba seis parkings mientras la sección decía "no hay ninguno a 1,5 km".
+        // Las dos afirmaciones eran ciertas y juntas eran inútiles.
+        parkingsSource.result = Result.success(listOf(spyParking()))
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        advanceUntilIdle()
+
+        // El usuario arrastra el mapa lejos y despliega la sección.
+        vm.handleIntent(HomeIntent.CameraPositionChanged(LEJOS_LAT, LEJOS_LON))
+        advanceUntilIdle()
+        vm.handleIntent(HomeIntent.TogglePublicParkings)
+        advanceUntilIdle()
+
+        assertEquals(LEJOS_LAT, parkingsSource.seen?.latitude)
+        assertEquals(LEJOS_LON, parkingsSource.seen?.longitude)
+    }
+
+    @Test
+    fun `should_refetchTheOpenSection_when_theCameraSettlesFarEnough`() = runTest(testDispatcher) {
+        parkingsSource.result = Result.success(listOf(spyParking()))
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        advanceUntilIdle()
+        vm.handleIntent(HomeIntent.TogglePublicParkings)
+        advanceUntilIdle()
+        val tras = parkingsSource.askCount
+
+        vm.handleIntent(HomeIntent.CameraPositionChanged(LEJOS_LAT, LEJOS_LON))
+        advanceUntilIdle()
+
+        assertEquals(tras + 1, parkingsSource.askCount, "la sección abierta viaja con la cámara")
+        assertEquals(LEJOS_LAT, parkingsSource.seen?.latitude)
+    }
+
+    @Test
+    fun `should_notRefetch_when_theSectionIsFolded`() = runTest(testDispatcher) {
+        // ⛔ Sigue valiendo la regla que sostiene todo esto: plegada no descarga NADA. Un usuario que
+        // solo mueve el mapa no paga peticiones por una lista que nunca abrió.
+        parkingsSource.result = Result.success(listOf(spyParking()))
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        advanceUntilIdle()
+        assertEquals(0, parkingsSource.askCount)
+
+        vm.handleIntent(HomeIntent.CameraPositionChanged(LEJOS_LAT, LEJOS_LON))
+        advanceUntilIdle()
+
+        assertEquals(0, parkingsSource.askCount, "plegada no pregunta ni aunque la cámara viaje")
+    }
+
+    @Test
+    fun `should_notRefetch_when_theCameraBarelyMoved`() = runTest(testDispatcher) {
+        // Medio radio, como las capas: un temblor del dedo no es una pregunta nueva.
+        parkingsSource.result = Result.success(listOf(spyParking()))
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        advanceUntilIdle()
+        vm.handleIntent(HomeIntent.TogglePublicParkings)
+        advanceUntilIdle()
+        val tras = parkingsSource.askCount
+
+        // ~200 m: muy por debajo de la mitad de los 1.500 m del radio.
+        vm.handleIntent(HomeIntent.CameraPositionChanged(location.latitude + 0.0018, location.longitude))
+        advanceUntilIdle()
+
+        assertEquals(tras, parkingsSource.askCount)
+    }
+
+    /** Otra ciudad: lo bastante lejos para exigir una pregunta nueva, dentro del límite de 50 km. */
+    private val LEJOS_LAT = location.latitude + 0.15
+    private val LEJOS_LON = location.longitude + 0.15
+
     /** Counts the questions actually asked, like its fuel twin. */
     private class SpyPublicParkingsSource : PublicParkingsSource {
         var askCount = 0
+        /** DONDE se preguntó por última vez — lo que distingue "contestó" de "contestó del sitio
+         *  correcto". [A-SECTION-ANSWERS-ABOUT-WHERE-YOU-LOOK-001] */
+        var seen: PublicParkingsQuery? = null
         var result: Result<List<PublicParking>> = Result.success(emptyList())
         override fun covers(countryCode: String) = true
         override suspend fun parkingsNear(query: PublicParkingsQuery): Result<List<PublicParking>> {
             askCount++
+            seen = query
             return result
         }
     }

@@ -18,6 +18,13 @@ data class HomeParkingsSlice(
      * means the second. [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
      */
     val failed: Boolean = false,
+    /**
+     * Centre this answer is ABOUT — the camera when it has spoken, the fix otherwise. The section
+     * follows the camera like the layer does, so it needs its own anchor to know whether a move
+     * earned a fresh ask. [A-SECTION-ANSWERS-ABOUT-WHERE-YOU-LOOK-001]
+     */
+    val anchorLat: Double? = null,
+    val anchorLon: Double? = null,
 )
 
 /**

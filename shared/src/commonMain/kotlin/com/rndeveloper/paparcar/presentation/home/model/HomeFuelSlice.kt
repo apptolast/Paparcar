@@ -35,6 +35,13 @@ data class HomeFuelSlice(
      * priced for a different question. [FUEL-STATIONS-MAP-AND-PEEK-001]
      */
     val fetchedFor: FuelType? = null,
+    /**
+     * Centre this answer is ABOUT — the camera when it has spoken, the fix otherwise. The section
+     * follows the camera like the layer does, so it needs its own anchor to know whether a move
+     * earned a fresh ask. [A-SECTION-ANSWERS-ABOUT-WHERE-YOU-LOOK-001]
+     */
+    val anchorLat: Double? = null,
+    val anchorLon: Double? = null,
 ) {
     /** True when at least one station could be priced — decides which sentence the section says. */
     val hasPrices: Boolean get() = stations.any { it.price != null }

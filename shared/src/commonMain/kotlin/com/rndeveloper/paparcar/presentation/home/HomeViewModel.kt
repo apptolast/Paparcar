@@ -167,6 +167,7 @@ class HomeViewModel(
     // (for the moments the layer needs a centre before any settle — toggle-on, first fix).
     private var fuelViewportJob: Job? = null
     private var parkingsViewportJob: Job? = null
+    private var sectionsRefetchJob: Job? = null
     private var lastCameraLat: Double? = null
     private var lastCameraLon: Double? = null
 
@@ -470,6 +471,9 @@ class HomeViewModel(
         if (state.value.mode is HomeMode.Browse) {
             scheduleFuelViewportRefetch(lat, lon)
             scheduleParkingsViewportRefetch(lat, lon)
+            // The OPEN sections travel with the camera too, or the sheet contradicts its own header.
+            // [A-SECTION-ANSWERS-ABOUT-WHERE-YOU-LOOK-001]
+            scheduleSectionsRefetch(lat, lon)
         }
     }
 
@@ -565,9 +569,14 @@ class HomeViewModel(
             return
         }
 
-        // No fix means the question could not be asked — the failure sentence, never the empty one.
-        val gps = state.value.userGpsPoint
-        if (gps == null) {
+        // ⛔ Around the CAMERA, not around the user. A sheet whose own header says "Calle Ronda de
+        // los Alunados" cannot list what is near a house six kilometres away — and it did: the map
+        // painted six car parks over Jerez while the section said "none within 1,5 km", both true
+        // and both useless together. [A-SECTION-ANSWERS-ABOUT-WHERE-YOU-LOOK-001]
+        // Nothing to look at yet (no camera, no fix) means the question could not be asked — the
+        // failure sentence, never the empty one.
+        val centre = viewportCentreOrGps()
+        if (centre == null) {
             updateState {
                 copy(fuel = fuel.copy(isExpanded = true, failed = true, missingFuelType = false))
             }
@@ -575,7 +584,7 @@ class HomeViewModel(
         }
 
         updateState { copy(fuel = fuel.copy(isExpanded = true)) }
-        loadFuelStations(gps, fuelType)
+        loadFuelStations(centre.first, centre.second, fuelType)
     }
 
     /**
@@ -704,12 +713,19 @@ class HomeViewModel(
         ?: state.value.vehicles.firstOrNull()?.fuelType
 
     /** The ONE fetch both surfaces share — section rows and map markers read the same answer. */
-    private fun loadFuelStations(gps: GpsPoint, fuelType: FuelType?) {
+    private fun loadFuelStations(lat: Double, lon: Double, fuelType: FuelType?) {
         updateState {
-            copy(fuel = fuel.copy(isLoading = true, failed = false, missingFuelType = false))
+            copy(
+                fuel = fuel.copy(
+                    isLoading = true, failed = false, missingFuelType = false,
+                    // Where this answer is ABOUT — what stops the next camera settle from re-asking
+                    // the same place, and what makes "has it moved enough?" answerable at all.
+                    anchorLat = lat, anchorLon = lon,
+                ),
+            )
         }
         viewModelScope.launch {
-            getNearbyFuelStations(gps.latitude, gps.longitude, fuelType)
+            getNearbyFuelStations(lat, lon, fuelType)
                 .onSuccess { nearby ->
                     updateState {
                         copy(
@@ -751,13 +767,14 @@ class HomeViewModel(
             updateState { copy(parkings = parkings.copy(isExpanded = true)) }
             return
         }
-        val gps = state.value.userGpsPoint
-        if (gps == null) {
+        // Around the CAMERA, for the reason above.
+        val centre = viewportCentreOrGps()
+        if (centre == null) {
             updateState { copy(parkings = parkings.copy(isExpanded = true, failed = true)) }
             return
         }
         updateState { copy(parkings = parkings.copy(isExpanded = true)) }
-        loadPublicParkings(gps)
+        loadPublicParkings(centre.first, centre.second)
     }
 
     private fun togglePublicParkingsLayer() {
@@ -850,6 +867,48 @@ class HomeViewModel(
         }
     }
 
+    /**
+     * The open sections follow the settled camera. [A-SECTION-ANSWERS-ABOUT-WHERE-YOU-LOOK-001]
+     *
+     * ⛔ Only while UNFOLDED: a folded section still fetches nothing, which is the rule that keeps a
+     * province of stations from being downloaded for a list nobody opened.
+     *
+     * The move has to earn the ask, exactly like the layers do — [ViewportRefetch] over the section's
+     * own last centre — or every flick of the map would spend a request.
+     */
+    private fun scheduleSectionsRefetch(lat: Double, lon: Double) {
+        val s = state.value
+        if (!s.fuel.isExpanded && !s.parkings.isExpanded) return
+        sectionsRefetchJob?.cancel()
+        sectionsRefetchJob = viewModelScope.launch {
+            delay(FUEL_VIEWPORT_SETTLE_MS)
+            maybeRefetchOpenSections(lat, lon)
+        }
+    }
+
+    private fun maybeRefetchOpenSections(lat: Double, lon: Double) {
+        val s = state.value
+        if (!ViewportRefetch.isWorthAsking(lat, lon, s.userGpsPoint?.latitude, s.userGpsPoint?.longitude)) return
+
+        if (s.fuel.isExpanded && !s.fuel.isLoading &&
+            ViewportRefetch.shouldRefetch(
+                s.fuel.anchorLat, s.fuel.anchorLon, lat, lon,
+                FuelStationsQuery.DEFAULT_RADIUS_METERS,
+            )
+        ) {
+            activeFuelType()?.let { loadFuelStations(lat, lon, it) }
+        }
+
+        if (s.parkings.isExpanded && !s.parkings.isLoading &&
+            ViewportRefetch.shouldRefetch(
+                s.parkings.anchorLat, s.parkings.anchorLon, lat, lon,
+                PublicParkingsQuery.DEFAULT_RADIUS_METERS,
+            )
+        ) {
+            loadPublicParkings(lat, lon)
+        }
+    }
+
     /** Debounced camera-settle trigger, the twin of the fuel one. */
     private fun scheduleParkingsViewportRefetch(lat: Double, lon: Double) {
         if (!state.value.showPublicParkingsLayer) return
@@ -860,11 +919,13 @@ class HomeViewModel(
         }
     }
 
-    /** The section's own fetch, anchored to the USER — a different question from the layer's. */
-    private fun loadPublicParkings(gps: GpsPoint) {
-        updateState { copy(parkings = parkings.copy(isLoading = true, failed = false)) }
+    /** The section's own fetch. Same PLACE as the layer, still its own store and its own copy. */
+    private fun loadPublicParkings(lat: Double, lon: Double) {
+        updateState {
+            copy(parkings = parkings.copy(isLoading = true, failed = false, anchorLat = lat, anchorLon = lon))
+        }
         viewModelScope.launch {
-            getNearbyPublicParkings(gps.latitude, gps.longitude)
+            getNearbyPublicParkings(lat, lon)
                 .onSuccess { found ->
                     updateState {
                         copy(parkings = parkings.copy(isLoading = false, failed = false, parkings = found))
