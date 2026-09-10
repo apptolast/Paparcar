@@ -189,6 +189,37 @@ class ResolveFuelPriceUseCaseTest {
         )
     }
 
+    /**
+     * ⛔ Una media DICE cuándo se midió. [FUEL-AN-AVERAGE-MUST-SAY-WHEN-IT-WAS-MEASURED-001]
+     *
+     * `AverageFuelPriceTable` llevaba su `asOf` desde el primer día y NADIE lo leía, así que la
+     * tarjeta decía «precio medio de tu país» sin fecha — mientras el snapshot del binario envejece
+     * con cada release que no se publica. Es la trampa exacta que dejó la tabla anterior un 20 % por
+     * debajo del Ministerio: el dato no era malo, es que nadie miraba cuándo.
+     */
+    @Test
+    fun `should_carryTheDateItWasMeasured_when_thePriceIsTheNationalAverage`() {
+        val price = assertNotNull(resolve.litre(vehicle(), countryCode = "ES"))
+        assertEquals(FuelPriceOrigin.NationalAverage, price.source)
+        assertEquals(
+            AverageFuelPriceTable.Embedded.asOf,
+            price.measuredOn,
+            "the average reached the screen without saying when it was measured",
+        )
+    }
+
+    /**
+     * ⛔ Y el precio del USUARIO no lleva fecha, porque no la tiene. Inventarle una sería peor que
+     * no decir nada: convertiría «lo que pagas» en «lo que pagabas el día X», que nadie ha medido.
+     */
+    @Test
+    fun `should_carryNoDate_when_theUserTypedThePriceThemselves`() {
+        val own = vehicle().copy(fuelPricePerLiter = Money(1.70, "EUR"))
+        val price = assertNotNull(resolve.litre(own, countryCode = "ES"))
+        assertEquals(FuelPriceOrigin.UserOverride, price.source)
+        assertNull(price.measuredOn, "the user's own price was given a measurement date")
+    }
+
     private companion object {
         /**
          * Comfortably below the 161 the generator produced, and far above the 22 the hand-written

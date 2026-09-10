@@ -120,7 +120,7 @@ class StatsViewModel(
             return copy(
                 periodStats = null,
                 filteredSessions = emptyList(),
-                costOrigin = null,
+                costPrice = null,
                 lifetimeParkings = 0,
                 lifetimeSpotsReleased = 0,
             )
@@ -136,7 +136,7 @@ class StatsViewModel(
         return copy(
             periodStats = resolved.periodStats,
             filteredSessions = resolved.filteredSessions,
-            costOrigin = resolved.costOrigin,
+            costPrice = resolved.costPrice,
             lifetimeParkings = resolved.lifetimeParkings,
             lifetimeSpotsReleased = resolved.lifetimeSpotsReleased,
         )

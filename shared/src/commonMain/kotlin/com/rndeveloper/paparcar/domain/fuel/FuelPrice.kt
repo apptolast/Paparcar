@@ -16,6 +16,17 @@ data class FuelPrice(
     /** Cost of one litre or one kWh, in the currency the source quotes. */
     val perUnit: Money,
     val source: FuelPriceOrigin,
+    /**
+     * ISO date (`yyyy-MM-dd`) the figure was measured, when the source can date itself. Null when
+     * it genuinely cannot: the price the USER typed has no measurement date, and saying otherwise
+     * would invent one. [FUEL-AN-AVERAGE-MUST-SAY-WHEN-IT-WAS-MEASURED-001]
+     *
+     * ⛔ It lives HERE, inside the price, and not as a second field beside it. The doctrine this
+     * class was written for — *a figure that cannot describe itself gets described by whoever reads
+     * it* — was only half kept: the provenance travelled and the date did not. Two parallel fields
+     * could drift apart; one object cannot disagree with itself.
+     */
+    val measuredOn: String? = null,
 )
 
 /**

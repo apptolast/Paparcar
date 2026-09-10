@@ -4,7 +4,7 @@ package com.rndeveloper.paparcar.presentation.vehicles
 
 import androidx.compose.runtime.Immutable
 import com.rndeveloper.paparcar.domain.entitlement.gateHistoryToEntitlement
-import com.rndeveloper.paparcar.domain.fuel.FuelPriceOrigin
+import com.rndeveloper.paparcar.domain.fuel.FuelPrice
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.stats.PeriodStats
@@ -53,11 +53,15 @@ sealed interface HistoryTimeline {
          */
         val periodStats: PeriodStats?,
         /**
-         * Where the price behind [periodStats]'s cost came from, or null when there is no cost.
-         * The card says it out loud: a spend computed from a national average and one computed
-         * from what the user actually pays are not the same claim. [FUEL-PRICE-RESOLVER-001]
+         * The price behind [periodStats]'s cost, or null when there is no cost. The card says it
+         * out loud: a spend computed from a national average and one computed from what the user
+         * actually pays are not the same claim. [FUEL-PRICE-RESOLVER-001]
+         *
+         * ⛔ The whole [FuelPrice], not just its origin: the origin and the DATE have to reach the
+         * screen together or the card can say "average" without ever saying "measured when".
+         * [FUEL-AN-AVERAGE-MUST-SAY-WHEN-IT-WAS-MEASURED-001]
          */
-        val costOrigin: FuelPriceOrigin?,
+        val costPrice: FuelPrice?,
         /** Ended sessions of the car's WHOLE life — the footer line, and the only figures on the
          *  ficha that are not the period's. */
         val lifetimeParkings: Int,
@@ -129,7 +133,7 @@ sealed interface HistoryTimeline {
                 ),
                 // The two rungs cannot disagree — one resolver, one order — so either answers for
                 // the label. The litre is asked first because most cars only have that one.
-                costOrigin = (litrePrice ?: kwhPrice)?.source,
+                costPrice = litrePrice ?: kwhPrice,
                 lifetimeParkings = endedEver.size,
                 lifetimeSpotsReleased = endedEver.count { it.publishedSpot },
             )

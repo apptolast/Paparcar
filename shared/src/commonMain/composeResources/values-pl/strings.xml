@@ -850,6 +850,7 @@
     <string name="vehicle_registration_price_help">Zostaw puste, a użyjemy średniej ceny w Twoim kraju.</string>
     <!-- Where the spend figure's price came from (FUEL-PRICE-RESOLVER-001) -->
     <string name="stats_cost_from_average">Koszt oszacowany na podstawie średniej ceny w Twoim kraju.</string>
+    <string name="stats_cost_from_average_dated">Wydatek oszacowany na podstawie średniej ceny w Twoim kraju, zmierzonej %1$s.</string>
     <string name="stats_cost_from_your_price">Koszt oszacowany na podstawie Twojej ceny.</string>
 
     <!-- Gasolineras cercanas [FUEL-STATIONS-LIST-001] -->

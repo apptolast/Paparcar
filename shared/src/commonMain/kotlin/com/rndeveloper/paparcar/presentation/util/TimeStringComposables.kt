@@ -9,6 +9,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import kotlinx.coroutines.delay
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -135,3 +138,17 @@ fun formatClockTime(epochMs: Long): String {
  * strings.xml is how one of them drifts.
  */
 fun formatHourBucket(hourOfDay: Int): String = "${hourOfDay.toString().padStart(2, '0')}:00"
+
+/**
+ * Epoch-ms de una fecha ISO `yyyy-MM-dd`, a medianoche UTC.
+ * [FUEL-AN-AVERAGE-MUST-SAY-WHEN-IT-WAS-MEASURED-001]
+ *
+ * Existe para poder decir la EDAD de una medida con [relativeTimeText], que ya está traducido a los
+ * nueve idiomas — en vez de inventar un formateador de fechas con nombres de mes para todos ellos.
+ *
+ * ⛔ Una cadena que no sea una fecha devuelve 0, y 0 se lee como "hace muchísimo": el fallo cae del
+ * lado de parecer viejo, nunca del de parecer fresco. Es la dirección asimétrica de siempre.
+ */
+fun isoDateToEpochMs(isoDate: String): Long = runCatching {
+    LocalDate.parse(isoDate).atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds()
+}.getOrDefault(0L)

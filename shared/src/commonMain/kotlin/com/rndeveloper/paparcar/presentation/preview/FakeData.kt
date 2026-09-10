@@ -48,11 +48,17 @@ object FakeData {
 
     // ── Addresses ─────────────────────────────────────────────────────────────
 
+    // ⛔ Con countryCode. [FUEL-AN-AVERAGE-MUST-SAY-WHEN-IT-WAS-MEASURED-001]
+    // Estas direcciones nacieron sin él y reproducían EXACTAMENTE el bug de producción de
+    // FUEL-A-PARKING-WITHOUT-A-COUNTRY-HAS-NO-PRICE-001: sin país no hay precio, sin precio no hay
+    // tile de gasto — así que la galería llevaba desde siempre sin poder enseñar ni el coste ni la
+    // línea que dice de dónde sale. Un fake que no puede reproducir la pantalla no la vigila.
     val addrStreet = AddressInfo(
         street = "Calle Gran Vía 32",
         city = "Madrid",
         region = "Comunidad de Madrid",
         country = "España",
+        countryCode = "es",
     )
 
     val addrFuel = AddressInfo(
@@ -60,6 +66,7 @@ object FakeData {
         city = "Madrid",
         region = "Comunidad de Madrid",
         country = "España",
+        countryCode = "es",
     )
 
     val addrSupermarket = AddressInfo(
@@ -67,6 +74,7 @@ object FakeData {
         city = "Madrid",
         region = "Comunidad de Madrid",
         country = "España",
+        countryCode = "es",
     )
 
     val addrMall = AddressInfo(
@@ -74,6 +82,7 @@ object FakeData {
         city = "Madrid",
         region = "Comunidad de Madrid",
         country = "España",
+        countryCode = "es",
     )
 
     val addrCafe = AddressInfo(
@@ -81,6 +90,7 @@ object FakeData {
         city = "Madrid",
         region = "Comunidad de Madrid",
         country = "España",
+        countryCode = "es",
     )
 
     val addrHighAccuracy = AddressInfo(
@@ -88,6 +98,7 @@ object FakeData {
         city = "Madrid",
         region = "Comunidad de Madrid",
         country = "España",
+        countryCode = "es",
     )
 
     // ── PlaceInfo ─────────────────────────────────────────────────────────────

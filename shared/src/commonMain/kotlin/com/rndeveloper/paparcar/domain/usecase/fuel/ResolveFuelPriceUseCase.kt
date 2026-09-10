@@ -57,8 +57,9 @@ class ResolveFuelPriceUseCase(
         if (!fuel.usesLiters) return null
         vehicle.fuelPricePerLiter?.let { return FuelPrice(it, FuelPriceOrigin.UserOverride) }
         stationPrice?.let { return FuelPrice(it, FuelPriceOrigin.Station) }
-        return averages().averageLitre(countryCode, fuel)
-            ?.let { FuelPrice(it, FuelPriceOrigin.NationalAverage) }
+        val table = averages()
+        return table.averageLitre(countryCode, fuel)
+            ?.let { FuelPrice(it, FuelPriceOrigin.NationalAverage, measuredOn = table.asOf) }
     }
 
     /**
@@ -77,7 +78,17 @@ class ResolveFuelPriceUseCase(
         if (!fuel.usesElectricity) return null
         vehicle.energyPricePerKwh?.let { return FuelPrice(it, FuelPriceOrigin.UserOverride) }
         stationPrice?.let { return FuelPrice(it, FuelPriceOrigin.Station) }
+        // ⛔ La mitad de kWh sigue escrita a mano y solo sabe fecharse por MES, no por dia
+        // (OpenVan no publica electricidad). Se estampa el primer dia de ese mes: decir "hace ~N
+        // dias" con esa precision es honesto; inventar un dia exacto no lo seria.
+        // [FUEL-AN-AVERAGE-MUST-SAY-WHEN-IT-WAS-MEASURED-001]
         return StaticAverageFuelPrices.averageKwh(countryCode)
-            ?.let { FuelPrice(it, FuelPriceOrigin.NationalAverage) }
+            ?.let {
+                FuelPrice(
+                    it,
+                    FuelPriceOrigin.NationalAverage,
+                    measuredOn = "${StaticAverageFuelPrices.KWH_VALID_AS_OF}-01",
+                )
+            }
     }
 }

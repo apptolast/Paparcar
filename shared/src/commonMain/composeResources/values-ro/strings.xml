@@ -849,6 +849,7 @@
     <string name="vehicle_registration_price_help">Lasă gol și folosim prețul mediu din țara ta.</string>
     <!-- Where the spend figure's price came from (FUEL-PRICE-RESOLVER-001) -->
     <string name="stats_cost_from_average">Cost estimat cu prețul mediu din țara ta.</string>
+    <string name="stats_cost_from_average_dated">Cheltuială estimată cu prețul mediu din țara ta, măsurat %1$s.</string>
     <string name="stats_cost_from_your_price">Cost estimat cu prețul tău.</string>
 
     <!-- Gasolineras cercanas [FUEL-STATIONS-LIST-001] -->

@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.entitlement.FREE_HISTORY_WINDOW_DAYS
+import com.rndeveloper.paparcar.domain.fuel.FuelPrice
 import com.rndeveloper.paparcar.domain.fuel.FuelPriceOrigin
 import com.rndeveloper.paparcar.domain.stats.PeriodStats
 import com.rndeveloper.paparcar.presentation.util.formatHourBucket
@@ -46,6 +47,8 @@ import com.rndeveloper.paparcar.ui.components.StatTileNumber
 import com.rndeveloper.paparcar.ui.components.PapVerticalDivider
 import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PapShapes
+import com.rndeveloper.paparcar.presentation.util.isoDateToEpochMs
+import com.rndeveloper.paparcar.presentation.util.relativeTimeText
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -60,6 +63,7 @@ import paparcar.composeapp.generated.resources.history_filter_last_3_months
 import paparcar.composeapp.generated.resources.history_filter_this_month
 import paparcar.composeapp.generated.resources.history_filter_this_week
 import paparcar.composeapp.generated.resources.stats_cost_from_average
+import paparcar.composeapp.generated.resources.stats_cost_from_average_dated
 import paparcar.composeapp.generated.resources.stats_cost_from_your_price
 import paparcar.composeapp.generated.resources.stats_lifetime
 import paparcar.composeapp.generated.resources.stats_open_panel
@@ -117,7 +121,7 @@ internal fun VehicleStatsBlock(
     showLifetime: Boolean,
     /** Where the spend figure's price came from. Null = there is no spend figure to caveat.
      *  [FUEL-PRICE-RESOLVER-001] */
-    costOrigin: FuelPriceOrigin? = null,
+    costPrice: FuelPrice? = null,
     isPlus: Boolean,
     onOpenPaywall: () -> Unit,
     modifier: Modifier = Modifier,
@@ -152,19 +156,21 @@ internal fun VehicleStatsBlock(
                 // price are not the same claim, and only one of them is theirs. Same family as the
                 // partial-sum rule: a figure that cannot describe itself gets described by whoever
                 // reads it. [FUEL-PRICE-RESOLVER-001]
-                costOrigin?.let { origin ->
+                costPrice?.let { price ->
                     PapDivider()
+                    // ⛔ La media DICE cuando se midio. [FUEL-AN-AVERAGE-MUST-SAY-WHEN-IT-WAS-MEASURED-001]
+                    // El precio del usuario no lleva fecha porque no la tiene, y ahi la frase se
+                    // queda como estaba: inventarle una seria peor que no decir nada.
+                    val measuredAgo = price.measuredOn?.let { relativeTimeText(isoDateToEpochMs(it)) }
                     Text(
-                        text = stringResource(
-                            when (origin) {
-                                FuelPriceOrigin.UserOverride -> Res.string.stats_cost_from_your_price
-                                // A pump price is still not the user's; until FUEL-STATIONS-001
-                                // lands nothing produces it, and when it does it gets its own line.
-                                FuelPriceOrigin.Station,
-                                FuelPriceOrigin.NationalAverage,
-                                -> Res.string.stats_cost_from_average
-                            },
-                        ),
+                        text = when {
+                            price.source == FuelPriceOrigin.UserOverride ->
+                                stringResource(Res.string.stats_cost_from_your_price)
+                            measuredAgo != null ->
+                                stringResource(Res.string.stats_cost_from_average_dated, measuredAgo)
+                            // Sin fecha no se finge una: se dice lo de siempre.
+                            else -> stringResource(Res.string.stats_cost_from_average)
+                        },
                         style = PaparcarType.current.caption,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(

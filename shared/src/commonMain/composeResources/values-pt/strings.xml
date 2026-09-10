@@ -834,6 +834,7 @@
     <string name="vehicle_registration_price_help">Deixa vazio e usamos o preço médio do teu país.</string>
     <!-- Where the spend figure's price came from (FUEL-PRICE-RESOLVER-001) -->
     <string name="stats_cost_from_average">Gasto estimado com o preço médio do teu país.</string>
+    <string name="stats_cost_from_average_dated">Gasto estimado com o preço médio do teu país, medido %1$s.</string>
     <string name="stats_cost_from_your_price">Gasto estimado com o teu preço.</string>
 
     <!-- Gasolineras cercanas [FUEL-STATIONS-LIST-001] -->

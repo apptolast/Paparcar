@@ -399,7 +399,7 @@ private fun statsPanelState(
         selectedVehicleIndex = 0,
         filter = filter,
         filteredSessions = resolved.filteredSessions,
-        costOrigin = resolved.costOrigin,
+        costPrice = resolved.costPrice,
         periodStats = resolved.periodStats,
         lifetimeParkings = resolved.lifetimeParkings,
         lifetimeSpotsReleased = resolved.lifetimeSpotsReleased,
