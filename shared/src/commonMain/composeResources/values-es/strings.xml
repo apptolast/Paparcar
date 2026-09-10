@@ -6,10 +6,6 @@
     <!-- Unidad del contador del PapSheet. [UI-SHEET-001] -->
     <string name="home_counter_unit_free">libres</string>
     <!-- Header de la sección "Tus vehículos" en el sheet; singular/plural según nº de vehículos. [MULTI-PARKING-001] [HOME-CARDS-001] -->
-    <plurals name="home_vehicles_section_header">
-        <item quantity="one">Tu vehículo</item>
-        <item quantity="other">Tus vehículos</item>
-    </plurals>
     <!-- Subtítulo en la fila por vehículo cuando no hay sesión activa. -->
     <!-- Fallback de nombre cuando el vehículo no tiene name/brand/model. -->
     <string name="home_vehicle_fallback_name">Vehículo</string>

@@ -332,6 +332,20 @@ internal sealed interface PapSheetLead {
     /** Reporting a free spot — megaphone on the action-green tile. */
     data object Announce : PapSheetLead
 
+    /**
+     * A COMPLEMENT's count — car parks, fuel — in the expanded header.
+     * [HOME-THE-WATCH-COMES-FIRST-AND-THE-HEADER-FOLLOWS-THE-LANE-001]
+     *
+     * Two faces, one variant: the figure once its lane has been asked, the subject's own mark while
+     * it has not. ⛔ [count] is nullable for exactly that reason — a `0` nobody measured is a claim
+     * about the world. [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
+     *
+     * ⛔ Never green, whatever the figure. The green counter says «this is the product», and free
+     * spots are the product; handing the same tile to a complement spends the one accent this
+     * screen just finished rationing. [UI-ONE-SKELETON-ONE-EMPHASIS-ONE-GREEN-001]
+     */
+    data class NearbyCounter(val count: Int?, val icon: ImageVector) : PapSheetLead
+
     /** Generic escape (AddingZone's picked icon). */
     data class GenericIcon(val icon: ImageVector) : PapSheetLead
 }
@@ -426,6 +440,26 @@ private fun PapSheetLeadTile(lead: PapSheetLead) {
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
+            }
+        }
+
+        is PapSheetLead.NearbyCounter -> LeadTileBox(container = cs.surfaceContainerHighest) {
+            val count = lead.count
+            if (count != null) {
+                Text(
+                    text = "$count",
+                    style = PaparcarType.current.counter,
+                    color = cs.onSurfaceVariant,
+                    maxLines = 1,
+                )
+            } else {
+                // Nobody has asked yet: the tile says WHAT it would count, never how many.
+                Icon(
+                    imageVector = lead.icon,
+                    contentDescription = null,
+                    tint = cs.onSurfaceVariant,
+                    modifier = Modifier.size(LEAD_ICON_DP.dp),
+                )
             }
         }
 

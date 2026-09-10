@@ -144,6 +144,25 @@ data class HomePeekSlice(
     val mode: HomeMode,
     /** Size of the size-filtered nearby list — the Browse spot counter. */
     val freeCount: Int,
+    /**
+     * WHICH nearby subject the open sheet is showing. The expanded header speaks for it — with the
+     * lane on car parks, a header counting free spots is two subjects' cifras 300 dp apart.
+     * [HOME-THE-WATCH-COMES-FIRST-AND-THE-HEADER-FOLLOWS-THE-LANE-001]
+     *
+     * ⛔ Only the EXPANDED header. Collapsed, the peek is the only voice Home has and its subject is
+     * your car — the live trip, else the parked one.
+     */
+    val nearbyLens: HomeNearbyLens,
+    /**
+     * How many there are of the subject being shown, or **null when nobody has asked yet**.
+     *
+     * ⛔ Null is not zero. A complement only has a count once its lane has been entered, and a `0`
+     * on a subject nobody asked is a verdict about the world no source ever gave — the same rule the
+     * tab row already follows. [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
+     *
+     * Free spots are never null: they are a standing subscription, not an ask.
+     */
+    val laneCount: Int?,
     val nearbySpots: List<Spot>,
     /** Ids of the spots the peek's ‹ / › stepper walks, in the ORDER the sheet lists them
      *  ([HomeState.filteredNearbySpots]) — not raw [nearbySpots], which still carries the
@@ -477,6 +496,15 @@ fun HomeState.toPeekSlice(): HomePeekSlice {
         detectionUiState = detectionUiState,
         mode = mode,
         freeCount = browsable.size,
+        nearbyLens = nearbyLens,
+        // "Asked yet?" is answered by the ANCHOR the slice already keeps — the centre its answer is
+        // about. No new flag: a lane with no anchor is a lane nobody has entered.
+        // [A-SECTION-ANSWERS-ABOUT-WHERE-YOU-LOOK-001]
+        laneCount = when (nearbyLens) {
+            HomeNearbyLens.SPOTS -> browsable.size
+            HomeNearbyLens.PARKINGS -> parkings.parkings.size.takeIf { parkings.anchorLat != null }
+            HomeNearbyLens.FUEL -> fuel.stations.size.takeIf { fuel.anchorLat != null }
+        },
         nearbySpots = nearbySpots,
         browsableSpotIds = browsable.map { it.id },
         steppableVehicleIds = steppableVehicles.map { it.vehicle.id },

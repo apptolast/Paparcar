@@ -6,10 +6,6 @@
     <!-- PapSheet counter lead tile unit. [UI-SHEET-001] -->
     <string name="home_counter_unit_free">free</string>
     <!-- Sheet section header above the per-vehicle rows; singular/plural by vehicle count. [MULTI-PARKING-001] [HOME-CARDS-001] -->
-    <plurals name="home_vehicles_section_header">
-        <item quantity="one">Your vehicle</item>
-        <item quantity="other">Your vehicles</item>
-    </plurals>
     <!-- Per-vehicle row when the vehicle has no active session — subtitle. -->
     <!-- Fallback label when a Vehicle has no name, brand or model set. -->
     <string name="home_vehicle_fallback_name">Vehicle</string>

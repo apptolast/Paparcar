@@ -374,11 +374,6 @@
     <!-- Sheet section headers + permisiuni -->
     <!-- No numeral in front of it: Romanian only needs "de" after a figure, so few and other
          coincide here. Both are declared — the runtime picks by category, not by wording. -->
-    <plurals name="home_vehicles_section_header">
-        <item quantity="one">Vehiculul tău</item>
-        <item quantity="few">Vehiculele tale</item>
-        <item quantity="other">Vehiculele tale</item>
-    </plurals>
     <string name="home_vehicle_fallback_name">Vehicul</string>
 
     <!-- ParkingPeekRow (card vehicul selectat) -->

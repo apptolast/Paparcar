@@ -53,7 +53,6 @@ import com.rndeveloper.paparcar.ui.components.PapSectionHeader
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
-import paparcar.composeapp.generated.resources.home_vehicles_section_header
 import paparcar.composeapp.generated.resources.home_size_filter_all
 import paparcar.composeapp.generated.resources.vehicle_size_large
 import paparcar.composeapp.generated.resources.vehicle_size_medium
@@ -89,9 +88,13 @@ fun LazyListScope.homeSheetItems(
     val showPersonalBlocks = slice.hasCorePermissions && vehicleCards.isNotEmpty()
     val showFilterBar = slice.hasCorePermissions && slice.hasAnySpots
 
-    // ── 0. Detection story surface — under the address header, above vehicles.
-    // The ONE voice for "what is detection doing right now": loud action rows + discreet happy
-    // lines, resolved by a single testable projection. [UX-DETECTION-STORY-001]
+    // ── 0. Qué se renderiza aquí, y en qué orden ──────────────────────────────────────────────
+    // ⛔ Este comentario decía «Detection story surface — under the address header, above vehicles»
+    // y siguió diciéndolo después de que `b967323b` bajara la detección debajo de los coches: un
+    // comentario que sobrevive al cambio que lo desmiente cuesta más que ninguno.
+    // [HOME-THE-WATCH-COMES-FIRST-AND-THE-HEADER-FOLLOWS-THE-LANE-001]
+    //
+    // El orden del bloque fijo es: primeros pasos · VIGILANCIA · tira de coches, y luego el carril.
     // This whole list only exists in Browse with nothing selected — a selected pin gives the peek
     // the entire surface and the stepper walks the pins from there, so the old "hide the story
     // behind a tapped spot" branches (and the live-question exception to them) are gone with the
@@ -212,31 +215,13 @@ fun LazyListScope.homeSheetItems(
         // [ONBOARDING-STEPS-MUST-EXPLAIN-WHAT-REALLY-HAPPENS-001]
         firstStepsOwns = if (showFirstSteps) firstSteps.owns else FirstStepsOwnership.NOTHING,
     )
-    // ── 1. TU COCHE ────────────────────────────────────────────────────────────────────────────
-    // Primero, porque es el SUJETO de esta pantalla; la detección de abajo es algo que se le hace a
-    // él, y leerlas en ese orden es leer una frase. Antes iba al revés y el bloque más importante
-    // aparecía después de un aviso sobre él.
+    // ── 1. La VIGILANCIA — lo que está pasando con tu coche ahora mismo ────────────────────────
+    // The ONE voice for "what is detection doing right now": loud action rows + discreet happy
+    // lines, resolved by a single testable projection. [UX-DETECTION-STORY-001]
     //
-    // ⛔ Sin cabecera de sección con UN solo coche: la card lleva su nombre, su glifo y su estado —
-    // un rótulo "TU VEHÍCULO" encima solo repetía en mayúsculas lo que la fila ya dice. Con dos o
-    // más sí, porque entonces la fila es una tira y necesita quién la nombra.
-    // [UI-ONE-SKELETON-ONE-EMPHASIS-ONE-GREEN-001]
-    if (showPersonalBlocks) {
-        if (vehicleCards.size > 1) {
-            item("vehicles_header") {
-                PapSectionHeader(
-                    // Singular/plural header by vehicle count via plurals. [HOME-CARDS-001]
-                    title = pluralStringResource(
-                        Res.plurals.home_vehicles_section_header,
-                        vehicleCards.size,
-                    ),
-                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
-                )
-            }
-        }
-        vehiclesSection(slice, vehicleCards, onIntent, onAction)
-    }
-
+    // PRIMERA del bloque fijo, encima de la tira de coches, como dibuja la ficha de
+    // `HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001`.
+    // [HOME-THE-WATCH-COMES-FIRST-AND-THE-HEADER-FOLLOWS-THE-LANE-001]
     if (detectionStory != DetectionStory.Hidden) {
         item("detection_surface") {
             HomeDetectionSurface(
@@ -287,6 +272,22 @@ fun LazyListScope.homeSheetItems(
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp),
             )
         }
+    }
+
+    // ── 2. TU COCHE — la tira que sirve para NAVEGAR entre coches ──────────────────────────────
+    // Debajo de la vigilancia, no encima. Lo dibujó así la ficha de
+    // `HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001` y el código se mergeó al revés:
+    // la tarjeta de vigilancia responde «¿está pasando algo con mi coche AHORA?», que es la pregunta
+    // con la que se abre Home, y un aviso sobre el coche vigilado no puede llegar después del índice
+    // que lo lista. [HOME-THE-WATCH-COMES-FIRST-AND-THE-HEADER-FOLLOWS-THE-LANE-001]
+    //
+    // ⛔ Sin cabecera de sección, con uno o con cinco coches. La tenía a partir de dos, y el
+    // razonamiento se quedó a medias: la card lleva su nombre — pero es que la TIRA también lo lleva,
+    // en cada card. El rótulo repetía en mayúsculas lo que ya se lee y empujaba el carril hacia abajo.
+    // Sus plurals `home_vehicles_section_header` se retiran de los nueve locales con él: una key sin
+    // lector la caza `LocaleParityGuardrailTest`.
+    if (showPersonalBlocks) {
+        vehiclesSection(slice, vehicleCards, onIntent, onAction)
     }
 
     // ── 3. The nearby LANE: the chip row that picks a subject, and that subject's list ───────

@@ -12,6 +12,10 @@ import com.rndeveloper.paparcar.domain.model.PlaceInfo
 import com.rndeveloper.paparcar.domain.model.Spot
 import com.rndeveloper.paparcar.domain.model.SpotStatus
 import com.rndeveloper.paparcar.domain.model.UserParking
+import com.rndeveloper.paparcar.presentation.home.model.HomeParkingsSlice
+import com.rndeveloper.paparcar.domain.usecase.parkings.NearbyPublicParking
+import com.rndeveloper.paparcar.domain.parkings.PublicParkingKind
+import com.rndeveloper.paparcar.domain.parkings.PublicParking
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.VehicleMonitoringStatus
 import com.rndeveloper.paparcar.domain.model.VehicleSize
@@ -172,6 +176,63 @@ class HomeSlicesTest {
         )
         assertEquals(listOf("match", "unknown"), state.toBrowseListSlice().filteredSpots.map { it.id })
         assertEquals(2, state.toPeekSlice().freeCount)
+    }
+
+    /** Minimal car park for the lane-count assertions: only its EXISTENCE is under test. */
+    private fun nearbyParking(id: String) = NearbyPublicParking(
+        parking = PublicParking(
+            id = id,
+            name = null,
+            operator = null,
+            kind = PublicParkingKind.SURFACE,
+            latitude = 1.0,
+            longitude = 1.0,
+        ),
+        distanceMeters = 100.0,
+    )
+
+    // ── The expanded header speaks for the LANE ───────────────────────────────
+    // [HOME-THE-WATCH-COMES-FIRST-AND-THE-HEADER-FOLLOWS-THE-LANE-001]
+
+    @Test
+    fun should_countTheSpots_when_theLaneIsSpots() {
+        val state = HomeState(nearbySpots = listOf(spot("a"), spot("b")))
+        assertEquals(2, state.toPeekSlice().laneCount, "free spots are a subscription, never unasked")
+    }
+
+    @Test
+    fun should_countTheCarParks_when_theirLaneWasAsked() {
+        val state = HomeState(
+            // The spots are still there underneath. If the header followed THEM the user would read
+            // "3" over a list of two car parks — the very drift this ticket exists to remove.
+            nearbySpots = listOf(spot("a"), spot("b"), spot("c")),
+            nearbyLens = HomeNearbyLens.PARKINGS,
+            parkings = HomeParkingsSlice(
+                parkings = listOf(nearbyParking("p1"), nearbyParking("p2")),
+                anchorLat = 1.0,
+                anchorLon = 1.0,
+            ),
+        )
+        assertEquals(2, state.toPeekSlice().laneCount)
+    }
+
+    @Test
+    fun should_countNothing_when_theComplementsLaneWasNeverAsked() {
+        // ⛔ THE assertion of this block: null, not 0. A complement has no count until its lane has
+        // been entered, and a zero nobody measured is a verdict about the world.
+        // [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
+        val state = HomeState(nearbySpots = listOf(spot("a")), nearbyLens = HomeNearbyLens.FUEL)
+        assertNull(state.toPeekSlice().laneCount)
+    }
+
+    @Test
+    fun should_countZero_when_theLaneWasAskedAndFoundNothing() {
+        // The other half of the same rule: once asked, an honest 0 is exactly what to show.
+        val state = HomeState(
+            nearbyLens = HomeNearbyLens.PARKINGS,
+            parkings = HomeParkingsSlice(parkings = emptyList(), anchorLat = 1.0, anchorLon = 1.0),
+        )
+        assertEquals(0, state.toPeekSlice().laneCount)
     }
 
     // ── Spot status: what is on offer, and in what order [DET-HANDOFF-NOT-MANUAL-001 §B.3] ──

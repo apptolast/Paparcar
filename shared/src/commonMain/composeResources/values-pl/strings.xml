@@ -372,12 +372,6 @@
     <!-- Sheet section headers + uprawnienia -->
     <!-- No numeral in front of it, so Polish uses the nominative plural and few/many/other coincide.
          They are still declared: the runtime picks by category, not by whether the forms differ. -->
-    <plurals name="home_vehicles_section_header">
-        <item quantity="one">Twój pojazd</item>
-        <item quantity="few">Twoje pojazdy</item>
-        <item quantity="many">Twoje pojazdy</item>
-        <item quantity="other">Twoje pojazdy</item>
-    </plurals>
     <string name="home_vehicle_fallback_name">Pojazd</string>
 
     <!-- ParkingPeekRow (karta wybranego pojazdu) -->

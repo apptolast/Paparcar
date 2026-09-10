@@ -253,6 +253,11 @@ fun HomePeekHandle(
                         userGpsPoint = slice.userGpsPoint,
                         freeCount = slice.freeCount,
                         showZoneHeader = browseShowsZoneHeader,
+                        // [HOME-THE-WATCH-COMES-FIRST-AND-THE-HEADER-FOLLOWS-THE-LANE-001] Both
+                        // resolved by the projection: the header never asks "are there parkings?"
+                        // to pick a word or a figure.
+                        nearbyLens = slice.nearbyLens,
+                        laneCount = slice.laneCount,
                     )
                 }
             }

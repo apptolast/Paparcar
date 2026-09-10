@@ -371,10 +371,6 @@
     <string name="home_header_add_zone_dismiss_cd">Ausblenden</string>
 
     <!-- Sheet section headers + Berechtigungen -->
-    <plurals name="home_vehicles_section_header">
-        <item quantity="one">Dein Fahrzeug</item>
-        <item quantity="other">Deine Fahrzeuge</item>
-    </plurals>
     <string name="home_vehicle_fallback_name">Fahrzeug</string>
 
     <!-- ParkingPeekRow (Hero Card des ausgewählten Fahrzeugs) -->

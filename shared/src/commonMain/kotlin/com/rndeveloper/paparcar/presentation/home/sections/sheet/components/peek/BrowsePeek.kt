@@ -24,10 +24,12 @@ import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.monitoringStatus
 import com.rndeveloper.paparcar.presentation.home.DrivingMeta
+import com.rndeveloper.paparcar.presentation.home.model.HomeNearbyLens
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheet
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetEyebrowTone
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetLead
 import com.rndeveloper.paparcar.presentation.util.PlaceLine
+import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
 import com.rndeveloper.paparcar.presentation.util.compactRelativeTimeText
 import com.rndeveloper.paparcar.presentation.util.distanceMeters
 import com.rndeveloper.paparcar.presentation.util.distanceString
@@ -40,6 +42,8 @@ import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_address_unknown
 import paparcar.composeapp.generated.resources.home_browse_eyebrow_zone
+import paparcar.composeapp.generated.resources.subject_fuel_stations
+import paparcar.composeapp.generated.resources.subject_public_parkings
 import paparcar.composeapp.generated.resources.home_browse_hint_swipe_report
 import paparcar.composeapp.generated.resources.home_browse_parked_ago
 import paparcar.composeapp.generated.resources.home_browse_parked_meta
@@ -81,6 +85,11 @@ internal fun BrowsePeek(
     userGpsPoint: GpsPoint?,
     freeCount: Int,
     showZoneHeader: Boolean,
+    /** WHICH subject the open sheet is listing — the expanded header speaks for it.
+     *  [HOME-THE-WATCH-COMES-FIRST-AND-THE-HEADER-FOLLOWS-THE-LANE-001] */
+    nearbyLens: HomeNearbyLens,
+    /** How many of that subject, or null when its lane has not been asked yet. */
+    laneCount: Int?,
 ) {
     // ── Subject = the car being driven RIGHT NOW (monitored trip) ─────────────
     // Collapsed peek only. A live trip OUTRANKS any parked car — the vehicle being actively
@@ -226,9 +235,41 @@ internal fun BrowsePeek(
         listOfNotNull(cameraInfo.address.city, cameraInfo.address.region)
             .joinToString(", ").takeIf { it.isNotEmpty() }
     }
+    // ⛔ El sujeto de esta cabecera es el CARRIL, no siempre la zona.
+    // [HOME-THE-WATCH-COMES-FIRST-AND-THE-HEADER-FOLLOWS-THE-LANE-001]
+    //
+    // Medido en device el 10-09-2026: en el carril de Parkings (4 resultados) esta cabecera seguía
+    // diciendo «TU ZONA · 6 LIBRES». Dos cifras de dos sujetos distintos a 300 dp una de otra, que es
+    // el mismo fallo que [A-SECTION-ANSWERS-ABOUT-WHERE-YOU-LOOK-001] arregló en el mapa — allí la
+    // capa preguntaba por la cámara y la sección por tu GPS. La lección de aquel ticket era mirar QUÉ
+    // ANCLA usa la cabecera; aquí usaba el sujeto equivocado.
+    //
+    // El TÍTULO no cambia: dónde estás mirando es verdad para los tres sujetos. Lo que sigue al
+    // carril son el eyebrow y la cifra.
+    //
+    // ⛔ El nombre del sujeto se toma de las MISMAS claves que rotulan su pestaña (`subject_*`), no
+    // de unas nuevas: la cabecera y la pestaña que la produjo tienen que decir la misma palabra, y
+    // dos juegos de strings para un nombre son dos sitios donde se puede escribir distinto.
+    val isSpotsLane = !showZoneHeader || nearbyLens == HomeNearbyLens.SPOTS
     PapSheet(
-        lead = PapSheetLead.SpotCounter(freeCount),
-        eyebrow = stringResource(Res.string.home_browse_eyebrow_zone),
+        lead = if (isSpotsLane) {
+            PapSheetLead.SpotCounter(freeCount)
+        } else {
+            PapSheetLead.NearbyCounter(
+                count = laneCount,
+                icon = when (nearbyLens) {
+                    HomeNearbyLens.PARKINGS -> PaparcarIcons.CarParkMark
+                    else -> PaparcarIcons.FuelPumpMark
+                },
+            )
+        },
+        eyebrow = stringResource(
+            when {
+                isSpotsLane -> Res.string.home_browse_eyebrow_zone
+                nearbyLens == HomeNearbyLens.PARKINGS -> Res.string.subject_public_parkings
+                else -> Res.string.subject_fuel_stations
+            },
+        ),
         eyebrowTone = PapSheetEyebrowTone.Neutral,
         title = title,
         // Collapsed with 0 spots: the sub is the activation hint; otherwise the address line.

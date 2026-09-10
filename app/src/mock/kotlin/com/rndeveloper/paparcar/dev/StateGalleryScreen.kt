@@ -946,6 +946,44 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     showsZoneHeader = true,
                 )
             },
+            // ⛔ Con el sheet ABIERTO la cabecera habla del CARRIL, no de la zona: en Parkings decía
+            // «TU ZONA · 6 LIBRES» con 4 parkings en la lista de abajo.
+            // [HOME-THE-WATCH-COMES-FIRST-AND-THE-HEADER-FOLLOWS-THE-LANE-001]
+            Variant("PapSheet · browse expandido (carril PARKINGS, con cifra)", Placement.Surface) {
+                peek(
+                    HomeState(
+                        cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
+                        userGpsPoint = sampleGps,
+                        // Las plazas SIGUEN existiendo debajo: si la cabecera se dejara llevar por
+                        // ellas, esta variante volvería a enseñar la cifra equivocada.
+                        nearbySpots = FakeData.nearbySpots,
+                        nearbyLens = HomeNearbyLens.PARKINGS,
+                        parkings = HomeParkingsSlice(
+                            parkings = galleryParkings,
+                            // ⛔ El ancla es lo que dice que SE PREGUNTÓ. Sin ella la cifra no sale,
+                            // que es justo la variante de abajo.
+                            anchorLat = sampleGps.latitude,
+                            anchorLon = sampleGps.longitude,
+                        ),
+                    ),
+                    showsZoneHeader = true,
+                )
+            },
+            // ⛔ La que EJERCITA el caso que no se puede leer del otro: nadie ha entrado todavía en
+            // Gasolineras, así que la cabecera enseña la MARCA del sujeto y ni un número. Un `0` aquí
+            // sería un veredicto sobre el mundo que ninguna fuente ha dado.
+            // [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
+            Variant("PapSheet · browse expandido (carril GASOLINERAS sin preguntar)", Placement.Surface) {
+                peek(
+                    HomeState(
+                        cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
+                        userGpsPoint = sampleGps,
+                        nearbySpots = FakeData.nearbySpots,
+                        nearbyLens = HomeNearbyLens.FUEL,
+                    ),
+                    showsZoneHeader = true,
+                )
+            },
             // No parked car → counter lead (green with spots). [UI-SHEET-001]
             Variant("PapSheet · browse contador verde (sin coche)", Placement.Surface) {
                 peek(HomeState(cameraAddressAndPlace = FakeData.addressAndPlaceFuel, nearbySpots = FakeData.nearbySpots))
