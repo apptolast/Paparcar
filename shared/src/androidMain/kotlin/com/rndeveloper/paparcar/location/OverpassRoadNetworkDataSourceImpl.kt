@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.location
 
+import com.rndeveloper.paparcar.data.fuel.OverpassEndpoints
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.places.RoadNetworkDataSource
 import com.rndeveloper.paparcar.domain.places.RoadWay
@@ -87,7 +88,10 @@ class OverpassRoadNetworkDataSourceImpl : RoadNetworkDataSource {
     private data class Geom(val lat: Double = 0.0, val lon: Double = 0.0)
 
     private companion object {
-        const val ENDPOINT = "https://overpass-api.de/api/interpreter"
+        // ⛔ The URL lives in ONE place now — there were five copies. This lane still uses only the
+        // first of the shared list: it speaks HttpURLConnection, not Ktor, so it cannot share [overpassQuery]'s
+        // failover yet. Noted as a follow-up rather than duplicated. [PARKINGS-ON-THE-MAP-001]
+        val ENDPOINT = OverpassEndpoints.ALL.first()
         const val QUERY_TIMEOUT_S = 20
         const val CONNECT_TIMEOUT_MS = 6_000
         const val READ_TIMEOUT_MS = 15_000

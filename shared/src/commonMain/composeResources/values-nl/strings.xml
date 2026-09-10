@@ -182,7 +182,6 @@
     <string name="map_cd_go_to_parking">Op deze parkeerplaats centreren</string>
     <string name="map_cd_midpoint_parking">Middelpunt tussen mij en deze parkeerplaats</string>
     <string name="map_cd_my_location">Centreer op mijn locatie</string>
-    <string name="map_cd_fuel_layer">Tankstations op de kaart tonen of verbergen</string>
 
     <!-- SettingsScreen -->
     <string name="settings_title">Instellingen</string>
@@ -851,4 +850,21 @@
     <string name="home_fuel_no_prices">In dit land worden geen prijzen gepubliceerd. Dit zijn de tankstations in de buurt.</string>
     <string name="home_fuel_reported_at">Prijzen gemeld om %1$s</string>
     <string name="home_fuel_oldest_price">Oudste prijs: %1$s</string>
+    <!-- Parkings publicos [PARKINGS-ON-THE-MAP-001] -->
+    <string name="map_cd_layers">Kaartlagen tonen of verbergen</string>
+    <string name="map_layer_fuel_stations">Tankstations</string>
+    <string name="map_layer_public_parkings">Parkeergarages</string>
+    <string name="home_parkings_title">Parkeergarages in de buurt</string>
+    <string name="home_parkings_empty">Geen openbare parkeergarages binnen 1,5 km.</string>
+    <string name="home_parkings_error">We konden de parkeergarages niet laden. Controleer je verbinding en open dit opnieuw.</string>
+    <string name="parking_peek_eyebrow">Openbare parkeergarage</string>
+    <string name="parking_kind_underground">Ondergrondse parkeergarage</string>
+    <string name="parking_kind_multi_storey">Parkeergarage met verdiepingen</string>
+    <string name="parking_kind_surface">Parkeerterrein</string>
+    <string name="parking_kind_garage_boxes">Afgesloten garageboxen</string>
+    <string name="parking_kind_unknown">Parkeergarage</string>
+    <string name="parking_fee_paid">Betaald</string>
+    <string name="parking_fee_free">Gratis</string>
+    <string name="parking_capacity">%1$s plaatsen</string>
+    <string name="parking_max_height">Max. hoogte %1$s m</string>
 </resources>

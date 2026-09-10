@@ -143,4 +143,9 @@ interface AppPreferences {
      *  [FUEL-STATIONS-MAP-AND-PEEK-001] */
     val showFuelStationsLayer: Boolean
     fun setShowFuelStationsLayer(enabled: Boolean)
+
+    /** The public-parkings map layer. Same contract as the fuel one: OFF by default, per device.
+     *  [PARKINGS-ON-THE-MAP-001] */
+    val showPublicParkingsLayer: Boolean
+    fun setShowPublicParkingsLayer(enabled: Boolean)
 }

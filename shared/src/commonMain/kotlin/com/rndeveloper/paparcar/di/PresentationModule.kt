@@ -54,6 +54,12 @@ val presentationModule = module {
             get(), get(), get(), get(), get(), get(), get(), get(), get(),
             // 34th: ReleaseAskEventBus [WIDGET-ACTIONS-002]
             get(),
+            // 35th + 36th: ShowParkingAskEventBus and GetNearbyPublicParkingsUseCase.
+            // ⛔ The COUNT is what matters, not the order: every argument is a bare `get()` whose
+            // type comes from the constructor parameter it lands on. So a new dependency needs one
+            // more of these AND must be declared at the END of the constructor — one inserted in
+            // the middle silently shifts every argument after it. [PARKINGS-ON-THE-MAP-001]
+            get(), get(),
         )
     }
     viewModelOf(::ParkingHistoryViewModel)

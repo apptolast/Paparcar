@@ -31,6 +31,7 @@ import org.koin.dsl.module
 import com.rndeveloper.paparcar.domain.repository.AverageFuelPricesRepository
 import com.rndeveloper.paparcar.domain.usecase.fuel.GetNearbyFuelStationsUseCase
 import com.rndeveloper.paparcar.domain.usecase.fuel.ResolveFuelPriceUseCase
+import com.rndeveloper.paparcar.domain.usecase.parkings.GetNearbyPublicParkingsUseCase
 
 val domainModule = module {
 
@@ -124,5 +125,8 @@ val domainModule = module {
     // capturase la tabla aquí, un refresco posterior no llegaría nunca a las pantallas ya vivas.
     // [FUEL-NATIONAL-AVERAGE-FROM-OPENVAN-001]
     factory { ResolveFuelPriceUseCase(averages = get<AverageFuelPricesRepository>()::current) }
+
+    // Parkings públicos cercanos — mismo geocoder, misma forma. [PARKINGS-ON-THE-MAP-001]
+    factory { GetNearbyPublicParkingsUseCase(parkings = get(), geocoder = get()) }
 
 }

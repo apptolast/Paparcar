@@ -216,12 +216,18 @@ detección y "Marcar mi **plaza**" en el nudge — usando para lo TUYO la palabr
 |---|---|---|---|---|---|---|---|---|---|
 | Plaza libre de la comunidad (la que ves, avisas o se publica al irte) | spot | plaza | posto | lugar | place | Platz | plek | miejsce | loc |
 | Tu sesión: dónde has dejado el coche | parking | aparcamiento | parcheggio | estacionamento | stationnement | Parkplatz | parkeerplaats | parkowanie | parcare |
+| Instalación de un tercero en la que entras a aparcar | **car park** | parking | parcheggio pubblico | parque de estacionamento | parking | Parkhaus | parkeergarage | parking | parcare publică |
 
 - Verbo de lo tuyo: *"Marcar aparcamiento" / "Mark parking"*. Verbo de lo comunitario: *"Avisar de
   una plaza" / "Report a free spot"*. Nunca "marcar mi plaza".
 - El pin que pones y la plaza que se publica **son dos cosas**: al irte, tu APARCAMIENTO libera una
   PLAZA. Cuando una frase habla de las dos (`home_det_ask_sub`), tiene que nombrarlas distinto.
 - "spot" como "sitio" genérico en inglés (*"drag to the correct spot"*) no vale: es `location`.
+- ⛔ **El parking público NO es "parking" en inglés** — esa palabra ya es TU sesión (*"Mark parking"*),
+  así que la instalación es **car park** [PARKINGS-ON-THE-MAP-001]. En ES/FR/PL/DE/NL/PT la lengua ya
+  tiene dos palabras distintas; en IT y RO, donde chocarían, el público lleva su calificador
+  (*parcheggio pubblico*, *parcare publică*). Y no es una **plaza**: una plaza la libera la comunidad
+  en la calle, un parking público lo explota alguien y se entra con el coche.
 
 ### ⛔ Un caso de uso por VEREDICTO, nunca por PREDICADO [DET-VERDICT-NOT-PREDICATE-001]
 Regla mental: *si su resultado no se puede citar en un diagnóstico, no es un caso de uso.*
@@ -314,6 +320,18 @@ tarea, o queda fuera del set probable:
 - `CarbodyType` (10): HATCHBACK_SMALL, SUV_SMALL, HATCHBACK_MEDIUM, SUV_MEDIUM, SEDAN, FAMILY_LONG, SUV_LARGE, VAN_LIGHT, VAN_COMMERCIAL, PICKUP — anchura, gálibo e identidad visual
 - Inferencia `brand + model → CarbodyType` vía `VehicleCatalog.inferBodyType()` con fallback regex
 - Compatibilidad `SpotFit` (OPTIMAL / FITS / DOES_NOT_FIT / UNKNOWN) con ambos ejes
+
+## Plus vs free — dónde cae una feature nueva
+> Detalle y lista de espera: **`docs/backlog/plus-alerts-and-tiers-001.md`**.
+
+**Free = tú preguntas y la app responde · Plus = la app te avisa a ti, y recuerda por ti.** El eje no
+es cuántas cosas ves, es **quién trabaja**: mirar es gratis, que la app vigile mientras no miras se
+paga. Por eso las alertas de zona ya eran Plus con el mapa gratis.
+- ⛔ **Nunca se gatea VER**: plazas, parkings públicos y gasolineras —con precio, tarifa, gálibo y
+  cómo llegar— son free COMPLETO. Cobrarlo vacía el mapa justo para quien no paga, que es el problema
+  que F5 y F6 existen para resolver.
+- Vendible encima: **vigilancia** (alertas) y **memoria** (más allá de los 7 días de historial).
+- ⛔ Gating **soft** siempre: la acción dispara el paywall, el botón nunca se esconde.
 
 ## Navegación
 BottomNav con 3 destinos (`bottomNavItems` en `App.kt`):

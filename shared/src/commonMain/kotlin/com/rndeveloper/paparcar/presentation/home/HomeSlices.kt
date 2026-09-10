@@ -26,7 +26,9 @@ import com.rndeveloper.paparcar.presentation.util.secondaryPlaceLine
 import com.rndeveloper.paparcar.presentation.util.toPlaceLine
 import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.usecase.fuel.NearbyFuelStation
+import com.rndeveloper.paparcar.domain.usecase.parkings.NearbyPublicParking
 import com.rndeveloper.paparcar.presentation.home.model.HomeFuelSlice
+import com.rndeveloper.paparcar.presentation.home.model.HomeParkingsSlice
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HomeSlices — per-section projections of [HomeState]. [HOME-ATOMIZE-001 F1]
@@ -82,6 +84,9 @@ data class HomeFabsSlice(
      *  is drawn and the band's visibility is the one it must follow: the header hides for every pin
      *  mode, which is when the warning matters most. [UI-A-WARNING-COSTS-NOTHING-WHEN-SILENT-001] */
     val gpsAccuracy: Float?,
+    /** Whether the public-parkings layer is on — the same layers menu shows both.
+     *  [PARKINGS-ON-THE-MAP-001] */
+    val showPublicParkingsLayer: Boolean,
 )
 
 /** What the map tile layer sees. [addParkingVehicle] is the vehicle being
@@ -125,6 +130,10 @@ data class HomeMapSlice(
     /** Which fuel those capsule prices ARE — a figure with no subject forces the reader to
      *  remember what their car burns. Null when the answer was fetched fuel-less (unpriced). */
     val fuelPricesFor: FuelType?,
+    /** The public-parkings layer: empty whenever it is OFF. [PARKINGS-ON-THE-MAP-001] */
+    val publicParkings: List<NearbyPublicParking>,
+    /** Which car park wears the selected capsule, or null. */
+    val selectedPublicParkingId: String?,
 )
 
 /**
@@ -160,6 +169,9 @@ data class HomePeekSlice(
     val fuelStations: List<NearbyFuelStation>,
     /** The feed's own hour for those prices, verbatim; null where the source has none. */
     val fuelReportedAt: String?,
+    /** The car parks the peek resolves a selection against — same reason the fuel list is here.
+     *  [PARKINGS-ON-THE-MAP-001] */
+    val publicParkings: List<NearbyPublicParking>,
     /** Spots already voted on this session — their vote buttons stop being offered.
      *  [SPOT-COMMUNITY-VOTES-NEED-A-CONSEQUENCE-001] */
     val votedSpotIds: Set<String>,
@@ -232,6 +244,11 @@ data class HomePeekSlice(
     val selectedFuelStation: NearbyFuelStation?
         get() = (selection as? HomeSelection.FuelStation)
             ?.let { sel -> fuelStations.firstOrNull { it.station.id == sel.id } }
+
+    /** The selected car park, resolved inside its own arm. [PARKINGS-ON-THE-MAP-001] */
+    val selectedPublicParking: NearbyPublicParking?
+        get() = (selection as? HomeSelection.PublicParking)
+            ?.let { sel -> publicParkings.firstOrNull { it.parking.id == sel.id } }
 
     /** Neighbours of the selected spot in the browse order — what the peek's ‹ / › offer.
      *  [UI-PEEK-STEPS-BETWEEN-PINS-001] */
@@ -315,6 +332,8 @@ data class HomeBrowseListSlice(
     val firstSteps: FirstStepsProgress,
     /** "Where to refuel", folded until asked for. [FUEL-STATIONS-LIST-001] */
     val fuel: HomeFuelSlice,
+    /** "Public parkings", the section under it — same fold, same rule. [PARKINGS-ON-THE-MAP-001] */
+    val parkings: HomeParkingsSlice,
     /** Whether the free-spots section shows its body — resolved by [HomeState.freeSpotsSectionExpanded]
      *  (user override, else data). [FUEL-STATIONS-MAP-AND-PEEK-001] */
     val spotsSectionExpanded: Boolean,
@@ -381,6 +400,7 @@ internal fun HomeState.toFabsSlice() = HomeFabsSlice(
     },
     showFuelStationsLayer = showFuelStationsLayer,
     gpsAccuracy = userGpsPoint?.accuracy,
+    showPublicParkingsLayer = showPublicParkingsLayer,
 )
 
 internal fun HomeState.toMapSlice() = HomeMapSlice(
@@ -415,6 +435,8 @@ internal fun HomeState.toMapSlice() = HomeMapSlice(
     fuelStations = if (showFuelStationsLayer) fuelLayer.stations else emptyList(),
     selectedFuelStationId = (selection as? HomeSelection.FuelStation)?.id,
     fuelPricesFor = fuel.fetchedFor,
+    publicParkings = if (showPublicParkingsLayer) parkingsLayer.parkings else emptyList(),
+    selectedPublicParkingId = (selection as? HomeSelection.PublicParking)?.id,
 )
 
 fun HomeState.toPeekSlice(): HomePeekSlice {
@@ -446,6 +468,7 @@ fun HomeState.toPeekSlice(): HomePeekSlice {
         // section's list. [FUEL-LAYER-FOLLOWS-THE-CAMERA-001]
         fuelStations = (fuelLayer.stations + fuel.stations).distinctBy { it.station.id },
         fuelReportedAt = fuel.reportedAt,
+        publicParkings = (parkingsLayer.parkings + parkings.parkings).distinctBy { it.parking.id },
         votedSpotIds = votedSpotIds,
         drivingMeta = drivingMeta,
         isAwaitingAnswer = promptWindow != null,
@@ -477,6 +500,7 @@ fun HomeState.toPeekSlice(): HomePeekSlice {
 
 fun HomeState.toBrowseListSlice() = HomeBrowseListSlice(
     fuel = fuel,
+    parkings = parkings,
     spotsSectionExpanded = freeSpotsSectionExpanded,
     detectionUiState = detectionUiState,
     parkedWatchBadge = parkedWatchBadge,

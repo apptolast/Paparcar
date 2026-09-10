@@ -122,6 +122,7 @@ import com.rndeveloper.paparcar.ui.auth.paparcarAuthSlots
 import com.rndeveloper.paparcar.ui.components.ConnectivityBanner
 import com.rndeveloper.paparcar.ui.components.FreeSpotClusterMarker
 import com.rndeveloper.paparcar.ui.components.FuelStationMarker
+import com.rndeveloper.paparcar.ui.components.PublicParkingMarker
 import com.rndeveloper.paparcar.ui.components.FreeSpotMarker
 import com.rndeveloper.paparcar.ui.components.LicensePlateMarker
 import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
@@ -142,7 +143,13 @@ import com.rndeveloper.paparcar.domain.fuel.FuelStation
 import com.rndeveloper.paparcar.domain.fuel.StationPrice
 import com.rndeveloper.paparcar.domain.usecase.fuel.NearbyFuelStation
 import com.rndeveloper.paparcar.presentation.home.model.HomeFuelSlice
+import com.rndeveloper.paparcar.presentation.home.model.HomeParkingsSlice
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.HomeFuelSection
+import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.HomeParkingsSection
+import com.rndeveloper.paparcar.domain.parkings.FeeInfo
+import com.rndeveloper.paparcar.domain.parkings.PublicParking
+import com.rndeveloper.paparcar.domain.parkings.PublicParkingKind
+import com.rndeveloper.paparcar.domain.usecase.parkings.NearbyPublicParking
 import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.model.VehicleWithStats
 import com.rndeveloper.paparcar.domain.model.Money
@@ -2424,6 +2431,108 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                 )
             },
         ),
+    ),
+    // Los parkings publicos NO se parecen a las gasolineras: OSM nombra el 100 % de los surtidores
+    // y solo el 16 % de los parkings (2,6 % en Cuenca), asi que la variante SIN NOMBRE es el caso
+    // normal, no el borde. [PARKINGS-ON-THE-MAP-001]
+    ScreenGroup(
+        "Home · parkings publicos",
+        listOf(
+            Variant("Plegada (nada pedido todavia)", Placement.Surface) {
+                HomeParkingsSection(slice = HomeParkingsSlice(), onToggle = {})
+            },
+            Variant("Cargando", Placement.Surface) {
+                HomeParkingsSection(
+                    slice = HomeParkingsSlice(isExpanded = true, isLoading = true),
+                    onToggle = {},
+                )
+            },
+            Variant("Con parkings (nombrados y sin nombre)", Placement.Surface) {
+                HomeParkingsSection(
+                    slice = HomeParkingsSlice(isExpanded = true, parkings = galleryParkings),
+                    onToggle = {},
+                )
+            },
+            Variant("Ninguno a menos de 1,5 km", Placement.Surface) {
+                HomeParkingsSection(slice = HomeParkingsSlice(isExpanded = true), onToggle = {})
+            },
+            // ⛔ No es lo mismo que la anterior: decir "no hay ninguno" cuando no se pudo preguntar
+            // manda al usuario a conducir sobre algo que nadie comprobo.
+            Variant("No se pudo preguntar", Placement.Surface) {
+                HomeParkingsSection(
+                    slice = HomeParkingsSlice(isExpanded = true, failed = true),
+                    onToggle = {},
+                )
+            },
+            // Todo declarado: tarifa, aforo, galibo y horario.
+            Variant("Peek de parking (todo declarado)", Placement.Surface) {
+                peek(
+                    HomeState(
+                        parkings = HomeParkingsSlice(parkings = galleryParkings),
+                        selection = HomeSelection.PublicParking("osm/node/26341193"),
+                        userGpsPoint = sampleGps,
+                    ),
+                )
+            },
+            // El caso NORMAL en el mundo: sin nombre y sin un solo dato mas. El peek se queda corto
+            // a proposito — inventar "gratis" sobre un fee ausente manda al conductor a una barrera.
+            Variant("Peek de parking (sin nombre, sin datos)", Placement.Surface) {
+                peek(
+                    HomeState(
+                        parkings = HomeParkingsSlice(parkings = galleryParkings),
+                        selection = HomeSelection.PublicParking("osm/way/908575097"),
+                        userGpsPoint = sampleGps,
+                    ),
+                )
+            },
+            // La capsula: solo la "P". Sin cifra, porque la unica que ofrece OSM es el aforo TOTAL
+            // y esa ranura es donde ira el numero de plazas LIBRES en F6b.
+            Variant("Marcadores de la capa", Placement.Surface) {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    PublicParkingMarker(selected = false)
+                    PublicParkingMarker(selected = true)
+                }
+            },
+        ),
+    ),
+)
+
+/** Parkings con la forma REAL del feed de Madrid: uno completo, uno anonimo, uno de superficie. */
+private val galleryParkings: List<NearbyPublicParking> = listOf(
+    NearbyPublicParking(
+        parking = PublicParking(
+            id = "osm/node/26341193",
+            name = "Parking Benavente",
+            operator = "EMT Madrid",
+            kind = PublicParkingKind.UNDERGROUND,
+            latitude = 40.4157, longitude = -3.7028,
+            capacity = 285,
+            fee = FeeInfo.PAID,
+            maxHeightMeters = 1.8,
+            openingHours = "24/7",
+        ),
+        distanceMeters = 260.0,
+    ),
+    NearbyPublicParking(
+        parking = PublicParking(
+            id = "osm/way/908575097",
+            name = null,
+            operator = null,
+            kind = PublicParkingKind.UNKNOWN,
+            latitude = 40.4130, longitude = -3.7090,
+        ),
+        distanceMeters = 540.0,
+    ),
+    NearbyPublicParking(
+        parking = PublicParking(
+            id = "osm/node/900002",
+            name = null,
+            operator = "Ayuntamiento",
+            kind = PublicParkingKind.SURFACE,
+            latitude = 40.4145, longitude = -3.7025,
+            fee = FeeInfo.FREE,
+        ),
+        distanceMeters = 910.0,
     ),
 )
 

@@ -79,6 +79,11 @@ import com.rndeveloper.paparcar.domain.geocoder.GeocoderDataSource
 import com.rndeveloper.paparcar.domain.model.AddressInfo
 import com.rndeveloper.paparcar.domain.model.SearchResult
 import com.rndeveloper.paparcar.domain.usecase.fuel.GetNearbyFuelStationsUseCase
+import com.rndeveloper.paparcar.domain.parkings.PublicParking
+import com.rndeveloper.paparcar.domain.parkings.PublicParkingKind
+import com.rndeveloper.paparcar.domain.parkings.PublicParkingsQuery
+import com.rndeveloper.paparcar.domain.parkings.PublicParkingsSource
+import com.rndeveloper.paparcar.domain.usecase.parkings.GetNearbyPublicParkingsUseCase
 
 class HomeViewModelTest {
 
@@ -108,6 +113,7 @@ class HomeViewModelTest {
     // bonded device? A test that wants the Bluetooth face sets its pairedDevices.
     private lateinit var bluetoothScanner: FakeBluetoothScanner
     private lateinit var fuelSource: SpyFuelStationsSource
+    private lateinit var parkingsSource: SpyPublicParkingsSource
     private lateinit var geocoderFake: FakeGeocoderDataSource
     private lateinit var vm: HomeViewModel
 
@@ -248,6 +254,15 @@ class HomeViewModelTest {
                         Result.success(emptyList<SearchResult>())
                 },
             ),
+            getNearbyPublicParkings = GetNearbyPublicParkingsUseCase(
+                parkings = parkingsSource,
+                geocoder = object : GeocoderDataSource {
+                    override suspend fun getAddress(lat: Double, lon: Double) =
+                        Result.failure<AddressInfo>(IllegalStateException("no geocoder in tests"))
+                    override suspend fun searchByName(query: String, maxResults: Int) =
+                        Result.success(emptyList<SearchResult>())
+                },
+            ),
         ).also {
             // Default test fixture = map on screen, so the high-accuracy request is armed and location
             // emits reach state. The backgrounded case uses buildVm(foreground = false). [UI-LOC-FOREGROUND-001]
@@ -273,6 +288,7 @@ class HomeViewModelTest {
         uiLocationLogger = com.rndeveloper.paparcar.fakes.FakeUiLocationLogger()
         bluetoothScanner = FakeBluetoothScanner(bluetoothEnabled = false)
         fuelSource = SpyFuelStationsSource()
+        parkingsSource = SpyPublicParkingsSource()
         vm = buildVm()
     }
 
@@ -2284,6 +2300,167 @@ class HomeViewModelTest {
                 return Result.failure(IllegalStateException("Overpass answered 504"))
             }
             return Result.success(result)
+        }
+    }
+
+    // ── Public parkings [PARKINGS-ON-THE-MAP-001] ────────────────────────────
+
+    private fun spyParking(id: String = "osm/node/1") = PublicParking(
+        id = id,
+        name = "Parking Benavente",
+        operator = null,
+        kind = PublicParkingKind.UNDERGROUND,
+        latitude = 40.4157,
+        longitude = -3.7028,
+    )
+
+    @Test
+    fun `should_loadParkings_andPersistTheChoice_when_theLayerTurnsOn`() = runTest(testDispatcher) {
+        parkingsSource.result = Result.success(listOf(spyParking()))
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        advanceUntilIdle()
+
+        vm.handleIntent(HomeIntent.TogglePublicParkingsLayer)
+        advanceUntilIdle()
+
+        assertTrue(vm.state.value.showPublicParkingsLayer)
+        assertTrue(prefs.showPublicParkingsLayer, "the choice must survive the process")
+        assertEquals(1, parkingsSource.askCount)
+        // ⛔ Into the LAYER store, not the section's: they answer different questions ("what is
+        // where I look" vs "where do I park near me") and folding them into one is what painted
+        // Madrid over Paris in the fuel lane. [PARKINGS-ON-THE-MAP-001]
+        assertEquals(1, vm.state.value.parkingsLayer.parkings.size)
+        assertTrue(vm.state.value.parkings.parkings.isEmpty(), "the section asked nothing yet")
+    }
+
+    @Test
+    fun `should_askItsOwnQuestion_when_theSectionOpens_afterTheLayerAlreadyLoaded`() = runTest(testDispatcher) {
+        // ONE fetch feeds both surfaces: the layer's answer is the section's answer. Unlike fuel
+        // there is no per-car question to re-ask — a car park is a car park whatever the car burns.
+        parkingsSource.result = Result.success(listOf(spyParking()))
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        advanceUntilIdle()
+        vm.handleIntent(HomeIntent.TogglePublicParkingsLayer)
+        advanceUntilIdle()
+
+        vm.handleIntent(HomeIntent.TogglePublicParkings)
+        advanceUntilIdle()
+
+        // ⛔ TWO asks, and that is correct now: the layer answered for the CAMERA and the section
+        // asks for the USER. Reusing one answer for both is what made the fuel layer lie about
+        // where its stations were. [FUEL-LAYER-FOLLOWS-THE-CAMERA-001]
+        assertEquals(2, parkingsSource.askCount)
+        assertTrue(vm.state.value.parkings.isExpanded)
+        assertEquals(1, vm.state.value.parkings.parkings.size)
+    }
+
+    @Test
+    fun `should_sayItCouldNotAsk_ratherThanNoneNearby_when_theLookupFails`() = runTest(testDispatcher) {
+        // ⛔ A failure is NOT an empty list: "none within 1,5 km" sends the user driving on a claim
+        // nobody checked. [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
+        parkingsSource.result = Result.failure(IllegalStateException("Overpass answered 504"))
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        advanceUntilIdle()
+
+        vm.handleIntent(HomeIntent.TogglePublicParkings)
+        advanceUntilIdle()
+
+        val slice = vm.state.value.parkings
+        assertTrue(slice.failed)
+        assertTrue(slice.parkings.isEmpty())
+        assertTrue(!slice.isLoading)
+    }
+
+    @Test
+    fun `should_askNobody_when_thereIsNoFix_andSayItCouldNotAsk`() = runTest(testDispatcher) {
+        permissions.emit(FakePermissionManager.allGranted())
+        advanceUntilIdle()
+
+        vm.handleIntent(HomeIntent.TogglePublicParkings)
+        advanceUntilIdle()
+
+        assertEquals(0, parkingsSource.askCount, "with no fix there was no question to ask")
+        assertTrue(vm.state.value.parkings.failed)
+    }
+
+    @Test
+    fun `should_dropAParkingSelection_when_theLayerTurnsOff`() = runTest(testDispatcher) {
+        parkingsSource.result = Result.success(listOf(spyParking()))
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        advanceUntilIdle()
+        vm.handleIntent(HomeIntent.TogglePublicParkingsLayer)
+        advanceUntilIdle()
+        vm.handleIntent(HomeIntent.SelectItem(HomeSelection.PublicParking("osm/node/1")))
+        advanceUntilIdle()
+        assertTrue(vm.state.value.selectedPublicParking != null)
+
+        vm.handleIntent(HomeIntent.TogglePublicParkingsLayer)
+        advanceUntilIdle()
+
+        assertTrue(!vm.state.value.showPublicParkingsLayer)
+        assertEquals(null, vm.state.value.selection, "no peek may keep talking about an invisible pin")
+    }
+
+    @Test
+    fun `should_notReaskOnEveryFix_when_theCameraHasNotMoved`() = runTest(testDispatcher) {
+        // ⛔ THE regression, measured on device on 09-09-2026: the layer re-checked itself on every
+        // GPS fix, so a failed ask over an empty store asked AGAIN on the next fix — one Overpass
+        // request every ~5 s, indefinitely, which is what rate-limited that machine out of the API
+        // mid-verification. The camera-anchored design closes it by construction: the anchor is set
+        // on the ATTEMPT, and a phone standing still produces no camera movement to justify another.
+        // [PARKINGS-ON-THE-MAP-001] [FUEL-LAYER-FOLLOWS-THE-CAMERA-001]
+        parkingsSource.result = Result.success(listOf(spyParking()))
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        advanceUntilIdle()
+        vm.handleIntent(HomeIntent.TogglePublicParkingsLayer)
+        advanceUntilIdle()
+        assertEquals(1, parkingsSource.askCount)
+
+        // Four more fixes at the same place — the cadence a standing phone produces in 20 seconds.
+        repeat(4) {
+            locationDataSource.emitHighAccuracy(location)
+            advanceUntilIdle()
+        }
+
+        assertEquals(1, parkingsSource.askCount, "a still camera must not re-ask on every fix")
+    }
+
+    @Test
+    fun `should_putTheAnchorBack_when_theViewportAskFails`() = runTest(testDispatcher) {
+        // ⛔ The other half of the same lesson, inherited from the fuel lane: an anchor advanced on
+        // a transient failure means "already asked here", and the area stays blank until the user
+        // pans kilometres away. A failure must leave the layer ready to try the SAME place again.
+        parkingsSource.result = Result.failure(IllegalStateException("Overpass answered 504"))
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        advanceUntilIdle()
+        vm.handleIntent(HomeIntent.TogglePublicParkingsLayer)
+        advanceUntilIdle()
+        assertEquals(1, parkingsSource.askCount)
+        assertEquals(null, vm.state.value.parkingsLayer.anchorLat, "a failed ask keeps no anchor")
+
+        // The network comes back and the same centre is offered again: it MUST ask.
+        parkingsSource.result = Result.success(listOf(spyParking()))
+        locationDataSource.emitHighAccuracy(location)
+        advanceUntilIdle()
+
+        assertEquals(2, parkingsSource.askCount)
+        assertEquals(1, vm.state.value.parkingsLayer.parkings.size)
+    }
+
+    /** Counts the questions actually asked, like its fuel twin. */
+    private class SpyPublicParkingsSource : PublicParkingsSource {
+        var askCount = 0
+        var result: Result<List<PublicParking>> = Result.success(emptyList())
+        override fun covers(countryCode: String) = true
+        override suspend fun parkingsNear(query: PublicParkingsQuery): Result<List<PublicParking>> {
+            askCount++
+            return result
         }
     }
 }

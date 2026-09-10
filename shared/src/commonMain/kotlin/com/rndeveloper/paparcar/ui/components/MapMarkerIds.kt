@@ -52,6 +52,15 @@ internal const val MARKER_CLUSTER_DIM = "cluster_dim"
 /** The fuel-stations layer. [FUEL-STATIONS-MAP-AND-PEEK-001] */
 internal const val MARKER_FUEL_STATION_PREFIX = "fuel_station_"
 
+/**
+ * The public-parkings layer. [PARKINGS-ON-THE-MAP-001]
+ *
+ * ⚠️ `public_parking_`, deliberately far from [MARKER_PARKING_ASK] (`parking_ask`): they are two
+ * different things that both contain the word, and the prefix rule is what keeps a tap on a car park
+ * from being routed to your own session's open question.
+ */
+internal const val MARKER_PUBLIC_PARKING_PREFIX = "public_parking_"
+
 // ── Id builders shared by the marker list and its bitmap registry ────────────
 // Both sides must agree exactly or kmpmaps finds no handler and renders the default pin, so
 // neither builds its own string.
@@ -78,6 +87,22 @@ internal fun fuelStationContentId(
 ): String = "$MARKER_FUEL_STATION_PREFIX${stationId}_${priceText.orEmpty()}_${fuelLabel.orEmpty()}_" +
     "${if (selected) "sel" else "nrm"}_$themeKey"
 
+/**
+ * One bitmap per car park × selection × theme — and **no figure on the capsule**, which is a
+ * decision. [PARKINGS-ON-THE-MAP-001]
+ *
+ * The only number OSM offers is `capacity`, present on 2 of the 22 car parks measured around Sol,
+ * and it is the TOTAL. `PARKINGS-LIVE-OCCUPANCY-001` will draw **free spaces** in exactly that spot.
+ * Writing a total there today would mean the same slot says two different things across two
+ * releases, which is how a reader learns to distrust it. The "P" carries the marker; the peek
+ * carries the facts.
+ */
+internal fun publicParkingContentId(
+    parkingId: String,
+    selected: Boolean,
+    themeKey: String,
+): String = "$MARKER_PUBLIC_PARKING_PREFIX${parkingId}_${if (selected) "sel" else "nrm"}_$themeKey"
+
 // ── What a tap on a marker means ────────────────────────────────────────────
 
 /** What the map should do when a marker is tapped. The object itself is recovered by coordinates. */
@@ -96,6 +121,9 @@ internal sealed interface MarkerTapTarget {
 
     /** A fuel station from the layer. Selects it and opens its peek. */
     data object FuelStation : MarkerTapTarget
+
+    /** A public car park from the layer. Selects it and opens its peek. */
+    data object PublicParking : MarkerTapTarget
 
     /**
      * Deliberately unhandled: clusters (tapping one would be ambiguous — zoom in instead), the
@@ -119,5 +147,6 @@ internal fun resolveMarkerTapTarget(contentId: String?): MarkerTapTarget = when 
     contentId == MARKER_CLUSTER || contentId == MARKER_CLUSTER_DIM -> MarkerTapTarget.Inert
     contentId.startsWith(MARKER_FREE_SPOT_PREFIX) -> MarkerTapTarget.FreeSpot
     contentId.startsWith(MARKER_FUEL_STATION_PREFIX) -> MarkerTapTarget.FuelStation
+    contentId.startsWith(MARKER_PUBLIC_PARKING_PREFIX) -> MarkerTapTarget.PublicParking
     else -> MarkerTapTarget.Inert
 }

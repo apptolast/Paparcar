@@ -54,7 +54,10 @@ import com.rndeveloper.paparcar.data.fuel.fuelHttpClient
 import com.rndeveloper.paparcar.data.fuel.MineturStationsSource
 import com.rndeveloper.paparcar.data.fuel.OpenVanAverageFuelPricesSource
 import com.rndeveloper.paparcar.data.fuel.OsmFuelStationsSource
+import com.rndeveloper.paparcar.data.parkings.CachingPublicParkingsSource
+import com.rndeveloper.paparcar.data.parkings.OsmPublicParkingsSource
 import com.rndeveloper.paparcar.domain.fuel.FuelStationsSource
+import com.rndeveloper.paparcar.domain.parkings.PublicParkingsSource
 
 val dataModule = module {
 
@@ -205,6 +208,18 @@ val dataModule = module {
         AverageFuelPricesRepositoryImpl(OpenVanAverageFuelPricesSource(fuelHttpClient())).also { repo ->
             CoroutineScope(SupervisorJob() + Dispatchers.Default).launch { repo.refresh() }
         }
+    }
+
+    // Parkings públicos — OSM y solo OSM: aquí no hay registro por país porque la segunda fuente
+    // (la ocupación de una ciudad) ENRIQUECERÁ esta base en vez de sustituirla, y esa junta la
+    // decide F6b, no este módulo. [PARKINGS-ON-THE-MAP-001]
+    //
+    // ⛔ El MISMO `fuelHttpClient()` que el carril de gasolineras, y no es reutilización por pereza:
+    // los dos hablan con Overpass, que responde **406 al User-Agent por defecto de OkHttp**, y los
+    // dos necesitan el deadline que impide que un `isLoading` se quede clavado. Un cliente propio
+    // aquí habría repetido el mismo fallo desde cero. [FUEL-LAYER-FOLLOWS-THE-CAMERA-001]
+    single<PublicParkingsSource> {
+        CachingPublicParkingsSource(OsmPublicParkingsSource(fuelHttpClient()))
     }
 
     // NOTA: LocationDataSource se provee en los módulos de plataforma.

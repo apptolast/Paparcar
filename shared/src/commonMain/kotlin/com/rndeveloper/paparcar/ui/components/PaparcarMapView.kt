@@ -74,6 +74,7 @@ import com.rndeveloper.paparcar.domain.model.Zone
 import com.rndeveloper.paparcar.presentation.map.CameraTarget
 import com.rndeveloper.paparcar.domain.model.SpotFreshness
 import com.rndeveloper.paparcar.domain.usecase.fuel.NearbyFuelStation
+import com.rndeveloper.paparcar.domain.usecase.parkings.NearbyPublicParking
 import com.rndeveloper.paparcar.presentation.home.model.formatPumpPrice
 import com.rndeveloper.paparcar.presentation.util.isManualReport
 import com.rndeveloper.paparcar.presentation.util.freshness
@@ -813,6 +814,10 @@ fun PaparcarMapView(
      *  caller (it needs a composable stringResource); null when the answer was fetched fuel-less. */
     fuelPricesLabel: String? = null,
     onFuelStationClick: (stationId: String) -> Unit = {},
+    /** The public-parkings layer: empty = layer off. [PARKINGS-ON-THE-MAP-001] */
+    publicParkings: List<NearbyPublicParking> = emptyList(),
+    selectedPublicParkingId: String? = null,
+    onPublicParkingClick: (parkingId: String) -> Unit = {},
     onSpotClick: (String) -> Unit = {},
     onMyCarClick: (sessionId: String) -> Unit = {},
     onZoneClick: (zoneId: String) -> Unit = {},
@@ -919,6 +924,11 @@ fun PaparcarMapView(
             Coordinates(it.station.latitude, it.station.longitude) to it.station.id
         }
     }
+    val publicParkingIdByCoords: Map<Coordinates, String> = remember(publicParkings) {
+        publicParkings.associate {
+            Coordinates(it.parking.latitude, it.parking.longitude) to it.parking.id
+        }
+    }
 
     // dim is encoded in the contentId of every non-selected marker (selected
     // markers always render at full opacity regardless of dimSpots). When
@@ -956,6 +966,7 @@ fun PaparcarMapView(
     val markers = remember(
         clusters, parkingLocation, parkedVehicles, selectedSpotId, selectedSessionId, zones, dimSpots,
         fuelStations, selectedFuelStationId, fuelPricesLabel,
+        publicParkings, selectedPublicParkingId,
         departure, arrival, freshnessMinute, themeKey,
         // The trip dots' ids carry the watch, so a change of watch has to rebuild this list — same
         // reason `themeKey` is here. [UI-A-TRACKED-TRIP-WEARS-ITS-WATCH-001]
@@ -1001,6 +1012,22 @@ fun PaparcarMapView(
                             priceText = priceText,
                             fuelLabel = fuelPricesLabel.takeIf { priceText != null },
                             selected = nearby.station.id == selectedFuelStationId,
+                            themeKey = themeKey,
+                        ),
+                        androidMarkerOptions = ZONE_MARKER_OPTIONS,
+                    ),
+                )
+            }
+            // Public car parks — same tier as the fuel layer: context under the product, above zones
+            // and below spots and parked cars. [PARKINGS-ON-THE-MAP-001]
+            publicParkings.forEach { nearby ->
+                add(
+                    Marker(
+                        coordinates = Coordinates(nearby.parking.latitude, nearby.parking.longitude),
+                        title = null,
+                        contentId = publicParkingContentId(
+                            parkingId = nearby.parking.id,
+                            selected = nearby.parking.id == selectedPublicParkingId,
                             themeKey = themeKey,
                         ),
                         androidMarkerOptions = ZONE_MARKER_OPTIONS,
@@ -1146,6 +1173,7 @@ fun PaparcarMapView(
     val customMarkerContent = remember(
         clusterCountByCoords, enRouteBuckets, parkedVehicles, zones,
         fuelStations, selectedFuelStationId, fuelPricesLabel,
+        publicParkings, selectedPublicParkingId,
         parkingVehicleSize, parkingVehicleCarbody, parkingVehicleColor, parkingIsActive,
         askVehicleCarbody, askVehicleSize, askVehicleColor, themeKey,
         // Key only on the puck's VISUAL identity, not the whole drivingPuck: its handler bitmap depends
@@ -1342,6 +1370,20 @@ fun PaparcarMapView(
                 )
             }.toMap()
 
+        // ── Per-car-park "P" capsules — the id bakes selection × theme, and nothing else is drawn.
+        // [PARKINGS-ON-THE-MAP-001]
+        val parkingHandlers: Map<String, @Composable (Marker) -> Unit> =
+            publicParkings.flatMap { nearby ->
+                listOf<Pair<String, @Composable (Marker) -> Unit>>(
+                    publicParkingContentId(nearby.parking.id, selected = false, themeKey = themeKey) to { _: Marker ->
+                        PublicParkingMarker(selected = false)
+                    },
+                    publicParkingContentId(nearby.parking.id, selected = true, themeKey = themeKey) to { _: Marker ->
+                        PublicParkingMarker(selected = true)
+                    },
+                )
+            }.toMap()
+
         // ── Driving puck handler — ONE north-up bitmap per carbody × colour ──
         // Heading is applied as native marker rotation now (see [PUCK_MARKER_OPTIONS]), so the bitmap
         // is drawn north-up (headingDegrees = 0) and no longer multiplied per heading bucket.
@@ -1360,7 +1402,7 @@ fun PaparcarMapView(
             )
         } ?: emptyMap()
 
-        baseHandlers + vehicleHandlers + zoneHandlers + fuelHandlers + drivingHandler
+        baseHandlers + vehicleHandlers + zoneHandlers + fuelHandlers + parkingHandlers + drivingHandler
     }
 
     // ── Track real camera center (set by the map, not by us) ──────────────
@@ -1793,6 +1835,8 @@ fun PaparcarMapView(
                         spotMetaByCoords[marker.coordinates]?.let { onSpotClick(it.spotId) }
                     MarkerTapTarget.FuelStation ->
                         fuelStationIdByCoords[marker.coordinates]?.let(onFuelStationClick)
+                    MarkerTapTarget.PublicParking ->
+                        publicParkingIdByCoords[marker.coordinates]?.let(onPublicParkingClick)
                     MarkerTapTarget.Inert -> Unit
                 }
             },

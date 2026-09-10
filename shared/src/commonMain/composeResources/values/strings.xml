@@ -247,7 +247,6 @@
     <string name="map_cd_go_to_parking">Center on this parking</string>
     <string name="map_cd_midpoint_parking">Midpoint between me and this parking</string>
     <string name="map_cd_my_location">Center on my location</string>
-    <string name="map_cd_fuel_layer">Show or hide fuel stations on the map</string>
 
     <!-- Generic error messages -->
     <string name="error_unknown">Something went wrong</string>
@@ -885,4 +884,21 @@
     <string name="home_fuel_no_prices">Prices are not published in this country. These are the stations nearby.</string>
     <string name="home_fuel_reported_at">Prices reported at %1$s</string>
     <string name="home_fuel_oldest_price">Oldest price: %1$s</string>
+    <!-- Parkings publicos [PARKINGS-ON-THE-MAP-001] -->
+    <string name="map_cd_layers">Show or hide map layers</string>
+    <string name="map_layer_fuel_stations">Fuel stations</string>
+    <string name="map_layer_public_parkings">Car parks</string>
+    <string name="home_parkings_title">Car parks nearby</string>
+    <string name="home_parkings_empty">No public car parks within 1.5 km.</string>
+    <string name="home_parkings_error">We could not load the car parks. Check your connection and open this again.</string>
+    <string name="parking_peek_eyebrow">Public car park</string>
+    <string name="parking_kind_underground">Underground car park</string>
+    <string name="parking_kind_multi_storey">Multi-storey car park</string>
+    <string name="parking_kind_surface">Surface car park</string>
+    <string name="parking_kind_garage_boxes">Lock-up garages</string>
+    <string name="parking_kind_unknown">Car park</string>
+    <string name="parking_fee_paid">Paid</string>
+    <string name="parking_fee_free">Free</string>
+    <string name="parking_capacity">%1$s spaces</string>
+    <string name="parking_max_height">Max height %1$s m</string>
 </resources>

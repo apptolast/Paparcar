@@ -1,11 +1,10 @@
 package com.rndeveloper.paparcar.data.fuel
 
+import com.rndeveloper.paparcar.data.cache.LocationKeyedCache
+import com.rndeveloper.paparcar.data.cache.locationCacheKey
 import com.rndeveloper.paparcar.domain.fuel.FuelStationsQuery
 import com.rndeveloper.paparcar.domain.fuel.FuelStationsResult
 import com.rndeveloper.paparcar.domain.fuel.FuelStationsSource
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
-import kotlin.math.round
 import kotlin.time.Clock
 
 /**
@@ -27,36 +26,17 @@ class CachingFuelStationsSource(
     private val clock: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) : FuelStationsSource {
 
-    private data class Entry(val result: FuelStationsResult, val storedAtMs: Long)
-
-    private val lock = Mutex()
-    private val entries = mutableMapOf<String, Entry>()
+    private val cache = LocationKeyedCache<FuelStationsResult>(ttlMs, clock)
 
     override fun covers(countryCode: String): Boolean = delegate.covers(countryCode)
 
     override suspend fun stationsNear(query: FuelStationsQuery): Result<FuelStationsResult> {
-        val key = query.cacheKey()
-        lock.withLock {
-            entries[key]?.takeIf { clock() - it.storedAtMs <= ttlMs }
-        }?.let { return Result.success(it.result) }
-
-        return delegate.stationsNear(query).onSuccess { result ->
-            lock.withLock { entries[key] = Entry(result, clock()) }
+        val key = with(query) {
+            locationCacheKey(latitude, longitude, radiusMeters, countryCode, regionName)
         }
-    }
+        cache.get(key)?.let { return Result.success(it) }
 
-    /**
-     * Coordinates rounded to ~110 m before they become part of the key.
-     *
-     * Standing at a window makes GPS wander by tens of metres, and an exact-coordinate key would
-     * miss on every single reading — a cache that never hits, which is worse than none because it
-     * still costs the memory. The radius stays exact: asking for 5 km and being served a 1 km answer
-     * would silently shrink the list.
-     */
-    private fun FuelStationsQuery.cacheKey(): String {
-        val lat = round(latitude * KEY_PRECISION) / KEY_PRECISION
-        val lon = round(longitude * KEY_PRECISION) / KEY_PRECISION
-        return "$countryCode|${regionName.orEmpty()}|$radiusMeters|$lat,$lon"
+        return delegate.stationsNear(query).onSuccess { cache.put(key, it) }
     }
 
     private companion object {
@@ -65,8 +45,5 @@ class CachingFuelStationsSource(
          * that changed its price at the pump is not misquoted for the rest of the afternoon.
          */
         const val DEFAULT_TTL_MS = 15L * 60 * 1_000
-
-        /** Three decimal places of a degree ≈ 110 m. */
-        const val KEY_PRECISION = 1_000.0
     }
 }

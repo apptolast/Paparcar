@@ -284,16 +284,34 @@ fun LazyListScope.homeSheetItems(
             showFilterBar = showFilterBar,
         )
 
-        // ── 4. Where to refuel — under the spots, folded. [FUEL-STATIONS-LIST-001]
+        // ── 4. Car parks — first of the two complements, and that order is a PRODUCT decision, not
+        // an accident: this app is about leaving the car somewhere, so "where do I park" sits closer
+        // to what the user came for than "where do I refuel". Both are complements to the free
+        // spots above them; neither is the product. [PARKINGS-ON-THE-MAP-001]
+        //
         // Same CORE gate as the spots and for the same reason: without a location there is no
         // "nearby" to answer, and nothing is fetched until the header is actually unfolded.
+        item("public_parkings") {
+            HomeParkingsSection(
+                slice = slice.parkings,
+                onToggle = { onIntent(HomeIntent.TogglePublicParkings) },
+                // A row selects the car park THROUGH the same lambda its map capsule uses, so the
+                // camera flies to it and the peek opens — a selection the map does not acknowledge
+                // reads as a dead tap. [FUEL-STATIONS-MAP-AND-PEEK-001]
+                onParkingClick = { parkingId ->
+                    onAction(HomeSheetAction.SelectPublicParking(parkingId))
+                },
+            )
+        }
+
+        // ── 5. Where to refuel — the second complement. [FUEL-STATIONS-LIST-001]
+        // ⛔ The order of these sections is FIXED and never changes at runtime; only their bodies
+        // fold. A list that reorders itself under the finger was the shape rejected in
+        // [FUEL-STATIONS-MAP-AND-PEEK-001] — deciding the fixed order is a different thing.
         item("fuel_stations") {
             HomeFuelSection(
                 slice = slice.fuel,
                 onToggle = { onIntent(HomeIntent.ToggleFuelStations) },
-                // A row selects the station THROUGH the same lambda its map capsule uses, so the
-                // camera flies to it and the peek opens — a selection the map doesn't acknowledge
-                // reads as a dead tap. [FUEL-STATIONS-MAP-AND-PEEK-001]
                 onStationClick = { stationId ->
                     onAction(HomeSheetAction.SelectFuelStation(stationId))
                 },

@@ -123,4 +123,8 @@ class FakeAppPreferences(
     private var _showFuelStationsLayer = false
     override val showFuelStationsLayer: Boolean get() = _showFuelStationsLayer
     override fun setShowFuelStationsLayer(enabled: Boolean) { _showFuelStationsLayer = enabled }
+
+    private var _showPublicParkingsLayer = false
+    override val showPublicParkingsLayer: Boolean get() = _showPublicParkingsLayer
+    override fun setShowPublicParkingsLayer(enabled: Boolean) { _showPublicParkingsLayer = enabled }
 }

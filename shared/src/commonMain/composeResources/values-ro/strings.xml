@@ -184,7 +184,6 @@
     <string name="map_cd_go_to_parking">Centrează pe această parcare</string>
     <string name="map_cd_midpoint_parking">Punct de mijloc între mine și această parcare</string>
     <string name="map_cd_my_location">Centrează pe locația mea</string>
-    <string name="map_cd_fuel_layer">Arată sau ascunde benzinăriile pe hartă</string>
 
     <!-- SettingsScreen -->
     <string name="settings_title">Setări</string>
@@ -865,4 +864,21 @@
     <string name="home_fuel_no_prices">În această țară prețurile nu sunt publicate. Acestea sunt benzinăriile din apropiere.</string>
     <string name="home_fuel_reported_at">Prețuri raportate la %1$s</string>
     <string name="home_fuel_oldest_price">Cel mai vechi preț: %1$s</string>
+    <!-- Parkings publicos [PARKINGS-ON-THE-MAP-001] -->
+    <string name="map_cd_layers">Afișează sau ascunde straturile hărții</string>
+    <string name="map_layer_fuel_stations">Benzinării</string>
+    <string name="map_layer_public_parkings">Parcări publice</string>
+    <string name="home_parkings_title">Parcări publice în apropiere</string>
+    <string name="home_parkings_empty">Nicio parcare publică pe o rază de 1,5 km.</string>
+    <string name="home_parkings_error">Nu am putut încărca parcările. Verifică conexiunea și deschide din nou.</string>
+    <string name="parking_peek_eyebrow">Parcare publică</string>
+    <string name="parking_kind_underground">Parcare subterană</string>
+    <string name="parking_kind_multi_storey">Parcare supraetajată</string>
+    <string name="parking_kind_surface">Parcare la sol</string>
+    <string name="parking_kind_garage_boxes">Garaje închise</string>
+    <string name="parking_kind_unknown">Parcare publică</string>
+    <string name="parking_fee_paid">Cu plată</string>
+    <string name="parking_fee_free">Gratuită</string>
+    <string name="parking_capacity">%1$s locuri</string>
+    <string name="parking_max_height">Înălțime max. %1$s m</string>
 </resources>

@@ -183,7 +183,6 @@
     <string name="map_cd_go_to_parking">Wyśrodkuj na tym parkowaniu</string>
     <string name="map_cd_midpoint_parking">Punkt środkowy między mną a tym parkowaniem</string>
     <string name="map_cd_my_location">Wyśrodkuj na mojej lokalizacji</string>
-    <string name="map_cd_fuel_layer">Pokaż lub ukryj stacje paliw na mapie</string>
 
     <!-- SettingsScreen -->
     <string name="settings_title">Ustawienia</string>
@@ -866,4 +865,21 @@
     <string name="home_fuel_no_prices">W tym kraju ceny nie są publikowane. Oto stacje w pobliżu.</string>
     <string name="home_fuel_reported_at">Ceny zgłoszone o %1$s</string>
     <string name="home_fuel_oldest_price">Najstarsza cena: %1$s</string>
+    <!-- Parkings publicos [PARKINGS-ON-THE-MAP-001] -->
+    <string name="map_cd_layers">Pokaż lub ukryj warstwy mapy</string>
+    <string name="map_layer_fuel_stations">Stacje paliw</string>
+    <string name="map_layer_public_parkings">Parkingi</string>
+    <string name="home_parkings_title">Parkingi w pobliżu</string>
+    <string name="home_parkings_empty">Brak publicznych parkingów w promieniu 1,5 km.</string>
+    <string name="home_parkings_error">Nie udało się wczytać parkingów. Sprawdź połączenie i otwórz to ponownie.</string>
+    <string name="parking_peek_eyebrow">Parking publiczny</string>
+    <string name="parking_kind_underground">Parking podziemny</string>
+    <string name="parking_kind_multi_storey">Parking wielopoziomowy</string>
+    <string name="parking_kind_surface">Parking naziemny</string>
+    <string name="parking_kind_garage_boxes">Garaże zamknięte</string>
+    <string name="parking_kind_unknown">Parking</string>
+    <string name="parking_fee_paid">Płatny</string>
+    <string name="parking_fee_free">Bezpłatny</string>
+    <string name="parking_capacity">%1$s miejsc</string>
+    <string name="parking_max_height">Maks. wysokość %1$s m</string>
 </resources>

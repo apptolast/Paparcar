@@ -177,7 +177,8 @@ internal fun HomeBottomSheet(
                 peek.mode is HomeMode.Browse &&
                 !peek.isParkingSelected &&
                 peek.selectedSpot == null &&
-                peek.selectedFuelStation == null
+                peek.selectedFuelStation == null &&
+                peek.selectedPublicParking == null
             // The peek→list divider sits at the bottom of the peek header. The header is now stretched
             // to the fixed peek slot, so this divider lands exactly on the bottom-nav top divider at
             // rest (one continuous hairline) and rides above the nav as the sheet is dragged up — no

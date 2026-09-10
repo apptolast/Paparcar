@@ -182,7 +182,6 @@
     <string name="map_cd_go_to_parking">Auf diesen Parkplatz zentrieren</string>
     <string name="map_cd_midpoint_parking">Mittelpunkt zwischen mir und diesem Parkplatz</string>
     <string name="map_cd_my_location">Auf meinen Standort zentrieren</string>
-    <string name="map_cd_fuel_layer">Tankstellen auf der Karte ein- oder ausblenden</string>
 
     <!-- SettingsScreen -->
     <string name="settings_title">Einstellungen</string>
@@ -851,4 +850,21 @@
     <string name="home_fuel_no_prices">In diesem Land werden keine Preise veröffentlicht. Das sind die Tankstellen in der Nähe.</string>
     <string name="home_fuel_reported_at">Preise gemeldet um %1$s</string>
     <string name="home_fuel_oldest_price">Ältester Preis: %1$s</string>
+    <!-- Parkings publicos [PARKINGS-ON-THE-MAP-001] -->
+    <string name="map_cd_layers">Kartenebenen ein- oder ausblenden</string>
+    <string name="map_layer_fuel_stations">Tankstellen</string>
+    <string name="map_layer_public_parkings">Parkhäuser</string>
+    <string name="home_parkings_title">Parkhäuser in der Nähe</string>
+    <string name="home_parkings_empty">Keine öffentlichen Parkhäuser im Umkreis von 1,5 km.</string>
+    <string name="home_parkings_error">Die Parkhäuser konnten nicht geladen werden. Prüfe deine Verbindung und öffne das erneut.</string>
+    <string name="parking_peek_eyebrow">Öffentliches Parkhaus</string>
+    <string name="parking_kind_underground">Tiefgarage</string>
+    <string name="parking_kind_multi_storey">Parkhaus</string>
+    <string name="parking_kind_surface">Parkfläche</string>
+    <string name="parking_kind_garage_boxes">Einzelgaragen</string>
+    <string name="parking_kind_unknown">Parkhaus</string>
+    <string name="parking_fee_paid">Kostenpflichtig</string>
+    <string name="parking_fee_free">Kostenlos</string>
+    <string name="parking_capacity">%1$s Stellplätze</string>
+    <string name="parking_max_height">Max. Höhe %1$s m</string>
 </resources>

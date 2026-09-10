@@ -1166,6 +1166,59 @@ fun FuelStationMarker(
     }
 }
 
+// ─── Public-parkings layer ───────────────────────────────────────────────────
+
+/**
+ * A public car park on the map: the universal "P", in a capsule of the same grammar as the zone and
+ * fuel labels. [PARKINGS-ON-THE-MAP-001]
+ *
+ * ⛔ **No figure beside it, and no colour that means anything.** The freshness ramp belongs to spot
+ * expiry alone [UI-COLOR-DOCTRINE-001], and the only number OSM offers is the TOTAL capacity —
+ * present on 2 of the 22 car parks measured around Sol — whereas the number that will eventually go
+ * there is FREE SPACES (`PARKINGS-LIVE-OCCUPANCY-001`). One slot must not say two different things
+ * across two releases.
+ *
+ * ⛔ It is deliberately NOT the road-sign blue either: this map already spends blue on a
+ * Bluetooth-watched car and on movement that is not yours, and a third blue would be a claim about
+ * identity that a car park has no business making.
+ */
+@Composable
+fun PublicParkingMarker(
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val paper = MaterialTheme.colorScheme.surface
+    val ink = MaterialTheme.colorScheme.onSurface
+    val brand = PapGreen
+    val labelFamily = PaparcarType.current.cardTitle.fontFamily
+
+    Box(modifier = modifier) {
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(FUEL_LABEL_CORNER))
+                .background(paper.copy(alpha = ZONE_LABEL_BG_ALPHA))
+                .border(
+                    width = if (selected) FUEL_LABEL_BORDER_SEL else ZONE_LABEL_BORDER,
+                    color = brand.copy(alpha = if (selected) 1f else ZONE_LABEL_BORDER_ALPHA),
+                    shape = RoundedCornerShape(FUEL_LABEL_CORNER),
+                )
+                .padding(horizontal = PARKING_LABEL_PAD_H, vertical = ZONE_LABEL_PAD_V),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = PARKING_GLYPH,
+                color = ink,
+                maxLines = 1,
+                style = TextStyle(
+                    fontFamily = labelFamily,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = PARKING_GLYPH_SP,
+                ),
+            )
+        }
+    }
+}
+
 /** The pump, drawn: green body, paper screen, hose to the right. Brings its own colors. */
 @Composable
 private fun FuelPumpGlyph(dark: Boolean) {
@@ -1203,6 +1256,12 @@ private fun FuelPumpGlyph(dark: Boolean) {
         )
     }
 }
+
+/** ⛔ Not a translatable string: it is the international parking sign, the same glyph in the nine
+ *  locales, and it is drawn into a bitmap rather than read out. */
+private const val PARKING_GLYPH = "P"
+private val PARKING_GLYPH_SP = 13.sp
+private val PARKING_LABEL_PAD_H = 9.dp
 
 private val FUEL_LABEL_CORNER = 999.dp
 private val FUEL_LABEL_BORDER_SEL = 2.dp

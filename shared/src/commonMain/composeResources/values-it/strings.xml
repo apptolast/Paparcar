@@ -181,7 +181,6 @@
     <string name="map_cd_go_to_parking">Centra su questo parcheggio</string>
     <string name="map_cd_midpoint_parking">Punto medio tra me e questo parcheggio</string>
     <string name="map_cd_my_location">Centra sulla mia posizione</string>
-    <string name="map_cd_fuel_layer">Mostra o nascondi i distributori sulla mappa</string>
 
     <!-- SettingsScreen -->
     <string name="settings_title">Impostazioni</string>
@@ -850,4 +849,21 @@
     <string name="home_fuel_no_prices">In questo Paese i prezzi non sono pubblicati. Questi sono i distributori vicini.</string>
     <string name="home_fuel_reported_at">Prezzi comunicati alle %1$s</string>
     <string name="home_fuel_oldest_price">Prezzo più vecchio: %1$s</string>
+    <!-- Parkings publicos [PARKINGS-ON-THE-MAP-001] -->
+    <string name="map_cd_layers">Mostra o nascondi i livelli della mappa</string>
+    <string name="map_layer_fuel_stations">Distributori</string>
+    <string name="map_layer_public_parkings">Parcheggi pubblici</string>
+    <string name="home_parkings_title">Parcheggi pubblici vicini</string>
+    <string name="home_parkings_empty">Nessun parcheggio pubblico entro 1,5 km.</string>
+    <string name="home_parkings_error">Non siamo riusciti a caricare i parcheggi. Controlla la connessione e riapri.</string>
+    <string name="parking_peek_eyebrow">Parcheggio pubblico</string>
+    <string name="parking_kind_underground">Parcheggio sotterraneo</string>
+    <string name="parking_kind_multi_storey">Parcheggio multipiano</string>
+    <string name="parking_kind_surface">Parcheggio in superficie</string>
+    <string name="parking_kind_garage_boxes">Box auto</string>
+    <string name="parking_kind_unknown">Parcheggio pubblico</string>
+    <string name="parking_fee_paid">A pagamento</string>
+    <string name="parking_fee_free">Gratuito</string>
+    <string name="parking_capacity">%1$s posti</string>
+    <string name="parking_max_height">Altezza max %1$s m</string>
 </resources>

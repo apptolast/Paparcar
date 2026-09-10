@@ -11,6 +11,7 @@ import com.rndeveloper.paparcar.domain.model.DisabledReason
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 import com.rndeveloper.paparcar.domain.onboarding.FirstStepsProgress
 import com.rndeveloper.paparcar.domain.usecase.fuel.NearbyFuelStation
+import com.rndeveloper.paparcar.domain.usecase.parkings.NearbyPublicParking
 import com.rndeveloper.paparcar.domain.onboarding.resolveFirstSteps
 import com.rndeveloper.paparcar.domain.onboarding.resolveWatchReinforcement
 import com.rndeveloper.paparcar.presentation.home.model.DetectionUiState
@@ -35,6 +36,8 @@ import com.rndeveloper.paparcar.domain.model.preferredParkingSession
 import com.rndeveloper.paparcar.domain.model.sortRank
 import com.rndeveloper.paparcar.presentation.home.model.HomeFuelLayerSlice
 import com.rndeveloper.paparcar.presentation.home.model.HomeFuelSlice
+import com.rndeveloper.paparcar.presentation.home.model.HomeParkingsLayerSlice
+import com.rndeveloper.paparcar.presentation.home.model.HomeParkingsSlice
 
 /**
  * Per-vehicle row used by the "TUS VEHÍCULOS" section.
@@ -322,6 +325,15 @@ data class HomeState(
      *  [FUEL-STATIONS-MAP-AND-PEEK-001] */
     val showFuelStationsLayer: Boolean = false,
 
+    /** "Car parks nearby", the browse section. [PARKINGS-ON-THE-MAP-001] */
+    val parkings: HomeParkingsSlice = HomeParkingsSlice(),
+
+    /** The car-parks LAYER, anchored to the camera — a different question from the section. */
+    val parkingsLayer: HomeParkingsLayerSlice = HomeParkingsLayerSlice(),
+
+    /** The public-parkings map layer, mirroring its [AppPreferences] switch. OFF by default. */
+    val showPublicParkingsLayer: Boolean = false,
+
     /**
      * The user's explicit fold/unfold of the free-spots section, or null while they have not
      * touched it — in which case [freeSpotsSectionExpanded] decides from the data: open with spots
@@ -371,6 +383,13 @@ data class HomeState(
         get() = (selection as? HomeSelection.FuelStation)?.let { sel ->
             fuelLayer.stations.firstOrNull { it.station.id == sel.id }
                 ?: fuel.stations.firstOrNull { it.station.id == sel.id }
+        }
+
+    /** The selected public car park, resolved inside its OWN arm. [PARKINGS-ON-THE-MAP-001] */
+    val selectedPublicParking: NearbyPublicParking?
+        get() = (selection as? HomeSelection.PublicParking)?.let { sel ->
+            parkingsLayer.parkings.firstOrNull { it.parking.id == sel.id }
+                ?: parkings.parkings.firstOrNull { it.parking.id == sel.id }
         }
 
     val isParkingSelected: Boolean

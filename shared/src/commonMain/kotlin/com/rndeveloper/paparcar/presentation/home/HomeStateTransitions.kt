@@ -83,6 +83,8 @@ internal fun HomeState.applyNewSpots(spots: List<Spot>): HomeState {
         // A spots refresh says nothing about fuel stations — their peek survives it untouched.
         // [FUEL-STATIONS-MAP-AND-PEEK-001]
         is HomeSelection.FuelStation -> true
+        // Nor about car parks. [PARKINGS-ON-THE-MAP-001]
+        is HomeSelection.PublicParking -> true
     }
     return copy(
         nearbySpots = spots,

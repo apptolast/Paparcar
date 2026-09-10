@@ -27,6 +27,9 @@ sealed interface HomeSheetAction {
      *  [FUEL-STATIONS-MAP-AND-PEEK-001] */
     data class SelectFuelStation(val stationId: String) : HomeSheetAction
 
+    /** Same gesture for a car park row. [PARKINGS-ON-THE-MAP-001] */
+    data class SelectPublicParking(val parkingId: String) : HomeSheetAction
+
     /**
      * Step the car lane of the peek to [vehicleId] — EVERY registered vehicle is a stop, and each
      * one resolves to ITS modal: with an active session it opens that session's peek exactly as

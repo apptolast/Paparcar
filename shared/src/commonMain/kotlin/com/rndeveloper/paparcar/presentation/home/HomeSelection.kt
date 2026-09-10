@@ -32,4 +32,7 @@ sealed interface HomeSelection {
 
     /** A fuel station from the layer / the refuel section. [FUEL-STATIONS-MAP-AND-PEEK-001] */
     data class FuelStation(override val id: String) : HomeSelection
+
+    /** A public car park from the layer / its section. [PARKINGS-ON-THE-MAP-001] */
+    data class PublicParking(override val id: String) : HomeSelection
 }

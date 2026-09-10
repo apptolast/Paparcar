@@ -57,6 +57,7 @@ internal fun HomeMapSection(
     onMyCarClick: (sessionId: String) -> Unit,
     onZoneClick: (String) -> Unit,
     onFuelStationClick: (String) -> Unit = {},
+    onPublicParkingClick: (String) -> Unit = {},
     onCameraMove: (lat: Double, lon: Double) -> Unit,
     /** [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] Tap on the unconfirmed-parking marker. */
     onAskMarkerClick: () -> Unit = {},
@@ -112,6 +113,9 @@ internal fun HomeMapSection(
         // stringResource. [FUEL-STATIONS-MAP-AND-PEEK-001]
         fuelPricesLabel = slice.fuelPricesFor?.let { fuelTypeLabel(it) },
         onFuelStationClick = onFuelStationClick,
+        publicParkings = slice.publicParkings,
+        selectedPublicParkingId = slice.selectedPublicParkingId,
+        onPublicParkingClick = onPublicParkingClick,
         onSpotClick = onSpotClick,
         onMyCarClick = onMyCarClick,
         onZoneClick = onZoneClick,
@@ -147,6 +151,7 @@ internal fun HomeMapFabsLayer(
     onParkedCar: () -> Unit,
     onMidpoint: () -> Unit,
     onToggleFuelLayer: () -> Unit = {},
+    onTogglePublicParkingsLayer: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     AnimatedVisibility(
@@ -164,10 +169,12 @@ internal fun HomeMapFabsLayer(
             // During a monitored trip the MyLocation FAB re-engages driver-follow instead of GPS. [DET-STATUS-SHEET-001]
             followsCar = isDriving,
             fuelLayerOn = slice.showFuelStationsLayer,
+            parkingsLayerOn = slice.showPublicParkingsLayer,
             onMyLocation = onMyLocation,
             onParkedCar = onParkedCar,
             onMidpoint = onMidpoint,
             onToggleFuelLayer = onToggleFuelLayer,
+            onTogglePublicParkingsLayer = onTogglePublicParkingsLayer,
             modifier = Modifier.padding(end = MAP_FLOATING_SIDE_INSET_DP.dp),
         )
     }

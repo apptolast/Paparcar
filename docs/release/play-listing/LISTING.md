@@ -254,3 +254,34 @@ justo debajo del wordmark; la alternativa lo evita a cambio de un remate menos r
 `FOREGROUND_SERVICE_LOCATION` **no es este campo**: va en la declaración de permisos, y
 tiene que enseñar el aviso destacado del onboarding ANTES del diálogo del sistema.
 Ver `docs/legal/DATA-SAFETY-FORM.md` § "Declaraciones adicionales".
+
+---
+
+## ⏳ PENDIENTE de la próxima release — gratis vs Plus, parkings y gasolineras
+
+> Anotado el 10-09-2026. **Nada de esto se escribe todavía en la ficha**: el copy de tienda solo
+> promete lo que está PUBLICADO, y a esta fecha las gasolineras (F5) están en master sin publicar y
+> los parkings (F6a) ni eso. Esto es la lista de lo que habrá que redactar —y que apruebes— cuando
+> salga la versión que los lleve.
+
+**Qué habrá que decir, y dónde:**
+
+1. **Descripción completa** — dos líneas nuevas en la sección de funciones, descritas y NO prometidas
+   en título ni breve (misma regla que las plazas): *dónde aparcar cerca —parkings públicos con su
+   tipo, tarifa y gálibo cuando se sabe— y dónde repostar, con el precio real*.
+2. **Novedades** — una frase por superficie, en los 9 idiomas.
+3. **Capturas** — la sheet con las tres secciones y el mapa con la capa encendida.
+4. **Qué incluye Plus** — la ficha NO lo detalla hoy. Si se detalla, tiene que decir lo mismo que
+   `docs/backlog/plus-alerts-and-tiers-001.md`, y ese doc es la fuente: **ver** parkings y
+   gasolineras es free COMPLETO; lo de pago son las alertas y la memoria.
+
+⛔ **Lo que NO se puede escribir:**
+- Ninguna alerta de parking o gasolinera: **no existe ninguna implementada** (ver la lista de espera).
+- «Plazas libres en el parking» — la ocupación es F6b y solo cubrirá algunas ciudades españolas.
+- Cualquier cobertura por país en parkings o precios: OSM es mundial pero desigual, y el precio real
+  hoy es solo España. Prometer cobertura es la clase de frase que la auditoría de `PLAN-OPTIMIZACION.md`
+  §1 ya tumbó dos veces.
+
+**Coherencia:** si la sección de datos cambia (los parkings NO añaden recogida de datos: se consultan
+al vuelo y no se guarda el país), revisar `docs/legal/DATA-SAFETY-FORM.md` y la política en la MISMA
+tarea, como manda la cabecera de este documento.

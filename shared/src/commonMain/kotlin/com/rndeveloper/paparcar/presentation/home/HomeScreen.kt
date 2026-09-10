@@ -362,6 +362,7 @@ private fun HomeContent(
     // list happens to contain the id.
     val selectedSpotId = (state.selection as? HomeSelection.Spot)?.id
     val selectedFuelStationId = (state.selection as? HomeSelection.FuelStation)?.id
+    val selectedPublicParkingId = (state.selection as? HomeSelection.PublicParking)?.id
     var showReleaseDialog by remember { mutableStateOf(false) }
     // The session the release dialog acts on — set from the peek that opened it, so the release
     // targets THAT card, never a ranked fallback. [VEH-ACTIVE-FENCE-001]
@@ -464,7 +465,8 @@ private fun HomeContent(
                 // The five snap points + chrome threshold, derived in one place —
                 // see HomeSheetPositioning.kt for the geometry. [HOME-ATOMIZE-001 F2]
                 val isPureBrowsePeek = state.mode is HomeMode.Browse && !isParkingSelected &&
-                    selectedSpotId == null && selectedFuelStationId == null
+                    selectedSpotId == null && selectedFuelStationId == null &&
+                    selectedPublicParkingId == null
                 val positioning = rememberSheetPositioning(
                     containerHeightPx = containerHeightPx,
                     peekHeightPx = peekHeightPx,
@@ -481,7 +483,8 @@ private fun HomeContent(
                     capExpandAtPeek = state.mode !is HomeMode.Browse ||
                         isParkingSelected ||
                         selectedSpotId != null ||
-                        selectedFuelStationId != null,
+                        selectedFuelStationId != null ||
+                        selectedPublicParkingId != null,
                 )
                 val peekOffsetPx = positioning.peekOffsetPx
                 val sheetOffsetPx = remember { Animatable(peekOffsetPx) }
@@ -614,6 +617,18 @@ private fun HomeContent(
                     }
                 }
 
+                // Same gesture again, for the car parks. [PARKINGS-ON-THE-MAP-001]
+                val currentPublicParkings = rememberUpdatedState(state.parkings.parkings)
+                val onPublicParkingMarkerClick: (String) -> Unit = remember(uiController, motion) {
+                    { parkingId ->
+                        currentPublicParkings.value.firstOrNull { it.parking.id == parkingId }?.let { p ->
+                            onIntent(HomeIntent.SelectItem(HomeSelection.PublicParking(parkingId)))
+                            uiController.goToPlace(p.parking.latitude, p.parking.longitude)
+                            motion.animateToExpanded()
+                        }
+                    }
+                }
+
                 // [DET-THE-ASK-SHOWS-ITS-PLACE-AND-RETRACTS-001] Tapping the unconfirmed marker
                 // opens the sheet on the question, the same gesture a spot or a parked car already
                 // gets. It does NOT select anything: there is no session to select — the question is
@@ -690,6 +705,7 @@ private fun HomeContent(
                     onAskMarkerClick = onAskMarkerClick,
                     onZoneClick = onZoneClick,
                     onFuelStationClick = onFuelStationMarkerClick,
+                    onPublicParkingClick = onPublicParkingMarkerClick,
                     onCameraMove = onMapCameraMove,
                     // El foco del primer aparcamiento se cierra AQUI, no en su propia capa: el
                     // observador del mapa es el que ve el toque de verdad, y no lo consume, asi que
@@ -788,6 +804,7 @@ private fun HomeContent(
                     selectedSession = state.selectedSession,
                     onMyCarMarkerClick = onMyCarMarkerClick,
                     onToggleFuelLayer = { onIntent(HomeIntent.ToggleFuelStationsLayer) },
+                    onTogglePublicParkingsLayer = { onIntent(HomeIntent.TogglePublicParkingsLayer) },
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .offset(fabBandOffset),
@@ -822,6 +839,7 @@ private fun HomeContent(
                     onSelectSpot = onSpotMarkerClick,
                     onSelectParking = onMyCarMarkerClick,
                     onSelectFuelStation = onFuelStationMarkerClick,
+                    onSelectPublicParking = onPublicParkingMarkerClick,
                     onRelease = { sessionId ->
                         releaseTargetSessionId = sessionId
                         showReleaseDialog = true
@@ -1092,6 +1110,7 @@ private fun HomeSheetSection(
     onSelectParking: (sessionId: String) -> Unit,
     /** Same gesture as a marker tap: select, frame, open the peek. [FUEL-STATIONS-MAP-AND-PEEK-001] */
     onSelectFuelStation: (stationId: String) -> Unit,
+    onSelectPublicParking: (parkingId: String) -> Unit,
     onRelease: (sessionId: String) -> Unit,
     onNavigateExternal: (lat: Double, lon: Double, walking: Boolean) -> Unit,
     onToggle: () -> Unit,
@@ -1112,6 +1131,7 @@ private fun HomeSheetSection(
             is HomeSheetAction.OpenFirstStepExplainer -> onOpenStepExplainer(action.step)
             is HomeSheetAction.SelectSpot -> onSelectSpot(action.spotId)
             is HomeSheetAction.SelectFuelStation -> onSelectFuelStation(action.stationId)
+            is HomeSheetAction.SelectPublicParking -> onSelectPublicParking(action.parkingId)
             // The car lane steps over VEHICLES; each stop resolves to its modal here, in the one
             // translation point. Parked → the very lambda a marker tap uses; unparked → the very
             // intent the vehicle's "Aparcar" chip sends, plus a camera fly to the user's GPS so
@@ -1221,6 +1241,7 @@ private fun HomeMapFabsSection(
     selectedSession: UserParking?,
     onMyCarMarkerClick: (sessionId: String) -> Unit,
     onToggleFuelLayer: () -> Unit = {},
+    onTogglePublicParkingsLayer: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     // Stable lambdas — GPS and parking read via rememberUpdatedState at call-time.
@@ -1274,6 +1295,7 @@ private fun HomeMapFabsSection(
         },
         onMidpoint = onMidpoint,
         onToggleFuelLayer = onToggleFuelLayer,
+        onTogglePublicParkingsLayer = onTogglePublicParkingsLayer,
         modifier = modifier,
     )
 }

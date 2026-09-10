@@ -39,6 +39,13 @@ sealed class HomeIntent {
      */
     data object ToggleFuelStationsLayer : HomeIntent()
 
+    /** Fold or unfold "public parkings" — and, the first time it unfolds, go and ask.
+     *  [PARKINGS-ON-THE-MAP-001] */
+    data object TogglePublicParkings : HomeIntent()
+
+    /** Show or hide the public-parkings MAP layer; same one-fetch-two-surfaces rule as fuel. */
+    data object TogglePublicParkingsLayer : HomeIntent()
+
     /**
      * Fold or unfold the free-spots section. Carries the DESIRED state (not a toggle) because two
      * callers want different things: the header chevron sends the opposite of what it shows, and

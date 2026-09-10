@@ -29,6 +29,12 @@ donde choquen:
 | Plus incluye | historial ilimitado · estadísticas · alertas de zona · sin anuncios | lo mismo **+** estadísticas avanzadas con gasto/consumo/CO₂ · rutas ilimitadas · coche compartido (estrella) · coches y zonas ilimitados |
 | Free incluye | detección, mapa, historial 30 d | detección, mapa comunitario, historial 7 d, 1 coche, 2 zonas, combustible del coche, **cifra-teaser** de estadísticas, gasolineras cercanas, parkings públicos |
 
+> 📌 **Dónde cae una feature nueva** lo decide [`plus-alerts-and-tiers-001.md`](plus-alerts-and-tiers-001.md)
+> (10-09): *free = tú preguntas y la app responde · Plus = la app te avisa y recuerda por ti*. De ahí
+> sale que **ver** parkings y gasolineras —con precio, tarifa, gálibo y cómo llegar— es free COMPLETO
+> y no se gatea nunca, y que lo vendible encima son las **alertas** (gálibo, gasolinera barata cerca,
+> parking lleno, aviso de depósito) y la **memoria** más allá de los 7 días.
+
 Reglas que NO cambian (siguen siendo doctrina): gating **soft** (la acción dispara el paywall, nunca
 se oculta el botón); al perder Plus **nada se borra**, solo se estrecha la ventana o se pausa; el
 invariante "¿es Plus?" vive en `EntitlementRepository` y todos preguntan vía `ObserveIsPlusUseCase`;

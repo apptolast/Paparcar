@@ -174,6 +174,11 @@ val mockModule = module {
     single<com.rndeveloper.paparcar.domain.fuel.FuelStationsSource> {
         com.rndeveloper.paparcar.fakes.data.repository.FakeFuelStationsSource()
     }
+    // Same reason, same breath: the public-parkings port is declared here the day it is written, not
+    // the day it crashes Home. [PARKINGS-ON-THE-MAP-001]
+    single<com.rndeveloper.paparcar.domain.parkings.PublicParkingsSource> {
+        com.rndeveloper.paparcar.fakes.data.repository.FakePublicParkingsSource()
+    }
     // DeleteAccountUseCase resolves this in its swept-repos list; the mock stack has no dataModule,
     // so the port must exist here or resolving it crashes. [ACCOUNT-DELETE-SWEEPS-DIAGNOSTICS-001]
     single<DiagnosticsRepository> { FakeDiagnosticsRepository() }

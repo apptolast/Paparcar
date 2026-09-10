@@ -79,6 +79,8 @@ import kotlinx.coroutines.launch
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 import com.rndeveloper.paparcar.domain.usecase.fuel.GetNearbyFuelStationsUseCase
+import com.rndeveloper.paparcar.domain.parkings.PublicParkingsQuery
+import com.rndeveloper.paparcar.domain.usecase.parkings.GetNearbyPublicParkingsUseCase
 
 @OptIn(ExperimentalCoroutinesApi::class, ExperimentalTime::class)
 class HomeViewModel(
@@ -143,6 +145,10 @@ class HomeViewModel(
     // The widget's "show this parking" ask — nullable so existing test doubles need no change.
     // [WIDGET-ACTIONS-002]
     private val showParkingAskEventBus: ShowParkingAskEventBus? = null,
+    // ⛔ These two go LAST, and that is load-bearing: Koin builds this VM with a positional list of
+    // bare `get()`s (see PresentationModule), so a parameter inserted in the MIDDLE shifts every
+    // argument after it. Adding one here cost exactly that mistake once. [PARKINGS-ON-THE-MAP-001]
+    private val getNearbyPublicParkings: GetNearbyPublicParkingsUseCase,
 ) : BaseViewModel<HomeState, HomeIntent, HomeEffect>() {
 
     /**
@@ -160,6 +166,7 @@ class HomeViewModel(
     // [FUEL-LAYER-FOLLOWS-THE-CAMERA-001] Debounce of the viewport ask, and the last camera centre
     // (for the moments the layer needs a centre before any settle — toggle-on, first fix).
     private var fuelViewportJob: Job? = null
+    private var parkingsViewportJob: Job? = null
     private var lastCameraLat: Double? = null
     private var lastCameraLon: Double? = null
 
@@ -175,6 +182,7 @@ class HomeViewModel(
             copy(
                 mapType = appPreferences.defaultMapType.toMapType(),
                 showFuelStationsLayer = appPreferences.showFuelStationsLayer,
+                showPublicParkingsLayer = appPreferences.showPublicParkingsLayer,
             )
         }
         geocoder.attach(viewModelScope)
@@ -348,6 +356,8 @@ class HomeViewModel(
             // [FUEL-STATIONS-LIST-001] [FUEL-STATIONS-MAP-AND-PEEK-001]
             is HomeIntent.ToggleFuelStations,
             is HomeIntent.ToggleFuelStationsLayer,
+            is HomeIntent.TogglePublicParkings,
+            is HomeIntent.TogglePublicParkingsLayer,
             is HomeIntent.SetFreeSpotsSectionExpanded,
             is HomeIntent.SendSpotSignal,
             is HomeIntent.EnterReportMode,
@@ -457,7 +467,10 @@ class HomeViewModel(
         geocodeCameraLocation(lat, lon)
         // Browse only: while a pin is being placed the map is the pin's canvas, not a browser.
         // [FUEL-LAYER-FOLLOWS-THE-CAMERA-001]
-        if (state.value.mode is HomeMode.Browse) scheduleFuelViewportRefetch(lat, lon)
+        if (state.value.mode is HomeMode.Browse) {
+            scheduleFuelViewportRefetch(lat, lon)
+            scheduleParkingsViewportRefetch(lat, lon)
+        }
     }
 
     /**
@@ -721,6 +734,151 @@ class HomeViewModel(
         }
     }
 
+    // ── Public parkings ───────────────────────────────────────────────────────
+    // Same three rules as fuel, and for the same reasons: one fetch feeds the section AND the layer,
+    // a failure is never rendered as "none nearby", and switching the layer off drops a selection
+    // that would otherwise keep a peek talking about an invisible pin. [PARKINGS-ON-THE-MAP-001]
+
+    private fun togglePublicParkings() {
+        val slice = state.value.parkings
+        if (slice.isExpanded) {
+            updateState { copy(parkings = parkings.copy(isExpanded = false)) }
+            return
+        }
+        // Already answered, or already asking: unfolding again must not re-ask. Unlike fuel there is
+        // no per-vehicle question here — a car park is a car park whatever the car burns.
+        if (slice.isLoading || slice.parkings.isNotEmpty()) {
+            updateState { copy(parkings = parkings.copy(isExpanded = true)) }
+            return
+        }
+        val gps = state.value.userGpsPoint
+        if (gps == null) {
+            updateState { copy(parkings = parkings.copy(isExpanded = true, failed = true)) }
+            return
+        }
+        updateState { copy(parkings = parkings.copy(isExpanded = true)) }
+        loadPublicParkings(gps)
+    }
+
+    private fun togglePublicParkingsLayer() {
+        val show = !state.value.showPublicParkingsLayer
+        appPreferences.setShowPublicParkingsLayer(show)
+        updateState {
+            copy(
+                showPublicParkingsLayer = show,
+                selection = selection.takeUnless { !show && it is HomeSelection.PublicParking },
+            )
+        }
+        if (show) viewportCentreOrGps()?.let { (lat, lon) -> maybeFetchParkingsViewport(lat, lon) }
+    }
+
+    /**
+     * The car-parks layer follows the CAMERA, exactly like the fuel one.
+     * [PARKINGS-ON-THE-MAP-001] [FUEL-LAYER-FOLLOWS-THE-CAMERA-001]
+     *
+     * ⛔ It does NOT re-check itself on every GPS fix, and that is a fix rather than a style choice:
+     * the first version of this lane did, and a failed ask over an empty store meant the next fix
+     * asked again — one request every ~5 s against a free shared service, measured on device.
+     * Camera events only exist while the user moves the map, so there is no hammering left to
+     * prevent.
+     *
+     * ⛔ **A failed ask puts the anchor BACK**, for the reason the fuel lane already paid for: an
+     * anchor advanced on a transient failure means "already asked here", and the area stays blank
+     * until the user pans kilometres away.
+     */
+    private fun maybeFetchParkingsViewport(lat: Double, lon: Double) {
+        val s = state.value
+        if (!s.showPublicParkingsLayer || s.parkingsLayer.isLoading) return
+        // Not a place (0,0 before the map has a camera), or so far from the user that showing your
+        // own city's car parks over a distant one would be the lie, not the service.
+        if (!ViewportRefetch.isWorthAsking(lat, lon, s.userGpsPoint?.latitude, s.userGpsPoint?.longitude)) {
+            if (s.parkingsLayer.parkings.isNotEmpty()) {
+                updateState {
+                    copy(
+                        parkingsLayer = parkingsLayer.copy(
+                            parkings = emptyList(),
+                            anchorLat = null,
+                            anchorLon = null,
+                        ),
+                        selection = selection.takeUnless { it is HomeSelection.PublicParking },
+                    )
+                }
+            }
+            return
+        }
+        val previousAnchorLat = s.parkingsLayer.anchorLat
+        val previousAnchorLon = s.parkingsLayer.anchorLon
+        if (!ViewportRefetch.shouldRefetch(
+                s.parkingsLayer.anchorLat, s.parkingsLayer.anchorLon,
+                lat, lon,
+                PublicParkingsQuery.DEFAULT_RADIUS_METERS,
+            )
+        ) return
+
+        updateState {
+            copy(parkingsLayer = parkingsLayer.copy(anchorLat = lat, anchorLon = lon, isLoading = true))
+        }
+        viewModelScope.launch {
+            getNearbyPublicParkings(lat, lon)
+                .onSuccess { found ->
+                    PaparcarLogger.d(TAG, "parkings viewport: ${found.size} car parks around $lat,$lon")
+                    updateState {
+                        copy(
+                            parkingsLayer = parkingsLayer.copy(isLoading = false, parkings = found),
+                            // A selection alive in NEITHER store is orphaned — same pruning rule as
+                            // the fuel lane, scoped to its own kind.
+                            selection = selection.takeUnless { sel ->
+                                sel is HomeSelection.PublicParking &&
+                                    found.none { it.parking.id == sel.id } &&
+                                    parkings.parkings.none { it.parking.id == sel.id }
+                            },
+                        )
+                    }
+                }
+                .onFailure { e ->
+                    PaparcarLogger.w(TAG, "parkings viewport lookup failed", e)
+                    updateState {
+                        copy(
+                            parkingsLayer = parkingsLayer.copy(
+                                isLoading = false,
+                                anchorLat = previousAnchorLat,
+                                anchorLon = previousAnchorLon,
+                            ),
+                        )
+                    }
+                }
+        }
+    }
+
+    /** Debounced camera-settle trigger, the twin of the fuel one. */
+    private fun scheduleParkingsViewportRefetch(lat: Double, lon: Double) {
+        if (!state.value.showPublicParkingsLayer) return
+        parkingsViewportJob?.cancel()
+        parkingsViewportJob = viewModelScope.launch {
+            delay(FUEL_VIEWPORT_SETTLE_MS)
+            maybeFetchParkingsViewport(lat, lon)
+        }
+    }
+
+    /** The section's own fetch, anchored to the USER — a different question from the layer's. */
+    private fun loadPublicParkings(gps: GpsPoint) {
+        updateState { copy(parkings = parkings.copy(isLoading = true, failed = false)) }
+        viewModelScope.launch {
+            getNearbyPublicParkings(gps.latitude, gps.longitude)
+                .onSuccess { found ->
+                    updateState {
+                        copy(parkings = parkings.copy(isLoading = false, failed = false, parkings = found))
+                    }
+                }
+                // ⛔ A failure is NOT an empty list: the section says "we could not ask", never
+                // "there are none nearby". [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
+                .onFailure { e ->
+                    PaparcarLogger.w(TAG, "public parkings lookup failed", e)
+                    updateState { copy(parkings = parkings.copy(isLoading = false, failed = true)) }
+                }
+        }
+    }
+
     private fun handleSpotIntent(intent: HomeIntent) {
         when (intent) {
             is HomeIntent.LoadNearbySpots -> {
@@ -735,6 +893,8 @@ class HomeViewModel(
             is HomeIntent.SetSizeFilter -> updateState { copy(sizeFilter = intent.size) }
             is HomeIntent.ToggleFuelStations -> toggleFuelStations()
             is HomeIntent.ToggleFuelStationsLayer -> toggleFuelStationsLayer()
+            is HomeIntent.TogglePublicParkings -> togglePublicParkings()
+            is HomeIntent.TogglePublicParkingsLayer -> togglePublicParkingsLayer()
             is HomeIntent.SetFreeSpotsSectionExpanded ->
                 updateState { copy(freeSpotsExpandedOverride = intent.expanded) }
             is HomeIntent.SendSpotSignal -> submitSpotSignal(intent.spotId, intent.accepted)
@@ -1243,7 +1403,11 @@ class HomeViewModel(
                 // A persisted fuel layer that outlived the process gets its stations back as soon
                 // as there is a centre to ask around — the camera's if it already spoke, this fix
                 // otherwise. [FUEL-LAYER-FOLLOWS-THE-CAMERA-001]
-                viewportCentreOrGps()?.let { (lat, lon) -> maybeFetchFuelViewport(lat, lon) }
+                // Both layers: the camera's centre if it already spoke, this fix otherwise.
+                viewportCentreOrGps()?.let { (lat, lon) ->
+                    maybeFetchFuelViewport(lat, lon)
+                    maybeFetchParkingsViewport(lat, lon)
+                }
                 geocodeUserLocation(location.latitude, location.longitude)
                 if (state.value.cameraAddressAndPlace == null) {
                     geocodeCameraLocation(location.latitude, location.longitude)
