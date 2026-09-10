@@ -379,7 +379,12 @@ private fun statsPanelState(
     // galeria. Se las atamos al primer coche, que es el que la galeria pinta. [STATS-PANEL-001]
     val ownerId = vehicles.firstOrNull()?.vehicle?.id
     val owned = sessions.map { it.copy(vehicleId = ownerId) }
-    val resolved = resolvedHistory(owned, filter, isPlus)
+    // ⛔ El coche se PASA, no se deja al parametro por defecto.
+    // [DEV-A-GALLERY-VARIANT-MUST-EXERCISE-ITS-CASE-001] `resolvedHistory` cae por defecto en el
+    // primer coche de FakeData, asi que la variante del enchufable cambiaba la CABECERA y dejaba
+    // el calculo con el coche de gasolina: salian litros y no salia el tile de kWh. Una variante
+    // que no ejercita su caso es peor que no tenerla — se ve verde y no vigila nada.
+    val resolved = resolvedHistory(owned, filter, isPlus, vehicles.firstOrNull()?.vehicle)
     return StatsState(
         vehicles = vehicles,
         selectedVehicleIndex = 0,
