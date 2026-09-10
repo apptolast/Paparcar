@@ -227,11 +227,41 @@ dependencies {
     testImplementation(libs.koin.test)
 }
 
-// [build] The Crashlytics ProGuard-mapping upload runs after the APK is built and reaches Firebase
-// over the network — blocked by SSL inspection on this dev network (PKIX cert error), failing the
-// build even though the APK is already produced. `mappingFileUploadEnabled = false` is ignored by
-// AGP 9, so disable the task directly. Re-enable from a network that can reach Firebase (e.g. CI)
-// with -PuploadCrashlyticsMapping=true.
-tasks.matching { it.name.startsWith("uploadCrashlyticsMappingFile") }.configureEach {
-    enabled = project.findProperty("uploadCrashlyticsMapping") == "true"
+// [build] A release that ships uploads its mapping, or it is not a release.
+// [RELEASE-A-CRASH-WITHOUT-A-MAPPING-IS-UNREADABLE-001]
+//
+// ⛔ **On by default, and the skip is what has to be typed.** This used to be the other way round —
+// off unless you passed `-PuploadCrashlyticsMapping=true` — because the upload reaches Firebase over
+// the network and SSL inspection on this dev machine failed it with a PKIX error, tearing down a
+// build whose APK was already produced. The reason was real; leaving the OFF side as the default was
+// the mistake. Nobody remembers a flag on every release, so 1.0.0 went to Play on 03-09-2026 and
+// every production crash since arrived obfuscated: the 10-09 map crash blamed `od2.m`, a frame
+// Crashlytics could not even attribute to us.
+//
+// R8 does not rename identically across runs, so a mapping only ever fits ITS OWN build — a crash
+// whose mapping was never uploaded can never be read afterwards, from any leftover file. There is no
+// catching up later, which is what makes the default the whole ticket.
+//
+// Re-measured on 10-09-2026 from this same machine: `uploadCrashlyticsMappingFileProdRelease` runs
+// and succeeds. The PKIX failure went with the Norton root landing in the JBR truststore (done for
+// Gradle itself), so the guard was outliving its cause.
+//
+// The escape hatch stays for the case it was written for — a release build you are NOT going to put
+// on anybody's phone (measuring R8, reproducing a minified bug) — and it now costs a word:
+//     ./gradlew :app:bundleProdRelease -PskipCrashlyticsMapping=true
+//
+// A failing upload is left FAILING the build on purpose. A release whose mapping did not reach
+// Firebase is a release that cannot be diagnosed, and finding that out at build time is the point.
+//
+// (`mappingFileUploadEnabled = false` is ignored by AGP 9, which is why this toggles the task.)
+//
+// ⛔ `mock` is excluded here, not just above: that flavor's upload is switched off in the
+// `afterEvaluate` block near the flavor declarations (its applicationId carries a suffix that
+// `google-services.json` does not know). `configureEach` runs when the task is REALISED, which is
+// after `afterEvaluate`, so without this guard flipping the default to ON would quietly switch the
+// mock upload back on and break `assembleMockRelease` at the last step.
+tasks.matching {
+    it.name.startsWith("uploadCrashlyticsMappingFile") && !it.name.contains("Mock", ignoreCase = true)
+}.configureEach {
+    enabled = project.findProperty("skipCrashlyticsMapping") != "true"
 }
