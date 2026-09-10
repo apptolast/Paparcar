@@ -1,5 +1,7 @@
 package com.rndeveloper.paparcar.presentation.home.model
 
+import com.rndeveloper.paparcar.domain.onboarding.NearbyComplement
+
 /**
  * WHICH nearby question the sheet's lane is answering right now.
  * [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
@@ -35,5 +37,24 @@ enum class HomeNearbyLens {
     FUEL,
 
     /** Public car parks, with occupancy where a municipality publishes it. [PARKINGS-ON-THE-MAP-001] */
-    PARKINGS,
+    PARKINGS;
+
+    /**
+     * Which third-party subject this lane answers for, or null when the answer is the community's
+     * own. [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001]
+     *
+     * The ONE translation between the lane the user is in and the thing whose provenance has to be
+     * said once. Two consumers read it — the lane's own first-visit line and the checklist's
+     * `EXPLORE_NEARBY` step — and a `when` written at either call site is how the two would end up
+     * disagreeing about whether the user has been told.
+     *
+     * ⛔ [SPOTS] is null and that is not an omission: a free spot comes from the user standing next
+     * to it, so there is no source to name and nothing to qualify.
+     */
+    val complement: NearbyComplement?
+        get() = when (this) {
+            SPOTS -> null
+            FUEL -> NearbyComplement.FUEL
+            PARKINGS -> NearbyComplement.CAR_PARKS
+        }
 }

@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.rndeveloper.paparcar.domain.onboarding.NearbyComplement
 import com.rndeveloper.paparcar.presentation.home.model.HomeFuelSlice
 import com.rndeveloper.paparcar.presentation.util.relativeTimeText
 import com.rndeveloper.paparcar.ui.illustrations.EmptyFuelStationsIllustration
@@ -45,8 +46,15 @@ fun HomeFuelLane(
     /** A row opens the station's peek — the same one its map capsule opens.
      *  [FUEL-STATIONS-MAP-AND-PEEK-001] */
     onStationClick: ((String) -> Unit)? = null,
+    /** First visit: the lane says where the prices come from, above whatever else it has to say.
+     *  [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001] */
+    isIntroducing: Boolean = false,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
+        // ⛔ ABOVE the five sentences below, the fuel-less one included: "your car has no fuel type"
+        // is an answer, and an answer lands better once the user knows what the question was.
+        if (isIntroducing) LaneIntroNote(NearbyComplement.FUEL)
+
         when {
             // ⛔ No fuel on the car means NO question was asked — its own sentence, never the empty
             // state, which is a verdict about the world.

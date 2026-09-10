@@ -258,6 +258,15 @@ class HomeViewModel(
                 }
             }
 
+        // [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001] The complements already introduced — the same set
+        // that decides whether a lane still owes its provenance line and whether EXPLORE_NEARBY is
+        // done. Its own subscription and not part of the triple above: it is written from the lane,
+        // not from the checklist.
+        appPreferences.observeIntroducedComplements()
+            .collectSafely("introducedComplements") { complements ->
+                updateState { copy(introducedComplements = complements) }
+            }
+
         // [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001] Whether linking a car by Bluetooth is
         // even offerable: read ONCE, not per emission — it is an IPC call into the adapter, and the
         // answer only changes when the user pairs a device in system settings. False while the
@@ -553,9 +562,20 @@ class HomeViewModel(
     private fun setNearbyLens(lens: HomeNearbyLens) {
         // Already there: the chip of the lane you are in is a no-op, not a second ask.
         if (state.value.nearbyLens == lens) return
+        // [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001] Entering a complement for the first time is the
+        // one moment the app can say where its data comes from without lecturing anybody: the user
+        // just asked the question. The line is BANKED here and shown for the whole visit — see
+        // `HomeState.nearbyIntro` for why the flag and the line are two fields.
+        val introducing = lens.complement?.takeIf { it !in state.value.introducedComplements }
+        if (introducing != null) {
+            appPreferences.setIntroducedComplements(state.value.introducedComplements + introducing)
+        }
         updateState {
             copy(
                 nearbyLens = lens,
+                // Recomputed on EVERY lane change, null included: leaving a lane takes its line with
+                // it, so coming back within the same session does not re-introduce what was read.
+                nearbyIntro = introducing,
                 // The complement being left stops being drawn, so a selection of it stops having a
                 // subject. Own sessions, spots and zones are untouched — they are not lane-governed.
                 selection = selection.takeUnless {

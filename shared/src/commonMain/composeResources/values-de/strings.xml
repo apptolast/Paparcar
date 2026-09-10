@@ -206,8 +206,9 @@
     <string name="licenses_detail_open_terms">Vollständige Bedingungen lesen</string>
     <string name="licenses_data_sources_header">Datenquellen</string>
     <string name="licenses_source_openvan_purpose">Durchschnittliche Kraftstoffpreise</string>
-    <string name="licenses_source_osm_purpose">Tankstellen und Orte in der Nähe</string>
+    <string name="licenses_source_osm_purpose">Parkhäuser, Tankstellen, Orte und Straßen</string>
     <string name="licenses_source_minetur_purpose">Zapfsäulenpreise in Spanien</string>
+    <string name="licenses_source_prix_carburants_purpose">Zapfsäulenpreise in Frankreich</string>
 
     <!-- Fehlermeldungen -->
     <string name="error_unknown">Etwas ist schiefgelaufen</string>
@@ -863,4 +864,20 @@
     <string name="parking_fee_free">Kostenlos</string>
     <string name="parking_capacity">%1$s Stellplätze</string>
     <string name="parking_max_height">Max. Höhe %1$s m</string>
+
+    <!-- [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001] The other two questions the map answers -->
+    <string name="home_parkings_intro">Parkhäuser kommen von OpenStreetMap und aus städtischen Daten. Belegung nur dort, wo die Stadt sie veröffentlicht.</string>
+    <string name="home_fuel_intro">Die Preise kommen aus amtlichen Registern. Jeder Preis sagt, wann er gemessen wurde.</string>
+    <string name="first_steps_explore_title">Sieh, was es sonst in der Nähe gibt</string>
+    <string name="first_steps_explore_sub">Die Karte kennt auch Parkhäuser und Kraftstoffpreise, auch wenn niemand einen Platz frei gemacht hat.</string>
+    <string name="first_steps_explore_cta">Zeigen</string>
+    <string name="first_steps_explain_explore_title">Die Karte beantwortet drei Fragen</string>
+    <string name="first_steps_explain_explore_body">Freie Plätze hinterlassen die Nachbarn. Die anderen beiden Antworten hängen von niemandem ab.</string>
+    <string name="first_steps_explain_explore_parkings_title">Parkhäuser</string>
+    <string name="first_steps_explain_explore_parkings_body">Wo du hineinfährst und zahlst. Durchfahrtshöhe und Tarife, wenn der Betreiber sie veröffentlicht.</string>
+    <string name="first_steps_explain_explore_fuel_title">Tankstellen</string>
+    <string name="first_steps_explain_explore_fuel_body">Wo du tanken kannst und was der Liter gekostet hat, mit der Uhrzeit jeder Messung.</string>
+    <string name="first_steps_explain_explore_note">Beides kommt nicht aus der Community: es sind öffentliche Daten, also vom ersten Tag an da, und für alle kostenlos.</string>
+    <string name="paywall_free_nearby">Parkhäuser und Kraftstoffpreise</string>
+    <string name="paywall_plus_nearby">Dasselbe: Schauen ist immer kostenlos</string>
 </resources>

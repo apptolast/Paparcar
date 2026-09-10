@@ -3,6 +3,7 @@ package com.rndeveloper.paparcar.domain.preferences
 import com.rndeveloper.paparcar.domain.detection.PendingParkNudge
 import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
+import com.rndeveloper.paparcar.domain.onboarding.NearbyComplement
 import kotlinx.coroutines.flow.Flow
 
 interface AppPreferences {
@@ -97,6 +98,21 @@ interface AppPreferences {
      */
     fun observeFirstStepsDeferred(): Flow<Set<FirstStep>>
     fun setFirstStepsDeferred(steps: Set<FirstStep>)
+
+    /**
+     * The complements whose provenance has already been said — where their data comes from and what
+     * it does not promise. [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001]
+     *
+     * ONE fact with TWO readers, and that is the point of it living here rather than as a flag per
+     * lane: the sheet asks it to decide whether the lane still owes its line, and the checklist asks
+     * it to decide whether [FirstStep.EXPLORE_NEARBY] is done. A second latch for the step could
+     * claim the user had been told something the lane never said.
+     *
+     * User-scoped, like the tutorial: what somebody KNOWS is theirs, not this phone's. Unknown names
+     * are dropped on read, so retiring a complement reads as "never introduced" instead of crashing.
+     */
+    fun observeIntroducedComplements(): Flow<Set<NearbyComplement>>
+    fun setIntroducedComplements(complements: Set<NearbyComplement>)
 
     // ── Pending "where did you leave your car?" nudge. [DET-NUDGE-PERSIST-001] ──
     /** The unanswered mark-parking nudge, or null. Single slot: a new set replaces the previous

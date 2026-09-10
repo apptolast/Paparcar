@@ -15,6 +15,7 @@ import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.rndeveloper.paparcar.domain.detection.PendingParkNudge
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
+import com.rndeveloper.paparcar.domain.onboarding.NearbyComplement
 import com.rndeveloper.paparcar.localePrefersImperialUnits
 import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
 import com.rndeveloper.paparcar.domain.model.GpsPoint
@@ -158,6 +159,19 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
      *  an older device's set as "that step isn't banked", which is the honest answer. */
     private fun Set<String>?.toFirstSteps(): Set<FirstStep> =
         this.orEmpty().mapNotNull { name -> FirstStep.entries.firstOrNull { it.name == name } }.toSet()
+
+    // ── Complements already introduced. [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001] ──
+
+    override fun observeIntroducedComplements(): Flow<Set<NearbyComplement>> =
+        store.data.map { prefs -> prefs[Keys.INTRODUCED_COMPLEMENTS].toComplements() }.distinctUntilChanged()
+
+    override fun setIntroducedComplements(complements: Set<NearbyComplement>) =
+        set(Keys.INTRODUCED_COMPLEMENTS, complements.map { it.name }.toSet())
+
+    /** Same forgiving read as the steps above, for the same reason: a retired complement reads as
+     *  "never introduced", which costs one extra line on screen and never a crash. */
+    private fun Set<String>?.toComplements(): Set<NearbyComplement> =
+        this.orEmpty().mapNotNull { name -> NearbyComplement.entries.firstOrNull { it.name == name } }.toSet()
 
     // ── Pending mark-parking nudge. [DET-NUDGE-PERSIST-001] ──────────────────
 
@@ -320,6 +334,7 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
         val FIRST_STEPS_DONE        = stringSetPreferencesKey("first_steps_done")
         val FIRST_STEPS_DEFERRED    = stringSetPreferencesKey("first_steps_deferred")
         val FIRST_STEPS_DISMISSED   = booleanPreferencesKey("first_steps_dismissed")
+        val INTRODUCED_COMPLEMENTS  = stringSetPreferencesKey("introduced_complements")
         val PENDING_NUDGE_CREATED_AT = longPreferencesKey("pending_park_nudge_created_at")
         val PENDING_NUDGE_SOURCE     = stringPreferencesKey("pending_park_nudge_source")
         val PENDING_NUDGE_VEHICLE_ID = stringPreferencesKey("pending_park_nudge_vehicle_id")
@@ -369,6 +384,10 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
             Keys.FIRST_STEPS_DONE,
             Keys.FIRST_STEPS_DEFERRED,
             Keys.FIRST_STEPS_DISMISSED,
+            // What the OUTGOING user was told about where the complements' data comes from. It is
+            // knowledge of a person, not of this phone, so the next account gets told too.
+            // [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001]
+            Keys.INTRODUCED_COMPLEMENTS,
             // The cold-start nudge machine, which counts one user's parkings.
             Keys.HAS_CONFIRMED_FIRST_PARK,
             Keys.FIRST_PARK_NUDGE_COUNT,

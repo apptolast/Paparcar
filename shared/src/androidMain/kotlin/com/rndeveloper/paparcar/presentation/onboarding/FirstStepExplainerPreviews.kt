@@ -35,6 +35,18 @@ private fun ExplainerParkPreview() = Preview(FirstStep.MARK_PARKING, dark = fals
 @Composable
 private fun ExplainerWatchPreview() = Preview(FirstStep.UNDERSTAND_WATCH, dark = false)
 
+/**
+ * The two questions the map answers that are NOT the community's.
+ * [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001]
+ *
+ * The page that names all three things at once — the community's spot, your own parking and a
+ * third party's car park — which is why it is the page worth looking at in a preview.
+ * [COPY-SPOT-IS-NOT-A-PARKING-001]
+ */
+@Preview(name = "Explainer · Car parks and fuel", showBackground = true)
+@Composable
+private fun ExplainerExplorePreview() = Preview(FirstStep.EXPLORE_NEARBY, dark = false)
+
 /** The OTHER way a spot is born: one you saw, not one you left. */
 @Preview(name = "Explainer · Report a spot you saw", showBackground = true)
 @Composable

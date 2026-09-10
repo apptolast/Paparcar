@@ -32,14 +32,36 @@ enum class FirstStep {
     FORTIFY_WATCH,
 
     /** Meet the community side: a free spot someone else left, or one you report. */
-    FIND_SPOT;
+    FIND_SPOT,
+
+    /**
+     * Learn that the map answers more than free spots: public car parks, and where to refuel with
+     * the price each source published. [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001]
+     *
+     * LAST, and that is the hierarchy speaking. Free spots are the product; car parks and fuel are
+     * complements to it, exactly as [HomeNearbyLens][com.rndeveloper.paparcar.presentation.home.model.HomeNearbyLens]
+     * orders them. It was tempting to have this REPLACE [FIND_SPOT] and keep the checklist at four,
+     * and that would have removed the step that teaches the two ways a spot is born
+     * ([ONBOARDING-A-SPOT-IS-BORN-TWO-WAYS-001]) — the mechanics that existed nowhere else in the
+     * app — to make room for a complement.
+     *
+     * Five is also rarely five on screen: [FORTIFY_WATCH] drops out whenever there is nothing to
+     * reinforce, so the user whose car is Bluetooth-linked still sees four.
+     */
+    EXPLORE_NEARBY;
 
     /**
      * Whether ENGAGING with this step is doing it — reading its explanation, or opening the flow it
      * teaches, whether or not anything came of it.
      * [ONBOARDING-THE-COMMUNITY-STEP-CANNOT-DEMAND-A-SPOT-001]
      *
-     * True only for steps of KNOWLEDGE. [FIND_SPOT] teaches that the community half exists: that
+     * True only for steps of KNOWLEDGE. [EXPLORE_NEARBY] is the second one, and for the same reason
+     * carried further: the complements are a third party's data, so the step can only teach that the
+     * question EXISTS and where the answer comes from. Demanding proof of use would mean demanding
+     * that someone refuel, or drive into a car park they have to pay for, to close a tutorial step.
+     * [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001]
+     *
+     * [FIND_SPOT] teaches that the community half exists: that
      * spots others leave show on the map, and that a free space you see can be reported. Having read
      * that IS knowing it. Demanding a published spot instead left a user with none nearby and no
      * free space to report unable to ever close the step — the only ways out being a false report,
@@ -62,7 +84,7 @@ enum class FirstStep {
      *
      * A new step has to declare which kind it is HERE, not inherit one from a `when` elsewhere.
      */
-    val completesOnEngage: Boolean get() = this == FIND_SPOT
+    val completesOnEngage: Boolean get() = this == FIND_SPOT || this == EXPLORE_NEARBY
 }
 
 /**
@@ -286,6 +308,11 @@ data class FirstStepsProgress(
  *   which asks whether a REAL parking is covered right now: with detection healthy but no car
  *   marked, there is nothing to watch and still nothing to fix.
  *   [ONBOARDING-STEPS-MUST-EXPLAIN-WHAT-REALLY-HAPPENS-001]
+ * @param hasExploredNearby the user has already been into a complement's lane — car parks or fuel —
+ *   which is what [FirstStep.EXPLORE_NEARBY] is about. ⛔ Read from the SAME persisted set that
+ *   decides whether a lane still owes its provenance line (`introducedComplements`), never from a
+ *   second latch of its own: one fact, two readers, so the step cannot claim the user was told
+ *   something the lane never said. [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001]
  */
 fun resolveFirstSteps(
     done: Set<FirstStep>,
@@ -295,6 +322,7 @@ fun resolveFirstSteps(
     hasTouchedSpots: Boolean,
     hasSpotsOnOffer: Boolean = false,
     isAutoDetectionStopped: Boolean = false,
+    hasExploredNearby: Boolean = false,
     reinforcement: WatchReinforcement = WatchReinforcement.NONE,
     deferred: Set<FirstStep> = emptySet(),
 ): FirstStepsProgress {
@@ -316,6 +344,11 @@ fun resolveFirstSteps(
             add(FirstStep.UNDERSTAND_WATCH)
         }
         if (hasTouchedSpots) add(FirstStep.FIND_SPOT)
+        // Having asked the map one of the other two questions IS the step. Nothing else counts, and
+        // in particular no amount of scrolling past the tab row does: the lane has to be ENTERED,
+        // which is also the only moment the app ever tells you where that data comes from.
+        // [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001]
+        if (hasExploredNearby) add(FirstStep.EXPLORE_NEARBY)
     }
     val effective = done + live
     // A step with nothing to ask for is not on this user's list at all: the fortify step exists

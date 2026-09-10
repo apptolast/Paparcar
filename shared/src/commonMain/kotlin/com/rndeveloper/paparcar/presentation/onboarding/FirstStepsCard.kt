@@ -16,6 +16,7 @@ import androidx.compose.material.icons.rounded.BatteryAlert
 import androidx.compose.material.icons.rounded.Bluetooth
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Explore
+import androidx.compose.material.icons.rounded.Map
 import androidx.compose.material.icons.rounded.RadioButtonUnchecked
 import androidx.compose.material.icons.rounded.SensorsOff
 import androidx.compose.material.icons.rounded.Verified
@@ -53,6 +54,9 @@ import paparcar.composeapp.generated.resources.first_steps_complete_title
 import paparcar.composeapp.generated.resources.first_steps_deferred_sub
 import paparcar.composeapp.generated.resources.first_steps_deferred_title
 import paparcar.composeapp.generated.resources.first_steps_done_cta
+import paparcar.composeapp.generated.resources.first_steps_explore_cta
+import paparcar.composeapp.generated.resources.first_steps_explore_sub
+import paparcar.composeapp.generated.resources.first_steps_explore_title
 import paparcar.composeapp.generated.resources.first_steps_eyebrow
 import paparcar.composeapp.generated.resources.first_steps_how_it_works
 import paparcar.composeapp.generated.resources.first_steps_fortify_battery_sub
@@ -529,6 +533,21 @@ private fun FirstStep.copy(
             icon = Icons.Rounded.AddLocationAlt,
         )
     }
+    // [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001] ONE face, because there is nothing to branch on:
+    // this step says the map answers two more questions, and that is true in an empty city and in a
+    // full one. ⛔ No `needsLocation`: the CTA only moves this sheet to a lane, and the lane itself
+    // is what deals with having no fix yet.
+    //
+    // The MAP glyph, and not the compass [FIND_SPOT] wears: the step right above is about looking
+    // FOR something, this one is about the surface that can be asked. ⛔ Never the "P" — that mark
+    // belongs to the public car park as a POI, so putting it on a step that also covers fuel would
+    // spend a glyph the map already owns. [UI-ONBOARDING-STEP-ICONS-SAY-WHAT-THE-APP-SAYS-001]
+    FirstStep.EXPLORE_NEARBY -> FirstStepCopy(
+        title = Res.string.first_steps_explore_title,
+        subtitle = Res.string.first_steps_explore_sub,
+        cta = Res.string.first_steps_explore_cta,
+        icon = Icons.Rounded.Map,
+    )
 }
 
 private const val CARD_H_PAD_DP = 16

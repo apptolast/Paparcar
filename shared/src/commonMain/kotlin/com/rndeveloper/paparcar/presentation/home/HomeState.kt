@@ -11,6 +11,7 @@ import com.rndeveloper.paparcar.domain.model.DisabledReason
 import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 import com.rndeveloper.paparcar.domain.onboarding.FirstStepsProgress
+import com.rndeveloper.paparcar.domain.onboarding.NearbyComplement
 import com.rndeveloper.paparcar.domain.usecase.fuel.NearbyFuelStation
 import com.rndeveloper.paparcar.domain.usecase.parkings.NearbyPublicParking
 import com.rndeveloper.paparcar.domain.onboarding.resolveFirstSteps
@@ -319,6 +320,26 @@ data class HomeState(
     val nearbyLens: HomeNearbyLens = HomeNearbyLens.SPOTS,
 
     /**
+     * The complements whose provenance the user has already been told, straight from preferences.
+     * [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001]
+     *
+     * Persisted and user-scoped: it feeds BOTH the lane's first-visit line and
+     * [FirstStep.EXPLORE_NEARBY]'s live signal, so "was I told?" has exactly one answer.
+     */
+    val introducedComplements: Set<NearbyComplement> = emptySet(),
+
+    /**
+     * The complement being INTRODUCED right now, or null. Session-only, recomputed on every lane
+     * change. [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001]
+     *
+     * A separate field from [introducedComplements] because the two answer different questions and
+     * flip at the same instant: entering a lane for the first time BANKS the complement (so it is
+     * never introduced twice) while the line has to stay up for the whole visit. Deriving the line
+     * from the set alone would make it appear and vanish within the same frame.
+     */
+    val nearbyIntro: NearbyComplement? = null,
+
+    /**
      * "Where to refuel", unasked until its lane is entered. [FUEL-STATIONS-LIST-001]
      *
      * Its own value rather than four loose fields on the state: the lane has to keep
@@ -476,6 +497,10 @@ data class HomeState(
             // keeping, so the step switches to asking for it — read from the SAME flag the release
             // dialog uses to decide whether it can promise the same thing. [DET-WATCH-HONEST-001]
             isAutoDetectionStopped = detectionUiState.isDetectionStopped,
+            // [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001] Having been INTO a complement's lane is the
+            // step. Read from the same persisted set the lanes use to know whether they still owe
+            // their provenance line — one fact, so the step cannot claim a lesson never given.
+            hasExploredNearby = introducedComplements.isNotEmpty(),
             // [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001] "Is it on?" and "is it solid?"
             // are two questions and two steps. This is the second one, about the car the watch
             // actually works for — the active vehicle. [VEH-ACTIVE-FENCE-001]

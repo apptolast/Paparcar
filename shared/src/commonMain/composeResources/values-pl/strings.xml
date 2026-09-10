@@ -205,8 +205,9 @@
     <string name="licenses_detail_open_terms">Przeczytaj pełne warunki</string>
     <string name="licenses_data_sources_header">Źródła danych</string>
     <string name="licenses_source_openvan_purpose">Średnie ceny paliw</string>
-    <string name="licenses_source_osm_purpose">Stacje paliw i miejsca w pobliżu</string>
+    <string name="licenses_source_osm_purpose">Parkingi, stacje paliw, miejsca i ulice</string>
     <string name="licenses_source_minetur_purpose">Ceny na dystrybutorach w Hiszpanii</string>
+    <string name="licenses_source_prix_carburants_purpose">Ceny na dystrybutorach we Francji</string>
 
     <!-- Generic error messages -->
     <string name="error_unknown">Coś poszło nie tak</string>
@@ -876,4 +877,20 @@
     <string name="parking_fee_free">Bezpłatny</string>
     <string name="parking_capacity">%1$s miejsc</string>
     <string name="parking_max_height">Maks. wysokość %1$s m</string>
+
+    <!-- [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001] The other two questions the map answers -->
+    <string name="home_parkings_intro">Parkingi pochodzą z OpenStreetMap i danych miejskich. Zajętość tylko tam, gdzie miasto ją publikuje.</string>
+    <string name="home_fuel_intro">Ceny pochodzą z oficjalnych rejestrów. Każda cena mówi, kiedy została zmierzona.</string>
+    <string name="first_steps_explore_title">Zobacz, co jeszcze jest w pobliżu</string>
+    <string name="first_steps_explore_sub">Mapa zna też parkingi i ceny paliwa, nawet jeśli nikt nie zwolnił miejsca.</string>
+    <string name="first_steps_explore_cta">Pokaż</string>
+    <string name="first_steps_explain_explore_title">Mapa odpowiada na trzy pytania</string>
+    <string name="first_steps_explain_explore_body">Wolne miejsca zostawiają sąsiedzi. Pozostałe dwie odpowiedzi nie zależą od nikogo innego.</string>
+    <string name="first_steps_explain_explore_parkings_title">Parkingi</string>
+    <string name="first_steps_explain_explore_parkings_body">Gdzie wjechać i zapłacić. Wysokość i cennik, gdy operator je publikuje.</string>
+    <string name="first_steps_explain_explore_fuel_title">Stacje paliw</string>
+    <string name="first_steps_explain_explore_fuel_body">Gdzie zatankować i ile kosztował litr, z godziną pomiaru każdej ceny.</string>
+    <string name="first_steps_explain_explore_note">Żadne z nich nie pochodzi od społeczności: to dane publiczne, więc są od pierwszego dnia, i za darmo dla wszystkich.</string>
+    <string name="paywall_free_nearby">Parkingi i ceny paliwa</string>
+    <string name="paywall_plus_nearby">To samo: patrzeć zawsze można za darmo</string>
 </resources>

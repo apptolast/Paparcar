@@ -74,7 +74,7 @@
 
 <main>
 
-<p class="meta">Last updated / Última actualización: 08-09-2026</p>
+<p class="meta">Last updated / Última actualización: 10-09-2026</p>
 
 <nav class="lang-nav">
   🇬🇧 <a href="#en">Privacy Policy (English)</a> &nbsp;·&nbsp; 🇪🇸 <a href="#es">Política de Privacidad (Español)</a>
@@ -157,6 +157,19 @@ Privacy contact: <a href="mailto:support@paparcar.com">support@paparcar.com</a><
   advertising ID.</li>
 </ul>
 
+<h3>2.8 Map queries and Plus subscription</h3>
+<ul>
+  <li><strong>Where you are looking</strong> — when you open the car parks or fuel lane, or move
+  the map, we ask public data services for that <strong>area</strong> (an approximate box around
+  the point on screen, or your province or country for pump prices). We send the area and nothing
+  else: no account, no identifier, no history. These services see a request from a phone, not from
+  you.</li>
+  <li><strong>Plus subscription</strong> — if you subscribe, the purchase is processed by Google
+  Play and managed through RevenueCat, which receives your <strong>account identifier</strong> and
+  the state of your subscription. It never receives your location, your parkings or your vehicles.
+  We never see your card details: the payment happens inside Google Play.</li>
+</ul>
+
 <h2>3. How we use the data</h2>
 <ul>
   <li>Detect and record your parking sessions, and publish the spots you free (service delivery).</li>
@@ -174,6 +187,11 @@ Privacy contact: <a href="mailto:support@paparcar.com">support@paparcar.com</a><
   <tr><td>Other Paparcar users</td><td>Location, time and size of the spots you free (without your identity)</td><td>It is the app's purpose</td></tr>
   <tr><td>Google Firebase (Auth, Cloud Firestore, Crashlytics, Analytics)</td><td>Account data, parking sessions, vehicles, diagnostics, crash reports, anonymous usage events</td><td>Authentication, database, stability and usage statistics. <a href="https://firebase.google.com/support/privacy">Firebase privacy</a></td></tr>
   <tr><td>Google Maps Platform / Play Services</td><td>Map requests and location/activity signals processed by the SDK</td><td>Rendering the map and detecting driving. <a href="https://policies.google.com/privacy">Google privacy</a></td></tr>
+  <tr><td>OpenStreetMap (Overpass servers)</td><td>An approximate area of the map — never your identity</td><td>Public car parks, fuel stations, place names and streets. <a href="https://osmfoundation.org/wiki/Privacy_Policy">OSMF privacy</a></td></tr>
+  <tr><td>Ministerio para la Transición Ecológica (Spain)</td><td>The province or municipality you are looking at</td><td>Official pump prices in Spain</td></tr>
+  <tr><td>data.economie.gouv.fr (France)</td><td>A point on the map and a radius</td><td>Official pump prices in France</td></tr>
+  <tr><td>OpenVan.camp</td><td>The country you are in</td><td>National average fuel prices</td></tr>
+  <tr><td>RevenueCat</td><td>Your account identifier and the state of your Plus subscription</td><td>Managing the subscription. <a href="https://www.revenuecat.com/privacy">RevenueCat privacy</a></td></tr>
 </table>
 <p>Data is stored on Google Cloud (Firebase). Google acts as a data processor under its
 <a href="https://firebase.google.com/terms/data-processing-terms">data processing terms</a>, with
@@ -188,6 +206,9 @@ appropriate safeguards for international transfers (standard contractual clauses
   fix issues, and removed with the account.</li>
   <li><strong>Anonymous usage statistics</strong>: retained by Firebase Analytics for up to
   14 months; they contain no account identity.</li>
+  <li><strong>Subscription state</strong>: kept while the subscription is active and for as long as
+  the store and tax rules require afterwards. Map queries are not stored by us at all: the answers
+  are cached on your own device so the map is not empty without coverage.</li>
 </ul>
 
 <h2 id="delete-account">6. Deleting your account and data</h2>
@@ -306,6 +327,19 @@ Contacto de privacidad: <a href="mailto:support@paparcar.com">support@paparcar.c
   identificador de publicidad.</li>
 </ul>
 
+<h3>2.8 Consultas al mapa y suscripción Plus</h3>
+<ul>
+  <li><strong>Dónde estás mirando</strong> — al abrir el carril de parkings o el de gasolineras, o
+  al mover el mapa, preguntamos por esa <strong>zona</strong> a servicios de datos públicos (un
+  recuadro aproximado alrededor del punto que ves en pantalla, o tu provincia o país para los
+  precios de surtidor). Se envía la zona y nada más: ni cuenta, ni identificador, ni historial.
+  Esos servicios ven una petición de un móvil, no tuya.</li>
+  <li><strong>Suscripción Plus</strong> — si te suscribes, la compra la procesa Google Play y se
+  gestiona a través de RevenueCat, que recibe tu <strong>identificador de cuenta</strong> y el
+  estado de la suscripción. Nunca recibe tu ubicación, tus aparcamientos ni tus vehículos. Nosotros
+  no vemos los datos de tu tarjeta en ningún momento: el pago ocurre dentro de Google Play.</li>
+</ul>
+
 <h2>3. Para qué usamos los datos</h2>
 <ul>
   <li>Detectar y registrar tus aparcamientos, y publicar las plazas que liberas (ejecución del servicio).</li>
@@ -323,6 +357,11 @@ Contacto de privacidad: <a href="mailto:support@paparcar.com">support@paparcar.c
   <tr><td>Otros usuarios de Paparcar</td><td>Ubicación, hora y tamaño de las plazas que liberas (sin tu identidad)</td><td>Es la función de la app</td></tr>
   <tr><td>Google Firebase (Auth, Cloud Firestore, Crashlytics, Analytics)</td><td>Datos de cuenta, aparcamientos, vehículos, diagnósticos, informes de fallo, eventos de uso anónimos</td><td>Autenticación, base de datos, estabilidad y estadísticas de uso. <a href="https://firebase.google.com/support/privacy">Privacidad de Firebase</a></td></tr>
   <tr><td>Google Maps Platform / Play Services</td><td>Peticiones de mapa y señales de ubicación/actividad procesadas por el SDK</td><td>Mostrar el mapa y detectar conducción. <a href="https://policies.google.com/privacy">Privacidad de Google</a></td></tr>
+  <tr><td>OpenStreetMap (servidores Overpass)</td><td>Una zona aproximada del mapa — nunca tu identidad</td><td>Parkings públicos, gasolineras, nombres de sitios y calles. <a href="https://osmfoundation.org/wiki/Privacy_Policy">Privacidad de la OSMF</a></td></tr>
+  <tr><td>Ministerio para la Transición Ecológica (España)</td><td>La provincia o el municipio que estás mirando</td><td>Precios oficiales de surtidor en España</td></tr>
+  <tr><td>data.economie.gouv.fr (Francia)</td><td>Un punto del mapa y un radio</td><td>Precios oficiales de surtidor en Francia</td></tr>
+  <tr><td>OpenVan.camp</td><td>El país en el que estás</td><td>Media nacional de precios de combustible</td></tr>
+  <tr><td>RevenueCat</td><td>Tu identificador de cuenta y el estado de tu suscripción Plus</td><td>Gestionar la suscripción. <a href="https://www.revenuecat.com/privacy">Privacidad de RevenueCat</a></td></tr>
 </table>
 <p>Los datos se almacenan en Google Cloud (Firebase). Google actúa como encargado del tratamiento
 conforme a sus <a href="https://firebase.google.com/terms/data-processing-terms">términos de

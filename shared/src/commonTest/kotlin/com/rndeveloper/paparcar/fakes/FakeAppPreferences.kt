@@ -3,6 +3,7 @@ package com.rndeveloper.paparcar.fakes
 import com.rndeveloper.paparcar.domain.detection.PendingParkNudge
 import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
+import com.rndeveloper.paparcar.domain.onboarding.NearbyComplement
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import com.rndeveloper.paparcar.domain.preferences.ThemeMode
 import kotlinx.coroutines.flow.Flow
@@ -31,6 +32,9 @@ class FakeAppPreferences(
         firstStepsDone.value = emptySet()
         firstStepsDeferred.value = emptySet()
         firstStepsDismissed.value = false
+        // [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001] Wiped with the tutorial, as both real stores do:
+        // what a person was told does not transfer to the next account on this phone.
+        introducedComplements.value = emptySet()
         _hasConfirmedFirstPark = false
         _firstParkNudgeCount = 0
         _lastFirstParkNudgeAt = 0L
@@ -87,6 +91,14 @@ class FakeAppPreferences(
     override fun setFirstStepsDeferred(steps: Set<FirstStep>) { firstStepsDeferred.value = steps }
     override fun observeFirstStepsDismissed(): Flow<Boolean> = firstStepsDismissed
     override fun setFirstStepsDismissed(dismissed: Boolean) { firstStepsDismissed.value = dismissed }
+
+    // [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001] Public, so a test can assert that entering a lane
+    // BANKED the complement — that write is what stops the provenance line coming back forever.
+    val introducedComplements = MutableStateFlow<Set<NearbyComplement>>(emptySet())
+    override fun observeIntroducedComplements(): Flow<Set<NearbyComplement>> = introducedComplements
+    override fun setIntroducedComplements(complements: Set<NearbyComplement>) {
+        introducedComplements.value = complements
+    }
 
     // [DET-NUDGE-PERSIST-001]
     val pendingParkNudge = MutableStateFlow<PendingParkNudge?>(null)

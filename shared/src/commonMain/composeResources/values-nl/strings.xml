@@ -206,8 +206,9 @@
     <string name="licenses_detail_open_terms">Volledige voorwaarden lezen</string>
     <string name="licenses_data_sources_header">Gegevensbronnen</string>
     <string name="licenses_source_openvan_purpose">Gemiddelde brandstofprijzen</string>
-    <string name="licenses_source_osm_purpose">Tankstations en plekken in de buurt</string>
+    <string name="licenses_source_osm_purpose">Parkeergarages, tankstations, plekken en straten</string>
     <string name="licenses_source_minetur_purpose">Pompprijzen in Spanje</string>
+    <string name="licenses_source_prix_carburants_purpose">Pompprijzen in Frankrijk</string>
 
     <!-- Generic error messages -->
     <string name="error_unknown">Er is iets misgegaan</string>
@@ -863,4 +864,20 @@
     <string name="parking_fee_free">Gratis</string>
     <string name="parking_capacity">%1$s plaatsen</string>
     <string name="parking_max_height">Max. hoogte %1$s m</string>
+
+    <!-- [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001] The other two questions the map answers -->
+    <string name="home_parkings_intro">Parkeergarages komen van OpenStreetMap en van gemeentelijke data. Bezetting alleen waar de gemeente die publiceert.</string>
+    <string name="home_fuel_intro">De prijzen komen uit officiële registers. Elke prijs zegt wanneer die is gemeten.</string>
+    <string name="first_steps_explore_title">Kijk wat er nog meer in de buurt is</string>
+    <string name="first_steps_explore_sub">De kaart kent ook parkeergarages en brandstofprijzen, ook als niemand een plek heeft achtergelaten.</string>
+    <string name="first_steps_explore_cta">Laat zien</string>
+    <string name="first_steps_explain_explore_title">De kaart beantwoordt drie vragen</string>
+    <string name="first_steps_explain_explore_body">Vrije plekken laten buren achter. De andere twee antwoorden hangen van niemand af.</string>
+    <string name="first_steps_explain_explore_parkings_title">Parkeergarages</string>
+    <string name="first_steps_explain_explore_parkings_body">Waar je naar binnen rijdt en betaalt. Doorrijhoogte en tarieven als de exploitant ze publiceert.</string>
+    <string name="first_steps_explain_explore_fuel_title">Tankstations</string>
+    <string name="first_steps_explain_explore_fuel_body">Waar je kunt tanken en wat de liter kostte, met het tijdstip van elke meting.</string>
+    <string name="first_steps_explain_explore_note">Geen van beide komt van de community: het is publieke data, dus vanaf dag één aanwezig, en gratis voor iedereen.</string>
+    <string name="paywall_free_nearby">Parkeergarages en brandstofprijzen</string>
+    <string name="paywall_plus_nearby">Hetzelfde: kijken is altijd gratis</string>
 </resources>

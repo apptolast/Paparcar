@@ -19,11 +19,24 @@ class FirstStepsTest {
         hasTouchedSpots: Boolean = false,
         hasSpotsOnOffer: Boolean = false,
         isAutoDetectionStopped: Boolean = false,
+        hasExploredNearby: Boolean = false,
         reinforcement: WatchReinforcement = WatchReinforcement.NONE,
         deferred: Set<FirstStep> = emptySet(),
     ) = resolveFirstSteps(
-        done, dismissed, hasActiveSession, isWatching, hasTouchedSpots, hasSpotsOnOffer,
-        isAutoDetectionStopped, reinforcement, deferred,
+        // ⛔ NAMED, not positional. This helper passed nine arguments by position, so inserting a
+        // parameter in the middle silently re-bound every one after it — here it failed to compile
+        // only because the new one is a Boolean and the next is an enum.
+        // [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001]
+        done = done,
+        dismissed = dismissed,
+        hasActiveSession = hasActiveSession,
+        isWatching = isWatching,
+        hasTouchedSpots = hasTouchedSpots,
+        hasSpotsOnOffer = hasSpotsOnOffer,
+        isAutoDetectionStopped = isAutoDetectionStopped,
+        hasExploredNearby = hasExploredNearby,
+        reinforcement = reinforcement,
+        deferred = deferred,
     )
 
     @Test
@@ -95,8 +108,15 @@ class FirstStepsTest {
     }
 
     @Test
-    fun should_reportComplete_when_allThreeSignalsAreSatisfied() {
-        val progress = resolve(hasActiveSession = true, isWatching = true, hasTouchedSpots = true)
+    fun should_reportComplete_when_everySignalIsSatisfied() {
+        // FOUR signals since [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001]: the map answers three
+        // questions and the checklist teaches all of them, so "all set" needs the fifth step too.
+        val progress = resolve(
+            hasActiveSession = true,
+            isWatching = true,
+            hasTouchedSpots = true,
+            hasExploredNearby = true,
+        )
         assertTrue(progress.isComplete)
         assertEquals(null, progress.current)
         // Still visible: the closing card is what the user dismisses, so the checklist does not
@@ -130,7 +150,11 @@ class FirstStepsTest {
         // not grant an exemption. MARK_PARKING above all — it is what arms everything else and stays
         // REQUIRED, with a parking that really exists. This is the assertion someone would have to
         // delete on purpose when adding a fifth step, instead of quietly inheriting "a tap counts".
-        val acts = FirstStep.entries.filter { it != FirstStep.FIND_SPOT }
+        // Deleted ON PURPOSE when the fifth step landed, exactly as this comment asked: it is a
+        // second step of KNOWLEDGE ([ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001]), declared as such on
+        // the enum. Everything else stays an ACT.
+        val knowledge = setOf(FirstStep.FIND_SPOT, FirstStep.EXPLORE_NEARBY)
+        val acts = FirstStep.entries.filter { it !in knowledge }
         assertEquals(
             emptyList(),
             acts.filter { it.completesOnEngage },
@@ -170,6 +194,10 @@ class FirstStepsTest {
     fun should_notClaimTheUserIsAllSet_when_somethingWasDeferred() {
         val progress = resolve(
             done = setOf(FirstStep.MARK_PARKING, FirstStep.FIND_SPOT),
+            // The fifth step has to be closed too, or the checklist genuinely still has something to
+            // ask and this test would be asserting the wrong screen.
+            // [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001]
+            hasExploredNearby = true,
             reinforcement = WatchReinforcement.BATTERY,
             deferred = setOf(FirstStep.FORTIFY_WATCH),
         )
@@ -197,14 +225,14 @@ class FirstStepsTest {
     fun should_notOfferTheFortifyStep_when_thereIsNothingToReinforce() {
         val progress = resolve(reinforcement = WatchReinforcement.NONE)
         assertFalse(FirstStep.FORTIFY_WATCH in progress.applicable)
-        assertEquals(3, progress.total, "a user with nothing to fix has three steps, not four")
+        assertEquals(4, progress.total, "a user with nothing to fix has four steps, not five")
     }
 
     @Test
     fun should_offerTheFortifyStep_when_theWatchCanBeMadeSolid() {
         val progress = resolve(reinforcement = WatchReinforcement.BATTERY)
         assertTrue(FirstStep.FORTIFY_WATCH in progress.applicable)
-        assertEquals(4, progress.total)
+        assertEquals(5, progress.total)
     }
 
     @Test
@@ -217,7 +245,7 @@ class FirstStepsTest {
             reinforcement = WatchReinforcement.NONE,
         )
         assertFalse(FirstStep.FORTIFY_WATCH in progress.applicable)
-        assertEquals(3, progress.total)
+        assertEquals(4, progress.total)
     }
 
     @Test
@@ -338,6 +366,73 @@ class FirstStepsTest {
         // Spots existing nearby is not the user having met the community.
         val progress = resolve(hasSpotsOnOffer = true)
         assertFalse(FirstStep.FIND_SPOT in progress.done)
+    }
+
+    // ── The fifth step: the other two questions the map answers ───────────────
+    // [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001]
+
+    @Test
+    fun should_completeExploreNearby_when_aComplementLaneHasBeenEntered() {
+        // Entering the lane IS the step: it is knowledge, and it is the only moment the app says
+        // where that data comes from.
+        val progress = resolve(hasExploredNearby = true)
+        assertTrue(FirstStep.EXPLORE_NEARBY in progress.done)
+    }
+
+    @Test
+    fun should_leaveExploreNearbyOpen_when_noComplementLaneWasEverEntered() {
+        assertFalse(FirstStep.EXPLORE_NEARBY in resolve().done)
+    }
+
+    @Test
+    fun should_askExploreNearbyLast_when_everythingElseIsDone() {
+        // The order is the hierarchy: free spots are the product, the complements come after it.
+        val progress = resolve(
+            done = setOf(FirstStep.MARK_PARKING, FirstStep.UNDERSTAND_WATCH, FirstStep.FIND_SPOT),
+        )
+        assertEquals(FirstStep.EXPLORE_NEARBY, progress.current)
+        assertFalse(progress.isComplete)
+    }
+
+    @Test
+    fun should_notBeComplete_when_onlyExploreNearbyIsMissing() {
+        // The guard against the checklist congratulating a user it never finished teaching.
+        val progress = resolve(
+            done = setOf(FirstStep.MARK_PARKING, FirstStep.UNDERSTAND_WATCH, FirstStep.FIND_SPOT),
+        )
+        assertEquals(3, progress.doneCount)
+        assertEquals(4, progress.total)
+    }
+
+    @Test
+    fun should_completeTheChecklist_when_theFifthStepLandsToo() {
+        val progress = resolve(
+            done = setOf(FirstStep.MARK_PARKING, FirstStep.UNDERSTAND_WATCH, FirstStep.FIND_SPOT),
+            hasExploredNearby = true,
+        )
+        assertTrue(progress.isComplete)
+        assertEquals(null, progress.current)
+    }
+
+    @Test
+    fun should_closeOnEngage_when_theStepIsKnowledge() {
+        // Both knowledge steps declare it HERE, which is what stops a `when` elsewhere deciding it.
+        assertTrue(FirstStep.EXPLORE_NEARBY.completesOnEngage)
+        assertTrue(FirstStep.FIND_SPOT.completesOnEngage)
+        assertFalse(FirstStep.MARK_PARKING.completesOnEngage)
+        assertFalse(FirstStep.UNDERSTAND_WATCH.completesOnEngage)
+        assertFalse(FirstStep.FORTIFY_WATCH.completesOnEngage)
+    }
+
+    @Test
+    fun should_ownNothing_when_theFifthStepIsTheOneAsking() {
+        // ⛔ It must not take over any detection-surface row: it is not about the watch at all, and
+        // a step that claimed one would silence a row that is still asking for something real.
+        val progress = resolve(
+            done = setOf(FirstStep.MARK_PARKING, FirstStep.UNDERSTAND_WATCH, FirstStep.FIND_SPOT),
+        )
+        assertEquals(FirstStep.EXPLORE_NEARBY, progress.current)
+        assertEquals(FirstStepsOwnership.NOTHING, progress.owns)
     }
 
     @Test

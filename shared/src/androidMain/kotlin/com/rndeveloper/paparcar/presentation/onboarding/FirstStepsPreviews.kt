@@ -29,6 +29,7 @@ private fun Preview(
     isAutoDetectionStopped: Boolean = false,
     reinforcement: WatchReinforcement = WatchReinforcement.NONE,
     deferred: Set<FirstStep> = emptySet(),
+    hasExploredNearby: Boolean = false,
 ) {
     PaparcarTheme(darkTheme = dark) {
         Box(
@@ -45,6 +46,10 @@ private fun Preview(
                     hasTouchedSpots = false,
                     hasSpotsOnOffer = hasSpotsOnOffer,
                     isAutoDetectionStopped = isAutoDetectionStopped,
+                    // [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001] The fifth step's own signal —
+                    // having been into a complement's lane. Fed through the resolver like every
+                    // other one, so a preview cannot show it closed for the wrong reason.
+                    hasExploredNearby = hasExploredNearby,
                     reinforcement = reinforcement,
                     deferred = deferred,
                 ),
@@ -54,6 +59,28 @@ private fun Preview(
         }
     }
 }
+
+/**
+ * The fifth step, asking. [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001]
+ *
+ * Four rows on screen, not five: with nothing to reinforce the fortify step is not on this user's
+ * list at all, which is the shape most users will actually see.
+ */
+@Preview(name = "First steps · Step 5 · What else is around", showBackground = true)
+@Composable
+private fun FirstStepsStep5Preview() = Preview(
+    done = setOf(FirstStep.MARK_PARKING, FirstStep.UNDERSTAND_WATCH, FirstStep.FIND_SPOT),
+    dark = false,
+)
+
+/** The same position with the step CLOSED by its real signal — a lane that was entered. */
+@Preview(name = "First steps · Step 5 · Closed by entering a lane", showBackground = true)
+@Composable
+private fun FirstStepsStep5DonePreview() = Preview(
+    done = setOf(FirstStep.MARK_PARKING, FirstStep.UNDERSTAND_WATCH, FirstStep.FIND_SPOT),
+    hasExploredNearby = true,
+    dark = false,
+)
 
 @Preview(name = "First steps · Step 1", showBackground = true)
 @Composable

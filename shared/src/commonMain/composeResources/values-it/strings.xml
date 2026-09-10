@@ -205,8 +205,9 @@
     <string name="licenses_detail_open_terms">Leggi i termini completi</string>
     <string name="licenses_data_sources_header">Fonti dei dati</string>
     <string name="licenses_source_openvan_purpose">Prezzi medi dei carburanti</string>
-    <string name="licenses_source_osm_purpose">Distributori e luoghi vicini</string>
+    <string name="licenses_source_osm_purpose">Parcheggi pubblici, distributori, luoghi e strade</string>
     <string name="licenses_source_minetur_purpose">Prezzi alla pompa in Spagna</string>
+    <string name="licenses_source_prix_carburants_purpose">Prezzi alla pompa in Francia</string>
 
     <!-- Messaggi di errore generici -->
     <string name="error_unknown">Qualcosa è andato storto</string>
@@ -862,4 +863,20 @@
     <string name="parking_fee_free">Gratuito</string>
     <string name="parking_capacity">%1$s posti</string>
     <string name="parking_max_height">Altezza max %1$s m</string>
+
+    <!-- [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001] The other two questions the map answers -->
+    <string name="home_parkings_intro">I parcheggi pubblici vengono da OpenStreetMap e dai dati comunali. L'occupazione solo dove il comune la pubblica.</string>
+    <string name="home_fuel_intro">I prezzi vengono da registri ufficiali. Ogni prezzo dice quando è stato misurato.</string>
+    <string name="first_steps_explore_title">Guarda cos'altro c'è vicino</string>
+    <string name="first_steps_explore_sub">La mappa conosce anche i parcheggi pubblici e il prezzo del carburante, anche se nessuno ha lasciato un posto.</string>
+    <string name="first_steps_explore_cta">Mostrami</string>
+    <string name="first_steps_explain_explore_title">La mappa risponde a tre domande</string>
+    <string name="first_steps_explain_explore_body">I posti liberi li lasciano i vicini. Le altre due risposte non dipendono da nessun altro.</string>
+    <string name="first_steps_explain_explore_parkings_title">Parcheggi pubblici</string>
+    <string name="first_steps_explain_explore_parkings_body">Dove entrare e pagare. Altezza e tariffe quando il gestore le pubblica.</string>
+    <string name="first_steps_explain_explore_fuel_title">Distributori</string>
+    <string name="first_steps_explain_explore_fuel_body">Dove fare rifornimento e quanto costava il litro, con l'ora in cui ogni prezzo è stato misurato.</string>
+    <string name="first_steps_explain_explore_note">Nessuno dei due viene dalla comunità: sono dati pubblici, quindi ci sono dal primo giorno, e gratis per tutti.</string>
+    <string name="paywall_free_nearby">Parcheggi pubblici e prezzi del carburante</string>
+    <string name="paywall_plus_nearby">Lo stesso: guardare è sempre gratis</string>
 </resources>

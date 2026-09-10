@@ -205,8 +205,9 @@
     <string name="licenses_detail_open_terms">Lire les conditions complètes</string>
     <string name="licenses_data_sources_header">Sources de données</string>
     <string name="licenses_source_openvan_purpose">Prix moyens des carburants</string>
-    <string name="licenses_source_osm_purpose">Stations-service et lieux à proximité</string>
+    <string name="licenses_source_osm_purpose">Parkings, stations-service, lieux et rues</string>
     <string name="licenses_source_minetur_purpose">Prix à la pompe en Espagne</string>
+    <string name="licenses_source_prix_carburants_purpose">Prix à la pompe en France</string>
 
     <!-- Messages d'erreur génériques -->
     <string name="error_unknown">Une erreur est survenue</string>
@@ -862,4 +863,20 @@
     <string name="parking_fee_free">Gratuit</string>
     <string name="parking_capacity">%1$s places</string>
     <string name="parking_max_height">Hauteur max %1$s m</string>
+
+    <!-- [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001] The other two questions the map answers -->
+    <string name="home_parkings_intro">Les parkings viennent d'OpenStreetMap et des données municipales. L'occupation seulement là où la ville la publie.</string>
+    <string name="home_fuel_intro">Les prix viennent de registres officiels. Chaque prix indique quand il a été mesuré.</string>
+    <string name="first_steps_explore_title">Voyez ce qu'il y a d'autre autour</string>
+    <string name="first_steps_explore_sub">La carte connaît aussi les parkings et le prix du carburant, même si personne n'a laissé de place.</string>
+    <string name="first_steps_explore_cta">Montrer</string>
+    <string name="first_steps_explain_explore_title">La carte répond à trois questions</string>
+    <string name="first_steps_explain_explore_body">Les places libres, ce sont les voisins qui les laissent. Les deux autres réponses ne dépendent de personne.</string>
+    <string name="first_steps_explain_explore_parkings_title">Parkings</string>
+    <string name="first_steps_explain_explore_parkings_body">Où entrer et payer. Hauteur et tarifs quand l'exploitant les publie.</string>
+    <string name="first_steps_explain_explore_fuel_title">Stations-service</string>
+    <string name="first_steps_explain_explore_fuel_body">Où faire le plein et à combien était le litre, avec l'heure de mesure de chaque prix.</string>
+    <string name="first_steps_explain_explore_note">Aucune des deux ne vient de la communauté : ce sont des données publiques, donc présentes dès le premier jour, et gratuites pour tout le monde.</string>
+    <string name="paywall_free_nearby">Parkings et prix du carburant</string>
+    <string name="paywall_plus_nearby">Pareil : regarder est toujours gratuit</string>
 </resources>

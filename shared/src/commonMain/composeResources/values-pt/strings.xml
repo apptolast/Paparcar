@@ -205,8 +205,9 @@
     <string name="licenses_detail_open_terms">Ler os termos completos</string>
     <string name="licenses_data_sources_header">Fontes de dados</string>
     <string name="licenses_source_openvan_purpose">Preços médios dos combustíveis</string>
-    <string name="licenses_source_osm_purpose">Postos de combustível e locais próximos</string>
+    <string name="licenses_source_osm_purpose">Parques de estacionamento, postos de combustível, locais e ruas</string>
     <string name="licenses_source_minetur_purpose">Preços na bomba em Espanha</string>
+    <string name="licenses_source_prix_carburants_purpose">Preços na bomba em França</string>
 
     <!-- Mensagens de erro genéricas -->
     <string name="error_unknown">Algo correu mal</string>
@@ -862,4 +863,20 @@
     <string name="parking_fee_free">Gratuito</string>
     <string name="parking_capacity">%1$s lugares</string>
     <string name="parking_max_height">Altura máx. %1$s m</string>
+
+    <!-- [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001] The other two questions the map answers -->
+    <string name="home_parkings_intro">Os parques de estacionamento vêm do OpenStreetMap e dos dados municipais. A ocupação só onde o município a publica.</string>
+    <string name="home_fuel_intro">Os preços vêm de registos oficiais. Cada preço diz quando foi medido.</string>
+    <string name="first_steps_explore_title">Veja o que mais há por perto</string>
+    <string name="first_steps_explore_sub">O mapa também conhece parques de estacionamento e o preço do combustível, mesmo que ninguém tenha deixado um lugar.</string>
+    <string name="first_steps_explore_cta">Mostrar</string>
+    <string name="first_steps_explain_explore_title">O mapa responde a três perguntas</string>
+    <string name="first_steps_explain_explore_body">Os lugares livres são deixados pelos vizinhos. As outras duas respostas não dependem de mais ninguém.</string>
+    <string name="first_steps_explain_explore_parkings_title">Parques de estacionamento</string>
+    <string name="first_steps_explain_explore_parkings_body">Onde entrar e pagar. Altura e tarifas quando o operador as publica.</string>
+    <string name="first_steps_explain_explore_fuel_title">Postos de combustível</string>
+    <string name="first_steps_explain_explore_fuel_body">Onde abastecer e quanto custava o litro, com a hora a que cada preço foi medido.</string>
+    <string name="first_steps_explain_explore_note">Nenhum dos dois vem da comunidade: são dados públicos, por isso estão lá desde o primeiro dia, e grátis para todos.</string>
+    <string name="paywall_free_nearby">Parques de estacionamento e preços de combustível</string>
+    <string name="paywall_plus_nearby">O mesmo: ver é sempre grátis</string>
 </resources>

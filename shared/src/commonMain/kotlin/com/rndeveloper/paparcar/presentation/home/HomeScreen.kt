@@ -1168,16 +1168,21 @@ private fun HomeSheetSection(
             HomeSheetAction.AddVehicle -> onAddVehicle()
             // [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001] Same destination Settings uses.
             is HomeSheetAction.LinkVehicleBluetooth -> onLinkVehicleBluetooth(action.vehicleId)
-            // [ONBOARDING-STEPS-MUST-EXPLAIN-WHAT-REALLY-HAPPENS-001] "See spots": open the sheet
-            // and walk the list down to the free-spots section. The step only wears this face when
-            // there ARE spots on offer, so this never lands on an empty section — with one honest
-            // exception: a size filter the user set can still leave it showing "none your size",
-            // which is the right thing to show them (the filter bar is right there).
-            HomeSheetAction.RevealFreeSpots -> {
-                // Point the lane AT the spots — never a toggle, so this cannot flip a lane the user
-                // is already on into something else.
+            // The checklist asking the sheet to show a subject. Three moves, one place, whichever
+            // lane asked for it. [ONBOARDING-STEPS-MUST-EXPLAIN-WHAT-REALLY-HAPPENS-001]
+            // [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001]
+            //
+            // "See spots" only wears that face when there ARE spots on offer, so it never lands on
+            // an empty section — with one honest exception: a size filter the user set can still
+            // leave it showing "none your size", which is the right thing to show them (the filter
+            // bar is right there). A COMPLEMENT lane has no such promise to keep and needs none:
+            // whatever it finds, entering it is what the step teaches, and the lane says its own
+            // honest sentence about what it found.
+            is HomeSheetAction.RevealNearbyLane -> {
+                // Point the lane AT the subject — never a toggle, so this cannot flip a lane the
+                // user is already on into something else.
                 // [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
-                onIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.SPOTS))
+                onIntent(HomeIntent.SetNearbyLens(action.lens))
                 onExpandSheet()
                 frame.coroutineScope.launch {
                     frame.lazyListState.animateScrollToItem(frame.lazyListState.nearbyLensIndex())

@@ -34,6 +34,7 @@ import com.rndeveloper.paparcar.domain.model.Spot
 import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.domain.onboarding.FindSpotAsk
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
+import com.rndeveloper.paparcar.domain.onboarding.NearbyComplement
 import com.rndeveloper.paparcar.domain.onboarding.FirstStepsOwnership
 import com.rndeveloper.paparcar.domain.onboarding.WatchAsk
 import com.rndeveloper.paparcar.domain.onboarding.WatchReinforcement
@@ -156,9 +157,25 @@ fun LazyListScope.homeSheetItems(
                         // action the "Report a free spot" card at its bottom fires.
                         // [ONBOARDING-STEPS-MUST-EXPLAIN-WHAT-REALLY-HAPPENS-001]
                         FirstStep.FIND_SPOT -> when (firstSteps.findSpotAsk) {
-                            FindSpotAsk.SEE_NEARBY -> onAction(HomeSheetAction.RevealFreeSpots)
+                            FindSpotAsk.SEE_NEARBY -> onAction(
+                                HomeSheetAction.RevealNearbyLane(HomeNearbyLens.SPOTS),
+                            )
                             FindSpotAsk.REPORT_ONE -> onAction(HomeSheetAction.RequestReportMode)
                         }
+                        // [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001] The other two questions the map
+                        // answers. It lands on CAR PARKS, fixed, and deliberately does not try to
+                        // pick "the complement with data around here": a complement only has a count
+                        // once its lane has been asked, and if it has been asked this step is
+                        // already closed — so the choice would always be made on two zeroes, and a
+                        // zero on a subject nobody asked is not a verdict about the world.
+                        // [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
+                        //
+                        // Car parks because it is the complement nearest the product's own question
+                        // — where do I leave the car — and from its lane the third subject is one
+                        // tab away, with the row saying so.
+                        FirstStep.EXPLORE_NEARBY -> onAction(
+                            HomeSheetAction.RevealNearbyLane(HomeNearbyLens.PARKINGS),
+                        )
                     }
                 },
                 onDismiss = { onIntent(HomeIntent.DismissFirstSteps) },
@@ -389,7 +406,7 @@ private fun LazyListScope.nearbyLane(
 ) {
     // STICKY, and that is the half of this design that makes switching back cheap: from the bottom of
     // a car-park list the way back to the spots is the row already pinned above, not a scroll to the
-    // top. Its key is public because RevealFreeSpots walks the list to it. [ONBOARDING-STEPS-MUST-EXPLAIN-WHAT-REALLY-HAPPENS-001]
+    // top. Its key is public because RevealNearbyLane walks the list to it. [ONBOARDING-STEPS-MUST-EXPLAIN-WHAT-REALLY-HAPPENS-001]
     stickyHeader(NEARBY_LENS_KEY) {
         HomeNearbyLensRow(
             lens = slice.nearbyLens,
@@ -419,6 +436,9 @@ private fun LazyListScope.nearbyLane(
                 onParkingClick = { parkingId ->
                     onAction(HomeSheetAction.SelectPublicParking(parkingId))
                 },
+                // [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001] Whether THIS lane is the one being
+                // introduced — the slice carries the complement, so the comparison is the lane's.
+                isIntroducing = slice.nearbyIntro == NearbyComplement.CAR_PARKS,
             )
         }
 
@@ -428,6 +448,7 @@ private fun LazyListScope.nearbyLane(
                 onStationClick = { stationId ->
                     onAction(HomeSheetAction.SelectFuelStation(stationId))
                 },
+                isIntroducing = slice.nearbyIntro == NearbyComplement.FUEL,
             )
         }
     }
@@ -496,7 +517,7 @@ private fun LazyListScope.spotsLane(
 }
 
 /**
- * Item key of the sticky lens row. Public because [HomeSheetAction.RevealFreeSpots] walks the list to
+ * Item key of the sticky lens row. Public because [HomeSheetAction.RevealNearbyLane] walks the list to
  * it — a second spelling of the string would be a scroll that silently stops working.
  * [ONBOARDING-STEPS-MUST-EXPLAIN-WHAT-REALLY-HAPPENS-001]
  */

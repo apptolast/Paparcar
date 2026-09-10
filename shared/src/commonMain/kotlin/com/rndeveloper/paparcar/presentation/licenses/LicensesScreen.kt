@@ -40,6 +40,7 @@ import paparcar.composeapp.generated.resources.licenses_data_sources_header
 import paparcar.composeapp.generated.resources.licenses_source_minetur_purpose
 import paparcar.composeapp.generated.resources.licenses_source_openvan_purpose
 import paparcar.composeapp.generated.resources.licenses_source_osm_purpose
+import paparcar.composeapp.generated.resources.licenses_source_prix_carburants_purpose
 import paparcar.composeapp.generated.resources.licenses_count
 import paparcar.composeapp.generated.resources.licenses_error
 import paparcar.composeapp.generated.resources.licenses_subtitle
@@ -98,9 +99,9 @@ fun LicensesContent(
 
             // ⛔ The data-source attribution survives this branch on purpose.
             // [FUEL-NATIONAL-AVERAGE-FROM-OPENVAN-001] The OSS list is read from a file the build
-            // generates, and it can fail to load. The three data sources are not read from
-            // anything — they are compiled in — and two of their licences (CC BY 4.0, ODbL)
-            // REQUIRE the credit to be shown. Letting a missing library file take the attribution
+            // generates, and it can fail to load. The four data sources are not read from
+            // anything — they are compiled in — and three of their licences (CC BY 4.0, ODbL,
+            // Licence Ouverte) REQUIRE the credit. Letting a missing library file take the attribution
             // down with it would turn a cosmetic failure into a licence breach.
             state.failedToLoad || state.libraries.isEmpty() -> Column(
                 modifier = Modifier.fillMaxSize().padding(padding).padding(SCREEN_H_PADDING),
@@ -165,9 +166,10 @@ fun LicensesContent(
  *
  * Separate from the library list above it because these are different things wearing the same word:
  * the libraries are SOFTWARE compiled into the app, read from a file the Gradle build generates;
- * these are DATASETS the app queries at runtime, and no dependency graph knows about them. Two of
- * the three licences oblige us to say so — CC BY 4.0 for OpenVan.camp, ODbL for OpenStreetMap —
- * and an obligation that depends on a generated file having loaded is not being met.
+ * these are DATASETS the app queries at runtime, and no dependency graph knows about them. Three of
+ * the four licences oblige us to say so — CC BY 4.0 for OpenVan.camp, ODbL for OpenStreetMap,
+ * Licence Ouverte for the French register — and an obligation that depends on a generated file
+ * having loaded is not being met.
  *
  * The names, licences and URLs are DATA, not copy: they are proper nouns and they are identical in
  * every language, exactly like the library names in the list below. Only the "what we use it for"
@@ -225,6 +227,19 @@ private val DATA_SOURCES = listOf(
         name = "Ministerio para la Transición Ecológica",
         purpose = Res.string.licenses_source_minetur_purpose,
         license = "Datos abiertos",
+    ),
+    // [LEGAL-THE-APP-GREW-THREE-DATA-SOURCES-001] France shipped in `37c4ef48` and this row did
+    // not, so the app read the French register for weeks while crediting nobody. It is the ONE
+    // omission in this file that is not merely imprecise: the Licence Ouverte asks for the source
+    // to be named, and naming it is the whole price of using it.
+    //
+    // The PORTAL, not the ministry behind it — `data.economie.gouv.fr` is what a reader can look
+    // up and what the customary "source :" line cites, the same reasoning that spells the licences
+    // the way the licences spell themselves.
+    DataSourceCredit(
+        name = "data.economie.gouv.fr",
+        purpose = Res.string.licenses_source_prix_carburants_purpose,
+        license = "Licence Ouverte 2.0",
     ),
 )
 

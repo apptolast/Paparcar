@@ -272,8 +272,9 @@
     <string name="licenses_detail_open_terms">Leer los términos completos</string>
     <string name="licenses_data_sources_header">Fuentes de datos</string>
     <string name="licenses_source_openvan_purpose">Precios medios de carburante</string>
-    <string name="licenses_source_osm_purpose">Gasolineras y lugares cercanos</string>
+    <string name="licenses_source_osm_purpose">Parkings, gasolineras, lugares y calles</string>
     <string name="licenses_source_minetur_purpose">Precios de surtidor en España</string>
+    <string name="licenses_source_prix_carburants_purpose">Precios de surtidor en Francia</string>
     <string name="settings_contact">Contacto</string>
     <string name="settings_send_diagnostics">Informar de un problema</string>
     <string name="settings_send_diagnostics_confirm_title">¿Enviar diagnóstico?</string>
@@ -857,4 +858,20 @@
     <string name="parking_fee_free">Gratuito</string>
     <string name="parking_capacity">%1$s plazas</string>
     <string name="parking_max_height">Altura máx. %1$s m</string>
+
+    <!-- [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001] The other two questions the map answers -->
+    <string name="home_parkings_intro">Los parkings salen de OpenStreetMap y de los datos municipales. La ocupación, solo donde el ayuntamiento la publica.</string>
+    <string name="home_fuel_intro">Los precios salen de registros oficiales. Cada precio dice cuándo se midió.</string>
+    <string name="first_steps_explore_title">Mira qué más hay cerca</string>
+    <string name="first_steps_explore_sub">El mapa también sabe de parkings públicos y del precio del combustible, aunque nadie haya dejado una plaza.</string>
+    <string name="first_steps_explore_cta">Verlo</string>
+    <string name="first_steps_explain_explore_title">El mapa responde tres preguntas</string>
+    <string name="first_steps_explain_explore_body">Las plazas libres las dejan los vecinos. Las otras dos respuestas no dependen de que haya alguien más.</string>
+    <string name="first_steps_explain_explore_parkings_title">Parkings públicos</string>
+    <string name="first_steps_explain_explore_parkings_body">Dónde entrar y pagar. Gálibo y tarifas cuando el operador las publica.</string>
+    <string name="first_steps_explain_explore_fuel_title">Gasolineras</string>
+    <string name="first_steps_explain_explore_fuel_body">Dónde repostar y a cuánto salió el litro, con la hora a la que se midió cada precio.</string>
+    <string name="first_steps_explain_explore_note">Ninguna de las dos viene de la comunidad: son datos públicos, así que están desde el primer día, y gratis para todo el mundo.</string>
+    <string name="paywall_free_nearby">Parkings y precio del combustible</string>
+    <string name="paywall_plus_nearby">Lo mismo: mirar siempre es gratis</string>
 </resources>

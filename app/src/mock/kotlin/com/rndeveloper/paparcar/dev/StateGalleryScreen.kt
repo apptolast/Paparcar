@@ -203,6 +203,7 @@ private fun firstStepsCard(
     isAutoDetectionStopped: Boolean = false,
     reinforcement: WatchReinforcement = WatchReinforcement.NONE,
     deferred: Set<FirstStep> = emptySet(),
+    hasExploredNearby: Boolean = false,
 ) {
     FirstStepsCard(
         progress = resolveFirstSteps(
@@ -218,6 +219,10 @@ private fun firstStepsCard(
             // [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001] El paso de refuerzo y su salida.
             reinforcement = reinforcement,
             deferred = deferred,
+            // [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001] El quinto paso se cierra con haber ENTRADO
+            // en un carril complementario, asi que la galeria lo ejercita por su senal real y no
+            // metiendolo a mano en `done`.
+            hasExploredNearby = hasExploredNearby,
         ),
         onStartStep = {},
         onDismiss = {},
@@ -2252,6 +2257,30 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     deferred = setOf(FirstStep.FORTIFY_WATCH),
                 )
             },
+            // El quinto paso: el mapa responde tres preguntas y el onboarding solo presentaba una.
+            // [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001]
+            Variant("Paso 5 · que mas hay cerca", Placement.Surface) {
+                firstStepsCard(
+                    done = setOf(
+                        FirstStep.MARK_PARKING,
+                        FirstStep.UNDERSTAND_WATCH,
+                        FirstStep.FIND_SPOT,
+                    ),
+                )
+            },
+            // ⛔ La variante que EJERCITA su caso: el paso no se cierra metiendolo en `done`,
+            // se cierra por haber entrado en un carril. Si esta se viera igual que la de arriba,
+            // la senal no estaria conectada. [DEV-A-GALLERY-VARIANT-MUST-EXERCISE-ITS-CASE-001]
+            Variant("Paso 5 · cerrado por haber entrado en un carril", Placement.Surface) {
+                firstStepsCard(
+                    done = setOf(
+                        FirstStep.MARK_PARKING,
+                        FirstStep.UNDERSTAND_WATCH,
+                        FirstStep.FIND_SPOT,
+                    ),
+                    hasExploredNearby = true,
+                )
+            },
             Variant("Completado · tarjeta de cierre", Placement.Surface) {
                 firstStepsCard(done = FirstStep.entries.toSet())
             },
@@ -2276,6 +2305,12 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             },
             Variant("Paso 3 · avisar de una plaza ajena", Placement.Surface) {
                 FirstStepExplainerScreen(FirstStep.FIND_SPOT, onClose = {})
+            },
+            // [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001] La pagina donde conviven las tres palabras
+            // — plaza (de la comunidad), aparcamiento (tuyo) y parking publico (de un tercero) —,
+            // asi que es donde mas facil es confundirlas. [COPY-SPOT-IS-NOT-A-PARKING-001]
+            Variant("Paso 5 · parkings publicos y gasolineras", Placement.Surface) {
+                FirstStepExplainerScreen(FirstStep.EXPLORE_NEARBY, onClose = {})
             },
             // [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001] El 2.5 tiene la suya: reutilizar
             // la del paso 2 respondia a otra pregunta.
@@ -2325,6 +2360,18 @@ private val galleryGroups: List<ScreenGroup> = listOf(
         listOf(
             Variant("Cargando", Placement.Surface) {
                 HomeFuelLane(slice = HomeFuelSlice(isLoading = true))
+            },
+            // ⛔ La PRIMERA visita, que es la unica que dice de donde sale el precio y que no
+            // promete. Va con precios reales debajo a proposito: la linea cualifica unas filas, no
+            // sustituye a ninguna frase del carril. [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001]
+            Variant("Primera visita · de donde sale el precio", Placement.Surface) {
+                HomeFuelLane(
+                    slice = HomeFuelSlice(
+                        stations = galleryFuelStations,
+                        reportedAt = "09/09/2026 08:30:00",
+                    ),
+                    isIntroducing = true,
+                )
             },
             // España: precio real por surtidor y la hora del feed al pie.
             Variant("Con precios (España)", Placement.Surface) {
@@ -2446,6 +2493,14 @@ private val galleryGroups: List<ScreenGroup> = listOf(
         listOf(
             Variant("Cargando", Placement.Surface) {
                 HomeParkingsLane(slice = HomeParkingsSlice(isLoading = true))
+            },
+            // ⛔ La PRIMERA visita: de donde salen los parkings y que la ocupacion solo esta
+            // donde el ayuntamiento la publica. [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001]
+            Variant("Primera visita · de donde salen los parkings", Placement.Surface) {
+                HomeParkingsLane(
+                    slice = HomeParkingsSlice(parkings = galleryParkings),
+                    isIntroducing = true,
+                )
             },
             Variant("Con parkings (nombrados y sin nombre)", Placement.Surface) {
                 HomeParkingsLane(slice = HomeParkingsSlice(parkings = galleryParkings))

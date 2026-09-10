@@ -208,6 +208,14 @@ class SettingsViewModel(
             //
             // `hasConfirmedFirstPark` deliberately stays, so the cold-start notification machine is
             // not woken by someone re-reading an explanation.
+            //
+            // [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001] `introducedComplements` stays too, and for
+            // the same reason the OTHER live signals do: a replay does not un-park the car, and it
+            // does not un-tell somebody where the car-park data comes from. The fifth step comes
+            // back ALREADY TICKED for a user who has been into a lane, exactly as step 1 comes back
+            // ticked for a user with a car marked — and its row still opens its explainer, which is
+            // what a replay is for. Clearing it would also make both complement lanes re-introduce
+            // themselves, which is a lecture nobody asked for by pressing "replay the tutorial".
             is SettingsIntent.RestartFirstSteps -> viewModelScope.launch {
                 prefs.setFirstStepsDone(emptySet())
                 prefs.setFirstStepsDeferred(emptySet())

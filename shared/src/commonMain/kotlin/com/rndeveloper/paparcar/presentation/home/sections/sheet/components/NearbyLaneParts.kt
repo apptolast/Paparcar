@@ -16,10 +16,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.rndeveloper.paparcar.domain.onboarding.NearbyComplement
 import com.rndeveloper.paparcar.ui.components.PapDivider
 import com.rndeveloper.paparcar.ui.components.PapShimmerBlockScale
 import com.rndeveloper.paparcar.ui.components.PapShimmerBox
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
+import org.jetbrains.compose.resources.stringResource
+import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.home_fuel_intro
+import paparcar.composeapp.generated.resources.home_parkings_intro
 
 // ─────────────────────────────────────────────────────────────────────────────
 // The two pieces every nearby lane needs, in one place because all three lanes
@@ -39,6 +44,33 @@ internal fun LaneNote(text: String) {
         style = PaparcarType.current.caption,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+    )
+}
+
+/**
+ * The one-off line that PRESENTS a complement: where its data comes from, and what it does not
+ * promise. [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001]
+ *
+ * Shown the first time its lane is entered and never again — the moment the user has asked the
+ * question is the only moment this is information rather than a lecture. It is what replaces the
+ * third onboarding page the app deliberately does not have
+ * ([ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001]).
+ *
+ * Same [LaneNote] as every other sentence a lane says: no card, no tile, no colour of its own. It is
+ * not a promotion, it is the lane introducing itself. [UI-ONE-SKELETON-ONE-EMPHASIS-ONE-GREEN-001]
+ *
+ * ⛔ The pairing complement → sentence lives HERE, once. Both lanes render it through this, so the
+ * car-park line cannot end up under the stations.
+ */
+@Composable
+internal fun LaneIntroNote(complement: NearbyComplement) {
+    LaneNote(
+        stringResource(
+            when (complement) {
+                NearbyComplement.CAR_PARKS -> Res.string.home_parkings_intro
+                NearbyComplement.FUEL -> Res.string.home_fuel_intro
+            },
+        ),
     )
 }
 

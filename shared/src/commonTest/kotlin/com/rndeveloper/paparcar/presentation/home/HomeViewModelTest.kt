@@ -38,6 +38,8 @@ import com.rndeveloper.paparcar.domain.usecase.zone.SaveZoneUseCase
 import com.rndeveloper.paparcar.fakes.FakeActivityRecognitionManager
 import com.rndeveloper.paparcar.fakes.FakeDepartureEventBus
 import com.rndeveloper.paparcar.fakes.FakeAppNotificationManager
+import com.rndeveloper.paparcar.domain.onboarding.FirstStep
+import com.rndeveloper.paparcar.domain.onboarding.NearbyComplement
 import com.rndeveloper.paparcar.fakes.FakeAppPreferences
 import com.rndeveloper.paparcar.fakes.FakeAuthRepository
 import com.rndeveloper.paparcar.fakes.FakeBluetoothScanner
@@ -1998,6 +2000,74 @@ class HomeViewModelTest {
         // [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
         assertEquals(1, fuelSource.askCount)
         assertTrue(vm.state.value.toMapSlice().fuelStations.isNotEmpty())
+    }
+
+    // ── The provenance line of a complement. [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001] ──
+
+    @Test
+    fun `should_introduceTheComplement_andBankIt_when_itsLaneIsEnteredForTheFirstTime`() =
+        runTest(testDispatcher) {
+            permissions.emit(FakePermissionManager.allGranted())
+            locationDataSource.emitHighAccuracy(location)
+            advanceUntilIdle()
+
+            vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.PARKINGS))
+            advanceUntilIdle()
+
+            assertEquals(NearbyComplement.CAR_PARKS, vm.state.value.nearbyIntro)
+            // BANKED at the same moment it is shown: the line stays up for this visit because it is
+            // a second field, not because the write was postponed.
+            assertTrue(NearbyComplement.CAR_PARKS in prefs.introducedComplements.value)
+        }
+
+    @Test
+    fun `should_notIntroduceItAgain_when_theLaneIsLeftAndEnteredAgain`() = runTest(testDispatcher) {
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        advanceUntilIdle()
+
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.PARKINGS))
+        advanceUntilIdle()
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.SPOTS))
+        advanceUntilIdle()
+        // Leaving takes the line with it, so coming back cannot re-run an introduction.
+        assertEquals(null, vm.state.value.nearbyIntro)
+
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.PARKINGS))
+        advanceUntilIdle()
+
+        assertEquals(null, vm.state.value.nearbyIntro, "it was already introduced")
+    }
+
+    @Test
+    fun `should_neverIntroduceSpots_when_theirLaneIsEntered`() = runTest(testDispatcher) {
+        // ⛔ A free spot has no third party to name: the user IS where it comes from.
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        advanceUntilIdle()
+
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.FUEL))
+        advanceUntilIdle()
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.SPOTS))
+        advanceUntilIdle()
+
+        assertEquals(null, vm.state.value.nearbyIntro)
+        assertEquals(setOf(NearbyComplement.FUEL), prefs.introducedComplements.value)
+    }
+
+    @Test
+    fun `should_completeTheExploreStep_when_aComplementLaneHasBeenEntered`() = runTest(testDispatcher) {
+        // The step and the line read the SAME persisted fact — this is the assertion that keeps
+        // them from becoming two latches that can disagree.
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        advanceUntilIdle()
+        assertTrue(FirstStep.EXPLORE_NEARBY !in vm.state.value.firstSteps.done)
+
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.FUEL))
+        advanceUntilIdle()
+
+        assertTrue(FirstStep.EXPLORE_NEARBY in vm.state.value.firstSteps.done)
     }
 
     @Test

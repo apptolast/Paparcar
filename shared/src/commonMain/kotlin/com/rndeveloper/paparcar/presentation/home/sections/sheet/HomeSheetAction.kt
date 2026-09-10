@@ -1,6 +1,7 @@
 package com.rndeveloper.paparcar.presentation.home.sections.sheet
 
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
+import com.rndeveloper.paparcar.presentation.home.model.HomeNearbyLens
 
 /**
  * The single UI-action channel of the bottom sheet. [HOME-ATOMIZE-001 F3]
@@ -72,14 +73,22 @@ sealed interface HomeSheetAction {
     data class OpenFirstStepExplainer(val step: FirstStep) : HomeSheetAction
 
     /**
-     * Take the user to the free-spots section of this very sheet — expand it and scroll the list
-     * down to "PLAZAS LIBRES CERCA". Fired by the SEE_NEARBY face of the checklist's third step.
+     * Take the user to a lane of this very sheet — point the lane at [lens], expand the sheet and
+     * scroll to the tab row. Fired by the checklist: the SEE_NEARBY face of [FirstStep.FIND_SPOT]
+     * asks for the spots, [FirstStep.EXPLORE_NEARBY] asks for the car parks.
      * [ONBOARDING-STEPS-MUST-EXPLAIN-WHAT-REALLY-HAPPENS-001]
+     * [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001]
+     *
+     * It was `RevealFreeSpots`, with the lane hard-coded to spots. "Take me to a lane" was always the
+     * gesture; naming one lane in the action meant the second caller had to copy its three moves
+     * (point the lane · expand · scroll) instead of asking for the same thing with another argument.
      *
      * An action, not an intent, for the same reason as the explainer above: it moves this sheet, and
-     * the ViewModel owns nothing about where the sheet is resting.
+     * the ViewModel owns nothing about where the sheet is resting. ⛔ The lane itself IS a ViewModel
+     * concern, so the translation fires `HomeIntent.SetNearbyLens` — never a toggle, so this cannot
+     * flip a lane the user already chose into something else.
      */
-    data object RevealFreeSpots : HomeSheetAction
+    data class RevealNearbyLane(val lens: HomeNearbyLens) : HomeSheetAction
 
     /**
      * Link [vehicleId] to one of the phone's already-paired Bluetooth devices — the deep link into

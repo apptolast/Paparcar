@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DirectionsCar
+import androidx.compose.material.icons.rounded.Explore
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Insights
@@ -75,6 +76,7 @@ import paparcar.composeapp.generated.resources.paywall_cta_buy
 import paparcar.composeapp.generated.resources.paywall_cta_trial
 import paparcar.composeapp.generated.resources.paywall_free_alerts
 import paparcar.composeapp.generated.resources.paywall_free_history
+import paparcar.composeapp.generated.resources.paywall_free_nearby
 import paparcar.composeapp.generated.resources.paywall_free_stats
 import paparcar.composeapp.generated.resources.paywall_free_support
 import paparcar.composeapp.generated.resources.paywall_plan_monthly
@@ -83,6 +85,7 @@ import paparcar.composeapp.generated.resources.paywall_plan_savings_badge
 import paparcar.composeapp.generated.resources.paywall_plan_yearly
 import paparcar.composeapp.generated.resources.paywall_plus_alerts
 import paparcar.composeapp.generated.resources.paywall_plus_history
+import paparcar.composeapp.generated.resources.paywall_plus_nearby
 import paparcar.composeapp.generated.resources.paywall_plus_stats
 import paparcar.composeapp.generated.resources.paywall_plus_support
 import paparcar.composeapp.generated.resources.paywall_purchase_failed
@@ -456,6 +459,17 @@ private fun TierCell(icon: ImageVector, text: String, ink: Color, tint: Color) {
 private class TierRow(val icon: ImageVector, val free: StringResource, val plus: StringResource)
 
 private val TIER_ROWS = listOf(
+    // FIRST, and it is the row where nothing changes. [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001]
+    //
+    // The table had seven rows and mentioned the two complements in none, so the Free column read
+    // poorer than Free actually is — at the exact moment the app is asking for money, and about the
+    // one thing doctrine says is never gated: SEEING. Free spots, public car parks and fuel prices
+    // with their price and hour are free and complete, and a paywall that stays quiet about that
+    // invites the reader to assume the opposite.
+    //
+    // Leading with it also states the axis the rest of the table is measured against: what you can
+    // ASK is free, what is sold is the app WATCHING and REMEMBERING for you.
+    TierRow(Icons.Rounded.Explore, Res.string.paywall_free_nearby, Res.string.paywall_plus_nearby),
     TierRow(Icons.Rounded.History, Res.string.paywall_free_history, Res.string.paywall_plus_history),
     // The figures sit right after the history they are computed from. Free sees the first tile
     // whole and the rest redacted — enough to know the block is real and about their own car,

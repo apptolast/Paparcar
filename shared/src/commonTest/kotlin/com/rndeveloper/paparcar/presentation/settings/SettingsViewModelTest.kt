@@ -12,6 +12,7 @@ import com.rndeveloper.paparcar.domain.usecase.detection.ObserveDetectionReliabi
 import com.rndeveloper.paparcar.domain.diagnostics.UnknownDeviceInfoProvider
 import com.rndeveloper.paparcar.domain.usecase.diagnostics.SendDiagnosticsReportUseCase
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
+import com.rndeveloper.paparcar.domain.onboarding.NearbyComplement
 import com.rndeveloper.paparcar.domain.usecase.user.DeleteAccountUseCase
 import com.rndeveloper.paparcar.domain.usecase.user.SetFirstStepsDismissedUseCase
 import com.rndeveloper.paparcar.fakes.FakeAppPreferences
@@ -657,6 +658,24 @@ class SettingsViewModelTest {
         assertEquals(emptySet(), prefs.firstStepsDone.value)
         assertEquals(emptySet(), prefs.firstStepsDeferred.value, "a declined step must be asked again")
         assertFalse(prefs.firstStepsDismissed.value)
+    }
+
+    /**
+     * ⛔ And exactly THREE sets: what the user was told about where the complements' data comes from
+     * is NOT one of them. [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001]
+     *
+     * A replay does not un-park the car and it does not un-tell somebody something. Clearing this
+     * would make both complement lanes introduce themselves all over again — a lecture nobody asked
+     * for by pressing "replay the tutorial" — and would tick the fifth step back to open while the
+     * knowledge it measures is still true.
+     */
+    @Test
+    fun `should_keepWhatTheUserWasAlreadyTold_when_restartingTheTutorial`() = runTest {
+        prefs.setIntroducedComplements(setOf(NearbyComplement.CAR_PARKS))
+
+        vm.handleIntent(SettingsIntent.RestartFirstSteps)
+
+        assertEquals(setOf(NearbyComplement.CAR_PARKS), prefs.introducedComplements.value)
     }
 
     /**

@@ -19,6 +19,7 @@ import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
 import com.rndeveloper.paparcar.domain.detection.shouldShowParkNudgeBanner
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 import com.rndeveloper.paparcar.domain.onboarding.FirstStepsProgress
+import com.rndeveloper.paparcar.domain.onboarding.NearbyComplement
 import com.rndeveloper.paparcar.presentation.home.model.DetectionUiState
 import com.rndeveloper.paparcar.presentation.home.model.ParkedWatchBadge
 import com.rndeveloper.paparcar.presentation.util.PlaceLine
@@ -333,6 +334,14 @@ data class HomeBrowseListSlice(
     /** WHICH of the three nearby subjects the lane is answering. One lane at a time, so a subject
      *  never sits behind another's list. [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001] */
     val nearbyLens: HomeNearbyLens,
+    /**
+     * The complement being introduced in this very visit, or null — the lane owes its provenance
+     * line only the first time it is asked for. [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001]
+     *
+     * Carried as the COMPLEMENT and not as a boolean per lane: each lane compares it against its own
+     * subject, so a line can never be rendered by the lane that is not the one being introduced.
+     */
+    val nearbyIntro: NearbyComplement?,
 ) {
     /**
      * Whether the guided checklist is actually ON SCREEN — visibility AND the two conditions that
@@ -515,6 +524,7 @@ fun HomeState.toBrowseListSlice() = HomeBrowseListSlice(
     fuel = fuel,
     parkings = parkings,
     nearbyLens = nearbyLens,
+    nearbyIntro = nearbyIntro,
     detectionUiState = detectionUiState,
     parkedWatchBadge = parkedWatchBadge,
     showParkNudge = shouldShowParkNudgeBanner(pendingParkNudge, activeSessions),

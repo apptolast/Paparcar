@@ -4,6 +4,7 @@ import com.rndeveloper.paparcar.domain.detection.PendingParkNudge
 import com.rndeveloper.paparcar.localePrefersImperialUnits
 import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
+import com.rndeveloper.paparcar.domain.onboarding.NearbyComplement
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import com.rndeveloper.paparcar.domain.preferences.ThemeMode
 import kotlinx.coroutines.flow.Flow
@@ -21,6 +22,7 @@ private const val KEY_LAST_FIRST_PARK_NUDGE_AT = "last_first_park_nudge_at"
 private const val KEY_HAS_CONFIRMED_FIRST_PARK = "has_confirmed_first_park"
 private const val KEY_FIRST_STEPS_DONE = "first_steps_done"
 private const val KEY_FIRST_STEPS_DEFERRED = "first_steps_deferred"
+private const val KEY_INTRODUCED_COMPLEMENTS = "introduced_complements"
 private const val KEY_FIRST_STEPS_DISMISSED = "first_steps_dismissed"
 private const val KEY_PENDING_NUDGE_CREATED_AT = "pending_park_nudge_created_at"
 private const val KEY_PENDING_NUDGE_SOURCE = "pending_park_nudge_source"
@@ -48,6 +50,9 @@ private val USER_SCOPED_KEYS = listOf(
     KEY_FIRST_STEPS_DONE,
     KEY_FIRST_STEPS_DEFERRED,
     KEY_FIRST_STEPS_DISMISSED,
+    // What the outgoing user was told about where the complements' data comes from — knowledge of
+    // a person, not of this install. [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001]
+    KEY_INTRODUCED_COMPLEMENTS,
     KEY_HAS_CONFIRMED_FIRST_PARK,
     KEY_FIRST_PARK_NUDGE_COUNT,
     KEY_LAST_FIRST_PARK_NUDGE_AT,
@@ -78,6 +83,7 @@ class IosAppPreferences : AppPreferences {
         USER_SCOPED_KEYS.forEach { userDefaults.removeObjectForKey(it) }
         firstStepsDoneFlow.value = emptySet()
         firstStepsDeferredFlow.value = emptySet()
+        introducedComplementsFlow.value = emptySet()
         firstStepsDismissedFlow.value = false
         pendingParkNudgeFlow.value = null
         pendingPromptWindowFlow.value = null
@@ -163,6 +169,14 @@ class IosAppPreferences : AppPreferences {
     private val firstStepsDeferredFlow = MutableStateFlow(storedFirstSteps(KEY_FIRST_STEPS_DEFERRED))
     private val firstStepsDismissedFlow = MutableStateFlow(userDefaults.boolForKey(KEY_FIRST_STEPS_DISMISSED))
 
+    /** Same forgiving read as the steps: a retired complement is one that was never introduced. */
+    private val introducedComplementsFlow = MutableStateFlow(
+        userDefaults.stringArrayForKey(KEY_INTRODUCED_COMPLEMENTS)
+            .orEmpty()
+            .mapNotNull { stored -> NearbyComplement.entries.firstOrNull { it.name == stored } }
+            .toSet(),
+    )
+
     override fun observeFirstStepsDone(): Flow<Set<FirstStep>> = firstStepsDoneFlow.asStateFlow()
 
     override fun setFirstStepsDone(steps: Set<FirstStep>) {
@@ -177,6 +191,16 @@ class IosAppPreferences : AppPreferences {
     override fun setFirstStepsDeferred(steps: Set<FirstStep>) {
         userDefaults.setObject(steps.map { it.name }, forKey = KEY_FIRST_STEPS_DEFERRED)
         firstStepsDeferredFlow.value = steps
+    }
+
+    // [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001] One fact, two readers: the lane's provenance line
+    // and the checklist's EXPLORE_NEARBY step.
+    override fun observeIntroducedComplements(): Flow<Set<NearbyComplement>> =
+        introducedComplementsFlow.asStateFlow()
+
+    override fun setIntroducedComplements(complements: Set<NearbyComplement>) {
+        userDefaults.setObject(complements.map { it.name }, forKey = KEY_INTRODUCED_COMPLEMENTS)
+        introducedComplementsFlow.value = complements
     }
 
     override fun observeFirstStepsDismissed(): Flow<Boolean> = firstStepsDismissedFlow.asStateFlow()

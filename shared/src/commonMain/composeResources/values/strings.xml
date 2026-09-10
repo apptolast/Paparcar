@@ -359,8 +359,9 @@
     <string name="licenses_detail_open_terms">Read the full terms</string>
     <string name="licenses_data_sources_header">Data sources</string>
     <string name="licenses_source_openvan_purpose">National average fuel prices</string>
-    <string name="licenses_source_osm_purpose">Fuel stations and nearby places</string>
+    <string name="licenses_source_osm_purpose">Car parks, fuel stations, places and streets</string>
     <string name="licenses_source_minetur_purpose">Pump prices in Spain</string>
+    <string name="licenses_source_prix_carburants_purpose">Pump prices in France</string>
     <string name="settings_contact">Contact</string>
     <string name="settings_send_diagnostics">Report a problem</string>
     <string name="settings_send_diagnostics_confirm_title">Send diagnostics?</string>
@@ -901,4 +902,20 @@
     <string name="parking_fee_free">Free</string>
     <string name="parking_capacity">%1$s spaces</string>
     <string name="parking_max_height">Max height %1$s m</string>
+
+    <!-- [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001] The other two questions the map answers -->
+    <string name="home_parkings_intro">Car parks come from OpenStreetMap and city data. Occupancy only where a city publishes it.</string>
+    <string name="home_fuel_intro">Prices come from official registers. Each price says when it was measured.</string>
+    <string name="first_steps_explore_title">See what else is around</string>
+    <string name="first_steps_explore_sub">The map also knows public car parks and fuel prices, even where nobody has left a spot.</string>
+    <string name="first_steps_explore_cta">Show me</string>
+    <string name="first_steps_explain_explore_title">The map answers three questions</string>
+    <string name="first_steps_explain_explore_body">Free spots are what your neighbours leave behind. The other two answers don't depend on anyone else being here.</string>
+    <string name="first_steps_explain_explore_parkings_title">Public car parks</string>
+    <string name="first_steps_explain_explore_parkings_body">Where you drive in and pay. Height limit and rates when the operator publishes them.</string>
+    <string name="first_steps_explain_explore_fuel_title">Fuel stations</string>
+    <string name="first_steps_explain_explore_fuel_body">Where to refuel and what the litre cost, with the hour each price was measured.</string>
+    <string name="first_steps_explain_explore_note">Neither one comes from the community: both are public data, so they are there from day one, and free for everyone.</string>
+    <string name="paywall_free_nearby">Car parks and fuel prices</string>
+    <string name="paywall_plus_nearby">The same: looking is always free</string>
 </resources>

@@ -11,6 +11,9 @@ import androidx.compose.material.icons.rounded.BatteryAlert
 import androidx.compose.material.icons.rounded.Bluetooth
 import androidx.compose.material.icons.rounded.Campaign
 import androidx.compose.material.icons.rounded.Explore
+import androidx.compose.material.icons.rounded.LocalGasStation
+import androidx.compose.material.icons.rounded.LocalParking
+import androidx.compose.material.icons.rounded.Map
 import androidx.compose.material.icons.rounded.Sensors
 import androidx.compose.material.icons.rounded.Verified
 import androidx.compose.material.icons.rounded.Visibility
@@ -36,6 +39,13 @@ import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.first_steps_eyebrow
 import paparcar.composeapp.generated.resources.first_steps_explain_close
+import paparcar.composeapp.generated.resources.first_steps_explain_explore_body
+import paparcar.composeapp.generated.resources.first_steps_explain_explore_fuel_body
+import paparcar.composeapp.generated.resources.first_steps_explain_explore_fuel_title
+import paparcar.composeapp.generated.resources.first_steps_explain_explore_note
+import paparcar.composeapp.generated.resources.first_steps_explain_explore_parkings_body
+import paparcar.composeapp.generated.resources.first_steps_explain_explore_parkings_title
+import paparcar.composeapp.generated.resources.first_steps_explain_explore_title
 import paparcar.composeapp.generated.resources.first_steps_explain_fortify_battery_body
 import paparcar.composeapp.generated.resources.first_steps_explain_fortify_battery_title
 import paparcar.composeapp.generated.resources.first_steps_explain_fortify_body
@@ -192,6 +202,38 @@ internal fun FirstStep.explainerCopy(): ExplainerCopy = when (this) {
         ),
         note = Res.string.first_steps_explain_spot_note,
         icon = Icons.Rounded.Explore,
+    )
+
+    // ── The other two questions the map answers ──
+    // [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001]
+    //
+    // The two ways here are not two mechanisms of one thing, as in the steps above: they are two
+    // separate subjects that happen to share a property the user has to know — NEITHER comes from
+    // the community. That is what the note says, and it is the only sentence on this page that
+    // could not be guessed from the tab row.
+    //
+    // ⛔ Three words, three things: the plaza is the community's, the aparcamiento is yours, and a
+    // car park is a business you drive into. This page names all three, so it is the page where they
+    // are easiest to blur. [COPY-SPOT-IS-NOT-A-PARKING-001]
+    FirstStep.EXPLORE_NEARBY -> ExplainerCopy(
+        title = Res.string.first_steps_explain_explore_title,
+        body = Res.string.first_steps_explain_explore_body,
+        ways = listOf(
+            ExplainerWay(
+                title = Res.string.first_steps_explain_explore_parkings_title,
+                body = Res.string.first_steps_explain_explore_parkings_body,
+                // The "P" belongs to the public car park as a POI, and here it is exactly that —
+                // the subject of its own line, not the badge of a step about two subjects.
+                icon = Icons.Rounded.LocalParking,
+            ),
+            ExplainerWay(
+                title = Res.string.first_steps_explain_explore_fuel_title,
+                body = Res.string.first_steps_explain_explore_fuel_body,
+                icon = Icons.Rounded.LocalGasStation,
+            ),
+        ),
+        note = Res.string.first_steps_explain_explore_note,
+        icon = Icons.Rounded.Map,
     )
 }
 

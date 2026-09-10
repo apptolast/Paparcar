@@ -207,8 +207,9 @@
     <string name="licenses_detail_open_terms">Citește termenii compleți</string>
     <string name="licenses_data_sources_header">Surse de date</string>
     <string name="licenses_source_openvan_purpose">Prețuri medii la carburanți</string>
-    <string name="licenses_source_osm_purpose">Benzinării și locuri din apropiere</string>
+    <string name="licenses_source_osm_purpose">Parcări publice, benzinării, locuri și străzi</string>
     <string name="licenses_source_minetur_purpose">Prețuri la pompă în Spania</string>
+    <string name="licenses_source_prix_carburants_purpose">Prețuri la pompă în Franța</string>
 
     <!-- Generic error messages -->
     <string name="error_unknown">Ceva a mers greșit</string>
@@ -876,4 +877,20 @@
     <string name="parking_fee_free">Gratuită</string>
     <string name="parking_capacity">%1$s locuri</string>
     <string name="parking_max_height">Înălțime max. %1$s m</string>
+
+    <!-- [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001] The other two questions the map answers -->
+    <string name="home_parkings_intro">Parcările publice vin din OpenStreetMap și din datele primăriei. Ocuparea doar acolo unde primăria o publică.</string>
+    <string name="home_fuel_intro">Prețurile vin din registre oficiale. Fiecare preț spune când a fost măsurat.</string>
+    <string name="first_steps_explore_title">Vezi ce mai este în apropiere</string>
+    <string name="first_steps_explore_sub">Harta știe și de parcări publice și de prețul carburantului, chiar dacă nimeni nu a lăsat un loc.</string>
+    <string name="first_steps_explore_cta">Arată-mi</string>
+    <string name="first_steps_explain_explore_title">Harta răspunde la trei întrebări</string>
+    <string name="first_steps_explain_explore_body">Locurile libere le lasă vecinii. Celelalte două răspunsuri nu depind de altcineva.</string>
+    <string name="first_steps_explain_explore_parkings_title">Parcări publice</string>
+    <string name="first_steps_explain_explore_parkings_body">Unde intri și plătești. Înălțimea și tarifele când operatorul le publică.</string>
+    <string name="first_steps_explain_explore_fuel_title">Benzinării</string>
+    <string name="first_steps_explain_explore_fuel_body">Unde alimentezi și cât a costat litrul, cu ora la care a fost măsurat fiecare preț.</string>
+    <string name="first_steps_explain_explore_note">Niciuna dintre ele nu vine de la comunitate: sunt date publice, deci sunt acolo din prima zi, și gratuite pentru toți.</string>
+    <string name="paywall_free_nearby">Parcări publice și prețuri la carburant</string>
+    <string name="paywall_plus_nearby">La fel: să te uiți e mereu gratis</string>
 </resources>

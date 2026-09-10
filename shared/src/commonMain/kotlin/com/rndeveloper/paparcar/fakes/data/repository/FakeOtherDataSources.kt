@@ -12,6 +12,7 @@ import com.rndeveloper.paparcar.domain.detection.PendingParkNudge
 import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
+import com.rndeveloper.paparcar.domain.onboarding.NearbyComplement
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import com.rndeveloper.paparcar.domain.preferences.ThemeMode
 import com.rndeveloper.paparcar.domain.bluetooth.BluetoothScanner
@@ -205,6 +206,15 @@ class FakeAppPreferences(private val scenario: MockScenario? = null) : AppPrefer
     private val _firstStepsDeferred = kotlinx.coroutines.flow.MutableStateFlow<Set<FirstStep>>(emptySet())
     override fun observeFirstStepsDeferred(): kotlinx.coroutines.flow.Flow<Set<FirstStep>> = _firstStepsDeferred
     override fun setFirstStepsDeferred(steps: Set<FirstStep>) { _firstStepsDeferred.value = steps }
+    // [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001] Empty by default so the mock app shows the
+    // provenance line of each complement on its first visit, which is the state worth seeing.
+    private val _introducedComplements =
+        kotlinx.coroutines.flow.MutableStateFlow<Set<NearbyComplement>>(emptySet())
+    override fun observeIntroducedComplements(): kotlinx.coroutines.flow.Flow<Set<NearbyComplement>> =
+        _introducedComplements
+    override fun setIntroducedComplements(complements: Set<NearbyComplement>) {
+        _introducedComplements.value = complements
+    }
     override fun observeFirstStepsDismissed(): kotlinx.coroutines.flow.Flow<Boolean> =
         scenario?.firstStepsPending?.map { pending -> !pending } ?: _firstStepsDismissed
     override fun setFirstStepsDismissed(dismissed: Boolean) {

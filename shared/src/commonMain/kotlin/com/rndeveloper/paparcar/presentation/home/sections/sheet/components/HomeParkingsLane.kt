@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import com.rndeveloper.paparcar.domain.onboarding.NearbyComplement
 import com.rndeveloper.paparcar.presentation.home.model.HomeParkingsSlice
 import com.rndeveloper.paparcar.presentation.util.relativeTimeText
 import org.jetbrains.compose.resources.stringResource
@@ -27,8 +28,15 @@ fun HomeParkingsLane(
     modifier: Modifier = Modifier,
     /** A row opens the car park's peek — the same one its map capsule opens. */
     onParkingClick: ((String) -> Unit)? = null,
+    /** First visit: the lane says where its data comes from, above whatever else it has to say.
+     *  [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001] */
+    isIntroducing: Boolean = false,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
+        // ⛔ ABOVE the rows and above every other sentence, including the failure one: "we could not
+        // ask" only means something to someone who already knows what was being asked and of whom.
+        if (isIntroducing) LaneIntroNote(NearbyComplement.CAR_PARKS)
+
         when {
             // ⛔ A failure is NOT an empty list: saying "none nearby" when we could not ask sends the
             // user driving on a claim we never checked.
