@@ -57,7 +57,7 @@ fun HomeFuelStationRow(
         subtitle = subtitleFor(station, title),
         subtitleMaxLines = 1,
         leading = { PapIconTile(icon = PaparcarIcons.Fuel) },
-        trailing = station.price?.let { price -> { FuelPriceLabel(price) } },
+        trailing = station.price?.let { price -> { FuelPriceLabel(price.perUnit) } },
     )
 }
 

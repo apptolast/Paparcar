@@ -2,8 +2,12 @@ package com.rndeveloper.paparcar.data.fuel
 
 import com.rndeveloper.paparcar.domain.fuel.FuelAvailability
 import com.rndeveloper.paparcar.domain.fuel.FuelStation
+import com.rndeveloper.paparcar.domain.fuel.StationPrice
 import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.model.Money
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toInstant
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
@@ -37,6 +41,10 @@ object MineturStationParser {
     fun parseStations(body: String): List<FuelStation> {
         val root = json.parseToJsonElement(body.removePrefix(BOM)).jsonObject
         val list = root[FIELD_LIST]?.jsonArray ?: return emptyList()
+        // Spain stamps the RESPONSE, not the price, so every price this feed carries shares one
+        // hour. Read once and handed down, so the station rows cannot disagree about it.
+        // [FUEL-FRANCE-A-PRICE-CARRIES-ITS-OWN-HOUR-001]
+        val reportedAtMs = root.text(FIELD_DATE)?.let(::parseFeedDateMillis)
         return list.mapNotNull { element ->
             val station = element.jsonObject
             val lat = station.decimal(FIELD_LAT) ?: return@mapNotNull null
@@ -48,12 +56,30 @@ object MineturStationParser {
                 town = station.text(FIELD_TOWN),
                 latitude = lat,
                 longitude = lon,
-                prices = station.readPrices(),
+                prices = station.readPrices(reportedAtMs),
                 availability = station.readAvailability(),
                 schedule = station.text(FIELD_SCHEDULE),
             )
         }
     }
+
+    /**
+     * `"08/09/2026 23:52:46"` → epoch millis. The ministry writes peninsular Spanish wall-clock
+     * time with no offset, so the zone has to be supplied; getting it wrong would age every price
+     * by an hour or two.
+     *
+     * Null on anything unreadable — a date we cannot read costs the stamp, never the price. That is
+     * also why this cannot throw: the format is the ministry's to change, and a list of real prices
+     * must not disappear because a separator moved.
+     */
+    private fun parseFeedDateMillis(raw: String): Long? = runCatching {
+        val (date, time) = raw.trim().split(' ', limit = 2)
+        val (day, month, year) = date.split('/').map { it.toInt() }
+        val parts = time.split(':').map { it.toInt() }
+        LocalDateTime(year, month, day, parts[0], parts[1], parts.getOrElse(2) { 0 })
+            .toInstant(TimeZone.of(FEED_TIME_ZONE))
+            .toEpochMilliseconds()
+    }.getOrNull()
 
     /**
      * The timestamp the feed stamps on the whole response, verbatim ("08/09/2026 23:52:46").
@@ -66,9 +92,11 @@ object MineturStationParser {
         json.parseToJsonElement(body.removePrefix(BOM)).jsonObject.text(FIELD_DATE)
 
     /** Only the products the app can reason about; the feed carries 23, including hydrogen. */
-    private fun JsonObject.readPrices(): Map<FuelType, Money> = buildMap {
+    private fun JsonObject.readPrices(reportedAtMs: Long?): Map<FuelType, StationPrice> = buildMap {
         PRODUCTS.forEach { (key, fuel) ->
-            decimal(key)?.let { amount -> put(fuel, Money(amount, CURRENCY)) }
+            decimal(key)?.let { amount ->
+                put(fuel, StationPrice(Money(amount, CURRENCY), reportedAtMs))
+            }
         }
     }
 
@@ -111,6 +139,10 @@ object MineturStationParser {
 
     /** The feed is Spain-only, so its money is not a question. */
     private const val CURRENCY = "EUR"
+
+    /** The ministry publishes peninsular time; the Canaries run an hour behind it and the feed
+     *  does not say so, which is a rounding error next to a price's useful life. */
+    private const val FEED_TIME_ZONE = "Europe/Madrid"
     private const val BOM = "﻿"
     private const val FIELD_LIST = "ListaEESSPrecio"
     private const val FIELD_DATE = "Fecha"

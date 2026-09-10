@@ -4,6 +4,7 @@ import com.rndeveloper.paparcar.domain.fuel.FuelStation
 import com.rndeveloper.paparcar.domain.fuel.FuelStationsQuery
 import com.rndeveloper.paparcar.domain.fuel.FuelStationsResult
 import com.rndeveloper.paparcar.domain.fuel.FuelStationsSource
+import com.rndeveloper.paparcar.domain.fuel.StationPrice
 import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.model.Money
 import kotlinx.coroutines.test.runTest
@@ -29,7 +30,7 @@ class FuelStationsRegistryTest {
 
     private fun station(id: String, priced: Boolean = false) = FuelStation(
         id = id, name = id, address = null, town = null, latitude = 0.0, longitude = 0.0,
-        prices = if (priced) mapOf(FuelType.GASOLINE to Money(1.9, "EUR")) else emptyMap(),
+        prices = if (priced) mapOf(FuelType.GASOLINE to StationPrice(Money(1.9, "EUR"))) else emptyMap(),
     )
 
     private fun spain(withPrices: List<FuelStation>) =

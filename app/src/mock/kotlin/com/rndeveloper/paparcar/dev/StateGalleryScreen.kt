@@ -139,12 +139,14 @@ import com.rndeveloper.paparcar.ui.theme.PaparcarTheme
 import com.rndeveloper.paparcar.ui.theme.VehicleWatch
 import com.rndeveloper.paparcar.domain.detection.DetectionPath
 import com.rndeveloper.paparcar.domain.fuel.FuelStation
+import com.rndeveloper.paparcar.domain.fuel.StationPrice
 import com.rndeveloper.paparcar.domain.usecase.fuel.NearbyFuelStation
 import com.rndeveloper.paparcar.presentation.home.model.HomeFuelSlice
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.HomeFuelSection
 import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.model.VehicleWithStats
 import com.rndeveloper.paparcar.domain.model.Money
+import kotlin.time.Clock
 
 /**
  * How a variant should be presented in the viewer.
@@ -2340,6 +2342,20 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     onToggle = {},
                 )
             },
+            // Francia: la fuente NO sella la respuesta, sella cada precio. El pie acota la edad
+            // ("el más antiguo") en vez de inventar una hora para toda la lista, y el precio viejo
+            // de la tercera fila es justo el que un sello único taparía.
+            // [FUEL-FRANCE-A-PRICE-CARRIES-ITS-OWN-HOUR-001]
+            Variant("Precio con hora PROPIA (Francia)", Placement.Surface) {
+                HomeFuelSection(
+                    slice = HomeFuelSlice(
+                        isExpanded = true,
+                        stations = galleryFrenchStations,
+                        reportedAt = null,
+                    ),
+                    onToggle = {},
+                )
+            },
             Variant("Ninguna a menos de 5 km", Placement.Surface) {
                 HomeFuelSection(slice = HomeFuelSlice(isExpanded = true), onToggle = {})
             },
@@ -2429,19 +2445,19 @@ private val galleryFuelStations: List<NearbyFuelStation> = listOf(
         station = FuelStation(
             id = "1", name = "Repsol", address = "Calle Mayor 12", town = "Madrid",
             latitude = 40.4168, longitude = -3.7038,
-            prices = mapOf(FuelType.DIESEL to Money(1.879, "EUR")),
+            prices = mapOf(FuelType.DIESEL to StationPrice(Money(1.879, "EUR"), SPAIN_FEED_MS)),
         ),
         distanceMeters = 420.0,
-        price = Money(1.879, "EUR"),
+        price = StationPrice(Money(1.879, "EUR"), SPAIN_FEED_MS),
     ),
     NearbyFuelStation(
         station = FuelStation(
             id = "2", name = "Petroprix", address = "Avenida de América 48", town = "Madrid",
             latitude = 40.4268, longitude = -3.7038,
-            prices = mapOf(FuelType.DIESEL to Money(1.759, "EUR")),
+            prices = mapOf(FuelType.DIESEL to StationPrice(Money(1.759, "EUR"), SPAIN_FEED_MS)),
         ),
         distanceMeters = 1_240.0,
-        price = Money(1.759, "EUR"),
+        price = StationPrice(Money(1.759, "EUR"), SPAIN_FEED_MS),
     ),
     // Sin nombre ni marca: se la ubica, no se le inventa un nombre. Pasa en el feed francés (que no
     // trae nombre ninguno) y en 1 de cada 25 de OSM.
@@ -2449,12 +2465,53 @@ private val galleryFuelStations: List<NearbyFuelStation> = listOf(
         station = FuelStation(
             id = "3", name = null, address = "Carretera de Burgos km 14", town = "Alcobendas",
             latitude = 40.5400, longitude = -3.6400,
-            prices = mapOf(FuelType.DIESEL to Money(1.765, "EUR")),
+            prices = mapOf(FuelType.DIESEL to StationPrice(Money(1.765, "EUR"), SPAIN_FEED_MS)),
         ),
         distanceMeters = 3_100.0,
-        price = Money(1.765, "EUR"),
+        price = StationPrice(Money(1.765, "EUR"), SPAIN_FEED_MS),
     ),
 )
+
+/**
+ * Francia: el feed no trae nombre — la primera lleva el que OSM le presta por su id oficial, la
+ * segunda se queda sin él — y **cada precio trae su hora**, con una rancia de trece meses, que es
+ * la cola real medida en el feed. [FUEL-FRANCE-A-PRICE-CARRIES-ITS-OWN-HOUR-001]
+ */
+private val galleryFrenchStations: List<NearbyFuelStation> = listOf(
+    frenchStation("fr1", "TotalEnergies", "55 Boulevard de Suisse", 1.99, 620.0, TWO_HOURS_MS),
+    frenchStation("fr2", null, "231 Faubourg Bonnefoy", 2.121, 1_450.0, FOUR_DAYS_MS),
+    frenchStation("fr3", "Esso", "18 Av. Lazare Carnot", 2.29, 2_900.0, THIRTEEN_MONTHS_MS),
+)
+
+private fun frenchStation(
+    id: String,
+    name: String?,
+    address: String,
+    price: Double,
+    distanceMeters: Double,
+    ageMs: Long,
+): NearbyFuelStation {
+    val reportedAtMs = Clock.System.now().toEpochMilliseconds() - ageMs
+    return NearbyFuelStation(
+        station = FuelStation(
+            id = id, name = name, address = address, town = "Toulouse",
+            latitude = 43.6047, longitude = 1.4442,
+            prices = mapOf(
+                FuelType.GASOLINE to StationPrice(Money(price, "EUR"), reportedAtMs),
+            ),
+        ),
+        distanceMeters = distanceMeters,
+        price = StationPrice(Money(price, "EUR"), reportedAtMs),
+    )
+}
+
+private const val TWO_HOURS_MS = 2 * 60 * 60 * 1000L
+private const val FOUR_DAYS_MS = 4 * 24 * 60 * 60 * 1000L
+private const val THIRTEEN_MONTHS_MS = 395 * 24 * 60 * 60 * 1000L
+
+/** La hora ÚNICA que España sella para toda la respuesta, un par de horas atrás. */
+private val SPAIN_FEED_MS: Long
+    get() = Clock.System.now().toEpochMilliseconds() - TWO_HOURS_MS
 
 /**
  * Mock-only static gallery: lists every screen's curated states (mirroring the `*Previews.kt`)

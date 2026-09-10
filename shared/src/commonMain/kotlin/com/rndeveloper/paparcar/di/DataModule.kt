@@ -48,6 +48,7 @@ import kotlinx.coroutines.launch
 import org.koin.dsl.module
 import com.rndeveloper.paparcar.data.fuel.CachingFuelStationsSource
 import com.rndeveloper.paparcar.data.fuel.AverageFuelPricesRepositoryImpl
+import com.rndeveloper.paparcar.data.fuel.FranceFuelStationsSource
 import com.rndeveloper.paparcar.data.fuel.FuelStationsRegistry
 import com.rndeveloper.paparcar.data.fuel.fuelHttpClient
 import com.rndeveloper.paparcar.data.fuel.MineturStationsSource
@@ -165,7 +166,12 @@ val dataModule = module {
         val http = fuelHttpClient()
         CachingFuelStationsSource(
             FuelStationsRegistry(
-                national = listOf(MineturStationsSource(http)),
+                // Un país = una entrada. El orden no decide nada: cada fuente declara a quién
+                // cubre y sólo una responde por país. [FUEL-FRANCE-A-PRICE-CARRIES-ITS-OWN-HOUR-001]
+                national = listOf(
+                    MineturStationsSource(http),
+                    FranceFuelStationsSource(http),
+                ),
                 fallback = OsmFuelStationsSource(http),
             ),
         )

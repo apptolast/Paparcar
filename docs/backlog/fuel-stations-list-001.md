@@ -112,6 +112,13 @@ Tankerkönig con CC BY 4.0 y clave gratuita. **🇲🇽 México** son dos XML de
 estrena el cruce con OSM) → Alemania → Italia (la más grande, pero exige descarga entera, umbral de
 antigüedad y `isSelf`) → el resto.
 
+→ **🇫🇷 Francia HECHA** en [`fuel-france-a-price-carries-its-own-hour-001.md`](fuel-france-a-price-carries-its-own-hour-001.md).
+Dos cosas de ahí corrigen lo que este doc daba por sentado: **el cruce con OSM NO es por
+proximidad** —OSM guarda el id oficial en `ref:FR:prix-carburants` y casa el 97 %, mientras que por
+cercanía o pierdes la mitad o etiquetas mal 1 de cada 10—, y **la hora dejó de ser de la respuesta
+para ser del precio**, porque dentro de una sola respuesta francesa las edades van de 0,7 h a trece
+meses. Ese cambio de modelo (`StationPrice`) es también donde Italia meterá su `isSelf`.
+
 ## Diseño
 
 **Una fuente por país, no capas que se cruzan.** Un feed nacional devuelve el objeto ENTERO —marca,

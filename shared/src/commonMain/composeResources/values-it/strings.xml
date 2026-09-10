@@ -849,4 +849,5 @@
     <string name="home_fuel_error">Non siamo riusciti a caricare i distributori. Controlla la connessione e riapri.</string>
     <string name="home_fuel_no_prices">In questo Paese i prezzi non sono pubblicati. Questi sono i distributori vicini.</string>
     <string name="home_fuel_reported_at">Prezzi comunicati alle %1$s</string>
+    <string name="home_fuel_oldest_price">Prezzo più vecchio: %1$s</string>
 </resources>

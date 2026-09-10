@@ -991,7 +991,7 @@ fun PaparcarMapView(
             // The capsule shows the NUMBER only; the currency lives in the list and the peek.
             // [FUEL-STATIONS-MAP-AND-PEEK-001]
             fuelStations.forEach { nearby ->
-                val priceText = nearby.price?.let { formatPumpPrice(it.amount) }
+                val priceText = nearby.price?.let { formatPumpPrice(it.perUnit.amount) }
                 add(
                     Marker(
                         coordinates = Coordinates(nearby.station.latitude, nearby.station.longitude),
@@ -1330,7 +1330,7 @@ fun PaparcarMapView(
         // registered variant is exactly one cached bitmap. [FUEL-STATIONS-MAP-AND-PEEK-001]
         val fuelHandlers: Map<String, @Composable (Marker) -> Unit> =
             fuelStations.flatMap { nearby ->
-                val priceText = nearby.price?.let { formatPumpPrice(it.amount) }
+                val priceText = nearby.price?.let { formatPumpPrice(it.perUnit.amount) }
                 val label = fuelPricesLabel.takeIf { priceText != null }
                 listOf<Pair<String, @Composable (Marker) -> Unit>>(
                     fuelStationContentId(nearby.station.id, priceText, label, selected = false, themeKey = themeKey) to { _: Marker ->

@@ -4,8 +4,10 @@ import com.rndeveloper.paparcar.domain.fuel.FuelStation
 import com.rndeveloper.paparcar.domain.fuel.FuelStationsQuery
 import com.rndeveloper.paparcar.domain.fuel.FuelStationsResult
 import com.rndeveloper.paparcar.domain.fuel.FuelStationsSource
+import com.rndeveloper.paparcar.domain.fuel.StationPrice
 import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.model.Money
+import kotlin.time.Clock
 
 /**
  * Forecourts for the mock stack — no network, wherever the fake GPS says you are.
@@ -77,7 +79,12 @@ class FakeFuelStationsSource : FuelStationsSource {
         eastMeters: Double,
         cents: Int,
     ): FuelStation {
-        val price = { base: Double -> Money(base + cents * CENT, EUR) }
+        // Dated like a national feed does, so the mock exercises the age line instead of hiding it:
+        // an undated price silently skips the hour the real screens show.
+        // [FUEL-FRANCE-A-PRICE-CARRIES-ITS-OWN-HOUR-001]
+        val price = { base: Double ->
+            StationPrice(Money(base + cents * CENT, EUR), mockReportedAtMs())
+        }
         return FuelStation(
             id = id,
             name = name,
@@ -95,9 +102,19 @@ class FakeFuelStationsSource : FuelStationsSource {
         )
     }
 
+    /**
+     * A couple of hours ago, relative to whenever the catalogue is opened.
+     *
+     * Not a fixed instant: pinned to a date in 2026 the age line would read "hace 8 meses" forever
+     * and nobody could tell a formatting bug from the fixture growing old.
+     */
+    private fun mockReportedAtMs(): Long =
+        Clock.System.now().toEpochMilliseconds() - MOCK_PRICE_AGE_MS
+
     private companion object {
         const val EUR = "EUR"
         const val CENT = 0.01
+        const val MOCK_PRICE_AGE_MS = 2 * 60 * 60 * 1000L
         const val BASE_GASOLINE = 1.759
         const val BASE_DIESEL = 1.679
         const val BASE_LPG = 0.949

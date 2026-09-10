@@ -2001,7 +2001,9 @@ class HomeViewModelTest {
                     latitude = 40.4268, longitude = -3.7038,
                     prices = mapOf(
                         com.rndeveloper.paparcar.domain.model.FuelType.GASOLINE to
-                            com.rndeveloper.paparcar.domain.model.Money(1.789, "EUR"),
+                            com.rndeveloper.paparcar.domain.fuel.StationPrice(
+                                com.rndeveloper.paparcar.domain.model.Money(1.789, "EUR"),
+                            ),
                     ),
                 ),
             ),
@@ -2052,7 +2054,9 @@ class HomeViewModelTest {
         latitude = 40.4268, longitude = -3.7038,
         prices = mapOf(
             com.rndeveloper.paparcar.domain.model.FuelType.GASOLINE to
-                com.rndeveloper.paparcar.domain.model.Money(1.789, "EUR"),
+                com.rndeveloper.paparcar.domain.fuel.StationPrice(
+                    com.rndeveloper.paparcar.domain.model.Money(1.789, "EUR"),
+                ),
         ),
     )
 

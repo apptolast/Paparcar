@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.presentation.home.sections.sheet.components.peek
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,6 +13,7 @@ import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.fuel.FuelAvailability
@@ -27,6 +29,7 @@ import com.rndeveloper.paparcar.presentation.home.model.pumpPriceLabel
 import com.rndeveloper.paparcar.presentation.util.distanceMeters
 import com.rndeveloper.paparcar.presentation.util.formatDistance
 import com.rndeveloper.paparcar.presentation.util.fuelTypeLabel
+import com.rndeveloper.paparcar.presentation.util.relativeTimeText
 import com.rndeveloper.paparcar.ui.components.PapFooterButton
 import com.rndeveloper.paparcar.ui.components.PapFooterButtonStyle
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
@@ -129,13 +132,20 @@ internal fun FuelStationPeek(
         },
         content = {
             spokenFuels.forEach { fuel ->
+                val price = station.prices[fuel]
                 FuelPriceRow(
                     label = fuelTypeLabel(fuel),
-                    priceLabel = station.prices[fuel]?.pumpPriceLabel(),
+                    priceLabel = price?.perUnit?.pumpPriceLabel(),
+                    // Each pump's OWN hour: this is the surface that itemises fuels, so it is the
+                    // one place where France's per-price hours actually differ from each other.
+                    // [FUEL-FRANCE-A-PRICE-CARRIES-ITS-OWN-HOUR-001]
+                    reportedAtMs = price?.reportedAtMs,
                 )
             }
-            // A price with no hour beside it is a price nobody can weigh. Only when something
-            // above is actually priced — OSM's hourless station has nothing to stamp.
+            // Only where the SOURCE stamps the whole response — Spain does, France stamps each
+            // price instead and the rows above already say so. ⛔ Quoting one hour for a French
+            // response would be a claim no station made: measured, the prices inside a single
+            // answer ran from 0,7 h to thirteen months old.
             if (reportedAt != null && spokenFuels.any { station.prices[it] != null }) {
                 Spacer(Modifier.height(8.dp))
                 Text(
@@ -166,10 +176,21 @@ internal fun FuelStationPeek(
     )
 }
 
-/** One pump: its name in the reading voice, its price — or the declared negative — trailing. */
+/**
+ * One pump: its name in the reading voice, its price — or the declared negative — trailing, and
+ * under the price the age of that very figure.
+ *
+ * The age is an AGE and not the feed's wording on purpose: the two feeds word it differently
+ * (`"08/09/2026 23:52:46"` vs `"2026-09-10T00:01:00+00:00"`) and neither is a sentence a driver
+ * reads. `relativeTimeText` already says it in all nine locales, so this costs no new copy.
+ * [FUEL-FRANCE-A-PRICE-CARRIES-ITS-OWN-HOUR-001]
+ */
 @Composable
-private fun FuelPriceRow(label: String, priceLabel: String?) {
-    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+private fun FuelPriceRow(label: String, priceLabel: String?, reportedAtMs: Long?) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Text(
             text = label,
             style = PaparcarType.current.body,
@@ -177,11 +198,22 @@ private fun FuelPriceRow(label: String, priceLabel: String?) {
             modifier = Modifier.weight(1f),
         )
         if (priceLabel != null) {
-            Text(
-                text = priceLabel,
-                style = PaparcarType.current.subtitle,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = priceLabel,
+                    style = PaparcarType.current.subtitle,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                // Only when the source dated THIS price. OSM has none, and an undated price simply
+                // says nothing rather than borrowing a neighbour's hour.
+                if (reportedAtMs != null) {
+                    Text(
+                        text = relativeTimeText(reportedAtMs),
+                        style = PaparcarType.current.caption,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
         } else {
             Text(
                 text = stringResource(Res.string.fuel_peek_not_sold),

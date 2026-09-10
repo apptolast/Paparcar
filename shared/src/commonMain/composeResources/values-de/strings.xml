@@ -850,4 +850,5 @@
     <string name="home_fuel_error">Die Tankstellen konnten nicht geladen werden. Prüfe die Verbindung und öffne das erneut.</string>
     <string name="home_fuel_no_prices">In diesem Land werden keine Preise veröffentlicht. Das sind die Tankstellen in der Nähe.</string>
     <string name="home_fuel_reported_at">Preise gemeldet um %1$s</string>
+    <string name="home_fuel_oldest_price">Ältester Preis: %1$s</string>
 </resources>

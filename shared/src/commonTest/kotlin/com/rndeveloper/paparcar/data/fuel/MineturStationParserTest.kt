@@ -57,7 +57,7 @@ class MineturStationParserTest {
     fun `should_readDecimalCommas_inPricesAndCoordinates`() {
         // The trap that drops EVERY station silently: "1,945".toDouble() is null.
         val station = MineturStationParser.parseStations(fixture).first()
-        assertEquals(1.945, station.prices.getValue(FuelType.GASOLINE).amount)
+        assertEquals(1.945, station.prices.getValue(FuelType.GASOLINE).perUnit.amount)
         assertEquals(36.46, station.latitude, absoluteTolerance = 1e-6)
         assertEquals(-5.730944, station.longitude, absoluteTolerance = 1e-6)
     }
@@ -80,7 +80,7 @@ class MineturStationParserTest {
 
         val repsol = MineturStationParser.parseStations(fixture)[1]
         assertEquals(FuelAvailability.SOLD, repsol.availabilityOf(FuelType.LPG_CNG))
-        assertEquals(0.999, repsol.prices.getValue(FuelType.LPG_CNG).amount)
+        assertEquals(0.999, repsol.prices.getValue(FuelType.LPG_CNG).perUnit.amount)
     }
 
     @Test
@@ -114,6 +114,6 @@ class MineturStationParserTest {
     @Test
     fun `should_quoteEveryPriceInEuros`() {
         val station = MineturStationParser.parseStations(fixture)[1]
-        assertTrue(station.prices.values.all { it.currency == "EUR" })
+        assertTrue(station.prices.values.all { it.perUnit.currency == "EUR" })
     }
 }

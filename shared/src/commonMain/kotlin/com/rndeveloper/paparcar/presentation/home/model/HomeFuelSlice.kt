@@ -38,6 +38,17 @@ data class HomeFuelSlice(
 ) {
     /** True when at least one station could be priced — decides which sentence the section says. */
     val hasPrices: Boolean get() = stations.any { it.price != null }
+
+    /**
+     * The hour of the OLDEST price on show, for sources that date each price instead of the
+     * response. [FUEL-FRANCE-A-PRICE-CARRIES-ITS-OWN-HOUR-001]
+     *
+     * ⛔ Read as a BOUND, never as "the list is this old" — that is the difference between a true
+     * sentence and the lie this ticket exists to avoid. Nothing here is older than this, which is
+     * all a single line can honestly promise about a list whose prices were measured spanning
+     * 0,7 h to thirteen months.
+     */
+    val oldestPriceAtMs: Long? get() = stations.mapNotNull { it.price?.reportedAtMs }.minOrNull()
 }
 
 /**

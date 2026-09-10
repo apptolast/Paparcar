@@ -850,4 +850,5 @@
     <string name="home_fuel_error">We konden de tankstations niet laden. Controleer je verbinding en open dit opnieuw.</string>
     <string name="home_fuel_no_prices">In dit land worden geen prijzen gepubliceerd. Dit zijn de tankstations in de buurt.</string>
     <string name="home_fuel_reported_at">Prijzen gemeld om %1$s</string>
+    <string name="home_fuel_oldest_price">Oudste prijs: %1$s</string>
 </resources>

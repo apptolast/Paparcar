@@ -5,6 +5,7 @@ import com.rndeveloper.paparcar.domain.fuel.FuelStation
 import com.rndeveloper.paparcar.domain.fuel.FuelStationsQuery
 import com.rndeveloper.paparcar.domain.fuel.FuelStationsResult
 import com.rndeveloper.paparcar.domain.fuel.FuelStationsSource
+import com.rndeveloper.paparcar.domain.fuel.StationPrice
 import com.rndeveloper.paparcar.domain.geocoder.GeocoderDataSource
 import com.rndeveloper.paparcar.domain.model.AddressInfo
 import com.rndeveloper.paparcar.domain.model.FuelType
@@ -38,7 +39,7 @@ class GetNearbyFuelStationsUseCaseTest {
         id: String,
         lat: Double = 40.4168,
         lon: Double = -3.7038,
-        prices: Map<FuelType, Money> = emptyMap(),
+        prices: Map<FuelType, StationPrice> = emptyMap(),
         availability: Map<FuelType, FuelAvailability> = emptyMap(),
     ) = FuelStation(id, id, null, null, lat, lon, prices, availability)
 
@@ -84,8 +85,8 @@ class GetNearbyFuelStationsUseCaseTest {
                     station(
                         "A",
                         prices = mapOf(
-                            FuelType.DIESEL to Money(1.879, "EUR"),
-                            FuelType.GASOLINE to Money(1.945, "EUR"),
+                            FuelType.DIESEL to StationPrice(Money(1.879, "EUR")),
+                            FuelType.GASOLINE to StationPrice(Money(1.945, "EUR")),
                         ),
                     ),
                 ),
@@ -96,7 +97,7 @@ class GetNearbyFuelStationsUseCaseTest {
         val result = GetNearbyFuelStationsUseCase(source, FakeGeocoder(madrid))
             .invoke(40.4168, -3.7038, FuelType.DIESEL).getOrThrow()
 
-        assertEquals(1.879, result.stations.single().price?.amount)
+        assertEquals(1.879, result.stations.single().price?.perUnit?.amount)
         assertEquals("09/09/2026 08:30:00", result.reportedAt)
         assertTrue(result.hasPrices)
     }
@@ -153,7 +154,7 @@ class GetNearbyFuelStationsUseCaseTest {
             FuelStationsResult(
                 listOf(
                     station("SAYS_NO_LPG", availability = mapOf(FuelType.LPG_CNG to FuelAvailability.NOT_SOLD)),
-                    station("PRICED", prices = mapOf(FuelType.DIESEL to Money(1.879, "EUR"))),
+                    station("PRICED", prices = mapOf(FuelType.DIESEL to StationPrice(Money(1.879, "EUR")))),
                 ),
             ),
         )

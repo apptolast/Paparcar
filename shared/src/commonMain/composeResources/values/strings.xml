@@ -884,4 +884,5 @@
     <string name="home_fuel_error">We could not load the stations. Check your connection and open this again.</string>
     <string name="home_fuel_no_prices">Prices are not published in this country. These are the stations nearby.</string>
     <string name="home_fuel_reported_at">Prices reported at %1$s</string>
+    <string name="home_fuel_oldest_price">Oldest price: %1$s</string>
 </resources>

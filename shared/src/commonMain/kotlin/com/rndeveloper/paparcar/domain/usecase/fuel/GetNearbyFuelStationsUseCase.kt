@@ -4,8 +4,8 @@ import com.rndeveloper.paparcar.domain.fuel.FuelStation
 import com.rndeveloper.paparcar.domain.fuel.FuelStationsQuery
 import com.rndeveloper.paparcar.domain.fuel.FuelStationsSource
 import com.rndeveloper.paparcar.domain.geocoder.GeocoderDataSource
+import com.rndeveloper.paparcar.domain.fuel.StationPrice
 import com.rndeveloper.paparcar.domain.model.FuelType
-import com.rndeveloper.paparcar.domain.model.Money
 import com.rndeveloper.paparcar.domain.util.haversineMeters
 
 /**
@@ -15,8 +15,14 @@ import com.rndeveloper.paparcar.domain.util.haversineMeters
 data class NearbyFuelStation(
     val station: FuelStation,
     val distanceMeters: Double,
-    /** Null where the source has no price for this fuel — never a zero, never a substitute. */
-    val price: Money?,
+    /**
+     * Null where the source has no price for this fuel — never a zero, never a substitute.
+     *
+     * Carries its own hour, because in France it genuinely has one: prices inside a single response
+     * were measured from 0,7 h to thirteen months old.
+     * [FUEL-FRANCE-A-PRICE-CARRIES-ITS-OWN-HOUR-001]
+     */
+    val price: StationPrice?,
 )
 
 /** The answer, with the two things that make it readable: what was asked, and when it was said. */

@@ -1,7 +1,6 @@
 package com.rndeveloper.paparcar.domain.fuel
 
 import com.rndeveloper.paparcar.domain.model.FuelType
-import com.rndeveloper.paparcar.domain.model.Money
 
 /**
  * Whether a station serves a given fuel — with **"we don't know" as a first-class answer**.
@@ -29,8 +28,10 @@ enum class FuelAvailability { SOLD, NOT_SOLD, UNKNOWN }
  * petrol station at the top of a list whose whole job is ranking by price.
  *
  * [name] is nullable because not every source has one. Spain's feed carries the brand and OSM names
- * 100% of what it holds, but France's official feed famously carries none — which is exactly why
- * OSM is the right partner there rather than a competing catalogue.
+ * 100% of what it holds, but France's official feed carries none — which is why France gets its
+ * names from OSM, joined on the official station id OSM stores in `ref:FR:prix-carburants`.
+ * ⛔ Not joined by proximity: measured, that names only half the stations or mislabels one in ten.
+ * [FUEL-FRANCE-A-PRICE-CARRIES-ITS-OWN-HOUR-001]
  */
 data class FuelStation(
     /** Stable id WITHIN its source — the Spanish feed's `IDEESS`, an OSM element id, etc. */
@@ -40,7 +41,9 @@ data class FuelStation(
     val town: String?,
     val latitude: Double,
     val longitude: Double,
-    val prices: Map<FuelType, Money>,
+    /** Each price carries its own hour — see [StationPrice] for why that is not a response-level
+     *  property. */
+    val prices: Map<FuelType, StationPrice>,
     /**
      * What this station is known to serve. A fuel **absent from this map is [FuelAvailability.UNKNOWN]**,
      * which is why the map is keyed by verdict instead of being a plain set of what it sells: a set

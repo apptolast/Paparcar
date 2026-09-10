@@ -849,4 +849,5 @@
     <string name="home_fuel_error">Não conseguimos carregar os postos. Verifica a ligação e abre isto outra vez.</string>
     <string name="home_fuel_no_prices">Neste país os preços não são publicados. Estes são os postos por perto.</string>
     <string name="home_fuel_reported_at">Preços comunicados às %1$s</string>
+    <string name="home_fuel_oldest_price">Preço mais antigo: %1$s</string>
 </resources>

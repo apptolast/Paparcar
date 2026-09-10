@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.presentation.home.model.HomeFuelSlice
+import com.rndeveloper.paparcar.presentation.util.relativeTimeText
 import com.rndeveloper.paparcar.ui.components.PapSectionHeader
 import com.rndeveloper.paparcar.ui.illustrations.EmptyFuelStationsIllustration
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
@@ -29,6 +30,7 @@ import paparcar.composeapp.generated.resources.home_fuel_empty
 import paparcar.composeapp.generated.resources.home_fuel_error
 import paparcar.composeapp.generated.resources.home_fuel_missing_fuel_type
 import paparcar.composeapp.generated.resources.home_fuel_no_prices
+import paparcar.composeapp.generated.resources.home_fuel_oldest_price
 import paparcar.composeapp.generated.resources.home_fuel_reported_at
 import paparcar.composeapp.generated.resources.home_fuel_title
 
@@ -116,8 +118,28 @@ fun HomeFuelSection(
                         )
                         // A price with no hour beside it is a price nobody can weigh — this whole
                         // phase exists because a proxy of the same data ran twelve hours behind.
-                        slice.reportedAt?.let { reportedAt ->
-                            SectionNote(stringResource(Res.string.home_fuel_reported_at, reportedAt))
+                        //
+                        // Each source says what it can actually say, and no more:
+                        //  · Spain stamps the RESPONSE → quote that hour.
+                        //  · France stamps each PRICE → quote the OLDEST as a bound. ⛔ Not "the
+                        //    prices are from X": inside one French response the ages ran from 0,7 h
+                        //    to thirteen months, so the only true one-liner is that none is older.
+                        // [FUEL-FRANCE-A-PRICE-CARRIES-ITS-OWN-HOUR-001]
+                        val reportedAt = slice.reportedAt
+                        val oldestMs = slice.oldestPriceAtMs
+                        when {
+                            reportedAt != null ->
+                                SectionNote(
+                                    stringResource(Res.string.home_fuel_reported_at, reportedAt),
+                                )
+
+                            oldestMs != null ->
+                                SectionNote(
+                                    stringResource(
+                                        Res.string.home_fuel_oldest_price,
+                                        relativeTimeText(oldestMs),
+                                    ),
+                                )
                         }
                     }
                 }
