@@ -122,6 +122,21 @@ fun resolveDetectionStory(
     /** [DET-NUDGE-PERSIST-001] An unanswered "where did you leave your car?" nudge is pending. */
     showParkNudge: Boolean = false,
     /**
+     * La tira de coches está en pantalla y por tanto ya dice, en la card del coche, lo mismo que
+     * diría la fila CALMADA de vigilancia. [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
+     *
+     * Es el mismo mecanismo que [firstStepsOwns] y por el mismo motivo: dos superficies que dicen la
+     * misma frase no compiten por el ojo, se duplican — «Watching your Alfa Romeo 156 · Parked»
+     * justo encima de «Alfa Romeo 156 · Parked at Calle X» son dos veces la misma noticia, y el
+     * usuario lo vio como un choque VISUAL cuando el problema era editorial.
+     *
+     * ⛔ Solo se aparta la fila calmada. Un aviso frágil, una vigilancia muerta, una pregunta
+     * abierta o un coche sin marcar dicen algo que la card NO dice, y esos se quedan enteros —
+     * incluida su barra de acento. Apartar por «parecerse» en vez de por «decir lo mismo» es como
+     * se pierde un aviso.
+     */
+    carCardSaysTheWatch: Boolean = false,
+    /**
      * [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001] Which of this surface's asks the guided
      * checklist is making right now — the matching row STANDS DOWN so the surface keeps its one
      * voice. The checklist says the same thing with the context of the steps around it.
@@ -173,6 +188,12 @@ fun resolveDetectionStory(
         ) {
             return DetectionStory.Hidden
         }
+        // ⛔ La fila calmada se calla si la card del coche ya la cuenta: coche aparcado y vigilancia
+        // SANA es exactamente lo que esa card enseña, con su nombre y su calle.
+        // [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
+        if (carCardSaysTheWatch && isParked && badge == ParkedWatchBadge.WATCHING) {
+            return DetectionStory.Hidden
+        }
         // Watching names the ACTIVE vehicle ONLY — never a ranked or first-of-list fallback.
         val card = activeCard ?: return DetectionStory.Hidden
         val name = card.vehicle.displayName().takeIf { it.isNotBlank() }
@@ -191,6 +212,10 @@ fun resolveDetectionStory(
     // acted on and the app barely works. Below it, the two things the app is WAITING ON THE USER for
     // outrank everything the app wants to TELL the user — and a live question with a deadline
     // outranks a stale one. [DET-ASK-STATE-001]
+    // ⛔ El arranque en frio tambien se calla si la card del coche ya lo pregunta: la card sin
+    // marcar dice «¿Donde esta tu coche?» y trae su propio boton, para CADA coche y no solo para el
+    // que esta funcion elige. Se aparta por decir lo MISMO, igual que la fila calmada de vigilancia.
+    // [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
     if (uiState == DetectionUiState.BlockedCore) return DetectionStory.BlockedCore
     if (promptWindow != null) return DetectionStory.AwaitingAnswer(promptWindow)
     if (showParkNudge) return DetectionStory.PendingAsk
@@ -202,8 +227,16 @@ fun resolveDetectionStory(
             if (firstStepsOwns == FirstStepsOwnership.DETECTION_OFF) DetectionStory.Hidden
             else DetectionStory.Inactive
         DetectionUiState.AwaitingFirstPark ->
-            if (firstStepsOwns == FirstStepsOwnership.COLD_START) DetectionStory.Hidden
-            else DetectionStory.AwaitingFirstPark
+            // Dos superficies pueden estar diciendo ya esto: el paso del checklist (que lo dice con
+            // el contexto de los pasos alrededor) y, desde
+            // [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001], la propia card del
+            // coche — que ademas lo pregunta **por cada coche**, no solo por el que esta funcion
+            // elige. Con cualquiera de las dos delante, esta fila sobra.
+            if (firstStepsOwns == FirstStepsOwnership.COLD_START || carCardSaysTheWatch) {
+                DetectionStory.Hidden
+            } else {
+                DetectionStory.AwaitingFirstPark
+            }
         DetectionUiState.Monitoring -> drivingStory()
         // Honest: the parked line reflects whether the watch is really live. [DET-WATCH-HONEST-001]
         DetectionUiState.Parked ->

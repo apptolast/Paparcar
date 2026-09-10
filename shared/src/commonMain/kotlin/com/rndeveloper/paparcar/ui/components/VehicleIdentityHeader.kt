@@ -184,7 +184,13 @@ fun VehicleIdentityHeader(
         }
         if (trailing != null) {
             Spacer(Modifier.width(TRAILING_GAP_DP.dp))
-            trailing()
+            // ⛔ Centrado POR SÍ MISMO, no por la fila. La fila se alinea arriba cuando el texto
+            // manda (`alignsWithFirstLine`), porque el tile del coche tiene que casar con la primera
+            // línea del nombre — pero eso arrastraba también al trailing, y con una dirección que
+            // envuelve a dos líneas el chevron quedaba colgando del borde superior de la card.
+            // Alinear al centro AQUÍ deja el tile donde debe y el chevron donde se espera.
+            // [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
+            Box(modifier = Modifier.align(Alignment.CenterVertically)) { trailing() }
         }
     }
 }

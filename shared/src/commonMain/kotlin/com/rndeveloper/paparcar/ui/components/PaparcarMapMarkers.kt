@@ -1169,18 +1169,18 @@ fun FuelStationMarker(
 // ─── Public-parkings layer ───────────────────────────────────────────────────
 
 /**
- * A public car park on the map: the universal "P", in a capsule of the same grammar as the zone and
- * fuel labels. [PARKINGS-ON-THE-MAP-001]
+ * A public car park on the map — **the spot puck's shape, wearing the car park's colours**.
+ * [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001] [PARKINGS-ON-THE-MAP-001]
  *
- * ⛔ **No figure beside it, and no colour that means anything.** The freshness ramp belongs to spot
- * expiry alone [UI-COLOR-DOCTRINE-001], and the only number OSM offers is the TOTAL capacity —
- * present on 2 of the 22 car parks measured around Sol — whereas the number that will eventually go
- * there is FREE SPACES (`PARKINGS-LIVE-OCCUPANCY-001`). One slot must not say two different things
- * across two releases.
+ * It was a rounded label with a bold "P" in it, and beside the round pucks of the free spots it read
+ * as a different KIND of thing — a text tag stuck on the map rather than a place you can go. Same
+ * family, same silhouette: the puck at (36,34), the separated ground dot, the same Fredoka "P".
  *
- * ⛔ It is deliberately NOT the road-sign blue either: this map already spends blue on a
- * Bluetooth-watched car and on movement that is not yours, and a third blue would be a claim about
- * identity that a car park has no business making.
+ * ⛔ **The colours do NOT come across with the shape.** A free spot is a puck FILLED with its
+ * freshness tier — that fill is what says "somebody just left this, and it is going stale". A car
+ * park is neither free nor expiring: it keeps the paper body and the green outline it already had,
+ * so the two are one family and never one thing. Sharing the fill would have turned every car park
+ * into what looks like a fresh community spot, which is the one confusion this map cannot afford.
  */
 @Composable
 fun PublicParkingMarker(
@@ -1190,34 +1190,32 @@ fun PublicParkingMarker(
     val paper = MaterialTheme.colorScheme.surface
     val ink = MaterialTheme.colorScheme.onSurface
     val brand = PapGreen
-    val labelFamily = PaparcarType.current.cardTitle.fontFamily
+    val pPath = remember { PathParser().parsePathString(SPOT_P_PATH).toPath() }
 
-    Box(modifier = modifier) {
-        Row(
-            modifier = Modifier
-                .clip(RoundedCornerShape(FUEL_LABEL_CORNER))
-                .background(paper.copy(alpha = ZONE_LABEL_BG_ALPHA))
-                .border(
-                    width = if (selected) FUEL_LABEL_BORDER_SEL else ZONE_LABEL_BORDER,
-                    color = brand.copy(alpha = if (selected) 1f else ZONE_LABEL_BORDER_ALPHA),
-                    shape = RoundedCornerShape(FUEL_LABEL_CORNER),
-                )
-                .padding(horizontal = PARKING_LABEL_PAD_H, vertical = ZONE_LABEL_PAD_V),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = PARKING_GLYPH,
-                color = ink,
-                maxLines = 1,
-                style = TextStyle(
-                    fontFamily = labelFamily,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = PARKING_GLYPH_SP,
-                ),
-            )
+    Canvas(modifier) {
+        val s = size.width / SPOT_VIEWBOX_W
+        drawSpotShadow(s, ink)
+        // El punto de suelo, en el verde del parking: es el mismo gesto que el del spot — el punto
+        // dice DÓNDE está, el puck dice QUÉ es.
+        drawSpotDot(s, brand)
+        val c = Offset(36f * s, 34f * s)
+        if (selected) {
+            drawCircle(ink, radius = (PARKING_PUCK_R + 3.4f) * s, center = c, style = Stroke(width = 3.2f * s))
         }
+        // Cuerpo de PAPEL con aro verde — al revés que el spot, que va relleno de su color.
+        drawCircle(paper, radius = PARKING_PUCK_R * s, center = c)
+        drawCircle(
+            brand,
+            radius = PARKING_PUCK_R * s,
+            center = c,
+            style = Stroke(width = if (selected) 4.2f * s else 3.2f * s),
+        )
+        drawPFredoka(s, pPath, ink)
     }
 }
+
+/** Igual que el del spot (29): la silueta compartida es el punto de este marcador. */
+private const val PARKING_PUCK_R = 29f
 
 /** The pump, drawn: green body, paper screen, hose to the right. Brings its own colors. */
 @Composable

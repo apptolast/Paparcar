@@ -27,6 +27,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.presentation.home.model.HomeNearbyLens
+import com.rndeveloper.paparcar.ui.components.PapDivider
 import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
 import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PapMotion
@@ -71,10 +72,13 @@ internal fun HomeNearbyLensRow(
     onSelect: (HomeNearbyLens) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // El divisor viaja DENTRO de la fila, no como un item suelto debajo: esta fila es un
+    // `stickyHeader`, así que un divisor puesto fuera se quedaría atrás mientras la fila flota sobre
+    // la lista, y la separación desaparecería justo cuando hace falta — al scrollear.
+    // [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
+    Column(modifier = modifier.background(MaterialTheme.colorScheme.surfaceContainer)) {
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceContainer),
+        modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.Bottom,
     ) {
         LensTab(
@@ -105,6 +109,10 @@ internal fun HomeNearbyLensRow(
             modifier = Modifier.weight(1f),
         )
     }
+        // La línea que separa las pestañas de SU contenido. El indicador dice en cuál estás; esto
+        // dice dónde empieza lo que enseña.
+        PapDivider()
+    }
 }
 
 /**
@@ -128,10 +136,15 @@ private fun LensTab(
     modifier: Modifier = Modifier,
 ) {
     val selected = lens == subject
-    // ⛔ El verde NO pinta la pestaña activa: la pinta el INDICADOR, y la etiqueta sube a `onSurface`.
-    // Con la etiqueta y el glifo en verde, la pestaña competía con el único verde que tiene que
-    // llamar en esta pantalla — el de la acción. Un subrayado ya dice "estás aquí" sin gastar la
-    // tinta más cara de la app. [UI-ONE-SKELETON-ONE-EMPHASIS-ONE-GREEN-001]
+    // ⛔ El verde NO pinta la pestaña activa: la pinta el INDICADOR, y la etiqueta sube a
+    // `onSurface`. Se probó lo contrario (user, 10-09) y en device fue peor: con el glifo y la
+    // etiqueta en verde, la pestaña competía con la única cosa verde que tiene que llamar. El
+    // subrayado ya dice «estás aquí» sin gastar la tinta más cara de la app.
+    // [UI-ONE-SKELETON-ONE-EMPHASIS-ONE-GREEN-001]
+    //
+    // Lo apagado que el user vio NO era esto: eran los glifos de las FILAS y la cifra del peek, que
+    // se arreglan donde estaban. [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
+    //
     // Animated so switching lanes reads as ONE row changing its mind, not three widgets blinking.
     val content by animateColorAsState(
         targetValue = if (selected) {

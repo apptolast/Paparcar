@@ -39,6 +39,13 @@ class MineturStationsSourceTest {
         }
     """.trimIndent()
 
+    /** Verbatim from `/Listados/Municipios/`, read live on 10-09-2026 — article in brackets and
+     *  `IDProvincia` WITH its 'r', unlike the province listing above.
+     *  [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001] */
+    private val municipalitiesJson = """
+        [{"IDMunicipio":"1789","IDProvincia":"11","IDCCAA":"01","Municipio":"Puerto de Santa María (El)","Provincia":"CÁDIZ","CCAA":"Andalucia"}]
+    """.trimIndent()
+
     private val asked = mutableListOf<String>()
 
     private fun cadiz() = FuelStationsQuery(
@@ -51,6 +58,8 @@ class MineturStationsSourceTest {
 
     private fun source(
         stationsStatus: HttpStatusCode = HttpStatusCode.OK,
+        /** Lets a test make the TOWN answer empty while the province still has stations. */
+        townStations: String? = null,
     ): MineturStationsSource {
         val engine = MockEngine { request ->
             val url = request.url.toString()
@@ -58,6 +67,16 @@ class MineturStationsSourceTest {
             when {
                 url.contains("Provincias") -> respond(
                     provincesJson,
+                    HttpStatusCode.OK,
+                    headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+                url.endsWith("/Listados/Municipios/") -> respond(
+                    municipalitiesJson,
+                    HttpStatusCode.OK,
+                    headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+                townStations != null && url.contains("/FiltroMunicipio/") -> respond(
+                    townStations,
                     HttpStatusCode.OK,
                     headersOf(HttpHeaders.ContentType, "application/json"),
                 )
@@ -86,6 +105,49 @@ class MineturStationsSourceTest {
         // The province id has to reach the URL — the whole country is 12 MB.
         assertTrue(asked.any { it.endsWith("/Listados/Provincias/") }, "asked: $asked")
         assertTrue(asked.any { it.endsWith("/FiltroProvincia/11") }, "asked: $asked")
+    }
+
+    // ── The town is tried first, and it is what saved Spain ──────────────────
+    // [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
+
+    @Test
+    fun `should_askForTheTown_when_theAddressCarriesOne`() = runTest {
+        source().stationsNear(cadiz().copy(cityName = "El Puerto de Santa María")).getOrThrow()
+
+        assertTrue(asked.any { it.endsWith("/FiltroMunicipio/1789") }, "asked: ${'$'}asked")
+        assertTrue(asked.none { it.contains("/FiltroProvincia/") }, "the town answered: ${'$'}asked")
+    }
+
+    @Test
+    fun `should_askSpainAnyway_when_theRegionIsAnAutonomousCommunity`() = runTest {
+        // ⛔ THE bug, in one test. Measured on a real phone: the region came through as «Andalucía»,
+        // which is no Spanish province, so the source threw and the registry fell back to a feed
+        // with no prices — and the lane told the user Spain publishes none. With the town as the
+        // first key the ministry gets asked, and it answers.
+        val result = source()
+            .stationsNear(cadiz().copy(regionName = "Andalucía", cityName = "El Puerto de Santa María"))
+
+        assertTrue(result.isSuccess, "the ministry has to be asked, not given up on")
+        assertTrue(asked.any { it.endsWith("/FiltroMunicipio/1789") }, "asked: ${'$'}asked")
+    }
+
+    @Test
+    fun `should_fallBackToTheProvinceOfTheTown_when_theTownHasNoStations`() = runTest {
+        // An empty town is a reason to widen, not an answer — and the province id comes from the
+        // town's own row, so this works even when the region name is useless.
+        val source = source(townStations = "{\"ListaEESSPrecio\": []}")
+        source.stationsNear(cadiz().copy(regionName = "Andalucía", cityName = "El Puerto de Santa María")).getOrThrow()
+
+        assertTrue(asked.any { it.endsWith("/FiltroMunicipio/1789") }, "asked: ${'$'}asked")
+        assertTrue(asked.any { it.endsWith("/FiltroProvincia/11") }, "asked: ${'$'}asked")
+    }
+
+    @Test
+    fun `should_notFetchTheTownCatalogue_when_thereIsNoTownToLookUp`() = runTest {
+        // ⛔ Un catálogo entero de municipios para no mirarlo. Lo cazaron los tests de provincia.
+        source().stationsNear(cadiz()).getOrThrow()
+
+        assertTrue(asked.none { it.endsWith("/Listados/Municipios/") }, "asked: ${'$'}asked")
     }
 
     @Test

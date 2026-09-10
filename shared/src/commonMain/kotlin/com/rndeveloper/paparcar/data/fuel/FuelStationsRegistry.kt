@@ -34,7 +34,13 @@ class FuelStationsRegistry(
         // — so only a FAILURE hands over. Retrying a valid "none" against OSM would quietly turn a
         // priced country into an unpriced one, and the user would never see why the prices vanished.
         return preferred.stationsNear(query).recoverCatching {
-            fallback.stationsNear(query).getOrThrow()
+            // ⛔ The fallback's answer is MARKED. Without this the lane could not tell «this country
+            // publishes no prices» — true where no national feed exists — from «the national feed
+            // failed and these are just the forecourts», and it said the first while the second was
+            // happening: a verdict about a whole country that nobody verified.
+            // [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
+            // [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
+            fallback.stationsNear(query).getOrThrow().copy(didFallBack = true)
         }
     }
 }

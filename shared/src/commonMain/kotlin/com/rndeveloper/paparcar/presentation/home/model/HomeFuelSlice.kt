@@ -19,6 +19,14 @@ data class HomeFuelSlice(
     /** The feed's own hour, verbatim. Null where the source publishes no prices at all. */
     val reportedAt: String? = null,
     /**
+     * True when a national feed exists for this country and failed, so what is on show came from the
+     * fallback. [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
+     *
+     * ⛔ It is what stops the lane saying «this country publishes no prices» — a verdict about a
+     * whole country — when what happened is that we could not fetch them.
+     */
+    val didFallBack: Boolean = false,
+    /**
      * Set when this list came off the disk because the live answer failed — the moment the app last
      * managed to ask. [CACHE-A-MAP-MUST-NOT-EMPTY-ON-COLD-START-001]
      *

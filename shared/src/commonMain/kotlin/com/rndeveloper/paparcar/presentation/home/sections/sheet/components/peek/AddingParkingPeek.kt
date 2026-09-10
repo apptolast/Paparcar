@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AddLocationAlt
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.EditLocationAlt
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -54,6 +55,7 @@ import paparcar.composeapp.generated.resources.home_peek_step_prev_car
 import paparcar.composeapp.generated.resources.home_parking_menu_delete
 import paparcar.composeapp.generated.resources.home_parking_menu_repark
 import paparcar.composeapp.generated.resources.home_release_dialog_cancel
+import paparcar.composeapp.generated.resources.home_det_awaiting_cta_secondary
 import paparcar.composeapp.generated.resources.home_vehicle_fallback_name
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -173,6 +175,29 @@ internal fun AddingParkingPeek(
                 isLoading = savingAsNewSession == false,
                 modifier = Modifier.fillMaxWidth(),
             )
+            // ⛔ «Estoy conduciendo» vive AQUÍ desde
+            // [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]. Estaba en la fila de
+            // arranque en frío de la superficie de detección, y esa fila se calla ahora que la card
+            // de cada coche hace la pregunta y trae su botón. La comprobación que decidió esto:
+            // `StartDrivingDetection` tenía **un solo** punto de entrada en toda la app, así que
+            // fusionar sin mudarlo habría borrado la palanca manual de armado en silencio.
+            //
+            // Y gana precisión al mudarse: aquí el coche es [targetVehicle], el que el usuario acaba
+            // de elegir. Allí se disparaba sobre «el activo, o el primero» — una suposición.
+            //
+            // ⛔ Solo al CREAR. Editando el pin de una sesión que ya existe, declarar que conduces no
+            // es una salida, es una contradicción.
+            if (!isEditing) {
+                Spacer(Modifier.height(8.dp))
+                PapFooterButton(
+                    label = stringResource(Res.string.home_det_awaiting_cta_secondary),
+                    leadingIcon = Icons.Rounded.DirectionsCar,
+                    onClick = { onIntent(HomeIntent.StartDrivingDetection(vehicleId = targetVehicle?.id)) },
+                    style = PapFooterButtonStyle.Outlined,
+                    enabled = !isSaving,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
             if (isEditing) {
                 Spacer(Modifier.height(8.dp))
                 // Same tool, different meaning: the pin was fine but the CAR actually moved → a

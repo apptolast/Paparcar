@@ -7,6 +7,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -63,6 +66,7 @@ import paparcar.composeapp.generated.resources.home_peek_parked_label
 import paparcar.composeapp.generated.resources.home_vehicle_card_parked_at
 import paparcar.composeapp.generated.resources.home_vehicle_card_parked_meta
 import paparcar.composeapp.generated.resources.home_vehicle_chip_mark_parking
+import paparcar.composeapp.generated.resources.home_det_awaiting_sub
 import paparcar.composeapp.generated.resources.home_det_monitoring
 import paparcar.composeapp.generated.resources.home_vehicle_chip_status_candidate
 import paparcar.composeapp.generated.resources.home_vehicle_chip_unmarked
@@ -273,12 +277,36 @@ internal fun HomeVehicleCard(
         // tap target — [VehicleIdentityHeader] already had the `statusLine` and `trailing` slots this
         // needed, so the discreet version is the component used as designed, not a second anatomy.
         // [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001] [UI-LIST-ITEM-001]
+        // LA BARRA DE ACENTO, ahora aqui: con la fila calmada de vigilancia apartada, esta card es
+        // la que cuenta el estado del coche, y lo cuenta como lo contaba aquella. Una franja del
+        // color de SU metodo de vigilancia (verde asistido, azul Bluetooth, gris sin vigilar): el
+        // estado se ve sin leer y sin tenir una palabra.
+        // [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001] [UI-COLOR-DOCTRINE-001]
+        //
+        // Una BARRA, no el borde entero de la card: el borde tenido se retiro en
+        // UI-ONE-SKELETON-ONE-EMPHASIS-ONE-GREEN-001 por competir con el CTA, y con razon. Una
+        // franja de 4 dp en el canto no compite con nada, y es la misma tinta que la superficie de
+        // deteccion usa para decir lo mismo.
+        Row(modifier = Modifier.height(IntrinsicSize.Min)) {
+            Box(
+                modifier = Modifier
+                    .width(ACCENT_BAR_DP.dp)
+                    .fillMaxHeight()
+                    .background(accent),
+            )
         VehicleIdentityHeader(
             vehicle = vehicle,
             isDriving = isDriving,
             // Home is glanceable — size lives on the Vehicles ficha, not here. [CARD-META-POLISH-001]
             showSize = false,
-            modifier = Modifier.padding(start = 14.dp, end = 12.dp, top = 12.dp, bottom = 12.dp),
+            // ⛔ Arriba y abajo el MISMO valor, escrito una vez. Estaban los dos a 12 dp y aun así la
+            // card se leia hundida: con la fila alineada arriba (`alignsWithFirstLine`), el tile
+            // arranca pegado al borde mientras la ultima linea de texto trae su descenso debajo, asi
+            // que 12 arriba se ven menos que 12 abajo. Subir el par empata lo que se VE, que es lo
+            // que se estaba mirando. [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = 14.dp, end = 12.dp, top = CARD_V_PAD_DP.dp, bottom = CARD_V_PAD_DP.dp),
             trailing = {
                 Icon(
                     imageVector = Icons.Rounded.ChevronRight,
@@ -337,36 +365,61 @@ internal fun HomeVehicleCard(
                             }
                         }
                         session != null -> {
-                            // Dos lineas, y la de arriba es la CALLE entera. Con las dos apretadas en
-                            // una sola, la meta (hora + distancia) se quedaba con el ancho y la
-                            // direccion se cortaba en "Route d..." — justo el dato por el que uno mira
-                            // la card. Una linea mas es mas barata que un nombre partido.
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = parkedTitle(session),
-                                    style = PaparcarType.current.caption,
-                                    color = cs.onSurface,
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                                Text(
-                                    text = parkedMeta(session, userLocation),
-                                    style = PaparcarType.current.caption,
-                                    color = cs.onSurfaceVariant,
-                                    maxLines = 1,
-                                )
-                            }
+                            // UNA frase: «Calle X · 6 min · 3 m». (user, 10-09) — dos líneas para
+                            // decir esto costaban altura en el bloque que más se mira.
+                            //
+                            // ⛔ Pero con `maxLines = 2`, no una. Estas dos líneas ya se probaron
+                            // fusionadas y se volvieron a separar porque la meta se quedaba el ancho
+                            // y la dirección se cortaba en «Route d…» — justo el dato por el que uno
+                            // mira la card. Envolver cuando no cabe ahorra la línea siempre que
+                            // sobre sitio, y no parte el nombre de la calle cuando no.
+                            //
+                            // El tono se mantiene DENTRO de la frase: la calle en `onSurface`, la
+                            // meta en `onSurfaceVariant`. Concatenar un String plano habría igualado
+                            // las dos, que es perder la jerarquía para ahorrar una línea.
+                            // [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
+                            val title = parkedTitle(session)
+                            val meta = parkedMeta(session, userLocation)
+                            Text(
+                                text = buildAnnotatedString {
+                                    withStyle(SpanStyle(color = cs.onSurface)) { append(title) }
+                                    withStyle(SpanStyle(color = cs.onSurfaceVariant)) {
+                                        append(" $META_SEPARATOR $meta")
+                                    }
+                                },
+                                style = PaparcarType.current.caption,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f),
+                            )
                         }
+                        // ⛔ La PREGUNTA, no la etiqueta. Decia «Mark parking» en verde, que es el
+                        // nombre del boton puesto donde va el estado; la fila de arranque en frio
+                        // decia lo mismo una card mas arriba. Ahora la card hace la pregunta y la
+                        // responde con su propio boton, y aquella fila se calla.
+                        // [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
                         else -> Text(
-                            text = stringResource(Res.string.home_vehicle_chip_mark_parking),
+                            text = stringResource(Res.string.home_det_awaiting_sub),
                             style = PaparcarType.current.caption,
-                            color = PapColor.actionText,
-                            maxLines = 1,
+                            color = cs.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     }
                 }
             },
         )
+        }
+        // ⛔ SIN boton. Lo tuvo un rato y se quito al mirarlo (user, 10-09): su `onClick` era la
+        // MISMA lambda que la de la card, o sea chrome que repetia el gesto de su propio contenedor.
+        //
+        // La fila que esta card sustituye si necesitaba boton, porque era un MENSAJE y a los mensajes
+        // no se les toca. Una card de coche es un objeto que se toca, y lo dice con su chevron.
+        //
+        // Y el momento en que un boton explicito si se gana el sitio —el primer aparcamiento de
+        // alguien que acaba de instalar— lo cubre el checklist con su paso `MARK_PARKING` y su CTA.
+        // [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
+        // [ONBOARDING-FIRST-STEPS-ARE-GUIDED-NOT-TOLD-001]
     }
 }
 
@@ -424,8 +477,17 @@ private fun parkedMeta(session: UserParking, userLocation: Pair<Double, Double>?
     else time
 }
 
+/** El punto medio que ya separa hora y distancia dentro de `home_vehicle_card_parked_meta`. */
+private const val META_SEPARATOR = "·"
+
 // Adaptive width bounds — card grows to fit "Toyota Corolla" without truncating, capped so a long
 // name never dominates the LazyRow. [HOME-CARDS-001]
+/** Aire vertical de la card, arriba y abajo. UN valor, para que no puedan divergir. */
+private const val CARD_V_PAD_DP = 14
+
+/** La franja de estado del canto: mismo grosor que la de la superficie de deteccion. */
+private const val ACCENT_BAR_DP = 4
+
 private const val CHIP_MIN_WIDTH_DP = 150
 private const val CHIP_MAX_WIDTH_DP = 200
 private const val CHIP_PADDING_DP = 10

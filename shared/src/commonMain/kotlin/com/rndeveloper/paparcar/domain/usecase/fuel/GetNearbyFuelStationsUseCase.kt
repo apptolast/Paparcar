@@ -40,6 +40,11 @@ data class NearbyFuelStations(
      * on the asking, and a remembered answer has no response to stamp.
      */
     val rememberedAtMs: Long? = null,
+    /**
+     * True when this country HAS a national feed and it could not answer, so these forecourts came
+     * from the worldwide fallback. [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
+     */
+    val didFallBack: Boolean = false,
 ) {
     /** True when at least one station could be priced — what tells the UI which sentence to say. */
     val hasPrices: Boolean get() = stations.any { it.price != null }
@@ -85,6 +90,11 @@ class GetNearbyFuelStationsUseCase(
             // communities working where the geocoder emits no province at all.
             // [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
             regionName = address?.province ?: address?.region,
+            // [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001] The town, because the
+            // line above can land on an autonomous community and no Spanish province is called
+            // «Andalucía». A source that needs a province can get one from the town; nothing can
+            // get one from a region that is not one.
+            cityName = address?.city,
             radiusMeters = radiusMeters,
         )
 
@@ -109,6 +119,10 @@ class GetNearbyFuelStationsUseCase(
                 // Carried through untouched: which stations are worth showing and when the app last
                 // managed to ask are unrelated questions.
                 rememberedAtMs = result.rememberedAtMs,
+                // Also carried through untouched, and it is the fact the lane's sentence turns on:
+                // whether the country's own feed answered, or whether these are just the forecourts.
+                // [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
+                didFallBack = result.didFallBack,
             )
         }
     }

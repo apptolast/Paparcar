@@ -409,8 +409,28 @@ private fun ActionRow(
         containerColor = cardColor,
         border = border,
     ) {
+        // ⛔ LA BARRA DE ACENTO VUELVE. Es el badge de estado que esta superficie llevaba desde que
+        // existe, y `b967323b` la perdió por el camino al pasar la card a `PapOutlinedCard` —
+        // aquel ticket iba a por los CINCO lenguajes de caja, y se llevó por delante el único que
+        // sí significaba algo. [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
+        //
+        // Lo que dice, y por lo que no es "una caja más": el color es `tone.accent`, o sea la
+        // identidad de vigilancia del coche (verde asistido, azul Bluetooth) o el rojo del bloqueo.
+        // Sin ella la card entera queda en gris y hay que LEERLA para saber si algo va mal; con
+        // ella el estado se ve de un vistazo sin teñir una sola palabra — que es exactamente lo que
+        // pide la doctrina de color. [UI-COLOR-DOCTRINE-001]
+        //
+        // ⛔ Va FUERA del `PapListItem`, no dentro: la fila sigue siendo el esqueleto canónico
+        // (tile · título · sublínea · trailing) y la barra es cromo de la CARD. [UI-LIST-ITEM-001]
+        Row(modifier = Modifier.height(IntrinsicSize.Min)) {
+            Box(
+                modifier = Modifier
+                    .width(ACCENT_BAR_DP.dp)
+                    .fillMaxHeight()
+                    .background(tone.accent),
+            )
         Column(
-            modifier = Modifier.padding(bottom = CONTENT_VERTICAL_DP.dp),
+            modifier = Modifier.weight(1f).padding(bottom = CONTENT_VERTICAL_DP.dp),
             verticalArrangement = Arrangement.spacedBy(CTA_ROW_GAP_DP.dp),
         ) {
             // La MISMA fila que las plazas, las gasolineras y los parkings: tile - titulo - sublinea
@@ -444,13 +464,22 @@ private fun ActionRow(
                     null
                 },
             )
+            // ⛔ Esta columna SOLO existe si hay algo que apilar. Se emitia siempre, y con ella el
+            // `spacedBy` del padre metia su hueco entre la fila y una columna VACIA: sumado al
+            // padding inferior, la card de «vigilando» llevaba ~24 dp abajo contra 12 arriba y se
+            // leia descentrada. Un contenedor vacio no ocupa nada, pero el ESPACIO entre hermanos si.
+            // [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
+            val stacksSomething = (primaryLabel != null && primaryStacksBelow) ||
+                (secondaryLabel != null && primaryLabel != null)
+            if (stacksSomething) {
             Column(
                 modifier = Modifier.padding(horizontal = CONTENT_START_DP.dp),
                 verticalArrangement = Arrangement.spacedBy(CTA_ROW_GAP_DP.dp),
             ) {
                 // Single CTA stacked full-width below: title + subtitle got the full row width above.
                 // For the alert watch rows (fragile / interrupted). [DET-WATCH-HONEST-001]
-                if (secondaryLabel == null && primaryLabel != null && primaryStacksBelow) {
+                // `primaryLabel != null` lo garantiza ya el guard de arriba — el compilador lo dice.
+                if (secondaryLabel == null && primaryStacksBelow) {
                     CtaPill(
                         label = primaryLabel,
                         container = if (tone.isError) tone.accent else tone.container,
@@ -461,7 +490,7 @@ private fun ActionRow(
                     )
                 }
                 // Only the two-CTA cold-start stacks its actions full-width below (both need room).
-                if (secondaryLabel != null && primaryLabel != null) {
+                if (secondaryLabel != null) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(CONTENT_GAP_SM_DP.dp),
@@ -495,15 +524,19 @@ private fun ActionRow(
                     }
                 }
             }
+            }
+        }
         }
     }
 }
 
 @Composable
 private fun IconTile(icon: ImageVector, tone: Tone) {
-    // Con la barra de acento retirada, el tono de la fila vive AQUI y en el CTA: dos sitios, no
-    // tres. Error = relleno (fuerte); el resto, un tinte ligero del mismo acento. Tamano y radio los
-    // pone el tile canonico. [UI-LIST-ITEM-001]
+    // ⛔ Este comentario decia «con la barra de acento retirada...» y la barra VOLVIO
+    // [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]. El tono vive ahora en TRES
+    // sitios que dicen lo mismo a distinta distancia: la barra (de un vistazo), este tile (al mirar
+    // la fila) y el CTA (al ir a tocarlo). Error = relleno (fuerte); el resto, un tinte ligero del
+    // mismo acento. Tamano y radio los pone el tile canonico. [UI-LIST-ITEM-001]
     PapIconTile(
         icon = icon,
         container = if (tone.isError) tone.accent else tone.accent.copy(alpha = TILE_TINT_ALPHA),

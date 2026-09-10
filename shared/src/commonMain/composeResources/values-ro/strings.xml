@@ -374,6 +374,11 @@
     <!-- Sheet section headers + permisiuni -->
     <!-- No numeral in front of it: Romanian only needs "de" after a figure, so few and other
          coincide here. Both are declared — the runtime picks by category, not by wording. -->
+    <plurals name="home_vehicles_section_header">
+        <item quantity="one">Vehiculul tău</item>
+        <item quantity="few">Vehiculele tale</item>
+        <item quantity="other">Vehiculele tale</item>
+    </plurals>
     <string name="home_vehicle_fallback_name">Vehicul</string>
 
     <!-- ParkingPeekRow (card vehicul selectat) -->
@@ -852,6 +857,8 @@
     <string name="fuel_peek_step_next">Benzinăria următoare</string>
     <string name="home_fuel_error">Nu am putut încărca benzinăriile. Verifică conexiunea și deschide din nou.</string>
     <string name="home_fuel_no_prices">În această țară prețurile nu sunt publicate. Acestea sunt benzinăriile din apropiere.</string>
+    <!-- [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001] Fallback, not a verdict about the country -->
+    <string name="home_fuel_prices_unavailable">Prețurile oficiale nu s-au încărcat. Acestea sunt benzinăriile din apropiere; încearcă din nou într-un moment.</string>
     <string name="home_fuel_reported_at">Prețuri raportate la %1$s</string>
     <string name="home_fuel_oldest_price">Cel mai vechi preț: %1$s</string>
     <string name="home_fuel_remembered">Fără conexiune: acestea sunt benzinăriile văzute aici %1$s.</string>

@@ -258,6 +258,7 @@ fun HomePeekHandle(
                         // to pick a word or a figure.
                         nearbyLens = slice.nearbyLens,
                         laneCount = slice.laneCount,
+                        laneLoading = slice.laneLoading,
                     )
                 }
             }

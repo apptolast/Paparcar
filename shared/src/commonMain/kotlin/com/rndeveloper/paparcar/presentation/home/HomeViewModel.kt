@@ -809,6 +809,7 @@ class HomeViewModel(
                                 stations = nearby.stations,
                                 reportedAt = nearby.reportedAt,
                                 rememberedAtMs = nearby.rememberedAtMs,
+                                didFallBack = nearby.didFallBack,
                                 fetchedFor = nearby.fuel,
                             ),
                             // El mapa lee TAMBIÉN esta respuesta (el slice del mapa une las dos

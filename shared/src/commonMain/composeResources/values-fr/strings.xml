@@ -370,6 +370,10 @@
     <string name="home_header_add_zone_dismiss_cd">Ignorer</string>
 
     <!-- Sheet section headers + permissions -->
+    <plurals name="home_vehicles_section_header">
+        <item quantity="one">Ton véhicule</item>
+        <item quantity="other">Tes véhicules</item>
+    </plurals>
     <string name="home_vehicle_fallback_name">Véhicule</string>
 
     <!-- ParkingPeekRow (hero card du véhicule sélectionné) -->
@@ -839,6 +843,8 @@
     <string name="fuel_peek_step_next">Station suivante</string>
     <string name="home_fuel_error">Impossible de charger les stations. Vérifie ta connexion et rouvre cette section.</string>
     <string name="home_fuel_no_prices">Les prix ne sont pas publiés dans ce pays. Voici les stations à proximité.</string>
+    <!-- [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001] Fallback, not a verdict about the country -->
+    <string name="home_fuel_prices_unavailable">Les prix officiels ne se sont pas chargés. Voici les stations à proximité ; réessayez dans un instant.</string>
     <string name="home_fuel_reported_at">Prix communiqués à %1$s</string>
     <string name="home_fuel_oldest_price">Prix le plus ancien : %1$s</string>
     <string name="home_fuel_remembered">Pas de connexion : voici les stations vues ici %1$s.</string>

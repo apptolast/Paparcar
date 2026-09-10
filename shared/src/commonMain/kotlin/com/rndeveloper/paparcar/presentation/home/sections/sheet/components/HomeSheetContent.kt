@@ -53,6 +53,7 @@ import com.rndeveloper.paparcar.ui.components.PapSectionHeader
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.home_vehicles_section_header
 import paparcar.composeapp.generated.resources.home_size_filter_all
 import paparcar.composeapp.generated.resources.vehicle_size_large
 import paparcar.composeapp.generated.resources.vehicle_size_medium
@@ -214,6 +215,10 @@ fun LazyListScope.homeSheetItems(
         // checklist nobody can see owns nothing.
         // [ONBOARDING-STEPS-MUST-EXPLAIN-WHAT-REALLY-HAPPENS-001]
         firstStepsOwns = if (showFirstSteps) firstSteps.owns else FirstStepsOwnership.NOTHING,
+        // Mismo trato que el checklist: si la tira de coches está en pantalla, ella cuenta la
+        // vigilancia sana y esta superficie no la repite.
+        // [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
+        carCardSaysTheWatch = showPersonalBlocks,
     )
     // ── 1. La VIGILANCIA — lo que está pasando con tu coche ahora mismo ────────────────────────
     // The ONE voice for "what is detection doing right now": loud action rows + discreet happy
@@ -281,12 +286,27 @@ fun LazyListScope.homeSheetItems(
     // con la que se abre Home, y un aviso sobre el coche vigilado no puede llegar después del índice
     // que lo lista. [HOME-THE-WATCH-COMES-FIRST-AND-THE-HEADER-FOLLOWS-THE-LANE-001]
     //
-    // ⛔ Sin cabecera de sección, con uno o con cinco coches. La tenía a partir de dos, y el
-    // razonamiento se quedó a medias: la card lleva su nombre — pero es que la TIRA también lo lleva,
-    // en cada card. El rótulo repetía en mayúsculas lo que ya se lee y empujaba el carril hacia abajo.
-    // Sus plurals `home_vehicles_section_header` se retiran de los nueve locales con él: una key sin
-    // lector la caza `LocaleParityGuardrailTest`.
+    // ⛔ CON cabecera de sección, y SIEMPRE — con uno o con cinco coches (user, 10-09, en device).
+    //
+    // Salía solo a partir de dos, se quitó del todo por repetir en mayúsculas lo que cada card ya
+    // dice, y se vuelve a poner porque en mano hace otro trabajo del que se le atribuía: no nombra
+    // los coches, SEPARA dos bloques que se estaban leyendo como uno. La superficie de vigilancia
+    // que va encima es una noticia; esto es un índice — y sin nada que lo diga, el ojo bajaba de una
+    // card a otra sin saber que había cambiado de tema.
+    // [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
+    //
+    // Singular y plural por `plurals`, así que con un coche dice «Tu vehículo» y no la fórmula en
+    // plural que delata a una app traducida a medias.
     if (showPersonalBlocks) {
+        item("vehicles_header") {
+            PapSectionHeader(
+                title = pluralStringResource(
+                    Res.plurals.home_vehicles_section_header,
+                    vehicleCards.size,
+                ),
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
+            )
+        }
         vehiclesSection(slice, vehicleCards, onIntent, onAction)
     }
 
@@ -295,6 +315,14 @@ fun LazyListScope.homeSheetItems(
     // Blocked·CORE surface above is already the single "turn on location" prompt — no need for the
     // old HomePermissionsCard duplicating it. [DET-READY-001i]
     if (slice.hasCorePermissions) {
+        // ⛔ El corte entre LO MIO y LO DE AQUI. Sin el, la tira de coches y la fila de pestanas se
+        // tocaban y el sheet se leia como una sola lista larga: el bloque fijo dejaba de parecer un
+        // bloque. Es un divisor y aire, no una cabecera — nombrar esta frontera con un rotulo seria
+        // volver a poner un titulo que ya sobraba.
+        // [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
+        item("mine_lane_split") {
+            PapDivider(modifier = Modifier.padding(top = BLOCK_GAP_DP.dp, bottom = 0.dp))
+        }
         nearbyLane(
             slice = slice,
             onIntent = onIntent,
@@ -304,6 +332,10 @@ fun LazyListScope.homeSheetItems(
         )
     }
 }
+
+/** El aire entre el bloque de lo MIO y el carril. Un solo valor, para que los dos lados respiren
+ *  igual. [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001] */
+private const val BLOCK_GAP_DP = 16
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Sections

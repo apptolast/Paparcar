@@ -6,6 +6,10 @@
     <!-- Unidad del contador del PapSheet. [UI-SHEET-001] -->
     <string name="home_counter_unit_free">libres</string>
     <!-- Header de la sección "Tus vehículos" en el sheet; singular/plural según nº de vehículos. [MULTI-PARKING-001] [HOME-CARDS-001] -->
+    <plurals name="home_vehicles_section_header">
+        <item quantity="one">Tu vehículo</item>
+        <item quantity="other">Tus vehículos</item>
+    </plurals>
     <!-- Subtítulo en la fila por vehículo cuando no hay sesión activa. -->
     <!-- Fallback de nombre cuando el vehículo no tiene name/brand/model. -->
     <string name="home_vehicle_fallback_name">Vehículo</string>
@@ -834,6 +838,8 @@
     <string name="fuel_peek_step_next">Gasolinera siguiente</string>
     <string name="home_fuel_error">No hemos podido cargar las gasolineras. Comprueba la conexión y vuelve a abrir esto.</string>
     <string name="home_fuel_no_prices">En este país no se publican los precios. Estas son las gasolineras cercanas.</string>
+    <!-- [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001] Fallback, not a verdict about the country -->
+    <string name="home_fuel_prices_unavailable">Los precios oficiales no han cargado. Estas son las gasolineras cercanas; vuelve a intentarlo en un momento.</string>
     <string name="home_fuel_reported_at">Precios comunicados a las %1$s</string>
     <string name="home_fuel_oldest_price">Precio más antiguo: %1$s</string>
     <string name="home_fuel_remembered">Sin conexión: estas son las gasolineras que vimos aquí %1$s.</string>

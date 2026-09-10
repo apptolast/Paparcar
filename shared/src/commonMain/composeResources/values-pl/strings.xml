@@ -372,6 +372,12 @@
     <!-- Sheet section headers + uprawnienia -->
     <!-- No numeral in front of it, so Polish uses the nominative plural and few/many/other coincide.
          They are still declared: the runtime picks by category, not by whether the forms differ. -->
+    <plurals name="home_vehicles_section_header">
+        <item quantity="one">Twój pojazd</item>
+        <item quantity="few">Twoje pojazdy</item>
+        <item quantity="many">Twoje pojazdy</item>
+        <item quantity="other">Twoje pojazdy</item>
+    </plurals>
     <string name="home_vehicle_fallback_name">Pojazd</string>
 
     <!-- ParkingPeekRow (karta wybranego pojazdu) -->
@@ -851,6 +857,8 @@
     <string name="fuel_peek_step_next">Następna stacja</string>
     <string name="home_fuel_error">Nie udało się wczytać stacji. Sprawdź połączenie i otwórz to ponownie.</string>
     <string name="home_fuel_no_prices">W tym kraju ceny nie są publikowane. Oto stacje w pobliżu.</string>
+    <!-- [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001] Fallback, not a verdict about the country -->
+    <string name="home_fuel_prices_unavailable">Oficjalne ceny się nie wczytały. To są stacje w pobliżu; spróbuj ponownie za chwilę.</string>
     <string name="home_fuel_reported_at">Ceny zgłoszone o %1$s</string>
     <string name="home_fuel_oldest_price">Najstarsza cena: %1$s</string>
     <string name="home_fuel_remembered">Brak połączenia: to stacje, które widzieliśmy tutaj %1$s.</string>

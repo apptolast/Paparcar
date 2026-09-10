@@ -16,6 +16,15 @@ data class FuelStationsQuery(
     val countryCode: String,
     /** Province/region as a geocoder wrote it. Null is normal; only some sources need it. */
     val regionName: String? = null,
+    /**
+     * TOWN as a geocoder wrote it. [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
+     *
+     * It travels beside [regionName] because it is the half that is actually THERE: a phone in El
+     * Puerto de Santa María reported its region as «Andalucía» — the autonomous community — and
+     * Spain's feed, which is keyed by province, could not be asked at all. The town is what the
+     * peek prints under the street, so if there is an address there is a town.
+     */
+    val cityName: String? = null,
     val radiusMeters: Int = DEFAULT_RADIUS_METERS,
 ) {
     companion object {
@@ -97,6 +106,18 @@ data class FuelStationsResult(
      * truncated OSM answer promise a ring it never looked at.
      */
     val isTruncated: Boolean = false,
+    /**
+     * True when a NATIONAL feed existed for this country and could not answer, so what follows came
+     * from the worldwide fallback — forecourts, no prices.
+     * [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
+     *
+     * ⛔ Not the same question as «are there prices?». A country with no national feed has no prices
+     * and that IS the answer; a country with one that failed has prices we did not manage to fetch.
+     * The lane said the first while the second was happening, which reads as the app calling Spain a
+     * country without published fuel prices. Only the registry knows which of the two occurred, so
+     * the fact rides out from there. [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
+     */
+    val didFallBack: Boolean = false,
     /**
      * Null when this was just fetched; otherwise when the app last actually managed to ask about
      * this area. [CACHE-A-MAP-MUST-NOT-EMPTY-ON-COLD-START-001]

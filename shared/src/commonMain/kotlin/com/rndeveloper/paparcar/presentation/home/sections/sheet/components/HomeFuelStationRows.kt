@@ -18,6 +18,7 @@ import com.rndeveloper.paparcar.ui.components.PapDivider
 import com.rndeveloper.paparcar.ui.components.PapIconTile
 import com.rndeveloper.paparcar.ui.components.PapListItem
 import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
+import com.rndeveloper.paparcar.ui.theme.PapColor
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -56,7 +57,15 @@ fun HomeFuelStationRow(
         titleMaxLines = 1,
         subtitle = subtitleFor(station, title),
         subtitleMaxLines = 1,
-        leading = { PapIconTile(icon = PaparcarIcons.Fuel) },
+        leading = {
+            // ⛔ VERDE, no neutro (user, 10-09, viéndolo en el Oppo). El barrido de
+            // `UI-A-NEUTRAL-TILE-MUST-NOT-MUTE-AN-ACTION-001` dejó neutro todo tile que ETIQUETA su
+            // fila, y por regla esto lo es. En mano la conclusión fue otra: una lista entera de
+            // glifos grises no se lee como «esto es una etiqueta», se lee como una lista apagada.
+            // El verde aquí no compite con ninguna acción — en estas filas no hay ninguna.
+            // [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
+            PapIconTile(icon = PaparcarIcons.Fuel, tint = PapColor.actionText)
+        },
         trailing = station.price?.let { price -> { FuelPriceLabel(price.perUnit) } },
     )
 }

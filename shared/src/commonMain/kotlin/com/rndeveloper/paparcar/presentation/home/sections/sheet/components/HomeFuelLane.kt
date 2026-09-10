@@ -22,6 +22,7 @@ import paparcar.composeapp.generated.resources.home_fuel_empty
 import paparcar.composeapp.generated.resources.home_fuel_error
 import paparcar.composeapp.generated.resources.home_fuel_missing_fuel_type
 import paparcar.composeapp.generated.resources.home_fuel_no_prices
+import paparcar.composeapp.generated.resources.home_fuel_prices_unavailable
 import paparcar.composeapp.generated.resources.home_fuel_oldest_price
 import paparcar.composeapp.generated.resources.home_fuel_remembered
 import paparcar.composeapp.generated.resources.home_fuel_reported_at
@@ -77,7 +78,21 @@ fun HomeFuelLane(
                 // Said BEFORE the rows where a country publishes no prices, so nobody reads a
                 // nameless column of distances as "the prices failed to load".
                 if (!slice.hasPrices) {
-                    LaneNote(stringResource(Res.string.home_fuel_no_prices))
+                    // ⛔ DOS frases, no una. «Este país no publica precios» es verdad donde no hay
+                    // feed nacional; donde SÍ lo hay y no contestó, lo verdadero es que no pudimos
+                    // traerlos. Decir la primera por la segunda le contaba al usuario que España no
+                    // publica precios de carburante mientras el Ministerio los servía para su misma
+                    // calle. [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
+                    // [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
+                    LaneNote(
+                        stringResource(
+                            if (slice.didFallBack) {
+                                Res.string.home_fuel_prices_unavailable
+                            } else {
+                                Res.string.home_fuel_no_prices
+                            },
+                        ),
+                    )
                 }
                 HomeFuelStationRows(
                     stations = slice.stations,

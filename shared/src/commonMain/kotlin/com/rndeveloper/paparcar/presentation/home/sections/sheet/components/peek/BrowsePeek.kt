@@ -90,6 +90,8 @@ internal fun BrowsePeek(
     nearbyLens: HomeNearbyLens,
     /** How many of that subject, or null when its lane has not been asked yet. */
     laneCount: Int?,
+    /** Su carril está preguntando: la cápsula late. */
+    laneLoading: Boolean,
 ) {
     // ── Subject = the car being driven RIGHT NOW (monitored trip) ─────────────
     // Collapsed peek only. A live trip OUTRANKS any parked car — the vehicle being actively
@@ -257,6 +259,7 @@ internal fun BrowsePeek(
         } else {
             PapSheetLead.NearbyCounter(
                 count = laneCount,
+                isLoading = laneLoading,
                 icon = when (nearbyLens) {
                     HomeNearbyLens.PARKINGS -> PaparcarIcons.CarParkMark
                     else -> PaparcarIcons.FuelPumpMark

@@ -30,6 +30,7 @@ import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
@@ -61,6 +62,7 @@ import com.rndeveloper.paparcar.ui.theme.PapFonts
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import com.rndeveloper.paparcar.ui.theme.figureOpticalLiftSp
 import com.rndeveloper.paparcar.ui.theme.greenOutline
+import com.rndeveloper.paparcar.ui.components.PapShimmerBlockScale
 import com.rndeveloper.paparcar.ui.theme.PapColor
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -344,7 +346,13 @@ internal sealed interface PapSheetLead {
      * spots are the product; handing the same tile to a complement spends the one accent this
      * screen just finished rationing. [UI-ONE-SKELETON-ONE-EMPHASIS-ONE-GREEN-001]
      */
-    data class NearbyCounter(val count: Int?, val icon: ImageVector) : PapSheetLead
+    data class NearbyCounter(
+        val count: Int?,
+        val icon: ImageVector,
+        /** El carril está preguntando ahora mismo: la cápsula late en vez de enseñar una cifra vieja
+         *  o un hueco. [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001] */
+        val isLoading: Boolean = false,
+    ) : PapSheetLead
 
     /** Generic escape (AddingZone's picked icon). */
     data class GenericIcon(val icon: ImageVector) : PapSheetLead
@@ -443,13 +451,38 @@ private fun PapSheetLeadTile(lead: PapSheetLead) {
             }
         }
 
-        is PapSheetLead.NearbyCounter -> LeadTileBox(container = cs.surfaceContainerHighest) {
+        is PapSheetLead.NearbyCounter -> run {
+            // La cifra del sujeto que estás mirando va en verde, como su pestaña: esta cápsula
+            // SIEMPRE habla del carril activo, así que sigue habiendo un solo verde en pantalla.
+            // Sin cifra no hay nada que destacar — la marca a secas se queda neutra.
+            // [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
             val count = lead.count
+            // La misma regla que la cápsula de plazas, dicha una vez: **hay algo → verde; cero o
+            // nada que contar → neutro**. Un cero no es una advertencia ni un logro, es un hecho
+            // tranquilo. [UI-ONE-SKELETON-ONE-EMPHASIS-ONE-GREEN-001]
+            val hasAny = (count ?: 0) > 0
+            val accent = if (hasAny) PapColor.brandData else cs.onSurfaceVariant
+            if (lead.isLoading) {
+                // ⛔ El latido ES la cápsula, no algo DENTRO de ella. Con el shimmer metido en un
+                // rectangulito centrado se leían DOS cosas — una caja quieta con algo moviéndose
+                // dentro — y lo que está esperando es el contador entero. Misma huella (el tile
+                // canónico) y mismo radio, así que al llegar la cifra nada salta de sitio.
+                // [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
+                PapShimmerBox(
+                    modifier = Modifier.size(LEAD_TILE_DP.dp),
+                    shape = PapShapes.card,
+                    alphaScale = PapShimmerBlockScale,
+                )
+                return@run
+            }
+            LeadTileBox(
+                container = if (hasAny) cs.primaryContainer else cs.surfaceContainerHighest,
+            ) {
             if (count != null) {
                 Text(
                     text = "$count",
                     style = PaparcarType.current.counter,
-                    color = cs.onSurfaceVariant,
+                    color = accent,
                     maxLines = 1,
                 )
             } else {
@@ -457,9 +490,10 @@ private fun PapSheetLeadTile(lead: PapSheetLead) {
                 Icon(
                     imageVector = lead.icon,
                     contentDescription = null,
-                    tint = cs.onSurfaceVariant,
+                    tint = accent,
                     modifier = Modifier.size(LEAD_ICON_DP.dp),
                 )
+            }
             }
         }
 
@@ -665,6 +699,11 @@ private const val STEPPER_TO_DISMISS_GAP_DP = 10
 private const val SWIPE_TRIGGER_DP = 64
 
 // Component dimensions (not spacing tokens — they belong to this molde).
+/** El latido del contador mientras su carril pregunta: ancho de dos cifras, alto de la cifra. */
+private const val COUNTER_SHIMMER_W_DP = 26
+private const val COUNTER_SHIMMER_H_DP = 20
+private const val COUNTER_SHIMMER_RADIUS_DP = 5
+
 private const val LEAD_TILE_DP = 46
 private const val LEAD_GLYPH_DP = 38
 private const val LEAD_ICON_DP = 24

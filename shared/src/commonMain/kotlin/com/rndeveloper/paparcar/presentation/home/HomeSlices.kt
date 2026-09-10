@@ -163,6 +163,9 @@ data class HomePeekSlice(
      * Free spots are never null: they are a standing subscription, not an ask.
      */
     val laneCount: Int?,
+    /** El carril está preguntando ahora mismo — la cápsula late en vez de enseñar un hueco.
+     *  [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001] */
+    val laneLoading: Boolean,
     val nearbySpots: List<Spot>,
     /** Ids of the spots the peek's ‹ / › stepper walks, in the ORDER the sheet lists them
      *  ([HomeState.filteredNearbySpots]) — not raw [nearbySpots], which still carries the
@@ -500,6 +503,12 @@ fun HomeState.toPeekSlice(): HomePeekSlice {
         // "Asked yet?" is answered by the ANCHOR the slice already keeps — the centre its answer is
         // about. No new flag: a lane with no anchor is a lane nobody has entered.
         // [A-SECTION-ANSWERS-ABOUT-WHERE-YOU-LOOK-001]
+        // Las plazas NUNCA cargan: son una suscripción viva, no una pregunta.
+        laneLoading = when (nearbyLens) {
+            HomeNearbyLens.SPOTS -> false
+            HomeNearbyLens.PARKINGS -> parkings.isLoading
+            HomeNearbyLens.FUEL -> fuel.isLoading
+        },
         laneCount = when (nearbyLens) {
             HomeNearbyLens.SPOTS -> browsable.size
             HomeNearbyLens.PARKINGS -> parkings.parkings.size.takeIf { parkings.anchorLat != null }
