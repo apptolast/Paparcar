@@ -43,7 +43,7 @@ import com.rndeveloper.paparcar.presentation.home.model.HomeFuelSlice
 // the projections that need them.
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** What the floating header (search bar, map-type picker, zone chips, GPS banner) sees. */
+/** What the floating header (search bar, map-type picker, zone chips) sees. */
 @Immutable
 data class HomeHeaderSlice(
     val searchQuery: String,
@@ -54,13 +54,11 @@ data class HomeHeaderSlice(
     val mapType: MapType,
     val hasCorePermissions: Boolean,
     val zones: List<Zone>,
-    /** Accuracy of the last GPS fix (metres) — drives the low-accuracy banner. */
-    val gpsAccuracy: Float?,
 )
 
-/** What the right-side camera FAB column sees — visibility booleans plus the
- *  identity of the session it currently points at; the tap actions read live
- *  coordinates via lambdas owned by HomeContent. */
+/** What the map's FAB band sees — the camera column on the end edge plus the GPS pill on the start
+ *  edge: visibility booleans and the identity of the session the column currently points at; the
+ *  tap actions read live coordinates via lambdas owned by HomeContent. */
 @Immutable
 data class HomeFabsSlice(
     val hasActiveParking: Boolean,
@@ -79,6 +77,11 @@ data class HomeFabsSlice(
     /** Whether the fuel-stations layer is on — its toggle FAB shows the state.
      *  [FUEL-STATIONS-MAP-AND-PEEK-001] */
     val showFuelStationsLayer: Boolean,
+    /** Accuracy of the last GPS fix (metres) — the pill on the band's start edge speaks when it is
+     *  too coarse to trust. It rides in THIS slice, not the header's, because the band is where it
+     *  is drawn and the band's visibility is the one it must follow: the header hides for every pin
+     *  mode, which is when the warning matters most. [UI-A-WARNING-COSTS-NOTHING-WHEN-SILENT-001] */
+    val gpsAccuracy: Float?,
 )
 
 /** What the map tile layer sees. [addParkingVehicle] is the vehicle being
@@ -361,7 +364,6 @@ internal fun HomeState.toHeaderSlice() = HomeHeaderSlice(
     mapType = mapType,
     hasCorePermissions = hasCorePermissions,
     zones = zones,
-    gpsAccuracy = userGpsPoint?.accuracy,
 )
 
 internal fun HomeState.toFabsSlice() = HomeFabsSlice(
@@ -378,6 +380,7 @@ internal fun HomeState.toFabsSlice() = HomeFabsSlice(
             ?: VehicleMonitoringStatus.Inactive
     },
     showFuelStationsLayer = showFuelStationsLayer,
+    gpsAccuracy = userGpsPoint?.accuracy,
 )
 
 internal fun HomeState.toMapSlice() = HomeMapSlice(

@@ -59,7 +59,7 @@ import com.rndeveloper.paparcar.domain.model.SearchResult
 import com.rndeveloper.paparcar.presentation.home.HomeMode
 import com.rndeveloper.paparcar.presentation.home.HomeSelection
 import com.rndeveloper.paparcar.presentation.home.HomeState
-import com.rndeveloper.paparcar.presentation.home.sections.header.components.HomeGpsAccuracyBanner
+import com.rndeveloper.paparcar.presentation.home.sections.map.components.HomeGpsAccuracyPill
 import com.rndeveloper.paparcar.presentation.home.sections.header.components.HomeSearchBar
 import com.rndeveloper.paparcar.presentation.home.model.DetectionStory
 import com.rndeveloper.paparcar.presentation.home.model.ParkedWatchBadge
@@ -652,20 +652,20 @@ private fun markersShowcase() {
                 onDismiss = { inviteExpanded = false },
             )
         }
-        // La cápsula de precisión vive en la cabecera, bajo estos chips, y solo sale con una
-        // posición mala de verdad: en device puede pasar semanas sin verse, que es justo por qué
-        // llevaba tanto tiempo sin que nadie la pusiera al lado de sus vecinas. Aquí están sus dos
-        // niveles y su entrada. [UI-HEADER-PILLS-SHARE-ONE-GEOMETRY-001]
-        MarkerSectionLabel("Precisión GPS — media (30 m) · mala (120 m)")
+        // La cápsula de precisión ya NO vive en la cabecera: está abajo a la izquierda, en la banda
+        // de los FABs, y solo habla cuando el fix es malo de verdad (> 50 m). En device puede pasar
+        // semanas sin verse, que es justo por qué llevaba tanto tiempo sin que nadie la mirara.
+        // Aquí está su único nivel y su entrada. [UI-A-WARNING-COSTS-NOTHING-WHEN-SILENT-001]
+        MarkerSectionLabel("Precisión GPS — 30 m no dice nada · 120 m avisa")
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            HomeGpsAccuracyBanner(accuracy = 30f)
-            HomeGpsAccuracyBanner(accuracy = 120f)
+            HomeGpsAccuracyPill(accuracy = 30f)
+            HomeGpsAccuracyPill(accuracy = 120f)
         }
         MarkerSectionLabel("Precisión GPS — pulsa para verla entrar y salir por la izquierda")
         var gpsDegraded by remember { mutableStateOf(true) }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             TextButton(onClick = { gpsDegraded = !gpsDegraded }) { Text("Alternar") }
-            HomeGpsAccuracyBanner(accuracy = if (gpsDegraded) 120f else 8f)
+            HomeGpsAccuracyPill(accuracy = if (gpsDegraded) 120f else 8f)
         }
         MarkerSectionLabel("Pin central · Report (reposo · elevado)")
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(24.dp)) {

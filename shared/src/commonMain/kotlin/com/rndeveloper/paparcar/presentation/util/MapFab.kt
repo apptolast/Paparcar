@@ -24,6 +24,19 @@ import com.rndeveloper.paparcar.ui.components.GlassSurface
 const val MAP_FLOATING_SHADOW_DP = 6
 
 /**
+ * THE side inset of everything that floats over the map: the header's search row and zone chips at
+ * the top, and the FAB band's two lanes at the bottom (the GPS pill on the start edge, the camera
+ * column on the end edge).
+ *
+ * It lived as three literal `14`s that happened to agree until
+ * [UI-HEADER-PILLS-SHARE-ONE-GEOMETRY-001] pulled the header's three into one constant — and then
+ * the bottom band's own `14`s made it a coincidence again from the other corner. A margin that
+ * lines up four surfaces across two corners of the same screen is one number, in one place.
+ * [UI-A-WARNING-COSTS-NOTHING-WHEN-SILENT-001]
+ */
+const val MAP_FLOATING_SIDE_INSET_DP = 14
+
+/**
  * Shared circular map FAB. Its live consumers are Home's `HomeMapFabColumn` + `MapTypeToggle` and the
  * history detail map's `MapControlButtons`.
  *

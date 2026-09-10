@@ -46,6 +46,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -61,6 +62,7 @@ import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.displayName
 import com.rndeveloper.paparcar.presentation.home.sections.header.HomeHeaderSection
 import com.rndeveloper.paparcar.presentation.home.sections.map.HomeMapFabsLayer
+import com.rndeveloper.paparcar.presentation.home.sections.map.HomeMapGpsLane
 import com.rndeveloper.paparcar.presentation.home.sections.map.HomeMapSection
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.HomeBottomSheet
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.HomeSheetAction
@@ -542,6 +544,30 @@ private fun HomeContent(
                 val mapBleedPx = with(density) { MAP_BOTTOM_BLEED.toPx() }
                 val fabGapPx = with(density) { FAB_ABOVE_SHEET_GAP.toPx() }
 
+                // The FLOOR of the FAB band — the y its two lanes stand on: the camera column at
+                // the end edge and the GPS pill at the start edge. Both ride above the sheet edge
+                // from peek up to the first expand (half), where they're still visible; past half
+                // they clamp so they don't fly off-screen while fading out toward the deeper
+                // expanded. [HOME-SNAP-001]
+                //
+                // ONE lambda, read by both lanes in the layout phase (so dragging never recomposes
+                // either subtree). It is shared rather than copied because the moment there are two
+                // copies of this arithmetic, the left lane and the right lane can disagree about
+                // where the floor is — and the sheet moves under them 60 times a second.
+                // [UI-A-WARNING-COSTS-NOTHING-WHEN-SILENT-001]
+                val fabBandOffset: Density.() -> IntOffset = remember(
+                    positioning, fabGapPx, rawContainerHeightPx, sheetOffsetPx,
+                ) {
+                    {
+                        val sheetH = (rawContainerHeightPx - sheetOffsetPx.value)
+                            .coerceAtLeast(0f)
+                        val halfH = (rawContainerHeightPx - positioning.halfOffsetPx)
+                            .coerceAtLeast(0f)
+                        val base = if (sheetOffsetPx.value >= positioning.halfOffsetPx) sheetH else halfH
+                        IntOffset(0, -(base + fabGapPx).roundToInt())
+                    }
+                }
+
                 val dragSnap = remember(positioning) { HomeSheetSnap(positioning) }
 
                 // O(1) spot lookup keyed by nearbySpots reference equality.
@@ -735,7 +761,19 @@ private fun HomeContent(
                         .statusBarsPadding(),
                 )
 
-                // ── Right FAB column (utilities) ─────────────────────────────
+                // ── FAB band · start-edge lane: the GPS warning ──────────────
+                // Same floor and same gate as the column opposite it. Silent — and taking no
+                // space at all — while the fix is good enough to park on, which is nearly always.
+                // [UI-A-WARNING-COSTS-NOTHING-WHEN-SILENT-001]
+                HomeMapGpsLane(
+                    accuracy = fabsSlice.gpsAccuracy,
+                    visible = fabsVisible,
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .offset(fabBandOffset),
+                )
+
+                // ── FAB band · end-edge lane: the camera column ──────────────
                 // Bottom positioning is done in the layout phase via Modifier.offset
                 // so dragging never triggers recomposition of this subtree.
                 HomeMapFabsSection(
@@ -752,17 +790,7 @@ private fun HomeContent(
                     onToggleFuelLayer = { onIntent(HomeIntent.ToggleFuelStationsLayer) },
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
-                        .offset {
-                            val sheetH = (rawContainerHeightPx - sheetOffsetPx.value)
-                                .coerceAtLeast(0f)
-                            val halfH = (rawContainerHeightPx - positioning.halfOffsetPx)
-                                .coerceAtLeast(0f)
-                            // FABs ride above the sheet edge from peek up to the first expand (half),
-                            // where they're still visible; past half they clamp so they don't fly
-                            // off-screen while fading out toward the deeper expanded. [HOME-SNAP-001]
-                            val base = if (sheetOffsetPx.value >= positioning.halfOffsetPx) sheetH else halfH
-                            IntOffset(0, -(base + fabGapPx).roundToInt())
-                        },
+                        .offset(fabBandOffset),
                 )
 
                 // ── Bottom sheet ─────────────────────────────────────────────

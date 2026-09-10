@@ -273,7 +273,20 @@ private const val ZONE_CHIP_RADIUS_DP = 999
 private const val ZONE_CHIP_ICON_DP = 18
 private const val ZONE_CHIP_LOCK_DP = 13
 private const val ADD_ZONE_TEXT_GAP_DP = 8
-private const val ADD_ZONE_TEXT_PAD_V_DP = 5
+
+/**
+ * Air above and below the invitation's two lines.
+ *
+ * Both lines are 12sp in a 16dp line box, so the text block is a solid 32dp — at 5dp it left the
+ * pill 42dp tall with the lines running the full height of a shape whose ends are round, and the
+ * first and last line read as pressed against the curve. 7dp is the smallest bump that reads as
+ * breathing (46dp); more would start making the invitation a card instead of a chip.
+ *
+ * Only the EXPANDED state pays it: this padding lives inside the invitation's own
+ * `AnimatedVisibility`, so collapsed the chip is still exactly the [ZONE_CHIP_HEIGHT] circle the
+ * row is built on. [UI-THE-ADD-ZONE-CHIP-IS-ONE-CHIP-IN-EVERY-STATE-001]
+ */
+private const val ADD_ZONE_TEXT_PAD_V_DP = 7
 
 /** Brings the expanded "+" to the same 21dp from the edge as a zone chip's leading icon. */
 private const val ADD_ZONE_EXPANDED_LEADING_PAD_DP = 4

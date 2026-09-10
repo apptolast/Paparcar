@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.presentation.home.sections.map
 
+import com.rndeveloper.paparcar.presentation.home.sections.map.components.HomeGpsAccuracyPill
 import com.rndeveloper.paparcar.presentation.home.sections.map.components.HomeMapFabColumn
 
 import androidx.compose.animation.AnimatedVisibility
@@ -9,14 +10,12 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import com.rndeveloper.paparcar.domain.model.DrivingPuck
 import com.rndeveloper.paparcar.domain.model.GpsPoint
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
@@ -24,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.presentation.home.HomeFabsSlice
 import com.rndeveloper.paparcar.presentation.home.HomeMapSlice
 import com.rndeveloper.paparcar.presentation.map.CameraTarget
+import com.rndeveloper.paparcar.presentation.util.MAP_FLOATING_SIDE_INSET_DP
 import com.rndeveloper.paparcar.presentation.util.fuelTypeLabel
 import com.rndeveloper.paparcar.ui.components.CenterPinKind
 import com.rndeveloper.paparcar.ui.components.PaparcarMapConfig
@@ -133,7 +133,7 @@ internal fun HomeMapSection(
 }
 
 /**
- * Right-side FAB column anchored to the bottom of the map. Visibility is
+ * Right-side FAB column, the end-edge lane of the map's FAB band. Visibility is
  * driven by the sheet's expansion fraction — hides once the user starts
  * scrolling the sheet past its midpoint so the FABs don't collide with
  * sheet content.
@@ -156,23 +156,50 @@ internal fun HomeMapFabsLayer(
         exit = fadeOut(PapMotion.medium()) + slideOutHorizontally(PapMotion.medium()) { it / 2 },
         modifier = modifier,
     ) {
-        Column(
-            horizontalAlignment = Alignment.End,
-            modifier = Modifier.padding(end = 14.dp),
-        ) {
-            HomeMapFabColumn(
-                hasActiveParking = slice.hasActiveParking,
-                hasGpsFix = slice.hasGpsFix,
-                selectedParkingWatch = slice.selectedParkingWatch,
-                drivingWatch = slice.drivingWatch,
-                // During a monitored trip the MyLocation FAB re-engages driver-follow instead of GPS. [DET-STATUS-SHEET-001]
-                followsCar = isDriving,
-                fuelLayerOn = slice.showFuelStationsLayer,
-                onMyLocation = onMyLocation,
-                onParkedCar = onParkedCar,
-                onMidpoint = onMidpoint,
-                onToggleFuelLayer = onToggleFuelLayer,
-            )
-        }
+        HomeMapFabColumn(
+            hasActiveParking = slice.hasActiveParking,
+            hasGpsFix = slice.hasGpsFix,
+            selectedParkingWatch = slice.selectedParkingWatch,
+            drivingWatch = slice.drivingWatch,
+            // During a monitored trip the MyLocation FAB re-engages driver-follow instead of GPS. [DET-STATUS-SHEET-001]
+            followsCar = isDriving,
+            fuelLayerOn = slice.showFuelStationsLayer,
+            onMyLocation = onMyLocation,
+            onParkedCar = onParkedCar,
+            onMidpoint = onMidpoint,
+            onToggleFuelLayer = onToggleFuelLayer,
+            modifier = Modifier.padding(end = MAP_FLOATING_SIDE_INSET_DP.dp),
+        )
+    }
+}
+
+/**
+ * Start-edge lane of the same band: the GPS pill, on the floor the FAB column stands on.
+ *
+ * It shares the band's [visible] gate rather than the header's, which is the point of moving it
+ * here — the header hides itself for every selection and every pin mode, so the warning used to
+ * vanish exactly while a pin was being placed against the bad fix it warns about. It also shares
+ * the band's offset, passed in by the caller as ONE lambda, so the two lanes cannot drift apart.
+ * [UI-A-WARNING-COSTS-NOTHING-WHEN-SILENT-001]
+ *
+ * The pill runs its own enter/exit inside (it is silent almost always), so this layer only fades
+ * with the band — no second slide stacked on the first.
+ */
+@Composable
+internal fun HomeMapGpsLane(
+    accuracy: Float?,
+    visible: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(PapMotion.medium()),
+        exit = fadeOut(PapMotion.medium()),
+        modifier = modifier,
+    ) {
+        HomeGpsAccuracyPill(
+            accuracy = accuracy,
+            modifier = Modifier.padding(start = MAP_FLOATING_SIDE_INSET_DP.dp),
+        )
     }
 }

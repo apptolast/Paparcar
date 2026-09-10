@@ -448,10 +448,13 @@ class HomeSlicesTest {
         assertNull(state.toFabsSlice().selectedParkingWatch)
     }
 
+    // The accuracy rides in the FABS slice, not the header's: the pill is drawn in the map's FAB
+    // band, and the band is the visibility it has to follow — the header hides itself for every pin
+    // mode, which is when a bad fix matters most. [UI-A-WARNING-COSTS-NOTHING-WHEN-SILENT-001]
     @Test
-    fun should_project_gps_accuracy_into_header_slice() {
-        assertNull(HomeState().toHeaderSlice().gpsAccuracy)
-        assertEquals(10f, HomeState(userGpsPoint = gps).toHeaderSlice().gpsAccuracy)
+    fun should_project_gps_accuracy_into_fabs_slice() {
+        assertNull(HomeState().toFabsSlice().gpsAccuracy)
+        assertEquals(10f, HomeState(userGpsPoint = gps).toFabsSlice().gpsAccuracy)
     }
 
     // ── Peek stepper: what ‹ / › can reach [UI-PEEK-STEPS-BETWEEN-PINS-001] ──────────────────

@@ -6,13 +6,11 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
@@ -30,12 +28,11 @@ import com.swmansion.kmpmaps.core.MapType
 import com.rndeveloper.paparcar.domain.model.SearchResult
 import com.rndeveloper.paparcar.domain.model.Zone
 import com.rndeveloper.paparcar.presentation.home.HomeHeaderSlice
-import com.rndeveloper.paparcar.presentation.home.sections.header.components.HomeGpsAccuracyBanner
 import com.rndeveloper.paparcar.presentation.home.sections.header.components.HomeSearchBar
+import com.rndeveloper.paparcar.presentation.util.MAP_FLOATING_SIDE_INSET_DP
 import com.rndeveloper.paparcar.presentation.home.sections.header.components.MapTypeToggle
 import com.rndeveloper.paparcar.ui.theme.PapMotion
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.AddZoneChip
-import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.ZONE_CHIP_HEIGHT
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.ZoneChip
 
 @Composable
@@ -60,7 +57,7 @@ internal fun HomeHeaderSection(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = HEADER_SIDE_INSET_DP.dp),
+                .padding(horizontal = MAP_FLOATING_SIDE_INSET_DP.dp),
             verticalAlignment = Alignment.Top,
         ) {
             // Two controls, and only two: the search bar and the map-type toggle. A third 56dp
@@ -107,20 +104,12 @@ internal fun HomeHeaderSection(
                 onDismissInvitation = { invitationDismissed = true },
             )
         }
-        // The GPS pill gets a LANE, reserved whether or not it has anything to say — the same
-        // standing space the search bar and the chip row have. It used to grow the header column
-        // on arrival (zero-height AnimatedVisibility + a vertical slide), so a degraded fix pushed
-        // the whole header down and a recovered one pulled it back up. Separation from the chips is
-        // their own CHIP_SHADOW_ROOM_DP, the very gap that already separates them from the search
-        // bar — one rhythm for the three lanes. [UI-HEADER-PILLS-SHARE-ONE-GEOMETRY-001]
-        Box(
-            modifier = Modifier
-                .padding(start = HEADER_SIDE_INSET_DP.dp)
-                .height(ZONE_CHIP_HEIGHT),
-            contentAlignment = Alignment.CenterStart,
-        ) {
-            HomeGpsAccuracyBanner(accuracy = slice.gpsAccuracy)
-        }
+        // Two lanes, and only two. The GPS pill used to hold a third one — 34dp reserved full time
+        // so that a degraded fix arriving could not push the header down. Reserving was the right
+        // fix for a lane INSIDE this measured column; the mistake was the column. The pill now
+        // floats in the map's FAB band, where appearing pushes nobody, there is nothing to reserve,
+        // and it survives the pin modes this header hides itself for.
+        // [UI-A-WARNING-COSTS-NOTHING-WHEN-SILENT-001] [UI-HEADER-PILLS-SHARE-ONE-GEOMETRY-001]
     }
 }
 
@@ -142,7 +131,7 @@ private fun HeaderZoneChips(
         // the first/last chip has room and isn't clipped at the row edge; chips also
         // scroll edge-to-edge. [MAP-GLASS-001]
         contentPadding = PaddingValues(
-            horizontal = HEADER_SIDE_INSET_DP.dp,
+            horizontal = MAP_FLOATING_SIDE_INSET_DP.dp,
             vertical = CHIP_SHADOW_ROOM_DP.dp,
         ),
     ) {
@@ -167,9 +156,3 @@ private fun HeaderZoneChips(
 
 private const val CHIP_SHADOW_ROOM_DP = 8
 
-/**
- * THE side inset of the floating header. It was three literal 14s that happened to agree — the
- * search row, the chips' content padding and the GPS pill — which is a coincidence, not an
- * alignment: nothing stopped one of them from drifting. [UI-HEADER-PILLS-SHARE-ONE-GEOMETRY-001]
- */
-private const val HEADER_SIDE_INSET_DP = 14

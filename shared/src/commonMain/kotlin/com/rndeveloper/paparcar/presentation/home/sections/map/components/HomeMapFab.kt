@@ -13,6 +13,7 @@ import androidx.compose.material.icons.rounded.LocalGasStation
 import androidx.compose.material.icons.rounded.MyLocation
 import androidx.compose.material.icons.rounded.Route
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -36,6 +37,12 @@ import paparcar.composeapp.generated.resources.map_cd_my_location
 // toggle (fuel stations). The layer toggle cannot live beside MapTypeToggle in
 // the header: a third 56dp circle there squeezed the search bar to two lines,
 // measured. [UI-HOME-SEARCH-BAR-MUST-STAY-ONE-LINE-001] [FUEL-STATIONS-MAP-AND-PEEK-001]
+//
+// TWO groups, not four buttons in a row. The layer toggle sat in the same 10dp
+// rhythm as the camera trio, so it read as a fourth camera control — and what it
+// does (paint something else on the map) has nothing to do with where the camera
+// points. Same order, same heights; only the gap says they are different kinds.
+// [UI-A-WARNING-COSTS-NOTHING-WHEN-SILENT-001]
 //   • Coche (only when a parking session is active) → recenters on the spot. It
 //     cycles between parked sessions [MULTI-PARKING-001], so it wears the
 //     selected vehicle's IDENTITY colour (blue = Bluetooth, green = active
@@ -72,14 +79,50 @@ internal fun HomeMapFabColumn(
 ) {
     Column(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalAlignment = Alignment.End,
+        verticalArrangement = Arrangement.spacedBy(GROUP_GAP_DP.dp),
     ) {
+        // ── Layers ──
         MapCircleFab(
             icon = Icons.Rounded.LocalGasStation,
             iconTint = if (fuelLayerOn) PapGreen else Color.Unspecified,
             onClick = onToggleFuelLayer,
             contentDescription = stringResource(Res.string.map_cd_fuel_layer),
         )
+        // ── Camera ──
+        CameraFabGroup(
+            hasActiveParking = hasActiveParking,
+            hasGpsFix = hasGpsFix,
+            selectedParkingWatch = selectedParkingWatch,
+            drivingWatch = drivingWatch,
+            followsCar = followsCar,
+            onMyLocation = onMyLocation,
+            onParkedCar = onParkedCar,
+            onMidpoint = onMidpoint,
+        )
+    }
+}
+
+/**
+ * The camera trio — car, midpoint, locate-me — in its own rhythm. Two of the three come and go with
+ * the session, and an [AnimatedVisibility] that is fully hidden emits no node, so the group simply
+ * shrinks; the gap to the layer toggle above never doubles up.
+ */
+@Composable
+private fun CameraFabGroup(
+    hasActiveParking: Boolean,
+    hasGpsFix: Boolean,
+    selectedParkingWatch: VehicleMonitoringStatus?,
+    drivingWatch: VehicleMonitoringStatus?,
+    followsCar: Boolean,
+    onMyLocation: () -> Unit,
+    onParkedCar: () -> Unit,
+    onMidpoint: () -> Unit,
+) {
+    Column(
+        horizontalAlignment = Alignment.End,
+        verticalArrangement = Arrangement.spacedBy(FAB_GAP_DP.dp),
+    ) {
         AnimatedVisibility(
             visible = hasActiveParking,
             enter = slideInVertically(PapMotion.medium(), initialOffsetY = { it }) + fadeIn(PapMotion.medium()),
@@ -129,3 +172,10 @@ internal fun HomeMapFabColumn(
         )
     }
 }
+
+/** Air between two FABs that do the same KIND of thing. */
+private const val FAB_GAP_DP = 10
+
+/** Air between two kinds. Wider than [FAB_GAP_DP] on purpose: it is the only thing that says the
+ *  layer toggle is not a fourth camera button. */
+private const val GROUP_GAP_DP = 24
