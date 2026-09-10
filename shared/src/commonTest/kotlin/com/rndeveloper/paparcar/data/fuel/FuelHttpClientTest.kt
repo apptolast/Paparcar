@@ -30,7 +30,10 @@ class FuelHttpClientTest {
         val engine = MockEngine { request ->
             seenAgent = request.headers[HttpHeaders.UserAgent]
             respond(
-                content = """{"elements":[]}""",
+                // With the base timestamp a healthy server publishes — without it the source now
+                // (rightly) rejects the answer and moves on.
+                // [OSM-ONE-MIRROR-IS-A-SINGLE-POINT-OF-FAILURE-001]
+                content = """{"osm3s":{"timestamp_osm_base":"2026-07-15T15:22:01Z"},"elements":[]}""",
                 status = HttpStatusCode.OK,
                 headers = headersOf(HttpHeaders.ContentType, "application/json"),
             )
