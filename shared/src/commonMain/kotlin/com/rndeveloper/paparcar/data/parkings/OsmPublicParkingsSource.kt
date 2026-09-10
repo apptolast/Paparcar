@@ -1,6 +1,6 @@
 package com.rndeveloper.paparcar.data.parkings
 
-import com.rndeveloper.paparcar.data.fuel.OverpassClient
+import com.rndeveloper.paparcar.data.overpass.OverpassClient
 import com.rndeveloper.paparcar.domain.parkings.PublicParking
 import com.rndeveloper.paparcar.domain.parkings.PublicParkingsQuery
 import com.rndeveloper.paparcar.domain.parkings.PublicParkingsSource

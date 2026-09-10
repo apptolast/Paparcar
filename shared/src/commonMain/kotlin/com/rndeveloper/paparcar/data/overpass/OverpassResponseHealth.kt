@@ -1,4 +1,4 @@
-package com.rndeveloper.paparcar.data.fuel
+package com.rndeveloper.paparcar.data.overpass
 
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject

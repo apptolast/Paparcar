@@ -1,4 +1,4 @@
-package com.rndeveloper.paparcar.data.fuel
+package com.rndeveloper.paparcar.data.overpass
 
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import io.ktor.client.HttpClient

@@ -1,6 +1,6 @@
 package com.rndeveloper.paparcar.location
 
-import com.rndeveloper.paparcar.data.fuel.OverpassEndpoints
+import com.rndeveloper.paparcar.data.overpass.OverpassEndpoints
 import com.rndeveloper.paparcar.data.places.OverpassPlaceParser
 import com.rndeveloper.paparcar.domain.model.PlaceInfo
 import com.rndeveloper.paparcar.domain.places.NearbyPlacePolicy

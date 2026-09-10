@@ -1,4 +1,4 @@
-package com.rndeveloper.paparcar.data.fuel
+package com.rndeveloper.paparcar.data.overpass
 
 /**
  * The Overpass servers, in the order they get asked.

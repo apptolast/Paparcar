@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.data.fuel
 
+import com.rndeveloper.paparcar.data.overpass.OverpassClient
 import com.rndeveloper.paparcar.domain.fuel.FuelStation
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import com.rndeveloper.paparcar.domain.util.haversineMeters

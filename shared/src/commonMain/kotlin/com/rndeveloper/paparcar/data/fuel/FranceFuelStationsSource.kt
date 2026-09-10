@@ -1,5 +1,7 @@
 package com.rndeveloper.paparcar.data.fuel
 
+import com.rndeveloper.paparcar.data.overpass.OverpassClient
+import com.rndeveloper.paparcar.data.overpass.OverpassEndpoints
 import com.rndeveloper.paparcar.domain.fuel.FuelStationsQuery
 import com.rndeveloper.paparcar.domain.fuel.FuelStationsResult
 import com.rndeveloper.paparcar.domain.fuel.FuelStationsSource
