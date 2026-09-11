@@ -138,8 +138,8 @@ internal fun AddingZonePeek(
 
     PapSheet(
         lead = PapSheetLead.GenericIcon(icon = zoneIconFor(form.iconKey)),
-        eyebrow = headerLabel,
-        eyebrowTone = PapSheetEyebrowTone.Neutral,
+        eyebrow = headerLabel.uppercase(),
+        eyebrowTone = PapSheetEyebrowTone.Action,
         title = title,
         onDismiss = { onIntent(HomeIntent.ExitAddZoneMode) },
         banner = {

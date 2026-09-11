@@ -88,7 +88,7 @@ internal fun ParkingPeek(
             color = vehicle?.color,
             loading = vehicle == null,
         ),
-        eyebrow = headerLabel,
+        eyebrow = headerLabel.uppercase(),
         // Only the NAME wears the identity colour (watch method); the state words around it stay
         // neutral — "TOYOTA COROLLA (verde/azul) · APARCADO (onSurface)". [UI-COLOR-DOCTRINE-001]
         eyebrowColor = MaterialTheme.colorScheme.onSurfaceVariant,

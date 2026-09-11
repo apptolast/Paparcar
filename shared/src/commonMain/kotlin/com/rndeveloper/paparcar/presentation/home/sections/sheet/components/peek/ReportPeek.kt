@@ -49,7 +49,7 @@ internal fun ReportPeek(
 ) {
     PapSheet(
         lead = PapSheetLead.Announce,
-        eyebrow = stringResource(Res.string.home_report_header_label),
+        eyebrow = stringResource(Res.string.home_report_header_label).uppercase(),
         // Manual report = blue, mirroring the manual-spot tint on the map. [UI-SHEET-001]
         eyebrowTone = PapSheetEyebrowTone.Action,
         title = title,

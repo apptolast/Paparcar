@@ -44,6 +44,7 @@ import paparcar.composeapp.generated.resources.home_address_unknown
 import paparcar.composeapp.generated.resources.home_browse_eyebrow_zone
 import paparcar.composeapp.generated.resources.subject_fuel_stations
 import paparcar.composeapp.generated.resources.subject_public_parkings
+import paparcar.composeapp.generated.resources.subject_free_spots
 import paparcar.composeapp.generated.resources.home_browse_hint_swipe_report
 import paparcar.composeapp.generated.resources.home_browse_parked_ago
 import paparcar.composeapp.generated.resources.home_browse_parked_meta
@@ -139,7 +140,7 @@ internal fun BrowsePeek(
                 // [UI-PEEK-DRIVING-HAS-NO-MOTION-001]
                 drivingHaloColor = identity,
             ),
-            eyebrow = stringResource(Res.string.home_peek_vehicle_status, vehicleName, phaseWord),
+            eyebrow = stringResource(Res.string.home_peek_vehicle_status, vehicleName, phaseWord).uppercase(),
             // Only the NAME wears the identity colour (watch method); the phase word ("EN RUTA" /
             // "APARCANDO…") is state and stays neutral — and, being state in motion, it BREATHES.
             // The pulse rides the base eyebrow colour, so it reaches the phase words while the
@@ -202,7 +203,7 @@ internal fun BrowsePeek(
                 // Session's vehicle still resolving from Room → skeleton, not the generic fallback car.
                 loading = parkingVehicle == null,
             ),
-            eyebrow = eyebrow,
+            eyebrow = eyebrow.uppercase(),
             // Only the NAME wears the vehicle's identity colour; "· APARCADO" is state and stays
             // neutral. [UI-COLOR-DOCTRINE-001]
             eyebrowColor = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -253,6 +254,8 @@ internal fun BrowsePeek(
     // de unas nuevas: la cabecera y la pestaña que la produjo tienen que decir la misma palabra, y
     // dos juegos de strings para un nombre son dos sitios donde se puede escribir distinto.
     val isSpotsLane = !showZoneHeader || nearbyLens == HomeNearbyLens.SPOTS
+    val hasAny = (if (isSpotsLane) freeCount else laneCount ?: 0) > 0
+
     PapSheet(
         lead = if (isSpotsLane) {
             PapSheetLead.SpotCounter(freeCount)
@@ -268,12 +271,12 @@ internal fun BrowsePeek(
         },
         eyebrow = stringResource(
             when {
-                isSpotsLane -> Res.string.home_browse_eyebrow_zone
+                isSpotsLane -> Res.string.subject_free_spots
                 nearbyLens == HomeNearbyLens.PARKINGS -> Res.string.subject_public_parkings
                 else -> Res.string.subject_fuel_stations
             },
-        ),
-        eyebrowTone = PapSheetEyebrowTone.Neutral,
+        ).uppercase(),
+        eyebrowTone = if (hasAny) PapSheetEyebrowTone.Action else PapSheetEyebrowTone.Neutral,
         title = title,
         // Collapsed with 0 spots: the sub is the activation hint; otherwise the address line.
         subtitle = if (freeCount == 0 && !showZoneHeader) {

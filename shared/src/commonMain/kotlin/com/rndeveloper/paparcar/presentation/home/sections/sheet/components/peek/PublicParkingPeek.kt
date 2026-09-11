@@ -20,6 +20,7 @@ import com.rndeveloper.paparcar.presentation.home.HomeIntent
 import com.rndeveloper.paparcar.presentation.home.model.publicParkingKindLabel
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.HomeSheetAction
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheet
+import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetEyebrowTone
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetLead
 import com.rndeveloper.paparcar.presentation.util.distanceMeters
 import com.rndeveloper.paparcar.ui.components.PapFooterButton
@@ -67,7 +68,8 @@ internal fun PublicParkingPeek(
 
     PapSheet(
         lead = PapSheetLead.GenericIcon(Icons.Rounded.LocalParking),
-        eyebrow = stringResource(Res.string.parking_peek_eyebrow),
+        eyebrow = stringResource(Res.string.parking_peek_eyebrow).uppercase(),
+        eyebrowTone = PapSheetEyebrowTone.Action,
         title = title,
         // The kind under the name — unless the title already IS the kind.
         subtitle = kindLabel.takeIf { it != title },

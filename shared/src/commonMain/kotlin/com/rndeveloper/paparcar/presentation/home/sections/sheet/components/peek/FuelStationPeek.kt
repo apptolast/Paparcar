@@ -23,6 +23,7 @@ import com.rndeveloper.paparcar.presentation.home.HomeIntent
 import com.rndeveloper.paparcar.presentation.home.PeekStep
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.HomeSheetAction
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheet
+import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetEyebrowTone
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetLead
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetStepper
 import com.rndeveloper.paparcar.presentation.home.model.pumpPriceLabel
@@ -90,7 +91,8 @@ internal fun FuelStationPeek(
 
     PapSheet(
         lead = PapSheetLead.GenericIcon(Icons.Rounded.LocalGasStation),
-        eyebrow = stringResource(Res.string.fuel_peek_eyebrow),
+        eyebrow = stringResource(Res.string.fuel_peek_eyebrow).uppercase(),
+        eyebrowTone = PapSheetEyebrowTone.Action,
         title = title,
         // Address under the name — unless it already IS the title (a nameless OSM station).
         subtitle = station.address?.takeIf { it != title }

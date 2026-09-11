@@ -140,7 +140,7 @@ internal fun AddingParkingPeek(
             color = targetVehicle?.color,
             loading = targetVehicle == null,
         ),
-        eyebrow = headerLabel,
+        eyebrow = headerLabel.uppercase(),
         // The eyebrow IS the vehicle name → it wears the car's identity colour (watch method),
         // not the generic action green. [UI-COLOR-DOCTRINE-001]
         eyebrowColor = vehicleIdentityColor(targetVehicle?.monitoringStatus()?.watch() ?: VehicleWatch.Off),
