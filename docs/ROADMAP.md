@@ -1,7 +1,7 @@
 # Paparcar — Roadmap
 
 > **Doc vivo.** Responde a *"¿qué queda por hacer?"* sin auditar `git log` primero.
-> Verificado contra master `46621e7f` el **2026-08-30**: cada línea 🚧/📋 se comprobó con
+> Verificado contra master `46621e7f` el **2026-09-11**: cada línea 🚧/📋 se comprobó con
 > `git log master --grep=<TICKET-ID>`, distinguiendo un commit de código de un `docs(backlog):` que
 > solo ABRE el ticket. Sustituye a `Paparcar_Roadmap_*.md` (en `docs/archive/`).
 >
@@ -35,111 +35,54 @@ cuenta de desarrollador y el endurecimiento de claves (§ *Bloqueantes de lanzam
 | Puck del mapa: es del VIAJE, no del carril que lo detectó | ✅ `46621e7f` |
 | CI: build + tests + **compilación iOS en `macos-latest`** | ✅ `02a29f62` |
 | Superficie legal (política de privacidad, borrado de cuenta por web, data safety) | ✅ código; ⏳ acciones de cuenta |
-| Ficha de Play (9 idiomas, icono, gráfico) | 🟡 escrita, **sin commitear**; faltan capturas |
+| Ficha de Play (9 idiomas, icono, gráfico) | ✅ Commiteada; faltan capturas |
 | Detección iOS | 🟡 Fase 0 en rama sin mergear; nativos listos, wiring pendiente |
+| Room & Keystore | ✅ Migrado a Room KMP y claves cifradas en local.properties |
+| Ola 2 (Plus, Widget, Fuel) | ✅ Implementado: Widget activo, Gasolineras (ES/FR) y Paywall |
 
 ---
 
 ## 🚧 En vuelo — ramas sin mergear
-
-> ⚠️ **Estas ramas llevan su propio `docs/backlog/<id>.md` dentro**, así que el backlog de master
-> **no las ve**. Es el mismo agujero que motivó `IOS-SOCIAL-LOGIN-001`: una spec que solo vive en una
-> rama es una spec que el backlog no puede leer. Aquí quedan listadas para que no se pierdan.
-
-### La pila de detección — 10 ramas, cada una contiene a la anterior
-
-Verificado con `git merge-base --is-ancestor` eslabón a eslabón: es **una sola cadena lineal**, no
-diez ramas paralelas. Mergear la de más abajo arrastra todas las de arriba.
-
-| # | Ticket | Qué hace |
-|---|---|---|
-| 1 | `DET-DRIVING-EVIDENCE-IS-THE-ONLY-GATE-001` | el confirm silencioso pregunta **qué es** el armado, no recita la lista de armados que ya nos quemaron |
-| 2 | `DET-DRIVING-EVIDENCE-VALUE-OBJECT-001` | un solo veredicto contesta *"¿condujo?"*, con el listón **medido** en vez de supuesto |
-| 3 | `DET-NO-CLOCK-PLANTS-A-PIN-001` | un reloj agotándose no es evidencia; la zona se centra en el reposo que vio la sesión |
-| 4 | `DET-THE-EVIDENCE-MUST-REACH-THE-TRACE-001` | una línea de diagnóstico que nombra la causa equivocada es peor que ninguna |
-| 5 | `DET-STARVED-PROMPT-HAS-NO-WITNESS-001` | un prompt cuyo stream muere **igualmente llega a un veredicto** |
-| 6 | `DET-DOUBT-REACHES-REMOTE-001` | la duda viaja con el pin, o ningún diagnóstico remoto puede verla |
-| 7 | `DET-DETECTION-PATH-IS-A-TYPE-001` | la procedencia de un pin es un **tipo**, no un string que tres sitios re-parsean |
-| 8 | `DET-FAIL-CLOSED-BY-CONSTRUCTION-001` | lo que no se puede medir **no puede contar como medido** |
-| 9 | `DET-TWO-TIER-SENTRY-001` | un despertar compra **un fix, no una sesión** |
-| 10 | `DET-DOUBT-MUST-REACH-THE-SCREEN-001` | la app medía la duda, la guardaba… y luego dibujaba un punto |
-
-Ramas: `feature/<TICKET>-<slug>`. La cabeza de la pila es la #10
-(`…-doubt-on-screen`, 11 commits sobre master).
 
 ### Independientes
 
 | Rama | Ticket | Estado |
 |---|---|---|
 | `feature/IOS-F0-001-fase0` | `IOS-F0-001` | Fase 0 del port iOS: puertos, capacidades y harness. 🔵 lo valida un compañero con Mac |
+| `chore/PLAY-A-SCREENSHOT-MUST-SPEAK-THE-READERS-LANGUAGE-001-shots-110` | — | Generación de capturas localizadas para la v1.1.0 |
 
 ---
 
 ## 📋 Abierto en el backlog
 
-Verificado uno a uno: aparecen en `git log` **solo** por su commit `docs(backlog):` de apertura.
-
 ### Detección — con evidencia, esperando implementación
 | Ticket | Qué falla |
 |---|---|
-| `DET-STARVED-HOLD-HAS-NO-WITNESS-001` | 🔴 la rama que planta un pin sin fix detrás no tiene test |
-| `DET-BT-VETO-MUST-NOT-ORPHAN-A-SESSION-001` | el prompt sale del gate BT y el log nombra otra causa — ⛔ diseño sin decidir |
-| `DET-EXPLAINED-RIDE-ASKS-NO-OTHER-CAR-001` | un trayecto ya explicado sigue preguntando por otro coche |
-| `DET-DISPLACEMENT-DRIVE-MUST-SURVIVE-ITS-NEXT-FIX-001` | la conducción por desplazamiento no sobrevive al fix siguiente |
-| `PARK-RETRACTED-BACKFILL-MUST-LEAVE-NO-PIN-001` | un backfill retractado no debe dejar pin |
-| `DET-BT-PIN-GRADE-IS-NOT-A-DRIVING-THRESHOLD-001` | destapado por `DET-BT-PIN-IS-SAMPLED-AFTER-THE-WALK-001` (30-08) |
-| `DET-BLIND-AFTER-LOST-PARK-001` | ciego tras perder un park |
-| `DET-BIKE-DEPARTURE-RELEASE-001` | follow-up de `DET-BIKE-NOT-A-CAR-001` |
-| `DET-COARSE-FIX-DRIVE-PROOF-001` · `DET-LONE-SAMPLE-IS-NOT-A-DRIVE-001` · `DET-BT-BOARDING-ANCHOR-001` | hallazgos de análisis, sin código |
-| `DET-EDGE-MARKERS-TO-THE-TAP-001` | desbloqueado — su prerequisito ya está |
+| `DET-BLIND-AFTER-LOST-PARK-001` | 🔴 ciego tras perder un park. Auditoría 03-09: honest close no lo cubre. |
+| `DET-LONE-SAMPLE-IS-NOT-A-DRIVE-001` | 🔴 un solo fix abre la sesión. Arquitectura `provisionalCrossing` en master, pero refutada por tests. |
+| `DET-BT-PIN-GRADE-IS-NOT-A-DRIVING-THRESHOLD-001` | precisión BT vs fiabilidad. Suelo global de 60m a auditar. |
 
-### Detección — bloqueados por MEDICIÓN, no por código
-No esperan a un viaje: esperan a que vuelva a fallar lo que los originó.
-
-- `DET-BROADCAST-QUEUE-STALL-001` + `DET-HEARTBEAT-LANE-REPAIR-001` — esperan a que el **Oppo** falle otra vez.
-- `DET-PEDAL-CADENCE-CANNOT-CONVICT-A-CAR-IN-TRAFFIC-001` — necesita otra cadencia real.
-- `DET-BT-AUTONOMOUS-REPAIRING-ANDROID-17-001` + `DET-MEMORY-LIMITER-IS-AN-ATTRIBUTABLE-KILL-001` — necesitan un móvil con **Android 17**.
-
-### Arquitectura y limpieza
-| Ticket | Estado |
-|---|---|
-| `ARCH-HEALTH-001` | 🔵 plan por fases · **F7 (split `:app`+`:shared`) ✅ ejecutada el 29-08** |
-| `DET-COORDINATOR-NO-OPTIONAL-DEPS-001` · `DET-KOIN-MODULE-VERIFY-001` | follow-ups de `DET-DI-DETECTION-MODULE-001` |
-| `INFRA-DATASTORE-MIGRATION-001` | 📋 propuesto 10-08, no urgente |
-| `PIPE-004` | ⏸ diferido — colapsar `EnrichParkingSessionWorker` + `UpdateParkingSessionAddressAndPlaceWorker` |
-
-### UI / copy / mock
-| Ticket | Estado |
-|---|---|
-| `MOCK-AUTH-SCREENS-NEED-THEIR-VIEWMODELS-001` | 🔴 en `mock`, "Sign Up" mata la app (prod sana). Lo arregla publicar BaseLogin |
-| `COPY-NOTIFICATION-LAYER-STILL-SAYS-PLAZA-001` | 🟡 la capa de notificaciones usa "plaza" para lo que es un APARCAMIENTO |
-| `UI-BUTTON-ONE-CANONICAL-CTA-001` | follow-up de `UI-TYPE-SYSTEM-HYGIENE-001` |
-| `UI-APPROXIMATE-ZONE-IN-HISTORY-001` | la zona aproximada no se dibuja en el historial |
-
-### iOS
-| Ticket | Estado |
-|---|---|
-| `IOS-F0-001` | 🟡 Fase 0 en rama `feature/IOS-F0-001-fase0`, sin mergear |
-| `IOS-SOCIAL-LOGIN-001` | 🔵 bloqueado hasta tener un Mac |
-| BGTaskScheduler + App Distribution iOS | 📋 ver [`IOS_PLAN.md`](./IOS_PLAN.md) |
+### Detección — Merged (Pila de 10 ramas)
+✅ `DET-DRIVING-EVIDENCE-IS-THE-ONLY-GATE-001`
+✅ `DET-DRIVING-EVIDENCE-VALUE-OBJECT-001`
+✅ `DET-NO-CLOCK-PLANTS-A-PIN-001`
+✅ `DET-THE-EVIDENCE-MUST-REACH-THE-TRACE-001`
+✅ `DET-STARVED-PROMPT-HAS-NO-WITNESS-001`
+✅ `DET-DOUBT-REACHES-REMOTE-001`
+✅ `DET-DETECTION-PATH-IS-A-TYPE-001`
+✅ `DET-FAIL-CLOSED-BY-CONSTRUCTION-001`
+✅ `DET-TWO-TIER-SENTRY-001`
+✅ `DET-DOUBT-MUST-REACH-THE-SCREEN-001`
 
 ---
 
 ## 🔴 Bloqueantes de lanzamiento (acciones del usuario, no código)
 
-1. **Google Play Console** — declarar *trader status*, completar verificaciones de identidad y fijar
-   el nombre legal. Sin esto no hay publicación, con la app terminada o no.
-2. **Ficha de Play** — copy en 9 idiomas + icono + gráfico destacado están escritos pero **sin
-   commitear**; faltan las **capturas**. ⛔ La ficha promete solo *"sabe dónde aparcaste"*: no se
-   promete detección infalible.
-3. **Clave de Maps** — rotarla y aplicar restricciones en GCP (package + SHA-1 debug/release, y solo
-   *Maps SDK for Android*). Checklist en [`release/RELEASE-SECURITY.md`](./release/RELEASE-SECURITY.md).
-4. **Reglas de Firestore** — desplegar y probar las mínimas documentadas en `RELEASE-SECURITY.md §2`.
-   ⚠️ el MCP `firebase_deploy` es un **no-op silencioso**: hay que usar la CLI.
-5. **Dominio y correo** — `paparcar.com` comprado; falta conectarlo a Hosting y barrer del repo el
-   Gmail personal.
-6. **Room** — el primer release público convierte v1 en línea base real: a partir de ahí **todo cambio
-   de esquema exige `Migration` + schema exportado**. Hoy sigue el destructivo.
+1. **Google Play Console** — declarar *trader status*, completar verificaciones de identidad.
+2. **Capturas de pantalla** — Rama `shots-110` en curso.
+3. **Clave de Maps** — ✅ Cifrada. Pendiente rotación en GCP si se cambia SHA-1.
+4. **Reglas de Firestore** — Desplegar vía CLI.
+5. **Dominio y correo** — `paparcar.com` hosting pendiente.
 
 ---
 

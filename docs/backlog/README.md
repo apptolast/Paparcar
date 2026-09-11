@@ -75,6 +75,21 @@ No esperan a un viaje: esperan a que vuelva a fallar lo que los originó.
 | `PIPE-004` | ⏸ diferido — colapsar `EnrichParkingSessionWorker` + `UpdateParkingSessionAddressAndPlaceWorker`. ⚠️ **no tiene doc propio**: solo se le nombra en [`../refactors/PIPE-001-confirm-parking-pipeline.md`](../refactors/PIPE-001-confirm-parking-pipeline.md) |
 | [`det-verdict-not-predicate-001`](det-verdict-not-predicate-001.md) | regla ya en `CLAUDE.md`; la consolidación del código sigue pendiente |
 
+## ✅ Merged en Master (Pila de Detección)
+
+Estos tickets formaban la pila de 10 ramas que ya se han integrado en master:
+
+- ✅ `DET-DRIVING-EVIDENCE-IS-THE-ONLY-GATE-001`
+- ✅ `DET-DRIVING-EVIDENCE-VALUE-OBJECT-001`
+- ✅ `DET-NO-CLOCK-PLANTS-A-PIN-001`
+- ✅ `DET-THE-EVIDENCE-MUST-REACH-THE-TRACE-001`
+- ✅ `DET-STARVED-PROMPT-HAS-NO-WITNESS-001`
+- ✅ `DET-DOUBT-REACHES-REMOTE-001`
+- ✅ `DET-DETECTION-PATH-IS-A-TYPE-001`
+- ✅ `DET-FAIL-CLOSED-BY-CONSTRUCTION-001`
+- ✅ `DET-TWO-TIER-SENTRY-001`
+- ✅ `DET-DOUBT-MUST-REACH-THE-SCREEN-001`
+
 ## 🧪 Salud de build / KMP
 
 | Ticket | Qué falla |
@@ -88,6 +103,13 @@ No esperan a un viaje: esperan a que vuelva a fallar lo que los originó.
 |---|---|
 | [`bug-home-fab-padding-2026-06-05`](bug-home-fab-padding-2026-06-05.md) | padding negativo en `HomeMapFabsLayer` (Nothing Phone A001). 1 evento, sin reproducir: su propio doc dice priorizar **solo si reaparece** |
 | [`vehicles-multimarker-2026-05-19`](vehicles-multimarker-2026-05-19.md) | 🟡 sprint PARCIAL — los marcadores existen; el resto quedó diferido |
+
+## 📐 Specs Merged (Ola 2 - 1.1.0)
+
+✅ `WIDGET-PARKED-001` — Widget de aparcamiento activo.
+✅ `FUEL-STATIONS-LIST-001` — Listado y precios de gasolineras.
+✅ `PARKINGS-ON-THE-MAP-001` — Parkings públicos en el mapa.
+✅ `MONEY-001` — Paparcar Plus (RevenueCat integration).
 
 ## 📐 Specs sin arrancar (piden decisión de producto, no un fix)
 
