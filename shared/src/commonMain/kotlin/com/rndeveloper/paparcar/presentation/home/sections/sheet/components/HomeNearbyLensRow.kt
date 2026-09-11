@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
@@ -21,6 +22,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
@@ -77,38 +79,38 @@ internal fun HomeNearbyLensRow(
     // la lista, y la separación desaparecería justo cuando hace falta — al scrollear.
     // [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
     Column(modifier = modifier.background(MaterialTheme.colorScheme.surfaceContainer)) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.Bottom,
-    ) {
-        LensTab(
-            subject = HomeNearbyLens.SPOTS,
-            label = stringResource(Res.string.subject_free_spots),
-            icon = PaparcarIcons.SpotBayMark,
-            count = spotCount,
-            lens = lens,
-            onSelect = onSelect,
-            modifier = Modifier.weight(1f),
-        )
-        LensTab(
-            subject = HomeNearbyLens.PARKINGS,
-            label = stringResource(Res.string.subject_public_parkings),
-            icon = PaparcarIcons.CarParkMark,
-            count = parkingsCount,
-            lens = lens,
-            onSelect = onSelect,
-            modifier = Modifier.weight(1f),
-        )
-        LensTab(
-            subject = HomeNearbyLens.FUEL,
-            label = stringResource(Res.string.subject_fuel_stations),
-            icon = PaparcarIcons.FuelPumpMark,
-            count = fuelCount,
-            lens = lens,
-            onSelect = onSelect,
-            modifier = Modifier.weight(1f),
-        )
-    }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Bottom,
+        ) {
+            LensTab(
+                subject = HomeNearbyLens.SPOTS,
+                label = stringResource(Res.string.subject_free_spots),
+                icon = PaparcarIcons.SpotBayMark,
+                count = spotCount,
+                lens = lens,
+                onSelect = onSelect,
+                modifier = Modifier.weight(1f),
+            )
+            LensTab(
+                subject = HomeNearbyLens.PARKINGS,
+                label = stringResource(Res.string.subject_public_parkings),
+                icon = PaparcarIcons.CarParkMark,
+                count = parkingsCount,
+                lens = lens,
+                onSelect = onSelect,
+                modifier = Modifier.weight(1f),
+            )
+            LensTab(
+                subject = HomeNearbyLens.FUEL,
+                label = stringResource(Res.string.subject_fuel_stations),
+                icon = PaparcarIcons.FuelPumpMark,
+                count = fuelCount,
+                lens = lens,
+                onSelect = onSelect,
+                modifier = Modifier.weight(1f),
+            )
+        }
         // La línea que separa las pestañas de SU contenido. El indicador dice en cuál estás; esto
         // dice dónde empieza lo que enseña.
         PapDivider()
@@ -155,7 +157,7 @@ private fun LensTab(
         animationSpec = PapMotion.medium(),
     )
     val indicator by animateColorAsState(
-        targetValue = if (selected) PapColor.selected else androidx.compose.ui.graphics.Color.Transparent,
+        targetValue = if (selected) PapColor.selected else Color.Transparent,
         animationSpec = PapMotion.medium(),
     )
 
@@ -169,17 +171,18 @@ private fun LensTab(
             .padding(top = TAB_TOP_PADDING_DP.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = content,
-            modifier = Modifier.size(TAB_ICON_DP.dp),
-        )
-        Spacer(Modifier.height(TAB_ICON_GAP_DP.dp))
         Row(
+            modifier = Modifier.padding(horizontal = 4.dp).height(TAB_CONTENT_HEIGHT_DP.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(TAB_COUNT_GAP_DP.dp),
+            horizontalArrangement = Arrangement.Center,
         ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = content,
+                modifier = Modifier.size(TAB_ICON_DP.dp),
+            )
+            Spacer(Modifier.width(TAB_ICON_LABEL_GAP_DP.dp))
             Text(
                 text = label,
                 style = PaparcarType.current.label,
@@ -192,6 +195,7 @@ private fun LensTab(
                 textAlign = TextAlign.Center,
             )
             if (count > 0) {
+                Spacer(Modifier.width(TAB_COUNT_GAP_DP.dp))
                 Text(
                     text = count.toString(),
                     style = PaparcarType.current.badge,
@@ -203,7 +207,7 @@ private fun LensTab(
                 )
             }
         }
-        Spacer(Modifier.height(TAB_LABEL_GAP_DP.dp))
+        Spacer(Modifier.height(TAB_INDICATOR_GAP_DP.dp))
         // The indicator, drawn for every tab and coloured only for the selected one — so the row
         // reserves its height once and nothing moves when the lane changes.
         Box(
@@ -217,13 +221,14 @@ private fun LensTab(
     }
 }
 
-private const val TAB_TOP_PADDING_DP = 10
-private const val TAB_ICON_DP = 22
-private const val TAB_ICON_GAP_DP = 4
-private const val TAB_LABEL_GAP_DP = 8
-private const val TAB_COUNT_GAP_DP = 4
+private const val TAB_TOP_PADDING_DP = 14
+private const val TAB_CONTENT_HEIGHT_DP = 24
+private const val TAB_ICON_DP = 18
+private const val TAB_ICON_LABEL_GAP_DP = 8
+private const val TAB_INDICATOR_GAP_DP = 12
+private const val TAB_COUNT_GAP_DP = 6
 private const val INDICATOR_H_DP = 3
-private const val INDICATOR_INSET_DP = 20
+private const val INDICATOR_INSET_DP = 16
 private const val COUNT_RADIUS_DP = 6
 private const val COUNT_H_PADDING_DP = 5
 private const val COUNT_V_PADDING_DP = 1
