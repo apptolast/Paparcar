@@ -176,12 +176,24 @@ private fun LensTab(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center,
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = content,
-                modifier = Modifier.size(TAB_ICON_DP.dp),
-            )
+            if (count > 0) {
+                Text(
+                    text = count.toString(),
+                    style = PaparcarType.current.badge,
+                    color = content,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(COUNT_RADIUS_DP.dp))
+                        .background(content.copy(alpha = COUNT_BG_ALPHA))
+                        .padding(horizontal = COUNT_H_PADDING_DP.dp, vertical = COUNT_V_PADDING_DP.dp),
+                )
+            } else {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = content,
+                    modifier = Modifier.size(TAB_ICON_DP.dp),
+                )
+            }
             Spacer(Modifier.width(TAB_ICON_LABEL_GAP_DP.dp))
             Text(
                 text = label,
@@ -194,18 +206,6 @@ private fun LensTab(
                 overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center,
             )
-            if (count > 0) {
-                Spacer(Modifier.width(TAB_COUNT_GAP_DP.dp))
-                Text(
-                    text = count.toString(),
-                    style = PaparcarType.current.badge,
-                    color = content,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(COUNT_RADIUS_DP.dp))
-                        .background(content.copy(alpha = COUNT_BG_ALPHA))
-                        .padding(horizontal = COUNT_H_PADDING_DP.dp, vertical = COUNT_V_PADDING_DP.dp),
-                )
-            }
         }
         Spacer(Modifier.height(TAB_INDICATOR_GAP_DP.dp))
         // The indicator, drawn for every tab and coloured only for the selected one — so the row
@@ -226,7 +226,6 @@ private const val TAB_CONTENT_HEIGHT_DP = 24
 private const val TAB_ICON_DP = 18
 private const val TAB_ICON_LABEL_GAP_DP = 8
 private const val TAB_INDICATOR_GAP_DP = 12
-private const val TAB_COUNT_GAP_DP = 6
 private const val INDICATOR_H_DP = 3
 private const val INDICATOR_INSET_DP = 16
 private const val COUNT_RADIUS_DP = 6

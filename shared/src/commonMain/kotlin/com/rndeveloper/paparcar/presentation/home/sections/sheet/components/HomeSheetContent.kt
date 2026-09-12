@@ -54,6 +54,7 @@ import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_vehicles_section_header
+import paparcar.composeapp.generated.resources.home_nearby_section_header
 import paparcar.composeapp.generated.resources.home_size_filter_all
 import paparcar.composeapp.generated.resources.vehicle_size_large
 import paparcar.composeapp.generated.resources.vehicle_size_medium
@@ -317,11 +318,15 @@ fun LazyListScope.homeSheetItems(
     if (slice.hasCorePermissions) {
         // ⛔ El corte entre LO MIO y LO DE AQUI. Sin el, la tira de coches y la fila de pestanas se
         // tocaban y el sheet se leia como una sola lista larga: el bloque fijo dejaba de parecer un
-        // bloque. Es un divisor y aire, no una cabecera — nombrar esta frontera con un rotulo seria
-        // volver a poner un titulo que ya sobraba.
-        // [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
+        // bloque. [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
         item("mine_lane_split") {
-            PapDivider(modifier = Modifier.padding(top = BLOCK_GAP_DP.dp, bottom = 0.dp))
+            Column {
+                PapDivider(modifier = Modifier.padding(top = BLOCK_GAP_DP.dp, bottom = 0.dp))
+                PapSectionHeader(
+                    title = stringResource(Res.string.home_nearby_section_header),
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
+                )
+            }
         }
         nearbyLane(
             slice = slice,

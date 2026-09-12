@@ -47,6 +47,8 @@ object ViewportRefetch {
 
     private const val REFETCH_AT_FRACTION = 0.5
 
-    /** Your city / your province — "I am driving there", the trip a refuel question belongs to. */
-    const val MAX_FROM_USER_METERS = 50_000.0
+    /** Your city / your province — "I am driving there", the trip a refuel question belongs to.
+     *  Reduced to 20km per user request. ⛔ Note that exploration beyond this distance from
+     *  the user's GPS will be blocked. */
+    const val MAX_FROM_USER_METERS = 20_000.0
 }

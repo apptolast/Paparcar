@@ -10,6 +10,8 @@
         <item quantity="one">Tu vehículo</item>
         <item quantity="other">Tus vehículos</item>
     </plurals>
+    <!-- Header de la sección de exploración en el sheet. [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001] -->
+    <string name="home_nearby_section_header">En esta zona</string>
     <!-- Subtítulo en la fila por vehículo cuando no hay sesión activa. -->
     <!-- Fallback de nombre cuando el vehículo no tiene name/brand/model. -->
     <string name="home_vehicle_fallback_name">Vehículo</string>

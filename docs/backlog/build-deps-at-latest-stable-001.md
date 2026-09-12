@@ -27,20 +27,20 @@ Kotlin 2.2.0 cuando ya vamos por 2.4.x. No usarlo para esto.
 
 ### Bumps aplicados
 
-| artefacto | antes | después |
-|---|---|---|
-| Gradle wrapper | 9.5.1 | 9.7.1 |
-| AGP | 9.2.1 | 9.3.2 |
-| Kotlin (+ compose-compiler, serialization) | 2.4.0 | 2.4.10 |
-| KSP | 2.3.9 | 2.3.11 |
-| Compose Multiplatform (runtime/foundation/ui/material/components-resources) | 1.11.1 | 1.12.0 |
-| Firebase BOM | 34.15.0 | 34.18.0 |
-| Crashlytics plugin | 3.0.7 | 3.0.8 |
-| GitLive Firebase (firestore/auth/common) | 2.4.0 | 2.6.0 |
-| Coil 3 | 3.5.0 | 3.6.0 |
-| Ktor (okhttp/darwin) | 3.5.1 | 3.5.2 |
-| androidx.sqlite (bundled) | 2.6.2 | 2.7.0 |
-| androidx.appcompat | 1.7.1 | 1.8.0 |
+| artefacto                                                                   | antes   | después |
+|-----------------------------------------------------------------------------|---------|---------|
+| Gradle wrapper                                                              | 9.5.1   | 9.7.1   |
+| AGP                                                                         | 9.2.1   | 9.3.2   |
+| Kotlin (+ compose-compiler, serialization)                                  | 2.4.0   | 2.4.10  |
+| KSP                                                                         | 2.3.9   | 2.3.11  |
+| Compose Multiplatform (runtime/foundation/ui/material/components-resources) | 1.11.1  | 1.12.0  |
+| Firebase BOM                                                                | 34.15.0 | 34.18.0 |
+| Crashlytics plugin                                                          | 3.0.7   | 3.0.8   |
+| GitLive Firebase (firestore/auth/common)                                    | 2.4.0   | 2.6.0   |
+| Coil 3                                                                      | 3.5.0   | 3.6.0   |
+| Ktor (okhttp/darwin)                                                        | 3.5.1   | 3.5.2   |
+| androidx.sqlite (bundled)                                                   | 2.6.2   | 2.7.0   |
+| androidx.appcompat                                                          | 1.7.1   | 1.8.0   |
 
 ### Ya en la última estable — verificado, no se tocan
 

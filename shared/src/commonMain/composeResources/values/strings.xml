@@ -10,6 +10,8 @@
         <item quantity="one">Your vehicle</item>
         <item quantity="other">Your vehicles</item>
     </plurals>
+    <!-- Sheet section header for the nearby lane; exploratory context. [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001] -->
+    <string name="home_nearby_section_header">In this area</string>
     <!-- Per-vehicle row when the vehicle has no active session — subtitle. -->
     <!-- Fallback label when a Vehicle has no name, brand or model set. -->
     <string name="home_vehicle_fallback_name">Vehicle</string>

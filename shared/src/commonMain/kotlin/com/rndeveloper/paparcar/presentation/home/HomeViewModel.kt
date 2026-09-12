@@ -630,7 +630,17 @@ class HomeViewModel(
 
         // Already answered FOR THIS FUEL, or already asking: re-entering must not re-ask. An answer
         // the layer fetched fuel-less is a different question — repriced below.
-        if (slice.isLoading || (slice.stations.isNotEmpty() && slice.fetchedFor == fuelType)) {
+        //
+        // ⛔ Al re-entrar hay que comprobar si seguimos en el mismo sitio: si el usuario movió el
+        // mapa mientras estaba en otra pestaña, los datos que tenemos son de una zona que ya no mira.
+        // [A-SECTION-ANSWERS-ABOUT-WHERE-YOU-LOOK-001]
+        val centre = viewportCentreOrGps()
+        val isStale = centre != null && ViewportRefetch.shouldRefetch(
+            slice.anchorLat, slice.anchorLon, centre.first, centre.second,
+            FuelStationsQuery.DEFAULT_RADIUS_METERS,
+        )
+
+        if (!isStale && (slice.isLoading || (slice.stations.isNotEmpty() && slice.fetchedFor == fuelType))) {
             updateState { copy(fuel = fuel.copy(missingFuelType = false)) }
             // Nothing went out, and nothing needs to: the answer is already here and the map reads it.
             return true
@@ -645,9 +655,6 @@ class HomeViewModel(
         // mapa y la lista preguntan por el MISMO sitio con el MISMO radio, así que la contradicción
         // ya no tiene dónde nacer. [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
         //
-        // Sin nada que mirar todavía (ni cámara ni fix) la pregunta no se pudo hacer: esa es la
-        // frase de fallo, nunca la de vacío.
-        val centre = viewportCentreOrGps()
         if (centre == null) {
             updateState { copy(fuel = fuel.copy(failed = true, missingFuelType = false)) }
             // Sin centro tampoco puede preguntar el MAPA: no hay alrededor de qué.
@@ -868,11 +875,17 @@ class HomeViewModel(
      */
     private fun askParkingsForLane() {
         val slice = state.value.parkings
-        // Ya respondido, o preguntando: volver a entrar no re-pregunta.
-        if (slice.isLoading || slice.parkings.isNotEmpty()) return
         // Alrededor de la CÁMARA, por lo mismo que el combustible.
         // [A-SECTION-ANSWERS-ABOUT-WHERE-YOU-LOOK-001]
         val centre = viewportCentreOrGps()
+
+        // Ya respondido, o preguntando: volver a entrar no re-pregunta... A MENOS que se haya movido.
+        val isStale = centre != null && ViewportRefetch.shouldRefetch(
+            slice.anchorLat, slice.anchorLon, centre.first, centre.second,
+            PublicParkingsQuery.DEFAULT_RADIUS_METERS,
+        )
+        if (!isStale && (slice.isLoading || slice.parkings.isNotEmpty())) return
+
         if (centre == null) {
             updateState { copy(parkings = parkings.copy(failed = true)) }
             return
