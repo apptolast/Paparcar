@@ -1111,8 +1111,8 @@ private const val ZONE_LABEL_BORDER_ALPHA = 0.55f
  *
  * ⛔ The price is never coloured cheap/expensive — the green/amber/red ramp belongs exclusively to
  * spot freshness [UI-COLOR-DOCTRINE-001] — and an unpriced station shows the glyph alone, never a
- * zero. Same capsule grammar as [ZoneMarker] so the map's labels read as one family; the glyph is a
- * level-3 vector of our own (drawn, multicolor, untinted), not a tinted Material icon.
+ * zero. Same capsule grammar as [ZoneMarker] so the map's labels read as one family; the glyph is
+ * the canonical [PaparcarIcons.Fuel] used by the station list.
  */
 @Composable
 fun FuelStationMarker(
@@ -1165,7 +1165,12 @@ fun FuelStationMarker(
                 .heightIn(min = with(density) { (58f * s).toDp() }),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            FuelPumpGlyph(dark = paper.luminance() < 0.5f)
+            Icon(
+                imageVector = PaparcarIcons.Fuel,
+                contentDescription = null,
+                tint = brand,
+                modifier = Modifier.size(FUEL_GLYPH_SIZE),
+            )
             if (priceText != null) {
                 Spacer(Modifier.width(8.dp))
                 Column(verticalArrangement = Arrangement.Center) {
@@ -1251,44 +1256,6 @@ fun PublicParkingMarker(
 
 /** Igual que el del spot (29): la silueta compartida es el punto de este marcador. */
 private const val PARKING_PUCK_R = 29f
-
-/** The pump, drawn: green body, paper screen, hose to the right. Brings its own colors. */
-@Composable
-private fun FuelPumpGlyph(dark: Boolean) {
-    val body = if (dark) Color(0xFF2DF58E) else Color(0xFF009F5E)
-    val screen = if (dark) Color(0xFF0E2A1E) else Color(0xFFE7F6EE)
-    val hose = if (dark) Color(0xFF0E8C57) else Color(0xFF23C47D)
-    Canvas(Modifier.size(FUEL_GLYPH_SIZE)) {
-        val w = size.width
-        val h = size.height
-        // Cuerpo del surtidor (deja sitio a la derecha para la manguera)
-        drawRoundRect(
-            color = body,
-            topLeft = Offset(0f, h * 0.08f),
-            size = Size(w * 0.62f, h * 0.86f),
-            cornerRadius = CornerRadius(w * 0.14f, w * 0.14f),
-        )
-        // Pantalla
-        drawRoundRect(
-            color = screen,
-            topLeft = Offset(w * 0.12f, h * 0.22f),
-            size = Size(w * 0.38f, h * 0.26f),
-            cornerRadius = CornerRadius(w * 0.08f, w * 0.08f),
-        )
-        // Manguera con pistola
-        val path = Path().apply {
-            moveTo(w * 0.62f, h * 0.30f)
-            cubicTo(w * 0.88f, h * 0.30f, w * 0.90f, h * 0.52f, w * 0.90f, h * 0.72f)
-        }
-        drawPath(path, hose, style = Stroke(w * 0.12f, cap = StrokeCap.Round))
-        drawRoundRect(
-            color = hose,
-            topLeft = Offset(w * 0.80f, h * 0.68f),
-            size = Size(w * 0.20f, h * 0.26f),
-            cornerRadius = CornerRadius(w * 0.06f, w * 0.06f),
-        )
-    }
-}
 
 /** ⛔ Not a translatable string: it is the international parking sign, the same glyph in the nine
  *  locales, and it is drawn into a bitmap rather than read out. */

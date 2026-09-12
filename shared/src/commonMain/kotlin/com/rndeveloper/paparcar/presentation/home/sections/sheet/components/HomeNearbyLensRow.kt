@@ -104,7 +104,7 @@ internal fun HomeNearbyLensRow(
             LensTab(
                 subject = HomeNearbyLens.FUEL,
                 label = stringResource(Res.string.subject_fuel_stations),
-                icon = PaparcarIcons.FuelPumpMark,
+                icon = PaparcarIcons.Fuel,
                 count = fuelCount,
                 lens = lens,
                 onSelect = onSelect,

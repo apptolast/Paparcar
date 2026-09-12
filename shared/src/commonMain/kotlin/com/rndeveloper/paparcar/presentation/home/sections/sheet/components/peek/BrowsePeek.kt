@@ -265,7 +265,7 @@ internal fun BrowsePeek(
                 isLoading = laneLoading,
                 icon = when (nearbyLens) {
                     HomeNearbyLens.PARKINGS -> PaparcarIcons.CarParkMark
-                    else -> PaparcarIcons.FuelPumpMark
+                    else -> PaparcarIcons.Fuel
                 },
             )
         },
