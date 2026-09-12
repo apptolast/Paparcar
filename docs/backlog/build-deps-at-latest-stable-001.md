@@ -54,7 +54,7 @@ com.google.android.material 1.14.0, test-ext-junit 1.3.0, espresso 3.7.0, test-c
 
 ### Fuera de alcance por regla del proyecto
 
-- `kmp-maps 0.9.1-puck4` — fork propio en Maven Central; su versión la manda nuestro repo, no upstream.
+- `kmp-maps 0.9.1-puck5` — fork propio en Maven Central; su versión la manda nuestro repo, no upstream.
 - `baselogin 1.1.0` — librería propia en JitPack; **no se toca desde Paparcar**
   (`feedback_no_cross_repo_sessions`).
 

@@ -94,6 +94,7 @@ Estos tickets formaban la pila de 10 ramas que ya se han integrado en master:
 
 | Ticket | Qué falla |
 |---|---|
+| [`map-a-marker-bitmap-is-measured-before-it-exists-001`](map-a-marker-bitmap-is-measured-before-it-exists-001.md) | ✅ Arreglado en `kmp-maps` |
 | `db-a-room-expect-object-breaks-the-metadata-compilation-001` | `compileCommonMainKotlinMetadata` no compila. ⚠️ **su doc aún no está commiteado** (vive suelto en el árbol de la sesión de Play), así que este índice no puede enlazarlo |
 | `test-a-kmp-suite-that-only-runs-on-jvm-is-half-a-suite-001` | `commonTest` nunca compiló para iOS. ⚠️ mismo caso: doc sin commitear |
 

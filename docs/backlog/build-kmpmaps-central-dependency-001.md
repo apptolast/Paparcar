@@ -13,8 +13,7 @@ compañero no le compilaba— pero deja el repo de una app cargando artefactos b
 revisa en un diff ni se actualiza sin repetir el ritual de publicar a mano.
 
 El 2026-08-19 el fork se publicó en Maven Central como
-`io.github.rndevelo.kmpmaps:core:0.9.1-puck4` (firmado, con fuentes y javadoc, seis variantes
-incluidos los tres klibs de iOS). Desde ese momento el vendorizado es deuda pura.
+`io.github.rndevelo.kmpmaps:core:0.9.1-puck4`. El 2026-09-11 se actualizó a `0.9.1-puck5` para incluir el arreglo del crash de rasterización [MAP-A-MARKER-BITMAP-IS-MEASURED-BEFORE-IT-EXISTS-001].
 
 ## Doctrina violada
 

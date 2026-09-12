@@ -70,7 +70,7 @@ google-services = "4.5.0"
 # Core: Google Maps en Android + Apple Maps en iOS (sin CocoaPods)
 # Fork con marker de id estable — DRIVE-PUCK-NATIVE-001. Upstream: 0.9.1, PR #170 sin mergear.
 # Publicado en Maven Central desde rndevelo/kmp-maps tag v0.9.1-puck4 [BUILD-KMPMAPS-CENTRAL-DEPENDENCY-001].
-kmp-maps = "0.9.1-puck4"
+kmp-maps = "0.9.1-puck5"
 
 # ── Licencias OSS — AboutLibraries ───────────────────────────────────────────
 aboutlibraries = "15.2.0"

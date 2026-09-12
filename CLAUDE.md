@@ -34,7 +34,7 @@ Paparcar es una app KMP (Kotlin Multiplatform) de compartición de plazas de apa
 - Backend: Firebase (GitLive KMP SDK 2.6.0) · firebase-bom 34.18.0
 - Auth: BaseLogin (librería propia, JitPack) — ⛔ no se toca desde Paparcar
 - Async: Coroutines 1.11.0 + Flow · Serialization 1.11.0 · Datetime 0.8.0
-- Mapas: kmp-maps **fork propio** `io.github.rndevelo.kmpmaps:core:0.9.1-puck4`, ya en Maven Central
+- Mapas: kmp-maps **fork propio** `io.github.rndevelo.kmpmaps:core:0.9.1-puck5`, ya en Maven Central
   (marker de id estable; upstream SW Mansion 0.9.1 + PR #170 sin mergear) — su versión la manda
   nuestro repo, no upstream
 - Imágenes: Coil 3.6.0 + Ktor 3.5.2 (motor de red)
