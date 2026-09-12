@@ -558,8 +558,15 @@ fun HomeState.toPeekSlice(): HomePeekSlice {
 }
 
 fun HomeState.toBrowseListSlice() = HomeBrowseListSlice(
-    fuel = fuel,
-    parkings = parkings,
+    // [A-SECTION-ANSWERS-ABOUT-WHERE-YOU-LOOK-001] [FUEL-LAYER-FOLLOWS-THE-CAMERA-001]
+    // The list must show the UNION of both stores (lane and camera-anchored layer), exactly as the
+    // map and the peek do. Without this, a station/parking fetched by the layer (e.g. while
+    // panning in Browse) appears on the map but stays missing from the sheet list until the lane's
+    // own fetch (if triggered) completes.
+    fuel = fuel.copy(stations = fuelStationsShown),
+    parkings = parkings.copy(
+        parkings = (parkingsLayer.parkings + parkings.parkings).distinctBy { it.parking.id }
+    ),
     nearbyLens = nearbyLens,
     nearbyIntro = nearbyIntro,
     detectionUiState = detectionUiState,

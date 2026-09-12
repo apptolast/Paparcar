@@ -294,29 +294,39 @@ internal fun HomeVehicleCard(
                     .fillMaxHeight()
                     .background(accent),
             )
-        VehicleIdentityHeader(
-            vehicle = vehicle,
-            isDriving = isDriving,
-            // Home is glanceable — size lives on the Vehicles ficha, not here. [CARD-META-POLISH-001]
-            showSize = false,
-            // ⛔ Arriba y abajo el MISMO valor, escrito una vez. Estaban los dos a 12 dp y aun así la
-            // card se leia hundida: con la fila alineada arriba (`alignsWithFirstLine`), el tile
-            // arranca pegado al borde mientras la ultima linea de texto trae su descenso debajo, asi
-            // que 12 arriba se ven menos que 12 abajo. Subir el par empata lo que se VE, que es lo
-            // que se estaba mirando. [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
-            modifier = Modifier
-                .weight(1f)
-                .padding(start = 14.dp, end = 12.dp, top = CARD_V_PAD_DP.dp, bottom = CARD_V_PAD_DP.dp),
-            trailing = {
-                Icon(
-                    imageVector = Icons.Rounded.ChevronRight,
-                    contentDescription = null,
-                    tint = cs.onSurfaceVariant,
-                    modifier = Modifier.size(CHEVRON_DP.dp),
+            Column(modifier = Modifier.weight(1f)) {
+                VehicleIdentityHeader(
+                    vehicle = vehicle,
+                    isDriving = isDriving,
+                    // Home is glanceable — size lives on the Vehicles ficha, not here. [CARD-META-POLISH-001]
+                    showSize = false,
+                    // ⛔ Arriba y abajo el MISMO valor, escrito una vez. Estaban los dos a 12 dp y aun así la
+                    // card se leia hundida: con la fila alineada arriba (`alignsWithFirstLine`), el tile
+                    // arranca pegado al borde mientras la ultima linea de texto trae su descenso debajo, asi
+                    // que 12 arriba se ven menos que 12 abajo. Subir el par empata lo que se VE, que es lo
+                    // que se estaba mirando. [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
+                    modifier = Modifier.padding(start = 14.dp, end = 12.dp, top = CARD_V_PAD_DP.dp),
+                    trailing = {
+                        Icon(
+                            imageVector = Icons.Rounded.ChevronRight,
+                            contentDescription = null,
+                            tint = cs.onSurfaceVariant,
+                            modifier = Modifier.size(CHEVRON_DP.dp),
+                        )
+                    },
                 )
-            },
-            statusLine = {
+
+                Spacer(Modifier.height(CHIP_FOOT_GAP_DP.dp))
+                // [UX-PARKED-STATE-001] Restore the divider between identity and status, matching the
+                // Home vehicle chip style.
+                PapDivider()
+                Spacer(Modifier.height(CHIP_FOOT_GAP_DP.dp))
+
                 Row(
+                    modifier = Modifier
+                        .padding(start = 14.dp, end = 12.dp, bottom = CARD_V_PAD_DP.dp)
+                        .heightIn(min = FOOT_MIN_HEIGHT_DP.dp)
+                        .fillMaxWidth(),
                     verticalAlignment = if (session != null) Alignment.Top else Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
@@ -407,8 +417,7 @@ internal fun HomeVehicleCard(
                         )
                     }
                 }
-            },
-        )
+            }
         }
         // ⛔ SIN boton. Lo tuvo un rato y se quito al mirarlo (user, 10-09): su `onClick` era la
         // MISMA lambda que la de la card, o sea chrome que repetia el gesto de su propio contenedor.

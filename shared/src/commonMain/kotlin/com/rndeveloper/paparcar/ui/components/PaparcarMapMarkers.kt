@@ -7,10 +7,17 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -33,6 +40,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -841,17 +849,17 @@ private const val SPOT_P_PATH =
         "M27.42 28.82 a9.62 8.32 0 1 1 19.24 0 a9.62 8.32 0 1 1 -19.24 0 Z " +
         "M32.81 28.82 a4.23 3.66 0 1 0 8.47 0 a4.23 3.66 0 1 0 -8.47 0 Z"
 
-private fun DrawScope.drawSpotShadow(s: Float, ink: Color) {
+private fun DrawScope.drawSpotShadow(s: Float, ink: Color, centerX: Float = 36f) {
     drawOval(
         color = ink.copy(alpha = 0.12f),
-        topLeft = Offset(31.5f * s, 71.4f * s),
+        topLeft = Offset((centerX - 4.5f) * s, 71.4f * s),
         size = Size(9f * s, 3.2f * s),
     )
 }
 
 /** Separated position dot — the exact ground point, in the marker's own colour (no border). [MAP-ICONS-V2] */
-private fun DrawScope.drawSpotDot(s: Float, color: Color) {
-    drawCircle(color, radius = SPOT_DOT_R * s, center = Offset(36f * s, SPOT_DOT_CY * s))
+private fun DrawScope.drawSpotDot(s: Float, color: Color, centerX: Float = 36f) {
+    drawCircle(color, radius = SPOT_DOT_R * s, center = Offset(centerX * s, SPOT_DOT_CY * s))
 }
 
 /** The round puck body + paper stroke; selected adds an outer onSurface ring (max contrast). */
@@ -1120,10 +1128,32 @@ fun FuelStationMarker(
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
     val brand = PapGreen
     val labelFamily = PaparcarType.current.cardTitle.fontFamily
+    val density = LocalDensity.current
 
-    Box(modifier = modifier) {
+    // [FUEL-STATIONS-MAP-AND-PEEK-001] Redesigned to share the "puck + dot" style with the rest of
+    // the family. The capsule now sits over a separated position dot, marking the ground point.
+    // [PARKINGS-ON-THE-MAP-001] [FUEL-STATION-CLIPPING-FIX]
+    val s = with(density) { SPOT_PIN_W.toPx() / SPOT_VIEWBOX_W }
+    val markerH = with(density) { (SPOT_VIEWBOX_H * s).toDp() }
+
+    Box(
+        modifier = modifier
+            .height(markerH)
+            .width(IntrinsicSize.Min),
+        contentAlignment = Alignment.TopCenter
+    ) {
+        Canvas(Modifier.fillMaxSize()) {
+            // We use the same scale as the free-spot marker (s = height / 82) so the dot and shadow
+            // read with the same visual weight. The capsule is horizontally centered.
+            val canvasS = size.height / SPOT_VIEWBOX_H
+            val centerX = (size.width / 2f) / canvasS
+            drawSpotShadow(canvasS, ink, centerX = centerX)
+            drawSpotDot(canvasS, brand, centerX = centerX)
+        }
         Row(
             modifier = Modifier
+                .offset(y = with(density) { (5f * s).toDp() }) // aligns the capsule top (at y=5 in viewBox units)
+                .padding(horizontal = 4.dp) // extra air inside the Row so it doesn't clip its own border
                 .clip(RoundedCornerShape(FUEL_LABEL_CORNER))
                 .background(paper.copy(alpha = ZONE_LABEL_BG_ALPHA))
                 .border(
@@ -1131,35 +1161,38 @@ fun FuelStationMarker(
                     color = brand.copy(alpha = if (selected) 1f else ZONE_LABEL_BORDER_ALPHA),
                     shape = RoundedCornerShape(FUEL_LABEL_CORNER),
                 )
-                .padding(horizontal = ZONE_LABEL_PAD_H, vertical = ZONE_LABEL_PAD_V),
+                .padding(horizontal = 10.dp, vertical = 6.dp)
+                .heightIn(min = with(density) { (58f * s).toDp() }),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             FuelPumpGlyph(dark = paper.luminance() < 0.5f)
             if (priceText != null) {
-                Spacer(Modifier.width(ZONE_LABEL_GAP))
-                Text(
-                    text = priceText,
-                    color = ink,
-                    maxLines = 1,
-                    style = TextStyle(
-                        fontFamily = labelFamily,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = ZONE_LABEL_TEXT_SP,
-                    ),
-                )
-                if (fuelLabel != null) {
-                    Spacer(Modifier.width(ZONE_LABEL_GAP))
+                Spacer(Modifier.width(8.dp))
+                Column(verticalArrangement = Arrangement.Center) {
                     Text(
-                        text = fuelLabel,
-                        color = muted,
+                        text = priceText,
+                        color = ink,
                         maxLines = 1,
                         style = TextStyle(
                             fontFamily = labelFamily,
-                            fontWeight = FontWeight.Medium,
-                            fontSize = ZONE_LABEL_TEXT_SP,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp,
+                            lineHeight = 12.sp
                         ),
-                        modifier = Modifier.widthIn(max = ZONE_LABEL_MAX_TEXT_W),
                     )
+                    if (fuelLabel != null) {
+                        Text(
+                            text = fuelLabel.lowercase(),
+                            color = muted,
+                            maxLines = 1,
+                            style = TextStyle(
+                                fontFamily = labelFamily,
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 10.sp,
+                                lineHeight = 10.sp
+                            ),
+                        )
+                    }
                 }
             }
         }
@@ -1192,12 +1225,12 @@ fun PublicParkingMarker(
     val brand = PapGreen
     val pPath = remember { PathParser().parsePathString(SPOT_P_PATH).toPath() }
 
-    Canvas(modifier) {
+    Canvas(modifier.size(SPOT_PIN_W, SPOT_PIN_W * (SPOT_VIEWBOX_H / SPOT_VIEWBOX_W))) {
         val s = size.width / SPOT_VIEWBOX_W
-        drawSpotShadow(s, ink)
+        drawSpotShadow(s, ink, centerX = 36f)
         // El punto de suelo, en el verde del parking: es el mismo gesto que el del spot — el punto
-        // dice DÓNDE está, el puck dice QUÉ es.
-        drawSpotDot(s, brand)
+        // dice DÓNDE está, el puck dice QUÉ es. Explicit centerX = 36 (half of 72 viewBox units).
+        drawSpotDot(s, brand, centerX = 36f)
         val c = Offset(36f * s, 34f * s)
         if (selected) {
             drawCircle(ink, radius = (PARKING_PUCK_R + 3.4f) * s, center = c, style = Stroke(width = 3.2f * s))
@@ -1210,7 +1243,9 @@ fun PublicParkingMarker(
             center = c,
             style = Stroke(width = if (selected) 4.2f * s else 3.2f * s),
         )
-        drawPFredoka(s, pPath, ink)
+        // La "P" en verde — como los glifos de las gasolineras, compartiendo el color de la marca
+        // para lo que es contenido. [PARKINGS-ON-THE-MAP-001]
+        drawPFredoka(s, pPath, brand)
     }
 }
 

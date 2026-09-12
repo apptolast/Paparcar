@@ -1014,7 +1014,7 @@ fun PaparcarMapView(
                             selected = nearby.station.id == selectedFuelStationId,
                             themeKey = themeKey,
                         ),
-                        androidMarkerOptions = ZONE_MARKER_OPTIONS,
+                        androidMarkerOptions = NORMAL_MARKER_OPTIONS,
                     ),
                 )
             }
@@ -1030,7 +1030,7 @@ fun PaparcarMapView(
                             selected = nearby.parking.id == selectedPublicParkingId,
                             themeKey = themeKey,
                         ),
-                        androidMarkerOptions = ZONE_MARKER_OPTIONS,
+                        androidMarkerOptions = NORMAL_MARKER_OPTIONS,
                     ),
                 )
             }
