@@ -10,6 +10,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
@@ -26,7 +27,9 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Campaign
 import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -92,7 +95,7 @@ import kotlinx.coroutines.launch
  * | Marker             | Shape             | Colour | Content              |
  * |--------------------|-------------------|--------|----------------------|
  * | Parked vehicle     | Amber rect + tip  | Amber  | License plate text   |
- * | Free spot          | Circle            | Green  | "P" parking icon     |
+ * | Free spot          | Circle            | Green  | Community person + announcement badge |
  * | Zone (saved place) | Pill label        | Theme  | Icon + zone name     |
  *
  * Rendered as bitmaps by the kmpmaps library via `customMarkerContent` in [PaparcarMapView].
@@ -672,11 +675,10 @@ private val MY_VEHICLE_W = 46.dp
 private val MY_VEHICLE_H = 55.dp
 
 // ─── Marker 2 — Free spot (FreeSpotMarker) — Bolt-green teardrop pin ─────────
-// Bolt-green design: brand-filled teardrop + white 3px halo, a "P" drawn as a
-// rounded stroke, a freshness ring whose arc length encodes the reliability
-// tier, and a tier-coloured badge (clock for cooling/expiring, person for
-// manual). When people are en route the pin flips to the blue "reserved" state
-// with a dashed orbit + a people pill carrying the count. [BOLT-MARKERS-001]
+// Bolt-green design: brand-filled teardrop + white 3px halo, a community-person glyph,
+// a freshness ring whose arc length encodes the reliability tier, and a tier-coloured
+// announcement badge. When people are en route the pin flips to the blue "reserved"
+// state with a dashed orbit + a people pill carrying the count. [BOLT-MARKERS-001]
 //
 // viewBox 72×92, anchor = pin tip ≈ (36, 90) → bottom-centre. All geometry is
 // drawn in viewBox units scaled by `s = width / 72`.
@@ -699,31 +701,26 @@ private object SpotPalette {
     // [UI-SEVEN-STRAYS-FROM-THE-CANON-001]
     val Amber       = PapSpotCoolingLight // libre · enfriándose
     val Red         = PapSpotExpiringLight // libre · caduca ya
-    val Paper       = Color(0xFFFFFFFF) // fixed white — ring / "P" / TTL ring / badge discs
+    val Paper       = Color(0xFFFFFFFF) // fixed white — ring / community glyph / badge discs
     val Ink         = Color(0xFF0E1A2E) // fixed dark — contact shadow / en-route pill
 }
 
-/** Per-tier visual recipe: pin colour, freshness-ring fraction, which badge. */
+/** Per-tier visual recipe: pin colour and freshness-ring fraction. */
 private data class SpotTierVisual(
     val color: Color,
     /** 0..1 arc length of the freshness ring; null = no ring (manual). */
     val ringFraction: Float?,
-    val clockBadge: Boolean,
-    val personBadge: Boolean,
 )
 
 // Ring length is static per tier (no live TTL timestamp wired to the marker
 // layer yet — animated countdown deferred). Fractions mirror the reference
 // SVGs (full / ~½ / minimal). [BOLT-MARKERS-001]
 //
-// [isManual] is PROVENANCE, orthogonal to the freshness tier: it swaps the badge slot for the
-// person glyph (one badge slot — the eyewitness mark outranks the clock) and keeps the tier's
-// colour and TTL ring, which the old flat-blue MANUAL tier used to lose. [UI-COLOR-DOCTRINE-001 F5]
 private fun SpotFreshness.tierVisual(isManual: Boolean = false): SpotTierVisual = when (this) {
-    SpotFreshness.FRESH   -> SpotTierVisual(SpotPalette.Green, ringFraction = 1f,    clockBadge = false, personBadge = false)
-    SpotFreshness.RECENT -> SpotTierVisual(SpotPalette.Amber, ringFraction = 0.5f,  clockBadge = true,  personBadge = false)
-    SpotFreshness.STALE    -> SpotTierVisual(SpotPalette.Red,   ringFraction = 0.16f, clockBadge = true,  personBadge = false)
-}.let { if (isManual) it.copy(clockBadge = false, personBadge = true) else it }
+    SpotFreshness.FRESH   -> SpotTierVisual(SpotPalette.Green, ringFraction = 1f)
+    SpotFreshness.RECENT -> SpotTierVisual(SpotPalette.Amber, ringFraction = 0.5f)
+    SpotFreshness.STALE  -> SpotTierVisual(SpotPalette.Red, ringFraction = 0.16f)
+}
 
 /**
  * Free-spot marker — Bolt-green teardrop pin. Colour + freshness ring + badge
@@ -769,23 +766,28 @@ fun FreeSpotMarker(
     }
 
     // Spot pucks float above the map tiles, so their neutrals stay FIXED (not theme-inverted): the
-    // white ring / "P" / TTL ring / badge discs are always white, the contact shadow + en-route pill
+    // white ring / community glyph / TTL ring / badge discs are always white, the contact shadow + en-route pill
     // always dark. Only the freshness tier colour (green/amber/red) carries meaning. [MAP-ICONS-V2]
     val paper = SpotPalette.Paper
     val ink = SpotPalette.Ink
-    val pPath = remember { PathParser().parsePathString(SPOT_P_PATH).toPath() }
 
-    Canvas(modifier.size(width = w, height = h)) {
-        val s = size.width / SPOT_VIEWBOX_W
-        if (enRouteCount > 0) {
-            drawEnRoutePin(s, enRouteCount, selected, measurer, countStyle, pPath, paper, ink)
-        } else {
-            drawTierPin(s, reliability.tierVisual(isManual), selected, pPath, paper, ink)
+    Box(modifier.size(width = w, height = h)) {
+        Canvas(Modifier.matchParentSize()) {
+            val s = size.width / SPOT_VIEWBOX_W
+            if (enRouteCount > 0) {
+                drawEnRoutePin(s, enRouteCount, selected, measurer, countStyle, paper, ink)
+            } else {
+                drawTierPin(s, reliability.tierVisual(isManual), selected, paper, ink)
+            }
+            if (approximate) {
+                val targetColor = if (enRouteCount > 0) PapColor.live else reliability.tierVisual(isManual).color
+                drawApproximateSpotDot(s, targetColor, paper)
+            }
         }
-        if (approximate) {
-            val targetColor = if (enRouteCount > 0) PapColor.live else reliability.tierVisual(isManual).color
-            drawApproximateSpotDot(s, targetColor, paper)
-        }
+        CommunitySpotOverlay(
+            showAnnouncement = enRouteCount == 0,
+            badgeColor = if (enRouteCount > 0) PapColor.live else reliability.tierVisual(isManual).color,
+        )
     }
 }
 
@@ -803,7 +805,7 @@ private fun DrawScope.drawApproximateSpotDot(s: Float, color: Color, paper: Colo
 }
 
 /**
- * Tail-less spot puck for use inside list containers (only the round "P" puck, no pointing tip). The
+ * Tail-less community spot puck for use inside list containers (no pointing tip). The
  * same puck drawing as [FreeSpotMarker], so the list badge and the map marker read identically —
  * colour + TTL ring + badge encode the reliability tier. [HOME-PUCK-001]
  *
@@ -821,33 +823,32 @@ fun SpotPuckIcon(
 ) {
     val paper = SpotPalette.Paper
     val ink = SpotPalette.Ink
-    val pPath = remember { PathParser().parsePathString(SPOT_P_PATH).toPath() }
     val visual = if (enRouteCount > 0) {
-        SpotTierVisual(PapColor.live, ringFraction = null, clockBadge = false, personBadge = false)
+        SpotTierVisual(PapColor.live, ringFraction = null)
     } else {
         reliability.tierVisual(isManual)
     }
-    Canvas(modifier) {
-        val s = size.minDimension / SPOT_VIEWBOX_W
-        // Centre the puck circle (viewBox centre y = 34) vertically in the square slot — the marker
-        // viewBox reserves the lower rows for the tail we're omitting here.
-        translate(top = size.height / 2f - SPOT_PUCK_CENTER_Y * s) {
-            drawSpotPuck(s, visual, selected, pPath, paper, ink)
+    Box(modifier) {
+        Canvas(Modifier.matchParentSize()) {
+            val s = size.minDimension / SPOT_VIEWBOX_W
+            // Centre the puck circle (viewBox centre y = 34) vertically in the square slot — the marker
+            // viewBox reserves the lower rows for the tail we're omitting here.
+            translate(top = size.height / 2f - SPOT_PUCK_CENTER_Y * s) {
+                drawSpotPuck(s, visual, selected, paper, ink)
+            }
         }
+        CommunitySpotOverlay(
+            showAnnouncement = enRouteCount == 0,
+            badgeColor = if (enRouteCount > 0) PapColor.live else visual.color,
+        )
     }
 }
 
 // ── Puck geometry (viewBox 72×82 units) ──────────────────────────────────────
-// Spot marker = round "puck" (centre 36,34 r29) carrying the Fredoka "P", a per-tier TTL ring and an
-// optional badge, over a separated position dot (the exact ground point). Anchor = bottom-centre.
+// Spot marker = round "puck" (centre 36,34 r29) carrying the community-person glyph, a per-tier
+// TTL ring and an announcement badge, over a separated position dot (the exact ground point).
+// Anchor = bottom-centre.
 // [MAP-ICONS-V2]
-
-// Fredoka "P" outline (stem + bowl + counter; nonzero winding gives the hole), positioned for the
-// 72×82 viewBox. Parsed once into a unit Path and drawn scaled by `s`. [MAP-ICONS-V2]
-private const val SPOT_P_PATH =
-    "M27.42 24.66 a4.16 4.16 0 0 1 8.32 0 L35.74 42.34 a4.16 4.16 0 0 1 -8.32 0 Z " +
-        "M27.42 28.82 a9.62 8.32 0 1 1 19.24 0 a9.62 8.32 0 1 1 -19.24 0 Z " +
-        "M32.81 28.82 a4.23 3.66 0 1 0 8.47 0 a4.23 3.66 0 1 0 -8.47 0 Z"
 
 private fun DrawScope.drawSpotShadow(s: Float, ink: Color, centerX: Float = 36f) {
     drawOval(
@@ -890,55 +891,54 @@ private fun DrawScope.drawTtlRing(s: Float, fraction: Float, paper: Color) {
     }
 }
 
-/** The Fredoka "P" — filled, drawn from [pPath] (unit coords) scaled into the viewBox. */
-private fun DrawScope.drawPFredoka(s: Float, pPath: Path, color: Color) {
-    drawScale(s, s, pivot = Offset.Zero) { drawPath(pPath, color) }
-}
-
 private fun DrawScope.drawBadgeDisc(s: Float, tier: Color, discColor: Color) {
     drawCircle(discColor, 13f * s, Offset(56f * s, 15f * s))
     drawCircle(tier, 13f * s, Offset(56f * s, 15f * s), style = Stroke(2f * s))
 }
 
-private fun DrawScope.drawClockBadge(s: Float, tier: Color, discColor: Color) {
-    drawBadgeDisc(s, tier, discColor)
-    val c = Offset(55.92f * s, 14.92f * s)
-    drawCircle(tier, 5.61f * s, c, style = Stroke(1.58f * s))
-    val hands = Path().apply {
-        moveTo(55.92f * s, 12.02f * s)
-        lineTo(55.92f * s, 14.92f * s)
-        lineTo(57.9f * s, 16.11f * s)
-    }
-    drawPath(hands, tier, style = Stroke(1.58f * s, cap = StrokeCap.Round, join = StrokeJoin.Round))
-}
-
-private fun DrawScope.drawPersonBadge(s: Float, tier: Color, discColor: Color) {
-    drawBadgeDisc(s, tier, discColor)
-    // head + dome shoulders (reads as a person at badge scale)
-    drawCircle(tier, 2.38f * s, Offset(55.92f * s, 12.6f * s))
-    drawArc(
-        tier, 180f, 180f, true,
-        topLeft = Offset(51.5f * s, 16.5f * s), size = Size(9f * s, 5f * s),
-    )
-}
-
 /**
- * The round puck WITHOUT the tail — body + TTL ring + "P" + optional badge. Shared by the on-map
+ * The round puck WITHOUT the tail — body + TTL ring + announcement badge. Shared by the on-map
  * [FreeSpotMarker] (which adds the shadow + separated position dot around it) and the tail-less
  * [SpotPuckIcon] used inside list containers. [HOME-PUCK-001]
  */
-private fun DrawScope.drawSpotPuck(s: Float, v: SpotTierVisual, selected: Boolean, pPath: Path, paper: Color, ink: Color) {
+private fun DrawScope.drawSpotPuck(s: Float, v: SpotTierVisual, selected: Boolean, paper: Color, ink: Color) {
     drawPuckBody(s, v.color, selected, paper, ink)
     v.ringFraction?.let { drawTtlRing(s, it, paper) }
-    drawPFredoka(s, pPath, paper)
-    if (v.clockBadge) drawClockBadge(s, v.color, paper)
-    if (v.personBadge) drawPersonBadge(s, v.color, paper)
+    drawBadgeDisc(s, v.color, paper)
 }
 
-private fun DrawScope.drawTierPin(s: Float, v: SpotTierVisual, selected: Boolean, pPath: Path, paper: Color, ink: Color) {
+@Composable
+private fun CommunitySpotOverlay(
+    showAnnouncement: Boolean,
+    badgeColor: Color,
+) {
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val scale = maxWidth.value / SPOT_VIEWBOX_W
+        Icon(
+            imageVector = Icons.Rounded.Person,
+            contentDescription = null,
+            tint = SpotPalette.Paper,
+            modifier = Modifier
+                .offset(x = (22f * scale).dp, y = (20f * scale).dp)
+                .size((28f * scale).dp),
+        )
+        if (showAnnouncement) {
+            Icon(
+                imageVector = Icons.Rounded.Campaign,
+                contentDescription = null,
+                tint = badgeColor,
+                modifier = Modifier
+                    .offset(x = (47f * scale).dp, y = (6f * scale).dp)
+                    .size((18f * scale).dp),
+            )
+        }
+    }
+}
+
+private fun DrawScope.drawTierPin(s: Float, v: SpotTierVisual, selected: Boolean, paper: Color, ink: Color) {
     drawSpotShadow(s, ink)
     drawSpotDot(s, v.color)
-    drawSpotPuck(s, v, selected, pPath, paper, ink)
+    drawSpotPuck(s, v, selected, paper, ink)
 }
 
 // ── En-route ("reserved") state ──────────────────────────────────────────────
@@ -957,7 +957,6 @@ private fun DrawScope.drawEnRoutePin(
     selected: Boolean,
     measurer: TextMeasurer,
     countStyle: TextStyle,
-    pPath: Path,
     paper: Color,
     ink: Color,
 ) {
@@ -972,8 +971,6 @@ private fun DrawScope.drawEnRoutePin(
     )
     // Inner blue puck (r25) inside the dashed orbit
     drawPuckBody(s, PapColor.live, selected, paper, ink, radius = 25f)
-    drawPFredoka(s, pPath, paper)
-
     // People pill — right-anchored at x=68 so it widens leftward for "9+". The pill uses `ink`
     // (dark in light theme / light in dark theme) with `paper` people + count on top.
     val wide = count > 9
@@ -1210,9 +1207,8 @@ fun FuelStationMarker(
  * A public car park on the map — **the spot puck's shape, wearing the car park's colours**.
  * [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001] [PARKINGS-ON-THE-MAP-001]
  *
- * It was a rounded label with a bold "P" in it, and beside the round pucks of the free spots it read
- * as a different KIND of thing — a text tag stuck on the map rather than a place you can go. Same
- * family, same silhouette: the puck at (36,34), the separated ground dot, the same Fredoka "P".
+ * It is a rounded label with the canonical public-parking `P` mark, and beside the community-person
+ * pucks it reads as a different KIND of thing — a fixed place rather than a report.
  *
  * ⛔ **The colours do NOT come across with the shape.** A free spot is a puck FILLED with its
  * freshness tier — that fill is what says "somebody just left this, and it is going stale". A car
@@ -1228,39 +1224,40 @@ fun PublicParkingMarker(
     val paper = MaterialTheme.colorScheme.surface
     val ink = MaterialTheme.colorScheme.onSurface
     val brand = PapGreen
-    val pPath = remember { PathParser().parsePathString(SPOT_P_PATH).toPath() }
+    val markerW = if (selected) SPOT_PIN_SEL_W else SPOT_PIN_W
+    val sDp = markerW.value / SPOT_VIEWBOX_W
+    val s = with(LocalDensity.current) { markerW.toPx() / SPOT_VIEWBOX_W }
 
-    Canvas(modifier.size(SPOT_PIN_W, SPOT_PIN_W * (SPOT_VIEWBOX_H / SPOT_VIEWBOX_W))) {
-        val s = size.width / SPOT_VIEWBOX_W
-        drawSpotShadow(s, ink, centerX = 36f)
-        // El punto de suelo, en el verde del parking: es el mismo gesto que el del spot — el punto
-        // dice DÓNDE está, el puck dice QUÉ es. Explicit centerX = 36 (half of 72 viewBox units).
-        drawSpotDot(s, brand, centerX = 36f)
-        val c = Offset(36f * s, 34f * s)
-        if (selected) {
-            drawCircle(ink, radius = (PARKING_PUCK_R + 3.4f) * s, center = c, style = Stroke(width = 3.2f * s))
+    Box(modifier.size(markerW, markerW * (SPOT_VIEWBOX_H / SPOT_VIEWBOX_W))) {
+        Canvas(Modifier.matchParentSize()) {
+            drawSpotShadow(s, ink, centerX = 36f)
+            drawSpotDot(s, brand, centerX = 36f)
+            val c = Offset(36f * s, 34f * s)
+            if (selected) {
+                drawCircle(ink, radius = (PARKING_PUCK_R + 3.4f) * s, center = c, style = Stroke(width = 3.2f * s))
+            }
+            drawCircle(paper, radius = PARKING_PUCK_R * s, center = c)
+            drawCircle(
+                brand,
+                radius = PARKING_PUCK_R * s,
+                center = c,
+                style = Stroke(width = if (selected) 4.2f * s else 3.2f * s),
+            )
         }
-        // Cuerpo de PAPEL con aro verde — al revés que el spot, que va relleno de su color.
-        drawCircle(paper, radius = PARKING_PUCK_R * s, center = c)
-        drawCircle(
-            brand,
-            radius = PARKING_PUCK_R * s,
-            center = c,
-            style = Stroke(width = if (selected) 4.2f * s else 3.2f * s),
+        Icon(
+            imageVector = PaparcarIcons.CarParkMark,
+            contentDescription = null,
+            tint = brand,
+            modifier = Modifier
+                .offset(x = (18f * sDp).dp, y = (16f * sDp).dp)
+                .size((36f * sDp).dp),
         )
-        // La "P" en verde — como los glifos de las gasolineras, compartiendo el color de la marca
-        // para lo que es contenido. [PARKINGS-ON-THE-MAP-001]
-        drawPFredoka(s, pPath, brand)
     }
 }
 
 /** Igual que el del spot (29): la silueta compartida es el punto de este marcador. */
 private const val PARKING_PUCK_R = 29f
 
-/** ⛔ Not a translatable string: it is the international parking sign, the same glyph in the nine
- *  locales, and it is drawn into a bitmap rather than read out. */
-private const val PARKING_GLYPH = "P"
-private val PARKING_GLYPH_SP = 13.sp
 private val PARKING_LABEL_PAD_H = 9.dp
 
 private val FUEL_LABEL_CORNER = 999.dp

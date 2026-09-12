@@ -3,6 +3,7 @@ package com.rndeveloper.paparcar.ui.icons
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.DirectionsBike
 import androidx.compose.material.icons.rounded.AccountBalance
+import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.automirrored.rounded.DirectionsBike
 import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.ElectricScooter
@@ -41,7 +42,6 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.model.PlaceCategory
@@ -85,6 +85,7 @@ object PaparcarIcons {
     val Pharmacy: ImageVector get() = Icons.Rounded.LocalPharmacy
     val Hospital: ImageVector get() = Icons.Rounded.LocalHospital
     val ParkingPlace: ImageVector get() = Icons.Rounded.LocalParking
+    val CommunitySpot: ImageVector get() = Icons.Rounded.Person
     val Bank: ImageVector get() = Icons.Rounded.AccountBalance
     val Hotel: ImageVector get() = Icons.Rounded.Hotel
     val School: ImageVector get() = Icons.Rounded.School
@@ -168,80 +169,11 @@ object PaparcarIcons {
         }.build()
     }
 
-    /**
-     * Brand pin — map-pin teardrop with a "P" cut-out (evenOdd). Mirrors the
-     * launcher foreground geometry so the app icon and the in-map markers are
-     * visually the same mark. Single fill, tint with the desired status colour
-     * via Icon(imageVector = …, tint = …).
-     *
-     * Viewport : 24 × 24 dp.
-     * Pin head : center (12,9), tip (12,22).
-     * P bar    : x 10–11, y 5–12.
-     * P bowl   : outer arc r=2 peaking at (13,7); inner counter r=1 returns the
-     *            bowl hole to filled so the P keeps its shape via XOR winding.
-     */
-    val SpotPin: ImageVector by lazy {
-        ImageVector.Builder(
-            name = "SpotPin",
-            defaultWidth = 24.dp,
-            defaultHeight = 24.dp,
-            viewportWidth = 24f,
-            viewportHeight = 24f,
-        ).apply {
-            path(
-                fill = SolidColor(Color.Black),
-                pathFillType = PathFillType.EvenOdd,
-            ) {
-                // ── Pin teardrop ──────────────────────────────────────────────
-                moveTo(12f, 2f)
-                curveTo(8.13f, 2f, 5f, 5.13f, 5f, 9f)
-                curveTo(5f, 14.25f, 12f, 22f, 12f, 22f)
-                curveTo(12f, 22f, 19f, 14.25f, 19f, 9f)
-                curveTo(19f, 5.13f, 15.87f, 2f, 12f, 2f)
-                close()
-
-                // ── Outer P (punches a P-shaped hole through the pin) ─────────
-                moveTo(10f, 5f)
-                lineTo(11f, 5f)
-                arcTo(2f, 2f, 0f, false, true, 11f, 9f)
-                lineTo(11f, 12f)
-                lineTo(10f, 12f)
-                close()
-
-                // ── Inner counter (returns the bowl hole to filled) ───────────
-                moveTo(11f, 6f)
-                arcTo(1f, 1f, 0f, false, true, 11f, 8f)
-                close()
-            }
-        }.build()
-    }
-
-    /**
-     * The Paparcar "P" — the filled Fredoka glyph (`glyph-p`), the same mark drawn on the spot
-     * pucks (`SPOT_P_PATH` in PaparcarMapMarkers). Exported as an [ImageVector] so every place that
-     * shows the spot "P" (spot list item, peek reliability badge, report centre-pin) uses one
-     * identical glyph. The host `Icon` tints the fill; viewport 48×48. [MAP-ICONS-V2]
-     */
-    val SpotParkingP: ImageVector by lazy {
-        ImageVector.Builder(
-            name = "SpotParkingP",
-            defaultWidth = 48.dp,
-            defaultHeight = 48.dp,
-            viewportWidth = 48f,
-            viewportHeight = 48f,
-        ).addPath(
-            // Filled Fredoka "P" with a counter (nonzero winding gives the hole) — the standalone
-            // `glyph-p`, the same glyph drawn on the spot pucks. Icon tints the fill.
-            pathData = PathParser().parsePathString(GLYPH_P_PATH).toNodes(),
-            fill = SolidColor(Color.Black),
-        ).build()
-    }
-
-    // ── Las tres marcas de "cerca de ti" ──────────────────────────────────────
+    // ── Marcas de infraestructura "cerca de ti" ──────────────────────────────
     // [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
     //
-    // Una por sujeto (plaza de la comunidad · parking público · gasolinera), y las tres en el MISMO
-    // lenguaje que las marcas que ya tiene la app —[SpotPin], [SpotParkingP], los pictogramas de
+    // Las superficies de infraestructura usan el MISMO lenguaje que las marcas que ya tiene la app
+    // —[CommunitySpot] y los pictogramas de
     // coche—: silueta RELLENA con sus huecos por `EvenOdd`, viewport 24×24, un solo path para que
     // el `Icon` anfitrión las tiña. ⛔ No son Material: estos tres no son plumbing de UI, son los
     // productos que la app enseña, y con glifos genéricos las pestañas se leían como un filtro más.
@@ -251,49 +183,8 @@ object PaparcarIcons {
     // una instalación con su P (se entra con el coche), y la gasolinera es su surtidor.
 
     /**
-     * Plaza libre de la comunidad: la boca del hueco entre dos marcas viales, vista desde arriba.
-     * Hermana rellena de [ParkingBay], que es la misma idea en trazo y ya vive en las filas de plaza.
-     */
-    val SpotBayMark: ImageVector by lazy {
-        ImageVector.Builder(
-            name = "SpotBayMark",
-            defaultWidth = 24.dp,
-            defaultHeight = 24.dp,
-            viewportWidth = 24f,
-            viewportHeight = 24f,
-        ).apply {
-            // La plaza es una **U**: dos marcas viales y el fondo, abiertas por donde entra el coche.
-            // ⛔ Cerrarla por arriba fue el primer intento y en device (22 dp) salía un bloque macizo:
-            // con paredes de 5 unidades el hueco desaparecía y la marca no decía nada. Lo que hace
-            // legible una plaza a este tamaño es exactamente lo que la hace ser una plaza — que está
-            // ABIERTA. Medido en el Pixel 8 Pro, 10-09.
-            path(fill = SolidColor(Color.Black), pathFillType = PathFillType.EvenOdd) {
-                // Marca vial izquierda.
-                moveTo(4.5f, 3.5f)
-                lineTo(7.5f, 3.5f)
-                lineTo(7.5f, 17.5f)
-                lineTo(4.5f, 17.5f)
-                close()
-                // Marca vial derecha.
-                moveTo(16.5f, 3.5f)
-                lineTo(19.5f, 3.5f)
-                lineTo(19.5f, 17.5f)
-                lineTo(16.5f, 17.5f)
-                close()
-                // Fondo de la plaza, uniendo las dos marcas.
-                moveTo(4.5f, 17.5f)
-                lineTo(19.5f, 17.5f)
-                lineTo(19.5f, 20.5f)
-                lineTo(4.5f, 20.5f)
-                close()
-            }
-        }.build()
-    }
-
-    /**
-     * Parking público: instalación con su P. ⛔ NO es [SpotParkingP] — esa es la P de PAPARCAR, la
-     * que llevan los pucks de plaza; ésta es señalética de un tercero, y por eso va dentro de un
-     * volumen con tejado en vez de suelta. [COPY-SPOT-IS-NOT-A-PARKING-001]
+     * Parking público: instalación con su P, reservada para esta infraestructura.
+     * [COPY-SPOT-IS-NOT-A-PARKING-001]
      */
     val CarParkMark: ImageVector by lazy {
         ImageVector.Builder(
@@ -333,10 +224,6 @@ object PaparcarIcons {
         }.build()
     }
 
-    private const val GLYPH_P_PATH =
-        "M11.46 11.08 a6.08 6.08 0 0 1 12.16 0 L23.62 36.92 a6.08 6.08 0 0 1 -12.16 0 Z " +
-            "M11.46 17.16 a14.06 12.16 0 1 1 28.12 0 a14.06 12.16 0 1 1 -28.12 0 Z " +
-            "M19.33 17.16 a6.19 5.35 0 1 0 12.37 0 a6.19 5.35 0 1 0 -12.37 0 Z"
 }
 
 // ─── Domain → icon mappers ────────────────────────────────────────────────────

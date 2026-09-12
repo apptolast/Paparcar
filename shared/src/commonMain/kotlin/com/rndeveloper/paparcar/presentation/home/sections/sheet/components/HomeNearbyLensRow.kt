@@ -86,7 +86,7 @@ internal fun HomeNearbyLensRow(
             LensTab(
                 subject = HomeNearbyLens.SPOTS,
                 label = stringResource(Res.string.subject_free_spots),
-                icon = PaparcarIcons.SpotBayMark,
+                icon = PaparcarIcons.CommunitySpot,
                 count = spotCount,
                 lens = lens,
                 onSelect = onSelect,
