@@ -320,13 +320,10 @@ fun LazyListScope.homeSheetItems(
         // tocaban y el sheet se leia como una sola lista larga: el bloque fijo dejaba de parecer un
         // bloque. [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
         item("mine_lane_split") {
-            Column {
-                PapDivider(modifier = Modifier.padding(top = BLOCK_GAP_DP.dp, bottom = 0.dp))
-                PapSectionHeader(
-                    title = stringResource(Res.string.home_nearby_section_header),
-                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
-                )
-            }
+            PapSectionHeader(
+                title = stringResource(Res.string.home_nearby_section_header),
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 8.dp),
+            )
         }
         nearbyLane(
             slice = slice,
@@ -340,7 +337,6 @@ fun LazyListScope.homeSheetItems(
 
 /** El aire entre el bloque de lo MIO y el carril. Un solo valor, para que los dos lados respiren
  *  igual. [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001] */
-private const val BLOCK_GAP_DP = 16
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Sections
