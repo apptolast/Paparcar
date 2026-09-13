@@ -928,6 +928,8 @@
     <string name="home_parkings_too_far">Car parks are only shown within %1$d km of you. Move the map closer to see them.</string>
     <string name="home_parkings_remembered">No connection: these are the car parks we saw here %1$s.</string>
     <string name="parking_peek_eyebrow">Public car park</string>
+    <string name="parking_peek_step_prev">Previous car park</string>
+    <string name="parking_peek_step_next">Next car park</string>
     <string name="parking_kind_underground">Underground car park</string>
     <string name="parking_kind_multi_storey">Multi-storey car park</string>
     <string name="parking_kind_surface">Surface car park</string>

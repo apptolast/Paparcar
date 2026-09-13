@@ -17,11 +17,13 @@ import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.parkings.FeeInfo
 import com.rndeveloper.paparcar.domain.usecase.parkings.NearbyPublicParking
 import com.rndeveloper.paparcar.presentation.home.HomeIntent
+import com.rndeveloper.paparcar.presentation.home.PeekStep
 import com.rndeveloper.paparcar.presentation.home.model.publicParkingKindLabel
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.HomeSheetAction
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheet
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetEyebrowTone
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetLead
+import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.PapSheetStepper
 import com.rndeveloper.paparcar.presentation.util.distanceMeters
 import com.rndeveloper.paparcar.ui.components.PapFooterButton
 import com.rndeveloper.paparcar.ui.components.PapFooterButtonStyle
@@ -34,6 +36,8 @@ import paparcar.composeapp.generated.resources.parking_fee_free
 import paparcar.composeapp.generated.resources.parking_fee_paid
 import paparcar.composeapp.generated.resources.parking_max_height
 import paparcar.composeapp.generated.resources.parking_peek_eyebrow
+import paparcar.composeapp.generated.resources.parking_peek_step_next
+import paparcar.composeapp.generated.resources.parking_peek_step_prev
 
 // ═════════════════════════════════════════════════════════════════════════════
 // PublicParkingPeek — the selected car park, from the map layer or the list.
@@ -55,6 +59,7 @@ import paparcar.composeapp.generated.resources.parking_peek_eyebrow
 internal fun PublicParkingPeek(
     nearby: NearbyPublicParking,
     userLocation: Pair<Double, Double>?,
+    step: PeekStep,
     onIntent: (HomeIntent) -> Unit,
     onAction: (HomeSheetAction) -> Unit,
 ) {
@@ -74,6 +79,15 @@ internal fun PublicParkingPeek(
         // The kind under the name — unless the title already IS the kind.
         subtitle = kindLabel.takeIf { it != title },
         onDismiss = { onIntent(HomeIntent.SelectItem(null)) },
+        // ‹ / › walk the car parks in the list's own order, through the SAME action a row or a
+        // capsule fires — the spot and fuel peeks' stepper, third lane.
+        // [CARPARK-DETAIL-HAS-PREV-NEXT-CLOSE-001]
+        stepper = PapSheetStepper(
+            prevContentDescription = stringResource(Res.string.parking_peek_step_prev),
+            nextContentDescription = stringResource(Res.string.parking_peek_step_next),
+            onPrev = step.prevId?.let { id -> { onAction(HomeSheetAction.SelectPublicParking(id)) } },
+            onNext = step.nextId?.let { id -> { onAction(HomeSheetAction.SelectPublicParking(id)) } },
+        ),
         meta = {
             DistanceRow(
                 distanceM = distM,

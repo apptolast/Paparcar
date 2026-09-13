@@ -889,6 +889,8 @@
     <string name="home_parkings_too_far">Öffentliche Parkhäuser werden nur im Umkreis von %1$d km um dich angezeigt. Bewege die Karte näher heran.</string>
     <string name="home_parkings_remembered">Keine Verbindung: Das sind die Parkhäuser, die wir hier %1$s gesehen haben.</string>
     <string name="parking_peek_eyebrow">Öffentliches Parkhaus</string>
+    <string name="parking_peek_step_prev">Vorheriges Parkhaus</string>
+    <string name="parking_peek_step_next">Nächstes Parkhaus</string>
     <string name="parking_kind_underground">Tiefgarage</string>
     <string name="parking_kind_multi_storey">Parkhaus</string>
     <string name="parking_kind_surface">Parkfläche</string>

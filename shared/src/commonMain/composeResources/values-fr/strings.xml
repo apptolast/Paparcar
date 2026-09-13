@@ -888,6 +888,8 @@
     <string name="home_parkings_too_far">Les parkings publics ne s'affichent qu'à moins de %1$d km de toi. Rapproche la carte pour les voir.</string>
     <string name="home_parkings_remembered">Pas de connexion : voici les parkings vus ici %1$s.</string>
     <string name="parking_peek_eyebrow">Parking public</string>
+    <string name="parking_peek_step_prev">Parking précédent</string>
+    <string name="parking_peek_step_next">Parking suivant</string>
     <string name="parking_kind_underground">Parking souterrain</string>
     <string name="parking_kind_multi_storey">Parking à étages</string>
     <string name="parking_kind_surface">Parking en surface</string>

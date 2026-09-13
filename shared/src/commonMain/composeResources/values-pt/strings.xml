@@ -888,6 +888,8 @@
     <string name="home_parkings_too_far">Só mostramos parques de estacionamento públicos a menos de %1$d km de ti. Aproxima o mapa para os veres.</string>
     <string name="home_parkings_remembered">Sem ligação: estes são os parques de estacionamento que vimos aqui %1$s.</string>
     <string name="parking_peek_eyebrow">Parque público</string>
+    <string name="parking_peek_step_prev">Parque anterior</string>
+    <string name="parking_peek_step_next">Parque seguinte</string>
     <string name="parking_kind_underground">Parque subterrâneo</string>
     <string name="parking_kind_multi_storey">Parque de vários pisos</string>
     <string name="parking_kind_surface">Parque à superfície</string>

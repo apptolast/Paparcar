@@ -232,6 +232,7 @@ fun HomePeekHandle(
                         PublicParkingPeek(
                             nearby = nearby,
                             userLocation = slice.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
+                            step = slice.publicParkingStep,
                             onIntent = onIntent,
                             onAction = onAction,
                         )
@@ -308,6 +309,9 @@ private fun HomePeekSlice.stepDirection(from: PeekState, to: PeekState): Int = w
     // [FUEL-PEEK-STEPS-BETWEEN-STATIONS-001]
     from is PeekState.SelectedFuelStation && to is PeekState.SelectedFuelStation ->
         fuelStations.map { it.station.id }.direction(from.stationId, to.stationId)
+    // The parkings lane, mirrored from fuel. [CARPARK-DETAIL-HAS-PREV-NEXT-CLOSE-001]
+    from is PeekState.SelectedPublicParking && to is PeekState.SelectedPublicParking ->
+        publicParkings.map { it.parking.id }.direction(from.parkingId, to.parkingId)
     // The car lane walks VEHICLES, so a parked peek and an unparked add-parking peek are pages of
     // the same book — all four parked↔unparked combos resolve through the one vehicle order.
     // [UI-PEEK-STEPS-WALK-VEHICLES-NOT-SESSIONS-001]

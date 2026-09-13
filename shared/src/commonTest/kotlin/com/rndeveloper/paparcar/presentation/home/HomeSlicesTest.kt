@@ -178,8 +178,8 @@ class HomeSlicesTest {
         assertEquals(2, state.toPeekSlice().freeCount)
     }
 
-    /** Minimal car park for the lane-count assertions: only its EXISTENCE is under test. */
-    private fun nearbyParking(id: String) = NearbyPublicParking(
+    /** Minimal car park: its EXISTENCE for the lane counts, its distance for the stepper order. */
+    private fun nearbyParking(id: String, dist: Double = 100.0) = NearbyPublicParking(
         parking = PublicParking(
             id = id,
             name = null,
@@ -188,7 +188,7 @@ class HomeSlicesTest {
             latitude = 1.0,
             longitude = 1.0,
         ),
-        distanceMeters = 100.0,
+        distanceMeters = dist,
     )
 
     // ── The expanded header speaks for the LANE ───────────────────────────────
@@ -1049,6 +1049,34 @@ class HomeSlicesTest {
         assertEquals(
             PeekStep.None,
             HomeState(fuel = two, selection = HomeSelection.FuelStation("gone")).toPeekSlice().fuelStationStep,
+        )
+    }
+
+    // ── El stepper del peek de parking camina el orden de la lista ──────────
+    // [CARPARK-DETAIL-HAS-PREV-NEXT-CLOSE-001]
+
+    @Test
+    fun should_stepBetweenCarParks_inTheNearestFirstOrder() {
+        // Stored out of order on purpose: the stepper walks the LIST's order, not the store's.
+        val state = HomeState(
+            parkings = HomeParkingsSlice(
+                parkings = listOf(nearbyParking("c", 300.0), nearbyParking("a", 100.0), nearbyParking("b", 200.0)),
+            ),
+            selection = HomeSelection.PublicParking("b"),
+        )
+        assertEquals(PeekStep(prevId = "a", nextId = "c"), state.toPeekSlice().publicParkingStep)
+    }
+
+    @Test
+    fun should_offerNoCarParkStep_when_itLeftTheList_orSitsAtAnEdge() {
+        val two = HomeParkingsSlice(parkings = listOf(nearbyParking("a", 100.0), nearbyParking("b", 200.0)))
+        assertEquals(
+            PeekStep(prevId = "a", nextId = null),
+            HomeState(parkings = two, selection = HomeSelection.PublicParking("b")).toPeekSlice().publicParkingStep,
+        )
+        assertEquals(
+            PeekStep.None,
+            HomeState(parkings = two, selection = HomeSelection.PublicParking("gone")).toPeekSlice().publicParkingStep,
         )
     }
 

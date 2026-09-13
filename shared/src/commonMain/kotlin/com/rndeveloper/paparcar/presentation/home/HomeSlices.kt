@@ -279,6 +279,12 @@ data class HomePeekSlice(
     val fuelStationStep: PeekStep
         get() = PeekStep.of(fuelStations.map { it.station.id }, selectedFuelStation?.station?.id)
 
+    /** Neighbours of the selected car park in the "nearest first" order the sheet lists — the
+     *  parkings lane's ‹ / ›, the third lane of the same stepper. A car park that dropped out on a
+     *  refresh yields [PeekStep.None]. [CARPARK-DETAIL-HAS-PREV-NEXT-CLOSE-001] */
+    val publicParkingStep: PeekStep
+        get() = PeekStep.of(publicParkings.map { it.parking.id }, selectedPublicParking?.parking?.id)
+
     /** Neighbours of [currentVehicleId] among ALL registered vehicles — what the car-lane ‹ / ›
      *  offer. The ids are VEHICLE ids: the caller resolves each into its modal (session or
      *  add-parking). [MULTI-PARKING-001] [UI-PEEK-STEPS-WALK-VEHICLES-NOT-SESSIONS-001] */

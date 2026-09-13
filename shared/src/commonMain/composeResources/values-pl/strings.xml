@@ -902,6 +902,8 @@
     <string name="home_parkings_too_far">Publiczne parkingi pokazujemy tylko w promieniu %1$d km od ciebie. Przesuń mapę bliżej, aby je zobaczyć.</string>
     <string name="home_parkings_remembered">Brak połączenia: to parkingi, które widzieliśmy tutaj %1$s.</string>
     <string name="parking_peek_eyebrow">Parking publiczny</string>
+    <string name="parking_peek_step_prev">Poprzedni parking</string>
+    <string name="parking_peek_step_next">Następny parking</string>
     <string name="parking_kind_underground">Parking podziemny</string>
     <string name="parking_kind_multi_storey">Parking wielopoziomowy</string>
     <string name="parking_kind_surface">Parking naziemny</string>

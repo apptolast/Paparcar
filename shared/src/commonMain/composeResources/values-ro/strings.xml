@@ -902,6 +902,8 @@
     <string name="home_parkings_too_far">Afișăm parcările publice doar pe o rază de %1$d km de tine. Apropie harta ca să le vezi.</string>
     <string name="home_parkings_remembered">Fără conexiune: acestea sunt parcările văzute aici %1$s.</string>
     <string name="parking_peek_eyebrow">Parcare publică</string>
+    <string name="parking_peek_step_prev">Parcarea publică anterioară</string>
+    <string name="parking_peek_step_next">Parcarea publică următoare</string>
     <string name="parking_kind_underground">Parcare subterană</string>
     <string name="parking_kind_multi_storey">Parcare supraetajată</string>
     <string name="parking_kind_surface">Parcare la sol</string>
