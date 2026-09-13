@@ -53,14 +53,16 @@
 
     <!-- OnboardingScreen -->
     <string name="onboarding_page1_title">Willkommen bei Paparcar</string>
-    <string name="onboarding_page1_subtitle">Die Community, die Parkplätze freigibt. Wenn du fährst, finden andere deinen. Wenn andere fahren, findest du ihren.</string>
-    <string name="onboarding_page2_title">So funktioniert es</string>
-    <string name="onboarding_step1_title">Wir erkennen das Fahren</string>
-    <string name="onboarding_step1_desc">Die App erkennt, wenn du ins Auto steigst</string>
-    <string name="onboarding_step2_title">Wir erkennen das Parken</string>
-    <string name="onboarding_step2_desc">Wenn du parkst, speichern wir deinen Parkplatz</string>
-    <string name="onboarding_step3_title">Wir teilen den Stellplatz</string>
-    <string name="onboarding_step3_desc">Wenn du fährst, wird dein Stellplatz für andere in der Nähe verfügbar</string>
+    <string name="onboarding_page1_subtitle">Paparcar kümmert sich um dein Auto: Es merkt sich, wo du parkst, macht aus deinen Fahrten Zahlen und gibt beim Wegfahren den Platz für andere in der Nähe frei.</string>
+    <string name="onboarding_page2_title">Was es für dich tut</string>
+    <string name="onboarding_step1_title">Automatische Erkennung</string>
+    <string name="onboarding_step1_desc">Erkennt Fahrten und Parkvorgänge von selbst und zeigt dir Kosten, CO₂ und Gewohnheiten</string>
+    <string name="onboarding_step2_title">Dein Parkplatz, gespeichert</string>
+    <string name="onboarding_step2_desc">Finde dein Auto ohne Nachdenken und sieh nach, wo du geparkt hast</string>
+    <string name="onboarding_step3_title">Ein Platz für jemand anderen</string>
+    <string name="onboarding_step3_desc">Wenn du wegfährst, erscheint der Platz als frei für andere in der Nähe</string>
+    <string name="onboarding_step4_title">Auch Parkhäuser und Tankstellen</string>
+    <string name="onboarding_step4_desc">Die Karte zeigt dir auch öffentliche Parkhäuser und Spritpreise in deiner Nähe</string>
     <string name="onboarding_cta_next">Weiter</string>
     <string name="onboarding_cta_start">Los geht's</string>
 

@@ -77,14 +77,16 @@
 
     <!-- OnboardingScreen -->
     <string name="onboarding_page1_title">Bienvenido a Paparcar</string>
-    <string name="onboarding_page1_subtitle">La comunidad que libera plazas de aparcamiento. Cuando tú te vas, los demás encuentran la tuya. Cuando los demás se van, tú encuentras la suya.</string>
-    <string name="onboarding_page2_title">Cómo funciona</string>
-    <string name="onboarding_step1_title">Detectamos que conduces</string>
-    <string name="onboarding_step1_desc">La app detecta cuándo te subes al coche</string>
-    <string name="onboarding_step2_title">Detectamos que aparcas</string>
-    <string name="onboarding_step2_desc">Cuando aparcas, guardamos tu aparcamiento en silencio</string>
-    <string name="onboarding_step3_title">Compartimos la plaza</string>
-    <string name="onboarding_step3_desc">Cuando te vas, tu plaza queda disponible para los demás</string>
+    <string name="onboarding_page1_subtitle">Paparcar cuida de tu coche: guarda dónde aparcas, convierte tus trayectos en cifras y, cuando te vas, libera la plaza para quien busca cerca.</string>
+    <string name="onboarding_page2_title">Qué hace por ti</string>
+    <string name="onboarding_step1_title">Detección automática</string>
+    <string name="onboarding_step1_desc">Detecta sola tus trayectos y aparcamientos y te enseña gasto, CO₂ y hábitos</string>
+    <string name="onboarding_step2_title">Tu aparcamiento, guardado</string>
+    <string name="onboarding_step2_desc">Encuentra tu coche sin pensar y repasa dónde has aparcado</string>
+    <string name="onboarding_step3_title">Una plaza para otro</string>
+    <string name="onboarding_step3_desc">Cuando te vas, la plaza aparece libre para quien busca cerca</string>
+    <string name="onboarding_step4_title">También parkings y gasolineras</string>
+    <string name="onboarding_step4_desc">El mapa te enseña parkings públicos y el precio del combustible cerca de ti</string>
     <string name="onboarding_cta_next">Siguiente</string>
     <string name="onboarding_cta_start">Empezar</string>
 

@@ -53,14 +53,16 @@
 
     <!-- OnboardingScreen -->
     <string name="onboarding_page1_title">Welkom bij Paparcar</string>
-    <string name="onboarding_page1_subtitle">De community die parkeerplaatsen vrijgeeft. Als u vertrekt, vinden anderen de uwe. Als anderen vertrekken, vindt u die van hen.</string>
-    <string name="onboarding_page2_title">Hoe het werkt</string>
-    <string name="onboarding_step1_title">Wij detecteren het rijden</string>
-    <string name="onboarding_step1_desc">De app detecteert wanneer u in uw auto stapt</string>
-    <string name="onboarding_step2_title">Wij detecteren het parkeren</string>
-    <string name="onboarding_step2_desc">Wanneer u parkeert, slaan wij stilletjes uw parkeerplaats op</string>
-    <string name="onboarding_step3_title">Wij delen de parkeerplaats</string>
-    <string name="onboarding_step3_desc">Wanneer u vertrekt, wordt uw parkeerplaats beschikbaar voor anderen in de buurt</string>
+    <string name="onboarding_page1_subtitle">Paparcar let op je auto: het onthoudt waar je parkeert, maakt cijfers van je ritten en geeft bij vertrek de plek vrij voor wie in de buurt zoekt.</string>
+    <string name="onboarding_page2_title">Wat het voor je doet</string>
+    <string name="onboarding_step1_title">Automatische detectie</string>
+    <string name="onboarding_step1_desc">Herkent zelf je ritten en parkeerbeurten en toont je kosten, CO₂ en gewoonten</string>
+    <string name="onboarding_step2_title">Je parkeerplaats, bewaard</string>
+    <string name="onboarding_step2_desc">Vind je auto zonder nadenken en kijk terug waar je hebt geparkeerd</string>
+    <string name="onboarding_step3_title">Een plek voor een ander</string>
+    <string name="onboarding_step3_desc">Als je vertrekt, verschijnt de plek als vrij voor wie in de buurt zoekt</string>
+    <string name="onboarding_step4_title">Ook parkeergarages en brandstof</string>
+    <string name="onboarding_step4_desc">De kaart toont je ook openbare parkeergarages en brandstofprijzen bij jou in de buurt</string>
     <string name="onboarding_cta_next">Volgende</string>
     <string name="onboarding_cta_start">Aan de slag</string>
 

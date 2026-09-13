@@ -92,14 +92,16 @@
 
     <!-- OnboardingScreen -->
     <string name="onboarding_page1_title">Welcome to Paparcar</string>
-    <string name="onboarding_page1_subtitle">The community that frees up parking spots. When you leave, others find yours. When others leave, you find theirs.</string>
-    <string name="onboarding_page2_title">How it works</string>
-    <string name="onboarding_step1_title">We detect driving</string>
-    <string name="onboarding_step1_desc">The app detects when you get in your car</string>
-    <string name="onboarding_step2_title">We detect parking</string>
-    <string name="onboarding_step2_desc">When you park, we silently save your parking</string>
-    <string name="onboarding_step3_title">We share the spot</string>
-    <string name="onboarding_step3_desc">When you leave, your spot becomes available to others nearby</string>
+    <string name="onboarding_page1_subtitle">Paparcar looks after your car: it saves where you park, turns your trips into figures and, when you leave, frees up the spot for drivers nearby.</string>
+    <string name="onboarding_page2_title">What it does for you</string>
+    <string name="onboarding_step1_title">Automatic detection</string>
+    <string name="onboarding_step1_desc">Notices your trips and parkings on its own, and shows your spend, CO₂ and habits</string>
+    <string name="onboarding_step2_title">Your parking, saved</string>
+    <string name="onboarding_step2_desc">Find your car without thinking and look back at where you have parked</string>
+    <string name="onboarding_step3_title">A spot for someone else</string>
+    <string name="onboarding_step3_desc">When you leave, the spot shows up free for drivers nearby</string>
+    <string name="onboarding_step4_title">Car parks and fuel, too</string>
+    <string name="onboarding_step4_desc">The map also shows public car parks and fuel prices near you</string>
     <string name="onboarding_cta_next">Next</string>
     <string name="onboarding_cta_start">Get started</string>
 

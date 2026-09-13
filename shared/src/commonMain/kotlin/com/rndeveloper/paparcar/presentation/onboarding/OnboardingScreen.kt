@@ -5,18 +5,22 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -36,6 +40,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.ui.components.PapCard
 import com.rndeveloper.paparcar.ui.components.PapPrimaryButton
+import com.rndeveloper.paparcar.ui.icons.PaparcarIcons
 import com.rndeveloper.paparcar.ui.illustrations.OnboardingHero
 import com.rndeveloper.paparcar.ui.theme.PaparcarSpacing
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
@@ -54,8 +59,10 @@ import paparcar.composeapp.generated.resources.onboarding_step2_desc
 import paparcar.composeapp.generated.resources.onboarding_step2_title
 import paparcar.composeapp.generated.resources.onboarding_step3_desc
 import paparcar.composeapp.generated.resources.onboarding_step3_title
+import paparcar.composeapp.generated.resources.onboarding_step4_desc
+import paparcar.composeapp.generated.resources.onboarding_step4_title
 
-// Two pages of VALUE — welcome + how it works. The old page 3 ("Why we need your permissions",
+// Two pages of VALUE — what Paparcar is + what it does for you. The old page 3 ("Why we need your permissions",
 // padlock hero) made the last thing a new user saw before the app a security lecture; its
 // background-location disclosure now lives where background is actually requested (the "activate
 // detection" visit). [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001]
@@ -69,8 +76,12 @@ private val       DOT_ACTIVE_WIDTH           = 24.dp
 private val       DOT_INACTIVE_SIZE          = 8.dp
 
 @Composable
-fun OnboardingScreen(onComplete: () -> Unit) {
-    val pagerState = rememberPagerState(pageCount = { PAGE_COUNT })
+fun OnboardingScreen(
+    onComplete: () -> Unit,
+    /** Where the pager opens — only the gallery and previews pass anything but the first page. */
+    initialPage: Int = 0,
+) {
+    val pagerState = rememberPagerState(initialPage = initialPage, pageCount = { PAGE_COUNT })
     val scope = rememberCoroutineScope()
 
     Box(
@@ -154,10 +165,16 @@ private fun OnboardingPage1() {
 }
 
 @Composable
-private fun OnboardingPage2() {
+private fun OnboardingPage2() = BoxWithConstraints(Modifier.fillMaxSize()) {
+    // Four cards and a hero no longer fit a small phone above the CTA, so the page scrolls — and
+    // still centres when it fits: the column is at least one viewport tall.
+    // [ONBOARDING-SELLS-THE-NEW-PRODUCT-001]
+    val viewportHeight = maxHeight
     Column(
         modifier = Modifier
-            .fillMaxSize()
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .heightIn(min = viewportHeight)
             .statusBarsPadding()
             .padding(horizontal = PaparcarSpacing.xxxl)
             .padding(top = PaparcarSpacing.huge, bottom = PAGE_CONTENT_BOTTOM_CLEARANCE),
@@ -176,6 +193,12 @@ private fun OnboardingPage2() {
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(PaparcarSpacing.xxl + PaparcarSpacing.md))
+        // [ONBOARDING-SELLS-THE-NEW-PRODUCT-001] Cuatro tarjetas de VALOR, no de mecánica: la
+        // detección como servicio (tus trayectos y aparcamientos convertidos en cifras), tu
+        // aparcamiento guardado, la plaza que liberas y — como complemento, nunca como producto —
+        // parkings y gasolineras. Los glifos 1-3 conservan su significado; su frase cambia de «cómo
+        // funciona por dentro» a «qué ganas».
+        //
         // [UI-ONBOARDING-STEP-ICONS-SAY-WHAT-THE-APP-SAYS-001] Los tres glifos NO se eligen por
         // parecido con el título, sino por el significado que ya tienen dentro de la app: esta
         // pantalla es la primera vez que el usuario los ve, y los volverá a encontrar en Home
@@ -206,6 +229,16 @@ private fun OnboardingPage2() {
             icon = Icons.Rounded.Campaign,
             title = stringResource(Res.string.onboarding_step3_title),
             desc = stringResource(Res.string.onboarding_step3_desc),
+        )
+        Spacer(Modifier.height(PaparcarSpacing.lg))
+        OnboardingStep(
+            // El edificio con su P de `PaparcarIcons.CarParkMark`: el MISMO glifo que lleva el carril
+            // de parkings en el sheet de Home, el único dueño legítimo de la P. Una tarjeta, no una
+            // página: los complementos se presentan de pasada y su carril se explica la primera vez
+            // que se abre [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001].
+            icon = PaparcarIcons.CarParkMark,
+            title = stringResource(Res.string.onboarding_step4_title),
+            desc = stringResource(Res.string.onboarding_step4_desc),
         )
     }
 }
