@@ -50,13 +50,11 @@ val iosPlatformModule = module {
     single<LocationDataSource> { IosLocationDataSourceImpl() }
     // Geocoder — real iOS implementation (CLGeocoder)
     single<GeocoderDataSource> { IosGeocoderDataSourceImpl() }
-    // Places — real iOS implementation (Overpass API via NSURLSession) [IOS-PLACES-001]
-    single<PlacesDataSource> { IosOverpassPlacesDataSourceImpl() }
-    // Road network — same transport, road query; activates HomeTripController's live map-matching
-    // via the PresentationModule getOrNull() seam. [IOS-A-PARITY-TAIL-001]
-    single<com.rndeveloper.paparcar.domain.places.RoadNetworkDataSource> {
-        com.rndeveloper.paparcar.location.IosOverpassRoadNetworkDataSourceImpl()
-    }
+    // ⛔ Places NO está aquí: era una copia literal de la de Android [IOS-PLACES-001], y esa copia es
+    // exactamente el motivo por el que el failover de espejos se arregló en una y no en la otra.
+    // Vive en commonMain y se registra en `dataModule`. [OVERPASS-A-SINGLE-MIRROR-HAS-NO-FAILOVER-001]
+    // Road network, lo mismo: `OverpassRoadNetworkDataSource` (commonMain) sirve a las dos
+    // plataformas desde `dataModule`, y con él el map-matching en vivo de iOS. [IOS-A-PARITY-TAIL-001]
 
     // Notifications — real iOS implementation (UNUserNotificationCenter)
     single<AppNotificationManager> { IosAppNotificationManagerImpl(appPreferences = get()) }

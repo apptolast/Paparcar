@@ -49,6 +49,9 @@ class SyncOutboxDrainerTest {
         private fun gate() { if (failNext) error("network down") }
         override suspend fun getProfile(userId: String): UserProfileDto? = null
         override suspend fun createOrUpdateProfile(profile: UserProfileDto) = gate()
+        override suspend fun updateIdentityFields(
+            userId: String, email: String?, displayName: String?, photoUrl: String?, updatedAt: Long,
+        ) = gate()
         override suspend fun updateDefaultVehicleId(userId: String, vehicleId: String?) = gate()
         override suspend fun updateFirstStepsDismissedAt(userId: String, dismissedAtMs: Long?) = gate()
         override suspend fun saveParkingSession(userId: String, session: ParkingHistoryDto) { gate(); savedSessions += session }

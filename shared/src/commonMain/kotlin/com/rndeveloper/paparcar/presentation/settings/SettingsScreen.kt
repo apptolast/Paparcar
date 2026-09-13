@@ -84,8 +84,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil3.compose.AsyncImagePainter
-import coil3.compose.rememberAsyncImagePainter
 import coil3.compose.SubcomposeAsyncImage
 import com.rndeveloper.paparcar.isBatteryOptimizationRelevant
 import com.rndeveloper.paparcar.domain.diagnostics.DiagnosticsReport

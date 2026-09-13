@@ -49,11 +49,8 @@ import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.entitlement.annualSavingsPercent
 import com.rndeveloper.paparcar.domain.model.PlusOffer
 import com.rndeveloper.paparcar.domain.model.PlusPlan
-import com.rndeveloper.paparcar.presentation.util.collectAsStateLifecycleAware
 import com.rndeveloper.paparcar.ui.components.PAPARCAR_LOGO_BESIDE_NAME_SIZE
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.revenuecat.purchases.kmp.ui.revenuecatui.Paywall
-import com.revenuecat.purchases.kmp.ui.revenuecatui.PaywallOptions
 import com.rndeveloper.paparcar.ui.components.PapDivider
 import com.rndeveloper.paparcar.ui.components.PapOutlinedCard
 import com.rndeveloper.paparcar.ui.components.PapPremiumButton

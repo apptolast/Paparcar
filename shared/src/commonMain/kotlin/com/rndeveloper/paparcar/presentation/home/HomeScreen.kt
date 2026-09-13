@@ -27,7 +27,6 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.Stable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rndeveloper.paparcar.presentation.permissions.rememberRequestFineLocationAction
-import com.rndeveloper.paparcar.presentation.util.collectAsStateLifecycleAware
 import com.rndeveloper.paparcar.presentation.util.MapForegroundEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf

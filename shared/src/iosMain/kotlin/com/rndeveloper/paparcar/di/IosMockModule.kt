@@ -8,6 +8,8 @@ import com.apptolast.baselogin.domain.AuthRepository
 import com.rndeveloper.paparcar.data.datasource.FakeLocationDataSource
 import com.rndeveloper.paparcar.data.datasource.local.room.AppDatabase
 import com.rndeveloper.paparcar.data.datasource.remote.FirebaseDataSource
+import com.rndeveloper.paparcar.data.fuel.fuelHttpClient
+import com.rndeveloper.paparcar.data.places.OverpassRoadNetworkDataSource
 import com.rndeveloper.paparcar.data.geocoder.RoomLocalAddressAndPlaceDataSource
 import com.rndeveloper.paparcar.data.repository.AddressAndPlaceRepositoryImpl
 import com.rndeveloper.paparcar.data.session.RoomLocalSessionCache
@@ -34,6 +36,7 @@ import com.rndeveloper.paparcar.domain.notification.AppNotificationManager
 import com.rndeveloper.paparcar.domain.permissions.OemBackgroundReliabilityManager
 import com.rndeveloper.paparcar.domain.permissions.PermissionManager
 import com.rndeveloper.paparcar.domain.places.PlacesDataSource
+import com.rndeveloper.paparcar.domain.places.RoadNetworkDataSource
 import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import com.rndeveloper.paparcar.domain.repository.AddressAndPlaceRepository
 import com.rndeveloper.paparcar.domain.repository.DiagnosticsRepository
@@ -87,7 +90,7 @@ import org.koin.dsl.module
  * null web client id, like prod iOS —
  * IOS-SOCIAL-LOGIN-001). Drift between the two mock graphs is exactly what let
  * [IOS-DI-A-MOCK-GRAPH-ONLY-PROD-IS-VERIFIED-001] happen; the Android graph is verified by
- * `MockKoinGraphVerifyTest`, this one can only be verified once iOS tests run
+ * `MockKoinModuleVerifyTest`, this one can only be verified once iOS tests run
  * (TEST-A-KMP-SUITE-THAT-ONLY-RUNS-ON-JVM-IS-HALF-A-SUITE-001) — until then, keep it mirrored
  * BY HAND in the same task that touches its twin.
  */
@@ -97,9 +100,9 @@ val iosMockModule = module {
 
     // Real Overpass road source so the mock sim exercises live OSM map-matching on-device, same
     // as the Android mock graph. [ROUTE-SNAP-001][IOS-A-PARITY-TAIL-001]
-    single<com.rndeveloper.paparcar.domain.places.RoadNetworkDataSource> {
-        com.rndeveloper.paparcar.location.IosOverpassRoadNetworkDataSourceImpl()
-    }
+    // Common source, like the Android twin — the per-platform copies retired with the mirror
+    // failover. [OVERPASS-A-SINGLE-MIRROR-HAS-NO-FAILOVER-001]
+    single<RoadNetworkDataSource> { OverpassRoadNetworkDataSource(fuelHttpClient()) }
 
     // Mock skips BaseLogin's `initLoginKoin` (Firebase), which is what binds the config in prod.
     single { paparcarLoginConfig(googleWebClientId = null) }
