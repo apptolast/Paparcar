@@ -69,10 +69,9 @@ Mismas dos páginas, mismo `OnboardingScreen`, sin ViewModel nuevo:
 | Paywall `TIER_ROWS` | exento — ya dice que parkings y combustible son free |
 | `docs/release/play-listing/*` | fuera de alcance — la ficha de Play debería contar lo mismo; follow-up |
 
-## Preguntas abiertas (para la revisión)
-1. **Copy**: es propuesta. En particular «cuida de tu coche» y «convierte tus trayectos en cifras» —
-   ¿es el tono que queréis para la nueva definición de producto?
-2. La tarjeta 1 menciona gasto, CO₂ y hábitos, que en free se ven parcialmente (una cifra) y
-   completos en Plus. ¿Se nombran así o preferís algo neutro («tus datos de conducción»)?
-3. ¿Hace falta ilustración nueva (Nivel 3) para la página 2? Se mantiene `illus_onb_how`.
-4. ¿Actualizamos también la ficha de Google Play con esta definición? (no incluido).
+## Decisiones de la revisión (13-09-2026)
+- El copy propuesto y la estructura de 2 páginas se quedan como están en este PR.
+- Propuesta en la revisión: llevar parkings y gasolineras a una página de onboarding propia con
+  ilustración diseñada para ello. **Aplazada** («por ahora no hacen falta estos cambios»); si se
+  retoma, necesita la ilustración Nivel 3 primero y un ticket propio.
+- Ficha de Google Play: fuera de alcance.

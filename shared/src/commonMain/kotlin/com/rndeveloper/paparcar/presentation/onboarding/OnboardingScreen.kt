@@ -62,10 +62,10 @@ import paparcar.composeapp.generated.resources.onboarding_step3_title
 import paparcar.composeapp.generated.resources.onboarding_step4_desc
 import paparcar.composeapp.generated.resources.onboarding_step4_title
 
-// Two pages of VALUE — what Paparcar is + what it does for you. The old page 3 ("Why we need your permissions",
-// padlock hero) made the last thing a new user saw before the app a security lecture; its
-// background-location disclosure now lives where background is actually requested (the "activate
-// detection" visit). [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001]
+// Two pages of VALUE — what Paparcar is + what it does for you. [ONBOARDING-SELLS-THE-NEW-PRODUCT-001]
+// The old page 3 ("Why we need your permissions", padlock hero) made the last thing a new user saw
+// before the app a security lecture; its background-location disclosure now lives where background
+// is actually requested (the "activate detection" visit). [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001]
 private const val PAGE_COUNT                 = 2
 private const val DOT_ANIM_MS                = 300
 private val       PAGE_CONTENT_BOTTOM_CLEARANCE = 140.dp
@@ -166,8 +166,8 @@ private fun OnboardingPage1() {
 
 @Composable
 private fun OnboardingPage2() = BoxWithConstraints(Modifier.fillMaxSize()) {
-    // Four cards and a hero no longer fit a small phone above the CTA, so the page scrolls — and
-    // still centres when it fits: the column is at least one viewport tall.
+    // A hero and four cards do not fit a small phone above the pinned CTA, so the page scrolls — and
+    // still centres when it fits, because the column is at least one viewport tall.
     // [ONBOARDING-SELLS-THE-NEW-PRODUCT-001]
     val viewportHeight = maxHeight
     Column(
