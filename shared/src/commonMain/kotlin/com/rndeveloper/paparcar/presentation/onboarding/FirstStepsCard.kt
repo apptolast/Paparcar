@@ -38,6 +38,7 @@ import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 import com.rndeveloper.paparcar.domain.onboarding.FirstStepsProgress
 import com.rndeveloper.paparcar.domain.onboarding.WatchAsk
 import com.rndeveloper.paparcar.domain.onboarding.WatchReinforcement
+import com.rndeveloper.paparcar.ui.components.PapBadge
 import com.rndeveloper.paparcar.ui.components.PapButtonSize
 import com.rndeveloper.paparcar.ui.components.PapIconTile
 import com.rndeveloper.paparcar.ui.components.PapIconTileSize
@@ -71,9 +72,10 @@ import paparcar.composeapp.generated.resources.first_steps_park_cta
 import paparcar.composeapp.generated.resources.first_steps_park_sub
 import paparcar.composeapp.generated.resources.first_steps_park_title
 import paparcar.composeapp.generated.resources.first_steps_progress
+import paparcar.composeapp.generated.resources.first_steps_required
+import paparcar.composeapp.generated.resources.first_steps_show_where
 import paparcar.composeapp.generated.resources.first_steps_skip
 import paparcar.composeapp.generated.resources.first_steps_spot_cta
-import paparcar.composeapp.generated.resources.first_steps_spot_report_cta
 import paparcar.composeapp.generated.resources.first_steps_spot_report_sub
 import paparcar.composeapp.generated.resources.first_steps_spot_report_title
 import paparcar.composeapp.generated.resources.first_steps_spot_sub
@@ -82,7 +84,6 @@ import paparcar.composeapp.generated.resources.first_steps_watch_on_sub
 import paparcar.composeapp.generated.resources.first_steps_watch_on_title
 import paparcar.composeapp.generated.resources.first_steps_watch_sub
 import paparcar.composeapp.generated.resources.first_steps_watch_title
-import paparcar.composeapp.generated.resources.first_steps_zone_cta
 import paparcar.composeapp.generated.resources.first_steps_zone_no_garage
 import paparcar.composeapp.generated.resources.first_steps_zone_sub
 import paparcar.composeapp.generated.resources.first_steps_zone_title
@@ -208,13 +209,17 @@ private fun Header(progress: FirstStepsProgress, onDismiss: () -> Unit) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.weight(1f),
         )
-        // "Skip" is a quiet way out, never a second CTA competing with the step's own action.
-        TextButton(onClick = onDismiss) {
-            Text(
-                text = stringResource(Res.string.first_steps_skip),
-                style = PaparcarType.current.cta,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        // "Skip" is a quiet way out, never a second CTA competing with the step's own action — and
+        // it is not offered while a REQUIRED step is still open: those two are what the tutorial
+        // exists for. [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001]
+        if (!progress.hasPendingRequired) {
+            TextButton(onClick = onDismiss) {
+                Text(
+                    text = stringResource(Res.string.first_steps_skip),
+                    style = PaparcarType.current.cta,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }
@@ -270,12 +275,24 @@ private fun StepRow(
             // affordances, and a word here would compete with the step's actual action.
             // [UI-LIST-ITEM-001]
             trailing = {
-                IconButton(onClick = onOpen, modifier = Modifier.size(HELP_TOUCH_DP.dp)) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Rounded.HelpOutline,
-                        contentDescription = stringResource(Res.string.first_steps_how_it_works),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Said on the row itself, so "required" is never something the user discovers by
+                    // looking for a Skip that is not there. [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001]
+                    if (step.isRequired && !isDone) {
+                        PapBadge(
+                            label = stringResource(Res.string.first_steps_required).uppercase(),
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            textStyle = PaparcarType.current.badge,
+                        )
+                    }
+                    IconButton(onClick = onOpen, modifier = Modifier.size(HELP_TOUCH_DP.dp)) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.HelpOutline,
+                            contentDescription = stringResource(Res.string.first_steps_how_it_works),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             },
             contentPadding = PaddingValues(
@@ -484,9 +501,10 @@ private fun FirstStep.copy(
     FirstStep.PRIVATE_ZONE -> FirstStepCopy(
         title = Res.string.first_steps_zone_title,
         subtitle = Res.string.first_steps_zone_sub,
-        cta = Res.string.first_steps_zone_cta,
+        // It POINTS at the header's add-zone chip, so it needs no position of its own.
+        // [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001]
+        cta = Res.string.first_steps_show_where,
         icon = Icons.Rounded.Lock,
-        needsLocation = true,
         noAnswer = Res.string.first_steps_zone_no_garage,
     )
     // The eye is the app's established "we are watching this car" glyph (the Watching story row).
@@ -561,8 +579,9 @@ private fun FirstStep.copy(
         FindSpotAsk.REPORT_ONE -> FirstStepCopy(
             title = Res.string.first_steps_spot_report_title,
             subtitle = Res.string.first_steps_spot_report_sub,
-            cta = Res.string.first_steps_spot_report_cta,
-            needsLocation = true,
+            // Points at the "Report a free spot" card instead of opening the report flow, so it no
+            // longer needs a position — the card itself waits for one. [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001]
+            cta = Res.string.first_steps_show_where,
             // The glyph follows the ask: reporting is putting a spot ON the map, the same
             // AddLocationAlt gesture step 1 uses for your own parking — not exploring for one.
             icon = Icons.Rounded.AddLocationAlt,

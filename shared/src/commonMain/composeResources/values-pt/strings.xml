@@ -673,6 +673,8 @@
     <string name="first_steps_eyebrow">Primeiros passos</string>
     <string name="first_steps_progress">%1$d de %2$d</string>
     <string name="first_steps_skip">Ignorar</string>
+    <string name="first_steps_required">Obrigatório</string>
+    <string name="first_steps_show_where">Mostra-me onde</string>
     <string name="first_steps_how_it_works">Como funciona</string>
     <string name="first_steps_done_cta">Concluído</string>
     <string name="first_steps_complete_title">Está tudo pronto</string>
@@ -698,7 +700,6 @@
     <string name="first_steps_spot_cta">Ver lugares</string>
     <string name="first_steps_spot_report_title">Vês um lugar livre? Avisa</string>
     <string name="first_steps_spot_report_sub">Um espaço que outro deixou, não o teu estacionamento. Marca-o e os condutores próximos vêem-no.</string>
-    <string name="first_steps_spot_report_cta">Avisar de um lugar</string>
     <string name="first_steps_spotlight_caption">O pin fica fixo: arrasta o MAPA até ficar sobre o teu carro e confirma em baixo.</string>
     <string name="settings_replay_first_steps">Rever os primeiros passos</string>
     <string name="settings_replay_first_steps_done">Os primeiros passos voltaram ao Início</string>
@@ -915,7 +916,6 @@
     <string name="first_steps_explain_explore_note">Nenhum dos dois vem da comunidade: são dados públicos, por isso estão lá desde o primeiro dia, e grátis para todos.</string>
     <string name="first_steps_zone_title">Protege a tua garagem</string>
     <string name="first_steps_zone_sub">Se estacionas numa garagem privada, adiciona aí uma zona privada: ao sair, não publicamos um lugar livre.</string>
-    <string name="first_steps_zone_cta">Adicionar zona privada</string>
     <string name="first_steps_zone_no_garage">Não tenho garagem</string>
     <string name="first_steps_explain_zone_title">A tua garagem não é um lugar livre</string>
     <string name="first_steps_explain_zone_body">Quando sais, o Paparcar liberta o teu lugar para outra pessoa. Numa garagem privada (a tua casa, o teu trabalho) mais ninguém o pode usar.</string>

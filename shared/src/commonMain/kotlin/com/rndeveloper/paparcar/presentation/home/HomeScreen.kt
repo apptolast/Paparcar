@@ -1,5 +1,7 @@
 package com.rndeveloper.paparcar.presentation.home
 
+import androidx.compose.runtime.withFrameNanos
+import com.rndeveloper.paparcar.presentation.home.model.FirstStepGuide
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.fadeIn
@@ -145,6 +147,10 @@ private const val PROGRAMMATIC_MOVE_GUARD_MS = 1100L
 //   · ZoneEditing: a zone radius reaches 500 m, so its circle needs ~1 km of screen to read
 //     whole while it is being sized. [UI-ZONE-MANAGE-001]
 private const val NAVIGATE_ZOOM = 15f
+
+// How long a checklist step's highlight stays on the control it points at.
+// [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001]
+private const val FIRST_STEP_GUIDE_MS = 6_000L
 private const val ZONE_EDITING_ZOOM = 14f
 
 // Sheet snap geometry, transition effects and the snap spec live in
@@ -374,6 +380,18 @@ private fun HomeContent(
     // [PARK-RELEASE-THE-SCREEN-NEVER-SAW-001]
     val releaseTargetSessionId = state.releaseDialogSessionId
     val lazyListState = rememberLazyListState()
+    // [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001] The control a checklist step is pointing at, highlighted
+    // for a few seconds; gone early if Home leaves Browse (the user used it, or went elsewhere).
+    var firstStepGuide by remember { mutableStateOf<FirstStepGuide?>(null) }
+    LaunchedEffect(firstStepGuide) {
+        if (firstStepGuide != null) {
+            delay(FIRST_STEP_GUIDE_MS)
+            firstStepGuide = null
+        }
+    }
+    LaunchedEffect(state.mode) {
+        if (state.mode !is HomeMode.Browse) firstStepGuide = null
+    }
     // Hoisted with the list's own state: both must outlive the list while a detail sheet hides it.
     // [HOME-BROWSE-SURVIVES-THE-DETAIL-SHEET-001]
     val sheetRowsScroll = rememberHomeSheetRowsScroll()
@@ -525,6 +543,9 @@ private fun HomeContent(
                     // explanation is what finished it.
                     // [ONBOARDING-THE-COMMUNITY-STEP-CANNOT-DEMAND-A-SPOT-001]
                     firstStepsCue = browseSlice.firstStepsCue,
+                    // While a step is pointing somewhere, its completion must not rewind the list
+                    // back to the checklist. [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001]
+                    firstStepGuideActive = firstStepGuide != null,
                 )
 
                 // Tap-toggle, programmatic expand and nested-scroll collapse — see [SheetMotion].
@@ -774,6 +795,7 @@ private fun HomeContent(
                 // ── Floating search header ────────────────────────────────────
                 HomeFloatingHeader(
                     visible = overlayVisible,
+                    highlightAddZone = firstStepGuide == FirstStepGuide.ADD_ZONE_CHIP,
                     slice = headerSlice,
                     uiController = uiController,
                     userGpsPoint = state.userGpsPoint,
@@ -853,6 +875,9 @@ private fun HomeContent(
                     onNavigateExternal = openExternalNav,
                     onToggle = motion.toggle,
                     onExpandSheet = motion.animateToExpanded,
+                    onCollapseSheet = motion.animateToPeek,
+                    onGuide = { target -> firstStepGuide = target },
+                    firstStepGuide = firstStepGuide,
                     onActivateDetection = onActivateDetection,
                     onAddVehicle = onAddVehicle,
                     onLinkVehicleBluetooth = onLinkVehicleBluetooth,
@@ -1062,6 +1087,7 @@ private fun HomeReleaseDialogHost(
 @Composable
 private fun HomeFloatingHeader(
     visible: Boolean,
+    highlightAddZone: Boolean,
     slice: HomeHeaderSlice,
     uiController: HomeUiController,
     userGpsPoint: GpsPoint?,
@@ -1076,6 +1102,7 @@ private fun HomeFloatingHeader(
         ) {
             HomeHeaderSection(
                 slice = slice,
+                highlightAddZone = highlightAddZone,
                 onSearchQueryChanged = { onIntent(HomeIntent.SearchQueryChanged(it)) },
                 onSearchResultClick = { result ->
                     uiController.goToPlace(result.lat, result.lon, zoom = NAVIGATE_ZOOM)
@@ -1124,6 +1151,11 @@ private fun HomeSheetSection(
     /** Open the sheet to its "expanded" anchor — the same motion a tap on the peek performs.
      *  [ONBOARDING-STEPS-MUST-EXPLAIN-WHAT-REALLY-HAPPENS-001] */
     onExpandSheet: () -> Unit,
+    /** Settle the sheet at peek, revealing the floating header. [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001] */
+    onCollapseSheet: () -> Unit,
+    /** Start highlighting a control a checklist step points at. [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001] */
+    onGuide: (FirstStepGuide) -> Unit,
+    firstStepGuide: FirstStepGuide?,
     onActivateDetection: (focus: String) -> Unit,
     onAddVehicle: () -> Unit,
     onLinkVehicleBluetooth: (vehicleId: String) -> Unit,
@@ -1167,9 +1199,6 @@ private fun HomeSheetSection(
             HomeSheetAction.RequestReportMode -> pinStartPoint(uiController, state)?.let { (lat, lon) ->
                 onIntent(HomeIntent.EnterReportMode(lat = lat, lon = lon))
             }
-            HomeSheetAction.RequestAddZone -> pinStartPoint(uiController, state)?.let { (lat, lon) ->
-                onIntent(HomeIntent.EnterAddZoneMode(lat = lat, lon = lon))
-            }
             is HomeSheetAction.MoveCamera -> uiController.goToPlace(action.lat, action.lon)
             is HomeSheetAction.NavigateExternal ->
                 onNavigateExternal(action.lat, action.lon, action.walking)
@@ -1189,14 +1218,40 @@ private fun HomeSheetSection(
             // bar is right there). A COMPLEMENT lane has no such promise to keep and needs none:
             // whatever it finds, entering it is what the step teaches, and the lane says its own
             // honest sentence about what it found.
-            is HomeSheetAction.RevealNearbyLane -> {
-                // Point the lane AT the subject — never a toggle, so this cannot flip a lane the
-                // user is already on into something else.
-                // [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
-                onIntent(HomeIntent.SetNearbyLens(action.lens))
-                onExpandSheet()
-                frame.coroutineScope.launch {
-                    frame.lazyListState.animateScrollToItem(frame.lazyListState.nearbyLensIndex())
+            // [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001] Bring the control on screen and highlight it; the
+            // user's own tap is what uses it.
+            is HomeSheetAction.GuideTo -> {
+                onGuide(action.target)
+                when (action.target) {
+                    FirstStepGuide.SPOTS_LANE, FirstStepGuide.REPORT_SPOT_CARD -> {
+                        // Point the lane AT spots — never a toggle. The report card only exists there.
+                        // [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
+                        onIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.SPOTS))
+                        onExpandSheet()
+                        frame.coroutineScope.launch {
+                            // Let the lane recompose before measuring where its items are.
+                            withFrameNanos { }
+                            withFrameNanos { }
+                            val list = frame.lazyListState
+                            val index = if (action.target == FirstStepGuide.REPORT_SPOT_CARD) {
+                                // The report card is the last item of the spots lane.
+                                (list.layoutInfo.totalItemsCount - 1).coerceAtLeast(0)
+                            } else {
+                                list.nearbyLensIndex()
+                            }
+                            list.animateScrollToItem(index)
+                        }
+                    }
+                    // Scroll to the tabs and highlight them — the user picks the lane.
+                    FirstStepGuide.NEARBY_COMPLEMENT_TABS -> {
+                        onExpandSheet()
+                        frame.coroutineScope.launch {
+                            frame.lazyListState.animateScrollToItem(frame.lazyListState.nearbyLensIndex())
+                        }
+                    }
+                    // The add-zone chip lives in the floating header, which only shows with the sheet
+                    // at peek.
+                    FirstStepGuide.ADD_ZONE_CHIP -> onCollapseSheet()
                 }
             }
         }
@@ -1205,6 +1260,7 @@ private fun HomeSheetSection(
         peek = peek,
         browse = browse,
         frame = frame,
+        firstStepGuide = firstStepGuide,
         browseShowsZoneHeader = browseShowsZoneHeader,
         browseLaneHeaderLatched = browseLaneHeaderLatched,
         onIntent = onIntent,

@@ -2,6 +2,7 @@
 
 package com.rndeveloper.paparcar.presentation.home.sections.sheet.components
 
+import com.rndeveloper.paparcar.ui.components.papGuideHighlight
 import androidx.compose.foundation.layout.PaddingValues
 import com.rndeveloper.paparcar.ui.components.PapIconTile
 import com.rndeveloper.paparcar.ui.components.PapListItem
@@ -333,10 +334,12 @@ internal fun HomeReportSpotCard(
     /** False while Home still has no place to start the pin from — see
      *  [SPOT-A-REPORT-WITHOUT-A-PLACE-MUST-NOT-HAPPEN-001]. */
     enabled: Boolean = true,
+    /** A checklist step is pointing at this card. [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001] */
+    highlighted: Boolean = false,
 ) {
     PapOutlinedCard(
         onClick = onReport.takeIf { enabled },
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth().papGuideHighlight(highlighted, PapShapes.card),
         shape = PapShapes.card,
     ) {
         PapListItem(

@@ -669,6 +669,8 @@
     <string name="first_steps_eyebrow">Primeros pasos</string>
     <string name="first_steps_progress">%1$d de %2$d</string>
     <string name="first_steps_skip">Saltar</string>
+    <string name="first_steps_required">Obligatorio</string>
+    <string name="first_steps_show_where">Muéstrame dónde</string>
     <string name="first_steps_how_it_works">Cómo funciona</string>
     <string name="first_steps_done_cta">Hecho</string>
     <string name="first_steps_complete_title">Ya lo tienes</string>
@@ -694,7 +696,6 @@
     <string name="first_steps_spot_cta">Ver plazas</string>
     <string name="first_steps_spot_report_title">¿Ves una plaza libre? Avísala</string>
     <string name="first_steps_spot_report_sub">Un sitio que ha dejado otro, no tu aparcamiento. Márcalo y los conductores cercanos lo verán.</string>
-    <string name="first_steps_spot_report_cta">Avisar de una plaza</string>
     <string name="first_steps_spotlight_caption">El pin no se mueve: arrastra el MAPA hasta que quede sobre tu coche y confirma abajo.</string>
     <string name="settings_replay_first_steps">Repetir los primeros pasos</string>
     <string name="settings_replay_first_steps_done">Los primeros pasos vuelven a estar en Inicio</string>
@@ -911,7 +912,6 @@
     <string name="first_steps_explain_explore_note">Ninguna de las dos viene de la comunidad: son datos públicos, así que están desde el primer día, y gratis para todo el mundo.</string>
     <string name="first_steps_zone_title">Protege tu garaje</string>
     <string name="first_steps_zone_sub">Si aparcas en un garaje privado, añade ahí una zona privada: al salir de ella no publicaremos una plaza libre.</string>
-    <string name="first_steps_zone_cta">Añadir zona privada</string>
     <string name="first_steps_zone_no_garage">No tengo garaje</string>
     <string name="first_steps_explain_zone_title">Tu garaje no es una plaza libre</string>
     <string name="first_steps_explain_zone_body">Cuando te vas, Paparcar libera tu sitio para otra persona. En un garaje privado (tu casa, tu trabajo) nadie más puede usarlo.</string>

@@ -352,6 +352,12 @@ internal fun SheetTransitionEffects(
      * boolean — see `HomeBrowseListSlice.firstStepsCue`.
      */
     firstStepsCue: String? = null,
+    /**
+     * [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001] A checklist step is pointing the user at a control right
+     * now. The step usually completes in the same tap, and its cue changing must not rewind the list
+     * back to the checklist away from what the step just scrolled to.
+     */
+    firstStepGuideActive: Boolean = false,
 ) {
     val peekOffsetPx = positioning.peekOffsetPx
     val peekSnapTolerancePx = with(LocalDensity.current) { PEEK_LAYOUT_SNAP_TOLERANCE.toPx() }
@@ -509,8 +515,9 @@ internal fun SheetTransitionEffects(
     // advancing is a CHANGE worth showing rather than a state to be in.
     // [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001]
     var firstStepsOpenedOnce by remember { mutableStateOf(false) }
+    val currentGuideActive = rememberUpdatedState(firstStepGuideActive)
     LaunchedEffect(firstStepsCue) {
-        if (firstStepsCue == null) return@LaunchedEffect
+        if (firstStepsCue == null || currentGuideActive.value) return@LaunchedEffect
         // Rewind BEFORE the sheet moves, so the checklist is already the first thing on screen when
         // it arrives instead of scrolling into place afterwards.
         lazyListState.scrollToItem(0)
@@ -546,6 +553,12 @@ internal class SheetMotion(
     private val positioning: State<SheetPositioning>,
     private val lazyListState: LazyListState,
 ) {
+    /** Settles the sheet at peek — used to reveal the floating header over the map.
+     *  [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001] */
+    val animateToPeek: () -> Unit = {
+        scope.launch { sheetOffsetPx.animateTo(positioning.value.peekOffsetPx, SheetSnapSpec) }
+    }
+
     /** Auto-snaps to the capped "expanded" anchor (not full) so map + car marker
      *  stay visible. [HOME-SNAP-001] */
     val animateToExpanded: () -> Unit = {

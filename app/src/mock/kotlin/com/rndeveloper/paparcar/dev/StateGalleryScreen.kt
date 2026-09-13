@@ -59,6 +59,7 @@ import com.rndeveloper.paparcar.domain.model.SearchResult
 import com.rndeveloper.paparcar.presentation.home.HomeMode
 import com.rndeveloper.paparcar.presentation.home.HomeSelection
 import com.rndeveloper.paparcar.presentation.home.HomeState
+import com.rndeveloper.paparcar.presentation.home.model.FirstStepGuide
 import com.rndeveloper.paparcar.presentation.home.sections.map.components.HomeGpsAccuracyPill
 import com.rndeveloper.paparcar.presentation.home.sections.header.components.HomeSearchBar
 import com.rndeveloper.paparcar.presentation.home.model.DetectionStory
@@ -337,12 +338,13 @@ private fun peek(state: HomeState, showsZoneHeader: Boolean = false, laneHeaderL
 
 /** Renders the expanded Home sheet (spots list + own-parking card) via homeSheetItems. */
 @Composable
-private fun sheet(state: HomeState) {
+private fun sheet(state: HomeState, firstStepGuide: FirstStepGuide? = null) {
     LazyColumn(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainer)) {
         homeSheetItems(
             slice = state.toBrowseListSlice(),
             onIntent = {},
             onAction = {},
+            firstStepGuide = firstStepGuide,
         )
     }
 }
@@ -2263,6 +2265,14 @@ private val galleryGroups: List<ScreenGroup> = listOf(
         listOf(
             Variant("Paso 1 · marcar aparcamiento", Placement.Surface) {
                 firstStepsCard(done = emptySet(), hasPrivateZone = false)
+            },
+            // [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001] El tutorial SEÑALA en vez de abrir: pestañas de
+            // parkings y gasolineras resaltadas (sin seleccionarlas) y la tarjeta de avisar de una plaza.
+            Variant("Guía del tutorial · pestañas de parkings y gasolineras") {
+                sheet(HomeState(nearbySpots = FakeData.nearbySpots, hasCorePermissions = true), FirstStepGuide.NEARBY_COMPLEMENT_TABS)
+            },
+            Variant("Guía del tutorial · tarjeta de avisar de una plaza") {
+                sheet(HomeState(nearbySpots = FakeData.nearbySpots, hasCorePermissions = true), FirstStepGuide.REPORT_SPOT_CARD)
             },
             // [FIRST-STEPS-A-PRIVATE-GARAGE-IS-A-PRIVATE-ZONE-001] El garaje privado, con sus dos
             // respuestas: «Añadir zona privada» y «No tengo garaje».

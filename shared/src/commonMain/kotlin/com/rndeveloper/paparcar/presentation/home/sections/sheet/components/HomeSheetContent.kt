@@ -1,6 +1,7 @@
 
 package com.rndeveloper.paparcar.presentation.home.sections.sheet.components
 
+import com.rndeveloper.paparcar.presentation.home.model.FirstStepGuide
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -92,6 +93,8 @@ fun LazyListScope.homeSheetItems(
      *  detail sheet. Null (previews, gallery) = each row remembers its own, as before.
      *  [HOME-BROWSE-SURVIVES-THE-DETAIL-SHEET-001] */
     rowsScroll: HomeSheetRowsScroll? = null,
+    /** The control a checklist step is pointing at — highlighted in place. [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001] */
+    firstStepGuide: FirstStepGuide? = null,
 ) {
     val filteredSpots = slice.filteredSpots
     val vehicleCards = slice.vehicleCards
@@ -142,9 +145,11 @@ fun LazyListScope.homeSheetItems(
                                 targetVehicleId = coldStartVehicleId,
                             ),
                         )
-                        // [FIRST-STEPS-A-PRIVATE-GARAGE-IS-A-PRIVATE-ZONE-001] The app's own add-zone
-                        // flow; the zone starts private while this step is the ask.
-                        FirstStep.PRIVATE_ZONE -> onAction(HomeSheetAction.RequestAddZone)
+                        // [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001] Points at the header's add-zone chip
+                        // instead of opening the form: the chip is where the user will add zones
+                        // after the tutorial. Tapped while this step is the ask, the zone starts
+                        // private. [FIRST-STEPS-A-PRIVATE-GARAGE-IS-A-PRIVATE-ZONE-001]
+                        FirstStep.PRIVATE_ZONE -> onAction(HomeSheetAction.GuideTo(FirstStepGuide.ADD_ZONE_CHIP))
                         // [ONBOARDING-STEPS-MUST-EXPLAIN-WHAT-REALLY-HAPPENS-001] Two faces here too.
                         // With detection healthy the step only DESCRIBES and renders no CTA, so this
                         // is unreachable and it completes by observing the honest watch line below.
@@ -166,31 +171,22 @@ fun LazyListScope.homeSheetItems(
                             WatchAsk.TURN_IT_ON -> onIntent(HomeIntent.EnableAutoDetection)
                             WatchAsk.EXPLAIN_RELEASE -> Unit
                         }
-                        // The community half, and it has TWO doors depending on whether the
-                        // community has anything to offer yet. Which one is open was decided by
-                        // the projection (`findSpotAsk`); here we only translate it into the app's
-                        // real entry point — the same list the sheet already renders, or the same
-                        // action the "Report a free spot" card at its bottom fires.
+                        // The community half, two faces decided by the projection (`findSpotAsk`).
                         // [ONBOARDING-STEPS-MUST-EXPLAIN-WHAT-REALLY-HAPPENS-001]
+                        // Both now POINT instead of doing it for the user: the spots lane, or the
+                        // "Report a free spot" card at its bottom — never the report flow itself.
+                        // The step still closes on this tap (it is knowledge), so the tutorial can be
+                        // finished without reporting anything. [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001]
                         FirstStep.FIND_SPOT -> when (firstSteps.findSpotAsk) {
-                            FindSpotAsk.SEE_NEARBY -> onAction(
-                                HomeSheetAction.RevealNearbyLane(HomeNearbyLens.SPOTS),
-                            )
-                            FindSpotAsk.REPORT_ONE -> onAction(HomeSheetAction.RequestReportMode)
+                            FindSpotAsk.SEE_NEARBY -> onAction(HomeSheetAction.GuideTo(FirstStepGuide.SPOTS_LANE))
+                            FindSpotAsk.REPORT_ONE -> onAction(HomeSheetAction.GuideTo(FirstStepGuide.REPORT_SPOT_CARD))
                         }
                         // [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001] The other two questions the map
-                        // answers. It lands on CAR PARKS, fixed, and deliberately does not try to
-                        // pick "the complement with data around here": a complement only has a count
-                        // once its lane has been asked, and if it has been asked this step is
-                        // already closed — so the choice would always be made on two zeroes, and a
-                        // zero on a subject nobody asked is not a verdict about the world.
-                        // [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
-                        //
-                        // Car parks because it is the complement nearest the product's own question
-                        // — where do I leave the car — and from its lane the third subject is one
-                        // tab away, with the row saying so.
+                        // answers. It used to SELECT the car parks lane for the user; now it scrolls to
+                        // the tab row and highlights car parks and fuel, and the user picks one.
+                        // [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001]
                         FirstStep.EXPLORE_NEARBY -> onAction(
-                            HomeSheetAction.RevealNearbyLane(HomeNearbyLens.PARKINGS),
+                            HomeSheetAction.GuideTo(FirstStepGuide.NEARBY_COMPLEMENT_TABS),
                         )
                     }
                 },
@@ -346,6 +342,7 @@ fun LazyListScope.homeSheetItems(
             filteredSpots = filteredSpots,
             showFilterBar = showFilterBar,
             rowsScroll = rowsScroll,
+            firstStepGuide = firstStepGuide,
         )
     }
 }
@@ -476,10 +473,11 @@ private fun LazyListScope.nearbyLane(
     filteredSpots: List<Spot>,
     showFilterBar: Boolean,
     rowsScroll: HomeSheetRowsScroll?,
+    firstStepGuide: FirstStepGuide?,
 ) {
     // STICKY, and that is the half of this design that makes switching back cheap: from the bottom of
     // a car-park list the way back to the spots is the row already pinned above, not a scroll to the
-    // top. Its key is public because RevealNearbyLane walks the list to it. [ONBOARDING-STEPS-MUST-EXPLAIN-WHAT-REALLY-HAPPENS-001]
+    // top. Its key is public because the checklist's GuideTo walks the list to it. [ONBOARDING-STEPS-MUST-EXPLAIN-WHAT-REALLY-HAPPENS-001]
     stickyHeader(NEARBY_LENS_KEY) {
         HomeNearbyLensRow(
             lens = slice.nearbyLens,
@@ -490,11 +488,16 @@ private fun LazyListScope.nearbyLane(
             fuelCount = slice.fuel.stations.size,
             parkingsCount = slice.parkings.parkings.size,
             onSelect = { lens -> onIntent(HomeIntent.SetNearbyLens(lens)) },
+            highlighted = when (firstStepGuide) {
+                FirstStepGuide.SPOTS_LANE -> setOf(HomeNearbyLens.SPOTS)
+                FirstStepGuide.NEARBY_COMPLEMENT_TABS -> setOf(HomeNearbyLens.PARKINGS, HomeNearbyLens.FUEL)
+                else -> emptySet()
+            },
         )
     }
 
     when (slice.nearbyLens) {
-        HomeNearbyLens.SPOTS -> spotsLane(slice, onIntent, onAction, filteredSpots, showFilterBar, rowsScroll)
+        HomeNearbyLens.SPOTS -> spotsLane(slice, onIntent, onAction, filteredSpots, showFilterBar, rowsScroll, firstStepGuide)
 
         // Car parks before fuel in the chip row, and that order is a PRODUCT decision, not an
         // accident: this app is about leaving the car somewhere, so "where do I park" sits closer to
@@ -534,6 +537,7 @@ private fun LazyListScope.spotsLane(
     filteredSpots: List<Spot>,
     showFilterBar: Boolean,
     rowsScroll: HomeSheetRowsScroll?,
+    firstStepGuide: FirstStepGuide?,
 ) {
     if (showFilterBar) {
         item(key = "filter_bar") {
@@ -585,6 +589,7 @@ private fun LazyListScope.spotsLane(
                 // Sin sitio del que partir no se entra en modo reporte, asi que tampoco se ofrece.
                 // [SPOT-A-REPORT-WITHOUT-A-PLACE-MUST-NOT-HAPPEN-001]
                 enabled = slice.userGpsPoint != null,
+                highlighted = firstStepGuide == FirstStepGuide.REPORT_SPOT_CARD,
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
             )
         }
@@ -592,7 +597,7 @@ private fun LazyListScope.spotsLane(
 }
 
 /**
- * Item key of the sticky lens row. Public because [HomeSheetAction.RevealNearbyLane] walks the list to
+ * Item key of the sticky lens row. Public because [HomeSheetAction.GuideTo] walks the list to
  * it — a second spelling of the string would be a scroll that silently stops working.
  * [ONBOARDING-STEPS-MUST-EXPLAIN-WHAT-REALLY-HAPPENS-001]
  */

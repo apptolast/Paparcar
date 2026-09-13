@@ -673,6 +673,8 @@
     <string name="first_steps_eyebrow">Premiers pas</string>
     <string name="first_steps_progress">%1$d sur %2$d</string>
     <string name="first_steps_skip">Passer</string>
+    <string name="first_steps_required">Obligatoire</string>
+    <string name="first_steps_show_where">Montrez-moi où</string>
     <string name="first_steps_how_it_works">Comment ça marche</string>
     <string name="first_steps_done_cta">Terminé</string>
     <string name="first_steps_complete_title">Tout est prêt</string>
@@ -698,7 +700,6 @@
     <string name="first_steps_spot_cta">Voir les places</string>
     <string name="first_steps_spot_report_title">Vous voyez une place libre ? Signalez-la</string>
     <string name="first_steps_spot_report_sub">Un espace laissé par quelqu'un d'autre, pas votre stationnement. Marquez-la et les conducteurs proches la voient.</string>
-    <string name="first_steps_spot_report_cta">Signaler une place</string>
     <string name="first_steps_spotlight_caption">Le repère ne bouge pas : faites glisser la CARTE jusqu'à ce qu'il soit sur votre voiture, puis confirmez en dessous.</string>
     <string name="settings_replay_first_steps">Revoir les premiers pas</string>
     <string name="settings_replay_first_steps_done">Les premiers pas sont de retour sur l'accueil</string>
@@ -915,7 +916,6 @@
     <string name="first_steps_explain_explore_note">Aucune des deux ne vient de la communauté : ce sont des données publiques, donc présentes dès le premier jour, et gratuites pour tout le monde.</string>
     <string name="first_steps_zone_title">Protégez votre garage</string>
     <string name="first_steps_zone_sub">Si vous vous garez dans un garage privé, ajoutez-y une zone privée : en partant, nous ne publierons pas de place libre.</string>
-    <string name="first_steps_zone_cta">Ajouter une zone privée</string>
     <string name="first_steps_zone_no_garage">Je n'en ai pas</string>
     <string name="first_steps_explain_zone_title">Votre garage n'est pas une place libre</string>
     <string name="first_steps_explain_zone_body">Quand vous partez, Paparcar libère votre place pour quelqu'un d'autre. Dans un garage privé (chez vous, au travail), personne d'autre ne peut l'utiliser.</string>

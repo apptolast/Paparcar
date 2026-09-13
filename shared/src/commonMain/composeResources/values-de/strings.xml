@@ -674,6 +674,8 @@
     <string name="first_steps_eyebrow">Erste Schritte</string>
     <string name="first_steps_progress">%1$d von %2$d</string>
     <string name="first_steps_skip">Überspringen</string>
+    <string name="first_steps_required">Pflicht</string>
+    <string name="first_steps_show_where">Zeig mir, wo</string>
     <string name="first_steps_how_it_works">So funktioniert es</string>
     <string name="first_steps_done_cta">Fertig</string>
     <string name="first_steps_complete_title">Alles bereit</string>
@@ -699,7 +701,6 @@
     <string name="first_steps_spot_cta">Plätze ansehen</string>
     <string name="first_steps_spot_report_title">Einen freien Platz gesehen? Melde ihn</string>
     <string name="first_steps_spot_report_sub">Ein Platz, den jemand anderes verlassen hat, nicht dein Parkplatz. Markiere ihn und Fahrer in der Nähe sehen ihn.</string>
-    <string name="first_steps_spot_report_cta">Platz melden</string>
     <string name="first_steps_spotlight_caption">Die Nadel bleibt stehen: Zieh die KARTE, bis sie auf deinem Auto liegt, und bestätige unten.</string>
     <string name="settings_replay_first_steps">Erste Schritte erneut ansehen</string>
     <string name="settings_replay_first_steps_done">Die ersten Schritte sind wieder auf der Startseite</string>
@@ -916,7 +917,6 @@
     <string name="first_steps_explain_explore_note">Beides kommt nicht aus der Community: es sind öffentliche Daten, also vom ersten Tag an da, und für alle kostenlos.</string>
     <string name="first_steps_zone_title">Schütze deine Garage</string>
     <string name="first_steps_zone_sub">Wenn du in einer privaten Garage parkst, lege dort eine Private Zone an: Beim Wegfahren veröffentlichen wir keinen freien Platz.</string>
-    <string name="first_steps_zone_cta">Private Zone anlegen</string>
     <string name="first_steps_zone_no_garage">Habe ich nicht</string>
     <string name="first_steps_explain_zone_title">Deine Garage ist kein freier Platz</string>
     <string name="first_steps_explain_zone_body">Wenn du wegfährst, gibt Paparcar deinen Platz für jemand anderen frei. In einer privaten Garage (zu Hause, bei der Arbeit) kann ihn niemand sonst nutzen.</string>

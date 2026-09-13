@@ -1,5 +1,7 @@
 package com.rndeveloper.paparcar.presentation.home.sections.header
 
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -46,6 +48,8 @@ internal fun HomeHeaderSection(
     onAddZone: () -> Unit,
     onEditZone: (String) -> Unit,
     modifier: Modifier = Modifier,
+    /** A checklist step is pointing at the add-zone chip. [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001] */
+    highlightAddZone: Boolean = false,
 ) {
     // Status-bar inset is applied by the parent column in HomeScreen (which also hosts the
     // persistent detection banner above this header). [DET-READY-001g]
@@ -97,7 +101,9 @@ internal fun HomeHeaderSection(
             var invitationDismissed by rememberSaveable { mutableStateOf(false) }
             HeaderZoneChips(
                 zones = slice.zones,
-                inviteToAddZone = slice.zones.isEmpty() && !invitationDismissed,
+                // Pointed at by the tutorial, the chip opens into its invitation so it says what it is.
+                inviteToAddZone = (slice.zones.isEmpty() && !invitationDismissed) || highlightAddZone,
+                highlightAddZone = highlightAddZone,
                 onSelectZone = onSelectZone,
                 onAddZone = onAddZone,
                 onEditZone = onEditZone,
@@ -122,8 +128,16 @@ private fun HeaderZoneChips(
     onAddZone: () -> Unit,
     onEditZone: (String) -> Unit,
     onDismissInvitation: () -> Unit,
+    highlightAddZone: Boolean,
 ) {
+    val rowState = rememberLazyListState()
+    // The add chip is the LAST item: with a few zones it can sit off screen, so the tutorial brings it
+    // into view. [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001]
+    LaunchedEffect(highlightAddZone) {
+        if (highlightAddZone) rowState.animateScrollToItem(zones.size)
+    }
     LazyRow(
+        state = rowState,
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -149,6 +163,7 @@ private fun HeaderZoneChips(
                 expanded = inviteToAddZone,
                 onAddZone = onAddZone,
                 onDismiss = onDismissInvitation,
+                highlighted = highlightAddZone,
             )
         }
     }

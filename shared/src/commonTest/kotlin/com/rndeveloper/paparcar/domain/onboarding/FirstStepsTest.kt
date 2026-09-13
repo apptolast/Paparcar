@@ -487,4 +487,22 @@ class FirstStepsTest {
         assertEquals(a, b)
         assertEquals(FirstStep.UNDERSTAND_WATCH, a.current)
     }
+
+    // ── Required steps are said, and cannot be skipped past ──
+    // [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001]
+
+    @Test
+    fun should_markOnlyTheParkingAndThePrivateZoneAsRequired() {
+        assertEquals(
+            setOf(FirstStep.MARK_PARKING, FirstStep.PRIVATE_ZONE),
+            FirstStep.entries.filter { it.isRequired }.toSet(),
+        )
+    }
+
+    @Test
+    fun should_holdTheSkip_while_aRequiredStepIsOpen_andReleaseIt_once_bothAreDone() {
+        assertTrue(resolve(hasPrivateZone = false).hasPendingRequired)
+        assertTrue(resolve(hasActiveSession = true, hasPrivateZone = false).hasPendingRequired)
+        assertFalse(resolve(hasActiveSession = true, hasPrivateZone = true).hasPendingRequired)
+    }
 }
