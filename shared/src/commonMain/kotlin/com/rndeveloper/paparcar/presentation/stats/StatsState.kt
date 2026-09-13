@@ -35,6 +35,8 @@ data class StatsState(
     val lifetimeParkings: Int = 0,
     val lifetimeSpotsReleased: Int = 0,
     val isPlus: Boolean = false,
+    /** [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001] See `VehiclesState.isAutoDetectionOn`. */
+    val isAutoDetectionOn: Boolean = true,
 ) {
     val isLoading: Boolean get() = vehicles == null
 

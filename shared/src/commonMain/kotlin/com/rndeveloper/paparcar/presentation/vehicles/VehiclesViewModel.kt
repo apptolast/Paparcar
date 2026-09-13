@@ -2,6 +2,7 @@
 
 package com.rndeveloper.paparcar.presentation.vehicles
 
+import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import com.rndeveloper.paparcar.domain.entitlement.PaywallReason
 import com.rndeveloper.paparcar.domain.entitlement.canAddOwnVehicle
 import com.rndeveloper.paparcar.domain.error.PaparcarError
@@ -37,12 +38,18 @@ class VehiclesViewModel(
      * repository so every screen quotes the same one.
      */
     private val resolveFuelPrice: ResolveFuelPriceUseCase,
+    /** Read for the detection toggle only. [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001] */
+    private val appPreferences: AppPreferences,
 ) : BaseViewModel<VehiclesState, VehiclesIntent, VehiclesEffect>() {
 
     override fun initState(): VehiclesState = VehiclesState()
 
     init {
         observeVehicles()
+        appPreferences.observeAutoDetectParking()
+            .onEach { on -> updateState { copy(isAutoDetectionOn = on) } }
+            .catch { e -> PaparcarLogger.e(TAG, "Failed to observe the detection toggle", e) }
+            .launchIn(viewModelScope)
     }
 
     private fun observeVehicles() {

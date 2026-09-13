@@ -173,6 +173,7 @@
 
     <string name="history_filter_all">Todos</string>
     <string name="history_filter_this_week">Esta semana</string>
+    <string name="history_filter_last_7_days">Últimos 7 días</string>
     <string name="history_filter_this_month">Este mes</string>
     <string name="history_filter_last_3_months">Últimos 3 meses</string>
     <!-- %1$d = día, %2$s = nombre del mes, %3$s = hora (con ceros), %4$s = minuto (con ceros) -->
@@ -842,6 +843,10 @@
     <string name="stats_lifetime">Desde siempre: %1$s aparcamientos · %2$s plazas cedidas</string>
     <string name="stats_plus_row_title">Elige el periodo</string>
     <string name="stats_plus_row_subtitle">Gratis ves tus últimos %1$d días; con Plus, el periodo que elijas</string>
+    <string name="stats_empty_first_trip">Esperando a tu primer viaje</string>
+    <string name="stats_empty_period">Sin aparcamientos en este periodo</string>
+    <string name="stats_empty_sub">Tus cifras aparecerán aquí en cuanto aparques.</string>
+    <string name="stats_empty_turn_on_detection">Activa la detección automática para que midamos tus trayectos y aparcamientos.</string>
     <!-- Vehicle state line (STATS-UI-001) -->
     <string name="vehicle_state_parked">Aparcado · %1$s</string>
     <string name="vehicle_state_last_parking">Último aparcamiento · %1$s</string>

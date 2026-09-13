@@ -30,8 +30,19 @@ el eje que la regla anterior.
   `FREE_HISTORY_WINDOW_DAYS`.
 - **Paywall**: fila de cifras «Todas, últimos 7 días» / «Cualquier periodo»; `paywall_reason_stats`
   «Con Plus ves tus cifras en el periodo que elijas».
-- **Enlace al panel completo** también para free (mismo alcance de 7 días; no filtra nada que free
-  no vea ya), con la card Plus debajo.
+- **Enlace al panel completo solo para Plus** (decisión de la revisión).
+- **Los chips de periodo gobiernan la gráfica; las cifras de free son SIEMPRE los últimos 7 días**:
+  `HistoryTimeline.resolve` calcula `periodStats` con `Last7Days` para free, sea cual sea el chip
+  (la gráfica y el recuento siguen el chip). Plus: el chip manda en ambas.
+- **Chip nuevo «Últimos 7 días»** (`HistoryFilter.Last7Days`, móvil: hoy y los 6 días anteriores), junto a
+  «Esta semana» (natural, desde el lunes). Ventana, periodo anterior y barras diarias en
+  `VehicleHistoryCalculator`, el único dueño de las ventanas.
+- **Estado vacío**: un periodo sin aparcamientos ya no enseña «0 PLAZAS CEDIDAS». La card muestra
+  «Esperando a tu primer viaje» (si el coche nunca aparcó) o «Sin aparcamientos en este periodo», y
+  debajo «Activa la detección automática para que midamos tus trayectos y aparcamientos» si la
+  detección está apagada (`AppPreferences.observeAutoDetectParking`, en `VehiclesViewModel` y
+  `StatsViewModel`) o «Tus cifras aparecerán aquí en cuanto aparques».
+- La línea «desde siempre» se enseña siempre en free (sus cifras nunca son «todo»).
 - Strings ×9, comentarios/KDoc, tests renombrados, variantes de galería renombradas, docs anteriores
   (`stats-ui-001`, `stats-panel-001`, `plus-roadmap-001`, `plus-alerts-and-tiers-001`) marcados como
   superados en esta regla.
@@ -52,10 +63,11 @@ el eje que la regla anterior.
 | `HistoryTimeline.resolve`, `HistoryEntitlementGate` | sin cambio — ya aplican los 7 días |
 | `StatsViewModelTest`, `VehicleStatsBlockTest` | renombrados (no probaban el velo) |
 
-## Preguntas abiertas
-1. Con free, el chip «Esta semana» es semana natural (desde el lunes) y los demás chips colapsan a
-   los mismos 7 días móviles bajo el título «Últimos 7 días». ¿Ocultamos los chips de periodo a free
-   (o los convertimos en la puerta al paywall)? No incluido.
-2. Las comparativas ▲/▼ de free comparan contra un periodo anterior que la ventana de 7 días recorta;
-   antes solo se veía en la primera cifra, ahora en todas. ¿Las ocultamos para free? No incluido.
-3. ¿Queréis el enlace al panel completo también en free (incluido) o solo Plus?
+## Decisiones de la revisión (13-09-2026)
+1. Los chips de periodo siguen visibles, pero solo aplican a la gráfica; las cifras de free son los
+   últimos 7 días. Hecho.
+2. Las comparativas ▲/▼ se quedan visibles en free.
+3. El enlace al panel completo se oculta en free. Hecho.
+4. Añadido el chip «Últimos 7 días» además de «Esta semana». Hecho.
+5. Sin viajes: «Esperando a tu primer viaje» y, con la detección apagada, la invitación a activarla,
+   en lugar de «0 PLAZAS CEDIDAS». Hecho.

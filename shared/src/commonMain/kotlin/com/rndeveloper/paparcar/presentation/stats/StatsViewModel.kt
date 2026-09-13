@@ -2,6 +2,7 @@
 
 package com.rndeveloper.paparcar.presentation.stats
 
+import com.rndeveloper.paparcar.domain.preferences.AppPreferences
 import com.rndeveloper.paparcar.domain.entitlement.PaywallReason
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.Vehicle
@@ -40,6 +41,8 @@ class StatsViewModel(
      * repository so every screen quotes the same one.
      */
     private val resolveFuelPrice: ResolveFuelPriceUseCase,
+    /** Read for the detection toggle only. [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001] */
+    private val appPreferences: AppPreferences,
     /** Which car the ficha was showing when the panel was opened; null = the active one. */
     private val initialVehicleId: String? = null,
 ) : BaseViewModel<StatsState, StatsIntent, StatsEffect>() {
@@ -51,6 +54,10 @@ class StatsViewModel(
 
     init {
         observeData()
+        appPreferences.observeAutoDetectParking()
+            .onEach { on -> updateState { copy(isAutoDetectionOn = on) } }
+            .catch { e -> PaparcarLogger.e(TAG, "Failed to observe the detection toggle", e) }
+            .launchIn(viewModelScope)
     }
 
     private fun observeData() {

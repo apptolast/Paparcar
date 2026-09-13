@@ -277,6 +277,7 @@ private fun VehiclesPager(
                 historyState = pageHistoryState,
                 isSettingActive = state.settingActiveVehicleId == vehicleWithStats.vehicle.id,
                 isPlus = state.isPlus,
+                isAutoDetectionOn = state.isAutoDetectionOn,
                 onRequestSetActive = { pendingSetActive = vehicleWithStats.vehicle },
                 contentPadding = contentPadding,
                 onScrolledToTop = onScrolledToTop,

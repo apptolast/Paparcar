@@ -125,6 +125,7 @@
 
     <string name="history_filter_all">Wszystkie</string>
     <string name="history_filter_this_week">Ten tydzień</string>
+    <string name="history_filter_last_7_days">Ostatnie 7 dni</string>
     <string name="history_filter_this_month">Ten miesiąc</string>
     <string name="history_filter_last_3_months">Ostatnie 3 miesiące</string>
     <string name="history_month_short_1">sty</string>
@@ -860,6 +861,10 @@
     <string name="stats_lifetime">Od zawsze: %1$s parkowań · %2$s udostępnionych miejsc</string>
     <string name="stats_plus_row_title">Wybierz okres</string>
     <string name="stats_plus_row_subtitle">Za darmo widzisz ostatnie %1$d dni; z Plus dowolny okres</string>
+    <string name="stats_empty_first_trip">Czekamy na twój pierwszy przejazd</string>
+    <string name="stats_empty_period">Brak parkowań w tym okresie</string>
+    <string name="stats_empty_sub">Twoje liczby pojawią się tu, gdy tylko zaparkujesz.</string>
+    <string name="stats_empty_turn_on_detection">Włącz automatyczne wykrywanie, aby mierzyć twoje przejazdy i parkowania.</string>
     <!-- Vehicle state line (STATS-UI-001) -->
     <string name="vehicle_state_parked">Zaparkowany · %1$s</string>
     <string name="vehicle_state_last_parking">Ostatnie parkowanie · %1$s</string>

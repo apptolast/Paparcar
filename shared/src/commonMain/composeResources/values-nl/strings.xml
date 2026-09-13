@@ -126,6 +126,7 @@
 
     <string name="history_filter_all">Alle</string>
     <string name="history_filter_this_week">Deze week</string>
+    <string name="history_filter_last_7_days">Laatste 7 dagen</string>
     <string name="history_filter_this_month">Deze maand</string>
     <string name="history_filter_last_3_months">Laatste 3 maanden</string>
     <string name="history_month_short_1">jan</string>
@@ -826,6 +827,10 @@
     <string name="stats_lifetime">Sinds het begin: %1$s parkeerplaatsen · %2$s gedeelde plekken</string>
     <string name="stats_plus_row_title">Kies de periode</string>
     <string name="stats_plus_row_subtitle">Gratis zie je je laatste %1$d dagen; met Plus elke periode</string>
+    <string name="stats_empty_first_trip">Wachten op je eerste rit</string>
+    <string name="stats_empty_period">Geen parkeerbeurten in deze periode</string>
+    <string name="stats_empty_sub">Je cijfers verschijnen hier zodra je parkeert.</string>
+    <string name="stats_empty_turn_on_detection">Zet automatische detectie aan zodat je ritten en parkeerbeurten worden gemeten.</string>
     <!-- Vehicle state line (STATS-UI-001) -->
     <string name="vehicle_state_parked">Geparkeerd · %1$s</string>
     <string name="vehicle_state_last_parking">Laatste parkeerplaats · %1$s</string>

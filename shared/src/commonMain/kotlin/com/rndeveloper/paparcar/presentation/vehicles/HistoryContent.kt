@@ -146,6 +146,8 @@ fun HistoryContent(
     /** Live entitlement: decides how the figures card's period is named and whether the Plus row shows.
      *  Defaults to free — the safe answer, the one that cannot hand Plus away by omission. */
     isPlus: Boolean = false,
+    /** Automatic detection is on — see [VehicleStatsBlock]'s empty card. */
+    isAutoDetectionOn: Boolean = true,
     /** Tapping the figures card's Plus row. A DIFFERENT reason from the timeline footer's, so the
      *  funnel can tell which surface sold the upgrade. [STATS-UI-001] */
     onOpenStatsPaywall: () -> Unit = {},
@@ -328,12 +330,14 @@ fun HistoryContent(
                                 periodLabel = vehicleStatsPeriodLabel(state.activeFilter, isPlus),
                                 lifetimeParkings = resolved.lifetimeParkings,
                                 lifetimeSpotsReleased = resolved.lifetimeSpotsReleased,
-                                // "All time" selected means the tiles ARE the whole life already.
-                                showLifetime = state.activeFilter != HistoryFilter.All,
+                                // "All time" selected means the tiles ARE the whole life already — for
+                                // Plus. Free figures are always seven days, so the line always helps.
+                                showLifetime = !isPlus || state.activeFilter != HistoryFilter.All,
                                 costPrice = resolved.costPrice,
                                 isPlus = isPlus,
                                 onOpenPaywall = onOpenStatsPaywall,
                                 onOpenPanel = onOpenStatsPanel,
+                                isAutoDetectionOn = isAutoDetectionOn,
                             )
                         }
                     }

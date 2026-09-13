@@ -51,6 +51,11 @@ import com.rndeveloper.paparcar.presentation.util.isoDateToEpochMs
 import com.rndeveloper.paparcar.presentation.util.relativeTimeText
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
+import paparcar.composeapp.generated.resources.stats_empty_turn_on_detection
+import paparcar.composeapp.generated.resources.stats_empty_sub
+import paparcar.composeapp.generated.resources.stats_empty_period
+import paparcar.composeapp.generated.resources.stats_empty_first_trip
+import paparcar.composeapp.generated.resources.history_filter_last_7_days
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.history_day_full_fri
 import paparcar.composeapp.generated.resources.history_day_full_mon
@@ -127,7 +132,23 @@ internal fun VehicleStatsBlock(
     /** Opens the full panel. Null where the block IS the panel — a card does not link to itself.
      *  [STATS-PANEL-001] */
     onOpenPanel: (() -> Unit)? = null,
+    /** Automatic detection is switched on — the empty card only asks to turn it on when it is not.
+     *  [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001] */
+    isAutoDetectionOn: Boolean = true,
 ) {
+    // [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001] A period without a single parking has no figures
+    // to show — only "0 spots shared", which read as a verdict on a car that simply has not been
+    // measured yet. The card says what is true instead: waiting for the first trip (or for one in this
+    // period), and how to get there when detection is off.
+    if (stats.parkings == 0) {
+        EmptyStatsCard(
+            periodLabel = periodLabel,
+            neverParked = lifetimeParkings == 0,
+            isAutoDetectionOn = isAutoDetectionOn,
+            modifier = modifier,
+        )
+        return
+    }
     val tiles = statTiles(stats)
     if (tiles.isEmpty()) return
 
@@ -196,9 +217,10 @@ internal fun VehicleStatsBlock(
                         ),
                     )
                 }
-                // The full breakdown is the same room for everyone now — free enters it over the
-                // same 7 days this card shows. [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001]
-                if (onOpenPanel != null) {
+                // Plus only: the full breakdown is where any period can be explored, which is what
+                // free does not have. Free gets the Plus row below instead — never both.
+                // [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001]
+                if (isPlus && onOpenPanel != null) {
                     PapDivider()
                     OpenPanelRow(onClick = onOpenPanel)
                 }
@@ -248,7 +270,55 @@ private fun StatTileGrid(tiles: List<StatTileData>) {
     }
 }
 
-/** Where the user goes for the whole picture. A plain row: the card is already theirs. */
+/** Where a Plus user goes for the whole picture. A plain row: the card is already theirs. */
+
+/**
+ * The figures card of a period with no parking in it. [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001]
+ *
+ * Same card and title as the figures would have, so the section does not jump when the first parking
+ * lands. It never shows a zero.
+ */
+@Composable
+private fun EmptyStatsCard(
+    periodLabel: String,
+    neverParked: Boolean,
+    isAutoDetectionOn: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    PapOutlinedCard(modifier = modifier.fillMaxWidth(), shape = PapShapes.card) {
+        Column {
+            Text(
+                text = periodLabel,
+                style = PaparcarType.current.cardTitle,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(
+                    start = HEAD_H_PAD_DP.dp, end = HEAD_H_PAD_DP.dp,
+                    top = HEAD_TOP_PAD_DP.dp, bottom = HEAD_BOTTOM_PAD_DP.dp,
+                ),
+            )
+            PapDivider()
+            Column(
+                modifier = Modifier.padding(horizontal = LIFETIME_H_PAD_DP.dp, vertical = EMPTY_V_PAD_DP.dp),
+                verticalArrangement = Arrangement.spacedBy(EMPTY_LINE_GAP_DP.dp),
+            ) {
+                Text(
+                    text = stringResource(
+                        if (neverParked) Res.string.stats_empty_first_trip else Res.string.stats_empty_period,
+                    ),
+                    style = PaparcarType.current.rowTitle,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = stringResource(
+                        if (isAutoDetectionOn) Res.string.stats_empty_sub else Res.string.stats_empty_turn_on_detection,
+                    ),
+                    style = PaparcarType.current.caption,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
 @Composable
 private fun OpenPanelRow(onClick: () -> Unit) {
     Row(
@@ -327,6 +397,7 @@ internal fun vehicleStatsPeriodLabel(filter: HistoryFilter, isPlus: Boolean): St
             // the same window needs its own words.
             HistoryFilter.All -> stringResource(Res.string.stats_period_all)
             HistoryFilter.ThisWeek -> stringResource(Res.string.history_filter_this_week)
+            HistoryFilter.Last7Days -> stringResource(Res.string.history_filter_last_7_days)
             HistoryFilter.ThisMonth -> stringResource(Res.string.history_filter_this_month)
             HistoryFilter.Last3Months -> stringResource(Res.string.history_filter_last_3_months)
         }
@@ -568,6 +639,9 @@ private fun durationText(durationMs: Long): String {
  * own check only sniffs the first 8 KB, so it kept diffing this file and the damage stayed
  * invisible. Same value at runtime, and the file is ordinary text again.
  */
+// Vertical air inside the empty figures card, and between its two lines.
+private const val EMPTY_V_PAD_DP = 16
+private const val EMPTY_LINE_GAP_DP = 4
 private const val NUMBER_SLOT = "\u0000"
 private const val COLUMNS = 2
 private const val HEAD_H_PAD_DP = 14

@@ -125,6 +125,7 @@
 
     <string name="history_filter_all">Tous</string>
     <string name="history_filter_this_week">Cette semaine</string>
+    <string name="history_filter_last_7_days">7 derniers jours</string>
     <string name="history_filter_this_month">Ce mois-ci</string>
     <string name="history_filter_last_3_months">3 derniers mois</string>
     <string name="history_month_short_1">jan</string>
@@ -846,6 +847,10 @@
     <string name="stats_lifetime">Depuis toujours : %1$s stationnements · %2$s places cédées</string>
     <string name="stats_plus_row_title">Choisissez la période</string>
     <string name="stats_plus_row_subtitle">Gratuit : vos %1$d derniers jours ; avec Plus, la période de votre choix</string>
+    <string name="stats_empty_first_trip">En attente de votre premier trajet</string>
+    <string name="stats_empty_period">Aucun stationnement sur cette période</string>
+    <string name="stats_empty_sub">Vos chiffres apparaîtront ici dès que vous vous garerez.</string>
+    <string name="stats_empty_turn_on_detection">Activez la détection automatique pour que vos trajets et stationnements soient mesurés.</string>
     <!-- Vehicle state line (STATS-UI-001) -->
     <string name="vehicle_state_parked">Stationné · %1$s</string>
     <string name="vehicle_state_last_parking">Dernier stationnement · %1$s</string>

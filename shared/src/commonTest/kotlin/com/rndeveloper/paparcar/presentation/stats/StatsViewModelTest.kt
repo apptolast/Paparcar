@@ -77,6 +77,7 @@ class StatsViewModelTest {
         // The offline ladder: averages from the binary, no network. What every screen falls back
         // to anyway. [FUEL-NATIONAL-AVERAGE-FROM-OPENVAN-001]
         resolveFuelPrice = ResolveFuelPriceUseCase(),
+        appPreferences = com.rndeveloper.paparcar.fakes.FakeAppPreferences(),
         initialVehicleId = initialVehicleId,
     )
 

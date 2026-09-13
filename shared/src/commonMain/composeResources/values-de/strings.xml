@@ -126,6 +126,7 @@
 
     <string name="history_filter_all">Alle</string>
     <string name="history_filter_this_week">Diese Woche</string>
+    <string name="history_filter_last_7_days">Letzte 7 Tage</string>
     <string name="history_filter_this_month">Diesen Monat</string>
     <string name="history_filter_last_3_months">Letzte 3 Monate</string>
     <string name="history_month_short_1">Jan</string>
@@ -847,6 +848,10 @@
     <string name="stats_lifetime">Seit Beginn: %1$s Parkvorgänge · %2$s geteilte Plätze</string>
     <string name="stats_plus_row_title">Wähle den Zeitraum</string>
     <string name="stats_plus_row_subtitle">Kostenlos siehst du die letzten %1$d Tage; mit Plus jeden Zeitraum</string>
+    <string name="stats_empty_first_trip">Warten auf deine erste Fahrt</string>
+    <string name="stats_empty_period">Keine Parkvorgänge in diesem Zeitraum</string>
+    <string name="stats_empty_sub">Deine Zahlen erscheinen hier, sobald du parkst.</string>
+    <string name="stats_empty_turn_on_detection">Aktiviere die automatische Erkennung, damit deine Fahrten und Parkvorgänge gemessen werden.</string>
     <!-- Vehicle state line (STATS-UI-001) -->
     <string name="vehicle_state_parked">Geparkt · %1$s</string>
     <string name="vehicle_state_last_parking">Letzter Parkplatz · %1$s</string>

@@ -70,7 +70,7 @@ val presentationModule = module {
     viewModelOf(::VehicleRegistrationViewModel)
     viewModelOf(::VehiclesViewModel)
     // Panel de cifras: recibe por parametro el coche que estaba en pantalla. [STATS-PANEL-001]
-    viewModel { params -> StatsViewModel(get(), get(), get(), get(), params.getOrNull()) }
+    viewModel { params -> StatsViewModel(get(), get(), get(), get(), get(), params.getOrNull()) }
     // vehicleId parameter passed via koinViewModel(parameters = { parametersOf(vehicleId) })
     viewModel { params -> BluetoothConfigViewModel(params.get(), get(), get(), get()) }
 }

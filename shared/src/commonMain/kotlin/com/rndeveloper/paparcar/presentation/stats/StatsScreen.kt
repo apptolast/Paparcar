@@ -192,10 +192,11 @@ fun StatsContent(
                             periodLabel = vehicleStatsPeriodLabel(state.filter, state.isPlus),
                             lifetimeParkings = state.lifetimeParkings,
                             lifetimeSpotsReleased = state.lifetimeSpotsReleased,
-                            showLifetime = state.filter != HistoryFilter.All,
+                            showLifetime = !state.isPlus || state.filter != HistoryFilter.All,
                             costPrice = state.costPrice,
                             isPlus = state.isPlus,
                             onOpenPaywall = { onIntent(StatsIntent.OpenPaywall) },
+                            isAutoDetectionOn = state.isAutoDetectionOn,
                         )
                     }
                 }

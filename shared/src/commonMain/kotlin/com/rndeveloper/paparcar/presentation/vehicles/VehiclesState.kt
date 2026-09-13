@@ -15,6 +15,9 @@ data class VehiclesState(
     val historyCache: Map<String, HistoryState> = emptyMap(),
     /** Live Plus entitlement — what SetHistoryFilter re-resolves the timeline with. [MONEY-001] */
     val isPlus: Boolean = false,
+    /** Automatic detection switched on in Settings — the empty figures card asks for it otherwise.
+     *  [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001] */
+    val isAutoDetectionOn: Boolean = true,
 ) {
     val currentVehicleId: String?
         get() = vehicles.getOrNull(selectedVehicleIndex)?.vehicle?.id
