@@ -1,7 +1,10 @@
 package com.rndeveloper.paparcar.di
 
 import dev.gitlive.firebase.Firebase
+import dev.gitlive.firebase.app
 import dev.gitlive.firebase.firestore.firestore
+import com.rndeveloper.paparcar.data.datasource.remote.FirestoreDatabase
+import com.rndeveloper.paparcar.isDebugBuild
 import com.rndeveloper.paparcar.data.datasource.local.room.AppDatabase
 import com.rndeveloper.paparcar.data.datasource.local.room.SpotDao
 import com.rndeveloper.paparcar.data.geocoder.RoomLocalAddressAndPlaceDataSource
@@ -70,7 +73,9 @@ import com.rndeveloper.paparcar.domain.places.RoadNetworkDataSource
 val dataModule = module {
 
     // Firebase
-    single { Firebase.firestore }
+    // Debug builds → `debug` database, release → `(default)`. The ONLY place a FirebaseFirestore
+    // is built: every remote source receives this instance. [FIRESTORE-DEBUG-BUILDS-USE-DEBUG-DATABASE-001]
+    single { Firebase.firestore(Firebase.app, FirestoreDatabase.idFor(isDebugBuild)) }
 
     // DataSources
     single<FirebaseDataSource> { FirebaseDataSourceImpl(get()) }
