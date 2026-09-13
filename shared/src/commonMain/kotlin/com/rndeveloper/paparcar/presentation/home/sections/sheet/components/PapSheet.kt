@@ -64,6 +64,8 @@ import com.rndeveloper.paparcar.ui.theme.figureOpticalLiftSp
 import com.rndeveloper.paparcar.ui.theme.greenOutline
 import com.rndeveloper.paparcar.ui.components.PapShimmerBlockScale
 import com.rndeveloper.paparcar.ui.theme.PapColor
+import androidx.compose.ui.semantics.Role
+import com.rndeveloper.paparcar.ui.components.PapBadge
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_counter_unit_free
@@ -262,6 +264,7 @@ private fun papSheetHeaderTrailing(
             }
             when (trailing) {
                 PapSheetTrailing.Dismiss -> PapSheetDismissButton(onDismiss = onDismiss)
+                is PapSheetTrailing.Warning -> PapSheetWarningBadge(trailing)
                 null -> Unit
             }
         }
@@ -371,9 +374,15 @@ private fun PapSheetEyebrowTone.color(): Color = when (this) {
     PapSheetEyebrowTone.Neutral -> MaterialTheme.colorScheme.onSurfaceVariant
 }
 
-/** Header trailing: dismiss × in modal states, nothing in browse. */
+/** Header trailing: dismiss × in modal states, nothing in browse — or a status [Warning] badge. */
 internal sealed interface PapSheetTrailing {
     data object Dismiss : PapSheetTrailing
+
+    /**
+     * Something PENDING the user can fix, told as a status badge in the header instead of taking
+     * the sheet over: tapping it goes where the fix is. [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001]
+     */
+    data class Warning(val label: String, val icon: ImageVector, val onClick: () -> Unit) : PapSheetTrailing
 }
 
 @Composable
@@ -630,6 +639,25 @@ internal fun PapSheetRoundIconButton(
             modifier = Modifier.size(SHEET_ICON_GLYPH_DP.dp),
         )
     }
+}
+
+/**
+ * Warning badge — [PapColor.attention] ("pending and you can fix it"), never `danger`: nothing is
+ * broken, the user just has not said yes yet. The whole pill is the tap target.
+ * [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001]
+ */
+@Composable
+private fun PapSheetWarningBadge(warning: PapSheetTrailing.Warning) {
+    PapBadge(
+        label = warning.label,
+        containerColor = PapColor.attention,
+        contentColor = PapColor.onAttention,
+        icon = warning.icon,
+        textStyle = PaparcarType.current.badge,
+        modifier = Modifier
+            .clip(MaterialTheme.shapes.extraSmall)
+            .clickable(role = Role.Button, onClick = warning.onClick),
+    )
 }
 
 /** Dismiss × — 34dp circle on `surfaceContainerHigh` so it reads as a real control. */

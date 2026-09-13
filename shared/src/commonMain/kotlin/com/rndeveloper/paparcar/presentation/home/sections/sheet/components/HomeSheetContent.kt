@@ -326,9 +326,10 @@ fun LazyListScope.homeSheetItems(
     }
 
     // ── 3. The nearby LANE: the chip row that picks a subject, and that subject's list ───────
-    // Hidden entirely without CORE: "nearby" is meaningless with no location, and the red
-    // Blocked·CORE surface above is already the single "turn on location" prompt — no need for the
-    // old HomePermissionsCard duplicating it. [DET-READY-001i]
+    // Hidden entirely without CORE: "nearby" is meaningless with no location, and the amber
+    // Blocked·CORE row above (plus the peek's warning badge) is already the "turn on location"
+    // prompt — no need for the old HomePermissionsCard duplicating it. [DET-READY-001i]
+    // [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001]
     if (slice.hasCorePermissions) {
         // ⛔ El corte entre LO MIO y LO DE AQUI. Sin el, la tira de coches y la fila de pestanas se
         // tocaban y el sheet se leia como una sola lista larga: el bloque fijo dejaba de parecer un

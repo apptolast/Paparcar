@@ -24,7 +24,6 @@ import com.rndeveloper.paparcar.presentation.home.HomeIntent
 import com.rndeveloper.paparcar.presentation.home.HomeMode
 import com.rndeveloper.paparcar.presentation.home.HomePeekSlice
 import com.rndeveloper.paparcar.presentation.home.PeekStep
-import com.rndeveloper.paparcar.presentation.home.model.DetectionUiState
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.HomeSheetAction
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.peek.AddingParkingPeek
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.peek.FuelStationPeek
@@ -88,27 +87,27 @@ fun HomePeekHandle(
 
     Column(modifier = Modifier.fillMaxWidth()) {
 
-        // Drag pill — hidden in the CORE/GPS blocker, where the sheet is static (no drag). [DET-READY-001n]
-        if (slice.detectionUiState != DetectionUiState.BlockedCore) {
-            Box(
-                modifier = Modifier
-                    // Glued to the header — no dead air between pill and eyebrow; the header's own
-                    // top padding (12dp) is all the breathing room the peek needs. [UI-SHEET-003]
-                    .padding(top = 8.dp, bottom = 2.dp)
-                    .size(width = 32.dp, height = 4.dp)
-                    .background(
-                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
-                        CircleShape,
-                    )
-                    .align(Alignment.CenterHorizontally),
-            )
-        }
+        // Drag pill — always there: missing location no longer freezes the sheet.
+        // [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001]
+        Box(
+            modifier = Modifier
+                // Glued to the header — no dead air between pill and eyebrow; the header's own
+                // top padding (12dp) is all the breathing room the peek needs. [UI-SHEET-003]
+                .padding(top = 8.dp, bottom = 2.dp)
+                .size(width = 32.dp, height = 4.dp)
+                .background(
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                    CircleShape,
+                )
+                .align(Alignment.CenterHorizontally),
+        )
 
-        if (slice.detectionUiState == DetectionUiState.BlockedCore) {
-            // Consumer Home can't work without location/GPS — take over the sheet with the full
-            // blocker instead of a peek + small surface + redundant header. [DET-READY-001n]
-            HomeLocationBlockedState(onActivate = { onAction(HomeSheetAction.OpenCorePermissions) })
-        } else AnimatedContent(
+        // ⛔ The full-sheet CORE/GPS blocker (red "Turn on" button over an illustration) is gone.
+        // It landed right on top of the first-entry system permission dialog, so the very first
+        // thing Home said was a red alarm about a question the user was still answering. Missing
+        // location is now a WARNING badge in the browse header, and the explaining row lives in
+        // the list like every other detection story. [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001]
+        AnimatedContent(
             targetState = peekState,
             transitionSpec = {
                 // A STEP between two pins of the same kind is a page-turn, not a state change:
@@ -263,6 +262,11 @@ fun HomePeekHandle(
                         nearbyLens = slice.nearbyLens,
                         laneCount = slice.laneCount,
                         laneLoading = slice.laneLoading,
+                        onFixLocation = if (slice.showsLocationWarning) {
+                            { onAction(HomeSheetAction.OpenCorePermissions) }
+                        } else {
+                            null
+                        },
                     )
                 }
             }

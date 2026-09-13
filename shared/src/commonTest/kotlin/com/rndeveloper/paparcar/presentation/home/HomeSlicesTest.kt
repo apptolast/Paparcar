@@ -4,6 +4,7 @@ import com.rndeveloper.paparcar.domain.detection.DetectionPhase
 import com.rndeveloper.paparcar.domain.detection.PendingPromptWindow
 import com.rndeveloper.paparcar.domain.model.AddressAndPlace
 import com.rndeveloper.paparcar.domain.model.AddressInfo
+import com.rndeveloper.paparcar.domain.model.DetectionReadiness
 import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.domain.model.Money
@@ -20,6 +21,7 @@ import com.rndeveloper.paparcar.domain.model.Vehicle
 import com.rndeveloper.paparcar.domain.model.VehicleMonitoringStatus
 import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
+import com.rndeveloper.paparcar.domain.permissions.RequiredPermission
 import com.rndeveloper.paparcar.presentation.home.model.HomeNearbyLens
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -1087,5 +1089,27 @@ class HomeSlicesTest {
             HomeNearbyLens.PARKINGS,
             HomeState(nearbyLens = HomeNearbyLens.PARKINGS).toBrowseListSlice().nearbyLens,
         )
+    }
+
+    // ── Sin ubicación: badge de aviso, nunca bloqueo ─────────────────────────
+    // [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001]
+
+    @Test
+    fun should_showTheLocationWarning_when_locationIsMissing() {
+        val blocked = HomeState(
+            detectionReadiness = DetectionReadiness.Blocked(setOf(RequiredPermission.FOREGROUND_LOCATION)),
+        )
+        assertTrue(blocked.toPeekSlice().showsLocationWarning)
+    }
+
+    @Test
+    fun should_notShowTheLocationWarning_when_onlyProducerPermissionsAreMissing() {
+        // Background location / activity recognition is the detection upsell, not "no location":
+        // the peek stays clean and the list's calm row sells it.
+        val producerOnly = HomeState(
+            detectionReadiness = DetectionReadiness.Blocked(setOf(RequiredPermission.BACKGROUND_LOCATION)),
+        )
+        assertFalse(producerOnly.toPeekSlice().showsLocationWarning)
+        assertFalse(HomeState().toPeekSlice().showsLocationWarning)
     }
 }

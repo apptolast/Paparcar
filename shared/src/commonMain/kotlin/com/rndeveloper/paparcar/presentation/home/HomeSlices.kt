@@ -255,6 +255,12 @@ data class HomePeekSlice(
         get() = (selection as? HomeSelection.Spot)
             ?.let { sel -> nearbySpots.firstOrNull { it.id == sel.id } }
 
+    /** Location (permission or GPS) is missing: the browse header wears a WARNING badge that opens
+     *  the permissions screen — never a sheet-wide blocker. Same state that drives the list's
+     *  BlockedCore row, so badge and row cannot disagree. [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001] */
+    val showsLocationWarning: Boolean
+        get() = detectionUiState == DetectionUiState.BlockedCore
+
     val isParkingSelected: Boolean
         get() = selectedSession != null
 

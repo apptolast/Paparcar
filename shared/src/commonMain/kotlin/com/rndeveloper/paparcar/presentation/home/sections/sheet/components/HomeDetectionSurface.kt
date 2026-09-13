@@ -93,7 +93,7 @@ import paparcar.composeapp.generated.resources.home_nudge_title
  * for me right now". [DET-READY-001h] [UX-DETECTION-STORY-001]
  *
  * Renders the one [DetectionStory] resolved by `resolveDetectionStory`: the action stories keep the
- * loud accent-bar row (severity-adaptive: error-toned CORE block, calm amber upsells, brand-green
+ * loud accent-bar row (severity-adaptive: amber CORE warning, calm amber upsells, brand-green
  * questions and cold start); [DetectionStory.Driving] and [DetectionStory.Watching] render a
  * discreet one-line status — the happy path speaks instead of going mute. [DetectionStory.Hidden]
  * renders nothing.
@@ -246,8 +246,11 @@ fun HomeDetectionSurface(
             modifier = modifier,
         )
 
+        // Amber, not red: missing location is PENDING and fixable, not broken — and the peek above
+        // already wears the matching warning badge. The red full-sheet blocker this row used to sit
+        // under is gone. [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001]
         DetectionStory.BlockedCore -> ActionRow(
-            tone = error,
+            tone = amber,
             icon = Icons.Rounded.LocationOff,
             title = stringResource(Res.string.home_det_core_title),
             subtitle = stringResource(Res.string.home_det_core_sub),

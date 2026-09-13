@@ -92,6 +92,7 @@ import com.rndeveloper.paparcar.presentation.permissions.PermissionsFocus
 import com.rndeveloper.paparcar.presentation.permissions.PermissionsState
 import com.rndeveloper.paparcar.presentation.preview.FakeData
 import com.rndeveloper.paparcar.domain.model.DetectionTier
+import com.rndeveloper.paparcar.domain.model.DetectionReadiness
 import com.rndeveloper.paparcar.domain.permissions.RequiredPermission
 import com.rndeveloper.paparcar.presentation.licenses.LicenseDetailContent
 import com.rndeveloper.paparcar.presentation.licenses.LicensesContent
@@ -1019,6 +1020,29 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             // 0 spots → amber counter + swipe-up hint. [UI-SHEET-001]
             Variant("PapSheet · browse contador ámbar 0 + hint", Placement.Surface) {
                 peek(HomeState(cameraAddressAndPlace = FakeData.addressAndPlaceStreet, nearbySpots = emptyList()))
+            },
+            // Sin ubicación (permiso o GPS): el peek sigue siendo el de siempre y lleva un badge ámbar
+            // «SIN UBICACIÓN» que abre permisos — ya no hay bloqueo rojo a pantalla completa.
+            // [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001]
+            Variant("PapSheet · browse sin ubicación (badge de aviso)", Placement.Surface) {
+                peek(
+                    HomeState(
+                        cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
+                        nearbySpots = FakeData.nearbySpots,
+                        detectionReadiness = DetectionReadiness.Blocked(setOf(RequiredPermission.FOREGROUND_LOCATION)),
+                    ),
+                )
+            },
+            Variant("PapSheet · browse sin ubicación, coche aparcado (badge de aviso)", Placement.Surface) {
+                peek(
+                    HomeState(
+                        cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
+                        vehicles = listOf(FakeData.vehicleSedan),
+                        activeSessions = listOf(FakeData.activeSession.copy(vehicleId = FakeData.vehicleSedan.id)),
+                        nearbySpots = FakeData.nearbySpots,
+                        detectionReadiness = DetectionReadiness.Blocked(setOf(RequiredPermission.FOREGROUND_LOCATION)),
+                    ),
+                )
             },
             // First of the browse order: nothing behind it, so the footer stepper offers only ›.
             // [UI-PEEK-STEPS-BETWEEN-PINS-001]

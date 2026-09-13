@@ -633,6 +633,7 @@
     <string name="home_det_core_title">Turn on location</string>
     <string name="home_det_core_sub">Paparcar needs it to work</string>
     <string name="home_det_core_cta">Turn on</string>
+    <string name="home_location_off_badge">No location</string>
     <string name="home_det_producer_title">Turn on detection</string>
     <string name="home_det_producer_sub">Remembers where you park, frees the spot</string>
     <string name="home_det_producer_cta">Turn on</string>

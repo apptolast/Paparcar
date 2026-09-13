@@ -29,7 +29,6 @@ import com.rndeveloper.paparcar.presentation.home.HomeBrowseListSlice
 import com.rndeveloper.paparcar.presentation.home.HomeIntent
 import com.rndeveloper.paparcar.presentation.home.HomeMode
 import com.rndeveloper.paparcar.presentation.home.HomePeekSlice
-import com.rndeveloper.paparcar.presentation.home.model.DetectionUiState
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.HomePeekHandle
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.HomeSheetRowsScroll
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.homeSheetItems
@@ -113,9 +112,8 @@ internal fun HomeBottomSheet(
             // don't propagate. Ripple is suppressed because the visible response
             // to the tap is the sheet animation itself — a flash on the chip /
             // helper text reads as a glitch over content. [SHEET-TAP-002]
-            // CORE/GPS blocker: the sheet is a static full message — no drag, no toggle, no expand.
-            // [DET-READY-001n]
-            val isBlocked = peek.detectionUiState == DetectionUiState.BlockedCore
+            // ⛔ No CORE/GPS lock here any more: missing location is a WARNING badge inside the peek,
+            // never a sheet that stops dragging. [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001]
             val toggleInteractionSource = remember { MutableInteractionSource() }
             Box(
                 modifier = Modifier
@@ -144,12 +142,10 @@ internal fun HomeBottomSheet(
                     .clickable(
                         interactionSource = toggleInteractionSource,
                         indication = null,
-                        enabled = !isBlocked,
                         onClick = { onAction(HomeSheetAction.ToggleSheet) },
                     )
                     .draggable(
                         orientation = Orientation.Vertical,
-                        enabled = !isBlocked,
                         state = rememberDraggableState { delta ->
                             frame.coroutineScope.launch {
                                 sheetOffsetPx.snapTo(
@@ -175,13 +171,12 @@ internal fun HomeBottomSheet(
                 )
             }
 
-            // When location/GPS is missing the peek already shows the full blocker — suppress the
-            // list (and its divider) so the sheet is just that one message. [DET-READY-001n]
+            // Missing location/GPS no longer hides the list: the sheet keeps working and the peek
+            // carries the warning badge. [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001]
             // A selected pin owns the whole surface: its peek now steps to the neighbouring pins on
             // its own, so there is no state left where the list shows underneath one.
             // [UI-PEEK-STEPS-BETWEEN-PINS-001]
-            val showList = peek.detectionUiState != DetectionUiState.BlockedCore &&
-                peek.mode is HomeMode.Browse &&
+            val showList = peek.mode is HomeMode.Browse &&
                 !peek.isParkingSelected &&
                 peek.selectedSpot == null &&
                 peek.selectedFuelStation == null &&
