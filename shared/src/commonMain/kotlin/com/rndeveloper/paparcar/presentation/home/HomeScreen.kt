@@ -530,6 +530,9 @@ private fun HomeContent(
                     mode = state.mode,
                     selection = state.selection,
                     navProgressState = navProgressState,
+                    // While a step is pointing somewhere, its completion must not rewind the list
+                    // back to the checklist. [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001]
+                    firstStepGuideActive = firstStepGuide != null,
                     // An automatic opening rewinds the list first: what the app opens the sheet for
                     // is at the top. [ONBOARDING-A-CHECKLIST-THAT-GUIDES-NEVER-BLOCKS-001]
                     lazyListState = lazyListState,
@@ -543,9 +546,6 @@ private fun HomeContent(
                     // explanation is what finished it.
                     // [ONBOARDING-THE-COMMUNITY-STEP-CANNOT-DEMAND-A-SPOT-001]
                     firstStepsCue = browseSlice.firstStepsCue,
-                    // While a step is pointing somewhere, its completion must not rewind the list
-                    // back to the checklist. [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001]
-                    firstStepGuideActive = firstStepGuide != null,
                 )
 
                 // Tap-toggle, programmatic expand and nested-scroll collapse — see [SheetMotion].

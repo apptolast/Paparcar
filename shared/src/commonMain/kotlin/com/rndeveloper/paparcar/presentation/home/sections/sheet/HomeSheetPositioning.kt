@@ -329,6 +329,12 @@ internal fun SheetTransitionEffects(
     selection: HomeSelection?,
     navProgressState: MutableFloatState,
     /**
+     * [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001] A checklist step is pointing the user at a control right
+     * now. The step usually completes in the same tap, and its cue changing must not rewind the list
+     * back to the checklist away from what the step just scrolled to.
+     */
+    firstStepGuideActive: Boolean = false,
+    /**
      * The sheet's list. An AUTOMATIC opening rewinds it to the top before moving the sheet: the app
      * is opening this surface to SHOW something, and everything it opens itself for — the guided
      * checklist, the detection story behind a pending question — lives at the top. Left where it
@@ -352,12 +358,6 @@ internal fun SheetTransitionEffects(
      * boolean — see `HomeBrowseListSlice.firstStepsCue`.
      */
     firstStepsCue: String? = null,
-    /**
-     * [FIRST-STEPS-SHOW-WHERE-NOT-OPEN-001] A checklist step is pointing the user at a control right
-     * now. The step usually completes in the same tap, and its cue changing must not rewind the list
-     * back to the checklist away from what the step just scrolled to.
-     */
-    firstStepGuideActive: Boolean = false,
 ) {
     val peekOffsetPx = positioning.peekOffsetPx
     val peekSnapTolerancePx = with(LocalDensity.current) { PEEK_LAYOUT_SNAP_TOLERANCE.toPx() }
