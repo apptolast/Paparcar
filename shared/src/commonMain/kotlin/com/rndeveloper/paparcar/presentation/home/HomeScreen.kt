@@ -525,6 +525,9 @@ private fun HomeContent(
                     // explanation is what finished it.
                     // [ONBOARDING-THE-COMMUNITY-STEP-CANNOT-DEMAND-A-SPOT-001]
                     firstStepsCue = browseSlice.firstStepsCue,
+                    // A refused first-entry location ask opens the sheet on the warning.
+                    // [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001]
+                    locationWarningCue = state.locationWarningCue,
                 )
 
                 // Tap-toggle, programmatic expand and nested-scroll collapse — see [SheetMotion].

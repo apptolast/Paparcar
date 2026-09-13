@@ -103,8 +103,8 @@ fun HomePeekHandle(
         )
 
         // ⛔ The full-sheet CORE/GPS blocker (red "Turn on" button over an illustration) is gone.
-        // It landed right on top of the first-entry system permission dialog, so the very first
-        // thing Home said was a red alarm about a question the user was still answering. Missing
+        // It sat right behind the first-entry system permission dialog, so the very first thing
+        // Home said was a red alarm about a question the user was still answering. Missing
         // location is now a WARNING badge in the browse header, and the explaining row lives in
         // the list like every other detection story. [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001]
         AnimatedContent(

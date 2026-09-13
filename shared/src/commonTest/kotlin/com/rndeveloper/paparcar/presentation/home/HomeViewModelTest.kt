@@ -65,6 +65,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import com.rndeveloper.paparcar.presentation.home.model.warnsLocationMissing
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -492,6 +493,67 @@ class HomeViewModelTest {
         vm.handleIntent(HomeIntent.SetMapForeground(true))
         permissions.emit(FakePermissionManager.allGranted())
         assertFalse(vm.state.value.showDetectionPitch)
+    }
+
+    // ── Refused first-entry ask → the sheet opens on the location warning ────
+    // [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001]
+
+    private suspend fun saveParkingCar() = vehicleRepo.saveVehicle(
+        com.rndeveloper.paparcar.domain.model.Vehicle(
+            id = "v1", userId = "mock_user_001", brand = "Ford", model = "Focus",
+            sizeCategory = com.rndeveloper.paparcar.domain.model.VehicleSize.MEDIUM_SUV,
+            vehicleType = com.rndeveloper.paparcar.domain.model.VehicleType.CAR, isActive = true,
+        ),
+    )
+
+    /** The system dialog pauses the map and closing it resumes it — that bracket IS the answer. */
+    private fun HomeViewModel.answerFirstEntryAsk(granted: Boolean) {
+        handleIntent(HomeIntent.SetMapForeground(true)) // map on screen → the ask fires
+        handleIntent(HomeIntent.SetMapForeground(false)) // the dialog covers the map
+        if (granted) {
+            permissions.emit(
+                com.rndeveloper.paparcar.domain.permissions.AppPermissionState(
+                    hasLocationPermission = true,
+                    isLocationServicesEnabled = true,
+                ),
+            )
+        }
+        handleIntent(HomeIntent.SetMapForeground(true)) // the dialog is gone
+    }
+
+    @Test
+    fun `should_cue_the_location_warning_when_the_first_entry_ask_is_refused_with_a_car`() = runTest(testDispatcher) {
+        saveParkingCar()
+        val freshVm = buildVm(foreground = false, locationAlreadyAsked = false)
+        assertTrue(freshVm.state.value.detectionUiState.warnsLocationMissing)
+
+        freshVm.answerFirstEntryAsk(granted = false)
+
+        assertEquals(1, freshVm.state.value.locationWarningCue)
+        // Later trips to the background and back are not a new refusal.
+        freshVm.handleIntent(HomeIntent.SetMapForeground(false))
+        freshVm.handleIntent(HomeIntent.SetMapForeground(true))
+        assertEquals(1, freshVm.state.value.locationWarningCue)
+    }
+
+    @Test
+    fun `should_not_cue_the_location_warning_when_there_is_no_car`() = runTest(testDispatcher) {
+        // No car → no BlockedCore → no warning to open onto: Home lives without location.
+        val freshVm = buildVm(foreground = false, locationAlreadyAsked = false)
+
+        freshVm.answerFirstEntryAsk(granted = false)
+
+        assertEquals(0, freshVm.state.value.locationWarningCue)
+    }
+
+    @Test
+    fun `should_not_cue_the_location_warning_when_the_first_entry_ask_is_granted`() = runTest(testDispatcher) {
+        saveParkingCar()
+        val freshVm = buildVm(foreground = false, locationAlreadyAsked = false)
+
+        freshVm.answerFirstEntryAsk(granted = true)
+
+        assertEquals(0, freshVm.state.value.locationWarningCue)
     }
 
     @Test

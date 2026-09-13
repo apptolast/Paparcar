@@ -374,7 +374,7 @@ private fun PapSheetEyebrowTone.color(): Color = when (this) {
     PapSheetEyebrowTone.Neutral -> MaterialTheme.colorScheme.onSurfaceVariant
 }
 
-/** Header trailing: dismiss × in modal states, nothing in browse — or a status [Warning] badge. */
+/** Header trailing: dismiss × in modal states; in browse, nothing — or a [Warning] badge. */
 internal sealed interface PapSheetTrailing {
     data object Dismiss : PapSheetTrailing
 
@@ -643,7 +643,7 @@ internal fun PapSheetRoundIconButton(
 
 /**
  * Warning badge — [PapColor.attention] ("pending and you can fix it"), never `danger`: nothing is
- * broken, the user just has not said yes yet. The whole pill is the tap target.
+ * broken, a permission or a setting is waiting on the user. The whole pill is the tap target.
  * [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001]
  */
 @Composable

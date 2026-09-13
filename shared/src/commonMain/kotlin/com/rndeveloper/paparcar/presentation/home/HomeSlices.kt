@@ -20,6 +20,7 @@ import com.rndeveloper.paparcar.domain.detection.shouldShowParkNudgeBanner
 import com.rndeveloper.paparcar.domain.onboarding.FirstStep
 import com.rndeveloper.paparcar.domain.onboarding.FirstStepsProgress
 import com.rndeveloper.paparcar.domain.onboarding.NearbyComplement
+import com.rndeveloper.paparcar.presentation.home.model.warnsLocationMissing
 import com.rndeveloper.paparcar.presentation.home.model.DetectionUiState
 import com.rndeveloper.paparcar.presentation.home.model.ParkedWatchBadge
 import com.rndeveloper.paparcar.presentation.util.PlaceLine
@@ -255,11 +256,10 @@ data class HomePeekSlice(
         get() = (selection as? HomeSelection.Spot)
             ?.let { sel -> nearbySpots.firstOrNull { it.id == sel.id } }
 
-    /** Location (permission or GPS) is missing: the browse header wears a WARNING badge that opens
-     *  the permissions screen — never a sheet-wide blocker. Same state that drives the list's
-     *  BlockedCore row, so badge and row cannot disagree. [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001] */
+    /** The browse header wears the location WARNING badge — see [warnsLocationMissing].
+     *  [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001] */
     val showsLocationWarning: Boolean
-        get() = detectionUiState == DetectionUiState.BlockedCore
+        get() = detectionUiState.warnsLocationMissing
 
     val isParkingSelected: Boolean
         get() = selectedSession != null

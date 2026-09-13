@@ -352,6 +352,12 @@ internal fun SheetTransitionEffects(
      * boolean — see `HomeBrowseListSlice.firstStepsCue`.
      */
     firstStepsCue: String? = null,
+    /**
+     * [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001] `HomeState.locationWarningCue`: non-zero
+     * after the first-entry location ask was refused. Same role as [promptShownAtMs] — the KEY of
+     * an auto-open, so it fires once per refusal.
+     */
+    locationWarningCue: Int = 0,
 ) {
     val peekOffsetPx = positioning.peekOffsetPx
     val peekSnapTolerancePx = with(LocalDensity.current) { PEEK_LAYOUT_SNAP_TOLERANCE.toPx() }
@@ -519,6 +525,16 @@ internal fun SheetTransitionEffects(
         } else {
             firstStepsOpenedOnce = true
             sheetOffsetPx.snapTo(positioning.expandedOffsetPx)
+        }
+    }
+
+    // [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001] A refused first-entry location ask opens the
+    // sheet on its warning: the badge rides the header and the amber row leads the detection
+    // stories in the list. Rewinds first, like the other automatic openings.
+    LaunchedEffect(locationWarningCue) {
+        if (locationWarningCue > 0) {
+            lazyListState.scrollToItem(0)
+            sheetOffsetPx.animateTo(positioning.expandedOffsetPx, SheetSnapSpec)
         }
     }
 

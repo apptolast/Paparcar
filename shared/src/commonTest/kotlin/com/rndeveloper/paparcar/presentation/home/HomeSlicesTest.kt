@@ -1110,6 +1110,7 @@ class HomeSlicesTest {
             detectionReadiness = DetectionReadiness.Blocked(setOf(RequiredPermission.BACKGROUND_LOCATION)),
         )
         assertFalse(producerOnly.toPeekSlice().showsLocationWarning)
+        // Nor without a car: the default state has no vehicle, so there is nothing to warn about.
         assertFalse(HomeState().toPeekSlice().showsLocationWarning)
     }
 }

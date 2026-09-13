@@ -91,6 +91,12 @@ data class HomeState(
      *  this is its introduction. Declining is one tap and never returns; the banner and checklist
      *  keep the ask. [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001] */
     val showDetectionPitch: Boolean = false,
+    /**
+     * Bumped when the first-entry location ask is refused while the location warning applies: the
+     * KEY of the sheet's auto-open onto that warning. A counter, not a flag, so it opens once per
+     * refusal and a sheet dragged back down stays down. [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001]
+     */
+    val locationWarningCue: Int = 0,
 
     // ── User location ─────────────────────────────────────────────────────────
 

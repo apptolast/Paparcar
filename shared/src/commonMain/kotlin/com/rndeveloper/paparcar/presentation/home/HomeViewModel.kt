@@ -25,6 +25,7 @@ import com.rndeveloper.paparcar.domain.fuel.FuelStationsQuery
 import com.rndeveloper.paparcar.domain.model.DetectionReliabilityLevel
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.presentation.home.model.ViewportRefetch
+import com.rndeveloper.paparcar.presentation.home.model.warnsLocationMissing
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
 import com.rndeveloper.paparcar.domain.model.ParkingReleaseReason
 import com.rndeveloper.paparcar.domain.usecase.detection.ObserveDetectionReadinessUseCase
@@ -225,8 +226,36 @@ class HomeViewModel(
         // the user just granted location and is looking at the map — peak engagement for the app's
         // star feature, which no longer has a first-run screen to introduce it.
         pitchDetectionAfterGrant = true
+        awaitingFirstEntryAnswer = true
         sendEffect(HomeEffect.RequestLocationPermission)
     }
+
+    /**
+     * The first-entry ask was answered with a NO: open the sheet on the location warning, so the
+     * user sees at once what the refusal costs and where to fix it — the badge in the header and
+     * the amber row in the list. Only when that warning exists ([warnsLocationMissing]: a registered
+     * car with detection on): without a car there is nothing to warn about.
+     * [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001]
+     *
+     * The answer is read off the map's own foreground bracket ([HomeIntent.SetMapForeground])
+     * instead of a platform callback: the system dialog pauses the screen, and resuming it means the
+     * dialog is gone. Measured on Android; on iOS it relies on the alert resigning the app active.
+     * A grant is left to [subscribePermissions] (the detection pitch).
+     */
+    private fun resolveFirstEntryAnswer() {
+        if (!awaitingFirstEntryAnswer || !firstEntryDialogShown) return
+        awaitingFirstEntryAnswer = false
+        firstEntryDialogShown = false
+        val denied = !permissionManager.permissionState.value.hasLocationPermission
+        if (denied && state.value.detectionUiState.warnsLocationMissing) {
+            updateState { copy(locationWarningCue = locationWarningCue + 1) }
+        }
+    }
+
+    /** Armed by [askFineLocationOnFirstEntry]; [firstEntryDialogShown] once the dialog paused the
+     *  map. Session-scoped like [pitchDetectionAfterGrant]. */
+    private var awaitingFirstEntryAnswer = false
+    private var firstEntryDialogShown = false
 
     /** Armed by [askFineLocationOnFirstEntry]; consumed on the grant. Session-scoped on purpose:
      *  losing the pitch to process death costs nothing — the banner and checklist keep the ask. */
@@ -458,7 +487,13 @@ class HomeViewModel(
                 // to (the dialog opens OVER the map, its own context). NOT in init: an effect sent
                 // there is emitted before the screen collects and a replay-less SharedFlow drops
                 // it. [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001]
-                if (intent.active) askFineLocationOnFirstEntry()
+                if (intent.active) {
+                    // Back from the system dialog → read its answer. [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001]
+                    resolveFirstEntryAnswer()
+                    askFineLocationOnFirstEntry()
+                } else if (awaitingFirstEntryAnswer) {
+                    firstEntryDialogShown = true
+                }
             }
             else -> Unit
         }

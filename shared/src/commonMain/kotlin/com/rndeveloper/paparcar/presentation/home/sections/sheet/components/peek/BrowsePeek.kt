@@ -103,8 +103,8 @@ internal fun BrowsePeek(
      * [HOME-PEEK-FOLLOWS-THE-LANE-ONCE-OPENED-001]
      */
     laneHeaderLatched: Boolean = false,
-    /** Non-null while location (permission or GPS) is missing: every browse header wears the
-     *  warning badge, and tapping it runs this. [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001] */
+    /** Non-null while Home warns that location is missing (`warnsLocationMissing`): every browse
+     *  header wears the warning badge, and tapping it runs this. [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001] */
     onFixLocation: (() -> Unit)? = null,
 ) {
     // Whether this header speaks for the LANE: always when expanded, and collapsed too once Browse

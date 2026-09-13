@@ -47,8 +47,18 @@ Un único predicado en la proyección y dos superficies que lo leen:
 - Se borra `HomeLocationBlockedState.kt`. `LocationAlertIllustration` se queda (Nivel 3, sigue en
   `IdentityIconsPreviews`) por si se reutiliza.
 - String nuevo ×9: `home_location_off_badge` (EN «No location» / ES «Sin ubicación»).
+- **Si el usuario deniega la primera petición, el sheet se abre** sobre el aviso (revisión del PR:
+  «si le da a no permitir ubicación, debería abrirse la modal mostrando el badge»):
+  `HomeState.locationWarningCue` (contador) se incrementa al leer un NO, y es la KEY de una
+  auto-apertura en `SheetTransitionEffects`, igual que `promptShownAtMs` / `firstStepsCue`: se abre
+  una vez por negativa y, si el usuario lo baja, se queda abajo. La respuesta se lee del propio
+  paréntesis de primer plano del mapa (`SetMapForeground` false → true alrededor del diálogo), sin
+  cambiar la API `expect/actual` del lanzador. Solo con aviso vigente: sin coche no se abre nada.
+- Un solo predicado `DetectionUiState.warnsLocationMissing` para badge, fila y auto-apertura.
 
 ## Criterio de éxito
+- ✅ Visto en emulador (Pixel 8 Pro, mock, preset «Sin permisos», instalación limpia): «Don't allow» en el
+  diálogo de sistema → el sheet se abre solo con el badge «NO LOCATION» y la fila ámbar.
 - ✅ Visto en emulador (Pixel 8 Pro, flavor mock, preset «GPS apagado (Home · BlockedCore)»): peek
   normal con badge «NO LOCATION», pastilla de arrastre, sheet expandible con la fila ámbar «Turn on
   location» y la lista; tocar el badge abre la pantalla de permisos. Cero `FATAL` en logcat.
@@ -57,6 +67,8 @@ Un único predicado en la proyección y dos superficies que lo leen:
 - Denegado o GPS apagado: sheet arrastrable, lista visible, badge en la cabecera y fila ámbar en la
   lista; tocar badge o «Activar» abre permisos.
 - Al conceder / encender GPS el badge desaparece solo (readiness reactiva).
+- `HomeViewModelTest`: negativa con coche → `locationWarningCue` 1 (y no se repite al volver del
+  segundo plano); sin coche → 0; concedido → 0.
 - `HomeSlicesTest`: `showsLocationWarning` true con CORE ausente, false con solo PRODUCER ausente o
   sin bloqueo. Guardarraíles Konsist + `compileProdDebugKotlin` + `compileMockDebugKotlin` verdes.
 - Galería: «PapSheet · browse sin ubicación (badge de aviso)» y la variante con coche aparcado; la
@@ -76,9 +88,8 @@ Un único predicado en la proyección y dos superficies que lo leen:
 | `docs/backlog/home-flow-analysis.md` («bloquea el sheet entero») | histórico; queda superado por este ticket |
 | `DetectionReadinessDesignPreviews` (mock de diseño `DesignState.BlockedCore`) | exento — boceto histórico, no pinta el componente real |
 
-## Preguntas abiertas (para la revisión)
-1. El badge sale solo cuando la readiness es `BlockedCore`, que exige coche registrado + detección
-   encendida (igual que el bloqueo que sustituye). ¿Debe salir también sin coche o con la detección
-   apagada, cuando falta la ubicación igualmente? Implica exponer `isLocationServicesEnabled` en
-   `HomeState`.
-2. ¿Mantener la fila ámbar en la lista además del badge, o dejar solo el badge?
+## Decisiones de la revisión (13-09-2026)
+1. El aviso **solo sale con coche** (readiness `BlockedCore`): se mantiene el alcance del bloqueo que
+   sustituye. Sin coche, Home vive sin ubicación y no avisa.
+2. **Se mantiene la fila ámbar** en la lista además del badge.
+3. Al denegar la primera petición el sheet se abre mostrando el aviso (ver Diseño).
