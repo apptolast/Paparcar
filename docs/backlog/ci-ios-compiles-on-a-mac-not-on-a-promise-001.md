@@ -1,8 +1,10 @@
 # CI-IOS-COMPILES-ON-A-MAC-NOT-ON-A-PROMISE-001 · el CI compila iOS, para que dejar de ser una promesa
 
-**Estado:** ✅ Done (el job existe y corre) · 🟡 **queda anotar aquí el resultado de su primera
-ejecución** — ver «Criterio de éxito». El escalón de `xcodebuild` sigue fuera a propósito, a la
-espera del scheme compartido (riesgo 1).
+**Estado:** ✅ Done (el job existe y corre; primera ejecución verde el 04-09 con el fix del
+diálogo, y desde el 05-09 corre además la suite en simulador) · el escalón de `xcodebuild` que
+esperaba el scheme compartido lo cubrió
+[IOS-XCODE-A-PLIST-THAT-NEVER-ENTERS-THE-BUNDLE-001] (scheme committeado a mano + paso
+`xcodebuild` de simulador sin firma).
 
 ## Problema
 

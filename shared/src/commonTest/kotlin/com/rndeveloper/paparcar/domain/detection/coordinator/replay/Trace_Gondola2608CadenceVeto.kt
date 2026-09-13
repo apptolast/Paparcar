@@ -1,5 +1,7 @@
 package com.rndeveloper.paparcar.domain.detection.coordinator.replay
 
+import com.rndeveloper.paparcar.domain.detection.coordinator.ingestion.TraceEvent
+
 /**
  * [DET-HUMAN-POWERED-VETO-MUST-BE-REVOCABLE-001] Field trace of **the park the bicycle veto ate**
  * (2026-08-26 20:19:08 local, Redmi 2201117TY `WZB7oftWLDY1toGJrDwoRHnnYHx2`, Citroën C5 Aircross /

@@ -771,6 +771,27 @@
     <string name="settings_notif_zone_alerts">Alertas de zona</string>
     <string name="settings_notif_zone_alerts_desc">Aviso cuando aparezca una plaza libre en tus zonas</string>
     <string name="home_zone_form_notify_label">Avisarme de plazas libres aquí</string>
+    <!-- Notification surface - MIRRORED from app/src/main/res (Android stays the live source until it migrates to composeResources); parity enforced by NotificationCopyParityTest [IOS-NOTIF-A-SURFACE-THAT-SPEAKS-ONE-LANGUAGE-001] -->
+    <string name="notif_confirmation_title">¿Has aparcado?</string>
+    <string name="notif_confirmation_title_vehicle">¿Has aparcado el %1$s?</string>
+    <string name="notif_confirmation_title_street">¿Has aparcado en %1$s?</string>
+    <string name="notif_confirmation_title_vehicle_street">¿Has aparcado el %1$s en %2$s?</string>
+    <string name="notif_confirmation_text">Parece que has aparcado el coche. ¿Confirmamos el aparcamiento?</string>
+    <string name="notif_action_yes_parked">Sí, he aparcado</string>
+    <string name="notif_action_no_not_parked">No, no he aparcado</string>
+    <string name="notif_parking_saved_title">Aparcamiento guardado</string>
+    <string name="notif_parking_saved_text">Tu coche ha sido aparcado. Toca para verlo en el mapa.</string>
+    <string name="notif_parking_saved_confirm_title">Vehículo aparcado</string>
+    <string name="notif_parking_saved_confirm_title_vehicle">%1$s aparcado</string>
+    <string name="notif_parking_saved_confirm_text">Toca para abrir el mapa, o cancela si no era tu vehículo.</string>
+    <string name="notif_action_confirm">Sí, confirmar</string>
+    <string name="notif_action_cancel_save">No, cancelar</string>
+    <string name="notif_confirmation_failed_title">Aparcamiento no guardado</string>
+    <string name="notif_confirmation_failed_text">No se pudo guardar tu aparcamiento. Abre Paparcar para intentarlo de nuevo.</string>
+    <string name="notif_still_parked_title">¿Sigues aparcado aquí?</string>
+    <string name="notif_still_parked_text">Parece que estás lejos, pero este aparcamiento sigue abierto. Dinos si ya te has ido, o marca dónde está ahora el coche.</string>
+    <string name="notif_action_ive_left">Ya he salido</string>
+    <string name="notif_action_mark_parking">Marcar aparcamiento</string>
 
     <!-- Fuel block [VEH-FUEL-001] -->
     <string name="vehicle_registration_section_fuel">Combustible</string>
@@ -847,6 +868,7 @@
     <string name="fuel_peek_step_prev">Gasolinera anterior</string>
     <string name="fuel_peek_step_next">Gasolinera siguiente</string>
     <string name="home_fuel_error">No hemos podido cargar las gasolineras. Comprueba la conexión y vuelve a abrir esto.</string>
+    <string name="home_fuel_too_far">Solo mostramos gasolineras a menos de %1$d km de ti. Acerca el mapa para verlas.</string>
     <string name="home_fuel_no_prices">En este país no se publican los precios. Estas son las gasolineras cercanas.</string>
     <!-- [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001] Fallback, not a verdict about the country -->
     <string name="home_fuel_prices_unavailable">Los precios oficiales no han cargado. Estas son las gasolineras cercanas; vuelve a intentarlo en un momento.</string>
@@ -859,6 +881,7 @@
     <string name="subject_free_spots">Plazas</string>
     <string name="home_parkings_empty">No hay parkings públicos a menos de 1,5 km.</string>
     <string name="home_parkings_error">No hemos podido cargar los parkings. Revisa la conexión y vuelve a abrir esto.</string>
+    <string name="home_parkings_too_far">Solo mostramos parkings públicos a menos de %1$d km de ti. Acerca el mapa para verlos.</string>
     <string name="home_parkings_remembered">Sin conexión: estos son los parkings que vimos aquí %1$s.</string>
     <string name="parking_peek_eyebrow">Parking público</string>
     <string name="parking_kind_underground">Parking subterráneo</string>

@@ -158,11 +158,16 @@ class FakeUserParkingRepository(
         return Result.success(Unit)
     }
 
+    /** How many closes reached the repository — a release that ran twice shows here.
+     *  [PARK-RELEASE-THE-SCREEN-NEVER-SAW-001] */
+    var clearActiveParkingSessionCallCount = 0
+
     override suspend fun clearActiveParkingSession(
         sessionId: String,
         endedAtMs: Long,
         publishedSpot: Boolean,
     ): Result<Unit> {
+        clearActiveParkingSessionCallCount++
         clearActiveParkingSessionResult?.let { override ->
             if (override.isFailure) return override
         }

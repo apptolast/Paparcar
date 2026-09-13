@@ -29,6 +29,11 @@ OEM-kill/Doze como causa única de falsos negativos.
 
 ## 1 · Leer la telemetría PRIMERO (Firestore, proyecto `pap-26`, vía Firebase MCP)
 
+⛔ **Elegir la base de datos según el build del móvil.** [FIRESTORE-DEBUG-BUILDS-USE-DEBUG-DATABASE-001]
+Un APK/binario **debug** escribe en `projects/pap-26/databases/debug/documents`; un **release**, en
+`projects/pap-26/databases/(default)/documents`. Mirar la equivocada da "no hay sesión" en falso.
+El gate `diagnostics_config/{uid}` también es por base de datos: activarlo en la del build.
+
 ```
 diagnostics_config/{uid}                          → {enabled, note}  (gate de logging)
 diagnostics/{uid}/sessions/{sessionId}            → cabecera de sesión

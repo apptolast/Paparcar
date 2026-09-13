@@ -31,7 +31,7 @@ class WorkManagerParkingSyncScheduler(
     override fun enqueueSaveNewParkingSession(session: UserParking, previousSessionId: String?) {
         WorkManager.getInstance(context)
             .beginUniqueWork(
-                "parking_chain_${session.id}",
+                parkingChainName(session.id),
                 ExistingWorkPolicy.REPLACE,
                 SaveNewParkingSessionWorker.buildRequest(session, previousSessionId),
             )
@@ -39,11 +39,22 @@ class WorkManagerParkingSyncScheduler(
     }
 
     override fun enqueueClearActiveParkingSession(sessionId: String) {
-        WorkManager.getInstance(context).enqueueUniqueWork(
-            "parking_clear_active_$sessionId",
-            ExistingWorkPolicy.REPLACE,
-            ClearActiveParkingSessionWorker.buildRequest(sessionId),
-        )
+        // Same chain as the save, BEHIND it. It used to be a unique work of its own
+        // (`parking_clear_active_<id>`) with no order against `parking_chain_<id>`: when both waited
+        // for the network (parked in a garage, Doze) and were released together, the clear's
+        // update() could hit a document that did not exist yet — NOT_FOUND is swallowed as success —
+        // and the save's set() then wrote the `isActive=true` snapshot it was built with. Once the
+        // outbox drainer had cleared `pendingSync`, the next inbound reconcile took that remote row
+        // and the released parking came back as active. [PARK-RELEASE-THE-SCREEN-NEVER-SAW-001]
+        // APPEND_OR_REPLACE, like the address update below: a finished, failed or cancelled chain
+        // does not hold it back — it starts a new one and runs alone.
+        WorkManager.getInstance(context)
+            .beginUniqueWork(
+                parkingChainName(sessionId),
+                ExistingWorkPolicy.APPEND_OR_REPLACE,
+                ClearActiveParkingSessionWorker.buildRequest(sessionId),
+            )
+            .enqueue()
     }
 
     override fun enqueueUpdateParkingSessionAddressAndPlace(sessionId: String, address: AddressInfo?, placeInfo: PlaceInfo?) {
@@ -53,7 +64,7 @@ class WorkManagerParkingSyncScheduler(
         // this still runs — partial data is better than none.
         WorkManager.getInstance(context)
             .beginUniqueWork(
-                "parking_chain_$sessionId",
+                parkingChainName(sessionId),
                 ExistingWorkPolicy.APPEND_OR_REPLACE,
                 UpdateParkingSessionAddressAndPlaceWorker.buildRequest(sessionId, address, placeInfo),
             )
@@ -75,5 +86,11 @@ class WorkManagerParkingSyncScheduler(
             ExistingWorkPolicy.REPLACE,
             DeleteVehicleRemoteWorker.buildRequest(vehicleId),
         )
+    }
+
+    companion object {
+        /** The one ordered lane for every remote write on a parking session document: create/re-save,
+         *  address update and active-flag clear run in enqueue order. [PARK-RELEASE-THE-SCREEN-NEVER-SAW-001] */
+        fun parkingChainName(sessionId: String): String = "parking_chain_$sessionId"
     }
 }

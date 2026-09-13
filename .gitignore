@@ -600,7 +600,11 @@ iOSInjectionProject/
 ### SwiftPackageManager ###
 Packages
 xcuserdata
-*.xcodeproj
+# A bare `*.xcodeproj` used to live here (generic SPM template). It excludes the DIRECTORY, and
+# git cannot re-include children of an excluded directory — which silently killed the
+# `!*.xcodeproj/xcshareddata/` un-ignore below and kept the shared scheme out of the repo.
+# The "Xcode Patch" block below handles xcodeproj hygiene with the right granularity
+# (`*.xcodeproj/*` = contents, not the dir). [IOS-XCODE-A-PLIST-THAT-NEVER-ENTERS-THE-BUNDLE-001]
 
 
 ### Windows ###

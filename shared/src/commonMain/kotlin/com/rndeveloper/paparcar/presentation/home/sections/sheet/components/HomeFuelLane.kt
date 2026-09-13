@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.onboarding.NearbyComplement
 import com.rndeveloper.paparcar.presentation.home.model.HomeFuelSlice
+import com.rndeveloper.paparcar.presentation.home.model.ViewportRefetch
 import com.rndeveloper.paparcar.presentation.util.relativeTimeText
 import com.rndeveloper.paparcar.ui.illustrations.EmptyFuelStationsIllustration
 import com.rndeveloper.paparcar.ui.theme.PaparcarType
@@ -26,6 +27,7 @@ import paparcar.composeapp.generated.resources.home_fuel_prices_unavailable
 import paparcar.composeapp.generated.resources.home_fuel_oldest_price
 import paparcar.composeapp.generated.resources.home_fuel_remembered
 import paparcar.composeapp.generated.resources.home_fuel_reported_at
+import paparcar.composeapp.generated.resources.home_fuel_too_far
 
 /**
  * "Where to refuel" — the lane, i.e. what the sheet shows while the lens sits on
@@ -57,6 +59,11 @@ fun HomeFuelLane(
         if (isIntroducing) LaneIntroNote(NearbyComplement.FUEL)
 
         when {
+            // ⛔ Too far from the user to follow: nothing was asked, and the map is empty with it.
+            // First, because it outranks every other sentence — none of them is about this place.
+            // [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
+            slice.tooFar -> LaneNote(stringResource(Res.string.home_fuel_too_far, ViewportRefetch.maxFromUserKm))
+
             // ⛔ No fuel on the car means NO question was asked — its own sentence, never the empty
             // state, which is a verdict about the world.
             slice.missingFuelType ->
@@ -70,7 +77,9 @@ fun HomeFuelLane(
             // section header's chevron slot, and that header is gone with the fold — a skeleton in
             // the lane keeps the wait in the place that is loading.
             // [UI-A-SPINNER-LIVES-IN-THE-BUTTON-THAT-WAS-PRESSED-001]
-            slice.isLoading -> NearbyRowsSkeleton()
+            // …and only when there is nothing to show: while a new area loads, the rows keep
+            // matching the capsules still on the map. [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
+            slice.isLoading && slice.stations.isEmpty() -> NearbyRowsSkeleton()
 
             slice.stations.isEmpty() -> EmptyFuelStations()
 

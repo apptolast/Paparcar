@@ -7,7 +7,36 @@ import com.rndeveloper.paparcar.domain.notification.AppNotificationManager
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager.Companion.CONFIRMATION_FAILED_NOTIFICATION_ID
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager.Companion.DEBUG_NOTIFICATION_ID
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager.Companion.PARKING_CONFIRMATION_NOTIFICATION_ID
+import com.rndeveloper.paparcar.domain.notification.AppNotificationManager.Companion.STILL_PARKED_NOTIFICATION_ID
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager.Companion.UPLOAD_NOTIFICATION_ID
+import com.rndeveloper.paparcar.domain.preferences.AppPreferences
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.getString
+import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.notif_action_cancel_save
+import paparcar.composeapp.generated.resources.notif_action_confirm
+import paparcar.composeapp.generated.resources.notif_action_ive_left
+import paparcar.composeapp.generated.resources.notif_action_mark_parking
+import paparcar.composeapp.generated.resources.notif_action_no_not_parked
+import paparcar.composeapp.generated.resources.notif_action_yes_parked
+import paparcar.composeapp.generated.resources.notif_confirmation_failed_text
+import paparcar.composeapp.generated.resources.notif_confirmation_failed_title
+import paparcar.composeapp.generated.resources.notif_confirmation_text
+import paparcar.composeapp.generated.resources.notif_confirmation_title
+import paparcar.composeapp.generated.resources.notif_confirmation_title_street
+import paparcar.composeapp.generated.resources.notif_confirmation_title_vehicle
+import paparcar.composeapp.generated.resources.notif_confirmation_title_vehicle_street
+import paparcar.composeapp.generated.resources.notif_parking_saved_confirm_text
+import paparcar.composeapp.generated.resources.notif_parking_saved_confirm_title
+import paparcar.composeapp.generated.resources.notif_parking_saved_confirm_title_vehicle
+import paparcar.composeapp.generated.resources.notif_parking_saved_text
+import paparcar.composeapp.generated.resources.notif_parking_saved_title
+import paparcar.composeapp.generated.resources.notif_still_parked_text
+import paparcar.composeapp.generated.resources.notif_still_parked_title
 import platform.UserNotifications.UNMutableNotificationContent
 import platform.UserNotifications.UNNotificationAction
 import platform.UserNotifications.UNNotificationActionOptionDestructive
@@ -20,23 +49,24 @@ import platform.UserNotifications.UNUserNotificationCenter
 /**
  * iOS implementation of [AppNotificationManager] backed by [UNUserNotificationCenter].
  *
- * Permission acquisition is owned by [com.rndeveloper.paparcar.ios.permissions.IosPermissionRequester]
- * — this class assumes authorization has already been granted (or the OS will silently drop posts).
+ * Copy comes from `composeResources` (`notif_*`, MIRRORED from Android's live
+ * `app/src/main/res` source and drift-guarded by `NotificationCopyParityTest`) — the surface
+ * speaks the device's language, same keys and translations as Android.
+ * [IOS-NOTIF-A-SURFACE-THAT-SPEAKS-ONE-LANGUAGE-001]
  *
- * Notification action routing (iOS equivalent of `ParkingConfirmationReceiver`) lives in
- * [IosNotificationActionHandler], registered as the system delegate from `MainViewController`.
- *
- * Strings are intentionally hardcoded in English to match the Android `notif_*` resources.
- * When notification copy is unified into `composeResources/strings.xml`, route both platforms
- * through `getString(Res.string.notif_confirmation_title)` instead.
+ * `getString` is suspend, so every post runs in the manager's scope and first awaits the
+ * category registration (whose action titles are resources too). Action routing lives in
+ * [IosNotificationActionHandler], installed as the system delegate by `PaparcarIosBootstrap`.
  */
-class IosAppNotificationManagerImpl : AppNotificationManager {
+class IosAppNotificationManagerImpl(
+    private val appPreferences: AppPreferences,
+) : AppNotificationManager {
 
     private val center = UNUserNotificationCenter.currentNotificationCenter()
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
-    init {
-        registerCategories()
-    }
+    /** Categories carry localized action titles → registered async; every post awaits this. */
+    private val categoriesReady = scope.async { registerCategories() }
 
     override fun showParkingConfirmation(
         score: Float,
@@ -44,28 +74,34 @@ class IosAppNotificationManagerImpl : AppNotificationManager {
         candidate: GpsPoint?,
         street: String?,
     ) {
-        val content = UNMutableNotificationContent().apply {
-            setTitle(
-                if (vehicleName != null) "Did you park your $vehicleName?" else "Did you park?",
-            )
-            setBody("Looks like you parked. Shall we confirm the spot?")
+        postLocalized(PARKING_CONFIRMATION_NOTIFICATION_ID) {
+            val title = when {
+                vehicleName != null && street != null ->
+                    getString(Res.string.notif_confirmation_title_vehicle_street, vehicleName, street)
+                vehicleName != null -> getString(Res.string.notif_confirmation_title_vehicle, vehicleName)
+                street != null -> getString(Res.string.notif_confirmation_title_street, street)
+                else -> getString(Res.string.notif_confirmation_title)
+            }
+            val body = getString(Res.string.notif_confirmation_text)
+            setTitle(title)
+            setBody(body)
             setCategoryIdentifier(CATEGORY_PARKING_CONFIRMATION)
             setSound(platform.UserNotifications.UNNotificationSound.defaultSound)
         }
-        post(PARKING_CONFIRMATION_NOTIFICATION_ID, content)
     }
 
     override fun showParkingSaved(latitude: Double, longitude: Double) {
-        // Parity gap with Android [SETTINGS-AUDIT-REMEDIATION-001]: on Android this informative
-        // notification is gated by AppPreferences.notifyParkingDetected at this same choke point.
-        // This stub predates DI of prefs here — wire the gate when the iOS notification stack is
-        // brought up for real (kept unchanged to avoid touching the iOS DI graph this ticket).
-        val content = UNMutableNotificationContent().apply {
-            setTitle("Parking saved")
-            setBody("Your car has been parked. Tap to see it on the map.")
+        // Same choke point as Android [SETTINGS-AUDIT-REMEDIATION-001]: this is the INFORMATIVE
+        // notification the user may silence. The anti-false-positive surfaces below (confirmation,
+        // saved-confirm, still-parked) are never gated from app prefs, by doctrine.
+        if (!appPreferences.notifyParkingDetected) return
+        postLocalized(UPLOAD_NOTIFICATION_ID) {
+            val title = getString(Res.string.notif_parking_saved_title)
+            val body = getString(Res.string.notif_parking_saved_text)
+            setTitle(title)
+            setBody(body)
             setSound(platform.UserNotifications.UNNotificationSound.defaultSound)
         }
-        post(UPLOAD_NOTIFICATION_ID, content)
     }
 
     override fun showParkingSavedConfirm(
@@ -74,25 +110,44 @@ class IosAppNotificationManagerImpl : AppNotificationManager {
         latitude: Double,
         longitude: Double,
     ) {
-        val title = if (vehicleName != null) "$vehicleName parked" else "Vehicle parked"
-        val content = UNMutableNotificationContent().apply {
+        postLocalized(PARKING_CONFIRMATION_NOTIFICATION_ID) {
+            // Replaces the pre-save prompt at the same notification ID. [REFACTOR-300]
+            val title = if (vehicleName != null) {
+                getString(Res.string.notif_parking_saved_confirm_title_vehicle, vehicleName)
+            } else {
+                getString(Res.string.notif_parking_saved_confirm_title)
+            }
+            val body = getString(Res.string.notif_parking_saved_confirm_text)
             setTitle(title)
-            setBody("Confirm or cancel the saved parking spot.")
+            setBody(body)
             setCategoryIdentifier(CATEGORY_PARKING_SAVED_CONFIRM)
             setUserInfo(mapOf<Any?, Any?>(EXTRA_PARKING_ID to parkingId))
             setSound(platform.UserNotifications.UNNotificationSound.defaultSound)
         }
-        // Replaces the pre-save prompt at the same notification ID — see [REFACTOR-300] on the interface.
-        post(PARKING_CONFIRMATION_NOTIFICATION_ID, content)
+    }
+
+    /** [IOS-F2] The safety-net mesh's question. Same actions as Android's surface: "I've left"
+     *  routes to a WITNESSED departure; "Mark parking" opens the app (foreground). */
+    override fun showStillParkedPrompt(geofenceId: String, latitude: Double, longitude: Double) {
+        postLocalized(STILL_PARKED_NOTIFICATION_ID) {
+            val title = getString(Res.string.notif_still_parked_title)
+            val body = getString(Res.string.notif_still_parked_text)
+            setTitle(title)
+            setBody(body)
+            setCategoryIdentifier(CATEGORY_STILL_PARKED)
+            setUserInfo(mapOf<Any?, Any?>(EXTRA_GEOFENCE_ID to geofenceId))
+            setSound(platform.UserNotifications.UNNotificationSound.defaultSound)
+        }
     }
 
     override fun showConfirmationFailed() {
-        val content = UNMutableNotificationContent().apply {
-            setTitle("Could not save parking")
-            setBody("Open Paparcar to confirm manually.")
+        postLocalized(CONFIRMATION_FAILED_NOTIFICATION_ID) {
+            val title = getString(Res.string.notif_confirmation_failed_title)
+            val body = getString(Res.string.notif_confirmation_failed_text)
+            setTitle(title)
+            setBody(body)
             setSound(platform.UserNotifications.UNNotificationSound.defaultSound)
         }
-        post(CONFIRMATION_FAILED_NOTIFICATION_ID, content)
     }
 
     override fun updateDetectionVehicle(vehicleName: String, notifId: Int) {
@@ -102,11 +157,10 @@ class IosAppNotificationManagerImpl : AppNotificationManager {
     override fun showPermissionRevoked() = Unit // Android-only concept; iOS handles this via system UI
 
     override fun showDebug(message: String) {
-        val content = UNMutableNotificationContent().apply {
-            setTitle("Paparcar Debug")
+        postLocalized(DEBUG_NOTIFICATION_ID) {
+            setTitle("Paparcar Debug") // debug-only surface, never user-facing copy
             setBody(message)
         }
-        post(DEBUG_NOTIFICATION_ID, content)
     }
 
     override fun dismiss(notificationId: Int) {
@@ -115,49 +169,89 @@ class IosAppNotificationManagerImpl : AppNotificationManager {
         center.removeDeliveredNotificationsWithIdentifiers(identifiers)
     }
 
-    private fun post(notificationId: Int, content: UNMutableNotificationContent) {
-        val request = UNNotificationRequest.requestWithIdentifier(
-            identifier = identifierFor(notificationId),
-            content = content,
-            trigger = null, // immediate delivery
-        )
-        center.addNotificationRequest(request, withCompletionHandler = null)
+    private fun postLocalized(
+        notificationId: Int,
+        build: suspend UNMutableNotificationContent.() -> Unit,
+    ) {
+        scope.launch {
+            categoriesReady.await()
+            val content = UNMutableNotificationContent()
+            content.build()
+            val request = UNNotificationRequest.requestWithIdentifier(
+                identifier = identifierFor(notificationId),
+                content = content,
+                trigger = null, // immediate delivery
+            )
+            center.addNotificationRequest(request, withCompletionHandler = null)
+        }
     }
 
-    private fun registerCategories() {
-        val confirmedAction = UNNotificationAction.actionWithIdentifier(
-            identifier = ACTION_CONFIRMED,
-            title = "Yes, I parked",
-            options = UNNotificationActionOptionForeground,
-        )
-        val deniedAction = UNNotificationAction.actionWithIdentifier(
-            identifier = ACTION_DENIED,
-            title = "No, I haven't parked",
-            options = UNNotificationActionOptionForeground,
-        )
+    private suspend fun registerCategories() {
+        // ⛔ Every suspend call happens BEFORE the first Objective-C call. A suspension inside an
+        // ObjC argument list leaves the arguments already converted (the constant identifier's
+        // NSString) as raw, unretained pointers in the coroutine frame; the run loop's autorelease
+        // pool drains while `getString` is suspended, and the resumed call hands a freed object to
+        // `+[UNNotificationAction actionWithIdentifier:title:options:]` → EXC_BAD_ACCESS in
+        // `objc_retain` at launch. Resolve the copy first, then build.
+        val yesParked = getString(Res.string.notif_action_yes_parked)
+        val noNotParked = getString(Res.string.notif_action_no_not_parked)
+        val confirm = getString(Res.string.notif_action_confirm)
+        val cancelSave = getString(Res.string.notif_action_cancel_save)
+        val iveLeft = getString(Res.string.notif_action_ive_left)
+        val markParking = getString(Res.string.notif_action_mark_parking)
+
         val parkingCategory = UNNotificationCategory.categoryWithIdentifier(
             identifier = CATEGORY_PARKING_CONFIRMATION,
-            actions = listOf(confirmedAction, deniedAction),
+            actions = listOf(
+                UNNotificationAction.actionWithIdentifier(
+                    identifier = ACTION_CONFIRMED,
+                    title = yesParked,
+                    options = UNNotificationActionOptionForeground,
+                ),
+                UNNotificationAction.actionWithIdentifier(
+                    identifier = ACTION_DENIED,
+                    title = noNotParked,
+                    options = UNNotificationActionOptionForeground,
+                ),
+            ),
             intentIdentifiers = emptyList<String>(),
             options = UNNotificationCategoryOptionNone,
-        )
-        val ackAction = UNNotificationAction.actionWithIdentifier(
-            identifier = ACTION_ACK,
-            title = "Yes, confirm",
-            options = UNNotificationActionOptionForeground,
-        )
-        val revertAction = UNNotificationAction.actionWithIdentifier(
-            identifier = ACTION_REVERT,
-            title = "No, cancel",
-            options = UNNotificationActionOptionDestructive,
         )
         val savedConfirmCategory = UNNotificationCategory.categoryWithIdentifier(
             identifier = CATEGORY_PARKING_SAVED_CONFIRM,
-            actions = listOf(ackAction, revertAction),
+            actions = listOf(
+                UNNotificationAction.actionWithIdentifier(
+                    identifier = ACTION_ACK,
+                    title = confirm,
+                    options = UNNotificationActionOptionForeground,
+                ),
+                UNNotificationAction.actionWithIdentifier(
+                    identifier = ACTION_REVERT,
+                    title = cancelSave,
+                    options = UNNotificationActionOptionDestructive,
+                ),
+            ),
             intentIdentifiers = emptyList<String>(),
             options = UNNotificationCategoryOptionNone,
         )
-        center.setNotificationCategories(setOf(parkingCategory, savedConfirmCategory))
+        val stillParkedCategory = UNNotificationCategory.categoryWithIdentifier(
+            identifier = CATEGORY_STILL_PARKED,
+            actions = listOf(
+                UNNotificationAction.actionWithIdentifier(
+                    identifier = ACTION_DEPARTED,
+                    title = iveLeft,
+                    options = UNNotificationActionOptionForeground,
+                ),
+                UNNotificationAction.actionWithIdentifier(
+                    identifier = ACTION_MARK_PARKING,
+                    title = markParking,
+                    options = UNNotificationActionOptionForeground,
+                ),
+            ),
+            intentIdentifiers = emptyList<String>(),
+            options = UNNotificationCategoryOptionNone,
+        )
+        center.setNotificationCategories(setOf(parkingCategory, savedConfirmCategory, stillParkedCategory))
     }
 
     private fun identifierFor(notificationId: Int): String = "$ID_PREFIX$notificationId"
@@ -170,6 +264,11 @@ class IosAppNotificationManagerImpl : AppNotificationManager {
         const val ACTION_DENIED = "paparcar_action_denied"
         const val ACTION_ACK = "paparcar_action_ack"
         const val ACTION_REVERT = "paparcar_action_revert"
+        const val CATEGORY_STILL_PARKED = "paparcar_still_parked"
+        const val ACTION_DEPARTED = "paparcar_action_departed"
+        // [IOS-NOTIF] Android's real second action — the invented "still parked" action is gone.
+        const val ACTION_MARK_PARKING = "paparcar_action_mark_parking"
         const val EXTRA_PARKING_ID = "parkingId"
+        const val EXTRA_GEOFENCE_ID = "geofenceId"
     }
 }

@@ -2,6 +2,7 @@
 
 package com.rndeveloper.paparcar.detection
 
+import com.rndeveloper.paparcar.data.sync.SyncOutboxDrainer
 import com.rndeveloper.paparcar.domain.model.AddressInfo
 import com.rndeveloper.paparcar.domain.model.CarbodyType
 import com.rndeveloper.paparcar.domain.model.GpsPoint
@@ -13,33 +14,28 @@ import com.rndeveloper.paparcar.domain.model.SpotType
 import com.rndeveloper.paparcar.domain.model.VehicleSize
 import com.rndeveloper.paparcar.domain.repository.SpotRepository
 import com.rndeveloper.paparcar.domain.service.ReportSpotScheduler
+import com.rndeveloper.paparcar.domain.sync.OutboxOp
+import com.rndeveloper.paparcar.domain.sync.SyncOutbox
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
+import kotlin.time.Clock
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlin.time.Clock
-import kotlin.time.Duration.Companion.milliseconds
 
 /**
- * iOS implementation of [ReportSpotScheduler].
- *
- * Mirrors Android's `ReportSpotWorker` but executes inline inside a SupervisorJob
- * coroutine scope. See [IosParkingEnrichmentScheduler] kdoc for the shared
- * limitations vs WorkManager — same trade-offs apply here.
- *
- * Network-required behaviour: where Android sets `NetworkType.CONNECTED` as a
- * WorkManager constraint, on iOS we simply attempt the Firestore write and rely
- * on the exponential backoff to ride out brief outages. Sustained offline is
- * lost — a later task can persist requests into a queue and submit a
- * `BGAppRefreshTaskRequest` for replay when connectivity returns.
- *
- * TTLs match the Android worker: 2 h for auto-detected spots, 15 min for
- * manual reports.
+ * iOS [ReportSpotScheduler] over the durable outbox. Two lanes on purpose:
+ * the FIRST attempt runs with the full in-memory [Spot] (address and place included — the happy
+ * online path publishes rich); the PERSISTED op is the fallback for process death and carries the
+ * minimal payload (no address — `AddressInfo` stays free of serialization annotations; a spot
+ * replayed later arrives without its street label, a declared degradation). Either way the
+ * TTL-in-queue gate is anchored at ENQUEUE: a spot that expires while queued is never published.
+ * [IOS-SYNC-A-QUEUE-THAT-DIES-WITH-THE-PROCESS-001]
  */
 class IosReportSpotScheduler(
     private val spotRepository: SpotRepository,
+    private val outbox: SyncOutbox,
+    private val drainer: Lazy<SyncOutboxDrainer>,
 ) : ReportSpotScheduler {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -59,17 +55,23 @@ class IosReportSpotScheduler(
         zoneRadiusMeters: Float?,
     ) {
         val nowMs = Clock.System.now().toEpochMilliseconds()
+        val op = OutboxOp.ReportSpot(
+            spotId = spotId,
+            lat = lat,
+            lon = lon,
+            spotType = spotType,
+            confidence = confidence,
+            sizeCategory = sizeCategory,
+            carbodyType = carbodyType,
+            reportedBy = reportedBy ?: "",
+            provisional = provisional,
+            enqueuedAtMs = nowMs,
+        )
+        outbox.persist(op) // crash-safe from this instant
         // [DET-HANDOFF-NOT-MANUAL-001 §B] A deduced departure buys a short lifetime, same as Android.
-        val expiresAt = nowMs + SpotTtlPolicy.ttlMs(provisional) // [AUDIT-ARCH-001 M13]
-        val spot = Spot(
+        val richSpot = Spot(
             id = spotId,
-            location = GpsPoint(
-                latitude = lat,
-                longitude = lon,
-                accuracy = 0f,
-                timestamp = nowMs,
-                speed = 0f,
-            ),
+            location = GpsPoint(latitude = lat, longitude = lon, accuracy = 0f, timestamp = nowMs, speed = 0f),
             reportedBy = reportedBy ?: "", // [AUDIT-RULES-001 C4] uid identity
             address = address,
             placeInfo = placeInfo,
@@ -77,34 +79,23 @@ class IosReportSpotScheduler(
             confidence = confidence,
             sizeCategory = sizeCategory,
             carbodyType = carbodyType,
-            expiresAt = expiresAt,
-            // [DET-HANDOFF-NOT-MANUAL-001 §B.3] Same statement as Android: how well this
-            // departure is proven travels with the spot.
+            expiresAt = nowMs + SpotTtlPolicy.ttlMs(provisional), // [AUDIT-ARCH-001 M13]
+            // [DET-HANDOFF-NOT-MANUAL-001 §B.3] How well this departure is proven travels with the spot.
             status = if (provisional) SpotStatus.PROVISIONAL else SpotStatus.CONFIRMED,
             zoneRadiusMeters = zoneRadiusMeters, // [SPOT-A-ZONE-PARK-FREES-A-ZONE-SPOT-001]
         )
-
-        scope.launch { reportWithRetry(spot) }
-    }
-
-    private suspend fun reportWithRetry(spot: Spot) {
-        var attempt = 0
-        while (attempt < MAX_RETRIES) {
-            val outcome = spotRepository.reportSpotReleased(spot)
-            if (outcome.isSuccess) return
-            attempt++
-            val backoffMs = INITIAL_BACKOFF_MS shl (attempt - 1)
-            PaparcarLogger.w(TAG, "ReportSpot attempt $attempt failed for ${spot.id} — retry in ${backoffMs}ms")
-            delay(backoffMs.milliseconds)
+        scope.launch {
+            val rich = spotRepository.reportSpotReleased(richSpot)
+            if (rich.isSuccess) {
+                outbox.remove(op.key)
+            } else {
+                PaparcarLogger.w(TAG, "rich publish failed for $spotId — the outbox op owns the retry")
+                drainer.value.drain()
+            }
         }
-        PaparcarLogger.e(TAG, "ReportSpot exhausted retries for ${spot.id}")
     }
 
     private companion object {
         const val TAG = "IosReportSpotScheduler"
-        const val MAX_RETRIES = 5
-        const val INITIAL_BACKOFF_MS = 30_000L
-        // [AUDIT-ARCH-001 M13] Spot TTLs now live in the shared domain SpotTtlPolicy.
-        // [AUDIT-RULES-001] REPORTED_BY_ANONYMOUS removed — reportedBy is now the uid.
     }
 }

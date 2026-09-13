@@ -26,7 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.rndeveloper.paparcar.presentation.util.collectAsStateLifecycleAware
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rndeveloper.paparcar.ui.components.PapCollapsingTopBarScaffold
 import com.rndeveloper.paparcar.ui.components.PapOutlinedCard
 import com.rndeveloper.paparcar.ui.components.PapPrimaryButton
@@ -50,7 +50,7 @@ fun LicenseDetailScreen(
     onNavigateBack: () -> Unit,
     viewModel: LicensesViewModel = koinViewModel(),
 ) {
-    val state by viewModel.state.collectAsStateLifecycleAware()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val uriHandler = LocalUriHandler.current
 
     LaunchedEffect(Unit) {

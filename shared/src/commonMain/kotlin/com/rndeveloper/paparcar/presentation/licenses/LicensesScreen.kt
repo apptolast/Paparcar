@@ -23,8 +23,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rndeveloper.paparcar.domain.model.OpenSourceLibrary
-import com.rndeveloper.paparcar.presentation.util.collectAsStateLifecycleAware
 import com.rndeveloper.paparcar.ui.components.PapCollapsingTopBarScaffold
 import com.rndeveloper.paparcar.ui.components.PapListItem
 import com.rndeveloper.paparcar.ui.components.PapNavChevron
@@ -56,7 +56,7 @@ fun LicensesScreen(
     onNavigateToLicense: (String) -> Unit,
     viewModel: LicensesViewModel = koinViewModel(),
 ) {
-    val state by viewModel.state.collectAsStateLifecycleAware()
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->

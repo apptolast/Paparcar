@@ -32,7 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.entitlement.PaywallReason
 import com.rndeveloper.paparcar.domain.model.displayName
-import com.rndeveloper.paparcar.presentation.util.collectAsStateLifecycleAware
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rndeveloper.paparcar.presentation.util.distanceString
 import com.rndeveloper.paparcar.presentation.vehicles.DAY_SHORT_RES
 import com.rndeveloper.paparcar.presentation.vehicles.HistoryFilter
@@ -70,7 +70,7 @@ fun StatsScreen(
     vehicleId: String? = null,
     viewModel: StatsViewModel = koinViewModel { parametersOf(vehicleId) },
 ) {
-    val state by viewModel.state.collectAsStateLifecycleAware()
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->

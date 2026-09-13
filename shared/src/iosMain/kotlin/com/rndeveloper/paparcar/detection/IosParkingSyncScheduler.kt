@@ -1,134 +1,64 @@
-@file:OptIn(kotlin.time.ExperimentalTime::class)
-
 package com.rndeveloper.paparcar.detection
 
-import com.apptolast.baselogin.domain.AuthRepository
-import com.rndeveloper.paparcar.data.datasource.remote.RemoteUserProfileDataSource
-import com.rndeveloper.paparcar.data.mapper.toAddressDto
-import com.rndeveloper.paparcar.data.mapper.toParkingHistoryDto
-import com.rndeveloper.paparcar.data.mapper.toPlaceInfoDto
+import com.rndeveloper.paparcar.data.sync.SyncOutboxDrainer
 import com.rndeveloper.paparcar.domain.model.AddressInfo
 import com.rndeveloper.paparcar.domain.model.PlaceInfo
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.service.ParkingSyncScheduler
-import com.rndeveloper.paparcar.domain.util.PaparcarLogger
-import kotlin.time.Clock
+import com.rndeveloper.paparcar.domain.sync.OutboxOp
+import com.rndeveloper.paparcar.domain.sync.SyncOutbox
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
- * iOS implementation of [ParkingSyncScheduler].
+ * iOS [ParkingSyncScheduler] over the durable outbox: every enqueue PERSISTS its op first
+ * (crash-safe from that instant), then drains — the online happy path keeps today's latency,
+ * and a process death mid-flight loses nothing because the retry cadence is the DRAIN cadence
+ * (wakes, app-open, BGTask), not an in-memory backoff loop. The delete op is the tombstone that
+ * closes the resurrection bug this file used to document as a TODO.
+ * [IOS-SYNC-A-QUEUE-THAT-DIES-WITH-THE-PROCESS-001]
  *
- * Mirrors Android's WorkManager-backed implementation using a coroutine scope
- * with exponential backoff. Same limitations as [IosParkingEnrichmentScheduler]:
- * no cross-process-death persistence — if the app is killed mid-flight the pending
- * write is lost. BGTaskScheduler integration is tracked as a future improvement
- * once the Kotlin/Native ↔ Swift bridge for background tasks is solidified.
- * [IOS-SYNC-001]
+ * [drainer] is [Lazy] because the drainer depends on the repositories that depend on this
+ * scheduler — see `iosDetectionModule`.
  */
 class IosParkingSyncScheduler(
-    private val remoteDataSource: RemoteUserProfileDataSource,
-    private val authRepository: AuthRepository,
+    private val outbox: SyncOutbox,
+    private val drainer: Lazy<SyncOutboxDrainer>,
 ) : ParkingSyncScheduler {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     override fun enqueueSaveNewParkingSession(session: UserParking, previousSessionId: String?) {
-        scope.launch {
-            val userId = authRepository.getCurrentSession()?.userId
-            if (userId == null) {
-                PaparcarLogger.w(TAG, "enqueueSaveNewParkingSession() skipped — no auth session for ${session.id}")
-                return@launch
-            }
-            retrying("saveNewParkingSession:${session.id}") {
-                previousSessionId?.let { prevId ->
-                    remoteDataSource.clearParkingSessionActiveFlag(userId, prevId)
-                }
-                // [SYNC-A-PARKING-MUST-TRAVEL-WHOLE-001] Stamp a real `updatedAt`. The default is
-                // 0, and 0 loses every Last-Write-Wins comparison in `UserParkingReconcile`, so the
-                // document this writes could never win over a stale local row. The Android lane had
-                // the same hole and it is fixed there; this is the same invariant, not a copy.
-                remoteDataSource.saveParkingSession(
-                    userId,
-                    session.toParkingHistoryDto(updatedAt = Clock.System.now().toEpochMilliseconds()),
-                )
-            }
-        }
+        // Identity, not data: the drainer re-reads the session from Room at SEND time, which also
+        // stamps a fresh `updatedAt` for Last-Write-Wins. [SYNC-A-PARKING-MUST-TRAVEL-WHOLE-001]
+        persistAndDrain(OutboxOp.SaveSession(session.id, previousSessionId))
     }
 
     override fun enqueueClearActiveParkingSession(sessionId: String) {
-        scope.launch {
-            val userId = authRepository.getCurrentSession()?.userId
-            if (userId == null) {
-                PaparcarLogger.w(TAG, "enqueueClearActiveParkingSession() skipped — no auth session for $sessionId")
-                return@launch
-            }
-            retrying("clearActiveParkingSession:$sessionId") {
-                remoteDataSource.clearParkingSessionActiveFlag(userId, sessionId)
-            }
-        }
+        persistAndDrain(OutboxOp.ClearActive(sessionId))
     }
 
-    override fun enqueueUpdateParkingSessionAddressAndPlace(sessionId: String, address: AddressInfo?, placeInfo: PlaceInfo?) {
-        scope.launch {
-            val userId = authRepository.getCurrentSession()?.userId
-            if (userId == null) {
-                PaparcarLogger.w(TAG, "enqueueUpdateParkingSessionAddressAndPlace() skipped — no auth session for $sessionId")
-                return@launch
-            }
-            retrying("updateParkingSessionAddressAndPlace:$sessionId") {
-                remoteDataSource.updateParkingSessionAddressAndPlace(
-                    userId,
-                    sessionId,
-                    address?.toAddressDto(),
-                    placeInfo?.toPlaceInfoDto(),
-                )
-            }
-        }
+    override fun enqueueUpdateParkingSessionAddressAndPlace(
+        sessionId: String,
+        address: AddressInfo?,
+        placeInfo: PlaceInfo?,
+    ) {
+        // The payload is already in Room (the enrichment saved it before scheduling this) — the
+        // drainer sends Room's truth, so the op needs no serialized address.
+        persistAndDrain(OutboxOp.UpdateAddressAndPlace(sessionId))
     }
 
     override fun enqueueDeleteVehicleRemote(vehicleId: String) {
-        // [SYNC-A-REMOTE-DELETE-HAS-NO-OUTBOX-BEHIND-IT-001] Sessions FIRST, then the vehicle doc —
-        // surviving session docs are what the inbound reconcile resurrects.
-        // TODO [IOS-SYNC-001]: same limitation as every method here, but it bites HARDER for a
-        // delete — an update lost to process death self-heals via `pendingSync`, a delete has no
-        // row left to hang a flag on, so on iOS a kill mid-flight still resurrects the car on the
-        // next sync. Real fix is the BGTaskScheduler bridge this file already tracks.
-        scope.launch {
-            val userId = authRepository.getCurrentSession()?.userId
-            if (userId == null) {
-                PaparcarLogger.w(TAG, "enqueueDeleteVehicleRemote() skipped — no auth session for $vehicleId")
-                return@launch
-            }
-            retrying("deleteVehicleRemote:$vehicleId") {
-                remoteDataSource.deleteParkingSessionsForVehicle(userId, vehicleId)
-                remoteDataSource.deleteVehicle(userId, vehicleId)
-            }
-        }
+        // [SYNC-A-REMOTE-DELETE-HAS-NO-OUTBOX-BEHIND-IT-001] THE tombstone: persisted before the
+        // first attempt, removed only on success — a kill mid-flight can no longer resurrect the
+        // car, because the next drain (next process included) finishes the delete.
+        persistAndDrain(OutboxOp.DeleteVehicle(vehicleId))
     }
 
-    private suspend fun retrying(label: String, block: suspend () -> Unit) {
-        var attempt = 0
-        while (attempt < MAX_RETRIES) {
-            val ok = runCatching { block() }.isSuccess
-            if (ok) {
-                PaparcarLogger.d(TAG, "■ $label success")
-                return
-            }
-            attempt++
-            val backoffMs = INITIAL_BACKOFF_MS shl (attempt - 1)
-            PaparcarLogger.w(TAG, "⚠ $label attempt $attempt/$MAX_RETRIES — retry in ${backoffMs}ms")
-            delay(backoffMs)
-        }
-        PaparcarLogger.e(TAG, "✗ $label exhausted retries")
-    }
-
-    private companion object {
-        const val TAG = "PARKDIAG/SyncScheduler"
-        const val MAX_RETRIES = 5
-        const val INITIAL_BACKOFF_MS = 30_000L
+    private fun persistAndDrain(op: OutboxOp) {
+        outbox.persist(op)
+        scope.launch { drainer.value.drain() }
     }
 }

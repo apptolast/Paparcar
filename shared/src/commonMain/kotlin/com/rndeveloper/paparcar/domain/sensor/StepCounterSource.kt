@@ -14,6 +14,12 @@ package com.rndeveloper.paparcar.domain.sensor
  *
  * Semantics of the value: monotonically increasing steps since device boot. A reboot resets
  * it, so a later reading SMALLER than an earlier one means "reboot in between — budget unknown".
+ *
+ * [IOS-F0-05] This is a PULL contract: what matters is that two readings bracket the walked
+ * steps, not that the origin is boot. A platform without a hardware cumulative register (iOS)
+ * may synthesize the reading from a pedometer date-range query against a fixed origin, as long
+ * as monotonicity between two reads holds; an origin reset must surface exactly like the
+ * reboot case above (smaller later reading → budget unknown, never a negative verdict).
  */
 interface StepCounterSource {
 

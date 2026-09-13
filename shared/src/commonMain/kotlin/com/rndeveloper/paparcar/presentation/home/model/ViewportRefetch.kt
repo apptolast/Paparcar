@@ -51,4 +51,10 @@ object ViewportRefetch {
      *  Reduced to 20km per user request. ⛔ Note that exploration beyond this distance from
      *  the user's GPS will be blocked. */
     const val MAX_FROM_USER_METERS = 20_000.0
+
+    /** [MAX_FROM_USER_METERS] as the lanes SAY it — derived, so the sentence cannot drift from the
+     *  rule it explains. [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001] */
+    val maxFromUserKm: Int get() = (MAX_FROM_USER_METERS / METERS_PER_KM).toInt()
+
+    private const val METERS_PER_KM = 1_000.0
 }

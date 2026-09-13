@@ -13,7 +13,6 @@ import com.rndeveloper.paparcar.domain.model.Spot
 import com.rndeveloper.paparcar.domain.model.SpotStatus
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.presentation.home.model.HomeParkingsSlice
-import com.rndeveloper.paparcar.presentation.home.model.HomeParkingsLayerSlice
 import com.rndeveloper.paparcar.domain.usecase.parkings.NearbyPublicParking
 import com.rndeveloper.paparcar.domain.parkings.PublicParkingKind
 import com.rndeveloper.paparcar.domain.parkings.PublicParking
@@ -238,10 +237,11 @@ class HomeSlicesTest {
 
     @Test
     fun should_paintTheSameCarParksThatTheLaneLists_when_returningToHome() {
+        // One store, one projection: the rows and the pins cannot be about two areas.
+        // [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
         val state = HomeState(
             nearbyLens = HomeNearbyLens.PARKINGS,
-            parkings = HomeParkingsSlice(parkings = listOf(nearbyParking("lane"))),
-            parkingsLayer = HomeParkingsLayerSlice(parkings = listOf(nearbyParking("camera"))),
+            parkings = HomeParkingsSlice(parkings = listOf(nearbyParking("lane"), nearbyParking("camera"))),
         )
 
         assertEquals(
@@ -899,21 +899,20 @@ class HomeSlicesTest {
         )
 
     @Test
-    fun should_paintBothStores_when_theLaneIsOnFuel_andNothingWhenItIsNot() {
-        // The union is what keeps ENTERING a lane down to one request: the list's user-anchored
-        // answer already covers the pins around the user, and the camera-anchored store fills in once
-        // the camera moves. Same station in both stores = one pin.
-        // [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
+    fun should_paintWhatTheLaneLists_when_theLaneIsOnFuel_andNothingWhenItIsNot() {
+        // One store, one projection: the capsules are the rows, in the rows' order.
+        // [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001] [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
         val state = HomeState(
             nearbyLens = HomeNearbyLens.FUEL,
             fuel = com.rndeveloper.paparcar.presentation.home.model.HomeFuelSlice(
-                stations = listOf(fuelStation("a", 100.0), fuelStation("b", 200.0)),
-            ),
-            fuelLayer = com.rndeveloper.paparcar.presentation.home.model.HomeFuelLayerSlice(
-                stations = listOf(fuelStation("b", 200.0), fuelStation("c", 300.0)),
+                stations = listOf(fuelStation("c", 300.0), fuelStation("a", 100.0), fuelStation("b", 200.0)),
             ),
         )
-        assertEquals(listOf("b", "c", "a"), state.toMapSlice().fuelStations.map { it.station.id })
+        assertEquals(listOf("a", "b", "c"), state.toMapSlice().fuelStations.map { it.station.id })
+        assertEquals(
+            state.toBrowseListSlice().fuel.stations.map { it.station.id },
+            state.toMapSlice().fuelStations.map { it.station.id },
+        )
 
         // ⛔ And nothing at all once the lane is elsewhere, however full the stores are: the map shows
         // the complement you are LOOKING AT, never two label layers stacked over the spot pins.
@@ -949,15 +948,13 @@ class HomeSlicesTest {
     private fun carBurning(fuel: FuelType) = vehicle("v1", isActive = true).copy(fuelType = fuel)
 
     @Test
-    fun should_priceTheCapsule_when_onlyTheFuelLessLayerHoldsThatStation() {
-        // The device report: rows with a price, capsules without one. `distinctBy` keeps the FIRST
-        // copy — always the layer's — and the layer asked with no fuel, so its price was null.
+    fun should_priceTheCapsule_when_theStoreWasAskedFuelLess() {
+        // The device report: rows with a price, capsules without one — the copy on the map had been
+        // asked with no fuel. The price is resolved from the forecourt at projection time, whatever
+        // the request that fetched it. [MAP-A-PIN-IS-PRICED-FOR-THE-CAR-YOU-DRIVE-001]
         val state = HomeState(
             nearbyLens = HomeNearbyLens.FUEL,
             vehicles = listOf(carBurning(FuelType.GASOLINE)),
-            fuelLayer = com.rndeveloper.paparcar.presentation.home.model.HomeFuelLayerSlice(
-                stations = listOf(pricedStation("a", 100.0, gasoline = 1.529, diesel = 1.419)),
-            ),
             fuel = com.rndeveloper.paparcar.presentation.home.model.HomeFuelSlice(
                 stations = listOf(pricedStation("a", 100.0, gasoline = 1.529, diesel = 1.419)),
             ),
@@ -975,11 +972,11 @@ class HomeSlicesTest {
 
     @Test
     fun should_quoteTheNewCarsFuel_when_theActiveVehicleChanges_withoutAskingAgain() {
-        // ⛔ Swapping the two halves of the union would have fixed the blank capsule and left this:
-        // changing car does not refetch the layer, so the map would go on quoting the old fuel.
+        // ⛔ Changing car does not refetch anything, so the map must requote from the forecourt's own
+        // prices or it would go on quoting the old fuel.
         val stores = HomeState(
             nearbyLens = HomeNearbyLens.FUEL,
-            fuelLayer = com.rndeveloper.paparcar.presentation.home.model.HomeFuelLayerSlice(
+            fuel = com.rndeveloper.paparcar.presentation.home.model.HomeFuelSlice(
                 stations = listOf(pricedStation("a", 100.0, gasoline = 1.529, diesel = 1.419)),
             ),
         )
@@ -1003,7 +1000,7 @@ class HomeSlicesTest {
         val state = HomeState(
             nearbyLens = HomeNearbyLens.FUEL,
             vehicles = listOf(vehicle("v1", isActive = true)),
-            fuelLayer = com.rndeveloper.paparcar.presentation.home.model.HomeFuelLayerSlice(
+            fuel = com.rndeveloper.paparcar.presentation.home.model.HomeFuelSlice(
                 stations = listOf(pricedStation("a", 100.0, gasoline = 1.529, diesel = 1.419)),
             ),
         )
@@ -1020,7 +1017,7 @@ class HomeSlicesTest {
         val state = HomeState(
             nearbyLens = HomeNearbyLens.FUEL,
             vehicles = listOf(carBurning(FuelType.DIESEL)),
-            fuelLayer = com.rndeveloper.paparcar.presentation.home.model.HomeFuelLayerSlice(
+            fuel = com.rndeveloper.paparcar.presentation.home.model.HomeFuelSlice(
                 stations = listOf(fuelStation("osm-1", 100.0)),
             ),
         )

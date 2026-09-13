@@ -1,5 +1,7 @@
 package com.rndeveloper.paparcar.domain.detection.coordinator.replay
 
+import com.rndeveloper.paparcar.domain.detection.coordinator.ingestion.TraceEvent
+
 /**
  * [ANCHOR-LOCK-001] Field trace of a **CORRECT** detection that the anchor lock must NOT break
  * (2026-07-04 17:11Z, Firestore `diagnostics/fiyp…/sessions/1783185093721`).

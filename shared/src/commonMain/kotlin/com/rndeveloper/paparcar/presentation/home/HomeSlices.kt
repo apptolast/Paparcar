@@ -459,26 +459,15 @@ internal fun HomeState.toMapSlice() = HomeMapSlice(
     // two label layers stacked over the spot pins that are the product.
     // [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
     //
-    // BOTH stores, exactly as the peek and the selection read them — the camera-anchored layer
-    // ([FUEL-LAYER-FOLLOWS-THE-CAMERA-001]) plus the lane's own answer. The union is what keeps
-    // entering the lane to ONE request against a free shared service: the answer the list just got is
-    // already the answer for the pins around the user, and the layer only asks for itself once the
-    // camera has actually moved somewhere else. Each store keeps its own anchor, so neither ever
-    // answers for the other's area — every marker is drawn at its own coordinates.
-    //
-    // Priced by [HomeState.fuelStationsShown] rather than inherited from whichever copy survived the
-    // dedup: the layer is asked fuel-less and its stations carried no figure, which is how the rows
-    // showed a price under a blank capsule. [MAP-A-PIN-IS-PRICED-FOR-THE-CAR-YOU-DRIVE-001]
+    // ⛔ The SAME projection the lane lists, not a union of stores: one store, one anchor, so a pin
+    // and a row can never be about two different areas. [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
+    // Priced for the car you drive. [MAP-A-PIN-IS-PRICED-FOR-THE-CAR-YOU-DRIVE-001]
     fuelStations = if (showsFuelOnMap) fuelStationsShown else emptyList(),
     selectedFuelStationId = (selection as? HomeSelection.FuelStation)?.id,
     // The label of the figure comes from the same place the figure does — a capsule that reads
     // "1,529 Diésel" while quoting petrol is the one failure this pairing exists to prevent.
     fuelPricesFor = pricedFuelType,
-    publicParkings = if (showsParkingsOnMap) {
-        (parkingsLayer.parkings + parkings.parkings).distinctBy { it.parking.id }
-    } else {
-        emptyList()
-    },
+    publicParkings = if (showsParkingsOnMap) publicParkingsShown else emptyList(),
     selectedPublicParkingId = (selection as? HomeSelection.PublicParking)?.id,
 )
 
@@ -521,13 +510,12 @@ fun HomeState.toPeekSlice(): HomePeekSlice {
         selection = selection,
         vehicles = vehicles,
         userGpsPoint = userGpsPoint,
-        // The UNION, priced for this car: a capsule tapped in Paris lives only in the layer's store,
-        // and the stepper walks "what you are looking at". With the layer off the union IS the
-        // section's list. [FUEL-LAYER-FOLLOWS-THE-CAMERA-001]
+        // The same projection the lane lists and the map paints, so the stepper walks exactly the
+        // rows on show, in their order. [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
         // [MAP-A-PIN-IS-PRICED-FOR-THE-CAR-YOU-DRIVE-001]
         fuelStations = fuelStationsShown,
         fuelReportedAt = fuel.reportedAt,
-        publicParkings = (parkingsLayer.parkings + parkings.parkings).distinctBy { it.parking.id },
+        publicParkings = publicParkingsShown,
         votedSpotIds = votedSpotIds,
         drivingMeta = drivingMeta,
         isAwaitingAnswer = promptWindow != null,
@@ -558,15 +546,10 @@ fun HomeState.toPeekSlice(): HomePeekSlice {
 }
 
 fun HomeState.toBrowseListSlice() = HomeBrowseListSlice(
-    // [A-SECTION-ANSWERS-ABOUT-WHERE-YOU-LOOK-001] [FUEL-LAYER-FOLLOWS-THE-CAMERA-001]
-    // The list must show the UNION of both stores (lane and camera-anchored layer), exactly as the
-    // map and the peek do. Without this, a station/parking fetched by the layer (e.g. while
-    // panning in Browse) appears on the map but stays missing from the sheet list until the lane's
-    // own fetch (if triggered) completes.
+    // The rows are the map's pins, in the order they are listed: one projection over one store.
+    // [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
     fuel = fuel.copy(stations = fuelStationsShown),
-    parkings = parkings.copy(
-        parkings = (parkingsLayer.parkings + parkings.parkings).distinctBy { it.parking.id }
-    ),
+    parkings = parkings.copy(parkings = publicParkingsShown),
     nearbyLens = nearbyLens,
     nearbyIntro = nearbyIntro,
     detectionUiState = detectionUiState,

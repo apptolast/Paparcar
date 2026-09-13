@@ -117,6 +117,14 @@ sealed class HomeIntent {
 
     // ── Parking lifecycle ─────────────────────────────────────────────────────
 
+    /** Ask "release this parking?" about [sessionId] — the card the user tapped "Me voy" on.
+     *  [PARK-RELEASE-THE-SCREEN-NEVER-SAW-001] */
+    data class OpenReleaseDialog(val sessionId: String) : HomeIntent()
+
+    /** Close the release dialog without releasing. Ignored while a release is in flight: its
+     *  outcome is what closes it. [PARK-RELEASE-THE-SCREEN-NEVER-SAW-001] */
+    data object DismissReleaseDialog : HomeIntent()
+
     /**
      * Release the parking session identified by [sessionId] — the id of the card the
      * user tapped, never a ranked fallback. If no active session matches, the release
