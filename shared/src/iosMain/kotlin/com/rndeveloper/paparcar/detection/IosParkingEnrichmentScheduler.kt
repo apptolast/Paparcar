@@ -17,13 +17,13 @@ import kotlinx.coroutines.launch
  */
 class IosParkingEnrichmentScheduler(
     private val outbox: SyncOutbox,
-    private val drainer: SyncOutboxDrainer,
+    private val drainer: Lazy<SyncOutboxDrainer>,
 ) : ParkingEnrichmentScheduler {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     override fun enqueueEnrichSession(sessionId: String, lat: Double, lon: Double) {
         outbox.persist(OutboxOp.EnrichSession(sessionId, lat, lon))
-        scope.launch { drainer.drain() }
+        scope.launch { drainer.value.drain() }
     }
 }

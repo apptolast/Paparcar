@@ -35,7 +35,7 @@ import kotlinx.coroutines.launch
 class IosReportSpotScheduler(
     private val spotRepository: SpotRepository,
     private val outbox: SyncOutbox,
-    private val drainer: SyncOutboxDrainer,
+    private val drainer: Lazy<SyncOutboxDrainer>,
 ) : ReportSpotScheduler {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -90,7 +90,7 @@ class IosReportSpotScheduler(
                 outbox.remove(op.key)
             } else {
                 PaparcarLogger.w(TAG, "rich publish failed for $spotId — the outbox op owns the retry")
-                drainer.drain()
+                drainer.value.drain()
             }
         }
     }

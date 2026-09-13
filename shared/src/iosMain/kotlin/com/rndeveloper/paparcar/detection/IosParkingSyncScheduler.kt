@@ -19,10 +19,13 @@ import kotlinx.coroutines.launch
  * (wakes, app-open, BGTask), not an in-memory backoff loop. The delete op is the tombstone that
  * closes the resurrection bug this file used to document as a TODO.
  * [IOS-SYNC-A-QUEUE-THAT-DIES-WITH-THE-PROCESS-001]
+ *
+ * [drainer] is [Lazy] because the drainer depends on the repositories that depend on this
+ * scheduler — see `iosDetectionModule`.
  */
 class IosParkingSyncScheduler(
     private val outbox: SyncOutbox,
-    private val drainer: SyncOutboxDrainer,
+    private val drainer: Lazy<SyncOutboxDrainer>,
 ) : ParkingSyncScheduler {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -56,6 +59,6 @@ class IosParkingSyncScheduler(
 
     private fun persistAndDrain(op: OutboxOp) {
         outbox.persist(op)
-        scope.launch { drainer.drain() }
+        scope.launch { drainer.value.drain() }
     }
 }

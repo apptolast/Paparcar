@@ -46,9 +46,13 @@ val iosDetectionModule = module {
             getAddressAndPlace = get(),
         )
     }
-    single<ParkingEnrichmentScheduler> { IosParkingEnrichmentScheduler(get(), get()) }
-    single<ParkingSyncScheduler> { IosParkingSyncScheduler(get(), get()) }
-    single<ReportSpotScheduler> { IosReportSpotScheduler(get(), get(), get()) }
+    // ⛔ The drainer is handed over LAZILY. It consumes the repositories (UserParkingRepository,
+    // SpotRepository) and those repositories consume these schedulers, so resolving it eagerly is a
+    // cycle — Koin recurses until the main thread's stack overflows (EXC_BAD_ACCESS at launch, no
+    // Kotlin message). A scheduler only needs the drainer when something is enqueued.
+    single<ParkingEnrichmentScheduler> { IosParkingEnrichmentScheduler(get(), lazy { get() }) }
+    single<ParkingSyncScheduler> { IosParkingSyncScheduler(get(), lazy { get() }) }
+    single<ReportSpotScheduler> { IosReportSpotScheduler(get(), get(), lazy { get() }) }
     // [IOS-F1-A-CONTROLLER-FOR-THE-HAPPY-PATH-001] The orchestrator — the functional mirror of
     // Android's CoordinatorDetectionService. Started from MainViewController after Koin is up so
     // its geofence-bus subscription exists before any region delegate can fire.
