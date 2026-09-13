@@ -84,8 +84,9 @@ internal fun fuelStationContentId(
     fuelLabel: String?,
     selected: Boolean,
     themeKey: String,
+    dim: Boolean = false,
 ): String = "$MARKER_FUEL_STATION_PREFIX${stationId}_${priceText.orEmpty()}_${fuelLabel.orEmpty()}_" +
-    "${if (selected) "sel" else "nrm"}_$themeKey"
+    "${if (selected) "sel" else if (dim) "dim" else "nrm"}_$themeKey"
 
 /**
  * One bitmap per car park × selection × theme — and **no figure on the capsule**, which is a
@@ -101,7 +102,8 @@ internal fun publicParkingContentId(
     parkingId: String,
     selected: Boolean,
     themeKey: String,
-): String = "$MARKER_PUBLIC_PARKING_PREFIX${parkingId}_${if (selected) "sel" else "nrm"}_$themeKey"
+    dim: Boolean = false,
+): String = "$MARKER_PUBLIC_PARKING_PREFIX${parkingId}_${if (selected) "sel" else if (dim) "dim" else "nrm"}_$themeKey"
 
 // ── What a tap on a marker means ────────────────────────────────────────────
 

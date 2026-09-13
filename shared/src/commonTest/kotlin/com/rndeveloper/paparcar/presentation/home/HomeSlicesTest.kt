@@ -13,6 +13,7 @@ import com.rndeveloper.paparcar.domain.model.Spot
 import com.rndeveloper.paparcar.domain.model.SpotStatus
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.presentation.home.model.HomeParkingsSlice
+import com.rndeveloper.paparcar.presentation.home.model.HomeParkingsLayerSlice
 import com.rndeveloper.paparcar.domain.usecase.parkings.NearbyPublicParking
 import com.rndeveloper.paparcar.domain.parkings.PublicParkingKind
 import com.rndeveloper.paparcar.domain.parkings.PublicParking
@@ -233,6 +234,20 @@ class HomeSlicesTest {
             parkings = HomeParkingsSlice(parkings = emptyList(), anchorLat = 1.0, anchorLon = 1.0),
         )
         assertEquals(0, state.toPeekSlice().laneCount)
+    }
+
+    @Test
+    fun should_paintTheSameCarParksThatTheLaneLists_when_returningToHome() {
+        val state = HomeState(
+            nearbyLens = HomeNearbyLens.PARKINGS,
+            parkings = HomeParkingsSlice(parkings = listOf(nearbyParking("lane"))),
+            parkingsLayer = HomeParkingsLayerSlice(parkings = listOf(nearbyParking("camera"))),
+        )
+
+        assertEquals(
+            state.toBrowseListSlice().parkings.parkings.map { it.parking.id },
+            state.toMapSlice().publicParkings.map { it.parking.id },
+        )
     }
 
     // ── Spot status: what is on offer, and in what order [DET-HANDOFF-NOT-MANUAL-001 §B.3] ──

@@ -60,7 +60,7 @@ fun HomePublicParkingRow(
             // glifos grises no se lee como «esto es una etiqueta», se lee como una lista apagada.
             // El verde aquí no compite con ninguna acción — en estas filas no hay ninguna.
             // [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001]
-            PapIconTile(icon = PaparcarIcons.ParkingPlace, tint = PapColor.actionText)
+            PapIconTile(icon = PaparcarIcons.CarParkMark, tint = PapColor.actionText)
         },
         trailing = feeLabel(parking.parking.fee)?.let { label -> { FeeLabel(label) } },
     )

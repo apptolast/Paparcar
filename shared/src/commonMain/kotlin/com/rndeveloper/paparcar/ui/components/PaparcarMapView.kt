@@ -1013,6 +1013,7 @@ fun PaparcarMapView(
                             fuelLabel = fuelPricesLabel.takeIf { priceText != null },
                             selected = nearby.station.id == selectedFuelStationId,
                             themeKey = themeKey,
+                            dim = dimSpots && nearby.station.id != selectedFuelStationId,
                         ),
                         androidMarkerOptions = NORMAL_MARKER_OPTIONS,
                     ),
@@ -1029,6 +1030,7 @@ fun PaparcarMapView(
                             parkingId = nearby.parking.id,
                             selected = nearby.parking.id == selectedPublicParkingId,
                             themeKey = themeKey,
+                            dim = dimSpots && nearby.parking.id != selectedPublicParkingId,
                         ),
                         androidMarkerOptions = NORMAL_MARKER_OPTIONS,
                     ),
@@ -1174,6 +1176,7 @@ fun PaparcarMapView(
         clusterCountByCoords, enRouteBuckets, parkedVehicles, zones,
         fuelStations, selectedFuelStationId, fuelPricesLabel,
         publicParkings, selectedPublicParkingId,
+        dimSpots,
         parkingVehicleSize, parkingVehicleCarbody, parkingVehicleColor, parkingIsActive,
         askVehicleCarbody, askVehicleSize, askVehicleColor, themeKey,
         // Key only on the puck's VISUAL identity, not the whole drivingPuck: its handler bitmap depends
@@ -1364,6 +1367,11 @@ fun PaparcarMapView(
                     fuelStationContentId(nearby.station.id, priceText, label, selected = false, themeKey = themeKey) to { _: Marker ->
                         FuelStationMarker(priceText = priceText, fuelLabel = label, selected = false)
                     },
+                    fuelStationContentId(nearby.station.id, priceText, label, selected = false, themeKey = themeKey, dim = true) to { _: Marker ->
+                        DimWrapper {
+                            FuelStationMarker(priceText = priceText, fuelLabel = label, selected = false)
+                        }
+                    },
                     fuelStationContentId(nearby.station.id, priceText, label, selected = true, themeKey = themeKey) to { _: Marker ->
                         FuelStationMarker(priceText = priceText, fuelLabel = label, selected = true)
                     },
@@ -1377,6 +1385,11 @@ fun PaparcarMapView(
                 listOf<Pair<String, @Composable (Marker) -> Unit>>(
                     publicParkingContentId(nearby.parking.id, selected = false, themeKey = themeKey) to { _: Marker ->
                         PublicParkingMarker(selected = false)
+                    },
+                    publicParkingContentId(nearby.parking.id, selected = false, themeKey = themeKey, dim = true) to { _: Marker ->
+                        DimWrapper {
+                            PublicParkingMarker(selected = false)
+                        }
                     },
                     publicParkingContentId(nearby.parking.id, selected = true, themeKey = themeKey) to { _: Marker ->
                         PublicParkingMarker(selected = true)
@@ -2190,4 +2203,3 @@ private fun FreeSpotWithOverlays(
         approximate = approximate,
     )
 }
-

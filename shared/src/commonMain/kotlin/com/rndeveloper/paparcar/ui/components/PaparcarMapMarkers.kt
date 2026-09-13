@@ -1149,7 +1149,7 @@ fun FuelStationMarker(
         }
         Row(
             modifier = Modifier
-                .offset(y = with(density) { (5f * s).toDp() }) // aligns the capsule top (at y=5 in viewBox units)
+                .offset(y = 0.dp)
                 .padding(horizontal = 4.dp) // extra air inside the Row so it doesn't clip its own border
                 .clip(RoundedCornerShape(FUEL_LABEL_CORNER))
                 .background(paper.copy(alpha = ZONE_LABEL_BG_ALPHA))
@@ -1158,8 +1158,8 @@ fun FuelStationMarker(
                     color = brand.copy(alpha = if (selected) 1f else ZONE_LABEL_BORDER_ALPHA),
                     shape = RoundedCornerShape(FUEL_LABEL_CORNER),
                 )
-                .padding(horizontal = 10.dp, vertical = 6.dp)
-                .heightIn(min = with(density) { (58f * s).toDp() }),
+                .padding(horizontal = 10.dp, vertical = 3.dp)
+                .heightIn(min = with(density) { (48f * s).toDp() }),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
@@ -1184,7 +1184,7 @@ fun FuelStationMarker(
                     )
                     if (fuelLabel != null) {
                         Text(
-                            text = fuelLabel.lowercase(),
+                            text = fuelLabel.replaceFirstChar { it.uppercase() },
                             color = muted,
                             maxLines = 1,
                             style = TextStyle(
@@ -1262,7 +1262,7 @@ private val PARKING_LABEL_PAD_H = 9.dp
 
 private val FUEL_LABEL_CORNER = 999.dp
 private val FUEL_LABEL_BORDER_SEL = 2.dp
-private val FUEL_GLYPH_SIZE = 14.dp
+private val FUEL_GLYPH_SIZE = 16.dp
 
 // ─── Centre-pin family ───────────────────────────────────────────────────────
 
