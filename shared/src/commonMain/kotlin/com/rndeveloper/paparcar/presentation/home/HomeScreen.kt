@@ -64,6 +64,7 @@ import com.rndeveloper.paparcar.presentation.home.sections.header.HomeHeaderSect
 import com.rndeveloper.paparcar.presentation.home.sections.map.HomeMapFabsLayer
 import com.rndeveloper.paparcar.presentation.home.sections.map.HomeMapGpsLane
 import com.rndeveloper.paparcar.presentation.home.sections.map.HomeMapSection
+import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.rememberHomeSheetRowsScroll
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.HomeBottomSheet
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.HomeSheetAction
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.HomeSheetFrame
@@ -371,6 +372,9 @@ private fun HomeContent(
     // [PARK-RELEASE-THE-SCREEN-NEVER-SAW-001]
     val releaseTargetSessionId = state.releaseDialogSessionId
     val lazyListState = rememberLazyListState()
+    // Hoisted with the list's own state: both must outlive the list while a detail sheet hides it.
+    // [HOME-BROWSE-SURVIVES-THE-DETAIL-SHEET-001]
+    val sheetRowsScroll = rememberHomeSheetRowsScroll()
 
     // Initial focus, parking re-frame, driver-follow and MoveCameraTo effects —
     // see [HomeCameraEffects].
@@ -801,6 +805,7 @@ private fun HomeContent(
                     sheetOffsetPx = sheetOffsetPx,
                     dragSnap = dragSnap,
                     lazyListState = lazyListState,
+                    rowsScroll = sheetRowsScroll,
                     nestedScroll = motion.nestedScrollConnection,
                     bottomContentPadding = stableBottomPadding,
                     coroutineScope = coroutineScope,

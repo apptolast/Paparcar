@@ -16,6 +16,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.runtime.Stable
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.ScrollState
 import com.rndeveloper.paparcar.ui.components.PapDivider
 import com.rndeveloper.paparcar.ui.components.chips.PaparcarFilterChip
 import androidx.compose.material3.MaterialTheme
@@ -84,6 +88,10 @@ fun LazyListScope.homeSheetItems(
     slice: HomeBrowseListSlice,
     onIntent: (HomeIntent) -> Unit,
     onAction: (HomeSheetAction) -> Unit,
+    /** Hoisted scroll of the horizontal rows, so they survive the list leaving composition under a
+     *  detail sheet. Null (previews, gallery) = each row remembers its own, as before.
+     *  [HOME-BROWSE-SURVIVES-THE-DETAIL-SHEET-001] */
+    rowsScroll: HomeSheetRowsScroll? = null,
 ) {
     val filteredSpots = slice.filteredSpots
     val vehicleCards = slice.vehicleCards
@@ -308,7 +316,7 @@ fun LazyListScope.homeSheetItems(
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
             )
         }
-        vehiclesSection(slice, vehicleCards, onIntent, onAction)
+        vehiclesSection(slice, vehicleCards, onIntent, onAction, rowsScroll)
     }
 
     // ── 3. The nearby LANE: the chip row that picks a subject, and that subject's list ───────
@@ -331,8 +339,30 @@ fun LazyListScope.homeSheetItems(
             onAction = onAction,
             filteredSpots = filteredSpots,
             showFilterBar = showFilterBar,
+            rowsScroll = rowsScroll,
         )
     }
+}
+
+/**
+ * The scroll of the sheet's HORIZONTAL rows — the vehicle strip and the size-filter chips.
+ *
+ * Both used to be remembered INSIDE their list item, and the whole list leaves composition while a
+ * detail sheet is open, so coming back from one reset them to the start. Hoisted next to the list's
+ * own `LazyListState` (which already outlived the detail) so Browse comes back exactly as it was.
+ * [HOME-BROWSE-SURVIVES-THE-DETAIL-SHEET-001]
+ */
+@Stable
+class HomeSheetRowsScroll(
+    val vehicles: LazyListState,
+    val sizeFilter: ScrollState,
+)
+
+@Composable
+fun rememberHomeSheetRowsScroll(): HomeSheetRowsScroll {
+    val vehicles = rememberLazyListState()
+    val sizeFilter = rememberScrollState()
+    return remember(vehicles, sizeFilter) { HomeSheetRowsScroll(vehicles, sizeFilter) }
 }
 
 /** El aire entre el bloque de lo MIO y el carril. Un solo valor, para que los dos lados respiren
@@ -347,6 +377,7 @@ private fun LazyListScope.vehiclesSection(
     vehicleCards: List<VehicleCard>,
     onIntent: (HomeIntent) -> Unit,
     onAction: (HomeSheetAction) -> Unit,
+    rowsScroll: HomeSheetRowsScroll?,
 ) {
     val userLocation = slice.userGpsPoint?.let { Pair(it.latitude, it.longitude) }
     // The vehicle whose trip is being detected RIGHT NOW (driving, not yet parked). [CHIP-DRIVING-001]
@@ -397,6 +428,7 @@ private fun LazyListScope.vehiclesSection(
     } else {
         item("vehicles_row") {
             LazyRow(
+                state = rowsScroll?.vehicles ?: rememberLazyListState(),
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth(),
@@ -437,6 +469,7 @@ private fun LazyListScope.nearbyLane(
     onAction: (HomeSheetAction) -> Unit,
     filteredSpots: List<Spot>,
     showFilterBar: Boolean,
+    rowsScroll: HomeSheetRowsScroll?,
 ) {
     // STICKY, and that is the half of this design that makes switching back cheap: from the bottom of
     // a car-park list the way back to the spots is the row already pinned above, not a scroll to the
@@ -455,7 +488,7 @@ private fun LazyListScope.nearbyLane(
     }
 
     when (slice.nearbyLens) {
-        HomeNearbyLens.SPOTS -> spotsLane(slice, onIntent, onAction, filteredSpots, showFilterBar)
+        HomeNearbyLens.SPOTS -> spotsLane(slice, onIntent, onAction, filteredSpots, showFilterBar, rowsScroll)
 
         // Car parks before fuel in the chip row, and that order is a PRODUCT decision, not an
         // accident: this app is about leaving the car somewhere, so "where do I park" sits closer to
@@ -494,12 +527,14 @@ private fun LazyListScope.spotsLane(
     onAction: (HomeSheetAction) -> Unit,
     filteredSpots: List<Spot>,
     showFilterBar: Boolean,
+    rowsScroll: HomeSheetRowsScroll?,
 ) {
     if (showFilterBar) {
         item(key = "filter_bar") {
             HomeSizeFilterBar(
                 selectedSize = slice.sizeFilter,
                 onFilterSelect = { size -> onIntent(HomeIntent.SetSizeFilter(size)) },
+                scrollState = rowsScroll?.sizeFilter ?: rememberScrollState(),
                 // 16dp — same grid as headers/rows so the bar doesn't step out of the
                 // left edge when the sheet expands. [HOME-VEH-REFINE-001]
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
@@ -569,6 +604,7 @@ private fun HomeSizeFilterBar(
     selectedSize: VehicleSize?,
     onFilterSelect: (VehicleSize?) -> Unit,
     modifier: Modifier = Modifier,
+    scrollState: ScrollState = rememberScrollState(),
 ) {
     val allLabel    = stringResource(Res.string.home_size_filter_all)
     val motoLabel   = stringResource(Res.string.vehicle_size_moto)
@@ -577,7 +613,6 @@ private fun HomeSizeFilterBar(
     val largeLabel  = stringResource(Res.string.vehicle_size_large)
     val vanLabel    = stringResource(Res.string.vehicle_size_van)
 
-    val scrollState = rememberScrollState()
     // Right-edge fade to the sheet background, signalling there are more filter chips off-screen.
     // Drawn BEFORE horizontalScroll so it stays fixed at the viewport edge (not scrolled with the
     // content) and, being a draw modifier, never intercepts chip taps. Only shown while there is

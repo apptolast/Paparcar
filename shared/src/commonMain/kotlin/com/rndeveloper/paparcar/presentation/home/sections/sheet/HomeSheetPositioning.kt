@@ -21,6 +21,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
@@ -30,6 +31,9 @@ import com.rndeveloper.paparcar.presentation.home.HomeMode
 import com.rndeveloper.paparcar.presentation.home.HomeSelection
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.papSheetHeaderBandHeight
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
 
@@ -98,7 +102,31 @@ internal data class SheetPositioning(
      * [UI-SHEET-SPOT-PEEK-RESTS-ON-ITS-CONTENT-001]
      */
     fun capsAtPeek(): Boolean = fullSnapOffsetPx >= peekOffsetPx
+
+    /**
+     * The anchor [offsetPx] is resting on (or closest to). Recorded as an ANCHOR, not as pixels, so
+     * coming back re-resolves it against the geometry of THAT frame — the Browse peek re-measures on
+     * the way back, and a remembered pixel would land beside the anchor it meant.
+     * [HOME-BROWSE-SURVIVES-THE-DETAIL-SHEET-001]
+     */
+    fun nearestBrowseDetent(offsetPx: Float): BrowseDetent =
+        BrowseDetent.entries.minBy { (offsetOf(it) - offsetPx).absoluteValue }
+
+    /** Where [detent] sits in this frame, inside the reachable range. */
+    fun offsetOf(detent: BrowseDetent): Float = when (detent) {
+        BrowseDetent.PEEK -> peekOffsetPx
+        BrowseDetent.HALF -> halfOffsetPx
+        BrowseDetent.EXPANDED -> expandedOffsetPx
+        BrowseDetent.FULL -> fullSnapOffsetPx
+    }.coerceIn(fullSnapOffsetPx, peekOffsetPx)
 }
+
+/**
+ * The Browse sheet's resting anchors, in the order [SheetPositioning.nearestBrowseDetent] breaks
+ * ties (PEEK first: a sheet that is effectively closed stays closed). Minimized is not one of them —
+ * in pure Browse it IS peek. [HOME-BROWSE-SURVIVES-THE-DETAIL-SHEET-001]
+ */
+internal enum class BrowseDetent { PEEK, HALF, EXPANDED, FULL }
 
 /**
  * Derives the snap points from the frame's inputs. Pure and Compose-free so the
@@ -251,6 +279,43 @@ private suspend fun Animatable<Float, AnimationVector1D>.settleAtPeek(
 }
 
 /**
+ * Flies the sheet back to Browse's remembered [detent]. [HOME-BROWSE-SURVIVES-THE-DETAIL-SHEET-001]
+ *
+ * ⛔ Not straight from the selection change: the snap points of the Browse state exist one frame
+ * AFTER it (see [UI-SHEET-SPOT-PEEK-RESTS-ON-ITS-CONTENT-001]) — until then the geometry is still the
+ * detail's, capped at peek, and every anchor resolves to peek. So it waits for the cap to lift, gives
+ * the list one frame to come back and measure (a short list lowers `full` and with it `expanded`),
+ * and after landing re-aims once at the anchor as it is NOW: the peek header is still shrinking
+ * under the flight.
+ */
+private suspend fun Animatable<Float, AnimationVector1D>.restoreBrowseDetent(
+    detent: BrowseDetent,
+    positioning: State<SheetPositioning>,
+) {
+    // Bounded: if the cap never lifts (nothing to expand to), Browse simply goes back to peek.
+    withTimeoutOrNull(RESTORE_GEOMETRY_TIMEOUT_MS) {
+        snapshotFlow { positioning.value.capsAtPeek() }.first { capped -> !capped }
+    } ?: run {
+        // The corrections stood down while this waited, so land on peek explicitly.
+        animateTo(positioning.value.peekOffsetPx, SheetSnapSpec)
+        return
+    }
+    withFrameNanos { }
+    animateTo(positioning.value.offsetOf(detent), SheetSnapSpec)
+    val landed = positioning.value.offsetOf(detent)
+    if ((value - landed).absoluteValue > RESTORE_LANDING_SLACK_PX) {
+        animateTo(landed, SheetSnapSpec)
+    }
+}
+
+// Sub-pixel drift between take-off and landing is not worth a second flight.
+private const val RESTORE_LANDING_SLACK_PX = 1f
+
+// The Browse geometry lands a frame or two after the selection clears; a whole second without it
+// means there is no anchor above peek to go back to.
+private const val RESTORE_GEOMETRY_TIMEOUT_MS = 1_000L
+
+/**
  * The sheet's state-driven transitions, extracted from HomeContent as a
  * no-UI composable: reset-to-peek on selection/mode changes, the auto-open of a pending question,
  * and nav-progress hoisting for the global bottom nav.
@@ -303,12 +368,42 @@ internal fun SheetTransitionEffects(
     // multi-frame re-measure instead of re-judging against each intermediate value.
     var restingPeekAnchor by remember { mutableFloatStateOf(peekOffsetPx) }
 
+    // ── Browse remembers where it was [HOME-BROWSE-SURVIVES-THE-DETAIL-SHEET-001] ──────────────
+    // Opening a detail (a spot, a car park, a station, your car) or a pin mode from Browse drops the
+    // sheet to that surface's peek — and closing it used to drop Browse to ITS peek too, so a user
+    // who had the list open, scrolled to the car park they wanted, looked at it and pressed × came
+    // back to a closed sheet and had to open the list again. Browse now remembers the anchor it
+    // last RESTED on and returns there.
+    //
+    // Only while Browse is pure (no selection, Browse mode) and only at REST: a marker tap launches
+    // its expand before the selection reaches the state, and that flight is the detail opening,
+    // not Browse's position.
+    val isPureBrowse = selection == null && mode is HomeMode.Browse
+    var browseDetent by remember { mutableStateOf(BrowseDetent.PEEK) }
+    var wasPureBrowse by remember { mutableStateOf(isPureBrowse) }
+    // While true, the sheet is flying back to [browseDetent]: the layout correction below must not
+    // pull it down to peek, and the detent tracker must not record the take-off as a new rest.
+    var restoringBrowse by remember { mutableStateOf(false) }
+
     // Intentional reset — a selection or mode CHANGE returns the sheet to peek
     // (full peek content visible). The user can then drag DOWN to minimized for
     // a header-only view. [SHEET-DRAG-001]
     LaunchedEffect(selection, mode) {
         val peek = currentPeekOffset.value
-        if (selection == null || currentPositioning.value.capsAtPeek()) {
+        val returningToBrowse = isPureBrowse && !wasPureBrowse
+        wasPureBrowse = isPureBrowse
+        val detentToRestore = browseDetent
+        if (returningToBrowse && detentToRestore != BrowseDetent.PEEK) {
+            // Back from a later surface: Browse returns to where it was, not to peek.
+            // [HOME-BROWSE-SURVIVES-THE-DETAIL-SHEET-001]
+            restoringBrowse = true
+            try {
+                sheetOffsetPx.restoreBrowseDetent(detentToRestore, currentPositioning)
+                restingPeekAnchor = currentPeekOffset.value
+            } finally {
+                restoringBrowse = false
+            }
+        } else if (selection == null || currentPositioning.value.capsAtPeek()) {
             sheetOffsetPx.settleAtPeek(peek, peekSnapTolerancePx)
             restingPeekAnchor = peek
         } else if (!sheetOffsetPx.isRunning && sheetOffsetPx.value >= peek) {
@@ -338,6 +433,9 @@ internal fun SheetTransitionEffects(
         // in that geometry there IS no user position above peek to protect, so the
         // correction always follows the measure. [BUG-SHEET-STRANDED-TALL-001]
         val canExpandAbovePeek = !currentPositioning.value.capsAtPeek()
+        // A flight back to Browse's remembered anchor owns the sheet until it lands, including the
+        // frames where the geometry still believes the detail's cap. [HOME-BROWSE-SURVIVES-THE-DETAIL-SHEET-001]
+        if (restoringBrowse) return@LaunchedEffect
         if (isIntentionallyAbovePeek(reference, restingPeekAnchor, peekSnapTolerancePx, canExpandAbovePeek)) {
             return@LaunchedEffect
         }
@@ -354,6 +452,20 @@ internal fun SheetTransitionEffects(
             sheetOffsetPx.snapTo(peekOffsetPx)
             restingPeekAnchor = peekOffsetPx
         }
+    }
+
+    // Records the anchor pure Browse rests on — declared AFTER the reset effect above so, on the frame
+    // Browse comes back, the reset reads the remembered anchor before this collector restarts and
+    // sees the sheet still sitting at the detail's peek. [HOME-BROWSE-SURVIVES-THE-DETAIL-SHEET-001]
+    LaunchedEffect(isPureBrowse) {
+        if (!isPureBrowse) return@LaunchedEffect
+        snapshotFlow {
+            if (sheetOffsetPx.isRunning || restoringBrowse) {
+                null
+            } else {
+                currentPositioning.value.nearestBrowseDetent(sheetOffsetPx.value)
+            }
+        }.filterNotNull().collect { browseDetent = it }
     }
 
     // [DET-ASK-STATE-001] A pending question opens the sheet by itself, to the same anchor a tap

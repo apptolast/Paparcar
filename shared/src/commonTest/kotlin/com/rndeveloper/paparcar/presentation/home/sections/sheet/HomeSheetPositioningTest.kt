@@ -181,4 +181,42 @@ class HomeSheetPositioningTest {
         assertEquals(false, isIntentionallyAbovePeek(840f, 1819f, 168f, canExpandAbovePeek = false))
         assertEquals(false, isIntentionallyAbovePeek(2082f, 2251f, 168f, canExpandAbovePeek = false))
     }
+
+    // ── Browse remembers its anchor [HOME-BROWSE-SURVIVES-THE-DETAIL-SHEET-001] ──────────────
+    // Reference anchors (compute()): peek 1600 · half 1220 · expanded 840 · full 0.
+
+    @Test
+    fun should_recordTheAnchorTheSheetRestsOn_asADetent() {
+        with(compute(isPureBrowsePeek = true)) {
+            assertEquals(BrowseDetent.PEEK, nearestBrowseDetent(1600f))
+            assertEquals(BrowseDetent.HALF, nearestBrowseDetent(1220f))
+            assertEquals(BrowseDetent.EXPANDED, nearestBrowseDetent(840f))
+            assertEquals(BrowseDetent.FULL, nearestBrowseDetent(0f))
+            // A drag released between anchors reads as the nearest one.
+            assertEquals(BrowseDetent.EXPANDED, nearestBrowseDetent(900f))
+        }
+    }
+
+    @Test
+    fun should_resolveTheDetent_againstTheGeometryOfTheFrameItReturnsTo() {
+        // The detail's taller peek (600px) is gone and Browse's own (400px) is back: EXPANDED lands
+        // on Browse's anchor, not on a pixel remembered from before.
+        val browse = compute(peekHeightPx = 400f, isPureBrowsePeek = true)
+        assertEquals(840f, browse.offsetOf(BrowseDetent.EXPANDED))
+        assertEquals(1220f, browse.offsetOf(BrowseDetent.HALF))
+        assertEquals(1600f, browse.offsetOf(BrowseDetent.PEEK))
+    }
+
+    @Test
+    fun should_neverResolveADetent_aboveWhatTheGeometryAllows() {
+        // A capped frame (the detail still on screen) folds every detent onto peek — which is why
+        // the restore waits for the cap to lift before flying.
+        val capped = compute(capExpandAtPeek = true)
+        BrowseDetent.entries.forEach { detent ->
+            assertEquals(capped.peekOffsetPx, capped.offsetOf(detent))
+        }
+        // A short list stops FULL at its content height.
+        val shortList = compute(isPureBrowsePeek = true, allItemsFit = true, listNaturalHeightPx = 500f)
+        assertEquals(1100f, shortList.offsetOf(BrowseDetent.FULL))
+    }
 }

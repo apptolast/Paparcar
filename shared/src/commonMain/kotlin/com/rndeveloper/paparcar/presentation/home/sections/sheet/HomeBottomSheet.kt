@@ -31,6 +31,7 @@ import com.rndeveloper.paparcar.presentation.home.HomeMode
 import com.rndeveloper.paparcar.presentation.home.HomePeekSlice
 import com.rndeveloper.paparcar.presentation.home.model.DetectionUiState
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.HomePeekHandle
+import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.HomeSheetRowsScroll
 import com.rndeveloper.paparcar.presentation.home.sections.sheet.components.homeSheetItems
 import com.rndeveloper.paparcar.ui.components.PapDivider
 import com.rndeveloper.paparcar.ui.theme.PapShapes
@@ -50,6 +51,8 @@ internal data class HomeSheetFrame(
     val sheetOffsetPx: Animatable<Float, AnimationVector1D>,
     val dragSnap: HomeSheetSnap,
     val lazyListState: LazyListState,
+    /** [HOME-BROWSE-SURVIVES-THE-DETAIL-SHEET-001] The horizontal rows' scroll, hoisted like the list's. */
+    val rowsScroll: HomeSheetRowsScroll,
     val nestedScroll: NestedScrollConnection,
     val bottomContentPadding: Dp,
     val coroutineScope: CoroutineScope,
@@ -202,6 +205,7 @@ internal fun HomeBottomSheet(
                         slice = browse,
                         onIntent = onIntent,
                         onAction = onAction,
+                        rowsScroll = frame.rowsScroll,
                     )
                 }
             }
