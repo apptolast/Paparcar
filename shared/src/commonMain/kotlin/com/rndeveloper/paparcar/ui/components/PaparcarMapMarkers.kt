@@ -1123,7 +1123,7 @@ fun FuelStationMarker(
     val paper = MaterialTheme.colorScheme.surface
     val ink = MaterialTheme.colorScheme.onSurface
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
-    val brand = PapGreen
+    val brand = nearbyMarkerGreen()
     val labelFamily = PaparcarType.current.cardTitle.fontFamily
     val density = LocalDensity.current
 
@@ -1204,6 +1204,22 @@ fun FuelStationMarker(
 // ─── Public-parkings layer ───────────────────────────────────────────────────
 
 /**
+ * The brand green the car park and fuel markers wear — glyph, outline and ground dot.
+ * [MAP-NEARBY-MARKERS-GREEN-CONTRASTS-ON-LIGHT-MAP-001]
+ *
+ * It used to be `PapGreen` (#25F48C) in BOTH themes: the dark theme's neon, which reads well on dark
+ * tiles and washes out on the light map, where a thin 55 % outline and a green glyph on paper nearly
+ * vanished. [PapColor.actionText] is the SAME brand green resolved per theme — the neon on a dark
+ * surface, the text leg `PapGreenTextLight` (#237A46, 5.3:1 on white) on a light one — and it is
+ * exactly the tint the car park and fuel ROWS already use, so a pin and its row stay one colour.
+ *
+ * Safe for the marker bitmap cache: both content ids already carry the theme key, so a theme change
+ * re-renders them instead of reusing the other theme's green.
+ */
+@Composable
+private fun nearbyMarkerGreen(): Color = PapColor.actionText
+
+/**
  * A public car park on the map — **the spot puck's shape, wearing the car park's colours**.
  * [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001] [PARKINGS-ON-THE-MAP-001]
  *
@@ -1223,7 +1239,7 @@ fun PublicParkingMarker(
 ) {
     val paper = MaterialTheme.colorScheme.surface
     val ink = MaterialTheme.colorScheme.onSurface
-    val brand = PapGreen
+    val brand = nearbyMarkerGreen()
     val markerW = if (selected) SPOT_PIN_SEL_W else SPOT_PIN_W
     val sDp = markerW.value / SPOT_VIEWBOX_W
     val s = with(LocalDensity.current) { markerW.toPx() / SPOT_VIEWBOX_W }
