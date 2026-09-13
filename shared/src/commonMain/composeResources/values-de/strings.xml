@@ -61,8 +61,8 @@
     <string name="onboarding_step2_desc">Finde dein Auto ohne Nachdenken und sieh nach, wo du geparkt hast</string>
     <string name="onboarding_step3_title">Ein Platz für jemand anderen</string>
     <string name="onboarding_step3_desc">Wenn du wegfährst, erscheint der Platz als frei für andere in der Nähe</string>
-    <string name="onboarding_step4_title">Auch Parkhäuser und Tankstellen</string>
-    <string name="onboarding_step4_desc">Die Karte zeigt dir auch öffentliche Parkhäuser und Spritpreise in deiner Nähe</string>
+    <string name="onboarding_page3_title">Parkhäuser und Tankstellen in der Nähe</string>
+    <string name="onboarding_page3_subtitle">Die Karte zeigt dir auch öffentliche Parkhäuser und Tankstellen in deiner Umgebung. In einigen Ländern mit Spritpreisen in Echtzeit aus offiziellen Quellen.</string>
     <string name="onboarding_cta_next">Weiter</string>
     <string name="onboarding_cta_start">Los geht's</string>
 

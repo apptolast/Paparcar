@@ -13,6 +13,8 @@ import paparcar.composeapp.generated.resources.illus_automation
 import paparcar.composeapp.generated.resources.illus_automation_dark
 import paparcar.composeapp.generated.resources.illus_onb_how
 import paparcar.composeapp.generated.resources.illus_onb_how_dark
+import paparcar.composeapp.generated.resources.illus_onb_nearby
+import paparcar.composeapp.generated.resources.illus_onb_nearby_dark
 import paparcar.composeapp.generated.resources.illus_onb_privacy
 import paparcar.composeapp.generated.resources.illus_onb_privacy_dark
 import paparcar.composeapp.generated.resources.illus_onb_welcome
@@ -26,7 +28,16 @@ import paparcar.composeapp.generated.resources.illus_onb_welcome_dark
  * Theme-aware por luminancia de `surface` (no `isSystemInDarkTheme()`, que devuelve la variante
  * clara cuando el tema forzado no coincide con el del sistema), espejando [VehicleTopdownIcon].
  */
-enum class OnboardingHero { WELCOME, HOW, PRIVACY, AUTOMATION }
+enum class OnboardingHero {
+    WELCOME,
+    HOW,
+    PRIVACY,
+    AUTOMATION,
+
+    /** Car park, fuel pump and a live price tag — the onboarding page about the map's complements.
+     *  [ONBOARDING-SELLS-THE-NEW-PRODUCT-001] */
+    NEARBY,
+}
 
 private const val HERO_DARK_LUMINANCE = 0.5f
 
@@ -35,6 +46,7 @@ private fun heroDrawable(hero: OnboardingHero, dark: Boolean): DrawableResource 
     OnboardingHero.HOW -> if (dark) Res.drawable.illus_onb_how_dark else Res.drawable.illus_onb_how
     OnboardingHero.PRIVACY -> if (dark) Res.drawable.illus_onb_privacy_dark else Res.drawable.illus_onb_privacy
     OnboardingHero.AUTOMATION -> if (dark) Res.drawable.illus_automation_dark else Res.drawable.illus_automation
+    OnboardingHero.NEARBY -> if (dark) Res.drawable.illus_onb_nearby_dark else Res.drawable.illus_onb_nearby
 }
 
 @Composable

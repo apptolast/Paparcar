@@ -100,8 +100,8 @@
     <string name="onboarding_step2_desc">Find your car without thinking and look back at where you have parked</string>
     <string name="onboarding_step3_title">A spot for someone else</string>
     <string name="onboarding_step3_desc">When you leave, the spot shows up free for drivers nearby</string>
-    <string name="onboarding_step4_title">Car parks and fuel, too</string>
-    <string name="onboarding_step4_desc">The map also shows public car parks and fuel prices near you</string>
+    <string name="onboarding_page3_title">Car parks and fuel, nearby</string>
+    <string name="onboarding_page3_subtitle">The map also shows public car parks and fuel stations around you. In some countries, with fuel prices in real time from official sources.</string>
     <string name="onboarding_cta_next">Next</string>
     <string name="onboarding_cta_start">Get started</string>
 

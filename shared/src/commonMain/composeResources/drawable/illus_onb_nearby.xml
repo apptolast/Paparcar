@@ -1,0 +1,51 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="140dp"
+    android:height="120dp"
+    android:viewportWidth="140"
+    android:viewportHeight="120">
+    <path
+        android:fillColor="#FFE7F6EE"
+        android:pathData="M70 6A50 50 0 1 0 70 106 50 50 0 1 0 70 6z"/>
+    <path
+        android:fillColor="#FF0E1A2E"
+        android:fillAlpha="0.1"
+        android:pathData="M70 88A40 4 0 1 0 70 96 40 4 0 1 0 70 88z"/>
+    <group
+        android:scaleX="2.1"
+        android:scaleY="2.1"
+        android:translateX="22"
+        android:translateY="46">
+        <path
+            android:fillColor="#FF009F5E"
+            android:fillType="evenOdd"
+            android:pathData="M4 6L12 2.5L20 6L20 20.5C20 21.05 19.55 21.5 19 21.5L5 21.5C4.45 21.5 4 21.05 4 20.5Z M9.6 7.6L11.9 7.6C14.1 7.6 15.3 8.9 15.3 10.9C15.3 12.9 14.1 14.2 11.9 14.2L11.5 14.2L11.5 18L9.6 18Z M11.5 9.3L11.9 9.3C12.9 9.3 13.4 9.9 13.4 10.9C13.4 11.9 12.9 12.5 11.9 12.5L11.5 12.5Z"/>
+    </group>
+    <group
+        android:scaleX="1.9"
+        android:scaleY="1.9"
+        android:translateX="72"
+        android:translateY="51">
+        <path
+            android:fillColor="#FF23C47D"
+            android:fillType="evenOdd"
+            android:pathData="M19.77 7.23L16.05 3.51L15 4.56L17.11 6.67C16.17 7.03 15.5 7.93 15.5 9C15.5 10.38 16.62 11.5 18 11.5C18.36 11.5 18.69 11.42 19 11.29L19 18.5C19 19.05 18.55 19.5 18 19.5C17.45 19.5 17 19.05 17 18.5L17 14C17 12.9 16.1 12 15 12L14 12L14 5C14 3.9 13.1 3 12 3L6 3C4.9 3 4 3.9 4 5L4 21L14 21L14 13.5L15.5 13.5L15.5 18.5C15.5 19.88 16.62 21 18 21C19.38 21 20.5 19.88 20.5 18.5L20.5 9C20.5 8.31 20.22 7.68 19.77 7.23Z M12 10L6 10L6 5L12 5Z M18 10C17.45 10 17 9.55 17 9C17 8.45 17.45 8 18 8C18.55 8 19 8.45 19 9C19 9.55 18.55 10 18 10Z"/>
+    </group>
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:strokeColor="#FF009F5E"
+        android:strokeWidth="2"
+        android:pathData="M90 20L120 20Q124 20 124 24L124 36Q124 40 120 40L108 40L103 45L102 40L90 40Q86 40 86 36L86 24Q86 20 90 20Z"/>
+    <path
+        android:strokeColor="#FF0E1A2E"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:pathData="M93 30L99 30 M103 30L106 30 M110 30L117 30"/>
+    <path
+        android:fillColor="#FF009F5E"
+        android:pathData="M123 16.5A3.5 3.5 0 1 0 123 23.5 3.5 3.5 0 1 0 123 16.5z"/>
+    <path
+        android:strokeColor="#FF009F5E"
+        android:strokeAlpha="0.35"
+        android:strokeWidth="2"
+        android:pathData="M123 13A7 7 0 1 0 123 27 7 7 0 1 0 123 13z"/>
+</vector>

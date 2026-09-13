@@ -62,8 +62,8 @@
     <string name="onboarding_step2_desc">Îți găsești mașina fără să te gândești și vezi unde ai parcat</string>
     <string name="onboarding_step3_title">Un loc pentru altcineva</string>
     <string name="onboarding_step3_desc">Când pleci, locul apare liber pentru cei care caută în apropiere</string>
-    <string name="onboarding_step4_title">Și parcări publice și carburant</string>
-    <string name="onboarding_step4_desc">Harta îți arată și parcările publice și prețul carburantului din apropiere</string>
+    <string name="onboarding_page3_title">Parcări publice și carburant în apropiere</string>
+    <string name="onboarding_page3_subtitle">Harta îți arată și parcările publice și benzinăriile din jur. În unele țări, cu prețul carburantului în timp real, din surse oficiale.</string>
     <string name="onboarding_cta_next">Înainte</string>
     <string name="onboarding_cta_start">Începe</string>
 
