@@ -62,9 +62,9 @@ class VehicleStatsBlockTest {
     }
 
     @Test
-    fun `should_leadWithSpend_when_itExists_becauseThatIsWhatFreeSees`() {
-        // The first tile is the one a free user reads whole — so the order is a product decision,
-        // not a layout accident.
+    fun `should_leadWithSpend_when_itExists_becauseItIsTheFigureYouCanActOn`() {
+        // The first tile is the emphasized lead figure — so the order is a product decision, not a
+        // layout accident.
         val keys = statTileKeys(
             stats(cost = Money(9.4, "EUR"), co2 = 14.2, avgDurationMs = 3_600_000L),
         )

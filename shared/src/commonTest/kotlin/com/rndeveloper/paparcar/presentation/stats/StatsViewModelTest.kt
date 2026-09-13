@@ -170,8 +170,9 @@ class StatsViewModelTest {
     }
 
     @Test
-    fun `should_notVeilAnything_forPlus_andVeilTheRestForFree`() = runTest {
-        // The panel is the same room for both; Plus lifts the veil. The state is what says which.
+    fun `should_carryTheEntitlement_intoThePanelState`() = runTest {
+        // The panel shows every figure to both; the entitlement only decides the period's name and
+        // the Plus row. [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001]
         vehicleRepo.saveVehicle(vehicle("v1", isActive = true))
         repeat(6) { i -> parkingRepo.saveNewParkingSession(session("s$i", "v1", ageDays = i)) }
 

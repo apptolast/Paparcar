@@ -143,7 +143,7 @@ fun HistoryContent(
     onFilterSelected: (HistoryFilter) -> Unit = {},
     /** The "Ver todo con Plus" footer under a gated timeline. [MONEY-001] */
     onOpenPlusPaywall: () -> Unit = {},
-    /** Live entitlement: decides whether the figures card is veiled and how its period is named.
+    /** Live entitlement: decides how the figures card's period is named and whether the Plus row shows.
      *  Defaults to free — the safe answer, the one that cannot hand Plus away by omission. */
     isPlus: Boolean = false,
     /** Tapping the figures card's Plus row. A DIFFERENT reason from the timeline footer's, so the

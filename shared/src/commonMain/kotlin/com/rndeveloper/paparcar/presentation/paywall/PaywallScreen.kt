@@ -471,9 +471,9 @@ private val TIER_ROWS = listOf(
     // ASK is free, what is sold is the app WATCHING and REMEMBERING for you.
     TierRow(Icons.Rounded.Explore, Res.string.paywall_free_nearby, Res.string.paywall_plus_nearby),
     TierRow(Icons.Rounded.History, Res.string.paywall_free_history, Res.string.paywall_plus_history),
-    // The figures sit right after the history they are computed from. Free sees the first tile
-    // whole and the rest redacted — enough to know the block is real and about their own car,
-    // never enough to have the answer. [MONEY-001] [FREE-LIMITS-001]
+    // The figures sit right after the history they are computed from, and they share its limit:
+    // free sees every figure over the last 7 days, Plus over any period. What is sold is the
+    // REMEMBERING, never which figures you may read. [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001]
     TierRow(Icons.Rounded.Insights, Res.string.paywall_free_stats, Res.string.paywall_plus_stats),
     TierRow(Icons.Rounded.DirectionsCar, Res.string.paywall_free_vehicles, Res.string.paywall_plus_vehicles),
     TierRow(Icons.Rounded.Map, Res.string.paywall_free_zones, Res.string.paywall_plus_zones),

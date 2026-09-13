@@ -60,8 +60,8 @@ import paparcar.composeapp.generated.resources.licenses_cd_back
 /**
  * The stats panel — every figure of one car and one period, with its comparison. [STATS-PANEL-001]
  *
- * Free is not turned away at the door: it enters, sees the first figure whole and the rest
- * redacted, and the Plus row underneath. Showing the room is the pitch; a locked door is not.
+ * Free is not turned away at the door: it enters and sees every figure over its last 7 days, with
+ * the Plus row underneath offering any period. [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001]
  */
 @Composable
 fun StatsScreen(

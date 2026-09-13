@@ -759,8 +759,8 @@
     <string name="paywall_tier_free">Gratuit</string>
     <string name="paywall_tier_plus">Plus</string>
     <string name="paywall_free_history">Ultimele 7 zile</string>
-    <string name="paywall_free_stats">O singură cifră</string>
-    <string name="paywall_plus_stats">Toate cifrele tale</string>
+    <string name="paywall_free_stats">Toate, ultimele 7 zile</string>
+    <string name="paywall_plus_stats">Orice perioadă</string>
     <string name="paywall_free_vehicles">Mașina ta</string>
     <string name="paywall_plus_vehicles">Toate mașinile tale</string>
     <string name="paywall_free_zones">2 zone</string>
@@ -768,7 +768,7 @@
     <string name="paywall_reason_history">Voiai să vezi parcări mai vechi – Plus păstrează tot istoricul.</string>
     <string name="paywall_reason_vehicles">Gratuit păstrezi o mașină – cu Plus poți adăuga mai multe.</string>
     <string name="paywall_reason_zones">Gratuit păstrezi două zone – cu Plus poți crea mai multe.</string>
-    <string name="paywall_reason_stats">Statisticile avansate fac parte din Plus.</string>
+    <string name="paywall_reason_stats">Cu Plus îți vezi cifrele pentru orice perioadă.</string>
     <string name="paywall_reason_zone_alerts">Alertele de locuri libere în zonele tale fac parte din Plus.</string>
     <string name="paywall_free_alerts">Neincluse</string>
     <string name="paywall_free_support">Gratuit pentru toți</string>
@@ -858,9 +858,8 @@
     <string name="stats_value_minutes">%1$d min</string>
     <string name="stats_value_share">%1$d/%2$d</string>
     <string name="stats_lifetime">Dintotdeauna: %1$s parcări · %2$s locuri cedate</string>
-    <string name="stats_plus_row_title">Vezi toate cifrele tale</string>
-    <string name="stats_plus_row_subtitle">Cost, CO₂ și obiceiuri, lună de lună</string>
-    <string name="stats_veiled_value">Ascuns — doar cu Plus</string>
+    <string name="stats_plus_row_title">Alege perioada</string>
+    <string name="stats_plus_row_subtitle">Gratuit vezi ultimele %1$d zile; cu Plus, orice perioadă</string>
     <!-- Vehicle state line (STATS-UI-001) -->
     <string name="vehicle_state_parked">Parcat · %1$s</string>
     <string name="vehicle_state_last_parking">Ultima parcare · %1$s</string>

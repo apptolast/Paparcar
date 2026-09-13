@@ -53,7 +53,7 @@ Plus: hace desinstalar.
 | **Gasolineras** (ver, precio real, cómo llegar) | ✅ **completo** | ✅ |
 | Historial | 7 días | ilimitado |
 | Coches propios · zonas | 1 · 2 | ilimitados |
-| Estadísticas | cifra-teaser | avanzadas (gasto, consumo, CO₂) |
+| Estadísticas | todas, últimos 7 días [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001] | todas, cualquier periodo |
 | Alertas de zona | ❌ | ✅ |
 | **Alertas de parking y gasolinera** (las de arriba) | ❌ | ✅ *(futuro)* |
 | Coche compartido (F8) · rutas · anuncios | ❌ · limitadas · con | ✅ · ilimitadas · sin |

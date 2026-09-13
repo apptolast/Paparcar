@@ -745,8 +745,8 @@
     <string name="paywall_tier_free">Gratis</string>
     <string name="paywall_tier_plus">Plus</string>
     <string name="paywall_free_history">Gli ultimi 7 giorni</string>
-    <string name="paywall_free_stats">Una cifra</string>
-    <string name="paywall_plus_stats">Tutte le tue cifre</string>
+    <string name="paywall_free_stats">Tutte, ultimi 7 giorni</string>
+    <string name="paywall_plus_stats">Qualsiasi periodo</string>
     <string name="paywall_free_vehicles">La tua auto</string>
     <string name="paywall_plus_vehicles">Tutte le tue auto</string>
     <string name="paywall_free_zones">2 zone</string>
@@ -754,7 +754,7 @@
     <string name="paywall_reason_history">Volevi vedere parcheggi precedenti: Plus conserva tutto lo storico.</string>
     <string name="paywall_reason_vehicles">Free tiene una sola auto: con Plus puoi aggiungerne altre.</string>
     <string name="paywall_reason_zones">Free tiene due zone: con Plus puoi crearne altre.</string>
-    <string name="paywall_reason_stats">Le statistiche avanzate fanno parte di Plus.</string>
+    <string name="paywall_reason_stats">Con Plus vedi le tue cifre per qualsiasi periodo.</string>
     <string name="paywall_reason_zone_alerts">Gli avvisi di posti liberi nelle tue zone fanno parte di Plus.</string>
     <string name="paywall_free_alerts">Non inclusi</string>
     <string name="paywall_free_support">Gratis per tutti</string>
@@ -844,9 +844,8 @@
     <string name="stats_value_minutes">%1$d min</string>
     <string name="stats_value_share">%1$d/%2$d</string>
     <string name="stats_lifetime">Da sempre: %1$s parcheggi · %2$s posti ceduti</string>
-    <string name="stats_plus_row_title">Vedi tutti i tuoi numeri</string>
-    <string name="stats_plus_row_subtitle">Spesa, CO₂ e abitudini, mese per mese</string>
-    <string name="stats_veiled_value">Nascosto — solo con Plus</string>
+    <string name="stats_plus_row_title">Scegli il periodo</string>
+    <string name="stats_plus_row_subtitle">Gratis vedi gli ultimi %1$d giorni; con Plus, il periodo che vuoi</string>
     <!-- Vehicle state line (STATS-UI-001) -->
     <string name="vehicle_state_parked">Parcheggiato · %1$s</string>
     <string name="vehicle_state_last_parking">Ultimo parcheggio · %1$s</string>

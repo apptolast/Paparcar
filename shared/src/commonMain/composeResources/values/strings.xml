@@ -781,8 +781,8 @@
     <string name="paywall_tier_free">Free</string>
     <string name="paywall_tier_plus">Plus</string>
     <string name="paywall_free_history">The last 7 days</string>
-    <string name="paywall_free_stats">One figure</string>
-    <string name="paywall_plus_stats">All your figures</string>
+    <string name="paywall_free_stats">All, last 7 days</string>
+    <string name="paywall_plus_stats">Any period</string>
     <string name="paywall_free_vehicles">Your car</string>
     <string name="paywall_plus_vehicles">All your cars</string>
     <string name="paywall_free_zones">2 zones</string>
@@ -790,7 +790,7 @@
     <string name="paywall_reason_history">You wanted to see older parkings — Plus keeps your whole history.</string>
     <string name="paywall_reason_vehicles">Free keeps one car — with Plus you can add more.</string>
     <string name="paywall_reason_zones">Free keeps two zones — with Plus you can create more.</string>
-    <string name="paywall_reason_stats">Advanced statistics are part of Plus.</string>
+    <string name="paywall_reason_stats">With Plus you see your figures for any period.</string>
     <string name="paywall_reason_zone_alerts">Free-spot alerts in your zones are part of Plus.</string>
     <string name="paywall_free_alerts">Not included</string>
     <string name="paywall_free_support">Free for everyone</string>
@@ -880,9 +880,8 @@
     <string name="stats_value_minutes">%1$d min</string>
     <string name="stats_value_share">%1$d/%2$d</string>
     <string name="stats_lifetime">All time: %1$s parkings · %2$s spots shared</string>
-    <string name="stats_plus_row_title">See all your figures</string>
-    <string name="stats_plus_row_subtitle">Spend, CO₂ and habits, month by month</string>
-    <string name="stats_veiled_value">Hidden — Plus only</string>
+    <string name="stats_plus_row_title">Choose the period</string>
+    <string name="stats_plus_row_subtitle">Free shows your last %1$d days; Plus, any period you pick</string>
     <!-- Vehicle state line (STATS-UI-001) -->
     <string name="vehicle_state_parked">Parked · %1$s</string>
     <string name="vehicle_state_last_parking">Last parking · %1$s</string>

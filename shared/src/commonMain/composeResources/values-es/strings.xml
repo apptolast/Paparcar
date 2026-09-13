@@ -741,8 +741,8 @@
     <string name="paywall_tier_free">Gratis</string>
     <string name="paywall_tier_plus">Plus</string>
     <string name="paywall_free_history">Los últimos 7 días</string>
-    <string name="paywall_free_stats">Una cifra</string>
-    <string name="paywall_plus_stats">Todas tus cifras</string>
+    <string name="paywall_free_stats">Todas, últimos 7 días</string>
+    <string name="paywall_plus_stats">Cualquier periodo</string>
     <string name="paywall_free_vehicles">Tu coche</string>
     <string name="paywall_plus_vehicles">Todos tus coches</string>
     <string name="paywall_free_zones">2 zonas</string>
@@ -750,7 +750,7 @@
     <string name="paywall_reason_history">Querías ver aparcamientos anteriores: Plus guarda todo tu historial.</string>
     <string name="paywall_reason_vehicles">Free se queda con un coche: con Plus puedes añadir más.</string>
     <string name="paywall_reason_zones">Free se queda con dos zonas: con Plus puedes crear más.</string>
-    <string name="paywall_reason_stats">Las estadísticas avanzadas son parte de Plus.</string>
+    <string name="paywall_reason_stats">Con Plus ves tus cifras en el periodo que elijas.</string>
     <string name="paywall_reason_zone_alerts">Los avisos de plazas libres en tus zonas son parte de Plus.</string>
     <string name="paywall_free_alerts">No incluidos</string>
     <string name="paywall_free_support">Gratis para todos</string>
@@ -840,9 +840,8 @@
     <string name="stats_value_minutes">%1$d min</string>
     <string name="stats_value_share">%1$d/%2$d</string>
     <string name="stats_lifetime">Desde siempre: %1$s aparcamientos · %2$s plazas cedidas</string>
-    <string name="stats_plus_row_title">Ver todas tus cifras</string>
-    <string name="stats_plus_row_subtitle">Gasto, CO₂ y hábitos, mes a mes</string>
-    <string name="stats_veiled_value">Oculto — solo con Plus</string>
+    <string name="stats_plus_row_title">Elige el periodo</string>
+    <string name="stats_plus_row_subtitle">Gratis ves tus últimos %1$d días; con Plus, el periodo que elijas</string>
     <!-- Vehicle state line (STATS-UI-001) -->
     <string name="vehicle_state_parked">Aparcado · %1$s</string>
     <string name="vehicle_state_last_parking">Último aparcamiento · %1$s</string>

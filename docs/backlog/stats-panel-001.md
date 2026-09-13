@@ -2,6 +2,12 @@
 
 **Estado:** ✅ Done · rama `feature/STATS-UI-001-one-scope-per-surface`
 
+> ⚠️ **Superado en la regla free/Plus de las cifras** por
+> [`stats-free-sees-every-figure-for-7-days-001.md`](stats-free-sees-every-figure-for-7-days-001.md)
+> (13-09-2026): free ya no ve «una cifra y el resto tapado», ve TODAS sobre sus últimos 7 días; Plus
+> vende el periodo. El resto de este doc sigue vigente.
+
+
 Segunda mitad de la **F4 de la ola 2** ([`plus-roadmap-001.md`](plus-roadmap-001.md)). La primera
 mitad —la ficha reconstruida en cuatro zonas— está en [`stats-ui-001.md`](stats-ui-001.md).
 

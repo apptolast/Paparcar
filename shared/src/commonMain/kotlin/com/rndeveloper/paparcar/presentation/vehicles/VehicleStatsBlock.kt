@@ -87,7 +87,6 @@ import paparcar.composeapp.generated.resources.stats_value_kwh
 import paparcar.composeapp.generated.resources.stats_value_liters
 import paparcar.composeapp.generated.resources.stats_value_minutes
 import paparcar.composeapp.generated.resources.stats_value_share
-import paparcar.composeapp.generated.resources.stats_veiled_value
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -147,9 +146,11 @@ internal fun VehicleStatsBlock(
                     ),
                 )
                 PapDivider()
-                // Free sees the FIRST figure whole and the rest redacted: enough to know the block
-                // is real and about their own car, never enough to have the answer. [MONEY-001]
-                StatTileGrid(tiles = tiles, veilFromIndex = if (isPlus) null else 1)
+                // Every figure, for everyone. What Plus changes is the PERIOD, not which figures you
+                // may read: free sees all of them over its last FREE_HISTORY_WINDOW_DAYS days (the
+                // figures are already computed over the gated history), Plus over any period.
+                // [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001]
+                StatTileGrid(tiles = tiles)
                 // With the "all time" period selected the tiles ARE the car's whole life, so the
                 // footer would repeat the card in smaller type.
                 // ⛔ A spend figure has to say what price it used. An average and the user's own
@@ -195,9 +196,9 @@ internal fun VehicleStatsBlock(
                         ),
                     )
                 }
-                // Plus has nothing to be sold, so the card ends with where to go rather than what
-                // to buy. Free gets the metal row below instead — never both.
-                if (isPlus && onOpenPanel != null) {
+                // The full breakdown is the same room for everyone now — free enters it over the
+                // same 7 days this card shows. [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001]
+                if (onOpenPanel != null) {
                     PapDivider()
                     OpenPanelRow(onClick = onOpenPanel)
                 }
@@ -211,8 +212,7 @@ internal fun VehicleStatsBlock(
 
 /** Two-column grid of tiles, hairline-divided like the ficha's other data surfaces. */
 @Composable
-private fun StatTileGrid(tiles: List<StatTileData>, veilFromIndex: Int?) {
-    val veiledLabel = stringResource(Res.string.stats_veiled_value)
+private fun StatTileGrid(tiles: List<StatTileData>) {
     tiles.chunked(COLUMNS).forEachIndexed { rowIndex, rowTiles ->
         if (rowIndex > 0) PapDivider()
         Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
@@ -229,9 +229,7 @@ private fun StatTileGrid(tiles: List<StatTileData>, veilFromIndex: Int?) {
                         value = tile.value,
                         label = tile.label,
                         delta = tile.delta,
-                        veiled = veilFromIndex != null && absoluteIndex >= veilFromIndex,
                         emphasized = absoluteIndex == 0,
-                        veiledDescription = veiledLabel,
                         animatedNumber = tile.animated,
                         icon = tile.icon,
                         modifier = Modifier.weight(1f),
@@ -250,7 +248,7 @@ private fun StatTileGrid(tiles: List<StatTileData>, veilFromIndex: Int?) {
     }
 }
 
-/** Where a Plus user goes for the whole picture. A plain row: the card is already theirs. */
+/** Where the user goes for the whole picture. A plain row: the card is already theirs. */
 @Composable
 private fun OpenPanelRow(onClick: () -> Unit) {
     Row(
@@ -271,7 +269,8 @@ private fun OpenPanelRow(onClick: () -> Unit) {
 }
 
 /** The Plus touchpoint under the block — the metal at the weight that interrupts, not the one that
- *  sells. [UI-PLUS-EMPHASIS-MATCHES-THE-MOMENT-001] */
+ *  sells. It sells the one thing free lacks: choosing the PERIOD. [UI-PLUS-EMPHASIS-MATCHES-THE-MOMENT-001]
+ *  [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001] */
 @Composable
 private fun PlusStatsRow(onClick: () -> Unit, modifier: Modifier = Modifier) {
     PapPremiumSurface(
@@ -298,7 +297,7 @@ private fun PlusStatsRow(onClick: () -> Unit, modifier: Modifier = Modifier) {
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
-                    text = stringResource(Res.string.stats_plus_row_subtitle),
+                    text = stringResource(Res.string.stats_plus_row_subtitle, FREE_HISTORY_WINDOW_DAYS),
                     style = PaparcarType.current.caption,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -315,8 +314,8 @@ private fun PlusStatsRow(onClick: () -> Unit, modifier: Modifier = Modifier) {
  * a free account cannot have a real "this month": there are only [FREE_HISTORY_WINDOW_DAYS] days of
  * history behind it, and the longer filters would all yield the week's figures. Titling this card
  * "Este mes" for them would be a label the numbers cannot back — the same failure as a partial sum
- * printed as a total. So free names its real window, and reaching for a longer period is exactly
- * what opens the paywall. [STATS-UI-001] [MONEY-001]
+ * printed as a total. So free names its real window, and the Plus row under the card is where a
+ * longer period is offered. [STATS-UI-001] [MONEY-001] [STATS-FREE-SEES-EVERY-FIGURE-FOR-7-DAYS-001]
  */
 @Composable
 internal fun vehicleStatsPeriodLabel(filter: HistoryFilter, isPlus: Boolean): String =
@@ -334,8 +333,8 @@ internal fun vehicleStatsPeriodLabel(filter: HistoryFilter, isPlus: Boolean): St
     }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PeriodStats → tiles. Order IS the product decision: the first tile is what a
-// free user gets to see, so it must be the most concrete figure available.
+// PeriodStats → tiles. Order IS the product decision: the first tile is the
+// emphasized lead figure, so it must be the most concrete figure available.
 // ─────────────────────────────────────────────────────────────────────────────
 
 internal data class StatTileData(
@@ -353,8 +352,8 @@ internal data class StatTileData(
  * until a price does. [STATS-CORE-001]
  *
  * Pure and separate from the copy on purpose: presence and order are the product rules (the first
- * key is the one figure a free user sees whole), and a rule that lives inside a @Composable is a
- * rule no test can reach.
+ * key is the emphasized lead figure), and a rule that lives inside a @Composable is a rule no test
+ * can reach.
  */
 internal enum class StatTileKey {
     COST, FUEL, ENERGY, CO2, AVG_DURATION, PEAK_HOUR, USUAL_DAY, USUAL_STREET, AUTO_DETECTED,
@@ -381,7 +380,7 @@ private fun StatTileKey.icon(): ImageVector = when (this) {
 }
 
 internal fun statTileKeys(stats: PeriodStats): List<StatTileKey> = buildList {
-    // Spend leads when it exists — it is the figure a person can act on, so it is what free sees.
+    // Spend leads when it exists — it is the figure a person can act on, so it is the lead tile.
     if (stats.costEstimate != null) add(StatTileKey.COST)
     // El combustible va DETRAS del coste y DELANTE de las emisiones: es la magnitud de la que sale
     // el coste, así que se lee antes que el CO₂. Dos claves y no una porque un híbrido enchufable

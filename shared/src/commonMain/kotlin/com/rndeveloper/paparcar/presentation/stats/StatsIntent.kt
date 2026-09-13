@@ -6,6 +6,6 @@ sealed class StatsIntent {
     data class SelectVehicle(val index: Int) : StatsIntent()
     data class SetFilter(val filter: HistoryFilter) : StatsIntent()
 
-    /** The Plus row under a veiled panel. [STATS-PANEL-001] */
+    /** The Plus row under the panel — choosing any period. [STATS-PANEL-001] */
     data object OpenPaywall : StatsIntent()
 }

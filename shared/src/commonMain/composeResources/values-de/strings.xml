@@ -746,8 +746,8 @@
     <string name="paywall_tier_free">Kostenlos</string>
     <string name="paywall_tier_plus">Plus</string>
     <string name="paywall_free_history">Die letzten 7 Tage</string>
-    <string name="paywall_free_stats">Eine Zahl</string>
-    <string name="paywall_plus_stats">Alle deine Zahlen</string>
+    <string name="paywall_free_stats">Alle, letzte 7 Tage</string>
+    <string name="paywall_plus_stats">Jeder Zeitraum</string>
     <string name="paywall_free_vehicles">Dein Auto</string>
     <string name="paywall_plus_vehicles">Alle deine Autos</string>
     <string name="paywall_free_zones">2 Zonen</string>
@@ -755,7 +755,7 @@
     <string name="paywall_reason_history">Du wolltest ältere Parkvorgänge sehen – Plus behält deinen ganzen Verlauf.</string>
     <string name="paywall_reason_vehicles">Kostenlos bleibt ein Auto – mit Plus kannst du weitere hinzufügen.</string>
     <string name="paywall_reason_zones">Kostenlos bleiben zwei Zonen – mit Plus kannst du weitere erstellen.</string>
-    <string name="paywall_reason_stats">Erweiterte Statistiken sind Teil von Plus.</string>
+    <string name="paywall_reason_stats">Mit Plus siehst du deine Zahlen für jeden Zeitraum.</string>
     <string name="paywall_reason_zone_alerts">Hinweise auf freie Plätze in deinen Zonen sind Teil von Plus.</string>
     <string name="paywall_free_alerts">Nicht enthalten</string>
     <string name="paywall_free_support">Für alle kostenlos</string>
@@ -845,9 +845,8 @@
     <string name="stats_value_minutes">%1$d Min.</string>
     <string name="stats_value_share">%1$d/%2$d</string>
     <string name="stats_lifetime">Seit Beginn: %1$s Parkvorgänge · %2$s geteilte Plätze</string>
-    <string name="stats_plus_row_title">Alle deine Zahlen ansehen</string>
-    <string name="stats_plus_row_subtitle">Kosten, CO₂ und Gewohnheiten, Monat für Monat</string>
-    <string name="stats_veiled_value">Verborgen — nur mit Plus</string>
+    <string name="stats_plus_row_title">Wähle den Zeitraum</string>
+    <string name="stats_plus_row_subtitle">Kostenlos siehst du die letzten %1$d Tage; mit Plus jeden Zeitraum</string>
     <!-- Vehicle state line (STATS-UI-001) -->
     <string name="vehicle_state_parked">Geparkt · %1$s</string>
     <string name="vehicle_state_last_parking">Letzter Parkplatz · %1$s</string>

@@ -3,6 +3,12 @@
 **Estado:** 📋 Abierto (2026-09-07) · F0 (fusión documental) ✅ ejecutada el 07-09 · ninguna fase de
 código empezada. Sucede a `MONEY-001` (✅ Done, mergeado 06-09).
 
+> ⚠️ **Superado en la regla free/Plus de las cifras** por
+> [`stats-free-sees-every-figure-for-7-days-001.md`](stats-free-sees-every-figure-for-7-days-001.md)
+> (13-09-2026): free ya no ve «una cifra y el resto tapado», ve TODAS sobre sus últimos 7 días; Plus
+> vende el periodo. El resto de este doc sigue vigente.
+
+
 > **Plan de EJECUCIÓN de la ola 2.** Cada fase es UN ticket con su worktree (skill `nuevo-ticket`),
 > su rama y su `docs/backlog/<id>.md`. No se empieza una fase hasta que la anterior está mergeada y
 > este doc actualizado. **Nunca commitear ni mergear sin permiso explícito del turno.** Detección
