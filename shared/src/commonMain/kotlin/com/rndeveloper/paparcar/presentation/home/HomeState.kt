@@ -36,11 +36,10 @@ import com.rndeveloper.paparcar.domain.model.monitoringStatus
 import com.rndeveloper.paparcar.domain.model.parkedSessionPreference
 import com.rndeveloper.paparcar.domain.model.preferredParkingSession
 import com.rndeveloper.paparcar.domain.model.sortRank
-import com.rndeveloper.paparcar.presentation.home.model.HomeFuelLayerSlice
 import com.rndeveloper.paparcar.presentation.home.model.HomeFuelSlice
 import com.rndeveloper.paparcar.presentation.home.model.HomeNearbyLens
-import com.rndeveloper.paparcar.presentation.home.model.HomeParkingsLayerSlice
 import com.rndeveloper.paparcar.presentation.home.model.HomeParkingsSlice
+import com.rndeveloper.paparcar.presentation.home.model.NearbyOrdering
 
 /**
  * Per-vehicle row used by the "TUS VEHÍCULOS" section.
@@ -354,18 +353,15 @@ data class HomeState(
      * Its own value rather than four loose fields on the state: the lane has to keep
      * "nothing within 5 km" and "we could not ask" apart, and a pair of booleans beside a list
      * is two facts that can disagree.
+     *
+     * ⛔ The ONLY fuel store — lane, map, peek and selection read it through [fuelStationsShown].
+     * [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
      */
     val fuel: HomeFuelSlice = HomeFuelSlice(),
 
-    /** What the CAMERA is looking at — the map layer's own store, refilled as the camera settles.
-     *  [FUEL-LAYER-FOLLOWS-THE-CAMERA-001] */
-    val fuelLayer: HomeFuelLayerSlice = HomeFuelLayerSlice(),
-
-    /** "Car parks nearby", the browse lane. [PARKINGS-ON-THE-MAP-001] */
+    /** "Car parks nearby" — the ONLY car-park store, read through [publicParkingsShown].
+     *  [PARKINGS-ON-THE-MAP-001] [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001] */
     val parkings: HomeParkingsSlice = HomeParkingsSlice(),
-
-    /** The car-parks LAYER, anchored to the camera — a different question from the lane. */
-    val parkingsLayer: HomeParkingsLayerSlice = HomeParkingsLayerSlice(),
 
 ) {
     // ── Computed properties ───────────────────────────────────────────────────
@@ -410,31 +406,21 @@ data class HomeState(
         get() = vehicles.firstOrNull { it.isActive }?.fuelType ?: vehicles.firstOrNull()?.fuelType
 
     /**
-     * The stations the map, the peek and the selection all read: BOTH stores, deduplicated, and each
-     * one **priced for the car you drive**. [MAP-A-PIN-IS-PRICED-FOR-THE-CAR-YOU-DRIVE-001]
+     * The stations the lane, the map, the peek, its stepper and the selection all read: the ONE
+     * store, **priced for the car you drive**, priced first, distances from the user.
+     * [MAP-A-PIN-IS-PRICED-FOR-THE-CAR-YOU-DRIVE-001] [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
      *
-     * The union is what keeps a capsule tapped in Paris alive in the peek (it lives only in the
-     * layer's store) while the lane answers for where you are.
-     * [FUEL-STATIONS-MAP-AND-PEEK-001] [FUEL-LAYER-FOLLOWS-THE-CAMERA-001]
-     *
-     * ⛔ **The repricing is the point, not the dedup order.** `distinctBy` keeps the FIRST copy, which
-     * is always the layer's — and the layer is asked fuel-less whenever the lane had no question to
-     * ask (`HomeViewModel.askFuelForLane`), so its copy carries `price = null` for every station.
-     * That is how Spain ended up with priced rows under blank capsules. Swapping the two halves of
-     * the sum would have hidden today's symptom and kept tomorrow's: switching the active car does
-     * not refetch the layer either, so the map would have gone on quoting the previous car's fuel.
-     *
-     * A price is a property of the FORECOURT, never of the request — `FuelStation.prices` carries
-     * everything that station is known to charge — so the honest projection resolves it here instead
-     * of inheriting whichever copy won a deduplication.
+     * ⛔ A price is a property of the FORECOURT, never of the request — `FuelStation.prices` carries
+     * everything that station is known to charge — so it is resolved here, and switching the active
+     * car requotes every surface without asking again.
      */
     val fuelStationsShown: List<NearbyFuelStation>
-        get() {
-            val fuelType = pricedFuelType
-            return (fuelLayer.stations + fuel.stations)
-                .distinctBy { it.station.id }
-                .map { nearby -> nearby.copy(price = fuelType?.let { nearby.station.prices[it] }) }
-        }
+        get() = NearbyOrdering.fuelStations(fuel.stations, pricedFuelType, userGpsPoint)
+
+    /** The car parks every surface reads: the ONE store, nearest to the user first.
+     *  [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001] */
+    val publicParkingsShown: List<NearbyPublicParking>
+        get() = NearbyOrdering.publicParkings(parkings.parkings, userGpsPoint)
 
     /** The selected fuel station, or null when the selection is another kind / stale. Resolves
      *  inside its OWN arm, like the other two, and against the same repriced list everything else
@@ -447,8 +433,7 @@ data class HomeState(
     /** The selected public car park, resolved inside its OWN arm. [PARKINGS-ON-THE-MAP-001] */
     val selectedPublicParking: NearbyPublicParking?
         get() = (selection as? HomeSelection.PublicParking)?.let { sel ->
-            parkingsLayer.parkings.firstOrNull { it.parking.id == sel.id }
-                ?: parkings.parkings.firstOrNull { it.parking.id == sel.id }
+            publicParkingsShown.firstOrNull { it.parking.id == sel.id }
         }
 
     val isParkingSelected: Boolean

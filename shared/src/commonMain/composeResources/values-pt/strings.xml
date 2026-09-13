@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="home_nearby_section_header">Nesta zona</string>
     <!-- HomeScreen -->
     <string name="home_search_placeholder">Procure uma zona, rua…</string>
     <string name="home_search_no_results">Sem resultados para essa pesquisa</string>
@@ -863,6 +864,7 @@
     <string name="fuel_peek_step_prev">Posto anterior</string>
     <string name="fuel_peek_step_next">Posto seguinte</string>
     <string name="home_fuel_error">Não conseguimos carregar os postos. Verifica a ligação e abre isto outra vez.</string>
+    <string name="home_fuel_too_far">Só mostramos postos a menos de %1$d km de ti. Aproxima o mapa para os veres.</string>
     <string name="home_fuel_no_prices">Neste país os preços não são publicados. Estes são os postos por perto.</string>
     <!-- [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001] Fallback, not a verdict about the country -->
     <string name="home_fuel_prices_unavailable">Os preços oficiais não carregaram. Estes são os postos próximos; tente novamente daqui a pouco.</string>
@@ -875,6 +877,7 @@
     <string name="subject_free_spots">Lugares</string>
     <string name="home_parkings_empty">Não há parques de estacionamento públicos a menos de 1,5 km.</string>
     <string name="home_parkings_error">Não conseguimos carregar os parques. Verifica a ligação e abre isto outra vez.</string>
+    <string name="home_parkings_too_far">Só mostramos parques de estacionamento públicos a menos de %1$d km de ti. Aproxima o mapa para os veres.</string>
     <string name="home_parkings_remembered">Sem ligação: estes são os parques de estacionamento que vimos aqui %1$s.</string>
     <string name="parking_peek_eyebrow">Parque público</string>
     <string name="parking_kind_underground">Parque subterrâneo</string>

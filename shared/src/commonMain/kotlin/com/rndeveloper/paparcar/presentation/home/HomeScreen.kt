@@ -589,10 +589,11 @@ private fun HomeContent(
                     }
                 }
 
-                // Same gesture as a spot: select, frame, open the peek. The station is resolved
-                // from the fuel slice at call-time so the lambda stays identity-stable.
-                // [FUEL-STATIONS-MAP-AND-PEEK-001]
-                val currentFuelStations = rememberUpdatedState(state.fuel.stations)
+                // Same gesture as a spot: select, frame, open the peek. The station is resolved at
+                // call-time so the lambda stays identity-stable — and from the very list the map
+                // painted, so no drawn pin can be a dead tap. [FUEL-STATIONS-MAP-AND-PEEK-001]
+                // [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
+                val currentFuelStations = rememberUpdatedState(mapSlice.fuelStations)
                 val onFuelStationMarkerClick: (String) -> Unit = remember(uiController, motion) {
                     { stationId ->
                         currentFuelStations.value.firstOrNull { it.station.id == stationId }?.let { s ->
@@ -604,7 +605,7 @@ private fun HomeContent(
                 }
 
                 // Same gesture again, for the car parks. [PARKINGS-ON-THE-MAP-001]
-                val currentPublicParkings = rememberUpdatedState(state.parkings.parkings)
+                val currentPublicParkings = rememberUpdatedState(mapSlice.publicParkings)
                 val onPublicParkingMarkerClick: (String) -> Unit = remember(uiController, motion) {
                     { parkingId ->
                         currentPublicParkings.value.firstOrNull { it.parking.id == parkingId }?.let { p ->
