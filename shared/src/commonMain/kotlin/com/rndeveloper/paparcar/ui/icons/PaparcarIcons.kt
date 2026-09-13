@@ -3,7 +3,7 @@ package com.rndeveloper.paparcar.ui.icons
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.DirectionsBike
 import androidx.compose.material.icons.rounded.AccountBalance
-import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.VolunteerActivism
 import androidx.compose.material.icons.automirrored.rounded.DirectionsBike
 import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.ElectricScooter
@@ -85,7 +85,13 @@ object PaparcarIcons {
     val Pharmacy: ImageVector get() = Icons.Rounded.LocalPharmacy
     val Hospital: ImageVector get() = Icons.Rounded.LocalHospital
     val ParkingPlace: ImageVector get() = Icons.Rounded.LocalParking
-    val CommunitySpot: ImageVector get() = Icons.Rounded.Person
+    /**
+     * A free spot of the community — the hand + heart of a spot someone GAVE, the same glyph the
+     * stats tile uses for "spots shared". One glyph for the whole life of a spot: the lane tab, the
+     * map puck (selected, en route, report pin), the list row and the peek.
+     * [SPOT-ICON-IS-THE-GIVEN-SPOT-HAND-HEART-001]
+     */
+    val CommunitySpot: ImageVector get() = Icons.Rounded.VolunteerActivism
     val Bank: ImageVector get() = Icons.Rounded.AccountBalance
     val Hotel: ImageVector get() = Icons.Rounded.Hotel
     val School: ImageVector get() = Icons.Rounded.School
@@ -173,8 +179,7 @@ object PaparcarIcons {
     // [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
     //
     // Las superficies de infraestructura usan el MISMO lenguaje que las marcas que ya tiene la app
-    // —[CommunitySpot] y los pictogramas de
-    // coche—: silueta RELLENA con sus huecos por `EvenOdd`, viewport 24×24, un solo path para que
+    // —los pictogramas de coche—: silueta RELLENA con sus huecos por `EvenOdd`, viewport 24×24, un solo path para que
     // el `Icon` anfitrión las tiña. ⛔ No son Material: estos tres no son plumbing de UI, son los
     // productos que la app enseña, y con glifos genéricos las pestañas se leían como un filtro más.
     //

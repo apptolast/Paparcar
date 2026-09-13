@@ -29,7 +29,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Campaign
 import androidx.compose.material.icons.rounded.Lock
-import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -95,7 +94,7 @@ import kotlinx.coroutines.launch
  * | Marker             | Shape             | Colour | Content              |
  * |--------------------|-------------------|--------|----------------------|
  * | Parked vehicle     | Amber rect + tip  | Amber  | License plate text   |
- * | Free spot          | Circle            | Green  | Community person + announcement badge |
+ * | Free spot          | Circle            | Green  | Given-spot hand + heart + announcement badge |
  * | Zone (saved place) | Pill label        | Theme  | Icon + zone name     |
  *
  * Rendered as bitmaps by the kmpmaps library via `customMarkerContent` in [PaparcarMapView].
@@ -675,7 +674,7 @@ private val MY_VEHICLE_W = 46.dp
 private val MY_VEHICLE_H = 55.dp
 
 // ─── Marker 2 — Free spot (FreeSpotMarker) — Bolt-green teardrop pin ─────────
-// Bolt-green design: brand-filled teardrop + white 3px halo, a community-person glyph,
+// Bolt-green design: brand-filled teardrop + white 3px halo, the given-spot glyph (hand + heart),
 // a freshness ring whose arc length encodes the reliability tier, and a tier-coloured
 // announcement badge. When people are en route the pin flips to the blue "reserved"
 // state with a dashed orbit + a people pill carrying the count. [BOLT-MARKERS-001]
@@ -732,7 +731,8 @@ private fun SpotFreshness.tierVisual(isManual: Boolean = false): SpotTierVisual 
  *   (the live pulse ring is drawn separately by [PaparcarMapView]).
  * @param enRouteCount when > 0 the pin renders the blue "reserved · en route"
  *   state with a people pill carrying the count, overriding the tier colour.
- * @param isManual eyewitness report — person badge over the freshness tier. [UI-COLOR-DOCTRINE-001 F5]
+ * @param isManual eyewitness report. Kept for the bitmap cache key; the pin itself no longer draws
+ *   provenance (the old person badge is gone — [tierVisual] ignores it). [UI-COLOR-DOCTRINE-001 F5]
  */
 @Composable
 fun FreeSpotMarker(
@@ -845,7 +845,7 @@ fun SpotPuckIcon(
 }
 
 // ── Puck geometry (viewBox 72×82 units) ──────────────────────────────────────
-// Spot marker = round "puck" (centre 36,34 r29) carrying the community-person glyph, a per-tier
+// Spot marker = round "puck" (centre 36,34 r29) carrying the given-spot glyph, a per-tier
 // TTL ring and an announcement badge, over a separated position dot (the exact ground point).
 // Anchor = bottom-centre.
 // [MAP-ICONS-V2]
@@ -914,13 +914,16 @@ private fun CommunitySpotOverlay(
 ) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val scale = maxWidth.value / SPOT_VIEWBOX_W
+        // [SPOT-ICON-IS-THE-GIVEN-SPOT-HAND-HEART-001] The hand + heart fills more of its box than
+        // the old person did, so it goes one size down (26 vs 28) — still centred on the puck
+        // (36,34), clear of the announcement badge (centre 56,15 r13) and inside the TTL ring.
         Icon(
-            imageVector = Icons.Rounded.Person,
+            imageVector = PaparcarIcons.CommunitySpot,
             contentDescription = null,
             tint = SpotPalette.Paper,
             modifier = Modifier
-                .offset(x = (22f * scale).dp, y = (20f * scale).dp)
-                .size((28f * scale).dp),
+                .offset(x = (COMMUNITY_GLYPH_X * scale).dp, y = (COMMUNITY_GLYPH_Y * scale).dp)
+                .size((COMMUNITY_GLYPH_SIZE * scale).dp),
         )
         if (showAnnouncement) {
             Icon(
@@ -934,6 +937,11 @@ private fun CommunitySpotOverlay(
         }
     }
 }
+
+// Given-spot glyph box inside the puck, in viewBox units. [SPOT-ICON-IS-THE-GIVEN-SPOT-HAND-HEART-001]
+private const val COMMUNITY_GLYPH_X = 23f
+private const val COMMUNITY_GLYPH_Y = 21f
+private const val COMMUNITY_GLYPH_SIZE = 26f
 
 private fun DrawScope.drawTierPin(s: Float, v: SpotTierVisual, selected: Boolean, paper: Color, ink: Color) {
     drawSpotShadow(s, ink)
@@ -1223,7 +1231,7 @@ private fun nearbyMarkerGreen(): Color = PapColor.actionText
  * A public car park on the map — **the spot puck's shape, wearing the car park's colours**.
  * [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001] [PARKINGS-ON-THE-MAP-001]
  *
- * It is a rounded label with the canonical public-parking `P` mark, and beside the community-person
+ * It is a rounded label with the canonical public-parking `P` mark, and beside the given-spot
  * pucks it reads as a different KIND of thing — a fixed place rather than a report.
  *
  * ⛔ **The colours do NOT come across with the shape.** A free spot is a puck FILLED with its

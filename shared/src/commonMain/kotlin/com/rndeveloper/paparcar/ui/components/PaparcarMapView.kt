@@ -116,7 +116,7 @@ import kotlin.time.Duration.Companion.milliseconds
  * @property centerPin When non-null, replaces the default crosshair indicator
  *   with a drop-in pin animation. Every variant shares the same white-teardrop
  *   molde + ground-shadow + bounce-on-camera-settle behaviour; only the inner
- *   silhouette varies: [CenterPinKind.Report] = community person + announcement badge; [CenterPinKind.Parking]
+ *   silhouette varies: [CenterPinKind.Report] = given-spot glyph (hand + heart) + announcement badge; [CenterPinKind.Parking]
  *   = inner disc + car glyph (MyVehicleMarker family); [CenterPinKind.Zone] =
  *   inner disc + chosen zone icon (ZoneMarker family).
  * @property initialCamera Seed camera position used on first composition when
@@ -140,7 +140,7 @@ data class PaparcarMapConfig(
  * composable in PaparcarMapMarkers.kt.
  */
 sealed class CenterPinKind {
-    /** Outlined teardrop with the community person + announcement badge — molde for Reporting. */
+    /** Outlined teardrop with the given-spot glyph (hand + heart) + announcement badge — molde for Reporting. */
     data object Report : CenterPinKind()
     /** Outlined teardrop with the parked-car silhouette inside — molde for the AddingParking flow. */
     data object Parking : CenterPinKind()
@@ -421,8 +421,8 @@ internal fun freeSpotContentId(
     // En-route overrides the tier colour (blue "reserved") so its key encodes
     // the count bucket instead of the tier; the cache stores one bitmap per
     // (bucket × state) rather than per (tier × state). [BOLT-MARKERS-001]
-    // Manual provenance adds the person badge, so it needs its own bitmap per
-    // (tier × state) — encoded as an "m" segment. [UI-COLOR-DOCTRINE-001 F5]
+    // Manual provenance keeps its own bitmap per (tier × state) — the "m" segment — although the
+    // pin no longer draws it differently (the person badge is gone). [UI-COLOR-DOCTRINE-001 F5]
     // An AREA spot swaps the ground dot for the target ⊙, so it needs its own bitmap too — the
     // "a" segment. Deliberately NOT encoded on the en-route branch: a reserved pin already
     // dominates its slot, and the rare zone+en-route combination keeps the pill (bounded key set).
@@ -1253,8 +1253,8 @@ fun PaparcarMapView(
             }
             // ── Free-spot bitmaps — 18 cached variants (3 tiers × auto/manual × nrm/dim/sel) ──
             // Each (tier, manual, state) triple gets its own contentId so kmpmaps caches a distinct
-            // bitmap and the on-map colour matches the peek modal badge. Manual provenance = the
-            // person badge over the same freshness tier. [MAP-MARKERS-RELIABILITY-001] [F5]
+            // bitmap and the on-map colour matches the peek modal badge. Manual provenance keeps its
+            // own ids but draws the same pin. [MAP-MARKERS-RELIABILITY-001] [F5]
             SpotFreshness.entries.forEach { tier ->
                 listOf(false, true).forEach { manual ->
                     // Area spots need their own bitmaps (target ⊙ ground point).

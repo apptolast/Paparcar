@@ -327,7 +327,7 @@ internal sealed interface PapSheetLead {
     data class CommunitySpot(
         val reliability: SpotFreshness,
         val enRouteCount: Int = 0,
-        /** Eyewitness report — person badge over the freshness tier. [UI-COLOR-DOCTRINE-001 F5] */
+        /** Eyewitness report. Passed through to the puck, which draws it the same. [UI-COLOR-DOCTRINE-001 F5] */
         val isManual: Boolean = false,
     ) : PapSheetLead
 
@@ -359,8 +359,8 @@ internal sealed interface PapSheetLead {
 }
 
 /** Eyebrow tint: green = own action, muted = neutral context. (The old blue "Manual" tone died
- *  with the tertiary retirement — reporting a spot IS an action, and a report's provenance is the
- *  person badge's job, not a colour's.) [UI-COLOR-DOCTRINE-001 F6] */
+ *  with the tertiary retirement — reporting a spot IS an action, and a report's provenance is not a
+ *  colour's job.) [UI-COLOR-DOCTRINE-001 F6] */
 internal enum class PapSheetEyebrowTone { Action, Neutral }
 
 @Composable
