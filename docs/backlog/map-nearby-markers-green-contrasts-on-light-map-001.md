@@ -1,6 +1,6 @@
 # MAP-NEARBY-MARKERS-GREEN-CONTRASTS-ON-LIGHT-MAP-001 · Los markers de parkings y gasolineras contrastan en el mapa claro
 
-**Estado:** 🟡 En revisión · rama `bugfix/MAP-NEARBY-MARKERS-GREEN-CONTRASTS-ON-LIGHT-MAP-001` ·
+**Estado:** ✅ Done — en master (PR [#20](https://github.com/apptolast/Paparcar/pull/20), aprobado sin cambios) ·
 GitHub issue [#18](https://github.com/apptolast/Paparcar/issues/18)
 
 ## Problema
@@ -41,6 +41,7 @@ Un solo sitio: `nearbyMarkerGreen()` = `PapColor.actionText`, el rol que ya usan
 | `SpotPalette` (plazas), coche propio, `ZoneMarker` | exentos — tienen su propia historia de color |
 | `PaparcarMapView` indicador de modo reporte (`PapGreen`) | fuera de alcance — no es un marker de esta capa |
 
-## Preguntas abiertas
+## Preguntas que quedaron sin respuesta
+El PR se aprobó sin contestarlas; se conserva el comportamiento implementado.
 1. Con el mapa en **satélite** y la app en tema claro, el verde oscuro contrasta menos que el neón
    sobre la foto. ¿Queremos resolver el verde por tipo de mapa además de por tema?
