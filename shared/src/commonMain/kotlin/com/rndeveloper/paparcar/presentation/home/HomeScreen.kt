@@ -26,6 +26,7 @@ import androidx.compose.runtime.MutableFloatState
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.Stable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.rndeveloper.paparcar.presentation.home.model.warnsLocationMissing
 import com.rndeveloper.paparcar.presentation.permissions.rememberRequestFineLocationAction
 import com.rndeveloper.paparcar.presentation.util.MapForegroundEffect
 import androidx.compose.runtime.State
@@ -973,6 +974,16 @@ private fun HomeCameraEffects(
             selectedSpot = state.selectedSpot?.let { it.location.latitude to it.location.longitude },
             user = gps.latitude to gps.longitude,
         )
+    }
+
+    // [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001] No location at all (permission denied or GPS
+    // off) and no fix in hand, but a car is parked: the initial focus above will never fire, so fly to
+    // the car instead. A live trip owns the camera. One-shot inside the controller.
+    val locationUnavailable = !state.hasCorePermissions || state.detectionUiState.warnsLocationMissing
+    LaunchedEffect(state.userParking?.id, locationUnavailable) {
+        val parking = state.userParking ?: return@LaunchedEffect
+        if (!locationUnavailable || state.userGpsPoint != null || drivingPuck.value != null) return@LaunchedEffect
+        uiController.centerOnParkingWithoutLocation(parking.location.latitude to parking.location.longitude)
     }
 
     // Re-frame the car once if its session loads just after the first GPS fix (common race), unless

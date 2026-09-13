@@ -186,6 +186,24 @@ class HomeUiController {
     }
 
     /**
+     * The initial focus for a Home that has NO position to wait for — location permission denied or
+     * GPS off — while a car is parked: fly to the car. [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001]
+     *
+     * [centerInitialFocus] needs the first fix, and without location it never comes, so Home used to
+     * open on whatever default the map had while the user's own car sat somewhere off screen. The car
+     * is the one place Home knows without a fix. Tight on it, like the parked branch of the initial
+     * focus, and it consumes the same one-shot: if location arrives later the camera stays on the car
+     * instead of jumping, and [refocusOnParkingArrival] has nothing left to do. Same guards as the
+     * initial focus: a pan or a pin being placed win.
+     */
+    fun centerOnParkingWithoutLocation(parking: Pair<Double, Double>) {
+        if (centeredOnUser || userMovedCameraManually || pinPlacementActive) return
+        centeredOnUser = true
+        initialFocusWasParking = true
+        setTarget(parking.first, parking.second, zoom = FOCUS_PARKED_ZOOM)
+    }
+
+    /**
      * [UI-THE-ASK-IS-A-CAMERA-SUBJECT-001] The place an open "did you park?" question is about, framed
      * as a camera subject of its own. Once per QUESTION, keyed by its post timestamp — the same
      * identity and the same "once" the sheet's auto-open already uses, so the sheet and the map can

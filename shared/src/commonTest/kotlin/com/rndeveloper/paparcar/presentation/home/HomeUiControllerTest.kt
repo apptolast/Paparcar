@@ -299,4 +299,31 @@ class HomeUiControllerTest {
         val target = assertNotNull(controller.cameraTarget)
         assertEquals(USER_LAT, target.lat)
     }
+
+    // ── No location, parked car → the camera goes to the car ──
+    // [HOME-LOCATION-WARNING-IS-A-BADGE-NOT-A-MODAL-001]
+
+    @Test
+    fun should_flyToTheParkedCar_when_thereIsNoLocationToWaitFor() {
+        val controller = HomeUiController()
+
+        controller.centerOnParkingWithoutLocation(CAR_LAT to CAR_LON)
+
+        val target = assertNotNull(controller.cameraTarget)
+        assertEquals(CAR_LAT, target.lat)
+        assertEquals(CAR_LON, target.lon)
+    }
+
+    @Test
+    fun should_stayOnTheCar_when_locationArrivesAfterwards() {
+        val controller = HomeUiController()
+        controller.centerOnParkingWithoutLocation(CAR_LAT to CAR_LON)
+
+        controller.centerInitialFocus(parking = CAR_LAT to CAR_LON, selectedSpot = null, user = USER_LAT to USER_LON)
+        controller.refocusOnParkingArrival(parking = CAR_LAT to CAR_LON, user = USER_LAT to USER_LON)
+
+        val target = assertNotNull(controller.cameraTarget)
+        assertEquals(CAR_LAT, target.lat)
+        assertEquals(null, target.boundsLat2, "no second move onto car + user")
+    }
 }

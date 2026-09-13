@@ -93,3 +93,7 @@ Un único predicado en la proyección y dos superficies que lo leen:
    sustituye. Sin coche, Home vive sin ubicación y no avisa.
 2. **Se mantiene la fila ámbar** en la lista además del badge.
 3. Al denegar la primera petición el sheet se abre mostrando el aviso (ver Diseño).
+4. **Sin ubicación y con un coche aparcado, la cámara vuela al coche** (segunda revisión):
+   `HomeUiController.centerOnParkingWithoutLocation` — el foco inicial normal espera al primer fix, que
+   sin permiso o sin GPS no llega. Consume el mismo one-shot, así que si luego llega la ubicación la
+   cámara no salta. `HomeUiControllerTest` cubre las dos cosas.
