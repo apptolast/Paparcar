@@ -80,7 +80,7 @@ internal fun PublicParkingPeek(
         subtitle = kindLabel.takeIf { it != title },
         onDismiss = { onIntent(HomeIntent.SelectItem(null)) },
         // ‹ / › walk the car parks in the list's own order, through the SAME action a row or a
-        // capsule fires — the spot and fuel peeks' stepper, third lane.
+        // capsule fires — the same stepper the spot and fuel peeks use.
         // [CARPARK-DETAIL-HAS-PREV-NEXT-CLOSE-001]
         stepper = PapSheetStepper(
             prevContentDescription = stringResource(Res.string.parking_peek_step_prev),

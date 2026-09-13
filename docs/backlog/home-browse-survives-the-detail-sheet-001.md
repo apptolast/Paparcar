@@ -1,6 +1,6 @@
 # HOME-BROWSE-SURVIVES-THE-DETAIL-SHEET-001 · Cerrar un detalle devuelve el browse tal como estaba
 
-**Estado:** 🟡 En revisión · PR desde rama `bugfix/HOME-BROWSE-SURVIVES-THE-DETAIL-SHEET-001` ·
+**Estado:** ✅ Done — en master (PR [#12](https://github.com/apptolast/Paparcar/pull/12)) ·
 GitHub issue [#6](https://github.com/apptolast/Paparcar/issues/6)
 
 ## Problema
@@ -78,12 +78,9 @@ Un sitio por cada pieza de estado perdida:
 | `homeSheetItems` en previews / galería | `rowsScroll` opcional, null = como antes |
 | Refetch del carril al volar la cámara a un parking/gasolinera | **no cambiado** — ver pregunta 2 |
 
-## Preguntas abiertas (para la revisión)
-1. El restore aplica también al volver de los modos de pin (reportar plaza, añadir zona, marcar
-   aparcamiento). Parece el mismo invariante; si preferís que esos vuelvan siempre a peek, es una
-   condición.
-2. Al abrir un parking/gasolinera desde la lista la cámara vuela hasta él, y si se aleja lo
-   bastante (`ViewportRefetch.REFETCH_AT_FRACTION`) el carril se vuelve a pedir para esa zona: al
-   volver, la lista puede traer otros elementos. Es el diseño de «un solo almacén que sigue a la
-   cámara» [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]; no se ha tocado. ¿Queréis congelar el refetch
-   mientras hay un detalle abierto desde la lista?
+## Decisiones de la revisión (13-09-2026)
+1. **Aceptado**: el browse recuerda su altura también al volver de los modos de pin (reportar plaza,
+   añadir zona, marcar aparcamiento).
+2. El refetch del carril al volar la cámara a un parking/gasolinera queda **como estaba** (sin
+   decisión en la revisión): sigue el diseño de un solo almacén que sigue a la cámara
+   [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]. Si molesta en uso real, ticket aparte.

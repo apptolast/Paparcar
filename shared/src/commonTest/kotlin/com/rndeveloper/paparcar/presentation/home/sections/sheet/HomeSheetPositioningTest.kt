@@ -199,8 +199,8 @@ class HomeSheetPositioningTest {
 
     @Test
     fun should_resolveTheDetent_againstTheGeometryOfTheFrameItReturnsTo() {
-        // The detail's taller peek (600px) is gone and Browse's own (400px) is back: EXPANDED lands
-        // on Browse's anchor, not on a pixel remembered from before.
+        // Resolved in the frame Browse comes back to (its own 400px peek), not from a pixel
+        // remembered while a taller detail peek was on screen.
         val browse = compute(peekHeightPx = 400f, isPureBrowsePeek = true)
         assertEquals(840f, browse.offsetOf(BrowseDetent.EXPANDED))
         assertEquals(1220f, browse.offsetOf(BrowseDetent.HALF))

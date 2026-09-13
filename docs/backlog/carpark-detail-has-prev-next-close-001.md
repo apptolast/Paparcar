@@ -1,6 +1,6 @@
 # CARPARK-DETAIL-HAS-PREV-NEXT-CLOSE-001 · El peek de parking público pasa al siguiente sin volver al mapa
 
-**Estado:** 🟡 En revisión · PR desde rama `feature/CARPARK-DETAIL-HAS-PREV-NEXT-CLOSE-001` ·
+**Estado:** ✅ Done — en master (PR [#10](https://github.com/apptolast/Paparcar/pull/10)) ·
 GitHub issue [#8](https://github.com/apptolast/Paparcar/issues/8)
 
 ## Problema
@@ -24,7 +24,7 @@ comparten `PapSheet`, y uno de ellos se quedaba sin su stepper. No rompe ningún
   volar la cámara + expandir).
 
 ## Diseño
-Tercer carril del molde existente [UI-PEEK-STEPS-BETWEEN-PINS-001], sin tocar el ViewModel:
+El carril que les faltaba a los parkings en el molde existente [UI-PEEK-STEPS-BETWEEN-PINS-001], sin tocar el ViewModel:
 - `HomePeekSlice.publicParkingStep` = `PeekStep.of(publicParkings ids, selectedPublicParking id)`.
   Un parking que desaparece en una recarga da `PeekStep.None`, nunca bordes inventados.
 - `PublicParkingPeek(step)` → `PapSheetStepper` con ‹ / › → `SelectPublicParking`, la MISMA acción

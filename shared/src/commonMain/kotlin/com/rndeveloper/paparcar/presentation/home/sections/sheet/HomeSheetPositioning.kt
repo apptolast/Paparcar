@@ -284,7 +284,8 @@ private suspend fun Animatable<Float, AnimationVector1D>.settleAtPeek(
  * ⛔ Not straight from the selection change: the snap points of the Browse state exist one frame
  * AFTER it (see [UI-SHEET-SPOT-PEEK-RESTS-ON-ITS-CONTENT-001]) — until then the geometry is still the
  * detail's, capped at peek, and every anchor resolves to peek. So it waits for the cap to lift, gives
- * the list one frame to come back and measure (a short list lowers `full` and with it `expanded`),
+ * the list one frame to come back and measure (a short list caps `full` at its content height, and
+ * `expanded` with it),
  * and after landing re-aims once at the anchor as it is NOW: the peek header is still shrinking
  * under the flight.
  */
