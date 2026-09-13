@@ -34,8 +34,12 @@ class ViewportRefetchTest {
         val madridLon = -3.7038
         // Toledo (~65 km): past the limit — a refuel question nobody is asking.
         assertEquals(false, ViewportRefetch.isWorthAsking(39.8628, -4.0273, madridLat, madridLon))
-        // Alcalá de Henares (~30 km): the real case, "I am driving there".
-        assertEquals(true, ViewportRefetch.isWorthAsking(40.4820, -3.3635, madridLat, madridLon))
+        // Alcalá de Henares (~29 km): also past it since the limit dropped from 50 to 20 km. ⛔ This
+        // assertion kept saying `true` and failed on master from that commit on.
+        // [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
+        assertEquals(false, ViewportRefetch.isWorthAsking(40.4820, -3.3635, madridLat, madridLon))
+        // Getafe (~13 km): inside — the neighbouring town you are heading to.
+        assertEquals(true, ViewportRefetch.isWorthAsking(40.3057, -3.7329, madridLat, madridLon))
         // No fix yet: nothing to measure against, so the camera is trusted.
         assertEquals(true, ViewportRefetch.isWorthAsking(48.8566, 2.3522, null, null))
     }

@@ -23,7 +23,6 @@ import com.rndeveloper.paparcar.domain.repository.VehicleRepository
 import com.rndeveloper.paparcar.domain.repository.ZoneRepository
 import com.rndeveloper.paparcar.domain.fuel.FuelStationsQuery
 import com.rndeveloper.paparcar.domain.model.DetectionReliabilityLevel
-import com.rndeveloper.paparcar.domain.model.FuelType
 import com.rndeveloper.paparcar.domain.model.GpsPoint
 import com.rndeveloper.paparcar.presentation.home.model.ViewportRefetch
 import com.rndeveloper.paparcar.domain.model.ParkingDetectionConfig
@@ -51,13 +50,16 @@ import kotlinx.coroutines.withTimeoutOrNull
 import com.rndeveloper.paparcar.domain.usecase.zone.SaveOrUpdateZoneUseCase
 import com.rndeveloper.paparcar.domain.util.PaparcarLogger
 import com.rndeveloper.paparcar.presentation.base.BaseViewModel
+import com.rndeveloper.paparcar.presentation.home.model.HomeFuelSlice
 import com.rndeveloper.paparcar.presentation.home.model.HomeNearbyLens
+import com.rndeveloper.paparcar.presentation.home.model.HomeParkingsSlice
 import com.rndeveloper.paparcar.presentation.home.model.isDetectionStopped
 import com.rndeveloper.paparcar.presentation.home.model.isDetectionWorking
 import com.rndeveloper.paparcar.presentation.home.model.toUiState
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.catch
@@ -164,11 +166,9 @@ class HomeViewModel(
 
     private var cameraSettledJob: Job? = null
 
-    // [FUEL-LAYER-FOLLOWS-THE-CAMERA-001] Debounce of the viewport ask, and the last camera centre
-    // (for the moments the layer needs a centre before any settle — toggle-on, first fix).
-    private var fuelViewportJob: Job? = null
-    private var parkingsViewportJob: Job? = null
-    private var sectionsRefetchJob: Job? = null
+    // [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001] Debounce of the nearby ask, and the last camera centre
+    // (for the moments a lane needs a centre before any settle — entering it, the first fix).
+    private var nearbyCameraJob: Job? = null
     private var lastCameraLat: Double? = null
     private var lastCameraLon: Double? = null
 
@@ -190,7 +190,7 @@ class HomeViewModel(
         // keeps serving the cache). Sessions escalate to a snackbar; the rest log. [HOMEVM-CTRL-003]
         userParkingRepository.observeActiveSessions()
             .collectInto("activeSessions", notify = { e -> PaparcarError.Database.Unknown(e.message ?: "") }) {
-                copy(activeSessions = it)
+                withActiveSessions(it)
             }
         observeParkedVehicles().collectInto("parkedVehicles") { copy(parkedVehicles = it) }
         zoneRepository.observeZones().collectInto("zones") { copy(zones = it) }
@@ -374,6 +374,8 @@ class HomeViewModel(
             -> handleSpotIntent(intent)
 
             // Own parking sessions
+            is HomeIntent.OpenReleaseDialog,
+            is HomeIntent.DismissReleaseDialog,
             is HomeIntent.ReleaseParking,
             is HomeIntent.EnterAddParkingMode,
             is HomeIntent.ExitAddParkingMode,
@@ -472,13 +474,10 @@ class HomeViewModel(
         }
         geocodeCameraLocation(lat, lon)
         // Browse only: while a pin is being placed the map is the pin's canvas, not a browser.
-        // [FUEL-LAYER-FOLLOWS-THE-CAMERA-001]
+        // The lane on show travels with the camera — list and pins together, one store.
+        // [A-SECTION-ANSWERS-ABOUT-WHERE-YOU-LOOK-001] [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
         if (state.value.mode is HomeMode.Browse) {
-            scheduleFuelViewportRefetch(lat, lon)
-            scheduleParkingsViewportRefetch(lat, lon)
-            // The OPEN sections travel with the camera too, or the sheet contradicts its own header.
-            // [A-SECTION-ANSWERS-ABOUT-WHERE-YOU-LOOK-001]
-            scheduleSectionsRefetch(lat, lon)
+            scheduleNearbyRefresh(lat, lon)
         }
     }
 
@@ -587,202 +586,188 @@ class HomeViewModel(
         when (lens) {
             // The spots feed is already live — it is the app's standing subscription, not an ask.
             HomeNearbyLens.SPOTS -> Unit
-            // ⛔ ONE request per entry, not two. The lane asks around the USER and the map reads that
-            // same answer (the map slice unions both stores), so the camera-anchored layer only asks
-            // once the camera has actually moved. Firing both here would double every entry against a
-            // free shared service — the cost this project already paid once for.
-            // [FUEL-LAYER-FOLLOWS-THE-CAMERA-001]
-            //
-            // The fallback is the case where the LIST has no question to ask: a car with no fuel type
-            // has no priced question, but the stations are there whatever the car burns, so the map
-            // asks fuel-less. Markers without a figure are honest; an empty map is not.
-            HomeNearbyLens.FUEL -> {
-                val listCoversTheMap = askFuelForLane()
-                if (!listCoversTheMap) {
-                    viewportCentreOrGps()?.let { (lat, lon) -> maybeFetchFuelViewport(lat, lon) }
-                }
-            }
-            HomeNearbyLens.PARKINGS -> askParkingsForLane()
+            // ONE request per entry, into the ONE store every surface reads — and none at all when
+            // the store already answers for where the camera is. [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
+            HomeNearbyLens.FUEL, HomeNearbyLens.PARKINGS -> refreshNearby(lens, NearbyTrigger.ENTER)
         }
     }
 
-    /**
-     * The refuel ask, as the lane needs it. [FUEL-STATIONS-LIST-001]
-     *
-     * Every early return here is a SENTENCE the lane will say, and they are different sentences on
-     * purpose. [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
-     *
-     * @return whether a request actually went out. The caller needs to know: when the list had no
-     * question to ask, the MAP still does.
-     */
-    private fun askFuelForLane(): Boolean {
-        val slice = state.value.fuel
+    // ── Fuel stations & public car parks ──────────────────────────────────────
+    // [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
+    //
+    // ONE store per subject and ONE way into it, the shape the free spots already had: a single
+    // answer about where the camera looks, which the lane lists, the map paints, the peek steps
+    // through and a tap resolves against.
+    //
+    // ⛔ What this replaced, so nobody rebuilds it: a lane store plus a camera-anchored "layer" store,
+    // each with its own anchor and its own requests, and every surface painting their UNION. The union
+    // mixed areas — rows for pins that had panned off-screen, measured from a centre nobody was looking
+    // at — and the two request paths had drifted apart: a pan during an in-flight ask was DROPPED
+    // (`isLoading` guard), past 20 km only one store emptied, and the parkings layer had been left with
+    // the GPS fix as its only trigger, re-asking a failed Overpass on every fix.
 
-        // The fuel of the car being driven, or the active one — the price shown has to be the price
-        // of what THIS driver actually puts in. ⛔ Without one there is no question to ask, and that
-        // is SAID as its own state, EVEN when the map layer already loaded unpriced stations:
-        // rendering it as an empty (or priceless) list fabricated a claim no source ever answered.
-        val fuelType = activeFuelType()
-        if (fuelType == null) {
-            updateState { copy(fuel = fuel.copy(missingFuelType = true, failed = false)) }
-            return false
-        }
+    /** What woke the nearby ask — each earns a different amount of authority over the store. */
+    private enum class NearbyTrigger {
+        /** The user entered the lane: a question with no answer yet, or a stale one, is asked. */
+        ENTER,
 
-        // Already answered FOR THIS FUEL, or already asking: re-entering must not re-ask. An answer
-        // the layer fetched fuel-less is a different question — repriced below.
-        //
-        // ⛔ Al re-entrar hay que comprobar si seguimos en el mismo sitio: si el usuario movió el
-        // mapa mientras estaba en otra pestaña, los datos que tenemos son de una zona que ya no mira.
-        // [A-SECTION-ANSWERS-ABOUT-WHERE-YOU-LOOK-001]
-        val centre = viewportCentreOrGps()
-        val isStale = centre != null && ViewportRefetch.shouldRefetch(
-            slice.anchorLat, slice.anchorLon, centre.first, centre.second,
-            FuelStationsQuery.DEFAULT_RADIUS_METERS,
-        )
+        /** The camera settled: the question moves with it, past half the radius. */
+        CAMERA,
 
-        if (!isStale && (slice.isLoading || (slice.stations.isNotEmpty() && slice.fetchedFor == fuelType))) {
-            updateState { copy(fuel = fuel.copy(missingFuelType = false)) }
-            // Nothing went out, and nothing needs to: the answer is already here and the map reads it.
-            return true
-        }
-
-        // ⛔ Alrededor de la CÁMARA, no de ti. Un sheet cuya cabecera dice "Calle Ronda de los
-        // Alunados" no puede listar lo que hay junto a una casa a seis kilómetros — y lo hacía: el
-        // mapa pintaba seis parkings sobre Jerez mientras la lista decía "ninguno a 1,5 km", las dos
-        // afirmaciones ciertas y las dos inútiles juntas. [A-SECTION-ANSWERS-ABOUT-WHERE-YOU-LOOK-001]
-        //
-        // El carril hereda esa regla entera, y encima la simplifica: con UN sujeto a la vista, el
-        // mapa y la lista preguntan por el MISMO sitio con el MISMO radio, así que la contradicción
-        // ya no tiene dónde nacer. [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
-        //
-        if (centre == null) {
-            updateState { copy(fuel = fuel.copy(failed = true, missingFuelType = false)) }
-            // Sin centro tampoco puede preguntar el MAPA: no hay alrededor de qué.
-            return true
-        }
-
-        loadFuelStations(centre.first, centre.second, fuelType)
-        return true
+        /**
+         * A GPS fix. ⛔ It never re-asks a failed or a stale answer: that is exactly the one-request-
+         * every-5-s storm measured against Overpass on 09-09. It only supplies a centre the lane was
+         * waiting for, and re-judges how far the camera is from the user.
+         */
+        FIX,
     }
 
+    /** Lanes that were entered with no centre to ask around; the first fix asks for them. */
+    private val nearbyAwaitingCentre = mutableSetOf<HomeNearbyLens>()
+
+    // Latest-wins, like the spots' `flatMapLatest`: a new ask CANCELS the one in flight instead of
+    // being dropped behind it. Overpass can take 20 s, and a pan inside that window used to leave the
+    // store on the previous area until the camera happened to move again.
+    private var fuelJob: Job? = null
+    private var parkingsJob: Job? = null
 
     /**
-     * The layer follows the CAMERA. [FUEL-LAYER-FOLLOWS-THE-CAMERA-001]
+     * The one decision about whether [subject]'s store must ask, stay, or empty itself.
      *
-     * Called with the point the camera settled on (debounced by [scheduleFuelViewportRefetch]) or
-     * with the best-known centre when the layer turns on / the first fix lands. The pure
-     * [ViewportRefetch] decides whether the move earns a fresh ask.
-     *
-     * ⛔ **A failed ask puts the anchor BACK.** Advancing it on the attempt looked like sensible
-     * anti-hammering until a transient Overpass 504 left Paris permanently blank: the layer had
-     * "already asked here" and would not try again until the user panned kilometres away. There is
-     * no hammering to prevent — asks only fire on camera events, which only exist while the user
-     * moves the map. Failure logs and keeps whatever stations were showing (the layer has no error
-     * sentence of its own; the section owns those).
+     * - No centre (no camera, no fix): the lane says it could not ask, and waits for the first fix.
+     * - Further from the user than [ViewportRefetch.MAX_FROM_USER_METERS]: the store EMPTIES and says
+     *   it is too far — map and list together, never your own city's pins over another one.
+     * - Otherwise it asks when nothing answers for this centre: no anchor (never asked, or the last
+     *   ask failed), the camera moved past half the radius, or — fuel — the car now burns something
+     *   the answer was not filtered for.
      */
-    private fun maybeFetchFuelViewport(lat: Double, lon: Double) {
+    private fun refreshNearby(
+        subject: HomeNearbyLens,
+        trigger: NearbyTrigger,
+        centre: Pair<Double, Double>? = viewportCentreOrGps(),
+    ) {
+        if (subject == HomeNearbyLens.SPOTS) return
         val s = state.value
-        if (!s.showsFuelOnMap || s.fuelLayer.isLoading) return
-        // Not a place (0,0 before the map has a camera), or too far from the user to be a refuel
-        // question. Past the limit the layer EMPTIES: showing your own city's stations over a
-        // distant one is the lie this ticket exists to stop.
+
+        if (centre == null) {
+            if (trigger == NearbyTrigger.FIX) return
+            nearbyAwaitingCentre += subject
+            // "We could not ask" — never the empty sentence, which is a verdict about the world.
+            when (subject) {
+                HomeNearbyLens.FUEL -> updateState {
+                    copy(fuel = fuel.copy(isLoading = false, failed = true, tooFar = false, missingFuelType = false))
+                }
+                HomeNearbyLens.PARKINGS -> updateState {
+                    copy(parkings = parkings.copy(isLoading = false, failed = true, tooFar = false))
+                }
+                HomeNearbyLens.SPOTS -> Unit
+            }
+            return
+        }
+        val (lat, lon) = centre
+        val wasAwaitingCentre = subject in nearbyAwaitingCentre
+
         if (!ViewportRefetch.isWorthAsking(lat, lon, s.userGpsPoint?.latitude, s.userGpsPoint?.longitude)) {
-            if (s.fuelLayer.stations.isNotEmpty()) {
+            nearbyAwaitingCentre -= subject
+            emptyNearbyAsTooFar(subject)
+            return
+        }
+
+        val anchorLat: Double?
+        val anchorLon: Double?
+        val radius: Int
+        val wasTooFar: Boolean
+        val questionChanged: Boolean
+        when (subject) {
+            HomeNearbyLens.FUEL -> {
+                anchorLat = s.fuel.anchorLat
+                anchorLon = s.fuel.anchorLon
+                radius = FuelStationsQuery.DEFAULT_RADIUS_METERS
+                wasTooFar = s.fuel.tooFar
+                questionChanged = s.fuel.fetchedFor != activeFuelType()
+            }
+            HomeNearbyLens.PARKINGS -> {
+                anchorLat = s.parkings.anchorLat
+                anchorLon = s.parkings.anchorLon
+                radius = PublicParkingsQuery.DEFAULT_RADIUS_METERS
+                wasTooFar = s.parkings.tooFar
+                questionChanged = false
+            }
+            HomeNearbyLens.SPOTS -> return
+        }
+
+        // A fix supplies a missing centre or brings a too-far lane back into range. Nothing else.
+        if (trigger == NearbyTrigger.FIX && !wasAwaitingCentre && !wasTooFar) return
+        nearbyAwaitingCentre -= subject
+
+        val moved = ViewportRefetch.shouldRefetch(anchorLat, anchorLon, lat, lon, radius)
+        if (!moved && !questionChanged) return
+
+        when (subject) {
+            HomeNearbyLens.FUEL -> fetchFuelStations(lat, lon)
+            HomeNearbyLens.PARKINGS -> fetchPublicParkings(lat, lon)
+            HomeNearbyLens.SPOTS -> Unit
+        }
+    }
+
+    /**
+     * Past the follow limit the store holds NOTHING and says why. The anchor goes with the rows, so
+     * coming back into range asks again instead of restoring an answer about somewhere else.
+     */
+    private fun emptyNearbyAsTooFar(subject: HomeNearbyLens) {
+        val s = state.value
+        when (subject) {
+            HomeNearbyLens.FUEL -> {
+                if (s.fuel.tooFar && s.fuel.stations.isEmpty() && s.fuel.anchorLat == null) return
+                fuelJob?.cancel()
                 updateState {
                     copy(
-                        // The anchor goes too: coming back must ASK again, not restore a store the
-                        // layer already emptied.
-                        fuelLayer = fuelLayer.copy(
-                            stations = emptyList(),
-                            anchorLat = null,
-                            anchorLon = null,
-                        ),
+                        fuel = HomeFuelSlice(tooFar = true),
                         selection = selection.takeUnless { it is HomeSelection.FuelStation },
                     )
                 }
             }
-            return
-        }
-        val previousAnchorLat = s.fuelLayer.anchorLat
-        val previousAnchorLon = s.fuelLayer.anchorLon
-        if (!ViewportRefetch.shouldRefetch(
-                s.fuelLayer.anchorLat, s.fuelLayer.anchorLon,
-                lat, lon,
-                FuelStationsQuery.DEFAULT_RADIUS_METERS,
-            )
-        ) return
-
-        updateState {
-            copy(fuelLayer = fuelLayer.copy(anchorLat = lat, anchorLon = lon, isLoading = true))
-        }
-        viewModelScope.launch {
-            getNearbyFuelStations(lat, lon, activeFuelType())
-                .onSuccess { nearby ->
-                    // The layer's own verdict, quotable in a diagnosis: WHERE it asked and what
-                    // came back. Silence used to be ambiguous between "it worked" and "it never
-                    // fired", which cost a device session. [FUEL-LAYER-FOLLOWS-THE-CAMERA-001]
-                    PaparcarLogger.d(
-                        TAG,
-                        "fuel viewport: ${nearby.stations.size} stations around $lat,$lon",
+            HomeNearbyLens.PARKINGS -> {
+                if (s.parkings.tooFar && s.parkings.parkings.isEmpty() && s.parkings.anchorLat == null) return
+                parkingsJob?.cancel()
+                updateState {
+                    copy(
+                        parkings = HomeParkingsSlice(tooFar = true),
+                        selection = selection.takeUnless { it is HomeSelection.PublicParking },
                     )
-                    updateState {
-                        copy(
-                            fuelLayer = fuelLayer.copy(
-                                isLoading = false,
-                                stations = nearby.stations,
-                                rememberedAtMs = nearby.rememberedAtMs,
-                            ),
-                            // A selection that survives in NEITHER store is orphaned — same pruning
-                            // rule as applyNewSpots, scoped to its own kind.
-                            selection = selection.takeUnless { sel ->
-                                sel is HomeSelection.FuelStation &&
-                                    nearby.stations.none { it.station.id == sel.id } &&
-                                    fuel.stations.none { it.station.id == sel.id }
-                            },
-                        )
-                    }
                 }
-                .onFailure { e ->
-                    PaparcarLogger.w(TAG, "fuel viewport lookup failed", e)
-                    updateState {
-                        copy(
-                            fuelLayer = fuelLayer.copy(
-                                isLoading = false,
-                                anchorLat = previousAnchorLat,
-                                anchorLon = previousAnchorLon,
-                            ),
-                        )
-                    }
-                }
+            }
+            HomeNearbyLens.SPOTS -> Unit
         }
     }
 
-    /** Debounced camera-settle trigger for the viewport ask — a nervous pan is not a question. */
-    private fun scheduleFuelViewportRefetch(lat: Double, lon: Double) {
-        if (!state.value.showsFuelOnMap) return
-        // ⛔ Si el carril de este sujeto es el que está a la vista, NO pregunta la capa: ya lo hace
-        // el carril, por el mismo centro y con el mismo radio ([maybeRefetchOpenSections]). Sin este
-        // corte, cada asentamiento de cámara costaba DOS peticiones al mismo servicio gratuito por el
-        // mismo suelo — lo midieron `should_refetchTheOpenLane_when_theCameraSettlesFarEnough` y
-        // `should_askAroundTheSettledCamera_when_itMovedPastHalfTheRadius` al rebasar, contando tres
-        // donde debía haber dos. La capa conserva su camino para la ÚNICA entrada en que el carril no
-        // puede preguntar: un coche SIN COMBUSTIBLE, donde `loadFuelStations` no llega a salir porque
-        // no hay precio que pedir. Por eso el corte comprueba las dos cosas y no solo la lente — con
-        // solo la lente, un coche sin combustible se quedaba sin nadie que siguiera a la cámara y el
-        // mapa dejaba de refrescar sus cápsulas al panear.
-        // [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001] [A-SECTION-ANSWERS-ABOUT-WHERE-YOU-LOOK-001]
-        if (state.value.nearbyLens == HomeNearbyLens.FUEL && activeFuelType() != null) return
-        fuelViewportJob?.cancel()
-        fuelViewportJob = viewModelScope.launch {
-            delay(FUEL_VIEWPORT_SETTLE_MS)
-            maybeFetchFuelViewport(lat, lon)
+    /** Debounced camera-settle trigger — a nervous pan is not a question. Only the lane on show asks:
+     *  a subject nobody is looking at downloads nothing. */
+    private fun scheduleNearbyRefresh(lat: Double, lon: Double) {
+        val lens = state.value.nearbyLens
+        if (lens == HomeNearbyLens.SPOTS) return
+        nearbyCameraJob?.cancel()
+        nearbyCameraJob = viewModelScope.launch {
+            delay(NEARBY_CAMERA_SETTLE_MS)
+            // Re-read at fire time: the lane or the mode may have changed during the rest.
+            val now = state.value
+            if (now.nearbyLens == lens && now.mode is HomeMode.Browse) {
+                refreshNearby(lens, NearbyTrigger.CAMERA, lat to lon)
+            }
         }
     }
 
-    /** Best-known viewport centre for the moments no camera event has fired yet (cold start). */
-    private fun viewportCentreOrGps(): Pair<Double, Double>? =
-        lastCameraLat?.let { lat -> lastCameraLon?.let { lon -> lat to lon } }
-            ?: state.value.userGpsPoint?.let { it.latitude to it.longitude }
+    /**
+     * Best-known centre: the settled camera when it has spoken, the fix otherwise (cold start).
+     * ⛔ (0, 0) is not a camera, it is a map that has no camera yet — falling through to the fix
+     * there is what keeps a lane from asking the Gulf of Guinea.
+     */
+    private fun viewportCentreOrGps(): Pair<Double, Double>? {
+        val camLat = lastCameraLat
+        val camLon = lastCameraLon
+        if (camLat != null && camLon != null && !(camLat == 0.0 && camLon == 0.0)) return camLat to camLon
+        return state.value.userGpsPoint?.let { it.latitude to it.longitude }
+    }
 
     /**
      * ⛔ One definition, in the state, read by the ask AND by every surface that shows a figure.
@@ -791,23 +776,39 @@ class HomeViewModel(
      */
     private fun activeFuelType() = state.value.pricedFuelType
 
-    /** The ONE fetch both surfaces share — section rows and map markers read the same answer. */
-    private fun loadFuelStations(lat: Double, lon: Double, fuelType: FuelType?) {
-        val previousAnchorLat = state.value.fuel.anchorLat
-        val previousAnchorLon = state.value.fuel.anchorLon
+    /**
+     * The ONE fuel request. [FUEL-STATIONS-LIST-001] [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
+     *
+     * Asked for the car's fuel when it has one, fuel-less when it does not: the lane then says its
+     * own sentence (`missingFuelType`) while the map paints capsules without a figure — honest either
+     * way, and the SAME stations underneath.
+     */
+    private fun fetchFuelStations(lat: Double, lon: Double) {
+        val fuelType = activeFuelType()
+        fuelJob?.cancel()
         updateState {
             copy(
                 fuel = fuel.copy(
-                    isLoading = true, failed = false, missingFuelType = false,
-                    // Where this answer is ABOUT — what stops the next camera settle from re-asking
-                    // the same place, and what makes "has it moved enough?" answerable at all.
-                    anchorLat = lat, anchorLon = lon,
+                    // The previous rows stay on show while the answer flies, like the spots do.
+                    isLoading = true,
+                    failed = false,
+                    tooFar = false,
+                    missingFuelType = fuelType == null,
+                    fetchedFor = fuelType,
+                    // Set on the ATTEMPT, so the same ground is not asked twice while it flies.
+                    anchorLat = lat,
+                    anchorLon = lon,
                 ),
             )
         }
-        viewModelScope.launch {
-            getNearbyFuelStations(lat, lon, fuelType)
+        fuelJob = viewModelScope.launch {
+            val result = getNearbyFuelStations(lat, lon, fuelType)
+            // A superseded ask writes nothing, even when a source folded the cancellation into a
+            // failed Result.
+            ensureActive()
+            result
                 .onSuccess { nearby ->
+                    PaparcarLogger.d(TAG, "fuel: ${nearby.stations.size} stations around $lat,$lon")
                     updateState {
                         copy(
                             fuel = fuel.copy(
@@ -819,238 +820,64 @@ class HomeViewModel(
                                 didFallBack = nearby.didFallBack,
                                 fetchedFor = nearby.fuel,
                             ),
-                            // El mapa lee TAMBIÉN esta respuesta (el slice del mapa une las dos
-                            // tiendas), así que la capa anclada a la cámara apunta DÓNDE se preguntó y
-                            // deja de pedir por el mismo suelo. Sin esto, el primer paneo nervioso tras
-                            // entrar en el carril disparaba una segunda petición por terreno ya
-                            // cubierto — lo mide `should_notReaskOnEveryFix_when_theCameraHasNotMoved`.
-                            //
-                            // Desde el rebase las dos preguntan por la CÁMARA, así que el sitio es
-                            // literalmente el mismo y el sello es exacto, no una aproximación.
-                            // [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
-                            // [A-SECTION-ANSWERS-ABOUT-WHERE-YOU-LOOK-001]
-                            fuelLayer = fuelLayer.copy(anchorLat = lat, anchorLon = lon),
+                            // A selection whose pin is gone has no subject any more.
+                            selection = selection.takeUnless { sel ->
+                                sel is HomeSelection.FuelStation &&
+                                    nearby.stations.none { it.station.id == sel.id }
+                            },
                         )
                     }
                 }
-                // ⛔ A failure is NOT an empty list: the section says "we could not ask", never
-                // "there are none nearby", which would send the user driving on an unchecked claim.
-                // And it is logged: a swallowed exception here left a real device failure
-                // undiagnosable. [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
+                // ⛔ A failure is NOT an empty list: the lane says "we could not ask", never "there are
+                // none nearby". The rows go — map and list both stop showing another area's answer —
+                // and so does the ANCHOR, so any camera move retries, in the same place too: a
+                // transient 504 once left Paris blank until the user panned kilometres away.
+                // [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001] [FUEL-LAYER-FOLLOWS-THE-CAMERA-001]
                 .onFailure { e ->
                     PaparcarLogger.w(TAG, "fuel stations lookup failed", e)
-                    // ⛔ **Una petición fallida devuelve el ANCLA a donde estaba.** Es la misma regla
-                    // que la capa ya pagó en campo: con el ancla avanzada sobre el INTENTO, un 504
-                    // pasajero de Overpass dejaba París en blanco y ningún paneo por debajo de medio
-                    // radio volvía a intentarlo. Master estrenó el carril anclado a la cámara sin esta
-                    // vuelta atrás — no se veía porque la capa seguía preguntando por su cuenta; al
-                    // pasar el carril a ser quien sigue a la cámara, el agujero queda al descubierto.
-                    // Lo caza `should_askAgainInTheSamePlace_when_theFirstAskFailed`.
-                    // [FUEL-LAYER-FOLLOWS-THE-CAMERA-001] [A-SECTION-ANSWERS-ABOUT-WHERE-YOU-LOOK-001]
                     updateState {
                         copy(
                             fuel = fuel.copy(
                                 isLoading = false,
                                 failed = true,
-                                anchorLat = previousAnchorLat,
-                                anchorLon = previousAnchorLon,
+                                stations = emptyList(),
+                                reportedAt = null,
+                                rememberedAtMs = null,
+                                didFallBack = false,
+                                anchorLat = null,
+                                anchorLon = null,
                             ),
+                            selection = selection.takeUnless { it is HomeSelection.FuelStation },
                         )
                     }
                 }
         }
     }
 
-    // ── Public parkings ───────────────────────────────────────────────────────
-    // Same three rules as fuel, and for the same reasons: one fetch feeds the section AND the layer,
-    // a failure is never rendered as "none nearby", and switching the layer off drops a selection
-    // that would otherwise keep a peek talking about an invisible pin. [PARKINGS-ON-THE-MAP-001]
-
-    /**
-     * The car-parks ask, as the lane needs it — twin of [askFuelForLane].
-     *
-     * ⛔ No return value here, unlike the fuel one, and that is not an oversight: fuel has a case
-     * where the LIST has no question but the MAP does (a car with no fuel type). A car park is a car
-     * park whatever the car burns, so this lane and its map always want the same answer.
-     */
-    private fun askParkingsForLane() {
-        val slice = state.value.parkings
-        // Alrededor de la CÁMARA, por lo mismo que el combustible.
-        // [A-SECTION-ANSWERS-ABOUT-WHERE-YOU-LOOK-001]
-        val centre = viewportCentreOrGps()
-
-        // Ya respondido, o preguntando: volver a entrar no re-pregunta... A MENOS que se haya movido.
-        val isStale = centre != null && ViewportRefetch.shouldRefetch(
-            slice.anchorLat, slice.anchorLon, centre.first, centre.second,
-            PublicParkingsQuery.DEFAULT_RADIUS_METERS,
-        )
-        if (!isStale && (slice.isLoading || slice.parkings.isNotEmpty())) return
-
-        if (centre == null) {
-            updateState { copy(parkings = parkings.copy(failed = true)) }
-            return
-        }
-        loadPublicParkings(centre.first, centre.second)
-    }
-
-    /**
-     * The car-parks layer follows the CAMERA, exactly like the fuel one.
-     * [PARKINGS-ON-THE-MAP-001] [FUEL-LAYER-FOLLOWS-THE-CAMERA-001]
-     *
-     * ⛔ It does NOT re-check itself on every GPS fix, and that is a fix rather than a style choice:
-     * the first version of this lane did, and a failed ask over an empty store meant the next fix
-     * asked again — one request every ~5 s against a free shared service, measured on device.
-     * Camera events only exist while the user moves the map, so there is no hammering left to
-     * prevent.
-     *
-     * ⛔ **A failed ask puts the anchor BACK**, for the reason the fuel lane already paid for: an
-     * anchor advanced on a transient failure means "already asked here", and the area stays blank
-     * until the user pans kilometres away.
-     */
-    private fun maybeFetchParkingsViewport(lat: Double, lon: Double) {
-        val s = state.value
-        if (!s.showsParkingsOnMap || s.parkingsLayer.isLoading) return
-        // Not a place (0,0 before the map has a camera), or so far from the user that showing your
-        // own city's car parks over a distant one would be the lie, not the service.
-        if (!ViewportRefetch.isWorthAsking(lat, lon, s.userGpsPoint?.latitude, s.userGpsPoint?.longitude)) {
-            if (s.parkingsLayer.parkings.isNotEmpty()) {
-                updateState {
-                    copy(
-                        parkingsLayer = parkingsLayer.copy(
-                            parkings = emptyList(),
-                            anchorLat = null,
-                            anchorLon = null,
-                        ),
-                        selection = selection.takeUnless { it is HomeSelection.PublicParking },
-                    )
-                }
-            }
-            return
-        }
-        val previousAnchorLat = s.parkingsLayer.anchorLat
-        val previousAnchorLon = s.parkingsLayer.anchorLon
-        if (!ViewportRefetch.shouldRefetch(
-                s.parkingsLayer.anchorLat, s.parkingsLayer.anchorLon,
-                lat, lon,
-                PublicParkingsQuery.DEFAULT_RADIUS_METERS,
-            )
-        ) return
-
+    /** The ONE car-parks request — twin of [fetchFuelStations]. [PARKINGS-ON-THE-MAP-001] */
+    private fun fetchPublicParkings(lat: Double, lon: Double) {
+        parkingsJob?.cancel()
         updateState {
-            copy(parkingsLayer = parkingsLayer.copy(anchorLat = lat, anchorLon = lon, isLoading = true))
+            copy(
+                parkings = parkings.copy(
+                    isLoading = true,
+                    failed = false,
+                    tooFar = false,
+                    anchorLat = lat,
+                    anchorLon = lon,
+                ),
+            )
         }
-        viewModelScope.launch {
-            getNearbyPublicParkings(lat, lon)
+        parkingsJob = viewModelScope.launch {
+            val result = getNearbyPublicParkings(lat, lon)
+            ensureActive()
+            result
                 .onSuccess { found ->
                     PaparcarLogger.d(
                         TAG,
-                        "parkings viewport: ${found.parkings.size} car parks around $lat,$lon" +
+                        "parkings: ${found.parkings.size} car parks around $lat,$lon" +
                             (found.rememberedAtMs?.let { " (remembered from $it)" } ?: ""),
                     )
-                    updateState {
-                        copy(
-                            parkingsLayer = parkingsLayer.copy(
-                                isLoading = false,
-                                parkings = found.parkings,
-                                rememberedAtMs = found.rememberedAtMs,
-                            ),
-                            // A selection alive in NEITHER store is orphaned — same pruning rule as
-                            // the fuel lane, scoped to its own kind.
-                            selection = selection.takeUnless { sel ->
-                                sel is HomeSelection.PublicParking &&
-                                    found.parkings.none { it.parking.id == sel.id } &&
-                                    parkings.parkings.none { it.parking.id == sel.id }
-                            },
-                        )
-                    }
-                }
-                .onFailure { e ->
-                    PaparcarLogger.w(TAG, "parkings viewport lookup failed", e)
-                    updateState {
-                        copy(
-                            parkingsLayer = parkingsLayer.copy(
-                                isLoading = false,
-                                anchorLat = previousAnchorLat,
-                                anchorLon = previousAnchorLon,
-                            ),
-                        )
-                    }
-                }
-        }
-    }
-
-    /**
-     * El CARRIL abierto sigue a la cámara asentada. [A-SECTION-ANSWERS-ABOUT-WHERE-YOU-LOOK-001]
-     *
-     * ⛔ Solo el carril en el que estás: un sujeto que nadie mira no pide nada, que es la regla que
-     * impide descargarse una provincia de gasolineras para una lista que nadie abrió.
-     *
-     * El movimiento tiene que GANARSE la pregunta, igual que en las capas — [ViewportRefetch] sobre
-     * el ancla del propio carril — o cada golpe de mapa costaría una petición.
-     *
-     * 🔑 Con la lente, esto se simplifica solo: antes había que preguntar por DOS secciones que podían
-     * estar desplegadas a la vez; ahora, como mucho, hay una a la vista.
-     * [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
-     */
-    private fun scheduleSectionsRefetch(lat: Double, lon: Double) {
-        if (state.value.nearbyLens == HomeNearbyLens.SPOTS) return
-        sectionsRefetchJob?.cancel()
-        sectionsRefetchJob = viewModelScope.launch {
-            delay(FUEL_VIEWPORT_SETTLE_MS)
-            maybeRefetchOpenSections(lat, lon)
-        }
-    }
-
-    private fun maybeRefetchOpenSections(lat: Double, lon: Double) {
-        val s = state.value
-        if (!ViewportRefetch.isWorthAsking(lat, lon, s.userGpsPoint?.latitude, s.userGpsPoint?.longitude)) return
-
-        when (s.nearbyLens) {
-            // Las plazas ya son una suscripción viva a lo que hay alrededor: no tienen que repreguntar.
-            HomeNearbyLens.SPOTS -> Unit
-
-            HomeNearbyLens.FUEL -> if (!s.fuel.isLoading &&
-                ViewportRefetch.shouldRefetch(
-                    s.fuel.anchorLat, s.fuel.anchorLon, lat, lon,
-                    FuelStationsQuery.DEFAULT_RADIUS_METERS,
-                )
-            ) {
-                activeFuelType()?.let { loadFuelStations(lat, lon, it) }
-            }
-
-            HomeNearbyLens.PARKINGS -> if (!s.parkings.isLoading &&
-                ViewportRefetch.shouldRefetch(
-                    s.parkings.anchorLat, s.parkings.anchorLon, lat, lon,
-                    PublicParkingsQuery.DEFAULT_RADIUS_METERS,
-                )
-            ) {
-                loadPublicParkings(lat, lon)
-            }
-        }
-    }
-
-    /** Debounced camera-settle trigger, the twin of the fuel one. */
-    private fun scheduleParkingsViewportRefetch(lat: Double, lon: Double) {
-        if (!state.value.showsParkingsOnMap) return
-        // Gemelo del de combustible, y por lo mismo: el carril a la vista ya pregunta por este sitio.
-        if (state.value.nearbyLens == HomeNearbyLens.PARKINGS) return
-        parkingsViewportJob?.cancel()
-        parkingsViewportJob = viewModelScope.launch {
-            delay(FUEL_VIEWPORT_SETTLE_MS)
-            maybeFetchParkingsViewport(lat, lon)
-        }
-    }
-
-    /** La petición del carril. MISMO sitio que la capa, y aun así su propia tienda y su propia copia. */
-    private fun loadPublicParkings(lat: Double, lon: Double) {
-        val previousAnchorLat = state.value.parkings.anchorLat
-        val previousAnchorLon = state.value.parkings.anchorLon
-        updateState {
-            copy(parkings = parkings.copy(isLoading = true, failed = false, anchorLat = lat, anchorLon = lon))
-        }
-        viewModelScope.launch {
-            getNearbyPublicParkings(lat, lon)
-                .onSuccess { found ->
                     updateState {
                         copy(
                             parkings = parkings.copy(
@@ -1059,27 +886,27 @@ class HomeViewModel(
                                 parkings = found.parkings,
                                 rememberedAtMs = found.rememberedAtMs,
                             ),
-                            // El mapa lee esta misma respuesta (la unión de las dos tiendas), así que
-                            // la capa anclada a la cámara apunta DÓNDE se preguntó y no vuelve a pedir
-                            // por el mismo suelo. Con las dos ancladas ya a la cámara, el sitio es
-                            // literalmente el mismo. [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
-                            parkingsLayer = parkingsLayer.copy(anchorLat = lat, anchorLon = lon),
+                            selection = selection.takeUnless { sel ->
+                                sel is HomeSelection.PublicParking &&
+                                    found.parkings.none { it.parking.id == sel.id }
+                            },
                         )
                     }
                 }
-                // ⛔ A failure is NOT an empty list: the section says "we could not ask", never
-                // "there are none nearby". [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
+                // Same rule as fuel: no rows, no anchor, and the lane says it could not ask.
                 .onFailure { e ->
                     PaparcarLogger.w(TAG, "public parkings lookup failed", e)
-                    // Misma vuelta atrás del ancla que en el carril de combustible, y por lo mismo.
                     updateState {
                         copy(
                             parkings = parkings.copy(
                                 isLoading = false,
                                 failed = true,
-                                anchorLat = previousAnchorLat,
-                                anchorLon = previousAnchorLon,
+                                parkings = emptyList(),
+                                rememberedAtMs = null,
+                                anchorLat = null,
+                                anchorLon = null,
                             ),
+                            selection = selection.takeUnless { it is HomeSelection.PublicParking },
                         )
                     }
                 }
@@ -1189,6 +1016,11 @@ class HomeViewModel(
 
     private fun handleParkingIntent(intent: HomeIntent) {
         when (intent) {
+            is HomeIntent.OpenReleaseDialog -> updateState { copy(releaseDialogSessionId = intent.sessionId) }
+            // While a release runs, its outcome owns the dialog. [PARK-RELEASE-THE-SCREEN-NEVER-SAW-001]
+            is HomeIntent.DismissReleaseDialog -> updateState {
+                if (isReleasingParking) this else copy(releaseDialogSessionId = null)
+            }
             is HomeIntent.ReleaseParking -> releaseParking(intent.sessionId, intent.reason)
             is HomeIntent.EnterAddParkingMode -> updateState {
                 clearedModeFields().copy(
@@ -1253,11 +1085,23 @@ class HomeViewModel(
     }
 
     private fun releaseParking(sessionId: String, reason: ParkingReleaseReason) {
+        // One release at a time. The dialog's buttons disable only once the UI recomposes with
+        // `releasingReason`, so two taps inside one frame both reach here — and "publish" + "don't
+        // publish" racing each other would publish the spot while Room records it as unpublished.
+        // Intents run on the main thread and the flag is set synchronously below, so this check
+        // cannot be overtaken. [PARK-RELEASE-THE-SCREEN-NEVER-SAW-001]
+        if (state.value.isReleasingParking) {
+            PaparcarLogger.d(TAG, "releaseParking: a release is already in flight — ignoring id=$sessionId")
+            return
+        }
         // Resolve the tapped card's session explicitly — no `?: userParking` fallback. With two
         // active sessions, ranking-first could release the wrong car's spot. [VEH-ACTIVE-FENCE-001]
         val target = state.value.activeSessions.firstOrNull { it.id == sessionId }
         if (target == null) {
             PaparcarLogger.w(TAG, "releaseParking: no active session for id=$sessionId — no-op")
+            // Close the dialog too: left open, it covers the snackbar and every further tap lands
+            // here again — the "nothing happens" loop. [PARK-RELEASE-THE-SCREEN-NEVER-SAW-001]
+            updateState { copy(releaseDialogSessionId = null) }
             sendEffect(HomeEffect.ShowError(PaparcarError.Parking.ReleaseFailed))
             return
         }
@@ -1291,7 +1135,11 @@ class HomeViewModel(
                     // From Browse (every departure release) this is the same no-op plus the
                     // selection reset it already did.
                     // [UI-A-SPINNER-LIVES-IN-THE-BUTTON-THAT-WAS-PRESSED-001]
-                    updateState { clearedModeFields().copy(releasingReason = null) }
+                    // The dialog closes in this same update — never inferred by the screen from a
+                    // transition it may not get to see. [PARK-RELEASE-THE-SCREEN-NEVER-SAW-001]
+                    updateState {
+                        clearedModeFields().copy(releasingReason = null, releaseDialogSessionId = null)
+                    }
                     // The use case says whether a spot ACTUALLY went out — a zone session wider
                     // than the publish ceiling withholds it, and thanking the user for a plaza
                     // that never existed would be the lie the gate removes.
@@ -1299,7 +1147,9 @@ class HomeViewModel(
                     if (published) sendEffect(HomeEffect.SpotReported)
                 }
                 .onFailure { e ->
-                    updateState { copy(releasingReason = null) }
+                    // Closed on failure as well, as before: the error goes to the snackbar, which an
+                    // open dialog would cover. [PARK-RELEASE-THE-SCREEN-NEVER-SAW-001]
+                    updateState { copy(releasingReason = null, releaseDialogSessionId = null) }
                     sendEffect(HomeEffect.ShowError(PaparcarError.Database.WriteError(e.message ?: "")))
                 }
         }
@@ -1602,14 +1452,10 @@ class HomeViewModel(
             .onStart { updateState { copy(isLoading = true) } }
             .collectSafely("gpsLocation", notify = { e -> PaparcarError.Location.Unknown(e.message ?: "") }) { location ->
                 updateState { copy(isLoading = false, userGpsPoint = location) }
-                // A persisted fuel layer that outlived the process gets its stations back as soon
-                // as there is a centre to ask around — the camera's if it already spoke, this fix
-                // otherwise. [FUEL-LAYER-FOLLOWS-THE-CAMERA-001]
-                // Both layers: the camera's centre if it already spoke, this fix otherwise.
-                viewportCentreOrGps()?.let { (lat, lon) ->
-                    maybeFetchFuelViewport(lat, lon)
-                    maybeFetchParkingsViewport(lat, lon)
-                }
+                // The open lane may have been waiting for a centre, or the user may have moved in or
+                // out of its follow range. ⛔ Never a retry of a failed ask: see NearbyTrigger.FIX.
+                // [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
+                refreshNearby(state.value.nearbyLens, NearbyTrigger.FIX)
                 geocodeUserLocation(location.latitude, location.longitude)
                 if (state.value.cameraAddressAndPlace == null) {
                     geocodeCameraLocation(location.latitude, location.longitude)
@@ -1844,9 +1690,9 @@ class HomeViewModel(
         // Timing
         const val CAMERA_SETTLED_MS = 280L
 
-        /** Longer than [CAMERA_SETTLED_MS]: a viewport ask costs a network round-trip, so the
+        /** Longer than [CAMERA_SETTLED_MS]: a nearby ask costs a network round-trip, so the
          *  camera has to REST, not merely pause between flicks. [FUEL-LAYER-FOLLOWS-THE-CAMERA-001] */
-        const val FUEL_VIEWPORT_SETTLE_MS = 600L
+        const val NEARBY_CAMERA_SETTLE_MS = 600L
         // How long a widget release-ask waits for the sessions to land on cold start before
         // concluding the garage is genuinely empty. [WIDGET-ACTIONS-002]
         const val RELEASE_ASK_SESSIONS_WAIT_MS = 5_000L

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="home_nearby_section_header">In dieser Gegend</string>
     <!-- HomeScreen -->
     <string name="home_search_placeholder">Zone, Straße suchen…</string>
     <string name="home_search_no_results">Keine Treffer für diese Suche</string>
@@ -767,6 +768,27 @@
     <string name="settings_notif_zone_alerts">Zonen-Hinweise</string>
     <string name="settings_notif_zone_alerts_desc">Hinweis, wenn in deinen Zonen ein Platz frei wird</string>
     <string name="home_zone_form_notify_label">Bei freien Plätzen hier benachrichtigen</string>
+    <!-- Notification surface - MIRRORED from app/src/main/res (Android stays the live source until it migrates to composeResources); parity enforced by NotificationCopyParityTest [IOS-NOTIF-A-SURFACE-THAT-SPEAKS-ONE-LANGUAGE-001] -->
+    <string name="notif_confirmation_title">Hast du geparkt?</string>
+    <string name="notif_confirmation_title_vehicle">Hast du deinen %1$s geparkt?</string>
+    <string name="notif_confirmation_title_street">Hast du in %1$s geparkt?</string>
+    <string name="notif_confirmation_title_vehicle_street">Hast du deinen %1$s in %2$s geparkt?</string>
+    <string name="notif_confirmation_text">Sieht aus, als hättest du geparkt. Bestätigen wir den Parkplatz?</string>
+    <string name="notif_action_yes_parked">Ja, ich habe geparkt</string>
+    <string name="notif_action_no_not_parked">Nein, ich habe nicht geparkt</string>
+    <string name="notif_parking_saved_title">Parken gespeichert</string>
+    <string name="notif_parking_saved_text">Ihr Auto wurde geparkt. Tippen Sie, um es auf der Karte zu sehen.</string>
+    <string name="notif_parking_saved_confirm_title">Fahrzeug geparkt</string>
+    <string name="notif_parking_saved_confirm_title_vehicle">%1$s geparkt</string>
+    <string name="notif_parking_saved_confirm_text">Tippen, um die Karte zu öffnen, oder abbrechen, wenn es nicht Ihr Fahrzeug war.</string>
+    <string name="notif_action_confirm">Ja, bestätigen</string>
+    <string name="notif_action_cancel_save">Nein, abbrechen</string>
+    <string name="notif_confirmation_failed_title">Parken nicht gespeichert</string>
+    <string name="notif_confirmation_failed_text">Parkplatz konnte nicht gespeichert werden. Öffne Paparcar, um es erneut zu versuchen.</string>
+    <string name="notif_still_parked_title">Noch hier geparkt?</string>
+    <string name="notif_still_parked_text">Du scheinst weg zu sein, aber dieser Parkplatz ist noch offen. Sag uns, ob du schon losgefahren bist, oder markiere, wo das Auto jetzt steht.</string>
+    <string name="notif_action_ive_left">Ich bin weg</string>
+    <string name="notif_action_mark_parking">Parkplatz markieren</string>
 
     <!-- Fuel block [VEH-FUEL-001] -->
     <string name="vehicle_registration_section_fuel">Kraftstoff</string>
@@ -843,6 +865,7 @@
     <string name="fuel_peek_step_prev">Vorherige Tankstelle</string>
     <string name="fuel_peek_step_next">Nächste Tankstelle</string>
     <string name="home_fuel_error">Die Tankstellen konnten nicht geladen werden. Prüfe die Verbindung und öffne das erneut.</string>
+    <string name="home_fuel_too_far">Tankstellen werden nur im Umkreis von %1$d km um dich angezeigt. Bewege die Karte näher heran.</string>
     <string name="home_fuel_no_prices">In diesem Land werden keine Preise veröffentlicht. Das sind die Tankstellen in der Nähe.</string>
     <!-- [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001] Fallback, not a verdict about the country -->
     <string name="home_fuel_prices_unavailable">Die amtlichen Preise wurden nicht geladen. Das sind die Tankstellen in der Nähe — versuch es gleich noch einmal.</string>
@@ -855,6 +878,7 @@
     <string name="subject_free_spots">Stellplätze</string>
     <string name="home_parkings_empty">Keine öffentlichen Parkhäuser im Umkreis von 1,5 km.</string>
     <string name="home_parkings_error">Die Parkhäuser konnten nicht geladen werden. Prüfe deine Verbindung und öffne das erneut.</string>
+    <string name="home_parkings_too_far">Öffentliche Parkhäuser werden nur im Umkreis von %1$d km um dich angezeigt. Bewege die Karte näher heran.</string>
     <string name="home_parkings_remembered">Keine Verbindung: Das sind die Parkhäuser, die wir hier %1$s gesehen haben.</string>
     <string name="parking_peek_eyebrow">Öffentliches Parkhaus</string>
     <string name="parking_kind_underground">Tiefgarage</string>

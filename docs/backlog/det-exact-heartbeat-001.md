@@ -12,7 +12,10 @@ boot). Piezas: `ExactHeartbeatScheduler` (setExactAndAllowWhileIdle 5 min, gate
 métrica de estiramiento Doze) + `ExactHeartbeatReceiver` (re-arma + `enqueueCheckNow(exact-alarm)`)
 + `SOURCE_EXACT_ALARM` (provenance en el verdict) + manifest (SCHEDULE_EXACT_ALARM + receiver).
 DIFERIDO a field-test: pre-filtro lastKnown (pieza 3), degradar cadencia en SENTRY (pieza 4 — la
-rama no tiene ServicePresence, es de DET-RESIDENT-FGS sin mergear), CTA special-access (pieza 2).
+rama no tiene ServicePresence, es de DET-RESIDENT-FGS sin mergear).
+**Pieza 2 (CTA special-access) DESCARTADA 2026-08-13 [IOS-F0-09]:** con targetSdk 36 el acceso
+especial viene denegado por defecto → en campo la red corre en modo inexacto y así se acepta;
+no se pedirá el permiso al usuario. "Exact" = techo de capacidad, no garantía.
 Sin test unitario propio: cero lógica de decisión nueva (el scheduler es I/O AlarmManager puro);
 prod suite + mock compile verdes.
 **Origen:** Pieza 6/2bis del plan Driversnote (`project_det_driversnote_learnings_plan`).

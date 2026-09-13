@@ -1,6 +1,7 @@
 package com.rndeveloper.paparcar.presentation.home
 
 import com.rndeveloper.paparcar.domain.model.Spot
+import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.Zone
 import com.rndeveloper.paparcar.domain.model.ZoneIcon
 
@@ -64,6 +65,26 @@ internal fun HomeState.clearedModeFields(): HomeState = copy(
     addingParkingVehicleId = null,
     addingParkingNudgeSource = null,
 )
+
+/**
+ * Applies the active sessions and closes the release dialog when the session it asks about is no
+ * longer active — closed by another path (detected departure, safety net, another device) while the
+ * user was looking at it. Releasing a session that no longer exists can only fail, so the dialog has
+ * nothing left to offer.
+ *
+ * Not while a release is in flight: that release clears the session from Room itself before it
+ * finishes, and its outcome is what closes the dialog. [PARK-RELEASE-THE-SCREEN-NEVER-SAW-001]
+ */
+internal fun HomeState.withActiveSessions(sessions: List<UserParking>): HomeState {
+    val dialogSessionId = releaseDialogSessionId
+    val dialogTargetGone = dialogSessionId != null &&
+        !isReleasingParking &&
+        sessions.none { it.id == dialogSessionId }
+    return copy(
+        activeSessions = sessions,
+        releaseDialogSessionId = if (dialogTargetGone) null else dialogSessionId,
+    )
+}
 
 /**
  * Applies the freshly-fetched nearby spots and prunes the selection if the

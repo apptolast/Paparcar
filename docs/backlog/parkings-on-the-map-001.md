@@ -3,6 +3,8 @@
 **Estado:** ✅ Done — en master (hash en `MEMORY.md`, por construcción del cierre) · **es la F6a**;
 la ocupación en tiempo real queda en [`parkings-live-occupancy-001.md`](parkings-live-occupancy-001.md).
 
+> ⚠️ **Superado en parte por [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001](nearby-one-store-follows-the-camera-001.md)** (13-09-2026): las tiendas de carril y de capa se fusionaron en UNA por sujeto, y la unión que pintaban mapa y lista desapareció. Lo que aquí se dice de dos tiendas / dos anclas es historia, no regla vigente.
+
 > 🔁 **Rebasado DOS veces sobre master el 10-09** mientras otra sesión avanzaba el carril de
 > gasolineras, y las dos veces la reconciliación fue a favor de master:
 > - Mi `OverpassEndpoints`/`overpassQuery` se **borró** en favor de `OverpassEndpoints` +

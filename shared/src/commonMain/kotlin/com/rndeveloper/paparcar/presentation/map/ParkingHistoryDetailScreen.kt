@@ -54,7 +54,7 @@ import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
-import com.rndeveloper.paparcar.presentation.util.collectAsStateLifecycleAware
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rndeveloper.paparcar.presentation.vehicles.MONTH_SHORT_RES
 import com.rndeveloper.paparcar.domain.matching.InferredRoute
 import com.rndeveloper.paparcar.domain.detection.ParkingDetectionSource
@@ -129,7 +129,7 @@ fun ParkingHistoryDetailScreen(
     sessionId: String = "",
     viewModel: ParkingHistoryViewModel = koinViewModel(),
 ) {
-    val state by viewModel.state.collectAsStateLifecycleAware()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val openNavigation = rememberOpenExternalNavigation()
 
     LaunchedEffect(sessionId) {

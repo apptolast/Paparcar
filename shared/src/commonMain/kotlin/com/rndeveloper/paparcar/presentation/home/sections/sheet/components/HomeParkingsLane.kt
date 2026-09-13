@@ -6,12 +6,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.rndeveloper.paparcar.domain.onboarding.NearbyComplement
 import com.rndeveloper.paparcar.presentation.home.model.HomeParkingsSlice
+import com.rndeveloper.paparcar.presentation.home.model.ViewportRefetch
 import com.rndeveloper.paparcar.presentation.util.relativeTimeText
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_parkings_empty
 import paparcar.composeapp.generated.resources.home_parkings_error
 import paparcar.composeapp.generated.resources.home_parkings_remembered
+import paparcar.composeapp.generated.resources.home_parkings_too_far
 
 /**
  * "Car parks nearby" — the lane the sheet shows while the lens sits on `HomeNearbyLens.PARKINGS`.
@@ -38,12 +40,20 @@ fun HomeParkingsLane(
         if (isIntroducing) LaneIntroNote(NearbyComplement.CAR_PARKS)
 
         when {
+            // ⛔ Too far from the user to follow: nothing was asked, so neither the empty sentence nor
+            // the failure one is true. The map is empty for the same reason, at the same moment.
+            // [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
+            slice.tooFar -> LaneNote(stringResource(Res.string.home_parkings_too_far, ViewportRefetch.maxFromUserKm))
+
             // ⛔ A failure is NOT an empty list: saying "none nearby" when we could not ask sends the
             // user driving on a claim we never checked.
             // [FUEL-A-SECTION-ANSWERS-ONLY-WHAT-IT-ASKED-001]
             slice.failed -> LaneNote(stringResource(Res.string.home_parkings_error))
 
-            slice.isLoading -> NearbyRowsSkeleton()
+            // The skeleton only when there is nothing to show: while a new area loads, the rows keep
+            // matching the pins still on the map, as the spots do.
+            // [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
+            slice.isLoading && slice.parkings.isEmpty() -> NearbyRowsSkeleton()
 
             slice.parkings.isEmpty() -> LaneNote(stringResource(Res.string.home_parkings_empty))
 

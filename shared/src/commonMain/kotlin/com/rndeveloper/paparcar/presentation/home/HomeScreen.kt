@@ -25,8 +25,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableFloatState
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.Stable
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rndeveloper.paparcar.presentation.permissions.rememberRequestFineLocationAction
-import com.rndeveloper.paparcar.presentation.util.collectAsStateLifecycleAware
 import com.rndeveloper.paparcar.presentation.util.MapForegroundEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
@@ -177,12 +177,12 @@ fun HomeScreen(
     onOpenPaywall: (PaywallReason) -> Unit = {},
     viewModel: HomeViewModel = koinViewModel(),
 ) {
-    val state by viewModel.state.collectAsStateLifecycleAware()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     // Live trip render data collected SEPARATELY from [state] — it changes at the GPS fix rate and is
     // NOT in HomeState, so this screen (and the expensive map) don't recompose per fix. We hold the
     // State objects and derive per-field States; nothing here reads `.value` in the main body, so the
     // fix-rate updates flow untouched to the map's isolated scopes. [DRIVE-PUCK-NATIVE-001]
-    val tripState = viewModel.tripRender.collectAsStateLifecycleAware()
+    val tripState = viewModel.tripRender.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     // First-entry location ask, launched OVER the map — no permissions screen in front of it.
     // [ONB-PERMISSIONS-ASK-AT-THE-MOMENT-OF-VALUE-001]
@@ -364,28 +364,13 @@ private fun HomeContent(
     val selectedSpotId = (state.selection as? HomeSelection.Spot)?.id
     val selectedFuelStationId = (state.selection as? HomeSelection.FuelStation)?.id
     val selectedPublicParkingId = (state.selection as? HomeSelection.PublicParking)?.id
-    var showReleaseDialog by remember { mutableStateOf(false) }
     // The session the release dialog acts on — set from the peek that opened it, so the release
-    // targets THAT card, never a ranked fallback. [VEH-ACTIVE-FENCE-001]
-    var releaseTargetSessionId by remember { mutableStateOf<String?>(null) }
+    // targets THAT card, never a ranked fallback. [VEH-ACTIVE-FENCE-001] Owned by the VM, which
+    // closes it in the same update that ends the release; the screen no longer infers "done" from a
+    // true→false flip it could miss when the release is faster than a frame.
+    // [PARK-RELEASE-THE-SCREEN-NEVER-SAW-001]
+    val releaseTargetSessionId = state.releaseDialogSessionId
     val lazyListState = rememberLazyListState()
-
-    // Auto-close the release dialog as soon as the in-flight release finishes
-    // (success or failure). Errors are surfaced via snackbar — the dialog has
-    // nothing to add once isReleasingParking flips back to false. Tracking the
-    // true→false flip avoids the multi-parking pitfall where checking
-    // `state.userParking == null` would never be true when other vehicles
-    // still have active sessions. [BUG-RELEASE-DIALOG-001] [MULTI-PARKING-001]
-    val releaseInFlight = state.isReleasingParking
-    var wasReleasing by remember { mutableStateOf(false) }
-    LaunchedEffect(releaseInFlight) {
-        if (releaseInFlight) {
-            wasReleasing = true
-        } else if (wasReleasing) {
-            wasReleasing = false
-            showReleaseDialog = false
-        }
-    }
 
     // Initial focus, parking re-frame, driver-follow and MoveCameraTo effects —
     // see [HomeCameraEffects].
@@ -409,7 +394,7 @@ private fun HomeContent(
                 ?.vehicleId
                 ?.let { vid -> state.vehicles.firstOrNull { it.id == vid } }
             HomeReleaseDialogHost(
-                visible = showReleaseDialog,
+                visible = releaseTargetSessionId != null,
                 releasingReason = state.releasingReason,
                 sessionId = releaseTargetSessionId,
                 vehicleName = releaseVehicle?.displayName(fallback = "")?.takeIf { it.isNotBlank() },
@@ -418,7 +403,7 @@ private fun HomeContent(
                 // the note says so honestly; the story surface in Home asks for the fix. [UX-PARKED-STATE-001]
                 detectionAvailable = !state.detectionUiState.isDetectionStopped,
                 onIntent = onIntent,
-                onDismiss = { showReleaseDialog = false },
+                onDismiss = { onIntent(HomeIntent.DismissReleaseDialog) },
             )
 
             // One-time pitch of the star feature, fired right after the first-entry location grant
@@ -604,10 +589,11 @@ private fun HomeContent(
                     }
                 }
 
-                // Same gesture as a spot: select, frame, open the peek. The station is resolved
-                // from the fuel slice at call-time so the lambda stays identity-stable.
-                // [FUEL-STATIONS-MAP-AND-PEEK-001]
-                val currentFuelStations = rememberUpdatedState(state.fuel.stations)
+                // Same gesture as a spot: select, frame, open the peek. The station is resolved at
+                // call-time so the lambda stays identity-stable — and from the very list the map
+                // painted, so no drawn pin can be a dead tap. [FUEL-STATIONS-MAP-AND-PEEK-001]
+                // [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
+                val currentFuelStations = rememberUpdatedState(mapSlice.fuelStations)
                 val onFuelStationMarkerClick: (String) -> Unit = remember(uiController, motion) {
                     { stationId ->
                         currentFuelStations.value.firstOrNull { it.station.id == stationId }?.let { s ->
@@ -619,7 +605,7 @@ private fun HomeContent(
                 }
 
                 // Same gesture again, for the car parks. [PARKINGS-ON-THE-MAP-001]
-                val currentPublicParkings = rememberUpdatedState(state.parkings.parkings)
+                val currentPublicParkings = rememberUpdatedState(mapSlice.publicParkings)
                 val onPublicParkingMarkerClick: (String) -> Unit = remember(uiController, motion) {
                     { parkingId ->
                         currentPublicParkings.value.firstOrNull { it.parking.id == parkingId }?.let { p ->
@@ -840,8 +826,7 @@ private fun HomeContent(
                     onSelectFuelStation = onFuelStationMarkerClick,
                     onSelectPublicParking = onPublicParkingMarkerClick,
                     onRelease = { sessionId ->
-                        releaseTargetSessionId = sessionId
-                        showReleaseDialog = true
+                        onIntent(HomeIntent.OpenReleaseDialog(sessionId))
                     },
                     onNavigateExternal = openExternalNav,
                     onToggle = motion.toggle,

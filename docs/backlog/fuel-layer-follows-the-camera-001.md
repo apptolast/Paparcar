@@ -2,6 +2,8 @@
 
 **Estado:** ✅ Done — en master (hash en `MEMORY.md`, por construcción del cierre)
 
+> ⚠️ **Superado en parte por [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001](nearby-one-store-follows-the-camera-001.md)** (13-09-2026): las tiendas de carril y de capa se fusionaron en UNA por sujeto, y la unión que pintaban mapa y lista desapareció. Lo que aquí se dice de dos tiendas / dos anclas es historia, no regla vigente.
+
 ## ⛔⛔ El hallazgo que cambió el ticket: la capa NUNCA funcionó fuera de España
 
 Diagnosticando el síntoma del user (arrastró a París y no salía nada) el log nuevo dijo

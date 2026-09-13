@@ -17,6 +17,7 @@ import com.rndeveloper.paparcar.domain.model.SpotVoteOutcome
 import com.rndeveloper.paparcar.domain.model.SpotType
 import com.rndeveloper.paparcar.domain.model.UserParking
 import com.rndeveloper.paparcar.domain.model.Vehicle
+import com.rndeveloper.paparcar.domain.model.DeviceCapabilities
 import com.rndeveloper.paparcar.domain.usecase.detection.EvaluateDetectionReliabilityUseCase
 import com.rndeveloper.paparcar.domain.usecase.detection.ObserveDetectionReadinessUseCase
 import com.rndeveloper.paparcar.domain.usecase.detection.ObserveDetectionReliabilityUseCase
@@ -192,7 +193,9 @@ class HomeViewModelTest {
             permissionManager = permissions,
             oemBackgroundReliabilityManager = FakeOemBackgroundReliabilityManager(),
             strategyResolver = ParkingStrategyResolver(vehicleRepo, FakeBluetoothScanner(bluetoothEnabled = false)),
-            evaluateDetectionReliability = EvaluateDetectionReliabilityUseCase(),
+            evaluateDetectionReliability = EvaluateDetectionReliabilityUseCase(
+                capabilities = DeviceCapabilities(supportsBtStrategy = true, supportsBatteryExemption = true),
+            ),
         )
         return HomeViewModel(
             permissionManager = permissions,
@@ -792,10 +795,132 @@ class HomeViewModelTest {
         assertNull(vm.state.value.selection)
     }
 
+    // ── Release dialog lifecycle [PARK-RELEASE-THE-SCREEN-NEVER-SAW-001] ────────────────────
+    // The dialog used to be screen state, closed when the screen SAW `isReleasingParking` flip
+    // true → false. A release faster than a frame never showed the `true`, the dialog stayed open over
+    // a session that no longer existed, and every further tap "did nothing". It is VM state now.
+
+    private fun releasableSession(id: String = "session-1") = UserParking(
+        id = id, userId = "user-1", vehicleId = "veh-1", location = location, isActive = true,
+    )
+
+    @Test
+    fun should_closeReleaseDialog_when_releaseFinishes_evenWithNoInFlightWindowToObserve() = runTest {
+        // Unconfined: the release runs to completion inside handleIntent — exactly the case a
+        // screen watching for the in-flight flag could never see.
+        val session = releasableSession()
+        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(session))
+        vm = buildVm()
+
+        vm.handleIntent(HomeIntent.OpenReleaseDialog(session.id))
+        assertEquals(session.id, vm.state.value.releaseDialogSessionId)
+
+        vm.handleIntent(HomeIntent.ReleaseParking(session.id, ParkingReleaseReason.DEPARTURE_UNPUBLISHED))
+
+        assertNull(vm.state.value.releaseDialogSessionId)
+        assertEquals(1, parkingRepo.clearActiveParkingSessionCallCount)
+    }
+
+    @Test
+    fun should_closeReleaseDialog_when_releaseFails() = runTest {
+        val session = releasableSession()
+        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(session))
+        parkingRepo.clearActiveParkingSessionResult = Result.failure(IllegalStateException("disk full"))
+        vm = buildVm()
+
+        vm.effect.test {
+            vm.handleIntent(HomeIntent.OpenReleaseDialog(session.id))
+            vm.handleIntent(HomeIntent.ReleaseParking(session.id, ParkingReleaseReason.DEPARTURE_PUBLISHED))
+
+            // Closed, so the snackbar carrying the error is not hidden behind it.
+            assertNull(vm.state.value.releaseDialogSessionId)
+            assertIs<HomeEffect.ShowError>(awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun should_runOnlyOneRelease_when_bothButtonsAreTappedWithinTheSameFrame() = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        val session = releasableSession()
+        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(session))
+        vm = buildVm()
+        advanceUntilIdle()
+
+        vm.handleIntent(HomeIntent.OpenReleaseDialog(session.id))
+        vm.handleIntent(HomeIntent.ReleaseParking(session.id, ParkingReleaseReason.DEPARTURE_PUBLISHED))
+        // Second tap before any recomposition could disable the buttons.
+        vm.handleIntent(HomeIntent.ReleaseParking(session.id, ParkingReleaseReason.DEPARTURE_UNPUBLISHED))
+        advanceUntilIdle()
+
+        assertEquals(1, parkingRepo.clearActiveParkingSessionCallCount)
+        assertEquals(1, reportScheduler.scheduleCallCount)
+        // The first answer is the one that counted: the spot went out AND Room says so.
+        assertEquals(true, parkingRepo.getSessionById(session.id)?.publishedSpot)
+        assertNull(vm.state.value.releaseDialogSessionId)
+    }
+
+    @Test
+    fun should_keepReleaseDialogOpen_when_dismissedWhileTheReleaseIsInFlight() = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        val session = releasableSession()
+        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(session))
+        vm = buildVm()
+        advanceUntilIdle()
+
+        vm.handleIntent(HomeIntent.OpenReleaseDialog(session.id))
+        vm.handleIntent(HomeIntent.ReleaseParking(session.id, ParkingReleaseReason.DEPARTURE_PUBLISHED))
+        vm.handleIntent(HomeIntent.DismissReleaseDialog)
+        assertEquals(session.id, vm.state.value.releaseDialogSessionId)
+
+        advanceUntilIdle()
+        assertNull(vm.state.value.releaseDialogSessionId)
+    }
+
+    @Test
+    fun should_closeReleaseDialog_when_dismissedWithNoReleaseRunning() = runTest {
+        val session = releasableSession()
+        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(session))
+        vm = buildVm()
+
+        vm.handleIntent(HomeIntent.OpenReleaseDialog(session.id))
+        vm.handleIntent(HomeIntent.DismissReleaseDialog)
+
+        assertNull(vm.state.value.releaseDialogSessionId)
+        assertEquals(0, parkingRepo.clearActiveParkingSessionCallCount)
+    }
+
+    @Test
+    fun should_closeReleaseDialog_when_itsSessionIsClosedByAnotherPath() = runTest {
+        // A detected departure (or the safety net) closes the session while the user looks at the
+        // dialog: releasing it again can only fail, so the dialog has nothing left to offer.
+        val session = releasableSession()
+        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(session))
+        vm = buildVm()
+        vm.handleIntent(HomeIntent.OpenReleaseDialog(session.id))
+
+        parkingRepo.clearActiveParkingSession(session.id, endedAtMs = 1L, publishedSpot = true)
+
+        assertNull(vm.state.value.releaseDialogSessionId)
+    }
+
+    @Test
+    fun should_keepReleaseDialogOpen_when_anotherCarsSessionCloses() = runTest {
+        val mine = releasableSession("session-mine")
+        val other = releasableSession("session-other").copy(vehicleId = "veh-2")
+        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(mine, other))
+        vm = buildVm()
+        vm.handleIntent(HomeIntent.OpenReleaseDialog(mine.id))
+
+        parkingRepo.clearActiveParkingSession(other.id, endedAtMs = 1L, publishedSpot = false)
+
+        assertEquals(mine.id, vm.state.value.releaseDialogSessionId)
+    }
+
     // ── SelectItem ────────────────────────────────────────────────────────────
 
     @Test
-    fun `should_set_selection_on_SelectItem`() = runTest {
+    fun should_set_selection_on_SelectItem() = runTest {
         vm.handleIntent(HomeIntent.SelectItem(HomeSelection.Spot("spot-42")))
         assertEquals(HomeSelection.Spot("spot-42"), vm.state.value.selection)
     }
@@ -1993,13 +2118,14 @@ class HomeViewModelTest {
         assertEquals(HomeNearbyLens.FUEL, vm.state.value.nearbyLens, "the user tapped the chip")
         assertTrue(fuel.missingFuelType)
         assertTrue(!fuel.failed)
-        assertTrue(fuel.stations.isEmpty(), "no fuel type means the LIST had no question to ask")
-        // …but the MAP still does: the stations are there whatever the car burns, and capsules
-        // without a figure are honest where an empty map would just be wrong. That fuel-less ask is
-        // the one request this entry is allowed to make.
-        // [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
+        // The LIST says its own sentence (the lane renders `missingFuelType` before any row)…
+        // …but the MAP still has a question: the stations are there whatever the car burns, and
+        // capsules without a figure are honest where an empty map would just be wrong. ONE fuel-less
+        // ask, into the ONE store both read. [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
+        assertEquals(null, fuel.fetchedFor, "asked with no fuel, and it says so")
         assertEquals(1, fuelSource.askCount)
         assertTrue(vm.state.value.toMapSlice().fuelStations.isNotEmpty())
+        assertTrue(vm.state.value.toMapSlice().fuelStations.all { it.price == null })
     }
 
     // ── The provenance line of a complement. [ONB-THE-MAP-ANSWERS-MORE-THAN-SPOTS-001] ──
@@ -2240,8 +2366,8 @@ class HomeViewModelTest {
 
     @Test
     fun `should_reprice_when_theSectionOpens_afterAFuelLessLayerLoad`() = runTest(testDispatcher) {
-        // The layer's fuel-less answer is a DIFFERENT question from the section's priced one —
-        // fetchedFor is what stops a priceless list from posing as Spain without prices.
+        // A fuel-less answer is a DIFFERENT question from a priced one — fetchedFor is what stops a
+        // list filtered for no fuel from posing as the answer for this car.
         fuelSource.result = FuelStationsResult(listOf(spyStation()))
         saveActiveCar(fuelType = null)
         permissions.emit(FakePermissionManager.allGranted())
@@ -2299,14 +2425,15 @@ class HomeViewModelTest {
         advanceUntilIdle()
         assertEquals(1, fuelSource.askCount)
 
-        // The camera settles on Alcalá (~30 km — "I am driving there"): a different question,
-        // asked exactly once, THERE.
-        vm.handleIntent(HomeIntent.CameraPositionChanged(lat = 40.4820, lon = -3.3635))
+        // The camera settles ~11 km away — past half the 5 km radius, inside the 20 km follow limit:
+        // a different question, asked exactly once, THERE. (It used to be Alcalá at ~29 km, which
+        // silently stopped being reachable when the limit dropped from 50 to 20 km.)
+        vm.handleIntent(HomeIntent.CameraPositionChanged(lat = OTRO_BARRIO_LAT, lon = OTRO_BARRIO_LON))
         advanceUntilIdle()
 
         assertEquals(2, fuelSource.askCount)
-        assertEquals(40.4820, fuelSource.lastQuery?.latitude)
-        assertEquals(-3.3635, fuelSource.lastQuery?.longitude)
+        assertEquals(OTRO_BARRIO_LAT, fuelSource.lastQuery?.latitude)
+        assertEquals(OTRO_BARRIO_LON, fuelSource.lastQuery?.longitude)
     }
 
     @Test
@@ -2318,7 +2445,7 @@ class HomeViewModelTest {
         advanceUntilIdle()
 
         // Layer OFF: panning asks nobody.
-        vm.handleIntent(HomeIntent.CameraPositionChanged(lat = 40.4820, lon = -3.3635))
+        vm.handleIntent(HomeIntent.CameraPositionChanged(lat = OTRO_BARRIO_LAT, lon = OTRO_BARRIO_LON))
         advanceUntilIdle()
         assertEquals(0, fuelSource.askCount)
 
@@ -2340,10 +2467,8 @@ class HomeViewModelTest {
     @Test
     fun `should_pruneAnOrphanedStationSelection_when_theViewportMovesOn`() = runTest(testDispatcher) {
         fuelSource.result = FuelStationsResult(listOf(spyStation("st1")))
-        // ⛔ A car with no fuel type on purpose: then the LIST asks nothing and only the
-        // camera-anchored store holds stations, which is what makes "in neither store" reachable. With
-        // a priced list the station also lives in the lane's own answer — and a selection the lane
-        // still lists is not orphaned, it is on show. [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
+        // A car with no fuel type, so the fuel-less path is the one exercised: the pruning is the same
+        // for a priced answer, it is the one store either way. [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
         saveActiveCar(fuelType = null)
         permissions.emit(FakePermissionManager.allGranted())
         locationDataSource.emitHighAccuracy(location)
@@ -2354,9 +2479,9 @@ class HomeViewModelTest {
         advanceUntilIdle()
         assertTrue(vm.state.value.selectedFuelStation != null)
 
-        // The next town has other stations; st1 survives in NEITHER store → the selection goes too.
+        // The next area has other stations; st1 is no longer on show → the selection goes too.
         fuelSource.result = FuelStationsResult(listOf(spyStation("st2")))
-        vm.handleIntent(HomeIntent.CameraPositionChanged(lat = 40.4820, lon = -3.3635))
+        vm.handleIntent(HomeIntent.CameraPositionChanged(lat = OTRO_BARRIO_LAT, lon = OTRO_BARRIO_LON))
         advanceUntilIdle()
 
         assertEquals(null, vm.state.value.selection)
@@ -2364,13 +2489,11 @@ class HomeViewModelTest {
 
     @Test
     fun `should_emptyTheLayer_when_theCameraLeavesTheUsersRegion`() = runTest(testDispatcher) {
-        // Beyond the follow limit the layer shows NOTHING — never your own city's stations over a
-        // distant one. Coming back must ask again, so the anchor is dropped with them.
-        // Fuel-less car so the camera-anchored store is the ONLY holder, which is what this test is
-        // about; a priced lane keeps its own user-anchored answer, drawn at its own coordinates far
-        // off-screen. [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
+        // Beyond the follow limit the map AND the list show NOTHING — never your own city's stations
+        // over a distant one — and the lane says why. Coming back must ask again, so the anchor is
+        // dropped with them. [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
         fuelSource.result = FuelStationsResult(listOf(spyStation()))
-        saveActiveCar(fuelType = null)
+        saveActiveCar(fuelType = com.rndeveloper.paparcar.domain.model.FuelType.GASOLINE)
         permissions.emit(FakePermissionManager.allGranted())
         locationDataSource.emitHighAccuracy(location)
         advanceUntilIdle()
@@ -2378,13 +2501,15 @@ class HomeViewModelTest {
         advanceUntilIdle()
         vm.handleIntent(HomeIntent.SelectItem(HomeSelection.FuelStation("st1")))
         advanceUntilIdle()
-        assertEquals(1, vm.state.value.fuelLayer.stations.size)
+        assertEquals(1, vm.state.value.fuel.stations.size)
 
         // Paris, from Madrid: far past the limit.
         vm.handleIntent(HomeIntent.CameraPositionChanged(48.8566, 2.3522))
         advanceUntilIdle()
 
-        assertTrue(vm.state.value.fuelLayer.stations.isEmpty())
+        assertTrue(vm.state.value.toMapSlice().fuelStations.isEmpty(), "no capsules out there")
+        assertTrue(vm.state.value.toBrowseListSlice().fuel.stations.isEmpty(), "and no rows either")
+        assertTrue(vm.state.value.fuel.tooFar, "the lane says it is too far, not that there are none")
         assertEquals(null, vm.state.value.selection, "no peek may survive its pin")
         assertEquals(1, fuelSource.askCount, "nothing was asked out there")
 
@@ -2392,7 +2517,8 @@ class HomeViewModelTest {
         vm.handleIntent(HomeIntent.CameraPositionChanged(location.latitude, location.longitude))
         advanceUntilIdle()
         assertEquals(2, fuelSource.askCount)
-        assertEquals(1, vm.state.value.fuelLayer.stations.size)
+        assertEquals(1, vm.state.value.fuel.stations.size)
+        assertTrue(!vm.state.value.fuel.tooFar)
     }
 
     @Test
@@ -2408,11 +2534,8 @@ class HomeViewModelTest {
         vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.FUEL))
         advanceUntilIdle()
         assertEquals(1, fuelSource.askCount)
-        // Asertado sobre el MAPA — lo que el usuario ve — y no sobre una tienda concreta: tras el
-        // rebase quien sigue a la cámara es el CARRIL, así que el reintento aterriza en su almacén y
-        // el mapa lo lee por la unión. Cuál de las dos tiendas lo guarda es un detalle de
-        // implementación; "hay o no hay pines" no lo es.
-        // [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001]
+        // Asertado sobre el MAPA — lo que el usuario ve: "hay o no hay pines" es el contrato.
+        // [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
         assertTrue(vm.state.value.toMapSlice().fuelStations.isEmpty())
 
         // A nudge of the camera — far too small to count as a new area — retries the failed one.
@@ -2468,18 +2591,15 @@ class HomeViewModelTest {
 
         assertEquals(HomeNearbyLens.PARKINGS, vm.state.value.nearbyLens)
         assertEquals(1, parkingsSource.askCount, "one entry, ONE request")
-        // The answer lands in the LANE's store (asked around the USER, which is what a "nearby" list
-        // means) and the map reads it from there through the union. The two stores still answer
-        // different questions and still keep their own anchors — what changed is that entering a lane
-        // no longer costs a second, camera-anchored request for the same ground.
-        // [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001] [PARKINGS-ON-THE-MAP-001]
+        // The answer lands in the ONE store, and the list and the map read the same projection of it.
+        // [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001] [PARKINGS-ON-THE-MAP-001]
         assertEquals(1, vm.state.value.parkings.parkings.size)
         assertEquals(1, vm.state.value.toMapSlice().publicParkings.size, "and the pins are drawn")
     }
 
     @Test
     fun `should_askItsOwnQuestion_when_theSectionOpens_afterTheLayerAlreadyLoaded`() = runTest(testDispatcher) {
-        // ONE fetch feeds both surfaces: the layer's answer is the section's answer. Unlike fuel
+        // ONE fetch feeds both surfaces: the list and the map read one store. Unlike fuel
         // there is no per-car question to re-ask — a car park is a car park whatever the car burns.
         parkingsSource.result = Result.success(listOf(spyParking()))
         permissions.emit(FakePermissionManager.allGranted())
@@ -2494,10 +2614,9 @@ class HomeViewModelTest {
         vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.PARKINGS))
         advanceUntilIdle()
 
-        // ⛔ ONE ask, and this is the change: the lane asks around the USER and the map reads that
-        // same answer, so entering costs one request instead of two — and coming back costs none,
+        // ⛔ ONE ask: entering costs one request and coming back to the same place costs none,
         // because a car park is a car park whatever the car burns.
-        // [HOME-A-SECTION-MUST-NOT-SIT-BEHIND-ANOTHERS-LIST-001] [FUEL-LAYER-FOLLOWS-THE-CAMERA-001]
+        // [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
         assertEquals(1, parkingsSource.askCount)
         assertEquals(HomeNearbyLens.PARKINGS, vm.state.value.nearbyLens)
         assertEquals(1, vm.state.value.parkings.parkings.size)
@@ -2558,9 +2677,9 @@ class HomeViewModelTest {
         // ⛔ THE regression, measured on device on 09-09-2026: the layer re-checked itself on every
         // GPS fix, so a failed ask over an empty store asked AGAIN on the next fix — one Overpass
         // request every ~5 s, indefinitely, which is what rate-limited that machine out of the API
-        // mid-verification. The camera-anchored design closes it by construction: the anchor is set
-        // on the ATTEMPT, and a phone standing still produces no camera movement to justify another.
-        // [PARKINGS-ON-THE-MAP-001] [FUEL-LAYER-FOLLOWS-THE-CAMERA-001]
+        // mid-verification. A fix only supplies a missing centre; asking follows the CAMERA, and a
+        // phone standing still produces no camera movement to justify another.
+        // [PARKINGS-ON-THE-MAP-001] [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
         parkingsSource.result = Result.success(listOf(spyParking()))
         permissions.emit(FakePermissionManager.allGranted())
         locationDataSource.emitHighAccuracy(location)
@@ -2579,10 +2698,12 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `should_putTheAnchorBack_when_theViewportAskFails`() = runTest(testDispatcher) {
-        // ⛔ The other half of the same lesson, inherited from the fuel lane: an anchor advanced on
-        // a transient failure means "already asked here", and the area stays blank until the user
-        // pans kilometres away. A failure must leave the layer ready to try the SAME place again.
+    fun `should_retryOnTheNextCameraMove_butNeverOnAFix_when_theAskFailed`() = runTest(testDispatcher) {
+        // ⛔ Both halves of the same lesson, now in ONE store. An anchor kept on a failure means
+        // "already asked here" and the area stays blank until the user pans kilometres away — so the
+        // anchor goes. But a failure retried on every GPS fix is the one-request-every-5-s storm that
+        // rate-limited this machine out of Overpass on 09-09 — so a fix never retries.
+        // [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001] [PARKINGS-ON-THE-MAP-001]
         parkingsSource.result = Result.failure(IllegalStateException("Overpass answered 504"))
         permissions.emit(FakePermissionManager.allGranted())
         locationDataSource.emitHighAccuracy(location)
@@ -2590,15 +2711,123 @@ class HomeViewModelTest {
         vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.PARKINGS))
         advanceUntilIdle()
         assertEquals(1, parkingsSource.askCount)
-        assertEquals(null, vm.state.value.parkingsLayer.anchorLat, "a failed ask keeps no anchor")
+        assertEquals(null, vm.state.value.parkings.anchorLat, "a failed ask keeps no anchor")
 
-        // The network comes back and the same centre is offered again: it MUST ask.
         parkingsSource.result = Result.success(listOf(spyParking()))
-        locationDataSource.emitHighAccuracy(location)
+        repeat(3) {
+            locationDataSource.emitHighAccuracy(location)
+            advanceUntilIdle()
+        }
+        assertEquals(1, parkingsSource.askCount, "a fix is not a reason to ask again")
+
+        // A camera nudge far too small to count as a new area retries the SAME place.
+        vm.handleIntent(HomeIntent.CameraPositionChanged(location.latitude + 0.0005, location.longitude))
         advanceUntilIdle()
 
         assertEquals(2, parkingsSource.askCount)
-        assertEquals(1, vm.state.value.parkingsLayer.parkings.size)
+        assertEquals(1, vm.state.value.toMapSlice().publicParkings.size)
+        assertEquals(1, vm.state.value.toBrowseListSlice().parkings.parkings.size)
+    }
+
+    // ── Un almacén que sigue a la cámara [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001] ──
+
+    @Test
+    fun `should_answerForTheLatestPlace_when_theCameraSettlesWhileAnAskIsInFlight`() = runTest(testDispatcher) {
+        // ⛔ THE reported bug: a pan while Overpass was still answering was DROPPED behind the
+        // in-flight ask, so the store stayed on the previous area. Latest wins, like the spots.
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        advanceUntilIdle()
+        val gate = kotlinx.coroutines.CompletableDeferred<Unit>()
+        parkingsSource.holdNextUntil = gate
+        parkingsSource.result = Result.success(listOf(spyParking("aqui")))
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.PARKINGS))
+        advanceUntilIdle()
+        assertTrue(vm.state.value.parkings.isLoading, "the first ask is still flying")
+
+        parkingsSource.result = Result.success(listOf(spyParking("alli")))
+        vm.handleIntent(HomeIntent.CameraPositionChanged(LEJOS_LAT, LEJOS_LON))
+        advanceUntilIdle()
+        gate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(2, parkingsSource.askCount)
+        val parkings = vm.state.value.parkings
+        assertEquals(LEJOS_LAT, parkings.anchorLat)
+        assertTrue(!parkings.isLoading)
+        assertEquals(listOf("alli"), vm.state.value.toMapSlice().publicParkings.map { it.parking.id })
+        assertEquals(listOf("alli"), vm.state.value.toBrowseListSlice().parkings.parkings.map { it.parking.id })
+    }
+
+    @Test
+    fun `should_emptyTheMapAndTheList_andSayTooFar_when_theCameraLeavesTheFollowRange`() = runTest(testDispatcher) {
+        parkingsSource.result = Result.success(listOf(spyParking()))
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        advanceUntilIdle()
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.PARKINGS))
+        advanceUntilIdle()
+        vm.handleIntent(HomeIntent.SelectItem(HomeSelection.PublicParking("osm/node/1")))
+        advanceUntilIdle()
+
+        // ⛔ Before: only the layer emptied, the lane kept Madrid's car parks — and the union painted
+        // them over wherever the user was looking.
+        vm.handleIntent(HomeIntent.CameraPositionChanged(48.8566, 2.3522))
+        advanceUntilIdle()
+
+        assertTrue(vm.state.value.toMapSlice().publicParkings.isEmpty())
+        assertTrue(vm.state.value.toBrowseListSlice().parkings.parkings.isEmpty())
+        assertTrue(vm.state.value.parkings.tooFar)
+        assertTrue(!vm.state.value.parkings.failed, "too far is not a failure")
+        assertEquals(null, vm.state.value.selection)
+        assertEquals(1, parkingsSource.askCount, "nothing was asked out there")
+    }
+
+    @Test
+    fun `should_askOnTheFirstFix_when_theLaneWasEnteredWithoutACentre`() = runTest(testDispatcher) {
+        // The lane said it could not ask; the moment there is a centre, it asks — once.
+        parkingsSource.result = Result.success(listOf(spyParking()))
+        permissions.emit(FakePermissionManager.allGranted())
+        advanceUntilIdle()
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.PARKINGS))
+        advanceUntilIdle()
+        assertEquals(0, parkingsSource.askCount)
+        assertTrue(vm.state.value.parkings.failed)
+
+        repeat(3) {
+            locationDataSource.emitHighAccuracy(location)
+            advanceUntilIdle()
+        }
+
+        assertEquals(1, parkingsSource.askCount)
+        assertTrue(!vm.state.value.parkings.failed)
+        assertEquals(1, vm.state.value.toMapSlice().publicParkings.size)
+    }
+
+    @Test
+    fun `should_listWhatTheMapPaints_forEveryStepOfAPan`() = runTest(testDispatcher) {
+        // The invariant itself, walked through the real VM: whatever the camera does, the rows and
+        // the pins are the same set.
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        advanceUntilIdle()
+        parkingsSource.result = Result.success(listOf(spyParking("a"), spyParking("b")))
+        vm.handleIntent(HomeIntent.SetNearbyLens(HomeNearbyLens.PARKINGS))
+        advanceUntilIdle()
+
+        fun assertSame() = assertEquals(
+            vm.state.value.toBrowseListSlice().parkings.parkings.map { it.parking.id },
+            vm.state.value.toMapSlice().publicParkings.map { it.parking.id },
+        )
+        assertSame()
+        parkingsSource.result = Result.success(listOf(spyParking("c")))
+        vm.handleIntent(HomeIntent.CameraPositionChanged(LEJOS_LAT, LEJOS_LON))
+        advanceUntilIdle()
+        assertSame()
+        assertEquals(listOf("c"), vm.state.value.toMapSlice().publicParkings.map { it.parking.id })
+        vm.handleIntent(HomeIntent.CameraPositionChanged(48.8566, 2.3522))
+        advanceUntilIdle()
+        assertSame()
     }
 
     // ── La sección responde sobre DONDE MIRAS [A-SECTION-ANSWERS-ABOUT-WHERE-YOU-LOOK-001] ──
@@ -2675,9 +2904,15 @@ class HomeViewModelTest {
         assertEquals(tras, parkingsSource.askCount)
     }
 
-    /** Otra ciudad: lo bastante lejos para exigir una pregunta nueva, dentro del límite de 50 km. */
-    private val LEJOS_LAT = location.latitude + 0.15
-    private val LEJOS_LON = location.longitude + 0.15
+    /** Otra zona: lo bastante lejos para exigir una pregunta nueva de parkings (~10 km), dentro del
+     *  límite de 20 km. ⛔ Estaba a +0,15° (~21 km) y dejó de ser alcanzable al bajar el límite de 50 a
+     *  20 km — dos tests fallaban en master por eso. [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001] */
+    private val LEJOS_LAT = location.latitude + 0.07
+    private val LEJOS_LON = location.longitude + 0.07
+
+    /** ~11 km: más de medio radio de gasolineras (2,5 km), dentro del límite de 20 km. */
+    private val OTRO_BARRIO_LAT = 40.4800
+    private val OTRO_BARRIO_LON = -3.6000
 
     /** Counts the questions actually asked, like its fuel twin. */
     private class SpyPublicParkingsSource : PublicParkingsSource {
@@ -2689,11 +2924,19 @@ class HomeViewModelTest {
 
         /** Non-null makes the spy answer as the DISK does. [CACHE-A-MAP-MUST-NOT-EMPTY-ON-COLD-START-001] */
         var rememberedAtMs: Long? = null
+
+        /** One-shot: the next ask suspends until this completes — an Overpass answer still flying. */
+        var holdNextUntil: kotlinx.coroutines.CompletableDeferred<Unit>? = null
         override fun covers(countryCode: String) = true
         override suspend fun parkingsNear(query: PublicParkingsQuery): Result<PublicParkingsResult> {
             askCount++
             seen = query
-            return result.map { PublicParkingsResult(it, rememberedAtMs) }
+            val answer = result.map { PublicParkingsResult(it, rememberedAtMs) }
+            holdNextUntil?.let { gate ->
+                holdNextUntil = null
+                gate.await()
+            }
+            return answer
         }
     }
 }

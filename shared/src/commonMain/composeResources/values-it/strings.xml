@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="home_nearby_section_header">In questa zona</string>
     <!-- HomeScreen -->
     <string name="home_search_placeholder">Cerca una zona, una via…</string>
     <string name="home_search_no_results">Nessun risultato per questa ricerca</string>
@@ -766,6 +767,27 @@
     <string name="settings_notif_zone_alerts">Avvisi di zona</string>
     <string name="settings_notif_zone_alerts_desc">Avviso quando appare un posto libero nelle tue zone</string>
     <string name="home_zone_form_notify_label">Avvisami dei posti liberi qui</string>
+    <!-- Notification surface - MIRRORED from app/src/main/res (Android stays the live source until it migrates to composeResources); parity enforced by NotificationCopyParityTest [IOS-NOTIF-A-SURFACE-THAT-SPEAKS-ONE-LANGUAGE-001] -->
+    <string name="notif_confirmation_title">Hai parcheggiato?</string>
+    <string name="notif_confirmation_title_vehicle">Hai parcheggiato il %1$s?</string>
+    <string name="notif_confirmation_title_street">Hai parcheggiato in %1$s?</string>
+    <string name="notif_confirmation_title_vehicle_street">Hai parcheggiato il %1$s in %2$s?</string>
+    <string name="notif_confirmation_text">Sembra che tu abbia parcheggiato. Vuoi confermare il parcheggio?</string>
+    <string name="notif_action_yes_parked">Sì, ho parcheggiato</string>
+    <string name="notif_action_no_not_parked">No, non ho parcheggiato</string>
+    <string name="notif_parking_saved_title">Parcheggio salvato</string>
+    <string name="notif_parking_saved_text">La tua auto è stata parcheggiata. Tocca per vederla sulla mappa.</string>
+    <string name="notif_parking_saved_confirm_title">Veicolo parcheggiato</string>
+    <string name="notif_parking_saved_confirm_title_vehicle">%1$s parcheggiato</string>
+    <string name="notif_parking_saved_confirm_text">Tocca per aprire la mappa, o annulla se non era il tuo veicolo.</string>
+    <string name="notif_action_confirm">Sì, conferma</string>
+    <string name="notif_action_cancel_save">No, annulla</string>
+    <string name="notif_confirmation_failed_title">Parcheggio non salvato</string>
+    <string name="notif_confirmation_failed_text">Impossibile salvare il parcheggio. Apri Paparcar per riprovare.</string>
+    <string name="notif_still_parked_title">Ancora parcheggiato qui?</string>
+    <string name="notif_still_parked_text">Sembri lontano, ma questo parcheggio è ancora aperto. Dicci se sei già uscito, oppure segna dov\'è l\'auto adesso.</string>
+    <string name="notif_action_ive_left">Sono uscito</string>
+    <string name="notif_action_mark_parking">Segna parcheggio</string>
 
     <!-- Fuel block [VEH-FUEL-001] -->
     <string name="vehicle_registration_section_fuel">Carburante</string>
@@ -842,6 +864,7 @@
     <string name="fuel_peek_step_prev">Distributore precedente</string>
     <string name="fuel_peek_step_next">Distributore successivo</string>
     <string name="home_fuel_error">Non siamo riusciti a caricare i distributori. Controlla la connessione e riapri.</string>
+    <string name="home_fuel_too_far">Mostriamo i distributori solo entro %1$d km da te. Avvicina la mappa per vederli.</string>
     <string name="home_fuel_no_prices">In questo Paese i prezzi non sono pubblicati. Questi sono i distributori vicini.</string>
     <!-- [HOME-A-PROVINCE-IS-NOT-A-REGION-AND-A-LANE-MUST-BREATHE-001] Fallback, not a verdict about the country -->
     <string name="home_fuel_prices_unavailable">I prezzi ufficiali non si sono caricati. Questi sono i distributori vicini; riprova tra un momento.</string>
@@ -854,6 +877,7 @@
     <string name="subject_free_spots">Posti</string>
     <string name="home_parkings_empty">Nessun parcheggio pubblico entro 1,5 km.</string>
     <string name="home_parkings_error">Non siamo riusciti a caricare i parcheggi. Controlla la connessione e riapri.</string>
+    <string name="home_parkings_too_far">Mostriamo i parcheggi pubblici solo entro %1$d km da te. Avvicina la mappa per vederli.</string>
     <string name="home_parkings_remembered">Nessuna connessione: questi sono i parcheggi pubblici visti qui %1$s.</string>
     <string name="parking_peek_eyebrow">Parcheggio pubblico</string>
     <string name="parking_kind_underground">Parcheggio sotterraneo</string>

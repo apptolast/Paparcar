@@ -4,7 +4,7 @@ import com.google.android.gms.location.ActivityRecognition
 import com.google.android.gms.location.LocationServices
 import com.rndeveloper.paparcar.detection.ActivityRecognitionManagerImpl
 import com.rndeveloper.paparcar.detection.DepartureEventBusImpl
-import com.rndeveloper.paparcar.detection.GeofenceEventBusImpl
+import com.rndeveloper.paparcar.detection.SharedFlowGeofenceEventBus
 import com.rndeveloper.paparcar.detection.GeofenceManagerImpl
 import com.rndeveloper.paparcar.detection.SignificantMotionMonitor
 import com.rndeveloper.paparcar.detection.WorkManagerParkingEnrichmentScheduler
@@ -43,9 +43,21 @@ val androidDetectionModule = module {
     // from the moment of parking (not the safety net's first tick) [DET-HONEST-CLOSE-001] ---
     single<DetectionStepAnchors> { AndroidDetectionStepAnchors(get(), androidContext()) }
 
+    // --- Side-record ports: thin wrappers over the existing parking_safety_net prefs (same
+    // keys, same formats) — the common contracts iOS reconstruction reads. [IOS-F0-06] ---
+    single<com.rndeveloper.paparcar.domain.detection.PendingArmRecords> {
+        com.rndeveloper.paparcar.detection.AndroidPendingArmRecords(androidContext())
+    }
+    single<com.rndeveloper.paparcar.domain.detection.ExitDeliveryRecords> {
+        com.rndeveloper.paparcar.detection.AndroidExitDeliveryRecords(androidContext())
+    }
+    single<com.rndeveloper.paparcar.domain.detection.ArrivalResolutionRecord> {
+        com.rndeveloper.paparcar.detection.AndroidArrivalResolutionRecord(androidContext())
+    }
+
     // --- Geofence ---
     single { LocationServices.getGeofencingClient(androidContext()) }
-    single<GeofenceEventBus> { GeofenceEventBusImpl() }
+    single<GeofenceEventBus> { SharedFlowGeofenceEventBus() }
     single<GeofenceManager> { GeofenceManagerImpl(androidContext(), get(), get()) }
 
     // --- Departure Detection ---

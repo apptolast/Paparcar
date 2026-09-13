@@ -1,6 +1,7 @@
 package com.rndeveloper.paparcar.di
 
 import android.content.Context
+import com.apptolast.baselogin.di.loginPresentationModule
 import kotlin.test.Test
 import kotlin.test.assertTrue
 import org.koin.core.annotation.KoinExperimentalAPI
@@ -36,6 +37,7 @@ class MockKoinModuleVerifyTest {
     /** The mock graph, assembled exactly as `MockPaparcarApp.startKoin` lists it. */
     private val mockGraph = module {
         includes(
+            loginPresentationModule,
             presentationModule,
             domainModule, // includes(detectionModule)
             mockModule,
@@ -55,6 +57,17 @@ class MockKoinModuleVerifyTest {
                 Function1::class,
                 // verify() unwraps `List<T>` to its element type; the list itself is built inline.
                 com.rndeveloper.paparcar.domain.repository.UserScopedRepository::class,
+                // OPTIONAL ports: consumers take them nullable and the module fills them with
+                // `getOrNull()` — the mock graph leaves them unbound on purpose (the catalog needs no
+                // trip memory). If one ever becomes a required `get()`, the prod verify in `:shared`
+                // catches it. [IOS-A-PARITY-TAIL-001]
+                com.rndeveloper.paparcar.domain.detection.ports.DrivingRouteStore::class,
+                com.rndeveloper.paparcar.domain.diagnostics.LocalDiagnosticsLog::class,
+                com.rndeveloper.paparcar.domain.detection.ports.TripTrail::class,
+                // [IOS-F0-03] `DeviceCapabilities` is built from literals in mockModule; verify()
+                // reflects its constructor and reads the Boolean as an unbound dependency. A bare
+                // Boolean is never a legitimate binding, so no real gap can hide behind this.
+                Boolean::class,
             ),
         )
     }
@@ -76,6 +89,12 @@ class MockKoinModuleVerifyTest {
             "FuelStationsSource",
             "VehicleRepository",
             "AppPreferences",
+            // Bound only in platform modules the mock graph never loads until
+            // [IOS-DI-A-MOCK-GRAPH-ONLY-PROD-IS-VERIFIED-001] — and its consumers, which crashed Home.
+            "DeviceCapabilities",
+            "EvaluateDetectionReliabilityUseCase",
+            "SettingsViewModel",
+            "PermissionsViewModel",
         )
         roots.forEach { root ->
             assertTrue(

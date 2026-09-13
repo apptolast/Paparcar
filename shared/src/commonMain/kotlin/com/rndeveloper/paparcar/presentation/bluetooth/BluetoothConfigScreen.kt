@@ -1,5 +1,6 @@
 package com.rndeveloper.paparcar.presentation.bluetooth
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rndeveloper.paparcar.ui.components.PapCollapsingTopBarScaffold
 import com.rndeveloper.paparcar.ui.components.PapListItem
 import androidx.compose.foundation.layout.Arrangement
@@ -45,7 +46,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.rndeveloper.paparcar.domain.model.bluetooth.BluetoothDeviceInfo
 import com.rndeveloper.paparcar.domain.model.bluetooth.BluetoothDeviceType
-import com.rndeveloper.paparcar.presentation.util.collectAsStateLifecycleAware
 import com.rndeveloper.paparcar.ui.components.PapBottomActionBar
 import com.rndeveloper.paparcar.ui.components.PapFooterButton
 import com.rndeveloper.paparcar.ui.components.PapOutlinedCard
@@ -77,7 +77,7 @@ fun BluetoothConfigScreen(
     onNavigateBack: () -> Unit,
     viewModel: BluetoothConfigViewModel = koinViewModel(parameters = { parametersOf(vehicleId) }),
 ) {
-    val state by viewModel.state.collectAsStateLifecycleAware()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val errorFallback = stringResource(Res.string.error_unknown)
     val lifecycleOwner = LocalLifecycleOwner.current

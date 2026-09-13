@@ -1706,6 +1706,20 @@ fun PaparcarMapView(
     val heldMarkers = remember { arrayOfNulls<List<Marker>>(1) }
     if (!userTouchingMap) heldMarkers[0] = staticMarkers
     val allMarkers = if (userTouchingMap) (heldMarkers[0] ?: staticMarkers) else staticMarkers
+    // ⛔ While the list is held, the handlers of the HELD markers must stay registered. Holding only
+    // the list let an answer landing mid-drag rebuild the handlers for the NEW pins while the map still
+    // drew the OLD ones — contentIds with no handler, i.e. markers that no longer matched the sheet
+    // until the finger lifted. A superset, not a frozen copy: a contentId bakes its whole visual, so an
+    // id means the same bitmap in either map, and the live puck (not held) keeps its fresh handler.
+    // [NEARBY-ONE-STORE-FOLLOWS-THE-CAMERA-001]
+    val heldMarkerContent = remember { arrayOfNulls<Map<String, @Composable (Marker) -> Unit>>(1) }
+    if (!userTouchingMap) heldMarkerContent[0] = customMarkerContent
+    val heldContent = heldMarkerContent[0]
+    val draggingMarkerContent = remember(heldContent, customMarkerContent) {
+        if (heldContent == null || heldContent === customMarkerContent) customMarkerContent
+        else heldContent + customMarkerContent
+    }
+    val allMarkerContent = if (userTouchingMap) draggingMarkerContent else customMarkerContent
 
     // The moving driving puck as a LiveMarker: its position/rotation are the observable State the fork
     // reads in its OWN scope and glides natively — so the puck moving at any fix rate never recomposes
@@ -1796,7 +1810,7 @@ fun PaparcarMapView(
             liveMarkers = puckLiveMarkers,
             circles = zoneCircles,
             polylines = tripPolylines.value,
-            customMarkerContent = customMarkerContent,
+            customMarkerContent = allMarkerContent,
             onCircleClick = { circle ->
                 // Circles carry no id, so we recover the zone by its centre coords
                 // (the same coords-keyed lookup the marker tap uses). Marker taps

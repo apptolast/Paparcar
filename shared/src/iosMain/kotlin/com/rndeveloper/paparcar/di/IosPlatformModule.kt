@@ -11,6 +11,7 @@ import com.rndeveloper.paparcar.domain.bluetooth.BluetoothScanner
 import com.rndeveloper.paparcar.diagnostics.IosDeviceInfoProvider
 import com.rndeveloper.paparcar.domain.connectivity.ConnectivityObserver
 import com.rndeveloper.paparcar.domain.diagnostics.DeviceInfoProvider
+import com.rndeveloper.paparcar.domain.model.DeviceCapabilities
 import com.rndeveloper.paparcar.domain.location.LocationDataSource
 import com.rndeveloper.paparcar.domain.geocoder.GeocoderDataSource
 import com.rndeveloper.paparcar.domain.notification.AppNotificationManager
@@ -52,14 +53,21 @@ val iosPlatformModule = module {
     // ⛔ Places NO está aquí: era una copia literal de la de Android [IOS-PLACES-001], y esa copia es
     // exactamente el motivo por el que el failover de espejos se arregló en una y no en la otra.
     // Vive en commonMain y se registra en `dataModule`. [OVERPASS-A-SINGLE-MIRROR-HAS-NO-FAILOVER-001]
+    // Road network, lo mismo: `OverpassRoadNetworkDataSource` (commonMain) sirve a las dos
+    // plataformas desde `dataModule`, y con él el map-matching en vivo de iOS. [IOS-A-PARITY-TAIL-001]
 
     // Notifications — real iOS implementation (UNUserNotificationCenter)
-    single<AppNotificationManager> { IosAppNotificationManagerImpl() }
+    single<AppNotificationManager> { IosAppNotificationManagerImpl(appPreferences = get()) }
 
     // Permissions — real iOS implementation (CLLocationManager + CoreMotion + UserNotifications)
     single<PermissionManager> { IosPermissionManagerImpl() }
     // OEM autostart whitelist — no iOS equivalent, stub always reports "not required"
     single<OemBackgroundReliabilityManager> { IosOemBackgroundReliabilityManagerImpl() }
+
+    // Platform capabilities — iOS offers NEITHER reliability remedy: BT Classic ACL events are
+    // invisible to third-party apps and no battery-exemption concept exists. Tier ceiling =
+    // ASSISTED; the evaluator reads both legs as N/A (no issues, no impossible CTAs). [IOS-F0-03]
+    single { DeviceCapabilities(supportsBtStrategy = false, supportsBatteryExemption = false) }
 
     // Preferences — real iOS implementation (NSUserDefaults)
     single<AppPreferences> { IosAppPreferences() }
